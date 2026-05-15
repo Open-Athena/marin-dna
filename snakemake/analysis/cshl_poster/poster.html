@@ -91,10 +91,8 @@ body {
 
 /* ─── Header strip ─── */
 .header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
-  column-gap: 0.6in;
+  position: relative;
+  text-align: center;
   border-bottom: 3px solid var(--text);
   padding-bottom: 0.35in;
 }
@@ -107,35 +105,34 @@ body {
   letter-spacing: -0.01em;
 }
 .header .authors {
-  font-size: 30pt;
+  font-size: 32pt;
   font-weight: 400;
-  margin: 0 0 0.05in 0;
-}
-.header .authors .me { font-weight: 700; }
-.header .affiliation {
-  font-size: 24pt;
-  color: var(--text-light);
   margin: 0;
 }
-.header .header-right {
+/* OA lockup: wordmark stacked next to logo (mirrors openathena.ai/).
+   Absolutely positioned so it doesn't push the centered title off-center. */
+.header .lockup {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
   display: flex;
-  flex-direction: column;
-  align-items: end;
-  gap: 0.18in;
+  align-items: center;
+  gap: 0.2in;
 }
-.header .logo {
-  height: 1.4in;
-  width: auto;
-}
-.header .meeting {
-  text-align: right;
-  font-size: 22pt;
-  color: var(--text-light);
-  line-height: 1.25;
-}
-.header .meeting strong {
+.header .lockup .wordmark {
+  font-family: var(--font-heading);
+  font-size: 64pt;
+  font-weight: 400;
+  line-height: 0.95;
   color: var(--text);
-  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-align: right;
+}
+.header .lockup .wordmark span { display: block; }
+.header .lockup .logo {
+  height: 1.6in;
+  width: auto;
 }
 
 /* ─── Pipeline strip (intro + methods combined as one visual) ─── */
@@ -402,17 +399,11 @@ body {
 
   <!-- ─── HEADER ─── -->
   <header class="header">
-    <div class="header-left">
-      <h1>Data curation strategies for genomic language models</h1>
-      <p class="authors"><span class="me">Gonzalo Benegas</span>, Eric Czech</p>
-      <p class="affiliation">Open Athena, New York, NY</p>
-    </div>
-    <div class="header-right">
+    <h1>Data curation strategies for genomic language models</h1>
+    <p class="authors">Gonzalo Benegas, Eric Czech</p>
+    <div class="lockup">
+      <div class="wordmark"><span>Open</span><span>Athena</span></div>
       <img class="logo" src="figs/icons/open-athena.svg" alt="Open Athena">
-      <p class="meeting">
-        <strong>CSHL 90<sup>th</sup> Symposium · AI in Biology</strong><br>
-        May 26–31, 2026
-      </p>
     </div>
   </header>
 
