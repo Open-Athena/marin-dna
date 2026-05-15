@@ -1,25 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3600 760" preserveAspectRatio="xMidYMid meet">
-  <style>
-    .ink   { fill: #1f1e1b; }
-    .muted { fill: #7a7a7a; }
-    .accent{ fill: #9e6d43; }
-    .gold  { fill: #BFA77A; }
-    .bg-card    { fill: #D1C8C0; stroke: #B5A898; stroke-width: 2; }
-    .bg-card-hi { fill: #f5efe6; stroke: #9e6d43; stroke-width: 4; }
-    .title { font-family: 'Herbik', Georgia, serif; font-size: 42px; }
-    .body  { font-family: 'Lato', sans-serif; font-size: 28px; }
-    .mono  { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 30px; letter-spacing: 0.04em; }
-    .mono-sm { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 26px; letter-spacing: 0.04em; }
-    .math  { font-family: 'STIX Two Math', 'Times New Roman', serif; font-style: italic; }
-    .small { font-family: 'Lato', sans-serif; font-size: 22px; }
-    .micro { font-family: 'Lato', sans-serif; font-size: 20px; }
-    .stamp { font-family: 'Lato', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-    .arrow { stroke: #1f1e1b; stroke-width: 6; fill: none; }
-    .base-a { fill: #9e6d43; }
-    .base-c { fill: #2d4a3e; }
-    .base-g { fill: #4a5d8a; }
-    .base-t { fill: #7a3b2e; }
-  </style>
+  <defs>
+    <style>
+      .ink   { fill: #1f1e1b; }
+      .muted { fill: #7a7a7a; }
+      .accent{ fill: #9e6d43; }
+      .gold  { fill: #BFA77A; }
+      /* Palette discipline: 1.5px = neutral, 2px = emphasised, 3px = highlighted. */
+      .bg-card    { fill: #D1C8C0; stroke: #B5A898; stroke-width: 1.5; }
+      .bg-card-hi { fill: #f5efe6; stroke: #9e6d43; stroke-width: 3; }
+      .title { font-family: 'Herbik', Georgia, serif; font-size: 42px; }
+      .body  { font-family: 'Lato', sans-serif; font-size: 28px; }
+      .mono  { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 30px; letter-spacing: 0.04em; }
+      .mono-sm { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 26px; letter-spacing: 0.04em; }
+      .math  { font-family: 'STIX Two Math', 'Times New Roman', serif; font-style: italic; }
+      .small { font-family: 'Lato', sans-serif; font-size: 22px; }
+      .micro { font-family: 'Lato', sans-serif; font-size: 20px; }
+      .stamp { font-family: 'Lato', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+      .arrow-line { stroke: #1f1e1b; stroke-width: 3; fill: none; }
+      .base-a { fill: #9e6d43; }
+      .base-c { fill: #2d4a3e; }
+      .base-g { fill: #4a5d8a; }
+      .base-t { fill: #7a3b2e; }
+    </style>
+    <!-- Reusable arrowhead marker for the DATA → MODEL → EVAL flow. -->
+    <marker id="arrowhead" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L0,14 L14,7 z" fill="#1f1e1b"/>
+    </marker>
+  </defs>
 
   <!-- Tagline -->
   <text x="1800" y="50" text-anchor="middle" class="title ink">
@@ -31,7 +38,7 @@
   <!-- DATA card (highlighted: the variable)       -->
   <!-- ═══════════════════════════════════════════ -->
   <g transform="translate(40, 100)">
-    <rect class="bg-card-hi" x="0" y="0" width="1180" height="640" rx="20"/>
+    <rect class="bg-card-hi" x="0" y="0" width="1180" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp accent">data — what we vary</text>
 
@@ -49,7 +56,7 @@
         <text x="50" y="142" text-anchor="middle" class="micro muted">(distal regulatory)</text>
 
         <!-- Looping arc from enhancer top to promoter top -->
-        <path d="M 50 44 Q 250 -34 360 44" stroke="#9e6d43" stroke-width="2.5" stroke-dasharray="6 4" fill="none"/>
+        <path d="M 50 44 Q 250 -34 360 44" stroke="#9e6d43" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
         <text x="200" y="-12" text-anchor="middle" class="micro" fill="#9e6d43" font-style="italic">~10–1000 kb away</text>
 
         <!-- Intergenic gap (dotted line) -->
@@ -68,7 +75,7 @@
         <!-- CDS exon 1 -->
         <rect x="460" y="44" width="130" height="36" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.5"/>
         <!-- intron (thin line connecting exons) -->
-        <line x1="590" y1="62" x2="680" y2="62" stroke="#1f1e1b" stroke-width="2.5"/>
+        <line x1="590" y1="62" x2="680" y2="62" stroke="#1f1e1b" stroke-width="2"/>
         <!-- intron caret -->
         <polyline points="615,62 635,52 655,62" stroke="#1f1e1b" stroke-width="2" fill="none"/>
         <!-- CDS exon 2 -->
@@ -94,17 +101,17 @@
            human target sits inside the primates clade. -->
       <g transform="translate(20, 42)">
         <!-- Outermost: animals (~700 Mya) -->
-        <rect x="0"   y="0"   width="980" height="200" fill="none" stroke="#9e6d43" stroke-width="2.5" stroke-dasharray="6 4" rx="10"/>
+        <rect x="0"   y="0"   width="980" height="200" fill="none" stroke="#9e6d43" stroke-width="2" stroke-dasharray="6 4" rx="10"/>
         <text x="20"  y="-8" class="small" fill="#9e6d43" font-weight="700">animals</text>
         <text x="125" y="-8" class="micro muted">~700 Mya · all metazoans</text>
 
         <!-- Vertebrates (~500 Mya) -->
-        <rect x="50"  y="28"  width="880" height="144" fill="none" stroke="#9e6d43" stroke-width="2.5" rx="10" opacity="0.75"/>
+        <rect x="50"  y="28"  width="880" height="144" fill="none" stroke="#9e6d43" stroke-width="2" rx="10" opacity="0.75"/>
         <text x="70"  y="20" class="small" fill="#9e6d43" font-weight="700">vertebrates</text>
         <text x="208" y="20" class="micro muted">~500 Mya · + fish, reptiles, birds</text>
 
         <!-- Mammals (~100 Mya) -->
-        <rect x="100" y="56" width="780" height="88" fill="none" stroke="#9e6d43" stroke-width="2.5" rx="10" opacity="0.85"/>
+        <rect x="100" y="56" width="780" height="88" fill="none" stroke="#9e6d43" stroke-width="2" rx="10" opacity="0.85"/>
         <text x="120" y="48" class="small" fill="#9e6d43" font-weight="700">mammals</text>
         <text x="240" y="48" class="micro muted">~100 Mya · + rodents, carnivores, …</text>
 
@@ -125,16 +132,13 @@
   </g>
 
   <!-- Arrow DATA → MODEL -->
-  <g transform="translate(1230, 420)">
-    <line class="arrow" x1="0" y1="0" x2="120" y2="0"/>
-    <polygon points="120,0 100,-14 100,14" class="ink"/>
-  </g>
+  <line class="arrow-line" x1="1230" y1="420" x2="1350" y2="420" marker-end="url(#arrowhead)"/>
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- MODEL card                                  -->
   <!-- ═══════════════════════════════════════════ -->
   <g transform="translate(1370, 100)">
-    <rect class="bg-card" x="0" y="0" width="1000" height="640" rx="20"/>
+    <rect class="bg-card" x="0" y="0" width="1000" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp muted">model</text>
 
@@ -174,7 +178,7 @@
 
     <!-- BIG centered formula: P(x_t | x_<t) -->
     <g transform="translate(500, 380)">
-      <rect x="-240" y="-44" width="480" height="80" fill="none" stroke="#9e6d43" stroke-width="3" rx="12" stroke-dasharray="0"/>
+      <rect x="-240" y="-44" width="480" height="80" fill="none" stroke="#9e6d43" stroke-width="3" rx="10" stroke-dasharray="0"/>
       <text x="0" y="14" text-anchor="middle" class="math ink" font-size="56">
         P( x<tspan baseline-shift="sub" font-size="34">t</tspan>
         <tspan> | x</tspan>
@@ -219,16 +223,13 @@
   </g>
 
   <!-- Arrow MODEL → EVAL -->
-  <g transform="translate(2380, 420)">
-    <line class="arrow" x1="0" y1="0" x2="120" y2="0"/>
-    <polygon points="120,0 100,-14 100,14" class="ink"/>
-  </g>
+  <line class="arrow-line" x1="2380" y1="420" x2="2500" y2="420" marker-end="url(#arrowhead)"/>
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- EVALUATION card                             -->
   <!-- ═══════════════════════════════════════════ -->
   <g transform="translate(2520, 100)">
-    <rect class="bg-card" x="0" y="0" width="1040" height="640" rx="20"/>
+    <rect class="bg-card" x="0" y="0" width="1040" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp muted">evaluation — variant effect prediction</text>
 
