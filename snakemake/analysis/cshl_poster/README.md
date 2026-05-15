@@ -55,7 +55,8 @@ Every headline number on the poster should trace back to a notebook / pipeline /
 
 | Figure / number | Status | Source |
 | --- | --- | --- |
-| Headline `0.77 vs 0.57` AUPRC | from abstract | TraitGym promoter VEP, 6M region-specific vs Evo 2 40B — TODO: pin to specific `scripts/evo2_eval/traitgym_v2_metrics.py` parquet output + commit. |
+| Pipeline schematic (data → Qwen → eval) | drawn from scratch in SVG | — |
+| Headline `0.77 vs 0.57` AUPRC (badge inside R1) | from abstract | TraitGym promoter VEP, 6M region-specific vs Evo 2 40B — TODO: pin to specific `scripts/evo2_eval/traitgym_v2_metrics.py` parquet output + commit. |
 | R1 (region-specific beats 40B) | placeholder | TODO |
 | R2 (balanced sampling) | placeholder | TODO |
 | T1 (mammals optimal for promoters) | placeholder | TODO |

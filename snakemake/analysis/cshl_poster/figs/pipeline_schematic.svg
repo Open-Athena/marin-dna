@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3600 720" preserveAspectRatio="xMidYMid meet">
+  <style>
+    .ink   { fill: #1f1e1b; }
+    .muted { fill: #7a7a7a; }
+    .accent{ fill: #9e6d43; }
+    .gold  { fill: #BFA77A; }
+    .bg-card    { fill: #D1C8C0; stroke: #B5A898; stroke-width: 2; }
+    .bg-card-hi { fill: #f5efe6; stroke: #9e6d43; stroke-width: 4; }
+    .title { font-family: 'Herbik', Georgia, serif; font-size: 42px; }
+    .body  { font-family: 'Lato', sans-serif; font-size: 28px; }
+    .mono  { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 30px; letter-spacing: 0.04em; }
+    .mono-sm { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 26px; letter-spacing: 0.04em; }
+    .small { font-family: 'Lato', sans-serif; font-size: 22px; }
+    .micro { font-family: 'Lato', sans-serif; font-size: 20px; }
+    .stamp { font-family: 'Lato', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .arrow { stroke: #1f1e1b; stroke-width: 6; fill: none; }
+    .base-a { fill: #9e6d43; }
+    .base-c { fill: #2d4a3e; }
+    .base-g { fill: #4a5d8a; }
+    .base-t { fill: #7a3b2e; }
+  </style>
+
+  <!-- Tagline above the pipeline -->
+  <text x="1800" y="50" text-anchor="middle" class="title ink">
+    <tspan>Architecture and evaluation are held fixed —</tspan>
+    <tspan class="accent" font-weight="700"> we ask what to train on.</tspan>
+  </text>
+
+  <!-- ─── DATA card (highlighted) ─── -->
+  <g transform="translate(60, 110)">
+    <rect class="bg-card-hi" x="0" y="0" width="1080" height="560" rx="20"/>
+
+    <text x="30" y="60" class="stamp accent">data — what we vary</text>
+
+    <!-- DNA sequences -->
+    <g transform="translate(30, 100)" class="mono ink">
+      <text y="34"><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan><tspan class="base-t">T</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-t">T</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan><tspan class="base-a">A</tspan><tspan class="base-t">T</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-t">T</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-t">T</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan>…</text>
+      <text y="76"><tspan class="base-g">G</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-t">T</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-t">T</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-t">T</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-t">T</tspan>…</text>
+      <text y="118"><tspan class="base-c">C</tspan><tspan class="base-t">T</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-t">T</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-c">C</tspan><tspan class="base-t">T</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan><tspan class="base-g">G</tspan><tspan class="base-a">A</tspan><tspan class="base-c">C</tspan><tspan class="base-g">G</tspan><tspan class="base-a">A</tspan><tspan class="base-t">T</tspan><tspan class="base-c">C</tspan><tspan class="base-a">A</tspan>…</text>
+    </g>
+
+    <!-- Two axes of variation -->
+    <g transform="translate(30, 280)">
+      <text x="0" y="0" class="body ink" font-weight="700">▸ functional regions</text>
+      <g transform="translate(20, 26)">
+        <rect x="0"   y="0" width="55"  height="22" fill="#9e6d43" stroke="#1f1e1b" stroke-width="1.5"/>
+        <rect x="65"  y="0" width="90"  height="22" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.5"/>
+        <rect x="165" y="0" width="45"  height="22" fill="#6b5b3e" stroke="#1f1e1b" stroke-width="1.5"/>
+        <rect x="220" y="0" width="65"  height="22" fill="#4a5d8a" stroke="#1f1e1b" stroke-width="1.5"/>
+        <text x="300" y="18" class="micro muted">promoter / CDS / UTR / ncRNA</text>
+      </g>
+
+      <text x="0" y="110" class="body ink" font-weight="700">▸ evolutionary timescales</text>
+      <g transform="translate(20, 136)">
+        <text x="0"   y="18" class="small ink">primates</text>
+        <text x="180" y="18" class="small ink">mammals</text>
+        <text x="370" y="18" class="small ink">vertebrates</text>
+        <text x="580" y="18" class="small ink">animals</text>
+        <line x1="-6" y1="32" x2="700" y2="32" stroke="#9e6d43" stroke-width="3"/>
+        <polygon points="700,32 686,25 686,39" fill="#9e6d43"/>
+      </g>
+
+      <text x="0" y="230" class="small muted">→ region × timescale grid (the two axes we sweep)</text>
+    </g>
+  </g>
+
+  <!-- Arrow DATA → MODEL -->
+  <g transform="translate(1140, 390)">
+    <line class="arrow" x1="0" y1="0" x2="140" y2="0"/>
+    <polygon points="140,0 118,-14 118,14" class="ink"/>
+  </g>
+
+  <!-- ─── MODEL card ─── -->
+  <g transform="translate(1300, 110)">
+    <rect class="bg-card" x="0" y="0" width="980" height="560" rx="20"/>
+
+    <text x="30" y="60" class="stamp muted">model — held fixed</text>
+
+    <!-- Visual: stacked transformer blocks -->
+    <g transform="translate(310, 110)">
+      <rect x="0" y="0"   width="360" height="40" fill="#1f1e1b" rx="5"/>
+      <rect x="0" y="50"  width="360" height="40" fill="#2e2c29" rx="5"/>
+      <rect x="0" y="100" width="360" height="40" fill="#1f1e1b" rx="5"/>
+      <rect x="0" y="150" width="360" height="40" fill="#2e2c29" rx="5"/>
+      <text x="180" y="27"  text-anchor="middle" class="small" fill="#BFA77A">attention</text>
+      <text x="180" y="77"  text-anchor="middle" class="small" fill="#BFA77A">MLP</text>
+      <text x="180" y="127" text-anchor="middle" class="small" fill="#BFA77A">attention</text>
+      <text x="180" y="177" text-anchor="middle" class="small" fill="#BFA77A">MLP</text>
+
+      <text x="385" y="105" class="body ink">× N</text>
+    </g>
+
+    <!-- Spec list -->
+    <g transform="translate(40, 360)" class="body ink">
+      <text y="0">▸ <tspan font-weight="700">Qwen architecture</tspan> (autoregressive)</text>
+      <text y="44">▸ <tspan font-weight="700">6M – 1.7B</tspan> parameters</text>
+      <text y="88">▸ next-token prediction on raw DNA</text>
+      <text y="132">▸ FWD + reverse-complement averaging</text>
+    </g>
+  </g>
+
+  <!-- Arrow MODEL → EVAL -->
+  <g transform="translate(2280, 390)">
+    <line class="arrow" x1="0" y1="0" x2="140" y2="0"/>
+    <polygon points="140,0 118,-14 118,14" class="ink"/>
+  </g>
+
+  <!-- ─── EVAL card ─── -->
+  <g transform="translate(2440, 110)">
+    <rect class="bg-card" x="0" y="0" width="1100" height="560" rx="20"/>
+
+    <text x="30" y="60" class="stamp muted">eval — held fixed</text>
+
+    <!-- Variant scoring visualization -->
+    <g transform="translate(40, 110)">
+      <text y="38" class="mono ink">
+        <tspan>…ACGT</tspan><tspan class="base-c" font-weight="700">C</tspan><tspan>ATGCGATC…</tspan>
+      </text>
+      <text y="84" class="mono ink">
+        <tspan>…ACGT</tspan><tspan class="base-t" font-weight="700">T</tspan><tspan>ATGCGATC…</tspan>
+      </text>
+      <text x="0" y="124" class="small muted">reference vs alternate allele → log-likelihood ratio</text>
+    </g>
+
+    <!-- Datasets list -->
+    <g transform="translate(40, 320)" class="body ink">
+      <text y="0">▸ <tspan font-weight="700">ClinVar</tspan> — pathogenic vs benign</text>
+      <text y="44">▸ <tspan font-weight="700">TraitGym</tspan> — trait-associated vs control</text>
+      <text y="88">▸ zero-shot, per region subset</text>
+      <text y="132">▸ metric: <tspan class="accent" font-weight="700">AUPRC</tspan></text>
+    </g>
+  </g>
+
+</svg>
