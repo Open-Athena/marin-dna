@@ -43,7 +43,6 @@ figs/
   qr-repo.svg / qr-contact.svg          # QR codes
   icons/
     oa-logo.svg                         # OA lockup (text + icon) from openathena.ai
-    dna.svg, tree.svg, chart.svg, brain.svg
 fonts/
   Herbik-Regular.ttf                    # OA heading font (self-hosted)
 README.md
@@ -65,16 +64,18 @@ Every headline number on the poster should trace back to a notebook / pipeline /
 
 ## Brand assets — pinned commits
 
-The poster mirrors the openathena.ai website brand. Sources are commit-pinned so re-fetches reproduce exactly.
+The poster mirrors the openathena.ai website brand. The website is the
+single source of truth; everything below is vendored from the same
+commit so re-fetches reproduce exactly.
 
-- **Palette + Plotly colorway**: `Open-Athena/open-athena.github.io@ba5e9bfc8287896cdfb74952388707ec082b3ea4`
-  - CSS custom properties (`--bg`, `--accent`, `--font-heading`, …) copied from `/static/css/style.css`.
-  - 8-colour data-viz palette copied from the inline Plotly defaults of `/blog/delphi/`.
-- **Herbik-Regular.ttf** (heading font): same repo, same commit, `/static/assets/fonts/Herbik-Regular.ttf`. License: © 2024 Daniel Veneklaas (vendored under the same terms as the website).
-- **OA logo lockup** (`oa-logo.svg`): `Open-Athena/open-athena.github.io@ba5e9bfc8287896cdfb74952388707ec082b3ea4`, `/static/assets/images/logo.svg` — same asset the website uses in its nav bar.
-- **Icons**: `Open-Athena/oa-slidev-theme@45fffa42e4a3f74663d6690f81db1a5814b34b09`, `/public/icons/` — `dna.svg`, `tree.svg`, `chart.svg`, `brain.svg`.
+Source repo: `Open-Athena/open-athena.github.io@ba5e9bfc8287896cdfb74952388707ec082b3ea4`.
+
+- **Palette** — CSS custom properties (`--bg`, `--accent`, `--font-heading`, …) copied verbatim from `/static/css/style.css`.
+- **Plotly colorway** — the 8-colour data-viz palette taken from the inline Plotly defaults block of `/blog/delphi/` (the closest peer artifact to a poster).
+- **Herbik-Regular.ttf** (heading font) — vendored from `/static/assets/fonts/Herbik-Regular.ttf`. © 2024 Daniel Veneklaas (vendored under the same terms as the website).
+- **OA logo lockup** (`oa-logo.svg`) — vendored from `/static/assets/images/logo.svg`, the same asset the website uses in its nav bar.
 - **Lato** loaded from Google Fonts at view time.
-- **Authoring voice** follows the OA blog-post `SKILL.md` at `Open-Athena/open-athena.github.io/.claude/skills/blog-post/SKILL.md` — sober numbers over adjectives, results-first sentences, no AI-explainer cadence.
+- **Authoring voice** follows `/.claude/skills/blog-post/SKILL.md` — sober numbers over adjectives, results-first sentences, no AI-explainer cadence.
 
 ## Things still to wire up before submission
 
