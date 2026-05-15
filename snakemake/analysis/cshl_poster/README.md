@@ -42,7 +42,7 @@ figs/
   phylo_schematic.svg                   # right-column schematic
   qr-repo.svg / qr-contact.svg          # QR codes
   icons/
-    open-athena.svg                     # OA logo
+    oa-logo.svg                         # OA lockup (text + icon) from openathena.ai
     dna.svg, tree.svg, chart.svg, brain.svg
 fonts/
   Herbik-Regular.ttf                    # OA heading font (self-hosted)
@@ -71,7 +71,8 @@ The poster mirrors the openathena.ai website brand. Sources are commit-pinned so
   - CSS custom properties (`--bg`, `--accent`, `--font-heading`, …) copied from `/static/css/style.css`.
   - 8-colour data-viz palette copied from the inline Plotly defaults of `/blog/delphi/`.
 - **Herbik-Regular.ttf** (heading font): same repo, same commit, `/static/assets/fonts/Herbik-Regular.ttf`. License: © 2024 Daniel Veneklaas (vendored under the same terms as the website).
-- **Icons**: `Open-Athena/oa-slidev-theme@45fffa42e4a3f74663d6690f81db1a5814b34b09`, `/public/icons/` — `open-athena.svg`, `dna.svg`, `tree.svg`, `chart.svg`, `brain.svg`.
+- **OA logo lockup** (`oa-logo.svg`): `Open-Athena/open-athena.github.io@ba5e9bfc8287896cdfb74952388707ec082b3ea4`, `/static/assets/images/logo.svg` — same asset the website uses in its nav bar.
+- **Icons**: `Open-Athena/oa-slidev-theme@45fffa42e4a3f74663d6690f81db1a5814b34b09`, `/public/icons/` — `dna.svg`, `tree.svg`, `chart.svg`, `brain.svg`.
 - **Lato** loaded from Google Fonts at view time.
 - **Authoring voice** follows the OA blog-post `SKILL.md` at `Open-Athena/open-athena.github.io/.claude/skills/blog-post/SKILL.md` — sober numbers over adjectives, results-first sentences, no AI-explainer cadence.
 
