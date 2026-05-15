@@ -111,15 +111,17 @@ body {
 }
 /* OA lockup — the exact /assets/images/logo.svg from openathena.ai/
    (Open-Athena/open-athena.github.io). Absolutely positioned so it
-   doesn't push the centered title off-center. */
+   doesn't push the centered title off-center. Vertical center aligned
+   with the h1 center using a calc on the h1 line height. */
 .header .lockup {
   position: absolute;
-  top: 50%;
   right: 0;
-  transform: translateY(-50%);
+  /* h1 center sits at ~0.7in from header top (96pt × 1.05 line height ÷ 2);
+     subtract half the logo height to center the lockup on the title. */
+  top: calc(0.7in - 0.9in);
 }
 .header .lockup .logo {
-  height: 2.0in;
+  height: 1.8in;
   width: auto;
   display: block;
 }
