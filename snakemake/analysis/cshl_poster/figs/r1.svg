@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+  <style>
+    .axis { stroke: #1f1e1b; stroke-width: 2; fill: none; }
+    .tick { stroke: #1f1e1b; stroke-width: 1.5; }
+    .label { font-family: 'Lato', sans-serif; font-size: 22px; fill: #1f1e1b; }
+    .small { font-family: 'Lato', sans-serif; font-size: 18px; fill: #1f1e1b; }
+    .muted { fill: #7a7a7a; }
+    .placeholder { font-family: 'Herbik', Georgia, serif; font-size: 28px; fill: #7a7a7a; font-style: italic; }
+  </style>
+  <!-- Plot area background hint -->
+  <rect x="0" y="0" width="800" height="500" fill="#D1C8C0"/>
+
+  <!-- Y axis -->
+  <line class="axis" x1="120" y1="60" x2="120" y2="420"/>
+  <!-- X axis -->
+  <line class="axis" x1="120" y1="420" x2="760" y2="420"/>
+
+  <!-- Y-axis ticks + grid -->
+  <g>
+    <line class="tick" x1="115" y1="420" x2="120" y2="420"/>
+    <text class="small" x="105" y="426" text-anchor="end">0.0</text>
+    <line class="tick" x1="115" y1="330" x2="120" y2="330"/>
+    <text class="small" x="105" y="336" text-anchor="end">0.25</text>
+    <line class="tick" x1="115" y1="240" x2="120" y2="240"/>
+    <text class="small" x="105" y="246" text-anchor="end">0.50</text>
+    <line class="tick" x1="115" y1="150" x2="120" y2="150"/>
+    <text class="small" x="105" y="156" text-anchor="end">0.75</text>
+    <line class="tick" x1="115" y1="60"  x2="120" y2="60"/>
+    <text class="small" x="105" y="66"  text-anchor="end">1.00</text>
+  </g>
+
+  <!-- Bars: Evo 2 40B (cool color) vs Ours 6M region-specific (copper) -->
+  <!-- 0.57 → y = 420 - (0.57 / 1.0) * 360 = 214.8 -->
+  <rect x="220" y="215" width="180" height="205" fill="#2d4a3e"/>
+  <text class="label" x="310" y="200" text-anchor="middle">0.57</text>
+  <text class="small" x="310" y="450" text-anchor="middle">Evo 2 (40B)</text>
+  <text class="small muted" x="310" y="475" text-anchor="middle">whole-genome baseline</text>
+
+  <!-- 0.77 → y = 420 - 0.77 * 360 = 142.8 -->
+  <rect x="480" y="143" width="180" height="277" fill="#9e6d43"/>
+  <text class="label" x="570" y="128" text-anchor="middle">0.77</text>
+  <text class="small" x="570" y="450" text-anchor="middle">Ours (6M)</text>
+  <text class="small muted" x="570" y="475" text-anchor="middle">promoter-specific</text>
+
+  <!-- Y axis label -->
+  <text class="label" x="60" y="240" text-anchor="middle" transform="rotate(-90 60 240)">AUPRC (TraitGym, promoter)</text>
+
+  <!-- Placeholder tag -->
+  <text class="placeholder" x="780" y="80" text-anchor="end">placeholder</text>
+</svg>

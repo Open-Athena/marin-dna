@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+  <style>
+    .axis { stroke: #1f1e1b; stroke-width: 2; fill: none; }
+    .tick { stroke: #1f1e1b; stroke-width: 1.5; }
+    .label { font-family: 'Lato', sans-serif; font-size: 22px; fill: #1f1e1b; }
+    .small { font-family: 'Lato', sans-serif; font-size: 18px; fill: #1f1e1b; }
+    .muted { fill: #7a7a7a; }
+    .placeholder { font-family: 'Herbik', Georgia, serif; font-size: 28px; fill: #7a7a7a; font-style: italic; }
+    .legend { font-family: 'Lato', sans-serif; font-size: 18px; fill: #1f1e1b; }
+  </style>
+  <rect x="0" y="0" width="800" height="500" fill="#D1C8C0"/>
+
+  <!-- Y axis -->
+  <line class="axis" x1="120" y1="60" x2="120" y2="420"/>
+  <!-- X axis -->
+  <line class="axis" x1="120" y1="420" x2="760" y2="420"/>
+
+  <!-- Y-axis ticks -->
+  <g>
+    <line class="tick" x1="115" y1="420" x2="120" y2="420"/>
+    <text class="small" x="105" y="426" text-anchor="end">0.0</text>
+    <line class="tick" x1="115" y1="330" x2="120" y2="330"/>
+    <text class="small" x="105" y="336" text-anchor="end">0.25</text>
+    <line class="tick" x1="115" y1="240" x2="120" y2="240"/>
+    <text class="small" x="105" y="246" text-anchor="end">0.50</text>
+    <line class="tick" x1="115" y1="150" x2="120" y2="150"/>
+    <text class="small" x="105" y="156" text-anchor="end">0.75</text>
+    <line class="tick" x1="115" y1="60"  x2="120" y2="60"/>
+    <text class="small" x="105" y="66"  text-anchor="end">1.00</text>
+  </g>
+
+  <!-- Two groups of bars: CDS and Promoter. Each group has naive-union (brick) and balanced (copper). -->
+  <!-- CDS group at x≈250, Promoter group at x≈540 -->
+  <!-- Bar widths 80, gap 10 between two bars in a group -->
+
+  <!-- CDS — naive union: 0.70 -->
+  <rect x="200" y="168" width="80" height="252" fill="#7a3b2e"/>
+  <text class="small" x="240" y="158" text-anchor="middle">0.70</text>
+  <!-- CDS — balanced: 0.72 -->
+  <rect x="290" y="161" width="80" height="259" fill="#9e6d43"/>
+  <text class="small" x="330" y="151" text-anchor="middle">0.72</text>
+  <text class="label" x="285" y="450" text-anchor="middle">CDS</text>
+
+  <!-- Promoter — naive union: 0.42 (low!) -->
+  <rect x="490" y="269" width="80" height="151" fill="#7a3b2e"/>
+  <text class="small" x="530" y="259" text-anchor="middle">0.42</text>
+  <!-- Promoter — balanced: 0.74 -->
+  <rect x="580" y="154" width="80" height="266" fill="#9e6d43"/>
+  <text class="small" x="620" y="144" text-anchor="middle">0.74</text>
+  <text class="label" x="575" y="450" text-anchor="middle">Promoter</text>
+
+  <!-- Y axis label -->
+  <text class="label" x="60" y="240" text-anchor="middle" transform="rotate(-90 60 240)">AUPRC</text>
+
+  <!-- Legend -->
+  <g>
+    <rect x="600" y="70"  width="22" height="22" fill="#7a3b2e"/>
+    <text class="legend" x="632" y="88">naive union</text>
+    <rect x="600" y="100" width="22" height="22" fill="#9e6d43"/>
+    <text class="legend" x="632" y="118">balanced sampling</text>
+  </g>
+
+  <text class="placeholder" x="780" y="490" text-anchor="end">placeholder</text>
+</svg>

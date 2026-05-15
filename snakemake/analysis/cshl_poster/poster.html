@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data curation strategies for genomic language models — CSHL 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+/* ─── OA brand palette (from openathena.ai/static/css/style.css) ─── */
+:root {
+  --bg:         #BDB1A5;
+  --bg-light:   #ada297;
+  --text:       #1f1e1b;
+  --text-light: #b5aa9f;
+  --accent:     #9e6d43;
+  --fig-frame-outer: #A99B8D;
+  --fig-frame-inner: #D1C8C0;
+  --font-heading: 'Herbik', Georgia, sans-serif;
+  --font-body:    'Lato', sans-serif;
+
+  /* Poster type scale — body legible at 1m physical viewing distance. */
+  --fs-body: 24pt;
+  --fs-caption: 22pt;
+  --fs-small: 18pt;
+  --fs-h2: 44pt;
+  --fs-h3: 32pt;
+  --fs-h1: 96pt;
+  --fs-headline-num: 180pt;
+}
+
+@font-face {
+  font-family: 'Herbik';
+  src: url('fonts/Herbik-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@page { size: 44in 44in; margin: 0; }
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  width: 44in;
+  height: 44in;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* On-screen preview: shrink the native 44in × 44in poster to fit a normal
+   browser viewport. We use `transform: scale` so @media print is unaffected
+   (the PDF render stays full size). The .screen-shell wrapper reserves the
+   scaled footprint in normal flow; body lives inside it positioned absolute
+   so we can transform without leaving a 44in-wide layout hole. */
+@media screen {
+  html { background: #2e2c29; }
+  html, body { min-height: 100%; }
+  body {
+    position: relative;
+    transform: scale(var(--screen-scale, 0.25));
+    transform-origin: top left;
+    box-shadow: 0 0 80px rgba(0,0,0,0.4);
+    /* Counter-collapse: body's intrinsic 44in × 44in is way bigger than
+       viewport, but transform doesn't update layout-flow size. We force
+       html scroll size to the post-transform dimensions via margin trick. */
+    margin-right: calc(44in * (var(--screen-scale, 0.25) - 1));
+    margin-bottom: calc(44in * (var(--screen-scale, 0.25) - 1));
+  }
+}
+
+.poster {
+  width: 100%;
+  height: 100%;
+  padding: 1.0in 1.2in;
+  display: grid;
+  /* 6 rows: header, intro, headline-callout, body (flex), methods, conclusions.
+     minmax(0, 1fr) lets the body section shrink below its intrinsic content
+     size so the figures don't overflow the 44in × 44in canvas. */
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  row-gap: 0.5in;
+  overflow: hidden;
+}
+
+/* ─── Header strip ─── */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  column-gap: 0.6in;
+  border-bottom: 3px solid var(--text);
+  padding-bottom: 0.35in;
+}
+.header h1 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: var(--fs-h1);
+  line-height: 1.05;
+  margin: 0 0 0.18in 0;
+  letter-spacing: -0.01em;
+}
+.header .authors {
+  font-size: 30pt;
+  font-weight: 400;
+  margin: 0 0 0.05in 0;
+}
+.header .authors .me { font-weight: 700; }
+.header .affiliation {
+  font-size: 24pt;
+  color: var(--text-light);
+  margin: 0;
+}
+.header .header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  gap: 0.18in;
+}
+.header .logo {
+  height: 1.4in;
+  width: auto;
+}
+.header .meeting {
+  text-align: right;
+  font-size: 22pt;
+  color: var(--text-light);
+  line-height: 1.25;
+}
+.header .meeting strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ─── Intro banner ─── */
+.intro {
+  background: var(--bg-light);
+  border-radius: 14px;
+  padding: 0.4in 0.5in;
+  font-size: 26pt;
+  line-height: 1.4;
+}
+.intro p { margin: 0; }
+.intro p + p { margin-top: 0.2in; }
+
+/* ─── Two-column body ─── */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.6in;
+  min-height: 0;
+  overflow: hidden;
+}
+.col {
+  display: grid;
+  /* 4 rows: section header (h2), schematic (compact), 2 figure panels (equal flex). */
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
+  row-gap: 0.35in;
+  min-height: 0;
+}
+.col h2 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: var(--fs-h2);
+  margin: 0 0 0.1in 0;
+  letter-spacing: -0.005em;
+  padding-bottom: 0.12in;
+  border-bottom: 2px dashed var(--accent);
+}
+.col h2 .num {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.55em;
+  vertical-align: 0.18em;
+  color: var(--accent);
+  margin-right: 0.18em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.schematic {
+  background: var(--fig-frame-outer);
+  border-radius: 14px;
+  padding: 0.18in;
+  height: 2.5in;          /* compact strip; aspect-fits the chromosome/phylo SVGs */
+}
+.schematic img,
+.schematic svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: var(--fig-frame-inner);
+  border-radius: 10px;
+}
+
+/* ─── Finding panels (R1/R2/T1/T2) ─── */
+.panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.18in;
+  min-height: 0;
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.22in;
+}
+.panel-head .tag {
+  font-family: var(--font-body);
+  font-weight: 900;
+  font-size: var(--fs-h3);
+  color: var(--accent);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+.panel-head .title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3);
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0;
+}
+.panel-caption {
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  margin: 0;
+}
+.panel-caption .emph {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ─── Figure frame (Delphi-style) ─── */
+.fig {
+  background: var(--fig-frame-outer);
+  border-radius: 14px;
+  padding: 0.22in;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.15in;
+}
+.fig-title {
+  font-family: var(--font-heading);
+  color: var(--text);
+  font-size: var(--fs-caption);
+  font-weight: 400;
+  text-align: center;
+  margin: 0;
+}
+.fig-canvas {
+  background: var(--fig-frame-inner);
+  border-radius: 10px;
+  padding: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.fig-canvas img,
+.fig-canvas svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+/* ─── Headline callout (the 0.77 vs 0.57 number) ─── */
+.headline-callout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.4in;
+  background: var(--fig-frame-inner);
+  border: 3px dashed var(--accent);
+  border-radius: 16px;
+  padding: 0.3in 0.5in;
+  margin-bottom: 0.1in;
+}
+.headline-callout .num {
+  font-family: var(--font-heading);
+  font-size: var(--fs-headline-num);
+  font-weight: 400;
+  color: var(--accent);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+}
+.headline-callout .num .vs {
+  font-size: 0.35em;
+  color: var(--text-light);
+  vertical-align: 0.45em;
+  margin: 0 0.05em;
+  letter-spacing: 0.04em;
+}
+.headline-callout .num .baseline {
+  color: var(--text-light);
+}
+.headline-callout .label {
+  font-size: var(--fs-caption);
+  line-height: 1.3;
+}
+.headline-callout .label strong { font-weight: 700; }
+.headline-callout .label .unit {
+  display: block;
+  color: var(--text-light);
+  font-size: 0.85em;
+  margin-top: 0.06in;
+}
+
+/* ─── Bottom strips: methods + conclusions ─── */
+.strip {
+  background: var(--text);
+  color: #f5efe6;
+  border-radius: 14px;
+  padding: 0.4in 0.55in;
+  display: grid;
+  column-gap: 0.6in;
+}
+.strip h3 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: var(--fs-h3);
+  color: #BFA77A;
+  margin: 0 0 0.15in 0;
+  letter-spacing: 0.005em;
+}
+.strip p, .strip li {
+  font-size: 22pt;
+  line-height: 1.42;
+  margin: 0 0 0.08in 0;
+  color: #D5CBBD;
+}
+.strip ul {
+  margin: 0;
+  padding-left: 1.1em;
+}
+.strip strong { color: #f5efe6; }
+.strip .col { gap: 0.12in; }
+
+.methods { grid-template-columns: 1fr 1fr 1fr; }
+.conclusions { grid-template-columns: 2fr 1fr; column-gap: 0.7in; }
+.conclusions .contact {
+  border-left: 2px dashed #BFA77A;
+  padding-left: 0.55in;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.25in;
+  align-items: center;
+  row-gap: 0.18in;
+}
+.conclusions .contact .qr {
+  width: 1.4in;
+  height: 1.4in;
+  background: #f5efe6;
+  border-radius: 8px;
+  padding: 0.05in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.conclusions .contact .qr img,
+.conclusions .contact .qr svg { width: 100%; height: 100%; display: block; }
+.conclusions .contact .qr-label {
+  font-size: 18pt;
+  color: #D5CBBD;
+  line-height: 1.3;
+}
+.conclusions .contact .qr-label strong {
+  display: block;
+  color: #f5efe6;
+  font-weight: 700;
+  margin-bottom: 0.02in;
+}
+
+/* ─── Utility ─── */
+.emph { color: var(--accent); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <!-- ─── HEADER ─── -->
+  <header class="header">
+    <div class="header-left">
+      <h1>Data curation strategies for genomic language models</h1>
+      <p class="authors"><span class="me">Gonzalo Benegas</span>, Eric Czech</p>
+      <p class="affiliation">Open Athena, New York, NY</p>
+    </div>
+    <div class="header-right">
+      <img class="logo" src="figs/icons/open-athena.svg" alt="Open Athena">
+      <p class="meeting">
+        <strong>CSHL 90<sup>th</sup> Symposium · AI in Biology</strong><br>
+        May 26–31, 2026
+      </p>
+    </div>
+  </header>
+
+  <!-- ─── INTRO / MOTIVATION ─── -->
+  <section class="intro">
+    <p>
+      Pretraining data composition is a known lever for language-model performance, but
+      no study has systematically curated data for <strong>genomic language models</strong>.
+      We train autoregressive Transformers from <strong>6M to 1.7B parameters</strong> and
+      vary two axes: <span class="emph">functional regions</span> of the genome and the
+      <span class="emph">evolutionary timescale</span> of training species. Across ClinVar
+      and TraitGym zero-shot variant-effect tasks, both axes matter — and well-curated
+      small models can outrun much larger ones.
+    </p>
+  </section>
+
+  <!-- ─── HEADLINE CALLOUT ─── -->
+  <section class="headline-callout">
+    <div class="num">
+      0.77<span class="vs">vs</span><span class="baseline">0.57</span>
+    </div>
+    <div class="label">
+      <strong>TraitGym promoter AUPRC</strong> — our <strong>6M-parameter</strong> region-specific
+      gLM beats the <strong>40B-parameter</strong> Evo 2 baseline on zero-shot variant effect.
+      <span class="unit">smaller, focused training data > larger, undifferentiated training data.</span>
+    </div>
+  </section>
+
+  <!-- ─── TWO-COLUMN BODY ─── -->
+  <section class="body">
+
+    <!-- Left column: Functional regions -->
+    <div class="col">
+      <h2><span class="num">A.</span>Functional regions</h2>
+
+      <div class="schematic" id="chromosome-schematic">
+        <!-- inline chromosome cartoon goes here in step 11 -->
+        <img src="figs/chromosome_schematic.svg" alt="Chromosome with functional regions">
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">R1</span>
+          <p class="title">Region-specific small models beat a 40B baseline on promoters.</p>
+        </div>
+        <p class="panel-caption">
+          A <span class="emph">6M-parameter</span> gLM trained on promoter sequences reaches
+          <span class="emph">0.77 AUPRC</span> on TraitGym promoter variant effect, versus
+          <span class="emph">0.57</span> for the 40B-parameter Evo 2 trained on the whole genome.
+          Specialisation, not scale, drives the gap.
+        </p>
+        <figure class="fig">
+          <p class="fig-title">TraitGym promoter AUPRC — region-specific vs Evo 2</p>
+          <div class="fig-canvas"><img src="figs/r1.svg" alt="Figure R1"></div>
+        </figure>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">R2</span>
+          <p class="title">Balanced sampling fixes the naive-union failure mode.</p>
+        </div>
+        <p class="panel-caption">
+          A model trained on the <span class="emph">naive union</span> of CDS and promoter
+          sequences performs poorly on promoters — they are <span class="emph">less abundant</span>
+          and noisier. <span class="emph">Balanced sampling</span> across regions closes the gap
+          without retraining region-specific models.
+        </p>
+        <figure class="fig">
+          <p class="fig-title">Naive-union vs balanced sampling, per region</p>
+          <div class="fig-canvas"><img src="figs/r2.svg" alt="Figure R2"></div>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Right column: Evolutionary timescales -->
+    <div class="col">
+      <h2><span class="num">B.</span>Evolutionary timescales</h2>
+
+      <div class="schematic" id="phylo-schematic">
+        <!-- inline phylogenetic tree goes here in step 11 -->
+        <img src="figs/phylo_schematic.svg" alt="Phylogenetic timescales">
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">T1</span>
+          <p class="title">Mammals are the right timescale for promoter models.</p>
+        </div>
+        <p class="panel-caption">
+          For <span class="emph">promoters</span>, training on mammalian genomes outperforms
+          both narrower (primates) and broader (animals) timescales — a sweet spot between
+          diversity and evolutionary relevance to human regulation.
+        </p>
+        <figure class="fig">
+          <p class="fig-title">Promoter AUPRC vs evolutionary timescale</p>
+          <div class="fig-canvas"><img src="figs/t1.svg" alt="Figure T1"></div>
+        </figure>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">T2</span>
+          <p class="title">CDS prefers a wider timescale — animals beat mammals.</p>
+        </div>
+        <p class="panel-caption">
+          For <span class="emph">coding sequences</span>, the optimum shifts outward:
+          training on <span class="emph">animals</span> (a longer evolutionary timescale)
+          beats mammals. Coding regions evolve slowly enough that distant homologs still
+          carry usable signal.
+        </p>
+        <figure class="fig">
+          <p class="fig-title">CDS AUPRC vs evolutionary timescale</p>
+          <div class="fig-canvas"><img src="figs/t2.svg" alt="Figure T2"></div>
+        </figure>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── METHODS STRIP ─── -->
+  <section class="strip methods">
+    <div class="col">
+      <h3>Models</h3>
+      <ul>
+        <li>Autoregressive Transformers, <strong>6M – 1.7B</strong> parameters.</li>
+        <li>Region-specific and mixed-region variants.</li>
+        <li>Trained on per-timescale species subsets (primates → animals).</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Data</h3>
+      <ul>
+        <li>Genome FASTA from species at varying evolutionary distance.</li>
+        <li>Region masks for CDS / promoter / UTR / ncRNA.</li>
+        <li>Balanced sampling vs naive union (R2).</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Evaluation</h3>
+      <ul>
+        <li><strong>Zero-shot</strong> variant effect prediction.</li>
+        <li><strong>ClinVar</strong> + <strong>TraitGym</strong> (promoter / CDS subsets).</li>
+        <li>AUPRC on pathogenic-vs-benign and trait-associated-vs-control.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─── CONCLUSIONS + CONTACT ─── -->
+  <section class="strip conclusions">
+    <div class="col conclusions-text">
+      <h3>Takeaways</h3>
+      <ul>
+        <li>For gLMs, <strong>what you train on</strong> outranks <strong>how big you train</strong>: a 6M region-specific model beats a 40B whole-genome model on promoters.</li>
+        <li><strong>Balanced sampling</strong> is the cheap way to get region-specific behaviour without paying for a separate model per region.</li>
+        <li><strong>Region × timescale interacts</strong>: promoters favour mammals; CDS favours animals. Treat the training corpus as a curation decision, not a scale-up decision.</li>
+        <li><strong>Future work</strong>: principled timescale selection, projection-based curation, cross-species transfer.</li>
+      </ul>
+    </div>
+    <div class="contact">
+      <div class="qr"><img src="figs/qr-repo.svg" alt="QR to GitHub repo"></div>
+      <div class="qr-label">
+        <strong>Code &amp; experiments</strong>
+        github.com/Open-Athena/bolinas-dna
+      </div>
+      <div class="qr"><img src="figs/qr-contact.svg" alt="QR to contact email"></div>
+      <div class="qr-label">
+        <strong>Contact</strong>
+        gonzalo.benegas@openathena.ai
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

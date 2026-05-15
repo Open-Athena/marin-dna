@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+  <style>
+    .axis { stroke: #1f1e1b; stroke-width: 2; fill: none; }
+    .tick { stroke: #1f1e1b; stroke-width: 1.5; }
+    .label { font-family: 'Lato', sans-serif; font-size: 22px; fill: #1f1e1b; }
+    .small { font-family: 'Lato', sans-serif; font-size: 18px; fill: #1f1e1b; }
+    .muted { fill: #7a7a7a; }
+    .line { stroke: #9e6d43; stroke-width: 4; fill: none; }
+    .marker { fill: #9e6d43; }
+    .star { fill: #9e6d43; }
+    .placeholder { font-family: 'Herbik', Georgia, serif; font-size: 28px; fill: #7a7a7a; font-style: italic; }
+  </style>
+  <rect x="0" y="0" width="800" height="500" fill="#D1C8C0"/>
+
+  <!-- Y axis -->
+  <line class="axis" x1="120" y1="60" x2="120" y2="420"/>
+  <!-- X axis -->
+  <line class="axis" x1="120" y1="420" x2="760" y2="420"/>
+
+  <!-- Y-axis ticks (AUPRC 0.4–0.85) -->
+  <g>
+    <line class="tick" x1="115" y1="420" x2="120" y2="420"/>
+    <text class="small" x="105" y="426" text-anchor="end">0.40</text>
+    <line class="tick" x1="115" y1="330" x2="120" y2="330"/>
+    <text class="small" x="105" y="336" text-anchor="end">0.50</text>
+    <line class="tick" x1="115" y1="240" x2="120" y2="240"/>
+    <text class="small" x="105" y="246" text-anchor="end">0.60</text>
+    <line class="tick" x1="115" y1="150" x2="120" y2="150"/>
+    <text class="small" x="105" y="156" text-anchor="end">0.70</text>
+    <line class="tick" x1="115" y1="60"  x2="120" y2="60"/>
+    <text class="small" x="105" y="66"  text-anchor="end">0.80</text>
+  </g>
+
+  <!-- X-axis: timescales -->
+  <g>
+    <line class="tick" x1="220" y1="420" x2="220" y2="425"/>
+    <text class="small" x="220" y="450" text-anchor="middle">primates</text>
+    <line class="tick" x1="380" y1="420" x2="380" y2="425"/>
+    <text class="small" x="380" y="450" text-anchor="middle">mammals</text>
+    <line class="tick" x1="540" y1="420" x2="540" y2="425"/>
+    <text class="small" x="540" y="450" text-anchor="middle">vertebrates</text>
+    <line class="tick" x1="700" y1="420" x2="700" y2="425"/>
+    <text class="small" x="700" y="450" text-anchor="middle">animals</text>
+  </g>
+  <text class="small muted" x="440" y="478" text-anchor="middle">narrower ← timescale → broader</text>
+
+  <!-- Curve: peak at mammals.
+       primates: 0.62 → y = 420 - (0.62-0.40)/0.40*360 = 420 - 198 = 222
+       mammals:  0.77 → y = 420 - 0.37/0.40*360 = 420 - 333 = 87
+       vertebrates: 0.68 → 420 - 0.28/0.40*360 = 420 - 252 = 168
+       animals:   0.60 → 420 - 0.20/0.40*360 = 420 - 180 = 240  -->
+  <path class="line" d="M 220 222 Q 300 80 380 87 Q 460 110 540 168 Q 620 210 700 240"/>
+  <circle class="marker" cx="220" cy="222" r="8"/>
+  <circle class="marker" cx="380" cy="87"  r="8"/>
+  <circle class="marker" cx="540" cy="168" r="8"/>
+  <circle class="marker" cx="700" cy="240" r="8"/>
+
+  <!-- Star on optimum -->
+  <text class="label" x="380" y="70" text-anchor="middle" style="font-weight:700; fill:#9e6d43;">★ optimum</text>
+
+  <!-- Y axis label -->
+  <text class="label" x="60" y="240" text-anchor="middle" transform="rotate(-90 60 240)">Promoter AUPRC</text>
+
+  <text class="placeholder" x="780" y="490" text-anchor="end">placeholder</text>
+</svg>
