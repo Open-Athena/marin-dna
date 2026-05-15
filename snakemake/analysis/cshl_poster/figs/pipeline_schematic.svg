@@ -145,31 +145,31 @@
 
     <!-- ─── Visual: context + predicted next base + distribution ─── -->
     <g transform="translate(60, 170)">
-      <!-- Context bases (color-coded; dim to indicate "given") -->
+      <!-- Context bases (color-coded; dim to indicate "given").
+           Each base placed with explicit x= so the dashed box doesn't drift. -->
       <text class="mono ink" y="34" opacity="0.85">
-        <tspan class="base-a">A</tspan>
-        <tspan class="base-c" dx="6">C</tspan>
-        <tspan class="base-g" dx="6">G</tspan>
-        <tspan class="base-t" dx="6">T</tspan>
-        <tspan class="base-c" dx="6">C</tspan>
-        <tspan class="base-a" dx="6">A</tspan>
-        <tspan class="base-t" dx="6">T</tspan>
-        <tspan class="base-g" dx="6">G</tspan>
+        <tspan x="0"   class="base-a">A</tspan>
+        <tspan x="38"  class="base-c">C</tspan>
+        <tspan x="76"  class="base-g">G</tspan>
+        <tspan x="114" class="base-t">T</tspan>
+        <tspan x="152" class="base-c">C</tspan>
+        <tspan x="190" class="base-a">A</tspan>
       </text>
-      <!-- "given" bracket -->
-      <path d="M -2 50 L -2 56 L 246 56 L 246 50" stroke="#1f1e1b" stroke-width="2" fill="none"/>
-      <text x="122" y="82" text-anchor="middle" class="micro muted">left-context (already seen)</text>
+      <!-- "given" bracket under the context -->
+      <path d="M -4 50 L -4 56 L 220 56 L 220 50" stroke="#1f1e1b" stroke-width="2" fill="none"/>
+      <text x="108" y="82" text-anchor="middle" class="micro muted">left-context (already seen)</text>
 
-      <!-- Predicted position: dashed box -->
-      <rect x="262" y="2" width="40" height="44" fill="none" stroke="#9e6d43" stroke-width="3" stroke-dasharray="6 4" rx="3"/>
-      <text x="282" y="34" text-anchor="middle" class="mono accent" font-weight="700">?</text>
-      <text x="282" y="82" text-anchor="middle" class="micro accent" font-weight="700">predict</text>
+      <!-- Predicted position: dashed box, clearly after the context -->
+      <rect x="252" y="2" width="40" height="44" fill="none" stroke="#9e6d43" stroke-width="3" stroke-dasharray="6 4" rx="3"/>
+      <text x="272" y="34" text-anchor="middle" class="mono accent" font-weight="700">?</text>
+      <text x="272" y="82" text-anchor="middle" class="micro accent" font-weight="700">predict</text>
     </g>
 
-    <!-- Arrow down to distribution -->
-    <g transform="translate(282, 290)">
-      <line stroke="#1f1e1b" stroke-width="3" x1="60" y1="0" x2="60" y2="36"/>
-      <polygon points="60,46 50,32 70,32" fill="#1f1e1b"/>
+    <!-- Arrow down from the predicted "?" to the formula.
+         The "?" sits at model-card x = 60 (inner-group translate) + 272 (? x) = 332. -->
+    <g transform="translate(332, 290)">
+      <line stroke="#1f1e1b" stroke-width="3" x1="0" y1="0" x2="0" y2="36"/>
+      <polygon points="0,46 -10,32 10,32" fill="#1f1e1b"/>
     </g>
 
     <!-- BIG centered formula: P(x_t | x_<t) -->
@@ -183,27 +183,33 @@
       </text>
     </g>
 
-    <!-- Distribution bars under the formula -->
-    <g transform="translate(150, 460)">
-      <text x="0" y="-6" class="micro muted">example distribution at the predicted position:</text>
-      <g class="mono-sm">
-        <text x="0" y="26">A</text>
-        <rect x="34" y="10" width="280" height="20" fill="#9e6d43"/>
-        <text x="324" y="26" class="micro muted">0.70</text>
+    <!-- Distribution as a vertical-bar histogram, centered under the formula.
+         Heights = probability × 100; baseline at y=70. -->
+    <g transform="translate(300, 440)">
+      <text x="200" y="-14" text-anchor="middle" class="micro muted">example distribution at the predicted position</text>
 
-        <text x="380" y="26">C</text>
-        <rect x="414" y="10" width="56" height="20" fill="#9e6d43" opacity="0.55"/>
-        <text x="480" y="26" class="micro muted">0.14</text>
-      </g>
-      <g class="mono-sm" transform="translate(0, 38)">
-        <text x="0" y="26">G</text>
-        <rect x="34" y="10" width="40" height="20" fill="#9e6d43" opacity="0.4"/>
-        <text x="84" y="26" class="micro muted">0.10</text>
+      <!-- baseline -->
+      <line x1="0" y1="70" x2="400" y2="70" stroke="#1f1e1b" stroke-width="2"/>
 
-        <text x="380" y="26">T</text>
-        <rect x="414" y="10" width="24" height="20" fill="#9e6d43" opacity="0.35"/>
-        <text x="448" y="26" class="micro muted">0.06</text>
-      </g>
+      <!-- A: P=0.70, height 70 -->
+      <rect x="20"  y="0"  width="60" height="70" fill="#9e6d43"/>
+      <text x="50"  y="-2" text-anchor="middle" class="micro" fill="#9e6d43" font-weight="700">0.70</text>
+      <text x="50"  y="96" text-anchor="middle" class="mono-sm ink">A</text>
+
+      <!-- C: P=0.14, height 14 -->
+      <rect x="120" y="56" width="60" height="14" fill="#9e6d43" opacity="0.6"/>
+      <text x="150" y="48" text-anchor="middle" class="micro muted">0.14</text>
+      <text x="150" y="96" text-anchor="middle" class="mono-sm ink">C</text>
+
+      <!-- G: P=0.10, height 10 -->
+      <rect x="220" y="60" width="60" height="10" fill="#9e6d43" opacity="0.45"/>
+      <text x="250" y="52" text-anchor="middle" class="micro muted">0.10</text>
+      <text x="250" y="96" text-anchor="middle" class="mono-sm ink">G</text>
+
+      <!-- T: P=0.06, height 6 -->
+      <rect x="320" y="64" width="60" height="6"  fill="#9e6d43" opacity="0.35"/>
+      <text x="350" y="56" text-anchor="middle" class="micro muted">0.06</text>
+      <text x="350" y="96" text-anchor="middle" class="mono-sm ink">T</text>
     </g>
 
     <!-- Spec list -->
