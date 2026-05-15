@@ -113,12 +113,13 @@
         <text x="170" y="76" class="small" fill="#9e6d43" font-weight="700">primates</text>
         <text x="285" y="76" class="micro muted">~65 Mya · + apes, monkeys</text>
 
-        <!-- Human target (inside primates), star marker + inline label -->
-        <g transform="translate(710, 100)">
+        <!-- Human target (inside primates), star marker + inline label.
+             Marker + label kept inside the primates rect (x range 150-830). -->
+        <g transform="translate(620, 100)">
           <circle r="13" fill="#9e6d43"/>
           <text x="0" y="6" text-anchor="middle" font-size="18" fill="#f5efe6" font-weight="700">★</text>
         </g>
-        <text x="730" y="105" class="micro" fill="#1f1e1b" font-weight="700">human (target)</text>
+        <text x="640" y="105" class="micro" fill="#1f1e1b" font-weight="700">human (target)</text>
       </g>
     </g>
   </g>
@@ -225,30 +226,30 @@
 
     <text x="30" y="55" class="stamp muted">evaluation — variant effect prediction</text>
 
-    <!-- A single context with the variant position highlighted; REF + ALT stacked. -->
+    <!-- A single context with the variant position highlighted; REF + ALT stacked.
+         Variant base placed with explicit x= for guaranteed alignment with the
+         highlight box (avoiding mono-font dx-spacing drift). -->
     <g transform="translate(60, 110)">
       <!-- Row labels -->
       <text x="-10" y="34" class="small" fill="#1f1e1b" font-weight="700" text-anchor="end">ref</text>
       <text x="-10" y="86" class="small" fill="#1f1e1b" font-weight="700" text-anchor="end">alt</text>
 
-      <!-- Left context, variant base, right context — same indent in both rows -->
-      <g class="mono ink">
-        <text y="34">
-          <tspan>…ACGTC</tspan>
-          <tspan dx="8" class="base-c" font-weight="700">C</tspan>
-          <tspan dx="8">TGCGAT…</tspan>
-        </text>
-        <text y="86">
-          <tspan>…ACGTC</tspan>
-          <tspan dx="8" class="base-t" font-weight="700">T</tspan>
-          <tspan dx="8">TGCGAT…</tspan>
-        </text>
-      </g>
+      <!-- Variant-position highlight box, centered on x=200. -->
+      <rect x="178" y="6" width="44" height="100" fill="none" stroke="#9e6d43" stroke-width="3" stroke-dasharray="6 4" rx="4"/>
 
-      <!-- Variant-position highlight box -->
-      <rect x="160" y="6" width="44" height="100" fill="none" stroke="#9e6d43" stroke-width="3" stroke-dasharray="6 4" rx="4"/>
-      <text x="182" y="138" text-anchor="middle" class="micro" fill="#9e6d43" font-weight="700">variant</text>
-      <text x="182" y="160" text-anchor="middle" class="micro" fill="#9e6d43">position</text>
+      <!-- ref row: left context, variant C (centered on x=200), right context -->
+      <text class="mono ink" y="34" x="0">…ACGTC</text>
+      <text class="mono base-c" y="34" x="200" text-anchor="middle" font-weight="700">C</text>
+      <text class="mono ink" y="34" x="232">TGCGAT…</text>
+
+      <!-- alt row: same layout, alt allele T at the same x=200 -->
+      <text class="mono ink" y="86" x="0">…ACGTC</text>
+      <text class="mono base-t" y="86" x="200" text-anchor="middle" font-weight="700">T</text>
+      <text class="mono ink" y="86" x="232">TGCGAT…</text>
+
+      <!-- Variant-position label below the box, centered on the box center -->
+      <text x="200" y="138" text-anchor="middle" class="micro" fill="#9e6d43" font-weight="700">variant</text>
+      <text x="200" y="160" text-anchor="middle" class="micro" fill="#9e6d43">position</text>
     </g>
 
     <!-- LLR formula -->
