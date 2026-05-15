@@ -173,9 +173,11 @@ body {
 }
 .col {
   display: grid;
-  /* 4 rows: section header (h2), schematic (compact), 2 figure panels (equal flex). */
-  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
-  row-gap: 0.35in;
+  /* 3 rows: section header (h2), 2 figure panels (equal flex).
+     Region/timescale schematics now live only in the top DATA card so columns
+     don't repeat them. */
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+  row-gap: 0.4in;
   min-height: 0;
 }
 .col h2 {
@@ -428,11 +430,6 @@ body {
     <div class="col">
       <h2><span class="num">A.</span>Functional regions</h2>
 
-      <div class="schematic" id="chromosome-schematic">
-        <!-- inline chromosome cartoon goes here in step 11 -->
-        <img src="figs/chromosome_schematic.svg" alt="Chromosome with functional regions">
-      </div>
-
       <div class="panel">
         <div class="panel-head">
           <span class="tag">R1</span>
@@ -466,11 +463,6 @@ body {
     <!-- Right column: Evolutionary timescales -->
     <div class="col">
       <h2><span class="num">B.</span>Evolutionary timescales</h2>
-
-      <div class="schematic" id="phylo-schematic">
-        <!-- inline phylogenetic tree goes here in step 11 -->
-        <img src="figs/phylo_schematic.svg" alt="Phylogenetic timescales">
-      </div>
 
       <div class="panel">
         <div class="panel-head">

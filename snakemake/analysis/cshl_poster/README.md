@@ -61,8 +61,7 @@ Every headline number on the poster should trace back to a notebook / pipeline /
 | R2 (balanced sampling) | placeholder | TODO |
 | T1 (mammals optimal for promoters) | placeholder | TODO |
 | T2 (animals optimal for CDS) | placeholder | TODO |
-| Chromosome schematic | drawn from scratch in SVG | — |
-| Phylogenetic-tree schematic | drawn from scratch in SVG | — |
+| Functional regions + evolutionary timescales illustrations | embedded in the DATA card of `pipeline_schematic.svg` (single place, not duplicated in body) | — |
 
 ## Brand assets — pinned commits
 
