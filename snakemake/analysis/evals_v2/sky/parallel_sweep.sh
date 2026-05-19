@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Dispatch one sky cluster per snakemake target, with autostop + --down.
 #
-# Usage (invoke from the **repo root**, not from the pipeline dir):
+# Usage (invoke from anywhere — the helper cd's to the repo root):
 #   snakemake/analysis/evals_v2/sky/parallel_sweep.sh <target> [<target> ...]
 #
-# Why repo root: `run.yaml` has `workdir: .` (resolves to sky-launch CWD)
+# Why the cd: `run.yaml` has `workdir: .` (resolves to sky-launch CWD)
 # and its run script does `cd snakemake/analysis/evals_v2`, so the synced
-# workdir on the cluster must be the repo root. Calling from anywhere
-# else fails setup with `No pyproject.toml found ...` or the cd error.
+# workdir on the cluster must be the repo root or setup fails with
+# `No pyproject.toml found ...`. The helper cd's there so the caller
+# doesn't have to remember.
 #
 # Each target is a snakemake output path relative to the pipeline cwd
 # (`snakemake/analysis/evals_v2/`), e.g.
@@ -51,6 +52,20 @@ fi
 here=$(cd "$(dirname "$0")" && pwd)
 run_yaml="$here/run.yaml"
 [[ -f "$run_yaml" ]] || { echo "missing $run_yaml" >&2; exit 1; }
+
+# Cd to the repo root so `sky launch` syncs the whole repo via
+# `workdir: .` (the cluster's run script then does
+# `cd snakemake/analysis/evals_v2`). This makes the helper invariant
+# to caller cwd. Script lives at
+# `snakemake/analysis/evals_v2/sky/parallel_sweep.sh`, so the repo
+# root is 4 levels up from `$here`. Sanity-check the resolution
+# before relying on it.
+repo_root=$(cd "$here/../../../.." && pwd)
+[[ -f "$repo_root/pyproject.toml" ]] || {
+    echo "[parallel_sweep] expected pyproject.toml at $repo_root — has the helper moved?" >&2
+    exit 1
+}
+cd "$repo_root"
 
 stagger=${SKY_STAGGER:-3}
 autostop=${SKY_AUTOSTOP_MIN:-1}

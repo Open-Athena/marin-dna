@@ -97,15 +97,13 @@ or one cluster per (model, dataset) combination — use
 [`sky/parallel_sweep.sh`](sky/parallel_sweep.sh). It dispatches one
 g5.xlarge per target with `--down` on idle, and waits for all to finish.
 
-**Invoke from the repo root** (not from this pipeline dir). The helper's
-`run.yaml` has `workdir: .` which syncs the sky-launch CWD, and the
-cluster does `cd snakemake/analysis/evals_v2` after sync — so the synced
-workdir must be the repo root, or setup fails with
-`No pyproject.toml found`. Target paths are still relative to *this*
-pipeline dir (that's what the cluster's snakemake sees). Example:
+The helper `cd`s to the repo root internally, so it's safe to invoke
+from anywhere (e.g. from this pipeline dir or from `~`). Target paths
+are interpreted relative to *this* pipeline dir, since that's what the
+cluster's snakemake sees after its own `cd snakemake/analysis/evals_v2`.
+Example:
 
 ```bash
-# from the repo root
 snakemake/analysis/evals_v2/sky/parallel_sweep.sh \
   results/metrics/exp55-humans-step-16999/mendelian_traits.parquet \
   results/metrics/exp55-primates-step-16999/mendelian_traits.parquet
@@ -113,10 +111,18 @@ snakemake/analysis/evals_v2/sky/parallel_sweep.sh \
 
 Cluster name = `evals-v2-{model}` derived from the target's parent dir,
 so you can't pass `mendelian_traits` and `complex_traits` for the *same*
-model in one invocation — split into two batches. Heads up: bursting
-more g5.xlarge than `AWS_VCPU_LIMIT_us-east-2 / 4` (default 128 / 4 = 32)
-in one go will hit `VcpuLimitExceeded`; re-run the helper with the
-failed target names after others terminate.
+model in one invocation — split into two batches.
+
+Two unavoidable AWS-side failure modes worth knowing about:
+
+- **`VcpuLimitExceeded`**: bursting more g5.xlarge in one invocation than
+  `vCPU_limit / 4` (us-east-2 default: 128 / 4 = 32 simultaneous
+  g5.xlarge) hits the account-level vCPU limit. Re-run the helper with
+  the failed target names after other clusters `--down`.
+- **`ResourcesUnavailableError: Failed to acquire resources in all zones
+  in us-east-2`**: occasional transient AZ saturation, even when well
+  under the vCPU limit. Single-target retry usually succeeds on the
+  next AZ rotation.
 
 ## Configuration (`config/config.yaml`)
 
