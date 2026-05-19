@@ -2,7 +2,7 @@
 
 Reads per-(method, dataset) metrics parquets emitted by the eval snakemake
 pipelines, filters by protocol / score-type, and emits one row per
-``(method, protocol, subset)`` for the dashboard. The bolinas and
+``(method, protocol, subset)`` for the dashboard. The bolinas,
 conservation, and alphagenome families emit AUPRC + cluster-bootstrap SE
 under the AUPRC migration (PRs #194/#195 for bolinas; the conservation_eval
 mirror for the seven phyloP / phastCons tracks; the alphagenome_eval mirror
