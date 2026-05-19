@@ -46,6 +46,9 @@ envs:
   NO_RC_AVG: ""    # empty = RC on (default); set to any non-empty to disable
   SUBSET: ""       # if set (e.g. "splicing"), filter the dataset to that subset
   OUTPUT_SUFFIX: ""  # optional suffix on output parquet filenames (avoid clobber)
+  DATASET_REVISION: ""  # pin HF dataset to a commit SHA / tag / branch; empty = HEAD
+  SKIP_METRICS: ""      # set to any non-empty to skip pairwise metrics (e.g. when
+                        # the dataset is 1:9 matched and pairwise PA no longer applies)
   HF_TOKEN: ""
 
 setup: |
@@ -96,6 +99,8 @@ run: |
     -e SUBSET="${SUBSET:-}" \
     -e OUTPUT_SUFFIX="${OUTPUT_SUFFIX:-}" \
     -e DATASET="${DATASET:-mendelian_traits}" \
+    -e DATASET_REVISION="${DATASET_REVISION:-}" \
+    -e SKIP_METRICS="${SKIP_METRICS:-}" \
     -e CUDA_VISIBLE_DEVICES=0 \
     -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     -e OMP_NUM_THREADS=8 \
@@ -119,6 +124,10 @@ run: |
       if [ -n "${NO_RC_AVG:-}" ]; then RC_ARG="--no-rc-avg"; fi
       SUBSET_ARG=""
       if [ -n "${SUBSET:-}" ]; then SUBSET_ARG="--subset ${SUBSET}"; fi
+      REV_ARG=""
+      if [ -n "${DATASET_REVISION:-}" ]; then REV_ARG="--dataset-revision ${DATASET_REVISION}"; fi
+      SKIP_METRICS_ARG=""
+      if [ -n "${SKIP_METRICS:-}" ]; then SKIP_METRICS_ARG="--skip-metrics"; fi
       DS_NAME="${DATASET:-mendelian_traits}"
       OUT="results/evo2_${DS_NAME}/${MODEL}_train${OUTPUT_SUFFIX:-}.parquet"
       OUT_METRICS="results/evo2_${DS_NAME}/${MODEL}_train${OUTPUT_SUFFIX:-}_metrics.parquet"
@@ -128,5 +137,5 @@ run: |
         --dataset-name "$DS_NAME" \
         --genome-path results/genome.fa.gz \
         --output "$OUT" --output-metrics "$OUT_METRICS" \
-        ${LIMIT_ARG} ${BS_ARG} ${RC_ARG} ${SUBSET_ARG}
+        ${LIMIT_ARG} ${BS_ARG} ${RC_ARG} ${SUBSET_ARG} ${REV_ARG} ${SKIP_METRICS_ARG}
     '

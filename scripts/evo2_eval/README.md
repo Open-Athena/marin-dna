@@ -36,6 +36,11 @@ rsync -avz sky-evo2-eval:/workspace/results/evo2_complex_traits/ \
   results/evo2_complex_traits/
 ```
 
+Two extra envs the YAML threads through to the eval script:
+
+- `DATASET_REVISION=<sha>` — pins the HF dataset to a specific commit / tag / branch (default: HEAD).
+- `SKIP_METRICS=1` — writes only the scores parquet and skips `PairwiseAccuracy`. Use when the dataset isn't 1:1 paired (e.g. the 1:9 design in `evals_mendelian_traits` post-#194).
+
 ### Metrics aggregation + leaderboard update
 
 ```bash

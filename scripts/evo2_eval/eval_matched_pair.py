@@ -86,6 +86,12 @@ def main() -> None:
         help="HF dataset ID. Defaults to bolinas-dna/evals_{dataset_name}.",
     )
     p.add_argument(
+        "--dataset-revision",
+        default=None,
+        help="Pin the HF dataset to a specific commit SHA / tag / branch. "
+        "Defaults to HEAD of the default branch.",
+    )
+    p.add_argument(
         "--genome-path",
         default="results/genome.fa.gz",
         help="Path to GRCh38 reference (Ensembl release-113 primary assembly).",
@@ -132,6 +138,13 @@ def main() -> None:
         help="Disable FWD+RC averaging (ablation only). Default is RC on, "
         "matching evals_v2 and the #161 leaderboard protocol.",
     )
+    p.add_argument(
+        "--skip-metrics",
+        action="store_true",
+        help="Write the scores parquet and exit; skip PairwiseAccuracy. "
+        "Use when the dataset isn't 1:1 paired (e.g. 1:9 in evals_mendelian_traits "
+        "post-#194) and the pairwise metric no longer applies.",
+    )
     args = p.parse_args()
 
     if args.dataset_hf_path is None:
@@ -142,7 +155,9 @@ def main() -> None:
     if args.output_metrics is None:
         args.output_metrics = f"{out_dir}/{args.model}_{args.split}_metrics.parquet"
 
-    ds = load_dataset(args.dataset_hf_path, split=args.split).to_pandas()
+    ds = load_dataset(
+        args.dataset_hf_path, split=args.split, revision=args.dataset_revision
+    ).to_pandas()
     missing = [c for c in REQUIRED_VARIANT_COLUMNS if c not in ds.columns]
     assert not missing, f"dataset is missing required columns: {missing}"
     assert ds["label"].isna().sum() == 0, "label column contains NaN"
@@ -201,6 +216,10 @@ def main() -> None:
         f"mean={out.llr.mean():.3f}  "
         f"jsd mean={out.next_token_jsd_mean.mean():.4f}"
     )
+
+    if args.skip_metrics:
+        print("[evo2] --skip-metrics set; skipping PairwiseAccuracy")
+        return
 
     # Score each base (minus_llr, abs_llr, next_token_jsd_mean) on its
     # avg + per-strand variants when present. Lets us verify #175's
