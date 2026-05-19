@@ -26,23 +26,23 @@ resources:
   # others have capacity. Genome and HF Hub work from any region; the user
   # is the only ssh consumer and they can stream logs from anywhere.
   any_of:
-    - {accelerators: GH200:1, region: us-east-1}
-    - {accelerators: GH200:1, region: us-east-2}
-    - {accelerators: GH200:1, region: us-east-3}
-    - {accelerators: GH200:1, region: us-midwest-1}
-    - {accelerators: GH200:1, region: us-south-1}
-    - {accelerators: GH200:1, region: us-south-2}
-    - {accelerators: GH200:1, region: us-south-3}
-    - {accelerators: GH200:1, region: us-west-1}
-    - {accelerators: GH200:1, region: us-west-2}
-    - {accelerators: GH200:1, region: us-west-3}
-    - {accelerators: GH200:1, region: europe-central-1}
-    - {accelerators: GH200:1, region: europe-south-1}
-    - {accelerators: GH200:1, region: me-west-1}
-    - {accelerators: GH200:1, region: asia-northeast-1}
-    - {accelerators: GH200:1, region: asia-northeast-2}
-    - {accelerators: GH200:1, region: asia-south-1}
-    - {accelerators: GH200:1, region: australia-east-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-east-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-east-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-east-3}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-midwest-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-south-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-south-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-south-3}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-west-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-west-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-west-3}
+    - {cloud: Lambda, accelerators: GH200:1, region: europe-central-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: europe-south-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: me-west-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: asia-northeast-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: asia-northeast-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: asia-south-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: australia-east-1}
   labels:
     project: dna
   disk_size: 256  # evo2_40b weights ~80 GB in FP8, plus genome + scratch
