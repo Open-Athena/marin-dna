@@ -12,9 +12,17 @@ rule compute_per_track_l2:
     wildcard_constraints:
         dataset="|".join(DATASETS),
     threads: config["num_workers"]
+    params:
+        # Pin the HF dataset commit. Bumping it triggers rerun via the
+        # `params:` hash. `load_dataset(revision=…)` raises
+        # `RevisionNotFoundError` on an unknown SHA — no silent fallback
+        # to `main`.
+        hf_path=lambda wc: f"{config['input_hf_prefix']}_{wc.dataset}",
+        hf_revision=lambda wc: get_dataset_config(wc.dataset)["hf_revision"],
     run:
-        hf_path = f"{config['input_hf_prefix']}_{wildcards.dataset}"
-        ds = load_dataset(hf_path, split=config["split"]).to_pandas()
+        ds = load_dataset(
+            params.hf_path, split=config["split"], revision=params.hf_revision
+        ).to_pandas()
         for col in REQUIRED_VARIANT_COLUMNS:
             assert col in ds.columns, f"dataset missing column {col!r}"
 

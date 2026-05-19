@@ -10,6 +10,6 @@ rule all:
     input:
         expand(
             "results/{dataset}/results_table_{split}.md",
-            dataset=config["datasets"],
-            split=config["splits"],
+            dataset=DATASETS,
+            split=SPLITS,
         ),

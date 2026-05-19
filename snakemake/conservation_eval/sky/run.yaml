@@ -1,12 +1,23 @@
 # SkyPilot task: run the conservation_eval pipeline on a CPU node.
 #
 # Pipeline pulls per-track bigWigs (cached in S3 from prior runs) and scores
-# variants from the HF eval datasets via single-base lookup. Train + test
-# splits both score; ~9 jobs total (3 datasets × 3 tracks per scoring rule
-# instance, then aggregation).
+# variants from the HF eval datasets via single-base lookup. After the
+# evals_v2 mirror (PR #194/#195 alignment): train split only, 2 datasets ×
+# 7 tracks = 14 score_variants jobs + 2 aggregate_metrics jobs. The HF
+# dataset commit is pinned per-dataset via `hf_revision` in
+# config/config.yaml, so snakemake's `params:` hash triggers reruns when
+# the SHA changes.
 #
-# Launch:
-#   sky launch snakemake/conservation_eval/sky/run.yaml -c conservation-eval
+# Bootstrap (one-shot, after the PA→AUPRC migration): the existing S3
+# outputs are from the legacy PairwiseAccuracy pipeline and lack recorded
+# `params:` provenance, so snakemake sees them as "up to date" until they
+# are force-rerun once. Pass the env var on first launch:
+#
+#   sky launch snakemake/conservation_eval/sky/run.yaml -c conservation-eval \
+#       --env SNAKEMAKE_ARGS="--forcerun score_variants"
+#
+# Subsequent launches (re-running on a new hf_revision, etc.) can drop the
+# env var; the recorded `params:` hash will trigger reruns automatically.
 
 name: conservation-eval
 
@@ -19,6 +30,9 @@ resources:
         project: dna
 
 workdir: .
+
+envs:
+    SNAKEMAKE_ARGS: ""           # extra snakemake args (e.g. --forcerun score_variants)
 
 setup: |
     set -euxo pipefail
@@ -36,16 +50,12 @@ run: |
 
     cd snakemake/conservation_eval
 
-    # Force-rerun scoring + aggregation so the new HF revisions of the eval
-    # datasets are actually picked up (load_dataset hits HF directly; no
-    # provenance fingerprint, so snakemake otherwise sees outputs as fresh).
-    #
     # `--cores 1` because score_variants loads a ~10 GB bigWig per task; with
-    # the profile default of 4 parallel cores on a 16 GB box that ends up
-    # OOM'ing one of the parallel jobs.
+    # the profile default of 4 parallel cores on a 16 GB box that would
+    # OOM one of the parallel jobs. Aggregation (AUPRC bootstrap) is cheap.
     uv run --project ../.. snakemake \
         --profile workflow/profiles/default \
         --cores 1 \
         --printshellcmds \
         --rerun-incomplete \
-        --forcerun score_variants
+        $SNAKEMAKE_ARGS

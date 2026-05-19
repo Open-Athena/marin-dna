@@ -1,4 +1,11 @@
-"""PairwiseAccuracy + binomial SE per (dataset)."""
+"""AUPRC + cluster-bootstrap SE per (dataset).
+
+Cluster = `match_group`; resamples groups (not rows) so the SE accounts
+for the 1:k matched structure. Output schema mirrors
+`bolinas.pipelines.evals.metrics.compute_auprc_metrics`:
+`[score_type, subset, value, se, n_groups, n_rows]` plus `_global_` and
+`_macro_avg_` aggregate rows per score_type.
+"""
 
 
 rule compute_metrics:
@@ -8,6 +15,9 @@ rule compute_metrics:
         "results/metrics/{dataset}.parquet",
     wildcard_constraints:
         dataset="|".join(DATASETS),
+    params:
+        n_bootstrap=config["n_bootstrap"],
+        bootstrap_seed=config["bootstrap_seed"],
     run:
         score_col = config["score_column"]
         df = pd.read_parquet(input[0])
@@ -17,10 +27,12 @@ rule compute_metrics:
             score_col in df.columns
         ), f"scores parquet missing score column {score_col!r}"
 
-        metrics = compute_pairwise_metrics(
+        metrics = compute_auprc_metrics(
             dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
             scores=df[[score_col]],
             score_columns=[score_col],
+            n_bootstrap=params.n_bootstrap,
+            rng=params.bootstrap_seed,
         )
         metrics["dataset"] = wildcards.dataset
         metrics["split"] = config["split"]

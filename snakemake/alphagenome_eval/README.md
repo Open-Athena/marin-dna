@@ -1,12 +1,14 @@
 # alphagenome_eval — AlphaGenome baseline on matched-pair eval datasets
 
-PairwiseAccuracy ± binomial SE for [AlphaGenome](https://github.com/google-deepmind/alphagenome)
-on the new matched-pair eval datasets
-(`bolinas-dna/evals_mendelian_traits` and `bolinas-dna/evals_complex_traits`,
-PR #159). Provides issue [#154](https://github.com/Open-Athena/bolinas-dna/issues/154)'s
+AUPRC ± cluster-bootstrap SE (cluster = `match_group`) for
+[AlphaGenome](https://github.com/google-deepmind/alphagenome) on the
+matched-pair eval datasets `bolinas-dna/evals_mendelian_traits` and
+`bolinas-dna/evals_complex_traits` (1:k matched groups, PR #194 rebuild).
+Provides issue [#154](https://github.com/Open-Athena/bolinas-dna/issues/154)'s
 baseline row for the leaderboards in
 [#161](https://github.com/Open-Athena/bolinas-dna/issues/161) and
-[#162](https://github.com/Open-Athena/bolinas-dna/issues/162).
+[#162](https://github.com/Open-Athena/bolinas-dna/issues/162). The metric
+mirrors `snakemake/analysis/evals_v2/`'s post-PR-#195 schema.
 
 ## What it does
 
@@ -21,9 +23,13 @@ For each `dataset` in `config["datasets"]`:
    columns: `alphagenome_max_l2`. The full per-track table is preserved on S3
    so the aggregation protocol can change later (e.g. per-assay) without
    re-spending the API budget.
-3. **Compute** PairwiseAccuracy ± SE per consequence subset on
-   `alphagenome_max_l2`. Same column for both datasets — L2 is
-   direction-agnostic and fits both the mendelian and complex-trait protocols.
+3. **Compute** AUPRC ± cluster-bootstrap SE per consequence subset on
+   `alphagenome_max_l2`, with `match_group` as the cluster (resamples
+   groups, not rows, so SE reflects the 1:k matched structure). Same
+   column for both datasets — L2 is direction-agnostic and fits both the
+   mendelian and complex-trait protocols. Output includes per-subset
+   rows plus `_global_` (pooled) and `_macro_avg_` (mean of qualifying
+   subsets) aggregates.
 
 ## Outputs
 
@@ -33,7 +39,7 @@ S3 bucket `s3://oa-bolinas/snakemake/alphagenome_eval/`:
 results/
 ├── per_track_l2/{dataset}.parquet    # variant cols + per-track L2 columns
 ├── scores/{dataset}.parquet          # variant cols + alphagenome_max_l2
-└── metrics/{dataset}.parquet         # PairwiseAccuracy ± SE per subset
+└── metrics/{dataset}.parquet         # AUPRC ± cluster-bootstrap SE per subset
 ```
 
 ## Conventions
@@ -110,9 +116,11 @@ uv run snakemake
 | --- | --- |
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset}"`. |
 | `split` | `train` (test held out). |
-| `datasets` | List of dataset names. |
+| `datasets` | List of `{name, hf_revision}` entries. The SHA pins the HF commit consumed; bumping it forces a re-run via snakemake's `params:` hash (re-spends API budget). SHAs mirror `snakemake/analysis/evals_v2/config/config.yaml`. |
 | `num_workers` | Threads in the API ThreadPoolExecutor. Keep ≤ 4. |
 | `score_column` | Column name written by `aggregate_max` and consumed by `compute_metrics`. |
+| `n_bootstrap` | AUPRC cluster-bootstrap iterations per subset. |
+| `bootstrap_seed` | RNG seed for the bootstrap; bumping it re-triggers `compute_metrics`. |
 
 The 7 assays, the 1MB sequence length, and `L2_DIFF_LOG1P` aggregation type
 are **code constants** in `bolinas.evals.alphagenome`, not config.
