@@ -90,6 +90,40 @@ uv run snakemake
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
+### Parallel sky-cluster sweep (one cluster per target)
+
+For a grid of independent targets — e.g. all checkpoints of one model arm,
+or one cluster per (model, dataset) combination — use
+[`sky/parallel_sweep.sh`](sky/parallel_sweep.sh). It dispatches one
+g5.xlarge per target with `--down` on idle, and waits for all to finish.
+
+The helper `cd`s to the repo root internally, so it's safe to invoke
+from anywhere (e.g. from this pipeline dir or from `~`). Target paths
+are interpreted relative to *this* pipeline dir, since that's what the
+cluster's snakemake sees after its own `cd snakemake/analysis/evals_v2`.
+Example:
+
+```bash
+snakemake/analysis/evals_v2/sky/parallel_sweep.sh \
+  results/metrics/exp55-humans-step-16999/mendelian_traits.parquet \
+  results/metrics/exp55-primates-step-16999/mendelian_traits.parquet
+```
+
+Cluster name = `evals-v2-{model}` derived from the target's parent dir,
+so you can't pass `mendelian_traits` and `complex_traits` for the *same*
+model in one invocation — split into two batches.
+
+Two unavoidable AWS-side failure modes worth knowing about:
+
+- **`VcpuLimitExceeded`**: bursting more g5.xlarge in one invocation than
+  `vCPU_limit / 4` (us-east-2 default: 128 / 4 = 32 simultaneous
+  g5.xlarge) hits the account-level vCPU limit. Re-run the helper with
+  the failed target names after other clusters `--down`.
+- **`ResourcesUnavailableError: Failed to acquire resources in all zones
+  in us-east-2`**: occasional transient AZ saturation, even when well
+  under the vCPU limit. Single-target retry usually succeeds on the
+  next AZ rotation.
+
 ## Configuration (`config/config.yaml`)
 
 | Key | Purpose |
