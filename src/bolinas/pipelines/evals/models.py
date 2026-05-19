@@ -15,15 +15,14 @@ from typing import Literal
 
 import yaml
 
-Family = Literal["bolinas", "conservation", "alphagenome", "gpn_star", "evo2"]
+Family = Literal["bolinas", "conservation", "alphagenome", "gpn_star"]
 ALL_FAMILIES: tuple[Family, ...] = (
     "bolinas",
     "conservation",
     "alphagenome",
     "gpn_star",
-    "evo2",
 )
-ALL_DATASETS: tuple[str, ...] = ("mendelian_traits", "complex_traits", "eqtl")
+ALL_DATASETS: tuple[str, ...] = ("mendelian_traits", "complex_traits")
 
 
 @dataclass(frozen=True)

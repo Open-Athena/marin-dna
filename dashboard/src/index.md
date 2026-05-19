@@ -9,7 +9,7 @@ Public, version-controlled leaderboards for genomic language models trained unde
 
 ## Leaderboards
 
-- [**Mendelian traits**](./leaderboards/mendelian) — OMIM ∪ HGMD ∪ Smedley pathogenic SNVs vs gnomAD common (`AF ≥ 5%`), 1:9 matched on consequence + chrom + continuous distance features. Sort axis: Macro Avg.
+- [**Mendelian traits**](./leaderboards/mendelian) — OMIM ∪ HGMD ∪ Smedley pathogenic SNVs (AF < 0.1%) vs gnomAD AF > 0.1%, 1:9 matched on consequence + chrom + continuous distance features. Sort axis: Macro Avg.
 - [**Complex traits**](./leaderboards/complex) — UKBB fine-mapped variants (`max(PIP) > 0.9`) vs non-fine-mapped, 1:9 matched on consequence + chrom + distance + MAF. Sort axis: Global.
 
 ## Protocols / Scoring approaches
@@ -17,7 +17,6 @@ Public, version-controlled leaderboards for genomic language models trained unde
 A model family's AUPRC depends on which score column you compute it from. These pages compare protocols head-to-head — same models, same dataset, different scoring approach.
 
 - [**Bolinas**](./protocols/bolinas) — LLR vs JSD
-- [**Evo 2**](./protocols/evo2) — LLR vs JSD
 - [**GPN-Star**](./protocols/gpn-star) — calibrated (cLLR) vs uncalibrated LLR
 
 ## Reference

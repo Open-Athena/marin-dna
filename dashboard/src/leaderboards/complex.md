@@ -30,8 +30,8 @@ const allRows = leaderboard.toArray().map(r => ({
   subset: String(r.subset),
   value: Number(r.value),
   se: Number(r.se),
-  n_pairs: Number(r.n_pairs),
-  n_ties: Number(r.n_ties),
+  n: Number(r.n),
+  n_positives: Number(r.n_positives),
   dataset: String(r.dataset),
 }));
 const complex = allRows.filter(r => r.dataset === "complex_traits");
@@ -74,7 +74,7 @@ display(html`<div class="card">
 ## Leaderboard
 
 ```js
-const families = ["bolinas", "conservation", "alphagenome", "gpn_star", "evo2"];
+const families = ["bolinas", "conservation", "alphagenome", "gpn_star"];
 const familyChoice = view(FamilyToggle(families));
 ```
 

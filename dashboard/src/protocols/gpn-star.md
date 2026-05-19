@@ -31,8 +31,8 @@ const allRows = leaderboard.toArray().map(r => ({
   subset: String(r.subset),
   value: Number(r.value),
   se: Number(r.se),
-  n_pairs: Number(r.n_pairs),
-  n_ties: Number(r.n_ties),
+  n: Number(r.n),
+  n_positives: Number(r.n_positives),
   dataset: String(r.dataset),
 }));
 
@@ -102,17 +102,17 @@ if (baseline !== alternative) {
       subset: cell.subset,
       value: a.value - d.value,
       se: 0,
-      n_pairs: d.n_pairs,
-      n_ties: 0,
+      n: d.n,
+      n_positives: d.n_positives,
       dataset: dataset,
     });
   }
 }
 ```
 
-Each cell below is **${alternative} PA − ${baseline} PA**, in percentage points. Green = ${alternative} scores higher than ${baseline}; red = the reverse. cLLR is the producer's recommended protocol on this leaderboard ([Benegas et al. #145](https://github.com/Open-Athena/bolinas-dna/issues/145)) — calibration subtracts pentanucleotide-context background, `llr_calibrated = llr − E[llr | 5-mer, mut]`.
+Each cell below is **${alternative} AUPRC − ${baseline} AUPRC**, in percentage points. Green = ${alternative} scores higher than ${baseline}; red = the reverse. cLLR is the producer's recommended protocol on this leaderboard ([Benegas et al. #145](https://github.com/Open-Athena/bolinas-dna/issues/145)) — calibration subtracts pentanucleotide-context background, `llr_calibrated = llr − E[llr | 5-mer, mut]`.
 
-Same matched pairs as the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}); only the `score_type` filter changes.
+Same matched groups as the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}); only the `score_type` filter changes.
 
 <style>
 :root { --observablehq-max-width: 1920px; }

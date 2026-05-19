@@ -12,7 +12,6 @@ export const FAMILY_LABEL = {
   conservation: "conservation",
   alphagenome: "AlphaGenome",
   gpn_star: "GPN-Star",
-  evo2: "Evo 2",
 };
 
 // Protocol options per family. Mirror of `PROTOCOLS` in
@@ -21,14 +20,12 @@ export const FAMILY_LABEL = {
 export const PROTOCOL_OPTIONS = {
   bolinas: ["LLR", "JSD"],
   gpn_star: ["cLLR", "LLR"],
-  evo2: ["LLR", "JSD"],
 };
 export const PROTOCOL_DEFAULTS = {
   bolinas: "LLR",
   conservation: "score",
   alphagenome: "L2",
   gpn_star: "cLLR",
-  evo2: "LLR",
 };
 
 // Pill-row toggle for selecting which families to include. Value is the

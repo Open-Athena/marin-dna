@@ -31,8 +31,8 @@ const allRows = leaderboard.toArray().map(r => ({
   subset: String(r.subset),
   value: Number(r.value),
   se: Number(r.se),
-  n_pairs: Number(r.n_pairs),
-  n_ties: Number(r.n_ties),
+  n: Number(r.n),
+  n_positives: Number(r.n_positives),
   dataset: String(r.dataset),
 }));
 
@@ -108,8 +108,8 @@ if (baseline !== alternative) {
       subset: cell.subset,
       value: a.value - d.value,
       se: 0,
-      n_pairs: d.n_pairs,
-      n_ties: 0,
+      n: d.n,
+      n_positives: d.n_positives,
       dataset: dataset,
     });
   }

@@ -12,8 +12,10 @@ import sys
 _METRIC = (
     "AUPRC ± cluster-bootstrap SE — area under the precision-recall curve, "
     "with SE estimated by resampling `match_group`s with replacement "
-    "(preserving the matched 1:9 clustering). The `n` in each column "
-    "header is the number of match groups."
+    "(preserving the matched 1:9 clustering). `n` in each column header is "
+    "the total variants in the subset (positives + matched negatives); "
+    "1:9 matching means 10% are positives by design, so the random-baseline "
+    "AUPRC is 0.10."
 )
 
 DATASETS = {
@@ -27,12 +29,12 @@ DATASETS = {
         "split": "train",
         "n_min_per_subset": 30,
         "positives": "OMIM ∪ HGMD ∪ Smedley et al. 2016 pathogenic SNVs (AF < 0.1%)",
-        "negatives": "gnomAD common (AF ≥ 5%)",
+        "negatives": "gnomAD AF > 0.1%",
         "matching": "1:9 nearest-neighbor on consequence + chrom strata, with continuous TSS/exon distance features (RobustScaler-scaled Euclidean)",
         "metric": _METRIC,
         "notes": [
-            "Per-subset columns exclude subsets with `n_pairs < 30`.",
-            "Sorted by Macro Avg by default — the consequence-subset distribution (~92% missense) reflects human-annotator focus on protein-coding disease variants, not the underlying prevalence of pathogenic variants; Global AUPRC therefore over-weights protein-coding-specialist methods. Macro Avg gives equal weight to each subset.",
+            "Per-subset columns exclude subsets with fewer than 30 positives (`n < 300` under 1:9 matching).",
+            "Sorted by Macro Avg by default — the consequence-subset distribution is dominated by missense (a ClinVar annotator-history artifact, not pathogenicity reality), so Global AUPRC over-weights protein-coding-specialist methods. Macro Avg gives equal weight to each subset.",
         ],
     },
     "complex_traits": {
@@ -49,7 +51,7 @@ DATASETS = {
         "matching": "1:9 nearest-neighbor on consequence + chrom strata, with continuous TSS/exon distance + MAF features (RobustScaler-scaled Euclidean)",
         "metric": _METRIC,
         "notes": [
-            "Per-subset columns exclude subsets with `n_pairs < 30`. Most consequence subsets in this dataset fall below that threshold — distal and missense are the only ones reported.",
+            "Per-subset columns exclude subsets with fewer than 30 positives (`n < 300` under 1:9 matching). Most consequence subsets in this dataset fall below that threshold — distal and missense are the only ones reported.",
             "Sorted by Global by default. Score column is `abs_llr_avg` (magnitude) rather than `minus_llr_avg` — for complex-trait fine-mapped variants we don't have a pathogenicity direction, only that the variant is causal.",
         ],
     },

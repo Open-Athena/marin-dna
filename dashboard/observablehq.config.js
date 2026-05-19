@@ -8,11 +8,13 @@ export default {
 
   // Pin to a single light theme. The default `air,near-midnight` flips
   // to dark on prefers-color-scheme: dark, but the heatmap and forest
-  // plot encode meaning in color (sequential YlGn on [0.5, 1.0],
+  // plot encode meaning in color (sequential YlGn on [0.0, 1.0],
   // diverging RdYlGn for deltas) and only read against a light page.
   theme: "air",
 
   // Sidebar navigation. eQTL was retired in PR #194 — see #172.
+  // Evo 2 protocol comparison page is dropped pending the AUPRC
+  // re-emission (see comment in dashboard/models.yaml).
   pages: [
     {
       name: "Leaderboards",
@@ -25,7 +27,6 @@ export default {
       name: "Protocols",
       pages: [
         {name: "Bolinas (LLR vs JSD)", path: "/protocols/bolinas"},
-        {name: "Evo 2 (LLR vs JSD)", path: "/protocols/evo2"},
         {name: "GPN-Star (cLLR vs LLR)", path: "/protocols/gpn-star"},
       ],
     },

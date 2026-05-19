@@ -1,11 +1,12 @@
-// Leaderboard heatmap: method × subset → PA color cell.
+// Leaderboard heatmap: method × subset → AUPRC color cell.
 //
-// Sequential YlGn color scale fixed at [0.5, 1.0]:
-//   - 0.5 (random baseline) = pale yellow (neutral)
-//   - 1.0 (perfect)        = deep green
-// PA values below 0.5 are clamped to 0.5 — they're treated as noise rather
-// than highlighted as anti-predictive. The scale stays pinned across filter
-// selections so cells are comparable.
+// Sequential YlGn color scale fixed at [0.1, 1.0]:
+//   - 0.1 (random baseline)  = pale yellow (neutral)
+//   - 1.0 (perfect)          = deep green
+// 0.1 is the positive rate under 1:9 matching by design — random ranking
+// yields AUPRC = 0.10. AUPRC values below 0.1 are clamped to 0.1; they're
+// treated as noise rather than highlighted as anti-predictive. Repick
+// the floor if the matching ratio changes.
 
 import * as d3 from "npm:d3";
 import {html, svg} from "npm:htl";
@@ -25,7 +26,11 @@ const SUBSET_DISPLAY = {
 
 export const GLOBAL = "_global_";
 export const MACRO = "_macro_avg_";
-const N_MIN = 30;
+// Per-subset display threshold: a subset's column is rendered only if at
+// least one method has ≥30 positives in it. Matches the pipeline-time
+// macro-avg filter (`n_min=30` in metrics.compute_auprc_metrics), so a
+// subset that doesn't qualify here also doesn't contribute to Macro Avg.
+const N_POSITIVES_MIN = 30;
 
 // Resolve the dashboard's chosen leading aggregate (string "macro_avg" /
 // "global", as emitted by `datasets.json.py`) to the subset key the
@@ -48,8 +53,8 @@ const DELTA_DOMAIN = 0.1; // ±10 percentage points
 
 function paColorAbsolute(v) {
   if (v == null) return "#ffffff";
-  const clamped = Math.max(0.5, Math.min(1.0, v));
-  return d3.interpolateYlGn(0.1 + 0.85 * ((clamped - 0.5) / 0.5));
+  const clamped = Math.max(0.1, Math.min(1.0, v));
+  return d3.interpolateYlGn(0.1 + 0.85 * ((clamped - 0.1) / 0.9));
 }
 
 function paColorDelta(v) {
@@ -75,10 +80,6 @@ function cellLabel(v, palette = PALETTE_ABSOLUTE) {
     return `${sign}${pp.toFixed(1)}`;
   }
   return pp.toFixed(1);
-}
-
-function fmt(v, se) {
-  return `${v.toFixed(3)} ± ${se.toFixed(3)}`;
 }
 
 // Sort: numeric desc, with method_display as a stable tiebreaker so toggle
@@ -131,22 +132,31 @@ export function heatmap({
     }
     byMethod
       .get(r.method_id)
-      .cells.set(r.subset, {value: r.value, se: r.se, n_pairs: r.n_pairs, n_ties: r.n_ties});
+      .cells.set(r.subset, {value: r.value, se: r.se, n: r.n, n_positives: r.n_positives});
   }
 
-  // Per-subset max n_pairs across methods (for the "(n=X)" header label
-  // and the n>=30 filter).
+  // Per-subset max counts across methods. `subsetMaxN` (total variants =
+  // 10× positives by design under 1:9) drives the "(n=X)" header label;
+  // `subsetMaxNPositives` drives the N_POSITIVES_MIN filter — the
+  // dashboard hides any subset where no method has at least 30
+  // positives, matching the macro-avg gate at pipeline time.
   const subsetMaxN = new Map();
+  const subsetMaxNPositives = new Map();
   for (const m of byMethod.values()) {
     for (const [subset, cell] of m.cells) {
       if (subset === GLOBAL || subset === MACRO) continue;
-      subsetMaxN.set(subset, Math.max(subsetMaxN.get(subset) ?? 0, cell.n_pairs));
+      subsetMaxN.set(subset, Math.max(subsetMaxN.get(subset) ?? 0, cell.n));
+      subsetMaxNPositives.set(
+        subset,
+        Math.max(subsetMaxNPositives.get(subset) ?? 0, cell.n_positives),
+      );
     }
   }
   // Columns: aggregates first (leading aggregate leftmost), then per-subset
-  // sorted by descending max-n_pairs. Subsets below N_MIN are dropped.
-  const subsetCols = [...subsetMaxN.entries()]
-    .filter(([s, n]) => n >= N_MIN && s in SUBSET_DISPLAY)
+  // sorted by descending positives count. Subsets with fewer than
+  // N_POSITIVES_MIN positives across every method are dropped.
+  const subsetCols = [...subsetMaxNPositives.entries()]
+    .filter(([s, n_pos]) => n_pos >= N_POSITIVES_MIN && s in SUBSET_DISPLAY)
     .sort((a, b) => b[1] - a[1])
     .map(([s]) => s);
   const aggCols =
@@ -159,8 +169,10 @@ export function heatmap({
   const sample = [...byMethod.values()].find(
     (m) => m.cells.has(GLOBAL) && m.cells.has(MACRO),
   );
-  const globalN = sample?.cells.get(GLOBAL)?.n_pairs ?? 0;
-  const macroK = sample?.cells.get(MACRO)?.n_pairs ?? 0;
+  const globalN = sample?.cells.get(GLOBAL)?.n ?? 0;
+  // The macro_avg cell's `n` carries K (qualifying subsets), not variant
+  // count — overload set in `leaderboard.fetch_method_metrics`.
+  const macroK = sample?.cells.get(MACRO)?.n ?? 0;
   const headerLabel = (col) => {
     // Wrap the label so multi-word names ("Macro Avg") stay on a single row
     // instead of breaking across two lines when the column is tight.
@@ -329,12 +341,12 @@ function forestPlot(methods, columnKey, columnText, headerPx, rowPx) {
   const margin = {top: headerPx ?? HEATMAP_HEADER_PX, right: 42, bottom: 32, left: 16};
   const rowH = rowPx ?? HEATMAP_ROW_PX;
   const height = margin.top + visible.length * rowH + margin.bottom;
-  const xMin = 0.5;
+  const xMin = 0.1;
   const xMax = 1.0;
   const innerW = width - margin.left - margin.right;
   const xPx = (v) =>
     margin.left + ((Math.max(xMin, Math.min(xMax, v)) - xMin) / (xMax - xMin)) * innerW;
-  const xTicks = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+  const xTicks = [0.1, 0.25, 0.5, 0.75, 1.0];
   const tickLabel = (t) => (t * 100).toFixed(0);
 
   return svg`<svg class="lb-forest" viewBox=${`0 0 ${width} ${height}`} width=${width} style="flex: 0 0 auto;">
@@ -359,7 +371,7 @@ function forestPlot(methods, columnKey, columnText, headerPx, rowPx) {
       </g>`;
     })}
     <text x=${margin.left + innerW / 2} y=${height - 14} text-anchor="middle"
-          font-size="10.5" font-weight="600" fill="#444">PA on ${columnText}</text>
+          font-size="10.5" font-weight="600" fill="#444">AUPRC on ${columnText}</text>
     <text x=${margin.left + innerW / 2} y=${height - 2} text-anchor="middle"
           font-size="9.5" fill="#888">dot = value · whisker = ± SE</text>
   </svg>`;
@@ -369,8 +381,8 @@ function forestPlot(methods, columnKey, columnText, headerPx, rowPx) {
 
 export function colorLegend({width = 280, height = 16} = {}) {
   // Domain endpoints + intermediates.
-  const ticks = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-  const domainMin = 0.5;
+  const ticks = [0.1, 0.25, 0.5, 0.75, 1.0];
+  const domainMin = 0.1;
   const domainMax = 1.0;
   const x = (v) => ((v - domainMin) / (domainMax - domainMin)) * width;
   const stops = d3.range(0, 1.001, 1 / 40).map((t) => {
