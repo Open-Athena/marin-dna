@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 # Dispatch one sky cluster per snakemake target, with autostop + --down.
 #
-# Usage:
-#   parallel_sweep.sh <target> [<target> ...]
+# Usage (invoke from the **repo root**, not from the pipeline dir):
+#   snakemake/analysis/evals_v2/sky/parallel_sweep.sh <target> [<target> ...]
 #
-# Each target is a snakemake output path relative to the pipeline cwd, e.g.
+# Why repo root: `run.yaml` has `workdir: .` (resolves to sky-launch CWD)
+# and its run script does `cd snakemake/analysis/evals_v2`, so the synced
+# workdir on the cluster must be the repo root. Calling from anywhere
+# else fails setup with `No pyproject.toml found ...` or the cd error.
+#
+# Each target is a snakemake output path relative to the pipeline cwd
+# (`snakemake/analysis/evals_v2/`), e.g.
 #   results/metrics/exp58-mammals-step-1000/mendelian_traits.parquet
-# Cluster name is derived from the target's parent dir (the `{model}`
-# wildcard) prefixed with `evals-v2-`, so different (model × dataset)
-# targets for the same model would collide — pass one target per model
-# per invocation. The pipeline rules dispatch correctly because the
-# `SNAKEMAKE_ARGS="-- $target"` knob narrows snakemake to exactly that
-# parquet.
+# — i.e. the target string is what the cluster's snakemake sees, *not*
+# relative to your shell CWD. Cluster name is derived from the target's
+# parent dir (the `{model}` wildcard) prefixed with `evals-v2-`, so
+# different (model × dataset) targets for the same model would collide
+# — pass one target per model per invocation. The pipeline rules
+# dispatch correctly because the `SNAKEMAKE_ARGS="-- $target"` knob
+# narrows snakemake to exactly that parquet.
 #
 # Env vars:
 #   SKY_STAGGER         Seconds between dispatches (default 3). Bigger

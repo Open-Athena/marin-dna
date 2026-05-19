@@ -90,6 +90,34 @@ uv run snakemake
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
+### Parallel sky-cluster sweep (one cluster per target)
+
+For a grid of independent targets — e.g. all checkpoints of one model arm,
+or one cluster per (model, dataset) combination — use
+[`sky/parallel_sweep.sh`](sky/parallel_sweep.sh). It dispatches one
+g5.xlarge per target with `--down` on idle, and waits for all to finish.
+
+**Invoke from the repo root** (not from this pipeline dir). The helper's
+`run.yaml` has `workdir: .` which syncs the sky-launch CWD, and the
+cluster does `cd snakemake/analysis/evals_v2` after sync — so the synced
+workdir must be the repo root, or setup fails with
+`No pyproject.toml found`. Target paths are still relative to *this*
+pipeline dir (that's what the cluster's snakemake sees). Example:
+
+```bash
+# from the repo root
+snakemake/analysis/evals_v2/sky/parallel_sweep.sh \
+  results/metrics/exp55-humans-step-16999/mendelian_traits.parquet \
+  results/metrics/exp55-primates-step-16999/mendelian_traits.parquet
+```
+
+Cluster name = `evals-v2-{model}` derived from the target's parent dir,
+so you can't pass `mendelian_traits` and `complex_traits` for the *same*
+model in one invocation — split into two batches. Heads up: bursting
+more g5.xlarge than `AWS_VCPU_LIMIT_us-east-2 / 4` (default 128 / 4 = 32)
+in one go will hit `VcpuLimitExceeded`; re-run the helper with the
+failed target names after others terminate.
+
 ## Configuration (`config/config.yaml`)
 
 | Key | Purpose |
