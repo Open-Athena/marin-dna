@@ -93,39 +93,29 @@ def test_score_type_for_returns_dataset_specific_column():
         score_type_for("gpn_star", "cLLR", "mendelian_traits") == "minus_llr_calibrated"
     )
     assert score_type_for("gpn_star", "LLR", "mendelian_traits") == "minus_llr"
-    # evo2 still on the legacy PA gist; will be re-emitted under AUPRC in
-    # a follow-up. Score-column names match what the gist parquets use.
-    assert score_type_for("evo2", "LLR", "mendelian_traits") == "minus_llr"
-    assert score_type_for("evo2", "LLR", "complex_traits") == "abs_llr"
-    assert score_type_for("evo2", "JSD", "mendelian_traits") == "next_token_jsd_mean"
 
 
-def test_evo2_parquet_path_resolves_to_pinned_gist():
-    """The gist URL has the pinned commit + the correct dataset-short prefix."""
+def test_gpn_star_parquet_path_resolves_to_pinned_gist():
+    """The gist URL has the pinned commit + the dataset-stacked filename."""
     from bolinas.pipelines.evals.leaderboard import (
-        EVO2_DATASET_SHORT,
-        EVO2_GIST_BASE,
-        EVO2_GIST_COMMIT,
+        GPN_STAR_METRICS_GIST_BASE,
+        GPN_STAR_METRICS_GIST_COMMIT,
         _parquet_path,
     )
 
     method = _mk_method(
-        id="evo2_7b",
-        display="Evo 2 (7B)",
-        family="evo2",
-        description="generalist, 7B",
+        id="GPN-Star-M",
+        display="GPN-Star (M)",
+        family="gpn_star",
+        description="mammal",
         datasets=("mendelian_traits", "complex_traits"),
     )
     mendelian = _parquet_path(method, "mendelian_traits")
     complex_ = _parquet_path(method, "complex_traits")
-    # SHA-pinned, gist-hosted URLs (no S3).
-    assert mendelian.startswith(EVO2_GIST_BASE), mendelian
-    assert EVO2_GIST_COMMIT in mendelian
-    assert mendelian.endswith("/mendelian_evo2_7b_train_metrics.parquet")
-    assert complex_.endswith("/complex_evo2_7b_train_metrics.parquet")
-    # Sanity-check the dataset-short mapping is wired through.
-    assert EVO2_DATASET_SHORT["mendelian_traits"] == "mendelian"
-    assert EVO2_DATASET_SHORT["complex_traits"] == "complex"
+    assert mendelian.startswith(GPN_STAR_METRICS_GIST_BASE), mendelian
+    assert GPN_STAR_METRICS_GIST_COMMIT in mendelian
+    assert mendelian.endswith("/mendelian_traits.GPN-Star.parquet")
+    assert complex_.endswith("/complex_traits.GPN-Star.parquet")
 
 
 def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.MonkeyPatch):
@@ -149,7 +139,14 @@ def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.Monkey
 
 
 def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.MonkeyPatch):
-    """gpn_star has cLLR + LLR protocols; both must appear in normalized_rows."""
+    """gpn_star has cLLR + LLR protocols; both must appear in normalized_rows.
+
+    Source is the AUPRC-schema gist (issue #145 last comment). The dashboard
+    sees a single `n` column derived from `n_rows` (per-subset / global) or
+    `n_groups` (macro_avg).
+    """
+    from bolinas.pipelines.evals.leaderboard import GPN_STAR_METRICS_GIST_BASE
+
     methods = (
         _mk_method(
             id="GPN-Star-M",
@@ -170,8 +167,8 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
                 "subset": "missense_variant",
                 "value": value,
                 "se": 0.02,
-                "n_pairs": 100,
-                "n_ties": 0,
+                "n_groups": 100,
+                "n_rows": 1000,
             },
             {
                 "score_type": score_type,
@@ -180,8 +177,8 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
                 "subset": GLOBAL_SUBSET,
                 "value": value,
                 "se": 0.02,
-                "n_pairs": 100,
-                "n_ties": 0,
+                "n_groups": 100,
+                "n_rows": 1000,
             },
             {
                 "score_type": score_type,
@@ -190,8 +187,8 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
                 "subset": MACRO_AVG_SUBSET,
                 "value": value,
                 "se": 0.02,
-                "n_pairs": 1,
-                "n_ties": 0,
+                "n_groups": 1,
+                "n_rows": 1000,
             },
         ]
 
@@ -200,10 +197,7 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     )
     _patch_read_parquet(
         monkeypatch,
-        {
-            "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/"
-            "mendelian_traits.parquet": gpn_df,
-        },
+        {f"{GPN_STAR_METRICS_GIST_BASE}/mendelian_traits.GPN-Star.parquet": gpn_df},
     )
     df = normalized_rows("mendelian_traits")
     assert set(df["protocol"].unique().to_list()) == {"cLLR", "LLR"}
@@ -227,8 +221,6 @@ def test_normalized_rows_skips_missing_protocol_gracefully(
         ),
     )
     _patch_methods(monkeypatch, methods)
-    # New AUPRC schema: rows have score_type _avg suffix, n_groups +
-    # n_rows columns instead of n_pairs + n_ties.
     bolinas_df = pl.DataFrame(
         [
             {
@@ -271,10 +263,18 @@ def test_normalized_rows_skips_missing_protocol_gracefully(
     assert df["protocol"].unique().to_list() == ["LLR"]
     captured = capsys.readouterr()
     assert "bolinas/JSD skip" in captured.err
-    # Bolinas rows are bridged: n_groups → n_pairs; n_ties always 0.
+    # `n` = n_rows for per-subset/global, K for macro. `n_positives` =
+    # n_groups everywhere. So with these inputs we expect {1000, 1} for n
+    # and {100, 1} for n_positives.
     bolinas_rows = df.filter(pl.col("family") == "bolinas")
-    assert set(bolinas_rows["n_pairs"].to_list()) == {1, 100}
-    assert set(bolinas_rows["n_ties"].to_list()) == {0}
+    assert set(bolinas_rows["n"].to_list()) == {1, 1000}
+    assert set(bolinas_rows["n_positives"].to_list()) == {1, 100}
+    macro = bolinas_rows.filter(pl.col("subset") == MACRO_AVG_SUBSET)
+    assert macro["n"][0] == 1, f"macro `n` should carry K, got {macro['n'][0]}"
+    assert macro["n_positives"][0] == 1, (
+        f"macro `n_positives` should also carry K (= n_groups from source), "
+        f"got {macro['n_positives'][0]}"
+    )
 
 
 def test_normalized_rows_propagates_unexpected_exceptions(
@@ -317,6 +317,7 @@ def test_normalized_rows_includes_aggregates_and_per_subset(
         ),
     )
     _patch_methods(monkeypatch, methods)
+    # Conservation migrated to AUPRC schema (PR #196) — n_groups / n_rows.
     cons_df = pl.DataFrame(
         [
             {
@@ -324,32 +325,32 @@ def test_normalized_rows_includes_aggregates_and_per_subset(
                 "subset": "missense_variant",
                 "value": 0.75,
                 "se": 0.02,
-                "n_pairs": 100,
-                "n_ties": 1,
+                "n_groups": 100,
+                "n_rows": 1000,
             },
             {
                 "score_name": "phyloP_241m",
                 "subset": "splicing",
                 "value": 0.65,
                 "se": 0.05,
-                "n_pairs": 40,
-                "n_ties": 0,
+                "n_groups": 40,
+                "n_rows": 400,
             },
             {
                 "score_name": "phyloP_241m",
                 "subset": GLOBAL_SUBSET,
                 "value": 0.72,
                 "se": 0.018,
-                "n_pairs": 140,
-                "n_ties": 1,
+                "n_groups": 140,
+                "n_rows": 1400,
             },
             {
                 "score_name": "phyloP_241m",
                 "subset": MACRO_AVG_SUBSET,
                 "value": 0.70,
                 "se": 0.027,
-                "n_pairs": 2,
-                "n_ties": 1,
+                "n_groups": 2,
+                "n_rows": 1400,
             },
         ]
     )

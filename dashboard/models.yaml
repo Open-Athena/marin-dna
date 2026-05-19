@@ -23,7 +23,7 @@
 #   family       enum    bolinas | conservation | alphagenome | gpn_star.
 #                        Drives parquet path + per-method filter in the library.
 #   description  string  short tag for cards + (some) inline labels.
-#   datasets     [str]   subset of {mendelian_traits, complex_traits, eqtl}.
+#   datasets     [str]   subset of {mendelian_traits, complex_traits}.
 #   training     dict    (bolinas only) data, params, window_size, objective.
 #   experiment   int     (optional) experiment number — for grouping.
 #   issue        url     (optional) GitHub issue tracking the experiment.
@@ -98,7 +98,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp55-mammals-r01-52f413
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp55-mammals-r01-52f413/hf/step-16999
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits]
 
 - id: exp58-mammals-step-16999
   display: exp58-mammals
@@ -113,7 +113,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp58-mammals-r01-23d451
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp58-mammals-r01-23d451/hf/step-16999
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits]
 
 - id: exp58-animals-step-16999
   display: exp58-animals
@@ -128,7 +128,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp58-animals-r01-1e3682
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp58-animals-r01-1e3682/hf/step-16999
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits]
 
 - id: exp59-mammals-step-16999
   display: exp59-mammals
@@ -143,7 +143,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp59-mammals-r01-1d9235
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp59-mammals-r01-1d9235/hf/step-16999
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits]
 
 - id: exp136-proj_v30-step-9999
   display: exp136-proj_v30
@@ -158,7 +158,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0
   checkpoint:
     gcs: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 # Convergence-style entries (final checkpoint only here per "last checkpoint
 # per run" convention). Scored on mendelian only in the evals_v2 config.
@@ -318,7 +318,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-exp166-v0.1-p1B-c127da
   checkpoint:
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
-  datasets: [mendelian_traits]
+  datasets: [mendelian_traits, complex_traits]
 
 # ---------------------------------------------------------------------------
 # External baselines (AlphaGenome, GPN-Star).
@@ -337,7 +337,7 @@
   msa: v100-200m
   training:
     params: 2.0e8       # 200M, from the "-200m" suffix in the MSA tag
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: GPN-Star-M
   display: GPN-Star (M)
@@ -346,7 +346,7 @@
   msa: m447-200m
   training:
     params: 2.0e8
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: GPN-Star-P
   display: GPN-Star (P)
@@ -355,45 +355,15 @@
   msa: p243-200m
   training:
     params: 2.0e8
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 # ---------------------------------------------------------------------------
-# Evo 2 — Arc Institute generalist gLM. Scored via scripts/evo2_eval/
-# (a no-KV-cache twin of the bolinas variant-score bundle kernel; see
-# scripts/evo2_eval/_evo2_scoring.py for why). Metrics parquets live on
-# a gist commit pinned in leaderboard.py — no S3 staging. Only
-# mendelian_traits + complex_traits scored; eqtl not run.
+# Evo 2 — temporarily dropped. The AUPRC re-emission for the new
+# `mendelian_traits` / `complex_traits` revisions is in flight. To bring
+# back: re-add the `evo2` family Literal in `src/bolinas/pipelines/evals/
+# models.py`, the `evo2` block in `leaderboard.py` (PROTOCOLS,
+# DEFAULT_PROTOCOL, `_parquet_path` gist path), the three `evo2_1b_base`
+# / `evo2_7b` / `evo2_40b` blocks here (see `git show HEAD~1:
+# dashboard/models.yaml`), and the family in the dashboard `families`
+# arrays + protocols/evo2.md page.
 # ---------------------------------------------------------------------------
-
-- id: evo2_1b_base
-  display: Evo 2 (1B base)
-  family: evo2
-  description: generalist, 1B
-  training:
-    params: 1.0e9
-    window_size: 8192
-    objective: CLM
-  datasets: [mendelian_traits, complex_traits]
-  paper: https://arcinstitute.org/manuscripts/Evo2
-
-- id: evo2_7b
-  display: Evo 2 (7B)
-  family: evo2
-  description: generalist, 7B
-  training:
-    params: 7.0e9
-    window_size: 8192
-    objective: CLM
-  datasets: [mendelian_traits, complex_traits]
-  paper: https://arcinstitute.org/manuscripts/Evo2
-
-- id: evo2_40b
-  display: Evo 2 (40B)
-  family: evo2
-  description: generalist, 40B
-  training:
-    params: 4.0e10
-    window_size: 8192
-    objective: CLM
-  datasets: [mendelian_traits, complex_traits]
-  paper: https://arcinstitute.org/manuscripts/Evo2

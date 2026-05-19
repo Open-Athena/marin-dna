@@ -10,7 +10,7 @@ wide: true
 const leaderboard = await FileAttachment("../data/leaderboard.parquet").parquet();
 const methods = await FileAttachment("../data/models.json").json();
 const datasets = await FileAttachment("../data/datasets.json").json();
-import {heatmap, colorLegend, leadingAggregateSubset} from "../components/heatmap.js";
+import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
 import {PillSelect, DirectionPicker, labeledRow} from "../components/controls.js";
 ```
 
@@ -23,18 +23,7 @@ const DATASET_LABEL = {
   complex_traits: "Complex traits",
 };
 
-const allRows = leaderboard.toArray().map(r => ({
-  method_id: String(r.method_id),
-  method_display: String(r.method_display),
-  family: String(r.family),
-  protocol: String(r.protocol),
-  subset: String(r.subset),
-  value: Number(r.value),
-  se: Number(r.se),
-  n_pairs: Number(r.n_pairs),
-  n_ties: Number(r.n_ties),
-  dataset: String(r.dataset),
-}));
+const allRows = rowsFromLeaderboard(leaderboard);
 
 const modelById = new Map(methods.map(m => [m.id, m]));
 ```
@@ -108,8 +97,8 @@ if (baseline !== alternative) {
       subset: cell.subset,
       value: a.value - d.value,
       se: 0,
-      n_pairs: d.n_pairs,
-      n_ties: 0,
+      n: d.n,
+      n_positives: d.n_positives,
       dataset: dataset,
     });
   }

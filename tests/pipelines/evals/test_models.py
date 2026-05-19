@@ -47,13 +47,10 @@ def test_load_methods_ids_unique():
 def test_models_for_dataset_filters():
     mendelian = models_for_dataset("mendelian_traits")
     complex_ = models_for_dataset("complex_traits")
-    eqtl = models_for_dataset("eqtl")
     for m in mendelian:
         assert "mendelian_traits" in m.datasets
     for m in complex_:
         assert "complex_traits" in m.datasets
-    for m in eqtl:
-        assert "eqtl" in m.datasets
 
 
 def test_models_for_dataset_unknown_raises():
@@ -76,23 +73,6 @@ def test_bolinas_methods_have_checkpoint(tmp_path: Path):
         if m.family == "bolinas":
             assert m.checkpoint is not None, m.id
             assert m.checkpoint.gcs or m.checkpoint.hf, m.id
-
-
-def test_evo2_methods_registered():
-    """The three Evo2 baselines exist under family=evo2 with the documented
-    dataset coverage (mendelian_traits + complex_traits, no eqtl)."""
-    methods = {m.id: m for m in load_models() if m.family == "evo2"}
-    expected = {"evo2_1b_base", "evo2_7b", "evo2_40b"}
-    assert set(methods) == expected, (
-        f"evo2 registry mismatch — expected {expected}, got {set(methods)}"
-    )
-    for m in methods.values():
-        assert set(m.datasets) == {"mendelian_traits", "complex_traits"}, (
-            f"{m.id} datasets should be mendelian_traits + complex_traits "
-            f"(not eqtl); got {m.datasets}"
-        )
-        # No checkpoint required (third-party model — like alphagenome / gpn_star).
-        assert m.checkpoint is None, f"{m.id} should not declare a checkpoint block"
 
 
 def test_invalid_family_rejected(tmp_path: Path):

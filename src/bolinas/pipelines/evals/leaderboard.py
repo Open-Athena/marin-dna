@@ -1,13 +1,10 @@
-"""S3 → tidy long-form parquet for the dashboard data loader.
+"""S3/gist → tidy long-form parquet for the dashboard data loader.
 
 Reads per-(method, dataset) metrics parquets emitted by the eval snakemake
-pipelines, filters by protocol / score-type, and emits one row per
-``(method, protocol, subset)`` for the dashboard. The bolinas,
-conservation, and alphagenome families emit AUPRC + cluster-bootstrap SE
-under the AUPRC migration (PRs #194/#195 for bolinas; the conservation_eval
-mirror for the seven phyloP / phastCons tracks; the alphagenome_eval mirror
-for the AlphaGenome max-L2 baseline); gpn_star and evo2 still emit
-PairwiseAccuracy + Wald-binomial SE.
+pipelines (or pinned gist commits, for families without an S3 pipeline),
+filters by protocol / score-type, and emits one row per
+``(method, protocol, subset)`` for the dashboard. All families now emit
+AUPRC + cluster-bootstrap SE on 1:9 matched negatives.
 
   - ``snakemake/analysis/evals_v2/``  → one parquet per ``(model, dataset)``,
     filter by ``score_type`` + ``split``.
@@ -15,8 +12,8 @@ PairwiseAccuracy + Wald-binomial SE.
     filter by ``score_name`` (the track).
   - ``snakemake/alphagenome_eval/``   → one parquet per dataset, filter by
     ``score_type`` + ``split``.
-  - ``snakemake/gpn_star_eval/``      → one parquet per dataset, filter by
-    ``score_type`` + ``split`` + ``model``.
+  - gist (gpn_star)                   → one parquet per dataset with V/M/P
+    stacked, filter by ``score_type`` + ``split`` + ``model``.
 
 Model registry (display name, family, training metadata, etc.) lives in
 ``dashboard/models.yaml`` and is loaded via ``models.load_models``.
@@ -30,36 +27,35 @@ import sys
 
 import polars as pl
 
+from bolinas.pipelines.evals.metrics import MACRO_AVG_SUBSET
 from bolinas.pipelines.evals.models import ALL_DATASETS, Model, models_for_dataset
 
 S3 = "s3://oa-bolinas"
 SPLIT = "train"
 
-# `family: evo2` metrics aren't in S3 — they live on a gist commit (pinned
-# below). Polars `read_parquet` handles https URLs natively via fsspec, so
-# the path resolver just hands back a stable URL string. Bump GIST_COMMIT
-# when re-uploading new Evo2 parquets to the same gist.
-EVO2_GIST_OWNER = "gonzalobenegas"
-EVO2_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
-EVO2_GIST_COMMIT = "362efe18b5d7f6e436e405db18932e8d149d3d07"
-EVO2_GIST_BASE = (
-    f"https://gist.githubusercontent.com/{EVO2_GIST_OWNER}/{EVO2_GIST_ID}/raw/"
-    f"{EVO2_GIST_COMMIT}"
+# `family: gpn_star` AUPRC metrics live on a gist commit (issue #145, last
+# comment) — one parquet per dataset with V/M/P stacked and a `model`
+# column to filter on. Polars `read_parquet` handles https URLs natively
+# via fsspec, so the path resolver just hands back a stable URL string.
+# Bump this commit when a new AUPRC re-run is uploaded. Distinct from
+# `gpn_star.GPN_STAR_GIST_BASE`, which points at the per-variant
+# *prediction* gist; this one is the *metrics* gist.
+GPN_STAR_METRICS_GIST_OWNER = "gonzalobenegas"
+GPN_STAR_METRICS_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
+GPN_STAR_METRICS_GIST_COMMIT = "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
+GPN_STAR_METRICS_GIST_BASE = (
+    f"https://gist.githubusercontent.com/{GPN_STAR_METRICS_GIST_OWNER}/"
+    f"{GPN_STAR_METRICS_GIST_ID}/raw/{GPN_STAR_METRICS_GIST_COMMIT}"
 )
-# Filename pattern uses short dataset names matching the file we uploaded.
-EVO2_DATASET_SHORT: dict[str, str] = {
-    "mendelian_traits": "mendelian",
-    "complex_traits": "complex",
-}
 
 # Per-family scoring protocols. Each protocol maps a dataset → the parquet
 # `score_type` column to filter on. The dashboard exposes the non-default
 # protocols (where present) as per-family toggle options.
 #
 # All protocols here are expected to be in the precomputed metrics parquet
-# on S3. Adding a new protocol means: (1) extend `metrics.smk` to compute
-# pairwise PA for that score column, (2) re-run `compute_metrics`, (3) add
-# the protocol entry here.
+# on S3 / gist. Adding a new protocol means: (1) extend `metrics.smk` to
+# compute AUPRC for that score column, (2) re-run `compute_metrics`,
+# (3) add the protocol entry here.
 PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
     "bolinas": {
         # Default LLR / JSD pick the FWD+RC `_avg` columns. The per-strand
@@ -84,25 +80,10 @@ PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
         "cLLR": {
             "mendelian_traits": "minus_llr_calibrated",
             "complex_traits": "abs_llr_calibrated",
-            "eqtl": "abs_llr_calibrated",
         },
         "LLR": {
             "mendelian_traits": "minus_llr",
             "complex_traits": "abs_llr",
-            "eqtl": "abs_llr",
-        },
-    },
-    "evo2": {
-        # Evo2 metrics live on a pinned gist (legacy PA schema, pre-AUPRC).
-        # When the gist is re-emitted under the AUPRC pipeline, bump the
-        # commit SHA above and rename these to `_avg` variants.
-        "LLR": {
-            "mendelian_traits": "minus_llr",
-            "complex_traits": "abs_llr",
-        },
-        "JSD": {
-            "mendelian_traits": "next_token_jsd_mean",
-            "complex_traits": "next_token_jsd_mean",
         },
     },
 }
@@ -112,7 +93,6 @@ DEFAULT_PROTOCOL: dict[str, str] = {
     "conservation": "score",
     "alphagenome": "L2",
     "gpn_star": "cLLR",
-    "evo2": "LLR",
 }
 
 
@@ -135,7 +115,7 @@ def _storage_options() -> dict[str, str] | None:
 
 @functools.lru_cache(maxsize=None)
 def _read_parquet(path: str) -> pl.DataFrame:
-    """Cached S3 read so families that share a per-dataset parquet
+    """Cached S3/gist read so families that share a per-dataset parquet
     (conservation, alphagenome, gpn_star) only fetch once per process."""
     return pl.read_parquet(path, storage_options=_storage_options())
 
@@ -155,10 +135,7 @@ def _parquet_path(method: Model, dataset: str) -> str:
         case "alphagenome":
             return f"{S3}/snakemake/alphagenome_eval/results/metrics/{dataset}.parquet"
         case "gpn_star":
-            return f"{S3}/snakemake/gpn_star_eval/results/metrics/{dataset}.parquet"
-        case "evo2":
-            short = EVO2_DATASET_SHORT[dataset]
-            return f"{EVO2_GIST_BASE}/{short}_{method.id}_train_metrics.parquet"
+            return f"{GPN_STAR_METRICS_GIST_BASE}/{dataset}.GPN-Star.parquet"
         case _:
             raise ValueError(f"unknown family {method.family!r}")
 
@@ -166,9 +143,10 @@ def _parquet_path(method: Model, dataset: str) -> str:
 def fetch_method_metrics(
     method: Model, dataset: str, protocol: str | None = None
 ) -> pl.DataFrame:
-    """Return rows ``[subset, value, se, n_pairs, n_ties]`` for one
+    """Return rows ``[subset, value, se, n, n_positives]`` for one
     ``(method, dataset, protocol)`` — including the ``_global_`` and
-    ``_macro_avg_`` aggregate rows.
+    ``_macro_avg_`` aggregate rows. See ``normalized_rows`` for the
+    column semantics.
 
     When ``protocol`` is ``None``, defaults to ``DEFAULT_PROTOCOL[family]``.
     """
@@ -184,17 +162,15 @@ def fetch_method_metrics(
     path = _parquet_path(method, dataset)
     df = _read_parquet(path)
     match method.family:
-        case "bolinas" | "alphagenome" | "evo2":
+        case "bolinas" | "alphagenome":
             df = df.filter(pl.col("score_type") == score_type).filter(
                 pl.col("split") == SPLIT
             )
         case "conservation":
             df = df.filter(pl.col("score_name") == method.id)
         case "gpn_star":
-            df = (
-                df.filter(pl.col("score_type") == score_type)
-                .filter(pl.col("split") == SPLIT)
-                .filter(pl.col("model") == method.id)
+            df = df.filter(pl.col("score_type") == score_type).filter(
+                pl.col("model") == method.id
             )
         case _:
             raise ValueError(f"unknown family {method.family!r}")
@@ -204,16 +180,14 @@ def fetch_method_metrics(
             f"{protocol!r} (score_type={score_type!r}) in {path}. The pipeline "
             f"may need to be re-run with this protocol included."
         )
-    # Schema bridge: bolinas, conservation, and alphagenome migrated from
-    # PairwiseAccuracy (n_pairs/n_ties) to AUPRC (n_groups/n_rows). Map
-    # n_groups → n_pairs (semantically the bootstrap unit count for AUPRC,
-    # the pair count for PA), and fill n_ties with 0 — AUPRC has no ties.
-    # gpn_star and evo2 still emit the legacy PA schema.
-    if method.family in ("bolinas", "conservation", "alphagenome"):
-        df = df.rename({"n_groups": "n_pairs"}).with_columns(
-            pl.lit(0, dtype=pl.Int64).alias("n_ties")
-        )
-    return df.select(["subset", "value", "se", "n_pairs", "n_ties"])
+    df = df.with_columns(
+        pl.when(pl.col("subset") == MACRO_AVG_SUBSET)
+        .then(pl.col("n_groups"))
+        .otherwise(pl.col("n_rows"))
+        .alias("n"),
+        pl.col("n_groups").alias("n_positives"),
+    )
+    return df.select(["subset", "value", "se", "n", "n_positives"])
 
 
 def normalized_rows(dataset: str) -> pl.DataFrame:
@@ -232,10 +206,14 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
       - ``family``          — ``Model.family``
       - ``protocol``        — protocol name (e.g. ``LLR``, ``JSD``, ``cLLR``)
       - ``subset``          — consequence subset OR ``_global_`` / ``_macro_avg_``
-      - ``value``           — metric value (AUPRC for bolinas + conservation; PairwiseAccuracy for other families)
-      - ``se``              — SE (cluster bootstrap for bolinas + conservation; Wald binomial elsewhere)
-      - ``n_pairs``         — bootstrap unit count (match groups for AUPRC, pairs for PA; or K = qualifying subsets for ``_macro_avg_``)
-      - ``n_ties``          — tied-pair count (always 0 for AUPRC rows)
+      - ``value``           — AUPRC
+      - ``se``              — cluster-bootstrap SE
+      - ``n``               — total variants in the subset (positives +
+        matched negatives), except on the ``_macro_avg_`` row where it
+        carries K = number of qualifying subsets.
+      - ``n_positives``     — positives in the subset (= ``n_groups`` from
+        the source AUPRC parquet); K on the macro row. Drives the
+        dashboard's ≥30-positives display threshold; never rendered.
     """
     # Soft-fail surface, intentionally narrow: only the two legitimate
     # "no data for this protocol yet" exception types.
@@ -274,8 +252,8 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
                         "subset": row["subset"],
                         "value": float(row["value"]),
                         "se": float(row["se"]),
-                        "n_pairs": int(row["n_pairs"]),
-                        "n_ties": int(row["n_ties"]),
+                        "n": int(row["n"]),
+                        "n_positives": int(row["n_positives"]),
                     }
                 )
     return pl.DataFrame(rows)

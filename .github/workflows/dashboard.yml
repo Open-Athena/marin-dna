@@ -59,17 +59,6 @@ permissions:
 
 jobs:
   build:
-    # TEMP: disabled while evals_v2 is mid-AUPRC-migration. The bolinas
-    # family has been re-emitted for exp55 + exp58 only; other bolinas
-    # models (exp59, exp136, exp166-v0.1, exp21, exp27, exp13) and the
-    # conservation / alphagenome / gpn_star / evo2 families still have
-    # PA-schema (or no) parquets in S3, so the leaderboard data loader
-    # crashes on the first missing path. Re-enable once those parquets
-    # are re-emitted under the AUPRC pipeline; until then the build is
-    # also a no-op so PRs aren't blocked by a known-failing required
-    # status check.
-    if: false
-
     runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-2
@@ -115,10 +104,9 @@ jobs:
 
   deploy:
     needs: build
-    # TEMP: disabled — see the `build` job's comment. Flip both `if`s
-    # together once all model parquets are re-emitted under AUPRC.
-    if: false
-
+    # Only publish on pushes to main. PR runs upload the artifact (which the
+    # build step does for free) but stop here without touching Pages.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # Single concurrent deploy at a time; cancel in-flight publishes so we
     # always ship the latest commit. PR builds don't share this group, so

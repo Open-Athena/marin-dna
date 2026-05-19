@@ -42,21 +42,31 @@ datasets:
 #                            Useful when the global default is tuned for a
 #                            different context size.
 models:
+  # Final-step entries for the exp55/58/59 evolutionary-timescale runs.
+  # Scoped to mendelian_traits to match what's actually been computed on
+  # S3 — these were rerun via per-target invocations after the AUPRC
+  # migration, not `snakemake all`, and complex_traits hasn't been
+  # re-emitted for them under the new dataset revisions. Widen `datasets:`
+  # to add complex coverage when re-running for those leaderboards.
   - name: exp55-mammals-step-16999
     gcs_path: gs://marin-dna-us-central1/checkpoints/exp55-mammals-r01-52f413/hf/step-16999
     window_size: 256
+    datasets: [mendelian_traits]
 
   - name: exp58-mammals-step-16999
     gcs_path: gs://marin-dna-us-central1/checkpoints/exp58-mammals-r01-23d451/hf/step-16999
     window_size: 256
+    datasets: [mendelian_traits]
 
   - name: exp58-animals-step-16999
     gcs_path: gs://marin-dna-us-central1/checkpoints/exp58-animals-r01-1e3682/hf/step-16999
     window_size: 256
+    datasets: [mendelian_traits]
 
   - name: exp59-mammals-step-16999
     gcs_path: gs://marin-dna-us-central1/checkpoints/exp59-mammals-r01-1d9235/hf/step-16999
     window_size: 256
+    datasets: [mendelian_traits]
 
   - name: exp136-proj_v30-step-9999
     gcs_path: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
@@ -78,9 +88,9 @@ models:
     datasets: [mendelian_traits]
 
   # exp166 v0.1 — generalist 1B run (c127da). 3 HF-exported
-  # checkpoints: 10000, 20000, 27329 (final). Scoped to
-  # mendelian_traits to mirror #161; widen `datasets:` to add complex
-  # coverage when a complex_traits leaderboard refresh is in scope.
+  # checkpoints: 10000, 20000, 27329 (final). Intermediate checkpoints are
+  # scoped to mendelian_traits (convergence curve for #161); the final
+  # step-27329 covers both leaderboards.
   - name: exp166-v0.1-p1B-step-10000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-10000
     window_size: 255
