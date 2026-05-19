@@ -27,6 +27,7 @@ import sys
 
 import polars as pl
 
+from bolinas.pipelines.evals.metrics import MACRO_AVG_SUBSET
 from bolinas.pipelines.evals.models import ALL_DATASETS, Model, models_for_dataset
 
 S3 = "s3://oa-bolinas"
@@ -36,13 +37,15 @@ SPLIT = "train"
 # comment) — one parquet per dataset with V/M/P stacked and a `model`
 # column to filter on. Polars `read_parquet` handles https URLs natively
 # via fsspec, so the path resolver just hands back a stable URL string.
-# Bump this commit when a new AUPRC re-run is uploaded.
-GPN_STAR_GIST_OWNER = "gonzalobenegas"
-GPN_STAR_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
-GPN_STAR_GIST_COMMIT = "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
-GPN_STAR_GIST_BASE = (
-    f"https://gist.githubusercontent.com/{GPN_STAR_GIST_OWNER}/{GPN_STAR_GIST_ID}/raw/"
-    f"{GPN_STAR_GIST_COMMIT}"
+# Bump this commit when a new AUPRC re-run is uploaded. Distinct from
+# `gpn_star.GPN_STAR_GIST_BASE`, which points at the per-variant
+# *prediction* gist; this one is the *metrics* gist.
+GPN_STAR_METRICS_GIST_OWNER = "gonzalobenegas"
+GPN_STAR_METRICS_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
+GPN_STAR_METRICS_GIST_COMMIT = "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
+GPN_STAR_METRICS_GIST_BASE = (
+    f"https://gist.githubusercontent.com/{GPN_STAR_METRICS_GIST_OWNER}/"
+    f"{GPN_STAR_METRICS_GIST_ID}/raw/{GPN_STAR_METRICS_GIST_COMMIT}"
 )
 
 # Per-family scoring protocols. Each protocol maps a dataset → the parquet
@@ -132,20 +135,9 @@ def _parquet_path(method: Model, dataset: str) -> str:
         case "alphagenome":
             return f"{S3}/snakemake/alphagenome_eval/results/metrics/{dataset}.parquet"
         case "gpn_star":
-            return f"{GPN_STAR_GIST_BASE}/{dataset}.GPN-Star.parquet"
+            return f"{GPN_STAR_METRICS_GIST_BASE}/{dataset}.GPN-Star.parquet"
         case _:
             raise ValueError(f"unknown family {method.family!r}")
-
-
-# Two count columns surfaced to the dashboard, derived from the AUPRC
-# parquet's `n_groups` (= positives) + `n_rows` (= total variants):
-#   - `n`           — for display (column headers, tooltips). Total
-#                     variants on per-subset / `_global_`; K on
-#                     `_macro_avg_`.
-#   - `n_positives` — for filtering (subset shown iff ≥30 positives).
-#                     Positives on per-subset / `_global_`; K on macro.
-# The dashboard never displays `n_positives`; it's the threshold knob.
-MACRO_AVG_SUBSET = "_macro_avg_"
 
 
 def fetch_method_metrics(
@@ -153,11 +145,8 @@ def fetch_method_metrics(
 ) -> pl.DataFrame:
     """Return rows ``[subset, value, se, n, n_positives]`` for one
     ``(method, dataset, protocol)`` — including the ``_global_`` and
-    ``_macro_avg_`` aggregate rows.
-
-    See module-level ``MACRO_AVG_SUBSET`` comment for the meaning of
-    ``n`` / ``n_positives`` and how they're derived from the AUPRC
-    parquet's ``n_rows`` / ``n_groups``.
+    ``_macro_avg_`` aggregate rows. See ``normalized_rows`` for the
+    column semantics.
 
     When ``protocol`` is ``None``, defaults to ``DEFAULT_PROTOCOL[family]``.
     """
@@ -191,13 +180,6 @@ def fetch_method_metrics(
             f"{protocol!r} (score_type={score_type!r}) in {path}. The pipeline "
             f"may need to be re-run with this protocol included."
         )
-    # AUPRC source columns: n_groups = positives count (= K for macro row),
-    # n_rows = total variants. Derive the dashboard-facing pair:
-    #   n           = total variants (display)
-    #   n_positives = positives (filter threshold)
-    # On `_macro_avg_` both collapse to K = n_groups, which is what the
-    # heatmap renders as "K subsets" and isn't subject to the per-subset
-    # filter anyway.
     df = df.with_columns(
         pl.when(pl.col("subset") == MACRO_AVG_SUBSET)
         .then(pl.col("n_groups"))

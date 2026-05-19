@@ -10,7 +10,7 @@ wide: true
 const leaderboard = await FileAttachment("../data/leaderboard.parquet").parquet();
 const methods = await FileAttachment("../data/models.json").json();
 const datasets = await FileAttachment("../data/datasets.json").json();
-import {heatmap, colorLegend, leadingAggregateSubset} from "../components/heatmap.js";
+import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
 import {
   FAMILY_LABEL,
   PROTOCOL_OPTIONS,
@@ -22,18 +22,7 @@ import {
 ```
 
 ```js
-const allRows = leaderboard.toArray().map(r => ({
-  method_id: String(r.method_id),
-  method_display: String(r.method_display),
-  family: String(r.family),
-  protocol: String(r.protocol),
-  subset: String(r.subset),
-  value: Number(r.value),
-  se: Number(r.se),
-  n: Number(r.n),
-  n_positives: Number(r.n_positives),
-  dataset: String(r.dataset),
-}));
+const allRows = rowsFromLeaderboard(leaderboard);
 const complex = allRows.filter(r => r.dataset === "complex_traits");
 const modelById = new Map(methods.map(m => [m.id, m]));
 const meta = datasets.complex_traits;
@@ -74,7 +63,9 @@ display(html`<div class="card">
 ## Leaderboard
 
 ```js
-const families = ["bolinas", "conservation", "alphagenome", "gpn_star"];
+// Derived from FAMILY_LABEL so adding/removing a family is a one-line
+// change in controls.js — see `dashboard_add_family_checklist` memory.
+const families = Object.keys(FAMILY_LABEL);
 const familyChoice = view(FamilyToggle(families));
 ```
 

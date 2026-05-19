@@ -98,8 +98,8 @@ def test_score_type_for_returns_dataset_specific_column():
 def test_gpn_star_parquet_path_resolves_to_pinned_gist():
     """The gist URL has the pinned commit + the dataset-stacked filename."""
     from bolinas.pipelines.evals.leaderboard import (
-        GPN_STAR_GIST_BASE,
-        GPN_STAR_GIST_COMMIT,
+        GPN_STAR_METRICS_GIST_BASE,
+        GPN_STAR_METRICS_GIST_COMMIT,
         _parquet_path,
     )
 
@@ -112,8 +112,8 @@ def test_gpn_star_parquet_path_resolves_to_pinned_gist():
     )
     mendelian = _parquet_path(method, "mendelian_traits")
     complex_ = _parquet_path(method, "complex_traits")
-    assert mendelian.startswith(GPN_STAR_GIST_BASE), mendelian
-    assert GPN_STAR_GIST_COMMIT in mendelian
+    assert mendelian.startswith(GPN_STAR_METRICS_GIST_BASE), mendelian
+    assert GPN_STAR_METRICS_GIST_COMMIT in mendelian
     assert mendelian.endswith("/mendelian_traits.GPN-Star.parquet")
     assert complex_.endswith("/complex_traits.GPN-Star.parquet")
 
@@ -145,7 +145,7 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     sees a single `n` column derived from `n_rows` (per-subset / global) or
     `n_groups` (macro_avg).
     """
-    from bolinas.pipelines.evals.leaderboard import GPN_STAR_GIST_BASE
+    from bolinas.pipelines.evals.leaderboard import GPN_STAR_METRICS_GIST_BASE
 
     methods = (
         _mk_method(
@@ -197,7 +197,7 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     )
     _patch_read_parquet(
         monkeypatch,
-        {f"{GPN_STAR_GIST_BASE}/mendelian_traits.GPN-Star.parquet": gpn_df},
+        {f"{GPN_STAR_METRICS_GIST_BASE}/mendelian_traits.GPN-Star.parquet": gpn_df},
     )
     df = normalized_rows("mendelian_traits")
     assert set(df["protocol"].unique().to_list()) == {"cLLR", "LLR"}

@@ -8,7 +8,7 @@ export default {
 
   // Pin to a single light theme. The default `air,near-midnight` flips
   // to dark on prefers-color-scheme: dark, but the heatmap and forest
-  // plot encode meaning in color (sequential YlGn on [0.0, 1.0],
+  // plot encode meaning in color (sequential YlGn on [0.1, 1.0],
   // diverging RdYlGn for deltas) and only read against a light page.
   theme: "air",
 

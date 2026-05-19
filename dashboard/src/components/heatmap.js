@@ -27,10 +27,29 @@ const SUBSET_DISPLAY = {
 export const GLOBAL = "_global_";
 export const MACRO = "_macro_avg_";
 // Per-subset display threshold: a subset's column is rendered only if at
-// least one method has ≥30 positives in it. Matches the pipeline-time
-// macro-avg filter (`n_min=30` in metrics.compute_auprc_metrics), so a
-// subset that doesn't qualify here also doesn't contribute to Macro Avg.
+// least one method has ≥30 positives in it. Keep in lockstep with the
+// pipeline-time macro-avg filter `n_min=30` in
+// `bolinas.pipelines.evals.metrics.compute_auprc_metrics` — a subset
+// hidden here also doesn't contribute to Macro Avg.
 const N_POSITIVES_MIN = 30;
+
+// Schema-coerce one row from the `/data/leaderboard.parquet` blob into
+// the shape every page passes back to `heatmap()`. Duck-typed mapping —
+// kept here next to the heatmap that owns the field semantics.
+export function rowsFromLeaderboard(leaderboard) {
+  return leaderboard.toArray().map((r) => ({
+    method_id: String(r.method_id),
+    method_display: String(r.method_display),
+    family: String(r.family),
+    protocol: String(r.protocol),
+    subset: String(r.subset),
+    value: Number(r.value),
+    se: Number(r.se),
+    n: Number(r.n),
+    n_positives: Number(r.n_positives),
+    dataset: String(r.dataset),
+  }));
+}
 
 // Resolve the dashboard's chosen leading aggregate (string "macro_avg" /
 // "global", as emitted by `datasets.json.py`) to the subset key the
