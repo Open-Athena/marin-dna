@@ -14,11 +14,35 @@ name: evo2-eval
 
 resources:
   # GH200 (96 GB) — fits evo2_40b unsharded; 1B/7B have ample headroom.
-  # Note: Lambda is the cheapest reliable GH200 source ($2.29/hr on-demand,
-  # us-east-3 / europe-central). Cloud left unpinned so SkyPilot can pick.
+  # Note: Lambda is the cheapest reliable GH200 source ($2.29/hr on-demand).
   # Lambda does NOT support image_id: docker:..., so we skip it entirely
   # and build our docker image at setup time.
-  accelerators: GH200:1
+  #
+  # Why `any_of` over a bare `region:` + retry-until-up: Lambda GH200 capacity
+  # comes and goes per-region in minutes, and SkyPilot's retry pins to the
+  # region of the FIRST attempted launch (each retry re-tries the same region).
+  # Listing all Lambda GH200 regions in `any_of` lets SkyPilot cycle through
+  # them on every attempt, so we don't sit waiting on a single region while
+  # others have capacity. Genome and HF Hub work from any region; the user
+  # is the only ssh consumer and they can stream logs from anywhere.
+  any_of:
+    - {accelerators: GH200:1, region: us-east-1}
+    - {accelerators: GH200:1, region: us-east-2}
+    - {accelerators: GH200:1, region: us-east-3}
+    - {accelerators: GH200:1, region: us-midwest-1}
+    - {accelerators: GH200:1, region: us-south-1}
+    - {accelerators: GH200:1, region: us-south-2}
+    - {accelerators: GH200:1, region: us-south-3}
+    - {accelerators: GH200:1, region: us-west-1}
+    - {accelerators: GH200:1, region: us-west-2}
+    - {accelerators: GH200:1, region: us-west-3}
+    - {accelerators: GH200:1, region: europe-central-1}
+    - {accelerators: GH200:1, region: europe-south-1}
+    - {accelerators: GH200:1, region: me-west-1}
+    - {accelerators: GH200:1, region: asia-northeast-1}
+    - {accelerators: GH200:1, region: asia-northeast-2}
+    - {accelerators: GH200:1, region: asia-south-1}
+    - {accelerators: GH200:1, region: australia-east-1}
   labels:
     project: dna
   disk_size: 256  # evo2_40b weights ~80 GB in FP8, plus genome + scratch
