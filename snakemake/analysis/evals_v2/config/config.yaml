@@ -92,7 +92,7 @@ models:
   - name: exp166-v0.1-p1B-step-27329
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
     window_size: 255
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, complex_traits]
 
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
