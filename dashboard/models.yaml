@@ -41,43 +41,43 @@
   display: phastCons (100v)
   family: conservation
   description: phastCons across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: phastCons_43p
   display: phastCons (43p)
   family: conservation
   description: phastCons across 43 primates
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: phastCons_470m
   display: phastCons (470m)
   family: conservation
   description: phastCons across 470 mammals
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: phyloP_100v
   display: phyloP (100v)
   family: conservation
   description: phyloP across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: phyloP_241m
   display: phyloP (241m)
   family: conservation
   description: phyloP across 241 mammals (Zoonomia)
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: phyloP_447m
   display: phyloP (447m)
   family: conservation
   description: phyloP across 447 mammals
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: phyloP_470m
   display: phyloP (470m)
   family: conservation
   description: phyloP across 470 mammals
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 # ---------------------------------------------------------------------------
 # bolinas gLMs — evals_v2 pipeline. Registry order matches the legacy

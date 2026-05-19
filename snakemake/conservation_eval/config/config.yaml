@@ -1,17 +1,20 @@
 # Matched-pair eval datasets on HuggingFace (produced by snakemake/evals/).
-# Each dataset is loaded as f"{input_hf_prefix}_{dataset}" — non-harness
-# variants only (the harness '_harness_255' versions are for sequence-based
-# models, not conservation-track lookups).
+# Each dataset is loaded as f"{input_hf_prefix}_{dataset.name}". Per-dataset
+# `hf_revision` pins the HF dataset commit consumed by this run — bumping
+# the SHA triggers re-execution via snakemake's `params:` hash. Mirrors
+# `hf_commit` in dashboard/src/data/datasets.json.py — keep the two in sync.
 input_hf_prefix: bolinas-dna/evals
 datasets:
-  - mendelian_traits
-  - complex_traits
-  - eqtl
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f  # PR #194 k=9 rebuild
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340  # PR #194 k=9 rebuild
 
-# Splits to score independently. Each produces its own markdown table.
+# Splits to score. Train-only convention — the test split is held out for
+# the final-eval pass; all development / iteration uses train. Mirrors
+# evals_v2 (snakemake/analysis/evals_v2/config/config.yaml).
 splits:
   - train
-  - test
 
 # Conservation tracks. URLs are the single source of truth in
 # bolinas.evals.conservation.CONSERVATION_TRACKS — listing names here just
@@ -24,3 +27,10 @@ scores:
   - phyloP_470m
   - phastCons_470m
   - phastCons_43p
+
+# AUPRC cluster-bootstrap settings (mirror evals_v2 PR #195). Bumping
+# `bootstrap_seed` triggers re-execution via snakemake's `params:` hash;
+# 0 → reproducible across re-runs.
+inference:
+  n_bootstrap: 1000
+  bootstrap_seed: 0

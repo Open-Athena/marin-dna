@@ -33,7 +33,7 @@ import pyBigWig
 from bolinas.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
-    compute_pairwise_metrics,
+    compute_auprc_metrics,
 )
 
 
@@ -59,7 +59,8 @@ CONSERVATION_TRACKS: dict[str, str] = {
 
 # Variant columns the pipeline preserves end-to-end. Asserted by the score
 # and aggregate stages so a schema drift fails fast. ``match_group`` links
-# 1:1 matched positives and negatives produced by ``snakemake/evals/``.
+# 1:k matched positives and negatives produced by ``snakemake/evals/`` (PR
+# #194 switched the matched-pair datasets to 1:9 via k=9 nearest neighbors).
 REQUIRED_VARIANT_COLUMNS: tuple[str, ...] = (
     "chrom",
     "pos",
@@ -123,6 +124,9 @@ def score_variants_at_positions(
 def aggregate_conservation_metrics(
     parquet_paths: dict[str, str | Path],
     n_min: int = 30,
+    *,
+    n_bootstrap: int = 1000,
+    bootstrap_seed: int | None = 0,
 ) -> tuple[pd.DataFrame, str]:
     """Aggregate per-score scored-variant parquets into a metrics DataFrame
     and a markdown report.
@@ -134,18 +138,23 @@ def aggregate_conservation_metrics(
 
     For each score: NaN count is recorded per subset, then ``score`` is
     filled with 0 (semantically meaningful — see module docstring) before
-    PairwiseAccuracy + binomial SE is computed via
-    ``bolinas.pipelines.evals.metrics.compute_pairwise_metrics``.
+    AUPRC + cluster-bootstrap SE is computed via
+    ``bolinas.pipelines.evals.metrics.compute_auprc_metrics``. The bootstrap
+    resamples ``match_group``s (the matched-pair clustering unit), so SE
+    is honest under the 1:k structure of the PR #194 datasets.
 
     Args:
         parquet_paths: mapping ``score_name -> parquet path``. Order is
             preserved in the markdown table.
-        n_min: forwarded to ``compute_pairwise_metrics`` — minimum subset
-            ``n_pairs`` for inclusion in the macro-average aggregate row.
+        n_min: forwarded to ``compute_auprc_metrics`` — minimum subset
+            ``n_groups`` for inclusion in the macro-average aggregate row.
+        n_bootstrap: bootstrap iterations per (subset, score).
+        bootstrap_seed: seed for the cluster bootstrap; ``None`` for fresh
+            randomness. Default ``0`` keeps outputs bit-stable across re-runs.
 
     Returns:
         ``(metrics_df, markdown)`` where ``metrics_df`` has columns
-        ``[score_type, score_name, subset, value, se, n_pairs, n_ties,
+        ``[score_type, score_name, subset, value, se, n_groups, n_rows,
         n_nan, n_total]``. Includes ``_global_`` and ``_macro_avg_`` aggregate
         rows per score (used by downstream leaderboard rendering); these are
         excluded from the markdown report, which stays per-subset.
@@ -169,20 +178,22 @@ def aggregate_conservation_metrics(
         )
         total_per_subset = df.groupby("subset").size().astype(int)
 
-        m = compute_pairwise_metrics(
+        m = compute_auprc_metrics(
             dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
             scores=df[["score"]].fillna(0),
             score_columns=["score"],
             n_min=n_min,
+            n_bootstrap=n_bootstrap,
+            rng=bootstrap_seed,
         )
         m["score_name"] = score_name
 
         # n_nan / n_total for aggregate rows: _global_ covers every variant;
-        # _macro_avg_ covers only the subsets that contribute (n_pairs >= n_min).
+        # _macro_avg_ covers only the subsets that contribute (n_groups >= n_min).
         qualifying = set(
             m.loc[
                 ~m["subset"].isin([GLOBAL_SUBSET, MACRO_AVG_SUBSET])
-                & (m["n_pairs"] >= n_min),
+                & (m["n_groups"] >= n_min),
                 "subset",
             ]
         )
@@ -215,8 +226,8 @@ def aggregate_conservation_metrics(
 def _build_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
     """Render the metrics DataFrame as a two-table markdown report.
 
-    PairwiseAccuracy table: one row per ``subset`` (no ``global`` / ``mean``
-    aggregate row). Each cell is ``f"{value:.3f} ± {se:.3f}"``.
+    AUPRC table: one row per ``subset`` (no ``global`` / ``mean`` aggregate
+    row). Each cell is ``f"{value:.3f} ± {se:.3f}"``.
 
     NaN-counts table: per-subset NaN counts plus per-subset n_total.
     """
@@ -233,12 +244,11 @@ def _build_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
             aggfunc="first",
         )
 
-    # Per-subset coverage (n_pairs / n_total / n_ties) from the first score —
-    # subset coverage is score-independent. n_ties varies per score, handled
-    # below in its own table column if we want to surface it.
+    # Per-subset coverage (n_groups / n_rows) from the first score — subset
+    # coverage is score-independent.
     coverage = (
         metrics[metrics["score_name"] == score_names[0]][
-            ["subset", "n_pairs", "n_total"]
+            ["subset", "n_groups", "n_rows", "n_total"]
         ]
         .drop_duplicates(subset="subset")
         .set_index("subset")
@@ -248,40 +258,42 @@ def _build_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
     se_pivot = _pivot("se")
     nan_pivot = _pivot("n_nan")
 
-    per_subset = list(coverage.sort_values("n_pairs", ascending=False).index)
+    per_subset = list(coverage.sort_values("n_groups", ascending=False).index)
 
     lines: list[str] = []
-    lines.append("### Conservation — Pairwise Accuracy")
+    lines.append("### Conservation — AUPRC ± cluster-bootstrap SE")
     lines.append("")
     lines.append(
-        "Per-subset pairwise accuracy ± binomial SE. For each `match_group` "
-        "(1:1 matched positive and negative variants), the metric counts +1 "
-        "if the positive scores higher, +0.5 on a tie, +0 otherwise; the "
-        "table reports the mean across pairs and `sqrt(p*(1-p)/n)`."
+        "Per-subset AUPRC ± cluster-bootstrap SE. Each iteration resamples "
+        "the unique `match_group` IDs (1:k matched positive + k negative "
+        "variants) with replacement, gathers all rows in the sampled groups, "
+        "and recomputes AUPRC; SE is the std of the bootstrap distribution. "
+        "Clustering on `match_group` honors the non-iid pairing structure."
     )
     lines.append("")
-    header = ["subset", "n_pairs", *score_names]
+    header = ["subset", "n_groups", *score_names]
     lines.append("| " + " | ".join(header) + " |")
     lines.append("| " + " | ".join(["---"] * len(header)) + " |")
 
     for subset in per_subset:
-        n_pairs = int(coverage.loc[subset, "n_pairs"])
+        n_groups = int(coverage.loc[subset, "n_groups"])
         cells: list[str] = []
         for s in score_names:
             v = val_pivot.loc[subset, s] if s in val_pivot.columns else float("nan")
             e = se_pivot.loc[subset, s] if s in se_pivot.columns else float("nan")
             cells.append(f"{v:.3f} ± {e:.3f}" if pd.notna(v) and pd.notna(e) else "—")
-        lines.append("| " + " | ".join([subset, str(n_pairs), *cells]) + " |")
+        lines.append("| " + " | ".join([subset, str(n_groups), *cells]) + " |")
 
     # NaN counts: per-subset rows ordered the same way as the metric table.
     lines.append("")
     lines.append("### NaN counts")
     lines.append("")
     lines.append(
-        "NaN = no alignment at that locus in the bigWig. PairwiseAccuracy "
-        "above is computed after `.fillna(0)`: 0 is semantically meaningful "
-        "for both phyloP (neither conserved nor accelerated) and phastCons "
-        "(non-conserved)."
+        "NaN = no alignment at that locus in the bigWig. AUPRC above is "
+        "computed after `.fillna(0)`: 0 is semantically meaningful for both "
+        "phyloP (neither conserved nor accelerated) and phastCons "
+        "(non-conserved). `auprc_with_bootstrap_se` also asserts no NaN "
+        "scores, so the fill is required upstream of the metric call."
     )
     lines.append("")
     nan_header = ["subset", "n_total", *score_names]

@@ -7,9 +7,18 @@ rule score_variants:
         score="|".join(CONSERVATION_TRACKS),
         split="|".join(SPLITS),
         dataset="|".join(DATASETS),
+    params:
+        # Pin the HF dataset commit (mirrors evals_v2's pattern in
+        # snakemake/analysis/evals_v2/workflow/rules/inference.smk). Bumping
+        # the SHA in config triggers re-execution via snakemake's `params:`
+        # hash. `load_dataset(revision=…)` raises RevisionNotFoundError on
+        # an unknown SHA — no silent fallback to `main`.
+        hf_revision=lambda wc: get_dataset_config(wc.dataset)["hf_revision"],
     run:
         hf_path = f"{INPUT_HF_PREFIX}_{wildcards.dataset}"
-        ds = load_dataset(hf_path, split=wildcards.split).to_pandas()
+        ds = load_dataset(
+            hf_path, split=wildcards.split, revision=params.hf_revision
+        ).to_pandas()
         for col in REQUIRED_VARIANT_COLUMNS:
             assert col in ds.columns, f"dataset missing column {col!r}"
 
@@ -40,10 +49,17 @@ rule aggregate_metrics:
     wildcard_constraints:
         split="|".join(SPLITS),
         dataset="|".join(DATASETS),
+    params:
+        n_bootstrap=config["inference"]["n_bootstrap"],
+        bootstrap_seed=config["inference"]["bootstrap_seed"],
     run:
         # input.parquets are S3-fetched local temp paths, in expand() order (= SCORES).
         parquet_paths = dict(zip(SCORES, input.parquets))
-        metrics, md = aggregate_conservation_metrics(parquet_paths)
+        metrics, md = aggregate_conservation_metrics(
+            parquet_paths,
+            n_bootstrap=params.n_bootstrap,
+            bootstrap_seed=params.bootstrap_seed,
+        )
         metrics["split"] = wildcards.split
         metrics["dataset"] = wildcards.dataset
         metrics.to_parquet(output.metrics, index=False)

@@ -2,9 +2,11 @@
 
 Reads per-(method, dataset) metrics parquets emitted by the eval snakemake
 pipelines, filters by protocol / score-type, and emits one row per
-``(method, protocol, subset)`` for the dashboard. The bolinas family
-emits AUPRC + cluster-bootstrap SE under the AUPRC migration; other
-families still emit PairwiseAccuracy + Wald-binomial SE.
+``(method, protocol, subset)`` for the dashboard. The bolinas and
+conservation families emit AUPRC + cluster-bootstrap SE under the AUPRC
+migration (PRs #194/#195 for bolinas; the conservation_eval mirror for
+the seven phyloP / phastCons tracks); alphagenome, gpn_star, and evo2
+still emit PairwiseAccuracy + Wald-binomial SE.
 
   - ``snakemake/analysis/evals_v2/``  → one parquet per ``(model, dataset)``,
     filter by ``score_type`` + ``split``.
@@ -201,12 +203,12 @@ def fetch_method_metrics(
             f"{protocol!r} (score_type={score_type!r}) in {path}. The pipeline "
             f"may need to be re-run with this protocol included."
         )
-    # Schema bridge: bolinas family migrated from PairwiseAccuracy
+    # Schema bridge: bolinas + conservation migrated from PairwiseAccuracy
     # (n_pairs/n_ties) to AUPRC (n_groups/n_rows). Map n_groups → n_pairs
     # (semantically the bootstrap unit count for AUPRC, the pair count
-    # for PA), and fill n_ties with 0 — AUPRC has no ties. Other
-    # families still emit the legacy schema.
-    if method.family == "bolinas":
+    # for PA), and fill n_ties with 0 — AUPRC has no ties. Alphagenome,
+    # gpn_star, and evo2 still emit the legacy PA schema.
+    if method.family in ("bolinas", "conservation"):
         df = df.rename({"n_groups": "n_pairs"}).with_columns(
             pl.lit(0, dtype=pl.Int64).alias("n_ties")
         )
@@ -229,10 +231,10 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
       - ``family``          — ``Model.family``
       - ``protocol``        — protocol name (e.g. ``LLR``, ``JSD``, ``cLLR``)
       - ``subset``          — consequence subset OR ``_global_`` / ``_macro_avg_``
-      - ``value``           — metric value (AUPRC for bolinas; PairwiseAccuracy for other families)
-      - ``se``              — SE (bootstrap for bolinas; Wald binomial elsewhere)
+      - ``value``           — metric value (AUPRC for bolinas + conservation; PairwiseAccuracy for other families)
+      - ``se``              — SE (cluster bootstrap for bolinas + conservation; Wald binomial elsewhere)
       - ``n_pairs``         — bootstrap unit count (match groups for AUPRC, pairs for PA; or K = qualifying subsets for ``_macro_avg_``)
-      - ``n_ties``          — tied-pair count (always 0 for AUPRC bolinas rows)
+      - ``n_ties``          — tied-pair count (always 0 for AUPRC rows)
     """
     # Soft-fail surface, intentionally narrow: only the two legitimate
     # "no data for this protocol yet" exception types.
