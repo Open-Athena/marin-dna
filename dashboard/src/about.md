@@ -17,7 +17,7 @@ It replaces the hand-curated tables on [#161](https://github.com/Open-Athena/bol
 Each method × dataset emits two aggregate rows alongside the per-subset cells:
 
 - **Global** — AUPRC across **all** match groups, regardless of per-subset size.
-- **Macro Avg** — unweighted mean of per-subset AUPRCs across the K qualifying subsets. SE is `√(Σ SE²) / K`.
+- **Macro Avg** — unweighted mean of per-subset AUPRCs across the K subsets meeting the n_positives ≥ 30 threshold (see *Subset threshold* below). SE is `√(Σ SE²) / K`.
 
 **Sort axis.** Mendelian sorts by Macro Avg (the variant composition is dominated by missense — a ClinVar annotator-history artifact, not pathogenicity reality — so Global AUPRC over-weights protein-coding-specialist methods). Complex traits sorts by Global.
 

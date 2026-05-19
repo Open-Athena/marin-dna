@@ -63,8 +63,8 @@ display(html`<div class="card">
 ## Leaderboard
 
 ```js
-// Derived from FAMILY_LABEL so adding/removing a family is a one-line
-// change in controls.js — see `dashboard_add_family_checklist` memory.
+// Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
+// to surface a new family pill.
 const families = Object.keys(FAMILY_LABEL);
 const familyChoice = view(FamilyToggle(families));
 ```
