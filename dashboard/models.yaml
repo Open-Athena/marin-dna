@@ -328,7 +328,7 @@
   display: AlphaGenome
   family: alphagenome
   description: variant scorer, API
-  datasets: [mendelian_traits, complex_traits, eqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: GPN-Star-V
   display: GPN-Star (V)

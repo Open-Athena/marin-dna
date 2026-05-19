@@ -2,18 +2,29 @@ input_hf_prefix: bolinas-dna/evals
 split: train
 
 datasets:
-  - mendelian_traits
-  - complex_traits
-  - eqtl
+  # Per-dataset `hf_revision` pins the HF dataset commit consumed by
+  # this run. Bumping the SHA triggers re-execution via snakemake's
+  # `params:` hash. SHAs mirror evals_v2's pins (PR #194 k=9 rebuild).
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
 
 # AlphaGenome rate-limits — keep workers low (4 has been a safe ceiling).
 num_workers: 4
 
 # Single column written by `aggregate_max` and consumed by `compute_metrics`.
-# Direction-agnostic by construction (L2 of differences) — fits both
-# mendelian (pathogenic > benign) and complex (magnitude) leaderboards.
+# Direction-agnostic by construction (max over per-track L2 of delta-log1p)
+# — same column works for both mendelian (pathogenic > common) and complex
+# (magnitude) datasets, so no per-dataset score_protocol fan-out.
 score_column: alphagenome_max_l2
 
-# Smoke-test knob: keep only the first N matched pairs (= 2N rows). Override
-# via `--config subset_n_pairs=5`. Leave null in production runs.
+# AUPRC cluster-bootstrap params (cluster = `match_group`), mirroring
+# evals_v2. Bumping `bootstrap_seed` re-triggers `compute_metrics` via
+# snakemake's `params:` hash.
+n_bootstrap: 1000
+bootstrap_seed: 0
+
+# Smoke-test knob: keep only the first N matched groups. Override via
+# `--config subset_n_pairs=5`. Leave null in production runs.
 subset_n_pairs: null
