@@ -373,7 +373,8 @@ def plot_r1(out_path: Path) -> None:
             color=colors,
             edgecolor=OA_TEXT,
             linewidth=1.0,
-            error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 3.5},
+            # SE bars without caps — cleaner read at poster distance.
+            error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 0},
         )
         ax.set_xticks(xs)
         ax.set_xticklabels(
