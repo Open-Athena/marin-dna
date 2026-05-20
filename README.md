@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/logo.png" width="100" />
-</p>
-
 <h1 align="center">MarinDNA</h1>
 
 <p align="center">Open development of genomic language models — data, modeling, and evaluation.</p>
@@ -64,7 +60,7 @@ See [AGENTS.md](AGENTS.md#code-structure).
 
 ## Community
 
-Join the [Marin Discord](https://discord.gg/J9CTk7pqcM); marin-dna discussion happens in the `#dna` channel.
+Join the [Marin Discord](https://discord.gg/J9CTk7pqcM); MarinDNA discussion happens in the `#dna` channel.
 
 ## Citation
 
