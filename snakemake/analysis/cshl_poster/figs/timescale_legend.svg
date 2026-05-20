@@ -49,15 +49,9 @@
     <polygon points="840,300 900,246 960,300"/>
   </g>
 
-  <!-- Tiny species counts under triangles (no clade name — that lives
-       on the bar below, so each clade word appears only once). -->
-  <g text-anchor="middle">
-    <text x="80"  y="324" class="micro muted">1 sp.</text>
-    <text x="200" y="324" class="micro muted">~11 sp.</text>
-    <text x="400" y="324" class="micro muted">~81 sp.</text>
-    <text x="650" y="324" class="micro muted">~317 sp.</text>
-    <text x="900" y="324" class="micro muted">~499 sp.</text>
-  </g>
+  <!-- No text under the triangles. The clade name AND the cumulative
+       species count both live on each bar's label below (single source
+       of truth — the bars are what's cumulative). -->
 
   <!-- Divider between tree and span key -->
   <line x1="40" y1="355" x2="1000" y2="355" stroke="#B5A898" stroke-width="1"/>
@@ -79,13 +73,24 @@
     <rect x="60"  y="500" width="40"  height="22" fill="#D9C4A0"/>
   </g>
 
-  <!-- Span labels: dark text, anchored after each bar's right end -->
-  <g class="span-label ink">
-    <text x="970" y="398">animals</text>
-    <text x="710" y="428">vertebrates</text>
-    <text x="440" y="458">mammals</text>
-    <text x="230" y="488">primates</text>
-    <text x="110" y="518">humans</text>
+  <!-- Span labels: clade name + cumulative species count, dark text,
+       anchored after each bar's right end. -->
+  <g>
+    <text x="970" y="398" class="span-label ink">animals
+      <tspan class="micro muted" font-weight="400"> (~499 sp.)</tspan>
+    </text>
+    <text x="710" y="428" class="span-label ink">vertebrates
+      <tspan class="micro muted" font-weight="400"> (~317 sp.)</tspan>
+    </text>
+    <text x="440" y="458" class="span-label ink">mammals
+      <tspan class="micro muted" font-weight="400"> (~81 sp.)</tspan>
+    </text>
+    <text x="230" y="488" class="span-label ink">primates
+      <tspan class="micro muted" font-weight="400"> (~11 sp.)</tspan>
+    </text>
+    <text x="110" y="518" class="span-label ink">humans
+      <tspan class="micro muted" font-weight="400"> (1 sp.)</tspan>
+    </text>
   </g>
 
   <!-- Caption on the left -->
