@@ -124,7 +124,7 @@ def main() -> None:
     n_panels = len(SUBSETS)
     fig, axes = plt.subplots(1, n_panels, figsize=(4.5 * n_panels, 4), sharex=True)
     fig.suptitle(
-        "Exp13 Promoter × CDS Mixture Sweep — Qwen 1B, 512 bp",
+        "Exp13 Promoter × CDS Mixture Sweep — Qwen3 1B, 512 bp",
         y=1.02,
     )
 
