@@ -301,14 +301,14 @@ def _load_exp21_trajectory() -> pl.DataFrame:
     return pl.concat(parts)
 
 
-def _baseline_values(subset: str) -> dict[str, float]:
-    """One AUPRC value per baseline method for one subset.
+def _baseline_values(subset: str) -> dict[str, tuple[float, float]]:
+    """Per-baseline ``(AUPRC, SE)`` for one subset.
 
     Reads each Evo 2 model's gist parquet and the GPN-Star parquet,
-    filters to the canonical score type, and returns a model_id → AUPRC
-    mapping.
+    filters to the canonical score type, and returns
+    ``method_id → (value, se)``.
     """
-    values: dict[str, float] = {}
+    values: dict[str, tuple[float, float]] = {}
 
     # Evo 2: one parquet per model, score_type "minus_llr_avg" (same
     # protocol as our marin_dna models).
@@ -318,9 +318,10 @@ def _baseline_values(subset: str) -> dict[str, float]:
             (pl.col("score_type") == "minus_llr_avg")
             & (pl.col("subset") == subset)
         )
+        row = df.row(0, named=True)
         # Normalize key (drop the `_base` suffix on 1B).
         key = "evo2_1b" if evo_id == "evo2_1b_base" else evo_id
-        values[key] = float(df["value"][0])
+        values[key] = (float(row["value"]), float(row["se"]))
 
     # GPN-Star: one parquet with all 3 MSA variants, model column filters
     # them. Use the calibrated score (cLLR), the GPN-Star paper's headline.
@@ -329,82 +330,22 @@ def _baseline_values(subset: str) -> dict[str, float]:
         & (pl.col("subset") == subset)
     )
     for model in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P"):
-        row = gpn.filter(pl.col("model") == model)
-        if not row.is_empty():
-            values[model] = float(row["value"][0])
+        sub = gpn.filter(pl.col("model") == model)
+        if not sub.is_empty():
+            row = sub.row(0, named=True)
+            values[model] = (float(row["value"]), float(row["se"]))
 
     return values
 
 
-def plot_c1_lines(out_path: Path) -> None:
-    """exp21 training trajectory + horizontal baseline lines.
+# R1: exp21 (promoter-trained) vs Evo 2 / GPN-Star at the final checkpoint,
+# on the two regions exp21 was scored against.
+def plot_r1(out_path: Path) -> None:
+    """Final-step bar comparison: exp21 vs Evo 2 vs GPN-Star, with SE error bars.
 
-    Two panels (Promoter / 5'UTR). exp21 is a solid OA-copper line
-    across training steps; Evo 2 (1B/7B/40B) and GPN-Star (V/M/P) appear
-    as dashed horizontal lines (they're single-checkpoint external
-    models — no trajectory to plot).
-    """
-    traj = _load_exp21_trajectory()
-    score_type = "minus_llr_avg"
-
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.5), sharey=True)
-    for ax, (panel, subset_key) in zip(axes, COMPARISON_SUBSETS.items()):
-        # exp21 line
-        sub = (
-            traj.filter(
-                (pl.col("score_type") == score_type)
-                & (pl.col("subset") == subset_key)
-            )
-            .sort("step")
-        )
-        ax.plot(
-            sub["step"].to_numpy(),
-            sub["value"].to_numpy(),
-            marker="o",
-            color=METHOD_COLORS["exp21"],
-            label=METHOD_LABELS["exp21"],
-            zorder=4,
-        )
-
-        # Baseline horizontal lines
-        baselines = _baseline_values(subset_key)
-        x_lo, x_hi = sub["step"].min(), sub["step"].max()
-        for method_id, value in baselines.items():
-            ax.hlines(
-                value,
-                x_lo,
-                x_hi,
-                colors=METHOD_COLORS[method_id],
-                linestyles="--",
-                linewidth=2.0,
-                label=METHOD_LABELS[method_id],
-                zorder=2,
-            )
-
-        ax.set_xlabel("training step")
-        if ax is axes[0]:
-            ax.set_ylabel("AUPRC")
-        ax.set_title(panel)
-
-    # Single legend below both panels — too many entries for in-panel
-    axes[-1].legend(
-        loc="upper left",
-        bbox_to_anchor=(1.02, 1.0),
-        title=None,
-        labelcolor=OA_TEXT,
-    )
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path)
-    print(f"wrote {out_path}")
-    plt.close(fig)
-
-
-def plot_c2_bars(out_path: Path) -> None:
-    """Final-step bar comparison: exp21 vs Evo 2 vs GPN-Star.
-
-    Two panels (Promoter / 5'UTR). Single bar per method, ordered:
-    exp21 first (hero), then Evo 2 by size, then GPN-Star by MSA.
+    Two panels (Promoter / 5'UTR). Single bar per method, ordered exp21
+    first (hero), then Evo 2 by size, then GPN-Star by MSA. Error bars
+    are the per-cluster bootstrap SE from the metrics parquet.
     """
     traj = _load_exp21_trajectory()
     score_type = "minus_llr_avg"
@@ -413,21 +354,27 @@ def plot_c2_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.5), sharey=True)
     for ax, (panel, subset_key) in zip(axes, COMPARISON_SUBSETS.items()):
-        # exp21 final-step value
-        exp21_final = float(
-            traj.filter(
-                (pl.col("score_type") == score_type)
-                & (pl.col("subset") == subset_key)
-                & (pl.col("step") == 22000)
-            )["value"][0]
-        )
-        baselines = _baseline_values(subset_key)
-        values = {"exp21": exp21_final, **baselines}
+        # exp21 final-step (value, se)
+        row = traj.filter(
+            (pl.col("score_type") == score_type)
+            & (pl.col("subset") == subset_key)
+            & (pl.col("step") == 22000)
+        ).row(0, named=True)
+        exp21_final = (float(row["value"]), float(row["se"]))
+        values = {"exp21": exp21_final, **_baseline_values(subset_key)}
 
-        heights = [values[m] for m in methods]
-        colors = [METHOD_COLORS[m] for m in methods]
-        xs = list(range(len(methods)))
-        ax.bar(xs, heights, color=colors, edgecolor=OA_TEXT, linewidth=1.0)
+        heights = [values[m][0] for m in methods]
+        errs    = [values[m][1] for m in methods]
+        colors  = [METHOD_COLORS[m] for m in methods]
+        xs      = list(range(len(methods)))
+        ax.bar(
+            xs, heights,
+            yerr=errs,
+            color=colors,
+            edgecolor=OA_TEXT,
+            linewidth=1.0,
+            error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 3.5},
+        )
         ax.set_xticks(xs)
         ax.set_xticklabels(
             [METHOD_LABELS[m] for m in methods],
@@ -438,9 +385,9 @@ def plot_c2_bars(out_path: Path) -> None:
         if ax is axes[0]:
             ax.set_ylabel("AUPRC")
         ax.set_title(panel)
-        # Show value above each bar
-        for x, h in zip(xs, heights):
-            ax.text(x, h + 0.005, f"{h:.2f}", ha="center", va="bottom", fontsize=10)
+        # Value above each bar (above the error-bar cap)
+        for x, h, e in zip(xs, heights, errs):
+            ax.text(x, h + e + 0.012, f"{h:.2f}", ha="center", va="bottom", fontsize=10)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
@@ -453,5 +400,4 @@ if __name__ == "__main__":
     apply_poster_style()
     plot_t1(FIGS_DIR / "t1.svg")
     plot_t2(FIGS_DIR / "t2.svg")
-    plot_c1_lines(FIGS_DIR / "c1.svg")
-    plot_c2_bars(FIGS_DIR / "c2.svg")
+    plot_r1(FIGS_DIR / "r1.svg")
