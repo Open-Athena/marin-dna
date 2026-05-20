@@ -83,11 +83,11 @@ def main() -> None:
         f"subsets={sorted(all_df['subset'].unique().to_list())}"
     )
 
-    # Single panel + legend on the right needs extra width so tight_layout
-    # doesn't shrink the axes to make room.
-    fig, axes = plt.subplots(1, len(SUBSETS), figsize=(7, 4), sharex=True)
-    if len(SUBSETS) == 1:
-        axes = [axes]
+    # Extra width for the right-anchored legend so tight_layout doesn't squash the axes.
+    fig, axes = plt.subplots(
+        1, len(SUBSETS), figsize=(7, 4), sharex=True, squeeze=False
+    )
+    axes = axes[0]
     fig.suptitle("Exp59 Evolutionary Timescales — downstream of CDS, Qwen 0.6B", y=1.02)
 
     for ax, subset in zip(axes, SUBSETS):

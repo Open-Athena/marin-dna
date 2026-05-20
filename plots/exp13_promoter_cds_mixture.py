@@ -22,37 +22,45 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 import matplotlib.pyplot as plt
 import polars as pl
 
-# arm_key → (checkpoint-prefix used in S3 path, label, color, step list).
-# Step lists are the per-run checkpoints that exist on S3; differ across arms.
-ARMS: dict[str, dict[str, object]] = {
-    "promoter_100": {
-        "prefix": "exp21-promoters-yolo",
-        "label": "100% promoter (exp21)",
-        "color": "#1f77b4",
-        "steps": (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000),
-    },
-    "mixture_equal": {
-        "prefix": "exp13-mixture-equal",
-        "label": "50/50 mix (exp13 equal)",
-        "color": "#2ca02c",
-        "steps": (2000, 6000, 10000, 14000, 18000, 22000, 26000),
-    },
-    "mixture_proportional": {
-        "prefix": "exp13-mixture-proportional",
-        "label": "10/90 mix (exp13 proportional)",
-        "color": "#ff7f0e",
-        "steps": (2000, 6000, 10000, 14000, 18000, 22000, 26000),
-    },
-    "cds_100": {
-        "prefix": "exp27-cds-yolo",
-        "label": "100% CDS (exp27)",
-        "color": "#d62728",
-        "steps": (2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000),
-    },
+
+class Arm(NamedTuple):
+    prefix: str
+    label: str
+    color: str
+    steps: tuple[int, ...]
+
+
+# Per-run checkpoint step lists differ across arms.
+ARMS: dict[str, Arm] = {
+    "promoter_100": Arm(
+        prefix="exp21-promoters-yolo",
+        label="100% promoter (exp21)",
+        color="#1f77b4",
+        steps=(2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000),
+    ),
+    "mixture_equal": Arm(
+        prefix="exp13-mixture-equal",
+        label="50/50 mix (exp13 equal)",
+        color="#2ca02c",
+        steps=(2000, 6000, 10000, 14000, 18000, 22000, 26000),
+    ),
+    "mixture_proportional": Arm(
+        prefix="exp13-mixture-proportional",
+        label="10/90 mix (exp13 proportional)",
+        color="#ff7f0e",
+        steps=(2000, 6000, 10000, 14000, 18000, 22000, 26000),
+    ),
+    "cds_100": Arm(
+        prefix="exp27-cds-yolo",
+        label="100% CDS (exp27)",
+        color="#d62728",
+        steps=(2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000),
+    ),
 }
 SUBSETS: tuple[str, ...] = (
     "tss_proximal",
@@ -62,7 +70,7 @@ SUBSETS: tuple[str, ...] = (
     "splicing",
 )
 SUBSET_LABELS: dict[str, str] = {
-    "tss_proximal": "TSS-proximal",
+    "tss_proximal": "Promoter",
     "5_prime_UTR_variant": "5' UTR",
     "missense_variant": "Missense",
     "synonymous_variant": "Synonymous",
@@ -77,13 +85,10 @@ OUT_STEM = "exp13_promoter_cds_mixture_auprc"
 def load_all() -> pl.DataFrame:
     parts: list[pl.DataFrame] = []
     missing: list[str] = []
-    total = 0
-    for arm_key, cfg in ARMS.items():
-        prefix = cfg["prefix"]
-        steps: tuple[int, ...] = cfg["steps"]  # type: ignore[assignment]
-        for step in steps:
-            total += 1
-            uri = f"{S3_BASE}/{prefix}-step-{step}/mendelian_traits.parquet"
+    total = sum(len(arm.steps) for arm in ARMS.values())
+    for arm_key, arm in ARMS.items():
+        for step in arm.steps:
+            uri = f"{S3_BASE}/{arm.prefix}-step-{step}/mendelian_traits.parquet"
             try:
                 df = pl.read_parquet(uri)
             except Exception as exc:
@@ -101,7 +106,7 @@ def load_all() -> pl.DataFrame:
             + "\n".join(missing),
             file=sys.stderr,
         )
-    assert parts, "no parquets loaded"
+    assert parts, "no parquets loaded — has the sweep started?"
     return pl.concat(parts)
 
 
@@ -128,7 +133,7 @@ def main() -> None:
         head = sub.row(0, named=True)
         n_groups = int(head["n_groups"])
         n_rows = int(head["n_rows"])
-        for arm_key, cfg in ARMS.items():
+        for arm_key, arm in ARMS.items():
             arm_df = sub.filter(pl.col("arm") == arm_key).sort("step")
             if arm_df.is_empty():
                 continue
@@ -136,8 +141,8 @@ def main() -> None:
                 arm_df["step"].to_numpy(),
                 arm_df["value"].to_numpy(),
                 marker="o",
-                color=cfg["color"],
-                label=cfg["label"],
+                color=arm.color,
+                label=arm.label,
                 linewidth=1.5,
                 markersize=5,
             )

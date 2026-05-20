@@ -20,7 +20,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import polars as pl
 
-ARM_LABEL = "exp27 — 100% animal CDS (1B, 512 bp)"
 ARM_COLOR = "#d62728"
 STEPS: tuple[int, ...] = (2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000)
 SUBSETS: tuple[str, ...] = ("missense_variant", "synonymous_variant", "splicing")
@@ -67,8 +66,8 @@ def main() -> None:
         f"subsets={sorted(all_df['subset'].unique().to_list())}"
     )
 
-    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4), sharex=True)
-    fig.suptitle("Exp27 CDS YOLO — convergence on mendelian CDS subsets", y=1.02)
+    fig, axes = plt.subplots(1, len(SUBSETS), figsize=(4.5 * len(SUBSETS), 4), sharex=True)
+    fig.suptitle("Exp27 — 100% animal CDS, Qwen3 1B, 512 bp", y=1.02)
 
     for ax, subset in zip(axes, SUBSETS):
         sub = df.filter(pl.col("subset") == subset).sort("step")
@@ -80,7 +79,6 @@ def main() -> None:
             sub["value"].to_numpy(),
             marker="o",
             color=ARM_COLOR,
-            label=ARM_LABEL,
             linewidth=1.5,
             markersize=5,
         )
@@ -91,9 +89,6 @@ def main() -> None:
         for spine in ("top", "right"):
             ax.spines[spine].set_visible(False)
 
-    axes[-1].legend(
-        loc="center left", bbox_to_anchor=(1.02, 0.5), title="Model", frameon=False
-    )
     plt.tight_layout()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for ext in ("svg", "png"):

@@ -18,12 +18,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import polars as pl
 
-ARM_LABEL = "exp21 — 100% animal promoters (1B, 512 bp)"
 ARM_COLOR = "#1f77b4"
 STEPS: tuple[int, ...] = (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000)
 SUBSETS: tuple[str, ...] = ("tss_proximal", "5_prime_UTR_variant")
 SUBSET_LABELS: dict[str, str] = {
-    "tss_proximal": "TSS-proximal (promoter)",
+    "tss_proximal": "Promoter",
     "5_prime_UTR_variant": "5' UTR",
 }
 S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
@@ -67,7 +66,7 @@ def main() -> None:
     fig, axes = plt.subplots(
         1, len(SUBSETS), figsize=(4.5 * len(SUBSETS), 4), sharex=True
     )
-    fig.suptitle("Exp21 Promoters YOLO — convergence on promoter subsets", y=1.02)
+    fig.suptitle("Exp21 — 100% animal promoters, Qwen3 1B, 512 bp", y=1.02)
 
     for ax, subset in zip(axes, SUBSETS):
         sub = df.filter(pl.col("subset") == subset).sort("step")
@@ -79,7 +78,6 @@ def main() -> None:
             sub["value"].to_numpy(),
             marker="o",
             color=ARM_COLOR,
-            label=ARM_LABEL,
             linewidth=1.5,
             markersize=5,
         )
@@ -90,9 +88,6 @@ def main() -> None:
         for spine in ("top", "right"):
             ax.spines[spine].set_visible(False)
 
-    axes[-1].legend(
-        loc="center left", bbox_to_anchor=(1.02, 0.5), title="Model", frameon=False
-    )
     plt.tight_layout()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for ext in ("svg", "png"):
