@@ -92,43 +92,9 @@
       </g>
     </g>
 
-    <!-- ─── AXIS 2: evolutionary timescales (GPN-Star style nested clades) ─── -->
-    <g transform="translate(30, 380)">
-      <text x="0" y="0" class="body ink" font-weight="700">▸ evolutionary timescales</text>
-
-      <!-- Nested clade boxes: animals ⊃ vertebrates ⊃ mammals ⊃ primates ∋ human.
-           Each labelled with its split time + a representative outgroup. The
-           human target sits inside the primates clade. -->
-      <g transform="translate(20, 42)">
-        <!-- Outermost: animals (~700 Mya) -->
-        <rect x="0"   y="0"   width="980" height="200" fill="none" stroke="#9e6d43" stroke-width="2" stroke-dasharray="6 4" rx="10"/>
-        <text x="20"  y="-8" class="small" fill="#9e6d43" font-weight="700">animals</text>
-        <text x="125" y="-8" class="micro muted">~700 Mya · all metazoans</text>
-
-        <!-- Vertebrates (~500 Mya) -->
-        <rect x="50"  y="28"  width="880" height="144" fill="none" stroke="#9e6d43" stroke-width="2" rx="10" opacity="0.75"/>
-        <text x="70"  y="20" class="small" fill="#9e6d43" font-weight="700">vertebrates</text>
-        <text x="208" y="20" class="micro muted">~500 Mya · + fish, reptiles, birds</text>
-
-        <!-- Mammals (~100 Mya) -->
-        <rect x="100" y="56" width="780" height="88" fill="none" stroke="#9e6d43" stroke-width="2" rx="10" opacity="0.85"/>
-        <text x="120" y="48" class="small" fill="#9e6d43" font-weight="700">mammals</text>
-        <text x="240" y="48" class="micro muted">~100 Mya · + rodents, carnivores, …</text>
-
-        <!-- Primates (~65 Mya) — the innermost named clade -->
-        <rect x="150" y="84" width="680" height="32" fill="#fff3e0" stroke="#9e6d43" stroke-width="3" rx="10"/>
-        <text x="170" y="76" class="small" fill="#9e6d43" font-weight="700">primates</text>
-        <text x="285" y="76" class="micro muted">~65 Mya · + apes, monkeys</text>
-
-        <!-- Human target (inside primates), star marker + inline label.
-             Marker + label kept inside the primates rect (x range 150-830). -->
-        <g transform="translate(620, 100)">
-          <circle r="13" fill="#9e6d43"/>
-          <text x="0" y="6" text-anchor="middle" font-size="18" fill="#f5efe6" font-weight="700">★</text>
-        </g>
-        <text x="640" y="105" class="micro" fill="#1f1e1b" font-weight="700">human (target)</text>
-      </g>
-    </g>
+    <!-- AXIS 2 (evolutionary timescales) is shown only ONCE on the
+         poster — as the timescale-legend SVG above T1/T2 in the right
+         column of the body. It would be redundant here. -->
   </g>
 
   <!-- Arrow DATA → MODEL -->

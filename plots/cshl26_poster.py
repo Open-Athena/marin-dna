@@ -161,9 +161,8 @@ def _plot_timescale_panel(
         )
     ax.set_xlabel("training step")
     ax.set_ylabel("AUPRC")
-    # Legend ordering follows `arms`, which is already narrow → broad —
-    # so the legend doubles as a colour-key for the sequential palette.
-    ax.legend(loc="lower right", title=None, labelcolor=OA_TEXT)
+    # No legend — the timescale-legend SVG above the two panels in
+    # poster.html is the canonical colour-key for both T1 and T2.
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
     print(f"wrote {out_path}")

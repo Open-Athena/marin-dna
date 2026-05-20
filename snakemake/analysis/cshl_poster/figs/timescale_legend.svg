@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 0 1100 380" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .ink   { fill: #1f1e1b; }
+      .muted { fill: #7a7a7a; }
+      .label-bold { font-family: 'Lato', sans-serif; font-size: 22px; font-weight: 700; }
+      .small { font-family: 'Lato', sans-serif; font-size: 20px; }
+      .micro { font-family: 'Lato', sans-serif; font-size: 17px; }
+      .branch { stroke: #1f1e1b; stroke-width: 2; fill: none; }
+    </style>
+  </defs>
+
+  <!-- ─── Phylogenetic tree (GPN-Star Fig 1B style) ───
+       Pectinate / staircase layout: 5 leaves arranged left → right at
+       narrow → broad, with internal nodes climbing up-right. Each leaf
+       is a colored triangle whose hue matches the corresponding line in
+       the T1 / T2 panels below — so this whole figure IS the legend. -->
+
+  <!-- Mya labels to the left of each split -->
+  <text x="58"  y="246" class="label-bold ink" text-anchor="end">~65 Mya</text>
+  <text x="178" y="186" class="label-bold ink" text-anchor="end">~100 Mya</text>
+  <text x="368" y="126" class="label-bold ink" text-anchor="end">~600 Mya</text>
+  <text x="588" y="66"  class="label-bold ink" text-anchor="end">~700 Mya</text>
+
+  <!-- Internal-node "dots" for visual anchoring -->
+  <g fill="#1f1e1b">
+    <circle cx="140" cy="240" r="4"/>  <!-- ~65 Mya  -->
+    <circle cx="260" cy="180" r="4"/>  <!-- ~100 Mya -->
+    <circle cx="450" cy="120" r="4"/>  <!-- ~600 Mya -->
+    <circle cx="670" cy="60"  r="4"/>  <!-- ~700 Mya -->
+  </g>
+
+  <!-- Branches: each (leaf-x, leaf-y) connects to (parent-node) with
+       an "L-shaped" path (vertical then horizontal). -->
+  <g class="branch">
+    <path d="M 80  300 L 80  240 L 140 240"/>  <!-- humans → 65 Mya -->
+    <path d="M 200 300 L 200 240 L 140 240"/>  <!-- primates → 65 Mya -->
+    <path d="M 140 240 L 140 180 L 260 180"/>  <!-- 65 Mya → 100 Mya -->
+    <path d="M 400 300 L 400 180 L 260 180"/>  <!-- mammals → 100 Mya -->
+    <path d="M 260 180 L 260 120 L 450 120"/>  <!-- 100 Mya → 600 Mya -->
+    <path d="M 650 300 L 650 120 L 450 120"/>  <!-- vertebrates → 600 Mya -->
+    <path d="M 450 120 L 450 60  L 670 60"/>   <!-- 600 Mya → 700 Mya -->
+    <path d="M 900 300 L 900 60  L 670 60"/>   <!-- animals → 700 Mya -->
+  </g>
+
+  <!-- ─── Triangle leaves (sequential brown palette, narrow → broad) ──
+       Width scales with species-count breadth; colour is identical to
+       each arm's line in T1 / T2. -->
+  <g stroke="#1f1e1b" stroke-width="1.5">
+    <polygon points="74,300 80,288 86,300"      fill="#D9C4A0"/>  <!-- humans -->
+    <polygon points="186,300 200,278 214,300"   fill="#B58853"/>  <!-- primates -->
+    <polygon points="370,300 400,266 430,300"   fill="#9e6d43"/>  <!-- mammals -->
+    <polygon points="600,300 650,256 700,300"   fill="#6E4421"/>  <!-- vertebrates -->
+    <polygon points="840,300 900,246 960,300"   fill="#3D2417"/>  <!-- animals -->
+  </g>
+
+  <!-- Leaf labels (clade name + species count) -->
+  <g text-anchor="middle">
+    <text x="80"  y="332" class="small ink">humans</text>
+    <text x="80"  y="358" class="micro muted">(1 sp.)</text>
+    <text x="200" y="332" class="small ink">primates</text>
+    <text x="200" y="358" class="micro muted">(~11 sp.)</text>
+    <text x="400" y="332" class="small ink">mammals</text>
+    <text x="400" y="358" class="micro muted">(~81 sp.)</text>
+    <text x="650" y="332" class="small ink">vertebrates</text>
+    <text x="650" y="358" class="micro muted">(~317 sp.)</text>
+    <text x="900" y="332" class="small ink">animals</text>
+    <text x="900" y="358" class="micro muted">(~499 sp.)</text>
+  </g>
+</svg>

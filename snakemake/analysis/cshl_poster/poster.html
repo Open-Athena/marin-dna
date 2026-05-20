@@ -161,12 +161,29 @@ body {
 }
 .col {
   display: grid;
-  /* 3 rows: section header (h2), 2 figure panels (equal flex).
-     Region/timescale schematics now live only in the top DATA card so columns
-     don't repeat them. */
+  /* 3 rows: section header (h2), 2 figure panels (equal flex). */
   grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
   row-gap: 0.4in;
   min-height: 0;
+}
+/* Right column adds a row for the timescale-legend SVG above the panels
+   (it doubles as the colour-key for T1 + T2). The legend gets `auto` so it
+   sizes to its intrinsic 1000×380 aspect; the two panels still share the
+   remaining flex space equally. */
+.col-with-legend {
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
+}
+.timescale-legend {
+  background: var(--fig-frame-outer);
+  border-radius: 10px;
+  padding: 0.22in;
+}
+.timescale-legend img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--fig-frame-inner);
+  border-radius: 8px;
 }
 .col h2 {
   font-family: var(--font-heading);
@@ -435,8 +452,16 @@ body {
     </div>
 
     <!-- Right column: Evolutionary timescales -->
-    <div class="col">
+    <div class="col col-with-legend">
       <h2><span class="num">B.</span>Evolutionary timescales</h2>
+
+      <!-- The timescale legend IS the colour-key for T1 + T2 below.
+           Phylogenetic tree (GPN-Star Fig 1B style) with colored
+           triangle leaves whose hues match the line colours in the
+           plots. -->
+      <div class="timescale-legend">
+        <img src="figs/timescale_legend.svg" alt="Evolutionary-timescale legend: five clades (humans, primates, mammals, vertebrates, animals) shown as a pectinate phylogenetic tree with split-time labels; each clade's colour matches the corresponding line in the T1 and T2 plots below.">
+      </div>
 
       <div class="panel">
         <div class="panel-head">
