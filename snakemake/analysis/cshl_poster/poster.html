@@ -128,12 +128,12 @@ body {
 }
 
 /* ─── Pipeline strip (intro + methods combined as one visual) ─── */
-/* (Pipeline schematic styles moved/inlined — the schematic now lives
-   inside the Approach column as `.approach-schematic`.) */
+/* Pipeline schematic frame in the Approach column. Same outer + inner
+   frame styling as `.fig` and `.timescale-legend` for visual unity. */
 .approach-schematic {
   background: var(--fig-frame-outer);
   border-radius: 14px;
-  padding: 0.18in;
+  padding: 0.22in;
 }
 .approach-schematic .approach-schematic-inner {
   background: var(--fig-frame-inner);
@@ -219,7 +219,7 @@ body {
 .approach-questions li::marker { color: var(--accent); font-weight: 700; }
 .timescale-legend {
   background: var(--fig-frame-outer);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 0.22in;
 }
 .timescale-legend img {
@@ -227,7 +227,7 @@ body {
   height: auto;
   display: block;
   background: var(--fig-frame-inner);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 .col h2 {
   font-family: var(--font-heading);
@@ -334,6 +334,10 @@ body {
   background: var(--fig-frame-outer);
   border-radius: 14px;
   padding: 0.22in;
+  /* <figure> ships with a browser default `margin: 1em 40px`, which
+     made the .fig boxes 20px narrower than the adjacent legend /
+     schematic boxes. Zero it out so all boxes share the same width. */
+  margin: 0;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
