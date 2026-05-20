@@ -60,8 +60,6 @@ done
 
 This mirrors `snakemake/analysis/evals_v2/workflow/rules/metrics.smk` (PR #195) but in script form, since evo2 isn't wired into the evals_v2 pipeline. Output schema matches `compute_auprc_metrics` + `[model, dataset, split]` — the same shape the dashboard's `bolinas`-family parquets use, so the metrics flow straight into `src/bolinas/pipelines/evals/leaderboard.py`'s `family: evo2` resolver. Re-uploading means: upload via `gh-upload-asset`, bump `EVO2_METRICS_GIST_COMMIT` in `leaderboard.py`, rebuild the dashboard.
 
-The legacy `eval_matched_pair_metrics.py` aggregator still exists for the PA-style markdown table on 1:1 datasets but is unused by the dashboard.
-
 ### Tear down
 
 ```bash

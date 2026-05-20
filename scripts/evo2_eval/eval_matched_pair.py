@@ -142,8 +142,10 @@ def main() -> None:
         "--skip-metrics",
         action="store_true",
         help="Write the scores parquet and exit; skip PairwiseAccuracy. "
-        "Use when the dataset isn't 1:1 paired (e.g. 1:9 in evals_mendelian_traits "
-        "post-#194) and the pairwise metric no longer applies.",
+        "Use when the dataset isn't 1:1 paired (e.g. 1:9 in "
+        "evals_mendelian_traits post-#194) and the pairwise metric no "
+        "longer applies; run scripts/evo2_eval/compute_auprc_metrics.py "
+        "post-hoc to get AUPRC + cluster-bootstrap SE for the dashboard.",
     )
     args = p.parse_args()
 

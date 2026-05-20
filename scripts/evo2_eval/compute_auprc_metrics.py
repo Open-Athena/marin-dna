@@ -112,6 +112,12 @@ def main() -> None:
     present_renames = {src: dst for src, dst in COL_RENAME.items() if src in df.columns}
     df = df.rename(columns=present_renames)
 
+    # If the input came from `eval_matched_pair.py --no-rc-avg`, only
+    # the `*_fwd` atoms exist (no `_rev` → no `_rc`, no `_avg`). All six
+    # `SCORE_COLUMNS` may be missing; the dashboard's LLR/JSD protocols
+    # both point at `_avg`, so the resulting metrics parquet won't drive
+    # any leaderboard cell — but the per-strand columns are still useful
+    # for ablations, so we proceed if anything is left.
     score_cols = [c for c in SCORE_COLUMNS if c in df.columns]
     assert score_cols, (
         f"none of SCORE_COLUMNS={SCORE_COLUMNS} are present in input "

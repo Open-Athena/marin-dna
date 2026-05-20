@@ -167,6 +167,7 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
 .lb-family-conservation { background: #7f7f7f; }
 .lb-family-alphagenome  { background: #d62728; }
 .lb-family-gpn_star     { background: #9467bd; }
+.lb-family-evo2         { background: #ff7f0e; }
 .lb-cell { text-align: center; font-feature-settings: "tnum"; }
 .lb-na { text-align: center; color: #aaa; }
 
@@ -232,6 +233,7 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
 .lb-pop-family.family-conservation { background: #7f7f7f; }
 .lb-pop-family.family-alphagenome  { background: #d62728; }
 .lb-pop-family.family-gpn_star     { background: #9467bd; }
+.lb-pop-family.family-evo2         { background: #ff7f0e; }
 .lb-pop-display { font-size: 0.98em; font-weight: 600; }
 .lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
 .lb-pop-specs { margin: 6px 0; }
