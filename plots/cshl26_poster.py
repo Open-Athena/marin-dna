@@ -247,10 +247,11 @@ GPN_STAR_METRICS_BASE = (
     "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
 )
 
-# Per-method colour. exp21 = OA copper (the hero). Evo 2 in a cool blue/teal
-# family (different from the warm OA-brand series). GPN-Star in plum.
+# Per-method colour. Our hero models (exp21, exp27) = OA copper. Evo 2
+# in a cool blue/teal family. GPN-Star in plum.
 METHOD_COLORS: dict[str, str] = {
     "exp21":       "#9e6d43",  # OA copper
+    "exp27":       "#9e6d43",  # OA copper (our CDS model)
     "evo2_1b":     "#7BAFC4",  # light teal
     "evo2_7b":     "#3D7A92",  # medium teal
     "evo2_40b":    "#1F4A5A",  # dark teal
@@ -260,6 +261,7 @@ METHOD_COLORS: dict[str, str] = {
 }
 METHOD_LABELS: dict[str, str] = {
     "exp21":       "exp21 (promoters-yolo)",
+    "exp27":       "exp27 (cds-yolo)",
     "evo2_1b":     "Evo 2 (1B)",
     "evo2_7b":     "Evo 2 (7B)",
     "evo2_40b":    "Evo 2 (40B)",
@@ -270,35 +272,34 @@ METHOD_LABELS: dict[str, str] = {
 
 # Subsets we plot side-by-side. exp21 was trained on promoters, so the
 # 5'UTR panel doubles as an off-target generalisation check.
-COMPARISON_SUBSETS: dict[str, str] = {
+R1_SUBSETS: dict[str, str] = {
     "Promoter":  "tss_proximal",
     "5' UTR":    "5_prime_UTR_variant",
 }
 
+# CDS-related subsets for R2 (exp27 was trained on CDS).
+R2_SUBSETS: dict[str, str] = {
+    "Missense":   "missense_variant",
+    "Splicing":   "splicing",
+    "Synonymous": "synonymous_variant",
+}
 
-def _load_exp21_trajectory() -> pl.DataFrame:
-    """All exp21-promoters-yolo checkpoints (mendelian_traits)."""
-    steps = (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000)
-    parts: list[pl.DataFrame] = []
-    missing: list[str] = []
-    for step in steps:
-        uri = (
-            f"{S3_BASE}/exp21-promoters-yolo-step-{step}/mendelian_traits.parquet"
-        )
-        try:
-            ck = pl.read_parquet(uri)
-        except Exception as exc:
-            missing.append(f"  step {step}: {exc}")
-            continue
-        parts.append(ck.with_columns(pl.lit(step).alias("step")))
-    if missing:
-        print(
-            f"WARN: {len(missing)}/{len(steps)} exp21 parquets unread:\n"
-            + "\n".join(missing),
-            file=sys.stderr,
-        )
-    assert parts, "no exp21 parquets loaded"
-    return pl.concat(parts)
+
+def _load_checkpoint(model_name: str) -> pl.DataFrame:
+    """Load a single S3 mendelian_traits parquet for a given checkpoint."""
+    uri = f"{S3_BASE}/{model_name}/mendelian_traits.parquet"
+    return pl.read_parquet(uri)
+
+
+def _final_value(model_name: str, subset: str, score_type: str = "minus_llr_avg"
+                 ) -> tuple[float, float]:
+    """Return ``(value, se)`` for ``model_name`` on ``subset``."""
+    df = _load_checkpoint(model_name).filter(
+        (pl.col("score_type") == score_type)
+        & (pl.col("subset") == subset)
+    )
+    row = df.row(0, named=True)
+    return (float(row["value"]), float(row["se"]))
 
 
 def _baseline_values(subset: str) -> dict[str, tuple[float, float]]:
@@ -338,30 +339,25 @@ def _baseline_values(subset: str) -> dict[str, tuple[float, float]]:
     return values
 
 
-# R1: exp21 (promoter-trained) vs Evo 2 / GPN-Star at the final checkpoint,
-# on the two regions exp21 was scored against.
-def plot_r1(out_path: Path) -> None:
-    """Final-step bar comparison: exp21 vs Evo 2 vs GPN-Star, with SE error bars.
-
-    Two panels (Promoter / 5'UTR). Single bar per method, ordered exp21
-    first (hero), then Evo 2 by size, then GPN-Star by MSA. Error bars
-    are the per-cluster bootstrap SE from the metrics parquet.
-    """
-    traj = _load_exp21_trajectory()
-    score_type = "minus_llr_avg"
-    methods = ["exp21", "evo2_1b", "evo2_7b", "evo2_40b",
+def _plot_comparison_bars(
+    hero_id: str,
+    hero_checkpoint: str,
+    subsets: dict[str, str],
+    out_path: Path,
+) -> None:
+    """Shared body for R1 / R2: per-subset bar chart of one hero model
+    (exp21 or exp27) against the same Evo 2 + GPN-Star baselines, with
+    per-cluster bootstrap SE error bars."""
+    methods = [hero_id, "evo2_1b", "evo2_7b", "evo2_40b",
                "GPN-Star-V", "GPN-Star-M", "GPN-Star-P"]
-
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.5), sharey=True)
-    for ax, (panel, subset_key) in zip(axes, COMPARISON_SUBSETS.items()):
-        # exp21 final-step (value, se)
-        row = traj.filter(
-            (pl.col("score_type") == score_type)
-            & (pl.col("subset") == subset_key)
-            & (pl.col("step") == 22000)
-        ).row(0, named=True)
-        exp21_final = (float(row["value"]), float(row["se"]))
-        values = {"exp21": exp21_final, **_baseline_values(subset_key)}
+    n_panels = len(subsets)
+    fig_width = 6 + 2.8 * n_panels  # roughly 11.5 for 2 panels, 14 for 3
+    fig, axes = plt.subplots(1, n_panels, figsize=(fig_width, 4.5), sharey=True)
+    if n_panels == 1:
+        axes = [axes]
+    for ax, (panel, subset_key) in zip(axes, subsets.items()):
+        hero_value = _final_value(hero_checkpoint, subset_key)
+        values = {hero_id: hero_value, **_baseline_values(subset_key)}
 
         heights = [values[m][0] for m in methods]
         errs    = [values[m][1] for m in methods]
@@ -386,7 +382,6 @@ def plot_r1(out_path: Path) -> None:
         if ax is axes[0]:
             ax.set_ylabel("AUPRC")
         ax.set_title(panel)
-        # Value above each bar (above the error-bar cap)
         for x, h, e in zip(xs, heights, errs):
             ax.text(x, h + e + 0.012, f"{h:.2f}", ha="center", va="bottom", fontsize=10)
 
@@ -396,9 +391,32 @@ def plot_r1(out_path: Path) -> None:
     plt.close(fig)
 
 
+# R1: exp21 (promoter-trained) on the two regions it was scored against.
+def plot_r1(out_path: Path) -> None:
+    """exp21 vs Evo 2 / GPN-Star on Promoter and 5'UTR."""
+    _plot_comparison_bars(
+        hero_id="exp21",
+        hero_checkpoint="exp21-promoters-yolo-step-22000",
+        subsets=R1_SUBSETS,
+        out_path=out_path,
+    )
+
+
+# R2: exp27 (CDS-trained) on the three CDS variant subsets.
+def plot_r2(out_path: Path) -> None:
+    """exp27 vs Evo 2 / GPN-Star on Missense, Splicing, and Synonymous."""
+    _plot_comparison_bars(
+        hero_id="exp27",
+        hero_checkpoint="exp27-cds-yolo-step-34000",
+        subsets=R2_SUBSETS,
+        out_path=out_path,
+    )
+
+
 # ─── Entry ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     apply_poster_style()
     plot_t1(FIGS_DIR / "t1.svg")
     plot_t2(FIGS_DIR / "t2.svg")
     plot_r1(FIGS_DIR / "r1.svg")
+    plot_r2(FIGS_DIR / "r2.svg")
