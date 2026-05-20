@@ -387,13 +387,8 @@
     params: 2.0e8
   datasets: [mendelian_traits, complex_traits]
 
-# Evo 2 — restored under AUPRC + cluster-bootstrap SE (issue #131).
-# Metrics live on the assets gist at the SHA pinned in
-# `src/bolinas/pipelines/evals/leaderboard.py::EVO2_METRICS_GIST_COMMIT`.
-# Only `mendelian_traits` is registered in this PR; `complex_traits` was
-# intentionally out of scope (extend `EVO2_DATASET_SHORT` in
-# leaderboard.py + add `complex_traits` to the datasets lists below when
-# Evo 2 complex predictions land).
+# Evo 2 (issue #131) — AUPRC metrics via gist pinned in
+# `leaderboard.py::EVO2_METRICS_GIST_COMMIT`; mendelian_traits only.
 - id: evo2_1b_base
   display: Evo 2 (1B base)
   family: evo2

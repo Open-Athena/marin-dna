@@ -46,6 +46,9 @@ Two extra envs the YAML threads through to the eval script:
 The post-#194 datasets are 1:9 matched, so PairwiseAccuracy no longer applies — run inference with `SKIP_METRICS=1`, then compute AUPRC post-hoc from the per-variant scores parquet:
 
 ```bash
+# Each model is independent — run in parallel (`&` + `wait`) if you're
+# in a hurry; the script is single-threaded but each invocation pegs
+# one core for ~30 s at n_bootstrap=1000.
 for m in evo2_1b_base evo2_7b evo2_40b; do
   uv run python scripts/evo2_eval/compute_auprc_metrics.py \
     --input results/evo2_mendelian_traits/${m}_train.parquet \

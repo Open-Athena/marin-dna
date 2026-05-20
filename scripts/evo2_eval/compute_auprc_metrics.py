@@ -1,41 +1,10 @@
 """Compute AUPRC + cluster-bootstrap SE on an existing Evo2 predictions
 parquet from ``eval_matched_pair.py``.
 
-Post-hoc metrics step for the 1:9 matched-pair datasets refreshed in PR
-#194. ``eval_matched_pair.py``'s in-script PairwiseAccuracy path assumes
-1:1 matching and asserts hard on 1:9 — use ``--skip-metrics`` there, then
-run this driver on the resulting per-variant scores parquet.
-
-Mirrors ``snakemake/analysis/evals_v2/workflow/rules/metrics.smk`` (PR
-#195) but in script form. The score-column naming for evo2 differs
-slightly from the bolinas pipeline; this driver translates it:
-
-  evo2 predictions parquet      | metrics parquet score_type
-  ------------------------------|---------------------------
-  llr                           | llr_avg (raw atom, not scored)
-  llr_fwd                       | llr_fwd (raw atom, not scored)
-  llr_rev                       | llr_rc  (raw atom, not scored)
-  minus_llr                     | minus_llr_avg
-  minus_llr_fwd                 | minus_llr_fwd
-  minus_llr_rev                 | minus_llr_rc
-  next_token_jsd_mean           | jsd_avg
-  next_token_jsd_mean_fwd       | jsd_fwd
-  next_token_jsd_mean_rev       | jsd_rc
-
-``_rev`` → ``_rc`` is a naming choice to match the evals_v2 / dashboard
-convention (reverse-complement, not "reverse"). ``next_token_jsd_mean``
-collapses to ``jsd`` for parity with bolinas's ``jsd_*`` outputs. The
-``abs_llr_*`` columns are passed through too but aren't scored for
-mendelian (the dataset's canonical protocol uses ``minus_llr``).
-
-Score columns actually fed to ``compute_auprc_metrics``: the
-6-column set ``{minus_llr, jsd} × {avg, fwd, rc}`` — that's the protocol
-fan-out the dashboard's ``leaderboard.PROTOCOLS["evo2"]`` expects, plus
-the per-strand diagnostics for cross-checking #175-style "avg ≥ single
-strand" patterns.
-
-Output schema matches ``compute_auprc_metrics`` plus ``model``,
-``dataset``, ``split`` columns appended (same shape as evals_v2 emits).
+Post-hoc replacement for the in-script PA path, which asserts on 1:9
+matching after PR #194. Run ``eval_matched_pair.py --skip-metrics``, then
+this. Mirrors ``snakemake/analysis/evals_v2/workflow/rules/metrics.smk``
+(PR #195) in script form — evo2 isn't in the evals_v2 Snakemake pipeline.
 """
 
 import argparse
@@ -46,7 +15,9 @@ import pandas as pd
 from bolinas.pipelines.evals.metrics import compute_auprc_metrics
 
 
-# evo2 predictions column → metrics-parquet score_type.
+# evo2 predictions parquet → metrics parquet `score_type`. ``_rev`` →
+# ``_rc`` matches the evals_v2 / dashboard reverse-complement convention;
+# ``next_token_jsd_mean`` → ``jsd`` for parity with bolinas's ``jsd_*``.
 COL_RENAME: dict[str, str] = {
     "llr": "llr_avg",
     "llr_fwd": "llr_fwd",
@@ -62,10 +33,10 @@ COL_RENAME: dict[str, str] = {
     "next_token_jsd_mean_rev": "jsd_rc",
 }
 
-# Subset of renamed columns that we actually score AUPRC on. Same fan-out
-# pattern as `metrics.smk` in evals_v2: protocol × {avg, fwd, rc}. Mendelian
-# uses `minus_llr_*`; we also expose `jsd_*` so the dashboard's `JSD`
-# protocol works after re-enabling.
+# Subset of `COL_RENAME` values actually fed to AUPRC: ``leaderboard.PROTOCOLS["evo2"]``
+# selects from these. ``abs_llr_*`` and raw ``llr_*`` are renamed (so the
+# parquet schema is uniform across mendelian / complex) but not scored on
+# mendelian. Keep in sync with `COL_RENAME` when adding a protocol.
 SCORE_COLUMNS: list[str] = [
     "minus_llr_avg",
     "minus_llr_fwd",
