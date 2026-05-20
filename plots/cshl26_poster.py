@@ -314,32 +314,50 @@ MIXTURE_STEPS: dict[str, tuple[str, tuple[int, ...]]] = {
 
 # Three regional specialists × one matching variant consequence each,
 # plus two "fair-scale" generalists (Evo 2 40B and GPN-Star M).
-SPECIALIST_METHODS = ("exp21", "exp27", "exp136", "evo2_40b", "GPN-Star-M")
+# Method order matches the region order (missense / promoter / enhancer)
+# so the legend reads in the same direction as the subplot row.
+SPECIALIST_METHODS = ("exp27", "exp21", "exp136", "evo2_40b", "GPN-Star-M")
 
 SPECIALIST_LABELS: dict[str, str] = {
-    "exp21":      "exp21\n(promoter)",
-    "exp27":      "exp27\n(CDS)",
-    "exp136":     "exp136\n(enhancer)",
+    "exp21":      "Promoter-specialist",
+    "exp27":      "CDS-specialist",
+    "exp136":     "Enhancer-specialist",
     "evo2_40b":   "Evo 2 (40B)",
     "GPN-Star-M": "GPN-Star (M)",
 }
 
 # Per-method colour for this view. Specialists colour-coded to their
-# trained region (matches the gene-cartoon legend); generalists in their
-# family colours (teal for Evo 2, plum for GPN-Star).
+# trained region (same hexes as the gene-cartoon blocks in
+# figs/region_legend.svg so the colour ties together: model legend,
+# subplot title, and schematic block). Generalists in warm GREYS so
+# they read as "reference baselines, not region-coded" without
+# competing with the region palette for attention.
 SPECIALIST_COLORS: dict[str, str] = {
     "exp21":      "#9e6d43",  # OA copper — promoter
     "exp27":      "#7a3b2e",  # OA brick — CDS
     "exp136":     "#6b5b3e",  # OA olive — enhancer
-    "evo2_40b":   "#1F4A5A",  # dark teal
-    "GPN-Star-M": "#8B3A62",  # OA plum
+    "evo2_40b":   "#a39a8e",  # light warm gray — baseline (Evo 2)
+    "GPN-Star-M": "#5a534c",  # medium-dark warm gray — baseline (GPN-Star)
 }
 
-# Three regions, one consequence each — the matching specialty.
+# Three regions, one consequence each — the matching specialty. Order
+# reads missense → promoter → enhancer to match SPECIALIST_METHODS.
+# Display labels carry "variants" so each subplot title reads as a
+# noun phrase ("Missense variants") rather than a bare category.
 SPECIALIST_REGIONS: dict[str, str] = {
-    "Promoter": "tss_proximal",
-    "Missense": "missense_variant",
-    "Enhancer": "distal",
+    "Missense variants": "missense_variant",
+    "Promoter variants": "tss_proximal",
+    "Enhancer variants": "distal",
+}
+
+# Subplot title is coloured to match the corresponding specialist's bar
+# (and the matching block in the gene-cartoon schematic). So the eye
+# can link "Missense variants (brick)" → "CDS-specialist (brick)" →
+# "CDS exons (brick)" without re-reading text.
+REGION_TITLE_COLORS: dict[str, str] = {
+    "Missense variants": "#7a3b2e",  # OA brick — CDS
+    "Promoter variants": "#9e6d43",  # OA copper
+    "Enhancer variants": "#6b5b3e",  # OA olive
 }
 
 # Final-step checkpoint per specialist (the same ones we use for R1/R2).
@@ -583,41 +601,149 @@ def plot_specialist_radar(out_path: Path) -> None:
     plt.close(fig)
 
 
-# Alternative view: 3 small bar charts, one per region, 5 bars each.
-# Same data, less interpretive risk, slightly less striking. Side-by-
-# side fallback to the radar.
+# Profile / "parallel-coordinates" view: same data as the radar but on
+# a Cartesian x-axis. With only 3 categories, this reads cleaner than a
+# 3-spoke radar — every specialist traces a distinct *shape* (peak on
+# the left / middle / right) rather than three rotated triangles.
+def plot_specialist_profile(out_path: Path) -> None:
+    grid = _specialist_grid()
+    regions = list(SPECIALIST_REGIONS)
+    x = np.arange(len(regions))
+    # Map each specialist to the region it should peak on, for value
+    # annotation.
+    specialist_peak: dict[str, str] = {
+        "exp21":  "Promoter",
+        "exp27":  "Missense",
+        "exp136": "Enhancer",
+    }
+
+    fig, ax = plt.subplots(figsize=(8, 5.5))
+    for method in SPECIALIST_METHODS:
+        ys   = [grid[method][r][0] for r in regions]
+        errs = [grid[method][r][1] for r in regions]
+        is_specialist = method in SPECIALIST_CHECKPOINTS
+        ax.errorbar(
+            x, ys,
+            yerr=errs,
+            color=SPECIALIST_COLORS[method],
+            linestyle="-" if is_specialist else "--",
+            linewidth=2.5 if is_specialist else 1.8,
+            marker="o",
+            markersize=9 if is_specialist else 6,
+            elinewidth=1.2,
+            capsize=0,
+            label=SPECIALIST_LABELS[method].replace("\n", " "),
+            zorder=5 if is_specialist else 3,
+        )
+        # Value annotation at each specialist's spike (3 labels total).
+        if is_specialist:
+            spike_x = regions.index(specialist_peak[method])
+            ax.annotate(
+                f"{ys[spike_x]:.2f}",
+                xy=(spike_x, ys[spike_x]),
+                xytext=(0, 14),
+                textcoords="offset points",
+                ha="center",
+                fontsize=12,
+                fontweight="bold",
+                color=SPECIALIST_COLORS[method],
+            )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(regions, fontsize=14, fontweight="bold")
+    ax.set_ylabel("AUPRC")
+    # Match the bar plot: y-axis starts at the chance baseline.
+    ax.set_ylim(0.05, 0.72)
+    ax.legend(
+        loc="upper right",
+        title=None,
+        fontsize=11,
+        labelcolor=OA_TEXT,
+        frameon=False,
+    )
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
+# Three-panel grouped bar chart: one panel per region, 5 bars each
+# (3 specialists + 2 generalists). Per-panel y-axes (sharey=False)
+# because the three regions are *different datasets* — bar heights are
+# not directly comparable across panels (Missense AUPRC is intrinsically
+# higher than Enhancer AUPRC because the datasets differ in difficulty).
+# Single figure-level legend at the bottom; no xtick labels in any
+# panel (colour carries the model identity).
 def plot_specialist_grouped_bars(out_path: Path) -> None:
     grid = _specialist_grid()
     regions = list(SPECIALIST_REGIONS)
+    xs = np.arange(len(SPECIALIST_METHODS))
 
-    fig, axes = plt.subplots(1, len(regions), figsize=(11.5, 4.0), sharey=True)
-    for ax, region in zip(axes, regions):
+    fig, axes = plt.subplots(
+        1, len(regions),
+        figsize=(11.5, 4.4),
+        sharey=False,        # each region is a different dataset
+        constrained_layout=False,
+    )
+
+    # Plot, collecting bar handles from the first panel for the shared legend.
+    legend_handles = []
+    for ax_idx, (ax, region) in enumerate(zip(axes, regions)):
         heights = [grid[m][region][0] for m in SPECIALIST_METHODS]
         errs    = [grid[m][region][1] for m in SPECIALIST_METHODS]
         colors  = [SPECIALIST_COLORS[m] for m in SPECIALIST_METHODS]
-        xs      = list(range(len(SPECIALIST_METHODS)))
-        ax.bar(
+        bars = ax.bar(
             xs, heights,
-            yerr=errs,
             color=colors,
+            yerr=errs,
             edgecolor=OA_TEXT,
             linewidth=1.0,
             error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 0},
         )
-        ax.set_xticks(xs)
-        ax.set_xticklabels(
-            [SPECIALIST_LABELS[m].replace("\n", " ") for m in SPECIALIST_METHODS],
-            rotation=35, ha="right", fontsize=10,
-        )
-        ax.set_title(region)
-        if ax is axes[0]:
-            ax.set_ylabel("AUPRC")
-        # AUPRC=0.1 is the matched-pair chance baseline (1:9 positive:negative
-        # ratio), so start the y-axis there — bars now show signal above chance.
-        ax.set_ylim(bottom=0.1)
+        if ax_idx == 0:
+            # Attach labels once for the figure-level legend.
+            for bar, method in zip(bars, SPECIALIST_METHODS):
+                bar.set_label(SPECIALIST_LABELS[method].replace("\n", " "))
+                legend_handles.append(bar)
+
+        # Per-bar value labels above the SE bar.
         for x, h, e in zip(xs, heights, errs):
-            ax.text(x, h + e + 0.012, f"{h:.2f}",
-                    ha="center", va="bottom", fontsize=9)
+            ax.text(
+                x, h + e + 0.012,
+                f"{h:.2f}",
+                ha="center", va="bottom", fontsize=10,
+                color=OA_TEXT,
+            )
+
+        ax.set_title(
+            region,
+            fontsize=15,
+            fontweight="bold",
+            pad=8,
+            color=REGION_TITLE_COLORS[region],
+        )
+        # Drop the colour-encoded xtick clutter — model identity is in
+        # the figure-level legend.
+        ax.set_xticks([])
+        # Independent y-axis per panel, but anchored at the matched-pair
+        # chance baseline (AUPRC = 0.1 for 1:9 positive:negative ratio).
+        ymax = max(h + e for h, e in zip(heights, errs)) + 0.08
+        ax.set_ylim(0.1, ymax)
+        if ax_idx == 0:
+            ax.set_ylabel("AUPRC")
+
+    # Single figure-level legend below the three panels.
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.02),
+        ncol=len(SPECIALIST_METHODS),
+        fontsize=11,
+        labelcolor=OA_TEXT,
+        frameon=False,
+    )
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.92, bottom=0.18, wspace=0.28)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
@@ -689,13 +815,9 @@ def plot_r3(out_path: Path) -> None:
             ax.set_ylabel("AUPRC")
         ax.set_title(panel)
 
-    # Single legend to the right — the 4 methods are common across panels.
-    axes[-1].legend(
-        loc="upper left",
-        bbox_to_anchor=(1.02, 1.0),
-        title=None,
-        labelcolor=OA_TEXT,
-    )
+    # No in-plot legend — the composition schematic above the line plot
+    # (figs/r2_composition.svg) is the canonical legend: its left-side
+    # line-swatches mirror the line plot's line colours.
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
@@ -711,5 +833,9 @@ if __name__ == "__main__":
     plot_r1(FIGS_DIR / "r1.svg")
     plot_r2(FIGS_DIR / "r2.svg")
     plot_r3(FIGS_DIR / "r3.svg")
-    plot_specialist_radar(FIGS_DIR / "specialist_radar.svg")
     plot_specialist_grouped_bars(FIGS_DIR / "specialist_bars.svg")
+    # The radar and profile alternative views remain in the file (for
+    # reference / quick A/B switch) but are no longer regenerated — the
+    # 3-subplot grouped bars are the picked view.
+    # plot_specialist_radar(FIGS_DIR / "specialist_radar.svg")
+    # plot_specialist_profile(FIGS_DIR / "specialist_profile.svg")

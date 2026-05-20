@@ -154,7 +154,7 @@ body {
 /* ─── Three-column body ─── */
 .body {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   column-gap: 0.45in;
   min-height: 0;
   overflow: hidden;
@@ -172,11 +172,6 @@ body {
    remaining flex space equally. */
 .col-with-legend {
   grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
-}
-/* Three-panel variant of `.col-with-legend` for column A, which has
-   R1 + R2 + R3 stacked below the region legend (5 rows total). */
-.col-with-legend-3 {
-  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 .timescale-legend {
   background: var(--fig-frame-outer);
@@ -301,6 +296,16 @@ body {
   height: 100%;
   object-fit: contain;
   border-radius: 10px;
+}
+/* R2 has a composition schematic stacked above the line plot — extra
+   grid row above the line-plot canvas. The schematic canvas sizes to
+   the SVG's natural aspect ratio (height: auto), the line plot below
+   takes the remaining flex space. */
+.fig.has-composition {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.fig.has-composition .fig-canvas.r2-composition img {
+  height: auto;
 }
 
 /* ─── Headline number badge (used inside R1 panel) ─── */
@@ -430,45 +435,46 @@ body {
   <section class="body">
 
     <!-- Left column: Functional regions -->
-    <div class="col col-with-legend-3">
+    <div class="col col-with-legend">
       <h2><span class="num">A.</span>Functional regions</h2>
 
-      <!-- Single-gene cartoon — doubles as the colour-key for the R1 / R2 / R3
-           panels below (promoter and CDS used in the experiments). -->
+      <!-- Single-gene cartoon — doubles as the colour-key for R1 and R2 below
+           (promoter, CDS, enhancer used in the specialist experiments). -->
       <div class="timescale-legend">
-        <img src="figs/region_legend.svg" alt="Functional regions legend: a single gene cartoon showing enhancer (distal, looping to promoter ~10–1000 kb away), promoter, 5'UTR, CDS exons (with intron), 3'UTR. Promoter and CDS are the regions studied in R1, R2, and R3.">
+        <img src="figs/region_legend.svg" alt="Functional regions legend: a single gene cartoon showing enhancer (distal, looping to promoter ~10–1000 kb away), promoter, 5'UTR, CDS exons (with intron), 3'UTR. Promoter, CDS, and enhancer are the regions studied in R1 and R2.">
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <span class="tag">R1</span>
-          <p class="title">Promoter-trained gLM matches GPN-Star and beats Evo 2.</p>
+          <p class="title">
+            Region specialists reach the same ballpark as whole-genome and
+            multi-species generalists, each on its own region.
+          </p>
         </div>
         <figure class="fig">
-          <p class="fig-title">Mendelian AUPRC — exp21 vs Evo 2 / GPN-Star</p>
-          <div class="fig-canvas"><img src="figs/r1.svg" alt="Figure R1"></div>
+          <p class="fig-title">
+            Mendelian AUPRC — 3 specialists + 2 generalists on missense,
+            promoter, and enhancer variants
+          </p>
+          <div class="fig-canvas"><img src="figs/specialist_bars.svg" alt="Specialist vs generalist grouped bars"></div>
         </figure>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <span class="tag">R2</span>
-          <p class="title">CDS-trained gLM matches GPN-Star and beats Evo 2 on coding variants.</p>
-        </div>
-        <figure class="fig">
-          <p class="fig-title">Mendelian AUPRC — exp27 vs Evo 2 / GPN-Star</p>
-          <div class="fig-canvas"><img src="figs/r2.svg" alt="Figure R2"></div>
-        </figure>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <span class="tag">R3</span>
           <p class="title">Balanced sampling rescues the under-represented region.</p>
         </div>
-        <figure class="fig">
+        <figure class="fig has-composition">
           <p class="fig-title">exp13 mixture sweep — AUPRC vs training step</p>
-          <div class="fig-canvas"><img src="figs/r3.svg" alt="Figure R3"></div>
+          <!-- Composition schematic doubles as the line-plot's colour-key:
+               left-side line swatches match the colours of the plot's four
+               trajectories; right-side bars encode each condition's training
+               data composition (copper = promoter region, brick = CDS, same
+               hexes as the gene cartoon above). -->
+          <div class="fig-canvas r2-composition"><img src="figs/r2_composition.svg" alt="Composition schematic: four training conditions (Promoter only / CDS only / Proportional 10-90 / Uniform 50-50) with bars showing the relative amount of promoter vs CDS data in each. Acts as the legend for the line plot below."></div>
+          <div class="fig-canvas"><img src="figs/r3.svg" alt="Figure R2 — exp13 mixture sweep"></div>
         </figure>
       </div>
     </div>
@@ -504,44 +510,6 @@ body {
         <figure class="fig">
           <p class="fig-title">CDS AUPRC vs evolutionary timescale</p>
           <div class="fig-canvas"><img src="figs/t2.svg" alt="Figure T2"></div>
-        </figure>
-      </div>
-    </div>
-
-    <!-- Third column: placeholder for exploration. Could hold a scaling /
-         model-size axis, a region × timescale interaction panel, or a
-         standalone headline / discussion block. -->
-    <div class="col col-with-legend">
-      <h2><span class="num">C.</span>Placeholder</h2>
-
-      <div class="timescale-legend" style="display: flex; align-items: center; justify-content: center; min-height: 4in;">
-        <p style="font-family: var(--font-heading); font-size: 24pt; color: var(--text-light); text-align: center; margin: 0;">
-          third column — TBD<br>
-          <span style="font-family: var(--font-body); font-size: 14pt;">
-            scaling sweep · region × timescale<br>interaction · or standalone result
-          </span>
-        </p>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <span class="tag">C1</span>
-          <p class="title">Each specialist owns its region (radar view).</p>
-        </div>
-        <figure class="fig">
-          <p class="fig-title">3 specialists + 2 generalists × promoter / missense / enhancer</p>
-          <div class="fig-canvas"><img src="figs/specialist_radar.svg" alt="Specialist radar"></div>
-        </figure>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <span class="tag">C2</span>
-          <p class="title">Same comparison, grouped bars (back-pocket alternative).</p>
-        </div>
-        <figure class="fig">
-          <p class="fig-title">Mendelian AUPRC — 5 methods on 3 matching regions</p>
-          <div class="fig-canvas"><img src="figs/specialist_bars.svg" alt="Specialist grouped bars"></div>
         </figure>
       </div>
     </div>
