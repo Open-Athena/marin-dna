@@ -249,25 +249,35 @@ GPN_STAR_METRICS_BASE = (
 
 # Per-method colour. Our hero models (exp21, exp27) = OA copper. Evo 2
 # in a cool blue/teal family. GPN-Star in plum.
+#
+# For the exp13 mixture sweep, the 4 entries (100%P, 50/50, 10/90, 100%C)
+# are anchored on the OA region colours at the extremes (copper = promoter,
+# brick = CDS) with two OA colorway hops in between, so each mixture has
+# a distinct identity AND the endpoints visually tie back to the region
+# legend.
 METHOD_COLORS: dict[str, str] = {
-    "exp21":       "#9e6d43",  # OA copper
-    "exp27":       "#9e6d43",  # OA copper (our CDS model)
-    "evo2_1b":     "#7BAFC4",  # light teal
-    "evo2_7b":     "#3D7A92",  # medium teal
-    "evo2_40b":    "#1F4A5A",  # dark teal
-    "GPN-Star-V":  "#C68DAC",  # light plum
-    "GPN-Star-M":  "#8B3A62",  # OA plum
-    "GPN-Star-P":  "#5A1F3F",  # dark plum
+    "exp21":                  "#9e6d43",  # OA copper (100% promoter)
+    "exp27":                  "#7a3b2e",  # OA brick (100% CDS)
+    "exp13-equal":            "#a86a2c",  # OA burnt orange (50/50 mixture)
+    "exp13-proportional":     "#6b5b3e",  # OA olive (10/90 mixture, biased to CDS)
+    "evo2_1b":                "#7BAFC4",  # light teal
+    "evo2_7b":                "#3D7A92",  # medium teal
+    "evo2_40b":               "#1F4A5A",  # dark teal
+    "GPN-Star-V":             "#C68DAC",  # light plum
+    "GPN-Star-M":             "#8B3A62",  # OA plum
+    "GPN-Star-P":             "#5A1F3F",  # dark plum
 }
 METHOD_LABELS: dict[str, str] = {
-    "exp21":       "exp21 (promoters-yolo)",
-    "exp27":       "exp27 (cds-yolo)",
-    "evo2_1b":     "Evo 2 (1B)",
-    "evo2_7b":     "Evo 2 (7B)",
-    "evo2_40b":    "Evo 2 (40B)",
-    "GPN-Star-V":  "GPN-Star (V)",
-    "GPN-Star-M":  "GPN-Star (M)",
-    "GPN-Star-P":  "GPN-Star (P)",
+    "exp21":                  "exp21 (100% promoter)",
+    "exp27":                  "exp27 (100% CDS)",
+    "exp13-equal":            "exp13 (50 / 50 mix)",
+    "exp13-proportional":     "exp13 (10 / 90 mix)",
+    "evo2_1b":                "Evo 2 (1B)",
+    "evo2_7b":                "Evo 2 (7B)",
+    "evo2_40b":               "Evo 2 (40B)",
+    "GPN-Star-V":             "GPN-Star (V)",
+    "GPN-Star-M":             "GPN-Star (M)",
+    "GPN-Star-P":             "GPN-Star (P)",
 }
 
 # Subsets we plot side-by-side. exp21 was trained on promoters, so the
@@ -282,6 +292,23 @@ R2_SUBSETS: dict[str, str] = {
     "Missense":   "missense_variant",
     "Splicing":   "splicing",
     "Synonymous": "synonymous_variant",
+}
+
+# Two-panel subset set for the exp13 mixture sweep — one region from each
+# end (promoter, the under-represented side; missense, a CDS subset).
+MIXTURE_SUBSETS: dict[str, str] = {
+    "Promoter":  "tss_proximal",
+    "Missense":  "missense_variant",
+}
+
+# Step coverage per exp13-mixture variant. exp21 / exp27 are the
+# endpoints, exp13-equal / exp13-proportional are the mixtures.
+MIXTURE_STEPS: dict[str, tuple[str, tuple[int, ...]]] = {
+    # method_id → (S3 stem prefix, available steps on S3)
+    "exp21":              ("exp21-promoters-yolo",       (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000)),
+    "exp13-equal":        ("exp13-mixture-equal",        (2000, 6000, 10000, 14000, 18000, 22000, 26000)),
+    "exp13-proportional": ("exp13-mixture-proportional", (2000, 6000, 10000, 14000, 18000, 22000, 26000)),
+    "exp27":              ("exp27-cds-yolo",             (2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000)),
 }
 
 
@@ -413,6 +440,84 @@ def plot_r2(out_path: Path) -> None:
     )
 
 
+def _load_mixture_trajectory(method_id: str) -> pl.DataFrame:
+    """Read all S3 checkpoints for one exp13-sweep variant."""
+    stem, steps = MIXTURE_STEPS[method_id]
+    parts: list[pl.DataFrame] = []
+    missing: list[str] = []
+    for step in steps:
+        uri = f"{S3_BASE}/{stem}-step-{step}/mendelian_traits.parquet"
+        try:
+            ck = pl.read_parquet(uri)
+        except Exception as exc:
+            missing.append(f"  {method_id} step {step}: {exc}")
+            continue
+        parts.append(ck.with_columns(pl.lit(step).alias("step")))
+    if missing:
+        print(
+            f"WARN: {len(missing)}/{len(steps)} {method_id} parquets unread:\n"
+            + "\n".join(missing),
+            file=sys.stderr,
+        )
+    assert parts, f"no {method_id} parquets loaded"
+    return pl.concat(parts)
+
+
+# C1: exp13 promoter × CDS mixture sweep — equal-compute trajectories.
+# The 4 variants have different "final" step counts, so a final-step bar
+# chart would compare them at unequal compute. Plotting AUPRC vs training
+# step makes the equal-compute comparison visible at every vertical slice.
+def plot_c1(out_path: Path) -> None:
+    """4 mixture variants (100%P / 50-50 / 10-90 / 100%C) over training.
+
+    Two panels (Promoter / Missense) — one region from each side of the
+    sweep — so the trade-off shows up: 100% P does well on promoter and
+    badly on missense; 100% C the mirror image; 50/50 lands well on both;
+    10/90 (proportional / naive) ignores promoters and tracks 100% C.
+    """
+    methods = ("exp21", "exp13-equal", "exp13-proportional", "exp27")
+    score_type = "minus_llr_avg"
+
+    # Pre-load all 4 trajectories.
+    traj = {m: _load_mixture_trajectory(m) for m in methods}
+
+    fig, axes = plt.subplots(1, len(MIXTURE_SUBSETS), figsize=(11.5, 4.5), sharey=False)
+    for ax, (panel, subset_key) in zip(axes, MIXTURE_SUBSETS.items()):
+        for m in methods:
+            sub = (
+                traj[m]
+                .filter(
+                    (pl.col("score_type") == score_type)
+                    & (pl.col("subset") == subset_key)
+                )
+                .sort("step")
+            )
+            ax.plot(
+                sub["step"].to_numpy(),
+                sub["value"].to_numpy(),
+                marker="o",
+                color=METHOD_COLORS[m],
+                label=METHOD_LABELS[m],
+            )
+        ax.set_xlabel("training step")
+        if ax is axes[0]:
+            ax.set_ylabel("AUPRC")
+        ax.set_title(panel)
+
+    # Single legend to the right — the 4 methods are common across panels.
+    axes[-1].legend(
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        title=None,
+        labelcolor=OA_TEXT,
+    )
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
 # ─── Entry ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     apply_poster_style()
@@ -420,3 +525,4 @@ if __name__ == "__main__":
     plot_t2(FIGS_DIR / "t2.svg")
     plot_r1(FIGS_DIR / "r1.svg")
     plot_r2(FIGS_DIR / "r2.svg")
+    plot_c1(FIGS_DIR / "c1.svg")
