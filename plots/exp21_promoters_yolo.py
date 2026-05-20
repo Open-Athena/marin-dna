@@ -1,7 +1,6 @@
 """Plot minus_llr_avg AUPRC vs training step for exp21 (animal-promoters-yolo,
-1B Qwen3, 512 bp context), on three mendelian subsets: tss_proximal +
-5' UTR (the promoter-relevant target regions the model trained on) plus
-missense as a CDS off-target sanity panel.
+1B Qwen3, 512 bp context), on the two promoter-relevant mendelian subsets:
+tss_proximal + 5' UTR.
 
 Reads metrics parquets directly from S3, no local download needed. Writes
 both SVG (the artifact to upload to GitHub) and PNG (local-iteration
@@ -22,11 +21,10 @@ import polars as pl
 ARM_LABEL = "exp21 — 100% animal promoters (1B, 512 bp)"
 ARM_COLOR = "#1f77b4"
 STEPS: tuple[int, ...] = (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000)
-SUBSETS: tuple[str, ...] = ("tss_proximal", "5_prime_UTR_variant", "missense_variant")
+SUBSETS: tuple[str, ...] = ("tss_proximal", "5_prime_UTR_variant")
 SUBSET_LABELS: dict[str, str] = {
     "tss_proximal": "TSS-proximal (promoter)",
     "5_prime_UTR_variant": "5' UTR",
-    "missense_variant": "Missense (off-target)",
 }
 S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 SCORE_TYPE = "minus_llr_avg"
@@ -66,8 +64,8 @@ def main() -> None:
         f"subsets={sorted(all_df['subset'].unique().to_list())}"
     )
 
-    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4), sharex=True)
-    fig.suptitle("Exp21 Promoters YOLO — convergence on mendelian subsets", y=1.02)
+    fig, axes = plt.subplots(1, len(SUBSETS), figsize=(4.5 * len(SUBSETS), 4), sharex=True)
+    fig.suptitle("Exp21 Promoters YOLO — convergence on promoter subsets", y=1.02)
 
     for ax, subset in zip(axes, SUBSETS):
         sub = df.filter(pl.col("subset") == subset).sort("step")

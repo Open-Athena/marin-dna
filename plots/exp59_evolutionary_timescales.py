@@ -1,7 +1,6 @@
 """Plot minus_llr_avg AUPRC vs training step for the three exp59 evolutionary
-timescales (mammals / vertebrates / animals), on three mendelian subsets:
-3' UTR (the downstream-of-CDS target region the model trained on) plus
-synonymous + splicing as CDS off-target sanity panels.
+timescales (mammals / vertebrates / animals), on 3' UTR variants — the
+downstream-of-CDS target region the model trained on.
 
 Reads metrics parquets directly from S3, no local download needed. Writes
 both SVG (the artifact to upload to GitHub) and PNG (local-iteration
@@ -34,11 +33,9 @@ ARM_COLORS: dict[str, str] = {
     "animals": "#e8d840",
 }
 STEPS: tuple[int, ...] = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
-SUBSETS: tuple[str, ...] = ("3_prime_UTR_variant", "synonymous_variant", "splicing")
+SUBSETS: tuple[str, ...] = ("3_prime_UTR_variant",)
 SUBSET_LABELS: dict[str, str] = {
     "3_prime_UTR_variant": "3' UTR",
-    "synonymous_variant": "Synonymous",
-    "splicing": "Splicing",
 }
 S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 SCORE_TYPE = "minus_llr_avg"
@@ -86,7 +83,11 @@ def main() -> None:
         f"subsets={sorted(all_df['subset'].unique().to_list())}"
     )
 
-    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4), sharex=True)
+    # Single panel + legend on the right needs extra width so tight_layout
+    # doesn't shrink the axes to make room.
+    fig, axes = plt.subplots(1, len(SUBSETS), figsize=(7, 4), sharex=True)
+    if len(SUBSETS) == 1:
+        axes = [axes]
     fig.suptitle("Exp59 Evolutionary Timescales — downstream of CDS, Qwen 0.6B", y=1.02)
 
     for ax, subset in zip(axes, SUBSETS):
