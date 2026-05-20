@@ -552,12 +552,6 @@ def plot_specialist_radar(out_path: Path) -> None:
             label=SPECIALIST_LABELS[method].replace("\n", " "),
             zorder=5 if is_specialist else 3,
         )
-        ax.fill(
-            closed_angles, closed_vals,
-            color=SPECIALIST_COLORS[method],
-            alpha=0.15,
-            zorder=4 if is_specialist else 2,
-        )
 
     # Radial scale: 0 to 0.7 covers all data + a touch of headroom.
     ax.set_ylim(0, 0.7)
@@ -618,6 +612,9 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         ax.set_title(region)
         if ax is axes[0]:
             ax.set_ylabel("AUPRC")
+        # AUPRC=0.1 is the matched-pair chance baseline (1:9 positive:negative
+        # ratio), so start the y-axis there — bars now show signal above chance.
+        ax.set_ylim(bottom=0.1)
         for x, h, e in zip(xs, heights, errs):
             ax.text(x, h + e + 0.012, f"{h:.2f}",
                     ha="center", va="bottom", fontsize=9)
