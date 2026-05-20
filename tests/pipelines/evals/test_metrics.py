@@ -19,6 +19,8 @@ from bolinas.pipelines.evals.metrics import (
     auprc_with_bootstrap_se,
     compute_auprc_metrics,
     compute_metrics,
+    compute_mrr_metrics,
+    mrr_within_group,
 )
 
 
@@ -412,3 +414,167 @@ def test_compute_auprc_metrics_n_min_excludes_small_subsets():
         (metrics["score_type"] == "score") & (metrics["subset"] == GLOBAL_SUBSET)
     ].iloc[0]
     assert global_row["n_groups"] == 50
+
+
+# ---------------------------------------------------------------------------
+# mrr_within_group
+# ---------------------------------------------------------------------------
+
+
+def test_mrr_perfectly_separable_returns_one():
+    labels, scores, mg = _matched_pairs(separable=True)
+    res = mrr_within_group(labels, scores, mg, n_bootstrap=100, rng=0)
+    assert res["value"] == pytest.approx(1.0)
+    assert res["se"] == pytest.approx(0.0, abs=1e-12)
+    assert res["n_groups"] == 50
+    assert res["n_rows"] == 50 * 10
+    assert res["mean_group_size"] == pytest.approx(10.0)
+
+
+def test_mrr_random_scores_near_uniform_baseline():
+    """For uniform-random scores in 1:k groups (group size 10), the positive's
+    expected rank is the mean of U{1..10} = 5.5; expected MRR ≈ mean(1/r) over
+    r ∈ {1..10} ≈ 0.2929. With 50 groups, sampling noise should still leave
+    the value well below 0.5."""
+    labels, scores, mg = _matched_pairs(separable=False, seed=42)
+    res = mrr_within_group(labels, scores, mg, n_bootstrap=200, rng=0)
+    assert 0.15 < res["value"] < 0.45
+    assert res["se"] > 0
+
+
+def test_mrr_known_value_manual():
+    """Two groups, positive rank-of-positive = 1 and 2 respectively.
+    Expected MRR = (1/1 + 1/2) / 2 = 0.75."""
+    labels = np.array([1, 0, 1, 0])  # group 0: pos+neg, group 1: pos+neg
+    scores = np.array([0.9, 0.1, 0.2, 0.8])  # g0: pos wins; g1: neg wins
+    mg = np.array([0, 0, 1, 1])
+    res = mrr_within_group(labels, scores, mg, n_bootstrap=10, rng=0)
+    assert res["value"] == pytest.approx(0.75)
+    assert res["n_groups"] == 2
+
+
+def test_mrr_tie_handling_averages_ranks():
+    """When positive ties for first with one negative, average rank = 1.5,
+    so reciprocal-rank = 1/1.5 ≈ 0.6667 — not 1.0 (best case) and not
+    0.5 (loss). Locks in the tie-averaging convention."""
+    labels = np.array([1, 0, 0])
+    scores = np.array([0.5, 0.5, 0.1])  # pos ties with one neg
+    mg = np.array([0, 0, 0])
+    res = mrr_within_group(labels, scores, mg, n_bootstrap=10, rng=0)
+    assert res["value"] == pytest.approx(2 / 3, abs=1e-12)
+
+
+def test_mrr_seed_reproducibility():
+    labels, scores, mg = _matched_pairs(separable=False, seed=1)
+    a = mrr_within_group(labels, scores, mg, n_bootstrap=100, rng=0)
+    b = mrr_within_group(labels, scores, mg, n_bootstrap=100, rng=0)
+    c = mrr_within_group(labels, scores, mg, n_bootstrap=100, rng=1)
+    assert a["se"] == b["se"]
+    assert a["se"] != c["se"]
+    assert a["value"] == c["value"]
+
+
+def test_mrr_nan_score_raises():
+    labels, scores, mg = _matched_pairs(separable=False)
+    scores = scores.copy()
+    scores[3] = np.nan
+    with pytest.raises(AssertionError, match="NaN"):
+        mrr_within_group(labels, scores, mg, n_bootstrap=10, rng=0)
+
+
+def test_mrr_multiple_positives_per_group_raises():
+    labels = np.array([1, 1, 0, 0])  # two positives in group 0
+    scores = np.array([0.9, 0.8, 0.1, 0.2])
+    mg = np.array([0, 0, 0, 0])
+    with pytest.raises(AssertionError, match="exactly 1 positive"):
+        mrr_within_group(labels, scores, mg, n_bootstrap=10, rng=0)
+
+
+def test_mrr_singleton_group_raises():
+    """A group with only the positive (no negatives) is meaningless for MRR."""
+    labels = np.array([1, 1, 0])
+    scores = np.array([0.5, 0.7, 0.1])
+    mg = np.array([0, 1, 1])  # group 0 has just the positive
+    with pytest.raises(AssertionError, match="only 1 row"):
+        mrr_within_group(labels, scores, mg, n_bootstrap=10, rng=0)
+
+
+def test_mrr_length_mismatch_raises():
+    labels = np.array([1, 0, 1])
+    scores = np.array([0.5, 0.5])
+    mg = np.array([0, 1, 2])
+    with pytest.raises(AssertionError, match="length mismatch"):
+        mrr_within_group(labels, scores, mg, n_bootstrap=10, rng=0)
+
+
+def test_compute_mrr_metrics_shape():
+    dataset, scores = _matched_pairs_with_subsets(
+        subsets=["A", "B", "C"], n_pos_per_subset=40
+    )
+    metrics = compute_mrr_metrics(dataset=dataset, scores=scores, n_bootstrap=20, rng=0)
+    assert len(metrics) == 3 * 2 + 2 * 2
+    assert set(metrics["score_type"]) == {"score", "score2"}
+    assert set(metrics["subset"]) == {"A", "B", "C", GLOBAL_SUBSET, MACRO_AVG_SUBSET}
+    assert set(metrics.columns) == {
+        "score_type",
+        "subset",
+        "value",
+        "se",
+        "n_groups",
+        "n_rows",
+    }
+
+
+def test_compute_mrr_metrics_global_matches_per_group_average():
+    """``_global_`` row's value equals the unweighted mean of per-group
+    reciprocal ranks across the entire dataset."""
+    dataset, scores = _matched_pairs_with_subsets(subsets=["A", "B"])
+    metrics = compute_mrr_metrics(
+        dataset=dataset,
+        scores=scores,
+        score_columns=["score"],
+        n_bootstrap=10,
+        rng=0,
+    )
+    global_row = metrics[
+        (metrics["score_type"] == "score") & (metrics["subset"] == GLOBAL_SUBSET)
+    ].iloc[0]
+    # Recompute by calling mrr_within_group directly on the merged frame.
+    expected = mrr_within_group(
+        dataset["label"],
+        scores["score"],
+        dataset["match_group"],
+        n_bootstrap=1,
+        rng=0,
+    )["value"]
+    assert global_row["value"] == pytest.approx(expected)
+
+
+def test_compute_mrr_metrics_macro_avg_matches_mean_of_qualifying():
+    dataset, scores = _matched_pairs_with_subsets(
+        subsets=["A", "B"], n_pos_per_subset=40
+    )
+    metrics = compute_mrr_metrics(
+        dataset=dataset,
+        scores=scores,
+        score_columns=["score"],
+        n_bootstrap=10,
+        rng=0,
+        n_min=30,
+    )
+    per_subset = metrics[
+        (metrics["score_type"] == "score")
+        & (~metrics["subset"].isin({GLOBAL_SUBSET, MACRO_AVG_SUBSET}))
+    ]
+    macro_row = metrics[
+        (metrics["score_type"] == "score") & (metrics["subset"] == MACRO_AVG_SUBSET)
+    ].iloc[0]
+    assert macro_row["value"] == pytest.approx(per_subset["value"].mean())
+    assert macro_row["n_groups"] == len(per_subset)
+
+
+def test_compute_mrr_metrics_match_group_straddle_raises():
+    dataset, scores = _matched_pairs_with_subsets(subsets=["A", "B"])
+    dataset.loc[0, "subset"] = "B"
+    with pytest.raises(AssertionError, match="span multiple subsets"):
+        compute_mrr_metrics(dataset=dataset, scores=scores, n_bootstrap=10, rng=0)

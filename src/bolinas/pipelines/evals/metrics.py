@@ -1,6 +1,6 @@
 """Metric utilities for variant-effect evaluations.
 
-Three metric families live here:
+Four metric families live here:
 
 - ``auprc_with_bootstrap_se`` / ``compute_auprc_metrics``: AUPRC with a
   cluster bootstrap SE that resamples ``match_group``s (preserving the
@@ -10,6 +10,11 @@ Three metric families live here:
 - ``pairwise_accuracy`` / ``compute_pairwise_metrics``: matched-pair within-
   ``match_group`` accuracy (ties = 0.5) with Wald-binomial SE. Used by the
   ``conservation_eval`` pipeline (1:1 match groups).
+- ``mrr_within_group`` / ``compute_mrr_metrics``: mean reciprocal rank of
+  the positive within each match_group, with cluster-bootstrap SE.
+  Within-group analogue of pairwise accuracy that's defined for 1:k
+  match groups (k ≥ 1). Used by ad-hoc analyses that want a within-group
+  metric on PR #194's 1:9 datasets.
 - ``METRIC_FUNCTIONS`` / ``compute_metrics``: classical AUPRC / AUROC /
   Spearman over (label, score) pairs. Still used by older pipelines
   (``snakemake/analysis/evals_v1/``, ``scripts/evo2_eval/``).
@@ -20,7 +25,7 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import rankdata, spearmanr
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 
@@ -295,6 +300,230 @@ def compute_auprc_metrics(
 
     for score_col in score_columns:
         global_res = auprc_with_bootstrap_se(
+            label=merged["label"],
+            score=merged[score_col],
+            match_group=merged["match_group"],
+            n_bootstrap=n_bootstrap,
+            rng=rng,
+        )
+        rows.append(
+            {
+                "score_type": score_col,
+                "subset": GLOBAL_SUBSET,
+                "value": global_res["value"],
+                "se": global_res["se"],
+                "n_groups": global_res["n_groups"],
+                "n_rows": global_res["n_rows"],
+            }
+        )
+
+        qualifying = [r for r in per_score_rows[score_col] if r["n_groups"] >= n_min]
+        assert qualifying, (
+            f"no subsets meet n_min={n_min} for score_type={score_col!r}; "
+            f"per-subset sizes: "
+            f"{ {r['subset']: r['n_groups'] for r in per_score_rows[score_col]} }"
+        )
+        k = len(qualifying)
+        macro_value = sum(r["value"] for r in qualifying) / k
+        macro_se = math.sqrt(sum(r["se"] ** 2 for r in qualifying)) / k
+        rows.append(
+            {
+                "score_type": score_col,
+                "subset": MACRO_AVG_SUBSET,
+                "value": float(macro_value),
+                "se": float(macro_se),
+                "n_groups": k,
+                "n_rows": sum(r["n_rows"] for r in qualifying),
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def mrr_within_group(
+    label: pd.Series,
+    score: pd.Series,
+    match_group: pd.Series,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+) -> dict[str, float | int]:
+    """Mean Reciprocal Rank of the positive within each ``match_group``.
+
+    Each ``match_group`` must contain exactly one positive and ≥ 1
+    negatives. The positive is ranked among all rows of its group by
+    descending score (highest score → rank 1). The metric returns the
+    mean of ``1 / rank(positive)`` over groups. Range: ``[1/group_size,
+    1]`` for groups of equal size; for variable group sizes the lower
+    bound is ``1 / max_group_size``.
+
+    Tie handling uses scipy's ``rankdata(method='average')``: tied scores
+    get the average of their ordinal ranks. This is the natural
+    generalization of pairwise_accuracy's ``ties = 0.5`` convention. On
+    1:1 groups, MRR ∈ {1, 0.5} (rank 1 → 1; rank 1.5 (tie) → 0.667;
+    rank 2 → 0.5) — close to but **not identical** with pairwise
+    accuracy's ``{1, 0.5, 0}`` mapping. The two metrics agree on the
+    decision-rule (positive beats negative) but weight loss-cases
+    differently: PA penalizes loss as 0, MRR penalizes loss as 0.5.
+
+    SE: cluster bootstrap over ``match_group``s, same scheme as
+    ``auprc_with_bootstrap_se``. Default seed ``0`` for reproducibility.
+
+    Args:
+        label: 0/1 (or bool) per row. Cast to int internally.
+        score: numeric score per row. Must not contain NaN — fill
+            upstream with a semantically appropriate value (same
+            rationale as ``pairwise_accuracy``).
+        match_group: integer group id; positives and negatives are
+            grouped within an id.
+        n_bootstrap: number of bootstrap iterations.
+        rng: ``numpy.random.Generator``, seed int, or ``None``.
+
+    Returns:
+        ``{"value", "se", "n_groups", "n_rows", "mean_group_size"}``.
+        ``value`` is point-estimate MRR over input groups; ``se`` is the
+        std of the bootstrap distribution (``ddof=1``).
+    """
+    assert len(label) == len(score) == len(match_group), (
+        f"length mismatch: label={len(label)} score={len(score)} "
+        f"match_group={len(match_group)}"
+    )
+    score_arr = np.asarray(score, dtype=float)
+    label_arr = np.asarray(label).astype(int)
+    mg_arr = np.asarray(match_group)
+    assert not np.isnan(score_arr).any(), (
+        f"score has {int(np.isnan(score_arr).sum())} NaN values; fill "
+        f"upstream with a semantically appropriate default before scoring"
+    )
+
+    # Map each match_group to its row indices.
+    group_to_rows: dict = pd.Series(mg_arr).groupby(mg_arr, sort=False).indices
+    n_groups = len(group_to_rows)
+
+    # Per-group reciprocal rank of the positive.
+    group_ids = np.fromiter(group_to_rows.keys(), dtype=object, count=n_groups)
+    rr = np.empty(n_groups, dtype=float)
+    for i, gid in enumerate(group_ids):
+        rows = group_to_rows[gid]
+        y = label_arr[rows]
+        n_pos = int(y.sum())
+        assert n_pos == 1, (
+            f"mrr_within_group expects exactly 1 positive per match_group, "
+            f"got n_pos={n_pos} (n_rows={len(y)}) for match_group={gid!r}"
+        )
+        assert len(y) >= 2, (
+            f"match_group={gid!r} has only 1 row — need ≥ 1 negative for MRR"
+        )
+        s = score_arr[rows]
+        # Negate so highest score = lowest rank (rank 1 = best).
+        ranks = rankdata(-s, method="average")
+        rank_of_pos = float(ranks[y == 1][0])
+        rr[i] = 1.0 / rank_of_pos
+    point = float(rr.mean())
+
+    rng = np.random.default_rng(rng)
+    boot = np.empty(n_bootstrap, dtype=float)
+    for b in range(n_bootstrap):
+        sampled = rng.integers(0, n_groups, size=n_groups)
+        boot[b] = float(rr[sampled].mean())
+    se = float(np.std(boot, ddof=1))
+
+    sizes = np.fromiter(
+        (len(group_to_rows[g]) for g in group_ids), dtype=int, count=n_groups
+    )
+    return {
+        "value": point,
+        "se": se,
+        "n_groups": int(n_groups),
+        "n_rows": int(len(label_arr)),
+        "mean_group_size": float(sizes.mean()),
+    }
+
+
+def compute_mrr_metrics(
+    dataset: pd.DataFrame,
+    scores: pd.DataFrame,
+    score_columns: list[str] | None = None,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+    n_min: int = 30,
+) -> pd.DataFrame:
+    """MRR + cluster-bootstrap SE per ``subset`` for one or more score columns.
+
+    Mirrors the shape of ``compute_auprc_metrics`` and
+    ``compute_pairwise_metrics``: per-subset rows plus ``_global_`` and
+    ``_macro_avg_`` aggregates per score column.
+
+    Aggregate semantics:
+
+    - **Per-subset**: MRR over groups in that subset; cluster bootstrap
+      on ``match_group``s within the subset.
+    - **``_global_``**: MRR over all groups; cluster bootstrap on all
+      ``match_group``s.
+    - **``_macro_avg_``**: unweighted mean of per-subset values for
+      subsets with ``n_groups >= n_min``. SE via the SE-of-mean formula
+      ``sqrt(sum(SE_s^2)) / K`` — same form as
+      ``compute_auprc_metrics``.
+
+    Asserts no ``match_group`` straddles subsets.
+
+    Args:
+        dataset: DataFrame with columns ``[label, subset, match_group]``.
+        scores: DataFrame whose columns are model scores; row-aligned
+            with ``dataset``.
+        score_columns: Score column names to evaluate. Defaults to all
+            columns of ``scores``.
+        n_bootstrap: bootstrap iterations per (subset, score_column).
+        rng: ``numpy.random.Generator``, seed int, or ``None``.
+        n_min: minimum ``n_groups`` per subset to qualify for the macro
+            average.
+
+    Returns:
+        DataFrame with columns
+        ``[score_type, subset, value, se, n_groups, n_rows]``.
+    """
+    for col in ("label", "subset", "match_group"):
+        assert col in dataset.columns, f"dataset missing required column {col!r}"
+
+    if score_columns is None:
+        score_columns = list(scores.columns)
+
+    merged = pd.concat(
+        [dataset.reset_index(drop=True), scores.reset_index(drop=True)], axis=1
+    )
+
+    subset_per_group = merged.groupby("match_group")["subset"].nunique()
+    bad_groups = subset_per_group[subset_per_group > 1]
+    assert bad_groups.empty, (
+        f"{len(bad_groups)} match_group(s) span multiple subsets; first: "
+        f"{bad_groups.head().to_dict()}"
+    )
+
+    rows: list[dict] = []
+    per_score_rows: dict[str, list[dict]] = {sc: [] for sc in score_columns}
+    for subset_name, subset_df in merged.groupby("subset", sort=False):
+        for score_col in score_columns:
+            res = mrr_within_group(
+                label=subset_df["label"],
+                score=subset_df[score_col],
+                match_group=subset_df["match_group"],
+                n_bootstrap=n_bootstrap,
+                rng=rng,
+            )
+            row = {
+                "score_type": score_col,
+                "subset": str(subset_name),
+                "value": res["value"],
+                "se": res["se"],
+                "n_groups": res["n_groups"],
+                "n_rows": res["n_rows"],
+            }
+            rows.append(row)
+            per_score_rows[score_col].append(row)
+
+    for score_col in score_columns:
+        global_res = mrr_within_group(
             label=merged["label"],
             score=merged[score_col],
             match_group=merged["match_group"],
