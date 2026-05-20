@@ -104,6 +104,20 @@ models:
     window_size: 255
     datasets: [mendelian_traits, complex_traits]
 
+  # Eric's mix-v0.9 1B runs (Slack #bolinas, 2026-05-18). Qwen3-1B,
+  # 255 bp + BOS context. The i0-uniform run is the headline uniform-
+  # mixture baseline; the i16 run continues training from i0's final
+  # checkpoint with a 40% upstream / 30% downstream-cds mixture.
+  # Scoped to mendelian_traits to mirror exp166.
+  - name: mix-v0.9-p1B-i0-uniform-step-25004
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217/hf/step-25004
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i16-upstream-step-8333
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
   # was weak in #21, and the matched-pair mendelian dataset is the one of
