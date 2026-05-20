@@ -16,10 +16,8 @@ import {PillSelect, ComparisonPicker, labeledRow} from "../components/controls.j
 
 ```js
 const FAMILY = "gpn_star";
-// Each entry is `[baseline, alternative]`. The heatmap shows
-// `alternative − baseline`, so cells read as "raw LLR minus calibrated".
-// GPN-Star's metrics gist has no FWD/RC variants, so just one comparison
-// here — same shape as the bolinas / evo2 pages.
+// `[baseline, alternative]`; heatmap shows `alternative − baseline`. No
+// FWD/RC variants on this gist-sourced family, hence the single pair.
 const COMPARISONS = [["cLLR", "LLR"]];
 const DATASETS = ["mendelian_traits", "complex_traits"];
 const DATASET_LABEL = {
