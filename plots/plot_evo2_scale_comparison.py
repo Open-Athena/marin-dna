@@ -408,10 +408,284 @@ def plot_score_histograms(long_df: pd.DataFrame, score_col: str, out_dir: Path) 
         "Filled = negatives; step = positives. Same data; only model varies.",
         fontsize=10,
     )
-    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # Reserve bottom band for the legend so the panels don't overlap it,
+    # and rely on bbox_inches='tight' to include the legend in the saved
+    # bbox even though it sits below the figure rect.
+    fig.tight_layout(rect=[0, 0.08, 1, 0.94])
     stem = f"score_histograms_{score_col}"
-    fig.savefig(out_dir / f"{stem}.svg")
-    fig.savefig(out_dir / f"{stem}.png", dpi=150)
+    fig.savefig(out_dir / f"{stem}.svg", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stem}.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def find_outliers_extended(
+    long_df: pd.DataFrame, *, score_col: str = "minus_llr", top_n: int = 20
+) -> dict[str, pd.DataFrame]:
+    """For each model and each large subset, return the top-N highest-
+    scoring negatives ('false positives' by score-ranking) and the top-N
+    lowest-scoring positives ('false negatives'). Useful for the
+    misclassification-character analysis."""
+    out: dict[str, pd.DataFrame] = {}
+    for model in MODELS:
+        fp_rows: list[pd.DataFrame] = []
+        fn_rows: list[pd.DataFrame] = []
+        sub = long_df[long_df["model"] == model]
+        for subset in sorted(sub["subset"].unique()):
+            s = sub[sub["subset"] == subset]
+            neg = s[s["label"] == 0]
+            pos = s[s["label"] == 1]
+            if len(neg) >= top_n:
+                fp_rows.append(neg.nlargest(top_n, score_col).assign(kind="FP"))
+            if len(pos) >= top_n:
+                fn_rows.append(pos.nsmallest(top_n, score_col).assign(kind="FN"))
+        out[f"{model}_FP"] = (
+            pd.concat(fp_rows, ignore_index=True) if fp_rows else pd.DataFrame()
+        )
+        out[f"{model}_FN"] = (
+            pd.concat(fn_rows, ignore_index=True) if fn_rows else pd.DataFrame()
+        )
+    return out
+
+
+def merge_annotations(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Join the HF dataset's richer annotations (AF, consequence, gene
+    ids, distance bins, clinvar_id, trait) onto the gist predictions by
+    (chrom, pos, ref, alt). Downloads + caches the HF dataset once."""
+    from datasets import load_dataset
+
+    ds = load_dataset(
+        "bolinas-dna/evals_mendelian_traits",
+        revision="4aed58e50c5dea0b878a665007af2ef9e5108e9f",
+        split="train",
+    )
+    ann = ds.to_pandas()[
+        [
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "AF",
+            "consequence_final",
+            "exon_closest_pc_gene_id",
+            "distance_exon_pc",
+            "tss_closest_pc_gene_id",
+            "distance_tss_pc",
+            "clinvar_id",
+            "trait",
+            "source",
+            "distance_exon_pc_bin",
+        ]
+    ]
+    ann["chrom"] = ann["chrom"].astype(str)
+    long = long_df.copy()
+    long["chrom"] = long["chrom"].astype(str)
+    merged = long.merge(ann, on=["chrom", "pos", "ref", "alt"], how="left")
+    assert len(merged) == len(long_df), (
+        f"merge changed row count: {len(long_df)} → {len(merged)}"
+    )
+    n_unmatched = int(merged["consequence_final"].isna().sum())
+    if n_unmatched:
+        print(f"  ⚠ {n_unmatched} rows unmatched in HF annotation join")
+    return merged
+
+
+def rank_within_group(
+    long_df: pd.DataFrame, score_col: str = "minus_llr"
+) -> pd.DataFrame:
+    """One row per (match_group, model) with rank-of-positive (1=best)."""
+    from scipy.stats import rankdata
+
+    rows: list[dict] = []
+    for model in MODELS:
+        sub = long_df[long_df["model"] == model]
+        for (mg, subset), g in sub.groupby(["match_group", "subset"], sort=False):
+            scores = g[score_col].to_numpy()
+            labels = g["label"].astype(int).to_numpy()
+            ranks = rankdata(-scores, method="average")
+            rank_pos = float(ranks[labels == 1][0])
+            rows.append(
+                {
+                    "match_group": int(mg),
+                    "subset": subset,
+                    "model": model,
+                    "rank_pos": rank_pos,
+                    "group_size": int(len(g)),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def cross_scale_misclassification(
+    ann_df: pd.DataFrame,
+    score_col: str = "minus_llr",
+    subset: str = "missense_variant",
+) -> dict[str, pd.DataFrame]:
+    """For a subset, classify each match_group by rank-of-positive in
+    each model and bucket cross-scale patterns. Returns per-group
+    classification and a summary table."""
+    sub = ann_df[ann_df["subset"] == subset]
+    ranks = rank_within_group(sub, score_col=score_col)
+    rank_wide = ranks.pivot(
+        index="match_group", columns="model", values="rank_pos"
+    ).reset_index()
+    rank_wide.columns.name = None
+
+    pos = sub[(sub["model"] == MODELS[0]) & (sub["label"] == 1)][
+        [
+            "match_group",
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "AF",
+            "consequence_final",
+            "exon_closest_pc_gene_id",
+            "distance_exon_pc",
+            "clinvar_id",
+            "trait",
+        ]
+    ].drop_duplicates("match_group")
+    merged = rank_wide.merge(pos, on="match_group", how="left")
+
+    r1 = merged["evo2_1b_base"]
+    r4 = merged["evo2_40b"]
+    merged["scale_failure"] = (r1 <= 3) & (r4 >= 7)
+    merged["scale_success"] = (r1 >= 7) & (r4 <= 3)
+    merged["always_hit"] = (merged[list(MODELS)] == 1).all(axis=1)
+    merged["always_miss"] = (merged[list(MODELS)] >= 7).all(axis=1)
+
+    summary_rows: list[dict] = []
+    for bucket in ("always_hit", "scale_success", "scale_failure", "always_miss"):
+        b = merged[merged[bucket]]
+        summary_rows.append(
+            {
+                "bucket": bucket,
+                "n_match_groups": int(b.shape[0]),
+                "mean_AF": float(b["AF"].mean()) if len(b) else float("nan"),
+                "median_AF": float(b["AF"].median()) if len(b) else float("nan"),
+                "frac_rare_under_1pct": (
+                    float((b["AF"] < 0.01).mean()) if len(b) else float("nan")
+                ),
+                "n_unique_genes": int(b["exon_closest_pc_gene_id"].nunique()),
+                "mean_distance_exon": (
+                    float(b["distance_exon_pc"].mean()) if len(b) else float("nan")
+                ),
+                "n_with_clinvar_id": int(b["clinvar_id"].notna().sum()),
+            }
+        )
+    summary_df = pd.DataFrame(summary_rows)
+    return {"per_group": merged, "summary": summary_df}
+
+
+def plot_rank_crosstab(per_group: pd.DataFrame, out_dir: Path) -> None:
+    """Heatmap: rank-of-positive in 1B vs in 40B (missense match_groups)."""
+    import matplotlib.colors as mcolors
+
+    r1 = per_group["evo2_1b_base"].round().astype(int)
+    r4 = per_group["evo2_40b"].round().astype(int)
+    counts = pd.crosstab(r1, r4)
+    counts = counts.reindex(index=range(1, 11), columns=range(1, 11), fill_value=0)
+    fig, ax = plt.subplots(figsize=(6.5, 5.5))
+    vmax = max(int(counts.values.max()), 1)
+    im = ax.imshow(
+        counts.values,
+        cmap="viridis",
+        norm=mcolors.LogNorm(vmin=1, vmax=vmax),
+        origin="lower",
+    )
+    ax.set_xticks(range(10))
+    ax.set_xticklabels(range(1, 11))
+    ax.set_yticks(range(10))
+    ax.set_yticklabels(range(1, 11))
+    ax.set_xlabel("rank-of-positive in evo2_40b (1 = best)")
+    ax.set_ylabel("rank-of-positive in evo2_1b_base")
+    ax.set_title(
+        "Missense match_groups — rank-of-positive cross-tab\n"
+        "Off-diagonal upper-right = 40B worse than 1B (scale-failure)"
+    )
+    for i in range(10):
+        for j in range(10):
+            v = int(counts.values[i, j])
+            if v:
+                ax.text(
+                    j,
+                    i,
+                    str(v),
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="white" if v < vmax / 4 else "black",
+                )
+    plt.colorbar(im, ax=ax, label="match_group count (log)")
+    fig.tight_layout()
+    stem = "rank_crosstab_missense_1b_vs_40b"
+    fig.savefig(out_dir / f"{stem}.svg", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stem}.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_scale_bucket_characteristics(per_group: pd.DataFrame, out_dir: Path) -> None:
+    """Compare AF + distance-to-exon distributions across cross-scale buckets."""
+    bucket_labels = {
+        "always_hit": "All models rank pos = 1",
+        "scale_success": "1B rank ≥7 → 40B rank ≤3",
+        "scale_failure": "1B rank ≤3 → 40B rank ≥7",
+        "always_miss": "All models rank pos ≥7",
+    }
+    bucket_colors = {
+        "always_hit": "#2e8c8c",
+        "scale_success": "#3a6fa0",
+        "scale_failure": "#d75f00",
+        "always_miss": "#888888",
+    }
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+
+    af_bins = np.logspace(-6, 0, 40)
+    for bucket, label in bucket_labels.items():
+        af = per_group[per_group[bucket]]["AF"].dropna()
+        if len(af):
+            axes[0].hist(
+                np.clip(af, 1e-6, 1),
+                bins=af_bins,
+                alpha=0.7,
+                label=f"{label} (n={len(af)})",
+                histtype="step",
+                linewidth=1.7,
+                color=bucket_colors[bucket],
+            )
+    axes[0].set_xscale("log")
+    axes[0].set_xlabel("AF (gnomAD)")
+    axes[0].set_ylabel("# match_groups")
+    axes[0].set_title("Allele frequency of positive, by cross-scale bucket")
+    axes[0].legend(fontsize=8, loc="upper left")
+
+    d_bins = np.linspace(0, 100, 41)
+    for bucket, label in bucket_labels.items():
+        d = per_group[per_group[bucket]]["distance_exon_pc"].dropna()
+        if len(d):
+            axes[1].hist(
+                np.clip(d, 0, 100),
+                bins=d_bins,
+                alpha=0.7,
+                label=f"{label} (n={len(d)})",
+                histtype="step",
+                linewidth=1.7,
+                color=bucket_colors[bucket],
+            )
+    axes[1].set_xlabel("distance to nearest exon (clipped at 100 nt)")
+    axes[1].set_ylabel("# match_groups")
+    axes[1].set_title("Distance-to-exon of positive, by cross-scale bucket")
+    axes[1].legend(fontsize=8, loc="upper right")
+
+    fig.suptitle(
+        "Missense — what kinds of variants degrade with scale?\n"
+        "(positives' allele frequency + distance to nearest exon)",
+        fontsize=10,
+    )
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    stem = "scale_bucket_characteristics_missense"
+    fig.savefig(out_dir / f"{stem}.svg", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stem}.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -527,6 +801,34 @@ def main() -> None:
 
     print("Plotting scale curves…")
     plot_scale_curves(metrics_df, OUT_DIR)
+
+    print("Annotating with HF dataset metadata (AF, gene, consequence, …)…")
+    ann_df = merge_annotations(long_df)
+
+    print(
+        "Per-model top-N FP / FN (highest-scoring negatives, lowest-scoring positives)…"
+    )
+    fp_fn = find_outliers_extended(ann_df, score_col="minus_llr", top_n=20)
+    fp_fn_df = pd.concat(
+        [df.assign(slice=name) for name, df in fp_fn.items()], ignore_index=True
+    )
+    fp_fn_df.to_parquet(OUT_DIR / "top_fp_fn_per_model.parquet", index=False)
+
+    print("Cross-scale misclassification analysis on missense…")
+    miss = cross_scale_misclassification(
+        ann_df, score_col="minus_llr", subset="missense_variant"
+    )
+    miss["per_group"].to_parquet(
+        OUT_DIR / "missense_rank_per_group.parquet", index=False
+    )
+    miss["summary"].to_parquet(
+        OUT_DIR / "missense_scale_bucket_summary.parquet", index=False
+    )
+    print(miss["summary"].to_string(index=False))
+
+    print("Plotting rank cross-tab + scale-bucket characteristics…")
+    plot_rank_crosstab(miss["per_group"], OUT_DIR)
+    plot_scale_bucket_characteristics(miss["per_group"], OUT_DIR)
 
     print("Done. Inspect:")
     for p in sorted(OUT_DIR.iterdir()):
