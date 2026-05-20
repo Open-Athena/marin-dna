@@ -320,6 +320,36 @@
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
   datasets: [mendelian_traits, complex_traits]
 
+# Eric Czech's mix-v0.9 1B runs (Slack #bolinas, 2026-05-18). Headline
+# uniform-mixture run + continued-training upstream-weighted variant.
+- id: mix-v0.9-p1B-i0-uniform-step-25004
+  display: mix-v0.9-p1B-uniform
+  family: bolinas
+  description: mix v0.9, uniform mixture, 1B (52.4B tokens)
+  training:
+    data: bolinas_mix_v0.9_uniform
+    params: 1.0e9
+    window_size: 255
+    objective: CLM
+  wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217/hf/step-25004
+  datasets: [mendelian_traits]
+
+- id: mix-v0.9-p1B-i16-upstream-step-8333
+  display: mix-v0.9-p1B-upstream_3.6
+  family: bolinas
+  description: mix v0.9, 40% upstream / 30% cds (continued from i0), 1B (17.5B tokens)
+  training:
+    data: bolinas_mix_v0.9_uniform_to_upstream_3.6
+    params: 1.0e9
+    window_size: 255
+    objective: CLM
+  wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
+  datasets: [mendelian_traits]
+
 # ---------------------------------------------------------------------------
 # External baselines (AlphaGenome, GPN-Star).
 # ---------------------------------------------------------------------------
