@@ -3,6 +3,7 @@ aggregation, plus the cluster-bootstrap AUPRC used by ``evals_v2``.
 Per-metric tests for ``pairwise_accuracy`` live in
 ``test_pairwise_accuracy.py``."""
 
+import math
 import tempfile
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from bolinas.pipelines.evals.metrics import (
     compute_metrics,
     compute_mrr_metrics,
     mrr_within_group,
+    paired_metric_delta_bootstrap,
 )
 
 
@@ -578,3 +580,90 @@ def test_compute_mrr_metrics_match_group_straddle_raises():
     dataset.loc[0, "subset"] = "B"
     with pytest.raises(AssertionError, match="span multiple subsets"):
         compute_mrr_metrics(dataset=dataset, scores=scores, n_bootstrap=10, rng=0)
+
+
+# ---------------------------------------------------------------------------
+# paired_metric_delta_bootstrap
+# ---------------------------------------------------------------------------
+
+
+def test_paired_delta_identical_scores_zero_delta_zero_se():
+    """If both score columns are identical, every bootstrap iteration gives
+    delta = 0 → SE = 0."""
+    labels, scores, mg = _matched_pairs(separable=False, seed=0)
+    res = paired_metric_delta_bootstrap(
+        labels, scores, scores, mg, "auprc", n_bootstrap=50, rng=0
+    )
+    assert res["delta"] == pytest.approx(0.0)
+    assert res["se"] == pytest.approx(0.0, abs=1e-12)
+    assert res["value_a"] == res["value_b"]
+
+
+def test_paired_delta_tighter_than_independence_when_correlated():
+    """Paired SE should be smaller than the independence-formula SE when
+    the two score columns are correlated — that's the whole point of the
+    paired bootstrap."""
+    labels, base, mg = _matched_pairs(separable=False, seed=7)
+    rng = np.random.default_rng(0)
+    # score_b is score_a + small noise → strongly correlated.
+    score_b = base + rng.normal(0, 0.05, size=len(base))
+    paired = paired_metric_delta_bootstrap(
+        labels, base, score_b, mg, "auprc", n_bootstrap=300, rng=0
+    )
+    # Independence formula: SE = sqrt(SE_a² + SE_b²) using the marginal AUPRC bootstrap SEs.
+    res_a = auprc_with_bootstrap_se(labels, base, mg, n_bootstrap=300, rng=0)
+    res_b = auprc_with_bootstrap_se(labels, score_b, mg, n_bootstrap=300, rng=0)
+    indep_se = math.sqrt(res_a["se"] ** 2 + res_b["se"] ** 2)
+    assert paired["se"] < indep_se, (
+        f"paired SE {paired['se']:.4f} not tighter than indep SE {indep_se:.4f} "
+        f"for strongly-correlated scores"
+    )
+
+
+def test_paired_delta_mrr_supported():
+    """MRR metric flows through the same paired bootstrap path."""
+    labels, base, mg = _matched_pairs(separable=False, seed=3)
+    res = paired_metric_delta_bootstrap(
+        labels, base, base, mg, "mrr", n_bootstrap=50, rng=0
+    )
+    assert res["delta"] == pytest.approx(0.0)
+    assert res["se"] == pytest.approx(0.0, abs=1e-12)
+
+
+def test_paired_delta_unsupported_metric_raises():
+    labels, scores, mg = _matched_pairs(separable=False)
+    with pytest.raises(AssertionError, match="unsupported metric"):
+        paired_metric_delta_bootstrap(
+            labels, scores, scores, mg, "auroc", n_bootstrap=10, rng=0
+        )
+
+
+def test_paired_delta_nan_score_raises():
+    labels, scores, mg = _matched_pairs(separable=False)
+    s2 = scores.copy()
+    s2[0] = np.nan
+    with pytest.raises(AssertionError, match="NaN"):
+        paired_metric_delta_bootstrap(labels, scores, s2, mg, "auprc", n_bootstrap=10)
+
+
+def test_paired_delta_length_mismatch_raises():
+    labels = np.array([1, 0, 1])
+    a = np.array([0.5, 0.5, 0.5])
+    b = np.array([0.5, 0.5])
+    mg = np.array([0, 1, 2])
+    with pytest.raises(AssertionError, match="length mismatch"):
+        paired_metric_delta_bootstrap(labels, a, b, mg, "auprc", n_bootstrap=10)
+
+
+def test_paired_delta_separable_vs_random_significant():
+    """Score A is perfectly separable (AUPRC=1.0), score B is random
+    (AUPRC ≈ baseline). The paired bootstrap should report a large
+    positive delta with small SE and tiny p."""
+    labels, base, mg = _matched_pairs(separable=True, seed=0)
+    rng = np.random.default_rng(0)
+    random_scores = rng.uniform(0, 1, size=len(labels))
+    res = paired_metric_delta_bootstrap(
+        labels, random_scores, base, mg, "auprc", n_bootstrap=200, rng=0
+    )
+    assert res["delta"] > 0.5  # huge effect
+    assert res["p_two_sided"] < 1e-3

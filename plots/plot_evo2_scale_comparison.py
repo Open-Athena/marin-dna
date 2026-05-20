@@ -30,13 +30,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import norm, pearsonr, spearmanr
+from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import average_precision_score
 
 from bolinas.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     auprc_with_bootstrap_se,
     mrr_within_group,
+    paired_metric_delta_bootstrap,
 )
 
 GIST_URLS: dict[str, str] = {
@@ -265,39 +266,59 @@ def per_model_metrics(
     return pd.DataFrame(rows)
 
 
-def model_pair_significance(metrics_df: pd.DataFrame) -> pd.DataFrame:
-    """Pairwise Wald Z + p-values for AUPRC and MRR gaps between each
-    pair of models, per (score_type, subset). Independence-assumed
-    combined SE — paired bootstrap would tighten."""
+def model_pair_significance(
+    long_df: pd.DataFrame, *, n_bootstrap: int = 1000, rng: int = 0
+) -> pd.DataFrame:
+    """Paired cluster-bootstrap Z + p-values for AUPRC and MRR gaps
+    between each pair of models, per (score_type, subset).
+
+    Uses ``paired_metric_delta_bootstrap`` so the SE picks up the
+    cross-model correlation (both models score the same match_groups).
+    This is generally tighter than the independence formula
+    ``sqrt(SE_a² + SE_b²)`` and gives the correct frequentist p for a
+    paired comparison."""
     rows: list[dict] = []
-    grouped = metrics_df.groupby(["score_type", "subset"])
-    for (score_type, subset), g in grouped:
-        gm = g.set_index("model")
-        for i, m1 in enumerate(MODELS):
-            for m2 in MODELS[i + 1 :]:
-                if m1 not in gm.index or m2 not in gm.index:
-                    continue
-                for metric in ("auprc", "mrr"):
-                    v1, se1 = gm.loc[m1, f"{metric}_value"], gm.loc[m1, f"{metric}_se"]
-                    v2, se2 = gm.loc[m2, f"{metric}_value"], gm.loc[m2, f"{metric}_se"]
-                    delta = float(v2 - v1)
-                    combined_se = float(math.sqrt(se1**2 + se2**2))
-                    z = delta / combined_se if combined_se > 0 else 0.0
-                    p = float(2 * (1 - norm.cdf(abs(z))))
-                    rows.append(
-                        {
-                            "score_type": score_type,
-                            "subset": subset,
-                            "metric": metric,
-                            "model_a": m1,
-                            "model_b": m2,
-                            "delta": delta,
-                            "combined_se": combined_se,
-                            "z": z,
-                            "p_two_sided": p,
-                            "significant_05": p < 0.05,
-                        }
-                    )
+    for score_type in SCORE_COLS:
+        for subset in sorted(long_df["subset"].unique().tolist()) + [GLOBAL_SUBSET]:
+            sub = (
+                long_df
+                if subset == GLOBAL_SUBSET
+                else long_df[long_df["subset"] == subset]
+            )
+            wide = pivot_score(sub, score_type)
+            label = wide["label"].to_numpy()
+            mg = wide["match_group"].to_numpy()
+            for i, m1 in enumerate(MODELS):
+                for m2 in MODELS[i + 1 :]:
+                    sa = wide[f"{m1}__{score_type}"].to_numpy()
+                    sb = wide[f"{m2}__{score_type}"].to_numpy()
+                    for metric in ("auprc", "mrr"):
+                        res = paired_metric_delta_bootstrap(
+                            label,
+                            sa,
+                            sb,
+                            mg,
+                            metric,
+                            n_bootstrap=n_bootstrap,
+                            rng=rng,
+                        )
+                        rows.append(
+                            {
+                                "score_type": score_type,
+                                "subset": subset,
+                                "metric": metric,
+                                "model_a": m1,
+                                "model_b": m2,
+                                "value_a": res["value_a"],
+                                "value_b": res["value_b"],
+                                "delta": res["delta"],
+                                "paired_se": res["se"],
+                                "z": res["z"],
+                                "p_two_sided": res["p_two_sided"],
+                                "significant_05": res["p_two_sided"] < 0.05,
+                                "n_groups": res["n_groups"],
+                            }
+                        )
     return pd.DataFrame(rows)
 
 
@@ -492,8 +513,8 @@ def main() -> None:
     metrics_df.to_parquet(OUT_DIR / "metrics.parquet", index=False)
     print(f"  {len(metrics_df)} rows in metrics.parquet")
 
-    print("Computing model-pair significance…")
-    sig_df = model_pair_significance(metrics_df)
+    print("Computing model-pair significance (paired cluster bootstrap)…")
+    sig_df = model_pair_significance(long_df, n_bootstrap=1000, rng=0)
     sig_df.to_parquet(OUT_DIR / "significance.parquet", index=False)
 
     print("Finding outlier variants…")

@@ -15,6 +15,11 @@ Four metric families live here:
   Within-group analogue of pairwise accuracy that's defined for 1:k
   match groups (k ≥ 1). Used by ad-hoc analyses that want a within-group
   metric on PR #194's 1:9 datasets.
+- ``paired_metric_delta_bootstrap``: paired cluster-bootstrap SE for the
+  metric *delta* between two score columns on the same dataset. Use
+  this instead of ``sqrt(SE_a² + SE_b²)`` when comparing two models on
+  shared match_groups — the paired form picks up the cross-model
+  correlation directly and gives tighter (less conservative) p-values.
 - ``METRIC_FUNCTIONS`` / ``compute_metrics``: classical AUPRC / AUROC /
   Spearman over (label, score) pairs. Still used by older pipelines
   (``snakemake/analysis/evals_v1/``, ``scripts/evo2_eval/``).
@@ -338,6 +343,134 @@ def compute_auprc_metrics(
         )
 
     return pd.DataFrame(rows)
+
+
+def paired_metric_delta_bootstrap(
+    label: pd.Series,
+    score_a: pd.Series,
+    score_b: pd.Series,
+    match_group: pd.Series,
+    metric: str,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+) -> dict[str, float | int]:
+    """Cluster-bootstrap SE for the *paired* metric delta between two
+    score columns on the same dataset.
+
+    The independence formula ``SE = sqrt(SE_a² + SE_b²)`` is conservative
+    for paired evaluations because both scores see the same
+    ``match_group``s — the cross-model correlation ρ > 0 means the true
+    paired SE ``sqrt(SE_a² + SE_b² − 2ρ·SE_a·SE_b)`` is smaller. This
+    function does the paired bootstrap directly: each iteration
+    resamples ``match_group``s once and recomputes the metric for both
+    score columns on the resampled rows, so the per-iteration delta
+    captures the cross-model correlation directly.
+
+    Args:
+        label: 0/1 (or bool) per row.
+        score_a: numeric score column A. Must not contain NaN.
+        score_b: numeric score column B. Must not contain NaN.
+        match_group: integer group id; cluster bootstrap unit.
+        metric: one of ``"auprc"`` or ``"mrr"`` — the within-resample
+            metric to compute on each score column.
+        n_bootstrap: number of bootstrap iterations.
+        rng: ``numpy.random.Generator``, seed int, or ``None``.
+
+    Returns:
+        ``{"delta", "se", "z", "p_two_sided", "value_a", "value_b",
+        "n_groups", "n_rows"}``. ``z = delta / se``; ``p_two_sided`` via
+        the standard normal CDF.
+    """
+    from scipy.stats import norm as _norm  # local import to keep top tidy
+
+    assert metric in {"auprc", "mrr"}, f"unsupported metric: {metric!r}"
+    assert len(label) == len(score_a) == len(score_b) == len(match_group), (
+        f"length mismatch: label={len(label)} score_a={len(score_a)} "
+        f"score_b={len(score_b)} match_group={len(match_group)}"
+    )
+    label_arr = np.asarray(label).astype(int)
+    sa = np.asarray(score_a, dtype=float)
+    sb = np.asarray(score_b, dtype=float)
+    mg_arr = np.asarray(match_group)
+    assert not (np.isnan(sa).any() or np.isnan(sb).any()), (
+        "score_a or score_b has NaN values; fill upstream before scoring"
+    )
+
+    group_to_rows: dict = pd.Series(mg_arr).groupby(mg_arr, sort=False).indices
+    group_ids = np.fromiter(
+        group_to_rows.keys(), dtype=object, count=len(group_to_rows)
+    )
+    n_groups = len(group_ids)
+    group_rows: list[np.ndarray] = [group_to_rows[g] for g in group_ids]
+
+    if metric == "mrr":
+        # MRR factorizes: each group's reciprocal-rank depends only on
+        # within-group scores. Precompute rr_a[g] and rr_b[g] once;
+        # bootstrap then averages over resampled-group indices in O(1)
+        # per iteration instead of re-evaluating per row.
+        rr_a = np.empty(n_groups, dtype=float)
+        rr_b = np.empty(n_groups, dtype=float)
+        for i, rows in enumerate(group_rows):
+            ys = label_arr[rows]
+            assert int(ys.sum()) == 1 and len(ys) >= 2, (
+                f"mrr requires 1 positive + ≥1 negative per match_group; "
+                f"got n_pos={int(ys.sum())}, n_rows={len(ys)} for "
+                f"group {group_ids[i]!r}"
+            )
+            ranks_a = rankdata(-sa[rows], method="average")
+            ranks_b = rankdata(-sb[rows], method="average")
+            rr_a[i] = 1.0 / float(ranks_a[ys == 1][0])
+            rr_b[i] = 1.0 / float(ranks_b[ys == 1][0])
+        value_a = float(rr_a.mean())
+        value_b = float(rr_b.mean())
+        point_delta = value_b - value_a
+
+        rng = np.random.default_rng(rng)
+        deltas = np.empty(n_bootstrap, dtype=float)
+        for b in range(n_bootstrap):
+            sampled = rng.integers(0, n_groups, size=n_groups)
+            deltas[b] = float(rr_b[sampled].mean() - rr_a[sampled].mean())
+        se = float(np.std(deltas, ddof=1))
+    else:  # auprc
+        # AUPRC doesn't factorize per group; recompute on each resample.
+        # Both score columns share the same resampled row indices so the
+        # per-iteration delta picks up the cross-model correlation.
+        if label_arr.sum() == 0 or label_arr.sum() == len(label_arr):
+            raise AssertionError(
+                f"AUPRC undefined: need both classes, got n_pos={int(label_arr.sum())} "
+                f"of n={len(label_arr)}"
+            )
+        value_a = float(average_precision_score(label_arr, sa))
+        value_b = float(average_precision_score(label_arr, sb))
+        point_delta = value_b - value_a
+
+        rng = np.random.default_rng(rng)
+        deltas = np.empty(n_bootstrap, dtype=float)
+        for b in range(n_bootstrap):
+            sampled = rng.integers(0, n_groups, size=n_groups)
+            idx = np.concatenate([group_rows[i] for i in sampled])
+            y = label_arr[idx]
+            s = int(y.sum())
+            if s == 0 or s == len(y):
+                deltas[b] = np.nan
+                continue
+            va = float(average_precision_score(y, sa[idx]))
+            vb = float(average_precision_score(y, sb[idx]))
+            deltas[b] = vb - va
+        se = float(np.nanstd(deltas, ddof=1))
+    z = float(point_delta / se) if se > 0 else 0.0
+    p = float(2 * (1 - _norm.cdf(abs(z))))
+    return {
+        "delta": float(point_delta),
+        "se": se,
+        "z": z,
+        "p_two_sided": p,
+        "value_a": float(value_a),
+        "value_b": float(value_b),
+        "n_groups": int(n_groups),
+        "n_rows": int(len(label_arr)),
+    }
 
 
 def mrr_within_group(
