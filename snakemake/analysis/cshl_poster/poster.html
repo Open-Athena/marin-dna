@@ -81,10 +81,11 @@ body {
   height: 100%;
   padding: 1.0in 1.2in;
   display: grid;
-  /* 4 rows: header, pipeline schematic (combined intro + methods), body, takeaways.
+  /* 3 rows: header, body, takeaways. The pipeline schematic that used
+     to live in row 2 has moved into the left column of the body.
      minmax(0, 1fr) lets the body section shrink below its intrinsic content
      size so the figures don't overflow the 44in × 44in canvas. */
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   row-gap: 0.5in;
   overflow: hidden;
 }
@@ -127,34 +128,31 @@ body {
 }
 
 /* ─── Pipeline strip (intro + methods combined as one visual) ─── */
-.pipeline {
+/* (Pipeline schematic styles moved/inlined — the schematic now lives
+   inside the Approach column as `.approach-schematic`.) */
+.approach-schematic {
   background: var(--fig-frame-outer);
   border-radius: 14px;
-  padding: 0.25in;
-  height: 5in;     /* tightened from 8in to free vertical space for the body — we'll re-tune when content settles */
+  padding: 0.18in;
 }
-.pipeline-img {
+.approach-schematic .approach-schematic-inner {
   background: var(--fig-frame-inner);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
   overflow: hidden;
 }
-.pipeline-img img,
-.pipeline-img svg {
+.approach-schematic img {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
+  height: auto;
   display: block;
 }
 
 /* ─── Three-column body ─── */
 .body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   column-gap: 0.45in;
   min-height: 0;
   overflow: hidden;
@@ -173,6 +171,52 @@ body {
 .col-with-legend {
   grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
 }
+/* Left "Approach" column: 3 rows — section header, the inline
+   model + evaluation schematic (auto height by SVG aspect), then the
+   approach body (questions + methods bullets, flex-fills the rest). */
+.col-approach {
+  grid-template-rows: auto auto 1fr;
+}
+.approach-body {
+  font-family: var(--font-body);
+  color: var(--text);
+  font-size: 18pt;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22in;
+  min-height: 0;
+}
+.approach-hook {
+  margin: 0;
+  font-size: 22pt;
+  line-height: 1.35;
+  font-family: var(--font-heading);
+  font-weight: 400;
+}
+.approach-q {
+  color: var(--accent);
+  font-weight: 700;
+}
+.approach-sub {
+  font-family: var(--font-heading);
+  font-size: 24pt;
+  font-weight: 400;
+  color: var(--accent);
+  margin: 0 0 0.05in 0;
+  letter-spacing: 0.005em;
+}
+.approach-questions,
+.approach-methods {
+  margin: 0;
+  padding-left: 1.1em;
+}
+.approach-questions li,
+.approach-methods li {
+  margin-bottom: 0.08in;
+}
+.approach-methods li::marker { color: var(--accent); }
+.approach-questions li::marker { color: var(--accent); font-weight: 700; }
 .timescale-legend {
   background: var(--fig-frame-outer);
   border-radius: 10px;
@@ -256,6 +300,30 @@ body {
   line-height: 1.4;
   margin: 0;
 }
+/* Per-panel takeaway: 2-3 short bullets that sit BELOW the figure
+   inside the panel — interprets the result without needing the
+   reader to consult the bottom "Takeaways" strip. */
+.panel-takeaway {
+  margin: 0;
+  padding-left: 1.1em;
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  line-height: 1.35;
+  list-style: none;
+}
+.panel-takeaway li {
+  position: relative;
+  padding-left: 0.05in;
+  margin-bottom: 0.05in;
+}
+.panel-takeaway li::before {
+  content: "▸";
+  position: absolute;
+  left: -0.9em;
+  color: var(--accent);
+  font-weight: 700;
+}
+.panel-takeaway strong { color: var(--accent); }
 .panel-caption .emph {
   color: var(--accent);
   font-weight: 700;
@@ -279,6 +347,20 @@ body {
   text-align: center;
   margin: 0;
 }
+/* Small trailing hyperlink to the GitHub issue for each experiment,
+   so a reader at the poster can scan the QR + run `gh issue view N`
+   to get the full experiment write-up. Copper accent + underline so
+   it reads obviously as a link against the warm-taupe figure frame. */
+.issue-ref {
+  font-family: var(--font-body);
+  font-size: 0.78em;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.issue-ref:hover { color: var(--text); }
 .fig-canvas {
   background: var(--fig-frame-inner);
   border-radius: 10px;
@@ -372,40 +454,54 @@ body {
 }
 .strip strong { color: #f5efe6; }
 .strip .col { gap: 0.12in; }
+/* Acknowledgments paragraph under the takeaways list — same italic +
+   warm-gold treatment as the Delphi blog's TRC credit, so the poster
+   carries the same brand cue. */
+.strip .ack {
+  font-style: italic;
+  font-size: 15pt;
+  color: #BFA77A;
+  margin-top: 0.18in;
+}
+.strip .ack a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 
 .methods { grid-template-columns: 1fr 1fr 1fr; }
-.conclusions { grid-template-columns: 2fr 1fr; column-gap: 0.7in; }
-.conclusions .contact {
-  border-left: 2px dashed #BFA77A;
-  padding-left: 0.55in;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 0.25in;
+.conclusions {
+  grid-template-columns: 1fr auto;
+  column-gap: 0.6in;
   align-items: center;
-  row-gap: 0.18in;
 }
-.conclusions .contact .qr {
-  width: 1.4in;
-  height: 1.4in;
-  background: #f5efe6;
-  border-radius: 8px;
-  padding: 0.05in;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.conclusions .contact .qr img,
-.conclusions .contact .qr svg { width: 100%; height: 100%; display: block; }
-.conclusions .contact .qr-label {
-  font-size: 18pt;
+/* The bottom strip is now slim — just the TRC acknowledgment on the
+   left and the contact hyperlinks on the right. The per-panel takeaway
+   bullets carry the result-by-result summary that used to live here. */
+.conclusions .ack { margin: 0; }
+.conclusions .contact-links {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16pt;
   color: #D5CBBD;
   line-height: 1.3;
 }
-.conclusions .contact .qr-label strong {
-  display: block;
+.conclusions .contact-links strong {
   color: #f5efe6;
   font-weight: 700;
-  margin-bottom: 0.02in;
+  margin-right: 0.05in;
+}
+.conclusions .contact-links a {
+  color: #BFA77A;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.conclusions .contact-links a:hover { color: #f5efe6; }
+.conclusions .contact-sep {
+  color: #7a7a7a;
+  margin: 0 0.18in;
 }
 
 /* ─── Utility ─── */
@@ -425,18 +521,65 @@ body {
   </header>
 
   <!-- ─── PIPELINE: data → model → eval (intro + methods combined) ─── -->
-  <section class="pipeline">
-    <div class="pipeline-img">
-      <img src="figs/pipeline_schematic.svg" alt="Pipeline: DNA data varied along region + timescale axes, fed to a fixed Qwen-architecture Transformer (6M–1.7B params), evaluated zero-shot on ClinVar + TraitGym AUPRC">
-    </div>
-  </section>
+  <!-- (The pipeline schematic that used to sit between the header and
+       the body has moved into the Approach column below.) -->
 
-  <!-- ─── TWO-COLUMN BODY ─── -->
+  <!-- ─── THREE-COLUMN BODY ─── -->
   <section class="body">
 
-    <!-- Left column: Functional regions -->
+    <!-- Left column: Approach (intro, model + eval schematic, methods) -->
+    <div class="col col-approach">
+      <h2><span class="num">A.</span>Approach</h2>
+
+      <div class="approach-schematic">
+        <div class="approach-schematic-inner">
+          <img src="figs/pipeline_schematic.svg" alt="Pipeline schematic: a fixed-architecture Qwen Transformer (6M – 1.7B params) is given DNA context and predicts P(x_t | x_<t) for every base. Evaluated by log-likelihood ratio between alt and ref allele on ClinVar Mendelian variants; metric is AUPRC.">
+        </div>
+      </div>
+
+      <div class="approach-body">
+        <p class="approach-hook">
+          gLM benchmarks reward <strong>scale</strong>. But what we care about
+          — small functional regions, distant evolutionary signal —
+          lives in slivers of the genome. <span class="approach-q">What if
+          <em>curation</em> outranks scale?</span>
+        </p>
+
+        <h3 class="approach-sub">We ask three questions</h3>
+        <ol class="approach-questions">
+          <li><strong>Region.</strong> Can a small region-specific model match large
+            whole-genome and multi-species generalists on its region?</li>
+          <li><strong>Mixture.</strong> When training on multiple regions, do we
+            mirror the natural ratio or rebalance to 50 / 50?</li>
+          <li><strong>Timescale.</strong> Which evolutionary depth — humans, primates,
+            mammals, vertebrates, animals — does each region prefer?</li>
+        </ol>
+
+        <h3 class="approach-sub">Training</h3>
+        <ul class="approach-methods">
+          <li><strong>Architecture:</strong> Qwen decoder-only Transformer, fixed
+            objective <em>P(x<sub>t</sub>&nbsp;|&nbsp;x<sub>&lt;t</sub>)</em>,
+            forward + reverse-complement averaging.</li>
+          <li><strong>Sizes:</strong> 6M – 1.7B parameters; we vary <em>what</em>
+            we train on, not how large.</li>
+          <li><strong>Data:</strong> per-experiment subsets (promoter, CDS,
+            enhancer, mixtures, multi-species).</li>
+        </ul>
+
+        <h3 class="approach-sub">Evaluation</h3>
+        <ul class="approach-methods">
+          <li><strong>Benchmark:</strong> ClinVar Mendelian variants
+            (pathogenic vs benign), per consequence subset.</li>
+          <li><strong>Score:</strong> log-likelihood ratio
+            log&nbsp;P(alt) / P(ref) at the variant position, zero-shot.</li>
+          <li><strong>Metric:</strong> AUPRC, with per-cluster bootstrap SE.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Middle column: Functional regions -->
     <div class="col col-with-legend">
-      <h2><span class="num">A.</span>Functional regions</h2>
+      <h2><span class="num">B.</span>Functional regions</h2>
 
       <!-- Single-gene cartoon — doubles as the colour-key for R1 and R2 below
            (promoter, CDS, enhancer used in the specialist experiments). -->
@@ -456,9 +599,17 @@ body {
           <p class="fig-title">
             Mendelian AUPRC — 3 specialists + 2 generalists on missense,
             promoter, and enhancer variants
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/27">#27</a>,
+            <a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/21">#21</a>,
+            <a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/136">#136</a>)
           </p>
           <div class="fig-canvas"><img src="figs/specialist_bars.svg" alt="Specialist vs generalist grouped bars"></div>
         </figure>
+        <ul class="panel-takeaway">
+          <li>Each specialist <strong>matches the strongest generalists</strong> on its trained region.</li>
+          <li>The 40B Evo&nbsp;2 doesn't dominate any panel — <strong>scale alone doesn't win</strong>.</li>
+          <li><strong>Region-coding</strong> the training data is sufficient for region-specific tasks.</li>
+        </ul>
       </div>
 
       <div class="panel">
@@ -467,7 +618,8 @@ body {
           <p class="title">Balanced sampling rescues the under-represented region.</p>
         </div>
         <figure class="fig has-composition">
-          <p class="fig-title">exp13 mixture sweep — AUPRC vs training step</p>
+          <p class="fig-title">exp13 mixture sweep — AUPRC vs training step
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/13">#13</a>)</p>
           <!-- Composition schematic doubles as the line-plot's colour-key:
                left-side line swatches match the colours of the plot's four
                trajectories; right-side bars encode each condition's training
@@ -476,12 +628,17 @@ body {
           <div class="fig-canvas r2-composition"><img src="figs/r2_composition.svg" alt="Composition schematic: four training conditions (Promoter only / CDS only / Proportional 10-90 / Uniform 50-50) with bars showing the relative amount of promoter vs CDS data in each. Acts as the legend for the line plot below."></div>
           <div class="fig-canvas"><img src="figs/r3.svg" alt="Figure R2 — exp13 mixture sweep"></div>
         </figure>
+        <ul class="panel-takeaway">
+          <li>Proportional sampling (natural <strong>10 / 90</strong> ratio) under-serves the rare region — promoter AUPRC stays low.</li>
+          <li><strong>Uniform 50 / 50</strong> lifts promoter AUPRC into specialist range, with little cost on missense.</li>
+          <li>One <strong>mixed</strong> model can serve both regions — no per-region training needed.</li>
+        </ul>
       </div>
     </div>
 
     <!-- Right column: Evolutionary timescales -->
     <div class="col col-with-legend">
-      <h2><span class="num">B.</span>Evolutionary timescales</h2>
+      <h2><span class="num">C.</span>Evolutionary timescales</h2>
 
       <!-- The timescale legend IS the colour-key for T1 + T2 below.
            Phylogenetic tree (GPN-Star Fig 1B style) with colored
@@ -497,9 +654,14 @@ body {
           <p class="title">Promoters peak at the <em>mammals</em> timescale.</p>
         </div>
         <figure class="fig">
-          <p class="fig-title">Promoter AUPRC vs evolutionary timescale</p>
+          <p class="fig-title">Promoter AUPRC vs evolutionary timescale
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/55">#55</a>)</p>
           <div class="fig-canvas"><img src="figs/t1.svg" alt="Figure T1"></div>
         </figure>
+        <ul class="panel-takeaway">
+          <li>Promoter signal <strong>peaks at mammals</strong> (~100 Mya) — broader is worse.</li>
+          <li>Suggests promoter regulatory grammar is largely <strong>mammal-specific</strong>.</li>
+        </ul>
       </div>
 
       <div class="panel">
@@ -508,7 +670,8 @@ body {
           <p class="title">CDS keeps improving out to the <em>animals</em> timescale.</p>
         </div>
         <figure class="fig">
-          <p class="fig-title">CDS AUPRC vs evolutionary timescale</p>
+          <p class="fig-title">CDS AUPRC vs evolutionary timescale
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/58">#58</a>)</p>
           <div class="fig-canvas"><img src="figs/t2.svg" alt="Figure T2"></div>
         </figure>
       </div>
@@ -518,27 +681,14 @@ body {
 
   <!-- ─── CONCLUSIONS + CONTACT ─── -->
   <section class="strip conclusions">
-    <div class="col conclusions-text">
-      <h3>Takeaways</h3>
-      <ul>
-        <li>For gLMs, <strong>what you train on</strong> outranks <strong>how big you train</strong>: a 6M region-specific model beats a 40B whole-genome model on promoters.</li>
-        <li><strong>Balanced sampling</strong> is the cheap way to get region-specific behaviour without paying for a separate model per region.</li>
-        <li><strong>Region × timescale interacts</strong>: promoters favour mammals; CDS favours animals. Treat the training corpus as a curation decision, not a scale-up decision.</li>
-        <li><strong>Future work</strong>: principled timescale selection, projection-based curation, cross-species transfer.</li>
-      </ul>
-    </div>
-    <div class="contact">
-      <div class="qr"><img src="figs/qr-repo.svg" alt="QR to GitHub repo"></div>
-      <div class="qr-label">
-        <strong>Code &amp; experiments</strong>
-        github.com/Open-Athena/marin-dna
-      </div>
-      <div class="qr"><img src="figs/qr-contact.svg" alt="QR to contact email"></div>
-      <div class="qr-label">
-        <strong>Contact</strong>
-        gonzalo.benegas@openathena.ai
-      </div>
-    </div>
+    <p class="ack">Compute generously provided by the <a href="https://sites.research.google/trc/about/">Google&nbsp;TPU&nbsp;Research&nbsp;Cloud</a>.</p>
+    <p class="contact-links">
+      <strong>Code &amp; experiments:</strong>
+        <a href="https://github.com/Open-Athena/marin-dna">github.com/Open-Athena/marin-dna</a>
+      <span class="contact-sep">·</span>
+      <strong>Contact:</strong>
+        <a href="mailto:gonzalo.benegas@openathena.ai">gonzalo.benegas@openathena.ai</a>
+    </p>
   </section>
 
 </div>

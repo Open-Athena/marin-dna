@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3600 760" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1620" preserveAspectRatio="xMidYMid meet">
   <defs>
     <style>
       .ink   { fill: #1f1e1b; }
@@ -28,10 +28,12 @@
     </marker>
   </defs>
 
-  <!-- Tagline -->
-  <text x="1800" y="50" text-anchor="middle" class="title ink">
+  <!-- Tagline (centered above the stacked MODEL → EVAL cards) -->
+  <text x="550" y="60" text-anchor="middle" class="title ink">
     <tspan>Architecture and training objective held fixed —</tspan>
-    <tspan class="accent" font-weight="700"> we ask what to train on.</tspan>
+  </text>
+  <text x="550" y="115" text-anchor="middle" class="title accent" font-weight="700">
+    we ask what to train on.
   </text>
 
   <!-- DATA card was here. Its content (functional regions + evolutionary
@@ -40,9 +42,9 @@
        its plots. The schematic now shows just MODEL → EVAL, centered. -->
 
   <!-- ═══════════════════════════════════════════ -->
-  <!-- MODEL card                                  -->
+  <!-- MODEL card  (top, ~y=170-810)               -->
   <!-- ═══════════════════════════════════════════ -->
-  <g transform="translate(720, 100)">
+  <g transform="translate(50, 160)">
     <rect class="bg-card" x="0" y="0" width="1000" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp muted">model</text>
@@ -127,13 +129,13 @@
     </g>
   </g>
 
-  <!-- Arrow MODEL → EVAL -->
-  <line class="arrow-line" x1="1740" y1="420" x2="1860" y2="420" marker-end="url(#arrowhead)"/>
+  <!-- Arrow MODEL → EVAL (vertical, between the stacked cards) -->
+  <line class="arrow-line" x1="550" y1="810" x2="550" y2="900" marker-end="url(#arrowhead)"/>
 
   <!-- ═══════════════════════════════════════════ -->
-  <!-- EVALUATION card                             -->
+  <!-- EVALUATION card  (bottom, ~y=940-1580)       -->
   <!-- ═══════════════════════════════════════════ -->
-  <g transform="translate(1880, 100)">
+  <g transform="translate(30, 940)">
     <rect class="bg-card" x="0" y="0" width="1040" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp muted">evaluation — variant effect prediction</text>
