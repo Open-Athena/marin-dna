@@ -1,10 +1,10 @@
-"""Tests for bolinas.pipelines.alignment.mmseqs2 hits parsing / projection helpers."""
+"""Tests for marin_dna.pipelines.alignment.mmseqs2 hits parsing / projection helpers."""
 
 from __future__ import annotations
 
 import polars as pl
 
-from bolinas.pipelines.alignment.mmseqs2 import (
+from marin_dna.pipelines.alignment.mmseqs2 import (
     MMSEQS2_HITS_SCHEMA,
     PROJECTED_SCHEMA,
     best_hit_per_query,

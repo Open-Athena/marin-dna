@@ -10,7 +10,7 @@ import sys
 from dataclasses import asdict
 from typing import Any
 
-from bolinas.pipelines.evals.models import Model, load_models
+from marin_dna.pipelines.evals.models import Model, load_models
 
 
 def _strip_nones(obj: Any) -> Any:

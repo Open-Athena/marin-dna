@@ -1,8 +1,8 @@
-"""Tests for ``bolinas.data.transforms`` CLM-side helpers.
+"""Tests for ``marin_dna.data.transforms`` CLM-side helpers.
 
 Vendored from biofoundation/tests/test_data.py at commit 834dd4c (May 2026):
 only the CLM transform tests are migrated (MLM transforms were dropped from
-``bolinas.data.transforms``). The ``_SpecialTokensTokenizer`` and
+``marin_dna.data.transforms``). The ``_SpecialTokensTokenizer`` and
 ``_StubCharTokenizer`` helpers are plain classes here — the ``Tokenizer``
 abstract base no longer exists; transforms duck-type their tokenizer arg.
 """
@@ -12,9 +12,9 @@ import torch
 from Bio.Seq import Seq
 from transformers import AutoTokenizer
 
-from bolinas.data.genome import Genome
-from bolinas.data.dna import complement_base
-from bolinas.data.transforms import (
+from marin_dna.data.genome import Genome
+from marin_dna.data.dna import complement_base
+from marin_dna.data.transforms import (
     NUCLEOTIDES,
     _get_nucleotide_token_ids,
     _get_special_token_counts,
@@ -28,7 +28,7 @@ class _SpecialTokensTokenizer:
     """Wrap an HF tokenizer to optionally prepend BOS / append EOS.
 
     Uses synthetic IDs that don't collide with real DNA tokens. After the
-    biofoundation -> bolinas-dna migration there is no ``Tokenizer`` abstract
+    biofoundation -> marin-dna migration there is no ``Tokenizer`` abstract
     base; transforms accept any duck-typed tokenizer.
     """
 
@@ -177,7 +177,7 @@ def test_get_special_token_counts_real_tokenizers(tokenizer_name, counts):
 
 
 def test_transform_llr_clm_exp136_recipe(tmp_path):
-    """Regression for issue #19: window_size=255 + bolinas BOS tokenizer.
+    """Regression for issue #19: window_size=255 + marin_dna BOS tokenizer.
 
     With BOS (n_prefix=1), the token-level var_pos is window_size // 2 + 1 = 128."""
     tokenizer = AutoTokenizer.from_pretrained("bolinas-dna/tokenizer-char-bos")

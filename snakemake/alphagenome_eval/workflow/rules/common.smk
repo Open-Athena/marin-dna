@@ -5,9 +5,9 @@ import os
 import pandas as pd
 from datasets import load_dataset
 
-from bolinas.pipelines.evals.alphagenome import score_variants_alphagenome
-from bolinas.pipelines.evals.conservation import REQUIRED_VARIANT_COLUMNS
-from bolinas.pipelines.evals.metrics import compute_auprc_metrics
+from marin_dna.pipelines.evals.alphagenome import score_variants_alphagenome
+from marin_dna.pipelines.evals.conservation import REQUIRED_VARIANT_COLUMNS
+from marin_dna.pipelines.evals.metrics import compute_auprc_metrics
 
 
 def get_dataset_config(name):

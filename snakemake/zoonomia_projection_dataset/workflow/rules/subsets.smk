@@ -16,7 +16,7 @@ rule derive_subset_v2_tss_mrna:
     conda:
         "../envs/bioinformatics.yaml"
     run:
-        from bolinas.pipelines.projection.tss import write_mrna_tss_band_bed
+        from marin_dna.pipelines.projection.tss import write_mrna_tss_band_bed
 
         n_band = write_mrna_tss_band_bed(input.gtf, params.flank, output.band)
         assert n_band > 30_000, f"unexpectedly few mRNA TSS bands: {n_band}"
@@ -42,7 +42,7 @@ rule subset_dataset_derived:
     threads: 1
     resources:
         # filter_to_subset eagerly decodes the ~10 GB Parquet to ~25 GB in RAM
-        # (lazy sink_parquet path was buggy; see src/bolinas/projection/subset.py).
+        # (lazy sink_parquet path was buggy; see src/marin_dna/projection/subset.py).
         mem_mb=32000,
     run:
         filter_to_subset(input.all_species, input.names, output[0])

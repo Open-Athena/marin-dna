@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.projection.sequence``."""
+"""Tests for ``marin_dna.pipelines.projection.sequence``."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from bolinas.pipelines.projection.sequence import (
+from marin_dna.pipelines.projection.sequence import (
     attach_sequences_to_parquet,
     parquet_to_bed6,
     parse_bedtools_getfasta_output,

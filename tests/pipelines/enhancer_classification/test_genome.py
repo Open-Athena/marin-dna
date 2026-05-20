@@ -3,9 +3,9 @@
 from pathlib import Path
 
 import pytest
-from bolinas.data.genome import Genome as BFGenome
+from marin_dna.data.genome import Genome as BFGenome
 
-from bolinas.pipelines.enhancer_classification.genome import Genome
+from marin_dna.pipelines.enhancer_classification.genome import Genome
 
 FIXTURES = Path(__file__).parent.parent.parent / "fixtures"
 FASTA_PATH = FIXTURES / "mini_genome.fa"

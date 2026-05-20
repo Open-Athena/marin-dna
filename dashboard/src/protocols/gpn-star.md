@@ -103,7 +103,7 @@ Each cell below is **${alternative} AUPRC − ${baseline} AUPRC**, in percentage
 
 **Protocol definitions:**
 
-- **cLLR** — calibrated log-likelihood ratio. Pentanucleotide-context background subtraction: `llr_calibrated = llr − E[llr | 5-mer, mut]`. The producer's recommended protocol on this leaderboard ([Benegas et al. #145](https://github.com/Open-Athena/bolinas-dna/issues/145)). *Leaderboard default.*
+- **cLLR** — calibrated log-likelihood ratio. Pentanucleotide-context background subtraction: `llr_calibrated = llr − E[llr | 5-mer, mut]`. The producer's recommended protocol on this leaderboard ([Benegas et al. #145](https://github.com/Open-Athena/marin-dna/issues/145)). *Leaderboard default.*
 - **LLR** — raw log-likelihood ratio of mutant vs. reference, without the pentanucleotide-context calibration.
 
 Same matched groups as the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}); only the `score_type` filter changes.
@@ -163,7 +163,7 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
   margin-right: 6px;
   vertical-align: middle;
 }
-.lb-family-bolinas      { background: #1f77b4; }
+.lb-family-marin_dna      { background: #1f77b4; }
 .lb-family-conservation { background: #7f7f7f; }
 .lb-family-alphagenome  { background: #d62728; }
 .lb-family-gpn_star     { background: #9467bd; }
@@ -228,7 +228,7 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.lb-pop-family.family-bolinas      { background: #1f77b4; }
+.lb-pop-family.family-marin_dna      { background: #1f77b4; }
 .lb-pop-family.family-conservation { background: #7f7f7f; }
 .lb-pop-family.family-alphagenome  { background: #d62728; }
 .lb-pop-family.family-gpn_star     { background: #9467bd; }

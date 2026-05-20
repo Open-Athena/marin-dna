@@ -74,7 +74,7 @@ rule predict_enhancers:
     threads: workflow.cores
     shell:
         """
-        uv run python -m bolinas.pipelines.enhancer_classification.predict_genome \
+        uv run python -m marin_dna.pipelines.enhancer_classification.predict_genome \
             --genome {input.genome} \
             --checkpoint {input.checkpoint} \
             --windows {input.windows} \
@@ -118,7 +118,7 @@ rule predict_enhancers_segmentation:
         # every genome after the first skips the ~30s Inductor compile step.
         """
         TORCHINDUCTOR_CACHE_DIR=.snakemake/torchinductor_cache \
-        uv run python -m bolinas.pipelines.enhancer_segmentation.predict_genome \
+        uv run python -m marin_dna.pipelines.enhancer_segmentation.predict_genome \
             --genome {input.genome} \
             --checkpoint {input.checkpoint} \
             --windows {input.windows} \

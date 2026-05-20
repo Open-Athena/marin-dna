@@ -1,9 +1,9 @@
-"""Tests for ``bolinas.pipelines.conservation.histogram``."""
+"""Tests for ``marin_dna.pipelines.conservation.histogram``."""
 
 import numpy as np
 import pytest
 
-from bolinas.pipelines.conservation.histogram import PhylopHistogram
+from marin_dna.pipelines.conservation.histogram import PhylopHistogram
 
 
 @pytest.fixture

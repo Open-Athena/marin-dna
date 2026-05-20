@@ -1,0 +1,301 @@
+"""HF inference harness for CLM variant/sequence scoring.
+
+Vendored from biofoundation/inference.py at commit 834dd4c (May 2026),
+CLM-only and rewritten to operate directly on HF objects — no
+``Tokenizer`` / ``CausalLM`` abstract base classes, no adapter wrappers.
+
+**Expected model/tokenizer interface (duck-typed):**
+
+- ``model``: a callable that, given ``input_ids``, returns an object with
+  a ``.logits`` attribute (shape ``[B, L, V]``). When called with
+  ``output_hidden_states=True``, must also return ``.hidden_states`` — a
+  tuple of layer outputs indexable with ``[-1]`` (last) and
+  ``[len // 2]`` (middle). HF ``AutoModelForCausalLM`` satisfies this
+  natively. Non-HF models (e.g. Evo2) can be wrapped to expose the same
+  surface — see ``pipelines/evals/evo2.py`` for an example.
+
+- ``tokenizer``: any object exposing ``.encode(text) -> list[int]``,
+  ``.bos_token_id``, ``.eos_token_id``. HF ``PreTrainedTokenizerBase``
+  satisfies this. The tokenizer is only used by the data transform step
+  (``marin_dna.data.transforms``), not the forward pass.
+"""
+
+from __future__ import annotations
+
+import tempfile
+from functools import partial
+from typing import Any, Callable, Literal
+
+import datasets
+import numpy as np
+import torch.nn as nn
+from transformers import Trainer, TrainingArguments
+
+import torch
+
+from marin_dna.data.dna import NUCLEOTIDES
+from marin_dna.data.genome import Genome
+from marin_dna.data.transforms import (
+    _get_nucleotide_token_ids,
+    _get_special_token_counts,
+    in_seq_var_pos,
+    transform_ll_clm,
+    transform_llr_clm,
+)
+from marin_dna.model.scoring import (
+    compute_ll_clm,
+    compute_variant_score_bundle,
+)
+
+
+def run_inference(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    compute_fn: Callable[..., Any],
+    data_transform_fn: Callable[..., dict[str, Any]] | None = None,
+    data_transform_on_the_fly: bool = False,
+    data_transform_kwargs: dict[str, Any] | None = None,
+    inference_kwargs: dict[str, Any] | None = None,
+) -> Any:
+    processed_dataset = _process_dataset(
+        dataset,
+        tokenizer,
+        data_transform_fn,
+        data_transform_on_the_fly,
+        data_transform_kwargs,
+    )
+    return _run_inference(
+        _ModelComputeFnWrapper(model, compute_fn),
+        processed_dataset,
+        **(inference_kwargs or {}),
+    )
+
+
+def _run_strand_aware(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    *,
+    compute_fn: Callable[..., Any],
+    transform_fn: Callable[..., dict[str, Any]],
+    transform_kwargs: dict[str, Any] | None = None,
+    rc_avg: bool = False,
+    **kwargs: Any,
+) -> Any:
+    """Run inference once on the forward strand; if ``rc_avg=True``, also run
+    on the reverse-complemented strand and return the element-wise mean.
+
+    ``strand`` is bound into ``transform_fn`` via ``partial``. Averaging is
+    element-wise on numpy arrays, so it works for arbitrary output shape.
+    """
+
+    def _one(strand: Literal["+", "-"]) -> Any:
+        return run_inference(
+            model,
+            tokenizer,
+            dataset,
+            compute_fn=compute_fn,
+            data_transform_fn=partial(
+                transform_fn, strand=strand, **(transform_kwargs or {})
+            ),
+            **kwargs,
+        )
+
+    fwd = _one("+")
+    if not rc_avg:
+        return fwd
+    rc = _one("-")
+    return (np.asarray(fwd) + np.asarray(rc)) / 2
+
+
+run_ll_clm = partial(
+    run_inference,
+    compute_fn=compute_ll_clm,
+    data_transform_fn=transform_ll_clm,
+)
+
+
+def run_variant_score_bundle(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    rc: bool = False,
+    **kwargs: Any,
+) -> dict[str, np.ndarray]:
+    """Run the variant-score bundle (LLR + next-token JSD) in one forward pass.
+
+    Two scores per variant:
+
+    - LLR (log-likelihood ratio)
+    - ``next_token_jsd_mean`` — per-position 4-nucleotide softmax JSD between
+      REF and ALT next-token predictions, averaged over downstream positions
+      (called ``down_jsd_mean`` in Open-Athena/marin-dna#175).
+
+    Both scores share a single 4-nuc log_softmax in the kernel. The
+    nucleotide token IDs come from ``_get_nucleotide_token_ids`` (handles
+    BOS / n_prefix offset).
+
+    The token-level variant position is computed here per-strand and
+    bound into the compute_fn as a Python int — constant within the
+    inference call, no graph break under torch.compile. Per
+    ``_get_variant_window`` the in-sequence pos is ``window_size // 2``
+    on the FWD strand and ``window_size - 1 - window_size // 2`` on RC
+    (equal for odd ``window_size``, off-by-one for even); after
+    tokenization both shift by ``n_prefix``. We don't fuse FWD+RC into
+    ``_run_strand_aware`` because ``var_pos`` differs across strands for
+    even ``window_size``.
+
+    Args:
+        model: HF-shaped causal LM (see module docstring for interface).
+        tokenizer: Tokenizer for the model.
+        dataset: Dataset with variant information (chrom, pos, ref, alt).
+        genome: Genome object for sequence extraction.
+        window_size: Window size for sequence context.
+        rc: If True, also score the reverse-complemented window for
+            each variant and return both strands' arrays. Doubles
+            inference cost. Callers compose the per-strand arrays
+            (averaging, applying ``minus_llr``/``abs_llr``, etc.).
+        **kwargs: Additional arguments passed to run_inference.
+
+    Returns:
+        Dict ``{"fwd": [B, 2]}`` when ``rc=False``, or
+        ``{"fwd": [B, 2], "rc": [B, 2]}`` when ``rc=True``. Column 0
+        of each array is LLR; column 1 is ``next_token_jsd_mean``.
+    """
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+    nuc_ids_dict = _get_nucleotide_token_ids(tokenizer)
+    nuc_token_ids = torch.tensor(
+        [nuc_ids_dict[nuc] for nuc in NUCLEOTIDES], dtype=torch.long
+    )
+
+    def _one(strand: Literal["+", "-"]) -> Any:
+        var_pos = in_seq_var_pos(window_size, strand) + n_prefix
+        return run_inference(
+            model,
+            tokenizer,
+            dataset,
+            compute_fn=partial(
+                compute_variant_score_bundle,
+                var_pos=var_pos,
+                nuc_token_ids=nuc_token_ids,
+            ),
+            data_transform_fn=partial(
+                transform_llr_clm, genome=genome, window_size=window_size, strand=strand
+            ),
+            **kwargs,
+        )
+
+    out: dict[str, np.ndarray] = {"fwd": np.asarray(_one("+"))}
+    if rc:
+        out["rc"] = np.asarray(_one("-"))
+    return out
+
+
+def _run_inference(
+    model: nn.Module,
+    dataset: datasets.Dataset,
+    **kwargs: Any,
+) -> Any:
+    """Run inference on a dataset using a trained model via HF Trainer.
+
+    Args:
+        model: A trained PyTorch model that can be used with the HuggingFace Trainer.
+        dataset: HuggingFace dataset to run inference on. The dataset should be
+            compatible with the model's expected input format.
+        **kwargs: Additional keyword arguments to pass to TrainingArguments.
+            Common options include:
+            - per_device_eval_batch_size: Batch size for evaluation
+            - dataloader_num_workers: Number of workers for data loading
+            - torch_compile: Whether to use torch.compile for faster inference
+            - bf16_full_eval: Whether to use bf16 for evaluation
+
+    Returns:
+        The model's predictions on the dataset. The exact format depends on the
+        model and dataset, but typically includes probabilities or embeddings.
+
+    Notes:
+        Pads the dataset up to a multiple of ``per_device_eval_batch_size`` by
+        repeating the last example, then slices the padded predictions off
+        before returning. With ``torch_compile=True``, this keeps every batch
+        at the same shape, so dynamo compiles a single graph for the cell
+        instead of a second one for the otherwise-partial trailing batch
+        (which on 1B Qwen3 + A10G cost ~15 s recompile per pass).
+    """
+    n_real = len(dataset)
+    batch_size = kwargs.get("per_device_eval_batch_size", 1)
+    pad_n = (batch_size - n_real % batch_size) % batch_size if batch_size > 1 else 0
+    if pad_n > 0:
+        # Repeat the last real example pad_n times. The padded predictions
+        # are sliced off below — we only consume the first n_real rows.
+        dataset = dataset.select(list(range(n_real)) + [n_real - 1] * pad_n)
+
+    # HF Trainer requires an output_dir even for .predict() (it never
+    # writes to it on the predict path). Use a tempdir scoped to this
+    # call so it's cleaned up deterministically.
+    with tempfile.TemporaryDirectory() as output_dir:
+        training_args = TrainingArguments(
+            output_dir=output_dir,
+            **(kwargs or {}),
+        )
+        trainer = Trainer(model=model, args=training_args)
+        predictions = trainer.predict(test_dataset=dataset).predictions
+
+    if pad_n > 0:
+        predictions = predictions[:n_real]
+    return predictions
+
+
+class _ModelComputeFnWrapper(nn.Module):
+    """Adapt ``compute_fn(model, batch)`` into an ``nn.Module.forward`` so
+    HF Trainer can call it as if it were the model."""
+
+    def __init__(self, model: nn.Module, compute_fn: Callable[..., Any]):
+        super().__init__()
+        self.model = model
+        self.compute_fn = compute_fn
+
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
+        return self.compute_fn(self.model, *args, **kwargs)
+
+
+def _process_dataset(
+    dataset: datasets.Dataset,
+    tokenizer: Any,
+    data_transform_fn: Callable[..., dict[str, Any]] | None = None,
+    data_transform_on_the_fly: bool = False,
+    data_transform_kwargs: dict[str, Any] | None = None,
+) -> datasets.Dataset:
+    if data_transform_fn is None:
+        return dataset
+    if data_transform_kwargs is None:
+        data_transform_kwargs = {}
+    data_transform_fn = partial(data_transform_fn, tokenizer=tokenizer)
+    if data_transform_on_the_fly:
+        return dataset.with_transform(
+            _make_batch_transform(data_transform_fn),
+            **data_transform_kwargs,
+        )
+    return dataset.map(
+        data_transform_fn,
+        **data_transform_kwargs,
+    )
+
+
+def _make_batch_transform(
+    transform_fn: Callable[[dict[str, Any]], dict[str, Any]],
+) -> Callable[[dict[str, list[Any]]], dict[str, list[Any]]]:
+    def batch_transform_fn(batch: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        # Convert batch format to list of examples
+        examples = [dict(zip(batch.keys(), values)) for values in zip(*batch.values())]
+        # Apply transform to each example
+        transformed_examples = [transform_fn(example) for example in examples]
+        # Convert back to batch format
+        return {
+            key: [ex[key] for ex in transformed_examples]
+            for key in transformed_examples[0].keys()
+        }
+
+    return batch_transform_fn

@@ -1,10 +1,10 @@
-"""Tests for ``bolinas.pipelines.projection.filter``."""
+"""Tests for ``marin_dna.pipelines.projection.filter``."""
 
 from __future__ import annotations
 
 import polars as pl
 
-from bolinas.pipelines.projection.filter import (
+from marin_dna.pipelines.projection.filter import (
     filter_length,
     filter_single_chrom_strand,
 )

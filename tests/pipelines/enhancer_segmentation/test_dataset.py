@@ -4,7 +4,7 @@ import polars as pl
 import torch
 from Bio.Seq import Seq
 
-from bolinas.pipelines.enhancer_segmentation.dataset import SegmentationDataset
+from marin_dna.pipelines.enhancer_segmentation.dataset import SegmentationDataset
 
 NUM_BINS = 4
 SEQ = "ACGT" * 8  # 32 bp; NUM_BINS=4 means bin_size=8, only used for test shape

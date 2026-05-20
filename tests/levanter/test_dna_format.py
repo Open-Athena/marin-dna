@@ -1,9 +1,9 @@
-# Copyright The Bolinas Authors
+# Copyright The MarinDNA Authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Tests for ``bolinas.levanter`` glue (format registration + seq-len helper).
+"""Tests for ``marin_dna.levanter`` glue (format registration + seq-len helper).
 
-These cover behaviors that are bolinas-dna-specific (i.e. not just ports of
+These cover behaviors that are marin-dna-specific (i.e. not just ports of
 upstream marin tests).
 """
 
@@ -13,10 +13,10 @@ pytest.importorskip("levanter", reason="install with `uv sync --extra marin` to 
 
 from levanter.data.text.formats import LmDatasetFormatBase  # noqa: E402
 
-from bolinas.levanter import formats as _formats_module  # noqa: E402, F401  side-effect: register "dna"
-from bolinas.levanter.batch_tokenizer import DNABatchTokenizer  # noqa: E402
-from bolinas.levanter.defaults import dna_effective_seq_len  # noqa: E402
-from bolinas.levanter.formats import DNALmDatasetFormat  # noqa: E402
+from marin_dna.levanter import formats as _formats_module  # noqa: E402, F401  side-effect: register "dna"
+from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer  # noqa: E402
+from marin_dna.levanter.defaults import dna_effective_seq_len  # noqa: E402
+from marin_dna.levanter.formats import DNALmDatasetFormat  # noqa: E402
 
 
 BOS_EOS_TOKENIZER = "bolinas-dna/tokenizer-char"
@@ -34,7 +34,7 @@ def _tokenizer_available(name: str) -> bool:
 
 
 def test_dna_format_registered_on_import():
-    """Importing ``bolinas.levanter.formats`` activates ``register_subclass('dna')``."""
+    """Importing ``marin_dna.levanter.formats`` activates ``register_subclass('dna')``."""
     choices = LmDatasetFormatBase.get_known_choices()
     assert "dna" in choices, f"'dna' not registered; got {sorted(choices)}"
 

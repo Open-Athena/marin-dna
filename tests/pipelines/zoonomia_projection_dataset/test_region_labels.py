@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.zoonomia_projection_dataset.region_labels``.
+"""Tests for ``marin_dna.pipelines.zoonomia_projection_dataset.region_labels``.
 
 Builds a small synthetic Ensembl-flavored GTF + cCRE parquet covering every
 priority and threshold case from the plan, then asserts each 255 bp anchor
@@ -10,8 +10,8 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from bolinas.data.intervals import GenomicSet
-from bolinas.pipelines.zoonomia_projection_dataset.region_labels import (
+from marin_dna.data.intervals import GenomicSet
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     BACKGROUND_LABEL,
     REGION_LABELS,
     build_region_beds,
@@ -541,7 +541,7 @@ def test_priority_must_be_permutation(synth):
 # ============================================================================
 
 
-from bolinas.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
     write_subset_hf_readme,
 )
 
@@ -661,7 +661,7 @@ def test_write_subset_hf_readme_renders_per_subset_card(
     # Commit-pinned permalink (short SHA in heading, full SHA in URL)
     assert "0123456789ab" in body
     assert (
-        "https://github.com/Open-Athena/bolinas-dna/tree/"
+        "https://github.com/Open-Athena/marin-dna/tree/"
         "0123456789abcdef0123456789abcdef01234567/"
         "snakemake/zoonomia_projection_dataset" in body
     )

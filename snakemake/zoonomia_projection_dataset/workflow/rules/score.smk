@@ -1,14 +1,14 @@
 """Per-window phyloP_447m scoring, fanned out across chroms.
 
 Each ``score_windows_chrom`` reads its per-chrom BED, scores via pyBigWig
-(see ``bolinas.pipelines.conservation.scoring.score_windows``), and writes a
+(see ``marin_dna.pipelines.conservation.scoring.score_windows``), and writes a
 per-chrom Parquet. ``merge_scored`` concatenates them.
 
 Throughput on the 8-vCPU c6id.2xlarge: ~5 min wall for human autosomes +
 X + Y (~22.9M windows).
 """
 
-from bolinas.pipelines.conservation.scoring import score_windows as _score_windows
+from marin_dna.pipelines.conservation.scoring import score_windows as _score_windows
 
 
 rule score_windows_chrom:

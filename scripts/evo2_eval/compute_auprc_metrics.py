@@ -12,12 +12,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from bolinas.pipelines.evals.metrics import compute_auprc_metrics
+from marin_dna.pipelines.evals.metrics import compute_auprc_metrics
 
 
 # evo2 predictions parquet → metrics parquet `score_type`. ``_rev`` →
 # ``_rc`` matches the evals_v2 / dashboard reverse-complement convention;
-# ``next_token_jsd_mean`` → ``jsd`` for parity with bolinas's ``jsd_*``.
+# ``next_token_jsd_mean`` → ``jsd`` for parity with marin_dna's ``jsd_*``.
 COL_RENAME: dict[str, str] = {
     "llr": "llr_avg",
     "llr_fwd": "llr_fwd",

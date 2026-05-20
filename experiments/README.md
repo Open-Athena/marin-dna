@@ -64,7 +64,7 @@ API churn.
 
 | Symptom (in worker logs) | Fix |
 |---|---|
-| `error: Extra "cpu" is not defined in any project's "optional-dependencies" table` | `pip_dependency_groups=["marin"]` in `remote(...)` of any vendored tokenize step (bolinas-dna's marin extra installs the cpu-flavored deps transitively). |
+| `error: Extra "cpu" is not defined in any project's "optional-dependencies" table` | `pip_dependency_groups=["marin"]` in `remote(...)` of any vendored tokenize step (marin-dna's marin extra installs the cpu-flavored deps transitively). |
 | `Timeout (Ns) when waiting for lock on /uv/cache/.../lm-eval...` | `-e UV_LOCK_TIMEOUT 7200` on `iris job run` AND in the tokenize step's `env_vars=`. Many zephyr workers share a uv cache; first build serializes; default 300s isn't enough. |
 | `requests.exceptions.ReadTimeout: huggingface.co... read timeout=10` | `-e HF_HUB_DOWNLOAD_TIMEOUT 120` (passed to children via the tokenize step's `env_vars=`). HF's default is 10s; fine for small datasets, too short for parquet-manifest fetches on big ones. |
 | `No accelerator found. Please run on a TPU or GPU.` + `iris: TPU bad-node signature detected` (repeated) | Switch zone — `--region us-east5` ↔ `--region us-central1` (the two `v5p-preemptible` regions). iris keeps allocating the same bad scale-group instance under tight capacity; the other zone's pool is fresh. |
@@ -80,7 +80,7 @@ Two pieces of marin context that aren't obvious from the python:
 1. **`pip_dependency_groups` on each `remote(...)` call.** Workers don't
    inherit the parent's `--extra` flag — they each do their own `uv sync` with
    whatever extras the `remote()` requested. Default upstream value is `["cpu"]`
-   which bolinas-dna doesn't define; use `["marin"]` instead until/unless we
+   which marin-dna doesn't define; use `["marin"]` instead until/unless we
    add a `cpu` extra.
 2. **`env_vars` on each `remote(...)` call.** Same reason — workers don't
    inherit parent `-e` flags. Bake `HF_HUB_DOWNLOAD_TIMEOUT` and

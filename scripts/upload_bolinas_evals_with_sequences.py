@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Upload sequence-materialized bolinas eval datasets to HuggingFace.
+"""Upload sequence-materialized marin_dna eval datasets to HuggingFace.
 
-This script loads existing bolinas eval datasets, adds ref/alt sequence windows
+This script loads existing marin_dna eval datasets, adds ref/alt sequence windows
 (centered, max length 4096 by default), and pushes them to a target HF repo.
 """
 
@@ -157,7 +157,7 @@ class FastaIndex:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Upload bolinas eval datasets with precomputed sequences to HF."
+        description="Upload marin_dna eval datasets with precomputed sequences to HF."
     )
     parser.add_argument(
         "--source-prefix",
@@ -281,7 +281,7 @@ def materialize_sequences(batch, genome_path: Path, window: int):
         ref = str(ref)
         alt = str(alt)
 
-        # pos is 1-based in bolinas datasets
+        # pos is 1-based in marin_dna datasets
         variant_start = int(pos) - 1
         center = variant_start + max(len(ref) - 1, 0) // 2
         window_start, window_end = compute_window_bounds(center, window, chrom_len)

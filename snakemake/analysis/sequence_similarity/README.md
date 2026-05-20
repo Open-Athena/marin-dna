@@ -347,7 +347,7 @@ The key metric is **train_matches**: how many training sequences are direct alig
 
 ## Results
 
-Leakage analysis tables and observations live in [issue #28](https://github.com/Open-Athena/bolinas-dna/issues/28). The pipeline emits per-threshold statistics to `results/search/summary.parquet`.
+Leakage analysis tables and observations live in [issue #28](https://github.com/Open-Athena/marin-dna/issues/28). The pipeline emits per-threshold statistics to `results/search/summary.parquet`.
 
 ## Filtering workflow
 
@@ -364,7 +364,7 @@ Leakage analysis tables and observations live in [issue #28](https://github.com/
    splits, remove training sequences that exceed similarity thresholds against validation.
    This follows the ESM2/Chao et al. approach: preserve validation set, filter training.
 
-See [Issue #28](https://github.com/Open-Athena/bolinas-dna/issues/28) for the full implementation plan.
+See [Issue #28](https://github.com/Open-Athena/marin-dna/issues/28) for the full implementation plan.
 
 ## References
 

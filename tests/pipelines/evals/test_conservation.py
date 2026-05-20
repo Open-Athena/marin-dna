@@ -5,12 +5,12 @@ import pandas as pd
 import pyBigWig
 import pytest
 
-from bolinas.pipelines.evals.conservation import (
+from marin_dna.pipelines.evals.conservation import (
     CONSERVATION_TRACKS,
     aggregate_conservation_metrics,
     score_variants_at_positions,
 )
-from bolinas.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
+from marin_dna.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
 
 
 def test_conservation_tracks_keys():

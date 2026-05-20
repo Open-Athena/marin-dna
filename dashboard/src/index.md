@@ -1,11 +1,11 @@
 ---
-title: Bolinas-DNA Leaderboard
+title: MarinDNA Leaderboard
 toc: false
 ---
 
-# Bolinas-DNA Leaderboard
+# MarinDNA Leaderboard
 
-Public, version-controlled leaderboards for genomic language models trained under [Bolinas](https://github.com/Open-Athena/bolinas-dna), evaluated on matched-pair variant-effect prediction.
+Public, version-controlled leaderboards for genomic language models trained under [MarinDNA](https://github.com/Open-Athena/marin-dna), evaluated on matched-pair variant-effect prediction.
 
 ## Leaderboards
 
@@ -16,7 +16,7 @@ Public, version-controlled leaderboards for genomic language models trained unde
 
 A model family's AUPRC depends on which score column you compute it from. These pages compare protocols head-to-head — same models, same dataset, different scoring approach.
 
-- [**Bolinas**](./protocols/bolinas) — LLR vs JSD
+- [**MarinDNA**](./protocols/marin_dna) — LLR vs JSD
 - [**Evo 2**](./protocols/evo2) — LLR vs JSD
 - [**GPN-Star**](./protocols/gpn-star) — calibrated (cLLR) vs uncalibrated LLR
 

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "bolinas"
+name = "marin_dna"
 version = "0.0.1"
 description = "DNA training dataset creation and genomic interval utilities"
 requires-python = ">=3.12,<3.13"
@@ -144,7 +144,7 @@ override-dependencies = [
     # Pin pandas to 2.x — `prerelease = "allow"` (above) lets uv pick the
     # 3.0 prerelease, which changes parquet round-trip dtypes from `object`
     # to `StringDtype` and breaks tests/test_intervals.py. Keeps existing
-    # bolinas-dna code on the same pandas major it was developed against.
+    # marin-dna code on the same pandas major it was developed against.
     "pandas>=2.0,<3.0",
 ]
 # marin sister-packages, kitoken, and dupekit ship as GitHub release wheels
@@ -177,7 +177,7 @@ resiliparse = { index = "marin-resiliparse" }
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/bolinas"]
+packages = ["src/marin_dna"]
 
 [tool.ruff.lint]
 # jaxtyping uses string annotations like ``Int[Tensor, "B L"]`` that ruff's
@@ -195,6 +195,6 @@ ignore = ["F722"]
 # polars-bio, bioframe, cyvcf2, …) have no stubs. Don't gate the project
 # on missing stubs. `strict_optional` off matches the existing code's
 # implicit-None tolerance — tighten incrementally.
-files = "src/bolinas"
+files = "src/marin_dna"
 ignore_missing_imports = true
 strict_optional = false

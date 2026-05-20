@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.conservation.scoring``."""
+"""Tests for ``marin_dna.pipelines.conservation.scoring``."""
 
 import math
 
@@ -7,7 +7,7 @@ import polars as pl
 import pyBigWig
 import pytest
 
-from bolinas.pipelines.conservation.scoring import score_windows
+from marin_dna.pipelines.conservation.scoring import score_windows
 
 
 @pytest.fixture

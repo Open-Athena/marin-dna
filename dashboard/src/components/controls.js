@@ -6,28 +6,28 @@
 import {html} from "npm:htl";
 
 // Short family labels used in pills/toggles. Distinct from the longer
-// `model-cards.js` labels (`"bolinas gLM"` etc.) — those go on cards.
+// `model-cards.js` labels (`"marin_dna gLM"` etc.) — those go on cards.
 export const FAMILY_LABEL = {
-  bolinas: "bolinas",
-  conservation: "conservation",
+  marin_dna: "MarinDNA",
+  conservation: "Conservation",
   alphagenome: "AlphaGenome",
   gpn_star: "GPN-Star",
   evo2: "Evo 2",
 };
 
 // Leaderboard-visible protocol options per family. This is the subset of
-// `PROTOCOLS` (in src/bolinas/pipelines/evals/leaderboard.py) that the
+// `PROTOCOLS` (in src/marin_dna/pipelines/evals/leaderboard.py) that the
 // leaderboards' `ProtocolPicker` exposes — additional protocols can live in
 // `PROTOCOLS` (e.g. `LLR-FWD`, `JSD-FWD` for the AVG-vs-FWD exploration on
 // the Protocols pages) without showing up as leaderboard toggles. Defaults
 // match `DEFAULT_PROTOCOL`.
 export const PROTOCOL_OPTIONS = {
-  bolinas: ["LLR", "JSD"],
+  marin_dna: ["LLR", "JSD"],
   gpn_star: ["cLLR", "LLR"],
   evo2: ["LLR", "JSD"],
 };
 export const PROTOCOL_DEFAULTS = {
-  bolinas: "LLR",
+  marin_dna: "LLR",
   conservation: "score",
   alphagenome: "L2",
   gpn_star: "cLLR",

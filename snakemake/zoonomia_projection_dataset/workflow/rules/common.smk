@@ -1,7 +1,7 @@
 """Shared imports and constants for ``zoonomia_projection_dataset``.
 
 URLs come from ``CONSERVATION_TRACKS`` — single source of truth in
-``src/bolinas/evals/conservation.py``. Only ``phyloP_447m`` is downloaded
+``src/marin_dna/evals/conservation.py``. Only ``phyloP_447m`` is downloaded
 at pipeline runtime; ``phyloP_241m`` is fetched only by the one-off
 calibration script.
 
@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
-from bolinas.pipelines.evals.conservation import CONSERVATION_TRACKS
+from marin_dna.pipelines.evals.conservation import CONSERVATION_TRACKS
 
 
 def _git_commit_sha() -> str:
@@ -69,7 +69,7 @@ STANDARD_CHROMS = list(config["standard_chroms"])
 
 # Sanity-check: track must be in the registry.
 assert "phyloP_447m" in CONSERVATION_TRACKS, (
-    "phyloP_447m must be present in bolinas.pipelines.evals.conservation.CONSERVATION_TRACKS"
+    "phyloP_447m must be present in marin_dna.pipelines.evals.conservation.CONSERVATION_TRACKS"
 )
 
 

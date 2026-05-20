@@ -105,7 +105,7 @@ rule eda_extract_3_prime_utr_annotations:
     output:
         "results/eda/annotation/3_prime_utr_transcripts.parquet",
     run:
-        from bolinas.data.eda import extract_3_prime_utr_annotations
+        from marin_dna.data.eda import extract_3_prime_utr_annotations
 
         ann = load_annotation(input.annotation)
         utr_annotations = extract_3_prime_utr_annotations(ann)
@@ -123,7 +123,7 @@ rule eda_extract_ncrna_annotations_all:
     output:
         "results/eda/annotation/ncrna_transcripts_all.parquet",
     run:
-        from bolinas.data.utils import DEFAULT_NCRNA_BIOTYPES
+        from marin_dna.data.utils import DEFAULT_NCRNA_BIOTYPES
 
         ann = load_annotation(input.annotation)
 
@@ -188,7 +188,7 @@ rule eda_extract_cds_annotations:
     output:
         "results/eda/annotation/cds_regions.parquet",
     run:
-        from bolinas.data.eda import extract_cds_annotations
+        from marin_dna.data.eda import extract_cds_annotations
 
         ann = load_annotation(input.annotation)
         cds = extract_cds_annotations(ann)
@@ -204,7 +204,7 @@ rule eda_extract_mrna_exon_annotations:
     output:
         "results/eda/annotation/mrna_exons.parquet",
     run:
-        from bolinas.data.eda import extract_mrna_exon_annotations
+        from marin_dna.data.eda import extract_mrna_exon_annotations
 
         ann = load_annotation(input.annotation)
         mrna_exons = extract_mrna_exon_annotations(ann)
@@ -447,7 +447,7 @@ rule eda_analyze_3_prime_utr_mrna_distance:
     output:
         "results/eda/{dataset}/analysis/3_prime_utr_mrna_distance.parquet",
     run:
-        from bolinas.data.eda import compute_mrna_distances_for_variants
+        from marin_dna.data.eda import compute_mrna_distances_for_variants
 
         variants = pl.read_parquet(input.variants)
         utr_ann = pl.read_parquet(input.utr_annotations)
@@ -682,7 +682,7 @@ rule eda_plot_ncrna_types:
     output:
         "results/plots/eda/{dataset}/ncrna/type_distribution.svg",
     run:
-        from bolinas.data.utils import DEFAULT_NCRNA_BIOTYPES
+        from marin_dna.data.utils import DEFAULT_NCRNA_BIOTYPES
 
         df = pl.read_parquet(input[0]).to_pandas()
 

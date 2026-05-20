@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from bolinas.data.utils import load_annotation
+from marin_dna.data.utils import load_annotation
 
 
 @pytest.fixture

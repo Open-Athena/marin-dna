@@ -1,12 +1,12 @@
-"""Tests for ``bolinas.model.scoring`` (CLM-only).
+"""Tests for ``marin_dna.model.scoring`` (CLM-only).
 
 Vendored from biofoundation/tests/test_scoring.py at commit 834dd4c (May 2026).
 MLM test (``test_run_llr_mlm_rc_avg_equals_mean_of_two_passes``) dropped —
-bolinas-dna's vendored scoring module is CLM-only.
+marin-dna's vendored scoring module is CLM-only.
 
 The helper test doubles (``_DeterministicCLM``,
 ``_DeterministicCausalLMWithEmbeddings``) are plain ``nn.Module`` subclasses
-here. After the migration, ``bolinas.model.scoring`` calls
+here. After the migration, ``marin_dna.model.scoring`` calls
 ``model(input_ids).logits`` (and ``output.hidden_states[i]`` when
 ``output_hidden_states=True``) directly — no ``CausalLM`` /
 ``CausalLMWithEmbeddings`` abstract bases. The helpers return
@@ -25,19 +25,19 @@ import torch.nn as nn
 from torch import Tensor
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from bolinas.data.dna import NUCLEOTIDES
-from bolinas.data.genome import Genome
-from bolinas.data.transforms import (
+from marin_dna.data.dna import NUCLEOTIDES
+from marin_dna.data.genome import Genome
+from marin_dna.data.transforms import (
     _get_nucleotide_token_ids,
     transform_llr_clm,
     transform_reflogprob_clm,
 )
-from bolinas.model.runner import (
+from marin_dna.model.runner import (
     run_inference,
     run_ll_clm,
     run_variant_score_bundle,
 )
-from bolinas.model.scoring import (
+from marin_dna.model.scoring import (
     _logits_to_logprobs,
     compute_ll_clm,
     compute_reflogprob_clm,
@@ -382,7 +382,7 @@ _INFERENCE_KWARGS = dict(
 
 def test_run_reflogprob_clm_fwd_and_rc_differ():
     """FWD and RC ``transform_reflogprob_clm`` passes through
-    ``run_inference`` produce distinct outputs. ``bolinas.model.runner``
+    ``run_inference`` produce distinct outputs. ``marin_dna.model.runner``
     doesn't export a ``run_reflogprob_clm`` wrapper, so this verifies the
     underlying ``run_inference`` + ``compute_reflogprob_clm`` +
     ``transform_reflogprob_clm`` wiring at least responds to strand —
@@ -463,7 +463,7 @@ def test_run_variant_score_bundle_rc_returns_both_strands(tmp_path):
     with single-strand runs (callable manual two-pass reference).
     Catches regressions in the per-strand var_pos derivation,
     partial-binding, and the new dict-shape return contract."""
-    from bolinas.data.transforms import _get_special_token_counts, in_seq_var_pos
+    from marin_dna.data.transforms import _get_special_token_counts, in_seq_var_pos
 
     torch.manual_seed(0)
     tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")

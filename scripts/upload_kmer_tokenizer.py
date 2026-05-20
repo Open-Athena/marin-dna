@@ -3,7 +3,7 @@
 
 import argparse
 
-from bolinas.tokenizer.kmer import create_kmer_tokenizer
+from marin_dna.tokenizer.kmer import create_kmer_tokenizer
 
 
 def parse_args() -> argparse.Namespace:

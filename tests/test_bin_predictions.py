@@ -2,7 +2,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-from bolinas.data.bin_predictions import top_quantile_bins_to_windows
+from marin_dna.data.bin_predictions import top_quantile_bins_to_windows
 
 
 def _bins(chrom: str, n: int, bin_size: int = 128, logits=None) -> pl.DataFrame:

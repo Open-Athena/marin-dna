@@ -6,7 +6,7 @@ from pathlib import Path
 import polars as pl
 import torch
 
-from bolinas.pipelines.enhancer_classification.dataset import EnhancerDataset
+from marin_dna.pipelines.enhancer_classification.dataset import EnhancerDataset
 
 SEQ_LEN = 255
 

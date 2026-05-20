@@ -41,7 +41,7 @@ species_tsv: "config/species_zoonomia_447_family_dedup.tsv"
 # Which conservation cutoff BED to project (suffix of `results/bed/min{p}.bed.gz`).
 project_min_p: "0.20"
 
-# Resize parameters (see src/bolinas/projection/resize.py).
+# Resize parameters (see src/marin_dna/projection/resize.py).
 target_len: 255       # equals window_size; assert in common.smk
 pre_resize_min_len: 128
 pre_resize_max_len: 512

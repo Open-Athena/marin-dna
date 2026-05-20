@@ -1,4 +1,4 @@
-# Copyright The Bolinas Authors
+# Copyright The MarinDNA Authors
 # SPDX-License-Identifier: Apache-2.0
 
 """Tests for the lm_eval task class ``DnaVepLlrEvalTask``.
@@ -15,7 +15,7 @@ import pytest
 
 pytest.importorskip("lm_eval", reason="install with `uv sync --extra marin` to run")
 
-from bolinas.pipelines.evals.lm_eval.dna_vep_llr_eval import (  # noqa: E402
+from marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval import (  # noqa: E402
     METRIC_REGISTRY,
     _PairwiseAccuracyAggregation,
 )

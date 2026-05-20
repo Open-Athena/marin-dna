@@ -1,7 +1,7 @@
 """Observable Framework data loader: S3 metrics → one tidy parquet.
 
 Pulls per-(method, dataset, subset) metric rows from S3 via
-``bolinas.pipelines.evals.leaderboard.normalized_rows``, prepends a
+``marin_dna.pipelines.evals.leaderboard.normalized_rows``, prepends a
 ``dataset`` column, concatenates across datasets, and writes the resulting
 DataFrame as a parquet blob on stdout for the dashboard to read via DuckDB.
 
@@ -17,7 +17,7 @@ import sys
 
 import polars as pl
 
-from bolinas.pipelines.evals.leaderboard import normalized_rows
+from marin_dna.pipelines.evals.leaderboard import normalized_rows
 
 V1_DATASETS: tuple[str, ...] = ("mendelian_traits", "complex_traits")
 

@@ -6,7 +6,7 @@ import tempfile
 import pytest
 from transformers import AutoTokenizer
 
-from bolinas.tokenizer.kmer import SPECIAL_TOKENS, create_kmer_tokenizer
+from marin_dna.tokenizer.kmer import SPECIAL_TOKENS, create_kmer_tokenizer
 
 # ---------------------------------------------------------------------------
 # Vocab sizes

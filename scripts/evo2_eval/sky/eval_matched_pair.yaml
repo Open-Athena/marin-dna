@@ -98,7 +98,7 @@ setup: |
   # but datasets>=3.1 needs dill<0.3.9 → ResolutionImpossible without bypass.
   RUN PIP_CONSTRAINT= pip install --break-system-packages -U \
     "datasets>=3.1,<4" pyfaidx scipy scikit-learn
-  # bolinas is installed via PYTHONPATH at run-time (pure Python, no build).
+  # marin_dna is installed via PYTHONPATH at run-time (pure Python, no build).
   WORKDIR /workspace
   EOF
   sudo docker build -t evo2-eval:latest -f /tmp/evo2.Dockerfile /tmp

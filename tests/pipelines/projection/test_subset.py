@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.projection.subset``."""
+"""Tests for ``marin_dna.pipelines.projection.subset``."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import polars as pl
 
-from bolinas.pipelines.projection.subset import filter_to_subset, load_query_names
+from marin_dna.pipelines.projection.subset import filter_to_subset, load_query_names
 
 
 def test_load_query_names_skips_blanks_and_comments(tmp_path: Path) -> None:

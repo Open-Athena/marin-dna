@@ -1,6 +1,6 @@
-"""Script-local Evo2 variant scoring — independent of bolinas.model.*.
+"""Script-local Evo2 variant scoring — independent of marin_dna.model.*.
 
-The shared ``bolinas.model.scoring.compute_variant_score_bundle`` kernel
+The shared ``marin_dna.model.scoring.compute_variant_score_bundle`` kernel
 introduced in PR #184 uses prefix-sharing via KV-cache to halve the suffix
 compute, but Evo2's Vortex backend doesn't expose its internal state in
 HF-cache format (the model's HF wrapper returns ``SimpleNamespace(logits=...)``
@@ -32,7 +32,7 @@ import torch.nn.functional as F
 from pyfaidx import Fasta
 from tqdm import tqdm
 
-from bolinas.data.dna import complement_base, reverse_complement
+from marin_dna.data.dna import complement_base, reverse_complement
 
 
 def _get_variant_window(
@@ -100,7 +100,7 @@ def _compute_evo2_kernel(
 
     No KV-cache: feeds the full ref and alt sequences (``[2B, L]``) through
     the model in one pass, then extracts LLR and JSD from the per-position
-    4-nuc softmax. Mirrors the math of ``bolinas.model.scoring.compute_variant_score_bundle``
+    4-nuc softmax. Mirrors the math of ``marin_dna.model.scoring.compute_variant_score_bundle``
     but without prefix sharing.
 
     Args:

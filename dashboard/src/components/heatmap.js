@@ -29,7 +29,7 @@ export const MACRO = "_macro_avg_";
 // Per-subset display threshold: a subset's column is rendered only if at
 // least one method has ≥30 positives in it. Keep in lockstep with the
 // pipeline-time macro-avg filter `n_min=30` in
-// `bolinas.pipelines.evals.metrics.compute_auprc_metrics` — a subset
+// `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` — a subset
 // hidden here also doesn't contribute to Macro Avg.
 const N_POSITIVES_MIN = 30;
 
@@ -117,7 +117,7 @@ function makeComparator(sortKey) {
  *
  * @param {object} opts
  * @param {Array} opts.rows long-form (method × subset) rows; output of
- *   `bolinas.pipelines.evals.leaderboard.normalized_rows`.
+ *   `marin_dna.pipelines.evals.leaderboard.normalized_rows`.
  * @param {Map}   opts.modelById metadata for each method id (for links + tooltips).
  * @param {string} opts.leadingAggregate "_macro_avg_" or "_global_" — drives
  *   the default sort + which aggregate appears leftmost.

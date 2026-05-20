@@ -19,7 +19,7 @@ prior in-runner averaging behavior).
 
 Output parquet has one row per (subset × score_type) plus aggregate
 rows `_global_` and `_macro_avg_` per score_type — see
-`bolinas.pipelines.evals.metrics.compute_auprc_metrics`.
+`marin_dna.pipelines.evals.metrics.compute_auprc_metrics`.
 """
 
 

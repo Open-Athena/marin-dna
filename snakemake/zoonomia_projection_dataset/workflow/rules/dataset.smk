@@ -44,7 +44,7 @@ rule prepare_training_shards:
     resources:
         mem_mb=120000,
     run:
-        from bolinas.pipelines.projection.dataset import prepare_shards
+        from marin_dna.pipelines.projection.dataset import prepare_shards
 
         prepare_shards(
             parquet_path=str(input[0]),
@@ -94,7 +94,7 @@ rule dataset_hf_readme_v3:
         priority=list(config["region_label_priority"]),
         add_rc=ADD_RC,
     run:
-        from bolinas.pipelines.zoonomia_projection_dataset.region_labels import (
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
             write_subset_hf_readme,
         )
 

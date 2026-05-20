@@ -17,7 +17,7 @@ splits:
   - train
 
 # Conservation tracks. URLs are the single source of truth in
-# bolinas.evals.conservation.CONSERVATION_TRACKS — listing names here just
+# marin_dna.evals.conservation.CONSERVATION_TRACKS — listing names here just
 # selects which tracks the pipeline runs.
 scores:
   - phyloP_100v

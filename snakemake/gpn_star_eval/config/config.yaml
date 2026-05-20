@@ -7,8 +7,8 @@ datasets:
   - eqtl
 
 # GPN-Star model variants (3 in current set). Model decoding lives in
-# `bolinas.evals.gpn_star.GPN_STAR_MODEL_INFO`; source URLs are derived via
-# `bolinas.evals.gpn_star.predictions_url`.
+# `marin_dna.evals.gpn_star.GPN_STAR_MODEL_INFO`; source URLs are derived via
+# `marin_dna.evals.gpn_star.predictions_url`.
 models:
   - V
   - M

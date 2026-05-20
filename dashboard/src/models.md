@@ -80,7 +80,7 @@ main > p, main > h1, main > h2, main > h3, main > small { max-width: none; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.family-bolinas      { background: #1f77b4; }
+.family-marin_dna      { background: #1f77b4; }
 .family-conservation { background: #7f7f7f; }
 .family-alphagenome  { background: #d62728; }
 .family-gpn_star     { background: #9467bd; }

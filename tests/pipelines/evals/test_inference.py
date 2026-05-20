@@ -12,7 +12,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from bolinas.pipelines.evals.inference import compute_variant_scores
+from marin_dna.pipelines.evals.inference import compute_variant_scores
 
 
 def _stub_dataset() -> pd.DataFrame:
@@ -32,15 +32,15 @@ def _patched_model_load():
     actually downloads a checkpoint or opens a FASTA."""
     return (
         patch(
-            "bolinas.pipelines.evals.inference.AutoTokenizer.from_pretrained",
+            "marin_dna.pipelines.evals.inference.AutoTokenizer.from_pretrained",
             return_value=object(),
         ),
         patch(
-            "bolinas.pipelines.evals.inference.AutoModelForCausalLM.from_pretrained",
+            "marin_dna.pipelines.evals.inference.AutoModelForCausalLM.from_pretrained",
             return_value=object(),
         ),
         patch(
-            "bolinas.pipelines.evals.inference.Genome",
+            "marin_dna.pipelines.evals.inference.Genome",
             return_value=object(),
         ),
     )
@@ -56,7 +56,7 @@ def test_compute_variant_scores_rc_false_returns_two_cols():
         model_patch,
         genome_patch,
         patch(
-            "bolinas.pipelines.evals.inference.run_variant_score_bundle",
+            "marin_dna.pipelines.evals.inference.run_variant_score_bundle",
             return_value={"fwd": fwd_arr},
         ),
     ):
@@ -84,7 +84,7 @@ def test_compute_variant_scores_rc_true_returns_four_cols():
         model_patch,
         genome_patch,
         patch(
-            "bolinas.pipelines.evals.inference.run_variant_score_bundle",
+            "marin_dna.pipelines.evals.inference.run_variant_score_bundle",
             return_value={"fwd": fwd_arr, "rc": rc_arr},
         ),
     ):
@@ -117,7 +117,7 @@ def test_compute_variant_scores_avg_derivable_from_atoms():
         model_patch,
         genome_patch,
         patch(
-            "bolinas.pipelines.evals.inference.run_variant_score_bundle",
+            "marin_dna.pipelines.evals.inference.run_variant_score_bundle",
             return_value={"fwd": fwd_arr, "rc": rc_arr},
         ),
     ):

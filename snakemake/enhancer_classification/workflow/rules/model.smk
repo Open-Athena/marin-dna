@@ -40,7 +40,7 @@ rule train_model:
         mlp_hidden_dim=lambda wc: get_model_config(wc.model).get("mlp_hidden_dim", 0),
     shell:
         """
-        uv run python -m bolinas.pipelines.enhancer_classification.train \
+        uv run python -m marin_dna.pipelines.enhancer_classification.train \
             --train-parquet {input.train} \
             --val-parquet {input.val} \
             {params.weights_flag} \

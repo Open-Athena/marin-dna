@@ -1,12 +1,12 @@
-"""Tests for ``bolinas.pipelines.projection.tss``."""
+"""Tests for ``marin_dna.pipelines.projection.tss``."""
 
 from pathlib import Path
 
 import polars as pl
 import pytest
 
-from bolinas.data.utils import load_annotation
-from bolinas.pipelines.projection.tss import (
+from marin_dna.data.utils import load_annotation
+from marin_dna.pipelines.projection.tss import (
     get_ensembl_protein_coding_exons,
     write_mrna_tss_band_bed,
 )

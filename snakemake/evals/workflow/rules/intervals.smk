@@ -1,4 +1,4 @@
-from bolinas.data.utils import load_annotation
+from marin_dna.data.utils import load_annotation
 
 
 rule annotation_download:

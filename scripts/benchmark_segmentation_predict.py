@@ -19,7 +19,7 @@ from pathlib import Path
 import polars as pl
 import py2bit
 
-from bolinas.pipelines.enhancer_segmentation.predict_genome import (
+from marin_dna.pipelines.enhancer_segmentation.predict_genome import (
     predict_genome,
     tile_chromosomes,
 )

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import polars as pl
 
-from bolinas.pipelines.evals.labeling import label_variants_by_pip
+from marin_dna.pipelines.evals.labeling import label_variants_by_pip
 
 # Standard thresholds used by complex_traits and eqtl in production.
 POS = 0.9

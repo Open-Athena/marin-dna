@@ -1,6 +1,6 @@
 """Tests for pure helpers in the gh-upload-asset skill script.
 
-The script lives under ``.agents/skills/`` rather than ``src/bolinas/`` (it's a
+The script lives under ``.agents/skills/`` rather than ``src/marin_dna/`` (it's a
 skill-bundled tool, not part of the library), so we load it by file path.
 """
 

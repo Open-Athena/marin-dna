@@ -1,15 +1,15 @@
-"""Tests for ``bolinas.data.genome.Genome``.
+"""Tests for ``marin_dna.data.genome.Genome``.
 
 Vendored from biofoundation/tests/test_data.py at commit 834dd4c (May 2026):
 only the Genome tests are migrated — GenomicSet has its own home at
-``bolinas.data.intervals`` (tested separately in ``tests/test_intervals.py``).
+``marin_dna.data.intervals`` (tested separately in ``tests/test_intervals.py``).
 """
 
 import textwrap
 
 import pytest
 
-from bolinas.data.genome import Genome
+from marin_dna.data.genome import Genome
 
 
 def _write_genome_fasta(tmp_path):

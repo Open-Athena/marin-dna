@@ -4,28 +4,28 @@ import polars as pl
 import subprocess
 from pathlib import Path
 
-from bolinas.data.genome import Genome
+from marin_dna.data.genome import Genome
 from cyvcf2 import VCF
 from datasets import Dataset
 from huggingface_hub import HfApi
 
-from bolinas.pipelines.evals.labeling import label_variants_by_pip
-from bolinas.pipelines.evals.materialize import materialize_sequences
-from bolinas.pipelines.evals import hf_readme
-from bolinas.pipelines.evals.matching import (
+from marin_dna.pipelines.evals.labeling import label_variants_by_pip
+from marin_dna.pipelines.evals.materialize import materialize_sequences
+from marin_dna.pipelines.evals import hf_readme
+from marin_dna.pipelines.evals.matching import (
     CAT_BASE,
     add_subset_distance_bins_v2,
     match_features,
 )
-from bolinas.pipelines.evals.matching_qc import compute_matching_qc
-from bolinas.pipelines.evals.trait_intervals import (
+from marin_dna.pipelines.evals.matching_qc import compute_matching_qc
+from marin_dna.pipelines.evals.trait_intervals import (
     add_exon,
     add_tss,
     build_dataset,
     get_exon,
     get_tss,
 )
-from bolinas.pipelines.evals.variants import (
+from marin_dna.pipelines.evals.variants import (
     COORDINATES,
     NUCLEOTIDES,
     attach_per_chrom_consequences,

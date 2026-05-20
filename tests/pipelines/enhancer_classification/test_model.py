@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 
-from bolinas.pipelines.enhancer_classification.model import (
+from marin_dna.pipelines.enhancer_classification.model import (
     ENCODER_OUTPUT_DIM,
     EnhancerClassifier,
 )

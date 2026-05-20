@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-from bolinas.pipelines.evals.matching_qc import compute_matching_qc
+from marin_dna.pipelines.evals.matching_qc import compute_matching_qc
 
 
 def _pre(subsets: list[tuple[str, int, int]]) -> pl.DataFrame:

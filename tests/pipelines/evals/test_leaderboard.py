@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.evals.leaderboard``.
+"""Tests for ``marin_dna.pipelines.evals.leaderboard``.
 
 The library's surface is `fetch_method_metrics` (one method × protocol →
 parquet rows) and `normalized_rows` (one dataset → flat polars DataFrame
@@ -12,22 +12,22 @@ from __future__ import annotations
 import polars as pl
 import pytest
 
-from bolinas.pipelines.evals import leaderboard
-from bolinas.pipelines.evals.leaderboard import (
+from marin_dna.pipelines.evals import leaderboard
+from marin_dna.pipelines.evals.leaderboard import (
     DEFAULT_PROTOCOL,
     PROTOCOLS,
     fetch_method_metrics,
     normalized_rows,
     score_type_for,
 )
-from bolinas.pipelines.evals.models import Model
-from bolinas.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
+from marin_dna.pipelines.evals.models import Model
+from marin_dna.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
 
 
 def _mk_method(
     id: str = "x",
     display: str = "x",
-    family: str = "bolinas",
+    family: str = "marin_dna",
     description: str = "desc",
     datasets: tuple[str, ...] = ("mendelian_traits",),
     **extra,
@@ -67,7 +67,7 @@ def _patch_methods(
 ) -> None:
     """Bypass the real models.yaml so tests operate on a small fixture."""
     monkeypatch.setattr(
-        "bolinas.pipelines.evals.models.load_models",
+        "marin_dna.pipelines.evals.models.load_models",
         lambda: methods,
     )
 
@@ -84,17 +84,17 @@ def test_default_protocol_keys_match_protocols():
 
 
 def test_score_type_for_returns_dataset_specific_column():
-    # Bolinas family migrated to per-strand atoms + derived AVG under
+    # MarinDNA family migrated to per-strand atoms + derived AVG under
     # the AUPRC pipeline; default LLR/JSD pick the _avg variants. The
     # per-strand _fwd variants are surfaced as LLR-FWD / JSD-FWD on the
     # dashboard's Protocols pages (not in the leaderboards' protocol
     # toggle — see PROTOCOL_OPTIONS in dashboard/src/components/controls.js).
-    assert score_type_for("bolinas", "LLR", "mendelian_traits") == "minus_llr_avg"
-    assert score_type_for("bolinas", "LLR", "complex_traits") == "abs_llr_avg"
-    assert score_type_for("bolinas", "JSD", "mendelian_traits") == "jsd_avg"
-    assert score_type_for("bolinas", "LLR-FWD", "mendelian_traits") == "minus_llr_fwd"
-    assert score_type_for("bolinas", "LLR-FWD", "complex_traits") == "abs_llr_fwd"
-    assert score_type_for("bolinas", "JSD-FWD", "mendelian_traits") == "jsd_fwd"
+    assert score_type_for("marin_dna", "LLR", "mendelian_traits") == "minus_llr_avg"
+    assert score_type_for("marin_dna", "LLR", "complex_traits") == "abs_llr_avg"
+    assert score_type_for("marin_dna", "JSD", "mendelian_traits") == "jsd_avg"
+    assert score_type_for("marin_dna", "LLR-FWD", "mendelian_traits") == "minus_llr_fwd"
+    assert score_type_for("marin_dna", "LLR-FWD", "complex_traits") == "abs_llr_fwd"
+    assert score_type_for("marin_dna", "JSD-FWD", "mendelian_traits") == "jsd_fwd"
     assert score_type_for("evo2", "LLR-FWD", "mendelian_traits") == "minus_llr_fwd"
     assert score_type_for("evo2", "JSD-FWD", "mendelian_traits") == "jsd_fwd"
     assert (
@@ -105,7 +105,7 @@ def test_score_type_for_returns_dataset_specific_column():
 
 def test_gpn_star_parquet_path_resolves_to_pinned_gist():
     """The gist URL has the pinned commit + the dataset-stacked filename."""
-    from bolinas.pipelines.evals.leaderboard import (
+    from marin_dna.pipelines.evals.leaderboard import (
         GPN_STAR_METRICS_GIST_BASE,
         GPN_STAR_METRICS_GIST_COMMIT,
         _parquet_path,
@@ -131,7 +131,7 @@ def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.Monkey
         _mk_method(
             id="exp55-mammals-step-16999",
             display="exp55-mammals",
-            family="bolinas",
+            family="marin_dna",
             description="promoters, mammals",
             datasets=("mendelian_traits",),
             checkpoint=None,
@@ -153,7 +153,7 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     sees a single `n` column derived from `n_rows` (per-subset / global) or
     `n_groups` (macro_avg).
     """
-    from bolinas.pipelines.evals.leaderboard import GPN_STAR_METRICS_GIST_BASE
+    from marin_dna.pipelines.evals.leaderboard import GPN_STAR_METRICS_GIST_BASE
 
     methods = (
         _mk_method(
@@ -218,18 +218,18 @@ def test_normalized_rows_skips_missing_protocol_gracefully(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ):
     """When a parquet doesn't have a protocol's score_type rows yet (e.g.
-    bolinas JSD before the pipeline rerun), normalized_rows logs + skips."""
+    marin_dna JSD before the pipeline rerun), normalized_rows logs + skips."""
     methods = (
         _mk_method(
             id="exp55-mammals-step-16999",
             display="exp55-mammals",
-            family="bolinas",
+            family="marin_dna",
             description="promoters, mammals",
             datasets=("mendelian_traits",),
         ),
     )
     _patch_methods(monkeypatch, methods)
-    bolinas_df = pl.DataFrame(
+    marin_dna_df = pl.DataFrame(
         [
             {
                 "score_type": "minus_llr_avg",
@@ -264,20 +264,20 @@ def test_normalized_rows_skips_missing_protocol_gracefully(
         monkeypatch,
         {
             "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics/"
-            "exp55-mammals-step-16999/mendelian_traits.parquet": bolinas_df,
+            "exp55-mammals-step-16999/mendelian_traits.parquet": marin_dna_df,
         },
     )
     df = normalized_rows("mendelian_traits")
     assert df["protocol"].unique().to_list() == ["LLR"]
     captured = capsys.readouterr()
-    assert "bolinas/JSD skip" in captured.err
+    assert "marin_dna/JSD skip" in captured.err
     # `n` = n_rows for per-subset/global, K for macro. `n_positives` =
     # n_groups everywhere. So with these inputs we expect {1000, 1} for n
     # and {100, 1} for n_positives.
-    bolinas_rows = df.filter(pl.col("family") == "bolinas")
-    assert set(bolinas_rows["n"].to_list()) == {1, 1000}
-    assert set(bolinas_rows["n_positives"].to_list()) == {1, 100}
-    macro = bolinas_rows.filter(pl.col("subset") == MACRO_AVG_SUBSET)
+    marin_dna_rows = df.filter(pl.col("family") == "marin_dna")
+    assert set(marin_dna_rows["n"].to_list()) == {1, 1000}
+    assert set(marin_dna_rows["n_positives"].to_list()) == {1, 100}
+    macro = marin_dna_rows.filter(pl.col("subset") == MACRO_AVG_SUBSET)
     assert macro["n"][0] == 1, f"macro `n` should carry K, got {macro['n'][0]}"
     assert macro["n_positives"][0] == 1, (
         f"macro `n_positives` should also carry K (= n_groups from source), "
@@ -297,7 +297,7 @@ def test_normalized_rows_propagates_unexpected_exceptions(
         _mk_method(
             id="exp55-mammals-step-16999",
             display="exp55-mammals",
-            family="bolinas",
+            family="marin_dna",
             description="promoters, mammals",
             datasets=("mendelian_traits",),
         ),
@@ -384,14 +384,14 @@ def test_normalized_rows_includes_aggregates_and_per_subset(
 
 def test_storage_options_off_by_default(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("BOLINAS_S3_ANON", raising=False)
-    from bolinas.pipelines.evals.leaderboard import _storage_options
+    from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     assert _storage_options() is None
 
 
 def test_storage_options_anonymous_when_env_set(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("BOLINAS_S3_ANON", "1")
-    from bolinas.pipelines.evals.leaderboard import _storage_options
+    from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     opts = _storage_options()
     assert opts is not None
@@ -401,13 +401,13 @@ def test_storage_options_anonymous_when_env_set(monkeypatch: pytest.MonkeyPatch)
 
 def test_storage_options_anonymous_accepts_true(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("BOLINAS_S3_ANON", "true")
-    from bolinas.pipelines.evals.leaderboard import _storage_options
+    from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     assert _storage_options() is not None
 
 
 def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("BOLINAS_S3_ANON", "no")
-    from bolinas.pipelines.evals.leaderboard import _storage_options
+    from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     assert _storage_options() is None

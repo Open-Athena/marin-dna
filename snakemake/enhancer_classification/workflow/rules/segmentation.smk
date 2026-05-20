@@ -350,7 +350,7 @@ rule train_segmentation_model:
         ),
     shell:
         """
-        uv run python -m bolinas.pipelines.enhancer_segmentation.train \
+        uv run python -m marin_dna.pipelines.enhancer_segmentation.train \
             --train-parquet {input.train} \
             --val-parquet {input.val} \
             --weights-path {input.weights} \
@@ -388,7 +388,7 @@ rule evaluate_segmentation_model_fullcov:
         batch_size=lambda wc: get_seg_model_config(wc.model)["batch_size"],
     shell:
         """
-        uv run python -m bolinas.pipelines.enhancer_segmentation.evaluate \
+        uv run python -m marin_dna.pipelines.enhancer_segmentation.evaluate \
             --checkpoint {input.checkpoint} \
             --val-parquet {input.val} \
             --output {output.val_predictions} \
@@ -423,7 +423,7 @@ rule predict_segmentation_region:
         bin_size=SEG_BIN_SIZE,
     shell:
         """
-        uv run python -m bolinas.pipelines.enhancer_segmentation.predict \
+        uv run python -m marin_dna.pipelines.enhancer_segmentation.predict \
             --genome {input.genome} \
             --checkpoint {input.checkpoint} \
             --chrom {params.chrom} \

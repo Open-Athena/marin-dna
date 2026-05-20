@@ -2,7 +2,7 @@ import pandas as pd
 import polars as pl
 import pytest
 
-from bolinas.data.intervals import GenomicList, GenomicSet
+from marin_dna.data.intervals import GenomicList, GenomicSet
 
 
 # GenomicSet tests

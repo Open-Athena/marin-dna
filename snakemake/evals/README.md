@@ -32,11 +32,11 @@ batched VEP path.
 ## Matching scheme
 
 For each dataset, every positive is matched to 9 negatives via TraitGym's
-greedy-nearest-neighbor matcher (`bolinas.pipelines.evals.matching.match_features`).
+greedy-nearest-neighbor matcher (`marin_dna.pipelines.evals.matching.match_features`).
 Matching is exact on `(chrom, consequence_final)` plus subset-targeted
 distance bins (see below), then Euclidean-nearest on the (RobustScaler-scaled)
 continuous features, without replacement within a stratum. See
-`src/bolinas/pipelines/evals/matching.py` for the algorithm.
+`src/marin_dna/pipelines/evals/matching.py` for the algorithm.
 
 **Gene-ID columns** (`tss_closest_pc_gene_id`, `tss_closest_nc_gene_id`,
 `exon_closest_pc_gene_id`, `exon_closest_nc_gene_id`) are *not* part of the
@@ -87,7 +87,7 @@ downstream consumers can stratify by the same bins used for matching.
 
 Each rebuild produces `results/qc/{dataset}.parquet` with one row per
 `consequence_group` subset, via the `dataset_matching_qc` rule (see
-`workflow/rules/common.smk` and `src/bolinas/pipelines/evals/matching_qc.py`).
+`workflow/rules/common.smk` and `src/marin_dna/pipelines/evals/matching_qc.py`).
 Two diagnostics:
 
 1. **Subsampling drops** — `n_positives_input`, `n_positives_kept`,
@@ -255,7 +255,7 @@ and emit **two output rows per input variant** — one per strand:
 | `strand` | `"+"` (FWD) or `"-"` (RC of the FWD window; ref/alt complemented). |
 | `target` | Binary label (renamed from `label`; identical across the two strand rows). |
 
-Two-row layout exists so the online lm_eval VEP scorer (`bolinas.pipelines.evals.lm_eval.dna_vep_llr_eval`)
+Two-row layout exists so the online lm_eval VEP scorer (`marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval`)
 averages per-strand LLRs per variant before computing PairwiseAccuracy — the
 FWD+RC averaging documented as #175 conclusion 2 (mirrors `snakemake/analysis/evals_v2/`'s
 `inference.rc_avg=true`). Rows are sorted by `(chrom, pos, ref, alt, strand)`
