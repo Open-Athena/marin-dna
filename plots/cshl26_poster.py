@@ -463,11 +463,11 @@ def _load_mixture_trajectory(method_id: str) -> pl.DataFrame:
     return pl.concat(parts)
 
 
-# C1: exp13 promoter × CDS mixture sweep — equal-compute trajectories.
+# R3: exp13 promoter × CDS mixture sweep — equal-compute trajectories.
 # The 4 variants have different "final" step counts, so a final-step bar
 # chart would compare them at unequal compute. Plotting AUPRC vs training
 # step makes the equal-compute comparison visible at every vertical slice.
-def plot_c1(out_path: Path) -> None:
+def plot_r3(out_path: Path) -> None:
     """4 mixture variants (100%P / 50-50 / 10-90 / 100%C) over training.
 
     Two panels (Promoter / Missense) — one region from each side of the
@@ -525,4 +525,4 @@ if __name__ == "__main__":
     plot_t2(FIGS_DIR / "t2.svg")
     plot_r1(FIGS_DIR / "r1.svg")
     plot_r2(FIGS_DIR / "r2.svg")
-    plot_c1(FIGS_DIR / "c1.svg")
+    plot_r3(FIGS_DIR / "r3.svg")

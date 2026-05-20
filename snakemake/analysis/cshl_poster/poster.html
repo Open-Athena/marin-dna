@@ -131,7 +131,7 @@ body {
   background: var(--fig-frame-outer);
   border-radius: 14px;
   padding: 0.25in;
-  height: 8in;     /* gives the pipeline schematic room for DNA + Qwen + eval cards */
+  height: 5in;     /* tightened from 8in to free vertical space for the body — we'll re-tune when content settles */
 }
 .pipeline-img {
   background: var(--fig-frame-inner);
@@ -172,6 +172,11 @@ body {
    remaining flex space equally. */
 .col-with-legend {
   grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
+}
+/* Three-panel variant of `.col-with-legend` for column A, which has
+   R1 + R2 + R3 stacked below the region legend (5 rows total). */
+.col-with-legend-3 {
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 .timescale-legend {
   background: var(--fig-frame-outer);
@@ -338,22 +343,22 @@ body {
   background: var(--text);
   color: #f5efe6;
   border-radius: 14px;
-  padding: 0.4in 0.55in;
+  padding: 0.25in 0.5in;   /* tightened from 0.4in 0.55in */
   display: grid;
   column-gap: 0.6in;
 }
 .strip h3 {
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: var(--fs-h3);
+  font-size: 26pt;          /* tightened from --fs-h3 (32pt) */
   color: #BFA77A;
-  margin: 0 0 0.15in 0;
+  margin: 0 0 0.1in 0;
   letter-spacing: 0.005em;
 }
 .strip p, .strip li {
-  font-size: 22pt;
-  line-height: 1.42;
-  margin: 0 0 0.08in 0;
+  font-size: 18pt;          /* tightened from 22pt */
+  line-height: 1.35;
+  margin: 0 0 0.05in 0;
   color: #D5CBBD;
 }
 .strip ul {
@@ -425,13 +430,13 @@ body {
   <section class="body">
 
     <!-- Left column: Functional regions -->
-    <div class="col col-with-legend">
+    <div class="col col-with-legend-3">
       <h2><span class="num">A.</span>Functional regions</h2>
 
-      <!-- Single-gene cartoon — doubles as the colour-key for the R1 / R2
+      <!-- Single-gene cartoon — doubles as the colour-key for the R1 / R2 / R3
            panels below (promoter and CDS used in the experiments). -->
       <div class="timescale-legend">
-        <img src="figs/region_legend.svg" alt="Functional regions legend: a single gene cartoon showing enhancer (distal, looping to promoter ~10–1000 kb away), promoter, 5'UTR, CDS exons (with intron), 3'UTR. Promoter and CDS are the regions studied in R1 and R2.">
+        <img src="figs/region_legend.svg" alt="Functional regions legend: a single gene cartoon showing enhancer (distal, looping to promoter ~10–1000 kb away), promoter, 5'UTR, CDS exons (with intron), 3'UTR. Promoter and CDS are the regions studied in R1, R2, and R3.">
       </div>
 
       <div class="panel">
@@ -453,6 +458,17 @@ body {
         <figure class="fig">
           <p class="fig-title">Mendelian AUPRC — exp27 vs Evo 2 / GPN-Star</p>
           <div class="fig-canvas"><img src="figs/r2.svg" alt="Figure R2"></div>
+        </figure>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">R3</span>
+          <p class="title">Balanced sampling rescues the under-represented region.</p>
+        </div>
+        <figure class="fig">
+          <p class="fig-title">exp13 mixture sweep — AUPRC vs training step</p>
+          <div class="fig-canvas"><img src="figs/r3.svg" alt="Figure R3"></div>
         </figure>
       </div>
     </div>
@@ -510,11 +526,13 @@ body {
       <div class="panel">
         <div class="panel-head">
           <span class="tag">C1</span>
-          <p class="title">Balanced sampling rescues the under-represented region.</p>
+          <p class="title">Placeholder result 1.</p>
         </div>
         <figure class="fig">
-          <p class="fig-title">exp13 mixture sweep — AUPRC vs training step</p>
-          <div class="fig-canvas"><img src="figs/c1.svg" alt="Figure C1"></div>
+          <p class="fig-title">Placeholder figure</p>
+          <div class="fig-canvas" style="min-height: 3in; align-items: center; justify-content: center;">
+            <span style="color: var(--text-light); font-style: italic;">placeholder</span>
+          </div>
         </figure>
       </div>
 
