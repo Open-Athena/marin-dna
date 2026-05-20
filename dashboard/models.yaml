@@ -387,13 +387,37 @@
     params: 2.0e8
   datasets: [mendelian_traits, complex_traits]
 
-# ---------------------------------------------------------------------------
-# Evo 2 — temporarily dropped. The AUPRC re-emission for the new
-# `mendelian_traits` / `complex_traits` revisions is in flight. To bring
-# back: re-add the `evo2` family Literal in `src/bolinas/pipelines/evals/
-# models.py`, the `evo2` block in `leaderboard.py` (PROTOCOLS,
-# DEFAULT_PROTOCOL, `_parquet_path` gist path), the three `evo2_1b_base`
-# / `evo2_7b` / `evo2_40b` blocks here (see `git show HEAD~1:
-# dashboard/models.yaml`), and the family in the dashboard `families`
-# arrays + protocols/evo2.md page.
-# ---------------------------------------------------------------------------
+# Evo 2 (issue #131) — AUPRC metrics via gist pinned in
+# `leaderboard.py::EVO2_METRICS_GIST_COMMIT`; mendelian_traits only.
+- id: evo2_1b_base
+  display: Evo 2 (1B base)
+  family: evo2
+  description: generalist, 1B
+  training:
+    params: 1.0e9
+    window_size: 8192
+    objective: CLM
+  datasets: [mendelian_traits]
+  paper: https://arcinstitute.org/manuscripts/Evo2
+
+- id: evo2_7b
+  display: Evo 2 (7B)
+  family: evo2
+  description: generalist, 7B
+  training:
+    params: 7.0e9
+    window_size: 8192
+    objective: CLM
+  datasets: [mendelian_traits]
+  paper: https://arcinstitute.org/manuscripts/Evo2
+
+- id: evo2_40b
+  display: Evo 2 (40B)
+  family: evo2
+  description: generalist, 40B
+  training:
+    params: 4.0e10
+    window_size: 8192
+    objective: CLM
+  datasets: [mendelian_traits]
+  paper: https://arcinstitute.org/manuscripts/Evo2

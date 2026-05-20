@@ -13,8 +13,6 @@ export default {
   theme: "air",
 
   // Sidebar navigation. eQTL was retired in PR #194 — see #172.
-  // Evo 2 protocol comparison page is dropped pending the AUPRC
-  // re-emission (see comment in dashboard/models.yaml).
   pages: [
     {
       name: "Leaderboards",
@@ -27,6 +25,7 @@ export default {
       name: "Protocols",
       pages: [
         {name: "Bolinas (LLR vs JSD)", path: "/protocols/bolinas"},
+        {name: "Evo 2 (LLR vs JSD)", path: "/protocols/evo2"},
         {name: "GPN-Star (cLLR vs LLR)", path: "/protocols/gpn-star"},
       ],
     },

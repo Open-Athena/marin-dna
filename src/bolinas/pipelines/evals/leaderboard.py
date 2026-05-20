@@ -48,6 +48,21 @@ GPN_STAR_METRICS_GIST_BASE = (
     f"{GPN_STAR_METRICS_GIST_ID}/raw/{GPN_STAR_METRICS_GIST_COMMIT}"
 )
 
+# `family: evo2` AUPRC metrics gist. Same gist as gpn_star, different
+# pinned commit. Bump `EVO2_METRICS_GIST_COMMIT` when re-uploading; see
+# `scripts/evo2_eval/README.md` for the upload recipe.
+EVO2_METRICS_GIST_OWNER = "gonzalobenegas"
+EVO2_METRICS_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
+EVO2_METRICS_GIST_COMMIT = "1bce02fe0d831382d24ecbac305d401f153c65fc"
+EVO2_METRICS_GIST_BASE = (
+    f"https://gist.githubusercontent.com/{EVO2_METRICS_GIST_OWNER}/"
+    f"{EVO2_METRICS_GIST_ID}/raw/{EVO2_METRICS_GIST_COMMIT}"
+)
+# Dataset → metric-parquet filename prefix. Extend when adding complex_traits.
+EVO2_DATASET_SHORT: dict[str, str] = {
+    "mendelian_traits": "mendelian",
+}
+
 # Per-family scoring protocols. Each protocol maps a dataset → the parquet
 # `score_type` column to filter on. The dashboard exposes the non-default
 # protocols (where present) as per-family toggle options.
@@ -86,6 +101,15 @@ PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
             "complex_traits": "abs_llr",
         },
     },
+    # evo2 mirrors bolinas; mendelian_traits only (extend when complex lands).
+    "evo2": {
+        "LLR": {
+            "mendelian_traits": "minus_llr_avg",
+        },
+        "JSD": {
+            "mendelian_traits": "jsd_avg",
+        },
+    },
 }
 
 DEFAULT_PROTOCOL: dict[str, str] = {
@@ -93,6 +117,7 @@ DEFAULT_PROTOCOL: dict[str, str] = {
     "conservation": "score",
     "alphagenome": "L2",
     "gpn_star": "cLLR",
+    "evo2": "LLR",
 }
 
 
@@ -136,6 +161,9 @@ def _parquet_path(method: Model, dataset: str) -> str:
             return f"{S3}/snakemake/alphagenome_eval/results/metrics/{dataset}.parquet"
         case "gpn_star":
             return f"{GPN_STAR_METRICS_GIST_BASE}/{dataset}.GPN-Star.parquet"
+        case "evo2":
+            short = EVO2_DATASET_SHORT[dataset]
+            return f"{EVO2_METRICS_GIST_BASE}/{short}_{method.id}_train_metrics.parquet"
         case _:
             raise ValueError(f"unknown family {method.family!r}")
 
@@ -162,7 +190,7 @@ def fetch_method_metrics(
     path = _parquet_path(method, dataset)
     df = _read_parquet(path)
     match method.family:
-        case "bolinas" | "alphagenome":
+        case "bolinas" | "alphagenome" | "evo2":
             df = df.filter(pl.col("score_type") == score_type).filter(
                 pl.col("split") == SPLIT
             )
