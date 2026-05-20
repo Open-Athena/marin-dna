@@ -11,12 +11,16 @@ const leaderboard = await FileAttachment("../data/leaderboard.parquet").parquet(
 const methods = await FileAttachment("../data/models.json").json();
 const datasets = await FileAttachment("../data/datasets.json").json();
 import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
-import {PillSelect, DirectionPicker, labeledRow} from "../components/controls.js";
+import {PillSelect, ComparisonPicker, labeledRow} from "../components/controls.js";
 ```
 
 ```js
 const FAMILY = "gpn_star";
-const PROTOCOLS = ["cLLR", "LLR"];
+// Each entry is `[baseline, alternative]`. The heatmap shows
+// `alternative − baseline`, so cells read as "raw LLR minus calibrated".
+// GPN-Star's metrics gist has no FWD/RC variants, so just one comparison
+// here — same shape as the bolinas / evo2 pages.
+const COMPARISONS = [["cLLR", "LLR"]];
 const DATASETS = ["mendelian_traits", "complex_traits"];
 const DATASET_LABEL = {
   mendelian_traits: "Mendelian traits",
@@ -35,21 +39,21 @@ const dataset = view(
 ```
 
 ```js
-const direction = view(
+const comparison = view(
   labeledRow(
     "Compare",
-    DirectionPicker(PROTOCOLS, "cLLR", "LLR"),
+    ComparisonPicker(COMPARISONS, 0),
     html`Cells show <b>right − left</b>, in pp.`,
   ),
 );
 ```
 
 ```js
-// `direction` from the cell above is the latest yielded value of the
+// `comparison` from the cell above is the latest yielded value of the
 // view's Generator — accessible only from a downstream cell, not from
 // the cell that calls `view(...)`. Split so `.from` / `.to` resolve.
-const baseline = direction.from;
-const alternative = direction.to;
+const baseline = comparison.from;
+const alternative = comparison.to;
 ```
 
 ```js
@@ -99,7 +103,12 @@ if (baseline !== alternative) {
 }
 ```
 
-Each cell below is **${alternative} AUPRC − ${baseline} AUPRC**, in percentage points. Green = ${alternative} scores higher than ${baseline}; red = the reverse. cLLR is the producer's recommended protocol on this leaderboard ([Benegas et al. #145](https://github.com/Open-Athena/bolinas-dna/issues/145)) — calibration subtracts pentanucleotide-context background, `llr_calibrated = llr − E[llr | 5-mer, mut]`.
+Each cell below is **${alternative} AUPRC − ${baseline} AUPRC**, in percentage points. Green = ${alternative} scores higher than ${baseline}; red = the reverse.
+
+**Protocol definitions:**
+
+- **cLLR** — calibrated log-likelihood ratio. Pentanucleotide-context background subtraction: `llr_calibrated = llr − E[llr | 5-mer, mut]`. The producer's recommended protocol on this leaderboard ([Benegas et al. #145](https://github.com/Open-Athena/bolinas-dna/issues/145)). *Leaderboard default.*
+- **LLR** — raw log-likelihood ratio of mutant vs. reference, without the pentanucleotide-context calibration.
 
 Same matched groups as the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}); only the `score_type` filter changes.
 

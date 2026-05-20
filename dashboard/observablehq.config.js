@@ -24,9 +24,9 @@ export default {
     {
       name: "Protocols",
       pages: [
-        {name: "Bolinas (LLR vs JSD)", path: "/protocols/bolinas"},
-        {name: "Evo 2 (LLR vs JSD)", path: "/protocols/evo2"},
-        {name: "GPN-Star (cLLR vs LLR)", path: "/protocols/gpn-star"},
+        {name: "Bolinas", path: "/protocols/bolinas"},
+        {name: "Evo 2", path: "/protocols/evo2"},
+        {name: "GPN-Star", path: "/protocols/gpn-star"},
       ],
     },
     {name: "Models", path: "/models"},

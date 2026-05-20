@@ -74,8 +74,11 @@ EVO2_DATASET_SHORT: dict[str, str] = {
 PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
     "bolinas": {
         # Default LLR / JSD pick the FWD+RC `_avg` columns. The per-strand
-        # `_fwd` / `_rc` columns are also in the parquet for diagnostics
-        # but aren't exposed as separate protocols here.
+        # `_fwd` variants are surfaced on the dashboard's Protocols page
+        # for AVG-vs-FWD exploration; they're not exposed in the
+        # leaderboards' protocol toggle (see `PROTOCOL_OPTIONS` in
+        # `dashboard/src/components/controls.js`). The `_rc` columns are
+        # still in the parquet for diagnostics but aren't surfaced.
         "LLR": {
             "mendelian_traits": "minus_llr_avg",
             "complex_traits": "abs_llr_avg",
@@ -83,6 +86,14 @@ PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
         "JSD": {
             "mendelian_traits": "jsd_avg",
             "complex_traits": "jsd_avg",
+        },
+        "LLR-FWD": {
+            "mendelian_traits": "minus_llr_fwd",
+            "complex_traits": "abs_llr_fwd",
+        },
+        "JSD-FWD": {
+            "mendelian_traits": "jsd_fwd",
+            "complex_traits": "jsd_fwd",
         },
     },
     "conservation": {
@@ -108,6 +119,12 @@ PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
         },
         "JSD": {
             "mendelian_traits": "jsd_avg",
+        },
+        "LLR-FWD": {
+            "mendelian_traits": "minus_llr_fwd",
+        },
+        "JSD-FWD": {
+            "mendelian_traits": "jsd_fwd",
         },
     },
 }
