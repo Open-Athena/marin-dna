@@ -41,17 +41,23 @@ Two extra envs the YAML threads through to the eval script:
 - `DATASET_REVISION=<sha>` — pins the HF dataset to a specific commit / tag / branch (default: HEAD).
 - `SKIP_METRICS=1` — writes only the scores parquet and skips `PairwiseAccuracy`. Use when the dataset isn't 1:1 paired (e.g. the 1:9 design in `evals_mendelian_traits` post-#194).
 
-### Metrics aggregation + leaderboard update
+### Metrics — AUPRC + cluster-bootstrap SE (post-PR-#194)
+
+The post-#194 datasets are 1:9 matched, so PairwiseAccuracy no longer applies — run inference with `SKIP_METRICS=1`, then compute AUPRC post-hoc from the per-variant scores parquet:
 
 ```bash
-uv run python scripts/evo2_eval/eval_matched_pair_metrics.py \
-  --results-dir results/evo2_mendelian_traits --score-column minus_llr
-uv run python scripts/evo2_eval/eval_matched_pair_metrics.py \
-  --results-dir results/evo2_complex_traits --score-column abs_llr
-# Each writes metrics.parquet and results_table.md in the corresponding dir.
+for m in evo2_1b_base evo2_7b evo2_40b; do
+  uv run python scripts/evo2_eval/compute_auprc_metrics.py \
+    --input results/evo2_mendelian_traits/${m}_train.parquet \
+    --output results/evo2_mendelian_traits/mendelian_${m}_train_metrics.parquet \
+    --model "$m" \
+    --dataset mendelian_traits
+done
 ```
 
-Once the unified dashboard (PR #190) sees the rows: the gist-hosted metrics parquets are referenced by `src/bolinas/pipelines/evals/leaderboard.py`'s `family: evo2` resolver (pinned to a gist commit). Re-uploading parquets means: bump the pinned `EVO2_GIST_COMMIT` constant + rebuild the dashboard.
+This mirrors `snakemake/analysis/evals_v2/workflow/rules/metrics.smk` (PR #195) but in script form, since evo2 isn't wired into the evals_v2 pipeline. Output schema matches `compute_auprc_metrics` + `[model, dataset, split]` — the same shape the dashboard's `bolinas`-family parquets use, so the metrics flow straight into `src/bolinas/pipelines/evals/leaderboard.py`'s `family: evo2` resolver. Re-uploading means: upload via `gh-upload-asset`, bump `EVO2_METRICS_GIST_COMMIT` in `leaderboard.py`, rebuild the dashboard.
+
+The legacy `eval_matched_pair_metrics.py` aggregator still exists for the PA-style markdown table on 1:1 datasets but is unused by the dashboard.
 
 ### Tear down
 
