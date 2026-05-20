@@ -1,15 +1,15 @@
-"""Plot minus_llr_avg AUPRC vs training step for the three exp58 evolutionary
-timescales (mammals / vertebrates / animals), on three mendelian subsets
-(missense / synonymous / splicing).
+"""Plot minus_llr_avg AUPRC vs training step for the five exp55 evolutionary
+timescales (humans / primates / mammals / vertebrates / animals), on two
+mendelian subsets (Promoter = tss_proximal, 5' UTR = 5_prime_UTR_variant).
 
 Reads metrics parquets directly from S3, no local download needed. Writes
 both SVG (the artifact to upload to GitHub) and PNG (local-iteration
 format — agents can `Read` PNGs to visually sanity-check, and PNGs
 render inline in agent conversations) into
-`plots/output/exp58_evolutionary_timescales/`.
+`plots/output/exp55_evolutionary_timescales/`.
 
 Usage:
-    uv run python plots/plot_exp58_evolutionary_timescales.py
+    uv run python plots/exp55_evolutionary_timescales.py
 """
 
 from __future__ import annotations
@@ -20,42 +20,44 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import polars as pl
 
-ARMS: tuple[str, ...] = ("mammals", "vertebrates", "animals")
+ARMS: tuple[str, ...] = ("humans", "primates", "mammals", "vertebrates", "animals")
 ARM_LABELS: dict[str, str] = {
+    "humans": "Humans (0 Mya, 1 species)",
+    "primates": "Primates (~65 Mya, 11 species)",
     "mammals": "Mammals (~100 Mya, 81 species)",
     "vertebrates": "Vertebrates (~600 Mya, 317 species)",
     "animals": "Animals (~800 Mya, 499 species)",
 }
-# Teal / green / yellow to match the reference figure.
+# Colors picked to match the reference figure: a viridis-like sweep from
+# dark purple (humans) → blue (primates) → teal (mammals) → green
+# (vertebrates) → yellow (animals).
 ARM_COLORS: dict[str, str] = {
-    "mammals": "#216b6b",
-    "vertebrates": "#5fb35f",
+    "humans": "#3b1a64",
+    "primates": "#3a6fa0",
+    "mammals": "#2e8c8c",
+    "vertebrates": "#5bb35b",
     "animals": "#e8d840",
 }
 STEPS: tuple[int, ...] = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
-SUBSETS: tuple[str, ...] = ("missense_variant", "synonymous_variant", "splicing")
-SUBSET_LABELS: dict[str, str] = {
-    "missense_variant": "Missense",
-    "synonymous_variant": "Synonymous",
-    "splicing": "Splicing",
+# Panel name → subset key in the metrics parquet.
+SUBSETS: dict[str, str] = {
+    "Promoter": "tss_proximal",
+    "5' UTR": "5_prime_UTR_variant",
 }
 S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 SCORE_TYPE = "minus_llr_avg"
 # AGENTS.md `plots/` convention: outputs land in `plots/output/<recipe>/`,
 # emitting both SVG and PNG.
-OUT_DIR = Path(__file__).parent / "output" / Path(__file__).stem.removeprefix("plot_")
-OUT_STEM = "exp58_evolutionary_timescales_auprc"
+OUT_DIR = Path(__file__).parent / "output" / Path(__file__).stem
+OUT_STEM = "exp55_evolutionary_timescales_auprc"
 
 
 def load_all() -> pl.DataFrame:
-    """Load every (arm × step) metrics parquet from S3, tag with arm + step,
-    concat into one tidy frame. Fail loud on missing parquets so we don't
-    silently skip an unfinished cluster."""
     parts: list[pl.DataFrame] = []
     missing: list[str] = []
     for arm in ARMS:
         for step in STEPS:
-            uri = f"{S3_BASE}/exp58-{arm}-step-{step}/mendelian_traits.parquet"
+            uri = f"{S3_BASE}/exp55-{arm}-step-{step}/mendelian_traits.parquet"
             try:
                 df = pl.read_parquet(uri)
             except Exception as exc:
@@ -80,20 +82,20 @@ def load_all() -> pl.DataFrame:
 def main() -> None:
     all_df = load_all()
     df = all_df.filter(
-        (pl.col("score_type") == SCORE_TYPE) & (pl.col("subset").is_in(SUBSETS))
+        (pl.col("score_type") == SCORE_TYPE)
+        & (pl.col("subset").is_in(list(SUBSETS.values())))
     )
     assert not df.is_empty(), (
-        f"empty after filtering on {SCORE_TYPE} + {SUBSETS}; "
+        f"empty after filtering on {SCORE_TYPE} + {list(SUBSETS.values())}; "
         f"got score_types={sorted(all_df['score_type'].unique().to_list())}, "
         f"subsets={sorted(all_df['subset'].unique().to_list())}"
     )
 
-    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4), sharex=True)
-    fig.suptitle("Exp58 Evolutionary Timescales — CDS, Qwen 0.6B", y=1.02)
+    fig, axes = plt.subplots(1, len(SUBSETS), figsize=(11, 4), sharex=True)
+    fig.suptitle("Exp55 Evolutionary Timescales — promoters, Qwen 0.6B", y=1.02)
 
-    for ax, subset in zip(axes, SUBSETS):
-        sub = df.filter(pl.col("subset") == subset)
-        # n_groups / n_rows are dataset-level — pick the first row to label.
+    for ax, (panel_label, subset_key) in zip(axes, SUBSETS.items()):
+        sub = df.filter(pl.col("subset") == subset_key)
         head = sub.row(0, named=True)
         n_groups = int(head["n_groups"])
         n_rows = int(head["n_rows"])
@@ -110,7 +112,7 @@ def main() -> None:
                 linewidth=1.5,
                 markersize=5,
             )
-        ax.set_title(f"{SUBSET_LABELS[subset]}\n(n={n_groups} vs. {n_rows - n_groups})")
+        ax.set_title(f"{panel_label}\n(n={n_groups} vs. {n_rows - n_groups})")
         ax.set_xlabel("Training Step")
         ax.set_ylabel("AUPRC")
         ax.grid(False)
