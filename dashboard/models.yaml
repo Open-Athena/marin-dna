@@ -421,3 +421,33 @@
     objective: CLM
   datasets: [mendelian_traits]
   paper: https://arcinstitute.org/manuscripts/Evo2
+
+- id: exp59-vertebrates-step-16999
+  display: exp59-vertebrates
+  family: marin_dna
+  description: downstream, vertebrates
+  training:
+    data: downstream_vertebrates
+    window_size: 256
+    objective: CLM
+  experiment: 59
+  issue: https://github.com/Open-Athena/marin-dna/issues/59
+  wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp59-vertebrates-r01-430021
+  checkpoint:
+    gcs: gs://marin-dna-us-central1/checkpoints/exp59-vertebrates-r01-430021/hf/step-16999
+  datasets: [mendelian_traits]
+
+- id: exp59-animals-step-16999
+  display: exp59-animals
+  family: marin_dna
+  description: downstream, animals
+  training:
+    data: downstream_animals
+    window_size: 256
+    objective: CLM
+  experiment: 59
+  issue: https://github.com/Open-Athena/marin-dna/issues/59
+  wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp59-animals-r01-f20b76
+  checkpoint:
+    gcs: gs://marin-dna-us-central1/checkpoints/exp59-animals-r01-f20b76/hf/step-16999
+  datasets: [mendelian_traits]
