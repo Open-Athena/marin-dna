@@ -66,7 +66,9 @@ def main() -> None:
         f"subsets={sorted(all_df['subset'].unique().to_list())}"
     )
 
-    fig, axes = plt.subplots(1, len(SUBSETS), figsize=(4.5 * len(SUBSETS), 4), sharex=True)
+    fig, axes = plt.subplots(
+        1, len(SUBSETS), figsize=(4.5 * len(SUBSETS), 4), sharex=True
+    )
     fig.suptitle("Exp27 — 100% animal CDS, Qwen3 1B, 512 bp", y=1.02)
 
     for ax, subset in zip(axes, SUBSETS):
