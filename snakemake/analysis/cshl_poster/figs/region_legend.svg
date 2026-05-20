@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .ink   { fill: #1f1e1b; }
+      .muted { fill: #7a7a7a; }
+      .label-bold { font-family: 'Lato', sans-serif; font-size: 22px; font-weight: 700; }
+      .clade { font-family: 'Lato', sans-serif; font-size: 20px; }
+      .micro { font-family: 'Lato', sans-serif; font-size: 17px; }
+    </style>
+  </defs>
+
+  <!-- ─── Single-gene cartoon (biologically ordered) ───
+       Same cartoon that used to live in the DATA card; promoted to a
+       standalone legend now so it doubles as the colour-key for the
+       R1 / R2 result panels below. -->
+
+  <!-- Distal enhancer (far away, looping to promoter) -->
+  <g transform="translate(40, 100)">
+    <!-- Enhancer block -->
+    <rect x="0" y="60" width="120" height="44" fill="#6b5b3e" stroke="#1f1e1b" stroke-width="1.5"/>
+
+    <!-- Looping arc from enhancer top to promoter top -->
+    <path d="M 60 60 Q 280 -40 410 60" stroke="#9e6d43" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+    <text x="230" y="-8" text-anchor="middle" class="micro" fill="#9e6d43" font-style="italic">~10–1000 kb away</text>
+
+    <!-- Intergenic gap (dotted line) -->
+    <line x1="120" y1="82" x2="370" y2="82" stroke="#1f1e1b" stroke-width="2" stroke-dasharray="2 6"/>
+
+    <!-- ─── A single gene, biologically ordered ─── -->
+    <!-- promoter (upstream of TSS) -->
+    <rect x="370" y="60" width="90" height="44" fill="#9e6d43" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- TSS arrow above promoter/5'UTR boundary -->
+    <path d="M 460 44 L 460 18 L 492 18" stroke="#1f1e1b" stroke-width="2" fill="none"/>
+    <polygon points="492,18 482,12 482,24" fill="#1f1e1b"/>
+    <text x="472" y="8" text-anchor="start" class="micro muted">TSS</text>
+
+    <!-- 5'UTR -->
+    <rect x="460" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- CDS exon 1 -->
+    <rect x="530" y="60" width="140" height="44" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- intron (thin line connecting exons) -->
+    <line x1="670" y1="82" x2="770" y2="82" stroke="#1f1e1b" stroke-width="2"/>
+    <!-- intron caret -->
+    <polyline points="700,82 720,70 740,82" stroke="#1f1e1b" stroke-width="2" fill="none"/>
+    <!-- CDS exon 2 -->
+    <rect x="770" y="60" width="130" height="44" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- 3'UTR -->
+    <rect x="900" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
+
+    <!-- Region labels below -->
+    <text x="60"  y="140" text-anchor="middle" class="clade" fill="#6b5b3e" font-weight="700">enhancer</text>
+    <text x="60"  y="164" text-anchor="middle" class="micro muted">(distal)</text>
+
+    <text x="415" y="140" text-anchor="middle" class="clade" fill="#9e6d43" font-weight="700">promoter</text>
+    <text x="495" y="140" text-anchor="middle" class="clade muted">5′UTR</text>
+
+    <text x="720" y="140" text-anchor="middle" class="clade" fill="#7a3b2e" font-weight="700">CDS</text>
+    <text x="720" y="164" text-anchor="middle" class="micro muted">(exons + introns)</text>
+
+    <text x="935" y="140" text-anchor="middle" class="clade muted">3′UTR</text>
+  </g>
+
+  <!-- Highlight which regions are studied in the panels below -->
+  <g transform="translate(40, 280)">
+    <text x="0" y="0" class="label-bold ink">▸ studied here:</text>
+    <g transform="translate(180, -18)">
+      <rect x="0"  y="0" width="28" height="22" fill="#9e6d43" stroke="#1f1e1b" stroke-width="1"/>
+      <text x="36" y="17" class="clade ink">promoter</text>
+      <text x="160" y="17" class="micro muted">(R1, R2 right bars)</text>
+    </g>
+    <g transform="translate(180, 12)">
+      <rect x="0"  y="0" width="28" height="22" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1"/>
+      <text x="36" y="17" class="clade ink">CDS</text>
+      <text x="160" y="17" class="micro muted">(R2 left bars)</text>
+    </g>
+  </g>
+</svg>

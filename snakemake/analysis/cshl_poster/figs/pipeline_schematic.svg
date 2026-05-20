@@ -34,76 +34,15 @@
     <tspan class="accent" font-weight="700"> we ask what to train on.</tspan>
   </text>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- DATA card (highlighted: the variable)       -->
-  <!-- ═══════════════════════════════════════════ -->
-  <g transform="translate(40, 100)">
-    <rect class="bg-card-hi" x="0" y="0" width="1180" height="640" rx="10"/>
-
-    <text x="30" y="55" class="stamp accent">data — what we vary</text>
-
-    <!-- ─── AXIS 1: functional regions (single gene cartoon) ─── -->
-    <g transform="translate(30, 95)">
-      <text x="0" y="0" class="body ink" font-weight="700">▸ functional regions</text>
-
-      <!-- Distal enhancer (far away, looping to promoter).
-           Inner translate y moved from 32 → 80 so the arc's peak doesn't
-           collide with the "▸ functional regions" subheader text above. -->
-      <g transform="translate(20, 80)">
-        <!-- Enhancer block -->
-        <rect x="0" y="44" width="100" height="36" fill="#6b5b3e" stroke="#1f1e1b" stroke-width="1.5"/>
-        <text x="50" y="120" text-anchor="middle" class="micro" fill="#6b5b3e" font-weight="700">enhancer</text>
-        <text x="50" y="142" text-anchor="middle" class="micro muted">(distal regulatory)</text>
-
-        <!-- Looping arc from enhancer top to promoter top -->
-        <path d="M 50 44 Q 250 -34 360 44" stroke="#9e6d43" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
-        <text x="200" y="-12" text-anchor="middle" class="micro" fill="#9e6d43" font-style="italic">~10–1000 kb away</text>
-
-        <!-- Intergenic gap (dotted line) -->
-        <line x1="100" y1="62" x2="320" y2="62" stroke="#1f1e1b" stroke-width="2" stroke-dasharray="2 6"/>
-
-        <!-- ─── A single gene, biologically ordered ─── -->
-        <!-- promoter (upstream of TSS) -->
-        <rect x="320" y="44" width="80" height="36" fill="#9e6d43" stroke="#1f1e1b" stroke-width="1.5"/>
-        <!-- TSS arrow above promoter/5'UTR boundary -->
-        <path d="M 400 30 L 400 6 L 428 6" stroke="#1f1e1b" stroke-width="2" fill="none"/>
-        <polygon points="428,6 418,1 418,11" fill="#1f1e1b"/>
-        <text x="408" y="-4" text-anchor="start" class="micro muted">TSS</text>
-
-        <!-- 5'UTR -->
-        <rect x="400" y="44" width="60" height="36" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
-        <!-- CDS exon 1 -->
-        <rect x="460" y="44" width="130" height="36" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.5"/>
-        <!-- intron (thin line connecting exons) -->
-        <line x1="590" y1="62" x2="680" y2="62" stroke="#1f1e1b" stroke-width="2"/>
-        <!-- intron caret -->
-        <polyline points="615,62 635,52 655,62" stroke="#1f1e1b" stroke-width="2" fill="none"/>
-        <!-- CDS exon 2 -->
-        <rect x="680" y="44" width="110" height="36" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.5"/>
-        <!-- 3'UTR -->
-        <rect x="790" y="44" width="60" height="36" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
-
-        <!-- Region labels below -->
-        <text x="360" y="120" text-anchor="middle" class="micro" fill="#9e6d43" font-weight="700">promoter</text>
-        <text x="430" y="120" text-anchor="middle" class="micro muted">5′UTR</text>
-        <text x="635" y="120" text-anchor="middle" class="micro" fill="#7a3b2e" font-weight="700">CDS</text>
-        <text x="635" y="142" text-anchor="middle" class="micro muted">(exons + introns)</text>
-        <text x="820" y="120" text-anchor="middle" class="micro muted">3′UTR</text>
-      </g>
-    </g>
-
-    <!-- AXIS 2 (evolutionary timescales) is shown only ONCE on the
-         poster — as the timescale-legend SVG above T1/T2 in the right
-         column of the body. It would be redundant here. -->
-  </g>
-
-  <!-- Arrow DATA → MODEL -->
-  <line class="arrow-line" x1="1230" y1="420" x2="1350" y2="420" marker-end="url(#arrowhead)"/>
+  <!-- DATA card was here. Its content (functional regions + evolutionary
+       timescales) was promoted to standalone legends above the R1/R2 and
+       T1/T2 panels in the body, where each doubles as the colour-key for
+       its plots. The schematic now shows just MODEL → EVAL, centered. -->
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- MODEL card                                  -->
   <!-- ═══════════════════════════════════════════ -->
-  <g transform="translate(1370, 100)">
+  <g transform="translate(720, 100)">
     <rect class="bg-card" x="0" y="0" width="1000" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp muted">model</text>
@@ -189,12 +128,12 @@
   </g>
 
   <!-- Arrow MODEL → EVAL -->
-  <line class="arrow-line" x1="2380" y1="420" x2="2500" y2="420" marker-end="url(#arrowhead)"/>
+  <line class="arrow-line" x1="1740" y1="420" x2="1860" y2="420" marker-end="url(#arrowhead)"/>
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- EVALUATION card                             -->
   <!-- ═══════════════════════════════════════════ -->
-  <g transform="translate(2520, 100)">
+  <g transform="translate(1880, 100)">
     <rect class="bg-card" x="0" y="0" width="1040" height="640" rx="10"/>
 
     <text x="30" y="55" class="stamp muted">evaluation — variant effect prediction</text>
