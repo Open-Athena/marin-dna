@@ -20,6 +20,7 @@ from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
 import polars as pl
 
 
@@ -311,6 +312,43 @@ MIXTURE_STEPS: dict[str, tuple[str, tuple[int, ...]]] = {
     "exp27":              ("exp27-cds-yolo",             (2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000)),
 }
 
+# Three regional specialists × one matching variant consequence each,
+# plus two "fair-scale" generalists (Evo 2 40B and GPN-Star M).
+SPECIALIST_METHODS = ("exp21", "exp27", "exp136", "evo2_40b", "GPN-Star-M")
+
+SPECIALIST_LABELS: dict[str, str] = {
+    "exp21":      "exp21\n(promoter)",
+    "exp27":      "exp27\n(CDS)",
+    "exp136":     "exp136\n(enhancer)",
+    "evo2_40b":   "Evo 2 (40B)",
+    "GPN-Star-M": "GPN-Star (M)",
+}
+
+# Per-method colour for this view. Specialists colour-coded to their
+# trained region (matches the gene-cartoon legend); generalists in their
+# family colours (teal for Evo 2, plum for GPN-Star).
+SPECIALIST_COLORS: dict[str, str] = {
+    "exp21":      "#9e6d43",  # OA copper — promoter
+    "exp27":      "#7a3b2e",  # OA brick — CDS
+    "exp136":     "#6b5b3e",  # OA olive — enhancer
+    "evo2_40b":   "#1F4A5A",  # dark teal
+    "GPN-Star-M": "#8B3A62",  # OA plum
+}
+
+# Three regions, one consequence each — the matching specialty.
+SPECIALIST_REGIONS: dict[str, str] = {
+    "Promoter": "tss_proximal",
+    "Missense": "missense_variant",
+    "Enhancer": "distal",
+}
+
+# Final-step checkpoint per specialist (the same ones we use for R1/R2).
+SPECIALIST_CHECKPOINTS: dict[str, str] = {
+    "exp21":  "exp21-promoters-yolo-step-22000",
+    "exp27":  "exp27-cds-yolo-step-34000",
+    "exp136": "exp136-proj_v30-step-9999",
+}
+
 
 def _load_checkpoint(model_name: str) -> pl.DataFrame:
     """Load a single S3 mendelian_traits parquet for a given checkpoint."""
@@ -440,6 +478,156 @@ def plot_r2(out_path: Path) -> None:
     )
 
 
+def _specialist_grid() -> dict[str, dict[str, tuple[float, float]]]:
+    """Assemble ``method_id → region_label → (auprc, se)``.
+
+    Reads the final-step parquet for each of our 3 specialists, the Evo 2
+    40B gist parquet, and the GPN-Star gist parquet (model = GPN-Star-M).
+    Filters to the canonical score type per family.
+    """
+    grid: dict[str, dict[str, tuple[float, float]]] = {}
+
+    # Specialists (marin_dna, mendelian_traits, minus_llr_avg)
+    for sp, checkpoint in SPECIALIST_CHECKPOINTS.items():
+        df = _load_checkpoint(checkpoint)
+        per_region: dict[str, tuple[float, float]] = {}
+        for label, subset in SPECIALIST_REGIONS.items():
+            row = df.filter(
+                (pl.col("score_type") == "minus_llr_avg")
+                & (pl.col("subset") == subset)
+            ).row(0, named=True)
+            per_region[label] = (float(row["value"]), float(row["se"]))
+        grid[sp] = per_region
+
+    # Evo 2 40B
+    evo = pl.read_parquet(
+        f"{EVO2_METRICS_BASE}/mendelian_evo2_40b_train_metrics.parquet"
+    ).filter(pl.col("score_type") == "minus_llr_avg")
+    grid["evo2_40b"] = {
+        label: tuple(
+            evo.filter(pl.col("subset") == subset).select("value", "se").row(0)
+        )
+        for label, subset in SPECIALIST_REGIONS.items()
+    }
+
+    # GPN-Star M (calibrated cLLR, the paper's headline)
+    gpn = pl.read_parquet(
+        f"{GPN_STAR_METRICS_BASE}/mendelian_traits.GPN-Star.parquet"
+    ).filter(
+        (pl.col("score_type") == "minus_llr_calibrated")
+        & (pl.col("model") == "GPN-Star-M")
+    )
+    grid["GPN-Star-M"] = {
+        label: tuple(
+            gpn.filter(pl.col("subset") == subset).select("value", "se").row(0)
+        )
+        for label, subset in SPECIALIST_REGIONS.items()
+    }
+    return grid
+
+
+# R-radar: 5 methods (3 specialists + 2 generalists) on 3 regions —
+# poster-friendly single-image takeaway. Each specialist's spike lands
+# on its own training region.
+def plot_specialist_radar(out_path: Path) -> None:
+    grid = _specialist_grid()
+    regions = list(SPECIALIST_REGIONS)
+    n = len(regions)
+
+    # Angles for each axis — start at the top (π/2) and go counter-clockwise
+    # for the "spike at top" feel of GPN-Star Fig 1B-style radars.
+    angles = np.linspace(np.pi / 2, np.pi / 2 + 2 * np.pi, n, endpoint=False)
+    # Append the first angle to close the polygon.
+    closed_angles = np.concatenate([angles, [angles[0]]])
+
+    fig, ax = plt.subplots(figsize=(7.5, 7.0), subplot_kw={"projection": "polar"})
+    for method in SPECIALIST_METHODS:
+        vals = [grid[method][r][0] for r in regions]
+        closed_vals = vals + [vals[0]]
+        is_specialist = method in SPECIALIST_CHECKPOINTS
+        ax.plot(
+            closed_angles, closed_vals,
+            color=SPECIALIST_COLORS[method],
+            linewidth=2.5 if is_specialist else 2.0,
+            label=SPECIALIST_LABELS[method].replace("\n", " "),
+            zorder=5 if is_specialist else 3,
+        )
+        ax.fill(
+            closed_angles, closed_vals,
+            color=SPECIALIST_COLORS[method],
+            alpha=0.15,
+            zorder=4 if is_specialist else 2,
+        )
+
+    # Radial scale: 0 to 0.7 covers all data + a touch of headroom.
+    ax.set_ylim(0, 0.7)
+    ax.set_yticks([0.2, 0.4, 0.6])
+    ax.set_yticklabels(["0.2", "0.4", "0.6"], fontsize=10, color=OA_TEXT_LIGHT)
+
+    # Region labels at each spoke
+    ax.set_xticks(angles)
+    ax.set_xticklabels(regions, fontsize=14, fontweight="bold", color=OA_TEXT)
+
+    # Move the radial labels off the axis line so they don't sit on top
+    # of the polygons.
+    ax.set_rlabel_position(105)
+    ax.spines["polar"].set_color(OA_TEXT_LIGHT)
+    ax.grid(color=OA_TEXT_LIGHT, alpha=0.4, linewidth=0.7)
+
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.18),
+        ncol=3,
+        frameon=False,
+        labelcolor=OA_TEXT,
+        fontsize=11,
+    )
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
+# Alternative view: 3 small bar charts, one per region, 5 bars each.
+# Same data, less interpretive risk, slightly less striking. Side-by-
+# side fallback to the radar.
+def plot_specialist_grouped_bars(out_path: Path) -> None:
+    grid = _specialist_grid()
+    regions = list(SPECIALIST_REGIONS)
+
+    fig, axes = plt.subplots(1, len(regions), figsize=(11.5, 4.0), sharey=True)
+    for ax, region in zip(axes, regions):
+        heights = [grid[m][region][0] for m in SPECIALIST_METHODS]
+        errs    = [grid[m][region][1] for m in SPECIALIST_METHODS]
+        colors  = [SPECIALIST_COLORS[m] for m in SPECIALIST_METHODS]
+        xs      = list(range(len(SPECIALIST_METHODS)))
+        ax.bar(
+            xs, heights,
+            yerr=errs,
+            color=colors,
+            edgecolor=OA_TEXT,
+            linewidth=1.0,
+            error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 0},
+        )
+        ax.set_xticks(xs)
+        ax.set_xticklabels(
+            [SPECIALIST_LABELS[m].replace("\n", " ") for m in SPECIALIST_METHODS],
+            rotation=35, ha="right", fontsize=10,
+        )
+        ax.set_title(region)
+        if ax is axes[0]:
+            ax.set_ylabel("AUPRC")
+        for x, h, e in zip(xs, heights, errs):
+            ax.text(x, h + e + 0.012, f"{h:.2f}",
+                    ha="center", va="bottom", fontsize=9)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
 def _load_mixture_trajectory(method_id: str) -> pl.DataFrame:
     """Read all S3 checkpoints for one exp13-sweep variant."""
     stem, steps = MIXTURE_STEPS[method_id]
@@ -526,3 +714,5 @@ if __name__ == "__main__":
     plot_r1(FIGS_DIR / "r1.svg")
     plot_r2(FIGS_DIR / "r2.svg")
     plot_r3(FIGS_DIR / "r3.svg")
+    plot_specialist_radar(FIGS_DIR / "specialist_radar.svg")
+    plot_specialist_grouped_bars(FIGS_DIR / "specialist_bars.svg")
