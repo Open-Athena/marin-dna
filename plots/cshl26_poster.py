@@ -234,8 +234,224 @@ def plot_t2(out_path: Path) -> None:
     _plot_timescale_panel(df, arms, out_path=out_path)
 
 
+# ─── Comparison plots: exp21 vs Evo 2 / GPN-Star baselines ────────────
+# Both plots share these baseline sources.
+EVO2_METRICS_BASE = (
+    "https://gist.githubusercontent.com/gonzalobenegas/"
+    "3649e68fb63ca1f3443e4486078eb4d8/raw/"
+    "1bce02fe0d831382d24ecbac305d401f153c65fc"
+)
+GPN_STAR_METRICS_BASE = (
+    "https://gist.githubusercontent.com/gonzalobenegas/"
+    "3649e68fb63ca1f3443e4486078eb4d8/raw/"
+    "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
+)
+
+# Per-method colour. exp21 = OA copper (the hero). Evo 2 in a cool blue/teal
+# family (different from the warm OA-brand series). GPN-Star in plum.
+METHOD_COLORS: dict[str, str] = {
+    "exp21":       "#9e6d43",  # OA copper
+    "evo2_1b":     "#7BAFC4",  # light teal
+    "evo2_7b":     "#3D7A92",  # medium teal
+    "evo2_40b":    "#1F4A5A",  # dark teal
+    "GPN-Star-V":  "#C68DAC",  # light plum
+    "GPN-Star-M":  "#8B3A62",  # OA plum
+    "GPN-Star-P":  "#5A1F3F",  # dark plum
+}
+METHOD_LABELS: dict[str, str] = {
+    "exp21":       "exp21 (promoters-yolo)",
+    "evo2_1b":     "Evo 2 (1B)",
+    "evo2_7b":     "Evo 2 (7B)",
+    "evo2_40b":    "Evo 2 (40B)",
+    "GPN-Star-V":  "GPN-Star (V)",
+    "GPN-Star-M":  "GPN-Star (M)",
+    "GPN-Star-P":  "GPN-Star (P)",
+}
+
+# Subsets we plot side-by-side. exp21 was trained on promoters, so the
+# 5'UTR panel doubles as an off-target generalisation check.
+COMPARISON_SUBSETS: dict[str, str] = {
+    "Promoter":  "tss_proximal",
+    "5' UTR":    "5_prime_UTR_variant",
+}
+
+
+def _load_exp21_trajectory() -> pl.DataFrame:
+    """All exp21-promoters-yolo checkpoints (mendelian_traits)."""
+    steps = (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000)
+    parts: list[pl.DataFrame] = []
+    missing: list[str] = []
+    for step in steps:
+        uri = (
+            f"{S3_BASE}/exp21-promoters-yolo-step-{step}/mendelian_traits.parquet"
+        )
+        try:
+            ck = pl.read_parquet(uri)
+        except Exception as exc:
+            missing.append(f"  step {step}: {exc}")
+            continue
+        parts.append(ck.with_columns(pl.lit(step).alias("step")))
+    if missing:
+        print(
+            f"WARN: {len(missing)}/{len(steps)} exp21 parquets unread:\n"
+            + "\n".join(missing),
+            file=sys.stderr,
+        )
+    assert parts, "no exp21 parquets loaded"
+    return pl.concat(parts)
+
+
+def _baseline_values(subset: str) -> dict[str, float]:
+    """One AUPRC value per baseline method for one subset.
+
+    Reads each Evo 2 model's gist parquet and the GPN-Star parquet,
+    filters to the canonical score type, and returns a model_id → AUPRC
+    mapping.
+    """
+    values: dict[str, float] = {}
+
+    # Evo 2: one parquet per model, score_type "minus_llr_avg" (same
+    # protocol as our marin_dna models).
+    for evo_id in ("evo2_1b_base", "evo2_7b", "evo2_40b"):
+        uri = f"{EVO2_METRICS_BASE}/mendelian_{evo_id}_train_metrics.parquet"
+        df = pl.read_parquet(uri).filter(
+            (pl.col("score_type") == "minus_llr_avg")
+            & (pl.col("subset") == subset)
+        )
+        # Normalize key (drop the `_base` suffix on 1B).
+        key = "evo2_1b" if evo_id == "evo2_1b_base" else evo_id
+        values[key] = float(df["value"][0])
+
+    # GPN-Star: one parquet with all 3 MSA variants, model column filters
+    # them. Use the calibrated score (cLLR), the GPN-Star paper's headline.
+    gpn = pl.read_parquet(f"{GPN_STAR_METRICS_BASE}/mendelian_traits.GPN-Star.parquet").filter(
+        (pl.col("score_type") == "minus_llr_calibrated")
+        & (pl.col("subset") == subset)
+    )
+    for model in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P"):
+        row = gpn.filter(pl.col("model") == model)
+        if not row.is_empty():
+            values[model] = float(row["value"][0])
+
+    return values
+
+
+def plot_c1_lines(out_path: Path) -> None:
+    """exp21 training trajectory + horizontal baseline lines.
+
+    Two panels (Promoter / 5'UTR). exp21 is a solid OA-copper line
+    across training steps; Evo 2 (1B/7B/40B) and GPN-Star (V/M/P) appear
+    as dashed horizontal lines (they're single-checkpoint external
+    models — no trajectory to plot).
+    """
+    traj = _load_exp21_trajectory()
+    score_type = "minus_llr_avg"
+
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.5), sharey=True)
+    for ax, (panel, subset_key) in zip(axes, COMPARISON_SUBSETS.items()):
+        # exp21 line
+        sub = (
+            traj.filter(
+                (pl.col("score_type") == score_type)
+                & (pl.col("subset") == subset_key)
+            )
+            .sort("step")
+        )
+        ax.plot(
+            sub["step"].to_numpy(),
+            sub["value"].to_numpy(),
+            marker="o",
+            color=METHOD_COLORS["exp21"],
+            label=METHOD_LABELS["exp21"],
+            zorder=4,
+        )
+
+        # Baseline horizontal lines
+        baselines = _baseline_values(subset_key)
+        x_lo, x_hi = sub["step"].min(), sub["step"].max()
+        for method_id, value in baselines.items():
+            ax.hlines(
+                value,
+                x_lo,
+                x_hi,
+                colors=METHOD_COLORS[method_id],
+                linestyles="--",
+                linewidth=2.0,
+                label=METHOD_LABELS[method_id],
+                zorder=2,
+            )
+
+        ax.set_xlabel("training step")
+        if ax is axes[0]:
+            ax.set_ylabel("AUPRC")
+        ax.set_title(panel)
+
+    # Single legend below both panels — too many entries for in-panel
+    axes[-1].legend(
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        title=None,
+        labelcolor=OA_TEXT,
+    )
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
+def plot_c2_bars(out_path: Path) -> None:
+    """Final-step bar comparison: exp21 vs Evo 2 vs GPN-Star.
+
+    Two panels (Promoter / 5'UTR). Single bar per method, ordered:
+    exp21 first (hero), then Evo 2 by size, then GPN-Star by MSA.
+    """
+    traj = _load_exp21_trajectory()
+    score_type = "minus_llr_avg"
+    methods = ["exp21", "evo2_1b", "evo2_7b", "evo2_40b",
+               "GPN-Star-V", "GPN-Star-M", "GPN-Star-P"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.5), sharey=True)
+    for ax, (panel, subset_key) in zip(axes, COMPARISON_SUBSETS.items()):
+        # exp21 final-step value
+        exp21_final = float(
+            traj.filter(
+                (pl.col("score_type") == score_type)
+                & (pl.col("subset") == subset_key)
+                & (pl.col("step") == 22000)
+            )["value"][0]
+        )
+        baselines = _baseline_values(subset_key)
+        values = {"exp21": exp21_final, **baselines}
+
+        heights = [values[m] for m in methods]
+        colors = [METHOD_COLORS[m] for m in methods]
+        xs = list(range(len(methods)))
+        ax.bar(xs, heights, color=colors, edgecolor=OA_TEXT, linewidth=1.0)
+        ax.set_xticks(xs)
+        ax.set_xticklabels(
+            [METHOD_LABELS[m] for m in methods],
+            rotation=35,
+            ha="right",
+            fontsize=11,
+        )
+        if ax is axes[0]:
+            ax.set_ylabel("AUPRC")
+        ax.set_title(panel)
+        # Show value above each bar
+        for x, h in zip(xs, heights):
+            ax.text(x, h + 0.005, f"{h:.2f}", ha="center", va="bottom", fontsize=10)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
 # ─── Entry ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     apply_poster_style()
     plot_t1(FIGS_DIR / "t1.svg")
     plot_t2(FIGS_DIR / "t2.svg")
+    plot_c1_lines(FIGS_DIR / "c1.svg")
+    plot_c2_bars(FIGS_DIR / "c2.svg")
