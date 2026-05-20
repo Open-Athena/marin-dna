@@ -85,10 +85,18 @@ def test_default_protocol_keys_match_protocols():
 
 def test_score_type_for_returns_dataset_specific_column():
     # Bolinas family migrated to per-strand atoms + derived AVG under
-    # the AUPRC pipeline; default LLR/JSD pick the _avg variants.
+    # the AUPRC pipeline; default LLR/JSD pick the _avg variants. The
+    # per-strand _fwd variants are surfaced as LLR-FWD / JSD-FWD on the
+    # dashboard's Protocols pages (not in the leaderboards' protocol
+    # toggle — see PROTOCOL_OPTIONS in dashboard/src/components/controls.js).
     assert score_type_for("bolinas", "LLR", "mendelian_traits") == "minus_llr_avg"
     assert score_type_for("bolinas", "LLR", "complex_traits") == "abs_llr_avg"
     assert score_type_for("bolinas", "JSD", "mendelian_traits") == "jsd_avg"
+    assert score_type_for("bolinas", "LLR-FWD", "mendelian_traits") == "minus_llr_fwd"
+    assert score_type_for("bolinas", "LLR-FWD", "complex_traits") == "abs_llr_fwd"
+    assert score_type_for("bolinas", "JSD-FWD", "mendelian_traits") == "jsd_fwd"
+    assert score_type_for("evo2", "LLR-FWD", "mendelian_traits") == "minus_llr_fwd"
+    assert score_type_for("evo2", "JSD-FWD", "mendelian_traits") == "jsd_fwd"
     assert (
         score_type_for("gpn_star", "cLLR", "mendelian_traits") == "minus_llr_calibrated"
     )

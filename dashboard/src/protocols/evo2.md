@@ -11,12 +11,21 @@ const leaderboard = await FileAttachment("../data/leaderboard.parquet").parquet(
 const methods = await FileAttachment("../data/models.json").json();
 const datasets = await FileAttachment("../data/datasets.json").json();
 import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
-import {PillSelect, DirectionPicker, labeledRow} from "../components/controls.js";
+import {PillSelect, ComparisonPicker, labeledRow} from "../components/controls.js";
 ```
 
 ```js
 const FAMILY = "evo2";
-const PROTOCOLS = ["LLR", "JSD"];
+// Each entry is `[baseline, alternative]`. The heatmap shows
+// `alternative − baseline`, so the default (leaderboard) protocol is the
+// `from` side and the variant being explored is the `to` side. LLR-FWD /
+// JSD-FWD aren't exposed in the leaderboards — see `PROTOCOL_OPTIONS` in
+// ../components/controls.js.
+const COMPARISONS = [
+  ["LLR", "JSD"],
+  ["LLR", "LLR-FWD"],
+  ["JSD", "JSD-FWD"],
+];
 const DATASETS = ["mendelian_traits"];
 const DATASET_LABEL = {
   mendelian_traits: "Mendelian traits",
@@ -34,21 +43,21 @@ const dataset = view(
 ```
 
 ```js
-const direction = view(
+const comparison = view(
   labeledRow(
     "Compare",
-    DirectionPicker(PROTOCOLS, "LLR", "JSD"),
+    ComparisonPicker(COMPARISONS, 0),
     html`Cells show <b>right − left</b>, in pp.`,
   ),
 );
 ```
 
 ```js
-// `direction` from the cell above is the latest yielded value of the
+// `comparison` from the cell above is the latest yielded value of the
 // view's Generator — accessible only from a downstream cell, not from
 // the cell that calls `view(...)`. Split so `.from` / `.to` resolve.
-const baseline = direction.from;
-const alternative = direction.to;
+const baseline = comparison.from;
+const alternative = comparison.to;
 ```
 
 ```js
@@ -83,30 +92,34 @@ for (const r of allRows) {
 }
 
 const deltaRows = [];
-if (baseline !== alternative) {
-  for (const cell of grouped.values()) {
-    const d = cell[baseline];
-    const a = cell[alternative];
-    if (!d || !a) continue;
-    deltaRows.push({
-      method_id: cell.method_id,
-      method_display: cell.method_display,
-      family: FAMILY,
-      protocol: alternative,
-      subset: cell.subset,
-      value: a.value - d.value,
-      se: 0,
-      n: d.n,
-      n_positives: d.n_positives,
-      dataset: dataset,
-    });
-  }
+for (const cell of grouped.values()) {
+  const d = cell[baseline];
+  const a = cell[alternative];
+  if (!d || !a) continue;
+  deltaRows.push({
+    method_id: cell.method_id,
+    method_display: cell.method_display,
+    family: FAMILY,
+    protocol: alternative,
+    subset: cell.subset,
+    value: a.value - d.value,
+    se: 0,
+    n: d.n,
+    n_positives: d.n_positives,
+    dataset: dataset,
+  });
 }
 ```
 
 Each cell below is **${alternative} AUPRC − ${baseline} AUPRC**, in percentage points. Green = ${alternative} scores higher; red = the reverse; yellow = no meaningful change.
 
-Cells aggregate across the same matched groups the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}) uses — only the score column changes. See [About](../about) for the protocol definitions.
+**Protocol definitions** (each score is per-variant; transforms make higher = more variant-effect):
+
+- **LLR** — log-likelihood ratio of mutant vs. reference, averaged across forward and reverse-complement scores. Sign-flipped (`−LLR`) so higher = more pathogenic. *Leaderboard default.*
+- **JSD** — per-position Jensen-Shannon divergence between the model's mutant and reference next-token distributions, averaged first across positions *downstream of the variant*, then across forward and reverse-complement scores.
+- **LLR-FWD / JSD-FWD** — same transforms applied to the forward strand only (no reverse-complement averaging). Surfaced here for strand-symmetry exploration; not used in the leaderboards.
+
+Cells aggregate across the same matched groups the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}) uses — only the score column changes.
 
 <style>
 :root { --observablehq-max-width: 1920px; }
