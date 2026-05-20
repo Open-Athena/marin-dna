@@ -93,24 +93,22 @@ for (const r of allRows) {
 }
 
 const deltaRows = [];
-if (baseline !== alternative) {
-  for (const cell of grouped.values()) {
-    const d = cell[baseline];
-    const a = cell[alternative];
-    if (!d || !a) continue;
-    deltaRows.push({
-      method_id: cell.method_id,
-      method_display: cell.method_display,
-      family: FAMILY,
-      protocol: alternative,
-      subset: cell.subset,
-      value: a.value - d.value,
-      se: 0,
-      n: d.n,
-      n_positives: d.n_positives,
-      dataset: dataset,
-    });
-  }
+for (const cell of grouped.values()) {
+  const d = cell[baseline];
+  const a = cell[alternative];
+  if (!d || !a) continue;
+  deltaRows.push({
+    method_id: cell.method_id,
+    method_display: cell.method_display,
+    family: FAMILY,
+    protocol: alternative,
+    subset: cell.subset,
+    value: a.value - d.value,
+    se: 0,
+    n: d.n,
+    n_positives: d.n_positives,
+    dataset: dataset,
+  });
 }
 ```
 

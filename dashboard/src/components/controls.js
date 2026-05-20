@@ -137,32 +137,9 @@ export function PillSelect(options, initial, formatter = (o) => o) {
   return node;
 }
 
-// "A → B" direction picker. Each option is an ordered pair of protocols;
-// the protocol-comparison heatmap renders `B PA − A PA` so cells read as
-// "improvement over A". Value is `{from, to}`.
-export function DirectionPicker(protos, initialFrom, initialTo) {
-  const pairs = [];
-  for (const a of protos) for (const b of protos) if (a !== b) pairs.push([a, b]);
-  let from = initialFrom, to = initialTo;
-  const node = html`<span class="lb-protocol-segmented"></span>`;
-  Object.defineProperty(node, "value", {get: () => ({from, to})});
-  function fire() { node.dispatchEvent(new Event("input", {bubbles: true})); }
-  function render() {
-    node.replaceChildren(...pairs.map(([a, b]) => html`<button
-      type="button"
-      class=${`lb-protocol-btn${from === a && to === b ? " active" : ""}`}
-      onclick=${() => { from = a; to = b; render(); fire(); }}
-    >${a} → ${b}</button>`));
-  }
-  render();
-  return node;
-}
-
-// Comparison picker: like `DirectionPicker`, but takes an explicit list of
-// `[from, to]` pairs instead of generating all permutations. Use this when
-// a page wants to surface only "default → alternative" directions (e.g.
-// `LLR → LLR-FWD` without the reverse) or when the set of pairs isn't the
-// full cross-product of a single protocol list. Value is `{from, to}`.
+// "A → B" comparison picker. Each `pairs` entry is an explicit `[from, to]`
+// pair; the protocol-comparison heatmap renders `to AUPRC − from AUPRC` so
+// cells read as "improvement over from". Value is `{from, to}`.
 export function ComparisonPicker(pairs, initialIdx = 0) {
   let [from, to] = pairs[initialIdx];
   const node = html`<span class="lb-protocol-segmented"></span>`;
@@ -172,7 +149,12 @@ export function ComparisonPicker(pairs, initialIdx = 0) {
     node.replaceChildren(...pairs.map(([a, b]) => html`<button
       type="button"
       class=${`lb-protocol-btn${from === a && to === b ? " active" : ""}`}
-      onclick=${() => { from = a; to = b; render(); fire(); }}
+      onclick=${() => {
+        if (from === a && to === b) return;
+        from = a; to = b;
+        render();
+        fire();
+      }}
     >${a} → ${b}</button>`));
   }
   render();
