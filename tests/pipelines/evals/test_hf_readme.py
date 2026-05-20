@@ -7,7 +7,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from bolinas.pipelines.evals import hf_readme
+from marin_dna.pipelines.evals import hf_readme
 
 
 SHA = "deadbeef1234567890abcdef1234567890abcdef"

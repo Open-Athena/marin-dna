@@ -5,7 +5,7 @@
 
 Ported from ``marin-community/marin@dna-dev``:
 ``lib/levanter/tests/test_dna_batch_tokenizer.py``. Imports updated to point
-at ``bolinas.levanter.batch_tokenizer``.
+at ``marin_dna.levanter.batch_tokenizer``.
 """
 
 import dataclasses
@@ -20,7 +20,7 @@ pytest.importorskip("levanter", reason="install with `uv sync --group marin` to 
 
 from levanter.tokenizers import load_tokenizer  # noqa: E402
 
-from bolinas.levanter.batch_tokenizer import DNABatchTokenizer  # noqa: E402
+from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer  # noqa: E402
 
 
 @functools.cache

@@ -204,7 +204,7 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   margin-right: 6px;
   vertical-align: middle;
 }
-.lb-family-bolinas      { background: #1f77b4; }
+.lb-family-marin_dna      { background: #1f77b4; }
 .lb-family-conservation { background: #7f7f7f; }
 .lb-family-alphagenome  { background: #d62728; }
 .lb-family-gpn_star     { background: #9467bd; }
@@ -256,7 +256,7 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   color: #fff;
   border-color: transparent;
 }
-.lb-pill.active.family-bolinas      { background: #1f77b4; }
+.lb-pill.active.family-marin_dna      { background: #1f77b4; }
 .lb-pill.active.family-conservation { background: #7f7f7f; }
 .lb-pill.active.family-alphagenome  { background: #d62728; }
 .lb-pill.active.family-gpn_star     { background: #9467bd; }
@@ -295,7 +295,7 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   border-radius: 9999px;
   color: #fff;
 }
-.lb-family-tag.family-bolinas      { background: #1f77b4; }
+.lb-family-tag.family-marin_dna      { background: #1f77b4; }
 .lb-family-tag.family-conservation { background: #7f7f7f; }
 .lb-family-tag.family-alphagenome  { background: #d62728; }
 .lb-family-tag.family-gpn_star     { background: #9467bd; }
@@ -369,7 +369,7 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.lb-pop-family.family-bolinas      { background: #1f77b4; }
+.lb-pop-family.family-marin_dna      { background: #1f77b4; }
 .lb-pop-family.family-conservation { background: #7f7f7f; }
 .lb-pop-family.family-alphagenome  { background: #d62728; }
 .lb-pop-family.family-gpn_star     { background: #9467bd; }

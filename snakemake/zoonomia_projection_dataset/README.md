@@ -136,7 +136,7 @@ Derived subsets (with a Snakemake rule that produces the `query_names.txt` file)
 
 The current pipeline ships one derived subset:
 
-- **v2 — mRNA-TSS proximity.** `derive_subset_v2_tss_mrna` extracts protein-coding TSSes from Ensembl rel 115 GTF (via `bolinas.projection.tss.write_mrna_tss_band_bed`, which reuses `bolinas.data.utils.get_promoters_from_exons`), expands each to a `[TSS - tss_flank, TSS + tss_flank]` band (`tss_flank` defaults to 256 bp), and `bedtools intersect -u`s the human anchor BED against the merged band to keep windows touching any protein-coding TSS region.
+- **v2 — mRNA-TSS proximity.** `derive_subset_v2_tss_mrna` extracts protein-coding TSSes from Ensembl rel 115 GTF (via `marin_dna.projection.tss.write_mrna_tss_band_bed`, which reuses `marin_dna.data.utils.get_promoters_from_exons`), expands each to a `[TSS - tss_flank, TSS + tss_flank]` band (`tss_flank` defaults to 256 bp), and `bedtools intersect -u`s the human anchor BED against the merged band to keep windows touching any protein-coding TSS region.
 
 ## HuggingFace datasets
 
@@ -156,7 +156,7 @@ v1 (six disjoint subsets summing to v1 at the anchor level).
 | `bolinas-dna/zoonomia-v1-v3_bg`                  | v1       | v3_bg                   | `results/projection/min0.20/subsets/v3_bg.parquet`                          |
 
 Each v3 repo ships with its own auto-generated dataset card (README.md,
-written by `bolinas.zoonomia_projection_dataset.region_labels.write_subset_hf_readme`);
+written by `marin_dna.zoonomia_projection_dataset.region_labels.write_subset_hf_readme`);
 v1/v2 are card-less by design (semantics live in this pipeline README
 rather than per-repo).
 
@@ -190,7 +190,7 @@ rather than per-repo).
 
 **RC augmentation, shuffle, shard.** `prepare_training_shards` → `compress_shard` → `hf_upload_dataset`:
 
-- `add_rc: true` (default) doubles row count: each row gets a partner with the sequence reverse-complemented and `augmentation = "-"`. Vectorised in `bolinas.projection.dataset.reverse_complement_col` via Polars `str.replace_many`. Non-ACGT characters (N or other IUPAC ambiguity codes) are preserved unchanged — strict RC is only applied to ACGT.
+- `add_rc: true` (default) doubles row count: each row gets a partner with the sequence reverse-complemented and `augmentation = "-"`. Vectorised in `marin_dna.projection.dataset.reverse_complement_col` via Polars `str.replace_many`. Non-ACGT characters (N or other IUPAC ambiguity codes) are preserved unchanged — strict RC is only applied to ACGT.
 - `df.sample(fraction=1, shuffle=True, seed=42)` interleaves species so a model never sees blocks of 100 k consecutive `Mus_musculus` rows.
 - `n_shards: 64` (default) → 128 JSONL files (64 per dataset), each ~330 MB pre-compression. zstd-compressed in `compress_shard`, uploaded via `hf upload-large-folder`.
 
@@ -212,7 +212,7 @@ sky down   zoonomia-upload          # at end of session
 
 Scoring uses **pyBigWig directly** in a Snakemake `run:` block — no kentUtils binary chain. We tried `bigWigToBedGraph | awk threshold | bedGraphToBigWig` and `bigWigAverageOverBed`, but the bioconda kentUtils binaries refuse to read from stdin pipes (they need a regular file because they seek). Materialising the per-base bedGraph would cost ~30 GB temp disk for marginal speed.
 
-For each 255 bp window, `bolinas.conservation.scoring.score_windows`:
+For each 255 bp window, `marin_dna.conservation.scoring.score_windows`:
 
 - fetches per-base values via `pyBigWig.values(...)` (returns NaN at gaps),
 - counts finite values → `n_valid_bases`,
@@ -300,7 +300,7 @@ cds  >  utr3  >  ncrna_exon  >  tss_region_and_utr5  >  ccre_non_promoter  >  ba
 
 ### Ensembl-only extractors
 
-All region extractors read **Ensembl** biotype vocabulary (`protein_coding`, `lncRNA`, `miRNA`, …). RefSeq-flavored helpers in `bolinas.data.utils` (`get_mrna_exons`, `get_5_prime_utr`, `get_3_prime_utr`, `get_ncrna_exons`, `get_promoters`) are **not** used and `build_region_beds` asserts the GTF carries `transcript_biotype "protein_coding"` to guard against silent vocabulary mismatch.
+All region extractors read **Ensembl** biotype vocabulary (`protein_coding`, `lncRNA`, `miRNA`, …). RefSeq-flavored helpers in `marin_dna.data.utils` (`get_mrna_exons`, `get_5_prime_utr`, `get_3_prime_utr`, `get_ncrna_exons`, `get_promoters`) are **not** used and `build_region_beds` asserts the GTF carries `transcript_biotype "protein_coding"` to guard against silent vocabulary mismatch.
 
 ### Pipeline
 
@@ -321,7 +321,7 @@ defined.bed (genome − N regions)                       ↓
 - `results/human/intervals/region_labels/min{min_p}.parquet` — one row per input anchor with `name, chrom, start, end, label, functional_frac, cds_frac, utr3_frac, ncrna_exon_frac, tss_region_and_utr5_frac, ccre_non_promoter_frac, gene_body_frac, intron_frac, intergenic_frac`.
 - `results/human/intervals/region_labels/min{min_p}.composition.tsv` — per-label counts, fractions of total, plus an explicit `background_intronic` / `background_intergenic` split (≥ 50% gene-body coverage = intronic).
 - `results/projection/min{min_p}/subsets_def/v3_<label>.query_names.txt` — one anchor name per line. Plugged into the existing `subset_dataset_derived` rule to produce `results/projection/min{min_p}/subsets/v3_<label>.parquet`, which feeds the `prepare_training_shards → compress_shard → hf_upload_dataset` chain in `dataset.smk` (see the "HuggingFace datasets" section above for the six `bolinas-dna/zoonomia-v1-v3_<label>` repos).
-- `results/dataset/zoonomia-v1-v3_<label>/README.md` — per-subset HuggingFace dataset card (one per repo), generated by `bolinas.zoonomia_projection_dataset.region_labels.write_subset_hf_readme` and uploaded alongside the shards.
+- `results/dataset/zoonomia-v1-v3_<label>/README.md` — per-subset HuggingFace dataset card (one per repo), generated by `marin_dna.zoonomia_projection_dataset.region_labels.write_subset_hf_readme` and uploaded alongside the shards.
 
 ### Run
 
@@ -387,13 +387,13 @@ To regenerate (only when the alignment changes):
 uv run --with openpyxl python scripts/build_species_list.py
 ```
 
-The reproducer caches all HTTP responses under `~/.cache/bolinas/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/bolinas/projection/taxonomy.py` (testable; the script is thin orchestration).
+The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/marin_dna/projection/taxonomy.py` (testable; the script is thin orchestration).
 
 ## NaN semantics
 
 `phyloP_447m` has NaN at positions with no alignment. We want NaN counted as **non-conserved** (0).
 
-Implemented in `bolinas.conservation.scoring.score_windows`:
+Implemented in `marin_dna.conservation.scoring.score_windows`:
 
 ```python
 values = bw.values(chrom, start, end, numpy=True)        # NaN at gaps
@@ -425,8 +425,8 @@ workflow/rules/
   dataset.smk                                  # RC augment + shuffle + shard + hf upload-large-folder
   validation.smk                               # seven per-recipe validation parquets + HF upload (rule all_validation)
 scripts/
-  calibrate_447m_threshold.py                  # one-off; uses src/bolinas/conservation/
-  build_species_list.py                        # one-off; uses src/bolinas/projection/taxonomy
+  calibrate_447m_threshold.py                  # one-off; uses src/marin_dna/conservation/
+  build_species_list.py                        # one-off; uses src/marin_dna/projection/taxonomy
   zrs_sanity_check.py                          # smoke-tier ZRS cCRE assertion
 sky/
   run.yaml                                     # c6id.2xlarge — anchor windows
@@ -435,4 +435,4 @@ sky/
   upload.yaml                                  # r6i.8xlarge — HF dataset assembly + push (rule all_hf)
 ```
 
-Library code lives in `src/bolinas/conservation/` (anchor pipeline), `src/bolinas/projection/` (projection + tss + dataset modules), and `src/bolinas/zoonomia_projection_dataset/validation.py` (seven per-recipe validation builders + case-encoding) — all testable; reused by their respective rules and one-off scripts. Tests in `tests/conservation/`, `tests/projection/`, and `tests/zoonomia_projection_dataset/`.
+Library code lives in `src/marin_dna/conservation/` (anchor pipeline), `src/marin_dna/projection/` (projection + tss + dataset modules), and `src/marin_dna/zoonomia_projection_dataset/validation.py` (seven per-recipe validation builders + case-encoding) — all testable; reused by their respective rules and one-off scripts. Tests in `tests/conservation/`, `tests/projection/`, and `tests/zoonomia_projection_dataset/`.

@@ -4,7 +4,7 @@ Projects the conservation-filtered human BED ``results/human/intervals/filtered/
 onto every species in ``config/species_zoonomia_447_family_dedup.tsv`` via
 ``halLiftover --noDupes`` against the Zoonomia 447 Cactus HAL (1.18 TiB,
 staged outside Snakemake to ``HAL_PATH`` by ``sky/project.yaml``). All
-post-processing logic lives in ``src/bolinas/projection``.
+post-processing logic lives in ``src/marin_dna/projection``.
 
 DAG (per ``min_p``):
 
@@ -28,19 +28,19 @@ to chr1, and gates on ``zrs_sanity_check``.
 """
 
 
-from bolinas.pipelines.projection.filter import filter_length, filter_single_chrom_strand
-from bolinas.pipelines.projection.hal import (
+from marin_dna.pipelines.projection.filter import filter_length, filter_single_chrom_strand
+from marin_dna.pipelines.projection.hal import (
     attach_src_size,
     parse_halliftover_bed,
     run_halliftover,
 )
-from bolinas.pipelines.projection.resize import resize_dataframe
-from bolinas.pipelines.projection.sequence import (
+from marin_dna.pipelines.projection.resize import resize_dataframe
+from marin_dna.pipelines.projection.sequence import (
     attach_sequences_to_parquet,
     parquet_to_bed6,
     parse_bedtools_getfasta_output,
 )
-from bolinas.pipelines.projection.subset import filter_to_subset
+from marin_dna.pipelines.projection.subset import filter_to_subset
 
 
 # Two cCREs from SCREEN Registry V4 inside the canonical ZRS limb enhancer

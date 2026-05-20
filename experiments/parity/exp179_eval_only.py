@@ -1,4 +1,4 @@
-# Copyright The Marin Authors / Bolinas Authors
+# Copyright The Marin Authors / MarinDNA Authors
 # SPDX-License-Identifier: Apache-2.0
 
 """Eval-only run of the online lm_eval VEP scorer on exp166-p1B — #179 parity
@@ -38,8 +38,8 @@ from marin.evaluation.evaluation_config import convert_to_levanter_task_config
 from marin.execution.executor import ExecutorStep, executor_main
 from marin.execution.remote import remote
 
-from bolinas.levanter.defaults import dna_effective_seq_len
-from bolinas.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_255
+from marin_dna.levanter.defaults import dna_effective_seq_len
+from marin_dna.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_255
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +91,10 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
     # This import MUST be inside the function body. Iris's
     # `Entrypoint.from_callable` cloudpickles `__main__` by-value, which
     # captures function bytecode but does not re-import the module on the
-    # worker. A module-top `import bolinas.pipelines.evals.lm_eval` therefore
+    # worker. A module-top `import marin_dna.pipelines.evals.lm_eval` therefore
     # never fires on the TPU pod, and the lm-eval / levanter monkeypatches
     # never install.
-    import bolinas.pipelines.evals.lm_eval  # noqa: F401
+    import marin_dna.pipelines.evals.lm_eval  # noqa: F401
 
     seq_len = dna_effective_seq_len(DNA_BASE_SEQ_LEN, TOKENIZER)
     eval_config = eval_harness.EvalHarnessMainConfig(

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Bolinas** is a framework for developing genomic language models (gLMs).
+**MarinDNA** is a framework for developing genomic language models (gLMs).
 
 ## Domain Conventions
 
@@ -12,10 +12,10 @@
 
 This is research code. Prioritize **reproducibility** and **correctness** over architectural elegance.
 
-- **Put Python logic in `src/bolinas/` so pytest can reach it.** Even pipeline-specific functions belong in the library — the goal is testability, not a polished shared API. Inline Python in Snakemake rules (`run:` blocks in `Snakefile`/`.smk` files) should be thin glue calling into `src/bolinas/`. Don't add `.py` script files under `snakemake/` (no `workflow/scripts/`) — all Python logic goes in the library.
-- **Duplication beats premature abstraction *within* the library.** The "testable home" rule governs *entry* into `src/bolinas/` — move logic in freely, even if similar code already exists elsewhere. A separate, weaker rule governs *deduplication*: only merge two similar functions into one shared helper when the shape has stabilized and they're genuinely doing the same thing. Until then, two near-copies in two pipeline modules is better than a premature abstraction coupling unrelated experiments.
+- **Put Python logic in `src/marin_dna/` so pytest can reach it.** Even pipeline-specific functions belong in the library — the goal is testability, not a polished shared API. Inline Python in Snakemake rules (`run:` blocks in `Snakefile`/`.smk` files) should be thin glue calling into `src/marin_dna/`. Don't add `.py` script files under `snakemake/` (no `workflow/scripts/`) — all Python logic goes in the library.
+- **Duplication beats premature abstraction *within* the library.** The "testable home" rule governs *entry* into `src/marin_dna/` — move logic in freely, even if similar code already exists elsewhere. A separate, weaker rule governs *deduplication*: only merge two similar functions into one shared helper when the shape has stabilized and they're genuinely doing the same thing. Until then, two near-copies in two pipeline modules is better than a premature abstraction coupling unrelated experiments.
 - **Modularity is a means, not a goal.** Don't refactor for reuse that may never come. Straight-line code that reads top-to-bottom is often preferable to layered abstractions.
-- **Test aggressively.** Every non-trivial function in `src/bolinas/` should have tests — that's the whole reason logic lives there. For pipelines, add sanity checks on outputs (row counts, value ranges, coordinate invariants) rather than trusting that "it ran".
+- **Test aggressively.** Every non-trivial function in `src/marin_dna/` should have tests — that's the whole reason logic lives there. For pipelines, add sanity checks on outputs (row counts, value ranges, coordinate invariants) rather than trusting that "it ran".
 - **Assert defensively, everywhere.** Use `assert` liberally for invariants that *should* hold: coordinate bounds, dataframe shapes, no NaNs where none are expected, set membership, monotonicity, matching lengths between parallel arrays. A loud failure near the bug is worth far more than a silently corrupted result feeding into training.
 - **Fail fast on silent-corruption risks.** Bioinformatics is full of off-by-one errors, strand mix-ups, and reference-build mismatches. When a result could be quietly wrong, prefer a check that crashes over a comment saying "this should be correct".
 - **No premature generalizations.** If asked to implement a specific backend, dataset, or model variant, stick to that. Don't generalize to related use-cases on your own — offer the option, but only expand the scope when explicitly told to.
@@ -25,7 +25,7 @@ This is research code. Prioritize **reproducibility** and **correctness** over a
 
 The codebase has three main components:
 
-1. **Python Library** (`src/bolinas/`) - Python logic for all pipelines lives here, including pipeline-specific modules. See **Research Code Values** above for why, and for how Snakemake rules should relate to it.
+1. **Python Library** (`src/marin_dna/`) - Python logic for all pipelines lives here, including pipeline-specific modules. See **Research Code Values** above for why, and for how Snakemake rules should relate to it.
 
 2. **Pipelines** (`snakemake/`) - Data processing workflows implemented in Snakemake
    - Read the pipeline's README before working on it — each `snakemake/<pipeline>/` has its own. If you change pipeline behaviour, update the README in the same PR so the next human or agent can onboard from it.
@@ -53,7 +53,7 @@ The codebase has three main components:
 - **Parallel sky sweeps.** When evaluating a grid of independent snakemake targets (e.g. every training-step checkpoint of one model arm), prefer launching one sky cluster per target over running the whole DAG on a single big cluster. Each cluster `--down`s on idle, parallelism scales with AWS capacity, and a failure in one target doesn't block the others. The canonical helper is `snakemake/analysis/evals_v2/sky/parallel_sweep.sh` — it takes snakemake target paths as args, derives one cluster per target, and waits for all to finish. The pattern relies on `run.yaml` exposing `$SNAKEMAKE_ARGS` so each cluster runs `snakemake -- <target>` and produces exactly that one parquet. Heads up: bursting >~24 `g5.xlarge` into `us-east-2` typically saturates AZs — sky reports `ResourcesUnavailableError` on the late arrivals. Re-running the helper with just the failed targets after the earlier clusters `--down` is usually enough; sky has no cross-region fallback for AWS-pinned tasks.
 
 ### Type Annotations
-- Type-annotate all function parameters and return values in `src/bolinas/`.
+- Type-annotate all function parameters and return values in `src/marin_dna/`.
 - Use Python 3.11+ syntax (`list[str]`, `X | None`); reach for `typing` only for constructs that still require it.
 
 ## Autonomy Boundaries

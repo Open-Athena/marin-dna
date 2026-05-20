@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from bolinas.pipelines.enhancer_segmentation.labeling import (
+from marin_dna.pipelines.enhancer_segmentation.labeling import (
     label_windows_by_bin_overlap,
 )
 

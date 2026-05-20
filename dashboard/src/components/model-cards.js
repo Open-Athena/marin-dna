@@ -8,8 +8,8 @@
 import {html} from "npm:htl";
 
 const FAMILY_LABEL = {
-  bolinas: "bolinas gLM",
-  conservation: "conservation track",
+  marin_dna: "MarinDNA gLM",
+  conservation: "Conservation track",
   alphagenome: "AlphaGenome",
   gpn_star: "GPN-Star",
 };
@@ -43,7 +43,7 @@ function modelCard(m) {
   // model (conservation tracks) or where the value isn't known.
   const sizeLabel = paramsLabel(training.params) ?? "—";
   const contextLabel = training.window_size ? `${training.window_size} bp` : "—";
-  // Training data / objective only when populated (bolinas entries).
+  // Training data / objective only when populated (marin_dna entries).
   const trainingExtras = [training.data, training.objective].filter(Boolean);
   const checkpointLinks = [];
   if (m.checkpoint?.hf) {

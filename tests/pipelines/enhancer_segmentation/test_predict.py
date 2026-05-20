@@ -2,7 +2,7 @@
 
 import pytest
 
-from bolinas.pipelines.enhancer_segmentation.predict import tile_region
+from marin_dna.pipelines.enhancer_segmentation.predict import tile_region
 
 WINDOW = 16384
 

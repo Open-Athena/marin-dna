@@ -36,7 +36,7 @@ import boto3
 import polars as pl
 from scipy.stats import binomtest
 
-from bolinas.pipelines.evals.matching import (
+from marin_dna.pipelines.evals.matching import (
     MAF_BIN_EDGES,
     bin_feature,
     match_features,

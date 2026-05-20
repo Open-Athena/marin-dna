@@ -33,22 +33,22 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from datasets import load_dataset  # noqa: E402
 
-from bolinas.pipelines.evals.evo2 import EVO2_MODEL_CHOICES  # noqa: E402
-from bolinas.pipelines.evals.metrics import (  # noqa: E402
+from marin_dna.pipelines.evals.evo2 import EVO2_MODEL_CHOICES  # noqa: E402
+from marin_dna.pipelines.evals.metrics import (  # noqa: E402
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     compute_pairwise_metrics,
 )
 
 # Script-local Evo2 scoring (no KV-cache; doesn't go through
-# bolinas.model.runner / HF Trainer — see scripts/evo2_eval/_evo2_scoring.py
+# marin_dna.model.runner / HF Trainer — see scripts/evo2_eval/_evo2_scoring.py
 # docstring for why).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _evo2_scoring import compute_evo2_bundle  # noqa: E402, I001
 
 
 # Schema of the matched-pair eval datasets. Same tuple as
-# `bolinas.pipelines.evals.conservation.REQUIRED_VARIANT_COLUMNS`, hardcoded
+# `marin_dna.pipelines.evals.conservation.REQUIRED_VARIANT_COLUMNS`, hardcoded
 # here to avoid importing conservation.py (which triggers a top-level
 # `import pyBigWig` — needs libBigWig.so on the host).
 REQUIRED_VARIANT_COLUMNS = (

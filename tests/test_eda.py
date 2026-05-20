@@ -3,7 +3,7 @@
 import polars as pl
 import pytest
 
-from bolinas.data.eda import (
+from marin_dna.data.eda import (
     compute_genomic_distance_to_cds,
     compute_mrna_distance_to_cds,
     extract_3_prime_utr_annotations,

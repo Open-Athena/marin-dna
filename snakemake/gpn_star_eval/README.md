@@ -2,14 +2,14 @@
 
 PairwiseAccuracy ± binomial SE for the three GPN-Star variants
 (V = vertebrate-100way, M = mammal-447way, P = primate-243way; all 200M params)
-on the matched-pair eval datasets ([#161 Mendelian](https://github.com/Open-Athena/bolinas-dna/issues/161),
-[#162 Complex traits](https://github.com/Open-Athena/bolinas-dna/issues/162),
-[#172 eQTL](https://github.com/Open-Athena/bolinas-dna/issues/172)).
+on the matched-pair eval datasets ([#161 Mendelian](https://github.com/Open-Athena/marin-dna/issues/161),
+[#162 Complex traits](https://github.com/Open-Athena/marin-dna/issues/162),
+[#172 eQTL](https://github.com/Open-Athena/marin-dna/issues/172)).
 
 GPN-Star scoring runs in [songlab-cal/TraitGym](https://github.com/songlab-cal/TraitGym),
 not this repo. Predictions are pulled from a gist (commit pinned in
-`bolinas.evals.gpn_star.GPN_STAR_GIST_BASE`); see
-[#145 comment](https://github.com/Open-Athena/bolinas-dna/issues/145#issuecomment-4444680280)
+`marin_dna.evals.gpn_star.GPN_STAR_GIST_BASE`); see
+[#145 comment](https://github.com/Open-Athena/marin-dna/issues/145#issuecomment-4444680280)
 for the upstream definition. This pipeline is the align + aggregate step:
 load HF eval dataset, row-align with the predictions parquet, compute PA per
 subset.
@@ -59,7 +59,7 @@ results/
   other matched-pair pipelines in this repo).
 - **Calibration happens upstream.** `*_calibrated` columns are the producer's
   pentanucleotide-context background-subtracted variant; see
-  [#145 comment](https://github.com/Open-Athena/bolinas-dna/issues/145#issuecomment-4444680280)
+  [#145 comment](https://github.com/Open-Athena/marin-dna/issues/145#issuecomment-4444680280)
   for the formula.
 - **Reverse-complement averaging happens upstream.** GPN-Star averages
   forward + RC strand predictions. The `exp*` gLM rows in this repo's
@@ -84,7 +84,7 @@ No SkyPilot launch yaml — the workload is too small to be worth it.
 
 ## Library
 
-Pipeline rules are thin glue around `bolinas.evals.gpn_star`:
+Pipeline rules are thin glue around `marin_dna.evals.gpn_star`:
 
 - `score_variants_gpn_star(hf_df, predictions, split)` — load + row-align
   predictions, derive `minus_*` columns. Asserts row-count + key-order match.

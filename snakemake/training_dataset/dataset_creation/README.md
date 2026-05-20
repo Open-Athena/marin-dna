@@ -18,7 +18,7 @@ This pipeline takes a list of genomes and creates training datasets by extractin
 
 ## Genomic Region Extraction
 
-The pipeline uses functions from `bolinas.data.utils` to extract genomic regions. These functions handle cross-species annotation differences (e.g., `transcript_biotype` vs `gbkey` attributes).
+The pipeline uses functions from `marin_dna.data.utils` to extract genomic regions. These functions handle cross-species annotation differences (e.g., `transcript_biotype` vs `gbkey` attributes).
 
 ### Available Region Types
 
@@ -44,7 +44,7 @@ NCBI annotations use two key attributes to classify transcripts:
 | `gbkey` | High-level category | mRNA, ncRNA, misc_RNA, tRNA, rRNA, precursor_RNA |
 | `transcript_biotype` | Specific transcript type | lnc_RNA, miRNA, snoRNA, transcript, primary_transcript |
 
-Per-attribute cross-species counts and the functional/non-functional designations are tracked in [issue #36](https://github.com/Open-Athena/bolinas-dna/issues/36).
+Per-attribute cross-species counts and the functional/non-functional designations are tracked in [issue #36](https://github.com/Open-Athena/marin-dna/issues/36).
 
 #### Included Biotypes
 
@@ -67,7 +67,7 @@ Per-attribute cross-species counts and the functional/non-functional designation
 
 #### Cross-Species Consistency
 
-The biotype/gbkey system is broadly consistent across species. Edge cases (e.g. C. elegans has a large piRNA set and uses the generic `ncRNA` biotype for unclassified non-coding RNAs) are tracked in [issue #36](https://github.com/Open-Athena/bolinas-dna/issues/36).
+The biotype/gbkey system is broadly consistent across species. Edge cases (e.g. C. elegans has a large piRNA set and uses the generic `ncRNA` biotype for unclassified non-coding RNAs) are tracked in [issue #36](https://github.com/Open-Athena/marin-dna/issues/36).
 
 ### Promoter Options
 
@@ -115,7 +115,7 @@ diff1 = mrna_minus_cds - utr_union  # Should be ~0
 diff2 = utr_union - mrna_minus_cds  # Should be 0
 ```
 
-**Edge cases**: A small number of intervals satisfy `mRNA - CDS ⊃ 5' UTR | 3' UTR` but not strict equality — typically 1bp gaps within CDS (small introns or frameshift annotations) or unusual annotations on unplaced scaffolds. Some genomes lack UTR or ncRNA annotations entirely (common in non-model organisms with coding-focused annotations); the pipeline handles these via empty `GenomicSet`s, which work correctly in all downstream operations. Per-genome details and analysis tables are tracked in [issue #36](https://github.com/Open-Athena/bolinas-dna/issues/36).
+**Edge cases**: A small number of intervals satisfy `mRNA - CDS ⊃ 5' UTR | 3' UTR` but not strict equality — typically 1bp gaps within CDS (small introns or frameshift annotations) or unusual annotations on unplaced scaffolds. Some genomes lack UTR or ncRNA annotations entirely (common in non-model organisms with coding-focused annotations); the pipeline handles these via empty `GenomicSet`s, which work correctly in all downstream operations. Per-genome details and analysis tables are tracked in [issue #36](https://github.com/Open-Athena/marin-dna/issues/36).
 
 ### Annotation Sources
 
@@ -132,7 +132,7 @@ NCBI genome annotations come from multiple sources with varying quality:
 
 NCBI also provides MANE Select / RefSeq Select tags for "preferred" or "canonical" transcripts, but availability is limited to human and mouse.
 
-**Current approach:** all transcripts are used regardless of source or selection tags. Filtering to curated transcripts would eliminate most data for non-model organisms. Cross-species distribution stats, per-region outlier-length analyses, and per-species curated-transcript availability are tracked in [issue #36](https://github.com/Open-Athena/bolinas-dna/issues/36).
+**Current approach:** all transcripts are used regardless of source or selection tags. Filtering to curated transcripts would eliminate most data for non-model organisms. Cross-species distribution stats, per-region outlier-length analyses, and per-species curated-transcript availability are tracked in [issue #36](https://github.com/Open-Athena/marin-dna/issues/36).
 
 To compute annotation source statistics:
 ```bash
@@ -213,7 +213,7 @@ uv run snakemake
 
 ## Enhancer prediction (recipe v19)
 
-Recipe v19 produces enhancer intervals from a trained `EnhancerClassifier` (see [issue #96](https://github.com/Open-Athena/bolinas-dna/issues/96) for the classifier and [issue #104](https://github.com/Open-Athena/bolinas-dna/issues/104) for the inference pipeline). The classifier is run genome-wide with sliding-window inference, and bins above a logit threshold become the enhancer interval set.
+Recipe v19 produces enhancer intervals from a trained `EnhancerClassifier` (see [issue #96](https://github.com/Open-Athena/marin-dna/issues/96) for the classifier and [issue #104](https://github.com/Open-Athena/marin-dna/issues/104) for the inference pipeline). The classifier is run genome-wide with sliding-window inference, and bins above a logit threshold become the enhancer interval set.
 
 **Pipeline**: `extract_exons` → `scannable_regions` (defined − exons) → `enhancer_prediction_windows` → `predict_enhancers` → `intervals_recipe_v19`.
 
@@ -228,11 +228,11 @@ Recipe v19 produces enhancer intervals from a trained `EnhancerClassifier` (see 
 - `batch_size`, `num_workers`: inference DataLoader settings
 - `threshold`: logit threshold for recipe v19 (set after analyzing the genome-wide logit distribution)
 
-**Status**: working but slow (~1.4h per genome on L4 GPU). For a faster alternative being explored, see [issue #115](https://github.com/Open-Athena/bolinas-dna/issues/115) (per-bin segmentation).
+**Status**: working but slow (~1.4h per genome on L4 GPU). For a faster alternative being explored, see [issue #115](https://github.com/Open-Athena/marin-dna/issues/115) (per-bin segmentation).
 
 ## Whole-genome segmentation prediction
 
-Runs the per-bin segmentation model from [issue #115](https://github.com/Open-Athena/bolinas-dna/issues/115) across whole genomes, producing 128bp-resolution enhancer logits — see [issue #118](https://github.com/Open-Athena/bolinas-dna/issues/118).
+Runs the per-bin segmentation model from [issue #115](https://github.com/Open-Athena/marin-dna/issues/115) across whole genomes, producing 128bp-resolution enhancer logits — see [issue #118](https://github.com/Open-Athena/marin-dna/issues/118).
 
 **Pipeline**: `segmentation_prediction_windows` → `predict_enhancers_segmentation`. Aggregate target: `all_enhancer_predictions_segmentation`.
 
@@ -254,11 +254,11 @@ Runs the per-bin segmentation model from [issue #115](https://github.com/Open-At
 
 **Output**: one parquet per genome at `results/enhancer_predictions_segmentation/{g}.parquet` (stored to S3 by the default profile) with schema `(chrom: str, bin_start: int64, bin_end: int64, logit: float32)` — one row per 128bp bin.
 
-**Status**: ~1h per genome on L4 GPU (~65 min). See #118 for benchmarks and a follow-up [#119](https://github.com/Open-Athena/bolinas-dna/issues/119) for parallel execution across multiple GPU instances via AWS Batch.
+**Status**: ~1h per genome on L4 GPU (~65 min). See #118 for benchmarks and a follow-up [#119](https://github.com/Open-Athena/marin-dna/issues/119) for parallel execution across multiple GPU instances via AWS Batch.
 
 ## Recipe v20 (segmentation-based enhancers)
 
-Recipe v20 is the segmentation analogue of v19: it converts the per-bin segmentation logits from PR #126 into 255 bp enhancer windows for use as gLM training data. See [issue #133](https://github.com/Open-Athena/bolinas-dna/issues/133).
+Recipe v20 is the segmentation analogue of v19: it converts the per-bin segmentation logits from PR #126 into 255 bp enhancer windows for use as gLM training data. See [issue #133](https://github.com/Open-Athena/marin-dna/issues/133).
 
 **Pipeline**: `predict_enhancers_segmentation` (per-bin parquet from #118) → `intervals_recipe_v20`.
 
@@ -305,11 +305,11 @@ Naming convention: underscored, semantic `{source_name}_{mapper}_{preset}` (no d
 
 **Resources:** mmseqs2 nucleotide search against a whole mammalian target genome needs ~50-80 GB resident at the full index, so real runs use a big-memory cloud instance (r6i.8xlarge, 256 GB). `split_memory_limit` lets a smaller box fit at the cost of wall time; the defaults shown above target the 15 GB dev box.
 
-**Status:** v1 (issue [#123](https://github.com/Open-Athena/bolinas-dna/issues/123)): mmseqs2 only, flank 0, `-s 7.5 --max-accept 1`. Run time: ~2 min wall (createdb 7 s, search 110 s, convertalis 0.3 s) on r6i.8xlarge (32 vCPU, 256 GB RAM), ~26 GB peak RSS. Recall/precision benchmarks against alternative aligners are tracked in [#120](https://github.com/Open-Athena/bolinas-dna/issues/120) and [#123](https://github.com/Open-Athena/bolinas-dna/issues/123). Sensitivity sweep, flank sweep, soft-mask filtering, and alternative aligners (e.g. lastz for the high-recall end of the frontier) are left for future iterations.
+**Status:** v1 (issue [#123](https://github.com/Open-Athena/marin-dna/issues/123)): mmseqs2 only, flank 0, `-s 7.5 --max-accept 1`. Run time: ~2 min wall (createdb 7 s, search 110 s, convertalis 0.3 s) on r6i.8xlarge (32 vCPU, 256 GB RAM), ~26 GB peak RSS. Recall/precision benchmarks against alternative aligners are tracked in [#120](https://github.com/Open-Athena/marin-dna/issues/120) and [#123](https://github.com/Open-Athena/marin-dna/issues/123). Sensitivity sweep, flank sweep, soft-mask filtering, and alternative aligners (e.g. lastz for the high-recall end of the frontier) are left for future iterations.
 
 ### Source-curation sweep around v30 (recipes v31/v32/v33)
 
-Following [#136](https://github.com/Open-Athena/bolinas-dna/issues/136), where projection-based curation (v30) outperformed segmentation-based curation, three sibling recipes vary the upstream cCRE conservation filter while keeping the projection method (mmseqs2 `-s 7.5`), target genome set (`mammals_seg20`), and downstream windowing/exon-masking identical to v30. Each is just a thin wrapper over a different `interval_mappings` entry.
+Following [#136](https://github.com/Open-Athena/marin-dna/issues/136), where projection-based curation (v30) outperformed segmentation-based curation, three sibling recipes vary the upstream cCRE conservation filter while keeping the projection method (mmseqs2 `-s 7.5`), target genome set (`mammals_seg20`), and downstream windowing/exon-masking identical to v30. Each is just a thin wrapper over a different `interval_mappings` entry.
 
 | Recipe | Conservation track | Per-base cutoff | Per-cCRE filter | Source mapping |
 |---|---|---|---|---|

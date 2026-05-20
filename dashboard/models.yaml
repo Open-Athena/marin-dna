@@ -1,7 +1,7 @@
 # Source of truth for every method on the leaderboard.
 #
 # Consumed by:
-#   - `src/bolinas/pipelines/evals/leaderboard.py` — aggregates S3 metrics into
+#   - `src/marin_dna/pipelines/evals/leaderboard.py` — aggregates S3 metrics into
 #     the long-form parquet the dashboard data loader writes.
 #   - `dashboard/src/data/models.json.py` — emits a JSON build artifact for
 #     the Observable Framework site.
@@ -9,26 +9,26 @@
 # To add a method:
 #   1. Append a YAML block here in registry order (entries with `datasets:` that
 #      include the dataset show up on that dataset's leaderboard).
-#   2. For `family: bolinas`, also add the model to
+#   2. For `family: marin_dna`, also add the model to
 #      `snakemake/analysis/evals_v2/config/config.yaml` so the pipeline knows
 #      where its checkpoint lives.
 #   3. Run the pipeline → parquet on S3.
 #   4. `git push`. Dashboard CI rebuilds and the new row shows up.
 #
 # Schema:
-#   id           string  primary key; matches the S3 parquet name (bolinas) or
+#   id           string  primary key; matches the S3 parquet name (marin_dna) or
 #                        the score_name / model filter value (conservation,
 #                        gpn_star).
 #   display      string  what the leaderboard table renders.
-#   family       enum    bolinas | conservation | alphagenome | gpn_star.
+#   family       enum    marin_dna | conservation | alphagenome | gpn_star.
 #                        Drives parquet path + per-method filter in the library.
 #   description  string  short tag for cards + (some) inline labels.
 #   datasets     [str]   subset of {mendelian_traits, complex_traits}.
-#   training     dict    (bolinas only) data, params, window_size, objective.
+#   training     dict    (marin_dna only) data, params, window_size, objective.
 #   experiment   int     (optional) experiment number — for grouping.
 #   issue        url     (optional) GitHub issue tracking the experiment.
 #   wandb        url     (optional) wandb run.
-#   checkpoint   dict    (bolinas only) gcs and/or hf path to weights.
+#   checkpoint   dict    (marin_dna only) gcs and/or hf path to weights.
 #   paper        url     (optional) reference paper (conservation/external).
 #   msa          string  (gpn_star only) producer's MSA suffix (e.g. v100-200m).
 
@@ -80,21 +80,21 @@
   datasets: [mendelian_traits, complex_traits]
 
 # ---------------------------------------------------------------------------
-# bolinas gLMs — evals_v2 pipeline. Registry order matches the legacy
+# marin_dna gLMs — evals_v2 pipeline. Registry order matches the legacy
 # EVALS_V2_MODELS list so stable-sort ties resolve identically across the
 # refactor. New entries append at the bottom.
 # ---------------------------------------------------------------------------
 
 - id: exp55-mammals-step-16999
   display: exp55-mammals
-  family: bolinas
+  family: marin_dna
   description: promoters, mammals
   training:
     data: promoters_mammals
     window_size: 256
     objective: CLM
   experiment: 55
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/55
+  issue: https://github.com/Open-Athena/marin-dna/issues/55
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp55-mammals-r01-52f413
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp55-mammals-r01-52f413/hf/step-16999
@@ -102,14 +102,14 @@
 
 - id: exp58-mammals-step-16999
   display: exp58-mammals
-  family: bolinas
+  family: marin_dna
   description: CDS, mammals
   training:
     data: cds_mammals
     window_size: 256
     objective: CLM
   experiment: 58
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/58
+  issue: https://github.com/Open-Athena/marin-dna/issues/58
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp58-mammals-r01-23d451
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp58-mammals-r01-23d451/hf/step-16999
@@ -117,14 +117,14 @@
 
 - id: exp58-animals-step-16999
   display: exp58-animals
-  family: bolinas
+  family: marin_dna
   description: CDS, animals
   training:
     data: cds_animals
     window_size: 256
     objective: CLM
   experiment: 58
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/58
+  issue: https://github.com/Open-Athena/marin-dna/issues/58
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp58-animals-r01-1e3682
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp58-animals-r01-1e3682/hf/step-16999
@@ -132,14 +132,14 @@
 
 - id: exp59-mammals-step-16999
   display: exp59-mammals
-  family: bolinas
+  family: marin_dna
   description: downstream, mammals
   training:
     data: downstream_mammals
     window_size: 256
     objective: CLM
   experiment: 59
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/59
+  issue: https://github.com/Open-Athena/marin-dna/issues/59
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp59-mammals-r01-1d9235
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp59-mammals-r01-1d9235/hf/step-16999
@@ -147,14 +147,14 @@
 
 - id: exp136-proj_v30-step-9999
   display: exp136-proj_v30
-  family: bolinas
+  family: marin_dna
   description: enhancers, mammals
   training:
     data: enhancers_mammals_proj_v30
     window_size: 255
     objective: CLM
   experiment: 136
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/136
+  issue: https://github.com/Open-Athena/marin-dna/issues/136
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0
   checkpoint:
     gcs: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
@@ -165,7 +165,7 @@
 
 - id: exp21-promoters-yolo-step-22000
   display: exp21-promoters-yolo
-  family: bolinas
+  family: marin_dna
   description: promoters, animals, 1.7B
   training:
     data: promoters_animals
@@ -173,7 +173,7 @@
     window_size: 512
     objective: CLM
   experiment: 21
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/21
+  issue: https://github.com/Open-Athena/marin-dna/issues/21
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/animal-promoters-yolo-r01-213a8e
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-22000
@@ -181,7 +181,7 @@
 
 - id: exp13-mixture-equal-step-26000
   display: exp13-mixture-equal
-  family: bolinas
+  family: marin_dna
   description: 50/50 promoter+CDS, animals, 1.7B
   training:
     data: promoter_cds_mixture_equal
@@ -189,7 +189,7 @@
     window_size: 512
     objective: CLM
   experiment: 13
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/13
+  issue: https://github.com/Open-Athena/marin-dna/issues/13
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/promoter-cds-mixture-equal-r01-b67fd1
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-26000
@@ -197,7 +197,7 @@
 
 - id: exp13-mixture-proportional-step-26000
   display: exp13-mixture-proportional
-  family: bolinas
+  family: marin_dna
   description: 10/90 promoter+CDS, animals, 1.7B
   training:
     data: promoter_cds_mixture_proportional
@@ -205,7 +205,7 @@
     window_size: 512
     objective: CLM
   experiment: 13
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/13
+  issue: https://github.com/Open-Athena/marin-dna/issues/13
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/promoter-cds-mixture-proportional-r01-6705f1
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-26000
@@ -213,7 +213,7 @@
 
 - id: exp27-cds-yolo-step-34000
   display: exp27-cds-yolo
-  family: bolinas
+  family: marin_dna
   description: CDS, animals, 1.7B
   training:
     data: cds_animals
@@ -221,7 +221,7 @@
     window_size: 512
     objective: CLM
   experiment: 27
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/27
+  issue: https://github.com/Open-Athena/marin-dna/issues/27
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-34000
@@ -229,14 +229,14 @@
 
 - id: exp55-humans-step-16999
   display: exp55-humans
-  family: bolinas
+  family: marin_dna
   description: promoters, humans
   training:
     data: promoters_humans
     window_size: 256
     objective: CLM
   experiment: 55
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/55
+  issue: https://github.com/Open-Athena/marin-dna/issues/55
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp55-humans-r01-0fa9f3
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp55-humans-r01-0fa9f3/hf/step-16999
@@ -244,14 +244,14 @@
 
 - id: exp55-primates-step-16999
   display: exp55-primates
-  family: bolinas
+  family: marin_dna
   description: promoters, primates
   training:
     data: promoters_primates
     window_size: 256
     objective: CLM
   experiment: 55
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/55
+  issue: https://github.com/Open-Athena/marin-dna/issues/55
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp55-primates-r01-70b1a5
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp55-primates-r01-70b1a5/hf/step-16999
@@ -259,14 +259,14 @@
 
 - id: exp55-vertebrates-step-16999
   display: exp55-vertebrates
-  family: bolinas
+  family: marin_dna
   description: promoters, vertebrates
   training:
     data: promoters_vertebrates
     window_size: 256
     objective: CLM
   experiment: 55
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/55
+  issue: https://github.com/Open-Athena/marin-dna/issues/55
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp55-vertebrates-r01-64b0da
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp55-vertebrates-r01-64b0da/hf/step-16999
@@ -274,14 +274,14 @@
 
 - id: exp55-animals-step-16999
   display: exp55-animals
-  family: bolinas
+  family: marin_dna
   description: promoters, animals
   training:
     data: promoters_animals
     window_size: 256
     objective: CLM
   experiment: 55
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/55
+  issue: https://github.com/Open-Athena/marin-dna/issues/55
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp55-animals-r01-c5dd2f
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp55-animals-r01-c5dd2f/hf/step-16999
@@ -289,14 +289,14 @@
 
 - id: exp58-vertebrates-step-16999
   display: exp58-vertebrates
-  family: bolinas
+  family: marin_dna
   description: CDS, vertebrates
   training:
     data: cds_vertebrates
     window_size: 256
     objective: CLM
   experiment: 58
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/58
+  issue: https://github.com/Open-Athena/marin-dna/issues/58
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/exp58-vertebrates-r01-771c3a
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/exp58-vertebrates-r01-771c3a/hf/step-16999
@@ -306,7 +306,7 @@
 # `exp166-p1B-step-16398` HF export was retired from the eval config).
 - id: exp166-v0.1-p1B-step-27329
   display: exp166-v0.1-p1B
-  family: bolinas
+  family: marin_dna
   description: zoonomia, generalist, 1B, v0.1
   training:
     data: zoonomia_v0.1
@@ -314,17 +314,17 @@
     window_size: 255
     objective: CLM
   experiment: 166
-  issue: https://github.com/Open-Athena/bolinas-dna/issues/166
+  issue: https://github.com/Open-Athena/marin-dna/issues/166
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-exp166-v0.1-p1B-c127da
   checkpoint:
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
   datasets: [mendelian_traits, complex_traits]
 
-# Eric Czech's mix-v0.9 1B runs (Slack #bolinas, 2026-05-18). Headline
+# Eric Czech's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Headline
 # uniform-mixture run + continued-training upstream-weighted variant.
 - id: mix-v0.9-p1B-i0-uniform-step-25004
   display: mix-v0.9-p1B-uniform
-  family: bolinas
+  family: marin_dna
   description: mix v0.9, uniform mixture, 1B (52.4B tokens)
   training:
     data: bolinas_mix_v0.9_uniform
@@ -338,7 +338,7 @@
 
 - id: mix-v0.9-p1B-i16-upstream-step-8333
   display: mix-v0.9-p1B-upstream_3.6
-  family: bolinas
+  family: marin_dna
   description: mix v0.9, 40% upstream / 30% cds (continued from i0), 1B (17.5B tokens)
   training:
     data: bolinas_mix_v0.9_uniform_to_upstream_3.6

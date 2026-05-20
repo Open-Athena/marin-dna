@@ -1,8 +1,8 @@
-"""Tests for ``bolinas.pipelines.projection.taxonomy``."""
+"""Tests for ``marin_dna.pipelines.projection.taxonomy``."""
 
 from __future__ import annotations
 
-from bolinas.pipelines.projection.taxonomy import (
+from marin_dna.pipelines.projection.taxonomy import (
     LeafMeta,
     dedup_by_family,
     normalize_zoonomia_leaf,

@@ -1,10 +1,10 @@
-"""Tests for ``bolinas.pipelines.conservation.calibration``."""
+"""Tests for ``marin_dna.pipelines.conservation.calibration``."""
 
 import numpy as np
 import pytest
 
-from bolinas.pipelines.conservation.calibration import calibrate_to_match_proportion
-from bolinas.pipelines.conservation.histogram import PhylopHistogram
+from marin_dna.pipelines.conservation.calibration import calibrate_to_match_proportion
+from marin_dna.pipelines.conservation.histogram import PhylopHistogram
 
 
 @pytest.fixture

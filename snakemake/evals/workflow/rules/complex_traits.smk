@@ -90,7 +90,7 @@ rule complex_traits_aggregate_traits:
         high = config["complex_traits"]["pip_pos_threshold"]
         low = config["complex_traits"]["pip_neg_threshold"]
         # Per-variant labeling delegated to `label_variants_by_pip` (in
-        # `src/bolinas/evals/labeling.py`, fully unit-tested in
+        # `src/marin_dna/evals/labeling.py`, fully unit-tested in
         # `tests/evals/test_labeling.py`). Notes:
         #   - Labels come from `max(pip)` across the traits that
         #     fine-mapped this variant. Intermediate `max(pip)`

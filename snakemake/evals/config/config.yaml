@@ -14,7 +14,7 @@ output_hf_prefix: bolinas-dna/evals
 # Datasets to build and upload.
 # `mendelian_traits_harness_255` is the only harness-materialized dataset built
 # here; it produces 2 rows per variant (one per strand) for the online
-# lm_eval VEP scorer (`bolinas.pipelines.evals.lm_eval.dna_vep_llr_eval`)
+# lm_eval VEP scorer (`marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval`)
 # which averages FWD+RC scores per variant. complex_traits_harness was
 # dropped in #179: complex traits are scored offline only via
 # `snakemake/analysis/evals_v2/`, which already does FWD+RC averaging.

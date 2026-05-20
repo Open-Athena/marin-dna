@@ -11,7 +11,7 @@ Per-variant conservation scores on the matched-pair eval datasets produced by
 A classical baseline alongside model-based evals — same metric (AUPRC +
 cluster-bootstrap SE) and same pinned HF revisions as the `evals_v2`
 pipeline (`snakemake/analysis/evals_v2/`), so conservation rows on the
-leaderboard are apples-to-apples with bolinas rows.
+leaderboard are apples-to-apples with marin_dna rows.
 
 ## What it does
 
@@ -61,7 +61,7 @@ markdown.
 | `phastCons_470m` | `hgdownload.soe.ucsc.edu/.../hg38.phastCons470way.bw` | UCSC 470-way phastCons (multiz; parallel work to 447-way Cactus, not a successor) |
 | `phastCons_43p` | `cgl.gi.ucsc.edu/.../phyloPPrimates.bigWig` | Zoonomia 43-primate. Name follows TraitGym; underlying file is phyloP-over-primates. |
 
-URLs are owned by `bolinas.evals.conservation.CONSERVATION_TRACKS` (single source of truth).
+URLs are owned by `marin_dna.evals.conservation.CONSERVATION_TRACKS` (single source of truth).
 
 ## NaN handling
 
@@ -124,7 +124,7 @@ value, se, n_groups, n_rows, n_nan, n_total, split, dataset]`.
 
 ## Library
 
-Snakemake rules are thin glue around `bolinas.evals.conservation`:
+Snakemake rules are thin glue around `marin_dna.evals.conservation`:
 
 - `score_variants_at_positions(df, bw_path)` — bigWig lookup, NaN preserved.
 - `aggregate_conservation_metrics(parquet_paths, *, n_bootstrap, bootstrap_seed)`

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from bolinas.data.negative_sampling import (
+from marin_dna.data.negative_sampling import (
     compute_gc_content,
     compute_repeat_fraction,
     match_by_gc_repeat,

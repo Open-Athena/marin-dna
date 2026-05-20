@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from sklearn.metrics import average_precision_score
 
-from bolinas.pipelines.evals.metrics import (
+from marin_dna.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     METRIC_FUNCTIONS,

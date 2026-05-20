@@ -3,7 +3,7 @@
 import polars as pl
 import pytest
 
-from bolinas.pipelines.evals.variants import (
+from marin_dna.pipelines.evals.variants import (
     CHROMS,
     COMPLEMENT,
     COORDINATES,

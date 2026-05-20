@@ -4,10 +4,10 @@ AUPRC ± cluster-bootstrap SE (cluster = `match_group`) for
 [AlphaGenome](https://github.com/google-deepmind/alphagenome) on the
 matched-pair eval datasets `bolinas-dna/evals_mendelian_traits` and
 `bolinas-dna/evals_complex_traits` (1:k matched groups, PR #194 rebuild).
-Provides issue [#154](https://github.com/Open-Athena/bolinas-dna/issues/154)'s
+Provides issue [#154](https://github.com/Open-Athena/marin-dna/issues/154)'s
 baseline row for the leaderboards in
-[#161](https://github.com/Open-Athena/bolinas-dna/issues/161) and
-[#162](https://github.com/Open-Athena/bolinas-dna/issues/162). The metric
+[#161](https://github.com/Open-Athena/marin-dna/issues/161) and
+[#162](https://github.com/Open-Athena/marin-dna/issues/162). The metric
 mirrors `snakemake/analysis/evals_v2/`'s post-PR-#195 schema.
 
 ## What it does
@@ -123,11 +123,11 @@ uv run snakemake
 | `bootstrap_seed` | RNG seed for the bootstrap; bumping it re-triggers `compute_metrics`. |
 
 The 7 assays, the 1MB sequence length, and `L2_DIFF_LOG1P` aggregation type
-are **code constants** in `bolinas.evals.alphagenome`, not config.
+are **code constants** in `marin_dna.evals.alphagenome`, not config.
 
 ## Library
 
-Pipeline rules are thin glue around `bolinas.evals.alphagenome`:
+Pipeline rules are thin glue around `marin_dna.evals.alphagenome`:
 
 - `score_variants_alphagenome(V, num_workers=4)` — main entry; threads through
   forward-strand `model.score_variant` calls and returns a wide DataFrame.

@@ -27,7 +27,7 @@ for var in (
 
 import polars as pl
 
-from bolinas.pipelines.evals.matching import (
+from marin_dna.pipelines.evals.matching import (
     BIN_NA,
     EXON_DIST_BIN_EDGES,
     MAF_BIN_EDGES,

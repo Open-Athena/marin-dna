@@ -140,7 +140,7 @@ rule align_intervals_mmseqs2:
       split.
 
     `tstart,tend,bits,evalue,fident,qcov,tcov` is the column set consumed
-    by `bolinas.pipelines.alignment.mmseqs2.parse_mmseqs2_hits`.
+    by `marin_dna.pipelines.alignment.mmseqs2.parse_mmseqs2_hits`.
     """
     input:
         query="results/interval_alignment/{name}/{g}.query.fa",
@@ -189,7 +189,7 @@ rule project_intervals_mmseqs2:
     wildcard_constraints:
         g=f"(?!{HUMAN_GENOME}).*",
     run:
-        from bolinas.pipelines.alignment.mmseqs2 import (
+        from marin_dna.pipelines.alignment.mmseqs2 import (
             best_hit_per_query,
             parse_mmseqs2_hits,
             project_hits_to_intervals,

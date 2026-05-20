@@ -7,7 +7,7 @@ without it; the scorer-construction test is gated on the import.
 import pandas as pd
 import pytest
 
-from bolinas.pipelines.evals.alphagenome import (
+from marin_dna.pipelines.evals.alphagenome import (
     ALPHAGENOME_TRACKS,
     SEQUENCE_LENGTH,
     parse_score_response,
@@ -100,7 +100,7 @@ def test_make_scorers_uses_l2_diff_log1p():
     pytest.importorskip("alphagenome")
     from alphagenome.models import variant_scorers
 
-    from bolinas.pipelines.evals.alphagenome import make_scorers
+    from marin_dna.pipelines.evals.alphagenome import make_scorers
 
     scorers, repr_to_assay = make_scorers()
     assert len(scorers) == len(ALPHAGENOME_TRACKS)

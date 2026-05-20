@@ -16,12 +16,12 @@ pELS+dELS) are transcript-independent. val_enhancer subtracts every annotated
 exon (``get_exons``, no biotype filter — stricter than training_dataset v30
 because this is a *validation* probe, not a training scan).
 
-Library code lives in ``bolinas.pipelines.zoonomia_projection_dataset.validation``;
+Library code lives in ``marin_dna.pipelines.zoonomia_projection_dataset.validation``;
 ``run:`` blocks here are thin glue + pipeline-level assertions.
 """
 
-from bolinas.pipelines.conservation.scoring import score_windows as _score_windows
-from bolinas.pipelines.zoonomia_projection_dataset.validation import (
+from marin_dna.pipelines.conservation.scoring import score_windows as _score_windows
+from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
     ANNOTATION_RECIPES,
     ALL_RECIPES,
     CRE_RECIPES,
@@ -127,7 +127,7 @@ rule validation_mask_all_exons:
         # See validation_region_annotation note below for why mem_mb=16000.
         mem_mb=16000,
     run:
-        from bolinas.data.utils import get_exons, load_annotation
+        from marin_dna.data.utils import get_exons, load_annotation
 
         ann = load_annotation(input.gtf)
         exons = get_exons(ann)
@@ -164,9 +164,9 @@ rule validation_region_annotation:
         # that OOMed.
         mem_mb=16000,
     run:
-        from bolinas.data.intervals import GenomicSet
-        from bolinas.data.utils import load_annotation
-        from bolinas.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna.data.intervals import GenomicSet
+        from marin_dna.data.utils import load_annotation
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
             build_annotation_region,
             build_tss_band_region,
             filter_to_canonical_transcripts,
@@ -219,8 +219,8 @@ rule validation_region_cre:
     wildcard_constraints:
         recipe=CRE_RECIPES_RE,
     run:
-        from bolinas.data.intervals import GenomicSet
-        from bolinas.pipelines.zoonomia_projection_dataset.validation import build_cre_region
+        from marin_dna.data.intervals import GenomicSet
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import build_cre_region
 
         defined = GenomicSet.read_bed(input.defined)
         if wildcards.recipe == "val_enhancer":
@@ -337,7 +337,7 @@ rule validation_subsample:
         max_samples=VALIDATION_MAX_SAMPLES,
         seed=VALIDATION_SEED,
     run:
-        from bolinas.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
             subsample_deterministic,
         )
 
@@ -404,7 +404,7 @@ rule validation_dataset:
     resources:
         mem_mb=2000,
     run:
-        from bolinas.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
             case_encode_sequences,
         )
 
@@ -451,7 +451,7 @@ rule validation_hf_readme:
         ncrna_biotypes=VALIDATION_NCRNA_BIOTYPES,
         canonical_tag=VALIDATION_CANONICAL_TAG,
     run:
-        from bolinas.pipelines.zoonomia_projection_dataset.validation import write_hf_readme
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import write_hf_readme
 
         write_hf_readme(
             wildcards.recipe,

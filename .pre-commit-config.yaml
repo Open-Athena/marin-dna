@@ -15,7 +15,7 @@ repos:
         # lm-evaluation-harness task configs use the framework's custom
         # ``!function`` tag — valid for it but not for PyYAML's default
         # SafeLoader. Skip them; structure is checked when lm-eval parses.
-        exclude: ^src/bolinas/pipelines/evals/lm_eval/.*\.yaml$
+        exclude: ^src/marin_dna/pipelines/evals/lm_eval/.*\.yaml$
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
@@ -40,11 +40,11 @@ repos:
       # Runs mypy from the project's uv-managed venv so it sees real
       # transitive types. Config (target, flags) lives in pyproject.toml
       # under [tool.mypy]. `pass_filenames: false` so mypy always scans
-      # the whole tree on any python change in src/bolinas/ — partial
+      # the whole tree on any python change in src/marin_dna/ — partial
       # mypy runs miss cross-file issues.
       - id: mypy
         name: mypy
         entry: uv run mypy
         language: system
         pass_filenames: false
-        files: ^src/bolinas/.*\.py$
+        files: ^src/marin_dna/.*\.py$

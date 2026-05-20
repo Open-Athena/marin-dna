@@ -176,7 +176,7 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
   margin-right: 6px;
   vertical-align: middle;
 }
-.lb-family-bolinas      { background: #1f77b4; }
+.lb-family-marin_dna      { background: #1f77b4; }
 .lb-family-conservation { background: #7f7f7f; }
 .lb-family-alphagenome  { background: #d62728; }
 .lb-family-gpn_star     { background: #9467bd; }
@@ -242,7 +242,7 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.lb-pop-family.family-bolinas      { background: #1f77b4; }
+.lb-pop-family.family-marin_dna      { background: #1f77b4; }
 .lb-pop-family.family-conservation { background: #7f7f7f; }
 .lb-pop-family.family-alphagenome  { background: #d62728; }
 .lb-pop-family.family-gpn_star     { background: #9467bd; }

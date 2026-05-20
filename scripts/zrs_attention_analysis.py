@@ -23,12 +23,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from alphagenome_pytorch.attention import MHABlock  # noqa: E402
 from alphagenome_pytorch.utils.sequence import sequence_to_onehot  # noqa: E402
-from bolinas.data.genome import Genome  # noqa: E402
+from marin_dna.data.genome import Genome  # noqa: E402
 from matplotlib.patches import Rectangle  # noqa: E402
 
 from alphagenome_pytorch.attention import apply_rope  # noqa: E402
 
-from bolinas.pipelines.enhancer_segmentation.model import EnhancerSegmenter  # noqa: E402
+from marin_dna.pipelines.enhancer_segmentation.model import EnhancerSegmenter  # noqa: E402
 
 # --- region setup -----------------------------------------------------------
 ZRS_START_BIO, ZRS_END_BIO = 156790115, 156793672

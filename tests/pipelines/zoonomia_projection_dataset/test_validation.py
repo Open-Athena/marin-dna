@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.zoonomia_projection_dataset.validation``."""
+"""Tests for ``marin_dna.pipelines.zoonomia_projection_dataset.validation``."""
 
 from pathlib import Path
 
@@ -7,9 +7,9 @@ import polars as pl
 import pyBigWig
 import pytest
 
-from bolinas.data.intervals import GenomicSet
-from bolinas.data.utils import load_annotation
-from bolinas.pipelines.zoonomia_projection_dataset.validation import (
+from marin_dna.data.intervals import GenomicSet
+from marin_dna.data.utils import load_annotation
+from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
     build_annotation_region,
     build_cre_region,
     build_tss_band_region,
@@ -1100,7 +1100,7 @@ def test_write_hf_readme_includes_permalink(tmp_path: Path) -> None:
     write_hf_readme("val_cds", out, **_readme_kwargs(commit_sha=sha))
     body = out.read_text()
     assert (
-        f"https://github.com/Open-Athena/bolinas-dna/tree/{sha}/snakemake/zoonomia_projection_dataset"
+        f"https://github.com/Open-Athena/marin-dna/tree/{sha}/snakemake/zoonomia_projection_dataset"
         in body
     )
     # Short SHA is also referenced as link text

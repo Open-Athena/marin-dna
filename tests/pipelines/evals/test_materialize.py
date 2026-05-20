@@ -3,7 +3,7 @@
 Each input variant produces two output rows: ``strand="+"`` (FWD) and
 ``strand="-"`` (RC of the same window). The tests pin down per-strand sequence
 construction and the doubled row count, plus equivalence with
-``bolinas.data.transforms._get_variant_window`` (the offline-batched-VEP path's
+``marin_dna.data.transforms._get_variant_window`` (the offline-batched-VEP path's
 golden reference).
 """
 
@@ -12,10 +12,10 @@ from pathlib import Path
 import pytest
 from datasets import Dataset
 
-from bolinas.data.dna import complement_base, reverse_complement
-from bolinas.data.genome import Genome
-from bolinas.data.transforms import _get_variant_window, in_seq_var_pos
-from bolinas.pipelines.evals.materialize import (
+from marin_dna.data.dna import complement_base, reverse_complement
+from marin_dna.data.genome import Genome
+from marin_dna.data.transforms import _get_variant_window, in_seq_var_pos
+from marin_dna.pipelines.evals.materialize import (
     _add_eval_harness_fields,
     materialize_sequences,
 )
@@ -136,7 +136,7 @@ def test_add_eval_harness_fields_rc(mini_genome):
 
 
 def test_rc_matches_get_variant_window(mini_genome):
-    """RC sequences must match what bolinas.data.transforms._get_variant_window
+    """RC sequences must match what marin_dna.data.transforms._get_variant_window
     produces — the golden reference used by the offline batched VEP path.
     """
     example = {"chrom": "1", "pos": 25, "ref": "A", "alt": "T"}

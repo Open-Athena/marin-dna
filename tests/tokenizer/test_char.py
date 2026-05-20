@@ -5,7 +5,7 @@ import tempfile
 import pytest
 from transformers import AutoTokenizer
 
-from bolinas.tokenizer.char import create_char_tokenizer
+from marin_dna.tokenizer.char import create_char_tokenizer
 
 # ===========================================================================
 # Default: bos=True, eos=True

@@ -1,10 +1,10 @@
 # Enhancer Classification
 
 Binary enhancer classifier. For design decisions, results, and iteration
-history see [#96](https://github.com/Open-Athena/bolinas-dna/issues/96).
+history see [#96](https://github.com/Open-Athena/marin-dna/issues/96).
 
 This pipeline also includes a **per-bin enhancer segmentation** formulation
-(issue [#115](https://github.com/Open-Athena/bolinas-dna/issues/115)) that
+(issue [#115](https://github.com/Open-Athena/marin-dna/issues/115)) that
 shares the conserved-enhancer definition with the classifier but predicts one
 logit per 128 bp bin inside a 16384 bp window.
 
@@ -38,9 +38,9 @@ logit per 128 bp bin inside a 16384 bp window.
 
 | File | Description |
 |------|-------------|
-| `src/bolinas/enhancer_classification/{dataset,model,train}.py` | 255 bp binary classifier |
-| `src/bolinas/enhancer_segmentation/{dataset,model,train}.py` | Per-bin segmenter (Conv1d head on encoder) |
-| `src/bolinas/enhancer_segmentation/labeling.py` | `label_windows_by_bin_overlap` — bin-level labels from enhancer intervals |
+| `src/marin_dna/enhancer_classification/{dataset,model,train}.py` | 255 bp binary classifier |
+| `src/marin_dna/enhancer_segmentation/{dataset,model,train}.py` | Per-bin segmenter (Conv1d head on encoder) |
+| `src/marin_dna/enhancer_segmentation/labeling.py` | `label_windows_by_bin_overlap` — bin-level labels from enhancer intervals |
 | `workflow/rules/model.smk` | Classifier training rules |
 | `workflow/rules/segmentation.smk` | Segmentation data build + training rules |
 

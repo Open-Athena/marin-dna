@@ -5,7 +5,7 @@ import math
 import pandas as pd
 import pytest
 
-from bolinas.pipelines.evals.metrics import (
+from marin_dna.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     compute_pairwise_metrics,

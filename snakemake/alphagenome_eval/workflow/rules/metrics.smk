@@ -2,7 +2,7 @@
 
 Cluster = `match_group`; resamples groups (not rows) so the SE accounts
 for the 1:k matched structure. Output schema mirrors
-`bolinas.pipelines.evals.metrics.compute_auprc_metrics`:
+`marin_dna.pipelines.evals.metrics.compute_auprc_metrics`:
 `[score_type, subset, value, se, n_groups, n_rows]` plus `_global_` and
 `_macro_avg_` aggregate rows per score_type.
 """

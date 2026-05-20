@@ -1,11 +1,11 @@
-"""Tests for ``bolinas.pipelines.projection.resize``."""
+"""Tests for ``marin_dna.pipelines.projection.resize``."""
 
 from __future__ import annotations
 
 import polars as pl
 import pytest
 
-from bolinas.pipelines.projection.resize import resize_dataframe, resize_to_length
+from marin_dna.pipelines.projection.resize import resize_dataframe, resize_to_length
 
 
 def test_already_target_length_no_change() -> None:

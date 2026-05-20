@@ -8,7 +8,7 @@ SkyPilot cluster.
 
 import numpy as np
 
-from bolinas.pipelines.evals.evo2 import aggregate_ll_gap, compute_evo2_ll
+from marin_dna.pipelines.evals.evo2 import aggregate_ll_gap, compute_evo2_ll
 
 
 def test_evo2_helpers_importable():

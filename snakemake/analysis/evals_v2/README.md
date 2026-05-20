@@ -42,7 +42,7 @@ results/
 The metrics parquet has columns
 `[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]`,
 with aggregate rows `_global_` and `_macro_avg_` per `score_type` —
-see `bolinas.pipelines.evals.metrics.compute_auprc_metrics` for details.
+see `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` for details.
 
 ## Conventions
 
@@ -139,9 +139,9 @@ Two unavoidable AWS-side failure modes worth knowing about:
 
 Pipeline rules are thin glue around:
 
-- `bolinas.pipelines.evals.inference.compute_variant_scores` — model + genome
+- `marin_dna.pipelines.evals.inference.compute_variant_scores` — model + genome
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
-- `bolinas.pipelines.evals.metrics.compute_auprc_metrics` — score columns
+- `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` — score columns
   → AUPRC ± cluster-bootstrap SE per subset (cluster = `match_group`).
 
 Both are tested at `tests/pipelines/evals/test_metrics.py`,

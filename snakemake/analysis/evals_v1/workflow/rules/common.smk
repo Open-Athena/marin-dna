@@ -6,9 +6,9 @@ import pandas as pd
 from datasets import load_dataset
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-from bolinas.pipelines.evals.inference import compute_variant_scores
-from bolinas.pipelines.evals.metrics import aggregate_metrics, compute_metrics
-from bolinas.pipelines.evals.plotting import plot_metrics_vs_step, plot_models_comparison
+from marin_dna.pipelines.evals.inference import compute_variant_scores
+from marin_dna.pipelines.evals.metrics import aggregate_metrics, compute_metrics
+from marin_dna.pipelines.evals.plotting import plot_metrics_vs_step, plot_models_comparison
 
 COORDINATES = ["chrom", "pos", "ref", "alt"]
 

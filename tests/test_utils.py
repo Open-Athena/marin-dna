@@ -3,8 +3,8 @@ import pandas as pd
 import polars as pl
 from Bio.Seq import Seq
 
-from bolinas.data.intervals import GenomicSet
-from bolinas.data.utils import (
+from marin_dna.data.intervals import GenomicSet
+from marin_dna.data.utils import (
     add_rc,
     get_3_prime_utr,
     get_5_prime_utr,

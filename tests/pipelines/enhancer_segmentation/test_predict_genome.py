@@ -1,6 +1,6 @@
 """Tests for whole-genome segmentation tiling."""
 
-from bolinas.pipelines.enhancer_segmentation.predict_genome import tile_chromosomes
+from marin_dna.pipelines.enhancer_segmentation.predict_genome import tile_chromosomes
 
 WINDOW = 65536
 

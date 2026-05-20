@@ -30,7 +30,7 @@ import time
 import boto3
 import polars as pl
 
-from bolinas.pipelines.evals.matching import (
+from marin_dna.pipelines.evals.matching import (
     CAT_BASE,
     MAF_TIERED_LOG8_DISTAL_ONLY,
     MAF_TIERED_V1,

@@ -18,7 +18,7 @@ The pipeline:
 The pipeline uses the main project's Python environment. If you haven't already installed dependencies:
 
 ```bash
-cd /path/to/bolinas-dna
+cd /path/to/marin-dna
 uv sync
 ```
 
@@ -183,7 +183,7 @@ Metrics are computed both globally (all variants) and separately for each subset
 
 The pipeline uses a clean separation between Snakemake rules and Python logic:
 
-- **`src/bolinas/evals/`**: Core Python module with type hints and tests
+- **`src/marin_dna/evals/`**: Core Python module with type hints and tests
   - `inference.py`: LLR and embedding distance computation using biofoundation
   - `metrics.py`: Metric computation functions
   - `plotting.py`: Plotting utilities
@@ -243,7 +243,7 @@ huggingface-cli login
 
 ### Adding New Metrics
 
-1. Add metric function to `src/bolinas/evals/metrics.py`:
+1. Add metric function to `src/marin_dna/evals/metrics.py`:
    ```python
    METRIC_FUNCTIONS["MyMetric"] = lambda label, score: my_metric_fn(label, score)
    ```
@@ -257,6 +257,6 @@ huggingface-cli login
 
 ### Adding New Plots
 
-1. Implement plotting function in `src/bolinas/evals/plotting.py`
+1. Implement plotting function in `src/marin_dna/evals/plotting.py`
 2. Add rule in `workflow/rules/plots.smk`
 3. Add output to `rule all` in `Snakefile`

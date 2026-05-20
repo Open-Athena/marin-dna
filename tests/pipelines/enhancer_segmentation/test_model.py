@@ -2,8 +2,8 @@
 
 import torch
 
-from bolinas.pipelines.enhancer_classification.model import ENCODER_OUTPUT_DIM
-from bolinas.pipelines.enhancer_segmentation.model import EnhancerSegmenter
+from marin_dna.pipelines.enhancer_classification.model import ENCODER_OUTPUT_DIM
+from marin_dna.pipelines.enhancer_segmentation.model import EnhancerSegmenter
 
 BIN_SIZE = 128
 NUM_BINS = 128

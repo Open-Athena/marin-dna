@@ -58,7 +58,7 @@ for m in evo2_1b_base evo2_7b evo2_40b; do
 done
 ```
 
-This mirrors `snakemake/analysis/evals_v2/workflow/rules/metrics.smk` (PR #195) but in script form, since evo2 isn't wired into the evals_v2 pipeline. Output schema matches `compute_auprc_metrics` + `[model, dataset, split]` — the same shape the dashboard's `bolinas`-family parquets use, so the metrics flow straight into `src/bolinas/pipelines/evals/leaderboard.py`'s `family: evo2` resolver. Re-uploading means: upload via `gh-upload-asset`, bump `EVO2_METRICS_GIST_COMMIT` in `leaderboard.py`, rebuild the dashboard.
+This mirrors `snakemake/analysis/evals_v2/workflow/rules/metrics.smk` (PR #195) but in script form, since evo2 isn't wired into the evals_v2 pipeline. Output schema matches `compute_auprc_metrics` + `[model, dataset, split]` — the same shape the dashboard's `marin_dna`-family parquets use, so the metrics flow straight into `src/marin_dna/pipelines/evals/leaderboard.py`'s `family: evo2` resolver. Re-uploading means: upload via `gh-upload-asset`, bump `EVO2_METRICS_GIST_COMMIT` in `leaderboard.py`, rebuild the dashboard.
 
 ### Tear down
 
@@ -106,7 +106,7 @@ Per-row LL sums + token counts (not means — means break for all-upper or all-l
 
 ### Evo2 + HF Trainer pitfalls
 
-1. **`auto_find_batch_size=True` is a no-op for `Trainer.predict()`**. It only wraps the train loop. For inference, tune manually — `find_max_batch_size` in `bolinas.pipelines.evals.evo2` does OOM-descent halving from a `start` seed.
+1. **`auto_find_batch_size=True` is a no-op for `Trainer.predict()`**. It only wraps the train loop. For inference, tune manually — `find_max_batch_size` in `marin_dna.pipelines.evals.evo2` does OOM-descent halving from a `start` seed.
 
 2. **`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` is required for 40B on sharded 2×H100.** Without it, the failure masquerades as a vortex rotary `AttributeError: 'NoneType' object has no attribute 'shape'` (sin_k is None). With it, the same bs=1 run completes cleanly. Classic OOM-in-disguise. (Not needed on single-GPU GH200, but kept in the yaml as a safe default.)
 
@@ -122,7 +122,7 @@ Per-row LL sums + token counts (not means — means break for all-upper or all-l
 
 8. **`sky launch` vs `sky exec`:** `sky launch` on the same cluster rechecks/reruns `setup:`. `sky exec` only runs `run:`. If you've edited setup env vars, `sky launch`. If only the run command changed, `sky exec` (and pass `--gpus` to match the cluster's accelerators, or it will reject with a resource mismatch).
 
-9. **Biofoundation install dropped (May 2026).** After PR #182 vendored the CLM subset into `bolinas.model.*`, the variant-scoring path no longer needs biofoundation. The current Mendelian yaml's Docker image only installs `evo2`.
+9. **Biofoundation install dropped (May 2026).** After PR #182 vendored the CLM subset into `marin_dna.model.*`, the variant-scoring path no longer needs biofoundation. The current Mendelian yaml's Docker image only installs `evo2`.
 
 ### Throughput summary (8192 ctx, 24,530 TraitGym v2 variants — single-strand)
 

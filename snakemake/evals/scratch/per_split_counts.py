@@ -7,7 +7,7 @@ Uses the count-only k=1 gene-matched approximation:
 import polars as pl
 import yaml
 
-from bolinas.pipelines.evals.trait_intervals import build_dataset
+from marin_dna.pipelines.evals.trait_intervals import build_dataset
 
 base = "s3://oa-bolinas/snakemake/evals/results"
 COORDINATES = ["chrom", "pos", "ref", "alt"]

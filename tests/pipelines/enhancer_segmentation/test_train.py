@@ -1,6 +1,6 @@
 """Lightweight tests for train.py CLI helpers."""
 
-from bolinas.pipelines.enhancer_segmentation.train import _as_batches_arg
+from marin_dna.pipelines.enhancer_segmentation.train import _as_batches_arg
 
 
 def test_as_batches_arg_full_pass_through() -> None:

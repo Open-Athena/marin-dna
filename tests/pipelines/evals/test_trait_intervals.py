@@ -5,8 +5,8 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from bolinas.data.utils import load_annotation
-from bolinas.pipelines.evals.trait_intervals import (
+from marin_dna.data.utils import load_annotation
+from marin_dna.pipelines.evals.trait_intervals import (
     add_exon,
     add_tss,
     build_dataset,

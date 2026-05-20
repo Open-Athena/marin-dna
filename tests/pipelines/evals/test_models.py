@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.evals.models`` — loader + validator for
+"""Tests for ``marin_dna.pipelines.evals.models`` — loader + validator for
 ``dashboard/models.yaml``."""
 
 from __future__ import annotations
@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from bolinas.pipelines.evals.models import (
+from marin_dna.pipelines.evals.models import (
     ALL_DATASETS,
     ALL_FAMILIES,
     MODELS_YAML,
@@ -70,7 +70,7 @@ def test_every_family_has_at_least_one_method():
 def test_bolinas_methods_have_checkpoint(tmp_path: Path):
     methods = load_models()
     for m in methods:
-        if m.family == "bolinas":
+        if m.family == "marin_dna":
             assert m.checkpoint is not None, m.id
             assert m.checkpoint.gcs or m.checkpoint.hf, m.id
 
@@ -147,7 +147,7 @@ def test_bolinas_requires_checkpoint(tmp_path: Path):
                 {
                     "id": "exp999",
                     "display": "exp999",
-                    "family": "bolinas",
+                    "family": "marin_dna",
                     "description": "test",
                     "datasets": ["mendelian_traits"],
                 }

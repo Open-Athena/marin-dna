@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.projection.hal``."""
+"""Tests for ``marin_dna.pipelines.projection.hal``."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from bolinas.pipelines.projection.hal import (
+from marin_dna.pipelines.projection.hal import (
     HALLIFTOVER_BED_SCHEMA,
     attach_src_size,
     parse_halliftover_bed,

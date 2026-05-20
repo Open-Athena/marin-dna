@@ -11,10 +11,10 @@ from huggingface_hub import hf_hub_download
 
 import bioframe as bf
 
-from bolinas.data.intervals import GenomicList, GenomicSet
-from bolinas.data.negative_sampling import compute_gc_content, compute_repeat_fraction, match_by_gc_repeat
-from bolinas.data.utils import ENHANCER_CRE_CLASSES, add_rc, get_ensembl_functional_exons, load_annotation, load_fasta
-from bolinas.pipelines.enhancer_segmentation.labeling import label_windows_by_bin_overlap
+from marin_dna.data.intervals import GenomicList, GenomicSet
+from marin_dna.data.negative_sampling import compute_gc_content, compute_repeat_fraction, match_by_gc_repeat
+from marin_dna.data.utils import ENHANCER_CRE_CLASSES, add_rc, get_ensembl_functional_exons, load_annotation, load_fasta
+from marin_dna.pipelines.enhancer_segmentation.labeling import label_windows_by_bin_overlap
 
 
 SPECIES = list(config["genome_urls"].keys())

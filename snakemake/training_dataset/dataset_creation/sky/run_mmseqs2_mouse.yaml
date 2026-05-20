@@ -38,7 +38,7 @@ setup: |
 
     export PATH="$HOME/.local/bin:$PATH"
     # `enhancer-classification` group pulls alphagenome_pytorch, transitively
-    # imported by common.smk via bolinas.enhancer_classification.predict.
+    # imported by common.smk via marin_dna.enhancer_classification.predict.
     uv sync --group enhancer-classification
 
 run: |

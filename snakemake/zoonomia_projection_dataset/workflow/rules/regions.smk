@@ -7,14 +7,14 @@ of ``cds``, ``utr3``, ``ncrna_exon``, ``tss_region_and_utr5``,
 dataset and to emit per-label ``subsets_def/v3_*.query_names.txt`` lists
 that plug into the existing ``subset_dataset_derived`` machinery.
 
-Library code lives in ``bolinas.pipelines.zoonomia_projection_dataset.region_labels``;
+Library code lives in ``marin_dna.pipelines.zoonomia_projection_dataset.region_labels``;
 ``run:`` blocks here are thin glue + pipeline-level assertions.
 
 See plan and README "Region-type annotation" section for the priority /
 threshold / cCRE-flank semantics.
 """
 
-from bolinas.pipelines.zoonomia_projection_dataset.region_labels import REGION_LABELS
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import REGION_LABELS
 
 
 REGION_LABEL_TSS_RADIUS = int(config["region_label_tss_radius"])
@@ -59,8 +59,8 @@ rule build_region_labels:
         # multiple region sets. Peaks around the union build; budget headroom.
         mem_mb=24000,
     run:
-        from bolinas.data.intervals import GenomicSet
-        from bolinas.pipelines.zoonomia_projection_dataset.region_labels import (
+        from marin_dna.data.intervals import GenomicSet
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
             build_region_beds,
             label_windows,
         )

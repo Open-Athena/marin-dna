@@ -104,7 +104,7 @@ models:
     window_size: 255
     datasets: [mendelian_traits, complex_traits]
 
-  # Eric's mix-v0.9 1B runs (Slack #bolinas, 2026-05-18). Qwen3-1B,
+  # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
   # mixture baseline; the i16 run continues training from i0's final
   # checkpoint with a 40% upstream / 30% downstream-cds mixture.

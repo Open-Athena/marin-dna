@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from bolinas.pipelines.evals.metrics import compute_pairwise_metrics
+from marin_dna.pipelines.evals.metrics import compute_pairwise_metrics
 
 
 REQUIRED_VARIANT_COLUMNS = (

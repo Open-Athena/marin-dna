@@ -1,8 +1,8 @@
-// Observable Framework site config for the Bolinas-DNA leaderboard.
+// Observable Framework site config for the MarinDNA leaderboard.
 // See: https://observablehq.com/framework/config
 
 export default {
-  title: "Bolinas-DNA Leaderboard",
+  title: "MarinDNA Leaderboard",
   root: "src",
   output: "dist",
 
@@ -24,7 +24,7 @@ export default {
     {
       name: "Protocols",
       pages: [
-        {name: "Bolinas", path: "/protocols/bolinas"},
+        {name: "MarinDNA", path: "/protocols/marin_dna"},
         {name: "Evo 2", path: "/protocols/evo2"},
         {name: "GPN-Star", path: "/protocols/gpn-star"},
       ],
@@ -34,7 +34,7 @@ export default {
   ],
 
   // Python data loaders run via `uv run python` so they pick up the project
-  // venv (polars + boto3 + the local `bolinas` package).
+  // venv (polars + boto3 + the local `marin_dna` package).
   interpreters: {
     ".py": ["uv", "run", "python"],
   },
@@ -43,5 +43,5 @@ export default {
   // the markdown body instead, alongside dataset metadata).
   header: "",
   footer: ({path}) =>
-    `Source: <a href="https://github.com/Open-Athena/bolinas-dna/blob/main/dashboard/src${path}.md">dashboard/src${path}.md</a> · <a href="https://github.com/Open-Athena/bolinas-dna/blob/main/dashboard/models.yaml">models.yaml</a>`,
+    `Source: <a href="https://github.com/Open-Athena/marin-dna/blob/main/dashboard/src${path}.md">dashboard/src${path}.md</a> · <a href="https://github.com/Open-Athena/marin-dna/blob/main/dashboard/models.yaml">models.yaml</a>`,
 };

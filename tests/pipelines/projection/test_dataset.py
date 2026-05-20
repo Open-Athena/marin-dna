@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.projection.dataset``."""
+"""Tests for ``marin_dna.pipelines.projection.dataset``."""
 
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from bolinas.pipelines.projection.dataset import (
+from marin_dna.pipelines.projection.dataset import (
     prepare_shards,
     reverse_complement_col,
 )

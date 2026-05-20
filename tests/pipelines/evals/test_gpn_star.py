@@ -1,4 +1,4 @@
-"""Tests for ``bolinas.pipelines.evals.gpn_star``."""
+"""Tests for ``marin_dna.pipelines.evals.gpn_star``."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import math
 import pandas as pd
 import pytest
 
-from bolinas.pipelines.evals.gpn_star import (
+from marin_dna.pipelines.evals.gpn_star import (
     GPN_STAR_GIST_BASE,
     GPN_STAR_MODELS,
     GPN_STAR_MODEL_INFO,

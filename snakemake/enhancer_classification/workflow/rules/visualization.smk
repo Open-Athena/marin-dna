@@ -25,7 +25,7 @@ rule predict_region:
         step_size=VIS_CONFIG.get("step_size", 32),
     shell:
         """
-        uv run python -m bolinas.pipelines.enhancer_classification.predict \
+        uv run python -m marin_dna.pipelines.enhancer_classification.predict \
             --genome {input.genome} \
             --checkpoint {input.checkpoint} \
             --chrom {params.chrom} \

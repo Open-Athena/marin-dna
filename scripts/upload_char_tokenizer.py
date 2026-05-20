@@ -3,7 +3,7 @@
 
 import argparse
 
-from bolinas.tokenizer.char import create_char_tokenizer
+from marin_dna.tokenizer.char import create_char_tokenizer
 
 
 def parse_args() -> argparse.Namespace:

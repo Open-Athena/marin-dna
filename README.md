@@ -2,7 +2,7 @@
   <img src="assets/logo.png" width="100" />
 </p>
 
-<h1 align="center">Bolinas</h1>
+<h1 align="center">MarinDNA</h1>
 
 <p align="center">Open development of genomic language models — data, modeling, and evaluation.</p>
 
@@ -11,11 +11,11 @@
 ## Experiments
 
 Tracked as GitHub issues. See the
-[experiment-labeled issues](https://github.com/Open-Athena/bolinas-dna/issues?q=is%3Aissue+label%3Aexperiment).
+[experiment-labeled issues](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment).
 
 ## Leaderboard
 
-Variant effect prediction leaderboards (under construction): [openathena.ai/bolinas-dna](https://openathena.ai/bolinas-dna/).
+Variant effect prediction leaderboards (under construction): [openathena.ai/marin-dna](https://openathena.ai/marin-dna/).
 
 ## Installation
 
@@ -64,22 +64,22 @@ See [AGENTS.md](AGENTS.md#code-structure).
 
 ## Community
 
-Join the [Marin Discord](https://discord.gg/J9CTk7pqcM); bolinas-dna discussion happens in the `#dna` channel.
+Join the [Marin Discord](https://discord.gg/J9CTk7pqcM); marin-dna discussion happens in the `#dna` channel.
 
 ## Citation
 
 If you find datasets, models, or experiments from this repo useful, please cite:
 
-> Bolinas-DNA: open development of genomic language models. Open Athena, 2026.
-> https://github.com/Open-Athena/bolinas-dna
+> MarinDNA: open development of genomic language models. Open Athena, 2026.
+> https://github.com/Open-Athena/marin-dna
 
 BibTeX:
 
 ```bibtex
-@misc{bolinas-dna,
-  title  = {Bolinas-DNA: open development of genomic language models},
+@misc{marin-dna,
+  title  = {MarinDNA: open development of genomic language models},
   author = {{Open Athena}},
   year   = {2026},
-  url    = {https://github.com/Open-Athena/bolinas-dna},
+  url    = {https://github.com/Open-Athena/marin-dna},
 }
 ```

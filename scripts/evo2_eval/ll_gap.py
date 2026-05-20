@@ -4,7 +4,7 @@ LL gap = mean log-likelihood on phyloP-functional (uppercase) target tokens
 minus mean LL on non-functional (lowercase) target tokens. Positive gap
 means the model finds functional bases easier to predict than non-functional
 ones — a self-supervised proxy for "captures functional/non-functional
-sequence structure" (biofoundation PR #18; bolinas-dna issue #131
+sequence structure" (biofoundation PR #18; marin-dna issue #131
 follow-up).
 
 Default dataset: ``bolinas-dna/genomes-v5-validation-intervals-v5_255_255``
@@ -30,7 +30,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from datasets import Dataset, load_dataset  # noqa: E402
 
-from bolinas.pipelines.evals.evo2 import (  # noqa: E402
+from marin_dna.pipelines.evals.evo2 import (  # noqa: E402
     EVO2_MODEL_CHOICES,
     aggregate_ll_gap,
     compute_evo2_ll,
