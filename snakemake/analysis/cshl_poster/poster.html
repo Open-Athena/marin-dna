@@ -151,11 +151,11 @@ body {
   display: block;
 }
 
-/* ─── Two-column body ─── */
+/* ─── Three-column body ─── */
 .body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 0.6in;
+  grid-template-columns: 1fr 1fr 1fr;
+  column-gap: 0.45in;
   min-height: 0;
   overflow: hidden;
 }
@@ -488,6 +488,48 @@ body {
         <figure class="fig">
           <p class="fig-title">CDS AUPRC vs evolutionary timescale</p>
           <div class="fig-canvas"><img src="figs/t2.svg" alt="Figure T2"></div>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Third column: placeholder for exploration. Could hold a scaling /
+         model-size axis, a region × timescale interaction panel, or a
+         standalone headline / discussion block. -->
+    <div class="col col-with-legend">
+      <h2><span class="num">C.</span>Placeholder</h2>
+
+      <div class="timescale-legend" style="display: flex; align-items: center; justify-content: center; min-height: 4in;">
+        <p style="font-family: var(--font-heading); font-size: 24pt; color: var(--text-light); text-align: center; margin: 0;">
+          third column — TBD<br>
+          <span style="font-family: var(--font-body); font-size: 14pt;">
+            scaling sweep · region × timescale<br>interaction · or standalone result
+          </span>
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">C1</span>
+          <p class="title">Placeholder result 1.</p>
+        </div>
+        <figure class="fig">
+          <p class="fig-title">Placeholder figure</p>
+          <div class="fig-canvas" style="min-height: 3in; align-items: center; justify-content: center;">
+            <span style="color: var(--text-light); font-style: italic;">placeholder</span>
+          </div>
+        </figure>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="tag">C2</span>
+          <p class="title">Placeholder result 2.</p>
+        </div>
+        <figure class="fig">
+          <p class="fig-title">Placeholder figure</p>
+          <div class="fig-canvas" style="min-height: 3in; align-items: center; justify-content: center;">
+            <span style="color: var(--text-light); font-style: italic;">placeholder</span>
+          </div>
         </figure>
       </div>
     </div>
