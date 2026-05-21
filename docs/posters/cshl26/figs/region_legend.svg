@@ -3,12 +3,12 @@
     <style>
       .ink   { fill: #1f1e1b; }
       .muted { fill: #7a7a7a; }
-      .label-bold { font-family: 'Lato', sans-serif; font-size: 30px; font-weight: 700; }
-      .clade { font-family: 'Lato', sans-serif; font-size: 28px; }
+      .label-bold { font-family: 'Lato', sans-serif; font-size: 36px; font-weight: 700; }
+      .clade { font-family: 'Lato', sans-serif; font-size: 34px; }
       /* Smaller variant for non-focal regions (UTRs) so they don't crowd
-         the focal Promoter/CDS labels at the new size. */
-      .clade-small { font-family: 'Lato', sans-serif; font-size: 22px; }
-      .micro { font-family: 'Lato', sans-serif; font-size: 22px; }
+         the focal Promoter/CDS/Enhancer labels at the new size. */
+      .clade-small { font-family: 'Lato', sans-serif; font-size: 24px; }
+      .micro { font-family: 'Lato', sans-serif; font-size: 24px; }
     </style>
   </defs>
 
@@ -50,13 +50,16 @@
     <!-- 3'UTR -->
     <rect x="900" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
 
-    <!-- Region labels below -->
+    <!-- Region labels below — focal labels (Enhancer/Promoter/CDS) at
+         large size; UTR labels in a smaller variant since they're not
+         focal regions for this work. Positions nudged to keep the larger
+         labels from crowding each other. -->
     <text x="60"  y="140" text-anchor="middle" class="clade" fill="#029e73" font-weight="700">Enhancer</text>
 
-    <text x="415" y="140" text-anchor="middle" class="clade" fill="#0173b2" font-weight="700">Promoter</text>
-    <text x="510" y="140" text-anchor="middle" class="clade-small muted">5′ UTR</text>
+    <text x="400" y="140" text-anchor="middle" class="clade" fill="#0173b2" font-weight="700">Promoter</text>
+    <text x="530" y="140" text-anchor="middle" class="clade-small muted">5′ UTR</text>
 
-    <text x="600" y="140" text-anchor="middle" class="clade" fill="#de8f05" font-weight="700">CDS</text>
+    <text x="620" y="140" text-anchor="middle" class="clade" fill="#de8f05" font-weight="700">CDS</text>
 
     <text x="935" y="140" text-anchor="middle" class="clade-small muted">3′ UTR</text>
   </g>
