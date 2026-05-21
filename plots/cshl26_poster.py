@@ -309,10 +309,13 @@ MIXTURE_STEPS: dict[str, tuple[str, tuple[int, ...]]] = {
 # so the legend reads in the same direction as the subplot row.
 SPECIALIST_METHODS = ("exp27", "exp21", "exp136", "evo2_40b", "GPN-Star-M")
 
+# Labels for the legend rows. The "Specialists" / "Generalists" group
+# titles do the "-specialist" disambiguation, so the per-bar labels can
+# stay short ("Promoter", "CDS", "Enhancer").
 SPECIALIST_LABELS: dict[str, str] = {
-    "exp21":      "Promoter-specialist",
-    "exp27":      "CDS-specialist",
-    "exp136":     "Enhancer-specialist",
+    "exp21":      "Promoter",
+    "exp27":      "CDS",
+    "exp136":     "Enhancer",
     "evo2_40b":   "Evo 2 (40B)",
     "GPN-Star-M": "GPN-Star (M)",
 }
@@ -433,13 +436,16 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(
         1, len(regions),
-        figsize=(11.5, 4.4),
+        figsize=(11.5, 5.2),
         sharey=False,        # each region is a different dataset
         constrained_layout=False,
     )
 
-    # Plot, collecting bar handles from the first panel for the shared legend.
-    legend_handles = []
+    # Plot, collecting bar handles separately so we can put specialists
+    # and generalists on different legend rows below the panels.
+    specialist_handles: list = []
+    generalist_handles: list = []
+    is_specialist = set(SPECIALIST_CHECKPOINTS)
     for ax_idx, (ax, region) in enumerate(zip(axes, regions)):
         heights = [grid[m][region][0] for m in SPECIALIST_METHODS]
         errs    = [grid[m][region][1] for m in SPECIALIST_METHODS]
@@ -453,23 +459,26 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
             error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 0},
         )
         if ax_idx == 0:
-            # Attach labels once for the figure-level legend.
+            # Attach labels once and split into specialist / generalist groups.
             for bar, method in zip(bars, SPECIALIST_METHODS):
                 bar.set_label(SPECIALIST_LABELS[method].replace("\n", " "))
-                legend_handles.append(bar)
+                if method in is_specialist:
+                    specialist_handles.append(bar)
+                else:
+                    generalist_handles.append(bar)
 
         # Per-bar value labels above the SE bar.
         for x, h, e in zip(xs, heights, errs):
             ax.text(
                 x, h + e + 0.012,
                 f"{h:.2f}",
-                ha="center", va="bottom", fontsize=14,
+                ha="center", va="bottom", fontsize=20,
                 color=OA_TEXT,
             )
 
         ax.set_title(
             region,
-            fontsize=20,
+            fontsize=22,
             fontweight="bold",
             pad=8,
             color=REGION_TITLE_COLORS[region],
@@ -481,20 +490,37 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         # chance baseline (AUPRC = 0.1 for 1:9 positive:negative ratio).
         ymax = max(h + e for h, e in zip(heights, errs)) + 0.08
         ax.set_ylim(0.1, ymax)
+        ax.tick_params(axis="y", labelsize=22)
         if ax_idx == 0:
-            ax.set_ylabel("AUPRC")
+            ax.set_ylabel("AUPRC", fontsize=26)
 
-    # Single figure-level legend below the three panels.
+    # Two figure-level legend rows below the three panels — one for the
+    # 3 region specialists, one for the 2 whole-genome generalists.
+    # Grouping makes the typological distinction visible (and saves
+    # the "-specialist" suffix on every per-bar label).
     fig.legend(
-        handles=legend_handles,
+        handles=specialist_handles,
+        title="Specialists",
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.02),
-        ncol=len(SPECIALIST_METHODS),
-        fontsize=15,
+        bbox_to_anchor=(0.5, 0.13),
+        ncol=len(specialist_handles),
+        fontsize=24,
+        title_fontsize=24,
         labelcolor=OA_TEXT,
         frameon=False,
     )
-    fig.subplots_adjust(left=0.07, right=0.99, top=0.92, bottom=0.18, wspace=0.28)
+    fig.legend(
+        handles=generalist_handles,
+        title="Generalists",
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.0),
+        ncol=len(generalist_handles),
+        fontsize=24,
+        title_fontsize=24,
+        labelcolor=OA_TEXT,
+        frameon=False,
+    )
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.93, bottom=0.36, wspace=0.40)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
