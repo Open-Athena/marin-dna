@@ -599,8 +599,12 @@ def plot_r3(out_path: Path) -> None:
         *[set(MIXTURE_STEPS[m][1]) for m in methods]
     )
 
-    fig, axes = plt.subplots(1, len(MIXTURE_SUBSETS), figsize=(11.5, 4.5), sharey=False)
-    for ax, (panel, subset_key) in zip(axes, MIXTURE_SUBSETS.items()):
+    # Three panels: Promoter | Missense | Average (mean across both).
+    # The average panel makes the headline "Uniform mix wins on aggregate"
+    # visible directly — in the two-region panels you have to trade off
+    # mentally; here you just look at which line is highest.
+    fig, axes = plt.subplots(1, len(MIXTURE_SUBSETS) + 1, figsize=(15, 4.5), sharey=False)
+    for ax, (panel, subset_key) in zip(axes[:-1], MIXTURE_SUBSETS.items()):
         for m in methods:
             sub = (
                 traj[m]
@@ -629,6 +633,35 @@ def plot_r3(out_path: Path) -> None:
             fontweight="bold",
             color=REGION_TITLE_COLORS[panel],
         )
+
+    # Third panel: per-method average of (promoter, missense) at each
+    # shared step.
+    ax_avg = axes[-1]
+    for m in methods:
+        sub = (
+            traj[m]
+            .filter(
+                (pl.col("score_type") == score_type)
+                & (pl.col("subset").is_in(list(MIXTURE_SUBSETS.values())))
+                & (pl.col("step").is_in(list(common_steps)))
+            )
+            .group_by("step")
+            .agg(pl.col("value").mean().alias("value"))
+            .sort("step")
+        )
+        ax_avg.plot(
+            sub["step"].to_numpy(),
+            sub["value"].to_numpy(),
+            marker="o",
+            color=METHOD_COLORS[m],
+            label=METHOD_LABELS[m],
+        )
+    ax_avg.set_xlabel("training step")
+    ax_avg.set_title(
+        "Average",
+        fontweight="bold",
+        color=OA_TEXT,
+    )
 
     # No in-plot legend — the composition schematic above the line plot
     # (figs/r2_composition.svg) is the canonical legend: its left-side

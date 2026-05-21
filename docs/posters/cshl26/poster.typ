@@ -182,6 +182,8 @@
   ]
 
   #pop.column-box(heading: [Balanced sampling rescues the under-represented region])[
+    - We have good data recipes for specialist models. How do we build a generalist model? Simply train on a concatenation of the individual datasets?
+    - We evaluated this approach (proportional mixing) together with balanced sampling (uniform mixing).
     #image("figs/r2_composition.svg", width: 100%)
     #v(0.1in)
     #image("figs/r3.svg", width: 100%)

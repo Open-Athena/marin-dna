@@ -12,7 +12,7 @@
 
   <!-- Header strip: tiny column hints -->
   <text x="80"  y="22" class="header muted" text-anchor="middle">line plot</text>
-  <text x="280" y="22" class="header muted" text-anchor="start">training condition</text>
+  <text x="288" y="22" class="header muted" text-anchor="middle">training condition</text>
   <text x="800" y="22" class="header muted" text-anchor="middle">training data mix (ratio)</text>
 
   <!-- All 4 bars share the same total width (700px from x=450 to x=1150).
