@@ -440,7 +440,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(
         1, len(regions),
-        figsize=(11.5, 5.4),
+        figsize=(11.5, 6.5),
         sharey=False,        # each region is a different dataset
         constrained_layout=False,
     )
@@ -471,12 +471,16 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
                 else:
                     generalist_handles.append(bar)
 
-        # Per-bar value labels above the SE bar.
+        # Per-bar value labels above the SE bar. Font kept small (15pt)
+        # so adjacent annotations don't overlap when neighbouring bars
+        # are similar height (e.g. Promoter 0.10 and CDS 0.09 in the
+        # Enhancer panel — short bars in adjacent x positions whose
+        # value labels would otherwise crash horizontally).
         for x, h, e in zip(xs, heights, errs):
             ax.text(
                 x, h + e + 0.012,
                 f"{h:.2f}",
-                ha="center", va="bottom", fontsize=20,
+                ha="center", va="bottom", fontsize=15,
                 color=OA_TEXT,
             )
 
@@ -495,6 +499,10 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         ymax = max(h + e for h, e in zip(heights, errs)) + 0.08
         ax.set_ylim(0.1, ymax)
         ax.tick_params(axis="y", labelsize=22)
+        # Force each panel's plotting box to be square so the three
+        # subplots read as a uniform row of square cells (rather than
+        # wide flat rectangles).
+        ax.set_box_aspect(1.0)
         if ax_idx == 0:
             ax.set_ylabel("AUPRC", fontsize=26)
 
