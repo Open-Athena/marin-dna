@@ -176,7 +176,7 @@
     - We trained specialist models, each on a single region of the genome.
     #image("figs/specialist_bars.svg", width: 100%)
     - Each specialist achieves good performance in VEP tasks on its trained region.
-    - Specialists generally outperform Evo 2, but not GPN-Star.
+    - Specialists often outperform Evo 2, but not GPN-Star.
   ]
 
   #pop.column-box(heading: [Balanced sampling rescues the under-represented region])[
