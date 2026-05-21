@@ -263,34 +263,33 @@ GPN_STAR_METRICS_BASE = (
     "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
 )
 
-# Per-method colour.
+# Per-method colour for the exp13 mixture sweep.
 #
-# The exp13 mixture sweep (4 entries: 100% promoter → 50/50 → 10/90 →
-# 100% CDS) is a CONTINUOUS axis (fraction of CDS in training), so it
-# gets `magma` — a perceptually uniform sequential palette, distinct
-# from viridis (which is the evolutionary-timescale palette).
-#
-# Baselines (Evo 2, GPN-Star) are kept neutral grey since they're not
-# part of the focal categorical/sequential story.
+# The 4 mixture conditions sit on a 1-D axis (fraction of CDS in the
+# training data: 0 % → 50 % → 90 % → 100 %). We anchor the endpoints
+# at the focal region colours — Promoter blue at 0 % CDS, CDS orange
+# at 100 % — and linearly interpolate in RGB for the two intermediate
+# mixtures. The colour itself thus encodes the recipe.
 METHOD_COLORS: dict[str, str] = {
-    # Mixture sweep — magma, indexed by % CDS in training data:
-    "exp21":                  "#fe9f6d",  # magma[3]  — 0 %  CDS (light peach)
-    "exp13-equal":            "#de4968",  # magma[2]  — 50 % CDS (pink-red)
-    "exp13-proportional":     "#8c2981",  # magma[1]  — 90 % CDS (magenta)
-    "exp27":                  "#3b0f70",  # magma[0]  — 100 % CDS (dark purple)
+    "exp21":                  "#0173b2",  # 100 % promoter — Promoter blue
+    "exp13-equal":            "#6f815b",  # 50 % CDS       — midpoint (olive)
+    "exp13-proportional":     "#c78c16",  # 90 % CDS       — 9/10 toward orange
+    "exp27":                  "#de8f05",  # 100 % CDS      — CDS orange
 }
 METHOD_LABELS: dict[str, str] = {
-    "exp21":                  "exp21 (100% promoter)",
-    "exp27":                  "exp27 (100% CDS)",
-    "exp13-equal":            "exp13 (50 / 50 mix)",
-    "exp13-proportional":     "exp13 (10 / 90 mix)",
+    "exp21":                  "Promoter only",
+    "exp27":                  "CDS only",
+    "exp13-equal":            "Uniform mix (50 / 50)",
+    "exp13-proportional":     "Proportional mix (10 / 90)",
 }
 
 # Two-panel subset set for the exp13 mixture sweep — one region from each
 # end (promoter, the under-represented side; missense, a CDS subset).
+# Labels match the R1 panel titles ("X variants") so the subplot title
+# colours can be reused from REGION_TITLE_COLORS.
 MIXTURE_SUBSETS: dict[str, str] = {
-    "Promoter":  "tss_proximal",
-    "Missense":  "missense_variant",
+    "Promoter variants": "tss_proximal",
+    "Missense variants": "missense_variant",
 }
 
 # Step coverage per exp13-mixture variant. exp21 / exp27 are the
@@ -622,7 +621,14 @@ def plot_r3(out_path: Path) -> None:
         ax.set_xlabel("training step")
         if ax is axes[0]:
             ax.set_ylabel("AUPRC")
-        ax.set_title(panel)
+        # Colour the subplot title to match the corresponding region
+        # (matches R1 + the gene cartoon above) so the eye ties the
+        # panel to the right block in the schematic.
+        ax.set_title(
+            panel,
+            fontweight="bold",
+            color=REGION_TITLE_COLORS[panel],
+        )
 
     # No in-plot legend — the composition schematic above the line plot
     # (figs/r2_composition.svg) is the canonical legend: its left-side
