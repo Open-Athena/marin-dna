@@ -28,24 +28,24 @@
     #line(length: 100%, stroke: 1pt + rgb("#1a1a1a"))
     #v(0.1in)
     #grid(
-      columns: (2.5fr, 1.5fr, 1.5fr),
+      columns: (2.8fr, 0.95fr, 0.75fr),
       align: (left, right, right),
       column-gutter: 0.4in,
       [
-        #set text(size: 15pt, fill: rgb("#1a1a1a"))
+        #set text(size: 22pt, fill: rgb("#1a1a1a"))
         *Acknowledgments:* thanks to the
         #link("https://github.com/marin-community/marin")[Marin] team
-        for the excellent framework and inspiring open development.
+        for their excellent framework and inspiring open development.
         Compute generously provided by the
         #link("https://sites.research.google/trc/about/")[Google TPU Research Cloud].
       ],
       [
-        #set text(size: 15pt)
+        #set text(size: 22pt)
         *Code & experiments:*
         #link("https://github.com/Open-Athena/marin-dna")[github.com/Open-Athena/marin-dna]
       ],
       [
-        #set text(size: 15pt)
+        #set text(size: 22pt)
         *Contact:*
         #link("mailto:gonzalo.benegas@openathena.ai")[gonzalo.benegas\@openathena.ai]
       ],
@@ -125,16 +125,17 @@
       variants per region subset.
   ]
 
-  // Helpers for monospaced DNA in math, with optional colour for the
-  // alt-position nucleotide.
-  #let dna(s) = math.text(font: "Menlo", s)
-  #let dna-c(s, color) = math.text(font: "Menlo", fill: color, s)
+  // Helper: a single inline `box` of monospaced DNA — keeps the
+  // surrounding text in one block so adjacent runs don't pick up
+  // math-mode spacing. Embed `#text(fill: red)[X]` inside for an
+  // alt-position highlight.
+  #let nucs(body) = box(text(font: "Menlo")[#body])
 
   #pop.column-box(heading: "Training")[
     Maximize the likelihood of observed (reference) DNA.
 
     #align(center)[
-      $ "maximize" thin log P(#dna("CACTTGGA")) $
+      $ "maximize" thin log P( #nucs[…CACTTGGAT…] ) $
     ]
   ]
 
@@ -144,8 +145,8 @@
     #align(center)[
       $
         "LLR" = log frac(
-          P(#dna("CACT") #dna-c("C", rgb("#1d3557")) #dna("GGA")),
-          P(#dna("CACT") #dna-c("T", rgb("#1d3557")) #dna("GGA"))
+          P( #nucs[…CACT#text(fill: rgb("#e63946"))[C]GGAT…] ),
+          P( #nucs[…CACTTGGAT…] )
         )
       $
     ]
@@ -177,7 +178,7 @@
     - We trained specialist models, each on a single region of the genome.
     #image("figs/specialist_bars.svg", width: 100%)
     - Each specialist achieves good performance in VEP tasks on its trained region.
-    - Specialists often outperform Evo 2, but not GPN-Star.
+    - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs.
   ]
 
   #pop.column-box(heading: [Balanced sampling rescues the under-represented region])[
