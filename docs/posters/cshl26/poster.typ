@@ -33,8 +33,8 @@
       column-gutter: 0.4in,
       [
         #set text(size: 18pt, style: "italic", fill: rgb("#1a1a1a"))
-        Built on the open-source #link("https://github.com/marin-community/marin")[Marin]
-        framework — thanks to the Marin team.
+        Thanks to the #link("https://github.com/marin-community/marin")[Marin] team
+        for the excellent framework and inspiring open development.
         Compute generously provided by the
         #link("https://sites.research.google/trc/about/")[Google TPU Research Cloud].
       ],
