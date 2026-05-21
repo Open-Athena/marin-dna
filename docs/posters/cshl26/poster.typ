@@ -92,11 +92,11 @@
     #set text(weight: "bold", size: 80pt)
     #par(leading: 0.35em)[Data curation strategies for genomic language models]
 
-    #v(0.15in)
-    #set text(weight: "regular", size: 32pt)
+    #v(-0.05in)
+    #set text(weight: "regular", size: 48pt)
     Gonzalo Benegas, Eric Czech
 
-    #set text(style: "italic", size: 24pt, fill: rgb("#666666"))
+    #set text(style: "italic", size: 36pt, fill: rgb("#666666"))
     Open Athena
   ],
   image("figs/icons/oa-logo.svg", width: 3in),
