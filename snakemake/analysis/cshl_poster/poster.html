@@ -342,7 +342,10 @@ body {
   margin: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* Just the one canvas row — the descriptive fig-title that used to
+     sit above it is gone (its content is now folded into the panel
+     title above the frame, along with the issue links). */
+  grid-template-rows: minmax(0, 1fr);
   gap: 0.15in;
 }
 .fig-title {
@@ -390,7 +393,7 @@ body {
    the SVG's natural aspect ratio (height: auto), the line plot below
    takes the remaining flex space. */
 .fig.has-composition {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 .fig.has-composition .fig-canvas.r2-composition img {
   height: auto;
@@ -649,16 +652,12 @@ body {
           <p class="title">
             Region specialists reach the same ballpark as whole-genome and
             multi-species generalists, each on its own region.
-          </p>
-        </div>
-        <figure class="fig">
-          <p class="fig-title">
-            Mendelian AUPRC — 3 specialists + 2 generalists on missense,
-            promoter, and enhancer variants
             (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/27">#27</a>,
             <a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/21">#21</a>,
             <a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/136">#136</a>)
           </p>
+        </div>
+        <figure class="fig">
           <div class="fig-canvas"><img src="figs/specialist_bars.svg" alt="Specialist vs generalist grouped bars"></div>
         </figure>
         <ul class="panel-takeaway">
@@ -671,11 +670,12 @@ body {
       <div class="panel">
         <div class="panel-head">
           <span class="tag">R2</span>
-          <p class="title">Balanced sampling rescues the under-represented region.</p>
+          <p class="title">
+            Balanced sampling rescues the under-represented region.
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/13">#13</a>)
+          </p>
         </div>
         <figure class="fig has-composition">
-          <p class="fig-title">exp13 mixture sweep — AUPRC vs training step
-            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/13">#13</a>)</p>
           <!-- Composition schematic doubles as the line-plot's colour-key:
                left-side line swatches match the colours of the plot's four
                trajectories; right-side bars encode each condition's training
@@ -707,11 +707,12 @@ body {
       <div class="panel">
         <div class="panel-head">
           <span class="tag">T1</span>
-          <p class="title">Promoters peak at the <em>mammals</em> timescale.</p>
+          <p class="title">
+            Promoters peak at the <em>mammals</em> timescale.
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/55">#55</a>)
+          </p>
         </div>
         <figure class="fig">
-          <p class="fig-title">Promoter AUPRC vs evolutionary timescale
-            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/55">#55</a>)</p>
           <div class="fig-canvas"><img src="figs/t1.svg" alt="Figure T1"></div>
         </figure>
         <ul class="panel-takeaway">
@@ -723,11 +724,12 @@ body {
       <div class="panel">
         <div class="panel-head">
           <span class="tag">T2</span>
-          <p class="title">CDS keeps improving out to the <em>animals</em> timescale.</p>
+          <p class="title">
+            CDS keeps improving out to the <em>animals</em> timescale.
+            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/58">#58</a>)
+          </p>
         </div>
         <figure class="fig">
-          <p class="fig-title">CDS AUPRC vs evolutionary timescale
-            (<a class="issue-ref" href="https://github.com/Open-Athena/marin-dna/issues/58">#58</a>)</p>
           <div class="fig-canvas"><img src="figs/t2.svg" alt="Figure T2"></div>
         </figure>
       </div>
