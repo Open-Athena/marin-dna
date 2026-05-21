@@ -523,7 +523,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     )
     label_x = 0.06   # left edge of the group label
     legend_x = 0.28  # left edge of the legend, just past the longest label
-    y_spec, y_gen = 0.21, 0.06
+    y_spec, y_gen = 0.34, 0.20
 
     fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
              fontsize=26, fontweight="bold", color=OA_TEXT)
