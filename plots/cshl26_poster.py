@@ -305,9 +305,10 @@ MIXTURE_STEPS: dict[str, tuple[str, tuple[int, ...]]] = {
 
 # Three regional specialists × one matching variant consequence each,
 # plus two "fair-scale" generalists (Evo 2 40B and GPN-Star M).
-# Method order matches the region order (missense / promoter / enhancer)
-# so the legend reads in the same direction as the subplot row.
-SPECIALIST_METHODS = ("exp27", "exp21", "exp136", "evo2_40b", "GPN-Star-M")
+# Method order matches the cartoon order (enhancer / promoter / CDS),
+# so the legend reads in the same direction as the gene cartoon above
+# and the subplot row of the bar chart.
+SPECIALIST_METHODS = ("exp136", "exp21", "exp27", "evo2_40b", "GPN-Star-M")
 
 # Labels for the legend rows. The "Specialists" / "Generalists" group
 # titles do the "-specialist" disambiguation, so the per-bar labels can
@@ -338,13 +339,14 @@ SPECIALIST_COLORS: dict[str, str] = {
 }
 
 # Three regions, one consequence each — the matching specialty. Order
-# reads missense → promoter → enhancer to match SPECIALIST_METHODS.
+# reads enhancer → promoter → missense (CDS) to match the gene cartoon's
+# biological left-to-right layout and SPECIALIST_METHODS.
 # Display labels carry "variants" so each subplot title reads as a
-# noun phrase ("Missense variants") rather than a bare category.
+# noun phrase ("Enhancer variants") rather than a bare category.
 SPECIALIST_REGIONS: dict[str, str] = {
-    "Missense variants": "missense_variant",
-    "Promoter variants": "tss_proximal",
     "Enhancer variants": "distal",
+    "Promoter variants": "tss_proximal",
+    "Missense variants": "missense_variant",
 }
 
 # Subplot title is coloured to match the corresponding specialist's bar
