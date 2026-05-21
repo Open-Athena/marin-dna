@@ -29,6 +29,7 @@
     #v(0.1in)
     #grid(
       columns: (2.5fr, 1.5fr, 1.5fr),
+      align: (left, right, right),
       column-gutter: 0.4in,
       [
         #set text(size: 18pt, style: "italic", fill: rgb("#1a1a1a"))
