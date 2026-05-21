@@ -17,27 +17,35 @@
   paper: "a4",  // overridden by width/height below
   width:  44in,
   height: 44in,
-  margin: (top: 1in, bottom: 1in, x: 1in),
+  margin: (top: 1in, bottom: 1.4in, x: 1in),
   background: rect(fill: white, width: 100%, height: 100%),
   // True page footer — sits at the bottom of every page, independent
-  // of body flow. Two columns: acknowledgments | contact links.
+  // of body flow. Three columns: acknowledgments | code | contact.
+  // Bottom margin (1.4in) sized to hold the single-line footer with
+  // a small descent below it.
+  footer-descent: 0.3in,
   footer: [
     #line(length: 100%, stroke: 1pt + rgb("#1a1a1a"))
-    #v(0.12in)
+    #v(0.1in)
     #grid(
-      columns: (1fr, 1fr),
-      gutter: 0.5in,
+      columns: (2.5fr, 1.5fr, 1.5fr),
+      column-gutter: 0.4in,
       [
-        #set text(size: 20pt, style: "italic", fill: rgb("#1a1a1a"))
+        #set text(size: 18pt, style: "italic", fill: rgb("#1a1a1a"))
         Built on the open-source #link("https://github.com/marin-community/marin")[Marin]
         framework — thanks to the Marin team.
         Compute generously provided by the
         #link("https://sites.research.google/trc/about/")[Google TPU Research Cloud].
       ],
-      align(right)[
-        #set text(size: 20pt)
-        *Code & experiments:* #link("https://github.com/Open-Athena/marin-dna")[github.com/Open-Athena/marin-dna] \
-        *Contact:* #link("mailto:gonzalo.benegas@openathena.ai")[gonzalo.benegas\@openathena.ai]
+      [
+        #set text(size: 18pt)
+        *Code & experiments:* \
+        #link("https://github.com/Open-Athena/marin-dna")[github.com/Open-Athena/marin-dna]
+      ],
+      [
+        #set text(size: 18pt)
+        *Contact:* \
+        #link("mailto:gonzalo.benegas@openathena.ai")[gonzalo.benegas\@openathena.ai]
       ]
     )
   ],
