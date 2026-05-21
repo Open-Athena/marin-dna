@@ -22,6 +22,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
+from matplotlib.legend_handler import HandlerBase
+from matplotlib.lines import Line2D
+from matplotlib.patches import Circle, Wedge
 
 
 # ─── Open Athena palette ────────────────────────────────────────────────
@@ -279,8 +282,21 @@ METHOD_COLORS: dict[str, str] = {
 METHOD_LABELS: dict[str, str] = {
     "exp21":                  "Promoter only",
     "exp27":                  "CDS only",
-    "exp13-equal":            "Uniform mix (50 / 50)",
-    "exp13-proportional":     "Proportional mix (10 / 90)",
+    # The (50 / 50) and (10 / 90) parentheticals are dropped from the
+    # legend labels because the pie chart drawn next to each label
+    # already encodes the mix ratio visually.
+    "exp13-equal":            "Uniform mix",
+    "exp13-proportional":     "Proportional mix",
+}
+
+# Fraction of TRAINING DATA that is promoter (rest is CDS). Drives the
+# pie chart drawn beside each entry in the R2 line-plot legend, so the
+# composition of each training condition reads at a glance.
+PROMOTER_FRAC: dict[str, float] = {
+    "exp21":              1.0,   # 100 % promoter
+    "exp27":              0.0,   # 100 % CDS
+    "exp13-equal":        0.5,   # uniform 50 / 50
+    "exp13-proportional": 0.1,   # natural ~10 / 90 ratio (promoter / CDS)
 }
 
 # Two-panel subset set for the exp13 mixture sweep — one region from each
@@ -572,6 +588,108 @@ def _load_mixture_trajectory(method_id: str) -> pl.DataFrame:
     return pl.concat(parts)
 
 
+class HandlerLineMarkerWithPie(HandlerBase):
+    """Native-legend handler: line + central marker + two-tone pie.
+
+    Renders the legend handle as `[line + marker | pie]` (left to right),
+    with the pie encoding a 2-component ratio for the method represented
+    by this handle. Because it subclasses HandlerBase, the line and
+    marker are drawn by matplotlib's own legend renderer using the
+    proxy artist's actual stroke width / marker size — guaranteed to
+    match the line plot's lines pixel-for-pixel.
+
+    One handler instance is constructed per method (each carries its own
+    ``promoter_frac``); the per-handle handler_map is passed to
+    ``fig.legend(handler_map=...)``.
+    """
+
+    def __init__(
+        self,
+        promoter_frac: float,
+        promoter_color: str,
+        cds_color: str,
+        edge_color: str,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.promoter_frac = promoter_frac
+        self.promoter_color = promoter_color
+        self.cds_color = cds_color
+        self.edge_color = edge_color
+
+    def create_artists(
+        self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans,
+    ):
+        # Reserve the right portion of the handle box for the pie; the
+        # line + marker share the rest. Pie diameter = full handle height
+        # so it visually balances the line's thickness × marker.
+        pie_d = height
+        gap = 0.35 * fontsize   # spacing between line-end and pie
+        line_y = height / 2 - ydescent
+        line_x0 = -xdescent
+        line_x1 = -xdescent + width - pie_d - gap
+
+        color = orig_handle.get_color()
+        line = Line2D(
+            [line_x0, line_x1], [line_y, line_y],
+            color=color, lw=orig_handle.get_linewidth(),
+            solid_capstyle="butt",
+        )
+        marker = Line2D(
+            [(line_x0 + line_x1) / 2], [line_y],
+            color=color,
+            marker=orig_handle.get_marker(),
+            markersize=orig_handle.get_markersize(),
+            markeredgecolor=self.edge_color,
+            markeredgewidth=1.0,
+            linestyle="None",
+        )
+        line.set_transform(trans)
+        marker.set_transform(trans)
+        artists: list = [line, marker]
+
+        cx = -xdescent + width - pie_d / 2
+        cy = line_y
+        # Slight inset so the wedge edge stroke isn't clipped by the handle box.
+        r = pie_d / 2 * 0.92
+        p = self.promoter_frac
+        if p >= 1.0:
+            c = Circle(
+                (cx, cy), r,
+                facecolor=self.promoter_color, edgecolor=self.edge_color, linewidth=1.0,
+            )
+            c.set_transform(trans)
+            artists.append(c)
+        elif p <= 0.0:
+            c = Circle(
+                (cx, cy), r,
+                facecolor=self.cds_color, edgecolor=self.edge_color, linewidth=1.0,
+            )
+            c.set_transform(trans)
+            artists.append(c)
+        else:
+            # Promoter slice starts at 12 o'clock, grows clockwise — so
+            # the small 10% slice for proportional sits at the top-right
+            # and the eye reads ratio at a glance. matplotlib's Wedge is
+            # CCW from theta1 to theta2; we set theta1 below 90 to span
+            # the clockwise arc.
+            theta_top = 90.0
+            theta_start = theta_top - p * 360.0
+            w_p = Wedge(
+                (cx, cy), r, theta_start, theta_top,
+                facecolor=self.promoter_color, edgecolor=self.edge_color, linewidth=1.0,
+            )
+            w_c = Wedge(
+                (cx, cy), r, theta_top, theta_top + (1.0 - p) * 360.0,
+                facecolor=self.cds_color, edgecolor=self.edge_color, linewidth=1.0,
+            )
+            w_p.set_transform(trans)
+            w_c.set_transform(trans)
+            artists.append(w_p)
+            artists.append(w_c)
+        return artists
+
+
 # R3: exp13 promoter × CDS mixture sweep — equal-compute trajectories.
 # The 4 variants have different "final" step counts, so a final-step bar
 # chart would compare them at unequal compute. Plotting AUPRC vs training
@@ -579,10 +697,15 @@ def _load_mixture_trajectory(method_id: str) -> pl.DataFrame:
 def plot_r3(out_path: Path) -> None:
     """4 mixture variants (100%P / 50-50 / 10-90 / 100%C) over training.
 
-    Two panels (Promoter / Missense) — one region from each side of the
-    sweep — so the trade-off shows up: 100% P does well on promoter and
-    badly on missense; 100% C the mirror image; 50/50 lands well on both;
-    10/90 (proportional / naive) ignores promoters and tracks 100% C.
+    Three panels (Promoter / Missense / Average) so the trade-off shows
+    up: 100% P does well on promoter and badly on missense; 100% C the
+    mirror image; 50/50 lands well on both; 10/90 (proportional / naive)
+    ignores promoters and tracks 100% C.
+
+    A native fig.legend() sits below all three panels with a custom
+    handler (`HandlerLineMarkerWithPie`) that draws the same line +
+    marker matplotlib uses for the data lines, alongside a small pie
+    chart encoding the method's promoter / CDS training-data ratio.
     """
     methods = ("exp21", "exp13-equal", "exp13-proportional", "exp27")
     score_type = "minus_llr_avg"
@@ -599,11 +722,23 @@ def plot_r3(out_path: Path) -> None:
         *[set(MIXTURE_STEPS[m][1]) for m in methods]
     )
 
+    # Bumped fonts for poster legibility (override the rcParams defaults
+    # set in apply_poster_style — keeping those at their bar-chart size
+    # so the rest of the figs stay consistent).
+    title_fs = 30
+    label_fs = 28
+    tick_fs  = 24
+    legend_fs = 30
+
     # Three panels: Promoter | Missense | Average (mean across both).
     # The average panel makes the headline "Uniform mix wins on aggregate"
     # visible directly — in the two-region panels you have to trade off
-    # mentally; here you just look at which line is highest.
-    fig, axes = plt.subplots(1, len(MIXTURE_SUBSETS) + 1, figsize=(15, 4.5), sharey=False)
+    # mentally; here you just look at which line is highest. Extra height
+    # (4.5 → 6.5) makes room for the 2-row native fig.legend below.
+    fig, axes = plt.subplots(
+        1, len(MIXTURE_SUBSETS) + 1, figsize=(15, 6.5), sharey=False,
+    )
+    line_handles: dict[str, Line2D] = {}
     for ax, (panel, subset_key) in zip(axes[:-1], MIXTURE_SUBSETS.items()):
         for m in methods:
             sub = (
@@ -615,22 +750,25 @@ def plot_r3(out_path: Path) -> None:
                 )
                 .sort("step")
             )
-            ax.plot(
+            (line,) = ax.plot(
                 sub["step"].to_numpy(),
                 sub["value"].to_numpy(),
                 marker="o",
                 color=METHOD_COLORS[m],
                 label=METHOD_LABELS[m],
             )
-        ax.set_xlabel("training step")
+            line_handles[m] = line  # any panel's Line2D is fine for the legend
+        ax.set_xlabel("training step", fontsize=label_fs)
         if ax is axes[0]:
-            ax.set_ylabel("AUPRC")
+            ax.set_ylabel("AUPRC", fontsize=label_fs)
+        ax.tick_params(axis="both", labelsize=tick_fs)
         # Colour the subplot title to match the corresponding region
         # (matches R1 + the gene cartoon above) so the eye ties the
         # panel to the right block in the schematic.
         ax.set_title(
             panel,
             fontweight="bold",
+            fontsize=title_fs,
             color=REGION_TITLE_COLORS[panel],
         )
 
@@ -656,16 +794,54 @@ def plot_r3(out_path: Path) -> None:
             color=METHOD_COLORS[m],
             label=METHOD_LABELS[m],
         )
-    ax_avg.set_xlabel("training step")
+    ax_avg.set_xlabel("training step", fontsize=label_fs)
+    ax_avg.tick_params(axis="both", labelsize=tick_fs)
     ax_avg.set_title(
         "Average",
         fontweight="bold",
+        fontsize=title_fs,
         color=OA_TEXT,
     )
 
-    # No in-plot legend — the composition schematic above the line plot
-    # (figs/r2_composition.svg) is the canonical legend: its left-side
-    # line-swatches mirror the line plot's line colours.
+    # X-ticks: let matplotlib's auto-locator choose so they're uniformly
+    # spaced. (Manual subsetting picked first / mid / last which gave
+    # non-uniform gaps — looked weird.)
+
+    # ── Native fig.legend, 2×2, custom handler per method ──
+    # ncol=2 (not 4) so the larger font fits without overflowing the
+    # figure width. Default fill order is column-major, so passing
+    # methods in (Promoter only, Uniform, Proportional, CDS only)
+    # gives a 2×2 that reads as a smooth left-to-right sweep from
+    # promoter-heavy to CDS-heavy training data:
+    #
+    #     Promoter only          Proportional mix
+    #     Uniform mix            CDS only
+    handler_map = {
+        line_handles[m]: HandlerLineMarkerWithPie(
+            promoter_frac=PROMOTER_FRAC[m],
+            promoter_color="#0173b2",   # mirrors gene cartoon's promoter blue
+            cds_color="#de8f05",        # mirrors gene cartoon's CDS orange
+            edge_color=OA_TEXT,
+        )
+        for m in methods
+    }
+    fig.legend(
+        [line_handles[m] for m in methods],
+        [METHOD_LABELS[m]  for m in methods],
+        handler_map=handler_map,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.0),
+        ncol=2,
+        frameon=False,
+        fontsize=legend_fs,
+        handlelength=4.0,      # room for line + marker + pie inside the handle
+        handletextpad=0.4,
+        columnspacing=2.0,
+        labelspacing=0.6,
+    )
+    # Leave room at the bottom for the 2-row legend; widen the left
+    # margin so the (now larger) AUPRC ylabel + ticks aren't clipped.
+    fig.subplots_adjust(bottom=0.42, top=0.93, left=0.07, right=0.98, wspace=0.25)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
