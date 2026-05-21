@@ -436,7 +436,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(
         1, len(regions),
-        figsize=(11.5, 6.8),
+        figsize=(11.5, 5.4),
         sharey=False,        # each region is a different dataset
         constrained_layout=False,
     )
@@ -496,32 +496,37 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     # Two figure-level legend rows below the three panels — one for the
     # 3 region specialists, one for the 2 whole-genome generalists.
-    # Grouping makes the typological distinction visible (and saves
-    # the "-specialist" suffix on every per-bar label).
-    # `labelspacing` controls the title→entries gap inside each legend.
+    # The group label ("Specialists" / "Generalists") sits to the LEFT
+    # of each row of entries (single row per group, no title-above-
+    # entries gap to worry about).
     legend_kw = dict(
-        loc="lower center",
+        loc="center left",
         fontsize=24,
-        title_fontsize=24,
-        labelspacing=1.8,
         labelcolor=OA_TEXT,
         frameon=False,
     )
+    label_x = 0.06   # left edge of the group label
+    legend_x = 0.24  # left edge of the legend (entries) — to the right of label
+    y_spec, y_gen = 0.21, 0.06
+
+    fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
+             fontsize=26, fontweight="bold", color=OA_TEXT)
     fig.legend(
         handles=specialist_handles,
-        title="Specialists",
-        bbox_to_anchor=(0.5, 0.30),
+        bbox_to_anchor=(legend_x, y_spec),
         ncol=len(specialist_handles),
         **legend_kw,
     )
+
+    fig.text(label_x, y_gen, "Generalists", ha="left", va="center",
+             fontsize=26, fontweight="bold", color=OA_TEXT)
     fig.legend(
         handles=generalist_handles,
-        title="Generalists",
-        bbox_to_anchor=(0.5, 0.04),
+        bbox_to_anchor=(legend_x, y_gen),
         ncol=len(generalist_handles),
         **legend_kw,
     )
-    fig.subplots_adjust(left=0.07, right=0.99, top=0.94, bottom=0.50, wspace=0.40)
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.94, bottom=0.32, wspace=0.40)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
