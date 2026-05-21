@@ -32,19 +32,20 @@
       align: (left, right, right),
       column-gutter: 0.4in,
       [
-        #set text(size: 18pt, style: "italic", fill: rgb("#1a1a1a"))
-        Thanks to the #link("https://github.com/marin-community/marin")[Marin] team
+        #set text(size: 15pt, fill: rgb("#1a1a1a"))
+        *Acknowledgments:* thanks to the
+        #link("https://github.com/marin-community/marin")[Marin] team
         for the excellent framework and inspiring open development.
         Compute generously provided by the
         #link("https://sites.research.google/trc/about/")[Google TPU Research Cloud].
       ],
       [
-        #set text(size: 18pt)
+        #set text(size: 15pt)
         *Code & experiments:*
         #link("https://github.com/Open-Athena/marin-dna")[github.com/Open-Athena/marin-dna]
       ],
       [
-        #set text(size: 18pt)
+        #set text(size: 15pt)
         *Contact:*
         #link("mailto:gonzalo.benegas@openathena.ai")[gonzalo.benegas\@openathena.ai]
       ],
