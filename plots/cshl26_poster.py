@@ -581,6 +581,15 @@ def plot_r3(out_path: Path) -> None:
     # Pre-load all 4 trajectories.
     traj = {m: _load_mixture_trajectory(m) for m in methods}
 
+    # Only plot training steps that are available in ALL four runs —
+    # apples-to-apples comparison at every x-tick. Intersection over
+    # MIXTURE_STEPS gives {2000, 6000, 10000, 14000, 18000, 22000}
+    # at time of writing; expand if more shared checkpoints become
+    # available upstream.
+    common_steps = set.intersection(
+        *[set(MIXTURE_STEPS[m][1]) for m in methods]
+    )
+
     fig, axes = plt.subplots(1, len(MIXTURE_SUBSETS), figsize=(11.5, 4.5), sharey=False)
     for ax, (panel, subset_key) in zip(axes, MIXTURE_SUBSETS.items()):
         for m in methods:
@@ -589,6 +598,7 @@ def plot_r3(out_path: Path) -> None:
                 .filter(
                     (pl.col("score_type") == score_type)
                     & (pl.col("subset") == subset_key)
+                    & (pl.col("step").is_in(list(common_steps)))
                 )
                 .sort("step")
             )
