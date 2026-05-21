@@ -332,7 +332,9 @@ SPECIALIST_COLORS: dict[str, str] = {
     "exp27":      "#de8f05",  # colorblind orange — CDS
     "exp136":     "#029e73",  # colorblind green  — enhancer
     "evo2_40b":   "#999999",  # mid grey  — baseline (Evo 2)
-    "GPN-Star-M": "#333333",  # dark grey — baseline (GPN-Star)
+    "GPN-Star-M": "#555555",  # medium-dark grey — baseline (GPN-Star);
+                              # was #333333 but the near-black bar made the
+                              # SE error bar (ink) invisible against it.
 }
 
 # Three regions, one consequence each — the matching specialty. Order
@@ -456,7 +458,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
             yerr=errs,
             edgecolor=OA_TEXT,
             linewidth=1.0,
-            error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 0},
+            error_kw={"ecolor": OA_TEXT, "elinewidth": 3.0, "capsize": 0},
         )
         if ax_idx == 0:
             # Attach labels once and split into specialist / generalist groups.
