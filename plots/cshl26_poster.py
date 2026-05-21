@@ -504,9 +504,13 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         fontsize=24,
         labelcolor=OA_TEXT,
         frameon=False,
+        # Tight horizontal spacing so entries cluster together; defaults
+        # (columnspacing=2.0, handletextpad=0.8) spread them too wide.
+        columnspacing=0.6,
+        handletextpad=0.3,
     )
     label_x = 0.06   # left edge of the group label
-    legend_x = 0.24  # left edge of the legend (entries) — to the right of label
+    legend_x = 0.28  # left edge of the legend, just past the longest label
     y_spec, y_gen = 0.21, 0.06
 
     fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
