@@ -67,11 +67,11 @@
        Same widths and colours as before — only the bar heights /
        vertical spacing are compressed. Longest/darkest on top. -->
   <g stroke="#1f1e1b" stroke-width="0.75">
-    <rect x="60"  y="480" width="900" height="28" fill="#3D2417"/>  <!-- animals -->
-    <rect x="60"  y="518" width="640" height="28" fill="#6E4421"/>  <!-- vertebrates -->
-    <rect x="60"  y="556" width="370" height="28" fill="#9e6d43"/>  <!-- mammals -->
-    <rect x="60"  y="594" width="160" height="28" fill="#B58853"/>  <!-- primates -->
-    <rect x="60"  y="632" width="40"  height="28" fill="#D9C4A0"/>  <!-- humans -->
+    <rect x="60"  y="480" width="900" height="28" fill="#443983"/>  <!-- animals    (viridis darkest) -->
+    <rect x="60"  y="518" width="640" height="28" fill="#31688e"/>  <!-- vertebrates -->
+    <rect x="60"  y="556" width="370" height="28" fill="#21918c"/>  <!-- mammals -->
+    <rect x="60"  y="594" width="160" height="28" fill="#35b779"/>  <!-- primates -->
+    <rect x="60"  y="632" width="40"  height="28" fill="#90d743"/>  <!-- humans     (viridis lightest) -->
   </g>
 
   <!-- Bar labels: clade name + cumulative species count, anchored just

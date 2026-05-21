@@ -45,17 +45,18 @@ OA_COLORWAY = [
     "#a86a2c",  # burnt orange
 ]
 
-# Evolutionary-timescale palette — sequential, single-hue OA copper/brown.
-# The arms are inherently ordered (narrow → broad / shallow → deep in time),
-# so a continuous lightness gradient encodes the ordering for free and stays
-# on-brand. Same colors used in every timescale figure; exp58 just consumes
-# the last 3 entries. Anchored on OA copper at mammals.
+# Evolutionary-timescale palette — `viridis` (perceptually uniform,
+# colorblind-safe sequential). Lightest = most recent (humans), darkest
+# = oldest (animals). Standard matplotlib palette so the ordering reads
+# clearly to anyone who's seen a scientific figure before. Chosen so the
+# *mixture* palette can be a different sequential (magma) — same family
+# of cmaps but visually distinct.
 TIMESCALE_COLORS: dict[str, str] = {
-    "humans":      "#D9C4A0",  # light wheat
-    "primates":    "#B58853",  # warm tan
-    "mammals":     "#9e6d43",  # OA copper (accent)
-    "vertebrates": "#6E4421",  # dark coffee
-    "animals":     "#3D2417",  # very dark espresso
+    "humans":      "#90d743",  # viridis[4]  — yellow-green
+    "primates":    "#35b779",  # viridis[3]  — green
+    "mammals":     "#21918c",  # viridis[2]  — teal
+    "vertebrates": "#31688e",  # viridis[1]  — blue
+    "animals":     "#443983",  # viridis[0]  — dark purple
 }
 ARM_LABEL: dict[str, str] = {
     "humans":      "humans (1 sp.)",
@@ -74,6 +75,11 @@ def apply_poster_style() -> None:
     Sizes here picked so the rendered text on the printed 44 × 44 in
     poster reads at ~24-28pt physical — matching the HTML body text
     (--fs-body / --fs-caption in poster.html).
+
+    Plot backgrounds are WHITE (standard data-viz convention), not the
+    OA cream. The cream chrome lives one level up in the `.fig-canvas`
+    wrapper around each plot. Chrome stays OA brand; data area is
+    standard high-contrast.
     """
     mpl.rcParams.update({
         # Render text as SVG <path>s so the figure is self-contained — no
@@ -89,8 +95,8 @@ def apply_poster_style() -> None:
         "axes.linewidth":      1.8,
         "axes.spines.top":     False,
         "axes.spines.right":   False,
-        "axes.facecolor":      OA_FIG_FRAME_INNER,
-        "figure.facecolor":    OA_FIG_FRAME_INNER,
+        "axes.facecolor":      "white",
+        "figure.facecolor":    "white",
         "xtick.color":         OA_TEXT,
         "ytick.color":         OA_TEXT,
         "xtick.labelsize":     16,
@@ -99,7 +105,7 @@ def apply_poster_style() -> None:
         "legend.fontsize":     16,
         "lines.linewidth":     2.8,
         "lines.markersize":    8,
-        "savefig.facecolor":   OA_FIG_FRAME_INNER,
+        "savefig.facecolor":   "white",
         "savefig.bbox":        "tight",
     })
 
@@ -255,25 +261,28 @@ GPN_STAR_METRICS_BASE = (
     "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
 )
 
-# Per-method colour. Our hero models (exp21, exp27) = OA copper. Evo 2
-# in a cool blue/teal family. GPN-Star in plum.
+# Per-method colour.
 #
-# For the exp13 mixture sweep, the 4 entries (100%P, 50/50, 10/90, 100%C)
-# are anchored on the OA region colours at the extremes (copper = promoter,
-# brick = CDS) with two OA colorway hops in between, so each mixture has
-# a distinct identity AND the endpoints visually tie back to the region
-# legend.
+# The exp13 mixture sweep (4 entries: 100% promoter → 50/50 → 10/90 →
+# 100% CDS) is a CONTINUOUS axis (fraction of CDS in training), so it
+# gets `magma` — a perceptually uniform sequential palette, distinct
+# from viridis (which is the evolutionary-timescale palette).
+#
+# Baselines (Evo 2, GPN-Star) are kept neutral grey since they're not
+# part of the focal categorical/sequential story.
 METHOD_COLORS: dict[str, str] = {
-    "exp21":                  "#9e6d43",  # OA copper (100% promoter)
-    "exp27":                  "#7a3b2e",  # OA brick (100% CDS)
-    "exp13-equal":            "#a86a2c",  # OA burnt orange (50/50 mixture)
-    "exp13-proportional":     "#6b5b3e",  # OA olive (10/90 mixture, biased to CDS)
-    "evo2_1b":                "#7BAFC4",  # light teal
-    "evo2_7b":                "#3D7A92",  # medium teal
-    "evo2_40b":               "#1F4A5A",  # dark teal
-    "GPN-Star-V":             "#C68DAC",  # light plum
-    "GPN-Star-M":             "#8B3A62",  # OA plum
-    "GPN-Star-P":             "#5A1F3F",  # dark plum
+    # Mixture sweep — magma, indexed by % CDS in training data:
+    "exp21":                  "#fe9f6d",  # magma[3]  — 0 %  CDS (light peach)
+    "exp13-equal":            "#de4968",  # magma[2]  — 50 % CDS (pink-red)
+    "exp13-proportional":     "#8c2981",  # magma[1]  — 90 % CDS (magenta)
+    "exp27":                  "#3b0f70",  # magma[0]  — 100 % CDS (dark purple)
+    # Baselines — distinguished by grey value:
+    "evo2_1b":                "#bbbbbb",  # light grey
+    "evo2_7b":                "#777777",  # mid grey
+    "evo2_40b":               "#444444",  # dark grey
+    "GPN-Star-V":             "#cccccc",  # very light grey
+    "GPN-Star-M":             "#666666",  # mid-dark grey
+    "GPN-Star-P":             "#222222",  # near-black
 }
 METHOD_LABELS: dict[str, str] = {
     "exp21":                  "exp21 (100% promoter)",
@@ -334,17 +343,18 @@ SPECIALIST_LABELS: dict[str, str] = {
 }
 
 # Per-method colour for this view. Specialists colour-coded to their
-# trained region (same hexes as the gene-cartoon blocks in
-# figs/region_legend.svg so the colour ties together: model legend,
-# subplot title, and schematic block). Generalists in warm GREYS so
-# they read as "reference baselines, not region-coded" without
-# competing with the region palette for attention.
+# trained region using the seaborn `colorblind` (Okabe-Ito-derived)
+# palette so the three categorical regions are clearly distinguishable
+# AND colour-blind safe. Same hexes used in the gene-cartoon blocks
+# (figs/region_legend.svg) so the colour ties together: model legend,
+# subplot title, and schematic block. Generalists kept as neutral GREYS
+# so they read as "reference baselines, not region-coded".
 SPECIALIST_COLORS: dict[str, str] = {
-    "exp21":      "#9e6d43",  # OA copper — promoter
-    "exp27":      "#7a3b2e",  # OA brick — CDS
-    "exp136":     "#6b5b3e",  # OA olive — enhancer
-    "evo2_40b":   "#a39a8e",  # light warm gray — baseline (Evo 2)
-    "GPN-Star-M": "#5a534c",  # medium-dark warm gray — baseline (GPN-Star)
+    "exp21":      "#0173b2",  # colorblind blue   — promoter
+    "exp27":      "#de8f05",  # colorblind orange — CDS
+    "exp136":     "#029e73",  # colorblind green  — enhancer
+    "evo2_40b":   "#999999",  # mid grey  — baseline (Evo 2)
+    "GPN-Star-M": "#333333",  # dark grey — baseline (GPN-Star)
 }
 
 # Three regions, one consequence each — the matching specialty. Order
@@ -359,12 +369,12 @@ SPECIALIST_REGIONS: dict[str, str] = {
 
 # Subplot title is coloured to match the corresponding specialist's bar
 # (and the matching block in the gene-cartoon schematic). So the eye
-# can link "Missense variants (brick)" → "CDS-specialist (brick)" →
-# "CDS exons (brick)" without re-reading text.
+# can link "Missense variants (orange)" → "CDS-specialist (orange)" →
+# "CDS exons (orange)" without re-reading text.
 REGION_TITLE_COLORS: dict[str, str] = {
-    "Missense variants": "#7a3b2e",  # OA brick — CDS
-    "Promoter variants": "#9e6d43",  # OA copper
-    "Enhancer variants": "#6b5b3e",  # OA olive
+    "Missense variants": "#de8f05",  # colorblind orange — CDS
+    "Promoter variants": "#0173b2",  # colorblind blue   — promoter
+    "Enhancer variants": "#029e73",  # colorblind green  — enhancer
 }
 
 # Final-step checkpoint per specialist (the same ones we use for R1/R2).

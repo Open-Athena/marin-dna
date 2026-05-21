@@ -6,8 +6,8 @@
       .row-label { font-family: 'Lato', sans-serif; font-size: 22px; font-weight: 700; }
       .row-sub   { font-family: 'Lato', sans-serif; font-size: 17px; }
       .header    { font-family: 'Lato', sans-serif; font-size: 16px; font-weight: 700; }
-      .promoter { fill: #9e6d43; stroke: #1f1e1b; stroke-width: 1.2; }
-      .cds      { fill: #7a3b2e; stroke: #1f1e1b; stroke-width: 1.2; }
+      .promoter { fill: #0173b2; stroke: #1f1e1b; stroke-width: 1.2; }   /* colorblind blue   */
+      .cds      { fill: #de8f05; stroke: #1f1e1b; stroke-width: 1.2; }   /* colorblind orange */
     </style>
   </defs>
 
@@ -22,27 +22,27 @@
 
   <!-- ─── Row 1: exp21 (line color = copper) ─── -->
   <!-- legend swatch: short line + marker, matching line plot style -->
-  <line x1="35" y1="60" x2="125" y2="60" stroke="#9e6d43" stroke-width="3.5"/>
-  <circle cx="80" cy="60" r="7" fill="#9e6d43" stroke="#1f1e1b" stroke-width="1.1"/>
+  <line x1="35" y1="60" x2="125" y2="60" stroke="#fe9f6d" stroke-width="3.5"/>
+  <circle cx="80" cy="60" r="7" fill="#fe9f6d" stroke="#1f1e1b" stroke-width="1.1"/>
   <text x="160" y="68" class="row-label ink">Promoter only <tspan class="row-sub muted">(exp21)</tspan></text>
   <rect x="450" y="42" width="700" height="36" class="promoter"/>
 
   <!-- ─── Row 2: exp27 (line color = brick) ─── -->
-  <line x1="35" y1="120" x2="125" y2="120" stroke="#7a3b2e" stroke-width="3.5"/>
-  <circle cx="80" cy="120" r="7" fill="#7a3b2e" stroke="#1f1e1b" stroke-width="1.1"/>
+  <line x1="35" y1="120" x2="125" y2="120" stroke="#3b0f70" stroke-width="3.5"/>
+  <circle cx="80" cy="120" r="7" fill="#3b0f70" stroke="#1f1e1b" stroke-width="1.1"/>
   <text x="160" y="128" class="row-label ink">CDS only <tspan class="row-sub muted">(exp27)</tspan></text>
   <rect x="450" y="102" width="700" height="36" class="cds"/>
 
   <!-- ─── Row 3: exp13-proportional (line color = olive) ─── -->
-  <line x1="35" y1="180" x2="125" y2="180" stroke="#6b5b3e" stroke-width="3.5"/>
-  <circle cx="80" cy="180" r="7" fill="#6b5b3e" stroke="#1f1e1b" stroke-width="1.1"/>
+  <line x1="35" y1="180" x2="125" y2="180" stroke="#8c2981" stroke-width="3.5"/>
+  <circle cx="80" cy="180" r="7" fill="#8c2981" stroke="#1f1e1b" stroke-width="1.1"/>
   <text x="160" y="188" class="row-label ink">Proportional mix <tspan class="row-sub muted">(exp13, 10 / 90)</tspan></text>
   <rect x="450" y="162" width="70"  height="36" class="promoter"/>
   <rect x="520" y="162" width="630" height="36" class="cds"/>
 
   <!-- ─── Row 4: exp13-equal (line color = burnt orange) ─── -->
-  <line x1="35" y1="240" x2="125" y2="240" stroke="#a86a2c" stroke-width="3.5"/>
-  <circle cx="80" cy="240" r="7" fill="#a86a2c" stroke="#1f1e1b" stroke-width="1.1"/>
+  <line x1="35" y1="240" x2="125" y2="240" stroke="#de4968" stroke-width="3.5"/>
+  <circle cx="80" cy="240" r="7" fill="#de4968" stroke="#1f1e1b" stroke-width="1.1"/>
   <text x="160" y="248" class="row-label ink">Uniform mix <tspan class="row-sub muted">(exp13, 50 / 50)</tspan></text>
   <rect x="450" y="222" width="350" height="36" class="promoter"/>
   <rect x="800" y="222" width="350" height="36" class="cds"/>
