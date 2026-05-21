@@ -161,21 +161,23 @@ body {
 }
 .col {
   display: grid;
-  /* 3 rows: section header (h2), 2 figure panels (equal flex). */
-  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+  /* Column h2 headers were dropped in favour of independent in-column
+     sections (Abstract / Summary / R / T panels) — each section has
+     its own title. Default 2-panel column starts with just the panels. */
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   row-gap: 0.4in;
   min-height: 0;
 }
-/* Right column adds a row for the timescale-legend SVG above the panels
-   (it doubles as the colour-key for T1 + T2). The legend gets `auto` so it
-   sizes to its intrinsic 1000×380 aspect; the two panels still share the
-   remaining flex space equally. */
+/* Functional regions column: gene cartoon (auto height) + R1 + R2. */
 .col-with-legend {
-  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
 }
-/* Left "Approach" column: 3 rows — section header, the inline
-   model + evaluation schematic (auto height by SVG aspect), then the
-   approach body (questions + methods bullets, flex-fills the rest). */
+/* Evolutionary timescales column: tree legend (auto) + T1 + T2 + Summary. */
+.col-with-legend-summary {
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+/* Approach column: Abstract (auto) + schematic (auto, by SVG aspect)
+   + approach body (methods bullets, flex-fills the rest). */
 .col-approach {
   grid-template-rows: auto auto 1fr;
 }
@@ -513,6 +515,48 @@ body {
   margin: 0 0.18in;
 }
 
+/* ─── Section card (Abstract / Summary) ─── */
+/* Independent text-block sections that sit between framed figure
+   panels. No outer warm-taupe frame — these are not "figures", just
+   short bullet lists with a copper section title. */
+.section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15in;
+  min-height: 0;
+}
+.section-card-title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3);
+  font-weight: 400;
+  color: var(--accent);
+  margin: 0;
+  line-height: 1.05;
+}
+.section-card-list {
+  margin: 0;
+  padding-left: 1.1em;
+  list-style: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--text);
+  line-height: 1.35;
+}
+.section-card-list li {
+  position: relative;
+  padding-left: 0.08in;
+  margin-bottom: 0.1in;
+}
+.section-card-list li:last-child { margin-bottom: 0; }
+.section-card-list li::before {
+  content: "▸";
+  position: absolute;
+  left: -0.95em;
+  color: var(--accent);
+  font-weight: 700;
+}
+.section-card-list strong { color: var(--accent); }
+
 /* ─── Utility ─── */
 .emph { color: var(--accent); font-weight: 700; }
 
@@ -575,10 +619,20 @@ body {
   <!-- ─── THREE-COLUMN BODY ─── -->
   <section class="body">
 
-    <!-- Left column: Approach (intro, model + eval schematic, methods) -->
+    <!-- Left column: Abstract + model/eval schematic + methods bullets -->
     <div class="col col-approach">
-      <h2><span class="num">A.</span>Approach</h2>
 
+      <!-- Abstract: framing bullets at the top of the poster. -->
+      <section class="section-card">
+        <h3 class="section-card-title">Abstract</h3>
+        <ul class="section-card-list">
+          <li>Genomic LMs scale by training larger architectures on more diverse genomes — but the <strong>composition of the training data</strong> is itself a design axis.</li>
+          <li>We hold architecture, training objective, and compute budget fixed; vary the data along <strong>functional region</strong> and <strong>evolutionary timescale</strong>.</li>
+          <li>Each variant is scored zero-shot by the log-likelihood ratio between alt and ref alleles, evaluated on <strong>ClinVar Mendelian</strong> variants per region subset.</li>
+        </ul>
+      </section>
+
+      <!-- Methods schematic: training + variant effect prediction formulas. -->
       <div class="approach-schematic">
         <div class="approach-schematic-inner">
           <div class="method-schematic">
@@ -596,24 +650,8 @@ body {
         </div>
       </div>
 
+      <!-- Methods detail: training spec + evaluation spec as terse bullets. -->
       <div class="approach-body">
-        <p class="approach-hook">
-          gLM benchmarks reward <strong>scale</strong>. But what we care about
-          — small functional regions, distant evolutionary signal —
-          lives in slivers of the genome. <span class="approach-q">What if
-          <em>curation</em> outranks scale?</span>
-        </p>
-
-        <h3 class="approach-sub">We ask three questions</h3>
-        <ol class="approach-questions">
-          <li><strong>Region.</strong> Can a small region-specific model match large
-            whole-genome and multi-species generalists on its region?</li>
-          <li><strong>Mixture.</strong> When training on multiple regions, do we
-            mirror the natural ratio or rebalance to 50 / 50?</li>
-          <li><strong>Timescale.</strong> Which evolutionary depth — humans, primates,
-            mammals, vertebrates, animals — does each region prefer?</li>
-        </ol>
-
         <h3 class="approach-sub">Training</h3>
         <ul class="approach-methods">
           <li><strong>Architecture:</strong> Qwen decoder-only Transformer, fixed
@@ -636,9 +674,8 @@ body {
       </div>
     </div>
 
-    <!-- Middle column: Functional regions -->
+    <!-- Middle column: Functional regions (gene cartoon + R1 + R2) -->
     <div class="col col-with-legend">
-      <h2><span class="num">B.</span>Functional regions</h2>
 
       <!-- Single-gene cartoon — doubles as the colour-key for R1 and R2 below
            (promoter, CDS, enhancer used in the specialist experiments). -->
@@ -692,9 +729,8 @@ body {
       </div>
     </div>
 
-    <!-- Right column: Evolutionary timescales -->
-    <div class="col col-with-legend">
-      <h2><span class="num">C.</span>Evolutionary timescales</h2>
+    <!-- Right column: Evolutionary timescales + Summary -->
+    <div class="col col-with-legend-summary">
 
       <!-- The timescale legend IS the colour-key for T1 + T2 below.
            Phylogenetic tree (GPN-Star Fig 1B style) with colored
@@ -733,6 +769,17 @@ body {
           <div class="fig-canvas"><img src="figs/t2.svg" alt="Figure T2"></div>
         </figure>
       </div>
+
+      <!-- Summary: top-level findings (closes the poster's reading order). -->
+      <section class="section-card">
+        <h3 class="section-card-title">Summary</h3>
+        <ul class="section-card-list">
+          <li>Region specialists <strong>match</strong> whole-genome + multi-species generalists, each on its own region.</li>
+          <li><strong>Balanced sampling</strong> (50 / 50) rescues the under-represented region — one mixed model can serve both.</li>
+          <li>Promoter signal peaks at <strong>mammals</strong>; CDS keeps improving to <strong>animals</strong> — region × timescale interacts.</li>
+          <li>Treat training-data composition as a <strong>curation</strong> decision, not just a scale-up decision.</li>
+        </ul>
+      </section>
     </div>
 
   </section>
