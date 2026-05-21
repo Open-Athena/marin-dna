@@ -5,19 +5,25 @@
 <title>Data curation strategies for genomic language models — CSHL 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ─── OA brand palette (from openathena.ai/static/css/style.css) ─── */
 :root {
-  --bg:         #BDB1A5;
-  --bg-light:   #ada297;
-  --text:       #1f1e1b;
-  --text-light: #b5aa9f;
-  --accent:     #9e6d43;
-  --fig-frame-outer: #A99B8D;
-  --fig-frame-inner: #D1C8C0;
-  --font-heading: 'Herbik', Georgia, sans-serif;
-  --font-body:    'Lato', sans-serif;
+  /* White-background academic-poster palette. Replaces the OA brand
+     palette (warm taupe + copper) which was hard to scan at distance.
+     Inter is the single font family for everything; heavier weights
+     do duty for headings. */
+  --bg:         #ffffff;
+  --bg-light:   #f5f5f5;
+  --text:       #1a1a1a;
+  --text-light: #666666;
+  --accent:     #1d3557;   /* deep navy — section title bars + links */
+  --accent-light: #3a5b8c;
+  /* No coloured frame chrome: figures sit directly on the page bg. */
+  --fig-frame-outer: #ffffff;
+  --fig-frame-inner: #ffffff;
+  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
 
   /* Poster type scale — body legible at 1m physical viewing distance
      AND at virtual-gallery ~1000-1500px scale (where 1in maps to
@@ -29,14 +35,6 @@
   --fs-h3: 32pt;
   --fs-h1: 96pt;
   --fs-headline-num: 180pt;
-}
-
-@font-face {
-  font-family: 'Herbik';
-  src: url('fonts/Herbik-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
 }
 
 @page { size: 44in 44in; margin: 0; }
@@ -286,26 +284,40 @@ body {
   flex: 1 1 0;
   min-height: 0;
 }
+/* Gemini-poster-style title bar: solid navy block with white text,
+   spans full panel width. Contains the R1/R2/T1/T2 tag inline with
+   the assertion sentence. */
 .panel-head {
+  background: var(--accent);
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 0.12in 0.22in;
   display: flex;
   align-items: baseline;
-  gap: 0.22in;
+  gap: 0.2in;
 }
 .panel-head .tag {
   font-family: var(--font-body);
-  font-weight: 900;
+  font-weight: 800;
   font-size: var(--fs-h3);
-  color: var(--accent);
+  color: #ffffff;
   letter-spacing: 0.01em;
   line-height: 1;
+  flex: 0 0 auto;
 }
 .panel-head .title {
   font-family: var(--font-heading);
   font-size: var(--fs-h3);
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.1;
+  color: #ffffff;
   margin: 0;
 }
+/* Issue refs inside the navy title bar — invert to white. */
+.panel-head .title .issue-ref {
+  color: #cfe0f0;
+}
+.panel-head .title .issue-ref:hover { color: #ffffff; }
 .panel-caption {
   font-size: var(--fs-caption);
   line-height: 1.4;
@@ -446,7 +458,7 @@ body {
 /* ─── Bottom strips: methods + conclusions ─── */
 .strip {
   background: var(--text);
-  color: #f5efe6;
+  color: #ffffff;
   border-radius: 14px;
   padding: 0.25in 0.5in;   /* tightened from 0.4in 0.55in */
   display: grid;
@@ -456,7 +468,7 @@ body {
   font-family: var(--font-heading);
   font-weight: 400;
   font-size: 26pt;          /* tightened from --fs-h3 (32pt) */
-  color: #BFA77A;
+  color: #a8c5e8;
   margin: 0 0 0.1in 0;
   letter-spacing: 0.005em;
 }
@@ -464,13 +476,13 @@ body {
   font-size: 22pt;
   line-height: 1.35;
   margin: 0 0 0.05in 0;
-  color: #D5CBBD;
+  color: #d0d0d0;
 }
 .strip ul {
   margin: 0;
   padding-left: 1.1em;
 }
-.strip strong { color: #f5efe6; }
+.strip strong { color: #ffffff; }
 .strip .col { gap: 0.12in; }
 /* Acknowledgments paragraph under the takeaways list — same italic +
    warm-gold treatment as the Delphi blog's TRC credit, so the poster
@@ -478,7 +490,7 @@ body {
 .strip .ack {
   font-style: italic;
   font-size: 20pt;
-  color: #BFA77A;
+  color: #a8c5e8;
   margin-top: 0.18in;
 }
 .strip .ack a {
@@ -502,21 +514,21 @@ body {
   margin: 0;
   font-family: var(--font-body);
   font-size: 20pt;
-  color: #D5CBBD;
+  color: #d0d0d0;
   line-height: 1.3;
 }
 .conclusions .contact-links strong {
-  color: #f5efe6;
+  color: #ffffff;
   font-weight: 700;
   margin-right: 0.05in;
 }
 .conclusions .contact-links a {
-  color: #BFA77A;
+  color: #a8c5e8;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
-.conclusions .contact-links a:hover { color: #f5efe6; }
+.conclusions .contact-links a:hover { color: #ffffff; }
 .conclusions .contact-sep {
   color: #7a7a7a;
   margin: 0 0.18in;
@@ -535,8 +547,11 @@ body {
 .section-card-title {
   font-family: var(--font-heading);
   font-size: var(--fs-h3);
-  font-weight: 400;
-  color: var(--accent);
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--accent);
+  border-radius: 6px;
+  padding: 0.12in 0.22in;
   margin: 0;
   line-height: 1.05;
 }
