@@ -113,10 +113,12 @@ def apply_poster_style() -> None:
 # ─── Data ──────────────────────────────────────────────────────────────
 S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 
-# poster.html references figures as figs/<stem>.svg
+# Poster source (poster.typ) lives at docs/posters/cshl26/ and references
+# the figures as figs/<stem>.svg. We write the matplotlib outputs there
+# directly so a `typst compile poster.typ` finds them.
 FIGS_DIR = (
     Path(__file__).parent.parent
-    / "snakemake" / "analysis" / "cshl_poster" / "figs"
+    / "docs" / "posters" / "cshl26" / "figs"
 )
 
 
@@ -276,39 +278,12 @@ METHOD_COLORS: dict[str, str] = {
     "exp13-equal":            "#de4968",  # magma[2]  — 50 % CDS (pink-red)
     "exp13-proportional":     "#8c2981",  # magma[1]  — 90 % CDS (magenta)
     "exp27":                  "#3b0f70",  # magma[0]  — 100 % CDS (dark purple)
-    # Baselines — distinguished by grey value:
-    "evo2_1b":                "#bbbbbb",  # light grey
-    "evo2_7b":                "#777777",  # mid grey
-    "evo2_40b":               "#444444",  # dark grey
-    "GPN-Star-V":             "#cccccc",  # very light grey
-    "GPN-Star-M":             "#666666",  # mid-dark grey
-    "GPN-Star-P":             "#222222",  # near-black
 }
 METHOD_LABELS: dict[str, str] = {
     "exp21":                  "exp21 (100% promoter)",
     "exp27":                  "exp27 (100% CDS)",
     "exp13-equal":            "exp13 (50 / 50 mix)",
     "exp13-proportional":     "exp13 (10 / 90 mix)",
-    "evo2_1b":                "Evo 2 (1B)",
-    "evo2_7b":                "Evo 2 (7B)",
-    "evo2_40b":               "Evo 2 (40B)",
-    "GPN-Star-V":             "GPN-Star (V)",
-    "GPN-Star-M":             "GPN-Star (M)",
-    "GPN-Star-P":             "GPN-Star (P)",
-}
-
-# Subsets we plot side-by-side. exp21 was trained on promoters, so the
-# 5'UTR panel doubles as an off-target generalisation check.
-R1_SUBSETS: dict[str, str] = {
-    "Promoter":  "tss_proximal",
-    "5' UTR":    "5_prime_UTR_variant",
-}
-
-# CDS-related subsets for R2 (exp27 was trained on CDS).
-R2_SUBSETS: dict[str, str] = {
-    "Missense":   "missense_variant",
-    "Splicing":   "splicing",
-    "Synonymous": "synonymous_variant",
 }
 
 # Two-panel subset set for the exp13 mixture sweep — one region from each
@@ -391,128 +366,6 @@ def _load_checkpoint(model_name: str) -> pl.DataFrame:
     return pl.read_parquet(uri)
 
 
-def _final_value(model_name: str, subset: str, score_type: str = "minus_llr_avg"
-                 ) -> tuple[float, float]:
-    """Return ``(value, se)`` for ``model_name`` on ``subset``."""
-    df = _load_checkpoint(model_name).filter(
-        (pl.col("score_type") == score_type)
-        & (pl.col("subset") == subset)
-    )
-    row = df.row(0, named=True)
-    return (float(row["value"]), float(row["se"]))
-
-
-def _baseline_values(subset: str) -> dict[str, tuple[float, float]]:
-    """Per-baseline ``(AUPRC, SE)`` for one subset.
-
-    Reads each Evo 2 model's gist parquet and the GPN-Star parquet,
-    filters to the canonical score type, and returns
-    ``method_id → (value, se)``.
-    """
-    values: dict[str, tuple[float, float]] = {}
-
-    # Evo 2: one parquet per model, score_type "minus_llr_avg" (same
-    # protocol as our marin_dna models).
-    for evo_id in ("evo2_1b_base", "evo2_7b", "evo2_40b"):
-        uri = f"{EVO2_METRICS_BASE}/mendelian_{evo_id}_train_metrics.parquet"
-        df = pl.read_parquet(uri).filter(
-            (pl.col("score_type") == "minus_llr_avg")
-            & (pl.col("subset") == subset)
-        )
-        row = df.row(0, named=True)
-        # Normalize key (drop the `_base` suffix on 1B).
-        key = "evo2_1b" if evo_id == "evo2_1b_base" else evo_id
-        values[key] = (float(row["value"]), float(row["se"]))
-
-    # GPN-Star: one parquet with all 3 MSA variants, model column filters
-    # them. Use the calibrated score (cLLR), the GPN-Star paper's headline.
-    gpn = pl.read_parquet(f"{GPN_STAR_METRICS_BASE}/mendelian_traits.GPN-Star.parquet").filter(
-        (pl.col("score_type") == "minus_llr_calibrated")
-        & (pl.col("subset") == subset)
-    )
-    for model in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P"):
-        sub = gpn.filter(pl.col("model") == model)
-        if not sub.is_empty():
-            row = sub.row(0, named=True)
-            values[model] = (float(row["value"]), float(row["se"]))
-
-    return values
-
-
-def _plot_comparison_bars(
-    hero_id: str,
-    hero_checkpoint: str,
-    subsets: dict[str, str],
-    out_path: Path,
-) -> None:
-    """Shared body for R1 / R2: per-subset bar chart of one hero model
-    (exp21 or exp27) against the same Evo 2 + GPN-Star baselines, with
-    per-cluster bootstrap SE error bars."""
-    methods = [hero_id, "evo2_1b", "evo2_7b", "evo2_40b",
-               "GPN-Star-V", "GPN-Star-M", "GPN-Star-P"]
-    n_panels = len(subsets)
-    fig_width = 6 + 2.8 * n_panels  # roughly 11.5 for 2 panels, 14 for 3
-    fig, axes = plt.subplots(1, n_panels, figsize=(fig_width, 4.5), sharey=True)
-    if n_panels == 1:
-        axes = [axes]
-    for ax, (panel, subset_key) in zip(axes, subsets.items()):
-        hero_value = _final_value(hero_checkpoint, subset_key)
-        values = {hero_id: hero_value, **_baseline_values(subset_key)}
-
-        heights = [values[m][0] for m in methods]
-        errs    = [values[m][1] for m in methods]
-        colors  = [METHOD_COLORS[m] for m in methods]
-        xs      = list(range(len(methods)))
-        ax.bar(
-            xs, heights,
-            yerr=errs,
-            color=colors,
-            edgecolor=OA_TEXT,
-            linewidth=1.0,
-            # SE bars without caps — cleaner read at poster distance.
-            error_kw={"ecolor": OA_TEXT, "elinewidth": 1.2, "capsize": 0},
-        )
-        ax.set_xticks(xs)
-        ax.set_xticklabels(
-            [METHOD_LABELS[m] for m in methods],
-            rotation=35,
-            ha="right",
-            fontsize=15,
-        )
-        if ax is axes[0]:
-            ax.set_ylabel("AUPRC")
-        ax.set_title(panel)
-        for x, h, e in zip(xs, heights, errs):
-            ax.text(x, h + e + 0.012, f"{h:.2f}", ha="center", va="bottom", fontsize=14)
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path)
-    print(f"wrote {out_path}")
-    plt.close(fig)
-
-
-# R1: exp21 (promoter-trained) on the two regions it was scored against.
-def plot_r1(out_path: Path) -> None:
-    """exp21 vs Evo 2 / GPN-Star on Promoter and 5'UTR."""
-    _plot_comparison_bars(
-        hero_id="exp21",
-        hero_checkpoint="exp21-promoters-yolo-step-22000",
-        subsets=R1_SUBSETS,
-        out_path=out_path,
-    )
-
-
-# R2: exp27 (CDS-trained) on the three CDS variant subsets.
-def plot_r2(out_path: Path) -> None:
-    """exp27 vs Evo 2 / GPN-Star on Missense, Splicing, and Synonymous."""
-    _plot_comparison_bars(
-        hero_id="exp27",
-        hero_checkpoint="exp27-cds-yolo-step-34000",
-        subsets=R2_SUBSETS,
-        out_path=out_path,
-    )
-
-
 def _specialist_grid() -> dict[str, dict[str, tuple[float, float]]]:
     """Assemble ``method_id → region_label → (auprc, se)``.
 
@@ -561,128 +414,9 @@ def _specialist_grid() -> dict[str, dict[str, tuple[float, float]]]:
     return grid
 
 
-# R-radar: 5 methods (3 specialists + 2 generalists) on 3 regions —
-# poster-friendly single-image takeaway. Each specialist's spike lands
-# on its own training region.
-def plot_specialist_radar(out_path: Path) -> None:
-    grid = _specialist_grid()
-    regions = list(SPECIALIST_REGIONS)
-    n = len(regions)
-
-    # Angles for each axis — start at the top (π/2) and go counter-clockwise
-    # for the "spike at top" feel of GPN-Star Fig 1B-style radars.
-    angles = np.linspace(np.pi / 2, np.pi / 2 + 2 * np.pi, n, endpoint=False)
-    # Append the first angle to close the polygon.
-    closed_angles = np.concatenate([angles, [angles[0]]])
-
-    fig, ax = plt.subplots(figsize=(7.5, 7.0), subplot_kw={"projection": "polar"})
-    for method in SPECIALIST_METHODS:
-        vals = [grid[method][r][0] for r in regions]
-        closed_vals = vals + [vals[0]]
-        is_specialist = method in SPECIALIST_CHECKPOINTS
-        ax.plot(
-            closed_angles, closed_vals,
-            color=SPECIALIST_COLORS[method],
-            linewidth=2.5 if is_specialist else 2.0,
-            label=SPECIALIST_LABELS[method].replace("\n", " "),
-            zorder=5 if is_specialist else 3,
-        )
-
-    # Radial scale: 0 to 0.7 covers all data + a touch of headroom.
-    ax.set_ylim(0, 0.7)
-    ax.set_yticks([0.2, 0.4, 0.6])
-    ax.set_yticklabels(["0.2", "0.4", "0.6"], fontsize=10, color=OA_TEXT_LIGHT)
-
-    # Region labels at each spoke
-    ax.set_xticks(angles)
-    ax.set_xticklabels(regions, fontsize=14, fontweight="bold", color=OA_TEXT)
-
-    # Move the radial labels off the axis line so they don't sit on top
-    # of the polygons.
-    ax.set_rlabel_position(105)
-    ax.spines["polar"].set_color(OA_TEXT_LIGHT)
-    ax.grid(color=OA_TEXT_LIGHT, alpha=0.4, linewidth=0.7)
-
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.18),
-        ncol=3,
-        frameon=False,
-        labelcolor=OA_TEXT,
-        fontsize=11,
-    )
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path)
-    print(f"wrote {out_path}")
-    plt.close(fig)
-
-
-# Profile / "parallel-coordinates" view: same data as the radar but on
-# a Cartesian x-axis. With only 3 categories, this reads cleaner than a
-# 3-spoke radar — every specialist traces a distinct *shape* (peak on
-# the left / middle / right) rather than three rotated triangles.
-def plot_specialist_profile(out_path: Path) -> None:
-    grid = _specialist_grid()
-    regions = list(SPECIALIST_REGIONS)
-    x = np.arange(len(regions))
-    # Map each specialist to the region it should peak on, for value
-    # annotation.
-    specialist_peak: dict[str, str] = {
-        "exp21":  "Promoter",
-        "exp27":  "Missense",
-        "exp136": "Enhancer",
-    }
-
-    fig, ax = plt.subplots(figsize=(8, 5.5))
-    for method in SPECIALIST_METHODS:
-        ys   = [grid[method][r][0] for r in regions]
-        errs = [grid[method][r][1] for r in regions]
-        is_specialist = method in SPECIALIST_CHECKPOINTS
-        ax.errorbar(
-            x, ys,
-            yerr=errs,
-            color=SPECIALIST_COLORS[method],
-            linestyle="-" if is_specialist else "--",
-            linewidth=2.5 if is_specialist else 1.8,
-            marker="o",
-            markersize=9 if is_specialist else 6,
-            elinewidth=1.2,
-            capsize=0,
-            label=SPECIALIST_LABELS[method].replace("\n", " "),
-            zorder=5 if is_specialist else 3,
-        )
-        # Value annotation at each specialist's spike (3 labels total).
-        if is_specialist:
-            spike_x = regions.index(specialist_peak[method])
-            ax.annotate(
-                f"{ys[spike_x]:.2f}",
-                xy=(spike_x, ys[spike_x]),
-                xytext=(0, 14),
-                textcoords="offset points",
-                ha="center",
-                fontsize=12,
-                fontweight="bold",
-                color=SPECIALIST_COLORS[method],
-            )
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(regions, fontsize=14, fontweight="bold")
-    ax.set_ylabel("AUPRC")
-    # Match the bar plot: y-axis starts at the chance baseline.
-    ax.set_ylim(0.05, 0.72)
-    ax.legend(
-        loc="upper right",
-        title=None,
-        fontsize=11,
-        labelcolor=OA_TEXT,
-        frameon=False,
-    )
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path)
-    print(f"wrote {out_path}")
-    plt.close(fig)
+# (Removed: plot_specialist_radar and plot_specialist_profile were
+# alternative views A/B-tested against the grouped bar chart below;
+# the bar chart won, so the radar / profile functions are dropped.)
 
 
 # Three-panel grouped bar chart: one panel per region, 5 bars each
@@ -847,12 +581,5 @@ if __name__ == "__main__":
     apply_poster_style()
     plot_t1(FIGS_DIR / "t1.svg")
     plot_t2(FIGS_DIR / "t2.svg")
-    plot_r1(FIGS_DIR / "r1.svg")
-    plot_r2(FIGS_DIR / "r2.svg")
     plot_r3(FIGS_DIR / "r3.svg")
     plot_specialist_grouped_bars(FIGS_DIR / "specialist_bars.svg")
-    # The radar and profile alternative views remain in the file (for
-    # reference / quick A/B switch) but are no longer regenerated — the
-    # 3-subplot grouped bars are the picked view.
-    # plot_specialist_radar(FIGS_DIR / "specialist_radar.svg")
-    # plot_specialist_profile(FIGS_DIR / "specialist_profile.svg")
