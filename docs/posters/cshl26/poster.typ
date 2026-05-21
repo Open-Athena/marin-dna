@@ -135,7 +135,7 @@
     Maximize the likelihood of observed (reference) DNA.
 
     #align(center)[
-      $ "maximize" thin log P( #nucs[…CACTTGGAT…] ) $
+      $ "maximize" thin log P( dots.c #nucs[CACTTGGAT] dots.c ) $
     ]
   ]
 
@@ -145,8 +145,8 @@
     #align(center)[
       $
         "LLR" = log frac(
-          P( #nucs[…CACT#text(fill: rgb("#e63946"))[C]GGAT…] ),
-          P( #nucs[…CACTTGGAT…] )
+          P( dots.c #nucs[CACT#text(fill: rgb("#e63946"))[C]GGAT] dots.c ),
+          P( dots.c #nucs[CACTTGGAT] dots.c )
         )
       $
     ]
