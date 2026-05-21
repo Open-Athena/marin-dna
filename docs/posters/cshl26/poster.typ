@@ -39,12 +39,12 @@
       ],
       [
         #set text(size: 18pt)
-        *Code & experiments:* \
+        *Code & experiments:*
         #link("https://github.com/Open-Athena/marin-dna")[github.com/Open-Athena/marin-dna]
       ],
       [
         #set text(size: 18pt)
-        *Contact:* \
+        *Contact:*
         #link("mailto:gonzalo.benegas@openathena.ai")[gonzalo.benegas\@openathena.ai]
       ]
     )
