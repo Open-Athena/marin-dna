@@ -14,8 +14,8 @@
 
 // ─── Page setup (44 in × 44 in, matches @page in poster.html) ──────
 #set page(
-  paper: "a4",  // overridden by width/height below
-  width:  44in,
+  paper: "a4", // overridden by width/height below
+  width: 44in,
   height: 44in,
   margin: (top: 1in, bottom: 1.4in, x: 1in),
   background: rect(fill: white, width: 100%, height: 100%),
@@ -47,7 +47,7 @@
         #set text(size: 18pt)
         *Contact:*
         #link("mailto:gonzalo.benegas@openathena.ai")[gonzalo.benegas\@openathena.ai]
-      ]
+      ],
     )
   ],
 )
@@ -87,7 +87,8 @@
   columns: (3.5in, 1fr, 3.5in),
   align: (left + horizon, center + horizon, right + horizon),
   column-gutter: 0.3in,
-  [], // empty (visual balance for the logo on the right)
+  [],
+  // empty (visual balance for the logo on the right)
   [
     #set text(weight: "bold", size: 80pt)
     #par(leading: 0.35em)[Data curation strategies for genomic language models]
@@ -140,10 +141,12 @@
     Score a variant by how much it changes the likelihood.
 
     #align(center)[
-      $ "LLR" = log frac(
-        P(#dna("CACT") #dna-c("C", rgb("#1d3557")) #dna("GGA")),
-        P(#dna("CACT") #dna-c("T", rgb("#1d3557")) #dna("GGA"))
-      ) $
+      $
+        "LLR" = log frac(
+          P(#dna("CACT") #dna-c("C", rgb("#1d3557")) #dna("GGA")),
+          P(#dna("CACT") #dna-c("T", rgb("#1d3557")) #dna("GGA"))
+        )
+      $
     ]
   ]
 
@@ -166,27 +169,26 @@
   // ═════════════════ COLUMN B: Functional regions (R1 + R2) ═══════════
 
   // Gene cartoon at the top doubles as colour-key for R1 + R2 below.
-  #image("figs/region_legend.svg", width: 100%)
-  #v(0.15in)
+  // #v(0.15in)
 
-  #pop.column-box(heading: [R1 · Region specialists match generalists on their region])[
+  #pop.column-box(heading: [Region specialists achieve competitive performance])[
+    #image("figs/region_legend.svg", width: 100%)
+    - We trained specialist models, each on a single region of the genome.
     #image("figs/specialist_bars.svg", width: 100%)
-
-    - Each specialist *matches the strongest generalists* on its trained region.
-    - The 40B Evo 2 doesn't dominate any panel — *scale alone doesn't win*.
-    - *Region-coding* the training data is sufficient for region-specific tasks.
+    - Each specialist achieves good performance in VEP tasks on its trained region.
+    - Specialists generally outperform Evo 2, but not GPN-Star.
   ]
 
-  #pop.column-box(heading: [R2 · Balanced sampling rescues the under-represented region])[
+  #pop.column-box(heading: [Balanced sampling rescues the under-represented region])[
     #image("figs/r2_composition.svg", width: 100%)
     #v(0.1in)
     #image("figs/r3.svg", width: 100%)
 
-    - Proportional sampling (natural *10 / 90* ratio) under-serves the
+    - Proportional sampling (natural 10 / 90 ratio) under-serves the
       rare region — promoter AUPRC stays low.
-    - *Uniform 50 / 50* lifts promoter AUPRC into specialist range,
+    - Uniform 50 / 50 lifts promoter AUPRC into specialist range,
       with little cost on missense.
-    - One *mixed* model can serve both regions — no per-region training needed.
+    - One mixed model can serve both regions — no per-region training needed.
   ]
 
   #colbreak()
@@ -197,17 +199,17 @@
   #image("figs/timescale_legend.svg", width: 100%)
   #v(0.15in)
 
-  #pop.column-box(heading: [T1 · Promoters peak at the mammals timescale])[
+  #pop.column-box(heading: [Promoters peak at the mammals timescale])[
     #image("figs/t1.svg", width: 100%, height: 7in, fit: "contain")
 
-    - Promoter signal *peaks at mammals* (~100 Mya) — broader is worse.
-    - Suggests promoter regulatory grammar is largely *mammal-specific*.
+    - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
+    - Suggests promoter regulatory grammar is largely mammal-specific.
   ]
 
-  #pop.column-box(heading: [T2 · CDS keeps improving out to the animals timescale])[
+  #pop.column-box(heading: [CDS keeps improving out to the animals timescale])[
     #image("figs/t2.svg", width: 100%, height: 7in, fit: "contain")
 
-    - CDS signal still gaining at the *animals* timescale (~700 Mya).
+    - CDS signal still gaining at the animals timescale (~700 Mya).
     - Suggests protein-coding grammar generalises across deep time.
   ]
 
