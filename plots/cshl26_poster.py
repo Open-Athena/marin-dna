@@ -67,31 +67,38 @@ ARM_LABEL: dict[str, str] = {
 
 
 def apply_poster_style() -> None:
-    """matplotlib rcParams for figures that live inside the poster frames."""
+    """matplotlib rcParams for figures that live inside the poster frames.
+
+    Font sizes set in *matplotlib points* at the figsize used by each
+    plot function. The SVG is then scaled when embedded in the column.
+    Sizes here picked so the rendered text on the printed 44 × 44 in
+    poster reads at ~24-28pt physical — matching the HTML body text
+    (--fs-body / --fs-caption in poster.html).
+    """
     mpl.rcParams.update({
         # Render text as SVG <path>s so the figure is self-contained — no
         # dependency on Lato being installed wherever the poster is viewed.
         "svg.fonttype":        "path",
         "font.family":         "sans-serif",
-        "font.size":           14,
-        "axes.titlesize":      16,
-        "axes.labelsize":      14,
+        "font.size":           18,
+        "axes.titlesize":      22,
+        "axes.labelsize":      20,
         "axes.titleweight":    "normal",
         "axes.edgecolor":      OA_TEXT,
         "axes.labelcolor":     OA_TEXT,
-        "axes.linewidth":      1.5,
+        "axes.linewidth":      1.8,
         "axes.spines.top":     False,
         "axes.spines.right":   False,
         "axes.facecolor":      OA_FIG_FRAME_INNER,
         "figure.facecolor":    OA_FIG_FRAME_INNER,
         "xtick.color":         OA_TEXT,
         "ytick.color":         OA_TEXT,
-        "xtick.labelsize":     12,
-        "ytick.labelsize":     12,
+        "xtick.labelsize":     16,
+        "ytick.labelsize":     16,
         "legend.frameon":      False,
-        "legend.fontsize":     12,
-        "lines.linewidth":     2.5,
-        "lines.markersize":    7,
+        "legend.fontsize":     16,
+        "lines.linewidth":     2.8,
+        "lines.markersize":    8,
         "savefig.facecolor":   OA_FIG_FRAME_INNER,
         "savefig.bbox":        "tight",
     })
@@ -460,13 +467,13 @@ def _plot_comparison_bars(
             [METHOD_LABELS[m] for m in methods],
             rotation=35,
             ha="right",
-            fontsize=11,
+            fontsize=15,
         )
         if ax is axes[0]:
             ax.set_ylabel("AUPRC")
         ax.set_title(panel)
         for x, h, e in zip(xs, heights, errs):
-            ax.text(x, h + e + 0.012, f"{h:.2f}", ha="center", va="bottom", fontsize=10)
+            ax.text(x, h + e + 0.012, f"{h:.2f}", ha="center", va="bottom", fontsize=14)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
@@ -712,13 +719,13 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
             ax.text(
                 x, h + e + 0.012,
                 f"{h:.2f}",
-                ha="center", va="bottom", fontsize=10,
+                ha="center", va="bottom", fontsize=14,
                 color=OA_TEXT,
             )
 
         ax.set_title(
             region,
-            fontsize=15,
+            fontsize=20,
             fontweight="bold",
             pad=8,
             color=REGION_TITLE_COLORS[region],
@@ -739,7 +746,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         loc="lower center",
         bbox_to_anchor=(0.5, -0.02),
         ncol=len(SPECIALIST_METHODS),
-        fontsize=11,
+        fontsize=15,
         labelcolor=OA_TEXT,
         frameon=False,
     )

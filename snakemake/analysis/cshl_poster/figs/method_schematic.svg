@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .ink     { fill: #1f1e1b; }
+      .muted   { fill: #7a7a7a; }
+      .accent  { fill: #9e6d43; }
+      .title   { font-family: 'Herbik', Georgia, serif; font-size: 46px; font-weight: 400; }
+      .sub     { font-family: 'Lato', sans-serif; font-size: 24px; }
+      .formula      { font-family: 'STIX Two Math', 'Times New Roman', serif; font-size: 50px; font-style: italic; }
+      .formula-text { font-family: 'Lato', sans-serif; font-size: 32px; font-weight: 700; }
+      .seq          { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: 40px; font-weight: 700; letter-spacing: 0.04em; }
+      .small        { font-family: 'Lato', sans-serif; font-size: 22px; }
+    </style>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- 1. TRAINING                                  -->
+  <!-- ═══════════════════════════════════════════ -->
+  <g transform="translate(0, 0)">
+    <text x="60"  y="55" class="title accent">1.</text>
+    <text x="105" y="55" class="title ink">Training</text>
+    <text x="60"  y="92" class="sub muted">Maximize the likelihood of observed (reference) DNA.</text>
+
+    <!-- Single-line formula: maximize  log P( CACTTGGA ) -->
+    <g transform="translate(550, 190)">
+      <text x="0" y="0" text-anchor="middle" class="ink">
+        <tspan class="formula-text" font-style="normal">maximize&#xA0;&#xA0;</tspan>
+        <tspan class="formula" font-style="italic">log&#xA0;P(</tspan>
+        <tspan class="seq" font-style="normal">CACTTGGA</tspan>
+        <tspan class="formula" font-style="italic">)</tspan>
+      </text>
+    </g>
+  </g>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- 2. ZERO-SHOT VARIANT EFFECT PREDICTION       -->
+  <!-- ═══════════════════════════════════════════ -->
+  <g transform="translate(0, 260)">
+    <text x="60"  y="55" class="title accent">2.</text>
+    <text x="105" y="55" class="title ink">Zero-shot variant effect prediction</text>
+    <text x="60"  y="92" class="sub muted">Score a variant by how much it changes the likelihood.</text>
+
+    <!-- LLR formula as a single line:
+         LLR = log [ P( CACT C GGA ) / P( CACT T GGA ) ]
+         with the alt-position nucleotide highlighted in copper.
+         (Stacked numerator-over-denominator form, centered.) -->
+    <g transform="translate(550, 190)">
+      <!-- numerator (alt) -->
+      <text x="0" y="0" text-anchor="middle" class="ink">
+        <tspan class="formula-text" font-style="normal">LLR&#xA0;&#xA0;=&#xA0;&#xA0;</tspan>
+        <tspan class="formula" font-style="italic">log&#xA0;P(</tspan>
+        <tspan class="seq" font-style="normal">CACT</tspan>
+        <tspan class="seq accent" font-style="normal">C</tspan>
+        <tspan class="seq" font-style="normal">GGA</tspan>
+        <tspan class="formula" font-style="italic">)</tspan>
+      </text>
+      <!-- fraction bar -->
+      <line x1="-30" y1="22" x2="320" y2="22" stroke="#1f1e1b" stroke-width="2.5"/>
+      <!-- denominator (ref) -->
+      <text x="0" y="70" text-anchor="middle" class="ink">
+        <tspan class="formula" font-style="italic">P(</tspan>
+        <tspan class="seq" font-style="normal">CACT</tspan>
+        <tspan class="seq accent" font-style="normal">T</tspan>
+        <tspan class="seq" font-style="normal">GGA</tspan>
+        <tspan class="formula" font-style="italic">)</tspan>
+      </text>
+      <!-- "alt" / "ref" row labels next to numerator + denominator -->
+      <text x="340" y="3"  class="small muted" font-weight="700">alt</text>
+      <text x="340" y="73" class="small muted" font-weight="700">ref</text>
+    </g>
+  </g>
+</svg>
