@@ -436,7 +436,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(
         1, len(regions),
-        figsize=(11.5, 5.2),
+        figsize=(11.5, 6.8),
         sharey=False,        # each region is a different dataset
         constrained_layout=False,
     )
@@ -498,29 +498,30 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     # 3 region specialists, one for the 2 whole-genome generalists.
     # Grouping makes the typological distinction visible (and saves
     # the "-specialist" suffix on every per-bar label).
+    # `labelspacing` controls the title→entries gap inside each legend.
+    legend_kw = dict(
+        loc="lower center",
+        fontsize=24,
+        title_fontsize=24,
+        labelspacing=1.8,
+        labelcolor=OA_TEXT,
+        frameon=False,
+    )
     fig.legend(
         handles=specialist_handles,
         title="Specialists",
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.13),
+        bbox_to_anchor=(0.5, 0.30),
         ncol=len(specialist_handles),
-        fontsize=24,
-        title_fontsize=24,
-        labelcolor=OA_TEXT,
-        frameon=False,
+        **legend_kw,
     )
     fig.legend(
         handles=generalist_handles,
         title="Generalists",
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.0),
+        bbox_to_anchor=(0.5, 0.04),
         ncol=len(generalist_handles),
-        fontsize=24,
-        title_fontsize=24,
-        labelcolor=OA_TEXT,
-        frameon=False,
+        **legend_kw,
     )
-    fig.subplots_adjust(left=0.07, right=0.99, top=0.93, bottom=0.36, wspace=0.40)
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.94, bottom=0.50, wspace=0.40)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
