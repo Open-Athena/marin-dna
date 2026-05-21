@@ -70,18 +70,28 @@
   ),
 ))
 
-// ─── Header (title + authors + affiliation) ────────────────────────
-#align(center)[
-  #set text(weight: "bold", size: 80pt)
-  #par(leading: 0.35em)[Data curation strategies for genomic language models]
+// ─── Header (title + authors + affiliation + OA logo) ──────────────
+// 3-column grid: a transparent spacer on the left mirrors the logo
+// width on the right, so the title in the centre column stays
+// optically centred between them (Gemini-poster convention).
+#grid(
+  columns: (3.5in, 1fr, 3.5in),
+  align: (left + horizon, center + horizon, right + horizon),
+  column-gutter: 0.3in,
+  [], // empty (visual balance for the logo on the right)
+  [
+    #set text(weight: "bold", size: 80pt)
+    #par(leading: 0.35em)[Data curation strategies for genomic language models]
 
-  #v(0.15in)
-  #set text(weight: "regular", size: 32pt)
-  Gonzalo Benegas, Eric Czech
+    #v(0.15in)
+    #set text(weight: "regular", size: 32pt)
+    Gonzalo Benegas, Eric Czech
 
-  #set text(style: "italic", size: 24pt, fill: rgb("#666666"))
-  Open Athena
-]
+    #set text(style: "italic", size: 24pt, fill: rgb("#666666"))
+    Open Athena
+  ],
+  image("figs/icons/oa-logo.svg", width: 3in),
+)
 
 #v(0.3in)
 #line(length: 100%, stroke: 2pt + rgb("#1a1a1a"))
