@@ -37,18 +37,18 @@
     <polygon points="492,18 482,12 482,24" fill="#1f1e1b"/>
     <text x="472" y="8" text-anchor="start" class="micro muted">TSS</text>
 
-    <!-- 5'UTR -->
-    <rect x="460" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
-    <!-- CDS exon 1 -->
-    <rect x="530" y="60" width="140" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- 5'UTR (widened so its centre matches the label position at x=530) -->
+    <rect x="460" y="60" width="140" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- CDS exon 1 (shifted right by +70 to clear the wider 5'UTR) -->
+    <rect x="600" y="60" width="140" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
     <!-- intron (thin line connecting exons) -->
-    <line x1="670" y1="82" x2="770" y2="82" stroke="#1f1e1b" stroke-width="2"/>
+    <line x1="740" y1="82" x2="840" y2="82" stroke="#1f1e1b" stroke-width="2"/>
     <!-- intron caret -->
-    <polyline points="700,82 720,70 740,82" stroke="#1f1e1b" stroke-width="2" fill="none"/>
+    <polyline points="770,82 790,70 810,82" stroke="#1f1e1b" stroke-width="2" fill="none"/>
     <!-- CDS exon 2 -->
-    <rect x="770" y="60" width="130" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
+    <rect x="840" y="60" width="130" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
     <!-- 3'UTR -->
-    <rect x="900" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
+    <rect x="970" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
 
     <!-- Region labels below — focal labels (Enhancer/Promoter/CDS) at
          large size; UTR labels in a smaller variant since they're not
@@ -59,9 +59,9 @@
     <text x="400" y="140" text-anchor="middle" class="clade" fill="#0173b2" font-weight="700">Promoter</text>
     <text x="530" y="140" text-anchor="middle" class="clade-small muted">5′ UTR</text>
 
-    <text x="620" y="140" text-anchor="middle" class="clade" fill="#de8f05" font-weight="700">CDS</text>
+    <text x="670" y="140" text-anchor="middle" class="clade" fill="#de8f05" font-weight="700">CDS</text>
 
-    <text x="935" y="140" text-anchor="middle" class="clade-small muted">3′ UTR</text>
+    <text x="1005" y="140" text-anchor="middle" class="clade-small muted">3′ UTR</text>
   </g>
 
 </svg>
