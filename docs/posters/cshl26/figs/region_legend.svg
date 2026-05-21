@@ -39,7 +39,7 @@
     <text x="472" y="8" text-anchor="start" class="micro muted">TSS</text>
 
     <!-- 5'UTR (widened so its centre matches the label position at x=530) -->
-    <rect x="460" y="60" width="140" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
+    <rect x="460" y="60" width="140" height="44" fill="#e8dec8" stroke="#1f1e1b" stroke-width="1.5"/>
     <!-- CDS exon 1 (shifted right by +70 to clear the wider 5'UTR) -->
     <rect x="600" y="60" width="140" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
     <!-- intron (thin line connecting exons) -->
@@ -49,7 +49,7 @@
     <!-- CDS exon 2 -->
     <rect x="840" y="60" width="130" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
     <!-- 3'UTR -->
-    <rect x="970" y="60" width="70" height="44" fill="#bcb09c" stroke="#1f1e1b" stroke-width="1.5"/>
+    <rect x="970" y="60" width="70" height="44" fill="#e8dec8" stroke="#1f1e1b" stroke-width="1.5"/>
 
     <!-- Region labels below — focal labels (Enhancer/Promoter/CDS) at
          large size; UTR labels in a smaller variant since they're not
