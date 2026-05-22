@@ -236,7 +236,6 @@
     [],
     // spacer for visual balance with the logo on the right
     [
-      #v(0.4in)
       #set align(center)
       #set text(size: 80pt)
       Data curation strategies for genomic language models \
@@ -245,7 +244,6 @@
       Gonzalo Benegas, Eric Czech \
       #set text(size: 36pt)
       Open Athena
-      #v(0.4in)
     ],
     image("figs/icons/oa-logo-white.svg", width: 3in),
   )
@@ -273,19 +271,18 @@
       - In this work, we explore *data curation* strategies for developing performant, flexible and efficient gLMs
     ]
 
-    #v(0.4in)
 
     #let nucs(body) = box(text(font: "Menlo")[#body])
 
     #column-box(heading: "gLM overview")[
-      *Training:* maximize the likelihood of sequences from a set of reference genomes.
+      *Training:* maximize the likelihood of sequences from reference genomes (typically from healthy individuals).
 
       #align(center)[
         $ "maximize" thin log P( dots.c#nucs[CACTTGGAT]dots.c ) $
       ]
 
       *Zero-shot VEP:* score a variant by how much it changes the
-      likelihood compared to the reference. Low likelihood → likely pathogenic.
+      likelihood compared to the reference. Low likelihood → likely deleterious.
 
       #align(center)[
         $
@@ -297,28 +294,25 @@
       ]
     ]
 
-    #v(0.4in)
 
     #column-box(heading: "Methods")[
-      - *Architecture:* Qwen decoder-only Transformer; objective
-        $P(x_t | x_(<t))$; FWD + RC averaging.
-      - *Sizes:* 6M – 1.7B parameters; we vary _what_ we train on,
-        not how large.
-      - *Data:* per-experiment subsets (promoter, CDS, enhancer,
-        mixtures, multi-species).
-      - *Benchmark:* ClinVar Mendelian variants (pathogenic vs benign),
-        per consequence subset.
-      - *Metric:* AUPRC, with per-cluster bootstrap SE.
+      - Standard architecture and training objective: *Qwen3 autoregressive Transformer*
+        - Reuse LLM infrastructure and modeling science while focusing on data
+      - *Context size: 256 bp*
+        - Let's first model individual elements of the genome well -- and get there fast
+      - *Model size: $tilde$1B* for the experiments here described. Currently exploring scaling.
+      - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
+      - VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (TraitGym-style)
     ]
 
-    #v(0.4in)
 
     #column-box(heading: [How to do one region well])[
+      - The genome is very heterogenous -- some might say coding sequences (CDS) and regulatory regions have a different grammar.
+      - We first trained specialist models, each on a single region of the genome.
       #image("figs/region_legend.svg", width: 100%)
-      - We trained specialist models, each on a single region of the genome.
       #image("figs/specialist_bars.svg", width: 100%)
       - Each specialist achieves good performance in VEP tasks on its trained region.
-      - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs.
+      - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs -- perhaps for now.
     ]
 
     #colbreak()
@@ -336,7 +330,6 @@
         with little cost on missense.
     ]
 
-    #v(0.4in)
 
     #column-box(heading: [Optimal timescale varies by region])[
       #image("figs/timescale_legend.svg", width: 100%)
@@ -365,7 +358,6 @@
       )
     ]
 
-    #v(0.4in)
 
     #alert-box(heading: "Summary")[
       - Region specialists *match* whole-genome + multi-species
