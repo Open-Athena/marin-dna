@@ -300,25 +300,16 @@
       - If we have a target species of interest (e.g. human), which species should we train on?
       - There is a tradeoff between dataset size, diversity, and evolutionary relevance.
       #image("figs/timescale_legend.svg", width: 100%)
-
       #image("figs/timescale.svg", width: 100%)
-
-      - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
-      - Suggests promoter regulatory grammar is largely mammal-specific.
-      - CDS signal still gaining at the animals timescale (~700 Mya).
-      - Suggests protein-coding grammar generalises across deep time.
+      - For regulatory regions such as promoters and 3' UTR, training on mammals reaches good performance faster, but training on vertebrates or animals seems to eventually close the gap, at the cost of additional compute (worth to keep exploring).
+      - In the more conserved CDS region, the value of larger evolution timescales is much more evident.
     ]
 
 
     #alert-box(heading: "Summary")[
-      - Region specialists *match* whole-genome + multi-species
-        generalists, each on its own region.
-      - *Balanced sampling* (50 / 50) rescues the under-represented
-        region — one mixed model can serve both.
-      - Promoter signal peaks at *mammals*; CDS keeps improving to
-        *animals* — region × timescale interacts.
-      - Treat training-data composition as a *curation* decision,
-        not just a scale-up decision.
+      - We explore data curation strategies along two separate axes: *functional regions* and *evolutionary timescales*.
+      - As next steps, we are exploring how data curation recipes interact with varying *model scale*. We are also interested in transfer learning applications such as *gene expression prediction*.
+      - This work is part of the MarinDNA project. Inspired by Marin, we do *open development*: not only we make public code and data, but also the research process itself. All our experiments are preregistered and publicly available from day 1.
     ]
 
   ]
