@@ -277,24 +277,21 @@
 
     #let nucs(body) = box(text(font: "Menlo")[#body])
 
-    #column-box(heading: "Overview")[
-      Autoregressive language models of DNA — at each position, predict
-      the next nucleotide given the preceding context.
-
-      *Training:* maximize the likelihood of reference DNA.
+    #column-box(heading: "gLM overview")[
+      *Training:* maximize the likelihood of sequences from a set of reference genomes.
 
       #align(center)[
-        $ "maximize" thin log P( dots.c #nucs[CACTTGGAT] dots.c ) $
+        $ "maximize" thin log P( dots.c#nucs[CACTTGGAT]dots.c ) $
       ]
 
       *Zero-shot VEP:* score a variant by how much it changes the
-      likelihood.
+      likelihood compared to the reference. Low likelihood → likely pathogenic.
 
       #align(center)[
         $
           "LLR" = log frac(
-            P( dots.c #nucs[CACT#text(fill: rgb("#e63946"))[C]GGAT] dots.c ),
-            P( dots.c #nucs[CACTTGGAT] dots.c )
+            P( dots.c#nucs[CACT#text(fill: rgb("#e63946"))[C]GGAT]dots.c ),
+            P( dots.c#nucs[CACTTGGAT]dots.c )
           )
         $
       ]
