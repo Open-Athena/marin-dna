@@ -203,6 +203,109 @@ def _plot_timescale_panel(
     plt.close(fig)
 
 
+def _load_exp58(arms: tuple[str, ...], steps: tuple[int, ...]) -> pl.DataFrame:
+    """Read mendelian_traits metrics across exp58-{arm}-step-{step}."""
+    parts: list[pl.DataFrame] = []
+    missing: list[str] = []
+    for arm in arms:
+        for step in steps:
+            uri = f"{S3_BASE}/exp58-{arm}-step-{step}/mendelian_traits.parquet"
+            try:
+                ck = pl.read_parquet(uri)
+            except Exception as exc:
+                missing.append(f"  {arm} step {step}: {exc}")
+                continue
+            parts.append(
+                ck.with_columns(
+                    pl.lit(arm).alias("arm"),
+                    pl.lit(step).alias("step"),
+                )
+            )
+    if missing:
+        print(
+            f"WARN: {len(missing)}/{len(arms) * len(steps)} exp58 parquets unread:\n"
+            + "\n".join(missing),
+            file=sys.stderr,
+        )
+    assert parts, "no exp58 parquets loaded"
+    return pl.concat(parts)
+
+
+def plot_timescale(out_path: Path) -> None:
+    """T1 + T2 unified into a single two-panel figure (Promoter | Missense).
+
+    Mirrors the structure of plot_r3 (multi-panel line plot with
+    colour-coded subplot titles). Saves vertical poster space vs
+    stacking two separate SVGs, and makes the "same dataset family
+    seen through two consequence lenses" framing visible at a glance.
+    """
+    apply_poster_style()
+
+    promoter_arms = ("humans", "primates", "mammals", "vertebrates", "animals")
+    cds_arms      = ("mammals", "vertebrates", "animals")
+    steps         = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
+    score_type    = "minus_llr_avg"
+
+    # Promoter (exp55) data — TSS-proximal subset.
+    promoter_raw = load_exp55(promoter_arms, steps)
+    promoter_df = promoter_raw.filter(
+        (pl.col("score_type") == score_type)
+        & (pl.col("subset") == "tss_proximal")
+    )
+    assert not promoter_df.is_empty(), "empty promoter timescale df"
+
+    # CDS (exp58) data — missense subset.
+    cds_raw = _load_exp58(cds_arms, steps)
+    cds_df = cds_raw.filter(
+        (pl.col("score_type") == score_type)
+        & (pl.col("subset") == "missense_variant")
+    )
+    assert not cds_df.is_empty(), "empty CDS timescale df"
+
+    title_fs  = POSTER_TITLE_FS
+    label_fs  = POSTER_LABEL_FS
+    tick_fs   = POSTER_TICK_FS
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 4.5), sharey=False)
+
+    panel_data = (
+        ("Promoter variants", promoter_arms, promoter_df),
+        ("Missense variants", cds_arms,      cds_df),
+    )
+    for ax, (panel, arms, df) in zip(axes, panel_data):
+        for arm in arms:
+            sub = df.filter(pl.col("arm") == arm).sort("step")
+            if sub.is_empty():
+                continue
+            ax.plot(
+                sub["step"].to_numpy(),
+                sub["value"].to_numpy(),
+                marker="o",
+                color=TIMESCALE_COLORS[arm],
+                label=ARM_LABEL[arm],
+            )
+        ax.set_xlabel("training step", fontsize=label_fs)
+        if ax is axes[0]:
+            ax.set_ylabel("AUPRC", fontsize=label_fs)
+        ax.tick_params(axis="both", labelsize=tick_fs)
+        ax.set_title(
+            panel,
+            fontweight="bold",
+            fontsize=title_fs,
+            color=REGION_TITLE_COLORS[panel],
+        )
+
+    # No in-plot legend — the timescale_legend.svg schematic above the
+    # plot is the canonical colour-key for both panels (clade colours
+    # mirror the bars there).
+    fig.subplots_adjust(bottom=0.15, top=0.92, left=0.07, right=0.98, wspace=0.20)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    print(f"wrote {out_path}")
+    plt.close(fig)
+
+
 # ─── T1: promoter AUPRC vs evolutionary timescale (exp55) ──────────────
 def plot_t1(out_path: Path) -> None:
     """Promoter AUPRC across the exp55 timescale arms (mammals peaks)."""
@@ -872,7 +975,6 @@ def plot_r3(out_path: Path) -> None:
 # ─── Entry ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     apply_poster_style()
-    plot_t1(FIGS_DIR / "t1.svg")
-    plot_t2(FIGS_DIR / "t2.svg")
+    plot_timescale(FIGS_DIR / "timescale.svg")
     plot_r3(FIGS_DIR / "r3.svg")
     plot_specialist_grouped_bars(FIGS_DIR / "specialist_bars.svg")

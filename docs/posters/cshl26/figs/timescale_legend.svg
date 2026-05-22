@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 0 1380 700" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -10 1380 140" preserveAspectRatio="xMidYMid meet">
   <defs>
     <style>
       .ink   { fill: #1f1e1b; }
@@ -6,98 +6,44 @@
       .label-bold { font-family: 'Lato', sans-serif; font-size: 22px; font-weight: 700; }
       .micro { font-family: 'Lato', sans-serif; font-size: 18px; }
       .span-label { font-family: 'Lato', sans-serif; font-size: 24px; font-weight: 700; }
-      .branch { stroke: #1f1e1b; stroke-width: 2.2; fill: none; stroke-linecap: round; }
     </style>
   </defs>
 
-  <!-- ─── Phylogenetic tree (GPN-Star Fig 1B layout) ───
-       Pectinate tree, diagonal V-branches at each split. Compressed
-       vertical layout for a more landscape-oriented legend. -->
-
-  <!-- Internal nodes
-       (x: midpoint between children, y: stride 80 going up to the root) -->
-  <!-- ~65 Mya:  midpoint(humans 80, primates 200)         = (140, 320) -->
-  <!-- ~100 Mya: midpoint(~65 Mya 140, mammals 400)        = (270, 240) -->
-  <!-- ~600 Mya: midpoint(~100 Mya 270, vertebrates 650)   = (460, 160) -->
-  <!-- ~700 Mya: midpoint(~600 Mya 460, animals 900)       = (680, 80) -->
-
-  <!-- Mya labels (left of each split) -->
-  <text x="120" y="326" class="label-bold ink" text-anchor="end">~65 Mya</text>
-  <text x="250" y="246" class="label-bold ink" text-anchor="end">~100 Mya</text>
-  <text x="440" y="166" class="label-bold ink" text-anchor="end">~600 Mya</text>
-  <text x="660" y="86"  class="label-bold ink" text-anchor="end">~700 Mya</text>
-
-  <!-- Diagonal branches forming triangular V's at each split -->
-  <g class="branch">
-    <!-- ~65 Mya V -->
-    <line x1="140" y1="320" x2="80"  y2="390"/>
-    <line x1="140" y1="320" x2="200" y2="390"/>
-    <!-- ~100 Mya V -->
-    <line x1="270" y1="240" x2="140" y2="320"/>
-    <line x1="270" y1="240" x2="400" y2="390"/>
-    <!-- ~600 Mya V -->
-    <line x1="460" y1="160" x2="270" y2="240"/>
-    <line x1="460" y1="160" x2="650" y2="390"/>
-    <!-- ~700 Mya V -->
-    <line x1="680" y1="80"  x2="460" y2="160"/>
-    <line x1="680" y1="80"  x2="900" y2="390"/>
-  </g>
-
-  <!-- Internal-node dots -->
-  <g fill="#1f1e1b">
-    <circle cx="140" cy="320" r="4.5"/>
-    <circle cx="270" cy="240" r="4.5"/>
-    <circle cx="460" cy="160" r="4.5"/>
-    <circle cx="680" cy="80"  r="4.5"/>
-  </g>
-
-  <!-- Leaf triangles (neutral grey; clade names live on the bars below). -->
-  <g fill="#A89B8D" stroke="#1f1e1b" stroke-width="1.2">
-    <polygon points="80,390 64,420 96,420"/>
-    <polygon points="200,390 184,420 216,420"/>
-    <polygon points="400,390 380,420 420,420"/>
-    <polygon points="650,390 626,420 674,420"/>
-    <polygon points="900,390 872,420 928,420"/>
-  </g>
-
-  <!-- Divider between tree and span key -->
-  <line x1="40" y1="450" x2="1080" y2="450" stroke="#B5A898" stroke-width="1"/>
-
   <!-- ─── Cumulative training-subset spans, inverse-stacked ───
-       Same widths and colours as before — only the bar heights /
-       vertical spacing are compressed. Longest/darkest on top. -->
+       Just the bars now (phylo-tree topology dropped). The bar widths
+       and ordering already convey the nesting (animals ⊃ vertebrates
+       ⊃ mammals ⊃ primates ⊃ humans). -->
   <g stroke="#1f1e1b" stroke-width="0.75">
-    <rect x="60"  y="480" width="900" height="28" fill="#443983"/>  <!-- animals    (viridis darkest) -->
-    <rect x="60"  y="518" width="640" height="28" fill="#31688e"/>  <!-- vertebrates -->
-    <rect x="60"  y="556" width="370" height="28" fill="#21918c"/>  <!-- mammals -->
-    <rect x="60"  y="594" width="160" height="28" fill="#35b779"/>  <!-- primates -->
-    <rect x="60"  y="632" width="40"  height="28" fill="#90d743"/>  <!-- humans     (viridis lightest) -->
+    <rect x="60"  y="0"   width="900" height="18" fill="#443983"/>  <!-- animals     -->
+    <rect x="60"  y="24"  width="640" height="18" fill="#31688e"/>  <!-- vertebrates -->
+    <rect x="60"  y="48"  width="370" height="18" fill="#21918c"/>  <!-- mammals     -->
+    <rect x="60"  y="72"  width="160" height="18" fill="#35b779"/>  <!-- primates    -->
+    <rect x="60"  y="96"  width="40"  height="18" fill="#90d743"/>  <!-- humans      -->
   </g>
 
-  <!-- Bar labels: clade name + cumulative species count, anchored just
-       past each bar's right end. -->
+  <!-- Bar labels: clade name + cumulative species count -->
   <g>
-    <text x="970" y="500" class="span-label ink">animals
+    <text x="970" y="14"  class="span-label ink">animals
       <tspan class="micro muted" font-weight="400"> (~499 sp.)</tspan>
     </text>
-    <text x="710" y="538" class="span-label ink">vertebrates
+    <text x="710" y="38"  class="span-label ink">vertebrates
       <tspan class="micro muted" font-weight="400"> (~317 sp.)</tspan>
     </text>
-    <text x="440" y="576" class="span-label ink">mammals
+    <text x="440" y="62"  class="span-label ink">mammals
       <tspan class="micro muted" font-weight="400"> (~81 sp.)</tspan>
     </text>
-    <text x="230" y="614" class="span-label ink">primates
+    <text x="230" y="86"  class="span-label ink">primates
       <tspan class="micro muted" font-weight="400"> (~11 sp.)</tspan>
     </text>
-    <text x="110" y="652" class="span-label ink">humans
+    <text x="110" y="110" class="span-label ink">humans
       <tspan class="micro muted" font-weight="400"> (1 sp.)</tspan>
     </text>
   </g>
 
-  <!-- Caption on the left of the bar block -->
+  <!-- Caption on the left of the bar block, vertically centred on mammals -->
   <text class="label-bold ink" text-anchor="start">
-    <tspan x="-90" y="554">train on</tspan>
-    <tspan x="-90" y="580" class="micro muted">a cumulative</tspan>
-    <tspan x="-90" y="600" class="micro muted">species subset</tspan>
+    <tspan x="-90" y="50">train on</tspan>
+    <tspan x="-90" y="72" class="micro muted">a cumulative</tspan>
+    <tspan x="-90" y="90" class="micro muted">species subset</tspan>
   </text>
 </svg>

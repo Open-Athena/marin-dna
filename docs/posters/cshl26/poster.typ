@@ -80,9 +80,11 @@
   // user is after. (Steel-blue: heading + fill rgb(64,115,158),
   // stroke rgb(39,60,117).) Only override the font sizes; pollux's A0
   // layout defaults are tuned for ~33in-wide posters, ours is 44in
-  // so we want a proportional bump.
-  body-size:     30pt,
-  heading-size:  36pt,
+  // so we want a proportional bump. With a 2-column body the per-
+  // column width is ~21in, so body/heading sizes step up further to
+  // keep line length readable (~80 chars/line at 36pt across 21in).
+  body-size:     36pt,
+  heading-size:  44pt,
   title-size:    80pt,
   authors-size:  48pt,
   institutes-size: 36pt,
@@ -233,13 +235,18 @@
 
 #v(0.2in)
 
-// ─── Body: 3 columns ───────────────────────────────────────────────
+// ─── Body: 2 columns ───────────────────────────────────────────────
+// Two columns (rather than three) so the in-poster figures can grow
+// to fill ~21in of horizontal space each — readable from across the
+// room. Body font is bumped in #update-theme above to keep per-line
+// character count reasonable at this column width.
+//
 // Indent the columns from the page edges (which the title band runs
 // flush to) via pad. Same 1in left/right rhythm as the footer below.
 #pad(x: 1in)[
-#columns(3, gutter: 0.4in)[
+#columns(2, gutter: 0.4in)[
 
-  // ═════════════════ COLUMN A: Abstract / Intro / Methods ═══════════
+  // ═════════════════ COLUMN 1: Setup + R1 ═══════════════════════════
 
   #alert-box(heading: "Abstract")[
     - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors
@@ -290,9 +297,7 @@
     - *Metric:* AUPRC, with per-cluster bootstrap SE.
   ]
 
-  #colbreak()
-
-  // ═════════════════ COLUMN B: Functional regions (R1 + R2) ═════════
+  #v(0.4in)
 
   #column-box(heading: [Region specialists achieve competitive performance])[
     #image("figs/region_legend.svg", width: 100%)
@@ -302,7 +307,9 @@
     - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs.
   ]
 
-  #v(0.4in)
+  #colbreak()
+
+  // ═════════════════ COLUMN 2: R2 + Timescales + Future + Summary ═══
 
   #column-box(heading: [Balanced sampling rescues the under-represented region])[
     - We have good data recipes for specialist models. How do we build a generalist model? Simply train on a concatenation of the individual datasets?
@@ -313,23 +320,35 @@
       rare region — promoter AUPRC stays low.
     - Uniform 50 / 50 lifts promoter AUPRC into specialist range,
       with little cost on missense.
-    - One mixed model can serve both regions — no per-region training needed.
   ]
 
-  #colbreak()
-
-  // ═════════════════ COLUMN C: Evolutionary timescales + Summary ════
+  #v(0.4in)
 
   #column-box(heading: [Optimal timescale varies by region])[
     #image("figs/timescale_legend.svg", width: 100%)
 
-    #image("figs/t1.svg", width: 100%, height: 5in, fit: "contain")
-    - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
-    - Suggests promoter regulatory grammar is largely mammal-specific.
+    // T1 + T2 are panels of a single matplotlib figure now (see
+    // plot_timescale in plots/cshl26_poster.py) — same structure as
+    // R3's 3-panel line plot. Saves vertical space vs stacking and
+    // makes the "one dataset family, two consequence lenses" framing
+    // visible at a glance.
+    #image("figs/timescale.svg", width: 100%)
 
-    #image("figs/t2.svg", width: 100%, height: 5in, fit: "contain")
-    - CDS signal still gaining at the animals timescale (~700 Mya).
-    - Suggests protein-coding grammar generalises across deep time.
+    // Per-panel bullets, in two columns under the plot to associate
+    // visually with the panel above.
+    #grid(
+      columns: (1fr, 1fr),
+      column-gutter: 0.3in,
+      align: top,
+      [
+        - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
+        - Suggests promoter regulatory grammar is largely mammal-specific.
+      ],
+      [
+        - CDS signal still gaining at the animals timescale (~700 Mya).
+        - Suggests protein-coding grammar generalises across deep time.
+      ],
+    )
   ]
 
   #v(0.4in)
@@ -343,12 +362,6 @@
       *animals* — region × timescale interacts.
     - Treat training-data composition as a *curation* decision,
       not just a scale-up decision.
-  ]
-
-  #v(0.4in)
-
-  #column-box(heading: "References")[
-    - _Placeholder — fill in._
   ]
 
 ]
