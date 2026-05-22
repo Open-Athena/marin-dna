@@ -995,8 +995,8 @@ def plot_r3(out_path: Path) -> None:
         [line_handles[m] for m in legend_order],
         [METHOD_LABELS[m]  for m in legend_order],
         handler_map=handler_map,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.0),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.0),
         ncol=2,
         frameon=False,
         fontsize=legend_fs,
@@ -1005,9 +1005,11 @@ def plot_r3(out_path: Path) -> None:
         columnspacing=2.0,
         labelspacing=0.6,
     )
-    # Leave room at the bottom for the 2-row legend; widen the left
-    # margin so the (now larger) AUPRC ylabel + ticks aren't clipped.
-    fig.subplots_adjust(bottom=0.42, top=0.93, left=0.09, right=0.98, wspace=0.28)
+    # Leave room at the top for the 2-row legend (above the panels)
+    # so it connects to the setup text in the column-box just above
+    # the plot. Widen the left margin so the (larger) AUPRC ylabel +
+    # ticks aren't clipped. Bottom kept tight for x-axis labels.
+    fig.subplots_adjust(bottom=0.10, top=0.62, left=0.09, right=0.98, wspace=0.28)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
