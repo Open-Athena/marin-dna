@@ -37,11 +37,8 @@ OA_TEXT_LIGHT       = "#b5aa9f"
 OA_ACCENT           = "#9e6d43"  # copper — the "thing in focus" highlight
 
 # ─── Font sizes (shared between bar plot and line plots) ────────────────
-# Single source of truth so the R1 specialist bar chart and the R2 / R3
-# / T1 / T2 line plots all use the same per-element font scale. Per-fig
-# overrides applied with these constants (rather than the apply_poster_style
-# rcParams) because the bar chart was originally tuned at smaller sizes
-# and bumping the rcParams baseline would also affect other plots.
+# Single source of truth so all poster figures use the same per-element
+# font scale. Applied as per-fig overrides on top of apply_poster_style.
 POSTER_TITLE_FS  = 32
 POSTER_LABEL_FS  = 30
 POSTER_TICK_FS   = 26
@@ -59,16 +56,10 @@ OA_COLORWAY = [
     "#a86a2c",  # burnt orange
 ]
 
-# Evolutionary-timescale palette — perceptually-uniform `magma`.
-# Previous iterations used viridis (teal mid-tones clashed with the
-# promoter blue) and then ColorBrewer Purples (less perceptual
-# separation across 5 steps). Magma is perceptually uniform and gives
-# clearly distinct neighbouring steps. Sampled at t = 0.15, 0.34,
-# 0.53, 0.71, 0.90 (avoiding the very-dark start and very-light yellow
-# end).
-# Direction: LIGHTER = LARGER subset (animals at the top), DARKER =
-# SMALLER (humans). Reads as "more general → more specific" through
-# the gradient.
+# Evolutionary-timescale palette — `magma` sampled at t = 0.15, 0.34,
+# 0.53, 0.71, 0.90 (avoiding the very-dark and very-light extremes).
+# Direction: lighter = larger subset (animals), darker = smaller
+# (humans) — reads as "more general → more specific".
 TIMESCALE_COLORS: dict[str, str] = {
     "animals":     "#fecf92",  # magma 0.90 — lightest (largest set, pale peach)
     "vertebrates": "#f8765c",  # magma 0.71
@@ -243,23 +234,20 @@ def _load_exp_timescale(
 
 
 def plot_timescale(out_path: Path) -> None:
-    """T1 + T2 + T3 in a single 3-panel figure (Promoter | Missense | 3' UTR).
+    """3-panel timescale figure: Promoter | 3' UTR | CDS.
 
-    Mirrors the structure of plot_r3 (multi-panel line plot with
-    colour-coded subplot titles). Saves vertical poster space vs
-    stacking three separate SVGs, and makes the "same dataset family
-    seen through three consequence lenses" framing visible at a glance.
+    One row of line plots, each showing AUPRC across the
+    evolutionary-timescale arms (humans → animals) for a single
+    consequence type.
     """
     apply_poster_style()
 
     promoter_arms = ("humans", "primates", "mammals", "vertebrates", "animals")
     cds_arms      = ("mammals", "vertebrates", "animals")
     utr3_arms     = ("mammals", "vertebrates", "animals")
-    # Prototype: uniformly-spaced steps (~4000 apart) instead of the
-    # original dense-early sampling (1000…5000 every 1k, then 9k/13k/17k).
-    # The dense early sampling was useful for seeing fast dynamics, but
-    # for a poster figure the uniform spacing reads more cleanly.
-    # To restore dense-early: (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
+    # Uniformly-spaced training-step samples (~4000 apart) — reads
+    # cleanly on a poster. Add intermediate steps (e.g. 2000, 3000)
+    # for dense early-dynamics detail if needed.
     steps         = (1000, 5000, 9000, 13000, 16999)
     score_type    = "minus_llr_avg"
 
@@ -288,9 +276,8 @@ def plot_timescale(out_path: Path) -> None:
     label_fs  = POSTER_LABEL_FS
     tick_fs   = POSTER_TICK_FS
 
-    # 3 panels — figure width 15, height bumped to 5.0 so the two-line
-    # subplot titles ("X model" / "X variants") don't squeeze the
-    # panel data area.
+    # 3 panels; height 5.0 accommodates the two-line subplot titles
+    # ("X model" / "X variants") without squeezing the panel area.
     fig, axes = plt.subplots(1, 3, figsize=(15, 5.0), sharey=False)
 
     # Two-line subplot titles: line 1 = which model was trained, line 2
@@ -323,9 +310,7 @@ def plot_timescale(out_path: Path) -> None:
         if ax is axes[0]:
             ax.set_ylabel("AUPRC", fontsize=label_fs)
         ax.tick_params(axis="both", labelsize=tick_fs)
-        # 3 panels in figsize=(15, 4.5) → ~5in/panel; at tick_fs=26
-        # the auto-locator's 5000-step ticks ("5000 10000 15000") run
-        # into each other. Cap to ~3 ticks so they get nicer spacing.
+        # Cap x-ticks so the per-panel labels don't crowd each other.
         ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=3))
         ax.set_title(
             panel,
@@ -613,10 +598,8 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(
         1, len(regions),
-        # Figsize matches the R3 line plot's figsize=(15, …) so the
-        # POSTER_*_FS fonts render at the same physical size on both.
-        # Height bumped proportionally from the original (11.5, 6.5)
-        # so the panels stay roughly the same poster-vertical-space.
+        # Width matches R3 so POSTER_*_FS fonts render at the same
+        # physical size across the two plots.
         figsize=(15, 8),
         sharey=False,        # each region is a different dataset
         constrained_layout=False,
@@ -693,17 +676,13 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         fontsize=POSTER_LEGEND_FS,
         labelcolor=OA_TEXT,
         frameon=False,
-        # Tight horizontal spacing so entries cluster together; defaults
-        # (columnspacing=2.0, handletextpad=0.8) spread them too wide.
-        columnspacing=0.6,
+        columnspacing=0.6,   # tight so entries cluster together
         handletextpad=0.3,
     )
     label_x = 0.06   # left edge of the group label
     legend_x = 0.32  # left edge of the legend, just past the longest label
-    # Specialists / Generalists rows of the legend. Tighter gap than
-    # before (was 0.34 / 0.20 = 0.14 fig-coords ≈ 1.1in apart on an 8in
-    # figure; now 0.30 / 0.22 = 0.08 ≈ 0.6in) — the rows are still
-    # clearly separated but the dead space between them is trimmed.
+    # Specialists / Generalists row positions in figure coords.
+    # Gap ≈ 0.6in on the 8in figure.
     y_spec, y_gen = 0.30, 0.22
 
     fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
@@ -868,10 +847,10 @@ def plot_r3(out_path: Path) -> None:
     mirror image; 50/50 lands well on both; 10/90 (proportional / naive)
     ignores promoters and tracks 100% C.
 
-    A native fig.legend() sits below all three panels with a custom
-    handler (`HandlerLineMarkerWithPie`) that draws the same line +
-    marker matplotlib uses for the data lines, alongside a small pie
-    chart encoding the method's promoter / CDS training-data ratio.
+    A native fig.legend() sits above the panels with a custom handler
+    (`HandlerLineMarkerWithPie`) that draws the same line + marker
+    matplotlib uses for the data lines, alongside a small pie chart
+    encoding the method's promoter / CDS training-data ratio.
     """
     apply_poster_style()
     methods = ("exp21", "exp13-equal", "exp13-proportional", "exp27")
@@ -880,28 +859,20 @@ def plot_r3(out_path: Path) -> None:
     # Pre-load all 4 trajectories.
     traj = {m: _load_mixture_trajectory(m) for m in methods}
 
-    # Only plot training steps that are available in ALL four runs —
-    # apples-to-apples comparison at every x-tick. Intersection over
-    # MIXTURE_STEPS gives {2000, 6000, 10000, 14000, 18000, 22000}
-    # at time of writing; expand if more shared checkpoints become
-    # available upstream.
+    # Only plot training steps available in ALL four runs — apples-to-
+    # apples comparison at every x-tick.
     common_steps = set.intersection(
         *[set(MIXTURE_STEPS[m][1]) for m in methods]
     )
 
-    # Fonts: use the module-level POSTER_*_FS constants so this line
-    # plot and the R1 specialist bar chart stay in sync at the per-
-    # element level.
     title_fs  = POSTER_TITLE_FS
     label_fs  = POSTER_LABEL_FS
     tick_fs   = POSTER_TICK_FS
     legend_fs = POSTER_LEGEND_FS
 
     # Three panels: Promoter | Missense | Average (mean across both).
-    # The average panel makes the headline "Uniform mix wins on aggregate"
-    # visible directly — in the two-region panels you have to trade off
-    # mentally; here you just look at which line is highest. Extra height
-    # (4.5 → 6.5) makes room for the 2-row native fig.legend below.
+    # The Average panel makes "Uniform mix wins on aggregate" visible
+    # directly without the reader trading off two regions mentally.
     fig, axes = plt.subplots(
         1, len(MIXTURE_SUBSETS) + 1, figsize=(15, 6.5), sharey=False,
     )
@@ -970,14 +941,9 @@ def plot_r3(out_path: Path) -> None:
         color=OA_TEXT,
     )
 
-    # X-ticks: let matplotlib's auto-locator choose so they're uniformly
-    # spaced. (Manual subsetting picked first / mid / last which gave
-    # non-uniform gaps — looked weird.)
-
     # ── Native fig.legend, 2×2, custom handler per method ──
-    # ncol=2 (not 4) so the larger font fits without overflowing the
-    # figure width. matplotlib fills the legend column-major, so the
-    # `legend_order` tuple below is constructed so the 2×2 grid reads:
+    # matplotlib fills the legend column-major, so legend_order is
+    # arranged so the 2×2 grid reads:
     #
     #     Promoter only          CDS only        (pure datasets, top row)
     #     Uniform mix            Proportional mix (mixtures, bottom row)
@@ -1005,10 +971,8 @@ def plot_r3(out_path: Path) -> None:
         columnspacing=2.0,
         labelspacing=0.6,
     )
-    # Leave room at the top for the 2-row legend (above the panels)
-    # so it connects to the setup text in the column-box just above
-    # the plot. Widen the left margin so the (larger) AUPRC ylabel +
-    # ticks aren't clipped. Bottom kept tight for x-axis labels.
+    # top=0.62 leaves room for the 2-row legend above the panels.
+    # left=0.09 protects the AUPRC ylabel + ticks from being clipped.
     fig.subplots_adjust(bottom=0.10, top=0.62, left=0.09, right=0.98, wspace=0.28)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
