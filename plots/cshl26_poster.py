@@ -167,6 +167,7 @@ def _plot_timescale_panel(
     No internal title — the surrounding poster panel already has a
     `<p class="fig-title">` header; an in-SVG title would duplicate it.
     """
+    apply_poster_style()
     # Aspect ratio 1.6:1 matches the placeholder figs and the poster's
     # .fig-canvas wrapper, avoiding letterboxing on print.
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -452,6 +453,7 @@ def _specialist_grid() -> dict[str, dict[str, tuple[float, float]]]:
 # Single figure-level legend at the bottom; no xtick labels in any
 # panel (colour carries the model identity).
 def plot_specialist_grouped_bars(out_path: Path) -> None:
+    apply_poster_style()
     grid = _specialist_grid()
     regions = list(SPECIALIST_REGIONS)
     xs = np.arange(len(SPECIALIST_METHODS))
@@ -710,6 +712,7 @@ def plot_r3(out_path: Path) -> None:
     marker matplotlib uses for the data lines, alongside a small pie
     chart encoding the method's promoter / CDS training-data ratio.
     """
+    apply_poster_style()
     methods = ("exp21", "exp13-equal", "exp13-proportional", "exp27")
     score_type = "minus_llr_avg"
 
