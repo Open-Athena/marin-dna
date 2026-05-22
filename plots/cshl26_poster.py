@@ -59,22 +59,22 @@ OA_COLORWAY = [
     "#a86a2c",  # burnt orange
 ]
 
-# Evolutionary-timescale palette — sequential Purples (ColorBrewer)
-# instead of viridis. Reasons:
-#   - Viridis's teal mid-tones overlap visually with the promoter blue
-#     used in the gene-region palette (#0173b2).
-#   - Purples are perceptually sequential and don't collide with any
-#     of the OA / functional-region colours (blue / orange / green /
-#     copper / brick).
-# Direction reversed from intuitive "smallest = lightest": LIGHTER =
-# LARGER subset (animals at the top), DARKER = SMALLER (humans). Reads
-# as "more general training" lightening into "more specific" darkening.
+# Evolutionary-timescale palette — perceptually-uniform `magma`.
+# Previous iterations used viridis (teal mid-tones clashed with the
+# promoter blue) and then ColorBrewer Purples (less perceptual
+# separation across 5 steps). Magma is perceptually uniform and gives
+# clearly distinct neighbouring steps. Sampled at t = 0.15, 0.34,
+# 0.53, 0.71, 0.90 (avoiding the very-dark start and very-light yellow
+# end).
+# Direction: LIGHTER = LARGER subset (animals at the top), DARKER =
+# SMALLER (humans). Reads as "more general → more specific" through
+# the gradient.
 TIMESCALE_COLORS: dict[str, str] = {
-    "animals":     "#bcbddc",  # Purples ~0.35  — lightest (largest set)
-    "vertebrates": "#9e9ac8",  # Purples ~0.50
-    "mammals":     "#807dba",  # Purples ~0.65
-    "primates":    "#6a51a3",  # Purples ~0.80
-    "humans":      "#4a1486",  # Purples ~0.95  — darkest (smallest set)
+    "animals":     "#fecf92",  # magma 0.90 — lightest (largest set, pale peach)
+    "vertebrates": "#f8765c",  # magma 0.71
+    "mammals":     "#c03a76",  # magma 0.53
+    "primates":    "#732081",  # magma 0.34
+    "humans":      "#251255",  # magma 0.15 — darkest (smallest set, deep purple)
 }
 ARM_LABEL: dict[str, str] = {
     "humans":      "humans (1 sp.)",

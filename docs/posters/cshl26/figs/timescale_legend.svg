@@ -3,9 +3,9 @@
     <style>
       .ink   { fill: #1f1e1b; }
       .muted { fill: #7a7a7a; }
-      .label-bold { font-family: 'Lato', sans-serif; font-size: 22px; font-weight: 700; }
-      .micro { font-family: 'Lato', sans-serif; font-size: 18px; }
-      .span-label { font-family: 'Lato', sans-serif; font-size: 24px; font-weight: 700; }
+      .label-bold { font-family: 'Open Sans', sans-serif; font-size: 22px; font-weight: 700; }
+      .micro { font-family: 'Open Sans', sans-serif; font-size: 18px; }
+      .span-label { font-family: 'Open Sans', sans-serif; font-size: 24px; font-weight: 700; }
     </style>
   </defs>
 
@@ -14,11 +14,11 @@
        and ordering already convey the nesting (animals ⊃ vertebrates
        ⊃ mammals ⊃ primates ⊃ humans). -->
   <g stroke="#1f1e1b" stroke-width="0.75">
-    <rect x="60"  y="0"   width="900" height="18" fill="#bcbddc"/>  <!-- animals     (lightest)  -->
-    <rect x="60"  y="24"  width="640" height="18" fill="#9e9ac8"/>  <!-- vertebrates             -->
-    <rect x="60"  y="48"  width="370" height="18" fill="#807dba"/>  <!-- mammals                 -->
-    <rect x="60"  y="72"  width="160" height="18" fill="#6a51a3"/>  <!-- primates                -->
-    <rect x="60"  y="96"  width="40"  height="18" fill="#4a1486"/>  <!-- humans      (darkest)   -->
+    <rect x="60"  y="0"   width="900" height="18" fill="#fecf92"/>  <!-- animals     magma 0.90  (lightest) -->
+    <rect x="60"  y="24"  width="640" height="18" fill="#f8765c"/>  <!-- vertebrates magma 0.71            -->
+    <rect x="60"  y="48"  width="370" height="18" fill="#c03a76"/>  <!-- mammals     magma 0.53            -->
+    <rect x="60"  y="72"  width="160" height="18" fill="#732081"/>  <!-- primates    magma 0.34            -->
+    <rect x="60"  y="96"  width="40"  height="18" fill="#251255"/>  <!-- humans      magma 0.15  (darkest) -->
   </g>
 
   <!-- Bar labels: clade name + cumulative species count -->
