@@ -89,6 +89,49 @@
 // theme state.
 #set-poster-layout(layout-a0)
 
+// ─── Local override: column-box with Open Sans ─────────────────────
+// Pollux's stock column-box hard-codes Lato in its body's #set text;
+// we shadow it here with the same structure but Open Sans, to match
+// the font Beamer Gemini (and the GPN-MSA poster) actually render
+// in. Heading + body both use Open Sans; Lato falls back if Open
+// Sans isn't installed locally.
+#let column-box(
+  body,
+  heading: none,
+) = context {
+  let pt = _state-poster-theme.get()
+  let heading-color = pt.at("heading-color", default: rgb(64, 115, 158))
+  let heading-size  = pt.at("heading-size", default: 42pt)
+  let body-size     = pt.at("body-size", default: 40pt)
+  let body-font = ("Open Sans", "Lato")
+
+  let heading-content = if heading == none { none } else {[
+    #set text(
+      fill: heading-color,
+      size: heading-size,
+      font: body-font,
+      weight: "medium",
+    )
+    #set align(center)
+    #box(width: 100%)[#heading]
+    #v(-0.75em)
+    #rect(width: 100%, height: 1.5pt, fill: black)
+    #v(0.5em)
+  ]}
+
+  let body-content = if body == none { none } else {[
+    #set text(
+      fill: black,
+      size: body-size,
+      font: body-font,
+      weight: "regular",
+    )
+    #body
+  ]}
+
+  stack(dir: ttb, heading-content, box(stroke: none)[#body-content])
+}
+
 // ─── Title block ───────────────────────────────────────────────────
 // Custom-rolled title band mirroring pollux's title-box style (filled
 // steel-blue rectangle, white centred text) but with the OA logo
@@ -107,7 +150,7 @@
 )[
   #set text(
     fill: white,
-    font: ("Raleway", "Lato"),
+    font: ("Open Sans", "Lato"),
     weight: "regular",
     lang: "en",
   )
