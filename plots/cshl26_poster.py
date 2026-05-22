@@ -293,23 +293,16 @@ def plot_timescale(out_path: Path) -> None:
     # panel data area.
     fig, axes = plt.subplots(1, 3, figsize=(15, 5.0), sharey=False)
 
-    # 3' UTR title colour: a darker tan that nods to the beige UTR
-    # block in the gene-cartoon schematic (figs/region_legend.svg)
-    # without being so light it's unreadable on white.
-    utr3_title_color = "#8a6d3b"
-
     # Two-line subplot titles: line 1 = which model was trained, line 2
-    # = which variants were scored. Both lines share the region colour
-    # so they read as one block.
+    # = which variants were scored. All in OA_TEXT (ink) — the line
+    # colours already do plenty of colour work in this figure, so the
+    # titles staying neutral helps the panels read cleanly.
     panel_data = (
-        ("Promoter model\nPromoter variants", promoter_arms, promoter_df,
-            REGION_TITLE_COLORS["Promoter variants"]),
-        ("CDS model\nMissense variants",      cds_arms,      cds_df,
-            REGION_TITLE_COLORS["Missense variants"]),
-        ("3' UTR model\n3' UTR variants",     utr3_arms,     utr3_df,
-            utr3_title_color),
+        ("Promoter model\nPromoter variants", promoter_arms, promoter_df),
+        ("CDS model\nMissense variants",      cds_arms,      cds_df),
+        ("3' UTR model\n3' UTR variants",     utr3_arms,     utr3_df),
     )
-    for ax, (panel, arms, df, title_color) in zip(axes, panel_data):
+    for ax, (panel, arms, df) in zip(axes, panel_data):
         for arm in arms:
             sub = df.filter(pl.col("arm") == arm).sort("step")
             if sub.is_empty():
@@ -333,7 +326,7 @@ def plot_timescale(out_path: Path) -> None:
             panel,
             fontweight="bold",
             fontsize=title_fs,
-            color=title_color,
+            color=OA_TEXT,
         )
 
     # No in-plot legend — the timescale_legend.svg schematic above the
