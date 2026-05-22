@@ -106,8 +106,11 @@ def apply_poster_style() -> None:
         "ytick.labelsize":     16,
         "legend.frameon":      False,
         "legend.fontsize":     16,
-        "lines.linewidth":     2.8,
-        "lines.markersize":    8,
+        # Thick lines + chunky markers so the line plots read at ~1m
+        # viewing distance on the printed 44x44in poster. Applies to all
+        # ax.plot() calls (T1, T2, R3) — keeping these consistent.
+        "lines.linewidth":     4.5,
+        "lines.markersize":    14,
         "savefig.facecolor":   "white",
         "savefig.bbox":        "tight",
     })
@@ -725,10 +728,10 @@ def plot_r3(out_path: Path) -> None:
     # Bumped fonts for poster legibility (override the rcParams defaults
     # set in apply_poster_style — keeping those at their bar-chart size
     # so the rest of the figs stay consistent).
-    title_fs = 30
-    label_fs = 28
-    tick_fs  = 24
-    legend_fs = 30
+    title_fs = 32
+    label_fs = 30
+    tick_fs  = 26
+    legend_fs = 32
 
     # Three panels: Promoter | Missense | Average (mean across both).
     # The average panel makes the headline "Uniform mix wins on aggregate"
@@ -841,7 +844,7 @@ def plot_r3(out_path: Path) -> None:
     )
     # Leave room at the bottom for the 2-row legend; widen the left
     # margin so the (now larger) AUPRC ylabel + ticks aren't clipped.
-    fig.subplots_adjust(bottom=0.42, top=0.93, left=0.07, right=0.98, wspace=0.25)
+    fig.subplots_adjust(bottom=0.42, top=0.93, left=0.09, right=0.98, wspace=0.28)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
