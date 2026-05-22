@@ -21,15 +21,18 @@
 #import "@preview/pollux:0.1.0": *
 
 // ─── Page setup (44 in × 44 in, matches poster.typ) ────────────────
+// Zero margins on top + sides so the title band runs edge-to-edge
+// (the Beamer Gemini / pollux convention). Bottom margin is kept
+// non-zero so the page footer has room to render. Inner side
+// padding is applied later via #pad(x: 1in) around the body and
+// footer content.
 #set page(
   width: 44in,
   height: 44in,
-  // pollux's title-box prints its own top margin; keep page margin
-  // tight on the sides and roomy at the bottom for the footer.
-  margin: (top: 0.6in, bottom: 1.4in, x: 1in),
+  margin: (top: 0in, bottom: 1.4in, x: 0in),
   background: rect(fill: white, width: 100%, height: 100%),
   footer-descent: 0.3in,
-  footer: [
+  footer: pad(x: 1in)[
     #line(length: 100%, stroke: 1pt + rgb("#1a1a1a"))
     #v(0.1in)
     #grid(
@@ -129,6 +132,9 @@
 #v(0.2in)
 
 // ─── Body: 3 columns ───────────────────────────────────────────────
+// Indent the columns from the page edges (which the title band runs
+// flush to) via pad. Same 1in left/right rhythm as the footer below.
+#pad(x: 1in)[
 #columns(3, gutter: 0.4in)[
 
   // ═════════════════ COLUMN A: Abstract / Intro / Methods ═══════════
@@ -243,4 +249,5 @@
     - _Placeholder — fill in._
   ]
 
+]
 ]
