@@ -202,14 +202,14 @@
   #v(0.15in)
 
   #pop.column-box(heading: [Promoters peak at the mammals timescale])[
-    #image("figs/t1.svg", width: 100%, height: 7in, fit: "contain")
+    #image("figs/t1.svg", width: 100%, height: 5in, fit: "contain")
 
     - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
     - Suggests promoter regulatory grammar is largely mammal-specific.
   ]
 
   #pop.column-box(heading: [CDS keeps improving out to the animals timescale])[
-    #image("figs/t2.svg", width: 100%, height: 7in, fit: "contain")
+    #image("figs/t2.svg", width: 100%, height: 5in, fit: "contain")
 
     - CDS signal still gaining at the animals timescale (~700 Mya).
     - Suggests protein-coding grammar generalises across deep time.
@@ -224,6 +224,10 @@
       *animals* — region × timescale interacts.
     - Treat training-data composition as a *curation* decision,
       not just a scale-up decision.
+  ]
+
+  #pop.column-box(heading: "References")[
+    - _Placeholder — fill in._
   ]
 
 ]
