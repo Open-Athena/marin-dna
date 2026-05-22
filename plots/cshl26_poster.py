@@ -203,13 +203,20 @@ def _plot_timescale_panel(
     plt.close(fig)
 
 
-def _load_exp58(arms: tuple[str, ...], steps: tuple[int, ...]) -> pl.DataFrame:
-    """Read mendelian_traits metrics across exp58-{arm}-step-{step}."""
+def _load_exp_timescale(
+    exp_id: str, arms: tuple[str, ...], steps: tuple[int, ...],
+) -> pl.DataFrame:
+    """Read mendelian_traits metrics across {exp_id}-{arm}-step-{step}.
+
+    Shared loader for the exp55 / exp58 / exp59 timescale sweeps. Each
+    parquet on S3 has the same schema; only the experiment id and the
+    arm names vary.
+    """
     parts: list[pl.DataFrame] = []
     missing: list[str] = []
     for arm in arms:
         for step in steps:
-            uri = f"{S3_BASE}/exp58-{arm}-step-{step}/mendelian_traits.parquet"
+            uri = f"{S3_BASE}/{exp_id}-{arm}-step-{step}/mendelian_traits.parquet"
             try:
                 ck = pl.read_parquet(uri)
             except Exception as exc:
@@ -223,56 +230,78 @@ def _load_exp58(arms: tuple[str, ...], steps: tuple[int, ...]) -> pl.DataFrame:
             )
     if missing:
         print(
-            f"WARN: {len(missing)}/{len(arms) * len(steps)} exp58 parquets unread:\n"
+            f"WARN: {len(missing)}/{len(arms) * len(steps)} {exp_id} parquets unread:\n"
             + "\n".join(missing),
             file=sys.stderr,
         )
-    assert parts, "no exp58 parquets loaded"
+    assert parts, f"no {exp_id} parquets loaded"
     return pl.concat(parts)
 
 
 def plot_timescale(out_path: Path) -> None:
-    """T1 + T2 unified into a single two-panel figure (Promoter | Missense).
+    """T1 + T2 + T3 in a single 3-panel figure (Promoter | Missense | 3' UTR).
 
     Mirrors the structure of plot_r3 (multi-panel line plot with
     colour-coded subplot titles). Saves vertical poster space vs
-    stacking two separate SVGs, and makes the "same dataset family
-    seen through two consequence lenses" framing visible at a glance.
+    stacking three separate SVGs, and makes the "same dataset family
+    seen through three consequence lenses" framing visible at a glance.
     """
     apply_poster_style()
 
     promoter_arms = ("humans", "primates", "mammals", "vertebrates", "animals")
     cds_arms      = ("mammals", "vertebrates", "animals")
-    steps         = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
+    utr3_arms     = ("mammals", "vertebrates", "animals")
+    # Prototype: uniformly-spaced steps (~4000 apart) instead of the
+    # original dense-early sampling (1000…5000 every 1k, then 9k/13k/17k).
+    # The dense early sampling was useful for seeing fast dynamics, but
+    # for a poster figure the uniform spacing reads more cleanly.
+    # To restore dense-early: (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
+    steps         = (1000, 5000, 9000, 13000, 16999)
     score_type    = "minus_llr_avg"
 
-    # Promoter (exp55) data — TSS-proximal subset.
-    promoter_raw = load_exp55(promoter_arms, steps)
-    promoter_df = promoter_raw.filter(
+    # Promoter (exp55) — TSS-proximal subset.
+    promoter_df = _load_exp_timescale("exp55", promoter_arms, steps).filter(
         (pl.col("score_type") == score_type)
         & (pl.col("subset") == "tss_proximal")
     )
     assert not promoter_df.is_empty(), "empty promoter timescale df"
 
-    # CDS (exp58) data — missense subset.
-    cds_raw = _load_exp58(cds_arms, steps)
-    cds_df = cds_raw.filter(
+    # CDS (exp58) — missense subset.
+    cds_df = _load_exp_timescale("exp58", cds_arms, steps).filter(
         (pl.col("score_type") == score_type)
         & (pl.col("subset") == "missense_variant")
     )
     assert not cds_df.is_empty(), "empty CDS timescale df"
 
+    # 3' UTR (exp59) — 3_prime_UTR_variant subset.
+    utr3_df = _load_exp_timescale("exp59", utr3_arms, steps).filter(
+        (pl.col("score_type") == score_type)
+        & (pl.col("subset") == "3_prime_UTR_variant")
+    )
+    assert not utr3_df.is_empty(), "empty 3' UTR timescale df"
+
     title_fs  = POSTER_TITLE_FS
     label_fs  = POSTER_LABEL_FS
     tick_fs   = POSTER_TICK_FS
 
-    fig, axes = plt.subplots(1, 2, figsize=(15, 4.5), sharey=False)
+    # 3 panels (was 2) — figure stays at total width 15 but height
+    # bumped a touch so each panel doesn't get aspect-squished too far.
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), sharey=False)
+
+    # 3' UTR title colour: a darker tan that nods to the beige UTR
+    # block in the gene-cartoon schematic (figs/region_legend.svg)
+    # without being so light it's unreadable on white.
+    utr3_title_color = "#8a6d3b"
 
     panel_data = (
-        ("Promoter variants", promoter_arms, promoter_df),
-        ("Missense variants", cds_arms,      cds_df),
+        ("Promoter variants",   promoter_arms, promoter_df,
+            REGION_TITLE_COLORS["Promoter variants"]),
+        ("Missense variants",   cds_arms,      cds_df,
+            REGION_TITLE_COLORS["Missense variants"]),
+        ("3' UTR variants",     utr3_arms,     utr3_df,
+            utr3_title_color),
     )
-    for ax, (panel, arms, df) in zip(axes, panel_data):
+    for ax, (panel, arms, df, title_color) in zip(axes, panel_data):
         for arm in arms:
             sub = df.filter(pl.col("arm") == arm).sort("step")
             if sub.is_empty():
@@ -288,17 +317,21 @@ def plot_timescale(out_path: Path) -> None:
         if ax is axes[0]:
             ax.set_ylabel("AUPRC", fontsize=label_fs)
         ax.tick_params(axis="both", labelsize=tick_fs)
+        # 3 panels in figsize=(15, 4.5) → ~5in/panel; at tick_fs=26
+        # the auto-locator's 5000-step ticks ("5000 10000 15000") run
+        # into each other. Cap to ~3 ticks so they get nicer spacing.
+        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=3))
         ax.set_title(
             panel,
             fontweight="bold",
             fontsize=title_fs,
-            color=REGION_TITLE_COLORS[panel],
+            color=title_color,
         )
 
     # No in-plot legend — the timescale_legend.svg schematic above the
-    # plot is the canonical colour-key for both panels (clade colours
+    # plot is the canonical colour-key for all panels (clade colours
     # mirror the bars there).
-    fig.subplots_adjust(bottom=0.15, top=0.92, left=0.07, right=0.98, wspace=0.20)
+    fig.subplots_adjust(bottom=0.15, top=0.92, left=0.06, right=0.98, wspace=0.25)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
