@@ -265,10 +265,10 @@
     // ═════════════════ COLUMN 1: Setup + R1 ═══════════════════════════
 
     #alert-box(heading: "Abstract")[
-      - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors
-      - GPN-Star, the current SOTA, requires whole-genome alignments, which are only available for select organisms
-      - Evo 2 is more generally applicable, but has uneven performance across the genome and expensive inference
-      - In this work, we explore *data curation* strategies for developing performant, flexible and efficient gLMs
+      - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors.
+      - GPN-Star, the current SOTA, requires whole-genome alignments, which are only available for select organisms.
+      - Evo 2 is more generally applicable, but has uneven performance across the genome and expensive inference.
+      - In this work, we explore *data curation* strategies for developing performant, flexible and efficient gLMs.
     ]
 
 
@@ -296,13 +296,13 @@
 
 
     #column-box(heading: "Methods")[
-      - Standard architecture and training objective: *Qwen3 autoregressive Transformer*
-        - Reuse LLM infrastructure and modeling science while focusing on data
-      - *Context size: 256 bp*
-        - Let's first model individual elements of the genome well -- and get there fast
+      - Standard architecture and training objective: *Qwen3 autoregressive Transformer*.
+        - Reuse LLM infrastructure and modeling science while focusing on data.
+      - *Context size: 256 bp*.
+        - Let's first model individual elements of the genome well -- and get there fast.
       - *Model size: $tilde$1B* for the experiments here described. Currently exploring scaling.
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
-      - VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (TraitGym-style)
+      - VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (TraitGym-style).
     ]
 
 
