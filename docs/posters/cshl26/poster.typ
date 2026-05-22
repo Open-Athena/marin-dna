@@ -114,15 +114,11 @@
   // ═════════════════ COLUMN A: Abstract + Approach ═══════════════════
 
   #pop.column-box(heading: "Abstract")[
-    - Genomic LMs scale by training larger architectures on more diverse
-      genomes — but the *composition of the training data* is itself
-      a design axis.
+    - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors
+    - *GPN-Star*, the current SOTA, requires whole-genome alignments, which are only available for select organisms
     - We hold architecture, training objective, and compute budget
       fixed; vary the data along *functional region* and
       *evolutionary timescale*.
-    - Each variant is scored zero-shot by the log-likelihood ratio
-      between alt and ref alleles, evaluated on *ClinVar Mendelian*
-      variants per region subset.
   ]
 
   // Helper: a single inline `box` of monospaced DNA — keeps the
