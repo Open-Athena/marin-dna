@@ -197,20 +197,16 @@
 
   // ═════════════════ COLUMN C: Evolutionary timescales + Summary ═════
 
-  // Phylo tree at the top doubles as colour-key for T1 + T2 below.
-  #image("figs/timescale_legend.svg", width: 100%)
-  #v(0.15in)
+  #pop.column-box(heading: [Optimal timescale varies by region])[
+    // Phylo schematic — cumulative species subsets per timescale arm.
+    // Doubles as colour key for the T1 and T2 plots below.
+    #image("figs/timescale_legend.svg", width: 100%)
 
-  #pop.column-box(heading: [Promoters peak at the mammals timescale])[
     #image("figs/t1.svg", width: 100%, height: 5in, fit: "contain")
-
     - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
     - Suggests promoter regulatory grammar is largely mammal-specific.
-  ]
 
-  #pop.column-box(heading: [CDS keeps improving out to the animals timescale])[
     #image("figs/t2.svg", width: 100%, height: 5in, fit: "contain")
-
     - CDS signal still gaining at the animals timescale (~700 Mya).
     - Suggests protein-coding grammar generalises across deep time.
   ]
