@@ -297,11 +297,11 @@ METHOD_COLORS: dict[str, str] = {
 METHOD_LABELS: dict[str, str] = {
     "exp21":                  "Promoter only",
     "exp27":                  "CDS only",
-    # The (50 / 50) and (10 / 90) parentheticals are dropped from the
-    # legend labels because the pie chart drawn next to each label
-    # already encodes the mix ratio visually.
-    "exp13-equal":            "Uniform mix",
-    "exp13-proportional":     "Proportional mix",
+    # Parenthetical ratios duplicate the pie chart drawn next to each
+    # legend entry — kept both for redundancy: the pie reads at a glance
+    # for visual comparison, the numbers nail the exact ratio.
+    "exp13-equal":            "Uniform mix (50 / 50)",
+    "exp13-proportional":     "Proportional mix (10 / 90)",
 }
 
 # Fraction of TRAINING DATA that is promoter (rest is CDS). Drives the
