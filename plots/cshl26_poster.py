@@ -36,6 +36,17 @@ OA_TEXT             = "#1f1e1b"
 OA_TEXT_LIGHT       = "#b5aa9f"
 OA_ACCENT           = "#9e6d43"  # copper — the "thing in focus" highlight
 
+# ─── Font sizes (shared between bar plot and line plots) ────────────────
+# Single source of truth so the R1 specialist bar chart and the R2 / R3
+# / T1 / T2 line plots all use the same per-element font scale. Per-fig
+# overrides applied with these constants (rather than the apply_poster_style
+# rcParams) because the bar chart was originally tuned at smaller sizes
+# and bumping the rcParams baseline would also affect other plots.
+POSTER_TITLE_FS  = 32
+POSTER_LABEL_FS  = 30
+POSTER_TICK_FS   = 26
+POSTER_LEGEND_FS = 32
+
 # 8-colour OA data-viz colorway (from the Delphi blog's Plotly defaults).
 OA_COLORWAY = [
     "#9e6d43",  # copper
@@ -460,7 +471,11 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
     fig, axes = plt.subplots(
         1, len(regions),
-        figsize=(11.5, 6.5),
+        # Figsize matches the R3 line plot's figsize=(15, …) so the
+        # POSTER_*_FS fonts render at the same physical size on both.
+        # Height bumped proportionally from the original (11.5, 6.5)
+        # so the panels stay roughly the same poster-vertical-space.
+        figsize=(15, 8),
         sharey=False,        # each region is a different dataset
         constrained_layout=False,
     )
@@ -506,7 +521,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
 
         ax.set_title(
             region,
-            fontsize=22,
+            fontsize=POSTER_TITLE_FS,
             fontweight="bold",
             pad=8,
             color=REGION_TITLE_COLORS[region],
@@ -518,13 +533,13 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         # chance baseline (AUPRC = 0.1 for 1:9 positive:negative ratio).
         ymax = max(h + e for h, e in zip(heights, errs)) + 0.08
         ax.set_ylim(0.1, ymax)
-        ax.tick_params(axis="y", labelsize=22)
+        ax.tick_params(axis="y", labelsize=POSTER_TICK_FS)
         # Force each panel's plotting box to be square so the three
         # subplots read as a uniform row of square cells (rather than
         # wide flat rectangles).
         ax.set_box_aspect(1.0)
         if ax_idx == 0:
-            ax.set_ylabel("AUPRC", fontsize=26)
+            ax.set_ylabel("AUPRC", fontsize=POSTER_LABEL_FS)
 
     # Two figure-level legend rows below the three panels — one for the
     # 3 region specialists, one for the 2 whole-genome generalists.
@@ -533,7 +548,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     # entries gap to worry about).
     legend_kw = dict(
         loc="center left",
-        fontsize=24,
+        fontsize=POSTER_LEGEND_FS,
         labelcolor=OA_TEXT,
         frameon=False,
         # Tight horizontal spacing so entries cluster together; defaults
@@ -542,11 +557,11 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         handletextpad=0.3,
     )
     label_x = 0.06   # left edge of the group label
-    legend_x = 0.28  # left edge of the legend, just past the longest label
+    legend_x = 0.32  # left edge of the legend, just past the longest label
     y_spec, y_gen = 0.34, 0.20
 
     fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
-             fontsize=26, fontweight="bold", color=OA_TEXT)
+             fontsize=POSTER_LEGEND_FS, fontweight="bold", color=OA_TEXT)
     fig.legend(
         handles=specialist_handles,
         bbox_to_anchor=(legend_x, y_spec),
@@ -555,7 +570,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     )
 
     fig.text(label_x, y_gen, "Generalists", ha="left", va="center",
-             fontsize=26, fontweight="bold", color=OA_TEXT)
+             fontsize=POSTER_LEGEND_FS, fontweight="bold", color=OA_TEXT)
     fig.legend(
         handles=generalist_handles,
         bbox_to_anchor=(legend_x, y_gen),
@@ -728,13 +743,13 @@ def plot_r3(out_path: Path) -> None:
         *[set(MIXTURE_STEPS[m][1]) for m in methods]
     )
 
-    # Bumped fonts for poster legibility (override the rcParams defaults
-    # set in apply_poster_style — keeping those at their bar-chart size
-    # so the rest of the figs stay consistent).
-    title_fs = 32
-    label_fs = 30
-    tick_fs  = 26
-    legend_fs = 32
+    # Fonts: use the module-level POSTER_*_FS constants so this line
+    # plot and the R1 specialist bar chart stay in sync at the per-
+    # element level.
+    title_fs  = POSTER_TITLE_FS
+    label_fs  = POSTER_LABEL_FS
+    tick_fs   = POSTER_TICK_FS
+    legend_fs = POSTER_LEGEND_FS
 
     # Three panels: Promoter | Missense | Average (mean across both).
     # The average panel makes the headline "Uniform mix wins on aggregate"
@@ -815,13 +830,12 @@ def plot_r3(out_path: Path) -> None:
 
     # ── Native fig.legend, 2×2, custom handler per method ──
     # ncol=2 (not 4) so the larger font fits without overflowing the
-    # figure width. Default fill order is column-major, so passing
-    # methods in (Promoter only, Uniform, Proportional, CDS only)
-    # gives a 2×2 that reads as a smooth left-to-right sweep from
-    # promoter-heavy to CDS-heavy training data:
+    # figure width. matplotlib fills the legend column-major, so the
+    # `legend_order` tuple below is constructed so the 2×2 grid reads:
     #
-    #     Promoter only          Proportional mix
-    #     Uniform mix            CDS only
+    #     Promoter only          CDS only        (pure datasets, top row)
+    #     Uniform mix            Proportional mix (mixtures, bottom row)
+    legend_order = ("exp21", "exp13-equal", "exp27", "exp13-proportional")
     handler_map = {
         line_handles[m]: HandlerLineMarkerWithPie(
             promoter_frac=PROMOTER_FRAC[m],
@@ -832,8 +846,8 @@ def plot_r3(out_path: Path) -> None:
         for m in methods
     }
     fig.legend(
-        [line_handles[m] for m in methods],
-        [METHOD_LABELS[m]  for m in methods],
+        [line_handles[m] for m in legend_order],
+        [METHOD_LABELS[m]  for m in legend_order],
         handler_map=handler_map,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.0),
