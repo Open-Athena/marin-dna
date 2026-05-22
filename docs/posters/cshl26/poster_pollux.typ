@@ -99,7 +99,10 @@
   fill: rgb(64, 115, 158),       // steel-blue (pollux's fill-color)
   stroke: rgb(39, 60, 117),      // steel-blue stroke
   width: 100%,
-  inset: 0.5em,
+  // x-inset = 1in so the logo and title content align with the body
+  // columns' left / right edges (which use #pad(x: 1in) below).
+  // Otherwise the logo would sit flush against the page edge.
+  inset: (x: 1in, y: 0.5em),
   radius: 0pt,
 )[
   #set text(
