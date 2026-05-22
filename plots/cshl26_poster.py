@@ -297,10 +297,15 @@ def plot_timescale(out_path: Path) -> None:
     # = which variants were scored. All in OA_TEXT (ink) — the line
     # colours already do plenty of colour work in this figure, so the
     # titles staying neutral helps the panels read cleanly.
+    #
+    # Panel order: Promoter, 3' UTR, CDS. Promoter and 3' UTR both
+    # show the "mammals peaks fast, broader is worse" pattern;
+    # putting CDS (the outlier — animals best, monotonic improvement)
+    # last gives a clean "two similar → one different" reading.
     panel_data = (
         ("Promoter model\nPromoter variants", promoter_arms, promoter_df),
-        ("CDS model\nMissense variants",      cds_arms,      cds_df),
         ("3' UTR model\n3' UTR variants",     utr3_arms,     utr3_df),
+        ("CDS model\nMissense variants",      cds_arms,      cds_df),
     )
     for ax, (panel, arms, df) in zip(axes, panel_data):
         for arm in arms:
