@@ -14,11 +14,11 @@
        and ordering already convey the nesting (animals ⊃ vertebrates
        ⊃ mammals ⊃ primates ⊃ humans). -->
   <g stroke="#1f1e1b" stroke-width="0.75">
-    <rect x="60"  y="0"   width="900" height="18" fill="#443983"/>  <!-- animals     -->
-    <rect x="60"  y="24"  width="640" height="18" fill="#31688e"/>  <!-- vertebrates -->
-    <rect x="60"  y="48"  width="370" height="18" fill="#21918c"/>  <!-- mammals     -->
-    <rect x="60"  y="72"  width="160" height="18" fill="#35b779"/>  <!-- primates    -->
-    <rect x="60"  y="96"  width="40"  height="18" fill="#90d743"/>  <!-- humans      -->
+    <rect x="60"  y="0"   width="900" height="18" fill="#bcbddc"/>  <!-- animals     (lightest)  -->
+    <rect x="60"  y="24"  width="640" height="18" fill="#9e9ac8"/>  <!-- vertebrates             -->
+    <rect x="60"  y="48"  width="370" height="18" fill="#807dba"/>  <!-- mammals                 -->
+    <rect x="60"  y="72"  width="160" height="18" fill="#6a51a3"/>  <!-- primates                -->
+    <rect x="60"  y="96"  width="40"  height="18" fill="#4a1486"/>  <!-- humans      (darkest)   -->
   </g>
 
   <!-- Bar labels: clade name + cumulative species count -->

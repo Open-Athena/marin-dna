@@ -59,18 +59,22 @@ OA_COLORWAY = [
     "#a86a2c",  # burnt orange
 ]
 
-# Evolutionary-timescale palette — `viridis` (perceptually uniform,
-# colorblind-safe sequential). Lightest = most recent (humans), darkest
-# = oldest (animals). Standard matplotlib palette so the ordering reads
-# clearly to anyone who's seen a scientific figure before. Chosen so the
-# *mixture* palette can be a different sequential (magma) — same family
-# of cmaps but visually distinct.
+# Evolutionary-timescale palette — sequential Purples (ColorBrewer)
+# instead of viridis. Reasons:
+#   - Viridis's teal mid-tones overlap visually with the promoter blue
+#     used in the gene-region palette (#0173b2).
+#   - Purples are perceptually sequential and don't collide with any
+#     of the OA / functional-region colours (blue / orange / green /
+#     copper / brick).
+# Direction reversed from intuitive "smallest = lightest": LIGHTER =
+# LARGER subset (animals at the top), DARKER = SMALLER (humans). Reads
+# as "more general training" lightening into "more specific" darkening.
 TIMESCALE_COLORS: dict[str, str] = {
-    "humans":      "#90d743",  # viridis[4]  — yellow-green
-    "primates":    "#35b779",  # viridis[3]  — green
-    "mammals":     "#21918c",  # viridis[2]  — teal
-    "vertebrates": "#31688e",  # viridis[1]  — blue
-    "animals":     "#443983",  # viridis[0]  — dark purple
+    "animals":     "#bcbddc",  # Purples ~0.35  — lightest (largest set)
+    "vertebrates": "#9e9ac8",  # Purples ~0.50
+    "mammals":     "#807dba",  # Purples ~0.65
+    "primates":    "#6a51a3",  # Purples ~0.80
+    "humans":      "#4a1486",  # Purples ~0.95  — darkest (smallest set)
 }
 ARM_LABEL: dict[str, str] = {
     "humans":      "humans (1 sp.)",
@@ -284,21 +288,25 @@ def plot_timescale(out_path: Path) -> None:
     label_fs  = POSTER_LABEL_FS
     tick_fs   = POSTER_TICK_FS
 
-    # 3 panels (was 2) — figure stays at total width 15 but height
-    # bumped a touch so each panel doesn't get aspect-squished too far.
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), sharey=False)
+    # 3 panels — figure width 15, height bumped to 5.0 so the two-line
+    # subplot titles ("X model" / "X variants") don't squeeze the
+    # panel data area.
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5.0), sharey=False)
 
     # 3' UTR title colour: a darker tan that nods to the beige UTR
     # block in the gene-cartoon schematic (figs/region_legend.svg)
     # without being so light it's unreadable on white.
     utr3_title_color = "#8a6d3b"
 
+    # Two-line subplot titles: line 1 = which model was trained, line 2
+    # = which variants were scored. Both lines share the region colour
+    # so they read as one block.
     panel_data = (
-        ("Promoter variants",   promoter_arms, promoter_df,
+        ("Promoter model\nPromoter variants", promoter_arms, promoter_df,
             REGION_TITLE_COLORS["Promoter variants"]),
-        ("Missense variants",   cds_arms,      cds_df,
+        ("CDS model\nMissense variants",      cds_arms,      cds_df,
             REGION_TITLE_COLORS["Missense variants"]),
-        ("3' UTR variants",     utr3_arms,     utr3_df,
+        ("3' UTR model\n3' UTR variants",     utr3_arms,     utr3_df,
             utr3_title_color),
     )
     for ax, (panel, arms, df, title_color) in zip(axes, panel_data):
@@ -331,7 +339,7 @@ def plot_timescale(out_path: Path) -> None:
     # No in-plot legend — the timescale_legend.svg schematic above the
     # plot is the canonical colour-key for all panels (clade colours
     # mirror the bars there).
-    fig.subplots_adjust(bottom=0.15, top=0.92, left=0.06, right=0.98, wspace=0.25)
+    fig.subplots_adjust(bottom=0.14, top=0.82, left=0.06, right=0.98, wspace=0.25)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
