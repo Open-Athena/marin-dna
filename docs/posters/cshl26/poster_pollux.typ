@@ -1,18 +1,22 @@
 // CSHL 2026 poster — pollux theme prototype.
 //
 // Sister file to poster.typ — same content and figures, swapped onto
-// the `pollux` Typst package (v0.1.0) so we can compare. Pollux is
-// itself built on peace-of-posters but with a noticeably different
-// look:
+// the `pollux` Typst package (v0.1.0) so we can compare. Matches the
+// Beamer Gemini look that the GPN-MSA poster uses:
 //   - column-box headings are centred coloured text with a thin
 //     underline rule (vs peace-of-posters' filled navy heading bars)
-//   - title-box is a single filled coloured rectangle with white
-//     text, centred
-//   - body text font is hard-coded to Lato inside pollux's
-//     column-box (we lose Inter without forking)
+//   - filled steel-blue title band runs edge-to-edge of the page
+//   - Open Sans throughout (title + body + footer)
 //
 // Compile with:  typst compile poster_pollux.typ
 //   → poster_pollux.pdf
+//
+// FONT REQUIREMENT: this prototype expects the *discrete-weight*
+// static TTFs of Open Sans (OpenSans-{Regular,SemiBold,Bold,...}.ttf)
+// installed under ~/Library/Fonts/. The variable-font release that
+// Homebrew's `font-open-sans` ships only exposes weight 400 to
+// Typst, so bold (`*text*` / `#strong[…]`) won't render visibly.
+// Static TTFs are at https://github.com/googlefonts/opensans/tree/main/fonts/ttf
 //
 // Both poster.typ and poster_pollux.typ source the same SVGs in
 // figs/, so changes upstream (plots/cshl26_poster.py output) are
@@ -61,7 +65,7 @@
   ],
 )
 
-#set text(font: "Inter", size: 24pt, fill: rgb("#1a1a1a"))
+#set text(font: ("Open Sans", "Inter"), size: 24pt, fill: rgb("#1a1a1a"))
 #set par(leading: 0.55em)
 
 // ─── Theme + layout ────────────────────────────────────────────────
