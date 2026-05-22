@@ -320,18 +320,15 @@
     // ═════════════════ COLUMN 2: R2 + Timescales + Future + Summary ═══
 
     #column-box(heading: [How to mix regions])[
-      - We have good data recipes for specialist models. How do we build a generalist model? Simply train on a concatenation of the individual datasets?
-      - We evaluated this approach (proportional mixing) together with balanced sampling (uniform mixing).
+      - How can we build a generalist model? Train on the different regions concatenated?
+      - We evaluated this standard approach (proportional mixing) together with balanced sampling (uniform mixing).
       #image("figs/r3.svg", width: 100%)
-
-      - Proportional sampling (natural 10 / 90 ratio) under-serves the
-        rare region — promoter AUPRC stays low.
-      - Uniform 50 / 50 lifts promoter AUPRC into specialist range,
-        with little cost on missense.
+      - Proportional mixing shows poor performance on the minority region (promoters).
+      - Uniform mixing allows good progress across both promoter and missense variants.
     ]
 
 
-    #column-box(heading: [Optimal timescale varies by region])[
+    #column-box(heading: [How to choose an appropriate evolutionary timescale])[
       #image("figs/timescale_legend.svg", width: 100%)
 
       // T1 + T2 are panels of a single matplotlib figure now (see
@@ -341,21 +338,10 @@
       // visible at a glance.
       #image("figs/timescale.svg", width: 100%)
 
-      // Per-panel bullets, in two columns under the plot to associate
-      // visually with the panel above.
-      #grid(
-        columns: (1fr, 1fr),
-        column-gutter: 0.3in,
-        align: top,
-        [
-          - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
-          - Suggests promoter regulatory grammar is largely mammal-specific.
-        ],
-        [
-          - CDS signal still gaining at the animals timescale (~700 Mya).
-          - Suggests protein-coding grammar generalises across deep time.
-        ],
-      )
+      - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
+      - Suggests promoter regulatory grammar is largely mammal-specific.
+      - CDS signal still gaining at the animals timescale (~700 Mya).
+      - Suggests protein-coding grammar generalises across deep time.
     ]
 
 
