@@ -19,17 +19,15 @@
 //   https://github.com/googlefonts/opensans/tree/main/fonts/ttf
 //
 // Figures in `figs/` come from `plots/cshl26_poster.py` (matplotlib
-// SVGs: t1, t2, r3, specialist_bars) plus a few hand-coded cartoons
-// (region_legend, timescale_legend).
+// SVGs: timescale, r3, specialist_bars) plus a few hand-coded
+// cartoons (region_legend, timescale_legend).
 
 #import "@preview/pollux:0.1.0": *
 
 // ─── Page setup (44 in × 44 in) ────────────────────────────────────
-// Zero margins on top + sides so the title band runs edge-to-edge
-// (the Beamer Gemini / pollux convention). Bottom margin is kept
-// non-zero so the page footer has room to render. Inner side
-// padding is applied later via #pad(x: 1in) around the body and
-// footer content.
+// Zero margins on top + sides so the title band runs edge-to-edge.
+// Bottom margin holds the page footer. Body + footer add their own
+// 1in side padding via #pad(x: 1in).
 #set page(
   width: 44in,
   height: 44in,
@@ -68,48 +66,28 @@
 #set text(font: ("Open Sans", "Inter"), size: 24pt, fill: rgb("#1a1a1a"))
 #set par(leading: 0.55em)
 
-// Typst's default math font is New Computer Modern Math (serif).
-// Override it so equations inherit the body font (Open Sans / sans-
-// serif) and match the rest of the poster. Math glyphs (operators,
-// fractions, dots.c, etc.) will fall back to whatever Open Sans has,
-// which is fine for the simple expressions in the Introduction box.
-// (Typst will print "warning: current font is not designed for math"
-// at compile time — that's expected and ignorable.)
+// Override the default math font (serif) so equations match the
+// body. Typst warns "current font is not designed for math" — fine
+// for the simple expressions in the gLM overview box.
 #show math.equation: set text(font: ("Open Sans", "Inter"))
 
 // ─── Theme + layout ────────────────────────────────────────────────
-// Steel-blue is the closest stock pollux theme to our navy. The other
-// stock options are solar-orange, forest-green, crimson-accent,
-// teal-mist, royal-purple. update-theme() can override individual
-// colors (heading-color / fill-color / stroke-color) if we want to
-// match our exact #1d3557 navy.
+// Steel-blue pollux theme (heading + fill rgb(64,115,158), stroke
+// rgb(39,60,117)). Font sizes sized for a 44in × 44in poster with a
+// 2-column body (~21in per column).
 #set-theme(steel-blue)
 #update-theme(
-  // Keep pollux's stock steel-blue palette — it's the Gemini look the
-  // user is after. (Steel-blue: heading + fill rgb(64,115,158),
-  // stroke rgb(39,60,117).) Only override the font sizes; pollux's A0
-  // layout defaults are tuned for ~33in-wide posters, ours is 44in
-  // so we want a proportional bump. With a 2-column body the per-
-  // column width is ~21in, so body/heading sizes step up further to
-  // keep line length readable (~80 chars/line at 36pt across 21in).
   body-size: 36pt,
   heading-size: 44pt,
   title-size: 80pt,
   authors-size: 48pt,
   institutes-size: 36pt,
 )
-
-// Set the layout state so the font sizes above are applied. We start
-// from layout-a0 and override; pollux reads body-size etc. off the
-// theme state.
 #set-poster-layout(layout-a0)
 
 // ─── Local override: column-box with Open Sans ─────────────────────
-// Pollux's stock column-box hard-codes Lato in its body's #set text;
-// we shadow it here with the same structure but Open Sans, to match
-// the font Beamer Gemini (and the GPN-MSA poster) actually render
-// in. Heading + body both use Open Sans; Lato falls back if Open
-// Sans isn't installed locally.
+// Pollux's stock column-box hard-codes Lato; we shadow it with the
+// same structure but Open Sans for both heading and body.
 #let column-box(
   body,
   heading: none,
@@ -152,11 +130,9 @@
 }
 
 // ─── alert-box — same as column-box but with a tinted background ───
-// Matches Beamer Gemini's `alertblock`: identical heading style
-// (centred coloured text + thin underline) but the whole block sits
-// inside a light steel-blue rectangle so the "headline" sections
-// (Abstract, Summary) read as visually distinct from the rest.
-// Pollux ships no alertblock equivalent so we roll our own.
+// Beamer Gemini's `alertblock`: same heading style as column-box, but
+// the whole block sits inside a light steel-blue rectangle so the
+// "headline" sections (Abstract, Summary) read as visually distinct.
 #let alert-box(
   body,
   heading: none,
@@ -208,18 +184,15 @@
 }
 
 // ─── Title block ───────────────────────────────────────────────────
-// Custom-rolled title band mirroring pollux's title-box style (filled
-// steel-blue rectangle, white centred text) but with the OA logo
-// pinned to the right — matches Beamer Gemini's convention of logos
-// sitting on the title bar. Logo uses a white variant of the SVG
-// (figs/icons/oa-logo-white.svg) so it reads on the steel-blue band.
+// Filled steel-blue band with white centred text and the OA logo
+// pinned to the right. The logo is a white variant of the SVG so it
+// reads on the steel-blue band.
 #block(
-  fill: rgb(64, 115, 158), // steel-blue (pollux's fill-color)
-  stroke: rgb(39, 60, 117), // steel-blue stroke
+  fill: rgb(64, 115, 158),
+  stroke: rgb(39, 60, 117),
   width: 100%,
-  // x-inset = 1in so the logo and title content align with the body
-  // columns' left / right edges (which use #pad(x: 1in) below).
-  // Otherwise the logo would sit flush against the page edge.
+  // x-inset matches the body's #pad(x: 1in) so the logo and title
+  // align with the body columns.
   inset: (x: 1in, y: 0.5in),
   radius: 0pt,
 )[
@@ -252,13 +225,8 @@
 #v(0.2in)
 
 // ─── Body: 2 columns ───────────────────────────────────────────────
-// Two columns (rather than three) so the in-poster figures can grow
-// to fill ~21in of horizontal space each — readable from across the
-// room. Body font is bumped in #update-theme above to keep per-line
-// character count reasonable at this column width.
-//
-// Indent the columns from the page edges (which the title band runs
-// flush to) via pad. Same 1in left/right rhythm as the footer below.
+// Two wide columns (~21in each) so figures embedded at width:100%
+// render large. Inner side padding matches the footer's 1in rhythm.
 #pad(x: 1in)[
   #columns(2, gutter: 0.4in)[
 
@@ -302,7 +270,7 @@
         - Focus on individual functional elements (e.g. exons, enhancers), and iterate faster.
       - *Model size: $tilde$1B* for the experiments here described. Currently exploring scaling.
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
-      - VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
+      - Human VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
 
 
@@ -317,7 +285,7 @@
 
     #colbreak()
 
-    // ═════════════════ COLUMN 2: R2 + Timescales + Future + Summary ═══
+    // ═════════════════ COLUMN 2: R2 + Timescales + Summary ════════════
 
     #column-box(heading: [How to mix regions])[
       - How can we build a generalist model? Train on the different regions concatenated?
@@ -329,13 +297,10 @@
 
 
     #column-box(heading: [How to choose an appropriate evolutionary timescale])[
+      - If we have a target species of interest (e.g. human), which species should we train on?
+      - There is a tradeoff between dataset size, diversity, and evolutionary relevance.
       #image("figs/timescale_legend.svg", width: 100%)
 
-      // T1 + T2 are panels of a single matplotlib figure now (see
-      // plot_timescale in plots/cshl26_poster.py) — same structure as
-      // R3's 3-panel line plot. Saves vertical space vs stacking and
-      // makes the "one dataset family, two consequence lenses" framing
-      // visible at a glance.
       #image("figs/timescale.svg", width: 100%)
 
       - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
