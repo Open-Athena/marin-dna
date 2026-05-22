@@ -700,7 +700,11 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     )
     label_x = 0.06   # left edge of the group label
     legend_x = 0.32  # left edge of the legend, just past the longest label
-    y_spec, y_gen = 0.34, 0.20
+    # Specialists / Generalists rows of the legend. Tighter gap than
+    # before (was 0.34 / 0.20 = 0.14 fig-coords ≈ 1.1in apart on an 8in
+    # figure; now 0.30 / 0.22 = 0.08 ≈ 0.6in) — the rows are still
+    # clearly separated but the dead space between them is trimmed.
+    y_spec, y_gen = 0.30, 0.22
 
     fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
              fontsize=POSTER_LEGEND_FS, fontweight="bold", color=OA_TEXT)

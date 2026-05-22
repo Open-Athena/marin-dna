@@ -220,7 +220,7 @@
   // x-inset = 1in so the logo and title content align with the body
   // columns' left / right edges (which use #pad(x: 1in) below).
   // Otherwise the logo would sit flush against the page edge.
-  inset: (x: 1in, y: 0.5em),
+  inset: (x: 1in, y: 0.5in),
   radius: 0pt,
 )[
   #set text(
@@ -265,9 +265,9 @@
     // ═════════════════ COLUMN 1: Setup + R1 ═══════════════════════════
 
     #alert-box(heading: "Abstract")[
-      - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors.
+      - *Genomic language models* (gLMs) are effective at *genome-wide variant effect prediction* (VEP).
       - GPN-Star, the current SOTA, requires whole-genome alignments, which are only available for select organisms.
-      - Evo 2 is more generally applicable, but has uneven performance across the genome and expensive inference.
+      - Evo 2 is alignment-free, but performance is uneven across the genome and inference is expensive.
       - In this work, we explore *data curation* strategies for developing performant, flexible and efficient gLMs.
     ]
 
@@ -297,22 +297,22 @@
 
     #column-box(heading: "Methods")[
       - Standard architecture and training objective: *Qwen3 autoregressive Transformer*.
-        - Reuse LLM infrastructure and modeling science while focusing on data.
+        - Reuse LLM infrastructure and modeling science; focus on data.
       - *Context size: 256 bp*.
-        - Let's first model individual elements of the genome well -- and get there fast.
+        - Focus on individual functional elements (e.g. exons, enhancers), and iterate faster.
       - *Model size: $tilde$1B* for the experiments here described. Currently exploring scaling.
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
-      - VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (TraitGym-style).
+      - VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
 
 
     #column-box(heading: [How to do one region well])[
-      - The genome is very heterogenous -- some might say coding sequences (CDS) and regulatory regions have a different grammar.
+      - The genome is very heterogeneous; some might even say coding sequences (CDS) and regulatory regions have a different grammar.
       - We first trained specialist models, each on a single region of the genome.
       #image("figs/region_legend.svg", width: 100%)
       #image("figs/specialist_bars.svg", width: 100%)
       - Each specialist achieves good performance in VEP tasks on its trained region.
-      - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs -- perhaps for now.
+      - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs -- at least for now.
     ]
 
     #colbreak()
