@@ -92,10 +92,10 @@
   // so we want a proportional bump. With a 2-column body the per-
   // column width is ~21in, so body/heading sizes step up further to
   // keep line length readable (~80 chars/line at 36pt across 21in).
-  body-size:     36pt,
-  heading-size:  44pt,
-  title-size:    80pt,
-  authors-size:  48pt,
+  body-size: 36pt,
+  heading-size: 44pt,
+  title-size: 80pt,
+  authors-size: 48pt,
   institutes-size: 36pt,
 )
 
@@ -116,33 +116,37 @@
 ) = context {
   let pt = _state-poster-theme.get()
   let heading-color = pt.at("heading-color", default: rgb(64, 115, 158))
-  let heading-size  = pt.at("heading-size", default: 42pt)
-  let body-size     = pt.at("body-size", default: 40pt)
+  let heading-size = pt.at("heading-size", default: 42pt)
+  let body-size = pt.at("body-size", default: 40pt)
   let body-font = ("Open Sans", "Lato")
 
-  let heading-content = if heading == none { none } else {[
-    #set text(
-      fill: heading-color,
-      size: heading-size,
-      font: body-font,
-      weight: "medium",
-    )
-    #set align(center)
-    #box(width: 100%)[#heading]
-    #v(-0.75em)
-    #rect(width: 100%, height: 1.5pt, fill: black)
-    #v(0.5em)
-  ]}
+  let heading-content = if heading == none { none } else {
+    [
+      #set text(
+        fill: heading-color,
+        size: heading-size,
+        font: body-font,
+        weight: "medium",
+      )
+      #set align(center)
+      #box(width: 100%)[#heading]
+      #v(-0.75em)
+      #rect(width: 100%, height: 1.5pt, fill: black)
+      #v(0.5em)
+    ]
+  }
 
-  let body-content = if body == none { none } else {[
-    #set text(
-      fill: black,
-      size: body-size,
-      font: body-font,
-      weight: "regular",
-    )
-    #body
-  ]}
+  let body-content = if body == none { none } else {
+    [
+      #set text(
+        fill: black,
+        size: body-size,
+        font: body-font,
+        weight: "regular",
+      )
+      #body
+    ]
+  }
 
   stack(dir: ttb, heading-content, box(stroke: none)[#body-content])
 }
@@ -159,35 +163,39 @@
 ) = context {
   let pt = _state-poster-theme.get()
   let heading-color = pt.at("heading-color", default: rgb(64, 115, 158))
-  let heading-size  = pt.at("heading-size", default: 42pt)
-  let body-size     = pt.at("body-size", default: 40pt)
+  let heading-size = pt.at("heading-size", default: 42pt)
+  let body-size = pt.at("body-size", default: 40pt)
   let body-font = ("Open Sans", "Lato")
   // Light steel-blue tint (~85% mix toward white).
   let alert-fill = rgb(64, 115, 158).lighten(85%)
 
-  let heading-content = if heading == none { none } else {[
-    #set text(
-      fill: heading-color,
-      size: heading-size,
-      font: body-font,
-      weight: "medium",
-    )
-    #set align(center)
-    #box(width: 100%)[#heading]
-    #v(-0.75em)
-    #rect(width: 100%, height: 1.5pt, fill: black)
-    #v(0.5em)
-  ]}
+  let heading-content = if heading == none { none } else {
+    [
+      #set text(
+        fill: heading-color,
+        size: heading-size,
+        font: body-font,
+        weight: "medium",
+      )
+      #set align(center)
+      #box(width: 100%)[#heading]
+      #v(-0.75em)
+      #rect(width: 100%, height: 1.5pt, fill: black)
+      #v(0.5em)
+    ]
+  }
 
-  let body-content = if body == none { none } else {[
-    #set text(
-      fill: black,
-      size: body-size,
-      font: body-font,
-      weight: "regular",
-    )
-    #body
-  ]}
+  let body-content = if body == none { none } else {
+    [
+      #set text(
+        fill: black,
+        size: body-size,
+        font: body-font,
+        weight: "regular",
+      )
+      #body
+    ]
+  }
 
   block(
     fill: alert-fill,
@@ -206,8 +214,8 @@
 // sitting on the title bar. Logo uses a white variant of the SVG
 // (figs/icons/oa-logo-white.svg) so it reads on the steel-blue band.
 #block(
-  fill: rgb(64, 115, 158),       // steel-blue (pollux's fill-color)
-  stroke: rgb(39, 60, 117),      // steel-blue stroke
+  fill: rgb(64, 115, 158), // steel-blue (pollux's fill-color)
+  stroke: rgb(39, 60, 117), // steel-blue stroke
   width: 100%,
   // x-inset = 1in so the logo and title content align with the body
   // columns' left / right edges (which use #pad(x: 1in) below).
@@ -225,7 +233,8 @@
     columns: (3.5in, 1fr, 3.5in),
     align: (left + horizon, center + horizon, right + horizon),
     column-gutter: 0.3in,
-    [],  // spacer for visual balance with the logo on the right
+    [],
+    // spacer for visual balance with the logo on the right
     [
       #v(0.4in)
       #set align(center)
@@ -253,125 +262,124 @@
 // Indent the columns from the page edges (which the title band runs
 // flush to) via pad. Same 1in left/right rhythm as the footer below.
 #pad(x: 1in)[
-#columns(2, gutter: 0.4in)[
+  #columns(2, gutter: 0.4in)[
 
-  // ═════════════════ COLUMN 1: Setup + R1 ═══════════════════════════
+    // ═════════════════ COLUMN 1: Setup + R1 ═══════════════════════════
 
-  #alert-box(heading: "Abstract")[
-    - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors
-    - *GPN-Star*, the current SOTA, requires whole-genome alignments, which are only available for select organisms
-    - We hold architecture, training objective, and compute budget
-      fixed; vary the data along *functional region* and
-      *evolutionary timescale*.
-  ]
-
-  #v(0.4in)
-
-  #let nucs(body) = box(text(font: "Menlo")[#body])
-
-  #column-box(heading: "Introduction")[
-    Autoregressive language models of DNA — at each position, predict
-    the next nucleotide given the preceding context.
-
-    *Training:* maximize log-likelihood of reference DNA.
-
-    #align(center)[
-      $ "maximize" thin log P( dots.c #nucs[CACTTGGAT] dots.c ) $
+    #alert-box(heading: "Abstract")[
+      - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors
+      - GPN-Star, the current SOTA, requires whole-genome alignments, which are only available for select organisms
+      - Evo 2 is more generally applicable, but has uneven performance across the genome and expensive inference
+      - In this work, we explore *data curation* strategies for developing performant, flexible and efficient gLMs
     ]
 
-    *Zero-shot VEP:* score a variant by how much it changes the
-    likelihood.
+    #v(0.4in)
 
-    #align(center)[
-      $
-        "LLR" = log frac(
-          P( dots.c #nucs[CACT#text(fill: rgb("#e63946"))[C]GGAT] dots.c ),
-          P( dots.c #nucs[CACTTGGAT] dots.c )
-        )
-      $
+    #let nucs(body) = box(text(font: "Menlo")[#body])
+
+    #column-box(heading: "Overview")[
+      Autoregressive language models of DNA — at each position, predict
+      the next nucleotide given the preceding context.
+
+      *Training:* maximize the likelihood of reference DNA.
+
+      #align(center)[
+        $ "maximize" thin log P( dots.c #nucs[CACTTGGAT] dots.c ) $
+      ]
+
+      *Zero-shot VEP:* score a variant by how much it changes the
+      likelihood.
+
+      #align(center)[
+        $
+          "LLR" = log frac(
+            P( dots.c #nucs[CACT#text(fill: rgb("#e63946"))[C]GGAT] dots.c ),
+            P( dots.c #nucs[CACTTGGAT] dots.c )
+          )
+        $
+      ]
     ]
+
+    #v(0.4in)
+
+    #column-box(heading: "Methods")[
+      - *Architecture:* Qwen decoder-only Transformer; objective
+        $P(x_t | x_(<t))$; FWD + RC averaging.
+      - *Sizes:* 6M – 1.7B parameters; we vary _what_ we train on,
+        not how large.
+      - *Data:* per-experiment subsets (promoter, CDS, enhancer,
+        mixtures, multi-species).
+      - *Benchmark:* ClinVar Mendelian variants (pathogenic vs benign),
+        per consequence subset.
+      - *Metric:* AUPRC, with per-cluster bootstrap SE.
+    ]
+
+    #v(0.4in)
+
+    #column-box(heading: [How to do one region well])[
+      #image("figs/region_legend.svg", width: 100%)
+      - We trained specialist models, each on a single region of the genome.
+      #image("figs/specialist_bars.svg", width: 100%)
+      - Each specialist achieves good performance in VEP tasks on its trained region.
+      - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs.
+    ]
+
+    #colbreak()
+
+    // ═════════════════ COLUMN 2: R2 + Timescales + Future + Summary ═══
+
+    #column-box(heading: [How to mix regions])[
+      - We have good data recipes for specialist models. How do we build a generalist model? Simply train on a concatenation of the individual datasets?
+      - We evaluated this approach (proportional mixing) together with balanced sampling (uniform mixing).
+      #image("figs/r3.svg", width: 100%)
+
+      - Proportional sampling (natural 10 / 90 ratio) under-serves the
+        rare region — promoter AUPRC stays low.
+      - Uniform 50 / 50 lifts promoter AUPRC into specialist range,
+        with little cost on missense.
+    ]
+
+    #v(0.4in)
+
+    #column-box(heading: [Optimal timescale varies by region])[
+      #image("figs/timescale_legend.svg", width: 100%)
+
+      // T1 + T2 are panels of a single matplotlib figure now (see
+      // plot_timescale in plots/cshl26_poster.py) — same structure as
+      // R3's 3-panel line plot. Saves vertical space vs stacking and
+      // makes the "one dataset family, two consequence lenses" framing
+      // visible at a glance.
+      #image("figs/timescale.svg", width: 100%)
+
+      // Per-panel bullets, in two columns under the plot to associate
+      // visually with the panel above.
+      #grid(
+        columns: (1fr, 1fr),
+        column-gutter: 0.3in,
+        align: top,
+        [
+          - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
+          - Suggests promoter regulatory grammar is largely mammal-specific.
+        ],
+        [
+          - CDS signal still gaining at the animals timescale (~700 Mya).
+          - Suggests protein-coding grammar generalises across deep time.
+        ],
+      )
+    ]
+
+    #v(0.4in)
+
+    #alert-box(heading: "Summary")[
+      - Region specialists *match* whole-genome + multi-species
+        generalists, each on its own region.
+      - *Balanced sampling* (50 / 50) rescues the under-represented
+        region — one mixed model can serve both.
+      - Promoter signal peaks at *mammals*; CDS keeps improving to
+        *animals* — region × timescale interacts.
+      - Treat training-data composition as a *curation* decision,
+        not just a scale-up decision.
+    ]
+
   ]
-
-  #v(0.4in)
-
-  #column-box(heading: "Methods")[
-    - *Architecture:* Qwen decoder-only Transformer; objective
-      $P(x_t | x_(<t))$; FWD + RC averaging.
-    - *Sizes:* 6M – 1.7B parameters; we vary _what_ we train on,
-      not how large.
-    - *Data:* per-experiment subsets (promoter, CDS, enhancer,
-      mixtures, multi-species).
-    - *Benchmark:* ClinVar Mendelian variants (pathogenic vs benign),
-      per consequence subset.
-    - *Metric:* AUPRC, with per-cluster bootstrap SE.
-  ]
-
-  #v(0.4in)
-
-  #column-box(heading: [How to do one region well])[
-    #image("figs/region_legend.svg", width: 100%)
-    - We trained specialist models, each on a single region of the genome.
-    #image("figs/specialist_bars.svg", width: 100%)
-    - Each specialist achieves good performance in VEP tasks on its trained region.
-    - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs.
-  ]
-
-  #colbreak()
-
-  // ═════════════════ COLUMN 2: R2 + Timescales + Future + Summary ═══
-
-  #column-box(heading: [Balanced sampling rescues the under-represented region])[
-    - We have good data recipes for specialist models. How do we build a generalist model? Simply train on a concatenation of the individual datasets?
-    - We evaluated this approach (proportional mixing) together with balanced sampling (uniform mixing).
-    #image("figs/r3.svg", width: 100%)
-
-    - Proportional sampling (natural 10 / 90 ratio) under-serves the
-      rare region — promoter AUPRC stays low.
-    - Uniform 50 / 50 lifts promoter AUPRC into specialist range,
-      with little cost on missense.
-  ]
-
-  #v(0.4in)
-
-  #column-box(heading: [Optimal timescale varies by region])[
-    #image("figs/timescale_legend.svg", width: 100%)
-
-    // T1 + T2 are panels of a single matplotlib figure now (see
-    // plot_timescale in plots/cshl26_poster.py) — same structure as
-    // R3's 3-panel line plot. Saves vertical space vs stacking and
-    // makes the "one dataset family, two consequence lenses" framing
-    // visible at a glance.
-    #image("figs/timescale.svg", width: 100%)
-
-    // Per-panel bullets, in two columns under the plot to associate
-    // visually with the panel above.
-    #grid(
-      columns: (1fr, 1fr),
-      column-gutter: 0.3in,
-      align: top,
-      [
-        - Promoter signal peaks at mammals (~100 Mya) — broader is worse.
-        - Suggests promoter regulatory grammar is largely mammal-specific.
-      ],
-      [
-        - CDS signal still gaining at the animals timescale (~700 Mya).
-        - Suggests protein-coding grammar generalises across deep time.
-      ],
-    )
-  ]
-
-  #v(0.4in)
-
-  #alert-box(heading: "Summary")[
-    - Region specialists *match* whole-genome + multi-species
-      generalists, each on its own region.
-    - *Balanced sampling* (50 / 50) rescues the under-represented
-      region — one mixed model can serve both.
-    - Promoter signal peaks at *mammals*; CDS keeps improving to
-      *animals* — region × timescale interacts.
-    - Treat training-data composition as a *curation* decision,
-      not just a scale-up decision.
-  ]
-
-]
 ]
