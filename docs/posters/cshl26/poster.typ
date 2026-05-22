@@ -131,16 +131,18 @@
   // alt-position highlight.
   #let nucs(body) = box(text(font: "Menlo")[#body])
 
-  #pop.column-box(heading: "Training")[
-    Maximize the likelihood of observed (reference) DNA.
+  #pop.column-box(heading: "Introduction")[
+    Autoregressive language models of DNA — at each position, predict
+    the next nucleotide given the preceding context.
+
+    *Training:* maximize log-likelihood of reference DNA.
 
     #align(center)[
       $ "maximize" thin log P( dots.c #nucs[CACTTGGAT] dots.c ) $
     ]
-  ]
 
-  #pop.column-box(heading: "Zero-shot variant effect prediction")[
-    Score a variant by how much it changes the likelihood.
+    *Zero-shot VEP:* score a variant by how much it changes the
+    likelihood.
 
     #align(center)[
       $
@@ -161,8 +163,6 @@
       mixtures, multi-species).
     - *Benchmark:* ClinVar Mendelian variants (pathogenic vs benign),
       per consequence subset.
-    - *Score:* log-likelihood ratio (alt / ref) at the variant
-      position, zero-shot.
     - *Metric:* AUPRC, with per-cluster bootstrap SE.
   ]
 
