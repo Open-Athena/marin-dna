@@ -136,6 +136,58 @@
   stack(dir: ttb, heading-content, box(stroke: none)[#body-content])
 }
 
+// ─── alert-box — same as column-box but with a tinted background ───
+// Matches Beamer Gemini's `alertblock`: identical heading style
+// (centred coloured text + thin underline) but the whole block sits
+// inside a light steel-blue rectangle so the "headline" sections
+// (Abstract, Summary) read as visually distinct from the rest.
+// Pollux ships no alertblock equivalent so we roll our own.
+#let alert-box(
+  body,
+  heading: none,
+) = context {
+  let pt = _state-poster-theme.get()
+  let heading-color = pt.at("heading-color", default: rgb(64, 115, 158))
+  let heading-size  = pt.at("heading-size", default: 42pt)
+  let body-size     = pt.at("body-size", default: 40pt)
+  let body-font = ("Open Sans", "Lato")
+  // Light steel-blue tint (~85% mix toward white).
+  let alert-fill = rgb(64, 115, 158).lighten(85%)
+
+  let heading-content = if heading == none { none } else {[
+    #set text(
+      fill: heading-color,
+      size: heading-size,
+      font: body-font,
+      weight: "medium",
+    )
+    #set align(center)
+    #box(width: 100%)[#heading]
+    #v(-0.75em)
+    #rect(width: 100%, height: 1.5pt, fill: black)
+    #v(0.5em)
+  ]}
+
+  let body-content = if body == none { none } else {[
+    #set text(
+      fill: black,
+      size: body-size,
+      font: body-font,
+      weight: "regular",
+    )
+    #body
+  ]}
+
+  block(
+    fill: alert-fill,
+    width: 100%,
+    inset: 0.8em,
+    radius: 4pt,
+  )[
+    #stack(dir: ttb, heading-content, box(stroke: none)[#body-content])
+  ]
+}
+
 // ─── Title block ───────────────────────────────────────────────────
 // Custom-rolled title band mirroring pollux's title-box style (filled
 // steel-blue rectangle, white centred text) but with the OA logo
@@ -189,7 +241,7 @@
 
   // ═════════════════ COLUMN A: Abstract / Intro / Methods ═══════════
 
-  #column-box(heading: "Abstract")[
+  #alert-box(heading: "Abstract")[
     - *Genomic language models* (gLMs) are effective genome-wide variant effect predictors
     - *GPN-Star*, the current SOTA, requires whole-genome alignments, which are only available for select organisms
     - We hold architecture, training objective, and compute budget
@@ -282,7 +334,7 @@
 
   #v(0.4in)
 
-  #column-box(heading: "Summary")[
+  #alert-box(heading: "Summary")[
     - Region specialists *match* whole-genome + multi-species
       generalists, each on its own region.
     - *Balanced sampling* (50 / 50) rescues the under-represented
