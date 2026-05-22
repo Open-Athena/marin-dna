@@ -68,6 +68,15 @@
 #set text(font: ("Open Sans", "Inter"), size: 24pt, fill: rgb("#1a1a1a"))
 #set par(leading: 0.55em)
 
+// Typst's default math font is New Computer Modern Math (serif).
+// Override it so equations inherit the body font (Open Sans / sans-
+// serif) and match the rest of the poster. Math glyphs (operators,
+// fractions, dots.c, etc.) will fall back to whatever Open Sans has,
+// which is fine for the simple expressions in the Introduction box.
+// (Typst will print "warning: current font is not designed for math"
+// at compile time — that's expected and ignorable.)
+#show math.equation: set text(font: ("Open Sans", "Inter"))
+
 // ─── Theme + layout ────────────────────────────────────────────────
 // Steel-blue is the closest stock pollux theme to our navy. The other
 // stock options are solar-orange, forest-green, crimson-accent,
@@ -299,7 +308,7 @@
 
   #v(0.4in)
 
-  #column-box(heading: [Region specialists achieve competitive performance])[
+  #column-box(heading: [How to do one region well])[
     #image("figs/region_legend.svg", width: 100%)
     - We trained specialist models, each on a single region of the genome.
     #image("figs/specialist_bars.svg", width: 100%)
