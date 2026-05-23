@@ -30,18 +30,18 @@ from matplotlib.patches import Circle, Wedge
 # ─── Open Athena palette ────────────────────────────────────────────────
 # Mirrors openathena.ai/static/css/style.css and the Plotly defaults in the
 # Delphi blog post — the same tokens the poster CSS uses for figure frames.
-OA_BG               = "#BDB1A5"  # poster background (avoid in figure interior)
-OA_FIG_FRAME_INNER  = "#D1C8C0"  # plot canvas bg — matches the .fig-canvas wrapper
-OA_TEXT             = "#1f1e1b"
-OA_TEXT_LIGHT       = "#b5aa9f"
-OA_ACCENT           = "#9e6d43"  # copper — the "thing in focus" highlight
+OA_BG = "#BDB1A5"  # poster background (avoid in figure interior)
+OA_FIG_FRAME_INNER = "#D1C8C0"  # plot canvas bg — matches the .fig-canvas wrapper
+OA_TEXT = "#1f1e1b"
+OA_TEXT_LIGHT = "#b5aa9f"
+OA_ACCENT = "#9e6d43"  # copper — the "thing in focus" highlight
 
 # ─── Font sizes (shared between bar plot and line plots) ────────────────
 # Single source of truth so all poster figures use the same per-element
 # font scale. Applied as per-fig overrides on top of apply_poster_style.
-POSTER_TITLE_FS  = 32
-POSTER_LABEL_FS  = 30
-POSTER_TICK_FS   = 26
+POSTER_TITLE_FS = 32
+POSTER_LABEL_FS = 30
+POSTER_TICK_FS = 26
 POSTER_LEGEND_FS = 32
 
 # 8-colour OA data-viz colorway (from the Delphi blog's Plotly defaults).
@@ -61,18 +61,18 @@ OA_COLORWAY = [
 # Direction: lighter = larger subset (animals), darker = smaller
 # (humans) — reads as "more general → more specific".
 TIMESCALE_COLORS: dict[str, str] = {
-    "animals":     "#fecf92",  # magma 0.90 — lightest (largest set, pale peach)
+    "animals": "#fecf92",  # magma 0.90 — lightest (largest set, pale peach)
     "vertebrates": "#f8765c",  # magma 0.71
-    "mammals":     "#c03a76",  # magma 0.53
-    "primates":    "#732081",  # magma 0.34
-    "humans":      "#251255",  # magma 0.15 — darkest (smallest set, deep purple)
+    "mammals": "#c03a76",  # magma 0.53
+    "primates": "#732081",  # magma 0.34
+    "humans": "#251255",  # magma 0.15 — darkest (smallest set, deep purple)
 }
 ARM_LABEL: dict[str, str] = {
-    "humans":      "humans (1 sp.)",
-    "primates":    "primates (~65 Mya, 11 sp.)",
-    "mammals":     "mammals (~100 Mya, 81 sp.)",
+    "humans": "humans (1 sp.)",
+    "primates": "primates (~65 Mya, 11 sp.)",
+    "mammals": "mammals (~100 Mya, 81 sp.)",
     "vertebrates": "vertebrates (~600 Mya, 317 sp.)",
-    "animals":     "animals (~800 Mya, 499 sp.)",
+    "animals": "animals (~800 Mya, 499 sp.)",
 }
 
 
@@ -90,36 +90,38 @@ def apply_poster_style() -> None:
     wrapper around each plot. Chrome stays OA brand; data area is
     standard high-contrast.
     """
-    mpl.rcParams.update({
-        # Render text as SVG <path>s so the figure is self-contained — no
-        # dependency on Lato being installed wherever the poster is viewed.
-        "svg.fonttype":        "path",
-        "font.family":         "sans-serif",
-        "font.size":           18,
-        "axes.titlesize":      22,
-        "axes.labelsize":      20,
-        "axes.titleweight":    "normal",
-        "axes.edgecolor":      OA_TEXT,
-        "axes.labelcolor":     OA_TEXT,
-        "axes.linewidth":      1.8,
-        "axes.spines.top":     False,
-        "axes.spines.right":   False,
-        "axes.facecolor":      "white",
-        "figure.facecolor":    "white",
-        "xtick.color":         OA_TEXT,
-        "ytick.color":         OA_TEXT,
-        "xtick.labelsize":     16,
-        "ytick.labelsize":     16,
-        "legend.frameon":      False,
-        "legend.fontsize":     16,
-        # Thick lines + chunky markers so the line plots read at ~1m
-        # viewing distance on the printed 44x44in poster. Applies to all
-        # ax.plot() calls (T1, T2, R3) — keeping these consistent.
-        "lines.linewidth":     4.5,
-        "lines.markersize":    14,
-        "savefig.facecolor":   "white",
-        "savefig.bbox":        "tight",
-    })
+    mpl.rcParams.update(
+        {
+            # Render text as SVG <path>s so the figure is self-contained — no
+            # dependency on Lato being installed wherever the poster is viewed.
+            "svg.fonttype": "path",
+            "font.family": "sans-serif",
+            "font.size": 18,
+            "axes.titlesize": 22,
+            "axes.labelsize": 20,
+            "axes.titleweight": "normal",
+            "axes.edgecolor": OA_TEXT,
+            "axes.labelcolor": OA_TEXT,
+            "axes.linewidth": 1.8,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.facecolor": "white",
+            "figure.facecolor": "white",
+            "xtick.color": OA_TEXT,
+            "ytick.color": OA_TEXT,
+            "xtick.labelsize": 16,
+            "ytick.labelsize": 16,
+            "legend.frameon": False,
+            "legend.fontsize": 16,
+            # Thick lines + chunky markers so the line plots read at ~1m
+            # viewing distance on the printed 44x44in poster. Applies to all
+            # ax.plot() calls (T1, T2, R3) — keeping these consistent.
+            "lines.linewidth": 4.5,
+            "lines.markersize": 14,
+            "savefig.facecolor": "white",
+            "savefig.bbox": "tight",
+        }
+    )
 
 
 # ─── Data ──────────────────────────────────────────────────────────────
@@ -128,10 +130,7 @@ S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 # Poster source (poster.typ) lives at docs/posters/cshl26/ and references
 # the figures as figs/<stem>.svg. We write the matplotlib outputs there
 # directly so a `typst compile poster.typ` finds them.
-FIGS_DIR = (
-    Path(__file__).parent.parent
-    / "docs" / "posters" / "cshl26" / "figs"
-)
+FIGS_DIR = Path(__file__).parent.parent / "docs" / "posters" / "cshl26" / "figs"
 
 
 def load_exp55(arms: tuple[str, ...], steps: tuple[int, ...]) -> pl.DataFrame:
@@ -199,7 +198,9 @@ def _plot_timescale_panel(
 
 
 def _load_exp_timescale(
-    exp_id: str, arms: tuple[str, ...], steps: tuple[int, ...],
+    exp_id: str,
+    arms: tuple[str, ...],
+    steps: tuple[int, ...],
 ) -> pl.DataFrame:
     """Read mendelian_traits metrics across {exp_id}-{arm}-step-{step}.
 
@@ -243,25 +244,23 @@ def plot_timescale(out_path: Path) -> None:
     apply_poster_style()
 
     promoter_arms = ("humans", "primates", "mammals", "vertebrates", "animals")
-    cds_arms      = ("mammals", "vertebrates", "animals")
-    utr3_arms     = ("mammals", "vertebrates", "animals")
+    cds_arms = ("mammals", "vertebrates", "animals")
+    utr3_arms = ("mammals", "vertebrates", "animals")
     # Uniformly-spaced training-step samples (~4000 apart) — reads
     # cleanly on a poster. Add intermediate steps (e.g. 2000, 3000)
     # for dense early-dynamics detail if needed.
-    steps         = (1000, 5000, 9000, 13000, 16999)
-    score_type    = "minus_llr_avg"
+    steps = (1000, 5000, 9000, 13000, 16999)
+    score_type = "minus_llr_avg"
 
     # Promoter (exp55) — TSS-proximal subset.
     promoter_df = _load_exp_timescale("exp55", promoter_arms, steps).filter(
-        (pl.col("score_type") == score_type)
-        & (pl.col("subset") == "tss_proximal")
+        (pl.col("score_type") == score_type) & (pl.col("subset") == "tss_proximal")
     )
     assert not promoter_df.is_empty(), "empty promoter timescale df"
 
     # CDS (exp58) — missense subset.
     cds_df = _load_exp_timescale("exp58", cds_arms, steps).filter(
-        (pl.col("score_type") == score_type)
-        & (pl.col("subset") == "missense_variant")
+        (pl.col("score_type") == score_type) & (pl.col("subset") == "missense_variant")
     )
     assert not cds_df.is_empty(), "empty CDS timescale df"
 
@@ -272,9 +271,9 @@ def plot_timescale(out_path: Path) -> None:
     )
     assert not utr3_df.is_empty(), "empty 3' UTR timescale df"
 
-    title_fs  = POSTER_TITLE_FS
-    label_fs  = POSTER_LABEL_FS
-    tick_fs   = POSTER_TICK_FS
+    title_fs = POSTER_TITLE_FS
+    label_fs = POSTER_LABEL_FS
+    tick_fs = POSTER_TICK_FS
 
     # 3 panels; height 5.0 accommodates the two-line subplot titles
     # ("X model" / "X variants") without squeezing the panel area.
@@ -291,8 +290,8 @@ def plot_timescale(out_path: Path) -> None:
     # last gives a clean "two similar → one different" reading.
     panel_data = (
         ("Promoter model\nPromoter variants", promoter_arms, promoter_df),
-        ("3' UTR model\n3' UTR variants",     utr3_arms,     utr3_df),
-        ("CDS model\nMissense variants",      cds_arms,      cds_df),
+        ("3' UTR model\n3' UTR variants", utr3_arms, utr3_df),
+        ("CDS model\nMissense variants", cds_arms, cds_df),
     )
     for ax, (panel, arms, df) in zip(axes, panel_data):
         for arm in arms:
@@ -335,14 +334,11 @@ def plot_t1(out_path: Path) -> None:
     """Promoter AUPRC across the exp55 timescale arms (mammals peaks)."""
     arms = ("humans", "primates", "mammals", "vertebrates", "animals")
     steps = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
-    score_type = "minus_llr_avg"   # canonical scoring for mendelian promoters
-    subset = "tss_proximal"        # promoter consequence subset
+    score_type = "minus_llr_avg"  # canonical scoring for mendelian promoters
+    subset = "tss_proximal"  # promoter consequence subset
 
     raw = load_exp55(arms, steps)
-    df = raw.filter(
-        (pl.col("score_type") == score_type)
-        & (pl.col("subset") == subset)
-    )
+    df = raw.filter((pl.col("score_type") == score_type) & (pl.col("subset") == subset))
     assert not df.is_empty(), (
         f"empty after filter on {score_type}/{subset}; "
         f"score_types={sorted(raw['score_type'].unique().to_list())}, "
@@ -383,10 +379,7 @@ def plot_t2(out_path: Path) -> None:
         )
     assert parts, "no exp58 parquets loaded"
     raw = pl.concat(parts)
-    df = raw.filter(
-        (pl.col("score_type") == score_type)
-        & (pl.col("subset") == subset)
-    )
+    df = raw.filter((pl.col("score_type") == score_type) & (pl.col("subset") == subset))
     assert not df.is_empty(), (
         f"empty after filter on {score_type}/{subset}; "
         f"score_types={sorted(raw['score_type'].unique().to_list())}, "
@@ -416,29 +409,29 @@ GPN_STAR_METRICS_BASE = (
 # at 100 % — and linearly interpolate in RGB for the two intermediate
 # mixtures. The colour itself thus encodes the recipe.
 METHOD_COLORS: dict[str, str] = {
-    "exp21":                  "#0173b2",  # 100 % promoter — Promoter blue
-    "exp13-equal":            "#6f815b",  # 50 % CDS       — midpoint (olive)
-    "exp13-proportional":     "#c78c16",  # 90 % CDS       — 9/10 toward orange
-    "exp27":                  "#de8f05",  # 100 % CDS      — CDS orange
+    "exp21": "#0173b2",  # 100 % promoter — Promoter blue
+    "exp13-equal": "#6f815b",  # 50 % CDS       — midpoint (olive)
+    "exp13-proportional": "#c78c16",  # 90 % CDS       — 9/10 toward orange
+    "exp27": "#de8f05",  # 100 % CDS      — CDS orange
 }
 METHOD_LABELS: dict[str, str] = {
-    "exp21":                  "Promoter only",
-    "exp27":                  "CDS only",
+    "exp21": "Promoter only",
+    "exp27": "CDS only",
     # Parenthetical ratios duplicate the pie chart drawn next to each
     # legend entry — kept both for redundancy: the pie reads at a glance
     # for visual comparison, the numbers nail the exact ratio.
-    "exp13-equal":            "Uniform mix (50 / 50)",
-    "exp13-proportional":     "Proportional mix (10 / 90)",
+    "exp13-equal": "Uniform mix (50 / 50)",
+    "exp13-proportional": "Proportional mix (10 / 90)",
 }
 
 # Fraction of TRAINING DATA that is promoter (rest is CDS). Drives the
 # pie chart drawn beside each entry in the R2 line-plot legend, so the
 # composition of each training condition reads at a glance.
 PROMOTER_FRAC: dict[str, float] = {
-    "exp21":              1.0,   # 100 % promoter
-    "exp27":              0.0,   # 100 % CDS
-    "exp13-equal":        0.5,   # uniform 50 / 50
-    "exp13-proportional": 0.1,   # natural ~10 / 90 ratio (promoter / CDS)
+    "exp21": 1.0,  # 100 % promoter
+    "exp27": 0.0,  # 100 % CDS
+    "exp13-equal": 0.5,  # uniform 50 / 50
+    "exp13-proportional": 0.1,  # natural ~10 / 90 ratio (promoter / CDS)
 }
 
 # Two-panel subset set for the exp13 mixture sweep — one region from each
@@ -454,10 +447,19 @@ MIXTURE_SUBSETS: dict[str, str] = {
 # endpoints, exp13-equal / exp13-proportional are the mixtures.
 MIXTURE_STEPS: dict[str, tuple[str, tuple[int, ...]]] = {
     # method_id → (S3 stem prefix, available steps on S3)
-    "exp21":              ("exp21-promoters-yolo",       (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000)),
-    "exp13-equal":        ("exp13-mixture-equal",        (2000, 6000, 10000, 14000, 18000, 22000, 26000)),
-    "exp13-proportional": ("exp13-mixture-proportional", (2000, 6000, 10000, 14000, 18000, 22000, 26000)),
-    "exp27":              ("exp27-cds-yolo",             (2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000)),
+    "exp21": (
+        "exp21-promoters-yolo",
+        (2000, 6000, 10000, 12000, 14000, 16000, 18000, 20000, 22000),
+    ),
+    "exp13-equal": (
+        "exp13-mixture-equal",
+        (2000, 6000, 10000, 14000, 18000, 22000, 26000),
+    ),
+    "exp13-proportional": (
+        "exp13-mixture-proportional",
+        (2000, 6000, 10000, 14000, 18000, 22000, 26000),
+    ),
+    "exp27": ("exp27-cds-yolo", (2000, 6000, 10000, 14000, 18000, 22000, 26000, 34000)),
 }
 
 # Three regional specialists × one matching variant consequence each,
@@ -471,10 +473,10 @@ SPECIALIST_METHODS = ("exp136", "exp21", "exp27", "evo2_40b", "GPN-Star-M")
 # titles do the "-specialist" disambiguation, so the per-bar labels can
 # stay short ("Promoter", "CDS", "Enhancer").
 SPECIALIST_LABELS: dict[str, str] = {
-    "exp21":      "Promoter",
-    "exp27":      "CDS",
-    "exp136":     "Enhancer",
-    "evo2_40b":   "Evo 2 (40B)",
+    "exp21": "Promoter",
+    "exp27": "CDS",
+    "exp136": "Enhancer",
+    "evo2_40b": "Evo 2 (40B)",
     "GPN-Star-M": "GPN-Star (M)",
 }
 
@@ -486,13 +488,13 @@ SPECIALIST_LABELS: dict[str, str] = {
 # subplot title, and schematic block. Generalists kept as neutral GREYS
 # so they read as "reference baselines, not region-coded".
 SPECIALIST_COLORS: dict[str, str] = {
-    "exp21":      "#0173b2",  # colorblind blue   — promoter
-    "exp27":      "#de8f05",  # colorblind orange — CDS
-    "exp136":     "#029e73",  # colorblind green  — enhancer
-    "evo2_40b":   "#999999",  # mid grey  — baseline (Evo 2)
+    "exp21": "#0173b2",  # colorblind blue   — promoter
+    "exp27": "#de8f05",  # colorblind orange — CDS
+    "exp136": "#029e73",  # colorblind green  — enhancer
+    "evo2_40b": "#999999",  # mid grey  — baseline (Evo 2)
     "GPN-Star-M": "#555555",  # medium-dark grey — baseline (GPN-Star);
-                              # was #333333 but the near-black bar made the
-                              # SE error bar (ink) invisible against it.
+    # was #333333 but the near-black bar made the
+    # SE error bar (ink) invisible against it.
 }
 
 # Three regions, one consequence each — the matching specialty. Order
@@ -518,8 +520,8 @@ REGION_TITLE_COLORS: dict[str, str] = {
 
 # Final-step checkpoint per specialist (the same ones we use for R1/R2).
 SPECIALIST_CHECKPOINTS: dict[str, str] = {
-    "exp21":  "exp21-promoters-yolo-step-22000",
-    "exp27":  "exp27-cds-yolo-step-34000",
+    "exp21": "exp21-promoters-yolo-step-22000",
+    "exp27": "exp27-cds-yolo-step-34000",
     "exp136": "exp136-proj_v30-step-9999",
 }
 
@@ -545,8 +547,7 @@ def _specialist_grid() -> dict[str, dict[str, tuple[float, float]]]:
         per_region: dict[str, tuple[float, float]] = {}
         for label, subset in SPECIALIST_REGIONS.items():
             row = df.filter(
-                (pl.col("score_type") == "minus_llr_avg")
-                & (pl.col("subset") == subset)
+                (pl.col("score_type") == "minus_llr_avg") & (pl.col("subset") == subset)
             ).row(0, named=True)
             per_region[label] = (float(row["value"]), float(row["se"]))
         grid[sp] = per_region
@@ -597,11 +598,12 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     xs = np.arange(len(SPECIALIST_METHODS))
 
     fig, axes = plt.subplots(
-        1, len(regions),
+        1,
+        len(regions),
         # Width matches R3 so POSTER_*_FS fonts render at the same
         # physical size across the two plots.
         figsize=(15, 8),
-        sharey=False,        # each region is a different dataset
+        sharey=False,  # each region is a different dataset
         constrained_layout=False,
     )
 
@@ -612,10 +614,11 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
     is_specialist = set(SPECIALIST_CHECKPOINTS)
     for ax_idx, (ax, region) in enumerate(zip(axes, regions)):
         heights = [grid[m][region][0] for m in SPECIALIST_METHODS]
-        errs    = [grid[m][region][1] for m in SPECIALIST_METHODS]
-        colors  = [SPECIALIST_COLORS[m] for m in SPECIALIST_METHODS]
+        errs = [grid[m][region][1] for m in SPECIALIST_METHODS]
+        colors = [SPECIALIST_COLORS[m] for m in SPECIALIST_METHODS]
         bars = ax.bar(
-            xs, heights,
+            xs,
+            heights,
             color=colors,
             yerr=errs,
             edgecolor=OA_TEXT,
@@ -635,9 +638,12 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         # while staying subordinate to the axis ticks (POSTER_TICK_FS=26).
         for x, h, e in zip(xs, heights, errs):
             ax.text(
-                x, h + e + 0.012,
+                x,
+                h + e + 0.012,
                 f"{h:.2f}",
-                ha="center", va="bottom", fontsize=22,
+                ha="center",
+                va="bottom",
+                fontsize=22,
                 color=OA_TEXT,
             )
 
@@ -673,17 +679,25 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         fontsize=POSTER_LEGEND_FS,
         labelcolor=OA_TEXT,
         frameon=False,
-        columnspacing=0.6,   # tight so entries cluster together
+        columnspacing=0.6,  # tight so entries cluster together
         handletextpad=0.3,
     )
-    label_x = 0.06   # left edge of the group label
+    label_x = 0.06  # left edge of the group label
     legend_x = 0.26  # left edge of the legend, just past the longest label
     # Specialists / Generalists row positions in figure coords.
     # Gap ≈ 0.6in on the 8in figure.
     y_spec, y_gen = 0.30, 0.22
 
-    fig.text(label_x, y_spec, "Specialists", ha="left", va="center",
-             fontsize=POSTER_LEGEND_FS, fontweight="bold", color=OA_TEXT)
+    fig.text(
+        label_x,
+        y_spec,
+        "Specialists",
+        ha="left",
+        va="center",
+        fontsize=POSTER_LEGEND_FS,
+        fontweight="bold",
+        color=OA_TEXT,
+    )
     fig.legend(
         handles=specialist_handles,
         bbox_to_anchor=(legend_x, y_spec),
@@ -691,8 +705,16 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         **legend_kw,
     )
 
-    fig.text(label_x, y_gen, "Generalists", ha="left", va="center",
-             fontsize=POSTER_LEGEND_FS, fontweight="bold", color=OA_TEXT)
+    fig.text(
+        label_x,
+        y_gen,
+        "Generalists",
+        ha="left",
+        va="center",
+        fontsize=POSTER_LEGEND_FS,
+        fontweight="bold",
+        color=OA_TEXT,
+    )
     fig.legend(
         handles=generalist_handles,
         bbox_to_anchor=(legend_x, y_gen),
@@ -760,25 +782,36 @@ class HandlerLineMarkerWithPie(HandlerBase):
         self.edge_color = edge_color
 
     def create_artists(
-        self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans,
+        self,
+        legend,
+        orig_handle,
+        xdescent,
+        ydescent,
+        width,
+        height,
+        fontsize,
+        trans,
     ):
         # Reserve the right portion of the handle box for the pie; the
         # line + marker share the rest. Pie diameter = full handle height
         # so it visually balances the line's thickness × marker.
         pie_d = height
-        gap = 0.35 * fontsize   # spacing between line-end and pie
+        gap = 0.35 * fontsize  # spacing between line-end and pie
         line_y = height / 2 - ydescent
         line_x0 = -xdescent
         line_x1 = -xdescent + width - pie_d - gap
 
         color = orig_handle.get_color()
         line = Line2D(
-            [line_x0, line_x1], [line_y, line_y],
-            color=color, lw=orig_handle.get_linewidth(),
+            [line_x0, line_x1],
+            [line_y, line_y],
+            color=color,
+            lw=orig_handle.get_linewidth(),
             solid_capstyle="butt",
         )
         marker = Line2D(
-            [(line_x0 + line_x1) / 2], [line_y],
+            [(line_x0 + line_x1) / 2],
+            [line_y],
             color=color,
             marker=orig_handle.get_marker(),
             markersize=orig_handle.get_markersize(),
@@ -797,15 +830,21 @@ class HandlerLineMarkerWithPie(HandlerBase):
         p = self.promoter_frac
         if p >= 1.0:
             c = Circle(
-                (cx, cy), r,
-                facecolor=self.promoter_color, edgecolor=self.edge_color, linewidth=1.0,
+                (cx, cy),
+                r,
+                facecolor=self.promoter_color,
+                edgecolor=self.edge_color,
+                linewidth=1.0,
             )
             c.set_transform(trans)
             artists.append(c)
         elif p <= 0.0:
             c = Circle(
-                (cx, cy), r,
-                facecolor=self.cds_color, edgecolor=self.edge_color, linewidth=1.0,
+                (cx, cy),
+                r,
+                facecolor=self.cds_color,
+                edgecolor=self.edge_color,
+                linewidth=1.0,
             )
             c.set_transform(trans)
             artists.append(c)
@@ -818,12 +857,22 @@ class HandlerLineMarkerWithPie(HandlerBase):
             theta_top = 90.0
             theta_start = theta_top - p * 360.0
             w_p = Wedge(
-                (cx, cy), r, theta_start, theta_top,
-                facecolor=self.promoter_color, edgecolor=self.edge_color, linewidth=1.0,
+                (cx, cy),
+                r,
+                theta_start,
+                theta_top,
+                facecolor=self.promoter_color,
+                edgecolor=self.edge_color,
+                linewidth=1.0,
             )
             w_c = Wedge(
-                (cx, cy), r, theta_top, theta_top + (1.0 - p) * 360.0,
-                facecolor=self.cds_color, edgecolor=self.edge_color, linewidth=1.0,
+                (cx, cy),
+                r,
+                theta_top,
+                theta_top + (1.0 - p) * 360.0,
+                facecolor=self.cds_color,
+                edgecolor=self.edge_color,
+                linewidth=1.0,
             )
             w_p.set_transform(trans)
             w_c.set_transform(trans)
@@ -858,20 +907,21 @@ def plot_r3(out_path: Path) -> None:
 
     # Only plot training steps available in ALL four runs — apples-to-
     # apples comparison at every x-tick.
-    common_steps = set.intersection(
-        *[set(MIXTURE_STEPS[m][1]) for m in methods]
-    )
+    common_steps = set.intersection(*[set(MIXTURE_STEPS[m][1]) for m in methods])
 
-    title_fs  = POSTER_TITLE_FS
-    label_fs  = POSTER_LABEL_FS
-    tick_fs   = POSTER_TICK_FS
+    title_fs = POSTER_TITLE_FS
+    label_fs = POSTER_LABEL_FS
+    tick_fs = POSTER_TICK_FS
     legend_fs = POSTER_LEGEND_FS
 
     # Three panels: Promoter | Missense | Average (mean across both).
     # The Average panel makes "Uniform mix wins on aggregate" visible
     # directly without the reader trading off two regions mentally.
     fig, axes = plt.subplots(
-        1, len(MIXTURE_SUBSETS) + 1, figsize=(15, 6.5), sharey=False,
+        1,
+        len(MIXTURE_SUBSETS) + 1,
+        figsize=(15, 6.5),
+        sharey=False,
     )
     line_handles: dict[str, Line2D] = {}
     for ax, (panel, subset_key) in zip(axes[:-1], MIXTURE_SUBSETS.items()):
@@ -948,26 +998,26 @@ def plot_r3(out_path: Path) -> None:
     handler_map = {
         line_handles[m]: HandlerLineMarkerWithPie(
             promoter_frac=PROMOTER_FRAC[m],
-            promoter_color="#0173b2",   # mirrors gene cartoon's promoter blue
-            cds_color="#de8f05",        # mirrors gene cartoon's CDS orange
+            promoter_color="#0173b2",  # mirrors gene cartoon's promoter blue
+            cds_color="#de8f05",  # mirrors gene cartoon's CDS orange
             edge_color=OA_TEXT,
         )
         for m in methods
     }
     fig.legend(
         [line_handles[m] for m in legend_order],
-        [METHOD_LABELS[m]  for m in legend_order],
+        [METHOD_LABELS[m] for m in legend_order],
         handler_map=handler_map,
         loc="upper center",
         bbox_to_anchor=(0.5, 1.0),
         ncol=2,
         frameon=False,
         fontsize=legend_fs,
-        handlelength=4.0,      # room for line + marker + pie inside the handle
+        handlelength=4.0,  # room for line + marker + pie inside the handle
         handletextpad=0.4,
         columnspacing=2.0,
         labelspacing=0.6,
-        borderpad=0.0,         # handles flush at figure top, no dead pad
+        borderpad=0.0,  # handles flush at figure top, no dead pad
     )
     # top=0.62 leaves room for the 2-row legend above the panels.
     # left=0.09 protects the AUPRC ylabel + ticks from being clipped.
