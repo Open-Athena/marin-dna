@@ -1,5 +1,8 @@
 // CSHL 2026 poster — Typst implementation.
 //
+// HISTORICAL: presented at the CSHL 90th Symposium "AI in Biology"
+// (May 26-31, 2026). Frozen — see ../README.md before editing.
+//
 // Built on the `pollux` Typst package (v0.1.0), matching the Beamer
 // Gemini look that the GPN-MSA poster uses:
 //   - column-box headings are centred coloured text with a thin
