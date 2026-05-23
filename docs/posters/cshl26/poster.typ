@@ -260,6 +260,7 @@
       ]
     ]
 
+    #v(0.5in)
 
     #column-box(heading: "Methods")[
       - Standard architecture and training objective: *Qwen3 autoregressive Transformer*.
@@ -273,8 +274,8 @@
 
 
     #column-box(heading: [How to do one region well])[
-      - The genome is very heterogeneous; some might even say coding sequences (CDS) and regulatory regions have a different grammar.
-      - We first trained specialist models, each on a single region of the genome.
+      - The genome is very heterogeneous; coding sequences (CDS) and regulatory regions have a different grammar.
+      - We first trained specialist models, each on a single region of the genome (default: animals for CDS/promoters, mammals for enhancers).
       #image("figs/region_legend.svg", width: 100%)
       #image("figs/specialist_bars.svg", width: 100%)
       - Each specialist achieves good performance in VEP tasks on its trained region.
@@ -299,14 +300,14 @@
       - There is a tradeoff between dataset size, diversity, and evolutionary relevance.
       #image("figs/timescale_legend.svg", width: 100%)
       #image("figs/timescale.svg", width: 100%)
-      - For regulatory regions (promoters, 3' UTR), mammals-trained models converge fast; vertebrates / animals eventually close the gap at extra compute cost.
-      - In the more conserved CDS region, the value of larger evolution timescales is much more evident.
+      - For regulatory regions (promoters, 3' UTR), mammals converges fast; vertebrates / animals climb more slowly but may surpass with more compute.
+      - In the more conserved CDS region, the value of larger evolutionary timescales is much more evident.
     ]
 
 
     #alert-box(heading: "Summary and outlook")[
       - We explore data curation strategies along two separate axes: *functional regions* and *evolutionary timescales*.
-      - Our findings provide guidelines for developing *efficient gLMs with robust performance across the genome*.
+      - Our findings provide insights for developing *efficient gLMs with robust performance across the genome*.
       - As next steps, we are exploring how data curation recipes interact with varying *model scale*. We are also interested in transfer learning applications such as *gene expression prediction*.
       - Inspired by the #link("https://github.com/marin-community/marin")[Marin] project, we go beyond public code/model/data: *the research process itself is open*, with all experiments preregistered and publicly available from day 1.
     ]
