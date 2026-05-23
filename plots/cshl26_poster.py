@@ -133,70 +133,6 @@ S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 FIGS_DIR = Path(__file__).parent.parent / "docs" / "posters" / "cshl26" / "figs"
 
 
-def load_exp55(arms: tuple[str, ...], steps: tuple[int, ...]) -> pl.DataFrame:
-    """Read mendelian_traits metrics across exp55-{arm}-step-{step}."""
-    parts: list[pl.DataFrame] = []
-    missing: list[str] = []
-    for arm in arms:
-        for step in steps:
-            uri = f"{S3_BASE}/exp55-{arm}-step-{step}/mendelian_traits.parquet"
-            try:
-                df = pl.read_parquet(uri)
-            except Exception as exc:
-                missing.append(f"  {arm} step {step}: {exc}")
-                continue
-            parts.append(
-                df.with_columns(
-                    pl.lit(arm).alias("arm"),
-                    pl.lit(step).alias("step"),
-                )
-            )
-    if missing:
-        print(
-            f"WARN: {len(missing)}/{len(arms) * len(steps)} parquets unread:\n"
-            + "\n".join(missing),
-            file=sys.stderr,
-        )
-    assert parts, "no parquets loaded — has the sweep started?"
-    return pl.concat(parts)
-
-
-def _plot_timescale_panel(
-    df: pl.DataFrame,
-    arms: tuple[str, ...],
-    *,
-    out_path: Path,
-) -> None:
-    """Shared plot body for the timescale figures (T1 / T2).
-
-    No internal title — the surrounding poster panel already has a
-    `<p class="fig-title">` header; an in-SVG title would duplicate it.
-    """
-    apply_poster_style()
-    # Aspect ratio 1.6:1 matches the placeholder figs and the poster's
-    # .fig-canvas wrapper, avoiding letterboxing on print.
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for arm in arms:
-        arm_df = df.filter(pl.col("arm") == arm).sort("step")
-        if arm_df.is_empty():
-            continue
-        ax.plot(
-            arm_df["step"].to_numpy(),
-            arm_df["value"].to_numpy(),
-            marker="o",
-            color=TIMESCALE_COLORS[arm],
-            label=ARM_LABEL[arm],
-        )
-    ax.set_xlabel("training step")
-    ax.set_ylabel("AUPRC")
-    # No legend — the timescale-legend SVG above the two panels in
-    # poster.html is the canonical colour-key for both T1 and T2.
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path)
-    print(f"wrote {out_path}")
-    plt.close(fig)
-
-
 def _load_exp_timescale(
     exp_id: str,
     arms: tuple[str, ...],
@@ -327,65 +263,6 @@ def plot_timescale(out_path: Path) -> None:
     fig.savefig(out_path)
     print(f"wrote {out_path}")
     plt.close(fig)
-
-
-# ─── T1: promoter AUPRC vs evolutionary timescale (exp55) ──────────────
-def plot_t1(out_path: Path) -> None:
-    """Promoter AUPRC across the exp55 timescale arms (mammals peaks)."""
-    arms = ("humans", "primates", "mammals", "vertebrates", "animals")
-    steps = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
-    score_type = "minus_llr_avg"  # canonical scoring for mendelian promoters
-    subset = "tss_proximal"  # promoter consequence subset
-
-    raw = load_exp55(arms, steps)
-    df = raw.filter((pl.col("score_type") == score_type) & (pl.col("subset") == subset))
-    assert not df.is_empty(), (
-        f"empty after filter on {score_type}/{subset}; "
-        f"score_types={sorted(raw['score_type'].unique().to_list())}, "
-        f"subsets={sorted(raw['subset'].unique().to_list())}"
-    )
-    _plot_timescale_panel(df, arms, out_path=out_path)
-
-
-# ─── T2: CDS (missense) AUPRC vs evolutionary timescale (exp58) ────────  # noqa: E501
-def plot_t2(out_path: Path) -> None:
-    """Missense AUPRC across the exp58 timescale arms (animals optimum)."""
-    arms = ("mammals", "vertebrates", "animals")
-    steps = (1000, 2000, 3000, 4000, 5000, 9000, 13000, 16999)
-    score_type = "minus_llr_avg"
-    subset = "missense_variant"
-
-    parts: list[pl.DataFrame] = []
-    missing: list[str] = []
-    for arm in arms:
-        for step in steps:
-            uri = f"{S3_BASE}/exp58-{arm}-step-{step}/mendelian_traits.parquet"
-            try:
-                ck = pl.read_parquet(uri)
-            except Exception as exc:
-                missing.append(f"  {arm} step {step}: {exc}")
-                continue
-            parts.append(
-                ck.with_columns(
-                    pl.lit(arm).alias("arm"),
-                    pl.lit(step).alias("step"),
-                )
-            )
-    if missing:
-        print(
-            f"WARN: {len(missing)}/{len(arms) * len(steps)} parquets unread:\n"
-            + "\n".join(missing),
-            file=sys.stderr,
-        )
-    assert parts, "no exp58 parquets loaded"
-    raw = pl.concat(parts)
-    df = raw.filter((pl.col("score_type") == score_type) & (pl.col("subset") == subset))
-    assert not df.is_empty(), (
-        f"empty after filter on {score_type}/{subset}; "
-        f"score_types={sorted(raw['score_type'].unique().to_list())}, "
-        f"subsets={sorted(raw['subset'].unique().to_list())}"
-    )
-    _plot_timescale_panel(df, arms, out_path=out_path)
 
 
 # ─── Comparison plots: exp21 vs Evo 2 / GPN-Star baselines ────────────
