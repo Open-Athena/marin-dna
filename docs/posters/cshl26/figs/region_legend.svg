@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 20 1100 190" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .ink   { fill: #1f1e1b; }
+      .muted { fill: #7a7a7a; }
+      .label-bold { font-family: 'Open Sans', sans-serif; font-size: 32px; font-weight: 700; }
+      .clade { font-family: 'Open Sans', sans-serif; font-size: 30px; }
+      /* Smaller variant for non-focal regions (UTRs) so they don't crowd
+         the focal Promoter/CDS/Enhancer labels at the new size. */
+      .clade-small { font-family: 'Open Sans', sans-serif; font-size: 22px; }
+      .micro { font-family: 'Open Sans', sans-serif; font-size: 22px; }
+    </style>
+  </defs>
+
+  <!-- ─── Single-gene cartoon (biologically ordered) ───
+       Same cartoon that used to live in the DATA card; promoted to a
+       standalone legend now so it doubles as the colour-key for the
+       R1 / R2 result panels below. -->
+
+  <!-- Distal enhancer (far away, looping to promoter) -->
+  <g transform="translate(40, 50)">
+    <!-- Enhancer block -->
+    <rect x="0" y="60" width="120" height="44" fill="#029e73" stroke="#1f1e1b" stroke-width="1.5"/>
+
+    <!-- Looping arc from enhancer top to promoter top -->
+    <path d="M 60 60 Q 280 -40 390 60" stroke="#7a7a7a" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+    <text x="230" y="-8" text-anchor="middle" class="micro" fill="#7a7a7a" font-style="italic">Up to 1 Mb away</text>
+
+    <!-- Intergenic gap (dotted line) -->
+    <line x1="120" y1="82" x2="320" y2="82" stroke="#1f1e1b" stroke-width="2" stroke-dasharray="2 6"/>
+
+    <!-- ─── A single gene, biologically ordered ─── -->
+    <!-- promoter (upstream of TSS) — widened so the Promoter label can
+         centre cleanly without crowding the 5' UTR label to the right. -->
+    <rect x="320" y="60" width="140" height="44" fill="#0173b2" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- TSS arrow above promoter/5'UTR boundary -->
+    <path d="M 460 44 L 460 18 L 492 18" stroke="#1f1e1b" stroke-width="2" fill="none"/>
+    <polygon points="492,18 482,12 482,24" fill="#1f1e1b"/>
+    <text x="472" y="8" text-anchor="start" class="micro muted">TSS</text>
+
+    <!-- 5'UTR (widened so its centre matches the label position at x=530) -->
+    <rect x="460" y="60" width="140" height="44" fill="#e8dec8" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- CDS exon 1 (shifted right by +70 to clear the wider 5'UTR) -->
+    <rect x="600" y="60" width="140" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- intron (thin line connecting exons) -->
+    <line x1="740" y1="82" x2="840" y2="82" stroke="#1f1e1b" stroke-width="2"/>
+    <!-- intron caret -->
+    <polyline points="770,82 790,70 810,82" stroke="#1f1e1b" stroke-width="2" fill="none"/>
+    <!-- CDS exon 2 -->
+    <rect x="840" y="60" width="130" height="44" fill="#de8f05" stroke="#1f1e1b" stroke-width="1.5"/>
+    <!-- 3'UTR -->
+    <rect x="970" y="60" width="70" height="44" fill="#e8dec8" stroke="#1f1e1b" stroke-width="1.5"/>
+
+    <!-- Region labels below — focal labels (Enhancer/Promoter/CDS) at
+         large size; UTR labels in a smaller variant since they're not
+         focal regions for this work. Positions nudged to keep the larger
+         labels from crowding each other. -->
+    <text x="60"  y="140" text-anchor="middle" class="clade" fill="#029e73" font-weight="700">Enhancer</text>
+
+    <text x="390" y="140" text-anchor="middle" class="clade" fill="#0173b2" font-weight="700">Promoter</text>
+    <text x="530" y="140" text-anchor="middle" class="clade-small muted">5′ UTR</text>
+
+    <text x="670" y="140" text-anchor="middle" class="clade" fill="#de8f05" font-weight="700">CDS</text>
+
+    <text x="1005" y="140" text-anchor="middle" class="clade-small muted">3′ UTR</text>
+  </g>
+
+</svg>

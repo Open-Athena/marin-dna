@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-160 -10 1440 205" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .ink   { fill: #1f1e1b; }
+      .muted { fill: #7a7a7a; }
+      .label-bold { font-family: 'Open Sans', sans-serif; font-size: 32px; font-weight: 700; }
+      .micro { font-family: 'Open Sans', sans-serif; font-size: 28px; }
+      .span-label { font-family: 'Open Sans', sans-serif; font-size: 36px; font-weight: 700; }
+    </style>
+  </defs>
+
+  <!-- ─── Cumulative training-subset spans, inverse-stacked ───
+       Just the bars now (phylo-tree topology dropped). The bar lengths
+       and ordering already convey the nesting (animals ⊃ vertebrates
+       ⊃ mammals ⊃ primates ⊃ humans). Bar thickness 32 leaves headroom
+       for the 36pt span-label centred on each bar. -->
+  <g stroke="#1f1e1b" stroke-width="0.75">
+    <rect x="60"  y="0"   width="900" height="32" fill="#fecf92"/>  <!-- animals     magma 0.90  (lightest) -->
+    <rect x="60"  y="38"  width="640" height="32" fill="#f8765c"/>  <!-- vertebrates magma 0.71            -->
+    <rect x="60"  y="76"  width="370" height="32" fill="#c03a76"/>  <!-- mammals     magma 0.53            -->
+    <rect x="60"  y="114" width="160" height="32" fill="#732081"/>  <!-- primates    magma 0.34            -->
+    <rect x="60"  y="152" width="40"  height="32" fill="#251255"/>  <!-- humans      magma 0.15  (darkest) -->
+  </g>
+
+  <!-- Bar labels: clade name + cumulative species count.
+       Baseline = bar_top + 28 puts the cap-height of the 36pt label
+       roughly at the vertical centre of the 32-tall bar. -->
+  <g>
+    <text x="970" y="28"  class="span-label ink">animals
+      <tspan class="micro muted" font-weight="400"> (499 sp.)</tspan>
+    </text>
+    <text x="710" y="66"  class="span-label ink">vertebrates
+      <tspan class="micro muted" font-weight="400"> (317 sp.)</tspan>
+    </text>
+    <text x="440" y="104" class="span-label ink">mammals
+      <tspan class="micro muted" font-weight="400"> (81 sp.)</tspan>
+    </text>
+    <text x="230" y="142" class="span-label ink">primates
+      <tspan class="micro muted" font-weight="400"> (11 sp.)</tspan>
+    </text>
+    <text x="110" y="180" class="span-label ink">humans
+      <tspan class="micro muted" font-weight="400"> (1 sp.)</tspan>
+    </text>
+  </g>
+
+  <!-- Caption on the left of the bar block. Right-aligned at x=50 so
+       it sits 10px before the bar start at x=60 regardless of line
+       width — no risk of overlapping the bars. Vertically centred on
+       the mammals bar (y=76-108, centre y=92). -->
+  <text text-anchor="end">
+    <tspan x="50" y="82"  class="label-bold ink">train on</tspan>
+    <tspan x="50" y="110" class="micro muted">a cumulative</tspan>
+    <tspan x="50" y="138" class="micro muted">species subset</tspan>
+  </text>
+</svg>

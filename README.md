@@ -13,6 +13,10 @@ Tracked as GitHub issues. See the
 
 Variant effect prediction leaderboards (under construction): [openathena.ai/marin-dna](https://openathena.ai/marin-dna/).
 
+## News
+
+- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
+
 ## Installation
 
 ```bash
