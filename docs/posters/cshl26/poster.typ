@@ -247,7 +247,7 @@
         $ "maximize" thin log P( dots.c#nucs[CACTTGGAT]dots.c ) $
       ]
 
-      *Zero-shot VEP:* score a variant by how much it changes the
+      *Zero-shot variant effect prediction (VEP):* score a variant by how much it changes the
       likelihood compared to the reference. Low likelihood → likely deleterious.
 
       #align(center)[
