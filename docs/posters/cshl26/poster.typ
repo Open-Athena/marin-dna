@@ -260,6 +260,8 @@
       ]
     ]
 
+    #v(0.25in)
+
     #column-box(heading: "Methods")[
       - Standard architecture and training objective: *Qwen3 autoregressive Transformer*.
         - Reuse LLM infrastructure and modeling science; focus on data.
@@ -270,6 +272,8 @@
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
       - Human VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
+
+    #v(0.25in)
 
     #column-box(heading: [One region at a time])[
       - The genome is very heterogeneous; coding sequences (CDS) and regulatory regions have different grammars.
