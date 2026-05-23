@@ -233,10 +233,8 @@
     // ═════════════════ COLUMN 1: Setup + R1 ═══════════════════════════
 
     #alert-box(heading: "Abstract")[
-      - *Genomic language models* (gLMs) are effective at *genome-wide variant effect prediction* (VEP).
-      - GPN-Star, the current SOTA, requires whole-genome alignments, which are only available for select organisms.
-      - Evo 2 is alignment-free, but performance is uneven across the genome and inference is expensive.
-      - In this work, we explore *data curation* strategies for developing performant, flexible and efficient gLMs.
+      - *Pretraining data composition* is widely recognized as a key driver of LLM performance, but its role in *genomic language models* (gLMs) has not been systematically studied.
+      - We investigate gLM data curation along two axes: *functional regions* (CDS, promoters) and *evolutionary timescales* (humans → animals).
     ]
 
 
@@ -268,7 +266,7 @@
         - Reuse LLM infrastructure and modeling science; focus on data.
       - *Context size: 256 bp*.
         - Focus on individual functional elements (e.g. exons, enhancers), and iterate faster.
-      - *Model size: $tilde$1B* for the experiments here described. Currently exploring scaling.
+      - *Model size: $tilde$1B* (currently exploring scaling).
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
       - Human VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
@@ -280,7 +278,7 @@
       #image("figs/region_legend.svg", width: 100%)
       #image("figs/specialist_bars.svg", width: 100%)
       - Each specialist achieves good performance in VEP tasks on its trained region.
-      - Specialists often outperform Evo 2, but not GPN-Star. There might be a ceiling to the performance of alignment-free gLMs -- at least for now.
+      - Specialists often outperform Evo 2 (a much larger model), but not GPN-Star. Alignment-free trades some VEP performance for broad applicability (no whole-genome alignment required).
     ]
 
     #colbreak()
@@ -296,20 +294,21 @@
     ]
 
 
-    #column-box(heading: [How to choose an appropriate evolutionary timescale])[
+    #column-box(heading: [Which evolutionary timescale?])[
       - If we have a target species of interest (e.g. human), which species should we train on?
       - There is a tradeoff between dataset size, diversity, and evolutionary relevance.
       #image("figs/timescale_legend.svg", width: 100%)
       #image("figs/timescale.svg", width: 100%)
-      - For regulatory regions such as promoters and 3' UTR, training on mammals reaches good performance faster, but training on vertebrates or animals seems to eventually close the gap, at the cost of additional compute (worth to keep exploring).
+      - For regulatory regions (promoters, 3' UTR), mammals-trained models converge fast; vertebrates / animals eventually close the gap at extra compute cost.
       - In the more conserved CDS region, the value of larger evolution timescales is much more evident.
     ]
 
 
-    #alert-box(heading: "Summary")[
+    #alert-box(heading: "Summary and outlook")[
       - We explore data curation strategies along two separate axes: *functional regions* and *evolutionary timescales*.
+      - Our findings provide guidelines for developing *efficient gLMs with robust performance across the genome*.
       - As next steps, we are exploring how data curation recipes interact with varying *model scale*. We are also interested in transfer learning applications such as *gene expression prediction*.
-      - This work is part of the MarinDNA project. Inspired by Marin, we do *open development*: not only we make public code and data, but also the research process itself. All our experiments are preregistered and publicly available from day 1.
+      - Inspired by the #link("https://github.com/marin-community/marin")[Marin] project, we go beyond public code/model/data: *the research process itself is open*, with all experiments preregistered and publicly available from day 1.
     ]
 
   ]
