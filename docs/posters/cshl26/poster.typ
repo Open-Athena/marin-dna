@@ -268,7 +268,6 @@
         - Focus on individual functional elements (e.g. exons, enhancers), and iterate faster.
       - *Model size: $tilde$1B* (currently exploring scaling).
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
-      - Training timescale: *animals* for promoter / CDS specialists and the mixture models; *mammals* for enhancer specialist.
       - Human VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
 
