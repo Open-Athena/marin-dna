@@ -322,7 +322,7 @@ def plot_timescale(out_path: Path) -> None:
     # No in-plot legend — the timescale_legend.svg schematic above the
     # plot is the canonical colour-key for all panels (clade colours
     # mirror the bars there).
-    fig.subplots_adjust(bottom=0.14, top=0.82, left=0.06, right=0.98, wspace=0.25)
+    fig.subplots_adjust(bottom=0.14, top=0.86, left=0.06, right=0.98, wspace=0.25)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path)
@@ -631,16 +631,13 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
                 else:
                     generalist_handles.append(bar)
 
-        # Per-bar value labels above the SE bar. Font kept small (15pt)
-        # so adjacent annotations don't overlap when neighbouring bars
-        # are similar height (e.g. Promoter 0.10 and CDS 0.09 in the
-        # Enhancer panel — short bars in adjacent x positions whose
-        # value labels would otherwise crash horizontally).
+        # Per-bar value labels above the SE bar. Sized to read at 1 m
+        # while staying subordinate to the axis ticks (POSTER_TICK_FS=26).
         for x, h, e in zip(xs, heights, errs):
             ax.text(
                 x, h + e + 0.012,
                 f"{h:.2f}",
-                ha="center", va="bottom", fontsize=15,
+                ha="center", va="bottom", fontsize=22,
                 color=OA_TEXT,
             )
 
@@ -680,7 +677,7 @@ def plot_specialist_grouped_bars(out_path: Path) -> None:
         handletextpad=0.3,
     )
     label_x = 0.06   # left edge of the group label
-    legend_x = 0.32  # left edge of the legend, just past the longest label
+    legend_x = 0.26  # left edge of the legend, just past the longest label
     # Specialists / Generalists row positions in figure coords.
     # Gap ≈ 0.6in on the 8in figure.
     y_spec, y_gen = 0.30, 0.22
@@ -970,6 +967,7 @@ def plot_r3(out_path: Path) -> None:
         handletextpad=0.4,
         columnspacing=2.0,
         labelspacing=0.6,
+        borderpad=0.0,         # handles flush at figure top, no dead pad
     )
     # top=0.62 leaves room for the 2-row legend above the panels.
     # left=0.09 protects the AUPRC ylabel + ticks from being clipped.
