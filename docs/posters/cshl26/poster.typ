@@ -234,7 +234,7 @@
 
     #alert-box(heading: "Abstract")[
       - *Pretraining data composition* is widely recognized as a key driver of LLM performance, but its role in *genomic language models* (gLMs) has not been systematically studied.
-      - We investigate gLM data curation along two axes: *functional regions* (CDS, promoters) and *evolutionary timescales* (humans → animals).
+      - We investigate gLM data curation along two axes: *functional regions* (e.g. CDS, promoters) and *evolutionary timescales* (humans → animals).
     ]
 
 
@@ -260,36 +260,34 @@
       ]
     ]
 
-    #v(0.25in)
-
     #column-box(heading: "Methods")[
       - Standard architecture and training objective: *Qwen3 autoregressive Transformer*.
         - Reuse LLM infrastructure and modeling science; focus on data.
+      - *Alignment-free*: applicable to any species without whole-genome alignments.
       - *Context size: 256 bp*.
-        - Focus on individual functional elements (e.g. exons, enhancers), and iterate faster.
+        - Focus on individual functional elements (e.g. exons, enhancers) and iterate faster.
       - *Model size: $tilde$1B* (currently exploring scaling).
       - Data sources: *RefSeq annotation* for genic regions, *ENCODE SCREEN* + sequence alignment for enhancers.
       - Human VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
 
-    #v(0.25in)
-
-    #column-box(heading: [How to do one region well])[
-      - The genome is very heterogeneous; coding sequences (CDS) and regulatory regions have a different grammar.
-      - We first trained specialist models, each on a single region of the genome (default: animals for CDS/promoters, mammals for enhancers).
+    #column-box(heading: [One region at a time])[
+      - The genome is very heterogeneous; coding sequences (CDS) and regulatory regions have different grammars.
+      - We first trained specialist models, each on a single region of the genome (initial timescale: animals for CDS/promoters, mammals for enhancers).
       #image("figs/region_legend.svg", width: 100%)
       #image("figs/specialist_bars.svg", width: 100%)
       - Each specialist achieves good performance in VEP tasks on its trained region.
-      - Specialists often outperform Evo 2 (a much larger model), but not GPN-Star. Alignment-free trades some VEP performance for broad applicability (no whole-genome alignment required).
+      - Specialists often outperform Evo 2 (a much larger model), but not the alignment-based GPN-Star.
     ]
 
     #colbreak()
 
     // ═════════════════ COLUMN 2: R2 + Timescales + Summary ════════════
 
-    #column-box(heading: [How to mix regions])[
-      - How can we build a generalist model? Train on the different regions concatenated?
-      - We evaluated this standard approach (proportional mixing) together with balanced sampling (uniform mixing).
+    #column-box(heading: [How to mix regions?])[
+      - How can we build a generalist model? Train on the union of the different regions?
+      - We evaluated this common approach (proportional mixing) against balanced sampling (uniform mixing).
+      #v(-0.4in)
       #image("figs/r3.svg", width: 100%)
       - Proportional mixing shows poor performance on the minority region (promoters).
       - Uniform mixing allows good progress across both promoter and missense variants.
@@ -300,15 +298,16 @@
       - If we have a target species of interest (e.g. human), which species should we train on?
       - There is a tradeoff between dataset size, diversity, and evolutionary relevance.
       #image("figs/timescale_legend.svg", width: 100%)
+      #v(-0.4in)
       #image("figs/timescale.svg", width: 100%)
-      - For regulatory regions (promoters, 3' UTR), mammals converges fast; vertebrates / animals climb more slowly but may surpass with more compute.
+      - For regulatory regions (promoters, 3' UTR), the mammals model converges fast; vertebrates / animals climb more slowly but may surpass it with more compute.
       - In the more conserved CDS region, the value of larger evolutionary timescales is much more evident.
     ]
 
 
     #alert-box(heading: "Summary and outlook")[
-      - We explore data curation strategies along two separate axes: *functional regions* and *evolutionary timescales*.
-      - Our findings provide insights for developing *efficient gLMs with robust performance across the genome*.
+      - We explore data curation strategies along two separate axes: functional regions and evolutionary timescales.
+      - *Balanced sampling across regions shows robust improvements*. The *optimal evolutionary timescale is less clear* and warrants further investigation.
       - As next steps, we are exploring how data curation recipes interact with varying *model scale*. We are also interested in transfer learning applications such as *gene expression prediction*.
       - Inspired by the #link("https://github.com/marin-community/marin")[Marin] project, we go beyond public code/model/data: *the research process itself is open*, with all experiments preregistered and publicly available from day 1.
     ]
