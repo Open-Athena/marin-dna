@@ -260,7 +260,7 @@
       ]
     ]
 
-    #v(0.5in)
+    #v(0.25in)
 
     #column-box(heading: "Methods")[
       - Standard architecture and training objective: *Qwen3 autoregressive Transformer*.
@@ -272,6 +272,7 @@
       - Human VEP evaluation: classify *Mendelian pathogenic vs. gnomAD high-frequency* variants (similar to TraitGym).
     ]
 
+    #v(0.25in)
 
     #column-box(heading: [How to do one region well])[
       - The genome is very heterogeneous; coding sequences (CDS) and regulatory regions have a different grammar.
