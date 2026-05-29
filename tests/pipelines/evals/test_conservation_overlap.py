@@ -11,9 +11,11 @@ import polars as pl
 import pyBigWig
 import pytest
 
+from marin_dna.pipelines.conservation.scoring import score_windows
 from marin_dna.pipelines.evals.conservation_overlap import (
     add_base_conservation,
     add_window_overlap,
+    centered_windows,
     overlap_summary,
 )
 
@@ -128,3 +130,64 @@ def test_overlap_summary_fractions() -> None:
     assert (
         pos_b["n"] == 2 and pos_b["n_in"] == 1 and math.isclose(pos_b["frac_in"], 0.5)
     )
+
+
+# --- centered_windows ---
+
+
+def test_centered_windows_odd_centers_on_variant_base() -> None:
+    """Odd window: the 0-based variant base sits at offset window_size // 2."""
+    # pos 1000 (1-based) -> base 999; half = 127 -> [872, 1127), size 255.
+    variants = pl.DataFrame({"chrom": ["1"], "pos": [1000]})
+    out = centered_windows(variants, 255)
+    row = out.row(0, named=True)
+    assert row["start"] == 872 and row["end"] == 1127
+    assert row["end"] - row["start"] == 255
+    base = row["pos"] - 1
+    assert base - row["start"] == 255 // 2  # variant base is the center
+
+
+def test_centered_windows_clips_lower_bound() -> None:
+    """A variant near the chromosome start clips ``start`` at 0."""
+    # pos 1 -> base 0; half 127 -> left edge -127 -> clipped to 0.
+    out = centered_windows(pl.DataFrame({"chrom": ["1"], "pos": [1]}), 255)
+    row = out.row(0, named=True)
+    assert row["start"] == 0 and row["end"] == 255
+
+
+def test_centered_windows_clips_upper_bound() -> None:
+    """With chrom_sizes, ``end`` is capped at the chromosome length."""
+    out = centered_windows(
+        pl.DataFrame({"chrom": ["1"], "pos": [995]}), 255, chrom_sizes={"1": 1000}
+    )
+    row = out.row(0, named=True)
+    # base 994; [867, 1122) -> end capped to 1000.
+    assert row["start"] == 867 and row["end"] == 1000
+
+
+def test_centered_windows_missing_chrom_size_raises() -> None:
+    variants = pl.DataFrame({"chrom": ["2"], "pos": [100]})
+    with pytest.raises(AssertionError):
+        centered_windows(variants, 255, chrom_sizes={"1": 1000})
+
+
+def test_centered_windows_preserves_order() -> None:
+    variants = pl.DataFrame({"chrom": ["1", "1", "1"], "pos": [500, 100, 900]})
+    out = centered_windows(variants, 51)
+    assert out["pos"].to_list() == [500, 100, 900]
+
+
+def test_centered_windows_feeds_score_windows(synthetic_bigwig) -> None:
+    """End-to-end: center a window on a variant, then score proportion_conserved.
+
+    Synthetic chr1: [0,30)=2.0, [30,60)=NaN, [60,100)=-1.0.
+    - pos 5 (base 4), window 10 -> [0,10) all 2.0 -> proportion 1.0 at thr 1.0.
+    - pos 65 (base 64), window 10 -> [59,69): base 59 NaN + 9 bases -1.0
+      -> 0 conserved -> proportion 0.0.
+    """
+    variants = pl.DataFrame({"chrom": ["1", "1"], "pos": [5, 65]})
+    win = centered_windows(variants, 10, chrom_sizes={"1": 100})
+    scored = score_windows(synthetic_bigwig, win, threshold=1.0)
+    props = scored["proportion_conserved"].to_list()
+    assert math.isclose(props[0], 1.0, abs_tol=1e-6)
+    assert math.isclose(props[1], 0.0, abs_tol=1e-6)

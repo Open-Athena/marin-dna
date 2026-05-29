@@ -144,3 +144,62 @@ def overlap_summary(
         )
         .sort(group)
     )
+
+
+def centered_windows(
+    variants: pl.DataFrame,
+    window_size: int,
+    *,
+    chrom_sizes: dict[str, int] | None = None,
+    start_col: str = "start",
+    end_col: str = "end",
+) -> pl.DataFrame:
+    """Build a ``window_size`` bp window centered on each variant base.
+
+    The variant base is the 0-based ``[pos - 1, pos)`` interval (``pos`` is
+    1-based). The window is ``[base - window_size // 2, base - window_size //
+    2 + window_size)``; for odd ``window_size`` the variant base sits exactly
+    at the center (offset ``window_size // 2``), matching the eval-harness
+    ``var_pos = window_size // 2`` convention and the zoonomia 255 bp anchor
+    size.
+
+    Windows are clipped to valid chromosome bounds: ``start`` never goes
+    below 0, and ``end`` is capped at the chromosome length when
+    ``chrom_sizes`` is supplied (variants within ``window_size // 2`` bp of a
+    telomere therefore get a slightly shorter window — ``proportion_conserved``
+    stays well-defined since :func:`score_windows` divides by the actual
+    ``end - start``). Row order is preserved.
+
+    Args:
+        variants: frame with ``chrom`` (str) and ``pos`` (1-based int).
+        window_size: window length in bp (e.g. 255).
+        chrom_sizes: optional ``{chrom: length}`` (keyed by the *variant*
+            chrom names) used to cap ``end`` at the chromosome boundary.
+        start_col / end_col: names of the 0-based half-open output columns.
+
+    Returns:
+        ``variants`` with added 0-based half-open ``start_col`` / ``end_col``
+        columns, ready to hand to ``score_windows``.
+    """
+    assert window_size > 0, f"window_size must be positive, got {window_size}"
+    assert {"chrom", "pos"}.issubset(variants.columns), (
+        f"variants needs chrom/pos; got {variants.columns}"
+    )
+    half = window_size // 2
+    out = variants.with_columns(
+        # 0-based base = pos - 1; left edge = base - half; clip at 0.
+        pl.max_horizontal(pl.col("pos") - 1 - half, pl.lit(0)).alias(start_col),
+    ).with_columns(
+        (pl.col(start_col) + window_size).alias(end_col),
+    )
+    if chrom_sizes is not None:
+        missing = set(out["chrom"].unique().to_list()) - set(chrom_sizes)
+        assert not missing, f"chroms absent from chrom_sizes: {sorted(missing)}"
+        out = out.with_columns(
+            pl.min_horizontal(
+                pl.col(end_col),
+                pl.col("chrom").replace_strict(chrom_sizes, return_dtype=pl.Int64),
+            ).alias(end_col),
+        )
+    assert (out[end_col] > out[start_col]).all(), "empty/inverted window produced"
+    return out
