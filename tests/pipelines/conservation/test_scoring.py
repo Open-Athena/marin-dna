@@ -7,7 +7,7 @@ import polars as pl
 import pyBigWig
 import pytest
 
-from marin_dna.pipelines.conservation.scoring import score_windows
+from marin_dna.pipelines.conservation.scoring import score_positions, score_windows
 
 
 @pytest.fixture
@@ -128,3 +128,44 @@ def test_score_windows_proportion_consistent_with_count(synthetic_bigwig) -> Non
         assert math.isclose(
             row["proportion_conserved"], row["conserved_bases"] / size, abs_tol=1e-5
         )
+
+
+# --- score_positions (per-base lookups) ---
+
+
+def test_score_positions_values_and_flags(synthetic_bigwig) -> None:
+    """Per-base value + conserved flag across the three synthetic regions."""
+    # 0-based positions: 5 -> value 2.0, 45 -> NaN gap, 70 -> value -1.0
+    values, conserved = score_positions(
+        synthetic_bigwig, ["1", "1", "1"], [5, 45, 70], threshold=1.0
+    )
+    assert math.isclose(values[0], 2.0, abs_tol=1e-6)
+    assert math.isnan(values[1])
+    assert math.isclose(values[2], -1.0, abs_tol=1e-6)
+    assert conserved.tolist() == [True, False, False]
+
+
+def test_score_positions_nan_is_not_conserved(synthetic_bigwig) -> None:
+    """A NaN gap position is non-conserved for any threshold (incl. <= 0)."""
+    _, conserved = score_positions(synthetic_bigwig, ["1"], [45], threshold=-100.0)
+    assert conserved.tolist() == [False]
+
+
+def test_score_positions_threshold_inclusive(synthetic_bigwig) -> None:
+    """A value exactly at threshold is conserved (>= semantics)."""
+    _, conserved = score_positions(synthetic_bigwig, ["1"], [5], threshold=2.0)
+    assert conserved.tolist() == [True]
+
+
+def test_score_positions_chrom_prefix(synthetic_bigwig) -> None:
+    """Bare ``"1"`` and ``"chr1"`` resolve to the same bigWig chrom."""
+    v_bare, _ = score_positions(synthetic_bigwig, ["1"], [5], threshold=1.0)
+    v_chr, _ = score_positions(synthetic_bigwig, ["chr1"], [5], threshold=1.0)
+    assert math.isclose(v_bare[0], v_chr[0], abs_tol=1e-6)
+
+
+def test_score_positions_unknown_chrom(synthetic_bigwig) -> None:
+    """A chrom absent from the track yields NaN / non-conserved, not a crash."""
+    values, conserved = score_positions(synthetic_bigwig, ["99"], [5], threshold=1.0)
+    assert math.isnan(values[0])
+    assert conserved.tolist() == [False]

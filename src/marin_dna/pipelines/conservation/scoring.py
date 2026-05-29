@@ -4,6 +4,7 @@ Performance: pyBigWig handles ~10K windows/sec/core on 255 bp windows;
 parallelise across chroms in the calling pipeline.
 """
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -102,3 +103,62 @@ def score_windows(
             pl.Series("n_valid_bases", n_valid_bases, dtype=pl.Int32),
         ]
     )
+
+
+def score_positions(
+    bw_path: str | Path,
+    chroms: Sequence[str],
+    positions: Sequence[int],
+    threshold: float,
+    *,
+    chrom_prefix: str = "chr",
+) -> tuple[np.ndarray, np.ndarray]:
+    """Look up the per-base bigWig value at each single 0-based position.
+
+    The per-position counterpart of :func:`score_windows`: instead of
+    aggregating over a window it returns the raw value (and a conserved
+    flag) at each individual base.
+
+    Args:
+        bw_path: path to the phyloP bigWig (UCSC ``chr1``-style chrom names).
+        chroms: per-position chromosome labels; bare Ensembl names (``"1"``)
+            are auto-prefixed with ``chrom_prefix`` for the bigWig lookup.
+        positions: 0-based positions, parallel to ``chroms``. The value
+            returned is the bigWig signal on the half-open base
+            ``[pos, pos + 1)``.
+        threshold: phyloP value at/above which a base is "conserved".
+        chrom_prefix: prefix to add to bare chrom names (default ``"chr"``).
+
+    Returns:
+        ``(values, conserved)`` numpy arrays, each aligned to the input
+        order:
+          - ``values`` (float64): the bigWig signal at each position; **NaN**
+            where the bigWig has no signal (alignment gap) or the chrom is
+            absent from the track.
+          - ``conserved`` (bool): ``value >= threshold``. NaN compares as
+            ``False`` in NumPy regardless of threshold, so unaligned /
+            missing positions are non-conserved — the same NaN-as-zero
+            convention :func:`score_windows` uses.
+    """
+    assert len(chroms) == len(positions), (
+        f"chroms/positions length mismatch: {len(chroms)} vs {len(positions)}"
+    )
+    n = len(chroms)
+    values = np.full(n, np.nan, dtype=np.float64)
+
+    bw = pyBigWig.open(str(bw_path))
+    try:
+        bw_chroms = set(bw.chroms())
+        for i, (chrom, pos) in enumerate(zip(chroms, positions)):
+            pos = int(pos)
+            assert pos >= 0, f"negative position at index {i}: {chrom}:{pos}"
+            bw_chrom = _bw_chrom(chrom, chrom_prefix)
+            if bw_chrom not in bw_chroms:
+                continue
+            v = bw.values(bw_chrom, pos, pos + 1, numpy=True)
+            values[i] = v[0]
+    finally:
+        bw.close()
+
+    conserved = values >= threshold  # NaN >= threshold is False
+    return values, conserved
