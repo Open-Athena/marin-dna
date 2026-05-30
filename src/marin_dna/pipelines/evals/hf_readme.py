@@ -505,7 +505,9 @@ its natural ratio (≈1:{round(neg / pos) if pos else "?"} positive:negative).
 | Negatives | Control variants in peaks, no significant association (`label = False`) |
 | Assay | {m["assay"]} |
 | Source study | {m["study"]} |
-| Source data | DART-Eval, Synapse [`{m["synapse"]}`](https://www.synapse.org/Synapse:{m["synapse"]}) |
+| Source data | DART-Eval, Synapse [`{m["synapse"]}`](https://www.synapse.org/Synapse:{
+        m["synapse"]
+    }) |
 | Genome build | {m["build"]} |
 | Variant type | SNVs only |
 | Coordinates | 1-based (`pos` is 1-based; `ref`/`alt` are single bases) |
@@ -517,8 +519,10 @@ Chromosome-parity split (same convention as the other `evals_*` datasets).
 
 | Split | Variants | Positives | Negatives | Chromosomes |
 |---|---:|---:|---:|---|
-| `train` | {c["train_total"]:,} | {c["train_pos"]:,} | {c["train_neg"]:,} | odd: 1, 3, …, X |
-| `test` | {c["test_total"]:,} | {c["test_pos"]:,} | {c["test_neg"]:,} | even: 2, 4, …, Y |
+| `train` | {c["train_total"]:,} | {c["train_pos"]:,} | {
+        c["train_neg"]:,} | odd: 1, 3, …, X |
+| `test` | {c["test_total"]:,} | {c["test_pos"]:,} | {
+        c["test_neg"]:,} | even: 2, 4, …, Y |
 | **total** | **{total:,}** | **{pos:,}** | **{neg:,}** | |
 
 ## Columns
@@ -527,8 +531,14 @@ Chromosome-parity split (same convention as the other `evals_*` datasets).
 |---|---|---|
 | `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, GRCh38). `ref`/`alt` oriented against the reference. |
 | `label` | bool | `True` for a significant {m["qtl"]}, `False` for a control variant |
-| `effect_size` | float | Signed study effect size (`{"beta" if dataset == "caqtl" else "obs.estimate"}`), **oriented to the `alt` allele** — positive ⇒ `alt` increases accessibility; sign-flipped for variants whose ref/alt were swapped to match the reference{", and present for positives only" if dataset == "dsqtl" else ""}. |
-{pval_se_rows}| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
+| `effect_size` | float | Signed study effect size (`{
+        "beta" if dataset == "caqtl" else "obs.estimate"
+    }`), **oriented to the `alt` allele** — positive ⇒ `alt` increases accessibility; sign-flipped for variants whose ref/alt were swapped to match the reference{
+        ", and present for positives only" if dataset == "dsqtl" else ""
+    }. |
+{
+        pval_se_rows
+    }| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
 | `distance_tss_pc`, `distance_tss_nc`, `distance_tss` | int | Distance to nearest protein-coding / non-protein-coding TSS, and the minimum |
 | `tss_closest_pc_gene_id`, `tss_closest_nc_gene_id`, `tss_closest_gene_id` | str | Ensembl gene IDs at those distances |
 | `distance_exon_pc`, `distance_exon_nc`, `distance_exon` | int | Same shape, for nearest exon |
