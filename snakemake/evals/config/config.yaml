@@ -22,6 +22,8 @@ datasets:
   - mendelian_traits
   - complex_traits
   - mendelian_traits_harness_255
+  - caqtl
+  - dsqtl
 
 # ----- Shared trait-pipeline parameters -----
 annotation_url: http://ftp.ensembl.org/pub/release-107/gtf/homo_sapiens/Homo_sapiens.GRCh38.107.chr.gtf.gz
@@ -103,3 +105,11 @@ complex_traits:
   ldscore_s3: s3://pan-ukb-us-east-1/ld_release/UKBB.EUR.ldscore.ht
   pip_pos_threshold: 0.9
   pip_neg_threshold: 0.01
+
+# ----- DART-Eval caQTL / dsQTL (Task 5 variant-effect-prediction) -----
+# Synapse FileEntity IDs (downloaded over HTTP with a Synapse PAT; export
+# SYNAPSE_AUTH_TOKEN). caqtl = Afr.CaQTLS.tsv (DeGorter et al. 2023, GRCh38);
+# dsqtl = yoruban.dsqtls.benchmarking.tsv (Degner et al. 2012, hg19 -> lifted).
+dart_eval:
+  caqtl_synapse_id: syn60756043
+  dsqtl_synapse_id: syn60756039

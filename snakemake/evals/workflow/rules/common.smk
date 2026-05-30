@@ -141,8 +141,9 @@ rule materialize_eval_harness_dataset:
 
 
 def _hf_qc_input(wildcards):
-    """QC parquet input — only matched datasets have one (not the harness derivatives)."""
-    if "_harness_" in wildcards.dataset:
+    """QC parquet input — only the matched datasets have one. Harness
+    derivatives and the unmatched DART-Eval datasets (caqtl, dsqtl) don't."""
+    if wildcards.dataset not in QC_CONTINUOUS_FEATURES:
         return []
     return f"results/qc/{wildcards.dataset}.parquet"
 

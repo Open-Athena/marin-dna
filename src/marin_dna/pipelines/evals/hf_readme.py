@@ -440,6 +440,115 @@ Same terms as the raw companion dataset.
 """
 
 
+_DART_EVAL_META = {
+    "caqtl": {
+        "assay": "ATAC-seq chromatin accessibility",
+        "qtl": "caQTL",
+        "study": "African caQTLs, DeGorter *et al.* 2023 (bioRxiv)",
+        "synapse": "syn60756043",
+        "build": "GRCh38 (native)",
+        "extra_tags": ["variant-effect-prediction", "chromatin-accessibility", "caqtl"],
+    },
+    "dsqtl": {
+        "assay": "DNase-seq chromatin accessibility",
+        "qtl": "dsQTL",
+        "study": "Yoruban dsQTLs, Degner *et al.* *Nature* 2012",
+        "synapse": "syn60756039",
+        "build": "GRCh38 (lifted from hg19)",
+        "extra_tags": ["variant-effect-prediction", "chromatin-accessibility", "dsqtl"],
+    },
+}
+
+
+def render_dart_eval(
+    dataset: str,
+    sha: str,
+    train_path: str | Path,
+    test_path: str | Path,
+) -> str:
+    """Dataset card for the DART-Eval caQTL/dsQTL datasets.
+
+    Unlike the matched datasets these are **not** matched or subsampled — all
+    positives and negatives are kept at their natural ratio — so there is no
+    retention or AUPRC-leak diagnostic (no `qc_path`).
+    """
+    m = _DART_EVAL_META[dataset]
+    c = _split_counts(train_path, test_path)
+    total = c["train_total"] + c["test_total"]
+    pos = c["train_pos"] + c["test_pos"]
+    neg = c["train_neg"] + c["test_neg"]
+    return f"""{_frontmatter(m["extra_tags"])}
+
+# evals_{dataset}
+
+Variant-effect-prediction benchmark of **{m["qtl"]}s** ({m["assay"]}):
+statistically significant chromatin-accessibility QTLs vs control variants,
+both within accessible peaks. Sourced from
+[DART-Eval](https://github.com/kundajelab/DART-Eval) Task 5 and brought into
+the `marin-dna` evals pipeline with chromosome-based **train/test splits** for
+model development.
+
+**No matching and no subsampling** — every positive and negative is kept at
+its natural ratio (≈1:{round(neg / pos) if pos else "?"} positive:negative).
+
+## Description
+
+| | |
+|---|---|
+| Positives | Significant {m["qtl"]}s within accessible peaks (`label = True`) |
+| Negatives | Control variants in peaks, no significant association (`label = False`) |
+| Assay | {m["assay"]} |
+| Source study | {m["study"]} |
+| Source data | DART-Eval, Synapse [`{m["synapse"]}`](https://www.synapse.org/Synapse:{m["synapse"]}) |
+| Genome build | {m["build"]} |
+| Variant type | SNVs only |
+| Coordinates | 1-based (`pos` is 1-based; `ref`/`alt` are single bases) |
+| Matching | none (natural class ratio) |
+
+## Splits
+
+Chromosome-parity split (same convention as the other `evals_*` datasets).
+
+| Split | Variants | Positives | Negatives | Chromosomes |
+|---|---:|---:|---:|---|
+| `train` | {c["train_total"]:,} | {c["train_pos"]:,} | {c["train_neg"]:,} | odd: 1, 3, …, X |
+| `test` | {c["test_total"]:,} | {c["test_pos"]:,} | {c["test_neg"]:,} | even: 2, 4, …, Y |
+| **total** | **{total:,}** | **{pos:,}** | **{neg:,}** | |
+
+## Columns
+
+| Column | Type | Description |
+|---|---|---|
+| `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, GRCh38). `ref`/`alt` oriented against the reference. |
+| `label` | bool | `True` for a significant {m["qtl"]}, `False` for a control variant |
+| `effect_size` | float | Study effect size ({"Beta" if dataset == "caqtl" else "obs.estimate"}); reference metadata |
+| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
+| `distance_tss_pc`, `distance_tss_nc`, `distance_tss` | int | Distance to nearest protein-coding / non-protein-coding TSS, and the minimum |
+| `tss_closest_pc_gene_id`, `tss_closest_nc_gene_id`, `tss_closest_gene_id` | str | Ensembl gene IDs at those distances |
+| `distance_exon_pc`, `distance_exon_nc`, `distance_exon` | int | Same shape, for nearest exon |
+| `exon_closest_pc_gene_id`, `exon_closest_nc_gene_id`, `exon_closest_gene_id` | str | Same shape |
+
+The consequence/distance columns are **reference annotations only** — they are
+not used to match or filter the variant set.
+
+## Provenance
+
+Built by the [`marin-dna`]({REPO_ROOT_URL}) eval pipeline at commit
+[`{sha[:7]}`]({REPO_ROOT_URL}/tree/{sha}/snakemake/evals).
+
+- Curation pipeline: {_pipeline_link(sha)}
+- Rules: {_file_link(sha, "snakemake/evals/workflow/rules/dart_eval.smk")}
+- Parsing + annotation: {_file_link(sha, "src/marin_dna/pipelines/evals/dart_eval.py")}
+
+## Citation
+
+If you use this benchmark, please cite the upstream sources:
+
+- DART-Eval — Patel *et al.* 2024, [arXiv 2412.05430](https://arxiv.org/abs/2412.05430) (NeurIPS D&B 2024)
+- {m["qtl"]} study — {m["study"]}
+"""
+
+
 def render(
     dataset: str,
     sha: str,
@@ -456,4 +565,6 @@ def render(
     if dataset.startswith("mendelian_traits_harness_"):
         window = int(dataset.rsplit("_", 1)[1])
         return render_harness(sha, train_path, test_path, window_size=window)
+    if dataset in _DART_EVAL_META:
+        return render_dart_eval(dataset, sha, train_path, test_path)
     raise ValueError(f"no README template for dataset {dataset!r}")
