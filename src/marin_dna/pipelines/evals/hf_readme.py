@@ -531,11 +531,12 @@ Chromosome-parity split (same convention as the other `evals_*` datasets).
 |---|---|---|
 | `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, GRCh38). `ref`/`alt` oriented against the reference. |
 | `label` | bool | `True` for a significant {m["qtl"]}, `False` for a control variant |
-| `effect_size` | float | Signed study effect size (`{
+| `effect` | float | **Signed** study effect (`{
         "beta" if dataset == "caqtl" else "obs.estimate"
     }`), **oriented to the `alt` allele** — positive ⇒ `alt` increases accessibility; sign-flipped for variants whose ref/alt were swapped to match the reference{
         ", and present for positives only" if dataset == "dsqtl" else ""
-    }. |
+    }. This is the value the Pearson correlation uses. |
+| `effect_size` | float | Unsigned effect magnitude (absolute value of `effect`). |
 {
         pval_se_rows
     }| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
@@ -558,7 +559,7 @@ different variant set**:
 - **Classification — AUROC / AUPRC over _all_ variants:** significant
   {m["qtl"]}s (`label = True`) vs control variants (`label = False`).
 - **Pearson correlation over the _positive_ variants only** (`label = True`):
-  between `effect_size` (signed, oriented to `alt`) and the model's signed
+  between `effect` (signed, oriented to `alt`) and the model's signed
   alt-vs-ref score. DART-Eval Table 6: *"for the positive variants, we computed
   the correlation between measured and predicted allelic effects."* Controls
   are not used in the correlation{

@@ -40,18 +40,18 @@ Unlike the two matched datasets above they are **not matched and not
 subsampled**: every significant QTL (positive) and control variant (negative)
 within accessible peaks is kept at its natural ratio (≈1:11 for caQTL, ≈1:48
 for dsQTL). The `consequence*` and `distance_*` columns are added as
-**reference annotations only** — they are not used to filter or match. The
-signed study `effect_size` is oriented to the `alt` allele (positive ⇒ alt
-increases accessibility, matching an alt-vs-ref / LLR model score; sign-flipped
-where ref/alt were swapped to the reference); caQTL additionally carries the
-raw `pval` and `se` for the record. For dsQTL the `effect_size` is present for
-the significant variants only (controls have no measured effect).
+**reference annotations only** — they are not used to filter or match. The signed study `effect` is oriented to the
+`alt` allele (positive ⇒ alt increases accessibility, matching an alt-vs-ref /
+LLR model score; sign-flipped where ref/alt were swapped to the reference), and
+`effect_size` is its unsigned magnitude (`|effect|`); caQTL additionally carries
+the raw `pval` and `se` for the record. For dsQTL `effect`/`effect_size` are
+present for the significant variants only (controls have no measured effect).
 
 Evaluation follows DART-Eval Task 5 / ARSENAL, with the two metrics computed
 over **different variant sets**: a binary **AUROC/AUPRC over all variants**
 (significant QTLs vs controls, via `label`), and a **Pearson correlation over
 the positive variants only** (a model's signed alt-vs-ref score vs the signed
-`effect_size`). The dataset cards document this.
+`effect`). The dataset cards document this.
 
 - **caqtl** — African caQTLs (DeGorter et al. 2023), Synapse `syn60756043`
   (`Afr.CaQTLS.tsv`). Native **GRCh38**.

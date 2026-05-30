@@ -41,8 +41,11 @@ class TestParseCaqtl:
         assert out.height == 2
         assert out["chrom"].to_list() == ["1", "2"]  # "chr" stripped
         assert out["label"].to_list() == [True, False]  # boolean label preserved
-        assert out["effect_size"].to_list() == [0.5, -0.2]
-        assert out.columns[:6] == ["chrom", "pos", "ref", "alt", "label", "effect_size"]
+        assert out["effect"].to_list() == [
+            0.5,
+            -0.2,
+        ]  # signed; effect_size=abs added later
+        assert out.columns[:6] == ["chrom", "pos", "ref", "alt", "label", "effect"]
 
     def test_pval_se_carried(self) -> None:
         out = parse_caqtl(self._raw())
@@ -83,9 +86,9 @@ class TestParseCaqtl:
         with pytest.raises(AssertionError, match="missing expected columns"):
             parse_caqtl(self._raw().drop("label"))
 
-    def test_missing_effect_size_is_null(self) -> None:
+    def test_missing_effect_is_null(self) -> None:
         out = parse_caqtl(self._raw().drop("beta"))
-        assert out["effect_size"].null_count() == out.height
+        assert out["effect"].null_count() == out.height
 
     def test_lowercase_alleles_uppercased(self) -> None:
         df = self._raw().with_columns(
@@ -119,7 +122,7 @@ class TestParseDsqtl:
         assert out.height == 2
         assert out["chrom"].to_list() == ["1", "2"]
         assert out["label"].to_list() == [True, False]  # 1->True, -1->False
-        assert out["effect_size"].to_list() == [0.3, -0.1]
+        assert out["effect"].to_list() == [0.3, -0.1]
 
     def test_negative_one_is_false(self) -> None:
         out = parse_dsqtl(self._raw())
@@ -201,7 +204,7 @@ def _variants() -> pl.DataFrame:
             "ref": ["A", "C", "G"],
             "alt": ["T", "G", "A"],
             "label": [True, False, True],
-            "effect_size": [0.5, -0.2, 0.1],
+            "effect": [0.5, -0.2, 0.1],
         }
     )
 
@@ -255,13 +258,15 @@ class TestAnnotateVariants:
             "distance_tss_pc",
             "distance_tss",
             "label",
+            "effect",
             "effect_size",
         ):
             assert c in out.columns
         assert out["label"].dtype == pl.Boolean
         assert out["consequence"].null_count() == 0
-        # No swap (genome returns the ref base for each) -> effect_size unchanged.
-        assert out.sort("pos")["effect_size"].to_list() == [0.5, -0.2, 0.1]
+        # No swap (genome returns the ref base) -> effect unchanged; effect_size=|effect|.
+        assert out.sort("pos")["effect"].to_list() == [0.5, -0.2, 0.1]
+        assert out.sort("pos")["effect_size"].to_list() == [0.5, 0.2, 0.1]
 
     def test_null_consequence_raises(self, tmp_path, intervals) -> None:
         V = _variants()
@@ -280,7 +285,7 @@ class TestAnnotateVariants:
                 "ref": ["G"],
                 "alt": ["C"],
                 "label": [True],
-                "effect_size": [1.0],
+                "effect": [1.0],
             }
         )
         genome = FakeGenome({("1", 1700): "C"})
@@ -312,9 +317,10 @@ class TestAnnotateVariants:
         )
         assert out["ref"][0] == "C"
         assert out["alt"][0] == "G"
-        # alt changed C->G (swapped) -> effect_size flips sign (+1.0 -> -1.0) to
-        # stay signed relative to the final alt allele.
-        assert out["effect_size"][0] == -1.0
+        # alt changed C->G (swapped) -> effect flips sign (+1.0 -> -1.0) to stay
+        # signed relative to the final alt; effect_size = |effect| = 1.0.
+        assert out["effect"][0] == -1.0
+        assert out["effect_size"][0] == 1.0
 
     def test_low_retention_raises(self, tmp_path, intervals) -> None:
         # Genome base never matches either allele -> check_ref_alt drops all.

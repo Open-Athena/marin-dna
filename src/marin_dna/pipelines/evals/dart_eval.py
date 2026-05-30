@@ -38,9 +38,9 @@ from marin_dna.pipelines.evals.variants import (
 )
 
 # Standard lead columns produced by both datasets (coordinates + label, plus the
-# study effect size for reference). Downstream annotation appends consequence /
-# distance columns.
-STANDARD_COLS = COORDINATES + ["label", "effect_size"]
+# signed study effect and its magnitude). Downstream annotation appends
+# consequence / distance columns.
+STANDARD_COLS = COORDINATES + ["label", "effect", "effect_size"]
 
 # Expected raw-TSV columns (DART-Eval variant_tasks.py).
 CAQTL_REQUIRED = [
@@ -137,11 +137,12 @@ def _assemble(
     is the boolean positive/negative indicator built by the caller (the two
     datasets encode the label differently).
 
-    ``effect_size`` is the study effect, parsed as the effect of ``allele2``
+    ``effect`` is the signed study effect, parsed as the effect of ``allele2``
     (= ``alt`` here); ``annotate_variants`` flips its sign for variants whose
-    ref/alt get swapped so it stays signed relative to the final ``alt``.
-    ``extra_cols`` maps output name -> source column for dataset-specific
-    passthrough floats (e.g. caQTL ``pval``/``se``), cast to Float64."""
+    ref/alt get swapped so it stays signed relative to the final ``alt``, then
+    derives ``effect_size = abs(effect)`` (the unsigned magnitude). ``extra_cols``
+    maps output name -> source column for dataset-specific passthrough floats
+    (e.g. caQTL ``pval``/``se``), cast to Float64."""
     cols = [
         _strip_chr(pl.col(chrom_col)).alias("chrom"),
         pl.col(pos_col).cast(pl.Int64).alias("pos"),
@@ -149,7 +150,7 @@ def _assemble(
         pl.col(a2_col).cast(pl.Utf8).str.to_uppercase().alias("alt"),
         label_expr.alias("label"),
     ]
-    for out_name, src in {"effect_size": effect_col, **(extra_cols or {})}.items():
+    for out_name, src in {"effect": effect_col, **(extra_cols or {})}.items():
         if src in df.columns:
             cols.append(pl.col(src).cast(pl.Float64).alias(out_name))
         else:
@@ -246,7 +247,7 @@ def annotate_variants(
     reference. These are reported (printed) and guarded by a retention assert.
 
     Args:
-        V: parsed frame (``chrom, pos, ref, alt, label, effect_size``); ``pos``
+        V: parsed frame (``chrom, pos, ref, alt, label, effect``); ``pos``
             is 1-based.
         genome: reference for ``check_ref_alt`` (GRCh38).
         consequence_paths: per-chrom consequence parquet paths, parallel to
@@ -265,12 +266,12 @@ def annotate_variants(
     n_lift = V.height
     V = V.pipe(filter_chroms)
     n_chrom = V.height
-    # Record alt before check_ref_alt may swap ref<->alt. effect_size is parsed
-    # as the effect of the study allele we assigned to alt (allele2), so when a
-    # swap moves the effect allele to ref, flip the sign to keep effect_size
-    # signed relative to the FINAL alt (i.e. effect of alt vs ref — what an
-    # alt-vs-ref / LLR model score correlates against). Liftover RCs both
-    # alleles but preserves ref/alt roles, so only the swap flips the sign.
+    # Record alt before check_ref_alt may swap ref<->alt. `effect` is parsed as
+    # the effect of the study allele we assigned to alt (allele2), so when a
+    # swap moves the effect allele to ref, flip the sign to keep `effect` signed
+    # relative to the FINAL alt (i.e. effect of alt vs ref — what an alt-vs-ref /
+    # LLR model score correlates against). Liftover RCs both alleles but
+    # preserves ref/alt roles, so only the swap flips the sign.
     V = V.with_columns(pl.col("alt").alias("_pre_alt"))
     V = check_ref_alt(V, genome)
     n_ref = V.height
@@ -278,14 +279,16 @@ def annotate_variants(
     n_flipped = V.filter(swapped).height
     V = V.with_columns(
         pl.when(swapped)
-        .then(-pl.col("effect_size"))
-        .otherwise(pl.col("effect_size"))
-        .alias("effect_size")
+        .then(-pl.col("effect"))
+        .otherwise(pl.col("effect"))
+        .alias("effect")
     ).drop("_pre_alt")
+    # Magnitude alongside the signed effect (orientation-independent).
+    V = V.with_columns(pl.col("effect").abs().alias("effect_size"))
     print(
         f"[dart_eval annotate {name}] attrition: in={n_in} "
         f"after_lift={n_lift} after_chrom_filter={n_chrom} after_ref_alt={n_ref} "
-        f"effect_size_sign_flipped={n_flipped}"
+        f"effect_sign_flipped={n_flipped}"
     )
     # All drops above are build-correctness QC, not class balancing. A uniform
     # coordinate-base (0- vs 1-based) or genome-build error would make ref_alt
