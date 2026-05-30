@@ -477,6 +477,12 @@ def render_dart_eval(
     total = c["train_total"] + c["test_total"]
     pos = c["train_pos"] + c["test_pos"]
     neg = c["train_neg"] + c["test_neg"]
+    pval_se_rows = (
+        "| `pval` | float | caQTL association p-value (reference only) |\n"
+        "| `se` | float | Standard error of the effect size (reference only) |\n"
+        if dataset == "caqtl"
+        else ""
+    )
     return f"""{_frontmatter(m["extra_tags"])}
 
 # evals_{dataset}
@@ -521,8 +527,8 @@ Chromosome-parity split (same convention as the other `evals_*` datasets).
 |---|---|---|
 | `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, GRCh38). `ref`/`alt` oriented against the reference. |
 | `label` | bool | `True` for a significant {m["qtl"]}, `False` for a control variant |
-| `effect_size` | float | Study effect size ({"Beta" if dataset == "caqtl" else "obs.estimate"}); reference metadata |
-| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
+| `effect_size` | float | Signed study effect size (`{"beta" if dataset == "caqtl" else "obs.estimate"}`), **oriented to the `alt` allele** — positive ⇒ `alt` increases accessibility; sign-flipped for variants whose ref/alt were swapped to match the reference{", and present for positives only" if dataset == "dsqtl" else ""}. |
+{pval_se_rows}| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
 | `distance_tss_pc`, `distance_tss_nc`, `distance_tss` | int | Distance to nearest protein-coding / non-protein-coding TSS, and the minimum |
 | `tss_closest_pc_gene_id`, `tss_closest_nc_gene_id`, `tss_closest_gene_id` | str | Ensembl gene IDs at those distances |
 | `distance_exon_pc`, `distance_exon_nc`, `distance_exon` | int | Same shape, for nearest exon |
@@ -530,6 +536,26 @@ Chromosome-parity split (same convention as the other `evals_*` datasets).
 
 The consequence/distance columns are **reference annotations only** — they are
 not used to match or filter the variant set.
+
+## Evaluation
+
+Following [DART-Eval](https://github.com/kundajelab/DART-Eval) Task 5 (§4.5) and
+[ARSENAL](https://www.biorxiv.org/content/10.64898/2026.02.05.703637v1.full),
+score each variant with a model's allelic effect (e.g. an alt-vs-ref
+log-likelihood ratio) and report two complementary metrics, **each over a
+different variant set**:
+
+- **Classification — AUROC / AUPRC over _all_ variants:** significant
+  {m["qtl"]}s (`label = True`) vs control variants (`label = False`).
+- **Pearson correlation over the _positive_ variants only** (`label = True`):
+  between `effect_size` (signed, oriented to `alt`) and the model's signed
+  alt-vs-ref score. DART-Eval Table 6: *"for the positive variants, we computed
+  the correlation between measured and predicted allelic effects."* Controls
+  are not used in the correlation{
+        " (and for dsQTL they have no measured effect_size)"
+        if dataset == "dsqtl"
+        else ""
+    }.
 
 ## Provenance
 

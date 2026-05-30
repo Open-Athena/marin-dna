@@ -30,6 +30,8 @@ class TestParseCaqtl:
                 # caQTL `label` is a boolean flag in the real TSV.
                 "label": [True, False, True, True, False],
                 "beta": [0.5, -0.2, 0.1, 0.1, 0.0],
+                "pval": [0.01, 0.5, 0.2, 0.3, 0.9],
+                "se": [0.1, 0.2, 0.3, 0.4, 0.5],
             }
         )
 
@@ -41,6 +43,16 @@ class TestParseCaqtl:
         assert out["label"].to_list() == [True, False]  # boolean label preserved
         assert out["effect_size"].to_list() == [0.5, -0.2]
         assert out.columns[:6] == ["chrom", "pos", "ref", "alt", "label", "effect_size"]
+
+    def test_pval_se_carried(self) -> None:
+        out = parse_caqtl(self._raw())
+        assert out["pval"].to_list() == [0.01, 0.5]
+        assert out["se"].to_list() == [0.1, 0.2]
+
+    def test_pval_se_null_when_absent(self) -> None:
+        out = parse_caqtl(self._raw().drop("pval", "se"))
+        assert out["pval"].null_count() == out.height
+        assert out["se"].null_count() == out.height
 
     def test_label_is_boolean(self) -> None:
         assert parse_caqtl(self._raw())["label"].dtype == pl.Boolean
@@ -248,6 +260,8 @@ class TestAnnotateVariants:
             assert c in out.columns
         assert out["label"].dtype == pl.Boolean
         assert out["consequence"].null_count() == 0
+        # No swap (genome returns the ref base for each) -> effect_size unchanged.
+        assert out.sort("pos")["effect_size"].to_list() == [0.5, -0.2, 0.1]
 
     def test_null_consequence_raises(self, tmp_path, intervals) -> None:
         V = _variants()
@@ -298,6 +312,9 @@ class TestAnnotateVariants:
         )
         assert out["ref"][0] == "C"
         assert out["alt"][0] == "G"
+        # alt changed C->G (swapped) -> effect_size flips sign (+1.0 -> -1.0) to
+        # stay signed relative to the final alt allele.
+        assert out["effect_size"][0] == -1.0
 
     def test_low_retention_raises(self, tmp_path, intervals) -> None:
         # Genome base never matches either allele -> check_ref_alt drops all.

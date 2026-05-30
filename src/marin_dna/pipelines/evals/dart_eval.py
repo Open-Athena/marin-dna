@@ -129,12 +129,19 @@ def _assemble(
     label_expr: pl.Expr,
     effect_col: str,
     name: str,
+    extra_cols: dict[str, str] | None = None,
 ) -> pl.DataFrame:
     """Project the raw frame onto the standard schema. ``allele1``/``allele2``
     become ``ref``/``alt`` provisionally — `check_ref_alt` (in
     ``annotate_variants``) reorients them against the reference. ``label_expr``
     is the boolean positive/negative indicator built by the caller (the two
-    datasets encode the label differently)."""
+    datasets encode the label differently).
+
+    ``effect_size`` is the study effect, parsed as the effect of ``allele2``
+    (= ``alt`` here); ``annotate_variants`` flips its sign for variants whose
+    ref/alt get swapped so it stays signed relative to the final ``alt``.
+    ``extra_cols`` maps output name -> source column for dataset-specific
+    passthrough floats (e.g. caQTL ``pval``/``se``), cast to Float64."""
     cols = [
         _strip_chr(pl.col(chrom_col)).alias("chrom"),
         pl.col(pos_col).cast(pl.Int64).alias("pos"),
@@ -142,14 +149,15 @@ def _assemble(
         pl.col(a2_col).cast(pl.Utf8).str.to_uppercase().alias("alt"),
         label_expr.alias("label"),
     ]
-    if effect_col in df.columns:
-        cols.append(pl.col(effect_col).cast(pl.Float64).alias("effect_size"))
-    else:
-        print(
-            f"WARNING [dart_eval {name}]: effect-size column {effect_col!r} "
-            "absent; effect_size set to null"
-        )
-        cols.append(pl.lit(None, dtype=pl.Float64).alias("effect_size"))
+    for out_name, src in {"effect_size": effect_col, **(extra_cols or {})}.items():
+        if src in df.columns:
+            cols.append(pl.col(src).cast(pl.Float64).alias(out_name))
+        else:
+            print(
+                f"WARNING [dart_eval {name}]: column {src!r} absent; "
+                f"{out_name} set to null"
+            )
+            cols.append(pl.lit(None, dtype=pl.Float64).alias(out_name))
     return df.select(cols)
 
 
@@ -176,6 +184,9 @@ def parse_caqtl(df: pl.DataFrame) -> pl.DataFrame:
         label_expr=pl.col("label"),
         effect_col="beta",
         name="caqtl",
+        # caQTL-only reference columns (not used by the eval, kept for the
+        # record): association p-value and the standard error of beta.
+        extra_cols={"pval": "pval", "se": "se"},
     )
     assert out["label"].null_count() == 0, "caQTL: null labels after parse"
     return out.pipe(filter_snp)
@@ -254,11 +265,27 @@ def annotate_variants(
     n_lift = V.height
     V = V.pipe(filter_chroms)
     n_chrom = V.height
+    # Record alt before check_ref_alt may swap ref<->alt. effect_size is parsed
+    # as the effect of the study allele we assigned to alt (allele2), so when a
+    # swap moves the effect allele to ref, flip the sign to keep effect_size
+    # signed relative to the FINAL alt (i.e. effect of alt vs ref — what an
+    # alt-vs-ref / LLR model score correlates against). Liftover RCs both
+    # alleles but preserves ref/alt roles, so only the swap flips the sign.
+    V = V.with_columns(pl.col("alt").alias("_pre_alt"))
     V = check_ref_alt(V, genome)
     n_ref = V.height
+    swapped = pl.col("alt") != pl.col("_pre_alt")
+    n_flipped = V.filter(swapped).height
+    V = V.with_columns(
+        pl.when(swapped)
+        .then(-pl.col("effect_size"))
+        .otherwise(pl.col("effect_size"))
+        .alias("effect_size")
+    ).drop("_pre_alt")
     print(
         f"[dart_eval annotate {name}] attrition: in={n_in} "
-        f"after_lift={n_lift} after_chrom_filter={n_chrom} after_ref_alt={n_ref}"
+        f"after_lift={n_lift} after_chrom_filter={n_chrom} after_ref_alt={n_ref} "
+        f"effect_size_sign_flipped={n_flipped}"
     )
     # All drops above are build-correctness QC, not class balancing. A uniform
     # coordinate-base (0- vs 1-based) or genome-build error would make ref_alt
