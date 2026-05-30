@@ -126,23 +126,21 @@ def _assemble(
     pos_col: str,
     a1_col: str,
     a2_col: str,
-    label_col: str,
-    positive_value: int,
+    label_expr: pl.Expr,
     effect_col: str,
     name: str,
 ) -> pl.DataFrame:
     """Project the raw frame onto the standard schema. ``allele1``/``allele2``
     become ``ref``/``alt`` provisionally — `check_ref_alt` (in
-    ``annotate_variants``) reorients them against the reference. The label is
-    ``True`` where the (int-cast) ``label_col`` equals ``positive_value``."""
+    ``annotate_variants``) reorients them against the reference. ``label_expr``
+    is the boolean positive/negative indicator built by the caller (the two
+    datasets encode the label differently)."""
     cols = [
         _strip_chr(pl.col(chrom_col)).alias("chrom"),
         pl.col(pos_col).cast(pl.Int64).alias("pos"),
         pl.col(a1_col).cast(pl.Utf8).str.to_uppercase().alias("ref"),
         pl.col(a2_col).cast(pl.Utf8).str.to_uppercase().alias("alt"),
-        (pl.col(label_col).cast(pl.Int64, strict=False) == positive_value).alias(
-            "label"
-        ),
+        label_expr.alias("label"),
     ]
     if effect_col in df.columns:
         cols.append(pl.col(effect_col).cast(pl.Float64).alias("effect_size"))
@@ -158,21 +156,25 @@ def _assemble(
 def parse_caqtl(df: pl.DataFrame) -> pl.DataFrame:
     """Parse a raw ``Afr.CaQTLS.tsv`` frame into the standard schema.
 
-    Restricts to DART-Eval's benchmark set (``IsUsed`` and ``in_peaks``), maps
-    ``label`` 1→positive / 0→negative, and keeps SNVs only. Native GRCh38.
+    Restricts to DART-Eval's benchmark set (``IsUsed`` and ``in_peaks`` — this
+    reproduces the published 6,821 positive / 77,999 control counts), uses the
+    boolean ``label`` (True = significant caQTL, False = control), and keeps
+    SNVs only. Native GRCh38.
     """
     _require_columns(df, CAQTL_REQUIRED, "caQTL")
     df = df.filter(_truthy(df, "IsUsed") & _truthy(df, "in_peaks"))
-    _assert_label_values(df, "label", {0, 1}, "caQTL")
+    # `label` is a boolean flag (True = significant caQTL, False = control).
+    assert df.schema["label"] == pl.Boolean, (
+        f"caQTL: expected boolean `label`, got {df.schema['label']}"
+    )
     out = _assemble(
         df,
         chrom_col="chr_hg38",
         pos_col="pos_hg38",
         a1_col="allele1",
         a2_col="allele2",
-        label_col="label",
-        positive_value=1,
-        effect_col="Beta",
+        label_expr=pl.col("label"),
+        effect_col="beta",
         name="caqtl",
     )
     assert out["label"].null_count() == 0, "caQTL: null labels after parse"
@@ -183,9 +185,9 @@ def parse_dsqtl(df: pl.DataFrame) -> pl.DataFrame:
     """Parse a raw ``yoruban.dsqtls.benchmarking.tsv`` frame into the standard
     schema.
 
-    Restricts to ``var.isused``, maps ``var.label`` 1→positive / −1→negative,
-    and keeps SNVs only. hg19 coordinates (lifted to GRCh38 in
-    ``annotate_variants``).
+    Restricts to ``var.isused`` (reproduces the published 560 positive / 26,813
+    control counts), maps ``var.label`` 1→positive / −1→negative, and keeps
+    SNVs only. hg19 coordinates (lifted to GRCh38 in ``annotate_variants``).
     """
     _require_columns(df, DSQTL_REQUIRED, "dsQTL")
     df = df.filter(_truthy(df, "var.isused"))
@@ -196,8 +198,7 @@ def parse_dsqtl(df: pl.DataFrame) -> pl.DataFrame:
         pos_col="var.pos",
         a1_col="var.allele1",
         a2_col="var.allele2",
-        label_col="var.label",
-        positive_value=1,
+        label_expr=pl.col("var.label") == 1,
         effect_col="obs.estimate",
         name="dsqtl",
     )
