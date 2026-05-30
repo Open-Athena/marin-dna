@@ -104,6 +104,22 @@ models:
     window_size: 255
     datasets: [mendelian_traits, complex_traits]
 
+  # exp166 v0.1 — generalist 4B run (74e146). Same 3 HF-exported
+  # checkpoints as 1B: 10000, 20000, 27329 (final). Intermediates scoped
+  # to mendelian_traits (convergence curve); final covers both leaderboards.
+  - name: exp166-v0.1-p4B-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp166-v0.1-p4B-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp166-v0.1-p4B-step-27329
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-27329
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
   # mixture baseline; the i16 run continues training from i0's final
