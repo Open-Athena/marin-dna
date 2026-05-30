@@ -41,6 +41,31 @@ rule dart_eval_download:
         "-o {output}"
 
 
+rule dart_eval_stage_genome:
+    """Stage the canonical bgzipped GRCh38 reference (+ .fai/.gzi indexes)
+    onto local disk so check_ref_alt reads from disk instead of doing a
+    per-variant S3 round-trip (~100x faster on ~110k variants). Downloaded
+    once via boto3 (the s3 storage plugin's dependency — no s3fs needed) and
+    kept local via local() so snakemake doesn't round-trip it back to storage.
+    pyfaidx needs the .fai (and, for BGZF, .gzi) as same-named siblings."""
+    output:
+        fa=local("results/genome_staged/GRCh38.fa.gz"),
+        fai=local("results/genome_staged/GRCh38.fa.gz.fai"),
+        gzi=local("results/genome_staged/GRCh38.fa.gz.gzi"),
+    params:
+        src=config["canonical_genome_path"],
+    run:
+        import boto3
+        from urllib.parse import urlparse
+
+        u = urlparse(params.src)
+        bucket, key = u.netloc, u.path.lstrip("/")
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, output.fa)
+        s3.download_file(bucket, key + ".fai", output.fai)
+        s3.download_file(bucket, key + ".gzi", output.gzi)
+
+
 rule dart_eval_dataset_unsplit:
     """Parse + annotate a DART-Eval QTL TSV into the standard variant schema
     with consequence + distance annotations. No matching, no subsampling —
@@ -52,15 +77,17 @@ rule dart_eval_dataset_unsplit:
         exon_nc="results/intervals/exon_nc.parquet",
         tss_pc="results/intervals/tss_pc.parquet",
         tss_nc="results/intervals/tss_nc.parquet",
+        # Locally-staged GRCh38 (see dart_eval_stage_genome) — fai/gzi are
+        # pyfaidx sibling indexes, declared so snakemake stages them too.
+        # local() marks them as on-disk (not storage) to match the producer.
+        genome=local("results/genome_staged/GRCh38.fa.gz"),
+        genome_fai=local("results/genome_staged/GRCh38.fa.gz.fai"),
+        genome_gzi=local("results/genome_staged/GRCh38.fa.gz.gzi"),
     output:
         "results/dataset_unsplit/{ds}.parquet",
     wildcard_constraints:
         ds="caqtl|dsqtl",
     params:
-        # Canonical bgzipped + indexed GRCh38 read directly from S3 via pyfaidx
-        # (same reference the materialize rule uses). check_ref_alt does a
-        # single-base lookup per variant.
-        genome_path=config["canonical_genome_path"],
         lift=lambda wc: DART_EVAL[wc.ds]["lift"],
     run:
         # Select the parser inside the run block — a function object in `params`
@@ -71,7 +98,7 @@ rule dart_eval_dataset_unsplit:
         V = parse(raw)
         annotate_variants(
             V,
-            genome=Genome(params.genome_path),
+            genome=Genome(input.genome),
             consequence_paths=list(input.consequences),
             chroms=CHROMS,
             exon_pc=pl.read_parquet(input.exon_pc),

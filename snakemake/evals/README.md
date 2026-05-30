@@ -52,15 +52,23 @@ These two skip the matching pipeline entirely: `dart_eval_dataset_unsplit` (in
 `workflow/rules/dart_eval.smk`) parses + annotates the raw TSV straight into
 `results/dataset_unsplit/{caqtl,dsqtl}.parquet`, which the generic
 `split_dataset_by_chrom` rule then splits. They have **no** `results/qc/`
-artifact (no matching to diagnose). The reference genome for `check_ref_alt` is
-read directly from S3 (`canonical_genome_path`) via pyfaidx.
+artifact (no matching to diagnose).
 
-The raw TSVs live only on Synapse and need authentication. Create a free
-Synapse account + a [Personal Access Token](https://www.synapse.org/#!PersonalAccessTokens:)
-(scopes: View, Download) and export it before building these datasets:
+Building them needs **Synapse auth**: the raw TSVs live only on Synapse, so
+create a free Synapse account + a [Personal Access Token](https://www.synapse.org/#!PersonalAccessTokens:)
+(scopes: View, Download) and export it — the download is plain HTTPS via
+`curl`, no `synapseclient` needed. (AWS credentials with S3 read access are
+also required, as for the rest of the pipeline — see [Storage](#storage).)
+
+The `dart_eval_stage_genome` rule downloads the GRCh38 reference (+ `.fai`/`.gzi`
+indexes) to local disk once via boto3, so `check_ref_alt` reads from disk
+rather than doing a per-variant S3 round-trip.
 
 ```bash
-export SYNAPSE_AUTH_TOKEN=...   # download uses plain HTTPS (curl); no synapseclient needed
+export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
+uv run snakemake \
+  results/dataset/caqtl/{train,test}.parquet \
+  results/dataset/dsqtl/{train,test}.parquet
 ```
 
 ## Matching scheme
