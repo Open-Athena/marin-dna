@@ -407,7 +407,24 @@ def compute_qtl_metrics(
       ``effect_size`` (the unsigned ``|effect|`` magnitude), over the
       **positive variants only** (``label == True``). Controls are excluded
       — for ``dsqtl`` they carry no measured effect at all. Each gets a
-      row-bootstrap SE over the positive rows.
+      paired row-bootstrap SE over the positive rows (the same resampled
+      indices draw both the score and ``effect_size``).
+
+    Standard errors are **nonparametric bootstrap** — the std of the bootstrap
+    distribution (``ddof=1``, NaN-tolerant) over ``n_bootstrap`` resamples —
+    *not* closed-form. Rationale: AUPRC has no clean closed form, and the
+    bootstrap keeps all three SEs uniform and assumption-free. The closed-form
+    alternatives (Pearson Fisher-z = ``.confidence_interval()`` on
+    ``scipy.stats.pearsonr``; Spearman has no built-in CI/SE, only the
+    Bonett–Wright approximation) lean on a bivariate-normal / large-n
+    assumption that ``effect_size`` (a right-skewed ``|effect|`` magnitude) and
+    the scores don't meet — though at these sample sizes they land close to the
+    bootstrap regardless (e.g. caqtl Pearson SE ≈ 0.017 either way). **Caveat:**
+    these are *marginal, single-scorer* SEs. A difference between two scorers
+    must **not** be read off overlapping ``±se`` bars — the scorers share the
+    same variants (correlated estimates), so a rigorous comparison needs a
+    paired-delta bootstrap (resample variants once, recompute both scorers,
+    take the difference), as in ``paired_metric_delta_bootstrap``.
 
     The ``rng`` default ``0`` (a single ``Generator`` threaded through every
     bootstrap below) keeps outputs bit-stable across re-runs on identical
