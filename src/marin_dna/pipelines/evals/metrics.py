@@ -1,15 +1,22 @@
 """Metric utilities for variant-effect evaluations.
 
-Three metric families live here:
+Four metric families live here:
 
 - ``auprc_with_bootstrap_se`` / ``compute_auprc_metrics``: AUPRC with a
   cluster bootstrap SE that resamples ``match_group``s (preserving the
-  matched-pair clustering). Used by the ``evals_v2`` pipeline after PR
-  #194 moved the matched-pair datasets to a 1:k structure that the
-  Wald-binomial pairwise metric can't represent.
+  matched-pair clustering). Used by the ``evals_v2``, ``conservation_eval``,
+  and ``alphagenome_eval`` pipelines on the matched-pair datasets
+  (``mendelian_traits`` / ``complex_traits``), whose 1:k structure (PR #194)
+  the Wald-binomial pairwise metric can't represent.
+- ``compute_qtl_metrics``: global AUPRC (plain row bootstrap) plus Pearson /
+  Spearman of the model score vs ``effect_size`` over the positive variants
+  only. For the unmatched DART-Eval QTL datasets (``caqtl`` / ``dsqtl``,
+  PR #214) that carry no ``subset`` / ``match_group``. The same three
+  pipelines select this path per-dataset via ``eval_protocol: qtl_global``.
 - ``pairwise_accuracy`` / ``compute_pairwise_metrics``: matched-pair within-
-  ``match_group`` accuracy (ties = 0.5) with Wald-binomial SE. Used by the
-  ``conservation_eval`` pipeline (1:1 match groups).
+  ``match_group`` accuracy (ties = 0.5) with Wald-binomial SE. Used on 1:1
+  match groups by the ``gpn_star_eval`` pipeline, the ``scripts/evo2_eval/``
+  scripts, and the ``lm_eval`` DNA-VEP harness (``dna_vep_llr_eval``).
 - ``METRIC_FUNCTIONS`` / ``compute_metrics``: classical AUPRC / AUROC /
   Spearman over (label, score) pairs. Still used by older pipelines
   (``snakemake/analysis/evals_v1/``, ``scripts/evo2_eval/``).
@@ -20,7 +27,7 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 
@@ -331,6 +338,167 @@ def compute_auprc_metrics(
                 "n_rows": sum(r["n_rows"] for r in qualifying),
             }
         )
+
+    return pd.DataFrame(rows)
+
+
+def _correlation_with_bootstrap_se(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    method: str,
+    n_bootstrap: int,
+    rng: np.random.Generator,
+) -> tuple[float, float]:
+    """Point correlation + row-bootstrap SE between paired ``x`` and ``y``.
+
+    Args:
+        x: first variable (e.g. model score over positives).
+        y: second variable (e.g. ``effect_size`` over positives).
+        method: ``"pearson"`` or ``"spearman"``.
+        n_bootstrap: bootstrap iterations (resamples rows with replacement).
+        rng: ``numpy.random.Generator`` — threaded in so the caller controls
+            reproducibility.
+
+    Returns:
+        ``(value, se)``. ``se`` is the std (``ddof=1``, NaN-tolerant) of the
+        bootstrap distribution; degenerate resamples with zero variance in
+        either variable contribute NaN and are dropped from the std.
+    """
+    assert method in ("pearson", "spearman"), f"unknown method {method!r}"
+    assert len(x) == len(y), f"length mismatch: x={len(x)} y={len(y)}"
+    corr_fn = pearsonr if method == "pearson" else spearmanr
+    point = float(corr_fn(x, y)[0])
+    n = len(x)
+    boot = np.empty(n_bootstrap, dtype=float)
+    for b in range(n_bootstrap):
+        idx = rng.integers(0, n, size=n)
+        xb, yb = x[idx], y[idx]
+        # Correlation is undefined when a resample is constant in either var.
+        if np.std(xb) == 0 or np.std(yb) == 0:
+            boot[b] = np.nan
+            continue
+        boot[b] = corr_fn(xb, yb)[0]
+    se = float(np.nanstd(boot, ddof=1))
+    return point, se
+
+
+def compute_qtl_metrics(
+    dataset: pd.DataFrame,
+    scores: pd.DataFrame,
+    score_columns: list[str] | None = None,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+) -> pd.DataFrame:
+    """Global AUPRC + positives-only ``effect_size`` correlations per score column.
+
+    For the unmatched DART-Eval QTL datasets (``caqtl`` / ``dsqtl``), which
+    have no ``subset`` / ``match_group`` — so there is no per-subset
+    stratification and no cluster structure. Two metric families, mirroring
+    DART-Eval Task 5 (and the dataset cards):
+
+    - **AUPRC** over **all** rows (significant QTL vs control via ``label``).
+      Computed through ``auprc_with_bootstrap_se`` with singleton
+      ``match_group``s (``np.arange(n)``), which degenerates the cluster
+      bootstrap to a plain row bootstrap — a consistent point estimate + SE
+      with no separate code path.
+    - **Pearson** and **Spearman** between each model score and
+      ``effect_size`` (the unsigned ``|effect|`` magnitude), over the
+      **positive variants only** (``label == True``). Controls are excluded
+      — for ``dsqtl`` they carry no measured effect at all. Each gets a
+      row-bootstrap SE over the positive rows.
+
+    The ``rng`` default ``0`` (a single ``Generator`` threaded through every
+    bootstrap below) keeps outputs bit-stable across re-runs on identical
+    inputs — same rationale as ``auprc_with_bootstrap_se``.
+
+    Args:
+        dataset: DataFrame with columns ``[label, effect_size]`` (row-aligned
+            with ``scores``). ``effect_size`` may be NaN for controls but
+            **must** be present for every positive.
+        scores: DataFrame whose columns are model scores; row-aligned with
+            ``dataset``. Must not contain NaN.
+        score_columns: score column names to evaluate. Defaults to all
+            columns of ``scores``.
+        n_bootstrap: bootstrap iterations per (metric, score_column).
+        rng: ``numpy.random.Generator``, seed int, or ``None``.
+
+    Returns:
+        DataFrame with columns ``[metric, score_type, value, se, n_rows,
+        n_pos]``. ``metric`` is one of ``"AUPRC"``, ``"pearson"``,
+        ``"spearman"``; three rows per score column. ``n_rows`` is the number
+        of rows the metric used (all rows for AUPRC, positives for the
+        correlations); ``n_pos`` is the positive count throughout.
+    """
+    for col in ("label", "effect_size"):
+        assert col in dataset.columns, f"dataset missing required column {col!r}"
+    assert len(dataset) == len(scores), (
+        f"length mismatch: dataset={len(dataset)} scores={len(scores)}"
+    )
+    if score_columns is None:
+        score_columns = list(scores.columns)
+
+    label = np.asarray(dataset["label"]).astype(int)
+    effect_size = np.asarray(dataset["effect_size"], dtype=float)
+    pos_mask = label == 1
+    n_pos = int(pos_mask.sum())
+    n_rows = int(len(label))
+    assert 0 < n_pos < n_rows, (
+        f"AUPRC needs both classes, got n_pos={n_pos} of n={n_rows}"
+    )
+    assert n_pos >= 2, f"correlation needs >=2 positives, got n_pos={n_pos}"
+    # Positives must carry a measured effect (dsQTL controls legitimately
+    # don't; a NaN here means a positive is missing its effect — fail loud).
+    n_nan_pos = int(np.isnan(effect_size[pos_mask]).sum())
+    assert n_nan_pos == 0, (
+        f"{n_nan_pos} positive variants have NaN effect_size — expected a "
+        f"measured effect for every positive"
+    )
+
+    rng = np.random.default_rng(rng)
+    es_pos = effect_size[pos_mask]
+    rows: list[dict] = []
+    for score_col in score_columns:
+        score = np.asarray(scores[score_col], dtype=float)
+        assert not np.isnan(score).any(), (
+            f"score column {score_col!r} has NaN; fill upstream with a "
+            f"semantically appropriate default before scoring"
+        )
+
+        auprc = auprc_with_bootstrap_se(
+            label=label,
+            score=score,
+            match_group=np.arange(n_rows),
+            n_bootstrap=n_bootstrap,
+            rng=rng,
+        )
+        rows.append(
+            {
+                "metric": "AUPRC",
+                "score_type": score_col,
+                "value": auprc["value"],
+                "se": auprc["se"],
+                "n_rows": n_rows,
+                "n_pos": n_pos,
+            }
+        )
+
+        score_pos = score[pos_mask]
+        for method in ("pearson", "spearman"):
+            value, se = _correlation_with_bootstrap_se(
+                score_pos, es_pos, method=method, n_bootstrap=n_bootstrap, rng=rng
+            )
+            rows.append(
+                {
+                    "metric": method,
+                    "score_type": score_col,
+                    "value": value,
+                    "se": se,
+                    "n_rows": n_pos,
+                    "n_pos": n_pos,
+                }
+            )
 
     return pd.DataFrame(rows)
 

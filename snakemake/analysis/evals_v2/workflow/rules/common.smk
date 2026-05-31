@@ -6,9 +6,22 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset
 
-from marin_dna.pipelines.evals.conservation import REQUIRED_VARIANT_COLUMNS
+from marin_dna.pipelines.evals.conservation import (
+    QTL_VARIANT_COLUMNS,
+    REQUIRED_VARIANT_COLUMNS,
+)
 from marin_dna.pipelines.evals.inference import compute_variant_scores
-from marin_dna.pipelines.evals.metrics import SCORE_PROTOCOLS, compute_auprc_metrics
+from marin_dna.pipelines.evals.metrics import (
+    SCORE_PROTOCOLS,
+    compute_auprc_metrics,
+    compute_qtl_metrics,
+)
+
+# Per-dataset eval protocol. `matched_pair` (default) → per-subset AUPRC +
+# cluster bootstrap over `match_group` (mendelian/complex). `qtl_global` →
+# global AUPRC + positives-only effect_size correlation on the unmatched
+# DART-Eval QTL datasets (caqtl/dsqtl), which carry no subset/match_group.
+EVAL_PROTOCOLS = ("matched_pair", "qtl_global")
 
 
 def get_dataset_config(name):
@@ -16,6 +29,20 @@ def get_dataset_config(name):
         if d["name"] == name:
             return d
     raise ValueError(f"dataset {name!r} not found in config")
+
+
+def get_dataset_protocol(name):
+    """Eval protocol for a dataset (default `matched_pair`)."""
+    return get_dataset_config(name).get("eval_protocol", "matched_pair")
+
+
+def get_dataset_variant_columns(name):
+    """Required variant columns for a dataset, keyed by eval protocol."""
+    return (
+        QTL_VARIANT_COLUMNS
+        if get_dataset_protocol(name) == "qtl_global"
+        else REQUIRED_VARIANT_COLUMNS
+    )
 
 
 def get_model_config(name):
@@ -40,6 +67,11 @@ for _d in config["datasets"]:
     assert _d["score_protocol"] in SCORE_PROTOCOLS, (
         f"dataset {_d['name']!r} `score_protocol` must be one of "
         f"{sorted(SCORE_PROTOCOLS)}, got {_d['score_protocol']!r}"
+    )
+    _ep = _d.get("eval_protocol", "matched_pair")
+    assert _ep in EVAL_PROTOCOLS, (
+        f"dataset {_d['name']!r} `eval_protocol` must be one of "
+        f"{sorted(EVAL_PROTOCOLS)}, got {_ep!r}"
     )
 
 

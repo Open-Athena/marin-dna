@@ -19,6 +19,7 @@ from marin_dna.pipelines.evals.metrics import (
     auprc_with_bootstrap_se,
     compute_auprc_metrics,
     compute_metrics,
+    compute_qtl_metrics,
 )
 
 
@@ -412,3 +413,160 @@ def test_compute_auprc_metrics_n_min_excludes_small_subsets():
         (metrics["score_type"] == "score") & (metrics["subset"] == GLOBAL_SUBSET)
     ].iloc[0]
     assert global_row["n_groups"] == 50
+
+
+# ---------------------------------------------------------------------------
+# compute_qtl_metrics (unmatched DART-Eval QTL datasets: caqtl / dsqtl)
+# ---------------------------------------------------------------------------
+
+
+def _qtl_data(
+    n_pos: int = 40,
+    n_neg: int = 360,
+    *,
+    seed: int = 0,
+    perfect: bool = False,
+    control_effect_size_nan: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Synthesize an unmatched QTL dataset (no subset/match_group).
+
+    Positives carry a measured ``effect_size``. Controls' ``effect_size`` is
+    NaN by default (the dsQTL case — controls have no measured effect). With
+    ``perfect=True``, positives' score equals their effect_size (→ pearson /
+    spearman = 1 over positives) and controls score low (→ AUPRC = 1)."""
+    rng = np.random.default_rng(seed)
+    n = n_pos + n_neg
+    label = np.concatenate([np.ones(n_pos, dtype=bool), np.zeros(n_neg, dtype=bool)])
+
+    es_pos = rng.uniform(0.1, 2.0, n_pos)
+    effect_size = np.full(n, np.nan)
+    effect_size[:n_pos] = es_pos
+    if not control_effect_size_nan:
+        effect_size[n_pos:] = rng.uniform(0.1, 2.0, n_neg)
+
+    score = np.empty(n)
+    if perfect:
+        score[:n_pos] = es_pos  # positives: score == effect_size
+        score[n_pos:] = rng.uniform(0.0, 0.05, n_neg)  # controls clearly lower
+    else:
+        score[:] = rng.uniform(0.0, 1.0, n)
+
+    dataset = pd.DataFrame({"label": label, "effect_size": effect_size})
+    scores = pd.DataFrame({"score": score})
+    return dataset, scores
+
+
+def test_compute_qtl_metrics_shape():
+    """Three rows per score column (AUPRC, pearson, spearman); fixed columns."""
+    dataset, scores = _qtl_data(seed=3)
+    scores["score2"] = np.random.default_rng(4).uniform(size=len(dataset))
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    assert len(metrics) == 2 * 3  # 2 score columns × 3 metrics
+    assert set(metrics["metric"]) == {"AUPRC", "pearson", "spearman"}
+    assert set(metrics["score_type"]) == {"score", "score2"}
+    assert set(metrics.columns) == {
+        "metric",
+        "score_type",
+        "value",
+        "se",
+        "n_rows",
+        "n_pos",
+    }
+    assert metrics["value"].notna().all()
+    assert metrics["se"].notna().all()
+
+
+def test_compute_qtl_metrics_auprc_matches_sklearn():
+    """The AUPRC row equals sklearn's average_precision_score over all rows."""
+    dataset, scores = _qtl_data(seed=11)
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    auprc_row = metrics[metrics["metric"] == "AUPRC"].iloc[0]
+    expected = float(
+        average_precision_score(dataset["label"].astype(int), scores["score"])
+    )
+    assert auprc_row["value"] == pytest.approx(expected)
+    assert auprc_row["n_rows"] == len(dataset)
+    assert auprc_row["n_pos"] == int(dataset["label"].sum())
+
+
+def test_compute_qtl_metrics_perfect_correlation_and_separation():
+    """Positives' score == effect_size → pearson = spearman = 1 (SE≈0); and
+    controls scoring lower → AUPRC = 1."""
+    dataset, scores = _qtl_data(perfect=True, seed=5)
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    by_metric = metrics.set_index("metric")["value"]
+    assert by_metric["pearson"] == pytest.approx(1.0, abs=1e-9)
+    assert by_metric["spearman"] == pytest.approx(1.0, abs=1e-9)
+    assert by_metric["AUPRC"] == pytest.approx(1.0, abs=1e-12)
+    # Perfectly monotone positives → every bootstrap resample also corr=1.
+    corr_se = metrics[metrics["metric"].isin(["pearson", "spearman"])]["se"]
+    assert (corr_se < 1e-9).all()
+    # The correlation rows used only the positives.
+    n_pos = int(dataset["label"].sum())
+    assert metrics.loc[metrics["metric"] == "pearson", "n_rows"].iloc[0] == n_pos
+
+
+def test_compute_qtl_metrics_correlation_uses_positives_only():
+    """Controls are excluded from the correlation: positives are perfectly
+    correlated while controls are anti-correlated; result stays ~1."""
+    rng = np.random.default_rng(0)
+    n_pos, n_neg = 30, 200
+    es_pos = rng.uniform(0.1, 2.0, n_pos)
+    es_neg = rng.uniform(0.1, 2.0, n_neg)
+    label = np.concatenate([np.ones(n_pos, bool), np.zeros(n_neg, bool)])
+    effect_size = np.concatenate([es_pos, es_neg])
+    # Positives: score == effect_size (corr +1). Controls: score == -effect_size
+    # (corr -1). If controls leaked in, the pooled correlation would collapse.
+    score = np.concatenate([es_pos, -es_neg])
+    dataset = pd.DataFrame({"label": label, "effect_size": effect_size})
+    scores = pd.DataFrame({"score": score})
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert metrics.set_index("metric").loc["pearson", "value"] == pytest.approx(
+        1.0, abs=1e-9
+    )
+
+
+def test_compute_qtl_metrics_control_effect_size_nan_ok():
+    """Controls with NaN effect_size (the dsQTL case) must not raise — only
+    positives are required to carry a measured effect."""
+    dataset, scores = _qtl_data(control_effect_size_nan=True, seed=2)
+    assert dataset.loc[~dataset["label"], "effect_size"].isna().all()
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert metrics["value"].notna().all()
+
+
+def test_compute_qtl_metrics_seed_reproducibility():
+    dataset, scores = _qtl_data(seed=9)
+    a = compute_qtl_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    b = compute_qtl_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_compute_qtl_metrics_missing_effect_size_raises():
+    dataset, scores = _qtl_data(seed=1)
+    with pytest.raises(AssertionError, match="effect_size"):
+        compute_qtl_metrics(dataset.drop(columns=["effect_size"]), scores)
+
+
+def test_compute_qtl_metrics_nan_effect_size_positive_raises():
+    """A positive missing its effect_size is a data error — fail loud."""
+    dataset, scores = _qtl_data(seed=1)
+    dataset.loc[0, "effect_size"] = np.nan  # row 0 is a positive
+    with pytest.raises(AssertionError, match="effect_size"):
+        compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+def test_compute_qtl_metrics_single_class_raises():
+    dataset = pd.DataFrame(
+        {"label": [True, True, True], "effect_size": [1.0, 2.0, 3.0]}
+    )
+    scores = pd.DataFrame({"score": [0.1, 0.2, 0.3]})
+    with pytest.raises(AssertionError, match="both classes"):
+        compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+def test_compute_qtl_metrics_nan_score_raises():
+    dataset, scores = _qtl_data(seed=1)
+    scores.loc[5, "score"] = np.nan
+    with pytest.raises(AssertionError, match="NaN"):
+        compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)

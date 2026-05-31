@@ -34,6 +34,7 @@ from marin_dna.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     compute_auprc_metrics,
+    compute_qtl_metrics,
 )
 
 
@@ -69,6 +70,21 @@ REQUIRED_VARIANT_COLUMNS: tuple[str, ...] = (
     "label",
     "subset",
     "match_group",
+)
+
+# Columns the unmatched DART-Eval QTL datasets (``caqtl`` / ``dsqtl``, PR
+# #214) carry instead: no ``subset`` / ``match_group`` (no matching, no
+# subsampling), but a continuous ``effect_size`` (unsigned ``|effect|``) used
+# by the positives-only correlation metric. Asserted by the ``eval_protocol:
+# qtl_global`` branch of each pipeline's score/metric rules. Shared home here
+# mirrors ``REQUIRED_VARIANT_COLUMNS`` (imported by all three eval pipelines).
+QTL_VARIANT_COLUMNS: tuple[str, ...] = (
+    "chrom",
+    "pos",
+    "ref",
+    "alt",
+    "label",
+    "effect_size",
 )
 
 
@@ -308,5 +324,118 @@ def _build_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
             for s in score_names
         ]
         lines.append("| " + " | ".join([subset, str(n_total), *vals]) + " |")
+
+    return "\n".join(lines) + "\n"
+
+
+def aggregate_conservation_qtl_metrics(
+    parquet_paths: dict[str, str | Path],
+    *,
+    n_bootstrap: int = 1000,
+    bootstrap_seed: int | None = 0,
+) -> tuple[pd.DataFrame, str]:
+    """Global QTL metrics across per-track scored parquets (caqtl/dsqtl).
+
+    The ``eval_protocol: qtl_global`` counterpart to
+    ``aggregate_conservation_metrics``: the DART-Eval QTL datasets have no
+    ``subset`` / ``match_group``, so there is no per-subset stratification or
+    cluster bootstrap. Each input parquet is ``score_variants_at_positions``
+    output plus the QTL variant columns: must contain ``[label, effect_size,
+    score]``. ``score`` may be NaN (no alignment in the bigWig).
+
+    Per track: NaN count recorded, then ``score`` is filled with 0 (same
+    rationale as the matched-pair path — 0 is meaningful for phyloP/phastCons)
+    before ``compute_qtl_metrics`` computes global AUPRC + positives-only
+    Pearson/Spearman vs ``effect_size``.
+
+    Args:
+        parquet_paths: mapping ``score_name -> parquet path``. Order is
+            preserved in the markdown table.
+        n_bootstrap: bootstrap iterations per (metric, track).
+        bootstrap_seed: seed for the bootstrap; ``None`` for fresh randomness.
+            Default ``0`` keeps outputs bit-stable across re-runs.
+
+    Returns:
+        ``(metrics_df, markdown)`` where ``metrics_df`` has columns
+        ``[metric, score_type, value, se, n_rows, n_pos, score_name, n_nan,
+        n_total]``. ``score_type`` is always ``"score"``; ``score_name`` is
+        the conservation track.
+    """
+    assert parquet_paths, "parquet_paths must be non-empty"
+
+    score_names = list(parquet_paths)
+    required = ("label", "effect_size", "score")
+    all_metrics: list[pd.DataFrame] = []
+
+    for score_name in score_names:
+        df = pd.read_parquet(parquet_paths[score_name])
+        for col in required:
+            assert col in df.columns, (
+                f"{parquet_paths[score_name]}: missing column {col!r}"
+            )
+
+        m = compute_qtl_metrics(
+            dataset=df[["label", "effect_size"]],
+            scores=df[["score"]].fillna(0),
+            score_columns=["score"],
+            n_bootstrap=n_bootstrap,
+            rng=bootstrap_seed,
+        )
+        m["score_name"] = score_name
+        m["n_nan"] = int(df["score"].isna().sum())
+        m["n_total"] = int(len(df))
+        all_metrics.append(m)
+
+    metrics = pd.concat(all_metrics, ignore_index=True)
+    md = _build_qtl_markdown(metrics, score_names)
+    return metrics, md
+
+
+def _build_qtl_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
+    """Render the global QTL metrics as a markdown table (metric × track)."""
+    lines: list[str] = []
+    lines.append("### caQTL/dsQTL — global metrics (value ± bootstrap SE)")
+    lines.append("")
+    lines.append(
+        "AUPRC over all variants (significant QTL vs control). Pearson / "
+        "Spearman of the conservation score vs `effect_size`, over positive "
+        "variants only. Scores are `.fillna(0)` before scoring (0 = no "
+        "alignment at that locus — neither conserved nor accelerated). "
+        "Bootstrap SE resamples rows (AUPRC) / positive rows (correlations)."
+    )
+    lines.append("")
+    n_pos = int(metrics["n_pos"].iloc[0])
+    n_total = int(metrics["n_total"].iloc[0])
+    lines.append(f"n_total = {n_total}; n_positives = {n_pos}.")
+    lines.append("")
+
+    val = metrics.pivot_table(
+        index="metric", columns="score_name", values="value", aggfunc="first"
+    )
+    se = metrics.pivot_table(
+        index="metric", columns="score_name", values="se", aggfunc="first"
+    )
+    header = ["metric", *score_names]
+    lines.append("| " + " | ".join(header) + " |")
+    lines.append("| " + " | ".join(["---"] * len(header)) + " |")
+    for metric in ("AUPRC", "pearson", "spearman"):
+        if metric not in val.index:
+            continue
+        cells = []
+        for s in score_names:
+            v = val.loc[metric, s] if s in val.columns else float("nan")
+            e = se.loc[metric, s] if s in se.columns else float("nan")
+            cells.append(f"{v:.3f} ± {e:.3f}" if pd.notna(v) and pd.notna(e) else "—")
+        lines.append("| " + " | ".join([metric, *cells]) + " |")
+
+    # Per-track NaN counts (no alignment; filled with 0 before scoring).
+    nan_map = (
+        metrics.drop_duplicates("score_name").set_index("score_name")["n_nan"].to_dict()
+    )
+    lines.append("")
+    lines.append(
+        "NaN scores per track (filled with 0): "
+        + ", ".join(f"{s}={int(nan_map.get(s, 0))}" for s in score_names)
+    )
 
     return "\n".join(lines) + "\n"
