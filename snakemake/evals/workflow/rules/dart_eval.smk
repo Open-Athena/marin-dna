@@ -94,7 +94,10 @@ rule dart_eval_dataset_unsplit:
         # has an unstable repr (memory address) that would churn snakemake's
         # params-hash and trigger spurious reruns.
         parse = DART_EVAL[wildcards.ds]["parse"]
-        raw = pl.read_csv(input.tsv, separator="\t", infer_schema_length=10000)
+        # infer_schema_length=None: scan the whole TSV for dtype inference
+        # (the files are bounded; avoids mis-inferring a flag column from a
+        # non-representative first chunk).
+        raw = pl.read_csv(input.tsv, separator="\t", infer_schema_length=None)
         V = parse(raw)
         annotate_variants(
             V,

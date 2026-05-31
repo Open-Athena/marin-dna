@@ -479,7 +479,7 @@ def render_dart_eval(
     neg = c["train_neg"] + c["test_neg"]
     pval_se_rows = (
         "| `pval` | float | caQTL association p-value (reference only) |\n"
-        "| `se` | float | Standard error of the effect size (reference only) |\n"
+        "| `se` | float | Standard error of the effect estimate (`beta`); reference only |\n"
         if dataset == "caqtl"
         else ""
     )
@@ -576,6 +576,14 @@ Built by the [`marin-dna`]({REPO_ROOT_URL}) eval pipeline at commit
 - Curation pipeline: {_pipeline_link(sha)}
 - Rules: {_file_link(sha, "snakemake/evals/workflow/rules/dart_eval.smk")}
 - Parsing + annotation: {_file_link(sha, "src/marin_dna/pipelines/evals/dart_eval.py")}
+
+## License
+
+Released under the terms of its upstream sources. The variant set is
+redistributed from [DART-Eval](https://github.com/kundajelab/DART-Eval) (Task 5)
+and derives from the original QTL study ({m["study"]}); DART-Eval ships no
+explicit license, so consult it and the source study for redistribution and
+commercial-use terms.
 
 ## Citation
 

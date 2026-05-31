@@ -37,11 +37,6 @@ from marin_dna.pipelines.evals.variants import (
     lift_hg19_to_hg38,
 )
 
-# Standard lead columns produced by both datasets (coordinates + label, plus the
-# signed study effect and its magnitude). Downstream annotation appends
-# consequence / distance columns.
-STANDARD_COLS = COORDINATES + ["label", "effect", "effect_size"]
-
 # Expected raw-TSV columns (DART-Eval variant_tasks.py).
 CAQTL_REQUIRED = [
     "chr_hg38",
@@ -260,6 +255,7 @@ def annotate_variants(
             (caQTL).
         name: label for log/assert messages.
     """
+    assert V.height > 0, f"{name}: empty input frame"
     n_in = V.height
     if lift:
         V = V.pipe(lift_hg19_to_hg38).filter(pl.col("pos") != -1)
@@ -271,7 +267,9 @@ def annotate_variants(
     # swap moves the effect allele to ref, flip the sign to keep `effect` signed
     # relative to the FINAL alt (i.e. effect of alt vs ref — what an alt-vs-ref /
     # LLR model score correlates against). Liftover RCs both alleles but
-    # preserves ref/alt roles, so only the swap flips the sign.
+    # preserves ref/alt roles, so only the swap flips the sign. A high flip rate
+    # is expected when the study codes allele1 as the non-reference allele
+    # (e.g. dsQTL, ~81%).
     V = V.with_columns(pl.col("alt").alias("_pre_alt"))
     V = check_ref_alt(V, genome)
     n_ref = V.height
