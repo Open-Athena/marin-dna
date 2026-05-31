@@ -367,6 +367,24 @@
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
   datasets: [mendelian_traits]
 
+# Eric's 5-way distal mix (Slack #bolinas, 2026-05-30): continued training
+# from the animal-only uniform mix (~110B tokens), then a 5-way mixture adding
+# the new distal data (mammal ncRNA + mammal ccRE/enhancer). Final checkpoint
+# step-59158.
+- id: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+  display: exp135-1B-m5.1
+  family: marin_dna
+  description: mix v0.9, 5-way +distal (cont. from animal mix), 1B
+  training:
+    data: bolinas_mix_v0.9_zoonomia_m5.1
+    params: 1.0e9
+    window_size: 255
+    objective: CLM
+  wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+  datasets: [mendelian_traits]
+
 # ---------------------------------------------------------------------------
 # External baselines (AlphaGenome, GPN-Star).
 # ---------------------------------------------------------------------------

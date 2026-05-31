@@ -134,6 +134,16 @@ models:
     window_size: 255
     datasets: [mendelian_traits]
 
+  # exp135-1B-m5.1 (Slack #bolinas, 2026-05-30): continued training from the
+  # animal-only uniform mix (~110B tokens), then a 5-way mix adding the new
+  # distal data (mammal ncRNA + mammal ccRE/enhancer). Final HF checkpoint
+  # step-59158; same 1B Qwen3 / 255 bp + BOS as the other mix-v0.9 runs.
+  # Scoped to mendelian_traits to match the other mix-v0.9 entries.
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
   # was weak in #21, and the matched-pair mendelian dataset is the one of
