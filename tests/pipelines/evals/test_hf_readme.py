@@ -161,6 +161,26 @@ class TestRender:
         with pytest.raises(ValueError, match="no README template"):
             hf_readme.render("not_a_real_dataset", SHA, train, test)
 
+    @pytest.mark.parametrize("dataset", ["caqtl", "dsqtl"])
+    def test_dart_eval_renders(self, tmp_path: Path, dataset: str) -> None:
+        # DART-Eval datasets are unmatched -> no qc_path.
+        train, test = _matched_train_test(tmp_path)
+        md = hf_readme.render(dataset, SHA, train, test)
+        assert md.startswith("---\n")
+        for tag in ("biology", "genomics", "dna"):
+            assert tag in md
+        for header in (
+            f"# evals_{dataset}",
+            "## Splits",
+            "## Columns",
+            "## Provenance",
+            "## Citation",
+        ):
+            assert header in md, f"missing header: {header}"
+        assert "No matching and no subsampling" in md
+        assert "DART-Eval" in md
+        assert SHA[:7] in md
+
     def test_retention_table_handles_zero_input(self, tmp_path: Path) -> None:
         path = tmp_path / "qc.parquet"
         pl.DataFrame(

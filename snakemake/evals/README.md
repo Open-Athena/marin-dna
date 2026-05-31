@@ -17,6 +17,8 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 |---|---|---|---|
 | `mendelian_traits` | Mendelian disease pathogenic SNVs | HGMD ∪ OMIM ∪ Smedley et al. 2016 (de-duped, AF<0.001) | gnomAD common (AN≥25k, AF>0.001) |
 | `complex_traits` | UKBB fine-mapped complex-trait variants | SuSiE+FINEMAP `max(PIP across the traits where this variant was fine-mapped) > 0.9` | `max(PIP) < 0.01` AND no SuSiE/FINEMAP combine-step null PIP among those traits (`label_variants_by_pip(use_null_pip_guard=True)`) |
+| `caqtl` | DART-Eval African caQTLs (ATAC), GRCh38 | Significant caQTLs in peaks | Control variants in peaks (no matching) |
+| `dsqtl` | DART-Eval Yoruban dsQTLs (DNase), hg19→GRCh38 | Significant dsQTLs in peaks | Control variants in peaks (no matching) |
 
 Only `mendelian_traits` has a corresponding `_harness_255` eval-harness
 variant. A 255 bp window centered on each variant is materialized into
@@ -28,6 +30,57 @@ for the online lm_eval VEP scorer to average per variant (#179, #175 conclusion 
 `complex_traits` has no harness variant: it's scored offline only via
 `snakemake/analysis/evals_v2/`, which already does FWD+RC averaging in the
 batched VEP path.
+
+### DART-Eval caQTL / dsQTL
+
+`caqtl` and `dsqtl` are the [DART-Eval](https://github.com/kundajelab/DART-Eval)
+Task-5 chromatin-accessibility QTL benchmarks, brought in to give them
+train/test splits (DART-Eval ships none for this task — see issue #139).
+Unlike the two matched datasets above they are **not matched and not
+subsampled**: every significant QTL (positive) and control variant (negative)
+within accessible peaks is kept at its natural ratio (≈1:11 for caQTL, ≈1:48
+for dsQTL). The `consequence*` and `distance_*` columns are added as
+**reference annotations only** — they are not used to filter or match. The signed study `effect` is oriented to the
+`alt` allele (positive ⇒ alt increases accessibility, matching an alt-vs-ref /
+LLR model score; sign-flipped where ref/alt were swapped to the reference), and
+`effect_size` is its unsigned magnitude (`|effect|`); caQTL additionally carries
+the raw `pval` and `se` for the record. For dsQTL `effect`/`effect_size` are
+present for the significant variants only (controls have no measured effect).
+
+Evaluation follows DART-Eval Task 5 / ARSENAL, with the two metrics computed
+over **different variant sets**: a binary **AUROC/AUPRC over all variants**
+(significant QTLs vs controls, via `label`), and a **Pearson correlation over
+the positive variants only** (a model's signed alt-vs-ref score vs the signed
+`effect`). The dataset cards document this.
+
+- **caqtl** — African caQTLs (DeGorter et al. 2023), Synapse `syn60756043`
+  (`Afr.CaQTLS.tsv`). Native **GRCh38**.
+- **dsqtl** — Yoruban dsQTLs (Degner et al. 2012), Synapse `syn60756039`
+  (`yoruban.dsqtls.benchmarking.tsv`). **hg19**, lifted to GRCh38 via
+  `lift_hg19_to_hg38`.
+
+These two skip the matching pipeline entirely: `dart_eval_dataset_unsplit` (in
+`workflow/rules/dart_eval.smk`) parses + annotates the raw TSV straight into
+`results/dataset_unsplit/{caqtl,dsqtl}.parquet`, which the generic
+`split_dataset_by_chrom` rule then splits. They have **no** `results/qc/`
+artifact (no matching to diagnose).
+
+Building them needs **Synapse auth**: the raw TSVs live only on Synapse, so
+create a free Synapse account + a [Personal Access Token](https://www.synapse.org/#!PersonalAccessTokens:)
+(scopes: View, Download) and export it — the download is plain HTTPS via
+`curl`, no `synapseclient` needed. (AWS credentials with S3 read access are
+also required, as for the rest of the pipeline — see [Storage](#storage).)
+
+The `dart_eval_stage_genome` rule downloads the GRCh38 reference (+ `.fai`/`.gzi`
+indexes) to local disk once via boto3, so `check_ref_alt` reads from disk
+rather than doing a per-variant S3 round-trip.
+
+```bash
+export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
+uv run snakemake \
+  results/dataset/caqtl/{train,test}.parquet \
+  results/dataset/dsqtl/{train,test}.parquet
+```
 
 ## Matching scheme
 
@@ -204,6 +257,7 @@ Top-level keys:
 | `datasets` | Which datasets `rule all` builds + uploads. |
 | `mendelian_traits.*` | HGMD URL, Smedley URL, ClinVar release pin, submission summary date, AF threshold. |
 | `complex_traits.*` | Fine-mapping repo, LD-score S3 path, PIP thresholds. |
+| `dart_eval.*` | Synapse FileEntity IDs for the caQTL / dsQTL TSVs. |
 
 `config/complex_traits.csv` lists the 119 UKBB traits used for `complex_traits`.
 
@@ -238,9 +292,12 @@ Examples:
 - `bolinas-dna/evals_mendelian_traits`
 - `bolinas-dna/evals_complex_traits`
 - `bolinas-dna/evals_mendelian_traits_harness_255`
+- `bolinas-dna/evals_caqtl`
+- `bolinas-dna/evals_dsqtl`
 
 Locally, files live in `results/dataset/{dataset}/{train,test}.parquet`, and
-matching diagnostics in `results/qc/{dataset}.parquet`.
+matching diagnostics in `results/qc/{dataset}.parquet` (matched datasets only —
+`caqtl`/`dsqtl` have none).
 
 ### Eval-harness columns
 

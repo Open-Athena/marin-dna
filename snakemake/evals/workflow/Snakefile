@@ -11,6 +11,7 @@ include: "rules/smedley.smk"
 include: "rules/ldscore.smk"
 include: "rules/mendelian_traits.smk"
 include: "rules/complex_traits.smk"
+include: "rules/dart_eval.smk"
 
 
 # `rule all` builds the local split parquets + matching diagnostics but does
@@ -23,9 +24,12 @@ rule all:
             dataset=config["datasets"],
             split=SPLITS,
         ),
+        # QC (matching diagnostics) only exists for the matched datasets;
+        # harness derivatives and the unmatched DART-Eval datasets (caqtl,
+        # dsqtl) have no `dataset_matching_qc` rule.
         expand(
             "results/qc/{dataset}.parquet",
-            dataset=[d for d in config["datasets"] if not d.endswith("_harness_255")],
+            dataset=[d for d in config["datasets"] if d in QC_CONTINUOUS_FEATURES],
         ),
 
 
