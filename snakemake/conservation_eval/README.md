@@ -92,8 +92,9 @@ cd snakemake/conservation_eval
 uv run snakemake -n
 
 # Run locally (CPU-only — wall time is dominated by bigWig downloads on a
-# cold S3 cache; the full 7-track set is ~50 GB total). The cluster bootstrap
-# (1000 iters × 7 tracks × ~10 subsets × 2 datasets ≈ 140k iters) is fast.
+# cold S3 cache; the configured track set — 5 by default — totals tens of GB).
+# The cluster bootstrap (1000 iters × 5 tracks × ~10 subsets × 2 datasets
+# ≈ 100k iters) is fast.
 uv run snakemake
 ```
 

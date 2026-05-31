@@ -22,9 +22,7 @@ splits:
 scores:
   - phyloP_100v
   - phastCons_100v
-  - phyloP_241m
   - phyloP_447m
-  - phyloP_470m
   - phastCons_470m
   - phastCons_43p
 

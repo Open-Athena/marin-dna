@@ -33,7 +33,7 @@
 #   msa          string  (gpn_star only) producer's MSA suffix (e.g. v100-200m).
 
 # ---------------------------------------------------------------------------
-# Conservation tracks — 7 phyloP / phastCons baselines, present on all three
+# Conservation tracks — 5 phyloP / phastCons baselines, present on all three
 # leaderboards. Same parquet path per dataset; per-track filter on score_name.
 # ---------------------------------------------------------------------------
 
@@ -61,22 +61,10 @@
   description: phyloP across 100 vertebrates
   datasets: [mendelian_traits, complex_traits]
 
-- id: phyloP_241m
-  display: phyloP (241m)
-  family: conservation
-  description: phyloP across 241 mammals (Zoonomia)
-  datasets: [mendelian_traits, complex_traits]
-
 - id: phyloP_447m
   display: phyloP (447m)
   family: conservation
   description: phyloP across 447 mammals
-  datasets: [mendelian_traits, complex_traits]
-
-- id: phyloP_470m
-  display: phyloP (470m)
-  family: conservation
-  description: phyloP across 470 mammals
   datasets: [mendelian_traits, complex_traits]
 
 # ---------------------------------------------------------------------------
