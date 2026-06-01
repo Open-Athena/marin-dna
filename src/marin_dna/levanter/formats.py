@@ -93,6 +93,25 @@ def _install_dataset_for_component_patch() -> None:
 
     original = _datasets.dataset_for_component
 
+    # Canary: if a future ``marin-levanter`` adds its own DNA branch to
+    # ``dataset_for_component``, this monkey-patch becomes redundant (and would
+    # silently shadow the upstream implementation). Surface that loudly so the
+    # patch gets removed rather than quietly masking upstream behavior. Guarded
+    # by a try/except so a source-unavailable build (e.g. zipimport) can't break
+    # training over a diagnostic.
+    try:
+        import inspect
+
+        if "DNALmDatasetFormat" in inspect.getsource(original):
+            raise RuntimeError(
+                "levanter.data.text.datasets.dataset_for_component now references "
+                "DNALmDatasetFormat upstream — the marin_dna monkey-patch in "
+                "marin_dna.levanter.formats is likely redundant. Verify and "
+                "remove _install_dataset_for_component_patch()."
+            )
+    except OSError:
+        pass  # source not available (zipimport / frozen); skip the canary
+
     def patched(component, Pos, cache, *, eos_id, block_cross_document_attention):
         fmt = component.format
         if isinstance(fmt, DNALmDatasetFormat):
