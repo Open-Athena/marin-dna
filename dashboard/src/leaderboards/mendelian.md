@@ -63,8 +63,8 @@ display(html`<div class="card">
 
 ```js
 // Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
-// to surface a new family pill. Selecting a family reveals its inline
-// protocol toggle (multi-protocol families only).
+// to surface a new family pill. Selecting a family reveals its protocol
+// chips inset in the pill (multi-protocol families only).
 const families = Object.keys(FAMILY_LABEL);
 const sel = view(FamilyProtocolToggle(families, PROTOCOL_OPTIONS, PROTOCOL_DEFAULTS));
 ```
