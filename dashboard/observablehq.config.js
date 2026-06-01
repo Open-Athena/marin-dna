@@ -1,16 +1,27 @@
 // Observable Framework site config for the MarinDNA leaderboard.
 // See: https://observablehq.com/framework/config
 
+import {readFileSync} from "node:fs";
+
 export default {
   title: "MarinDNA Leaderboard",
   root: "src",
   output: "dist",
 
-  // Pin to a single light theme. The default `air,near-midnight` flips
-  // to dark on prefers-color-scheme: dark, but the heatmap and forest
-  // plot encode meaning in color (sequential YlGn on [0.1, 1.0],
-  // diverging RdYlGn for deltas) and only read against a light page.
+  // Pin to the light `air` theme: the heatmap + forest plot encode meaning in
+  // color (sequential YlGn, diverging RdYlGn) and only read against a light
+  // page, but the default theme flips to dark on prefers-color-scheme. Handled
+  // natively by both `preview` and `build`.
   theme: "air",
+
+  // Shared global CSS injected into every page's <head>: the family color
+  // palette + the family-selector pill widget. Inlined (not linked stylesheets)
+  // so they need no base-path-relative href and behave identically in `preview`
+  // and `build`. NB: read once at config load — editing these files needs a
+  // `preview` restart to take effect.
+  head: `<style>\n${["family-colors.css", "family-pills.css"]
+    .map((f) => readFileSync(new URL("./" + f, import.meta.url), "utf8"))
+    .join("\n")}</style>`,
 
   // Sidebar navigation. eQTL was retired in PR #194 — see #172.
   pages: [

@@ -203,11 +203,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   margin-right: 6px;
   vertical-align: middle;
 }
-.lb-family-marin_dna      { background: #1f77b4; }
-.lb-family-conservation { background: #7f7f7f; }
-.lb-family-alphagenome  { background: #d62728; }
-.lb-family-gpn_star     { background: #9467bd; }
-.lb-family-evo2         { background: #ff7f0e; }
 .lb-cell {
   text-align: center;
   font-feature-settings: "tnum";
@@ -226,93 +221,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   margin: 0.5em 0 1em;
   font-size: 0.85em; color: #444;
 }
-
-/* Compound family pill: the family name is the selection toggle; a selected
-   multi-protocol family shows its protocol chips inset inside the same colored
-   pill (active chip = white, family-colored text). Single-protocol or
-   deselected families render as a plain pill. */
-.lb-family-toggle-row {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 20px;
-  margin: 0.25em 0 0.75em;
-}
-.lb-cpill {
-  display: inline-flex;
-  align-items: stretch;
-  border: 1.5px solid transparent;
-  border-radius: 9999px;
-  overflow: hidden;
-  font-size: 0.85em;
-  line-height: 1;
-  transition: background 80ms, border-color 80ms;
-}
-.lb-cpill:not(.active) { border-color: #ddd; }
-.lb-cpill:not(.active):hover { border-color: #999; }
-.lb-cpill-name {
-  display: inline-flex;
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 4px 12px;
-  font: inherit;
-  font-size: inherit;
-  font-weight: 500;
-  color: #999;
-  cursor: pointer;
-  transition: color 80ms;
-}
-.lb-cpill:not(.active):hover .lb-cpill-name { color: #555; }
-.lb-cpill.active .lb-cpill-name { color: #fff; }
-.lb-cpill.active.family-marin_dna      { background: #1f77b4; }
-.lb-cpill.active.family-conservation { background: #7f7f7f; }
-.lb-cpill.active.family-alphagenome  { background: #d62728; }
-.lb-cpill.active.family-gpn_star     { background: #9467bd; }
-.lb-cpill.active.family-evo2         { background: #ff7f0e; }
-/* Inset protocol chips — only rendered for selected multi-protocol families. */
-.lb-cpill-protos {
-  display: inline-flex;
-  align-items: stretch;
-  gap: 1px;
-  padding: 2px;
-  background: rgba(255, 255, 255, 0.22);
-}
-.lb-cpill-proto {
-  display: inline-flex;
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-radius: 9999px;
-  padding: 1px 8px;
-  font: inherit;
-  font-size: 0.78em;
-  color: rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-  transition: background 80ms, color 80ms;
-}
-.lb-cpill-proto:hover:not(.active) { background: rgba(255, 255, 255, 0.18); }
-.lb-cpill-proto.active { background: #fff; }
-.lb-cpill.family-marin_dna      .lb-cpill-proto.active { color: #1f77b4; }
-.lb-cpill.family-conservation .lb-cpill-proto.active { color: #7f7f7f; }
-.lb-cpill.family-alphagenome  .lb-cpill-proto.active { color: #d62728; }
-.lb-cpill.family-gpn_star     .lb-cpill-proto.active { color: #9467bd; }
-.lb-cpill.family-evo2         .lb-cpill-proto.active { color: #ff7f0e; }
-.lb-toggle-actions {
-  margin-left: 6px;
-  color: #888;
-  font-size: 0.82em;
-}
-.lb-toggle-actions .lb-link {
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 0 2px;
-  font: inherit;
-  font-size: inherit;
-  color: #3a7bd5;
-  cursor: pointer;
-}
-.lb-toggle-actions .lb-link:hover { text-decoration: underline; }
 
 /* Standalone on/off pill (Best per family). Lives on its own row; tap
    to toggle. */
@@ -351,18 +259,12 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
 .lb-pop-family {
   display: inline-block;
   font-size: 0.7em;
+  font-weight: 500;
   padding: 1px 7px;
   border-radius: 9999px;
   color: #fff;
   width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
-.lb-pop-family.family-marin_dna      { background: #1f77b4; }
-.lb-pop-family.family-conservation { background: #7f7f7f; }
-.lb-pop-family.family-alphagenome  { background: #d62728; }
-.lb-pop-family.family-gpn_star     { background: #9467bd; }
-.lb-pop-family.family-evo2         { background: #ff7f0e; }
 .lb-pop-display { font-size: 0.98em; font-weight: 600; }
 .lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
 .lb-pop-specs { margin: 6px 0; }
