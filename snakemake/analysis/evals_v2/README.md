@@ -44,6 +44,28 @@ The metrics parquet has columns
 with aggregate rows `_global_` and `_macro_avg_` per `score_type` —
 see `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` for details.
 
+### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
+
+The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
+**unmatched** — no `subset`, no `match_group`, no subsampling — so they take a
+separate global path selected by `eval_protocol: qtl_global` on the dataset
+entry. Scoring is identical (they still set `score_protocol: abs_llr`, so the
+score columns are `abs_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}` — abs-LLR and
+JSD), but the metric step calls
+`marin_dna.pipelines.evals.metrics.compute_qtl_metrics` instead, emitting **one
+row per (metric × score_type)** with a `metric` column ∈ `{AUPRC, pearson,
+spearman}`:
+
+- **AUPRC** over *all* variants (significant QTL vs control via `label`), with
+  a plain row-bootstrap SE.
+- **Pearson / Spearman** of the score vs the dataset's `effect_size` (unsigned
+  `|effect|`), over the **positive variants only** — controls are excluded
+  (for `dsqtl` they carry no measured effect at all).
+
+These metrics parquets have columns
+`[metric, score_type, value, se, n_rows, n_pos, model, dataset, split]` — note
+the `metric` column and the absence of subset rows.
+
 ## Conventions
 
 - **Train split only.** Test is held out for the final-eval pass; train is
@@ -131,7 +153,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset.name}"`. |
 | `genome_path` | Canonical GRCh38 FASTA. fsspec URI (e.g. `s3://...`) or local path. The S3 path requires `--group genome-s3` at install time. |
 | `split` | `train` (or `test` once held-out eval is unlocked). |
-| `datasets` | List of `{name, hf_revision, score_protocol}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. |
+| `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets. |
 | `models` | List of `{name, window_size, ...}`. Each entry has exactly one of `gcs_path` (full GCS URI incl. `/hf/step-{N}`) or `hf_repo` (HuggingFace Hub repo ID), plus two optional fields: `datasets: [...]` to restrict which `datasets` this checkpoint evaluates on (defaults to all), and `batch_size: N` to override the global `inference.batch_size` for this checkpoint (useful when context size differs from the global default's tuning). |
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
 
@@ -143,6 +165,9 @@ Pipeline rules are thin glue around:
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
 - `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` — score columns
   → AUPRC ± cluster-bootstrap SE per subset (cluster = `match_group`).
+- `marin_dna.pipelines.evals.metrics.compute_qtl_metrics` — score columns
+  → global AUPRC + positives-only Pearson/Spearman vs `effect_size`
+  (the `eval_protocol: qtl_global` path for caqtl/dsqtl).
 
 Both are tested at `tests/pipelines/evals/test_metrics.py`,
 `tests/pipelines/evals/test_inference.py`, and `tests/model/test_scoring.py`.

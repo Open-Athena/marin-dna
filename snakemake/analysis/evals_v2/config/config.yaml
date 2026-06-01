@@ -23,6 +23,21 @@ datasets:
     hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340  # PR #194 k=9 rebuild
     score_protocol: abs_llr     # fine-mapped positives — magnitude regardless of direction
 
+  # DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214). No
+  # matching / no subsampling, so `eval_protocol: qtl_global` selects the
+  # global path: AUPRC over all variants + Pearson/Spearman of the score vs
+  # `effect_size` over positives only (no subset/match_group, no macro-avg).
+  # `score_protocol: abs_llr` still drives the LLR→score transform, yielding
+  # the `abs_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}` score columns (abs-LLR + JSD).
+  - name: caqtl
+    hf_revision: 9d004a21812c067b9ba1ebfe72f51b9095a5d0f8
+    score_protocol: abs_llr
+    eval_protocol: qtl_global
+  - name: dsqtl
+    hf_revision: b7e02a07beb831c7047286aacd3ddfd299d6f88f
+    score_protocol: abs_llr
+    eval_protocol: qtl_global
+
 # Model checkpoints. Each entry must have exactly one of:
 #   - `gcs_path`: full GCS URI to the checkpoint directory (includes /hf/step-{N});
 #                  pulled with `gcloud storage cp -r`.
@@ -71,6 +86,9 @@ models:
   - name: exp136-proj_v30-step-9999
     gcs_path: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
     window_size: 255   # 255 bp DNA + BOS = 256 total tokens
+    # Explicit so only this checkpoint expands to the new QTL datasets; every
+    # other model stays scoped to mendelian_traits (see entries below).
+    datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
 
   # exp136 — enhancer-curation proj_v30, intermediate checkpoints (issue #136).
   # Native Levanter checkpoints were saved at every num_train_steps // 3 step

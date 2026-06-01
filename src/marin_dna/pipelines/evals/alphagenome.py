@@ -38,6 +38,19 @@ ALPHAGENOME_TRACKS: tuple[str, ...] = (
 # ``dna_client.SUPPORTED_SEQUENCE_LENGTHS[f"SEQUENCE_LENGTH_{SEQUENCE_LENGTH}"]``.
 SEQUENCE_LENGTH: str = "1MB"
 
+# Transient gRPC status codes retried per variant. The SDK's `@retry_rpc` on
+# `score_variant` retries only {RESOURCE_EXHAUSTED, UNAVAILABLE}; AlphaGenome's
+# known server-side "bad machine" outages surface as INTERNAL (not retried by
+# default), which would abort a whole dataset. Stored as names and resolved to
+# `grpc.StatusCode` at call time so this module imports without grpc installed.
+SCORE_VARIANT_RETRY_STATUS: tuple[str, ...] = (
+    "INTERNAL",
+    "UNAVAILABLE",
+    "RESOURCE_EXHAUSTED",
+    "DEADLINE_EXCEEDED",
+)
+SCORE_VARIANT_MAX_ATTEMPTS: int = 10
+
 
 def make_scorers() -> tuple[list["_vs.CenterMaskScorer"], dict[str, str]]:
     """Build the 7 CenterMaskScorer(width=None, L2_DIFF_LOG1P) scorers.
@@ -119,6 +132,7 @@ def score_variants_alphagenome(
         One row per input variant (same order), columns = ``"{assay}_{idx}"``
         track names with raw L2_DIFF_LOG1P scores.
     """
+    import grpc
     from alphagenome.data import genome
     from alphagenome.models import dna_client, variant_scorers
 
@@ -131,6 +145,24 @@ def score_variants_alphagenome(
     assert not missing, f"V missing required columns: {missing}"
 
     model = dna_client.create(api_key)
+
+    # The SDK decorates `score_variant` with `@retry_rpc`, but its default
+    # `retry_status_codes` is only {RESOURCE_EXHAUSTED, UNAVAILABLE} — it does
+    # NOT retry INTERNAL, which is exactly how AlphaGenome's known,
+    # maintainer-acknowledged "bad machine" backend outages surface
+    # (alphagenomecommunity.com "StatusCode.INTERNAL" thread). Unretried, a
+    # single bad-machine hit aborts the whole dataset. Re-wrap with the SDK's
+    # own `retry_rpc` over the widened `SCORE_VARIANT_RETRY_STATUS` set so a
+    # retry re-establishes the RPC on a (hopefully healthy) different machine.
+    # (score_variant is already @retry_rpc-decorated; this outer wrapper is a
+    # superset of those codes, so the nesting is redundant-but-benign.)
+    score_variant_with_retry = dna_client.retry_rpc(
+        model.score_variant,
+        max_attempts=SCORE_VARIANT_MAX_ATTEMPTS,
+        retry_status_codes=frozenset(
+            getattr(grpc.StatusCode, name) for name in SCORE_VARIANT_RETRY_STATUS
+        ),
+    )
     sequence_length = dna_client.SUPPORTED_SEQUENCE_LENGTHS[
         f"SEQUENCE_LENGTH_{SEQUENCE_LENGTH}"
     ]
@@ -151,7 +183,7 @@ def score_variants_alphagenome(
         # specifically want forward-strand to match TraitGym's call.
         interval.strand = "+"
 
-        scores = model.score_variant(
+        scores = score_variant_with_retry(
             interval=interval,
             variant=variant,
             organism=organism,

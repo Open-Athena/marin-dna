@@ -23,11 +23,16 @@ rule compute_per_track_l2:
         ds = load_dataset(
             params.hf_path, split=config["split"], revision=params.hf_revision
         ).to_pandas()
-        for col in REQUIRED_VARIANT_COLUMNS:
+        # qtl_global datasets (caqtl/dsqtl) carry effect_size, no
+        # subset/match_group.
+        variant_cols = get_dataset_variant_columns(wildcards.dataset)
+        for col in variant_cols:
             assert col in ds.columns, f"dataset missing column {col!r}"
 
+        # subset_n_pairs is a matched-pair smoke knob (slices on match_group);
+        # QTL datasets have none, so it's ignored for them (null in production).
         n_pairs = config.get("subset_n_pairs")
-        if n_pairs is not None:
+        if n_pairs is not None and get_dataset_protocol(wildcards.dataset) == "matched_pair":
             keep = ds["match_group"].drop_duplicates().head(int(n_pairs))
             ds = ds[ds["match_group"].isin(keep)].reset_index(drop=True)
             print(
@@ -42,7 +47,7 @@ rule compute_per_track_l2:
 
         out = pd.concat(
             [
-                ds[list(REQUIRED_VARIANT_COLUMNS)].reset_index(drop=True),
+                ds[list(variant_cols)].reset_index(drop=True),
                 per_track.reset_index(drop=True),
             ],
             axis=1,
@@ -64,10 +69,13 @@ rule aggregate_max:
     run:
         score_col = config["score_column"]
         df = pd.read_parquet(input[0])
-        track_cols = [c for c in df.columns if c not in REQUIRED_VARIANT_COLUMNS]
+        # Exclude the variant columns (which for QTL datasets include
+        # effect_size) so only the real per-track L2 columns are max-reduced.
+        variant_cols = get_dataset_variant_columns(wildcards.dataset)
+        track_cols = [c for c in df.columns if c not in variant_cols]
         assert track_cols, "no per-track columns found in input parquet"
 
-        out = df[list(REQUIRED_VARIANT_COLUMNS)].copy()
+        out = df[list(variant_cols)].copy()
         out[score_col] = df[track_cols].max(axis=1)
         assert (
             out[score_col].notna().all()

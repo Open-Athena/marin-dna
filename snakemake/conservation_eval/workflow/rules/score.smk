@@ -19,13 +19,16 @@ rule score_variants:
         ds = load_dataset(
             hf_path, split=wildcards.split, revision=params.hf_revision
         ).to_pandas()
-        for col in REQUIRED_VARIANT_COLUMNS:
+        # qtl_global datasets (caqtl/dsqtl) require effect_size (no
+        # subset/match_group); carry it through to the aggregate step.
+        variant_cols = get_dataset_variant_columns(wildcards.dataset)
+        for col in variant_cols:
             assert col in ds.columns, f"dataset missing column {col!r}"
 
         scores = score_variants_at_positions(ds, input.bw)
         assert len(scores) == len(ds)
 
-        out = ds[list(REQUIRED_VARIANT_COLUMNS)].copy()
+        out = ds[list(variant_cols)].copy()
         out["score"] = scores
         n_nan = int(out["score"].isna().sum())
         print(
@@ -55,11 +58,18 @@ rule aggregate_metrics:
     run:
         # input.parquets are S3-fetched local temp paths, in expand() order (= SCORES).
         parquet_paths = dict(zip(SCORES, input.parquets))
-        metrics, md = aggregate_conservation_metrics(
-            parquet_paths,
-            n_bootstrap=params.n_bootstrap,
-            bootstrap_seed=params.bootstrap_seed,
-        )
+        if get_dataset_protocol(wildcards.dataset) == "qtl_global":
+            metrics, md = aggregate_conservation_qtl_metrics(
+                parquet_paths,
+                n_bootstrap=params.n_bootstrap,
+                bootstrap_seed=params.bootstrap_seed,
+            )
+        else:
+            metrics, md = aggregate_conservation_metrics(
+                parquet_paths,
+                n_bootstrap=params.n_bootstrap,
+                bootstrap_seed=params.bootstrap_seed,
+            )
         metrics["split"] = wildcards.split
         metrics["dataset"] = wildcards.dataset
         metrics.to_parquet(output.metrics, index=False)

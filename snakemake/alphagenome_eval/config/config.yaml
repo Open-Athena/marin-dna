@@ -9,6 +9,15 @@ datasets:
     hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
   - name: complex_traits
     hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
+  # DART-Eval QTL benchmarks (PR #214). `qtl_global` → no subset/match_group;
+  # global AUPRC + Pearson/Spearman of alphagenome_max_l2 vs `effect_size`
+  # over positives only.
+  - name: caqtl
+    hf_revision: 9d004a21812c067b9ba1ebfe72f51b9095a5d0f8
+    eval_protocol: qtl_global
+  - name: dsqtl
+    hf_revision: b7e02a07beb831c7047286aacd3ddfd299d6f88f
+    eval_protocol: qtl_global
 
 # AlphaGenome rate-limits — keep workers low (4 has been a safe ceiling).
 num_workers: 4

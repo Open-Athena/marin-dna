@@ -9,6 +9,8 @@ import pytest
 
 from marin_dna.pipelines.evals.alphagenome import (
     ALPHAGENOME_TRACKS,
+    SCORE_VARIANT_MAX_ATTEMPTS,
+    SCORE_VARIANT_RETRY_STATUS,
     SEQUENCE_LENGTH,
     parse_score_response,
 )
@@ -25,6 +27,16 @@ def test_alphagenome_constants():
         "RNA_SEQ",
     )
     assert SEQUENCE_LENGTH == "1MB"
+
+
+def test_score_variant_retry_includes_internal():
+    """Regression guard: INTERNAL must stay in the per-variant retry set —
+    it's the code AlphaGenome's "bad machine" outages raise, and the SDK's
+    default retry set excludes it (dropping it would re-break large runs)."""
+    assert "INTERNAL" in SCORE_VARIANT_RETRY_STATUS
+    # The SDK already covers these two; we widen, not narrow.
+    assert {"UNAVAILABLE", "RESOURCE_EXHAUSTED"} <= set(SCORE_VARIANT_RETRY_STATUS)
+    assert SCORE_VARIANT_MAX_ATTEMPTS >= 2
 
 
 def test_parse_score_response_single_track_per_assay():

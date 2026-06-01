@@ -31,6 +31,21 @@ For each `dataset` in `config["datasets"]`:
    rows plus `_global_` (pooled) and `_macro_avg_` (mean of qualifying
    subsets) aggregates.
 
+### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
+
+The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
+**unmatched** (no `subset` / `match_group`), so a dataset entry with
+`eval_protocol: qtl_global` skips the per-subset path: scoring and max-across-
+tracks aggregation are unchanged, but `compute_metrics` calls
+`compute_qtl_metrics` — **global AUPRC** over all variants plus **Pearson /
+Spearman** of `alphagenome_max_l2` vs the dataset's `effect_size` over
+**positive variants only**. The metrics parquet then has a `metric` column
+(`AUPRC` / `pearson` / `spearman`) and no subset rows.
+
+> **API budget:** the train split alone is caQTL 41,382 + dsQTL 15,018
+> variants (~56K, ~5× mendelian_traits' ~11K) — one forward-strand call each.
+> Keep `num_workers` at 4 (rate-limit ceiling); a single 4-worker run is ~4 h.
+
 ## Outputs
 
 S3 bucket `s3://oa-bolinas/snakemake/alphagenome_eval/`:
@@ -50,6 +65,13 @@ results/
   the metric loss has been small in practice.
 - **No edge filtering.** The 1MB sequence context wraps near chromosome ends;
   AlphaGenome handles this internally.
+- **Retries transient `INTERNAL` errors.** AlphaGenome's backend intermittently
+  returns `StatusCode.INTERNAL` ("bad machine" outages — a known, maintainer-
+  acknowledged server-side issue). The SDK's built-in `@retry_rpc` only retries
+  `RESOURCE_EXHAUSTED` / `UNAVAILABLE`, so `score_variants_alphagenome` re-wraps
+  `score_variant` to also retry `INTERNAL` / `DEADLINE_EXCEEDED` (10 attempts,
+  exponential backoff). Without this a single bad-machine hit aborts the whole
+  dataset; large runs (the ~41k-variant caQTL set) effectively require it.
 
 ## Setup
 
@@ -116,7 +138,7 @@ uv run snakemake
 | --- | --- |
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset}"`. |
 | `split` | `train` (test held out). |
-| `datasets` | List of `{name, hf_revision}` entries. The SHA pins the HF commit consumed; bumping it forces a re-run via snakemake's `params:` hash (re-spends API budget). SHAs mirror `snakemake/analysis/evals_v2/config/config.yaml`. |
+| `datasets` | List of `{name, hf_revision, [eval_protocol]}` entries. The SHA pins the HF commit consumed; bumping it forces a re-run via snakemake's `params:` hash (re-spends API budget). SHAs mirror `snakemake/analysis/evals_v2/config/config.yaml`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for caqtl/dsqtl. |
 | `num_workers` | Threads in the API ThreadPoolExecutor. Keep ≤ 4. |
 | `score_column` | Column name written by `aggregate_max` and consumed by `compute_metrics`. |
 | `n_bootstrap` | AUPRC cluster-bootstrap iterations per subset. |

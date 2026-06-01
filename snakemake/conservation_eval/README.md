@@ -49,6 +49,19 @@ distal, splicing, promoter, …) — `_global_` and `_macro_avg_` aggregate rows
 flow through the parquet (used by the dashboard) but are excluded from the
 markdown.
 
+### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
+
+The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
+**unmatched** (no `subset` / `match_group`), so a dataset entry with
+`eval_protocol: qtl_global` takes a global path instead: scoring is identical
+(single-base bigWig lookup), but aggregation calls
+`aggregate_conservation_qtl_metrics`, which reports — per track — **global
+AUPRC** over all variants plus **Pearson / Spearman** of the track score vs the
+dataset's `effect_size` (unsigned `|effect|`) over **positive variants only**
+(controls excluded; `dsqtl` controls have no measured effect). Same `fillna(0)`
+and bootstrap-seed conventions; the bootstrap resamples rows (AUPRC) / positive
+rows (correlations). The markdown is a single `metric × track` table.
+
 ## Tracks
 
 | Name | Source URL | Notes |
@@ -121,7 +134,10 @@ results/
 ```
 
 Each `metrics_{split}.parquet` has columns `[score_type, score_name, subset,
-value, se, n_groups, n_rows, n_nan, n_total, split, dataset]`.
+value, se, n_groups, n_rows, n_nan, n_total, split, dataset]`. For
+`qtl_global` datasets (caqtl/dsqtl) the schema is instead `[metric, score_type,
+value, se, n_rows, n_pos, score_name, n_nan, n_total, split, dataset]` —
+`metric` ∈ `{AUPRC, pearson, spearman}`, no subset rows.
 
 ## Library
 
@@ -129,7 +145,10 @@ Snakemake rules are thin glue around `marin_dna.evals.conservation`:
 
 - `score_variants_at_positions(df, bw_path)` — bigWig lookup, NaN preserved.
 - `aggregate_conservation_metrics(parquet_paths, *, n_bootstrap, bootstrap_seed)`
-  — `(metrics_df, markdown)` with AUPRC + cluster-bootstrap SE.
+  — `(metrics_df, markdown)` with AUPRC + cluster-bootstrap SE (matched-pair).
+- `aggregate_conservation_qtl_metrics(parquet_paths, *, n_bootstrap, bootstrap_seed)`
+  — `(metrics_df, markdown)` with global AUPRC + positives-only `effect_size`
+  correlation (the `qtl_global` path for caqtl/dsqtl).
 
 Tests live at `tests/pipelines/evals/test_conservation.py` and
 `tests/pipelines/evals/test_pairwise_accuracy.py` (CPU-only, no real bigWig download).
