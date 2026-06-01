@@ -146,7 +146,10 @@ def test_dataset_for_component_routes_dna_format(monkeypatch):
         format = DNALmDatasetFormat(text_key="sequence")
 
     out = datasets.dataset_for_component(
-        _Component(), _Pos(), cache=object(), eos_id=7,
+        _Component(),
+        _Pos(),
+        cache=object(),
+        eos_id=7,
         block_cross_document_attention=True,
     )
     assert isinstance(out, _StubCausal)
@@ -185,7 +188,10 @@ def test_dataset_for_component_passes_through_non_dna(monkeypatch):
     # with a non-AssertionError exception.
     with pytest.raises(Exception) as excinfo:
         datasets.dataset_for_component(
-            _NonDnaComponent(), object(), cache=object(), eos_id=0,
+            _NonDnaComponent(),
+            object(),
+            cache=object(),
+            eos_id=0,
             block_cross_document_attention=False,
         )
     assert not isinstance(excinfo.value, AssertionError), (
