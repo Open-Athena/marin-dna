@@ -35,6 +35,17 @@ export const PROTOCOL_DEFAULTS = {
   evo2: "LLR",
 };
 
+// Protocol *display* labels — render layer only. Internal protocol keys
+// (the parquet `protocol` column / `PROTOCOLS` in
+// src/marin_dna/pipelines/evals/leaderboard.py) are unchanged; this maps a
+// key to how it reads in the UI. JSD is surfaced as "NucDep" (nucleotide
+// dependency). Unlisted keys fall back to themselves.
+export const PROTOCOL_LABEL = {
+  JSD: "NucDep",
+  "JSD-FWD": "NucDep-FWD",
+};
+export const protocolLabel = (p) => PROTOCOL_LABEL[p] ?? p;
+
 // Combined family selector + per-family protocol toggle. Each family renders
 // one compound pill; selecting a family reveals its protocol chips inset inside
 // the same colored pill (only for families with ≥2 protocols — single-protocol
@@ -80,7 +91,7 @@ export function FamilyProtocolToggle(allFamilies, options, defaults, initial = a
                 class=${`lb-cpill-proto${protocols[f] === p ? " active" : ""}`}
                 aria-pressed=${protocols[f] === p ? "true" : "false"}
                 onclick=${() => { protocols[f] = p; render(); fire(); }}
-              >${p}</button>`)}</span>`
+              >${protocolLabel(p)}</button>`)}</span>`
             : null}
         </span>`;
       })}
@@ -144,7 +155,7 @@ export function ComparisonPicker(pairs, initialIdx = 0) {
         render();
         fire();
       }}
-    >${a} → ${b}</button>`));
+    >${protocolLabel(a)} → ${protocolLabel(b)}</button>`));
   }
   render();
   return node;

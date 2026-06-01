@@ -16,8 +16,8 @@ Public, version-controlled leaderboards for genomic language models trained unde
 
 A model family's AUPRC depends on which score column you compute it from. These pages compare protocols head-to-head — same models, same dataset, different scoring approach.
 
-- [**MarinDNA**](./protocols/marin_dna) — LLR vs JSD
-- [**Evo 2**](./protocols/evo2) — LLR vs JSD
+- [**MarinDNA**](./protocols/marin_dna) — LLR vs NucDep
+- [**Evo 2**](./protocols/evo2) — LLR vs NucDep
 - [**GPN-Star**](./protocols/gpn-star) — calibrated (cLLR) vs uncalibrated LLR
 
 ## Reference
