@@ -11,23 +11,20 @@ Every entry on the leaderboard, with its family, training metadata, and links ou
 ```js
 const methods = await FileAttachment("data/models.json").json();
 import {modelCards} from "./components/model-cards.js";
-import {FAMILY_LABEL} from "./components/controls.js";
+import {FAMILY_LABEL, FamilyProtocolToggle} from "./components/controls.js";
 ```
 
 ```js
-// Order the filter like the leaderboard family pills, and label families with
-// the same display names (controls.js FAMILY_LABEL) instead of raw slugs.
+// Family filter rendered as colored pills, matching the leaderboard's family
+// selector. FamilyProtocolToggle with no protocol options renders plain family
+// pills (no protocol chips); it labels via FAMILY_LABEL and colors via the
+// global palette. Order families like the leaderboard. The widget value is
+// {families, protocols}; only `.families` is used here.
 const familyOrder = Object.keys(FAMILY_LABEL);
 const families = [...new Set(methods.map(m => m.family))].sort(
   (a, b) => familyOrder.indexOf(a) - familyOrder.indexOf(b),
 );
-const familyChoice = view(
-  Inputs.checkbox(families, {
-    label: "Family",
-    value: families,
-    format: (f) => FAMILY_LABEL[f] ?? f,
-  }),
-);
+const familyChoice = view(FamilyProtocolToggle(families, {}, {}));
 const search = view(
   Inputs.text({label: "Search", placeholder: "name, description, training data, …"}),
 );
@@ -41,7 +38,7 @@ const dataset = view(
 
 ```js
 function matches(m) {
-  if (!familyChoice.includes(m.family)) return false;
+  if (!familyChoice.families.includes(m.family)) return false;
   if (dataset !== "all" && !m.datasets.includes(dataset)) return false;
   if (search) {
     const q = search.toLowerCase();
@@ -63,6 +60,59 @@ const filtered = methods.filter(matches);
 /* Lift OF's 640px prose cap so the cards grid can use the full page width. */
 main > p, main > h1, main > h2, main > h3, main > small { max-width: none; }
 
+/* Family selector pills — same look as the leaderboard's family toggle
+   (controls.js FamilyProtocolToggle). Active pill backgrounds come from the
+   global palette (family-colors.css); these are the structural styles. The
+   Models filter has no protocols, so no protocol-chip rules are needed. */
+.lb-family-toggle-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
+  margin: 0.25em 0 0.75em;
+}
+.lb-cpill {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1.5px solid transparent;
+  border-radius: 9999px;
+  overflow: hidden;
+  font-size: 0.85em;
+  line-height: 1;
+  transition: background 80ms, border-color 80ms;
+}
+.lb-cpill:not(.active) { border-color: #ddd; }
+.lb-cpill:not(.active):hover { border-color: #999; }
+.lb-cpill-name {
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  color: #999;
+  cursor: pointer;
+  transition: color 80ms;
+}
+.lb-cpill:not(.active):hover .lb-cpill-name { color: #555; }
+.lb-cpill.active .lb-cpill-name { color: #fff; }
+.lb-toggle-actions {
+  margin-left: 6px;
+  color: #888;
+  font-size: 0.82em;
+}
+.lb-toggle-actions .lb-link {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0 2px;
+  font: inherit;
+  font-size: inherit;
+  color: #3a7bd5;
+  cursor: pointer;
+}
+.lb-toggle-actions .lb-link:hover { text-decoration: underline; }
+
 .method-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -82,13 +132,12 @@ main > p, main > h1, main > h2, main > h3, main > small { max-width: none; }
 .method-card-header h3 { margin: 0; font-size: 1em; }
 .method-card-family {
   display: inline-block;
-  font-size: 0.72em;
-  padding: 1px 8px;
+  font-size: 0.74em;
+  font-weight: 500;
+  padding: 1px 9px;
   border-radius: 9999px;
   color: #fff;
   width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .method-card-step { color: #888; font-family: var(--monospace); }
 .method-card-desc { color: #444; margin: 4px 0 8px; }
