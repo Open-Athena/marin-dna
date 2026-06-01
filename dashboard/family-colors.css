@@ -1,21 +1,15 @@
-/* Global stylesheet for the MarinDNA leaderboard.
+/* Shared family-color palette — the single source of truth for family -> color.
  *
- * Set via `style` in observablehq.config.js (which supersedes `theme`). We
- * re-import the built-in `air` theme so the rest of the design is unchanged,
- * then add the one thing that must be shared across every page: the family
- * color palette.
+ * Injected into every page's <head> via the `head` option in
+ * observablehq.config.js (inlined, not a linked stylesheet, so it needs no
+ * base-path-relative href and behaves identically in `observable preview` and
+ * `observable build`). Used by the heatmap row swatches and family
+ * pills/toggles on the leaderboard + protocol pages, the cards on the Models
+ * page, and the hover popover (which is appended to document.body, so it needs
+ * these rules globally).
  *
- * Why `air` (and not the `air,near-midnight` default): the default flips to
- * dark on prefers-color-scheme: dark, but the heatmap and forest plot encode
- * meaning in color (sequential YlGn on [0.1, 1.0], diverging RdYlGn for
- * deltas) and only read against a light page.
- *
- * Single source of truth for family -> color. Used by the heatmap row
- * swatches and the family pills/toggles on the leaderboard + protocol pages,
- * the cards on the Models page, and the hover popover (which is appended to
- * document.body, so it needs these rules globally). Adding a family? Add its
- * `--family-<slug>` var and the two selector lines below — nowhere else. */
-@import url("observablehq:theme-air.css");
+ * Adding a family? Add its `--family-<slug>` var and the two selector lines
+ * below — nowhere else. */
 
 :root {
   --family-marin_dna: #1f77b4;
