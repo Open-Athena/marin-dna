@@ -60,59 +60,6 @@ const filtered = methods.filter(matches);
 /* Lift OF's 640px prose cap so the cards grid can use the full page width. */
 main > p, main > h1, main > h2, main > h3, main > small { max-width: none; }
 
-/* Family selector pills — same look as the leaderboard's family toggle
-   (controls.js FamilyProtocolToggle). Active pill backgrounds come from the
-   global palette (family-colors.css); these are the structural styles. The
-   Models filter has no protocols, so no protocol-chip rules are needed. */
-.lb-family-toggle-row {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
-  margin: 0.25em 0 0.75em;
-}
-.lb-cpill {
-  display: inline-flex;
-  align-items: stretch;
-  border: 1.5px solid transparent;
-  border-radius: 9999px;
-  overflow: hidden;
-  font-size: 0.85em;
-  line-height: 1;
-  transition: background 80ms, border-color 80ms;
-}
-.lb-cpill:not(.active) { border-color: #ddd; }
-.lb-cpill:not(.active):hover { border-color: #999; }
-.lb-cpill-name {
-  display: inline-flex;
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 4px 12px;
-  font: inherit;
-  font-size: inherit;
-  font-weight: 500;
-  color: #999;
-  cursor: pointer;
-  transition: color 80ms;
-}
-.lb-cpill:not(.active):hover .lb-cpill-name { color: #555; }
-.lb-cpill.active .lb-cpill-name { color: #fff; }
-.lb-toggle-actions {
-  margin-left: 6px;
-  color: #888;
-  font-size: 0.82em;
-}
-.lb-toggle-actions .lb-link {
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 0 2px;
-  font: inherit;
-  font-size: inherit;
-  color: #3a7bd5;
-  cursor: pointer;
-}
-.lb-toggle-actions .lb-link:hover { text-decoration: underline; }
-
 .method-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));

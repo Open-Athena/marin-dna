@@ -14,11 +14,14 @@ export default {
   // natively by both `preview` and `build`.
   theme: "air",
 
-  // Shared family-color palette, injected into every page's <head>. Inlined
-  // (not a linked stylesheet) so it needs no base-path-relative href and
-  // behaves identically in `preview` and `build`. Single source of truth —
-  // see dashboard/family-colors.css.
-  head: `<style>\n${readFileSync(new URL("./family-colors.css", import.meta.url), "utf8")}</style>`,
+  // Shared global CSS injected into every page's <head>: the family color
+  // palette + the family-selector pill widget. Inlined (not linked stylesheets)
+  // so they need no base-path-relative href and behave identically in `preview`
+  // and `build`. NB: read once at config load — editing these files needs a
+  // `preview` restart to take effect.
+  head: `<style>\n${["family-colors.css", "family-pills.css"]
+    .map((f) => readFileSync(new URL("./" + f, import.meta.url), "utf8"))
+    .join("\n")}</style>`,
 
   // Sidebar navigation. eQTL was retired in PR #194 — see #172.
   pages: [

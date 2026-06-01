@@ -1,0 +1,78 @@
+/* Family-selector pill widget — shared by the leaderboard/protocol family
+ * toggles (controls.js FamilyProtocolToggle) and the Models page family filter.
+ * Injected globally via the `head` option in observablehq.config.js. Active
+ * pill background + active protocol-chip text colors come from the palette in
+ * family-colors.css; these are the structural styles. (The Models filter passes
+ * no protocol options, so its pills simply never render the inset chips.) */
+.lb-family-toggle-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 20px;
+  margin: 0.25em 0 0.75em;
+}
+.lb-cpill {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1.5px solid transparent;
+  border-radius: 9999px;
+  overflow: hidden;
+  font-size: 0.85em;
+  line-height: 1;
+  transition: background 80ms, border-color 80ms;
+}
+.lb-cpill:not(.active) { border-color: #ddd; }
+.lb-cpill:not(.active):hover { border-color: #999; }
+.lb-cpill-name {
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  color: #999;
+  cursor: pointer;
+  transition: color 80ms;
+}
+.lb-cpill:not(.active):hover .lb-cpill-name { color: #555; }
+.lb-cpill.active .lb-cpill-name { color: #fff; }
+/* Inset protocol chips — only rendered for selected multi-protocol families. */
+.lb-cpill-protos {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 1px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.lb-cpill-proto {
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  font: inherit;
+  font-size: 0.78em;
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition: background 80ms, color 80ms;
+}
+.lb-cpill-proto:hover:not(.active) { background: rgba(255, 255, 255, 0.18); }
+.lb-cpill-proto.active { background: #fff; }
+.lb-toggle-actions {
+  margin-left: 6px;
+  color: #888;
+  font-size: 0.82em;
+}
+.lb-toggle-actions .lb-link {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0 2px;
+  font: inherit;
+  font-size: inherit;
+  color: #3a7bd5;
+  cursor: pointer;
+}
+.lb-toggle-actions .lb-link:hover { text-decoration: underline; }
