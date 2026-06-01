@@ -260,12 +260,11 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
 .lb-pop-family {
   display: inline-block;
   font-size: 0.7em;
+  font-weight: 500;
   padding: 1px 7px;
   border-radius: 9999px;
   color: #fff;
   width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .lb-pop-display { font-size: 0.98em; font-weight: 600; }
 .lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
