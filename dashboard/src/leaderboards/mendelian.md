@@ -15,8 +15,7 @@ import {
   FAMILY_LABEL,
   PROTOCOL_OPTIONS,
   PROTOCOL_DEFAULTS,
-  FamilyToggle,
-  ProtocolPicker,
+  FamilyProtocolToggle,
   PillToggle,
 } from "../components/controls.js";
 ```
@@ -64,13 +63,13 @@ display(html`<div class="card">
 
 ```js
 // Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
-// to surface a new family pill.
+// to surface a new family pill. Selecting a family reveals its protocol
+// chips inset in the pill (multi-protocol families only).
 const families = Object.keys(FAMILY_LABEL);
-const familyChoice = view(FamilyToggle(families));
+const sel = view(FamilyProtocolToggle(families, PROTOCOL_OPTIONS, PROTOCOL_DEFAULTS));
 ```
 
 ```js
-const protocolChoice = view(ProtocolPicker(PROTOCOL_OPTIONS, PROTOCOL_DEFAULTS));
 const search = view(
   Inputs.text({
     label: "Model name",
@@ -85,10 +84,10 @@ const bestOnly = view(PillToggle("Best per family", false));
 
 ```js
 const filtered = mendelian.filter(r => {
-  if (!familyChoice.includes(r.family)) return false;
+  if (!sel.families.includes(r.family)) return false;
   // One protocol per family. Falls back to DEFAULTS for families that
-  // don't appear in `protocolChoice` (single-option families).
-  const wantedProtocol = protocolChoice[r.family] ?? PROTOCOL_DEFAULTS[r.family];
+  // don't appear in `sel.protocols` (single-option families).
+  const wantedProtocol = sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family];
   if (r.protocol !== wantedProtocol) return false;
   if (search && !r.method_display.toLowerCase().includes(search.toLowerCase())) return false;
   return true;
@@ -229,39 +228,76 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   font-size: 0.85em; color: #444;
 }
 
-/* Family pill toggle */
+/* Compound family pill: the family name is the selection toggle; a selected
+   multi-protocol family shows its protocol chips inset inside the same colored
+   pill (active chip = white, family-colored text). Single-protocol or
+   deselected families render as a plain pill. */
 .lb-family-toggle-row {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 20px;
   margin: 0.25em 0 0.75em;
 }
-.lb-pill {
-  appearance: none;
+.lb-cpill {
+  display: inline-flex;
+  align-items: stretch;
   border: 1.5px solid transparent;
-  background: transparent;
   border-radius: 9999px;
-  padding: 3px 10px;
-  font: inherit;
+  overflow: hidden;
   font-size: 0.85em;
-  cursor: pointer;
-  transition: background 80ms, border-color 80ms, color 80ms;
+  line-height: 1;
+  transition: background 80ms, border-color 80ms;
+}
+.lb-cpill:not(.active) { border-color: #ddd; }
+.lb-cpill:not(.active):hover { border-color: #999; }
+.lb-cpill-name {
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: inherit;
+  font-weight: 500;
   color: #999;
+  cursor: pointer;
+  transition: color 80ms;
 }
-.lb-pill:not(.active) {
-  border-color: #ddd;
+.lb-cpill:not(.active):hover .lb-cpill-name { color: #555; }
+.lb-cpill.active .lb-cpill-name { color: #fff; }
+.lb-cpill.active.family-marin_dna      { background: #1f77b4; }
+.lb-cpill.active.family-conservation { background: #7f7f7f; }
+.lb-cpill.active.family-alphagenome  { background: #d62728; }
+.lb-cpill.active.family-gpn_star     { background: #9467bd; }
+.lb-cpill.active.family-evo2         { background: #ff7f0e; }
+/* Inset protocol chips — only rendered for selected multi-protocol families. */
+.lb-cpill-protos {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 1px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.22);
 }
-.lb-pill:not(.active):hover {
-  border-color: #999;
-  color: #555;
+.lb-cpill-proto {
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  font: inherit;
+  font-size: 0.78em;
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition: background 80ms, color 80ms;
 }
-.lb-pill.active {
-  color: #fff;
-  border-color: transparent;
-}
-.lb-pill.active.family-marin_dna      { background: #1f77b4; }
-.lb-pill.active.family-conservation { background: #7f7f7f; }
-.lb-pill.active.family-alphagenome  { background: #d62728; }
-.lb-pill.active.family-gpn_star     { background: #9467bd; }
-.lb-pill.active.family-evo2         { background: #ff7f0e; }
+.lb-cpill-proto:hover:not(.active) { background: rgba(255, 255, 255, 0.18); }
+.lb-cpill-proto.active { background: #fff; }
+.lb-cpill.family-marin_dna      .lb-cpill-proto.active { color: #1f77b4; }
+.lb-cpill.family-conservation .lb-cpill-proto.active { color: #7f7f7f; }
+.lb-cpill.family-alphagenome  .lb-cpill-proto.active { color: #d62728; }
+.lb-cpill.family-gpn_star     .lb-cpill-proto.active { color: #9467bd; }
+.lb-cpill.family-evo2         .lb-cpill-proto.active { color: #ff7f0e; }
 .lb-toggle-actions {
   margin-left: 6px;
   color: #888;
@@ -278,53 +314,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   cursor: pointer;
 }
 .lb-toggle-actions .lb-link:hover { text-decoration: underline; }
-
-/* Per-family protocol picker (segmented toggle row) */
-.lb-protocol-picker-row {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
-  margin: 0.25em 0 0.75em;
-  font-size: 0.85em;
-}
-.lb-protocol-group {
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.lb-family-tag {
-  display: inline-block;
-  font-family: var(--monospace);
-  font-size: 0.85em;
-  padding: 1px 7px;
-  border-radius: 9999px;
-  color: #fff;
-}
-.lb-family-tag.family-marin_dna      { background: #1f77b4; }
-.lb-family-tag.family-conservation { background: #7f7f7f; }
-.lb-family-tag.family-alphagenome  { background: #d62728; }
-.lb-family-tag.family-gpn_star     { background: #9467bd; }
-.lb-family-tag.family-evo2         { background: #ff7f0e; }
-.lb-protocol-segmented {
-  display: inline-flex;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  overflow: hidden;
-}
-.lb-protocol-btn {
-  appearance: none;
-  background: #fff;
-  border: none;
-  border-left: 1px solid #ccc;
-  padding: 2px 9px;
-  font: inherit;
-  font-size: 0.95em;
-  color: #555;
-  cursor: pointer;
-  transition: background 80ms, color 80ms;
-}
-.lb-protocol-btn:first-child { border-left: none; }
-.lb-protocol-btn:hover:not(.active) { background: #f4f4f4; color: #000; }
-.lb-protocol-btn.active {
-  background: #333;
-  color: #fff;
-}
 
 /* Standalone on/off pill (Best per family). Lives on its own row; tap
    to toggle. */
