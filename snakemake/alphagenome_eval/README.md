@@ -65,6 +65,13 @@ results/
   the metric loss has been small in practice.
 - **No edge filtering.** The 1MB sequence context wraps near chromosome ends;
   AlphaGenome handles this internally.
+- **Retries transient `INTERNAL` errors.** AlphaGenome's backend intermittently
+  returns `StatusCode.INTERNAL` ("bad machine" outages — a known, maintainer-
+  acknowledged server-side issue). The SDK's built-in `@retry_rpc` only retries
+  `RESOURCE_EXHAUSTED` / `UNAVAILABLE`, so `score_variants_alphagenome` re-wraps
+  `score_variant` to also retry `INTERNAL` / `DEADLINE_EXCEEDED` (10 attempts,
+  exponential backoff). Without this a single bad-machine hit aborts the whole
+  dataset; large runs (the ~41k-variant caQTL set) effectively require it.
 
 ## Setup
 

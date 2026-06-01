@@ -119,6 +119,7 @@ def score_variants_alphagenome(
         One row per input variant (same order), columns = ``"{assay}_{idx}"``
         track names with raw L2_DIFF_LOG1P scores.
     """
+    import grpc
     from alphagenome.data import genome
     from alphagenome.models import dna_client, variant_scorers
 
@@ -131,6 +132,31 @@ def score_variants_alphagenome(
     assert not missing, f"V missing required columns: {missing}"
 
     model = dna_client.create(api_key)
+
+    # The SDK decorates `score_variant` with `@retry_rpc`, but its default
+    # `retry_status_codes` is only {RESOURCE_EXHAUSTED, UNAVAILABLE} — it does
+    # NOT retry `INTERNAL`. AlphaGenome's known, maintainer-acknowledged
+    # "bad machine" backend outages surface precisely as
+    # `StatusCode.INTERNAL` ("Internal error encountered"; see the
+    # alphagenomecommunity.com "StatusCode.INTERNAL" thread), so a single
+    # bad-machine hit raises straight through and aborts the whole dataset
+    # (no per-variant recovery). Re-wrap with the SDK's own `retry_rpc`,
+    # widening the retry set to include INTERNAL (+ DEADLINE_EXCEEDED) and
+    # bumping attempts — each retry re-establishes the RPC and is routed to a
+    # (hopefully healthy) different backend machine. Reuses the SDK's tested
+    # exponential-backoff implementation rather than hand-rolling one.
+    score_variant_with_retry = dna_client.retry_rpc(
+        model.score_variant,
+        max_attempts=10,
+        retry_status_codes=frozenset(
+            {
+                grpc.StatusCode.INTERNAL,
+                grpc.StatusCode.UNAVAILABLE,
+                grpc.StatusCode.RESOURCE_EXHAUSTED,
+                grpc.StatusCode.DEADLINE_EXCEEDED,
+            }
+        ),
+    )
     sequence_length = dna_client.SUPPORTED_SEQUENCE_LENGTHS[
         f"SEQUENCE_LENGTH_{SEQUENCE_LENGTH}"
     ]
@@ -151,7 +177,7 @@ def score_variants_alphagenome(
         # specifically want forward-strand to match TraitGym's call.
         interval.strand = "+"
 
-        scores = model.score_variant(
+        scores = score_variant_with_retry(
             interval=interval,
             variant=variant,
             organism=organism,
