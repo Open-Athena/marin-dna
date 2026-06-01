@@ -60,3 +60,60 @@ class DNALmDatasetFormat(LmDatasetFormatBase):
             uppercase_weight=self.uppercase_weight,
             lowercase_weight=self.lowercase_weight,
         )
+
+
+def _install_dataset_for_component_patch() -> None:
+    """Monkey-patch ``levanter.data.text.datasets.dataset_for_component`` to
+    add a ``DNALmDatasetFormat`` branch.
+
+    The ``register_subclass("dna")`` decorator above handles config-side
+    parsing (so ``format: dna`` deserializes), but the train-time dispatch
+    in ``dataset_for_component`` is a hard isinstance() chain over the four
+    upstream-known format classes (``Text``, ``Supervised``, ``Chat``,
+    ``Prebuilt``) and raises ``ValueError: Unknown format DNALmDatasetFormat``
+    on anything else. The marin@dna-dev levanter fork adds a DNA branch
+    inline; the released ``marin-levanter`` (currently ``0.99.dev20260516``)
+    does not, so we patch it in here.
+
+    The patch routes ``DNALmDatasetFormat`` through ``TokenSeqDataset`` with
+    ``loss_weights_key="loss_weight"`` to match the per-token weights that
+    ``DNABatchTokenizer`` writes into the cache (singular ``loss_weight`` key
+    per ``DNABatchTokenizer.__call__`` line 121). The downstream
+    ``CausalLmDataset`` then surfaces them as the model's per-position loss
+    weights.
+
+    Idempotent: re-importing this module re-applies the patch onto the
+    already-patched function harmlessly (we wrap the *original*, not the
+    current binding).
+    """
+    import levanter.data.text.datasets as _datasets
+
+    if getattr(_datasets.dataset_for_component, "_marin_dna_patched", False):
+        return  # already patched
+
+    original = _datasets.dataset_for_component
+
+    def patched(component, Pos, cache, *, eos_id, block_cross_document_attention):
+        fmt = component.format
+        if isinstance(fmt, DNALmDatasetFormat):
+            return _datasets.CausalLmDataset(
+                _datasets.TokenSeqDataset(
+                    cache, Pos.size, loss_weights_key="loss_weight"
+                ),
+                Pos,
+                eos_id=eos_id,
+                block_cross_document_attention=block_cross_document_attention,
+            )
+        return original(
+            component,
+            Pos,
+            cache,
+            eos_id=eos_id,
+            block_cross_document_attention=block_cross_document_attention,
+        )
+
+    patched._marin_dna_patched = True  # type: ignore[attr-defined]
+    _datasets.dataset_for_component = patched
+
+
+_install_dataset_for_component_patch()
