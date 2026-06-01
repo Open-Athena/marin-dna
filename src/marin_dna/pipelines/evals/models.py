@@ -23,7 +23,12 @@ ALL_FAMILIES: tuple[Family, ...] = (
     "gpn_star",
     "evo2",
 )
-ALL_DATASETS: tuple[str, ...] = ("mendelian_traits", "complex_traits")
+ALL_DATASETS: tuple[str, ...] = (
+    "mendelian_traits",
+    "complex_traits",
+    "caqtl",
+    "dsqtl",
+)
 
 
 @dataclass(frozen=True)

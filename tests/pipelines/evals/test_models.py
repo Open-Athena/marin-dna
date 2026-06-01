@@ -58,6 +58,31 @@ def test_models_for_dataset_unknown_raises():
         models_for_dataset("not_a_dataset")
 
 
+def test_qtl_datasets_registered_to_expected_methods():
+    """caQTL/dsQTL data exists on S3 only for exp136, the 5 leaderboard
+    conservation tracks, and AlphaGenome (PR #217 — ship what's computed).
+    Guards `dashboard/models.yaml` against drift: a model gaining/losing a
+    QTL `datasets:` entry without the matching S3 parquet would show an
+    empty row (or silently drop) on the QTL leaderboard."""
+    expected = {
+        "exp136-proj_v30-step-9999",
+        "phastCons_100v",
+        "phastCons_43p",
+        "phastCons_470m",
+        "phyloP_100v",
+        "phyloP_447m",
+        "AlphaGenome",
+    }
+    for dataset in ("caqtl", "dsqtl"):
+        ids = {m.id for m in models_for_dataset(dataset)}
+        assert ids == expected, (
+            f"{dataset}: unexpected {ids - expected}, missing {expected - ids}"
+        )
+        # GPN-Star / Evo 2 have no QTL data — must not appear.
+        families = {m.family for m in models_for_dataset(dataset)}
+        assert families == {"marin_dna", "conservation", "alphagenome"}
+
+
 def test_every_family_has_at_least_one_method():
     methods = load_models()
     families_present = {m.family for m in methods}

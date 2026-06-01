@@ -30,6 +30,8 @@ export default {
       pages: [
         {name: "Mendelian traits", path: "/leaderboards/mendelian"},
         {name: "Complex traits", path: "/leaderboards/complex"},
+        {name: "caQTL", path: "/leaderboards/caqtl"},
+        {name: "dsQTL", path: "/leaderboards/dsqtl"},
       ],
     },
     {
