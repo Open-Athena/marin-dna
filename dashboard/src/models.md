@@ -1,22 +1,32 @@
 ---
-title: Methods
+title: Models
 toc: false
 wide: true
 ---
 
-# Methods
+# Models
 
-Every entry on the leaderboard, with its family, training metadata, and links out to wandb / source / HF / GCS / tracking issues. Links from the heatmap on the [Mendelian page](./) deep-link to a method's anchor here.
+Every entry on the leaderboard, with its family, training metadata, and links out to wandb / source / HF / GCS / tracking issues. Links from the heatmap on the [Mendelian page](./leaderboards/mendelian) deep-link to a method's anchor here.
 
 ```js
 const methods = await FileAttachment("data/models.json").json();
 import {modelCards} from "./components/model-cards.js";
+import {FAMILY_LABEL} from "./components/controls.js";
 ```
 
 ```js
-const families = [...new Set(methods.map(m => m.family))];
+// Order the filter like the leaderboard family pills, and label families with
+// the same display names (controls.js FAMILY_LABEL) instead of raw slugs.
+const familyOrder = Object.keys(FAMILY_LABEL);
+const families = [...new Set(methods.map(m => m.family))].sort(
+  (a, b) => familyOrder.indexOf(a) - familyOrder.indexOf(b),
+);
 const familyChoice = view(
-  Inputs.checkbox(families, {label: "Family", value: families}),
+  Inputs.checkbox(families, {
+    label: "Family",
+    value: families,
+    format: (f) => FAMILY_LABEL[f] ?? f,
+  }),
 );
 const search = view(
   Inputs.text({label: "Search", placeholder: "name, description, training data, …"}),
@@ -80,10 +90,6 @@ main > p, main > h1, main > h2, main > h3, main > small { max-width: none; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.family-marin_dna      { background: #1f77b4; }
-.family-conservation { background: #7f7f7f; }
-.family-alphagenome  { background: #d62728; }
-.family-gpn_star     { background: #9467bd; }
 .method-card-step { color: #888; font-family: var(--monospace); }
 .method-card-desc { color: #444; margin: 4px 0 8px; }
 .method-card-row {

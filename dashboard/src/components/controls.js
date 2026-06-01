@@ -5,8 +5,9 @@
 
 import {html} from "npm:htl";
 
-// Short family labels used in pills/toggles. Distinct from the longer
-// `model-cards.js` labels (`"marin_dna gLM"` etc.) — those go on cards.
+// Family display labels — single source of truth. Shared across the
+// leaderboard pills/toggles, the Models page cards, and the heatmap hover
+// popover (model-cards.js imports this).
 export const FAMILY_LABEL = {
   marin_dna: "MarinDNA",
   conservation: "Conservation",

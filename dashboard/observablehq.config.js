@@ -6,11 +6,10 @@ export default {
   root: "src",
   output: "dist",
 
-  // Pin to a single light theme. The default `air,near-midnight` flips
-  // to dark on prefers-color-scheme: dark, but the heatmap and forest
-  // plot encode meaning in color (sequential YlGn on [0.1, 1.0],
-  // diverging RdYlGn for deltas) and only read against a light page.
-  theme: "air",
+  // Custom global stylesheet (supersedes `theme`). It re-imports the built-in
+  // `air` theme and adds the one thing every page must share — the family
+  // color palette. See src/style.css for why `air` specifically.
+  style: "style.css",
 
   // Sidebar navigation. eQTL was retired in PR #194 — see #172.
   pages: [

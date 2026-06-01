@@ -204,11 +204,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   margin-right: 6px;
   vertical-align: middle;
 }
-.lb-family-marin_dna      { background: #1f77b4; }
-.lb-family-conservation { background: #7f7f7f; }
-.lb-family-alphagenome  { background: #d62728; }
-.lb-family-gpn_star     { background: #9467bd; }
-.lb-family-evo2         { background: #ff7f0e; }
 .lb-cell {
   text-align: center;
   font-feature-settings: "tnum";
@@ -264,11 +259,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
 }
 .lb-cpill:not(.active):hover .lb-cpill-name { color: #555; }
 .lb-cpill.active .lb-cpill-name { color: #fff; }
-.lb-cpill.active.family-marin_dna      { background: #1f77b4; }
-.lb-cpill.active.family-conservation { background: #7f7f7f; }
-.lb-cpill.active.family-alphagenome  { background: #d62728; }
-.lb-cpill.active.family-gpn_star     { background: #9467bd; }
-.lb-cpill.active.family-evo2         { background: #ff7f0e; }
 /* Inset protocol chips — only rendered for selected multi-protocol families. */
 .lb-cpill-protos {
   display: inline-flex;
@@ -293,11 +283,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
 }
 .lb-cpill-proto:hover:not(.active) { background: rgba(255, 255, 255, 0.18); }
 .lb-cpill-proto.active { background: #fff; }
-.lb-cpill.family-marin_dna      .lb-cpill-proto.active { color: #1f77b4; }
-.lb-cpill.family-conservation .lb-cpill-proto.active { color: #7f7f7f; }
-.lb-cpill.family-alphagenome  .lb-cpill-proto.active { color: #d62728; }
-.lb-cpill.family-gpn_star     .lb-cpill-proto.active { color: #9467bd; }
-.lb-cpill.family-evo2         .lb-cpill-proto.active { color: #ff7f0e; }
 .lb-toggle-actions {
   margin-left: 6px;
   color: #888;
@@ -359,11 +344,6 @@ main > h1, main > h2, main > h3, main > p { max-width: 1200px; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.lb-pop-family.family-marin_dna      { background: #1f77b4; }
-.lb-pop-family.family-conservation { background: #7f7f7f; }
-.lb-pop-family.family-alphagenome  { background: #d62728; }
-.lb-pop-family.family-gpn_star     { background: #9467bd; }
-.lb-pop-family.family-evo2         { background: #ff7f0e; }
 .lb-pop-display { font-size: 0.98em; font-weight: 600; }
 .lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
 .lb-pop-specs { margin: 6px 0; }

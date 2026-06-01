@@ -1,0 +1,61 @@
+/* Global stylesheet for the MarinDNA leaderboard.
+ *
+ * Set via `style` in observablehq.config.js (which supersedes `theme`). We
+ * re-import the built-in `air` theme so the rest of the design is unchanged,
+ * then add the one thing that must be shared across every page: the family
+ * color palette.
+ *
+ * Why `air` (and not the `air,near-midnight` default): the default flips to
+ * dark on prefers-color-scheme: dark, but the heatmap and forest plot encode
+ * meaning in color (sequential YlGn on [0.1, 1.0], diverging RdYlGn for
+ * deltas) and only read against a light page.
+ *
+ * Single source of truth for family -> color. Used by the heatmap row
+ * swatches and the family pills/toggles on the leaderboard + protocol pages,
+ * the cards on the Models page, and the hover popover (which is appended to
+ * document.body, so it needs these rules globally). Adding a family? Add its
+ * `--family-<slug>` var and the two selector lines below — nowhere else. */
+@import url("observablehq:theme-air.css");
+
+:root {
+  --family-marin_dna: #1f77b4;
+  --family-conservation: #7f7f7f;
+  --family-alphagenome: #d62728;
+  --family-gpn_star: #9467bd;
+  --family-evo2: #ff7f0e;
+}
+
+/* Backgrounds: heatmap swatch (.lb-family-*), Models card pill (.family-*),
+ * active compound pill (.lb-cpill.active.family-*), popover badge
+ * (.lb-pop-family.family-*). */
+.lb-family-marin_dna,
+.family-marin_dna,
+.lb-cpill.active.family-marin_dna,
+.lb-pop-family.family-marin_dna { background: var(--family-marin_dna); }
+
+.lb-family-conservation,
+.family-conservation,
+.lb-cpill.active.family-conservation,
+.lb-pop-family.family-conservation { background: var(--family-conservation); }
+
+.lb-family-alphagenome,
+.family-alphagenome,
+.lb-cpill.active.family-alphagenome,
+.lb-pop-family.family-alphagenome { background: var(--family-alphagenome); }
+
+.lb-family-gpn_star,
+.family-gpn_star,
+.lb-cpill.active.family-gpn_star,
+.lb-pop-family.family-gpn_star { background: var(--family-gpn_star); }
+
+.lb-family-evo2,
+.family-evo2,
+.lb-cpill.active.family-evo2,
+.lb-pop-family.family-evo2 { background: var(--family-evo2); }
+
+/* Active protocol chip text color inside a selected compound pill. */
+.lb-cpill.family-marin_dna      .lb-cpill-proto.active { color: var(--family-marin_dna); }
+.lb-cpill.family-conservation .lb-cpill-proto.active { color: var(--family-conservation); }
+.lb-cpill.family-alphagenome  .lb-cpill-proto.active { color: var(--family-alphagenome); }
+.lb-cpill.family-gpn_star     .lb-cpill-proto.active { color: var(--family-gpn_star); }
+.lb-cpill.family-evo2         .lb-cpill-proto.active { color: var(--family-evo2); }
