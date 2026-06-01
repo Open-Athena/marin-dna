@@ -42,9 +42,9 @@ Spearman** of `alphagenome_max_l2` vs the dataset's `effect_size` over
 **positive variants only**. The metrics parquet then has a `metric` column
 (`AUPRC` / `pearson` / `spearman`) and no subset rows.
 
-> **API budget:** caQTL (84,820 variants) + dsQTL (27,346) is ~10× the
-> ~12K of mendelian_traits — one forward-strand call each. Budget the
-> wallclock accordingly and keep `num_workers` at 4 (rate-limit ceiling).
+> **API budget:** the train split alone is caQTL 41,382 + dsQTL 15,018
+> variants (~56K, ~5× mendelian_traits' ~11K) — one forward-strand call each.
+> Keep `num_workers` at 4 (rate-limit ceiling); a single 4-worker run is ~4 h.
 
 ## Outputs
 

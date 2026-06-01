@@ -38,6 +38,19 @@ ALPHAGENOME_TRACKS: tuple[str, ...] = (
 # ``dna_client.SUPPORTED_SEQUENCE_LENGTHS[f"SEQUENCE_LENGTH_{SEQUENCE_LENGTH}"]``.
 SEQUENCE_LENGTH: str = "1MB"
 
+# Transient gRPC status codes retried per variant. The SDK's `@retry_rpc` on
+# `score_variant` retries only {RESOURCE_EXHAUSTED, UNAVAILABLE}; AlphaGenome's
+# known server-side "bad machine" outages surface as INTERNAL (not retried by
+# default), which would abort a whole dataset. Stored as names and resolved to
+# `grpc.StatusCode` at call time so this module imports without grpc installed.
+SCORE_VARIANT_RETRY_STATUS: tuple[str, ...] = (
+    "INTERNAL",
+    "UNAVAILABLE",
+    "RESOURCE_EXHAUSTED",
+    "DEADLINE_EXCEEDED",
+)
+SCORE_VARIANT_MAX_ATTEMPTS: int = 10
+
 
 def make_scorers() -> tuple[list["_vs.CenterMaskScorer"], dict[str, str]]:
     """Build the 7 CenterMaskScorer(width=None, L2_DIFF_LOG1P) scorers.
@@ -135,26 +148,19 @@ def score_variants_alphagenome(
 
     # The SDK decorates `score_variant` with `@retry_rpc`, but its default
     # `retry_status_codes` is only {RESOURCE_EXHAUSTED, UNAVAILABLE} — it does
-    # NOT retry `INTERNAL`. AlphaGenome's known, maintainer-acknowledged
-    # "bad machine" backend outages surface precisely as
-    # `StatusCode.INTERNAL` ("Internal error encountered"; see the
-    # alphagenomecommunity.com "StatusCode.INTERNAL" thread), so a single
-    # bad-machine hit raises straight through and aborts the whole dataset
-    # (no per-variant recovery). Re-wrap with the SDK's own `retry_rpc`,
-    # widening the retry set to include INTERNAL (+ DEADLINE_EXCEEDED) and
-    # bumping attempts — each retry re-establishes the RPC and is routed to a
-    # (hopefully healthy) different backend machine. Reuses the SDK's tested
-    # exponential-backoff implementation rather than hand-rolling one.
+    # NOT retry INTERNAL, which is exactly how AlphaGenome's known,
+    # maintainer-acknowledged "bad machine" backend outages surface
+    # (alphagenomecommunity.com "StatusCode.INTERNAL" thread). Unretried, a
+    # single bad-machine hit aborts the whole dataset. Re-wrap with the SDK's
+    # own `retry_rpc` over the widened `SCORE_VARIANT_RETRY_STATUS` set so a
+    # retry re-establishes the RPC on a (hopefully healthy) different machine.
+    # (score_variant is already @retry_rpc-decorated; this outer wrapper is a
+    # superset of those codes, so the nesting is redundant-but-benign.)
     score_variant_with_retry = dna_client.retry_rpc(
         model.score_variant,
-        max_attempts=10,
+        max_attempts=SCORE_VARIANT_MAX_ATTEMPTS,
         retry_status_codes=frozenset(
-            {
-                grpc.StatusCode.INTERNAL,
-                grpc.StatusCode.UNAVAILABLE,
-                grpc.StatusCode.RESOURCE_EXHAUSTED,
-                grpc.StatusCode.DEADLINE_EXCEEDED,
-            }
+            getattr(grpc.StatusCode, name) for name in SCORE_VARIANT_RETRY_STATUS
         ),
     )
     sequence_length = dna_client.SUPPORTED_SEQUENCE_LENGTHS[

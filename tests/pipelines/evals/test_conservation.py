@@ -8,6 +8,7 @@ import pytest
 from marin_dna.pipelines.evals.conservation import (
     CONSERVATION_TRACKS,
     aggregate_conservation_metrics,
+    aggregate_conservation_qtl_metrics,
     score_variants_at_positions,
 )
 from marin_dna.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
@@ -129,6 +130,81 @@ def _scored_parquet(tmp_path, name, scores, labels, subsets, match_groups):
     )
     df.to_parquet(path, index=False)
     return path
+
+
+def _qtl_scored_parquet(tmp_path, name, scores, labels, effect_sizes):
+    """Write a fake qtl_global scored-variant parquet (no subset/match_group)."""
+    path = tmp_path / f"{name}.parquet"
+    n = len(scores)
+    df = pd.DataFrame(
+        {
+            "chrom": ["chr1"] * n,
+            "pos": list(range(1, n + 1)),
+            "ref": ["A"] * n,
+            "alt": ["T"] * n,
+            "label": labels,
+            "effect_size": effect_sizes,
+            "score": scores,
+        }
+    )
+    df.to_parquet(path, index=False)
+    return path
+
+
+def test_aggregate_conservation_qtl_metrics(tmp_path):
+    """qtl_global aggregation: per-track global AUPRC + positives-only
+    effect_size correlation, with the expected schema, NaN→0 fill, and a
+    metric × track markdown table."""
+    rng = np.random.default_rng(0)
+    n_pos, n_neg = 20, 80
+    labels = [True] * n_pos + [False] * n_neg
+    es_pos = rng.uniform(0.1, 2.0, n_pos)
+    # Positives carry effect_size; controls are NaN (the dsQTL case).
+    effect_sizes = list(es_pos) + [np.nan] * n_neg
+    # Track 1: positives' score == effect_size (perfect corr) + low controls;
+    # one control's score is NaN (filled with 0 by the aggregator, n_nan=1).
+    s1 = list(es_pos) + list(rng.uniform(0.0, 0.05, n_neg))
+    s1[n_pos] = np.nan  # first control
+    # Track 2: random scores.
+    s2 = list(rng.uniform(0, 1, n_pos + n_neg))
+    p1 = _qtl_scored_parquet(tmp_path, "phyloP_241m", s1, labels, effect_sizes)
+    p2 = _qtl_scored_parquet(tmp_path, "phastCons_43p", s2, labels, effect_sizes)
+
+    metrics, md = aggregate_conservation_qtl_metrics(
+        {"phyloP_241m": p1, "phastCons_43p": p2}, n_bootstrap=50
+    )
+
+    # 3 metrics × 2 tracks = 6 rows; QTL schema (metric col, no subset rows).
+    assert len(metrics) == 6
+    assert set(metrics["metric"]) == {"AUPRC", "pearson", "spearman"}
+    assert set(metrics["score_name"]) == {"phyloP_241m", "phastCons_43p"}
+    assert {
+        "metric",
+        "score_type",
+        "value",
+        "se",
+        "n_rows",
+        "n_pos",
+        "score_name",
+        "n_nan",
+        "n_total",
+    } <= set(metrics.columns)
+    assert (metrics["score_type"] == "score").all()
+
+    t1 = metrics[metrics["score_name"] == "phyloP_241m"]
+    assert int(t1["n_total"].iloc[0]) == n_pos + n_neg
+    assert int(t1["n_pos"].iloc[0]) == n_pos
+    assert int(t1["n_nan"].iloc[0]) == 1  # the single NaN score (filled with 0)
+    # Track 1: positives' score == effect_size → perfect corr; positives all
+    # outrank controls → AUPRC = 1.
+    assert t1[t1["metric"] == "pearson"]["value"].iloc[0] == pytest.approx(
+        1.0, abs=1e-9
+    )
+    assert t1[t1["metric"] == "AUPRC"]["value"].iloc[0] == pytest.approx(1.0, abs=1e-12)
+
+    assert "caQTL/dsQTL" in md
+    for tok in ("phyloP_241m", "phastCons_43p", "AUPRC", "pearson", "spearman"):
+        assert tok in md
 
 
 def test_aggregate_conservation_metrics_nan_accounting(tmp_path):
