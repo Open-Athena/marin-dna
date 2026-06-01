@@ -46,6 +46,16 @@ export const PROTOCOL_LABEL = {
 };
 export const protocolLabel = (p) => PROTOCOL_LABEL[p] ?? p;
 
+// Optional hover tooltip per protocol. Surfaces the underlying quantity for
+// renamed protocols on the leaderboard pills, which — unlike the Protocols
+// pages — carry no inline definition. Unlisted keys get no `title` (htl omits
+// the attribute when the value is null).
+export const PROTOCOL_TITLE = {
+  JSD: "Jensen-Shannon divergence (JSD)",
+  "JSD-FWD": "Jensen-Shannon divergence, forward strand only (JSD-FWD)",
+};
+export const protocolTitle = (p) => PROTOCOL_TITLE[p] ?? null;
+
 // Combined family selector + per-family protocol toggle. Each family renders
 // one compound pill; selecting a family reveals its protocol chips inset inside
 // the same colored pill (only for families with ≥2 protocols — single-protocol
@@ -90,6 +100,7 @@ export function FamilyProtocolToggle(allFamilies, options, defaults, initial = a
                 type="button"
                 class=${`lb-cpill-proto${protocols[f] === p ? " active" : ""}`}
                 aria-pressed=${protocols[f] === p ? "true" : "false"}
+                title=${protocolTitle(p)}
                 onclick=${() => { protocols[f] = p; render(); fire(); }}
               >${protocolLabel(p)}</button>`)}</span>`
             : null}
