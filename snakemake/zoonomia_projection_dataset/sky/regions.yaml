@@ -1,12 +1,18 @@
 name: zoonomia-regions
 
-# Per-anchor region-type annotation (rule all_region_labels).
+# Per-anchor region-type annotation. Target is selectable via $SNAKEMAKE_TARGET
+# (default all_region_labels = v3); pass all_region_labels_v4 for the issue #227
+# v4 partition.
 #
 # Produces, per conservation filter level (min0.10 and min0.20):
-#   - region_labels/min{min_p}.parquet         (per-anchor labels + frac_*)
-#   - region_labels/min{min_p}.composition.tsv (composition report)
+#   v3 (all_region_labels):
+#     - region_labels/min{min_p}.parquet            (per-anchor labels + frac_*)
+#     - region_labels/min{min_p}.composition.tsv    (composition report)
+#   v4 (all_region_labels_v4):
+#     - region_labels/v4/min{min_p}.parquet         (bp-priority + window-majority)
+#     - region_labels/v4/min{min_p}.composition.tsv
 # And, for the project_min_p level only (min0.20):
-#   - subsets_def/v3_<label>.query_names.txt   (6 lists for the partition)
+#   - subsets_def/{v3,v4}_<label>.query_names.txt   (6 lists for the partition)
 #
 # Compute profile: c6id.4xlarge mirrors sky/validation.yaml. The bedtools
 # coverage step on 22.9M anchors × multiple region BEDs is mostly bound by
@@ -14,9 +20,12 @@ name: zoonomia-regions
 # unions; mem_mb=24000 in the rule covers it on a 32 GB box.
 #
 # Cluster pattern (memo: cloud_launch_conventions, sky_cluster_reuse):
-#   sky launch -c zoonomia-regions sky/regions.yaml
-#   sky exec   zoonomia-regions   sky/regions.yaml   # subsequent iterations
+#   sky launch -c zoonomia-regions sky/regions.yaml                              # v3
+#   sky exec   zoonomia-regions   sky/regions.yaml --env SNAKEMAKE_TARGET=all_region_labels_v4
 #   sky down   zoonomia-regions                       # only at session end
+
+envs:
+    SNAKEMAKE_TARGET: all_region_labels
 
 resources:
     infra: aws/us-east-2
@@ -64,14 +73,14 @@ run: |
     uv run snakemake --profile workflow/profiles/default \
         --printshellcmds \
         --rerun-incomplete \
-        -n all_region_labels
+        -n "$SNAKEMAKE_TARGET"
 
     # Real run.
     uv run snakemake --profile workflow/profiles/default \
         --use-conda \
         --printshellcmds \
         --rerun-incomplete \
-        all_region_labels
+        "$SNAKEMAKE_TARGET"
 
     # Composition TSVs are uploaded to S3 by snakemake; fetch them from
     # there for inspection (the cluster image doesn't ship awscli, and
