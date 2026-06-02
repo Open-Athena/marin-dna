@@ -100,19 +100,25 @@ run: |
         SNAKEMAKE_EXTRA+=(--config "commit_sha=$COMMIT_SHA")
     fi
 
+    # NOTE: ${SNAKEMAKE_EXTRA[@]} (which may be `--config commit_sha=...`) must
+    # NOT be the last option before the positional targets — Snakemake's
+    # `--config` greedily consumes following tokens as name=value pairs and
+    # would choke on the target paths. Keep it right after --profile so the
+    # subsequent flags bound it.
+
     # Dry-run gate first — verify only HF-related rules are scheduled.
     uv run snakemake --profile workflow/profiles/default \
+        "${SNAKEMAKE_EXTRA[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
-        "${SNAKEMAKE_EXTRA[@]}" \
         -n $UPLOAD_TARGETS
 
     # Real run.
     uv run snakemake --profile workflow/profiles/default \
+        "${SNAKEMAKE_EXTRA[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
         --rerun-incomplete \
-        "${SNAKEMAKE_EXTRA[@]}" \
         $UPLOAD_TARGETS
