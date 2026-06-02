@@ -33,6 +33,17 @@ from marin_dna.pipelines.evals.models import ALL_DATASETS, Model, models_for_dat
 S3 = "s3://oa-bolinas"
 SPLIT = "train"
 
+# Datasets emitted by the `qtl_global` eval path (snakemake `eval_protocol:
+# qtl_global`, PR #217). DART-Eval Task-5 caQTL / dsQTL: no matching and no
+# subsetting, so the metrics parquet is keyed by `metric` (AUPRC / pearson /
+# spearman) × score_type rather than by consequence `subset`. AUPRC is global
+# over all variants; pearson/spearman are score-vs-`effect_size` over positives
+# only. `fetch_method_metrics` branches on this set because the matched-pair
+# row shaping (subset / n_groups / macro-avg) doesn't apply. Declared here in
+# the dashboard-side aggregator rather than read from the pipeline config —
+# the two dataset names are stable and this keeps the loader self-contained.
+QTL_DATASETS: frozenset[str] = frozenset({"caqtl", "dsqtl"})
+
 # `family: gpn_star` AUPRC metrics live on a gist commit (issue #145, last
 # comment) — one parquet per dataset with V/M/P stacked and a `model`
 # column to filter on. Polars `read_parquet` handles https URLs natively
@@ -79,21 +90,35 @@ PROTOCOLS: dict[str, dict[str, dict[str, str]]] = {
         # leaderboards' protocol toggle (see `PROTOCOL_OPTIONS` in
         # `dashboard/src/components/controls.js`). The `_rc` columns are
         # still in the parquet for diagnostics but aren't surfaced.
+        # QTL datasets (caqtl/dsqtl) carry `score_protocol: abs_llr` — an
+        # unsigned magnitude, since QTL effects have no pathogenicity
+        # direction — so LLR picks `abs_llr_avg` (like complex_traits), not
+        # `minus_llr_avg`. The metrics parquet stacks AUPRC + pearson +
+        # spearman per score_type; `fetch_method_metrics` selects the score
+        # column here and keeps all three metric rows.
         "LLR": {
             "mendelian_traits": "minus_llr_avg",
             "complex_traits": "abs_llr_avg",
+            "caqtl": "abs_llr_avg",
+            "dsqtl": "abs_llr_avg",
         },
         "JSD": {
             "mendelian_traits": "jsd_avg",
             "complex_traits": "jsd_avg",
+            "caqtl": "jsd_avg",
+            "dsqtl": "jsd_avg",
         },
         "LLR-FWD": {
             "mendelian_traits": "minus_llr_fwd",
             "complex_traits": "abs_llr_fwd",
+            "caqtl": "abs_llr_fwd",
+            "dsqtl": "abs_llr_fwd",
         },
         "JSD-FWD": {
             "mendelian_traits": "jsd_fwd",
             "complex_traits": "jsd_fwd",
+            "caqtl": "jsd_fwd",
+            "dsqtl": "jsd_fwd",
         },
     },
     "conservation": {
@@ -189,9 +214,17 @@ def fetch_method_metrics(
     method: Model, dataset: str, protocol: str | None = None
 ) -> pl.DataFrame:
     """Return rows ``[subset, value, se, n, n_positives]`` for one
-    ``(method, dataset, protocol)`` — including the ``_global_`` and
-    ``_macro_avg_`` aggregate rows. See ``normalized_rows`` for the
-    column semantics.
+    ``(method, dataset, protocol)``.
+
+    Matched-pair datasets (mendelian_traits, complex_traits) emit one row per
+    consequence ``subset`` plus the ``_global_`` / ``_macro_avg_`` aggregates;
+    ``subset`` carries the consequence name and ``n`` is total variants (or K
+    on the macro row). QTL datasets (``caqtl`` / ``dsqtl`` — the
+    ``qtl_global`` eval path, see ``QTL_DATASETS``) have no subsets: the source
+    parquet is keyed by ``metric`` ∈ {AUPRC, pearson, spearman}, so ``subset``
+    is overloaded to carry the metric name, ``n`` = ``n_rows`` (all variants
+    for AUPRC, positives only for the correlations) and ``n_positives`` =
+    ``n_pos``. See ``normalized_rows`` for the column semantics.
 
     When ``protocol`` is ``None``, defaults to ``DEFAULT_PROTOCOL[family]``.
     """
@@ -225,6 +258,25 @@ def fetch_method_metrics(
             f"{protocol!r} (score_type={score_type!r}) in {path}. The pipeline "
             f"may need to be re-run with this protocol included."
         )
+    if dataset in QTL_DATASETS:
+        # QTL schema: one row per metric (AUPRC / pearson / spearman), no
+        # subset / no n_groups / no macro-avg. Overload `subset` to carry the
+        # metric name so the long-form row schema stays uniform; the dashboard
+        # QTL page renders one method-row per metric and a metric-selector pill
+        # picks the active one. `n_rows` is all variants for AUPRC, positives
+        # only for the correlations — carry both straight through. Early-return
+        # so the matched-pair `n_groups` shaping below (absent from QTL
+        # parquets) is never reached.
+        assert {"metric", "n_rows", "n_pos"} <= set(df.columns), (
+            f"QTL parquet for {method.id!r}/{dataset!r} missing expected "
+            f"columns; got {df.columns}"
+        )
+        df = df.with_columns(
+            pl.col("metric").alias("subset"),
+            pl.col("n_rows").alias("n"),
+            pl.col("n_pos").alias("n_positives"),
+        )
+        return df.select(["subset", "value", "se", "n", "n_positives"])
     df = df.with_columns(
         pl.when(pl.col("subset") == MACRO_AVG_SUBSET)
         .then(pl.col("n_groups"))
@@ -250,15 +302,19 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
       - ``method_display``  — ``Model.display``
       - ``family``          — ``Model.family``
       - ``protocol``        — protocol name (e.g. ``LLR``, ``JSD``, ``cLLR``)
-      - ``subset``          — consequence subset OR ``_global_`` / ``_macro_avg_``
-      - ``value``           — AUPRC
-      - ``se``              — cluster-bootstrap SE
+      - ``subset``          — consequence subset OR ``_global_`` /
+        ``_macro_avg_`` (matched-pair); the metric name ``AUPRC`` /
+        ``pearson`` / ``spearman`` for QTL datasets.
+      - ``value``           — AUPRC (matched-pair, and QTL ``AUPRC`` rows) or
+        the score-vs-effect_size correlation (QTL ``pearson`` / ``spearman``).
+      - ``se``              — cluster-bootstrap SE (row bootstrap for QTL).
       - ``n``               — total variants in the subset (positives +
         matched negatives), except on the ``_macro_avg_`` row where it
-        carries K = number of qualifying subsets.
+        carries K = number of qualifying subsets. For QTL, ``n_rows`` (all
+        variants for AUPRC, positives only for the correlations).
       - ``n_positives``     — positives in the subset (= ``n_groups`` from
-        the source AUPRC parquet); K on the macro row. Drives the
-        dashboard's ≥30-positives display threshold; never rendered.
+        the source AUPRC parquet); K on the macro row; ``n_pos`` for QTL.
+        Drives the dashboard's ≥30-positives display threshold; never rendered.
     """
     # Soft-fail surface, intentionally narrow: only the two legitimate
     # "no data for this protocol yet" exception types.

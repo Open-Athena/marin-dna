@@ -84,3 +84,134 @@ def test_dna_format_build_preprocessor_returns_dna_batch_tokenizer():
     assert proc.text_field == "sequence"
     assert proc.lowercase_weight == 0.01
     assert proc.uppercase_weight == 1.0
+
+
+# ---------------------------------------------------------------------------
+# dataset_for_component monkey-patch (the train-time dispatch fix)
+# ---------------------------------------------------------------------------
+
+
+def test_dataset_for_component_patch_installed_on_import():
+    """Importing the formats module patches ``dataset_for_component``.
+
+    The released ``marin-levanter`` doesn't know ``DNALmDatasetFormat`` at
+    train-time dispatch; ``_install_dataset_for_component_patch`` (run on
+    import) adds the branch. Marker attribute confirms it's our wrapper.
+    """
+    import levanter.data.text.datasets as datasets
+
+    assert getattr(datasets.dataset_for_component, "_marin_dna_patched", False), (
+        "dataset_for_component is not the marin_dna-patched wrapper"
+    )
+
+
+def test_dataset_for_component_patch_is_idempotent():
+    """Re-running the installer must not double-wrap (wraps the *original*)."""
+    import levanter.data.text.datasets as datasets
+
+    before = datasets.dataset_for_component
+    _formats_module._install_dataset_for_component_patch()
+    after = datasets.dataset_for_component
+    assert before is after, "installer re-wrapped an already-patched function"
+
+
+def test_dataset_for_component_routes_dna_format(monkeypatch):
+    """A ``DNALmDatasetFormat`` component routes through ``TokenSeqDataset``
+    (with ``loss_weights_key='loss_weight'``) wrapped in ``CausalLmDataset``.
+
+    Stubs ``TokenSeqDataset`` / ``CausalLmDataset`` so the test asserts the
+    dispatch wiring without building a real cache.
+    """
+    import levanter.data.text.datasets as datasets
+
+    captured: dict = {}
+
+    class _StubTokenSeq:
+        def __init__(self, cache, seq_len, loss_weights_key=None):
+            captured["loss_weights_key"] = loss_weights_key
+            captured["seq_len"] = seq_len
+
+    class _StubCausal:
+        def __init__(self, inner, Pos, *, eos_id, block_cross_document_attention):
+            captured["inner"] = inner
+            captured["eos_id"] = eos_id
+
+    monkeypatch.setattr(datasets, "TokenSeqDataset", _StubTokenSeq)
+    monkeypatch.setattr(datasets, "CausalLmDataset", _StubCausal)
+
+    class _Pos:
+        size = 256
+
+    class _Component:
+        format = DNALmDatasetFormat(text_key="sequence")
+
+    out = datasets.dataset_for_component(
+        _Component(),
+        _Pos(),
+        cache=object(),
+        eos_id=7,
+        block_cross_document_attention=True,
+    )
+    assert isinstance(out, _StubCausal)
+    assert captured["loss_weights_key"] == "loss_weight", (
+        "DNA branch must read the per-token 'loss_weight' key written by "
+        "DNABatchTokenizer"
+    )
+    assert captured["seq_len"] == 256
+    assert captured["eos_id"] == 7
+    assert isinstance(captured["inner"], _StubTokenSeq)
+
+
+def test_dataset_for_component_passes_through_non_dna(monkeypatch):
+    """Non-DNA formats must delegate to the original implementation, not the
+    DNA branch.
+
+    We make the DNA-branch constructors explode; a non-DNA component must
+    therefore reach ``original(...)`` instead. The original raises on a bare
+    ``object()`` format (it's not one of the four upstream-known classes),
+    which is exactly the delegation we want to prove — the error comes from
+    upstream, not our ``_boom`` stubs.
+    """
+    import levanter.data.text.datasets as datasets
+
+    def _boom(*a, **k):
+        raise AssertionError("non-DNA format wrongly routed through DNA branch")
+
+    monkeypatch.setattr(datasets, "TokenSeqDataset", _boom)
+    monkeypatch.setattr(datasets, "CausalLmDataset", _boom)
+
+    class _NonDnaComponent:
+        format = object()  # not a DNALmDatasetFormat
+
+    # If the wrapper wrongly took the DNA branch, _boom raises AssertionError.
+    # Correct delegation reaches the original, which rejects the unknown format
+    # with a non-AssertionError exception.
+    with pytest.raises(Exception) as excinfo:
+        datasets.dataset_for_component(
+            _NonDnaComponent(),
+            object(),
+            cache=object(),
+            eos_id=0,
+            block_cross_document_attention=False,
+        )
+    assert not isinstance(excinfo.value, AssertionError), (
+        "non-DNA format was routed through the DNA branch instead of delegating"
+    )
+
+
+def test_patch_canary_does_not_false_fire_on_current_upstream():
+    """The 'upstream added a DNA branch' canary must not trip on the pinned
+    marin-levanter (which has no DNA branch). If this fails, either upstream
+    changed (good — drop the patch) or the canary logic regressed."""
+    import inspect
+
+    import levanter.data.text.datasets as datasets
+
+    # The currently-installed fn is our wrapper; the canary inspects the
+    # *original*. Re-running the installer is a no-op (idempotent) and must not
+    # raise — which it would if the canary saw 'DNALmDatasetFormat' in upstream.
+    _formats_module._install_dataset_for_component_patch()  # must not raise
+    # Belt-and-suspenders: confirm our marker is the only DNA reference path.
+    assert getattr(datasets.dataset_for_component, "_marin_dna_patched", False)
+    # Sanity that inspect.getsource works in this env (the canary depends on it).
+    assert inspect.getsource(datasets.dataset_for_component)

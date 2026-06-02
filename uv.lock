@@ -976,6 +976,18 @@ wheels = [
 ]
 
 [[package]]
+name = "dupekit"
+version = "0.1.0"
+source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/dupekit-0.1.0-40ac799" }
+sdist = { url = "https://github.com/marin-community/marin/releases/download/dupekit-0.1.0-40ac799/dupekit-0.1.0.tar.gz" }
+wheels = [
+    { url = "https://github.com/marin-community/marin/releases/download/dupekit-0.1.0-40ac799/dupekit-0.1.0-cp311-abi3-manylinux_2_28_aarch64.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/dupekit-0.1.0-40ac799/dupekit-0.1.0-cp311-abi3-manylinux_2_28_x86_64.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/dupekit-0.1.0-40ac799/dupekit-0.1.0-cp311-abi3-macosx_10_12_x86_64.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/dupekit-0.1.0-40ac799/dupekit-0.1.0-cp311-abi3-macosx_11_0_arm64.whl" },
+]
+
+[[package]]
 name = "einops"
 version = "0.8.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2071,7 +2083,7 @@ wheels = [
 
 [[package]]
 name = "marin"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-latest" }
 dependencies = [
     { name = "backports-zstd", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2116,7 +2128,7 @@ dependencies = [
     { name = "warcio", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-latest/marin-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-latest/marin-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [package.optional-dependencies]
@@ -2167,6 +2179,7 @@ dependencies = [
 
 [package.optional-dependencies]
 marin = [
+    { name = "dupekit", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "lm-eval", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "marin", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "marin-iris", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2209,6 +2222,7 @@ requires-dist = [
     { name = "biopython", specifier = ">=1.85" },
     { name = "cyvcf2" },
     { name = "datasets" },
+    { name = "dupekit", marker = "extra == 'marin'" },
     { name = "einops" },
     { name = "huggingface-hub" },
     { name = "jaxtyping" },
@@ -2264,7 +2278,7 @@ genome-s3 = [{ name = "s3fs", specifier = ">=2024" }]
 
 [[package]]
 name = "marin-finelog"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-finelog-latest" }
 dependencies = [
     { name = "click", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2282,12 +2296,12 @@ dependencies = [
     { name = "zstandard", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-finelog-latest/marin_finelog-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-finelog-latest/marin_finelog-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [[package]]
 name = "marin-fray"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-fray-latest" }
 dependencies = [
     { name = "click", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2307,12 +2321,12 @@ dependencies = [
     { name = "zstandard", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-fray-latest/marin_fray-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-fray-latest/marin_fray-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [[package]]
 name = "marin-haliax"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-haliax-latest" }
 dependencies = [
     { name = "aqtp", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2323,12 +2337,12 @@ dependencies = [
     { name = "safetensors", version = "0.6.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-haliax-latest/marin_haliax-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-haliax-latest/marin_haliax-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [[package]]
 name = "marin-iris"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-iris-latest" }
 dependencies = [
     { name = "click", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2355,12 +2369,12 @@ dependencies = [
     { name = "zstandard", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-iris-latest/marin_iris-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-iris-latest/marin_iris-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [[package]]
 name = "marin-levanter"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-levanter-latest" }
 dependencies = [
     { name = "async-lru", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2402,7 +2416,7 @@ dependencies = [
     { name = "zstandard", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-levanter-latest/marin_levanter-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-levanter-latest/marin_levanter-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [package.optional-dependencies]
@@ -2414,20 +2428,21 @@ serve = [
 
 [[package]]
 name = "marin-rigging"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-rigging-latest" }
 dependencies = [
+    { name = "connect-python", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "fsspec", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "gcsfs", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "s3fs", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-rigging-latest/marin_rigging-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-rigging-latest/marin_rigging-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [[package]]
 name = "marin-zephyr"
-version = "0.99.dev20260520"
+version = "0.99.dev20260529"
 source = { registry = "https://github.com/marin-community/marin/releases/expanded_assets/marin-zephyr-latest" }
 dependencies = [
     { name = "braceexpand", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2447,7 +2462,7 @@ dependencies = [
     { name = "zstandard", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 wheels = [
-    { url = "https://github.com/marin-community/marin/releases/download/marin-zephyr-latest/marin_zephyr-0.99.dev20260520-py3-none-any.whl" },
+    { url = "https://github.com/marin-community/marin/releases/download/marin-zephyr-latest/marin_zephyr-0.99.dev20260529-py3-none-any.whl" },
 ]
 
 [[package]]
