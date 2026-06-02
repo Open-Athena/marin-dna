@@ -28,11 +28,11 @@ window (256 tokens with BOS), same as the real per-region runs.
 Launch from a CPU box with an iris tunnel open (see ``experiments/README.md``):
 
     uv run iris --cluster=marin job run \\
-        --no-wait --user gonzalo --job-name exp225-auprc-parity \\
+        --no-wait --user gonzalo --job-name issue225-auprc-parity \\
         --cpu 1 --memory 2g --extra marin --region us-east5 \\
         -e WANDB_API_KEY "$(grep -A2 api.wandb.ai ~/.netrc | grep password | awk '{print $2}')" \\
         -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \\
-        -- python experiments/parity/exp225_online_auprc_parity.py
+        -- python experiments/parity/issue225_online_auprc_parity.py
 """
 
 import os
