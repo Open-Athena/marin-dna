@@ -2,11 +2,17 @@ task: mendelian_traits_255
 class: !function dna_vep_llr_eval.DnaVepLlrEvalTask
 dataset_path: bolinas-dna/evals_mendelian_traits_harness_255
 dataset_name: default
+# Pin the HF dataset commit so the eval is reproducible and the dataset can't
+# silently change under it (it did: 1:1 → 1:9 re-upload on 2026-05-19, #194).
+# Bump this deliberately when the harness dataset is intentionally updated.
+dataset_revision: 7b92f047f9a36f90e9ac47886afa2a99264ee35c
 # "train" encompasses both training and validation variants in the original dataset.
 test_split: train
 llr_transform: negate
-# PairwiseAccuracy ± SE — same metric as snakemake/analysis/evals_v2/. Per-variant
-# scores are averaged across the two strand-tagged rows (FWD + RC) before the
-# metric is computed (see dna_vep_llr_eval._PairwiseAccuracyAggregation).
+# AUPRC ± cluster-bootstrap SE — same metric (and same n_bootstrap/seed) as
+# snakemake/analysis/evals_v2/, so the online number is directly comparable to
+# the offline parquet. Per-variant raw LLR is averaged across the two strand-
+# tagged rows (FWD + RC) and then transformed before AUPRC (see
+# dna_vep_llr_eval._collapse_variants / _AuprcAggregation).
 metrics:
-  - pairwise_accuracy
+  - auprc

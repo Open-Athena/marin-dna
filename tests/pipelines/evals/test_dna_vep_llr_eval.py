@@ -4,131 +4,247 @@
 """Tests for the lm_eval task class ``DnaVepLlrEvalTask``.
 
 Pin down the per-strand + AVG aggregation logic — the load-bearing piece for
-#179 parity with the offline batched VEP path. Avoids loading any HF dataset;
-the tests construct synthetic doc dicts and call ``process_results`` /
-``aggregation`` directly.
+parity with the offline ``snakemake/analysis/evals_v2/`` batched VEP path
+(#225: FWD/RC-avg + AUPRC). Avoids loading any HF dataset; the tests construct
+synthetic per-variant rows and call the collapse helper / aggregation directly.
 """
 
 import math
 
+import numpy as np
 import pytest
 
 pytest.importorskip("lm_eval", reason="install with `uv sync --extra marin` to run")
 
 from marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval import (  # noqa: E402
+    _BOOTSTRAP_SEED,
+    _MIN_GROUPS_PER_SUBSET,
+    _N_BOOTSTRAP,
+    LLR_TRANSFORMS,
     METRIC_REGISTRY,
-    _PairwiseAccuracyAggregation,
+    _AuprcAggregation,
+    _collapse_variants,
 )
+from marin_dna.pipelines.evals.metrics import (  # noqa: E402
+    compute_auprc_metrics,
+)
+
+_NEGATE = LLR_TRANSFORMS["negate"]
+_IDENTITY = LLR_TRANSFORMS["identity"]
 
 
 def _items_from_per_variant(per_variant_rows):
     """Flatten per-variant rows into the
-    (score, target, subset, variant_id, match_group, strand) tuples that
-    ``DnaVepLlrEvalTask.aggregation()`` consumes.
+    (llr, target, subset, variant_id, match_group, strand) tuples that
+    ``DnaVepLlrEvalTask.aggregation()`` consumes. The first element is the
+    **raw** LLR (the transform is applied inside the aggregation).
 
     ``per_variant_rows`` is a list of
-        (variant_id, target, subset, match_group, strand_to_score)
-    where ``strand_to_score`` is a dict ``{"+": s}`` or ``{"+": s, "-": s}``.
+        (variant_id, target, subset, match_group, strand_to_llr)
+    where ``strand_to_llr`` is a dict ``{"+": llr}`` or ``{"+": llr, "-": llr}``.
     """
     items = []
-    for variant_id, target, subset, match_group, strand_to_score in per_variant_rows:
-        for strand, s in strand_to_score.items():
-            items.append((s, target, subset, variant_id, match_group, strand))
+    for variant_id, target, subset, match_group, strand_to_llr in per_variant_rows:
+        for strand, llr in strand_to_llr.items():
+            items.append((llr, target, subset, variant_id, match_group, strand))
     return items
 
 
-def _run_aggregation(items, metric_name="pairwise_accuracy", task_name=None):
+def _run_aggregation(
+    items, *, transform=_IDENTITY, metric_name="auprc", task_name=None
+):
     store: dict[str, float] = {}
-    agg = _PairwiseAccuracyAggregation(
-        results_store=store, metric_name=metric_name, task_name=task_name
+    agg = _AuprcAggregation(
+        results_store=store,
+        metric_name=metric_name,
+        llr_transform=transform,
+        task_name=task_name,
     )
     scalar = agg(items)
     return scalar, store
 
 
-def test_metric_registry_has_pairwise_accuracy():
-    assert "pairwise_accuracy" in METRIC_REGISTRY
-    assert METRIC_REGISTRY["pairwise_accuracy"]["higher_is_better"] is True
+# --------------------------------------------------------------------------- #
+# Registry
+# --------------------------------------------------------------------------- #
+def test_metric_registry_has_auprc():
+    assert "auprc" in METRIC_REGISTRY
+    assert METRIC_REGISTRY["auprc"]["higher_is_better"] is True
+    # PA was retired here in #225 (invalid on the 1:9 matched-pair dataset).
+    assert "pairwise_accuracy" not in METRIC_REGISTRY
 
 
-def test_one_strand_per_variant_emits_only_avg():
-    """1-strand dataset: only the avg keys are emitted (avg == single-strand score).
+# --------------------------------------------------------------------------- #
+# _collapse_variants — raw-LLR averaging, then transform; column shape
+# --------------------------------------------------------------------------- #
+def test_collapse_one_strand_emits_only_avg_column():
+    items = _items_from_per_variant(
+        [
+            (("1", 100, "G", "A"), 1, "missense", 1, {"+": -2.0}),
+            (("1", 200, "T", "A"), 0, "missense", 1, {"+": 0.5}),
+        ]
+    )
+    df, score_columns = _collapse_variants(items, _IDENTITY)
+    assert score_columns == ["score_avg"]
+    assert set(df.columns) == {"label", "subset", "match_group", "score_avg"}
+    assert len(df) == 2
 
-    No fwd/rc keys because they would be redundant with avg. 4 perfectly-separable
-    matched pairs (in 30+ pairs to satisfy macro_avg n_min=30) => global PA = 1.0.
-    """
-    per_variant: list = []
-    for i in range(30):
-        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.9}))
-        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.1}))
+
+def test_collapse_two_strands_emits_fwd_rc_avg_columns():
+    items = _items_from_per_variant(
+        [
+            (("1", 100, "G", "A"), 1, "missense", 1, {"+": -2.0, "-": -1.0}),
+            (("1", 200, "T", "A"), 0, "missense", 1, {"+": 0.5, "-": 0.1}),
+        ]
+    )
+    df, score_columns = _collapse_variants(items, _IDENTITY)
+    assert score_columns == ["score_fwd", "score_rc", "score_avg"]
+    assert set(df.columns) == {
+        "label",
+        "subset",
+        "match_group",
+        "score_fwd",
+        "score_rc",
+        "score_avg",
+    }
+
+
+def test_collapse_averages_raw_llr_then_transforms_negate():
+    """``score_avg`` = transform(mean raw LLR), not mean(transform(LLR))."""
+    items = _items_from_per_variant(
+        [(("1", 100, "G", "A"), 1, "missense", 1, {"+": -3.0, "-": -1.0})]
+    )
+    df, _ = _collapse_variants(items, _NEGATE)
+    row = df.iloc[0]
+    # mean raw LLR = -2.0; negate => +2.0
+    assert row["score_avg"] == pytest.approx(2.0)
+    assert row["score_fwd"] == pytest.approx(3.0)  # -(-3)
+    assert row["score_rc"] == pytest.approx(1.0)  # -(-1)
+
+
+def test_collapse_average_before_abs_is_not_average_of_abs():
+    """The ordering pin: ``abs`` does NOT commute with averaging. With
+    llr_fwd=+2, llr_rc=-2 the raw mean is 0, so ``abs(mean)=0`` — whereas
+    ``mean(abs)`` would be 2. We must do raw-mean-then-transform (offline
+    ``abs_llr_avg`` semantics)."""
+    items = _items_from_per_variant(
+        [(("1", 100, "G", "A"), 1, "missense", 1, {"+": 2.0, "-": -2.0})]
+    )
+    df, _ = _collapse_variants(items, LLR_TRANSFORMS["abs"])
+    row = df.iloc[0]
+    assert row["score_avg"] == pytest.approx(0.0)  # abs(mean(+2,-2)) = abs(0)
+    assert row["score_fwd"] == pytest.approx(2.0)
+    assert row["score_rc"] == pytest.approx(2.0)
+
+
+# --------------------------------------------------------------------------- #
+# AUPRC values + exact parity with a direct compute_auprc_metrics call
+# --------------------------------------------------------------------------- #
+def test_perfectly_separable_global_auprc_is_one():
+    """Positives ranked strictly above negatives => global AUPRC = 1.0."""
+    per_variant = []
+    for i in range(_MIN_GROUPS_PER_SUBSET):
+        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 5.0}))
+        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.0}))
     items = _items_from_per_variant(per_variant)
     scalar, store = _run_aggregation(items)
-
     assert scalar == pytest.approx(1.0)
-    assert store["_global_/avg/pairwise_accuracy"] == pytest.approx(1.0)
-    assert store["missense/avg/pairwise_accuracy"] == pytest.approx(1.0)
-    assert store["_macro_avg_/avg/pairwise_accuracy"] == pytest.approx(1.0)
-    # No fwd/rc keys for 1-strand datasets.
-    fwd_keys = [k for k in store if "/fwd/" in k]
-    rc_keys = [k for k in store if "/rc/" in k]
-    assert fwd_keys == [], f"unexpected fwd keys for 1-strand dataset: {fwd_keys}"
-    assert rc_keys == [], f"unexpected rc keys for 1-strand dataset: {rc_keys}"
+    assert store["_global_/avg/auprc"] == pytest.approx(1.0)
+    assert store["missense/avg/auprc"] == pytest.approx(1.0)
+    assert store["_macro_avg_/avg/auprc"] == pytest.approx(1.0)
 
 
-def test_two_strands_per_variant_emits_fwd_rc_avg_separately():
-    """2-strand dataset: fwd / rc / avg PA all stored, avg returned as scalar.
+def test_aggregation_matches_direct_compute_auprc_metrics():
+    """The aggregation is faithful glue: every emitted (subset, strand) cell —
+    value AND cluster-bootstrap SE — equals a direct ``compute_auprc_metrics``
+    call on the collapsed frame (same n_bootstrap + seed => bit-identical)."""
+    rng = np.random.default_rng(123)
+    per_variant = []
+    # missense: 40 groups (1:1) — qualifying. Positives get lower raw LLR
+    # (pathogenic), so under `negate` (minus_llr) they score higher.
+    for i in range(40):
+        pos_llr = {"+": float(rng.normal(-2, 1)), "-": float(rng.normal(-2, 1))}
+        neg_llr = {"+": float(rng.normal(0, 1)), "-": float(rng.normal(0, 1))}
+        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, pos_llr))
+        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, neg_llr))
+    # tss: 35 groups (1:1) — qualifying, weaker signal.
+    for i in range(35):
+        pos_llr = {"+": float(rng.normal(-0.5, 1)), "-": float(rng.normal(-0.5, 1))}
+        neg_llr = {"+": float(rng.normal(0, 1)), "-": float(rng.normal(0, 1))}
+        per_variant.append((("2", 100 + i, "G", "A"), 1, "tss", 1000 + i, pos_llr))
+        per_variant.append((("2", 200 + i, "T", "A"), 0, "tss", 1000 + i, neg_llr))
+    items = _items_from_per_variant(per_variant)
 
-    Set up so:
-      - FWD scores would give PA = 0.5 (tied within each pair)
-      - RC scores would give PA = 1.0 (perfectly separable)
-      - AVG breaks the FWD tie in favor of the positive => AVG PA = 1.0
-    """
-    per_variant: list = []
-    for i in range(30):
+    df, score_columns = _collapse_variants(items, _NEGATE)
+    expected = compute_auprc_metrics(
+        dataset=df[["label", "subset", "match_group"]],
+        scores=df[score_columns],
+        score_columns=score_columns,
+        n_bootstrap=_N_BOOTSTRAP,
+        rng=_BOOTSTRAP_SEED,
+        n_min=_MIN_GROUPS_PER_SUBSET,
+    )
+
+    _, store = _run_aggregation(items, transform=_NEGATE)
+
+    for row in expected.to_dict("records"):
+        tag = row["score_type"].removeprefix("score_")
+        key = f"{row['subset']}/{tag}/auprc"
+        assert store[key] == pytest.approx(row["value"]), key
+        assert store[f"{key}_se"] == pytest.approx(row["se"]), f"{key}_se"
+    # Sanity: the strong subset out-scores the weak one and both beat baseline.
+    assert store["missense/avg/auprc"] > store["tss/avg/auprc"]
+    assert store["_global_/avg/auprc"] > 0.5
+
+
+def test_se_present_and_finite_for_each_strand():
+    per_variant = []
+    for i in range(_MIN_GROUPS_PER_SUBSET):
         per_variant.append(
-            (("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.5, "-": 0.9})
+            (("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": -2.0, "-": -1.5})
         )
         per_variant.append(
-            (("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.5, "-": 0.1})
+            (("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.2, "-": 0.4})
         )
     items = _items_from_per_variant(per_variant)
-    scalar, store = _run_aggregation(items)
-
-    # AVG breaks FWD ties => 1.0 globally
-    assert scalar == pytest.approx(1.0)
-    assert store["_global_/avg/pairwise_accuracy"] == pytest.approx(1.0)
-    # FWD: every pair tied => PA = 0.5
-    assert store["_global_/fwd/pairwise_accuracy"] == pytest.approx(0.5)
-    assert store["missense/fwd/pairwise_accuracy"] == pytest.approx(0.5)
-    # RC: perfectly separated => PA = 1.0
-    assert store["_global_/rc/pairwise_accuracy"] == pytest.approx(1.0)
-    assert store["missense/rc/pairwise_accuracy"] == pytest.approx(1.0)
-    # Macro-avg present for all three.
-    assert "_macro_avg_/fwd/pairwise_accuracy" in store
-    assert "_macro_avg_/rc/pairwise_accuracy" in store
-    assert "_macro_avg_/avg/pairwise_accuracy" in store
+    _, store = _run_aggregation(items, transform=_NEGATE)
+    for tag in ("fwd", "rc", "avg"):
+        assert f"_global_/{tag}/auprc" in store
+        assert f"_global_/{tag}/auprc_se" in store
+        assert math.isfinite(store[f"_global_/{tag}/auprc_se"])
 
 
-def test_two_strands_se_present_for_each():
-    """Each (subset, strand_tag) emits a paired ``..._se`` key."""
-    per_variant: list = []
-    for i in range(30):
+def test_per_subset_rows_below_n_min_groups_are_dropped():
+    """Per-subset cells with fewer than ``_MIN_GROUPS_PER_SUBSET`` match_groups
+    are NOT stored (leaderboard convention). ``_global_`` / ``_macro_avg_`` are
+    always stored."""
+    per_variant = []
+    for i in range(_MIN_GROUPS_PER_SUBSET):  # qualifying
         per_variant.append(
-            (("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.9, "-": 0.8})
+            (("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": -2.0})
+        )
+        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.5}))
+    for i in range(5):  # below threshold
+        per_variant.append(
+            (("2", 100 + i, "G", "A"), 1, "splicing", 1000 + i, {"+": -2.0})
         )
         per_variant.append(
-            (("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.1, "-": 0.2})
+            (("2", 200 + i, "T", "A"), 0, "splicing", 1000 + i, {"+": 0.5})
         )
     items = _items_from_per_variant(per_variant)
     _, store = _run_aggregation(items)
-    for tag in ("fwd", "rc", "avg"):
-        assert f"_global_/{tag}/pairwise_accuracy" in store
-        assert f"_global_/{tag}/pairwise_accuracy_se" in store
-        assert math.isfinite(store[f"_global_/{tag}/pairwise_accuracy_se"])
+
+    assert "missense/avg/auprc" in store
+    assert "splicing/avg/auprc" not in store
+    assert "splicing/avg/auprc_se" not in store
+    assert "_global_/avg/auprc" in store
+    assert "_macro_avg_/avg/auprc" in store
 
 
+# --------------------------------------------------------------------------- #
+# Defensive invariants (raised inside _collapse_variants)
+# --------------------------------------------------------------------------- #
 def test_inconsistent_target_within_variant_fails_loud():
-    """Two rows with the same variant_id but different targets must fail."""
     items = [
         (0.5, 1, "missense", ("1", 11, "G", "A"), 1, "+"),
         (0.6, 0, "missense", ("1", 11, "G", "A"), 1, "-"),  # contradicting target
@@ -156,7 +272,6 @@ def test_inconsistent_match_group_within_variant_fails_loud():
 
 
 def test_duplicate_strand_within_variant_fails_loud():
-    """Two rows with the same variant_id AND same strand must fail."""
     items = [
         (0.5, 1, "missense", ("1", 11, "G", "A"), 1, "+"),
         (0.6, 1, "missense", ("1", 11, "G", "A"), 1, "+"),  # duplicate strand
@@ -172,82 +287,24 @@ def test_unknown_strand_fails_loud():
 
 
 def test_heterogeneous_strand_sets_fails_loud():
-    """One variant has both strands, another only one — must fail.
-
-    A mixed dataset would silently make ``score_avg`` mean different things
-    across rows.
-    """
+    """One variant has both strands, another only one — must fail (a mixed
+    dataset would silently make ``score_avg`` mean different things)."""
     items = [
-        # variant A has both strands
         (0.5, 1, "missense", ("1", 11, "G", "A"), 1, "+"),
         (0.7, 1, "missense", ("1", 11, "G", "A"), 1, "-"),
-        # variant B has only "+"
         (0.3, 0, "missense", ("1", 12, "T", "A"), 1, "+"),
     ]
     with pytest.raises(AssertionError, match="has strands="):
         _run_aggregation(items)
 
 
-def test_per_subset_rows_with_n_below_30_are_dropped():
-    """Per-subset rows with fewer than 30 matched pairs are NOT stored
-    (leaderboard convention). ``_global_`` and ``_macro_avg_`` are always stored.
-    """
-    per_variant: list = []
-    # 30 pairs in "missense" — qualifying.
-    for i in range(30):
-        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.9}))
-        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.1}))
-    # 5 pairs in "splicing" — below threshold.
-    for i in range(5):
-        per_variant.append(
-            (("2", 100 + i, "G", "A"), 1, "splicing", 100 + i, {"+": 0.9})
-        )
-        per_variant.append(
-            (("2", 200 + i, "T", "A"), 0, "splicing", 100 + i, {"+": 0.1})
-        )
-    items = _items_from_per_variant(per_variant)
-    _, store = _run_aggregation(items)
-
-    # Qualifying subset is present.
-    assert "missense/avg/pairwise_accuracy" in store
-    # Below-threshold subset is dropped.
-    assert "splicing/avg/pairwise_accuracy" not in store
-    assert "splicing/avg/pairwise_accuracy_se" not in store
-    # Aggregate rows always emitted.
-    assert "_global_/avg/pairwise_accuracy" in store
-    assert "_macro_avg_/avg/pairwise_accuracy" in store
-
-
-def test_se_is_finite_and_consistent_with_wald():
-    """Standard error matches the Wald binomial form ``sqrt(p*(1-p)/n)``.
-
-    Uses 30 1-strand pairs (n_min=30 macro-avg gate) with 20 wins, 10 losses
-    => global AVG PA = 20/30.
-    """
-    per_variant: list = []
-    for i in range(20):
-        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.9}))
-        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.1}))
-    for i in range(20, 30):
-        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.1}))
-        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.9}))
-    items = _items_from_per_variant(per_variant)
-    scalar, store = _run_aggregation(items)
-    assert scalar == pytest.approx(20 / 30)
-    n_pairs = 30
-    expected_se = math.sqrt((20 / 30) * (1 - 20 / 30) / n_pairs)
-    assert store["_global_/avg/pairwise_accuracy_se"] == pytest.approx(expected_se)
-
-
+# --------------------------------------------------------------------------- #
+# Tracker push
+# --------------------------------------------------------------------------- #
 def test_aggregation_pushes_per_subset_to_levanter_tracker(monkeypatch):
     """All ``results_store`` entries are forwarded to ``levanter.tracker.log``
     under the ``lm_eval/<task_name>/<key>`` prefix so per-subset/per-strand cells
-    actually surface in wandb (lm-eval itself only logs the scalar return value).
-
-    Logged (not summary-only) so the wandb backend writes both run history —
-    making the cells available as workspace charts — and auto-fills the
-    summary panel from the latest logged value.
-    """
+    surface in wandb (lm-eval itself only logs the scalar return value)."""
     import levanter.tracker
 
     pushed: list[tuple[dict, int | None]] = []
@@ -257,16 +314,16 @@ def test_aggregation_pushes_per_subset_to_levanter_tracker(monkeypatch):
 
     monkeypatch.setattr(levanter.tracker, "log", fake_log)
 
-    per_variant: list = []
-    for i in range(30):
+    per_variant = []
+    for i in range(_MIN_GROUPS_PER_SUBSET):
         per_variant.append(
-            (("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.9, "-": 0.8})
+            (("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": -2.0, "-": -1.5})
         )
         per_variant.append(
-            (("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.1, "-": 0.2})
+            (("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.2, "-": 0.4})
         )
     items = _items_from_per_variant(per_variant)
-    _run_aggregation(items, task_name="mendelian_traits_255")
+    _run_aggregation(items, transform=_NEGATE, task_name="mendelian_traits_255")
 
     assert len(pushed) == 1
     payload, step = pushed[0]
@@ -275,7 +332,7 @@ def test_aggregation_pushes_per_subset_to_levanter_tracker(monkeypatch):
     assert step is None
     assert all(k.startswith("lm_eval/mendelian_traits_255/") for k in payload)
     expected = {
-        f"lm_eval/mendelian_traits_255/{sub}/{tag}/pairwise_accuracy"
+        f"lm_eval/mendelian_traits_255/{sub}/{tag}/auprc"
         for sub in ("_global_", "_macro_avg_", "missense")
         for tag in ("fwd", "rc", "avg")
     }
@@ -283,10 +340,7 @@ def test_aggregation_pushes_per_subset_to_levanter_tracker(monkeypatch):
 
 
 def test_aggregation_skips_tracker_push_without_task_name(monkeypatch):
-    """When constructed without a task_name (e.g. unit tests), keys are
-    prefixed with just ``lm_eval/`` — and tracker errors are swallowed
-    so a missing/noop tracker doesn't tank the eval.
-    """
+    """When the tracker raises (missing/noop), the eval must not crash."""
     import levanter.tracker
 
     def raising_log(payload, *, step=None, commit=None):
@@ -294,13 +348,12 @@ def test_aggregation_skips_tracker_push_without_task_name(monkeypatch):
 
     monkeypatch.setattr(levanter.tracker, "log", raising_log)
 
-    per_variant: list = []
-    for i in range(30):
-        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 0.9}))
-        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.1}))
+    # Separable under the default (identity) transform => global AUPRC = 1.0.
+    per_variant = []
+    for i in range(_MIN_GROUPS_PER_SUBSET):
+        per_variant.append((("1", 100 + i, "G", "A"), 1, "missense", i + 1, {"+": 5.0}))
+        per_variant.append((("1", 200 + i, "T", "A"), 0, "missense", i + 1, {"+": 0.0}))
     items = _items_from_per_variant(per_variant)
-    scalar, store = _run_aggregation(
-        items
-    )  # no task_name; tracker raises; must not crash
+    scalar, store = _run_aggregation(items)  # tracker raises; must not crash
     assert scalar == pytest.approx(1.0)
-    assert "_global_/avg/pairwise_accuracy" in store
+    assert "_global_/avg/auprc" in store
