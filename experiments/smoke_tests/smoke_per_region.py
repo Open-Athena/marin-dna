@@ -13,8 +13,8 @@ What it validates:
     + the 5 ``zoonomia-v1-val_*`` recipes.
   * Train loop runs end-to-end on v5p-8.
   * ``MENDELIAN_TRAITS_255`` lm-eval task fires at step 25 + 50, emits
-    ``_macro_avg_/avg/pairwise_accuracy``, ``_global_/avg/pairwise_accuracy``,
-    and per-subset cells under ``lm_eval/mendelian_traits_255/…`` in WandB.
+    ``_macro_avg_/avg/auprc``, ``_global_/avg/auprc``, and per-subset cells
+    under ``lm_eval/mendelian_traits_255/…`` in WandB (AUPRC since #225).
   * The 5 LL-gap traces appear in WandB.
   * HF checkpoint lands at ``<output_path>/hf/step-25/`` and ``step-50/`` with
     ``config.json`` + ``model.safetensors`` + ``tokenizer.json``. Sanity-load
@@ -47,7 +47,7 @@ from levanter.main.train_lm import TrainLmConfig
 from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
 from levanter.utils.mesh import MeshConfig
-from marin.execution.executor import ExecutorStep, executor_main, this_output_path
+from marin.execution import ExecutorStep, executor_main, this_output_path
 from marin.execution.remote import remote
 from marin.training.training import TrainLmOnPodConfig
 

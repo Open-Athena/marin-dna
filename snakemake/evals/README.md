@@ -313,7 +313,8 @@ and emit **two output rows per input variant** — one per strand:
 | `target` | Binary label (renamed from `label`; identical across the two strand rows). |
 
 Two-row layout exists so the online lm_eval VEP scorer (`marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval`)
-averages per-strand LLRs per variant before computing PairwiseAccuracy — the
+averages each variant's raw LLR across the two strands before computing AUPRC
+(migrated from PairwiseAccuracy in #225) — the
 FWD+RC averaging documented as #175 conclusion 2 (mirrors `snakemake/analysis/evals_v2/`'s
 `inference.rc_avg=true`). Rows are sorted by `(chrom, pos, ref, alt, strand)`
 so per-variant strand pairs are adjacent.

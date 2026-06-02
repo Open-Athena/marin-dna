@@ -15,17 +15,12 @@ top-level README).
 
 ## Launch
 
-Open an IAP tunnel to the iris controller (port-forward, no shell):
+`--cluster=marin` resolves the named cluster config and **auto-establishes the
+controller tunnel** (SSH-through-IAP) — no manual port-forward needed. Just make
+sure `gcloud` is authed first (`gcloud auth login`):
 
 ```bash
-gcloud compute start-iap-tunnel iris-controller-marin 10000 \
-  --local-host-port=localhost:10000 --zone=us-central1-a
-```
-
-Then submit:
-
-```bash
-uv run iris --controller-url=http://localhost:10000 --cluster=marin job run \
+uv run iris --cluster=marin job run \
   --no-wait \
   --user gonzalo \
   --job-name <descriptive-name> \
@@ -38,6 +33,17 @@ uv run iris --controller-url=http://localhost:10000 --cluster=marin job run \
   -- python experiments/<your-script>.py
 ```
 
+- **Don't** use `gcloud compute start-iap-tunnel … 10000`: the IAP firewall only
+  allows port 22, so a direct TCP forward to the controller's port 10000 fails
+  with `ERROR: … [4033: 'not authorized']`. `--cluster=marin` handles the tunnel
+  for you. If you genuinely need a persistent manual tunnel (e.g. to reuse one
+  across many invocations), open it via **SSH**-through-IAP and pass
+  `--controller-url`:
+  ```bash
+  gcloud compute ssh iris-controller-marin --zone=us-central1-a \
+    --project=hai-gcp-models --tunnel-through-iap -- -L 10000:localhost:10000 -N
+  # then add: --controller-url=http://localhost:10000
+  ```
 - `--no-wait` returns immediately; follow with `iris job logs <id> -f`.
 - `--cpu 1 --memory 2g` is the right coordinator footprint — `executor_main`
   parents spawn TPU sub-tasks via `remote(...)`; the parent stays CPU-only.
