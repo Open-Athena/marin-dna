@@ -68,14 +68,49 @@ run: |
     # clean working dir.
     uv run snakemake --profile workflow/profiles/default --unlock || true
 
-    # Dry-run gate — verify only region_labels / composition / subset_def
-    # jobs are scheduled; everything else should be S3 no-ops.
-    uv run snakemake --profile workflow/profiles/default \
-        --printshellcmds \
-        --rerun-incomplete \
-        -n "$SNAKEMAKE_TARGET"
+    # Dry-run gate (fails closed): capture the plan and HARD-ABORT if it
+    # would run anything beyond the region-label rules — e.g. the multi-hour
+    # halLiftover projection or a genome/scoring rebuild. The labeling step
+    # only needs anchors + GTF + cCRE (already on S3); the projection must NOT
+    # be re-derived here.
+    DRYLOG=$(uv run snakemake --profile workflow/profiles/default \
+        --rerun-incomplete -n "$SNAKEMAKE_TARGET" 2>&1) || true
+    echo "$DRYLOG"
 
-    # Real run.
+    if echo "$DRYLOG" | grep -q "Nothing to be done"; then
+        echo "Dry-run: outputs already present — nothing to do. Exiting clean."
+        exit 0
+    fi
+
+    # (1) Denylist: any heavy upstream rule => abort.
+    HEAVY='project_one_species|hal_to_fasta|hal_chrom_sizes|fasta_to_2bit|extract_sequences|merge_sequences|merge_projected|prepare_input_ucsc|filter_single_chrom_strand|filter_length|resize_to_length|download_genome|genome_to_2bit|download_bigwig|download_annotation|cre_download|cre_process|score_windows_chrom|merge_scored|make_windows|chrom_sizes|chrom_sizes_filtered|undefined_regions|defined_regions|filter_bed'
+    if echo "$DRYLOG" | grep -qE "^(rule|localrule) ($HEAVY):"; then
+        echo "ABORT: dry-run scheduled a heavy upstream rule (projection/genome/scoring)." >&2
+        echo "This launcher only runs the labeling step; everything upstream must already exist on S3." >&2
+        exit 1
+    fi
+
+    # (2) Allowlist (fail closed): every scheduled rule must be a region-label rule.
+    ALLOWED="build_region_labels build_region_labels_v4 region_label_composition region_label_composition_v4 derive_subset_v3_region derive_subset_v4_region all_region_labels all_region_labels_v4"
+    SCHEDULED=$(echo "$DRYLOG" | awk '
+        /^Job stats:/ {s=1; next}
+        s && /^-+[[:space:]]+-+/ {r=1; next}
+        r && /^total[[:space:]]/ {r=0; s=0; next}
+        r && NF>=2 {print $1}
+    ' | sort -u)
+    if [ -z "$SCHEDULED" ]; then
+        echo "ABORT: could not parse the dry-run job table — refusing to run blind." >&2
+        exit 1
+    fi
+    for rule in $SCHEDULED; do
+        case " $ALLOWED " in
+            *" $rule "*) : ;;
+            *) echo "ABORT: unexpected scheduled rule '$rule' (not a region-label rule)." >&2; exit 1 ;;
+        esac
+    done
+    echo "Dry-run gate PASSED — only region-label rules scheduled: $SCHEDULED"
+
+    # Real run (gated above).
     uv run snakemake --profile workflow/profiles/default \
         --use-conda \
         --printshellcmds \
