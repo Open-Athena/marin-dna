@@ -138,6 +138,132 @@ models:
     window_size: 255
     datasets: [mendelian_traits, complex_traits]
 
+  # exp187 — per-region Qwen3-1B sweep (issue #187). 6 v3 subsets × 5 HF
+  # checkpoint steps (1000, 2000, 3000, 4000, 4999). Computes AUPRC under the
+  # PR #194 / #195 pipeline (k=9 matched-pair dataset, cluster-bootstrap SE).
+  # Scoped to mendelian_traits — exp187 didn't train on complex-traits-aligned
+  # variants and there's no specific hypothesis on that dataset yet.
+  - name: exp187-v3_cds-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
   # mixture baseline; the i16 run continues training from i0's final
