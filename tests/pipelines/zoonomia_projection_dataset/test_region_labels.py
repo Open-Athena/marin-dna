@@ -16,7 +16,17 @@ from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     REGION_LABELS,
     build_region_beds,
     label_windows,
+    label_windows_bp_majority,
 )
+
+# v4 priority (issue #227): tss_region_and_utr5 promoted above ncrna_exon.
+V4_PRIORITY = [
+    "cds",
+    "utr3",
+    "tss_region_and_utr5",
+    "ncrna_exon",
+    "ccre_non_promoter",
+]
 
 # ============================================================================
 # Synthetic GTF / cCRE / windows
@@ -537,6 +547,240 @@ def test_priority_must_be_permutation(synth):
 
 
 # ============================================================================
+# label_windows_bp_majority (v4 labeler — issue #227)
+# ============================================================================
+
+
+def _gene_rows(
+    gene_id: str,
+    biotype: str,
+    strand: str,
+    start: int,
+    end: int,
+    exons: list[tuple[int, int]],
+    cds: list[tuple[int, int]] | None = None,
+) -> list[str]:
+    """Module-level gene-block builder for the bp-majority mini-fixtures."""
+    tx_id = f"tx_{gene_id}"
+    gene_attrs = {"gene_id": gene_id, "gene_biotype": biotype}
+    tx_attrs = {
+        "gene_id": gene_id,
+        "transcript_id": tx_id,
+        "transcript_biotype": biotype,
+        "tag": "Ensembl_canonical",
+    }
+    rows = [
+        _gtf_row("1", "gene", start, end, strand, gene_attrs),
+        _gtf_row("1", "transcript", start, end, strand, tx_attrs),
+    ]
+    for ex_start, ex_end in exons:
+        rows.append(_gtf_row("1", "exon", ex_start, ex_end, strand, tx_attrs))
+    for cs_start, cs_end in cds or []:
+        rows.append(_gtf_row("1", "CDS", cs_start, cs_end, strand, tx_attrs))
+    return rows
+
+
+def _write_gtf(tmp_path: Path, rows: list[str]) -> Path:
+    p = tmp_path / "synth.gtf"
+    p.write_text("\n".join(rows) + "\n")
+    return p
+
+
+def _write_cre(tmp_path: Path, cres: list[tuple[int, int, str]]) -> Path:
+    p = tmp_path / "cre.parquet"
+    pl.DataFrame(
+        {
+            "chrom": ["1"] * len(cres),
+            "start": [c[0] for c in cres],
+            "end": [c[1] for c in cres],
+            "cre_class": [c[2] for c in cres],
+        }
+    ).write_parquet(p)
+    return p
+
+
+def _write_one_window(tmp_path: Path, name: str, start: int, end: int) -> Path:
+    assert end - start == 255, f"{name} not 255 bp"
+    p = tmp_path / "windows.bed"
+    p.write_text(f"1\t{start}\t{end}\t{name}\n")
+    return p
+
+
+def _whole_chrom_defined() -> GenomicSet:
+    return GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [200_000]}))
+
+
+def test_bp_majority_nested_cds_in_ccre(synth):
+    """The headline #221 fix: a CDS exon nested inside a cCRE is labelled
+    `cds`, not `ccre`. Under naive argmax-of-overlapping-fractions the
+    enclosing cCRE (frac 1.0) would win; bp-priority gives the shared bases
+    to `cds` first, leaving `ccre` 0 exclusive bp.
+    """
+    beds = build_region_beds(
+        synth["gtf"], synth["cre"], synth["defined"], tss_radius=256, ccre_flank=500
+    )
+    df = label_windows_bp_majority(
+        synth["windows"], beds, functional_threshold=0.20, priority=V4_PRIORITY
+    )
+    # w_ccre_in_cds (4100–4355) sits fully inside CDS exon2 (4000–4400) and
+    # inside the flanked dELS — overlapping fracs are cds≈1.0 AND ccre≈1.0.
+    r = _row(df, "w_ccre_in_cds")
+    assert r["label"] == "cds"
+    assert r["cds_frac"] == pytest.approx(1.0)  # disjoint: cds claims every base
+    assert r["ccre_non_promoter_frac"] == pytest.approx(0.0)  # 0 exclusive bp
+
+
+def test_bp_majority_true_majority_differs_from_presence(tmp_path):
+    """A window 60 bp CDS + 195 bp (non-nested) cCRE: priority-on-presence
+    labels it `cds` (any CDS overlap wins); window-majority labels it
+    `ccre_non_promoter` (the larger disjoint area).
+    """
+    rows = _gene_rows(
+        "genePC",
+        "protein_coding",
+        "+",
+        start=1000,
+        end=4060,
+        exons=[(1000, 1100), (4000, 4060)],  # exon1 first (TSS far), exon2 internal
+        cds=[(4000, 4060)],  # 60 bp coding, == exon2 (no 3' UTR)
+    )
+    gtf = _write_gtf(tmp_path, rows)
+    cre = _write_cre(tmp_path, [(4060, 4255, "dELS")])  # adjacent, not nested
+    win = _write_one_window(tmp_path, "w_cds60_ccre195", 4000, 4255)
+    defined = _whole_chrom_defined()
+
+    # ccre_flank=0 (v4) keeps the cCRE exactly 4060–4255.
+    beds = build_region_beds(
+        gtf, cre, defined, tss_radius=256, ccre_flank=0, tss_pc_only=True
+    )
+
+    maj = label_windows_bp_majority(
+        win, beds, functional_threshold=0.20, priority=V4_PRIORITY
+    )
+    r = _row(maj, "w_cds60_ccre195")
+    assert r["label"] == "ccre_non_promoter"
+    assert r["cds_frac"] == pytest.approx(60 / 255)
+    assert r["ccre_non_promoter_frac"] == pytest.approx(195 / 255)
+    assert r["functional_frac"] == pytest.approx(1.0)
+
+    # The legacy presence rule disagrees — it would label this `cds`.
+    pres = label_windows(
+        win, beds, functional_threshold=0.20, priority=list(REGION_LABELS)
+    )
+    assert _row(pres, "w_cds60_ccre195")["label"] == "cds"
+
+
+def _divergent_fixture(tmp_path: Path) -> tuple[Path, Path, Path, GenomicSet]:
+    """A standalone lncRNA exon+TSS, a far-away PC gene (so the Ensembl
+    assertion passes), and a far-away non-PLS cCRE. Window covers only the
+    lncRNA's first exon / own TSS.
+    """
+    rows = _gene_rows(
+        "genePC", "protein_coding", "+", 1000, 1500, [(1000, 1500)], cds=[(1200, 1400)]
+    ) + _gene_rows("geneL", "lncRNA", "+", 20000, 20500, [(20000, 20500)])
+    gtf = _write_gtf(tmp_path, rows)
+    cre = _write_cre(tmp_path, [(30000, 30200, "dELS")])
+    win = _write_one_window(tmp_path, "w_lncrna_tss", 20000, 20255)
+    return gtf, cre, win, _whole_chrom_defined()
+
+
+def test_bp_majority_pc_only_tss_collapses_standalone_ncrna(tmp_path):
+    """PC-only TSS region: a standalone lncRNA's own TSS no longer competes,
+    so its first-exon window is `ncrna_exon` (not `tss_region_and_utr5`).
+    """
+    gtf, cre, win, defined = _divergent_fixture(tmp_path)
+
+    beds_all = build_region_beds(
+        gtf, cre, defined, tss_radius=256, ccre_flank=0, tss_pc_only=False
+    )
+    beds_pc = build_region_beds(
+        gtf, cre, defined, tss_radius=256, ccre_flank=0, tss_pc_only=True
+    )
+
+    # All-transcript TSS band: the lncRNA's own TSS lands the window in `tss`.
+    r_all = _row(
+        label_windows_bp_majority(
+            win, beds_all, functional_threshold=0.20, priority=V4_PRIORITY
+        ),
+        "w_lncrna_tss",
+    )
+    assert r_all["label"] == "tss_region_and_utr5"
+
+    # PC-only TSS band: no PC TSS here, so the window is its lncRNA exon.
+    r_pc = _row(
+        label_windows_bp_majority(
+            win, beds_pc, functional_threshold=0.20, priority=V4_PRIORITY
+        ),
+        "w_lncrna_tss",
+    )
+    assert r_pc["label"] == "ncrna_exon"
+    assert r_pc["ncrna_exon_frac"] == pytest.approx(1.0)
+    assert r_pc["tss_region_and_utr5_frac"] == pytest.approx(0.0)
+
+
+def test_bp_majority_priority_flip_tss_over_ncrna(tmp_path):
+    """When `tss` and `ncrna` both cover a window, the priority order decides:
+    v4 (`tss > ncrna`) → `tss_region_and_utr5`; v3 order → `ncrna_exon`.
+    Per-label disjoint fracs are *not* invariant to the order (unlike the
+    overlapping fracs of `label_windows`).
+    """
+    gtf, cre, win, defined = _divergent_fixture(tmp_path)
+    # All-transcript band so both classes cover the window fully.
+    beds = build_region_beds(
+        gtf, cre, defined, tss_radius=256, ccre_flank=0, tss_pc_only=False
+    )
+
+    v4 = _row(
+        label_windows_bp_majority(
+            win, beds, functional_threshold=0.20, priority=V4_PRIORITY
+        ),
+        "w_lncrna_tss",
+    )
+    assert v4["label"] == "tss_region_and_utr5"
+
+    v3_order = _row(
+        label_windows_bp_majority(
+            win, beds, functional_threshold=0.20, priority=list(REGION_LABELS)
+        ),
+        "w_lncrna_tss",
+    )
+    assert v3_order["label"] == "ncrna_exon"
+
+
+def test_bp_majority_disjoint_fracs_partition_functional(synth):
+    """Invariant: the five disjoint per-label fracs sum to functional_frac
+    (≤ 1.0) for every window — the defining property of a true partition.
+    """
+    beds = build_region_beds(
+        synth["gtf"], synth["cre"], synth["defined"], tss_radius=256, ccre_flank=500
+    )
+    df = label_windows_bp_majority(
+        synth["windows"], beds, functional_threshold=0.20, priority=V4_PRIORITY
+    )
+    frac_cols = [f"{lbl}_frac" for lbl in REGION_LABELS]
+    summed = df.select(frac_cols).to_numpy().sum(axis=1)
+    fnc = df["functional_frac"].to_numpy()
+    assert summed == pytest.approx(fnc, abs=1e-9)
+    assert (fnc <= 1.0 + 1e-9).all()
+    valid = set(REGION_LABELS) | {BACKGROUND_LABEL}
+    assert set(df["label"].unique().to_list()) <= valid
+
+
+def test_bp_majority_background_below_threshold(synth):
+    """Windows under the functional threshold (or with no functional overlap)
+    are `background`, same gate as label_windows.
+    """
+    beds = build_region_beds(
+        synth["gtf"], synth["cre"], synth["defined"], tss_radius=256, ccre_flank=500
+    )
+    df = label_windows_bp_majority(
+        synth["windows"], beds, functional_threshold=0.20, priority=V4_PRIORITY
+    )
+    assert _row(df, "w_cds10_intron90")["label"] == BACKGROUND_LABEL  # 10% < 20%
+    assert _row(df, "w_pls_isolated")["label"] == BACKGROUND_LABEL  # nothing functional
+
+
+# ============================================================================
 # write_subset_hf_readme tests
 # ============================================================================
 
@@ -812,5 +1056,168 @@ def test_write_subset_hf_readme_requires_complete_composition(
                 "ccre_non_promoter",
             ],
             composition_tsv=incomplete,
+            n_samples=1,
+        )
+
+
+# ============================================================================
+# region_label_composition_table + v4 dataset card (issue #227)
+# ============================================================================
+
+
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+    _SUBSET_TO_LABEL_V4,
+    region_label_composition_table,
+    write_subset_hf_readme_v4,
+)
+
+
+def test_region_label_composition_table():
+    """Per-label counts + the background intronic/intergenic subsplit, in the
+    schema the card loader (_read_composition) expects.
+    """
+    df = pl.DataFrame(
+        {
+            "label": [
+                "cds",
+                "cds",
+                "background",
+                "background",
+                "background",
+                "ccre_non_promoter",
+            ],
+            "functional_frac": [1.0, 0.8, 0.05, 0.0, 0.1, 0.9],
+            # bg gene_body_frac: 0.9>0.5 intronic, 0.0<=0.5 intergenic, 0.7>0.5 intronic
+            "gene_body_frac": [1.0, 1.0, 0.9, 0.0, 0.7, 0.2],
+            "intron_frac": [0.0, 0.2, 0.9, 0.0, 0.7, 0.1],
+            "intergenic_frac": [0.0, 0.0, 0.1, 1.0, 0.3, 0.8],
+        }
+    )
+    out = region_label_composition_table(df)
+    rows = {r["label"]: r for r in out.iter_rows(named=True)}
+
+    assert rows["cds"]["n_windows"] == 2
+    assert rows["cds"]["fraction_of_total"] == pytest.approx(2 / 6)
+    assert rows["ccre_non_promoter"]["n_windows"] == 1
+    assert rows["background"]["n_windows"] == 3
+    # background subsplit by gene-body coverage > 0.5
+    assert rows["background_intronic"]["n_windows"] == 2
+    assert rows["background_intergenic"]["n_windows"] == 1
+    assert set(out.columns) == {
+        "label",
+        "n_windows",
+        "mean_functional_frac",
+        "mean_gene_body_frac",
+        "mean_intron_frac",
+        "mean_intergenic_frac",
+        "fraction_of_total",
+    }
+
+
+@pytest.mark.parametrize("subset", list(_SUBSET_TO_LABEL_V4))
+def test_write_subset_hf_readme_v4_renders_card(
+    subset: str, tmp_path: Path, synth_composition: tuple[Path, int]
+) -> None:
+    composition_tsv, n_total = synth_composition
+    out = tmp_path / f"{subset}.README.md"
+    label = _SUBSET_TO_LABEL_V4[subset]
+    n_samples = 99_887_766
+
+    write_subset_hf_readme_v4(
+        subset,
+        out,
+        commit_sha="0123456789abcdef0123456789abcdef01234567",
+        hf_owner="bolinas-dna",
+        pipeline_version="v1",
+        ensembl_release=115,
+        functional_threshold=0.20,
+        tss_radius=256,
+        ccre_flank=0,
+        priority=V4_PRIORITY,
+        composition_tsv=composition_tsv,
+        n_samples=n_samples,
+    )
+    body = out.read_text()
+
+    assert f"bolinas-dna/zoonomia-v1-{subset}" in body
+    assert f"`{label}`" in body
+    assert "0123456789ab" in body
+    assert f"{n_samples:,}" in body
+    assert f"{n_total:,}" in body
+    # v4-specific: bp-priority + window-majority scheme and the flipped chain.
+    assert "Base-pair priority" in body
+    assert "Window majority" in body
+    assert (
+        "`cds` > `utr3` > `tss_region_and_utr5` > `ncrna_exon` > "
+        "`ccre_non_promoter` > `background`" in body
+    )
+    assert "issues/221" in body  # links the design issue
+    # Exactly the three canonical tags.
+    front_matter, _, _ = body.partition("---\n\n")
+    assert front_matter.count("- ") == 3
+    # No self-link among the five siblings.
+    assert "Five sibling v4 subsets" in body
+
+
+def test_write_subset_hf_readme_v4_pc_only_and_flank_wording(
+    tmp_path: Path, synth_composition: tuple[Path, int]
+) -> None:
+    """The TSS card states PC-only; the cCRE card states no-flank."""
+    composition_tsv, _ = synth_composition
+
+    out_tss = tmp_path / "tss.md"
+    write_subset_hf_readme_v4(
+        "v4_tss_region_and_utr5",
+        out_tss,
+        commit_sha="a" * 40,
+        hf_owner="bolinas-dna",
+        pipeline_version="v1",
+        ensembl_release=115,
+        functional_threshold=0.20,
+        tss_radius=256,
+        ccre_flank=0,
+        priority=V4_PRIORITY,
+        composition_tsv=composition_tsv,
+        n_samples=1,
+    )
+    tss_body = out_tss.read_text()
+    assert "protein-coding-only" in tss_body
+    assert "256 bp" in tss_body
+
+    out_ccre = tmp_path / "ccre.md"
+    write_subset_hf_readme_v4(
+        "v4_ccre_non_promoter",
+        out_ccre,
+        commit_sha="a" * 40,
+        hf_owner="bolinas-dna",
+        pipeline_version="v1",
+        ensembl_release=115,
+        functional_threshold=0.20,
+        tss_radius=256,
+        ccre_flank=0,
+        priority=V4_PRIORITY,
+        composition_tsv=composition_tsv,
+        n_samples=1,
+    )
+    assert "no flank" in out_ccre.read_text()
+
+
+def test_write_subset_hf_readme_v4_rejects_unknown_subset(
+    tmp_path: Path, synth_composition: tuple[Path, int]
+) -> None:
+    composition_tsv, _ = synth_composition
+    with pytest.raises(ValueError, match="unknown subset"):
+        write_subset_hf_readme_v4(
+            "v4_bogus",
+            tmp_path / "bogus.md",
+            commit_sha="a" * 40,
+            hf_owner="bolinas-dna",
+            pipeline_version="v1",
+            ensembl_release=115,
+            functional_threshold=0.20,
+            tss_radius=256,
+            ccre_flank=0,
+            priority=V4_PRIORITY,
+            composition_tsv=composition_tsv,
             n_samples=1,
         )
