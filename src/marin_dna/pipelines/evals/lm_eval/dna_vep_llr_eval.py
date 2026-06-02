@@ -38,9 +38,11 @@ _logger = logging.getLogger(__name__)
 # qualify for the ``_macro_avg_`` average.
 _MIN_GROUPS_PER_SUBSET = 30
 
-# Mirror `snakemake/analysis/evals_v2/config/config.yaml` so the online AUPRC SE
-# is computed with the same cluster-bootstrap iteration count and seed as the
-# offline parquet — making the two directly comparable on identical scores.
+# Mirror `snakemake/analysis/evals_v2/config/config.yaml` (`inference.n_bootstrap`
+# / `inference.bootstrap_seed`) so the online AUPRC SE matches the offline parquet
+# on identical scores. These also equal `compute_auprc_metrics`' own defaults;
+# there's no shared source of truth linking the three, so keep them in sync if
+# that config's bootstrap knobs are ever changed.
 _N_BOOTSTRAP = 1000
 _BOOTSTRAP_SEED = 0
 
@@ -185,6 +187,12 @@ class _AuprcAggregation:
             rng=_BOOTSTRAP_SEED,
             n_min=_MIN_GROUPS_PER_SUBSET,
         )
+        # Two distinct n_min gates (intentional, not redundant): the `n_min` arg
+        # to compute_auprc_metrics gates which subsets enter `_macro_avg_`; this
+        # loop gate decides which per-subset cells get pushed to the tracker —
+        # WandB has no display-time threshold, so we drop tiny subsets here
+        # (offline keeps every per-subset row in the parquet and filters at the
+        # dashboard). `_global_` / `_macro_avg_` are always pushed.
         for row in metrics.to_dict("records"):
             subset_name = row["subset"]
             n_groups = int(row["n_groups"])
@@ -249,8 +257,12 @@ METRIC_REGISTRY: dict[str, dict] = {
 # Applied to the per-variant **averaged raw LLR** (and to each per-strand raw
 # LLR) inside ``_collapse_variants`` — i.e. after averaging, matching the
 # offline ``evals_v2`` ``{protocol}_avg`` semantics where
-# ``abs_llr_avg = |(llr_fwd + llr_rc)/2|``. ``negate`` is the ``minus_llr``
-# protocol used for the mendelian dataset.
+# ``abs_llr_avg = |(llr_fwd + llr_rc)/2|``. These mirror
+# ``marin_dna.pipelines.evals.metrics.SCORE_PROTOCOLS`` (``negate`` ≡ ``minus_llr``,
+# ``abs`` ≡ ``abs_llr``; ``identity`` is online-only) — if a protocol is
+# added/changed there for the offline leaderboard, mirror it here or the
+# in-training metric silently diverges from the parquet. (``negate`` =
+# ``minus_llr`` is the protocol used for the mendelian dataset.)
 LLR_TRANSFORMS: dict[str, Callable[[float], float]] = {
     "identity": lambda x: x,
     "negate": lambda x: -x,

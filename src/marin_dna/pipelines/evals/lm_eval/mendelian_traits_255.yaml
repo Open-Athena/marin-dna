@@ -4,7 +4,11 @@ dataset_path: bolinas-dna/evals_mendelian_traits_harness_255
 dataset_name: default
 # Pin the HF dataset commit so the eval is reproducible and the dataset can't
 # silently change under it (it did: 1:1 → 1:9 re-upload on 2026-05-19, #194).
-# Bump this deliberately when the harness dataset is intentionally updated.
+# This harness repo is the sequence-materialized view of the matched-pair source
+# bolinas-dna/evals_mendelian_traits, which offline evals_v2 pins separately
+# (config.yaml `hf_revision: 4aed58e…`, the #194 k=9 rebuild). 7b92f04 is verified
+# k=9 (10 variants / match_group). When the source is rebuilt, re-materialize the
+# harness and bump BOTH pins together or online/offline silently drift apart.
 dataset_revision: 7b92f047f9a36f90e9ac47886afa2a99264ee35c
 # "train" encompasses both training and validation variants in the original dataset.
 test_split: train
