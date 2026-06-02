@@ -10,6 +10,7 @@ numbers always match the dataset being pushed.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import polars as pl
@@ -18,7 +19,7 @@ REPO_ROOT_URL = "https://github.com/Open-Athena/marin-dna"
 
 
 def _frontmatter(
-    extra_tags: list[str] | None = None, *, size_category: str = "10K<n<100K"
+    extra_tags: Sequence[str] | None = None, *, size_category: str = "10K<n<100K"
 ) -> str:
     tags = ["biology", "genomics", "dna"]
     if extra_tags:
