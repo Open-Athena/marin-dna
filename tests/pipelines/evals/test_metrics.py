@@ -206,6 +206,19 @@ def test_auprc_random_scores_near_baseline():
     assert res["se"] > 0
 
 
+def test_auprc_n_bootstrap_zero_is_point_only():
+    """n_bootstrap=0 → skip the resample loop: identical point AUPRC, se=NaN,
+    and n_groups still computed (it feeds the macro-avg n_min gate). This is the
+    online in-training hot path (SE is computed offline instead)."""
+    labels, scores, mg = _matched_pairs(separable=False, seed=42)
+    full = auprc_with_bootstrap_se(labels, scores, mg, n_bootstrap=200, rng=0)
+    point = auprc_with_bootstrap_se(labels, scores, mg, n_bootstrap=0)
+    assert point["value"] == pytest.approx(full["value"])  # data-only point est.
+    assert np.isnan(point["se"])
+    assert point["n_groups"] == full["n_groups"]
+    assert point["n_rows"] == full["n_rows"]
+
+
 def test_auprc_seed_reproducibility():
     """Same seed → identical SE; different seeds → SE differs (sanity)."""
     labels, scores, mg = _matched_pairs(separable=False, seed=1)

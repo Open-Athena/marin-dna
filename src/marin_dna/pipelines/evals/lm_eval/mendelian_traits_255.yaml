@@ -13,10 +13,12 @@ dataset_revision: 7b92f047f9a36f90e9ac47886afa2a99264ee35c
 # "train" encompasses both training and validation variants in the original dataset.
 test_split: train
 llr_transform: negate
-# AUPRC ± cluster-bootstrap SE — same metric (and same n_bootstrap/seed) as
-# snakemake/analysis/evals_v2/, so the online number is directly comparable to
-# the offline parquet. Per-variant raw LLR is averaged across the two strand-
-# tagged rows (FWD + RC) and then transformed before AUPRC (see
-# dna_vep_llr_eval._collapse_variants / _AuprcAggregation).
+# AUPRC (point estimate) — same metric as snakemake/analysis/evals_v2/, computed
+# on the same variants, so the online point values are directly comparable to the
+# offline parquet. The cluster-bootstrap SE is computed offline there; this
+# in-training metric tracks the AUPRC trend (no per-eval-step bootstrap). Per-
+# variant raw LLR is averaged across the two strand-tagged rows (FWD + RC) and
+# then transformed before AUPRC (see dna_vep_llr_eval._collapse_variants /
+# _AuprcAggregation).
 metrics:
   - auprc

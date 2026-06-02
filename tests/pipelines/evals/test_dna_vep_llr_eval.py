@@ -9,17 +9,13 @@ parity with the offline ``snakemake/analysis/evals_v2/`` batched VEP path
 synthetic per-variant rows and call the collapse helper / aggregation directly.
 """
 
-import math
-
 import numpy as np
 import pytest
 
 pytest.importorskip("lm_eval", reason="install with `uv sync --extra marin` to run")
 
 from marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval import (  # noqa: E402
-    _BOOTSTRAP_SEED,
     _MIN_GROUPS_PER_SUBSET,
-    _N_BOOTSTRAP,
     LLR_TRANSFORMS,
     METRIC_REGISTRY,
     _AuprcAggregation,
@@ -155,9 +151,10 @@ def test_perfectly_separable_global_auprc_is_one():
 
 
 def test_aggregation_matches_direct_compute_auprc_metrics():
-    """The aggregation is faithful glue: every emitted (subset, strand) cell —
-    value AND cluster-bootstrap SE — equals a direct ``compute_auprc_metrics``
-    call on the collapsed frame (same n_bootstrap + seed => bit-identical)."""
+    """The aggregation is faithful glue: every emitted (subset, strand) cell's
+    point AUPRC equals a direct ``compute_auprc_metrics`` call on the collapsed
+    frame. Online is point-only (``n_bootstrap=0``), so no ``_se`` cells are
+    emitted."""
     rng = np.random.default_rng(123)
     per_variant = []
     # missense: 40 groups (1:1) — qualifying. Positives get lower raw LLR
@@ -180,8 +177,7 @@ def test_aggregation_matches_direct_compute_auprc_metrics():
         dataset=df[["label", "subset", "match_group"]],
         scores=df[score_columns],
         score_columns=score_columns,
-        n_bootstrap=_N_BOOTSTRAP,
-        rng=_BOOTSTRAP_SEED,
+        n_bootstrap=0,
         n_min=_MIN_GROUPS_PER_SUBSET,
     )
 
@@ -191,13 +187,16 @@ def test_aggregation_matches_direct_compute_auprc_metrics():
         tag = row["score_type"].removeprefix("score_")
         key = f"{row['subset']}/{tag}/auprc"
         assert store[key] == pytest.approx(row["value"]), key
-        assert store[f"{key}_se"] == pytest.approx(row["se"]), f"{key}_se"
+        assert f"{key}_se" not in store, f"online is point-only; unexpected {key}_se"
     # Sanity: the strong subset out-scores the weak one and both beat baseline.
     assert store["missense/avg/auprc"] > store["tss/avg/auprc"]
     assert store["_global_/avg/auprc"] > 0.5
 
 
-def test_se_present_and_finite_for_each_strand():
+def test_point_only_no_se_cells_emitted():
+    """Online is point-only (n_bootstrap=0): per-(subset, strand) point AUPRC
+    cells are present, but NO ``_se`` cells are emitted (the cluster-bootstrap SE
+    lives in the offline evals_v2 parquet)."""
     per_variant = []
     for i in range(_MIN_GROUPS_PER_SUBSET):
         per_variant.append(
@@ -210,8 +209,8 @@ def test_se_present_and_finite_for_each_strand():
     _, store = _run_aggregation(items, transform=_NEGATE)
     for tag in ("fwd", "rc", "avg"):
         assert f"_global_/{tag}/auprc" in store
-        assert f"_global_/{tag}/auprc_se" in store
-        assert math.isfinite(store[f"_global_/{tag}/auprc_se"])
+    se_keys = [k for k in store if k.endswith("_se")]
+    assert se_keys == [], f"online should emit no SE cells, got {se_keys}"
 
 
 def test_per_subset_rows_below_n_min_groups_are_dropped():

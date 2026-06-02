@@ -7,12 +7,15 @@ For each (variant, strand) row we compute the raw ``LLR = log P(alt|ctx) -
 log P(ref|ctx)``. Rows are grouped per variant; the raw LLR is averaged across
 the FWD/RC strand rows and *then* transformed (``score = llr_transform(mean
 LLR)`` — averaging raw LLR before the transform, matching the offline
-``evals_v2`` ``{protocol}_avg`` semantics). AUPRC + cluster-bootstrap SE is then
-computed per strand and per subset via
-:func:`marin_dna.pipelines.evals.metrics.compute_auprc_metrics` — the same
-helper offline ``snakemake/analysis/evals_v2/`` calls, with the same
-``n_bootstrap`` and seed so the SE matches the offline parquet on identical
-scores. The lm-eval headline scalar is ``_global_/avg/auprc``.
+``evals_v2`` ``{protocol}_avg`` semantics). The **point** AUPRC is then computed
+per strand and per subset via
+:func:`marin_dna.pipelines.evals.metrics.compute_auprc_metrics` (called with
+``n_bootstrap=0``) — the same helper offline ``snakemake/analysis/evals_v2/``
+calls, so the point values match the offline parquet. The cluster-bootstrap SE
+is **not** computed here: this in-training metric tracks the AUPRC trend, and the
+authoritative SE lives in the offline ``evals_v2`` leaderboard (skipping the
+per-eval-step bootstrap keeps the eval cheap). The lm-eval headline scalar is
+``_global_/avg/auprc``.
 """
 
 import logging
@@ -37,14 +40,6 @@ _logger = logging.getLogger(__name__)
 # ``match_group``s a subset needs for its per-subset cell to be reported and to
 # qualify for the ``_macro_avg_`` average.
 _MIN_GROUPS_PER_SUBSET = 30
-
-# Mirror `snakemake/analysis/evals_v2/config/config.yaml` (`inference.n_bootstrap`
-# / `inference.bootstrap_seed`) so the online AUPRC SE matches the offline parquet
-# on identical scores. These also equal `compute_auprc_metrics`' own defaults;
-# there's no shared source of truth linking the three, so keep them in sync if
-# that config's bootstrap knobs are ever changed.
-_N_BOOTSTRAP = 1000
-_BOOTSTRAP_SEED = 0
 
 # Strand → wandb key segment. "+"/"-" would render as math operators in the
 # Workspace search bar; slashes group the panel.
@@ -150,8 +145,9 @@ class _AuprcAggregation:
 
     For each variant: average raw LLR across the strand rows (FWD + RC) then
     transform to ``score_avg``; for 2-strand datasets also emit ``score_fwd`` /
-    ``score_rc``. AUPRC + cluster-bootstrap SE is then computed per subset via
-    :func:`compute_auprc_metrics`. Per-subset rows with ``n_groups`` <
+    ``score_rc``. Point AUPRC is then computed per subset via
+    :func:`compute_auprc_metrics` (``n_bootstrap=0``; no SE — the offline
+    ``evals_v2`` parquet is the authoritative SE source). Per-subset rows with ``n_groups`` <
     :data:`_MIN_GROUPS_PER_SUBSET` are dropped from the tracker push; ``_global_``
     and ``_macro_avg_`` are always emitted. The headline scalar returned to
     lm-eval is the ``_global_`` / ``score_avg`` AUPRC.
@@ -179,12 +175,16 @@ class _AuprcAggregation:
 
         df, score_columns = _collapse_variants(items, self.llr_transform)
 
+        # n_bootstrap=0 → point AUPRC only (no SE): the in-training metric tracks
+        # the AUPRC trend; the cluster-bootstrap SE is computed offline in
+        # evals_v2 (the authoritative leaderboard). Skipping the per-eval-step
+        # bootstrap keeps this eval cheap. The point values still match the
+        # offline parquet (validated in #225).
         metrics = compute_auprc_metrics(
             dataset=df[["label", "subset", "match_group"]],
             scores=df[score_columns],
             score_columns=score_columns,
-            n_bootstrap=_N_BOOTSTRAP,
-            rng=_BOOTSTRAP_SEED,
+            n_bootstrap=0,
             n_min=_MIN_GROUPS_PER_SUBSET,
         )
         # Two distinct n_min gates (intentional, not redundant): the `n_min` arg
@@ -204,7 +204,11 @@ class _AuprcAggregation:
             strand_tag = row["score_type"].removeprefix("score_")
             key = f"{subset_name}/{strand_tag}/{self.metric_name}"
             self.results_store[key] = float(row["value"])
-            self.results_store[f"{key}_se"] = float(row["se"])
+            # Point-only online (se is NaN); push _se only if a finite SE exists,
+            # so this still works if a caller ever re-enables the bootstrap.
+            se = float(row["se"])
+            if pd.notna(se):
+                self.results_store[f"{key}_se"] = se
 
         # lm-eval only propagates the scalar return to wandb; the per-subset
         # cells we computed above only surface if we push them ourselves.

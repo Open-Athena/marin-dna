@@ -150,14 +150,16 @@ def auprc_with_bootstrap_se(
         score: numeric score per row. Must not contain NaN — fill
             upstream (same rationale as ``pairwise_accuracy``).
         match_group: integer group id; cluster bootstrap unit.
-        n_bootstrap: number of bootstrap iterations.
+        n_bootstrap: number of bootstrap iterations. ``<= 0`` skips the
+            resample loop and returns ``se=NaN`` (point estimate only) — used on
+            the online in-training hot path, where the SE is computed offline.
         rng: ``numpy.random.Generator``, seed int, or ``None``.
 
     Returns:
         ``{"value", "se", "n_groups", "n_rows"}``. ``value`` is the
         point-estimate AUPRC over all input rows; ``se`` is the std of
         the bootstrap distribution (``ddof=1``, NaN-tolerant for
-        degenerate resamples).
+        degenerate resamples), or ``NaN`` when ``n_bootstrap <= 0``.
     """
     assert len(label) == len(score) == len(match_group), (
         f"length mismatch: label={len(label)} score={len(score)} "
@@ -177,28 +179,35 @@ def auprc_with_bootstrap_se(
 
     point = float(average_precision_score(label_arr, score_arr))
 
-    rng = np.random.default_rng(rng)
     # `groupby(mg_arr).indices` is an O(n) hash-based group → positional-
     # index map. The earlier `[np.where(inv == i)[0] for i in groups]`
     # form was O(n_groups · n_rows) and dominated the non-AP cost when
-    # n_groups was ~10³ within a subset.
+    # n_groups was ~10³ within a subset. Computed even for the point-only
+    # path below — `n_groups` feeds the macro-average n_min gate.
     group_to_rows: list[np.ndarray] = list(
         pd.Series(mg_arr).groupby(mg_arr).indices.values()
     )
     n_groups = len(group_to_rows)
 
-    boot = np.empty(n_bootstrap, dtype=float)
-    for b in range(n_bootstrap):
-        sampled = rng.integers(0, n_groups, size=n_groups)
-        idx = np.concatenate([group_to_rows[i] for i in sampled])
-        y = label_arr[idx]
-        # Rare degenerate resamples may be single-class — AUPRC undefined.
-        s = int(y.sum())
-        if s == 0 or s == len(y):
-            boot[b] = np.nan
-            continue
-        boot[b] = average_precision_score(y, score_arr[idx])
-    se = float(np.nanstd(boot, ddof=1))
+    if n_bootstrap <= 0:
+        # Point estimate only — skip the resample loop. Used on the in-training
+        # lm_eval hot path (online VEP), where a per-eval-step bootstrap is too
+        # slow and the SE is redundant with the offline evals_v2 parquet.
+        se = float("nan")
+    else:
+        rng = np.random.default_rng(rng)
+        boot = np.empty(n_bootstrap, dtype=float)
+        for b in range(n_bootstrap):
+            sampled = rng.integers(0, n_groups, size=n_groups)
+            idx = np.concatenate([group_to_rows[i] for i in sampled])
+            y = label_arr[idx]
+            # Rare degenerate resamples may be single-class — AUPRC undefined.
+            s = int(y.sum())
+            if s == 0 or s == len(y):
+                boot[b] = np.nan
+                continue
+            boot[b] = average_precision_score(y, score_arr[idx])
+        se = float(np.nanstd(boot, ddof=1))
     return {
         "value": point,
         "se": se,
