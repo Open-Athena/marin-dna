@@ -18,17 +18,17 @@ file_mounts:
 # Forward the launcher's commit SHA so HF dataset cards get commit-pinned
 # permalinks. The cluster can't resolve ``git rev-parse HEAD`` itself when
 # the host is in a worktree (the synced ``.git`` is a *file* pointing at a
-# host path that doesn't exist on the cluster). Empty value below makes
-# SkyPilot inherit COMMIT_SHA from the launcher's environment, e.g.:
+# host path that doesn't exist on the cluster). Pass it explicitly at launch
+# (a bare shell-var prefix is NOT inherited by SkyPilot):
 #
-#     COMMIT_SHA=$(git rev-parse HEAD) sky launch -c <name> sky/upload.yaml
+#     sky launch -c <name> sky/upload.yaml --env COMMIT_SHA=$(git rev-parse HEAD)
 #
-# If unset, common.smk falls back to "main" — links still resolve, just
-# not pinned.
+# Defaults to "" (optional); if empty, common.smk falls back to "main" — links
+# still resolve, just not pinned.
 # UPLOAD_VERSION selects which intervals partition to push: v3 (default) or
 # v4 (issue #227). Override at launch: `sky launch ... --env UPLOAD_VERSION=v4`.
 envs:
-    COMMIT_SHA:
+    COMMIT_SHA: ""
     UPLOAD_VERSION: v3
 
 setup: |
