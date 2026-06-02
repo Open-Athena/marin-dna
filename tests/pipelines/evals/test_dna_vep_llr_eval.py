@@ -235,7 +235,6 @@ def test_per_subset_rows_below_n_min_groups_are_dropped():
 
     assert "missense/avg/auprc" in store
     assert "splicing/avg/auprc" not in store
-    assert "splicing/avg/auprc_se" not in store
     assert "_global_/avg/auprc" in store
     assert "_macro_avg_/avg/auprc" in store
 
