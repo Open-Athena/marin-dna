@@ -15,9 +15,10 @@ In-training validation:
   * 5 region-specific ``zoonomia-v1-val_*`` recipes (LL gap) from PR #171,
     each tokenized functional + nonfunctional. Drops ``val_utr5`` / ``val_promoter``
     in favor of the gene-centric ``val_tss_pc``.
-  * ``mendelian_traits_255`` lm-eval task (PR #186) — PairwiseAccuracy per
-    consequence subset + Global + Macro Avg + FWD/RC strand averaging. The
-    leaderboard headline is ``_macro_avg_/avg/pairwise_accuracy`` (per #161).
+  * ``mendelian_traits_255`` lm-eval task (PR #186) — per consequence subset +
+    Global + Macro Avg + FWD/RC strand averaging. The metric migrated to AUPRC +
+    cluster-bootstrap SE in #225 (was PairwiseAccuracy when this arm first ran);
+    the leaderboard headline is ``_macro_avg_/avg/auprc`` (per #161).
 
 HF checkpoint saving is enabled by setting ``hf_save_steps`` to match the
 eval cadence (every 500 steps). ``hf_save_path`` is auto-set by marin's
@@ -78,7 +79,7 @@ from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
 from levanter.utils.mesh import MeshConfig
 from marin.evaluation.evaluation_config import convert_to_levanter_task_config
-from marin.execution.executor import (
+from marin.execution import (
     ExecutorStep,
     ensure_versioned,
     executor_main,
@@ -321,8 +322,8 @@ def _build_optimizer() -> AdamConfig:
 
 
 def _eval_harness_config() -> LmEvalHarnessConfig:
-    """Wire the post-#186 mendelian eval (PairwiseAccuracy + Global + Macro Avg
-    + FWD/RC strand averaging). Same shape as exp179_eval_only.py."""
+    """Wire the mendelian eval (AUPRC + Global + Macro Avg + FWD/RC strand
+    averaging; metric migrated from PA in #225). Same shape as exp179_eval_only.py."""
     return LmEvalHarnessConfig(
         task_spec=convert_to_levanter_task_config([MENDELIAN_TRAITS_255]),
     )
