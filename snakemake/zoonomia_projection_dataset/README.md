@@ -416,17 +416,25 @@ sky exec   zoonomia-project   sky/project.yaml --env TIER=full
 sky down   zoonomia-project    # at end of session
 ```
 
-## Family-deduplicated species list
+## Rank-deduplicated species lists
 
-`config/species_zoonomia_447_family_dedup.tsv` (108 rows) is the static, committed input to the projection step. One leaf per NCBI family from the 447-mammalian Newick, with `Homo_sapiens`, `Mus_musculus`, `Bos_taurus` force-included. Per-leaf assembly metadata (`accession, assembly_level, contig_n50, quality_source`) comes from Zoonomia Supplementary Table 2 when available (~85 % of winners, true HAL-assembly stats) and NCBI Datasets v2 taxon proxy for the rest (mostly 447-only primate clade leaves).
+The projection step reads a static, committed species TSV chosen by `species_tsv:` in `config/config.yaml`. Two are shipped, both produced by the same one-off `scripts/build_species_list.py` via `dedup_by_rank` — one leaf per taxonomic group, ranked `quality_source → assembly_level → contig_n50 → name`, with `Homo_sapiens`, `Mus_musculus`, `Bos_taurus` force-included:
+
+- **`config/species_zoonomia_447_family_dedup.tsv`** (108 rows) — one leaf per NCBI **family**. The default `species_tsv` and the `v1` pipeline snapshot.
+- **`config/species_zoonomia_447_order_dedup.tsv`** (19 rows) — one leaf per NCBI **order**: a sparser, more deeply-diverged set (every pair separated by ~tens of My). The 108 families span 19 orders.
+
+The order set is a strict **subset** of the family set — the top-ranked leaf in an order is also the top-ranked in its own family — so `order (19) ⊂ family (108) ⊂ all-447`. Per-leaf assembly metadata (`accession, assembly_level, contig_n50, quality_source`) comes from Zoonomia Supplementary Table 2 when available (true HAL-assembly stats; 85 % of family winners, 79 % of order winners) and NCBI Datasets v2 taxon proxy for the rest.
+
+`species_tsv:` selects which list the projection uses (currently the family set / `v1`). Building a dataset on the order set is tracked separately: because `order ⊂ family`, it can reuse the existing `v1` projection as a cheap species-axis subset rather than re-running halLiftover (issue #230).
 
 To regenerate (only when the alignment changes):
 
 ```bash
-uv run --with openpyxl python scripts/build_species_list.py
+uv run --with openpyxl python scripts/build_species_list.py               # family (default)
+uv run --with openpyxl python scripts/build_species_list.py --rank order  # order
 ```
 
-The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/marin_dna/projection/taxonomy.py` (testable; the script is thin orchestration).
+The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/marin_dna/pipelines/projection/taxonomy.py` (testable; the script is thin orchestration).
 
 ## NaN semantics
 
@@ -448,7 +456,8 @@ Sanity-checked in `tests/conservation/test_scoring.py::test_score_windows_nan_co
 ```
 config/
   config.yaml                                  # all knobs (anchor windows + projection)
-  species_zoonomia_447_family_dedup.tsv        # 108 rows; committed input to projection
+  species_zoonomia_447_family_dedup.tsv        # 108 rows; one leaf per family (default species_tsv)
+  species_zoonomia_447_order_dedup.tsv         # 19 rows; one leaf per order (sparser; see issue #230)
 workflow/Snakefile                             # rule orchestration
 workflow/profiles/default/                     # cores, S3 storage, conda
 workflow/envs/bioinformatics.yaml              # bedtools, kentUtils (faToTwoBit, twoBitInfo)
@@ -465,7 +474,7 @@ workflow/rules/
   validation.smk                               # seven per-recipe validation parquets + HF upload (rule all_validation)
 scripts/
   calibrate_447m_threshold.py                  # one-off; uses src/marin_dna/conservation/
-  build_species_list.py                        # one-off; uses src/marin_dna/projection/taxonomy
+  build_species_list.py                        # one-off; --rank {family,order}; uses pipelines/projection/taxonomy
   zrs_sanity_check.py                          # smoke-tier ZRS cCRE assertion
 sky/
   run.yaml                                     # c6id.2xlarge — anchor windows

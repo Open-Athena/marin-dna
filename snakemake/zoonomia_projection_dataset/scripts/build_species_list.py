@@ -1,9 +1,11 @@
-"""One-off: build the family-deduplicated 447-mammalian species list.
+"""One-off: build a rank-deduplicated 447-mammalian species list.
 
 Run once when the alignment changes; commit the resulting TSV. All HTTP
 responses are cached on disk so re-runs are idempotent and offline-stable.
 
-Output is ``snakemake/zoonomia_projection_dataset/config/species_zoonomia_447_family_dedup.tsv``
+``--rank`` picks the dedup rank: ``family`` (default, 108 leaves) or
+``order`` (19 leaves — sparser, more deeply diverged). Output defaults to
+``snakemake/zoonomia_projection_dataset/config/species_zoonomia_447_<rank>_dedup.tsv``
 with columns ``species\\tfamily\\torder\\taccession\\tassembly_level\\tcontig_n50\\tquality_source``.
 
 Sources, in priority order for assembly quality:
@@ -23,7 +25,7 @@ Sources, in priority order for assembly quality:
    refer to a *different* assembly than what is in the HAL — useful for
    ranking but not for sequence extraction.
 
-Family dedup policy: see :func:`marin_dna.pipelines.projection.taxonomy.dedup_by_family`.
+Dedup policy: see :func:`marin_dna.pipelines.projection.taxonomy.dedup_by_rank`.
 ``Homo_sapiens``, ``Mus_musculus``, and ``Bos_taurus`` are force-included
 (belt-and-suspenders; the natural ranking already picks them).
 
@@ -51,8 +53,9 @@ from urllib.parse import quote
 import openpyxl
 
 from marin_dna.pipelines.projection.taxonomy import (
+    DEDUP_RANKS,
     LeafMeta,
-    dedup_by_family,
+    dedup_by_rank,
     normalize_zoonomia_leaf,
     parse_newick_leaves,
 )
@@ -77,6 +80,20 @@ ALT_NAMES: dict[str, str] = {
     "Pithecia_pissinattii": "Pithecia",
     "Propithecus_coquerelli": "Propithecus coquereli",
     "Trachypithecus_melamera": "Trachypithecus pileatus",
+}
+
+# Per-rank sanity bounds on the winners set (loud failure beats silent
+# corruption per CLAUDE.md). `family`: ~108 leaves, ~85% ST2-true. `order`:
+# 19 leaves, ST2-true ratio lower (15/19 ≈ 79%) because the forced human +
+# mouse use legacy ST2 accessions that fall back to taxon proxy — so the gate
+# is looser. Counts carry ±1 tolerance for benign NCBI taxonomy drift.
+RANK_COUNT_BOUNDS: dict[str, tuple[int, int]] = {
+    "family": (100, 115),
+    "order": (18, 20),
+}
+RANK_MIN_ST2_RATIO: dict[str, float] = {
+    "family": 0.80,
+    "order": 0.70,
 }
 
 
@@ -228,13 +245,25 @@ def _parse_quality(rep: dict | None) -> tuple[str | None, int | None]:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument(
+        "--rank",
+        choices=list(DEDUP_RANKS),
+        default="family",
+        help="Taxonomic rank to deduplicate to (one leaf per group).",
+    )
+    p.add_argument(
         "--output",
         type=Path,
-        default=Path(__file__).resolve().parent.parent
-        / "config"
-        / "species_zoonomia_447_family_dedup.tsv",
+        default=None,
+        help="Output TSV path. Defaults to "
+        "config/species_zoonomia_447_<rank>_dedup.tsv.",
     )
     args = p.parse_args()
+    if args.output is None:
+        args.output = (
+            Path(__file__).resolve().parent.parent
+            / "config"
+            / f"species_zoonomia_447_{args.rank}_dedup.tsv"
+        )
 
     # 1. Newick leaves — keep raw names (incl. `_a`/`_b` suffix). The HAL
     # stores leaves under these raw names and `halStats` / `halLiftover`
@@ -300,9 +329,9 @@ def main() -> None:
             )
         )
 
-    # 5. Family dedup
-    winners = dedup_by_family(metas)
-    winners.sort(key=lambda m: (m.family or "", m.leaf))
+    # 5. Dedup to the requested rank
+    winners = dedup_by_rank(metas, args.rank)
+    winners.sort(key=lambda m: (getattr(m, args.rank) or "", m.leaf))
 
     # 6. Asserts (loud failure beats silent corruption per CLAUDE.md)
     leaves_won = {w.leaf for w in winners}
@@ -311,11 +340,14 @@ def main() -> None:
         f"{ {'Homo_sapiens', 'Mus_musculus', 'Bos_taurus'} - leaves_won }"
     )
     n = len(winners)
-    assert 100 <= n <= 115, f"unexpected family count: {n} (expected ~108)"
+    lo, hi = RANK_COUNT_BOUNDS[args.rank]
+    assert lo <= n <= hi, f"unexpected {args.rank} count: {n} (expected {lo}..{hi})"
     n_st2 = sum(1 for w in winners if w.quality_source == "zoonomia_supp_st2")
-    assert n_st2 / n >= 0.80, (
+    min_ratio = RANK_MIN_ST2_RATIO[args.rank]
+    assert n_st2 / n >= min_ratio, (
         f"ST2-true ratio too low: {n_st2}/{n} = {n_st2 / n:.2%} "
-        f"(expected ≥ 80%). Reproducer logic may be miscoded."
+        f"(expected ≥ {min_ratio:.0%} for rank={args.rank}). "
+        f"Reproducer logic may be miscoded."
     )
     n_unknown = sum(1 for w in winners if w.quality_source == "unknown")
     assert n_unknown == 0, (
