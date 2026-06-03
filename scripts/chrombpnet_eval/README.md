@@ -33,6 +33,13 @@ ChromBPNet objective), `alpha = median_count / 10`. Early-stops + checkpoints on
 pass `val_count_pearson` + `val_count_spearman` (predicted vs observed log counts,
 the ChromBPNet accessibility metrics) + the val losses.
 
+With `--qtl-eval`, also logs the **online QTL metric** each validation —
+`qtl_caqtl_pearson`/`_spearman` and `qtl_dsqtl_pearson`/`_spearman`: the signed
+correlation of the model's predicted `log2 FC` of counts vs the observed QTL
+effect, over the train-split **positives** (caqtl 3,173 + dsqtl 309). This is the
+eval *target* (does it rank QTL effects?), distinct from `val_count_pearson` (the
+accessibility-count fit). It reuses the staged fasta via `--qtl-chrom-prefix chr`.
+
 ### Data (ARSENAL Synapse `syn72513540` + a chr-prefixed hg38 fasta)
 
 `filtered.peaks.bed` (`syn73665410`), `filtered.nonpeaks.bed` (`syn73665411`),
@@ -51,10 +58,13 @@ sky exec cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env SMOKE=0
 ```
 
-Tuning knobs (the script defaults match official one-hot ChromBPNet —
-`Adam(lr=1e-3)`, no scheduler): `--lr`, `--lr-scheduler {none,plateau}`,
-`--precision {32,bf16-mixed}`, `--batch-size`, `--patience`,
-`--val-check-interval`, `--log-every-n-steps`.
+Stability + tuning knobs: full fp32 by default (`--matmul-precision highest`),
+with `--seed`, `--warmup-steps` (linear LR warmup, default 100) and `--grad-clip`
+(global-norm, default 1000) taming an early gradient spike that can diverge to
+NaN (see #247). Plus `--lr` (default 1e-3, official), `--lr-scheduler
+{none,plateau}`, `--precision {32,bf16-mixed}` (the forward is bf16-safe),
+`--batch-size`, `--patience`, `--val-check-interval`, `--log-every-n-steps`,
+`--compile`.
 
 ### Local (synthetic) smoke
 

@@ -77,6 +77,22 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--patience", type=int, default=5, help="early-stop patience")
     p.add_argument(
+        "--seed", type=int, default=0, help="seed_everything (reproducibility)"
+    )
+    p.add_argument(
+        "--warmup-steps",
+        type=int,
+        default=100,
+        help="linear LR warmup steps (0=off); tames the early NaN-prone step (#247)",
+    )
+    p.add_argument(
+        "--grad-clip",
+        type=float,
+        default=1000.0,
+        help="global-norm gradient clip (0=off); a generous safety net above the "
+        "normal grad_norm (~tens-hundreds) to kill spikes (#247)",
+    )
+    p.add_argument(
         "--precision",
         default="32",
         help="'32' (default) or 'bf16-mixed'. The model has a bf16-safe forward "
@@ -86,9 +102,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--matmul-precision",
         choices=["highest", "high", "medium"],
-        default="high",
-        help="torch.set_float32_matmul_precision; 'high' enables TF32 matmuls "
-        "(convs already use TF32 via cuDNN, so this is marginal for a conv net)",
+        default="highest",
+        help="torch.set_float32_matmul_precision; 'highest' = full fp32 matmuls "
+        "(default — TF32 'high' contributed to a NaN divergence, see #247). Convs "
+        "still use TF32 via cuDNN regardless.",
     )
     p.add_argument(
         "--compile",
@@ -137,7 +154,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    # TF32 matmuls (Ampere+); convs already use TF32 via cuDNN's default.
+    L.seed_everything(args.seed, workers=True)
+    # matmul precision: 'highest' = full fp32 (default; TF32 contributed to a NaN
+    # divergence, #247). Convs use TF32 via cuDNN regardless.
     torch.set_float32_matmul_precision(args.matmul_precision)
 
     data_config = DataConfig(
@@ -174,6 +193,7 @@ def main() -> None:
         alpha=alpha,
         beta=1.0,
         lr=args.lr,
+        warmup_steps=args.warmup_steps,
         lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
     )
 
@@ -218,6 +238,7 @@ def main() -> None:
         accelerator="gpu",
         devices=args.devices,
         precision=args.precision,
+        gradient_clip_val=args.grad_clip or None,
         log_every_n_steps=args.log_every_n_steps,
         val_check_interval=args.val_check_interval or 1.0,
         limit_train_batches=args.limit_train_batches,

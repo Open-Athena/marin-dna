@@ -28,9 +28,16 @@ class _ToyDS(Dataset):
         return {"onehot_seq": oh, "profile": profile}
 
 
-def _fit(lr_scheduler=None):
+def _fit(lr_scheduler=None, warmup_steps=0):
     model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
-    lit = ChromBPNetLit(model, alpha=1.0, beta=1.0, lr=1e-3, lr_scheduler=lr_scheduler)
+    lit = ChromBPNetLit(
+        model,
+        alpha=1.0,
+        beta=1.0,
+        lr=1e-3,
+        warmup_steps=warmup_steps,
+        lr_scheduler=lr_scheduler,
+    )
     dl = DataLoader(_ToyDS(8), batch_size=4)
     trainer = L.Trainer(
         max_epochs=1,
@@ -63,3 +70,10 @@ def test_plateau_scheduler_configures():
     # The opt-in ReduceLROnPlateau path builds a valid optimizer+scheduler dict.
     trainer = _fit(lr_scheduler="plateau")
     assert trainer.lr_scheduler_configs, "plateau scheduler not configured"
+
+
+def test_warmup_scheduler_configures():
+    # warmup_steps>0 builds a step-interval LinearLR (precedence over plateau).
+    trainer = _fit(warmup_steps=5)
+    assert trainer.lr_scheduler_configs, "warmup scheduler not configured"
+    assert trainer.lr_scheduler_configs[0].interval == "step"

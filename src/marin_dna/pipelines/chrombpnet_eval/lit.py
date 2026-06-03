@@ -52,9 +52,13 @@ class ChromBPNetLit(L.LightningModule):
         beta: profile-loss weight (1.0).
         lr: Adam learning rate. Default ``1e-3`` matches official one-hot
             ChromBPNet (the embedding arm drops to ``1e-4``).
+        warmup_steps: linear LR warmup over this many optimizer steps (0 = off).
+            Ramps from ``0.01*lr`` to ``lr`` then holds constant — tames the
+            early large-gradient step that can diverge to NaN (#247). Takes
+            precedence over ``lr_scheduler``.
         lr_scheduler: ``None`` (constant LR, official one-hot default) or
             ``"plateau"`` (``ReduceLROnPlateau`` on ``val_count_pearson`` —
-            ChromBPNet's commented-out config, exposed here for tuning).
+            ChromBPNet's commented-out config). Ignored when ``warmup_steps>0``.
     """
 
     def __init__(
@@ -64,6 +68,7 @@ class ChromBPNetLit(L.LightningModule):
         alpha: float = 1.0,
         beta: float = 1.0,
         lr: float = 1e-3,
+        warmup_steps: int = 0,
         lr_scheduler: str | None = None,
     ) -> None:
         super().__init__()
@@ -74,6 +79,7 @@ class ChromBPNetLit(L.LightningModule):
         self.alpha = alpha
         self.beta = beta
         self.lr = lr
+        self.warmup_steps = warmup_steps
         self.lr_scheduler = lr_scheduler
         self._val_pred: list[torch.Tensor] = []
         self._val_true: list[torch.Tensor] = []
@@ -153,6 +159,17 @@ class ChromBPNetLit(L.LightningModule):
         opt = torch.optim.Adam(
             [p for p in self.parameters() if p.requires_grad], lr=self.lr, eps=1e-7
         )
+        # Warmup takes precedence: a step-wise linear ramp from 0.01*lr to lr over
+        # warmup_steps, then constant (LinearLR holds at end_factor) — keeps the
+        # first (huge-gradient) steps tiny so they can't diverge.
+        if self.warmup_steps > 0:
+            warmup = torch.optim.lr_scheduler.LinearLR(
+                opt, start_factor=0.01, end_factor=1.0, total_iters=self.warmup_steps
+            )
+            return {
+                "optimizer": opt,
+                "lr_scheduler": {"scheduler": warmup, "interval": "step"},
+            }
         if self.lr_scheduler == "plateau":
             sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 opt, mode="max", factor=0.4, patience=3, min_lr=1e-8
