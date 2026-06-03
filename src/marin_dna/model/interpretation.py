@@ -81,10 +81,11 @@ def categorical_jacobian(
     # A no-BOS causal LM (n_prefix == 0) has no predictive distribution for the
     # window's first DNA position — there's no left context to condition on. Its
     # readout index would be -1; we clamp to a placeholder and zero that target
-    # column below (`n_blind`). Callers must keep the region of interest off the
-    # window's first position (centered locus with >=1 bp flank; enforced in
-    # compute_dependency_map). With a BOS (n_prefix >= 1) nothing is blinded and
-    # behavior is byte-identical to before.
+    # column below (`n_blind`). The blinded column lies in the lower triangle, so
+    # the FWD+RC stitch in `nucleotide_dependency_map` recovers this position from
+    # the opposite strand (verified for the whole-window, zero-flank case) — no
+    # flank is required. With a BOS (n_prefix >= 1) nothing is blinded and behavior
+    # is byte-identical to before.
     n_blind = max(0, 1 - n_prefix)
     nuc_token_ids = nuc_token_ids.to(device)
     # The logit that predicts DNA position m sits at index (n_prefix + m - 1):
@@ -202,6 +203,13 @@ def nucleotide_dependency_map(
     except StopIteration:
         device = torch.device("cpu")
     n_prefix, _ = _get_special_token_counts(tokenizer)
+    # A no-BOS model blinds the window's first position on each strand; only the
+    # FWD+RC stitch recovers it, so the one-sided (rc=False) map would silently
+    # drop it. Require rc for no-BOS.
+    assert rc or n_prefix >= 1, (
+        "rc=False is unsupported for a no-BOS model (n_prefix=0): the forward-only "
+        "map cannot recover the blinded first window position"
+    )
     nuc_ids = _get_nucleotide_token_ids(tokenizer)
     nuc_token_ids = torch.tensor(
         [nuc_ids[nuc] for nuc in NUCLEOTIDES], dtype=torch.long

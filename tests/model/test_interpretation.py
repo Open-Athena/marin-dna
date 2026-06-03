@@ -242,3 +242,12 @@ def test_nucleotide_dependency_map_no_bos_is_complete():
     row_sums = np.abs(M).sum(axis=1)
     assert np.all(row_sums > 0), f"dropped position(s): {np.where(row_sums == 0)[0]}"
     assert row_sums[0] > 0 and row_sums[W - 1] > 0
+
+
+def test_nucleotide_dependency_map_no_bos_requires_rc():
+    """A no-BOS model's blinded edge is recovered only by the RC stitch, so the
+    one-sided rc=False map is rejected rather than returned silently incomplete."""
+    model = _PrefixSumCausalLM(vocab_size=8).eval()
+    tok = create_char_tokenizer(bos=False, eos=False)  # n_prefix == 0
+    with pytest.raises(AssertionError, match="rc=False is unsupported"):
+        nucleotide_dependency_map(model, tok, "ACGTACGT", rc=False)

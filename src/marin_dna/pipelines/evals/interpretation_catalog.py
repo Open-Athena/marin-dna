@@ -147,6 +147,10 @@ def _paper_ref(locus: str, *, refs_dir: Path | None) -> dict[str, Any] | None:
     source = meta.get("source")
     if source is None:
         return None
+    assert source in _SOURCE_PAPERS, (
+        f"locus {locus!r}: unknown screenshot source {source!r}; "
+        f"expected one of {sorted(_SOURCE_PAPERS)}"
+    )
     ref: dict[str, Any] = dict(_SOURCE_PAPERS[source])
     if "figure" in meta:
         ref["figure"] = meta["figure"]
