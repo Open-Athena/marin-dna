@@ -28,7 +28,7 @@ rule compute_nuc_dep:
         start=lambda wc: config["nuc_dep"]["loci"][wc.locus]["start"],
         end=lambda wc: config["nuc_dep"]["loci"][wc.locus]["end"],
         strand=lambda wc: config["nuc_dep"]["loci"][wc.locus]["strand"],
-        window_size=lambda wc: get_model_config(wc.model)["window_size"],
+        window_size=lambda wc: get_nuc_dep_window(wc.model),
         norm_ord=get_nuc_dep_ord(),
     threads: config["inference"]["num_workers"]
     run:

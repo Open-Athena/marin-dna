@@ -61,8 +61,10 @@ def categorical_jacobian(
             special tokens). Must already live on the model's device.
         nuc_token_ids: Length-4 tensor of A/C/G/T token IDs in ``NUCLEOTIDES``
             order.
-        n_prefix: Number of auto-prepended special tokens (BOS). Must be ``>= 1``
-            so DNA position 0 has a predictive context.
+        n_prefix: Number of auto-prepended special tokens (BOS). ``>= 1`` gives
+            every DNA position a predictive context; ``0`` (a no-BOS model) blinds
+            the window's first target position — recovered from the opposite
+            strand by the FWD+RC stitch in ``nucleotide_dependency_map``.
         window_size: Number of DNA bases ``W`` in the window.
         batch_size: Sequences per forward pass.
 
@@ -72,19 +74,23 @@ def categorical_jacobian(
     device = input_ids.device
     W = window_size
     L = int(input_ids.shape[0])
-    assert n_prefix >= 1, (
-        "categorical_jacobian needs a BOS token (n_prefix>=1): under a causal LM "
-        "with no left context, DNA position 0 has no predictive distribution. "
-        "exp135-style char tokenizers prepend BOS; a no-BOS model is unsupported."
-    )
+    assert n_prefix >= 0, f"n_prefix must be non-negative, got {n_prefix}"
     assert L >= n_prefix + W, (
         f"input_ids length {L} too short for window {W} + prefix {n_prefix}"
     )
+    # A no-BOS causal LM (n_prefix == 0) has no predictive distribution for the
+    # window's first DNA position — there's no left context to condition on. Its
+    # readout index would be -1; we clamp to a placeholder and zero that target
+    # column below (`n_blind`). Callers must keep the region of interest off the
+    # window's first position (centered locus with >=1 bp flank; enforced in
+    # compute_dependency_map). With a BOS (n_prefix >= 1) nothing is blinded and
+    # behavior is byte-identical to before.
+    n_blind = max(0, 1 - n_prefix)
     nuc_token_ids = nuc_token_ids.to(device)
     # The logit that predicts DNA position m sits at index (n_prefix + m - 1):
     # next-token logits[:, k] predict the token at input index k+1, and DNA
     # position m lives at input index n_prefix + m.
-    readout_idx = torch.arange(W, device=device) + (n_prefix - 1)
+    readout_idx = (torch.arange(W, device=device) + (n_prefix - 1)).clamp_(min=0)
 
     def _readout(batch_ids: Int[Tensor, "B L"]) -> Float[Tensor, "B W 4"]:
         logits = model(batch_ids).logits  # [B, L, V]
@@ -106,7 +112,15 @@ def categorical_jacobian(
     for s in range(0, W * 4, batch_size):
         out[s : s + batch_size] = _readout(pert[s : s + batch_size])
 
-    return out.reshape(W, 4, W, 4) - base.view(1, 1, W, 4)
+    jac = out.reshape(W, 4, W, 4) - base.view(1, 1, W, 4)
+    if n_blind:
+        # No real distribution at the window's first target position(s); zero the
+        # blinded column so this strand stays upper-triangular (the clamped
+        # readout was a meaningless duplicate). The opposite strand predicts this
+        # position fine, so the FWD+RC stitch recovers it — the final map loses
+        # nothing.
+        jac[:, :, :n_blind, :] = 0.0
+    return jac
 
 
 def dependency_matrix(jac: np.ndarray, norm_ord: float = np.inf) -> np.ndarray:
