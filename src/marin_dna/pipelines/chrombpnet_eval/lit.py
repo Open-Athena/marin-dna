@@ -86,10 +86,10 @@ class ChromBPNetLit(L.LightningModule):
         true_counts = torch.log1p(true_profile.sum(dim=-1))
         y_profile, y_count = self(batch["onehot_seq"])
         y_count = y_count.squeeze(-1)
-        # Compute the loss in fp32. One-hot ChromBPNet trains in fp32 by default
-        # (data-loading-bound, so bf16 buys nothing), but the multinomial NLL and
-        # the count combine are bf16-unstable — disabling autocast here keeps a
-        # future ``--precision bf16-mixed`` experiment from NaN-ing on the loss.
+        # Compute the loss in fp32 even under a bf16 autocast: the multinomial
+        # NLL and the exp/log count-combine are bf16-unstable (→ NaN). Disabling
+        # autocast here keeps a ``--precision bf16-mixed`` run (this arm is
+        # GPU-compute-bound, so bf16 can speed it up) from NaN-ing on the loss.
         with torch.autocast(device_type=y_count.device.type, enabled=False):
             profile_loss = multinomial_nll(y_profile.float(), true_profile.float())
             count_loss = F.mse_loss(y_count.float(), true_counts.float())

@@ -2,7 +2,7 @@
 #
 # Stages the GM12878 DNase inputs (ARSENAL Synapse syn72513540) + a chr-prefixed
 # hg38 fasta (DART-Eval Synapse), then runs scripts/chrombpnet_eval/train_onehot.py.
-# No gLM checkpoint — this is the fast, data-loading-bound one-hot arm (fp32).
+# No gLM checkpoint — just the one-hot arm (fp32 default).
 #
 # SMOKE=1 (default): logs EVERY step (per-step loss + grad_norm), validates every
 # 50 train batches on 50 val batches (several val_count_pearson/spearman points),
@@ -20,7 +20,7 @@ name: cbp-onehot
 
 resources:
     infra: aws/us-east-2
-    accelerators: A10G:1        # 24 GB; one-hot ChromBPNet is tiny + CPU-bound
+    accelerators: A10G:1        # 24 GB; ~11 GB used at batch 64 fp32 (GPU-bound)
     disk_size: 200
     labels:
         project: dna
@@ -30,7 +30,7 @@ workdir: .
 envs:
     SMOKE: "1"
     BATCH: "64"                 # official ChromBPNet batch size; fp32 fits easily
-    PRECISION: "32"             # one-hot is data-loading-bound; bf16 buys nothing
+    PRECISION: "32"             # faithful default; bf16-mixed may speed it up (GPU-bound)
     WANDB_MODE: "online"        # the point of the smoke is to see logging work
     WANDB_API_KEY: ""           # pass via `sky launch --env WANDB_API_KEY`
     SYNAPSE_AUTH_TOKEN: ""      # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
@@ -48,9 +48,15 @@ run: |
     cd ~/sky_workdir
     mkdir -p data
 
-    # GM12878 DNase inputs (ARSENAL Synapse) + chr-prefixed hg38 fasta (DART-Eval)
-    syn() { test -s "$2" || curl -fsSL -H "Authorization: Bearer $SYNAPSE_AUTH_TOKEN" \
-        "https://repo-prod.prod.sagebase.org/repo/v1/entity/$1/file" -o "$2"; }
+    # GM12878 DNase inputs (ARSENAL Synapse) + chr-prefixed hg38 fasta (DART-Eval).
+    # `set +x` around the curl so `set -x` doesn't echo the bearer token to logs.
+    syn() {
+        test -s "$2" && return 0
+        { set +x; } 2>/dev/null
+        curl -fsSL -H "Authorization: Bearer $SYNAPSE_AUTH_TOKEN" \
+            "https://repo-prod.prod.sagebase.org/repo/v1/entity/$1/file" -o "$2"
+        set -x
+    }
     syn syn73665410 data/gm12878_peaks.bed
     syn syn73665411 data/gm12878_nonpeaks.bed
     syn syn73665418 data/GM12878_unstranded.bw

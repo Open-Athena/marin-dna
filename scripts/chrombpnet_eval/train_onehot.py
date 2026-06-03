@@ -5,8 +5,9 @@ counts+profile loss, early-stopping on ``val_count_pearson``, and the W&B
 instrumentation (per-step losses + ``grad_norm``, per-epoch ``val_count_pearson``
 / ``val_count_spearman``, ``lr``) — before the slow gLM arm (#243). Faithful
 one-hot ChromBPNet (vendored class, 4-channel one-hot, frozen pretrained bias),
-fp32 (one-hot ChromBPNet is data-loading-bound, so bf16 buys nothing; a
-``--precision bf16-mixed`` knob is exposed for experiments anyway).
+fp32 by default (faithful to official one-hot ChromBPNet). A ``--precision
+bf16-mixed`` knob is exposed for tuning — on an A10G this arm is GPU-compute-bound
+(~97% util at batch 64), so bf16 can actually speed it up.
 
 Data (stage locally first; from ARSENAL Synapse syn72513540 + a hg38 fasta):
   --peaks    filtered.peaks.bed      (syn73665410)
