@@ -10,7 +10,7 @@ A *nucleotide dependency map* (the **categorical Jacobian**) measures how substi
 
 Our gLMs are **causal**, so each strand populates only one triangle; the maps below stitch a forward and a reverse-complement pass, then symmetrize. See [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. The visible dependency range is bounded by the model's context window (255 bp for exp135), so kilobase-scale structure is not shown here.
 
-Color encodes dependency strength (`coolwarm`, per-map robust scaling; the diagonal is masked). **Symmetrization** — `mean` vs `max` of the stitched forward/RC map — is a toggle; the two are near-identical (Spearman ≈ 0.98).
+Color encodes dependency strength (`coolwarm`, per-map robust scaling; the diagonal is masked). Each map is the **mean** symmetrization of the stitched forward/RC dependencies (the `max` alternative is near-identical — Spearman ≈ 0.98 — so we surface only the mean).
 
 ```js
 const arch = await FileAttachment("../data/nuc_dep.zip").zip();
@@ -42,12 +42,17 @@ const model = view(
 ```
 
 ```js
-const combine = view(
-  labeledRow(
-    "Symmetrization",
-    PillSelect(combines, combines.includes("mean") ? "mean" : combines[0]),
-  ),
-);
+// Surface the symmetrization picker only when more than one is available; we
+// currently ship just the mean-symmetrized map (#240), so it stays hidden.
+const combine =
+  combines.length > 1
+    ? view(
+        labeledRow(
+          "Symmetrization",
+          PillSelect(combines, combines.includes("mean") ? "mean" : combines[0]),
+        ),
+      )
+    : combines[0];
 ```
 
 ```js

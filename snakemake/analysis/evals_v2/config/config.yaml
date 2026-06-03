@@ -870,7 +870,7 @@ inference:
 # so a locus == window_size (zero flank) is an intended, supported case.
 # ---------------------------------------------------------------------------
 nuc_dep:
-  combines: [mean, max]  # stitched-FWD/RC symmetrizations to compute, one map each (#237)
+  combines: [mean]     # stitched-FWD/RC symmetrization (#237/#240); max is near-identical (Spearman ~0.98), so we keep only mean
   ord: inf             # vector-norm order collapsing each 4x4 nucleotide block
   batch_size: 32       # sequences per forward pass (execution-only; tune for VRAM)
   dpi: 100             # heatmap raster dpi (the SVG embeds one rasterized image; lower = smaller file)
