@@ -8,9 +8,9 @@ wide: true
 
 A *nucleotide dependency map* (the **categorical Jacobian**) measures how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position — collapsed to an `L×L` heatmap over a locus. Strong off-diagonal blocks flag positions the model treats as coupled (splice sites, structured elements, …).
 
-Our gLMs are **causal**, so each strand populates only one triangle; the maps below stitch a forward and a reverse-complement pass, then symmetrize. See [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. The visible dependency range is bounded by the model's context window (255 bp for exp135), so kilobase-scale structure is not shown here.
+Pick a locus to see **every model's map for it, stacked** — they share one genomic coordinate axis, so you can read a position straight down across models, against the annotated reference panel from the paper.
 
-Color encodes dependency strength (`coolwarm`, per-map robust scaling; the diagonal is masked). Each map is the **mean** symmetrization of the stitched forward/RC dependencies (the `max` alternative is near-identical — Spearman ≈ 0.98 — so we surface only the mean).
+Our gLMs are **causal**, so each strand populates only one triangle; the maps stitch a forward and a reverse-complement pass, then symmetrize (`mean`). See [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. The visible dependency range is bounded by the model's context window (255 bp), so kilobase-scale structure is not shown here. Color encodes dependency strength (`coolwarm`, per-map robust scaling; the diagonal is masked).
 
 ```js
 const arch = await FileAttachment("../data/nuc_dep.zip").zip();
@@ -19,14 +19,9 @@ import {PillSelect, labeledRow} from "../components/controls.js";
 ```
 
 ```js
-// Option lists + label maps, derived from the manifest (only materialized
-// (locus, model, combine) combinations appear — e.g. a locus whose SVG isn't
-// rendered yet is simply absent).
 const loci = [...new Set(manifest.map((e) => e.locus))];
-const models = [...new Set(manifest.map((e) => e.model))];
 const combines = [...new Set(manifest.map((e) => e.combine))];
 const locusTitle = new Map(manifest.map((e) => [e.locus, e.title]));
-const modelDisp = new Map(manifest.map((e) => [e.model, e.model_display]));
 ```
 
 ```js
@@ -36,14 +31,8 @@ const locus = view(
 ```
 
 ```js
-const model = view(
-  labeledRow("Model", PillSelect(models, models[0], (m) => modelDisp.get(m) ?? m)),
-);
-```
-
-```js
-// Surface the symmetrization picker only when more than one is available; we
-// currently ship just the mean-symmetrized map (#240), so it stays hidden.
+// Symmetrization picker appears only when more than one is shipped (we ship the
+// mean-symmetrized map); otherwise it stays hidden and `combine` is fixed.
 const combine =
   combines.length > 1
     ? view(
@@ -56,23 +45,22 @@ const combine =
 ```
 
 ```js
-const entry = manifest.find(
-  (e) => e.locus === locus && e.model === model && e.combine === combine,
+// Every model's map for the selected locus. The manifest is locus-major then
+// model (config order), so `entries` is already a sensible model order; the
+// per-locus context (coords / UCSC / paper) is shared, taken from the first.
+const entries = manifest.filter((e) => e.locus === locus && e.combine === combine);
+const ctx = entries[0];
+const svgByModel = new Map(
+  await Promise.all(entries.map(async (e) => [e.model, await arch.file(e.svg).text()])),
 );
-const svgText = entry ? await arch.file(entry.svg).text() : null;
-// Paper screenshots are bundled into the same zip (Observable won't ship a file
-// behind a runtime <img src>); resolve an object URL from the archive.
 const paperImgUrl =
-  entry && entry.paper && entry.paper.image
-    ? await arch.file(entry.paper.image).url()
-    : null;
+  ctx && ctx.paper && ctx.paper.image ? await arch.file(ctx.paper.image).url() : null;
 ```
 
 ```js
 // Inline the heatmap SVG (matplotlib emits an XML prolog before <svg>; strip
-// it), drop the fixed pt width/height so it scales to the column via its
-// viewBox. The embedded raster keeps `image-rendering:pixelated`, so cells stay
-// crisp at any size.
+// it), drop the fixed pt width/height so it scales to a shared max width — so
+// every model's map renders at the same size and the genomic axes line up.
 function renderMap(text) {
   const i = text.indexOf("<svg");
   const div = html`<div class="nd-map"></div>`;
@@ -83,7 +71,6 @@ function renderMap(text) {
     svg.removeAttribute("height");
     svg.style.width = "100%";
     svg.style.height = "auto";
-    svg.style.maxWidth = "560px";
   }
   return div;
 }
@@ -91,35 +78,42 @@ function renderMap(text) {
 
 ```js
 display(
-  entry
-    ? html`<div class="nd-layout">
-        ${renderMap(svgText)}
-        <div class="nd-context">
-          <h2 class="nd-title">${entry.title}</h2>
-          ${entry.description ? html`<p class="nd-desc">${entry.description}</p>` : null}
+  ctx
+    ? html`<div class="nd-page">
+        <aside class="nd-context">
+          <h2 class="nd-title">${ctx.title}</h2>
+          ${ctx.description ? html`<p class="nd-desc">${ctx.description}</p>` : null}
           <table class="nd-meta">
-            <tr><td>Region</td><td><code>${entry.display_region}</code> (${entry.strand} strand), ${entry.span} bp</td></tr>
-            <tr><td>Model</td><td>${entry.model_display}</td></tr>
-            <tr><td>Symmetrization</td><td>${entry.combine}</td></tr>
+            <tr><td>Region</td><td><code>${ctx.display_region}</code></td></tr>
+            <tr><td>Strand</td><td>${ctx.strand} · ${ctx.span} bp</td></tr>
+            <tr><td>Models</td><td>${entries.length}</td></tr>
           </table>
-          <p><a href=${entry.ucsc_url} target="_blank" rel="noopener">View region in the UCSC Genome Browser ↗</a></p>
-          ${entry.note ? html`<p class="nd-note">${entry.note}</p>` : null}
+          <p><a href=${ctx.ucsc_url} target="_blank" rel="noopener">View in the UCSC Genome Browser ↗</a></p>
+          ${ctx.note ? html`<p class="nd-note">${ctx.note}</p>` : null}
           ${
-            entry.paper
-              ? html`<p class="nd-paper">Reference: <a href=${entry.paper.url} target="_blank" rel="noopener">${entry.paper.citation}</a>${entry.paper.figure ? html` (${entry.paper.figure})` : ""}.</p>`
+            ctx.paper
+              ? html`<p class="nd-paper">Reference: <a href=${ctx.paper.url} target="_blank" rel="noopener">${ctx.paper.citation}</a>${ctx.paper.figure ? html` (${ctx.paper.figure})` : ""}.</p>`
               : null
           }
+        </aside>
+        <div class="nd-maps">
           ${
             paperImgUrl
-              ? html`<figure class="nd-figure">
-                  <img src=${paperImgUrl} alt=${`Paper reference figure for ${entry.title}`} />
-                  <figcaption>Paper reference — ${entry.paper.citation}${entry.paper.figure ? ` (${entry.paper.figure})` : ""}.</figcaption>
+              ? html`<figure class="nd-panel nd-ref">
+                  <figcaption class="nd-panel-name">Annotated reference — paper${ctx.paper && ctx.paper.figure ? ` (${ctx.paper.figure})` : ""}</figcaption>
+                  <img src=${paperImgUrl} alt=${`Paper reference figure for ${ctx.title}`} />
                 </figure>`
               : null
           }
+          ${entries.map(
+            (e) => html`<figure class="nd-panel">
+              <figcaption class="nd-panel-name">${e.model_display}</figcaption>
+              ${renderMap(svgByModel.get(e.model))}
+            </figure>`,
+          )}
         </div>
       </div>`
-    : html`<div class="nd-empty">No dependency map is materialized for that selection yet.</div>`,
+    : html`<div class="nd-empty">No dependency maps are materialized for that selection yet.</div>`,
 );
 ```
 
@@ -127,11 +121,11 @@ display(
 :root { --observablehq-max-width: 1400px; }
 main > h1, main > p { max-width: 900px; }
 
-.nd-layout { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin-top: 0.5em; }
-.nd-map { flex: 0 0 auto; }
-.nd-context { flex: 1 1 300px; min-width: 280px; max-width: 520px; }
+.nd-page { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; margin-top: 0.5em; }
+/* Context sticks alongside the scrolling map stack. */
+.nd-context { flex: 0 0 280px; max-width: 320px; position: sticky; top: 1rem; }
 .nd-title { margin: 0 0 6px; }
-.nd-desc { color: #444; margin: 0 0 10px; }
+.nd-desc { color: #444; margin: 0 0 10px; font-size: 0.92em; }
 .nd-meta { border-collapse: collapse; font-size: 0.9em; margin: 0 0 10px; }
 .nd-meta td { padding: 2px 12px 2px 0; vertical-align: top; }
 .nd-meta td:first-child {
@@ -140,16 +134,24 @@ main > h1, main > p { max-width: 900px; }
 }
 .nd-note {
   background: #fff7e6; border-left: 3px solid #f0b429;
-  padding: 8px 10px; font-size: 0.9em; color: #5c4813; border-radius: 0 4px 4px 0;
+  padding: 8px 10px; font-size: 0.88em; color: #5c4813; border-radius: 0 4px 4px 0;
 }
-.nd-paper { font-size: 0.88em; color: #555; }
-.nd-figure { margin: 12px 0 0; }
-.nd-figure img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
-.nd-figure figcaption { font-size: 0.8em; color: #888; margin-top: 4px; }
+.nd-paper { font-size: 0.85em; color: #555; }
+
+/* The stacked maps: one model (or the reference) per row, all the same width so
+   the shared genomic axis lines up down the column. */
+.nd-maps { flex: 1 1 520px; display: flex; flex-direction: column; gap: 22px; min-width: 320px; }
+.nd-panel { margin: 0; max-width: 560px; }
+.nd-panel-name {
+  font-weight: 600; font-size: 0.9em; margin-bottom: 4px; color: #222;
+}
+.nd-panel .nd-map { width: 100%; }
+.nd-ref { border-bottom: 1px dashed #ccc; padding-bottom: 18px; }
+.nd-ref .nd-panel-name { color: #666; font-weight: 500; }
+.nd-ref img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
 .nd-empty { color: #888; margin: 1em 0; }
 
-/* Control rows + segmented pills (shared widget styles, mirrored per-page like
-   the leaderboard/protocol pages — see components/controls.js). */
+/* Control rows + segmented pills (mirrored per-page; see components/controls.js). */
 .lb-control-row {
   display: inline-flex; align-items: center; gap: 10px;
   margin: 0.25em 1.5em 0.25em 0;
