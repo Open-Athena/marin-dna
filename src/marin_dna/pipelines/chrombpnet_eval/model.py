@@ -92,6 +92,24 @@ class GLMChromBPNet(ArsenalChromBPNet):
         """``[B, L]`` token ids → ``[B, L, out_dim]`` via our bidirectional adapter."""
         return self.embedder(tokens)
 
+    def forward(
+        self, x: torch.Tensor, **kwargs: Any
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Same as the vendored ChromBPNet forward, but the **gLM stays in the
+        outer autocast (bf16)** while the ChromBPNet CNN + bias-combine run in
+        **fp32**. The multinomial profile logits and the ``exp``/``log``
+        count-combine are numerically unstable in bf16 (→ NaN loss); the gLM
+        (the compute bottleneck) is fine in bf16."""
+        tokens = self.one_hot_to_tokens(x.transpose(1, 2))
+        x_embs = self.get_embeddings(tokens)  # gLM forward (bf16 under autocast)
+        with torch.autocast(device_type=x.device.type, enabled=False):
+            x_embs = x_embs.float()
+            acc_profile, acc_counts = self.model(x_embs)
+            bias_profile, bias_counts = self.bias(x.float())
+            y_profile = acc_profile + bias_profile
+            y_counts = self._log(self._exp1(acc_counts) + self._exp2(bias_counts))
+        return y_profile.squeeze(1), y_counts
+
     def load_bias(self, keras_h5_path: str) -> None:
         """Load + freeze the Tn5/DNase bias model from a Keras ``.h5`` (matches the
         vendored ``init_bias``)."""

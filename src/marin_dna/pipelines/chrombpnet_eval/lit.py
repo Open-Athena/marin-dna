@@ -68,9 +68,12 @@ class ChromBPNetLit(L.LightningModule):
         true_counts = torch.log1p(true_profile.sum(dim=-1))
         y_profile, y_count = self(batch["onehot_seq"])
         y_count = y_count.squeeze(-1)
-        profile_loss = multinomial_nll(y_profile, true_profile)
-        count_loss = F.mse_loss(y_count, true_counts)
-        loss = self.beta * profile_loss + self.alpha * count_loss
+        # Loss in fp32 — the multinomial NLL is unstable in bf16 (cf.
+        # GLMChromBPNet.forward, which already returns fp32 logits/counts).
+        with torch.autocast(device_type=y_count.device.type, enabled=False):
+            profile_loss = multinomial_nll(y_profile.float(), true_profile.float())
+            count_loss = F.mse_loss(y_count.float(), true_counts.float())
+            loss = self.beta * profile_loss + self.alpha * count_loss
         self.log_dict(
             {
                 f"{mode}_loss": loss,
