@@ -2189,6 +2189,11 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+chrombpnet = [
+    { name = "h5py", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "lightning", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "pooch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
 marin = [
     { name = "dupekit", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "lm-eval", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2238,9 +2243,11 @@ requires-dist = [
     { name = "datasets" },
     { name = "dupekit", marker = "extra == 'marin'" },
     { name = "einops" },
+    { name = "h5py", marker = "extra == 'chrombpnet'" },
     { name = "huggingface-hub" },
     { name = "jaxtyping" },
     { name = "liftover" },
+    { name = "lightning", marker = "extra == 'chrombpnet'" },
     { name = "lm-eval", marker = "extra == 'marin'", git = "https://github.com/stanford-crfm/lm-evaluation-harness.git?rev=d5e3391f22cde186c827674d5c3ec7c5f4fe0cab" },
     { name = "marin", marker = "extra == 'marin'" },
     { name = "marin", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'" },
@@ -2254,6 +2261,7 @@ requires-dist = [
     { name = "pandas" },
     { name = "polars" },
     { name = "polars-bio" },
+    { name = "pooch", marker = "extra == 'chrombpnet'" },
     { name = "pyarrow", specifier = ">=21.0.0" },
     { name = "pybigwig" },
     { name = "pyfaidx", specifier = ">=0.8.0" },
@@ -2269,7 +2277,7 @@ requires-dist = [
     { name = "wandb" },
     { name = "zstandard" },
 ]
-provides-extras = ["tpu", "marin"]
+provides-extras = ["tpu", "marin", "chrombpnet"]
 
 [package.metadata.requires-dev]
 alphagenome-eval = [{ name = "alphagenome" }]
@@ -3324,6 +3332,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/15/ef/7d57ceb0651af74194e97ed6583e148d352f03d696090221b8059cdfc90b/polars_runtime_32-1.40.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8d7f42a8b3f16fc66002cc0f6516f7dd7653396886ae0ed362ab95c0b3408b59", size = 56250788, upload-time = "2026-04-22T19:14:39.743Z" },
     { url = "https://files.pythonhosted.org/packages/10/0f/e4b3ffc748827a14a474ec9c42e45c066050e440fec57e914091d9adda75/polars_runtime_32-1.40.1-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:e5f7becc237a7ec9d9a10878dc8e54b73bbf4e2d94a2991c37d7a0b38590d8f9", size = 50432590, upload-time = "2026-04-22T19:14:43.388Z" },
     { url = "https://files.pythonhosted.org/packages/d9/0b/b8d95fbed869fa4caabe9c400e4210374913b376e925e96fdcfa9be6416b/polars_runtime_32-1.40.1-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:992d14cf191dde043d36fbdbc98a65e43fbc7e9a5024cecd45f838ac4988c1ee", size = 54155564, upload-time = "2026-04-22T19:14:47.239Z" },
+]
+
+[[package]]
+name = "pooch"
+version = "1.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "platformdirs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/43/85ef45e8b36c6a48546af7b266592dc32d7f67837a6514d111bced6d7d75/pooch-1.9.0.tar.gz", hash = "sha256:de46729579b9857ffd3e741987a2f6d5e0e03219892c167c6578c0091fb511ed", size = 61788, upload-time = "2026-01-30T19:15:09.649Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/2d/d4bf65e47cea8ff2c794a600c4fd1273a7902f268757c531e0ee9f18aa58/pooch-1.9.0-py3-none-any.whl", hash = "sha256:f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b", size = 67175, upload-time = "2026-01-30T19:15:08.36Z" },
 ]
 
 [[package]]
