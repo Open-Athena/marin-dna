@@ -97,14 +97,18 @@ def compute_region_embeddings(
     ``n_center_bp`` token positions are mean-pooled, and the FWD/RC strands are
     averaged.
 
-    Windows whose expanded context runs off a chromosome end or covers an
-    assembly gap (any ``N``) are dropped **before** inference (Trainer.predict
-    can't drop rows mid-loading). The reference is ``dna_sm`` (soft-masked), so
-    repeats are lowercase ACGT and survive ``.upper()`` — only true ``N`` (gaps)
-    is dropped; the drop fraction doubles as a coordinate-sanity check.
+    **Every** window is embedded — none are dropped. The labeled 100 bp locus is
+    interior real sequence and stays centered in the window; only the expanded
+    flanks can run off a chromosome end or reach an assembly gap, where ``Genome``
+    pads with ``N`` and the tokenizer maps those to ``[UNK]`` (a token the model
+    saw in training). Keeping the full set is deliberate: the windows are then
+    identical across models of *different* ``window_size`` (each scores the exact
+    same loci), so their UMAPs are point-for-point comparable. The pooled center
+    is never padding, so this only ever touches flank context.
 
     Returns a DataFrame of the carried columns (``chrom/start/end/label/cons``)
-    plus ``emb_0…emb_{D-1}``, one row per surviving window.
+    plus ``emb_0…emb_{D-1}``, one row per window (input order, after a
+    ``(chrom, start)`` sort).
     """
     assert window_size >= n_center_bp, (
         f"window_size {window_size} must be >= n_center_bp {n_center_bp}"
@@ -115,32 +119,12 @@ def compute_region_embeddings(
     model: Any = AutoModel.from_pretrained(checkpoint_path, trust_remote_code=True)
 
     genome = Genome(genome_path)
-    # Sort by (chrom, start) so the S3 byte-range reads (here and in the
-    # dataloader transform) hit nearby bgzip blocks; UMAP is order-independent.
+    # Sort by (chrom, start) so the dataloader transform's S3 byte-range reads
+    # hit nearby bgzip blocks; UMAP is order-independent.
     regions = regions.sort_values(["chrom", "start"]).reset_index(drop=True)
 
-    keep: list[int] = []
-    n_dropped = 0
-    for row in regions.itertuples(index=True):
-        center = (row.start + row.end) // 2
-        ctx_start = center - window_size // 2
-        seq = genome(str(row.chrom), ctx_start, ctx_start + window_size, "+").upper()
-        if len(seq) != window_size or "N" in seq:
-            n_dropped += 1
-            continue
-        keep.append(row.Index)
-
-    n_total = len(regions)
-    frac = n_dropped / max(n_total, 1)
-    print(f"[umap] dropped {n_dropped}/{n_total} ({frac:.3%}) N/out-of-bounds windows")
-    assert frac < 0.05, (
-        f"dropped {frac:.1%} of windows (>5%) — investigate genome build / coords"
-    )
-    assert keep, "no windows survived N/bounds filtering"
-    kept = regions.loc[keep, _CARRY_COLUMNS].reset_index(drop=True)
-
     hf_dataset = Dataset.from_pandas(
-        kept[["chrom", "start", "end"]], preserve_index=False
+        regions[["chrom", "start", "end"]], preserve_index=False
     )
     emb = run_window_embeddings(
         model,
@@ -160,9 +144,11 @@ def compute_region_embeddings(
             "remove_unused_columns": False,
         },
     )  # [N, D]
-    assert emb.shape[0] == len(kept), f"row mismatch: {emb.shape[0]} vs {len(kept)}"
+    assert emb.shape[0] == len(regions), (
+        f"row mismatch: {emb.shape[0]} vs {len(regions)}"
+    )
     emb_df = pd.DataFrame(emb, columns=[f"emb_{i}" for i in range(emb.shape[1])])
-    return pd.concat([kept, emb_df], axis=1)
+    return pd.concat([regions[_CARRY_COLUMNS].reset_index(drop=True), emb_df], axis=1)
 
 
 def fit_umap(emb_df: pd.DataFrame, *, random_state: int = 42) -> pd.DataFrame:

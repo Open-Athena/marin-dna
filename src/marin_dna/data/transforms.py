@@ -172,6 +172,12 @@ def transform_window_embedding(
     center = (start + end) // 2
     ctx_start = center - window_size // 2
     seq = genome(chrom, ctx_start, ctx_start + window_size, strand).upper()
+    # Genome pads off-chromosome flanks with N to the full width; a wrong length
+    # would mean a coordinate/extraction bug — fail loud rather than ship a
+    # ragged batch (which would surface as an opaque collation error instead).
+    assert len(seq) == window_size, (
+        f"expected {window_size} bp at {chrom}:{ctx_start}, got {len(seq)}"
+    )
     return {"input_ids": torch.tensor(tokenizer.encode(seq))}
 
 

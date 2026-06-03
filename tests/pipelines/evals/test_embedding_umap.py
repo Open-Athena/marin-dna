@@ -100,12 +100,13 @@ def test_fit_umap_shape_columns_and_determinism():
     np.testing.assert_allclose(coords["UMAP1"], coords2["UMAP1"])
 
 
-def test_compute_region_embeddings_drops_n_and_assembles(monkeypatch):
-    """Pre-filters N/out-of-bounds windows, then assembles carried metadata +
-    emb_* columns from the (mocked) Trainer-harness output. Model/tokenizer/
-    genome loaders and run_window_embeddings are mocked — no checkpoint, no GPU."""
-    n = 30
-    starts = [1000 + 1000 * i for i in range(n)]
+def test_compute_region_embeddings_embeds_all_windows(monkeypatch):
+    """No N-dropping: every window is embedded (the tokenizer maps gap/edge bases
+    to [UNK]), so the point set is identical across context sizes. Loaders +
+    run_window_embeddings mocked — no checkpoint, no GPU (the transform's genome
+    fetch happens inside the mocked harness, not here)."""
+    n = 8
+    starts = [1000 * i for i in range(n)]
     regions = pd.DataFrame(
         {
             "chrom": ["1"] * n,
@@ -115,28 +116,18 @@ def test_compute_region_embeddings_drops_n_and_assembles(monkeypatch):
             "cons": [i / n for i in range(n)],
         }
     )
-
-    class _FakeGenome:
-        def __init__(self, path):
-            pass
-
-        def __call__(self, chrom, start, end, strand="+"):
-            # The region at start=2000 (midpoint 2050 -> ctx_start 2040 at W=20)
-            # hits an assembly gap -> dropped; every other window is clean ACGT.
-            return ("N" if start == 2040 else "A") * (end - start)
-
-    emb_block = np.arange(29 * 2, dtype=np.float32).reshape(29, 2)
+    emb_block = np.arange(n * 2, dtype=np.float32).reshape(n, 2)
     monkeypatch.setattr(eu.AutoTokenizer, "from_pretrained", lambda *a, **k: object())
     monkeypatch.setattr(eu.AutoModel, "from_pretrained", lambda *a, **k: object())
-    monkeypatch.setattr(eu, "Genome", _FakeGenome)
+    monkeypatch.setattr(eu, "Genome", lambda *a, **k: object())
     monkeypatch.setattr(eu, "run_window_embeddings", lambda *a, **k: emb_block)
 
     out = compute_region_embeddings(
         "/ckpt", "/genome.fa", regions, window_size=20, n_center_bp=10
     )
 
-    assert len(out) == 29  # 1 of 30 dropped (3.3%, under the 5% guard)
-    assert 2000 not in set(out["start"])  # the N window is gone
+    assert len(out) == n  # nothing dropped — full point set kept
+    assert set(out["start"]) == set(starts)
     assert list(out.columns) == [
         "chrom",
         "start",
