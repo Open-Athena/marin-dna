@@ -77,8 +77,9 @@ run: |
         EXTRA_ARGS="--log-every-n-steps 1 --val-check-interval 50 \
             --limit-train-batches 300 --limit-val-batches 50 --max-epochs 1"
     else
-        # full run: validate ~every 1000 train batches on a 200-batch val subset
-        EXTRA_ARGS="--val-check-interval 1000 --limit-val-batches 200"
+        # full run: validate twice per epoch (fraction → robust to epoch length;
+        # batch 128 ≈ 886 train batches/epoch) on a 200-batch val subset
+        EXTRA_ARGS="--val-check-interval 0.5 --limit-val-batches 200"
     fi
     uv run --extra chrombpnet python scripts/chrombpnet_eval/train_onehot.py \
         --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \

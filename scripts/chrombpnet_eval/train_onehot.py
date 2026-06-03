@@ -117,9 +117,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--log-every-n-steps", type=int, default=10)
     p.add_argument(
         "--val-check-interval",
-        type=int,
+        type=float,
         default=None,
-        help="validate every N train batches (default: epoch end)",
+        help="validate every N train batches (int >=1) or every fraction of an "
+        "epoch (0<f<1, robust to epoch length); default: epoch end",
     )
     p.add_argument("--wandb-name", default="dna-exp236-onehot-chrombpnet")
     p.add_argument("--wandb-project", default="chrombpnet-eval")
@@ -232,6 +233,12 @@ def main() -> None:
         )
         callbacks.append(QTLEvalCallback(specs, batch_size=args.qtl_batch_size))
 
+    # int >=1 -> validate every N batches; float in (0,1) -> fraction of an epoch
+    # (robust to epoch length); None/0 -> once per epoch.
+    vci: int | float = args.val_check_interval or 1.0
+    if vci >= 1:
+        vci = int(vci)
+
     trainer = L.Trainer(
         max_epochs=args.max_epochs,
         reload_dataloaders_every_n_epochs=1,  # resample train negatives each epoch
@@ -240,7 +247,7 @@ def main() -> None:
         precision=args.precision,
         gradient_clip_val=args.grad_clip or None,
         log_every_n_steps=args.log_every_n_steps,
-        val_check_interval=args.val_check_interval or 1.0,
+        val_check_interval=vci,
         limit_train_batches=args.limit_train_batches,
         limit_val_batches=args.limit_val_batches,
         logger=logger,
