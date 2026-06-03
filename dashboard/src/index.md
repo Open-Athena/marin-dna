@@ -25,7 +25,7 @@ A model family's AUPRC depends on which score you compute it from — the **prot
 
 Visual analyses of what the trained models have internalized:
 
-- [**Categorical Jacobian / nucleotide dependency**](./interpretation/nucleotide-dependency) — per-locus dependency maps: how substituting one position shifts the model's predicted nucleotide distribution elsewhere, revealing coupled functional elements (independently developed for protein and genomic LMs). See [#237](https://github.com/Open-Athena/marin-dna/issues/237).
+- [**Nucleotide dependency**](./interpretation/nucleotide-dependency) — per-locus dependency maps: how substituting one position shifts the model's predicted nucleotide distribution elsewhere, revealing coupled functional elements (independently developed for protein and genomic LMs). See [#237](https://github.com/Open-Athena/marin-dna/issues/237).
 
 ## Reference
 

@@ -1,10 +1,10 @@
 ---
-title: Categorical Jacobian / nucleotide dependency
+title: Nucleotide dependency
 toc: false
 wide: true
 ---
 
-# Categorical Jacobian / nucleotide dependency maps
+# Nucleotide dependency maps
 
 A **categorical Jacobian / nucleotide dependency** map measures how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position — collapsed to an `L×L` heatmap over a locus. The method was discovered independently for protein language models (the *categorical Jacobian* — [Zhang et al., *PNAS* 2024](https://doi.org/10.1073/pnas.2406285121)) and for genomic language models (*nucleotide dependency* analysis — [Tomaz da Silva et al., *Nat. Genet.* 2025](https://www.nature.com/articles/s41588-025-02347-3)). Strong off-diagonal blocks flag positions the model treats as coupled (splice sites, structured elements, …).
 

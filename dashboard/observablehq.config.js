@@ -45,7 +45,7 @@ export default {
     {
       name: "Interpretation",
       pages: [
-        {name: "Categorical Jacobian / nucleotide dependency", path: "/interpretation/nucleotide-dependency"},
+        {name: "Nucleotide dependency", path: "/interpretation/nucleotide-dependency"},
       ],
     },
     {
