@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 
 import lightning as L
+import torch
 
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.data_config import (
     DataConfig,
@@ -70,7 +71,23 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--patience", type=int, default=5, help="early-stop patience")
     p.add_argument(
-        "--precision", default="32", help="'32' or 'bf16-mixed' (experimental)"
+        "--precision",
+        default="32",
+        help="'32' (default) or 'bf16-mixed'. The model has a bf16-safe forward "
+        "(fp32 count-combine), so bf16 won't NaN; it's GPU-bound, so bf16 speeds "
+        "it up.",
+    )
+    p.add_argument(
+        "--matmul-precision",
+        choices=["highest", "high", "medium"],
+        default="high",
+        help="torch.set_float32_matmul_precision; 'high' enables TF32 matmuls "
+        "(convs already use TF32 via cuDNN, so this is marginal for a conv net)",
+    )
+    p.add_argument(
+        "--compile",
+        action="store_true",
+        help="torch.compile the model (experimental; may fuse the conv tower)",
     )
     p.add_argument("--devices", type=int, default=1)
     # logging cadence
@@ -92,6 +109,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
+    # TF32 matmuls (Ampere+); convs already use TF32 via cuDNN's default.
+    torch.set_float32_matmul_precision(args.matmul_precision)
 
     data_config = DataConfig(
         peaks=args.peaks,
@@ -118,6 +138,9 @@ def main() -> None:
         f"bias frozen ({n_bias:,} params, requires_grad="
         f"{any(p.requires_grad for p in model.bias.parameters())})"
     )
+    if args.compile:
+        model = torch.compile(model)
+        print("[train] torch.compile enabled")
 
     lit = ChromBPNetLit(
         model,

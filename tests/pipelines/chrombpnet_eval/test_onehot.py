@@ -39,3 +39,16 @@ def test_count_trainable_drops_when_bias_frozen():
     # Frozen-bias params are exactly the difference.
     n_bias = sum(p.numel() for p in model.bias.parameters())
     assert before - after == n_bias
+
+
+def test_bf16_autocast_forward_is_finite():
+    # The bf16-safe forward must not NaN under a bf16 autocast: the exp/log
+    # count-combine is fp32-guarded, so outputs stay finite and upcast to fp32.
+    model = _tiny()
+    x = torch.zeros(2, 4, 2114)
+    x[:, torch.randint(0, 4, (2114,)), torch.arange(2114)] = 1.0
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+        profile, counts = model(x)
+    assert torch.isfinite(profile).all(), "profile NaN/inf under bf16 autocast"
+    assert torch.isfinite(counts).all(), "counts NaN/inf under bf16 autocast"
+    assert profile.dtype == torch.float32 and counts.dtype == torch.float32

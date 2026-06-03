@@ -10,6 +10,8 @@ the supervised baseline (cf. the embedding arm, #243).
 
 from __future__ import annotations
 
+from typing import Any
+
 import torch
 
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.bpnet import BPNet
@@ -17,6 +19,32 @@ from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.chrombpnet import Ch
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.model_config import (
     ChromBPNetConfig,
 )
+
+
+class OneHotChromBPNet(ChromBPNet):
+    """One-hot ChromBPNet with a bf16-safe forward.
+
+    Identical to the vendored ``ChromBPNet`` in fp32, but the **count-combine**
+    (``log(exp(acc) + exp(bias))``) and the profile sum run in **fp32** even
+    under a bf16 autocast — that ``exp``/``log`` is bf16-unstable (→ NaN loss),
+    the same reason :class:`GLMChromBPNet` guards its forward. The dilated-CNN
+    towers still run under the outer autocast, so ``--precision bf16-mixed``
+    keeps the faster bf16 convs without NaN-ing the combine. In fp32 mode the
+    ``autocast(enabled=False)`` block is a no-op, so behaviour is byte-identical
+    to the vendored forward.
+    """
+
+    def forward(
+        self, x: torch.Tensor, **kwargs: Any
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        acc_profile, acc_counts = self.model(x)  # bf16 convs under outer autocast
+        bias_profile, bias_counts = self.bias(x)
+        with torch.autocast(device_type=x.device.type, enabled=False):
+            y_profile = acc_profile.float() + bias_profile.float()
+            y_counts = self._log(
+                self._exp1(acc_counts.float()) + self._exp2(bias_counts.float())
+            )
+        return y_profile.squeeze(1), y_counts
 
 
 def load_frozen_bias(model: ChromBPNet, bias_h5: str) -> None:
@@ -42,8 +70,8 @@ def build_onehot_chrombpnet(
     n_layers: int = 8,
     conv1_kernel_size: int = 21,
     profile_kernel_size: int = 75,
-) -> ChromBPNet:
-    """Construct a one-hot ChromBPNet.
+) -> OneHotChromBPNet:
+    """Construct a one-hot ChromBPNet (bf16-safe forward, see OneHotChromBPNet).
 
     Args:
         bias_h5: path to ARSENAL's ``bias_model_scaled.h5``. When given, the
@@ -68,7 +96,7 @@ def build_onehot_chrombpnet(
         n_outputs=1,
         n_control_tracks=0,
     )
-    model = ChromBPNet(config)
+    model = OneHotChromBPNet(config)
     if bias_h5 is not None:
         load_frozen_bias(model, bias_h5)
     return model
