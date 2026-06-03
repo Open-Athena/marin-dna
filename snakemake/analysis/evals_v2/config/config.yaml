@@ -906,6 +906,10 @@ umap_embeddings:
   n_center_bp: 100                         # central positions to mean-pool (== the dataset window)
   random_state: 42                         # UMAP seed (also forces single-threaded UMAP)
   dpi: 200                                 # scatter raster dpi
-  # batch_size: defaults to inference.batch_size (128); override here for VRAM.
+  # Embeddings keep only [B, L, D] hidden states (no [B, L, V] logits like the
+  # variant path), so they fit a much bigger batch than inference.batch_size
+  # (128). Measured: batch 128 -> ~7 GB on A10G (bf16, AutoModel, last layer);
+  # ~2.5 GB fixed + ~35 MB/sample => 384 ~ 16 GB, leaving headroom.
+  batch_size: 384
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (255+BOS) — first pass, single model
