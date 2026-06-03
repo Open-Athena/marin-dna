@@ -879,6 +879,7 @@ nuc_dep:
   # asserts n_prefix>=1. Do NOT add the no-BOS exp55/58/59/exp21 arms.
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+    - exp166-v0.1-p1B-step-27329  # 1B generalist (zoonomia v0.1), 255+BOS — second dashboard model (#240)
   loci:
     LDLR:  {chrom: "19", start: 11089299,  end: 11089425,  strand: "+"}
     TH:    {chrom: "11", start: 2171682,   end: 2171868,   strand: "-"}
