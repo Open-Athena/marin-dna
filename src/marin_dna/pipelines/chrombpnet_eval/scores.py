@@ -46,8 +46,10 @@ def load_arsenal_scores(path: str, *, flip_logfc: bool = False) -> pl.DataFrame:
             ``pred.chrombpnet.encsr000emt.varscore.logfc`` despite identical
             allele order. Our ``effect`` follows the DART-Eval convention
             (``obs.estimate`` as-is), so we negate ARSENAL's released dsQTL
-            ``logfc`` here to put both on the same axis. (Not needed for caQTL,
-            nor for M2 where we score with our own model and control the sign.)
+            ``logfc`` here to put both on the same axis. (Not needed for caQTL.
+            The supervised scorer hits the *same* dsQTL flip — its predicted
+            alt-log2FC anti-correlates with this ``effect`` — so it applies the
+            equivalent per-dataset flip; see ``qtl_eval.QTL_DATASETS``.)
     """
     df = pl.read_csv(path, separator="\t")
     missing = [c for c in ARSENAL_SCORE_COLUMNS if c not in df.columns]

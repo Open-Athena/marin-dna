@@ -36,9 +36,24 @@ from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.data_utils import (
 _NUC = frozenset("ACGT")
 
 # caqtl/dsqtl variant parquets (HF), pinned to the same revisions M1a uses.
-QTL_DATASETS: list[tuple[str, str, str]] = [
-    ("caqtl", "bolinas-dna/evals_caqtl", "9d004a21812c067b9ba1ebfe72f51b9095a5d0f8"),
-    ("dsqtl", "bolinas-dna/evals_dsqtl", "b7e02a07beb831c7047286aacd3ddfd299d6f88f"),
+# (name, hf_repo, revision, flip_effect). dsQTL's study effect (``obs.estimate``,
+# our parquet ``effect``) is sign-flipped vs alt-oriented accessibility log2FC —
+# the same convention M1a handles with ``flip_logfc=True`` (ARSENAL's notebook
+# correlates ``-obs.estimate`` against ChromBPNet's logfc). Flip the effect so a
+# model that agrees with the study reads as a POSITIVE correlation. caQTL: no flip.
+QTL_DATASETS: list[tuple[str, str, str, bool]] = [
+    (
+        "caqtl",
+        "bolinas-dna/evals_caqtl",
+        "9d004a21812c067b9ba1ebfe72f51b9095a5d0f8",
+        False,
+    ),
+    (
+        "dsqtl",
+        "bolinas-dna/evals_dsqtl",
+        "b7e02a07beb831c7047286aacd3ddfd299d6f88f",
+        True,
+    ),
 ]
 
 
@@ -195,7 +210,7 @@ class QTLEvalCallback(L.Callback):
 
 def build_qtl_specs(
     genome: Callable[[str, int, int, str], str],
-    datasets: Sequence[tuple[str, str, str]] = tuple(QTL_DATASETS),
+    datasets: Sequence[tuple[str, str, str, bool]] = tuple(QTL_DATASETS),
     *,
     split: str = "train",
     window: int = 2114,
@@ -212,7 +227,7 @@ def build_qtl_specs(
     from huggingface_hub import hf_hub_download
 
     specs: list[QTLSpec] = []
-    for name, repo, rev in datasets:
+    for name, repo, rev, flip_effect in datasets:
         path = hf_hub_download(
             repo, f"{split}.parquet", revision=rev, repo_type="dataset"
         )
@@ -230,6 +245,11 @@ def build_qtl_specs(
             chrom_prefix=chrom_prefix,
         )
         effect = df["effect"].to_numpy().astype(np.float64)
-        print(f"[qtl] {name}: {df.height} positives ({split} split)")
+        if flip_effect:
+            effect = -effect  # align dsQTL obs.estimate to alt-oriented log2FC
+        print(
+            f"[qtl] {name}: {df.height} positives ({split} split)"
+            + (" [effect sign-flipped]" if flip_effect else "")
+        )
         specs.append(QTLSpec(name=name, ref_oh=ref_oh, alt_oh=alt_oh, effect=effect))
     return specs
