@@ -28,6 +28,72 @@ assert set(INTERVALS_VERSIONS) <= set(INTERVALS_SOURCES), (
     f"{set(INTERVALS_VERSIONS) - set(INTERVALS_SOURCES)}"
 )
 
+# ===== Species-subset datasets (third axis; issue #233) =====
+# A species cohort filters an existing intervals subset to a subset of the
+# projection's species, reusing the v1 projection (no re-halLiftover). The
+# dataset "slug" gains a trailing -{cohort} (scheme B) → repo
+# zoonomia-{pipeline_version}-{intervals_version}-{cohort}. Each slug is
+# registered in INTERVALS_SOURCES like any other dataset so the
+# prepare_training_shards → compress_shard → hf_upload_dataset chain is shared.
+SPECIES_SUBSETS = dict(config.get("species_subsets", {}))
+SPECIES_SUBSET_DATASETS = list(config.get("species_subset_datasets", []))
+SPECIES_SUBSET_SLUGS: list[str] = []
+for _d in SPECIES_SUBSET_DATASETS:
+    _iv, _cohort = _d["intervals"], _d["species"]
+    assert _iv in INTERVALS_SOURCES, (
+        f"species_subset_datasets intervals {_iv!r} is not a known dataset; "
+        f"known: {sorted(INTERVALS_SOURCES)}"
+    )
+    assert _cohort in SPECIES_SUBSETS, (
+        f"species_subset_datasets cohort {_cohort!r} not in species_subsets "
+        f"{sorted(SPECIES_SUBSETS)}"
+    )
+    _slug = f"{_iv}-{_cohort}"
+    INTERVALS_SOURCES[_slug] = (
+        f"results/projection/min{PROJECT_MIN_P}/subsets_species/{_slug}.parquet"
+    )
+    SPECIES_SUBSET_SLUGS.append(_slug)
+
+# Every dataset all_hf pushes: default-species intervals versions + cohort slugs.
+ALL_DATASETS = list(INTERVALS_VERSIONS) + SPECIES_SUBSET_SLUGS
+
+
+# Pin pipeline_version so the zoonomia-{pipeline_version}-{dataset} repo slug
+# parses unambiguously when {dataset} carries a -{cohort} suffix
+# (zoonomia-v1-v4_cds-order → pipeline_version=v1, dataset=v4_cds-order, not
+# pipeline_version=v1-v4_cds). Global: applies to every {pipeline_version}.
+wildcard_constraints:
+    pipeline_version=r"v\d+",
+
+
+rule subset_species:
+    """Filter an intervals subset to a species cohort (the third axis, #233).
+
+    The cohort (e.g. the 19 one-per-order leaves) is a subset of the
+    projection's species — asserted in filter_to_species — so this reuses the
+    v1 projection rather than re-running halLiftover. The output slug
+    {intervals}-{cohort} is the dataset slug used by the shard/upload chain.
+    """
+    input:
+        parquet=lambda wc: INTERVALS_SOURCES[wc.intervals],
+    output:
+        "results/projection/min{min_p}/subsets_species/{intervals}-{cohort}.parquet",
+    wildcard_constraints:
+        intervals=r"v\d+(?:_\w+)?",
+        cohort=r"[a-z0-9]+",
+    params:
+        # Committed local config file — read directly (like common.smk's
+        # species_tsv), NOT a Snakemake input, so the S3 storage provider
+        # doesn't try to resolve it under the bucket prefix.
+        species_tsv=lambda wc: SPECIES_SUBSETS[wc.cohort],
+    threads: 1
+    resources:
+        # Eager read of the intervals-subset Parquet (filter_to_species); same
+        # memory profile as subset_dataset_derived. Runs on the upload cluster.
+        mem_mb=32000,
+    run:
+        filter_to_species(input.parquet, params.species_tsv, output[0])
+
 
 rule prepare_training_shards:
     """Read source Parquet → RC augment → shuffle → shard to JSONL."""
@@ -165,6 +231,52 @@ rule dataset_hf_readme_v4:
         )
 
 
+rule dataset_hf_readme_species_subset:
+    """HF dataset card for a species-subset dataset (e.g. v4_cds-order; #233).
+
+    Separate from the v3/v4 card rules: the card describes the species axis —
+    the cohort, its size, a commit-pinned permalink to the cohort's species
+    TSV — and reads its row count from the cohort-filtered Parquet. Disjoint
+    from the v3/v4 rules by the required -{cohort} suffix in the constraint.
+    """
+    input:
+        # Cohort-filtered Parquet (registered in INTERVALS_SOURCES under the
+        # slug); its row count is the post-projection total for the cohort.
+        source=lambda wc: INTERVALS_SOURCES[wc.intervals_version],
+    output:
+        "results/dataset/zoonomia-{pipeline_version}-{intervals_version}/README.md",
+    wildcard_constraints:
+        pipeline_version=r"v\d+",
+        intervals_version=r"v\d+(?:_\w+)?-[a-z0-9]+",
+    params:
+        commit_sha=GIT_COMMIT_SHA,
+        hf_owner=HF_OWNER,
+        add_rc=ADD_RC,
+        # Committed local config file — read directly (not a Snakemake input,
+        # which the S3 provider would resolve under the bucket prefix).
+        species_tsv=lambda wc: SPECIES_SUBSETS[wc.intervals_version.rsplit("-", 1)[1]],
+    run:
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+            write_species_subset_hf_readme,
+        )
+
+        base_iv, cohort = wildcards.intervals_version.rsplit("-", 1)
+        n_rows = pl.scan_parquet(input.source).select(pl.len()).collect().item()
+        n_samples = n_rows * (2 if params.add_rc else 1)
+        n_species = pl.read_csv(params.species_tsv, separator="\t").height
+        write_species_subset_hf_readme(
+            base_iv,
+            cohort,
+            output[0],
+            commit_sha=params.commit_sha,
+            hf_owner=params.hf_owner,
+            pipeline_version=wildcards.pipeline_version,
+            n_species=n_species,
+            n_samples=n_samples,
+            species_tsv=str(params.species_tsv),
+        )
+
+
 rule hf_upload_dataset:
     """Upload a dataset's compressed shard folder to HF Hub (single train split).
 
@@ -195,7 +307,10 @@ rule hf_upload_dataset:
         has_readme=lambda wc: int(wc.intervals_version.startswith(("v3_", "v4_"))),
     wildcard_constraints:
         pipeline_version=r"v\d+",
-        intervals_version=r"v\d+(?:_\w+)?",
+        # Optional trailing -{cohort} (scheme B) for species-subset datasets,
+        # e.g. v4_cds-order. has_readme below keys off the v3_/v4_ prefix, so
+        # the cohort still ships a card (its README rule is below).
+        intervals_version=r"v\d+(?:_\w+)?(?:-[a-z0-9]+)?",
     threads: workflow.cores
     shell:
         """
@@ -209,10 +324,15 @@ rule hf_upload_dataset:
 
 
 rule all_hf:
-    """Trigger HF push for every (PIPELINE_VERSION × INTERVALS_VERSIONS) combo."""
+    """Trigger HF push for every dataset: PIPELINE_VERSION × (INTERVALS_VERSIONS
+    + species-subset slugs). The cohort slugs (e.g. v4_cds-order) are built by
+    subset_species → the shared shard/upload chain; default-species datasets are
+    unaffected. Target a single dataset directly to avoid rebuilding the rest,
+    e.g. `results/upload.done/zoonomia-v1-v4_cds-order`.
+    """
     input:
         expand(
             "results/upload.done/zoonomia-{p}-{iv}",
             p=[PIPELINE_VERSION],
-            iv=INTERVALS_VERSIONS,
+            iv=ALL_DATASETS,
         ),

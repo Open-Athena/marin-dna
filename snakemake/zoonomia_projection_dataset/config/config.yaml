@@ -73,6 +73,24 @@ intervals_versions:
 
 hf_owner: "bolinas-dna"
 
+# ===== Species-subset datasets (third axis; issue #233) =====
+# A species cohort is a row-filter on the `species` column, orthogonal to
+# intervals_versions (a row-filter on `query_name`); the two compose. The
+# default 108-family cohort is implicit (no label) — its zoonomia-v1-* repos
+# stay byte-unchanged. Non-default cohorts get a trailing repo suffix
+# (scheme B): zoonomia-{pipeline_version}-{intervals_version}-{cohort}.
+#
+# A cohort must be a SUBSET of the projection's species so the v1 projection
+# is reused as-is (no re-halLiftover); filter_to_species asserts this. The
+# one-per-order set (19 leaves) is a strict subset of the 108-family set.
+species_subsets:
+  order: "config/species_zoonomia_447_order_dedup.tsv"
+# (intervals_version, species cohort) datasets to build — each reuses the
+# existing intervals subset Parquet, filtered to the cohort. One for now:
+# zoonomia-v1-v4_cds-order (the v4 cds region partition on the 19-order set).
+species_subset_datasets:
+  - { intervals: "v4_cds", species: "order" }
+
 # v2 subset: ± bp band around each mRNA TSS (Ensembl protein_coding biotype).
 # 256 bp matches the BOS+255 model context window.
 tss_flank: 256

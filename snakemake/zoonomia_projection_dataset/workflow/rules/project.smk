@@ -40,7 +40,7 @@ from marin_dna.pipelines.projection.sequence import (
     parquet_to_bed6,
     parse_bedtools_getfasta_output,
 )
-from marin_dna.pipelines.projection.subset import filter_to_subset
+from marin_dna.pipelines.projection.subset import filter_to_species, filter_to_subset
 
 
 # Two cCREs from SCREEN Registry V4 inside the canonical ZRS limb enhancer

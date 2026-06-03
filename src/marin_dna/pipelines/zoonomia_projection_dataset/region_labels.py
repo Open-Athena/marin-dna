@@ -1013,3 +1013,146 @@ Same as [`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/dat
 - Sister validation datasets: `{hf_owner}/zoonomia-{pipeline_version}-val_*`
 """
     Path(output_path).write_text(body)
+
+
+# Human-readable description per species cohort (the third dataset axis,
+# issue #233). The default 108-family cohort is implicit and has no entry.
+# {n_species} is substituted at render time.
+_SPECIES_COHORT_BLURBS: dict[str, str] = {
+    "order": (
+        "one representative species per NCBI **order** — {n_species} "
+        "deeply-diverged placental mammals (every pair separated by ~tens of "
+        "millions of years), versus the implicit-default 108 family-deduplicated "
+        "species. A strict **subset** of the family set, so it reuses the v1 "
+        "cross-mammal projection unchanged (no re-`halLiftover`)."
+    ),
+}
+
+
+def write_species_subset_hf_readme(
+    intervals_version: str,
+    cohort: str,
+    output_path: str | Path,
+    *,
+    commit_sha: str,
+    hf_owner: str,
+    pipeline_version: str,
+    n_species: int,
+    n_samples: int,
+    species_tsv: str,
+    github_repo: str = _GITHUB_REPO,
+) -> None:
+    """Write the HF dataset card for a species-subset dataset (issue #233).
+
+    A species-subset dataset is an existing intervals subset
+    (``intervals_version``, e.g. ``v4_cds``) restricted to a species
+    ``cohort`` (e.g. ``order``) — a row-filter on the ``species`` column,
+    orthogonal to the region/intervals axis. The card describes the cohort,
+    its size, and links the base region dataset plus the cohort's species TSV.
+
+    Kept separate from :func:`write_subset_hf_readme_v4` (rather than threading
+    a cohort through its monolithic body) so the frozen default-cohort cards
+    stay reproducible — the same rationale that split v3/v4.
+
+    Args:
+        intervals_version: the base region dataset, e.g. ``"v4_cds"``.
+        cohort: the species cohort key, e.g. ``"order"`` (must be in
+            :data:`_SPECIES_COHORT_BLURBS`).
+        n_species: number of species in the cohort (e.g. 19 for ``order``).
+        n_samples: post-RC row count of this dataset (the exact total across
+            all shards).
+        species_tsv: pipeline-relative path to the cohort's species TSV
+            (e.g. ``config/species_zoonomia_447_order_dedup.tsv``), linked as a
+            commit-pinned permalink.
+    """
+    if cohort not in _SPECIES_COHORT_BLURBS:
+        raise ValueError(
+            f"unknown species cohort {cohort!r}; expected one of "
+            f"{sorted(_SPECIES_COHORT_BLURBS)}"
+        )
+
+    slug = f"{intervals_version}-{cohort}"
+    repo_name = f"{hf_owner}/zoonomia-{pipeline_version}-{slug}"
+    base_repo = f"{hf_owner}/zoonomia-{pipeline_version}-{intervals_version}"
+    pipeline_permalink = (
+        f"https://github.com/{github_repo}/tree/{commit_sha}/{_GITHUB_PIPELINE_PATH}"
+    )
+    pipeline_main_link = (
+        f"https://github.com/{github_repo}/tree/main/{_GITHUB_PIPELINE_PATH}"
+    )
+    species_tsv_permalink = (
+        f"https://github.com/{github_repo}/blob/{commit_sha}/"
+        f"{_GITHUB_PIPELINE_PATH}/{species_tsv}"
+    )
+    cohort_blurb = _SPECIES_COHORT_BLURBS[cohort].format(n_species=n_species)
+
+    body = f"""---
+tags:
+- biology
+- genomics
+- DNA
+---
+
+# `{repo_name}`
+
+The [`{base_repo}`](https://huggingface.co/datasets/{base_repo}) cross-mammal
+training set, restricted to a **species cohort**: {cohort_blurb}
+
+Same human anchors and same per-window sequences as
+[`{base_repo}`](https://huggingface.co/datasets/{base_repo}) — only the set of
+target species differs. This is a **species-axis** subset (a row-filter on the
+`species` column), orthogonal to the region/intervals axis that defines
+`{intervals_version}`. Produced by the
+[`{_GITHUB_PIPELINE_PATH}`]({pipeline_permalink}) pipeline
+(commit [`{commit_sha[:12]}`]({pipeline_permalink})).
+
+## Species cohort (`{cohort}`, {n_species} species)
+
+The cohort is defined by [`{species_tsv}`]({species_tsv_permalink}) — one row
+per species (raw HAL leaf name in the `species` column). Because it is a strict
+subset of the 108-family v1 species set, the cross-mammal projection is reused
+as-is; no re-`halLiftover` is run.
+
+## Size
+
+**{n_samples:,} training samples** across all JSONL.zst shards — the
+`{intervals_version}` anchors projected onto the {n_species}-species cohort,
+after reverse-complement augmentation. Fewer than the implicit-default
+108-species [`{base_repo}`](https://huggingface.co/datasets/{base_repo}) by
+roughly the species ratio.
+
+## Schema
+
+Single `train` split of JSONL.zst shards at `data/train/shard_NNNN.jsonl.zst`,
+identical to [`{base_repo}`](https://huggingface.co/datasets/{base_repo}):
+
+| Column         | Type | Description |
+|---|---|---|
+| `query_name`   | str  | human-window id (`win_<chrom>_<NNN>` from `windows.smk`) |
+| `species`      | str  | one of the {n_species} cohort species |
+| `t_chrom`      | str  | UCSC `chr1`-style |
+| `t_start`      | int  | 0-based half-open |
+| `t_end`        | int  | 0-based half-open; `t_end - t_start == 255` |
+| `t_strand`     | str  | `+` or `-` |
+| `t_src_size`   | int  | target chromosome size |
+| `sequence`     | str  | exactly 255 bp; **strand-aware** (already RC'd if `t_strand == "-"`) |
+| `augmentation` | str  | `+` (original) or `-` (RC of `sequence`) |
+
+## Construction
+
+1. Build the v1 cross-mammal training set and its `{intervals_version}` region
+   partition (see the [pipeline README]({pipeline_permalink}/README.md)).
+2. **Filter** `{intervals_version}` to the `{cohort}` species cohort via
+   `marin_dna.pipelines.projection.subset.filter_to_species` (asserts the
+   cohort is a subset of the projection's species).
+3. RC-augment, shuffle (`seed=42`), shard to JSONL, zstd-compress, upload via
+   `hf upload-large-folder`.
+
+## Source code
+
+- Pipeline: [{_GITHUB_PIPELINE_PATH}]({pipeline_main_link}) (latest)
+- Pinned to this dataset's build: [commit `{commit_sha[:12]}`]({pipeline_permalink})
+- Species cohort list: [`{species_tsv}`]({species_tsv_permalink})
+- Base region dataset: [`{base_repo}`](https://huggingface.co/datasets/{base_repo})
+"""
+    Path(output_path).write_text(body)
