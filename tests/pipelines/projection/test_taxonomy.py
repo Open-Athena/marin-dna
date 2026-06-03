@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 from marin_dna.pipelines.projection.taxonomy import (
     LeafMeta,
-    dedup_by_family,
+    dedup_by_rank,
     normalize_zoonomia_leaf,
     parse_newick_leaves,
 )
@@ -91,7 +93,7 @@ def test_dedup_picks_one_per_family() -> None:
         _meta("Ovis_aries", "Bovidae"),
         _meta("Mus_musculus", "Muridae"),
     ]
-    winners = dedup_by_family(rows, force_include=frozenset())
+    winners = dedup_by_rank(rows, "family", force_include=frozenset())
     families = [w.family for w in winners]
     assert sorted(families) == ["Bovidae", "Muridae"]
 
@@ -102,7 +104,7 @@ def test_dedup_force_include_overrides_ranking() -> None:
         _meta("Capra_hircus", "Bovidae", level="Complete Genome", n50=200_000_000),
         _meta("Bos_taurus", "Bovidae", level="Scaffold", n50=276_285),
     ]
-    winners = dedup_by_family(rows, force_include=frozenset({"Bos_taurus"}))
+    winners = dedup_by_rank(rows, "family", force_include=frozenset({"Bos_taurus"}))
     assert [w.leaf for w in winners] == ["Bos_taurus"]
 
 
@@ -130,7 +132,7 @@ def test_dedup_quality_source_outranks_better_proxy_n50() -> None:
             source="zoonomia_supp_st2",
         ),
     ]
-    winners = dedup_by_family(rows, force_include=frozenset())
+    winners = dedup_by_rank(rows, "family", force_include=frozenset())
     assert [w.leaf for w in winners] == ["Bos_taurus"]
 
 
@@ -141,7 +143,7 @@ def test_dedup_assembly_level_beats_n50_within_same_source() -> None:
             "A_two", "Family1", level="Complete Genome", n50=1_000
         ),  # tiny N50, but Complete > Scaffold
     ]
-    winners = dedup_by_family(rows, force_include=frozenset())
+    winners = dedup_by_rank(rows, "family", force_include=frozenset())
     assert [w.leaf for w in winners] == ["A_two"]
 
 
@@ -150,7 +152,7 @@ def test_dedup_alphabetical_final_tiebreak() -> None:
         _meta("Bos_taurus", "Family1"),
         _meta("Aoudad_lervia", "Family1"),
     ]
-    winners = dedup_by_family(rows, force_include=frozenset())
+    winners = dedup_by_rank(rows, "family", force_include=frozenset())
     assert [w.leaf for w in winners] == ["Aoudad_lervia"]
 
 
@@ -159,7 +161,7 @@ def test_dedup_drops_rows_without_family() -> None:
         _meta("X", None),
         _meta("Bos_taurus", "Bovidae"),
     ]
-    winners = dedup_by_family(rows, force_include=frozenset())
+    winners = dedup_by_rank(rows, "family", force_include=frozenset())
     assert [w.leaf for w in winners] == ["Bos_taurus"]
 
 
@@ -170,6 +172,85 @@ def test_dedup_default_force_include() -> None:
         _meta("Bos_taurus", "Bovidae"),
         _meta("Pan_troglodytes", "Hominidae", level="Complete Genome"),
     ]
-    winners = dedup_by_family(rows)  # uses default force_include
+    winners = dedup_by_rank(rows, "family")  # uses default force_include
     leaves = sorted(w.leaf for w in winners)
     assert leaves == ["Bos_taurus", "Homo_sapiens", "Mus_musculus"]
+
+
+def test_dedup_by_rank_picks_one_per_order() -> None:
+    rows = [
+        _meta("Bos_taurus", "Bovidae", order="Artiodactyla", n50=100),
+        _meta("Sus_scrofa", "Suidae", order="Artiodactyla", n50=300),  # best in order
+        _meta("Mus_musculus", "Muridae", order="Rodentia", n50=200),
+    ]
+    winners = dedup_by_rank(rows, "order", force_include=frozenset())
+    assert sorted(w.order for w in winners) == ["Artiodactyla", "Rodentia"]
+    by_order = {w.order: w.leaf for w in winners}
+    # Across families within one order, the higher-N50 leaf wins.
+    assert by_order["Artiodactyla"] == "Sus_scrofa"
+    assert by_order["Rodentia"] == "Mus_musculus"
+
+
+def test_dedup_by_rank_drops_rows_without_the_rank_field() -> None:
+    rows = [
+        _meta("X", "Fam", order=None),  # order=None → dropped at rank="order"
+        _meta("Bos_taurus", "Bovidae", order="Artiodactyla"),
+    ]
+    winners = dedup_by_rank(rows, "order", force_include=frozenset())
+    assert [w.leaf for w in winners] == ["Bos_taurus"]
+
+
+def test_dedup_by_rank_rejects_unsupported_rank() -> None:
+    # Only family/order are populated on LeafMeta; anything else would
+    # silently collapse every leaf into one all-None group.
+    rows = [_meta("Bos_taurus", "Bovidae", order="Artiodactyla")]
+    with pytest.raises(AssertionError):
+        dedup_by_rank(rows, "genus", force_include=frozenset())
+
+
+def test_order_winners_are_subset_of_family_winners() -> None:
+    """order-winners ⊆ family-winners over the same rows (issue #230 invariant).
+
+    One order with two families (one holding two leaves) plus a second order.
+    The order-level winner is whichever family-winner ranks highest, so the
+    order set is always a subset of the family set.
+    """
+    rows = [
+        _meta("A_top", "Fam1", order="OrderA", n50=300),  # Fam1 winner
+        _meta("A_low", "Fam1", order="OrderA", n50=100),
+        _meta("B_mid", "Fam2", order="OrderA", n50=200),  # Fam2 winner
+        _meta("C_solo", "Fam3", order="OrderB", n50=50),  # Fam3 winner
+    ]
+    fam = {w.leaf for w in dedup_by_rank(rows, "family", force_include=frozenset())}
+    order = {w.leaf for w in dedup_by_rank(rows, "order", force_include=frozenset())}
+    assert fam == {"A_top", "B_mid", "C_solo"}
+    # OrderA → A_top (N50 300 > 200), OrderB → C_solo.
+    assert order == {"A_top", "C_solo"}
+    assert order.issubset(fam)
+
+
+def test_order_subset_holds_with_two_force_includes_sharing_an_order() -> None:
+    """Subset invariant survives two force-includes in the same order (#230).
+
+    The order's top-ranked force-include wins both its order and its family;
+    the *other* force-include loses the order but still wins its own family, so
+    order-winners ⊆ family-winners holds. Guards the docstring's force-include
+    reasoning, which the no-force subset test does not exercise.
+    """
+    rows = [
+        # Two force-includes in OrderX, different families. Force_hi outranks
+        # Force_lo (Complete Genome > Scaffold), so Force_hi wins OrderX.
+        _meta("Force_hi", "FamA", order="OrderX", level="Complete Genome", n50=100),
+        _meta("Force_lo", "FamB", order="OrderX", level="Scaffold", n50=100),
+        # Higher-N50 non-forced leaf in FamA the force-include must still beat.
+        _meta("Plain_a", "FamA", order="OrderX", level="Complete Genome", n50=999),
+        _meta("Solo", "FamC", order="OrderY", n50=50),
+    ]
+    force = frozenset({"Force_hi", "Force_lo"})
+    fam = {w.leaf for w in dedup_by_rank(rows, "family", force_include=force)}
+    order = {w.leaf for w in dedup_by_rank(rows, "order", force_include=force)}
+    # FamA → Force_hi (forced beats higher-N50 Plain_a), FamB → Force_lo, FamC → Solo.
+    assert fam == {"Force_hi", "Force_lo", "Solo"}
+    # OrderX → Force_hi (top force-include); Force_lo loses the order but is in fam.
+    assert order == {"Force_hi", "Solo"}
+    assert order.issubset(fam)
