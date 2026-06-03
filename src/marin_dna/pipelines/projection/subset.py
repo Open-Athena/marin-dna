@@ -67,3 +67,86 @@ def filter_to_subset(
     df = pl.read_parquet(str(all_species_parquet))
     df = df.filter(pl.col("query_name").is_in(keys))
     df.write_parquet(str(out))
+
+
+def load_species(path: str | Path) -> set[str]:
+    """Read the ``species`` column of a species TSV as a set.
+
+    The species TSVs (``config/species_zoonomia_447_<rank>_dedup.tsv``) are
+    tab-separated with a ``species`` header column holding raw HAL leaf names
+    — the same vocabulary as the ``species`` column of the projection
+    Parquets, so the set is the natural form for the downstream ``is_in``
+    filter.
+    """
+    df = pl.read_csv(str(path), separator="\t")
+    assert "species" in df.columns, (
+        f"species TSV {path} missing 'species' column; got {df.columns}"
+    )
+    out = set(df["species"].to_list())
+    assert out, f"no species rows in {path}"
+    return out
+
+
+def filter_to_species(
+    source_parquet: str | Path,
+    species: set[str] | list[str] | str | Path,
+    out_parquet: str | Path,
+) -> None:
+    """Filter a projection Parquet to rows whose ``species`` is in the cohort.
+
+    The species cohort is a row-filter on the ``species`` column, orthogonal
+    to the ``query_name`` filter applied by :func:`filter_to_subset`: the two
+    compose (e.g. the v4_cds intervals subset restricted to the one-per-order
+    species cohort). ``species`` is a set/list of HAL leaf names, or a path to
+    a species TSV (parsed via :func:`load_species`, reading the ``species``
+    column).
+
+    Asserts the requested cohort is a **subset** of the species present in
+    ``source_parquet`` — a missing leaf means the cohort references a species
+    not in this projection (or one with zero rows in this intervals subset),
+    which would silently shrink the dataset, so we fail loudly (CLAUDE.md
+    "fail fast on silent-corruption risks").
+
+    Eager read+filter+write rather than the lazy ``scan``/``sink_parquet``
+    path — same polars-1.x large-Parquet segfault that
+    :func:`filter_to_subset` documents; the source intervals subset fits
+    comfortably in RAM on the upload cluster.
+
+    Args:
+        source_parquet: the intervals-subset Parquet to filter (e.g. the
+            v4_cds subset, carrying all projection species' rows).
+        species: a set/list of HAL leaf names, or a path to a species TSV.
+        out_parquet: destination Parquet (parent dirs created as needed).
+    """
+    if isinstance(species, (str, Path)):
+        keys = load_species(species)
+    else:
+        keys = set(species)
+    assert keys, "empty species cohort"
+
+    df = pl.read_parquet(str(source_parquet))
+    assert "species" in df.columns, (
+        f"source Parquet missing 'species' column; got {df.columns}"
+    )
+    present = set(df["species"].unique().to_list())
+    missing = keys - present
+    assert not missing, (
+        f"species cohort is not a subset of the projection: "
+        f"{sorted(missing)} absent from {source_parquet} "
+        f"({len(present)} species present)"
+    )
+
+    out = df.filter(pl.col("species").is_in(keys))
+    # Given the subset check above, every requested leaf has >=1 row, so this
+    # is a guaranteed invariant — assert it anyway (loud failure beats a
+    # silently short cohort feeding into training).
+    kept = set(out["species"].unique().to_list())
+    assert kept == keys, (
+        f"expected all {len(keys)} cohort species kept; missing "
+        f"{sorted(keys - kept)}"
+    )
+    assert out.height > 0, "species-filtered subset is empty"
+
+    out_path = Path(out_parquet)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out.write_parquet(str(out_path))
