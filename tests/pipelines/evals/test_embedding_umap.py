@@ -12,10 +12,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from marin_dna.pipelines.evals import embedding_umap as eu
 from marin_dna.pipelines.evals.embedding_umap import (
     REGION_DISPLAY,
     REGION_ORDER,
     REGION_PALETTE,
+    compute_region_embeddings,
     fit_umap,
     plot_umap,
 )
@@ -96,3 +98,52 @@ def test_fit_umap_shape_columns_and_determinism():
     assert len(coords) == 50
     coords2 = fit_umap(df, random_state=42)
     np.testing.assert_allclose(coords["UMAP1"], coords2["UMAP1"])
+
+
+def test_compute_region_embeddings_drops_n_and_assembles(monkeypatch):
+    """Pre-filters N/out-of-bounds windows, then assembles carried metadata +
+    emb_* columns from the (mocked) Trainer-harness output. Model/tokenizer/
+    genome loaders and run_window_embeddings are mocked — no checkpoint, no GPU."""
+    n = 30
+    starts = [1000 + 1000 * i for i in range(n)]
+    regions = pd.DataFrame(
+        {
+            "chrom": ["1"] * n,
+            "start": starts,
+            "end": [s + 100 for s in starts],
+            "label": [sorted(_DATASET_LABELS)[i % 7] for i in range(n)],
+            "cons": [i / n for i in range(n)],
+        }
+    )
+
+    class _FakeGenome:
+        def __init__(self, path):
+            pass
+
+        def __call__(self, chrom, start, end, strand="+"):
+            # The region at start=2000 (midpoint 2050 -> ctx_start 2040 at W=20)
+            # hits an assembly gap -> dropped; every other window is clean ACGT.
+            return ("N" if start == 2040 else "A") * (end - start)
+
+    emb_block = np.arange(29 * 2, dtype=np.float32).reshape(29, 2)
+    monkeypatch.setattr(eu.AutoTokenizer, "from_pretrained", lambda *a, **k: object())
+    monkeypatch.setattr(eu.AutoModel, "from_pretrained", lambda *a, **k: object())
+    monkeypatch.setattr(eu, "Genome", _FakeGenome)
+    monkeypatch.setattr(eu, "run_window_embeddings", lambda *a, **k: emb_block)
+
+    out = compute_region_embeddings(
+        "/ckpt", "/genome.fa", regions, window_size=20, n_center_bp=10
+    )
+
+    assert len(out) == 29  # 1 of 30 dropped (3.3%, under the 5% guard)
+    assert 2000 not in set(out["start"])  # the N window is gone
+    assert list(out.columns) == [
+        "chrom",
+        "start",
+        "end",
+        "label",
+        "cons",
+        "emb_0",
+        "emb_1",
+    ]
+    np.testing.assert_array_equal(out[["emb_0", "emb_1"]].to_numpy(), emb_block)

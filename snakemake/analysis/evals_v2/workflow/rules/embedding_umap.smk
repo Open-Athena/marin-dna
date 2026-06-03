@@ -47,6 +47,8 @@ rule compute_region_embeddings:
             batch_size=UMAP_CFG.get(
                 "batch_size", config["inference"]["batch_size"]
             ),
+            num_workers=config["inference"]["num_workers"],
+            torch_compile=config["inference"].get("torch_compile", False),
         )
         df.to_parquet(output[0])
         print(

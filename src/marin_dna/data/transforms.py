@@ -148,6 +148,33 @@ def transform_llr_clm(
     return dict(input_ids=input_ids, alt_token_id=alt_token_id)
 
 
+def transform_window_embedding(
+    example: dict[str, Any],
+    tokenizer: Any,
+    genome: Any,
+    window_size: int,
+    strand: Literal["+", "-"] = "+",
+) -> dict[str, Any]:
+    """Tokenize the model-context window centered on a region (issue #246).
+
+    The region ``[start, end)`` (0-based half-open) is expanded to
+    ``window_size`` bp centered on its midpoint and fetched on ``strand``
+    (``"-"`` returns the reverse complement). Returns ``{"input_ids": [L]}``.
+
+    The center-pooling positions are strand-symmetric, so the caller pools the
+    *same* token slice on both strands and averages them
+    (see ``marin_dna.model.runner.run_window_embeddings``). No variant logic
+    here — unlike ``transform_llr_clm`` there is no per-strand position to track.
+    """
+    chrom = str(example["chrom"])
+    start = int(example["start"])
+    end = int(example["end"])
+    center = (start + end) // 2
+    ctx_start = center - window_size // 2
+    seq = genome(chrom, ctx_start, ctx_start + window_size, strand).upper()
+    return {"input_ids": torch.tensor(tokenizer.encode(seq))}
+
+
 def transform_reflogprob_clm(
     example: dict[str, Any],
     tokenizer: Any,

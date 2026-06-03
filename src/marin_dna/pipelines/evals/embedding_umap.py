@@ -18,11 +18,11 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from datasets import Dataset
+from transformers import AutoModel, AutoTokenizer
 
 from marin_dna.data.genome import Genome
-from marin_dna.model.embeddings import window_embeddings
+from marin_dna.model.runner import run_window_embeddings
 
 # The dataset's 7 region labels → display names (GPN-Star Fig 4A).
 REGION_DISPLAY: dict[str, str] = {
@@ -83,18 +83,25 @@ def compute_region_embeddings(
     *,
     layer_index: int = -1,
     n_center_bp: int = 100,
-    batch_size: int = 64,
+    batch_size: int = 128,
+    num_workers: int = 4,
+    torch_compile: bool = False,
 ) -> pd.DataFrame:
     """Embed every region window; return embeddings + carried metadata.
 
-    For each window the model context (``window_size`` bp) is centered on the
-    window midpoint; the center ``n_center_bp`` positions are mean-pooled and
-    the FWD/RC strands averaged (see ``model.embeddings.window_embeddings``).
+    Runs through the shared HF Trainer harness
+    (``marin_dna.model.runner.run_window_embeddings``) — bf16, optional
+    ``torch.compile``, ``num_workers`` dataloader workers — on a base
+    ``AutoModel`` (reads ``last_hidden_state``; no LM head). For each window the
+    ``window_size`` context is centered on the region midpoint, the center
+    ``n_center_bp`` token positions are mean-pooled, and the FWD/RC strands are
+    averaged.
+
     Windows whose expanded context runs off a chromosome end or covers an
-    assembly gap (any ``N``) are **dropped** — these are bulk data, not the
-    curated handful the nuc_dep pipeline hard-asserts on. The reference FASTA is
-    ``dna_sm`` (soft-masked), so repeats are lowercase and survive ``.upper()``;
-    only true ``N`` (gaps) are dropped.
+    assembly gap (any ``N``) are dropped **before** inference (Trainer.predict
+    can't drop rows mid-loading). The reference is ``dna_sm`` (soft-masked), so
+    repeats are lowercase ACGT and survive ``.upper()`` — only true ``N`` (gaps)
+    is dropped; the drop fraction doubles as a coordinate-sanity check.
 
     Returns a DataFrame of the carried columns (``chrom/start/end/label/cons``)
     plus ``emb_0…emb_{D-1}``, one row per surviving window.
@@ -103,18 +110,15 @@ def compute_region_embeddings(
         f"window_size {window_size} must be >= n_center_bp {n_center_bp}"
     )
     tokenizer: Any = AutoTokenizer.from_pretrained(checkpoint_path)
-    model: Any = AutoModelForCausalLM.from_pretrained(
-        checkpoint_path, trust_remote_code=True
-    )
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device).eval()
+    # Base AutoModel — we read last_hidden_state, not logits, so the LM head is
+    # dead weight. Trainer.predict handles device placement + bf16 + eval mode.
+    model: Any = AutoModel.from_pretrained(checkpoint_path, trust_remote_code=True)
 
     genome = Genome(genome_path)
-    # Sort by (chrom, start) so consecutive S3 byte-range reads hit nearby
-    # bgzip blocks (fsspec block-cache locality); UMAP is order-independent.
+    # Sort by (chrom, start) so the S3 byte-range reads (here and in the
+    # dataloader transform) hit nearby bgzip blocks; UMAP is order-independent.
     regions = regions.sort_values(["chrom", "start"]).reset_index(drop=True)
 
-    seqs: list[str] = []
     keep: list[int] = []
     n_dropped = 0
     for row in regions.itertuples(index=True):
@@ -124,7 +128,6 @@ def compute_region_embeddings(
         if len(seq) != window_size or "N" in seq:
             n_dropped += 1
             continue
-        seqs.append(seq)
         keep.append(row.Index)
 
     n_total = len(regions)
@@ -133,22 +136,33 @@ def compute_region_embeddings(
     assert frac < 0.05, (
         f"dropped {frac:.1%} of windows (>5%) — investigate genome build / coords"
     )
-    assert seqs, "no windows survived N/bounds filtering"
+    assert keep, "no windows survived N/bounds filtering"
+    kept = regions.loc[keep, _CARRY_COLUMNS].reset_index(drop=True)
 
-    emb = window_embeddings(
+    hf_dataset = Dataset.from_pandas(
+        kept[["chrom", "start", "end"]], preserve_index=False
+    )
+    emb = run_window_embeddings(
         model,
         tokenizer,
-        seqs,
-        layer_index=layer_index,
+        hf_dataset,
+        genome,
+        window_size,
         n_center_bp=n_center_bp,
+        layer_index=layer_index,
         rc=True,
-        batch_size=batch_size,
-    )
-    kept = regions.loc[keep, _CARRY_COLUMNS].reset_index(drop=True)
+        data_transform_on_the_fly=True,
+        inference_kwargs={
+            "per_device_eval_batch_size": batch_size,
+            "torch_compile": torch_compile,
+            "bf16_full_eval": True,
+            "dataloader_num_workers": num_workers,
+            "remove_unused_columns": False,
+        },
+    )  # [N, D]
+    assert emb.shape[0] == len(kept), f"row mismatch: {emb.shape[0]} vs {len(kept)}"
     emb_df = pd.DataFrame(emb, columns=[f"emb_{i}" for i in range(emb.shape[1])])
-    out = pd.concat([kept, emb_df], axis=1)
-    assert len(out) == len(seqs), f"row mismatch: {len(out)} vs {len(seqs)}"
-    return out
+    return pd.concat([kept, emb_df], axis=1)
 
 
 def fit_umap(emb_df: pd.DataFrame, *, random_state: int = 42) -> pd.DataFrame:

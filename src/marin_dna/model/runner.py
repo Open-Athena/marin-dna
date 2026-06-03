@@ -41,10 +41,12 @@ from marin_dna.data.transforms import (
     in_seq_var_pos,
     transform_ll_clm,
     transform_llr_clm,
+    transform_window_embedding,
 )
 from marin_dna.model.scoring import (
     compute_ll_clm,
     compute_variant_score_bundle,
+    compute_window_embedding,
 )
 
 
@@ -192,6 +194,60 @@ def run_variant_score_bundle(
     if rc:
         out["rc"] = np.asarray(_one("-"))
     return out
+
+
+def run_window_embeddings(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    *,
+    n_center_bp: int = 100,
+    layer_index: int = -1,
+    rc: bool = True,
+    **kwargs: Any,
+) -> np.ndarray:
+    """Center-pooled, FWD+RC-averaged window embeddings via the HF Trainer harness.
+
+    The embedding-UMAP readout (issue #246). Mirrors ``run_variant_score_bundle``
+    but reads hidden states instead of logits: each region's ``window_size``
+    context is tokenized (``transform_window_embedding``), the center
+    ``n_center_bp`` token positions of one layer are mean-pooled
+    (``compute_window_embedding``), and the forward and reverse-complement
+    strands are averaged (``_run_strand_aware`` — the center block is
+    strand-symmetric, so ``tok_lo``/``tok_hi`` are shared across strands).
+
+    Pass ``model`` as a base ``AutoModel`` (not ``AutoModelForCausalLM``) so the
+    forward skips the LM head — ``compute_window_embedding`` reads
+    ``last_hidden_state`` (``layer_index == -1``). ``**kwargs`` flow to
+    ``run_inference`` (e.g. ``data_transform_on_the_fly=True``,
+    ``inference_kwargs={...}`` carrying ``per_device_eval_batch_size`` /
+    ``bf16_full_eval`` / ``torch_compile`` / ``dataloader_num_workers``).
+
+    Returns ``[N, D]`` (``N = len(dataset)``, ``D`` = model hidden size).
+    """
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+    c0 = (window_size - n_center_bp) // 2
+    tok_lo = n_prefix + c0
+    tok_hi = tok_lo + n_center_bp
+    return np.asarray(
+        _run_strand_aware(
+            model,
+            tokenizer,
+            dataset,
+            compute_fn=partial(
+                compute_window_embedding,
+                tok_lo=tok_lo,
+                tok_hi=tok_hi,
+                layer_index=layer_index,
+            ),
+            transform_fn=transform_window_embedding,
+            transform_kwargs={"genome": genome, "window_size": window_size},
+            rc_avg=rc,
+            **kwargs,
+        )
+    )
 
 
 def _run_inference(
