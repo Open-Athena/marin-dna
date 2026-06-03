@@ -883,7 +883,7 @@ nuc_dep:
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158
     - exp166-v0.1-p1B-step-27329  # 1B generalist (zoonomia v0.1), 255+BOS — 2nd dashboard model (#240)
-    - exp21-promoters-yolo-step-2000  # promoter specialist, 512-ctx no-BOS, run at 255 (#240)
+    - exp21-promoters-yolo-step-22000  # promoter specialist (final ckpt, on the leaderboard), 512-ctx no-BOS, run at 255 (#240)
   loci:
     LDLR:  {chrom: "19", start: 11089299,  end: 11089425,  strand: "+"}
     TH:    {chrom: "11", start: 2171682,   end: 2171868,   strand: "-"}
