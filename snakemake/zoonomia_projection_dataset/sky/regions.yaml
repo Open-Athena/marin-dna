@@ -84,7 +84,7 @@ run: |
 
     # (1) Denylist: any heavy upstream rule => abort.
     HEAVY='project_one_species|hal_to_fasta|hal_chrom_sizes|fasta_to_2bit|extract_sequences|merge_sequences|merge_projected|prepare_input_ucsc|filter_single_chrom_strand|filter_length|resize_to_length|download_genome|genome_to_2bit|download_bigwig|download_annotation|cre_download|cre_process|score_windows_chrom|merge_scored|make_windows|chrom_sizes|chrom_sizes_filtered|undefined_regions|defined_regions|filter_bed'
-    if echo "$DRYLOG" | grep -qE "^(rule|localrule) ($HEAVY):"; then
+    if echo "$DRYLOG" | grep -qE "^(rule|localrule|checkpoint|localcheckpoint) ($HEAVY):"; then
         echo "ABORT: dry-run scheduled a heavy upstream rule (projection/genome/scoring)." >&2
         echo "This launcher only runs the labeling step; everything upstream must already exist on S3." >&2
         exit 1
@@ -99,7 +99,7 @@ run: |
         r && NF>=2 {print $1}
     ' | sort -u)
     if [ -z "$SCHEDULED" ]; then
-        echo "ABORT: could not parse the dry-run job table — refusing to run blind." >&2
+        echo "ABORT: no parsable 'Job stats:' table in the dry-run output — snakemake likely errored (see above) or its output format changed. Refusing to run blind." >&2
         exit 1
     fi
     for rule in $SCHEDULED; do

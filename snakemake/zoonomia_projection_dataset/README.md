@@ -141,8 +141,10 @@ The current pipeline ships one derived subset:
 ## HuggingFace datasets
 
 One HF dataset per (pipeline, intervals) combination. v1/v2 are the
-core cross-mammal training sets; v3_* is a per-region-label partition of
-v1 (six disjoint subsets summing to v1 at the anchor level).
+core cross-mammal training sets; v3_* and v4_* are each a per-region-label
+partition of v1 (six disjoint subsets summing to v1 at the anchor level) —
+two different labelings of the same anchors (v3 priority-on-presence, v4 the
+issue #221 scheme; see "v4 region labels" below).
 
 | HF repo                                          | pipeline | intervals               | source Parquet                                                              |
 |---|---|---|---|
