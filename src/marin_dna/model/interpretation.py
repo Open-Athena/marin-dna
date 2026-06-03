@@ -207,6 +207,7 @@ def nucleotide_dependency_map(
         return dependency_matrix(jac.cpu().numpy(), norm_ord=norm_ord)
 
     D_fwd = _strand_dependency(seq)
+    assert np.isfinite(D_fwd).all(), "forward dependency map has non-finite values"
     # Causal invariant: the forward Jacobian is strictly upper-triangular.
     # np.tril includes the (already-zeroed) diagonal; the strictly-lower part
     # must be ~0 or our token/strand indexing is wrong.
@@ -224,6 +225,7 @@ def nucleotide_dependency_map(
     # RC position k corresponds to forward position W-1-k; flip both axes to
     # bring the RC map into forward coordinates. It is now lower-triangular.
     D_rc_flipped = D_rc[::-1, ::-1]
+    assert np.isfinite(D_rc_flipped).all(), "RC dependency map has non-finite values"
     upper_rc = np.triu(D_rc_flipped)
     assert np.allclose(upper_rc, 0.0, atol=atol), (
         f"reverse-complement dependency map not lower-triangular after flip "

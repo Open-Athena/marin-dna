@@ -59,6 +59,7 @@ def compute_dependency_map(
         map reads 5'->3' along the locus strand.
     """
     assert end > start, f"locus end {end} must exceed start {start}"
+    assert strand in ("+", "-"), f"strand must be '+' or '-', got {strand!r}"
     assert end - start <= window_size, (
         f"locus span {end - start} bp exceeds model window_size {window_size}; "
         f"pick a smaller locus or a longer-context model"
@@ -81,6 +82,13 @@ def compute_dependency_map(
     seq = genome(chrom, context_start, context_end, strand="+").upper()
     assert len(seq) == window_size, (
         f"extracted {len(seq)} bp, expected window_size={window_size}"
+    )
+    # Genome left/right-pads with N past chromosome ends (and assembly gaps
+    # carry N); such a window would build the map over non-genomic context while
+    # the length assert above still passes — fail loud rather than silently wrong.
+    assert "N" not in seq, (
+        f"window {chrom}:{context_start}-{context_end} contains N (near a chromosome "
+        f"boundary or assembly gap); pick a locus with full ACGT context"
     )
 
     M = nucleotide_dependency_map(
@@ -176,7 +184,9 @@ def plot_dependency_map(
         # blur) when the SVG is scaled — they read as sharp vector squares.
         svg = out.read_text()
         if "<image " in svg and "image-rendering" not in svg:
-            svg = svg.replace("<image ", '<image style="image-rendering:pixelated" ', 1)
+            # Replace every <image> (robust to a future colorbar / inset adding
+            # more than one rasterized layer), not just the first.
+            svg = svg.replace("<image ", '<image style="image-rendering:pixelated" ')
             out.write_text(svg)
         plt.savefig(out.with_suffix(".png"), bbox_inches="tight", dpi=dpi)
     plt.close()

@@ -24,13 +24,16 @@ _MOD = "marin_dna.pipelines.evals.interpretation"
 
 
 @contextmanager
-def _mocked_compute(window_size: int, stub_map: np.ndarray):
+def _mocked_compute(
+    window_size: int, stub_map: np.ndarray, genome_seq: str | None = None
+):
     """Patch loaders + the Jacobian compute so the windowing logic runs alone.
 
-    ``Genome(...)`` returns a callable that yields a length-``window_size``
-    sequence; ``nucleotide_dependency_map`` returns ``stub_map``.
+    ``Genome(...)`` returns a callable that yields ``genome_seq`` (default a
+    length-``window_size`` all-A sequence); ``nucleotide_dependency_map``
+    returns ``stub_map``.
     """
-    genome_inst = MagicMock(return_value="A" * window_size)
+    genome_inst = MagicMock(return_value=genome_seq or "A" * window_size)
     with (
         patch(f"{_MOD}.AutoTokenizer"),
         patch(f"{_MOD}.AutoModelForCausalLM"),
@@ -116,3 +119,36 @@ def test_compute_dependency_map_rejects_oversized_locus():
             strand="+",
             window_size=10,
         )
+
+
+def test_compute_dependency_map_rejects_invalid_strand():
+    # Strand is validated near the top, before any model/genome load.
+    with pytest.raises(AssertionError, match="strand must be"):
+        compute_dependency_map(
+            checkpoint_path="/ckpt",
+            genome_path="/g.fa",
+            chrom="1",
+            start=1000,
+            end=1006,
+            strand="-1",  # typo for "-"
+            window_size=10,
+        )
+
+
+def test_compute_dependency_map_rejects_n_window():
+    """A window padded/gapped with N (e.g. near a chromosome boundary) must
+    fail loud rather than build the map over non-genomic context."""
+    window_size = 10
+    stub = np.zeros((6, 6))
+    n_seq = "N" + "A" * (window_size - 1)  # length OK, but contains N
+    with _mocked_compute(window_size, stub, genome_seq=n_seq):
+        with pytest.raises(AssertionError, match="contains N"):
+            compute_dependency_map(
+                checkpoint_path="/ckpt",
+                genome_path="/g.fa",
+                chrom="1",
+                start=1000,
+                end=1006,
+                strand="+",
+                window_size=window_size,
+            )

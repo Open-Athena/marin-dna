@@ -137,6 +137,9 @@ for _loc, _c in NUC_DEP_CFG.get("loci", {}).items():
     assert _c["end"] > _c["start"], (
         f"nuc_dep locus {_loc!r}: end {_c['end']} must exceed start {_c['start']}"
     )
+    assert _c["strand"] in ("+", "-"), (
+        f"nuc_dep locus {_loc!r}: strand must be '+' or '-', got {_c['strand']!r}"
+    )
     for _m in NUC_DEP_MODELS:
         _ws = get_model_config(_m)["window_size"]
         assert _c["end"] - _c["start"] <= _ws, (
