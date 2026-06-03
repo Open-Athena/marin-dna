@@ -135,10 +135,15 @@ def dedup_by_rank(
 
     Returns the chosen LeafMeta records, sorted by the group key.
 
-    Subset invariant: every ``rank="order"`` winner is also a ``rank="family"``
-    winner over the same rows (the top-ranked leaf in an order is top-ranked
-    in its own family, and force-includes are pinned at both ranks), so
-    order-winners ⊆ family-winners. Relied on by the dataset follow-up.
+    Subset invariant: every ``rank="order"`` winner is also a
+    ``rank="family"`` winner over the same rows, so
+    order-winners ⊆ family-winners. An order with no force-include is won by
+    its top-ranked leaf, which is also top-ranked in its own family (⊆ the
+    order). An order containing force-includes is won by its top-ranked
+    force-include, which is likewise the top-ranked force-include in its own
+    family — so it wins both ranks. (Any *other* force-include in that order
+    loses it but still wins its own family, which is fine: only the winner
+    need be a family winner.) Relied on by the dataset follow-up.
     """
     assert rank in DEDUP_RANKS, f"rank must be one of {DEDUP_RANKS}; got {rank!r}"
     by_group: dict[str, list[LeafMeta]] = {}

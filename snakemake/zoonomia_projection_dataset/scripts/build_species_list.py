@@ -82,19 +82,26 @@ ALT_NAMES: dict[str, str] = {
     "Trachypithecus_melamera": "Trachypithecus pileatus",
 }
 
-# Per-rank sanity bounds on the winners set (loud failure beats silent
-# corruption per CLAUDE.md). `family`: ~108 leaves, ~85% ST2-true. `order`:
-# 19 leaves, ST2-true ratio lower (15/19 ≈ 79%) because the forced human +
-# mouse use legacy ST2 accessions that fall back to taxon proxy — so the gate
-# is looser. Counts carry ±1 tolerance for benign NCBI taxonomy drift.
-RANK_COUNT_BOUNDS: dict[str, tuple[int, int]] = {
-    "family": (100, 115),
-    "order": (18, 20),
+# Per-rank sanity bounds on the winners set: (count_lo, count_hi,
+# min_st2_ratio). Loud failure beats silent corruption (CLAUDE.md).
+#   family: ~108 leaves (one per NCBI family), ~85% ST2-true; count bound is
+#           loose (~108 ± a handful) since family totals shift with taxonomy.
+#   order:  19 leaves (one per order); count bound is tight (±1 around 19 —
+#           the extant placental-order count is biologically stable), and the
+#           ST2-true gate is looser (real ratio 15/19 ≈ 79%): with only 19
+#           winners the always-proxy human + mouse, plus the orders whose best
+#           assembly is itself a taxon proxy (e.g. Dermoptera, Proboscidea),
+#           weigh far more than they do across 108 families.
+RANK_SANITY: dict[str, tuple[int, int, float]] = {
+    "family": (100, 115, 0.80),
+    "order": (18, 20, 0.70),
 }
-RANK_MIN_ST2_RATIO: dict[str, float] = {
-    "family": 0.80,
-    "order": 0.70,
-}
+# Every rank argparse accepts (choices=DEDUP_RANKS) must have sanity bounds, or
+# a valid --rank would pass the full ~2-min fetch and then KeyError here. Tie
+# the two together at import time so adding a rank fails fast and loud.
+assert set(RANK_SANITY) == set(DEDUP_RANKS), (
+    f"RANK_SANITY keys {sorted(RANK_SANITY)} != DEDUP_RANKS {sorted(DEDUP_RANKS)}"
+)
 
 
 def _to_query(leaf: str) -> str:
@@ -340,13 +347,14 @@ def main() -> None:
         f"{ {'Homo_sapiens', 'Mus_musculus', 'Bos_taurus'} - leaves_won }"
     )
     n = len(winners)
-    lo, hi = RANK_COUNT_BOUNDS[args.rank]
-    assert lo <= n <= hi, f"unexpected {args.rank} count: {n} (expected {lo}..{hi})"
+    count_lo, count_hi, min_st2_ratio = RANK_SANITY[args.rank]
+    assert count_lo <= n <= count_hi, (
+        f"unexpected {args.rank} count: {n} (expected {count_lo}..{count_hi})"
+    )
     n_st2 = sum(1 for w in winners if w.quality_source == "zoonomia_supp_st2")
-    min_ratio = RANK_MIN_ST2_RATIO[args.rank]
-    assert n_st2 / n >= min_ratio, (
+    assert n_st2 / n >= min_st2_ratio, (
         f"ST2-true ratio too low: {n_st2}/{n} = {n_st2 / n:.2%} "
-        f"(expected ≥ {min_ratio:.0%} for rank={args.rank}). "
+        f"(expected ≥ {min_st2_ratio:.0%} for rank={args.rank}). "
         f"Reproducer logic may be miscoded."
     )
     n_unknown = sum(1 for w in winners if w.quality_source == "unknown")

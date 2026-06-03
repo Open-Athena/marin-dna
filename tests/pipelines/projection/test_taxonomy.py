@@ -227,3 +227,30 @@ def test_order_winners_are_subset_of_family_winners() -> None:
     # OrderA → A_top (N50 300 > 200), OrderB → C_solo.
     assert order == {"A_top", "C_solo"}
     assert order.issubset(fam)
+
+
+def test_order_subset_holds_with_two_force_includes_sharing_an_order() -> None:
+    """Subset invariant survives two force-includes in the same order (#230).
+
+    The order's top-ranked force-include wins both its order and its family;
+    the *other* force-include loses the order but still wins its own family, so
+    order-winners ⊆ family-winners holds. Guards the docstring's force-include
+    reasoning, which the no-force subset test does not exercise.
+    """
+    rows = [
+        # Two force-includes in OrderX, different families. Force_hi outranks
+        # Force_lo (Complete Genome > Scaffold), so Force_hi wins OrderX.
+        _meta("Force_hi", "FamA", order="OrderX", level="Complete Genome", n50=100),
+        _meta("Force_lo", "FamB", order="OrderX", level="Scaffold", n50=100),
+        # Higher-N50 non-forced leaf in FamA the force-include must still beat.
+        _meta("Plain_a", "FamA", order="OrderX", level="Complete Genome", n50=999),
+        _meta("Solo", "FamC", order="OrderY", n50=50),
+    ]
+    force = frozenset({"Force_hi", "Force_lo"})
+    fam = {w.leaf for w in dedup_by_rank(rows, "family", force_include=force)}
+    order = {w.leaf for w in dedup_by_rank(rows, "order", force_include=force)}
+    # FamA → Force_hi (forced beats higher-N50 Plain_a), FamB → Force_lo, FamC → Solo.
+    assert fam == {"Force_hi", "Force_lo", "Solo"}
+    # OrderX → Force_hi (top force-include); Force_lo loses the order but is in fam.
+    assert order == {"Force_hi", "Solo"}
+    assert order.issubset(fam)
