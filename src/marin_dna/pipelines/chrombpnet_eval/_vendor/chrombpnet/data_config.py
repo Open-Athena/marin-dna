@@ -198,4 +198,3 @@ class DataConfig:
 			(argument name, set with argument types, argument default value).
 		"""
 		return get_init_arguments_and_types(cls)
-
