@@ -53,7 +53,7 @@ def load_arsenal_scores(path: str, *, flip_logfc: bool = False) -> pl.DataFrame:
     missing = [c for c in ARSENAL_SCORE_COLUMNS if c not in df.columns]
     assert not missing, f"ARSENAL score TSV missing {missing}; got {df.columns}"
     sign = -1.0 if flip_logfc else 1.0
-    return df.select(
+    out = df.select(
         pl.col("chr").cast(pl.Utf8).str.replace(r"^chr", "").alias("chrom"),
         pl.col("pos").cast(pl.Int64),
         pl.col("allele1").cast(pl.Utf8).str.to_uppercase(),
@@ -61,6 +61,15 @@ def load_arsenal_scores(path: str, *, flip_logfc: bool = False) -> pl.DataFrame:
         pl.col("variant_id").cast(pl.Utf8),
         (pl.col("logfc").cast(pl.Float64) * sign).alias("logfc"),
     )
+    # SNP-only: a stray indel/N would build a malformed allele-pair key that
+    # silently fails to join later — fail loud at the boundary instead.
+    nuc = ["A", "C", "G", "T"]
+    bad = out.filter(~pl.col("allele1").is_in(nuc) | ~pl.col("allele2").is_in(nuc))
+    assert bad.height == 0, (
+        f"load_arsenal_scores: {bad.height} rows with non-ACGT alleles (SNP-only "
+        f"expected); e.g. {bad.select('chrom', 'pos', 'allele1', 'allele2').head(3)}"
+    )
+    return out
 
 
 def _unordered_pair(a: pl.Expr, b: pl.Expr) -> pl.Expr:
@@ -117,14 +126,31 @@ def align_scores_to_variants(
     v = variants.with_columns(
         _unordered_pair(pl.col("ref"), pl.col("alt")).alias("_pair")
     )
-    s = scores.with_columns(
+    s_paired = scores.with_columns(
         _unordered_pair(pl.col("allele1"), pl.col("allele2")).alias("_pair")
-    ).unique(subset=["chrom", "pos", "_pair"], keep="first")
+    )
+    # A (chrom,pos,pair) group with conflicting logfc would make the dedup below
+    # pick an arbitrary, order-dependent score — fail loud instead.
+    conflicts = (
+        s_paired.group_by(["chrom", "pos", "_pair"])
+        .agg(pl.col("logfc").n_unique().alias("_n"))
+        .filter(pl.col("_n") > 1)
+    )
+    assert conflicts.height == 0, (
+        f"{conflicts.height} (chrom,pos,pair) score groups have conflicting logfc; "
+        f"dedup would be arbitrary — e.g. {conflicts.head(3)}"
+    )
+    s = s_paired.unique(subset=["chrom", "pos", "_pair"], keep="first")
 
     joined = v.join(
-        s.select(["chrom", "pos", "_pair", "allele2", "logfc"]),
+        s.select(["chrom", "pos", "_pair", "allele1", "allele2", "logfc"]),
         on=["chrom", "pos", "_pair"],
         how="left",
+    )
+    # `s` is unique per (chrom,pos,_pair), so a left join cannot fan out — assert
+    # it (a weakened dedup would otherwise double-count rows into the metric).
+    assert joined.height == n_variants, (
+        f"join fan-out: {joined.height} rows from {n_variants} variants"
     )
     n_matched = joined.filter(pl.col("logfc").is_not_null()).height
     coverage = n_matched / n_variants
@@ -132,6 +158,17 @@ def align_scores_to_variants(
         f"score join coverage {coverage:.3f} < {min_coverage} "
         f"({n_matched}/{n_variants}) — suspect a coordinate/build mismatch "
         f"(lift={lift})"
+    )
+    # Orientation invariant: a matched variant's alt must be exactly one of the
+    # score's two alleles (guaranteed by the unordered-pair join). Assert so a
+    # future join-key change can't silently route rows through the -logfc branch.
+    bad_orient = joined.filter(
+        pl.col("logfc").is_not_null()
+        & (pl.col("alt") != pl.col("allele1"))
+        & (pl.col("alt") != pl.col("allele2"))
+    )
+    assert bad_orient.height == 0, (
+        f"{bad_orient.height} matched rows whose alt is neither ARSENAL allele"
     )
 
     # Orient to our alt: +logfc if our alt is allele2, -logfc if our alt is
@@ -145,5 +182,5 @@ def align_scores_to_variants(
             .alias(score_out)
         )
         .filter(pl.col("logfc").is_not_null())
-        .drop("_pair", "allele2", "logfc")
+        .drop("_pair", "allele1", "allele2", "logfc")
     )

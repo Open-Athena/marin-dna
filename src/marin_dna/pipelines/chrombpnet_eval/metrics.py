@@ -116,7 +116,16 @@ def compute_supervised_qtl_metrics(
     for col in (score_col, label_col, effect_col):
         assert col in df.columns, f"df missing required column {col!r}"
 
-    label = np.asarray(df[label_col]).astype(int)
+    label_raw = np.asarray(df[label_col])
+    # Guard before astype(int): a NaN label would become INT_MIN (warning only)
+    # and a non-{0,1} float would silently miscount the positive mask / feed a
+    # spurious third class to roc_auc_score. bool is fine; else require {0,1}.
+    if label_raw.dtype != bool:
+        uniq = set(np.unique(label_raw).tolist())
+        assert uniq <= {0, 1}, (
+            f"{label_col!r} must be boolean or 0/1, got values {sorted(uniq)}"
+        )
+    label = label_raw.astype(int)
     score = np.asarray(df[score_col], dtype=float)
     effect = np.asarray(df[effect_col], dtype=float)
 

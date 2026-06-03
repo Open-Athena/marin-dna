@@ -73,7 +73,11 @@ def synapse_download(syn_id: str, dest: Path) -> Path:
     # S3 URL (which is exactly what we want).
     resp = requests.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
     resp.raise_for_status()
-    dest.write_bytes(resp.content)
+    # Write to a sibling .tmp then atomically rename, so an interrupted download
+    # never leaves a truncated file that the dest.exists() cache silently reuses.
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
+    tmp.write_bytes(resp.content)
+    tmp.replace(dest)
     return dest
 
 
