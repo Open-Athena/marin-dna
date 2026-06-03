@@ -12,9 +12,13 @@ from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pandas as pd
 import pytest
 
-from marin_dna.pipelines.evals.interpretation import compute_dependency_map
+from marin_dna.pipelines.evals.interpretation import (
+    compute_dependency_map,
+    plot_dependency_map,
+)
 
 _MOD = "marin_dna.pipelines.evals.interpretation"
 
@@ -82,6 +86,22 @@ def test_compute_dependency_map_strand_minus_flips_axes():
     np.testing.assert_array_equal(df.values, stub[2:8, 2:8][::-1, ::-1])
     assert list(df.index) == list(range(end - 1, start - 1, -1))
     assert list(df.columns) == list(range(end - 1, start - 1, -1))
+
+
+def test_plot_dependency_map_writes_svg_and_png(tmp_path):
+    coords = list(range(11089299, 11089309))
+    rng = np.random.RandomState(0)
+    M = np.abs(rng.randn(10, 10))
+    M = (M + M.T) / 2  # symmetric like a real map
+    np.fill_diagonal(M, 0.0)
+    df = pd.DataFrame(M, index=coords, columns=coords)
+
+    out = tmp_path / "nested" / "LDLR" / "map.svg"
+    plot_dependency_map(df, out, chrom="19", title="LDLR — test")
+
+    assert out.exists() and out.stat().st_size > 0
+    png = out.with_suffix(".png")
+    assert png.exists() and png.stat().st_size > 0
 
 
 def test_compute_dependency_map_rejects_oversized_locus():
