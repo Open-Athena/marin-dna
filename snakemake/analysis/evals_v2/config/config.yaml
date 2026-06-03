@@ -852,3 +852,41 @@ inference:
   bootstrap_seed: 0     # 0 → reproducible across re-runs. Bumping
                         # this triggers metric re-execution via
                         # snakemake's `params:` hash.
+
+
+# ---------------------------------------------------------------------------
+# Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.
+#
+# NOT a metric: these targets are kept off `rule all`. Build explicitly:
+#   snakemake nuc_dep                                  # all (locus, model) plots
+#   snakemake results/plots/nuc_dep/LDLR/<model>.svg   # one map
+#
+# Coordinates are 0-based half-open, GRCh38 (Ensembl chrom names, no `chr`).
+# Loci are reused from the nuc-dep paper's human examples so our maps can be
+# eyeballed against the published figures. Each locus must fit the model's
+# `window_size` (asserted at config load). HBA1 is 256 bp in the paper; we crop
+# 1 bp (trim the 3' end) so it fits the 255 bp window of the mix-v0.9 models —
+# GPN-Star likewise ran HBA1 with the locus filling the whole window (256/256),
+# so a locus == window_size (zero flank) is an intended, supported case.
+# ---------------------------------------------------------------------------
+nuc_dep:
+  combines: [mean, max]  # stitched-FWD/RC symmetrizations to compute, one map each (#237)
+  ord: inf             # vector-norm order collapsing each 4x4 nucleotide block
+  batch_size: 32       # sequences per forward pass (execution-only; tune for VRAM)
+  dpi: 100             # heatmap raster dpi (the SVG embeds one rasterized image; lower = smaller file)
+  # Models here must use a BOS tokenizer (255 bp + BOS, like exp135): a causal
+  # LM's position 0 has no left-context distribution, so categorical_jacobian
+  # asserts n_prefix>=1. Do NOT add the no-BOS exp55/58/59/exp21 arms.
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+  loci:
+    LDLR:  {chrom: "19", start: 11089299,  end: 11089425,  strand: "+"}
+    TH:    {chrom: "11", start: 2171682,   end: 2171868,   strand: "-"}
+    GRIA4: {chrom: "11", start: 105609444, end: 105609472, strand: "+"}
+    # HBA1: paper locus 176699-176955 (256 bp) cropped to 255 (3' end -1) to fit.
+    HBA1:  {chrom: "16", start: 176699,    end: 176954,    strand: "+"}
+    # tRNA-Arg-TCT-4-1 (gtrnadb GRCh38), a structured ncRNA used in the nuc-dep
+    # paper (Fig 7) — the map should recover its cloverleaf base-pairing. UCSC
+    # display chr1:159141611-159141684 (-) is 1-based inclusive → 0-based
+    # half-open start 159141610, end 159141684 (74 bp).
+    tRNA_Arg_TCT: {chrom: "1", start: 159141610, end: 159141684, strand: "-"}
