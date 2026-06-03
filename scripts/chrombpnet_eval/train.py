@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--wandb-name", default="dna-exp236-chrombpnet", help="includes dna-exp<N>"
     )
-    p.add_argument("--wandb-project", default="marin")
+    p.add_argument("--wandb-project", default="chrombpnet-eval")
     # representation knobs
     p.add_argument(
         "--chunk-size", type=int, default=255, help="gLM window (255 bp + BOS)"
@@ -75,6 +75,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lr-lm", type=float, default=1e-5)
     p.add_argument("--precision", default="32")
     p.add_argument("--devices", type=int, default=1)
+    p.add_argument("--log-every-n-steps", type=int, default=10)
+    p.add_argument(
+        "--val-check-interval",
+        type=int,
+        default=None,
+        help="validate every N train batches (default: epoch end)",
+    )
     # smoke knobs (cap batches per epoch so a 1-epoch run finishes fast)
     p.add_argument("--limit-train-batches", type=int, default=None)
     p.add_argument("--limit-val-batches", type=int, default=None)
@@ -140,10 +147,13 @@ def main() -> None:
         accelerator="gpu",
         devices=args.devices,
         precision=args.precision,
+        log_every_n_steps=args.log_every_n_steps,
+        val_check_interval=args.val_check_interval or 1.0,
         limit_train_batches=args.limit_train_batches,
         limit_val_batches=args.limit_val_batches,
         logger=logger,
         callbacks=[
+            L.pytorch.callbacks.LearningRateMonitor(logging_interval="step"),
             L.pytorch.callbacks.EarlyStopping(
                 monitor="val_count_pearson", patience=5, mode="max"
             ),

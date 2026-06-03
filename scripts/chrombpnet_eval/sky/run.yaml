@@ -27,6 +27,8 @@ envs:
     SMOKE: "1"
     BATCH: "8"                   # bump for the full run (bf16 fits more on the A10G)
     PRECISION: "32"              # "bf16-mixed" for the full run (~2x throughput, half VRAM)
+    WANDB_MODE: "offline"        # "online" + --env WANDB_API_KEY for a live dashboard
+    WANDB_API_KEY: ""            # pass via `sky exec --env WANDB_API_KEY` (read from local env)
     SYNAPSE_AUTH_TOKEN: ""       # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
     MODEL_GCS: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
 
@@ -49,7 +51,7 @@ run: |
     set -euxo pipefail
     export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
     export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
-    export WANDB_MODE=offline
+    export WANDB_MODE="${WANDB_MODE:-offline}"
     cd ~/sky_workdir
     mkdir -p data proj_v30
 
@@ -69,12 +71,17 @@ run: |
         "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes" -o data/hg38.chrom.sizes
 
     nvidia-smi
-    SMOKE_ARGS=""
-    [ "$SMOKE" = "1" ] && SMOKE_ARGS="--limit-train-batches 20 --limit-val-batches 5 --max-epochs 1 --no-wandb"
+    if [ "$SMOKE" = "1" ]; then
+        EXTRA_ARGS="--limit-train-batches 20 --limit-val-batches 5 --max-epochs 1 --no-wandb"
+    else
+        # full run: validate ~every 2000 train batches on a 200-batch val subset
+        # (cheap mid-epoch val_count_pearson for early-stopping + monitoring)
+        EXTRA_ARGS="--val-check-interval 2000 --limit-val-batches 200"
+    fi
     uv run --extra chrombpnet python scripts/chrombpnet_eval/train.py \
         --hf-model proj_v30 --tokenizer proj_v30 \
         --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \
         --bigwig data/GM12878_unstranded.bw --bias data/bias_model_scaled.h5 \
         --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
         --batch-size "$BATCH" --num-workers 4 --precision "$PRECISION" \
-        --wandb-name dna-exp236-proj_v30-chrombpnet --out-dir runs/proj_v30 $SMOKE_ARGS
+        --wandb-name dna-exp236-proj_v30-chrombpnet --out-dir runs/proj_v30 $EXTRA_ARGS

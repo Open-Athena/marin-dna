@@ -77,7 +77,9 @@ class ChromBPNetLit(L.LightningModule):
                 f"{mode}_profile_loss": profile_loss,
                 f"{mode}_count_loss": count_loss,
             },
-            on_step=False,
+            on_step=(
+                mode == "train"
+            ),  # live per-step train curve; val aggregates per-epoch
             on_epoch=True,
             prog_bar=(mode == "train"),
             sync_dist=True,
