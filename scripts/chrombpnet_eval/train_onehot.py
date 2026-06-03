@@ -39,11 +39,17 @@ import torch
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.data_config import (
     DataConfig,
 )
+from marin_dna.data.genome import Genome
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.dataset import DataModule
 from marin_dna.pipelines.chrombpnet_eval.lit import ChromBPNetLit
 from marin_dna.pipelines.chrombpnet_eval.onehot import (
     build_onehot_chrombpnet,
     count_trainable_params,
+)
+from marin_dna.pipelines.chrombpnet_eval.qtl_eval import (
+    QTL_DATASETS,
+    QTLEvalCallback,
+    build_qtl_specs,
 )
 
 
@@ -101,6 +107,27 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--wandb-name", default="dna-exp236-onehot-chrombpnet")
     p.add_argument("--wandb-project", default="chrombpnet-eval")
     p.add_argument("--no-wandb", action="store_true", help="CSVLogger instead of W&B")
+    # online QTL metric: signed Pearson/Spearman of predicted log2FC vs the
+    # observed effect, over positives only, logged each validation (the eval
+    # target — distinct from val_count_pearson, the accessibility-count fit).
+    p.add_argument(
+        "--qtl-eval",
+        action="store_true",
+        help="log live caqtl/dsqtl Pearson/Spearman over positives each val",
+    )
+    p.add_argument(
+        "--qtl-genome",
+        default=None,
+        help="reference fasta for QTL window extraction — e.g. the staged hg38 "
+        "fasta with --qtl-chrom-prefix chr, or the canonical s3:// GRCh38",
+    )
+    p.add_argument(
+        "--qtl-chrom-prefix",
+        default="",
+        help="prefix prepended to the variant chrom ('chr' for a chr-prefixed fasta)",
+    )
+    p.add_argument("--qtl-batch-size", type=int, default=256)
+    p.add_argument("--qtl-split", default="train", help="QTL split (dev = train)")
     # smoke knobs (cap batches per epoch so a 1-epoch run finishes fast)
     p.add_argument("--limit-train-batches", type=int, default=None)
     p.add_argument("--limit-val-batches", type=int, default=None)
@@ -157,6 +184,34 @@ def main() -> None:
         logger = L.pytorch.loggers.WandbLogger(
             name=args.wandb_name, project=args.wandb_project, save_dir=args.out_dir
         )
+
+    callbacks: list[L.Callback] = [
+        L.pytorch.callbacks.LearningRateMonitor(logging_interval="step"),
+        L.pytorch.callbacks.EarlyStopping(
+            monitor="val_count_pearson", patience=args.patience, mode="max"
+        ),
+        L.pytorch.callbacks.ModelCheckpoint(
+            dirpath=f"{args.out_dir}/checkpoints",
+            monitor="val_count_pearson",
+            mode="max",
+            save_top_k=1,
+            filename="best_model",
+            save_last=True,
+        ),
+    ]
+    if args.qtl_eval:
+        assert args.qtl_genome, "--qtl-eval requires --qtl-genome"
+        # Pre-extract the positives' ref/alt windows once; the callback re-scores
+        # the cached one-hots each validation.
+        specs = build_qtl_specs(
+            Genome(args.qtl_genome),
+            QTL_DATASETS,
+            split=args.qtl_split,
+            window=2114,
+            chrom_prefix=args.qtl_chrom_prefix,
+        )
+        callbacks.append(QTLEvalCallback(specs, batch_size=args.qtl_batch_size))
+
     trainer = L.Trainer(
         max_epochs=args.max_epochs,
         reload_dataloaders_every_n_epochs=1,  # resample train negatives each epoch
@@ -168,20 +223,7 @@ def main() -> None:
         limit_train_batches=args.limit_train_batches,
         limit_val_batches=args.limit_val_batches,
         logger=logger,
-        callbacks=[
-            L.pytorch.callbacks.LearningRateMonitor(logging_interval="step"),
-            L.pytorch.callbacks.EarlyStopping(
-                monitor="val_count_pearson", patience=args.patience, mode="max"
-            ),
-            L.pytorch.callbacks.ModelCheckpoint(
-                dirpath=f"{args.out_dir}/checkpoints",
-                monitor="val_count_pearson",
-                mode="max",
-                save_top_k=1,
-                filename="best_model",
-                save_last=True,
-            ),
-        ],
+        callbacks=callbacks,
     )
     trainer.fit(lit, datamodule)
     print(f"[train] done; best checkpoint under {args.out_dir}/checkpoints")

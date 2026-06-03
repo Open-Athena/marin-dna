@@ -9,12 +9,16 @@
 # caps the epoch — a few minutes to confirm the whole pipeline + W&B logging work.
 # SMOKE=0: the full early-stopped run.
 #
+# Logs the online QTL metric too (signed Pearson/Spearman of predicted log2FC vs
+# observed effect over caqtl/dsqtl train-split positives) — reusing the staged
+# hg38 fasta with --qtl-chrom-prefix chr; needs HF access to the variant parquets.
+#
 # Launch (smoke, online W&B so you can watch the curves):
 #   sky launch -c cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
-#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY -i 60 --down
+#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN -i 60 --down
 # Full run on the same cluster:
 #   sky exec cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
-#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env SMOKE=0
+#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0
 
 name: cbp-onehot
 
@@ -34,6 +38,7 @@ envs:
     WANDB_MODE: "online"        # the point of the smoke is to see logging work
     WANDB_API_KEY: ""           # pass via `sky launch --env WANDB_API_KEY`
     SYNAPSE_AUTH_TOKEN: ""      # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
+    HF_TOKEN: ""                # pass via `--env HF_TOKEN` (caqtl/dsqtl parquets)
 
 setup: |
     set -euxo pipefail
@@ -80,4 +85,5 @@ run: |
         --bigwig data/GM12878_unstranded.bw --bias data/bias_model_scaled.h5 \
         --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
         --batch-size "$BATCH" --num-workers 4 --precision "$PRECISION" \
+        --qtl-eval --qtl-genome data/GRCh38.fasta --qtl-chrom-prefix chr \
         --wandb-name dna-exp236-onehot-chrombpnet --out-dir runs/onehot $EXTRA_ARGS
