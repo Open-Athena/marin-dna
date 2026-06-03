@@ -36,7 +36,6 @@ from marin_dna.pipelines.evals.interpretation_catalog import (
     load_nuc_dep_block,
     model_display_map,
     nuc_dep_candidates,
-    s3_key_for,
 )
 
 # Codes meaning "not a readable present key" → not materialized yet, skip.
@@ -67,7 +66,8 @@ def main() -> None:
     manifest: list[dict[str, Any]] = []
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for cand in candidates:
-            key = s3_key_for(cand["combine"], cand["locus"], cand["model"])
+            # `svg` is the canonical relative path; the S3 key just prepends the prefix.
+            key = f"{NUC_DEP_PLOT_PREFIX}/{cand['svg']}"
             try:
                 obj = s3.get_object(Bucket=S3_BUCKET, Key=key)
             except ClientError as exc:

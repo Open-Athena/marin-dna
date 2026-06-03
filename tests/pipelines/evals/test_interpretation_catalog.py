@@ -8,7 +8,6 @@ from marin_dna.pipelines.evals.interpretation_catalog import (
     display_region,
     load_nuc_dep_block,
     nuc_dep_candidates,
-    s3_key_for,
     ucsc_browser_url,
 )
 
@@ -50,13 +49,6 @@ def test_ucsc_browser_url_rejects_empty_or_inverted_interval() -> None:
 
 def test_display_region_is_1based_with_thousands_separators() -> None:
     assert display_region("19", 11089299, 11089425) == "chr19:11,089,300-11,089,425"
-
-
-def test_s3_key_for() -> None:
-    assert (
-        s3_key_for("mean", "LDLR", "modelA")
-        == "snakemake/analysis/evals_v2/results/plots/nuc_dep/mean/LDLR/modelA.svg"
-    )
 
 
 # --- candidate manifest ----------------------------------------------------
@@ -109,6 +101,19 @@ def test_nuc_dep_candidates_rejects_bad_locus() -> None:
     }
     with pytest.raises(AssertionError):
         nuc_dep_candidates(bad)
+
+
+def test_nuc_dep_candidates_rejects_locus_larger_than_window() -> None:
+    too_big = {
+        "combines": ["mean"],
+        "models": ["m"],
+        "window_size": 100,
+        "loci": {
+            "X": {"chrom": "1", "start": 0, "end": 150, "strand": "+"}
+        },  # 150 > 100
+    }
+    with pytest.raises(AssertionError, match="exceeds nuc_dep window_size"):
+        nuc_dep_candidates(too_big)
 
 
 # --- real config sanity (doubles as a config-validity check) ----------------

@@ -166,11 +166,6 @@ def _paper_ref(locus: str, *, refs_dir: Path | None) -> dict[str, Any] | None:
     return ref
 
 
-def s3_key_for(combine: str, locus: str, model: str) -> str:
-    """S3 key (within ``S3_BUCKET``) of one materialized heatmap SVG."""
-    return f"{NUC_DEP_PLOT_PREFIX}/{combine}/{locus}/{model}.svg"
-
-
 def nuc_dep_candidates(
     block: dict[str, Any],
     *,
@@ -188,6 +183,7 @@ def nuc_dep_candidates(
     combines = block.get("combines", ["mean"])
     models = block.get("models", [])
     loci = block.get("loci", {})
+    window = block.get("window_size")  # fixed nuc_dep window, if set (#240)
     assert combines, "nuc_dep config has no `combines`"
     displays = model_displays or {}
     out: list[dict[str, Any]] = []
@@ -198,6 +194,9 @@ def nuc_dep_candidates(
         strand = coords["strand"]
         assert end > start, f"locus {locus!r}: end {end} must exceed start {start}"
         assert strand in ("+", "-"), f"locus {locus!r}: bad strand {strand!r}"
+        assert window is None or (end - start) <= window, (
+            f"locus {locus!r}: span {end - start} bp exceeds nuc_dep window_size {window}"
+        )
         meta = LOCUS_META.get(locus, {})
         for model in models:
             for combine in combines:

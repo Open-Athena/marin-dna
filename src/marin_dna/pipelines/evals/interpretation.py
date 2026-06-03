@@ -174,6 +174,8 @@ def plot_dependency_map(
         rasterized=True,
     )
     tick_idx = np.where(coords % tick_freq == 0)[0]
+    if tick_idx.size == 0:  # tiny locus with no round coordinate — label the ends
+        tick_idx = np.array([0, len(coords) - 1])
     g.set_xticks(tick_idx)
     g.set_xticklabels(
         [f"{coords[i]:,}" for i in tick_idx], rotation=0, ha="center", fontsize=8
