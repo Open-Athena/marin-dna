@@ -2,13 +2,13 @@
 title: About
 ---
 
-# About this leaderboard
+# About this observatory
 
-This site is the public face of the `marin-dna` matched-pair variant-effect evaluations: how well each gLM / conservation track / external baseline ranks pathogenic / causal variants against matched negative controls.
+This site is the public face of `marin-dna`, in two pillars: **Benchmarks** — how well each gLM / conservation track / external baseline ranks pathogenic / causal variants against matched negative controls — and **Interpretation**, which visualizes what the trained models have learned.
 
-It replaces the hand-curated tables on [#161](https://github.com/Open-Athena/marin-dna/issues/161) (Mendelian) and [#162](https://github.com/Open-Athena/marin-dna/issues/162) (Complex).
+The benchmark tables replace the hand-curated ones on [#161](https://github.com/Open-Athena/marin-dna/issues/161) (Mendelian) and [#162](https://github.com/Open-Athena/marin-dna/issues/162) (Complex).
 
-## Methodology
+## Benchmarks methodology
 
 **AUPRC** (area under the precision–recall curve) on the full ranked list of variants within a subset. Each positive is matched 1:9 against nearest-neighbor negatives sharing consequence + chromosome + (continuous) TSS/exon-distance features, so the positive rate is **10%** by design — a random ranker scores 0.10, a perfect ranker scores 1.00.
 
@@ -25,6 +25,10 @@ Each method × dataset emits two aggregate rows alongside the per-subset cells:
 
 **Train split only.** Test is held out for the final-eval pass. All numbers here reflect train development.
 
+## Interpretation methodology
+
+**Nucleotide dependency maps** (the categorical Jacobian) measure how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position, over a locus-sized window — an `L×L` map whose off-diagonal structure flags coupled positions (splice sites, structured elements). Our models are causal, so each map stitches a forward and a reverse-complement pass and symmetrizes (`mean` or `max`). Computed by the evals_v2 pipeline; see [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. Each map links out to the region in the UCSC Genome Browser.
+
 ## Agent-readable data
 
 The dashboard is a presentation layer over plain-text source files. To consume the data programmatically, fetch one of:
@@ -33,6 +37,7 @@ The dashboard is a presentation layer over plain-text source files. To consume t
 - **`/data/models.json`** under this site — models.yaml normalized to JSON. Same fields as the YAML.
 - **`/data/leaderboard.parquet`** under this site — long-form `(method × dataset × subset)` AUPRC + SE + `n` (total variants in the subset, or K on the macro row) + `n_positives` (positives in the subset, used for the ≥30 display gate). Readable from Python (`pl.read_parquet(URL)`) or DuckDB (`SELECT * FROM read_parquet('URL')`).
 - **`/data/datasets.json`** under this site — per-dataset metadata (HF commit, score type, etc.).
+- **`/data/nuc_dep.zip`** under this site — interpretation artifacts: the nucleotide-dependency heatmap SVGs (`{combine}/{locus}/{model}.svg`) plus a `manifest.json` of per-locus metadata + UCSC links, built from the evals_v2 `nuc_dep` outputs on S3.
 
 Every field shown in a table or tooltip is present in those files; the rendered HTML never hides information behind a click.
 
@@ -44,3 +49,12 @@ Every field shown in a table or tooltip is present in those files; the rendered 
 4. Open a PR; CI rebuilds this site and the new row appears.
 
 The schema is documented at the top of models.yaml.
+
+## Adding an interpretation type
+
+The Interpretation pillar is a convention, not a framework — each analysis is one nav entry + one page + one data loader:
+
+1. Produce the artifacts in a pipeline (e.g. evals_v2) and sync them to S3.
+2. Add a data loader under [`dashboard/src/data/`](https://github.com/Open-Athena/marin-dna/tree/main/dashboard/src/data) that fetches them — derive keys from config rather than enumerating S3 (the CI role has `GetObject`, not `ListBucket`), and skip not-yet-materialized artifacts. Put any non-trivial Python in `src/marin_dna/` so it's testable (e.g. [`interpretation_catalog.py`](https://github.com/Open-Athena/marin-dna/blob/main/src/marin_dna/pipelines/evals/interpretation_catalog.py)).
+3. Add a page under `dashboard/src/interpretation/` and a nav entry under the **Interpretation** section in [`observablehq.config.js`](https://github.com/Open-Athena/marin-dna/blob/main/dashboard/observablehq.config.js).
+4. Open a PR; CI rebuilds the site.

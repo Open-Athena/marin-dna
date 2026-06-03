@@ -4,7 +4,7 @@
 import {readFileSync} from "node:fs";
 
 export default {
-  title: "MarinDNA Leaderboard",
+  title: "MarinDNA Observatory",
   root: "src",
   output: "dist",
 
@@ -23,27 +23,38 @@ export default {
     .map((f) => readFileSync(new URL("./" + f, import.meta.url), "utf8"))
     .join("\n")}</style>`,
 
-  // Sidebar navigation. eQTL was retired in PR #194 — see #172.
+  // Sidebar navigation. Observable nav is a single level of sections, so the
+  // two analysis "pillars" are top-level sections: Benchmarks (leaderboards +
+  // protocol comparisons) and Interpretation; Reference holds Models + About.
+  // The protocol pages carry a `Protocol:` prefix since they share the
+  // Benchmarks section with the leaderboards (issue #240). eQTL was retired in
+  // PR #194 — see #172.
   pages: [
     {
-      name: "Leaderboards",
+      name: "Benchmarks",
       pages: [
         {name: "Mendelian traits", path: "/leaderboards/mendelian"},
         {name: "Complex traits", path: "/leaderboards/complex"},
         {name: "caQTL", path: "/leaderboards/caqtl"},
         {name: "dsQTL", path: "/leaderboards/dsqtl"},
+        {name: "Protocol: MarinDNA", path: "/protocols/marin_dna"},
+        {name: "Protocol: Evo 2", path: "/protocols/evo2"},
+        {name: "Protocol: GPN-Star", path: "/protocols/gpn-star"},
       ],
     },
     {
-      name: "Protocols",
+      name: "Interpretation",
       pages: [
-        {name: "MarinDNA", path: "/protocols/marin_dna"},
-        {name: "Evo 2", path: "/protocols/evo2"},
-        {name: "GPN-Star", path: "/protocols/gpn-star"},
+        {name: "Nucleotide dependency", path: "/interpretation/nucleotide-dependency"},
       ],
     },
-    {name: "Models", path: "/models"},
-    {name: "About", path: "/about"},
+    {
+      name: "Reference",
+      pages: [
+        {name: "Models", path: "/models"},
+        {name: "About", path: "/about"},
+      ],
+    },
   ],
 
   // Python data loaders run via `uv run python` so they pick up the project

@@ -48,6 +48,7 @@ on:
       - src/marin_dna/pipelines/evals/models.py
       - src/marin_dna/pipelines/evals/metrics.py
       - src/marin_dna/pipelines/evals/gpn_star.py
+      - src/marin_dna/pipelines/evals/interpretation_catalog.py
       - .github/workflows/dashboard.yml
   pull_request:
   workflow_dispatch:
