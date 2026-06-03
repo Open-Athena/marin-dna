@@ -1221,3 +1221,62 @@ def test_write_subset_hf_readme_v4_rejects_unknown_subset(
             composition_tsv=composition_tsv,
             n_samples=1,
         )
+
+
+# ---------------------------------------------------------------------------
+# write_species_subset_hf_readme tests (the third dataset axis, issue #233)
+# ---------------------------------------------------------------------------
+
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+    write_species_subset_hf_readme,
+)
+
+
+def test_write_species_subset_hf_readme_renders_card(tmp_path: Path) -> None:
+    out = tmp_path / "README.md"
+    write_species_subset_hf_readme(
+        "v4_cds",
+        "order",
+        out,
+        commit_sha="0123456789abcdef0123456789abcdef01234567",
+        hf_owner="bolinas-dna",
+        pipeline_version="v1",
+        n_species=19,
+        n_samples=10_123_456,
+        species_tsv="config/species_zoonomia_447_order_dedup.tsv",
+    )
+    body = out.read_text()
+
+    # Repo name (scheme B: cohort trailing) and base region dataset.
+    assert "# `bolinas-dna/zoonomia-v1-v4_cds-order`" in body
+    assert "bolinas-dna/zoonomia-v1-v4_cds" in body
+    # Cohort facts: 19 species, the "order" framing, and reuse-not-reproject.
+    assert "19" in body
+    assert "order" in body
+    assert "no re-`halLiftover`" in body
+    # Size and a commit-pinned permalink to the species TSV.
+    assert f"{10_123_456:,}" in body
+    assert (
+        "https://github.com/Open-Athena/marin-dna/blob/"
+        "0123456789abcdef0123456789abcdef01234567/"
+        "snakemake/zoonomia_projection_dataset/"
+        "config/species_zoonomia_447_order_dedup.tsv" in body
+    )
+    # Exactly the three canonical tags (biology / genomics / DNA).
+    front_matter, _, _ = body.partition("---\n\n")
+    assert front_matter.count("- ") == 3
+
+
+def test_write_species_subset_hf_readme_rejects_unknown_cohort(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="unknown species cohort"):
+        write_species_subset_hf_readme(
+            "v4_cds",
+            "bogus_cohort",
+            tmp_path / "bogus.md",
+            commit_sha="a" * 40,
+            hf_owner="bolinas-dna",
+            pipeline_version="v1",
+            n_species=3,
+            n_samples=1,
+            species_tsv="config/whatever.tsv",
+        )

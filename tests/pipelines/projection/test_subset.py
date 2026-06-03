@@ -6,7 +6,14 @@ from pathlib import Path
 
 import polars as pl
 
-from marin_dna.pipelines.projection.subset import filter_to_subset, load_query_names
+import pytest
+
+from marin_dna.pipelines.projection.subset import (
+    filter_to_species,
+    filter_to_subset,
+    load_query_names,
+    load_species,
+)
 
 
 def test_load_query_names_skips_blanks_and_comments(tmp_path: Path) -> None:
@@ -125,3 +132,67 @@ def test_filter_to_subset_empty_keys(tmp_path: Path) -> None:
     assert "query_name" in got.columns
     assert "species" in got.columns
     assert "sequence" in got.columns
+
+
+def _write_species_tsv(tmp_path: Path, species: list[str]) -> Path:
+    """Write a minimal species TSV (header + species column) like the configs."""
+    p = tmp_path / "species.tsv"
+    lines = [
+        "species\tfamily\torder\taccession\tassembly_level\tcontig_n50\tquality_source"
+    ]
+    for s in species:
+        lines.append(f"{s}\tFamX\tOrderX\tGCA_0\tScaffold\t1000\tzoonomia_supp_st2")
+    p.write_text("\n".join(lines) + "\n")
+    return p
+
+
+def test_load_species_reads_species_column(tmp_path: Path) -> None:
+    tsv = _write_species_tsv(tmp_path, ["A", "C"])
+    assert load_species(tsv) == {"A", "C"}
+
+
+def test_filter_to_species_keeps_only_cohort_species(tmp_path: Path) -> None:
+    src = _make_all_species_parquet(tmp_path)  # species A (×3), B (×2), C (×1)
+    out = tmp_path / "cohort.parquet"
+    filter_to_species(src, {"A", "C"}, out)
+
+    got = pl.read_parquet(out)
+    assert set(got["species"].unique()) == {"A", "C"}
+    # A has 3 rows (win_1/2/3), C has 1 (win_1); B (×2) dropped.
+    assert got.height == 4
+    # Orthogonal to the query_name axis: every query_name A/C touch survives.
+    assert set(got["query_name"].unique()) == {"win_1", "win_2", "win_3"}
+
+
+def test_filter_to_species_via_tsv(tmp_path: Path) -> None:
+    src = _make_all_species_parquet(tmp_path)
+    tsv = _write_species_tsv(tmp_path, ["B"])
+    out = tmp_path / "cohort.parquet"
+    filter_to_species(src, tsv, out)
+
+    got = pl.read_parquet(out)
+    assert set(got["species"].unique()) == {"B"}
+    assert got.height == 2  # B is present for win_1 and win_2
+
+
+def test_filter_to_species_rejects_species_not_in_source(tmp_path: Path) -> None:
+    """A cohort leaf absent from the source must fail loudly (not silently shrink)."""
+    src = _make_all_species_parquet(tmp_path)
+    out = tmp_path / "cohort.parquet"
+    with pytest.raises(AssertionError, match="not a subset"):
+        filter_to_species(src, {"A", "Z_absent"}, out)
+
+
+def test_filter_to_species_compose_with_query_name_subset(tmp_path: Path) -> None:
+    """Species filter ∘ query_name filter commute (the v4_cds × order pattern)."""
+    src = _make_all_species_parquet(tmp_path)
+    iv = tmp_path / "iv.parquet"  # intervals subset: win_1, win_2 (all species)
+    filter_to_subset(src, {"win_1", "win_2"}, iv)
+    out = tmp_path / "iv_cohort.parquet"
+    filter_to_species(iv, {"A", "C"}, out)
+
+    got = pl.read_parquet(out)
+    # win_1 → A,C ; win_2 → A (C absent for win_2). 3 rows.
+    assert got.height == 3
+    assert set(got["species"].unique()) == {"A", "C"}
+    assert set(got["query_name"].unique()) == {"win_1", "win_2"}

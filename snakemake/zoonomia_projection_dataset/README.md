@@ -208,6 +208,25 @@ different partitions of the same v1 anchors** — see "v4 region labels" below.
 - Bump `pipeline_version` when ANY of: species TSV, `project_min_p`, alignment backend (rules in `project.smk`), resize / length-filter params changes. This invalidates all per-(pipeline, intervals) HF datasets and the projection itself must be re-run.
 - Bump `intervals_versions` (add a new entry) when you want a new subset definition. Cheap — only `subset_dataset_derived` + shard prep + upload re-run.
 
+**Species axis (third axis — issue #233).** A *species cohort* filters an existing dataset to a subset of the projection's species — a row-filter on the `species` column, orthogonal to `intervals_version` (a row-filter on `query_name`); the two compose. The default 108-family cohort is **implicit** (no label), so every `zoonomia-v1-*` repo above is unchanged. Non-default cohorts get a trailing repo suffix (scheme B): `zoonomia-{pipeline_version}-{intervals_version}-{cohort}`.
+
+A cohort must be a **subset** of the projection's species, so the v1 projection is reused as-is (no re-halLiftover) — `marin_dna.pipelines.projection.subset.filter_to_species` asserts the subset relationship. Cohorts are declared in `species_subsets` (label → species TSV); the `{intervals, species}` combos to build are listed in `species_subset_datasets`. `rule subset_species` writes `results/projection/min{p}/subsets_species/{intervals}-{cohort}.parquet`, which feeds the same `prepare_training_shards → compress_shard → hf_upload_dataset` chain; each cohort dataset ships its own card (`write_species_subset_hf_readme`).
+
+The pipeline ships one cohort dataset:
+
+| HF repo | pipeline | intervals | species cohort | source Parquet |
+|---|---|---|---|---|
+| `bolinas-dna/zoonomia-v1-v4_cds-order` | v1 | v4_cds | `order` (19, one-per-order) | `results/projection/min0.20/subsets_species/v4_cds-order.parquet` |
+
+The `order` cohort (`config/species_zoonomia_447_order_dedup.tsv`, 19 leaves) is a strict subset of the 108-family set, so `zoonomia-v1-v4_cds-order` is the v4 cds region partition restricted to those 19 deeply-diverged species — a species diversity-vs-quantity ablation against the 108-species `zoonomia-v1-v4_cds`, reusing the projection for free.
+
+Build it on the projection/upload cluster, where the v1 projection outputs + metadata are intact (a fresh local checkout otherwise re-plans the projection — `local()` FASTA intermediates are absent and S3 mtimes read as updated, exactly as for the v3/v4 subsets):
+
+```bash
+uv run snakemake --profile workflow/profiles/default \
+    results/upload.done/zoonomia-v1-v4_cds-order
+```
+
 **Run:**
 
 ```bash
@@ -425,7 +444,7 @@ The projection step reads a static, committed species TSV chosen by `species_tsv
 
 The order set is a strict **subset** of the family set — the top-ranked leaf in an order is also the top-ranked in its own family — so `order (19) ⊂ family (108) ⊂ all-447`. Per-leaf assembly metadata (`accession, assembly_level, contig_n50, quality_source`) comes from Zoonomia Supplementary Table 2 when available (true HAL-assembly stats; 85 % of family winners, 79 % of order winners) and NCBI Datasets v2 taxon proxy for the rest.
 
-`species_tsv:` selects which list the projection uses (currently the family set / `v1`). Building a dataset on the order set is tracked separately: because `order ⊂ family`, it can reuse the existing `v1` projection as a cheap species-axis subset rather than re-running halLiftover (issue #230).
+`species_tsv:` selects which list the **projection** uses (currently the family set / `v1`). Building a dataset on the **order** set neither changes `species_tsv` nor re-runs the projection: because `order ⊂ family`, it is a species-axis subset of the existing `v1` projection (see "Species axis" under HuggingFace datasets above — `zoonomia-v1-v4_cds-order`, issue #233), not a new `species_tsv` / projection run.
 
 To regenerate (only when the alignment changes):
 
@@ -470,7 +489,7 @@ workflow/rules/
   filter.smk                                   # filtered BED per cutoff
   project.smk                                  # cross-mammal halLiftover + filter + resize + sequence + subset
   subsets.smk                                  # derive query_names lists for v2 subset; subset_dataset_derived override
-  dataset.smk                                  # RC augment + shuffle + shard + hf upload-large-folder
+  dataset.smk                                  # RC augment + shuffle + shard + hf upload; species-subset axis (subset_species, #233)
   validation.smk                               # seven per-recipe validation parquets + HF upload (rule all_validation)
 scripts/
   calibrate_447m_threshold.py                  # one-off; uses src/marin_dna/conservation/
