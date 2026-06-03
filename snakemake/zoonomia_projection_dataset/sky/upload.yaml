@@ -18,15 +18,18 @@ file_mounts:
 # Forward the launcher's commit SHA so HF dataset cards get commit-pinned
 # permalinks. The cluster can't resolve ``git rev-parse HEAD`` itself when
 # the host is in a worktree (the synced ``.git`` is a *file* pointing at a
-# host path that doesn't exist on the cluster). Empty value below makes
-# SkyPilot inherit COMMIT_SHA from the launcher's environment, e.g.:
+# host path that doesn't exist on the cluster). Pass it explicitly at launch
+# (a bare shell-var prefix is NOT inherited by SkyPilot):
 #
-#     COMMIT_SHA=$(git rev-parse HEAD) sky launch -c <name> sky/upload.yaml
+#     sky launch -c <name> sky/upload.yaml --env COMMIT_SHA=$(git rev-parse HEAD)
 #
-# If unset, common.smk falls back to "main" — links still resolve, just
-# not pinned.
+# Defaults to "" (optional); if empty, common.smk falls back to "main" — links
+# still resolve, just not pinned.
+# UPLOAD_VERSION selects which intervals partition to push: v3 (default) or
+# v4 (issue #227). Override at launch: `sky launch ... --env UPLOAD_VERSION=v4`.
 envs:
-    COMMIT_SHA:
+    COMMIT_SHA: ""
+    UPLOAD_VERSION: v3
 
 setup: |
     set -euxo pipefail
@@ -56,16 +59,18 @@ run: |
 
     cd snakemake/zoonomia_projection_dataset
 
-    # Target only the six v3 upload.done files. v1/v2 are already pushed
-    # and their upload.done markers in S3 satisfy `rule all_hf` separately;
-    # we don't need (or want) to walk that branch of the DAG here.
-    V3_TARGETS=$(uv run python -c "
-    import yaml
+    # Target only the six upload.done files for $UPLOAD_VERSION (v3 or v4).
+    # v1/v2 are already pushed and their upload.done markers in S3 satisfy
+    # `rule all_hf` separately; we don't need (or want) to walk that branch.
+    UPLOAD_TARGETS=$(UPLOAD_VERSION="$UPLOAD_VERSION" uv run python -c "
+    import yaml, os
     cfg = yaml.safe_load(open('config/config.yaml'))
+    ver = os.environ['UPLOAD_VERSION']
     for iv in cfg['intervals_versions']:
-        if iv.startswith('v3_'):
+        if iv.startswith(ver + '_'):
             print(f'results/upload.done/zoonomia-{cfg[\"pipeline_version\"]}-{iv}')
     ")
+    test -n "$UPLOAD_TARGETS"  # fail loudly if UPLOAD_VERSION matched nothing
 
     # `--allowed-rules` whitelists the v3 chain so Snakemake refuses to
     # walk back into the cross-mammal projection (hal_to_fasta /
@@ -74,11 +79,17 @@ run: |
     # otherwise be re-scheduled despite their downstream outputs
     # (`sequences/{species}.parquet`, `all_species_with_sequence.parquet`)
     # already existing in S3 default-storage.
+    # Both readme rules are whitelisted; only the one matching the target's
+    # wildcard (v3_* or v4_*) actually fires. The region-label / projection
+    # rules are deliberately absent so Snakemake errors rather than walking
+    # back into them — their outputs (query_names, composition, subset
+    # parquets' source) already exist in S3.
     ALLOWED_RULES=(
         subset_dataset_derived
         prepare_training_shards
         compress_shard
         dataset_hf_readme_v3
+        dataset_hf_readme_v4
         hf_upload_dataset
     )
 
@@ -89,19 +100,25 @@ run: |
         SNAKEMAKE_EXTRA+=(--config "commit_sha=$COMMIT_SHA")
     fi
 
+    # NOTE: ${SNAKEMAKE_EXTRA[@]} (which may be `--config commit_sha=...`) must
+    # NOT be the last option before the positional targets — Snakemake's
+    # `--config` greedily consumes following tokens as name=value pairs and
+    # would choke on the target paths. Keep it right after --profile so the
+    # subsequent flags bound it.
+
     # Dry-run gate first — verify only HF-related rules are scheduled.
     uv run snakemake --profile workflow/profiles/default \
+        "${SNAKEMAKE_EXTRA[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
-        "${SNAKEMAKE_EXTRA[@]}" \
-        -n $V3_TARGETS
+        -n $UPLOAD_TARGETS
 
     # Real run.
     uv run snakemake --profile workflow/profiles/default \
+        "${SNAKEMAKE_EXTRA[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
         --rerun-incomplete \
-        "${SNAKEMAKE_EXTRA[@]}" \
-        $V3_TARGETS
+        $UPLOAD_TARGETS

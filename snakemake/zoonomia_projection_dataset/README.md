@@ -141,8 +141,10 @@ The current pipeline ships one derived subset:
 ## HuggingFace datasets
 
 One HF dataset per (pipeline, intervals) combination. v1/v2 are the
-core cross-mammal training sets; v3_* is a per-region-label partition of
-v1 (six disjoint subsets summing to v1 at the anchor level).
+core cross-mammal training sets; v3_* and v4_* are each a per-region-label
+partition of v1 (six disjoint subsets summing to v1 at the anchor level) —
+two different labelings of the same anchors (v3 priority-on-presence, v4 the
+issue #221 scheme; see "v4 region labels" below).
 
 | HF repo                                          | pipeline | intervals               | source Parquet                                                              |
 |---|---|---|---|
@@ -154,11 +156,18 @@ v1 (six disjoint subsets summing to v1 at the anchor level).
 | `bolinas-dna/zoonomia-v1-v3_tss_region_and_utr5` | v1       | v3_tss_region_and_utr5  | `results/projection/min0.20/subsets/v3_tss_region_and_utr5.parquet`         |
 | `bolinas-dna/zoonomia-v1-v3_ccre_non_promoter`   | v1       | v3_ccre_non_promoter    | `results/projection/min0.20/subsets/v3_ccre_non_promoter.parquet`           |
 | `bolinas-dna/zoonomia-v1-v3_bg`                  | v1       | v3_bg                   | `results/projection/min0.20/subsets/v3_bg.parquet`                          |
+| `bolinas-dna/zoonomia-v1-v4_cds`                 | v1       | v4_cds                  | `results/projection/min0.20/subsets/v4_cds.parquet`                         |
+| `bolinas-dna/zoonomia-v1-v4_utr3`                | v1       | v4_utr3                 | `results/projection/min0.20/subsets/v4_utr3.parquet`                        |
+| `bolinas-dna/zoonomia-v1-v4_ncrna_exon`          | v1       | v4_ncrna_exon           | `results/projection/min0.20/subsets/v4_ncrna_exon.parquet`                  |
+| `bolinas-dna/zoonomia-v1-v4_tss_region_and_utr5` | v1       | v4_tss_region_and_utr5  | `results/projection/min0.20/subsets/v4_tss_region_and_utr5.parquet`         |
+| `bolinas-dna/zoonomia-v1-v4_ccre_non_promoter`   | v1       | v4_ccre_non_promoter    | `results/projection/min0.20/subsets/v4_ccre_non_promoter.parquet`           |
+| `bolinas-dna/zoonomia-v1-v4_bg`                  | v1       | v4_bg                   | `results/projection/min0.20/subsets/v4_bg.parquet`                          |
 
-Each v3 repo ships with its own auto-generated dataset card (README.md,
-written by `marin_dna.zoonomia_projection_dataset.region_labels.write_subset_hf_readme`);
-v1/v2 are card-less by design (semantics live in this pipeline README
-rather than per-repo).
+Each v3/v4 repo ships with its own auto-generated dataset card (README.md,
+written by `region_labels.write_subset_hf_readme` for v3 and
+`write_subset_hf_readme_v4` for v4); v1/v2 are card-less by design (semantics
+live in this pipeline README rather than per-repo). v3 and v4 are **two
+different partitions of the same v1 anchors** — see "v4 region labels" below.
 
 **Two-axis versioning.** `pipeline_version` (in `config/config.yaml`) snapshots species set, conservation cutoff (`project_min_p`), alignment backend, and resize/length-filter params — bump it and re-run the projection. `intervals_versions` lists the post-projection subset definitions; bumps are cheap (one new derivation rule + cheap re-runs of `subset_dataset_derived` + sharding + upload).
 
@@ -172,7 +181,8 @@ rather than per-repo).
 **Intervals:**
 - `v1` — identity (every row of `all_species_with_sequence.parquet`)
 - `v2` — window overlaps `[TSS − 256, TSS + 256]` for any Ensembl protein_coding transcript
-- `v3_<label>` — per-anchor region-type partition of v1 (`cds` / `utr3` / `ncrna_exon` / `tss_region_and_utr5` / `ccre_non_promoter` / `bg`). Each anchor is assigned exactly one label by the priority-walk in `region_labels.smk`; the six v3 subsets sum to v1 at the anchor level. See the "Region-type annotation" section below for label definitions and the partition stats.
+- `v3_<label>` — per-anchor region-type partition of v1 (`cds` / `utr3` / `ncrna_exon` / `tss_region_and_utr5` / `ccre_non_promoter` / `bg`). Each anchor is assigned exactly one label by the priority-walk in `regions.smk`; the six v3 subsets sum to v1 at the anchor level. See the "Region-type annotation" section below for label definitions and the partition stats.
+- `v4_<label>` — the same six labels, re-derived with the issue #227 labeling scheme (bp-priority + window-majority, PC-only TSS band, `ccre_flank=0`, `tss_region_and_utr5` above `ncrna_exon`). A different partition of the same v1 anchors; see "v4 region labels" below.
 
 **HF dataset schema** (single `train` split per repo; JSONL.zst-sharded at `data/train/shard_NNNN.jsonl.zst`):
 
@@ -337,6 +347,35 @@ uv run snakemake --profile workflow/profiles/default all_region_labels
 ### Tuning
 
 Per-region fractions (`*_frac` columns) are emitted regardless of priority and threshold, so you can re-derive labels downstream by sweeping `region_label_functional_threshold` or `region_label_priority` without re-running the bedtools-style overlap pass.
+
+## v4 region labels (`rule all_region_labels_v4`) — issue #227
+
+The v3 labeler above assigns each window the highest-**priority** region with *any* (≥1 bp) overlap. [Issue #221](https://github.com/Open-Athena/marin-dna/issues/221) showed this over-claims (a window grazing a coding exon becomes `cds`); v4 re-derives the partition with the scheme resolved there. **v3 and v4 are independent partitions of the same v1 anchors — v3 is frozen (existing checkpoints train on it); use v4 for new work.** Three coupled changes:
+
+1. **bp-priority + window-majority** (`label_windows_bp_majority`). Two stages: (a) *base-pair priority* — every base is assigned to exactly one region by subtracting higher-priority region sets from lower ones (a base in both CDS and a cCRE is `cds`), yielding five **disjoint** sets that sum to the functional union; (b) *window majority* — the window takes the disjoint region covering the most bases (≥ `region_label_functional_threshold` functional to escape `background`). This fixes both the v3 CDS over-claim and the naive-argmax failure where a coding exon nested in a cCRE would be labelled `ccre`.
+2. **PC-only TSS region** (`region_label_tss_pc_only_v4: true`). `tss_region_and_utr5` = (TSS region) ∪ (5′ UTR), one class. The 5′ UTR half is already protein-coding-only; v4 builds the **TSS-region half** from protein-coding transcripts too (v3 used every transcript), so the whole class is PC-derived and a standalone ncRNA's own TSS no longer collides with its exon.
+3. **`ccre_flank` 500 → 0** (`region_label_ccre_flank_v4: 0`). The ±500 bp flank was ~79% of the cCRE footprint; dropping it makes `v4_ccre_non_promoter` mean "actually cCRE-covered" and grows `background`.
+
+The **priority order flips `tss_region_and_utr5` above `ncrna_exon`** (`region_label_priority_v4`): after the PC-only change the residual ncRNA↔TSS overlap is divergent/antisense lncRNAs inside protein-coding promoters, whose pathogenic variants are promoter/5′ UTR (PC-TSS-centric in the eval), so the promoter arm should own them. `region_label_tss_radius` (256) and `region_label_functional_threshold` (0.20) are shared with v3.
+
+### Outputs
+
+- `results/human/intervals/region_labels/v4/min{min_p}.parquet` — same schema as v3, but the per-label `*_frac` columns are the **disjoint** (priority-resolved) coverages, so they sum to `functional_frac` rather than to the larger overlapping coverages.
+- `results/human/intervals/region_labels/v4/min{min_p}.composition.tsv` — per-label counts (via `region_label_composition_table`).
+- `results/projection/min{min_p}/subsets_def/v4_<label>.query_names.txt` → fed through the same `subset_dataset_derived` → shard → upload chain as v3 (six `bolinas-dna/zoonomia-v1-v4_<label>` repos, each with a v4 dataset card).
+
+### Run
+
+```bash
+# v4 labels + composition + per-label query_names lists (no projection needed):
+uv run snakemake --profile workflow/profiles/default all_region_labels_v4
+
+# A single v4 labels parquet:
+uv run snakemake --profile workflow/profiles/default \
+    results/human/intervals/region_labels/v4/min0.20.parquet
+```
+
+The v4 subset → shard → HF-upload step reuses the existing cross-mammal projection (`all_species_with_sequence.parquet`); it does **not** re-run halLiftover. On a fresh checkout where the projection's `local()` intermediates are absent, Snakemake may still *plan* to re-derive the projection for any new subset — run the subset/upload step where the projection outputs + metadata are intact (e.g. the projection cluster), as the v3 subsets were built.
 
 ## Run
 

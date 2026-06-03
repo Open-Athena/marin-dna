@@ -132,6 +132,7 @@ def build_region_beds(
     *,
     tss_radius: int,
     ccre_flank: int,
+    tss_pc_only: bool = False,
 ) -> dict[str, GenomicSet]:
     """Build the 5 functional region BEDs + 2 diagnostic sets.
 
@@ -148,6 +149,14 @@ def build_region_beds(
             ``tss_region_and_utr5`` class.
         ccre_flank: bp added on each side of every non-PLS cCRE before it
             contributes to the ``ccre_non_promoter`` class.
+        tss_pc_only: if ``True``, build the TSS-region half of
+            ``tss_region_and_utr5`` from protein-coding transcripts only
+            (``get_ensembl_protein_coding_exons``) instead of every annotated
+            transcript (``get_ensembl_all_transcript_exons``). The 5′ UTR half
+            is protein-coding-only regardless. ``False`` (default) reproduces
+            the v3 all-transcript TSS band; the v4 path (issue #227) sets
+            ``True`` so the whole class is PC-derived, dissolving the
+            ncRNA↔TSS collision at its source.
 
     Returns:
         Dict with keys ``cds``, ``utr3``, ``ncrna_exon``,
@@ -168,10 +177,17 @@ def build_region_beds(
     all_exons = get_exons(ann)
     ncrna_exon = all_exons - pc_exons
 
-    all_tx_exons = get_ensembl_all_transcript_exons(ann)
-    assert len(all_tx_exons) > 0, "GTF has no transcript-tagged exon rows"
+    tss_source_exons = (
+        get_ensembl_protein_coding_exons(ann)
+        if tss_pc_only
+        else get_ensembl_all_transcript_exons(ann)
+    )
+    assert len(tss_source_exons) > 0, (
+        "GTF has no transcript-tagged exon rows for the TSS band "
+        f"(tss_pc_only={tss_pc_only})"
+    )
     tss_band = get_promoters_from_exons(
-        all_tx_exons, n_upstream=tss_radius, n_downstream=tss_radius
+        tss_source_exons, n_upstream=tss_radius, n_downstream=tss_radius
     )
     tss_region_and_utr5 = tss_band | utr5
 
@@ -332,6 +348,193 @@ def label_windows(
             "intergenic_frac": intergenic_frac,
         }
     )
+
+
+def label_windows_bp_majority(
+    windows_bed: str | Path,
+    beds: dict[str, GenomicSet],
+    *,
+    functional_threshold: float,
+    priority: list[str],
+) -> pl.DataFrame:
+    """Label windows by base-pair-priority membership + window-level majority.
+
+    The v4 labeler (issue #227). Fixes the overlapping-region-set problem that
+    breaks both :func:`label_windows` (priority-on-presence — any ≥1 bp
+    overlap with a high-priority class claims the window) and a naive
+    argmax-over-overlapping-fractions (the broadest enclosing set wins, e.g.
+    a coding exon nested in a cCRE goes to ``ccre_non_promoter``). Two stages:
+
+    1. **Base-pair priority (membership).** Assign every base to exactly one
+       region by ``priority`` order: subtract the union of all higher-priority
+       region sets from each set. This yields five *pairwise-disjoint* sets
+       whose union equals the functional union (a base in both CDS and cCRE is
+       claimed by ``cds``; a base in both the 5′UTR/TSS band and an ncRNA exon
+       is claimed by whichever ranks higher in ``priority``).
+    2. **Window majority (dominance).** Label each window by the disjoint set
+       covering the most bases (argmax), provided the window's functional
+       fraction (= summed disjoint coverage / window size) is ≥
+       ``functional_threshold``; else ``background``. Ties broken by
+       ``priority`` order.
+
+    Unlike :func:`label_windows`, the emitted ``{label}_frac`` columns are the
+    **disjoint** (priority-resolved) coverages: they sum to ``functional_frac``
+    rather than to the larger overlapping coverages. Because the disjoint sets
+    depend on ``priority``, these fractions (and the label) are *not* invariant
+    to the priority order — re-deriving with a different order is the intended
+    way to compare orderings. :func:`label_windows` is left intact for v3
+    reproducibility; this is a separate function by design.
+
+    Args:
+        windows_bed: BED4 (chrom, start, end, name) of human anchors. .gz
+            auto-detected by pandas.
+        beds: dict from :func:`build_region_beds` (5 functional + ``gene_body``
+            + ``all_exons``). For v4 build it with ``tss_pc_only=True``.
+        functional_threshold: window's union-of-functional fraction must be ≥
+            this to escape ``background``. Range [0, 1].
+        priority: ordering of the functional labels — resolves base-pair
+            membership (stage 1) and breaks window-majority ties (stage 2).
+            Must be a permutation of ``REGION_LABELS``.
+
+    Returns:
+        Polars DataFrame, one row per window: ``name, chrom, start, end,
+        label, functional_frac, cds_frac, utr3_frac, ncrna_exon_frac,
+        tss_region_and_utr5_frac, ccre_non_promoter_frac`` (the per-label
+        fracs are *disjoint*), ``gene_body_frac, intron_frac,
+        intergenic_frac``.
+    """
+    assert 0.0 <= functional_threshold <= 1.0, functional_threshold
+    assert set(priority) == set(REGION_LABELS), (
+        f"priority {priority!r} must be a permutation of {list(REGION_LABELS)!r}"
+    )
+    missing_functional = set(REGION_LABELS) - set(beds.keys())
+    assert not missing_functional, f"beds missing functional keys: {missing_functional}"
+    for diag in ("gene_body", "all_exons"):
+        assert diag in beds, f"beds missing diagnostic key: {diag!r}"
+
+    windows = pd.read_csv(
+        str(windows_bed),
+        sep="\t",
+        header=None,
+        names=["chrom", "start", "end", "name"],
+        dtype={"chrom": str},
+    ).reset_index(drop=True)
+    sizes = (windows["end"] - windows["start"]).to_numpy()
+    assert (sizes > 0).all(), "non-positive window sizes"
+    coords = windows[["chrom", "start", "end"]]
+
+    # Stage 1: disjoint region sets in priority order.
+    # disjoint[label] = beds[label] − union(strictly-higher-priority beds).
+    # `higher` accumulates the union; after the loop it is the functional union.
+    disjoint: dict[str, GenomicSet] = {}
+    higher: GenomicSet | None = None
+    for label in priority:
+        region = beds[label]
+        disjoint[label] = region if higher is None else (region - higher)
+        higher = region if higher is None else (higher | region)
+    assert higher is not None
+
+    disjoint_bp = {
+        label: _coverage_bp(coords, disjoint[label].to_pandas()) for label in priority
+    }
+    disjoint_frac = {label: disjoint_bp[label] / sizes for label in priority}
+
+    # functional_frac from the summed disjoint coverage. Because the disjoint
+    # sets exactly partition the functional union, this equals the union
+    # coverage — cross-checked here against the directly-computed union
+    # (loud failure near any bp-priority subtraction bug).
+    functional_bp = np.sum(
+        np.stack([disjoint_bp[label] for label in priority], axis=0), axis=0
+    )
+    union_bp = _coverage_bp(coords, higher.to_pandas())
+    assert np.array_equal(functional_bp, union_bp), (
+        "disjoint partition does not sum to the functional union — "
+        "bp-priority subtraction bug"
+    )
+    functional_frac = functional_bp / sizes
+
+    # Diagnostic columns (identical definitions to label_windows).
+    gene_body_frac = _coverage_bp(coords, beds["gene_body"].to_pandas()) / sizes
+    exon_frac = _coverage_bp(coords, beds["all_exons"].to_pandas()) / sizes
+    intron_frac = np.clip(gene_body_frac - exon_frac, a_min=0.0, a_max=None)
+    intergenic_frac = np.clip(1.0 - gene_body_frac, a_min=0.0, a_max=None)
+
+    # Stage 2: window majority over disjoint coverages. Columns are in
+    # priority order, so np.argmax's first-maximum is the priority tie-break.
+    cov_matrix = np.stack([disjoint_bp[label] for label in priority], axis=1)
+    winner_idx = np.argmax(cov_matrix, axis=1)
+    winner_label = np.asarray(priority, dtype=object)[winner_idx]
+    max_bp = cov_matrix[np.arange(len(windows)), winner_idx]
+
+    # Functional iff above threshold AND some disjoint set actually covers bp
+    # (the max_bp>0 guard also makes functional_threshold == 0 well-defined).
+    is_functional = (functional_frac >= functional_threshold) & (max_bp > 0)
+    label_arr = np.where(is_functional, winner_label, BACKGROUND_LABEL)
+
+    return pl.DataFrame(
+        {
+            "name": windows["name"].to_numpy(),
+            "chrom": windows["chrom"].to_numpy(),
+            "start": windows["start"].to_numpy(),
+            "end": windows["end"].to_numpy(),
+            "label": label_arr.astype(str),
+            "functional_frac": functional_frac,
+            **{f"{label}_frac": disjoint_frac[label] for label in REGION_LABELS},
+            "gene_body_frac": gene_body_frac,
+            "intron_frac": intron_frac,
+            "intergenic_frac": intergenic_frac,
+        }
+    )
+
+
+def region_label_composition_table(df: pl.DataFrame) -> pl.DataFrame:
+    """Per-label composition table for a region-labels parquet.
+
+    Returns one row per label (counts, mean diagnostic fractions,
+    ``fraction_of_total``) plus an explicit ``background_intronic`` /
+    ``background_intergenic`` subsplit (gene-body coverage > 0.5 = intronic).
+    Schema matches what :func:`_read_composition` expects, so the same loader
+    serves v3 and v4 cards.
+
+    The v3 ``region_label_composition`` rule keeps its own inline copy (the v3
+    HF datasets are frozen — its rule is left untouched); the v4 composition
+    rule calls this tested helper.
+    """
+    n_total = len(df)
+    assert n_total > 0, "empty region-labels dataframe"
+
+    by_label = (
+        df.group_by("label")
+        .agg(
+            pl.len().alias("n_windows"),
+            pl.col("functional_frac").mean().alias("mean_functional_frac"),
+            pl.col("gene_body_frac").mean().alias("mean_gene_body_frac"),
+            pl.col("intron_frac").mean().alias("mean_intron_frac"),
+            pl.col("intergenic_frac").mean().alias("mean_intergenic_frac"),
+        )
+        .with_columns((pl.col("n_windows") / n_total).alias("fraction_of_total"))
+        .sort("label")
+    )
+
+    bg = df.filter(pl.col("label") == BACKGROUND_LABEL)
+    n_bg = len(bg)
+    n_bg_intronic = bg.filter(pl.col("gene_body_frac") > 0.5).height if n_bg else 0
+    n_bg_intergenic = bg.filter(pl.col("gene_body_frac") <= 0.5).height if n_bg else 0
+    bg_split = pl.DataFrame(
+        {
+            "label": ["background_intronic", "background_intergenic"],
+            "n_windows": [n_bg_intronic, n_bg_intergenic],
+            "mean_functional_frac": [None, None],
+            "mean_gene_body_frac": [None, None],
+            "mean_intron_frac": [None, None],
+            "mean_intergenic_frac": [None, None],
+            "fraction_of_total": [
+                n_bg_intronic / n_total if n_total else 0.0,
+                n_bg_intergenic / n_total if n_total else 0.0,
+            ],
+        }
+    )
+    return pl.concat([by_label, bg_split], how="diagonal_relaxed")
 
 
 # ============================================================================
@@ -576,6 +779,236 @@ Same as [`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/dat
 - Pipeline: [{_GITHUB_PIPELINE_PATH}]({pipeline_main_link}) (latest)
 - Pinned to this dataset's build: [commit `{commit_sha[:12]}`]({pipeline_permalink})
 - Region labeler library: `marin_dna.pipelines.zoonomia_projection_dataset.region_labels`
+- Sister cross-mammal datasets: `{hf_owner}/zoonomia-{pipeline_version}-v1`, `{hf_owner}/zoonomia-{pipeline_version}-v2`
+- Sister validation datasets: `{hf_owner}/zoonomia-{pipeline_version}-val_*`
+"""
+    Path(output_path).write_text(body)
+
+
+# ============================================================================
+# HF dataset card (README.md) generator for v4 per-label subsets (issue #227)
+# ============================================================================
+
+
+_SUBSET_TO_LABEL_V4: dict[str, str] = {
+    "v4_cds": "cds",
+    "v4_utr3": "utr3",
+    "v4_ncrna_exon": "ncrna_exon",
+    "v4_tss_region_and_utr5": "tss_region_and_utr5",
+    "v4_ccre_non_promoter": "ccre_non_promoter",
+    "v4_bg": BACKGROUND_LABEL,
+}
+
+
+# Format placeholders: {ensembl_release}, {functional_threshold}, {tss_radius},
+# {ccre_flank}. Every blurb is formatted with all four.
+_SUBSET_BLURBS_V4: dict[str, str] = {
+    "v4_cds": (
+        "Coding sequence — Ensembl r{ensembl_release} CDS (`get_cds`). Top "
+        "priority: at the base-pair level every base shared with an "
+        "overlapping cCRE / UTR / TSS region is claimed by `cds`. A window is "
+        "labelled `cds` when those CDS bases are the **majority** of its "
+        "functional bases — so a window merely grazing a coding exon is no "
+        "longer `cds` (the v3 over-claim this fixes)."
+    ),
+    "v4_utr3": (
+        "3' untranslated region — Ensembl r{ensembl_release} protein-coding "
+        "3' UTR (`get_ensembl_3_prime_utr`). Second priority (cedes only to "
+        "`cds`); labelled `utr3` when 3' UTR is the majority disjoint region "
+        "of the window."
+    ),
+    "v4_ncrna_exon": (
+        "Non-coding-RNA exon — `get_exons(ann) − "
+        "get_ensembl_protein_coding_exons(ann)` (no biotype filter; broader "
+        "than `val_ncrna`). In v4 this class sits **below** "
+        "`tss_region_and_utr5` in priority, so a divergent/antisense lncRNA "
+        "exon lying inside a protein-coding gene's TSS region is claimed by "
+        "the promoter class; standalone-ncRNA windows stay `ncrna_exon`."
+    ),
+    "v4_tss_region_and_utr5": (
+        "TSS region and 5' UTR — (protein-coding TSS ± {tss_radius} bp) ∪ "
+        "(protein-coding 5' UTR). **v4 makes the TSS-region half "
+        "protein-coding-only** (v3 used every annotated transcript) so the "
+        "whole class is PC-derived, and **promotes it above `ncrna_exon`** in "
+        "priority. One class because promoter and 5' UTR overlap by "
+        "construction."
+    ),
+    "v4_ccre_non_promoter": (
+        'ENCODE cCRE V4 non-promoter classes — `cre_class != "PLS"` (dELS, '
+        "pELS, CA, CA-CTCF, CA-TF, CA-H3K4me3, TF), **with no flank** "
+        "({ccre_flank} bp; v3 used ±500 bp). Bottom priority: only cCRE bases "
+        "not already claimed by any exon / UTR / TSS region count, and the "
+        "window is `ccre_non_promoter` when those are its majority — so this "
+        'class now means "actually cCRE-covered".'
+    ),
+    "v4_bg": (
+        "Background — anchors whose union-of-functional fraction over the "
+        "five labels above is below {functional_threshold:.2f}. Larger than "
+        "v3's background because `ccre_flank=0` no longer counts the ±500 bp "
+        "cCRE shoulders (mostly conserved intronic sequence) as functional."
+    ),
+}
+
+
+def write_subset_hf_readme_v4(
+    subset: str,
+    output_path: str | Path,
+    *,
+    commit_sha: str,
+    hf_owner: str,
+    pipeline_version: str,
+    ensembl_release: int,
+    functional_threshold: float,
+    tss_radius: int,
+    ccre_flank: int,
+    priority: list[str],
+    composition_tsv: str | Path,
+    n_samples: int,
+    github_repo: str = _GITHUB_REPO,
+) -> None:
+    """Write a per-subset HuggingFace dataset card (README.md) for v4 subsets.
+
+    Mirrors :func:`write_subset_hf_readme` but describes the v4 labeling scheme
+    (issue #227): base-pair-priority membership + window-level majority
+    (``label_windows_bp_majority``), a protein-coding-only TSS band, and
+    ``ccre_flank=0``, with ``tss_region_and_utr5`` promoted above
+    ``ncrna_exon``. A separate function (rather than a v3 refactor) keeps the
+    frozen v3 cards reproducible.
+    """
+    if subset not in _SUBSET_TO_LABEL_V4:
+        raise ValueError(
+            f"unknown subset {subset!r}; expected one of {sorted(_SUBSET_TO_LABEL_V4)}"
+        )
+
+    label = _SUBSET_TO_LABEL_V4[subset]
+    composition = _read_composition(composition_tsv)
+    n_windows, fraction_of_total = composition[label]
+    n_total = sum(c[0] for c in composition.values())
+
+    repo_name = f"{hf_owner}/zoonomia-{pipeline_version}-{subset}"
+    pipeline_permalink = (
+        f"https://github.com/{github_repo}/tree/{commit_sha}/{_GITHUB_PIPELINE_PATH}"
+    )
+    pipeline_main_link = (
+        f"https://github.com/{github_repo}/tree/main/{_GITHUB_PIPELINE_PATH}"
+    )
+
+    blurb = _SUBSET_BLURBS_V4[subset].format(
+        ensembl_release=ensembl_release,
+        functional_threshold=functional_threshold,
+        tss_radius=tss_radius,
+        ccre_flank=ccre_flank,
+    )
+
+    priority_str = " > ".join(f"`{p}`" for p in list(priority) + [BACKGROUND_LABEL])
+    sibling_links = "\n".join(
+        f"- [`{hf_owner}/zoonomia-{pipeline_version}-{s}`]"
+        f"(https://huggingface.co/datasets/{hf_owner}/zoonomia-{pipeline_version}-{s})"
+        for s in _SUBSET_TO_LABEL_V4
+        if s != subset
+    )
+
+    body = f"""---
+tags:
+- biology
+- genomics
+- DNA
+---
+
+# `{repo_name}`
+
+Per-anchor region-type partition of the cross-mammal training set
+[`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/datasets/{hf_owner}/zoonomia-{pipeline_version}-v1),
+restricted to anchors labelled `{label}` by the **v4** region labeler
+([`{_GITHUB_PIPELINE_PATH}`]({pipeline_permalink}) pipeline,
+commit [`{commit_sha[:12]}`]({pipeline_permalink})).
+
+v4 re-derives the v3 partition with the labeling scheme resolved in
+[issue #221](https://github.com/{github_repo}/issues/221): **base-pair
+priority + window majority**, a **protein-coding-only TSS band**, and
+**`ccre_flank=0`**. See the pipeline README's "v4 region-type annotation"
+section for the full rationale.
+
+## Region label (`{label}`)
+
+{blurb}
+
+## Partition
+
+The six v4 subsets partition the conservation-filtered human anchor set
+(every anchor is assigned exactly one label) by a two-stage rule:
+
+1. **Base-pair priority** assigns every base to exactly one region by the
+   order below (subtracting higher-priority regions from lower ones), so a
+   base in both CDS and a cCRE is `cds`.
+2. **Window majority** labels each window by the region covering the most of
+   its bases, provided the union-of-functional fraction is
+   ≥ {functional_threshold:.2f} (else `background`).
+
+> {priority_str}
+
+This subset contains **{n_windows:,} of {n_total:,}** human anchors
+({fraction_of_total:.2%} of v1), expanding to **{n_samples:,} training
+samples** after halLiftover projection to up to 108 Zoonomia mammals and
+reverse-complement augmentation (same shape as
+[`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/datasets/{hf_owner}/zoonomia-{pipeline_version}-v1),
+just filtered to this region label). The total is the exact row count across
+all 64 JSONL.zst shards.
+
+Five sibling v4 subsets (one per region label):
+
+{sibling_links}
+
+## Schema
+
+Same as [`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/datasets/{hf_owner}/zoonomia-{pipeline_version}-v1)
+— a single `train` split of JSONL.zst shards at
+`data/train/shard_NNNN.jsonl.zst`:
+
+| Column         | Type | Description |
+|---|---|---|
+| `query_name`   | str  | human-window id (`win_<chrom>_<NNN>` from `windows.smk`) |
+| `species`      | str  | one of 108 Zoonomia mammals |
+| `t_chrom`      | str  | UCSC `chr1`-style |
+| `t_start`      | int  | 0-based half-open |
+| `t_end`        | int  | 0-based half-open; `t_end - t_start == 255` |
+| `t_strand`     | str  | `+` or `-` |
+| `t_src_size`   | int  | target chromosome size |
+| `sequence`     | str  | exactly 255 bp; **strand-aware** (already RC'd if `t_strand == "-"`) |
+| `augmentation` | str  | `+` (original) or `-` (RC of `sequence`) |
+
+## Construction
+
+1. Build the v1 cross-mammal training set (108-species halLiftover
+   projection of conservation-filtered 255 bp human anchors). See the
+   [pipeline README]({pipeline_permalink}/README.md).
+2. **Annotate** each anchor with one of six v4 region labels (base-pair
+   priority + window majority; union-of-functional fraction
+   ≥ {functional_threshold:.2f} required to escape `background`). Library:
+   `marin_dna.pipelines.zoonomia_projection_dataset.region_labels.label_windows_bp_majority`.
+3. **Filter** v1 to anchors labelled `{label}` via `subset_dataset_derived`
+   (Polars lazy-filter on `query_name`).
+4. RC-augment, shuffle (`seed=42`), shard to 64 JSONL files,
+   zstd-compress, upload via `hf upload-large-folder`.
+
+## Caveats
+
+- **The six v4 subsets are a partition of v1, not independent probes.**
+  Concatenating them reconstructs v1 (modulo the RC augmentation and the
+  shuffle seed). Each anchor appears in exactly one subset.
+- **v4 ≠ v3.** v3 (`{hf_owner}/zoonomia-{pipeline_version}-v3_*`) used
+  priority-on-presence, an all-transcript TSS band, and `ccre_flank=500`;
+  the partitions differ substantially. Use v4 unless you specifically need
+  to match a v3-trained checkpoint.
+- **Broad `ncrna_exon`.** Still the set complement
+  `get_exons(ann) − get_ensembl_protein_coding_exons(ann)` (no
+  functional-biotype filter); use `val_ncrna` for functional ncRNA only.
+
+## Source code
+
+- Pipeline: [{_GITHUB_PIPELINE_PATH}]({pipeline_main_link}) (latest)
+- Pinned to this dataset's build: [commit `{commit_sha[:12]}`]({pipeline_permalink})
+- Region labeler library: `marin_dna.pipelines.zoonomia_projection_dataset.region_labels.label_windows_bp_majority`
 - Sister cross-mammal datasets: `{hf_owner}/zoonomia-{pipeline_version}-v1`, `{hf_owner}/zoonomia-{pipeline_version}-v2`
 - Sister validation datasets: `{hf_owner}/zoonomia-{pipeline_version}-val_*`
 """
