@@ -114,6 +114,7 @@ def get_model_batch_size(model_name):
 NUC_DEP_CFG = config.get("nuc_dep", {})
 NUC_DEP_LOCI = list(NUC_DEP_CFG.get("loci", {}))
 NUC_DEP_MODELS = NUC_DEP_CFG.get("models", [])
+NUC_DEP_COMBINES = NUC_DEP_CFG.get("combines", ["mean"])
 
 
 def get_nuc_dep_ord():
@@ -128,6 +129,8 @@ def get_nuc_dep_ord():
 # Fail fast: every nuc_dep model is a known checkpoint, and every locus fits the
 # context window of every model it would run on (the categorical Jacobian needs
 # the whole locus inside one window).
+for _c in NUC_DEP_COMBINES:
+    assert _c in ("mean", "max"), f"nuc_dep combine {_c!r} must be 'mean' or 'max'"
 for _m in NUC_DEP_MODELS:
     assert _m in MODELS, f"nuc_dep model {_m!r} not found in `models`"
 for _loc, _c in NUC_DEP_CFG.get("loci", {}).items():

@@ -114,16 +114,24 @@ def plot_dependency_map(
     chrom: str | None = None,
     title: str | None = None,
     tick_freq: int | None = None,
+    dpi: int = 150,
 ) -> None:
     """Render a dependency map as a ``coolwarm`` heatmap (SVG, plus a PNG
     sibling for local visual sanity per repo convention).
 
     Mirrors GPN-Star's nuc-dep plot: square aspect, robust color scaling,
     rasterized cells, sparse genomic-coordinate ticks.
+
+    ``rasterized=True`` is essential: a dependency map is a dense ``L×L``
+    QuadMesh (e.g. 255×255 = 65k cells), which as pure SVG vector cells blows
+    up to ~12 MB. Rasterizing embeds the cells as a *single* PNG inside the
+    SVG (text/axes stay vector), so file size is governed by ``dpi`` — ~210 KB
+    at 150, ~130 KB at 72 for a 255 bp map. Lower ``dpi`` for smaller files.
     """
     import matplotlib
 
     matplotlib.use("Agg")
+    matplotlib.rcParams["svg.fonttype"] = "none"  # keep text as text, not paths
     import matplotlib.pyplot as plt
     import seaborn as sns
 
@@ -155,7 +163,7 @@ def plot_dependency_map(
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(out, bbox_inches="tight", dpi=200)
+    plt.savefig(out, bbox_inches="tight", dpi=dpi)
     if out.suffix == ".svg":
-        plt.savefig(out.with_suffix(".png"), bbox_inches="tight", dpi=200)
+        plt.savefig(out.with_suffix(".png"), bbox_inches="tight", dpi=dpi)
     plt.close()

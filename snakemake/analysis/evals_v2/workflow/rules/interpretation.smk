@@ -16,8 +16,9 @@ rule compute_nuc_dep:
     input:
         checkpoint="results/checkpoints/{model}",
     output:
-        "results/interpretation/nuc_dep/{locus}/{model}.parquet",
+        "results/interpretation/nuc_dep/{combine}/{locus}/{model}.parquet",
     wildcard_constraints:
+        combine="|".join(NUC_DEP_COMBINES),
         model="|".join(NUC_DEP_MODELS),
         locus="|".join(NUC_DEP_LOCI),
     params:
@@ -28,7 +29,6 @@ rule compute_nuc_dep:
         end=lambda wc: config["nuc_dep"]["loci"][wc.locus]["end"],
         strand=lambda wc: config["nuc_dep"]["loci"][wc.locus]["strand"],
         window_size=lambda wc: get_model_config(wc.model)["window_size"],
-        combine=config["nuc_dep"].get("combine", "mean"),
         norm_ord=get_nuc_dep_ord(),
     threads: config["inference"]["num_workers"]
     run:
@@ -43,7 +43,7 @@ rule compute_nuc_dep:
             end=int(params.end),
             strand=params.strand,
             window_size=int(params.window_size),
-            combine=params.combine,
+            combine=wildcards.combine,  # mean | max — from the output path
             norm_ord=params.norm_ord,
             batch_size=config["nuc_dep"].get("batch_size", 32),
         )
@@ -55,9 +55,9 @@ rule compute_nuc_dep:
 
 rule plot_nuc_dep:
     input:
-        "results/interpretation/nuc_dep/{locus}/{model}.parquet",
+        "results/interpretation/nuc_dep/{combine}/{locus}/{model}.parquet",
     output:
-        "results/plots/nuc_dep/{locus}/{model}.svg",
+        "results/plots/nuc_dep/{combine}/{locus}/{model}.svg",
     run:
         from marin_dna.pipelines.evals.interpretation import plot_dependency_map
 
@@ -69,16 +69,18 @@ rule plot_nuc_dep:
             df,
             output[0],
             chrom=str(config["nuc_dep"]["loci"][wildcards.locus]["chrom"]),
-            title=f"{wildcards.locus} — {wildcards.model}",
+            title=f"{wildcards.locus} ({wildcards.combine}) — {wildcards.model}",
+            dpi=config["nuc_dep"].get("dpi", 150),
         )
 
 
 rule nuc_dep:
-    """Aggregate convenience target: every (locus, model) dependency-map plot.
-    Not part of `rule all`."""
+    """Aggregate convenience target: every (combine, locus, model) dependency-map
+    plot. Not part of `rule all`."""
     input:
         [
-            f"results/plots/nuc_dep/{locus}/{model}.svg"
+            f"results/plots/nuc_dep/{combine}/{locus}/{model}.svg"
+            for combine in NUC_DEP_COMBINES
             for model in NUC_DEP_MODELS
             for locus in NUC_DEP_LOCI
         ],
