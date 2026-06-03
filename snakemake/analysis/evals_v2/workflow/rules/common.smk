@@ -106,3 +106,37 @@ def get_model_batch_size(model_name):
         isinstance(bs, int) and bs > 0
     ), f"model {model_name!r} `batch_size` must be a positive int, got {bs!r}"
     return bs
+
+
+# --- Nucleotide dependency maps (interpretation, issue #237) ----------------
+# Optional `nuc_dep:` config section. Targets are kept off `rule all`; see
+# rules/interpretation.smk.
+NUC_DEP_CFG = config.get("nuc_dep", {})
+NUC_DEP_LOCI = list(NUC_DEP_CFG.get("loci", {}))
+NUC_DEP_MODELS = NUC_DEP_CFG.get("models", [])
+
+
+def get_nuc_dep_ord():
+    """Vector-norm order for collapsing each 4x4 Jacobian block. ``inf`` (the
+    default, as in GPN-Star) → ``np.inf``; otherwise a float."""
+    raw = NUC_DEP_CFG.get("ord", "inf")
+    if isinstance(raw, str) and raw.lower() in ("inf", "infinity"):
+        return np.inf
+    return float(raw)
+
+
+# Fail fast: every nuc_dep model is a known checkpoint, and every locus fits the
+# context window of every model it would run on (the categorical Jacobian needs
+# the whole locus inside one window).
+for _m in NUC_DEP_MODELS:
+    assert _m in MODELS, f"nuc_dep model {_m!r} not found in `models`"
+for _loc, _c in NUC_DEP_CFG.get("loci", {}).items():
+    assert _c["end"] > _c["start"], (
+        f"nuc_dep locus {_loc!r}: end {_c['end']} must exceed start {_c['start']}"
+    )
+    for _m in NUC_DEP_MODELS:
+        _ws = get_model_config(_m)["window_size"]
+        assert _c["end"] - _c["start"] <= _ws, (
+            f"nuc_dep locus {_loc!r} span {_c['end'] - _c['start']} bp exceeds "
+            f"model {_m!r} window_size {_ws}"
+        )

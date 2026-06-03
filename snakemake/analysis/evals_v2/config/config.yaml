@@ -852,3 +852,28 @@ inference:
   bootstrap_seed: 0     # 0 → reproducible across re-runs. Bumping
                         # this triggers metric re-execution via
                         # snakemake's `params:` hash.
+
+
+# ---------------------------------------------------------------------------
+# Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.
+#
+# NOT a metric: these targets are kept off `rule all`. Build explicitly:
+#   snakemake nuc_dep                                  # all (locus, model) plots
+#   snakemake results/plots/nuc_dep/LDLR/<model>.svg   # one map
+#
+# Coordinates are 0-based half-open, GRCh38 (Ensembl chrom names, no `chr`).
+# Loci are reused from the nuc-dep paper's human examples so our maps can be
+# eyeballed against the published figures. Each locus must fit the model's
+# `window_size` (asserted at config load); HBA1 (256 bp) is omitted because it
+# does not fit the 255 bp window of the mix-v0.9 models.
+# ---------------------------------------------------------------------------
+nuc_dep:
+  combine: mean        # symmetrization of the stitched FWD/RC map: mean | max (#237)
+  ord: inf             # vector-norm order collapsing each 4x4 nucleotide block
+  batch_size: 32       # sequences per forward pass (execution-only; tune for VRAM)
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+  loci:
+    LDLR:  {chrom: "19", start: 11089299,  end: 11089425,  strand: "+"}
+    TH:    {chrom: "11", start: 2171682,   end: 2171868,   strand: "-"}
+    GRIA4: {chrom: "11", start: 105609444, end: 105609472, strand: "+"}
