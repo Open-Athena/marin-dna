@@ -212,47 +212,46 @@ def plot_umap(
     s = 100.0 / np.sqrt(n)
     fig, ax = plt.subplots(figsize=(3, 3))
 
+    # Both panels go through seaborn scatterplot, mirroring GPN-Star's
+    # interpretation_umap_plot exactly (so the colors match the paper):
+    #   region       -> hue=label, fixed Cn palette + label order
+    #   conservation -> hue=cons (numeric), NO palette/cmap => seaborn's default
+    #                   continuous palette (white->dark) + a representative-level
+    #                   legend, not a colorbar.
     if color_by == "region":
-        labels = umap_df["label"].map(REGION_DISPLAY)
+        hue: Any = umap_df["label"].map(REGION_DISPLAY)
         unmapped = sorted(set(umap_df["label"]) - set(REGION_DISPLAY))
         assert not unmapped, f"unmapped region labels: {unmapped}"
-        sns.scatterplot(
-            x=umap_df["UMAP1"],
-            y=umap_df["UMAP2"],
-            hue=labels,
-            hue_order=REGION_ORDER,
-            palette=REGION_PALETTE,
-            s=s,
-            alpha=0.5,
-            linewidth=0,
-            rasterized=True,
-            ax=ax,
+        hue_kwargs: dict[str, Any] = dict(
+            hue=hue, hue_order=REGION_ORDER, palette=REGION_PALETTE
         )
-        sns.move_legend(
-            ax, "upper left", bbox_to_anchor=(1, 1), frameon=False, title=None
-        )
-        leg = ax.get_legend()
-        if leg is not None:  # bump legend dots to readable size/opacity
-            for handle in leg.legend_handles:
-                handle.set_markersize(8)  # type: ignore[attr-defined]  # Line2D handle
-                handle.set_alpha(1.0)
+        legend_title = "Region"
     elif color_by == "conservation":
-        sc = ax.scatter(
-            umap_df["UMAP1"],
-            umap_df["UMAP2"],
-            c=umap_df["cons"],
-            cmap="viridis",
-            s=s,
-            alpha=0.5,
-            linewidths=0,
-            rasterized=True,
-        )
-        cbar = fig.colorbar(sc, ax=ax, shrink=0.8)
-        cbar.set_label("conservation (phastCons, 75th pct)")
+        hue_kwargs = dict(hue=umap_df["cons"])
+        legend_title = "Conservation"
     else:
         raise ValueError(
             f"color_by must be 'region' or 'conservation', got {color_by!r}"
         )
+
+    sns.scatterplot(
+        x=umap_df["UMAP1"],
+        y=umap_df["UMAP2"],
+        s=s,
+        alpha=0.5,
+        linewidth=0,
+        edgecolor=None,
+        rasterized=True,
+        ax=ax,
+        **hue_kwargs,
+    )
+    sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+    leg = ax.get_legend()
+    if leg is not None:  # title + bump legend dots to readable size/opacity
+        leg.set_title(legend_title)
+        for handle in leg.legend_handles:
+            handle.set_markersize(8)  # type: ignore[attr-defined]  # Line2D handle
+            handle.set_alpha(1.0)
 
     ax.set_xlabel("UMAP1")
     ax.set_ylabel("UMAP2")
