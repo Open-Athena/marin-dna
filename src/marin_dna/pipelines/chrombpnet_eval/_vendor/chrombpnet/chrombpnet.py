@@ -25,7 +25,7 @@ class _Log(nn.Module):
 
 	def forward(self, X):
 		return torch.log(X)
-	 
+
 
 def _to_numpy(tensor):
 	return tensor.detach().cpu().numpy()
@@ -50,38 +50,38 @@ class ChromBPNet(nn.Module):
 
 	Parameters
 	----------
-	bias: torch.nn.Module 
-		This model takes in sequence and outputs the shape one would expect in 
+	bias: torch.nn.Module
+		This model takes in sequence and outputs the shape one would expect in
 		ATAC-seq data due to Tn5 bias alone. This is usually a BPNet model
 		from the bpnet-lite repo that has been trained on GC-matched non-peak
 		regions.
 
 	accessibility: torch.nn.Module
-		This model takes in sequence and outputs the accessibility one would 
-		expect due to the components of the sequence, but also takes in a cell 
-		representation which modifies the parameters of the model, hence, 
+		This model takes in sequence and outputs the accessibility one would
+		expect due to the components of the sequence, but also takes in a cell
+		representation which modifies the parameters of the model, hence,
 		"dynamic." This model is usually a DynamicBPNet model, defined below.
 
 	name: str
 		The name to prepend when saving the file.
 	"""
 
-	def __init__(self, 
+	def __init__(self,
 		config,
 		**kwargs
 		):
 		super().__init__()
 
-		self.model = BPNet(        
+		self.model = BPNet(
 			out_dim=config.out_dim,
-			n_filters=config.n_filters, 
-			n_layers=config.n_layers, 
+			n_filters=config.n_filters,
+			n_layers=config.n_layers,
 			conv1_kernel_size=config.conv1_kernel_size,
 			profile_kernel_size=config.profile_kernel_size,
-			n_outputs=config.n_outputs, 
-			n_control_tracks=config.n_control_tracks, 
-			profile_output_bias=config.profile_output_bias, 
-			count_output_bias=config.count_output_bias, 
+			n_outputs=config.n_outputs,
+			n_control_tracks=config.n_control_tracks,
+			profile_output_bias=config.profile_output_bias,
+			count_output_bias=config.count_output_bias,
 		)
 
 		self.bias = BPNet(out_dim=config.out_dim, n_layers=4, n_filters=128)
@@ -89,7 +89,7 @@ class ChromBPNet(nn.Module):
 		self._log = _Log()
 		self._exp1 = _Exp()
 		self._exp2 = _Exp()
-		
+
 		self.n_control_tracks = config.n_control_tracks
 
 		self.tf_style_reinit()
@@ -138,10 +138,10 @@ class ChromBPNet(nn.Module):
 		y_counts = self._log(self._exp1(acc_counts) + self._exp2(bias_counts))
 		# counts_cat = torch.cat((acc_counts, bias_counts), dim=-1)
 		# y_counts = torch.logsumexp(counts_cat, dim=-1)
-		
+
 		# DO NOT SQUEEZE y_counts, as it is needed for running deep_lift_shap
-		return y_profile.squeeze(1), y_counts #.squeeze() 
-	
+		return y_profile.squeeze(1), y_counts #.squeeze()
+
 
 class ArsenalChromBPNet(nn.Module):
 	"""A ChromBPNet model.
@@ -162,23 +162,23 @@ class ArsenalChromBPNet(nn.Module):
 
 	Parameters
 	----------
-	bias: torch.nn.Module 
-		This model takes in sequence and outputs the shape one would expect in 
+	bias: torch.nn.Module
+		This model takes in sequence and outputs the shape one would expect in
 		ATAC-seq data due to Tn5 bias alone. This is usually a BPNet model
 		from the bpnet-lite repo that has been trained on GC-matched non-peak
 		regions.
 
 	accessibility: torch.nn.Module
-		This model takes in sequence and outputs the accessibility one would 
-		expect due to the components of the sequence, but also takes in a cell 
-		representation which modifies the parameters of the model, hence, 
+		This model takes in sequence and outputs the accessibility one would
+		expect due to the components of the sequence, but also takes in a cell
+		representation which modifies the parameters of the model, hence,
 		"dynamic." This model is usually a DynamicBPNet model, defined below.
 
 	name: str
 		The name to prepend when saving the file.
 	"""
 
-	def __init__(self, 
+	def __init__(self,
 		config,
 		arsenal_model,
 		**kwargs
@@ -208,15 +208,15 @@ class ArsenalChromBPNet(nn.Module):
 			# no category provided
 			self.category = None
 		#Need to adjust first convolutional layer
-		self.model = BPNet(        
+		self.model = BPNet(
 			out_dim=config.out_dim,
-			n_filters=config.n_filters, 
-			n_layers=config.n_layers, 
+			n_filters=config.n_filters,
+			n_layers=config.n_layers,
 			conv1_kernel_size=config.conv1_kernel_size,
 			profile_kernel_size=config.profile_kernel_size,
-			n_outputs=config.n_outputs, 
-			n_control_tracks=config.n_control_tracks, 
-			profile_output_bias=config.profile_output_bias, 
+			n_outputs=config.n_outputs,
+			n_control_tracks=config.n_control_tracks,
+			profile_output_bias=config.profile_output_bias,
 			count_output_bias=config.count_output_bias,
 		)
 
@@ -227,7 +227,7 @@ class ArsenalChromBPNet(nn.Module):
 		self._log = _Log()
 		self._exp1 = _Exp()
 		self._exp2 = _Exp()
-		
+
 		self.n_control_tracks = config.n_control_tracks
 
 		self.tf_style_reinit()
@@ -265,20 +265,20 @@ class ArsenalChromBPNet(nn.Module):
 		# target_layers = layers[-10:-4]
 		activations = []
 		hooks = []
-		
+
 		def hook_fn(module, input, output):
 			activations.append(output)
-		
+
 		# Register hooks
 		hooks = [layer.register_forward_hook(hook_fn) for layer in target_layers]
-		
+
 		# Do inference (forward pass)
 		_ = self.arsenal_model(X, self.category)
-		
+
 		# Remove hooks to avoid memory leaks
 		for h in hooks:
 			h.remove()
-		
+
 		return sum(activations) / len(activations)
 
 
@@ -331,16 +331,16 @@ class ArsenalChromBPNet(nn.Module):
 			seq_len = self.seq_input_size
 			chunk_size = self.arsenal_input_size
 			center = seq_len // 2
-			
+
 			# Position the first chunk centered on the sequence center
 			first_start = center - chunk_size // 2
 			first_end = first_start + chunk_size
-			
+
 			# Get center chunk first
 			center_tokens = tokens[:, first_start:first_end]
 			center_logits = self.arsenal_model(center_tokens, self.category)
 			probs = self.normalize_probs(self.softmax(center_logits), center_tokens)
-			
+
 			# Expand outward from center
 			# Right side chunks
 			right_start = first_end
@@ -360,7 +360,7 @@ class ArsenalChromBPNet(nn.Module):
 					end_probs = self.normalize_probs(self.softmax(end_logits), end_tokens)
 					probs = torch.cat((probs, end_probs[:, -remainder:]), dim=1)
 					break
-			
+
 			# Left side chunks (prepend, so reverse order)
 			left_end = first_start
 			left_chunks = []
@@ -380,20 +380,20 @@ class ArsenalChromBPNet(nn.Module):
 					start_probs = self.normalize_probs(self.softmax(start_logits), start_tokens)
 					left_chunks.insert(0, start_probs[:, :remainder])
 					break
-			
+
 			# Concatenate all: left stragglers + left chunks + center + right chunks + right stragglers
 			if left_chunks:
 				probs = torch.cat(left_chunks + [probs], dim=1)
-		
-		return probs	
+
+		return probs
 
 
 	def get_embeddings(self, tokens):
 		'''
-		This function takes in tokens and gets ARSENAL embeddings from them. 
-		Usually, ARSENAL's input size is smaller than the sequence length. In that case, we chunk the sequence. 
-		We start at the center and extend out in both directions. 
-		If there are stragglers at either end, we get their embeddings using predictions from the beginning/end of the sequence. 
+		This function takes in tokens and gets ARSENAL embeddings from them.
+		Usually, ARSENAL's input size is smaller than the sequence length. In that case, we chunk the sequence.
+		We start at the center and extend out in both directions.
+		If there are stragglers at either end, we get their embeddings using predictions from the beginning/end of the sequence.
 		'''
 		if self.seq_input_size == self.arsenal_input_size:
 			embs = self.get_avg_embeddings(tokens, self.num_layers_avg)
@@ -402,15 +402,15 @@ class ArsenalChromBPNet(nn.Module):
 			seq_len = self.seq_input_size
 			chunk_size = self.arsenal_input_size
 			center = seq_len // 2
-			
+
 			# Position the first chunk centered on the sequence center
 			first_start = center - chunk_size // 2
 			first_end = first_start + chunk_size
-			
+
 			# Get center chunk first
 			center_tokens = tokens[:, first_start:first_end]
 			embs = self.get_avg_embeddings(center_tokens, self.num_layers_avg)
-			
+
 			# Expand outward from center
 			# Right side chunks
 			right_start = first_end
@@ -428,7 +428,7 @@ class ArsenalChromBPNet(nn.Module):
 					end_embs = self.get_avg_embeddings(end_tokens, self.num_layers_avg)
 					embs = torch.cat((embs, end_embs[:, -remainder:]), dim=1)
 					break
-			
+
 			# Left side chunks (prepend, so reverse order)
 			left_end = first_start
 			left_chunks = []
@@ -446,11 +446,11 @@ class ArsenalChromBPNet(nn.Module):
 					start_embs = self.get_avg_embeddings(start_tokens, self.num_layers_avg)
 					left_chunks.insert(0, start_embs[:, :remainder])
 					break
-			
+
 			# Concatenate all: left stragglers + left chunks + center + right chunks + right stragglers
 			if left_chunks:
 				embs = torch.cat(left_chunks + [embs], dim=1)
-		
+
 		return embs
 
 	def forward(self, x, **kwargs):
@@ -493,13 +493,13 @@ class ArsenalChromBPNet(nn.Module):
 		y_counts = self._log(self._exp1(acc_counts) + self._exp2(bias_counts))
 		# counts_cat = torch.cat((acc_counts, bias_counts), dim=-1)
 		# y_counts = torch.logsumexp(counts_cat, dim=-1)
-		
+
 		# DO NOT SQUEEZE y_counts, as it is needed for running deep_lift_shap
-		return y_profile.squeeze(1), y_counts #.squeeze() 
-	
+		return y_profile.squeeze(1), y_counts #.squeeze()
+
 
 class ArsenalChromBPNetNoBias(ArsenalChromBPNet):
-	def __init__(self, 
+	def __init__(self,
 		config,
 		arsenal_model,
 		**kwargs
@@ -542,8 +542,8 @@ class ArsenalChromBPNetNoBias(ArsenalChromBPNet):
 
 		acc_profile, acc_counts = self.model(x_embs)
 
-		y_profile = acc_profile 
+		y_profile = acc_profile
 		y_counts = acc_counts
-		
+
 		# DO NOT SQUEEZE y_counts, as it is needed for running deep_lift_shap
-		return y_profile.squeeze(1), y_counts #.squeeze() 
+		return y_profile.squeeze(1), y_counts #.squeeze()

@@ -16,27 +16,27 @@ class EnhancedDataset:
     """
     Enhanced dataset class that provides better caching and error handling.
     """
-    
+
     def __init__(self, dataset_func):
         self.dataset_func = dataset_func
         self._dataset = None
-    
+
     @property
     def dataset(self):
         """Lazy load the dataset."""
         if self._dataset is None:
             self._dataset = self.dataset_func()
         return self._dataset
-    
+
     def check_file_exists(self, filename):
         """
         Check if a file is already downloaded and valid.
-        
+
         Parameters
         ----------
         filename : str
             Name of the file to check
-            
+
         Returns
         -------
         bool
@@ -48,11 +48,11 @@ class EnhancedDataset:
         except Exception as e:
             logger.warning(f"Error checking file {filename}: {e}")
             return False
-    
+
     def fetch(self, filename, processor=None, progressbar=True):
         """
         Safely fetch a file with better error handling and logging.
-        
+
         Parameters
         ----------
         filename : str
@@ -61,7 +61,7 @@ class EnhancedDataset:
             Processor to apply to the downloaded file
         progressbar : bool
             Whether to show progress bar
-            
+
         Returns
         -------
         str
@@ -71,7 +71,7 @@ class EnhancedDataset:
         if self.check_file_exists(filename):
             logger.info(f"File {filename} already exists and is valid, skipping download")
             return str(self.dataset.abspath / filename)
-        
+
         logger.info(f"Downloading {filename}...")
         try:
             result = self.dataset.fetch(filename, processor=processor, progressbar=progressbar)
@@ -80,11 +80,11 @@ class EnhancedDataset:
         except Exception as e:
             logger.error(f"Failed to download {filename}: {e}")
             raise
-    
+
     def get_cache_info(self):
         """
         Get information about the cache directory and available files.
-        
+
         Returns
         -------
         dict
@@ -96,7 +96,7 @@ class EnhancedDataset:
             'available_files': list(self.dataset.registry.keys()),
             'downloaded_files': []
         }
-        
+
         for filename in self.dataset.registry.keys():
             if self.check_file_exists(filename):
                 file_path = self.dataset.abspath / filename
@@ -106,7 +106,7 @@ class EnhancedDataset:
                     'size_bytes': file_size,
                     'size_mb': file_size / (1024**2)
                 })
-        
+
         return info
 
 # Legacy functions for backward compatibility
@@ -253,7 +253,7 @@ class Genome:
     def __init__(
         self,
         *,
-        fasta: Path | Callable[[], Path], 
+        fasta: Path | Callable[[], Path],
         annotation: Path | Callable[[], Path],
         chrom_sizes: Path | Callable[[], Path],
         # chrom_sizes: dict[str, int] | None = None,
@@ -296,7 +296,7 @@ class Genome:
     @property
     def fasta(self):
         """
-        The Path to the FASTA file. 
+        The Path to the FASTA file.
 
         Returns
         -------
@@ -336,20 +336,20 @@ class Genome:
     #         fasta = Fasta(self.fasta)
     #         self._chrom_sizes = {chr: len(fasta[chr]) for chr in fasta.keys()}
     #     return self._chrom_sizes
-        
+
 
 GRCh38 = Genome(
     fasta=lambda : hg38_datasets().fetch(
-        "hg38.fa", 
-        # processor=Decompress(method="gzip", name="hg38.fa"), 
+        "hg38.fa",
+        # processor=Decompress(method="gzip", name="hg38.fa"),
         progressbar=True
     ),
     annotation=lambda : hg38_datasets().fetch(
-        "hg38.gtf.gz", 
+        "hg38.gtf.gz",
         progressbar=True
     ),
     chrom_sizes= hg38_datasets().fetch(
-        "hg38.chrom.sizes", 
+        "hg38.chrom.sizes",
         progressbar=True
     ),
     )
@@ -357,15 +357,15 @@ hg38 = GRCh38
 
 GRCh37 = Genome(
     fasta=lambda : hg19_datasets().fetch(
-        "hg19.fa", 
+        "hg19.fa",
         progressbar=True, processor=Decompress(method="gzip", name="hg19.fa")
     ),
     annotation=lambda : hg19_datasets().fetch(
-        "hg19.gtf.gz", 
+        "hg19.gtf.gz",
         progressbar=True
     ),
     chrom_sizes= hg19_datasets().fetch(
-        "hg19.chrom.sizes", 
+        "hg19.chrom.sizes",
         progressbar=True
     ),
 )
@@ -373,16 +373,16 @@ hg19 = GRCh37
 
 GRCm38 = Genome(
     fasta=lambda : mm10_datasets().fetch(
-        "mm10.fa", 
-        # processor=Decompress(method="gzip", name="mm10.fa"), 
+        "mm10.fa",
+        # processor=Decompress(method="gzip", name="mm10.fa"),
         progressbar=True
     ),
     annotation=lambda : mm10_datasets().fetch(
-        "mm10.gtf.gz", 
+        "mm10.gtf.gz",
         progressbar=True
     ),
     chrom_sizes= mm10_datasets().fetch(
-        "mm10.chrom.sizes", 
+        "mm10.chrom.sizes",
         progressbar=True
     ),
 

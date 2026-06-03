@@ -93,7 +93,7 @@ def one_hot_to_dna(one_hot):
 # https://stackoverflow.com/questions/46091111/python-slice-array-at-different-position-on-every-row
 def take_per_row(A, indx, num_elem):
     """
-    Matrix A, indx is a vector for each row which specifies 
+    Matrix A, indx is a vector for each row which specifies
     slice beginning for that row. Each has width num_elem.
     """
 
@@ -106,7 +106,7 @@ def random_crop(seqs, labels, seq_crop_width, label_crop_width, coords):
     Takes sequences and corresponding counts labels. They should have the same
     #examples. The widths would correspond to inputlen and outputlen respectively,
     and any additional flanking width for jittering which should be the same
-    for seqs and labels. Each example is cropped starting at a random offset. 
+    for seqs and labels. Each example is cropped starting at a random offset.
 
     seq_crop_width - label_crop_width should be equal to seqs width - labels width,
     essentially implying they should have the same flanking width.
@@ -127,22 +127,22 @@ def random_crop(seqs, labels, seq_crop_width, label_crop_width, coords):
 
 def random_rev_comp(seqs, labels, coords, frac=0.5):
     """
-    Data augmentation: applies reverse complement randomly to a fraction of 
+    Data augmentation: applies reverse complement randomly to a fraction of
     sequences and labels.
 
     Assumes seqs are arranged in ACGT. Then ::-1 gives TGCA which is revcomp.
 
     NOTE: Performs in-place modification.
     """
-    
-    pos_to_rc = np.random.choice(range(seqs.shape[0]), 
+
+    pos_to_rc = np.random.choice(range(seqs.shape[0]),
             size=int(seqs.shape[0]*frac),
             replace=False)
 
     seqs[pos_to_rc] = seqs[pos_to_rc, ::-1, ::-1]
     labels[pos_to_rc] = labels[pos_to_rc, ::-1]
     coords[pos_to_rc,2] =  "r"
-	
+
     return seqs, labels, coords
 
 def crop_revcomp_augment(seqs, labels, coords, seq_crop_width, label_crop_width, add_revcomp, rc_frac=0.5, shuffle=False):
@@ -150,7 +150,7 @@ def crop_revcomp_augment(seqs, labels, coords, seq_crop_width, label_crop_width,
     seqs: B x IL x 4
     labels: B x OL
 
-    Applies random crop to seqs and labels and reverse complements rc_frac. 
+    Applies random crop to seqs and labels and reverse complements rc_frac.
     """
 
     assert(seqs.shape[0]==labels.shape[0])
@@ -184,7 +184,7 @@ def read_chrom_sizes(fname):
 
 def format_region(df, width=500):
     df.loc[:, 'start'] = df.loc[:, 'start'].astype(np.int64) + df.loc[:, 'summit'] - width // 2
-    df.loc[:, 'end'] = df.loc[:, 'start'] + width 
+    df.loc[:, 'end'] = df.loc[:, 'start'] + width
     df.loc[:, 'summit'] = width // 2
     return df
 
@@ -239,15 +239,15 @@ def load_region_df(peak_bed, chrom_sizes=None, in_window=2114, shift=0, width=50
         flank_length = in_window // 2 + shift
         if df.shape[1] < 10:
             filtered_df = df[df.apply(
-                lambda row: (row.iloc[1] + row.iloc[2]) // 2 - flank_length > 0 
+                lambda row: (row.iloc[1] + row.iloc[2]) // 2 - flank_length > 0
                         and (row.iloc[1] + row.iloc[2]) // 2 + flank_length <= int(chrom_sizes.get(row.iloc[0], float('inf'))), axis=1)]
         else:
             filtered_df = df[df.apply(
-                lambda row: row.iloc[9] + row.iloc[1] -  flank_length > 0 
+                lambda row: row.iloc[9] + row.iloc[1] -  flank_length > 0
                         and row.iloc[9] + row.iloc[1] + flank_length <= int(chrom_sizes.get(row.iloc[0], float('inf'))), axis=1)]
     else:
         filtered_df = df
-    
+
     filtered_df.columns = ['chr', 'start', 'end', 'name', 'score', 'strand', 'signalValue', 'pValue', 'qValue', 'summit', 'is_peak']
     filtered_df = format_region(filtered_df, width=500)
     return filtered_df.reset_index(drop=True) # Reset index to avoid index errors
@@ -276,10 +276,10 @@ def get_cts(peaks_df, bw, width):
     """
     vals = []
     for i, r in peaks_df.iterrows():
-        vals.append(np.nan_to_num(bw.values(r['chr'], 
+        vals.append(np.nan_to_num(bw.values(r['chr'],
                                             r['start'] + r['summit'] - width//2,
                                             r['start'] + r['summit'] + width//2)))
-        
+
     return np.array(vals)
 
 def get_coords(peaks_df, peaks_bool):
@@ -302,10 +302,10 @@ def get_seq_cts_coords(peaks_df, genome, bw, input_width, output_width, peaks_bo
 
 def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen, outputlen, max_jitter):
     """
-    Load sequences and corresponding base resolution counts for training, 
+    Load sequences and corresponding base resolution counts for training,
     validation regions in peaks and nonpeaks (2 x 2 x 2 = 8 matrices).
 
-    For training peaks/nonpeaks, values for inputlen + 2*max_jitter and outputlen + 2*max_jitter 
+    For training peaks/nonpeaks, values for inputlen + 2*max_jitter and outputlen + 2*max_jitter
     are returned centered at peak summit. This allows for jittering examples by randomly
     cropping. Data of width inputlen/outputlen is returned for validation
     data.
@@ -332,7 +332,7 @@ def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen,
                                             inputlen+2*max_jitter,
                                             outputlen+2*max_jitter,
                                             peaks_bool=1)
-    
+
     if nonpeak_regions is not None:
         if not set(['chr', 'start', 'summit']).issubset(nonpeak_regions.columns):
             nonpeak_regions = expand_3col_to_10col(nonpeak_regions)
@@ -354,7 +354,7 @@ def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen,
 
 def write_bigwig(data, regions, gs, bw_out, debug_chr=None, use_tqdm=False, outstats_file=None):
     # regions may overlap but as we go in sorted order, at a given position,
-    # we will pick the value from the interval whose summit is closest to 
+    # we will pick the value from the interval whose summit is closest to
     # current position
     chr_to_idx = {}
     for i,x in enumerate(gs):
@@ -362,7 +362,7 @@ def write_bigwig(data, regions, gs, bw_out, debug_chr=None, use_tqdm=False, outs
 
     bw = pyBigWig.open(bw_out, 'w')
     bw.addHeader(gs)
-    
+
     # regions may not be sorted, so get their sorted order
     order_of_regs = sorted(range(len(regions)), key=lambda x:(chr_to_idx[regions[x][0]], regions[x][1]))
 
@@ -382,38 +382,38 @@ def write_bigwig(data, regions, gs, bw_out, debug_chr=None, use_tqdm=False, outs
 
         i = order_of_regs[itr]
         i_chr, i_start, i_end, i_mid = regions[i]
-    
-        if i_chr != cur_chr: 
+
+        if i_chr != cur_chr:
             cur_chr = i_chr
             cur_end = 0
-    
+
         # bring current end to at least start of current region
         if cur_end < i_start:
             cur_end = i_start
-    
+
         assert(regions[i][2]>=cur_end)
-    
+
         # figure out where to stop for this region, get next region
         # which may partially overlap with this one
         next_end = i_end
-    
+
         if itr+1 != len(order_of_regs):
             n = order_of_regs[itr+1]
             next_chr, next_start, _, next_mid = regions[n]
-       
+
             if next_chr == i_chr and next_start < i_end:
                 # if next region overlaps with this, end between their midpoints
                 next_end = (i_mid+next_mid)//2
-    
+
         vals = data[i][cur_end - i_start:next_end - i_start]
 
-        bw.addEntries([i_chr]*(next_end-cur_end), 
-                       list(range(cur_end,next_end)), 
-                       ends = list(range(cur_end+1, next_end+1)), 
+        bw.addEntries([i_chr]*(next_end-cur_end),
+                       list(range(cur_end,next_end)),
+                       ends = list(range(cur_end+1, next_end+1)),
                        values=[float(x) for x in vals])
-    
+
         all_entries.append(vals)
-        
+
         cur_end = next_end
 
     bw.close()
@@ -464,17 +464,17 @@ def hdf5_to_bigwig(hdf5, regions, chrom_sizes, output_prefix, output_prefix_stat
     chr_list = set([region[0] for region in regions])
     chrom_sizes = read_chrom_sizes(chrom_sizes)
     chrom_sizes = [(x, v) for x, v in chrom_sizes.items() if x in chr_list]
-    
+
     assert(d.shape[0] == len(regions))
 
-    write_bigwig(d.sum(1), 
-                        regions, 
-                        chrom_sizes, 
-                        output_prefix+".bw", 
-                        outstats_file=output_prefix_stats, 
-                        debug_chr=debug_chr, 
+    write_bigwig(d.sum(1),
+                        regions,
+                        chrom_sizes,
+                        output_prefix+".bw",
+                        outstats_file=output_prefix_stats,
+                        debug_chr=debug_chr,
                         use_tqdm=tqdm)
-    
+
 
 
 def html_to_pdf(input_html, output_pdf):

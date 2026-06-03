@@ -17,7 +17,7 @@ from . import dataset
 
 __all__ = [
     "data_utils",
-    "chrombpnet", 
+    "chrombpnet",
     "bpnet",
     "model_wrappers",
     "dataset",

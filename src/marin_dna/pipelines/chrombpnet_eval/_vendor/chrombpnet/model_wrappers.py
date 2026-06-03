@@ -33,26 +33,26 @@ sys.path.append(f"{arsenal_dir}/src/regulatory_lm/")
 
 def multinomial_nll(logits, true_counts):
 	"""Compute the multinomial negative log-likelihood in PyTorch.
-	
+
 	Args:
 	  true_counts: Tensor of observed counts (batch_size, num_classes) (integer counts)
 	  logits: Tensor of predicted logits (batch_size, num_classes)
-	
+
 	Returns:
 	  Mean negative log-likelihood across the batch.
 	"""
 	# Ensure true_counts is an integer tensor
 	true_counts = true_counts.to(torch.float)  # Keep as float to prevent conversion issues
-	
+
 	# Compute total counts per example (should already be integer-like)
 	counts_per_example = true_counts.sum(dim=-1, keepdim=True)
-	
+
 	# Convert logits to log probabilities (Softmax + Log)
 	log_probs = F.log_softmax(logits, dim=-1)
-	
+
 	# Compute log-probability of the observed counts
 	log_likelihood = (true_counts * log_probs).sum(dim=-1)
-	
+
 	# Compute multinomial coefficient (log factorial term)
 	log_factorial_counts = torch.lgamma(counts_per_example + 1) - torch.lgamma(true_counts + 1).sum(dim=-1)
 
@@ -96,10 +96,10 @@ def pearson_corr(x: torch.Tensor, y: torch.Tensor, dim: int = -1) -> torch.Tenso
 
 def _to_numpy(tensor: torch.Tensor) -> np.ndarray:
 	"""Convert tensor to numpy array.
-	
+
 	Args:
 		tensor: Input tensor
-		
+
 	Returns:
 		Numpy array
 	"""
@@ -108,13 +108,13 @@ def _to_numpy(tensor: torch.Tensor) -> np.ndarray:
 
 def adjust_bias_model_logcounts(bias_model, dataloader, verbose=False, device=1):
 	"""
-	Given a bias model, sequences and associated counts, the function adds a 
+	Given a bias model, sequences and associated counts, the function adds a
 	constant to the output of the bias_model's logcounts that minimises squared
-	error between predicted logcounts and observed logcounts (infered from 
-	cts). This simply reduces to adding the average difference between observed 
+	error between predicted logcounts and observed logcounts (infered from
+	cts). This simply reduces to adding the average difference between observed
 	and predicted to the "bias" (constant additive term) of the Dense layer.
 	Typically the seqs and counts would correspond to training nonpeak regions.
-	ASSUMES model_bias's last layer is a dense layer that outputs logcounts. 
+	ASSUMES model_bias's last layer is a dense layer that outputs logcounts.
 	This would change if you change the model.
 	"""
 
@@ -123,7 +123,7 @@ def adjust_bias_model_logcounts(bias_model, dataloader, verbose=False, device=1)
 	with torch.no_grad():
 		output = L.Trainer(logger=False, devices=device).predict(bias_model, dataloader)
 		parsed_output = {key: np.concatenate([batch[key] for batch in output]) for key in output[0]}
-		try:    
+		try:
 			delta = parsed_output['true_count'].mean(-1) - parsed_output['pred_count'].mean(-1)
 		except:
 			import pdb; pdb.set_trace()
@@ -131,7 +131,7 @@ def adjust_bias_model_logcounts(bias_model, dataloader, verbose=False, device=1)
 		# delta = torch.cat([predictions['delta'] for predictions in predictions], dim=0)
 
 		bias_model.linear.bias += torch.Tensor(delta).to(bias_model.linear.bias.device)
-		
+
 	if verbose:
 		print('### delta', delta.mean(), flush=True)
 	return bias_model
@@ -165,7 +165,7 @@ def init_chrombpnet_wo_bias(chrombpnet_wo_bias, freeze=True):
 	elif chrombpnet_wo_bias.endswith('.ckpt'):
 		# model = BPNet.load_from_checkpoint(chrombpnet_wo_bias)
 		model = load_bpnet_checkpoint(chrombpnet_wo_bias)
-	
+
 	if freeze:
 		for param in model.parameters():
 			param.requires_grad = False
@@ -175,7 +175,7 @@ def init_chrombpnet_wo_bias(chrombpnet_wo_bias, freeze=True):
 def init_arsenal_wo_bias(model_path, freeze=True):
 	print(f"Loading arsenal_wo_bias model from {model_path}")
 	model = ArsenalChromBPNetNoBiasWrapper.load_from_checkpoint(model_path)
-	
+
 	if freeze:
 		for param in model.parameters():
 			param.requires_grad = False
@@ -235,7 +235,7 @@ class _ProfileLogitScaling(torch.nn.Module):
 		y_softmax = self.softmax(logits)
 		y = logits * y_softmax
 		return y
-		#print("a") 
+		#print("a")
 		#y_lsm = torch.nn.functional.log_softmax(logits, dim=-1)
 		#return torch.sign(logits) * torch.exp(torch.log(abs(logits)) + y_lsm)
 
@@ -255,7 +255,7 @@ class _Log(torch.nn.Module):
 	def forward(self, X):
 		return torch.log(X)
 
-	
+
 class ProfileWrapper(torch.nn.Module):
 	"""A wrapper class that returns transformed profiles.
 
@@ -309,10 +309,10 @@ class CountWrapper(torch.nn.Module):
 
 class ModelWrapper(LightningModule):
 	"""A generic wrapper for different model architectures to be used with PyTorch Lightning.
-	
+
 	This wrapper provides a flexible interface for training, validation, and testing different model architectures
 	while maintaining consistent logging and optimization strategies.
-	
+
 	Attributes:
 		model (nn.Module): The underlying model architecture
 		learning_rate (float): Learning rate for optimization
@@ -323,14 +323,14 @@ class ModelWrapper(LightningModule):
 		beta (float): Weight for profile loss
 		metrics (Dict[str, List[float]]): Dictionary to store metrics during training
 	"""
-	
+
 	def __init__(
 		self,
 		args,
 		**kwargs
 	):
 		"""Initialize the model wrapper.
-		
+
 		Args:
 			model: The underlying model architecture
 			learning_rate: Learning rate for optimization
@@ -342,12 +342,12 @@ class ModelWrapper(LightningModule):
 			**kwargs: Additional arguments to be passed to the model
 		"""
 
-		
+
 		super().__init__()
 		self.alpha = args.alpha
 		self.beta = args.beta
 		self.verbose = args.verbose
-		
+
 		self.metrics = {
 			'train': {'preds': [], 'targets': []},
 			'val': {'preds': [], 'targets': []},
@@ -360,14 +360,14 @@ class ModelWrapper(LightningModule):
 
 		# Save hyperparameters
 		self.save_hyperparameters(ignore=['model'])
-	
+
 	def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
 		"""Forward pass through the model.
-		
+
 		Args:
 			x: Input tensor
 			**kwargs: Additional arguments to be passed to the model's forward method
-			
+
 		Returns:
 			Model output
 		"""
@@ -375,7 +375,7 @@ class ModelWrapper(LightningModule):
 
 	def _step(self, batch, batch_idx, mode='train'):
 		raise NotImplementedError("Subclasses must implement this method")
-	
+
 	def init_bias(self, bias, dataloader=None, verbose=False, device=1):
 		# print(f"Loading bias model from {bias}")
 		return init_bias(bias, dataloader=dataloader, verbose=verbose, device=device)
@@ -391,108 +391,108 @@ class ModelWrapper(LightningModule):
 			outs.append(out.detach().cpu())
 		return torch.cat(outs, dim=0)
 
-	
+
 	def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
 		"""Training step.
-		
+
 		Args:
 			batch: Dictionary containing batch data
 			batch_idx: Index of the current batch
-			
+
 		Returns:
 			Loss value
 		"""
 		return self._step(batch, batch_idx, 'train')
-	
+
 	def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
 		"""Validation step.
-		
+
 		Args:
 			batch: Dictionary containing batch data
 			batch_idx: Index of the current batch
-			
+
 		Returns:
 			Loss value
 		"""
 		return self._step(batch, batch_idx, 'val')
-	
+
 	def test_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
 		"""Test step.
-		
+
 		Args:
 			batch: Dictionary containing batch data
 			batch_idx: Index of the current batch
-			
+
 		Returns:
 			Loss value
 		"""
 		return self._step(batch, batch_idx, 'test')
-	
+
 	def predict_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, np.ndarray]:
 		"""Prediction step.
-		
+
 		Args:
 			batch: Dictionary containing batch data
 			batch_idx: Index of the current batch
-			
+
 		Returns:
 			Dictionary containing predictions and true values
 		"""
 		return self._step(batch, batch_idx, 'predict')
-	
+
 	def _epoch_end(self, mode: str) -> None:
 		"""Handle end of epoch operations.
-		
+
 		Args:
 			mode: Mode of operation ('train', 'val', or 'test')
 		"""
 		# Concatenate predictions and targets
 		all_preds = torch.cat(self.metrics[mode]['preds']).reshape(-1)
 		all_targets = torch.cat(self.metrics[mode]['targets']).reshape(-1)
-		
+
 		# Calculate and log correlation
 		pr = self._pearson_corr(all_preds, all_targets)
 		self.log(f"{mode}_count_pearson", pr, prog_bar=True, logger=True, sync_dist=True)
-		
+
 		# Reset metrics storage
 		self.metrics[mode]['preds'] = []
 		self.metrics[mode]['targets'] = []
-	
+
 	def on_train_epoch_end(self) -> None:
 		"""Handle end of training epoch."""
 		self._epoch_end('train')
-	
+
 	def on_validation_epoch_end(self) -> None:
 		"""Handle end of validation epoch."""
 		self._epoch_end('val')
-	
+
 	def on_test_epoch_end(self) -> None:
 		"""Handle end of test epoch."""
 		self._epoch_end('test')
-	
+
 	def configure_optimizers(self) -> Union[torch.optim.Optimizer, Dict[str, Any]]:
 		raise NotImplementedError("Subclasses must implement this method")
-	
+
 	@staticmethod
 	def _to_numpy(tensor: torch.Tensor) -> np.ndarray:
 		"""Convert tensor to numpy array.
-		
+
 		Args:
 			tensor: Input tensor
-			
+
 		Returns:
 			Numpy array
 		"""
 		return tensor.detach().cpu().numpy()
-	
+
 	@staticmethod
 	def _pearson_corr(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 		"""Calculate Pearson correlation coefficient.
-		
+
 		Args:
 			x: First tensor
 			y: Second tensor
-			
+
 		Returns:
 			Pearson correlation coefficient
 		"""
@@ -503,26 +503,26 @@ class ModelWrapper(LightningModule):
 			(x_centered ** 2).sum(dim=-1) * (y_centered ** 2).sum(dim=-1)
 		)
 		return numerator / denominator
-	
+
 	@staticmethod
 	def _multinomial_nll(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
 		"""Calculate multinomial negative log likelihood loss.
-		
+
 		Args:
 			pred: Predicted probabilities
 			target: Target probabilities
-			
+
 		Returns:
 			Loss value
 		"""
-		return -torch.sum(target * torch.log(pred + 1e-10), dim=-1).mean() 
-	
+		return -torch.sum(target * torch.log(pred + 1e-10), dim=-1).mean()
+
 
 
 
 class BPNetWrapper(ModelWrapper):
 	"""Wrapper for BPNet model with specific configurations and loss functions.
-	
+
 	This wrapper extends the base ModelWrapper to handle BPNet-specific features
 	such as profile and count predictions, and appropriate loss calculations.
 	"""
@@ -530,14 +530,14 @@ class BPNetWrapper(ModelWrapper):
 		super().__init__(args)
 		self.model = BPNet(
 				out_dim=args.out_dim,
-				n_filters=args.n_filters, 
-				n_layers=args.n_layers, 
+				n_filters=args.n_filters,
+				n_layers=args.n_layers,
 				conv1_kernel_size=args.conv1_kernel_size,
 				profile_kernel_size=args.profile_kernel_size,
-				n_outputs=args.n_outputs, 
-				n_control_tracks=args.n_control_tracks, 
-				profile_output_bias=args.profile_output_bias, 
-				count_output_bias=args.count_output_bias, 
+				n_outputs=args.n_outputs,
+				n_control_tracks=args.n_control_tracks,
+				profile_output_bias=args.profile_output_bias,
+				count_output_bias=args.count_output_bias,
 			)
 
 	def _step(self, batch, batch_idx, mode='train'):
@@ -568,7 +568,7 @@ class BPNetWrapper(ModelWrapper):
 		loss = self.beta * profile_loss + self.alpha * count_loss
 
 		dict_show = {
-			f'{mode}_loss': loss, 
+			f'{mode}_loss': loss,
 			f'{mode}_profile_loss': profile_loss,
 			f'{mode}_count_loss': count_loss,
 		}
@@ -576,7 +576,7 @@ class BPNetWrapper(ModelWrapper):
 		self.log_dict(dict_show, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
 
 		return loss
-		
+
 	def configure_optimizers(self):
 		optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, eps=1e-7)
 		# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.4, patience=3, min_lr=1e-8)
@@ -602,17 +602,17 @@ class BPNetWrapper(ModelWrapper):
 
 class ChromBPNetWrapper(BPNetWrapper):
 	"""Wrapper for ChromBPNet model with specific configurations and loss functions.
-	
+
 	This wrapper extends the base ModelWrapper to handle ChromBPNet-specific features
 	such as chromatin accessibility predictions and appropriate loss calculations.
 	"""
-	
+
 	def __init__(
 		self,
 		args,
 	):
 		"""Initialize ChromBPNet wrapper.
-		
+
 		Args:
 			model: ChromBPNet model instance
 			alpha: Weight for count loss
@@ -627,17 +627,17 @@ class ChromBPNetWrapper(BPNetWrapper):
 
 class ArsenalChromBPNetWrapper(BPNetWrapper):
 	"""Wrapper for ArsenalChromBPNet model with specific configurations and loss functions.
-	
+
 	This wrapper extends the base ModelWrapper to handle ChromBPNet-specific features
 	such as chromatin accessibility predictions and appropriate loss calculations.
 	"""
-	
+
 	def __init__(
 		self,
 		args,
 	):
 		"""Initialize ChromBPNet wrapper.
-		
+
 		Args:
 			model: ChromBPNet model instance
 			alpha: Weight for count loss
@@ -690,7 +690,7 @@ class ArsenalChromBPNetWrapper(BPNetWrapper):
 		loss = self.beta * profile_loss + self.alpha * count_loss
 
 		dict_show = {
-			f'{mode}_loss': loss, 
+			f'{mode}_loss': loss,
 			f'{mode}_profile_loss': profile_loss,
 			f'{mode}_count_loss': count_loss,
 		}
@@ -701,11 +701,11 @@ class ArsenalChromBPNetWrapper(BPNetWrapper):
 
 class ArsenalChromBPNetNoBiasWrapper(ArsenalChromBPNetWrapper):
 	"""Wrapper for ArsenalChromBPNet model with specific configurations and loss functions.
-	
+
 	This wrapper extends the base ModelWrapper to handle ChromBPNet-specific features
 	such as chromatin accessibility predictions and appropriate loss calculations.
 	"""
-	
+
 	def __init__(
 		self,
 		args,
@@ -723,15 +723,15 @@ def create_model_wrapper(
 	**kwargs
 ) -> ModelWrapper:
 	"""Factory function to create appropriate model wrapper.
-	
+
 	Args:
 		model_type: Type of model ('bpnet', 'chrombpnet')
 		config: Model configuration
 		**kwargs: Additional arguments to be passed to the wrapper
-		
+
 	Returns:
 		Appropriate model wrapper instance
-		
+
 	Raises:
 		ValueError: If model_type is not recognized
 	"""
@@ -754,7 +754,7 @@ def create_model_wrapper(
 		return model_wrapper
 
 	else:
-		raise ValueError(f"Unknown model type: {model_type}") 
+		raise ValueError(f"Unknown model type: {model_type}")
 
 
 def load_pretrained_model(args, checkpoint):
@@ -770,7 +770,7 @@ def load_pretrained_model(args, checkpoint):
 			else:
 				print(f"No bias model found")
 			return model_wrapper
-				
+
 		elif checkpoint.endswith('.pt'):
 			model_wrapper = wrapper_class(args)
 			model_wrapper.model.model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
@@ -779,7 +779,7 @@ def load_pretrained_model(args, checkpoint):
 			else:
 				print(f"No bias model found")
 			return model_wrapper
-		elif checkpoint.endswith('.h5'):  
+		elif checkpoint.endswith('.h5'):
 			model_wrapper = wrapper_class(args)
 			# For Keras H5 files, load using the from_keras method
 			print(f"Loading chrombpnet_wo_bias model from {checkpoint}")

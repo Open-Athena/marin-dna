@@ -51,12 +51,12 @@ class BaseConfig:
             (argument name, set with argument types, argument default value).
         """
         return get_init_arguments_and_types(cls)
-    
+
 
 
 class ChromBPNetConfig(BaseConfig):
     r"""
-    
+
     ```"""
 
     model_type = "chrombpnet"
@@ -65,14 +65,14 @@ class ChromBPNetConfig(BaseConfig):
         self,
 
         out_dim:int=1000,
-        n_filters:int=512, 
-        n_layers:int=8, 
+        n_filters:int=512,
+        n_layers:int=8,
         conv1_kernel_size:int=21,
         profile_kernel_size:int=75,
-        n_outputs:int=1, 
-        n_control_tracks:int=0, 
-        profile_output_bias:int=True, 
-        count_output_bias:int=True, 
+        n_outputs:int=1,
+        n_control_tracks:int=0,
+        profile_output_bias:int=True,
+        count_output_bias:int=True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -91,7 +91,7 @@ class ChromBPNetConfig(BaseConfig):
 
 class ArsenalChromBPNetConfig(BaseConfig):
     r"""
-    
+
     ```"""
 
     model_type = "arsenal-chrombpnet"
@@ -100,14 +100,14 @@ class ArsenalChromBPNetConfig(BaseConfig):
         self,
         input_len:int=2114,
         out_dim:int=1000,
-        n_filters:int=512, 
-        n_layers:int=8, 
+        n_filters:int=512,
+        n_layers:int=8,
         conv1_kernel_size:int=21,
         profile_kernel_size:int=75,
-        n_outputs:int=1, 
-        n_control_tracks:int=0, 
-        profile_output_bias:int=True, 
-        count_output_bias:int=True, 
+        n_outputs:int=1,
+        n_control_tracks:int=0,
+        profile_output_bias:int=True,
+        count_output_bias:int=True,
         finetune_arsenal: bool = False,
         arsenal_output_type: str = "embedding",
         input_embedding_dim: int = 512,

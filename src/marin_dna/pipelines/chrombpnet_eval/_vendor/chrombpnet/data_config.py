@@ -18,17 +18,17 @@ from .genome import hg38, hg38_datasets, mm10, mm10_datasets
 
 class DataConfig:
 	"""Base configuration class for data handling.
-	
+
 	This class defines the common parameters used across different data types
 	and provides validation for these parameters.
 	"""
-	
+
 	def __init__(
 			self,
 			data_dir: str = None,
 			peaks: str = None, #'{}/peaks.bed',
-			negatives: str = None, #'{}/negatives.bed', 
-			bigwig: str = None, #'{}/unstranded.bw', 
+			negatives: str = None, #'{}/negatives.bed',
+			bigwig: str = None, #'{}/unstranded.bw',
 			# background: str = None,
 			negative_sampling_ratio: float = 0.1,
 			saved_data: str = None,
@@ -80,7 +80,7 @@ class DataConfig:
 			_datasets = hg38_datasets() if genome == 'hg38' else mm10_datasets() if genome == 'mm10' else None
 			self.data_dir = data_dir
 			self.peaks = peaks if peaks is not None else f'{data_dir}/peaks.bed'
-			self.negatives = negatives if negatives is not None else f'{data_dir}/negatives.bed' if data_dir is not None else None 
+			self.negatives = negatives if negatives is not None else f'{data_dir}/negatives.bed' if data_dir is not None else None
 			self.bigwig = bigwig if bigwig is not None else f'{data_dir}/unstranded.bw'
 			# self.background = background if background is not None else f'{data_dir}/background.bw'
 			self.negative_sampling_ratio = negative_sampling_ratio
@@ -98,7 +98,7 @@ class DataConfig:
 			self.test_chroms = test_chroms
 			self.exclude_chroms = exclude_chroms
 			self.fold = fold
-			self.batch_size = batch_size    
+			self.batch_size = batch_size
 			self.num_workers = num_workers
 			self.debug = debug
 
@@ -109,14 +109,14 @@ class DataConfig:
 			self.validation_chroms = splits_dict['valid'] if validation_chroms is None else validation_chroms
 			self.test_chroms = splits_dict['test'] if test_chroms is None else test_chroms
 			print(self.test_chroms)
-	
+
 	def __post_init__(self):
 		"""Validate configuration parameters after initialization."""
 		self._validate_paths()
 		self._validate_windows()
 		self._validate_chromosomes()
 		self._validate_data_type()
-	
+
 	def _validate_paths(self):
 		"""Validate that all required files exist."""
 		required_files = {
@@ -124,11 +124,11 @@ class DataConfig:
 			'BigWig': self.bigwig,
 			'Peaks': self.peaks
 		}
-		
+
 		for name, path in required_files.items():
 			if not os.path.exists(path):
 				raise FileNotFoundError(f"{name} file not found: {path}")
-	
+
 	def _validate_windows(self):
 		"""Validate window size parameters."""
 		if self.in_window <= 0:
@@ -137,23 +137,23 @@ class DataConfig:
 			raise ValueError("Output window size must be positive")
 		if self.in_window < self.out_window:
 			raise ValueError("Input window must be larger than output window")
-	
+
 	def _validate_chromosomes(self):
 		"""Validate chromosome configuration."""
 		all_chroms = set(self.training_chroms + self.validation_chroms + self.test_chroms)
 		excluded = set(self.exclude_chroms)
-		
+
 		if not all_chroms:
 			raise ValueError("No chromosomes specified for training, validation, or testing")
-		
+
 		if excluded.intersection(all_chroms) != excluded:
 			raise ValueError("Some excluded chromosomes are not in the training/validation/test sets")
-	
+
 	def _validate_data_type(self):
 		"""Validate data type parameter."""
 		if self.data_type not in ['profile', 'longrange']:
 			raise ValueError("Data type must be either 'profile' or 'longrange'")
-		
+
 	@classmethod
 	def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any):
 		"""Extends existing argparse by default `LightningDataModule` attributes.
@@ -198,6 +198,4 @@ class DataConfig:
 			(argument name, set with argument types, argument default value).
 		"""
 		return get_init_arguments_and_types(cls)
-	
-
 

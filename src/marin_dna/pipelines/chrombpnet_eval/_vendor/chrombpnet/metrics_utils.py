@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib import cm
-from matplotlib.colors import Normalize 
+from matplotlib.colors import Normalize
 from scipy.interpolate import interpn
 from scipy.stats import multinomial
 import math
@@ -20,27 +20,27 @@ matplotlib.rc('font', **font)
 
 def _fix_sum_to_one(probs):
     """
-      Fix probability arrays whose sum is fractinally above or 
+      Fix probability arrays whose sum is fractinally above or
       below 1.0
-      
+
       Args:
           probs (numpy.ndarray): An array whose sum is almost equal
               to 1.0
-              
+
       Returns:
           np.ndarray: array that sums to 1
     """
-    
+
     _probs = np.copy(probs)
-    
-    if np.sum(_probs) > 1.0:        
-        _probs[np.argmax(_probs)] -= np.sum(_probs) - 1.0    
-    
+
+    if np.sum(_probs) > 1.0:
+        _probs[np.argmax(_probs)] -= np.sum(_probs) - 1.0
+
     if np.sum(_probs) < 1.0:
         _probs[np.argmin(_probs)] += 1.0 - np.sum(_probs)
 
     return _probs
-    
+
 
 def density_scatter(x, y, xlab, ylab, ax = None, sort = True, bins = 20, fontsize=20):
     """
@@ -80,66 +80,66 @@ def density_scatter(x, y, xlab, ylab, ax = None, sort = True, bins = 20, fontsiz
     cbar.ax.set_ylabel('Density', rotation=0, y=1.2, labelpad=-15, fontsize=16)
 
     return ax
- 
+
 #https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/metrics.py#L18
 # replacing TracebackExceptions with assertions
 def mnll(true_counts, logits=None, probs=None):
     """
         Compute the multinomial negative log-likelihood between true
         counts and predicted values of a BPNet-like profile model
-        
+
         One of `logits` or `probs` must be given. If both are
         given `logits` takes preference.
         Args:
             true_counts (numpy.array): observed counts values
-            
+
             logits (numpy.array): predicted logits values
-            
+
             probs (numpy.array): predicted values as probabilities
-          
+
         Returns:
             float: cross entropy
-    
+
     """
 
-    dist = None 
-    
+    dist = None
+
     if logits is not None:
-        
+
         # check for length mismatch
         assert (len(logits) == len(true_counts))
-    
+
         # convert logits to softmax probabilities
         probs = logits - logsumexp(logits)
         probs = np.exp(probs)
-        
-    elif probs is not None:      
-        
+
+    elif probs is not None:
+
         # check for length mistmatch
         assert(len(probs) == len(true_counts))
-    
+
         # check if probs sums to 1
         # why is this nans sometimes
         assert( abs(1.0 - np.sum(probs)) < 1e-1)
-         
+
     else:
-        
+
         # both 'probs' and 'logits' are None
          print(
             "At least one of probs or logits must be provided. "
             "Both are None.")
-  
+
     # compute the nmultinomial distribution
     mnom = multinomial(np.sum(true_counts), probs)
     return -(mnom.logpmf(true_counts) / len(true_counts))
-    
+
 #https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/metrics.py#L129
 def get_min_max_normalized_value(val, minimum, maximum):
     ret_val = (val - maximum) / (minimum - maximum)
 
     if ret_val < 0:
         return 0
-    
+
     if ret_val > 1:
         return 1
     return ret_val
@@ -148,23 +148,23 @@ def get_min_max_normalized_value(val, minimum, maximum):
 def mnll_min_max_bounds(profile):
     """
         Min Max bounds for the mnll metric
-        
+
         Args:
-            profile (numpy.ndarray): true profile 
+            profile (numpy.ndarray): true profile
         Returns:
             tuple: (min, max) bounds values
     """
-    
+
     # uniform distribution profile
     uniform_profile = np.ones(len(profile)) * (1.0 / len(profile))
 
     # profile as probabilities
     profile = profile.astype(np.float64)
-    
+
     # profile as probabilities
     profile_prob = profile / np.sum(profile)
-    
-    # the scipy.stats.multinomial function is very sensitive to 
+
+    # the scipy.stats.multinomial function is very sensitive to
     # profile_prob summing to exactly 1.0, if not you get NaN as the
     # resuls. In majority of the cases we can fix that problem by
     # adding or substracting the difference (but unfortunately it
@@ -175,7 +175,7 @@ def mnll_min_max_bounds(profile):
 
     # mnll of profile with itself
     min_mnll = mnll(profile, probs=profile_prob)
-    
+
     # if we still find a NaN, even after the above fix, set it to zero
     if math.isnan(min_mnll):
         min_mnll = 0.0
@@ -192,14 +192,14 @@ def mnll_min_max_bounds(profile):
 def jsd_min_max_bounds(profile):
     """
         Min Max bounds for the jsd metric
-        
+
         Args:
-            profile (numpy.ndarray): true profile 
-            
+            profile (numpy.ndarray): true profile
+
         Returns:
             tuple: (min, max) bounds values
     """
-    
+
     # uniform distribution profile
     uniform_profile = np.ones(len(profile)) * (1.0 / len(profile))
 

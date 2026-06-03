@@ -1,6 +1,6 @@
 # Author: Lei Xiong <jsxlei@gmail.com>
 
-import numpy as np 
+import numpy as np
 import argparse
 from scipy.stats import spearmanr, pearsonr
 from scipy.spatial.distance import jensenshannon
@@ -8,11 +8,11 @@ import matplotlib
 # matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 # from matplotlib import cm
-# from matplotlib.colors import Normalize 
+# from matplotlib.colors import Normalize
 from scipy.interpolate import interpn
-from .metrics_utils import * 
+from .metrics_utils import *
 from .data_utils import write_bigwig, read_chrom_sizes, expand_3col_to_10col
-from .genome import hg38_datasets   
+from .genome import hg38_datasets
 
 plt.rcParams["figure.figsize"]=10,5
 font = {'weight' : 'bold',
@@ -144,19 +144,19 @@ def compare_with_observed(regions, parsed_output, out_dir='./', tag='all_regions
     # #gs = bigwig_helper.read_chrom_sizes(chrom_sizes)
     # seqlen = 1000
     # regions_array = [[x[0], int(x[1])+int(x[9])-seqlen//2, int(x[1])+int(x[9])+seqlen//2, int(x[1])+int(x[9])] for x in np.array(regions.values)]
-    
+
     # # parse output
     # parsed_output = {key: np.concatenate([batch[key] for batch in output]) for key in output[0]}
 
     # data = softmax(parsed_output['pred_profile']) * (np.expand_dims(np.exp(parsed_output['pred_count']),axis=1))
 
     # bigwig_helper.write_bigwig(
-    #                     data, 
-    #                     regions_array, 
-    #                     gs, 
-    #                     os.path.join(out_dir, "pred.bw"), 
-    #                     outstats_file=None, 
-    #                     debug_chr=None, 
+    #                     data,
+    #                     regions_array,
+    #                     gs,
+    #                     os.path.join(out_dir, "pred.bw"),
+    #                     outstats_file=None,
+    #                     debug_chr=None,
     #                     use_tqdm=True)
 
     # save predictions into h5py file
@@ -183,9 +183,9 @@ def compare_with_observed(regions, parsed_output, out_dir='./', tag='all_regions
     mnll_pw, mnll_norm, jsd_pw, jsd_norm, jsd_rnd, jsd_rnd_norm, mnll_rnd, mnll_rnd_norm = profile_metrics(parsed_output['true_profile'], softmax(parsed_output['pred_profile']))
     plot_histogram(jsd_pw, jsd_rnd, os.path.join(out_dir, 'all_regions_jsd'), '')
     metrics_dictionary["profile_metrics"]["peaks_and_nonpeaks"] = {}
-    metrics_dictionary["profile_metrics"]["peaks_and_nonpeaks"]["median_jsd"] = np.nanmedian(jsd_pw)        
+    metrics_dictionary["profile_metrics"]["peaks_and_nonpeaks"]["median_jsd"] = np.nanmedian(jsd_pw)
     metrics_dictionary["profile_metrics"]["peaks_and_nonpeaks"]["median_norm_jsd"] = np.nanmedian(jsd_norm)
-    
+
 
     if 'is_peak' in regions.columns:
         peak_regions = regions[regions['is_peak']==1].copy()
@@ -202,7 +202,7 @@ def compare_with_observed(regions, parsed_output, out_dir='./', tag='all_regions
         mnll_pw, mnll_norm, jsd_pw, jsd_norm, jsd_rnd, jsd_rnd_norm, mnll_rnd, mnll_rnd_norm = profile_metrics(parsed_output['true_profile'][peak_index], softmax(parsed_output['pred_profile'])[peak_index])
         plot_histogram(jsd_pw, jsd_rnd, os.path.join(out_dir, 'peaks_jsd'), '')
         metrics_dictionary["profile_metrics"]["peaks"] = {}
-        metrics_dictionary["profile_metrics"]["peaks"]["median_jsd"] = np.nanmedian(jsd_pw)        
+        metrics_dictionary["profile_metrics"]["peaks"]["median_jsd"] = np.nanmedian(jsd_pw)
         metrics_dictionary["profile_metrics"]["peaks"]["median_norm_jsd"] = np.nanmedian(jsd_norm)
 
         nonpeak_regions = regions[regions['is_peak']==0].copy()
@@ -218,7 +218,7 @@ def compare_with_observed(regions, parsed_output, out_dir='./', tag='all_regions
         mnll_pw, mnll_norm, jsd_pw, jsd_norm, jsd_rnd, jsd_rnd_norm, mnll_rnd, mnll_rnd_norm = profile_metrics(parsed_output['true_profile'][nonpeak_index], softmax(parsed_output['pred_profile'])[nonpeak_index])
         plot_histogram(jsd_pw, jsd_rnd, os.path.join(out_dir, 'nonpeaks_jsd'), '')
         metrics_dictionary["profile_metrics"]["nonpeaks"] = {}
-        metrics_dictionary["profile_metrics"]["nonpeaks"]["median_jsd"] = np.nanmedian(jsd_pw)        
+        metrics_dictionary["profile_metrics"]["nonpeaks"]["median_jsd"] = np.nanmedian(jsd_pw)
         metrics_dictionary["profile_metrics"]["nonpeaks"]["median_norm_jsd"] = np.nanmedian(jsd_norm)
 
     print(json.dumps(metrics_dictionary, indent=4, default=lambda o: float(o)))
@@ -233,7 +233,7 @@ def counts_metrics(labels,preds,outf=None,title='',fontsize=20, xlab='Log Count 
     Get count metrics
     '''
     spearman_cor=spearmanr(labels,preds)[0]
-    pearson_cor=pearsonr(labels,preds)[0]  
+    pearson_cor=pearsonr(labels,preds)[0]
     mse=((labels - preds)**2).mean(axis=0)
 
     #print("spearman:"+str(spearman_cor))
@@ -241,7 +241,7 @@ def counts_metrics(labels,preds,outf=None,title='',fontsize=20, xlab='Log Count 
     #print("mse:"+str(mse))
 
     plt.rcParams["figure.figsize"]=8,8
-    # fig=plt.figure() 
+    # fig=plt.figure()
     ax = density_scatter(labels,
                     preds,
                     xlab=xlab,
@@ -255,7 +255,7 @@ def counts_metrics(labels,preds,outf=None,title='',fontsize=20, xlab='Log Count 
         plt.savefig(outf+'.counts_pearsonr.png',format='png',dpi=300)
     plt.show()
     plt.close()
-    
+
     return spearman_cor, pearson_cor, mse
 
 def profile_metrics(true_counts,pred_probs,pseudocount=0.001):
@@ -299,7 +299,7 @@ def profile_metrics(true_counts,pred_probs,pseudocount=0.001):
         #mnll_rnd.append(curr_rnd_mnll)
         # normalized mnll random
         #curr_rnd_mnll_norm = get_min_max_normalized_value(curr_rnd_mnll, min_mnll, max_mnll)
-        #mnll_rnd_norm.append(curr_rnd_mnll_norm)   
+        #mnll_rnd_norm.append(curr_rnd_mnll_norm)
 
         # jsd random
         curr_jsd_rnd=jensenshannon(true_counts[idx,:]/(pseudocount+np.nansum(true_counts[idx,:])),shuffled_labels_prob)
@@ -312,11 +312,11 @@ def profile_metrics(true_counts,pred_probs,pseudocount=0.001):
 
 def plot_histogram(region_jsd, shuffled_labels_jsd, output_prefix, title):
 
-    #generate histogram distributions 
+    #generate histogram distributions
     num_bins=100
     plt.rcParams["figure.figsize"]=8,8
-    
-    #plot mnnll histogram 
+
+    #plot mnnll histogram
     #plt.figure()
     #n,bins,patches=plt.hist(mnnll_vals,num_bins,facecolor='blue',alpha=0.5,label="Predicted vs Labels")
     #n1,bins1,patches1=plt.hist(shuffled_labels_mnll,num_bins,facecolor='black',alpha=0.5,label='Shuffled Labels vs Labels')
@@ -324,7 +324,7 @@ def plot_histogram(region_jsd, shuffled_labels_jsd, output_prefix, title):
     #plt.title("MNNLL: "+ tile)
     #plt.legend(loc='best')
     #plt.savefig(output_prefix+".mnnll.png",format='png',dpi=300)
-    
+
     #plot jsd histogram
     plt.figure()
     n,bins,patches=plt.hist(region_jsd,num_bins,facecolor='blue',alpha=0.5,label="Predicted vs Labels")

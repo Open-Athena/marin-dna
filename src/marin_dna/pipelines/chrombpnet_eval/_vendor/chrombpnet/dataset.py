@@ -23,17 +23,17 @@ from .data_utils import load_region_df, load_data, random_crop, crop_revcomp_aug
 
 class DataModule(L.LightningDataModule):
     """DataModule for loading and processing genomic data for training and evaluation.
-    
+
     This module handles the loading of genomic regions, their corresponding sequences,
     and various data augmentation techniques. It supports different data types:
     - Profile data: For single-region analysis
     - Long-range data: For analyzing interactions between regions
-    
+
     The module implements different sampling strategies for training, validation and testing:
     - Train: peaks + negative_sampling_ratio (0.1) of negatives, sampled each epoch
     - Val: peaks + negatives_sampling_ratio (1) of negatives, sampled once and fixed
     - Test: peaks + negatives, no sampling
-    
+
     Attributes:
         config: Configuration object containing data loading parameters
         dataset_class: The dataset class to use (ChromBPNetBatchGenerator or LongRangeDataset)
@@ -44,10 +44,10 @@ class DataModule(L.LightningDataModule):
         val_chroms: List of chromosomes used for validation
         test_chroms: List of chromosomes used for testing
     """
-    
+
     def __init__(self, config):
         """Initialize the DataModule.
-        
+
         Args:
             config: Configuration object containing data loading parameters
         """
@@ -68,13 +68,13 @@ class DataModule(L.LightningDataModule):
     def _load_regions(self):
         """Load peak and negative regions from files."""
         self.peaks = load_region_df(
-            self.config.peaks, 
+            self.config.peaks,
             chrom_sizes=self.config.chrom_sizes,
             in_window=self.config.in_window,
             shift=self.config.shift,
             is_peak=True
         )
-        
+
         if self.config.negatives is not None:
             self.negatives = load_region_df(
                 self.config.negatives,
@@ -118,7 +118,7 @@ class DataModule(L.LightningDataModule):
                 peak_regions=train_peaks,
                 nonpeak_regions=train_nonpeaks,
                 genome_fasta=config.fasta,
-                inputlen=config.in_window,                                        
+                inputlen=config.in_window,
                 outputlen=config.out_window,
                 max_jitter=config.shift,
                 negative_sampling_ratio=config.negative_sampling_ratio,
@@ -131,29 +131,29 @@ class DataModule(L.LightningDataModule):
                 peak_regions=val_peaks,
                 nonpeak_regions=val_nonpeaks,
                 genome_fasta=config.fasta,
-                inputlen=config.in_window,                                        
+                inputlen=config.in_window,
                 outputlen=config.out_window,
                 max_jitter=0,
                 negative_sampling_ratio=config.negative_sampling_ratio,
                 cts_bw_file=config.bigwig,
                 add_revcomp=False,
                 return_coords=False,
-                shuffle_at_epoch_start=False, 
+                shuffle_at_epoch_start=False,
             )
         elif stage == 'test':
             test_peaks, test_nonpeaks = split_peak_and_nonpeak(self.test_data)
             self.test_dataset = self.dataset_class(
                 peak_regions=test_peaks,
-                nonpeak_regions=test_nonpeaks,  
+                nonpeak_regions=test_nonpeaks,
                 genome_fasta=config.fasta,
-                inputlen=config.in_window,                                        
+                inputlen=config.in_window,
                 outputlen=config.out_window,
                 max_jitter=0,
                 negative_sampling_ratio=-1,
                 cts_bw_file=config.bigwig,
                 add_revcomp=False,
                 return_coords=False,
-                shuffle_at_epoch_start=False, 
+                shuffle_at_epoch_start=False,
             )
 
         print(f'Data setup complete in {time() - t0:.2f} seconds')
@@ -171,31 +171,31 @@ class DataModule(L.LightningDataModule):
 
     def train_dataloader(self):
         self.train_dataset.crop_revcomp_data()
-        
+
         return torch.utils.data.DataLoader(
-            self.train_dataset, 
+            self.train_dataset,
             batch_size=self.config.batch_size,
-            shuffle=True, 
+            shuffle=True,
             drop_last=False,
-            num_workers=self.config.num_workers, 
+            num_workers=self.config.num_workers,
             # pin_memory=True,
         )
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.val_dataset, 
-            batch_size=self.config.batch_size, 
-            shuffle=False, 
-            num_workers=self.config.num_workers, 
+            self.val_dataset,
+            batch_size=self.config.batch_size,
+            shuffle=False,
+            num_workers=self.config.num_workers,
             # pin_memory=True
         )
-    
+
     def test_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.test_dataset, 
-            batch_size=self.config.batch_size, 
-            shuffle=False, 
-            num_workers=self.config.num_workers, 
+            self.test_dataset,
+            batch_size=self.config.batch_size,
+            shuffle=False,
+            num_workers=self.config.num_workers,
         )
 
     def negative_dataloader(self):
@@ -214,12 +214,12 @@ class DataModule(L.LightningDataModule):
             shuffle_at_epoch_start=False,
         )
         return torch.utils.data.DataLoader(
-            self.negative_dataset, 
-            batch_size=self.config.batch_size, 
-            shuffle=False, 
-            num_workers=self.config.num_workers, 
+            self.negative_dataset,
+            batch_size=self.config.batch_size,
+            shuffle=False,
+            num_workers=self.config.num_workers,
         )
-    
+
     def chrom_dataloader(self, chrom='chr1', negative_sampling_ratio=-1):
 
         dataset = self.chrom_dataset(chrom=chrom, negative_sampling_ratio=negative_sampling_ratio)
@@ -236,7 +236,7 @@ class DataModule(L.LightningDataModule):
         if isinstance(chrom, str):
             if chrom in ['train', 'val', 'test']:
                 chrom = getattr(self, f'{chrom}_chroms')
-                
+
             elif chrom == 'all':
                 chrom = self.chroms
             else:
@@ -291,7 +291,7 @@ def concat_peaks_and_subsampled_negatives(peaks, negatives=None, negative_sampli
 
     if negatives is not None and len(negatives) > len(peaks) * negative_sampling_ratio and negative_sampling_ratio > 0:
         negatives = negatives.sample(n=int(negative_sampling_ratio * len(peaks)), replace=False)
-        
+
         data = pd.concat([peaks, negatives], ignore_index=True)
     else:
         data = peaks
@@ -299,11 +299,11 @@ def concat_peaks_and_subsampled_negatives(peaks, negatives=None, negative_sampli
 
 
 def crop_revcomp_data(
-    peak_seqs, peak_cts, peak_coords, 
-    nonpeak_seqs=None, nonpeak_cts=None, nonpeak_coords=None, 
+    peak_seqs, peak_cts, peak_coords,
+    nonpeak_seqs=None, nonpeak_cts=None, nonpeak_coords=None,
     inputlen=2114, outputlen=1000, add_revcomp=False, negative_sampling_ratio=0.1, shuffle=False):
     """Apply random cropping and reverse complement augmentation to the data.
-        
+
         This method:
         1. Randomly crops peak data to inputlen and outputlen
         2. Samples negative examples according to negative_sampling_ratio
@@ -315,7 +315,7 @@ def crop_revcomp_data(
         cropped_peaks, cropped_cnts, cropped_coords = random_crop(
             peak_seqs, peak_cts, inputlen, outputlen, peak_coords
         )
-        
+
         # Sample negative examples
         if negative_sampling_ratio > 0:
             sampled_nonpeak_seqs, sampled_nonpeak_cts, sampled_nonpeak_coords = subsample_nonpeak_data(
@@ -360,7 +360,7 @@ def crop_revcomp_data(
 def debug_subsample(peak_regions, chrom=None):
     if peak_regions is None:
         return None
-    
+
     if chrom is None:
         chrom = peak_regions['chr'].unique()[0]
 
@@ -371,10 +371,10 @@ def debug_subsample(peak_regions, chrom=None):
 
 class ChromBPNetDataset(torch.utils.data.Dataset):
     """Generator for genomic sequence data with random cropping and reverse complement augmentation.
-    
+
     This generator randomly crops (=jitter) and applies reverse complement augmentation to training examples
     for every epoch. It handles both peak and non-peak regions, with configurable sampling ratios.
-    
+
     Attributes:
         peak_seqs: Array of peak sequences
         nonpeak_seqs: Array of non-peak sequences
@@ -390,25 +390,25 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
         return_coords: Whether to return coordinates
         shuffle_at_epoch_start: Whether to shuffle at epoch start
     """
-    
+
     def __init__(
-            self, 
-            peak_regions, 
-            nonpeak_regions, 
-            genome_fasta, 
-            inputlen=2114, 
-            outputlen=1000, 
-            max_jitter=0, 
-            negative_sampling_ratio=0.1, 
-            cts_bw_file=None, 
-            add_revcomp=False, 
-            return_coords=False,    
-            shuffle_at_epoch_start=False, 
+            self,
+            peak_regions,
+            nonpeak_regions,
+            genome_fasta,
+            inputlen=2114,
+            outputlen=1000,
+            max_jitter=0,
+            negative_sampling_ratio=0.1,
+            cts_bw_file=None,
+            add_revcomp=False,
+            return_coords=False,
+            shuffle_at_epoch_start=False,
             debug=False,
             **kwargs
     ):
         """Initialize the generator.
-        
+
         Args:
             peak_regions: DataFrame containing peak regions
             nonpeak_regions: DataFrame containing non-peak regions
@@ -428,7 +428,7 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
             peak_regions = debug_subsample(peak_regions)
             nonpeak_regions = debug_subsample(nonpeak_regions)
 
- 
+
         # Load data
         peak_seqs, peak_cts, peak_coords, nonpeak_seqs, nonpeak_cts, nonpeak_coords = load_data(
             peak_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen, outputlen, max_jitter
@@ -463,7 +463,7 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
 
     def crop_revcomp_data(self):
         """Apply random cropping and reverse complement augmentation to the data.
-        
+
         This method:
         1. Randomly crops peak data to inputlen and outputlen
         2. Samples negative examples according to negative_sampling_ratio
@@ -483,10 +483,10 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         """Get a sample from the dataset.
-        
+
         Args:
             idx: Index of the sample to get
-            
+
         Returns:
             Dictionary containing:
                 - onehot_seq: One-hot encoded sequence
@@ -496,4 +496,3 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
             'onehot_seq': self.cur_seqs[idx].astype(np.float32).transpose(),
             'profile': self.cur_cts[idx].astype(np.float32),
         }
-

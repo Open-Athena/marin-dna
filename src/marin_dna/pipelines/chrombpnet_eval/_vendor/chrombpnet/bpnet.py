@@ -10,18 +10,18 @@ class BPNet(torch.nn.Module):
     """A basic BPNet model with stranded profile and total count prediction.
 
     This is a reference implementation for BPNet. The model takes in
-    one-hot encoded sequence, runs it through: 
+    one-hot encoded sequence, runs it through:
 
-    (1) a single wide convolution operation 
+    (1) a single wide convolution operation
 
-    THEN 
+    THEN
 
     (2) a user-defined number of dilated residual convolutions
 
     THEN
 
-    (3a) profile predictions done using a very wide convolution layer 
-    that also takes in stranded control tracks 
+    (3a) profile predictions done using a very wide convolution layer
+    that also takes in stranded control tracks
 
     AND
 
@@ -35,7 +35,7 @@ class BPNet(torch.nn.Module):
 
     (1) The model concatenates stranded control tracks for profile
     prediction as opposed to adding the two strands together and also then
-    smoothing that track 
+    smoothing that track
 
     (2) The control input for the count prediction task is the log1p of
     the strand-wise sum of the control tracks, as opposed to the raw
@@ -44,7 +44,7 @@ class BPNet(torch.nn.Module):
     (3) A single log softmax is applied across both strands such that
     the logsumexp of both strands together is 0. Put another way, the
     two strands are concatenated together, a log softmax is applied,
-    and the MNLL loss is calculated on the concatenation. 
+    and the MNLL loss is calculated on the concatenation.
 
     (4) The count prediction task is predicting the total counts across
     both strands. The counts are then distributed across strands according
@@ -65,7 +65,7 @@ class BPNet(torch.nn.Module):
         Default is 8.
 
     n_outputs: int, optional
-        The number of profile outputs from the model. Generally either 1 or 2 
+        The number of profile outputs from the model. Generally either 1 or 2
         depending on if the data is unstranded or stranded. Default is 2.
 
     n_control_tracks: int, optional
@@ -101,18 +101,18 @@ class BPNet(torch.nn.Module):
     """
 
     def __init__(
-        self, 
+        self,
         out_dim=1000,
-        n_filters=64, 
-        n_layers=8, 
+        n_filters=64,
+        n_layers=8,
         rconvs_kernel_size=3,
         conv1_kernel_size=21,
         profile_kernel_size=75,
-        n_outputs=1, 
-        n_control_tracks=0, 
-        profile_output_bias=True, 
-        count_output_bias=True, 
-        name=None, 
+        n_outputs=1,
+        n_control_tracks=0,
+        profile_output_bias=True,
+        count_output_bias=True,
+        name=None,
         verbose=False,
         custom_dilations=False
     ):
@@ -135,14 +135,14 @@ class BPNet(torch.nn.Module):
             dilation_sched = [2,8,32,64,128]
             # dilation_sched = [8,16,32,64,128,256]
             self.rconvs = torch.nn.ModuleList([
-                torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid', 
+                torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
                     dilation=dilation_sched[i-1]) for i in range(1, self.n_layers+1)
             ])
 
         # residual dilated convolutions
         else:
             self.rconvs = torch.nn.ModuleList([
-                torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid', 
+                torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
                     dilation=2**i) for i in range(1, self.n_layers+1)
             ])
 
@@ -151,13 +151,13 @@ class BPNet(torch.nn.Module):
 		])
 
         # profile prediction
-        self.fconv = torch.nn.Conv1d(n_filters+n_control_tracks, n_outputs, 
+        self.fconv = torch.nn.Conv1d(n_filters+n_control_tracks, n_outputs,
             kernel_size=profile_kernel_size, padding='valid', bias=profile_output_bias)
-        
+
         # count prediction
         n_count_control = 1 if n_control_tracks > 0 else 0
         self.global_avg_pool = torch.nn.AdaptiveAvgPool1d(1)
-        self.linear = torch.nn.Linear(n_filters+n_count_control, 1, 
+        self.linear = torch.nn.Linear(n_filters+n_count_control, 1,
             bias=count_output_bias)
 
 
@@ -166,7 +166,7 @@ class BPNet(torch.nn.Module):
 
         This method takes in a nucleotide sequence x, a corresponding
         per-position value from a control track, and a per-locus value
-        from the control track and makes predictions for the profile 
+        from the control track and makes predictions for the profile
         and for the counts. This per-locus value is usually the
         log(sum(X_ctl_profile)+1) when the control is an experimental
         read track but can also be the -output from another model.
@@ -177,7 +177,7 @@ class BPNet(torch.nn.Module):
             The one-hot encoded batch of sequences.
 
         X_ctl: torch.tensor or None, shape=(batch_size, n_strands, length)
-            A value representing the signal of the control at each position in 
+            A value representing the signal of the control at each position in
             the sequence. If no controls, pass in None. Default is None.
 
         Returns
@@ -205,7 +205,7 @@ class BPNet(torch.nn.Module):
         pred_count = self.count_head(x, x_ctl=x_ctl) #.squeeze(-1) # (batch_size, 1)
 
         return pred_profile, pred_count
-    
+
 
     def get_embs_after_crop(self, x):
         x = self.irelu(self.iconv(x))
@@ -215,9 +215,9 @@ class BPNet(torch.nn.Module):
             if crop_len > 0:
                 x = x[:, :, crop_len:-crop_len]
             x = torch.add(x, conv_x)
-        
+
         return x
-    
+
     def profile_head(self, x, x_ctl=None):
         """
         Profile head of the model.
@@ -234,10 +234,10 @@ class BPNet(torch.nn.Module):
             pred_profile = pred_profile[:, :, crop_size:-crop_size]
         else:
             pred_profile = F.pad(pred_profile, (-crop_size, -crop_size)) # pad if out_window > in_window
-        
+
         return pred_profile
 
-        
+
     def count_head(self, x, x_ctl=None):
 
         # pred_count = torch.mean(x, dim=2)
@@ -247,12 +247,12 @@ class BPNet(torch.nn.Module):
             pred_count = torch.cat([pred_count, torch.log1p(x_ctl)], dim=-1)
         pred_count = self.linear(pred_count)
         return pred_count
-    
-    
+
+
     @classmethod
     def from_keras(cls, filename, name='chrombpnet'):
         """Loads a model from ChromBPNet TensorFlow format.
-    
+
         This method will load one of the components of a ChromBPNet model
         from TensorFlow format. Note that a full ChromBPNet model is made up
         of an accessibility model and a bias model and that this will load
@@ -346,7 +346,7 @@ class BPNet(torch.nn.Module):
 
             # First convolution without dilation
             x = Conv1D(filters, kernel_size=conv1_kernel_size, padding='valid', activation='relu', name='conv1')(inp)
-            
+
             for i in range(1, n_dil_layers + 1):
                 conv_x = Conv1D(filters, kernel_size=3, padding='valid', activation='relu', dilation_rate=2**i, name=f'dilated_conv_{i}')(x)
                 x_len = x.shape[1]
@@ -412,19 +412,19 @@ class BPNet(torch.nn.Module):
 class DoubleBPNet(BPNet):
 
     def __init__(
-        self, 
+        self,
         out_dim=1000,
-        n_filters=64, 
-        n_layers=8, 
+        n_filters=64,
+        n_layers=8,
         rconvs_kernel_size=3,
         conv1_kernel_size=21,
         profile_kernel_size=75,
-        n_outputs=1, 
+        n_outputs=1,
         n_control_tracks=0,
-        input_sizes=[4,768], 
-        profile_output_bias=True, 
-        count_output_bias=True, 
-        name=None, 
+        input_sizes=[4,768],
+        profile_output_bias=True,
+        count_output_bias=True,
+        name=None,
         verbose=False,
         dropout=False
     ):
@@ -449,7 +449,7 @@ class DoubleBPNet(BPNet):
 
         # residual dilated convolutions
         self.rconvs1 = torch.nn.ModuleList([
-            torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid', 
+            torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
                 dilation=2**i) for i in range(1, self.n_layers+1)
         ])
 
@@ -458,7 +458,7 @@ class DoubleBPNet(BPNet):
 		])
 
         self.rconvs2 = torch.nn.ModuleList([
-            torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid', 
+            torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
                 dilation=2**i) for i in range(1, self.n_layers+1)
         ])
 
@@ -468,13 +468,13 @@ class DoubleBPNet(BPNet):
 
 
         # profile prediction
-        self.fconv = torch.nn.Conv1d(n_filters * 2, n_outputs, 
+        self.fconv = torch.nn.Conv1d(n_filters * 2, n_outputs,
             kernel_size=profile_kernel_size, padding='valid', bias=profile_output_bias)
-        
+
         # count prediction
         n_count_control = 1 if n_control_tracks > 0 else 0
         self.global_avg_pool = torch.nn.AdaptiveAvgPool1d(1)
-        self.linear = torch.nn.Linear(n_filters * 2, 1, 
+        self.linear = torch.nn.Linear(n_filters * 2, 1,
             bias=count_output_bias)
 
     def get_embs_after_crop(self, x):
@@ -489,7 +489,7 @@ class DoubleBPNet(BPNet):
             if crop_len > 0:
                 x_onehot = x_onehot[:, :, crop_len:-crop_len]
             x_onehot = torch.add(x_onehot, conv_x)
-        
+
         x_lm = self.irelu2(self.iconv2(x_lm))
         for i in range(self.n_layers):
             conv_x = self.rrelus2[i](self.rconvs2[i](x_lm))
@@ -510,10 +510,10 @@ class ConvBlock(torch.nn.Module):
     """
     def __init__(
         self,
-        in_channels: int, 
-        out_channels: int, 
-        kernel_size: int, 
-        pool_size: int, 
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        pool_size: int,
         dropout: float
     ):
         super().__init__()
@@ -527,22 +527,22 @@ class ConvBlock(torch.nn.Module):
         x = self.mp(x)  # (batch_size, out_channels, seq_len // pool_size)
         x = self.do(x)  # (batch_size, out_channels, seq_len // pool_size)
         return x
-    
+
 class DreamRNN(BPNet):
 
     def __init__(
-        self, 
+        self,
         out_dim=1000,
-        n_filters=64, 
-        n_layers=8, 
+        n_filters=64,
+        n_layers=8,
         rconvs_kernel_size=3,
         conv1_kernel_size=21,
         profile_kernel_size=75,
-        n_outputs=1, 
-        n_control_tracks=0, 
-        profile_output_bias=True, 
-        count_output_bias=True, 
-        name=None, 
+        n_outputs=1,
+        n_control_tracks=0,
+        profile_output_bias=True,
+        count_output_bias=True,
+        name=None,
         verbose=False,
         dropout=False
     ):
@@ -563,11 +563,11 @@ class DreamRNN(BPNet):
             ConvBlock(2 * lstm_hidden_channels, out_channels // len(kernel_sizes), k, pool_size, dropout1) for k in kernel_sizes
         ])
 
-        self.fconv = torch.nn.Conv1d(out_channels, n_outputs, 
+        self.fconv = torch.nn.Conv1d(out_channels, n_outputs,
             kernel_size=profile_kernel_size, padding='valid', bias=profile_output_bias)
-        
+
         # count prediction
-        self.linear = torch.nn.Linear(out_channels, 1, 
+        self.linear = torch.nn.Linear(out_channels, 1,
             bias=count_output_bias)
 
 
@@ -585,8 +585,3 @@ class DreamRNN(BPNet):
         x = self.do(x)
 
         return x
-
-
-
-
-
