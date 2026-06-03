@@ -137,7 +137,9 @@ def test_filter_to_subset_empty_keys(tmp_path: Path) -> None:
 def _write_species_tsv(tmp_path: Path, species: list[str]) -> Path:
     """Write a minimal species TSV (header + species column) like the configs."""
     p = tmp_path / "species.tsv"
-    lines = ["species\tfamily\torder\taccession\tassembly_level\tcontig_n50\tquality_source"]
+    lines = [
+        "species\tfamily\torder\taccession\tassembly_level\tcontig_n50\tquality_source"
+    ]
     for s in species:
         lines.append(f"{s}\tFamX\tOrderX\tGCA_0\tScaffold\t1000\tzoonomia_supp_st2")
     p.write_text("\n".join(lines) + "\n")

@@ -142,8 +142,7 @@ def filter_to_species(
     # silently short cohort feeding into training).
     kept = set(out["species"].unique().to_list())
     assert kept == keys, (
-        f"expected all {len(keys)} cohort species kept; missing "
-        f"{sorted(keys - kept)}"
+        f"expected all {len(keys)} cohort species kept; missing {sorted(keys - kept)}"
     )
     assert out.height > 0, "species-filtered subset is empty"
 
