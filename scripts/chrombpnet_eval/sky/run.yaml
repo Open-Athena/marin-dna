@@ -1,0 +1,78 @@
+# SkyPilot task: train a ChromBPNet head on gLM embeddings (GM12878 DNase).
+#
+# Stages the gLM checkpoint (GCS), the GM12878 DNase inputs (ARSENAL Synapse
+# syn72513540) + a chr-prefixed hg38 fasta (DART-Eval Synapse), then runs
+# scripts/chrombpnet_eval/train.py. SMOKE=1 caps batches for a fast 1-epoch
+# sanity run (throughput + VRAM); SMOKE=0 does the full early-stopped run.
+#
+# Launch (smoke):
+#   sky launch -c chrombpnet-train scripts/chrombpnet_eval/sky/run.yaml \
+#     --env SYNAPSE_AUTH_TOKEN -i 90 --down
+# Full run on the same cluster:
+#   sky exec chrombpnet-train scripts/chrombpnet_eval/sky/run.yaml \
+#     --env SYNAPSE_AUTH_TOKEN --env SMOKE=0
+
+name: chrombpnet-train
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1        # 24 GB; frozen 0.6B gLM + tiled embeddings + CNN
+    disk_size: 200
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    SMOKE: "1"
+    SYNAPSE_AUTH_TOKEN: ""       # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
+    MODEL_GCS: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
+
+file_mounts:
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    uv sync --extra chrombpnet
+    gcloud storage ls "$MODEL_GCS/config.json" >/dev/null   # fail fast on bad ADC
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export WANDB_MODE=offline
+    cd ~/sky_workdir
+    mkdir -p data proj_v30
+
+    # gLM checkpoint (model + tokenizer in the same dir)
+    test -f proj_v30/model.safetensors || gcloud storage cp "$MODEL_GCS/*" proj_v30/
+
+    # GM12878 DNase inputs (ARSENAL Synapse) + chr-prefixed hg38 fasta (DART-Eval)
+    syn() { test -s "$2" || curl -fsSL -H "Authorization: Bearer $SYNAPSE_AUTH_TOKEN" \
+        "https://repo-prod.prod.sagebase.org/repo/v1/entity/$1/file" -o "$2"; }
+    syn syn73665410 data/gm12878_peaks.bed
+    syn syn73665411 data/gm12878_nonpeaks.bed
+    syn syn73665418 data/GM12878_unstranded.bw
+    syn syn73665413 data/bias_model_scaled.h5
+    syn syn60756064 data/GRCh38.fasta
+    syn syn62284997 data/GRCh38.fasta.fai
+    test -s data/hg38.chrom.sizes || curl -fsSL \
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes" -o data/hg38.chrom.sizes
+
+    nvidia-smi
+    SMOKE_ARGS=""
+    [ "$SMOKE" = "1" ] && SMOKE_ARGS="--limit-train-batches 20 --limit-val-batches 5 --max-epochs 1 --no-wandb"
+    uv run --extra chrombpnet python scripts/chrombpnet_eval/train.py \
+        --hf-model proj_v30 --tokenizer proj_v30 \
+        --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \
+        --bigwig data/GM12878_unstranded.bw --bias data/bias_model_scaled.h5 \
+        --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
+        --batch-size 8 --num-workers 4 \
+        --wandb-name dna-exp236-proj_v30-chrombpnet --out-dir runs/proj_v30 $SMOKE_ARGS

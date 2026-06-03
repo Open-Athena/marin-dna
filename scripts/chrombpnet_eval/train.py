@@ -75,6 +75,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lr-lm", type=float, default=1e-5)
     p.add_argument("--precision", default="32")
     p.add_argument("--devices", type=int, default=1)
+    # smoke knobs (cap batches per epoch so a 1-epoch run finishes fast)
+    p.add_argument("--limit-train-batches", type=int, default=None)
+    p.add_argument("--limit-val-batches", type=int, default=None)
+    p.add_argument("--no-wandb", action="store_true", help="CSVLogger instead of W&B")
     return p.parse_args()
 
 
@@ -123,15 +127,21 @@ def main() -> None:
         finetune=args.finetune,
     )
 
-    logger = L.pytorch.loggers.WandbLogger(
-        name=args.wandb_name, project=args.wandb_project, save_dir=args.out_dir
-    )
+    logger: object
+    if args.no_wandb:
+        logger = L.pytorch.loggers.CSVLogger(args.out_dir, name=args.wandb_name)
+    else:
+        logger = L.pytorch.loggers.WandbLogger(
+            name=args.wandb_name, project=args.wandb_project, save_dir=args.out_dir
+        )
     trainer = L.Trainer(
         max_epochs=args.max_epochs,
         reload_dataloaders_every_n_epochs=1,
         accelerator="gpu",
         devices=args.devices,
         precision=args.precision,
+        limit_train_batches=args.limit_train_batches,
+        limit_val_batches=args.limit_val_batches,
         logger=logger,
         callbacks=[
             L.pytorch.callbacks.EarlyStopping(
