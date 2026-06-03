@@ -1,5 +1,7 @@
 """Training-shard assembly + HF upload."""
 
+import re
+
 PIPELINE_VERSION = config["pipeline_version"]
 INTERVALS_VERSIONS = list(config["intervals_versions"])
 HF_OWNER = config["hf_owner"]
@@ -48,6 +50,19 @@ for _d in SPECIES_SUBSET_DATASETS:
         f"species_subset_datasets cohort {_cohort!r} not in species_subsets "
         f"{sorted(SPECIES_SUBSETS)}"
     )
+    # Scheme-B slug = f"{iv}-{cohort}" is split on the LAST hyphen downstream
+    # (the subset_species wildcards and the card rule's rsplit), so it only
+    # round-trips if the cohort key is [a-z0-9]+ (no '-'/'_') and the interval
+    # carries no '-'. Validate at load so a bad config fails loudly here, not as
+    # a cryptic "no rule to produce ...{slug}.parquet" deep in the DAG.
+    assert re.fullmatch(r"[a-z0-9]+", _cohort), (
+        f"species cohort key {_cohort!r} must match [a-z0-9]+ (the "
+        f"subset_species `cohort` wildcard); rename it in species_subsets"
+    )
+    assert "-" not in _iv, (
+        f"intervals_version {_iv!r} contains '-', colliding with the "
+        f"-{{cohort}} slug delimiter (scheme B)"
+    )
     _slug = f"{_iv}-{_cohort}"
     INTERVALS_SOURCES[_slug] = (
         f"results/projection/min{PROJECT_MIN_P}/subsets_species/{_slug}.parquet"
@@ -61,9 +76,23 @@ ALL_DATASETS = list(INTERVALS_VERSIONS) + SPECIES_SUBSET_SLUGS
 # Pin pipeline_version so the zoonomia-{pipeline_version}-{dataset} repo slug
 # parses unambiguously when {dataset} carries a -{cohort} suffix
 # (zoonomia-v1-v4_cds-order → pipeline_version=v1, dataset=v4_cds-order, not
-# pipeline_version=v1-v4_cds). Global: applies to every {pipeline_version}.
+# pipeline_version=v1-v4_cds). Load-bearing for prepare_training_shards and
+# compress_shard, which lack a per-rule intervals_version constraint to anchor
+# the split (the readme/upload rules below also pin it). Global: applies to
+# every {pipeline_version} wildcard (all of which live in this file).
 wildcard_constraints:
     pipeline_version=r"v\d+",
+
+
+def _ships_card(dataset: str) -> bool:
+    """Whether a dataset slug ships an HF dataset card.
+
+    True for v3_*/v4_* region partitions and for species-subset cohort slugs
+    (which carry a trailing ``-{cohort}``, e.g. ``v4_cds-order``). v1/v2
+    default-species sets are card-less by design. Keep in sync with the card
+    rules' wildcard_constraints (dataset_hf_readme_v3 / _v4 / _species_subset).
+    """
+    return dataset.startswith(("v3_", "v4_")) or "-" in dataset
 
 
 rule subset_species:
@@ -263,7 +292,7 @@ rule dataset_hf_readme_species_subset:
         base_iv, cohort = wildcards.intervals_version.rsplit("-", 1)
         n_rows = pl.scan_parquet(input.source).select(pl.len()).collect().item()
         n_samples = n_rows * (2 if params.add_rc else 1)
-        n_species = pl.read_csv(params.species_tsv, separator="\t").height
+        n_species = len(load_species(params.species_tsv))
         write_species_subset_hf_readme(
             base_iv,
             cohort,
@@ -295,7 +324,7 @@ rule hf_upload_dataset:
         ),
         readme=lambda wc: (
             f"results/dataset/zoonomia-{wc.pipeline_version}-{wc.intervals_version}/README.md"
-            if wc.intervals_version.startswith(("v3_", "v4_"))
+            if _ships_card(wc.intervals_version)
             else []
         ),
     output:
@@ -304,12 +333,13 @@ rule hf_upload_dataset:
     params:
         repo=lambda wc: f"{HF_OWNER}/zoonomia-{wc.pipeline_version}-{wc.intervals_version}",
         data_dir=lambda wc: f"results/dataset/zoonomia-{wc.pipeline_version}-{wc.intervals_version}",
-        has_readme=lambda wc: int(wc.intervals_version.startswith(("v3_", "v4_"))),
+        has_readme=lambda wc: int(_ships_card(wc.intervals_version)),
     wildcard_constraints:
         pipeline_version=r"v\d+",
         # Optional trailing -{cohort} (scheme B) for species-subset datasets,
-        # e.g. v4_cds-order. has_readme below keys off the v3_/v4_ prefix, so
-        # the cohort still ships a card (its README rule is below).
+        # e.g. v4_cds-order. _ships_card() recognizes both v3_/v4_ region
+        # partitions and -{cohort} slugs (on any base), so every carded dataset
+        # uploads its card; v1/v2 default-species sets stay card-less.
         intervals_version=r"v\d+(?:_\w+)?(?:-[a-z0-9]+)?",
     threads: workflow.cores
     shell:

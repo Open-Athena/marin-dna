@@ -119,15 +119,6 @@ run: |
         SNAKEMAKE_EXTRA+=(--config "commit_sha=$COMMIT_SHA")
     fi
 
-    # prepare_training_shards requests mem_mb=120000; the shared profile caps
-    # the global budget at 30000 (tuned for the c6id.4xlarge anchor box). On
-    # this r6i.8xlarge (256 GB) raise the cap for species_subset builds so the
-    # shard job schedules. (region mode keeps the existing behavior.)
-    MEM_OVERRIDE=()
-    if [ "$UPLOAD_MODE" = "species_subset" ]; then
-        MEM_OVERRIDE+=(--resources mem_mb=240000)
-    fi
-
     # NOTE: ${SNAKEMAKE_EXTRA[@]} (which may be `--config commit_sha=...`) must
     # NOT be the last option before the positional targets — Snakemake's
     # `--config` greedily consumes following tokens as name=value pairs and
@@ -137,7 +128,6 @@ run: |
     # Dry-run gate first — verify only HF-related rules are scheduled.
     uv run snakemake --profile workflow/profiles/default \
         "${SNAKEMAKE_EXTRA[@]}" \
-        "${MEM_OVERRIDE[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
@@ -146,7 +136,6 @@ run: |
     # Real run.
     uv run snakemake --profile workflow/profiles/default \
         "${SNAKEMAKE_EXTRA[@]}" \
-        "${MEM_OVERRIDE[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
