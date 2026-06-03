@@ -25,6 +25,8 @@ workdir: .
 
 envs:
     SMOKE: "1"
+    BATCH: "8"                   # bump for the full run (bf16 fits more on the A10G)
+    PRECISION: "32"              # "bf16-mixed" for the full run (~2x throughput, half VRAM)
     SYNAPSE_AUTH_TOKEN: ""       # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
     MODEL_GCS: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
 
@@ -74,5 +76,5 @@ run: |
         --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \
         --bigwig data/GM12878_unstranded.bw --bias data/bias_model_scaled.h5 \
         --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
-        --batch-size 8 --num-workers 4 \
+        --batch-size "$BATCH" --num-workers 4 --precision "$PRECISION" \
         --wandb-name dna-exp236-proj_v30-chrombpnet --out-dir runs/proj_v30 $SMOKE_ARGS
