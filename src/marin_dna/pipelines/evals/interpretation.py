@@ -114,7 +114,7 @@ def plot_dependency_map(
     chrom: str | None = None,
     title: str | None = None,
     tick_freq: int | None = None,
-    dpi: int = 150,
+    dpi: int = 100,
 ) -> None:
     """Render a dependency map as a ``coolwarm`` heatmap (SVG, plus a PNG
     sibling for local visual sanity per repo convention).
@@ -122,11 +122,17 @@ def plot_dependency_map(
     Mirrors GPN-Star's nuc-dep plot: square aspect, robust color scaling,
     rasterized cells, sparse genomic-coordinate ticks.
 
-    ``rasterized=True`` is essential: a dependency map is a dense ``L×L``
-    QuadMesh (e.g. 255×255 = 65k cells), which as pure SVG vector cells blows
-    up to ~12 MB. Rasterizing embeds the cells as a *single* PNG inside the
-    SVG (text/axes stay vector), so file size is governed by ``dpi`` — ~210 KB
-    at 150, ~130 KB at 72 for a 255 bp map. Lower ``dpi`` for smaller files.
+    **File size.** A dependency map is a dense, high-frequency ``L×L`` grid
+    (255×255 = 65k near-independent colored cells). As *pure* SVG vector it is
+    ~12 MB; even quantized to 11 colors + run-length-merged it is ~1.2 MB —
+    there are no long runs to merge, so true vector is never small for these
+    textured maps. ``rasterized=True`` instead embeds the cells as a *single*
+    PNG inside the SVG (axes/text stay vector); file size is then the embedded
+    raster, governed by ``dpi``. We post-process the embedded ``<image>`` with
+    ``image-rendering:pixelated`` so cells stay crisp (vector-like) at any zoom.
+    Keep ``dpi`` near the native cell count (≈ ``L`` px across the map, ~``dpi``
+    100 for a 255 bp window → ~125 KB); smaller maps come out far smaller. Going
+    well below native (``dpi`` < ~``L``/3 inch) starts dropping cells.
     """
     import matplotlib
 
@@ -165,5 +171,12 @@ def plot_dependency_map(
     out.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out, bbox_inches="tight", dpi=dpi)
     if out.suffix == ".svg":
+        # The heatmap is one embedded raster (rasterized=True). Tag it
+        # image-rendering:pixelated so the cells stay crisp (no interpolation
+        # blur) when the SVG is scaled — they read as sharp vector squares.
+        svg = out.read_text()
+        if "<image " in svg and "image-rendering" not in svg:
+            svg = svg.replace("<image ", '<image style="image-rendering:pixelated" ', 1)
+            out.write_text(svg)
         plt.savefig(out.with_suffix(".png"), bbox_inches="tight", dpi=dpi)
     plt.close()
