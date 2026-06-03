@@ -27,9 +27,16 @@ file_mounts:
 # still resolve, just not pinned.
 # UPLOAD_VERSION selects which intervals partition to push: v3 (default) or
 # v4 (issue #227). Override at launch: `sky launch ... --env UPLOAD_VERSION=v4`.
+# UPLOAD_MODE selects WHICH datasets to push:
+#   region        (default) — the six v3_*/v4_* region partitions for
+#                  UPLOAD_VERSION (the default 108-family species cohort).
+#   species_subset — the species_subset_datasets combos (issue #233), e.g.
+#                  zoonomia-v1-v4_cds-order. UPLOAD_VERSION is ignored.
+#                  Launch: `sky launch ... --env UPLOAD_MODE=species_subset`.
 envs:
     COMMIT_SHA: ""
     UPLOAD_VERSION: v3
+    UPLOAD_MODE: region
 
 setup: |
     set -euxo pipefail
@@ -59,18 +66,26 @@ run: |
 
     cd snakemake/zoonomia_projection_dataset
 
-    # Target only the six upload.done files for $UPLOAD_VERSION (v3 or v4).
-    # v1/v2 are already pushed and their upload.done markers in S3 satisfy
-    # `rule all_hf` separately; we don't need (or want) to walk that branch.
-    UPLOAD_TARGETS=$(UPLOAD_VERSION="$UPLOAD_VERSION" uv run python -c "
+    # Compute upload.done targets. region mode: the six v3_*/v4_* partitions
+    # for $UPLOAD_VERSION. species_subset mode: the species_subset_datasets
+    # combos (zoonomia-{pv}-{iv}-{cohort}). v1/v2 are already pushed and their
+    # upload.done markers in S3 satisfy `rule all_hf` separately; we don't need
+    # (or want) to walk those branches.
+    UPLOAD_TARGETS=$(UPLOAD_VERSION="$UPLOAD_VERSION" UPLOAD_MODE="$UPLOAD_MODE" uv run python -c "
     import yaml, os
     cfg = yaml.safe_load(open('config/config.yaml'))
-    ver = os.environ['UPLOAD_VERSION']
-    for iv in cfg['intervals_versions']:
-        if iv.startswith(ver + '_'):
-            print(f'results/upload.done/zoonomia-{cfg[\"pipeline_version\"]}-{iv}')
+    pv = cfg['pipeline_version']
+    mode = os.environ['UPLOAD_MODE']
+    if mode == 'species_subset':
+        for d in cfg.get('species_subset_datasets', []):
+            print(f'results/upload.done/zoonomia-{pv}-{d[\"intervals\"]}-{d[\"species\"]}')
+    else:
+        ver = os.environ['UPLOAD_VERSION']
+        for iv in cfg['intervals_versions']:
+            if iv.startswith(ver + '_'):
+                print(f'results/upload.done/zoonomia-{pv}-{iv}')
     ")
-    test -n "$UPLOAD_TARGETS"  # fail loudly if UPLOAD_VERSION matched nothing
+    test -n "$UPLOAD_TARGETS"  # fail loudly if the mode/version matched nothing
 
     # `--allowed-rules` whitelists the v3 chain so Snakemake refuses to
     # walk back into the cross-mammal projection (hal_to_fasta /
@@ -79,17 +94,21 @@ run: |
     # otherwise be re-scheduled despite their downstream outputs
     # (`sequences/{species}.parquet`, `all_species_with_sequence.parquet`)
     # already existing in S3 default-storage.
-    # Both readme rules are whitelisted; only the one matching the target's
-    # wildcard (v3_* or v4_*) actually fires. The region-label / projection
-    # rules are deliberately absent so Snakemake errors rather than walking
-    # back into them — their outputs (query_names, composition, subset
-    # parquets' source) already exist in S3.
+    # All three readme rules are whitelisted; only the one matching the
+    # target's wildcard (v3_* / v4_* / *-{cohort}) actually fires. subset_species
+    # (issue #233) filters the existing intervals subset (e.g. subsets/v4_cds.parquet,
+    # already in S3) to a species cohort — it does NOT touch the projection. The
+    # region-label / projection rules are deliberately absent so Snakemake errors
+    # rather than walking back into them — their outputs (query_names,
+    # composition, subset parquets' source) already exist in S3.
     ALLOWED_RULES=(
         subset_dataset_derived
+        subset_species
         prepare_training_shards
         compress_shard
         dataset_hf_readme_v3
         dataset_hf_readme_v4
+        dataset_hf_readme_species_subset
         hf_upload_dataset
     )
 
@@ -98,6 +117,15 @@ run: |
     SNAKEMAKE_EXTRA=()
     if [ -n "${COMMIT_SHA:-}" ]; then
         SNAKEMAKE_EXTRA+=(--config "commit_sha=$COMMIT_SHA")
+    fi
+
+    # prepare_training_shards requests mem_mb=120000; the shared profile caps
+    # the global budget at 30000 (tuned for the c6id.4xlarge anchor box). On
+    # this r6i.8xlarge (256 GB) raise the cap for species_subset builds so the
+    # shard job schedules. (region mode keeps the existing behavior.)
+    MEM_OVERRIDE=()
+    if [ "$UPLOAD_MODE" = "species_subset" ]; then
+        MEM_OVERRIDE+=(--resources mem_mb=240000)
     fi
 
     # NOTE: ${SNAKEMAKE_EXTRA[@]} (which may be `--config commit_sha=...`) must
@@ -109,6 +137,7 @@ run: |
     # Dry-run gate first — verify only HF-related rules are scheduled.
     uv run snakemake --profile workflow/profiles/default \
         "${SNAKEMAKE_EXTRA[@]}" \
+        "${MEM_OVERRIDE[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
@@ -117,6 +146,7 @@ run: |
     # Real run.
     uv run snakemake --profile workflow/profiles/default \
         "${SNAKEMAKE_EXTRA[@]}" \
+        "${MEM_OVERRIDE[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
         --printshellcmds \
