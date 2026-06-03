@@ -895,3 +895,17 @@ nuc_dep:
     # display chr1:159141611-159141684 (-) is 1-based inclusive → 0-based
     # half-open start 159141610, end 159141684 (74 bp).
     tRNA_Arg_TCT: {chrom: "1", start: 159141610, end: 159141684, strand: "-"}
+
+# Embedding UMAP (GPN-Star Fig 4A/4B) — interpretation, issue #246. Off `rule all`;
+# build with `snakemake umap`. Install needs `--group genome-s3 --group umap`
+# (S3 genome read + the optional umap-learn group). Reuses the `models:` registry
+# above (entry must declare `window_size`); first pass is exp135-1B only.
+umap_embeddings:
+  dataset: songlab/gpn-star-umap-regions   # HF: 111,329 labeled 100 bp windows (chrom/start/end/label/cons)
+  layer_index: -1                          # last hidden layer (match GPN-Star); configurable for a later sweep
+  n_center_bp: 100                         # central positions to mean-pool (== the dataset window)
+  random_state: 42                         # UMAP seed (also forces single-threaded UMAP)
+  dpi: 200                                 # scatter raster dpi
+  # batch_size: defaults to inference.batch_size (128); override here for VRAM.
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (255+BOS) — first pass, single model

@@ -2018,6 +2018,17 @@ wheels = [
 ]
 
 [[package]]
+name = "llvmlite"
+version = "0.47.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/88/a8952b6d5c21e74cbf158515b779666f692846502623e9e3c39d8e8ba25f/llvmlite-0.47.0.tar.gz", hash = "sha256:62031ce968ec74e95092184d4b0e857e444f8fdff0b8f9213707699570c33ccc", size = 193614, upload-time = "2026-03-31T18:29:53.497Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/48/4b7fe0e34c169fa2f12532916133e0b219d2823b540733651b34fdac509a/llvmlite-0.47.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:306a265f408c259067257a732c8e159284334018b4083a9e35f67d19792b164f", size = 37232769, upload-time = "2026-03-31T18:28:43.735Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/4b/e3f2cd17822cf772a4a51a0a8080b0032e6d37b2dbe8cfb724eac4e31c52/llvmlite-0.47.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:5853bf26160857c0c2573415ff4efe01c4c651e59e2c55c2a088740acfee51cd", size = 56275178, upload-time = "2026-03-31T18:28:48.342Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/55/a3b4a543185305a9bdf3d9759d53646ed96e55e7dfd43f53e7a421b8fbae/llvmlite-0.47.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:003bcf7fa579e14db59c1a1e113f93ab8a06b56a4be31c7f08264d1d4072d077", size = 55128632, upload-time = "2026-03-31T18:28:52.901Z" },
+]
+
+[[package]]
 name = "lm-eval"
 version = "0.4.9.1"
 source = { git = "https://github.com/stanford-crfm/lm-evaluation-harness.git?rev=d5e3391f22cde186c827674d5c3ec7c5f4fe0cab#d5e3391f22cde186c827674d5c3ec7c5f4fe0cab" }
@@ -2215,6 +2226,9 @@ enhancer-classification = [
 genome-s3 = [
     { name = "s3fs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
+umap = [
+    { name = "umap-learn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2275,6 +2289,7 @@ enhancer-classification = [
     { name = "torchmetrics", specifier = ">=1.0" },
 ]
 genome-s3 = [{ name = "s3fs", specifier = ">=2024" }]
+umap = [{ name = "umap-learn", specifier = ">=0.5" }]
 
 [[package]]
 name = "marin-finelog"
@@ -2790,6 +2805,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/24/bf/d1bda4f6168e0b2e9e5958945e01910052158313224ada5ce1fb2e1113b8/nodeenv-1.10.0.tar.gz", hash = "sha256:996c191ad80897d076bdfba80a41994c2b47c68e224c542b48feba42ba00f8bb", size = 55611, upload-time = "2025-12-20T14:08:54.006Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/b2/d0896bdcdc8d28a7fc5717c305f1a861c26e18c05047949fb371034d98bd/nodeenv-1.10.0-py2.py3-none-any.whl", hash = "sha256:5bb13e3eed2923615535339b3c620e76779af4cb4c6a90deccc9e36b274d3827", size = 23438, upload-time = "2025-12-20T14:08:52.782Z" },
+]
+
+[[package]]
+name = "numba"
+version = "0.65.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "llvmlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/c5/db2ac3685833d626c0dcae6bd2330cd68433e1fd248d15f70998160d3ad7/numba-0.65.1.tar.gz", hash = "sha256:19357146c32fe9ed25059ab915e8465fb13951cf6b0aace3826b76886373ab23", size = 2765600, upload-time = "2026-04-24T02:02:56.551Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/57/bc/76f8f8c5cf9adee47fdb7bbb03be8900f76f902d451d7477cf12b845e1de/numba-0.65.1-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:ac3f1e77c352dd0ea9712732c2d8f9ca507717435eec5b5013bf138ac33c4a08", size = 2681371, upload-time = "2026-04-24T02:02:26.105Z" },
+    { url = "https://files.pythonhosted.org/packages/69/47/a415af0283e4db0398104c6d1c11c9861a98dc67a7aa442a7769ed5d6196/numba-0.65.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:52bc6f3ceb8fcaff9b2ae26b4c6b1e9fee39db8d355534c0fe4f39a901246b84", size = 3802467, upload-time = "2026-04-24T02:02:27.712Z" },
+    { url = "https://files.pythonhosted.org/packages/46/36/246f73ec99cfeab2f2cb2ce7d4218766cc36a2da418901223f4f4da9c813/numba-0.65.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:90ca10b3463bae0bd70589726fe3c77d01d6b5fc86bee54bcdf9fb6b47c28977", size = 3502628, upload-time = "2026-04-24T02:02:29.763Z" },
 ]
 
 [[package]]
@@ -3552,6 +3582,22 @@ wheels = [
 [package.optional-dependencies]
 crypto = [
     { name = "cryptography", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+
+[[package]]
+name = "pynndescent"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "joblib", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "llvmlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "numba", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "scikit-learn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "scipy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4a/fb/7f58c397fb31666756457ee2ac4c0289ef2daad57f4ae4be8dec12f80b03/pynndescent-0.6.0.tar.gz", hash = "sha256:7ffde0fb5b400741e055a9f7d377e3702e02250616834231f6c209e39aac24f5", size = 2992987, upload-time = "2026-01-08T21:29:58.943Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/e6/94145d714402fd5ade00b5661f2d0ab981219e07f7db9bfa16786cdb9c04/pynndescent-0.6.0-py3-none-any.whl", hash = "sha256:dc8c74844e4c7f5cbd1e0cd6909da86fdc789e6ff4997336e344779c3d5538ef", size = 73511, upload-time = "2026-01-08T21:29:57.306Z" },
 ]
 
 [[package]]
@@ -4849,6 +4895,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ba/19/1b9b0e29f30c6d35cb345486df41110984ea67ae69dddbc0e8a100999493/tzdata-2026.2.tar.gz", hash = "sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10", size = 198254, upload-time = "2026-04-24T15:22:08.651Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/e4/dccd7f47c4b64213ac01ef921a1337ee6e30e8c6466046018326977efd95/tzdata-2026.2-py2.py3-none-any.whl", hash = "sha256:bbe9af844f658da81a5f95019480da3a89415801f6cc966806612cc7169bffe7", size = 349321, upload-time = "2026-04-24T15:22:05.876Z" },
+]
+
+[[package]]
+name = "umap-learn"
+version = "0.5.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numba", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "pynndescent", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "scikit-learn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "scipy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/02/ee/af4171241117f85c74b5ca6448ea1033cc28d599c13651d67289bacd4083/umap_learn-0.5.12.tar.gz", hash = "sha256:6aff02ecac5f2aad9f3c65ee518d7ae93e1a985ae38721fdcffceee4232c33c7", size = 96672, upload-time = "2026-04-08T20:03:54.012Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1b/98/f63318ccbe75c810011fe9233884c5d348d94d90005de1b79e5f93bef9c0/umap_learn-0.5.12-py3-none-any.whl", hash = "sha256:f2a85d2a2adcb52b541bed9b27a23ca169b56bb1b23283abeebfb8dfb8a42fe5", size = 91849, upload-time = "2026-04-08T20:03:52.561Z" },
 ]
 
 [[package]]
