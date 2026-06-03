@@ -906,10 +906,11 @@ umap_embeddings:
   n_center_bp: 100                         # central positions to mean-pool (== the dataset window)
   random_state: 42                         # UMAP seed (also forces single-threaded UMAP)
   dpi: 200                                 # scatter raster dpi
-  # Embeddings keep only [B, L, D] hidden states (no [B, L, V] logits like the
-  # variant path), so they fit a much bigger batch than inference.batch_size
-  # (128). Measured: batch 128 -> ~7 GB on A10G (bf16, AutoModel, last layer);
-  # ~2.5 GB fixed + ~35 MB/sample => 384 ~ 16 GB, leaving headroom.
-  batch_size: 384
+  # batch_size: keep at 128 (= inference.batch_size). On A10G, VRAM oscillates
+  # ~7.5–22 GB across strand 1 (Trainer.predict accumulating [N, 1920] outputs +
+  # a torch.compile workspace reservation — far heavier than the variant path's
+  # [N, 2]), peaking ~95% at batch 128. Higher would OOM. The run is also
+  # GPU-compute-bound, so a bigger batch wouldn't speed it up regardless.
+  batch_size: 128
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (255+BOS) — first pass, single model
