@@ -152,7 +152,15 @@ def plot_dependency_map(
     coords = np.asarray(df.columns, dtype=int)
     span = int(coords.max() - coords.min())
     if tick_freq is None:
-        tick_freq = 50 if span > 100 else 10
+        # Genomic-coordinate labels are long (~10 chars), so keep the count low
+        # (~3–4): a narrow locus like the 74 bp tRNA overlapped at every-10-bp
+        # ticks. Coarsen the mid-span band rather than rotate the labels.
+        if span > 100:
+            tick_freq = 50
+        elif span > 40:
+            tick_freq = 25
+        else:
+            tick_freq = 10
 
     plt.figure(figsize=(4, 4))
     g = sns.heatmap(
@@ -166,6 +174,8 @@ def plot_dependency_map(
         rasterized=True,
     )
     tick_idx = np.where(coords % tick_freq == 0)[0]
+    if tick_idx.size == 0:  # tiny locus with no round coordinate — label the ends
+        tick_idx = np.array([0, len(coords) - 1])
     g.set_xticks(tick_idx)
     g.set_xticklabels(
         [f"{coords[i]:,}" for i in tick_idx], rotation=0, ha="center", fontsize=8

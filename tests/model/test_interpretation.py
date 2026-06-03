@@ -85,19 +85,29 @@ def test_categorical_jacobian_shape_and_causal_upper_triangular():
     assert jac.abs().max() > 0
 
 
-def test_categorical_jacobian_requires_bos():
+def test_categorical_jacobian_no_bos_blinds_first_target():
+    """A no-BOS causal LM (n_prefix=0) has no prediction for the window's first
+    position; its target column is zeroed and the rest stays causal upper-tri."""
     tok = create_char_tokenizer(bos=False, eos=False)  # n_prefix == 0
     model = _PrefixSumCausalLM(vocab_size=8).eval()
     seq = "ACGTACGT"
+    W = len(seq)
     input_ids = torch.tensor(tok.encode(seq), dtype=torch.long)
-    with pytest.raises(AssertionError, match="BOS"):
-        categorical_jacobian(
-            model,
-            input_ids,
-            nuc_token_ids=_nuc_token_ids(tok),
-            n_prefix=0,
-            window_size=len(seq),
-        )
+    jac = categorical_jacobian(
+        model,
+        input_ids,
+        nuc_token_ids=_nuc_token_ids(tok),
+        n_prefix=0,
+        window_size=W,
+    )
+    assert jac.shape == (W, 4, W, 4)
+    # Target position 0 has no predictive distribution → its column is zeroed.
+    assert torch.all(jac[:, :, 0, :] == 0.0)
+    # Still causal elsewhere: jac[i,:,m,:] == 0 for m <= i; real signal above.
+    for i in range(W):
+        for m in range(i + 1):
+            assert torch.all(jac[i, :, m, :] == 0.0), f"non-causal at (i={i}, m={m})"
+    assert jac[:, :, 1:, :].abs().max() > 0
 
 
 def test_categorical_jacobian_batching_invariant():
@@ -212,3 +222,32 @@ def test_nucleotide_dependency_map_real_tiny_clm():
     assert M.shape == (W, W)
     assert np.allclose(M, M.T)
     assert np.all(np.diag(M) == 0.0)
+
+
+def test_nucleotide_dependency_map_no_bos_is_complete():
+    """No-BOS model: the forward pass can't predict window position 0 and RC
+    can't predict the last — but the FWD+RC stitch recovers both, so the map is
+    the full WxW size, symmetric, with no dropped (all-zero) position. This is
+    what lets a no-BOS arm (e.g. exp21) stack with the BOS models at equal size."""
+    model = _PrefixSumCausalLM(vocab_size=8).eval()
+    seq = "ACGTACGTAC"  # W = 10
+    W = len(seq)
+    tok = create_char_tokenizer(bos=False, eos=False)  # n_prefix == 0
+    M = nucleotide_dependency_map(model, tok, seq, rc=True, combine="mean")
+    assert M.shape == (W, W)
+    assert np.allclose(M, M.T)
+    assert np.all(np.diag(M) == 0.0)
+    # Every position is recovered — no all-zero row, including the two edges that
+    # a single strand could not predict.
+    row_sums = np.abs(M).sum(axis=1)
+    assert np.all(row_sums > 0), f"dropped position(s): {np.where(row_sums == 0)[0]}"
+    assert row_sums[0] > 0 and row_sums[W - 1] > 0
+
+
+def test_nucleotide_dependency_map_no_bos_requires_rc():
+    """A no-BOS model's blinded edge is recovered only by the RC stitch, so the
+    one-sided rc=False map is rejected rather than returned silently incomplete."""
+    model = _PrefixSumCausalLM(vocab_size=8).eval()
+    tok = create_char_tokenizer(bos=False, eos=False)  # n_prefix == 0
+    with pytest.raises(AssertionError, match="rc=False is unsupported"):
+        nucleotide_dependency_map(model, tok, "ACGTACGT", rc=False)

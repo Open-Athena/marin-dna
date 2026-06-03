@@ -870,15 +870,20 @@ inference:
 # so a locus == window_size (zero flank) is an intended, supported case.
 # ---------------------------------------------------------------------------
 nuc_dep:
-  combines: [mean, max]  # stitched-FWD/RC symmetrizations to compute, one map each (#237)
+  window_size: 255     # fixed window for ALL models so they see the SAME input (#240),
+                       # overriding each model's native context (e.g. exp21's 512)
+  combines: [mean]     # stitched-FWD/RC symmetrization (#237/#240); max is near-identical (Spearman ~0.98), so we keep only mean
   ord: inf             # vector-norm order collapsing each 4x4 nucleotide block
   batch_size: 32       # sequences per forward pass (execution-only; tune for VRAM)
   dpi: 100             # heatmap raster dpi (the SVG embeds one rasterized image; lower = smaller file)
-  # Models here must use a BOS tokenizer (255 bp + BOS, like exp135): a causal
-  # LM's position 0 has no left-context distribution, so categorical_jacobian
-  # asserts n_prefix>=1. Do NOT add the no-BOS exp55/58/59/exp21 arms.
+  # No-BOS models are supported (#240): the forward pass can't predict the
+  # window's first position and RC can't predict the last, but the FWD+RC stitch
+  # recovers both, so the map stays complete. Each locus must still fit
+  # `window_size` (HBA1 == 255 fills it exactly).
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+    - exp166-v0.1-p1B-step-27329  # 1B generalist (zoonomia v0.1), 255+BOS — 2nd dashboard model (#240)
+    - exp21-promoters-yolo-step-22000  # promoter specialist (final ckpt, on the leaderboard), 512-ctx no-BOS, run at 255 (#240)
   loci:
     LDLR:  {chrom: "19", start: 11089299,  end: 11089425,  strand: "+"}
     TH:    {chrom: "11", start: 2171682,   end: 2171868,   strand: "-"}

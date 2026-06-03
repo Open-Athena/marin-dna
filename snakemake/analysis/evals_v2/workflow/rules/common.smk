@@ -117,6 +117,12 @@ NUC_DEP_MODELS = NUC_DEP_CFG.get("models", [])
 NUC_DEP_COMBINES = NUC_DEP_CFG.get("combines", ["mean"])
 
 
+def get_nuc_dep_window(model):
+    """nuc_dep context window for a model: a fixed ``nuc_dep.window_size`` (so all
+    models see the same input, #240) if set, else the model's native window."""
+    return NUC_DEP_CFG.get("window_size") or get_model_config(model)["window_size"]
+
+
 def get_nuc_dep_ord():
     """Vector-norm order for collapsing each 4x4 Jacobian block. ``inf`` (the
     default, as in GPN-Star) → ``np.inf``; otherwise a float."""
@@ -141,8 +147,8 @@ for _loc, _c in NUC_DEP_CFG.get("loci", {}).items():
         f"nuc_dep locus {_loc!r}: strand must be '+' or '-', got {_c['strand']!r}"
     )
     for _m in NUC_DEP_MODELS:
-        _ws = get_model_config(_m)["window_size"]
+        _ws = get_nuc_dep_window(_m)
         assert _c["end"] - _c["start"] <= _ws, (
             f"nuc_dep locus {_loc!r} span {_c['end'] - _c['start']} bp exceeds "
-            f"model {_m!r} window_size {_ws}"
+            f"nuc_dep window_size {_ws}"
         )

@@ -22,8 +22,9 @@ name: Dashboard
 #         * GitHub OIDC identity provider for `token.actions.githubusercontent.com`
 #           with audience `sts.amazonaws.com`.
 #         * IAM policy `BolinasDnaDashboardMetricsRead` granting `s3:GetObject`
-#           on the four metric prefixes (one per eval pipeline):
-#             - `arn:aws:s3:::oa-bolinas/snakemake/analysis/evals_v2/results/metrics/*`
+#           on these prefixes (one per eval pipeline; evals_v2 is `results/*` so
+#           the dashboard can also read the nuc_dep interpretation artifacts, #240):
+#             - `arn:aws:s3:::oa-bolinas/snakemake/analysis/evals_v2/results/*`
 #             - `arn:aws:s3:::oa-bolinas/snakemake/conservation_eval/results/*`
 #             - `arn:aws:s3:::oa-bolinas/snakemake/alphagenome_eval/results/metrics/*`
 #             - `arn:aws:s3:::oa-bolinas/snakemake/gpn_star_eval/results/metrics/*`
@@ -48,6 +49,8 @@ on:
       - src/marin_dna/pipelines/evals/models.py
       - src/marin_dna/pipelines/evals/metrics.py
       - src/marin_dna/pipelines/evals/gpn_star.py
+      - src/marin_dna/pipelines/evals/interpretation_catalog.py
+      - snakemake/analysis/evals_v2/config/config.yaml  # nuc_dep loci/models the loader reads (#240)
       - .github/workflows/dashboard.yml
   pull_request:
   workflow_dispatch:
