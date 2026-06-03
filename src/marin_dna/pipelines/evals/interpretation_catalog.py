@@ -129,7 +129,10 @@ def _paper_ref(locus: str, *, refs_dir: Path | None) -> dict[str, Any]:
     if refs_dir is not None:
         for ext in _REF_IMAGE_EXTS:
             if (refs_dir / f"{locus}{ext}").is_file():
-                ref["image"] = f"./refs/{locus}{ext}"
+                # Zip-relative key: the loader bundles the screenshot into the
+                # nuc_dep archive (Observable's build won't copy a file behind a
+                # runtime <img src>), and the page reads it back from there.
+                ref["image"] = f"refs/{locus}{ext}"
                 break
     return ref
 

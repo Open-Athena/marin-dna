@@ -95,10 +95,10 @@ def test_nuc_dep_candidates_paper_image_gated_on_committed_file(tmp_path) -> Non
     assert cands[0]["paper"]["image"] is None
     assert cands[0]["paper"]["citation"]  # citation still present for context
 
-    # Commit a screenshot → image becomes a site-relative URL.
+    # Commit a screenshot → image becomes the zip-relative key the loader bundles.
     (tmp_path / "LDLR.png").write_bytes(b"\x89PNG\r\n")
     cands = nuc_dep_candidates(_block(), refs_dir=tmp_path)
-    assert cands[0]["paper"]["image"] == "./refs/LDLR.png"
+    assert cands[0]["paper"]["image"] == "refs/LDLR.png"
 
 
 def test_nuc_dep_candidates_rejects_bad_locus() -> None:

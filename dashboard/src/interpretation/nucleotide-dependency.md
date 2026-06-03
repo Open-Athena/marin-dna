@@ -60,6 +60,12 @@ const entry = manifest.find(
   (e) => e.locus === locus && e.model === model && e.combine === combine,
 );
 const svgText = entry ? await arch.file(entry.svg).text() : null;
+// Paper screenshots are bundled into the same zip (Observable won't ship a file
+// behind a runtime <img src>); resolve an object URL from the archive.
+const paperImgUrl =
+  entry && entry.paper && entry.paper.image
+    ? await arch.file(entry.paper.image).url()
+    : null;
 ```
 
 ```js
@@ -104,9 +110,9 @@ display(
               : null
           }
           ${
-            entry.paper && entry.paper.image
+            paperImgUrl
               ? html`<figure class="nd-figure">
-                  <img src=${entry.paper.image} alt=${`Paper reference figure for ${entry.title}`} />
+                  <img src=${paperImgUrl} alt=${`Paper reference figure for ${entry.title}`} />
                   <figcaption>Paper reference — ${entry.paper.citation}${entry.paper.figure ? ` (${entry.paper.figure})` : ""}.</figcaption>
                 </figure>`
               : null

@@ -81,6 +81,19 @@ def main() -> None:
                 raise
             zf.writestr(cand["svg"], obj["Body"].read())
             manifest.append(cand)
+        # Bundle the committed paper-reference screenshots into the same zip:
+        # Observable's build only copies statically-referenced files, not ones
+        # behind a runtime `<img src>`, so we serve them from the archive like
+        # the SVGs. The manifest's `paper.image` is the zip key (e.g.
+        # `refs/LDLR.png`); read it back from `refs_dir`.
+        seen_imgs: set[str] = set()
+        for cand in manifest:
+            img = (cand.get("paper") or {}).get("image")
+            if img and img not in seen_imgs:
+                src = refs_dir / Path(img).name
+                if src.is_file():
+                    zf.writestr(img, src.read_bytes())
+                    seen_imgs.add(img)
         zf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
     assert manifest, (
