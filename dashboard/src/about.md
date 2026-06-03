@@ -27,7 +27,7 @@ Each method × dataset emits two aggregate rows alongside the per-subset cells:
 
 ## Interpretation methodology
 
-**Nucleotide dependency maps** (the categorical Jacobian) measure how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position, over a locus-sized window — an `L×L` map whose off-diagonal structure flags coupled positions (splice sites, structured elements). Our models are causal, so each map stitches a forward and a reverse-complement pass and symmetrizes (`mean` or `max`). Computed by the evals_v2 pipeline; see [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. Each map links out to the region in the UCSC Genome Browser.
+**Categorical Jacobian / nucleotide dependency maps** measure how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position, over a locus-sized window — an `L×L` map whose off-diagonal structure flags coupled positions (splice sites, structured elements). The method was discovered independently for protein language models (categorical Jacobian; Zhang et al., *PNAS* 2024) and genomic LMs (nucleotide dependency; Tomaz da Silva et al., *Nat. Genet.* 2025). Our models are causal, so each map stitches a forward and a reverse-complement pass and symmetrizes (`mean`). Computed by the evals_v2 pipeline; see [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. Each map links out to the region in the UCSC Genome Browser.
 
 ## Agent-readable data
 
