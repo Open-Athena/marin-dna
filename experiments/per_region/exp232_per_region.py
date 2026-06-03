@@ -151,7 +151,15 @@ NUM_HEADS = HIDDEN_DIM // 128  # 9
 NUM_LAYERS = 12
 
 BATCH_SIZE = 8192
-TPU_TYPES: tuple[str, ...] = ("v5p-8",)
+# TPU type is env-overridable (``TPU_TYPE``, comma-separated for flexible
+# alternatives) so we can re-route between pools without editing the script —
+# e.g. ``TPU_TYPE=v4-8`` to escape a ``v5p-us-east5`` provisioning outage. v4-8
+# and v5p-8 share the same 8-chip / 2-VM topology, so the mesh + ram request and
+# a saved checkpoint carry over unchanged (v4 lives in us-central2-b, so launch
+# such arms with ``--region us-central2``; data stays cross-region in us-east5).
+TPU_TYPES: tuple[str, ...] = tuple(
+    t.strip() for t in os.getenv("TPU_TYPE", "v5p-8").split(",") if t.strip()
+)
 
 # 5K steps × 8192 batch × 256 tokens/seq ≈ 10.5B tokens per arm (same data
 # schedule as exp187). Asymmetric epoch counts across arms are by design (we
