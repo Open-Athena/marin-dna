@@ -6,9 +6,9 @@ wide: true
 
 # Nucleotide dependency maps
 
-A *nucleotide dependency map* (the **categorical Jacobian**) measures how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position — collapsed to an `L×L` heatmap over a locus. Strong off-diagonal blocks flag positions the model treats as coupled (splice sites, structured elements, …).
+A *nucleotide dependency map* (the **categorical Jacobian** — introduced for protein language models by [Zhang et al., *PNAS* 2024](https://doi.org/10.1073/pnas.2406285121), and applied to genomic LMs by [Tomaz da Silva et al., *Nat. Genet.* 2025](https://www.nature.com/articles/s41588-025-02347-3)) measures how substituting the base at one position shifts the model's predicted nucleotide distribution at every other position — collapsed to an `L×L` heatmap over a locus. Strong off-diagonal blocks flag positions the model treats as coupled (splice sites, structured elements, …).
 
-Pick a locus to see **every model's map for it, stacked** — they share one genomic coordinate axis, so you can read a position straight down across models, against the annotated reference panel from the paper.
+Pick a locus to see **every model's map for it, stacked** — they share one genomic coordinate axis, so you can read a position straight down across models, against the annotated reference panel (cited beneath it).
 
 Our gLMs are **causal**, so each strand populates only one triangle; the maps stitch a forward and a reverse-complement pass, then symmetrize (`mean`). See [#237](https://github.com/Open-Athena/marin-dna/issues/237) for the method and the autoregressive correctness argument. The visible dependency range is bounded by the model's context window (255 bp), so kilobase-scale structure is not shown here. Color encodes dependency strength (`coolwarm`, per-map robust scaling; the diagonal is masked).
 
@@ -93,17 +93,12 @@ display(
           </table>
           <p><a href=${ctx.ucsc_url} target="_blank" rel="noopener">View in the UCSC Genome Browser ↗</a></p>
           ${ctx.note ? html`<p class="nd-note">${ctx.note}</p>` : null}
-          ${
-            ctx.paper
-              ? html`<p class="nd-paper">Reference: <a href=${ctx.paper.url} target="_blank" rel="noopener">${ctx.paper.citation}</a>${ctx.paper.figure ? html` (${ctx.paper.figure})` : ""}.</p>`
-              : null
-          }
         </aside>
         <div class="nd-maps">
           ${
             paperImgUrl
               ? html`<figure class="nd-panel nd-ref">
-                  <figcaption class="nd-panel-name">Annotated reference — paper${ctx.paper && ctx.paper.figure ? ` (${ctx.paper.figure})` : ""}</figcaption>
+                  <figcaption class="nd-panel-name">Annotated reference — <a class="nd-model-link" href=${ctx.paper.url} target="_blank" rel="noopener">${ctx.paper.citation}</a>${ctx.paper.figure ? ` (${ctx.paper.figure})` : ""}</figcaption>
                   <img src=${paperImgUrl} alt=${`Paper reference figure for ${ctx.title}`} />
                 </figure>`
               : null

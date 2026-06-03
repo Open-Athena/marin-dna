@@ -43,7 +43,13 @@ EVALS_V2_CONFIG = (
     / "config.yaml"
 )
 
-# The nucleotide-dependency paper the loci are borrowed from (issue #237).
+# Method papers — cited in the page intro where the dependency map is defined:
+# the categorical Jacobian (introduced for protein LMs) and its application to
+# genomic LMs.
+CATEGORICAL_JACOBIAN_PAPER: dict[str, str] = {
+    "citation": "Zhang, Wayment-Steele, Brixi, Wang, Kern & Ovchinnikov, PNAS 2024",
+    "url": "https://doi.org/10.1073/pnas.2406285121",
+}
 NUC_DEP_PAPER: dict[str, str] = {
     "citation": (
         "Tomaz da Silva et al., “Nucleotide dependency analysis of genomic "
@@ -52,6 +58,16 @@ NUC_DEP_PAPER: dict[str, str] = {
     "url": "https://www.nature.com/articles/s41588-025-02347-3",
     "preprint_url": "https://www.biorxiv.org/content/10.1101/2024.07.27.605418v1",
 }
+# Source of each locus's reference screenshot (per `LOCUS_META[...]["source"]`).
+# The four gene loci are GPN-Star figures; the tRNA panel is from the nuc-dep paper.
+GPN_STAR_PAPER: dict[str, str] = {
+    "citation": "GPN-Star — Ye, Benegas et al., bioRxiv 2025",
+    "url": "https://www.biorxiv.org/content/10.1101/2025.09.21.677619v1",
+}
+_SOURCE_PAPERS: dict[str, dict[str, str]] = {
+    "gpn_star": GPN_STAR_PAPER,
+    "nuc_dep": NUC_DEP_PAPER,
+}
 
 # Per-locus presentation metadata; keys match the ``nuc_dep.loci`` config block.
 # ``figure`` (optional) pins the paper panel; ``note`` surfaces a locus-specific
@@ -59,24 +75,29 @@ NUC_DEP_PAPER: dict[str, str] = {
 LOCUS_META: dict[str, dict[str, str]] = {
     "LDLR": {
         "title": "LDLR",
-        "description": "Low-density lipoprotein receptor (chr19) — the paper's headline dependency-map example.",
+        "description": "Low-density lipoprotein receptor promoter (chr19); TF-binding sites (SREBP, SP1) show up as off-diagonal blocks.",
+        "source": "gpn_star",
     },
     "HBA1": {
         "title": "HBA1",
         "description": "Hemoglobin subunit alpha 1 (chr16).",
+        "source": "gpn_star",
     },
     "TH": {
         "title": "TH",
         "description": "Tyrosine hydroxylase (chr11, − strand).",
+        "source": "gpn_star",
     },
     "GRIA4": {
         "title": "GRIA4",
         "description": "Glutamate ionotropic receptor AMPA type subunit 4 (chr11) — a small element; look for the tight ~3-bp-periodic near-diagonal band.",
+        "source": "gpn_star",
     },
     "tRNA_Arg_TCT": {
         "title": "tRNA-Arg-TCT-4-1",
         "description": "Arginine tRNA (chr1, − strand) — a structured ncRNA.",
         "figure": "Fig. 7b",
+        "source": "nuc_dep",
         "note": (
             "exp135 does not recover this tRNA's cloverleaf base-pairing "
             "(contact AUROC ≈ chance) — verified not a bug; see issue #237."
@@ -114,15 +135,19 @@ def display_region(chrom: str, start: int, end: int) -> str:
     return f"chr{c}:{start + 1:,}-{end:,}"
 
 
-def _paper_ref(locus: str, *, refs_dir: Path | None) -> dict[str, Any]:
-    """Paper citation (+ optional figure + committed screenshot) for a locus.
+def _paper_ref(locus: str, *, refs_dir: Path | None) -> dict[str, Any] | None:
+    """Screenshot-source citation (+ optional figure + committed image) for a
+    locus, or ``None`` if the locus declares no source.
 
-    Citation/figure come from ``NUC_DEP_PAPER`` / ``LOCUS_META``; ``image`` is a
-    site-relative URL set only when a screenshot is committed under ``refs_dir``
-    (so the page never points at a missing image).
+    The source paper is per-locus (``LOCUS_META[...]["source"]``): GPN-Star for
+    the gene loci, the nuc-dep paper for the tRNA. ``image`` is the zip-relative
+    key the loader bundles, set only when a screenshot is committed in ``refs_dir``.
     """
     meta = LOCUS_META.get(locus, {})
-    ref: dict[str, Any] = dict(NUC_DEP_PAPER)
+    source = meta.get("source")
+    if source is None:
+        return None
+    ref: dict[str, Any] = dict(_SOURCE_PAPERS[source])
     if "figure" in meta:
         ref["figure"] = meta["figure"]
     ref["image"] = None
