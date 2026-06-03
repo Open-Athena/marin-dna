@@ -65,11 +65,13 @@ rule plot_nuc_dep:
         # parquet stringifies column names; restore int genomic coordinates.
         df.columns = df.columns.astype(int)
         df.index = df.index.astype(int)
+        # No title: the dashboard labels each map with the model line, and a
+        # per-model title would also make stacked maps crop to different widths
+        # (#240). The locus/model/combine live in the output path.
         plot_dependency_map(
             df,
             output[0],
             chrom=str(config["nuc_dep"]["loci"][wildcards.locus]["chrom"]),
-            title=f"{wildcards.locus} ({wildcards.combine}) — {wildcards.model}",
             dpi=config["nuc_dep"].get("dpi", 150),
         )
 

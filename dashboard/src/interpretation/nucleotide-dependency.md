@@ -15,7 +15,10 @@ Our gLMs are **causal**, so each strand populates only one triangle; the maps st
 ```js
 const arch = await FileAttachment("../data/nuc_dep.zip").zip();
 const manifest = JSON.parse(await arch.file("manifest.json").text());
+const methods = await FileAttachment("../data/models.json").json();
+const modelById = new Map(methods.map((m) => [m.id, m]));
 import {PillSelect, labeledRow} from "../components/controls.js";
+import {modelHref, attachModelPopover} from "../components/model-cards.js";
 ```
 
 ```js
@@ -105,12 +108,19 @@ display(
                 </figure>`
               : null
           }
-          ${entries.map(
-            (e) => html`<figure class="nd-panel">
-              <figcaption class="nd-panel-name">${e.model_display}</figcaption>
+          ${entries.map((e) => {
+            // Model name → its Models card, with the same hover popover as the
+            // leaderboard (attachModelPopover from model-cards.js).
+            const method = modelById.get(e.model);
+            const label = method
+              ? html`<a class="nd-model-link" href=${modelHref(e.model)}>${e.model_display}</a>`
+              : html`<span>${e.model_display}</span>`;
+            if (method) attachModelPopover(label, method);
+            return html`<figure class="nd-panel">
+              <figcaption class="nd-panel-name">${label}</figcaption>
               ${renderMap(svgByModel.get(e.model))}
-            </figure>`,
-          )}
+            </figure>`;
+          })}
         </div>
       </div>`
     : html`<div class="nd-empty">No dependency maps are materialized for that selection yet.</div>`,
@@ -150,6 +160,54 @@ main > h1, main > p { max-width: 900px; }
 .nd-ref .nd-panel-name { color: #666; font-weight: 500; }
 .nd-ref img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
 .nd-empty { color: #888; margin: 1em 0; }
+.nd-model-link { color: #1c6fb3; text-decoration: none; }
+.nd-model-link:hover { text-decoration: underline; }
+
+/* Model popover on model-name hover (mirrors the leaderboard; see model-cards.js). */
+.lb-method-popover {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  font-size: 0.85em;
+  line-height: 1.4;
+  padding: 10px 12px;
+  min-width: 280px;
+  max-width: 360px;
+}
+.lb-pop-header { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
+.lb-pop-family {
+  display: inline-block;
+  font-size: 0.7em;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  color: #fff;
+  width: fit-content;
+}
+.lb-pop-display { font-size: 0.98em; font-weight: 600; }
+.lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
+.lb-pop-specs { margin: 6px 0; }
+.lb-pop-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.lb-pop-key {
+  color: #888; text-transform: uppercase; font-size: 0.72em;
+  letter-spacing: 0.04em;
+}
+.lb-pop-val { font-size: 0.92em; }
+.lb-pop-links { margin: 6px 0 2px; font-size: 0.9em; }
+.lb-pop-more {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.82em;
+  color: #3a7bd5;
+}
+.muted { color: #aaa; }
 
 /* Control rows + segmented pills (mirrored per-page; see components/controls.js). */
 .lb-control-row {
