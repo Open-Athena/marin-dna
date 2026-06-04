@@ -1,3 +1,7 @@
+# Standard library
+import os
+import subprocess
+
 # Core data science libraries
 import numpy as np
 import pandas as pd
@@ -35,6 +39,39 @@ from marin_dna.pipelines.enhancer_classification.predict import sliding_windows
 from marin_dna.pipelines.enhancer_segmentation.predict_genome import tile_chromosomes
 
 tqdm.pandas()
+
+
+def _git_commit_sha() -> str:
+    """Return the current git commit SHA, or ``"main"`` if git is unavailable.
+
+    Resolution order: ``--config commit_sha=...`` / ``$COMMIT_SHA`` override
+    (lets a sky launcher forward the host SHA to a worktree-synced cluster
+    where ``git rev-parse`` would fail), then ``git rev-parse HEAD`` from the
+    workflow dir, then the literal ``"main"`` fallback so the permalink still
+    resolves. Embedded in the per-repo HF dataset cards (see
+    ``marin_dna.pipelines.training_dataset.hf_readme``); resolved once at
+    Snakefile-load time so all cards in a run share one SHA.
+    """
+    override = config.get("commit_sha") or os.environ.get("COMMIT_SHA")
+    if override and len(override) == 40:
+        return override
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=workflow.basedir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        sha = result.stdout.strip()
+        if result.returncode == 0 and len(sha) == 40:
+            return sha
+    except FileNotFoundError:
+        pass
+    return "main"
+
+
+GIT_COMMIT_SHA = _git_commit_sha()
 
 
 def load_genome_info(path: str) -> pd.DataFrame:
