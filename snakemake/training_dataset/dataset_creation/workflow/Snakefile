@@ -65,6 +65,16 @@ rule all:
             "results/upload.done/validation/{intervals}",
             intervals=validation_intervals,
         ),
+        # Per-repo HF dataset cards (README.md), pushed after the data upload.
+        [
+            f"results/upload.done/training_readme/{gs}/{iv}"
+            for gs in genome_sets_list
+            for iv in training_per_genome_set.get(gs, training_intervals)
+        ],
+        expand(
+            "results/upload.done/validation_readme/{intervals}",
+            intervals=validation_intervals,
+        ),
 
 
 # network-constrained
