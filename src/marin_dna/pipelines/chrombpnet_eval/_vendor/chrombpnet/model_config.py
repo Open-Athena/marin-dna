@@ -1,10 +1,15 @@
 # Author: Lei Xiong <jsxlei@gmail.com>
-from .parse_utils import add_argparse_args, from_argparse_args, parse_argparser, get_init_arguments_and_types
+from .parse_utils import (
+    add_argparse_args,
+    from_argparse_args,
+    parse_argparser,
+    get_init_arguments_and_types,
+)
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Tuple, Union
 
-class BaseConfig:
 
+class BaseConfig:
     model_type = "base"
 
     @classmethod
@@ -17,7 +22,6 @@ class BaseConfig:
             parser = LightningDataModule.add_argparse_args(parser)
         """
         return add_argparse_args(cls, parent_parser, **kwargs)
-
 
     @classmethod
     def from_argparse_args(
@@ -37,7 +41,6 @@ class BaseConfig:
         """
         return from_argparse_args(cls, args, **kwargs)
 
-
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
         return parse_argparser(cls, arg_parser)
@@ -53,7 +56,6 @@ class BaseConfig:
         return get_init_arguments_and_types(cls)
 
 
-
 class ChromBPNetConfig(BaseConfig):
     r"""
 
@@ -63,16 +65,15 @@ class ChromBPNetConfig(BaseConfig):
 
     def __init__(
         self,
-
-        out_dim:int=1000,
-        n_filters:int=512,
-        n_layers:int=8,
-        conv1_kernel_size:int=21,
-        profile_kernel_size:int=75,
-        n_outputs:int=1,
-        n_control_tracks:int=0,
-        profile_output_bias:int=True,
-        count_output_bias:int=True,
+        out_dim: int = 1000,
+        n_filters: int = 512,
+        n_layers: int = 8,
+        conv1_kernel_size: int = 21,
+        profile_kernel_size: int = 75,
+        n_outputs: int = 1,
+        n_control_tracks: int = 0,
+        profile_output_bias: int = True,
+        count_output_bias: int = True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -88,7 +89,6 @@ class ChromBPNetConfig(BaseConfig):
         self.count_output_bias = count_output_bias
 
 
-
 class ArsenalChromBPNetConfig(BaseConfig):
     r"""
 
@@ -98,22 +98,22 @@ class ArsenalChromBPNetConfig(BaseConfig):
 
     def __init__(
         self,
-        input_len:int=2114,
-        out_dim:int=1000,
-        n_filters:int=512,
-        n_layers:int=8,
-        conv1_kernel_size:int=21,
-        profile_kernel_size:int=75,
-        n_outputs:int=1,
-        n_control_tracks:int=0,
-        profile_output_bias:int=True,
-        count_output_bias:int=True,
+        input_len: int = 2114,
+        out_dim: int = 1000,
+        n_filters: int = 512,
+        n_layers: int = 8,
+        conv1_kernel_size: int = 21,
+        profile_kernel_size: int = 75,
+        n_outputs: int = 1,
+        n_control_tracks: int = 0,
+        profile_output_bias: int = True,
+        count_output_bias: int = True,
         finetune_arsenal: bool = False,
         arsenal_output_type: str = "embedding",
         input_embedding_dim: int = 512,
         arsenal_input_size: int = 2114,
         num_layers_avg: int = 4,
-        category : int = None,
+        category: int = None,
         **kwargs,
     ):
         super().__init__(**kwargs)

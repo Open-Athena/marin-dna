@@ -24,7 +24,7 @@ from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 # from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN
 
 _T = TypeVar("_T", bound=Callable[..., Any])
-#_ARGPARSE_CLS = Union[Type[]]
+# _ARGPARSE_CLS = Union[Type[]]
 
 from ast import literal_eval
 from contextlib import suppress
@@ -42,7 +42,6 @@ def str_to_bool_or_str(val: str) -> Union[str, bool]:
     if lower in ("n", "no", "f", "false", "off", "0"):
         return False
     return val
-
 
 
 def str_to_bool(val: str) -> bool:
@@ -64,7 +63,6 @@ def str_to_bool(val: str) -> bool:
     if isinstance(val_converted, bool):
         return val_converted
     raise ValueError(f"invalid truth value {val_converted}")
-
 
 
 def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
@@ -125,13 +123,18 @@ def from_argparse_args(
     return cls(**trainer_kwargs)
 
 
-
-
 def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
-    args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
+    args = (
+        arg_parser.parse_args()
+        if isinstance(arg_parser, ArgumentParser)
+        else arg_parser
+    )
 
-    types_default = {arg: (arg_types, arg_default) for arg, arg_types, arg_default in get_init_arguments_and_types(cls)}
+    types_default = {
+        arg: (arg_types, arg_default)
+        for arg, arg_types, arg_default in get_init_arguments_and_types(cls)
+    }
 
     modified_args = {}
     for k, v in vars(args).items():
@@ -152,9 +155,9 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     return Namespace(**modified_args)
 
 
-
-
-def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(
+    cls, template: str = "PL_%(cls_name)s_%(cls_argument)s"
+) -> Namespace:
     """Parse environment arguments if they are defined.
 
     Examples:
@@ -173,7 +176,10 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
 
     env_args = {}
     for arg_name, _, _ in cls_arg_defaults:
-        env = template % {"cls_name": cls.__name__.upper(), "cls_argument": arg_name.upper()}
+        env = template % {
+            "cls_name": cls.__name__.upper(),
+            "cls_argument": arg_name.upper(),
+        }
         val = os.environ.get(env)
         if not (val is None or val == ""):
             # todo: specify the possible exception
@@ -182,8 +188,6 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
                 val = literal_eval(val)
             env_args[arg_name] = val
     return Namespace(**env_args)
-
-
 
 
 def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
@@ -214,7 +218,6 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-
 def _get_abbrev_qualified_cls_name(cls) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
@@ -222,7 +225,6 @@ def _get_abbrev_qualified_cls_name(cls) -> str:
         return f"pl.{cls.__name__}"
     # Fully qualified.
     return f"{cls.__module__}.{cls.__qualname__}"
-
 
 
 def add_argparse_args(
@@ -340,7 +342,6 @@ def add_argparse_args(
     if use_argument_group:
         return parent_parser
     return parser
-
 
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:

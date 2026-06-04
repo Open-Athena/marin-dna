@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
@@ -10,25 +9,26 @@ import math
 from scipy.spatial.distance import jensenshannon
 
 
-plt.rcParams["figure.figsize"]=10,5
+plt.rcParams["figure.figsize"] = 10, 5
 font = {
     # 'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 10}
-matplotlib.rc('font', **font)
+    "weight": "bold",
+    "size": 10,
+}
+matplotlib.rc("font", **font)
 
 
 def _fix_sum_to_one(probs):
     """
-      Fix probability arrays whose sum is fractinally above or
-      below 1.0
+    Fix probability arrays whose sum is fractinally above or
+    below 1.0
 
-      Args:
-          probs (numpy.ndarray): An array whose sum is almost equal
-              to 1.0
+    Args:
+        probs (numpy.ndarray): An array whose sum is almost equal
+            to 1.0
 
-      Returns:
-          np.ndarray: array that sums to 1
+    Returns:
+        np.ndarray: array that sums to 1
     """
 
     _probs = np.copy(probs)
@@ -42,30 +42,36 @@ def _fix_sum_to_one(probs):
     return _probs
 
 
-def density_scatter(x, y, xlab, ylab, ax = None, sort = True, bins = 20, fontsize=20):
+def density_scatter(x, y, xlab, ylab, ax=None, sort=True, bins=20, fontsize=20):
     """
     Scatter plot colored by 2d histogram
     """
-    bad_indices=np.where(np.isnan(x))+np.where(np.isnan(y))
-    x=x[~np.isin(np.arange(x.size),bad_indices)]
-    y=y[~np.isin(np.arange(y.size),bad_indices)]
+    bad_indices = np.where(np.isnan(x)) + np.where(np.isnan(y))
+    x = x[~np.isin(np.arange(x.size), bad_indices)]
+    y = y[~np.isin(np.arange(y.size), bad_indices)]
 
-    if ax is None :
-        fig , ax = plt.subplots()
-    data , x_e, y_e = np.histogram2d( x, y, bins = bins, density = True )
-    z = interpn( ( 0.5*(x_e[1:] + x_e[:-1]) , 0.5*(y_e[1:]+y_e[:-1]) ) , data , np.vstack([x,y]).T , method = "splinef2d", bounds_error = False)
+    if ax is None:
+        fig, ax = plt.subplots()
+    data, x_e, y_e = np.histogram2d(x, y, bins=bins, density=True)
+    z = interpn(
+        (0.5 * (x_e[1:] + x_e[:-1]), 0.5 * (y_e[1:] + y_e[:-1])),
+        data,
+        np.vstack([x, y]).T,
+        method="splinef2d",
+        bounds_error=False,
+    )
 
-    #To be sure to plot all data
+    # To be sure to plot all data
     z[np.where(np.isnan(z))] = 0.0
     # Sort the points by density, so that the densest points are plotted last
-    if sort :
+    if sort:
         idx = z.argsort()
         x, y, z = x[idx], y[idx], z[idx]
 
-    ax.scatter( x, y, c=z )
+    ax.scatter(x, y, c=z)
     plt.subplots_adjust(left=0.2, right=0.8, top=0.8, bottom=0.2)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
     vmin = min(np.min(x), np.min(y)) - 0.1
     vmax = max(np.max(x), np.max(y)) + 0.1
@@ -74,66 +80,63 @@ def density_scatter(x, y, xlab, ylab, ax = None, sort = True, bins = 20, fontsiz
     plt.xlabel(xlab, fontsize=fontsize)
     plt.ylabel(ylab, fontsize=fontsize)
 
-    norm = Normalize(vmin = np.min(z), vmax = np.max(z))
+    norm = Normalize(vmin=np.min(z), vmax=np.max(z))
     cax = fig.add_axes([0.85, 0.4, 0.02, 0.2])
-    cbar = fig.colorbar(cm.ScalarMappable(norm = norm), cax=cax)
-    cbar.ax.set_ylabel('Density', rotation=0, y=1.2, labelpad=-15, fontsize=16)
+    cbar = fig.colorbar(cm.ScalarMappable(norm=norm), cax=cax)
+    cbar.ax.set_ylabel("Density", rotation=0, y=1.2, labelpad=-15, fontsize=16)
 
     return ax
 
-#https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/metrics.py#L18
+
+# https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/metrics.py#L18
 # replacing TracebackExceptions with assertions
 def mnll(true_counts, logits=None, probs=None):
     """
-        Compute the multinomial negative log-likelihood between true
-        counts and predicted values of a BPNet-like profile model
+    Compute the multinomial negative log-likelihood between true
+    counts and predicted values of a BPNet-like profile model
 
-        One of `logits` or `probs` must be given. If both are
-        given `logits` takes preference.
-        Args:
-            true_counts (numpy.array): observed counts values
+    One of `logits` or `probs` must be given. If both are
+    given `logits` takes preference.
+    Args:
+        true_counts (numpy.array): observed counts values
 
-            logits (numpy.array): predicted logits values
+        logits (numpy.array): predicted logits values
 
-            probs (numpy.array): predicted values as probabilities
+        probs (numpy.array): predicted values as probabilities
 
-        Returns:
-            float: cross entropy
+    Returns:
+        float: cross entropy
 
     """
 
     dist = None
 
     if logits is not None:
-
         # check for length mismatch
-        assert (len(logits) == len(true_counts))
+        assert len(logits) == len(true_counts)
 
         # convert logits to softmax probabilities
         probs = logits - logsumexp(logits)
         probs = np.exp(probs)
 
     elif probs is not None:
-
         # check for length mistmatch
-        assert(len(probs) == len(true_counts))
+        assert len(probs) == len(true_counts)
 
         # check if probs sums to 1
         # why is this nans sometimes
-        assert( abs(1.0 - np.sum(probs)) < 1e-1)
+        assert abs(1.0 - np.sum(probs)) < 1e-1
 
     else:
-
         # both 'probs' and 'logits' are None
-         print(
-            "At least one of probs or logits must be provided. "
-            "Both are None.")
+        print("At least one of probs or logits must be provided. Both are None.")
 
     # compute the nmultinomial distribution
     mnom = multinomial(np.sum(true_counts), probs)
     return -(mnom.logpmf(true_counts) / len(true_counts))
 
-#https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/metrics.py#L129
+
+# https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/metrics.py#L129
 def get_min_max_normalized_value(val, minimum, maximum):
     ret_val = (val - maximum) / (minimum - maximum)
 
@@ -144,15 +147,16 @@ def get_min_max_normalized_value(val, minimum, maximum):
         return 1
     return ret_val
 
-#https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/fastpredict.py#L59
+
+# https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/fastpredict.py#L59
 def mnll_min_max_bounds(profile):
     """
-        Min Max bounds for the mnll metric
+    Min Max bounds for the mnll metric
 
-        Args:
-            profile (numpy.ndarray): true profile
-        Returns:
-            tuple: (min, max) bounds values
+    Args:
+        profile (numpy.ndarray): true profile
+    Returns:
+        tuple: (min, max) bounds values
     """
 
     # uniform distribution profile
@@ -171,7 +175,7 @@ def mnll_min_max_bounds(profile):
     # doesnt always and there are cases where we still see NaNs, and
     # those we'll set to 0)
     profile_prob = _fix_sum_to_one(profile_prob)
-    #print(profile, profile_prob)
+    # print(profile, profile_prob)
 
     # mnll of profile with itself
     min_mnll = mnll(profile, probs=profile_prob)
@@ -188,16 +192,17 @@ def mnll_min_max_bounds(profile):
 
     return (min_mnll, max_mnll)
 
-#https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/fastpredict.py#L131
+
+# https://github.com/kundajelab/basepairmodels/blob/cf8e346e9df1bad9e55bd459041976b41207e6e5/basepairmodels/cli/fastpredict.py#L131
 def jsd_min_max_bounds(profile):
     """
-        Min Max bounds for the jsd metric
+    Min Max bounds for the jsd metric
 
-        Args:
-            profile (numpy.ndarray): true profile
+    Args:
+        profile (numpy.ndarray): true profile
 
-        Returns:
-            tuple: (min, max) bounds values
+    Returns:
+        tuple: (min, max) bounds values
     """
 
     # uniform distribution profile
