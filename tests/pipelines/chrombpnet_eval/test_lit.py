@@ -95,3 +95,5 @@ def test_wsd_lr_lambda_shape():
     assert fn(50) == 1.0  # stable phase
     assert fn(90) == pytest.approx(0.5)  # mid-decay (decay_start=80, decay=20)
     assert fn(100) == 0.0  # end -> 0
+    # sub-step warmup (warmup_frac * total < 1) must clamp to <= 1.0, not blow up
+    assert wsd_lr_lambda(2, 0.01, 0.2)(0) == 1.0

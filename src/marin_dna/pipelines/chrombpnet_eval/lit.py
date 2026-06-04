@@ -68,7 +68,8 @@ def wsd_lr_lambda(
 
     def factor(step: int) -> float:
         if warmup > 0 and step < warmup:
-            return (step + 1) / warmup  # linear ramp ~0 -> 1
+            # linear ramp ~0 -> 1; clamp guards sub-step warmup (warmup < 1)
+            return min(1.0, (step + 1) / warmup)
         if step < decay_start:
             return 1.0  # stable
         if decay > 0:
@@ -101,7 +102,10 @@ class ChromBPNetLit(L.LightningModule):
             takes precedence over ``warmup_steps``/``plateau`` and uses
             ``warmup_frac``/``decay_frac``).
         warmup_frac / decay_frac: WSD warmup and decay fractions of the total
-            step budget (only used when ``lr_scheduler="wsd"``).
+            step budget (only used when ``lr_scheduler="wsd"``). ``warmup_frac``
+            defaults to a small ``0.01`` — these are short supervised runs, and
+            the early NaN spike (#247) is tamed by ~100 warmup steps + grad-clip,
+            not a long LLM-pretraining-style 10% warmup.
     """
 
     def __init__(
@@ -113,7 +117,7 @@ class ChromBPNetLit(L.LightningModule):
         lr: float = 1e-3,
         warmup_steps: int = 0,
         lr_scheduler: str | None = None,
-        warmup_frac: float = 0.1,
+        warmup_frac: float = 0.01,
         decay_frac: float = 0.2,
     ) -> None:
         super().__init__()

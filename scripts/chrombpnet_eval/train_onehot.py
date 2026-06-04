@@ -104,8 +104,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--warmup-frac",
         type=float,
-        default=0.1,
-        help="WSD warmup fraction of the step budget (--lr-scheduler wsd)",
+        default=0.01,
+        help="WSD warmup fraction of the step budget (--lr-scheduler wsd); small "
+        "(0.01) for these short supervised runs — the early NaN spike (#247) is "
+        "tamed by ~100 warmup steps + grad-clip, not a long LLM-style warmup",
     )
     p.add_argument(
         "--decay-frac",
