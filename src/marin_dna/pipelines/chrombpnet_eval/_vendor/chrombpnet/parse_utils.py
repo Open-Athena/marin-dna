@@ -19,15 +19,13 @@ from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, List, Tuple, TypeVar, Union
 
-# from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN
+# [vendored] upstream Lightning imports this from ``pytorch_lightning.utilities.types``;
+# inlined here to drop the dependency.
+_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
 _T = TypeVar("_T", bound=Callable[..., Any])
-# _ARGPARSE_CLS = Union[Type[]]
-
-from ast import literal_eval
-from contextlib import suppress
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -90,7 +88,7 @@ def from_argparse_args(
     cls,
     args: Union[Namespace, ArgumentParser],
     **kwargs: Any,
-) -> Union["pl.LightningDataModule", "pl.Trainer"]:
+) -> Any:
     """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
     ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 

@@ -3,13 +3,24 @@
 import torch
 import torch.nn as nn
 
-from .bpnet import BPNet, DoubleBPNet, DreamRNN
+from .bpnet import BPNet
 import os
 import sys
 
 arsenal_dir = os.environ.get("ARSENAL_MODEL_DIR", "")
 sys.path.append(f"{arsenal_dir}/src/regulatory_lm/")
-# [vendored] removed ARSENAL `from modeling.model import *` (replaced by HF adapter)
+
+# [vendored] removed ARSENAL `from modeling.model import *` (replaced by HF adapter).
+# ``ArsenalChromBPNet.get_avg_embeddings`` is the only consumer of that wildcard: it
+# filters the LM's encoder layers by type. Resolve the single name it needs optionally
+# so this module imports without the regulatory_lm package; the sentinel fallback is a
+# class no real module is an instance of, so ``type(m) in [...]`` simply never matches it.
+try:
+    from modeling.model import TransformerROPEEncoderLayer
+except ImportError:
+
+    class TransformerROPEEncoderLayer:  # type: ignore[no-redef]  # sentinel
+        pass
 
 
 class _Exp(nn.Module):

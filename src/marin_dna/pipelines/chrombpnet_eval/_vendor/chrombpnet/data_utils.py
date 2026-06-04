@@ -60,7 +60,6 @@ def dna_to_one_hot(seqs):
 #     # Fetch the corresponding base for each position using indexing
 #     seq_array = bases[one_hot_inds]
 #     return ["".join(seq) for seq in seq_array]
-import numpy as np
 
 
 def one_hot_to_dna(one_hot):
@@ -522,7 +521,7 @@ def write_bigwig(
     bw.close()
 
     all_entries = np.hstack(all_entries)
-    if outstats_file != None:
+    if outstats_file is not None:
         with open(outstats_file, "w") as f:
             f.write("Min\t{:.6f}\n".format(np.min(all_entries)))
             f.write(".1%\t{:.6f}\n".format(np.quantile(all_entries, 0.001)))

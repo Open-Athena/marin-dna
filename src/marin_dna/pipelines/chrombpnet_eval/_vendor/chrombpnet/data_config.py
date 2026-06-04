@@ -7,8 +7,7 @@ This module provides configuration classes for different data types and processi
 It includes parameter validation and default values for common configurations.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Union, Tuple
+from typing import List, Any, Union, Tuple
 from argparse import ArgumentParser, Namespace
 import os
 import json
@@ -190,7 +189,7 @@ class DataConfig:
     @classmethod
     def from_argparse_args(
         cls, args: Union[Namespace, ArgumentParser], **kwargs: Any
-    ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
+    ) -> Any:
         """Create an instance from CLI arguments.
 
         Args:

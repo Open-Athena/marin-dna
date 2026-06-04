@@ -7,16 +7,14 @@ This module provides specialized wrappers for BPNet, ChromBPNet, and RegNet mode
 extending the base ModelWrapper class with model-specific functionality.
 """
 
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Union
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import lightning as L
 from lightning import LightningModule
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 import numpy as np
 import argparse
-from torch.distributions.multinomial import Multinomial
 from .chrombpnet import BPNet, ChromBPNet, ArsenalChromBPNet, ArsenalChromBPNetNoBias
 from .model_config import ChromBPNetConfig, ArsenalChromBPNetConfig
 import os
@@ -132,16 +130,9 @@ def adjust_bias_model_logcounts(bias_model, dataloader, verbose=False, device=1)
         parsed_output = {
             key: np.concatenate([batch[key] for batch in output]) for key in output[0]
         }
-        try:
-            delta = parsed_output["true_count"].mean(-1) - parsed_output[
-                "pred_count"
-            ].mean(-1)
-        except:
-            import pdb
-
-            pdb.set_trace()
-            # delta = parsed_output['true_count'].mean(dim=-1) - parsed_output['pred_count'].mean(dim=-1)
-        # delta = torch.cat([predictions['delta'] for predictions in predictions], dim=0)
+        delta = parsed_output["true_count"].mean(-1) - parsed_output["pred_count"].mean(
+            -1
+        )
 
         bias_model.linear.bias += torch.Tensor(delta).to(bias_model.linear.bias.device)
 
@@ -222,7 +213,7 @@ class ControlWrapper(torch.nn.Module):
         self.model = model
 
     def forward(self, X, X_ctl=None):
-        if X_ctl != None:
+        if X_ctl is not None:
             return self.model(X, X_ctl)
 
         if self.model.n_control_tracks == 0:
@@ -352,6 +343,11 @@ class ModelWrapper(LightningModule):
             beta (float): Weight for profile loss
             metrics (Dict[str, List[float]]): Dictionary to store metrics during training
     """
+
+    # Assigned by subclasses (BPNetWrapper, ChromBPNetWrapper, ...). Declared here so
+    # ``self.model(...)`` type-checks — otherwise nn.Module.__getattr__ resolves it to
+    # ``Tensor | Module`` and the ``Tensor`` branch is not callable.
+    model: torch.nn.Module
 
     def __init__(self, args, **kwargs):
         """Initialize the model wrapper.
@@ -501,7 +497,9 @@ class ModelWrapper(LightningModule):
         """Handle end of test epoch."""
         self._epoch_end("test")
 
-    def configure_optimizers(self) -> Union[torch.optim.Optimizer, Dict[str, Any]]:
+    def configure_optimizers(  # type: ignore[override]  # Lightning's return union is broader; runtime-compatible
+        self,
+    ) -> Union[torch.optim.Optimizer, Dict[str, Any]]:
         raise NotImplementedError("Subclasses must implement this method")
 
     @staticmethod
@@ -792,7 +790,9 @@ def create_model_wrapper(args, **kwargs) -> ModelWrapper:
     if model_type == "bpnet":
         return BPNetWrapper(args)
     elif model_type == "chrombpnet":
-        model_wrapper = ChromBPNetWrapper(args)
+        # annotate with the common base so the `arsenal-chrombpnet` branch below
+        # (a sibling BPNetWrapper subclass) is a compatible reassignment
+        model_wrapper: BPNetWrapper = ChromBPNetWrapper(args)
         if args.bias_scaled:
             model_wrapper.model.bias = model_wrapper.init_bias(args.bias_scaled)
         if args.chrombpnet_wo_bias:
@@ -834,7 +834,7 @@ def load_pretrained_model(args, checkpoint):
             if args.bias_scaled:
                 model_wrapper.model.bias = model_wrapper.init_bias(args.bias_scaled)
             else:
-                print(f"No bias model found")
+                print("No bias model found")
             return model_wrapper
 
         elif checkpoint.endswith(".pt"):
@@ -845,7 +845,7 @@ def load_pretrained_model(args, checkpoint):
             if args.bias_scaled:
                 model_wrapper.model.bias = model_wrapper.init_bias(args.bias_scaled)
             else:
-                print(f"No bias model found")
+                print("No bias model found")
             return model_wrapper
         elif checkpoint.endswith(".h5"):
             model_wrapper = wrapper_class(args)
@@ -856,7 +856,7 @@ def load_pretrained_model(args, checkpoint):
                 print(f"Loading bias model from {args.bias_scaled}")
                 model_wrapper.model.bias = model_wrapper.init_bias(args.bias_scaled)
             else:
-                print(f"No bias model found")
+                print("No bias model found")
             return model_wrapper
     else:
         model_wrapper = wrapper_class(args)
@@ -865,12 +865,12 @@ def load_pretrained_model(args, checkpoint):
 
 
 if __name__ == "__main__":
-    args = argparse.ArgumentParser()
-    args.add_argument("--model_type", type=str, default="chrombpnet")
-    args.add_argument("--alpha", type=float, default=1.0)
-    args = args.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_type", type=str, default="chrombpnet")
+    parser.add_argument("--alpha", type=float, default=1.0)
+    args = parser.parse_args()
 
-    model_wrapper = create_model_wrapper(args.model_type, args)
+    model_wrapper = create_model_wrapper(args)
     x = torch.randn(1, 4, 2114)
     batch = {
         "onehot_seq": x,

@@ -26,7 +26,7 @@ class BaseConfig:
     @classmethod
     def from_argparse_args(
         cls, args: Union[Namespace, ArgumentParser], **kwargs: Any
-    ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
+    ) -> Any:
         """Create an instance from CLI arguments.
 
         Args:

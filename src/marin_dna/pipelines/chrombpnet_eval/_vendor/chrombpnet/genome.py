@@ -3,8 +3,6 @@ from collections.abc import Callable
 
 from pathlib import Path
 from pooch import Decompress
-import pandas as pd
-import os
 import logging
 
 import pooch

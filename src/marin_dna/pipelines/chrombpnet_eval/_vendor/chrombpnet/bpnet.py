@@ -316,7 +316,9 @@ class BPNet(torch.nn.Module):
             prefix = "wo_bias_"
         # print(f"Loading {name} model from {filename}", flush=True)
 
-        namer = lambda prefix, suffix: "{0}{1}/{0}{1}".format(prefix, suffix)
+        def namer(prefix, suffix):
+            return "{0}{1}/{0}{1}".format(prefix, suffix)
+
         k, b = "kernel:0", "bias:0"
 
         n_layers = 0
@@ -324,7 +326,7 @@ class BPNet(torch.nn.Module):
             try:
                 idx = int(layer_name.split("_")[-1].replace("conv", ""))
                 n_layers = max(n_layers, idx)
-            except:
+            except ValueError:
                 pass
 
         name = namer(prefix, "bpnet_1conv")
@@ -334,8 +336,11 @@ class BPNet(torch.nn.Module):
             n_layers=n_layers, n_filters=n_filters, n_outputs=1, n_control_tracks=0
         )
 
-        convert_w = lambda x: torch.nn.Parameter(torch.tensor(x[:]).permute(2, 1, 0))
-        convert_b = lambda x: torch.nn.Parameter(torch.tensor(x[:]))
+        def convert_w(x):
+            return torch.nn.Parameter(torch.tensor(x[:]).permute(2, 1, 0))
+
+        def convert_b(x):
+            return torch.nn.Parameter(torch.tensor(x[:]))
 
         iname = namer(prefix, "bpnet_1st_conv")
 
@@ -358,131 +363,6 @@ class BPNet(torch.nn.Module):
         model.linear.weight = torch.nn.Parameter(torch.tensor(w[name][k][:].T))
         model.linear.bias = convert_b(w[name][b])
         return model
-
-    @classmethod
-    def to_keras(cls, filename):
-        import tensorflow as tf
-        from tensorflow.keras.layers import (
-            Input,
-            Conv1D,
-            Cropping1D,
-            Add,
-            GlobalAveragePooling1D,
-            Dense,
-            ReLU,
-        )
-        from tensorflow.keras.models import Model
-        import numpy as np
-
-        def build_keras_bpnet(
-            sequence_len,
-            n_dil_layers,
-            filters,
-            conv1_kernel_size,
-            profile_kernel_size,
-            num_tasks,
-            out_pred_len,
-        ):
-            inp = Input(shape=(sequence_len, 4), name="sequence")
-
-            # First convolution without dilation
-            x = Conv1D(
-                filters,
-                kernel_size=conv1_kernel_size,
-                padding="valid",
-                activation="relu",
-                name="conv1",
-            )(inp)
-
-            for i in range(1, n_dil_layers + 1):
-                conv_x = Conv1D(
-                    filters,
-                    kernel_size=3,
-                    padding="valid",
-                    activation="relu",
-                    dilation_rate=2**i,
-                    name=f"dilated_conv_{i}",
-                )(x)
-                x_len = x.shape[1]
-                conv_x_len = conv_x.shape[1]
-                assert (x_len - conv_x_len) % 2 == 0
-                crop_len = (x_len - conv_x_len) // 2
-                x = Cropping1D(cropping=(crop_len, crop_len), name=f"crop_{i}")(x)
-                x = Add(name=f"add_{i}")([conv_x, x])
-
-            # Profile prediction
-            prof_out_precrop = Conv1D(
-                num_tasks,
-                kernel_size=profile_kernel_size,
-                padding="valid",
-                name="profile_conv",
-            )(x)
-            cropsize = (prof_out_precrop.shape[1] - out_pred_len) // 2
-            prof = Cropping1D(cropping=(cropsize, cropsize), name="profile_crop")(
-                prof_out_precrop
-            )
-            profile_out = tf.reshape(prof, (tf.shape(prof)[0], -1), name="profile_out")
-
-            # Counts prediction
-            gap_combined_conv = GlobalAveragePooling1D(name="gap")(x)
-            count_out = Dense(num_tasks, name="count_out")(gap_combined_conv)
-
-            model = Model(inputs=[inp], outputs=[profile_out, count_out])
-            return model
-
-        # # Build the Keras model
-        keras_model = build_keras_bpnet(
-            sequence_len=2114,
-            n_dil_layers=8,
-            filters=512,
-            conv1_kernel_size=21,
-            profile_kernel_size=75,
-            num_tasks=1,
-            out_pred_len=1000,
-        )
-
-        # # Summary of the model
-        # keras_model.summary()
-
-        def transfer_weights(pytorch_model, keras_model):
-            # Transfer conv1 weights
-            keras_model.get_layer("conv1").set_weights(
-                [
-                    pytorch_model.conv1.weight.detach().numpy().transpose(2, 1, 0),
-                    pytorch_model.conv1.bias.detach().numpy(),
-                ]
-            )
-
-            # Transfer dilated conv layers' weights
-            for i, layer in enumerate(pytorch_model.dilated_convs):
-                keras_layer = keras_model.get_layer(f"dilated_conv_{i + 1}")
-                keras_layer.set_weights(
-                    [
-                        layer.weight.detach().numpy().transpose(2, 1, 0),
-                        layer.bias.detach().numpy(),
-                    ]
-                )
-
-            # Transfer profile conv weights
-            keras_model.get_layer("profile_conv").set_weights(
-                [
-                    pytorch_model.profile_conv.weight.detach()
-                    .numpy()
-                    .transpose(2, 1, 0),
-                    pytorch_model.profile_conv.bias.detach().numpy(),
-                ]
-            )
-
-            # Transfer dense layer weights
-            keras_model.get_layer("count_out").set_weights(
-                [
-                    pytorch_model.dense.weight.detach().numpy().transpose(1, 0),
-                    pytorch_model.dense.bias.detach().numpy(),
-                ]
-            )
-
-        transfer_weights(self, keras_model)
-        keras_model.save(filename)
 
 
 class DoubleBPNet(BPNet):
@@ -570,7 +450,6 @@ class DoubleBPNet(BPNet):
         )
 
         # count prediction
-        n_count_control = 1 if n_control_tracks > 0 else 0
         self.global_avg_pool = torch.nn.AdaptiveAvgPool1d(1)
         self.linear = torch.nn.Linear(n_filters * 2, 1, bias=count_output_bias)
 
