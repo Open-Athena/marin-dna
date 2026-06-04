@@ -264,6 +264,21 @@ models:
     window_size: 255
     datasets: [mendelian_traits]
 
+  # exp232 — per-region Qwen3-0.25B sweep on the v4 partitions (issue #232).
+  # Added for the issue #257 cross-check: independently re-score finished-run
+  # final checkpoints through the offline pipeline to compare against the
+  # in-training online metric (the ccre-step-4999 parquet was produced ad-hoc
+  # during that sanity-check; these are the other two finished arms).
+  # 255 bp + BOS, same convention as exp187.
+  - name: exp232-v4_utr3-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
   # mixture baseline; the i16 run continues training from i0's final
