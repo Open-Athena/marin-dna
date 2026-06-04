@@ -53,10 +53,10 @@ Launch from a CPU box with an iris tunnel open (see ``experiments/README.md``):
         -e WANDB_API_KEY "$(grep -A2 api.wandb.ai ~/.netrc | grep password | awk '{print $2}')" \\
         -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \\
         -e SWEEP_DATASETS v4_cds \\
-        -- python experiments/per_region/exp232_per_region.py
+        -- python experiments/exp232_per_region.py
 
 Reference templates:
-  * Direct parent — ``experiments/per_region/exp187_per_region.py`` (this is a
+  * Direct parent — ``experiments/exp187_per_region.py`` (this is a
     clone with v3→v4 datasets and the 1B→0.25B geometry swap).
   * Eval-task wiring — ``experiments/parity/exp179_eval_only.py``.
   * Geometry ladder — marin ``exp109`` (``SCALING_HIDDEN_SIZES``) /
