@@ -22,7 +22,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import cast
+from typing import Any, cast
 
 import lightning as L
 import numpy as np
@@ -183,22 +183,31 @@ def signed_pearson(scores: np.ndarray, effect: np.ndarray) -> float:
 
 
 class QTLEvalCallback(L.Callback):
-    """Log signed Pearson of predicted log2FC vs observed ``effect`` over the QTL
-    positives — per dataset plus their mean ``qtl_avg_pearson`` — once per
-    validation.
+    """Log the eval target — signed Pearson of predicted log2FC vs observed
+    ``effect`` over the QTL positives, per dataset plus their mean
+    ``qtl_avg_pearson`` — on a **training-step cadence**.
 
-    Single-device exact (we train on 1 GPU); each rank would recompute the same
-    rank-local scalar, so it's logged with ``sync_dist=False``.
+    There is no accessibility validation loop (#259), so this fires from
+    ``on_train_batch_end`` every ``every_n_steps`` optimizer steps and again on
+    the final step (capturing the post-WSD-decay endpoint). Single-device exact
+    (we train on 1 GPU); each rank would recompute the same rank-local scalar, so
+    it's logged with ``sync_dist=False``.
     """
 
-    def __init__(self, specs: Sequence[QTLSpec], *, batch_size: int = 256) -> None:
+    def __init__(
+        self,
+        specs: Sequence[QTLSpec],
+        *,
+        batch_size: int = 256,
+        every_n_steps: int = 500,
+    ) -> None:
         super().__init__()
+        assert every_n_steps > 0, every_n_steps
         self.specs = list(specs)
         self.batch_size = batch_size
+        self.every_n_steps = every_n_steps
 
-    def on_validation_epoch_end(
-        self, trainer: L.Trainer, pl_module: L.LightningModule
-    ) -> None:
+    def _log_qtl(self, pl_module: L.LightningModule) -> None:
         pearsons: list[float] = []
         for spec in self.specs:
             scores = score_log2fc(
@@ -222,6 +231,20 @@ class QTLEvalCallback(L.Callback):
                 prog_bar=True,
                 sync_dist=False,
             )
+
+    def on_train_batch_end(
+        self,
+        trainer: L.Trainer,
+        pl_module: L.LightningModule,
+        outputs: Any,
+        batch: Any,
+        batch_idx: int,
+    ) -> None:
+        step = trainer.global_step  # post-optimizer-step count
+        on_cadence = step > 0 and step % self.every_n_steps == 0
+        is_last = trainer.max_steps > 0 and step >= trainer.max_steps
+        if on_cadence or is_last:
+            self._log_qtl(pl_module)
 
 
 def build_qtl_specs(

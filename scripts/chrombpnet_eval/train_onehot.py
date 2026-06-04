@@ -1,13 +1,19 @@
-"""Train the one-hot ChromBPNet baseline on GM12878 DNase (M1b, issue #241).
+"""Train the one-hot ChromBPNet baseline on GM12878 DNase (#241, #259).
 
-The fast path that validates the whole training pipeline — data loading, the
-counts+profile loss, early-stopping on ``val_count_pearson``, and the W&B
-instrumentation (per-step losses + ``grad_norm``, per-epoch ``val_count_pearson``,
-``lr``) — before the slow gLM arm (#243). Faithful
-one-hot ChromBPNet (vendored class, 4-channel one-hot, frozen pretrained bias),
-fp32 by default (faithful to official one-hot ChromBPNet). A ``--precision
-bf16-mixed`` knob is exposed for tuning — on an A10G this arm is GPU-compute-bound
-(~97% util at batch 64), so bf16 can actually speed it up.
+The one-hot arm of the supervised caQTL/dsQTL VEP eval. **No accessibility
+validation loop** (#259): the all-chromosome protocol trains on every chromosome
+(not leakage — accessibility is trained on the reference genome only and VEP is
+zero-shot), so there's no held-out accessibility split and nothing to early-stop
+on. Instead we train a **fixed budget** with a **WSD** (Warmup-Stable-Decay) LR
+schedule and log the **eval target** — the caQTL/dsQTL variant-effect Pearson —
+on a **global-step cadence** (decoupled from epoch boundaries) via
+``QTLEvalCallback``. In-training health: the train losses + per-step ``grad_norm``.
+
+Faithful one-hot ChromBPNet (vendored class, 4-channel one-hot, frozen pretrained
+bias). fp32 by default; ``--precision bf16-mixed`` is faster on an A10G (the model
+has a bf16-safe forward). NB ``--all-chroms`` loads all 24 chromosomes' sequences
+into RAM — needs a 32 GB+ host (g5.xlarge's 16 GB OOMs; launch with ``--memory
+64+``); see the sky task.
 
 Data (stage locally first; from ARSENAL Synapse syn72513540 + a hg38 fasta):
   --peaks    filtered.peaks.bed      (syn73665410)
@@ -17,16 +23,18 @@ Data (stage locally first; from ARSENAL Synapse syn72513540 + a hg38 fasta):
   --fasta    GRCh38...fasta (chr-prefixed; DART-Eval syn60756064)
   --chrom-sizes hg38.chrom.sizes
 
-Example (1 GPU, full early-stopped run):
+Example (1 GPU, all-chroms fixed-budget WSD baseline):
   uv run --extra chrombpnet python scripts/chrombpnet_eval/train_onehot.py \
     --peaks gm12878_peaks.bed --nonpeaks gm12878_nonpeaks.bed \
     --bigwig GM12878_unstranded.bw --bias bias_model_scaled.h5 \
     --fasta GRCh38.fasta --chrom-sizes hg38.chrom.sizes \
-    --wandb-name dna-exp236-onehot-chrombpnet --out-dir runs/onehot
+    --all-chroms --max-steps 12000 --lr-scheduler wsd \
+    --qtl-eval --qtl-genome GRCh38.fasta --qtl-chrom-prefix chr \
+    --wandb-name dna-exp259-onehot-allchroms-wsd --out-dir runs/onehot
 
-Smoke (log every step, validate often, cap batches):
-  ... --log-every-n-steps 1 --val-check-interval 50 --limit-train-batches 200 \
-      --limit-val-batches 50 --max-epochs 1
+Smoke (log every step, cap the budget):
+  ... --log-every-n-steps 1 --qtl-every-steps 20 --limit-train-batches 200 \
+      --max-steps 60
 """
 
 from __future__ import annotations
@@ -68,8 +76,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="train on ALL chromosomes (1-22,X,Y) — the #259 protocol. Not "
         "leakage: accessibility is trained on the reference genome only and VEP "
-        "is zero-shot. NB val (chr6,21) is then also in train, so val_count_pearson "
-        "becomes a health metric only (not selected on under fixed-budget).",
+        "is zero-shot. Needs a 32 GB+ host (launch with --memory 64+).",
     )
     # training
     p.add_argument("--max-epochs", type=int, default=100)
@@ -77,21 +84,20 @@ def parse_args() -> argparse.Namespace:
         "--max-steps",
         type=int,
         default=None,
-        help="fixed step budget (#259); when set, runs max_epochs=-1 with no "
-        "early-stopping (save_last checkpoint) — pair with --lr-scheduler wsd",
+        help="fixed step budget (#259); when set, runs max_epochs=-1. Pair with "
+        "--lr-scheduler wsd so the decay lands at the end of the budget.",
     )
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--lr", type=float, default=1e-3, help="Adam LR (official: 1e-3)")
     p.add_argument(
         "--lr-scheduler",
-        choices=["none", "plateau", "wsd"],
+        choices=["none", "wsd"],
         default="none",
-        help="'plateau' = ReduceLROnPlateau on val_count_pearson (ChromBPNet's "
-        "commented-out config); 'wsd' = Warmup-Stable-Decay over the fixed step "
-        "budget (#259; pair with --max-steps, --warmup-frac, --decay-frac)",
+        help="'none' = constant LR (+ optional --warmup-steps); 'wsd' = "
+        "Warmup-Stable-Decay over the fixed step budget (#259; pair with "
+        "--max-steps, --warmup-frac, --decay-frac)",
     )
-    p.add_argument("--patience", type=int, default=5, help="early-stop patience")
     p.add_argument(
         "--seed", type=int, default=0, help="seed_everything (reproducibility)"
     )
@@ -99,7 +105,8 @@ def parse_args() -> argparse.Namespace:
         "--warmup-steps",
         type=int,
         default=100,
-        help="linear LR warmup steps (0=off); tames the early NaN-prone step (#247)",
+        help="constant-LR linear warmup steps (--lr-scheduler none); tames the "
+        "early NaN-prone step (#247). WSD uses --warmup-frac instead.",
     )
     p.add_argument(
         "--warmup-frac",
@@ -145,23 +152,23 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--devices", type=int, default=1)
     # logging cadence
     p.add_argument("--log-every-n-steps", type=int, default=10)
-    p.add_argument(
-        "--val-check-interval",
-        type=float,
-        default=None,
-        help="validate every N train batches (int >=1) or every fraction of an "
-        "epoch (0<f<1, robust to epoch length); default: epoch end",
-    )
     p.add_argument("--wandb-name", default="dna-exp236-onehot-chrombpnet")
     p.add_argument("--wandb-project", default="chrombpnet-eval")
     p.add_argument("--no-wandb", action="store_true", help="CSVLogger instead of W&B")
     # online QTL metric: signed Pearson of predicted log2FC vs the observed
-    # effect, over positives only, logged each validation (the eval target —
-    # distinct from val_count_pearson, the accessibility-count fit).
+    # effect, over positives only — the eval target, logged on a global-step
+    # cadence (decoupled from epoch boundaries).
     p.add_argument(
         "--qtl-eval",
         action="store_true",
-        help="log live caqtl/dsqtl Pearson (+ qtl_avg_pearson) over positives each val",
+        help="log live caqtl/dsqtl Pearson (+ qtl_avg_pearson) over positives",
+    )
+    p.add_argument(
+        "--qtl-every-steps",
+        type=int,
+        default=500,
+        help="log the QTL metric every N global optimizer steps (#259; decoupled "
+        "from epochs)",
     )
     p.add_argument(
         "--qtl-genome",
@@ -176,9 +183,8 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--qtl-batch-size", type=int, default=256)
     p.add_argument("--qtl-split", default="train", help="QTL split (dev = train)")
-    # smoke knobs (cap batches per epoch so a 1-epoch run finishes fast)
+    # smoke knob (cap train batches per epoch so a short run finishes fast)
     p.add_argument("--limit-train-batches", type=int, default=None)
-    p.add_argument("--limit-val-batches", type=int, default=None)
     return p.parse_args()
 
 
@@ -191,8 +197,7 @@ def main() -> None:
     torch.set_float32_matmul_precision(args.matmul_precision)
 
     # #259: optionally train on all chromosomes (more data; not leakage — VEP is
-    # zero-shot on the reference). Val (chr6,21) then overlaps train, so its
-    # val_count_pearson is a health signal only (we do not select on it).
+    # zero-shot on the reference). validation_chroms is unused (no val loop).
     chrom_kwargs: dict = {}
     if args.all_chroms:
         chrom_kwargs["training_chroms"] = [f"chr{c}" for c in [*range(1, 23), "X", "Y"]]
@@ -227,20 +232,12 @@ def main() -> None:
         model = torch.compile(model)
         print("[train] torch.compile enabled")
 
-    if args.warmup_steps > 0 and args.lr_scheduler == "plateau":
-        print(
-            "[train] WARNING: --lr-scheduler plateau is ignored while "
-            "--warmup-steps > 0 (warmup takes precedence); pass --warmup-steps 0 "
-            "to use the plateau scheduler."
-        )
     lit = ChromBPNetLit(
         model,
         alpha=alpha,
         beta=1.0,
         lr=args.lr,
-        # WSD owns the warmup (via --warmup-frac); zero the step-warmup so it
-        # doesn't shadow the schedule.
-        warmup_steps=0 if args.lr_scheduler == "wsd" else args.warmup_steps,
+        warmup_steps=args.warmup_steps,
         lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
         warmup_frac=args.warmup_frac,
         decay_frac=args.decay_frac,
@@ -254,35 +251,18 @@ def main() -> None:
             name=args.wandb_name, project=args.wandb_project, save_dir=args.out_dir
         )
 
+    # No early-stopping / no monitored selection (#259, fixed budget): just save
+    # the final checkpoint; the WSD decay lands the endpoint.
     callbacks: list[L.Callback] = [
-        L.pytorch.callbacks.LearningRateMonitor(logging_interval="step")
+        L.pytorch.callbacks.LearningRateMonitor(logging_interval="step"),
+        L.pytorch.callbacks.ModelCheckpoint(
+            dirpath=f"{args.out_dir}/checkpoints", save_last=True, save_top_k=0
+        ),
     ]
-    if args.max_steps:
-        # Fixed-budget (#259): no early-stopping, no monitored selection — take
-        # the final checkpoint (save_last); the WSD decay lands the endpoint.
-        callbacks.append(
-            L.pytorch.callbacks.ModelCheckpoint(
-                dirpath=f"{args.out_dir}/checkpoints", save_last=True, save_top_k=0
-            )
-        )
-    else:
-        callbacks += [
-            L.pytorch.callbacks.EarlyStopping(
-                monitor="val_count_pearson", patience=args.patience, mode="max"
-            ),
-            L.pytorch.callbacks.ModelCheckpoint(
-                dirpath=f"{args.out_dir}/checkpoints",
-                monitor="val_count_pearson",
-                mode="max",
-                save_top_k=1,
-                filename="best_model",
-                save_last=True,
-            ),
-        ]
     if args.qtl_eval:
         assert args.qtl_genome, "--qtl-eval requires --qtl-genome"
         # Pre-extract the positives' ref/alt windows once; the callback re-scores
-        # the cached one-hots each validation.
+        # the cached one-hots every --qtl-every-steps global steps.
         specs = build_qtl_specs(
             Genome(args.qtl_genome),
             QTL_DATASETS,
@@ -290,17 +270,15 @@ def main() -> None:
             window=2114,
             chrom_prefix=args.qtl_chrom_prefix,
         )
-        callbacks.append(QTLEvalCallback(specs, batch_size=args.qtl_batch_size))
-
-    # value >=1 -> validate every N batches (int); float in (0,1) -> fraction of
-    # an epoch (robust to epoch length); None/0 -> once per epoch. NB: keep the
-    # default as float 1.0 — int(1.0)==1 would mean "every batch" in Lightning.
-    if not args.val_check_interval:
-        vci: int | float = 1.0
-    elif args.val_check_interval >= 1:
-        vci = int(args.val_check_interval)
+        callbacks.append(
+            QTLEvalCallback(
+                specs,
+                batch_size=args.qtl_batch_size,
+                every_n_steps=args.qtl_every_steps,
+            )
+        )
     else:
-        vci = args.val_check_interval
+        print("[train] WARNING: --qtl-eval not set — only train losses are logged")
 
     trainer = L.Trainer(
         max_epochs=(-1 if args.max_steps else args.max_epochs),
@@ -311,14 +289,12 @@ def main() -> None:
         precision=args.precision,
         gradient_clip_val=args.grad_clip or None,
         log_every_n_steps=args.log_every_n_steps,
-        val_check_interval=vci,
         limit_train_batches=args.limit_train_batches,
-        limit_val_batches=args.limit_val_batches,
         logger=logger,
         callbacks=callbacks,
     )
     trainer.fit(lit, datamodule)
-    print(f"[train] done; best checkpoint under {args.out_dir}/checkpoints")
+    print(f"[train] done; final checkpoint under {args.out_dir}/checkpoints")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 """Smoke test: the one-hot ChromBPNet training loop runs end-to-end and logs the
-instrumentation we added (val_count_pearson, grad_norm), plus the WSD schedule.
+instrumentation we keep (train losses + grad_norm), plus the WSD schedule.
 
 Synthetic data, CPU, no GPU — validates forward -> counts/profile loss ->
-backward -> optimizer step, plus the validation-epoch correlation hook and the
-gradient-norm hook, without real GM12878 data.
+backward -> optimizer step and the gradient-norm hook, without real GM12878 data.
+There is no validation loop (#259).
 """
 
 import lightning as L
@@ -43,38 +43,32 @@ def _fit(lr_scheduler=None, warmup_steps=0):
     trainer = L.Trainer(
         max_epochs=1,
         limit_train_batches=2,
-        limit_val_batches=2,
         accelerator="cpu",
         logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        num_sanity_val_steps=0,
     )
-    trainer.fit(lit, dl, dl)
+    trainer.fit(lit, dl)  # train only — no validation loop (#259)
     return trainer
 
 
 def test_train_loop_and_instrumentation():
     trainer = _fit()
     metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
-    # The validation-epoch correlation hook logged the counts metric ...
-    for key in ("val_count_pearson",):
-        assert key in metrics, f"{key} not logged; got {sorted(metrics)}"
-        assert torch.isfinite(torch.as_tensor(float(metrics[key]))), key
+    # The training step logged the losses (on_step+on_epoch -> *_step/*_epoch) ...
+    loss_keys = [k for k in metrics if k.startswith("train_loss")]
+    assert loss_keys, f"no train_loss* logged; got {sorted(metrics)}"
+    for k in (*loss_keys, "train_count_loss_epoch", "train_profile_loss_epoch"):
+        assert k in metrics, f"{k} not logged; got {sorted(metrics)}"
+        assert torch.isfinite(torch.as_tensor(float(metrics[k]))), k
     # ... and the per-step gradient-norm hook fired (a positive, finite norm).
     assert "grad_norm" in metrics, sorted(metrics)
     gn = float(metrics["grad_norm"])
     assert gn > 0 and torch.isfinite(torch.as_tensor(gn)), gn
 
 
-def test_plateau_scheduler_configures():
-    # The opt-in ReduceLROnPlateau path builds a valid optimizer+scheduler dict.
-    trainer = _fit(lr_scheduler="plateau")
-    assert trainer.lr_scheduler_configs, "plateau scheduler not configured"
-
-
 def test_warmup_scheduler_configures():
-    # warmup_steps>0 builds a step-interval LinearLR (precedence over plateau).
+    # warmup_steps>0 builds a step-interval LinearLR (constant-LR warmup path).
     trainer = _fit(warmup_steps=5)
     assert trainer.lr_scheduler_configs, "warmup scheduler not configured"
     assert trainer.lr_scheduler_configs[0].interval == "step"

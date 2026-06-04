@@ -94,19 +94,15 @@ def test_callback_logs_qtl_metrics():
     ref, alt = _ref_alt_onehot(6)
     spec = QTLSpec("caqtl", ref, alt, np.random.default_rng(0).standard_normal(6))
     trainer = L.Trainer(
-        max_epochs=1,
+        max_steps=2,
         limit_train_batches=2,
-        limit_val_batches=2,
         accelerator="cpu",
         logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        num_sanity_val_steps=0,
-        callbacks=[QTLEvalCallback([spec], batch_size=4)],
+        callbacks=[QTLEvalCallback([spec], batch_size=4, every_n_steps=1)],
     )
-    trainer.fit(
-        lit, DataLoader(_ToyDS(), batch_size=4), DataLoader(_ToyDS(), batch_size=4)
-    )
+    trainer.fit(lit, DataLoader(_ToyDS(), batch_size=4))  # no val loop (#259)
     metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
     assert "qtl_caqtl_pearson" in metrics, sorted(metrics)
     assert "qtl_avg_pearson" in metrics, sorted(metrics)

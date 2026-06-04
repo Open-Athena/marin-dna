@@ -1,34 +1,24 @@
-# SkyPilot task: train the one-hot ChromBPNet baseline on GM12878 DNase (#241).
+# SkyPilot task: train the one-hot ChromBPNet baseline on GM12878 DNase (#241, #259).
 #
 # Stages the GM12878 DNase inputs (ARSENAL Synapse syn72513540) + a chr-prefixed
 # hg38 fasta (DART-Eval Synapse), then runs scripts/chrombpnet_eval/train_onehot.py.
-# No gLM checkpoint — just the one-hot arm (fp32 default).
+# No gLM checkpoint — just the one-hot arm.
 #
-# SMOKE=1 (default): logs EVERY step (per-step loss + grad_norm), validates every
-# 50 train batches on 50 val batches (several val_count_pearson/spearman points),
-# caps the epoch — a few minutes to confirm the whole pipeline + W&B logging work.
-# SMOKE=0: the full early-stopped run.
+# No accessibility validation loop (#259): trains a fixed step budget (MAX_STEPS)
+# with a WSD schedule and logs the caqtl/dsqtl QTL Pearson (+ qtl_avg_pearson) on
+# a global-step cadence (QTL_EVERY, decoupled from epoch boundaries) — reusing the
+# staged hg38 fasta with --qtl-chrom-prefix chr; needs HF access to the parquets.
 #
-# Logs the online QTL metric too (signed Pearson/Spearman of predicted log2FC vs
-# observed effect over caqtl/dsqtl train-split positives) — reusing the staged
-# hg38 fasta with --qtl-chrom-prefix chr; needs HF access to the variant parquets.
-#
-# Launch (smoke, online W&B so you can watch the curves):
-#   sky launch -c cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
-#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN -i 60 --down
-# Full run on the same cluster:
-#   sky exec cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
-#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0
+# SMOKE=1 (default): tiny budget (~60 steps), logs every step — confirms the
+# pipeline + W&B logging in a few minutes. SMOKE=0: the full run (MAX_STEPS).
 #
 # #259 all-chroms fixed-budget WSD baseline (warmup 0.01 / decay 0.2 → ~0; the
 # stable phase reveals where the QTL curve plateaus → the budget N for the sweep).
 # NB --all-chroms loads all 24 chroms' sequences into RAM → g5.xlarge's 16 GB OOMs
-# during data setup; --memory 64+ picks g5.4xlarge (64 GB) for headroom:
-#   sky launch -c cbp-259 scripts/chrombpnet_eval/sky/run_onehot.yaml --memory 64+ \
+# in data setup; --memory 32+ picks g5.2xlarge (32 GB, verified), 64+ → g5.4xlarge:
+#   sky launch -c cbp-259 scripts/chrombpnet_eval/sky/run_onehot.yaml --memory 32+ \
 #     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0 \
-#     --env ALL_CHROMS=1 --env MAX_STEPS=12000 --env LR_SCHEDULER=wsd --env BATCH=128 \
-#     --env PRECISION=bf16-mixed --env VAL_CHECK=500 \
-#     --env WANDB_NAME=dna-exp259-onehot-allchroms-wsd -i 30 --down
+#     --env ALL_CHROMS=1 --env WANDB_NAME=dna-exp259-onehot-allchroms-wsd -i 30 --down
 
 name: cbp-onehot
 
@@ -43,14 +33,14 @@ workdir: .
 
 envs:
     SMOKE: "1"
-    BATCH: "64"                 # official ChromBPNet batch size; fp32 fits easily
-    PRECISION: "32"             # faithful default; bf16-mixed may speed it up (GPU-bound)
+    BATCH: "128"                # bf16/128 is the A10G sweet spot (#241); fp32/64 = faithful
+    PRECISION: "bf16-mixed"     # bf16-safe forward; faster on the GPU-bound conv tower
     ALL_CHROMS: "0"             # #259: "1" trains on all 1-22,X,Y (not leakage; VEP zero-shot)
-    MAX_STEPS: "0"              # #259: >0 = fixed step budget (no early-stop, save_last); 0 = epoch-based (M1b)
-    LR_SCHEDULER: "none"        # none | plateau | wsd (#259)
-    VAL_CHECK: ""               # override --val-check-interval (e.g. "250" steps for a dense QTL curve)
-    WANDB_NAME: "dna-exp236-onehot-chrombpnet"
-    WANDB_MODE: "online"        # the point of the smoke is to see logging work
+    MAX_STEPS: "12000"          # fixed step budget (#259); SMOKE caps to ~60
+    LR_SCHEDULER: "wsd"         # none (constant) | wsd (#259 Warmup-Stable-Decay)
+    QTL_EVERY: "500"            # log the QTL metric every N global steps (decoupled from epochs)
+    WANDB_NAME: "dna-exp259-onehot-allchroms-wsd"
+    WANDB_MODE: "online"
     WANDB_API_KEY: ""           # pass via `sky launch --env WANDB_API_KEY`
     SYNAPSE_AUTH_TOKEN: ""      # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
     HF_TOKEN: ""                # pass via `--env HF_TOKEN` (caqtl/dsqtl parquets)
@@ -87,19 +77,13 @@ run: |
         "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes" -o data/hg38.chrom.sizes
 
     nvidia-smi
-    # Base args + #259 knobs (ALL_CHROMS / MAX_STEPS / LR_SCHEDULER default to the
-    # M1b behavior; override via --env for the all-chroms fixed-budget runs).
+    # Base args + #259 knobs. SMOKE caps to a tiny budget; otherwise MAX_STEPS.
     ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER"
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
-    [ "$MAX_STEPS" != "0" ] && ARGS="$ARGS --max-steps $MAX_STEPS"
     if [ "$SMOKE" = "1" ]; then
-        # log every step; ~6 validation passes across the capped epoch
-        ARGS="$ARGS --log-every-n-steps 1 --val-check-interval ${VAL_CHECK:-50} \
-            --limit-train-batches 300 --limit-val-batches 50 --max-epochs 1"
+        ARGS="$ARGS --log-every-n-steps 1 --qtl-every-steps 20 --limit-train-batches 300 --max-steps 60"
     else
-        # full run: validate often — a fraction of an epoch (robust to epoch
-        # length) or a step count via VAL_CHECK — on a 200-batch val subset
-        ARGS="$ARGS --val-check-interval ${VAL_CHECK:-0.5} --limit-val-batches 200"
+        ARGS="$ARGS --qtl-every-steps $QTL_EVERY --max-steps $MAX_STEPS"
     fi
     uv run --extra chrombpnet python scripts/chrombpnet_eval/train_onehot.py \
         --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \

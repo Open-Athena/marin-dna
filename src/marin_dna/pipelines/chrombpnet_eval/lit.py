@@ -1,24 +1,23 @@
-"""Lightning training module for the one-hot ChromBPNet baseline (issue #241).
+"""Lightning training module for the one-hot ChromBPNet baseline (#241, #259).
 
 Replicates the vendored ChromBPNet training step — a weighted sum of the
 base-resolution **profile** multinomial NLL and the **counts** MSE — as our own
-``LightningModule`` so we own the optimizer and the logger (W&B) and can add the
-instrumentation we want while validating the pipeline:
+``LightningModule`` so we own the optimizer and the logger (W&B).
 
-- **counts Pearson** on the validation set, computed once per validation epoch
-  over the pooled predictions (scipy, matching the vendored ``counts_metrics``).
-  ``val_count_pearson`` is the accessibility-fit health metric — the ChromBPNet
-  convention is to monitor it for early-stopping, but under the fixed-budget,
-  all-chromosome protocol of #259 we log it (as a health signal) and do **not**
-  select on it (the QTL metric is the eval target; see ``qtl_eval``).
-- the **gradient L2 norm** per optimizer step (a basic exploding/vanishing-grad
-  health signal), which official ChromBPNet does not log.
+There is **no accessibility validation loop** (#259): the all-chromosome
+fixed-budget protocol trains on every chromosome, so there is no held-out
+accessibility split to validate on, and we do not select on an accessibility
+metric. The **eval target** — the caQTL/dsQTL variant-effect Pearson — is logged
+on a step cadence by :class:`~marin_dna.pipelines.chrombpnet_eval.qtl_eval.QTLEvalCallback`,
+not here. In-training health signals are the **train losses** and the per-step
+**gradient L2 norm** (an exploding/vanishing-grad check official ChromBPNet does
+not log).
 
 The profile loss reuses the vendored ``multinomial_nll`` so the objective is
 bit-identical to ChromBPNet's. ``model`` only has to satisfy the ChromBPNet
 forward contract (``onehot[B,4,L] -> (profile[B,out], counts[B,1])``), so the
-gLM-embedding arm (#243) can reuse this module unchanged; its separate LR group
-for the LM is layered on there, not here.
+gLM-embedding arm (#243) can reuse this module; its separate LR group for the LM
+is layered on there, not here.
 
 Batch contract (matches the vendored ``DataModule``): ``onehot_seq`` ``[B,4,L]``
 and ``profile`` ``[B,out]`` (observed per-bp counts over the central window).
@@ -35,7 +34,6 @@ from typing import Any
 import lightning as L
 import torch
 import torch.nn.functional as F
-from scipy.stats import pearsonr
 
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.model_wrappers import (
     multinomial_nll,
@@ -80,32 +78,29 @@ def wsd_lr_lambda(
 
 
 class ChromBPNetLit(L.LightningModule):
-    """Train a ChromBPNet-style model with the counts+profile loss.
+    """Train a ChromBPNet-style model with the counts+profile loss (no val loop).
 
     Args:
         model: a module obeying the ChromBPNet forward contract — ``forward(
-            onehot[B,4,L]) -> (profile_logits[B,out], log_counts[B,1])``. For
-            #241 this is the vendored one-hot ``ChromBPNet`` (built by
+            onehot[B,4,L]) -> (profile_logits[B,out], log_counts[B,1])``. For the
+            one-hot arm this is the vendored ``ChromBPNet`` (built by
             :func:`marin_dna.pipelines.chrombpnet_eval.onehot.build_onehot_chrombpnet`).
         alpha: counts-loss weight (the driver sets ``median_count/10``).
         beta: profile-loss weight (1.0).
         lr: Adam learning rate. Default ``1e-3`` matches official one-hot
             ChromBPNet (the embedding arm drops to ``1e-4``).
-        warmup_steps: linear LR warmup over this many optimizer steps (0 = off).
-            Ramps from ``0.01*lr`` to ``lr`` then holds constant — tames the
-            early large-gradient step that can diverge to NaN (#247). Takes
-            precedence over ``lr_scheduler="plateau"`` (but not ``"wsd"``).
-        lr_scheduler: ``None`` (constant LR, official one-hot default),
-            ``"plateau"`` (``ReduceLROnPlateau`` on ``val_count_pearson`` —
-            ChromBPNet's commented-out config; ignored when ``warmup_steps>0``),
-            or ``"wsd"`` (#259 — Warmup-Stable-Decay over the fixed step budget;
-            takes precedence over ``warmup_steps``/``plateau`` and uses
-            ``warmup_frac``/``decay_frac``).
-        warmup_frac / decay_frac: WSD warmup and decay fractions of the total
-            step budget (only used when ``lr_scheduler="wsd"``). ``warmup_frac``
-            defaults to a small ``0.01`` — these are short supervised runs, and
-            the early NaN spike (#247) is tamed by ~100 warmup steps + grad-clip,
-            not a long LLM-pretraining-style 10% warmup.
+        warmup_steps: linear LR warmup over this many optimizer steps (0 = off);
+            tames the early large-gradient step that can diverge to NaN (#247).
+            Used only when ``lr_scheduler`` is ``None`` (constant LR); ``"wsd"``
+            owns its own warmup via ``warmup_frac``.
+        lr_scheduler: ``None`` (constant LR, optionally with ``warmup_steps``) or
+            ``"wsd"`` (#259 — Warmup-Stable-Decay over the fixed step budget,
+            using ``warmup_frac``/``decay_frac``).
+        warmup_frac / decay_frac: WSD warmup and decay fractions of the total step
+            budget (only used when ``lr_scheduler="wsd"``). ``warmup_frac`` is a
+            small ``0.01`` — these are short supervised runs, and the early NaN
+            spike (#247) is tamed by ~100 warmup steps + grad-clip, not a long
+            LLM-pretraining-style 10% warmup.
     """
 
     def __init__(
@@ -121,8 +116,8 @@ class ChromBPNetLit(L.LightningModule):
         decay_frac: float = 0.2,
     ) -> None:
         super().__init__()
-        assert lr_scheduler in (None, "plateau", "wsd"), (
-            f"lr_scheduler must be None, 'plateau', or 'wsd', got {lr_scheduler!r}"
+        assert lr_scheduler in (None, "wsd"), (
+            f"lr_scheduler must be None or 'wsd', got {lr_scheduler!r}"
         )
         self.model = model
         self.alpha = alpha
@@ -132,13 +127,11 @@ class ChromBPNetLit(L.LightningModule):
         self.lr_scheduler = lr_scheduler
         self.warmup_frac = warmup_frac
         self.decay_frac = decay_frac
-        self._val_pred: list[torch.Tensor] = []
-        self._val_true: list[torch.Tensor] = []
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         return self.model(x)
 
-    def _step(self, batch: dict, mode: str) -> torch.Tensor:
+    def training_step(self, batch: dict, batch_idx: int) -> torch.Tensor:
         true_profile = batch["profile"]
         true_counts = torch.log1p(true_profile.sum(dim=-1))
         y_profile, y_count = self(batch["onehot_seq"])
@@ -153,43 +146,15 @@ class ChromBPNetLit(L.LightningModule):
             loss = self.beta * profile_loss + self.alpha * count_loss
         self.log_dict(
             {
-                f"{mode}_loss": loss,
-                f"{mode}_profile_loss": profile_loss,
-                f"{mode}_count_loss": count_loss,
+                "train_loss": loss,
+                "train_profile_loss": profile_loss,
+                "train_count_loss": count_loss,
             },
-            on_step=(mode == "train"),  # live per-step train curve; val per-epoch
+            on_step=True,
             on_epoch=True,
-            prog_bar=(mode == "train"),
-            sync_dist=True,
+            prog_bar=True,
         )
-        if mode == "val":
-            self._val_pred.append(y_count.detach())
-            self._val_true.append(true_counts.detach())
         return loss
-
-    def training_step(self, batch: dict, batch_idx: int) -> torch.Tensor:
-        return self._step(batch, "train")
-
-    def validation_step(self, batch: dict, batch_idx: int) -> torch.Tensor:
-        return self._step(batch, "val")
-
-    def on_validation_epoch_end(self) -> None:
-        if not self._val_pred:
-            return
-        # Pool over the whole val set, then correlate predicted vs observed log
-        # counts. Single-device exact; with >1 device `sync_dist` averages the
-        # per-rank scalars (we train on 1 GPU, so this is exact for our runs).
-        pred = torch.cat(self._val_pred).float().cpu().numpy().ravel()
-        true = torch.cat(self._val_true).float().cpu().numpy().ravel()
-        if pred.size > 1 and pred.std() > 0 and true.std() > 0:
-            pearson = float(pearsonr(pred, true).statistic)
-        else:
-            # Too few / constant predictions (e.g. an early smoke val pass) —
-            # correlation is undefined; log 0 so the monitor has a number.
-            pearson = 0.0
-        self.log("val_count_pearson", pearson, prog_bar=True, sync_dist=True)
-        self._val_pred.clear()
-        self._val_true.clear()
 
     def on_before_optimizer_step(self, optimizer: torch.optim.Optimizer) -> None:
         # Total L2 norm of the gradients (post-unscale, pre-clip) over trainable
@@ -208,9 +173,8 @@ class ChromBPNetLit(L.LightningModule):
         opt = torch.optim.Adam(
             [p for p in self.parameters() if p.requires_grad], lr=self.lr, eps=1e-7
         )
-        # WSD (#259) takes precedence: warmup -> stable -> linear decay to 0 over
-        # the fixed step budget. Needs a known horizon, so it composes with a
-        # fixed budget and replaces early-stopping for the all-chromosome protocol.
+        # WSD (#259): warmup -> stable -> linear decay to 0 over the fixed step
+        # budget. Needs a known horizon, so it composes with a fixed budget.
         if self.lr_scheduler == "wsd":
             total_f = self.trainer.estimated_stepping_batches
             assert math.isfinite(total_f) and total_f > 0, (
@@ -227,9 +191,8 @@ class ChromBPNetLit(L.LightningModule):
                 "optimizer": opt,
                 "lr_scheduler": {"scheduler": sched, "interval": "step"},
             }
-        # Warmup takes precedence over plateau: a step-wise linear ramp from
-        # 0.01*lr to lr over warmup_steps, then constant (LinearLR holds at
-        # end_factor) — keeps the first (huge-gradient) steps tiny.
+        # Constant LR with an optional step-wise linear warmup (0.01*lr -> lr over
+        # warmup_steps, then held) — keeps the first (huge-gradient) steps tiny.
         if self.warmup_steps > 0:
             warmup = torch.optim.lr_scheduler.LinearLR(
                 opt, start_factor=0.01, end_factor=1.0, total_iters=self.warmup_steps
@@ -237,17 +200,5 @@ class ChromBPNetLit(L.LightningModule):
             return {
                 "optimizer": opt,
                 "lr_scheduler": {"scheduler": warmup, "interval": "step"},
-            }
-        if self.lr_scheduler == "plateau":
-            sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                opt, mode="max", factor=0.4, patience=3, min_lr=1e-8
-            )
-            return {
-                "optimizer": opt,
-                "lr_scheduler": {
-                    "scheduler": sched,
-                    "monitor": "val_count_pearson",
-                    "interval": "epoch",
-                },
             }
         return opt
