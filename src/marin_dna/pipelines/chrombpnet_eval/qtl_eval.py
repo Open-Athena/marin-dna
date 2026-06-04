@@ -189,9 +189,11 @@ class QTLEvalCallback(L.Callback):
 
     There is no accessibility validation loop (#259), so this fires from
     ``on_train_batch_end`` every ``every_n_steps`` optimizer steps and again on
-    the final step (capturing the post-WSD-decay endpoint). Single-device exact
-    (we train on 1 GPU); each rank would recompute the same rank-local scalar, so
-    it's logged with ``sync_dist=False``.
+    the final step (capturing the post-WSD-decay endpoint). Metrics go straight to
+    ``trainer.logger`` at the current global step — exactly once per eval — rather
+    than via ``pl_module.log``, which from a per-batch hook re-emits the held value
+    at every ``log_every_n_steps`` flush and spams the curve. Single-device only
+    (we train on 1 GPU).
     """
 
     def __init__(
@@ -207,7 +209,8 @@ class QTLEvalCallback(L.Callback):
         self.batch_size = batch_size
         self.every_n_steps = every_n_steps
 
-    def _log_qtl(self, pl_module: L.LightningModule) -> None:
+    def _log_qtl(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
+        metrics: dict[str, float] = {}
         pearsons: list[float] = []
         for spec in self.specs:
             scores = score_log2fc(
@@ -217,20 +220,19 @@ class QTLEvalCallback(L.Callback):
                 batch_size=self.batch_size,
                 device=pl_module.device,
             )
-            pearson = signed_pearson(scores, spec.effect)
-            pl_module.log(
-                f"qtl_{spec.name}_pearson", pearson, prog_bar=True, sync_dist=False
-            )
-            pearsons.append(pearson)
-        # Mean across datasets — the headline insight curve (#259); logged for
-        # monitoring only (fixed-budget runs do not select on it).
-        if pearsons:
-            pl_module.log(
-                "qtl_avg_pearson",
-                float(np.mean(pearsons)),
-                prog_bar=True,
-                sync_dist=False,
-            )
+            p = signed_pearson(scores, spec.effect)
+            metrics[f"qtl_{spec.name}_pearson"] = p
+            pearsons.append(p)
+        if not pearsons:
+            return
+        # Mean across datasets — the headline insight curve (#259).
+        metrics["qtl_avg_pearson"] = float(np.mean(pearsons))
+        # Log directly to the logger at this global step — exactly once. Using
+        # pl_module.log() from a per-batch hook re-emits the held value at every
+        # log_every_n_steps flush, spamming the curve with the same number between
+        # the sparse (every_n_steps) evals (#259).
+        if trainer.logger is not None:
+            trainer.logger.log_metrics(metrics, step=trainer.global_step)
 
     def on_train_batch_end(
         self,
@@ -244,7 +246,7 @@ class QTLEvalCallback(L.Callback):
         on_cadence = step > 0 and step % self.every_n_steps == 0
         is_last = trainer.max_steps > 0 and step >= trainer.max_steps
         if on_cadence or is_last:
-            self._log_qtl(pl_module)
+            self._log_qtl(trainer, pl_module)
 
 
 def build_qtl_specs(

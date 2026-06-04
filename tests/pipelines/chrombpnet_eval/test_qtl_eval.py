@@ -87,23 +87,49 @@ class _ToyDS(Dataset):
         return {"onehot_seq": oh, "profile": torch.randint(0, 5, (1000,)).float()}
 
 
+class _CaptureLogger(L.pytorch.loggers.Logger):
+    """Minimal logger that records the last value of every logged metric — lets
+    the test assert on what the callback sends via ``trainer.logger.log_metrics``
+    (the #259 path bypasses ``trainer.logged_metrics``)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.metrics: dict[str, float] = {}
+
+    @property
+    def name(self) -> str:
+        return "capture"
+
+    @property
+    def version(self) -> str:
+        return "0"
+
+    def log_metrics(self, metrics: dict, step: int | None = None) -> None:
+        self.metrics.update(metrics)
+
+    def log_hyperparams(self, *args: object, **kwargs: object) -> None:
+        pass
+
+
 def test_callback_logs_qtl_metrics():
     L.seed_everything(0)  # deterministic init+training (no flaky model divergence)
     model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
     lit = ChromBPNetLit(model, alpha=1.0, beta=1.0, lr=1e-3)
     ref, alt = _ref_alt_onehot(6)
     spec = QTLSpec("caqtl", ref, alt, np.random.default_rng(0).standard_normal(6))
+    logger = _CaptureLogger()
     trainer = L.Trainer(
         max_steps=2,
         limit_train_batches=2,
         accelerator="cpu",
-        logger=False,
+        logger=logger,
         enable_checkpointing=False,
         enable_progress_bar=False,
         callbacks=[QTLEvalCallback([spec], batch_size=4, every_n_steps=1)],
     )
     trainer.fit(lit, DataLoader(_ToyDS(), batch_size=4))  # no val loop (#259)
-    metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
-    assert "qtl_caqtl_pearson" in metrics, sorted(metrics)
-    assert "qtl_avg_pearson" in metrics, sorted(metrics)
-    assert torch.isfinite(torch.as_tensor(float(metrics["qtl_caqtl_pearson"])))
+    # The callback logs straight to the logger (once per eval), not to
+    # trainer.logged_metrics — so assert on the captured logger metrics.
+    assert "qtl_caqtl_pearson" in logger.metrics, sorted(logger.metrics)
+    assert "qtl_avg_pearson" in logger.metrics, sorted(logger.metrics)
+    assert np.isfinite(logger.metrics["qtl_caqtl_pearson"])
