@@ -20,9 +20,11 @@
 #   sky exec cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
 #     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0
 #
-# #259 all-chroms fixed-budget WSD baseline (warmup 0.1 / decay 0.2 → ~0; the
-# stable phase reveals where the QTL curve plateaus → the budget N for the sweep):
-#   sky launch -c cbp-259 scripts/chrombpnet_eval/sky/run_onehot.yaml \
+# #259 all-chroms fixed-budget WSD baseline (warmup 0.01 / decay 0.2 → ~0; the
+# stable phase reveals where the QTL curve plateaus → the budget N for the sweep).
+# NB --all-chroms loads all 24 chroms' sequences into RAM → g5.xlarge's 16 GB OOMs
+# during data setup; --memory 64+ picks g5.4xlarge (64 GB) for headroom:
+#   sky launch -c cbp-259 scripts/chrombpnet_eval/sky/run_onehot.yaml --memory 64+ \
 #     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0 \
 #     --env ALL_CHROMS=1 --env MAX_STEPS=12000 --env LR_SCHEDULER=wsd --env BATCH=128 \
 #     --env PRECISION=bf16-mixed --env VAL_CHECK=500 \
