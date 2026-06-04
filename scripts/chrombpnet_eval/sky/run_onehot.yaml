@@ -19,6 +19,13 @@
 # Full run on the same cluster:
 #   sky exec cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
 #     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0
+#
+# #259 all-chroms fixed-budget baseline (constant LR, dense QTL curve to find N):
+#   sky launch -c cbp-259 scripts/chrombpnet_eval/sky/run_onehot.yaml \
+#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0 \
+#     --env ALL_CHROMS=1 --env MAX_STEPS=12000 --env BATCH=128 \
+#     --env PRECISION=bf16-mixed --env VAL_CHECK=250 \
+#     --env WANDB_NAME=dna-exp259-onehot-allchroms-baseline -i 30 --down
 
 name: cbp-onehot
 
@@ -35,6 +42,11 @@ envs:
     SMOKE: "1"
     BATCH: "64"                 # official ChromBPNet batch size; fp32 fits easily
     PRECISION: "32"             # faithful default; bf16-mixed may speed it up (GPU-bound)
+    ALL_CHROMS: "0"             # #259: "1" trains on all 1-22,X,Y (not leakage; VEP zero-shot)
+    MAX_STEPS: "0"              # #259: >0 = fixed step budget (no early-stop, save_last); 0 = epoch-based (M1b)
+    LR_SCHEDULER: "none"        # none | plateau | wsd (#259)
+    VAL_CHECK: ""               # override --val-check-interval (e.g. "250" steps for a dense QTL curve)
+    WANDB_NAME: "dna-exp236-onehot-chrombpnet"
     WANDB_MODE: "online"        # the point of the smoke is to see logging work
     WANDB_API_KEY: ""           # pass via `sky launch --env WANDB_API_KEY`
     SYNAPSE_AUTH_TOKEN: ""      # pass via `sky launch --env SYNAPSE_AUTH_TOKEN`
@@ -72,19 +84,23 @@ run: |
         "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes" -o data/hg38.chrom.sizes
 
     nvidia-smi
+    # Base args + #259 knobs (ALL_CHROMS / MAX_STEPS / LR_SCHEDULER default to the
+    # M1b behavior; override via --env for the all-chroms fixed-budget runs).
+    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER"
+    [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
+    [ "$MAX_STEPS" != "0" ] && ARGS="$ARGS --max-steps $MAX_STEPS"
     if [ "$SMOKE" = "1" ]; then
         # log every step; ~6 validation passes across the capped epoch
-        EXTRA_ARGS="--log-every-n-steps 1 --val-check-interval 50 \
+        ARGS="$ARGS --log-every-n-steps 1 --val-check-interval ${VAL_CHECK:-50} \
             --limit-train-batches 300 --limit-val-batches 50 --max-epochs 1"
     else
-        # full run: validate twice per epoch (fraction → robust to epoch length;
-        # batch 128 ≈ 886 train batches/epoch) on a 200-batch val subset
-        EXTRA_ARGS="--val-check-interval 0.5 --limit-val-batches 200"
+        # full run: validate often — a fraction of an epoch (robust to epoch
+        # length) or a step count via VAL_CHECK — on a 200-batch val subset
+        ARGS="$ARGS --val-check-interval ${VAL_CHECK:-0.5} --limit-val-batches 200"
     fi
     uv run --extra chrombpnet python scripts/chrombpnet_eval/train_onehot.py \
         --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \
         --bigwig data/GM12878_unstranded.bw --bias data/bias_model_scaled.h5 \
         --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
-        --batch-size "$BATCH" --num-workers 4 --precision "$PRECISION" \
         --qtl-eval --qtl-genome data/GRCh38.fasta --qtl-chrom-prefix chr \
-        --wandb-name dna-exp236-onehot-chrombpnet --out-dir runs/onehot $EXTRA_ARGS
+        --wandb-name "$WANDB_NAME" --out-dir runs/onehot $ARGS
