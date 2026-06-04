@@ -189,6 +189,12 @@ def main() -> None:
         model = torch.compile(model)
         print("[train] torch.compile enabled")
 
+    if args.warmup_steps > 0 and args.lr_scheduler == "plateau":
+        print(
+            "[train] WARNING: --lr-scheduler plateau is ignored while "
+            "--warmup-steps > 0 (warmup takes precedence); pass --warmup-steps 0 "
+            "to use the plateau scheduler."
+        )
     lit = ChromBPNetLit(
         model,
         alpha=alpha,
@@ -233,11 +239,15 @@ def main() -> None:
         )
         callbacks.append(QTLEvalCallback(specs, batch_size=args.qtl_batch_size))
 
-    # int >=1 -> validate every N batches; float in (0,1) -> fraction of an epoch
-    # (robust to epoch length); None/0 -> once per epoch.
-    vci: int | float = args.val_check_interval or 1.0
-    if vci >= 1:
-        vci = int(vci)
+    # value >=1 -> validate every N batches (int); float in (0,1) -> fraction of
+    # an epoch (robust to epoch length); None/0 -> once per epoch. NB: keep the
+    # default as float 1.0 — int(1.0)==1 would mean "every batch" in Lightning.
+    if not args.val_check_interval:
+        vci: int | float = 1.0
+    elif args.val_check_interval >= 1:
+        vci = int(args.val_check_interval)
+    else:
+        vci = args.val_check_interval
 
     trainer = L.Trainer(
         max_epochs=args.max_epochs,

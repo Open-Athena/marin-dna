@@ -150,6 +150,8 @@ def score_log2fc(
     restores the prior train/eval state.
     """
     assert len(ref_oh) == len(alt_oh)
+    if len(ref_oh) == 0:
+        return np.zeros(0, dtype=np.float32)
     if device is None:
         device = next(model.parameters()).device
     was_training = model.training
@@ -220,7 +222,7 @@ def build_qtl_specs(
     ref/alt one-hot windows — done once before training; the callback then just
     re-scores the cached arrays each validation.
 
-    ``datasets`` is ``[(name, hf_repo, revision), ...]`` (defaults to
+    ``datasets`` is ``[(name, hf_repo, revision, flip_effect), ...]`` (defaults to
     :data:`QTL_DATASETS`). Develop on ``split="train"`` (test held out).
     """
     import polars as pl
