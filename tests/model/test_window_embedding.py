@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 
 from marin_dna.data.transforms import transform_window_embedding
+from marin_dna.model.runner import _center_token_bounds
 from marin_dna.model.scoring import compute_window_embedding
 from marin_dna.tokenizer.char import create_char_tokenizer
 
@@ -89,3 +90,30 @@ def test_transform_window_embedding_strand_changes_sequence():
     rc = transform_window_embedding(ex, tok, genome, window_size=20, strand="-")
     assert genome.calls[-1][3] == "-"
     assert not torch.equal(fwd["input_ids"], rc["input_ids"])
+
+
+def test_center_token_bounds_strands_pool_same_genomic_block():
+    # W - n = 155 is ODD, so the FWD and RC center starts differ by one — chosen
+    # so both strands pool the SAME genomic block (the fix for the strand shift).
+    W, n, npfx = 255, 100, 1
+    lo_f, hi_f = _center_token_bounds(W, n, npfx, "+")
+    lo_r, hi_r = _center_token_bounds(W, n, npfx, "-")
+    assert hi_f - lo_f == n and hi_r - lo_r == n
+    f0, f1 = lo_f - npfx, hi_f - npfx  # FWD window-coord DNA block [77, 177)
+    r0, r1 = lo_r - npfx, hi_r - npfx  # RC  window-coord DNA block [78, 178)
+    assert (f0, f1) == (77, 177) and (r0, r1) == (78, 178)
+    # RC window index k maps to forward index W-1-k; map the RC block back to
+    # forward coords and require it to equal the forward block.
+    rc_back = (W - 1 - (r1 - 1), W - 1 - r0 + 1)
+    assert rc_back == (f0, f1)
+
+
+def test_center_token_bounds_even_difference_coincides():
+    # W - n even (256-100=156): FWD and RC starts coincide exactly.
+    assert _center_token_bounds(256, 100, 1, "+") == _center_token_bounds(
+        256, 100, 1, "-"
+    )
+    # window_size == n_center_bp: whole window pooled, identical on both strands.
+    assert _center_token_bounds(100, 100, 1, "+") == _center_token_bounds(
+        100, 100, 1, "-"
+    )

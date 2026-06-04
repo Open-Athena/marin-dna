@@ -343,4 +343,9 @@ def compute_window_embedding(
         hidden = model(input_ids).last_hidden_state  # [B, L, D]
     else:
         hidden = model(input_ids, output_hidden_states=True).hidden_states[layer_index]
+    # Defensive: a tokenizer that adds an unexpected suffix, or a bad
+    # bounds calc, would otherwise silently truncate the pool.
+    assert 0 <= tok_lo < tok_hi <= hidden.shape[1], (
+        f"center slice [{tok_lo}:{tok_hi}] out of bounds for seq length {hidden.shape[1]}"
+    )
     return hidden[:, tok_lo:tok_hi].float().mean(dim=1)  # [B, D]

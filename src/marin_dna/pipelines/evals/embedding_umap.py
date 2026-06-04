@@ -3,9 +3,11 @@
 Loads a checkpoint, extracts a center-pooled FWD+RC-averaged embedding for each
 labeled 100 bp region window (GPN-Star's ``songlab/gpn-star-umap-regions``),
 projects with UMAP, and renders the 2-D scatter colored by functional region
-(their Fig 4A) and by conservation (Fig 4B). The embedding kernel lives in
-``marin_dna.model.embeddings``; this is the thin orchestration the Snakemake
-rules (``rules/embedding_umap.smk``) call.
+(their Fig 4A) and by conservation (Fig 4B). The embedding kernel is the shared
+HF Trainer harness: ``marin_dna.model.runner.run_window_embeddings`` (FWD+RC,
+strand-aware center bounds) over ``model.scoring.compute_window_embedding`` +
+``data.transforms.transform_window_embedding``. This is the thin orchestration
+the Snakemake rules (``rules/embedding_umap.smk``) call.
 
 Coordinates are 0-based half-open everywhere (repo convention) — the dataset's
 ``start``/``end`` flow straight into ``Genome(chrom, start, end)``.
@@ -123,6 +125,16 @@ def compute_region_embeddings(
     # hit nearby bgzip blocks; UMAP is order-independent.
     regions = regions.sort_values(["chrom", "start"]).reset_index(drop=True)
 
+    # The pooled center must stay inside the labeled locus, or the embedding
+    # would represent flank context the label doesn't describe. Enforce uniform
+    # region width and that the center pool fits within it.
+    widths = regions["end"] - regions["start"]
+    assert (widths == widths.iloc[0]).all(), "region windows must be uniform width"
+    assert n_center_bp <= int(widths.iloc[0]), (
+        f"n_center_bp {n_center_bp} exceeds the {int(widths.iloc[0])} bp region "
+        f"width; the pooled center would extend past the labeled locus into flanks"
+    )
+
     hf_dataset = Dataset.from_pandas(
         regions[["chrom", "start", "end"]], preserve_index=False
     )
@@ -147,8 +159,12 @@ def compute_region_embeddings(
     assert emb.shape[0] == len(regions), (
         f"row mismatch: {emb.shape[0]} vs {len(regions)}"
     )
+    # Fail at the (expensive) compute step rather than letting a NaN/Inf row
+    # reach the parquet and surface only in the downstream fit_umap rule.
+    assert np.isfinite(emb).all(), "embeddings contain non-finite values"
     emb_df = pd.DataFrame(emb, columns=[f"emb_{i}" for i in range(emb.shape[1])])
-    return pd.concat([regions[_CARRY_COLUMNS].reset_index(drop=True), emb_df], axis=1)
+    # regions is already 0..N-1 indexed (reset above); concat aligns by position.
+    return pd.concat([regions[_CARRY_COLUMNS], emb_df], axis=1)
 
 
 def fit_umap(emb_df: pd.DataFrame, *, random_state: int = 42) -> pd.DataFrame:
@@ -245,10 +261,13 @@ def plot_umap(
         ax=ax,
         **hue_kwargs,
     )
-    sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-    leg = ax.get_legend()
-    if leg is not None:  # title + bump legend dots to readable size/opacity
-        leg.set_title(legend_title)
+    # Guard move_legend on the legend existing: seaborn omits it for a
+    # degenerate hue (e.g. a constant/all-NaN cons column), and move_legend
+    # raises "Legend data not found" with no legend present.
+    if ax.get_legend() is not None:
+        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+        leg = ax.get_legend()  # move_legend rebuilds the legend
+        leg.set_title(legend_title)  # title + bump dots to readable size/opacity
         for handle in leg.legend_handles:
             handle.set_markersize(8)  # type: ignore[attr-defined]  # Line2D handle
             handle.set_alpha(1.0)

@@ -161,9 +161,9 @@ def transform_window_embedding(
     ``window_size`` bp centered on its midpoint and fetched on ``strand``
     (``"-"`` returns the reverse complement). Returns ``{"input_ids": [L]}``.
 
-    The center-pooling positions are strand-symmetric, so the caller pools the
-    *same* token slice on both strands and averages them
-    (see ``marin_dna.model.runner.run_window_embeddings``). No variant logic
+    The caller (``marin_dna.model.runner.run_window_embeddings``) computes the
+    center-pool token bounds **strand-aware** so both strands pool the same
+    genomic block before averaging. No variant logic
     here — unlike ``transform_llr_clm`` there is no per-strand position to track.
     """
     chrom = str(example["chrom"])
