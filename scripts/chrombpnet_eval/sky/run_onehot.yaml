@@ -20,12 +20,13 @@
 #   sky exec cbp-onehot scripts/chrombpnet_eval/sky/run_onehot.yaml \
 #     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0
 #
-# #259 all-chroms fixed-budget baseline (constant LR, dense QTL curve to find N):
+# #259 all-chroms fixed-budget WSD baseline (warmup 0.1 / decay 0.2 → ~0; the
+# stable phase reveals where the QTL curve plateaus → the budget N for the sweep):
 #   sky launch -c cbp-259 scripts/chrombpnet_eval/sky/run_onehot.yaml \
 #     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0 \
-#     --env ALL_CHROMS=1 --env MAX_STEPS=12000 --env BATCH=128 \
-#     --env PRECISION=bf16-mixed --env VAL_CHECK=250 \
-#     --env WANDB_NAME=dna-exp259-onehot-allchroms-baseline -i 30 --down
+#     --env ALL_CHROMS=1 --env MAX_STEPS=12000 --env LR_SCHEDULER=wsd --env BATCH=128 \
+#     --env PRECISION=bf16-mixed --env VAL_CHECK=500 \
+#     --env WANDB_NAME=dna-exp259-onehot-allchroms-wsd -i 30 --down
 
 name: cbp-onehot
 
