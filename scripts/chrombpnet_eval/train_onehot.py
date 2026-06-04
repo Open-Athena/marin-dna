@@ -106,6 +106,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--lr", type=float, default=1e-3, help="Adam LR (official: 1e-3)")
     p.add_argument(
+        "--optimizer",
+        choices=["adam", "adamw"],
+        default="adam",
+        help="'adam' (official ChromBPNet) or 'adamw' (decoupled weight decay, #259)",
+    )
+    p.add_argument(
+        "--weight-decay", type=float, default=0.0, help="weight decay (#259 knob)"
+    )
+    p.add_argument(
         "--lr-scheduler",
         choices=["none", "wsd"],
         default="none",
@@ -259,6 +268,8 @@ def main() -> None:
         alpha=alpha,
         beta=0.0 if args.count_only else 1.0,
         lr=args.lr,
+        optimizer=args.optimizer,
+        weight_decay=args.weight_decay,
         warmup_steps=args.warmup_steps,
         lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
         warmup_frac=args.warmup_frac,

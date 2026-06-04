@@ -87,6 +87,24 @@ def test_count_only_skips_profile_loss():
     }
 
 
+def test_adamw_configures():
+    # optimizer="adamw" + weight_decay builds a torch.optim.AdamW (#259).
+    model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
+    lit = ChromBPNetLit(model, lr=1e-3, optimizer="adamw", weight_decay=0.01)
+    trainer = L.Trainer(
+        max_epochs=1,
+        limit_train_batches=2,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(lit, DataLoader(_ToyDS(8), batch_size=4))
+    opt = trainer.optimizers[0]
+    assert isinstance(opt, torch.optim.AdamW), type(opt)
+    assert opt.param_groups[0]["weight_decay"] == 0.01
+
+
 def test_warmup_scheduler_configures():
     # warmup_steps>0 builds a step-interval LinearLR (constant-LR warmup path).
     trainer = _fit(warmup_steps=5)

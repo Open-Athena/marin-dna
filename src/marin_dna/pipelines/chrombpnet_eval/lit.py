@@ -87,8 +87,11 @@ class ChromBPNetLit(L.LightningModule):
             :func:`marin_dna.pipelines.chrombpnet_eval.onehot.build_onehot_chrombpnet`).
         alpha: counts-loss weight (the driver sets ``median_count/10``).
         beta: profile-loss weight (1.0).
-        lr: Adam learning rate. Default ``1e-3`` matches official one-hot
-            ChromBPNet (the embedding arm drops to ``1e-4``).
+        lr: learning rate. Default ``1e-3`` matches official one-hot ChromBPNet
+            (the embedding arm drops to ``1e-4``).
+        optimizer: ``"adam"`` (default, official ChromBPNet) or ``"adamw"``
+            (decoupled weight decay, #259 knob).
+        weight_decay: L2 (``adam``) / decoupled (``adamw``) weight decay; default 0.
         warmup_steps: linear LR warmup over this many optimizer steps (0 = off);
             tames the early large-gradient step that can diverge to NaN (#247).
             Used only when ``lr_scheduler`` is ``None`` (constant LR); ``"wsd"``
@@ -110,6 +113,8 @@ class ChromBPNetLit(L.LightningModule):
         alpha: float = 1.0,
         beta: float = 1.0,
         lr: float = 1e-3,
+        optimizer: str = "adam",
+        weight_decay: float = 0.0,
         warmup_steps: int = 0,
         lr_scheduler: str | None = None,
         warmup_frac: float = 0.01,
@@ -119,10 +124,15 @@ class ChromBPNetLit(L.LightningModule):
         assert lr_scheduler in (None, "wsd"), (
             f"lr_scheduler must be None or 'wsd', got {lr_scheduler!r}"
         )
+        assert optimizer in ("adam", "adamw"), (
+            f"optimizer must be 'adam' or 'adamw', got {optimizer!r}"
+        )
         self.model = model
         self.alpha = alpha
         self.beta = beta
         self.lr = lr
+        self.optimizer = optimizer
+        self.weight_decay = weight_decay
         self.warmup_steps = warmup_steps
         self.lr_scheduler = lr_scheduler
         self.warmup_frac = warmup_frac
@@ -177,8 +187,12 @@ class ChromBPNetLit(L.LightningModule):
         self.log("grad_norm", total, on_step=True, on_epoch=False, prog_bar=True)
 
     def configure_optimizers(self) -> Any:
-        opt = torch.optim.Adam(
-            [p for p in self.parameters() if p.requires_grad], lr=self.lr, eps=1e-7
+        opt_cls = torch.optim.AdamW if self.optimizer == "adamw" else torch.optim.Adam
+        opt = opt_cls(
+            [p for p in self.parameters() if p.requires_grad],
+            lr=self.lr,
+            eps=1e-7,
+            weight_decay=self.weight_decay,
         )
         # WSD (#259): warmup -> stable -> linear decay to 0 over the fixed step
         # budget. Needs a known horizon, so it composes with a fixed budget.
