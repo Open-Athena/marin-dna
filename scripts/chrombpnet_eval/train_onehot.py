@@ -72,6 +72,31 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--fasta", required=True, help="hg38 fasta (chr-prefixed)")
     p.add_argument("--chrom-sizes", required=True)
+    p.add_argument(
+        "--in-window",
+        type=int,
+        default=2114,
+        help="input one-hot length (255 = gLM-native context, #259)",
+    )
+    p.add_argument(
+        "--out-window",
+        type=int,
+        default=1000,
+        help="profile output length (a valid center-crop of in-window given "
+        "--n-layers; e.g. 255bp/n_layers=5 -> 35)",
+    )
+    p.add_argument(
+        "--n-layers",
+        type=int,
+        default=8,
+        help="dilated conv layers; fewer = smaller receptive field for short context",
+    )
+    p.add_argument(
+        "--jitter",
+        type=int,
+        default=500,
+        help="max random-crop jitter (shift); shrink for short context",
+    )
     p.add_argument("--out-dir", default="runs/onehot")
     p.add_argument(
         "--all-chroms",
@@ -232,8 +257,9 @@ def main() -> None:
         bigwig=args.bigwig,
         fasta=args.fasta,
         chrom_sizes=args.chrom_sizes,
-        in_window=2114,
-        out_window=1000,
+        in_window=args.in_window,
+        out_window=args.out_window,
+        shift=args.jitter,
         genome="hg38",
         batch_size=args.batch_size,
         num_workers=args.num_workers,
@@ -246,7 +272,12 @@ def main() -> None:
 
     if not args.no_bias:
         assert args.bias, "--bias is required unless --no-bias"
-    model = build_onehot_chrombpnet(bias_h5=args.bias, use_bias=not args.no_bias)
+    model = build_onehot_chrombpnet(
+        bias_h5=args.bias,
+        use_bias=not args.no_bias,
+        out_dim=args.out_window,
+        n_layers=args.n_layers,
+    )
     n_trainable = count_trainable_params(model)
     if args.no_bias:
         print(f"[train] one-hot ChromBPNet (NO bias, #259): {n_trainable:,} trainable")
@@ -300,7 +331,7 @@ def main() -> None:
             Genome(args.qtl_genome),
             QTL_DATASETS,
             split=args.qtl_split,
-            window=2114,
+            window=args.in_window,
             chrom_prefix=args.qtl_chrom_prefix,
         )
         callbacks.append(

@@ -40,6 +40,10 @@ envs:
     COUNT_ONLY: "0"             # #259 ablation: "1" = count head only (beta=0, no profile NLL)
     OPTIMIZER: "adam"           # adam (official) | adamw (#259, decoupled weight decay)
     WEIGHT_DECAY: "0.0"         # weight decay (#259)
+    IN_WINDOW: "2114"           # #259 context size: 255 = gLM-native (set OUT_WINDOW/N_LAYERS to match)
+    OUT_WINDOW: "1000"          # profile output; 255bp/N_LAYERS=5 -> 35
+    N_LAYERS: "8"               # dilated layers; fewer for short context (255bp -> 5)
+    JITTER: "500"               # random-crop jitter; shrink for short context (255bp -> 25)
     MAX_STEPS: "12000"          # fixed step budget (#259); SMOKE caps to ~60
     LR_SCHEDULER: "wsd"         # none (constant) | wsd (#259 Warmup-Stable-Decay)
     QTL_EVERY: "500"            # log the QTL metric every N global steps (decoupled from epochs)
@@ -82,7 +86,7 @@ run: |
 
     nvidia-smi
     # Base args + #259 knobs. SMOKE caps to a tiny budget; otherwise MAX_STEPS.
-    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY"
+    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --jitter $JITTER"
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
     [ "$NO_BIAS" = "1" ] && ARGS="$ARGS --no-bias"
     [ "$COUNT_ONLY" = "1" ] && ARGS="$ARGS --count-only"
