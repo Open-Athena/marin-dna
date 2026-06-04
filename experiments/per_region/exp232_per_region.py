@@ -161,6 +161,15 @@ TPU_TYPES: tuple[str, ...] = tuple(
     t.strip() for t in os.getenv("TPU_TYPE", "v5p-8").split(",") if t.strip()
 )
 
+# Per-device microbatch (`per_device_parallelism`), env-overridable via ``PDP``.
+# -1 (default) = full per-chip batch in one microbatch (no grad accum). levanter
+# already runs ``gradient_checkpointing=True`` by default, yet on v6e (~31 GB HBM)
+# the full per-chip batch of 8192/4 = 2048 still OOMs at ~43 GB. Set ``PDP=1024``
+# to grad-accumulate (2 microbatches of 1024/chip on a 4-chip slice) → same
+# activation memory as the v6e-8 run (~24 GB, fits) while the **effective batch
+# stays 8192** (train_batch_size unchanged → mathematically identical step).
+PER_DEVICE_PARALLELISM: int = int(os.getenv("PDP", "-1"))
+
 # 5K steps × 8192 batch × 256 tokens/seq ≈ 10.5B tokens per arm (same data
 # schedule as exp187). Asymmetric epoch counts across arms are by design (we
 # hold compute fixed, not data); v4 post-RC rows shift the counts vs v3:
@@ -471,6 +480,7 @@ def _build_train_step(strategy: str, dataset: str) -> ExecutorStep:
             ),
             mp=jmp.get_policy("p=f32,c=bfloat16"),
             train_batch_size=BATCH_SIZE,
+            per_device_parallelism=PER_DEVICE_PARALLELISM,
             num_train_steps=NUM_TRAIN_STEPS,
             steps_per_eval=steps_per_eval,
             checkpointer=_checkpointer(NUM_TRAIN_STEPS),
