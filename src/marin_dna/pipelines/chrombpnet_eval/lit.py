@@ -141,9 +141,16 @@ class ChromBPNetLit(L.LightningModule):
         # autocast here keeps a ``--precision bf16-mixed`` run (this arm is
         # GPU-compute-bound, so bf16 can speed it up) from NaN-ing on the loss.
         with torch.autocast(device_type=y_count.device.type, enabled=False):
-            profile_loss = multinomial_nll(y_profile.float(), true_profile.float())
             count_loss = F.mse_loss(y_count.float(), true_counts.float())
-            loss = self.beta * profile_loss + self.alpha * count_loss
+            # beta=0 -> count-only (#259): skip the profile NLL entirely. The QTL
+            # score uses only the count head, so this tests whether the profile
+            # objective is needed at all. Otherwise the vendored profile+count loss.
+            if self.beta:
+                profile_loss = multinomial_nll(y_profile.float(), true_profile.float())
+                loss = self.beta * profile_loss + self.alpha * count_loss
+            else:
+                profile_loss = count_loss.new_zeros(())
+                loss = self.alpha * count_loss
         self.log_dict(
             {
                 "train_loss": loss,

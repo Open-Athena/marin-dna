@@ -34,10 +34,18 @@ class OneHotChromBPNet(ChromBPNet):
     to the vendored forward.
     """
 
+    #: When False, the frozen Tn5/DNase bias is skipped entirely (#259 ablation) —
+    #: forward returns the accessibility tower's output directly. The bias shapes
+    #: the profile but barely moves total counts (paper p.5) and ~cancels in the
+    #: ref/alt logFC, so QTL scoring should be near-unaffected. Set by the builder.
+    use_bias: bool = True
+
     def forward(
         self, x: torch.Tensor, **kwargs: Any
     ) -> tuple[torch.Tensor, torch.Tensor]:
         acc_profile, acc_counts = self.model(x)  # bf16 convs under outer autocast
+        if not self.use_bias:
+            return acc_profile.squeeze(1), acc_counts
         bias_profile, bias_counts = self.bias(x)
         with torch.autocast(device_type=x.device.type, enabled=False):
             y_profile = acc_profile.float() + bias_profile.float()
@@ -65,6 +73,7 @@ def load_frozen_bias(model: ChromBPNet, bias_h5: str) -> None:
 def build_onehot_chrombpnet(
     *,
     bias_h5: str | None = None,
+    use_bias: bool = True,
     out_dim: int = 1000,
     n_filters: int = 512,
     n_layers: int = 8,
@@ -74,10 +83,14 @@ def build_onehot_chrombpnet(
     """Construct a one-hot ChromBPNet (bf16-safe forward, see OneHotChromBPNet).
 
     Args:
-        bias_h5: path to ARSENAL's ``bias_model_scaled.h5``. When given, the
-            pretrained bias is loaded and frozen (see :func:`load_frozen_bias`).
-            ``None`` keeps ChromBPNet's fresh untrained bias — only for code-path
-            smoke tests on synthetic data, **never** a real training run.
+        bias_h5: path to ARSENAL's ``bias_model_scaled.h5``. When given (and
+            ``use_bias``), the pretrained bias is loaded and frozen (see
+            :func:`load_frozen_bias`). ``None`` keeps ChromBPNet's fresh untrained
+            bias — only for code-path smoke tests on synthetic data, **never** a
+            real training run.
+        use_bias: when ``False`` (#259 ablation), the bias is skipped entirely in
+            ``forward`` (no ``bias_h5`` needed) — tests whether QTL scoring needs
+            bias correction at all (expected ~neutral; see :class:`OneHotChromBPNet`).
         out_dim: profile output width (central window, 1000 bp).
         n_filters / n_layers / conv1_kernel_size / profile_kernel_size: the
             accessibility-tower architecture. Defaults are official one-hot
@@ -97,7 +110,8 @@ def build_onehot_chrombpnet(
         n_control_tracks=0,
     )
     model = OneHotChromBPNet(config)
-    if bias_h5 is not None:
+    model.use_bias = use_bias
+    if use_bias and bias_h5 is not None:
         load_frozen_bias(model, bias_h5)
     return model
 

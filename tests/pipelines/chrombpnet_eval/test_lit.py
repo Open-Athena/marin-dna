@@ -67,6 +67,26 @@ def test_train_loop_and_instrumentation():
     assert gn > 0 and torch.isfinite(torch.as_tensor(gn)), gn
 
 
+def test_count_only_skips_profile_loss():
+    # beta=0 -> count-only (#259): trains, and the logged profile loss is 0.
+    model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
+    lit = ChromBPNetLit(model, alpha=1.0, beta=0.0, lr=1e-3)
+    trainer = L.Trainer(
+        max_epochs=1,
+        limit_train_batches=2,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(lit, DataLoader(_ToyDS(8), batch_size=4))
+    metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
+    pk = [k for k in metrics if k.startswith("train_profile_loss")]
+    assert pk and all(float(metrics[k]) == 0.0 for k in pk), {
+        k: float(metrics[k]) for k in pk
+    }
+
+
 def test_warmup_scheduler_configures():
     # warmup_steps>0 builds a step-interval LinearLR (constant-LR warmup path).
     trainer = _fit(warmup_steps=5)

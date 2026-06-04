@@ -67,7 +67,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--peaks", required=True)
     p.add_argument("--nonpeaks", required=True)
     p.add_argument("--bigwig", required=True)
-    p.add_argument("--bias", required=True, help="Keras .h5 pretrained bias model")
+    p.add_argument(
+        "--bias", help="Keras .h5 pretrained bias model (required unless --no-bias)"
+    )
     p.add_argument("--fasta", required=True, help="hg38 fasta (chr-prefixed)")
     p.add_argument("--chrom-sizes", required=True)
     p.add_argument("--out-dir", default="runs/onehot")
@@ -77,6 +79,19 @@ def parse_args() -> argparse.Namespace:
         help="train on ALL chromosomes (1-22,X,Y) — the #259 protocol. Not "
         "leakage: accessibility is trained on the reference genome only and VEP "
         "is zero-shot. Needs a 32 GB+ host (launch with --memory 64+).",
+    )
+    # #259 simplification ablations (does QTL-Pearson survive removing this?)
+    p.add_argument(
+        "--no-bias",
+        action="store_true",
+        help="drop the frozen Tn5/DNase bias entirely (no --bias needed). Expected "
+        "~neutral for QTL — total counts are bias-independent (paper p.5).",
+    )
+    p.add_argument(
+        "--count-only",
+        action="store_true",
+        help="train the count head only (beta=0, no profile NLL); the QTL score "
+        "uses only the count head.",
     )
     # training
     p.add_argument("--max-epochs", type=int, default=100)
@@ -220,22 +235,29 @@ def main() -> None:
     alpha = datamodule.median_count / 10
     print(f"[train] median_count={datamodule.median_count:.1f} -> alpha={alpha:.3f}")
 
-    model = build_onehot_chrombpnet(bias_h5=args.bias)
+    if not args.no_bias:
+        assert args.bias, "--bias is required unless --no-bias"
+    model = build_onehot_chrombpnet(bias_h5=args.bias, use_bias=not args.no_bias)
     n_trainable = count_trainable_params(model)
-    n_bias = sum(p.numel() for p in model.bias.parameters())
-    print(
-        f"[train] one-hot ChromBPNet: {n_trainable:,} trainable params; "
-        f"bias frozen ({n_bias:,} params, requires_grad="
-        f"{any(p.requires_grad for p in model.bias.parameters())})"
-    )
+    if args.no_bias:
+        print(f"[train] one-hot ChromBPNet (NO bias, #259): {n_trainable:,} trainable")
+    else:
+        n_bias = sum(p.numel() for p in model.bias.parameters())
+        print(
+            f"[train] one-hot ChromBPNet: {n_trainable:,} trainable params; "
+            f"bias frozen ({n_bias:,} params, requires_grad="
+            f"{any(p.requires_grad for p in model.bias.parameters())})"
+        )
     if args.compile:
         model = torch.compile(model)
         print("[train] torch.compile enabled")
 
+    if args.count_only:
+        print("[train] --count-only: beta=0 (count head only, no profile NLL)")
     lit = ChromBPNetLit(
         model,
         alpha=alpha,
-        beta=1.0,
+        beta=0.0 if args.count_only else 1.0,
         lr=args.lr,
         warmup_steps=args.warmup_steps,
         lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,

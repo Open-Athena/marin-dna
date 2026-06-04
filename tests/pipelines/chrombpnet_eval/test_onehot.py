@@ -41,6 +41,23 @@ def test_count_trainable_drops_when_bias_frozen():
     assert before - after == n_bias
 
 
+def test_no_bias_skips_bias():
+    # use_bias=False (#259) returns the accessibility tower's output directly —
+    # no bias .h5 needed, and the output differs from the bias-included forward.
+    model = build_onehot_chrombpnet(
+        bias_h5=None, use_bias=False, n_filters=8, n_layers=2
+    )
+    assert model.use_bias is False
+    x = torch.zeros(2, 4, 2114)
+    x[:, torch.randint(0, 4, (2114,)), torch.arange(2114)] = 1.0
+    prof_nb, cnt_nb = model(x)
+    assert prof_nb.shape == (2, 1000) and cnt_nb.numel() == 2
+    assert torch.isfinite(prof_nb).all() and torch.isfinite(cnt_nb).all()
+    model.use_bias = True  # toggling the (fresh) bias on must change the output
+    _, cnt_b = model(x)
+    assert not torch.allclose(cnt_nb, cnt_b), "use_bias flag had no effect"
+
+
 def test_bf16_autocast_forward_is_finite():
     # The bf16-safe forward must not NaN under a bf16 autocast: the exp/log
     # count-combine is fp32-guarded, so outputs stay finite and upcast to fp32.
