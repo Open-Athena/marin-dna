@@ -201,9 +201,14 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
             _local = _osp.dirname(_c[0]) if _c else _local
         ckpt_path = _local
         print(f"[exp257] downloaded HF export -> {ckpt_path}", flush=True)
+    # Compute dtype: bfloat16 (training/default) or float32. The fp32 run tests
+    # whether the torch(0.158)-vs-levanter(0.251) distal/fwd gap is a bf16
+    # numerical sensitivity (fp32 reconciles them) or a real math difference.
+    _compute = os.getenv("COMPUTE_DTYPE", "bfloat16")
     run_name = (
         WANDB_RUN_NAME
         + ("-hfckpt" if ckpt_is_hf else "")
+        + ("-f32" if _compute == "float32" else "")
         + (f"-mps{_mps}" if _mps != 64 else "")
         + (f"-{_tag}" if _tag else "")
     )
@@ -222,7 +227,7 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
                 tags=list(WANDB_TAGS),
                 name=run_name,
             ),
-            mp=jmp.get_policy("p=f32,c=bfloat16"),
+            mp=jmp.get_policy(f"p=f32,c={_compute}"),
             per_device_eval_parallelism=64,
         ),
         model=_build_model_config(seq_len),
@@ -238,6 +243,7 @@ def main() -> None:
     mps = os.getenv("MAX_PACKED_SEGMENTS", "64")
     step_tag = os.getenv("STEP_TAG", "")
     ckpt_is_hf = os.getenv("CHECKPOINT_IS_HF", "0")
+    compute = os.getenv("COMPUTE_DTYPE", "bfloat16")
     env_vars: dict[str, str] = {
         "HF_HUB_DOWNLOAD_TIMEOUT": "120",
         "UV_LOCK_TIMEOUT": "7200",
@@ -246,15 +252,17 @@ def main() -> None:
         "DUMP_GCS": os.getenv("DUMP_GCS", ""),
         "CHECKPOINT_PATH": os.getenv("CHECKPOINT_PATH", ""),
         "CHECKPOINT_IS_HF": ckpt_is_hf,
+        "COMPUTE_DTYPE": compute,
     }
     if "WANDB_API_KEY" in os.environ:
         env_vars["WANDB_API_KEY"] = os.environ["WANDB_API_KEY"]
 
-    # Fold checkpoint mode + packing + tag into the step name so the
-    # content-addressed marin executor re-runs (rather than skipping a
+    # Fold checkpoint mode + compute dtype + packing + tag into the step name so
+    # the content-addressed marin executor re-runs (rather than skipping a
     # same-named, already-done step).
     name_suffix = (
         ("-hfckpt" if ckpt_is_hf == "1" else "")
+        + ("-f32" if compute == "float32" else "")
         + ("" if mps == "64" else f"-mps{mps}")
         + (f"-{step_tag}" if step_tag else "")
     )
