@@ -1,10 +1,10 @@
-"""Plot QTL Pearson vs training step for the #259 sweep arms (one line per arm).
+"""Plot QTL Pearson + grad_norm vs training step for the #259 sweep arms.
 
-Pulls each W&B run's caqtl/dsqtl/avg QTL curve, de-duplicates the per-step
-carry-forward (pre-fix runs re-log the held value at every flush; #259), and
-plots avg + caqtl + dsqtl vs the global step. The *trajectory* (false plateaus,
-where arms diverge, the WSD decay-tail bump) is the message — not just the final
-value. Emits PNG (inline + local sanity-check) and SVG (GitHub embed).
+Pulls each W&B run's caqtl/dsqtl/avg QTL curve (de-duplicating the per-step
+carry-forward; #259) and its grad_norm, and plots avg + caqtl + dsqtl + grad_norm
+vs the global step, one line per arm. The *trajectory* (false plateaus, where arms
+diverge, the WSD decay-tail bump, gradient spikes/stability) is the message — not
+just the final value. Emits PNG (inline + local sanity-check) and SVG (GitHub).
 
   WANDB_API_KEY=... uv run --with matplotlib --extra chrombpnet python \
     scripts/chrombpnet_eval/plot_sweep_qtl.py \
@@ -28,16 +28,28 @@ METRICS = ["qtl_avg_pearson", "qtl_caqtl_pearson", "qtl_dsqtl_pearson"]
 TITLES = ["avg (caqtl+dsqtl)/2", "caqtl (n=3173)", "dsqtl (n=309)"]
 
 
-def fetch_curve(run):
-    """(step, caqtl, dsqtl, avg) at each distinct eval, de-duping carry-forward."""
-    df = run.history(samples=20000, pandas=True)
+def fetch(run):
+    """(qtl_curve, grad_norm_curve) for one run, indexed by global step.
+
+    qtl is de-duped to the distinct (sparse) evals — pre-fix runs re-log the held
+    value at every flush (#259); a no-op for the fixed clean runs. grad_norm is
+    left dense.
+    """
+    df = run.history(samples=40000, pandas=True)
     g = next(c for c in df.columns if "global_step" in c)
-    cols = [g] + [m for m in METRICS if m in df.columns]
-    sub = df[cols].dropna(subset=["qtl_avg_pearson"]).sort_values(g)
-    # pre-fix runs re-log the held value every flush -> keep only rows where the
-    # avg changes (the actual sparse evals). A no-op for the fixed clean runs.
-    sub = sub[sub["qtl_avg_pearson"].ne(sub["qtl_avg_pearson"].shift())]
-    return sub.rename(columns={g: "step"})
+    df = df.rename(columns={g: "step"})
+    qtl = (
+        df[["step", *[m for m in METRICS if m in df.columns]]]
+        .dropna(subset=["qtl_avg_pearson"])
+        .sort_values("step")
+    )
+    qtl = qtl[qtl["qtl_avg_pearson"].ne(qtl["qtl_avg_pearson"].shift())]
+    gn = (
+        df[["step", "grad_norm"]].dropna().sort_values("step")
+        if "grad_norm" in df.columns
+        else None
+    )
+    return qtl, gn
 
 
 def main() -> None:
@@ -48,7 +60,7 @@ def main() -> None:
     args = ap.parse_args()
 
     api = wandb.Api()
-    curves: dict[str, object] = {}
+    curves: dict[str, tuple] = {}
     for arm in args.arms:
         label, name = arm.split("=", 1)
         runs = api.runs(
@@ -58,26 +70,35 @@ def main() -> None:
             print(f"WARN: no run named {name!r}")
             continue
         run = sorted(runs, key=lambda r: r.created_at)[-1]
-        c = fetch_curve(run)
-        curves[label] = c
-        last = c.iloc[-1]
+        qtl, gn = fetch(run)
+        curves[label] = (qtl, gn)
+        last = qtl.iloc[-1]
+        gnmax = f"{gn['grad_norm'].max():.0f}" if gn is not None else "?"
         print(
-            f"{label:14s} {len(c):2d} pts  step≤{int(last['step']):>5}  "
+            f"{label:14s} {len(qtl):2d} pts  step≤{int(last['step']):>5}  "
             f"caqtl={last['qtl_caqtl_pearson']:.4f} dsqtl={last['qtl_dsqtl_pearson']:.4f} "
-            f"avg={last['qtl_avg_pearson']:.4f}"
+            f"avg={last['qtl_avg_pearson']:.4f}  grad_norm_max={gnmax}"
         )
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.2), sharex=True)
-    for ax, metric, title in zip(axes, METRICS, TITLES):
-        for label, c in curves.items():
-            if metric in c:
-                ax.plot(c["step"], c[metric], marker="o", ms=3, label=label)
+    fig, axes = plt.subplots(1, 4, figsize=(19, 4.2))
+    for ax, metric, title in zip(axes[:3], METRICS, TITLES):
+        for label, (qtl, _) in curves.items():
+            if metric in qtl:
+                ax.plot(qtl["step"], qtl[metric], marker="o", ms=3, label=label)
         ax.set_title(title)
         ax.set_xlabel("training step")
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("QTL Pearson (dev / train split)")
     axes[0].legend(fontsize=8, loc="lower right")
-    fig.suptitle("#259 sweep — QTL Pearson vs step (all-chroms WSD, N=12k, single seed)")
+    gax = axes[3]
+    for label, (_, gn) in curves.items():
+        if gn is not None:
+            gax.plot(gn["step"], gn["grad_norm"], lw=0.8, alpha=0.8, label=label)
+    gax.set_yscale("log")
+    gax.set_title("grad_norm (pre-clip)")
+    gax.set_xlabel("training step")
+    gax.grid(alpha=0.3, which="both")
+    fig.suptitle("#259 sweep — QTL Pearson + grad_norm vs step (all-chroms WSD, N=12k)")
     fig.tight_layout()
 
     os.makedirs(os.path.dirname(args.out_prefix) or ".", exist_ok=True)
