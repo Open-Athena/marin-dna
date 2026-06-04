@@ -23,7 +23,7 @@ This is research code. Prioritize **reproducibility** and **correctness** over a
 
 ## Code Structure
 
-The codebase has three main components:
+The codebase has five main components:
 
 1. **Python Library** (`src/marin_dna/`) - Python logic for all pipelines lives here, including pipeline-specific modules. See **Research Code Values** above for why, and for how Snakemake rules should relate to it.
 
@@ -40,6 +40,8 @@ The codebase has three main components:
 4. **Plots** (`plots/`) - Self-contained Python scripts that turn pipeline metric parquets into figures. One file per recipe; outputs to gitignored `plots/output/<recipe>/`.
    - Load parquets from S3 with `polars.read_parquet("s3://…")` — native object_store support, no fsspec/s3fs needed.
    - Emit both `figure.svg` and `figure.png` to the output dir. SVG is the artifact to upload to GitHub (PR/issue/gist embeds); PNG is the local-iteration format — agents can `Read` it back to visually sanity-check (the `Read` tool renders raster but not SVG) and PNGs also render inline in agent conversations.
+
+5. **Scripts** (`scripts/`) - One-off, investigation, and reproduction scripts (analysis, ad-hoc evals, uploads, debugging). **Tracked**, so they can be committed and **permalinked** from issues/PRs. Put any one-off script you might re-run, reference, or cite for reproduction here — *not* in gitignored `scratch/`. Group by issue when it helps (`scripts/issue<N>_*.py` or `scripts/issue<N>/`). Reserve `scratch/` (gitignored) for ephemeral data/artifacts only — checkpoint downloads, intermediate parquets, dumps — never for code you'll point at. This still applies to library logic: anything reusable or worth a test belongs in `src/marin_dna/` (see **Research Code Values**); `scripts/` is for the genuinely one-off.
 
 ## Development Practices
 
@@ -65,6 +67,7 @@ The codebase has three main components:
 
 - When an agent creates a PR or issue, add the `agent-generated` label.
 - Agent comments on PRs/issues must begin with `🤖`.
+- **Always reference code with commit-pinned permalinks.** Whenever an issue, PR, or comment points at code — a function that backs a claim, a script that reproduces a result, the line a reader should run — link it as a commit-pinned GitHub permalink (`blob/<sha>/path#Lx-Ly`), never a bare path or branch link (branches move; the reference rots). If the code isn't committed yet (e.g. a one-off you wrote in `scratch/`), move it to tracked `scripts/`, commit + push, *then* link it. This is the default for **all** GH posts, not just `agent-research`.
 - For iterative investigations the user wants tracked in their own issue, use the `agent-research` skill — issue body is the living doc, comments are the append-only log with commit-pinned permalinks to code.
 - **Branch names.** The worktree harness auto-prefixes branches with `claude/` and a random slug (e.g. `claude/happy-bose-180d63`). Before opening a PR, rename the branch with `git branch -m` so the branch list is scannable:
   - With an existing issue: `claude/issue-<issue-number>-<short-kebab-summary>` (e.g. `claude/issue-187-readme-revamp`).
