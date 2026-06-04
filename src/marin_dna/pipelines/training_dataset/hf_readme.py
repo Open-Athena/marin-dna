@@ -88,8 +88,9 @@ RECIPE_BLURBS: dict[str, str] = {
         "Segmentation-predicted enhancers: 128 bp bins in the top 1% of "
         "per-genome enhancer logit from the whole-genome `EnhancerSegmenter` "
         "model ([issue #118](https://github.com/Open-Athena/marin-dna/issues/118)), "
-        "each resized to a 255 bp window centered on the bin, with all "
-        "functional exons (CDS + UTR + ncRNA) subtracted and intersected with "
+        "each resized to a 255 bp window centered on the bin, with annotated "
+        "transcript exons subtracted (`get_exons_for_masking` — all exons, "
+        "minus low-quality biotypes where annotated) and intersected with "
         "`defined`."
     ),
     "v30": (
@@ -122,6 +123,7 @@ GENOME_SET_TITLES: dict[str, str] = {
     "mammals": "Mammals",
     "primates": "Primates",
     "humans": "Humans",
+    "human_mouse": "Human + mouse",
     "enhancer_seg_mammals_v1": "20 mammals (segmentation)",
     "mammals_seg20": "20 mammals",
 }
@@ -142,6 +144,10 @@ GENOME_SET_BLURBS: dict[str, str] = {
         "NCBI RefSeq genomes in order **Primates** (**{n_genomes} genomes**)."
     ),
     "humans": ("**Homo sapiens** only (GRCh38 / GCF_000001405.40)."),
+    "human_mouse": (
+        "**Homo sapiens** (GRCh38) + **Mus musculus** (GRCm39) — a 2-genome "
+        "set (GCF_000001405.40, GCF_000001635.27)."
+    ),
     "enhancer_seg_mammals_v1": (
         "20 chromosome-level mammalian assemblies, one per order — the "
         "[issue #118](https://github.com/Open-Athena/marin-dna/issues/118) "
@@ -465,7 +471,7 @@ soft-masking is discarded):
 ## Construction
 
 1. Build the `{recipe}` interval set on the human genome and tile into
-   {window} bp / {stride} bp (non-overlapping) windows.
+   {window} bp / {stride} bp ({_overlap_phrase(window, stride)}) windows.
 2. Subsample up to **{max_samples}** windows (seed {seed}).
 3. Re-encode each base's case by phyloP-241way ≥ {phylop_threshold}.
 

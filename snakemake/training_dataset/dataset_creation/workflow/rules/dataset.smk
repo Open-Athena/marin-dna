@@ -227,9 +227,11 @@ rule training_hf_readme:
     equals the sum of these by construction. We gate on the (already-written,
     cheap) ``upload.done/training`` marker purely for ordering: it guarantees
     the per-genome parquets exist before we scan them, without materialising
-    the tens-of-GB of shard/parquet data as a snakemake input. ``ancient()``
-    keeps that gate from making snakemake explore (or rebuild) the upstream
-    data chain just to (re)generate a card.
+    the tens-of-GB of shard/parquet data as a snakemake input. The marker is
+    wrapped in ``ancient()`` so snakemake treats it as up-to-date regardless of
+    mtime; otherwise, on a fresh checkout (where git mtimes are misleading),
+    depending on it would drag the already-built upstream chain into rerun
+    consideration.
     """
     input:
         uploaded=ancient(
@@ -250,7 +252,12 @@ rule training_hf_readme:
             write_training_readme,
         )
 
-        prefix = workflow.storage_settings.default_storage_prefix.rstrip("/")
+        prefix = workflow.storage_settings.default_storage_prefix
+        assert prefix, (
+            "training_hf_readme needs an S3 default-storage-prefix; run with "
+            "the pipeline profile (workflow/profiles/default)."
+        )
+        prefix = prefix.rstrip("/")
         parquet_uris = [
             f"{prefix}/results/dataset_genome/{wildcards.recipe}/{wildcards.w}/{wildcards.s}/{g}.parquet"
             for g in genome_sets[wildcards.genome_set]
@@ -306,11 +313,13 @@ rule validation_hf_readme:
     <=``max_samples`` subsample) read straight from the parquet input. We gate
     on the parquet itself (not the ``upload.done/validation`` marker, which is
     written via snakemake's S3-incompatible ``touch()`` wrapper and so reads as
-    perpetually missing). A plain input — rather than ``ancient()`` — because
-    when the parquet is (spuriously, on a fresh checkout) flagged for rebuild,
-    an ``ancient()`` wrapper makes snakemake skip scheduling this card; the
-    plain input schedules correctly and on the real pipeline host the parquet
-    post-dates its config inputs, so no rebuild fires.
+    perpetually missing). A plain input is used rather than ``ancient()``:
+    empirically, when the parquet was concurrently flagged for rebuild (a
+    fresh-checkout mtime artifact — the human chrom-mapping config out-dates the
+    parquet), wrapping it in ``ancient()`` left snakemake not scheduling this
+    card at all, whereas the plain input schedules it correctly. On the real
+    pipeline host the parquet post-dates its config inputs, so neither the
+    spurious rebuild nor that interaction occurs.
     """
     input:
         parquet="results/validation/{recipe}/{w}/{s}/validation.parquet",

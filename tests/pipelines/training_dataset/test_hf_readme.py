@@ -1,14 +1,23 @@
 """Tests for the ``genomes-v*`` HF dataset-card generators."""
 
 import re
+from pathlib import Path
 
 import pytest
+import yaml
 
 from marin_dna.pipelines.training_dataset.hf_readme import (
+    GENOME_SET_BLURBS,
+    GENOME_SET_TITLES,
     RECIPE_BLURBS,
     build_training_readme,
     build_validation_readme,
     count_parquet_rows,
+)
+
+_CONFIG = (
+    Path(__file__).resolve().parents[3]
+    / "snakemake/training_dataset/dataset_creation/config/config.yaml"
 )
 
 SHA = "0123456789abcdef0123456789abcdef01234567"  # 40 chars
@@ -212,3 +221,29 @@ def test_count_parquet_rows(tmp_path) -> None:  # type: ignore[no-untyped-def]
     pl.DataFrame({"id": ["y"] * 5, "seq": ["C"] * 5}).write_parquet(b)
     assert count_parquet_rows([str(a)]) == 3
     assert count_parquet_rows([str(a), str(b)]) == 8
+
+
+# ----------------------------------------------------------------------------
+# Genome-set coverage (every config genome_set must have a card blurb)
+# ----------------------------------------------------------------------------
+
+
+def test_genome_set_titles_and_blurbs_have_matching_keys() -> None:
+    assert set(GENOME_SET_TITLES) == set(GENOME_SET_BLURBS)
+
+
+def test_all_config_genome_sets_have_blurbs() -> None:
+    # Regression guard: `rule all` builds a training_readme target for *every*
+    # genome_set in the config, and build_training_readme raises ValueError for
+    # any without a blurb — so a config genome_set lacking one crashes the
+    # pipeline (this is how `human_mouse` slipped through).
+    cfg = yaml.safe_load(_CONFIG.read_text())
+    names = [g["name"] for g in cfg["genome_sets"]]
+    missing = [n for n in names if n not in GENOME_SET_BLURBS]
+    assert not missing, f"config genome_sets missing a card blurb: {missing}"
+
+
+def test_training_renders_for_human_mouse() -> None:
+    md = _training(genome_set="human_mouse", recipe="v5", n_genomes=2)
+    assert "Human + mouse" in md
+    assert "GCF_000001635.27" in md  # mouse accession present in blurb
