@@ -180,8 +180,30 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
         eval_harness._LmEvalHarnessWorker.__init__ = _patched_worker_init
 
     _tag = os.getenv("STEP_TAG", "")
+    # Checkpoint source: native levanter (default) or the HF export. Running the
+    # HF export through levanter splits "HF-conversion fidelity" (A) from
+    # "torch-vs-JAX model impl" (B) for the #257 discrepancy: if the HF export
+    # scores 0.158 in levanter too → (A) the export differs from native; if 0.251
+    # → (B) same weights, divergent impls. levanter's HF loader wants a local dir,
+    # so a gs:// HF export is downloaded first.
+    ckpt_path = os.getenv("CHECKPOINT_PATH", CHECKPOINT_PATH)
+    ckpt_is_hf = os.getenv("CHECKPOINT_IS_HF", "0") == "1"
+    if ckpt_is_hf and ckpt_path.startswith("gs://"):
+        import glob
+        import os.path as _osp
+
+        import fsspec
+
+        _local = "/tmp/exp257_ckpt_hf"
+        fsspec.filesystem("gcs").get(ckpt_path.rstrip("/") + "/", _local + "/", recursive=True)
+        if not _osp.exists(_osp.join(_local, "config.json")):
+            _c = glob.glob(_local + "/**/config.json", recursive=True)
+            _local = _osp.dirname(_c[0]) if _c else _local
+        ckpt_path = _local
+        print(f"[exp257] downloaded HF export -> {ckpt_path}", flush=True)
     run_name = (
         WANDB_RUN_NAME
+        + ("-hfckpt" if ckpt_is_hf else "")
         + (f"-mps{_mps}" if _mps != 64 else "")
         + (f"-{_tag}" if _tag else "")
     )
@@ -192,8 +214,8 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
             log_samples=False,
         ),
         tokenizer=TOKENIZER,
-        checkpoint_path=CHECKPOINT_PATH,
-        checkpoint_is_hf=False,  # native levanter checkpoint = exact training state
+        checkpoint_path=ckpt_path,
+        checkpoint_is_hf=ckpt_is_hf,
         trainer=TrainerConfig(
             tracker=WandbConfig(
                 project=WANDB_PROJECT,
@@ -215,19 +237,27 @@ def main() -> None:
     # (already-done) step and skip re-execution.
     mps = os.getenv("MAX_PACKED_SEGMENTS", "64")
     step_tag = os.getenv("STEP_TAG", "")
+    ckpt_is_hf = os.getenv("CHECKPOINT_IS_HF", "0")
     env_vars: dict[str, str] = {
         "HF_HUB_DOWNLOAD_TIMEOUT": "120",
         "UV_LOCK_TIMEOUT": "7200",
         "MAX_PACKED_SEGMENTS": mps,
         "STEP_TAG": step_tag,
         "DUMP_GCS": os.getenv("DUMP_GCS", ""),
+        "CHECKPOINT_PATH": os.getenv("CHECKPOINT_PATH", ""),
+        "CHECKPOINT_IS_HF": ckpt_is_hf,
     }
     if "WANDB_API_KEY" in os.environ:
         env_vars["WANDB_API_KEY"] = os.environ["WANDB_API_KEY"]
 
-    # Fold packing mode + tag into the step name so the content-addressed marin
-    # executor re-runs (rather than skipping a same-named, already-done step).
-    name_suffix = ("" if mps == "64" else f"-mps{mps}") + (f"-{step_tag}" if step_tag else "")
+    # Fold checkpoint mode + packing + tag into the step name so the
+    # content-addressed marin executor re-runs (rather than skipping a
+    # same-named, already-done step).
+    name_suffix = (
+        ("-hfckpt" if ckpt_is_hf == "1" else "")
+        + ("" if mps == "64" else f"-mps{mps}")
+        + (f"-{step_tag}" if step_tag else "")
+    )
     step = ExecutorStep(
         name=f"evaluation/lm_evaluation_harness_levanter/exp257_{MODEL_NAME}{name_suffix}",
         fn=remote(
