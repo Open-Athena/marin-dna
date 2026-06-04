@@ -170,12 +170,16 @@ def score_log2fc(
 
 
 def signed_correlations(scores: np.ndarray, effect: np.ndarray) -> tuple[float, float]:
-    """Signed (Pearson, Spearman) of ``scores`` vs ``effect``; ``(0, 0)`` if
-    either is constant or there are <2 points (an early smoke pass)."""
+    """Signed (Pearson, Spearman) of ``scores`` vs ``effect``; ``(0.0, 0.0)`` if
+    degenerate — either input constant, fewer than 2 points (an early smoke
+    pass), or a **non-finite** result (e.g. a diverged model emitting
+    overflowing scores, so ``pearsonr`` returns NaN). The metric never emits NaN.
+    """
     if len(scores) > 1 and np.std(scores) > 0 and np.std(effect) > 0:
-        return float(pearsonr(scores, effect).statistic), float(
-            spearmanr(scores, effect).statistic
-        )
+        pearson = float(pearsonr(scores, effect).statistic)
+        spearman = float(spearmanr(scores, effect).statistic)
+        if np.isfinite(pearson) and np.isfinite(spearman):
+            return pearson, spearman
     return 0.0, 0.0
 
 

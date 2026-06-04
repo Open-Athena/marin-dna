@@ -88,6 +88,7 @@ class _ToyDS(Dataset):
 
 
 def test_callback_logs_qtl_metrics():
+    L.seed_everything(0)  # deterministic init+training (no flaky model divergence)
     model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
     lit = ChromBPNetLit(model, alpha=1.0, beta=1.0, lr=1e-3)
     ref, alt = _ref_alt_onehot(6)
