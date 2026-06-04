@@ -2,8 +2,8 @@
 
 The fast path that validates the whole training pipeline — data loading, the
 counts+profile loss, early-stopping on ``val_count_pearson``, and the W&B
-instrumentation (per-step losses + ``grad_norm``, per-epoch ``val_count_pearson``
-/ ``val_count_spearman``, ``lr``) — before the slow gLM arm (#243). Faithful
+instrumentation (per-step losses + ``grad_norm``, per-epoch ``val_count_pearson``,
+``lr``) — before the slow gLM arm (#243). Faithful
 one-hot ChromBPNet (vendored class, 4-channel one-hot, frozen pretrained bias),
 fp32 by default (faithful to official one-hot ChromBPNet). A ``--precision
 bf16-mixed`` knob is exposed for tuning — on an A10G this arm is GPU-compute-bound
@@ -63,17 +63,33 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--fasta", required=True, help="hg38 fasta (chr-prefixed)")
     p.add_argument("--chrom-sizes", required=True)
     p.add_argument("--out-dir", default="runs/onehot")
+    p.add_argument(
+        "--all-chroms",
+        action="store_true",
+        help="train on ALL chromosomes (1-22,X,Y) — the #259 protocol. Not "
+        "leakage: accessibility is trained on the reference genome only and VEP "
+        "is zero-shot. NB val (chr6,21) is then also in train, so val_count_pearson "
+        "becomes a health metric only (not selected on under fixed-budget).",
+    )
     # training
     p.add_argument("--max-epochs", type=int, default=100)
+    p.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="fixed step budget (#259); when set, runs max_epochs=-1 with no "
+        "early-stopping (save_last checkpoint) — pair with --lr-scheduler wsd",
+    )
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--lr", type=float, default=1e-3, help="Adam LR (official: 1e-3)")
     p.add_argument(
         "--lr-scheduler",
-        choices=["none", "plateau"],
+        choices=["none", "plateau", "wsd"],
         default="none",
         help="'plateau' = ReduceLROnPlateau on val_count_pearson (ChromBPNet's "
-        "commented-out config)",
+        "commented-out config); 'wsd' = Warmup-Stable-Decay over the fixed step "
+        "budget (#259; pair with --max-steps, --warmup-frac, --decay-frac)",
     )
     p.add_argument("--patience", type=int, default=5, help="early-stop patience")
     p.add_argument(
@@ -84,6 +100,18 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=100,
         help="linear LR warmup steps (0=off); tames the early NaN-prone step (#247)",
+    )
+    p.add_argument(
+        "--warmup-frac",
+        type=float,
+        default=0.1,
+        help="WSD warmup fraction of the step budget (--lr-scheduler wsd)",
+    )
+    p.add_argument(
+        "--decay-frac",
+        type=float,
+        default=0.2,
+        help="WSD decay fraction of the step budget (--lr-scheduler wsd)",
     )
     p.add_argument(
         "--grad-clip",
@@ -125,13 +153,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--wandb-name", default="dna-exp236-onehot-chrombpnet")
     p.add_argument("--wandb-project", default="chrombpnet-eval")
     p.add_argument("--no-wandb", action="store_true", help="CSVLogger instead of W&B")
-    # online QTL metric: signed Pearson/Spearman of predicted log2FC vs the
-    # observed effect, over positives only, logged each validation (the eval
-    # target — distinct from val_count_pearson, the accessibility-count fit).
+    # online QTL metric: signed Pearson of predicted log2FC vs the observed
+    # effect, over positives only, logged each validation (the eval target —
+    # distinct from val_count_pearson, the accessibility-count fit).
     p.add_argument(
         "--qtl-eval",
         action="store_true",
-        help="log live caqtl/dsqtl Pearson/Spearman over positives each val",
+        help="log live caqtl/dsqtl Pearson (+ qtl_avg_pearson) over positives each val",
     )
     p.add_argument(
         "--qtl-genome",
@@ -160,6 +188,13 @@ def main() -> None:
     # divergence, #247). Convs use TF32 via cuDNN regardless.
     torch.set_float32_matmul_precision(args.matmul_precision)
 
+    # #259: optionally train on all chromosomes (more data; not leakage — VEP is
+    # zero-shot on the reference). Val (chr6,21) then overlaps train, so its
+    # val_count_pearson is a health signal only (we do not select on it).
+    chrom_kwargs: dict = {}
+    if args.all_chroms:
+        chrom_kwargs["training_chroms"] = [f"chr{c}" for c in [*range(1, 23), "X", "Y"]]
+        print("[train] --all-chroms: training on all 24 chromosomes (1-22,X,Y)")
     data_config = DataConfig(
         peaks=args.peaks,
         negatives=args.nonpeaks,
@@ -171,6 +206,7 @@ def main() -> None:
         genome="hg38",
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        **chrom_kwargs,
     )
     datamodule = DataModule(data_config)
     # ChromBPNet's scale-balancing heuristic for the counts-loss weight.
@@ -200,8 +236,12 @@ def main() -> None:
         alpha=alpha,
         beta=1.0,
         lr=args.lr,
-        warmup_steps=args.warmup_steps,
+        # WSD owns the warmup (via --warmup-frac); zero the step-warmup so it
+        # doesn't shadow the schedule.
+        warmup_steps=0 if args.lr_scheduler == "wsd" else args.warmup_steps,
         lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
+        warmup_frac=args.warmup_frac,
+        decay_frac=args.decay_frac,
     )
 
     logger: object
@@ -213,19 +253,30 @@ def main() -> None:
         )
 
     callbacks: list[L.Callback] = [
-        L.pytorch.callbacks.LearningRateMonitor(logging_interval="step"),
-        L.pytorch.callbacks.EarlyStopping(
-            monitor="val_count_pearson", patience=args.patience, mode="max"
-        ),
-        L.pytorch.callbacks.ModelCheckpoint(
-            dirpath=f"{args.out_dir}/checkpoints",
-            monitor="val_count_pearson",
-            mode="max",
-            save_top_k=1,
-            filename="best_model",
-            save_last=True,
-        ),
+        L.pytorch.callbacks.LearningRateMonitor(logging_interval="step")
     ]
+    if args.max_steps:
+        # Fixed-budget (#259): no early-stopping, no monitored selection — take
+        # the final checkpoint (save_last); the WSD decay lands the endpoint.
+        callbacks.append(
+            L.pytorch.callbacks.ModelCheckpoint(
+                dirpath=f"{args.out_dir}/checkpoints", save_last=True, save_top_k=0
+            )
+        )
+    else:
+        callbacks += [
+            L.pytorch.callbacks.EarlyStopping(
+                monitor="val_count_pearson", patience=args.patience, mode="max"
+            ),
+            L.pytorch.callbacks.ModelCheckpoint(
+                dirpath=f"{args.out_dir}/checkpoints",
+                monitor="val_count_pearson",
+                mode="max",
+                save_top_k=1,
+                filename="best_model",
+                save_last=True,
+            ),
+        ]
     if args.qtl_eval:
         assert args.qtl_genome, "--qtl-eval requires --qtl-genome"
         # Pre-extract the positives' ref/alt windows once; the callback re-scores
@@ -250,7 +301,8 @@ def main() -> None:
         vci = args.val_check_interval
 
     trainer = L.Trainer(
-        max_epochs=args.max_epochs,
+        max_epochs=(-1 if args.max_steps else args.max_epochs),
+        max_steps=(args.max_steps if args.max_steps else -1),
         reload_dataloaders_every_n_epochs=1,  # resample train negatives each epoch
         accelerator="gpu",
         devices=args.devices,

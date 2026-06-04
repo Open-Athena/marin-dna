@@ -2,7 +2,7 @@
 
 A **light, continuous** live-validation signal: score each QTL **positive**
 variant by the model's predicted ``log2`` fold-change of accessibility counts
-(alt vs ref 2114 bp windows) and correlate — signed **Pearson + Spearman** —
+(alt vs ref 2114 bp windows) and correlate — signed **Pearson** —
 against the observed study ``effect``. Positives-only and correlation-only by
 design, so it runs every validation cheaply (caqtl ~3,173 + dsqtl ~309
 positives). The binary AUROC/AUPRC need the full negative set (~10–50× larger)
@@ -27,7 +27,7 @@ from typing import cast
 import lightning as L
 import numpy as np
 import torch
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import pearsonr
 
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.data_utils import (
     dna_to_one_hot,
@@ -169,23 +169,23 @@ def score_log2fc(
     return np.concatenate(out)
 
 
-def signed_correlations(scores: np.ndarray, effect: np.ndarray) -> tuple[float, float]:
-    """Signed (Pearson, Spearman) of ``scores`` vs ``effect``; ``(0.0, 0.0)`` if
-    degenerate — either input constant, fewer than 2 points (an early smoke
-    pass), or a **non-finite** result (e.g. a diverged model emitting
-    overflowing scores, so ``pearsonr`` returns NaN). The metric never emits NaN.
+def signed_pearson(scores: np.ndarray, effect: np.ndarray) -> float:
+    """Signed Pearson of ``scores`` vs ``effect``; ``0.0`` if degenerate — either
+    input constant, fewer than 2 points (an early smoke pass), or a **non-finite**
+    result (e.g. a diverged model emitting overflowing scores, so ``pearsonr``
+    returns NaN). Never emits NaN. (Spearman dropped, #259 — not used in the field.)
     """
     if len(scores) > 1 and np.std(scores) > 0 and np.std(effect) > 0:
         pearson = float(pearsonr(scores, effect).statistic)
-        spearman = float(spearmanr(scores, effect).statistic)
-        if np.isfinite(pearson) and np.isfinite(spearman):
-            return pearson, spearman
-    return 0.0, 0.0
+        if np.isfinite(pearson):
+            return pearson
+    return 0.0
 
 
 class QTLEvalCallback(L.Callback):
-    """Log signed Pearson/Spearman of predicted log2FC vs observed ``effect``
-    over the QTL positives, once per validation.
+    """Log signed Pearson of predicted log2FC vs observed ``effect`` over the QTL
+    positives — per dataset plus their mean ``qtl_avg_pearson`` — once per
+    validation.
 
     Single-device exact (we train on 1 GPU); each rank would recompute the same
     rank-local scalar, so it's logged with ``sync_dist=False``.
@@ -199,6 +199,7 @@ class QTLEvalCallback(L.Callback):
     def on_validation_epoch_end(
         self, trainer: L.Trainer, pl_module: L.LightningModule
     ) -> None:
+        pearsons: list[float] = []
         for spec in self.specs:
             scores = score_log2fc(
                 cast(torch.nn.Module, pl_module.model),
@@ -207,11 +208,20 @@ class QTLEvalCallback(L.Callback):
                 batch_size=self.batch_size,
                 device=pl_module.device,
             )
-            pearson, spearman = signed_correlations(scores, spec.effect)
+            pearson = signed_pearson(scores, spec.effect)
             pl_module.log(
                 f"qtl_{spec.name}_pearson", pearson, prog_bar=True, sync_dist=False
             )
-            pl_module.log(f"qtl_{spec.name}_spearman", spearman, sync_dist=False)
+            pearsons.append(pearson)
+        # Mean across datasets — the headline insight curve (#259); logged for
+        # monitoring only (fixed-budget runs do not select on it).
+        if pearsons:
+            pl_module.log(
+                "qtl_avg_pearson",
+                float(np.mean(pearsons)),
+                prog_bar=True,
+                sync_dist=False,
+            )
 
 
 def build_qtl_specs(

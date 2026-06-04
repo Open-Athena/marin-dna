@@ -5,12 +5,12 @@ base-resolution **profile** multinomial NLL and the **counts** MSE — as our ow
 ``LightningModule`` so we own the optimizer and the logger (W&B) and can add the
 instrumentation we want while validating the pipeline:
 
-- **counts Pearson + Spearman** on the validation set, computed once per
-  validation epoch over the pooled predictions (scipy, matching the vendored
-  ``counts_metrics``). ``val_count_pearson`` is the early-stopping / checkpoint
-  monitor (the ChromBPNet convention); ``val_count_spearman`` is logged
-  alongside it. Official ChromBPNet logs only Pearson in its train loop — the
-  Spearman is the extra signal we surface here.
+- **counts Pearson** on the validation set, computed once per validation epoch
+  over the pooled predictions (scipy, matching the vendored ``counts_metrics``).
+  ``val_count_pearson`` is the accessibility-fit health metric — the ChromBPNet
+  convention is to monitor it for early-stopping, but under the fixed-budget,
+  all-chromosome protocol of #259 we log it (as a health signal) and do **not**
+  select on it (the QTL metric is the eval target; see ``qtl_eval``).
 - the **gradient L2 norm** per optimizer step (a basic exploding/vanishing-grad
   health signal), which official ChromBPNet does not log.
 
@@ -28,16 +28,54 @@ ChromBPNet scale-balancing heuristic); ``beta`` (profile weight) is 1.
 
 from __future__ import annotations
 
+import math
+from collections.abc import Callable
 from typing import Any
 
 import lightning as L
 import torch
 import torch.nn.functional as F
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import pearsonr
 
 from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.model_wrappers import (
     multinomial_nll,
 )
+
+
+def wsd_lr_lambda(
+    total_steps: int, warmup_frac: float, decay_frac: float
+) -> Callable[[int], float]:
+    """Warmup-Stable-Decay LR multiplier as a function of optimizer step (#259).
+
+    Returns a callable for ``torch.optim.lr_scheduler.LambdaLR`` (which multiplies
+    the base LR by it): a linear **warmup** over the first ``warmup_frac`` of
+    ``total_steps`` (ramping ~0 -> 1), a constant **stable** phase at 1.0, then a
+    linear **decay** 1 -> 0 over the final ``decay_frac``. Written as a pure
+    function of the step so the schedule shape is unit-testable without a Trainer.
+    The stable phase is what lets us fix the budget late — decay from any
+    stable-phase checkpoint — rather than committing N up front.
+    """
+    assert total_steps > 0, total_steps
+    assert 0.0 <= warmup_frac < 1.0 and 0.0 <= decay_frac < 1.0, (
+        warmup_frac,
+        decay_frac,
+    )
+    assert warmup_frac + decay_frac <= 1.0, (warmup_frac, decay_frac)
+    total = float(total_steps)
+    warmup = warmup_frac * total
+    decay = decay_frac * total
+    decay_start = total - decay
+
+    def factor(step: int) -> float:
+        if warmup > 0 and step < warmup:
+            return (step + 1) / warmup  # linear ramp ~0 -> 1
+        if step < decay_start:
+            return 1.0  # stable
+        if decay > 0:
+            return max(0.0, (total - step) / decay)  # linear 1 -> 0
+        return 1.0
+
+    return factor
 
 
 class ChromBPNetLit(L.LightningModule):
@@ -55,10 +93,15 @@ class ChromBPNetLit(L.LightningModule):
         warmup_steps: linear LR warmup over this many optimizer steps (0 = off).
             Ramps from ``0.01*lr`` to ``lr`` then holds constant — tames the
             early large-gradient step that can diverge to NaN (#247). Takes
-            precedence over ``lr_scheduler``.
-        lr_scheduler: ``None`` (constant LR, official one-hot default) or
+            precedence over ``lr_scheduler="plateau"`` (but not ``"wsd"``).
+        lr_scheduler: ``None`` (constant LR, official one-hot default),
             ``"plateau"`` (``ReduceLROnPlateau`` on ``val_count_pearson`` —
-            ChromBPNet's commented-out config). Ignored when ``warmup_steps>0``.
+            ChromBPNet's commented-out config; ignored when ``warmup_steps>0``),
+            or ``"wsd"`` (#259 — Warmup-Stable-Decay over the fixed step budget;
+            takes precedence over ``warmup_steps``/``plateau`` and uses
+            ``warmup_frac``/``decay_frac``).
+        warmup_frac / decay_frac: WSD warmup and decay fractions of the total
+            step budget (only used when ``lr_scheduler="wsd"``).
     """
 
     def __init__(
@@ -70,10 +113,12 @@ class ChromBPNetLit(L.LightningModule):
         lr: float = 1e-3,
         warmup_steps: int = 0,
         lr_scheduler: str | None = None,
+        warmup_frac: float = 0.1,
+        decay_frac: float = 0.2,
     ) -> None:
         super().__init__()
-        assert lr_scheduler in (None, "plateau"), (
-            f"lr_scheduler must be None or 'plateau', got {lr_scheduler!r}"
+        assert lr_scheduler in (None, "plateau", "wsd"), (
+            f"lr_scheduler must be None, 'plateau', or 'wsd', got {lr_scheduler!r}"
         )
         self.model = model
         self.alpha = alpha
@@ -81,6 +126,8 @@ class ChromBPNetLit(L.LightningModule):
         self.lr = lr
         self.warmup_steps = warmup_steps
         self.lr_scheduler = lr_scheduler
+        self.warmup_frac = warmup_frac
+        self.decay_frac = decay_frac
         self._val_pred: list[torch.Tensor] = []
         self._val_true: list[torch.Tensor] = []
 
@@ -132,13 +179,11 @@ class ChromBPNetLit(L.LightningModule):
         true = torch.cat(self._val_true).float().cpu().numpy().ravel()
         if pred.size > 1 and pred.std() > 0 and true.std() > 0:
             pearson = float(pearsonr(pred, true).statistic)
-            spearman = float(spearmanr(pred, true).statistic)
         else:
             # Too few / constant predictions (e.g. an early smoke val pass) —
-            # correlation is undefined; log 0 so early-stopping has a number.
-            pearson = spearman = 0.0
+            # correlation is undefined; log 0 so the monitor has a number.
+            pearson = 0.0
         self.log("val_count_pearson", pearson, prog_bar=True, sync_dist=True)
-        self.log("val_count_spearman", spearman, prog_bar=True, sync_dist=True)
         self._val_pred.clear()
         self._val_true.clear()
 
@@ -159,9 +204,28 @@ class ChromBPNetLit(L.LightningModule):
         opt = torch.optim.Adam(
             [p for p in self.parameters() if p.requires_grad], lr=self.lr, eps=1e-7
         )
-        # Warmup takes precedence: a step-wise linear ramp from 0.01*lr to lr over
-        # warmup_steps, then constant (LinearLR holds at end_factor) — keeps the
-        # first (huge-gradient) steps tiny so they can't diverge.
+        # WSD (#259) takes precedence: warmup -> stable -> linear decay to 0 over
+        # the fixed step budget. Needs a known horizon, so it composes with a
+        # fixed budget and replaces early-stopping for the all-chromosome protocol.
+        if self.lr_scheduler == "wsd":
+            total_f = self.trainer.estimated_stepping_batches
+            assert math.isfinite(total_f) and total_f > 0, (
+                f"WSD needs a finite positive step budget (set --max-steps or "
+                f"--max-epochs); got estimated_stepping_batches={total_f}"
+            )
+            sched = torch.optim.lr_scheduler.LambdaLR(
+                opt,
+                lr_lambda=wsd_lr_lambda(
+                    int(total_f), self.warmup_frac, self.decay_frac
+                ),
+            )
+            return {
+                "optimizer": opt,
+                "lr_scheduler": {"scheduler": sched, "interval": "step"},
+            }
+        # Warmup takes precedence over plateau: a step-wise linear ramp from
+        # 0.01*lr to lr over warmup_steps, then constant (LinearLR holds at
+        # end_factor) — keeps the first (huge-gradient) steps tiny.
         if self.warmup_steps > 0:
             warmup = torch.optim.lr_scheduler.LinearLR(
                 opt, start_factor=0.01, end_factor=1.0, total_iters=self.warmup_steps

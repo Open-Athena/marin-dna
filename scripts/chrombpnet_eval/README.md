@@ -30,12 +30,12 @@ ChromBPNet objective), `alpha = median_count / 10`. Early-stops + checkpoints on
 
 **Logged to W&B** (`chrombpnet-eval` project): per-step `train_loss` /
 `train_profile_loss` / `train_count_loss` / `grad_norm` / `lr`; per validation
-pass `val_count_pearson` + `val_count_spearman` (predicted vs observed log counts,
-the ChromBPNet accessibility metrics) + the val losses.
+pass `val_count_pearson` (predicted vs observed log counts, the ChromBPNet
+accessibility metric) + the val losses.
 
 With `--qtl-eval`, also logs the **online QTL metric** each validation —
-`qtl_caqtl_pearson`/`_spearman` and `qtl_dsqtl_pearson`/`_spearman`: the signed
-correlation of the model's predicted `log2 FC` of counts vs the observed QTL
+`qtl_caqtl_pearson`, `qtl_dsqtl_pearson`, and their mean `qtl_avg_pearson`: the
+signed Pearson of the model's predicted `log2 FC` of counts vs the observed QTL
 effect, over the train-split **positives** (caqtl 3,173 + dsqtl 309). This is the
 eval *target* (does it rank QTL effects?), distinct from `val_count_pearson` (the
 accessibility-count fit). It reuses the staged fasta via `--qtl-chrom-prefix chr`.
@@ -62,9 +62,15 @@ Stability + tuning knobs: full fp32 by default (`--matmul-precision highest`),
 with `--seed`, `--warmup-steps` (linear LR warmup, default 100) and `--grad-clip`
 (global-norm, default 1000) taming an early gradient spike that can diverge to
 NaN (see #247). Plus `--lr` (default 1e-3, official), `--lr-scheduler
-{none,plateau}`, `--precision {32,bf16-mixed}` (the forward is bf16-safe),
+{none,plateau,wsd}`, `--precision {32,bf16-mixed}` (the forward is bf16-safe),
 `--batch-size`, `--patience`, `--val-check-interval`, `--log-every-n-steps`,
 `--compile`.
+
+**#259 (strengthen + simplify).** `--all-chroms` trains on all of 1-22,X,Y (not
+leakage — VEP is zero-shot on the reference). `--max-steps` sets a fixed step
+budget (no early-stopping; saves the final checkpoint), and `--lr-scheduler wsd`
+runs a Warmup-Stable-Decay schedule (`--warmup-frac` 0.1 / `--decay-frac` 0.2)
+over it — pick the budget from where the online `qtl_avg_pearson` curve plateaus.
 
 ### Local (synthetic) smoke
 

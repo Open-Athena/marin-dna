@@ -1,5 +1,5 @@
 """Smoke test: the one-hot ChromBPNet training loop runs end-to-end and logs the
-instrumentation we added (val_count_pearson + val_count_spearman, grad_norm).
+instrumentation we added (val_count_pearson, grad_norm), plus the WSD schedule.
 
 Synthetic data, CPU, no GPU — validates forward -> counts/profile loss ->
 backward -> optimizer step, plus the validation-epoch correlation hook and the
@@ -7,10 +7,11 @@ gradient-norm hook, without real GM12878 data.
 """
 
 import lightning as L
+import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from marin_dna.pipelines.chrombpnet_eval.lit import ChromBPNetLit
+from marin_dna.pipelines.chrombpnet_eval.lit import ChromBPNetLit, wsd_lr_lambda
 from marin_dna.pipelines.chrombpnet_eval.onehot import build_onehot_chrombpnet
 
 
@@ -56,8 +57,8 @@ def _fit(lr_scheduler=None, warmup_steps=0):
 def test_train_loop_and_instrumentation():
     trainer = _fit()
     metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
-    # The validation-epoch correlation hook logged both counts metrics ...
-    for key in ("val_count_pearson", "val_count_spearman"):
+    # The validation-epoch correlation hook logged the counts metric ...
+    for key in ("val_count_pearson",):
         assert key in metrics, f"{key} not logged; got {sorted(metrics)}"
         assert torch.isfinite(torch.as_tensor(float(metrics[key]))), key
     # ... and the per-step gradient-norm hook fired (a positive, finite norm).
@@ -77,3 +78,20 @@ def test_warmup_scheduler_configures():
     trainer = _fit(warmup_steps=5)
     assert trainer.lr_scheduler_configs, "warmup scheduler not configured"
     assert trainer.lr_scheduler_configs[0].interval == "step"
+
+
+def test_wsd_scheduler_configures():
+    # The #259 WSD path builds a step-interval LambdaLR over the fixed budget.
+    trainer = _fit(lr_scheduler="wsd")
+    assert trainer.lr_scheduler_configs, "wsd scheduler not configured"
+    assert trainer.lr_scheduler_configs[0].interval == "step"
+
+
+def test_wsd_lr_lambda_shape():
+    # warmup (0.1) ramps ~0->1, the stable phase holds 1, decay (0.2) falls to 0.
+    fn = wsd_lr_lambda(100, 0.1, 0.2)
+    assert fn(0) == pytest.approx(0.1)  # first warmup step = 1/warmup
+    assert fn(9) == pytest.approx(1.0)  # end of the 10-step warmup
+    assert fn(50) == 1.0  # stable phase
+    assert fn(90) == pytest.approx(0.5)  # mid-decay (decay_start=80, decay=20)
+    assert fn(100) == 0.0  # end -> 0

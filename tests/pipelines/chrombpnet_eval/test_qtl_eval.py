@@ -13,7 +13,7 @@ from marin_dna.pipelines.chrombpnet_eval.qtl_eval import (
     QTLSpec,
     extract_ref_alt_onehot,
     score_log2fc,
-    signed_correlations,
+    signed_pearson,
 )
 
 HALF = 2114 // 2  # variant sits at the center index
@@ -73,8 +73,8 @@ def test_score_log2fc_shape_and_finite():
     assert np.allclose(z, 0.0, atol=1e-4)
 
 
-def test_signed_correlations_constant_is_zero():
-    assert signed_correlations(np.ones(5), np.arange(5.0)) == (0.0, 0.0)
+def test_signed_pearson_constant_is_zero():
+    assert signed_pearson(np.ones(5), np.arange(5.0)) == 0.0
 
 
 class _ToyDS(Dataset):
@@ -109,5 +109,5 @@ def test_callback_logs_qtl_metrics():
     )
     metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
     assert "qtl_caqtl_pearson" in metrics, sorted(metrics)
-    assert "qtl_caqtl_spearman" in metrics, sorted(metrics)
+    assert "qtl_avg_pearson" in metrics, sorted(metrics)
     assert torch.isfinite(torch.as_tensor(float(metrics["qtl_caqtl_pearson"])))
