@@ -79,6 +79,17 @@ marin = [
     # check needs (`qwen3_0_6b_hd128`, `default_tokenize`) are vendored at
     # the bottom of `experiments/parity/exp160_parity.py`.
 ]
+# Vendored ChromBPNet (arsenal-chrombpnet) for the supervised caQTL/dsQTL VEP
+# eval (issue #236). Opt in with `uv sync --extra chrombpnet`; snakemake / eval
+# contributors who don't train ChromBPNet skip the PyTorch Lightning install.
+# `pooch` is a top-level import in the vendored `genome.py`; `h5py` loads the
+# `.h5` bias model. (deepdish/weasyprint are lazy in unused functions; tensorflow
+# /deeplift/tangermeme live only in modules we don't import.)
+chrombpnet = [
+    "lightning",
+    "h5py",
+    "pooch",
+]
 
 [dependency-groups]
 dev = [
@@ -194,6 +205,11 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
 
+[tool.ruff]
+# The vendored ChromBPNet (third-party, src/.../chrombpnet_eval/_vendor) is not
+# ours to lint or format — exclude it from ruff entirely.
+extend-exclude = ["src/marin_dna/pipelines/chrombpnet_eval/_vendor"]
+
 [tool.ruff.lint]
 # jaxtyping uses string annotations like ``Int[Tensor, "B L"]`` that ruff's
 # F722 parser rejects; suppress for the whole project.
@@ -211,5 +227,7 @@ ignore = ["F722"]
 # on missing stubs. `strict_optional` off matches the existing code's
 # implicit-None tolerance — tighten incrementally.
 files = "src/marin_dna"
+# Don't type-check the vendored third-party ChromBPNet.
+exclude = ['src/marin_dna/pipelines/chrombpnet_eval/_vendor/']
 ignore_missing_imports = true
 strict_optional = false
