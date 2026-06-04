@@ -3,14 +3,13 @@ from collections.abc import Callable
 
 from pathlib import Path
 from pooch import Decompress
-import pandas as pd
-import os
 import logging
 
 import pooch
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
 
 class EnhancedDataset:
     """
@@ -69,12 +68,16 @@ class EnhancedDataset:
         """
         # Check if file already exists
         if self.check_file_exists(filename):
-            logger.info(f"File {filename} already exists and is valid, skipping download")
+            logger.info(
+                f"File {filename} already exists and is valid, skipping download"
+            )
             return str(self.dataset.abspath / filename)
 
         logger.info(f"Downloading {filename}...")
         try:
-            result = self.dataset.fetch(filename, processor=processor, progressbar=progressbar)
+            result = self.dataset.fetch(
+                filename, processor=processor, progressbar=progressbar
+            )
             logger.info(f"Successfully downloaded {filename}")
             return result
         except Exception as e:
@@ -91,23 +94,26 @@ class EnhancedDataset:
             Dictionary with cache information
         """
         info = {
-            'cache_directory': str(self.dataset.abspath),
-            'base_url': self.dataset.base_url,
-            'available_files': list(self.dataset.registry.keys()),
-            'downloaded_files': []
+            "cache_directory": str(self.dataset.abspath),
+            "base_url": self.dataset.base_url,
+            "available_files": list(self.dataset.registry.keys()),
+            "downloaded_files": [],
         }
 
         for filename in self.dataset.registry.keys():
             if self.check_file_exists(filename):
                 file_path = self.dataset.abspath / filename
                 file_size = file_path.stat().st_size if file_path.exists() else 0
-                info['downloaded_files'].append({
-                    'filename': filename,
-                    'size_bytes': file_size,
-                    'size_mb': file_size / (1024**2)
-                })
+                info["downloaded_files"].append(
+                    {
+                        "filename": filename,
+                        "size_bytes": file_size,
+                        "size_mb": file_size / (1024**2),
+                    }
+                )
 
         return info
+
 
 # Legacy functions for backward compatibility
 def check_file_exists(dataset_func, filename):
@@ -115,13 +121,16 @@ def check_file_exists(dataset_func, filename):
     dataset = EnhancedDataset(dataset_func)
     return dataset.check_file_exists(filename)
 
+
 def safe_fetch(dataset_func, filename, processor=None, progressbar=True):
     """Legacy function - use EnhancedDataset.safe_fetch instead."""
     dataset = EnhancedDataset(dataset_func)
     return dataset.safe_fetch(filename, processor, progressbar)
 
+
 def motifs_datasets():
     """Get enhanced motifs dataset."""
+
     def _create_dataset():
         return pooch.create(
             path=pooch.os_cache("genome/motifs"),
@@ -134,43 +143,49 @@ def motifs_datasets():
                 "motifs.meme.txt": "https://zenodo.org/records/7445373/files/motifs.meme.txt?download=1",
             },
         )
+
     return EnhancedDataset(_create_dataset)
+
 
 def hg38_datasets():
     """Get enhanced hg38 dataset."""
+
     def _create_dataset():
         return pooch.create(
-                path=pooch.os_cache("genome/hg38"),
-                base_url="https://zenodo.org/records/12193595/files/",
-                env="GENOME_DATA_DIR",  # The user can overwrite the storage path by setting this environment variable.
-                # The registry specifies the files that can be fetched
-                registry={
-                    # TF motifs
-                    # Genome files
-                    "hg38.chrom.sizes": "md5:c95303fb77cc3e11d50e3c3a4b93b3fb",
-                    "hg38.fa": "md5:a6da8681616c05eb542f1d91606a7b2f",
-                    "hg38.gtf.gz": "md5:16fcae8ca8e488cd8056cf317d963407",
-                    "fold_0.json": "md5:88bab8abe271c9ebb6655a0332b74998",
-                    "fold_1.json": "md5:426f117b2d4e5885fb10ef7a3b7e593e",
-                    "fold_2.json": "md5:b603378ebfcd8954aecd4ae60c4ce9b4",
-                    "fold_3.json": "md5:8e70574ae38b7314c09cfc7db6194486",
-                    "fold_4.json": "md5:eab6e147532e3cb5c8e6860b2e24da3b",
-                },
-                urls={
-                    "hg38.fa": "https://zenodo.org/records/12193595/files/hg38.fa",
-                    "hg38.gtf.gz": "https://zenodo.org/records/12193595/files/gencode.v38.annotation.gtf.gz",
-                    "hg38.chrom.sizes": "https://zenodo.org/records/12193595/files/hg38.chrom.sizes",
-                    "fold_0.json": "https://zenodo.org/records/12193595/files/fold_0.json",
-                    "fold_1.json": "https://zenodo.org/records/12193595/files/fold_1.json",
-                    "fold_2.json": "https://zenodo.org/records/12193595/files/fold_2.json",
-                    "fold_3.json": "https://zenodo.org/records/12193595/files/fold_3.json",
-                    "fold_4.json": "https://zenodo.org/records/12193595/files/fold_4.json",
-                },
-            )
+            path=pooch.os_cache("genome/hg38"),
+            base_url="https://zenodo.org/records/12193595/files/",
+            env="GENOME_DATA_DIR",  # The user can overwrite the storage path by setting this environment variable.
+            # The registry specifies the files that can be fetched
+            registry={
+                # TF motifs
+                # Genome files
+                "hg38.chrom.sizes": "md5:c95303fb77cc3e11d50e3c3a4b93b3fb",
+                "hg38.fa": "md5:a6da8681616c05eb542f1d91606a7b2f",
+                "hg38.gtf.gz": "md5:16fcae8ca8e488cd8056cf317d963407",
+                "fold_0.json": "md5:88bab8abe271c9ebb6655a0332b74998",
+                "fold_1.json": "md5:426f117b2d4e5885fb10ef7a3b7e593e",
+                "fold_2.json": "md5:b603378ebfcd8954aecd4ae60c4ce9b4",
+                "fold_3.json": "md5:8e70574ae38b7314c09cfc7db6194486",
+                "fold_4.json": "md5:eab6e147532e3cb5c8e6860b2e24da3b",
+            },
+            urls={
+                "hg38.fa": "https://zenodo.org/records/12193595/files/hg38.fa",
+                "hg38.gtf.gz": "https://zenodo.org/records/12193595/files/gencode.v38.annotation.gtf.gz",
+                "hg38.chrom.sizes": "https://zenodo.org/records/12193595/files/hg38.chrom.sizes",
+                "fold_0.json": "https://zenodo.org/records/12193595/files/fold_0.json",
+                "fold_1.json": "https://zenodo.org/records/12193595/files/fold_1.json",
+                "fold_2.json": "https://zenodo.org/records/12193595/files/fold_2.json",
+                "fold_3.json": "https://zenodo.org/records/12193595/files/fold_3.json",
+                "fold_4.json": "https://zenodo.org/records/12193595/files/fold_4.json",
+            },
+        )
+
     return EnhancedDataset(_create_dataset)
+
 
 def mm10_datasets():
     """Get enhanced mm10 dataset."""
+
     def _create_dataset():
         return pooch.create(
             path=pooch.os_cache("genome/mm10"),
@@ -197,10 +212,13 @@ def mm10_datasets():
                 "fold_4.json": "https://zenodo.org/records/12193429/files/fold_4.json",
             },
         )
+
     return EnhancedDataset(_create_dataset)
+
 
 def hg19_datasets():
     """Get enhanced hg19 dataset."""
+
     def _create_dataset():
         return pooch.create(
             path=pooch.os_cache("genome/hg19"),
@@ -228,7 +246,9 @@ def hg19_datasets():
                 "fold_4.json": "https://zenodo.org/records/12193595/files/fold_4.json",
             },
         )
+
     return EnhancedDataset(_create_dataset)
+
 
 class Genome:
     """
@@ -339,54 +359,34 @@ class Genome:
 
 
 GRCh38 = Genome(
-    fasta=lambda : hg38_datasets().fetch(
+    fasta=lambda: hg38_datasets().fetch(
         "hg38.fa",
         # processor=Decompress(method="gzip", name="hg38.fa"),
-        progressbar=True
+        progressbar=True,
     ),
-    annotation=lambda : hg38_datasets().fetch(
-        "hg38.gtf.gz",
-        progressbar=True
-    ),
-    chrom_sizes= hg38_datasets().fetch(
-        "hg38.chrom.sizes",
-        progressbar=True
-    ),
-    )
+    annotation=lambda: hg38_datasets().fetch("hg38.gtf.gz", progressbar=True),
+    chrom_sizes=hg38_datasets().fetch("hg38.chrom.sizes", progressbar=True),
+)
 hg38 = GRCh38
 
 GRCh37 = Genome(
-    fasta=lambda : hg19_datasets().fetch(
-        "hg19.fa",
-        progressbar=True, processor=Decompress(method="gzip", name="hg19.fa")
+    fasta=lambda: hg19_datasets().fetch(
+        "hg19.fa", progressbar=True, processor=Decompress(method="gzip", name="hg19.fa")
     ),
-    annotation=lambda : hg19_datasets().fetch(
-        "hg19.gtf.gz",
-        progressbar=True
-    ),
-    chrom_sizes= hg19_datasets().fetch(
-        "hg19.chrom.sizes",
-        progressbar=True
-    ),
+    annotation=lambda: hg19_datasets().fetch("hg19.gtf.gz", progressbar=True),
+    chrom_sizes=hg19_datasets().fetch("hg19.chrom.sizes", progressbar=True),
 )
 hg19 = GRCh37
 
 GRCm38 = Genome(
-    fasta=lambda : mm10_datasets().fetch(
+    fasta=lambda: mm10_datasets().fetch(
         "mm10.fa",
         # processor=Decompress(method="gzip", name="mm10.fa"),
-        progressbar=True
+        progressbar=True,
     ),
-    annotation=lambda : mm10_datasets().fetch(
-        "mm10.gtf.gz",
-        progressbar=True
-    ),
-    chrom_sizes= mm10_datasets().fetch(
-        "mm10.chrom.sizes",
-        progressbar=True
-    ),
-
-    )
+    annotation=lambda: mm10_datasets().fetch("mm10.gtf.gz", progressbar=True),
+    chrom_sizes=mm10_datasets().fetch("mm10.chrom.sizes", progressbar=True),
+)
 mm10 = GRCm38
 
 

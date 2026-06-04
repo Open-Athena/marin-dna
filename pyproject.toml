@@ -205,11 +205,6 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
 
-[tool.ruff]
-# The vendored ChromBPNet (third-party, src/.../chrombpnet_eval/_vendor) is not
-# ours to lint or format — exclude it from ruff entirely.
-extend-exclude = ["src/marin_dna/pipelines/chrombpnet_eval/_vendor"]
-
 [tool.ruff.lint]
 # jaxtyping uses string annotations like ``Int[Tensor, "B L"]`` that ruff's
 # F722 parser rejects; suppress for the whole project.
@@ -227,7 +222,5 @@ ignore = ["F722"]
 # on missing stubs. `strict_optional` off matches the existing code's
 # implicit-None tolerance — tighten incrementally.
 files = "src/marin_dna"
-# Don't type-check the vendored third-party ChromBPNet.
-exclude = ['src/marin_dna/pipelines/chrombpnet_eval/_vendor/']
 ignore_missing_imports = true
 strict_optional = false

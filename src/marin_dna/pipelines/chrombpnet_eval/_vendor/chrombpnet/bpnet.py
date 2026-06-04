@@ -114,7 +114,7 @@ class BPNet(torch.nn.Module):
         count_output_bias=True,
         name=None,
         verbose=False,
-        custom_dilations=False
+        custom_dilations=False,
     ):
         super().__init__()
 
@@ -127,39 +127,62 @@ class BPNet(torch.nn.Module):
         self.name = name or "bpnet.{}.{}".format(n_filters, n_layers)
 
         # first convolution without dilation
-        self.iconv = torch.nn.Conv1d(4, n_filters, kernel_size=conv1_kernel_size, padding='valid')
+        self.iconv = torch.nn.Conv1d(
+            4, n_filters, kernel_size=conv1_kernel_size, padding="valid"
+        )
         self.irelu = torch.nn.ReLU()
 
         if custom_dilations:
             rconvs_kernel_size = 5
-            dilation_sched = [2,8,32,64,128]
+            dilation_sched = [2, 8, 32, 64, 128]
             # dilation_sched = [8,16,32,64,128,256]
-            self.rconvs = torch.nn.ModuleList([
-                torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
-                    dilation=dilation_sched[i-1]) for i in range(1, self.n_layers+1)
-            ])
+            self.rconvs = torch.nn.ModuleList(
+                [
+                    torch.nn.Conv1d(
+                        n_filters,
+                        n_filters,
+                        kernel_size=rconvs_kernel_size,
+                        padding="valid",
+                        dilation=dilation_sched[i - 1],
+                    )
+                    for i in range(1, self.n_layers + 1)
+                ]
+            )
 
         # residual dilated convolutions
         else:
-            self.rconvs = torch.nn.ModuleList([
-                torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
-                    dilation=2**i) for i in range(1, self.n_layers+1)
-            ])
+            self.rconvs = torch.nn.ModuleList(
+                [
+                    torch.nn.Conv1d(
+                        n_filters,
+                        n_filters,
+                        kernel_size=rconvs_kernel_size,
+                        padding="valid",
+                        dilation=2**i,
+                    )
+                    for i in range(1, self.n_layers + 1)
+                ]
+            )
 
-        self.rrelus = torch.nn.ModuleList([
-			torch.nn.ReLU() for i in range(1, self.n_layers+1)
-		])
+        self.rrelus = torch.nn.ModuleList(
+            [torch.nn.ReLU() for i in range(1, self.n_layers + 1)]
+        )
 
         # profile prediction
-        self.fconv = torch.nn.Conv1d(n_filters+n_control_tracks, n_outputs,
-            kernel_size=profile_kernel_size, padding='valid', bias=profile_output_bias)
+        self.fconv = torch.nn.Conv1d(
+            n_filters + n_control_tracks,
+            n_outputs,
+            kernel_size=profile_kernel_size,
+            padding="valid",
+            bias=profile_output_bias,
+        )
 
         # count prediction
         n_count_control = 1 if n_control_tracks > 0 else 0
         self.global_avg_pool = torch.nn.AdaptiveAvgPool1d(1)
-        self.linear = torch.nn.Linear(n_filters+n_count_control, 1,
-            bias=count_output_bias)
-
+        self.linear = torch.nn.Linear(
+            n_filters + n_count_control, 1, bias=count_output_bias
+        )
 
     def forward(self, x, x_ctl=None):
         """A forward pass of the model.
@@ -191,21 +214,22 @@ class BPNet(torch.nn.Module):
             x = x.permute(0, 2, 1)
         x = self.get_embs_after_crop(x)
 
-        if self.verbose: print(f'trunk shape: {x.shape}')
+        if self.verbose:
+            print(f"trunk shape: {x.shape}")
 
         if x_ctl is not None:
             crop_size = (x_ctl.shape[2] - x.shape[2]) // 2
-            if self.verbose: print(f'crop_size: {crop_size}')
+            if self.verbose:
+                print(f"crop_size: {crop_size}")
             if crop_size > 0:
                 x_ctl = x_ctl[:, :, crop_size:-crop_size]
             else:
                 x_ctl = F.pad(x_ctl, (-crop_size, -crop_size))
 
-        pred_profile = self.profile_head(x, x_ctl=x_ctl) # before log_softmax
-        pred_count = self.count_head(x, x_ctl=x_ctl) #.squeeze(-1) # (batch_size, 1)
+        pred_profile = self.profile_head(x, x_ctl=x_ctl)  # before log_softmax
+        pred_count = self.count_head(x, x_ctl=x_ctl)  # .squeeze(-1) # (batch_size, 1)
 
         return pred_profile, pred_count
-
 
     def get_embs_after_crop(self, x):
         x = self.irelu(self.iconv(x))
@@ -233,10 +257,11 @@ class BPNet(torch.nn.Module):
         if crop_size > 0:
             pred_profile = pred_profile[:, :, crop_size:-crop_size]
         else:
-            pred_profile = F.pad(pred_profile, (-crop_size, -crop_size)) # pad if out_window > in_window
+            pred_profile = F.pad(
+                pred_profile, (-crop_size, -crop_size)
+            )  # pad if out_window > in_window
 
         return pred_profile
-
 
     def count_head(self, x, x_ctl=None):
 
@@ -248,9 +273,8 @@ class BPNet(torch.nn.Module):
         pred_count = self.linear(pred_count)
         return pred_count
 
-
     @classmethod
-    def from_keras(cls, filename, name='chrombpnet'):
+    def from_keras(cls, filename, name="chrombpnet"):
         """Loads a model from ChromBPNet TensorFlow format.
 
         This method will load one of the components of a ChromBPNet model
@@ -271,61 +295,67 @@ class BPNet(torch.nn.Module):
         model: BPNet
             A BPNet model compatible with this repository in PyTorch.
         """
-        if filename.endswith('.h5'):
+        if filename.endswith(".h5"):
             import h5py
 
             h5 = h5py.File(filename, "r")
-            w = h5['model_weights']
+            w = h5["model_weights"]
         else:
             import os
-            os.system('conda activate chrombpnet')
+
+            os.system("conda activate chrombpnet")
             import tensorflow as tf
 
             model = tf.keras.models.load_model(filename)
             w = model.get_weights()
-            os.system('conda deactivate')
+            os.system("conda deactivate")
 
-        if 'bpnet_1conv' in w.keys():
+        if "bpnet_1conv" in w.keys():
             prefix = ""
         else:
             prefix = "wo_bias_"
         # print(f"Loading {name} model from {filename}", flush=True)
 
-        namer = lambda prefix, suffix: '{0}{1}/{0}{1}'.format(prefix, suffix)
-        k, b = 'kernel:0', 'bias:0'
+        def namer(prefix, suffix):
+            return "{0}{1}/{0}{1}".format(prefix, suffix)
+
+        k, b = "kernel:0", "bias:0"
 
         n_layers = 0
         for layer_name in w.keys():
             try:
                 idx = int(layer_name.split("_")[-1].replace("conv", ""))
                 n_layers = max(n_layers, idx)
-            except:
+            except ValueError:
                 pass
 
         name = namer(prefix, "bpnet_1conv")
         n_filters = w[name][k].shape[2]
 
-        model = BPNet(n_layers=n_layers, n_filters=n_filters, n_outputs=1,
-            n_control_tracks=0)
+        model = BPNet(
+            n_layers=n_layers, n_filters=n_filters, n_outputs=1, n_control_tracks=0
+        )
 
-        convert_w = lambda x: torch.nn.Parameter(torch.tensor(
-            x[:]).permute(2, 1, 0))
-        convert_b = lambda x: torch.nn.Parameter(torch.tensor(x[:]))
+        def convert_w(x):
+            return torch.nn.Parameter(torch.tensor(x[:]).permute(2, 1, 0))
 
-        iname = namer(prefix, 'bpnet_1st_conv')
+        def convert_b(x):
+            return torch.nn.Parameter(torch.tensor(x[:]))
+
+        iname = namer(prefix, "bpnet_1st_conv")
 
         model.iconv.weight = convert_w(w[iname][k])
         model.iconv.bias = convert_b(w[iname][b])
 
-        for i in range(1, n_layers+1):
-            lname = namer(prefix, 'bpnet_{}conv'.format(i))
+        for i in range(1, n_layers + 1):
+            lname = namer(prefix, "bpnet_{}conv".format(i))
 
-            model.rconvs[i-1].weight = convert_w(w[lname][k])
-            model.rconvs[i-1].bias = convert_b(w[lname][b])
+            model.rconvs[i - 1].weight = convert_w(w[lname][k])
+            model.rconvs[i - 1].bias = convert_b(w[lname][b])
 
         prefix = prefix + "bpnet_" if prefix != "" else ""
 
-        fname = namer(prefix, 'prof_out_precrop')
+        fname = namer(prefix, "prof_out_precrop")
         model.fconv.weight = convert_w(w[fname][k])
         model.fconv.bias = convert_b(w[fname][b])
 
@@ -334,83 +364,8 @@ class BPNet(torch.nn.Module):
         model.linear.bias = convert_b(w[name][b])
         return model
 
-    @classmethod
-    def to_keras(cls, filename):
-        import tensorflow as tf
-        from tensorflow.keras.layers import Input, Conv1D, Cropping1D, Add, GlobalAveragePooling1D, Dense, ReLU
-        from tensorflow.keras.models import Model
-        import numpy as np
-
-        def build_keras_bpnet(sequence_len, n_dil_layers, filters, conv1_kernel_size, profile_kernel_size, num_tasks, out_pred_len):
-            inp = Input(shape=(sequence_len, 4), name='sequence')
-
-            # First convolution without dilation
-            x = Conv1D(filters, kernel_size=conv1_kernel_size, padding='valid', activation='relu', name='conv1')(inp)
-
-            for i in range(1, n_dil_layers + 1):
-                conv_x = Conv1D(filters, kernel_size=3, padding='valid', activation='relu', dilation_rate=2**i, name=f'dilated_conv_{i}')(x)
-                x_len = x.shape[1]
-                conv_x_len = conv_x.shape[1]
-                assert (x_len - conv_x_len) % 2 == 0
-                crop_len = (x_len - conv_x_len) // 2
-                x = Cropping1D(cropping=(crop_len, crop_len), name=f'crop_{i}')(x)
-                x = Add(name=f'add_{i}')([conv_x, x])
-
-            # Profile prediction
-            prof_out_precrop = Conv1D(num_tasks, kernel_size=profile_kernel_size, padding='valid', name='profile_conv')(x)
-            cropsize = (prof_out_precrop.shape[1] - out_pred_len) // 2
-            prof = Cropping1D(cropping=(cropsize, cropsize), name='profile_crop')(prof_out_precrop)
-            profile_out = tf.reshape(prof, (tf.shape(prof)[0], -1), name='profile_out')
-
-            # Counts prediction
-            gap_combined_conv = GlobalAveragePooling1D(name='gap')(x)
-            count_out = Dense(num_tasks, name='count_out')(gap_combined_conv)
-
-            model = Model(inputs=[inp], outputs=[profile_out, count_out])
-            return model
-
-        # # Build the Keras model
-        keras_model = build_keras_bpnet(sequence_len=2114, n_dil_layers=8, filters=512, conv1_kernel_size=21, profile_kernel_size=75, num_tasks=1, out_pred_len=1000)
-
-        # # Summary of the model
-        # keras_model.summary()
-
-        def transfer_weights(pytorch_model, keras_model):
-            # Transfer conv1 weights
-            keras_model.get_layer('conv1').set_weights([
-                pytorch_model.conv1.weight.detach().numpy().transpose(2, 1, 0),
-                pytorch_model.conv1.bias.detach().numpy()
-            ])
-
-            # Transfer dilated conv layers' weights
-            for i, layer in enumerate(pytorch_model.dilated_convs):
-                keras_layer = keras_model.get_layer(f'dilated_conv_{i + 1}')
-                keras_layer.set_weights([
-                    layer.weight.detach().numpy().transpose(2, 1, 0),
-                    layer.bias.detach().numpy()
-                ])
-
-            # Transfer profile conv weights
-            keras_model.get_layer('profile_conv').set_weights([
-                pytorch_model.profile_conv.weight.detach().numpy().transpose(2, 1, 0),
-                pytorch_model.profile_conv.bias.detach().numpy()
-            ])
-
-            # Transfer dense layer weights
-            keras_model.get_layer('count_out').set_weights([
-                pytorch_model.dense.weight.detach().numpy().transpose(1, 0),
-                pytorch_model.dense.bias.detach().numpy()
-            ])
-
-        transfer_weights(self, keras_model)
-        keras_model.save(filename)
-
-
-
-
 
 class DoubleBPNet(BPNet):
-
     def __init__(
         self,
         out_dim=1000,
@@ -421,12 +376,12 @@ class DoubleBPNet(BPNet):
         profile_kernel_size=75,
         n_outputs=1,
         n_control_tracks=0,
-        input_sizes=[4,768],
+        input_sizes=[4, 768],
         profile_output_bias=True,
         count_output_bias=True,
         name=None,
         verbose=False,
-        dropout=False
+        dropout=False,
     ):
         super().__init__()
 
@@ -440,47 +395,68 @@ class DoubleBPNet(BPNet):
         self.input_sizes = input_sizes
 
         # first convolution without dilation
-        self.iconv1 = torch.nn.Conv1d(input_sizes[0], n_filters, kernel_size=conv1_kernel_size, padding='valid')
+        self.iconv1 = torch.nn.Conv1d(
+            input_sizes[0], n_filters, kernel_size=conv1_kernel_size, padding="valid"
+        )
         self.irelu1 = torch.nn.ReLU()
 
-        self.iconv2 = torch.nn.Conv1d(input_sizes[1], n_filters, kernel_size=conv1_kernel_size, padding='valid')
+        self.iconv2 = torch.nn.Conv1d(
+            input_sizes[1], n_filters, kernel_size=conv1_kernel_size, padding="valid"
+        )
         self.irelu2 = torch.nn.ReLU()
 
-
         # residual dilated convolutions
-        self.rconvs1 = torch.nn.ModuleList([
-            torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
-                dilation=2**i) for i in range(1, self.n_layers+1)
-        ])
+        self.rconvs1 = torch.nn.ModuleList(
+            [
+                torch.nn.Conv1d(
+                    n_filters,
+                    n_filters,
+                    kernel_size=rconvs_kernel_size,
+                    padding="valid",
+                    dilation=2**i,
+                )
+                for i in range(1, self.n_layers + 1)
+            ]
+        )
 
-        self.rrelus1 = torch.nn.ModuleList([
-			torch.nn.ReLU() for i in range(1, self.n_layers+1)
-		])
+        self.rrelus1 = torch.nn.ModuleList(
+            [torch.nn.ReLU() for i in range(1, self.n_layers + 1)]
+        )
 
-        self.rconvs2 = torch.nn.ModuleList([
-            torch.nn.Conv1d(n_filters, n_filters, kernel_size=rconvs_kernel_size, padding='valid',
-                dilation=2**i) for i in range(1, self.n_layers+1)
-        ])
+        self.rconvs2 = torch.nn.ModuleList(
+            [
+                torch.nn.Conv1d(
+                    n_filters,
+                    n_filters,
+                    kernel_size=rconvs_kernel_size,
+                    padding="valid",
+                    dilation=2**i,
+                )
+                for i in range(1, self.n_layers + 1)
+            ]
+        )
 
-        self.rrelus2 = torch.nn.ModuleList([
-			torch.nn.ReLU() for i in range(1, self.n_layers+1)
-		])
-
+        self.rrelus2 = torch.nn.ModuleList(
+            [torch.nn.ReLU() for i in range(1, self.n_layers + 1)]
+        )
 
         # profile prediction
-        self.fconv = torch.nn.Conv1d(n_filters * 2, n_outputs,
-            kernel_size=profile_kernel_size, padding='valid', bias=profile_output_bias)
+        self.fconv = torch.nn.Conv1d(
+            n_filters * 2,
+            n_outputs,
+            kernel_size=profile_kernel_size,
+            padding="valid",
+            bias=profile_output_bias,
+        )
 
         # count prediction
-        n_count_control = 1 if n_control_tracks > 0 else 0
         self.global_avg_pool = torch.nn.AdaptiveAvgPool1d(1)
-        self.linear = torch.nn.Linear(n_filters * 2, 1,
-            bias=count_output_bias)
+        self.linear = torch.nn.Linear(n_filters * 2, 1, bias=count_output_bias)
 
     def get_embs_after_crop(self, x):
         assert x.shape[1] == self.input_sizes[0] + self.input_sizes[1]
-        x_onehot = x[:,:self.input_sizes[0],:]
-        x_lm = x[:,self.input_sizes[0]:,:]
+        x_onehot = x[:, : self.input_sizes[0], :]
+        x_lm = x[:, self.input_sizes[0] :, :]
 
         x_onehot = self.irelu1(self.iconv1(x_onehot))
         for i in range(self.n_layers):
@@ -502,22 +478,27 @@ class DoubleBPNet(BPNet):
         return x
 
 
-
 class ConvBlock(torch.nn.Module):
     """
     Basic convolutional block.
     Consists of a convolutional layer, a max pooling layer and a dropout layer.
     """
+
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
         kernel_size: int,
         pool_size: int,
-        dropout: float
+        dropout: float,
     ):
         super().__init__()
-        self.conv = torch.nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding='same')
+        self.conv = torch.nn.Conv1d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding="same",
+        )
         self.mp = torch.nn.MaxPool1d(kernel_size=pool_size, stride=pool_size)
         self.do = torch.nn.Dropout(dropout)
 
@@ -528,8 +509,8 @@ class ConvBlock(torch.nn.Module):
         x = self.do(x)  # (batch_size, out_channels, seq_len // pool_size)
         return x
 
-class DreamRNN(BPNet):
 
+class DreamRNN(BPNet):
     def __init__(
         self,
         out_dim=1000,
@@ -544,7 +525,7 @@ class DreamRNN(BPNet):
         count_output_bias=True,
         name=None,
         verbose=False,
-        dropout=False
+        dropout=False,
     ):
         super().__init__()
         in_channels = 512
@@ -555,33 +536,61 @@ class DreamRNN(BPNet):
         dropout1 = 0.2
         dropout2 = 0.2
         self.do = torch.nn.Dropout(dropout2)
-        self.lstm = torch.nn.LSTM(input_size=in_channels, hidden_size=lstm_hidden_channels, batch_first=True, bidirectional=True)
-        self.conv_list1 = torch.nn.ModuleList([
-            ConvBlock(8, in_channels // len(kernel_sizes), k, pool_size, dropout1) for k in kernel_sizes
-        ])
-        self.conv_list2 = torch.nn.ModuleList([
-            ConvBlock(2 * lstm_hidden_channels, out_channels // len(kernel_sizes), k, pool_size, dropout1) for k in kernel_sizes
-        ])
+        self.lstm = torch.nn.LSTM(
+            input_size=in_channels,
+            hidden_size=lstm_hidden_channels,
+            batch_first=True,
+            bidirectional=True,
+        )
+        self.conv_list1 = torch.nn.ModuleList(
+            [
+                ConvBlock(8, in_channels // len(kernel_sizes), k, pool_size, dropout1)
+                for k in kernel_sizes
+            ]
+        )
+        self.conv_list2 = torch.nn.ModuleList(
+            [
+                ConvBlock(
+                    2 * lstm_hidden_channels,
+                    out_channels // len(kernel_sizes),
+                    k,
+                    pool_size,
+                    dropout1,
+                )
+                for k in kernel_sizes
+            ]
+        )
 
-        self.fconv = torch.nn.Conv1d(out_channels, n_outputs,
-            kernel_size=profile_kernel_size, padding='valid', bias=profile_output_bias)
+        self.fconv = torch.nn.Conv1d(
+            out_channels,
+            n_outputs,
+            kernel_size=profile_kernel_size,
+            padding="valid",
+            bias=profile_output_bias,
+        )
 
         # count prediction
-        self.linear = torch.nn.Linear(out_channels, 1,
-            bias=count_output_bias)
-
+        self.linear = torch.nn.Linear(out_channels, 1, bias=count_output_bias)
 
     def get_embs_after_crop(self, x):
-        conv_outputs = [conv(x) for conv in self.conv_list1]  # [(batch_size, each_out_channels, seq_len // pool_size), ...]
+        conv_outputs = [
+            conv(x) for conv in self.conv_list1
+        ]  # [(batch_size, each_out_channels, seq_len // pool_size), ...]
         # concatenate the outputs along the channel dimension
-        x = torch.cat(conv_outputs, dim=1)  # (batch_size, out_channels, seq_len // pool_size)
+        x = torch.cat(
+            conv_outputs, dim=1
+        )  # (batch_size, out_channels, seq_len // pool_size)
         x = x.permute(0, 2, 1)  # (batch_size, seq_len, in_channels)
         x, _ = self.lstm(x)  # (batch_size, seq_len, 2 * lstm_hidden_channels)
         x = x.permute(0, 2, 1)  # (batch_size, 2 * lstm_hidden_channels, seq_len)
-        conv_outputs = [conv(x) for conv in self.conv_list2]  # [(batch_size, each_conv_out_channels, seq_len // pool_size), ...]
+        conv_outputs = [
+            conv(x) for conv in self.conv_list2
+        ]  # [(batch_size, each_conv_out_channels, seq_len // pool_size), ...]
 
         # concatenate the outputs along the channel dimension
-        x = torch.cat(conv_outputs, dim=1)  # (batch_size, conv_out_channels, seq_len // pool_size)
+        x = torch.cat(
+            conv_outputs, dim=1
+        )  # (batch_size, conv_out_channels, seq_len // pool_size)
         x = self.do(x)
 
         return x

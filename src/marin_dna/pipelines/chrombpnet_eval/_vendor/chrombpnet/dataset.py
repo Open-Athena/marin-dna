@@ -18,7 +18,13 @@ import pandas as pd
 import lightning as L
 
 
-from .data_utils import load_region_df, load_data, random_crop, crop_revcomp_augment, get_cts
+from .data_utils import (
+    load_region_df,
+    load_data,
+    random_crop,
+    crop_revcomp_augment,
+    get_cts,
+)
 
 
 class DataModule(L.LightningDataModule):
@@ -55,10 +61,10 @@ class DataModule(L.LightningDataModule):
         self.config = config
 
         # Set dataset class based on data type
-        if self.config.data_type == 'profile':
+        if self.config.data_type == "profile":
             self.dataset_class = ChromBPNetDataset
         else:
-            raise ValueError(f'Invalid data type: {self.config.data_type}')
+            raise ValueError(f"Invalid data type: {self.config.data_type}")
 
         # Load and process data
         self._load_regions()
@@ -72,7 +78,7 @@ class DataModule(L.LightningDataModule):
             chrom_sizes=self.config.chrom_sizes,
             in_window=self.config.in_window,
             shift=self.config.shift,
-            is_peak=True
+            is_peak=True,
         )
 
         if self.config.negatives is not None:
@@ -81,36 +87,53 @@ class DataModule(L.LightningDataModule):
                 chrom_sizes=self.config.chrom_sizes,
                 in_window=self.config.in_window,
                 shift=self.config.shift,
-                is_peak=False
+                is_peak=False,
             )
             self.data = pd.concat([self.peaks, self.negatives], ignore_index=True)
         else:
             self.negatives = None
             self.data = self.peaks
 
-
-
     def _setup_chromosomes(self):
         """Setup chromosome lists for training, validation and testing."""
-        self.train_chroms = [i for i in self.config.training_chroms if i not in self.config.exclude_chroms]
-        self.val_chroms = [i for i in self.config.validation_chroms if i not in self.config.exclude_chroms]
-        self.test_chroms = [i for i in self.config.test_chroms if i not in self.config.exclude_chroms]
+        self.train_chroms = [
+            i
+            for i in self.config.training_chroms
+            if i not in self.config.exclude_chroms
+        ]
+        self.val_chroms = [
+            i
+            for i in self.config.validation_chroms
+            if i not in self.config.exclude_chroms
+        ]
+        self.test_chroms = [
+            i for i in self.config.test_chroms if i not in self.config.exclude_chroms
+        ]
         self.chroms = self.train_chroms + self.val_chroms + self.test_chroms
 
     def _split_data(self):
         """Split data into training, validation and testing sets."""
-        self.train_val = self.data[self.data.iloc[:, 0].isin(self.val_chroms+self.train_chroms)].reset_index(drop=True)
-        self.train_data = self.data[self.data.iloc[:, 0].isin(self.train_chroms)].reset_index(drop=True)
+        self.train_val = self.data[
+            self.data.iloc[:, 0].isin(self.val_chroms + self.train_chroms)
+        ].reset_index(drop=True)
+        self.train_data = self.data[
+            self.data.iloc[:, 0].isin(self.train_chroms)
+        ].reset_index(drop=True)
 
-        self.val_data = self.data[self.data.iloc[:, 0].isin(self.val_chroms)].reset_index(drop=True)
-        self.test_data = self.data[self.data.iloc[:, 0].isin(self.test_chroms)].reset_index(drop=True)
+        self.val_data = self.data[
+            self.data.iloc[:, 0].isin(self.val_chroms)
+        ].reset_index(drop=True)
+        self.test_data = self.data[
+            self.data.iloc[:, 0].isin(self.test_chroms)
+        ].reset_index(drop=True)
 
-    def setup(self, stage='fit'):
-        print('Setting up data...'); t0 = time()
+    def setup(self, stage="fit"):
+        print("Setting up data...")
+        t0 = time()
 
         config = self.config
 
-        if stage == 'fit':
+        if stage == "fit":
             train_peaks, train_nonpeaks = split_peak_and_nonpeak(self.train_data)
             val_peaks, val_nonpeaks = split_peak_and_nonpeak(self.val_data)
 
@@ -124,8 +147,8 @@ class DataModule(L.LightningDataModule):
                 negative_sampling_ratio=config.negative_sampling_ratio,
                 cts_bw_file=config.bigwig,
                 add_revcomp=True,
-                return_coords=False, #return_coords,
-                shuffle_at_epoch_start=False, #shuffle_at_epoch_start
+                return_coords=False,  # return_coords,
+                shuffle_at_epoch_start=False,  # shuffle_at_epoch_start
             )
             self.val_dataset = self.dataset_class(
                 peak_regions=val_peaks,
@@ -140,7 +163,7 @@ class DataModule(L.LightningDataModule):
                 return_coords=False,
                 shuffle_at_epoch_start=False,
             )
-        elif stage == 'test':
+        elif stage == "test":
             test_peaks, test_nonpeaks = split_peak_and_nonpeak(self.test_data)
             self.test_dataset = self.dataset_class(
                 peak_regions=test_peaks,
@@ -156,18 +179,23 @@ class DataModule(L.LightningDataModule):
                 shuffle_at_epoch_start=False,
             )
 
-        print(f'Data setup complete in {time() - t0:.2f} seconds')
+        print(f"Data setup complete in {time() - t0:.2f} seconds")
 
     @cached_property
     def median_count(self):
         import pyBigWig
+
         ## Calculate median count to get weight of count loss
-        self.train_val_subsampled = concat_peaks_and_subsampled_negatives(self.train_val, negative_sampling_ratio=self.config.negative_sampling_ratio)
-        counts_subsampled = get_cts(self.train_val_subsampled, pyBigWig.open(self.config.bigwig), self.config.out_window).sum(-1)
+        self.train_val_subsampled = concat_peaks_and_subsampled_negatives(
+            self.train_val, negative_sampling_ratio=self.config.negative_sampling_ratio
+        )
+        counts_subsampled = get_cts(
+            self.train_val_subsampled,
+            pyBigWig.open(self.config.bigwig),
+            self.config.out_window,
+        ).sum(-1)
         # counts_subsampled = extract_loci(self.train_val_subsampled, self.config.bigwig, width=self.config.out_windo, w, out='bigwig', shift=0, pool_size=64).sum(-1)
         return np.median(counts_subsampled)
-
-
 
     def train_dataloader(self):
         self.train_dataset.crop_revcomp_data()
@@ -220,9 +248,11 @@ class DataModule(L.LightningDataModule):
             num_workers=self.config.num_workers,
         )
 
-    def chrom_dataloader(self, chrom='chr1', negative_sampling_ratio=-1):
+    def chrom_dataloader(self, chrom="chr1", negative_sampling_ratio=-1):
 
-        dataset = self.chrom_dataset(chrom=chrom, negative_sampling_ratio=negative_sampling_ratio)
+        dataset = self.chrom_dataset(
+            chrom=chrom, negative_sampling_ratio=negative_sampling_ratio
+        )
 
         return torch.utils.data.DataLoader(
             dataset,
@@ -231,13 +261,12 @@ class DataModule(L.LightningDataModule):
             num_workers=self.config.num_workers,
         ), dataset
 
-
-    def chrom_dataset(self, chrom='chr1', negative_sampling_ratio=-1):
+    def chrom_dataset(self, chrom="chr1", negative_sampling_ratio=-1):
         if isinstance(chrom, str):
-            if chrom in ['train', 'val', 'test']:
-                chrom = getattr(self, f'{chrom}_chroms')
+            if chrom in ["train", "val", "test"]:
+                chrom = getattr(self, f"{chrom}_chroms")
 
-            elif chrom == 'all':
+            elif chrom == "all":
                 chrom = self.chroms
             else:
                 chrom = [chrom]
@@ -262,35 +291,46 @@ class DataModule(L.LightningDataModule):
         return dataset
 
 
-
-
-
 def split_peak_and_nonpeak(data):
-    data['is_peak'] = data['is_peak'].astype(int).astype(bool)
-    non_peaks = data[~data['is_peak']].copy()
+    data["is_peak"] = data["is_peak"].astype(int).astype(bool)
+    non_peaks = data[~data["is_peak"]].copy()
     if not len(non_peaks) > 0:
         non_peaks = None
-    peaks = data[data['is_peak']].copy()
+    peaks = data[data["is_peak"]].copy()
     return peaks, non_peaks
 
 
-def subsample_nonpeak_data(nonpeak_seqs, nonpeak_cts, nonpeak_coords, peak_data_size, negative_sampling_ratio):
-    #Randomly samples a portion of the non-peak data to use in training
+def subsample_nonpeak_data(
+    nonpeak_seqs, nonpeak_cts, nonpeak_coords, peak_data_size, negative_sampling_ratio
+):
+    # Randomly samples a portion of the non-peak data to use in training
     num_nonpeak_samples = int(negative_sampling_ratio * peak_data_size)
-    nonpeak_indices_to_keep = np.random.choice(len(nonpeak_seqs), size=min(num_nonpeak_samples, len(nonpeak_seqs)), replace=False)
+    nonpeak_indices_to_keep = np.random.choice(
+        len(nonpeak_seqs),
+        size=min(num_nonpeak_samples, len(nonpeak_seqs)),
+        replace=False,
+    )
     nonpeak_seqs = nonpeak_seqs[nonpeak_indices_to_keep]
     nonpeak_cts = nonpeak_cts[nonpeak_indices_to_keep]
     nonpeak_coords = nonpeak_coords[nonpeak_indices_to_keep]
     return nonpeak_seqs, nonpeak_cts, nonpeak_coords
 
 
-def concat_peaks_and_subsampled_negatives(peaks, negatives=None, negative_sampling_ratio=0.1):
+def concat_peaks_and_subsampled_negatives(
+    peaks, negatives=None, negative_sampling_ratio=0.1
+):
     if negatives is None:
         peaks, negatives = split_peak_and_nonpeak(peaks)
         # print(peaks.shape, negatives.shape)
 
-    if negatives is not None and len(negatives) > len(peaks) * negative_sampling_ratio and negative_sampling_ratio > 0:
-        negatives = negatives.sample(n=int(negative_sampling_ratio * len(peaks)), replace=False)
+    if (
+        negatives is not None
+        and len(negatives) > len(peaks) * negative_sampling_ratio
+        and negative_sampling_ratio > 0
+    ):
+        negatives = negatives.sample(
+            n=int(negative_sampling_ratio * len(peaks)), replace=False
+        )
 
         data = pd.concat([peaks, negatives], ignore_index=True)
     else:
@@ -299,16 +339,25 @@ def concat_peaks_and_subsampled_negatives(peaks, negatives=None, negative_sampli
 
 
 def crop_revcomp_data(
-    peak_seqs, peak_cts, peak_coords,
-    nonpeak_seqs=None, nonpeak_cts=None, nonpeak_coords=None,
-    inputlen=2114, outputlen=1000, add_revcomp=False, negative_sampling_ratio=0.1, shuffle=False):
+    peak_seqs,
+    peak_cts,
+    peak_coords,
+    nonpeak_seqs=None,
+    nonpeak_cts=None,
+    nonpeak_coords=None,
+    inputlen=2114,
+    outputlen=1000,
+    add_revcomp=False,
+    negative_sampling_ratio=0.1,
+    shuffle=False,
+):
     """Apply random cropping and reverse complement augmentation to the data.
 
-        This method:
-        1. Randomly crops peak data to inputlen and outputlen
-        2. Samples negative examples according to negative_sampling_ratio
-        3. Applies reverse complement augmentation if enabled
-        4. Shuffles data if shuffle_at_epoch_start is True
+    This method:
+    1. Randomly crops peak data to inputlen and outputlen
+    2. Samples negative examples according to negative_sampling_ratio
+    3. Applies reverse complement augmentation if enabled
+    4. Shuffles data if shuffle_at_epoch_start is True
     """
     if (peak_seqs is not None) and (nonpeak_seqs is not None):
         # Crop peak data
@@ -318,9 +367,14 @@ def crop_revcomp_data(
 
         # Sample negative examples
         if negative_sampling_ratio > 0:
-            sampled_nonpeak_seqs, sampled_nonpeak_cts, sampled_nonpeak_coords = subsample_nonpeak_data(
-                nonpeak_seqs, nonpeak_cts, nonpeak_coords,
-                len(peak_seqs), negative_sampling_ratio
+            sampled_nonpeak_seqs, sampled_nonpeak_cts, sampled_nonpeak_coords = (
+                subsample_nonpeak_data(
+                    nonpeak_seqs,
+                    nonpeak_cts,
+                    nonpeak_coords,
+                    len(peak_seqs),
+                    negative_sampling_ratio,
+                )
             )
             seqs = np.vstack([cropped_peaks, sampled_nonpeak_seqs])
             cts = np.vstack([cropped_cnts, sampled_nonpeak_cts])
@@ -349,8 +403,7 @@ def crop_revcomp_data(
 
     # Apply augmentation
     seqs, cts, coords = crop_revcomp_augment(
-        seqs, cts, coords, inputlen, outputlen,
-        add_revcomp, shuffle=shuffle
+        seqs, cts, coords, inputlen, outputlen, add_revcomp, shuffle=shuffle
     )
     # self.regions = pd.DataFrame(self.cur_coords, columns=['chrom', 'start', 'forward_or_reverse', 'is_peak'])
     # print('Regions', self.regions['is_peak'].value_counts())
@@ -362,12 +415,12 @@ def debug_subsample(peak_regions, chrom=None):
         return None
 
     if chrom is None:
-        chrom = peak_regions['chr'].unique()[0]
+        chrom = peak_regions["chr"].unique()[0]
 
-
-    peak_regions = peak_regions[peak_regions['chr'] == chrom]
-    print('debugging on ', chrom, 'shape', peak_regions.shape)
+    peak_regions = peak_regions[peak_regions["chr"] == chrom]
+    print("debugging on ", chrom, "shape", peak_regions.shape)
     return peak_regions.reset_index(drop=True)
+
 
 class ChromBPNetDataset(torch.utils.data.Dataset):
     """Generator for genomic sequence data with random cropping and reverse complement augmentation.
@@ -392,20 +445,20 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
     """
 
     def __init__(
-            self,
-            peak_regions,
-            nonpeak_regions,
-            genome_fasta,
-            inputlen=2114,
-            outputlen=1000,
-            max_jitter=0,
-            negative_sampling_ratio=0.1,
-            cts_bw_file=None,
-            add_revcomp=False,
-            return_coords=False,
-            shuffle_at_epoch_start=False,
-            debug=False,
-            **kwargs
+        self,
+        peak_regions,
+        nonpeak_regions,
+        genome_fasta,
+        inputlen=2114,
+        outputlen=1000,
+        max_jitter=0,
+        negative_sampling_ratio=0.1,
+        cts_bw_file=None,
+        add_revcomp=False,
+        return_coords=False,
+        shuffle_at_epoch_start=False,
+        debug=False,
+        **kwargs,
     ):
         """Initialize the generator.
 
@@ -428,10 +481,17 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
             peak_regions = debug_subsample(peak_regions)
             nonpeak_regions = debug_subsample(nonpeak_regions)
 
-
         # Load data
-        peak_seqs, peak_cts, peak_coords, nonpeak_seqs, nonpeak_cts, nonpeak_coords = load_data(
-            peak_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen, outputlen, max_jitter
+        peak_seqs, peak_cts, peak_coords, nonpeak_seqs, nonpeak_cts, nonpeak_coords = (
+            load_data(
+                peak_regions,
+                nonpeak_regions,
+                genome_fasta,
+                cts_bw_file,
+                inputlen,
+                outputlen,
+                max_jitter,
+            )
         )
 
         # Store data
@@ -471,15 +531,22 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
         4. Shuffles data if shuffle_at_epoch_start is True
         """
         self.cur_seqs, self.cur_cts, self.cur_coords = crop_revcomp_data(
-            self.peak_seqs, self.peak_cts, self.peak_coords,
-            self.nonpeak_seqs, self.nonpeak_cts, self.nonpeak_coords,
-            self.inputlen, self.outputlen, self.add_revcomp, self.negative_sampling_ratio, self.shuffle_at_epoch_start
+            self.peak_seqs,
+            self.peak_cts,
+            self.peak_coords,
+            self.nonpeak_seqs,
+            self.nonpeak_cts,
+            self.nonpeak_coords,
+            self.inputlen,
+            self.outputlen,
+            self.add_revcomp,
+            self.negative_sampling_ratio,
+            self.shuffle_at_epoch_start,
         )
 
     def _get_adj(self):
         """Get adjacency matrix for the data."""
         pass
-
 
     def __getitem__(self, idx):
         """Get a sample from the dataset.
@@ -493,6 +560,6 @@ class ChromBPNetDataset(torch.utils.data.Dataset):
                 - profile: Profile data
         """
         return {
-            'onehot_seq': self.cur_seqs[idx].astype(np.float32).transpose(),
-            'profile': self.cur_cts[idx].astype(np.float32),
+            "onehot_seq": self.cur_seqs[idx].astype(np.float32).transpose(),
+            "profile": self.cur_cts[idx].astype(np.float32),
         }
