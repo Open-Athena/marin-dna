@@ -319,3 +319,33 @@ def _repeat_interleave_kv_cache(past_kv: Any, n: int) -> Any:
             layer_idx=layer_idx,
         )
     return new_cache
+
+
+def compute_window_embedding(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    *,
+    tok_lo: int,
+    tok_hi: int,
+    layer_index: int = -1,
+) -> Float[Tensor, "B D"]:
+    """Mean-pool one layer's hidden state over the center tokens ``[tok_lo, tok_hi)``.
+
+    The embedding-UMAP readout (issue #246). For the last layer
+    (``layer_index == -1``) reads ``last_hidden_state`` directly — so ``model``
+    should be a base ``AutoModel`` (no LM head to waste compute/memory on). For
+    an intermediate layer reads ``hidden_states[layer_index]`` (the forward must
+    accept ``output_hidden_states=True``). Pools in fp32 to avoid bf16
+    accumulation error across the pooled positions (cf. the log_softmax fp32
+    casts above). Returns ``[B, D]`` (``D`` = model hidden size).
+    """
+    if layer_index == -1:
+        hidden = model(input_ids).last_hidden_state  # [B, L, D]
+    else:
+        hidden = model(input_ids, output_hidden_states=True).hidden_states[layer_index]
+    # Defensive: a tokenizer that adds an unexpected suffix, or a bad
+    # bounds calc, would otherwise silently truncate the pool.
+    assert 0 <= tok_lo < tok_hi <= hidden.shape[1], (
+        f"center slice [{tok_lo}:{tok_hi}] out of bounds for seq length {hidden.shape[1]}"
+    )
+    return hidden[:, tok_lo:tok_hi].float().mean(dim=1)  # [B, D]

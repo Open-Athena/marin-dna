@@ -30,6 +30,10 @@ workdir: .
 
 envs:
     SNAKEMAKE_ARGS: ""           # extra snakemake args (e.g. --forcerun compute_scores)
+    EXTRA_UV_GROUPS: ""          # extra `uv` groups for this run, e.g. "--group umap"
+                                 # for the embedding-UMAP target (#246). Default
+                                 # empty so metrics/nuc_dep runs stay lean (the
+                                 # umap group pulls a ~56 MB LLVM wheel).
 
 file_mounts:
     # Application Default Credentials so `gcloud storage cp -r` can pull
@@ -59,7 +63,8 @@ setup: |
 
     # `--group genome-s3` pulls in s3fs so pyfaidx can read the GRCh38
     # reference directly from S3 (see config/config.yaml `genome_path`).
-    uv sync --frozen --group genome-s3
+    # $EXTRA_UV_GROUPS adds per-target groups (e.g. `--group umap` for #246).
+    uv sync --frozen --group genome-s3 $EXTRA_UV_GROUPS
 
     # Smoke-test GCS access so a bad ADC fails fast in setup, not in a rule.
     gcloud storage ls gs://marin-us-central1/checkpoints/ | head -3 >/dev/null
@@ -82,7 +87,7 @@ run: |
     # if `--profile` etc. follow `$SNAKEMAKE_ARGS` they'd be treated as
     # target paths and the rule lookup fails with
     # `AttributeError: 'AnnotatedString' object has no attribute 'is_storage'`).
-    uv run --project ../../.. --group genome-s3 snakemake \
+    uv run --project ../../.. --group genome-s3 $EXTRA_UV_GROUPS snakemake \
         --profile workflow/profiles/default \
         --printshellcmds \
         --rerun-incomplete \

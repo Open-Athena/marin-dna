@@ -26,6 +26,7 @@ A model family's AUPRC depends on which score you compute it from — the **prot
 Visual analyses of what the trained models have internalized:
 
 - [**Nucleotide dependency**](./interpretation/nucleotide-dependency) — per-locus dependency maps: how substituting one position shifts the model's predicted nucleotide distribution elsewhere, revealing coupled functional elements (independently developed for protein and genomic LMs). See [#237](https://github.com/Open-Athena/marin-dna/issues/237).
+- [**Embedding UMAP**](./interpretation/embedding-umap) — unsupervised UMAP of model embeddings over 111,329 labeled genomic windows: whether a model's representations segregate functional elements (coding, UTRs, promoters, enhancers, …) and conserved regions without supervision (GPN-Star Fig 4). See [#246](https://github.com/Open-Athena/marin-dna/issues/246).
 
 ## Reference
 

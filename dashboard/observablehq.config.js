@@ -46,6 +46,7 @@ export default {
       name: "Interpretation",
       pages: [
         {name: "Nucleotide dependency", path: "/interpretation/nucleotide-dependency"},
+        {name: "Embedding UMAP", path: "/interpretation/embedding-umap"},
       ],
     },
     {

@@ -41,10 +41,12 @@ from marin_dna.data.transforms import (
     in_seq_var_pos,
     transform_ll_clm,
     transform_llr_clm,
+    transform_window_embedding,
 )
 from marin_dna.model.scoring import (
     compute_ll_clm,
     compute_variant_score_bundle,
+    compute_window_embedding,
 )
 
 
@@ -192,6 +194,105 @@ def run_variant_score_bundle(
     if rc:
         out["rc"] = np.asarray(_one("-"))
     return out
+
+
+def _center_token_bounds(
+    window_size: int,
+    n_center_bp: int,
+    n_prefix: int,
+    strand: Literal["+", "-"],
+) -> tuple[int, int]:
+    """Token ``[lo, hi)`` slice for the central ``n_center_bp`` DNA positions.
+
+    Strand-aware so the forward and reverse-complement windows pool the **same**
+    genomic block: an RC window index ``k`` maps to forward index
+    ``window_size - 1 - k``, so the forward block ``[c0, c0+n)`` is covered on RC
+    by ``[window_size - n_center_bp - c0, …)``. When ``window_size - n_center_bp``
+    is even the two starts coincide; when odd they differ by one (the mirror of
+    ``in_seq_var_pos`` for the variant kernel — a shared slice would leave the two
+    strands pooling 1-bp-offset windows). ``n_prefix`` offsets past BOS/special
+    prefix tokens.
+    """
+    c0_fwd = (window_size - n_center_bp) // 2
+    c0 = c0_fwd if strand == "+" else window_size - n_center_bp - c0_fwd
+    lo = n_prefix + c0
+    return lo, lo + n_center_bp
+
+
+def run_window_embeddings(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    *,
+    n_center_bp: int = 100,
+    layer_index: int = -1,
+    rc: bool = True,
+    **kwargs: Any,
+) -> np.ndarray:
+    """Center-pooled, FWD+RC-averaged window embeddings via the HF Trainer harness.
+
+    The embedding-UMAP readout (issue #246). Mirrors ``run_variant_score_bundle``
+    but reads hidden states instead of logits: each region's ``window_size``
+    context is tokenized (``transform_window_embedding``), the center
+    ``n_center_bp`` token positions of one layer are mean-pooled
+    (``compute_window_embedding``), and the forward and reverse-complement
+    strands are averaged. The center-pool token bounds are strand-aware
+    (``_center_token_bounds``) so both strands pool the *same* genomic block,
+    even when ``window_size - n_center_bp`` is odd.
+
+    Pass ``model`` as a base ``AutoModel`` (not ``AutoModelForCausalLM``) so the
+    forward skips the LM head — ``compute_window_embedding`` reads
+    ``last_hidden_state`` (``layer_index == -1``). ``**kwargs`` flow to
+    ``run_inference`` (e.g. ``data_transform_on_the_fly=True``,
+    ``inference_kwargs={...}`` carrying ``per_device_eval_batch_size`` /
+    ``bf16_full_eval`` / ``torch_compile`` / ``dataloader_num_workers``).
+
+    Returns ``[N, D]`` (``N = len(dataset)``, ``D`` = model hidden size).
+    """
+    assert n_center_bp <= window_size, (
+        f"n_center_bp {n_center_bp} exceeds window_size {window_size}"
+    )
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+
+    # One Trainer.predict pass per strand with strand-aware center bounds, so
+    # FWD and RC pool the same genomic block before averaging. (Cannot use
+    # _run_strand_aware: it shares one compute_fn across strands, but the center
+    # bounds must differ by strand for odd window_size - n_center_bp.)
+    def _one(strand: Literal["+", "-"]) -> np.ndarray:
+        tok_lo, tok_hi = _center_token_bounds(
+            window_size, n_center_bp, n_prefix, strand
+        )
+        return np.asarray(
+            run_inference(
+                model,
+                tokenizer,
+                dataset,
+                compute_fn=partial(
+                    compute_window_embedding,
+                    tok_lo=tok_lo,
+                    tok_hi=tok_hi,
+                    layer_index=layer_index,
+                ),
+                data_transform_fn=partial(
+                    transform_window_embedding,
+                    genome=genome,
+                    window_size=window_size,
+                    strand=strand,
+                ),
+                **kwargs,
+            )
+        )
+
+    fwd = _one("+")
+    if not rc:
+        return fwd
+    rc_emb = _one("-")
+    assert fwd.shape == rc_emb.shape, (
+        f"FWD/RC embedding shape mismatch: {fwd.shape} vs {rc_emb.shape}"
+    )
+    return (fwd + rc_emb) / 2
 
 
 def _run_inference(

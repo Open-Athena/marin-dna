@@ -112,6 +112,33 @@ uv run snakemake
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
+### Interpretation targets (off `rule all`)
+
+Two visual-interpretation analyses live alongside the metrics DAG but are kept
+**off `rule all`** (so they never perturb score/metric reruns); build them by
+name:
+
+- **Nucleotide dependency maps** (categorical Jacobian, #237) — `snakemake nuc_dep`.
+- **Embedding UMAP** (GPN-Star Fig 4A/4B, #246) — `snakemake umap`. Embeds the
+  labeled 100 bp windows from `songlab/gpn-star-umap-regions`, fits UMAP, and
+  writes `results/plots/umap/{model}/{region,conservation}.svg`. It needs the
+  optional `umap` group (a ~56 MB LLVM wheel via numba/llvmlite), so install it
+  alongside `--group genome-s3`:
+
+  ```bash
+  uv sync --frozen --group genome-s3 --group umap
+  uv run --group genome-s3 --group umap snakemake umap
+  ```
+
+  On a sky cluster, pass `EXTRA_UV_GROUPS` (threaded into both `uv sync` and
+  `uv run` by `sky/run.yaml`):
+
+  ```bash
+  sky launch sky/run.yaml -c evals-umap \
+    --env EXTRA_UV_GROUPS="--group umap" \
+    --env SNAKEMAKE_ARGS="-- umap"
+  ```
+
 ### Parallel sky-cluster sweep (one cluster per target)
 
 For a grid of independent targets — e.g. all checkpoints of one model arm,
@@ -156,6 +183,8 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets. |
 | `models` | List of `{name, window_size, ...}`. Each entry has exactly one of `gcs_path` (full GCS URI incl. `/hf/step-{N}`) or `hf_repo` (HuggingFace Hub repo ID), plus two optional fields: `datasets: [...]` to restrict which `datasets` this checkpoint evaluates on (defaults to all), and `batch_size: N` to override the global `inference.batch_size` for this checkpoint (useful when context size differs from the global default's tuning). |
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
+| `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
+| `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 
 ## Library
 

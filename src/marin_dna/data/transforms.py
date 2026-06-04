@@ -148,6 +148,39 @@ def transform_llr_clm(
     return dict(input_ids=input_ids, alt_token_id=alt_token_id)
 
 
+def transform_window_embedding(
+    example: dict[str, Any],
+    tokenizer: Any,
+    genome: Any,
+    window_size: int,
+    strand: Literal["+", "-"] = "+",
+) -> dict[str, Any]:
+    """Tokenize the model-context window centered on a region (issue #246).
+
+    The region ``[start, end)`` (0-based half-open) is expanded to
+    ``window_size`` bp centered on its midpoint and fetched on ``strand``
+    (``"-"`` returns the reverse complement). Returns ``{"input_ids": [L]}``.
+
+    The caller (``marin_dna.model.runner.run_window_embeddings``) computes the
+    center-pool token bounds **strand-aware** so both strands pool the same
+    genomic block before averaging. No variant logic
+    here — unlike ``transform_llr_clm`` there is no per-strand position to track.
+    """
+    chrom = str(example["chrom"])
+    start = int(example["start"])
+    end = int(example["end"])
+    center = (start + end) // 2
+    ctx_start = center - window_size // 2
+    seq = genome(chrom, ctx_start, ctx_start + window_size, strand).upper()
+    # Genome pads off-chromosome flanks with N to the full width; a wrong length
+    # would mean a coordinate/extraction bug — fail loud rather than ship a
+    # ragged batch (which would surface as an opaque collation error instead).
+    assert len(seq) == window_size, (
+        f"expected {window_size} bp at {chrom}:{ctx_start}, got {len(seq)}"
+    )
+    return {"input_ids": torch.tensor(tokenizer.encode(seq))}
+
+
 def transform_reflogprob_clm(
     example: dict[str, Any],
     tokenizer: Any,

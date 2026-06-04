@@ -30,6 +30,11 @@ from marin_dna.pipelines.evals.models import MODELS_YAML, load_models
 # `…/analysis/evals_v2/results/*`, which covers this prefix.
 S3_BUCKET = "oa-bolinas"
 NUC_DEP_PLOT_PREFIX = "snakemake/analysis/evals_v2/results/plots/nuc_dep"
+# Embedding-UMAP SVGs (rules/embedding_umap.smk `plot_umap`, issue #246), under
+# the same `…/results/*` prefix the dashboard IAM role can read.
+UMAP_PLOT_PREFIX = "snakemake/analysis/evals_v2/results/plots/umap"
+# The two per-model UMAP panels (GPN-Star Fig 4A / 4B).
+UMAP_COLOR_BYS: tuple[str, ...] = ("region", "conservation")
 
 # models.yaml lives at <repo>/dashboard/models.yaml, so its grandparent is the
 # repo root — reuse that (models.py already resolves it robustly) to locate the
@@ -236,3 +241,43 @@ def load_nuc_dep_block(config_path: Path | None = None) -> dict[str, Any]:
 def model_display_map() -> dict[str, str]:
     """``model id → display`` from the dashboard model registry (models.yaml)."""
     return {m.id: m.display for m in load_models()}
+
+
+def umap_candidates(
+    block: dict[str, Any],
+    *,
+    model_displays: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    """Candidate ``(model, color_by)`` embedding-UMAP artifacts + display names.
+
+    Pure: enumerates the ``models`` declared in the pipeline's ``umap_embeddings``
+    config ``block``, each with its ``region`` and ``conservation`` panel. Does
+    no I/O — the loader fetches each ``svg`` from S3 and drops the ones not yet
+    materialized. Order is model-major (config order), then color_by. Unlike
+    ``nuc_dep_candidates`` there is no locus/genomic axis: one global view per
+    model.
+    """
+    models = block.get("models", [])
+    displays = model_displays or {}
+    out: list[dict[str, Any]] = []
+    for model in models:
+        for color_by in UMAP_COLOR_BYS:
+            out.append(
+                {
+                    "model": model,
+                    "model_display": displays.get(model, model),
+                    "color_by": color_by,
+                    "svg": f"{model}/{color_by}.svg",
+                }
+            )
+    return out
+
+
+def load_umap_block(config_path: Path | None = None) -> dict[str, Any]:
+    """Parse the ``umap_embeddings`` block from the evals_v2 pipeline config."""
+    path = config_path or EVALS_V2_CONFIG
+    assert path.is_file(), f"evals_v2 config not found at {path}"
+    cfg = yaml.safe_load(path.read_text())
+    block = cfg.get("umap_embeddings")
+    assert block, f"no `umap_embeddings` block in {path}"
+    return block

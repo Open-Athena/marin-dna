@@ -152,3 +152,20 @@ for _loc, _c in NUC_DEP_CFG.get("loci", {}).items():
             f"nuc_dep locus {_loc!r} span {_c['end'] - _c['start']} bp exceeds "
             f"nuc_dep window_size {_ws}"
         )
+
+
+# --- Embedding UMAP (interpretation, issue #246) ----------------------------
+# Optional `umap_embeddings:` config section; targets kept off `rule all`
+# (see rules/embedding_umap.smk). Reuses the `models:` registry.
+UMAP_CFG = config.get("umap_embeddings", {})
+UMAP_MODELS = UMAP_CFG.get("models", [])
+
+# Fail fast: every umap model is a known checkpoint whose context window can
+# hold the center-pooled region (window_size >= n_center_bp).
+for _m in UMAP_MODELS:
+    assert _m in MODELS, f"umap_embeddings model {_m!r} not found in `models`"
+    _ws = get_model_config(_m)["window_size"]
+    _nc = UMAP_CFG.get("n_center_bp", 100)
+    assert _ws >= _nc, (
+        f"umap_embeddings model {_m!r} window_size {_ws} < n_center_bp {_nc}"
+    )

@@ -7,8 +7,10 @@ import pytest
 from marin_dna.pipelines.evals.interpretation_catalog import (
     display_region,
     load_nuc_dep_block,
+    load_umap_block,
     nuc_dep_candidates,
     ucsc_browser_url,
+    umap_candidates,
 )
 
 
@@ -129,3 +131,48 @@ def test_load_nuc_dep_block_real_config_is_wellformed() -> None:
     # Candidates build cleanly from the real config + real model registry.
     cands = nuc_dep_candidates(block)
     assert cands, "expected at least one candidate artifact"
+
+
+# --- embedding-UMAP catalog (issue #246) -----------------------------------
+
+
+def test_umap_candidates_is_model_by_colorby_product() -> None:
+    cands = umap_candidates(
+        {"models": ["modelA", "modelB"]}, model_displays={"modelA": "Model A"}
+    )
+    # 2 models × {region, conservation}.
+    assert len(cands) == 4
+    assert {c["svg"] for c in cands} == {
+        "modelA/region.svg",
+        "modelA/conservation.svg",
+        "modelB/region.svg",
+        "modelB/conservation.svg",
+    }
+
+
+def test_umap_candidate_fields_and_display_fallback() -> None:
+    cands = umap_candidates(
+        {"models": ["modelA", "modelB"]}, model_displays={"modelA": "Model A"}
+    )
+    a_region = next(
+        c for c in cands if c["model"] == "modelA" and c["color_by"] == "region"
+    )
+    assert a_region["model_display"] == "Model A"
+    assert a_region["svg"] == "modelA/region.svg"
+    # No display mapping for modelB → falls back to the id.
+    b = next(c for c in cands if c["model"] == "modelB")
+    assert b["model_display"] == "modelB"
+
+
+def test_umap_candidates_empty_when_no_models() -> None:
+    assert umap_candidates({"models": []}) == []
+    assert umap_candidates({}) == []
+
+
+def test_load_umap_block_real_config_is_wellformed() -> None:
+    block = load_umap_block()
+    assert block.get("models"), "expected at least one umap_embeddings model"
+    # Candidates build cleanly from the real config + real model registry.
+    cands = umap_candidates(block)
+    assert cands, "expected at least one candidate artifact"
+    assert all(c["color_by"] in ("region", "conservation") for c in cands)

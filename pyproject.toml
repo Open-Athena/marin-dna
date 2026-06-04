@@ -114,6 +114,14 @@ aws-cli = [
 genome-s3 = [
     "s3fs>=2024",
 ]
+# `umap-learn` for the embedding-UMAP interpretation (evals_v2, issue #246).
+# Pulls numba + a ~56 MB llvmlite (LLVM) wheel for one analysis, so it's an
+# opt-in group, not a core dep; `embedding_umap.fit_umap` lazy-imports it.
+# Pipelines that fit UMAP install with `--group umap` (alongside
+# `--group genome-s3` for the S3 genome read).
+umap = [
+    "umap-learn>=0.5",
+]
 
 [tool.uv]
 # awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the
