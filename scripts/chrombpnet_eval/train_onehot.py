@@ -160,6 +160,14 @@ def parse_args() -> argparse.Namespace:
         "Zero-padded tower, no bias.",
     )
     p.add_argument(
+        "--perbase-norm",
+        choices=["batchnorm", "groupnorm"],
+        default="batchnorm",
+        help="pre-head normalization for --perbase-mse (#259). 'groupnorm' is "
+        "batch-independent (no eval running stats) — tests whether BatchNorm is "
+        "the per-base seed-variance source.",
+    )
+    p.add_argument(
         "--n-segments",
         type=int,
         default=1,
@@ -392,6 +400,7 @@ def main() -> None:
             n_layers=args.n_layers,
             n_filters=args.n_filters,
             head_kernel_size=args.head_kernel,
+            norm_type=args.perbase_norm,
         )
         n_trainable = count_trainable_params(model)
         print(

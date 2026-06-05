@@ -37,9 +37,11 @@ class PerBaseMSELog(torch.nn.Module):
         n_layers: int = 8,
         conv1_kernel_size: int = 21,
         head_kernel_size: int = 75,
+        norm_type: str = "batchnorm",
         eps: float = 1e-7,
     ) -> None:
         super().__init__()
+        assert norm_type in ("batchnorm", "groupnorm"), norm_type
         self.out_window = out_window
         self.eps = eps
         # Width-preserving 'same'-pad tower (same construction as samepad.py).
@@ -55,9 +57,16 @@ class PerBaseMSELog(torch.nn.Module):
             ]
         )
         # Normalize the residual-accumulated tower features before the head — without
-        # this the raw head output explodes (MSE ~hundreds at init, the two-head
-        # sidesteps it via softmax/pooling). #259.
-        self.norm = torch.nn.BatchNorm1d(n_filters)
+        # this the raw head output explodes (MSE ~hundreds at init; the two-head
+        # sidesteps it via softmax/pooling). #259. ``batchnorm`` (per-channel, but
+        # eval uses seed-dependent running stats) vs ``groupnorm`` (1 group =
+        # batch-independent, no running stats — testing whether BatchNorm is the
+        # per-base seed-variance source).
+        self.norm = (
+            torch.nn.BatchNorm1d(n_filters)
+            if norm_type == "batchnorm"
+            else torch.nn.GroupNorm(1, n_filters)
+        )
         # Per-base head: a ``head_kernel_size``-wide conv (default 75, matched to the
         # two-head profile conv — controls the single-head "less conv" confounder).
         # **Link = identity** (the MSE target is log1p(count), so the head predicts
@@ -92,6 +101,7 @@ def build_perbase_mse(
     n_filters: int = 512,
     n_layers: int = 8,
     head_kernel_size: int = 75,
+    norm_type: str = "batchnorm",
 ) -> PerBaseMSELog:
     """Construct the per-base MSE-log model (#259, simplest). See module docstring."""
     return PerBaseMSELog(
@@ -99,6 +109,7 @@ def build_perbase_mse(
         n_filters=n_filters,
         n_layers=n_layers,
         head_kernel_size=head_kernel_size,
+        norm_type=norm_type,
     )
 
 
