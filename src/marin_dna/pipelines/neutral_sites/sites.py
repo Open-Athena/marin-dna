@@ -282,3 +282,117 @@ def enumerate_positions(
     # Defensive: the whole point is a clean neutral set — no surprises downstream.
     assert out["ref"].isin(valid).all(), "non-ACGT ref leaked into neutral set"
     return out
+
+
+def annotate_pentanucleotide(
+    sites: pd.DataFrame,
+    get_seq: Callable[[str, int, int], str],
+) -> pd.DataFrame:
+    """Attach each neutral site's central pentanucleotide (5-mer) context.
+
+    The 5-mer is the window ``[pos-2, pos+2]`` (1-based, variant-centered) — in
+    0-based half-open terms the central base is ``pos - 1`` and the 5-mer spans
+    ``[pos-3, pos+2)`` — matching ``_get_variant_window`` in
+    ``marin_dna.data.transforms`` and GPN-Star's ``pentanuc``. The mutation-rate
+    calibration (issue #267) bins by this 5-mer (and, for LLR, ``5mer + "_" +
+    alt``), so it must be computed once, model-independently, here.
+
+    The reference is read **once per chromosome** (over the span covering every
+    site's 5-mer), same as :func:`enumerate_positions` — a per-site byte-range
+    read against an ``s3://`` genome would be millions of round-trips.
+
+    Args:
+        sites: ``[chrom, pos, ref]`` — bare ``chrom``, **1-based** ``pos``,
+            ``ref`` ∈ {A,C,G,T} (as produced by :func:`enumerate_positions`).
+        get_seq: ``(chrom, start, end) -> str`` over the reference (0-based
+            half-open, bare chrom names); the sequence is upper-cased here.
+
+    Returns:
+        ``sites`` plus a ``pentanuc`` column (uppercase 5-mer). Sites whose 5-mer
+        has a non-ACGT flank (``N`` near assembly gaps) are dropped — they can't
+        index a calibration bin; the center is ACGT by construction (it is the
+        ref). The center base of every returned 5-mer equals ``ref`` (asserted).
+    """
+    for col in ("chrom", "pos", "ref"):
+        assert col in sites.columns, f"sites missing column {col!r}"
+
+    sites = sites.reset_index(drop=True)
+    pentanuc = np.empty(len(sites), dtype=object)
+    for chrom, sub in sites.groupby("chrom", sort=False):
+        pos = sub["pos"].to_numpy()
+        # One read spanning every site's 5-mer: leftmost 5-mer starts at
+        # (min_pos - 1) - 2 = min_pos - 3; rightmost ends at (max_pos - 1) + 3.
+        lo = int(pos.min()) - 3
+        hi = int(pos.max()) + 2
+        span = get_seq(str(chrom), lo, hi).upper()
+        assert len(span) == hi - lo, (
+            f"reference returned {len(span)} bp for {chrom}:{lo}-{hi} "
+            f"(expected {hi - lo})"
+        )
+        for i, p in zip(sub.index.to_numpy(), pos):
+            start = int(p) - 3 - lo  # offset of this site's 5-mer within span
+            pentanuc[i] = span[start : start + 5]
+
+    out = sites.copy()
+    out["pentanuc"] = pentanuc
+    # Centering check: the middle base of every 5-mer must equal the stored ref
+    # (validates the 1-based-pos <-> 0-based-reference convention end-to-end).
+    center = out["pentanuc"].str[2]
+    assert (center == out["ref"]).all(), (
+        f"pentanucleotide center != ref for "
+        f"{int((center != out['ref']).sum())} site(s) — centering/coordinate bug"
+    )
+    valid = out["pentanuc"].str.fullmatch("[ACGT]{5}")
+    n_drop = int((~valid).sum())
+    if n_drop:
+        print(
+            f"[annotate_pentanucleotide] dropped {n_drop} site(s) "
+            f"with non-ACGT 5-mer flanks"
+        )
+    return out.loc[valid].reset_index(drop=True)
+
+
+def subsample_per_context(sites: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
+    """Subsample to at most ``n`` neutral sites per pentanucleotide (5-mer).
+
+    The calibration subsampling unit is the **5-mer** (``pentanuc``), *not* the
+    per-alt bin (``5mer + "_" + alt``): each site is scored against all 3 non-ref
+    alts, so the three bins of a 5-mer share its sites. Keeping ``n`` sites per
+    5-mer therefore yields ``n`` observations in *each* of its 3 calibration
+    bins, at ``3n`` variant-scorings per 5-mer. Site-level + alt-agnostic so the
+    LLR path (3 alts) and the entropy atom (#269, 4-allele marginal) consume one
+    set.
+
+    Deterministic given ``(site set, n, seed)``: sites are canonically sorted
+    first (so the result is independent of input row order), then a single
+    seeded RNG draws ``min(n, count)`` per 5-mer in sorted-5-mer order.
+
+    Args:
+        sites: ``[chrom, pos, ref, pentanuc, ...]`` (e.g. from
+            :func:`annotate_pentanucleotide`).
+        n: max sites to keep per 5-mer. 5-mers with ``count <= n`` are kept whole.
+        seed: RNG seed.
+
+    Returns:
+        The kept sites (all input columns), canonically sorted by
+        ``(chrom, pos)``. Every 5-mer appears at most ``n`` times.
+    """
+    assert n > 0, f"n must be positive, got {n}"
+    for col in ("chrom", "pos", "pentanuc"):
+        assert col in sites.columns, f"sites missing column {col!r}"
+
+    sites = sites.sort_values(["chrom", "pos"]).reset_index(drop=True)
+    rng = np.random.default_rng(seed)
+    keep: list[np.ndarray] = []
+    for _, group in sites.groupby("pentanuc", sort=True):
+        idx = group.index.to_numpy()
+        if len(idx) <= n:
+            keep.append(idx)
+        else:
+            sel = np.sort(rng.choice(len(idx), size=n, replace=False))
+            keep.append(idx[sel])
+
+    out = sites.loc[np.concatenate(keep)].sort_values(["chrom", "pos"])
+    out = out.reset_index(drop=True)
+    assert out.groupby("pentanuc").size().max() <= n, "a 5-mer exceeded the cap"
+    return out
