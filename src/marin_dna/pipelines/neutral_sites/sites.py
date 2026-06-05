@@ -380,7 +380,17 @@ def subsample_per_context(sites: pd.DataFrame, n: int, seed: int) -> pd.DataFram
     assert n > 0, f"n must be positive, got {n}"
     for col in ("chrom", "pos", "pentanuc"):
         assert col in sites.columns, f"sites missing column {col!r}"
+    if len(sites) == 0:
+        return sites.reset_index(drop=True)
+    # Unique (chrom, pos) is the contract (enumerate_positions dedups). Enforce it:
+    # a duplicate would double-weight a calibration bin and make the seeded draw
+    # depend on input row order.
+    assert not sites.duplicated(["chrom", "pos"]).any(), (
+        "duplicate (chrom, pos) sites — would double-weight a calibration bin"
+    )
 
+    # Canonical sort first so the draw depends only on the site set + seed, not on
+    # input row order; the reset index is then in (chrom, pos) order (unique keys).
     sites = sites.sort_values(["chrom", "pos"]).reset_index(drop=True)
     rng = np.random.default_rng(seed)
     keep: list[np.ndarray] = []
@@ -389,10 +399,10 @@ def subsample_per_context(sites: pd.DataFrame, n: int, seed: int) -> pd.DataFram
         if len(idx) <= n:
             keep.append(idx)
         else:
-            sel = np.sort(rng.choice(len(idx), size=n, replace=False))
-            keep.append(idx[sel])
+            keep.append(idx[rng.choice(len(idx), size=n, replace=False)])
 
-    out = sites.loc[np.concatenate(keep)].sort_values(["chrom", "pos"])
-    out = out.reset_index(drop=True)
+    # Sorting the kept positional indices restores (chrom, pos) order in one pass
+    # (the index is already (chrom, pos)-sorted) — no second DataFrame sort.
+    out = sites.loc[np.sort(np.concatenate(keep))].reset_index(drop=True)
     assert out.groupby("pentanuc").size().max() <= n, "a 5-mer exceeded the cap"
     return out

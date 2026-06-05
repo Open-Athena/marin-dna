@@ -43,13 +43,14 @@ pins one by revision — see README."""
         n=r"\d+",
     run:
         sites = pd.read_parquet(input[0])
-        out = subsample_per_context(
-            sites, int(wildcards.n), config["subsample_seed"]
-        )
+        n_cap = int(wildcards.n)
+        out = subsample_per_context(sites, n_cap, config["subsample_seed"])
         per = out.groupby("pentanuc").size()
+        n_depleted = int((per < n_cap).sum())  # 5-mers with fewer than n sites
         out.to_parquet(output[0], index=False)
         print(
-            f"[subsample_neutral] n={wildcards.n} seed={config['subsample_seed']}: "
+            f"[subsample_neutral] n={n_cap} seed={config['subsample_seed']}: "
             f"{len(out):,} sites across {len(per)} 5-mers "
-            f"(<= {per.max()} per 5-mer) -> {output[0]}"
+            f"(<= {per.max()} per 5-mer; {n_depleted} 5-mers below the cap, "
+            f"min {per.min()}) -> {output[0]}"
         )

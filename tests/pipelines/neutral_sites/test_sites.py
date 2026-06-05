@@ -272,6 +272,24 @@ class TestAnnotatePentanucleotide:
         out = annotate_pentanucleotide(sites, self._get_seq(g))
         assert list(out["pentanuc"]) == ["GTACG", "ACGTA"]
 
+    def test_chromosome_boundary_n_padding(self):
+        # A near-the-start site whose 5-mer flank runs off the chromosome must be
+        # dropped. Emulate the real Genome, which N-pads out-of-range reads so the
+        # returned length is always end-start (exercises the lo < 0 path).
+        seq = "ACGTACGT"  # 0-based 0..7
+
+        def padded(chrom, start, end):
+            return "".join(
+                seq[i] if 0 <= i < len(seq) else "N" for i in range(start, end)
+            )
+
+        # pos 1 -> 5-mer 0-based [-2, 3) = "NNACG" (left N-pad) -> dropped;
+        # pos 4 -> 5-mer [1, 6) = "CGTAC" -> kept. (single read lo=-2, hi=6)
+        sites = pd.DataFrame({"chrom": ["1", "1"], "pos": [1, 4], "ref": ["A", "T"]})
+        out = annotate_pentanucleotide(sites, padded)
+        assert list(out["pos"]) == [4]
+        assert list(out["pentanuc"]) == ["CGTAC"]
+
 
 class TestSubsamplePerContext:
     def _sites(self) -> pd.DataFrame:
