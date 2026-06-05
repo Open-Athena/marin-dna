@@ -27,7 +27,6 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from scipy.stats import pearsonr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from issue274_scaling_correlation import (  # noqa: E402
@@ -85,7 +84,6 @@ def main() -> None:
                 continue
             y = df[ycol].to_numpy(dtype=float)
             order = np.argsort(x)
-            pr = pearsonr(x, y).statistic
             ax.plot(
                 x[order],
                 y[order],
@@ -93,7 +91,7 @@ def main() -> None:
                 ms=4,
                 lw=1,
                 color=cmap(i % 10),
-                label=f"{v.replace('_variant', '')} (r={pr:+.2f})",
+                label=v.replace("_variant", ""),
             )
         ax.set_xlabel(f"{xlabel} ({r})")
         ax.grid(True, alpha=0.3)
@@ -104,7 +102,7 @@ def main() -> None:
         fontsize=7,
         loc="center left",
         bbox_to_anchor=(1.0, 0.5),
-        title="variant (Pearson r)",
+        title="variant",
     )
     fig.suptitle(
         f"Scaling ladder (46M→4B, n=8): {vep_label} vs overall LL and LL gap — {r} (#274)"
