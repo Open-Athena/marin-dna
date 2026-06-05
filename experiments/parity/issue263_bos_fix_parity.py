@@ -167,7 +167,10 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
         "BOS fix (#263) not installed on the pod — the deployed marin_dna predates "
         "the fix. Launch from the fix-branch worktree so create_environment ships it."
     )
-    print("[parity] BOS fix present (eval_harness._marin_dna_bos_patched=True)", flush=True)
+    print(
+        "[parity] BOS fix present (eval_harness._marin_dna_bos_patched=True)",
+        flush=True,
+    )
 
     _force_no_packing()
     _install_distal_fwd_capture()
