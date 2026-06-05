@@ -109,8 +109,11 @@ run: |
             $COMMON --max-steps 60 --qtl-every-steps 20 --log-every-n-steps 1 \
             --wandb-name dna-exp243-glm-frozen-smoke
     else
-        # full #259 recipe: all-chroms, 12k-step WSD, AdamW(wd=0.01), QTL every 500
+        # full #259 recipe: all-chroms, 12k-step WSD, AdamW(wd=0.01). QTL every
+        # 1000 steps (12 trajectory points) — each fp32 QTL eval is ~4.5 min
+        # (112 gLM fwds), so 500 would add ~2 h; 1000 halves that. Pointwise
+        # FWD‖RC fusion is the driver default (--proj-dim 512).
         uv run --extra chrombpnet python scripts/chrombpnet_eval/train_glm_embed.py \
-            $COMMON --all-chroms --max-steps 12000 --qtl-every-steps 500 \
-            --wandb-name dna-exp243-glm-frozen-samepad-wsd
+            $COMMON --all-chroms --max-steps 12000 --qtl-every-steps 1000 \
+            --wandb-name dna-exp243-glm-frozen-proj512-wsd
     fi
