@@ -118,8 +118,10 @@ def main() -> None:
     ap.add_argument(
         "--num-workers",
         type=int,
-        default=4,
-        help="dataloader workers (parallelize S3 genome reads)",
+        default=0,
+        help="dataloader workers. Keep 0: workers fork() and the S3 genome's "
+        "s3fs/boto handle is not fork-safe (deadlocks). For small n the serial "
+        "in-process reads are plenty fast.",
     )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
