@@ -42,7 +42,8 @@ file_mounts:
 
 envs:
     SMOKE: "1"
-    BATCH: "128"                # bf16 fits on A10G; frozen gLM runs in no_grad
+    BATCH: "64"                 # batch 128 OOMs A10G (fwd+RC 440M-gLM fwd ~20 GB);
+                                # 64 fits with headroom. Bump on a bigger GPU.
     PRECISION: "bf16-mixed"     # bf16-safe forward; gLM fwd ×2/step dominates
     WANDB_MODE: "online"
     WANDB_API_KEY: ""           # pass via `--env WANDB_API_KEY`
@@ -68,6 +69,8 @@ run: |
     export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
     export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
     export WANDB_MODE="${WANDB_MODE:-online}"
+    # Reduce allocator fragmentation (the OOM left 1.5 GB reserved-but-unallocated).
+    export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     cd ~/sky_workdir
     mkdir -p data
 
@@ -98,6 +101,7 @@ run: |
         --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
         --batch-size $BATCH --num-workers 4 --precision $PRECISION \
         --qtl-eval --qtl-genome data/GRCh38.fasta --qtl-chrom-prefix chr \
+        --qtl-batch-size 128 \
         --out-dir runs/glm_frozen"
     if [ "$SMOKE" = "1" ]; then
         # short budget, default chroms, frequent QTL — validate the whole path

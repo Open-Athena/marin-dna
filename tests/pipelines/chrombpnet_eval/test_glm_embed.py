@@ -41,11 +41,17 @@ class _StubGLM(nn.Module):
         return SimpleNamespace(last_hidden_state=self.mix(self.embed(input_ids)))
 
 
-def _build(rc: bool = True, emb_norm: bool = True, out_window: int = L_WIN):
+def _build(
+    rc: bool = True,
+    emb_norm: bool = True,
+    out_window: int = L_WIN,
+    proj_dim: int | None = 8,
+):
     return build_glm_samepad_chrombpnet(
         _StubGLM(),
         hidden_size=HIDDEN,
         out_window=out_window,
+        proj_dim=proj_dim,
         rc=rc,
         emb_norm=emb_norm,
         n_filters=8,
@@ -74,6 +80,23 @@ def test_embedding_dim_doubles_with_rc():
     # rc=False forward still satisfies the contract.
     profile, count = _build(rc=False)(_rand_onehot())
     assert profile.shape == (3, L_WIN) and count.shape == (3, 1)
+
+
+def test_pointwise_proj_reduces_head_params():
+    """The pointwise (1×1) FWD‖RC fusion before the tower has far fewer params than
+    letting the wide k21 iconv ingest the full 2H concat — and both still satisfy
+    the ChromBPNet forward contract."""
+    proj = _build(proj_dim=8)
+    concat = _build(proj_dim=None)
+    assert proj.proj is not None and concat.proj is None
+
+    def n_trainable(m: torch.nn.Module) -> int:
+        return sum(p.numel() for p in m.parameters() if p.requires_grad)
+
+    assert n_trainable(proj) < n_trainable(concat)
+    for m in (proj, concat):
+        pr, ct = m(_rand_onehot())
+        assert pr.shape == (3, L_WIN) and ct.shape == (3, 1)
 
 
 def test_fwd_rc_equivariance():

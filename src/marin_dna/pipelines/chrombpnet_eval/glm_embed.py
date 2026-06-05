@@ -47,9 +47,13 @@ class GLMSamePadChromBPNet(nn.Module):
             returns an output with ``.last_hidden_state`` ``[B, T, hidden]``. Set
             to ``requires_grad=False`` and held in ``.eval()`` regardless of the
             outer module's train/eval state (it is never fine-tuned in this arm).
-        embedding_dim: channels fed to the conv tower — ``(2 if rc else 1)*hidden``.
+        embedding_dim: per-position width of the FWD‖RC concat —
+            ``(2 if rc else 1)*hidden``.
         out_window: profile/count output width (a center crop of the
             width-preserving tower output; must be ``<= in_window`` at runtime).
+        proj_dim: width of the pointwise (1×1) FWD‖RC fusion before the spatial
+            tower (default 512 = ``n_filters``; far fewer params than a wide conv
+            over the full concat). ``None`` skips it (concat straight to ``iconv``).
         acgt_token_ids / bos_token_id / unk_token_id: gLM token ids for the A,C,G,T
             channels, BOS, and N — derived from the checkpoint's tokenizer.
         n_filters / n_layers / conv1_kernel_size / profile_kernel_size: the #259
@@ -73,6 +77,7 @@ class GLMSamePadChromBPNet(nn.Module):
         *,
         embedding_dim: int,
         out_window: int,
+        proj_dim: int | None = 512,
         acgt_token_ids: tuple[int, int, int, int] = ACGT_TOKEN_IDS,
         bos_token_id: int = BOS_TOKEN_ID,
         unk_token_id: int = UNK_TOKEN_ID,
@@ -111,12 +116,27 @@ class GLMSamePadChromBPNet(nn.Module):
             nn.LayerNorm(embedding_dim) if emb_norm else nn.Identity()
         )
 
+        # Pointwise (1×1) projection that FUSES the FWD‖RC strands and reduces width
+        # before the spatial tower (#243). Much cheaper than letting the wide k21
+        # ``iconv`` ingest the full 2H concat: e.g. 2048→512 here is a ~1.05M-param
+        # 1×1 conv + a ~5.5M k21 conv on 512 ch, vs a single ~22M k21 conv on 2048
+        # ch. ``None`` feeds the concat straight to ``iconv`` (the concat ablation).
+        self.proj_dim = proj_dim
+        self.proj: nn.Conv1d | None
+        if proj_dim is not None:
+            self.proj = nn.Conv1d(embedding_dim, proj_dim, kernel_size=1)
+            iconv_in = proj_dim
+        else:
+            self.proj = None
+            iconv_in = embedding_dim
+        self.proj_act = nn.ReLU()
+
         # --- #259 same-pad ChromBPNet tower (duplicated from samepad.py), with the
-        # first conv widened from 4 (one-hot) to embedding_dim (gLM embeddings).
+        # first conv widened from 4 (one-hot) to the (projected) embedding width.
         # All convs use 'same' padding (stride 1) → width == in_window throughout,
         # no residual crop; the profile is center-cropped to out_window at the end.
         self.iconv = nn.Conv1d(
-            embedding_dim, n_filters, kernel_size=conv1_kernel_size, padding="same"
+            iconv_in, n_filters, kernel_size=conv1_kernel_size, padding="same"
         )
         self.rconvs = nn.ModuleList(
             [
@@ -178,6 +198,8 @@ class GLMSamePadChromBPNet(nn.Module):
         emb = self._embed(onehot)  # [B, L, embedding_dim]
         emb = self.emb_norm(emb)  # LayerNorm over the feature dim
         x = emb.permute(0, 2, 1)  # [B, embedding_dim, L]
+        if self.proj is not None:
+            x = self.proj_act(self.proj(x))  # pointwise FWD‖RC fusion → [B,proj_dim,L]
         x = torch.relu(self.iconv(x))
         for conv in self.rconvs:
             x = x + torch.relu(conv(x))  # residual; 'same' padding keeps width
@@ -197,6 +219,7 @@ def build_glm_samepad_chrombpnet(
     *,
     hidden_size: int,
     out_window: int,
+    proj_dim: int | None = 512,
     rc: bool = True,
     emb_norm: bool = True,
     n_filters: int = 512,
@@ -206,12 +229,14 @@ def build_glm_samepad_chrombpnet(
     unk_token_id: int = UNK_TOKEN_ID,
 ) -> GLMSamePadChromBPNet:
     """Construct the frozen-gLM same-pad ChromBPNet (#243). ``embedding_dim`` is
-    ``2*hidden_size`` with FWD‖RC concat (default) else ``hidden_size``."""
+    ``2*hidden_size`` with FWD‖RC concat (default) else ``hidden_size``; the
+    pointwise ``proj_dim`` fusion then reduces that before the tower."""
     embedding_dim = (2 if rc else 1) * hidden_size
     return GLMSamePadChromBPNet(
         glm,
         embedding_dim=embedding_dim,
         out_window=out_window,
+        proj_dim=proj_dim,
         rc=rc,
         emb_norm=emb_norm,
         n_filters=n_filters,

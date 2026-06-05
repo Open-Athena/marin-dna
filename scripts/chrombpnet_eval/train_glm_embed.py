@@ -72,6 +72,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="drop the LayerNorm on the embeddings before the conv tower (ablation)",
     )
+    p.add_argument(
+        "--proj-dim",
+        type=int,
+        default=512,
+        help="pointwise (1x1) FWD‖RC fusion width before the conv tower (#243; "
+        "default 512 = n_filters, ~half the head params vs the wide conv ingesting "
+        "the full 2H concat)",
+    )
+    p.add_argument(
+        "--no-proj",
+        action="store_true",
+        help="skip the pointwise projection (concat ablation): the wide iconv "
+        "ingests the full 2H concat directly",
+    )
     # data
     p.add_argument("--peaks", required=True)
     p.add_argument("--nonpeaks", required=True)
@@ -202,10 +216,12 @@ def main() -> None:
     torch.set_float32_matmul_precision(args.matmul_precision)
 
     glm, hidden, tok_ids = load_frozen_glm(args.glm_dir)
+    proj_dim = None if args.no_proj else args.proj_dim
     model = build_glm_samepad_chrombpnet(
         glm,
         hidden_size=hidden,
         out_window=args.out_window,
+        proj_dim=proj_dim,
         rc=not args.no_rc,
         emb_norm=not args.no_emb_norm,
         n_filters=args.n_filters,
@@ -217,7 +233,8 @@ def main() -> None:
     print(
         f"[train] GLMSamePadChromBPNet: {n_trainable:,} trainable (head); "
         f"gLM frozen ({n_frozen:,} params); rc={not args.no_rc}, "
-        f"emb_norm={not args.no_emb_norm}, in={args.in_window}, out={args.out_window}"
+        f"emb_norm={not args.no_emb_norm}, proj_dim={proj_dim}, "
+        f"in={args.in_window}, out={args.out_window}"
     )
 
     chrom_kwargs: dict = {}
