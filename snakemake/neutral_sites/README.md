@@ -53,8 +53,11 @@ Pin destination (uploaded at the end of a run; consumed by `evals_v2`):
 
 CPU-only but **heavy I/O**: it downloads ~15 GB of bigWigs plus rmsk/chain and
 scans the bigWigs genome-wide (single-threaded). Budget the disk and ~tens of
-minutes. Fine on a CPU box; not worth a GPU. The bigWigs/rmsk/chain are kept
-**local** (no S3 storage churn) — only the small final parquet is pinned.
+minutes. Not worth a GPU. The bigWigs/rmsk/chain are kept **local** (no S3
+storage churn) — only the small final parquet is pinned. The enumerate step is
+RAM-bound (it materializes every neutral base), so run it on a memory-optimized
+node. [`sky/run.yaml`](sky/run.yaml) provisions one (`r6id.2xlarge`, 64 GB) and
+pins the parquet to S3.
 
 ## Setup
 
@@ -78,6 +81,15 @@ uv run --group genome-s3 snakemake
 # Pin the artifact for evals_v2 to consume.
 aws s3 cp results/neutral_sites.parquet \
   s3://oa-bolinas/snakemake/neutral_sites/results/neutral_sites.parquet
+```
+
+### On SkyPilot (the intended path)
+
+```bash
+# Provisions a memory-optimized CPU node, runs the pipeline, sanity-checks,
+# and pins the parquet to s3://oa-bolinas/snakemake/neutral_sites/...
+sky launch snakemake/neutral_sites/sky/run.yaml -c neutral-sites
+sky down neutral-sites   # when done
 ```
 
 ## Library
