@@ -63,23 +63,8 @@ run: |
         --rerun-incomplete \
         $SNAKEMAKE_ARGS
 
-    # Sanity-check the artifact, then pin it to S3 (instance role creds).
-    uv run --project ../.. --group genome-s3 python - "$OUTPUT_S3" <<'PY'
-    import sys
-    import polars as pl
-    import s3fs
-
-    local = "results/neutral_sites.parquet"
-    dst = sys.argv[1]
-    df = pl.read_parquet(local)
-    print(f"[neutral_sites] rows={df.height:,}  chroms={sorted(df['chrom'].unique().to_list())}")
-    print(df.head(5))
-    assert df.height > 0, "empty neutral set"
-    assert set(df["ref"].unique().to_list()) <= set("ACGT"), "non-ACGT ref"
-    assert df["pos"].min() >= 1, "pos must be 1-based"
-    assert df.select(pl.struct(["chrom", "pos"]).n_unique()).item() == df.height, "duplicate (chrom,pos)"
-
-    bucket_key = dst.removeprefix("s3://")
-    s3fs.S3FileSystem().put(local, bucket_key)
-    print(f"[neutral_sites] pinned -> {dst}")
-PY
+    # Sanity (the neutral_sites_parquet rule already asserts ACGT / pos>=1 /
+    # no dups) + pin to S3 via s3fs (the genome-s3 group; awscli would conflict
+    # on the s3fs pin). Single-line python -c on purpose — a heredoc would break
+    # the YAML `run: |` block scalar.
+    uv run --project ../.. --group genome-s3 python -c "import sys, polars as pl, s3fs; df = pl.read_parquet('results/neutral_sites.parquet'); print('[neutral_sites] rows', df.height, 'chroms', sorted(df['chrom'].unique().to_list())); assert df.height > 0 and set(df['ref'].unique().to_list()) <= set('ACGT') and df['pos'].min() >= 1; s3fs.S3FileSystem().put('results/neutral_sites.parquet', sys.argv[1].removeprefix('s3://')); print('[neutral_sites] pinned', sys.argv[1])" "$OUTPUT_S3"
