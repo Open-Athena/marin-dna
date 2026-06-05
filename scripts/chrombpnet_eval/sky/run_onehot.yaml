@@ -38,6 +38,9 @@ envs:
     ALL_CHROMS: "0"             # #259: "1" trains on all 1-22,X,Y (not leakage; VEP zero-shot)
     NO_BIAS: "0"                # #259 ablation: "1" drops the Tn5/DNase bias entirely
     SAME_PAD: "0"               # #259: "1" = zero-padded variant (out_window scales w/ in_window, constant params; no bias)
+    ALPHAGENOME: "0"            # #259: "1" = AlphaGenome/Borzoi per-base head + Poisson-Multinomial loss + target scaling (no bias)
+    N_SEGMENTS: "8"             # AlphaGenome Poisson-Multinomial segments
+    MULTINOMIAL_WEIGHT: "5.0"   # AlphaGenome multinomial-term weight (Borzoi default)
     COUNT_ONLY: "0"             # #259 ablation: "1" = count head only (beta=0, no profile NLL)
     COUNT_LOSS: "mse_log"       # #259 loss form: mse_log (official) | poisson
     COUNT_WEIGHT_SCALE: "1.0"   # #259: multiply the count-loss weight (alpha); sweeps the two-loss balance
@@ -94,9 +97,10 @@ run: |
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
     [ "$NO_BIAS" = "1" ] && ARGS="$ARGS --no-bias"
     [ "$COUNT_ONLY" = "1" ] && ARGS="$ARGS --count-only"
-    # The same-pad variant (#259) has no bias model: pass --same-pad and omit --bias.
+    # The same-pad and AlphaGenome variants (#259) have no bias model: omit --bias.
     BIAS_ARG="--bias data/bias_model_scaled.h5"
     [ "$SAME_PAD" = "1" ] && { ARGS="$ARGS --same-pad"; BIAS_ARG=""; }
+    [ "$ALPHAGENOME" = "1" ] && { ARGS="$ARGS --alphagenome --n-segments $N_SEGMENTS --multinomial-weight $MULTINOMIAL_WEIGHT"; BIAS_ARG=""; }
     if [ "$SMOKE" = "1" ]; then
         ARGS="$ARGS --log-every-n-steps 1 --qtl-every-steps 20 --limit-train-batches 300 --max-steps 60"
     else

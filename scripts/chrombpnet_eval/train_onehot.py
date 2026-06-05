@@ -54,6 +54,11 @@ from marin_dna.pipelines.chrombpnet_eval.onehot import (
     build_onehot_chrombpnet,
     count_trainable_params,
 )
+from marin_dna.pipelines.chrombpnet_eval.alphagenome import (
+    AlphaGenomeLit,
+    build_alphagenome_perbase,
+    estimate_track_mean,
+)
 from marin_dna.pipelines.chrombpnet_eval.samepad import build_samepad_chrombpnet
 from marin_dna.pipelines.chrombpnet_eval.qtl_eval import (
     QTL_DATASETS,
@@ -127,6 +132,25 @@ def parse_args() -> argparse.Namespace:
         "width-preserving convs so out_window is free (scale it with in_window) "
         "and n_layers/params stay constant across context sizes. No bias. The "
         "context-size study config.",
+    )
+    p.add_argument(
+        "--alphagenome",
+        action="store_true",
+        help="use the AlphaGenome/Borzoi-style single per-base head + "
+        "Poisson-Multinomial loss with target scaling (#259, alphagenome.py). "
+        "Zero-padded tower, no bias; out_window scales with in_window.",
+    )
+    p.add_argument(
+        "--n-segments",
+        type=int,
+        default=8,
+        help="AlphaGenome Poisson-Multinomial segments (--alphagenome; default 8)",
+    )
+    p.add_argument(
+        "--multinomial-weight",
+        type=float,
+        default=5.0,
+        help="AlphaGenome multinomial-term weight (--alphagenome; Borzoi default 5.0)",
     )
     p.add_argument(
         "--count-only",
@@ -314,12 +338,29 @@ def main() -> None:
         f"alpha={alpha:.4f}"
     )
 
-    if args.same_pad:
+    if args.alphagenome:
+        # AlphaGenome/Borzoi per-base head (#259): zero-padded tower, no bias,
+        # out_window scaled with in_window; the loss + scaling live in AlphaGenomeLit.
+        assert args.out_window <= args.in_window, (args.out_window, args.in_window)
+        assert not args.bias, "--alphagenome has no bias model (drop --bias)"
+        model: torch.nn.Module = build_alphagenome_perbase(
+            out_window=args.out_window,
+            n_layers=args.n_layers,
+            n_filters=args.n_filters,
+        )
+        n_trainable = count_trainable_params(model)
+        print(
+            f"[train] AlphaGenome per-base (#259): {n_trainable:,} trainable, "
+            f"in_window={args.in_window}, out_window={args.out_window}, "
+            f"n_layers={args.n_layers}, n_filters={args.n_filters}, "
+            f"n_segments={args.n_segments}, multinomial_weight={args.multinomial_weight}"
+        )
+    elif args.same_pad:
         # Zero-padded variant (#259): width-preserving convs, no bias, constant
         # n_layers/params across context; out_window scaled with in_window.
         assert args.out_window <= args.in_window, (args.out_window, args.in_window)
         assert not args.bias, "--same-pad has no bias model (drop --bias)"
-        model: torch.nn.Module = build_samepad_chrombpnet(
+        model = build_samepad_chrombpnet(
             out_window=args.out_window,
             n_layers=args.n_layers,
             n_filters=args.n_filters,
@@ -356,21 +397,44 @@ def main() -> None:
         model = torch.compile(model)
         print("[train] torch.compile enabled")
 
-    if args.count_only:
-        print("[train] --count-only: beta=0 (count head only, no profile NLL)")
-    lit = ChromBPNetLit(
-        model,
-        alpha=alpha,
-        beta=0.0 if args.count_only else 1.0,
-        count_loss=args.count_loss,
-        lr=args.lr,
-        optimizer=args.optimizer,
-        weight_decay=args.weight_decay,
-        warmup_steps=args.warmup_steps,
-        lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
-        warmup_frac=args.warmup_frac,
-        decay_frac=args.decay_frac,
-    )
+    lit: L.LightningModule
+    if args.alphagenome:
+        # AlphaGenome target normaliser = mean non-zero coverage over the training
+        # subsample (DNase: no squashing). The QTL log2FC is invariant to it.
+        track_mean = estimate_track_mean(datamodule)
+        print(
+            f"[train] alphagenome track_mean (mean non-zero coverage)={track_mean:.3f}"
+        )
+        lit = AlphaGenomeLit(
+            model,
+            track_mean=track_mean,
+            n_segments=args.n_segments,
+            multinomial_weight=args.multinomial_weight,
+            apply_squashing=False,  # RNA-seq only; DNase/ATAC off (paper)
+            lr=args.lr,
+            optimizer=args.optimizer,
+            weight_decay=args.weight_decay,
+            warmup_steps=args.warmup_steps,
+            lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
+            warmup_frac=args.warmup_frac,
+            decay_frac=args.decay_frac,
+        )
+    else:
+        if args.count_only:
+            print("[train] --count-only: beta=0 (count head only, no profile NLL)")
+        lit = ChromBPNetLit(
+            model,
+            alpha=alpha,
+            beta=0.0 if args.count_only else 1.0,
+            count_loss=args.count_loss,
+            lr=args.lr,
+            optimizer=args.optimizer,
+            weight_decay=args.weight_decay,
+            warmup_steps=args.warmup_steps,
+            lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
+            warmup_frac=args.warmup_frac,
+            decay_frac=args.decay_frac,
+        )
 
     logger: object
     if args.no_wandb:
