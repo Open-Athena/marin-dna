@@ -56,7 +56,9 @@ GENOME_PATH = (
 )
 # RC marginal column i is the forward allele complement(NUCLEOTIDES[i]); realign
 # to forward ACGT order before reading per-strand RC LLRs (cf. rc_average_marginal).
-_RC_PERM = [NUCLEOTIDES.index({"A": "T", "C": "G", "G": "C", "T": "A"}[n]) for n in NUCLEOTIDES]
+_RC_PERM = [
+    NUCLEOTIDES.index({"A": "T", "C": "G", "G": "C", "T": "A"}[n]) for n in NUCLEOTIDES
+]
 
 
 def _nuc_idx(bases: list[str]) -> np.ndarray:
@@ -116,9 +118,16 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
     ap.add_argument("--bf16", action="store_true", help="bf16_full_eval (GPU only)")
-    ap.add_argument("--threads", type=int, default=2, help="torch CPU threads (shared box etiquette)")
+    ap.add_argument(
+        "--threads",
+        type=int,
+        default=2,
+        help="torch CPU threads (shared box etiquette)",
+    )
     ap.add_argument("--outdir", default="scratch/issue269_validation")
-    ap.add_argument("--upload-prefix", default="", help="optional s3:// prefix to upload outputs")
+    ap.add_argument(
+        "--upload-prefix", default="", help="optional s3:// prefix to upload outputs"
+    )
     args = ap.parse_args()
 
     torch.set_num_threads(args.threads)
@@ -163,8 +172,14 @@ def main() -> None:
     # 4. Marginal path → per-strand LLRs + FWD+RC-averaged LLR.
     print("running run_variant_marginal (rc=True) ...")
     marg = run_variant_marginal(
-        model, tokenizer, ds, genome, args.window_size, rc=True,
-        data_transform_on_the_fly=True, inference_kwargs=inference_kwargs,
+        model,
+        tokenizer,
+        ds,
+        genome,
+        args.window_size,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=inference_kwargs,
     )
     avg = rc_average_marginal(marg["fwd"], marg["rc"])  # [N, 4], forward ACGT order
     rc_aligned = marg["rc"][:, _RC_PERM]
@@ -179,8 +194,14 @@ def main() -> None:
     # 5. Recompute the bundle locally (same precision) → clean apples-to-apples.
     print("running run_variant_score_bundle (rc=True) ...")
     bundle = run_variant_score_bundle(
-        model, tokenizer, ds, genome, args.window_size, rc=True,
-        data_transform_on_the_fly=True, inference_kwargs=inference_kwargs,
+        model,
+        tokenizer,
+        ds,
+        genome,
+        args.window_size,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=inference_kwargs,
     )
     b_local = {
         "fwd": bundle["fwd"][:, 0],
@@ -195,19 +216,27 @@ def main() -> None:
     }
 
     # 6. Compare.
-    print(f"\n=== marginal LLR vs locally-recomputed bundle ({args.device} fp{'16' if args.bf16 else '32'}, apples-to-apples) ===")
+    print(
+        f"\n=== marginal LLR vs locally-recomputed bundle ({args.device} fp{'16' if args.bf16 else '32'}, apples-to-apples) ==="
+    )
     summary = [_summarize(f"{s}", m_llr[s], b_local[s]) for s in ("fwd", "rc", "avg")]
     print("\n=== marginal LLR vs S3 bundle LLR (bf16 GPU-eval baseline) ===")
-    summary += [_summarize(f"{s}_vs_s3", m_llr[s], b_s3[s]) for s in ("fwd", "rc", "avg")]
+    summary += [
+        _summarize(f"{s}_vs_s3", m_llr[s], b_s3[s]) for s in ("fwd", "rc", "avg")
+    ]
 
     # 7. Persist comparison table + per-variant LLRs + a scatter plot.
-    pl.DataFrame(summary).write_parquet(outdir / f"summary_{args.model}_{args.dataset}.parquet")
+    pl.DataFrame(summary).write_parquet(
+        outdir / f"summary_{args.model}_{args.dataset}.parquet"
+    )
     per_variant = df.select(["chrom", "pos", "ref", "alt"]).with_columns(
         marginal_llr_avg=pl.Series(m_llr["avg"]),
         bundle_local_llr_avg=pl.Series(b_local["avg"]),
         bundle_s3_llr_avg=pl.Series(b_s3["avg"]),
     )
-    per_variant.write_parquet(outdir / f"per_variant_{args.model}_{args.dataset}.parquet")
+    per_variant.write_parquet(
+        outdir / f"per_variant_{args.model}_{args.dataset}.parquet"
+    )
 
     try:
         import matplotlib
