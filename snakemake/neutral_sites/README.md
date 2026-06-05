@@ -73,7 +73,8 @@ SE ≈ 0.03; `n = 100` is the cheap floor (SE ≈ 0.10). The set is kept site-le
 alt-agnostic so the LLR path (3 alts) and the entropy atom (#269, 4-allele
 marginal) consume one artifact.
 
-Pin destination (consumed by `evals_v2`):
+Pin destination (consumed by `evals_v2`'s `compute_llr_neutral_mean` rule —
+[`snakemake/analysis/evals_v2`](../analysis/evals_v2/), `snakemake calibration`):
 `s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n{n}.parquet`.
 
 ## Where to run

@@ -139,6 +139,36 @@ name:
     --env SNAKEMAKE_ARGS="-- umap"
   ```
 
+### Calibration tables (cLLR, #267/#270)
+
+`snakemake calibration` builds a per-checkpoint **mutation-rate calibration**
+table — also kept **off `rule all`**. It scores the pinned, subsampled
+neutral-site set from [`snakemake/neutral_sites`](../../neutral_sites/)
+(`neutral_sites_n{n}.parquet`, default `n=100`) with the same fast LLR bundle as
+`compute_scores` (FWD+RC), then bins by `pentanuc_mut = 5mer + "_" + alt`:
+
+```
+results/calibration/{model}/llr_neutral_mean_n{n}.parquet
+```
+
+columns `[pentanuc_mut, pentanuc, ref, alt, n_sites, llr_neutral_mean_{fwd,rc,avg},
+llr_neutral_std_avg, subsample_n]` (~3072 cells = 1024 five-mers × 3 alts). Stage 4
+(#271) subtracts it: `calibrated LLR = LLR − llr_neutral_mean(pentanuc_mut)`.
+**Entropy calibration** (the 4-forward marginal atom) is a separate, deferred
+path — this rule is LLR-only.
+
+The neutral set is staged via snakemake `storage()` (boto3, fork-safe), so it
+arrives as a **local** file: `pd.read_parquet("s3://…")` in the rule's parent
+process would initialize s3fs and deadlock the forked DataLoader workers that read
+the genome (the genome stays the only in-worker s3fs read). Configured under
+`calibration:` in `config.yaml` (`models`, `subsample_n`, `min_bin_count`,
+`neutral_sites_s3_prefix`, `rc`). Build:
+
+```bash
+snakemake calibration                                                # all configured calibration models
+snakemake results/calibration/<model>/llr_neutral_mean_n100.parquet  # one model
+```
+
 ### Parallel sky-cluster sweep (one cluster per target)
 
 For a grid of independent targets — e.g. all checkpoints of one model arm,
@@ -185,6 +215,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
+| `calibration` | Optional; cLLR mutation-rate calibration tables (#267/#270, off `rule all`). `{neutral_sites_s3_prefix, subsample_n, min_bin_count, rc, models: [...]}` — scores the subsampled neutral set → per-model `llr_neutral_mean`. See `rules/calibration.smk`. |
 
 ## Library
 
@@ -197,6 +228,10 @@ Pipeline rules are thin glue around:
 - `marin_dna.pipelines.evals.metrics.compute_qtl_metrics` — score columns
   → global AUPRC + positives-only Pearson/Spearman vs `effect_size`
   (the `eval_protocol: qtl_global` path for caqtl/dsqtl).
+- `marin_dna.pipelines.evals.calibration.compute_llr_neutral_mean` — checkpoint +
+  neutral sites → per-cell `llr_neutral_mean` calibration table (cLLR stage 3);
+  `expand_sites_to_variants` / `aggregate_llr_neutral_mean` are the tested pure pieces.
 
-Both are tested at `tests/pipelines/evals/test_metrics.py`,
-`tests/pipelines/evals/test_inference.py`, and `tests/model/test_scoring.py`.
+These are tested at `tests/pipelines/evals/test_metrics.py`,
+`tests/pipelines/evals/test_inference.py`, `tests/pipelines/evals/test_calibration.py`,
+and `tests/model/test_scoring.py`.
