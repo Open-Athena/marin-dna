@@ -45,6 +45,11 @@ envs:
     BATCH: "64"                 # batch 128 OOMs A10G (fwd+RC 440M-gLM fwd ~20 GB);
                                 # 64 fits with headroom. Bump on a bigger GPU.
     PRECISION: "bf16-mixed"     # bf16-safe forward; gLM fwd ×2/step dominates
+    MAX_STEPS: "4000"           # full-run (SMOKE=0) step budget. gLM head converges
+                                # fast → far fewer steps than the one-hot 12k; tune
+                                # per run via `--env MAX_STEPS=...`.
+    QTL_EVERY: "500"            # QTL eval cadence in steps (#259 = 500)
+    WANDB_NAME: "dna-exp243-glm-frozen-proj512-wsd"
     WANDB_MODE: "online"
     WANDB_API_KEY: ""           # pass via `--env WANDB_API_KEY`
     SYNAPSE_AUTH_TOKEN: ""      # pass via `--env SYNAPSE_AUTH_TOKEN`
@@ -109,11 +114,12 @@ run: |
             $COMMON --max-steps 60 --qtl-every-steps 20 --log-every-n-steps 1 \
             --wandb-name dna-exp243-glm-frozen-smoke
     else
-        # full #259 recipe: all-chroms, 12k-step WSD, AdamW(wd=0.01). QTL every
-        # 1000 steps (12 trajectory points) — each fp32 QTL eval is ~4.5 min
-        # (112 gLM fwds), so 500 would add ~2 h; 1000 halves that. Pointwise
-        # FWD‖RC fusion is the driver default (--proj-dim 512).
+        # #259 recipe on all-chroms WSD, pointwise FWD‖RC fusion (driver default
+        # --proj-dim 512). Step budget + QTL cadence are env-tunable (MAX_STEPS /
+        # QTL_EVERY) — the frozen gLM head converges fast, so we keep the budget
+        # small and the cadence at the #259 value (500) to see the dynamics clearly.
+        # NB each fp32 QTL eval is ~4.5 min (112 gLM fwds).
         uv run --extra chrombpnet python scripts/chrombpnet_eval/train_glm_embed.py \
-            $COMMON --all-chroms --max-steps 12000 --qtl-every-steps 1000 \
-            --wandb-name dna-exp243-glm-frozen-proj512-wsd
+            $COMMON --all-chroms --max-steps "$MAX_STEPS" --qtl-every-steps "$QTL_EVERY" \
+            --wandb-name "$WANDB_NAME"
     fi
