@@ -21,6 +21,7 @@ from marin_dna.data.transforms import (
     transform_ll_clm,
     transform_llr_clm,
     transform_reflogprob_clm,
+    transform_variant_marginal_clm,
 )
 
 
@@ -506,6 +507,77 @@ def test_transform_reflogprob_clm_different_positions():
         # The nucleotide at pos should match what's in the sequence
         nucleotides = ["A", "C", "G", "T"]
         assert nucleotides[result["ref"]] == seq[pos]
+
+
+# --- transform_variant_marginal_clm tests ----------------------------------
+
+
+def test_transform_variant_marginal_clm_basic(tmp_path):
+    """Returns just ``{input_ids: [L]}`` — the window, no allele materialization."""
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    genome = Genome(_write_long_test_fasta(tmp_path))
+    window_size = 16
+    example = {"chrom": "chr1", "pos": 200, "ref": "T"}
+
+    result = transform_variant_marginal_clm(example, tokenizer, genome, window_size)
+
+    assert set(result.keys()) == {"input_ids"}
+    assert isinstance(result["input_ids"], torch.Tensor)
+    assert result["input_ids"].shape == (window_size,)
+    # Variant base sits at window_size // 2 on the forward strand (no BOS).
+    assert result["input_ids"][window_size // 2].item() == tokenizer.encode("T")[0]
+
+
+@pytest.mark.parametrize("window_size", [15, 16])
+def test_transform_variant_marginal_clm_strand_rc(tmp_path, window_size):
+    """RC window is the reverse complement; the variant base is complemented."""
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    genome = Genome(_write_long_test_fasta(tmp_path))
+    example = {"chrom": "chr1", "pos": 200, "ref": "T"}
+
+    fwd = transform_variant_marginal_clm(
+        example, tokenizer, genome, window_size, strand="+"
+    )
+    rc = transform_variant_marginal_clm(
+        example, tokenizer, genome, window_size, strand="-"
+    )
+
+    nuc_ids = {n: tokenizer.encode(n)[0] for n in "ACGT"}
+    fwd_var_pos = window_size // 2
+    rc_var_pos = window_size - 1 - window_size // 2
+    assert fwd["input_ids"][fwd_var_pos].item() == nuc_ids["T"]
+    assert rc["input_ids"][rc_var_pos].item() == nuc_ids["A"]  # complement(T)
+    # The whole window reverse-complements between strands.
+    id_to_nuc = {v: k for k, v in nuc_ids.items()}
+    fwd_dna = "".join(id_to_nuc[t.item()] for t in fwd["input_ids"])
+    rc_dna = "".join(id_to_nuc[t.item()] for t in rc["input_ids"])
+    assert str(Seq(fwd_dna).reverse_complement()) == rc_dna
+
+
+def test_transform_variant_marginal_clm_asserts_ref_matches_genome(tmp_path):
+    """A ref disagreeing with the genome base trips _get_variant_window's assertion."""
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    genome = Genome(_write_long_test_fasta(tmp_path))
+    example = {"chrom": "chr1", "pos": 200, "ref": "A"}  # genome base at pos 200 is T
+
+    with pytest.raises(AssertionError):
+        transform_variant_marginal_clm(example, tokenizer, genome, 16)
+
+
+def test_transform_variant_marginal_clm_n_padding(tmp_path):
+    """A window near the chromosome start N-pads to full width."""
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    genome = Genome(_write_test_fasta(tmp_path))  # 10-bp chrom: ACGTACGTAC
+    window_size = 8
+    example = {"chrom": "chr1", "pos": 2, "ref": "C"}  # pos 2 (1-based) → "C"
+
+    result = transform_variant_marginal_clm(example, tokenizer, genome, window_size)
+
+    assert result["input_ids"].shape == (window_size,)
+    nuc_ids = {n: tokenizer.encode(n)[0] for n in "ACGTN"}
+    id_to_nuc = {v: k for k, v in nuc_ids.items()}
+    dna = "".join(id_to_nuc.get(t.item(), "?") for t in result["input_ids"])
+    assert "N" in dna  # left flank padded past the chrom start
 
 
 # --- transform_ll_clm tests -------------------------------------------------

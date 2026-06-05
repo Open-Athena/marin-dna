@@ -210,6 +210,33 @@ def transform_reflogprob_clm(
     return dict(input_ids=new_input_ids, ref=ref)
 
 
+def transform_variant_marginal_clm(
+    example: dict[str, Any],
+    tokenizer: Any,
+    genome: Any,
+    window_size: int,
+    strand: Literal["+", "-"] = "+",
+) -> dict[str, Any]:
+    """Variant-window transform for ``compute_marginal_clm`` — just the ``[L]`` window.
+
+    Extracts the strand-aware window around the variant via ``_get_variant_window``
+    (which N-pads at chromosome edges and asserts the genome base equals
+    ``example["ref"]`` on the forward strand, or its complement on RC) and
+    tokenizes it. Returns ``{"input_ids": [L]}``.
+
+    Unlike ``transform_reflogprob_clm`` / ``transform_llr_clm`` it does **not**
+    materialize the alleles: ``compute_marginal_clm`` builds the four allele
+    suffixes itself via prefix-sharing, so the dataset only carries the ``[L]``
+    reference window. The token-level variant position is derived by the runner
+    from ``window_size`` / strand / ``n_prefix`` and bound into the kernel
+    (mirroring ``run_variant_score_bundle``), so it is not returned here — only
+    ``chrom``, ``pos`` and ``ref`` are read from ``example`` (no ``alt``: the
+    kernel scores all four alleles).
+    """
+    seq, _pos = _get_variant_window(example, genome, window_size, strand=strand)
+    return dict(input_ids=torch.tensor(tokenizer.encode(seq)))
+
+
 def transform_ll_clm(
     example: dict[str, Any],
     tokenizer: Any,

@@ -18,6 +18,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from einops import rearrange, reduce
@@ -274,6 +275,135 @@ def compute_variant_score_bundle(
     llr = llr_at_var + llr_downstream
 
     return torch.stack([llr, next_token_jsd_mean], dim=1)
+
+
+def compute_marginal_clm(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    *,
+    var_pos: int,
+    nuc_token_ids: Int[Tensor, " 4"],
+) -> Float[Tensor, "B 4"]:
+    """Per-site 4-allele marginal ``log p(x)`` over ``{A,C,G,T}`` via prefix-sharing.
+
+    The opt-in entropy/calibration atom (issue #269). Generalizes
+    ``compute_variant_score_bundle``'s prefix-sharing kernel from 2 alleles
+    (ref/alt) to all 4: the four alleles share the prefix ``input_ids[:var_pos]``
+    and the downstream tail ``input_ids[var_pos+1:]``, differing only at the
+    variant token, so the shared prefix is forwarded once (KV-cached) and the
+    four divergent suffixes (length ``L - var_pos``) are forwarded against it —
+    1 prefix + 4 suffix forwards, vs the 4 full-length forwards of the legacy
+    ``compute_reflogprob_clm``.
+
+    Works in the same **4-nucleotide softmax** space as the bundle. For allele
+    ``x`` the full-sequence score, up to the shared-prefix log-prob (constant
+    across alleles → cancels in the final softmax), is
+
+        ``L(x) = log p(x | prefix) + Σ_t log p(tail_t | prefix, x, tail_<t)``
+
+    and the marginal is ``log_softmax_x L(x)``. By construction
+    ``marginal[:, alt] − marginal[:, ref]`` is *identically* the bundle's LLR
+    (the softmax normalizer cancels in the difference), so calibration LLRs
+    derived here match the eval LLRs exactly.
+
+    Downstream CPU reductions on the returned ``[B, 4]`` give the per-site
+    Shannon entropy (``entropy_from_marginal``), the ref log-prob
+    (``marginal[:, ref]``), and all three LLRs (``marginal[:, alt] −
+    marginal[:, ref]``) with no further forward passes.
+
+    Args:
+        model: HF-shaped causal LM (see ``compute_variant_score_bundle`` for the
+            duck-typed cache / ``logits_to_keep`` contract).
+        input_ids: Reference window token IDs, shape ``[B, L]``. Only the prefix
+            ``[:var_pos]`` and tail ``[var_pos+1:]`` are read; the token at
+            ``var_pos`` is overwritten by each allele.
+        var_pos: Token-level variant position (Python int, constant within the
+            batch — derived in the runner from ``window_size`` / strand /
+            ``n_prefix`` and bound via ``partial`` so it never graph-breaks
+            torch.compile).
+        nuc_token_ids: Length-4 tensor of token IDs for A/C/G/T in
+            ``NUCLEOTIDES`` order. The returned columns follow this order.
+
+    Returns:
+        ``[B, 4]`` marginal log-probabilities ``log p(x)`` over the four
+        nucleotides at ``var_pos`` (each row ``logsumexp``-es to 0).
+    """
+    B, L = input_ids.shape
+    p = var_pos
+    assert 0 < p < L, (
+        f"variant at token position {p} of length-{L} sequence has no shared "
+        f"prefix; expected 0 < var_pos < L"
+    )
+
+    nuc = nuc_token_ids.to(input_ids.device)  # [4]
+    n_alleles = nuc.shape[0]
+
+    # The 4 alleles differ only at var_pos; build each allele's suffix as
+    # [allele_x] + shared_tail (tail = input_ids[:, p+1:], identical across
+    # alleles). [B, V, L-p] flattened "(B V)" matches _repeat_interleave_kv_cache's
+    # repeat_interleave ordering — exactly how compute_variant_score_bundle lays
+    # out its 2 alleles, generalized to 4.
+    tail = input_ids[:, p + 1 :]  # [B, L-p-1] (empty iff p == L-1)
+    allele_tokens = nuc.view(1, n_alleles, 1).expand(B, n_alleles, 1)  # [B, 4, 1]
+    tail_rep = tail.unsqueeze(1).expand(B, n_alleles, tail.shape[1])  # [B, 4, L-p-1]
+    suffixes = torch.cat([allele_tokens, tail_rep], dim=-1)  # [B, 4, L-p]
+    suffixes_flat = rearrange(suffixes, "B V L -> (B V) L").contiguous()  # [B*4, L-p]
+
+    # 1. Prefix forward — only the last position (predicts the variant token).
+    prefix = input_ids[:, :p].contiguous()
+    prefix_out = model(prefix, use_cache=True, logits_to_keep=1)
+    prefix_last_logits = prefix_out.logits[:, -1]  # [B, V]
+    past_kv = _repeat_interleave_kv_cache(prefix_out.past_key_values, n_alleles)
+
+    # 2. Suffix forward with the cached prefix.
+    suffix_logits = model(
+        suffixes_flat, past_key_values=past_kv, use_cache=False
+    ).logits  # [B*4, L-p, V]
+
+    # 3. 4-nuc log-softmax (fp32 — inherits the biofoundation#21 stability fix).
+    nuc_ids = nuc.to(suffix_logits.device)
+    log_p_nuc = F.log_softmax(
+        suffix_logits[..., nuc_ids].float(), dim=-1
+    )  # [B*4, L-p, 4]
+    log_p_nuc = rearrange(log_p_nuc, "(B V) L C -> B V L C", B=B)  # [B, 4, L-p, 4]
+
+    # 4. Variant-position term: log p(allele | prefix), [B, 4].
+    prefix_log_p = F.log_softmax(
+        prefix_last_logits[..., nuc_ids].float(), dim=-1
+    )  # [B, 4]
+
+    # 5. Downstream term: Σ_t log p(tail_t | prefix, allele, tail_<t), per allele.
+    #    Drop the last suffix position (predicts off-the-end); the remaining
+    #    L-p-1 positions predict the shared tail (same targets for every allele).
+    log_p_down = log_p_nuc[:, :, :-1, :]  # [B, 4, L-p-1, 4]
+    target_idx = _token_id_to_nuc_idx(tail, nuc_ids)  # [B, L-p-1]
+    target_idx = target_idx.view(B, 1, -1, 1).expand(B, n_alleles, -1, 1)
+    down_term = log_p_down.gather(-1, target_idx).squeeze(-1).sum(dim=-1)  # [B, 4]
+
+    # 6. Marginal: the shared-prefix log-prob is constant across alleles and
+    #    cancels in the softmax, so log_softmax(var-term + downstream-term) is
+    #    the full-sequence 4-allele marginal.
+    marginal_log_prob = F.log_softmax(prefix_log_p + down_term, dim=-1)  # [B, 4]
+    return marginal_log_prob
+
+
+def entropy_from_marginal(marginal_log_prob: np.ndarray) -> np.ndarray:
+    """Shannon entropy ``H = −Σ_x exp(mlp)·mlp`` of a 4-allele marginal.
+
+    Pure-CPU reduction over the last axis of a ``[..., 4]`` marginal
+    log-probability array — the output of ``compute_marginal_clm`` /
+    ``marin_dna.model.runner.run_variant_marginal``. Returns ``[...]`` entropy in
+    nats, in ``[0, log 4]`` (``log 4`` at the uniform marginal, ``→ 0`` at a
+    degenerate one).
+
+    Entropy is permutation-invariant, so the FWD and RC marginals — whose four
+    columns are labelled by complementary alleles — give the same value;
+    averaging the two per-strand entropies for the FWD+RC mean is therefore
+    unambiguous. Accepts NumPy arrays, the dtype the HF Trainer harness returns
+    from ``run_variant_marginal``.
+    """
+    mlp = np.asarray(marginal_log_prob, dtype=np.float64)
+    return -(np.exp(mlp) * mlp).sum(axis=-1)
 
 
 def _token_id_to_nuc_idx(

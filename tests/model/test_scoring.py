@@ -35,13 +35,17 @@ from marin_dna.data.transforms import (
 from marin_dna.model.runner import (
     run_inference,
     run_ll_clm,
+    run_variant_marginal,
     run_variant_score_bundle,
 )
 from marin_dna.model.scoring import (
     _logits_to_logprobs,
+    _token_id_to_nuc_idx,
     compute_ll_clm,
+    compute_marginal_clm,
     compute_reflogprob_clm,
     compute_variant_score_bundle,
+    entropy_from_marginal,
 )
 
 
@@ -806,3 +810,237 @@ def test_compute_variant_score_bundle_jsd_analytic():
     # 2 downstream positions, JSD nonzero only at the first.
     expected_mean = jsd_at_var / 2
     np.testing.assert_allclose(out[0, 1].item(), expected_mean, rtol=1e-5)
+
+
+# --- compute_marginal_clm / entropy_from_marginal --------------------------
+
+_SONGLAB_NUC_TOKEN_IDS = torch.tensor([3, 4, 5, 6], dtype=torch.long)  # A C G T
+
+
+def test_compute_marginal_clm_is_log_prob_distribution():
+    """Each row of the [B, 4] marginal is a normalized log-prob (logsumexp == 0)."""
+    torch.manual_seed(0)
+    model = _DeterministicCausalLM(vocab_size=8)
+    model.eval()
+    B, L, var_pos = 3, 12, 5
+    # Nucleotide-only token ids (songlab ACGT live at 3-6).
+    input_ids = torch.randint(3, 7, (B, L))
+    out = compute_marginal_clm(
+        model, input_ids, var_pos=var_pos, nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS
+    )
+    assert out.shape == (B, 4)
+    np.testing.assert_allclose(
+        torch.logsumexp(out, dim=-1).detach().numpy(), 0.0, atol=1e-5
+    )
+    # log of a probability ⇒ every entry ≤ 0.
+    assert (out <= 1e-6).all()
+
+
+def test_compute_marginal_clm_matches_bundle_llr():
+    """``marginal[:, alt] − marginal[:, ref]`` is identically
+    ``compute_variant_score_bundle``'s LLR.
+
+    Both kernels build the same ref/alt suffixes against the same shared prefix
+    and reduce in the same 4-nuc-softmax space, so the allele difference of the
+    marginal equals the bundle's LLR column to fp precision for *every* alt.
+    This is the consistency contract that lets calibration LLRs reuse the eval
+    LLR definition for free."""
+    torch.manual_seed(0)
+    model = _DeterministicCausalLM(vocab_size=8)
+    model.eval()
+    B, L, var_pos = 5, 14, 6
+    input_ids = torch.randint(3, 7, (B, L))
+
+    marginal = compute_marginal_clm(
+        model, input_ids, var_pos=var_pos, nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS
+    )  # [B, 4]
+    ref_idx = _token_id_to_nuc_idx(input_ids[:, var_pos], _SONGLAB_NUC_TOKEN_IDS)
+    rows = torch.arange(B)
+    for alt_nuc_idx in range(4):
+        alt_token_id = _SONGLAB_NUC_TOKEN_IDS[alt_nuc_idx].repeat(B)
+        bundle = compute_variant_score_bundle(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS,
+        )
+        marginal_llr = marginal[rows, alt_nuc_idx] - marginal[rows, ref_idx]
+        np.testing.assert_allclose(
+            marginal_llr.detach().numpy(),
+            bundle[:, 0].detach().numpy(),
+            rtol=1e-4,
+            atol=1e-5,
+        )
+
+
+def test_entropy_from_marginal_range_and_endpoints():
+    """Entropy ∈ [0, log 4]; log 4 at uniform, → 0 at a near-degenerate marginal."""
+    uniform = np.log(np.full((3, 4), 0.25))
+    np.testing.assert_allclose(entropy_from_marginal(uniform), math.log(4), atol=1e-6)
+    degen = np.log(np.array([[0.9997, 0.0001, 0.0001, 0.0001]]))
+    ent_degen = entropy_from_marginal(degen)
+    assert 0.0 <= ent_degen[0] < 0.01
+    # Random valid marginals stay in range.
+    rng = np.random.default_rng(0)
+    logits = rng.standard_normal((20, 4))
+    marg = logits - np.log(np.exp(logits).sum(-1, keepdims=True))  # log_softmax
+    ent = entropy_from_marginal(marg)
+    assert (ent >= -1e-9).all() and (ent <= math.log(4) + 1e-9).all()
+
+
+def test_entropy_from_marginal_matches_reduction_on_compute_marginal():
+    """``entropy_from_marginal`` equals ``−(m.exp()·m).sum()`` of
+    ``compute_marginal_clm``'s output."""
+    torch.manual_seed(0)
+    model = _DeterministicCausalLM(vocab_size=8)
+    model.eval()
+    input_ids = torch.randint(3, 7, (4, 12))
+    m = compute_marginal_clm(
+        model, input_ids, var_pos=5, nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS
+    )
+    expected = -(m.exp() * m).sum(dim=-1)
+    np.testing.assert_allclose(
+        entropy_from_marginal(m.detach().numpy()),
+        expected.detach().numpy(),
+        atol=1e-5,
+    )
+
+
+def test_entropy_from_marginal_permutation_invariant():
+    """Permuting the 4 allele columns (the A↔T / C↔G complement relabel between
+    FWD and RC) leaves entropy unchanged."""
+    rng = np.random.default_rng(1)
+    logits = rng.standard_normal((10, 4))
+    marg = logits - np.log(np.exp(logits).sum(-1, keepdims=True))
+    comp = marg[:, [3, 2, 1, 0]]  # A↔T (0↔3), C↔G (1↔2)
+    np.testing.assert_allclose(
+        entropy_from_marginal(marg), entropy_from_marginal(comp), atol=1e-12
+    )
+
+
+def test_run_variant_marginal_rc_returns_both_strands(tmp_path):
+    """``run_variant_marginal(rc=True)`` returns ``{"fwd": [N,4], "rc": [N,4]}``
+    with distinct, normalized per-strand marginals; ``rc=False`` returns only
+    ``fwd`` and agrees with the rc=True fwd.
+
+    Uses the real tiny CLM rather than the content-independent mock: the mock's
+    per-position logits depend only on that position's token, so the variant-site
+    marginal collapses to a constant and FWD/RC would be indistinguishable. The
+    real model's context dependence makes the two strands genuinely differ."""
+    torch.manual_seed(0)
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    model = AutoModelForCausalLM.from_pretrained(TINY_CLM)
+    model.eval()
+    genome = Genome(_write_long_fasta(tmp_path))
+    dataset = _make_variant_dataset()
+    window_size = 16
+
+    both = run_variant_marginal(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    fwd_only = run_variant_marginal(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=False,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    assert set(fwd_only.keys()) == {"fwd"}
+    assert set(both.keys()) == {"fwd", "rc"}
+    assert both["fwd"].shape == (4, 4)
+    assert both["rc"].shape == (4, 4)
+    np.testing.assert_allclose(both["fwd"], fwd_only["fwd"], rtol=1e-5, atol=1e-6)
+    # Each row is a normalized log-prob marginal.
+    np.testing.assert_allclose(
+        np.logaddexp.reduce(both["fwd"], axis=-1), 0.0, atol=1e-5
+    )
+    assert not np.allclose(both["fwd"], both["rc"], atol=1e-6)
+
+
+def test_run_variant_marginal_reproducible(tmp_path):
+    """Two identical runs produce bit-identical marginals (snakemake `params:`
+    rerun-trigger contract — see the bundle's reproducibility test)."""
+    torch.manual_seed(0)
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    model = _DeterministicCausalLM(vocab_size=8)
+    model.eval()
+    genome = Genome(_write_long_fasta(tmp_path))
+    dataset = _make_variant_dataset()
+
+    a = run_variant_marginal(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        16,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    b = run_variant_marginal(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        16,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    np.testing.assert_array_equal(a["fwd"], b["fwd"])
+    np.testing.assert_array_equal(a["rc"], b["rc"])
+
+
+def test_run_variant_marginal_matches_bundle_llr_end_to_end(tmp_path):
+    """End-to-end: ``marginal[:, alt] − marginal[:, ref]`` (FWD) matches
+    ``run_variant_score_bundle``'s FWD LLR on the same variants — the transform
+    + kernel + runner wiring agrees with the production LLR path.
+
+    On the real tiny CLM (genuine context dependence) both prefix-shared kernels
+    see the same cached prefix and the same ref/alt suffixes, so their LLRs agree
+    to fp precision."""
+    torch.manual_seed(0)
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    model = AutoModelForCausalLM.from_pretrained(TINY_CLM)
+    model.eval()
+    genome = Genome(_write_long_fasta(tmp_path))
+    dataset = _make_variant_dataset()
+    window_size = 16
+
+    marg = run_variant_marginal(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=False,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    bundle = run_variant_score_bundle(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=False,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    # FWD strand: marginal column index == NUCLEOTIDES.index(letter).
+    ref_idx = np.array([NUCLEOTIDES.index(r) for r in dataset["ref"]])
+    alt_idx = np.array([NUCLEOTIDES.index(a) for a in dataset["alt"]])
+    rows = np.arange(len(dataset))
+    marg_llr = marg["fwd"][rows, alt_idx] - marg["fwd"][rows, ref_idx]
+    np.testing.assert_allclose(marg_llr, bundle["fwd"][:, 0], rtol=1e-4, atol=1e-4)

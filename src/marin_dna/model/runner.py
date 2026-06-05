@@ -41,10 +41,12 @@ from marin_dna.data.transforms import (
     in_seq_var_pos,
     transform_ll_clm,
     transform_llr_clm,
+    transform_variant_marginal_clm,
     transform_window_embedding,
 )
 from marin_dna.model.scoring import (
     compute_ll_clm,
+    compute_marginal_clm,
     compute_variant_score_bundle,
     compute_window_embedding,
 )
@@ -186,6 +188,85 @@ def run_variant_score_bundle(
             ),
             data_transform_fn=partial(
                 transform_llr_clm, genome=genome, window_size=window_size, strand=strand
+            ),
+            **kwargs,
+        )
+
+    out: dict[str, np.ndarray] = {"fwd": np.asarray(_one("+"))}
+    if rc:
+        out["rc"] = np.asarray(_one("-"))
+    return out
+
+
+def run_variant_marginal(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    rc: bool = False,
+    **kwargs: Any,
+) -> dict[str, np.ndarray]:
+    """Per-site 4-allele marginal ``log p(x)`` per strand → ``{"fwd": [N, 4], ...}``.
+
+    The opt-in entropy/calibration route (issue #269), parallel to and
+    independent of the default LLR+JSD bundle (``run_variant_score_bundle``),
+    which is left untouched. Each row's marginal over ``{A,C,G,T}`` at the
+    variant position is produced by ``compute_marginal_clm`` (1 prefix + 4
+    cached-suffix forwards — the bundle's prefix-sharing generalized to all four
+    alleles). Entropy (``entropy_from_marginal``), ref log-prob
+    (``marginal[:, ref]``) and the three LLRs (``marginal[:, alt] −
+    marginal[:, ref]``) are CPU reductions on the returned ``[N, 4]``; FWD+RC
+    averaging is applied downstream on those derived scores (entropy is
+    permutation-invariant, so the two per-strand entropies simply average).
+
+    Mirrors ``run_variant_score_bundle``: ``var_pos`` is computed per strand and
+    bound into the compute_fn as a Python int (constant within the call → no
+    torch.compile graph break), and FWD/RC are separate ``Trainer.predict``
+    passes (``var_pos`` differs across strands for even ``window_size``).
+
+    Args:
+        model: HF-shaped causal LM (see module docstring for the interface).
+        tokenizer: Tokenizer for the model.
+        dataset: Dataset with site information (chrom, pos, ref); ``alt`` is not
+            required — the kernel scores all four alleles.
+        genome: Genome object for sequence extraction.
+        window_size: Window size for sequence context.
+        rc: If True, also score the reverse-complemented window per site and
+            return its marginal. Doubles inference cost.
+        **kwargs: Additional arguments passed to ``run_inference``.
+
+    Returns:
+        ``{"fwd": [N, 4]}`` when ``rc=False``, else
+        ``{"fwd": [N, 4], "rc": [N, 4]}``. Columns are ``log p(A), log p(C),
+        log p(G), log p(T)`` in ``NUCLEOTIDES`` order on the requested strand
+        (the RC marginal is over RC-strand alleles, i.e. column ``i`` is the
+        forward-strand complement of ``NUCLEOTIDES[i]`` — irrelevant for the
+        permutation-invariant entropy, but the ref/LLR gather must account for
+        it on RC).
+    """
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+    nuc_ids_dict = _get_nucleotide_token_ids(tokenizer)
+    nuc_token_ids = torch.tensor(
+        [nuc_ids_dict[nuc] for nuc in NUCLEOTIDES], dtype=torch.long
+    )
+
+    def _one(strand: Literal["+", "-"]) -> Any:
+        var_pos = in_seq_var_pos(window_size, strand) + n_prefix
+        return run_inference(
+            model,
+            tokenizer,
+            dataset,
+            compute_fn=partial(
+                compute_marginal_clm,
+                var_pos=var_pos,
+                nuc_token_ids=nuc_token_ids,
+            ),
+            data_transform_fn=partial(
+                transform_variant_marginal_clm,
+                genome=genome,
+                window_size=window_size,
+                strand=strand,
             ),
             **kwargs,
         )
