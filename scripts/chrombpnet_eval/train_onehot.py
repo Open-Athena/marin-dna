@@ -54,6 +54,7 @@ from marin_dna.pipelines.chrombpnet_eval.onehot import (
     build_onehot_chrombpnet,
     count_trainable_params,
 )
+from marin_dna.pipelines.chrombpnet_eval.samepad import build_samepad_chrombpnet
 from marin_dna.pipelines.chrombpnet_eval.qtl_eval import (
     QTL_DATASETS,
     QTLEvalCallback,
@@ -113,10 +114,35 @@ def parse_args() -> argparse.Namespace:
         "~neutral for QTL — total counts are bias-independent (paper p.5).",
     )
     p.add_argument(
+        "--same-pad",
+        action="store_true",
+        help="use the zero-padded ('same') ChromBPNet variant (#259, samepad.py): "
+        "width-preserving convs so out_window is free (scale it with in_window) "
+        "and n_layers/params stay constant across context sizes. No bias. The "
+        "context-size study config.",
+    )
+    p.add_argument(
         "--count-only",
         action="store_true",
         help="train the count head only (beta=0, no profile NLL); the QTL score "
         "uses only the count head.",
+    )
+    # #259 loss-function axis (the "key" lever).
+    p.add_argument(
+        "--count-loss",
+        choices=["mse_log", "poisson"],
+        default="mse_log",
+        help="count-head loss form: 'mse_log' (official ChromBPNet, MSE on "
+        "log1p(total)) or 'poisson' (Poisson NLL on the raw total). The QTL "
+        "log2FC score is unchanged; alpha is auto-calibrated per form.",
+    )
+    p.add_argument(
+        "--count-weight-scale",
+        type=float,
+        default=1.0,
+        help="multiply the auto-calibrated count-loss weight (alpha) by this — "
+        "sweeps the profile/count two-loss balance (#259). The count head is what "
+        "the QTL score reads, yet alpha=median/10 down-weights it ~4x vs profile.",
     )
     # training
     p.add_argument("--max-epochs", type=int, default=100)
@@ -266,28 +292,56 @@ def main() -> None:
         **chrom_kwargs,
     )
     datamodule = DataModule(data_config)
-    # ChromBPNet's scale-balancing heuristic for the counts-loss weight.
-    alpha = datamodule.median_count / 10
-    print(f"[train] median_count={datamodule.median_count:.1f} -> alpha={alpha:.3f}")
-
-    if not args.no_bias:
-        assert args.bias, "--bias is required unless --no-bias"
-    model = build_onehot_chrombpnet(
-        bias_h5=args.bias,
-        use_bias=not args.no_bias,
-        out_dim=args.out_window,
-        n_layers=args.n_layers,
-    )
-    n_trainable = count_trainable_params(model)
-    if args.no_bias:
-        print(f"[train] one-hot ChromBPNet (NO bias, #259): {n_trainable:,} trainable")
+    # Count-loss weight (alpha), calibrated per form so the count-head gradient
+    # scale matches across forms, then scaled by --count-weight-scale (#259):
+    #   mse_log: ChromBPNet's median/10 scale-balancing heuristic (grad ~O(1)).
+    #   poisson: 0.1 = (median/10)/median — poisson's grad is the count-space
+    #            residual (~median), so /median brings it onto the mse-log scale.
+    if args.count_loss == "poisson":
+        alpha = 0.1 * args.count_weight_scale
     else:
-        n_bias = sum(p.numel() for p in model.bias.parameters())
-        print(
-            f"[train] one-hot ChromBPNet: {n_trainable:,} trainable params; "
-            f"bias frozen ({n_bias:,} params, requires_grad="
-            f"{any(p.requires_grad for p in model.bias.parameters())})"
+        alpha = datamodule.median_count / 10 * args.count_weight_scale
+    print(
+        f"[train] median_count={datamodule.median_count:.1f}, "
+        f"count_loss={args.count_loss}, scale={args.count_weight_scale} -> "
+        f"alpha={alpha:.4f}"
+    )
+
+    if args.same_pad:
+        # Zero-padded variant (#259): width-preserving convs, no bias, constant
+        # n_layers/params across context; out_window scaled with in_window.
+        assert args.out_window <= args.in_window, (args.out_window, args.in_window)
+        assert not args.bias, "--same-pad has no bias model (drop --bias)"
+        model: torch.nn.Module = build_samepad_chrombpnet(
+            out_window=args.out_window, n_layers=args.n_layers
         )
+        n_trainable = count_trainable_params(model)
+        print(
+            f"[train] same-pad ChromBPNet (#259): {n_trainable:,} trainable, "
+            f"in_window={args.in_window}, out_window={args.out_window}, "
+            f"n_layers={args.n_layers}"
+        )
+    else:
+        if not args.no_bias:
+            assert args.bias, "--bias is required unless --no-bias"
+        model = build_onehot_chrombpnet(
+            bias_h5=args.bias,
+            use_bias=not args.no_bias,
+            out_dim=args.out_window,
+            n_layers=args.n_layers,
+        )
+        n_trainable = count_trainable_params(model)
+        if args.no_bias:
+            print(
+                f"[train] one-hot ChromBPNet (NO bias, #259): {n_trainable:,} trainable"
+            )
+        else:
+            n_bias = sum(p.numel() for p in model.bias.parameters())
+            print(
+                f"[train] one-hot ChromBPNet: {n_trainable:,} trainable params; "
+                f"bias frozen ({n_bias:,} params, requires_grad="
+                f"{any(p.requires_grad for p in model.bias.parameters())})"
+            )
     if args.compile:
         model = torch.compile(model)
         print("[train] torch.compile enabled")
@@ -298,6 +352,7 @@ def main() -> None:
         model,
         alpha=alpha,
         beta=0.0 if args.count_only else 1.0,
+        count_loss=args.count_loss,
         lr=args.lr,
         optimizer=args.optimizer,
         weight_decay=args.weight_decay,

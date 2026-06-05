@@ -85,8 +85,19 @@ class ChromBPNetLit(L.LightningModule):
             onehot[B,4,L]) -> (profile_logits[B,out], log_counts[B,1])``. For the
             one-hot arm this is the vendored ``ChromBPNet`` (built by
             :func:`marin_dna.pipelines.chrombpnet_eval.onehot.build_onehot_chrombpnet`).
-        alpha: counts-loss weight (the driver sets ``median_count/10``).
+        alpha: counts-loss weight. The driver calibrates it per ``count_loss`` form
+            so the count-head gradient scale matches across forms (``mse_log``:
+            ``median_count/10``; ``poisson``: ``0.1``) — see ``count_loss``.
         beta: profile-loss weight (1.0).
+        count_loss: count-head loss form (#259 — the "key" loss-function axis).
+            ``"mse_log"`` (default, official ChromBPNet) = MSE between the predicted
+            log-count and ``log1p(total)``. ``"poisson"`` = Poisson NLL of the raw
+            total under rate ``exp(y_count)`` (``log_input=True``). The count head
+            stays a scalar log-rate either way, so the QTL log2FC score is
+            unchanged. Poisson's gradient wrt ``y_count`` is the count-space
+            residual ``exp(y)-total`` (scale ``~median_count``) vs mse-log's
+            ``~O(1)``; the driver's ``0.1`` poisson weight (= ``(median/10)/median``)
+            matches the two at the median so this isolates loss *form* from *weight*.
         lr: learning rate. Default ``1e-3`` matches official one-hot ChromBPNet
             (the embedding arm drops to ``1e-4``).
         optimizer: ``"adam"`` (default, official ChromBPNet) or ``"adamw"``
@@ -112,6 +123,7 @@ class ChromBPNetLit(L.LightningModule):
         *,
         alpha: float = 1.0,
         beta: float = 1.0,
+        count_loss: str = "mse_log",
         lr: float = 1e-3,
         optimizer: str = "adam",
         weight_decay: float = 0.0,
@@ -127,9 +139,13 @@ class ChromBPNetLit(L.LightningModule):
         assert optimizer in ("adam", "adamw"), (
             f"optimizer must be 'adam' or 'adamw', got {optimizer!r}"
         )
+        assert count_loss in ("mse_log", "poisson"), (
+            f"count_loss must be 'mse_log' or 'poisson', got {count_loss!r}"
+        )
         self.model = model
         self.alpha = alpha
         self.beta = beta
+        self.count_loss = count_loss
         self.lr = lr
         self.optimizer = optimizer
         self.weight_decay = weight_decay
@@ -143,15 +159,31 @@ class ChromBPNetLit(L.LightningModule):
 
     def training_step(self, batch: dict, batch_idx: int) -> torch.Tensor:
         true_profile = batch["profile"]
-        true_counts = torch.log1p(true_profile.sum(dim=-1))
+        true_total = true_profile.sum(dim=-1)  # raw total reads over the window
         y_profile, y_count = self(batch["onehot_seq"])
-        y_count = y_count.squeeze(-1)
+        y_count = y_count.squeeze(-1)  # predicted log-count (log-rate)
         # Compute the loss in fp32 even under a bf16 autocast: the multinomial
         # NLL and the exp/log count-combine are bf16-unstable (→ NaN). Disabling
         # autocast here keeps a ``--precision bf16-mixed`` run (this arm is
         # GPU-compute-bound, so bf16 can speed it up) from NaN-ing on the loss.
         with torch.autocast(device_type=y_count.device.type, enabled=False):
-            count_loss = F.mse_loss(y_count.float(), true_counts.float())
+            # Count-head loss form (#259). Both treat y_count as a log-rate, so the
+            # QTL log2FC score (qtl_eval.score_log2fc) is unchanged; the driver
+            # picks alpha per form to match the count-head gradient scale.
+            if self.count_loss == "poisson":
+                # Poisson NLL: exp(y_count) - total*y_count (full=False drops the
+                # log(total!) Stirling term, constant in y_count).
+                count_loss = F.poisson_nll_loss(
+                    y_count.float(),
+                    true_total.float(),
+                    log_input=True,
+                    full=False,
+                    reduction="mean",
+                )
+            else:  # mse_log (official ChromBPNet): MSE on log1p(total)
+                count_loss = F.mse_loss(
+                    y_count.float(), torch.log1p(true_total).float()
+                )
             # beta=0 -> count-only (#259): skip the profile NLL entirely. The QTL
             # score uses only the count head, so this tests whether the profile
             # objective is needed at all. Otherwise the vendored profile+count loss.

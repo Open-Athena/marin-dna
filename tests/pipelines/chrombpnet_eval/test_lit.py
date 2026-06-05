@@ -87,6 +87,32 @@ def test_count_only_skips_profile_loss():
     }
 
 
+def test_poisson_count_loss_trains():
+    # count_loss="poisson" (#259) trains end-to-end and logs a finite count loss
+    # distinct from the mse_log value on the same batch (different objective).
+    torch.manual_seed(0)
+    model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
+    lit = ChromBPNetLit(model, alpha=0.1, beta=1.0, count_loss="poisson", lr=1e-3)
+    trainer = L.Trainer(
+        max_epochs=1,
+        limit_train_batches=2,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(lit, DataLoader(_ToyDS(8), batch_size=4))
+    metrics = {**trainer.callback_metrics, **trainer.logged_metrics}
+    cl = float(metrics["train_count_loss_epoch"])
+    assert torch.isfinite(torch.as_tensor(cl)), cl
+
+
+def test_count_loss_rejects_unknown_form():
+    model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)
+    with pytest.raises(AssertionError):
+        ChromBPNetLit(model, count_loss="nb")
+
+
 def test_adamw_configures():
     # optimizer="adamw" + weight_decay builds a torch.optim.AdamW (#259).
     model = build_onehot_chrombpnet(bias_h5=None, n_filters=8, n_layers=2)

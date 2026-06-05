@@ -37,7 +37,10 @@ envs:
     PRECISION: "bf16-mixed"     # bf16-safe forward; faster on the GPU-bound conv tower
     ALL_CHROMS: "0"             # #259: "1" trains on all 1-22,X,Y (not leakage; VEP zero-shot)
     NO_BIAS: "0"                # #259 ablation: "1" drops the Tn5/DNase bias entirely
+    SAME_PAD: "0"               # #259: "1" = zero-padded variant (out_window scales w/ in_window, constant params; no bias)
     COUNT_ONLY: "0"             # #259 ablation: "1" = count head only (beta=0, no profile NLL)
+    COUNT_LOSS: "mse_log"       # #259 loss form: mse_log (official) | poisson
+    COUNT_WEIGHT_SCALE: "1.0"   # #259: multiply the count-loss weight (alpha); sweeps the two-loss balance
     OPTIMIZER: "adam"           # adam (official) | adamw (#259, decoupled weight decay)
     WEIGHT_DECAY: "0.0"         # weight decay (#259)
     IN_WINDOW: "2114"           # #259 context size: 255 = gLM-native (set OUT_WINDOW/N_LAYERS to match)
@@ -86,10 +89,13 @@ run: |
 
     nvidia-smi
     # Base args + #259 knobs. SMOKE caps to a tiny budget; otherwise MAX_STEPS.
-    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --jitter $JITTER"
+    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --jitter $JITTER"
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
     [ "$NO_BIAS" = "1" ] && ARGS="$ARGS --no-bias"
     [ "$COUNT_ONLY" = "1" ] && ARGS="$ARGS --count-only"
+    # The same-pad variant (#259) has no bias model: pass --same-pad and omit --bias.
+    BIAS_ARG="--bias data/bias_model_scaled.h5"
+    [ "$SAME_PAD" = "1" ] && { ARGS="$ARGS --same-pad"; BIAS_ARG=""; }
     if [ "$SMOKE" = "1" ]; then
         ARGS="$ARGS --log-every-n-steps 1 --qtl-every-steps 20 --limit-train-batches 300 --max-steps 60"
     else
@@ -97,7 +103,7 @@ run: |
     fi
     uv run --extra chrombpnet python scripts/chrombpnet_eval/train_onehot.py \
         --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \
-        --bigwig data/GM12878_unstranded.bw --bias data/bias_model_scaled.h5 \
+        --bigwig data/GM12878_unstranded.bw $BIAS_ARG \
         --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
         --qtl-eval --qtl-genome data/GRCh38.fasta --qtl-chrom-prefix chr \
         --wandb-name "$WANDB_NAME" --out-dir runs/onehot $ARGS
