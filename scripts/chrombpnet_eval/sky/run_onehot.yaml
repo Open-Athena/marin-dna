@@ -58,6 +58,7 @@ envs:
     LR_SCHEDULER: "wsd"         # none (constant) | wsd (#259 Warmup-Stable-Decay)
     QTL_EVERY: "500"            # log the QTL metric every N global steps (decoupled from epochs)
     SEED: "0"                   # seed_everything (multi-seed robustness confirms, #259)
+    LR: "1e-3"                  # learning rate (#259 sweep: 5e-4 half / 2e-3 double)
     EMA: "0"                    # #259: "1" = track EMA of weights, score QTL on EMA
     EMA_DECAY: "0.999"          # EMA decay (#259)
     WANDB_NAME: "dna-exp259-onehot-allchroms-wsd"
@@ -99,7 +100,7 @@ run: |
 
     nvidia-smi
     # Base args + #259 knobs. SMOKE caps to a tiny budget; otherwise MAX_STEPS.
-    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --seed $SEED --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --n-filters $N_FILTERS --head-kernel $HEAD_KERNEL --jitter $JITTER"
+    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --seed $SEED --lr $LR --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --n-filters $N_FILTERS --head-kernel $HEAD_KERNEL --jitter $JITTER"
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
     [ "$NO_BIAS" = "1" ] && ARGS="$ARGS --no-bias"
     [ "$COUNT_ONLY" = "1" ] && ARGS="$ARGS --count-only"
