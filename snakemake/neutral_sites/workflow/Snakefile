@@ -1,0 +1,13 @@
+configfile: "config/config.yaml"
+
+
+include: "rules/common.smk"
+include: "rules/download.smk"
+include: "rules/ancestral_repeats.smk"
+include: "rules/conserved.smk"
+include: "rules/neutral.smk"
+
+
+rule all:
+    input:
+        "results/neutral_sites.parquet",
