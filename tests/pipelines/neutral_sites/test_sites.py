@@ -6,6 +6,7 @@ import gzip
 
 import numpy as np
 import pandas as pd
+import pyBigWig
 import pytest
 
 from marin_dna.pipelines.neutral_sites.sites import (
@@ -13,6 +14,7 @@ from marin_dna.pipelines.neutral_sites.sites import (
     enumerate_positions,
     neutral_mask,
     parse_rmsk,
+    scan_neutral_intervals,
 )
 
 
@@ -163,9 +165,64 @@ class TestEnumeratePositions:
         assert set(out["chrom"]) == {"1"}
         assert list(out["pos"]) == [1, 2, 3, 4]
 
+    def test_dedups_overlapping_intervals(self):
+        # Two chr1 intervals overlapping at 0-based 2-3; shared positions appear
+        # once. g["1"]="ACGTNNACGT": [0,4)->pos 1-4 (ACGT), [2,6)->pos 3-4 (GT;
+        # the N's at 4-5 drop). Union, deduped = pos 1-4.
+        intervals = pd.DataFrame(
+            {"chrom": ["chr1", "chr1"], "start": [0, 2], "end": [4, 6]}
+        )
+        out = enumerate_positions(intervals, self._get_seq(), {"1"})
+        assert list(out["pos"]) == [1, 2, 3, 4]
+        assert list(out["ref"]) == ["A", "C", "G", "T"]
+        assert out.duplicated(["chrom", "pos"]).sum() == 0
+
     def test_length_mismatch_asserts(self):
         # A get_seq that under-returns must trip the defensive length assert.
         bad = lambda chrom, start, end: "AC"  # noqa: E731
         intervals = pd.DataFrame({"chrom": ["chr1"], "start": [0], "end": [5]})
         with pytest.raises(AssertionError, match="expected"):
             enumerate_positions(intervals, bad, {"1"})
+
+
+def _write_bw(path, chrom: str, length: int, values: list[float]) -> None:
+    """Write a tiny per-base bigWig: ``values[i]`` at 0-based position ``i``."""
+    bw = pyBigWig.open(str(path), "w")
+    bw.addHeader([(chrom, length)])
+    bw.addEntries(chrom, 0, values=[float(v) for v in values], span=1, step=1)
+    bw.close()
+
+
+class TestScanNeutralIntervals:
+    def test_stitches_run_across_window_boundary(self, tmp_path):
+        # chr1 (len 10): neutral (phyloP 0.0, phastCons 0) at 1..6, non-neutral
+        # (phyloP 2.0) at 0,7,8,9. With window_size=5 the run [1,7) splits at the
+        # 5-boundary into two ADJACENT intervals — exercises the per-window
+        # `win_start + s` offset and that no base is lost/duplicated at the seam.
+        pp, pc = tmp_path / "phylop.bw", tmp_path / "phast.bw"
+        _write_bw(pp, "chr1", 10, [2, 0, 0, 0, 0, 0, 0, 2, 2, 2])
+        _write_bw(pc, "chr1", 10, [0] * 10)
+        df = scan_neutral_intervals(str(pp), str(pc), ["1"], 0.1, window_size=5)
+        assert list(zip(df["chrom"], df["start"], df["end"])) == [
+            ("chr1", 1, 5),
+            ("chr1", 5, 7),
+        ]
+
+    def test_phastcons_nonzero_breaks_the_run(self, tmp_path):
+        # A phastCons!=0 base in the middle of a low-phyloP stretch splits it.
+        pp, pc = tmp_path / "phylop.bw", tmp_path / "phast.bw"
+        _write_bw(pp, "chr1", 6, [0, 0, 0, 0, 0, 0])
+        _write_bw(pc, "chr1", 6, [0, 0, 1, 0, 0, 0])  # conserved at idx 2
+        df = scan_neutral_intervals(str(pp), str(pc), ["1"], 0.1, window_size=10)
+        assert list(zip(df["chrom"], df["start"], df["end"])) == [
+            ("chr1", 0, 2),
+            ("chr1", 3, 6),
+        ]
+
+    def test_skips_contig_absent_from_a_track(self, tmp_path):
+        # A requested chrom missing from the bigWigs is skipped, not crashed.
+        pp, pc = tmp_path / "phylop.bw", tmp_path / "phast.bw"
+        _write_bw(pp, "chr1", 4, [0, 0, 0, 0])
+        _write_bw(pc, "chr1", 4, [0, 0, 0, 0])
+        df = scan_neutral_intervals(str(pp), str(pc), ["1", "2"], 0.1, window_size=5)
+        assert list(zip(df["chrom"], df["start"], df["end"])) == [("chr1", 0, 4)]

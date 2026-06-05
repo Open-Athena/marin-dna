@@ -30,20 +30,12 @@ rule neutral_sites_parquet:
             names=["chrom", "start", "end"],
             dtype={"chrom": str},
         )
-        genome = Genome(config["genome_path"])
-        df = enumerate_positions(intervals, genome, set(CHROMS))
-        # rmsk/conserved intervals are non-overlapping so this is normally a
-        # no-op, but a duplicate (chrom,pos) would double-weight a calibration
-        # bin — drop loudly if it ever happens.
-        before = len(df)
-        df = df.drop_duplicates(["chrom", "pos"]).reset_index(drop=True)
-        if len(df) < before:
-            print(
-                f"[neutral_sites] dropped {before - len(df):,} duplicate positions"
-            )
+        # enumerate_positions handles the chr→bare boundary, 1-based pos, ACGT
+        # filtering, and (chrom,pos) dedup — all unit-tested in the library.
+        df = enumerate_positions(
+            intervals, Genome(config["genome_path"]), set(CHROMS)
+        )
         assert len(df) > 0, "empty neutral set"
-        assert df["ref"].isin(set("ACGT")).all()
-        assert (df["pos"] >= 1).all()
         df.to_parquet(output[0], index=False)
         print(
             f"[neutral_sites] {len(df):,} neutral sites across "

@@ -94,6 +94,14 @@ def parse_rmsk(
     df = df[~df["repClass"].isin(exclude_classes)].copy()
     assert (df["end"] > df["start"]).all(), "rmsk has empty/inverted intervals"
     out = df[["chrom", "start", "end", "repName"]].rename(columns={"repName": "name"})
+    # Fail fast on a shifted-column mis-parse (e.g. a dump served without the
+    # leading ``bin`` column would slide every index by one): UCSC ``genoName``
+    # is always ``chr``-prefixed, so a non-``chr`` value means we parsed the
+    # wrong columns.
+    assert out["chrom"].str.startswith("chr").all(), (
+        f"rmsk genoName values are not chr-prefixed in {path} — wrong column "
+        "layout? expected the UCSC bin-column rmsk.txt.gz schema"
+    )
     return out.reset_index(drop=True)
 
 
@@ -167,7 +175,12 @@ def scan_neutral_intervals(
         phylo_chroms = phylo.chroms()
         phast_chroms = phast.chroms()
         for chrom in chroms:
-            bw_chrom = f"{chrom_prefix}{chrom}" if chrom_prefix else chrom
+            # Idempotent prefixing — if a caller ever passes already-``chr``ed
+            # names, don't produce ``chrchr1`` (which would silently skip the
+            # whole contig below).
+            bw_chrom = (
+                chrom if chrom.startswith(chrom_prefix) else f"{chrom_prefix}{chrom}"
+            )
             if bw_chrom not in phylo_chroms or bw_chrom not in phast_chroms:
                 # A track may legitimately lack a contig; skip rather than guess.
                 continue
@@ -200,8 +213,16 @@ def enumerate_positions(
     """Expand neutral intervals to per-base ``(chrom, pos, ref)`` rows.
 
     The boundary back into our conventions: strip the UCSC ``chr`` prefix to
-    address the (Ensembl-named) reference, emit **1-based** ``pos``, and keep
-    only ``A/C/G/T`` reference bases (drops ``N`` and soft-masked-to-N).
+    address the (Ensembl-named) reference, emit **1-based** ``pos``, keep only
+    ``A/C/G/T`` reference bases (drops ``N`` / soft-masked-to-N), and
+    de-duplicate ``(chrom, pos)`` — slightly-overlapping RepeatMasker features
+    can cover a base twice, and a duplicate would double-weight a calibration
+    bin downstream.
+
+    The reference is read **once per chromosome** (over the span of that
+    chromosome's intervals) rather than once per interval: a fragmented neutral
+    set is millions of short intervals, and one byte-range read per interval
+    against an ``s3://`` genome would be millions of round-trips.
 
     Args:
         intervals: ``[chrom, start, end]`` 0-based half-open, ``chr``-prefixed
@@ -214,37 +235,50 @@ def enumerate_positions(
 
     Returns:
         DataFrame ``[chrom, pos, ref]`` — bare ``chrom``, 1-based ``pos``,
-        ``ref`` ∈ {A,C,G,T}.
+        ``ref`` ∈ {A,C,G,T}, unique ``(chrom, pos)``.
     """
     for col in ("chrom", "start", "end"):
         assert col in intervals.columns, f"intervals missing column {col!r}"
 
-    valid = set("ACGT")
-    chrom_out: list[str] = []
-    pos_out: list[int] = []
-    ref_out: list[str] = []
+    # Group the requested intervals by (chr-stripped) chromosome so each
+    # chromosome's reference is read exactly once.
+    by_chrom: dict[str, list[tuple[int, int]]] = {}
     for chrom_raw, start, end in zip(
         intervals["chrom"], intervals["start"], intervals["end"]
     ):
         chrom = str(chrom_raw)
-        if chrom.startswith("chr"):
+        if chrom[:3].lower() == "chr":  # case-insensitive UCSC strip
             chrom = chrom[3:]
         if chrom not in chroms:
             continue
         start, end = int(start), int(end)
         assert end > start, f"empty/inverted interval {chrom}:{start}-{end}"
-        seq = get_seq(chrom, start, end).upper()
-        assert len(seq) == end - start, (
-            f"reference returned {len(seq)} bp for {chrom}:{start}-{end} "
-            f"(expected {end - start})"
+        by_chrom.setdefault(chrom, []).append((start, end))
+
+    valid = set("ACGT")
+    chrom_out: list[str] = []
+    pos_out: list[int] = []
+    ref_out: list[str] = []
+    for chrom, ivs in by_chrom.items():
+        lo = min(s for s, _ in ivs)
+        hi = max(e for _, e in ivs)
+        span = get_seq(chrom, lo, hi).upper()
+        assert len(span) == hi - lo, (
+            f"reference returned {len(span)} bp for {chrom}:{lo}-{hi} "
+            f"(expected {hi - lo})"
         )
-        for i, ref in enumerate(seq):
-            if ref in valid:
-                chrom_out.append(chrom)
-                pos_out.append(start + i + 1)  # 0-based index -> 1-based pos
-                ref_out.append(ref)
+        for start, end in ivs:
+            for i in range(start, end):
+                ref = span[i - lo]
+                if ref in valid:
+                    chrom_out.append(chrom)
+                    pos_out.append(i + 1)  # 0-based index -> 1-based pos
+                    ref_out.append(ref)
 
     out = pd.DataFrame({"chrom": chrom_out, "pos": pos_out, "ref": ref_out})
+    # Collapse positions covered by more than one source interval so no
+    # calibration bin is double-weighted.
+    out = out.drop_duplicates(["chrom", "pos"]).reset_index(drop=True)
     # Defensive: the whole point is a clean neutral set — no surprises downstream.
     assert out["ref"].isin(valid).all(), "non-ACGT ref leaked into neutral set"
     return out
