@@ -143,8 +143,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--n-segments",
         type=int,
-        default=8,
-        help="AlphaGenome Poisson-Multinomial segments (--alphagenome; default 8)",
+        default=1,
+        help="AlphaGenome Poisson-Multinomial segments (--alphagenome). 1 = "
+        "Poisson on the full-window total (right for our short window). AlphaGenome "
+        "uses 8 only because their outputs are 8192 bins (~1 Mb) — pure numerical "
+        "stability at that scale; moot for a 256-bin window.",
     )
     p.add_argument(
         "--multinomial-weight",
@@ -258,7 +261,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--devices", type=int, default=1)
     # logging cadence
     p.add_argument("--log-every-n-steps", type=int, default=10)
-    p.add_argument("--wandb-name", default="dna-exp236-onehot-chrombpnet")
+    p.add_argument(
+        "--wandb-name",
+        required=True,
+        help="W&B run display name (REQUIRED — no default, so a misconfigured "
+        "launch fails loudly instead of silently logging to a stale default name)",
+    )
     p.add_argument("--wandb-project", default="chrombpnet-eval")
     p.add_argument("--no-wandb", action="store_true", help="CSVLogger instead of W&B")
     # online QTL metric: signed Pearson of predicted log2FC vs the observed

@@ -227,8 +227,10 @@ class AlphaGenomeLit(ChromBPNetLit):
         model: an :class:`AlphaGenomePerBase` (or any ``forward -> (pred, log_total)``).
         track_mean: per-track mean of non-zero coverage (the AlphaGenome target
             normaliser; sets the soft-clip scale). The QTL log2FC is invariant to it.
-        n_segments / multinomial_weight: Poisson-Multinomial loss knobs (8 / 5.0,
-            Borzoi/AlphaGenome defaults).
+        n_segments / multinomial_weight: Poisson-Multinomial loss knobs. n_segments
+            default 1 = Poisson on the full-window total (right for our short
+            window); AlphaGenome's 8 is only for their ~1 Mb / 8192-bin outputs.
+            multinomial_weight 5.0 is the Borzoi/AlphaGenome default.
         apply_squashing: the RNA-seq-only ``**0.75`` target squashing; **False for
             DNase/ATAC**.
         lr / optimizer / weight_decay / lr_scheduler / warmup_frac / decay_frac /
@@ -240,7 +242,7 @@ class AlphaGenomeLit(ChromBPNetLit):
         model: torch.nn.Module,
         *,
         track_mean: float,
-        n_segments: int = 8,
+        n_segments: int = 1,
         multinomial_weight: float = 5.0,
         apply_squashing: bool = False,
         lr: float = 1e-3,

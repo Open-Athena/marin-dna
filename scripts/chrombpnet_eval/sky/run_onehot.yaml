@@ -39,7 +39,7 @@ envs:
     NO_BIAS: "0"                # #259 ablation: "1" drops the Tn5/DNase bias entirely
     SAME_PAD: "0"               # #259: "1" = zero-padded variant (out_window scales w/ in_window, constant params; no bias)
     ALPHAGENOME: "0"            # #259: "1" = AlphaGenome/Borzoi per-base head + Poisson-Multinomial loss + target scaling (no bias)
-    N_SEGMENTS: "8"             # AlphaGenome Poisson-Multinomial segments
+    N_SEGMENTS: "1"             # Poisson-Multinomial segments; 1 = full-window total (AlphaGenome's 8 is for their ~1Mb outputs)
     MULTINOMIAL_WEIGHT: "5.0"   # AlphaGenome multinomial-term weight (Borzoi default)
     COUNT_ONLY: "0"             # #259 ablation: "1" = count head only (beta=0, no profile NLL)
     COUNT_LOSS: "mse_log"       # #259 loss form: mse_log (official) | poisson
