@@ -47,7 +47,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from marin_dna.data.dna import NUCLEOTIDES
 from marin_dna.data.genome import Genome
 from marin_dna.model.runner import run_variant_marginal, run_variant_score_bundle
-from marin_dna.model.scoring import rc_average_marginal
+from marin_dna.model.scoring import _RC_ALLELE_PERM, rc_average_marginal
 
 S3_BASE = "s3://oa-bolinas/snakemake/analysis/evals_v2/results"
 GENOME_PATH = (
@@ -55,10 +55,8 @@ GENOME_PATH = (
     "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
 )
 # RC marginal column i is the forward allele complement(NUCLEOTIDES[i]); realign
-# to forward ACGT order before reading per-strand RC LLRs (cf. rc_average_marginal).
-_RC_PERM = [
-    NUCLEOTIDES.index({"A": "T", "C": "G", "G": "C", "T": "A"}[n]) for n in NUCLEOTIDES
-]
+# to forward ACGT order before reading per-strand RC LLRs. Reuse scoring's
+# permutation (the same one rc_average_marginal applies) so they can't diverge.
 
 
 def _nuc_idx(bases: list[str]) -> np.ndarray:
@@ -190,7 +188,7 @@ def main() -> None:
         inference_kwargs=inference_kwargs,
     )
     avg = rc_average_marginal(marg["fwd"], marg["rc"])  # [N, 4], forward ACGT order
-    rc_aligned = marg["rc"][:, _RC_PERM]
+    rc_aligned = marg["rc"][:, _RC_ALLELE_PERM]
     ref_idx, alt_idx = _nuc_idx(df["ref"].to_list()), _nuc_idx(df["alt"].to_list())
     rows = np.arange(df.height)
     m_llr = {
@@ -225,7 +223,7 @@ def main() -> None:
 
     # 6. Compare.
     print(
-        f"\n=== marginal LLR vs locally-recomputed bundle ({args.device} fp{'16' if args.bf16 else '32'}, apples-to-apples) ==="
+        f"\n=== marginal LLR vs locally-recomputed bundle ({args.device} {'bf16' if args.bf16 else 'fp32'}, apples-to-apples) ==="
     )
     summary = [_summarize(f"{s}", m_llr[s], b_local[s]) for s in ("fwd", "rc", "avg")]
     print("\n=== marginal LLR vs S3 bundle LLR (bf16 GPU-eval baseline) ===")

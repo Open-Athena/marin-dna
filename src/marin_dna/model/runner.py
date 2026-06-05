@@ -216,9 +216,11 @@ def run_variant_marginal(
     cached-suffix forwards — the bundle's prefix-sharing generalized to all four
     alleles). Entropy (``entropy_from_marginal``), ref log-prob
     (``marginal[:, ref]``) and the three LLRs (``marginal[:, alt] −
-    marginal[:, ref]``) are CPU reductions on the returned ``[N, 4]``; FWD+RC
-    averaging is applied downstream on those derived scores (entropy is
-    permutation-invariant, so the two per-strand entropies simply average).
+    marginal[:, ref]``) are CPU reductions on the returned ``[N, 4]``. For FWD+RC,
+    average the two per-strand log-marginals first with ``rc_average_marginal``
+    (a plain mean after the complement realignment) and apply the reduction to
+    that — so the calibrated entropy is ``H`` of the FWD+RC-averaged marginal and
+    each LLR is the mean of the two per-strand LLRs.
 
     Mirrors ``run_variant_score_bundle``: ``var_pos`` is computed per strand and
     bound into the compute_fn as a Python int (constant within the call → no
@@ -241,9 +243,9 @@ def run_variant_marginal(
         ``{"fwd": [N, 4], "rc": [N, 4]}``. Columns are ``log p(A), log p(C),
         log p(G), log p(T)`` in ``NUCLEOTIDES`` order on the requested strand
         (the RC marginal is over RC-strand alleles, i.e. column ``i`` is the
-        forward-strand complement of ``NUCLEOTIDES[i]`` — irrelevant for the
-        permutation-invariant entropy, but the ref/LLR gather must account for
-        it on RC).
+        forward-strand complement of ``NUCLEOTIDES[i]``; ``rc_average_marginal``
+        realigns this before averaging, and a per-strand ref/LLR gather must
+        account for it on RC).
     """
     n_prefix, _ = _get_special_token_counts(tokenizer)
     nuc_ids_dict = _get_nucleotide_token_ids(tokenizer)
