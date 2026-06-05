@@ -75,6 +75,16 @@ def test_forward_contract_nonneg(in_window: int, out_window: int):
     assert (pred >= 0).all() and torch.isfinite(log_total).all()
 
 
+def test_qtl_total_is_inverse_soft_clipped():
+    # log_total (the QTL readout) must be log(sum(inverse_soft_clip(pred))) — raw
+    # space, comparable to the mse-log/count-head arms — not the scaled-space sum.
+    torch.manual_seed(0)
+    model = build_alphagenome_perbase(out_window=256, n_filters=8, n_layers=3)
+    pred, log_total = model(torch.randn(2, 4, 256))
+    expected = torch.log(inverse_soft_clip(pred).sum(dim=-1, keepdim=True) + 1e-7)
+    assert torch.allclose(log_total, expected, atol=1e-5)
+
+
 class _ToyDS(Dataset):
     def __init__(self, n: int = 12, in_window: int = 256, out_window: int = 256):
         self.n, self.in_window, self.out_window = n, in_window, out_window

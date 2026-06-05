@@ -17,10 +17,12 @@ Scaling (AlphaGenome ``targets_scaling`` / ``predictions_scaling``): targets are
 divided by a per-track mean (of non-zero values), then soft-clipped with a
 sqrt-based smooth clip above ``10`` (no ``**0.75`` *squashing* — that's RNA-seq
 only, **off for DNase/ATAC**). The model predicts in this scaled space via a
-``Softplus(linear) * Softplus(scale)`` head; the inverse ``predictions_scaling``
-is only needed to map back to raw units at eval, not for training or for the QTL
-log2FC (the track mean cancels in the ref/alt ratio and the soft-clip is
-monotone, so ranking is preserved).
+``Softplus(linear) * Softplus(scale)`` head. The **loss** is in scaled space; the
+**QTL total** inverts the soft-clip back to raw counts before summing (so the
+score matches the raw-space mse-log/count-head arms — ``Sum(softclip(x))`` is not
+a monotone function of ``Sum(x)``, so scoring in scaled space would not be
+comparable). The ``* track_mean`` factor of the full ``predictions_scaling`` is
+omitted from the QTL readout — it cancels in the ref/alt ratio.
 
 The model ``forward`` returns ``(pred[B,out_window], log_total[B,1])`` — the same
 ``(profile, log_counts)`` contract the QTL scorer reads, so
@@ -165,7 +167,13 @@ class AlphaGenomePerBase(torch.nn.Module):
         pred = torch.nn.functional.softplus(h) * torch.nn.functional.softplus(
             self.scale
         )
-        log_total = torch.log(pred.sum(dim=-1, keepdim=True) + self.eps)  # [B, 1]
+        # QTL readout: invert the soft-clip to a RAW-space total before summing, so
+        # the score lives in the same raw-count space as the mse-log/count-head arms
+        # (comparable on the leaderboard). Sum(softclip(x)) is NOT a monotone fn of
+        # Sum(x), so scoring in scaled space would not match. The *track_mean factor
+        # of the full predictions_scaling is omitted — it cancels in the ref/alt ratio.
+        raw = inverse_soft_clip(pred)
+        log_total = torch.log(raw.sum(dim=-1, keepdim=True) + self.eps)  # [B, 1]
         return pred, log_total
 
 
