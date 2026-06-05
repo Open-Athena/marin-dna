@@ -105,6 +105,128 @@ def parse_score_response(
     return out
 
 
+# --- Chromatin-accessibility QTL path (caQTL/dsQTL, issue #262) ------------------
+# AlphaGenome's recommended accessibility variant scorer (Suppl Table 9): a single
+# center-mask, width=501, DIFF_LOG2_SUM (= signed log2 fold-change) on the DNASE
+# output, cell-type-matched to GM12878 (the paper: DNase GM12878 ≳ ATAC for these
+# LCL QTLs). This is deliberately separate from the 7-assay L2_DIFF_LOG1P matched-
+# pair path above — different scorer, different aggregation, single track.
+
+# GM12878's Experimental Factor Ontology cell-line CURIE (AlphaGenome track
+# metadata; confirmed against the paper's SPI1-in-GM12878 = EFO:0002784).
+GM12878_ONTOLOGY_CURIE: str = "EFO:0002784"
+DNASE_LFC_MASK_WIDTH: int = 501
+
+
+def make_dnase_lfc_scorer() -> "_vs.CenterMaskScorer":
+    """The GM12878-DNase accessibility scorer for QTLs.
+
+    ``CenterMaskScorer(DNASE, width=501, DIFF_LOG2_SUM)`` — returns a signed
+    log2 fold-change (alt vs ref) of summed DNase coverage in the 501 bp window
+    centered on the variant. A single API call returns this for *all* DNASE
+    tracks (one per cell type); :func:`select_gm12878_dnase_lfc` picks GM12878.
+    """
+    from alphagenome.models import dna_client, variant_scorers
+
+    return variant_scorers.CenterMaskScorer(
+        requested_output=dna_client.OutputType.DNASE,
+        width=DNASE_LFC_MASK_WIDTH,
+        aggregation_type=variant_scorers.AggregationType.DIFF_LOG2_SUM,
+    )
+
+
+def select_gm12878_dnase_lfc(tidy: pd.DataFrame) -> float:
+    """Signed GM12878-DNase LFC from a single-variant ``tidy_scores`` frame.
+
+    The DNase scorer returns every DNASE track (one per cell type); we keep the
+    GM12878 cell line (``output_type == "DNASE"`` and
+    ``ontology_curie == "EFO:0002784"``) and return the mean ``raw_score`` over
+    the matched track(s) — there is exactly one GM12878 DNase track today, but a
+    mean is robust if AlphaGenome adds replicates. Asserts at least one match so
+    a metadata-schema change fails loud rather than silently returning NaN.
+    """
+    needed = {"output_type", "ontology_curie", "raw_score"}
+    assert needed <= set(tidy.columns), (
+        f"tidy_scores missing {needed - set(tidy.columns)}; got {tidy.columns.tolist()}"
+    )
+    sel = tidy[
+        (tidy["output_type"] == "DNASE")
+        & (tidy["ontology_curie"] == GM12878_ONTOLOGY_CURIE)
+    ]
+    assert len(sel) >= 1, (
+        f"no GM12878 DNase track (ontology {GM12878_ONTOLOGY_CURIE}) in tidy_scores; "
+        f"available DNASE ontologies e.g. "
+        f"{tidy.loc[tidy['output_type'] == 'DNASE', 'ontology_curie'].head(3).tolist()}"
+    )
+    return float(sel["raw_score"].mean())
+
+
+def score_variants_dnase_lfc(
+    V: pd.DataFrame,
+    num_workers: int = 4,
+    api_key: str | None = None,
+) -> np.ndarray:
+    """Per-variant signed GM12878-DNase log2 fold-change (alt vs ref).
+
+    Same forward-strand, per-variant, retry-wrapped threading as
+    :func:`score_variants_alphagenome`, but with the single DNase LFC scorer and
+    GM12878-track selection. ``V`` needs ``chrom, pos, ref, alt`` (``pos``
+    1-based, ``chrom`` unprefixed). Returns a float array aligned to ``V``'s row
+    order (the signed LFC; correlate against the signed study effect for the
+    direction task, take ``|·|`` for causality).
+    """
+    import grpc
+    from alphagenome.data import genome
+    from alphagenome.models import dna_client, variant_scorers
+
+    if api_key is None:
+        api_key = os.environ.get("ALPHA_GENOME_API_KEY")
+    assert api_key, "ALPHA_GENOME_API_KEY not set; pass api_key= or export the env var"
+    missing = {"chrom", "pos", "ref", "alt"} - set(V.columns)
+    assert not missing, f"V missing required columns: {missing}"
+
+    model = dna_client.create(api_key)
+    score_variant_with_retry = dna_client.retry_rpc(
+        model.score_variant,
+        max_attempts=SCORE_VARIANT_MAX_ATTEMPTS,
+        retry_status_codes=frozenset(
+            getattr(grpc.StatusCode, name) for name in SCORE_VARIANT_RETRY_STATUS
+        ),
+    )
+    sequence_length = dna_client.SUPPORTED_SEQUENCE_LENGTHS[
+        f"SEQUENCE_LENGTH_{SEQUENCE_LENGTH}"
+    ]
+    organism = dna_client.Organism.HOMO_SAPIENS
+    scorer = make_dnase_lfc_scorer()
+
+    def score_one(row) -> float:
+        chrom = row.chrom if str(row.chrom).startswith("chr") else f"chr{row.chrom}"
+        variant = genome.Variant(
+            chromosome=chrom,
+            position=int(row.pos),
+            reference_bases=row.ref,
+            alternate_bases=row.alt,
+        )
+        interval = variant.reference_interval.resize(sequence_length).copy()
+        interval.strand = "+"
+        scores = score_variant_with_retry(
+            interval=interval,
+            variant=variant,
+            organism=organism,
+            variant_scorers=[scorer],
+        )
+        tidy = variant_scorers.tidy_scores([scores])
+        return select_gm12878_dnase_lfc(tidy)
+
+    out = np.empty(len(V), dtype=np.float64)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as ex:
+        for i, lfc in enumerate(
+            tqdm(ex.map(score_one, V.itertuples(index=False)), total=len(V))
+        ):
+            out[i] = lfc
+    return out
+
+
 def score_variants_alphagenome(
     V: pd.DataFrame,
     num_workers: int = 4,

@@ -9,10 +9,13 @@ import pytest
 
 from marin_dna.pipelines.evals.alphagenome import (
     ALPHAGENOME_TRACKS,
+    DNASE_LFC_MASK_WIDTH,
+    GM12878_ONTOLOGY_CURIE,
     SCORE_VARIANT_MAX_ATTEMPTS,
     SCORE_VARIANT_RETRY_STATUS,
     SEQUENCE_LENGTH,
     parse_score_response,
+    select_gm12878_dnase_lfc,
 )
 
 
@@ -106,6 +109,64 @@ def test_parse_score_response_no_nan_in_normal_path():
     out = parse_score_response(tidy, scorer_repr_to_assay)
     assert not out.isna().any().any()
     assert len(out.columns) == len(ALPHAGENOME_TRACKS)
+
+
+def _dnase_tidy() -> pd.DataFrame:
+    """Mock tidy_scores from the DNase scorer: many DNASE tracks (one per cell
+    type) plus a stray non-DNASE row; GM12878 is ontology EFO:0002784."""
+    return pd.DataFrame(
+        {
+            "output_type": ["DNASE", "DNASE", "DNASE", "ATAC"],
+            "ontology_curie": [
+                "CL:0000047",
+                GM12878_ONTOLOGY_CURIE,
+                "CL:0000084",
+                GM12878_ONTOLOGY_CURIE,
+            ],
+            "biosample_name": ["neuronal stem cell", "GM12878", "T-cell", "GM12878"],
+            "raw_score": [-0.0164, -0.0059, 0.1333, 9.9],
+        }
+    )
+
+
+def test_gm12878_constants():
+    assert GM12878_ONTOLOGY_CURIE == "EFO:0002784"
+    assert DNASE_LFC_MASK_WIDTH == 501
+
+
+def test_select_gm12878_dnase_lfc_picks_the_one_track():
+    # exactly the DNASE + EFO:0002784 row (not the ATAC GM12878 row, not other cells)
+    assert select_gm12878_dnase_lfc(_dnase_tidy()) == pytest.approx(-0.0059)
+
+
+def test_select_gm12878_dnase_lfc_means_replicates():
+    tidy = pd.DataFrame(
+        {
+            "output_type": ["DNASE", "DNASE", "DNASE"],
+            "ontology_curie": [
+                GM12878_ONTOLOGY_CURIE,
+                GM12878_ONTOLOGY_CURIE,
+                "CL:0000084",
+            ],
+            "raw_score": [0.2, 0.4, 9.9],
+        }
+    )
+    assert select_gm12878_dnase_lfc(tidy) == pytest.approx(
+        0.3
+    )  # mean of the two GM12878
+
+
+def test_select_gm12878_dnase_lfc_no_match_fails_loud():
+    tidy = pd.DataFrame(
+        {"output_type": ["DNASE"], "ontology_curie": ["CL:0000047"], "raw_score": [0.1]}
+    )
+    with pytest.raises(AssertionError, match="no GM12878 DNase track"):
+        select_gm12878_dnase_lfc(tidy)
+
+
+def test_select_gm12878_dnase_lfc_missing_columns_fails_loud():
+    with pytest.raises(AssertionError, match="tidy_scores missing"):
+        select_gm12878_dnase_lfc(pd.DataFrame({"output_type": ["DNASE"]}))
 
 
 def test_make_scorers_uses_l2_diff_log1p():
