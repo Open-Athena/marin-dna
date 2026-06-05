@@ -98,9 +98,7 @@ def _install_levanter_rename_patch() -> None:
     LmEvalHarnessConfig._marin_dna_rename_patched = True
 
 
-def _prepend_bos(
-    ids: list[list[int]], bos_token_id: int | None
-) -> list[list[int]]:
+def _prepend_bos(ids: list[list[int]], bos_token_id: int | None) -> list[list[int]]:
     """Prepend ``bos_token_id`` to each token sequence (idempotent).
 
     No-op when ``bos_token_id is None`` (a tokenizer without a BOS), so the
@@ -109,9 +107,7 @@ def _prepend_bos(
     """
     if bos_token_id is None:
         return ids
-    return [
-        seq if seq[:1] == [bos_token_id] else [bos_token_id, *seq] for seq in ids
-    ]
+    return [seq if seq[:1] == [bos_token_id] else [bos_token_id, *seq] for seq in ids]
 
 
 def _install_bos_fix() -> None:

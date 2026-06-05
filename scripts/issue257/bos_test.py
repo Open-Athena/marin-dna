@@ -21,7 +21,6 @@ Usage:
 
 from __future__ import annotations
 
-import dataclasses
 
 import jax
 import jmp
@@ -73,19 +72,27 @@ def seq_llr(logits_ref, logits_alt, ref_ids, alt_ids, p, nuc_ids):
 
     tot = 0.0
     for i in range(p - 1, L - 1):
-        tot += lsm(logits_alt[i])[n2i[int(alt_ids[i + 1])]] - lsm(logits_ref[i])[n2i[int(ref_ids[i + 1])]]
+        tot += (
+            lsm(logits_alt[i])[n2i[int(alt_ids[i + 1])]]
+            - lsm(logits_ref[i])[n2i[int(ref_ids[i + 1])]]
+        )
     return float(tot)
 
 
 def build_inputs(tok):
     genome = Genome(GENOME)
-    row = pl.read_parquet(SCORES).filter(
-        (pl.col("subset") == "distal")
-        & (pl.col("chrom").cast(pl.Utf8) == TARGET["chrom"])
-        & (pl.col("pos") == TARGET["pos"])
-        & (pl.col("ref") == TARGET["ref"])
-        & (pl.col("alt") == TARGET["alt"])
-    ).to_pandas().to_dict("records")[0]
+    row = (
+        pl.read_parquet(SCORES)
+        .filter(
+            (pl.col("subset") == "distal")
+            & (pl.col("chrom").cast(pl.Utf8) == TARGET["chrom"])
+            & (pl.col("pos") == TARGET["pos"])
+            & (pl.col("ref") == TARGET["ref"])
+            & (pl.col("alt") == TARGET["alt"])
+        )
+        .to_pandas()
+        .to_dict("records")[0]
+    )
     rec = transform_llr_clm(row, tok, genome, WINDOW, "+")
     n_prefix, _ = _get_special_token_counts(tok)
     var_pos = in_seq_var_pos(WINDOW, "+") + n_prefix  # 128 (= 127 + 1 BOS)
@@ -105,7 +112,9 @@ def build_inputs(tok):
     return dict(
         nuc_ids=nuc_ids,
         bos=dict(ref=ref_bos, alt=alt_bos, p=var_pos, L=len(ref_bos)),
-        nobos=dict(ref=ref_nobos, alt=alt_nobos, p=var_pos - n_prefix, L=len(ref_nobos)),
+        nobos=dict(
+            ref=ref_nobos, alt=alt_nobos, p=var_pos - n_prefix, L=len(ref_nobos)
+        ),
     )
 
 
@@ -129,31 +138,64 @@ def main():
     inp = build_inputs(tok)
     nuc_ids = inp["nuc_ids"]
 
-    print(f"[target] {TARGET['chrom']}:{TARGET['pos']} {TARGET['ref']}>{TARGET['alt']}  "
-          "(offline -3.21 ; online -8.05)")
+    print(
+        f"[target] {TARGET['chrom']}:{TARGET['pos']} {TARGET['ref']}>{TARGET['alt']}  "
+        "(offline -3.21 ; online -8.05)"
+    )
     print(f"  with-BOS: L={inp['bos']['L']} variant@{inp['bos']['p']}")
     print(f"  no-BOS  : L={inp['nobos']['L']} variant@{inp['nobos']['p']}")
 
     # torch
     tmodel = AutoModelForCausalLM.from_pretrained(CKPT, trust_remote_code=True).eval()
-    t_bos = seq_llr(torch_logits(tmodel, inp["bos"]["ref"]), torch_logits(tmodel, inp["bos"]["alt"]),
-                    inp["bos"]["ref"], inp["bos"]["alt"], inp["bos"]["p"], nuc_ids)
-    t_nobos = seq_llr(torch_logits(tmodel, inp["nobos"]["ref"]), torch_logits(tmodel, inp["nobos"]["alt"]),
-                      inp["nobos"]["ref"], inp["nobos"]["alt"], inp["nobos"]["p"], nuc_ids)
+    t_bos = seq_llr(
+        torch_logits(tmodel, inp["bos"]["ref"]),
+        torch_logits(tmodel, inp["bos"]["alt"]),
+        inp["bos"]["ref"],
+        inp["bos"]["alt"],
+        inp["bos"]["p"],
+        nuc_ids,
+    )
+    t_nobos = seq_llr(
+        torch_logits(tmodel, inp["nobos"]["ref"]),
+        torch_logits(tmodel, inp["nobos"]["alt"]),
+        inp["nobos"]["ref"],
+        inp["nobos"]["alt"],
+        inp["nobos"]["p"],
+        nuc_ids,
+    )
     del tmodel
 
     # levanter
-    mesh = Mesh(np.asarray(jax.devices()).reshape(1, 1, 1), ("replica", "data", "model"))
+    mesh = Mesh(
+        np.asarray(jax.devices()).reshape(1, 1, 1), ("replica", "data", "model")
+    )
     with set_mesh(mesh):
         cfg0 = Qwen3Config()
         conv = cfg0.hf_checkpoint_converter(ref_checkpoint=CKPT)
         cfg = conv.config_from_hf_config(conv.hf_config_from_hf_checkpoint(CKPT))
-        lmodel = inference_mode(conv.load_pretrained(Qwen3LMHeadModel, ref=CKPT, config=cfg, dtype=jnp.float32), True)
+        lmodel = inference_mode(
+            conv.load_pretrained(
+                Qwen3LMHeadModel, ref=CKPT, config=cfg, dtype=jnp.float32
+            ),
+            True,
+        )
         lmodel = jmp.get_policy("p=f32,c=bfloat16").cast_to_compute(lmodel)
-        l_bos = seq_llr(lev_logits(lmodel, inp["bos"]["ref"]), lev_logits(lmodel, inp["bos"]["alt"]),
-                        inp["bos"]["ref"], inp["bos"]["alt"], inp["bos"]["p"], nuc_ids)
-        l_nobos = seq_llr(lev_logits(lmodel, inp["nobos"]["ref"]), lev_logits(lmodel, inp["nobos"]["alt"]),
-                          inp["nobos"]["ref"], inp["nobos"]["alt"], inp["nobos"]["p"], nuc_ids)
+        l_bos = seq_llr(
+            lev_logits(lmodel, inp["bos"]["ref"]),
+            lev_logits(lmodel, inp["bos"]["alt"]),
+            inp["bos"]["ref"],
+            inp["bos"]["alt"],
+            inp["bos"]["p"],
+            nuc_ids,
+        )
+        l_nobos = seq_llr(
+            lev_logits(lmodel, inp["nobos"]["ref"]),
+            lev_logits(lmodel, inp["nobos"]["alt"]),
+            inp["nobos"]["ref"],
+            inp["nobos"]["alt"],
+            inp["nobos"]["p"],
+            nuc_ids,
+        )
 
     print("\n=== full-sequence 4-nuc LLR (chr7:156791472 C>A) ===")
     print(f"  {'':10} | {'with-BOS':>10} | {'no-BOS':>10}")

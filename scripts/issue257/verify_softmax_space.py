@@ -102,7 +102,8 @@ def compute_llr_dual(
     ) - prefix_log_p4.gather(-1, ref_var_idx.unsqueeze(-1)).squeeze(-1)
     tgt4 = _token_id_to_nuc_idx(suffix_targets, nuc_ids).unsqueeze(-1)
     llr_down4 = (
-        log_p_alt4.gather(-1, tgt4).squeeze(-1) - log_p_ref4.gather(-1, tgt4).squeeze(-1)
+        log_p_alt4.gather(-1, tgt4).squeeze(-1)
+        - log_p_ref4.gather(-1, tgt4).squeeze(-1)
     ).sum(dim=-1)
     llr_4nuc = llr_at_var4 + llr_down4
 
@@ -119,7 +120,8 @@ def compute_llr_dual(
     ) - prefix_log_pf.gather(-1, ref_var_tok).squeeze(-1)
     tgtf = suffix_targets.unsqueeze(-1)  # actual token ids
     llr_downf = (
-        log_p_altf.gather(-1, tgtf).squeeze(-1) - log_p_reff.gather(-1, tgtf).squeeze(-1)
+        log_p_altf.gather(-1, tgtf).squeeze(-1)
+        - log_p_reff.gather(-1, tgtf).squeeze(-1)
     ).sum(dim=-1)
     llr_full = llr_at_varf + llr_downf
 
@@ -153,7 +155,9 @@ def main() -> None:
 
     n_prefix, _ = _get_special_token_counts(tok)
     nuc_ids_dict = _get_nucleotide_token_ids(tok)
-    nuc_token_ids = torch.tensor([nuc_ids_dict[n] for n in NUCLEOTIDES], dtype=torch.long)
+    nuc_token_ids = torch.tensor(
+        [nuc_ids_dict[n] for n in NUCLEOTIDES], dtype=torch.long
+    )
     print(f"[tok] n_prefix(BOS)={n_prefix} nuc_token_ids={nuc_ids_dict}")
 
     strands = [s for s in args.strands.split(",") if s]

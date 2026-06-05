@@ -99,7 +99,9 @@ def _seq_llr(
     for i in range(p - 1, L - 1):  # logits index i predicts token i+1
         za = _logsoftmax_nuc(logits_alt[i], nuc_ids)
         zr = _logsoftmax_nuc(logits_ref[i], nuc_ids)
-        total += za[nuc_to_idx[int(alt_ids[i + 1])]] - zr[nuc_to_idx[int(ref_ids[i + 1])]]
+        total += (
+            za[nuc_to_idx[int(alt_ids[i + 1])]] - zr[nuc_to_idx[int(ref_ids[i + 1])]]
+        )
     return float(total)
 
 
@@ -114,8 +116,10 @@ def build_input(tok) -> dict:
     )
     assert df.height == 1, f"expected 1 target row, got {df.height}"
     row = df.to_pandas().to_dict("records")[0]
-    print(f"[target] {row['chrom']}:{row['pos']} {row['ref']}>{row['alt']} "
-          f"label={row['label']}  offline llr_fwd={row['llr_fwd']:.4f}")
+    print(
+        f"[target] {row['chrom']}:{row['pos']} {row['ref']}>{row['alt']} "
+        f"label={row['label']}  offline llr_fwd={row['llr_fwd']:.4f}"
+    )
     rec = transform_llr_clm(row, tok, genome, WINDOW, "+")
     n_prefix, _ = _get_special_token_counts(tok)
     var_pos = in_seq_var_pos(WINDOW, "+") + n_prefix
@@ -134,8 +138,12 @@ def build_input(tok) -> dict:
     alt_ids[var_pos] = alt_id
     assert 0 < var_pos < len(ref_ids) - 1
     return dict(
-        ref_ids=ref_ids, alt_ids=alt_ids, var_pos=var_pos, nuc_ids=nuc_ids,
-        ref_id=ref_id, alt_id=alt_id,
+        ref_ids=ref_ids,
+        alt_ids=alt_ids,
+        var_pos=var_pos,
+        nuc_ids=nuc_ids,
+        ref_id=ref_id,
+        alt_id=alt_id,
     )
 
 
@@ -157,8 +165,14 @@ def run_torch(inp: dict, dtype: torch.dtype) -> dict:
 
     logits_ref, hs = fwd(inp["ref_ids"])
     logits_alt, _ = fwd(inp["alt_ids"])
-    llr = _seq_llr(logits_ref, logits_alt, inp["ref_ids"], inp["alt_ids"],
-                   inp["var_pos"], inp["nuc_ids"])
+    llr = _seq_llr(
+        logits_ref,
+        logits_alt,
+        inp["ref_ids"],
+        inp["alt_ids"],
+        inp["var_pos"],
+        inp["nuc_ids"],
+    )
     del model
     return dict(llr=llr, logits=logits_ref, hiddens=hs)
 
@@ -172,12 +186,16 @@ def _load_levanter(upcast_attn: bool) -> Qwen3LMHeadModel:
     hf_cfg = conv.hf_config_from_hf_checkpoint(CKPT)
     cfg = conv.config_from_hf_config(hf_cfg)
     cfg = dataclasses.replace(cfg, upcast_attn=upcast_attn)
-    model = conv.load_pretrained(Qwen3LMHeadModel, ref=CKPT, config=cfg, dtype=jnp.float32)
+    model = conv.load_pretrained(
+        Qwen3LMHeadModel, ref=CKPT, config=cfg, dtype=jnp.float32
+    )
     return inference_mode(model, True)
 
 
 def run_levanter(inp: dict, model: Qwen3LMHeadModel, compute_dtype: jnp.dtype) -> dict:
-    mp = jmp.get_policy(f"p=f32,c={'bfloat16' if compute_dtype == jnp.bfloat16 else 'float32'}")
+    mp = jmp.get_policy(
+        f"p=f32,c={'bfloat16' if compute_dtype == jnp.bfloat16 else 'float32'}"
+    )
     model = mp.cast_to_compute(model)
 
     seq_len = inp["ref_ids"].shape[0]
@@ -199,8 +217,14 @@ def run_levanter(inp: dict, model: Qwen3LMHeadModel, compute_dtype: jnp.dtype) -
 
     logits_ref, hs = fwd(inp["ref_ids"])
     logits_alt, _ = fwd(inp["alt_ids"])
-    llr = _seq_llr(logits_ref, logits_alt, inp["ref_ids"], inp["alt_ids"],
-                   inp["var_pos"], inp["nuc_ids"])
+    llr = _seq_llr(
+        logits_ref,
+        logits_alt,
+        inp["ref_ids"],
+        inp["alt_ids"],
+        inp["var_pos"],
+        inp["nuc_ids"],
+    )
     return dict(llr=llr, logits=logits_ref, hiddens=hs)
 
 
@@ -220,7 +244,9 @@ def main() -> None:
     # Single-device mesh with a `data` axis — mirrors the harness's
     # `with config.trainer.use_device_mesh()` so the HF loader's best-effort
     # sharding finds a `data` axis (size 1 ⇒ no real sharding).
-    mesh = Mesh(np.asarray(jax.devices()).reshape(1, 1, 1), ("replica", "data", "model"))
+    mesh = Mesh(
+        np.asarray(jax.devices()).reshape(1, 1, 1), ("replica", "data", "model")
+    )
     with set_mesh(mesh):
         lev = _load_levanter(upcast_attn=False)
         lev_up = _load_levanter(upcast_attn=True)
@@ -229,8 +255,8 @@ def main() -> None:
         l_bf16_up = run_levanter(inp, lev_up, jnp.bfloat16)
 
     print("\n=== per-variant 4-nuc LLR (target chr7:156791472 C>A) ===")
-    print(f"  offline reference (parquet llr_fwd)         : -3.2072")
-    print(f"  online  reference (levanter in-training)    : -8.0487")
+    print("  offline reference (parquet llr_fwd)         : -3.2072")
+    print("  online  reference (levanter in-training)    : -8.0487")
     print("  ---")
     print(f"  torch    fp32                               : {t_f32['llr']:+.4f}")
     print(f"  torch    bf16                               : {t_bf16['llr']:+.4f}")
@@ -241,11 +267,17 @@ def main() -> None:
     print("\n=== final-logit max-abs-diff (torch vs levanter) ===")
     print(f"  fp32:  {_maxdiff(t_f32['logits'], l_f32['logits']):.4e}")
     print(f"  bf16:  {_maxdiff(t_bf16['logits'], l_bf16['logits']):.4e}")
-    print(f"  bf16 (levanter upcast_attn=T): {_maxdiff(t_bf16['logits'], l_bf16_up['logits']):.4e}")
+    print(
+        f"  bf16 (levanter upcast_attn=T): {_maxdiff(t_bf16['logits'], l_bf16_up['logits']):.4e}"
+    )
 
-    print("\n=== per-layer residual-stream max-abs-diff (torch hidden_states[i] vs levanter) ===")
+    print(
+        "\n=== per-layer residual-stream max-abs-diff (torch hidden_states[i] vs levanter) ==="
+    )
     n = min(len(t_f32["hiddens"]), len(l_f32["hiddens"]))
-    print(f"  (torch has {len(t_f32['hiddens'])} hidden_states, levanter captured {len(l_f32['hiddens'])})")
+    print(
+        f"  (torch has {len(t_f32['hiddens'])} hidden_states, levanter captured {len(l_f32['hiddens'])})"
+    )
     print(f"  {'idx':>3} | {'fp32 diff':>12} | {'bf16 diff':>12} | {'bf16 upcast':>12}")
     for i in range(n):
         d_f32 = _maxdiff(t_f32["hiddens"][i], l_f32["hiddens"][i])

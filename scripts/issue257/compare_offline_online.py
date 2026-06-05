@@ -16,14 +16,25 @@ proj = "gonzalobenegas/marin"
 
 
 def online_vals(arm: str) -> dict:
-    rs = list(api.runs(proj, filters={"display_name": {"$regex": f"exp232.*{arm}-v0.1$"}}, per_page=5))
+    rs = list(
+        api.runs(
+            proj,
+            filters={"display_name": {"$regex": f"exp232.*{arm}-v0.1$"}},
+            per_page=5,
+        )
+    )
     r = rs[0]
     out = {}
     for k, v in r.summary.items():
         # lm_eval/mendelian_traits_255/<subset>/<strand>/auprc
         parts = k.split("/")
         # lm_eval / mendelian_traits_255 / <subset> / <strand> / auprc  (5 parts)
-        if len(parts) == 5 and parts[0] == "lm_eval" and parts[1] == "mendelian_traits_255" and parts[4] == "auprc":
+        if (
+            len(parts) == 5
+            and parts[0] == "lm_eval"
+            and parts[1] == "mendelian_traits_255"
+            and parts[4] == "auprc"
+        ):
             subset, strand = parts[2], parts[3]
             out[(subset, strand)] = float(v)
     return out
@@ -37,9 +48,15 @@ for arm in ARMS:
     off = off.with_columns(
         pl.col("score_type").str.replace("minus_llr_", "").alias("strand")
     )
-    print(f"\n{'='*78}\n### {arm}-step-4999   offline minus_llr  vs  online (in-training final)\n{'='*78}")
+    print(
+        f"\n{'=' * 78}\n### {arm}-step-4999   offline minus_llr  vs  online (in-training final)\n{'=' * 78}"
+    )
     print(f"{'subset':<34}{'strand':<6}{'offline':>9}{'online':>9}{'Δ(off-on)':>11}")
-    rows = off.select(["subset", "strand", "value", "n_rows"]).sort(["subset", "strand"]).to_dicts()
+    rows = (
+        off.select(["subset", "strand", "value", "n_rows"])
+        .sort(["subset", "strand"])
+        .to_dicts()
+    )
     big = []
     for row in rows:
         sub, strand, val = row["subset"], row["strand"], row["value"]
@@ -53,6 +70,11 @@ for arm in ARMS:
         if abs(d) > 0.05:
             big.append((sub, strand, val, onv, d))
     if big:
-        print("  >>> |Δ|>0.05:", [(s, st, f"off={o:.3f}", f"on={n:.3f}") for s, st, o, n, _ in big])
+        print(
+            "  >>> |Δ|>0.05:",
+            [(s, st, f"off={o:.3f}", f"on={n:.3f}") for s, st, o, n, _ in big],
+        )
     else:
-        print("  >>> all |Δ| <= 0.05 — offline reproduces online (no glitch at this final step)")
+        print(
+            "  >>> all |Δ| <= 0.05 — offline reproduces online (no glitch at this final step)"
+        )

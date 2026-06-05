@@ -195,7 +195,9 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
         import fsspec
 
         _local = "/tmp/exp257_ckpt_hf"
-        fsspec.filesystem("gcs").get(ckpt_path.rstrip("/") + "/", _local + "/", recursive=True)
+        fsspec.filesystem("gcs").get(
+            ckpt_path.rstrip("/") + "/", _local + "/", recursive=True
+        )
         if not _osp.exists(_osp.join(_local, "config.json")):
             _c = glob.glob(_local + "/**/config.json", recursive=True)
             _local = _osp.dirname(_c[0]) if _c else _local

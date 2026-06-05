@@ -34,10 +34,14 @@ from marin_dna.data.transforms import (
 from marin_dna.model.scoring import compute_variant_score_bundle
 
 CKPT = "scratch/issue257/ckpt-ccre-4999"
-GENOME = ("s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/"
-          "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz")
-SCORES = ("s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/"
-          "exp232-v4_ccre_non_promoter-step-4999/mendelian_traits.parquet")
+GENOME = (
+    "s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/"
+    "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
+)
+SCORES = (
+    "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/"
+    "exp232-v4_ccre_non_promoter-step-4999/mendelian_traits.parquet"
+)
 WINDOW = 255
 
 
@@ -64,15 +68,19 @@ def main() -> None:
     n_prefix, _ = _get_special_token_counts(tok)
     nuc = torch.tensor([_get_nucleotide_token_ids(tok)[n] for n in NUCLEOTIDES])
     var_pos = in_seq_var_pos(WINDOW, "+") + n_prefix
-    rows = [transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")]
+    rows = [
+        transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")
+    ]
     llr = np.zeros(len(rows))
     with torch.no_grad():
         for i in range(0, len(rows), 64):
-            ch = rows[i:i + 64]
+            ch = rows[i : i + 64]
             ids = torch.stack([c["input_ids"] for c in ch])
             alt = torch.tensor([c["alt_token_id"] for c in ch])
-            out = compute_variant_score_bundle(model, ids, alt, var_pos=var_pos, nuc_token_ids=nuc)
-            llr[i:i + len(ch)] = out[:, 0].numpy()
+            out = compute_variant_score_bundle(
+                model, ids, alt, var_pos=var_pos, nuc_token_ids=nuc
+            )
+            llr[i : i + len(ch)] = out[:, 0].numpy()
     ap = average_precision_score(lab, -llr)
     print(f"\n[rope] mode={mode}  distal/fwd 4-nuc AUPRC = {ap:.4f}")
     print("  reference: transformers as-is (offline) 0.1589 ; levanter (JAX) 0.2501")

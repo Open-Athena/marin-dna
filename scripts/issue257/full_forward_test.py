@@ -17,7 +17,6 @@ import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from marin_dna.data.dna import NUCLEOTIDES
 from marin_dna.data.genome import Genome
 from marin_dna.data.transforms import (
     _get_nucleotide_token_ids,
@@ -28,10 +27,14 @@ from marin_dna.data.transforms import (
 from marin_dna.model.scoring import _repeat_interleave_kv_cache
 
 CKPT = "scratch/issue257/ckpt-ccre-4999"
-GENOME = ("s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/"
-          "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz")
-SCORES = ("s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/"
-          "exp232-v4_ccre_non_promoter-step-4999/mendelian_traits.parquet")
+GENOME = (
+    "s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/"
+    "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
+)
+SCORES = (
+    "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/"
+    "exp232-v4_ccre_non_promoter-step-4999/mendelian_traits.parquet"
+)
 WINDOW = 255
 
 
@@ -47,9 +50,11 @@ def full_forward_llr(model, input_ids, alt_tok, var_pos, dtype):
     logits = m(both).logits.float()  # [2B, L, V]
     lp = F.log_softmax(logits, dim=-1)
     # predict token t (t in [var_pos, L-1]) from position t-1
-    idx = both[:, var_pos:].unsqueeze(-1)                 # [2B, L-var_pos, 1] targets
-    pred = lp[:, var_pos - 1 : L - 1]                      # [2B, L-var_pos, V]
-    tok_lp = pred.gather(-1, idx).squeeze(-1).sum(-1)     # [2B] seq logprob over completion
+    idx = both[:, var_pos:].unsqueeze(-1)  # [2B, L-var_pos, 1] targets
+    pred = lp[:, var_pos - 1 : L - 1]  # [2B, L-var_pos, V]
+    tok_lp = (
+        pred.gather(-1, idx).squeeze(-1).sum(-1)
+    )  # [2B] seq logprob over completion
     ref_lp, alt_lp = tok_lp[:B], tok_lp[B:]
     if dtype != torch.float32:
         model.to(torch.float32)
@@ -60,6 +65,7 @@ def full_forward_llr(model, input_ids, alt_tok, var_pos, dtype):
 def prefix_share_full_llr(model, input_ids, alt_tok, var_pos):
     """Prefix-shared full-vocab LLR (offline kernel structure), fp32."""
     from einops import rearrange
+
     B, L = input_ids.shape
     p = var_pos
     prefix = input_ids[:, :p].contiguous()
@@ -74,8 +80,10 @@ def prefix_share_full_llr(model, input_ids, alt_tok, var_pos):
     lp = rearrange(lp, "(B V) L W -> B V L W", B=B)
     lpr, lpa = lp[:, 0, :-1], lp[:, 1, :-1]
     plp = F.log_softmax(plast.float(), -1)
-    at_var = plp.gather(-1, alt_tok[:, None]).squeeze(-1) - plp.gather(-1, input_ids[:, p][:, None]).squeeze(-1)
-    tgt = input_ids[:, p + 1:].unsqueeze(-1)
+    at_var = plp.gather(-1, alt_tok[:, None]).squeeze(-1) - plp.gather(
+        -1, input_ids[:, p][:, None]
+    ).squeeze(-1)
+    tgt = input_ids[:, p + 1 :].unsqueeze(-1)
     down = (lpa.gather(-1, tgt).squeeze(-1) - lpr.gather(-1, tgt).squeeze(-1)).sum(-1)
     return (at_var + down).numpy()
 
@@ -90,26 +98,42 @@ def main():
     n_prefix, _ = _get_special_token_counts(tok)
     nuc = _get_nucleotide_token_ids(tok)
     var_pos = in_seq_var_pos(WINDOW, "+") + n_prefix
-    rows = [transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")]
+    rows = [
+        transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")
+    ]
     input_ids = torch.stack([r["input_ids"] for r in rows])
     alt_tok = torch.tensor([r["alt_token_id"] for r in rows])
 
     res = {}
     for name, fn in [
         ("ps_full_fp32", lambda b, a: prefix_share_full_llr(model, b, a, var_pos)),
-        ("ff_full_fp32", lambda b, a: full_forward_llr(model, b, a, var_pos, torch.float32)),
-        ("ff_full_bf16", lambda b, a: full_forward_llr(model, b, a, var_pos, torch.bfloat16)),
+        (
+            "ff_full_fp32",
+            lambda b, a: full_forward_llr(model, b, a, var_pos, torch.float32),
+        ),
+        (
+            "ff_full_bf16",
+            lambda b, a: full_forward_llr(model, b, a, var_pos, torch.bfloat16),
+        ),
     ]:
         out = np.zeros(len(rows))
         for i in range(0, len(rows), 64):
-            out[i:i + 64] = fn(input_ids[i:i + 64], alt_tok[i:i + 64])
+            out[i : i + 64] = fn(input_ids[i : i + 64], alt_tok[i : i + 64])
         res[name] = out
         print(f"{name:<16} distal/fwd AUPRC = {average_precision_score(lab, -out):.4f}")
 
-    print("\noffline parquet (bf16 prefix-share) = 0.1589 ; online (levanter bf16) = 0.2507")
-    print(f"corr(ps_full_fp32, ff_full_fp32) = {np.corrcoef(res['ps_full_fp32'], res['ff_full_fp32'])[0,1]:.6f}")
-    print(f"max|ps_fp32 - ff_fp32| = {np.abs(res['ps_full_fp32']-res['ff_full_fp32']).max():.2e}")
-    print(f"max|ff_fp32 - ff_bf16| = {np.abs(res['ff_full_fp32']-res['ff_full_bf16']).max():.3f}")
+    print(
+        "\noffline parquet (bf16 prefix-share) = 0.1589 ; online (levanter bf16) = 0.2507"
+    )
+    print(
+        f"corr(ps_full_fp32, ff_full_fp32) = {np.corrcoef(res['ps_full_fp32'], res['ff_full_fp32'])[0, 1]:.6f}"
+    )
+    print(
+        f"max|ps_fp32 - ff_fp32| = {np.abs(res['ps_full_fp32'] - res['ff_full_fp32']).max():.2e}"
+    )
+    print(
+        f"max|ff_fp32 - ff_bf16| = {np.abs(res['ff_full_fp32'] - res['ff_full_bf16']).max():.3f}"
+    )
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ diff ~ 0, then full-vocab == 4-nuc is correct → softmax space can't explain th
 
 from __future__ import annotations
 
-import numpy as np
 import polars as pl
 import torch
 import torch.nn.functional as F
@@ -44,7 +43,9 @@ def main() -> None:
     tok = AutoTokenizer.from_pretrained(CKPT)
     model = AutoModelForCausalLM.from_pretrained(CKPT, trust_remote_code=True).eval()
     genome = Genome(GENOME)
-    df = pl.read_parquet(SCORES).filter(pl.col("subset") == "distal").head(N).to_pandas()
+    df = (
+        pl.read_parquet(SCORES).filter(pl.col("subset") == "distal").head(N).to_pandas()
+    )
 
     n_prefix, _ = _get_special_token_counts(tok)
     nuc_ids = torch.tensor(
@@ -52,7 +53,9 @@ def main() -> None:
     )
     var_pos = in_seq_var_pos(WINDOW, "+") + n_prefix
 
-    rows = [transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")]
+    rows = [
+        transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")
+    ]
     input_ids = torch.stack([r["input_ids"] for r in rows])  # [N, L]
     alt_tok = torch.tensor([r["alt_token_id"] for r in rows], dtype=torch.long)
 

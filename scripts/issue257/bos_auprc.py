@@ -58,28 +58,44 @@ def main() -> None:
     vp_bos = in_seq_var_pos(WINDOW, "+") + n_prefix  # 128
     vp_nobos = in_seq_var_pos(WINDOW, "+")  # 127
 
-    rows = [transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")]
+    rows = [
+        transform_llr_clm(r, tok, genome, WINDOW, "+") for r in df.to_dict("records")
+    ]
     llr_bos = np.zeros(len(rows))
     llr_nobos = np.zeros(len(rows))
     with torch.no_grad():
         for i in range(0, len(rows), 64):
-            ch = rows[i:i + 64]
+            ch = rows[i : i + 64]
             ids = torch.stack([c["input_ids"] for c in ch])  # [B, 256] with BOS
             alt = torch.tensor([c["alt_token_id"] for c in ch])
-            out_bos = compute_variant_score_bundle(model, ids, alt, var_pos=vp_bos, nuc_token_ids=nuc)
-            out_nobos = compute_variant_score_bundle(
-                model, ids[:, n_prefix:].contiguous(), alt, var_pos=vp_nobos, nuc_token_ids=nuc
+            out_bos = compute_variant_score_bundle(
+                model, ids, alt, var_pos=vp_bos, nuc_token_ids=nuc
             )
-            llr_bos[i:i + len(ch)] = out_bos[:, 0].numpy()
-            llr_nobos[i:i + len(ch)] = out_nobos[:, 0].numpy()
+            out_nobos = compute_variant_score_bundle(
+                model,
+                ids[:, n_prefix:].contiguous(),
+                alt,
+                var_pos=vp_nobos,
+                nuc_token_ids=nuc,
+            )
+            llr_bos[i : i + len(ch)] = out_bos[:, 0].numpy()
+            llr_nobos[i : i + len(ch)] = out_nobos[:, 0].numpy()
 
     ap_bos = average_precision_score(lab, -llr_bos)
     ap_nobos = average_precision_score(lab, -llr_nobos)
     print("\n=== distal/fwd AUPRC, n=%d (torch, HF export) ===" % len(rows))
-    print(f"  with-BOS (256-tok, offline input) : {ap_bos:.4f}   (offline reference 0.1589)")
-    print(f"  no-BOS   (255-tok, online input)  : {ap_nobos:.4f}   (online  reference 0.2501)")
-    print(f"\n  mean LLR pos (label=1): BOS {llr_bos[lab==1].mean():+.3f}  noBOS {llr_nobos[lab==1].mean():+.3f}")
-    print(f"  mean LLR neg (label=0): BOS {llr_bos[lab==0].mean():+.3f}  noBOS {llr_nobos[lab==0].mean():+.3f}")
+    print(
+        f"  with-BOS (256-tok, offline input) : {ap_bos:.4f}   (offline reference 0.1589)"
+    )
+    print(
+        f"  no-BOS   (255-tok, online input)  : {ap_nobos:.4f}   (online  reference 0.2501)"
+    )
+    print(
+        f"\n  mean LLR pos (label=1): BOS {llr_bos[lab == 1].mean():+.3f}  noBOS {llr_nobos[lab == 1].mean():+.3f}"
+    )
+    print(
+        f"  mean LLR neg (label=0): BOS {llr_bos[lab == 0].mean():+.3f}  noBOS {llr_nobos[lab == 0].mean():+.3f}"
+    )
 
 
 if __name__ == "__main__":

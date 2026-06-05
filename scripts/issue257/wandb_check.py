@@ -3,11 +3,14 @@
 Optional argv[1] = display-name regex (default the base repro run; pass
 'issue257-mps1$' for the no-packing run).
 """
+
 import sys
 
 import wandb
 
-pat = sys.argv[1] if len(sys.argv) > 1 else "exp232-ccre-step4999-online-repro-issue257$"
+pat = (
+    sys.argv[1] if len(sys.argv) > 1 else "exp232-ccre-step4999-online-repro-issue257$"
+)
 api = wandb.Api(timeout=20)
 rs = list(
     api.runs(

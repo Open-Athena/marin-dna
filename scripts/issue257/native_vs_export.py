@@ -30,7 +30,6 @@ Usage (CPU box with gcloud creds for the gs:// native checkpoint):
 
 from __future__ import annotations
 
-import dataclasses
 
 import equinox as eqx
 import jax
@@ -104,7 +103,9 @@ def load_native() -> Qwen3LMHeadModel:
         try:
             with use_cpu_device():
                 Vocab = hax.Axis("vocab", vsize)
-                template = eqx.filter_eval_shape(cfg.build, Vocab, key=jax.random.PRNGKey(0))
+                template = eqx.filter_eval_shape(
+                    cfg.build, Vocab, key=jax.random.PRNGKey(0)
+                )
                 model = load_checkpoint(template, cp, subpath="model", axis_mapping={})
             print(f"[native] loaded with Vocab={vsize}")
             return inference_mode(model, True)
@@ -117,7 +118,9 @@ def load_export() -> Qwen3LMHeadModel:
     cfg0 = Qwen3Config()
     conv = cfg0.hf_checkpoint_converter(ref_checkpoint=EXPORT)
     cfg = conv.config_from_hf_config(conv.hf_config_from_hf_checkpoint(EXPORT))
-    model = conv.load_pretrained(Qwen3LMHeadModel, ref=EXPORT, config=cfg, dtype=jnp.float32)
+    model = conv.load_pretrained(
+        Qwen3LMHeadModel, ref=EXPORT, config=cfg, dtype=jnp.float32
+    )
     return inference_mode(model, True)
 
 
@@ -173,19 +176,27 @@ def variant_llr(model: Qwen3LMHeadModel, inp: dict) -> float:
     p, L = inp["var_pos"], SEQ_LEN
     tot = 0.0
     for i in range(p - 1, L - 1):
-        tot += lsm(la[i])[n2i[int(inp["alt_ids"][i + 1])]] - lsm(lr[i])[n2i[int(inp["ref_ids"][i + 1])]]
+        tot += (
+            lsm(la[i])[n2i[int(inp["alt_ids"][i + 1])]]
+            - lsm(lr[i])[n2i[int(inp["ref_ids"][i + 1])]]
+        )
     return float(tot)
 
 
 def build_input(tok) -> dict:
     genome = Genome(GENOME)
-    row = pl.read_parquet(SCORES).filter(
-        (pl.col("subset") == "distal")
-        & (pl.col("chrom").cast(pl.Utf8) == TARGET["chrom"])
-        & (pl.col("pos") == TARGET["pos"])
-        & (pl.col("ref") == TARGET["ref"])
-        & (pl.col("alt") == TARGET["alt"])
-    ).to_pandas().to_dict("records")[0]
+    row = (
+        pl.read_parquet(SCORES)
+        .filter(
+            (pl.col("subset") == "distal")
+            & (pl.col("chrom").cast(pl.Utf8) == TARGET["chrom"])
+            & (pl.col("pos") == TARGET["pos"])
+            & (pl.col("ref") == TARGET["ref"])
+            & (pl.col("alt") == TARGET["alt"])
+        )
+        .to_pandas()
+        .to_dict("records")[0]
+    )
     rec = transform_llr_clm(row, tok, genome, WINDOW, "+")
     var_pos = in_seq_var_pos(WINDOW, "+") + _get_special_token_counts(tok)[0]
     nuc_map = _get_nucleotide_token_ids(tok)
@@ -199,10 +210,14 @@ def build_input(tok) -> dict:
 def main() -> None:
     tok = AutoTokenizer.from_pretrained(EXPORT)
     inp = build_input(tok)
-    print(f"[target] {TARGET['chrom']}:{TARGET['pos']} {TARGET['ref']}>{TARGET['alt']}  "
-          "(offline/torch -3.21 ; online/levanter -8.05)")
+    print(
+        f"[target] {TARGET['chrom']}:{TARGET['pos']} {TARGET['ref']}>{TARGET['alt']}  "
+        "(offline/torch -3.21 ; online/levanter -8.05)"
+    )
 
-    mesh = Mesh(np.asarray(jax.devices()).reshape(1, 1, 1), ("replica", "data", "model"))
+    mesh = Mesh(
+        np.asarray(jax.devices()).reshape(1, 1, 1), ("replica", "data", "model")
+    )
     with set_mesh(mesh):
         native = load_native()
         export = load_export()
