@@ -40,7 +40,6 @@ workspace, so the pod installs *this* branch's fixed ``marin_dna``:
 """
 
 import dataclasses
-import logging
 import os
 
 import jmp
@@ -56,8 +55,6 @@ from marin.execution.remote import remote
 
 from marin_dna.levanter.defaults import dna_effective_seq_len
 from marin_dna.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_255
-
-logger = logging.getLogger(__name__)
 
 MODEL_NAME = "exp232-v4_ccre_non_promoter-step-4999"
 # Native levanter checkpoint root (the exact in-training state #257 ran on).
@@ -77,8 +74,9 @@ NUM_HEADS = HIDDEN_DIM // 128  # 9
 NUM_LAYERS = 12
 INITIALIZER_RANGE = 0.02
 
-# v6e-4 (us-east5-b) is data-local to the checkpoint + mendelian data; a 0.25B
-# eval needs nothing bigger. Env-overridable to re-route if contended (check
+# v6e-4 is small enough for a 0.25B eval; iris schedules it wherever the pool has
+# capacity (e.g. us-east1-d — a cross-region read of the us-east5 checkpoint,
+# fine for a one-off). Env-overridable to re-route if contended (check
 # `iris cluster status` first).
 TPU_TYPES: tuple[str, ...] = tuple(
     t.strip() for t in os.getenv("TPU_TYPE", "v6e-4").split(",") if t.strip()
@@ -95,8 +93,8 @@ WANDB_PROJECT = "marin"
 WANDB_RUN_NAME = "dna-exp232-ccre-step4999-bos-fix-parity-issue263"
 WANDB_TAGS = ("dna", "exp232", "issue263", "bos-fix", "parity")
 
-# Captured on the pod inside the aggregation wrapper (module global so the
-# post-run assertion can read it).
+# Captured on the pod by the tracker-log intercept (module global so the
+# post-run parity assertion can read it).
 _CAPTURED: dict[str, float] = {}
 
 
@@ -201,7 +199,7 @@ def _run_eval_harness_only(_config: _EvalConfig) -> None:
     # Guard 2: parity. distal/fwd must be in the with-BOS regime, not 0.250.
     auprc = _CAPTURED.get("distal_fwd_auprc")
     assert auprc is not None, (
-        "distal/fwd/auprc was not captured — the aggregation key may have changed."
+        "distal/fwd/auprc was not captured — the tracker-log payload key may have changed."
     )
     status = "PASS" if PARITY_LOW <= auprc <= PARITY_HIGH else "FAIL"
     print(
