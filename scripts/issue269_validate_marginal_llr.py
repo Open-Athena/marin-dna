@@ -115,6 +115,12 @@ def main() -> None:
     ap.add_argument("--dataset", default="mendelian_traits")
     ap.add_argument("--n", type=int, default=64, help="variant subset size (0 = all)")
     ap.add_argument("--batch-size", type=int, default=64)
+    ap.add_argument(
+        "--num-workers",
+        type=int,
+        default=4,
+        help="dataloader workers (parallelize S3 genome reads)",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
     ap.add_argument("--bf16", action="store_true", help="bf16_full_eval (GPU only)")
@@ -162,7 +168,7 @@ def main() -> None:
     )
     inference_kwargs = dict(
         per_device_eval_batch_size=args.batch_size,
-        dataloader_num_workers=0,
+        dataloader_num_workers=args.num_workers,
         remove_unused_columns=False,
         report_to="none",
         bf16_full_eval=args.bf16,
