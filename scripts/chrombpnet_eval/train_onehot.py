@@ -93,6 +93,13 @@ def parse_args() -> argparse.Namespace:
         help="dilated conv layers; fewer = smaller receptive field for short context",
     )
     p.add_argument(
+        "--n-filters",
+        type=int,
+        default=512,
+        help="conv-tower width (#259 capacity knob). Params scale ~n_filters^2 at "
+        "constant depth/RF: 362 ~= half params, 724 ~= double vs the 512 default.",
+    )
+    p.add_argument(
         "--jitter",
         type=int,
         default=500,
@@ -313,13 +320,15 @@ def main() -> None:
         assert args.out_window <= args.in_window, (args.out_window, args.in_window)
         assert not args.bias, "--same-pad has no bias model (drop --bias)"
         model: torch.nn.Module = build_samepad_chrombpnet(
-            out_window=args.out_window, n_layers=args.n_layers
+            out_window=args.out_window,
+            n_layers=args.n_layers,
+            n_filters=args.n_filters,
         )
         n_trainable = count_trainable_params(model)
         print(
             f"[train] same-pad ChromBPNet (#259): {n_trainable:,} trainable, "
             f"in_window={args.in_window}, out_window={args.out_window}, "
-            f"n_layers={args.n_layers}"
+            f"n_layers={args.n_layers}, n_filters={args.n_filters}"
         )
     else:
         if not args.no_bias:
@@ -329,6 +338,7 @@ def main() -> None:
             use_bias=not args.no_bias,
             out_dim=args.out_window,
             n_layers=args.n_layers,
+            n_filters=args.n_filters,
         )
         n_trainable = count_trainable_params(model)
         if args.no_bias:
