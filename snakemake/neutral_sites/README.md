@@ -49,6 +49,33 @@ Replicates GPN-Star's hg38 calibration inputs exactly
 Pin destination (uploaded at the end of a run; consumed by `evals_v2`):
 `s3://oa-bolinas/snakemake/neutral_sites/results/neutral_sites.parquet`.
 
+## Calibration subsampling (#267 / #270)
+
+For mutation-rate calibration every neutral site is scored against its 3 non-ref
+alts and binned by pentanucleotide. Two **additive** rules (downstream of the
+pinned `neutral_sites.parquet`, which is left untouched) prepare a reduced set so
+the per-checkpoint scoring in `evals_v2` need not cover all 5.94M × 3 ≈ 18M
+variants:
+
+- `annotate_pentanuc` → `results/neutral_sites_pentanuc.parquet`
+  `[chrom, pos, ref, pentanuc]` — the central 5-mer (window `[pos-2, pos+2]`,
+  variant-centered) read from the genome; model-independent.
+- `subsample_neutral` → `results/subsampled/neutral_sites_n{n}.parquet` — at most
+  `n` sites **per 5-mer**, seeded by `subsample_seed`. `n` is a path wildcard so
+  several caps coexist and `evals_v2` pins one by revision.
+
+**The subsample unit is sites per 5-mer, not per `(5-mer, alt)` bin.** A site's
+three alt-bins share its sites, so `n` sites/5-mer yield `n` observations in
+*each* of its 3 bins, at `3n` variant-scorings per 5-mer → ≈ `3072·n`
+variants/checkpoint (minus depletion: 208/1024 five-mers have < 1000 sites). The
+convergence pilot (issue #270) found `n ≈ 1000` gives a per-bin mean-LLR
+SE ≈ 0.03; `n = 100` is the cheap floor (SE ≈ 0.10). The set is kept site-level /
+alt-agnostic so the LLR path (3 alts) and the entropy atom (#269, 4-allele
+marginal) consume one artifact.
+
+Pin destination (consumed by `evals_v2`):
+`s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n{n}.parquet`.
+
 ## Where to run
 
 CPU-only but **heavy I/O**: it downloads ~15 GB of bigWigs plus rmsk/chain and
@@ -81,6 +108,11 @@ uv run --group genome-s3 snakemake
 # Pin the artifact for evals_v2 to consume.
 aws s3 cp results/neutral_sites.parquet \
   s3://oa-bolinas/snakemake/neutral_sites/results/neutral_sites.parquet
+
+# Build + pin a subsampled set (cap = n sites per 5-mer; n is a path wildcard).
+uv run --group genome-s3 snakemake results/subsampled/neutral_sites_n100.parquet
+aws s3 cp results/subsampled/neutral_sites_n100.parquet \
+  s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n100.parquet
 ```
 
 ### On SkyPilot (the intended path)
@@ -100,5 +132,8 @@ Rules are thin glue around `marin_dna.pipelines.neutral_sites.sites`:
 - `contiguous_runs` / `neutral_mask` / `scan_neutral_intervals` —
   low-constraint sites from phyloP + phastCons.
 - `enumerate_positions` — neutral intervals → per-base `(chrom, pos, ref)`.
+- `annotate_pentanucleotide` — neutral sites → `+ pentanuc` (central 5-mer; one
+  read per chromosome, asserts 5-mer center == `ref`).
+- `subsample_per_context` — keep at most `n` sites per 5-mer, seeded + deterministic.
 
 Tests: [`tests/pipelines/neutral_sites/test_sites.py`](../../tests/pipelines/neutral_sites/test_sites.py).

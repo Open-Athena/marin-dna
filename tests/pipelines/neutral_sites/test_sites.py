@@ -10,11 +10,13 @@ import pyBigWig
 import pytest
 
 from marin_dna.pipelines.neutral_sites.sites import (
+    annotate_pentanucleotide,
     contiguous_runs,
     enumerate_positions,
     neutral_mask,
     parse_rmsk,
     scan_neutral_intervals,
+    subsample_per_context,
 )
 
 
@@ -226,3 +228,110 @@ class TestScanNeutralIntervals:
         _write_bw(pc, "chr1", 4, [0, 0, 0, 0])
         df = scan_neutral_intervals(str(pp), str(pc), ["1", "2"], 0.1, window_size=5)
         assert list(zip(df["chrom"], df["start"], df["end"])) == [("chr1", 0, 4)]
+
+
+class TestAnnotatePentanucleotide:
+    def _get_seq(self, genome: dict[str, str]):
+        return lambda chrom, start, end: genome[chrom][start:end]
+
+    def test_basic_5mer_and_centering(self):
+        # "1": A C G T A C G T A C G T  (0-based 0..11)
+        g = {"1": "ACGTACGTACGT"}
+        sites = pd.DataFrame({"chrom": ["1", "1"], "pos": [5, 8], "ref": ["A", "T"]})
+        out = annotate_pentanucleotide(sites, self._get_seq(g))
+        # pos 5 -> center0 4 (A); 5-mer 0-based [2,7) = GTACG
+        # pos 8 -> center0 7 (T); 5-mer [5,10) = CGTAC
+        assert list(out["pentanuc"]) == ["GTACG", "CGTAC"]
+        assert (out["pentanuc"].str[2] == out["ref"]).all()
+
+    def test_uppercases_softmasked(self):
+        g = {"1": "acgtacgtacgt"}
+        sites = pd.DataFrame({"chrom": ["1"], "pos": [5], "ref": ["A"]})
+        out = annotate_pentanucleotide(sites, self._get_seq(g))
+        assert list(out["pentanuc"]) == ["GTACG"]
+
+    def test_drops_non_acgt_flank(self):
+        # "2": A C G N T A C G T A C G  — N at 0-based idx 3.
+        g = {"2": "ACGNTACGTACG"}
+        sites = pd.DataFrame({"chrom": ["2", "2"], "pos": [6, 9], "ref": ["A", "T"]})
+        # pos 6 -> 5-mer [3,8) = NTACG (N flank) -> dropped; pos 9 -> CGTAC -> kept.
+        out = annotate_pentanucleotide(sites, self._get_seq(g))
+        assert list(out["pos"]) == [9]
+        assert list(out["pentanuc"]) == ["CGTAC"]
+
+    def test_center_ref_mismatch_asserts(self):
+        g = {"1": "ACGTACGTACGT"}  # center of pos 5 is A, not C
+        sites = pd.DataFrame({"chrom": ["1"], "pos": [5], "ref": ["C"]})
+        with pytest.raises(AssertionError, match="center != ref"):
+            annotate_pentanucleotide(sites, self._get_seq(g))
+
+    def test_one_read_spans_distant_sites(self):
+        # Two far-apart sites on one chrom: a single [min-3, max+2) read covers both.
+        g = {"1": "ACGT" * 10}  # 40 bp; base at idx i is "ACGT"[i % 4]
+        sites = pd.DataFrame({"chrom": ["1", "1"], "pos": [5, 35], "ref": ["A", "G"]})
+        out = annotate_pentanucleotide(sites, self._get_seq(g))
+        assert list(out["pentanuc"]) == ["GTACG", "ACGTA"]
+
+    def test_chromosome_boundary_n_padding(self):
+        # A near-the-start site whose 5-mer flank runs off the chromosome must be
+        # dropped. Emulate the real Genome, which N-pads out-of-range reads so the
+        # returned length is always end-start (exercises the lo < 0 path).
+        seq = "ACGTACGT"  # 0-based 0..7
+
+        def padded(chrom, start, end):
+            return "".join(
+                seq[i] if 0 <= i < len(seq) else "N" for i in range(start, end)
+            )
+
+        # pos 1 -> 5-mer 0-based [-2, 3) = "NNACG" (left N-pad) -> dropped;
+        # pos 4 -> 5-mer [1, 6) = "CGTAC" -> kept. (single read lo=-2, hi=6)
+        sites = pd.DataFrame({"chrom": ["1", "1"], "pos": [1, 4], "ref": ["A", "T"]})
+        out = annotate_pentanucleotide(sites, padded)
+        assert list(out["pos"]) == [4]
+        assert list(out["pentanuc"]) == ["CGTAC"]
+
+
+class TestSubsamplePerContext:
+    def _sites(self) -> pd.DataFrame:
+        # 5x AAAAA, 2x CCCCC, 1x GGGGG.
+        return pd.DataFrame(
+            {
+                "chrom": ["1"] * 7 + ["2"],
+                "pos": [10, 20, 30, 40, 50, 60, 70, 5],
+                "ref": ["A"] * 5 + ["C"] * 2 + ["G"],
+                "pentanuc": ["AAAAA"] * 5 + ["CCCCC"] * 2 + ["GGGGG"],
+            }
+        )
+
+    def test_caps_and_keeps_small_groups_whole(self):
+        out = subsample_per_context(self._sites(), n=3, seed=0)
+        counts = out.groupby("pentanuc").size().to_dict()
+        assert counts == {"AAAAA": 3, "CCCCC": 2, "GGGGG": 1}  # capped / kept whole
+        # untouched groups keep all their original positions
+        assert set(out.loc[out["pentanuc"] == "CCCCC", "pos"]) == {60, 70}
+
+    def test_deterministic_same_seed(self):
+        a = subsample_per_context(self._sites(), n=3, seed=7)
+        b = subsample_per_context(self._sites(), n=3, seed=7)
+        pd.testing.assert_frame_equal(a, b)
+
+    def test_independent_of_input_row_order(self):
+        ordered = subsample_per_context(self._sites(), n=3, seed=7)
+        shuffled = subsample_per_context(
+            self._sites().sample(frac=1, random_state=1).reset_index(drop=True),
+            n=3,
+            seed=7,
+        )
+        pd.testing.assert_frame_equal(ordered, shuffled)
+
+    def test_preserves_columns_and_is_subset(self):
+        src = self._sites()
+        out = subsample_per_context(src, n=2, seed=0)
+        assert list(out.columns) == list(src.columns)
+        merged = out.merge(src, on=list(src.columns), how="left", indicator=True)
+        assert (merged["_merge"] == "both").all()  # every kept row came from src
+
+    def test_n_larger_than_all_groups_returns_all(self):
+        src = self._sites()
+        out = subsample_per_context(src, n=100, seed=0)
+        assert len(out) == len(src)
