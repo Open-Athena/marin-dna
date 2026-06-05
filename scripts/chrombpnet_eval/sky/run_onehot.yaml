@@ -39,6 +39,7 @@ envs:
     NO_BIAS: "0"                # #259 ablation: "1" drops the Tn5/DNase bias entirely
     SAME_PAD: "0"               # #259: "1" = zero-padded variant (out_window scales w/ in_window, constant params; no bias)
     ALPHAGENOME: "0"            # #259: "1" = AlphaGenome/Borzoi per-base head + Poisson-Multinomial loss + target scaling (no bias)
+    PERBASE_MSE: "0"            # #259: "1" = simplest per-base head + MSE on log1p(per-base counts) (no bias)
     N_SEGMENTS: "1"             # Poisson-Multinomial segments; 1 = full-window total (AlphaGenome's 8 is for their ~1Mb outputs)
     MULTINOMIAL_WEIGHT: "5.0"   # AlphaGenome multinomial-term weight (Borzoi default)
     COUNT_ONLY: "0"             # #259 ablation: "1" = count head only (beta=0, no profile NLL)
@@ -101,6 +102,7 @@ run: |
     BIAS_ARG="--bias data/bias_model_scaled.h5"
     [ "$SAME_PAD" = "1" ] && { ARGS="$ARGS --same-pad"; BIAS_ARG=""; }
     [ "$ALPHAGENOME" = "1" ] && { ARGS="$ARGS --alphagenome --n-segments $N_SEGMENTS --multinomial-weight $MULTINOMIAL_WEIGHT"; BIAS_ARG=""; }
+    [ "$PERBASE_MSE" = "1" ] && { ARGS="$ARGS --perbase-mse"; BIAS_ARG=""; }
     if [ "$SMOKE" = "1" ]; then
         ARGS="$ARGS --log-every-n-steps 1 --qtl-every-steps 20 --limit-train-batches 300 --max-steps 60"
     else

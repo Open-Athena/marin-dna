@@ -59,6 +59,10 @@ from marin_dna.pipelines.chrombpnet_eval.alphagenome import (
     build_alphagenome_perbase,
     estimate_track_mean,
 )
+from marin_dna.pipelines.chrombpnet_eval.perbase_mse import (
+    PerBaseMSELogLit,
+    build_perbase_mse,
+)
 from marin_dna.pipelines.chrombpnet_eval.samepad import build_samepad_chrombpnet
 from marin_dna.pipelines.chrombpnet_eval.qtl_eval import (
     QTL_DATASETS,
@@ -139,6 +143,13 @@ def parse_args() -> argparse.Namespace:
         help="use the AlphaGenome/Borzoi-style single per-base head + "
         "Poisson-Multinomial loss with target scaling (#259, alphagenome.py). "
         "Zero-padded tower, no bias; out_window scales with in_window.",
+    )
+    p.add_argument(
+        "--perbase-mse",
+        action="store_true",
+        help="simplest per-base loss (#259, perbase_mse.py): one head, plain MSE "
+        "on log1p(per-base counts). No Poisson/multinomial/scaling/segments. "
+        "Zero-padded tower, no bias.",
     )
     p.add_argument(
         "--n-segments",
@@ -363,6 +374,21 @@ def main() -> None:
             f"n_layers={args.n_layers}, n_filters={args.n_filters}, "
             f"n_segments={args.n_segments}, multinomial_weight={args.multinomial_weight}"
         )
+    elif args.perbase_mse:
+        # Simplest per-base variant (#259): one head, MSE on log1p(per-base counts).
+        assert args.out_window <= args.in_window, (args.out_window, args.in_window)
+        assert not args.bias, "--perbase-mse has no bias model (drop --bias)"
+        model = build_perbase_mse(
+            out_window=args.out_window,
+            n_layers=args.n_layers,
+            n_filters=args.n_filters,
+        )
+        n_trainable = count_trainable_params(model)
+        print(
+            f"[train] per-base MSE-log (#259): {n_trainable:,} trainable, "
+            f"in_window={args.in_window}, out_window={args.out_window}, "
+            f"n_layers={args.n_layers}, n_filters={args.n_filters}"
+        )
     elif args.same_pad:
         # Zero-padded variant (#259): width-preserving convs, no bias, constant
         # n_layers/params across context; out_window scaled with in_window.
@@ -419,6 +445,17 @@ def main() -> None:
             n_segments=args.n_segments,
             multinomial_weight=args.multinomial_weight,
             apply_squashing=False,  # RNA-seq only; DNase/ATAC off (paper)
+            lr=args.lr,
+            optimizer=args.optimizer,
+            weight_decay=args.weight_decay,
+            warmup_steps=args.warmup_steps,
+            lr_scheduler=None if args.lr_scheduler == "none" else args.lr_scheduler,
+            warmup_frac=args.warmup_frac,
+            decay_frac=args.decay_frac,
+        )
+    elif args.perbase_mse:
+        lit = PerBaseMSELogLit(
+            model,
             lr=args.lr,
             optimizer=args.optimizer,
             weight_decay=args.weight_decay,
