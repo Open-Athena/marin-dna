@@ -1,6 +1,6 @@
 """Custom lm-eval-harness tasks for DNA experiments.
 
-Importing this module installs two idempotent monkeypatches:
+Importing this module installs three idempotent monkeypatches:
 
 1. ``lm_eval.tasks.TaskManager.__init__`` — appends this package's directory
    to ``include_path`` so the YAML task definitions here are discoverable.
@@ -13,6 +13,16 @@ Importing this module installs two idempotent monkeypatches:
    ``ValueError`` otherwise. ``DnaVepLlrEvalTask`` extends ``Task`` directly
    because ``ConfigurableTask.__init__`` eagerly walks fewshot docs and hangs
    on large datasets.
+
+3. ``levanter.eval_harness._encode_batch`` — prepends the tokenizer's ``[BOS]``
+   id to loglikelihood token sequences. Upstream hardcodes
+   ``add_special_tokens=False``, so the online VEP eval forwards each variant
+   sequence WITHOUT the ``[BOS]`` our DNA gLMs train with (offline ``evals_v2``
+   prepends it). That dropped BOS was the root cause of the online↔offline AUPRC
+   divergence in #257 (``ccre distal/fwd`` 0.158 with-BOS vs 0.250 no-BOS,
+   reproduced framework-independently). This is a **stopgap** monkeypatch (#263);
+   the durable per-task ``add_special_tokens`` flag threaded through levanter is
+   tracked in #264.
 """
 
 import logging
@@ -88,5 +98,46 @@ def _install_levanter_rename_patch() -> None:
     LmEvalHarnessConfig._marin_dna_rename_patched = True
 
 
+def _prepend_bos(ids: list[list[int]], bos_token_id: int | None) -> list[list[int]]:
+    """Prepend ``bos_token_id`` to each token sequence (idempotent).
+
+    No-op when ``bos_token_id is None`` (a tokenizer without a BOS), so the
+    raw-nucleotide eval datasets stay tokenizer-agnostic; skips sequences that
+    already start with BOS.
+    """
+    if bos_token_id is None:
+        return ids
+    return [seq if seq[:1] == [bos_token_id] else [bos_token_id, *seq] for seq in ids]
+
+
+def _install_bos_fix() -> None:
+    """Wrap ``levanter.eval_harness._encode_batch`` to prepend the tokenizer's BOS.
+
+    Upstream hardcodes ``add_special_tokens=False`` at this single loglikelihood
+    tokenization chokepoint, dropping the ``[BOS]`` our DNA gLMs train with — the
+    root cause of #257. Applied to both the combined and the context encodings,
+    so the ``prompt_length`` boundary stays consistent and only the prepended BOS
+    changes. Stopgap for #263; the durable per-task-flag fix is #264.
+    """
+    try:
+        from levanter import eval_harness
+    except ImportError:
+        return
+
+    if getattr(eval_harness, "_marin_dna_bos_patched", False):
+        return
+
+    original_encode_batch = eval_harness._encode_batch
+
+    @wraps(original_encode_batch)
+    def patched_encode_batch(tokenizer, texts):
+        ids = original_encode_batch(tokenizer, texts)
+        return _prepend_bos(ids, getattr(tokenizer, "bos_token_id", None))
+
+    eval_harness._encode_batch = patched_encode_batch
+    eval_harness._marin_dna_bos_patched = True
+
+
 _install_task_manager_patch()
 _install_levanter_rename_patch()
+_install_bos_fix()
