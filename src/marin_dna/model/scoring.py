@@ -26,6 +26,8 @@ from jaxtyping import Bool, Float, Int
 from torch import Tensor
 from transformers.cache_utils import DynamicCache
 
+from marin_dna.data.dna import COMPLEMENT, NUCLEOTIDES
+
 
 # https://github.com/ArcInstitute/evo2/blob/4c3c8522dc99d2dc14b5b5a07cd65f2b67e6f457/evo2/scoring.py#L37
 def _logits_to_logprobs(
@@ -388,22 +390,54 @@ def compute_marginal_clm(
 
 
 def entropy_from_marginal(marginal_log_prob: np.ndarray) -> np.ndarray:
-    """Shannon entropy ``H = −Σ_x exp(mlp)·mlp`` of a 4-allele marginal.
+    """Shannon entropy ``H = −Σ_x p(x)·log p(x)`` of a 4-allele marginal.
 
-    Pure-CPU reduction over the last axis of a ``[..., 4]`` marginal
-    log-probability array — the output of ``compute_marginal_clm`` /
-    ``marin_dna.model.runner.run_variant_marginal``. Returns ``[...]`` entropy in
-    nats, in ``[0, log 4]`` (``log 4`` at the uniform marginal, ``→ 0`` at a
-    degenerate one).
+    Pure-CPU reduction over the last axis of a ``[..., 4]`` array — the
+    per-strand output of ``compute_marginal_clm`` /
+    ``marin_dna.model.runner.run_variant_marginal``, or an ``rc_average_marginal``
+    of the two strands. Returns ``[...]`` entropy in nats, in ``[0, log 4]``
+    (``log 4`` at the uniform marginal, ``→ 0`` at a degenerate one).
 
-    Entropy is permutation-invariant, so the FWD and RC marginals — whose four
-    columns are labelled by complementary alleles — give the same value;
-    averaging the two per-strand entropies for the FWD+RC mean is therefore
-    unambiguous. Accepts NumPy arrays, the dtype the HF Trainer harness returns
-    from ``run_variant_marginal``.
+    **Normalizes its input internally** (``log_softmax`` over the 4 alleles), so
+    it accepts either a normalized log-marginal or an unnormalized one — logits
+    up to a per-row additive constant. That is what lets the FWD+RC combination
+    be a plain mean of log-probs with no separate renormalization step
+    (``rc_average_marginal``): the normalization is deferred to here. Idempotent
+    on an already-normalized marginal. Accepts NumPy arrays, the dtype the HF
+    Trainer harness returns.
     """
-    mlp = np.asarray(marginal_log_prob, dtype=np.float64)
-    return -(np.exp(mlp) * mlp).sum(axis=-1)
+    logp = np.asarray(marginal_log_prob, dtype=np.float64)
+    logp = logp - np.logaddexp.reduce(logp, axis=-1, keepdims=True)  # log_softmax
+    return -(np.exp(logp) * logp).sum(axis=-1)
+
+
+# RC marginal columns are the complement alleles: column i of the RC-strand
+# marginal is the forward-strand allele complement(NUCLEOTIDES[i]). Realigning to
+# forward-strand ACGT order before averaging is the A↔T / C↔G reversal [3,2,1,0].
+_RC_ALLELE_PERM = [NUCLEOTIDES.index(COMPLEMENT[n]) for n in NUCLEOTIDES]
+
+
+def rc_average_marginal(fwd: np.ndarray, rc: np.ndarray) -> np.ndarray:
+    """FWD+RC mean of two per-strand 4-allele log-marginals, in forward ACGT order.
+
+    The forward and reverse-complement passes of ``run_variant_marginal`` estimate
+    the same site distribution from opposite strands. This averages their
+    log-probabilities (the geometric mean of the two strand distributions) after
+    realigning the RC columns to forward-strand allele order — the RC marginal's
+    column ``i`` is the forward allele ``complement(NUCLEOTIDES[i])``, so the
+    realignment is the ``A↔T / C↔G`` reversal ``[3, 2, 1, 0]``. A naive
+    ``(fwd + rc) / 2`` would average mismatched alleles: a silent strand bug.
+
+    Returns the averaged log-marginal ``[..., 4]`` (forward ACGT order), left
+    **unnormalized** — feed it to ``entropy_from_marginal`` (which normalizes
+    internally) or take allele differences for the LLR (normalization-invariant).
+    The average is linear in the log-marginal, so ``avg[alt] − avg[ref]`` equals
+    the mean of the two per-strand LLRs — matching how the eval bundle FWD+RC
+    -averages.
+    """
+    fwd = np.asarray(fwd, dtype=np.float64)
+    rc = np.asarray(rc, dtype=np.float64)
+    return 0.5 * (fwd + rc[..., _RC_ALLELE_PERM])
 
 
 def _token_id_to_nuc_idx(

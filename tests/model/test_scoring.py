@@ -46,6 +46,7 @@ from marin_dna.model.scoring import (
     compute_reflogprob_clm,
     compute_variant_score_bundle,
     entropy_from_marginal,
+    rc_average_marginal,
 )
 
 
@@ -917,6 +918,78 @@ def test_entropy_from_marginal_permutation_invariant():
     np.testing.assert_allclose(
         entropy_from_marginal(marg), entropy_from_marginal(comp), atol=1e-12
     )
+
+
+def test_entropy_from_marginal_normalizes_internally():
+    """``entropy_from_marginal`` accepts unnormalized logits (it normalizes
+    internally) — so a plain-mean FWD+RC average of log-probs needs no separate
+    renormalization. Per-row additive shifts leave the entropy unchanged."""
+    rng = np.random.default_rng(3)
+    logits = rng.standard_normal((8, 4)) * 3.0  # arbitrary, unnormalized
+    norm = logits - np.log(np.exp(logits).sum(-1, keepdims=True))  # log_softmax
+    expected = -(np.exp(norm) * norm).sum(-1)
+    np.testing.assert_allclose(entropy_from_marginal(logits), expected, atol=1e-10)
+    # softmax is shift-invariant → entropy of (logits + per-row const) is unchanged.
+    shifted = logits + rng.standard_normal((8, 1)) * 10.0
+    np.testing.assert_allclose(
+        entropy_from_marginal(logits), entropy_from_marginal(shifted), atol=1e-10
+    )
+
+
+def test_rc_average_marginal_realigns_complement_columns():
+    """``rc_average_marginal`` realigns the RC complement columns before averaging.
+
+    If the RC marginal labels the *same* distribution as FWD but by complement
+    (columns permuted ``[3,2,1,0]``), the aligned average recovers FWD exactly;
+    a naive ``(fwd + rc)/2`` would not."""
+    rng = np.random.default_rng(4)
+    fwd = rng.standard_normal((5, 4))
+    rc_same_dist = fwd[:, [3, 2, 1, 0]]  # RC names the same distribution by complement
+    np.testing.assert_allclose(rc_average_marginal(fwd, rc_same_dist), fwd, atol=1e-12)
+    assert not np.allclose(0.5 * (fwd + rc_same_dist), fwd, atol=1e-3)
+
+
+def test_rc_average_marginal_llr_matches_bundle_rc_average(tmp_path):
+    """End-to-end: the LLR read off ``rc_average_marginal`` equals the eval
+    bundle's FWD+RC-averaged LLR — validating both the complement realignment and
+    the average-then-derive ≡ derive-then-average linearity."""
+    torch.manual_seed(0)
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    model = AutoModelForCausalLM.from_pretrained(TINY_CLM)
+    model.eval()
+    genome = Genome(_write_long_fasta(tmp_path))
+    dataset = _make_variant_dataset()
+    window_size = 16
+
+    marg = run_variant_marginal(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    avg = rc_average_marginal(marg["fwd"], marg["rc"])  # [N, 4], forward ACGT order
+
+    bundle = run_variant_score_bundle(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    bundle_llr_avg = 0.5 * (bundle["fwd"][:, 0] + bundle["rc"][:, 0])
+
+    ref_idx = np.array([NUCLEOTIDES.index(r) for r in dataset["ref"]])
+    alt_idx = np.array([NUCLEOTIDES.index(a) for a in dataset["alt"]])
+    rows = np.arange(len(dataset))
+    marg_avg_llr = avg[rows, alt_idx] - avg[rows, ref_idx]
+    np.testing.assert_allclose(marg_avg_llr, bundle_llr_avg, rtol=1e-4, atol=1e-4)
 
 
 def test_run_variant_marginal_rc_returns_both_strands(tmp_path):
