@@ -399,11 +399,11 @@ def main() -> None:
 
     lit: L.LightningModule
     if args.alphagenome:
-        # AlphaGenome target normaliser = mean non-zero coverage over the training
-        # subsample (DNase: no squashing). The QTL log2FC is invariant to it.
-        track_mean = estimate_track_mean(datamodule)
+        # AlphaGenome target normaliser = genome-wide mean of non-zero coverage
+        # (from the bigWig header; DNase: no squashing). QTL log2FC is invariant to it.
+        track_mean = estimate_track_mean(args.bigwig)
         print(
-            f"[train] alphagenome track_mean (mean non-zero coverage)={track_mean:.3f}"
+            f"[train] alphagenome track_mean (genome-wide mean non-zero)={track_mean:.4f}"
         )
         lit = AlphaGenomeLit(
             model,

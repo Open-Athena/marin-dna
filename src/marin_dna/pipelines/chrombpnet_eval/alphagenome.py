@@ -167,12 +167,13 @@ class AlphaGenomePerBase(torch.nn.Module):
         pred = torch.nn.functional.softplus(h) * torch.nn.functional.softplus(
             self.scale
         )
-        # QTL readout: invert the soft-clip to a RAW-space total before summing, so
-        # the score lives in the same raw-count space as the mse-log/count-head arms
-        # (comparable on the leaderboard). Sum(softclip(x)) is NOT a monotone fn of
-        # Sum(x), so scoring in scaled space would not match. The *track_mean factor
-        # of the full predictions_scaling is omitted — it cancels in the ref/alt ratio.
-        raw = inverse_soft_clip(pred)
+        # QTL readout: map predictions back to RAW count space with AlphaGenome's
+        # ``predictions_scaling`` before summing, so the score lives in the same
+        # raw-count space as the mse-log/count-head arms (comparable). Sum(softclip(x))
+        # is NOT a monotone fn of Sum(x), so scoring in scaled space would not match.
+        # track_mean=1.0: the real factor is a global constant that cancels in the
+        # ref/alt log2FC, so we omit it (no need to thread track_mean into the model).
+        raw = predictions_scaling(pred, track_mean=1.0, apply_squashing=False)
         log_total = torch.log(raw.sum(dim=-1, keepdim=True) + self.eps)  # [B, 1]
         return pred, log_total
 
@@ -186,30 +187,33 @@ def build_alphagenome_perbase(
     )
 
 
-def estimate_track_mean(datamodule: object) -> float:
-    """Per-track mean of non-zero per-bp coverage — the AlphaGenome target
-    normaliser (``targets_scaling`` divides by it, setting the soft-clip scale).
+def estimate_track_mean(bigwig_path: str) -> float:
+    """Per-track mean of non-zero per-bp coverage across the **entire genome** —
+    the AlphaGenome target normaliser ("pre-calculated per track across the entire
+    genome during dataset generation"; ``targets_scaling`` divides by it, setting
+    the soft-clip scale).
 
-    Computed over the same peak+subsampled-negative training loci ``median_count``
-    uses (accessing ``median_count`` first populates ``train_val_subsampled``), so
-    it is consistent with the rest of the pipeline. The QTL log2FC is invariant to
-    this value; it only sets the scaled-space magnitude the model is trained on.
+    Read straight from the bigWig header: ``sumData / nBasesCovered``. For a sparse
+    coverage track (0-coverage bases are not stored) ``nBasesCovered`` is the count
+    of non-zero bases, so this is exactly the genome-wide mean of non-zero values.
+    The sparsity assumption is asserted (fail loud if the track stored zeros, which
+    would make the header mean an over-all-bases mean instead).
+
+    The QTL log2FC is invariant to this value; it only sets the soft-clip scale and
+    the scaled-space magnitude the model is trained on.
     """
     import pyBigWig
 
-    from marin_dna.pipelines.chrombpnet_eval._vendor.chrombpnet.data_utils import (
-        get_cts,
+    bw = pyBigWig.open(bigwig_path)
+    header = bw.header()
+    genome_size = sum(bw.chroms().values())
+    bw.close()
+    covered = header["nBasesCovered"]
+    assert 0 < covered < 0.9 * genome_size, (
+        f"bigWig nBasesCovered={covered:,} of genome {genome_size:,} — not sparse; "
+        "the header mean would include stored zeros, not the mean of non-zero values"
     )
-
-    _ = datamodule.median_count  # populates datamodule.train_val_subsampled
-    cts = get_cts(
-        datamodule.train_val_subsampled,
-        pyBigWig.open(datamodule.config.bigwig),
-        datamodule.config.out_window,
-    )
-    nonzero = cts[cts > 0]
-    assert nonzero.size > 0, "no non-zero coverage in the training subsample"
-    return float(nonzero.mean())
+    return float(header["sumData"] / covered)
 
 
 class AlphaGenomeLit(ChromBPNetLit):
