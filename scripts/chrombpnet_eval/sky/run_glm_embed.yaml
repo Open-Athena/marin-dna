@@ -1,0 +1,112 @@
+# SkyPilot task: train a ChromBPNet head on FROZEN gLM embeddings (#243 M2).
+#
+# Stages the GM12878 DNase inputs (ARSENAL Synapse syn72513540) + a chr-prefixed
+# hg38 fasta, AND the frozen gLM checkpoint (exp136-proj_v30 hf/step-9999 from
+# gs://marin-us-central1/...), then runs scripts/chrombpnet_eval/train_glm_embed.py.
+#
+# Auth: the user's GCP application-default credentials are mounted from
+# ~/.config/gcloud/application_default_credentials.json (run `gcloud auth
+# application-default login` locally first); the setup installs gcloud so the
+# `gcloud storage cp -r` of the gLM works. SYNAPSE_AUTH_TOKEN / WANDB_API_KEY /
+# HF_TOKEN are passed via --env. AWS creds (S3, if any) come from the instance role.
+#
+# SMOKE=1 (default): ~60 steps on the default chrom split, QTL every 20 steps,
+#   per-step logging — a few minutes to confirm gLM-on-GPU + forward + QTL +
+#   VRAM at batch 128, no NaN.
+# SMOKE=0: the full #259 recipe — all chromosomes, 12k-step WSD, QTL every 500.
+#
+# Launch (smoke, online W&B to watch the curves):
+#   sky launch -c cbp-glm scripts/chrombpnet_eval/sky/run_glm_embed.yaml \
+#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN -i 60 --down
+# Full run on the same cluster:
+#   sky exec cbp-glm scripts/chrombpnet_eval/sky/run_glm_embed.yaml \
+#     --env SYNAPSE_AUTH_TOKEN --env WANDB_API_KEY --env HF_TOKEN --env SMOKE=0
+
+name: cbp-glm
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1        # 24 GB; frozen 0.6B gLM (~2.4 GB) + conv head
+    memory: 64+                 # --all-chroms loads all 24 chrom seqs into RAM
+                                # (g5.xlarge's 16 GB OOMs); g5.4xlarge has 64 GB
+    disk_size: 200
+    labels:
+        project: dna
+
+workdir: .
+
+file_mounts:
+    # Application Default Credentials so `gcloud storage cp -r` can pull the
+    # private gLM checkpoint from gs://marin-us-central1/...
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+envs:
+    SMOKE: "1"
+    BATCH: "128"                # bf16 fits on A10G; frozen gLM runs in no_grad
+    PRECISION: "bf16-mixed"     # bf16-safe forward; gLM fwd ×2/step dominates
+    WANDB_MODE: "online"
+    WANDB_API_KEY: ""           # pass via `--env WANDB_API_KEY`
+    SYNAPSE_AUTH_TOKEN: ""      # pass via `--env SYNAPSE_AUTH_TOKEN`
+    HF_TOKEN: ""                # pass via `--env HF_TOKEN` (caqtl/dsqtl parquets)
+    GLM_GCS: "gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999"
+
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    uv sync --extra chrombpnet
+    # Fail fast in setup if the ADC can't reach the gLM bucket.
+    gcloud storage ls "$GLM_GCS/config.json" >/dev/null
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export WANDB_MODE="${WANDB_MODE:-online}"
+    cd ~/sky_workdir
+    mkdir -p data
+
+    # GM12878 DNase inputs (ARSENAL Synapse) + chr-prefixed hg38 fasta. `set +x`
+    # around the curl so `set -x` doesn't echo the bearer token to logs.
+    syn() {
+        test -s "$2" && return 0
+        { set +x; } 2>/dev/null
+        curl -fsSL -H "Authorization: Bearer $SYNAPSE_AUTH_TOKEN" \
+            "https://repo-prod.prod.sagebase.org/repo/v1/entity/$1/file" -o "$2"
+        set -x
+    }
+    syn syn73665410 data/gm12878_peaks.bed
+    syn syn73665411 data/gm12878_nonpeaks.bed
+    syn syn73665418 data/GM12878_unstranded.bw
+    syn syn60756064 data/GRCh38.fasta
+    syn syn62284997 data/GRCh38.fasta.fai
+    test -s data/hg38.chrom.sizes || curl -fsSL \
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes" -o data/hg38.chrom.sizes
+
+    # Frozen gLM checkpoint (exp136-proj_v30) from GCS.
+    test -s data/exp136/config.json || { mkdir -p data/exp136 && gcloud storage cp -r "$GLM_GCS/*" data/exp136/; }
+
+    nvidia-smi
+    COMMON="--glm-dir data/exp136 \
+        --peaks data/gm12878_peaks.bed --nonpeaks data/gm12878_nonpeaks.bed \
+        --bigwig data/GM12878_unstranded.bw \
+        --fasta data/GRCh38.fasta --chrom-sizes data/hg38.chrom.sizes \
+        --batch-size $BATCH --num-workers 4 --precision $PRECISION \
+        --qtl-eval --qtl-genome data/GRCh38.fasta --qtl-chrom-prefix chr \
+        --out-dir runs/glm_frozen"
+    if [ "$SMOKE" = "1" ]; then
+        # short budget, default chroms, frequent QTL — validate the whole path
+        uv run --extra chrombpnet python scripts/chrombpnet_eval/train_glm_embed.py \
+            $COMMON --max-steps 60 --qtl-every-steps 20 --log-every-n-steps 1 \
+            --wandb-name dna-exp243-glm-frozen-smoke
+    else
+        # full #259 recipe: all-chroms, 12k-step WSD, AdamW(wd=0.01), QTL every 500
+        uv run --extra chrombpnet python scripts/chrombpnet_eval/train_glm_embed.py \
+            $COMMON --all-chroms --max-steps 12000 --qtl-every-steps 500 \
+            --wandb-name dna-exp243-glm-frozen-samepad-wsd
+    fi
