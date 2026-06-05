@@ -36,6 +36,7 @@ class PerBaseMSELog(torch.nn.Module):
         n_filters: int = 512,
         n_layers: int = 8,
         conv1_kernel_size: int = 21,
+        head_kernel_size: int = 75,
         eps: float = 1e-7,
     ) -> None:
         super().__init__()
@@ -53,8 +54,17 @@ class PerBaseMSELog(torch.nn.Module):
                 for i in range(1, n_layers + 1)
             ]
         )
-        # Per-base head: a Linear (1x1 conv) -> one unconstrained log-count/position.
-        self.head = torch.nn.Conv1d(n_filters, 1, kernel_size=1)
+        # Normalize the residual-accumulated tower features before the head — without
+        # this the raw head output explodes (MSE ~hundreds at init, the two-head
+        # sidesteps it via softmax/pooling). #259.
+        self.norm = torch.nn.BatchNorm1d(n_filters)
+        # Per-base head: a ``head_kernel_size``-wide conv (default 75, matched to the
+        # two-head profile conv — controls the single-head "less conv" confounder).
+        # **Link = identity** (the MSE target is log1p(count), so the head predicts
+        # an unconstrained log-count/position — NO softplus, which is a Poisson link).
+        self.head = torch.nn.Conv1d(
+            n_filters, 1, kernel_size=head_kernel_size, padding="same"
+        )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         if x.shape[1] != 4:
@@ -62,7 +72,8 @@ class PerBaseMSELog(torch.nn.Module):
         x = torch.relu(self.iconv(x))
         for conv in self.rconvs:
             x = x + torch.relu(conv(x))  # residual; 'same' padding keeps width
-        y = self.head(x).squeeze(1)  # [B, in_window] per-base log-count
+        x = self.norm(x)  # normalize tower features before the head (tames init)
+        y = self.head(x).squeeze(1)  # [B, in_window] per-base log-count (identity link)
         length = y.shape[-1]
         assert self.out_window <= length, (self.out_window, length)
         start = (length - self.out_window) // 2
@@ -76,10 +87,19 @@ class PerBaseMSELog(torch.nn.Module):
 
 
 def build_perbase_mse(
-    *, out_window: int, n_filters: int = 512, n_layers: int = 8
+    *,
+    out_window: int,
+    n_filters: int = 512,
+    n_layers: int = 8,
+    head_kernel_size: int = 75,
 ) -> PerBaseMSELog:
     """Construct the per-base MSE-log model (#259, simplest). See module docstring."""
-    return PerBaseMSELog(out_window=out_window, n_filters=n_filters, n_layers=n_layers)
+    return PerBaseMSELog(
+        out_window=out_window,
+        n_filters=n_filters,
+        n_layers=n_layers,
+        head_kernel_size=head_kernel_size,
+    )
 
 
 class PerBaseMSELogLit(ChromBPNetLit):

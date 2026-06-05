@@ -129,6 +129,7 @@ class AlphaGenomePerBase(torch.nn.Module):
         n_filters: int = 512,
         n_layers: int = 8,
         conv1_kernel_size: int = 21,
+        head_kernel_size: int = 75,
         eps: float = 1e-7,
     ) -> None:
         super().__init__()
@@ -146,11 +147,18 @@ class AlphaGenomePerBase(torch.nn.Module):
                 for i in range(1, n_layers + 1)
             ]
         )
-        # Per-base head, exactly AlphaGenome ``tracks_scaled_predictions``: a
-        # Linear over channels at each position (== a 1x1 conv on the context-rich
-        # tower embeddings) -> Softplus, times a learnable per-track positive scale
-        # (Softplus(scale), init 0 -> ~0.69), ensuring a non-negative output.
-        self.head = torch.nn.Conv1d(n_filters, 1, kernel_size=1)
+        # Normalize the (unnormalized, residual-accumulated) tower features before
+        # the head (AlphaGenome's Linear head reads LayerNorm'd transformer
+        # embeddings; our conv tower has none, so add one) — tames the init scale.
+        self.norm = torch.nn.BatchNorm1d(n_filters)
+        # Per-base head: a ``head_kernel_size``-wide conv (default 75, matched to
+        # the two-head profile conv so the readout has the same convolution —
+        # controls the single-head "less conv" confounder; AlphaGenome's literal
+        # head is 1x1). **Link = Softplus** (Poisson needs a non-negative rate),
+        # times a learnable per-track positive scale (Softplus(scale), init 0).
+        self.head = torch.nn.Conv1d(
+            n_filters, 1, kernel_size=head_kernel_size, padding="same"
+        )
         self.scale = torch.nn.Parameter(torch.zeros(1))
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -159,6 +167,7 @@ class AlphaGenomePerBase(torch.nn.Module):
         x = torch.relu(self.iconv(x))
         for conv in self.rconvs:
             x = x + torch.relu(conv(x))  # residual; 'same' padding keeps width
+        x = self.norm(x)  # normalize tower features before the head
         h = self.head(x).squeeze(1)  # [B, in_window]
         length = h.shape[-1]
         assert self.out_window <= length, (self.out_window, length)
@@ -179,11 +188,18 @@ class AlphaGenomePerBase(torch.nn.Module):
 
 
 def build_alphagenome_perbase(
-    *, out_window: int, n_filters: int = 512, n_layers: int = 8
+    *,
+    out_window: int,
+    n_filters: int = 512,
+    n_layers: int = 8,
+    head_kernel_size: int = 75,
 ) -> AlphaGenomePerBase:
     """Construct the AlphaGenome-style per-base model (#259). See module docstring."""
     return AlphaGenomePerBase(
-        out_window=out_window, n_filters=n_filters, n_layers=n_layers
+        out_window=out_window,
+        n_filters=n_filters,
+        n_layers=n_layers,
+        head_kernel_size=head_kernel_size,
     )
 
 

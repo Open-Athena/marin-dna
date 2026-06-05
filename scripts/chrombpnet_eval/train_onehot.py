@@ -109,6 +109,14 @@ def parse_args() -> argparse.Namespace:
         "constant depth/RF: 362 ~= half params, 724 ~= double vs the 512 default.",
     )
     p.add_argument(
+        "--head-kernel",
+        type=int,
+        default=75,
+        help="per-base head conv width (--alphagenome/--perbase-mse, #259). 75 "
+        "matches the two-head profile conv (controls the single-head 'less conv' "
+        "confounder); 1 = AlphaGenome's literal Linear head.",
+    )
+    p.add_argument(
         "--jitter",
         type=int,
         default=500,
@@ -366,6 +374,7 @@ def main() -> None:
             out_window=args.out_window,
             n_layers=args.n_layers,
             n_filters=args.n_filters,
+            head_kernel_size=args.head_kernel,
         )
         n_trainable = count_trainable_params(model)
         print(
@@ -382,6 +391,7 @@ def main() -> None:
             out_window=args.out_window,
             n_layers=args.n_layers,
             n_filters=args.n_filters,
+            head_kernel_size=args.head_kernel,
         )
         n_trainable = count_trainable_params(model)
         print(

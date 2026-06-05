@@ -51,6 +51,7 @@ envs:
     OUT_WINDOW: "1000"          # profile output; 255bp/N_LAYERS=5 -> 35
     N_LAYERS: "8"               # dilated layers; fewer for short context (255bp -> 5)
     N_FILTERS: "512"            # #259 capacity knob; params ~n_filters^2 (362=half, 724=double)
+    HEAD_KERNEL: "75"           # per-base head conv width (alphagenome/perbase-mse); 75 matches the two-head profile conv
     JITTER: "500"               # random-crop jitter; shrink for short context (255bp -> 25)
     MAX_STEPS: "12000"          # fixed step budget (#259); SMOKE caps to ~60
     LR_SCHEDULER: "wsd"         # none (constant) | wsd (#259 Warmup-Stable-Decay)
@@ -94,7 +95,7 @@ run: |
 
     nvidia-smi
     # Base args + #259 knobs. SMOKE caps to a tiny budget; otherwise MAX_STEPS.
-    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --n-filters $N_FILTERS --jitter $JITTER"
+    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --n-filters $N_FILTERS --head-kernel $HEAD_KERNEL --jitter $JITTER"
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
     [ "$NO_BIAS" = "1" ] && ARGS="$ARGS --no-bias"
     [ "$COUNT_ONLY" = "1" ] && ARGS="$ARGS --count-only"
