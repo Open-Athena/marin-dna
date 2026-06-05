@@ -56,6 +56,7 @@ envs:
     MAX_STEPS: "12000"          # fixed step budget (#259); SMOKE caps to ~60
     LR_SCHEDULER: "wsd"         # none (constant) | wsd (#259 Warmup-Stable-Decay)
     QTL_EVERY: "500"            # log the QTL metric every N global steps (decoupled from epochs)
+    SEED: "0"                   # seed_everything (multi-seed robustness confirms, #259)
     WANDB_NAME: "dna-exp259-onehot-allchroms-wsd"
     WANDB_MODE: "online"
     WANDB_API_KEY: ""           # pass via `sky launch --env WANDB_API_KEY`
@@ -95,7 +96,7 @@ run: |
 
     nvidia-smi
     # Base args + #259 knobs. SMOKE caps to a tiny budget; otherwise MAX_STEPS.
-    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --n-filters $N_FILTERS --head-kernel $HEAD_KERNEL --jitter $JITTER"
+    ARGS="--batch-size $BATCH --num-workers 4 --precision $PRECISION --seed $SEED --lr-scheduler $LR_SCHEDULER --optimizer $OPTIMIZER --weight-decay $WEIGHT_DECAY --count-loss $COUNT_LOSS --count-weight-scale $COUNT_WEIGHT_SCALE --in-window $IN_WINDOW --out-window $OUT_WINDOW --n-layers $N_LAYERS --n-filters $N_FILTERS --head-kernel $HEAD_KERNEL --jitter $JITTER"
     [ "$ALL_CHROMS" = "1" ] && ARGS="$ARGS --all-chroms"
     [ "$NO_BIAS" = "1" ] && ARGS="$ARGS --no-bias"
     [ "$COUNT_ONLY" = "1" ] && ARGS="$ARGS --count-only"
