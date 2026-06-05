@@ -855,6 +855,28 @@ inference:
 
 
 # ---------------------------------------------------------------------------
+# cLLR mutation-rate calibration tables (stage 3, #267/#270). Off `rule all`;
+# build with `snakemake calibration` (or a single
+# results/calibration/<model>/llr_neutral_mean_n{n}.parquet target). Scores the
+# pinned subsampled neutral set with the fast LLR bundle (FWD+RC) and bins by
+# pentanuc_mut → per-checkpoint llr_neutral_mean table. Entropy calibration is a
+# separate, deferred path. See rules/calibration.smk.
+# ---------------------------------------------------------------------------
+calibration:
+  # S3 prefix of the neutral-sites pipeline's subsampled artifacts. The rule
+  # appends `/neutral_sites_n{n}.parquet` (n from the target wildcard).
+  neutral_sites_s3_prefix: s3://oa-bolinas/snakemake/neutral_sites/results/subsampled
+  subsample_n: 100        # per-5-mer cap; pins neutral_sites_n100.parquet and the
+                          # `calibration` collector's target names.
+  min_bin_count: 30       # hard floor on observations per pentanuc_mut cell. At
+                          # n=100 the true min is 41 (CpG-depleted 5-mers); 30
+                          # catches a broken/empty cell without false-firing.
+  rc: true                # FWD+RC average, matching the eval convention.
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (our winner / pilot model)
+
+
+# ---------------------------------------------------------------------------
 # Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.
 #
 # NOT a metric: these targets are kept off `rule all`. Build explicitly:
