@@ -114,26 +114,27 @@ def _build_model_config(seq_len: int) -> Qwen3Config:
 
 
 def _install_distal_fwd_capture() -> None:
-    """Capture the ``distal/fwd/auprc`` cell from the AUPRC aggregation so the
-    post-run parity assertion can read it. lm_eval imports the task as a
-    TOP-LEVEL ``dna_vep_llr_eval`` module, so pre-register this package's copy
-    under that name (mirrors exp257) before wrapping its aggregator."""
-    import sys
+    """Capture the ``distal/fwd`` AUPRC cell by intercepting the levanter tracker
+    log payload. The aggregator pushes per-subset cells via
+    ``levanter.tracker.log({f"{prefix}/distal/fwd/auprc": value, ...})``; patching
+    that (resolved at call time) is robust to the ``dna_vep_llr_eval``
+    module-identity issue a direct aggregator patch hits under lm_eval's
+    top-level ``!function`` import."""
+    import levanter.tracker as lt
 
-    from marin_dna.pipelines.evals.lm_eval import dna_vep_llr_eval as dv
+    orig_log = lt.log
 
-    sys.modules["dna_vep_llr_eval"] = dv
-    orig = dv._AuprcAggregation.__call__
+    def patched_log(metrics, *args, **kwargs):
+        try:
+            for k, v in dict(metrics).items():
+                if k.endswith("distal/fwd/auprc"):
+                    _CAPTURED["distal_fwd_auprc"] = float(v)
+                    print(f"[parity] captured {k} = {float(v):.4f}", flush=True)
+        except Exception:  # never let capture break the real logging
+            pass
+        return orig_log(metrics, *args, **kwargs)
 
-    def patched(self, items):
-        out = orig(self, items)
-        val = self.results_store.get("distal/fwd/auprc")
-        if val is not None:
-            _CAPTURED["distal_fwd_auprc"] = float(val)
-            print(f"[parity] captured distal/fwd/auprc = {val:.4f}", flush=True)
-        return out
-
-    dv._AuprcAggregation.__call__ = patched
+    lt.log = patched_log
 
 
 def _force_no_packing() -> None:
