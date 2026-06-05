@@ -64,6 +64,7 @@ from marin_dna.pipelines.chrombpnet_eval.perbase_mse import (
     build_perbase_mse,
 )
 from marin_dna.pipelines.chrombpnet_eval.samepad import build_samepad_chrombpnet
+from marin_dna.pipelines.chrombpnet_eval.ema import EMACallback
 from marin_dna.pipelines.chrombpnet_eval.qtl_eval import (
     QTL_DATASETS,
     QTLEvalCallback,
@@ -264,6 +265,15 @@ def parse_args() -> argparse.Namespace:
         default=1000.0,
         help="global-norm gradient clip (0=off); a generous safety net above the "
         "normal grad_norm (~tens-hundreds) to kill spikes (#247)",
+    )
+    p.add_argument(
+        "--ema",
+        action="store_true",
+        help="track an EMA of the weights and score the QTL metric on the EMA "
+        "weights (#259 knob; clean for the no-running-stats two-head / GroupNorm).",
+    )
+    p.add_argument(
+        "--ema-decay", type=float, default=0.999, help="EMA decay (--ema; #259)"
     )
     p.add_argument(
         "--precision",
@@ -516,6 +526,15 @@ def main() -> None:
             dirpath=f"{args.out_dir}/checkpoints", save_last=True, save_top_k=0
         ),
     ]
+    # EMA of weights (#259 knob). Added BEFORE the QTL callback so its per-step
+    # update runs first → the QTL eval reads the current EMA.
+    ema_cb = None
+    if args.ema:
+        ema_cb = EMACallback(decay=args.ema_decay)
+        callbacks.append(ema_cb)
+        print(
+            f"[train] EMA enabled (decay={args.ema_decay}); QTL scored on EMA weights"
+        )
     if args.qtl_eval:
         assert args.qtl_genome, "--qtl-eval requires --qtl-genome"
         # Pre-extract the positives' ref/alt windows once; the callback re-scores
@@ -532,6 +551,7 @@ def main() -> None:
                 specs,
                 batch_size=args.qtl_batch_size,
                 every_n_steps=args.qtl_every_steps,
+                ema_callback=ema_cb,
             )
         )
     else:

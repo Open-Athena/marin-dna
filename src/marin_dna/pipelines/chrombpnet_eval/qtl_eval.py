@@ -19,6 +19,7 @@ same convention as the M1a supervised metric.
 
 from __future__ import annotations
 
+import contextlib
 import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -202,27 +203,39 @@ class QTLEvalCallback(L.Callback):
         *,
         batch_size: int = 256,
         every_n_steps: int = 500,
+        ema_callback: Any = None,
     ) -> None:
         super().__init__()
         assert every_n_steps > 0, every_n_steps
         self.specs = list(specs)
         self.batch_size = batch_size
         self.every_n_steps = every_n_steps
+        # Optional EMACallback (#259): when wired, score the EMA weights so the QTL
+        # curve reflects an EMA checkpoint (swapped in around scoring, restored after).
+        self.ema_callback = ema_callback
 
     def _log_qtl(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         metrics: dict[str, float] = {}
         pearsons: list[float] = []
-        for spec in self.specs:
-            scores = score_log2fc(
-                cast(torch.nn.Module, pl_module.model),
-                spec.ref_oh,
-                spec.alt_oh,
-                batch_size=self.batch_size,
-                device=pl_module.device,
-            )
-            p = signed_pearson(scores, spec.effect)
-            metrics[f"qtl_{spec.name}_pearson"] = p
-            pearsons.append(p)
+        # Score under the EMA weights if an EMACallback is wired and initialized.
+        ema = getattr(self.ema_callback, "ema", None)
+        ctx = (
+            ema.average_parameters(pl_module)
+            if ema is not None
+            else contextlib.nullcontext()
+        )
+        with ctx:
+            for spec in self.specs:
+                scores = score_log2fc(
+                    cast(torch.nn.Module, pl_module.model),
+                    spec.ref_oh,
+                    spec.alt_oh,
+                    batch_size=self.batch_size,
+                    device=pl_module.device,
+                )
+                p = signed_pearson(scores, spec.effect)
+                metrics[f"qtl_{spec.name}_pearson"] = p
+                pearsons.append(p)
         if not pearsons:
             return
         # Mean across datasets — the headline insight curve (#259).
