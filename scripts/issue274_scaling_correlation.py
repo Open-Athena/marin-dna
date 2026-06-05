@@ -71,6 +71,14 @@ PRED_LABEL = {
     "LL_lower": "LL non-functional",
     "gap": "LL gap",
 }
+# Region-matched variant sets: correlate each region's LLs only against the
+# variant types that live in that region (issue #274 follow-up). The full grid
+# (all regions × variants) is still saved; this drives the focused print.
+REGION_VARIANTS = {
+    "cds": ["missense_variant", "synonymous_variant", "splicing"],
+    "upstream": ["tss_proximal", "5_prime_UTR_variant"],  # tss_proximal ≈ promoter
+    "downstream": ["3_prime_UTR_variant"],
+}
 
 _SIZE_RE = re.compile(r"(h\d+-p[\dA-Za-z]+)")
 
@@ -178,26 +186,29 @@ def decomposition(df: pd.DataFrame, auprc_prefix: str, vep_label: str) -> pd.Dat
     return pd.DataFrame(rows)
 
 
-def _print_region(result: pd.DataFrame, region: str, variants: list[str]) -> None:
+def _print_matched(result: pd.DataFrame) -> None:
+    """Print each region-matched (region → variant) pair's 4 predictor
+    correlations as Pearson r / Spearman ρ."""
+    hdr = ["LL_all", "LL_func", "LL_nonf", "LL_gap"]
     for label, sub in result.groupby("vep_source"):
-        sub = sub[sub["region"] == region]
-        print(f"\n=== VEP={label} | region={region} | Pearson / Spearman (n=8) ===")
-        print(
-            f"{'predictor':18}"
-            + "".join(f"{v.replace('_variant', ''):>16}" for v in variants)
-        )
-        for q in PREDICTORS:
-            lab = PRED_LABEL[q]
-            cells = []
+        print(f"\n=== VEP={label} | region-matched | Pearson r / Spearman ρ (n=8) ===")
+        print(f"{'region → variant':24}" + "".join(f"{h:>16}" for h in hdr))
+        for region, variants in REGION_VARIANTS.items():
             for v in variants:
-                row = sub[(sub["predictor"] == lab) & (sub["variant"] == v)]
-                if len(row):
+                cells = []
+                for q in PREDICTORS:
+                    row = sub[
+                        (sub["region"] == region)
+                        & (sub["predictor"] == PRED_LABEL[q])
+                        & (sub["variant"] == v)
+                    ]
                     cells.append(
-                        f"{row.pearson.iloc[0]:+.2f} / {row.spearman.iloc[0]:+.2f}"
+                        f"{row.pearson.iloc[0]:+.2f}/{row.spearman.iloc[0]:+.2f}"
+                        if len(row)
+                        else "—"
                     )
-                else:
-                    cells.append("—")
-            print(f"{lab:18}" + "".join(f"{c:>16}" for c in cells))
+                name = f"{region}→{v.replace('_variant', '')}"
+                print(f"{name:24}" + "".join(f"{c:>16}" for c in cells))
 
 
 def main() -> None:
@@ -228,8 +239,8 @@ def main() -> None:
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     result.to_parquet(args.out, index=False)
 
-    # Focused print: the CDS region vs the CDS-relevant + overall variants.
-    _print_region(result, "cds", ["missense_variant", "synonymous_variant", "all"])
+    # Focused print: region-matched (region → variant) pairs.
+    _print_matched(result)
     print(f"\nsaved full grid (all regions × predictors × variants) → {args.out}")
 
 
