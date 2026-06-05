@@ -181,3 +181,30 @@ CALIBRATION_MODELS = CALIBRATION_CFG.get("models", [])
 # Fail fast: every calibration model is a known checkpoint.
 for _m in CALIBRATION_MODELS:
     assert _m in MODELS, f"calibration model {_m!r} not found in `models`"
+
+
+# --- LL gap (functional vs non-functional log-likelihood, issue #274) --------
+# Optional `ll_gap:` config section; targets kept off `rule all` (see
+# rules/ll_gap.smk). Reuses the `models:` registry. Its `datasets` are mixed-case
+# validation-interval HF datasets (a `seq` column, uppercase = phyloP-functional)
+# — distinct from the variant `datasets:` list above.
+LL_GAP_CFG = config.get("ll_gap", {})
+LL_GAP_MODELS = LL_GAP_CFG.get("models", [])
+LL_GAP_DATASETS = [d["name"] for d in LL_GAP_CFG.get("datasets", [])]
+
+
+def get_ll_gap_dataset_config(name):
+    for d in LL_GAP_CFG.get("datasets", []):
+        if d["name"] == name:
+            return d
+    raise ValueError(f"ll_gap dataset {name!r} not found in config")
+
+
+# Fail fast: every ll_gap model is a known checkpoint, and every ll_gap dataset
+# pins an HF repo + revision (so a data bump triggers re-execution).
+for _m in LL_GAP_MODELS:
+    assert _m in MODELS, f"ll_gap model {_m!r} not found in `models`"
+for _d in LL_GAP_CFG.get("datasets", []):
+    assert "hf_repo" in _d and "hf_revision" in _d, (
+        f"ll_gap dataset {_d.get('name')!r} needs `hf_repo` + `hf_revision`"
+    )
