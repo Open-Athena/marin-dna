@@ -1,0 +1,57 @@
+# SkyPilot task: score the issue-#270 pilot variants' LLR on one A10G.
+#
+# Reuses the eval LLR bundle (compute_variant_scores) FWD+RC averaged. The
+# exp135-1B-m5.1 checkpoint is already staged in S3 by evals_v2, so we pull it
+# same-region from S3 (no GCS / gcloud / ADC needed) — AWS creds come from the
+# instance role, which also serves the S3 genome byte-range reads.
+#
+# Launch:
+#   sky launch scripts/issue270/sky_score.yaml -c issue270-score --down -y
+# Then:
+#   sky logs issue270-score
+#   (artifact: s3://oa-bolinas/scratch/issue270/pilot_scores.parquet)
+
+name: issue270-score
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1        # 24 GB Ampere — same HW evals_v2 benchmarked batch_size=128 on
+    disk_size: 100
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    CKPT_S3: s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+    VARIANTS_S3: s3://oa-bolinas/scratch/issue270/pilot_variants.parquet
+    OUT_S3: s3://oa-bolinas/scratch/issue270/pilot_scores.parquet
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    # genome-s3 pulls s3fs so pyfaidx reads the GRCh38 reference from S3.
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    # Non-training inference job: no wandb.
+    export WANDB_DISABLED=true
+
+    # Stage checkpoint + variants to LOCAL in a SEPARATE process, so the scoring
+    # process never inits s3fs/fsspec in its parent (fork-safety for the lazy S3
+    # genome reads — see issue270_fetch.py / issue270_score_llr.py).
+    uv run --group genome-s3 python scripts/issue270_fetch.py --mode download \
+        --ckpt-s3 "$CKPT_S3" --variants-s3 "$VARIANTS_S3"
+
+    # Score: local checkpoint + local variants + lazy S3 genome (like evals_v2).
+    uv run --group genome-s3 python scripts/issue270_score_llr.py \
+        --checkpoint ckpt --variants pilot_variants.parquet --out pilot_scores.parquet
+
+    # Upload the scores (separate process again).
+    uv run --group genome-s3 python scripts/issue270_fetch.py --mode upload \
+        --scores-local pilot_scores.parquet --scores-s3 "$OUT_S3"
