@@ -16,7 +16,8 @@ func_loss** (positive = higher likelihood on functional/constrained positions).
 Outputs under ``plots/output/exp232_per_region/`` (PNG 130dpi + SVG):
   exp232_auprc_heatmap.{png,svg}      final-step diagonal (8 subsets × 6 arms)
   exp232_llgap_vs_auprc.{png,svg}     [#8] 8 per-subset panels, AUPRC vs the
-                                      subset's matched-region LL gap, n=30/panel
+                                      subset's matched-region LL gap, n≈55/panel
+  exp232_auprc_trajectory.{png,svg}   8 per-subset panels, specialist AUPRC vs step
 Prints: diagonal table, per-arm final macro AUPRC, and the per-subset Pearson r
 of each region-matched LL metric (functional / non-functional / gap) vs AUPRC.
 
@@ -25,6 +26,7 @@ Run:  uv run python plots/exp232_per_region.py
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -193,7 +195,17 @@ def _step_col(hist: pd.DataFrame) -> pd.Series:
 def load_wandb_trajectory() -> pd.DataFrame:
     """Per (arm, step, recipe): func_ll, nonfunc_ll, gap (LL=-loss). From wandb history."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache = CACHE_DIR / "exp232_llgap_trajectory.parquet"
+    keys = [
+        f"eval/{r}_{k}/loss"
+        for r in VAL_RECIPES
+        for k in ("functional", "nonfunctional")
+    ]
+    # Key the cache on the inputs that determine its content, so editing ARMS /
+    # VAL_RECIPES / WANDB_GROUP invalidates it instead of silently serving stale rows.
+    cfg = hashlib.md5(
+        repr((ARMS, VAL_RECIPES, WANDB_GROUP, keys)).encode()
+    ).hexdigest()[:8]
+    cache = CACHE_DIR / f"exp232_llgap_trajectory_{cfg}.parquet"
     if cache.exists():
         print(f"  using cached wandb trajectory ({cache.name})")
         return pd.read_parquet(cache)
@@ -201,11 +213,6 @@ def load_wandb_trajectory() -> pd.DataFrame:
     runs = list(
         api.runs(WANDB_PROJECT, filters={"group": WANDB_GROUP}, order="-created_at")
     )
-    keys = [
-        f"eval/{r}_{k}/loss"
-        for r in VAL_RECIPES
-        for k in ("functional", "nonfunctional")
-    ]
     out = []
     for arm in ARMS:
         cands = [r for r in runs if f"-{arm}-v0.1" in r.name]
@@ -310,7 +317,7 @@ def plot_auprc_heatmap(au: pl.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Plot 2: per-subset AUPRC vs matched-region LL gap (trajectory, n=30) — #8
+# Plot 2: per-subset AUPRC vs matched-region LL gap (trajectory, n≈55) — #8
 # ---------------------------------------------------------------------------
 
 
@@ -441,7 +448,7 @@ def print_tables(au: pl.DataFrame, traj: pd.DataFrame) -> None:
     print("subset".ljust(32) + "n   " + " ".join(ARM_SHORT[a].center(7) for a in ARMS))
     for sub in SUBSET_ORDER:
         vals = {a: lut.get((a, sub), float("nan")) for a in ARMS}
-        best = max(vals, key=lambda a: vals[a])
+        best = max(vals, key=lambda a: vals[a] if vals[a] == vals[a] else -np.inf)
         cells = " ".join(
             (f"[{vals[a]:.3f}]" if a == best else f" {vals[a]:.3f} ").center(7)
             for a in ARMS
