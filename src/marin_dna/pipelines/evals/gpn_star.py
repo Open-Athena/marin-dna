@@ -40,10 +40,18 @@ GPN_STAR_MODEL_INFO: dict[str, tuple[str, str]] = {
 
 # Prediction parquets uploaded by the producer to a gist; pinned commit so the
 # raw URL is stable. Replace if the producer re-uploads.
+#
+# Pinned to the **current-revision** upload (issue #145 comment
+# https://github.com/Open-Athena/marin-dna/issues/145#issuecomment-4489509362):
+# row-aligned to evals_mendelian_traits@4aed58e / evals_complex_traits@22f86a89
+# (the k=9 / AUPRC revisions this repo's evals_v2 targets). The earlier upload
+# (gist facb982f @ 35bfb2f) is the pre-#194 1:1 revision and is NOT compatible
+# with the current HF datasets — the alignment assert in score_variants_gpn_star
+# would fire. eQTL was retired (#172/#194) and is not in this gist.
 GPN_STAR_GIST_BASE: str = (
     "https://gist.githubusercontent.com/gonzalobenegas/"
-    "facb982f19878b46f8bc4f7f4564416f/raw/"
-    "35bfb2fa160ae0d83811e024b777d429caae43d1"
+    "db282f89aa00244fbb7437dce0f069ef/raw/"
+    "02484d50d9bfd80337e313652b26f98a9362b6b1"
 )
 
 # Per-dataset leaderboard score column. The calibrated variant is what each
@@ -57,9 +65,14 @@ GPN_STAR_SCORE_COLUMN: dict[str, str] = {
 
 
 def predictions_url(dataset: str, model: str) -> str:
-    """Return the gist raw URL for one GPN-Star prediction parquet."""
+    """Return the gist raw URL for one GPN-Star prediction parquet.
+
+    The current-revision upload names files ``bolinas_{dataset}_GPN-Star-{model}``
+    (underscore separator); the earlier 1:1-revision upload used a ``.`` before
+    ``GPN-Star``. See ``GPN_STAR_GIST_BASE``.
+    """
     assert model in GPN_STAR_MODELS, f"unknown GPN-Star model {model!r}"
-    return f"{GPN_STAR_GIST_BASE}/bolinas_{dataset}.GPN-Star-{model}.parquet"
+    return f"{GPN_STAR_GIST_BASE}/bolinas_{dataset}_GPN-Star-{model}.parquet"
 
 
 def score_variants_gpn_star(

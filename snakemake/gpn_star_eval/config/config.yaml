@@ -1,25 +1,40 @@
 input_hf_prefix: bolinas-dna/evals
 split: train
 
+# Matched-pair eval datasets, pinned to the k=9 / AUPRC revisions this repo's
+# evals_v2 targets (mirrors snakemake/analysis/evals_v2/config/config.yaml). The
+# GPN-Star prediction parquets (gist in `marin_dna.pipelines.evals.gpn_star`) are
+# row-aligned to exactly these revisions, so the `split == "train"` filter aligns
+# element-wise with `load_dataset(..., revision=...)`. eQTL was retired
+# (#172/#194) and has no current-revision GPN-Star upload, so it is not evaluated.
 datasets:
-  - mendelian_traits
-  - complex_traits
-  - eqtl
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f  # PR #194 k=9 rebuild
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340  # PR #194 k=9 rebuild
 
 # GPN-Star model variants (3 in current set). Model decoding lives in
-# `marin_dna.evals.gpn_star.GPN_STAR_MODEL_INFO`; source URLs are derived via
-# `marin_dna.evals.gpn_star.predictions_url`.
+# `marin_dna.pipelines.evals.gpn_star.GPN_STAR_MODEL_INFO`; source URLs are
+# derived via `marin_dna.pipelines.evals.gpn_star.predictions_url`.
 models:
   - V
   - M
   - P
 
-# Score columns evaluated against `compute_pairwise_metrics`. The 4 entries
-# below produce both the leaderboard-convention column (calibrated) and its
-# uncalibrated counterpart per dataset, so the same metrics parquet powers
-# both the live leaderboards and the #145 eval comment's parallel reporting.
+# Score columns evaluated by `compute_auprc_metrics`. The 4 entries below produce
+# both the leaderboard-convention column (calibrated) and its uncalibrated
+# counterpart per dataset, so the same metrics parquet powers both the live
+# leaderboards and the #145 eval comment's parallel reporting.
 score_columns:
   - minus_llr
   - abs_llr
   - minus_llr_calibrated
   - abs_llr_calibrated
+
+# AUPRC + cluster-bootstrap SE, matching evals_v2 (the 1:9 / AUPRC migration in
+# #194/#195/#199) so GPN-Star rows are directly comparable to our models on the
+# same dataset revisions. The old PairwiseAccuracy path asserted 1:1 and would
+# fail on these 1:9 datasets.
+n_bootstrap: 1000
+bootstrap_seed: 0   # 0 -> reproducible across re-runs
+n_min: 30           # min n_groups per subset to enter the macro average

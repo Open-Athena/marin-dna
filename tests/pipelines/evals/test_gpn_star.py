@@ -287,11 +287,14 @@ def test_score_variants_missing_pred_column() -> None:
 
 
 def test_predictions_url_format() -> None:
+    # Current-revision upload uses an underscore before ``GPN-Star`` (the earlier
+    # 1:1-revision upload used a dot). Datasets are mendelian + complex (eQTL
+    # retired, #172/#194).
     assert predictions_url("mendelian_traits", "V") == (
-        f"{GPN_STAR_GIST_BASE}/bolinas_mendelian_traits.GPN-Star-V.parquet"
+        f"{GPN_STAR_GIST_BASE}/bolinas_mendelian_traits_GPN-Star-V.parquet"
     )
-    assert predictions_url("eqtl", "P") == (
-        f"{GPN_STAR_GIST_BASE}/bolinas_eqtl.GPN-Star-P.parquet"
+    assert predictions_url("complex_traits", "P") == (
+        f"{GPN_STAR_GIST_BASE}/bolinas_complex_traits_GPN-Star-P.parquet"
     )
 
 
