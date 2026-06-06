@@ -30,6 +30,11 @@ POOL="${WATCH_POOL:-v6e-4}"                 # pool the current job is on
 RUN_SEQ="${WATCH_START_SEQ:-8}"             # global relaunch counter / which -rN to watch
 REGION="${WATCH_REGION:-us-east5}"          # --region for relaunches (picks the data bucket + zone)
 NAME_BASE="${WATCH_NAME_BASE:-exp255-ccre_non_promoter_order}"
+# Host RAM. 40g schedules under contention but is TOO SMALL for the 0.25B
+# training: it OOM-kills (exit 137) around step ~141 (the original/cds ran at
+# 300g for all 5000 steps). 40g only "worked" on us-east5 because preemption hit
+# each attempt before it grew past 40g. Use 300g where it fits (roomy pools).
+TPU_RAM_W="${WATCH_TPU_RAM:-300g}"
 POOL_TAG="${POOL//-/}"                      # v6e-4 -> v6e4 (job-name suffix)
 JOB="/gonzalo/${NAME_BASE}-${POOL_TAG}-r${RUN_SEQ}"
 POLL_SECS=900
@@ -82,11 +87,11 @@ relaunch(){                                 # $1 = target pool, $2 = reason
   POOL="$1"; POOL_TAG="${POOL//-/}"
   RUN_SEQ=$((RUN_SEQ + 1)); RELAUNCHES=$((RELAUNCHES + 1)); PENDING_POLLS=0
   local nj="${NAME_BASE}-${POOL_TAG}-r${RUN_SEQ}"
-  log ">>> RELAUNCH #${RELAUNCHES} [${2}]: ${nj} (${POOL} @ ${REGION} / PDP=1024 / RAM=40g; resumes from last checkpoint)"
+  log ">>> RELAUNCH #${RELAUNCHES} [${2}]: ${nj} (${POOL} @ ${REGION} / PDP=1024 / RAM=${TPU_RAM_W}; resumes from last checkpoint)"
   irisc job run --no-wait --user gonzalo \
     --job-name "$nj" --cpu 1 --memory 2g --extra marin --region "$REGION" \
     -e WANDB_API_KEY "$WKEY" -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
-    -e SWEEP_DATASETS "$ARM" -e TPU_TYPE "$POOL" -e PDP 1024 -e TPU_RAM 40g \
+    -e SWEEP_DATASETS "$ARM" -e TPU_TYPE "$POOL" -e PDP 1024 -e TPU_RAM "$TPU_RAM_W" \
     -- python experiments/exp255_per_region_order.py | tail -2
   JOB="/gonzalo/${nj}"
 }
