@@ -21,15 +21,18 @@ re-decompress.
 
 
 rule stage_genome_fasta:
-    """Download the plain (uncompressed) reference FASTA + .fai from S3 for fast,
+    """Download the plain (uncompressed) reference FASTA from S3 for fast,
     genome-wide pyfaidx access (mmap). The uncompressed reference lives in S3 next
     to the bgzipped one precisely so this is a download, not a per-run `zcat`.
+    The `.fai` is **built locally** by the first ``Genome(...)`` open (a few seconds
+    for a standard fixed-width FASTA) rather than fetched as a separate S3 object —
+    so the index is always consistent with this exact file (no stale/partial-`.fai`
+    → wrong-byte-offset risk) and there's no untracked sidecar for `temp` to leak.
     Local-only scratch (`temp`): the ~3 GB file is removed once its consumers finish."""
     output:
         temp("results/genome.fa"),
     shell:
-        "aws s3 cp {config[genome_fasta_path]} {output} && "
-        "aws s3 cp {config[genome_fasta_path]}.fai {output}.fai"
+        "aws s3 cp {config[genome_fasta_path]} {output}"
 
 
 rule annotate_pentanuc:
