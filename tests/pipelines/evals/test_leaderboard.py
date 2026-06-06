@@ -103,13 +103,10 @@ def test_score_type_for_returns_dataset_specific_column():
     assert score_type_for("gpn_star", "LLR", "mendelian_traits") == "minus_llr"
 
 
-def test_gpn_star_parquet_path_resolves_to_pinned_gist():
-    """The gist URL has the pinned commit + the dataset-stacked filename."""
-    from marin_dna.pipelines.evals.leaderboard import (
-        GPN_STAR_METRICS_GIST_BASE,
-        GPN_STAR_METRICS_GIST_COMMIT,
-        _parquet_path,
-    )
+def test_gpn_star_parquet_path_resolves_to_s3():
+    """GPN-Star metrics now come from the S3 pipeline output (snakemake/
+    gpn_star_eval), not the gist — same source pattern as the other S3 families."""
+    from marin_dna.pipelines.evals.leaderboard import _parquet_path
 
     method = _mk_method(
         id="GPN-Star-M",
@@ -120,10 +117,12 @@ def test_gpn_star_parquet_path_resolves_to_pinned_gist():
     )
     mendelian = _parquet_path(method, "mendelian_traits")
     complex_ = _parquet_path(method, "complex_traits")
-    assert mendelian.startswith(GPN_STAR_METRICS_GIST_BASE), mendelian
-    assert GPN_STAR_METRICS_GIST_COMMIT in mendelian
-    assert mendelian.endswith("/mendelian_traits.GPN-Star.parquet")
-    assert complex_.endswith("/complex_traits.GPN-Star.parquet")
+    assert mendelian == (
+        "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/mendelian_traits.parquet"
+    )
+    assert complex_ == (
+        "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/complex_traits.parquet"
+    )
 
 
 def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.MonkeyPatch):
@@ -149,12 +148,10 @@ def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.Monkey
 def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.MonkeyPatch):
     """gpn_star has cLLR + LLR protocols; both must appear in normalized_rows.
 
-    Source is the AUPRC-schema gist (issue #145 last comment). The dashboard
+    Source is the S3 pipeline output (``snakemake/gpn_star_eval``). The dashboard
     sees a single `n` column derived from `n_rows` (per-subset / global) or
     `n_groups` (macro_avg).
     """
-    from marin_dna.pipelines.evals.leaderboard import GPN_STAR_METRICS_GIST_BASE
-
     methods = (
         _mk_method(
             id="GPN-Star-M",
@@ -166,11 +163,12 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     )
     _patch_methods(monkeypatch, methods)
 
+    # No `split` column — the gpn_star S3 parquet is train-only and the read
+    # path filters by model + score_type, not split.
     def gpn_rows(score_type, value):
         return [
             {
                 "score_type": score_type,
-                "split": "train",
                 "model": "GPN-Star-M",
                 "subset": "missense_variant",
                 "value": value,
@@ -180,7 +178,6 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
             },
             {
                 "score_type": score_type,
-                "split": "train",
                 "model": "GPN-Star-M",
                 "subset": GLOBAL_SUBSET,
                 "value": value,
@@ -190,7 +187,6 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
             },
             {
                 "score_type": score_type,
-                "split": "train",
                 "model": "GPN-Star-M",
                 "subset": MACRO_AVG_SUBSET,
                 "value": value,
@@ -205,7 +201,10 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     )
     _patch_read_parquet(
         monkeypatch,
-        {f"{GPN_STAR_METRICS_GIST_BASE}/mendelian_traits.GPN-Star.parquet": gpn_df},
+        {
+            "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/"
+            "mendelian_traits.parquet": gpn_df
+        },
     )
     df = normalized_rows("mendelian_traits")
     assert set(df["protocol"].unique().to_list()) == {"cLLR", "LLR"}

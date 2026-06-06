@@ -12,8 +12,8 @@ AUPRC + cluster-bootstrap SE on 1:9 matched negatives.
     filter by ``score_name`` (the track).
   - ``snakemake/alphagenome_eval/``   → one parquet per dataset, filter by
     ``score_type`` + ``split``.
-  - gist (gpn_star)                   → one parquet per dataset with V/M/P
-    stacked, filter by ``score_type`` + ``split`` + ``model``.
+  - ``snakemake/gpn_star_eval/``      → one parquet per dataset with V/M/P
+    stacked, filter by ``score_type`` + ``model``.
 
 Model registry (display name, family, training metadata, etc.) lives in
 ``dashboard/models.yaml`` and is loaded via ``models.load_models``.
@@ -44,20 +44,13 @@ SPLIT = "train"
 # the two dataset names are stable and this keeps the loader self-contained.
 QTL_DATASETS: frozenset[str] = frozenset({"caqtl", "dsqtl"})
 
-# `family: gpn_star` AUPRC metrics live on a gist commit (issue #145, last
-# comment) — one parquet per dataset with V/M/P stacked and a `model`
-# column to filter on. Polars `read_parquet` handles https URLs natively
-# via fsspec, so the path resolver just hands back a stable URL string.
-# Bump this commit when a new AUPRC re-run is uploaded. Distinct from
-# `gpn_star.GPN_STAR_GIST_BASE`, which points at the per-variant
-# *prediction* gist; this one is the *metrics* gist.
-GPN_STAR_METRICS_GIST_OWNER = "gonzalobenegas"
-GPN_STAR_METRICS_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
-GPN_STAR_METRICS_GIST_COMMIT = "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
-GPN_STAR_METRICS_GIST_BASE = (
-    f"https://gist.githubusercontent.com/{GPN_STAR_METRICS_GIST_OWNER}/"
-    f"{GPN_STAR_METRICS_GIST_ID}/raw/{GPN_STAR_METRICS_GIST_COMMIT}"
-)
+# `family: gpn_star` AUPRC metrics now come from the S3 pipeline
+# (`snakemake/gpn_star_eval`, refreshed in #278), same as the conservation /
+# alphagenome / marin_dna families — one parquet per dataset with V/M/P stacked
+# and a `model` column to filter on. The pipeline is the single source of truth;
+# the old metrics gist (`3649e68f@cba23a7`) is kept only as the #145 provenance
+# record, no longer read here. (Distinct from `gpn_star.GPN_STAR_GIST_BASE`,
+# the per-variant *prediction* gist, which the pipeline still consumes as input.)
 
 # `family: evo2` AUPRC metrics gist. Same gist as gpn_star, different
 # pinned commit. Bump `EVO2_METRICS_GIST_COMMIT` when re-uploading; see
@@ -202,7 +195,7 @@ def _parquet_path(method: Model, dataset: str) -> str:
         case "alphagenome":
             return f"{S3}/snakemake/alphagenome_eval/results/metrics/{dataset}.parquet"
         case "gpn_star":
-            return f"{GPN_STAR_METRICS_GIST_BASE}/{dataset}.GPN-Star.parquet"
+            return f"{S3}/snakemake/gpn_star_eval/results/metrics/{dataset}.parquet"
         case "evo2":
             short = EVO2_DATASET_SHORT[dataset]
             return f"{EVO2_METRICS_GIST_BASE}/{short}_{method.id}_train_metrics.parquet"
