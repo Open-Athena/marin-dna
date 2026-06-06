@@ -17,7 +17,6 @@ from marin_dna.pipelines.evals.calibration import (
     aggregate_llr_neutral_mean,
     compute_llr_neutral_mean,
     expand_sites_to_variants,
-    filter_acgt_window_sites,
 )
 
 EXPECTED_TABLE_COLUMNS = [
@@ -197,57 +196,4 @@ def test_compute_llr_neutral_mean_requires_rc():
             subsample_n=100,
             min_bin_count=1,
             rc=False,
-        )
-
-
-# --- filter_acgt_window_sites ----------------------------------------------
-
-
-class _FakeGenome:
-    """Minimal ``get_seq(chrom, start, end)`` with N-padding past the end (like Genome).
-
-    The filter clamps the read start to >= 0, so ``start`` is never negative here.
-    """
-
-    def __init__(self, seqs: dict[str, str]):
-        self.seqs = seqs
-
-    def __call__(self, chrom: str, start: int, end: int) -> str:
-        seg = self.seqs[chrom][start:end]
-        return seg + "N" * ((end - start) - len(seg))  # right-pad N past chrom end
-
-
-def test_filter_acgt_window_sites():
-    # 30 bp chrom with N at 0-based indices 10 and 25; window_size=5 → left_flank=2,
-    # so site pos's window is 0-based [pos-3, pos+2).
-    seq = list("ACGTACGTACGTACGTACGTACGTACGTAC")
-    seq[10] = "N"
-    seq[25] = "N"
-    seq = "".join(seq)
-    genome = _FakeGenome({"1": seq})
-    sites = pd.DataFrame(
-        {
-            "chrom": ["1"] * 6,
-            # 5: clean | 8: clean | 13: N upstream (FWD-ok/RC-fail case) |
-            # 24: N downstream | 2: window off left edge | 29: window off right edge
-            "pos": [5, 8, 13, 24, 2, 29],
-            "ref": [seq[p - 1] for p in [5, 8, 13, 24, 2, 29]],
-        }
-    )
-    out = filter_acgt_window_sites(sites, genome, window_size=5)
-    assert set(out["pos"]) == {5, 8}
-    assert list(out.columns) == list(sites.columns)  # columns/order preserved
-
-
-def test_filter_acgt_window_sites_all_clean_kept():
-    genome = _FakeGenome({"1": "ACGT" * 50})  # 200 bp, no N
-    sites = pd.DataFrame({"chrom": ["1"] * 3, "pos": [50, 100, 150]})
-    out = filter_acgt_window_sites(sites, genome, window_size=11)
-    assert len(out) == 3
-
-
-def test_filter_acgt_window_sites_requires_columns():
-    with pytest.raises(AssertionError, match="pos"):
-        filter_acgt_window_sites(
-            pd.DataFrame({"chrom": ["1"]}), _FakeGenome({"1": "ACGT"}), window_size=5
         )

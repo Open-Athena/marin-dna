@@ -1,12 +1,15 @@
 """cLLR mutation-rate calibration tables (stage 3, #267/#270).
 
-Score the pinned, subsampled neutral-site set (built by ``snakemake/neutral_sites``)
-with the fast 2-forward LLR bundle (FWD+RC) and bin by ``pentanuc_mut`` into a
-per-checkpoint ``llr_neutral_mean`` table that stage 4 (#271) subtracts to
-calibrate variant LLRs. Entropy calibration is a separate, deferred path.
+Score the pinned, **pre-filtered + subsampled** neutral-site set (built once by
+``snakemake/neutral_sites``: ACGT-window-filtered, then ``n`` sites per 5-mer) with
+the fast 2-forward LLR bundle (FWD+RC) and bin by ``pentanuc_mut`` into a
+per-checkpoint ``llr_neutral_mean`` table that stage 4 (#271) subtracts to calibrate
+variant LLRs. Entropy calibration is a separate, deferred path.
 
-GPU-bound — runs on the same SkyPilot GPU node as ``compute_scores``. Kept OFF
-``rule all`` (a few-models analysis, like ``nuc_dep`` / ``umap``); build by name:
+The N-window filtering is model-independent and lives upstream (one set per window,
+reused by every model), so this GPU rule never touches the genome for filtering — it
+just reads the clean set and scores. Kept OFF ``rule all`` (a few-models analysis,
+like ``nuc_dep`` / ``umap``); build by name:
 
     snakemake calibration                    # every configured calibration model
     snakemake results/calibration/<model>/llr_neutral_mean_n100.parquet
@@ -16,15 +19,15 @@ GPU-bound — runs on the same SkyPilot GPU node as ``compute_scores``. Kept OFF
 rule compute_llr_neutral_mean:
     input:
         checkpoint="results/checkpoints/{model}",
-        # The neutral set lives in another pipeline's S3 prefix. `storage()` uses
-        # the boto3-backed s3 plugin (no s3fs async loop), so it stages to a LOCAL
-        # path that `pd.read_parquet` reads *without* initializing s3fs in this
-        # parent process — which would otherwise deadlock the forked DataLoader
-        # workers that read the genome lazily in-worker (see issue #270 /
-        # `compute_variant_scores`). The `{n}` wildcard ties the input cap to the
-        # output name so several caps can coexist.
+        # Pre-filtered (ACGT-window, at `scoreable_window`) + subsampled neutral set
+        # from the neutral_sites pipeline — built once per window and reused by every
+        # model, so this rule does no genome filtering. `storage()` (boto3, no s3fs
+        # async loop) stages it to a LOCAL path, so `pd.read_parquet` never inits s3fs
+        # in this process — which would deadlock the DataLoader workers that read the
+        # genome lazily in-worker (issue #270 / `compute_variant_scores`).
         neutral=lambda wc: storage(
-            f"{config['calibration']['neutral_sites_s3_prefix']}/neutral_sites_n{wc.n}.parquet"
+            f"{config['calibration']['neutral_sites_s3_prefix']}/"
+            f"neutral_sites_n{wc.n}_w{config['calibration']['scoreable_window']}.parquet"
         ),
     output:
         "results/calibration/{model}/llr_neutral_mean_n{n}.parquet",
@@ -37,33 +40,24 @@ rule compute_llr_neutral_mean:
         # FWD+RC to match the eval; falls back to the global inference default.
         rc=config["calibration"].get("rc", config["inference"]["rc"]),
         min_bin_count=config["calibration"]["min_bin_count"],
+        scoreable_window=config["calibration"]["scoreable_window"],
     threads: config["inference"]["num_workers"]
     run:
         # batch_size is execution-only (numerics are batch-size-invariant modulo
         # float-reduction noise) — read here, not declared in `params:`, so tuning
         # it doesn't force a re-run. Same convention as compute_scores.
-        import shlex
-
         batch_size = get_model_batch_size(wildcards.model)
 
-        # Drop neutral sites whose model-window contains a non-ACGT base (assembly-gap
-        # N near telomeres/centromeres): the scoring kernel asserts ACGT on the
-        # downstream window, so an N trips a CUDA device-side assert. FWD checks the
-        # right flank and RC the left, so the *whole* window must be clean. This MUST
-        # run in a CHILD process — it reads the genome (initializing s3fs), and doing
-        # that here would deadlock the DataLoader workers compute_variant_scores forks
-        # below. The child writes the filtered sites to a local parquet.
-        filtered = output[0] + ".acgt_sites.parquet"
-        shell(
-            "python -m marin_dna.pipelines.evals.calibration "
-            f"--sites {shlex.quote(str(input.neutral))} "
-            f"--genome {shlex.quote(str(config['genome_path']))} "
-            f"--window {int(params.window_size)} "
-            f"--out {shlex.quote(filtered)}"
+        # The pinned neutral set is ACGT-clean for windows up to `scoreable_window`;
+        # a model with a wider window could see an N the kernel rejects. Fail fast.
+        assert params.scoreable_window >= params.window_size, (
+            f"scoreable_window {params.scoreable_window} < model window_size "
+            f"{params.window_size}: neutral set not guaranteed scoreable — "
+            f"build a wider-window neutral_sites_n{wildcards.n}_w… set"
         )
 
-        # LOCAL read — never pd.read_parquet("s3://…") in this (forking) process.
-        sites = pd.read_parquet(filtered)
+        # LOCAL read (storage staged it); the set is already filtered + subsampled.
+        sites = pd.read_parquet(input.neutral)
         table = compute_llr_neutral_mean(
             checkpoint_path=input.checkpoint,
             sites=sites,
