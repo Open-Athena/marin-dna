@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset
 
+from marin_dna.pipelines.evals.calibration import compute_llr_neutral_mean
 from marin_dna.pipelines.evals.conservation import (
     QTL_VARIANT_COLUMNS,
     REQUIRED_VARIANT_COLUMNS,
@@ -169,3 +170,14 @@ for _m in UMAP_MODELS:
     assert _ws >= _nc, (
         f"umap_embeddings model {_m!r} window_size {_ws} < n_center_bp {_nc}"
     )
+
+
+# --- cLLR calibration tables (mutation-rate calibration, #267/#270) ----------
+# Optional `calibration:` config section; targets kept off `rule all`
+# (see rules/calibration.smk). Reuses the `models:` registry.
+CALIBRATION_CFG = config.get("calibration", {})
+CALIBRATION_MODELS = CALIBRATION_CFG.get("models", [])
+
+# Fail fast: every calibration model is a known checkpoint.
+for _m in CALIBRATION_MODELS:
+    assert _m in MODELS, f"calibration model {_m!r} not found in `models`"

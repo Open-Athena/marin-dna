@@ -49,20 +49,31 @@ Replicates GPN-Star's hg38 calibration inputs exactly
 Pin destination (uploaded at the end of a run; consumed by `evals_v2`):
 `s3://oa-bolinas/snakemake/neutral_sites/results/neutral_sites.parquet`.
 
-## Calibration subsampling (#267 / #270)
+## Calibration set (#267 / #270)
 
 For mutation-rate calibration every neutral site is scored against its 3 non-ref
-alts and binned by pentanucleotide. Two **additive** rules (downstream of the
-pinned `neutral_sites.parquet`, which is left untouched) prepare a reduced set so
-the per-checkpoint scoring in `evals_v2` need not cover all 5.94M × 3 ≈ 18M
-variants:
+alts and binned by pentanucleotide. Three **additive** rules (downstream of the
+pinned `neutral_sites.parquet`, which is left untouched) build the
+calibration-ready set so the per-checkpoint scoring in `evals_v2` need not cover
+all 5.94M × 3 ≈ 18M variants — and, crucially, so the genome-dependent work runs
+**once here**, not per checkpoint:
 
-- `annotate_pentanuc` → `results/neutral_sites_pentanuc.parquet`
-  `[chrom, pos, ref, pentanuc]` — the central 5-mer (window `[pos-2, pos+2]`,
-  variant-centered) read from the genome; model-independent.
-- `subsample_neutral` → `results/subsampled/neutral_sites_n{n}.parquet` — at most
-  `n` sites **per 5-mer**, seeded by `subsample_seed`. `n` is a path wildcard so
-  several caps coexist and `evals_v2` pins one by revision.
+1. `annotate_pentanuc` → `results/neutral_sites_pentanuc.parquet`
+   `[chrom, pos, ref, pentanuc]` — the central 5-mer (window `[pos-2, pos+2]`,
+   variant-centered).
+2. `filter_scoreable` → `results/scoreable/neutral_sites_pentanuc_w{w}.parquet` —
+   drop any site whose centered **`w`-bp** window isn't all-ACGT (an `N` from an
+   assembly gap, or a window running off the chromosome). The gLM scoring kernel
+   asserts ACGT over the variant's window, and FWD scores the right flank while RC
+   scores the left, so a site must have its *whole* window clean to be scoreable on
+   both strands. `w` is a path wildcard — use the **largest** model window (512), so
+   one filtered set is valid for every model (a 512-clean window is 255/256-clean).
+3. `subsample_neutral` → `results/subsampled/neutral_sites_n{n}_w{w}.parquet` — at
+   most `n` **scoreable** sites per 5-mer, seeded by `subsample_seed`. `n` and `w`
+   are path wildcards so caps/windows coexist; `evals_v2` pins one by revision.
+
+Filtering runs **before** subsampling, so each 5-mer keeps a full `n` of *clean*
+sites (not `n` minus whatever the filter would later remove).
 
 **The subsample unit is sites per 5-mer, not per `(5-mer, alt)` bin.** A site's
 three alt-bins share its sites, so `n` sites/5-mer yield `n` observations in
@@ -73,8 +84,22 @@ SE ≈ 0.03; `n = 100` is the cheap floor (SE ≈ 0.10). The set is kept site-le
 alt-agnostic so the LLR path (3 alts) and the entropy atom (#269, 4-allele
 marginal) consume one artifact.
 
-Pin destination (consumed by `evals_v2`):
-`s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n{n}.parquet`.
+The genome is read **genome-wide** here (one whole-chromosome span per rule), where
+pyfaidx on the bgzipped reference is pathologically slow — so `stage_genome_fasta`
+downloads an **uncompressed** FASTA (`genome_fasta_path`, kept in S3 next to the
+`.gz`) and mmaps it. Build that uncompressed reference once (idempotent; skipped if
+present):
+
+```bash
+zcat Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz > …fa
+python -c "import pyfaidx; pyfaidx.Faidx('…fa')"   # builds …fa.fai
+aws s3 cp …fa  s3://…/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
+aws s3 cp …fa.fai s3://…/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.fai
+```
+
+Pin destination (consumed by `evals_v2`'s `compute_llr_neutral_mean` rule —
+[`snakemake/analysis/evals_v2`](../analysis/evals_v2/), `snakemake calibration`):
+`s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n{n}_w{w}.parquet`.
 
 ## Where to run
 
@@ -109,10 +134,12 @@ uv run --group genome-s3 snakemake
 aws s3 cp results/neutral_sites.parquet \
   s3://oa-bolinas/snakemake/neutral_sites/results/neutral_sites.parquet
 
-# Build + pin a subsampled set (cap = n sites per 5-mer; n is a path wildcard).
-uv run --group genome-s3 snakemake results/subsampled/neutral_sites_n100.parquet
-aws s3 cp results/subsampled/neutral_sites_n100.parquet \
-  s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n100.parquet
+# Build + pin the calibration-ready set (n sites/5-mer, ACGT-clean for a w-bp
+# window; n and w are path wildcards). Needs the uncompressed reference in S3 (see
+# "Calibration set" above).
+uv run --group genome-s3 snakemake results/subsampled/neutral_sites_n100_w512.parquet
+aws s3 cp results/subsampled/neutral_sites_n100_w512.parquet \
+  s3://oa-bolinas/snakemake/neutral_sites/results/subsampled/neutral_sites_n100_w512.parquet
 ```
 
 ### On SkyPilot (the intended path)
@@ -134,6 +161,9 @@ Rules are thin glue around `marin_dna.pipelines.neutral_sites.sites`:
 - `enumerate_positions` — neutral intervals → per-base `(chrom, pos, ref)`.
 - `annotate_pentanucleotide` — neutral sites → `+ pentanuc` (central 5-mer; one
   read per chromosome, asserts 5-mer center == `ref`).
+- `filter_acgt_window_sites` — drop sites whose centered `window_size` window isn't
+  all-ACGT (so the gLM scoring kernel, which asserts ACGT over the window, never
+  trips on an assembly-gap `N`); one read per chromosome.
 - `subsample_per_context` — keep at most `n` sites per 5-mer, seeded + deterministic.
 
 Tests: [`tests/pipelines/neutral_sites/test_sites.py`](../../tests/pipelines/neutral_sites/test_sites.py).

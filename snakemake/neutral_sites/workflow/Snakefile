@@ -9,10 +9,11 @@ include: "rules/neutral.smk"
 include: "rules/subsample.smk"
 
 
-# Default target is the full neutral set. The pentanucleotide-annotated and
-# per-5-mer-subsampled artifacts (rules/subsample.smk) are requested explicitly
-# by path, e.g. `snakemake results/subsampled/neutral_sites_n100.parquet`, since
-# the cap `n` is a deliberate choice (see README) — not built by `all`.
+# Default target is the full neutral set. The pentanucleotide-annotated,
+# ACGT-window-filtered, and per-5-mer-subsampled artifacts (rules/subsample.smk)
+# are requested explicitly by path, e.g.
+# `snakemake results/subsampled/neutral_sites_n100_w512.parquet`, since the cap
+# `n` and window `w` are deliberate choices (see README) — not built by `all`.
 rule all:
     input:
         "results/neutral_sites.parquet",

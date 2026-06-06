@@ -6,6 +6,13 @@
 # The S3 path requires `--group genome-s3` at install (pyfaidx + s3fs).
 genome_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
 
+# Plain (uncompressed) FASTA + .fai, kept in S3 next to the bgzipped reference.
+# The pentanuc / scoreable-window rules read the genome **genome-wide** (one whole-
+# chromosome span each), where pyfaidx on the bgzipped file is pathologically slow;
+# `stage_genome_fasta` downloads this plain file once and mmaps it instead. Produced
+# once with `zcat …fa.gz > …fa && python -c "import pyfaidx; pyfaidx.Faidx('…fa')"`.
+genome_fasta_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
+
 # Source files — exactly what GPN-Star used for the hg38 calibration
 # (songlab-cal/gpn analysis/gpn-star/.../Snakefile_hg38 CALIBRATION_CONFIGS),
 # via UCSC https mirrors of GPN's ftp URLs (byte-identical files).
@@ -31,8 +38,8 @@ chroms: ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16",
 # bigWig scan granularity (bases per pyBigWig read).
 window_size: 1000000
 
-# Seed for the per-5-mer subsampling (rules/subsample.smk). The sampled cap `n`
-# is a path wildcard (`neutral_sites_n{n}.parquet`); this seed fixes which sites
-# are drawn so the subsampled set is reproducible across runs and shared by every
-# checkpoint's calibration.
+# Seed for the per-5-mer subsampling (rules/subsample.smk). The cap `n` and the
+# scoreable window `w` are path wildcards (`neutral_sites_n{n}_w{w}.parquet`); this
+# seed fixes which sites are drawn so the subsampled set is reproducible across runs
+# and shared by every checkpoint's calibration.
 subsample_seed: 270

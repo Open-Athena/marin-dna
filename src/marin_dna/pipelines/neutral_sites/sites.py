@@ -406,3 +406,88 @@ def subsample_per_context(sites: pd.DataFrame, n: int, seed: int) -> pd.DataFram
     out = sites.loc[np.sort(np.concatenate(keep))].reset_index(drop=True)
     assert out.groupby("pentanuc").size().max() <= n, "a 5-mer exceeded the cap"
     return out
+
+
+def filter_acgt_window_sites(
+    sites: pd.DataFrame,
+    get_seq: Callable[[str, int, int], str],
+    window_size: int,
+) -> pd.DataFrame:
+    """Drop neutral sites whose centered ``window_size`` window isn't entirely ACGT.
+
+    The gLM scoring kernel (evals_v2) gathers the LLR over the variant's downstream
+    window positions and asserts every target is one of A/C/G/T; an ``N`` from an
+    assembly gap near a telomere/centromere trips it. Eval variants never hit this
+    (they're gene-centric), but genome-wide neutral sites near gaps do — and because
+    the forward pass checks only the right flank while the reverse-complement checks
+    the left, a site needs its **whole** window clean to be scoreable on both strands.
+
+    So this drops any site whose centered window — the same interval the scoring
+    transform extracts, ``[pos-1-window_size//2, …+window_size)`` 0-based (matching
+    ``_get_variant_window`` / ``in_seq_var_pos("+")``) — contains a non-ACGT base, or
+    runs off the chromosome (``N``-padded; unscoreable anyway). Run this **before**
+    :func:`subsample_per_context` so each 5-mer is subsampled from its *clean* sites,
+    and at the **largest** model window in use (e.g. 512) so one filtered set serves
+    every checkpoint (a window clean at 512 bp is clean at 255/256).
+
+    Reads the reference **once per chromosome** (over the span covering every site's
+    window), like :func:`annotate_pentanucleotide`. Pass a ``get_seq`` over a plain
+    (decompressed) FASTA: pyfaidx random access on the bgzipped reference is
+    pathologically slow for these whole-chromosome spans.
+
+    Args:
+        sites: ``[chrom, pos, …]`` — bare ``chrom``, 1-based ``pos`` (extra columns,
+            e.g. ``ref``/``pentanuc``, are preserved).
+        get_seq: ``(chrom, start, end) -> str`` over the reference (0-based half-open,
+            bare chrom names; N-padded past chromosome ends).
+        window_size: the (largest) model DNA context window to guarantee scoreable.
+
+    Returns:
+        The subset of ``sites`` (all columns, row order preserved) whose full window
+        is ACGT — clean by construction.
+    """
+    for col in ("chrom", "pos"):
+        assert col in sites.columns, f"sites missing column {col!r}"
+    assert window_size > 0, f"window_size must be positive, got {window_size}"
+    left_flank = window_size // 2  # matches _get_variant_window / in_seq_var_pos("+")
+
+    sites = sites.reset_index(drop=True)
+    keep = np.zeros(len(sites), dtype=bool)
+    acgt = np.frombuffer(b"ACGT", dtype=np.uint8)
+    for chrom, sub in sites.groupby("chrom", sort=False):
+        center0 = sub["pos"].to_numpy() - 1  # 1-based -> 0-based
+        win_start = center0 - left_flank
+        win_end = win_start + window_size
+        read_lo = max(0, int(win_start.min()))  # clamp; off-start sites dropped below
+        hi = int(win_end.max())
+        span = get_seq(str(chrom), read_lo, hi).upper()
+        arr = np.frombuffer(span.encode("ascii"), dtype=np.uint8)
+        assert arr.size == hi - read_lo, (
+            f"reference returned {arr.size} bp for {chrom}:{read_lo}-{hi} "
+            f"(expected {hi - read_lo})"
+        )
+        # Prefix sum of non-ACGT counts → a window is clean iff its count is 0.
+        bad = ~np.isin(arr, acgt)
+        csum = np.concatenate([[0], np.cumsum(bad)])
+        s_idx = win_start - read_lo
+        e_idx = win_end - read_lo
+        in_bounds = (win_start >= 0) & (win_end <= read_lo + arr.size)
+        s_clip = np.clip(s_idx, 0, arr.size)
+        e_clip = np.clip(e_idx, 0, arr.size)
+        n_bad = csum[e_clip] - csum[s_clip]
+        keep[sub.index.to_numpy()] = in_bounds & (n_bad == 0)
+
+    out = sites.loc[keep].reset_index(drop=True)
+    n_drop = len(sites) - len(out)
+    msg = (
+        f"[filter_acgt_window] window={window_size}: kept {len(out):,}/{len(sites):,} "
+        f"({n_drop} dropped for non-ACGT or off-chromosome windows)"
+    )
+    # If 5-mer context is present, also report the post-filter per-5-mer minimum —
+    # this is the per-calibration-cell observation count after subsampling, so it
+    # previews whether any cell will be sparse downstream.
+    if "pentanuc" in out.columns and len(out):
+        per = out.groupby("pentanuc").size()
+        msg += f"; per-5-mer count min={int(per.min())} (n 5-mers={len(per)})"
+    print(msg)
+    return out

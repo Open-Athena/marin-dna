@@ -5,6 +5,7 @@ from marin_dna.pipelines.evals.conservation import CONSERVATION_TRACKS
 from marin_dna.pipelines.neutral_sites.sites import (
     annotate_pentanucleotide,
     enumerate_positions,
+    filter_acgt_window_sites,
     parse_rmsk,
     scan_neutral_intervals,
     subsample_per_context,
