@@ -173,6 +173,18 @@ snakemake calibration                                                # all confi
 snakemake results/calibration/<model>/llr_neutral_mean_n100.parquet  # one model
 ```
 
+- **LL gap** (functional vs non-functional log-likelihood, #274) — `snakemake ll_gap`.
+  For each `(model, region)` in the `ll_gap:` config it scores the model's mean
+  log-likelihood on uppercase (phyloP-functional) vs lowercase (non-functional)
+  target tokens over the mixed-case `genomes-v5` validation intervals
+  (`cds`/`upstream`/`downstream` = v5/v1/v15), then aggregates to
+  `results/ll_gap/summary.parquet` (`LL_upper`, `LL_lower`, `gap` per cell). A
+  metric rather than an interpretation, but kept off `rule all` for the same
+  reason. FWD strand only — matches the training-logged
+  `val_*_{functional,nonfunctional}` loss. For one sky cluster per cell, build
+  the per-cell `results/ll_gap/scores/{model}/{region}.parquet` targets, then
+  gather with `snakemake ll_gap`.
+
 ### Parallel sky-cluster sweep (one cluster per target)
 
 For a grid of independent targets — e.g. all checkpoints of one model arm,
@@ -220,6 +232,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 | `calibration` | Optional; cLLR mutation-rate calibration tables (#267/#270, off `rule all`). `{neutral_sites_s3_prefix, subsample_n, scoreable_window, min_bin_count, rc, models: [...]}` — scores the pre-filtered + subsampled neutral set (`neutral_sites_n{subsample_n}_w{scoreable_window}.parquet`) → per-model `llr_neutral_mean`. See `rules/calibration.smk`. |
+| `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
 
 ## Library
 
@@ -235,7 +248,11 @@ Pipeline rules are thin glue around:
 - `marin_dna.pipelines.evals.calibration.compute_llr_neutral_mean` — checkpoint +
   neutral sites → per-cell `llr_neutral_mean` calibration table (cLLR stage 3);
   `expand_sites_to_variants` / `aggregate_llr_neutral_mean` are the tested pure pieces.
+- `marin_dna.pipelines.evals.ll_gap.compute_hf_ll_gap` — HF checkpoint +
+  mixed-case `seq` dataset → per-sequence functional/non-functional LL atoms
+  (`ll_sum_upper`, `ll_sum_lower`, `n_upper`, `n_lower`); `aggregate_ll_gap`
+  collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
 
 These are tested at `tests/pipelines/evals/test_metrics.py`,
 `tests/pipelines/evals/test_inference.py`, `tests/pipelines/evals/test_calibration.py`,
-and `tests/model/test_scoring.py`.
+`tests/pipelines/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
