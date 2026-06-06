@@ -431,6 +431,16 @@ def _train_remote_env_vars() -> dict[str, str]:
 def _build_train_step(strategy: str, dataset: str) -> ExecutorStep:
     steps_per_eval = max(1, NUM_TRAIN_STEPS // EVALS_PER_RUN)
     run_name = f"dna-exp{EXP_ISSUE}-zoonomia-v1-0p25b-{strategy}-{VERSION}"
+    # Optional suffix for an intentional clean re-train. Suffixing run_name yields
+    # a fresh output path (=> fresh checkpoint dir => trains from scratch) AND a
+    # fresh wandb run-id — the id derives from replicate_path=output_path (below),
+    # NOT the display name, so this is the only way to escape a prior run's wandb
+    # step-barrier (levanter "cowardly refuses" to log a step below a resumed
+    # run's max; a from-scratch retrain at the old path collides with a crashed
+    # run's history). Empty by default → no effect on normal runs.
+    _run_suffix = os.environ.get("RUN_NAME_SUFFIX", "")
+    if _run_suffix:
+        run_name = f"{run_name}-{_run_suffix}"
     tags = (
         "dna",
         "marin_dna",
