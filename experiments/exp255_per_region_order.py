@@ -247,7 +247,14 @@ MIN_LR_RATIO = 0.0
 # against a specific step, or the matched-epoch read vs the family baseline).
 EVALS_PER_RUN = 10
 CHECKPOINTS_PER_RUN = 10
-CHECKPOINT_TIME_INTERVAL = timedelta(hours=1)
+# Levanter resume-checkpoint cadence. Dropped 1h -> 10min: under frequent v6e
+# preemption (busy-hours windows can be ~15-20 min, much of it startup), a 1h
+# interval meant a relaunched arm got preempted before saving any progress and
+# kept resuming the same step (ccre_order stuck at 2500). 10min lets a ~25-min
+# window bank forward progress. Resume-safe — the checkpointer config is not in
+# the marin output-path hash (only ``versioned()`` values + deps are). HF
+# checkpoints stay every 500 steps (``hf_save_steps``) for analysis parity w/ cds.
+CHECKPOINT_TIME_INTERVAL = timedelta(minutes=10)
 
 WANDB_PROJECT = "marin"
 WANDB_GROUP = f"dna-exp{EXP_ISSUE}-{VERSION}"
