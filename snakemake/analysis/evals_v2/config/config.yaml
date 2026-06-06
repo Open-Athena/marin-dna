@@ -868,9 +868,11 @@ calibration:
   neutral_sites_s3_prefix: s3://oa-bolinas/snakemake/neutral_sites/results/subsampled
   subsample_n: 100        # per-5-mer cap; pins neutral_sites_n100.parquet and the
                           # `calibration` collector's target names.
-  min_bin_count: 30       # hard floor on observations per pentanuc_mut cell. At
-                          # n=100 the true min is 41 (CpG-depleted 5-mers); 30
-                          # catches a broken/empty cell without false-firing.
+  min_bin_count: 10       # hard floor on observations per pentanuc_mut cell. At
+                          # n=100 the true min is 41 (CpG-depleted 5-mers); the
+                          # ACGT-window pre-filter shaves a few gap-adjacent sites,
+                          # so 10 catches a broken/empty cell without false-firing
+                          # on legitimate post-filter depletion.
   rc: true                # FWD+RC average, matching the eval convention.
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (our winner / pilot model)

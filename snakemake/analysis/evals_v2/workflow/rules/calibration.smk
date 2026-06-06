@@ -42,10 +42,28 @@ rule compute_llr_neutral_mean:
         # batch_size is execution-only (numerics are batch-size-invariant modulo
         # float-reduction noise) — read here, not declared in `params:`, so tuning
         # it doesn't force a re-run. Same convention as compute_scores.
+        import shlex
+
         batch_size = get_model_batch_size(wildcards.model)
 
-        # LOCAL read (storage staged it) — never pd.read_parquet("s3://…") here.
-        sites = pd.read_parquet(input.neutral)
+        # Drop neutral sites whose model-window contains a non-ACGT base (assembly-gap
+        # N near telomeres/centromeres): the scoring kernel asserts ACGT on the
+        # downstream window, so an N trips a CUDA device-side assert. FWD checks the
+        # right flank and RC the left, so the *whole* window must be clean. This MUST
+        # run in a CHILD process — it reads the genome (initializing s3fs), and doing
+        # that here would deadlock the DataLoader workers compute_variant_scores forks
+        # below. The child writes the filtered sites to a local parquet.
+        filtered = output[0] + ".acgt_sites.parquet"
+        shell(
+            "python -m marin_dna.pipelines.evals.calibration "
+            f"--sites {shlex.quote(str(input.neutral))} "
+            f"--genome {shlex.quote(str(config['genome_path']))} "
+            f"--window {int(params.window_size)} "
+            f"--out {shlex.quote(filtered)}"
+        )
+
+        # LOCAL read — never pd.read_parquet("s3://…") in this (forking) process.
+        sites = pd.read_parquet(filtered)
         table = compute_llr_neutral_mean(
             checkpoint_path=input.checkpoint,
             sites=sites,

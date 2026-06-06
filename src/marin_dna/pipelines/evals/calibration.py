@@ -24,8 +24,10 @@ boundary), as produced by ``enumerate_positions``.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from marin_dna.data.dna import NUCLEOTIDES
@@ -227,3 +229,122 @@ def compute_llr_neutral_mean(
     return aggregate_llr_neutral_mean(
         scored, min_bin_count=min_bin_count, subsample_n=subsample_n
     )
+
+
+def filter_acgt_window_sites(
+    sites: pd.DataFrame,
+    get_seq: Callable[[str, int, int], str],
+    window_size: int,
+) -> pd.DataFrame:
+    """Drop neutral sites whose ``window_size`` model context contains a non-ACGT base.
+
+    The scoring kernel gathers the LLR over the **downstream** window positions and
+    asserts every target is one of A/C/G/T (``_token_id_to_nuc_idx``); an ``N`` from
+    an assembly gap near a telomere/centromere trips it (a CUDA device-side assert
+    under ``torch.compile``). Crucially the eval never hits this — its variants are
+    gene-centric — but genome-wide neutral sites do, and because FWD checks only the
+    right flank while RC checks the left, a site needs its **whole** window clean to
+    score on both strands. So keep only sites whose centered ``window_size`` window
+    (the same interval ``_get_variant_window`` extracts: ``[pos-1-window_size//2,
+    …+window_size)``, 0-based) is entirely ACGT. Sites whose window runs off the
+    chromosome (``N``-padded) are dropped too — they can't be scored anyway.
+
+    Reads the reference **once per chromosome** (over the span covering every site's
+    window), like :func:`annotate_pentanucleotide` — a per-site read against an
+    ``s3://`` genome would be millions of round-trips. **Must be called in a process
+    that will not subsequently fork DataLoader workers** (reading an ``s3://`` genome
+    here initializes s3fs, which deadlocks forked workers); the calibration rule runs
+    it in a separate subprocess for exactly this reason.
+
+    Args:
+        sites: ``[chrom, pos, ref, pentanuc, …]`` — bare ``chrom``, 1-based ``pos``.
+        get_seq: ``(chrom, start, end) -> str`` over the reference (0-based half-open,
+            bare chrom names; N-padded past chromosome ends). E.g. a ``Genome``.
+        window_size: the model's DNA context window.
+
+    Returns:
+        The subset of ``sites`` (all columns, order preserved) whose full window is
+        ACGT. Every kept window is all-ACGT by construction.
+    """
+    for col in ("chrom", "pos"):
+        assert col in sites.columns, f"sites missing column {col!r}"
+    assert window_size > 0, f"window_size must be positive, got {window_size}"
+    left_flank = window_size // 2  # matches _get_variant_window / in_seq_var_pos("+")
+
+    sites = sites.reset_index(drop=True)
+    keep = np.zeros(len(sites), dtype=bool)
+    acgt = np.frombuffer(b"ACGT", dtype=np.uint8)
+    for chrom, sub in sites.groupby("chrom", sort=False):
+        center0 = sub["pos"].to_numpy() - 1  # 1-based -> 0-based
+        win_start = center0 - left_flank
+        win_end = win_start + window_size
+        read_lo = max(0, int(win_start.min()))  # clamp; off-start sites dropped below
+        hi = int(win_end.max())
+        span = get_seq(str(chrom), read_lo, hi).upper()
+        arr = np.frombuffer(span.encode("ascii"), dtype=np.uint8)
+        assert arr.size == hi - read_lo, (
+            f"reference returned {arr.size} bp for {chrom}:{read_lo}-{hi} "
+            f"(expected {hi - read_lo})"
+        )
+        # Prefix sum of non-ACGT counts → a window is clean iff its count is 0.
+        bad = ~np.isin(arr, acgt)
+        csum = np.concatenate([[0], np.cumsum(bad)])
+        s_idx = win_start - read_lo
+        e_idx = win_end - read_lo
+        in_bounds = (win_start >= 0) & (win_end <= read_lo + arr.size)
+        s_clip = np.clip(s_idx, 0, arr.size)
+        e_clip = np.clip(e_idx, 0, arr.size)
+        n_bad = csum[e_clip] - csum[s_clip]
+        keep[sub.index.to_numpy()] = in_bounds & (n_bad == 0)
+
+    out = sites.loc[keep].reset_index(drop=True)
+    n_drop = len(sites) - len(out)
+    msg = (
+        f"[filter_acgt_window] window={window_size}: kept {len(out):,}/{len(sites):,} "
+        f"({n_drop} dropped for non-ACGT or off-chromosome windows)"
+    )
+    # If 5-mer context is present, report the post-filter per-5-mer minimum — this
+    # equals the per-calibration-cell observation count (each 5-mer's 3 alt-cells
+    # share its sites), so it previews whether any cell will fall below the
+    # downstream min_bin_count *before* the expensive scoring runs.
+    if "pentanuc" in out.columns and len(out):
+        per = out.groupby("pentanuc").size()
+        msg += f"; per-5-mer count min={int(per.min())} (n 5-mers={len(per)})"
+    print(msg)
+    return out
+
+
+def _filter_cli() -> None:
+    """Subprocess entry: filter a neutral parquet by ACGT window, write a new parquet.
+
+    Run in its own process by the ``compute_llr_neutral_mean`` rule so the genome's
+    s3fs initialization never touches the scoring process that forks DataLoader
+    workers. Reads ``--sites`` locally, opens ``--genome`` (S3 ok — this process
+    won't fork), and writes the filtered sites to ``--out``.
+    """
+    import argparse
+
+    from marin_dna.data.genome import Genome
+
+    parser = argparse.ArgumentParser(description=filter_acgt_window_sites.__doc__)
+    parser.add_argument(
+        "--sites", required=True, help="input neutral-sites parquet (local)"
+    )
+    parser.add_argument(
+        "--genome", required=True, help="reference FASTA (local or s3:// URI)"
+    )
+    parser.add_argument("--window", type=int, required=True, help="model window_size")
+    parser.add_argument("--out", required=True, help="output filtered parquet (local)")
+    args = parser.parse_args()
+
+    sites = pd.read_parquet(args.sites)
+    filtered = filter_acgt_window_sites(sites, Genome(args.genome), args.window)
+    assert len(filtered) > 0, (
+        "every neutral site was filtered out — wrong window/genome?"
+    )
+    filtered.to_parquet(args.out, index=False)
+    print(f"[filter_acgt_window] wrote {len(filtered):,} sites -> {args.out}")
+
+
+if __name__ == "__main__":
+    _filter_cli()
