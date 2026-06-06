@@ -78,12 +78,12 @@ def main() -> None:
     cmap = plt.get_cmap("tab10")
     for ax, (xcol, xlabel) in zip(axes, predictors):
         x = df[xcol].to_numpy(dtype=float)
+        order = np.argsort(x)
         for i, v in enumerate(VARIANTS):
             ycol = f"{prefix}{v}"
             if ycol not in df.columns or df[ycol].isna().any():
                 continue
             y = df[ycol].to_numpy(dtype=float)
-            order = np.argsort(x)
             ax.plot(
                 x[order],
                 y[order],

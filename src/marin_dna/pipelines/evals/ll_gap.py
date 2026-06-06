@@ -107,6 +107,10 @@ def compute_hf_ll_gap(
     # returned a flat [N*4] array instead of [N, 4] (see compute_evo2_ll). Row-
     # major reshape preserves per-row order.
     if pred.ndim == 1 and pred.shape[0] == n * 4:
+        print(
+            f"[ll_gap] WARNING: run_ll_clm returned flat shape {pred.shape}; "
+            f"reshaping to ({n}, 4). If this recurs, investigate the gather path."
+        )
         pred = pred.reshape(n, 4)
     assert pred.shape == (n, 4), (
         f"LL pred shape mismatch: got {pred.shape}, expected ({n}, 4)"

@@ -90,8 +90,10 @@ def size_token(name: str) -> str:
 
 
 def pull_wandb_auprc(entity: str = WANDB_ENTITY) -> pd.DataFrame:
-    """Per-size in-training Mendelian AUPRC (+ params) from W&B. (eval_loss is
-    pulled only as a reference column — it is NOT used as a predictor.)"""
+    """Per-size in-training Mendelian AUPRC (+ params) from W&B. The W&B
+    `eval/loss` is intentionally NOT pulled — it is the `lowercase_weight=0.01`
+    (functional-dominated) loss, a confounded baseline; the clean overall LL
+    (`LL_all`) is the baseline instead."""
     import wandb
 
     api = wandb.Api()
@@ -108,7 +110,6 @@ def pull_wandb_auprc(entity: str = WANDB_ENTITY) -> pd.DataFrame:
         d: dict[str, object] = {
             "size": size_token(s),
             "params": r.summary.get("parameter_count"),
-            "wandb_eval_loss_ref": r.summary.get("eval/loss"),  # reference only
         }
         for v in VARIANTS:
             d[f"intrain_auprc_{v}"] = r.summary.get(
@@ -145,8 +146,16 @@ def load_evals_v2_vep(metrics_prefix: str, score_type: str) -> pd.DataFrame | No
         path = f"{metrics_prefix}/scaling-v0.5-{s}-step-215573/mendelian_traits.parquet"
         try:
             m = pl.read_parquet(path).to_pandas()
-        except Exception:
-            return None
+        except Exception as e:
+            # Genuinely-absent metrics (not built yet) → fall back to in-training.
+            # Any other error (corrupt parquet, S3 auth, schema drift) must
+            # surface rather than be silently misread as "not present yet".
+            if any(
+                s in str(e).lower()
+                for s in ("not found", "no such", "does not exist", "404", "nosuchkey")
+            ):
+                return None
+            raise
         m = m[m["score_type"] == score_type]
         d: dict[str, object] = {"size": size_token(s)}
         for v in VARIANTS:
@@ -222,7 +231,12 @@ def main() -> None:
     df = pull_wandb_auprc().merge(
         load_gap_quantities(args.gap_summary), on="size", validate="1:1"
     )
-    assert df["gap_cds"].notna().all(), "missing gap — run `snakemake ll_gap`"
+    # Require every (predictor × region) cell. A partial summary (e.g. one sky
+    # cell failed) would otherwise yield silent-NaN correlations and a skipna
+    # macro mean over the wrong number of regions.
+    _need = [f"{q}_{r}" for q in PREDICTORS for r in ("cds", "upstream", "downstream")]
+    _missing = [c for c in _need if df[c].isna().any()]
+    assert not _missing, f"missing LL cells (run `snakemake ll_gap`): {_missing}"
 
     tables = [decomposition(df, "intrain_auprc_", "in_training")]
     if args.metrics_prefix:
