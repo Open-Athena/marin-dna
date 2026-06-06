@@ -196,6 +196,17 @@ TPU_TYPES: tuple[str, ...] = tuple(
 # is activations, not weights, so the microbatch is the lever.
 PER_DEVICE_PARALLELISM: int = int(os.getenv("PDP", "1024"))
 
+# Host RAM request for the TPU pod, env-overridable via ``TPU_RAM``. The default
+# ``300g`` is inherited from exp166's 1B/4B but is oversized for 0.25B — host RAM
+# only buffers the data loader (the model + optimizer states live in TPU HBM), so
+# a few tens of GB suffice. Under a busy cluster a 300g ask can fail to schedule
+# ("Scheduler: Insufficient memory (need 300.0GB, ...)"), so override low (e.g.
+# ``-e TPU_RAM 40g``) to fit available nodes. NOTE: ``resources`` is **not** in
+# the marin executor's output-path hash (only ``versioned()`` values + step deps
+# are — see ``collect_dependencies_and_version``), so changing this is
+# resume-safe — a relaunched arm still loads its existing checkpoint.
+TPU_RAM: str = os.getenv("TPU_RAM", "300g")
+
 # 5K steps × 8192 batch × 256 tokens/seq ≈ 10.5B tokens per arm — same compute as
 # exp232 (we hold compute fixed, not data). The -order sets are ~17.5% the size of
 # the family partitions, so the order arms see far more epochs than the family
@@ -526,7 +537,7 @@ def _build_train_step(strategy: str, dataset: str) -> ExecutorStep:
     )
     pod_config = TrainLmOnPodConfig(
         train_config=inner,
-        resources=ResourceConfig.with_tpu(TPU_TYPES, ram="300g"),
+        resources=ResourceConfig.with_tpu(TPU_TYPES, ram=TPU_RAM),
         output_path=this_output_path(),
     )
     # The remote() call here IS the TPU worker — Fray's RemoteCallable submits
@@ -541,7 +552,7 @@ def _build_train_step(strategy: str, dataset: str) -> ExecutorStep:
         name=os.path.join("checkpoints", run_name),
         fn=remote(
             _run_train_with_marin_dna_imports,
-            resources=ResourceConfig.with_tpu(TPU_TYPES, ram="300g"),
+            resources=ResourceConfig.with_tpu(TPU_TYPES, ram=TPU_RAM),
             pip_dependency_groups=["marin", "tpu"],
             env_vars=_train_remote_env_vars(),
         ),
