@@ -142,10 +142,11 @@ name:
 ### Calibration tables (cLLR, #267/#270)
 
 `snakemake calibration` builds a per-checkpoint **mutation-rate calibration**
-table — also kept **off `rule all`**. It scores the pinned, subsampled
-neutral-site set from [`snakemake/neutral_sites`](../../neutral_sites/)
-(`neutral_sites_n{n}.parquet`, default `n=100`) with the same fast LLR bundle as
-`compute_scores` (FWD+RC), then bins by `pentanuc_mut = 5mer + "_" + alt`:
+table — also kept **off `rule all`**. It scores the pinned, **pre-filtered +
+subsampled** neutral-site set from [`snakemake/neutral_sites`](../../neutral_sites/)
+(`neutral_sites_n{n}_w{w}.parquet`, default `n=100`, `w=scoreable_window=512`) with
+the same fast LLR bundle as `compute_scores` (FWD+RC), then bins by
+`pentanuc_mut = 5mer + "_" + alt`:
 
 ```
 results/calibration/{model}/llr_neutral_mean_n{n}.parquet
@@ -157,12 +158,15 @@ llr_neutral_std_avg, subsample_n]` (~3072 cells = 1024 five-mers × 3 alts). Sta
 **Entropy calibration** (the 4-forward marginal atom) is a separate, deferred
 path — this rule is LLR-only.
 
-The neutral set is staged via snakemake `storage()` (boto3, fork-safe), so it
-arrives as a **local** file: `pd.read_parquet("s3://…")` in the rule's parent
-process would initialize s3fs and deadlock the forked DataLoader workers that read
-the genome (the genome stays the only in-worker s3fs read). Configured under
-`calibration:` in `config.yaml` (`models`, `subsample_n`, `min_bin_count`,
-`neutral_sites_s3_prefix`, `rc`). Build:
+The neutral set is **ACGT-window-filtered upstream** (in `neutral_sites`, once per
+window, reused by every model — see that pipeline's README), so this rule does **no
+genome filtering**; it asserts `scoreable_window >= the model's window_size` so the
+clean set is valid for the model. The set is staged via snakemake `storage()`
+(boto3, fork-safe), so it arrives as a **local** file: `pd.read_parquet("s3://…")`
+in the rule's parent process would initialize s3fs and deadlock the forked
+DataLoader workers that read the genome (the genome stays the only in-worker s3fs
+read). Configured under `calibration:` in `config.yaml` (`models`, `subsample_n`,
+`scoreable_window`, `min_bin_count`, `neutral_sites_s3_prefix`, `rc`). Build:
 
 ```bash
 snakemake calibration                                                # all configured calibration models
@@ -215,7 +219,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
-| `calibration` | Optional; cLLR mutation-rate calibration tables (#267/#270, off `rule all`). `{neutral_sites_s3_prefix, subsample_n, min_bin_count, rc, models: [...]}` — scores the subsampled neutral set → per-model `llr_neutral_mean`. See `rules/calibration.smk`. |
+| `calibration` | Optional; cLLR mutation-rate calibration tables (#267/#270, off `rule all`). `{neutral_sites_s3_prefix, subsample_n, scoreable_window, min_bin_count, rc, models: [...]}` — scores the pre-filtered + subsampled neutral set (`neutral_sites_n{subsample_n}_w{scoreable_window}.parquet`) → per-model `llr_neutral_mean`. See `rules/calibration.smk`. |
 
 ## Library
 
