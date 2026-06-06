@@ -19,8 +19,14 @@ cd "$WORKTREE" || { echo "FATAL: cannot cd $WORKTREE"; exit 1; }
 export PATH="/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin:$PATH"
 
 ARM=v4_ccre_non_promoter_order
-JOB_BASE=exp255-ccre_non_promoter_order-v6e8
-RUN_SEQ=4                                   # current live job is -r4; next relaunch -> -r5
+# Pool is env-overridable: v6e-8 us-east5-b went memory-saturated on 2026-06-06
+# morning (train task stuck pending "Insufficient memory, available 1.3GB"), so
+# we re-routed to v6e-4 (roomy: cds + the original ccre ran there). Defaults below
+# target v6e-4; override WATCH_TPU_TYPE / WATCH_JOB_BASE / WATCH_PDP to switch.
+JOB_BASE="${WATCH_JOB_BASE:-exp255-ccre_non_promoter_order-v6e4}"
+TPU_TYPE_W="${WATCH_TPU_TYPE:-v6e-4}"
+PDP_W="${WATCH_PDP:-1024}"
+RUN_SEQ="${WATCH_START_SEQ:-7}"             # which -rN to start watching (env-overridable for restarts)
 JOB="/gonzalo/${JOB_BASE}-r${RUN_SEQ}"
 POLL_SECS=900                               # 15 min: catch a preemption promptly (<=1 checkpoint of loss)
 MAX_RELAUNCHES=10
@@ -48,11 +54,11 @@ PY
 relaunch(){
   RUN_SEQ=$((RUN_SEQ + 1)); RELAUNCHES=$((RELAUNCHES + 1))
   local nj="${JOB_BASE}-r${RUN_SEQ}"
-  log ">>> RELAUNCH #${RELAUNCHES}: ${nj} (v6e-8 / TPU_RAM=40g; resumes from last checkpoint)"
+  log ">>> RELAUNCH #${RELAUNCHES}: ${nj} (${TPU_TYPE_W} / TPU_RAM=40g; resumes from last checkpoint)"
   irisc job run --no-wait --user gonzalo \
     --job-name "$nj" --cpu 1 --memory 2g --extra marin --region us-east5 \
     -e WANDB_API_KEY "$WKEY" -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
-    -e SWEEP_DATASETS "$ARM" -e TPU_TYPE v6e-8 -e PDP 1024 -e TPU_RAM 40g \
+    -e SWEEP_DATASETS "$ARM" -e TPU_TYPE "$TPU_TYPE_W" -e PDP "$PDP_W" -e TPU_RAM 40g \
     -- python experiments/exp255_per_region_order.py | tail -2
   JOB="/gonzalo/${nj}"
 }
