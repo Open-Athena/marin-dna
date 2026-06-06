@@ -55,12 +55,11 @@ GPN_STAR_GIST_BASE: str = (
 )
 
 # Per-dataset leaderboard score column. The calibrated variant is what each
-# leaderboard issue (#161 / #162 / #172) renders. The uncalibrated counterpart
-# is reported in #145 for context.
+# leaderboard issue (#161 / #162) renders. The uncalibrated counterpart is
+# reported in #145 for context. (eQTL #172 retired in #194 — no current upload.)
 GPN_STAR_SCORE_COLUMN: dict[str, str] = {
     "mendelian_traits": "minus_llr_calibrated",
     "complex_traits": "abs_llr_calibrated",
-    "eqtl": "abs_llr_calibrated",
 }
 
 

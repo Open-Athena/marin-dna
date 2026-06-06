@@ -306,11 +306,10 @@ def test_predictions_url_unknown_model() -> None:
 def test_score_column_per_dataset_convention() -> None:
     # Mendelian uses signed (pathogenic ⇒ alt depleted under purifying selection).
     assert GPN_STAR_SCORE_COLUMN["mendelian_traits"] == "minus_llr_calibrated"
-    # Complex / eQTL use magnitude (direction-agnostic; eQTLs can go either way).
+    # Complex uses magnitude (direction-agnostic).
     assert GPN_STAR_SCORE_COLUMN["complex_traits"] == "abs_llr_calibrated"
-    assert GPN_STAR_SCORE_COLUMN["eqtl"] == "abs_llr_calibrated"
-    # No surprise datasets.
-    assert set(GPN_STAR_SCORE_COLUMN) == {"mendelian_traits", "complex_traits", "eqtl"}
+    # No surprise datasets (eQTL #172 retired in #194).
+    assert set(GPN_STAR_SCORE_COLUMN) == {"mendelian_traits", "complex_traits"}
 
 
 def test_model_info_keys_match_models_tuple() -> None:

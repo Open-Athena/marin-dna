@@ -104,6 +104,6 @@ Pipeline rules are thin glue around `marin_dna.pipelines.evals.gpn_star`:
 - `predictions_url(dataset, model)` — gist raw URL for one prediction parquet.
 - `GPN_STAR_MODELS`, `GPN_STAR_MODEL_INFO`, `GPN_STAR_SCORE_COLUMN` — metadata.
 
-Tests at [`tests/pipelines/evals/test_gpn_star.py`](../../../tests/pipelines/evals/test_gpn_star.py)
+Tests at [`tests/pipelines/evals/test_gpn_star.py`](../../tests/pipelines/evals/test_gpn_star.py)
 cover alignment, NaN detection, chrom-dtype handling, and the predictions-URL
 helper.
