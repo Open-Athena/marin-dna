@@ -53,7 +53,7 @@ from marin.training.training import TrainLmOnPodConfig
 
 # Reuse the per-region builders verbatim where we can — these imports double as a
 # sanity check on the per-region module's importability.
-from experiments.per_region.exp187_per_region import (
+from experiments.exp187_per_region import (
     TPU_TYPES,
     TRAIN_DATASETS,
     TRAIN_FORMAT,
