@@ -20,7 +20,11 @@ rule score_variants:
         dataset="|".join(DATASETS),
     run:
         hf_path = f"{config['input_hf_prefix']}_{wildcards.dataset}"
-        hf = load_dataset(hf_path, split=config["split"]).to_pandas()
+        hf = load_dataset(
+            hf_path,
+            split=config["split"],
+            revision=HF_REVISION[wildcards.dataset],
+        ).to_pandas()
         for col in REQUIRED_VARIANT_COLUMNS:
             assert col in hf.columns, f"HF dataset missing column {col!r}"
 

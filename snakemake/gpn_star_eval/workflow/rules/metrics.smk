@@ -1,9 +1,14 @@
-"""Per-dataset PairwiseAccuracy ± SE on the 4 score columns × 3 models.
+"""Per-dataset AUPRC + cluster-bootstrap SE on the 4 score columns × 3 models.
 
 Output schema (one row per ``(model, score_type, subset)``):
-``[score_type, subset, value, se, n_pairs, n_ties, model, dataset, split]``.
+``[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]``.
 Includes ``_global_`` and ``_macro_avg_`` sentinel subset rows from
-``compute_pairwise_metrics`` (n_min=30).
+``compute_auprc_metrics`` (``n_min`` from config). AUPRC + cluster bootstrap on
+``match_group`` matches evals_v2, so these rows are directly comparable to our
+models on the same dataset revisions — and they reproduce the GPN-Star numbers
+the dashboard reads from the #145 metrics gist. (The previous PairwiseAccuracy
+path asserted 1 pos + 1 neg per ``match_group`` and would fail on the 1:9 k=9
+datasets.)
 """
 
 
@@ -31,11 +36,13 @@ rule compute_metrics:
         for m in MODELS:
             model = f"GPN-Star-{m}"
             sub = df[df["model"] == model]
-            metrics = compute_pairwise_metrics(
-                dataset=sub[list(REQUIRED_VARIANT_COLUMNS)],
+            metrics = compute_auprc_metrics(
+                dataset=sub[["label", "subset", "match_group"]],
                 scores=sub[SCORE_COLUMNS],
                 score_columns=SCORE_COLUMNS,
-                n_min=30,
+                n_bootstrap=config["n_bootstrap"],
+                rng=config["bootstrap_seed"],
+                n_min=config["n_min"],
             )
             metrics["model"] = model
             per_model.append(metrics)
