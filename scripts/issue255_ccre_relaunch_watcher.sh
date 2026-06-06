@@ -35,6 +35,16 @@ STUCK_POLLS="${WATCH_STUCK_POLLS:-2}"       # consecutive polls of a pending TPU
 MAX_RELAUNCHES="${WATCH_MAX_RELAUNCHES:-50}"
 RELAUNCHES=0
 PENDING_POLLS=0
+# Backoff: during sustained contention (preempted faster than the ~15-20min
+# startup, so no durable progress), don't churn a relaunch every ~15min — after
+# BACKOFF_AFTER no-progress relaunches, wait BACKOFF_SECS between probe-relaunches
+# (~hourly). Snaps back to prompt relaunching the moment a window opens (the ccre
+# step jumps by >PROGRESS_MARGIN, i.e. a checkpoint past the resume point).
+BACKOFF_AFTER="${WATCH_BACKOFF_AFTER:-3}"
+BACKOFF_SECS="${WATCH_BACKOFF_SECS:-2700}"   # 45min probe interval
+PROGRESS_MARGIN=150
+NO_PROGRESS=0
+LAST_PROGRESS_STEP=2500
 WKEY="$(grep -A2 api.wandb.ai ~/.netrc | grep password | awk '{print $2}')"
 
 log(){ echo "[$(TZ=America/New_York date '+%m-%d %H:%M:%S') NY] $*"; }
@@ -73,10 +83,14 @@ relaunch(){                                 # $1 = target pool, $2 = reason
   JOB="/gonzalo/${nj}"
 }
 
-log "=== watcher START — watching ${JOB} (pool ${POOL}); poll ${POLL_SECS}s; cap ${MAX_RELAUNCHES}; stuck-switch after ${STUCK_POLLS} polls ==="
+LAST_PROGRESS_STEP="$(ccre_step)"; [ "${LAST_PROGRESS_STEP:-0}" -gt 0 ] 2>/dev/null || LAST_PROGRESS_STEP=2500
+log "=== watcher START — watching ${JOB} (pool ${POOL}); poll ${POLL_SECS}s; cap ${MAX_RELAUNCHES}; stuck-switch ${STUCK_POLLS} polls; backoff ${BACKOFF_SECS}s after ${BACKOFF_AFTER} no-progress relaunches (from step ${LAST_PROGRESS_STEP}) ==="
 while true; do
   cs="$(coord_state)"; ts="$(task_state)"; step="$(ccre_step)"
-  log "poll: coord=${cs:-UNREACHABLE} task=${ts} step=${step} pool=${POOL} pending_polls=${PENDING_POLLS} relaunches=${RELAUNCHES}/${MAX_RELAUNCHES}"
+  if [ "${step:-0}" -gt "$((LAST_PROGRESS_STEP + PROGRESS_MARGIN))" ] 2>/dev/null; then
+    LAST_PROGRESS_STEP="$step"; NO_PROGRESS=0          # a window opened — durable progress, resume normal cadence
+  fi
+  log "poll: coord=${cs:-UNREACHABLE} task=${ts} step=${step} pool=${POOL} pending=${PENDING_POLLS} no_progress=${NO_PROGRESS} relaunches=${RELAUNCHES}/${MAX_RELAUNCHES}"
 
   if { [ "${step:-0}" -ge 5000 ] 2>/dev/null; } || [ "${cs:-}" = "succeeded" ]; then
     log "=== DONE: ccre at step ${step} (coordinator ${cs:-?}). Watcher exiting. ==="; break
@@ -86,7 +100,12 @@ while true; do
   fi
 
   if [ "${cs:-}" = "failed" ]; then
-    relaunch "$POOL" "preempted"; sleep 120; continue
+    NO_PROGRESS=$((NO_PROGRESS + 1))
+    if [ "$NO_PROGRESS" -ge "$BACKOFF_AFTER" ]; then
+      log "sustained contention: ${NO_PROGRESS} relaunches, no durable progress past step ${LAST_PROGRESS_STEP} — backing off ${BACKOFF_SECS}s before next probe (nothing running meanwhile)"
+      sleep "$BACKOFF_SECS"
+    fi
+    relaunch "$POOL" "preempt/probe"; sleep 120; continue
   fi
   if [ "$ts" = "running" ]; then
     PENDING_POLLS=0
