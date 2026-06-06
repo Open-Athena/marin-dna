@@ -28,8 +28,10 @@ export PATH="/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin:$PAT
 ARM=v4_ccre_non_promoter_order
 POOL="${WATCH_POOL:-v6e-4}"                 # pool the current job is on
 RUN_SEQ="${WATCH_START_SEQ:-8}"             # global relaunch counter / which -rN to watch
+REGION="${WATCH_REGION:-us-east5}"          # --region for relaunches (picks the data bucket + zone)
+NAME_BASE="${WATCH_NAME_BASE:-exp255-ccre_non_promoter_order}"
 POOL_TAG="${POOL//-/}"                      # v6e-4 -> v6e4 (job-name suffix)
-JOB="/gonzalo/exp255-ccre_non_promoter_order-${POOL_TAG}-r${RUN_SEQ}"
+JOB="/gonzalo/${NAME_BASE}-${POOL_TAG}-r${RUN_SEQ}"
 POLL_SECS=900
 STUCK_POLLS="${WATCH_STUCK_POLLS:-2}"       # consecutive polls of a pending TPU task before switching pool (~30min)
 MAX_RELAUNCHES="${WATCH_MAX_RELAUNCHES:-50}"
@@ -65,25 +67,31 @@ import wandb
 api = wandb.Api(); ent = api.default_entity
 runs = [r for r in api.runs(f"{ent}/marin", filters={"group": "dna-exp255-v0.1"}) if "ccre" in r.name]
 running = [r for r in runs if r.state == "running"]
-r = max(running or runs, key=lambda x: dict(x.summary).get("_step") or 0) if runs else None
-print(int(dict(r.summary).get("_step") or 0) if r else 0)
+cands = running or runs
+if not cands:
+    print(0); raise SystemExit
+try:                                  # prefer the newest current attempt (avoids stale runs after a region switch)
+    r = sorted(cands, key=lambda x: x.created_at or "", reverse=True)[0]
+except Exception:
+    r = max(cands, key=lambda x: dict(x.summary).get("_step") or 0)
+print(int(dict(r.summary).get("_step") or 0))
 PY
 }
 
 relaunch(){                                 # $1 = target pool, $2 = reason
   POOL="$1"; POOL_TAG="${POOL//-/}"
   RUN_SEQ=$((RUN_SEQ + 1)); RELAUNCHES=$((RELAUNCHES + 1)); PENDING_POLLS=0
-  local nj="exp255-ccre_non_promoter_order-${POOL_TAG}-r${RUN_SEQ}"
-  log ">>> RELAUNCH #${RELAUNCHES} [${2}]: ${nj} (${POOL} / PDP=1024 / RAM=40g; resumes from last checkpoint)"
+  local nj="${NAME_BASE}-${POOL_TAG}-r${RUN_SEQ}"
+  log ">>> RELAUNCH #${RELAUNCHES} [${2}]: ${nj} (${POOL} @ ${REGION} / PDP=1024 / RAM=40g; resumes from last checkpoint)"
   irisc job run --no-wait --user gonzalo \
-    --job-name "$nj" --cpu 1 --memory 2g --extra marin --region us-east5 \
+    --job-name "$nj" --cpu 1 --memory 2g --extra marin --region "$REGION" \
     -e WANDB_API_KEY "$WKEY" -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
     -e SWEEP_DATASETS "$ARM" -e TPU_TYPE "$POOL" -e PDP 1024 -e TPU_RAM 40g \
     -- python experiments/exp255_per_region_order.py | tail -2
   JOB="/gonzalo/${nj}"
 }
 
-LAST_PROGRESS_STEP="$(ccre_step)"; [ "${LAST_PROGRESS_STEP:-0}" -gt 0 ] 2>/dev/null || LAST_PROGRESS_STEP=2500
+LAST_PROGRESS_STEP="${WATCH_RESUME_STEP:-$(ccre_step)}"; case "$LAST_PROGRESS_STEP" in ''|*[!0-9]*) LAST_PROGRESS_STEP=0;; esac
 log "=== watcher START — watching ${JOB} (pool ${POOL}); poll ${POLL_SECS}s; cap ${MAX_RELAUNCHES}; stuck-switch ${STUCK_POLLS} polls; backoff ${BACKOFF_SECS}s after ${BACKOFF_AFTER} no-progress relaunches (from step ${LAST_PROGRESS_STEP}) ==="
 while true; do
   cs="$(coord_state)"; ts="$(task_state)"; step="$(ccre_step)"
