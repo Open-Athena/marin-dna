@@ -1,14 +1,15 @@
 """Per-dataset AUPRC + cluster-bootstrap SE on the 4 score columns × 3 models.
 
 Output schema (one row per ``(model, score_type, subset)``):
-``[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]``.
+``[score_type, subset, value, se, n_groups, n_rows, model, dataset]``.
 Includes ``_global_`` and ``_macro_avg_`` sentinel subset rows from
 ``compute_auprc_metrics`` (``n_min`` from config). AUPRC + cluster bootstrap on
 ``match_group`` matches evals_v2, so these rows are directly comparable to our
-models on the same dataset revisions — and they reproduce the GPN-Star numbers
-the dashboard reads from the #145 metrics gist. (The previous PairwiseAccuracy
-path asserted 1 pos + 1 neg per ``match_group`` and would fail on the 1:9 k=9
-datasets.)
+models on the same dataset revisions. The dashboard reads this parquet directly
+(``leaderboard._parquet_path`` case ``gpn_star``), filtering by ``model`` +
+``score_type`` — there is no ``split`` column (all rows are the train split, the
+only split this pipeline emits). (The previous PairwiseAccuracy path asserted
+1 pos + 1 neg per ``match_group`` and would fail on the 1:9 k=9 datasets.)
 """
 
 
@@ -49,7 +50,6 @@ rule compute_metrics:
 
         out = pd.concat(per_model, ignore_index=True)
         out["dataset"] = wildcards.dataset
-        out["split"] = config["split"]
         out.to_parquet(output[0], index=False)
         print(
             f"[gpn_star_eval] {wildcards.dataset}: {len(out)} metric rows "

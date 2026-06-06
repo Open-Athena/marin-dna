@@ -17,7 +17,7 @@ import {PillSelect, ComparisonPicker, labeledRow} from "../components/controls.j
 ```js
 const FAMILY = "gpn_star";
 // `[baseline, alternative]`; heatmap shows `alternative − baseline`. No
-// FWD/RC variants on this gist-sourced family, hence the single pair.
+// FWD/RC variants for this family (GPN-Star averages strands upstream), hence the single pair.
 const COMPARISONS = [["cLLR", "LLR"]];
 const DATASETS = ["mendelian_traits", "complex_traits"];
 const DATASET_LABEL = {

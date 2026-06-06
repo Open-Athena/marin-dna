@@ -6,8 +6,10 @@ on the matched-pair eval datasets ([#161 Mendelian](https://github.com/Open-Athe
 [#162 Complex traits](https://github.com/Open-Athena/marin-dna/issues/162)).
 Same metric, dataset revisions, and bootstrap config as
 [`evals_v2`](../analysis/evals_v2), so these rows are directly comparable to our
-own models — and they **reproduce the GPN-Star numbers the dashboard reads** from
-the #145 metrics gist.
+own models. **This pipeline's S3 metrics parquet is the dashboard's GPN-Star
+source** (`leaderboard._parquet_path` case `gpn_star`) — the pipeline is the
+single source of truth; the old #145 metrics gist is kept only as a provenance
+record.
 
 GPN-Star scoring runs in [songlab-cal/TraitGym](https://github.com/songlab-cal/TraitGym),
 not this repo. Predictions are pulled from a gist (commit pinned in
@@ -60,7 +62,9 @@ results/
 ├── scores/{dataset}.parquet    # 3 × N rows: variant cols + scores per model
 └── metrics/{dataset}.parquet   # AUPRC per (model, score_type, subset);
                                  # cols [score_type, subset, value, se,
-                                 #       n_groups, n_rows, model, dataset, split]
+                                 #       n_groups, n_rows, model, dataset]
+                                 # (no `split` col — train only; the dashboard
+                                 #  reads this parquet, filtering model+score_type)
 ```
 
 ## Conventions
