@@ -156,8 +156,12 @@ def load_wandb() -> dict[tuple[str, str], dict]:
 
 def print_tables(wd: dict[tuple[str, str], dict]) -> dict:
     cache = {}  # (arm,cohort)->offline_auprc dict, reused by the plots
-    print("\n=== MATCHED: order (19 sp.) vs family (108 sp.) — same region & budget ===")
-    print("    offline AUPRC = minus_llr_avg @ step-4999 (±cluster-bootstrap SE); LL = -loss\n")
+    print(
+        "\n=== MATCHED: order (19 sp.) vs family (108 sp.) — same region & budget ==="
+    )
+    print(
+        "    offline AUPRC = minus_llr_avg @ step-4999 (±cluster-bootstrap SE); LL = -loss\n"
+    )
     for arm, c in ARMS.items():
         om = cache.setdefault((arm, "order"), offline_auprc(c["order_model"]))
         fm = cache.setdefault((arm, "family"), offline_auprc(c["family_model"]))
@@ -170,14 +174,22 @@ def print_tables(wd: dict[tuple[str, str], dict]) -> dict:
         lo, lf = wd[(arm, "order")], wd[(arm, "family")]
         print(f"  LL on {c['recipe']} (matched region):")
         print(f"    {'metric':36s}{'order':>16}{'family':>16}{'Δ(order-fam)':>14}")
-        for label, key in (("LL functional", "func_ll"), ("LL non-functional", "nonfunc_ll"), ("LL gap", "gap")):
-            print(f"    {label:36s}{lo[key]:>16.3f}{lf[key]:>16.3f}{lo[key] - lf[key]:+14.3f}")
+        for label, key in (
+            ("LL functional", "func_ll"),
+            ("LL non-functional", "nonfunc_ll"),
+            ("LL gap", "gap"),
+        ):
+            print(
+                f"    {label:36s}{lo[key]:>16.3f}{lf[key]:>16.3f}{lo[key] - lf[key]:+14.3f}"
+            )
         print()
     return cache
 
 
 def print_online_offline(wd: dict[tuple[str, str], dict], cache: dict) -> None:
-    print("=== SANITY: online (in-training lm_eval, post-#266 BOS) vs offline AUPRC ===")
+    print(
+        "=== SANITY: online (in-training lm_eval, post-#266 BOS) vs offline AUPRC ==="
+    )
     print("    order arms, all 8 subsets — they should coincide if the BOS fix holds\n")
     for arm, c in ARMS.items():
         off = cache.setdefault((arm, "order"), offline_auprc(c["order_model"]))
@@ -201,7 +213,9 @@ def print_online_offline(wd: dict[tuple[str, str], dict], cache: dict) -> None:
 
 
 def plot_matched(wd: dict, cache: dict) -> None:
-    fig, (axA, axB) = plt.subplots(1, 2, figsize=(12, 4.6), gridspec_kw={"width_ratios": [2.4, 1]})
+    fig, (axA, axB) = plt.subplots(
+        1, 2, figsize=(12, 4.6), gridspec_kw={"width_ratios": [2.4, 1]}
+    )
 
     # Panel A — matched-subset AUPRC, grouped order vs family
     labels, ovals, oerr, fvals, ferr = [], [], [], [], []
@@ -210,13 +224,31 @@ def plot_matched(wd: dict, cache: dict) -> None:
         fm = cache[(arm, "family")]
         for ss in c["subsets"]:
             labels.append(f"{ss.replace('_variant', '')}\n({arm})")
-            ovals.append(om[ss][0]); oerr.append(om[ss][1])
-            fvals.append(fm[ss][0]); ferr.append(fm[ss][1])
+            ovals.append(om[ss][0])
+            oerr.append(om[ss][1])
+            fvals.append(fm[ss][0])
+            ferr.append(fm[ss][1])
     x = np.arange(len(labels))
     w = 0.38
-    axA.bar(x - w / 2, ovals, w, yerr=oerr, capsize=3, color=C_ORDER, label="order (19 sp.)")
-    axA.bar(x + w / 2, fvals, w, yerr=ferr, capsize=3, color=C_FAMILY, label="family (108 sp.)")
-    axA.axhline(AUPRC_BASELINE, ls=":", color="gray", lw=0.9, label=f"baseline {AUPRC_BASELINE:.2f}")
+    axA.bar(
+        x - w / 2, ovals, w, yerr=oerr, capsize=3, color=C_ORDER, label="order (19 sp.)"
+    )
+    axA.bar(
+        x + w / 2,
+        fvals,
+        w,
+        yerr=ferr,
+        capsize=3,
+        color=C_FAMILY,
+        label="family (108 sp.)",
+    )
+    axA.axhline(
+        AUPRC_BASELINE,
+        ls=":",
+        color="gray",
+        lw=0.9,
+        label=f"baseline {AUPRC_BASELINE:.2f}",
+    )
     axA.set_xticks(x)
     axA.set_xticklabels(labels, fontsize=9)
     axA.set_ylabel("offline AUPRC (minus_llr_avg)")
@@ -238,7 +270,9 @@ def plot_matched(wd: dict, cache: dict) -> None:
     axB.grid(axis="y", alpha=0.3)
     for i, a in enumerate(arms):
         for dx, g in ((-w / 2, og[i]), (w / 2, fg[i])):
-            axB.text(xg[i] + dx, g + 0.004, f"{g:.3f}", ha="center", va="bottom", fontsize=8)
+            axB.text(
+                xg[i] + dx, g + 0.004, f"{g:.3f}", ha="center", va="bottom", fontsize=8
+            )
 
     fig.suptitle(
         "exp255 (#255) — order- vs family-deduplicated cohort, matched region & budget (0.25B, step-4999)",
@@ -259,15 +293,29 @@ def plot_online_vs_offline(wd: dict, cache: dict) -> None:
             onv, offv = on.get(ss), off.get(ss, (None,))[0]
             if onv is None or offv is None:
                 continue
-            xs.append(onv); ys.append(offv)
-        ax.scatter(xs, ys, marker=markers[arm], s=60, color=C_ORDER, alpha=0.8,
-                   edgecolor="white", linewidth=0.6, label=f"{arm}_order")
+            xs.append(onv)
+            ys.append(offv)
+        ax.scatter(
+            xs,
+            ys,
+            marker=markers[arm],
+            s=60,
+            color=C_ORDER,
+            alpha=0.8,
+            edgecolor="white",
+            linewidth=0.6,
+            label=f"{arm}_order",
+        )
     lo, hi = 0.08, 0.42
     ax.plot([lo, hi], [lo, hi], ls="--", color="gray", lw=1, label="y = x")
-    ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(lo, hi)
     ax.set_xlabel("online AUPRC (in-training lm_eval, BOS)")
     ax.set_ylabel("offline AUPRC (evals_v2 minus_llr_avg)")
-    ax.set_title("exp255 — online vs offline AUPRC (all 8 subsets)\npost-#266 BOS fix: points on y=x", fontsize=10)
+    ax.set_title(
+        "exp255 — online vs offline AUPRC (all 8 subsets)\npost-#266 BOS fix: points on y=x",
+        fontsize=10,
+    )
     ax.legend(fontsize=9)
     ax.grid(alpha=0.3)
     fig.tight_layout()
