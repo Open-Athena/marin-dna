@@ -68,6 +68,30 @@ def _qc(tmp_path: Path, *, with_maf: bool = False) -> Path:
     return path
 
 
+def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
+    # SGE schema: no `label`; provenance via (gene, mavedb_urn); author_-prefixed
+    # source columns. BRCA1 is chr17 (odd) -> all in train, empty test.
+    train = pl.DataFrame(
+        {
+            "chrom": ["17", "17", "17"],
+            "pos": [43045705, 43045706, 43045707],
+            "ref": ["A", "C", "G"],
+            "alt": ["T", "G", "A"],
+            "gene": ["BRCA1", "BRCA1", "BRCA1"],
+            "assay": ["sge", "sge", "sge"],
+            "mavedb_urn": ["urn:mavedb:00000097-0-2"] * 3,
+            "author_function_score_mean": [-1.0, 0.1, -2.0],
+            "author_func_class": ["LOF", "FUNC", "LOF"],
+            "consequence": ["missense_variant"] * 3,
+        }
+    )
+    train_path = tmp_path / "train.parquet"
+    test_path = tmp_path / "test.parquet"
+    train.write_parquet(train_path)
+    train.clear().write_parquet(test_path)  # empty test, same schema
+    return train_path, test_path
+
+
 class TestRender:
     def test_mendelian_renders_with_expected_sections(self, tmp_path: Path) -> None:
         train, test = _matched_train_test(tmp_path)
@@ -179,6 +203,34 @@ class TestRender:
             assert header in md, f"missing header: {header}"
         assert "No matching and no subsampling" in md
         assert "DART-Eval" in md
+        assert SHA[:7] in md
+
+    def test_sge_renders(self, tmp_path: Path) -> None:
+        train, test = _sge_train_test(tmp_path)
+        md = hf_readme.render("sge", SHA, train, test)
+        assert md.startswith("---\n")
+        # Minimal tag set only — no fine-grained extras (bolinas-dna convention).
+        frontmatter = md.split("# evals_sge")[0]
+        for tag in ("biology", "genomics", "dna"):
+            assert tag in frontmatter
+        assert "saturation-genome-editing" not in frontmatter
+        assert "variant-effect-prediction" not in frontmatter
+        for header in (
+            "# evals_sge",
+            "## Studies",
+            "## Splits",
+            "## Columns",
+            "## Provenance",
+            "## Citation",
+        ):
+            assert header in md, f"missing header: {header}"
+        # Per-(gene, study) provenance + the canonical accession.
+        assert "BRCA1" in md and "Findlay" in md
+        assert "urn:mavedb:00000097-0-2" in md
+        # Distinctive SGE framing.
+        assert "No matching, no subsampling, no binary label" in md
+        assert "exclude_consequences" in md
+        assert "author_" in md
         assert SHA[:7] in md
 
     def test_retention_table_handles_zero_input(self, tmp_path: Path) -> None:

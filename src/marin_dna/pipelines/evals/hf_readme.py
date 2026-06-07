@@ -595,6 +595,139 @@ If you use this benchmark, please cite the upstream sources:
 """
 
 
+# Per-study metadata for the SGE dataset card, keyed by the per-variant
+# `mavedb_urn` accession. Extend as phase-2 genes are added.
+_SGE_STUDY_META = {
+    "urn:mavedb:00000097-0-2": {
+        "gene": "BRCA1",
+        "study": "Findlay et al. 2018, *Nature* 562:217–222",
+        "pmid": "30209399",
+        "build": "hg19 → GRCh38 (lifted)",
+        "score_col": "`author_function_score_mean`",
+        "class_col": "`author_func_class` (FUNC / INT / LOF)",
+    },
+}
+
+
+def render_sge(
+    dataset: str,
+    sha: str,
+    train_path: str | Path,
+    test_path: str | Path,
+) -> str:
+    """Dataset card for the SGE (saturation genome editing) dataset.
+
+    Each row is one assayed SNV with an experimental function score. There is no
+    matching/subsampling and no binary `label` (so no pos/neg counts); the
+    HIGH-impact `exclude_consequences` are dropped; every original author column is
+    preserved under an `author_` prefix. Provenance is per-variant `(gene,
+    mavedb_urn)`; per-study citation comes from `_SGE_STUDY_META`.
+    """
+    train = pl.read_parquet(train_path)
+    test = pl.read_parquet(test_path)
+    allv = pl.concat([train, test], how="vertical_relaxed")
+    total = allv.height
+    counts = dict(
+        allv.group_by("mavedb_urn").len().iter_rows()
+    )  # urn -> n_variants
+
+    study_rows = []
+    for urn, n in sorted(counts.items()):
+        m = _SGE_STUDY_META.get(urn, {})
+        study_rows.append(
+            f"| {m.get('gene', '?')} | [`{urn}`](https://www.mavedb.org/score-sets/{urn}) "
+            f"| {m.get('study', '—')} | {m.get('build', '—')} | {n:,} "
+            f"| {m.get('score_col', '—')} | {m.get('class_col', '—')} |"
+        )
+    studies_table = "\n".join(study_rows)
+    n_author = sum(c.startswith("author_") for c in allv.columns)
+    citations = "\n".join(
+        f"- {m['gene']} — {m['study']} (PMID [{m['pmid']}](https://pubmed.ncbi.nlm.nih.gov/{m['pmid']}/)); "
+        f"MaveDB [`{urn}`](https://www.mavedb.org/score-sets/{urn})"
+        for urn, m in (
+            (u, _SGE_STUDY_META[u]) for u in sorted(counts) if u in _SGE_STUDY_META
+        )
+    )
+
+    # Minimal tag set (biology, genomics, dna) per the bolinas-dna dataset-card
+    # convention — no fine-grained extras.
+    return f"""{_frontmatter()}
+
+# evals_sge
+
+Variant-effect-prediction benchmark of **saturation genome editing (SGE)** function
+scores. SGE edits the *endogenous genomic locus* (CRISPR-HDR, typically in haploid
+HAP1 cells), so every assayed SNV has a **direct experimental functional measurement**
+in genomic coordinates — an axis orthogonal to the clinical/population/statistical
+labels of the other `evals_*` datasets, and one that covers near-exon noncoding
+(splice-region, proximal-intronic) SNVs, not just missense.
+
+**No matching, no subsampling, no binary label** — every assayed SNV is kept with its
+continuous author score(s). The trivially-deleterious **HIGH-impact consequences**
+(canonical splice, nonsense, frameshift, …) are **dropped** (`exclude_consequences`);
+they are not the discriminative signal an SGE benchmark is about. **Every original
+author column is preserved** under an `author_` prefix ({n_author} columns), so no
+source metadata is lost.
+
+## Studies
+
+One row per (gene × study). `mavedb_urn` is stamped on every variant so `(gene,
+mavedb_urn)` identifies the exact source.
+
+| Gene | MaveDB accession | Study | Build | Variants | Function score | Classification |
+|---|---|---|---:|---:|---|---|
+{studies_table}
+
+## Splits
+
+Chromosome-parity split (same convention as the other `evals_*` datasets): odd
+chromosomes + X → `train`, even + Y → `test`. SGE loci sit on whole chromosomes, so
+this is a **gene-level holdout** (e.g. BRCA1·chr17 → train).
+
+| Split | Variants | Chromosomes |
+|---|---:|---|
+| `train` | {train.height:,} | odd: 1, 3, …, X |
+| `test` | {test.height:,} | even: 2, 4, …, Y |
+| **total** | **{total:,}** | |
+
+## Columns
+
+| Column | Type | Description |
+|---|---|---|
+| `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, **GRCh38**). |
+| `gene` | str | Gene symbol. |
+| `assay` | str | `sge`. |
+| `mavedb_urn` | str | Canonical MaveDB accession for the source study (see the table above). |
+| `author_*` | mixed | **Every original column from the source study, verbatim** (slugified, `author_`-prefixed). The headline variables per study are listed in the table above — e.g. for BRCA1 `author_function_score_mean` (continuous) and `author_func_class` (FUNC/INT/LOF). Original coordinates are kept too (e.g. `author_position_hg19`). |
+| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations. |
+| `distance_tss_*`, `distance_exon_*`, `*_closest_gene_id` | int / str | Distances to nearest TSS / exon and the Ensembl gene IDs there; reference annotations. |
+
+No binary `label` is imposed — that (and any score harmonization across studies) is an
+eval-time decision; the artifact preserves the authors' continuous scores and discrete
+classes as-is.
+
+## Provenance
+
+Built by the [`marin-dna`]({REPO_ROOT_URL}) eval pipeline at commit
+[`{sha[:7]}`]({REPO_ROOT_URL}/tree/{sha}/snakemake/evals).
+
+- Curation pipeline: {_pipeline_link(sha)}
+- Rules: {_file_link(sha, "snakemake/evals/workflow/rules/sge.smk")}
+- Loading + annotation: {_file_link(sha, "src/marin_dna/pipelines/evals/sge.py")}
+
+## License
+
+Released under the terms of its upstream sources; consult each source study (below)
+for redistribution and commercial-use terms.
+
+## Citation
+
+If you use this benchmark, please cite the source SGE studies:
+
+{citations}
+"""
+
+
 def render(
     dataset: str,
     sha: str,
@@ -613,4 +746,6 @@ def render(
         return render_harness(sha, train_path, test_path, window_size=window)
     if dataset in _DART_EVAL_META:
         return render_dart_eval(dataset, sha, train_path, test_path)
+    if dataset == "sge":
+        return render_sge(dataset, sha, train_path, test_path)
     raise ValueError(f"no README template for dataset {dataset!r}")
