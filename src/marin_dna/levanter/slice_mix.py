@@ -39,8 +39,6 @@ Two pieces:
   components (zero weight) use the inherited cache-backed path unchanged.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
