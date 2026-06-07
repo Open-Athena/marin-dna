@@ -28,19 +28,19 @@ Readout: per-step (10 HF checkpoints, ep ~2 → ~21) mendelian AUPRC on the 5′
 tss_proximal subsets + the ``val_tss_pc`` LL gap, ON vs OFF — does reshuffle help,
 and does the benefit grow with epoch count?
 
-How the slice-mix is wired (see ``_run_train_with_marin_dna_imports``): the
-executor graph and ``_build_data_mixture`` are byte-identical to exp255 — a
-standard single-component cache-backed config. The reshuffle is a *worker-side*
-transform applied after ``materialize`` resolves the tokenize-cache path and
-before levanter builds the data loader: ``inject_slice_mix`` loads the one
-training component (via levanter's own ``build_caches`` + ``build_token_datasets``,
-which route through the DNA-patched ``dataset_for_component`` so per-token loss
-weights are preserved), slices it into ``NUM_SLICES`` block-shuffled
-``DirectDatasetComponent``s, keeps the validation components untouched, and sets
-``shuffle=False``. ``run_levanter_train_lm`` then re-materializes (a safe no-op on
-the now placeholder-free config — ``materialize`` is idempotent and treats the
-live sliced datasets as inert leaves) and keeps all marin orchestration (HF
-export, run id, output-path baking).
+How the slice-mix is wired: ``_build_data_mixture`` returns a
+``SliceMixLmDataConfig`` (a thin ``LmDataConfig`` subclass) rather than a plain
+config — every other field is byte-identical to exp255's TSS arm (same tokenize
+caches + eval), so the executor graph and provenance are unchanged and exp255's
+no-reshuffle run (#256) stays a matched baseline. The reshuffle lives in that
+subclass's ``train_set`` override: it loads the single training component (via
+levanter's own ``build_caches`` + ``build_token_datasets``, which route through
+the DNA-patched ``dataset_for_component`` so per-token loss weights are
+preserved), slices it into ``NUM_SLICES`` block-shuffled pieces, and re-mixes
+them with ``MixtureDataset`` (size-proportional weights). It must live in
+``train_set`` (not a pre-train worker hook) because levanter calls
+``data.train_set(...)`` only *after* ``levanter.initialize`` — building the
+slices any earlier touches JAX before ``jax.distributed.initialize`` and raises.
 
 In-training validation is held fixed — the same **family-projection** recipes
 exp255 uses:
@@ -93,6 +93,7 @@ Reference templates:
   * Eval-task wiring — ``experiments/parity/exp179_eval_only.py``.
 """
 
+import dataclasses
 import logging
 import os
 from datetime import timedelta
@@ -124,6 +125,7 @@ from marin.training.training import TrainLmOnPodConfig, run_levanter_train_lm
 
 from marin_dna.levanter.defaults import dna_effective_seq_len
 from marin_dna.levanter.formats import DNALmDatasetFormat
+from marin_dna.levanter.slice_mix import SliceMixLmDataConfig
 from marin_dna.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_255
 
 # =============================================================================
@@ -375,9 +377,19 @@ def _build_data_mixture(strategy: str, dataset: str) -> LmDataConfig:
             components[key] = _tokenize(
                 f"marin_dna-zoonomia-v1-{key}-char-bos", val_dataset, fmt
             )
-    return lm_mixture_data_config(
+    base = lm_mixture_data_config(
         components=components,
         weights={strategy: 1.0},
+    )
+    # Wrap the (standard, cache-backed) config in the slice-mix subclass: same
+    # fields + the reshuffle knobs. The reshuffle runs inside
+    # ``SliceMixLmDataConfig.train_set`` (post jax-init); the executor graph,
+    # tokenize caches, and provenance are byte-identical to exp255's TSS arm, so
+    # exp255's no-reshuffle run (#256) stays a matched baseline.
+    return SliceMixLmDataConfig(
+        **{f.name: getattr(base, f.name) for f in dataclasses.fields(base)},
+        num_slices=NUM_SLICES,
+        slice_mix_seed=SLICE_MIX_SEED,
     )
 
 
@@ -437,7 +449,7 @@ def _hf_save_steps(num_train_steps: int) -> int:
 
 
 def _run_train_with_marin_dna_imports(pod_config: TrainLmOnPodConfig) -> None:
-    """Worker entrypoint: bake in the marin_dna imports + inject the slice-mix.
+    """Worker entrypoint: bake in the marin_dna imports the TPU worker needs.
 
     Iris's ``Entrypoint.from_callable`` cloudpickles ``__main__`` by-value,
     capturing function bytecode but NOT re-importing modules on the worker.
@@ -450,32 +462,19 @@ def _run_train_with_marin_dna_imports(pod_config: TrainLmOnPodConfig) -> None:
     the data config (exp255 smoke5 confirmed this). Exp179_eval_only.py:91-96
     has the same pattern. Fix: bake the imports into the worker function body.
 
-    Epoch-reshuffling injection (issue #284). ``_build_data_mixture`` produced a
-    standard exp255-style single-component cache-backed config (so the executor
-    graph + provenance stay unchanged). Here, on the worker, we turn the
-    reshuffle ON: ``materialize`` first resolves the tokenize-cache placeholder
-    to a concrete path (the cache already exists — built by the upstream tokenize
-    step), then ``inject_slice_mix`` loads that one training component and
-    rewrites it into ``NUM_SLICES`` block-shuffled ``DirectDatasetComponent``s
-    that ``MixtureDataset`` re-interleaves fresh each epoch. ``materialize`` must
-    run before the injection (the cache must exist to be sliced) and after the
-    formats import (the slice build routes through the DNA-patched
-    ``dataset_for_component``, preserving per-token loss weights).
-    ``run_levanter_train_lm`` then runs normally — its own internal
-    ``materialize`` is a safe no-op on the now placeholder-free config
-    (idempotent; the live sliced datasets are inert leaves to the config walk),
-    and it keeps the full marin orchestration (HF export, run id, path baking).
+    The epoch reshuffle itself is NOT here — it lives in
+    ``SliceMixLmDataConfig.train_set`` (the ``data`` config built by
+    ``_build_data_mixture``), which levanter calls *after* ``levanter.initialize``
+    (post ``jax.distributed.initialize``). An earlier attempt that built the
+    slices here on the worker raised "jax.distributed.initialize() must be called
+    before any JAX calls that might initialise the XLA backend", because
+    constructing the block-shuffled slices touches JAX eagerly. The formats
+    import below still must precede training so the patched
+    ``dataset_for_component`` is installed before ``train_set`` runs.
     """
     import marin_dna.levanter.formats  # noqa: F401  # registers "dna" + patches dataset_for_component
     import marin_dna.pipelines.evals.lm_eval  # noqa: F401  # patches lm_eval TaskManager
-    from marin.execution.executor import materialize
 
-    from marin_dna.levanter.slice_mix import inject_slice_mix
-
-    pod_config = materialize(pod_config)
-    pod_config = inject_slice_mix(
-        pod_config, num_slices=NUM_SLICES, seed=SLICE_MIX_SEED
-    )
     run_levanter_train_lm(pod_config)
 
 

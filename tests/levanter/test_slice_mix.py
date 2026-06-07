@@ -19,7 +19,7 @@ from levanter.data.dataset import ListAsyncDataset  # noqa: E402
 from levanter.data.mixture import MixtureDataset  # noqa: E402
 from levanter.utils.thread_utils import blocking_wait  # noqa: E402
 
-from marin_dna.levanter.slice_mix import slice_mix_components  # noqa: E402
+from marin_dna.levanter.slice_mix import SliceMixLmDataConfig, slice_mix_components  # noqa: E402
 
 # Small block-shuffle granularity so even a tiny test dataset is genuinely
 # reshuffled within each slice.
@@ -98,3 +98,22 @@ def test_slice_mix_rejects_bad_num_slices():
         slice_mix_components(
             base, num_slices=8, key=jax.random.PRNGKey(0), name_prefix="t"
         )
+
+
+def test_slice_mix_config_wraps_lmdataconfig():
+    """exp284's construction pattern: copy a plain LmDataConfig's fields + knobs."""
+    import dataclasses
+
+    from levanter.data.text import LmDataConfig
+
+    base = LmDataConfig(tokenizer="gpt2", mixture_block_size=512)
+    cfg = SliceMixLmDataConfig(
+        **{f.name: getattr(base, f.name) for f in dataclasses.fields(base)},
+        num_slices=8,
+        slice_mix_seed=3,
+    )
+    assert isinstance(cfg, LmDataConfig)
+    assert cfg.num_slices == 8 and cfg.slice_mix_seed == 3
+    # parent fields carried through verbatim
+    assert cfg.tokenizer == "gpt2" and cfg.mixture_block_size == 512
+    assert cfg.stop_strategy == base.stop_strategy

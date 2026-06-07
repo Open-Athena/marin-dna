@@ -27,35 +27,35 @@ Two pieces:
 
 * ``slice_mix_components`` — pure dataset logic (slice + block-shuffle + size
   weights) over any ``AsyncDataset``. Unit-tested against ``ListAsyncDataset``.
-* ``inject_slice_mix`` — worker-side glue: given a *materialized* marin
-  ``TrainLmOnPodConfig`` whose training data is one cache-backed component, load
-  that component's token-sequence dataset (reusing levanter's own
-  ``build_caches`` + ``build_token_datasets``, which route through the DNA-patched
-  ``dataset_for_component`` so per-token loss weights are preserved), slice-mix
-  it, and return a new pod config whose training data is the ``K``
-  ``DirectDatasetComponent`` slices (validation components untouched,
-  ``shuffle=False`` since the slices are already block-shuffled).
-
-The injection must run on the training worker *after* the executor has
-materialized the tokenize cache (the cache must exist to be sliced) and *before*
-levanter builds the data loader — see the experiment's worker entrypoint.
+* ``SliceMixLmDataConfig`` — an ``LmDataConfig`` subclass that overrides
+  ``train_set`` to slice-mix its single training component. The reshuffle MUST
+  live in ``train_set`` (not a pre-train worker hook) because constructing the
+  slices touches JAX eagerly (``BlockShufflingDataset.__init__`` calls
+  ``jax.random.PRNGKey`` / ``jax.device_put`` / ``jax.random.split``), and
+  ``levanter.main.train_lm.main`` only calls ``data.train_set(...)`` *after*
+  ``levanter.initialize`` (i.e. after ``jax.distributed.initialize``). Building
+  the slices any earlier raises "jax.distributed.initialize() must be called
+  before any JAX calls that might initialise the XLA backend". Validation
+  components (zero weight) use the inherited cache-backed path unchanged.
 """
 
 from __future__ import annotations
 
-import dataclasses
-from typing import TYPE_CHECKING, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import jax
-from haliax import Axis
 from jaxtyping import PRNGKeyArray
 from levanter.data.dataset import AsyncDataset
-from levanter.data.text import DirectDatasetComponent, LmDataConfig
+from levanter.data.mixture import MixtureDataset
+from levanter.data.text import LmDataConfig
+from levanter.data.text.datasets import NamedLmDataset
 from levanter.utils.thread_utils import blocking_wait
 
 if TYPE_CHECKING:
-    from levanter.main.train_lm import TrainLmConfig
-    from marin.training.training import TrainLmOnPodConfig
+    from haliax import Axis
+    from levanter.models.lm_model import LmExample
+    from levanter.schedule import BatchSchedule
 
 # Match the baseline's hierarchical block-shuffle granularity
 # (``levanter.data.text.DEFAULT_LM_DATA_SHUFFLE``) so each slice is shuffled
@@ -82,6 +82,9 @@ def slice_mix_components(
     ``BlockShufflingDataset`` (via ``AsyncDataset.block_shuffle``), and assigns
     each a mixture weight equal to its fraction of ``n`` (so the expected
     per-epoch coverage is uniform and the weights sum to exactly 1.0).
+
+    NOTE: constructs ``BlockShufflingDataset``s, which eagerly touch JAX — call
+    only after ``jax.distributed.initialize`` (i.e. from within ``train_set``).
 
     Args:
         base: The full (already-tokenized) training dataset to reshuffle.
@@ -132,106 +135,78 @@ def _single_training_component_name(weights: object) -> str:
     """
     if not isinstance(weights, dict):
         raise ValueError(
-            "inject_slice_mix expects fixed dict train_weights with exactly one "
-            f"nonzero entry; got {type(weights).__name__}"
+            "SliceMixLmDataConfig expects fixed dict train_weights with exactly "
+            f"one nonzero entry; got {type(weights).__name__}"
         )
     nonzero = [name for name, w in weights.items() if w and w > 0]
     if len(nonzero) != 1:
         raise ValueError(
-            "inject_slice_mix expects exactly one training component (single-"
+            "SliceMixLmDataConfig expects exactly one training component (single-"
             f"dataset specialist); found {len(nonzero)}: {sorted(nonzero)}"
         )
     return nonzero[0]
 
 
-def inject_slice_mix(
-    pod_config: "TrainLmOnPodConfig",
-    *,
-    num_slices: int,
-    seed: int = 0,
-    io_block_size: int = DEFAULT_IO_BLOCK_SIZE,
-    window_blocks: int = DEFAULT_WINDOW_BLOCKS,
-    mixture_block_size: int | None = None,
-) -> "TrainLmOnPodConfig":
-    """Return a copy of ``pod_config`` with its training data slice-mixed.
+@dataclass(frozen=True)
+class SliceMixLmDataConfig(LmDataConfig):
+    """``LmDataConfig`` that reshuffles its single training component each epoch.
 
-    Must be called on the worker **after** ``materialize`` (the tokenize cache
-    must already exist) and **before** levanter builds the data loader. The
-    training data config must have exactly one cache-backed training component
-    (nonzero ``train_weights``); validation components (zero weight) are carried
-    through untouched.
-
-    The single training component's token-sequence dataset is built via the
-    config's own ``build_caches`` + ``build_token_datasets`` (so it goes through
-    the DNA-patched ``dataset_for_component`` and keeps the per-token loss
-    weights), then sliced into ``num_slices`` block-shuffled
-    ``DirectDatasetComponent``s mixed by size fraction. ``shuffle`` is set to
-    ``False`` because the slices are already block-shuffled; ``stop_strategy``
-    (RESTART) and ``mixture_block_size`` are inherited unless overridden.
-
-    Args:
-        pod_config: A *materialized* ``TrainLmOnPodConfig`` (concrete cache paths).
-        num_slices: Number of disjoint slices ``K`` to mix back together.
-        seed: Seed for the per-slice block-shuffle permutations (resume-stable:
-            the worker rebuilds the identical slices on restart).
-        io_block_size: Per-slice block-shuffle I/O block size.
-        window_blocks: Per-slice block-shuffle window size in blocks.
-        mixture_block_size: Override the mixture block size; ``None`` keeps the
-            config's existing value.
-
-    Returns:
-        A new ``TrainLmOnPodConfig`` with the slice-mixed training data.
+    Identical to ``LmDataConfig`` except ``train_set`` slices the one
+    (nonzero-weight) training component into ``num_slices`` block-shuffled pieces
+    re-mixed by ``MixtureDataset`` (size-proportional weights). Construct it by
+    copying a normal ``lm_mixture_data_config(...)`` output's fields and adding
+    the knobs below; it serializes/cloudpickles like any dataclass, so the marin
+    executor + iris worker handle it transparently. Validation components (zero
+    weight) use the inherited cache-backed path; only ``train_set`` changes.
     """
-    # marin types ``TrainLmOnPodConfig.train_config`` as bare ``object``; it holds
-    # a levanter ``TrainLmConfig`` here, so narrow it for attribute access.
-    train_config = cast("TrainLmConfig", pod_config.train_config)
-    data = train_config.data
-    if not isinstance(data, LmDataConfig):
-        raise TypeError(f"expected LmDataConfig, got {type(data).__name__}")
 
-    train_name = _single_training_component_name(data.train_weights)
+    num_slices: int = 8
+    slice_mix_seed: int = 0
+    slice_io_block_size: int = DEFAULT_IO_BLOCK_SIZE
+    slice_window_blocks: int = DEFAULT_WINDOW_BLOCKS
 
-    # Reuse levanter's own loaders so the base dataset is byte-identical to what
-    # training would otherwise consume: build_caches loads the existing cache
-    # (no rebuild), build_token_datasets routes through the (DNA-patched)
-    # dataset_for_component → per-token loss weights are preserved. For the
-    # "train" split these return only the nonzero-weight component(s).
-    Pos = Axis("position", train_config.train_seq_len)
-    caches = data.build_caches("train")
-    bases = data.build_token_datasets(caches, Pos, split="train")
-    base = bases[train_name]
+    def train_set(
+        self,
+        Pos: "Axis",
+        batch_schedule: "BatchSchedule",
+        *,
+        key: PRNGKeyArray,
+    ) -> AsyncDataset["LmExample"]:
+        # This override only supports the single-dataset specialist; refuse the
+        # train_sets() features it bypasses rather than silently ignore them.
+        for attr in (
+            "num_validation_sequences",
+            "max_train_batches",
+            "experiment_budget",
+            "target_budget",
+        ):
+            if getattr(self, attr) is not None:
+                raise NotImplementedError(
+                    f"SliceMixLmDataConfig.train_set does not support {attr!r}"
+                )
 
-    slice_datasets, slice_weights = slice_mix_components(
-        base,
-        num_slices=num_slices,
-        key=jax.random.PRNGKey(seed),
-        name_prefix=train_name,
-        io_block_size=io_block_size,
-        window_blocks=window_blocks,
-    )
+        train_name = _single_training_component_name(self.train_weights)
+        # Build the single training component's token-seq dataset exactly as the
+        # base path would: build_caches loads the existing cache (no rebuild),
+        # build_token_datasets routes through the DNA-patched dataset_for_component
+        # so per-token loss weights are preserved. (Both return only the nonzero-
+        # weight components for the "train" split.) Runs post jax-init.
+        caches = self.build_caches("train")
+        base = self.build_token_datasets(caches, Pos, split="train")[train_name]
 
-    # Replace the single training component with the K block-shuffled slices;
-    # carry every other (validation, zero-weight) component through unchanged.
-    val_components = {
-        name: comp for name, comp in data.components.items() if name != train_name
-    }
-    new_components: dict = {
-        name: DirectDatasetComponent(datasets={"train": ds})
-        for name, ds in slice_datasets.items()
-    }
-    new_components.update(val_components)
-
-    new_weights = dict(slice_weights)
-    new_weights.update({name: 0.0 for name in val_components})
-
-    new_data = dataclasses.replace(
-        data,
-        components=new_components,
-        train_weights=new_weights,
-        shuffle=False,  # slices are already block-shuffled
-        mixture_block_size=mixture_block_size
-        if mixture_block_size is not None
-        else data.mixture_block_size,
-    )
-    new_train_config = dataclasses.replace(train_config, data=new_data)
-    return dataclasses.replace(pod_config, train_config=new_train_config)
+        slice_datasets, slice_weights = slice_mix_components(
+            base,
+            num_slices=self.num_slices,
+            key=jax.random.PRNGKey(self.slice_mix_seed),
+            name_prefix=train_name,
+            io_block_size=self.slice_io_block_size,
+            window_blocks=self.slice_window_blocks,
+        )
+        mixture = MixtureDataset(
+            datasets=slice_datasets,
+            weights=slice_weights,
+            stop_strategy=self.stop_strategy,
+            key=key,
+            block_size=self.mixture_block_size,
+        )
+        return NamedLmDataset(mixture, Pos)
