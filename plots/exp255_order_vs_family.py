@@ -23,8 +23,16 @@ Metrics:
 Plus a #266 BOS-fix sanity check: online (in-training lm_eval, BOS-faithful) vs
 offline AUPRC for the two ORDER arms across ALL 8 subsets — they should coincide.
 
+Plot conventions: family (108 sp.) is the BASELINE — plotted first / muted color;
+order (19 sp.) is the new arm — plotted second / highlighted. Each matched subset
+(AUPRC) and each val dataset (LL gap) is a DISTINCT comparison, so it gets its own
+subpanel + y-axis — never share a y-axis across different subsets/datasets. AUPRC
+error bars are ±1 SE (cluster bootstrap), drawn without caps; the LL gap is a
+single-run point estimate (no SE).
+
 Outputs under plots/output/exp255_order_vs_family/ (PNG 130dpi + SVG):
-  exp255_matched.{png,svg}            order vs family: matched AUPRC + matched LL gap
+  exp255_matched_auprc.{png,svg}      per matched subset: family vs order AUPRC (±1 SE)
+  exp255_matched_llgap.{png,svg}      per matched val set: family vs order LL gap
   exp255_online_vs_offline.{png,svg}  order arms, all-subset online vs offline AUPRC
 Prints: matched comparison table (AUPRC + LL func/nonfunc/gap) and the
 online-vs-offline AUPRC table.
@@ -82,8 +90,8 @@ ALL_SUBSETS: list[str] = [
     "tss_proximal",
     "distal",
 ]
-C_ORDER = "#0072B2"  # order (19 sp.)
-C_FAMILY = "#E69F00"  # family (108 sp.)
+C_FAMILY = "#9e9e9e"  # family (108 sp.) — baseline, plotted first (muted)
+C_ORDER = "#0072B2"  # order (19 sp.) — the new arm, plotted second (highlight)
 OUT_DIR: Path = Path(__file__).parent / "output" / Path(__file__).stem
 
 
@@ -165,22 +173,22 @@ def print_tables(wd: dict[tuple[str, str], dict]) -> dict:
     for arm, c in ARMS.items():
         om = cache.setdefault((arm, "order"), offline_auprc(c["order_model"]))
         fm = cache.setdefault((arm, "family"), offline_auprc(c["family_model"]))
-        print(f"[{arm} arm]  matched AUPRC subsets:")
-        print(f"    {'subset':36s}{'order':>16}{'family':>16}{'Δ(order-fam)':>14}")
+        print(f"[{arm} arm]  matched AUPRC subsets (family = baseline):")
+        print(f"    {'subset':36s}{'family':>16}{'order':>16}{'Δ(order-fam)':>14}")
         for ss in c["subsets"]:
             o, oe = om[ss]
             f, fe = fm[ss]
-            print(f"    {ss:36s}{o:8.3f}±{oe:.3f}{f:8.3f}±{fe:.3f}{o - f:+14.3f}")
+            print(f"    {ss:36s}{f:8.3f}±{fe:.3f}{o:8.3f}±{oe:.3f}{o - f:+14.3f}")
         lo, lf = wd[(arm, "order")], wd[(arm, "family")]
         print(f"  LL on {c['recipe']} (matched region):")
-        print(f"    {'metric':36s}{'order':>16}{'family':>16}{'Δ(order-fam)':>14}")
+        print(f"    {'metric':36s}{'family':>16}{'order':>16}{'Δ(order-fam)':>14}")
         for label, key in (
             ("LL functional", "func_ll"),
             ("LL non-functional", "nonfunc_ll"),
             ("LL gap", "gap"),
         ):
             print(
-                f"    {label:36s}{lo[key]:>16.3f}{lf[key]:>16.3f}{lo[key] - lf[key]:+14.3f}"
+                f"    {label:36s}{lf[key]:>16.3f}{lo[key]:>16.3f}{lo[key] - lf[key]:+14.3f}"
             )
         print()
     return cache
@@ -212,74 +220,94 @@ def print_online_offline(wd: dict[tuple[str, str], dict], cache: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def plot_matched(wd: dict, cache: dict) -> None:
-    fig, (axA, axB) = plt.subplots(
-        1, 2, figsize=(12, 4.6), gridspec_kw={"width_ratios": [2.4, 1]}
-    )
-
-    # Panel A — matched-subset AUPRC, grouped order vs family
-    labels, ovals, oerr, fvals, ferr = [], [], [], [], []
-    for arm, c in ARMS.items():
-        om = cache[(arm, "order")]
-        fm = cache[(arm, "family")]
-        for ss in c["subsets"]:
-            labels.append(f"{ss.replace('_variant', '')}\n({arm})")
-            ovals.append(om[ss][0])
-            oerr.append(om[ss][1])
-            fvals.append(fm[ss][0])
-            ferr.append(fm[ss][1])
-    x = np.arange(len(labels))
-    w = 0.38
-    axA.bar(
-        x - w / 2, ovals, w, yerr=oerr, capsize=3, color=C_ORDER, label="order (19 sp.)"
-    )
-    axA.bar(
-        x + w / 2,
-        fvals,
-        w,
-        yerr=ferr,
-        capsize=3,
-        color=C_FAMILY,
-        label="family (108 sp.)",
-    )
-    axA.axhline(
-        AUPRC_BASELINE,
-        ls=":",
-        color="gray",
-        lw=0.9,
-        label=f"baseline {AUPRC_BASELINE:.2f}",
-    )
-    axA.set_xticks(x)
-    axA.set_xticklabels(labels, fontsize=9)
-    axA.set_ylabel("offline AUPRC (minus_llr_avg)")
-    axA.set_title("Matched-subset Mendelian AUPRC", fontsize=11)
-    axA.legend(fontsize=8, loc="upper right")
-    axA.grid(axis="y", alpha=0.3)
-
-    # Panel B — matched-region LL gap, grouped order vs family
-    arms = list(ARMS)
-    xg = np.arange(len(arms))
-    og = [wd[(a, "order")]["gap"] for a in arms]
-    fg = [wd[(a, "family")]["gap"] for a in arms]
-    axB.bar(xg - w / 2, og, w, color=C_ORDER, label="order")
-    axB.bar(xg + w / 2, fg, w, color=C_FAMILY, label="family")
-    axB.set_xticks(xg)
-    axB.set_xticklabels([f"{a}\n({ARMS[a]['recipe']})" for a in arms], fontsize=9)
-    axB.set_ylabel("functional-constraint LL gap (nats)")
-    axB.set_title("Matched-region LL gap", fontsize=11)
-    axB.grid(axis="y", alpha=0.3)
-    for i, a in enumerate(arms):
-        for dx, g in ((-w / 2, og[i]), (w / 2, fg[i])):
-            axB.text(
-                xg[i] + dx, g + 0.004, f"{g:.3f}", ha="center", va="bottom", fontsize=8
-            )
-
+def plot_matched_auprc(cache: dict) -> None:
+    """One subpanel per matched subset (its own y-axis — distinct comparisons are
+    never put on a shared axis); family (baseline) first, order second. Error bars
+    = ±1 SE (cluster bootstrap), drawn without caps."""
+    items = [(ss, arm) for arm, c in ARMS.items() for ss in c["subsets"]]
+    n = len(items)
+    fig, axes = plt.subplots(1, n, figsize=(2.7 * n, 3.7), squeeze=False)
+    for k, (ss, arm) in enumerate(items):
+        ax = axes[0][k]
+        fv, fe = cache[(arm, "family")][ss]
+        ov, oe = cache[(arm, "order")][ss]
+        ax.bar(
+            [0, 1],
+            [fv, ov],
+            0.62,
+            yerr=[fe, oe],
+            color=[C_FAMILY, C_ORDER],
+            error_kw=dict(capsize=0, elinewidth=1.4, ecolor="#333"),
+        )
+        ax.axhline(AUPRC_BASELINE, ls=":", color="gray", lw=0.9)
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels(["family\n108 sp.", "order\n19 sp."], fontsize=8.5)
+        ax.set_title(f"{ss.replace('_variant', '')}  ({arm})", fontsize=9.5)
+        ax.set_ylim(0, max(fv + fe, ov + oe) + 0.05)
+        if k == 0:
+            ax.set_ylabel("offline AUPRC (minus_llr_avg)")
+        ax.grid(axis="y", alpha=0.3)
+        ax.text(
+            0.5,
+            0.97,
+            f"Δ={ov - fv:+.3f}",
+            transform=ax.transAxes,
+            ha="center",
+            va="top",
+            fontsize=8,
+            bbox=dict(facecolor="white", edgecolor="gray", alpha=0.85, pad=1.5),
+        )
     fig.suptitle(
-        "exp255 (#255) — order- vs family-deduplicated cohort, matched region & budget (0.25B, step-4999)",
-        fontsize=12,
+        "exp255 (#255) — matched-subset Mendelian AUPRC: family (baseline) vs order\n"
+        "0.25B, step-4999; error bars = ±1 SE (cluster bootstrap, not CI); dotted = 0.10 prevalence baseline",
+        fontsize=10.5,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
-    _savefig(fig, "exp255_matched")
+    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    _savefig(fig, "exp255_matched_auprc")
+
+
+def plot_matched_llgap(wd: dict) -> None:
+    """One subpanel per matched val dataset (its own y-axis — val_cds and
+    val_enhancer are different data, never a shared axis); family (baseline) first,
+    order second. The LL gap is a single-run point estimate (no SE)."""
+    arms = list(ARMS)
+    fig, axes = plt.subplots(
+        1, len(arms), figsize=(3.3 * len(arms), 3.9), squeeze=False
+    )
+    for k, arm in enumerate(arms):
+        ax = axes[0][k]
+        fg = wd[(arm, "family")]["gap"]
+        og = wd[(arm, "order")]["gap"]
+        ax.bar([0, 1], [fg, og], 0.62, color=[C_FAMILY, C_ORDER])
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels(["family\n108 sp.", "order\n19 sp."], fontsize=8.5)
+        ax.set_title(f"{arm}  ({ARMS[arm]['recipe']})", fontsize=9.5)
+        top = max(fg, og)
+        ax.set_ylim(0, top * 1.2)
+        if k == 0:
+            ax.set_ylabel("functional-constraint LL gap (nats)")
+        ax.grid(axis="y", alpha=0.3)
+        for xb, g in ((0, fg), (1, og)):
+            ax.text(
+                xb, g + top * 0.012, f"{g:.3f}", ha="center", va="bottom", fontsize=9
+            )
+        ax.text(
+            0.5,
+            0.97,
+            f"Δ={og - fg:+.3f}",
+            transform=ax.transAxes,
+            ha="center",
+            va="top",
+            fontsize=8,
+            bbox=dict(facecolor="white", edgecolor="gray", alpha=0.85, pad=1.5),
+        )
+    fig.suptitle(
+        "exp255 (#255) — matched-region functional-constraint LL gap: family (baseline) vs order\n"
+        "LL = -loss; gap = LL_func - LL_nonfunc; single-run point estimate (no SE)",
+        fontsize=10.5,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    _savefig(fig, "exp255_matched_llgap")
 
 
 def plot_online_vs_offline(wd: dict, cache: dict) -> None:
@@ -329,7 +357,8 @@ def main() -> None:
     cache = print_tables(wd)
     print_online_offline(wd, cache)
     print("Plotting ...")
-    plot_matched(wd, cache)
+    plot_matched_auprc(cache)
+    plot_matched_llgap(wd)
     plot_online_vs_offline(wd, cache)
     print(f"\nDone. Figures in {OUT_DIR}/")
 
