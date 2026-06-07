@@ -19,6 +19,7 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 | `complex_traits` | UKBB fine-mapped complex-trait variants | SuSiE+FINEMAP `max(PIP across the traits where this variant was fine-mapped) > 0.9` | `max(PIP) < 0.01` AND no SuSiE/FINEMAP combine-step null PIP among those traits (`label_variants_by_pip(use_null_pip_guard=True)`) |
 | `caqtl` | DART-Eval African caQTLs (ATAC), GRCh38 | Significant caQTLs in peaks | Control variants in peaks (no matching) |
 | `dsqtl` | DART-Eval Yoruban dsQTLs (DNase), hg19→GRCh38 | Significant dsQTLs in peaks | Control variants in peaks (no matching) |
+| `sge` | Saturation genome editing function scores (BRCA1; #289 phase 1) | — *(no label: a continuous experimental function score per SNV)* | — |
 
 Only `mendelian_traits` has a corresponding `_harness_255` eval-harness
 variant. A 255 bp window centered on each variant is materialized into
@@ -80,6 +81,35 @@ export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
 uv run snakemake \
   results/dataset/caqtl/{train,test}.parquet \
   results/dataset/dsqtl/{train,test}.parquet
+```
+
+### SGE (saturation genome editing) — `sge`
+
+`sge` is a saturation-genome-editing variant-effect benchmark (issue #289): per-SNV
+**experimental function scores** from endogenous SGE assays — a label axis orthogonal
+to the clinical/population/statistical labels above, and one that covers near-exon
+noncoding (splice-region, proximal-intronic) SNVs as well as missense. Like the
+DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
+
+- it carries **no binary `label`** — only the authors' continuous score(s) and discrete
+  class(es), preserved verbatim under an `author_` prefix (no source metadata lost;
+  nothing collides with the pipeline's `consequence` / `distance_*` columns);
+- the trivially-deleterious **HIGH-impact `exclude_consequences`** (canonical splice,
+  nonsense, frameshift, …) are **dropped** — those aren't the discriminative signal;
+- per-variant provenance is `(gene, mavedb_urn)`: the gene symbol plus the canonical
+  MaveDB accession of the source study (a gene can have >1 study, e.g. BRCA2).
+
+**Phase 1: BRCA1** (Findlay et al. 2018, `urn:mavedb:00000097-0-2`), loaded from the
+Evo2-bundled supplementary xlsx — hg19 genomic coords for **all** SNVs incl. intronic
+(MaveDB's cDNA→genome map drops intronic), lifted to GRCh38, then HIGH-impact dropped.
+BRCA1 is on chr17 → all `train` (the `test` split fills as phase-2 genes on even
+chromosomes are added). `sge_dataset_unsplit` (in `workflow/rules/sge.smk`) loads +
+annotates straight into `results/dataset_unsplit/sge.parquet`; the library logic is
+`src/marin_dna/pipelines/evals/sge.py`. No `results/qc/` artifact (no matching). Needs
+AWS S3 read (the consequence/interval/genome artifacts) but **no** Synapse auth.
+
+```bash
+uv run snakemake results/dataset/sge/{train,test}.parquet
 ```
 
 ## Matching scheme
