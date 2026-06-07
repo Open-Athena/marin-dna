@@ -41,16 +41,27 @@ class TestNormalizeBrca1Findlay:
         assert out.height == 2  # indel dropped by filter_snp
         assert out["chrom"].dtype == pl.Utf8 and out["chrom"].to_list() == ["17", "17"]
         assert out["pos"].dtype == pl.Int64
-        assert out["function_score"].to_list() == [-0.37, -1.5]
-        assert out["functional_class"].to_list() == ["FUNC", "LOF"]
+        assert out["author_function_score_mean"].to_list() == [-0.37, -1.5]
+        assert out["author_func_class"].to_list() == ["FUNC", "LOF"]
         assert out["assay"].unique().to_list() == ["sge"]
         assert out["source"].unique().to_list() == ["findlay2018"]
+        # Standard coords come first, then every original column under author_.
+        assert out.columns[:7] == [
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "gene",
+            "assay",
+            "source",
+        ]
         for c in (
-            "p_nonfunctional",
-            "function_score_rep1",
-            "function_score_rep2",
-            "rna_score",
+            "author_p_nonfunctional",
+            "author_function_score_r1",
+            "author_function_score_r2",
+            "author_mean_rna_score",
             "author_consequence",
+            "author_position_hg19",  # original hg19 coord preserved
         ):
             assert c in out.columns
 
@@ -63,7 +74,7 @@ class TestNormalizeBrca1Findlay:
 
     def test_bad_class_raises(self) -> None:
         raw = self._raw().with_columns(pl.lit("WEIRD").alias("func.class"))
-        with pytest.raises(AssertionError, match="functional_class"):
+        with pytest.raises(AssertionError, match="func.class"):
             normalize_brca1_findlay(raw)
 
     def test_null_score_raises(self) -> None:
@@ -73,7 +84,7 @@ class TestNormalizeBrca1Findlay:
             .otherwise(pl.col("function.score.mean"))
             .alias("function.score.mean")
         )
-        with pytest.raises(AssertionError, match="function_score"):
+        with pytest.raises(AssertionError, match="null function score"):
             normalize_brca1_findlay(raw)
 
 
@@ -138,8 +149,8 @@ def _sge_frame() -> pl.DataFrame:
             "ref": ["A", "C", "G"],
             "alt": ["T", "G", "A"],
             "gene": ["G1", "G1", "G1"],
-            "function_score": [-1.0, 0.1, -2.0],
-            "functional_class": ["LOF", "FUNC", "LOF"],
+            "author_function_score_mean": [-1.0, 0.1, -2.0],
+            "author_func_class": ["LOF", "FUNC", "LOF"],
             "assay": ["sge", "sge", "sge"],
             "source": ["test", "test", "test"],
         }
@@ -224,10 +235,18 @@ class TestAnnotateSgeVariants:
             ["missense_variant", "synonymous_variant", "intron_variant"],
             exclude=[],
         )
-        for c in ("function_score", "functional_class", "assay", "source", "gene"):
+        for c in (
+            "author_function_score_mean",
+            "author_func_class",
+            "assay",
+            "source",
+            "gene",
+        ):
             assert c in out.columns
-        # function_score travels with its variant (sorted by COORDINATES).
-        got = dict(zip(out["pos"].to_list(), out["function_score"].to_list()))
+        # The author function score travels with its variant (sorted by COORDINATES).
+        got = dict(
+            zip(out["pos"].to_list(), out["author_function_score_mean"].to_list())
+        )
         assert got == {1150: -1.0, 1700: 0.1, 1750: -2.0}
         for c in ("consequence", "consequence_final", "distance_exon", "distance_tss"):
             assert c in out.columns

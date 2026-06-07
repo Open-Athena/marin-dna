@@ -13,8 +13,10 @@ How it differs from the other eval datasets:
   are **dropped**. Those are trivially-deleterious and not the discriminative
   signal an SGE benchmark is about.
 
-Every author variable (continuous function score + discrete classification) is
-preserved; no binary label is imposed here (an eval-time decision).
+Every original author column is preserved verbatim under an ``author_`` prefix
+(namespaced so nothing collides with the pipeline's annotation columns —
+``consequence``, ``consequence_final``, ``distance_*``, …); no binary label is
+imposed here (an eval-time decision).
 
 Phase-1 source: BRCA1 (Findlay et al. 2018, *Nature* 562:217-222), via the
 Evo2-bundled supplementary table ``41586_2018_461_MOESM3_ESM.xlsx``. It carries
@@ -23,6 +25,7 @@ whose cDNA->genome mapping drops intronic variants), so it is the cleanest BRCA1
 source; coordinates are lifted hg19->GRCh38 here.
 """
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -39,49 +42,73 @@ from marin_dna.pipelines.evals.variants import (
     lift_hg19_to_hg38,
 )
 
-# Findlay 2018 BRCA1 SGE supplementary xlsx column -> normalized output column.
-# The continuous ``function_score`` and discrete ``functional_class`` are the
-# headline author variables; the rest are preserved as author extras.
-BRCA1_FINDLAY_COLUMNS: dict[str, str] = {
-    "function.score.mean": "function_score",
-    "func.class": "functional_class",
-    "p.nonfunctional": "p_nonfunctional",
-    "function.score.r1": "function_score_rep1",
-    "function.score.r2": "function_score_rep2",
-    "mean.rna.score": "rna_score",
-    "consequence": "author_consequence",
+# Findlay 2018 BRCA1 SGE xlsx columns that become the standard pipeline coords;
+# every other column is preserved verbatim under an ``author_`` prefix.
+_BRCA1_COORD_SOURCE: dict[str, str] = {
+    "chromosome": "chrom",
+    "position (hg19)": "pos",
+    "reference": "ref",
+    "alt": "alt",
+    "gene": "gene",
 }
+
+
+def author_slug(name: str) -> str:
+    """``author_``-prefixed, identifier-safe column name (lowercased; each run of
+    non-alphanumerics -> ``_``). Namespaces source columns so they never collide
+    with pipeline columns (``consequence``, ``consequence_final``, ``distance_*``)."""
+    return "author_" + re.sub(r"[^0-9a-zA-Z]+", "_", str(name)).strip("_").lower()
 
 
 def normalize_brca1_findlay(raw: pl.DataFrame) -> pl.DataFrame:
     """Normalize the Findlay 2018 BRCA1 SGE table (already header-resolved) to the
-    SGE schema: ``gene, chrom, pos, ref, alt, assay, source`` + author variables.
+    SGE schema.
 
-    ``raw`` must carry the spreadsheet's data columns (``gene``, ``chromosome``,
-    ``position (hg19)``, ``reference``, ``alt``, plus the keys of
-    :data:`BRCA1_FINDLAY_COLUMNS`). ``chrom`` is emitted as a string and ``pos`` is
-    1-based hg19 (lifted to GRCh38 downstream in :func:`annotate_sge_variants`).
+    Emits the standard ``chrom, pos, ref, alt, gene, assay, source`` columns plus
+    **every original column preserved verbatim under an ``author_`` prefix** — so no
+    author metadata is lost and nothing collides with the pipeline's annotation
+    columns. ``chrom`` is a string and ``pos`` is 1-based hg19 (lifted to GRCh38
+    downstream in :func:`annotate_sge_variants`). The headline author variables are
+    ``author_function_score_mean`` (continuous) and ``author_func_class`` (discrete:
+    FUNC/INT/LOF).
     """
-    out = (
-        raw.select(
-            pl.col("chromosome").cast(pl.Utf8).alias("chrom"),
-            pl.col("position (hg19)").cast(pl.Int64).alias("pos"),
-            pl.col("reference").cast(pl.Utf8).alias("ref"),
-            pl.col("alt").cast(pl.Utf8).alias("alt"),
-            pl.col("gene").cast(pl.Utf8).alias("gene"),
-            *[pl.col(src).alias(dst) for src, dst in BRCA1_FINDLAY_COLUMNS.items()],
+    slugs = [author_slug(c) for c in raw.columns]
+    assert len(set(slugs)) == len(slugs), (
+        f"BRCA1: author column slugs collide: {sorted(slugs)}"
+    )
+    author = raw.rename(dict(zip(raw.columns, slugs)))
+    for src in _BRCA1_COORD_SOURCE:
+        assert author_slug(src) in author.columns, (
+            f"BRCA1: missing expected source column {src!r} ({author_slug(src)})"
         )
-        .with_columns(
+    out = (
+        author.with_columns(
+            pl.col("author_chromosome").cast(pl.Utf8).alias("chrom"),
+            pl.col("author_position_hg19").cast(pl.Int64).alias("pos"),
+            pl.col("author_reference").cast(pl.Utf8).alias("ref"),
+            pl.col("author_alt").cast(pl.Utf8).alias("alt"),
+            pl.col("author_gene").cast(pl.Utf8).alias("gene"),
             assay=pl.lit("sge"),
             source=pl.lit("findlay2018"),
         )
         .pipe(filter_snp)
+        # Standard pipeline columns first, then every preserved author column.
+        .select(
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "gene",
+            "assay",
+            "source",
+            pl.col("^author_.*$"),
+        )
     )
-    assert out["function_score"].null_count() == 0, (
-        "BRCA1: null function_score after normalization"
+    assert out["author_function_score_mean"].null_count() == 0, (
+        "BRCA1: null function score (author_function_score_mean) after normalization"
     )
-    assert set(out["functional_class"].unique()) <= {"FUNC", "INT", "LOF"}, (
-        f"BRCA1: unexpected functional_class values: {set(out['functional_class'].unique())}"
+    assert set(out["author_func_class"].unique()) <= {"FUNC", "INT", "LOF"}, (
+        f"BRCA1: unexpected func.class values: {set(out['author_func_class'].unique())}"
     )
     return out
 
