@@ -38,7 +38,10 @@ def assay_type(s: dict) -> str:
     ).lower()
     if "saturation genome editing" in txt or "saturation genome essential" in txt:
         return "SGE"
-    if "prime editing" in txt or ("prime" in txt and "saturation" in txt):
+    # Require an explicit prime-editing term — a bare "prime" substring also
+    # matches "primers" in PCR-based exogenous-DMS methods (e.g. CXCR4/CCR5 NNK
+    # SSM libraries), which are NOT endogenous prime editing.
+    if any(t in txt for t in ("prime editing", "prime-editing", "prime editor", "pegrna", "clipe")):
         return "prime-editing"
     return "other"
 
