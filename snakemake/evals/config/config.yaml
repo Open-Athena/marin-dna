@@ -24,6 +24,7 @@ datasets:
   - mendelian_traits_harness_255
   - caqtl
   - dsqtl
+  - sge
 
 # ----- Shared trait-pipeline parameters -----
 annotation_url: http://ftp.ensembl.org/pub/release-107/gtf/homo_sapiens/Homo_sapiens.GRCh38.107.chr.gtf.gz
@@ -113,3 +114,17 @@ complex_traits:
 dart_eval:
   caqtl_synapse_id: syn60756043
   dsqtl_synapse_id: syn60756039
+
+# ----- SGE (saturation genome editing) variant-effect dataset (issue #289) -----
+# Per-SNV experimental function scores from endogenous SGE assays; no matching /
+# no subsampling, HIGH-impact `exclude_consequences` dropped, every author column
+# preserved (author_ prefix). Phase 1: BRCA1 only.
+sge:
+  brca1:
+    # Findlay et al. 2018 (Nature 562:217-222) supplementary table — the same file
+    # Evo2 bundles. Served from the Nature static-content host. hg19 genomic coords
+    # for ALL SNVs incl. intronic (MaveDB's cDNA->genome map drops intronic), so
+    # this is the cleanest BRCA1 source.
+    url: "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-018-0461-z/MediaObjects/41586_2018_461_MOESM3_ESM.xlsx"
+    chrom: "17"
+    lift: true  # hg19 -> GRCh38
