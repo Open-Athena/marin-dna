@@ -627,9 +627,7 @@ def render_sge(
     test = pl.read_parquet(test_path)
     allv = pl.concat([train, test], how="vertical_relaxed")
     total = allv.height
-    counts = dict(
-        allv.group_by("mavedb_urn").len().iter_rows()
-    )  # urn -> n_variants
+    counts = dict(allv.group_by("mavedb_urn").len().iter_rows())  # urn -> n_variants
 
     study_rows = []
     for urn, n in sorted(counts.items()):

@@ -211,7 +211,10 @@ class TestAnnotateSgeVariants:
         # The stop_gained variant (pos 1700) is dropped; the missense + intron stay.
         assert out.height == 2
         assert 1700 not in out["pos"].to_list()
-        assert set(out["consequence"].to_list()) == {"missense_variant", "intron_variant"}
+        assert set(out["consequence"].to_list()) == {
+            "missense_variant",
+            "intron_variant",
+        }
 
     def test_intronic_retained(self, tmp_path, intervals) -> None:
         V = _sge_frame()
