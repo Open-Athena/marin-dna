@@ -1,22 +1,26 @@
 # Copyright The Marin Authors / Bolinas Authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Order-deduplicated per-region Qwen3-0.25B gLMs — v4_cds & v4_ccre_non_promoter (issue #255).
+"""Order-deduplicated per-region Qwen3-0.25B gLMs — all five v4 specialist partitions (issue #255).
 
-Species diversity-vs-quantity ablation: a two-arm clone of exp232 that swaps the
-*species cohort* of the training data and holds everything else — model,
-optimizer, compute, eval — byte-identical. exp232 trains six 0.25B region
-specialists on the **108-family** zoonomia-v1 projection; here we retrain the two
-**largest** partitions — ``v4_cds`` and ``v4_ccre_non_promoter`` — on the
+Species diversity-vs-quantity ablation: a clone of exp232 that swaps the *species
+cohort* of the training data and holds everything else — model, optimizer,
+compute, eval — byte-identical. exp232 trains six 0.25B region specialists on the
+**108-family** zoonomia-v1 projection; here we retrain the **five specialist**
+partitions — ``v4_cds``, ``v4_ccre_non_promoter``, ``v4_utr3``, ``v4_ncrna_exon``,
+``v4_tss_region_and_utr5`` (every region but the ``v4_bg`` background) — on the
 **19-order** cohort instead (``zoonomia-v1-v4_<region>-order``, one species per
 placental order, a strict subset of the v1 projection; #230 / #233), at the same
-5K steps × 8192 batch. exp232's own family ``v4_cds`` / ``v4_ccre_non_promoter``
-arms are the matched baseline — no re-run.
+5K steps × 8192 batch. exp232's own family arms for those five regions are the
+matched baselines — no re-run.
 
-The order arms see ~3-4× more epochs at fixed compute, because the -order sets
-are ~17.5% the size of the family partitions:
+The order arms see more epochs at fixed compute (the -order sets are ~17.5% the
+size of the family partitions; the three small regions far smaller still):
   * ``v4_cds-order`` 10,089,622 post-RC rows → 4.06 ep (family 0.71)
   * ``v4_ccre_non_promoter-order`` 15,419,526 post-RC rows → 2.66 ep (family 0.47)
+  * ``v4_ncrna_exon-order`` 2,886,512 post-RC rows → 14.2 ep (family 2.51)
+  * ``v4_utr3-order`` 2,200,430 post-RC rows → 18.6 ep (family 3.25)
+  * ``v4_tss_region_and_utr5-order`` 1,965,838 post-RC rows → 20.8 ep (family 3.63)
 That epoch asymmetry is the headline confound (#255): a tie-or-win for the order
 cohort is the informative outcome. Both these arms and exp232's family arms save
 10 per-step HF checkpoints, so the diversity effect is *additionally* read at
@@ -56,7 +60,7 @@ output-config hash).
 
 Download/tokenize pattern: option 1 (``HfTokenizeConfig(id=<hf-name>)``). The 5
 val recipes reuse exp187/exp232's tokenizations (identical names → cache hit);
-only the 2 -order training partitions tokenize anew (distinct ``-order`` cache
+only the 5 -order training partitions tokenize anew (distinct ``-order`` cache
 names so they never collide with the family caches).
 
 Launch from a CPU box with an iris tunnel open, one job per arm (see
@@ -136,6 +140,9 @@ DNA_BASE_SEQ_LEN = 255  # bp (256 - 1 for BOS)
 TRAIN_DATASETS: dict[str, str] = {
     "v4_cds_order": "bolinas-dna/zoonomia-v1-v4_cds-order",
     "v4_ccre_non_promoter_order": "bolinas-dna/zoonomia-v1-v4_ccre_non_promoter-order",
+    "v4_utr3_order": "bolinas-dna/zoonomia-v1-v4_utr3-order",
+    "v4_ncrna_exon_order": "bolinas-dna/zoonomia-v1-v4_ncrna_exon-order",
+    "v4_tss_region_and_utr5_order": "bolinas-dna/zoonomia-v1-v4_tss_region_and_utr5-order",
 }
 
 # Five region-specific validation recipes from PR #171, tokenized functional +
@@ -209,11 +216,11 @@ TPU_RAM: str = os.getenv("TPU_RAM", "300g")
 
 # 5K steps × 8192 batch × 256 tokens/seq ≈ 10.5B tokens per arm — same compute as
 # exp232 (we hold compute fixed, not data). The -order sets are ~17.5% the size of
-# the family partitions, so the order arms see far more epochs than the family
-# baseline: v4_cds-order (10,089,622 rows) 4.06 ep vs family 0.71;
-# v4_ccre_non_promoter-order (15,419,526 rows) 2.66 ep vs family 0.47. The epoch
-# asymmetry is the headline confound (#255), read out offline at matched epochs
-# via the per-step HF checkpoints both cohorts save.
+# the family partitions (the 3 small regions far smaller), so the order arms see
+# more epochs than the family baseline: cds 4.06 ep (family 0.71), ccre 2.66
+# (0.47), ncrna 14.2 (2.51), utr3 18.6 (3.25), tss 20.8 (3.63). The epoch asymmetry
+# is the headline confound (#255), read out offline at matched epochs via the
+# per-step HF checkpoints both cohorts save.
 NUM_TRAIN_STEPS = 5_000
 
 # Optimizer hparams from marin PR #5530's exp166 transferred-hparam table
