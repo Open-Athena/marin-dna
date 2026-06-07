@@ -86,12 +86,15 @@ hf_owner: "bolinas-dna"
 species_subsets:
   order: "config/species_zoonomia_447_order_dedup.tsv"
 # (intervals_version, species cohort) datasets to build — each reuses the
-# existing intervals subset Parquet, filtered to the cohort:
-#   zoonomia-v1-v4_cds-order              (the v4 cds region partition, 19-order set)
-#   zoonomia-v1-v4_ccre_non_promoter-order (the v4 non-promoter cCRE partition, 19-order set)
+# existing intervals subset Parquet, filtered to the cohort. The five v4
+# specialist partitions (every region but v4_bg), 19-order set — issue #255:
+#   zoonomia-v1-v4_{cds,ccre_non_promoter,utr3,ncrna_exon,tss_region_and_utr5}-order
 species_subset_datasets:
   - { intervals: "v4_cds", species: "order" }
   - { intervals: "v4_ccre_non_promoter", species: "order" }
+  - { intervals: "v4_utr3", species: "order" }
+  - { intervals: "v4_ncrna_exon", species: "order" }
+  - { intervals: "v4_tss_region_and_utr5", species: "order" }
 
 # v2 subset: ± bp band around each mRNA TSS (Ensembl protein_coding biotype).
 # 256 bp matches the BOS+255 model context window.
