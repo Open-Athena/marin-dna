@@ -128,3 +128,8 @@ sge:
     url: "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-018-0461-z/MediaObjects/41586_2018_461_MOESM3_ESM.xlsx"
     chrom: "17"
     lift: true  # hg19 -> GRCh38
+    # Canonical accession for the dataset (the same Findlay 2018 BRCA1 SGE scores
+    # deposited in MaveDB, PMID 30209399). Stamped per-variant as `mavedb_urn` so
+    # (gene, mavedb_urn) identifies the exact study — needed once a gene has >1
+    # study (e.g. BRCA2: Huang + Sahu).
+    mavedb_urn: "urn:mavedb:00000097-0-2"

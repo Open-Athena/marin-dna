@@ -37,14 +37,14 @@ class TestNormalizeBrca1Findlay:
         )
 
     def test_schema_and_renames(self) -> None:
-        out = normalize_brca1_findlay(self._raw())
+        out = normalize_brca1_findlay(self._raw(), mavedb_urn="urn:test:1")
         assert out.height == 2  # indel dropped by filter_snp
         assert out["chrom"].dtype == pl.Utf8 and out["chrom"].to_list() == ["17", "17"]
         assert out["pos"].dtype == pl.Int64
         assert out["author_function_score_mean"].to_list() == [-0.37, -1.5]
         assert out["author_func_class"].to_list() == ["FUNC", "LOF"]
         assert out["assay"].unique().to_list() == ["sge"]
-        assert out["source"].unique().to_list() == ["findlay2018"]
+        assert out["mavedb_urn"].unique().to_list() == ["urn:test:1"]
         # Standard coords come first, then every original column under author_.
         assert out.columns[:7] == [
             "chrom",
@@ -53,7 +53,7 @@ class TestNormalizeBrca1Findlay:
             "alt",
             "gene",
             "assay",
-            "source",
+            "mavedb_urn",
         ]
         for c in (
             "author_p_nonfunctional",
@@ -68,14 +68,14 @@ class TestNormalizeBrca1Findlay:
     def test_author_consequence_distinct_from_pipeline_consequence(self) -> None:
         # Findlay's own consequence is preserved under a distinct name so the
         # later VEP `consequence` column doesn't collide with it.
-        out = normalize_brca1_findlay(self._raw())
+        out = normalize_brca1_findlay(self._raw(), mavedb_urn="urn:test:1")
         assert "consequence" not in out.columns
         assert out["author_consequence"].to_list() == ["Splice region", "Missense"]
 
     def test_bad_class_raises(self) -> None:
         raw = self._raw().with_columns(pl.lit("WEIRD").alias("func.class"))
         with pytest.raises(AssertionError, match="func.class"):
-            normalize_brca1_findlay(raw)
+            normalize_brca1_findlay(raw, mavedb_urn="urn:test:1")
 
     def test_null_score_raises(self) -> None:
         raw = self._raw().with_columns(
@@ -85,7 +85,7 @@ class TestNormalizeBrca1Findlay:
             .alias("function.score.mean")
         )
         with pytest.raises(AssertionError, match="null function score"):
-            normalize_brca1_findlay(raw)
+            normalize_brca1_findlay(raw, mavedb_urn="urn:test:1")
 
 
 # --------------------------------------------------------------------------- #
@@ -152,7 +152,7 @@ def _sge_frame() -> pl.DataFrame:
             "author_function_score_mean": [-1.0, 0.1, -2.0],
             "author_func_class": ["LOF", "FUNC", "LOF"],
             "assay": ["sge", "sge", "sge"],
-            "source": ["test", "test", "test"],
+            "mavedb_urn": ["urn:test:1", "urn:test:1", "urn:test:1"],
         }
     )
 
@@ -239,7 +239,7 @@ class TestAnnotateSgeVariants:
             "author_function_score_mean",
             "author_func_class",
             "assay",
-            "source",
+            "mavedb_urn",
             "gene",
         ):
             assert c in out.columns

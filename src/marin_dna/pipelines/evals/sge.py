@@ -60,17 +60,22 @@ def author_slug(name: str) -> str:
     return "author_" + re.sub(r"[^0-9a-zA-Z]+", "_", str(name)).strip("_").lower()
 
 
-def normalize_brca1_findlay(raw: pl.DataFrame) -> pl.DataFrame:
+def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFrame:
     """Normalize the Findlay 2018 BRCA1 SGE table (already header-resolved) to the
     SGE schema.
 
-    Emits the standard ``chrom, pos, ref, alt, gene, assay, source`` columns plus
+    Emits the standard ``chrom, pos, ref, alt, gene, assay, mavedb_urn`` columns plus
     **every original column preserved verbatim under an ``author_`` prefix** — so no
     author metadata is lost and nothing collides with the pipeline's annotation
     columns. ``chrom`` is a string and ``pos`` is 1-based hg19 (lifted to GRCh38
     downstream in :func:`annotate_sge_variants`). The headline author variables are
     ``author_function_score_mean`` (continuous) and ``author_func_class`` (discrete:
     FUNC/INT/LOF).
+
+    Args:
+        raw: header-resolved Findlay xlsx frame.
+        mavedb_urn: the dataset's canonical MaveDB accession, stamped per-variant so
+            ``(gene, mavedb_urn)`` identifies the exact study (a gene can have >1).
     """
     slugs = [author_slug(c) for c in raw.columns]
     assert len(set(slugs)) == len(slugs), (
@@ -89,7 +94,7 @@ def normalize_brca1_findlay(raw: pl.DataFrame) -> pl.DataFrame:
             pl.col("author_alt").cast(pl.Utf8).alias("alt"),
             pl.col("author_gene").cast(pl.Utf8).alias("gene"),
             assay=pl.lit("sge"),
-            source=pl.lit("findlay2018"),
+            mavedb_urn=pl.lit(mavedb_urn),
         )
         .pipe(filter_snp)
         # Standard pipeline columns first, then every preserved author column.
@@ -100,7 +105,7 @@ def normalize_brca1_findlay(raw: pl.DataFrame) -> pl.DataFrame:
             "alt",
             "gene",
             "assay",
-            "source",
+            "mavedb_urn",
             pl.col("^author_.*$"),
         )
     )
@@ -113,15 +118,15 @@ def normalize_brca1_findlay(raw: pl.DataFrame) -> pl.DataFrame:
     return out
 
 
-def read_brca1_findlay(xlsx_path: str | Path) -> pl.DataFrame:
+def read_brca1_findlay(xlsx_path: str | Path, *, mavedb_urn: str) -> pl.DataFrame:
     """Read + normalize the Findlay 2018 BRCA1 SGE supplementary xlsx.
 
     The sheet has two super-header rows above the real column header (row index 2),
-    so it is read with ``header=2``. Returns the :func:`normalize_brca1_findlay`
-    schema.
+    so it is read with ``header=2``. ``mavedb_urn`` is the dataset's canonical
+    accession (see :func:`normalize_brca1_findlay`). Returns the SGE schema.
     """
     raw = pd.read_excel(xlsx_path, header=2)
-    return normalize_brca1_findlay(pl.from_pandas(raw))
+    return normalize_brca1_findlay(pl.from_pandas(raw), mavedb_urn=mavedb_urn)
 
 
 def annotate_sge_variants(

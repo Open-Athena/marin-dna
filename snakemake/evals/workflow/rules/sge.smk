@@ -42,7 +42,7 @@ xlsx, lift hg19->GRCh38, annotate consequence/distance, drop HIGH-impact."""
     output:
         "results/dataset_unsplit/sge.parquet",
     run:
-        V = read_brca1_findlay(input.xlsx)
+        V = read_brca1_findlay(input.xlsx, mavedb_urn=config["sge"]["brca1"]["mavedb_urn"])
         annotate_sge_variants(
             V,
             genome=Genome(input.genome),
