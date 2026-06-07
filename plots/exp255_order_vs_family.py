@@ -33,6 +33,7 @@ single-run point estimate (no SE).
 Outputs under plots/output/exp255_order_vs_family/ (PNG 130dpi + SVG):
   exp255_matched_auprc.{png,svg}      per matched subset: family vs order AUPRC (±1 SE)
   exp255_matched_llgap.{png,svg}      per matched val set: family vs order LL gap
+  exp255_matched_ll_components.{png,svg}  per (component x val set): LL func & non-func
   exp255_online_vs_offline.{png,svg}  order arms, all-subset online vs offline AUPRC
 Prints: matched comparison table (AUPRC + LL func/nonfunc/gap) and the
 online-vs-offline AUPRC table.
@@ -310,6 +311,70 @@ def plot_matched_llgap(wd: dict) -> None:
     _savefig(fig, "exp255_matched_llgap")
 
 
+def plot_matched_ll_components(wd: dict) -> None:
+    """LL functional and LL non-functional, family (baseline) vs order. One panel
+    per (component x val dataset), each with its own zoomed y-axis: LL has no
+    meaningful zero and the family<->order deltas are sub-0.02 nats, so bars-from-0
+    would hide them. Dumbbell = family (gray) and order (blue) dots; no SE."""
+    arms = list(ARMS)
+    comps = [("func_ll", "LL functional"), ("nonfunc_ll", "LL non-functional")]
+    fig, axes = plt.subplots(
+        len(comps), len(arms), figsize=(3.3 * len(arms), 6.2), squeeze=False
+    )
+    for ri, (key, label) in enumerate(comps):
+        for ci, arm in enumerate(arms):
+            ax = axes[ri][ci]
+            fv = wd[(arm, "family")][key]
+            ov = wd[(arm, "order")][key]
+            ax.plot([0, 1], [fv, ov], color="#cccccc", lw=1.2, zorder=1)
+            ax.scatter(
+                [0, 1],
+                [fv, ov],
+                s=120,
+                color=[C_FAMILY, C_ORDER],
+                edgecolor="white",
+                linewidth=0.9,
+                zorder=3,
+            )
+            ax.set_xlim(-0.6, 1.6)
+            ax.set_xticks([0, 1])
+            ax.set_xticklabels(["family\n108 sp.", "order\n19 sp."], fontsize=8.5)
+            lo, hi = min(fv, ov), max(fv, ov)
+            pad = max((hi - lo) * 0.9, 0.012)
+            ax.set_ylim(lo - pad, hi + pad)
+            if ci == 0:
+                ax.set_ylabel(f"{label}\n(nats, = -loss; higher better)", fontsize=9)
+            if ri == 0:
+                ax.set_title(f"{arm}  ({ARMS[arm]['recipe']})", fontsize=10)
+            ax.grid(axis="y", alpha=0.3)
+            for x, v in ((0, fv), (1, ov)):
+                ax.annotate(
+                    f"{v:.3f}",
+                    (x, v),
+                    textcoords="offset points",
+                    xytext=(0, 9),
+                    ha="center",
+                    fontsize=8.5,
+                )
+            ax.text(
+                0.5,
+                0.05,
+                f"Δ={ov - fv:+.3f}",
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                bbox=dict(facecolor="white", edgecolor="gray", alpha=0.85, pad=1.5),
+            )
+    fig.suptitle(
+        "exp255 (#255) — matched-region LL functional & non-functional: family (baseline) vs order\n"
+        "LL = -loss (higher = better); per-panel y-axis zoomed (LL has no meaningful zero); single-run (no SE)",
+        fontsize=10,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    _savefig(fig, "exp255_matched_ll_components")
+
+
 def plot_online_vs_offline(wd: dict, cache: dict) -> None:
     fig, ax = plt.subplots(figsize=(5.6, 5.4))
     markers = {"cds": "o", "ccre": "s"}
@@ -359,6 +424,7 @@ def main() -> None:
     print("Plotting ...")
     plot_matched_auprc(cache)
     plot_matched_llgap(wd)
+    plot_matched_ll_components(wd)
     plot_online_vs_offline(wd, cache)
     print(f"\nDone. Figures in {OUT_DIR}/")
 
