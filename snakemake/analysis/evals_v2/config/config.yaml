@@ -490,6 +490,23 @@ models:
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-4999
     window_size: 255
     datasets: [mendelian_traits]
+
+  # exp255 — order-deduplicated per-region 0.25B (issue #255). The 19-species
+  # one-per-order cohort counterpart to exp232's 108-species family arms, for the
+  # two largest v4 slices (cds, ccre_non_promoter). Final step-4999 checkpoints —
+  # offline mendelian for the order-vs-family comparison, and the online/offline
+  # AUPRC agreement is the post-#266 BOS-fix sanity check. 255 bp + BOS; 0.25B
+  # (hidden 1152) fits A10G at the global batch_size=128. ccre_order trained in
+  # europe-west4 (eu-west4 bucket); cds_order in us-east5.
+  - name: exp255-v4_cds_order-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_cds_order-v0.1-2059d2/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp255-v4_ccre_non_promoter_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_ccre_non_promoter_order-v0.1-4dc7c6/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
   # mixture baseline; the i16 run continues training from i0's final
