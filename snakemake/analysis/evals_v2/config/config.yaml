@@ -506,6 +506,20 @@ models:
     gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_ccre_non_promoter_order-v0.1-4dc7c6/hf/step-4999
     window_size: 255
     datasets: [mendelian_traits]
+  # The 3 smaller-region order arms (#255 5-region expansion) — all trained in
+  # europe-west4 (eu-west4 bucket); each survived a flaky-v6e SIGSEGV gauntlet.
+  - name: exp255-v4_utr3_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_utr3_order-v0.1-38e83f/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp255-v4_ncrna_exon_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_ncrna_exon_order-v0.1-f1b4b2/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp255-v4_tss_region_and_utr5_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_tss_region_and_utr5_order-v0.1-252b96/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
 
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-

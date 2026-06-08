@@ -25,6 +25,13 @@ resources:
     disk_size: 200
     labels:
         project: dna
+    # Prefer spot (≈70% cheaper) with an on-demand fallback, so a launch never
+    # fails for lack of spot capacity. These evals are short (~20 min), so a
+    # mid-run spot preemption is a small, re-runnable risk. (Enabled after a spot
+    # quota bump; flip both to on-demand by deleting this any_of block.)
+    any_of:
+      - use_spot: true
+      - use_spot: false
 
 workdir: .
 
