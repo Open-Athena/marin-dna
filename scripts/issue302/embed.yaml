@@ -1,0 +1,68 @@
+# issue #302 — extract per-variant ref/alt embeddings for the scaling-v0.5 ladder.
+#
+# Mirrors snakemake/analysis/evals_v2/sky/run.yaml (gcloud ADC mount + genome-s3
+# uv group + GCS checkpoint download), but runs the embedding driver instead of
+# the snakemake pipeline. Loops over $MODELS ("name=gcs_path;name=gcs_path;..."),
+# each: download checkpoint, extract ref/alt center-pooled FWD+RC embeddings at
+# {1/4,1/2,3/4,last} layers, upload npz+keys to $OUT.
+#
+# Smoke (default env): 128M, --limit 50.   Full run (override on exec):
+#   sky launch scripts/issue302/embed.yaml -c emb302          # smoke
+#   sky exec   emb302 scripts/issue302/embed.yaml \           # full ladder
+#     --env LIMIT=0 \
+#     --env MODELS="scaling-v0.5-128M=gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h896-p128M-43ec40/hf/step-215573;scaling-v0.5-1B=gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-215573;scaling-v0.5-4B=gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573"
+
+name: emb302
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1
+    disk_size: 200
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    MODELS: "scaling-v0.5-128M=gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h896-p128M-43ec40/hf/step-215573"
+    LIMIT: "50"
+    OUT: "s3://oa-bolinas/analysis/issue302/embeddings"
+
+file_mounts:
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    grep -q 'google-cloud-sdk/bin' "$HOME/.bashrc" || \
+        echo 'export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    uv sync --frozen --group genome-s3
+    gcloud storage ls gs://marin-us-east5/checkpoints/ | head -3 >/dev/null
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export WANDB_DISABLED=true
+
+    lim=""
+    [ "$LIMIT" != "0" ] && lim="--limit $LIMIT"
+    IFS=';' read -ra ENTRIES <<< "$MODELS"
+    for entry in "${ENTRIES[@]}"; do
+        name="${entry%%=*}"
+        gcs="${entry#*=}"
+        echo "=== extracting $name from $gcs ==="
+        uv run --group genome-s3 python scripts/issue302/extract_variant_embeddings.py \
+            --gcs_path "$gcs" --name "$name" --out "$OUT" $lim
+    done
