@@ -66,6 +66,35 @@ These metrics parquets have columns
 `[metric, score_type, value, se, n_rows, n_pos, model, dataset, split]` — note
 the `metric` column and the absence of subset rows.
 
+### SGE dataset (`sge`, `eval_protocol: sge`)
+
+The saturation-genome-editing benchmark (`bolinas-dna/evals_sge`, issue #301; v2
+rebuild #300) is **unmatched** and carries a per-study, direction-harmonized
+`function_score_aligned` plus a uniform ClinGen/ExCALIBR `calibrated_class`,
+instead of `label` / `subset` / `match_group` / `effect_size`. `eval_protocol:
+sge` selects `marin_dna.pipelines.evals.metrics.compute_sge_metrics`. Scoring
+uses `score_protocol: minus_llr` (signed — the assayed ALT is the
+deleterious-*candidate*, so its sign is informative; not `abs`), giving score
+columns `minus_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}`.
+
+Scores are **non-comparable across studies**, so everything is computed **per
+accession** (`mavedb_urn`) then macro-averaged. Two **rank-based** metrics — so
+they compare fairly with the conservation tracks (Pearson is intentionally
+omitted: scale-sensitive, not cross-family comparable):
+
+- **Spearman** of the deleteriousness score vs `−function_score_aligned` (a good
+  predictor scores positive), over rows with a finite target.
+- **AUPRC** for the `calibrated_class` abnormal-vs-normal call (intermediate /
+  uncalibrated dropped).
+
+Both run on a 2-axis grid: `subset` ∈ {`missense_variant`, `splicing`, `both`
+(pooled), `_macro_avg_` (mean of the two subsets)} × `accession` ∈ {each
+`mavedb_urn`, `_macro_avg_` (mean over accessions)}. Parquet columns:
+`[metric, subset, accession, gene, score_type, value, se, n, n_pos, model,
+dataset, split]`. The **same** `compute_sge_metrics` is reused by the
+conservation pipeline (`snakemake/conservation_eval/`). Scoped to the three
+#292 gLMs via their per-model `datasets:` lists.
+
 ## Conventions
 
 - **Train split only.** Test is held out for the final-eval pass; train is
@@ -226,7 +255,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset.name}"`. |
 | `genome_path` | Canonical GRCh38 FASTA. fsspec URI (e.g. `s3://...`) or local path. The S3 path requires `--group genome-s3` at install time. |
 | `split` | `train` (or `test` once held-out eval is unlocked). |
-| `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets. |
+| `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global, sge}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets; `sge` selects the per-accession × consequence-subset Spearman + AUPRC path for `evals_sge` (see the SGE section above). |
 | `models` | List of `{name, window_size, ...}`. Each entry has exactly one of `gcs_path` (full GCS URI incl. `/hf/step-{N}`) or `hf_repo` (HuggingFace Hub repo ID), plus two optional fields: `datasets: [...]` to restrict which `datasets` this checkpoint evaluates on (defaults to all), and `batch_size: N` to override the global `inference.batch_size` for this checkpoint (useful when context size differs from the global default's tuning). |
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
