@@ -18,12 +18,12 @@ datasets:
   - name: dsqtl
     hf_revision: b7e02a07beb831c7047286aacd3ddfd299d6f88f
     eval_protocol: qtl_global
-  # Saturation-genome-editing dataset (bolinas-dna/evals_sge, issue #301; v2
-  # rebuild #300). `sge` → per-accession × consequence-subset Spearman (track
-  # score vs −function_score_aligned) + AUPRC (calibrated_class abnormal-vs-
-  # normal), via the shared compute_sge_metrics. All 5 tracks in `scores:` run.
+  # Saturation-genome-editing dataset (bolinas-dna/evals_sge v3, issue #301).
+  # `sge` → per-accession × consequence-subset AUPRC predicting the binary
+  # `label` (impactful = calibrated abnormal) from the track score, via the
+  # shared compute_sge_metrics. All 5 tracks in `scores:` run.
   - name: sge
-    hf_revision: 39f47f0909a8130f8f8b6cbea6b09eb376fed70b  # evals_sge v2 (#300)
+    hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849  # evals_sge v3 (#301, AUPRC-only)
     eval_protocol: sge
 
 # Splits to score. Train-only convention — the test split is held out for

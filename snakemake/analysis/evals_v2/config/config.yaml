@@ -39,16 +39,16 @@ datasets:
     eval_protocol: qtl_global
 
   # Saturation-genome-editing dataset (bolinas-dna/evals_sge, issue #301;
-  # builder #289, v2 rebuild #300). Unmatched — no label/subset(=consequence)/
-  # match_group; instead a harmonized per-study `function_score_aligned` + a
-  # uniform `calibrated_class`. `eval_protocol: sge` selects the
+  # builder #289, v2 rebuild #300, v3 label/AUPRC-only #301). Unmatched — no
+  # match_group; instead a boolean `label` (impactful = calibrated abnormal) +
+  # the consequence-group `subset`. `eval_protocol: sge` selects the
   # SGE_VARIANT_COLUMNS assert set and the `compute_sge_metrics` path
-  # (per-accession × consequence-subset Spearman + AUPRC, macro-averaged).
+  # (per-accession × consequence-subset AUPRC on `label`, macro-averaged).
   # `score_protocol: minus_llr` orients the gLM score toward deleteriousness
   # (the assayed ALT's sign is informative — not abs), matching mendelian_traits;
   # the raw llr_*/jsd_* atoms are stored regardless, so JSD stays available.
   - name: sge
-    hf_revision: 39f47f0909a8130f8f8b6cbea6b09eb376fed70b  # evals_sge v2 (#300)
+    hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849  # evals_sge v3 (#301, AUPRC-only)
     score_protocol: minus_llr
     eval_protocol: sge
 
