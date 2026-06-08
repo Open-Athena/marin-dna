@@ -55,7 +55,14 @@ def binary_macro(df, label, score):
     return float(np.mean(aur)), len(aur)
 
 
-corr_rows, bin_rows, grid_rows = [], [], []
+def binary_macro_in_group(df, label, score, group):
+    """Per-gene binary AUROC restricted to one consequence_group → macro (n>=30/label)."""
+    gmask = (df.consequence_group == group).to_numpy()
+    return binary_macro(df[gmask].reset_index(drop=True), label[gmask], score[gmask])
+
+
+TRUST_GROUPS = ["missense_variant", "splicing"]
+corr_rows, bin_rows, grid_rows, by_group_rows = [], [], [], []
 for label, path in MODELS.items():
     df = m.load_scores(path)
     signs = m.gene_signs(df)
@@ -74,8 +81,21 @@ for label, path in MODELS.items():
         auroc, k = binary_macro(df, lab, score)
         bin_rows.append({"model": label, "score": sc, "macro_AUROC": round(auroc, 3), "n_genes": k})
     grid_rows.append({"model": label, **{grp: round(gp.loc[grp, "macro"], 3) if grp in gp.index else None for grp in GROUPS_ALL}})
+    # binary AUROC vs correlation, split BY trustworthy group (per gene -> macro)
+    for grp in TRUST_GROUPS:
+        auc_mll, kb = binary_macro_in_group(df, lab, (-df.llr_avg).to_numpy(), grp)
+        auc_jsd, _ = binary_macro_in_group(df, lab, df.jsd_avg.to_numpy(), grp)
+        by_group_rows.append({
+            "model": label, "group": grp.replace("_variant", ""),
+            "spearman": round(gs.loc[grp, "macro"], 3), "pearson": round(gp.loc[grp, "macro"], 3),
+            "n_genes_corr": int(gp.loc[grp, sorted(df.gene.unique())].notna().sum()),
+            "AUROC_minusllr": None if np.isnan(auc_mll) else round(auc_mll, 3),
+            "AUROC_jsd": None if np.isnan(auc_jsd) else round(auc_jsd, 3),
+            "n_genes_bin": kb,
+        })
 
 corr_df, bin_df = pd.DataFrame(corr_rows), pd.DataFrame(bin_rows)
+by_group_df = pd.DataFrame(by_group_rows)
 grid_df = pd.DataFrame(grid_rows).set_index("model")
 print("=== correlation (sign-aligned, n>=100, macro over 9 genes) ===")
 print(corr_df.to_string(index=False))
@@ -83,9 +103,12 @@ print("\n=== binary AUROC (ClinGen-calibrated abnormal; 7 genes; n>=30/label) ==
 print(bin_df.to_string(index=False))
 print("\n=== per-consequence_group macro Pearson ===")
 print(grid_df.to_string())
+print("\n=== binary AUROC vs correlation, split by trustworthy group (per gene -> macro) ===")
+print(by_group_df.to_string(index=False))
 Path("scratch").mkdir(exist_ok=True)
 corr_df.to_csv("scratch/sge_compare_corr.csv", index=False)
 bin_df.to_csv("scratch/sge_compare_binary.csv", index=False)
+by_group_df.to_csv("scratch/sge_compare_by_group.csv", index=False)
 
 models = list(MODELS)
 fig, (axc, axb) = plt.subplots(1, 2, figsize=(13, 5), constrained_layout=True)
