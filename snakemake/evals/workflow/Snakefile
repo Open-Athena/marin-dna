@@ -13,6 +13,7 @@ include: "rules/mendelian_traits.smk"
 include: "rules/complex_traits.smk"
 include: "rules/dart_eval.smk"
 include: "rules/sge.smk"
+include: "rules/dart_task3.smk"
 
 
 # `rule all` builds the local split parquets + matching diagnostics but does

@@ -114,6 +114,11 @@ complex_traits:
 dart_eval:
   caqtl_synapse_id: syn60756043
   dsqtl_synapse_id: syn60756039
+  # Task 3 cell-type peak dataset (#293): DART-Eval's top-5,000-per-cell-type
+  # `input_data/top_5000_deseq_peaks.tsv` (25,000 x 500 bp peaks, 5,000 balanced
+  # per cell line) — the subset they feed their zero-shot clustering / UMAP.
+  # Synapse project syn60581042.
+  task3_synapse_id: syn62161401
 
 # ----- SGE (saturation genome editing) variant-effect dataset (issue #289) -----
 # Per-SNV experimental function scores from endogenous SGE assays; no matching /

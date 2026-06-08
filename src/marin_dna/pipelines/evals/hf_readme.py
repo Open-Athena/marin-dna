@@ -962,6 +962,132 @@ If you use this benchmark, please cite the source SGE studies:
 """
 
 
+def render_dart_task3(
+    sha: str,
+    train_path: str | Path,
+    validation_path: str | Path,
+    test_path: str | Path,
+) -> str:
+    """Dataset card for the DART-Eval Task 3 cell-type-specific peak dataset.
+
+    An **interval** dataset (not variants): each row is a 500 bp ATAC-seq
+    consensus-peak window labeled by the cell type it is differentially
+    accessible in (5-class). No ref/alt, no consequence annotation, no
+    matching/subsampling. Split by file on DART-Eval's canonical 3-way
+    chromosome holdout, so this takes a `validation_path` the generic `render()`
+    (train/test only) can't supply — the upload rule calls it directly.
+    """
+    splits = {
+        "train": pl.read_parquet(train_path),
+        "validation": pl.read_parquet(validation_path),
+        "test": pl.read_parquet(test_path),
+    }
+    totals = {s: df.height for s, df in splits.items()}
+    total = sum(totals.values())
+    cell_types = sorted(
+        set().union(*(set(df["label"].unique().to_list()) for df in splits.values()))
+    )
+
+    def _n(split: str, ct: str) -> int:
+        return splits[split].filter(pl.col("label") == ct).height
+
+    ct_rows = "\n".join(
+        f"| `{ct}` | {_n('train', ct):,} | {_n('validation', ct):,} "
+        f"| {_n('test', ct):,} | {_n('train', ct) + _n('validation', ct) + _n('test', ct):,} |"
+        for ct in cell_types
+    )
+
+    # Minimal tag set (biology, genomics, dna) per the bolinas-dna dataset-card
+    # convention — no fine-grained extras.
+    return f"""{_frontmatter()}
+
+# evals_dart_task3
+
+Cell-type-specific **chromatin-accessibility peak** dataset from
+[DART-Eval](https://github.com/kundajelab/DART-Eval) **Task 3** ("Discriminating
+Cell-Type-Specific Elements"). Each row is a **500 bp** ATAC-seq consensus-peak
+window (±250 bp around the summit, GRCh38), labeled by the **cell type** it is
+differentially accessible in. The benchmark question: can a model embedding
+distinguish cell types from the sequence alone?
+
+**Interval dataset, not variants** — no ref/alt, no consequence annotation, **no
+matching and no subsampling**. The window set is DART-Eval's
+`input_data/top_5000_deseq_peaks.tsv` — the **top 5,000 DESeq2
+differentially-accessible peaks per cell type** (the subset they feed their
+zero-shot clustering / UMAP), **25,000 windows, 5,000 balanced per cell type**,
+with unique peak coordinates.
+
+## Description
+
+| | |
+|---|---|
+| Element | 500 bp ATAC-seq consensus peak (±250 bp around the summit; window midpoint = summit) |
+| Label | One of 5 cell lines: `GM12878`, `H1ESC`, `HEPG2`, `IMR90`, `K562` |
+| Selection | Top 5,000 DESeq2 differentially-accessible peaks per cell type (25,000 total, balanced) |
+| Assay | ATAC-seq chromatin accessibility (ENCODE) |
+| Source data | DART-Eval, Synapse [`syn62161401`](https://www.synapse.org/Synapse:syn62161401) (`top_5000_deseq_peaks.tsv`), project `syn60581042` |
+| Genome build | GRCh38 |
+| Coordinates | **0-based, half-open** (`end - start == 500`) |
+| Matching | none (no subsampling) |
+
+The full 500 bp peak is stored (never pre-cropped to a model's context window),
+so the embedding context / pooling choice stays an open downstream decision.
+
+## Splits
+
+DART-Eval's canonical **3-way** chromosome holdout (verbatim from their Task-3
+training scripts), shipped one file per split. Per-split counts follow the
+peaks' genomic distribution.
+
+| File | Windows | Chromosomes |
+|---|---:|---|
+| `train.parquet` | {totals["train"]:,} | 1, 2, 3, 4, 7, 8, 9, 11, 12, 13, 15, 16, 17, 19, X, Y |
+| `validation.parquet` | {totals["validation"]:,} | 6, 21 |
+| `test.parquet` | {totals["test"]:,} | 5, 10, 14, 18, 20, 22 |
+| **total** | **{total:,}** | |
+
+### Windows per cell type
+
+| Cell type | train | validation | test | total |
+|---|---:|---:|---:|---:|
+{ct_rows}
+
+## Columns
+
+| Column | Type | Description |
+|---|---|---|
+| `chrom` | str | Chromosome (no `chr` prefix), GRCh38 |
+| `start` | int | Window start — 0-based, inclusive |
+| `end` | int | Window end — 0-based, exclusive (`end - start == 500`) |
+| `label` | str | Cell type the peak is differentially accessible in |
+
+## Provenance
+
+Built by the [`marin-dna`]({REPO_ROOT_URL}) eval pipeline at commit
+[`{sha[:7]}`]({REPO_ROOT_URL}/tree/{sha}/snakemake/evals).
+
+- Curation pipeline: {_pipeline_link(sha)}
+- Rules: {_file_link(sha, "snakemake/evals/workflow/rules/dart_task3.smk")}
+- Parsing + splitting: {_file_link(sha, "src/marin_dna/pipelines/evals/dart_task3.py")}
+
+## License
+
+Released under the terms of its upstream sources. The peak set is redistributed
+from [DART-Eval](https://github.com/kundajelab/DART-Eval) (Task 3) and derives
+from **ENCODE** ATAC-seq in the 5 cell lines (freely redistributable under the
+[ENCODE data-use policy](https://www.encodeproject.org/help/citing-encode/));
+DART-Eval ships no explicit license, so consult it and ENCODE for redistribution
+and commercial-use terms.
+
+## Citation
+
+If you use this benchmark, please cite the upstream sources:
+
+- DART-Eval — Patel *et al.* 2024, [arXiv 2412.05430](https://arxiv.org/abs/2412.05430) (NeurIPS D&B 2024)
+- ENCODE Project Consortium — the ATAC-seq data for GM12878, H1ESC, HEPG2, IMR90, K562
+"""
+
+
 def render(
     dataset: str,
     sha: str,
