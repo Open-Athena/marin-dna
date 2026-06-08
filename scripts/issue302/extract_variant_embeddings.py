@@ -44,12 +44,17 @@ KEEP = ["chrom", "pos", "ref", "alt", "label", "subset", "match_group"]
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
+        "--s3_path",
+        default=None,
+        help="s3:// HF checkpoint dir to download (preferred)",
+    )
+    ap.add_argument(
         "--gcs_path", default=None, help="gs:// HF checkpoint dir to download"
     )
     ap.add_argument(
         "--ckpt",
         default=None,
-        help="local HF checkpoint dir (alternative to --gcs_path)",
+        help="local HF checkpoint dir (alternative to --s3_path/--gcs_path)",
     )
     ap.add_argument(
         "--name", required=True, help="model short name for output filenames"
@@ -68,13 +73,27 @@ def main() -> None:
     args = ap.parse_args()
 
     ckpt = args.ckpt
-    if args.gcs_path:
+    if args.s3_path:
+        ckpt = tempfile.mkdtemp(prefix="ckpt_")
+        print(f"downloading {args.s3_path} -> {ckpt}", flush=True)
+        subprocess.run(
+            [
+                "aws",
+                "s3",
+                "sync",
+                args.s3_path.rstrip("/") + "/",
+                ckpt,
+                "--no-progress",
+            ],
+            check=True,
+        )
+    elif args.gcs_path:
         ckpt = tempfile.mkdtemp(prefix="ckpt_")
         print(f"downloading {args.gcs_path} -> {ckpt}", flush=True)
         subprocess.run(
             ["gcloud", "storage", "cp", "-r", f"{args.gcs_path}/*", ckpt], check=True
         )
-    assert ckpt, "need --gcs_path or --ckpt"
+    assert ckpt, "need --s3_path, --gcs_path or --ckpt"
 
     print("loading variants...", flush=True)
     df = load_dataset(DATASET, revision=REVISION, split="train").to_pandas()
