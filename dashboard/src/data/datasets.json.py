@@ -32,6 +32,17 @@ _QTL_METRIC = (
     "selected metric."
 )
 
+_SGE_METRIC = (
+    "Two **rank-based** metrics, both computed **per accession** (MaveDB study) "
+    "then macro-averaged over consequence subsets and accessions. **Spearman ρ** "
+    "± bootstrap SE — rank correlation of the deleteriousness score vs "
+    "`−function_score_aligned` (so a good predictor scores positive). **AUPRC** ± "
+    "bootstrap SE — predicting the ClinGen/ExCALIBR `calibrated_class` "
+    "abnormal-vs-normal call. Both are scale-free, so conservation tracks and "
+    "gLMs compare on the same footing (Pearson is intentionally omitted — it's "
+    "scale-sensitive and not comparable across families)."
+)
+
 DATASETS = {
     "mendelian_traits": {
         "name": "Mendelian Traits",
@@ -101,6 +112,23 @@ DATASETS = {
             "DART-Eval Task-5 dsQTL benchmark (`eval_protocol: qtl_global`). Single selected-metric column (+ forest plot); no subsets, no matched negatives.",
             "Random-baseline AUPRC is the positive rate ≈ 0.021 (309 / 15,018). AUPRC is over all variants; Pearson/Spearman over the 309 positives only — the small positive count makes the correlation SEs wide (~0.06).",
             "MarinDNA defaults to NucDep (Jensen-Shannon divergence, `jsd_avg`) here — a symmetric distributional distance suited to unsigned QTL effects; the LLR magnitude protocol (`abs_llr_avg`) is one click away via the protocol toggle.",
+        ],
+    },
+    "sge": {
+        "name": "Saturation Genome Editing (SGE)",
+        "hf_repo": "bolinas-dna/evals_sge",
+        "hf_commit": "39f47f09",
+        "score_type": "minus_llr_avg",
+        "issue": "https://github.com/Open-Athena/marin-dna/issues/301",
+        "split": "train",
+        "positives": "Variants whose endogenous-locus function is abnormal (ClinGen/ExCALIBR-calibrated) — the AUPRC positives",
+        "negatives": "Variants calibrated normal (intermediate / uncalibrated dropped)",
+        "matching": "none — metrics are computed per accession (MaveDB study), since function scores are non-comparable across studies, then macro-averaged over subsets and accessions",
+        "metric": _SGE_METRIC,
+        "notes": [
+            "Saturation-genome-editing VEP (12 genes, missense + splicing only; v2 rebuild #300). `function_score_aligned` is the direction-harmonized continuous score; `calibrated_class` is the uniform ClinGen/ExCALIBR abnormal/normal call.",
+            "Use the gene selector to view a single accession or the macro across accessions; a board per consequence subset (missense / splicing / both / subset-macro), each method × {Spearman, AUPRC}.",
+            "MarinDNA defaults to LLR (`minus_llr_avg`, signed — the assayed ALT's direction is informative, so not `abs`); NucDep (`jsd_avg`) is one click away. Conservation tracks use their single per-position score.",
         ],
     },
 }
