@@ -47,18 +47,44 @@ SGE_REPO = "bolinas-dna/evals_sge"
 
 N_BOOTSTRAP = 1000
 SEED = 0
-N_MIN_CORR = 30  # min variants in a (gene[, consequence]) cell to report a correlation
+# Min variants in a (gene x consequence_group) cell to compute a correlation (#292:
+# agreed n>=100). Per-gene cells span a whole gene (thousands of variants), so this
+# threshold only bites the per-(gene x group) cells in the grid / per-consequence tables.
+N_MIN_CORR = 100
 N_MIN_BINARY = 20  # min variants (with >=5 of the minority class) for a binary metric
+
+# Coarse consequence grouping — the SAME map the matched-pair datasets use
+# (snakemake/evals/config/config.yaml `consequence_groups`), replicated here because
+# evals_sge ships only `consequence_final`, no `consequence_group` (flagged in #297).
+# Consequences absent from the map keep their own value (single-consequence category),
+# matching trait_intervals.build_dataset's `.replace(...)` semantics. Only the subtypes
+# that actually occur in SGE are listed; the rest of the config's `distal` members
+# (other cCRE classes) never appear here.
+CONSEQUENCE_GROUPS = {
+    "splice_donor_5th_base_variant": "splicing",
+    "splice_region_variant": "splicing",
+    "splice_donor_region_variant": "splicing",
+    "splice_polypyrimidine_tract_variant": "splicing",
+    "exon_proximal": "splicing",
+    "intron_variant": "distal",
+    "intergenic_variant": "distal",
+    "upstream_gene_variant": "distal",
+    "downstream_gene_variant": "distal",
+    "dELS_flank": "distal",
+    "CA_flank": "distal",
+}
 
 
 def load_scores(path: str) -> pd.DataFrame:
-    """Scores parquet → pandas, with the derived strand-averaged atoms added."""
+    """Scores parquet → pandas, with the derived strand-averaged atoms + the coarse
+    `consequence_group` (evals_sge ships only `consequence_final`; #297)."""
     df = pl.read_parquet(path).to_pandas()
     assert {"llr_fwd", "llr_rc", "jsd_fwd", "jsd_rc"}.issubset(df.columns), (
         f"missing per-strand atoms; have {sorted(df.columns)[:12]}…"
     )
     df["llr_avg"] = (df["llr_fwd"] + df["llr_rc"]) / 2
     df["jsd_avg"] = (df["jsd_fwd"] + df["jsd_rc"]) / 2
+    df["consequence_group"] = df["consequence_final"].replace(CONSEQUENCE_GROUPS)
     assert df["function_score"].notna().all(), "function_score has NaN"
     return df
 
@@ -84,10 +110,16 @@ def _macro(values: list[float], ses: list[float]) -> tuple[float, float, int]:
 # --------------------------------------------------------------------------- #
 # T1 — per-gene correlation of the model score vs the continuous function_score.
 # --------------------------------------------------------------------------- #
-def correlation_menu(df: pd.DataFrame) -> pd.DataFrame:
-    """Per-gene Spearman/Pearson(score, function_score) → macro + macro|.|."""
+def correlation_menu(df: pd.DataFrame, sign_align: bool = True) -> pd.DataFrame:
+    """Per-gene Spearman/Pearson(score, function_score) → macro + macro|.|.
+
+    When ``sign_align`` (default), each gene's correlation is multiplied by its
+    :func:`gene_signs` (+1/-1) before the macro so an inverted assay (DDX3X) reinforces
+    rather than cancels. ``macro_abs`` (mean |corr|) is sign-invariant by construction.
+    """
     rng = np.random.default_rng(SEED)
     genes = sorted(df["gene"].unique())
+    signs = gene_signs(df) if sign_align else {g: 1.0 for g in genes}
     rows = []
     # Signed llr/jsd: correlation sign tells us direction; abs_llr is a distinct
     # (non-monotone) transform so it gets its own correlation. minus_llr is
@@ -112,7 +144,7 @@ def correlation_menu(df: pd.DataFrame) -> pd.DataFrame:
                     n_bootstrap=N_BOOTSTRAP,
                     rng=rng,
                 )
-                per_gene.append(v)
+                per_gene.append(signs[g] * v)
                 per_gene_se.append(se)
             macro, macro_se, k = _macro(per_gene, per_gene_se)
             macro_abs, _, _ = _macro([abs(x) for x in per_gene], per_gene_se)
@@ -131,18 +163,25 @@ def correlation_menu(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def correlation_per_consequence(
-    df: pd.DataFrame, score_col: str = "llr_avg", method: str = "spearman"
+    df: pd.DataFrame,
+    score_col: str = "llr_avg",
+    method: str = "spearman",
+    sign_align: bool = True,
 ) -> pd.DataFrame:
-    """Per-(gene x consequence_final) correlation → macro within each consequence.
+    """Per-(gene x consequence_group) correlation → macro within each group.
 
-    Pooling raw function_score across genes is invalid (per-gene scales differ),
-    so each consequence's number is a macro-average over per-(gene) correlations.
-    ``method`` in {"spearman", "pearson"}: Spearman is rank-based and robust to the
-    heavy-tailed per-gene function_score (e.g. RAD51C's -29 tail); Pearson is linear.
+    Grouped on the coarse ``consequence_group`` (#292: splice classes + exon_proximal
+    collapse to ``splicing``, cCRE flanks to ``distal``). Pooling raw function_score
+    across genes is invalid (per-gene scales differ), so each group's number is a
+    macro-average over per-(gene) correlations on cells with n >= ``N_MIN_CORR`` (100),
+    sign-aligned per gene (DDX3X inverted) when ``sign_align``. ``method`` in
+    {"spearman", "pearson"}: Spearman is rank-based and robust to the heavy-tailed
+    per-gene function_score (e.g. RAD51C's -29 tail); Pearson is linear.
     """
     rng = np.random.default_rng(SEED)
+    signs = gene_signs(df, score_col) if sign_align else {}
     rows = []
-    for cons, csub in df.groupby("consequence_final"):
+    for cons, csub in df.groupby("consequence_group"):
         per_gene, per_gene_se = [], []
         for g, gsub in csub.groupby("gene"):
             if len(gsub) < N_MIN_CORR:
@@ -154,14 +193,14 @@ def correlation_per_consequence(
                 n_bootstrap=N_BOOTSTRAP,
                 rng=rng,
             )
-            per_gene.append(v)
+            per_gene.append(signs.get(g, 1.0) * v)
             per_gene_se.append(se)
         if not per_gene:
             continue
         macro, macro_se, k = _macro(per_gene, per_gene_se)
         rows.append(
             {
-                "consequence_final": cons,
+                "consequence_group": cons,
                 "score_type": score_col,
                 "method": method,
                 "macro": macro,
@@ -198,27 +237,28 @@ def gene_consequence_grid(
     n_min: int = N_MIN_CORR,
     sign_align: bool = True,
 ) -> pd.DataFrame:
-    """2-way grid of per-(gene x consequence_final) correlation point estimates.
+    """2-way grid of per-(gene x consequence_group) correlation point estimates.
 
-    Rows = consequence_final, columns = gene; each cell = corr(score, function_score)
-    over that (gene, consequence) subset, or NaN if n < ``n_min`` (or a degenerate
-    constant column). When ``sign_align`` (default), each gene's cells are multiplied
-    by its :func:`gene_signs` (+1/-1) so an inverted assay (DDX3X) is oriented with the
-    rest before the macro means are taken. A ``macro`` column holds the row mean over
-    genes (per-consequence macro) and a ``macro`` row holds the column mean over
-    consequences (per-gene macro). Point estimates only — this is the overview grid;
-    per-consequence bootstrap SEs are in :func:`correlation_per_consequence`.
+    Rows = consequence_group (#292 coarse grouping: splicing / distal / missense / …),
+    columns = gene; each cell = corr(score, function_score) over that (gene, group)
+    subset, or NaN if n < ``n_min`` (100; or a degenerate constant column). When
+    ``sign_align`` (default), each gene's cells are multiplied by its :func:`gene_signs`
+    (+1/-1) so an inverted assay (DDX3X) is oriented with the rest before the macro means
+    are taken. A ``macro`` column holds the row mean over genes (per-group macro) and a
+    ``macro`` row holds the column mean over groups (per-gene macro). Point estimates only
+    — this is the overview grid; per-group bootstrap SEs are in
+    :func:`correlation_per_consequence`.
     """
     corr_fn = spearmanr if method == "spearman" else pearsonr
     genes = sorted(df["gene"].unique())
     signs = gene_signs(df, score_col) if sign_align else {g: 1.0 for g in genes}
-    conss = list(df["consequence_final"].value_counts().index)  # most-frequent first
+    conss = list(df["consequence_group"].value_counts().index)  # most-frequent first
     grid = pd.DataFrame(index=conss, columns=genes, dtype=float)
-    for (cons, g), sub in df.groupby(["consequence_final", "gene"]):
+    for (cons, g), sub in df.groupby(["consequence_group", "gene"]):
         x, y = sub[score_col].to_numpy(float), sub["function_score"].to_numpy(float)
         if len(sub) >= n_min and x.std() > 0 and y.std() > 0:
             grid.loc[cons, g] = signs[g] * float(corr_fn(x, y)[0])
-    grid["macro"] = grid[genes].mean(axis=1, skipna=True)  # per-consequence macro
+    grid["macro"] = grid[genes].mean(axis=1, skipna=True)  # per-group macro
     grid.loc["macro"] = grid.mean(axis=0, skipna=True)  # per-gene macro
     return grid
 
@@ -394,7 +434,7 @@ def main() -> None:
     print(corr.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
 
     print("\n" + "=" * 70)
-    print("T1 — per-consequence_final macro correlation (score_type=llr_avg)")
+    print("T1 — per-consequence_group macro correlation (sign-aligned, n>=100, llr_avg)")
     print("=" * 70)
     for _meth in ("spearman", "pearson"):
         pc = correlation_per_consequence(df, "llr_avg", method=_meth)
@@ -402,7 +442,7 @@ def main() -> None:
         print(pc.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
 
     print("\n" + "=" * 70)
-    print("T1 — gene x consequence_final grid (cell = corr(llr_avg, function_score))")
+    print("T1 — gene x consequence_group grid (sign-aligned; cell = corr(llr_avg, function_score))")
     print("=" * 70)
     grids = {}
     for _meth in ("pearson", "spearman"):
