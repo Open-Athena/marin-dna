@@ -64,7 +64,9 @@ def main() -> None:
         ("codon_2", "CDS codon pos 2", "tab:cyan", "-"),
         ("codon_3", "CDS codon pos 3 (wobble)", "tab:red", "-"),
         ("codon_3_4fold", "CDS codon pos 3, 4-fold degenerate", "tab:orange", "--"),
-        ("splicing", "intronic splice site (≤20bp)", "tab:green", "-"),
+        ("splicing", "intronic splice (≤20bp, donor+acceptor)", "tab:green", "-"),
+        ("splice_donor", "splice donor", "tab:olive", "--"),
+        ("splice_acceptor", "splice acceptor", "mediumseagreen", ":"),
         ("other_noncoding", "other non-coding (deep intron)", "tab:brown", "-"),
     ]
     fig, ax = plt.subplots(figsize=(7.5, 5))
@@ -78,10 +80,9 @@ def main() -> None:
         "splice highest & ~flat",
         fontsize=11,
     )
-    ax.legend(fontsize=9)
-    fig.tight_layout()
-    fig.savefig(OUT / "regions_meanloss.png", dpi=130)
-    fig.savefig(OUT / "regions_meanloss.svg")
+    ax.legend(fontsize=8, loc="center left", bbox_to_anchor=(1.01, 0.5))
+    fig.savefig(OUT / "regions_meanloss.png", dpi=130, bbox_inches="tight")
+    fig.savefig(OUT / "regions_meanloss.svg", bbox_inches="tight")
     plt.close(fig)
 
     # --- Subplot (collapsible): splice region by gene strand ----------------
