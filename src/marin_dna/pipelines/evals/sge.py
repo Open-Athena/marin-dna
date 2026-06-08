@@ -415,6 +415,26 @@ def _in_range(
     return True
 
 
+def _matching_range(rows: list[dict], x: float) -> dict | None:
+    """First calibration-class row (from :meth:`iter_rows(named=True)`) whose score
+    range contains ``x``, else None. For ExCALIBR's disjoint graded ranges at most one
+    matches; first-in-order is deterministic by the calibration table's row order."""
+    return next(
+        (
+            r
+            for r in rows
+            if _in_range(
+                x,
+                r["range_lower"],
+                r["range_upper"],
+                r["inclusive_lower"],
+                r["inclusive_upper"],
+            )
+        ),
+        None,
+    )
+
+
 def attach_calibrated_class(
     data: pl.DataFrame, calibrations: pl.DataFrame
 ) -> pl.DataFrame:
@@ -438,6 +458,12 @@ def attach_calibrated_class(
     assert "author_class_harmonized" in data.columns, (
         "attach_calibrated_class: call attach_author_class_harmonized first"
     )
+    # function_score is a non-null loader invariant; guard it here because a null would
+    # become NaN below (np.asarray(..., dtype=float)) and silently match EVERY range in
+    # _in_range (all comparisons against NaN are False), mislabeling the variant.
+    assert data["function_score"].null_count() == 0, (
+        "attach_calibrated_class: null function_score (would corrupt range membership)"
+    )
     n = data.height
     fs = np.asarray(data["function_score"].to_list(), dtype=float)
     gene_arr = np.asarray(data["gene"].to_list(), dtype=object)
@@ -455,34 +481,8 @@ def attach_calibrated_class(
             abn_rows = list(abn.iter_rows(named=True))
             for i in idx:
                 x = fs[i]
-                abn_hit = next(
-                    (
-                        r
-                        for r in abn_rows
-                        if _in_range(
-                            x,
-                            r["range_lower"],
-                            r["range_upper"],
-                            r["inclusive_lower"],
-                            r["inclusive_upper"],
-                        )
-                    ),
-                    None,
-                )
-                norm_hit = next(
-                    (
-                        r
-                        for r in norm_rows
-                        if _in_range(
-                            x,
-                            r["range_lower"],
-                            r["range_upper"],
-                            r["inclusive_lower"],
-                            r["inclusive_upper"],
-                        )
-                    ),
-                    None,
-                )
+                abn_hit = _matching_range(abn_rows, x)
+                norm_hit = _matching_range(norm_rows, x)
                 if abn_hit and not norm_hit:
                     cls[i], strength[i] = "abnormal", abn_hit["acmg_evidence_strength"]
                 elif norm_hit and not abn_hit:
@@ -545,6 +545,12 @@ def attach_function_direction(
     """
     assert "author_class_harmonized" in data.columns, (
         "attach_function_direction: call attach_author_class_harmonized first"
+    )
+    # function_score is a non-null loader invariant; a null would become NaN below and
+    # poison the categorical-gene mean comparison (np.mean of a NaN-containing list is
+    # NaN, and NaN >= NaN is False -> a spurious -1 direction).
+    assert data["function_score"].null_count() == 0, (
+        "attach_function_direction: null function_score (would corrupt direction)"
     )
     n = data.height
     fs = np.asarray(data["function_score"].to_list(), dtype=float)

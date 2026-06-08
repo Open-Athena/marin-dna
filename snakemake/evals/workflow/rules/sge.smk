@@ -154,7 +154,9 @@ HIGH-impact, diagonal-concat."""
                 tss_proximal_dist=config["tss_proximal_dist"],
                 exclude_consequences=config["exclude_consequences"],
                 consequence_groups=config["consequence_groups"],
-                consequence_group_allowlist=config["sge"]["consequence_group_allowlist"],
+                # .get(): a removed key (or YAML null) -> None -> keep every group, as
+                # the config comment promises; a bare [...] subscript would KeyError.
+                consequence_group_allowlist=config["sge"].get("consequence_group_allowlist"),
                 lift=lift,
                 name=name,
             )
