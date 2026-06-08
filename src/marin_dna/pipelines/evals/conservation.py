@@ -90,18 +90,16 @@ QTL_VARIANT_COLUMNS: tuple[str, ...] = (
     "effect_size",
 )
 
-# Columns the saturation-genome-editing dataset (``evals_sge``, issue #301; v2
-# rebuild #300) carries instead: no ``label`` / ``match_group`` / ``effect_size``.
-# Instead a per-study experimental score harmonized into ``function_score_aligned``
-# (higher = more functional/tolerated), a uniform ClinGen/ExCALIBR
-# ``calibrated_class`` ∈ {abnormal, intermediate, normal, null}, the MaveDB
-# ``mavedb_urn`` (the per-study grouping key — scores are non-comparable across
-# studies, so metrics are computed per accession), the ``gene`` (display), and the
-# consequence-group ``subset`` ∈ {missense_variant, splicing}. Asserted by the
-# ``eval_protocol: sge`` branch of each pipeline's score/metric rules.
-# ``compute_variant_scores`` itself only reads chrom/pos/ref/alt; asserting the
-# metric columns early fails fast on schema drift, since ``compute_sge_metrics``
-# depends on them surviving into the scores parquet.
+# Columns the saturation-genome-editing dataset (``evals_sge`` v3, issue #301)
+# carries instead of ``match_group`` / ``effect_size``: a boolean ``label`` (True =
+# impactful = calibrated abnormal — the AUPRC target), the MaveDB ``mavedb_urn``
+# (the per-study grouping key — scores are non-comparable across studies, so AUPRC
+# is computed per accession), the ``gene`` (display), and the consequence-group
+# ``subset`` ∈ {missense_variant, splicing}. Asserted by the ``eval_protocol: sge``
+# branch of each pipeline's score/metric rules. ``compute_variant_scores`` itself
+# only reads chrom/pos/ref/alt; asserting the metric columns early fails fast on
+# schema drift, since ``compute_sge_metrics`` depends on them surviving into the
+# scores parquet.
 SGE_VARIANT_COLUMNS: tuple[str, ...] = (
     "chrom",
     "pos",
@@ -110,8 +108,7 @@ SGE_VARIANT_COLUMNS: tuple[str, ...] = (
     "mavedb_urn",
     "gene",
     "subset",
-    "function_score_aligned",
-    "calibrated_class",
+    "label",
 )
 
 
@@ -491,8 +488,8 @@ def aggregate_conservation_sge_metrics(
 
     The conservation counterpart to the evals_v2 ``sge`` path. Each input parquet
     is ``score_variants_at_positions`` output plus SGE_VARIANT_COLUMNS
-    (``[mavedb_urn, gene, subset, function_score_aligned, calibrated_class,
-    score]``). The per-track ``score`` is fed into the **shared**
+    (``[mavedb_urn, gene, subset, label, score]``). The per-track ``score`` is fed
+    into the **shared**
     ``compute_sge_metrics`` (``score_columns=["score"]``) — no metric logic is
     duplicated here; only the per-track loop + ``score_name`` stamping + markdown
     are conservation-specific. ``score`` is ``.fillna(0)`` before scoring, the
@@ -515,13 +512,7 @@ def aggregate_conservation_sge_metrics(
     assert parquet_paths, "parquet_paths must be non-empty"
 
     score_names = list(parquet_paths)
-    metric_cols = [
-        "mavedb_urn",
-        "gene",
-        "subset",
-        "function_score_aligned",
-        "calibrated_class",
-    ]
+    metric_cols = ["mavedb_urn", "gene", "subset", "label"]
     required = (*metric_cols, "score")
     all_metrics: list[pd.DataFrame] = []
 
@@ -557,11 +548,11 @@ def _build_sge_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
     lines.append("### SGE — headline macro (value ± bootstrap SE)")
     lines.append("")
     lines.append(
-        "Per-accession (MaveDB study) Spearman of the conservation score vs "
-        "`−function_score_aligned`, and AUPRC for `calibrated_class` "
-        "abnormal-vs-normal, macro-averaged over consequence subsets "
-        "(missense/splicing) then over accessions. Unaligned (NaN) scores are "
-        "filled with 0 before scoring (the conservation-pipeline convention)."
+        "Per-accession (MaveDB study) AUPRC predicting the binary `label` "
+        "(impactful vs not) from the conservation score, macro-averaged over "
+        "consequence subsets (missense/splicing) then over accessions. Unaligned "
+        "(NaN) scores are filled with 0 before scoring (the conservation-pipeline "
+        "convention)."
     )
     lines.append("")
     headline = metrics[
@@ -577,7 +568,7 @@ def _build_sge_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
     header = ["metric", *score_names]
     lines.append("| " + " | ".join(header) + " |")
     lines.append("| " + " | ".join(["---"] * len(header)) + " |")
-    for metric in ("spearman", "AUPRC"):
+    for metric in ("AUPRC",):
         if metric not in val.index:
             continue
         cells = []

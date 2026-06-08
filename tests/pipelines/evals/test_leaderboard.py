@@ -649,24 +649,22 @@ def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
 
 
 def _sge_metrics_parquet(score_types, *, score_name=None) -> pl.DataFrame:
-    """Tiny SGE metrics parquet: one (spearman, AUPRC) pair per score_type at the
-    headline (across-accession × across-subset macro) cell."""
-    rows = []
-    for st in score_types:
-        for metric in ("spearman", "AUPRC"):
-            rows.append(
-                {
-                    "metric": metric,
-                    "subset": MACRO_AVG_SUBSET,
-                    "accession": MACRO_AVG_SUBSET,
-                    "gene": MACRO_AVG_SUBSET,
-                    "score_type": st,
-                    "value": 0.3,
-                    "se": 0.01,
-                    "n": 5,
-                    "n_pos": float("nan") if metric == "spearman" else 100.0,
-                }
-            )
+    """Tiny SGE metrics parquet: one AUPRC row per score_type at the headline
+    (across-accession × across-subset macro) cell."""
+    rows = [
+        {
+            "metric": "AUPRC",
+            "subset": MACRO_AVG_SUBSET,
+            "accession": MACRO_AVG_SUBSET,
+            "gene": MACRO_AVG_SUBSET,
+            "score_type": st,
+            "value": 0.3,
+            "se": 0.01,
+            "n": 5,
+            "n_pos": 100.0,
+        }
+        for st in score_types
+    ]
     df = pl.DataFrame(rows)
     if score_name is not None:
         df = df.with_columns(pl.lit(score_name).alias("score_name"))
@@ -717,11 +715,11 @@ def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPa
     assert set(g["score_type"].to_list()) == {"minus_llr_avg", "jsd_avg"}
     # conservation: each method filtered to its own track, no cross-leak.
     c = df.filter(pl.col("method_id") == "phyloP_100v")
-    assert c.height == 2 and (c["score_type"] == "score").all()
-    assert df.filter(pl.col("method_id") == "phastCons_43p").height == 2
-    # n_pos is NaN for spearman rows, finite for AUPRC rows.
-    sp = df.filter(pl.col("metric") == "spearman")
-    assert sp["n_pos"].is_nan().all()
+    assert c.height == 1 and (c["score_type"] == "score").all()
+    assert df.filter(pl.col("method_id") == "phastCons_43p").height == 1
+    # SGE v3 is AUPRC-only; every metric row is AUPRC with a finite n_pos.
+    assert set(df["metric"].to_list()) == {"AUPRC"}
+    assert df["n_pos"].is_finite().all()
 
 
 def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPatch):

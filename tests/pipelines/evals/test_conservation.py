@@ -209,26 +209,20 @@ def test_aggregate_conservation_qtl_metrics(tmp_path):
 
 
 def _sge_scored_parquet(
-    tmp_path, name, *, seed=0, n_per_cell=150, perfect=True, inject_nan=0
+    tmp_path, name, *, seed=0, n_per_cell=150, perfect=False, inject_nan=0
 ):
-    """Write a fake SGE scored-variant parquet (SGE_VARIANT_COLUMNS + score).
+    """Write a fake SGE v3 scored-variant parquet (SGE_VARIANT_COLUMNS + score).
 
-    Two accessions × {missense_variant, splicing}. With ``perfect=True`` the
-    track ``score`` equals ``−function_score_aligned`` → every per-cell Spearman
-    (score vs −aligned) is +1. ``inject_nan`` NaNs the first rows' score."""
+    Two accessions × {missense_variant, splicing}, each with a boolean ``label``
+    (~40% True). With ``perfect=True`` the track ``score`` separates the classes
+    (impactful scores high) → AUPRC = 1. ``inject_nan`` NaNs the first rows' score."""
     rng = np.random.default_rng(seed)
     rows = []
     score_blocks = []
     for urn, gene in (("urn:1", "GENEA"), ("urn:2", "GENEB")):
         for subset in ("missense_variant", "splicing"):
-            aligned = rng.normal(size=n_per_cell)
-            lo, hi = np.quantile(aligned, [0.4, 0.6])
-            cc = np.where(
-                aligned <= lo,
-                "abnormal",
-                np.where(aligned >= hi, "normal", "intermediate"),
-            )
-            for a, c in zip(aligned, cc):
+            label = rng.random(n_per_cell) < 0.4
+            for lab in label:
                 rows.append(
                     {
                         "chrom": "chr1",
@@ -238,11 +232,14 @@ def _sge_scored_parquet(
                         "mavedb_urn": urn,
                         "gene": gene,
                         "subset": subset,
-                        "function_score_aligned": a,
-                        "calibrated_class": c,
+                        "label": bool(lab),
                     }
                 )
-            score_blocks.append(-aligned if perfect else rng.normal(size=n_per_cell))
+            score_blocks.append(
+                np.where(label, 1.0, 0.0) + rng.normal(0, 1e-6, n_per_cell)
+                if perfect
+                else rng.normal(size=n_per_cell)
+            )
     df = pd.DataFrame(rows)
     sc = np.concatenate(score_blocks)
     if inject_nan:
@@ -254,8 +251,8 @@ def _sge_scored_parquet(
 
 
 def test_aggregate_conservation_sge_metrics(tmp_path):
-    """SGE aggregation: per-track Spearman + AUPRC via the shared
-    compute_sge_metrics, with score_name/n_nan stamping and an SGE markdown."""
+    """SGE aggregation: per-track AUPRC via the shared compute_sge_metrics, with
+    score_name/n_nan stamping and an SGE markdown."""
     p1 = _sge_scored_parquet(tmp_path, "phyloP_241m", seed=0, perfect=True)
     p2 = _sge_scored_parquet(
         tmp_path, "phastCons_43p", seed=1, perfect=False, inject_nan=3
@@ -279,23 +276,22 @@ def test_aggregate_conservation_sge_metrics(tmp_path):
         "n_nan",
         "n_total",
     } <= set(metrics.columns)
-    assert set(metrics["metric"]) <= {"spearman", "AUPRC"}
+    assert set(metrics["metric"]) == {"AUPRC"}
     assert (metrics["score_type"] == "score").all()
     assert set(metrics["score_name"]) == {"phyloP_241m", "phastCons_43p"}
 
-    # Perfect track → headline (across-accession × across-subset) Spearman ≈ +1.
+    # Perfect track → headline (across-accession × across-subset) AUPRC ≈ 1.
     head = metrics[
         (metrics["score_name"] == "phyloP_241m")
         & (metrics["accession"] == MACRO_AVG_SUBSET)
         & (metrics["subset"] == MACRO_AVG_SUBSET)
-        & (metrics["metric"] == "spearman")
     ]
     assert head["value"].iloc[0] == pytest.approx(1.0, abs=1e-9)
     # NaN scores are counted, then filled with 0 (the shared conservation policy).
     assert int(metrics[metrics["score_name"] == "phastCons_43p"]["n_nan"].iloc[0]) == 3
 
     assert "SGE" in md
-    for tok in ("phyloP_241m", "phastCons_43p", "spearman", "AUPRC"):
+    for tok in ("phyloP_241m", "phastCons_43p", "AUPRC"):
         assert tok in md
 
 

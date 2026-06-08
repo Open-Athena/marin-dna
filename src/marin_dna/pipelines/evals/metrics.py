@@ -660,50 +660,27 @@ def _sge_cell_metrics(
     *,
     n_bootstrap: int,
     rng: np.random.Generator,
-    n_min_corr: int,
     n_min_auprc: int,
 ) -> dict[str, dict]:
-    """Spearman + AUPRC for one (accession, subset-scope) cell and one score column.
+    """AUPRC for one (accession, subset-scope) cell and one score column.
 
-    Returns only the metrics that meet their ``n_min`` gate, keyed
-    ``"spearman"`` / ``"AUPRC"`` → ``dict(value, se, n, n_pos)``. Rows with a
-    non-finite ``function_score_aligned`` (the correlation target — e.g. BRCA2,
-    which has no harmonized direction) or a non-{abnormal,normal}
-    ``calibrated_class`` (AUPRC) are excluded; scores are expected finite
-    (conservation fills unaligned loci with 0 upstream), with a defensive
-    ``isfinite`` guard.
+    Returns ``{"AUPRC": dict(value, se, n, n_pos)}`` when both classes of the
+    binary ``label`` (True = impactful) have ``>= n_min_auprc`` rows, else ``{}``.
+    Plain row bootstrap via singleton ``match_group`` (as in
+    ``compute_qtl_metrics``). NaN-score rows are dropped (conservation fills
+    unaligned loci with 0 upstream, so this is a defensive guard).
     """
     out: dict[str, dict] = {}
     score = np.asarray(cell[score_col], dtype=float)
-
-    # Spearman: deleteriousness-oriented score vs −function_score_aligned (higher
-    # function_score_aligned = more tolerated, so a good score → positive ρ).
-    aligned = np.asarray(cell["function_score_aligned"], dtype=float)
-    finite = np.isfinite(score) & np.isfinite(aligned)
-    x = score[finite]
-    y = -aligned[finite]
-    if len(x) >= n_min_corr and np.std(x) > 0 and np.std(y) > 0:
-        value, se = _correlation_with_bootstrap_se(
-            x, y, method="spearman", n_bootstrap=n_bootstrap, rng=rng
-        )
-        out["spearman"] = {
-            "value": value,
-            "se": se,
-            "n": int(len(x)),
-            "n_pos": float("nan"),
-        }
-
-    # AUPRC: abnormal (1) vs normal (0); intermediate / null / NaN-score dropped.
-    cc = cell["calibrated_class"].to_numpy()
-    binary = np.isin(cc, ("abnormal", "normal")) & np.isfinite(score)
-    label = (cc[binary] == "abnormal").astype(int)
-    bscore = score[binary]
+    label = np.asarray(cell["label"]).astype(bool)
+    keep = np.isfinite(score)
+    label, score = label[keep], score[keep]
     n_pos = int(label.sum())
-    n_neg = int((label == 0).sum())
+    n_neg = int((~label).sum())
     if n_pos >= n_min_auprc and n_neg >= n_min_auprc:
         res = auprc_with_bootstrap_se(
-            label=label,
-            score=bscore,
+            label=label.astype(int),
+            score=score,
             match_group=np.arange(len(label)),
             n_bootstrap=n_bootstrap,
             rng=rng,
@@ -724,30 +701,21 @@ def compute_sge_metrics(
     *,
     n_bootstrap: int = 1000,
     rng: np.random.Generator | int | None = 0,
-    n_min_corr: int = 100,
     n_min_auprc: int = 30,
 ) -> pd.DataFrame:
-    """Per-accession × per-subset Spearman + AUPRC for the SGE benchmark.
+    """Per-accession × per-subset **AUPRC** for the SGE benchmark (#301).
 
-    Saturation-genome-editing (``evals_sge``) is an orthogonal label axis: each
-    variant carries a continuous, per-study function score (harmonized across
-    studies into ``function_score_aligned``) and, where ClinGen/ExCALIBR
-    calibration exists, a uniform ``calibrated_class`` ∈ {abnormal, intermediate,
-    normal}. Scores are per-study (non-comparable scales), so everything is
-    computed **per accession** (``mavedb_urn``) and then macro-averaged — raw
-    scores are never pooled across accessions.
+    Saturation-genome-editing (``evals_sge`` v3) is a binary VEP task: each
+    variant has a boolean ``label`` (True = impactful = calibrated abnormal). The
+    deleteriousness-oriented model score (gLM ``minus_llr`` / ``jsd``,
+    conservation ``score``) predicts ``label``; **AUPRC** (rank-based, so it
+    compares fairly across model families) is computed **per accession**
+    (``mavedb_urn``) — scores are per-study, non-comparable — then macro-averaged.
+    (Spearman vs the continuous function score was dropped in #301; the
+    continuous columns stay in the dataset for provenance.)
 
-    Both metrics are **rank-based**, so a conservation track's single scalar and
-    a gLM's ``minus_llr`` compare on the same footing despite very different
-    score scales (this is also why Pearson is intentionally omitted):
-
-    - **spearman**: rank correlation of the (deleteriousness-oriented) model
-      score vs **``−function_score_aligned``**. Over rows with finite score and
-      finite aligned target; requires ``n >= n_min_corr``.
-    - **AUPRC**: predict ``calibrated_class == "abnormal"`` vs ``== "normal"``
-      (``intermediate`` / null dropped). Plain row bootstrap via singleton
-      ``match_group`` (as in ``compute_qtl_metrics``); requires
-      ``>= n_min_auprc`` per label.
+    Per cell: AUPRC via a plain row bootstrap (singleton ``match_group``, as in
+    ``compute_qtl_metrics``); requires ``>= n_min_auprc`` per label class.
 
     Two macro axes, each using the ``_macro_avg_`` sentinel:
 
@@ -758,35 +726,27 @@ def compute_sge_metrics(
       mean over qualifying accessions)} — taken of **every** subset scope above,
       including the per-accession subset-macro.
 
-    The same single ``rng`` ``Generator`` is threaded through every bootstrap
-    (as in ``compute_qtl_metrics``) so outputs are bit-stable across re-runs.
+    The same single ``rng`` ``Generator`` is threaded through every bootstrap (as
+    in ``compute_qtl_metrics``) so outputs are bit-stable across re-runs.
 
     Args:
-        dataset: columns ``[mavedb_urn, gene, subset, function_score_aligned,
-            calibrated_class]``, row-aligned with ``scores``.
+        dataset: columns ``[mavedb_urn, gene, subset, label]``, row-aligned with
+            ``scores``.
         scores: model-score columns; row-aligned with ``dataset``. gLM passes
             ``minus_llr_*`` + ``jsd_*``; conservation passes ``["score"]``.
         score_columns: which score columns to evaluate (default: all of
             ``scores``).
         n_bootstrap: bootstrap iterations per cell.
         rng: ``Generator`` / seed / ``None`` (default ``0`` → reproducible).
-        n_min_corr: min finite rows per cell for a Spearman.
-        n_min_auprc: min count **per label** per cell for an AUPRC.
+        n_min_auprc: min count **per label class** per cell.
 
     Returns:
         DataFrame ``[metric, subset, accession, gene, score_type, value, se, n,
-        n_pos]``. ``metric`` ∈ {``spearman``, ``AUPRC``}. For leaf cells ``n`` is
-        the rows used and ``n_pos`` the abnormal count (NaN for Spearman); for
-        macro rows ``n`` is K (children averaged) and ``n_pos`` the summed
-        abnormal count (NaN for Spearman).
+        n_pos]``. ``metric`` is always ``"AUPRC"``. For leaf cells ``n`` is the
+        rows used and ``n_pos`` the impactful (label-True) count; for macro rows
+        ``n`` is K (children averaged) and ``n_pos`` the summed impactful count.
     """
-    for col in (
-        "mavedb_urn",
-        "gene",
-        "subset",
-        "function_score_aligned",
-        "calibrated_class",
-    ):
+    for col in ("mavedb_urn", "gene", "subset", "label"):
         assert col in dataset.columns, f"dataset missing required column {col!r}"
     assert len(dataset) == len(scores), (
         f"length mismatch: dataset={len(dataset)} scores={len(scores)}"
@@ -831,14 +791,13 @@ def compute_sge_metrics(
                     score_col,
                     n_bootstrap=n_bootstrap,
                     rng=rng,
-                    n_min_corr=n_min_corr,
                     n_min_auprc=n_min_auprc,
                 )
                 for metric, res in got.items():
                     cells[(str(urn), scope, metric)] = res
 
             # Per-accession subset-macro: mean over base subsets that qualified.
-            for metric in ("spearman", "AUPRC"):
+            for metric in ("AUPRC",):
                 kids = [
                     cells[(str(urn), s, metric)]
                     for s in base_subsets
@@ -868,7 +827,7 @@ def compute_sge_metrics(
         all_scopes = base_subsets + [SGE_POOLED_SUBSET, MACRO_AVG_SUBSET]
         accessions = [str(u) for u in merged["mavedb_urn"].unique()]
         for scope in all_scopes:
-            for metric in ("spearman", "AUPRC"):
+            for metric in ("AUPRC",):
                 kids = [
                     cells[(urn, scope, metric)]
                     for urn in accessions
