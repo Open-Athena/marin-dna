@@ -3,23 +3,27 @@ aggregation, plus the cluster-bootstrap AUPRC used by ``evals_v2``.
 Per-metric tests for ``pairwise_accuracy`` live in
 ``test_pairwise_accuracy.py``."""
 
+import math
 import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.stats import spearmanr
 from sklearn.metrics import average_precision_score
 
 from marin_dna.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     METRIC_FUNCTIONS,
+    SGE_POOLED_SUBSET,
     aggregate_metrics,
     auprc_with_bootstrap_se,
     compute_auprc_metrics,
     compute_metrics,
     compute_qtl_metrics,
+    compute_sge_metrics,
     paired_metric_delta_bootstrap,
 )
 
@@ -645,3 +649,272 @@ def test_compute_qtl_metrics_nan_score_raises():
     scores.loc[5, "score"] = np.nan
     with pytest.raises(AssertionError, match="NaN"):
         compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+# ---------------------------------------------------------------------------
+# compute_sge_metrics (saturation genome editing: evals_sge)
+# ---------------------------------------------------------------------------
+
+
+def _sge_data(
+    *,
+    n_per_cell: int = 150,
+    accessions: tuple[tuple[str, str], ...] = (("urn:1", "GENEA"), ("urn:2", "GENEB")),
+    seed: int = 0,
+    perfect: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Synthesize an SGE frame: accessions × {missense_variant, splicing} cells.
+
+    ``calibrated_class`` is abnormal in the bottom 40% of
+    ``function_score_aligned`` (most damaging = least functional), normal in the
+    top 40%, intermediate in the middle 20%. With ``perfect=True`` the model
+    score equals ``−function_score_aligned`` → Spearman(score, −aligned) = +1 and
+    abnormal (low aligned) scores highest → AUPRC = 1.
+    """
+    rng = np.random.default_rng(seed)
+    frames = []
+    score_blocks = []
+    for urn, gene in accessions:
+        for subset in ("missense_variant", "splicing"):
+            aligned = rng.normal(size=n_per_cell)
+            lo, hi = np.quantile(aligned, [0.4, 0.6])
+            cc = np.where(
+                aligned <= lo,
+                "abnormal",
+                np.where(aligned >= hi, "normal", "intermediate"),
+            )
+            frames.append(
+                pd.DataFrame(
+                    {
+                        "mavedb_urn": urn,
+                        "gene": gene,
+                        "subset": subset,
+                        "function_score_aligned": aligned,
+                        "calibrated_class": cc,
+                    }
+                )
+            )
+            score_blocks.append(-aligned if perfect else rng.normal(size=n_per_cell))
+    dataset = pd.concat(frames, ignore_index=True)
+    scores = pd.DataFrame({"score": np.concatenate(score_blocks)})
+    return dataset, scores
+
+
+def _val(df: pd.DataFrame, **filters: object) -> pd.Series:
+    """Fetch the single row matching all column==value filters."""
+    sub = df
+    for col, value in filters.items():
+        sub = sub[sub[col] == value]
+    assert len(sub) == 1, f"expected 1 row for {filters}, got {len(sub)}"
+    return sub.iloc[0]
+
+
+def test_sge_shape_and_grid():
+    """Columns fixed; per accession each metric spans all four subset scopes;
+    the across-accession macro row exists; gene carried for display."""
+    dataset, scores = _sge_data(seed=0)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    assert set(out.columns) == {
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "score_type",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+    }
+    assert set(out["metric"]) <= {"spearman", "AUPRC"}
+    assert set(out["subset"]) <= {
+        "missense_variant",
+        "splicing",
+        SGE_POOLED_SUBSET,
+        MACRO_AVG_SUBSET,
+    }
+    assert {"urn:1", "urn:2", MACRO_AVG_SUBSET} <= set(out["accession"])
+    for urn in ("urn:1", "urn:2"):
+        for metric in ("spearman", "AUPRC"):
+            scopes = set(
+                out[(out["accession"] == urn) & (out["metric"] == metric)]["subset"]
+            )
+            assert scopes == {
+                "missense_variant",
+                "splicing",
+                SGE_POOLED_SUBSET,
+                MACRO_AVG_SUBSET,
+            }, (urn, metric, scopes)
+    assert (
+        _val(out, metric="spearman", subset=SGE_POOLED_SUBSET, accession="urn:1")[
+            "gene"
+        ]
+        == "GENEA"
+    )
+    assert (
+        _val(
+            out, metric="spearman", subset=SGE_POOLED_SUBSET, accession=MACRO_AVG_SUBSET
+        )["gene"]
+        == MACRO_AVG_SUBSET
+    )
+    assert out["value"].notna().all()
+    assert out["se"].notna().all()
+
+
+def test_sge_perfect_orientation_spearman_and_auprc():
+    """score = −function_score_aligned → every Spearman ≈ +1 and every AUPRC ≈ 1
+    (confirms the −aligned orientation: a deleteriousness score scores positive)."""
+    dataset, scores = _sge_data(seed=0, perfect=True)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=30, rng=0)
+    assert (out[out["metric"] == "spearman"]["value"] > 0.999).all()
+    assert (out[out["metric"] == "AUPRC"]["value"] > 0.999).all()
+
+
+def test_sge_spearman_matches_scipy():
+    """A leaf Spearman equals scipy's spearmanr(score, −function_score_aligned)."""
+    dataset, scores = _sge_data(seed=7)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=5, rng=0)
+    mask = (dataset["mavedb_urn"] == "urn:1") & (
+        dataset["subset"] == "missense_variant"
+    )
+    expected = spearmanr(
+        scores.loc[mask, "score"].to_numpy(),
+        -dataset.loc[mask, "function_score_aligned"].to_numpy(),
+    )[0]
+    got = _val(out, metric="spearman", subset="missense_variant", accession="urn:1")
+    assert got["value"] == pytest.approx(expected)
+
+
+def test_sge_auprc_matches_sklearn_and_excludes_intermediate_null():
+    """A leaf AUPRC equals sklearn over the abnormal/normal rows only;
+    intermediate + null are dropped (so n = abnormal+normal, n_pos = abnormal)."""
+    rng = np.random.default_rng(0)
+    n = 200
+    aligned = rng.normal(size=n)
+    cc = np.array(
+        ["abnormal"] * 60 + ["normal"] * 60 + ["intermediate"] * 40 + [None] * 40,
+        dtype=object,
+    )
+    dataset = pd.DataFrame(
+        {
+            "mavedb_urn": "urn:1",
+            "gene": "G",
+            "subset": "missense_variant",
+            "function_score_aligned": aligned,
+            "calibrated_class": cc,
+        }
+    )
+    score = rng.normal(size=n)
+    scores = pd.DataFrame({"score": score})
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    auprc = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    binary = np.isin(cc, ("abnormal", "normal"))
+    expected = average_precision_score(
+        (cc[binary] == "abnormal").astype(int), score[binary]
+    )
+    assert auprc["value"] == pytest.approx(expected)
+    assert auprc["n"] == 120
+    assert auprc["n_pos"] == 60
+
+
+def test_sge_subset_macro_is_mean_of_base_subsets():
+    """The per-accession _macro_avg_ subset = unweighted mean of missense &
+    splicing, with SE = sqrt(Σ SE²)/2 over the two."""
+    dataset, scores = _sge_data(seed=3)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    for metric in ("spearman", "AUPRC"):
+        m = _val(out, metric=metric, subset="missense_variant", accession="urn:1")
+        s = _val(out, metric=metric, subset="splicing", accession="urn:1")
+        macro = _val(out, metric=metric, subset=MACRO_AVG_SUBSET, accession="urn:1")
+        assert macro["value"] == pytest.approx((m["value"] + s["value"]) / 2)
+        assert macro["se"] == pytest.approx(math.sqrt(m["se"] ** 2 + s["se"] ** 2) / 2)
+        assert macro["n"] == 2
+
+
+def test_sge_accession_macro_is_mean_over_accessions():
+    """The accession _macro_avg_ row = unweighted mean over accessions of the
+    same subset scope; n records the count of accessions averaged."""
+    dataset, scores = _sge_data(seed=3)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    for metric in ("spearman", "AUPRC"):
+        vals = [
+            _val(out, metric=metric, subset=SGE_POOLED_SUBSET, accession=u)["value"]
+            for u in ("urn:1", "urn:2")
+        ]
+        macro = _val(
+            out, metric=metric, subset=SGE_POOLED_SUBSET, accession=MACRO_AVG_SUBSET
+        )
+        assert macro["value"] == pytest.approx(sum(vals) / 2)
+        assert macro["n"] == 2
+
+
+def test_sge_n_min_corr_gates_small_cells():
+    """A subset cell below n_min_corr produces no Spearman; the subset-macro
+    then averages only the qualifying base subset (K=1)."""
+    rng = np.random.default_rng(0)
+
+    def block(subset: str, n: int) -> tuple[pd.DataFrame, np.ndarray]:
+        aligned = rng.normal(size=n)
+        df = pd.DataFrame(
+            {
+                "mavedb_urn": "urn:1",
+                "gene": "G",
+                "subset": subset,
+                "function_score_aligned": aligned,
+                "calibrated_class": np.where(aligned < 0, "abnormal", "normal"),
+            }
+        )
+        return df, rng.normal(size=n)
+
+    dm, sm = block("missense_variant", 150)
+    ds, ss = block("splicing", 50)
+    dataset = pd.concat([dm, ds], ignore_index=True)
+    scores = pd.DataFrame({"score": np.concatenate([sm, ss])})
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    sp = out[out["metric"] == "spearman"]
+    assert ((sp["subset"] == "missense_variant") & (sp["accession"] == "urn:1")).any()
+    assert not ((sp["subset"] == "splicing") & (sp["accession"] == "urn:1")).any()
+    macro = _val(out, metric="spearman", subset=MACRO_AVG_SUBSET, accession="urn:1")
+    miss = _val(out, metric="spearman", subset="missense_variant", accession="urn:1")
+    assert macro["value"] == pytest.approx(miss["value"])
+    assert macro["n"] == 1
+
+
+def test_sge_nan_scores_dropped():
+    """NaN scores (conservation has no value at unaligned loci) are dropped per
+    cell rather than raising; the metric is computed on the finite remainder."""
+    dataset, scores = _sge_data(seed=2)
+    scores = scores.copy()
+    scores.loc[:20, "score"] = np.nan
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert (out["metric"] == "spearman").any()
+    assert out["value"].notna().all()
+
+
+def test_sge_multiple_score_columns():
+    dataset, scores = _sge_data(seed=0)
+    scores = scores.copy()
+    scores["jsd"] = np.random.default_rng(1).normal(size=len(scores))
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert set(out["score_type"]) == {"score", "jsd"}
+
+
+def test_sge_urn_maps_to_multiple_genes_raises():
+    dataset = pd.DataFrame(
+        {
+            "mavedb_urn": ["urn:1"] * 4,
+            "gene": ["A", "A", "B", "B"],
+            "subset": ["missense_variant"] * 4,
+            "function_score_aligned": [0.1, 0.2, 0.3, 0.4],
+            "calibrated_class": ["normal"] * 4,
+        }
+    )
+    scores = pd.DataFrame({"score": [1.0, 2.0, 3.0, 4.0]})
+    with pytest.raises(AssertionError, match="maps to >1 gene"):
+        compute_sge_metrics(dataset, scores, n_bootstrap=2, rng=0)
+
+
+def test_sge_seed_reproducibility():
+    dataset, scores = _sge_data(seed=1)
+    a = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    b = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    pd.testing.assert_frame_equal(a, b)

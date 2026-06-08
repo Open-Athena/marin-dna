@@ -108,6 +108,13 @@ def pairwise_accuracy(
 GLOBAL_SUBSET = "_global_"
 MACRO_AVG_SUBSET = "_macro_avg_"
 
+# Derived SGE subset scope. The dataset's real ``subset`` values are
+# ``missense_variant`` / ``splicing``; ``SGE_POOLED_SUBSET`` is the two pooled
+# within an accession ("both"), while ``MACRO_AVG_SUBSET`` (reused) is the
+# equal-weight mean of the base-subset values. Both the ``subset`` and the
+# ``accession`` axes use ``MACRO_AVG_SUBSET`` for their macro rows.
+SGE_POOLED_SUBSET = "both"
+
 # Per-strand LLR → score-protocol transforms. Keyed by the
 # ``score_protocol`` field in `snakemake/analysis/evals_v2/config/config.yaml`
 # and consumed by `metrics.smk` to materialize `{protocol}_{fwd,rc,avg}`
@@ -623,6 +630,261 @@ def compute_qtl_metrics(
                     "n_pos": n_pos,
                 }
             )
+
+    return pd.DataFrame(rows)
+
+
+def _macro(children: list[dict]) -> dict | None:
+    """Equal-weight macro over leaf/child metric dicts.
+
+    ``value`` = unweighted mean; ``se`` = SE-of-mean ``sqrt(Σ SE²)/K`` (same form
+    as ``compute_auprc_metrics``); ``n`` = K (children averaged); ``n_pos`` =
+    summed abnormal count, or NaN if any child's ``n_pos`` is NaN (Spearman
+    children carry no positive count). Returns ``None`` if there are no children.
+    """
+    if not children:
+        return None
+    k = len(children)
+    value = sum(c["value"] for c in children) / k
+    se = math.sqrt(sum(c["se"] ** 2 for c in children)) / k
+    n_pos_vals = [c["n_pos"] for c in children]
+    n_pos = (
+        float("nan") if any(np.isnan(v) for v in n_pos_vals) else int(sum(n_pos_vals))
+    )
+    return {"value": float(value), "se": float(se), "n": k, "n_pos": n_pos}
+
+
+def _sge_cell_metrics(
+    cell: pd.DataFrame,
+    score_col: str,
+    *,
+    n_bootstrap: int,
+    rng: np.random.Generator,
+    n_min_corr: int,
+    n_min_auprc: int,
+) -> dict[str, dict]:
+    """Spearman + AUPRC for one (accession, subset-scope) cell and one score column.
+
+    Returns only the metrics that meet their ``n_min`` gate, keyed
+    ``"spearman"`` / ``"AUPRC"`` → ``dict(value, se, n, n_pos)``. NaN scores are
+    dropped (conservation tracks have no value at unaligned loci).
+    """
+    out: dict[str, dict] = {}
+    score = np.asarray(cell[score_col], dtype=float)
+
+    # Spearman: deleteriousness-oriented score vs −function_score_aligned (higher
+    # function_score_aligned = more tolerated, so a good score → positive ρ).
+    aligned = np.asarray(cell["function_score_aligned"], dtype=float)
+    finite = np.isfinite(score) & np.isfinite(aligned)
+    x = score[finite]
+    y = -aligned[finite]
+    if len(x) >= n_min_corr and np.std(x) > 0 and np.std(y) > 0:
+        value, se = _correlation_with_bootstrap_se(
+            x, y, method="spearman", n_bootstrap=n_bootstrap, rng=rng
+        )
+        out["spearman"] = {
+            "value": value,
+            "se": se,
+            "n": int(len(x)),
+            "n_pos": float("nan"),
+        }
+
+    # AUPRC: abnormal (1) vs normal (0); intermediate / null / NaN-score dropped.
+    cc = cell["calibrated_class"].to_numpy()
+    binary = np.isin(cc, ("abnormal", "normal")) & np.isfinite(score)
+    label = (cc[binary] == "abnormal").astype(int)
+    bscore = score[binary]
+    n_pos = int(label.sum())
+    n_neg = int((label == 0).sum())
+    if n_pos >= n_min_auprc and n_neg >= n_min_auprc:
+        res = auprc_with_bootstrap_se(
+            label=label,
+            score=bscore,
+            match_group=np.arange(len(label)),
+            n_bootstrap=n_bootstrap,
+            rng=rng,
+        )
+        out["AUPRC"] = {
+            "value": res["value"],
+            "se": res["se"],
+            "n": res["n_rows"],
+            "n_pos": n_pos,
+        }
+    return out
+
+
+def compute_sge_metrics(
+    dataset: pd.DataFrame,
+    scores: pd.DataFrame,
+    score_columns: list[str] | None = None,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+    n_min_corr: int = 100,
+    n_min_auprc: int = 30,
+) -> pd.DataFrame:
+    """Per-accession × per-subset Spearman + AUPRC for the SGE benchmark.
+
+    Saturation-genome-editing (``evals_sge``) is an orthogonal label axis: each
+    variant carries a continuous, per-study function score (harmonized across
+    studies into ``function_score_aligned``) and, where ClinGen/ExCALIBR
+    calibration exists, a uniform ``calibrated_class`` ∈ {abnormal, intermediate,
+    normal}. Scores are per-study (non-comparable scales), so everything is
+    computed **per accession** (``mavedb_urn``) and then macro-averaged — raw
+    scores are never pooled across accessions.
+
+    Both metrics are **rank-based**, so a conservation track's single scalar and
+    a gLM's ``minus_llr`` compare on the same footing despite very different
+    score scales (this is also why Pearson is intentionally omitted):
+
+    - **spearman**: rank correlation of the (deleteriousness-oriented) model
+      score vs **``−function_score_aligned``**. Over rows with finite score and
+      finite aligned target; requires ``n >= n_min_corr``.
+    - **AUPRC**: predict ``calibrated_class == "abnormal"`` vs ``== "normal"``
+      (``intermediate`` / null dropped). Plain row bootstrap via singleton
+      ``match_group`` (as in ``compute_qtl_metrics``); requires
+      ``>= n_min_auprc`` per label.
+
+    Two macro axes, each using the ``_macro_avg_`` sentinel:
+
+    - ``subset`` ∈ {each base subset (e.g. ``missense_variant`` / ``splicing``),
+      ``SGE_POOLED_SUBSET`` (``"both"``, pooled within the accession),
+      ``MACRO_AVG_SUBSET`` (equal-weight mean of the base-subset values)}.
+    - ``accession`` ∈ {each ``mavedb_urn``, ``MACRO_AVG_SUBSET`` (equal-weight
+      mean over qualifying accessions)} — taken of **every** subset scope above,
+      including the per-accession subset-macro.
+
+    The same single ``rng`` ``Generator`` is threaded through every bootstrap
+    (as in ``compute_qtl_metrics``) so outputs are bit-stable across re-runs.
+
+    Args:
+        dataset: columns ``[mavedb_urn, gene, subset, function_score_aligned,
+            calibrated_class]``, row-aligned with ``scores``.
+        scores: model-score columns; row-aligned with ``dataset``. gLM passes
+            ``minus_llr_*`` + ``jsd_*``; conservation passes ``["score"]``.
+        score_columns: which score columns to evaluate (default: all of
+            ``scores``).
+        n_bootstrap: bootstrap iterations per cell.
+        rng: ``Generator`` / seed / ``None`` (default ``0`` → reproducible).
+        n_min_corr: min finite rows per cell for a Spearman.
+        n_min_auprc: min count **per label** per cell for an AUPRC.
+
+    Returns:
+        DataFrame ``[metric, subset, accession, gene, score_type, value, se, n,
+        n_pos]``. ``metric`` ∈ {``spearman``, ``AUPRC``}. For leaf cells ``n`` is
+        the rows used and ``n_pos`` the abnormal count (NaN for Spearman); for
+        macro rows ``n`` is K (children averaged) and ``n_pos`` the summed
+        abnormal count (NaN for Spearman).
+    """
+    for col in (
+        "mavedb_urn",
+        "gene",
+        "subset",
+        "function_score_aligned",
+        "calibrated_class",
+    ):
+        assert col in dataset.columns, f"dataset missing required column {col!r}"
+    assert len(dataset) == len(scores), (
+        f"length mismatch: dataset={len(dataset)} scores={len(scores)}"
+    )
+    if score_columns is None:
+        score_columns = list(scores.columns)
+
+    merged = pd.concat(
+        [dataset.reset_index(drop=True), scores.reset_index(drop=True)], axis=1
+    )
+
+    base_subsets = sorted(merged["subset"].dropna().unique().tolist())
+    assert base_subsets, "no subset values in dataset"
+    for sentinel in (SGE_POOLED_SUBSET, MACRO_AVG_SUBSET):
+        assert sentinel not in base_subsets, (
+            f"reserved subset name {sentinel!r} collides with a real subset"
+        )
+
+    # Each MaveDB study (mavedb_urn) identifies exactly one gene — fail loud on
+    # drift, then carry `gene` for display alongside the accession key.
+    urn_gene = merged.groupby("mavedb_urn")["gene"].nunique()
+    assert (urn_gene == 1).all(), (
+        f"mavedb_urn maps to >1 gene: {urn_gene[urn_gene > 1].to_dict()}"
+    )
+    urn_to_gene = merged.groupby("mavedb_urn")["gene"].first().to_dict()
+
+    rng = np.random.default_rng(rng)
+
+    rows: list[dict] = []
+    for score_col in score_columns:
+        # (accession, subset_scope, metric) -> dict(value, se, n, n_pos)
+        cells: dict[tuple[str, str, str], dict] = {}
+
+        for urn, urn_df in merged.groupby("mavedb_urn", sort=False):
+            scopes: dict[str, pd.DataFrame] = {
+                s: urn_df[urn_df["subset"] == s] for s in base_subsets
+            }
+            scopes[SGE_POOLED_SUBSET] = urn_df
+            for scope, cell_df in scopes.items():
+                got = _sge_cell_metrics(
+                    cell_df,
+                    score_col,
+                    n_bootstrap=n_bootstrap,
+                    rng=rng,
+                    n_min_corr=n_min_corr,
+                    n_min_auprc=n_min_auprc,
+                )
+                for metric, res in got.items():
+                    cells[(str(urn), scope, metric)] = res
+
+            # Per-accession subset-macro: mean over base subsets that qualified.
+            for metric in ("spearman", "AUPRC"):
+                kids = [
+                    cells[(str(urn), s, metric)]
+                    for s in base_subsets
+                    if (str(urn), s, metric) in cells
+                ]
+                macro = _macro(kids)
+                if macro is not None:
+                    cells[(str(urn), MACRO_AVG_SUBSET, metric)] = macro
+
+        # Per-accession rows.
+        for (urn, scope, metric), res in cells.items():
+            rows.append(
+                {
+                    "metric": metric,
+                    "subset": scope,
+                    "accession": urn,
+                    "gene": urn_to_gene[urn],
+                    "score_type": score_col,
+                    "value": res["value"],
+                    "se": res["se"],
+                    "n": res["n"],
+                    "n_pos": res["n_pos"],
+                }
+            )
+
+        # Accession-macro: mean over accessions of every subset scope.
+        all_scopes = base_subsets + [SGE_POOLED_SUBSET, MACRO_AVG_SUBSET]
+        accessions = [str(u) for u in merged["mavedb_urn"].unique()]
+        for scope in all_scopes:
+            for metric in ("spearman", "AUPRC"):
+                kids = [
+                    cells[(urn, scope, metric)]
+                    for urn in accessions
+                    if (urn, scope, metric) in cells
+                ]
+                macro = _macro(kids)
+                if macro is not None:
+                    rows.append(
+                        {
+                            "metric": metric,
+                            "subset": scope,
+                            "accession": MACRO_AVG_SUBSET,
+                            "gene": MACRO_AVG_SUBSET,
+                            "score_type": score_col,
+                            "value": macro["value"],
+                            "se": macro["se"],
+                            "n": macro["n"],
+                            "n_pos": macro["n_pos"],
+                        }
+                    )
 
     return pd.DataFrame(rows)
 
