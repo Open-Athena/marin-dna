@@ -8,8 +8,12 @@ import pytest
 from marin_dna.data.utils import load_annotation
 from marin_dna.pipelines.evals.sge import (
     _CALIBRATION_SCHEMA,
+    _select_numeric_calibration,
     annotate_sge_variants,
     attach_assay_facts,
+    attach_author_class_harmonized,
+    attach_calibrated_class,
+    attach_function_direction,
     build_mavedb_metadata,
     extract_assay_facts,
     extract_score_calibrations,
@@ -363,7 +367,17 @@ def _cons_rows(V: pl.DataFrame, consequences: list[str]) -> list[dict]:
     ]
 
 
-def _annotate(tmp_path, intervals, V, consequences, exclude, *, lift=False):
+def _annotate(
+    tmp_path,
+    intervals,
+    V,
+    consequences,
+    exclude,
+    *,
+    lift=False,
+    consequence_groups=None,
+    consequence_group_allowlist=None,
+):
     genome = FakeGenome(
         {("1", p): r for p, r in zip(V["pos"].to_list(), V["ref"].to_list())}
     )
@@ -380,6 +394,8 @@ def _annotate(tmp_path, intervals, V, consequences, exclude, *, lift=False):
         exon_proximal_dist=30,
         tss_proximal_dist=1000,
         exclude_consequences=exclude,
+        consequence_groups=consequence_groups or {},
+        consequence_group_allowlist=consequence_group_allowlist,
         lift=lift,
         name="test",
     )
@@ -485,6 +501,7 @@ class TestAnnotateSgeVariants:
                 exon_proximal_dist=30,
                 tss_proximal_dist=1000,
                 exclude_consequences=[],
+                consequence_groups={},
                 lift=False,
                 name="test",
             )
@@ -511,6 +528,7 @@ class TestAnnotateSgeVariants:
                 exon_proximal_dist=30,
                 tss_proximal_dist=1000,
                 exclude_consequences=[],
+                consequence_groups={},
                 lift=False,
                 name="test",
             )
@@ -716,3 +734,353 @@ class TestAttachAssayFacts:
         data = self._data().with_columns(pl.lit("urn:missing").alias("mavedb_urn"))
         with pytest.raises(AssertionError, match="absent from assay_facts"):
             attach_assay_facts(data, self._facts())
+
+
+# --------------------------------------------------------------------------- #
+# consequence_group / subset + the build-time allowlist (#297 A + E)
+# --------------------------------------------------------------------------- #
+class TestConsequenceGroupAndAllowlist:
+    # A small grouping map; consequence_final values absent from it keep their own
+    # value (same `.replace(...)` semantics as trait_intervals.build_dataset).
+    GROUPS = {
+        "splicing": ["splice_region_variant", "exon_proximal"],
+        "distal": ["intron_variant"],
+    }
+
+    def test_consequence_group_and_subset_invariant(self, tmp_path, intervals) -> None:
+        out = _annotate(
+            tmp_path,
+            intervals,
+            _sge_frame(),
+            ["missense_variant", "intron_variant", "splice_region_variant"],
+            exclude=[],
+            consequence_groups=self.GROUPS,
+        )
+        assert {"consequence_group", "subset"}.issubset(out.columns)
+        # subset is a verbatim copy of consequence_group.
+        assert out["subset"].to_list() == out["consequence_group"].to_list()
+        # group = map.get(consequence_final, consequence_final), robust to whatever
+        # consequence_final the distance recategorization produced.
+        cmap = {c: g for g, cs in self.GROUPS.items() for c in cs}
+        for cf, cg in zip(
+            out["consequence_final"].to_list(), out["consequence_group"].to_list()
+        ):
+            assert cg == cmap.get(cf, cf)
+
+    def test_allowlist_keeps_only_listed_groups(self, tmp_path, intervals) -> None:
+        args = (
+            tmp_path,
+            intervals,
+            _sge_frame(),
+            ["missense_variant", "intron_variant", "splice_region_variant"],
+        )
+        out_all = _annotate(*args, exclude=[], consequence_groups=self.GROUPS)
+        keep = [out_all["consequence_group"].to_list()[0]]
+        out_keep = _annotate(
+            *args,
+            exclude=[],
+            consequence_groups=self.GROUPS,
+            consequence_group_allowlist=keep,
+        )
+        assert set(out_keep["consequence_group"].to_list()) == set(keep)
+        assert (
+            out_keep.height
+            == out_all.filter(pl.col("consequence_group").is_in(keep)).height
+        )
+        assert out_keep.height < out_all.height  # at least one group was dropped
+
+    def test_allowlist_none_keeps_all(self, tmp_path, intervals) -> None:
+        args = (
+            tmp_path,
+            intervals,
+            _sge_frame(),
+            ["missense_variant", "intron_variant", "splice_region_variant"],
+        )
+        a = _annotate(*args, exclude=[], consequence_groups=self.GROUPS)
+        b = _annotate(
+            *args,
+            exclude=[],
+            consequence_groups=self.GROUPS,
+            consequence_group_allowlist=None,
+        )
+        assert a.height == b.height == 3
+
+
+# --------------------------------------------------------------------------- #
+# Calibration / author-class / direction attach helpers (#297 B + C + D)
+# --------------------------------------------------------------------------- #
+def _cal_frame(rows: list[dict]) -> pl.DataFrame:
+    """Build a calibrations frame with the columns the selection / labeling helpers
+    read (a slice of `_CALIBRATION_SCHEMA`)."""
+    return pl.DataFrame(
+        rows,
+        schema={
+            "gene": pl.Utf8,
+            "calibration_title": pl.Utf8,
+            "go_classification": pl.Utf8,
+            "range_lower": pl.Float64,
+            "range_upper": pl.Float64,
+            "inclusive_lower": pl.Boolean,
+            "inclusive_upper": pl.Boolean,
+            "acmg_evidence_strength": pl.Utf8,
+        },
+    )
+
+
+def _cls_row(gene, title, go, lo, hi, strength=None, *, inc_lo=True, inc_hi=True):
+    return dict(
+        gene=gene,
+        calibration_title=title,
+        go_classification=go,
+        range_lower=lo,
+        range_upper=hi,
+        inclusive_lower=inc_lo,
+        inclusive_upper=inc_hi,
+        acmg_evidence_strength=strength,
+    )
+
+
+# A numeric ExCALIBR scheme for "GENEN": normal = fs >= 0, abnormal = fs <= -1,
+# the (-1, 0) gap = intermediate. abnormal range below normal -> direction +1.
+_GENEN_CAL = _cal_frame(
+    [
+        _cls_row("GENEN", "ExCALIBR calibration", "normal", 0.0, None, "BS3_STRONG"),
+        _cls_row("GENEN", "ExCALIBR calibration", "abnormal", None, -1.0, "STRONG"),
+    ]
+)
+
+
+class TestSelectNumericCalibration:
+    def test_prefers_primary_over_dated_snapshot(self) -> None:
+        # The dated snapshot has MORE rows, but the live ExCALIBR must still win.
+        rows = []
+        for title in ("ExCALIBR calibration", "ExCALIBR calibration (ClinVar 2018)"):
+            rows.append(_cls_row("VHL", title, "normal", 0.0, None, "BS3_STRONG"))
+            rows.append(_cls_row("VHL", title, "abnormal", None, -1.0, "STRONG"))
+        rows.append(
+            _cls_row(
+                "VHL",
+                "ExCALIBR calibration (ClinVar 2018)",
+                "abnormal",
+                None,
+                -2.0,
+                "VERY_STRONG",
+            )
+        )
+        sel = _select_numeric_calibration(_cal_frame(rows))
+        assert sel is not None and sel[0] == "ExCALIBR calibration"
+
+    def test_falls_back_when_excalibr_lacks_normal_class(self) -> None:
+        # CTCF-like: ExCALIBR has only abnormal classes -> not qualifying -> investigator.
+        rows = [
+            _cls_row("CTCF", "ExCALIBR calibration", "abnormal", None, 0.0, "STRONG"),
+            _cls_row(
+                "CTCF", "Investigator-provided functional classes", "normal", 0.0, None
+            ),
+            _cls_row(
+                "CTCF",
+                "Investigator-provided functional classes",
+                "abnormal",
+                None,
+                -0.5,
+            ),
+        ]
+        sel = _select_numeric_calibration(_cal_frame(rows))
+        assert sel is not None
+        assert sel[0] == "Investigator-provided functional classes"
+
+    def test_none_when_only_categorical(self) -> None:
+        # DDX3X-like: classes exist but ranges are null (categorical) -> no numeric scheme.
+        rows = [
+            _cls_row(
+                "DDX3X",
+                "Investigator-provided functional classes",
+                "normal",
+                None,
+                None,
+            ),
+            _cls_row(
+                "DDX3X",
+                "Investigator-provided functional classes",
+                "abnormal",
+                None,
+                None,
+            ),
+        ]
+        assert _select_numeric_calibration(_cal_frame(rows)) is None
+
+
+class TestAttachAuthorClassHarmonized:
+    def test_maps_each_vocabulary(self) -> None:
+        data = pl.DataFrame(
+            {
+                "gene": ["BRCA1", "RAD51C", "DDX3X", "BARD1", "BAP1"],
+                "author_func_class": ["LOF", None, None, None, None],
+                "author_functional_classification": [
+                    None,
+                    "fast depleted",
+                    None,
+                    None,
+                    None,
+                ],
+                "author_sge_prediction_of_variant_function_in_ndd_context": [
+                    None,
+                    None,
+                    "abnormal",
+                    None,
+                    None,
+                ],
+                "author_functional_consequence": [
+                    None,
+                    None,
+                    None,
+                    "functionally_normal",
+                    None,
+                ],
+            }
+        )
+        out = attach_author_class_harmonized(data)
+        # BRCA1 LOF, RAD51C fast-depleted, DDX3X abnormal -> abnormal; BARD1
+        # functionally_normal -> normal; BAP1 (no class) -> null.
+        assert out["author_class_harmonized"].to_list() == [
+            "abnormal",
+            "abnormal",
+            "abnormal",
+            "normal",
+            None,
+        ]
+
+    def test_raises_on_unmapped_value(self) -> None:
+        data = pl.DataFrame({"gene": ["BRCA1"], "author_func_class": ["WEIRD"]})
+        with pytest.raises(AssertionError, match="unmapped author class"):
+            attach_author_class_harmonized(data)
+
+    def test_raises_on_stray_unmapped_gene(self) -> None:
+        # An unmapped gene must not carry a non-null value in a known class column.
+        data = pl.DataFrame(
+            {
+                "gene": ["BAP1"],
+                "author_functional_consequence": ["functionally_abnormal"],
+            }
+        )
+        with pytest.raises(
+            AssertionError, match="non-null author_functional_consequence"
+        ):
+            attach_author_class_harmonized(data)
+
+
+class TestAttachCalibratedClass:
+    def test_numeric_ranges_label_and_strength(self) -> None:
+        data = pl.DataFrame(
+            {
+                "gene": ["GENEN", "GENEN", "GENEN"],
+                "function_score": [0.5, -2.0, -0.5],  # normal / abnormal / gap
+                "author_class_harmonized": [None, None, None],
+            }
+        )
+        out = attach_calibrated_class(data, _GENEN_CAL)
+        assert out["calibrated_class"].to_list() == [
+            "normal",
+            "abnormal",
+            "intermediate",
+        ]
+        assert out["acmg_strength"].to_list() == ["BS3_STRONG", "STRONG", None]
+        assert out["calibration_scheme"].to_list() == ["ExCALIBR calibration"] * 3
+
+    def test_categorical_gene_uses_author_class(self) -> None:
+        # DDX3X-like: no numeric scheme for this gene -> inherit author class.
+        data = pl.DataFrame(
+            {
+                "gene": ["DDX", "DDX"],
+                "function_score": [0.1, 0.9],
+                "author_class_harmonized": ["normal", "abnormal"],
+            }
+        )
+        out = attach_calibrated_class(data, _GENEN_CAL)  # no DDX rows in the cal
+        assert out["calibrated_class"].to_list() == ["normal", "abnormal"]
+        assert out["calibration_scheme"].to_list() == ["author_class", "author_class"]
+        assert out["acmg_strength"].to_list() == [None, None]
+
+    def test_no_calibration_no_class_is_null(self) -> None:
+        data = pl.DataFrame(
+            {
+                "gene": ["BRCA2"],
+                "function_score": [0.3],
+                "author_class_harmonized": [None],
+            }
+        )
+        out = attach_calibrated_class(data, _GENEN_CAL)
+        assert out["calibrated_class"].to_list() == [None]
+        assert out["calibration_scheme"].to_list() == [None]
+        assert out["acmg_strength"].to_list() == [None]
+
+    def test_requires_author_class_first(self) -> None:
+        data = pl.DataFrame({"gene": ["GENEN"], "function_score": [0.5]})
+        with pytest.raises(
+            AssertionError, match="attach_author_class_harmonized first"
+        ):
+            attach_calibrated_class(data, _GENEN_CAL)
+
+
+class TestAttachFunctionDirection:
+    def test_numeric_positive_direction(self) -> None:
+        # abnormal range below normal -> +1; aligned == raw score.
+        data = pl.DataFrame(
+            {
+                "gene": ["GENEN", "GENEN"],
+                "function_score": [0.5, -2.0],
+                "author_class_harmonized": [None, None],
+            }
+        )
+        out = attach_function_direction(data, _GENEN_CAL)
+        assert out["function_direction"].to_list() == [1, 1]
+        assert out["function_score_aligned"].to_list() == [0.5, -2.0]
+
+    def test_numeric_negative_direction(self) -> None:
+        # abnormal range ABOVE normal -> -1; aligned flips sign.
+        cal = _cal_frame(
+            [
+                _cls_row(
+                    "GENEP", "ExCALIBR calibration", "normal", None, 0.0, "BS3_STRONG"
+                ),
+                _cls_row(
+                    "GENEP", "ExCALIBR calibration", "abnormal", 1.0, None, "STRONG"
+                ),
+            ]
+        )
+        data = pl.DataFrame(
+            {
+                "gene": ["GENEP", "GENEP"],
+                "function_score": [0.2, 3.0],
+                "author_class_harmonized": [None, None],
+            }
+        )
+        out = attach_function_direction(data, cal)
+        assert out["function_direction"].to_list() == [-1, -1]
+        assert out["function_score_aligned"].to_list() == [-0.2, -3.0]
+
+    def test_categorical_direction_from_author_class(self) -> None:
+        # DDX3X-like: abnormal author class has the HIGHER function_score -> -1.
+        data = pl.DataFrame(
+            {
+                "gene": ["DDX", "DDX"],
+                "function_score": [0.1, 0.9],
+                "author_class_harmonized": ["normal", "abnormal"],
+            }
+        )
+        out = attach_function_direction(data, _GENEN_CAL)  # no DDX rows in the cal
+        assert out["function_direction"].to_list() == [-1, -1]
+        assert out["function_score_aligned"].to_list() == [-0.1, -0.9]
+
+    def test_null_when_no_signal(self) -> None:
+        # BRCA2-like: no numeric scheme, no author class -> null direction + aligned.
+        data = pl.DataFrame(
+            {
+                "gene": ["BRCA2"],
+                "function_score": [0.3],
+                "author_class_harmonized": [None],
+            }
+        )
+        out = attach_function_direction(data, _GENEN_CAL)
+        assert out["function_direction"].to_list() == [None]
+        assert out["function_score_aligned"].to_list() == [None]

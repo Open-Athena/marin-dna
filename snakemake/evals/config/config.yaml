@@ -125,6 +125,14 @@ dart_eval:
 # no subsampling, HIGH-impact `exclude_consequences` dropped, every author column
 # preserved (author_ prefix). Phase 1: BRCA1 only.
 sge:
+  # Build-time consequence_group allowlist (#297 item E): keep only the groups where the
+  # SGE assay actually measures function. The rest (synonymous, UTRs, ncRNA, distal,
+  # tss_proximal, …) are near-uninformative for an SGE benchmark and are dropped for
+  # inference speed + focus. Re-add a group here to score it again; remove the key (or
+  # set it null) to keep every group.
+  consequence_group_allowlist:
+    - missense_variant
+    - splicing
   brca1:
     # Findlay et al. 2018 (Nature 562:217-222) supplementary table — the same file
     # Evo2 bundles. Served from the Nature static-content host. hg19 genomic coords

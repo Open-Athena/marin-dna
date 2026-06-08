@@ -613,7 +613,7 @@ _SGE_STUDY_META = {
         "pmid": None,
         "build": "GRCh38",
         "score_col": "`author_score`",
-        "class_col": "—",
+        "class_col": "`author_functional_consequence`",
     },
     "urn:mavedb:00001259-a-1": {
         "gene": "PALB2",
@@ -621,7 +621,7 @@ _SGE_STUDY_META = {
         "pmid": None,
         "build": "GRCh38",
         "score_col": "`author_score`",
-        "class_col": "—",
+        "class_col": "`author_functional_consequence`",
     },
     "urn:mavedb:00001260-a-1": {
         "gene": "RAD51D",
@@ -629,7 +629,7 @@ _SGE_STUDY_META = {
         "pmid": None,
         "build": "GRCh38",
         "score_col": "`author_score`",
-        "class_col": "—",
+        "class_col": "`author_functional_consequence`",
     },
     "urn:mavedb:00001264-a-1": {
         "gene": "XRCC2",
@@ -645,7 +645,7 @@ _SGE_STUDY_META = {
         "pmid": None,
         "build": "GRCh38",
         "score_col": "`author_score`",
-        "class_col": "—",
+        "class_col": "`author_functional_consequence`",
     },
     "urn:mavedb:00001265-a-1": {
         "gene": "SFPQ",
@@ -653,7 +653,7 @@ _SGE_STUDY_META = {
         "pmid": None,
         "build": "GRCh38",
         "score_col": "`author_score`",
-        "class_col": "—",
+        "class_col": "`author_functional_consequence`",
     },
     # Transcript-targeted (c.->g. recoded with pyhgvs + cdot; intronic recovered).
     "urn:mavedb:00001225-a-1": {
@@ -686,7 +686,7 @@ _SGE_STUDY_META = {
         "pmid": "38057330",
         "build": "GRCh38 (c.→g.)",
         "score_col": "`author_score`",
-        "class_col": "—",
+        "class_col": "`author_sge_prediction_of_variant_function_in_ndd_context`",
     },
     "urn:mavedb:00000675-a-1": {
         "gene": "VHL",
@@ -893,12 +893,13 @@ in genomic coordinates — an axis orthogonal to the clinical/population/statist
 labels of the other `evals_*` datasets, and one that covers near-exon noncoding
 (splice-region, proximal-intronic) SNVs, not just missense.
 
-**No matching, no subsampling, no binary label** — every assayed SNV is kept with its
-continuous author score(s). The trivially-deleterious **HIGH-impact consequences**
-(canonical splice, nonsense, frameshift, …) are **dropped** (`exclude_consequences`);
-they are not the discriminative signal an SGE benchmark is about. **Every original
-author column is preserved** under an `author_` prefix ({n_author} columns), so no
-source metadata is lost.
+**No matching, no subsampling, no binary label.** The trivially-deleterious **HIGH-impact
+consequences** (canonical splice, nonsense, frameshift, …) are dropped
+(`exclude_consequences`), and v2
+([#297](https://github.com/Open-Athena/marin-dna/issues/297)) further keeps only the
+**missense + splicing** consequence groups — the two where the SGE assay actually
+measures function. **Every original author column is preserved** under an `author_`
+prefix ({n_author} columns), so no source metadata is lost.
 
 ## Studies
 
@@ -931,14 +932,23 @@ this is a **gene-level holdout** (e.g. BRCA1·chr17 → train).
 | `gene` | str | Gene symbol. |
 | `assay` | str | `sge`. |
 | `mavedb_urn` | str | Canonical MaveDB accession for the source study (see the table above). |
+| `function_score` | float | Each study's headline continuous functional score (raw, **per-study scale** — pool by rank, not raw value). |
+| `function_direction`, `function_score_aligned` | int / float | Per-gene assay direction (`+1` / `−1`, null if unresolved — BRCA2) and the direction-corrected score (`function_direction × function_score`) so "higher = more functional" holds across genes. Sourced from the assay (calibration ranges / author class), **not** the model. |
+| `calibrated_class` | str | ClinGen/ExCALIBR-calibrated `abnormal` / `intermediate` / `normal` (or null), decided at build with an **ExCALIBR-first policy** (prefers the live calibration; never a dated ClinVar snapshot). |
+| `calibration_scheme`, `acmg_strength` | str | The scheme behind `calibrated_class` (an ExCALIBR / investigator title, or `author_class` for the categorical-only gene) and the matched range's ACMG functional-evidence strength (`SUPPORTING` … `VERY_STRONG`). |
+| `author_class_harmonized` | str | Each study's discrete functional class mapped to a common `abnormal` / `intermediate` / `normal` axis (null where a study ships none — BAP1, VHL, BRCA2). |
 | `author_*` | mixed | **Every original column from the source study, verbatim** (slugified, `author_`-prefixed). The headline variables per study are listed in the table above — e.g. for BRCA1 `author_function_score_mean` (continuous) and `author_func_class` (FUNC/INT/LOF). Original coordinates are kept too (e.g. `author_position_hg19`). |
 | `assay_*` | str | **MaveDB 'assay facts'** — the experiment's controlled-vocabulary keywords (assay readout, mechanism, model system, library mechanism, …), constant per gene. See *Assay characteristics* below; blank for the one unannotated study (BRCA2). |
+| `subset`, `consequence_group` | str | Coarse consequence grouping the eval stratifies on (`subset` is an alias of `consequence_group`, matching the other `evals_*` datasets). The build keeps only the `missense_variant` + `splicing` groups. |
 | `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations. |
 | `distance_tss_*`, `distance_exon_*`, `*_closest_gene_id` | int / str | Distances to nearest TSS / exon and the Ensembl gene IDs there; reference annotations. |
 
-No binary `label` is imposed — that (and any score harmonization across studies) is an
-eval-time decision; the artifact preserves the authors' continuous scores and discrete
-classes as-is.
+There is still no binary `label`, but v2 ([#297](https://github.com/Open-Athena/marin-dna/issues/297))
+ships harmonized, cross-gene-comparable columns so the eval needn't re-derive them: a
+per-gene `function_direction` / `function_score_aligned`, a calibrated `calibrated_class`
+(ExCALIBR-first policy) with its `calibration_scheme` + `acmg_strength`, and an
+`author_class_harmonized`. The authors' raw `function_score` and every `author_` column
+are preserved verbatim; **per-study scales still differ**, so pool by rank, not raw value.
 
 ## Provenance
 
