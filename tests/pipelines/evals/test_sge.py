@@ -8,6 +8,7 @@ import pytest
 from marin_dna.data.utils import load_annotation
 from marin_dna.pipelines.evals.sge import (
     annotate_sge_variants,
+    load_mavedb_genomic_scoreset,
     normalize_brca1_findlay,
 )
 from marin_dna.pipelines.evals.trait_intervals import get_exon, get_tss
@@ -86,6 +87,72 @@ class TestNormalizeBrca1Findlay:
         )
         with pytest.raises(AssertionError, match="null function score"):
             normalize_brca1_findlay(raw, mavedb_urn="urn:test:1")
+
+
+# --------------------------------------------------------------------------- #
+# load_mavedb_genomic_scoreset
+# --------------------------------------------------------------------------- #
+class TestLoadMavedbGenomic:
+    def _csv(self, tmp_path: Path) -> Path:
+        # Genome-targeted MaveDB scores CSV (NC_…:g. hgvs_nt). Mix of SNVs (kept),
+        # an intronic SNV (kept — no transcript mapping needed), a deletion, a
+        # delins, an MNV, and a null-score SNV (all dropped).
+        text = (
+            "accession,hgvs_nt,hgvs_pro,score,functional_consequence\n"
+            "x#1,NC_000002.12:g.214728667A>G,p.?,-1.0,abnormal\n"
+            "x#2,NC_000002.12:g.214767000C>T,p.?,0.1,normal\n"  # deep intronic SNV
+            "x#3,NC_000023.11:g.100A>G,p.?,-0.5,abnormal\n"  # chrX
+            "x#4,NC_000002.12:g.214728632_214728634del,p.?,-2.0,abnormal\n"  # del
+            "x#5,NC_000002.12:g.214728700_214728702delinsAAG,p.?,-1.5,abnormal\n"  # delins
+            "x#6,NC_000002.12:g.214728680G>A,p.?,,normal\n"  # null score
+            "x#7,NC_000002.12:g.214728690AC>GT,p.?,0.3,normal\n"  # MNV
+        )
+        p = tmp_path / "scores.csv"
+        p.write_text(text)
+        return p
+
+    def test_parses_snvs_drops_nonsnv_and_nullscore(self, tmp_path: Path) -> None:
+        V = load_mavedb_genomic_scoreset(
+            self._csv(tmp_path), gene="BARD1", mavedb_urn="urn:test:bard1"
+        )
+        assert V.height == 3  # x#1, x#2, x#3
+        assert V["chrom"].to_list() == ["2", "2", "X"]
+        assert V["pos"].to_list() == [214728667, 214767000, 100]
+        assert V["ref"].to_list() == ["A", "C", "A"]
+        assert V["alt"].to_list() == ["G", "T", "G"]
+        assert V["function_score"].to_list() == [-1.0, 0.1, -0.5]
+        # del/delins/MNV positions never appear.
+        assert 214728632 not in V["pos"].to_list()
+        assert 214728690 not in V["pos"].to_list()
+
+    def test_provenance_and_author_columns(self, tmp_path: Path) -> None:
+        V = load_mavedb_genomic_scoreset(
+            self._csv(tmp_path), gene="BARD1", mavedb_urn="urn:test:bard1"
+        )
+        assert V["gene"].unique().to_list() == ["BARD1"]
+        assert V["assay"].unique().to_list() == ["sge"]
+        assert V["mavedb_urn"].unique().to_list() == ["urn:test:bard1"]
+        assert V.columns[:8] == [
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "gene",
+            "assay",
+            "mavedb_urn",
+            "function_score",
+        ]
+        # Original columns preserved verbatim, author_-prefixed.
+        for c in ("author_hgvs_nt", "author_score", "author_functional_consequence"):
+            assert c in V.columns
+        # function_score mirrors the study's `score` column.
+        assert V["function_score"].to_list() == V["author_score"].to_list()
+
+    def test_missing_required_column_raises(self, tmp_path: Path) -> None:
+        p = tmp_path / "bad.csv"
+        p.write_text("accession,hgvs_nt,hgvs_pro\nx#1,NC_000002.12:g.1A>G,p.?\n")
+        with pytest.raises(AssertionError, match="missing 'score'"):
+            load_mavedb_genomic_scoreset(p, gene="BARD1", mavedb_urn="urn:test:bard1")
 
 
 # --------------------------------------------------------------------------- #

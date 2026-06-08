@@ -64,13 +64,13 @@ def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFra
     """Normalize the Findlay 2018 BRCA1 SGE table (already header-resolved) to the
     SGE schema.
 
-    Emits the standard ``chrom, pos, ref, alt, gene, assay, mavedb_urn`` columns plus
-    **every original column preserved verbatim under an ``author_`` prefix** — so no
-    author metadata is lost and nothing collides with the pipeline's annotation
-    columns. ``chrom`` is a string and ``pos`` is 1-based hg19 (lifted to GRCh38
-    downstream in :func:`annotate_sge_variants`). The headline author variables are
-    ``author_function_score_mean`` (continuous) and ``author_func_class`` (discrete:
-    FUNC/INT/LOF).
+    Emits the standard ``chrom, pos, ref, alt, gene, assay, mavedb_urn,
+    function_score`` columns plus **every original column preserved verbatim under an
+    ``author_`` prefix** — so no author metadata is lost and nothing collides with the
+    pipeline's annotation columns. ``chrom`` is a string and ``pos`` is 1-based hg19
+    (lifted to GRCh38 downstream in :func:`annotate_sge_variants`). ``function_score``
+    is the common continuous score across studies (here ``author_function_score_mean``);
+    ``author_func_class`` (FUNC/INT/LOF) is BRCA1's discrete classification.
 
     Args:
         raw: header-resolved Findlay xlsx frame.
@@ -95,6 +95,7 @@ def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFra
             pl.col("author_gene").cast(pl.Utf8).alias("gene"),
             assay=pl.lit("sge"),
             mavedb_urn=pl.lit(mavedb_urn),
+            function_score=pl.col("author_function_score_mean").cast(pl.Float64),
         )
         .pipe(filter_snp)
         # Standard pipeline columns first, then every preserved author column.
@@ -106,6 +107,7 @@ def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFra
             "gene",
             "assay",
             "mavedb_urn",
+            "function_score",
             pl.col("^author_.*$"),
         )
     )
@@ -127,6 +129,73 @@ def read_brca1_findlay(xlsx_path: str | Path, *, mavedb_urn: str) -> pl.DataFram
     """
     raw = pd.read_excel(xlsx_path, header=2)
     return normalize_brca1_findlay(pl.from_pandas(raw), mavedb_urn=mavedb_urn)
+
+
+def load_mavedb_genomic_scoreset(
+    scores_path: str | Path, *, gene: str, mavedb_urn: str
+) -> pl.DataFrame:
+    """Load a **genome-targeted** MaveDB SGE score-set CSV (``NC_…:g.`` hgvs_nt) to
+    the SGE schema.
+
+    The genomic ``hgvs_nt`` is parsed directly (e.g. ``NC_000002.12:g.214728667A>G``
+    -> chr2 / 214728667 / A / G), so **intronic SNVs are kept** with no transcript
+    mapping (unlike the transcript-targeted ``c.`` score-sets, whose intronic variants
+    MaveDB's auto-map drops). Non-SNV variants (del / delins / dup / MNV) and
+    null-score rows are dropped. GRCh38-native (no liftover). Every original column is
+    preserved ``author_``-prefixed; the common ``function_score`` is the study's
+    ``score`` column.
+
+    Args:
+        scores_path: the MaveDB ``/score-sets/{urn}/scores`` CSV.
+        gene: HGNC gene symbol.
+        mavedb_urn: the score-set's canonical MaveDB accession.
+    """
+    raw = pl.read_csv(scores_path, infer_schema_length=None)
+    for col in ("hgvs_nt", "score"):
+        assert col in raw.columns, f"{gene}: MaveDB scores CSV missing {col!r}: {raw.columns}"
+    n_raw = raw.height
+    nt = pl.col("author_hgvs_nt")
+    chrom_num = nt.str.extract(r"^NC_0*(\d+)\.", 1).cast(pl.Int64)
+    out = (
+        raw.rename({c: author_slug(c) for c in raw.columns})
+        .with_columns(
+            # Genomic SNV: NC_<chrom>.<v>:g.<pos><REF>><ALT>. Non-SNV (del/delins/dup/
+            # MNV) lacks the single-base `>` form -> pos/ref/alt parse to null -> dropped.
+            pl.when(chrom_num == 23)
+            .then(pl.lit("X"))
+            .when(chrom_num == 24)
+            .then(pl.lit("Y"))
+            .otherwise(chrom_num.cast(pl.Utf8))
+            .alias("chrom"),
+            nt.str.extract(r":g\.(\d+)[ACGT]>[ACGT]$", 1).cast(pl.Int64).alias("pos"),
+            nt.str.extract(r":g\.\d+([ACGT])>[ACGT]$", 1).alias("ref"),
+            nt.str.extract(r":g\.\d+[ACGT]>([ACGT])$", 1).alias("alt"),
+            gene=pl.lit(gene),
+            assay=pl.lit("sge"),
+            mavedb_urn=pl.lit(mavedb_urn),
+            function_score=pl.col("author_score").cast(pl.Float64),
+        )
+        .filter(
+            pl.col("pos").is_not_null()
+            & pl.col("chrom").is_not_null()
+            & pl.col("function_score").is_not_null()
+        )
+        .pipe(filter_snp)
+        .select(
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "gene",
+            "assay",
+            "mavedb_urn",
+            "function_score",
+            pl.col("^author_.*$"),
+        )
+    )
+    print(f"[sge load {gene}] {n_raw} rows -> {out.height} scored genomic SNVs")
+    assert out.height > 0, f"{gene}: no scored genomic SNVs parsed from hgvs_nt"
+    return out
 
 
 def annotate_sge_variants(
