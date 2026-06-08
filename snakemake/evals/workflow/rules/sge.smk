@@ -4,6 +4,9 @@ from marin_dna.pipelines.evals.sge import (
     SNV_HGVS_RE,
     annotate_sge_variants,
     attach_assay_facts,
+    attach_author_class_harmonized,
+    attach_calibrated_class,
+    attach_function_direction,
     build_mavedb_metadata,
     load_mavedb_genomic_scoreset,
     load_mavedb_transcript_scoreset,
@@ -113,6 +116,7 @@ HIGH-impact, diagonal-concat."""
         mavedb=expand("results/sge/mavedb/{gene}.csv", gene=list(_SGE_MAVEDB)),
         recoded=expand("results/sge/recoded/{gene}.parquet", gene=list(_SGE_TRANSCRIPT)),
         assay_facts="results/sge/assay_facts.parquet",
+        calibrations="results/sge/calibrations.parquet",
         consequences=expand("results/consequences/{chrom}.parquet", chrom=_SGE_CHROMS),
         exon_pc="results/intervals/exon_pc.parquet",
         exon_nc="results/intervals/exon_nc.parquet",
@@ -149,6 +153,8 @@ HIGH-impact, diagonal-concat."""
                 exon_proximal_dist=config["exon_proximal_dist"],
                 tss_proximal_dist=config["tss_proximal_dist"],
                 exclude_consequences=config["exclude_consequences"],
+                consequence_groups=config["consequence_groups"],
+                consequence_group_allowlist=config["sge"]["consequence_group_allowlist"],
                 lift=lift,
                 name=name,
             )
@@ -180,4 +186,13 @@ HIGH-impact, diagonal-concat."""
         # grain to join per-variant.) The join + coverage assert live in the library
         # (attach_assay_facts) so they are unit-tested.
         data = attach_assay_facts(data, pl.read_parquet(input.assay_facts))
+        # #297: turn the study-level calibrations + per-study discrete author classes
+        # into clean per-variant columns (harmonized author class -> calibrated class ->
+        # function-score direction) so the eval drops its sign-align / scheme-pick /
+        # range-membership workarounds. Order matters: the calibrated-class + direction
+        # helpers consult author_class_harmonized for the categorical-only gene (DDX3X).
+        calibrations = pl.read_parquet(input.calibrations)
+        data = attach_author_class_harmonized(data)
+        data = attach_calibrated_class(data, calibrations)
+        data = attach_function_direction(data, calibrations)
         data.write_parquet(output[0])

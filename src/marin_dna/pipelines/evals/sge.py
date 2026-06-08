@@ -31,6 +31,7 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import polars as pl
 
@@ -260,6 +261,318 @@ def attach_assay_facts(data: pl.DataFrame, assay_facts: pl.DataFrame) -> pl.Data
         # non-deterministic (it shifts with global hash state — e.g. across test
         # orderings, which is how this surfaced). #293.
         maintain_order="left",
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Per-variant calibrated functional class, author-class harmonization, and
+# function-score direction (#297). These turn the study-level `calibrations.parquet`
+# + the per-study discrete author classes into clean, cross-gene-comparable per-variant
+# columns, so the eval no longer re-derives them (sign-align hack, scheme-pick
+# heuristic, range-membership) at score time.
+# --------------------------------------------------------------------------- #
+
+# Calibration-scheme selection policy (#297 item C). Prefer the primary ClinGen/ExCALIBR
+# calibration (the VCEP PS3-BS3 framework); never a dated snapshot — e.g.
+# "ExCALIBR calibration (ClinVar 2018)" pins thresholds to a stale ClinVar release.
+_PRIMARY_CALIBRATION = "ExCALIBR calibration"
+# A parenthesized year marks a dated-snapshot scheme ("… (ClinVar 2018)",
+# "… (Feb 2026, All Variants)") — deprioritized vs the live calibration.
+_DATED_SNAPSHOT_RE = re.compile(r"\(\D*\d{4}")
+
+# Per-gene discrete author-class vocab -> harmonized {normal, intermediate, abnormal}
+# (#297 item D). One (column, value-map) per gene; the six functionally_* genes share a
+# column. Genes absent here (BAP1, VHL, BRCA2) ship no discrete author class.
+_FUNCTIONAL_CONSEQUENCE_MAP = {
+    "functionally_normal": "normal",
+    "functionally_abnormal": "abnormal",
+    "indeterminate": "intermediate",
+}
+_AUTHOR_CLASS_MAPS: dict[str, tuple[str, dict[str, str]]] = {
+    "BRCA1": (
+        "author_func_class",
+        {"FUNC": "normal", "INT": "intermediate", "LOF": "abnormal"},
+    ),
+    "RAD51C": (
+        "author_functional_classification",
+        # Depletion screen: depleted = loss of function = abnormal; unchanged = normal;
+        # `enriched` (grows faster than WT) is a distinct non-LOF phenotype -> intermediate.
+        {
+            "unchanged": "normal",
+            "enriched": "intermediate",
+            "slow depleted": "abnormal",
+            "fast depleted": "abnormal",
+        },
+    ),
+    "DDX3X": (
+        "author_sge_prediction_of_variant_function_in_ndd_context",
+        {"normal": "normal", "abnormal": "abnormal"},
+    ),
+    **{
+        g: ("author_functional_consequence", _FUNCTIONAL_CONSEQUENCE_MAP)
+        for g in ("BARD1", "CTCF", "PALB2", "RAD51D", "SFPQ", "XRCC2")
+    },
+}
+
+
+def attach_author_class_harmonized(data: pl.DataFrame) -> pl.DataFrame:
+    """Harmonize each study's discrete functional class to a common
+    ``author_class_harmonized`` ∈ {normal, intermediate, abnormal} (#297 item D).
+
+    Maps each gene's author-class column through :data:`_AUTHOR_CLASS_MAPS`. Asserts
+    every non-null source value is mapped (loud on an unexpected category) and that no
+    *unmapped* gene carries a non-null value in a known class column (so a real author
+    class is never silently dropped). Genes with no discrete class (BAP1, VHL, BRCA2)
+    stay null. Feeds the categorical-gene branch of :func:`attach_calibrated_class` and
+    :func:`attach_function_direction`.
+    """
+    n = data.height
+    gene_arr = np.asarray(data["gene"].to_list(), dtype=object)
+    harm = np.array([None] * n, dtype=object)
+    cols_to_genes: dict[str, set[str]] = {}
+    for gene, (col, mapping) in _AUTHOR_CLASS_MAPS.items():
+        cols_to_genes.setdefault(col, set()).add(gene)
+        if col not in data.columns:
+            continue
+        vals = np.asarray(data[col].to_list(), dtype=object)
+        for i in np.where(gene_arr == gene)[0]:
+            v = vals[i]
+            if v is None:
+                continue
+            assert v in mapping, f"{gene}: unmapped author class {v!r} in {col}"
+            harm[i] = mapping[v]
+    # Defensive: a gene NOT mapped to a known class column must not carry a non-null
+    # value there (else a real author class would silently stay unharmonized).
+    for col, genes_for_col in cols_to_genes.items():
+        if col not in data.columns:
+            continue
+        stray = (
+            data.filter(
+                pl.col(col).is_not_null() & ~pl.col("gene").is_in(list(genes_for_col))
+            )["gene"]
+            .unique()
+            .to_list()
+        )
+        assert not stray, f"unmapped gene(s) carry non-null {col}: {sorted(stray)}"
+    return data.with_columns(
+        pl.Series("author_class_harmonized", harm.tolist(), dtype=pl.Utf8)
+    )
+
+
+def _numeric_class_rows(scheme: pl.DataFrame, go: str) -> pl.DataFrame:
+    """Rows of ``scheme`` with the given ``go_classification`` and >=1 finite range
+    bound (so they can threshold ``function_score``). Categorical schemes carry
+    ``[null, null]`` ranges and contribute nothing here."""
+    return scheme.filter(
+        (pl.col("go_classification") == go)
+        & (pl.col("range_lower").is_not_null() | pl.col("range_upper").is_not_null())
+    )
+
+
+def _select_numeric_calibration(
+    gcal: pl.DataFrame,
+) -> tuple[str, pl.DataFrame, pl.DataFrame] | None:
+    """Pick a gene's numeric-threshold calibration scheme by the #297 policy; return
+    ``(title, normal_rows, abnormal_rows)`` or None if the gene has no numeric scheme.
+
+    A qualifying scheme needs >=1 finite-range normal AND abnormal class. Among those,
+    rank by (is the primary ``ExCALIBR calibration``, is NOT a dated snapshot,
+    finite-row count, title) so the live ExCALIBR wins over its dated ClinVar snapshot
+    and over investigator-provided classes; a gene whose ExCALIBR lacks a normal class
+    (CTCF) falls back to the next qualifying numeric scheme (its investigator classes).
+    """
+    cands: list[tuple[str, pl.DataFrame, pl.DataFrame]] = []
+    for key, scheme in gcal.group_by("calibration_title", maintain_order=True):
+        title = key[0]
+        norm = _numeric_class_rows(scheme, "normal")
+        abn = _numeric_class_rows(scheme, "abnormal")
+        if norm.height and abn.height:
+            cands.append((title, norm, abn))
+    if not cands:
+        return None
+    cands.sort(
+        key=lambda c: (
+            c[0] == _PRIMARY_CALIBRATION,
+            not bool(_DATED_SNAPSHOT_RE.search(c[0] or "")),
+            c[1].height + c[2].height,
+            c[0],
+        ),
+        reverse=True,
+    )
+    return cands[0]
+
+
+def _in_range(
+    x: float, lo: float | None, hi: float | None, inc_lo: bool, inc_hi: bool
+) -> bool:
+    """Is score ``x`` within the (possibly half-open) range ``[lo, hi]``? A null bound
+    is unbounded on that side; ``inc_*`` toggle open/closed bounds (mirrors the eval's
+    range-membership test in ``calibrated_binary_label``)."""
+    if lo is not None and (x < lo or (x == lo and not inc_lo)):
+        return False
+    if hi is not None and (x > hi or (x == hi and not inc_hi)):
+        return False
+    return True
+
+
+def attach_calibrated_class(
+    data: pl.DataFrame, calibrations: pl.DataFrame
+) -> pl.DataFrame:
+    """Materialize a per-variant calibrated functional class (#297 item C).
+
+    Adds three columns, decided once at build with an explicit policy (replacing the
+    eval's most-rows heuristic):
+
+    - ``calibrated_class`` ∈ {abnormal, intermediate, normal} or null,
+    - ``calibration_scheme``: the chosen scheme title, ``"author_class"`` (categorical
+      genes), or null (no calibration),
+    - ``acmg_strength``: the matched range's ACMG evidence strength (SUPPORTING …
+      VERY_STRONG); null for categorical / intermediate / uncalibrated.
+
+    Per gene: prefer the numeric scheme from :func:`_select_numeric_calibration`
+    (ExCALIBR-first) and label by range membership (abnormal / normal / else
+    intermediate). A gene with no numeric scheme but a harmonized author class (DDX3X)
+    inherits its class from ``author_class_harmonized``; a gene with neither (BRCA2)
+    gets nulls. Requires :func:`attach_author_class_harmonized` first.
+    """
+    assert "author_class_harmonized" in data.columns, (
+        "attach_calibrated_class: call attach_author_class_harmonized first"
+    )
+    n = data.height
+    fs = np.asarray(data["function_score"].to_list(), dtype=float)
+    gene_arr = np.asarray(data["gene"].to_list(), dtype=object)
+    ach = np.asarray(data["author_class_harmonized"].to_list(), dtype=object)
+    cls = np.array([None] * n, dtype=object)
+    scheme_col = np.array([None] * n, dtype=object)
+    strength = np.array([None] * n, dtype=object)
+    for gene in sorted(set(gene_arr)):
+        idx = np.where(gene_arr == gene)[0]
+        gcal = calibrations.filter(pl.col("gene") == gene)
+        sel = _select_numeric_calibration(gcal) if gcal.height else None
+        if sel is not None:
+            title, norm, abn = sel
+            norm_rows = list(norm.iter_rows(named=True))
+            abn_rows = list(abn.iter_rows(named=True))
+            for i in idx:
+                x = fs[i]
+                abn_hit = next(
+                    (
+                        r
+                        for r in abn_rows
+                        if _in_range(
+                            x,
+                            r["range_lower"],
+                            r["range_upper"],
+                            r["inclusive_lower"],
+                            r["inclusive_upper"],
+                        )
+                    ),
+                    None,
+                )
+                norm_hit = next(
+                    (
+                        r
+                        for r in norm_rows
+                        if _in_range(
+                            x,
+                            r["range_lower"],
+                            r["range_upper"],
+                            r["inclusive_lower"],
+                            r["inclusive_upper"],
+                        )
+                    ),
+                    None,
+                )
+                if abn_hit and not norm_hit:
+                    cls[i], strength[i] = "abnormal", abn_hit["acmg_evidence_strength"]
+                elif norm_hit and not abn_hit:
+                    cls[i], strength[i] = "normal", norm_hit["acmg_evidence_strength"]
+                else:
+                    cls[i] = "intermediate"
+                scheme_col[i] = title
+        elif any(ach[i] is not None for i in idx):
+            # Categorical-only gene (DDX3X): no numeric thresholds, but a harmonized
+            # author class exists -> use it directly.
+            for i in idx:
+                if ach[i] is not None:
+                    cls[i], scheme_col[i] = ach[i], "author_class"
+        # else: no calibration and no author class (BRCA2) -> all null.
+    return data.with_columns(
+        pl.Series("calibrated_class", cls.tolist(), dtype=pl.Utf8),
+        pl.Series("calibration_scheme", scheme_col.tolist(), dtype=pl.Utf8),
+        pl.Series("acmg_strength", strength.tolist(), dtype=pl.Utf8),
+    )
+
+
+def _scheme_direction(norm: pl.DataFrame, abn: pl.DataFrame) -> int:
+    """+1 if the abnormal calibration range sits BELOW the normal range (low score =
+    abnormal = less functional, so "higher = more functional"), else -1. Range center =
+    mean of finite midpoints (a single-bound range uses that bound)."""
+
+    def center(rows: pl.DataFrame) -> float:
+        vals: list[float] = []
+        for r in rows.iter_rows(named=True):
+            lo, hi = r["range_lower"], r["range_upper"]
+            if lo is not None and hi is not None:
+                vals.append((lo + hi) / 2)
+            elif lo is not None:
+                vals.append(lo)
+            elif hi is not None:
+                vals.append(hi)
+        assert vals, "empty numeric range set"
+        return float(np.mean(vals))
+
+    return 1 if center(abn) < center(norm) else -1
+
+
+def attach_function_direction(
+    data: pl.DataFrame, calibrations: pl.DataFrame
+) -> pl.DataFrame:
+    """Harmonize the per-study ``function_score`` direction (#297 item B).
+
+    Adds ``function_direction`` (+1 / -1 / null) and ``function_score_aligned`` =
+    ``function_direction * function_score``, so "higher = more functional" holds across
+    genes (the raw per-study ``function_score`` is kept verbatim). Direction is sourced
+    from the **assay, not the model**: numeric-scheme genes from whether the abnormal
+    calibration range sits below or above the normal range
+    (:func:`_scheme_direction`); the categorical-only gene (DDX3X) from the sign of
+    mean(function_score | abnormal) vs (| normal) over its ``author_class_harmonized``
+    labels; a gene with neither (BRCA2) stays null. Requires
+    :func:`attach_author_class_harmonized` first.
+
+    Note: this corrects only the *sign*; per-study *scales* still differ (issue #297
+    §3), so a pooled rank/Spearman view is valid but a pooled raw-Pearson is not.
+    """
+    assert "author_class_harmonized" in data.columns, (
+        "attach_function_direction: call attach_author_class_harmonized first"
+    )
+    n = data.height
+    fs = np.asarray(data["function_score"].to_list(), dtype=float)
+    gene_arr = np.asarray(data["gene"].to_list(), dtype=object)
+    ach = np.asarray(data["author_class_harmonized"].to_list(), dtype=object)
+    direction = np.array([None] * n, dtype=object)
+    for gene in sorted(set(gene_arr)):
+        idx = np.where(gene_arr == gene)[0]
+        gcal = calibrations.filter(pl.col("gene") == gene)
+        sel = _select_numeric_calibration(gcal) if gcal.height else None
+        d: int | None = None
+        if sel is not None:
+            _, norm, abn = sel
+            d = _scheme_direction(norm, abn)
+        else:
+            abn_fs = [fs[i] for i in idx if ach[i] == "abnormal"]
+            norm_fs = [fs[i] for i in idx if ach[i] == "normal"]
+            if abn_fs and norm_fs:
+                d = 1 if float(np.mean(norm_fs)) >= float(np.mean(abn_fs)) else -1
+        if d is not None:
+            for i in idx:
+                direction[i] = d
+    return data.with_columns(
+        pl.Series("function_direction", direction.tolist(), dtype=pl.Int8)
+    ).with_columns(
+        (pl.col("function_direction") * pl.col("function_score")).alias(
+            "function_score_aligned"
+        )
     )
 
 
@@ -597,11 +910,14 @@ def annotate_sge_variants(
     exon_proximal_dist: int,
     tss_proximal_dist: int,
     exclude_consequences: list[str],
+    consequence_groups: dict[str, list[str]],
+    consequence_group_allowlist: list[str] | None = None,
     lift: bool,
     name: str = "",
 ) -> pl.DataFrame:
     """Liftover (optional) + ref/alt validation + consequence/distance annotation +
-    HIGH-impact ``exclude_consequences`` drop, with **no** matching or subsampling.
+    HIGH-impact ``exclude_consequences`` drop + coarse ``consequence_group`` /
+    ``subset`` grouping + optional group allowlist, with **no** matching or subsampling.
 
     Mirrors :func:`marin_dna.pipelines.evals.dart_eval.annotate_variants` but (a)
     drops ``exclude_consequences`` (the QTL path keeps them; SGE drops them), (b)
@@ -610,6 +926,12 @@ def annotate_sge_variants(
     tied to the ref->alt substitution as the author defined it, so a swap (author
     ref != genome) signals a coordinate/strand/build problem, not a benign
     re-orientation.
+
+    Adds (#297) the coarse ``consequence_group`` (and its ``subset`` alias) so SGE
+    stratifies identically to the matched-pair datasets, then optionally filters to a
+    ``consequence_group_allowlist`` (default keeps everything; the build passes
+    ``[missense_variant, splicing]`` — the groups where the SGE assay actually measures
+    function).
 
     Args:
         V: normalized SGE frame (``chrom, pos, ref, alt`` + author columns); ``pos``
@@ -622,6 +944,12 @@ def annotate_sge_variants(
         exon_proximal_dist / tss_proximal_dist: proximity thresholds for the
             ``consequence_final`` recategorization.
         exclude_consequences: VEP consequences to drop (canonical-LOF HIGH-impact).
+        consequence_groups: ``{group: [consequence_final values]}`` map (the pipeline's
+            shared ``consequence_groups`` config) collapsing fine consequences to the
+            coarse ``consequence_group``; unmapped values keep their own value (same
+            ``.replace`` semantics as :func:`trait_intervals.build_dataset`).
+        consequence_group_allowlist: if not None, keep only variants whose
+            ``consequence_group`` is in this list (a build-time row filter).
         lift: if True, lift hg19->GRCh38 first.
         name: label for log/assert messages.
     """
@@ -689,13 +1017,53 @@ def annotate_sge_variants(
         f"{n_pre_excl - V.height} HIGH-impact variants ({V.height} kept)"
     )
     assert V.height > 0, f"{name}: all variants dropped by exclude_consequences"
-    V = (
-        V.pipe(add_exon, exon_pc, exon_nc, exon_proximal_dist)
-        .pipe(add_tss, tss_pc, tss_nc, tss_proximal_dist)
-        .sort(COORDINATES)
+    V = V.pipe(add_exon, exon_pc, exon_nc, exon_proximal_dist).pipe(
+        add_tss, tss_pc, tss_nc, tss_proximal_dist
     )
-    assert (V["pos"] > 0).all(), f"{name}: non-positive positions after annotation"
     assert V["consequence_final"].null_count() == 0, (
         f"{name}: null consequence_final after annotation"
     )
+    # Coarse consequence grouping (#297 item A): collapse consequence_final to the same
+    # `consequence_group` the matched-pair datasets carry, with the SAME `.replace(...)`
+    # semantics as trait_intervals.build_dataset — a consequence_final absent from the
+    # map keeps its own value (missense_variant, synonymous_variant, tss_proximal,
+    # 5_prime_UTR_variant, …). Then alias it to `subset` so SGE stratifies identically
+    # to mendelian/complex (whose metric groups on `subset`).
+    consequence_to_group = {
+        c: group
+        for group, consequences in consequence_groups.items()
+        for c in consequences
+    }
+    V = V.with_columns(
+        pl.col("consequence_final")
+        .replace(consequence_to_group)
+        .alias("consequence_group")
+    )
+    assert V["consequence_group"].null_count() == 0, (
+        f"{name}: null consequence_group after grouping"
+    )
+    V = V.with_columns(pl.col("consequence_group").alias("subset"))
+    # Build-time allowlist (#297 item E): keep only the consequence groups where the SGE
+    # assay actually measures function (the build passes [missense_variant, splicing]);
+    # the rest (synonymous, UTRs, ncRNA, distal, tss_proximal, …) are near-uninformative
+    # for an SGE benchmark and are dropped for inference speed + focus. None keeps all.
+    if consequence_group_allowlist is not None:
+        n_pre = V.height
+        by_group = dict(V.group_by("consequence_group").len().iter_rows())
+        V = V.filter(pl.col("consequence_group").is_in(consequence_group_allowlist))
+        dropped = {
+            g: n
+            for g, n in sorted(by_group.items())
+            if g not in set(consequence_group_allowlist)
+        }
+        print(
+            f"[sge annotate {name}] consequence_group allowlist "
+            f"{consequence_group_allowlist} kept {V.height}/{n_pre} "
+            f"(dropped {n_pre - V.height}: {dropped})"
+        )
+        assert V.height > 0, (
+            f"{name}: all variants dropped by consequence_group_allowlist"
+        )
+    V = V.sort(COORDINATES)
+    assert (V["pos"] > 0).all(), f"{name}: non-positive positions after annotation"
     return V

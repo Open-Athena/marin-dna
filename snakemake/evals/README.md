@@ -19,7 +19,7 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 | `complex_traits` | UKBB fine-mapped complex-trait variants | SuSiE+FINEMAP `max(PIP across the traits where this variant was fine-mapped) > 0.9` | `max(PIP) < 0.01` AND no SuSiE/FINEMAP combine-step null PIP among those traits (`label_variants_by_pip(use_null_pip_guard=True)`) |
 | `caqtl` | DART-Eval African caQTLs (ATAC), GRCh38 | Significant caQTLs in peaks | Control variants in peaks (no matching) |
 | `dsqtl` | DART-Eval Yoruban dsQTLs (DNase), hg19→GRCh38 | Significant dsQTLs in peaks | Control variants in peaks (no matching) |
-| `sge` | Saturation genome editing function scores (BRCA1; #289 phase 1) | — *(no label: a continuous experimental function score per SNV)* | — |
+| `sge` | Saturation genome editing function scores (12 genes; #289, #297) | — *(no binary label: a continuous experimental function score per SNV, plus a calibrated `abnormal`/`intermediate`/`normal` class)* | — |
 | `dart_task3` | DART-Eval Task 3 cell-type ATAC peaks — 500 bp intervals, **not variants** (#293) | — *(no pos/neg: 5-class cell-type label — GM12878 / H1ESC / HEPG2 / IMR90 / K562)* | — |
 
 Only `mendelian_traits` has a corresponding `_harness_255` eval-harness
@@ -92,11 +92,15 @@ to the clinical/population/statistical labels above, and one that covers near-ex
 noncoding (splice-region, proximal-intronic) SNVs as well as missense. Like the
 DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
 
-- it carries **no binary `label`** — only the authors' continuous score(s) and discrete
-  class(es), preserved verbatim under an `author_` prefix (no source metadata lost;
-  nothing collides with the pipeline's `consequence` / `distance_*` columns);
+- it carries **no binary `label`**. The authors' continuous score(s) and discrete
+  class(es) are preserved verbatim under an `author_` prefix (no source metadata lost;
+  nothing collides with the pipeline's `consequence` / `distance_*` columns); v2 (#297)
+  adds harmonized, cross-gene columns on top of these (see *Harmonized columns* below);
 - the trivially-deleterious **HIGH-impact `exclude_consequences`** (canonical splice,
-  nonsense, frameshift, …) are **dropped** — those aren't the discriminative signal;
+  nonsense, frameshift, …) are **dropped** — those aren't the discriminative signal —
+  and v2 (#297) further keeps only the **`missense_variant` + `splicing`** consequence
+  groups (config `sge.consequence_group_allowlist`), the two where the SGE assay
+  actually measures function;
 - per-variant provenance is `(gene, mavedb_urn)`: the gene symbol plus the canonical
   MaveDB accession of the source study (a gene can have >1 study, e.g. BRCA2);
 - a common `function_score` column carries each study's headline continuous score (so
@@ -142,6 +146,27 @@ MaveDB record once (`build_mavedb_metadata`) and emits two study-level artifacts
   threshold-source PMIDs) flattened to a **tidy long companion table** (one row per
   gene × calibration × functional class). It is *not* joined per-variant (wrong grain)
   and ships alongside the splits as `calibrations.parquet` in the HF repo.
+
+**Harmonized columns (#297).** After the per-study loaders concat, the build turns the
+study-level calibrations + per-study discrete classes into clean per-variant columns so
+downstream evals don't re-derive them (functions in `sge.py`, called from the rule):
+
+- `consequence_group` + `subset` — the coarse grouping the matched-pair datasets carry
+  (same `consequence_groups` map / `.replace(...)` semantics), so SGE stratifies
+  identically; `subset` is an alias of `consequence_group`.
+- `function_direction` (+1/−1, null if unresolved) + `function_score_aligned`
+  (`= function_direction × function_score`) — harmonizes the per-study score direction
+  (DDX3X's assay is inverted) so "higher = more functional" holds across genes. Direction
+  is read from the **assay** (calibration ranges; the categorical-only gene DDX3X from
+  its author class), never the model.
+- `calibrated_class` ∈ {abnormal, intermediate, normal} + `calibration_scheme` +
+  `acmg_strength` — a per-variant ClinGen/ExCALIBR-calibrated class chosen with an
+  explicit **ExCALIBR-first policy** (`attach_calibrated_class`): prefer the live
+  `ExCALIBR calibration`, never a dated ClinVar snapshot, require finite normal+abnormal
+  ranges, else fall back to a numeric investigator scheme, else the harmonized author
+  class (DDX3X), else null (BRCA2 — no calibration).
+- `author_class_harmonized` — each study's discrete class mapped to a common
+  abnormal/intermediate/normal axis.
 
 ```bash
 uv run --group hgvs snakemake results/dataset/sge/{train,test}.parquet
