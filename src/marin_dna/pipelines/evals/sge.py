@@ -255,6 +255,11 @@ def attach_assay_facts(data: pl.DataFrame, assay_facts: pl.DataFrame) -> pl.Data
         assay_facts.select("mavedb_urn", pl.col("^assay_.*$")),
         on="mavedb_urn",
         how="left",
+        # Preserve the variants' row order: a polars left join doesn't guarantee
+        # output order, so without this the built parquet's row order is
+        # non-deterministic (it shifts with global hash state — e.g. across test
+        # orderings, which is how this surfaced). #293.
+        maintain_order="left",
     )
 
 
