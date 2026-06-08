@@ -367,6 +367,14 @@ _SGE_ROW_COLUMNS = (
 )
 
 
+def _nan_float(x: object) -> float:
+    """Map a polars null back to NaN. A pandas float-NaN written to parquet
+    round-trips as a *null*, so Spearman rows (``n_pos`` = NaN, by design) and
+    any degenerate-bootstrap ``se`` come back as ``None``; keep them as NaN
+    rather than crashing on ``float(None)``."""
+    return float("nan") if x is None else float(x)
+
+
 def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
     """Long-form SGE metrics across all registered methods (the dedicated SGE
     leaderboard loader; ``dashboard/src/data/sge.parquet.py`` writes its output).
@@ -388,7 +396,11 @@ def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
     accession, gene, value, se, n, n_pos]``. ``n_pos`` is the abnormal count for
     AUPRC rows and NaN for Spearman rows.
     """
-    soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError)
+    # A method registered for SGE may not have its metrics parquet on S3 yet
+    # (e.g. the gLMs before their scoring run is done) — polars surfaces an S3
+    # 404 as OSError (FileNotFoundError covers the local-path case). Skip + warn
+    # rather than fail the whole loader; the parquet appears once the run lands.
+    soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError, OSError)
     rows: list[dict] = []
     for method in models_for_dataset(dataset):
         path = _parquet_path(method, dataset)
@@ -417,10 +429,10 @@ def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
                     "subset": row["subset"],
                     "accession": row["accession"],
                     "gene": row["gene"],
-                    "value": float(row["value"]),
-                    "se": float(row["se"]),
+                    "value": _nan_float(row["value"]),
+                    "se": _nan_float(row["se"]),
                     "n": int(row["n"]),
-                    "n_pos": float(row["n_pos"]),
+                    "n_pos": _nan_float(row["n_pos"]),
                 }
             )
     return pl.DataFrame(rows)

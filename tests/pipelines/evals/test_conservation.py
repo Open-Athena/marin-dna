@@ -256,10 +256,10 @@ def _sge_scored_parquet(
 def test_aggregate_conservation_sge_metrics(tmp_path):
     """SGE aggregation: per-track Spearman + AUPRC via the shared
     compute_sge_metrics, with score_name/n_nan stamping and an SGE markdown."""
-    p1 = _sge_scored_parquet(
-        tmp_path, "phyloP_241m", seed=0, perfect=True, inject_nan=3
+    p1 = _sge_scored_parquet(tmp_path, "phyloP_241m", seed=0, perfect=True)
+    p2 = _sge_scored_parquet(
+        tmp_path, "phastCons_43p", seed=1, perfect=False, inject_nan=3
     )
-    p2 = _sge_scored_parquet(tmp_path, "phastCons_43p", seed=1, perfect=False)
 
     metrics, md = aggregate_conservation_sge_metrics(
         {"phyloP_241m": p1, "phastCons_43p": p2}, n_bootstrap=20
@@ -291,8 +291,8 @@ def test_aggregate_conservation_sge_metrics(tmp_path):
         & (metrics["metric"] == "spearman")
     ]
     assert head["value"].iloc[0] == pytest.approx(1.0, abs=1e-9)
-    # NaN scores are counted (and dropped, not filled).
-    assert int(metrics[metrics["score_name"] == "phyloP_241m"]["n_nan"].iloc[0]) == 3
+    # NaN scores are counted, then filled with 0 (the shared conservation policy).
+    assert int(metrics[metrics["score_name"] == "phastCons_43p"]["n_nan"].iloc[0]) == 3
 
     assert "SGE" in md
     for tok in ("phyloP_241m", "phastCons_43p", "spearman", "AUPRC"):

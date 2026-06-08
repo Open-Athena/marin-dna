@@ -722,3 +722,25 @@ def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPa
     # n_pos is NaN for spearman rows, finite for AUPRC rows.
     sp = df.filter(pl.col("metric") == "spearman")
     assert sp["n_pos"].is_nan().all()
+
+
+def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPatch):
+    """A method whose metrics parquet isn't on S3 yet (polars surfaces an S3 404
+    as OSError) is skipped, not fatal — e.g. the gLMs before their scoring run."""
+    glm = _mk_method(id="glm_pending", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons))
+    glm_path = leaderboard._parquet_path(glm, "sge")
+    cons_path = leaderboard._parquet_path(cons, "sge")
+    leaderboard._read_parquet.cache_clear()
+
+    def fake(path: str) -> pl.DataFrame:
+        if path == glm_path:
+            raise OSError("object-store error: 404 Not Found")
+        if path == cons_path:
+            return _sge_metrics_parquet(["score"], score_name="phyloP_100v")
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr(leaderboard, "_read_parquet", fake)
+    df = leaderboard.sge_normalized_rows("sge")
+    assert set(df["method_id"].to_list()) == {"phyloP_100v"}

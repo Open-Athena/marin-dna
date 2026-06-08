@@ -666,8 +666,12 @@ def _sge_cell_metrics(
     """Spearman + AUPRC for one (accession, subset-scope) cell and one score column.
 
     Returns only the metrics that meet their ``n_min`` gate, keyed
-    ``"spearman"`` / ``"AUPRC"`` → ``dict(value, se, n, n_pos)``. NaN scores are
-    dropped (conservation tracks have no value at unaligned loci).
+    ``"spearman"`` / ``"AUPRC"`` → ``dict(value, se, n, n_pos)``. Rows with a
+    non-finite ``function_score_aligned`` (the correlation target — e.g. BRCA2,
+    which has no harmonized direction) or a non-{abnormal,normal}
+    ``calibrated_class`` (AUPRC) are excluded; scores are expected finite
+    (conservation fills unaligned loci with 0 upstream), with a defensive
+    ``isfinite`` guard.
     """
     out: dict[str, dict] = {}
     score = np.asarray(cell[score_col], dtype=float)
