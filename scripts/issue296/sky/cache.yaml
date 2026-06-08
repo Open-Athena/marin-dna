@@ -1,0 +1,82 @@
+# SkyPilot task: Stage 1 of issue #296 — cache per-token validation loss.
+#
+# Pulls one checkpoint from S3 (the evals_v2-staged HF exports), runs
+# scripts/issue296/cache_per_token_loss.py over two CDS validation sets, and
+# uploads the per-token parquets + LL-gap equivalence checks back to S3. A tiny
+# job: 46M × ~16k short windows is a few minutes on one A10G.
+#
+# Auth: AWS (S3 checkpoint read + output write) comes from the instance role.
+# HF_TOKEN (private bolinas-dna datasets) is passed at launch.
+#
+# Launch (46M, the first validation pass):
+#   sky launch scripts/issue296/sky/cache.yaml -c issue296-46m \
+#     --env HF_TOKEN="$(cat ~/.cache/huggingface/token)" --down -y
+#
+# Reuse for the ladder later: override --env MODEL_NAME=<scaling-v0.5-...>.
+
+name: issue296-per-token-cache
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1 # 24 GB Ampere, bf16-capable (matches evals_v2)
+    disk_size: 100
+    labels:
+        project: dna
+    any_of: # prefer spot, fall back to on-demand (cloud_launch_conventions)
+        - use_spot: true
+        - use_spot: false
+
+workdir: .
+
+envs:
+    MODEL_NAME: scaling-v0.5-h640-p46M-step-215573
+    WINDOW_SIZE: "255"
+    BATCH_SIZE: "128"
+    S3_CKPT_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints
+    S3_OUT_ROOT: s3://oa-bolinas/scratch/issue296
+    VAL_CDS_REV: "" # optionally pin the zoonomia-v1-val_cds revision
+    GENOMES_V5_CDS_REV: daff592f213aaa1cab1711d477a79ff6b1bc4ef4
+    HF_TOKEN: "" # pass via `--env HF_TOKEN` (private bolinas-dna datasets)
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    # --group genome-s3 keeps the import surface identical to evals_v2 (the
+    # runner imports marin_dna.data.genome); Stage 1 itself reads no FASTA.
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    # HF Trainer auto-inits wandb if the package is importable; disable it for
+    # this inference-only job (no API key on a fresh node).
+    export WANDB_DISABLED=true
+    if [ -n "${HF_TOKEN:-}" ]; then export HUGGING_FACE_HUB_TOKEN="$HF_TOKEN"; fi
+
+    # Pull the checkpoint from S3 (instance role) into a local HF dir.
+    CKPT_DIR="/tmp/ckpt/$MODEL_NAME"
+    mkdir -p "$CKPT_DIR"
+    aws s3 cp --no-progress --recursive "$S3_CKPT_ROOT/$MODEL_NAME/" "$CKPT_DIR/"
+
+    run_one () {
+        # $1 hf_repo  $2 hf_filename  $3 dataset_name  $4 hf_revision (optional)
+        uv run python scripts/issue296/cache_per_token_loss.py \
+            --checkpoint-dir "$CKPT_DIR" \
+            --model-name "$MODEL_NAME" \
+            --hf-repo "$1" --hf-filename "$2" --dataset-name "$3" \
+            ${4:+--hf-revision "$4"} \
+            --window-size "$WINDOW_SIZE" --batch-size "$BATCH_SIZE" \
+            --out-dir scratch/issue296
+    }
+
+    # Primary analysis set: Ensembl coords, codon-annotatable in Stage 2.
+    run_one bolinas-dna/zoonomia-v1-val_cds val_cds.parquet val_cds "$VAL_CDS_REV"
+    # Genomes-v5 CDS: ties our re-aggregation to the official ll_gap summary.
+    run_one bolinas-dna/genomes-v5-validation-intervals-v5_255_255 \
+        validation.parquet genomes_v5_cds "$GENOMES_V5_CDS_REV"
+
+    aws s3 cp --no-progress --recursive scratch/issue296/ "$S3_OUT_ROOT/"
+    echo "DONE → $S3_OUT_ROOT (model=$MODEL_NAME)"
