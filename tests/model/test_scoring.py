@@ -43,6 +43,7 @@ from marin_dna.model.scoring import (
     _token_id_to_nuc_idx,
     compute_ll_clm,
     compute_marginal_clm,
+    compute_per_token_ll_clm,
     compute_reflogprob_clm,
     compute_variant_score_bundle,
     entropy_from_marginal,
@@ -189,6 +190,45 @@ def test_compute_ll_clm_invariants():
     # Counts partition L-1
     assert torch.equal(n_upper + n_lower, n_total)
     assert torch.all(n_total == float(L - 1))
+
+
+def test_compute_per_token_ll_clm_unsummed_matches_compute_ll_clm():
+    """The per-token kernel (issue #296) is exactly compute_ll_clm *before*
+    bucketing: row sum == ll_sum_total, and the sum over the is_upper[:, 1:]
+    target positions == ll_sum_upper. is_upper is ignored by the kernel."""
+    torch.manual_seed(3)
+    B, L, V = 4, 11, 7
+    logits = torch.randn(B, L, V)
+    input_ids = torch.randint(0, V, (B, L))
+    model = _DeterministicCLM(logits)
+
+    per_token = compute_per_token_ll_clm(model, input_ids)  # [B, L-1]
+    assert per_token.shape == (B, L - 1)
+    # The raw per-token log-probs, unmodified.
+    torch.testing.assert_close(
+        per_token, _logits_to_logprobs(logits, input_ids).float()
+    )
+
+    is_upper = torch.zeros(B, L, dtype=torch.bool)
+    is_upper[0, :3] = True
+    is_upper[1, :7] = True
+    is_upper[2, :2] = True
+    is_upper[3, :9] = True
+
+    bucketed = compute_ll_clm(model, input_ids, is_upper).double()  # [B, 4]
+    ll_sum_upper, ll_sum_lower, _, _ = bucketed.unbind(-1)
+
+    pt = per_token.double()
+    # Row sum == the unmasked total (ll_sum_upper + ll_sum_lower).
+    torch.testing.assert_close(pt.sum(dim=-1), ll_sum_upper + ll_sum_lower)
+    # Sum over the target-frame upper mask == ll_sum_upper (the LL-gap atom).
+    masked = (pt * is_upper[:, 1:].double()).sum(dim=-1)
+    torch.testing.assert_close(masked, ll_sum_upper)
+
+    # is_upper is accepted (batch-signature compat) but does not change output.
+    torch.testing.assert_close(
+        compute_per_token_ll_clm(model, input_ids, is_upper), per_token
+    )
 
 
 def test_compute_ll_clm_dataset_wide_token_weighted_mean():

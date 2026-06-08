@@ -129,6 +129,37 @@ def compute_ll_clm(
     return torch.stack([ll_sum_upper, ll_sum_lower, n_upper, n_lower], dim=-1)
 
 
+def compute_per_token_ll_clm(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    is_upper: Bool[Tensor, "B L"] | None = None,
+) -> Float[Tensor, "B L-1"]:
+    """Per-token log-likelihoods under a CLM — the **un-summed** ``compute_ll_clm``.
+
+    Returns the raw ``[B, L-1]`` per-position log-probs that ``compute_ll_clm``
+    buckets into upper/lower sums: entry ``[b, i]`` is
+    ``log p(input_ids[b, i+1] | input_ids[b, :i+1])`` (same target-side shift
+    via ``_logits_to_logprobs``). Caching this un-aggregated lets a later CPU
+    pass re-bucket the loss field by *any* per-position annotation (codon
+    position, splice distance, conservation, …) without re-running the model —
+    the stratified-LL-gap analysis of issue #296.
+
+    ``is_upper`` is accepted for batch-signature compatibility with the runner
+    (the case mask rides through the collator alongside ``input_ids``) but is
+    deliberately **unused** here — the output is un-bucketed by construction and
+    the caller realigns case from the source sequence. Invariants tying this
+    back to ``compute_ll_clm`` (same model, same ``input_ids``): the row sum of
+    this return equals ``ll_sum_upper + ll_sum_lower``; the sum over the
+    ``is_upper[:, 1:]`` target positions equals ``ll_sum_upper``.
+
+    ``_logits_to_logprobs`` already does the fp32 log_softmax; callers that
+    aggregate across many rows should accumulate in fp64.
+    """
+    del is_upper  # un-bucketed output; case is realigned downstream from source
+    logits = model(input_ids).logits
+    return _logits_to_logprobs(logits, input_ids).float()
+
+
 def compute_euclidean_distance(
     model: Any,
     input_ids: Int[Tensor, "B 2 L"],
