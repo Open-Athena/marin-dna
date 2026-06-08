@@ -655,6 +655,37 @@ _SGE_STUDY_META = {
         "score_col": "`author_score`",
         "class_col": "—",
     },
+    # Transcript-targeted (c.->g. recoded with pyhgvs + cdot; intronic recovered).
+    "urn:mavedb:00001225-a-1": {
+        "gene": "BRCA2", "study": "Huang et al. 2025, *Nature* 638:528–537",
+        "pmid": "39779857", "build": "GRCh38 (c.→g.)", "score_col": "`author_score`",
+        "class_col": "—",
+    },
+    "urn:mavedb:00000673-0-1": {
+        "gene": "RAD51C", "study": "Saturation genome editing of RAD51C (2024)",
+        "pmid": "39299233", "build": "GRCh38 (c.→g.)", "score_col": "`author_score`",
+        "class_col": "`author_functional_classification`",
+    },
+    "urn:mavedb:00000662-0-1": {
+        "gene": "BAP1", "study": "Waters et al. 2024 — BAP1 SGE",
+        "pmid": "38969833", "build": "GRCh38 (c.→g.)", "score_col": "`author_score`",
+        "class_col": "—",
+    },
+    "urn:mavedb:00000658-0-1": {
+        "gene": "DDX3X", "study": "Saturation genome editing of DDX3X (2023)",
+        "pmid": "38057330", "build": "GRCh38 (c.→g.)", "score_col": "`author_score`",
+        "class_col": "—",
+    },
+    "urn:mavedb:00000675-a-1": {
+        "gene": "VHL", "study": "VHL SGE — functional spectrum (2024)",
+        "pmid": "38969834", "build": "GRCh38 (c.→g.)", "score_col": "`author_score`",
+        "class_col": "—",
+    },
+    "urn:mavedb:00001226-a-1": {
+        "gene": "CARD11", "study": "Multiplexed functional assessment of CARD11 (2020)",
+        "pmid": "33202260", "build": "GRCh38 (c.→g.)", "score_col": "`author_score`",
+        "class_col": "— (codon-level study; SNV subset)",
+    },
 }
 
 

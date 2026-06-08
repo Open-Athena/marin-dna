@@ -101,7 +101,8 @@ DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
 - a common `function_score` column carries each study's headline continuous score (so
   it's usable across genes), alongside the full `author_` columns.
 
-Two loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`):
+Three loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`), one per
+coordinate encoding — **13 genes** total:
 
 - **BRCA1** — `read_brca1_findlay`: the Evo2-bundled Findlay 2018 supplementary xlsx,
   hg19 genomic coords for **all** SNVs incl. intronic (MaveDB's cDNA→genome map drops
@@ -109,7 +110,15 @@ Two loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`):
 - **Genome-targeted MaveDB genes** (BARD1, PALB2, RAD51D, XRCC2, CTCF, SFPQ) —
   `load_mavedb_genomic_scoreset`: their MaveDB `hgvs_nt` is `NC_…:g.` (genomic), so
   coordinates parse directly and intronic SNVs are kept with no transcript mapping;
-  GRCh38-native (no liftover). Non-SNVs (del/delins/MNV) and null-score rows are dropped.
+  GRCh38-native (no liftover).
+- **Transcript-targeted MaveDB genes** (BRCA2, RAD51C, BAP1, DDX3X, VHL, CARD11) —
+  `load_mavedb_transcript_scoreset`: their `hgvs_nt` is `ENST…:c.` (transcript cDNA),
+  whose **intronic** variants MaveDB's own map drops. The `sge_recode_mavedb` rule
+  recovers genomic coords with **pyhgvs + cdot** (`recode_hgvs_c_to_genomic` —
+  cdot's GRCh38 REST transcript models project each `c.`/intronic HGVS onto the staged
+  FASTA; cached per gene). Needs the **`hgvs` dependency group** (`cdot`, `pyhgvs`).
+
+Non-SNVs (del/delins/MNV) and null-score rows are dropped throughout.
 
 `sge_dataset_unsplit` (in `workflow/rules/sge.smk`) downloads each MaveDB score-set,
 loads + annotates each gene (HIGH-impact dropped), and **diagonal-concats** them (each
@@ -117,12 +126,8 @@ study contributes its own `author_` columns, sparse) into
 `results/dataset_unsplit/sge.parquet`. No `results/qc/` artifact (no matching). Needs
 AWS S3 read (the consequence/interval/genome artifacts) but **no** Synapse auth.
 
-The **transcript-targeted** genes (BRCA2, RAD51C, BAP1, DDX3X, VHL, CARD11) use `c.`
-HGVS, whose intronic variants MaveDB's auto-map drops — they need a `c.→g.` recovery
-step and are a separate phase (not yet wired).
-
 ```bash
-uv run snakemake results/dataset/sge/{train,test}.parquet
+uv run --group hgvs snakemake results/dataset/sge/{train,test}.parquet
 ```
 
 ## Matching scheme
