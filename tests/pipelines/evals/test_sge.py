@@ -14,6 +14,7 @@ from marin_dna.pipelines.evals.sge import (
     attach_author_class_harmonized,
     attach_calibrated_class,
     attach_function_direction,
+    attach_label,
     build_mavedb_metadata,
     extract_assay_facts,
     extract_score_calibrations,
@@ -1020,6 +1021,21 @@ class TestAttachCalibratedClass:
             AssertionError, match="attach_author_class_harmonized first"
         ):
             attach_calibrated_class(data, _GENEN_CAL)
+
+
+class TestAttachLabel:
+    def test_label_from_calibrated_class(self) -> None:
+        data = pl.DataFrame(
+            {"calibrated_class": ["abnormal", "normal", "intermediate", None]}
+        )
+        out = attach_label(data)
+        # True = impactful (abnormal), False = normal; null for intermediate /
+        # uncalibrated (those rows are dropped from the shipped v3 dataset).
+        assert out["label"].to_list() == [True, False, None, None]
+
+    def test_requires_calibrated_class_first(self) -> None:
+        with pytest.raises(AssertionError, match="attach_calibrated_class first"):
+            attach_label(pl.DataFrame({"gene": ["X"]}))
 
 
 class TestAttachFunctionDirection:

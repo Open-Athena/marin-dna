@@ -7,6 +7,7 @@ from marin_dna.pipelines.evals.sge import (
     attach_author_class_harmonized,
     attach_calibrated_class,
     attach_function_direction,
+    attach_label,
     build_mavedb_metadata,
     load_mavedb_genomic_scoreset,
     load_mavedb_transcript_scoreset,
@@ -197,4 +198,17 @@ HIGH-impact, diagonal-concat."""
         data = attach_author_class_harmonized(data)
         data = attach_calibrated_class(data, calibrations)
         data = attach_function_direction(data, calibrations)
+        # #301: AUPRC-only benchmark. Add the boolean `label` (True = impactful =
+        # calibrated abnormal, False = normal) and keep only binary-labeled variants —
+        # drop intermediate + uncalibrated/null (incl. all of BRCA2) so no model scores
+        # a variant the classification metric never uses. The continuous
+        # function_score* columns stay for provenance.
+        data = attach_label(data)
+        n_before = data.height
+        data = data.filter(pl.col("label").is_not_null())
+        print(
+            f"[sge] label filter: kept {data.height}/{n_before} binary-labeled variants "
+            f"({data.filter(pl.col('label')).height} abnormal / "
+            f"{data.filter(~pl.col('label')).height} normal)"
+        )
         data.write_parquet(output[0])
