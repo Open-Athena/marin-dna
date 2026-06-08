@@ -31,7 +31,7 @@ METRICS = "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics"
 # (class AUPRC subset, matched stratum, panel title)
 CLASSES = [
     ("missense_variant", "codon_12", "missense"),
-    ("synonymous_variant", "codon_3", "synonymous"),
+    ("synonymous_variant", "codon_3_4fold", "synonymous"),
     ("splicing", "splicing", "splicing"),
 ]
 

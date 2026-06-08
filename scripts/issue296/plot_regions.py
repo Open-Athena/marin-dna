@@ -63,7 +63,9 @@ def main() -> None:
         ("codon_1", "CDS codon pos 1", "tab:blue", "-"),
         ("codon_2", "CDS codon pos 2", "tab:cyan", "-"),
         ("codon_3", "CDS codon pos 3 (wobble)", "tab:red", "-"),
+        ("codon_3_4fold", "CDS codon pos 3, 4-fold degenerate", "tab:orange", "--"),
         ("splicing", "intronic splice site (≤20bp)", "tab:green", "-"),
+        ("other_noncoding", "other non-coding (deep intron)", "tab:brown", "-"),
     ]
     fig, ax = plt.subplots(figsize=(7.5, 5))
     for col, lab, c, ls in regions:
