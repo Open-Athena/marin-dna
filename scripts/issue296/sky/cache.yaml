@@ -35,6 +35,7 @@ envs:
     MODEL_NAME: scaling-v0.5-h640-p46M-step-215573
     MODELS: "" # space-separated list; overrides MODEL_NAME for a multi-model sweep
     RUN_GENOMES_V5: "1" # also cache the genomes-v5 CDS anchor set (set 0 to skip)
+    SKIP_LL_GAP_CHECK: "" # set to 1 to skip the equivalence re-check (~2x faster)
     WINDOW_SIZE: "255"
     BATCH_SIZE: "128"
     S3_CKPT_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints
@@ -81,6 +82,7 @@ run: |
             --model-name "$MODEL_NAME" \
             --hf-repo "$1" --hf-filename "$2" --dataset-name "$3" \
             ${4:+--hf-revision "$4"} \
+            ${SKIP_LL_GAP_CHECK:+--skip-ll-gap-check} \
             --window-size "$WINDOW_SIZE" --batch-size "$BATCH_SIZE" \
             --out-dir scratch/issue296
     }

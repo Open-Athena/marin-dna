@@ -58,6 +58,13 @@ def _parse_args() -> argparse.Namespace:
         default="scratch/issue296",
         help="Local output root; per_token/ and ll_gap_check/ are written under it.",
     )
+    p.add_argument(
+        "--skip-ll-gap-check",
+        action="store_true",
+        help="Skip the second forward (compute_hf_ll_gap equivalence re-check) — "
+        "the per-token cache has its own alignment asserts. Halves wall time; use "
+        "once the kernel is validated (e.g. for the big models).",
+    )
     return p.parse_args()
 
 
@@ -107,6 +114,10 @@ def main() -> None:
     pt_path.parent.mkdir(parents=True, exist_ok=True)
     per_token.to_parquet(pt_path, index=False)
     print(f"[stage1] wrote {len(per_token):,} token rows → {pt_path}")
+
+    if args.skip_ll_gap_check:
+        print("[stage1] skipping LL-gap equivalence re-check (--skip-ll-gap-check)")
+        return
 
     # Same-set equivalence gate: official case-bucketed LL gap vs our re-aggregation.
     atoms = compute_hf_ll_gap(
