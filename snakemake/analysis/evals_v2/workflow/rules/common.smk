@@ -172,6 +172,27 @@ for _m in UMAP_MODELS:
     )
 
 
+# --- DART-Eval Task 3 cell-type UMAP (interpretation, issue #298) ------------
+# Optional `dart_umap:` config section; targets kept off `rule all` (see
+# rules/dart_task3_umap.smk). Reuses the `models:` registry. The same model is
+# embedded at each `context_sizes` entry (whole-window pooling: the rule sets
+# window_size = n_center_bp = ctx), so context size is decoupled from the per-
+# model `window_size` (unlike umap_embeddings, which uses the model's native one).
+DART_UMAP_CFG = config.get("dart_umap", {})
+DART_UMAP_MODELS = DART_UMAP_CFG.get("models", [])
+DART_UMAP_CONTEXT_SIZES = DART_UMAP_CFG.get("context_sizes", [])
+
+# Fail fast: every dart_umap model is a known checkpoint; every context size is a
+# positive int. (Whether a context fits a model's position budget is checked at
+# run time against the checkpoint's config.json — see `assert_window_fits`.)
+for _m in DART_UMAP_MODELS:
+    assert _m in MODELS, f"dart_umap model {_m!r} not found in `models`"
+for _c in DART_UMAP_CONTEXT_SIZES:
+    assert isinstance(_c, int) and _c > 0, (
+        f"dart_umap context_sizes entries must be positive ints, got {_c!r}"
+    )
+
+
 # --- cLLR calibration tables (mutation-rate calibration, #267/#270) ----------
 # Optional `calibration:` config section; targets kept off `rule all`
 # (see rules/calibration.smk). Reuses the `models:` registry.

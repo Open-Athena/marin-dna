@@ -108,9 +108,10 @@ def compute_region_embeddings(
     same loci), so their UMAPs are point-for-point comparable. The pooled center
     is never padding, so this only ever touches flank context.
 
-    Returns a DataFrame of the carried columns (``chrom/start/end/label/cons``)
-    plus ``emb_0…emb_{D-1}``, one row per window (input order, after a
-    ``(chrom, start)`` sort).
+    Returns a DataFrame of the input metadata columns (whatever ``regions``
+    carried — GPN-Star: ``chrom/start/end/label/cons``; DART task3:
+    ``chrom/start/end/label``, no conservation) plus ``emb_0…emb_{D-1}``, one row
+    per window (input order, after a ``(chrom, start)`` sort).
     """
     assert window_size >= n_center_bp, (
         f"window_size {window_size} must be >= n_center_bp {n_center_bp}"
@@ -164,7 +165,9 @@ def compute_region_embeddings(
     assert np.isfinite(emb).all(), "embeddings contain non-finite values"
     emb_df = pd.DataFrame(emb, columns=[f"emb_{i}" for i in range(emb.shape[1])])
     # regions is already 0..N-1 indexed (reset above); concat aligns by position.
-    return pd.concat([regions[_CARRY_COLUMNS], emb_df], axis=1)
+    # Carry every input metadata column so the kernel stays dataset-agnostic: a
+    # dataset without conservation (DART task3) just carries chrom/start/end/label.
+    return pd.concat([regions, emb_df], axis=1)
 
 
 def fit_umap(emb_df: pd.DataFrame, *, random_state: int = 42) -> pd.DataFrame:

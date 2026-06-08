@@ -114,7 +114,7 @@ at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
 ### Interpretation targets (off `rule all`)
 
-Two visual-interpretation analyses live alongside the metrics DAG but are kept
+Three visual-interpretation analyses live alongside the metrics DAG but are kept
 **off `rule all`** (so they never perturb score/metric reruns); build them by
 name:
 
@@ -138,6 +138,17 @@ name:
     --env EXTRA_UV_GROUPS="--group umap" \
     --env SNAKEMAKE_ARGS="-- umap"
   ```
+
+- **DART-Eval Task 3 cell-type UMAP** (#298) — `snakemake dart_umap`. The
+  cell-type-discrimination analogue of the embedding UMAP: embeds the
+  `bolinas-dna/evals_dart_task3` 500 bp cell-type peak windows with each
+  `dart_umap.models` checkpoint at every `context_sizes` arm (whole-window
+  pooling — the rule sets `window_size = n_center_bp = ctx`), fits UMAP, and
+  writes `results/plots/dart_umap/{model}/ctx{ctx}/celltype.svg` colored by the
+  5-way cell type. The `context_sizes` sweep compares a model's native context
+  (e.g. 255 bp) against the full 500 bp peak (~2× context, RoPE extrapolation).
+  Same `umap` + `genome-s3` groups as the embedding UMAP (swap `SNAKEMAKE_ARGS`
+  for `-- dart_umap` on a sky cluster).
 
 ### Calibration tables (cLLR, #267/#270)
 
@@ -231,6 +242,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
+| `dart_umap` | Optional; DART-Eval Task 3 cell-type UMAP (#298, off `rule all`). `{dataset, split, context_sizes: [...], layer_index, random_state, dpi, batch_size, models: [...]}` — `models` reuse the `models:` registry; the same model is embedded at each `context_sizes` (whole-window pooling, so context is decoupled from the model's `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/dart_task3_umap.smk`. |
 | `calibration` | Optional; cLLR mutation-rate calibration tables (#267/#270, off `rule all`). `{neutral_sites_s3_prefix, subsample_n, scoreable_window, min_bin_count, rc, models: [...]}` — scores the pre-filtered + subsampled neutral set (`neutral_sites_n{subsample_n}_w{scoreable_window}.parquet`) → per-model `llr_neutral_mean`. See `rules/calibration.smk`. |
 | `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
 

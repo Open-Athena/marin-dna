@@ -1210,6 +1210,26 @@ umap_embeddings:
   models:
     - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (255+BOS) — first pass, single model
 
+# DART-Eval Task 3 cell-type UMAP (issue #298) — off `rule all`; build with
+# `snakemake dart_umap` (or one
+# `results/plots/dart_umap/<model>/ctx<N>/celltype.svg` per arm). Embeds the
+# evals_dart_task3 cell-type peak windows with each model at each context size
+# (whole-window mean pooling: the rule sets window_size = n_center_bp = ctx),
+# then UMAP-colors by the 5-way cell-type label. context_sizes sweeps native
+# 255 bp (exp136's training context) vs the full 500 bp peak (~2x context, RoPE
+# extrapolation / OOD). Validation split for fast iteration. Same `umap` +
+# `genome-s3` groups as umap_embeddings.
+dart_umap:
+  dataset: bolinas-dna/evals_dart_task3
+  split: validation              # smallest split (chr 6 + 21) — fast iteration
+  context_sizes: [255, 500]      # native (255+BOS) vs full 500 bp peak (OOD)
+  layer_index: -1                # last hidden layer (match the GPN-Star UMAP)
+  random_state: 42               # UMAP seed (also forces single-threaded UMAP)
+  dpi: 200                       # scatter raster dpi
+  batch_size: 128                # = inference.batch_size (see umap_embeddings note)
+  models:
+    - exp136-proj_v30-step-9999  # enhancer specialist (Qwen3-0.6B, 255+BOS)
+
 # Functional/non-functional LL gap (issue #274) — off `rule all`; build with
 # `snakemake ll_gap` (or one `results/ll_gap/scores/<model>/<region>.parquet`
 # per sky cluster, then `snakemake ll_gap` to gather). For each (model, region)
