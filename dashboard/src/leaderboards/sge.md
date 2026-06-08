@@ -19,7 +19,6 @@ import {
   PROTOCOL_OPTIONS,
   PROTOCOL_DEFAULTS,
   FamilyProtocolToggle,
-  PillSelect,
 } from "../components/controls.js";
 ```
 
@@ -58,14 +57,16 @@ const SUBSET_COLS = [
   {key: "splicing", label: "Splicing"},
   {key: "both", label: "Both"},
 ];
-// AUPRC color domain tuned for SGE: the abnormal base rate is low (~5–16%, well
-// below the matched-pair 0.10), so anchor at 0 and cap near the observed ceiling
-// for contrast. YlGn (same family as the other leaderboards).
-const AUPRC_DOMAIN = [0, 0.6];
+// AUPRC color domain: anchor at 0 (SGE's abnormal base rate is low, ~5–16%, well
+// below the matched-pair 0.10) and run to the metric ceiling 1.0, so the color
+// encodes absolute AUPRC. This matches the matched-pair heatmap's upper end
+// (components/heatmap.js maps [0.10, 1.0]); same YlGn ramp and `0.1 + 0.85·t`
+// mapping, so a given green reads as the same AUPRC across leaderboards.
+const AUPRC_DOMAIN = [0, 1.0];
 const auprcColor = (v) => {
   if (v == null || !Number.isFinite(v)) return "#ffffff";
   const t = Math.max(0, Math.min(1, (v - AUPRC_DOMAIN[0]) / (AUPRC_DOMAIN[1] - AUPRC_DOMAIN[0])));
-  return d3.interpolateYlGn(0.12 + 0.88 * t);
+  return d3.interpolateYlGn(0.1 + 0.85 * t);
 };
 const auprcText = (v) => (v == null || !Number.isFinite(v) ? "#666" : d3.lab(auprcColor(v)).l > 60 ? "#000" : "#fff");
 ```
@@ -106,7 +107,30 @@ const geneLabel = new Map([
   ["_macro_avg_", "All genes"],
   ...accPairs.map(([urn, gene]) => [urn, gene]),
 ]);
-const geneScope = view(PillSelect(geneOptions, "_macro_avg_", (o) => geneLabel.get(o) ?? o));
+
+// Modern segmented control: a single grey track of pills, active = white pill
+// with a soft lift (the iOS look). "All genes" (the overview) is set apart in
+// green. All options visible at a glance; no dropdown.
+function GenePills(options, initial, labelFor) {
+  let value = initial;
+  const node = html`<span class="sge-genebar" role="radiogroup" aria-label="Gene scope"></span>`;
+  Object.defineProperty(node, "value", {get: () => value});
+  const fire = () => node.dispatchEvent(new Event("input", {bubbles: true}));
+  function render() {
+    node.replaceChildren(
+      ...options.map((o) => {
+        const isAll = o === "_macro_avg_";
+        return html`<button type="button" role="radio" aria-checked=${value === o}
+          class=${`sge-gene-btn${value === o ? " active" : ""}${isAll ? " sge-gene-all" : ""}`}
+          onclick=${() => { if (value !== o) { value = o; render(); fire(); } }}
+        >${labelFor(o)}</button>`;
+      }),
+    );
+  }
+  render();
+  return node;
+}
+const geneScope = view(GenePills(geneOptions, "_macro_avg_", (o) => geneLabel.get(o) ?? o));
 ```
 
 ```js
@@ -151,17 +175,20 @@ function sgeHeatmap({rows, geneScope}) {
   };
   function render() {
     const ordered = [...byMethod.values()].sort(cmp());
-    // Per-column sample-size sub-label. For a specific gene: n = labeled
-    // variants (AUPRC) on the subset columns, K subsets on Macro. For the
-    // All-genes macro: K accessions averaged (also surfaces coverage — fewer
-    // genes qualify on splicing). Same across methods (identical scored rows).
+    // Per-column sub-label (same across methods — identical scored rows).
+    //  • All-genes macro: K accessions averaged → show coverage (fewer genes
+    //    qualify on splicing, where small genes miss the 30-per-class gate).
+    //  • Specific gene, Macro column: mean of the qualifying subsets → K subsets.
+    //  • Specific gene, a real subset (leaf cell): the AUPRC class balance,
+    //    positives vs negatives (n_neg = n − n_pos, since every scored row is
+    //    one or the other).
     const colSub = (key) => {
-      let n = null;
-      for (const m of ordered) { const c = m.cells.get(key); if (c != null) { n = c.n; break; } }
-      if (n == null) return "";
-      if (geneScope === "_macro_avg_") return `${n} ${n === 1 ? "gene" : "genes"}`;
-      if (key === "_macro_avg_") return `${n} ${n === 1 ? "subset" : "subsets"}`;
-      return `n=${n}`;
+      let c = null;
+      for (const m of ordered) { const cc = m.cells.get(key); if (cc != null) { c = cc; break; } }
+      if (c == null) return "";
+      if (geneScope === "_macro_avg_") return `${c.n} ${c.n === 1 ? "gene" : "genes"}`;
+      if (key === "_macro_avg_") return `${c.n} ${c.n === 1 ? "subset" : "subsets"}`;
+      return `n=${c.n_pos} vs. ${c.n - c.n_pos}`;
     };
     const table = html`<table class="sge-heatmap">
       <colgroup><col style="width:220px"></col>${SUBSET_COLS.map(() => html`<col style="width:108px"></col>`)}</colgroup>
@@ -205,7 +232,7 @@ function sgeHeatmap({rows, geneScope}) {
 
 // AUPRC color legend (YlGn on the SGE domain).
 function auprcLegend({width = 240, height = 14} = {}) {
-  const ticks = [0, 0.15, 0.3, 0.45, 0.6];
+  const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
   const stops = d3.range(0, 1.001, 1 / 40).map((t) => ({
     offset: `${t * 100}%`,
     color: auprcColor(AUPRC_DOMAIN[0] + t * (AUPRC_DOMAIN[1] - AUPRC_DOMAIN[0])),
@@ -239,7 +266,7 @@ const filtered = rows.filter(
 ```
 
 <div class="legend-row">
-  <span><b>AUPRC</b> ×100, colored on the scale below (anchored at 0; abnormal base rate ~5–16% varies per gene). <b>Macro</b> = mean of the missense + splicing subsets; <b>Both</b> = the two pooled. Click a column header to sort. Hover a model for details; hover a cell for ± SE.</span>
+  <span><b>AUPRC</b> ×100, colored on the 0→100 scale below (anchored at 0, the metric's full range — abnormal base rate ~5–16% varies per gene). <b>Macro</b> = mean of the missense + splicing subsets; <b>Both</b> = the two pooled. Column sub-labels: <b>positives vs. negatives</b> for a selected gene, or genes-averaged for the all-genes macro. Click a column header to sort. Hover a model for its card; hover a cell for ± SE.</span>
   ${auprcLegend()}
 </div>
 
@@ -282,4 +309,72 @@ main > h1, main > h2, main > p { max-width: 1100px; }
 .dataset-notes { margin-top: 0.5em; color: #666; font-size: 0.9em; }
 .dataset-notes div { margin: 2px 0; }
 .legend-row { display: flex; align-items: center; gap: 16px; margin: 0.5em 0 1em; font-size: 0.85em; color: #444; max-width: 1100px; flex-wrap: wrap; }
+
+/* Gene-scope segmented control */
+.sge-genebar {
+  display: inline-flex; flex-wrap: wrap; gap: 4px;
+  padding: 4px; background: #f1f3f5; border: 1px solid #e6e9ec; border-radius: 11px;
+  max-width: 100%;
+}
+.sge-gene-btn {
+  appearance: none; border: none; background: transparent; color: #495057;
+  font-size: 0.86em; font-weight: 500; padding: 5px 13px; border-radius: 8px;
+  cursor: pointer; transition: background .12s, color .12s, box-shadow .12s;
+}
+.sge-gene-btn:hover:not(.active) { background: rgba(0, 0, 0, 0.05); color: #212529; }
+.sge-gene-btn.active {
+  background: #fff; color: #111; font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+.sge-gene-btn.sge-gene-all { color: #2f6f3e; font-weight: 600; }
+.sge-gene-btn.sge-gene-all.active {
+  background: #2f6f3e; color: #fff; box-shadow: 0 1px 3px rgba(47, 111, 62, 0.35);
+}
+
+/* Model popover on method-name hover (the element is appended to <body> by
+   attachModelPopover, so this CSS must live on every page that uses it — the
+   matched-pair/QTL leaderboards carry an identical block). */
+.lb-method-popover {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  font-size: 0.85em;
+  line-height: 1.4;
+  padding: 10px 12px;
+  min-width: 280px;
+  max-width: 360px;
+}
+.lb-pop-header { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
+.lb-pop-family {
+  display: inline-block;
+  font-size: 0.7em;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  color: #fff;
+  width: fit-content;
+}
+.lb-pop-display { font-size: 0.98em; font-weight: 600; }
+.lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
+.lb-pop-specs { margin: 6px 0; }
+.lb-pop-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.lb-pop-key {
+  color: #888; text-transform: uppercase; font-size: 0.72em;
+  letter-spacing: 0.04em;
+}
+.lb-pop-val { font-size: 0.92em; }
+.lb-pop-links { margin: 6px 0 2px; font-size: 0.9em; }
+.lb-pop-more {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.82em;
+  color: #3a7bd5;
+}
 </style>

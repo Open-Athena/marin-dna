@@ -127,7 +127,7 @@ DATASETS = {
         "metric": _SGE_METRIC,
         "notes": [
             "Saturation-genome-editing VEP (12 genes, missense + splicing only; v2 rebuild #300). `function_score_aligned` is the direction-harmonized continuous score; `calibrated_class` is the uniform ClinGen/ExCALIBR abnormal/normal call.",
-            "Use the gene selector to view the macro across accessions or a single accession; an AUPRC heatmap (methods × consequence subsets — Macro / Missense / Splicing / Both), colored on a SGE-tuned scale (anchored at 0, since the abnormal base rate is well below the matched-pair 0.10).",
+            "Use the gene selector to view the macro across accessions or a single accession; an AUPRC heatmap (methods × consequence subsets — Macro / Missense / Splicing / Both), colored on a 0→1 scale (anchored at 0, the metric's full range — the abnormal base rate is well below the matched-pair 0.10; upper end matches the matched-pair heatmap).",
             "MarinDNA defaults to LLR (`minus_llr_avg`, signed — the assayed ALT's direction is informative, so not `abs`); NucDep (`jsd_avg`) is one click away. Conservation tracks use their single per-position score.",
         ],
     },
