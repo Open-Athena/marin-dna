@@ -19,6 +19,8 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 | `complex_traits` | UKBB fine-mapped complex-trait variants | SuSiE+FINEMAP `max(PIP across the traits where this variant was fine-mapped) > 0.9` | `max(PIP) < 0.01` AND no SuSiE/FINEMAP combine-step null PIP among those traits (`label_variants_by_pip(use_null_pip_guard=True)`) |
 | `caqtl` | DART-Eval African caQTLs (ATAC), GRCh38 | Significant caQTLs in peaks | Control variants in peaks (no matching) |
 | `dsqtl` | DART-Eval Yoruban dsQTLs (DNase), hg19→GRCh38 | Significant dsQTLs in peaks | Control variants in peaks (no matching) |
+| `sge` | Saturation genome editing function scores (BRCA1; #289 phase 1) | — *(no label: a continuous experimental function score per SNV)* | — |
+| `dart_task3` | DART-Eval Task 3 cell-type ATAC peaks — 500 bp intervals, **not variants** (#293) | — *(no pos/neg: 5-class cell-type label — GM12878 / H1ESC / HEPG2 / IMR90 / K562)* | — |
 
 Only `mendelian_traits` has a corresponding `_harness_255` eval-harness
 variant. A 255 bp window centered on each variant is materialized into
@@ -80,6 +82,119 @@ export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
 uv run snakemake \
   results/dataset/caqtl/{train,test}.parquet \
   results/dataset/dsqtl/{train,test}.parquet
+```
+
+### SGE (saturation genome editing) — `sge`
+
+`sge` is a saturation-genome-editing variant-effect benchmark (issue #289): per-SNV
+**experimental function scores** from endogenous SGE assays — a label axis orthogonal
+to the clinical/population/statistical labels above, and one that covers near-exon
+noncoding (splice-region, proximal-intronic) SNVs as well as missense. Like the
+DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
+
+- it carries **no binary `label`** — only the authors' continuous score(s) and discrete
+  class(es), preserved verbatim under an `author_` prefix (no source metadata lost;
+  nothing collides with the pipeline's `consequence` / `distance_*` columns);
+- the trivially-deleterious **HIGH-impact `exclude_consequences`** (canonical splice,
+  nonsense, frameshift, …) are **dropped** — those aren't the discriminative signal;
+- per-variant provenance is `(gene, mavedb_urn)`: the gene symbol plus the canonical
+  MaveDB accession of the source study (a gene can have >1 study, e.g. BRCA2);
+- a common `function_score` column carries each study's headline continuous score (so
+  it's usable across genes), alongside the full `author_` columns.
+
+Three loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`), one per
+coordinate encoding — **12 genes** total:
+
+- **BRCA1** — `read_brca1_findlay`: the Evo2-bundled Findlay 2018 supplementary xlsx,
+  hg19 genomic coords for **all** SNVs incl. intronic (MaveDB's cDNA→genome map drops
+  intronic), lifted to GRCh38.
+- **Genome-targeted MaveDB genes** (BARD1, PALB2, RAD51D, XRCC2, CTCF, SFPQ) —
+  `load_mavedb_genomic_scoreset`: their MaveDB `hgvs_nt` is `NC_…:g.` (genomic), so
+  coordinates parse directly and intronic SNVs are kept with no transcript mapping;
+  GRCh38-native (no liftover).
+- **Transcript-targeted MaveDB genes** (BRCA2, RAD51C, BAP1, DDX3X, VHL) —
+  `load_mavedb_transcript_scoreset`: their `hgvs_nt` is `ENST…:c.` (transcript cDNA),
+  whose **intronic** variants MaveDB's own map drops. The `sge_recode_mavedb` rule
+  recovers genomic coords with **pyhgvs + cdot** (`recode_hgvs_c_to_genomic` —
+  cdot's GRCh38 REST transcript models project each `c.`/intronic HGVS onto the staged
+  FASTA; cached per gene). Needs the **`hgvs` dependency group** (`cdot`, `pyhgvs`).
+
+Non-SNVs (del/delins/MNV) and null-score rows are dropped throughout.
+
+`sge_dataset_unsplit` (in `workflow/rules/sge.smk`) downloads each MaveDB score-set,
+loads + annotates each gene (HIGH-impact dropped), and **diagonal-concats** them (each
+study contributes its own `author_` columns, sparse) into
+`results/dataset_unsplit/sge.parquet`. No `results/qc/` artifact (no matching). Needs
+AWS S3 read (the consequence/interval/genome artifacts) but **no** Synapse auth.
+
+**MaveDB study-level metadata.** The `sge_mavedb_metadata` rule fetches each study's
+MaveDB record once (`build_mavedb_metadata`) and emits two study-level artifacts:
+
+- `results/sge/assay_facts.parquet` — the experiment's controlled-vocabulary **assay
+  facts** (assay readout, mechanism, model system, endogenous-locus library mechanism,
+  …) as `assay_*` columns, one row per `(gene, mavedb_urn)`. These are **joined onto
+  the dataset** (by accession) as constant-per-gene `assay_*` columns, so the assay
+  characteristics are queryable alongside every variant. Every annotated study is a
+  loss-of-function assay; **BRCA2** is unannotated in MaveDB (blank `assay_*`).
+- `results/sge/calibrations.parquet` — the `scoreCalibrations` (investigator-provided
+  functional classes + ClinGen/ExCALIBR **ACMG** calibrations: `PS3`/`BS3` criterion,
+  evidence strength, signed points, `prior_probability_pathogenicity` OddsPath prior,
+  threshold-source PMIDs) flattened to a **tidy long companion table** (one row per
+  gene × calibration × functional class). It is *not* joined per-variant (wrong grain)
+  and ships alongside the splits as `calibrations.parquet` in the HF repo.
+
+```bash
+uv run --group hgvs snakemake results/dataset/sge/{train,test}.parquet
+```
+
+### DART-Eval Task 3 (cell-type peaks) — `dart_task3`
+
+`dart_task3` is [DART-Eval](https://github.com/kundajelab/DART-Eval) **Task 3**
+("Discriminating Cell-Type-Specific Elements", issue #293): a cell-type-specific
+**chromatin-accessibility peak** dataset — the embedding/interpretation
+counterpart to the Task-5 QTL datasets above. Each row is a **500 bp** ATAC-seq
+consensus-peak window (±250 bp around the summit, GRCh38), labeled by the
+**cell type** it is differentially accessible in — one of 5 cell lines
+(`GM12878`, `H1ESC`, `HEPG2`, `IMR90`, `K562`). The window set is DART-Eval's
+`input_data/top_5000_deseq_peaks.tsv` — the top-5,000 DESeq2
+differentially-accessible peaks per cell type (the subset they feed their
+zero-shot clustering / UMAP): **25,000 windows, 5,000 balanced per cell type**,
+with unique peak coordinates.
+
+It is an **interval dataset, not variants**, so it bypasses all the variant
+machinery — no ref/alt, no `consequence`/`distance_*` annotation, no matching, no
+subsampling — and uses its **own rules and output namespace**
+(`workflow/rules/dart_task3.smk`, `results/dart_task3/…`). The full 500 bp peak is
+stored (never pre-cropped to a model's context window), so the embedding context /
+pooling choice stays an open downstream decision.
+
+**Splits.** Unlike the rest of the pipeline (odd/even 2-way), `dart_task3` uses
+DART-Eval's canonical **3-way** chromosome holdout, shipped one file per split (HF
+convention: `train.parquet` / `validation.parquet` / `test.parquet`, no in-row
+`split` column):
+
+| File | Chromosomes |
+|---|---|
+| `train.parquet` | 1, 2, 3, 4, 7, 8, 9, 11, 12, 13, 15, 16, 17, 19, X, Y |
+| `validation.parquet` | 6, 21 |
+| `test.parquet` | 5, 10, 14, 18, 20, 22 |
+
+`dart_task3_dataset` parses the TSV (`parse_dart_task3`), runs a build-time sanity
+check (all 5 cell types, ~25k windows: `assert_full_dataset`), and routes windows
+to the 3 splits (`split_frames`) — all in
+`src/marin_dna/pipelines/evals/dart_task3.py`, so the logic is unit-tested. There
+is **no** `results/qc/` artifact (no matching).
+
+Like caqtl/dsqtl it needs **Synapse auth** (the same PAT mechanism): set
+`SYNAPSE_AUTH_TOKEN` (the source file is pinned in `config.yaml` as
+`dart_eval.task3_synapse_id: syn62161401`). It is deliberately **not** in
+`rule all` / `upload_all` (its own 3-split target); build and upload it
+explicitly:
+
+```bash
+export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
+uv run snakemake dart_task3                       # build the 3 split parquets
+uv run snakemake results/dart_task3/upload.done   # upload to bolinas-dna/evals_dart_task3
 ```
 
 ## Matching scheme
