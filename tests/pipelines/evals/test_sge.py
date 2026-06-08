@@ -7,7 +7,11 @@ import pytest
 
 from marin_dna.data.utils import load_annotation
 from marin_dna.pipelines.evals.sge import (
+    _CALIBRATION_SCHEMA,
     annotate_sge_variants,
+    build_mavedb_metadata,
+    extract_assay_facts,
+    extract_score_calibrations,
     load_mavedb_genomic_scoreset,
     load_mavedb_transcript_scoreset,
     normalize_brca1_findlay,
@@ -451,3 +455,152 @@ class TestAnnotateSgeVariants:
                 lift=False,
                 name="test",
             )
+
+
+# --------------------------------------------------------------------------- #
+# MaveDB study-level metadata: assay facts (keywords) + score calibrations
+# --------------------------------------------------------------------------- #
+# Canned MaveDB score-set record (the fields the extractors read). Mirrors the
+# real API: experiment.keywords for assay facts; scoreCalibrations -> a list of
+# threshold schemes each with functionalClassifications.
+_SCORE_SET = {
+    "experiment": {
+        "keywords": [
+            {"keyword": {"key": "Phenotypic Assay Method", "label": "Cell fitness"}},
+            {
+                "keyword": {
+                    "key": "Phenotypic Assay Mechanism",
+                    "label": "Loss of function",
+                }
+            },
+            {
+                "keyword": {
+                    "key": "Endogenous Locus Library Method Mechanism",
+                    "label": "Nuclease",
+                }
+            },
+            {"keyword": {"key": "No Label", "label": None}},  # malformed -> skipped
+        ]
+    },
+    "scoreCalibrations": [
+        {
+            "title": "Investigator-provided functional classes",
+            "researchUseOnly": False,
+            "baselineScore": 0.0,
+            "calibrationMetadata": None,
+            "thresholdSources": [
+                {"identifier": "30209399", "dbName": "PubMed"},
+                {"identifier": "10.1038/x", "dbName": "DOI"},  # non-PubMed -> skipped
+            ],
+            "functionalClassifications": [
+                {
+                    "label": "Functional",
+                    "functionalClassification": "normal",
+                    "range": [-0.748, None],
+                    "inclusiveLowerBound": True,
+                    "inclusiveUpperBound": False,
+                    "variantCount": 2821,
+                    "acmgClassification": None,
+                },
+                {
+                    "label": "Non-functional",
+                    "functionalClassification": "abnormal",
+                    "range": [None, -1.328],
+                    "inclusiveLowerBound": False,
+                    "inclusiveUpperBound": True,
+                    "variantCount": 823,
+                    "acmgClassification": {
+                        "criterion": "PS3",
+                        "evidenceStrength": "STRONG",
+                        "points": 5,
+                    },
+                },
+            ],
+        },
+        {
+            "title": "Empty IGVF calibration",
+            "researchUseOnly": False,
+            "baselineScore": None,
+            "calibrationMetadata": {"prior_probability_pathogenicity": 0.2285},
+            "thresholdSources": [],
+            "functionalClassifications": [],  # no classes -> one class-null row
+        },
+    ],
+}
+
+
+class TestExtractAssayFacts:
+    def test_keywords_to_assay_columns(self) -> None:
+        facts = extract_assay_facts(_SCORE_SET)
+        assert facts == {
+            "assay_phenotypic_assay_method": "Cell fitness",
+            "assay_phenotypic_assay_mechanism": "Loss of function",
+            "assay_endogenous_locus_library_method_mechanism": "Nuclease",
+        }
+
+    def test_unannotated_returns_empty(self) -> None:
+        # BRCA2-like: no experiment / no keywords -> {} (not an error).
+        assert extract_assay_facts({}) == {}
+        assert extract_assay_facts({"experiment": {"keywords": []}}) == {}
+
+
+class TestExtractScoreCalibrations:
+    def test_flattens_classes_and_empty_calibration(self) -> None:
+        rows = extract_score_calibrations(_SCORE_SET, gene="BRCA1", mavedb_urn="urn:x")
+        # 2 classes from calibration 1 + 1 class-null row from the empty calibration.
+        assert len(rows) == 3
+        assert {r["calibration_title"] for r in rows} == {
+            "Investigator-provided functional classes",
+            "Empty IGVF calibration",
+        }
+        functional = next(r for r in rows if r["class_label"] == "Functional")
+        assert functional["go_classification"] == "normal"
+        assert functional["range_lower"] == -0.748
+        assert functional["range_upper"] is None
+        assert functional["variant_count"] == 2821
+        assert functional["acmg_criterion"] is None
+        # Only the PubMed threshold source is kept.
+        assert functional["threshold_source_pmids"] == "30209399"
+        nonfunc = next(r for r in rows if r["class_label"] == "Non-functional")
+        assert nonfunc["acmg_criterion"] == "PS3"
+        assert nonfunc["acmg_evidence_strength"] == "STRONG"
+        assert nonfunc["acmg_points"] == 5
+        # The class-less calibration still records its scheme, with null class fields.
+        empty = next(
+            r for r in rows if r["calibration_title"] == "Empty IGVF calibration"
+        )
+        assert empty["class_label"] is None
+        assert empty["variant_count"] is None
+        assert empty["prior_probability_pathogenicity"] == 0.2285
+        # Every row carries the full schema keys (so pl.DataFrame(schema=...) is safe).
+        for r in rows:
+            assert set(r) == set(_CALIBRATION_SCHEMA)
+
+    def test_no_calibrations_returns_empty(self) -> None:
+        assert extract_score_calibrations({}, gene="BRCA2", mavedb_urn="urn:y") == []
+
+
+class TestBuildMavedbMetadata:
+    def _get_fn(self):
+        store = {
+            "https://api.mavedb.org/api/v1/score-sets/urn:a": _SCORE_SET,
+            "https://api.mavedb.org/api/v1/score-sets/urn:b": {},  # unannotated
+        }
+        return lambda url: store[url]
+
+    def test_facts_table_unions_and_calibrations_flatten(self) -> None:
+        facts, calib = build_mavedb_metadata(
+            [("GENEA", "urn:a"), ("GENEB", "urn:b")], get_fn=self._get_fn()
+        )
+        # One assay-facts row per gene; GENEB (unannotated) has null assay_ cells.
+        assert facts.height == 2
+        assert set(facts["gene"]) == {"GENEA", "GENEB"}
+        assert "assay_phenotypic_assay_method" in facts.columns
+        b = facts.filter(pl.col("gene") == "GENEB")
+        assert b["assay_phenotypic_assay_method"].item() is None
+        a = facts.filter(pl.col("gene") == "GENEA")
+        assert a["assay_phenotypic_assay_mechanism"].item() == "Loss of function"
+        # Calibrations: only GENEA contributes (3 rows); schema matches.
+        assert calib.height == 3
+        assert set(calib["gene"]) == {"GENEA"}
+        assert calib.schema == _CALIBRATION_SCHEMA

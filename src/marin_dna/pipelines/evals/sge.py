@@ -25,7 +25,9 @@ whose cDNA->genome mapping drops intronic variants), so it is the cleanest BRCA1
 source; coordinates are lifted hg19->GRCh38 here.
 """
 
+import json
 import re
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
@@ -60,6 +62,180 @@ def author_slug(name: str) -> str:
     non-alphanumerics -> ``_``). Namespaces source columns so they never collide
     with pipeline columns (``consequence``, ``consequence_final``, ``distance_*``)."""
     return "author_" + re.sub(r"[^0-9a-zA-Z]+", "_", str(name)).strip("_").lower()
+
+
+# --------------------------------------------------------------------------- #
+# MaveDB study-level metadata: assay facts (experiment keywords) + score
+# calibrations (investigator + ClinGen/ExCALIBR ACMG thresholds).
+#
+# These describe the *assay*, not individual variants, so they are study-level
+# (one set per score-set). Two complementary shapes:
+#   - assay facts: a flat dict of controlled-vocabulary keywords (assay readout,
+#     molecular mechanism, model system, library mechanism, …) -> joined onto the
+#     dataset as constant-per-gene `assay_*` columns (queryable inline).
+#   - score calibrations: a variable-length list of threshold schemes, each with a
+#     variable-length list of functional classes (GO call, score range, variant
+#     count, and often an ACMG criterion PS3/BS3 + evidence strength) -> a tidy
+#     long companion table (one row per gene x calibration x class), NOT joined
+#     per-variant (wrong grain).
+# --------------------------------------------------------------------------- #
+_MAVEDB_API = "https://api.mavedb.org/api/v1"
+
+# Tidy long-format schema for the score-calibration companion table.
+_CALIBRATION_SCHEMA: dict[str, pl.DataType] = {
+    "gene": pl.Utf8,
+    "mavedb_urn": pl.Utf8,
+    "calibration_title": pl.Utf8,
+    "research_use_only": pl.Boolean,
+    "baseline_score": pl.Float64,
+    "prior_probability_pathogenicity": pl.Float64,
+    "threshold_source_pmids": pl.Utf8,
+    "class_label": pl.Utf8,
+    "go_classification": pl.Utf8,  # normal / abnormal / not_specified
+    "range_lower": pl.Float64,
+    "range_upper": pl.Float64,
+    "inclusive_lower": pl.Boolean,
+    "inclusive_upper": pl.Boolean,
+    "variant_count": pl.Int64,
+    "acmg_criterion": pl.Utf8,  # PS3 (pathogenic) / BS3 (benign)
+    "acmg_evidence_strength": pl.Utf8,  # SUPPORTING … VERY_STRONG
+    "acmg_points": pl.Int64,  # ExCALIBR signed points (negative = benign)
+}
+
+
+def _http_get_json(url: str) -> dict:
+    """GET ``url`` and parse the JSON body (stdlib only). Injected via ``get_fn``
+    in :func:`build_mavedb_metadata` so tests need no network."""
+    with urllib.request.urlopen(url, timeout=60) as resp:  # noqa: S310 (https only)
+        return json.load(resp)
+
+
+def assay_fact_slug(key: str) -> str:
+    """``assay_``-prefixed, identifier-safe column name for a MaveDB keyword key
+    (e.g. ``"Phenotypic Assay Method"`` -> ``assay_phenotypic_assay_method``)."""
+    return "assay_" + re.sub(r"[^0-9a-zA-Z]+", "_", str(key)).strip("_").lower()
+
+
+def fetch_mavedb_score_set(
+    urn: str, *, get_fn: Callable[[str], dict] | None = None
+) -> dict:
+    """Fetch a MaveDB score-set record (full JSON). ``get_fn`` is injectable for
+    tests (default = live HTTPS GET of ``/score-sets/{urn}``)."""
+    get = get_fn or _http_get_json
+    return get(f"{_MAVEDB_API}/score-sets/{urn}")
+
+
+def extract_assay_facts(score_set: dict) -> dict[str, str]:
+    """Pull a score-set's MaveDB **assay facts** (the experiment's controlled
+    keywords) into ``{assay_<slug>: label}``.
+
+    MaveDB annotates each experiment with controlled-vocabulary keywords — assay
+    readout (``Phenotypic Assay Method``), mechanism (``Phenotypic Assay
+    Mechanism`` = loss/gain of function), model system, endogenous-locus library
+    mechanism, … Returns ``{}`` for an unannotated experiment (e.g. BRCA2
+    ``urn:mavedb:00001225-a-1`` carries no keywords).
+    """
+    kws = (score_set.get("experiment") or {}).get("keywords") or []
+    facts: dict[str, str] = {}
+    for entry in kws:
+        kw = entry.get("keyword") or {}
+        key, label = kw.get("key"), kw.get("label")
+        if key and label:
+            facts[assay_fact_slug(key)] = label
+    return facts
+
+
+def extract_score_calibrations(
+    score_set: dict, *, gene: str, mavedb_urn: str
+) -> list[dict]:
+    """Flatten a score-set's ``scoreCalibrations`` into tidy long rows (one per
+    calibration x functional class) matching :data:`_CALIBRATION_SCHEMA`.
+
+    Each calibration is a threshold scheme (investigator-provided, or a
+    ClinGen/ExCALIBR ACMG calibration). A functional class carries its GO call
+    (normal/abnormal/not_specified), score range, variant count, and — for the
+    ACMG schemes — the criterion (PS3/BS3), evidence strength, and signed points.
+    Calibration-level ``prior_probability_pathogenicity`` (the OddsPath prior) and
+    PubMed threshold sources are carried on every row of that calibration. A
+    calibration with no classes still emits one (class-null) row so its existence
+    is recorded. Returns ``[]`` if the score-set has no calibrations (e.g. BRCA2).
+    """
+    rows: list[dict] = []
+    for cal in score_set.get("scoreCalibrations") or []:
+        meta = cal.get("calibrationMetadata") or {}
+        pmids = ",".join(
+            s["identifier"]
+            for s in (cal.get("thresholdSources") or [])
+            if s.get("dbName") == "PubMed" and s.get("identifier")
+        )
+        base = {
+            "gene": gene,
+            "mavedb_urn": mavedb_urn,
+            "calibration_title": cal.get("title"),
+            "research_use_only": cal.get("researchUseOnly"),
+            "baseline_score": cal.get("baselineScore"),
+            "prior_probability_pathogenicity": meta.get(
+                "prior_probability_pathogenicity"
+            ),
+            "threshold_source_pmids": pmids or None,
+        }
+        fcs = cal.get("functionalClassifications") or []
+        if not fcs:
+            rows.append(
+                {k: base.get(k) for k in _CALIBRATION_SCHEMA}
+            )  # class fields -> null
+            continue
+        for fc in fcs:
+            rng = fc.get("range") or [None, None]
+            assert len(rng) == 2, f"{gene}: unexpected calibration range {rng!r}"
+            acmg = fc.get("acmgClassification") or {}
+            rows.append(
+                {
+                    **base,
+                    "class_label": fc.get("label"),
+                    "go_classification": fc.get("functionalClassification"),
+                    "range_lower": rng[0],
+                    "range_upper": rng[1],
+                    "inclusive_lower": fc.get("inclusiveLowerBound"),
+                    "inclusive_upper": fc.get("inclusiveUpperBound"),
+                    "variant_count": fc.get("variantCount"),
+                    "acmg_criterion": acmg.get("criterion"),
+                    "acmg_evidence_strength": acmg.get("evidenceStrength"),
+                    "acmg_points": acmg.get("points"),
+                }
+            )
+    return rows
+
+
+def build_mavedb_metadata(
+    gene_to_urn: list[tuple[str, str]],
+    *,
+    get_fn: Callable[[str], dict] | None = None,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Fetch every SGE study's MaveDB record once and return ``(assay_facts,
+    calibrations)``.
+
+    ``assay_facts``: one row per ``(gene, mavedb_urn)`` with the sparse union of
+    ``assay_*`` keyword columns (genes with no keywords contribute nulls) — joined
+    onto the dataset by ``mavedb_urn`` so the facts are queryable per-variant.
+    ``calibrations``: the tidy long companion table (:func:`extract_score_calibrations`).
+    ``get_fn`` is injectable for tests.
+    """
+    fact_rows: list[pl.DataFrame] = []
+    calib_rows: list[dict] = []
+    for gene, urn in gene_to_urn:
+        ss = fetch_mavedb_score_set(urn, get_fn=get_fn)
+        facts = extract_assay_facts(ss)
+        fact_rows.append(pl.DataFrame({"gene": gene, "mavedb_urn": urn, **facts}))
+        calib = extract_score_calibrations(ss, gene=gene, mavedb_urn=urn)
+        calib_rows.extend(calib)
+        print(
+            f"[sge mavedb-meta {gene}] {len(facts)} assay facts, "
+            f"{len(calib)} calibration class-rows"
+        )
+    assay_facts = pl.concat(fact_rows, how="diagonal_relaxed")
+    calibrations = pl.DataFrame(calib_rows, schema=_CALIBRATION_SCHEMA)
+    return assay_facts, calibrations
 
 
 def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFrame:

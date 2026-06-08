@@ -7,7 +7,7 @@ from pathlib import Path
 from marin_dna.data.genome import Genome
 from cyvcf2 import VCF
 from datasets import Dataset
-from huggingface_hub import HfApi
+from huggingface_hub import CommitOperationAdd, HfApi
 
 from marin_dna.pipelines.evals.labeling import label_variants_by_pip
 from marin_dna.pipelines.evals.materialize import materialize_sequences
@@ -148,11 +148,22 @@ def _hf_qc_input(wildcards):
     return f"results/qc/{wildcards.dataset}.parquet"
 
 
+def _hf_extra_files(dataset):
+    """Dataset-specific companion files (path_in_repo -> local path) uploaded in the
+    same commit as the splits + README. SGE ships its study-level MaveDB score
+    calibrations as a tidy long table (wrong grain to fold into the per-variant
+    splits)."""
+    if dataset == "sge":
+        return {"calibrations.parquet": "results/sge/calibrations.parquet"}
+    return {}
+
+
 rule hf_upload:
     input:
         train="results/dataset/{dataset}/train.parquet",
         test="results/dataset/{dataset}/test.parquet",
         qc=_hf_qc_input,
+        extra=lambda wc: list(_hf_extra_files(wc.dataset).values()),
     output:
         touch("results/upload.done/{dataset}"),
     params:
@@ -160,6 +171,7 @@ rule hf_upload:
     run:
         api = HfApi()
         api.create_repo(params.repo_name, repo_type="dataset", exist_ok=True)
+        extra = _hf_extra_files(wildcards.dataset)
         # README: per-dataset card with splits, columns, retention, AUPRC-leak
         # diagnostic, provenance (commit-pinned permalink to the pipeline).
         readme = hf_readme.render(
@@ -168,21 +180,34 @@ rule hf_upload:
             train_path=input.train,
             test_path=input.test,
             qc_path=input.qc if input.qc else None,
+            calibration_path=extra.get("calibrations.parquet"),
         )
-        api.upload_file(
-            path_or_fileobj=readme.encode(),
-            path_in_repo="README.md",
+        # Single atomic commit: README + both splits (+ any companion files) land
+        # together, so the repo is never in a half-updated state (train new / test
+        # stale).
+        ops = [
+            CommitOperationAdd(
+                path_in_repo="README.md", path_or_fileobj=readme.encode()
+            ),
+            CommitOperationAdd(
+                path_in_repo="train.parquet", path_or_fileobj=str(input.train)
+            ),
+            CommitOperationAdd(
+                path_in_repo="test.parquet", path_or_fileobj=str(input.test)
+            ),
+        ]
+        for path_in_repo, local in extra.items():
+            ops.append(
+                CommitOperationAdd(
+                    path_in_repo=path_in_repo, path_or_fileobj=str(local)
+                )
+            )
+        api.create_commit(
             repo_id=params.repo_name,
             repo_type="dataset",
+            operations=ops,
+            commit_message=f"Upload {wildcards.dataset} dataset ({len(ops)} files)",
         )
-        for f in [input.train, input.test]:
-            split = Path(f).stem
-            api.upload_file(
-                path_or_fileobj=f,
-                path_in_repo=f"{split}.parquet",
-                repo_id=params.repo_name,
-                repo_type="dataset",
-            )
 
 
 ruleorder: materialize_eval_harness_dataset > split_dataset_by_chrom

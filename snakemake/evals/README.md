@@ -102,7 +102,7 @@ DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
   it's usable across genes), alongside the full `author_` columns.
 
 Three loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`), one per
-coordinate encoding — **13 genes** total:
+coordinate encoding — **12 genes** total:
 
 - **BRCA1** — `read_brca1_findlay`: the Evo2-bundled Findlay 2018 supplementary xlsx,
   hg19 genomic coords for **all** SNVs incl. intronic (MaveDB's cDNA→genome map drops
@@ -125,6 +125,22 @@ loads + annotates each gene (HIGH-impact dropped), and **diagonal-concats** them
 study contributes its own `author_` columns, sparse) into
 `results/dataset_unsplit/sge.parquet`. No `results/qc/` artifact (no matching). Needs
 AWS S3 read (the consequence/interval/genome artifacts) but **no** Synapse auth.
+
+**MaveDB study-level metadata.** The `sge_mavedb_metadata` rule fetches each study's
+MaveDB record once (`build_mavedb_metadata`) and emits two study-level artifacts:
+
+- `results/sge/assay_facts.parquet` — the experiment's controlled-vocabulary **assay
+  facts** (assay readout, mechanism, model system, endogenous-locus library mechanism,
+  …) as `assay_*` columns, one row per `(gene, mavedb_urn)`. These are **joined onto
+  the dataset** (by accession) as constant-per-gene `assay_*` columns, so the assay
+  characteristics are queryable alongside every variant. Every annotated study is a
+  loss-of-function assay; **BRCA2** is unannotated in MaveDB (blank `assay_*`).
+- `results/sge/calibrations.parquet` — the `scoreCalibrations` (investigator-provided
+  functional classes + ClinGen/ExCALIBR **ACMG** calibrations: `PS3`/`BS3` criterion,
+  evidence strength, signed points, `prior_probability_pathogenicity` OddsPath prior,
+  threshold-source PMIDs) flattened to a **tidy long companion table** (one row per
+  gene × calibration × functional class). It is *not* joined per-variant (wrong grain)
+  and ships alongside the splits as `calibrations.parquet` in the HF repo.
 
 ```bash
 uv run --group hgvs snakemake results/dataset/sge/{train,test}.parquet

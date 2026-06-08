@@ -70,7 +70,8 @@ def _qc(tmp_path: Path, *, with_maf: bool = False) -> Path:
 
 def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
     # SGE schema: no `label`; provenance via (gene, mavedb_urn); author_-prefixed
-    # source columns. BRCA1 is chr17 (odd) -> all in train, empty test.
+    # source columns + constant-per-gene assay_ keyword columns. BRCA1 is chr17
+    # (odd) -> all in train, empty test.
     train = pl.DataFrame(
         {
             "chrom": ["17", "17", "17"],
@@ -82,6 +83,9 @@ def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
             "mavedb_urn": ["urn:mavedb:00000097-0-2"] * 3,
             "author_function_score_mean": [-1.0, 0.1, -2.0],
             "author_func_class": ["LOF", "FUNC", "LOF"],
+            "assay_phenotypic_assay_method": ["Cell fitness"] * 3,
+            "assay_phenotypic_assay_mechanism": ["Loss of function"] * 3,
+            "assay_phenotypic_assay_model_system": ["Immortalized human cells"] * 3,
             "consequence": ["missense_variant"] * 3,
         }
     )
@@ -90,6 +94,38 @@ def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
     train.write_parquet(train_path)
     train.clear().write_parquet(test_path)  # empty test, same schema
     return train_path, test_path
+
+
+def _sge_calibrations(tmp_path: Path) -> Path:
+    # Long-format calibration companion table (a couple of schemes for BRCA1).
+    cal = pl.DataFrame(
+        {
+            "gene": ["BRCA1", "BRCA1", "BRCA1"],
+            "mavedb_urn": ["urn:mavedb:00000097-0-2"] * 3,
+            "calibration_title": [
+                "Investigator-provided functional classes",
+                "Investigator-provided functional classes",
+                "ExCALIBR calibration",
+            ],
+            "research_use_only": [False, False, True],
+            "baseline_score": [0.0, 0.0, None],
+            "prior_probability_pathogenicity": [None, None, 0.2285],
+            "threshold_source_pmids": ["30209399", "30209399", None],
+            "class_label": ["Functional", "Non-functional", "PS3 Strong (5)"],
+            "go_classification": ["normal", "abnormal", "abnormal"],
+            "range_lower": [-0.748, None, None],
+            "range_upper": [None, -1.328, -1.368],
+            "inclusive_lower": [True, False, False],
+            "inclusive_upper": [False, True, True],
+            "variant_count": [2821, 823, 744],
+            "acmg_criterion": [None, None, "PS3"],
+            "acmg_evidence_strength": [None, None, "STRONG"],
+            "acmg_points": [None, None, 5],
+        }
+    )
+    path = tmp_path / "calibrations.parquet"
+    cal.write_parquet(path)
+    return path
 
 
 class TestRender:
@@ -207,7 +243,8 @@ class TestRender:
 
     def test_sge_renders(self, tmp_path: Path) -> None:
         train, test = _sge_train_test(tmp_path)
-        md = hf_readme.render("sge", SHA, train, test)
+        calib = _sge_calibrations(tmp_path)
+        md = hf_readme.render("sge", SHA, train, test, calibration_path=calib)
         assert md.startswith("---\n")
         # Minimal tag set only — no fine-grained extras (bolinas-dna convention).
         frontmatter = md.split("# evals_sge")[0]
@@ -218,6 +255,8 @@ class TestRender:
         for header in (
             "# evals_sge",
             "## Studies",
+            "## Assay characteristics",
+            "## Score calibration",
             "## Splits",
             "## Columns",
             "## Provenance",
@@ -231,7 +270,22 @@ class TestRender:
         assert "No matching, no subsampling, no binary label" in md
         assert "exclude_consequences" in md
         assert "author_" in md
+        # Assay facts: the loss-of-function readout + model system surface in the card.
+        assert "Loss of function" in md
+        assert "Immortalized human cells" in md
+        # Score calibration: ACMG strength + the companion-file pointer.
+        assert "calibrations.parquet" in md
+        assert "STRONG" in md
+        assert "prior_probability_pathogenicity" in md
         assert SHA[:7] in md
+
+    def test_sge_renders_without_calibration(self, tmp_path: Path) -> None:
+        # The calibration section is optional (omitted when no companion is passed).
+        train, test = _sge_train_test(tmp_path)
+        md = hf_readme.render("sge", SHA, train, test)
+        assert "## Assay characteristics" in md  # still renders from assay_ columns
+        assert "## Score calibration" not in md
+        assert "## Splits" in md
 
     def test_retention_table_handles_zero_input(self, tmp_path: Path) -> None:
         path = tmp_path / "qc.parquet"

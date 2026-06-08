@@ -3,6 +3,7 @@ from pathlib import Path
 from marin_dna.pipelines.evals.sge import (
     SNV_HGVS_RE,
     annotate_sge_variants,
+    build_mavedb_metadata,
     load_mavedb_genomic_scoreset,
     load_mavedb_transcript_scoreset,
     pyhgvs_cdot_mapper,
@@ -27,6 +28,11 @@ _SGE_MAVEDB = {**_SGE_GENOMIC, **_SGE_TRANSCRIPT}  # all MaveDB score-sets (down
 _SGE_CHROMS = sorted(
     {config["sge"]["brca1"]["chrom"]} | {g["chrom"] for g in _SGE_MAVEDB.values()}
 )
+# (gene, mavedb_urn) for every study, for the MaveDB study-metadata fetch. BRCA1
+# lives under its own config key; the rest are the genomic + transcript score-sets.
+_SGE_GENE_URNS = [("BRCA1", config["sge"]["brca1"]["mavedb_urn"])] + [
+    (gene, meta["mavedb_urn"]) for gene, meta in _SGE_MAVEDB.items()
+]
 
 
 rule sge_download_brca1:
@@ -50,6 +56,24 @@ rule sge_download_mavedb:
         urn=lambda wc: _SGE_MAVEDB[wc.gene]["mavedb_urn"],
     shell:
         'curl -fL "https://api.mavedb.org/api/v1/score-sets/{params.urn}/scores" -o {output}'
+
+
+rule sge_mavedb_metadata:
+    """Fetch each SGE study's MaveDB record once for study-level metadata:
+  - assay_facts.parquet: experiment 'assay facts' (controlled keywords — assay
+    readout, molecular mechanism, model system, library mechanism). One row per
+    (gene, mavedb_urn); joined onto the dataset as constant-per-gene assay_ columns.
+  - calibrations.parquet: scoreCalibrations (investigator + ClinGen/ExCALIBR ACMG
+    thresholds, prior-prob, evidence strength) flattened to a tidy long companion
+    table (one row per gene x calibration x functional class).
+Network fetch from the MaveDB REST API (no input files)."""
+    output:
+        assay_facts="results/sge/assay_facts.parquet",
+        calibrations="results/sge/calibrations.parquet",
+    run:
+        facts, calibrations = build_mavedb_metadata(_SGE_GENE_URNS)
+        facts.write_parquet(output.assay_facts)
+        calibrations.write_parquet(output.calibrations)
 
 
 rule sge_recode_mavedb:
@@ -80,6 +104,7 @@ HIGH-impact, diagonal-concat."""
         brca1_xlsx="results/sge/brca1_findlay.xlsx",
         mavedb=expand("results/sge/mavedb/{gene}.csv", gene=list(_SGE_MAVEDB)),
         recoded=expand("results/sge/recoded/{gene}.parquet", gene=list(_SGE_TRANSCRIPT)),
+        assay_facts="results/sge/assay_facts.parquet",
         consequences=expand("results/consequences/{chrom}.parquet", chrom=_SGE_CHROMS),
         exon_pc="results/intervals/exon_pc.parquet",
         exon_nc="results/intervals/exon_nc.parquet",
@@ -140,4 +165,18 @@ HIGH-impact, diagonal-concat."""
             frames.append(annot(V, meta["chrom"], False, gene.lower()))
         # diagonal_relaxed: each study contributes its own author_ columns (sparse
         # union, null-filled) at a common supertype.
-        pl.concat(frames, how="diagonal_relaxed").write_parquet(output[0])
+        data = pl.concat(frames, how="diagonal_relaxed")
+        # Attach the per-study MaveDB 'assay facts' (constant-per-gene assay_
+        # keyword columns) by accession, so the assay characteristics are queryable
+        # alongside every variant. (Score calibrations are a separate companion
+        # table — wrong grain to join per-variant.)
+        facts = pl.read_parquet(input.assay_facts)
+        assert set(data["mavedb_urn"].unique()) <= set(facts["mavedb_urn"]), (
+            "sge: dataset has mavedb_urn(s) absent from assay_facts"
+        )
+        data = data.join(
+            facts.select("mavedb_urn", pl.col("^assay_.*$")),
+            on="mavedb_urn",
+            how="left",
+        )
+        data.write_parquet(output[0])

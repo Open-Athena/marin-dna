@@ -699,11 +699,139 @@ _SGE_STUDY_META = {
 }
 
 
+# Curated subset of the MaveDB assay-fact keyword columns surfaced in the card's
+# "Assay characteristics" table (display label -> assay_ column). The *full*
+# keyword set is preserved as assay_ columns on the dataset; this is just the
+# decision-relevant slice shown inline.
+_SGE_ASSAY_FACT_COLS = [
+    ("Assay readout", "assay_phenotypic_assay_method"),
+    ("Mechanism", "assay_phenotypic_assay_mechanism"),
+    ("Molecular mechanism", "assay_molecular_mechanism_assessed"),
+    ("Model system", "assay_phenotypic_assay_model_system"),
+    ("Library mechanism", "assay_endogenous_locus_library_method_mechanism"),
+]
+
+# ACMG functional-evidence strengths, weakest -> strongest, for ordering.
+_ACMG_STRENGTH_ORDER = {
+    s: i
+    for i, s in enumerate(
+        ["SUPPORTING", "MODERATE", "MODERATE_PLUS", "STRONG", "VERY_STRONG"]
+    )
+}
+
+
+def _render_assay_characteristics(allv: pl.DataFrame) -> str:
+    """'Assay characteristics' card section from the per-variant ``assay_*`` keyword
+    columns (one summary row per gene). Empty string if no ``assay_*`` columns."""
+    present = [(lbl, col) for lbl, col in _SGE_ASSAY_FACT_COLS if col in allv.columns]
+    if not present:
+        return ""
+    cols = [col for _, col in present]
+    # assay_ values are constant per gene (joined by accession), so first-non-null
+    # collapses each gene to one row.
+    by_gene = (
+        allv.group_by("gene")
+        .agg([pl.col(c).drop_nulls().first().alias(c) for c in cols])
+        .sort("gene")
+    )
+    header = "| Gene | " + " | ".join(lbl for lbl, _ in present) + " |"
+    sep = "|---|" + "|".join("---" for _ in present) + "|"
+    rows = [header, sep]
+    for r in by_gene.iter_rows(named=True):
+        cells = " | ".join(str(r[c]) if r[c] is not None else "—" for _, c in present)
+        rows.append(f"| {r['gene']} | {cells} |")
+    table = "\n".join(rows)
+    return f"""## Assay characteristics
+
+MaveDB annotates each experiment with controlled-vocabulary **assay facts**,
+captured verbatim on every variant as constant-per-gene `assay_*` columns (the full
+keyword set; the table surfaces the decision-relevant ones).
+
+{table}
+
+Every MaveDB-annotated study is a **loss-of-function** assay (the `Mechanism`
+column): a depletion / fitness screen reading out a variant's effect on cell
+survival or growth in **immortalized human cells**, with the variant library
+written into the **endogenous locus** by a CRISPR **nuclease** (SpCas9).
+Splice-disrupting and NMD-triggering variants are therefore captured **by
+construction** — the endogenous readout reflects mis-splicing and
+nonsense-mediated decay — so MaveDB exposes no separate "detects splicing / NMD"
+flag. **BRCA2** (`urn:mavedb:00001225-a-1`) is the one study MaveDB leaves
+unannotated, so its `assay_*` cells are blank.
+"""
+
+
+def _render_score_calibration(calibration_path: str | Path) -> str:
+    """'Score calibration' card section from the long-format calibration companion
+    table (per-gene scheme count + ACMG evidence strengths). Empty if no rows."""
+    cal = pl.read_parquet(calibration_path)
+    if cal.height == 0:
+        return ""
+    by_gene = (
+        cal.group_by("gene")
+        .agg(
+            pl.col("calibration_title").n_unique().alias("n_schemes"),
+            pl.col("acmg_evidence_strength").drop_nulls().unique().alias("strengths"),
+        )
+        .sort("gene")
+    )
+    rows = [
+        "| Gene | Calibration schemes | ACMG evidence strengths |",
+        "|---|---:|---|",
+    ]
+    for r in by_gene.iter_rows(named=True):
+        ss = sorted(r["strengths"], key=lambda s: _ACMG_STRENGTH_ORDER.get(s, 99))
+        rows.append(f"| {r['gene']} | {r['n_schemes']} | {', '.join(ss) or '—'} |")
+    table = "\n".join(rows)
+    n_schemes = cal.select("gene", "calibration_title").unique().height
+    return f"""## Score calibration
+
+MaveDB attaches **score calibrations** — threshold schemes mapping the continuous
+function score onto functional classes. Two flavors appear here: **investigator-provided**
+functional classes (the authors' own normal / abnormal cutoffs) and **ClinGen /
+ExCALIBR ACMG calibrations** (clinically-calibrated thresholds that assign each score
+bin an ACMG functional-evidence strength — `PS3` pathogenic / `BS3` benign, graded
+`SUPPORTING` → `VERY_STRONG`, under a `prior_probability_pathogenicity` OddsPath
+prior). {n_schemes} schemes are captured across the {by_gene.height} calibrated genes.
+
+{table}
+
+The full, tidy long-format calibration table — **one row per (gene × calibration ×
+functional class)**, with the score range, variant count, GO call
+(normal / abnormal / not_specified), ACMG criterion / strength / signed points, the
+OddsPath prior, and threshold-source PMIDs — ships as **`calibrations.parquet`**
+alongside the splits. **BRCA2** has no MaveDB calibrations.
+
+<details>
+<summary><code>calibrations.parquet</code> columns</summary>
+
+| Column | Type | Description |
+|---|---|---|
+| `gene`, `mavedb_urn` | str | Study identifier (joins to the splits). |
+| `calibration_title` | str | Scheme name (e.g. `Investigator-provided functional classes`, `ExCALIBR calibration`). |
+| `research_use_only` | bool | MaveDB research-use-only flag for the scheme. |
+| `baseline_score` | float | Scheme baseline (often the synonymous/normal anchor); null when not score-range based. |
+| `prior_probability_pathogenicity` | float | OddsPath prior for the ACMG schemes; null otherwise. |
+| `threshold_source_pmids` | str | Comma-joined PubMed IDs the thresholds derive from. |
+| `class_label` | str | Functional class name (e.g. `Functional`, `PS3 Strong (5)`). |
+| `go_classification` | str | `normal` / `abnormal` / `not_specified`. |
+| `range_lower`, `range_upper` | float | Score range for the class (null = open / not score-range based). |
+| `inclusive_lower`, `inclusive_upper` | bool | Whether the range bounds are inclusive. |
+| `variant_count` | int | Variants MaveDB places in the class. |
+| `acmg_criterion` | str | `PS3` (pathogenic) / `BS3` (benign); null for non-ACMG schemes. |
+| `acmg_evidence_strength` | str | `SUPPORTING` … `VERY_STRONG`. |
+| `acmg_points` | int | ExCALIBR signed evidence points (negative = benign). |
+
+</details>
+"""
+
+
 def render_sge(
     dataset: str,
     sha: str,
     train_path: str | Path,
     test_path: str | Path,
+    calibration_path: str | Path | None = None,
 ) -> str:
     """Dataset card for the SGE (saturation genome editing) dataset.
 
@@ -745,6 +873,13 @@ def render_sge(
         _cite(u, _SGE_STUDY_META[u]) for u in sorted(counts) if u in _SGE_STUDY_META
     )
 
+    # Study-level MaveDB metadata sections (empty strings if the inputs lack the
+    # columns / the calibration companion isn't passed).
+    assay_section = _render_assay_characteristics(allv)
+    calibration_section = (
+        _render_score_calibration(calibration_path) if calibration_path else ""
+    )
+
     # Minimal tag set (biology, genomics, dna) per the bolinas-dna dataset-card
     # convention — no fine-grained extras.
     return f"""{_frontmatter()}
@@ -774,6 +909,8 @@ mavedb_urn)` identifies the exact source.
 |---|---|---|---:|---:|---|---|
 {studies_table}
 
+{assay_section}
+{calibration_section}
 ## Splits
 
 Chromosome-parity split (same convention as the other `evals_*` datasets): odd
@@ -795,6 +932,7 @@ this is a **gene-level holdout** (e.g. BRCA1·chr17 → train).
 | `assay` | str | `sge`. |
 | `mavedb_urn` | str | Canonical MaveDB accession for the source study (see the table above). |
 | `author_*` | mixed | **Every original column from the source study, verbatim** (slugified, `author_`-prefixed). The headline variables per study are listed in the table above — e.g. for BRCA1 `author_function_score_mean` (continuous) and `author_func_class` (FUNC/INT/LOF). Original coordinates are kept too (e.g. `author_position_hg19`). |
+| `assay_*` | str | **MaveDB 'assay facts'** — the experiment's controlled-vocabulary keywords (assay readout, mechanism, model system, library mechanism, …), constant per gene. See *Assay characteristics* below; blank for the one unannotated study (BRCA2). |
 | `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations. |
 | `distance_tss_*`, `distance_exon_*`, `*_closest_gene_id` | int / str | Distances to nearest TSS / exon and the Ensembl gene IDs there; reference annotations. |
 
@@ -830,6 +968,7 @@ def render(
     train_path: str | Path,
     test_path: str | Path,
     qc_path: str | Path | None = None,
+    calibration_path: str | Path | None = None,
 ) -> str:
     if dataset == "mendelian_traits":
         assert qc_path is not None
@@ -843,5 +982,7 @@ def render(
     if dataset in _DART_EVAL_META:
         return render_dart_eval(dataset, sha, train_path, test_path)
     if dataset == "sge":
-        return render_sge(dataset, sha, train_path, test_path)
+        return render_sge(
+            dataset, sha, train_path, test_path, calibration_path=calibration_path
+        )
     raise ValueError(f"no README template for dataset {dataset!r}")
