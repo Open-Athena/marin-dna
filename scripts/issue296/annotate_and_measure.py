@@ -341,10 +341,35 @@ def main() -> None:
         )
         print(summary)
 
+    # Per-(region, gene strand) breakdown for the strand figure — every region
+    # that carries a gene strand (coding + splice; all_token / deep intron have
+    # no strand and are omitted).
+    strand_regions = {
+        "codon_1": cp == 1,
+        "codon_2": cp == 2,
+        "codon_3": cp == 3,
+        "codon_3_4fold": (cp == 3) & (pl.col("is_4fold") == True),  # noqa: E712
+        "splicing": pl.col("is_splice"),
+        "splice_donor": pl.col("is_donor"),
+        "splice_acceptor": pl.col("is_acceptor"),
+    }
+    strand_rows = [
+        {
+            "model": args.model_name,
+            "stratum": name,
+            "gene_strand": strand,
+            **_stratum_stats(ann.filter(mask & (pl.col("gene_strand") == strand))),
+        }
+        for name, mask in strand_regions.items()
+        for strand in ("+", "-")
+    ]
+    by_strand = pl.DataFrame(strand_rows)
+
     out = out_dir / "stage2" / args.model_name
     out.mkdir(parents=True, exist_ok=True)
     by_codon.write_parquet(out / "val_cds_by_codon.parquet")
     summary.write_parquet(out / "val_cds_stratum_ll_gap.parquet")
+    by_strand.write_parquet(out / "val_cds_by_strand.parquet")
     print(f"\n[stage2] wrote → {out}")
 
 

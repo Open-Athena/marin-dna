@@ -20,6 +20,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import polars as pl  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FixedLocator, NullLocator, ScalarFormatter  # noqa: E402
 
 STAGE2 = Path("scratch/issue296/stage2")
@@ -85,27 +86,78 @@ def main() -> None:
     fig.savefig(OUT / "regions_meanloss.svg", bbox_inches="tight")
     plt.close(fig)
 
-    # --- Subplot (collapsible): splice region by gene strand ----------------
-    strand = [
-        ("splice_donor_plus", "donor (+) — CDS-primed", "tab:green", "-"),
-        ("splice_acceptor_minus", "acceptor (−) — CDS-primed", "tab:olive", "-"),
-        ("splice_donor_minus", "donor (−) — intron-primed", "tab:red", "--"),
-        ("splice_acceptor_plus", "acceptor (+) — intron-primed", "tab:purple", "--"),
+    # --- Subplot (collapsible): every strand-able region by gene strand ------
+    # Same region colours as the main panel; + gene (sense) = solid/●,
+    # − gene (antisense) = dashed/✕. Reads the per-(region, strand) breakdown.
+    bs_rows = []
+    for pp in sorted(glob.glob(f"{STAGE2}/*/val_cds_by_strand.parquet")):
+        model = Path(pp).parent.name
+        for r in pl.read_parquet(pp).iter_rows(named=True):
+            bs_rows.append(
+                {
+                    "params_M": _params_millions(model),
+                    "stratum": r["stratum"],
+                    "gene_strand": r["gene_strand"],
+                    "mean_loss": r["mean_loss"],
+                }
+            )
+    bs = pl.DataFrame(bs_rows)
+    strand_regions = [
+        ("codon_1", "tab:blue"),
+        ("codon_2", "tab:cyan"),
+        ("codon_3", "tab:red"),
+        ("codon_3_4fold", "tab:orange"),
+        ("splicing", "tab:green"),
+        ("splice_donor", "tab:olive"),
+        ("splice_acceptor", "mediumseagreen"),
     ]
-    fig, ax = plt.subplots(figsize=(7.5, 5))
-    for col, lab, c, ls in strand:
-        ax.plot(p, t[col].to_numpy(), "o", color=c, ls=ls, lw=2, label=lab)
+    fig, ax = plt.subplots(figsize=(8.5, 5.5))
+    for region, color in strand_regions:
+        for strand, ls, mk in [("+", "-", "o"), ("-", "--", "x")]:
+            sub = bs.filter(
+                (pl.col("stratum") == region) & (pl.col("gene_strand") == strand)
+            ).sort("params_M")
+            if len(sub):
+                ax.plot(
+                    sub["params_M"].to_numpy(),
+                    sub["mean_loss"].to_numpy(),
+                    ls=ls,
+                    marker=mk,
+                    color=color,
+                    lw=1.8,
+                    ms=6,
+                )
     _log_xaxis(ax, p)
     ax.set_ylabel("mean loss (nats; lower = better predicted)")
     ax.set_title(
-        "Fig 1 (strand) — splice-site mean loss by gene strand\n"
-        "CDS-primed improve with scale; intron-primed frozen",
+        "Fig 1 (strand) — mean loss by region × gene strand\n"
+        "+ gene = sense (solid ●), − gene = antisense (dashed ✕)",
         fontsize=11,
     )
-    ax.legend(fontsize=9)
-    fig.tight_layout()
-    fig.savefig(OUT / "regions_meanloss_strand.png", dpi=130)
-    fig.savefig(OUT / "regions_meanloss_strand.svg")
+    region_handles = [
+        Line2D([0], [0], color=c, lw=3, label=r) for r, c in strand_regions
+    ]
+    strand_handles = [
+        Line2D([0], [0], color="gray", ls="-", marker="o", label="+ gene (sense)"),
+        Line2D([0], [0], color="gray", ls="--", marker="x", label="− gene (antisense)"),
+    ]
+    leg1 = ax.legend(
+        handles=region_handles,
+        fontsize=8,
+        loc="center left",
+        bbox_to_anchor=(1.01, 0.72),
+        title="region",
+    )
+    ax.add_artist(leg1)
+    ax.legend(
+        handles=strand_handles,
+        fontsize=8,
+        loc="center left",
+        bbox_to_anchor=(1.01, 0.25),
+        title="strand",
+    )
+    fig.savefig(OUT / "regions_meanloss_strand.png", dpi=130, bbox_inches="tight")
+    fig.savefig(OUT / "regions_meanloss_strand.svg", bbox_inches="tight")
     plt.close(fig)
     print(
         f"[plot] wrote regions_meanloss(.svg) + regions_meanloss_strand(.svg) "
