@@ -171,7 +171,14 @@ rule hf_upload:
     run:
         api = HfApi()
         api.create_repo(params.repo_name, repo_type="dataset", exist_ok=True)
-        extra = _hf_extra_files(wildcards.dataset)
+        # Map each companion's repo filename -> its LOCALIZED input path. The S3
+        # storage provider deletes the bare `results/...` local copy once the
+        # producing rule finishes, so we must read the path snakemake localized for
+        # *this* rule (`input.extra`), not the logical `_hf_extra_files` value.
+        # keys() and the `extra` input (its values()) share dict order, so they zip.
+        extra_local = dict(
+            zip(_hf_extra_files(wildcards.dataset), input.extra)
+        )
         # README: per-dataset card with splits, columns, retention, AUPRC-leak
         # diagnostic, provenance (commit-pinned permalink to the pipeline).
         readme = hf_readme.render(
@@ -180,7 +187,7 @@ rule hf_upload:
             train_path=input.train,
             test_path=input.test,
             qc_path=input.qc if input.qc else None,
-            calibration_path=extra.get("calibrations.parquet"),
+            calibration_path=extra_local.get("calibrations.parquet"),
         )
         # Single atomic commit: README + both splits (+ any companion files) land
         # together, so the repo is never in a half-updated state (train new / test
@@ -196,7 +203,7 @@ rule hf_upload:
                 path_in_repo="test.parquet", path_or_fileobj=str(input.test)
             ),
         ]
-        for path_in_repo, local in extra.items():
+        for path_in_repo, local in extra_local.items():
             ops.append(
                 CommitOperationAdd(
                     path_in_repo=path_in_repo, path_or_fileobj=str(local)
