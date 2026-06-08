@@ -54,7 +54,6 @@ KEY = ["chrom", "pos", "ref", "alt"]
 BASELINE = 0.10  # 1:9 prevalence
 COL_FAMILY = "#8c98a4"  # 108-sp family — muted slate (baseline)
 COL_ORDER = "#1f6fb2"  # 19-sp order — confident blue
-COL_ACCENT = "#d1495b"  # family-edge highlight
 OUT = Path(__file__).parent / "output" / "exp255_analysis"
 
 # region -> (val recipe, order wandb sub, family wandb sub, offline region token, matched subsets)
@@ -172,8 +171,9 @@ def ll_traj(api: wandb.Api, grp: str, sub: str, rec: str) -> pd.DataFrame:
         df = (
             pd.concat([f for f in fr if len(f)])
             .dropna(subset=[fk, nk])
-            .drop_duplicates("_step")
             .sort_values("_step")
+            # at relaunch-overlap steps keep the post-resume run's value (last logged)
+            .drop_duplicates("_step", keep="last")
         )
         df["func"], df["nonfunc"], df["gap"] = -df[fk], -df[nk], df[nk] - df[fk]
         _ll_cache[(grp, sub)] = df
@@ -295,11 +295,13 @@ def fig_auprc_trajectory(api: wandb.Api) -> None:
         _rec, so, _sf, off, _ = REGIONS[region]
         ax = axes[k // 4][k % 4]
         fs = fam_auprc(off, subset)
-        fsteps = [s for s in sorted(fs) if s >= MIN_STEP]
+        fsteps = sorted(
+            fs
+        )  # full trajectory from the first checkpoint (no MIN_STEP cut)
         fv = [fs[s] for s in fsteps]
         fe = [read_metrics(f"exp232-v4_{off}-step-{s}")[subset][1] for s in fsteps]
         os_ = ord_auprc(api, so, subset)
-        osteps = [s for s in sorted(os_) if s >= MIN_STEP]
+        osteps = sorted(os_)
         h1 = ax.errorbar(
             fsteps,
             fv,
@@ -348,8 +350,13 @@ def fig_auprc_trajectory(api: wandb.Api) -> None:
     print("wrote", _save(fig, "auprc_trajectory"))
 
 
+_pdata_cache: dict = {}
+
+
 def _llva_points(api: wandb.Api) -> dict:
-    """panel -> cohort -> [(step, gap, func, auprc)] over checkpoints ≥ MIN_STEP."""
+    """panel -> cohort -> [(step, gap, func, auprc)] over checkpoints ≥ MIN_STEP (memoized)."""
+    if "pdata" in _pdata_cache:
+        return _pdata_cache["pdata"]
     llt = {}
     for region, (rec, so, sf, _off, _subs) in REGIONS.items():
         llt[(region, "family")] = ll_traj(api, GF, sf, rec)
@@ -373,6 +380,7 @@ def _llva_points(api: wandb.Api) -> dict:
                 for s in sorted(x for x in auf if x >= MIN_STEP)
             ]
         pdata[(subset, region)] = d
+    _pdata_cache["pdata"] = pdata
     return pdata
 
 
@@ -512,7 +520,7 @@ def table_matched_auprc() -> None:
             )
             fv, fe = fam_m[ss]
             ov, oe = ord_m[ss]
-            sig = " ✓" if (r["ci_low"] > 0) == (r["ci_high"] > 0) else ""
+            sig = " ✓" if (r["ci_low"] > 0 or r["ci_high"] < 0) else ""  # CI excludes 0
             rows.append(
                 [
                     region,
@@ -584,18 +592,22 @@ def table_ll(api: wandb.Api) -> None:
 
 def table_online_offline(api: wandb.Api) -> None:
     """Order arms: online (in-training) vs offline AUPRC across all 8 subsets (post-#266 BOS sanity)."""
-    all_subsets = [s for _, (_, _, _, _, subs) in REGIONS.items() for s in subs]
     rows, deltas = [], []
     for region, (_rec, so, _sf, off, _) in REGIONS.items():
         off_m = read_metrics(order_model(off))
-        for ss in all_subsets:
+        for ss in ALL_SUBSETS:
             on = ord_auprc(api, so, ss)
-            onv = (
-                on.get(4999)
-                or on.get(5000)
-                or (sorted(on.items())[-1][1] if on else None)
-            )
-            offv = off_m.get(ss, (None,))[0]
+            # endpoint AUPRC matching the offline step-4999; explicit membership so a
+            # legitimate 0.0 is not treated as missing
+            if 4999 in on:
+                onv = on[4999]
+            elif 5000 in on:
+                onv = on[5000]
+            elif on:
+                onv = on[max(on)]
+            else:
+                onv = None
+            offv = off_m.get(ss, (None,))[0] if off_m else None
             if onv is None or offv is None:
                 continue
             deltas.append(abs(offv - onv))

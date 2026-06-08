@@ -284,6 +284,19 @@ def paired_metric_delta_bootstrap(
             yy, b[idx]
         )
     boot = boot[~np.isnan(boot)]
+    if boot.size == 0:
+        # Every resample was single-class (only possible on non-matched-pair input,
+        # where a group can be all-one-label) — the delta SE/CI/p are undefined.
+        nan = float("nan")
+        return {
+            "delta": point,
+            "se": nan,
+            "ci_low": nan,
+            "ci_high": nan,
+            "p_two_sided": nan,
+            "n_groups": int(n_groups),
+            "n_rows": int(len(y)),
+        }
     se = float(np.std(boot, ddof=1))
     lo, hi = (float(v) for v in np.percentile(boot, [2.5, 97.5]))
     # Two-sided bootstrap p. Ties (boot == 0) count on BOTH sides, so identical
