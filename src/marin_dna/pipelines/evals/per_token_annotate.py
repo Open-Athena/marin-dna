@@ -101,3 +101,62 @@ def assign_codon_positions(cds: pl.DataFrame, positions: pl.DataFrame) -> pl.Dat
     )
     per_base = cds_codon_positions(cds)
     return positions.join(per_base, on=["chrom", "genomic_pos"], how="left")
+
+
+def intron_splice_regions(exons: pl.DataFrame, *, flank: int = 20) -> pl.DataFrame:
+    """Intronic splice-site regions: the ``flank`` bp of each intron adjacent to
+    an exon (the donor and acceptor sides of every splice junction).
+
+    Introns are the gaps between consecutive exons of a transcript; the
+    splice-site region is the ``flank`` bp reaching into the intron from each
+    flanking exon. Short introns (< 2·``flank``) collapse to the whole intron.
+    Used to split ``val_cds``'s non-coding positions into **splicing** (intron
+    ≤ ``flank`` bp from a junction — donor ``GT`` / acceptor ``AG``) vs
+    other-noncoding (UTR, deeper intron). ``flank=20`` matches the set's
+    ``add_flank(20)`` splice signal.
+
+    Args:
+        exons: canonical exon segments with columns ``[chrom, start, end,
+            transcript_id]`` (0-based half-open). One transcript's exons define
+            its introns; restrict to canonical transcripts upstream.
+        flank: bp into the intron from each exon boundary.
+
+    Returns:
+        ``[chrom, start, end]`` 0-based half-open intervals (deduplicated), the
+        intronic splice-site regions. Empty (typed) frame if there are no introns.
+    """
+    req = {"chrom", "start", "end", "transcript_id"}
+    missing = req - set(exons.columns)
+    assert not missing, f"exons missing columns: {missing}"
+    assert flank > 0, "flank must be positive"
+    empty = pl.DataFrame(schema={"chrom": pl.Utf8, "start": pl.Int64, "end": pl.Int64})
+    if len(exons) == 0:
+        return empty
+
+    introns = (
+        exons.sort(["transcript_id", "start"])
+        .with_columns(_next_start=pl.col("start").shift(-1).over("transcript_id"))
+        .filter(
+            pl.col("_next_start").is_not_null()
+            & (pl.col("_next_start") > pl.col("end"))
+        )
+        .select(
+            pl.col("chrom"),
+            pl.col("end").alias("istart"),
+            pl.col("_next_start").alias("iend"),
+        )
+    )
+    if len(introns) == 0:
+        return empty
+
+    donor = introns.select(
+        pl.col("chrom"),
+        pl.col("istart").alias("start"),
+        pl.min_horizontal(pl.col("istart") + flank, pl.col("iend")).alias("end"),
+    )
+    acceptor = introns.select(
+        pl.col("chrom"),
+        pl.max_horizontal(pl.col("iend") - flank, pl.col("istart")).alias("start"),
+        pl.col("iend").alias("end"),
+    )
+    return pl.concat([donor, acceptor]).unique().sort(["chrom", "start", "end"])
