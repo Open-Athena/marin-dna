@@ -696,14 +696,6 @@ _SGE_STUDY_META = {
         "score_col": "`author_score`",
         "class_col": "—",
     },
-    "urn:mavedb:00001226-a-1": {
-        "gene": "CARD11",
-        "study": "Multiplexed functional assessment of CARD11 (2020)",
-        "pmid": "33202260",
-        "build": "GRCh38 (c.→g.)",
-        "score_col": "`author_score`",
-        "class_col": "— (codon-level study; SNV subset)",
-    },
 }
 
 

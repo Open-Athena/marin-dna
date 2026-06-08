@@ -111,7 +111,7 @@ coordinate encoding — **13 genes** total:
   `load_mavedb_genomic_scoreset`: their MaveDB `hgvs_nt` is `NC_…:g.` (genomic), so
   coordinates parse directly and intronic SNVs are kept with no transcript mapping;
   GRCh38-native (no liftover).
-- **Transcript-targeted MaveDB genes** (BRCA2, RAD51C, BAP1, DDX3X, VHL, CARD11) —
+- **Transcript-targeted MaveDB genes** (BRCA2, RAD51C, BAP1, DDX3X, VHL) —
   `load_mavedb_transcript_scoreset`: their `hgvs_nt` is `ENST…:c.` (transcript cDNA),
   whose **intronic** variants MaveDB's own map drops. The `sge_recode_mavedb` rule
   recovers genomic coords with **pyhgvs + cdot** (`recode_hgvs_c_to_genomic` —
