@@ -31,16 +31,20 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import wandb
+from _exp255_style import COL_FAMILY as C_FAMILY
+from _exp255_style import COL_ORDER as C_ORDER
+from _exp255_style import set_style
 
 GROUP_ORDER = "dna-exp255-v0.1"
 GROUP_FAMILY = "dna-exp232-v0.1"
 # arm -> (val recipe, order-run substring, family-run substring)
 ARMS = {
     "cds": ("val_cds", "v4_cds_order", "v4_cds"),
+    "utr3": ("val_utr3", "v4_utr3_order", "v4_utr3"),
+    "ncrna": ("val_ncrna", "v4_ncrna_exon_order", "v4_ncrna_exon"),
+    "tss": ("val_tss_pc", "v4_tss_region_and_utr5_order", "v4_tss_region_and_utr5"),
     "ccre": ("val_enhancer", "v4_ccre_non_promoter_order", "v4_ccre_non_promoter"),
 }
-C_FAMILY = "#9e9e9e"  # family (108 sp.) — baseline, drawn first
-C_ORDER = "#0072B2"  # order (19 sp.) — the new arm
 MIN_STEP = (
     1000  # drop the <=500 early-training transient (order ccre just-restarted there)
 )
@@ -70,6 +74,7 @@ def stitch(api: wandb.Api, group: str, sub: str, recipe: str) -> pd.DataFrame:
 
 
 def main() -> None:
+    set_style()
     api = wandb.Api()
     data = {
         (arm, coh): stitch(api, grp, sub, rec)
@@ -80,7 +85,7 @@ def main() -> None:
     rows = [("gap", "LL gap (nats)"), ("func_ll", "LL functional (nats, = −loss)")]
     arms = list(ARMS)
     fig, axes = plt.subplots(
-        len(rows), len(arms), figsize=(5.0 * len(arms), 7.2), squeeze=False
+        len(rows), len(arms), figsize=(3.0 * len(arms), 7.0), squeeze=False
     )
     for ri, (key, ylab) in enumerate(rows):
         for ci, arm in enumerate(arms):
@@ -97,22 +102,23 @@ def main() -> None:
                     color=color,
                     label=f"{coh} ({'108' if coh == 'family' else '19'} sp.)",
                 )
-            if key == "gap":
-                ax.axhline(0, ls=":", color="gray", lw=0.8)
             if ri == 0:
                 ax.set_title(f"{arm}  ({ARMS[arm][0]})", fontsize=11)
             if ci == 0:
                 ax.set_ylabel(ylab, fontsize=10)
             ax.set_xlabel("training step", fontsize=9)
             ax.grid(alpha=0.3)
-            if ri == 0 and ci == 0:
-                ax.legend(fontsize=9, loc="lower right")
+    h, lab = axes[0][0].get_legend_handles_labels()
+    fig.legend(
+        h, lab, loc="upper center", bbox_to_anchor=(0.5, 0.925), ncol=2, fontsize=11
+    )
     fig.suptitle(
         "exp255 (#255) — matched-region LL trajectories: family (baseline) vs order\n"
         "LL = −loss (higher better); single run per arm (trajectory spread = the uncertainty cue); from step 1000 (≤500 early transient excluded)",
         fontsize=11,
+        y=0.995,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.tight_layout(rect=(0, 0, 1, 0.89))
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for ext, kw in (("png", dict(dpi=130)), ("svg", {})):
         fig.savefig(OUT_DIR / f"exp255_ll_trajectory.{ext}", bbox_inches="tight", **kw)
