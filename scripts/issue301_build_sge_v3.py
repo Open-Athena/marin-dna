@@ -81,7 +81,9 @@ def main() -> None:
         "sge", sha, paths["train"], paths["test"], calibration_path=calib
     )
     (OUT / "README.md").write_text(card)
-    print(f"\nwrote {OUT}/ (train/test/calibrations parquet + README.md); sha={sha[:7]}")
+    print(
+        f"\nwrote {OUT}/ (train/test/calibrations parquet + README.md); sha={sha[:7]}"
+    )
 
 
 if __name__ == "__main__":
