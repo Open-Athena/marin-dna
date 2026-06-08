@@ -14,11 +14,12 @@ import pytest
 from marin_dna.pipelines.evals.per_token_annotate import (
     assign_codon_positions,
     cds_codon_positions,
+    flag_fourfold_degenerate,
     intron_splice_regions,
 )
 
 _SCHEMA = ["chrom", "start", "end", "strand", "transcript_id", "frame"]
-_EXON_SCHEMA = ["chrom", "start", "end", "transcript_id"]
+_EXON_SCHEMA = ["chrom", "start", "end", "strand", "transcript_id"]
 
 
 def _cds(rows: list[tuple]) -> pl.DataFrame:
@@ -82,26 +83,76 @@ def test_invalid_frame_raises():
         cds_codon_positions(_cds([("1", 10, 13, "+", "T5", ".")]))
 
 
-def test_intron_splice_regions_long_intron():
-    # Exons [0,50) and [100,150) → intron [50,100); flank 20 → donor [50,70),
-    # acceptor [80,100).
-    ex = _exons([("1", 0, 50, "T1"), ("1", 100, 150, "T1")])
+def test_intron_splice_regions_plus_strand_donor_acceptor():
+    # + strand, intron [50,100): low side (donor) [50,70), high side (acceptor)
+    # [80,100).
+    ex = _exons([("1", 0, 50, "+", "T1"), ("1", 100, 150, "+", "T1")])
     out = intron_splice_regions(ex, flank=20).sort("start")
-    assert out.select(["chrom", "start", "end"]).rows() == [
-        ("1", 50, 70),
-        ("1", 80, 100),
+    assert out.select(["start", "end", "side"]).rows() == [
+        (50, 70, "donor"),
+        (80, 100, "acceptor"),
+    ]
+
+
+def test_intron_splice_regions_minus_strand_flips_sides():
+    # Same intron on − strand: donor/acceptor swap (gene reads high→low).
+    ex = _exons([("1", 0, 50, "-", "T1"), ("1", 100, 150, "-", "T1")])
+    out = intron_splice_regions(ex, flank=20).sort("start")
+    assert out.select(["start", "end", "side"]).rows() == [
+        (50, 70, "acceptor"),
+        (80, 100, "donor"),
     ]
 
 
 def test_intron_splice_regions_short_intron_collapses():
-    # Intron [50,60) is shorter than 2·flank → the whole intron is the region.
-    ex = _exons([("1", 0, 50, "T1"), ("1", 60, 100, "T1")])
-    out = intron_splice_regions(ex, flank=20)
-    assert out.select(["chrom", "start", "end"]).rows() == [("1", 50, 60)]
+    # Intron [50,60) shorter than 2·flank → whole intron on both sides.
+    ex = _exons([("1", 0, 50, "+", "T1"), ("1", 60, 100, "+", "T1")])
+    out = intron_splice_regions(ex, flank=20).sort("side")
+    assert set(out.select(["start", "end", "side"]).rows()) == {
+        (50, 60, "donor"),
+        (50, 60, "acceptor"),
+    }
 
 
 def test_intron_splice_regions_single_exon_empty():
-    assert len(intron_splice_regions(_exons([("1", 0, 50, "T1")]))) == 0
+    assert len(intron_splice_regions(_exons([("1", 0, 50, "+", "T1")]))) == 0
+
+
+def _coding(rows: list[tuple]) -> pl.DataFrame:
+    # (chrom, genomic_pos, transcript_id, codon_id, codon_pos, ref_base)
+    return pl.DataFrame(
+        rows,
+        schema=[
+            "chrom",
+            "genomic_pos",
+            "transcript_id",
+            "codon_id",
+            "codon_pos",
+            "ref_base",
+        ],
+        orient="row",
+    )
+
+
+def test_flag_fourfold_degenerate():
+    # Codon 1 = GTC (Val, GT* 4-fold → pos3 @102 is 4-fold);
+    # codon 2 = ATG (Met, AT* not 4-fold → pos3 @202 not 4-fold);
+    # codon 3 missing base 2 (window edge) → dropped.
+    coding = _coding(
+        [
+            ("1", 100, "T1", 1, 1, "G"),
+            ("1", 101, "T1", 1, 2, "T"),
+            ("1", 102, "T1", 1, 3, "C"),
+            ("1", 200, "T1", 2, 1, "A"),
+            ("1", 201, "T1", 2, 2, "T"),
+            ("1", 202, "T1", 2, 3, "G"),
+            ("1", 301, "T1", 3, 1, "C"),  # codon 3 has no pos-2 base
+            ("1", 302, "T1", 3, 3, "A"),
+        ]
+    )
+    out = flag_fourfold_degenerate(coding).sort("genomic_pos")
+    got = dict(zip(out["genomic_pos"].to_list(), out["is_4fold"].to_list()))
+    assert got == {102: True, 202: False}  # codon 3 dropped (incomplete)
 
 
 def test_assign_left_join_marks_noncoding_null():

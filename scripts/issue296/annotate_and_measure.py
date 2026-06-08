@@ -1,21 +1,18 @@
 """Stage 2 of issue #296 — annotate the per-token cache, measure stratified LL gaps.
 
-Reads a per-token loss cache (the ``per_token_loss.compute_hf_per_token_loss``
-output for a ``val_cds`` run), attaches **codon position** and a **splice-site**
-flag from the Ensembl r115 GTF, and computes the conserved/non-conserved **LL gap
-restricted to strata** — the headline being ``LLgap | {codon pos 1,2}`` vs the
-vanilla all-token gap.
+Reads a per-token loss cache (``per_token_loss.compute_hf_per_token_loss`` output
+for a ``val_cds`` run), annotates every base from the Ensembl r115 GTF, and
+computes the conserved/non-conserved **LL gap within each of an additive (not
+necessarily disjoint) set of strata** — the headline being ``LLgap | {codon 1,2}``
+vs the vanilla all-token gap.
 
-Strata: ``all_token`` (= vanilla LL gap), ``coding`` (codon 1/2/3), ``codon_12``,
-``codon_3``, and the non-coding split the user asked for —
-``splicing`` (intron ≤ 20 bp from a splice junction) vs ``other_noncoding``
-(UTR / deeper intron).
+Strata: ``all_token`` (= vanilla LL gap), ``coding``, ``codon_1/2/3``, ``codon_12``,
+``codon_3_4fold`` / ``codon_3_not4fold`` (4-fold-degenerate wobble vs constrained),
+``splicing`` (intron ≤ 20 bp from a junction) with ``splice_donor`` / ``splice_acceptor``,
+``utr5``, ``utr3``, and ``other_noncoding``.
 
-Two correctness gates run here:
-  * the per-segment phase drives codon position (correct for partial CDS), and
-  * a **model-free** conservation-by-codon signature — the 3rd (wobble) position
-    must be the least phyloP-conserved. If codon assignment were shifted this
-    breaks regardless of the model.
+Correctness gate (model-free): the 3rd (wobble) codon position must be the least
+phyloP-conserved — breaks if codon assignment is shifted, independent of model.
 
 CPU-only, no model. One-off (issue #296).
 
@@ -36,10 +33,13 @@ import polars as pl
 from marin_dna.data.utils import load_annotation
 from marin_dna.pipelines.evals.per_token_annotate import (
     cds_codon_positions,
+    flag_fourfold_degenerate,
     intron_splice_regions,
 )
 from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
     filter_to_canonical_transcripts,
+    get_ensembl_3_prime_utr,
+    get_ensembl_5_prime_utr,
 )
 
 DEFAULT_GTF_S3 = (
@@ -84,55 +84,53 @@ def _parse_window_ids(cache: pl.DataFrame) -> pl.DataFrame:
     ).with_columns(genomic_pos=pl.col("_win_start") + pl.col("pos_in_window"))
 
 
-def _canonical_features(gtf_local: str) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Canonical CDS segments (with ``frame``) and canonical exon segments."""
-    canon = filter_to_canonical_transcripts(load_annotation(gtf_local))
+def _canonical(gtf_local: str) -> pl.DataFrame:
+    return filter_to_canonical_transcripts(load_annotation(gtf_local))
+
+
+def _feature(canon: pl.DataFrame, feature: str, cols: list[str]) -> pl.DataFrame:
     tid = (
         pl.col("attribute").str.extract(r'transcript_id "(.*?)"').alias("transcript_id")
     )
-    cds = (
-        canon.filter(pl.col("feature") == "CDS")
+    return (
+        canon.filter(pl.col("feature") == feature)
         .with_columns(tid)
         .filter(pl.col("transcript_id").is_not_null())
-        .select(["chrom", "start", "end", "strand", "transcript_id", "frame"])
+        .select(cols)
     )
-    exons = (
-        canon.filter(pl.col("feature") == "exon")
-        .with_columns(tid)
-        .filter(pl.col("transcript_id").is_not_null())
-        .select(["chrom", "start", "end", "transcript_id"])
-    )
-    assert len(cds) > 0 and len(exons) > 0, "no canonical CDS/exon segments"
-    return cds, exons
 
 
-def _transcripts_over_windows(cds: pl.DataFrame, windows: pl.DataFrame) -> set[str]:
-    """transcript_ids whose CDS overlaps any window (bioframe)."""
+def _transcripts_over_windows(cds: pl.DataFrame, windows: pl.DataFrame) -> list[str]:
     cds_pd = cds.select(["chrom", "start", "end", "transcript_id"]).to_pandas()
     win_pd = windows.select(["chrom", "start", "end"]).unique().to_pandas()
     ov = bf.overlap(cds_pd, win_pd, how="inner", suffixes=("", "_w"))
-    return set(ov["transcript_id"].unique())
+    return list(set(ov["transcript_id"].unique()))
 
 
-def _resolve_codon_per_pos(per_base: pl.DataFrame) -> pl.DataFrame:
-    """One codon_pos per (chrom, genomic_pos); cross-transcript conflicts → null."""
+def _resolve_unique(per_pos: pl.DataFrame, col: str) -> pl.DataFrame:
+    """One value of ``col`` per (chrom, genomic_pos); cross-transcript conflicts
+    → null (kept out of that stratum)."""
     return (
-        per_base.group_by(["chrom", "genomic_pos"])
-        .agg(pl.col("codon_pos").unique().alias("_cps"))
+        per_pos.group_by(["chrom", "genomic_pos"])
+        .agg(pl.col(col).unique().alias("_u"))
         .with_columns(
-            codon_pos=pl.when(pl.col("_cps").list.len() == 1)
-            .then(pl.col("_cps").list.first())
-            .otherwise(None)
+            **{
+                col: pl.when(pl.col("_u").list.len() == 1)
+                .then(pl.col("_u").list.first())
+                .otherwise(None)
+            }
         )
-        .select(["chrom", "genomic_pos", "codon_pos"])
+        .select(["chrom", "genomic_pos", col])
     )
 
 
-def _splice_flag(positions: pl.DataFrame, splice: pl.DataFrame) -> pl.DataFrame:
-    """Add ``is_splice`` to ``positions`` ``[chrom, genomic_pos]`` — True iff the
-    position falls in an intronic splice-site region."""
-    if len(splice) == 0:
-        return positions.with_columns(is_splice=pl.lit(False))
+def _overlap_flag(
+    positions: pl.DataFrame, regions: pl.DataFrame, col: str
+) -> pl.DataFrame:
+    """Add boolean ``col`` to ``positions`` ([chrom, genomic_pos]) — True iff the
+    position falls in any of ``regions`` ([chrom, start, end])."""
+    if len(regions) == 0:
+        return positions.with_columns(**{col: pl.lit(False)})
     pos_pd = (
         positions.with_columns(
             start=pl.col("genomic_pos"), end=pl.col("genomic_pos") + 1
@@ -140,19 +138,23 @@ def _splice_flag(positions: pl.DataFrame, splice: pl.DataFrame) -> pl.DataFrame:
         .select(["chrom", "start", "end", "genomic_pos"])
         .to_pandas()
     )
-    ov = bf.overlap(pos_pd, splice.to_pandas(), how="inner", suffixes=("", "_s"))
+    ov = bf.overlap(
+        pos_pd,
+        regions.select(["chrom", "start", "end"]).to_pandas(),
+        how="inner",
+        suffixes=("", "_r"),
+    )
     hits = (
         pl.from_pandas(ov[["chrom", "genomic_pos"]])
         .unique()
-        .with_columns(is_splice=pl.lit(True))
+        .with_columns(**{col: pl.lit(True)})
     )
     return positions.join(hits, on=["chrom", "genomic_pos"], how="left").with_columns(
-        is_splice=pl.col("is_splice").fill_null(False)
+        pl.col(col).fill_null(False)
     )
 
 
 def _ll_gap(df: pl.DataFrame) -> dict[str, float]:
-    """Conserved − non-conserved mean log p (= −loss) over ``df``."""
     up = df.filter(pl.col("is_upper"))
     lo = df.filter(~pl.col("is_upper"))
     n_u, n_l = len(up), len(lo)
@@ -176,28 +178,50 @@ def main() -> None:
     windows = cache.select(["chrom", pl.col("_win_start").alias("start")]).with_columns(
         end=pl.col("start") + 255
     )
+    ref = cache.select(["chrom", "genomic_pos", "ref_base"]).unique()
 
-    cds_all, exon_all = _canonical_features(_local_gtf(args.gtf, out_dir))
+    canon = _canonical(_local_gtf(args.gtf, out_dir))
+    cds_all = _feature(
+        canon, "CDS", ["chrom", "start", "end", "strand", "transcript_id", "frame"]
+    )
+    exon_all = _feature(
+        canon, "exon", ["chrom", "start", "end", "strand", "transcript_id"]
+    )
     keep = _transcripts_over_windows(cds_all, windows)
-    cds = cds_all.filter(pl.col("transcript_id").is_in(list(keep)))
-    exons = exon_all.filter(pl.col("transcript_id").is_in(list(keep)))
+    cds = cds_all.filter(pl.col("transcript_id").is_in(keep))
+    exons = exon_all.filter(pl.col("transcript_id").is_in(keep))
     print(
-        f"[stage2] {len(keep)} transcripts overlap windows "
-        f"({len(cds)} CDS, {len(exons)} exon segments)"
+        f"[stage2] {len(keep)} transcripts ({len(cds)} CDS, {len(exons)} exon segments)"
     )
 
-    codon = _resolve_codon_per_pos(cds_codon_positions(cds))  # runs the codon math
-    splice = intron_splice_regions(exons, flank=SPLICE_FLANK)
+    # Codon position + 4-fold degeneracy (per coding base).
+    per_base = cds_codon_positions(cds)  # [.. codon_pos, codon_id]
+    codon = _resolve_unique(per_base, "codon_pos")
+    coding_ref = per_base.join(ref, on=["chrom", "genomic_pos"], how="left")
+    fourfold = _resolve_unique(flag_fourfold_degenerate(coding_ref), "is_4fold")
 
-    ann = cache.join(codon, on=["chrom", "genomic_pos"], how="left")
-    noncoding_pos = (
+    # Non-coding region flags (splice donor/acceptor, UTRs) on the non-coding set.
+    ann = cache.join(codon, on=["chrom", "genomic_pos"], how="left").join(
+        fourfold, on=["chrom", "genomic_pos"], how="left"
+    )
+    nc = (
         ann.filter(pl.col("codon_pos").is_null())
         .select(["chrom", "genomic_pos"])
         .unique()
     )
-    flagged = _splice_flag(noncoding_pos, splice)
-    ann = ann.join(flagged, on=["chrom", "genomic_pos"], how="left").with_columns(
-        is_splice=pl.col("is_splice").fill_null(False)
+
+    splice = intron_splice_regions(exons, flank=SPLICE_FLANK)
+    nc = _overlap_flag(nc, splice, "is_splice")
+    nc = _overlap_flag(nc, splice.filter(pl.col("side") == "donor"), "is_donor")
+    nc = _overlap_flag(nc, splice.filter(pl.col("side") == "acceptor"), "is_acceptor")
+    nc = _overlap_flag(nc, get_ensembl_5_prime_utr(canon).to_polars(), "is_utr5")
+    nc = _overlap_flag(nc, get_ensembl_3_prime_utr(canon).to_polars(), "is_utr3")
+
+    ann = ann.join(nc, on=["chrom", "genomic_pos"], how="left").with_columns(
+        *[
+            pl.col(c).fill_null(False)
+            for c in ["is_splice", "is_donor", "is_acceptor", "is_utr5", "is_utr3"]
+        ]
     )
 
     # --- Gate: model-free conservation-by-codon signature -------------------
@@ -214,33 +238,44 @@ def main() -> None:
     print("\n[stage2] per-codon-position (CDS bases):")
     print(by_codon)
     fc = {r["codon_pos"]: r["frac_conserved"] for r in by_codon.iter_rows(named=True)}
-    assert fc[3] < fc[1] and fc[3] < fc[2], (
-        f"codon off-by-one gate FAILED: wobble (pos3) is not the least conserved: {fc}"
-    )
+    assert fc[3] < fc[1] and fc[3] < fc[2], f"codon gate FAILED: {fc}"
     print(
         f"[stage2] GATE OK — wobble least conserved (pos3={fc[3]:.3f} < "
         f"pos1={fc[1]:.3f}, pos2={fc[2]:.3f})"
     )
 
-    # --- Stratified LL gaps -------------------------------------------------
+    # --- Additive strata (overlap allowed) ----------------------------------
+    cp = pl.col("codon_pos")
     strata = {
         "all_token": pl.lit(True),
-        "coding": pl.col("codon_pos").is_not_null(),
-        "codon_12": pl.col("codon_pos").is_in([1, 2]),
-        "codon_3": pl.col("codon_pos") == 3,
-        "splicing": pl.col("codon_pos").is_null() & pl.col("is_splice"),
-        "other_noncoding": pl.col("codon_pos").is_null() & ~pl.col("is_splice"),
+        "coding": cp.is_not_null(),
+        "codon_1": cp == 1,
+        "codon_2": cp == 2,
+        "codon_3": cp == 3,
+        "codon_12": cp.is_in([1, 2]),
+        "codon_3_4fold": (cp == 3) & (pl.col("is_4fold") == True),  # noqa: E712
+        "codon_3_not4fold": (cp == 3) & (pl.col("is_4fold") == False),  # noqa: E712
+        "splicing": pl.col("is_splice"),
+        "splice_donor": pl.col("is_donor"),
+        "splice_acceptor": pl.col("is_acceptor"),
+        "utr5": pl.col("is_utr5"),
+        "utr3": pl.col("is_utr3"),
+        "other_noncoding": cp.is_null()
+        & ~pl.col("is_splice")
+        & ~pl.col("is_utr5")
+        & ~pl.col("is_utr3"),
     }
     rows = [
         {"model": args.model_name, "stratum": name, **_ll_gap(ann.filter(mask))}
         for name, mask in strata.items()
     ]
     summary = pl.DataFrame(rows)
-    print(
-        "\n[stage2] stratified LL gaps "
-        "(gap = LL_upper − LL_lower, > 0 ⇒ conserved easier):"
-    )
-    print(summary)
+    with pl.Config(tbl_rows=-1):
+        print(
+            "\n[stage2] stratified LL gaps "
+            "(gap = LL_upper − LL_lower, > 0 ⇒ conserved easier):"
+        )
+        print(summary)
 
     out = out_dir / "stage2" / args.model_name
     out.mkdir(parents=True, exist_ok=True)
