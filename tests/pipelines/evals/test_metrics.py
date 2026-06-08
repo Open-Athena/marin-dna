@@ -20,6 +20,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_auprc_metrics,
     compute_metrics,
     compute_qtl_metrics,
+    paired_metric_delta_bootstrap,
 )
 
 
@@ -261,6 +262,67 @@ def test_auprc_length_mismatch_raises():
     mg = np.array([0, 1, 2])
     with pytest.raises(AssertionError, match="length mismatch"):
         auprc_with_bootstrap_se(labels, scores, mg, n_bootstrap=10, rng=0)
+
+
+# ---------------------------------------------------------------------------
+# paired_metric_delta_bootstrap
+# ---------------------------------------------------------------------------
+
+
+def test_paired_delta_zero_for_identical_scores():
+    """A == B → delta exactly 0, SE 0, CI brackets 0, p≈1 (ties on both sides)."""
+    labels, scores, mg = _matched_pairs(separable=False, seed=5)
+    r = paired_metric_delta_bootstrap(
+        labels, scores, scores, mg, n_bootstrap=200, rng=0
+    )
+    assert r["delta"] == pytest.approx(0.0, abs=1e-12)
+    assert r["se"] == pytest.approx(0.0, abs=1e-12)
+    assert r["ci_low"] <= 0 <= r["ci_high"]
+    assert r["p_two_sided"] == pytest.approx(1.0)
+
+
+def test_paired_delta_positive_and_significant_when_a_better():
+    """A ranks positives above negatives, B random → delta>0, CI excludes 0, small p."""
+    labels, scores_b, mg = _matched_pairs(separable=False, seed=1)
+    scores_a = np.where(labels == 1, 0.9, 0.1)
+    r = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=300, rng=0
+    )
+    assert r["delta"] > 0
+    assert r["ci_low"] > 0  # CI excludes 0
+    assert r["p_two_sided"] < 0.05
+
+
+def test_paired_se_tighter_than_independence():
+    """The whole point: on shared rows the paired SE is below sqrt(SE_a² + SE_b²)."""
+    labels, scores_b, mg = _matched_pairs(separable=False, seed=3)
+    scores_a = scores_b.copy()
+    scores_a[labels == 1] += (
+        0.12  # A = B with positives nudged up → correlated, A better
+    )
+    se_a = auprc_with_bootstrap_se(labels, scores_a, mg, n_bootstrap=400, rng=0)["se"]
+    se_b = auprc_with_bootstrap_se(labels, scores_b, mg, n_bootstrap=400, rng=0)["se"]
+    indep = float(np.hypot(se_a, se_b))
+    r = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=400, rng=0
+    )
+    assert r["delta"] > 0
+    assert 0 < r["se"] < indep  # paired strictly tighter than the independence formula
+
+
+def test_paired_delta_seed_reproducibility():
+    """rng=0 twice → identical delta and SE (bit-stable for diffing claims)."""
+    labels, scores_b, mg = _matched_pairs(separable=False, seed=2)
+    scores_a = scores_b.copy()
+    scores_a[labels == 1] += 0.1
+    a = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=100, rng=0
+    )
+    b = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=100, rng=0
+    )
+    assert a["se"] == b["se"]
+    assert a["delta"] == b["delta"]
 
 
 # ---------------------------------------------------------------------------

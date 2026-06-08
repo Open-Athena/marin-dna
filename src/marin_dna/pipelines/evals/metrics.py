@@ -216,6 +216,104 @@ def auprc_with_bootstrap_se(
     }
 
 
+def paired_metric_delta_bootstrap(
+    label: pd.Series,
+    score_a: pd.Series,
+    score_b: pd.Series,
+    match_group: pd.Series,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+) -> dict[str, float | int]:
+    """Paired cluster-bootstrap of the AUPRC delta ``AP(a) − AP(b)`` on shared rows.
+
+    Both score columns are scored on the SAME rows (shared ``label`` and
+    ``match_group``), so each bootstrap iteration resamples ``match_group``s ONCE
+    and recomputes AUPRC for *both* scores on that single resample. The resulting
+    delta distribution captures the positive cross-score correlation, so its SE is
+    the paired form ``sqrt(SE_a² + SE_b² − 2 ρ SE_a SE_b)`` — tighter than the
+    independence formula ``sqrt(SE_a² + SE_b²)``, which over-states the delta's
+    uncertainty and can bury real effects. Use for any "model A vs model B on the
+    same matched-pair eval" comparison.
+
+    Args:
+        label: 0/1 per row (shared by both scores).
+        score_a: score for arm A (delta is A − B); no NaN.
+        score_b: score for arm B (the baseline); no NaN.
+        match_group: integer group id; the cluster-bootstrap unit.
+        n_bootstrap: bootstrap iterations.
+        rng: ``numpy.random.Generator``, seed int, or ``None`` (default ``0`` →
+            reproducible across re-runs).
+
+    Returns:
+        ``{"delta", "se", "ci_low", "ci_high", "p_two_sided", "n_groups",
+        "n_rows"}``. ``delta`` is the point ``AP(a) − AP(b)`` over all rows; ``se``
+        is the std of the bootstrap deltas; ``ci_low``/``ci_high`` the 2.5/97.5
+        percentiles; ``p_two_sided = 2·min(frac≤0, frac≥0)`` (ties count on both
+        sides), clamped to ``[1/n_bootstrap, 1]``.
+    """
+    assert len(label) == len(score_a) == len(score_b) == len(match_group), (
+        f"length mismatch: label={len(label)} a={len(score_a)} "
+        f"b={len(score_b)} match_group={len(match_group)}"
+    )
+    a = np.asarray(score_a, dtype=float)
+    b = np.asarray(score_b, dtype=float)
+    y = np.asarray(label).astype(int)
+    mg = np.asarray(match_group)
+    assert not np.isnan(a).any() and not np.isnan(b).any(), (
+        "scores contain NaN; fill upstream before scoring"
+    )
+    n_pos = int(y.sum())
+    assert 0 < n_pos < len(y), f"AUPRC undefined: n_pos={n_pos} of n={len(y)}"
+
+    point = float(average_precision_score(y, a) - average_precision_score(y, b))
+    group_to_rows: list[np.ndarray] = list(pd.Series(mg).groupby(mg).indices.values())
+    n_groups = len(group_to_rows)
+
+    rng = np.random.default_rng(rng)
+    boot = np.empty(n_bootstrap, dtype=float)
+    for i in range(n_bootstrap):
+        sampled = rng.integers(0, n_groups, size=n_groups)
+        idx = np.concatenate([group_to_rows[g] for g in sampled])
+        yy = y[idx]
+        s = int(yy.sum())
+        if s == 0 or s == len(yy):  # single-class resample — delta undefined
+            boot[i] = np.nan
+            continue
+        boot[i] = average_precision_score(yy, a[idx]) - average_precision_score(
+            yy, b[idx]
+        )
+    boot = boot[~np.isnan(boot)]
+    if boot.size == 0:
+        # Every resample was single-class (only possible on non-matched-pair input,
+        # where a group can be all-one-label) — the delta SE/CI/p are undefined.
+        nan = float("nan")
+        return {
+            "delta": point,
+            "se": nan,
+            "ci_low": nan,
+            "ci_high": nan,
+            "p_two_sided": nan,
+            "n_groups": int(n_groups),
+            "n_rows": int(len(y)),
+        }
+    se = float(np.std(boot, ddof=1))
+    lo, hi = (float(v) for v in np.percentile(boot, [2.5, 97.5]))
+    # Two-sided bootstrap p. Ties (boot == 0) count on BOTH sides, so identical
+    # scores give p≈1 rather than a spurious 0; clamp to [1/n_bootstrap, 1].
+    p = min(2.0 * min(float((boot <= 0).mean()), float((boot >= 0).mean())), 1.0)
+    p = max(p, 1.0 / n_bootstrap)
+    return {
+        "delta": point,
+        "se": se,
+        "ci_low": lo,
+        "ci_high": hi,
+        "p_two_sided": p,
+        "n_groups": int(n_groups),
+        "n_rows": int(len(y)),
+    }
+
+
 def compute_auprc_metrics(
     dataset: pd.DataFrame,
     scores: pd.DataFrame,
