@@ -8,8 +8,10 @@ from marin_dna.pipelines.evals.conservation import (
     CONSERVATION_TRACKS,
     QTL_VARIANT_COLUMNS,
     REQUIRED_VARIANT_COLUMNS,
+    SGE_VARIANT_COLUMNS,
     aggregate_conservation_metrics,
     aggregate_conservation_qtl_metrics,
+    aggregate_conservation_sge_metrics,
     score_variants_at_positions,
 )
 
@@ -23,7 +25,9 @@ INPUT_HF_PREFIX = config["input_hf_prefix"]
 # `matched_pair` (default) → per-subset AUPRC + cluster bootstrap.
 # `qtl_global` → global AUPRC + positives-only effect_size correlation on the
 # unmatched DART-Eval QTL datasets (caqtl/dsqtl).
-EVAL_PROTOCOLS = ("matched_pair", "qtl_global")
+# `sge` (issue #301) → per-accession × consequence-subset Spearman + AUPRC on
+# evals_sge, via the same shared `compute_sge_metrics` as evals_v2.
+EVAL_PROTOCOLS = ("matched_pair", "qtl_global", "sge")
 
 
 def get_dataset_config(name: str) -> dict:
@@ -42,11 +46,12 @@ def get_dataset_protocol(name: str) -> str:
 
 def get_dataset_variant_columns(name: str) -> tuple[str, ...]:
     """Required variant columns for a dataset, keyed by eval protocol."""
-    return (
-        QTL_VARIANT_COLUMNS
-        if get_dataset_protocol(name) == "qtl_global"
-        else REQUIRED_VARIANT_COLUMNS
-    )
+    protocol = get_dataset_protocol(name)
+    if protocol == "qtl_global":
+        return QTL_VARIANT_COLUMNS
+    if protocol == "sge":
+        return SGE_VARIANT_COLUMNS
+    return REQUIRED_VARIANT_COLUMNS
 
 
 # Fail fast on an unknown eval_protocol (typo) at parse time.

@@ -20,8 +20,10 @@ training_dataset/dataset_creation) but each pipeline manages its own
 download to avoid coupling.
 
 NaN policy: this module preserves NaNs from the bigWig (no alignment at that
-locus). Callers decide how to fill them — the ``conservation_eval`` pipeline
-applies ``fillna(0)`` only at the metrics-aggregation step.
+locus). Callers decide how to handle them — the ``conservation_eval`` pipeline
+``fillna(0)``s at the matched-pair / QTL metrics-aggregation step; the SGE path
+(``aggregate_conservation_sge_metrics``) instead drops non-finite scores per
+cell, since its metrics are rank-based (a 0 fill would inject a fake rank).
 """
 
 from pathlib import Path
@@ -35,6 +37,7 @@ from marin_dna.pipelines.evals.metrics import (
     MACRO_AVG_SUBSET,
     compute_auprc_metrics,
     compute_qtl_metrics,
+    compute_sge_metrics,
 )
 
 
@@ -462,4 +465,123 @@ def _build_qtl_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
         + ", ".join(f"{s}={int(nan_map.get(s, 0))}" for s in score_names)
     )
 
+    return "\n".join(lines) + "\n"
+
+
+def aggregate_conservation_sge_metrics(
+    parquet_paths: dict[str, str | Path],
+    *,
+    n_bootstrap: int = 1000,
+    bootstrap_seed: int | None = 0,
+) -> tuple[pd.DataFrame, str]:
+    """SGE metrics across per-track scored parquets (``eval_protocol: sge``).
+
+    The conservation counterpart to the evals_v2 ``sge`` path. Each input parquet
+    is ``score_variants_at_positions`` output plus SGE_VARIANT_COLUMNS
+    (``[mavedb_urn, gene, subset, function_score_aligned, calibrated_class,
+    score]``). The per-track ``score`` is fed straight into the **shared**
+    ``compute_sge_metrics`` (``score_columns=["score"]``) — no metric logic is
+    duplicated here; only the per-track loop + ``score_name`` stamping + markdown
+    are conservation-specific. Unlike the matched-pair / QTL conservation paths,
+    ``score`` is **not** ``.fillna(0)``: both SGE metrics are rank-based and
+    ``compute_sge_metrics`` drops non-finite scores per cell (a 0 fill would
+    inject a fake "neutral" rank at unaligned loci), so the NaN count is just
+    reported.
+
+    Args:
+        parquet_paths: mapping ``score_name -> parquet path``; order preserved.
+        n_bootstrap: bootstrap iterations per cell.
+        bootstrap_seed: seed; ``None`` for fresh randomness. Default ``0`` keeps
+            outputs bit-stable across re-runs.
+
+    Returns:
+        ``(metrics_df, markdown)`` where ``metrics_df`` is ``compute_sge_metrics``
+        output (``[metric, subset, accession, gene, score_type, value, se, n,
+        n_pos]``, ``score_type == "score"``) plus ``[score_name, n_nan, n_total]``
+        per track.
+    """
+    assert parquet_paths, "parquet_paths must be non-empty"
+
+    score_names = list(parquet_paths)
+    metric_cols = [
+        "mavedb_urn",
+        "gene",
+        "subset",
+        "function_score_aligned",
+        "calibrated_class",
+    ]
+    required = (*metric_cols, "score")
+    all_metrics: list[pd.DataFrame] = []
+
+    for score_name in score_names:
+        df = pd.read_parquet(parquet_paths[score_name])
+        for col in required:
+            assert col in df.columns, (
+                f"{parquet_paths[score_name]}: missing column {col!r}"
+            )
+
+        m = compute_sge_metrics(
+            dataset=df[metric_cols],
+            scores=df[["score"]],
+            score_columns=["score"],
+            n_bootstrap=n_bootstrap,
+            rng=bootstrap_seed,
+        )
+        m["score_name"] = score_name
+        m["n_nan"] = int(df["score"].isna().sum())
+        m["n_total"] = int(len(df))
+        all_metrics.append(m)
+
+    metrics = pd.concat(all_metrics, ignore_index=True)
+    md = _build_sge_markdown(metrics, score_names)
+    return metrics, md
+
+
+def _build_sge_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
+    """Render the SGE headline (across-accession × across-subset macro) as a
+    markdown table (metric × track). The full per-accession × per-subset grid
+    lives in the metrics parquet; this is the at-a-glance summary."""
+    lines: list[str] = []
+    lines.append("### SGE — headline macro (value ± bootstrap SE)")
+    lines.append("")
+    lines.append(
+        "Per-accession (MaveDB study) Spearman of the conservation score vs "
+        "`−function_score_aligned`, and AUPRC for `calibrated_class` "
+        "abnormal-vs-normal, macro-averaged over consequence subsets "
+        "(missense/splicing) then over accessions. Both rank-based, so NaN "
+        "(unaligned) scores are dropped per cell, not filled."
+    )
+    lines.append("")
+    headline = metrics[
+        (metrics["accession"] == MACRO_AVG_SUBSET)
+        & (metrics["subset"] == MACRO_AVG_SUBSET)
+    ]
+    val = headline.pivot_table(
+        index="metric", columns="score_name", values="value", aggfunc="first"
+    )
+    se = headline.pivot_table(
+        index="metric", columns="score_name", values="se", aggfunc="first"
+    )
+    header = ["metric", *score_names]
+    lines.append("| " + " | ".join(header) + " |")
+    lines.append("| " + " | ".join(["---"] * len(header)) + " |")
+    for metric in ("spearman", "AUPRC"):
+        if metric not in val.index:
+            continue
+        cells = []
+        for s in score_names:
+            v = val.loc[metric, s] if s in val.columns else float("nan")
+            e = se.loc[metric, s] if s in se.columns else float("nan")
+            cells.append(f"{v:.3f} ± {e:.3f}" if pd.notna(v) and pd.notna(e) else "—")
+        lines.append("| " + " | ".join([metric, *cells]) + " |")
+
+    nan_map = (
+        metrics.drop_duplicates("score_name").set_index("score_name")["n_nan"].to_dict()
+    )
+    n_total = int(metrics["n_total"].iloc[0])
+    lines.append("")
+    lines.append(
+        f"n_total = {n_total}. NaN (unaligned) scores per track: "
+        + ", ".join(f"{s}={int(nan_map.get(s, 0))}" for s in score_names)
+    )
     return "\n".join(lines) + "\n"
