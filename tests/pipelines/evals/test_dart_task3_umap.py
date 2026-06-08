@@ -17,9 +17,10 @@ from marin_dna.pipelines.evals.dart_task3 import CELL_TYPES
 from marin_dna.pipelines.evals.dart_task3_umap import (
     CELLTYPE_ORDER,
     CELLTYPE_PALETTE,
-    assert_window_fits,
+    check_window_fits,
     load_dart_regions,
     plot_dart_umap,
+    read_position_limits,
 )
 
 
@@ -99,14 +100,38 @@ def test_load_dart_regions_bad_label_raises(monkeypatch):
 # --- assert_window_fits ------------------------------------------------------
 
 
-def test_assert_window_fits():
-    assert_window_fits(32768, 500)  # roomy budget — ok
-    assert_window_fits(256, 255)  # exp136 native: 255 bp + 1 BOS == 256, ok
-    with pytest.raises(AssertionError, match="would be truncated"):
-        assert_window_fits(256, 500)  # 500 + 1 BOS = 501 > 256
-    with pytest.raises(AssertionError, match="would be truncated"):
-        assert_window_fits(500, 500)  # 501 > 500 (BOS pushes it over)
-    assert_window_fits(500, 500, n_special=0)  # no BOS: 500 <= 500, ok
+def test_read_position_limits(tmp_path: Path):
+    import json
+
+    (tmp_path / "config.json").write_text(
+        json.dumps({"max_position_embeddings": 256, "rope_theta": 500000})
+    )
+    assert read_position_limits(tmp_path) == (256, True)  # rope_theta ⇒ uses_rope
+    (tmp_path / "config.json").write_text(
+        json.dumps({"max_position_embeddings": 512})  # no rope fields
+    )
+    assert read_position_limits(tmp_path) == (512, False)
+
+
+def test_check_window_fits_in_budget():
+    # Fits the budget → no-op (no print, no raise), regardless of rope.
+    check_window_fits(32768, 500, uses_rope=True)
+    check_window_fits(256, 255, uses_rope=True)  # exp136 native: 255 bp + BOS == 256
+    check_window_fits(500, 500, uses_rope=False, n_special=0)  # 500 <= 500
+
+
+def test_check_window_fits_rope_extrapolates(capsys):
+    # Over budget + RoPE → warn and PROCEED (the DART 500 bp OOD arm on exp136:
+    # 501 tokens > max_position_embeddings 256). No raise.
+    check_window_fits(256, 500, uses_rope=True)
+    out = capsys.readouterr().out
+    assert "RoPE extrapolation" in out and "OOD" in out
+
+
+def test_check_window_fits_non_rope_hard_fails():
+    # Over budget + non-RoPE would index past the learned position table → fail.
+    with pytest.raises(AssertionError, match="non-RoPE"):
+        check_window_fits(256, 500, uses_rope=False)
 
 
 # --- plot_dart_umap ----------------------------------------------------------

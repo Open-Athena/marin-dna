@@ -38,9 +38,9 @@ rule compute_dart_embeddings:
         layer_index=DART_UMAP_CFG.get("layer_index", -1),
     run:
         from marin_dna.pipelines.evals.dart_task3_umap import (
-            assert_window_fits,
+            check_window_fits,
             load_dart_regions,
-            read_max_position_embeddings,
+            read_position_limits,
         )
         from marin_dna.pipelines.evals.embedding_umap import (
             compute_region_embeddings,
@@ -48,9 +48,10 @@ rule compute_dart_embeddings:
 
         ctx = int(wildcards.ctx)
         # Whole-window pooling: feed `ctx` bp and mean-pool every DNA token
-        # (n_center_bp == window_size). Fail fast if this checkpoint can't hold
-        # ctx (+ BOS) positions before spending GPU time.
-        assert_window_fits(read_max_position_embeddings(input.checkpoint), ctx)
+        # (n_center_bp == window_size). Guard the position budget before GPU time:
+        # a RoPE model over-budget warns + extrapolates (OOD); non-RoPE hard-fails.
+        mpe, uses_rope = read_position_limits(input.checkpoint)
+        check_window_fits(mpe, ctx, uses_rope=uses_rope)
         regions = load_dart_regions(params.dataset, split=params.split)
         df = compute_region_embeddings(
             checkpoint_path=input.checkpoint,

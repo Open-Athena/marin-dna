@@ -74,32 +74,61 @@ def load_dart_regions(dataset_id: str, *, split: str = "validation") -> pd.DataF
     return df
 
 
-def read_max_position_embeddings(checkpoint_path: str | Path) -> int:
-    """Read ``max_position_embeddings`` from a HF checkpoint's ``config.json``."""
+def read_position_limits(checkpoint_path: str | Path) -> tuple[int, bool]:
+    """Return ``(max_position_embeddings, uses_rope)`` from a HF checkpoint config.
+
+    ``uses_rope`` is True when the config declares rotary embeddings
+    (``rope_theta`` or ``rope_scaling``) — our qwen3/llama gLMs all do. A RoPE
+    model computes positions dynamically, so a window longer than
+    ``max_position_embeddings`` *runs* (extrapolating, OOD) rather than erroring or
+    truncating; a model with learned absolute positions would instead index past
+    its table and crash. ``check_window_fits`` uses the flag to decide warn-vs-fail.
+    """
     cfg = json.loads((Path(checkpoint_path) / "config.json").read_text())
     mpe = cfg.get("max_position_embeddings")
     assert mpe is not None, (
         f"checkpoint {checkpoint_path}: config.json has no max_position_embeddings"
     )
-    return int(mpe)
+    uses_rope = cfg.get("rope_theta") is not None or cfg.get("rope_scaling") is not None
+    return int(mpe), bool(uses_rope)
 
 
-def assert_window_fits(
-    max_position_embeddings: int, window_size: int, *, n_special: int = 1
+def check_window_fits(
+    max_position_embeddings: int,
+    window_size: int,
+    *,
+    uses_rope: bool,
+    n_special: int = 1,
 ) -> None:
-    """Fail fast if the model can't hold ``window_size`` DNA tokens (+ specials).
+    """Guard the embedding context against the model's position budget (issue #298).
 
-    The 500 bp arm feeds ``window_size + n_special`` = 501 positions — ~2x
-    exp136's 255 bp training context. Extrapolating *is* the point of the long
-    arm (RoPE handles it), but a checkpoint whose ``max_position_embeddings``
-    caps below ``window_size + n_special`` would silently truncate the window, so
-    check rather than assume (issue #298 sanity check).
+    ``need = window_size + n_special``. If it fits ``max_position_embeddings``,
+    no-op. If it exceeds:
+
+    - **RoPE model** (``uses_rope=True``): positions are computed dynamically, so
+      the forward runs — but positions ``max_position_embeddings…need-1`` are
+      never-trained (extrapolation / OOD). We **warn and proceed**, which is what
+      lets an intentional long-context arm run (e.g. DART 500 bp = 501 tokens on
+      exp136, whose ``max_position_embeddings`` is 256 = its 255 bp + BOS training
+      context).
+    - **non-RoPE model**: the forward would index past the learned absolute-
+      position table and crash, so we **hard-fail** before spending GPU time.
     """
     need = window_size + n_special
-    assert max_position_embeddings >= need, (
-        f"model max_position_embeddings {max_position_embeddings} < {need} "
-        f"({window_size} bp + {n_special} special token(s)); the long-context arm "
-        f"would be truncated"
+    if need <= max_position_embeddings:
+        return
+    detail = (
+        f"window {window_size} bp + {n_special} special = {need} tokens > model "
+        f"max_position_embeddings {max_position_embeddings}"
+    )
+    if uses_rope:
+        print(
+            f"[dart_umap] WARNING: {detail}; RoPE extrapolation — positions "
+            f"{max_position_embeddings}..{need - 1} were never seen in training (OOD)"
+        )
+        return
+    raise AssertionError(
+        f"{detail}; non-RoPE model would index past its learned position table"
     )
 
 
