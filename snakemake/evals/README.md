@@ -20,6 +20,7 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 | `caqtl` | DART-Eval African caQTLs (ATAC), GRCh38 | Significant caQTLs in peaks | Control variants in peaks (no matching) |
 | `dsqtl` | DART-Eval Yoruban dsQTLs (DNase), hg19→GRCh38 | Significant dsQTLs in peaks | Control variants in peaks (no matching) |
 | `sge` | Saturation genome editing function scores (BRCA1; #289 phase 1) | — *(no label: a continuous experimental function score per SNV)* | — |
+| `dart_task3` | DART-Eval Task 3 cell-type ATAC peaks — 500 bp intervals, **not variants** (#293) | — *(no pos/neg: 5-class cell-type label — GM12878 / H1ESC / HEPG2 / IMR90 / K562)* | — |
 
 Only `mendelian_traits` has a corresponding `_harness_255` eval-harness
 variant. A 255 bp window centered on each variant is materialized into
@@ -144,6 +145,56 @@ MaveDB record once (`build_mavedb_metadata`) and emits two study-level artifacts
 
 ```bash
 uv run --group hgvs snakemake results/dataset/sge/{train,test}.parquet
+```
+
+### DART-Eval Task 3 (cell-type peaks) — `dart_task3`
+
+`dart_task3` is [DART-Eval](https://github.com/kundajelab/DART-Eval) **Task 3**
+("Discriminating Cell-Type-Specific Elements", issue #293): a cell-type-specific
+**chromatin-accessibility peak** dataset — the embedding/interpretation
+counterpart to the Task-5 QTL datasets above. Each row is a **500 bp** ATAC-seq
+consensus-peak window (±250 bp around the summit, GRCh38), labeled by the
+**cell type** it is differentially accessible in — one of 5 cell lines
+(`GM12878`, `H1ESC`, `HEPG2`, `IMR90`, `K562`). The window set is DART-Eval's
+`input_data/top_5000_deseq_peaks.tsv` — the top-5,000 DESeq2
+differentially-accessible peaks per cell type (the subset they feed their
+zero-shot clustering / UMAP): **25,000 windows, 5,000 balanced per cell type**,
+with unique peak coordinates.
+
+It is an **interval dataset, not variants**, so it bypasses all the variant
+machinery — no ref/alt, no `consequence`/`distance_*` annotation, no matching, no
+subsampling — and uses its **own rules and output namespace**
+(`workflow/rules/dart_task3.smk`, `results/dart_task3/…`). The full 500 bp peak is
+stored (never pre-cropped to a model's context window), so the embedding context /
+pooling choice stays an open downstream decision.
+
+**Splits.** Unlike the rest of the pipeline (odd/even 2-way), `dart_task3` uses
+DART-Eval's canonical **3-way** chromosome holdout, shipped one file per split (HF
+convention: `train.parquet` / `validation.parquet` / `test.parquet`, no in-row
+`split` column):
+
+| File | Chromosomes |
+|---|---|
+| `train.parquet` | 1, 2, 3, 4, 7, 8, 9, 11, 12, 13, 15, 16, 17, 19, X, Y |
+| `validation.parquet` | 6, 21 |
+| `test.parquet` | 5, 10, 14, 18, 20, 22 |
+
+`dart_task3_dataset` parses the TSV (`parse_dart_task3`), runs a build-time sanity
+check (all 5 cell types, ~25k windows: `assert_full_dataset`), and routes windows
+to the 3 splits (`split_frames`) — all in
+`src/marin_dna/pipelines/evals/dart_task3.py`, so the logic is unit-tested. There
+is **no** `results/qc/` artifact (no matching).
+
+Like caqtl/dsqtl it needs **Synapse auth** (the same PAT mechanism): set
+`SYNAPSE_AUTH_TOKEN` (the source file is pinned in `config.yaml` as
+`dart_eval.task3_synapse_id: syn62161401`). It is deliberately **not** in
+`rule all` / `upload_all` (its own 3-split target); build and upload it
+explicitly:
+
+```bash
+export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
+uv run snakemake dart_task3                       # build the 3 split parquets
+uv run snakemake results/dart_task3/upload.done   # upload to bolinas-dna/evals_dart_task3
 ```
 
 ## Matching scheme
