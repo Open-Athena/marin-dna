@@ -44,6 +44,17 @@ setup: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
     export PATH="$HOME/.local/bin:$PATH"
+
+    # AWS CLI v2 for the S3 checkpoint pull / output push. The base sky image
+    # has boto3 in the env but no `aws` CLI (evals_v2 does all S3 I/O through
+    # snakemake's boto3 storage plugin, so it never needed the CLI).
+    if ! command -v aws >/dev/null 2>&1; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq unzip
+        curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
+        ( cd /tmp && unzip -oq awscliv2.zip && sudo ./aws/install --update )
+    fi
+    aws --version
+
     # --group genome-s3 keeps the import surface identical to evals_v2 (the
     # runner imports marin_dna.data.genome); Stage 1 itself reads no FASTA.
     uv sync --frozen --group genome-s3
@@ -54,7 +65,9 @@ run: |
     # HF Trainer auto-inits wandb if the package is importable; disable it for
     # this inference-only job (no API key on a fresh node).
     export WANDB_DISABLED=true
+    set +x  # don't echo the token into the job log
     if [ -n "${HF_TOKEN:-}" ]; then export HUGGING_FACE_HUB_TOKEN="$HF_TOKEN"; fi
+    set -x
 
     # Pull the checkpoint from S3 (instance role) into a local HF dir.
     CKPT_DIR="/tmp/ckpt/$MODEL_NAME"
