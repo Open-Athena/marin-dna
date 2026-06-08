@@ -57,59 +57,64 @@ def main() -> None:
     ap.add_argument("--out-dir", default="scratch/issue296")
     args = ap.parse_args()
 
-    rows = []
+    meta_cols = [
+        "model",
+        "params_M",
+        "missense_auprc",
+        "synonymous_auprc",
+        "splicing_auprc",
+    ]
+    rows_gap, rows_loss = [], []
     for p in sorted(glob.glob(f"{args.stage2_dir}/*/val_cds_stratum_ll_gap.parquet")):
         model = Path(p).parent.name
-        gaps = {
-            r["stratum"]: r["gap"] for r in pl.read_parquet(p).iter_rows(named=True)
+        df = pl.read_parquet(p)
+        meta = {
+            "model": model,
+            "params_M": _params_millions(model),
+            "missense_auprc": _vep_auprc(model, "missense_variant"),
+            "synonymous_auprc": _vep_auprc(model, "synonymous_variant"),
+            "splicing_auprc": _vep_auprc(model, "splicing"),
         }
-        rows.append(
-            {
-                "model": model,
-                "params_M": _params_millions(model),
-                "missense_auprc": _vep_auprc(model, "missense_variant"),
-                "synonymous_auprc": _vep_auprc(model, "synonymous_variant"),
-                "splicing_auprc": _vep_auprc(model, "splicing"),
-                **gaps,
-            }
-        )
-    assert rows, f"no stratum parquets under {args.stage2_dir}"
-    tab = pl.DataFrame(rows).sort("params_M")
-    meta = ["model", "params_M", "missense_auprc", "synonymous_auprc", "splicing_auprc"]
-    strata = [c for c in tab.columns if c not in meta]
+        rows = {r["stratum"]: r for r in df.iter_rows(named=True)}
+        rows_gap.append({**meta, **{s: r["gap"] for s, r in rows.items()}})
+        rows_loss.append({**meta, **{s: r["mean_loss"] for s, r in rows.items()}})
 
-    with pl.Config(tbl_rows=-1, tbl_cols=-1):
-        print(f"[scaling] {len(tab)} models:")
-        print(tab.select(["model", "params_M", "missense_auprc", *strata]))
+    assert rows_gap, f"no stratum parquets under {args.stage2_dir}"
+    tab_gap = pl.DataFrame(rows_gap).sort("params_M")
+    tab_loss = pl.DataFrame(rows_loss).sort("params_M")
+    strata = [c for c in tab_gap.columns if c not in meta_cols]
 
-    # Per-stratum correlation of the stratum's LL gap vs missense AUPRC.
-    y = tab["missense_auprc"].to_numpy()
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, fmt_str_lengths=50):
+        print(f"[scaling] {len(tab_gap)} models — per-stratum **LL gap**:")
+        print(tab_gap.select(["params_M", "missense_auprc", *strata]))
+        print("\n[scaling] per-stratum **mean loss** (nats; lower = better predicted):")
+        print(tab_loss.select(["params_M", "missense_auprc", *strata]))
+
+    # Per-stratum correlation of BOTH the gap and the mean loss vs missense AUPRC.
+    y = tab_gap["missense_auprc"].to_numpy()
     corr = pl.DataFrame(
         [
             {
                 "stratum": s,
-                "spearman_vs_missense": _spearman(tab[s].to_numpy(), y),
-                "pearson_vs_missense": (
-                    float(np.corrcoef(tab[s].to_numpy(), y)[0, 1])
-                    if not np.isnan(tab[s].to_numpy()).any() and len(tab) >= 2
-                    else float("nan")
-                ),
+                "gap_spearman": _spearman(tab_gap[s].to_numpy(), y),
+                "meanloss_spearman": _spearman(tab_loss[s].to_numpy(), y),
             }
             for s in strata
         ]
-    ).sort("spearman_vs_missense", descending=True)
+    ).sort("gap_spearman", descending=True)
     print(
-        f"\n[scaling] per-stratum LL-gap correlation with missense AUPRC "
-        f"(n={len(tab)} models; vanilla baseline = `all_token`):"
+        f"\n[scaling] Spearman ρ of each stratum's gap / mean-loss vs missense "
+        f"AUPRC (n={len(tab_gap)} models; vanilla baseline = `all_token`):"
     )
     with pl.Config(tbl_rows=-1):
         print(corr)
 
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    tab.write_parquet(out / "scaling_table.parquet")
+    tab_gap.write_parquet(out / "scaling_gap.parquet")
+    tab_loss.write_parquet(out / "scaling_meanloss.parquet")
     corr.write_parquet(out / "scaling_corr.parquet")
-    print(f"\n[scaling] wrote scaling_table.parquet + scaling_corr.parquet → {out}")
+    print(f"\n[scaling] wrote scaling_gap / scaling_meanloss / scaling_corr → {out}")
 
 
 if __name__ == "__main__":

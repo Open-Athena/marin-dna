@@ -154,15 +154,22 @@ def _overlap_flag(
     )
 
 
-def _ll_gap(df: pl.DataFrame) -> dict[str, float]:
+def _stratum_stats(df: pl.DataFrame) -> dict[str, float]:
+    """Per-stratum stats: overall ``mean_loss`` (all tokens) **and** the
+    conserved/non-conserved LL gap. ``mean_loss`` = mean ``−log p`` over every
+    token in the stratum (how well the model predicts the region); ``gap`` =
+    ``LL_upper − LL_lower`` (the conservation delta)."""
     up = df.filter(pl.col("is_upper"))
     lo = df.filter(~pl.col("is_upper"))
     n_u, n_l = len(up), len(lo)
+    n = n_u + n_l
     ll_u = -up["loss"].mean() if n_u else float("nan")
     ll_l = -lo["loss"].mean() if n_l else float("nan")
     return {
+        "n": n,
         "n_upper": n_u,
         "n_lower": n_l,
+        "mean_loss": float(df["loss"].mean()) if n else float("nan"),
         "LL_upper": ll_u,
         "LL_lower": ll_l,
         "gap": (ll_u - ll_l) if (n_u and n_l) else float("nan"),
@@ -266,7 +273,7 @@ def main() -> None:
         & ~pl.col("is_utr3"),
     }
     rows = [
-        {"model": args.model_name, "stratum": name, **_ll_gap(ann.filter(mask))}
+        {"model": args.model_name, "stratum": name, **_stratum_stats(ann.filter(mask))}
         for name, mask in strata.items()
     ]
     summary = pl.DataFrame(rows)

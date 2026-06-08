@@ -122,13 +122,18 @@ def main() -> None:
     ours = _reaggregate_by_case(per_token)
     assert official["n_upper"] == ours["n_upper"], (official, ours)
     assert official["n_lower"] == ours["n_lower"], (official, ours)
+    # `compute_ll_clm` accumulates each row's token log-probs in fp32, then
+    # aggregate_ll_gap sums rows in fp64; our path keeps every token and sums in
+    # fp64. Same math, different reduction order → agreement to ~fp32-accumulation
+    # (≲1e-6 on these ~1.0-nat means), not bit-exact. 1e-5 still catches any real
+    # discrepancy (a token-misalignment bug is ≥1e-3).
+    tol = 1e-5
     for k in ("LL_upper", "LL_lower", "gap"):
-        # Same kernel, same inputs — expect bit-exact up to fp64 reduction order.
-        assert abs(official[k] - ours[k]) < 1e-9, (k, official[k], ours[k])
+        assert abs(official[k] - ours[k]) < tol, (k, official[k], ours[k])
     print(
         f"[stage1] equivalence OK — LL_upper={ours['LL_upper']:.6f} "
         f"LL_lower={ours['LL_lower']:.6f} gap={ours['gap']:.6f} "
-        f"(official aggregate matches to <1e-9)"
+        f"(official aggregate matches to <{tol:g})"
     )
 
     check_path = (
