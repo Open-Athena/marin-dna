@@ -1,54 +1,73 @@
 ---
-title: SGE Leaderboard
+title: Saturation Genome Editing
 toc: false
 wide: true
 ---
 
-# SGE Leaderboard
+# Saturation Genome Editing
 
-Saturation genome editing: per-variant endogenous-locus function scores. Both metrics are **rank-based** (so conservation tracks and gLMs compare on the same footing): **Spearman** of the deleteriousness score vs `−function_score_aligned`, and **AUPRC** for the ClinGen/ExCALIBR `calibrated_class` abnormal-vs-normal call. Scores are non-comparable across studies, so everything is computed **per accession** (MaveDB study) then macro-averaged.
+Per-variant endogenous-locus function scores (MaveDB SGE studies). The leaderboard metric is **AUPRC** for the ClinGen/ExCALIBR `calibrated_class` abnormal-vs-normal call — computed **per accession** (study) then macro-averaged over consequence subsets and accessions (scores are non-comparable across studies). Higher = better; the abnormal base rate varies per gene/subset (~5–16%).
 
 ```js
+import * as d3 from "npm:d3";
 const sgeTable = await FileAttachment("../data/sge.parquet").parquet();
 const methods = await FileAttachment("../data/models.json").json();
 const datasets = await FileAttachment("../data/datasets.json").json();
+import {modelHref, attachModelPopover} from "../components/model-cards.js";
 import {
   FAMILY_LABEL,
   PROTOCOL_OPTIONS,
   PROTOCOL_DEFAULTS,
   FamilyProtocolToggle,
+  PillSelect,
 } from "../components/controls.js";
 ```
 
 ```js
-// Arrow → plain JS rows (sge.parquet schema; see leaderboard.sge_normalized_rows).
-const rows = sgeTable.toArray().map((r) => ({
-  method_id: String(r.method_id),
-  method_display: String(r.method_display),
-  family: String(r.family),
-  score_type: String(r.score_type),
-  metric: String(r.metric),
-  subset: String(r.subset),
-  accession: String(r.accession),
-  gene: String(r.gene),
-  value: Number(r.value),
-  se: Number(r.se),
-  n: Number(r.n),
-  n_pos: Number(r.n_pos),
-}));
+// SGE v3 computes AUPRC only; the metric filter below is defensive.
+const rows = sgeTable
+  .toArray()
+  .map((r) => ({
+    method_id: String(r.method_id),
+    method_display: String(r.method_display),
+    family: String(r.family),
+    score_type: String(r.score_type),
+    metric: String(r.metric),
+    subset: String(r.subset),
+    accession: String(r.accession),
+    gene: String(r.gene),
+    value: Number(r.value),
+    se: Number(r.se),
+    n: Number(r.n),
+    n_pos: Number(r.n_pos),
+  }))
+  .filter((r) => r.metric === "AUPRC");
+const modelById = new Map(methods.map((m) => [m.id, m]));
 const meta = datasets.sge;
-// MarinDNA protocol → the score_type column it selects (signed LLR default; the
-// assayed ALT's direction is informative, so not abs). Conservation has one score.
+
+// MarinDNA protocol → score_type column (signed LLR default; ALT direction is
+// informative, so not abs). Conservation has its single per-position score.
 const SGE_SCORE_TYPE = {
   marin_dna: {LLR: "minus_llr_avg", JSD: "jsd_avg"},
   conservation: {score: "score"},
 };
-const SUBSETS = [
+// Columns: subset-macro leftmost (the headline), then the per-subset scopes.
+const SUBSET_COLS = [
+  {key: "_macro_avg_", label: "Macro"},
   {key: "missense_variant", label: "Missense"},
   {key: "splicing", label: "Splicing"},
-  {key: "both", label: "Both (pooled)"},
-  {key: "_macro_avg_", label: "Subset macro"},
+  {key: "both", label: "Both"},
 ];
+// AUPRC color domain tuned for SGE: the abnormal base rate is low (~5–16%, well
+// below the matched-pair 0.10), so anchor at 0 and cap near the observed ceiling
+// for contrast. YlGn (same family as the other leaderboards).
+const AUPRC_DOMAIN = [0, 0.6];
+const auprcColor = (v) => {
+  if (v == null || !Number.isFinite(v)) return "#ffffff";
+  const t = Math.max(0, Math.min(1, (v - AUPRC_DOMAIN[0]) / (AUPRC_DOMAIN[1] - AUPRC_DOMAIN[0])));
+  return d3.interpolateYlGn(0.12 + 0.88 * t);
+};
+const auprcText = (v) => (v == null || !Number.isFinite(v) ? "#666" : d3.lab(auprcColor(v)).l > 60 ? "#000" : "#fff");
 ```
 
 ## Dataset
@@ -75,28 +94,22 @@ display(html`<div class="card">
 ## Leaderboard
 
 ```js
-// Gene-scope: macro across accessions, or one accession (labeled by gene).
+// Gene scope — all options visible at a glance (macro across accessions, or one
+// accession labeled by gene).
 const accPairs = Array.from(
   new Map(
     rows.filter((r) => r.accession !== "_macro_avg_").map((r) => [r.accession, r.gene]),
   ).entries(),
 ).sort((a, b) => a[1].localeCompare(b[1]));
-const geneScopeLabel = new Map([
-  ["_macro_avg_", "All genes (macro)"],
+const geneOptions = ["_macro_avg_", ...accPairs.map(([urn]) => urn)];
+const geneLabel = new Map([
+  ["_macro_avg_", "All genes"],
   ...accPairs.map(([urn, gene]) => [urn, gene]),
 ]);
-const geneScopeOptions = ["_macro_avg_", ...accPairs.map(([urn]) => urn)];
-const geneScope = view(
-  Inputs.select(geneScopeOptions, {
-    label: "Gene",
-    value: "_macro_avg_",
-    format: (o) => geneScopeLabel.get(o) ?? o,
-  }),
-);
+const geneScope = view(PillSelect(geneOptions, "_macro_avg_", (o) => geneLabel.get(o) ?? o));
 ```
 
 ```js
-// Only families with SGE data appear; order follows FAMILY_LABEL.
 const present = new Set(rows.map((r) => r.family));
 const families = Object.keys(FAMILY_LABEL).filter((f) => present.has(f));
 const sel = view(FamilyProtocolToggle(families, PROTOCOL_OPTIONS, PROTOCOL_DEFAULTS));
@@ -104,133 +117,169 @@ const sel = view(FamilyProtocolToggle(families, PROTOCOL_OPTIONS, PROTOCOL_DEFAU
 
 ```js
 const search = view(
-  Inputs.text({
-    label: "Model name",
-    placeholder: "filter by method (e.g. exp135, phyloP)",
-  }),
+  Inputs.text({label: "Model name", placeholder: "filter by method (e.g. exp135, phyloP)"}),
 );
 ```
 
 ```js
-function activeScoreType(family, protocol) {
-  const m = SGE_SCORE_TYPE[family];
-  if (!m) return null;
-  return m[protocol] ?? Object.values(m)[0];
-}
-
-// One row per method for a subset board: {method, family, spearman, AUPRC}.
-function boardRows(subsetKey) {
+// Dedicated SGE heatmap: methods × {Macro, Missense, Splicing, Both}, colored by
+// AUPRC. Self-managing sort (click a header). Mirrors the matched-pair heatmap's
+// look (YlGn cells, family swatch, model popover) but on SGE's columns + domain.
+function sgeHeatmap({rows, geneScope}) {
   const byMethod = new Map();
   for (const r of rows) {
-    if (r.accession !== geneScope) continue;
-    if (r.subset !== subsetKey) continue;
-    if (!sel.families.includes(r.family)) continue;
-    const wantProto = sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family];
-    if (r.score_type !== activeScoreType(r.family, wantProto)) continue;
-    if (search && !r.method_display.toLowerCase().includes(search.toLowerCase())) continue;
     if (!byMethod.has(r.method_id)) {
       byMethod.set(r.method_id, {
         method_id: r.method_id,
         method_display: r.method_display,
         family: r.family,
+        cells: new Map(),
       });
     }
-    byMethod.get(r.method_id)[r.metric] = {value: r.value, se: r.se, n: r.n};
+    byMethod.get(r.method_id).cells.set(r.subset, {value: r.value, se: r.se, n: r.n, n_pos: r.n_pos});
   }
-  // Sort by Spearman desc (methods missing it sink to the bottom).
-  return [...byMethod.values()].sort(
-    (a, b) => (b.spearman?.value ?? -Infinity) - (a.spearman?.value ?? -Infinity),
-  );
+  if (byMethod.size === 0) {
+    return html`<div class="sge-empty">No methods for this selection.</div>`;
+  }
+
+  let sortKey = "_macro_avg_";
+  const root = html`<div></div>`;
+  const cmp = () => (a, b) => {
+    const va = a.cells.get(sortKey)?.value ?? -Infinity;
+    const vb = b.cells.get(sortKey)?.value ?? -Infinity;
+    return vb !== va ? vb - va : a.method_display.localeCompare(b.method_display);
+  };
+  function render() {
+    const ordered = [...byMethod.values()].sort(cmp());
+    // Per-column sample-size sub-label. For a specific gene: n = labeled
+    // variants (AUPRC) on the subset columns, K subsets on Macro. For the
+    // All-genes macro: K accessions averaged (also surfaces coverage — fewer
+    // genes qualify on splicing). Same across methods (identical scored rows).
+    const colSub = (key) => {
+      let n = null;
+      for (const m of ordered) { const c = m.cells.get(key); if (c != null) { n = c.n; break; } }
+      if (n == null) return "";
+      if (geneScope === "_macro_avg_") return `${n} ${n === 1 ? "gene" : "genes"}`;
+      if (key === "_macro_avg_") return `${n} ${n === 1 ? "subset" : "subsets"}`;
+      return `n=${n}`;
+    };
+    const table = html`<table class="sge-heatmap">
+      <colgroup><col style="width:220px"></col>${SUBSET_COLS.map(() => html`<col style="width:108px"></col>`)}</colgroup>
+      <thead><tr>
+        <th class="sge-method-header">Model</th>
+        ${SUBSET_COLS.map(
+          (c) => html`<th class=${`sge-col${c.key === sortKey ? " sge-col-sorted" : ""}`}
+            title="Click to sort by this column"
+            onclick=${() => { sortKey = c.key; root.replaceChildren(render()); }}>
+            <span class="sge-col-label">${c.label}</span><br><small>${colSub(c.key)}</small>
+          </th>`,
+        )}
+      </tr></thead>
+      <tbody>
+        ${ordered.map((m) => {
+          const meta = modelById.get(m.method_id);
+          const anchor = html`<a href=${modelHref(m.method_id)}><code>${m.method_display}</code></a>`;
+          if (meta) attachModelPopover(anchor, meta);
+          return html`<tr>
+            <td class="sge-method"><span class=${`lb-family lb-family-${m.family}`} title=${m.family}></span>${anchor}</td>
+            ${SUBSET_COLS.map((c) => {
+              const cell = m.cells.get(c.key);
+              const sortedCls = c.key === sortKey ? " sge-col-sorted" : "";
+              if (cell == null || !Number.isFinite(cell.value))
+                return html`<td class=${`sge-na${sortedCls}`}>—</td>`;
+              return html`<td class=${`sge-cell${sortedCls}`}
+                style=${`background-color:${auprcColor(cell.value)};color:${auprcText(cell.value)}`}
+                title=${`AUPRC ${cell.value.toFixed(3)} ± ${Number.isFinite(cell.se) ? cell.se.toFixed(3) : "—"}`}>
+                ${(cell.value * 100).toFixed(1)}
+              </td>`;
+            })}
+          </tr>`;
+        })}
+      </tbody>
+    </table>`;
+    return table;
+  }
+  root.replaceChildren(render());
+  return root;
 }
 
-function fmtCell(cell) {
-  if (cell == null || !Number.isFinite(cell.value)) return html`<span class="lb-na">—</span>`;
-  return html`${cell.value.toFixed(3)} <span class="muted">± ${Number.isFinite(cell.se) ? cell.se.toFixed(3) : "—"}</span>`;
+// AUPRC color legend (YlGn on the SGE domain).
+function auprcLegend({width = 240, height = 14} = {}) {
+  const ticks = [0, 0.15, 0.3, 0.45, 0.6];
+  const stops = d3.range(0, 1.001, 1 / 40).map((t) => ({
+    offset: `${t * 100}%`,
+    color: auprcColor(AUPRC_DOMAIN[0] + t * (AUPRC_DOMAIN[1] - AUPRC_DOMAIN[0])),
+  }));
+  return svg`<svg viewBox=${`0 0 ${width} ${height + 18}`} width=${width} style="overflow:visible">
+    <defs><linearGradient id="sge-grad" x1="0" x2="1">
+      ${stops.map((s) => svg`<stop offset=${s.offset} stop-color=${s.color}></stop>`)}
+    </linearGradient></defs>
+    <rect x="0" y="0" width=${width} height=${height} fill="url(#sge-grad)" stroke="#888"></rect>
+    ${ticks.map((v) => {
+      const x = ((v - AUPRC_DOMAIN[0]) / (AUPRC_DOMAIN[1] - AUPRC_DOMAIN[0])) * width;
+      return svg`<g transform=${`translate(${x},0)`}><line y1=${height} y2=${height + 4} stroke="#666"></line>
+        <text y=${height + 16} text-anchor="middle" font-size="10" fill="#555">${(v * 100).toFixed(0)}</text></g>`;
+    })}
+  </svg>`;
 }
+```
 
-function renderBoard(subset) {
-  const data = boardRows(subset.key);
-  return html`<div class="card sge-board">
-    <h3>${subset.label}</h3>
-    ${
-      data.length === 0
-        ? html`<div class="lb-forest-empty">No methods for this selection.</div>`
-        : html`<table class="sge-heatmap">
-            <thead><tr>
-              <th class="sge-method-header">Model</th>
-              <th>Spearman</th>
-              <th>AUPRC</th>
-            </tr></thead>
-            <tbody>${data.map(
-              (d) => html`<tr>
-                <td class="sge-method" title=${d.method_display}>
-                  <span class=${`lb-family lb-family-${d.family}`}></span>${d.method_display}
-                </td>
-                <td class="sge-cell">${fmtCell(d.spearman)}</td>
-                <td class="sge-cell">${fmtCell(d.AUPRC)}</td>
-              </tr>`,
-            )}</tbody>
-          </table>`
-    }
-  </div>`;
+```js
+function scoreTypeFor(family, protocol) {
+  const m = SGE_SCORE_TYPE[family];
+  return m ? m[protocol] ?? Object.values(m)[0] : null;
 }
+const filtered = rows.filter(
+  (r) =>
+    r.accession === geneScope &&
+    sel.families.includes(r.family) &&
+    r.score_type === scoreTypeFor(r.family, sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family]) &&
+    (!search || r.method_display.toLowerCase().includes(search.toLowerCase())),
+);
 ```
 
 <div class="legend-row">
-  <span>Per the selected gene scope, one board per consequence subset; rows are methods, sorted by Spearman. <b>±</b> = bootstrap SE. Spearman is oriented so a good deleteriousness predictor scores positive; AUPRC random-baseline is the per-cell abnormal rate.</span>
+  <span><b>AUPRC</b> ×100, colored on the scale below (anchored at 0; abnormal base rate ~5–16% varies per gene). <b>Macro</b> = mean of the missense + splicing subsets; <b>Both</b> = the two pooled. Click a column header to sort. Hover a model for details; hover a cell for ± SE.</span>
+  ${auprcLegend()}
 </div>
 
 ```js
-display(html`<div class="sge-board-grid">${SUBSETS.map(renderBoard)}</div>`);
+display(sgeHeatmap({rows: filtered, geneScope}));
 ```
 
 <style>
-:root { --observablehq-max-width: 2200px; }
-main > p, main > h1, main > h2, main > h3, main > .card { max-width: none; }
-main > h1, main > h2, main > p { max-width: 1200px; }
-.card.sge-board { max-width: 560px; margin: 0; }
-
-.sge-board-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: flex-start;
-}
-.sge-board h3 { margin: 0 0 0.5em; font-size: 1em; }
+:root { --observablehq-max-width: 2000px; }
+main > p, main > h1, main > h2, main > .card { max-width: none; }
+main > h1, main > h2, main > p { max-width: 1100px; }
+.card { max-width: 1100px; }
 
 .sge-heatmap {
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
   font-size: 0.85em;
+  margin: 0.5em 0;
   table-layout: fixed;
-  width: 420px;
 }
-.sge-heatmap thead th { width: 110px; }
-.sge-heatmap th.sge-method-header { width: 200px; text-align: left; }
 .sge-heatmap th, .sge-heatmap td { padding: 6px 4px; border: 1px solid #ddd; }
-.sge-heatmap thead th { background: #f7f7f7; text-align: center; user-select: none; }
+.sge-heatmap thead th { background: #f7f7f7; text-align: center; user-select: none; cursor: pointer; }
+.sge-heatmap thead tr { height: 40px; }
+.sge-heatmap tbody tr { height: 28px; }
+.sge-method-header { text-align: left !important; }
+.sge-col-label { white-space: nowrap; }
+.sge-heatmap thead th.sge-col-sorted { background: #d6e8d6; font-weight: 600; border: 2px solid #5c8a5c; }
+.sge-heatmap td.sge-col-sorted { border-left: 2px solid #5c8a5c; border-right: 2px solid #5c8a5c; }
 .sge-cell { text-align: center; font-feature-settings: "tnum"; }
+.sge-na { text-align: center; color: #aaa; }
 .sge-method { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lb-family {
-  display: inline-block;
-  width: 10px; height: 10px;
-  border-radius: 2px;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-.lb-na { text-align: center; color: #aaa; }
-.lb-forest-empty { color: #888; margin: 0.5em 0; font-size: 0.9em; }
-.muted { color: #aaa; }
+.sge-method a { text-decoration: none; }
+.sge-method a:hover { text-decoration: underline; }
+.lb-family { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.sge-empty { color: #888; margin: 1em 0; font-size: 0.9em; }
 .dataset-meta td { padding: 2px 8px; }
 .dataset-meta td:first-child { white-space: nowrap; }
 .dataset-bullets { margin: 0.5em 0 0.25em; }
 .dataset-bullets div { margin: 2px 0; }
 .dataset-notes { margin-top: 0.5em; color: #666; font-size: 0.9em; }
 .dataset-notes div { margin: 2px 0; }
-.legend-row {
-  display: flex; align-items: center; gap: 12px;
-  margin: 0.5em 0 1em;
-  font-size: 0.85em; color: #444;
-  max-width: 1200px;
-}
+.legend-row { display: flex; align-items: center; gap: 16px; margin: 0.5em 0 1em; font-size: 0.85em; color: #444; max-width: 1100px; flex-wrap: wrap; }
 </style>

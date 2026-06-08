@@ -33,14 +33,14 @@ _QTL_METRIC = (
 )
 
 _SGE_METRIC = (
-    "Two **rank-based** metrics, both computed **per accession** (MaveDB study) "
-    "then macro-averaged over consequence subsets and accessions. **Spearman ρ** "
-    "± bootstrap SE — rank correlation of the deleteriousness score vs "
-    "`−function_score_aligned` (so a good predictor scores positive). **AUPRC** ± "
-    "bootstrap SE — predicting the ClinGen/ExCALIBR `calibrated_class` "
-    "abnormal-vs-normal call. Both are scale-free, so conservation tracks and "
-    "gLMs compare on the same footing (Pearson is intentionally omitted — it's "
-    "scale-sensitive and not comparable across families)."
+    "**AUPRC** ± bootstrap SE for the ClinGen/ExCALIBR `calibrated_class` "
+    "abnormal-vs-normal call, computed **per accession** (MaveDB study) then "
+    "macro-averaged over consequence subsets and accessions (scores are "
+    "non-comparable across studies). Rank-based, so conservation tracks and gLMs "
+    "compare on the same footing. The abnormal base rate varies per gene/subset "
+    "(~5–16%), so the random-baseline AUPRC is not a single number. AUPRC-only, "
+    "matching the classification framing of the other benchmarks; the continuous "
+    "function-score columns remain in the dataset (v3) for provenance."
 )
 
 DATASETS = {
@@ -117,7 +117,7 @@ DATASETS = {
     "sge": {
         "name": "Saturation Genome Editing (SGE)",
         "hf_repo": "bolinas-dna/evals_sge",
-        "hf_commit": "39f47f09",
+        "hf_commit": "225d3d1e",
         "score_type": "minus_llr_avg",
         "issue": "https://github.com/Open-Athena/marin-dna/issues/301",
         "split": "train",
@@ -127,7 +127,7 @@ DATASETS = {
         "metric": _SGE_METRIC,
         "notes": [
             "Saturation-genome-editing VEP (12 genes, missense + splicing only; v2 rebuild #300). `function_score_aligned` is the direction-harmonized continuous score; `calibrated_class` is the uniform ClinGen/ExCALIBR abnormal/normal call.",
-            "Use the gene selector to view a single accession or the macro across accessions; a board per consequence subset (missense / splicing / both / subset-macro), each method × {Spearman, AUPRC}.",
+            "Use the gene selector to view the macro across accessions or a single accession; an AUPRC heatmap (methods × consequence subsets — Macro / Missense / Splicing / Both), colored on a SGE-tuned scale (anchored at 0, since the abnormal base rate is well below the matched-pair 0.10).",
             "MarinDNA defaults to LLR (`minus_llr_avg`, signed — the assayed ALT's direction is informative, so not `abs`); NucDep (`jsd_avg`) is one click away. Conservation tracks use their single per-position score.",
         ],
     },

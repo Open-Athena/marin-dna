@@ -37,7 +37,7 @@ export default {
         {name: "Complex traits", path: "/leaderboards/complex"},
         {name: "caQTL", path: "/leaderboards/caqtl"},
         {name: "dsQTL", path: "/leaderboards/dsqtl"},
-        {name: "SGE", path: "/leaderboards/sge"},
+        {name: "Saturation genome editing", path: "/leaderboards/sge"},
         {name: "Protocol: MarinDNA", path: "/protocols/marin_dna"},
         {name: "Protocol: Evo 2", path: "/protocols/evo2"},
         {name: "Protocol: GPN-Star", path: "/protocols/gpn-star"},
