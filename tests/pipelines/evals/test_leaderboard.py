@@ -643,3 +643,82 @@ def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
     from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     assert _storage_options() is None
+
+
+# ---- sge_normalized_rows ----------------------------------------------------
+
+
+def _sge_metrics_parquet(score_types, *, score_name=None) -> pl.DataFrame:
+    """Tiny SGE metrics parquet: one (spearman, AUPRC) pair per score_type at the
+    headline (across-accession × across-subset macro) cell."""
+    rows = []
+    for st in score_types:
+        for metric in ("spearman", "AUPRC"):
+            rows.append(
+                {
+                    "metric": metric,
+                    "subset": MACRO_AVG_SUBSET,
+                    "accession": MACRO_AVG_SUBSET,
+                    "gene": MACRO_AVG_SUBSET,
+                    "score_type": st,
+                    "value": 0.3,
+                    "se": 0.01,
+                    "n": 5,
+                    "n_pos": float("nan") if metric == "spearman" else 100.0,
+                }
+            )
+    df = pl.DataFrame(rows)
+    if score_name is not None:
+        df = df.with_columns(pl.lit(score_name).alias("score_name"))
+    return df
+
+
+def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPatch):
+    """marin_dna keeps every score_type (LLR/JSD toggle); conservation methods
+    share one parquet, each filtered to its own track by score_name."""
+    glm = _mk_method(id="glm1", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    cons2 = _mk_method(id="phastCons_43p", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons, cons2))
+
+    glm_path = leaderboard._parquet_path(glm, "sge")
+    cons_path = leaderboard._parquet_path(cons, "sge")  # shared by both tracks
+    cons_df = pl.concat(
+        [
+            _sge_metrics_parquet(["score"], score_name="phyloP_100v"),
+            _sge_metrics_parquet(["score"], score_name="phastCons_43p"),
+        ]
+    )
+    _patch_read_parquet(
+        monkeypatch,
+        {
+            glm_path: _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"]),
+            cons_path: cons_df,
+        },
+    )
+
+    df = leaderboard.sge_normalized_rows("sge")
+    assert set(df.columns) == {
+        "method_id",
+        "method_display",
+        "family",
+        "score_type",
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+    }
+    # marin_dna: both score_types survive (drives the dashboard LLR/JSD toggle).
+    g = df.filter(pl.col("method_id") == "glm1")
+    assert set(g["score_type"].to_list()) == {"minus_llr_avg", "jsd_avg"}
+    # conservation: each method filtered to its own track, no cross-leak.
+    c = df.filter(pl.col("method_id") == "phyloP_100v")
+    assert c.height == 2 and (c["score_type"] == "score").all()
+    assert df.filter(pl.col("method_id") == "phastCons_43p").height == 2
+    # n_pos is NaN for spearman rows, finite for AUPRC rows.
+    sp = df.filter(pl.col("metric") == "spearman")
+    assert sp["n_pos"].is_nan().all()
