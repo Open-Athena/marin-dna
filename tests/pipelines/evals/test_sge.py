@@ -9,6 +9,7 @@ from marin_dna.data.utils import load_annotation
 from marin_dna.pipelines.evals.sge import (
     _CALIBRATION_SCHEMA,
     annotate_sge_variants,
+    attach_assay_facts,
     build_mavedb_metadata,
     extract_assay_facts,
     extract_score_calibrations,
@@ -94,6 +95,30 @@ class TestNormalizeBrca1Findlay:
         with pytest.raises(AssertionError, match="null function score"):
             normalize_brca1_findlay(raw, mavedb_urn="urn:test:1")
 
+    def test_null_position_raises(self) -> None:
+        # A blank hg19 coordinate must fail loud, not silently vanish in liftover.
+        raw = self._raw().with_columns(
+            pl.when(pl.col("alt") == "G")
+            .then(None)
+            .otherwise(pl.col("position (hg19)"))
+            .alias("position (hg19)")
+        )
+        with pytest.raises(AssertionError, match="null pos"):
+            normalize_brca1_findlay(raw, mavedb_urn="urn:test:1")
+
+    def test_null_func_class_tolerated(self) -> None:
+        # A null func.class is preserved-but-non-signal metadata; it must NOT crash the
+        # build (only an *unexpected* category should).
+        raw = self._raw().with_columns(
+            pl.when(pl.col("alt") == "G")
+            .then(None)
+            .otherwise(pl.col("func.class"))
+            .alias("func.class")
+        )
+        out = normalize_brca1_findlay(raw, mavedb_urn="urn:test:1")
+        assert out.height == 2  # both SNVs kept (indel dropped); null class tolerated
+        assert out["author_func_class"].null_count() == 1
+
 
 # --------------------------------------------------------------------------- #
 # load_mavedb_genomic_scoreset
@@ -160,6 +185,33 @@ class TestLoadMavedbGenomic:
         with pytest.raises(AssertionError, match="missing 'score'"):
             load_mavedb_genomic_scoreset(p, gene="BARD1", mavedb_urn="urn:test:bard1")
 
+    def test_nonnumeric_score_dropped_not_crash(self, tmp_path: Path) -> None:
+        # A non-numeric score token must coerce to null and drop the row (strict=False),
+        # not abort the whole load.
+        p = tmp_path / "s.csv"
+        p.write_text(
+            "accession,hgvs_nt,score\n"
+            "x#1,NC_000002.12:g.100A>G,-1.0\n"
+            "x#2,NC_000002.12:g.200C>T,NA\n"  # non-numeric -> null -> dropped
+        )
+        V = load_mavedb_genomic_scoreset(p, gene="BARD1", mavedb_urn="urn:x")
+        assert V.height == 1
+        assert V["pos"].to_list() == [100]
+
+    def test_multivariant_semicolon_dropped(self, tmp_path: Path) -> None:
+        # A ';'-joined multi-variant hgvs_nt must drop cleanly, not form a chimera with
+        # chrom from the first sub-variant and pos/ref/alt from the last.
+        p = tmp_path / "s.csv"
+        p.write_text(
+            "accession,hgvs_nt,score\n"
+            "x#1,NC_000002.12:g.100A>G,-1.0\n"
+            "x#2,NC_000002.12:g.100A>G;NC_000003.11:g.5C>T,0.2\n"  # chimera -> dropped
+        )
+        V = load_mavedb_genomic_scoreset(p, gene="BARD1", mavedb_urn="urn:x")
+        assert V.height == 1
+        assert V["chrom"].to_list() == ["2"]
+        assert V["pos"].to_list() == [100]
+
 
 # --------------------------------------------------------------------------- #
 # recode_hgvs_c_to_genomic + load_mavedb_transcript_scoreset (transcript-targeted)
@@ -189,6 +241,13 @@ class TestRecodeAndTranscriptLoader:
         assert out["pos"].to_list() == [32356428, 32356418]  # intronic mapped
         assert out["ref"].to_list() == ["A", "T"]
         assert out["alt"].to_list() == ["C", "A"]
+
+    def test_recode_floor_guard_raises_on_mass_unmap(self) -> None:
+        # A large unmapped fraction (e.g. a cdot.cc outage swallowed by the mapper)
+        # must fail loud rather than emit a near-empty recode parquet.
+        many = [f"ENST:c.bad{i}A>G" for i in range(10)]  # none in _RECODE -> all None
+        with pytest.raises(AssertionError, match="mapped"):
+            recode_hgvs_c_to_genomic(many, mapper=_fake_mapper)
 
     def test_transcript_loader_join_keeps_intronic_drops_unrecoded(
         self, tmp_path: Path
@@ -543,6 +602,21 @@ class TestExtractAssayFacts:
         assert extract_assay_facts({}) == {}
         assert extract_assay_facts({"experiment": {"keywords": []}}) == {}
 
+    def test_keys_sorted_for_deterministic_columns(self) -> None:
+        # Column order must be deterministic regardless of MaveDB's keyword ordering.
+        ss = {
+            "experiment": {
+                "keywords": [
+                    {"keyword": {"key": "Zeta Method", "label": "z"}},
+                    {"keyword": {"key": "Alpha Method", "label": "a"}},
+                ]
+            }
+        }
+        assert list(extract_assay_facts(ss)) == [
+            "assay_alpha_method",
+            "assay_zeta_method",
+        ]
+
 
 class TestExtractScoreCalibrations:
     def test_flattens_classes_and_empty_calibration(self) -> None:
@@ -604,3 +678,41 @@ class TestBuildMavedbMetadata:
         assert calib.height == 3
         assert set(calib["gene"]) == {"GENEA"}
         assert calib.schema == _CALIBRATION_SCHEMA
+
+
+class TestAttachAssayFacts:
+    def _data(self) -> pl.DataFrame:
+        return pl.DataFrame(
+            {
+                "chrom": ["2", "16"],
+                "pos": [1, 2],
+                "ref": ["A", "C"],
+                "alt": ["G", "T"],
+                "gene": ["BARD1", "PALB2"],
+                "mavedb_urn": ["urn:a", "urn:b"],
+            }
+        )
+
+    def _facts(self) -> pl.DataFrame:
+        return pl.DataFrame(
+            {
+                "gene": ["BARD1", "PALB2"],
+                "mavedb_urn": ["urn:a", "urn:b"],
+                "assay_phenotypic_assay_method": ["Cell proliferation", "Cell fitness"],
+            }
+        )
+
+    def test_join_adds_assay_columns_by_urn(self) -> None:
+        out = attach_assay_facts(self._data(), self._facts())
+        assert out.height == 2
+        # Only mavedb_urn + assay_ columns come from the facts side (no duplicate gene).
+        assert out.columns.count("gene") == 1
+        assert out["assay_phenotypic_assay_method"].to_list() == [
+            "Cell proliferation",
+            "Cell fitness",
+        ]
+
+    def test_uncovered_urn_raises(self) -> None:
+        data = self._data().with_columns(pl.lit("urn:missing").alias("mavedb_urn"))
+        with pytest.raises(AssertionError, match="absent from assay_facts"):
+            attach_assay_facts(data, self._facts())

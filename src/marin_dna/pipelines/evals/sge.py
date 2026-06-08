@@ -142,7 +142,9 @@ def extract_assay_facts(score_set: dict) -> dict[str, str]:
         key, label = kw.get("key"), kw.get("label")
         if key and label:
             facts[assay_fact_slug(key)] = label
-    return facts
+    # Sort by column name so the assay_ column order is deterministic regardless of the
+    # order MaveDB returns the experiment's keywords in (byte-reproducible artifact).
+    return dict(sorted(facts.items()))
 
 
 def extract_score_calibrations(
@@ -238,6 +240,24 @@ def build_mavedb_metadata(
     return assay_facts, calibrations
 
 
+def attach_assay_facts(data: pl.DataFrame, assay_facts: pl.DataFrame) -> pl.DataFrame:
+    """Left-join the per-study MaveDB ``assay_*`` keyword columns onto the SGE dataset
+    by ``mavedb_urn`` (constant per gene), so the assay characteristics are queryable
+    alongside every variant.
+
+    Asserts every variant's ``mavedb_urn`` is present in ``assay_facts`` first — a left
+    join would otherwise silently null-fill the ``assay_*`` columns for a study the
+    metadata fetch missed (e.g. a gene added to config but not to the fetch list).
+    """
+    missing = set(data["mavedb_urn"].unique()) - set(assay_facts["mavedb_urn"])
+    assert not missing, f"sge: mavedb_urn(s) absent from assay_facts: {sorted(missing)}"
+    return data.join(
+        assay_facts.select("mavedb_urn", pl.col("^assay_.*$")),
+        on="mavedb_urn",
+        how="left",
+    )
+
+
 def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFrame:
     """Normalize the Findlay 2018 BRCA1 SGE table (already header-resolved) to the
     SGE schema.
@@ -292,8 +312,18 @@ def normalize_brca1_findlay(raw: pl.DataFrame, *, mavedb_urn: str) -> pl.DataFra
     assert out["author_function_score_mean"].null_count() == 0, (
         "BRCA1: null function score (author_function_score_mean) after normalization"
     )
-    assert set(out["author_func_class"].unique()) <= {"FUNC", "INT", "LOF"}, (
-        f"BRCA1: unexpected func.class values: {set(out['author_func_class'].unique())}"
+    # Fail loud on a blank/bad hg19 coordinate rather than dropping it silently later
+    # (a null pos survives filter_snp, then liftover maps it to -1 and it vanishes).
+    for coord in ("pos", "ref", "alt"):
+        assert out[coord].null_count() == 0, (
+            f"BRCA1: null {coord} after normalization — suspect a header-offset or a "
+            "blank coordinate cell in the Findlay xlsx"
+        )
+    # Tolerate a null func.class (preserved author metadata, not the discriminative
+    # signal) but still reject any *unexpected* category.
+    classes = set(out["author_func_class"].drop_nulls().unique())
+    assert classes <= {"FUNC", "INT", "LOF"}, (
+        f"BRCA1: unexpected func.class values: {classes}"
     )
     return out
 
@@ -335,7 +365,13 @@ def load_mavedb_genomic_scoreset(
         )
     n_raw = raw.height
     nt = pl.col("author_hgvs_nt")
-    chrom_num = nt.str.extract(r"^NC_0*(\d+)\.", 1).cast(pl.Int64)
+    # Anchor chrom extraction to the FULL single-SNV form (the same token pos/ref/alt
+    # parse from below). A multi-variant `;`-joined hgvs_nt would otherwise take its
+    # chrom from the first sub-variant while pos/ref/alt come from the last — a chimera;
+    # the full anchor makes such rows parse to null chrom and drop cleanly.
+    chrom_num = nt.str.extract(r"^NC_0*(\d+)\.\d+:g\.\d+[ACGT]>[ACGT]$", 1).cast(
+        pl.Int64
+    )
     out = (
         raw.rename({c: author_slug(c) for c in raw.columns})
         .with_columns(
@@ -353,7 +389,10 @@ def load_mavedb_genomic_scoreset(
             gene=pl.lit(gene),
             assay=pl.lit("sge"),
             mavedb_urn=pl.lit(mavedb_urn),
-            function_score=pl.col("author_score").cast(pl.Float64),
+            # strict=False: a non-numeric score token coerces to null (then dropped by
+            # the is_not_null filter below), consistent with dropping blank-score rows,
+            # rather than aborting the whole build on one bad cell.
+            function_score=pl.col("author_score").cast(pl.Float64, strict=False),
         )
         .filter(
             pl.col("pos").is_not_null()
@@ -464,6 +503,19 @@ def recode_hgvs_c_to_genomic(
     print(
         f"[sge recode] {len(hgvs_list)} c. SNVs -> {len(recs)} genomic ({n_fail} unmapped)"
     )
+    # Floor guard: the mapper (pyhgvs + cdot's GRCh38 REST transcripts) maps ~100% of
+    # SNV-only c. HGVS. A large unmapped fraction means a systemic failure — a cdot.cc
+    # outage swallowed by the mapper's `except Exception: return None`, a transcript-
+    # version/build mismatch — not a few genuinely-unmappable variants. Fail loud rather
+    # than silently shipping a near-empty gene (whose only other tripwire is a downstream
+    # `height > 0` that one stray mapped SNV would satisfy).
+    if hgvs_list:
+        frac = len(recs) / len(hgvs_list)
+        assert frac >= 0.5, (
+            f"[sge recode] only {len(recs)}/{len(hgvs_list)} c. SNVs mapped "
+            f"({frac:.0%}); expected ~100% for SNV-only input — suspect a cdot.cc/network "
+            "outage or a transcript-version/build mismatch"
+        )
     return pl.DataFrame(
         recs,
         schema={
@@ -501,7 +553,10 @@ def load_mavedb_transcript_scoreset(
             gene=pl.lit(gene),
             assay=pl.lit("sge"),
             mavedb_urn=pl.lit(mavedb_urn),
-            function_score=pl.col("author_score").cast(pl.Float64),
+            # strict=False: a non-numeric score token coerces to null (then dropped by
+            # the is_not_null filter below), consistent with dropping blank-score rows,
+            # rather than aborting the whole build on one bad cell.
+            function_score=pl.col("author_score").cast(pl.Float64, strict=False),
         )
         .filter(pl.col("function_score").is_not_null())
         .pipe(filter_snp)
@@ -606,12 +661,20 @@ def annotate_sge_variants(
         "score is tied to ref->alt, so a swap signals a coordinate/strand/build "
         "mismatch, not a benign re-orientation"
     )
-    assert n_ref >= 0.9 * n_lift, (
-        f"check_ref_alt kept only {n_ref}/{n_lift} variants for {name!r} — suspect a "
-        "coordinate-base (0- vs 1-based) or genome-build mismatch"
+    # Anchor retention to the ORIGINAL input (like dart_eval.annotate_variants), not the
+    # post-lift count: a near-total liftover loss makes n_lift tiny, so `n_ref >= 0.9 *
+    # n_lift` would pass vacuously (0 >= 0) instead of catching the collapse.
+    assert n_ref >= 0.5 * n_in, (
+        f"check_ref_alt + liftover kept only {n_ref}/{n_in} variants for {name!r} — "
+        "suspect a coordinate-base (0- vs 1-based), genome-build, or liftover mismatch"
     )
     V = attach_per_chrom_consequences(V, consequence_paths, chroms)
     assert V["consequence"].null_count() == 0, f"{name}: variants with null consequence"
+    # add_exon/add_tss derive consequence_final from consequence_cre, so a null there
+    # silently propagates; guard it at the join boundary (mirrors dart_eval.annotate).
+    assert V["consequence_cre"].null_count() == 0, (
+        f"{name}: variants with null consequence_cre"
+    )
     # Drop the trivially-deleterious HIGH-impact consequences (canonical splice,
     # nonsense, frameshift, …) before distance recategorization.
     n_pre_excl = V.height

@@ -3,6 +3,7 @@ from pathlib import Path
 from marin_dna.pipelines.evals.sge import (
     SNV_HGVS_RE,
     annotate_sge_variants,
+    attach_assay_facts,
     build_mavedb_metadata,
     load_mavedb_genomic_scoreset,
     load_mavedb_transcript_scoreset,
@@ -91,7 +92,14 @@ c.->g. mapping. Needs the `hgvs` dependency group."""
         gene="|".join(_SGE_TRANSCRIPT),
     run:
         raw = pl.read_csv(input.csv, infer_schema_length=None)
-        snv = [h for h in raw["hgvs_nt"].to_list() if SNV_HGVS_RE.search(h)]
+        # drop_nulls: a blank hgvs_nt would crash re.search; dict.fromkeys: dedup so a
+        # duplicated/replicate hgvs_nt isn't re-projected through pyhgvs (the loader
+        # dedups the recoded coords anyway), preserving first-seen order for determinism.
+        snv = [
+            h
+            for h in dict.fromkeys(raw["hgvs_nt"].drop_nulls().to_list())
+            if SNV_HGVS_RE.search(h)
+        ]
         mapper = pyhgvs_cdot_mapper(input.genome)
         recode_hgvs_c_to_genomic(snv, mapper=mapper).write_parquet(output[0])
 
@@ -166,17 +174,10 @@ HIGH-impact, diagonal-concat."""
         # diagonal_relaxed: each study contributes its own author_ columns (sparse
         # union, null-filled) at a common supertype.
         data = pl.concat(frames, how="diagonal_relaxed")
-        # Attach the per-study MaveDB 'assay facts' (constant-per-gene assay_
-        # keyword columns) by accession, so the assay characteristics are queryable
-        # alongside every variant. (Score calibrations are a separate companion
-        # table — wrong grain to join per-variant.)
-        facts = pl.read_parquet(input.assay_facts)
-        assert set(data["mavedb_urn"].unique()) <= set(facts["mavedb_urn"]), (
-            "sge: dataset has mavedb_urn(s) absent from assay_facts"
-        )
-        data = data.join(
-            facts.select("mavedb_urn", pl.col("^assay_.*$")),
-            on="mavedb_urn",
-            how="left",
-        )
+        # Attach the per-study MaveDB 'assay facts' (constant-per-gene assay_ keyword
+        # columns) by accession, so the assay characteristics are queryable alongside
+        # every variant. (Score calibrations are a separate companion table — wrong
+        # grain to join per-variant.) The join + coverage assert live in the library
+        # (attach_assay_facts) so they are unit-tested.
+        data = attach_assay_facts(data, pl.read_parquet(input.assay_facts))
         data.write_parquet(output[0])
