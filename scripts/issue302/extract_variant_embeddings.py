@@ -74,19 +74,14 @@ def main() -> None:
 
     ckpt = args.ckpt
     if args.s3_path:
+        import s3fs
+
         ckpt = tempfile.mkdtemp(prefix="ckpt_")
         print(f"downloading {args.s3_path} -> {ckpt}", flush=True)
-        subprocess.run(
-            [
-                "aws",
-                "s3",
-                "sync",
-                args.s3_path.rstrip("/") + "/",
-                ckpt,
-                "--no-progress",
-            ],
-            check=True,
-        )
+        fs = s3fs.S3FileSystem()
+        src = args.s3_path.replace("s3://", "").rstrip("/")
+        for key in fs.ls(src):  # one HF checkpoint dir → a handful of files
+            fs.get(key, str(Path(ckpt) / Path(key).name))
     elif args.gcs_path:
         ckpt = tempfile.mkdtemp(prefix="ckpt_")
         print(f"downloading {args.gcs_path} -> {ckpt}", flush=True)
@@ -150,8 +145,11 @@ def main() -> None:
     )
     pl.from_pandas(df[KEEP]).write_parquet(keys)
     if out.startswith("s3://"):
+        import s3fs
+
+        fs = s3fs.S3FileSystem()
         for f in (npz, keys):
-            subprocess.run(["aws", "s3", "cp", str(f), f"{out}/{f.name}"], check=True)
+            fs.put(str(f), f"{out.replace('s3://', '')}/{f.name}")
         print(f"  uploaded -> {out}/{npz.name}, {keys.name}", flush=True)
     else:
         Path(out).mkdir(parents=True, exist_ok=True)
