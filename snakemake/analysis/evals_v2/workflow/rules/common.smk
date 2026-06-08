@@ -181,15 +181,23 @@ for _m in UMAP_MODELS:
 DART_UMAP_CFG = config.get("dart_umap", {})
 DART_UMAP_MODELS = DART_UMAP_CFG.get("models", [])
 DART_UMAP_CONTEXT_SIZES = DART_UMAP_CFG.get("context_sizes", [])
+# HF splits the aggregate `dart_umap` target builds; any of train|validation|test
+# can also be built on demand by path (`split` is a rule wildcard). Default to the
+# dev split only so the aggregate stays cheap (train is ~9x bigger).
+DART_UMAP_SPLITS = DART_UMAP_CFG.get("splits", ["validation"])
 
 # Fail fast: every dart_umap model is a known checkpoint; every context size is a
-# positive int. (Whether a context fits a model's position budget is checked at
-# run time against the checkpoint's config.json — see `assert_window_fits`.)
+# positive int; every split is a real HF split. (Whether a context fits a model's
+# position budget is checked at run time from config.json — see `check_window_fits`.)
 for _m in DART_UMAP_MODELS:
     assert _m in MODELS, f"dart_umap model {_m!r} not found in `models`"
 for _c in DART_UMAP_CONTEXT_SIZES:
     assert isinstance(_c, int) and _c > 0, (
         f"dart_umap context_sizes entries must be positive ints, got {_c!r}"
+    )
+for _s in DART_UMAP_SPLITS:
+    assert _s in ("train", "validation", "test"), (
+        f"dart_umap split {_s!r} must be train|validation|test"
     )
 
 

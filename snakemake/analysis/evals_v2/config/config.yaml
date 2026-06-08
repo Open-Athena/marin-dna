@@ -1221,7 +1221,9 @@ umap_embeddings:
 # `genome-s3` groups as umap_embeddings.
 dart_umap:
   dataset: bolinas-dna/evals_dart_task3
-  split: validation              # smallest split (chr 6 + 21) — fast iteration
+  splits: [validation]           # aggregate target builds the dev split (chr 6+21,
+                                 # 1958 windows); train (17965) / test (5077) are
+                                 # built on demand by path (split is a rule wildcard)
   context_sizes: [255, 500]      # native (255+BOS) vs full 500 bp peak (OOD)
   layer_index: -1                # last hidden layer (match the GPN-Star UMAP)
   random_state: 42               # UMAP seed (also forces single-threaded UMAP)
