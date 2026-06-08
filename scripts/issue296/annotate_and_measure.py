@@ -154,6 +154,36 @@ def _overlap_flag(
     )
 
 
+def _overlap_value(
+    positions: pl.DataFrame, regions: pl.DataFrame, value_col: str, out_col: str
+) -> pl.DataFrame:
+    """Add ``out_col`` to ``positions`` = ``regions[value_col]`` of an overlapping
+    region (first match; positions in no region → null)."""
+    if len(regions) == 0:
+        return positions.with_columns(**{out_col: pl.lit(None, dtype=pl.Utf8)})
+    pos_pd = (
+        positions.with_columns(
+            start=pl.col("genomic_pos"), end=pl.col("genomic_pos") + 1
+        )
+        .select(["chrom", "start", "end", "genomic_pos"])
+        .to_pandas()
+    )
+    reg = regions.select(["chrom", "start", "end", value_col]).rename(
+        {value_col: out_col}
+    )
+    ov = bf.overlap(pos_pd, reg.to_pandas(), how="inner", suffixes=("", "_r"))
+    # bioframe suffixes the second frame's columns; the value lands as out_col or
+    # out_col + "_r" depending on version — accept either.
+    val_col = out_col if out_col in ov.columns else f"{out_col}_r"
+    assert val_col in ov.columns, (out_col, list(ov.columns))
+    hits = (
+        pl.from_pandas(ov[["chrom", "genomic_pos", val_col]])
+        .rename({val_col: out_col})
+        .unique(subset=["chrom", "genomic_pos"], keep="first")
+    )
+    return positions.join(hits, on=["chrom", "genomic_pos"], how="left")
+
+
 def _stratum_stats(df: pl.DataFrame) -> dict[str, float]:
     """Per-stratum stats: overall ``mean_loss`` (all tokens) **and** the
     conserved/non-conserved LL gap. ``mean_loss`` = mean ``−log p`` over every
@@ -201,15 +231,19 @@ def main() -> None:
         f"[stage2] {len(keep)} transcripts ({len(cds)} CDS, {len(exons)} exon segments)"
     )
 
-    # Codon position + 4-fold degeneracy (per coding base).
-    per_base = cds_codon_positions(cds)  # [.. codon_pos, codon_id]
+    # Codon position, 4-fold degeneracy, and the CDS gene strand (per coding base).
+    per_base = cds_codon_positions(cds)  # [.. strand, codon_pos, codon_id]
     codon = _resolve_unique(per_base, "codon_pos")
+    coding_strand = _resolve_unique(per_base, "strand").rename(
+        {"strand": "coding_strand"}
+    )
     coding_ref = per_base.join(ref, on=["chrom", "genomic_pos"], how="left")
     fourfold = _resolve_unique(flag_fourfold_degenerate(coding_ref), "is_4fold")
 
-    # Non-coding region flags (splice donor/acceptor, UTRs) on the non-coding set.
-    ann = cache.join(codon, on=["chrom", "genomic_pos"], how="left").join(
-        fourfold, on=["chrom", "genomic_pos"], how="left"
+    ann = (
+        cache.join(codon, on=["chrom", "genomic_pos"], how="left")
+        .join(fourfold, on=["chrom", "genomic_pos"], how="left")
+        .join(coding_strand, on=["chrom", "genomic_pos"], how="left")
     )
     nc = (
         ann.filter(pl.col("codon_pos").is_null())
@@ -221,6 +255,7 @@ def main() -> None:
     nc = _overlap_flag(nc, splice, "is_splice")
     nc = _overlap_flag(nc, splice.filter(pl.col("side") == "donor"), "is_donor")
     nc = _overlap_flag(nc, splice.filter(pl.col("side") == "acceptor"), "is_acceptor")
+    nc = _overlap_value(nc, splice, "strand", "splice_strand")  # intron's gene strand
     nc = _overlap_flag(nc, get_ensembl_5_prime_utr(canon).to_polars(), "is_utr5")
     nc = _overlap_flag(nc, get_ensembl_3_prime_utr(canon).to_polars(), "is_utr3")
 
@@ -229,6 +264,12 @@ def main() -> None:
             pl.col(c).fill_null(False)
             for c in ["is_splice", "is_donor", "is_acceptor", "is_utr5", "is_utr3"]
         ]
+    )
+    # Gene strand at this position: CDS strand if coding, else the intron's strand.
+    # The model reads the FORWARD strand, so on a + gene a splice donor is reached
+    # CDS→donor (CDS-primed) while on a − gene the same donor is intron→donor.
+    ann = ann.with_columns(
+        gene_strand=pl.coalesce(pl.col("coding_strand"), pl.col("splice_strand"))
     )
 
     # --- Gate: model-free conservation-by-codon signature -------------------
@@ -271,6 +312,16 @@ def main() -> None:
         & ~pl.col("is_splice")
         & ~pl.col("is_utr5")
         & ~pl.col("is_utr3"),
+        # Split by gene strand: the FWD-reading model approaches a + gene's donor
+        # CDS-primed (CDS→donor) but a − gene's donor intron-primed (intron→donor)
+        # — and symmetrically for acceptors. codon_12 by strand checks sense vs
+        # antisense coding readout.
+        "splice_donor_plus": pl.col("is_donor") & (pl.col("gene_strand") == "+"),
+        "splice_donor_minus": pl.col("is_donor") & (pl.col("gene_strand") == "-"),
+        "splice_acceptor_plus": pl.col("is_acceptor") & (pl.col("gene_strand") == "+"),
+        "splice_acceptor_minus": pl.col("is_acceptor") & (pl.col("gene_strand") == "-"),
+        "codon_12_plus": cp.is_in([1, 2]) & (pl.col("gene_strand") == "+"),
+        "codon_12_minus": cp.is_in([1, 2]) & (pl.col("gene_strand") == "-"),
     }
     rows = [
         {"model": args.model_name, "stratum": name, **_stratum_stats(ann.filter(mask))}

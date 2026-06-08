@@ -88,9 +88,9 @@ def test_intron_splice_regions_plus_strand_donor_acceptor():
     # [80,100).
     ex = _exons([("1", 0, 50, "+", "T1"), ("1", 100, 150, "+", "T1")])
     out = intron_splice_regions(ex, flank=20).sort("start")
-    assert out.select(["start", "end", "side"]).rows() == [
-        (50, 70, "donor"),
-        (80, 100, "acceptor"),
+    assert out.select(["start", "end", "side", "strand"]).rows() == [
+        (50, 70, "donor", "+"),
+        (80, 100, "acceptor", "+"),
     ]
 
 
@@ -98,9 +98,9 @@ def test_intron_splice_regions_minus_strand_flips_sides():
     # Same intron on − strand: donor/acceptor swap (gene reads high→low).
     ex = _exons([("1", 0, 50, "-", "T1"), ("1", 100, 150, "-", "T1")])
     out = intron_splice_regions(ex, flank=20).sort("start")
-    assert out.select(["start", "end", "side"]).rows() == [
-        (50, 70, "acceptor"),
-        (80, 100, "donor"),
+    assert out.select(["start", "end", "side", "strand"]).rows() == [
+        (50, 70, "acceptor", "-"),
+        (80, 100, "donor", "-"),
     ]
 
 

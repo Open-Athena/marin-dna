@@ -143,8 +143,10 @@ def intron_splice_regions(exons: pl.DataFrame, *, flank: int = 20) -> pl.DataFra
         flank: bp into the intron from each exon boundary.
 
     Returns:
-        ``[chrom, start, end, side]`` 0-based half-open intervals (deduplicated),
-        ``side`` ∈ {``donor``, ``acceptor``}. Empty (typed) frame if no introns.
+        ``[chrom, start, end, side, strand]`` 0-based half-open intervals
+        (deduplicated), ``side`` ∈ {``donor``, ``acceptor``} and ``strand`` the
+        gene strand (so the FWD-reading model's approach context — CDS-primed vs
+        intron-primed — can be split by strand). Empty (typed) frame if no introns.
     """
     req = {"chrom", "start", "end", "strand", "transcript_id"}
     missing = req - set(exons.columns)
@@ -156,6 +158,7 @@ def intron_splice_regions(exons: pl.DataFrame, *, flank: int = 20) -> pl.DataFra
             "start": pl.Int64,
             "end": pl.Int64,
             "side": pl.Utf8,
+            "strand": pl.Utf8,
         }
     )
     if len(exons) == 0:
@@ -204,7 +207,7 @@ def intron_splice_regions(exons: pl.DataFrame, *, flank: int = 20) -> pl.DataFra
             .then(pl.lit("donor"))
             .otherwise(pl.lit("acceptor"))
         )
-        .select(["chrom", "start", "end", "side"])
+        .select(["chrom", "start", "end", "side", "strand"])
         .unique()
         .sort(["chrom", "start", "end", "side"])
     )
