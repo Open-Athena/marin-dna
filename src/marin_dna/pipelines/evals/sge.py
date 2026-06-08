@@ -152,7 +152,9 @@ def load_mavedb_genomic_scoreset(
     """
     raw = pl.read_csv(scores_path, infer_schema_length=None)
     for col in ("hgvs_nt", "score"):
-        assert col in raw.columns, f"{gene}: MaveDB scores CSV missing {col!r}: {raw.columns}"
+        assert col in raw.columns, (
+            f"{gene}: MaveDB scores CSV missing {col!r}: {raw.columns}"
+        )
     n_raw = raw.height
     nt = pl.col("author_hgvs_nt")
     chrom_num = nt.str.extract(r"^NC_0*(\d+)\.", 1).cast(pl.Int64)
