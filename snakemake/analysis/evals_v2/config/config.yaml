@@ -38,6 +38,20 @@ datasets:
     score_protocol: abs_llr
     eval_protocol: qtl_global
 
+  # Saturation-genome-editing dataset (bolinas-dna/evals_sge, issue #301;
+  # builder #289, v2 rebuild #300). Unmatched — no label/subset(=consequence)/
+  # match_group; instead a harmonized per-study `function_score_aligned` + a
+  # uniform `calibrated_class`. `eval_protocol: sge` selects the
+  # SGE_VARIANT_COLUMNS assert set and the `compute_sge_metrics` path
+  # (per-accession × consequence-subset Spearman + AUPRC, macro-averaged).
+  # `score_protocol: minus_llr` orients the gLM score toward deleteriousness
+  # (the assayed ALT's sign is informative — not abs), matching mendelian_traits;
+  # the raw llr_*/jsd_* atoms are stored regardless, so JSD stays available.
+  - name: sge
+    hf_revision: 39f47f0909a8130f8f8b6cbea6b09eb376fed70b  # evals_sge v2 (#300)
+    score_protocol: minus_llr
+    eval_protocol: sge
+
 # Model checkpoints. Each entry must have exactly one of:
 #   - `gcs_path`: full GCS URI to the checkpoint directory (includes /hf/step-{N});
 #                  pulled with `gcloud storage cp -r`.
@@ -120,7 +134,7 @@ models:
   - name: exp166-v0.1-p1B-step-27329
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
     window_size: 255
-    datasets: [mendelian_traits, complex_traits]
+    datasets: [mendelian_traits, complex_traits, sge]
 
   # exp166 v0.1 — generalist 4B run (74e146). Same 3 HF-exported
   # checkpoints as 1B: 10000, 20000, 27329 (final). Intermediates scoped
@@ -543,7 +557,7 @@ models:
   - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
     window_size: 255
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, sge]
 
   # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
   # (~84.77B tokens; batch 1536 x seq 256; identical optimizer hparams). The
@@ -756,7 +770,7 @@ models:
   - name: exp13-mixture-proportional-step-26000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-26000
     window_size: 512
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, sge]
     batch_size: 64
 
   # exp55/exp58/exp59 — promoters/CDS/downstream across evolutionary timescales

@@ -87,6 +87,30 @@ QTL_VARIANT_COLUMNS: tuple[str, ...] = (
     "effect_size",
 )
 
+# Columns the saturation-genome-editing dataset (``evals_sge``, issue #301; v2
+# rebuild #300) carries instead: no ``label`` / ``match_group`` / ``effect_size``.
+# Instead a per-study experimental score harmonized into ``function_score_aligned``
+# (higher = more functional/tolerated), a uniform ClinGen/ExCALIBR
+# ``calibrated_class`` ∈ {abnormal, intermediate, normal, null}, the MaveDB
+# ``mavedb_urn`` (the per-study grouping key — scores are non-comparable across
+# studies, so metrics are computed per accession), the ``gene`` (display), and the
+# consequence-group ``subset`` ∈ {missense_variant, splicing}. Asserted by the
+# ``eval_protocol: sge`` branch of each pipeline's score/metric rules.
+# ``compute_variant_scores`` itself only reads chrom/pos/ref/alt; asserting the
+# metric columns early fails fast on schema drift, since ``compute_sge_metrics``
+# depends on them surviving into the scores parquet.
+SGE_VARIANT_COLUMNS: tuple[str, ...] = (
+    "chrom",
+    "pos",
+    "ref",
+    "alt",
+    "mavedb_urn",
+    "gene",
+    "subset",
+    "function_score_aligned",
+    "calibrated_class",
+)
+
 
 def score_variants_at_positions(
     df: pd.DataFrame,
