@@ -133,3 +133,15 @@ sge:
     # (gene, mavedb_urn) identifies the exact study — needed once a gene has >1
     # study (e.g. BRCA2: Huang + Sahu).
     mavedb_urn: "urn:mavedb:00000097-0-2"
+  # Phase 2a: genome-targeted MaveDB score-sets — hgvs_nt is `NC_…:g.` (genomic),
+  # so coordinates parse directly and intronic SNVs are kept with no transcript
+  # mapping. All GRCh38-native (no liftover). `chrom` picks the per-chrom
+  # consequence parquet. (The transcript-targeted genes — BRCA2, RAD51C, BAP1,
+  # DDX3X, VHL, CARD11 — need c.->g. intronic recovery and are a separate phase.)
+  mavedb_genomic:
+    - {gene: BARD1, mavedb_urn: "urn:mavedb:00001250-a-1", chrom: "2"}
+    - {gene: PALB2, mavedb_urn: "urn:mavedb:00001259-a-1", chrom: "16"}
+    - {gene: RAD51D, mavedb_urn: "urn:mavedb:00001260-a-1", chrom: "17"}
+    - {gene: XRCC2, mavedb_urn: "urn:mavedb:00001264-a-1", chrom: "7"}
+    - {gene: CTCF, mavedb_urn: "urn:mavedb:00001262-a-1", chrom: "16"}
+    - {gene: SFPQ, mavedb_urn: "urn:mavedb:00001265-a-1", chrom: "1"}

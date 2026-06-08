@@ -596,7 +596,8 @@ If you use this benchmark, please cite the upstream sources:
 
 
 # Per-study metadata for the SGE dataset card, keyed by the per-variant
-# `mavedb_urn` accession. Extend as phase-2 genes are added.
+# `mavedb_urn` accession. Extend as more genes are added. `pmid` may be None for
+# MaveDB deposits without a linked publication.
 _SGE_STUDY_META = {
     "urn:mavedb:00000097-0-2": {
         "gene": "BRCA1",
@@ -605,6 +606,31 @@ _SGE_STUDY_META = {
         "build": "hg19 → GRCh38 (lifted)",
         "score_col": "`author_function_score_mean`",
         "class_col": "`author_func_class` (FUNC / INT / LOF)",
+    },
+    "urn:mavedb:00001250-a-1": {
+        "gene": "BARD1", "study": "Saturation genome editing of BARD1 (medRxiv 2025)",
+        "pmid": None, "build": "GRCh38", "score_col": "`author_score`", "class_col": "—",
+    },
+    "urn:mavedb:00001259-a-1": {
+        "gene": "PALB2", "study": "Saturation genome editing of PALB2 (MaveDB)",
+        "pmid": None, "build": "GRCh38", "score_col": "`author_score`", "class_col": "—",
+    },
+    "urn:mavedb:00001260-a-1": {
+        "gene": "RAD51D", "study": "Saturation genome editing of RAD51D (MaveDB)",
+        "pmid": None, "build": "GRCh38", "score_col": "`author_score`", "class_col": "—",
+    },
+    "urn:mavedb:00001264-a-1": {
+        "gene": "XRCC2", "study": "Saturation genome editing of XRCC2 (MaveDB)",
+        "pmid": None, "build": "GRCh38", "score_col": "`author_score`",
+        "class_col": "`author_functional_consequence`",
+    },
+    "urn:mavedb:00001262-a-1": {
+        "gene": "CTCF", "study": "Saturation genome editing of CTCF (MaveDB)",
+        "pmid": None, "build": "GRCh38", "score_col": "`author_score`", "class_col": "—",
+    },
+    "urn:mavedb:00001265-a-1": {
+        "gene": "SFPQ", "study": "Saturation genome editing of SFPQ (MaveDB)",
+        "pmid": None, "build": "GRCh38", "score_col": "`author_score`", "class_col": "—",
     },
 }
 
@@ -639,12 +665,20 @@ def render_sge(
         )
     studies_table = "\n".join(study_rows)
     n_author = sum(c.startswith("author_") for c in allv.columns)
-    citations = "\n".join(
-        f"- {m['gene']} — {m['study']} (PMID [{m['pmid']}](https://pubmed.ncbi.nlm.nih.gov/{m['pmid']}/)); "
-        f"MaveDB [`{urn}`](https://www.mavedb.org/score-sets/{urn})"
-        for urn, m in (
-            (u, _SGE_STUDY_META[u]) for u in sorted(counts) if u in _SGE_STUDY_META
+
+    def _cite(urn: str, m: dict) -> str:
+        pmid = (
+            f" (PMID [{m['pmid']}](https://pubmed.ncbi.nlm.nih.gov/{m['pmid']}/))"
+            if m.get("pmid")
+            else ""
         )
+        return (
+            f"- {m['gene']} — {m['study']}{pmid}; "
+            f"MaveDB [`{urn}`](https://www.mavedb.org/score-sets/{urn})"
+        )
+
+    citations = "\n".join(
+        _cite(u, _SGE_STUDY_META[u]) for u in sorted(counts) if u in _SGE_STUDY_META
     )
 
     # Minimal tag set (biology, genomics, dna) per the bolinas-dna dataset-card

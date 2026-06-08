@@ -97,16 +97,29 @@ DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
 - the trivially-deleterious **HIGH-impact `exclude_consequences`** (canonical splice,
   nonsense, frameshift, …) are **dropped** — those aren't the discriminative signal;
 - per-variant provenance is `(gene, mavedb_urn)`: the gene symbol plus the canonical
-  MaveDB accession of the source study (a gene can have >1 study, e.g. BRCA2).
+  MaveDB accession of the source study (a gene can have >1 study, e.g. BRCA2);
+- a common `function_score` column carries each study's headline continuous score (so
+  it's usable across genes), alongside the full `author_` columns.
 
-**Phase 1: BRCA1** (Findlay et al. 2018, `urn:mavedb:00000097-0-2`), loaded from the
-Evo2-bundled supplementary xlsx — hg19 genomic coords for **all** SNVs incl. intronic
-(MaveDB's cDNA→genome map drops intronic), lifted to GRCh38, then HIGH-impact dropped.
-BRCA1 is on chr17 → all `train` (the `test` split fills as phase-2 genes on even
-chromosomes are added). `sge_dataset_unsplit` (in `workflow/rules/sge.smk`) loads +
-annotates straight into `results/dataset_unsplit/sge.parquet`; the library logic is
-`src/marin_dna/pipelines/evals/sge.py`. No `results/qc/` artifact (no matching). Needs
+Two loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`):
+
+- **BRCA1** — `read_brca1_findlay`: the Evo2-bundled Findlay 2018 supplementary xlsx,
+  hg19 genomic coords for **all** SNVs incl. intronic (MaveDB's cDNA→genome map drops
+  intronic), lifted to GRCh38.
+- **Genome-targeted MaveDB genes** (BARD1, PALB2, RAD51D, XRCC2, CTCF, SFPQ) —
+  `load_mavedb_genomic_scoreset`: their MaveDB `hgvs_nt` is `NC_…:g.` (genomic), so
+  coordinates parse directly and intronic SNVs are kept with no transcript mapping;
+  GRCh38-native (no liftover). Non-SNVs (del/delins/MNV) and null-score rows are dropped.
+
+`sge_dataset_unsplit` (in `workflow/rules/sge.smk`) downloads each MaveDB score-set,
+loads + annotates each gene (HIGH-impact dropped), and **diagonal-concats** them (each
+study contributes its own `author_` columns, sparse) into
+`results/dataset_unsplit/sge.parquet`. No `results/qc/` artifact (no matching). Needs
 AWS S3 read (the consequence/interval/genome artifacts) but **no** Synapse auth.
+
+The **transcript-targeted** genes (BRCA2, RAD51C, BAP1, DDX3X, VHL, CARD11) use `c.`
+HGVS, whose intronic variants MaveDB's auto-map drops — they need a `c.→g.` recovery
+step and are a separate phase (not yet wired).
 
 ```bash
 uv run snakemake results/dataset/sge/{train,test}.parquet
