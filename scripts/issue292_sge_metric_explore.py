@@ -263,6 +263,49 @@ def gene_consequence_grid(
     return grid
 
 
+def group_trustworthiness(
+    df: pd.DataFrame, cal: pd.DataFrame, score_col: str = "llr_avg"
+) -> pd.DataFrame:
+    """Per-consequence_group diagnostics for deciding which groups the SGE assay can
+    actually be trusted to measure (#292).
+
+    Three axes per group:
+    - **coverage**: total n and the number of genes with an n>=100 cell.
+    - **model sign-consistency**: ``frac_genes_pos`` = fraction of those qualifying
+      genes whose sign-aligned per-gene correlation is positive (1.0 = the model tracks
+      the assay the same way in every gene; low = scattered/unreliable).
+    - **assay functional variation**: ``abnormal_rate`` = fraction of the
+      calibration-labeled variants the assay calls abnormal (:func:`calibrated_binary_label`).
+      Near-zero means the assay sees ~no function in that group — so a low correlation
+      there is the assay's limitation, not the model's.
+
+    ``macro_pearson`` (sign-aligned, the grid's per-group margin) is included for context.
+    Coverage + abnormal_rate are model-independent; ``macro_pearson`` /
+    ``frac_genes_pos`` depend on the scored model.
+    """
+    genes = sorted(df["gene"].unique())
+    grid = gene_consequence_grid(df, score_col, method="pearson")
+    abn = calibrated_binary_label(df, cal)
+    work = df.assign(_abn=abn)
+    rows = []
+    for grp in [g for g in grid.index if g != "macro"]:
+        cells = grid.loc[grp, genes].dropna()  # per-gene sign-aligned corr, n>=100 cells
+        sub = work[work["consequence_group"] == grp]
+        lab = sub["_abn"].dropna()
+        rows.append(
+            {
+                "group": grp,
+                "n": len(sub),
+                "n_genes_ge100": int(len(cells)),
+                "macro_pearson": float(grid.loc[grp, "macro"]),
+                "frac_genes_pos": float((cells > 0).mean()) if len(cells) else float("nan"),
+                "abnormal_rate": float(lab.mean()) if len(lab) else float("nan"),
+                "n_labeled": int(len(lab)),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("n", ascending=False)
+
+
 # --------------------------------------------------------------------------- #
 # Binary "predict abnormal" tasks. Oriented score = minus_llr / abs_llr / jsd
 # (higher = more damaging). AUROC/AUPRC point + row-bootstrap SE.
@@ -363,10 +406,16 @@ def binary_menu(
 def calibrated_binary_label(df: pd.DataFrame, cal: pd.DataFrame) -> np.ndarray:
     """Per-gene abnormal(1)/normal(0)/NaN(drop) via ClinGen/ExCALIBR thresholds.
 
-    For each gene pick the coarsest calibration that has BOTH a `normal` and an
-    `abnormal` class (fewest class rows). A variant is abnormal if its
-    `function_score` falls in an abnormal class range, normal if in a normal
-    range, else dropped (intermediate / not_specified / no calibration).
+    For each gene pick a **numeric-threshold** scheme: its `normal` AND `abnormal`
+    classes must each have >=1 row with a finite `function_score` range bound.
+    Categorical schemes (e.g. "Investigator-provided functional classes" for some
+    genes, IGVF control sets) carry `[nan, nan]` ranges — they can't threshold
+    function_score, so a gene with only categorical schemes (DDX3X) is skipped here
+    (its abnormal/normal call lives in an `author_` class column instead). Among
+    numeric schemes prefer the most granular (most finite-bound rows ≈ ExCALIBR),
+    tie-break by title for determinism. A variant is abnormal if its function_score
+    falls in any abnormal range, normal if in any normal range, else dropped (the
+    intermediate gap / no calibration).
     """
 
     def in_range(x, lo, hi, inc_lo, inc_hi):
@@ -378,6 +427,10 @@ def calibrated_binary_label(df: pd.DataFrame, cal: pd.DataFrame) -> np.ndarray:
                 return False
         return True
 
+    def numeric_rows(t, go):
+        r = t[t["go_classification"] == go]
+        return r[r["range_lower"].notna() | r["range_upper"].notna()]
+
     label = np.full(len(df), np.nan)
     fs = df["function_score"].to_numpy(float)
     for gene, gsub in df.groupby("gene"):
@@ -385,19 +438,18 @@ def calibrated_binary_label(df: pd.DataFrame, cal: pd.DataFrame) -> np.ndarray:
         if gcal.empty:
             print(f"  [T2] {gene}: no calibration — skipped")
             continue
-        # Coarsest binary-capable scheme.
-        best_title, best_n = None, None
-        for title, tsub in gcal.groupby("calibration_title"):
-            gos = set(tsub["go_classification"])
-            if {"normal", "abnormal"}.issubset(gos):
-                if best_n is None or len(tsub) < best_n:
-                    best_title, best_n = title, len(tsub)
+        # Most-granular numeric-threshold scheme (finite bounds on both classes).
+        best_title, best_n = None, -1
+        for title, tsub in sorted(gcal.groupby("calibration_title"), key=lambda kv: kv[0]):
+            n_norm, n_abn = len(numeric_rows(tsub, "normal")), len(numeric_rows(tsub, "abnormal"))
+            if n_norm and n_abn and (n_norm + n_abn) > best_n:
+                best_title, best_n = title, n_norm + n_abn
         if best_title is None:
-            print(f"  [T2] {gene}: no normal+abnormal scheme — skipped")
+            print(f"  [T2] {gene}: only categorical (no numeric thresholds) — skipped")
             continue
         scheme = gcal[gcal["calibration_title"] == best_title]
-        norm = scheme[scheme["go_classification"] == "normal"]
-        abn = scheme[scheme["go_classification"] == "abnormal"]
+        norm = numeric_rows(scheme, "normal")
+        abn = numeric_rows(scheme, "abnormal")
         idx = np.where((df["gene"] == gene).to_numpy())[0]
         n_abn = n_norm = 0
         for i in idx:
