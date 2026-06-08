@@ -75,10 +75,10 @@ rule compute_metrics:
                 rng=params.bootstrap_seed,
             )
         elif eval_protocol == "sge":
-            # Per-accession (mavedb_urn) × consequence-subset Spearman (score vs
-            # −function_score_aligned) + AUPRC (calibrated_class abnormal-vs-
-            # normal), macro-averaged over subsets and accessions. Frame carries
-            # `metric` / `subset` / `accession` columns.
+            # Per-accession (mavedb_urn) × consequence-subset AUPRC on the binary
+            # `label` (impactful = calibrated abnormal), macro-averaged over
+            # subsets and accessions. Frame carries `metric` / `subset` /
+            # `accession` columns.
             metrics = compute_sge_metrics(
                 dataset=df[list(SGE_VARIANT_COLUMNS)],
                 scores=df[score_cols],

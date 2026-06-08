@@ -25,9 +25,9 @@ from marin_dna.pipelines.evals.metrics import (
 # global AUPRC + positives-only effect_size correlation on the unmatched
 # DART-Eval QTL datasets (caqtl/dsqtl), which carry no subset/match_group.
 # `sge` (issue #301) → the saturation-genome-editing dataset (evals_sge):
-# per-accession (mavedb_urn) × consequence-subset Spearman (score vs
-# −function_score_aligned) + AUPRC (calibrated_class abnormal-vs-normal),
-# macro-averaged over subsets and accessions (compute_sge_metrics).
+# per-accession (mavedb_urn) × consequence-subset AUPRC on the binary `label`
+# (impactful = calibrated abnormal), macro-averaged over subsets and accessions
+# (compute_sge_metrics).
 EVAL_PROTOCOLS = ("matched_pair", "qtl_global", "sge")
 
 

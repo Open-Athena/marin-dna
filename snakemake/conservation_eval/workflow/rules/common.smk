@@ -25,8 +25,8 @@ INPUT_HF_PREFIX = config["input_hf_prefix"]
 # `matched_pair` (default) → per-subset AUPRC + cluster bootstrap.
 # `qtl_global` → global AUPRC + positives-only effect_size correlation on the
 # unmatched DART-Eval QTL datasets (caqtl/dsqtl).
-# `sge` (issue #301) → per-accession × consequence-subset Spearman + AUPRC on
-# evals_sge, via the same shared `compute_sge_metrics` as evals_v2.
+# `sge` (issue #301) → per-accession × consequence-subset AUPRC on the binary
+# `label` of evals_sge, via the same shared `compute_sge_metrics` as evals_v2.
 EVAL_PROTOCOLS = ("matched_pair", "qtl_global", "sge")
 
 

@@ -64,14 +64,14 @@ rows (correlations). The markdown is a single `metric × track` table.
 
 ### SGE dataset (`sge`, `eval_protocol: sge`)
 
-The saturation-genome-editing benchmark (`bolinas-dna/evals_sge`, issue #301) is
-also unmatched, carrying a per-study `function_score_aligned` + a uniform
-`calibrated_class` instead of `effect_size`. A dataset entry with `eval_protocol:
-sge` runs the **same shared** `compute_sge_metrics` as `evals_v2` (no metric logic
-duplicated): per-accession (`mavedb_urn`) × consequence-subset **Spearman** of the
-track score vs `−function_score_aligned`, and **AUPRC** for the abnormal-vs-normal
-`calibrated_class` call, macro-averaged over subsets then accessions. Aggregation
-is `aggregate_conservation_sge_metrics` — a thin wrapper (per-track loop +
+The saturation-genome-editing benchmark (`bolinas-dna/evals_sge` v3, issue #301)
+is also unmatched, framed as a binary VEP: each variant carries a boolean `label`
+(True = impactful = calibrated abnormal) and a consequence-group `subset`. A
+dataset entry with `eval_protocol: sge` runs the **same shared**
+`compute_sge_metrics` as `evals_v2` (no metric logic duplicated): per-accession
+(`mavedb_urn`) × consequence-subset **AUPRC** predicting `label` from the track
+score, macro-averaged over subsets then accessions. Aggregation is
+`aggregate_conservation_sge_metrics` — a thin wrapper (per-track loop + NaN-fill +
 `score_name` stamping + markdown). All five configured tracks run on it; the
 headline markdown is a `metric × track` table.
 
