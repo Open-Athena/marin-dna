@@ -235,7 +235,7 @@ class _NCGenome:
         return self._key(contig) in self._fasta
 
 
-def _pyhgvs_cdot_mapper(genome_path: str | Path) -> Callable[[str], tuple | None]:
+def pyhgvs_cdot_mapper(genome_path: str | Path) -> Callable[[str], tuple | None]:
     """Build a ``c-hgvs -> (chrom, pos, ref, alt) | None`` mapper using pyhgvs + cdot's
     GRCh38 REST transcripts against the staged GRCh38 FASTA (transcripts are fetched +
     cached per accession). Lazy-imports the optional ``hgvs`` dependency group."""
@@ -266,7 +266,7 @@ def recode_hgvs_c_to_genomic(
 ) -> pl.DataFrame:
     """Map transcript ``c.`` HGVS -> GRCh38 genomic ``(chrom, pos, ref, alt)`` via
     ``mapper`` (a ``str -> tuple | None`` callable; the production impl is
-    :func:`_pyhgvs_cdot_mapper`).
+    :func:`pyhgvs_cdot_mapper`).
 
     This is how the **transcript-targeted** SGE score-sets keep their **intronic**
     variants: pyhgvs + cdot project ``ENST…:c.N±M…`` onto the genome (handling strand)
