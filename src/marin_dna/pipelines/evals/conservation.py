@@ -87,6 +87,25 @@ QTL_VARIANT_COLUMNS: tuple[str, ...] = (
     "effect_size",
 )
 
+# Columns the unmatched SGE dataset (``evals_sge``, issue #292) carries: no
+# ``label`` / ``subset`` / ``match_group`` / ``effect_size``. Instead a continuous
+# per-study experimental ``function_score`` — NOT comparable across genes (each
+# study has its own scale and direction), so any score↔function correlation is
+# computed **per ``gene``**. Asserted by the ``eval_protocol: sge`` branch of the
+# evals_v2 score rule. ``compute_variant_scores`` itself only reads
+# chrom/pos/ref/alt; asserting gene/function_score/consequence_final early fails
+# fast on schema drift, since the per-gene + per-consequence metric exploration
+# depends on them surviving into the scores parquet.
+SGE_VARIANT_COLUMNS: tuple[str, ...] = (
+    "chrom",
+    "pos",
+    "ref",
+    "alt",
+    "gene",
+    "function_score",
+    "consequence_final",
+)
+
 
 def score_variants_at_positions(
     df: pd.DataFrame,

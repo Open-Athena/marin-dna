@@ -38,6 +38,19 @@ datasets:
     score_protocol: abs_llr
     eval_protocol: qtl_global
 
+  # Saturation-genome-editing dataset (bolinas-dna/evals_sge, issue #292;
+  # builder #289). Unmatched, no label/subset/match_group — `eval_protocol: sge`
+  # selects only the SGE_VARIANT_COLUMNS assert set (no metrics branch wired).
+  # The scores parquet (per-strand llr_*/jsd_* atoms + all SGE author/annotation
+  # columns) is the deliverable; the metric is being explored off-pipeline.
+  # NOT added to any model's `datasets:` list, so it stays off `rule all` — build
+  # the scores target by name. `score_protocol` is a placeholder: the raw llr_*
+  # atoms are stored regardless, and the score transform is chosen at metric time.
+  - name: sge
+    hf_revision: 007f0238ba3e6551f0bc1beed060f56f4b642437  # evals_sge main @ upload
+    score_protocol: abs_llr
+    eval_protocol: sge
+
 # Model checkpoints. Each entry must have exactly one of:
 #   - `gcs_path`: full GCS URI to the checkpoint directory (includes /hf/step-{N});
 #                  pulled with `gcloud storage cp -r`.
