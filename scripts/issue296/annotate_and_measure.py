@@ -251,11 +251,17 @@ def main() -> None:
         .unique()
     )
 
-    splice = intron_splice_regions(exons, flank=SPLICE_FLANK)
-    nc = _overlap_flag(nc, splice, "is_splice")
-    nc = _overlap_flag(nc, splice.filter(pl.col("side") == "donor"), "is_donor")
-    nc = _overlap_flag(nc, splice.filter(pl.col("side") == "acceptor"), "is_acceptor")
-    nc = _overlap_value(nc, splice, "strand", "splice_strand")  # intron's gene strand
+    # `splicing` = the broad intronic window (≤20bp of a junction). donor/acceptor
+    # = the 2-position canonical dinucleotides (GT / AG) — intron_splice_regions
+    # with flank=2 gives exactly the 2 bases abutting the junction on each side.
+    splice_broad = intron_splice_regions(exons, flank=SPLICE_FLANK)
+    splice_canon = intron_splice_regions(exons, flank=2)
+    nc = _overlap_flag(nc, splice_broad, "is_splice")  # broad: intron ≤20bp
+    nc = _overlap_flag(nc, splice_canon.filter(pl.col("side") == "donor"), "is_donor")
+    nc = _overlap_flag(
+        nc, splice_canon.filter(pl.col("side") == "acceptor"), "is_acceptor"
+    )
+    nc = _overlap_value(nc, splice_broad, "strand", "splice_strand")  # gene strand
     nc = _overlap_flag(nc, get_ensembl_5_prime_utr(canon).to_polars(), "is_utr5")
     nc = _overlap_flag(nc, get_ensembl_3_prime_utr(canon).to_polars(), "is_utr3")
 

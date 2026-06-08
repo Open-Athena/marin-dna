@@ -76,8 +76,8 @@ def main() -> None:
     ax.set_ylabel("mean loss (nats; lower = better predicted)")
     ax.set_title(
         "Fig 1 — mean loss by region vs scale (scaling-v0.5, val_cds)\n"
-        "codon 1/2 best-predicted (improve fastest); wobble higher; "
-        "splice highest & ~flat",
+        "codon 1/2 + canonical splice GT/AG best-predicted; "
+        "broad-splice window + deep intron lag (frozen)",
         fontsize=11,
     )
     ax.legend(fontsize=8, loc="center left", bbox_to_anchor=(1.01, 0.5))
