@@ -20,7 +20,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import polars as pl  # noqa: E402
-from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FixedLocator, NullLocator, ScalarFormatter  # noqa: E402
 
 STAGE2 = Path("scratch/issue296/stage2")
@@ -102,62 +101,46 @@ def main() -> None:
                 }
             )
     bs = pl.DataFrame(bs_rows)
-    strand_regions = [
-        ("codon_1", "tab:blue"),
-        ("codon_2", "tab:cyan"),
-        ("codon_3", "tab:red"),
-        ("codon_3_4fold", "tab:orange"),
-        ("splicing", "tab:green"),
-        ("splice_donor", "tab:olive"),
-        ("splice_acceptor", "mediumseagreen"),
+    # one panel per region (coding on the top row, splice on the bottom),
+    # two lines each: + gene (sense) vs − gene (antisense).
+    panels = [
+        "codon_1", "codon_2", "codon_3", "codon_3_4fold",
+        "splicing", "splice_donor", "splice_acceptor",
     ]
-    fig, ax = plt.subplots(figsize=(8.5, 5.5))
-    for region, color in strand_regions:
-        for strand, ls, mk in [("+", "-", "o"), ("-", "--", "x")]:
+    strands = [
+        ("+", "tab:blue", "-", "o", "+ gene (sense)"),
+        ("-", "tab:red", "--", "x", "− gene (antisense)"),
+    ]
+    fig, axes = plt.subplots(2, 4, figsize=(15, 7), sharex=True, sharey=True)
+    axes = axes.ravel()
+    for ax, region in zip(axes, panels):
+        for strand, c, ls, mk, lab in strands:
             sub = bs.filter(
                 (pl.col("stratum") == region) & (pl.col("gene_strand") == strand)
             ).sort("params_M")
             if len(sub):
-                ax.plot(
-                    sub["params_M"].to_numpy(),
-                    sub["mean_loss"].to_numpy(),
-                    ls=ls,
-                    marker=mk,
-                    color=color,
-                    lw=1.8,
-                    ms=6,
-                )
-    _log_xaxis(ax, p)
-    ax.set_ylabel("mean loss (nats; lower = better predicted)")
-    ax.set_title(
-        "Fig 1 (strand) — mean loss by region × gene strand\n"
-        "+ gene = sense (solid ●), − gene = antisense (dashed ✕)",
-        fontsize=11,
+                ax.plot(sub["params_M"].to_numpy(), sub["mean_loss"].to_numpy(),
+                        color=c, ls=ls, marker=mk, lw=2, label=lab)
+        ax.set_title(region, fontsize=10)
+        ax.set_xscale("log")
+        ax.xaxis.set_major_locator(FixedLocator(list(p)))
+        ax.xaxis.set_minor_locator(NullLocator())
+        ax.xaxis.set_major_formatter(ScalarFormatter())
+        ax.set_xticklabels([str(int(x)) for x in p], fontsize=7)
+        ax.grid(alpha=0.3)
+    for ax in axes[len(panels):]:
+        ax.set_visible(False)
+    axes[0].legend(fontsize=9, loc="upper right")
+    fig.supylabel("mean loss (nats; lower = better predicted)")
+    fig.supxlabel("parameters (M, log scale)")
+    fig.suptitle(
+        "Fig 1 (strand) — mean loss by gene strand, per region "
+        "(coding: sense ≈ antisense; splice: CDS-primed ≪ intron-primed)",
+        fontsize=12,
     )
-    region_handles = [
-        Line2D([0], [0], color=c, lw=3, label=r) for r, c in strand_regions
-    ]
-    strand_handles = [
-        Line2D([0], [0], color="gray", ls="-", marker="o", label="+ gene (sense)"),
-        Line2D([0], [0], color="gray", ls="--", marker="x", label="− gene (antisense)"),
-    ]
-    leg1 = ax.legend(
-        handles=region_handles,
-        fontsize=8,
-        loc="center left",
-        bbox_to_anchor=(1.01, 0.72),
-        title="region",
-    )
-    ax.add_artist(leg1)
-    ax.legend(
-        handles=strand_handles,
-        fontsize=8,
-        loc="center left",
-        bbox_to_anchor=(1.01, 0.25),
-        title="strand",
-    )
-    fig.savefig(OUT / "regions_meanloss_strand.png", dpi=130, bbox_inches="tight")
-    fig.savefig(OUT / "regions_meanloss_strand.svg", bbox_inches="tight")
+    fig.tight_layout()
+    fig.savefig(OUT / "regions_meanloss_strand.png", dpi=130)
+    fig.savefig(OUT / "regions_meanloss_strand.svg")
     plt.close(fig)
     print(
         f"[plot] wrote regions_meanloss(.svg) + regions_meanloss_strand(.svg) "
