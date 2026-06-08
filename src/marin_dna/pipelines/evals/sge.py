@@ -285,7 +285,9 @@ def recode_hgvs_c_to_genomic(
         recs.append(
             {"hgvs_nt": h, "chrom": chrom, "pos": int(pos), "ref": ref, "alt": alt}
         )
-    print(f"[sge recode] {len(hgvs_list)} c. SNVs -> {len(recs)} genomic ({n_fail} unmapped)")
+    print(
+        f"[sge recode] {len(hgvs_list)} c. SNVs -> {len(recs)} genomic ({n_fail} unmapped)"
+    )
     return pl.DataFrame(
         recs,
         schema={
@@ -311,7 +313,9 @@ def load_mavedb_transcript_scoreset(
     """
     raw = pl.read_csv(scores_path, infer_schema_length=None)
     for col in ("hgvs_nt", "score"):
-        assert col in raw.columns, f"{gene}: MaveDB scores CSV missing {col!r}: {raw.columns}"
+        assert col in raw.columns, (
+            f"{gene}: MaveDB scores CSV missing {col!r}: {raw.columns}"
+        )
     n_raw = raw.height
     coords = recoded.unique(subset="hgvs_nt").rename({"hgvs_nt": "author_hgvs_nt"})
     out = (
@@ -337,7 +341,9 @@ def load_mavedb_transcript_scoreset(
             pl.col("^author_.*$"),
         )
     )
-    print(f"[sge load {gene}] {n_raw} rows -> {out.height} scored SNVs (c.->g. recoded)")
+    print(
+        f"[sge load {gene}] {n_raw} rows -> {out.height} scored SNVs (c.->g. recoded)"
+    )
     assert out.height > 0, f"{gene}: no scored recoded SNVs"
     return out
 
