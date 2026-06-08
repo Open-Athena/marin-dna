@@ -404,6 +404,19 @@ wheels = [
 ]
 
 [[package]]
+name = "bioutils"
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/50/d6/10fbd7127cd6618dae4041305313b672d2597a44c0da6a7e32b0e5eefec2/bioutils-0.6.1.tar.gz", hash = "sha256:6ad7a9b6da73beea798a935499339d8b60a434edc37dfc803474d2e93e0e64aa", size = 387598, upload-time = "2024-11-04T01:43:19.683Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/b5/29234ceb28f4cb81c925145bb2edfb8105206243144f84d960478e255484/bioutils-0.6.1-py3-none-any.whl", hash = "sha256:9928297331b9fc0a4fd4235afdef9a80a0916d8b5c2811ab781bded0dad4b9b6", size = 313484, upload-time = "2024-11-04T01:43:17.544Z" },
+]
+
+[[package]]
 name = "black"
 version = "26.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -511,6 +524,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/54/93/badd4f5ccf25209f3fef2573073da9fe4a45a3da99fca2f800f942130c0f/braceexpand-0.1.7.tar.gz", hash = "sha256:e6e539bd20eaea53547472ff94f4fb5c3d3bf9d0a89388c4b56663aba765f705", size = 7777, upload-time = "2021-05-07T13:49:07.323Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/93/e8c04e80e82391a6e51f218ca49720f64236bc824e92152a2633b74cf7ab/braceexpand-0.1.7-py2.py3-none-any.whl", hash = "sha256:91332d53de7828103dcae5773fb43bc34950b0c8160e35e0f44c4427a3b85014", size = 5923, upload-time = "2021-05-07T13:49:05.146Z" },
+]
+
+[[package]]
+name = "cdot"
+version = "0.2.26"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bioutils", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "intervaltree", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "lazy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f0/62/f63febd29ad39c56d3616244d01f308f703b6901f6245fd8e1ac8c5221ed/cdot-0.2.26.tar.gz", hash = "sha256:6f9b9fb4076722f5d92d189fa4ef5a7e2af1cdd4f790068bb7d9a5d3ba73921b", size = 16399, upload-time = "2024-08-15T04:48:21.436Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/ab/90cf9f3011a1018e874e86001c20a0d26f7004ac5c19697b8fbf62dec9b8/cdot-0.2.26-py3-none-any.whl", hash = "sha256:f9f6c3dbdb9dffda3779e77d9acef33ae3111c11a4de18fba5ff1d77cbc83c00", size = 13870, upload-time = "2024-08-15T04:48:19.801Z" },
 ]
 
 [[package]]
@@ -1926,6 +1954,15 @@ wheels = [
 ]
 
 [[package]]
+name = "lazy"
+version = "1.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/e6/704c32da169b023a9ac86d116f5433b42d02b4afeda24c9400a69b3530e5/lazy-1.6.tar.gz", hash = "sha256:7127324ec709e8324f08cb4611c1abe01776bda53bb9ce68dc5dfa46ca0ed3e9", size = 10562, upload-time = "2023-09-14T13:31:13.666Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/ae/3ae578fc22dc9c5f60ddcb5c254fe808d45ee7b4cd03315245caf5db6a47/lazy-1.6-py2.py3-none-any.whl", hash = "sha256:449375c125c7acac6b7a93f71b8e7ccb06546c37b161613f92d2d3981f793244", size = 5246, upload-time = "2023-09-14T13:31:11.688Z" },
+]
+
+[[package]]
 name = "legacy-api-wrap"
 version = "1.5"
 source = { registry = "https://pypi.org/simple" }
@@ -2231,6 +2268,10 @@ enhancer-classification = [
 genome-s3 = [
     { name = "s3fs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
+hgvs = [
+    { name = "cdot", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "pyhgvs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
 umap = [
     { name = "umap-learn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
@@ -2297,6 +2338,10 @@ enhancer-classification = [
     { name = "torchmetrics", specifier = ">=1.0" },
 ]
 genome-s3 = [{ name = "s3fs", specifier = ">=2024" }]
+hgvs = [
+    { name = "cdot", specifier = ">=0.2.26" },
+    { name = "pyhgvs", specifier = ">=0.11.1" },
+]
 umap = [{ name = "umap-learn", specifier = ">=0.5" }]
 
 [[package]]
@@ -3251,6 +3296,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pip"
+version = "26.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/91/47e7d486260f618783899587af63ccf7980fb60245c3e63dd4571c6b57ad/pip-26.1.2.tar.gz", hash = "sha256:f49cd134c61cf2fd75e0ce2676db03e4054504a5a4986d00f8299ae632dc4605", size = 1840799, upload-time = "2026-05-31T17:33:58.56Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/95/6b5cb3461ea5673ba0995989746db58eb18b91b54dbf331e72f569540946/pip-26.1.2-py3-none-any.whl", hash = "sha256:382ff9f685ee3bc25864f820aa50505825f10f5458ffff07e30a6d96e5715cab", size = 1813144, upload-time = "2026-05-31T17:33:56.772Z" },
+]
+
+[[package]]
 name = "platformdirs"
 version = "4.9.6"
 source = { registry = "https://pypi.org/simple" }
@@ -3591,6 +3645,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/c3/b2/bc9c9196916376152
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/7e/a72dd26f3b0f4f2bf1dd8923c85f7ceb43172af56d63c7383eb62b332364/pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176", size = 1231151, upload-time = "2026-03-29T13:29:30.038Z" },
 ]
+
+[[package]]
+name = "pyhgvs"
+version = "0.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pip", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/92/2f/6e8c1cb3b8137ca3c011d069a288ecdfcbf59b360d1ca2d41a2830e44ee0/pyhgvs-0.11.1.tar.gz", hash = "sha256:507076f4dca681113c4ac1b8e8ea72003bd663c32512771756527cc3e5313444", size = 28027, upload-time = "2019-11-21T23:19:29.376Z" }
 
 [[package]]
 name = "pyjwt"

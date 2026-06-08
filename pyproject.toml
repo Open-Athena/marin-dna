@@ -133,6 +133,16 @@ genome-s3 = [
 umap = [
     "umap-learn>=0.5",
 ]
+# `cdot` + `pyhgvs` for transcript `c.` -> genomic mapping of the SGE
+# transcript-targeted score-sets (issue #289 phase 2b). `cdot`'s GRCh38 REST
+# transcripts + `pyhgvs` project each `c.`/intronic HGVS onto the staged GRCh38
+# FASTA (offline after the ~per-gene transcript fetch). Only the SGE dataset build
+# needs it; `marin_dna.pipelines.evals.sge._pyhgvs_cdot_mapper` lazy-imports it.
+# Build with `--group hgvs` (alongside `--group genome-s3`).
+hgvs = [
+    "cdot>=0.2.26",
+    "pyhgvs>=0.11.1",
+]
 
 [tool.uv]
 # awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the
