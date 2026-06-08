@@ -83,41 +83,59 @@ def main() -> None:
     gaps, auprc = _collect()
     p = gaps["params_M"].to_numpy()
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-    for ax, (subset, matched, title) in zip(axes, CLASSES):
-        ax.plot(
+    fig, axes = plt.subplots(1, 3, figsize=(15.5, 5.8), sharey=True)
+    handles: list = []
+    for i, (ax, (subset, matched, title)) in enumerate(zip(axes, CLASSES)):
+        (l1,) = ax.plot(
             p,
             gaps["all_token"].to_numpy(),
             "^--",
             color="tab:orange",
-            lw=2,
+            lw=2.2,
+            ms=7,
             label="global (all_token) gap",
         )
-        ax.plot(
+        (l2,) = ax.plot(
             p,
             gaps[matched].to_numpy(),
             "s-",
             color="tab:blue",
-            lw=2,
-            label=f"matched ({matched}) gap",
+            lw=2.2,
+            ms=7,
+            label="matched (task-specific) gap",
         )
-        ax.set_ylabel("LL gap (conserved − non-conserved)")
         _log_xaxis(ax, p)
+        if i == 0:
+            ax.set_ylabel("LL gap (conserved − non-conserved)")
         ax2 = ax.twinx()
-        ax2.plot(
-            p, auprc[subset], "o:", color="black", lw=2, label=f"{title} VEP AUPRC"
+        (l3,) = ax2.plot(
+            p,
+            auprc[subset],
+            "o:",
+            color="black",
+            lw=2.2,
+            ms=7,
+            label="class VEP AUPRC (right axis)",
         )
-        ax2.set_ylabel(f"{title} AUPRC")
-        ax.set_title(f"{title}  (matched: {matched})", fontsize=11)
-        lns = ax.get_lines() + ax2.get_lines()
-        ax.legend(lns, [ln.get_label() for ln in lns], loc="upper left", fontsize=8)
+        ax2.set_ylabel(f"{title} VEP AUPRC")
+        ax.set_title(f"{title}   (matched stratum: {matched})", fontsize=12)
+        ax.tick_params(labelsize=9)
+        ax2.tick_params(labelsize=9)
+        handles = [l1, l2, l3]
 
+    fig.legend(
+        handles,
+        [h.get_label() for h in handles],
+        loc="lower center",
+        ncol=3,
+        fontsize=11,
+    )
     fig.suptitle(
         "Fig 2 — LL gap: global vs task-specific stratum, vs scale "
-        "(scaling-v0.5, val_cds) — does the matched gap follow the class AUPRC?",
-        fontsize=12,
+        "— does the matched gap track the class AUPRC?",
+        fontsize=13,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.tight_layout(rect=(0, 0.06, 1, 0.94))
     OUT.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT / "gap_global_vs_task.png", dpi=130)
     fig.savefig(OUT / "gap_global_vs_task.svg")
