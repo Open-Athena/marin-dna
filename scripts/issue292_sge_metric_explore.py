@@ -51,7 +51,9 @@ SEED = 0
 # agreed n>=100). Per-gene cells span a whole gene (thousands of variants), so this
 # threshold only bites the per-(gene x group) cells in the grid / per-consequence tables.
 N_MIN_CORR = 100
-N_MIN_BINARY = 20  # min variants (with >=5 of the minority class) for a binary metric
+N_MIN_BINARY_PER_LABEL = 30  # min variants PER label (>=30 abnormal AND >=30 normal)
+# for a gene (or pooled set) to contribute a binary metric — both classes need a
+# non-degenerate sample, same n_min=30 convention as the correlation macro.
 
 # Coarse consequence grouping — the SAME map the matched-pair datasets use
 # (snakemake/evals/config/config.yaml `consequence_groups`), replicated here because
@@ -359,7 +361,8 @@ def binary_menu(
             for g in sorted(sub["gene"].unique()):
                 gi = (sub["gene"] == g).to_numpy()
                 yg = y_all[gi]
-                if len(yg) < N_MIN_BINARY or yg.sum() < 5 or yg.sum() > len(yg) - 5:
+                n_pos = int(yg.sum())
+                if n_pos < N_MIN_BINARY_PER_LABEL or (len(yg) - n_pos) < N_MIN_BINARY_PER_LABEL:
                     continue
                 r = _auroc_auprc_bootstrap(yg, s_all[gi])
                 per_roc.append(r["auroc"])
@@ -384,7 +387,8 @@ def binary_menu(
                 }
             )
         else:
-            if y_all.sum() < 5 or y_all.sum() > len(y_all) - 5:
+            n_pos_all = int(y_all.sum())
+            if n_pos_all < N_MIN_BINARY_PER_LABEL or (len(y_all) - n_pos_all) < N_MIN_BINARY_PER_LABEL:
                 continue
             r = _auroc_auprc_bootstrap(y_all, s_all)
             rows.append(
