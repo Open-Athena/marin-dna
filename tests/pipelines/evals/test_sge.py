@@ -9,7 +9,9 @@ from marin_dna.data.utils import load_annotation
 from marin_dna.pipelines.evals.sge import (
     annotate_sge_variants,
     load_mavedb_genomic_scoreset,
+    load_mavedb_transcript_scoreset,
     normalize_brca1_findlay,
+    recode_hgvs_c_to_genomic,
 )
 from marin_dna.pipelines.evals.trait_intervals import get_exon, get_tss
 
@@ -153,6 +155,61 @@ class TestLoadMavedbGenomic:
         p.write_text("accession,hgvs_nt,hgvs_pro\nx#1,NC_000002.12:g.1A>G,p.?\n")
         with pytest.raises(AssertionError, match="missing 'score'"):
             load_mavedb_genomic_scoreset(p, gene="BARD1", mavedb_urn="urn:test:bard1")
+
+
+# --------------------------------------------------------------------------- #
+# recode_hgvs_c_to_genomic + load_mavedb_transcript_scoreset (transcript-targeted)
+# --------------------------------------------------------------------------- #
+# Mock c.->genomic mapper (the pyhgvs+cdot impl is exercised by the real build):
+# c. HGVS -> (chrom, pos, ref, alt) | None.
+_RECODE = {
+    "ENST:c.7436A>C": ("13", 32356428, "A", "C"),
+    "ENST:c.7436-10T>A": ("13", 32356418, "T", "A"),  # intronic
+    "ENST:c.5A>G": ("13", 31000000, "A", "G"),
+    "ENST:c.bad": None,  # unmappable
+}
+
+
+def _fake_mapper(hgvs_c: str) -> tuple | None:
+    return _RECODE.get(hgvs_c)
+
+
+class TestRecodeAndTranscriptLoader:
+    def test_recode_maps_and_drops_unmapped(self) -> None:
+        out = recode_hgvs_c_to_genomic(
+            ["ENST:c.7436A>C", "ENST:c.7436-10T>A", "ENST:c.bad"],
+            mapper=_fake_mapper,
+        )
+        assert out.height == 2  # c.bad dropped (mapper -> None)
+        assert out["chrom"].to_list() == ["13", "13"]
+        assert out["pos"].to_list() == [32356428, 32356418]  # intronic mapped
+        assert out["ref"].to_list() == ["A", "T"]
+        assert out["alt"].to_list() == ["C", "A"]
+
+    def test_transcript_loader_join_keeps_intronic_drops_unrecoded(
+        self, tmp_path: Path
+    ) -> None:
+        csv = tmp_path / "scores.csv"
+        csv.write_text(
+            "accession,hgvs_nt,hgvs_pro,score,functional_classification\n"
+            "u#1,ENST:c.7436A>C,p.?,-1.0,abnormal\n"
+            "u#2,ENST:c.7436-10T>A,p.?,0.2,normal\n"  # intronic -> recoded -> kept
+            "u#3,ENST:c.9del,p.?,-2.0,abnormal\n"  # indel -> not recoded -> dropped
+            "u#4,ENST:c.5A>G,p.?,,normal\n"  # recoded but null score -> dropped
+        )
+        recoded = recode_hgvs_c_to_genomic(
+            ["ENST:c.7436A>C", "ENST:c.7436-10T>A", "ENST:c.5A>G"], mapper=_fake_mapper
+        )
+        V = load_mavedb_transcript_scoreset(
+            csv, recoded, gene="BRCA2", mavedb_urn="urn:test:brca2"
+        )
+        assert V.height == 2  # u#1 + u#2 (u#3 unrecoded, u#4 null score)
+        assert sorted(V["pos"].to_list()) == [32356418, 32356428]
+        assert V["gene"].unique().to_list() == ["BRCA2"]
+        assert "author_functional_classification" in V.columns
+        assert V["function_score"].to_list() == V["author_score"].to_list()
+        # the intronic variant is retained.
+        assert V.filter(pl.col("author_hgvs_nt") == "ENST:c.7436-10T>A").height == 1
 
 
 # --------------------------------------------------------------------------- #

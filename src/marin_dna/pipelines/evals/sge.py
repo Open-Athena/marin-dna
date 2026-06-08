@@ -26,6 +26,7 @@ source; coordinates are lifted hg19->GRCh38 here.
 """
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -35,6 +36,7 @@ from marin_dna.data.genome import Genome
 from marin_dna.pipelines.evals.trait_intervals import add_exon, add_tss
 from marin_dna.pipelines.evals.variants import (
     COORDINATES,
+    NUCLEOTIDES,
     attach_per_chrom_consequences,
     check_ref_alt,
     filter_chroms,
@@ -197,6 +199,146 @@ def load_mavedb_genomic_scoreset(
     )
     print(f"[sge load {gene}] {n_raw} rows -> {out.height} scored genomic SNVs")
     assert out.height > 0, f"{gene}: no scored genomic SNVs parsed from hgvs_nt"
+    return out
+
+
+# --- transcript-targeted score-sets: recode c. HGVS -> genomic (pyhgvs + cdot) ---
+# Single-base-substitution HGVS (exonic c.N, intronic c.N±M, UTR c.-N/c.*N, or g.);
+# excludes del / delins / dup / ins / MNV.
+SNV_HGVS_RE = re.compile(r"[ACGT]>[ACGT]$")
+_NC_CONTIG_RE = re.compile(r"^NC_0*(\d+)\.")
+
+
+def _nc_contig_to_chrom(contig: str) -> str | None:
+    """RefSeq genomic contig (``NC_000013.11``) -> chromosome label (``13``)."""
+    m = _NC_CONTIG_RE.match(contig)
+    if not m:
+        return None
+    n = int(m.group(1))
+    return "X" if n == 23 else "Y" if n == 24 else str(n)
+
+
+class _NCGenome:
+    """pyfaidx-FASTA wrapper translating the RefSeq ``NC_…`` contig names cdot
+    transcripts use to the staged Ensembl FASTA's chromosome names (``13``)."""
+
+    def __init__(self, fasta) -> None:
+        self._fasta = fasta
+
+    def _key(self, contig: str) -> str:
+        return _nc_contig_to_chrom(contig) or contig
+
+    def __getitem__(self, contig: str):
+        return self._fasta[self._key(contig)]
+
+    def __contains__(self, contig: str) -> bool:
+        return self._key(contig) in self._fasta
+
+
+def _pyhgvs_cdot_mapper(genome_path: str | Path) -> Callable[[str], tuple | None]:
+    """Build a ``c-hgvs -> (chrom, pos, ref, alt) | None`` mapper using pyhgvs + cdot's
+    GRCh38 REST transcripts against the staged GRCh38 FASTA (transcripts are fetched +
+    cached per accession). Lazy-imports the optional ``hgvs`` dependency group."""
+    import pyhgvs
+    from cdot.pyhgvs.pyhgvs_transcript import RESTPyHGVSTranscriptFactory
+    from pyfaidx import Fasta
+
+    get_transcript = RESTPyHGVSTranscriptFactory().get_transcript_grch38
+    genome = _NCGenome(Fasta(str(genome_path)))
+
+    def mapper(hgvs_c: str) -> tuple | None:
+        try:
+            contig, pos, ref, alt = pyhgvs.parse_hgvs_name(
+                hgvs_c, genome, get_transcript=get_transcript
+            )
+        except Exception:
+            return None
+        chrom = _nc_contig_to_chrom(contig)
+        if chrom is None or ref not in NUCLEOTIDES or alt not in NUCLEOTIDES:
+            return None
+        return (chrom, pos, ref, alt)
+
+    return mapper
+
+
+def recode_hgvs_c_to_genomic(
+    hgvs_list: list[str], *, mapper: Callable[[str], tuple | None]
+) -> pl.DataFrame:
+    """Map transcript ``c.`` HGVS -> GRCh38 genomic ``(chrom, pos, ref, alt)`` via
+    ``mapper`` (a ``str -> tuple | None`` callable; the production impl is
+    :func:`_pyhgvs_cdot_mapper`).
+
+    This is how the **transcript-targeted** SGE score-sets keep their **intronic**
+    variants: pyhgvs + cdot project ``ENST…:c.N±M…`` onto the genome (handling strand)
+    — coordinates MaveDB's own cDNA->genome map drops. Returns ``[hgvs_nt, chrom, pos,
+    ref, alt]`` for the SNVs that mapped; others are omitted (reported). ``mapper`` is
+    injectable for tests (no network / no transcript data).
+    """
+    recs: list[dict] = []
+    n_fail = 0
+    for h in hgvs_list:
+        r = mapper(h)
+        if r is None:
+            n_fail += 1
+            continue
+        chrom, pos, ref, alt = r
+        recs.append(
+            {"hgvs_nt": h, "chrom": chrom, "pos": int(pos), "ref": ref, "alt": alt}
+        )
+    print(f"[sge recode] {len(hgvs_list)} c. SNVs -> {len(recs)} genomic ({n_fail} unmapped)")
+    return pl.DataFrame(
+        recs,
+        schema={
+            "hgvs_nt": pl.Utf8,
+            "chrom": pl.Utf8,
+            "pos": pl.Int64,
+            "ref": pl.Utf8,
+            "alt": pl.Utf8,
+        },
+    )
+
+
+def load_mavedb_transcript_scoreset(
+    scores_path: str | Path, recoded: pl.DataFrame, *, gene: str, mavedb_urn: str
+) -> pl.DataFrame:
+    """Load a **transcript-targeted** MaveDB SGE score-set CSV (``ENST/NM:c.`` hgvs_nt)
+    to the SGE schema, using a precomputed ``recoded`` ``c.->genomic`` mapping (from
+    :func:`recode_hgvs_c_to_genomic`) so intronic variants are kept.
+
+    Every original column is preserved ``author_``-prefixed; the common
+    ``function_score`` is the study's ``score``. Variants that didn't recode (or
+    aren't SNVs / null-score) are dropped. GRCh38 (no liftover).
+    """
+    raw = pl.read_csv(scores_path, infer_schema_length=None)
+    for col in ("hgvs_nt", "score"):
+        assert col in raw.columns, f"{gene}: MaveDB scores CSV missing {col!r}: {raw.columns}"
+    n_raw = raw.height
+    coords = recoded.unique(subset="hgvs_nt").rename({"hgvs_nt": "author_hgvs_nt"})
+    out = (
+        raw.rename({c: author_slug(c) for c in raw.columns})
+        .join(coords, on="author_hgvs_nt", how="inner")
+        .with_columns(
+            gene=pl.lit(gene),
+            assay=pl.lit("sge"),
+            mavedb_urn=pl.lit(mavedb_urn),
+            function_score=pl.col("author_score").cast(pl.Float64),
+        )
+        .filter(pl.col("function_score").is_not_null())
+        .pipe(filter_snp)
+        .select(
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "gene",
+            "assay",
+            "mavedb_urn",
+            "function_score",
+            pl.col("^author_.*$"),
+        )
+    )
+    print(f"[sge load {gene}] {n_raw} rows -> {out.height} scored SNVs (c.->g. recoded)")
+    assert out.height > 0, f"{gene}: no scored recoded SNVs"
     return out
 
 
