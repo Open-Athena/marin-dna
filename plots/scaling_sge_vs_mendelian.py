@@ -1,18 +1,20 @@
-"""Issue #306 figure: scaling-ladder native AUPRC vs model size, per dataset × subset.
+"""Issue #306 figures: scaling-ladder native AUPRC vs model size, per dataset × subset.
 
-One figure over the 8 `dna-bolinas-scaling-v0.5` sizes (46M→4B, step-215573): a
-**dataset × subset grid** — 3 rows (Mendelian, complex traits, SGE) × 2 cols
-(missense, splicing) = 6 panels, each on its **own native AUPRC scale** (missense
-and splicing never share an axis; no cross-consequence mixing).
+Two figures (one per scoring), each a **dataset × subset grid** over the 8
+`dna-bolinas-scaling-v0.5` sizes (46M→4B, step-215573) — 3 rows (Mendelian,
+complex traits, SGE) × 2 cols (missense, splicing) = 6 panels, each on its **own
+native AUPRC scale** (missense and splicing never share an axis):
 
-Scores (FWD+RC): Mendelian & SGE use −LLR (`minus_llr_avg`); complex uses |LLR|
-(`abs_llr_avg`, its score_protocol). SGE is macro-averaged across genes; Mendelian
-and complex are pooled within-consequence, matched 1:9 (baseline 0.10).
+  figure      — per-dataset **LLR** score (each dataset's score_protocol):
+                Mendelian & SGE = −LLR (`minus_llr_avg`), complex = |LLR| (`abs_llr_avg`).
+  figure_jsd  — **JSD** (`jsd_avg`) for all three datasets — a magnitude /
+                direction-agnostic score, probing whether trends are LLR-specific.
+
+All scores FWD+RC. SGE is macro-averaged across genes; Mendelian and complex are
+pooled within-consequence, matched 1:9 (baseline 0.10).
 **Error bars are ±1 SE (bootstrap)** — drawn capless (a dispersion indicator, not a
-bounded interval).
-
-Caveat: complex *splicing* rests on only ~19 match-groups (vs ~250 missense) → its
-AUPRC has a very wide SE and is read with caution.
+bounded interval). Caveat: complex *splicing* rests on only ~19 match-groups → very
+wide SE, read with caution.
 
 Self-contained: reads the evals_v2 metric parquets per model from S3. Params are
 the published final-checkpoint counts (issue #274), hardcoded so the recipe needs
@@ -70,8 +72,26 @@ DATASETS = ["Mendelian", "Complex", "SGE"]  # rows
 DATASET_COLOR = {"Mendelian": "tab:blue", "Complex": "tab:green", "SGE": "tab:red"}
 CONSEQ_MARKER = {"missense_variant": "o", "splicing": "s"}
 
-# complex_traits scores with the abs_llr protocol (magnitude); mendelian & sge use minus_llr.
-COMPLEX_SCORE_TYPE = "abs_llr_avg"
+# Two scorings. LLR uses each dataset's score_protocol (complex is magnitude |LLR|);
+# JSD uses jsd_avg for all (magnitude / direction-agnostic).
+SCORE_MODES = [
+    {
+        "st": {
+            "Mendelian": "minus_llr_avg",
+            "Complex": "abs_llr_avg",
+            "SGE": "minus_llr_avg",
+        },
+        "suptitle": "−LLR (Mendelian/SGE) · |LLR| (complex)",
+        "caption": "Scores: Mendelian & SGE = −LLR, complex = |LLR| (each dataset's score_protocol).",
+        "out": "figure",
+    },
+    {
+        "st": {"Mendelian": "jsd_avg", "Complex": "jsd_avg", "SGE": "jsd_avg"},
+        "suptitle": "JSD (Jensen–Shannon divergence)",
+        "caption": "Scores: all datasets = JSD (jsd_avg) — magnitude / direction-agnostic.",
+        "out": "figure_jsd",
+    },
+]
 
 
 def _model(size: str) -> str:
@@ -101,7 +121,7 @@ def load_matched(
         for c in CONSEQUENCES:
             hit = m.filter(pl.col("subset") == c)
             assert hit.height == 1, (
-                f"{_model(s)} {dataset} {c}: expected 1 row, got {hit.height}"
+                f"{_model(s)} {dataset} {c} [{score_type}]: expected 1 row, got {hit.height}"
             )
             out[(s, c)] = {
                 "value": hit["value"][0],
@@ -123,7 +143,7 @@ def load_sge(prefix: str, score_type: str) -> dict[tuple[str, str], dict]:
         for c in CONSEQUENCES:
             hit = m.filter(pl.col("subset") == c)
             assert hit.height == 1, (
-                f"{_model(s)} sge {c}: expected 1 macro row, got {hit.height}"
+                f"{_model(s)} sge {c} [{score_type}]: expected 1 macro row, got {hit.height}"
             )
             out[(s, c)] = {
                 "value": hit["value"][0],
@@ -133,29 +153,22 @@ def load_sge(prefix: str, score_type: str) -> dict[tuple[str, str], dict]:
     return out
 
 
+def load_all(prefix: str, st: dict[str, str]) -> dict[str, dict]:
+    """All 3 datasets for one score mode (st = per-dataset score_type)."""
+    return {
+        "Mendelian": load_matched(prefix, "mendelian_traits", st["Mendelian"]),
+        "Complex": load_matched(prefix, "complex_traits", st["Complex"]),
+        "SGE": load_sge(prefix, st["SGE"]),
+    }
+
+
 def _series(d: dict, c: str) -> tuple[list[float], list[float]]:
     """(values, ses) over SIZES for consequence c."""
     return ([d[(s, c)]["value"] for s in SIZES], [d[(s, c)]["se"] for s in SIZES])
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument(
-        "--metrics-prefix",
-        default="s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics",
-    )
-    ap.add_argument("--score-type", default="minus_llr_avg", help="for mendelian & sge")
-    args = ap.parse_args()
-
-    men = load_matched(args.metrics_prefix, "mendelian_traits", args.score_type)
-    cpx = load_matched(args.metrics_prefix, "complex_traits", COMPLEX_SCORE_TYPE)
-    sge = load_sge(args.metrics_prefix, args.score_type)
-    data = {"Mendelian": men, "Complex": cpx, "SGE": sge}
-
-    # Console table — native AUPRC (M=missense, S=splicing).
-    print(
-        f"mendelian/sge={args.score_type} | complex={COMPLEX_SCORE_TYPE}   (native AUPRC ± SE)"
-    )
+def print_table(data: dict[str, dict], label: str) -> None:
+    print(f"\n=== {label} — native AUPRC (M=missense, S=splicing) ===")
     print(
         f"{'size':>6} {'params':>7} | {'men_M':>7} {'cpx_M':>7} {'sge_M':>7} "
         f"| {'men_S':>7} {'cpx_S':>7} {'sge_S':>7}"
@@ -168,20 +181,14 @@ def main() -> None:
             f"{row[0]:>6} {row[1]:>7} | {row[2]:>7} {row[3]:>7} {row[4]:>7} "
             f"| {row[5]:>7} {row[6]:>7} {row[7]:>7}"
         )
-    cpx_spl_n = cpx[(SIZES[0], "splicing")]["n_groups"]
-    sge_g = {c: sge[(SIZES[0], c)]["n_genes"] for c in CONSEQUENCES}
 
-    import matplotlib
 
-    matplotlib.use("Agg")
-    matplotlib.rcParams["svg.fonttype"] = "none"
-    import matplotlib.pyplot as plt
-
-    x = [PARAMS[s] for s in SIZES]
+def build_figure(plt, data: dict[str, dict], mode: dict, x: list[float]) -> None:
+    """3×2 native-AUPRC grid (rows = dataset, cols = consequence) for one score mode."""
+    cpx_spl_n = data["Complex"][(SIZES[0], "splicing")]["n_groups"]
+    sge_g = {c: data["SGE"][(SIZES[0], c)]["n_genes"] for c in CONSEQUENCES}
     xt_labels = [SIZE_LABEL[s] for s in SIZES]
 
-    # Native AUPRC grid: rows = dataset, cols = consequence. Each panel its own
-    # scale (missense / splicing never share an axis). Error bars capless ±1 SE.
     fig, axes = plt.subplots(
         len(DATASETS),
         len(CONSEQUENCES),
@@ -208,20 +215,21 @@ def main() -> None:
             ax.tick_params(axis="x", which="minor", bottom=False)
             if ri == 0:  # column header = consequence
                 ax.set_title(c.replace("_variant", ""), fontsize=12)
-            if ci == 0:  # row label = dataset
-                ax.set_ylabel(f"{dsname}\nAUPRC", fontsize=11)
-            else:
-                ax.set_ylabel("AUPRC")
+            ax.set_ylabel(
+                f"{dsname}\nAUPRC" if ci == 0 else "AUPRC",
+                fontsize=11 if ci == 0 else 10,
+            )
     for ax in axes[-1]:  # x labels on the bottom row (sharex hides the upper rows')
         ax.set_xticks(x)
         ax.set_xticklabels(xt_labels, fontsize=8)
         ax.set_xlabel("model size (params)")
 
     fig.suptitle(
-        "Scaling ladder (46M→4B, n=8): native AUPRC by dataset × subset — FWD+RC (#306)"
+        f"Scaling ladder (46M→4B, n=8): native AUPRC by dataset × subset — "
+        f"{mode['suptitle']}, FWD+RC (#306)"
     )
     fig.supxlabel(
-        "Error bars = ±1 SE (bootstrap).   Scores: Mendelian & SGE = −LLR, complex = |LLR|.   "
+        f"Error bars = ±1 SE (bootstrap).   {mode['caption']}   "
         "Mendelian/complex = pooled within-consequence, matched 1:9 (baseline 0.10); "
         f"SGE = macro across genes ({sge_g['missense_variant']} missense / {sge_g['splicing']} splicing).\n"
         f"Caveat: complex splicing rests on only ~{cpx_spl_n} match-groups → very wide SE; read its trend cautiously.",
@@ -230,11 +238,32 @@ def main() -> None:
     )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    svg = OUT_DIR / "figure.svg"
+    svg = OUT_DIR / f"{mode['out']}.svg"
     fig.savefig(svg, dpi=200)
     fig.savefig(svg.with_suffix(".png"), dpi=200)
     plt.close(fig)
-    print(f"\nwrote {svg} (+ .png)")
+    print(f"wrote {svg} (+ .png)")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument(
+        "--metrics-prefix",
+        default="s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics",
+    )
+    args = ap.parse_args()
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    matplotlib.rcParams["svg.fonttype"] = "none"
+    import matplotlib.pyplot as plt
+
+    x = [PARAMS[s] for s in SIZES]
+    for mode in SCORE_MODES:
+        data = load_all(args.metrics_prefix, mode["st"])
+        print_table(data, mode["suptitle"])
+        build_figure(plt, data, mode, x)
 
 
 if __name__ == "__main__":
