@@ -168,9 +168,14 @@ function sgeHeatmap({rows, geneScope}) {
 
   let sortKey = "_macro_avg_";
   const root = html`<div></div>`;
+  // Gated cells carry a NaN value (blank, but with class counts) — sort them to
+  // the bottom rather than letting NaN poison the comparator.
+  const sortVal = (m) => {
+    const v = m.cells.get(sortKey)?.value;
+    return Number.isFinite(v) ? v : -Infinity;
+  };
   const cmp = () => (a, b) => {
-    const va = a.cells.get(sortKey)?.value ?? -Infinity;
-    const vb = b.cells.get(sortKey)?.value ?? -Infinity;
+    const va = sortVal(a), vb = sortVal(b);
     return vb !== va ? vb - va : a.method_display.localeCompare(b.method_display);
   };
   function render() {

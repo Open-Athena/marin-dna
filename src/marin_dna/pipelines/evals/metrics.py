@@ -661,14 +661,17 @@ def _sge_cell_metrics(
     n_bootstrap: int,
     rng: np.random.Generator,
     n_min_auprc: int,
-) -> dict[str, dict]:
+) -> tuple[dict[str, dict], int, int]:
     """AUPRC for one (accession, subset-scope) cell and one score column.
 
-    Returns ``{"AUPRC": dict(value, se, n, n_pos)}`` when both classes of the
-    binary ``label`` (True = impactful) have ``>= n_min_auprc`` rows, else ``{}``.
-    Plain row bootstrap via singleton ``match_group`` (as in
-    ``compute_qtl_metrics``). NaN-score rows are dropped (conservation fills
-    unaligned loci with 0 upstream, so this is a defensive guard).
+    Returns ``(out, n_pos, n_neg)``. ``out`` is ``{"AUPRC": dict(value, se, n,
+    n_pos)}`` when both classes of the binary ``label`` (True = impactful) have
+    ``>= n_min_auprc`` rows, else ``{}`` (the cell is gated — too few of one
+    class for a stable AUPRC). ``n_pos`` / ``n_neg`` are the (finite-score) class
+    counts, returned **regardless** of the gate so the caller can still report a
+    blanked cell's sample size. Plain row bootstrap via singleton ``match_group``
+    (as in ``compute_qtl_metrics``). NaN-score rows are dropped (conservation
+    fills unaligned loci with 0 upstream, so this is a defensive guard).
     """
     out: dict[str, dict] = {}
     score = np.asarray(cell[score_col], dtype=float)
@@ -691,7 +694,7 @@ def _sge_cell_metrics(
             "n": res["n_rows"],
             "n_pos": n_pos,
         }
-    return out
+    return out, n_pos, n_neg
 
 
 def compute_sge_metrics(
@@ -745,6 +748,10 @@ def compute_sge_metrics(
         n_pos]``. ``metric`` is always ``"AUPRC"``. For leaf cells ``n`` is the
         rows used and ``n_pos`` the impactful (label-True) count; for macro rows
         ``n`` is K (children averaged) and ``n_pos`` the summed impactful count.
+        Leaf cells that fail the ``n_min_auprc`` gate are still emitted, with
+        ``value``/``se`` = NaN but a real ``n`` / ``n_pos`` (so a blanked cell's
+        class balance is still reported); these gated rows are excluded from
+        every macro.
     """
     for col in ("mavedb_urn", "gene", "subset", "label"):
         assert col in dataset.columns, f"dataset missing required column {col!r}"
@@ -779,6 +786,10 @@ def compute_sge_metrics(
     for score_col in score_columns:
         # (accession, subset_scope, metric) -> dict(value, se, n, n_pos)
         cells: dict[tuple[str, str, str], dict] = {}
+        # Leaf cells that failed the AUPRC gate: (accession, scope, n_pos, n_neg).
+        # Emitted as value=NaN rows so the grid still reports the blanked cell's
+        # class balance, but kept OUT of `cells` so they never enter a macro.
+        gated: list[tuple[str, str, int, int]] = []
 
         for urn, urn_df in merged.groupby("mavedb_urn", sort=False):
             scopes: dict[str, pd.DataFrame] = {
@@ -786,7 +797,7 @@ def compute_sge_metrics(
             }
             scopes[SGE_POOLED_SUBSET] = urn_df
             for scope, cell_df in scopes.items():
-                got = _sge_cell_metrics(
+                got, n_pos, n_neg = _sge_cell_metrics(
                     cell_df,
                     score_col,
                     n_bootstrap=n_bootstrap,
@@ -795,6 +806,8 @@ def compute_sge_metrics(
                 )
                 for metric, res in got.items():
                     cells[(str(urn), scope, metric)] = res
+                if "AUPRC" not in got and (n_pos + n_neg) > 0:
+                    gated.append((str(urn), scope, n_pos, n_neg))
 
             # Per-accession subset-macro: mean over base subsets that qualified.
             for metric in ("AUPRC",):
@@ -820,6 +833,23 @@ def compute_sge_metrics(
                     "se": res["se"],
                     "n": res["n"],
                     "n_pos": res["n_pos"],
+                }
+            )
+
+        # Gated leaf cells: value=NaN, but carry the class counts so the grid
+        # reports the sample size of each blanked cell (n_pos / n=n_pos+n_neg).
+        for urn, scope, n_pos, n_neg in gated:
+            rows.append(
+                {
+                    "metric": "AUPRC",
+                    "subset": scope,
+                    "accession": urn,
+                    "gene": urn_to_gene[urn],
+                    "score_type": score_col,
+                    "value": float("nan"),
+                    "se": float("nan"),
+                    "n": n_pos + n_neg,
+                    "n_pos": n_pos,
                 }
             )
 

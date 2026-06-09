@@ -808,8 +808,10 @@ def test_sge_accession_macro_is_mean_over_accessions():
 
 
 def test_sge_n_min_auprc_gates_small_cells():
-    """A subset cell with <n_min_auprc of either label class produces no AUPRC; the
-    subset-macro then averages only the qualifying base subset (K=1)."""
+    """A subset cell with <n_min_auprc of either label class is gated: it's still
+    emitted (so a blanked cell reports its class balance) but with value/se = NaN
+    and a real n / n_pos, and it's excluded from the subset-macro (which then
+    averages only the qualifying base subset, K=1)."""
     rng = np.random.default_rng(0)
 
     def block(subset: str, n_pos: int, n_neg: int) -> tuple[pd.DataFrame, np.ndarray]:
@@ -824,11 +826,15 @@ def test_sge_n_min_auprc_gates_small_cells():
     dataset = pd.concat([dm, ds], ignore_index=True)
     scores = pd.DataFrame({"score": np.concatenate([sm, ss])})
     out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
-    a = out[out["metric"] == "AUPRC"]
-    assert ((a["subset"] == "missense_variant") & (a["accession"] == "urn:1")).any()
-    assert not ((a["subset"] == "splicing") & (a["accession"] == "urn:1")).any()
-    macro = _val(out, metric="AUPRC", subset=MACRO_AVG_SUBSET, accession="urn:1")
+
     miss = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    assert np.isfinite(miss["value"])
+    # Gated splicing cell: emitted, value NaN, but class counts preserved.
+    spl = _val(out, metric="AUPRC", subset="splicing", accession="urn:1")
+    assert np.isnan(spl["value"]) and np.isnan(spl["se"])
+    assert spl["n_pos"] == 10 and spl["n"] == 100  # n_neg = n - n_pos = 90
+    # Subset-macro excludes the gated cell → equals missense alone (K=1).
+    macro = _val(out, metric="AUPRC", subset=MACRO_AVG_SUBSET, accession="urn:1")
     assert macro["value"] == pytest.approx(miss["value"])
     assert macro["n"] == 1
 
