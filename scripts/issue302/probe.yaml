@@ -1,0 +1,30 @@
+# issue #302 — run the frozen-embedding probe on a cheap CPU node (keeps it off
+# the shared dev box). Reads embeddings + LLR baseline from S3, writes the
+# AUPRC table + figure back to s3://oa-bolinas/analysis/issue302/probe_out/.
+#
+#   sky launch scripts/issue302/probe.yaml -c probe302
+
+name: probe302
+
+resources:
+    infra: aws/us-east-2
+    cpus: 8+
+    disk_size: 50
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    uv run --group genome-s3 python scripts/issue302/iter9_embedding_probe.py
