@@ -648,7 +648,9 @@ def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
 # ---- sge_normalized_rows ----------------------------------------------------
 
 
-def _sge_metrics_parquet(score_types, *, score_name=None) -> pl.DataFrame:
+def _sge_metrics_parquet(
+    score_types, *, score_name=None, split="train"
+) -> pl.DataFrame:
     """Tiny SGE metrics parquet: one AUPRC row per score_type at the headline
     (across-accession × across-subset macro) cell."""
     rows = [
@@ -662,6 +664,9 @@ def _sge_metrics_parquet(score_types, *, score_name=None) -> pl.DataFrame:
             "se": 0.01,
             "n": 5,
             "n_pos": 100.0,
+            # The real evals_v2/conservation metrics parquets carry a `split`
+            # column; sge_normalized_rows filters marin_dna rows by it.
+            "split": split,
         }
         for st in score_types
     ]
@@ -687,10 +692,18 @@ def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPa
             _sge_metrics_parquet(["score"], score_name="phastCons_43p"),
         ]
     )
+    # The marin_dna parquet path is not split-specific, so it can carry both
+    # splits; only the train rows should survive.
+    glm_df = pl.concat(
+        [
+            _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"], split="train"),
+            _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"], split="test"),
+        ]
+    )
     _patch_read_parquet(
         monkeypatch,
         {
-            glm_path: _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"]),
+            glm_path: glm_df,
             cons_path: cons_df,
         },
     )
@@ -710,8 +723,10 @@ def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPa
         "n",
         "n_pos",
     }
-    # marin_dna: both score_types survive (drives the dashboard LLR/JSD toggle).
+    # marin_dna: both score_types survive (drives the dashboard LLR/JSD toggle),
+    # but only the train split — the 2 test-split rows are filtered out (height 2).
     g = df.filter(pl.col("method_id") == "glm1")
+    assert g.height == 2
     assert set(g["score_type"].to_list()) == {"minus_llr_avg", "jsd_avg"}
     # conservation: each method filtered to its own track, no cross-leak.
     c = df.filter(pl.col("method_id") == "phyloP_100v")

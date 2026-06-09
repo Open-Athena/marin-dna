@@ -59,9 +59,10 @@ const SUBSET_COLS = [
 ];
 // AUPRC color domain: anchor at 0 (SGE's abnormal base rate is low, ~5–16%, well
 // below the matched-pair 0.10) and run to the metric ceiling 1.0, so the color
-// encodes absolute AUPRC. This matches the matched-pair heatmap's upper end
-// (components/heatmap.js maps [0.10, 1.0]); same YlGn ramp and `0.1 + 0.85·t`
-// mapping, so a given green reads as the same AUPRC across leaderboards.
+// encodes absolute AUPRC. Same YlGn ramp and `0.1 + 0.85·t` mapping as the
+// matched-pair heatmap (components/heatmap.js) and the same upper end (1.0) — but
+// the lower anchor differs (0 here vs the matched-pair 0.10), so a given green is
+// NOT directly comparable across the two pages; read the number / legend.
 const AUPRC_DOMAIN = [0, 1.0];
 const auprcColor = (v) => {
   if (v == null || !Number.isFinite(v)) return "#ffffff";

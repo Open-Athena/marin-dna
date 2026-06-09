@@ -755,6 +755,15 @@ def compute_sge_metrics(
     """
     for col in ("mavedb_urn", "gene", "subset", "label"):
         assert col in dataset.columns, f"dataset missing required column {col!r}"
+    # Fail fast on the silent-corruption risks rather than coercing them: a null
+    # `label` would be turned into a wrong class by `.astype(bool)` (NaN→True,
+    # None→False) in `_sge_cell_metrics`; a null `subset` would be dropped from
+    # `base_subsets` yet still pooled into the SGE_POOLED_SUBSET ('both') scope,
+    # making 'both' a superset of the named subsets.
+    assert dataset["label"].notna().all(), (
+        "SGE dataset `label` has nulls (expected boolean)"
+    )
+    assert dataset["subset"].notna().all(), "SGE dataset `subset` has nulls"
     assert len(dataset) == len(scores), (
         f"length mismatch: dataset={len(dataset)} scores={len(scores)}"
     )

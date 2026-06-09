@@ -410,7 +410,14 @@ def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
             print(f"  ! sge skip for {method.id} ({path}): {exc}", file=sys.stderr)
             continue
         if method.family == "conservation":
+            # conservation's parquet path is split-specific (…/metrics_{SPLIT}.parquet),
+            # so it only needs the per-track score_name select, no split filter.
             df = df.filter(pl.col("score_name") == method.id)
+        elif method.family == "marin_dna":
+            # The per-model parquet path is NOT split-specific and carries a
+            # `split` column for whichever split was scored — guard it like
+            # fetch_method_metrics so a future test-split run can't leak in.
+            df = df.filter(pl.col("split") == SPLIT)
         missing = [c for c in _SGE_ROW_COLUMNS if c not in df.columns]
         assert not missing, (
             f"SGE parquet for {method.id!r} missing columns {missing}; got {df.columns}"

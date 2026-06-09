@@ -844,10 +844,19 @@ def test_sge_nan_scores_dropped():
     cell rather than raising; AUPRC is computed on the finite remainder."""
     dataset, scores = _sge_data(seed=2)
     scores = scores.copy()
-    scores.loc[:20, "score"] = np.nan
+    scores.loc[:20, "score"] = (
+        np.nan
+    )  # 21 NaN scores in the first cell (urn:1 missense)
     out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
-    assert (out["metric"] == "AUPRC").any()
-    assert out["value"].notna().all()
+    a = out[out["metric"] == "AUPRC"]
+    assert len(a) > 0
+    # The first cell shrinks 150→129 but still clears the gate (≥30/class), so no
+    # cell is gated → every AUPRC value is finite. (A gated cell would carry NaN;
+    # this asserts the fixture stays un-gated, not that gating is impossible.)
+    assert a["value"].notna().all()
+    # The 21 NaN-score rows were dropped, not counted: n reflects the remainder.
+    first = a[(a["accession"] == "urn:1") & (a["subset"] == "missense_variant")]
+    assert int(first["n"].iloc[0]) == 150 - 21
 
 
 def test_sge_multiple_score_columns():
