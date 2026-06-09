@@ -1,0 +1,57 @@
+# issue #302 / #306 — extract per-variant embeddings for the SGE benchmark (saturation
+# genome editing) across the 8-rung scaling-v0.5 ladder, for the linear-probe + cross-dataset
+# transfer analysis. Missense + splicing in one npz/model (split by `subset`).
+#
+# Variants are sourced from the sge.parquet SCORES (via --variants_parquet) so the embedding
+# set matches the scored variants EXACTLY (revision-proof; the dataset has no match_group and
+# the scoring revision lived on a branch). The keys.parquet carries `gene` (8 genes) for
+# leave-one-gene-out CV. Per-model upload -> resumable; self-downs on idle.
+#
+# Launch:  sky launch scripts/issue302/embed_sge.yaml -c emb302sge -y -d --down -i 20
+
+name: emb302sge
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1
+    disk_size: 200
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    LIMIT: "0"
+    SUBSET: "missense_variant,splicing"
+    VARIANTS: "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/scaling-v0.5-h2944-p4B-step-215573/sge.parquet"
+    OUT: "s3://oa-bolinas/analysis/issue302/embeddings_sge"
+    MODELS: "scaling-v0.5-46M=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h640-p46M-step-215573;scaling-v0.5-76M=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h768-p76M-step-215573;scaling-v0.5-128M=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h896-p128M-step-215573;scaling-v0.5-255M=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h1152-p255M-step-215573;scaling-v0.5-476M=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h1408-p476M-step-215573;scaling-v0.5-1B=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h1920-p1B-step-215573;scaling-v0.5-2B=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h2432-p2B-step-215573;scaling-v0.5-4B=s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h2944-p4B-step-215573"
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true
+
+    lim=""
+    [ "$LIMIT" != "0" ] && lim="--limit $LIMIT"
+    IFS=';' read -ra ENTRIES <<< "$MODELS"
+    for entry in "${ENTRIES[@]}"; do
+        name="${entry%%=*}"
+        s3="${entry#*=}"
+        echo "=== $name : SGE ($SUBSET) ==="
+        uv run --group genome-s3 python scripts/issue302/extract_variant_embeddings.py \
+            --s3_path "$s3" --name "$name" --out "$OUT" \
+            --subset "$SUBSET" --variants_parquet "$VARIANTS" $lim
+    done
+    echo "ALL SGE EXTRACTIONS DONE"

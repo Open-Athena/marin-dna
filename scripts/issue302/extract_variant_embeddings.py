@@ -38,7 +38,7 @@ REVISION = (
     "4aed58e50c5dea0b878a665007af2ef9e5108e9f"  # PR #194 k=9 (config hf_revision)
 )
 GENOME = "s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
-KEEP = ["chrom", "pos", "ref", "alt", "label", "subset", "match_group"]
+KEEP = ["chrom", "pos", "ref", "alt", "label", "subset", "match_group", "gene"]
 
 
 def main() -> None:
@@ -68,6 +68,13 @@ def main() -> None:
     )
     ap.add_argument("--dataset", default=DATASET, help="HF variant dataset repo")
     ap.add_argument("--revision", default=REVISION, help="HF dataset revision (pinned)")
+    ap.add_argument(
+        "--variants_parquet",
+        default=None,
+        help="load the variant table from a parquet (local/s3) instead of HF — guarantees "
+        "the variant set matches a scores parquet exactly (revision-proof). Must have "
+        "chrom/pos/ref/alt/label/subset.",
+    )
     ap.add_argument("--batch_size", type=int, default=32)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--dtype", default="bfloat16")
@@ -92,8 +99,12 @@ def main() -> None:
         )
     assert ckpt, "need --s3_path, --gcs_path or --ckpt"
 
-    print(f"loading variants from {args.dataset}@{args.revision[:8]}...", flush=True)
-    df = load_dataset(args.dataset, revision=args.revision, split="train").to_pandas()
+    if args.variants_parquet:
+        print(f"loading variants from parquet {args.variants_parquet}...", flush=True)
+        df = pl.read_parquet(args.variants_parquet).to_pandas()
+    else:
+        print(f"loading variants from {args.dataset}@{args.revision[:8]}...", flush=True)
+        df = load_dataset(args.dataset, revision=args.revision, split="train").to_pandas()
     df["chrom"] = df["chrom"].astype(str)
     if args.subset != "all":
         df = df[df["subset"].isin(args.subset.split(","))].reset_index(drop=True)
@@ -145,7 +156,7 @@ def main() -> None:
         layer_fracs=np.array(layer_fracs),
         n_layers=n_layers,
     )
-    pl.from_pandas(df[KEEP]).write_parquet(keys)
+    pl.from_pandas(df[[c for c in KEEP if c in df.columns]]).write_parquet(keys)
     if out.startswith("s3://"):
         import s3fs
 
