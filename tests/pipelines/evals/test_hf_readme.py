@@ -69,9 +69,10 @@ def _qc(tmp_path: Path, *, with_maf: bool = False) -> Path:
 
 
 def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
-    # SGE schema: no `label`; provenance via (gene, mavedb_urn); author_-prefixed
-    # source columns + constant-per-gene assay_ keyword columns. BRCA1 is chr17
-    # (odd) -> all in train, empty test.
+    # SGE v3 schema: binary `label` (True = impactful/abnormal, False = normal);
+    # provenance via (gene, mavedb_urn); author_-prefixed source columns +
+    # constant-per-gene assay_ keyword columns. BRCA1 is chr17 (odd) -> all in
+    # train, empty test.
     train = pl.DataFrame(
         {
             "chrom": ["17", "17", "17"],
@@ -81,6 +82,7 @@ def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
             "gene": ["BRCA1", "BRCA1", "BRCA1"],
             "assay": ["sge", "sge", "sge"],
             "mavedb_urn": ["urn:mavedb:00000097-0-2"] * 3,
+            "label": [True, False, True],
             "author_function_score_mean": [-1.0, 0.1, -2.0],
             "author_func_class": ["LOF", "FUNC", "LOF"],
             "assay_phenotypic_assay_method": ["Cell fitness"] * 3,
@@ -266,8 +268,9 @@ class TestRender:
         # Per-(gene, study) provenance + the canonical accession.
         assert "BRCA1" in md and "Findlay" in md
         assert "urn:mavedb:00000097-0-2" in md
-        # Distinctive SGE framing.
-        assert "No matching, no subsampling, no binary label" in md
+        # Distinctive SGE framing + the v3 binary label.
+        assert "No matching, no subsampling" in md
+        assert "AUPRC target" in md  # the `label` column row
         assert "exclude_consequences" in md
         assert "author_" in md
         # Assay facts: the loss-of-function readout + model system surface in the card.

@@ -41,31 +41,31 @@
   display: phastCons (100v)
   family: conservation
   description: phastCons across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
 
 - id: phastCons_43p
   display: phastCons (43p)
   family: conservation
   description: phastCons across 43 primates
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
 
 - id: phastCons_470m
   display: phastCons (470m)
   family: conservation
   description: phastCons across 470 mammals
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
 
 - id: phyloP_100v
   display: phyloP (100v)
   family: conservation
   description: phyloP across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
 
 - id: phyloP_447m
   display: phyloP (447m)
   family: conservation
   description: phyloP across 447 mammals
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
 
 # ---------------------------------------------------------------------------
 # marin_dna gLMs — evals_v2 pipeline. Registry order matches the legacy
@@ -197,7 +197,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/promoter-cds-mixture-proportional-r01-6705f1
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-26000
-  datasets: [mendelian_traits]
+  datasets: [mendelian_traits, sge]
 
 - id: exp27-cds-yolo-step-34000
   display: exp27-cds-yolo
@@ -306,7 +306,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-exp166-v0.1-p1B-c127da
   checkpoint:
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 # Canonical 4B zoonomia generalist (v0.1), companion to the 1B above.
 - id: exp166-v0.1-p4B-step-27329
@@ -371,7 +371,7 @@
   wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e
   checkpoint:
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
-  datasets: [mendelian_traits]
+  datasets: [mendelian_traits, sge]
 
 # ---------------------------------------------------------------------------
 # External baselines (AlphaGenome, GPN-Star).

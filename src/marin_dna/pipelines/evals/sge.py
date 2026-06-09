@@ -504,6 +504,28 @@ def attach_calibrated_class(
     )
 
 
+def attach_label(data: pl.DataFrame) -> pl.DataFrame:
+    """Add the boolean ``label`` — the AUPRC target (#301).
+
+    ``True`` = impactful (calibrated **abnormal**), ``False`` = **normal**, null for
+    ``intermediate`` / uncalibrated (BRCA2). The build keeps only ``label``-non-null
+    rows (the AUPRC-only benchmark drops the variants no classification metric uses),
+    so in the shipped dataset ``label`` is always a clean bool. Requires
+    :func:`attach_calibrated_class` first.
+    """
+    assert "calibrated_class" in data.columns, (
+        "attach_label: call attach_calibrated_class first"
+    )
+    return data.with_columns(
+        pl.when(pl.col("calibrated_class") == "abnormal")
+        .then(pl.lit(True))
+        .when(pl.col("calibrated_class") == "normal")
+        .then(pl.lit(False))
+        .otherwise(None)
+        .alias("label")
+    )
+
+
 def _scheme_direction(norm: pl.DataFrame, abn: pl.DataFrame) -> int:
     """+1 if the abnormal calibration range sits BELOW the normal range (low score =
     abnormal = less functional, so "higher = more functional"), else -1. Range center =

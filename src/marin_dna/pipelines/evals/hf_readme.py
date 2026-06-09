@@ -835,9 +835,11 @@ def render_sge(
 ) -> str:
     """Dataset card for the SGE (saturation genome editing) dataset.
 
-    Each row is one assayed SNV with an experimental function score. There is no
-    matching/subsampling and no binary `label` (so no pos/neg counts); the
-    HIGH-impact `exclude_consequences` are dropped; every original author column is
+    Each row is one assayed SNV with an experimental function score and (v3, #301) a
+    binary `label` (True = impactful / calibrated abnormal, False = normal). No
+    matching/subsampling; the HIGH-impact `exclude_consequences` are dropped, the
+    missense+splicing groups kept, and v3 keeps only label-non-null variants (drops
+    intermediate + uncalibrated, incl. BRCA2). Every original author column is
     preserved under an `author_` prefix. Provenance is per-variant `(gene,
     mavedb_urn)`; per-study citation comes from `_SGE_STUDY_META`.
     """
@@ -893,13 +895,16 @@ in genomic coordinates — an axis orthogonal to the clinical/population/statist
 labels of the other `evals_*` datasets, and one that covers near-exon noncoding
 (splice-region, proximal-intronic) SNVs, not just missense.
 
-**No matching, no subsampling, no binary label.** The trivially-deleterious **HIGH-impact
-consequences** (canonical splice, nonsense, frameshift, …) are dropped
-(`exclude_consequences`), and v2
+**No matching, no subsampling.** The trivially-deleterious **HIGH-impact consequences**
+(canonical splice, nonsense, frameshift, …) are dropped (`exclude_consequences`), and v2
 ([#297](https://github.com/Open-Athena/marin-dna/issues/297)) further keeps only the
 **missense + splicing** consequence groups — the two where the SGE assay actually
-measures function. **Every original author column is preserved** under an `author_`
-prefix ({n_author} columns), so no source metadata is lost.
+measures function. **v3 ([#301](https://github.com/Open-Athena/marin-dna/issues/301))**
+adds a binary **`label`** (`True` = impactful = calibrated `abnormal`, `False` =
+`normal`) and keeps only label-non-null variants — dropping `intermediate` and
+uncalibrated rows (all of BRCA2) — so this is a clean classification benchmark scored by
+AUPRC. **Every original author column is preserved** under an `author_` prefix
+({n_author} columns), so no source metadata is lost.
 
 ## Studies
 
@@ -918,11 +923,11 @@ Chromosome-parity split (same convention as the other `evals_*` datasets): odd
 chromosomes + X → `train`, even + Y → `test`. SGE loci sit on whole chromosomes, so
 this is a **gene-level holdout** (e.g. BRCA1·chr17 → train).
 
-| Split | Variants | Chromosomes |
-|---|---:|---|
-| `train` | {train.height:,} | odd: 1, 3, …, X |
-| `test` | {test.height:,} | even: 2, 4, …, Y |
-| **total** | **{total:,}** | |
+| Split | Variants | Abnormal | Normal | Chromosomes |
+|---|---:|---:|---:|---|
+| `train` | {train.height:,} | {train.filter(pl.col("label")).height:,} | {train.filter(~pl.col("label")).height:,} | odd: 1, 3, …, X |
+| `test` | {test.height:,} | {test.filter(pl.col("label")).height:,} | {test.filter(~pl.col("label")).height:,} | even: 2, 4, …, Y |
+| **total** | **{total:,}** | **{allv.filter(pl.col("label")).height:,}** | **{allv.filter(~pl.col("label")).height:,}** | |
 
 ## Columns
 
@@ -932,6 +937,7 @@ this is a **gene-level holdout** (e.g. BRCA1·chr17 → train).
 | `gene` | str | Gene symbol. |
 | `assay` | str | `sge`. |
 | `mavedb_urn` | str | Canonical MaveDB accession for the source study (see the table above). |
+| `label` | bool | **The AUPRC target (v3, [#301](https://github.com/Open-Athena/marin-dna/issues/301)):** `True` = impactful (calibrated `abnormal`), `False` = `normal`. The build keeps only label-non-null rows, so this is always a clean bool. |
 | `function_score` | float | Each study's headline continuous functional score (raw, **per-study scale** — pool by rank, not raw value). |
 | `function_direction`, `function_score_aligned` | int / float | Per-gene assay direction (`+1` / `−1`, null if unresolved — BRCA2) and the direction-corrected score (`function_direction × function_score`) so "higher = more functional" holds across genes. Sourced from the assay (calibration ranges / author class), **not** the model. |
 | `calibrated_class` | str | ClinGen/ExCALIBR-calibrated `abnormal` / `intermediate` / `normal` (or null), decided at build with an **ExCALIBR-first policy** (prefers the live calibration; never a dated ClinVar snapshot). |
@@ -943,12 +949,14 @@ this is a **gene-level holdout** (e.g. BRCA1·chr17 → train).
 | `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations. |
 | `distance_tss_*`, `distance_exon_*`, `*_closest_gene_id` | int / str | Distances to nearest TSS / exon and the Ensembl gene IDs there; reference annotations. |
 
-There is still no binary `label`, but v2 ([#297](https://github.com/Open-Athena/marin-dna/issues/297))
-ships harmonized, cross-gene-comparable columns so the eval needn't re-derive them: a
-per-gene `function_direction` / `function_score_aligned`, a calibrated `calibrated_class`
-(ExCALIBR-first policy) with its `calibration_scheme` + `acmg_strength`, and an
-`author_class_harmonized`. The authors' raw `function_score` and every `author_` column
-are preserved verbatim; **per-study scales still differ**, so pool by rank, not raw value.
+v3 ([#301](https://github.com/Open-Athena/marin-dna/issues/301)) derives the binary
+`label` from `calibrated_class` (abnormal → `True`, normal → `False`) and filters to
+label-non-null rows. The harmonized continuous columns v2 added —
+`function_direction` / `function_score_aligned`, `calibrated_class` with its
+`calibration_scheme` + `acmg_strength`, and `author_class_harmonized` — are kept for
+provenance (the AUPRC eval reads only `label`). The authors' raw `function_score` and
+every `author_` column are preserved verbatim; **per-study scales still differ**, so any
+continuous re-analysis should pool by rank, not raw value.
 
 ## Provenance
 

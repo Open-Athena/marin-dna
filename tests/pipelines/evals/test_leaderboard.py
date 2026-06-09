@@ -643,3 +643,117 @@ def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
     from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     assert _storage_options() is None
+
+
+# ---- sge_normalized_rows ----------------------------------------------------
+
+
+def _sge_metrics_parquet(
+    score_types, *, score_name=None, split="train"
+) -> pl.DataFrame:
+    """Tiny SGE metrics parquet: one AUPRC row per score_type at the headline
+    (across-accession × across-subset macro) cell."""
+    rows = [
+        {
+            "metric": "AUPRC",
+            "subset": MACRO_AVG_SUBSET,
+            "accession": MACRO_AVG_SUBSET,
+            "gene": MACRO_AVG_SUBSET,
+            "score_type": st,
+            "value": 0.3,
+            "se": 0.01,
+            "n": 5,
+            "n_pos": 100.0,
+            # The real evals_v2/conservation metrics parquets carry a `split`
+            # column; sge_normalized_rows filters marin_dna rows by it.
+            "split": split,
+        }
+        for st in score_types
+    ]
+    df = pl.DataFrame(rows)
+    if score_name is not None:
+        df = df.with_columns(pl.lit(score_name).alias("score_name"))
+    return df
+
+
+def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPatch):
+    """marin_dna keeps every score_type (LLR/JSD toggle); conservation methods
+    share one parquet, each filtered to its own track by score_name."""
+    glm = _mk_method(id="glm1", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    cons2 = _mk_method(id="phastCons_43p", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons, cons2))
+
+    glm_path = leaderboard._parquet_path(glm, "sge")
+    cons_path = leaderboard._parquet_path(cons, "sge")  # shared by both tracks
+    cons_df = pl.concat(
+        [
+            _sge_metrics_parquet(["score"], score_name="phyloP_100v"),
+            _sge_metrics_parquet(["score"], score_name="phastCons_43p"),
+        ]
+    )
+    # The marin_dna parquet path is not split-specific, so it can carry both
+    # splits; only the train rows should survive.
+    glm_df = pl.concat(
+        [
+            _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"], split="train"),
+            _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"], split="test"),
+        ]
+    )
+    _patch_read_parquet(
+        monkeypatch,
+        {
+            glm_path: glm_df,
+            cons_path: cons_df,
+        },
+    )
+
+    df = leaderboard.sge_normalized_rows("sge")
+    assert set(df.columns) == {
+        "method_id",
+        "method_display",
+        "family",
+        "score_type",
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+    }
+    # marin_dna: both score_types survive (drives the dashboard LLR/JSD toggle),
+    # but only the train split — the 2 test-split rows are filtered out (height 2).
+    g = df.filter(pl.col("method_id") == "glm1")
+    assert g.height == 2
+    assert set(g["score_type"].to_list()) == {"minus_llr_avg", "jsd_avg"}
+    # conservation: each method filtered to its own track, no cross-leak.
+    c = df.filter(pl.col("method_id") == "phyloP_100v")
+    assert c.height == 1 and (c["score_type"] == "score").all()
+    assert df.filter(pl.col("method_id") == "phastCons_43p").height == 1
+    # SGE v3 is AUPRC-only; every metric row is AUPRC with a finite n_pos.
+    assert set(df["metric"].to_list()) == {"AUPRC"}
+    assert df["n_pos"].is_finite().all()
+
+
+def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPatch):
+    """A method whose metrics parquet isn't on S3 yet (polars surfaces an S3 404
+    as OSError) is skipped, not fatal — e.g. the gLMs before their scoring run."""
+    glm = _mk_method(id="glm_pending", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons))
+    glm_path = leaderboard._parquet_path(glm, "sge")
+    cons_path = leaderboard._parquet_path(cons, "sge")
+    leaderboard._read_parquet.cache_clear()
+
+    def fake(path: str) -> pl.DataFrame:
+        if path == glm_path:
+            raise OSError("object-store error: 404 Not Found")
+        if path == cons_path:
+            return _sge_metrics_parquet(["score"], score_name="phyloP_100v")
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr(leaderboard, "_read_parquet", fake)
+    df = leaderboard.sge_normalized_rows("sge")
+    assert set(df["method_id"].to_list()) == {"phyloP_100v"}

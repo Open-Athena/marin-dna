@@ -62,6 +62,19 @@ dataset's `effect_size` (unsigned `|effect|`) over **positive variants only**
 and bootstrap-seed conventions; the bootstrap resamples rows (AUPRC) / positive
 rows (correlations). The markdown is a single `metric × track` table.
 
+### SGE dataset (`sge`, `eval_protocol: sge`)
+
+The saturation-genome-editing benchmark (`bolinas-dna/evals_sge` v3, issue #301)
+is also unmatched, framed as a binary VEP: each variant carries a boolean `label`
+(True = impactful = calibrated abnormal) and a consequence-group `subset`. A
+dataset entry with `eval_protocol: sge` runs the **same shared**
+`compute_sge_metrics` as `evals_v2` (no metric logic duplicated): per-accession
+(`mavedb_urn`) × consequence-subset **AUPRC** predicting `label` from the track
+score, macro-averaged over subsets then accessions. Aggregation is
+`aggregate_conservation_sge_metrics` — a thin wrapper (per-track loop + NaN-fill +
+`score_name` stamping + markdown). All five configured tracks run on it; the
+headline markdown is a `metric × track` table.
+
 ## Tracks
 
 | Name | Source URL | Notes |
@@ -80,14 +93,16 @@ URLs are owned by `marin_dna.evals.conservation.CONSERVATION_TRACKS` (single sou
 
 NaN values arise when the bigWig has no alignment at a given locus (e.g.
 patches, alt contigs, or genuinely unalignable bases). Before computing AUPRC
-we **`fillna(0)`**:
+we **`fillna(0)`** — via the single shared `conservation.fill_score_nan`, used by
+**every** eval protocol (matched_pair / qtl_global / sge) so the convention can't
+drift between benchmarks:
 
 - For phyloP, **0 is semantically meaningful**: neither conserved nor accelerated.
 - For phastCons, **0 is also semantically meaningful**: non-conserved.
 
 This matches the choice in TraitGym's own `eval/workflow/rules/conservation.smk`.
-`auprc_with_bootstrap_se` also asserts no NaN scores, so the fill is required
-upstream of the metric call.
+`auprc_with_bootstrap_se` (and the SGE path) assert/expect no NaN scores, so the
+fill is required upstream of the metric call.
 
 The per-variant parquets (`{score}_{split}.parquet`) preserve raw NaNs so you
 can apply a different policy without re-running scoring. Filling happens only

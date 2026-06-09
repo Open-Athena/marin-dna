@@ -351,3 +351,95 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
                     }
                 )
     return pl.DataFrame(rows)
+
+
+# Columns kept from each method's SGE metrics parquet, in output order.
+_SGE_ROW_COLUMNS = (
+    "metric",
+    "subset",
+    "accession",
+    "gene",
+    "score_type",
+    "value",
+    "se",
+    "n",
+    "n_pos",
+)
+
+
+def _nan_float(x: object) -> float:
+    """Map a polars null back to NaN. A pandas float-NaN written to parquet
+    round-trips as a *null*, so Spearman rows (``n_pos`` = NaN, by design) and
+    any degenerate-bootstrap ``se`` come back as ``None``; keep them as NaN
+    rather than crashing on ``float(None)``."""
+    return float("nan") if x is None else float(x)
+
+
+def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
+    """Long-form SGE metrics across all registered methods (the dedicated SGE
+    leaderboard loader; ``dashboard/src/data/sge.parquet.py`` writes its output).
+
+    SGE keeps the full per-accession × per-subset × per-metric grid from
+    ``compute_sge_metrics`` — too rich for ``normalized_rows``' single
+    ``[subset, value, se, …]`` row shape — so this emits one row per
+    ``(method, score_type, metric, subset, accession)`` and lets the dashboard
+    page do the gene-scope / subset / metric / protocol selection.
+
+    Reuses ``_parquet_path``: marin_dna methods have a per-method parquet (every
+    ``score_type`` — ``minus_llr_*`` / ``jsd_*`` — kept, so the page's LLR/JSD
+    toggle works); conservation methods share one per-dataset parquet, filtered
+    to the track by ``score_name == method.id`` (``score_type`` is always
+    ``"score"`` there). Methods whose parquet isn't on S3 yet are skipped with a
+    warning (same soft-fail posture as ``normalized_rows``).
+
+    Columns: ``[method_id, method_display, family, score_type, metric, subset,
+    accession, gene, value, se, n, n_pos]``. ``n_pos`` is the abnormal count for
+    AUPRC rows and NaN for Spearman rows.
+    """
+    # A method registered for SGE may not have its metrics parquet on S3 yet
+    # (e.g. the gLMs before their scoring run is done) — polars surfaces an S3
+    # 404 as OSError (FileNotFoundError covers the local-path case). Skip + warn
+    # rather than fail the whole loader; the parquet appears once the run lands.
+    soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError, OSError)
+    rows: list[dict] = []
+    for method in models_for_dataset(dataset):
+        path = _parquet_path(method, dataset)
+        try:
+            df = _read_parquet(path)
+        except soft_fail as exc:
+            print(f"  ! sge skip for {method.id} ({path}): {exc}", file=sys.stderr)
+            continue
+        if method.family == "conservation":
+            # conservation's parquet path is split-specific (…/metrics_{SPLIT}.parquet),
+            # so it only needs the per-track score_name select, no split filter.
+            df = df.filter(pl.col("score_name") == method.id)
+        elif method.family == "marin_dna":
+            # The per-model parquet path is NOT split-specific and carries a
+            # `split` column for whichever split was scored — guard it like
+            # fetch_method_metrics so a future test-split run can't leak in.
+            df = df.filter(pl.col("split") == SPLIT)
+        missing = [c for c in _SGE_ROW_COLUMNS if c not in df.columns]
+        assert not missing, (
+            f"SGE parquet for {method.id!r} missing columns {missing}; got {df.columns}"
+        )
+        if df.height == 0:
+            print(f"  ! sge no rows for {method.id} in {path}", file=sys.stderr)
+            continue
+        for row in df.iter_rows(named=True):
+            rows.append(
+                {
+                    "method_id": method.id,
+                    "method_display": method.display,
+                    "family": method.family,
+                    "score_type": row["score_type"],
+                    "metric": row["metric"],
+                    "subset": row["subset"],
+                    "accession": row["accession"],
+                    "gene": row["gene"],
+                    "value": _nan_float(row["value"]),
+                    "se": _nan_float(row["se"]),
+                    "n": int(row["n"]),
+                    "n_pos": _nan_float(row["n_pos"]),
+                }
+            )
+    return pl.DataFrame(rows)

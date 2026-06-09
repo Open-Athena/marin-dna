@@ -10,19 +10,25 @@ from marin_dna.pipelines.evals.calibration import compute_llr_neutral_mean
 from marin_dna.pipelines.evals.conservation import (
     QTL_VARIANT_COLUMNS,
     REQUIRED_VARIANT_COLUMNS,
+    SGE_VARIANT_COLUMNS,
 )
 from marin_dna.pipelines.evals.inference import compute_variant_scores
 from marin_dna.pipelines.evals.metrics import (
     SCORE_PROTOCOLS,
     compute_auprc_metrics,
     compute_qtl_metrics,
+    compute_sge_metrics,
 )
 
 # Per-dataset eval protocol. `matched_pair` (default) → per-subset AUPRC +
 # cluster bootstrap over `match_group` (mendelian/complex). `qtl_global` →
 # global AUPRC + positives-only effect_size correlation on the unmatched
 # DART-Eval QTL datasets (caqtl/dsqtl), which carry no subset/match_group.
-EVAL_PROTOCOLS = ("matched_pair", "qtl_global")
+# `sge` (issue #301) → the saturation-genome-editing dataset (evals_sge):
+# per-accession (mavedb_urn) × consequence-subset AUPRC on the binary `label`
+# (impactful = calibrated abnormal), macro-averaged over subsets and accessions
+# (compute_sge_metrics).
+EVAL_PROTOCOLS = ("matched_pair", "qtl_global", "sge")
 
 
 def get_dataset_config(name):
@@ -39,11 +45,12 @@ def get_dataset_protocol(name):
 
 def get_dataset_variant_columns(name):
     """Required variant columns for a dataset, keyed by eval protocol."""
-    return (
-        QTL_VARIANT_COLUMNS
-        if get_dataset_protocol(name) == "qtl_global"
-        else REQUIRED_VARIANT_COLUMNS
-    )
+    protocol = get_dataset_protocol(name)
+    if protocol == "qtl_global":
+        return QTL_VARIANT_COLUMNS
+    if protocol == "sge":
+        return SGE_VARIANT_COLUMNS
+    return REQUIRED_VARIANT_COLUMNS
 
 
 def get_model_config(name):

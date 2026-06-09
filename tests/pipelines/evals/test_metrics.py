@@ -3,6 +3,7 @@ aggregation, plus the cluster-bootstrap AUPRC used by ``evals_v2``.
 Per-metric tests for ``pairwise_accuracy`` live in
 ``test_pairwise_accuracy.py``."""
 
+import math
 import tempfile
 from pathlib import Path
 
@@ -15,11 +16,13 @@ from marin_dna.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     METRIC_FUNCTIONS,
+    SGE_POOLED_SUBSET,
     aggregate_metrics,
     auprc_with_bootstrap_se,
     compute_auprc_metrics,
     compute_metrics,
     compute_qtl_metrics,
+    compute_sge_metrics,
     paired_metric_delta_bootstrap,
 )
 
@@ -645,3 +648,241 @@ def test_compute_qtl_metrics_nan_score_raises():
     scores.loc[5, "score"] = np.nan
     with pytest.raises(AssertionError, match="NaN"):
         compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+# ---------------------------------------------------------------------------
+# compute_sge_metrics (saturation genome editing: evals_sge)
+# ---------------------------------------------------------------------------
+
+
+def _sge_data(
+    *,
+    n_per_cell: int = 150,
+    accessions: tuple[tuple[str, str], ...] = (("urn:1", "GENEA"), ("urn:2", "GENEB")),
+    seed: int = 0,
+    perfect: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Synthesize an SGE v3 frame: accessions × {missense_variant, splicing} cells,
+    each with a boolean ``label`` (~40% True = impactful) and a score. With
+    ``perfect=True`` the score separates the classes (impactful scores high) →
+    AUPRC = 1.
+    """
+    rng = np.random.default_rng(seed)
+    frames = []
+    score_blocks = []
+    for urn, gene in accessions:
+        for subset in ("missense_variant", "splicing"):
+            label = rng.random(n_per_cell) < 0.4  # ~40% impactful
+            frames.append(
+                pd.DataFrame(
+                    {
+                        "mavedb_urn": urn,
+                        "gene": gene,
+                        "subset": subset,
+                        "label": label,
+                    }
+                )
+            )
+            score_blocks.append(
+                np.where(label, 1.0, 0.0) + rng.normal(0, 1e-6, n_per_cell)
+                if perfect
+                else rng.normal(size=n_per_cell)
+            )
+    dataset = pd.concat(frames, ignore_index=True)
+    scores = pd.DataFrame({"score": np.concatenate(score_blocks)})
+    return dataset, scores
+
+
+def _val(df: pd.DataFrame, **filters: object) -> pd.Series:
+    """Fetch the single row matching all column==value filters."""
+    sub = df
+    for col, value in filters.items():
+        sub = sub[sub[col] == value]
+    assert len(sub) == 1, f"expected 1 row for {filters}, got {len(sub)}"
+    return sub.iloc[0]
+
+
+def test_sge_shape_and_grid():
+    """Columns fixed; AUPRC spans all four subset scopes per accession; the
+    across-accession macro row exists; gene carried for display."""
+    dataset, scores = _sge_data(seed=0)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    assert set(out.columns) == {
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "score_type",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+    }
+    assert set(out["metric"]) == {"AUPRC"}
+    assert set(out["subset"]) <= {
+        "missense_variant",
+        "splicing",
+        SGE_POOLED_SUBSET,
+        MACRO_AVG_SUBSET,
+    }
+    assert {"urn:1", "urn:2", MACRO_AVG_SUBSET} <= set(out["accession"])
+    for urn in ("urn:1", "urn:2"):
+        scopes = set(out[out["accession"] == urn]["subset"])
+        assert scopes == {
+            "missense_variant",
+            "splicing",
+            SGE_POOLED_SUBSET,
+            MACRO_AVG_SUBSET,
+        }, (urn, scopes)
+    assert (
+        _val(out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession="urn:1")["gene"]
+        == "GENEA"
+    )
+    assert (
+        _val(out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession=MACRO_AVG_SUBSET)[
+            "gene"
+        ]
+        == MACRO_AVG_SUBSET
+    )
+    assert out["value"].notna().all()
+    assert out["se"].notna().all()
+
+
+def test_sge_perfect_auprc():
+    """A score that separates the label (impactful scores high) → every AUPRC ≈ 1."""
+    dataset, scores = _sge_data(seed=0, perfect=True)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=30, rng=0)
+    assert (out["value"] > 0.999).all()
+
+
+def test_sge_auprc_matches_sklearn():
+    """A leaf AUPRC equals sklearn's average_precision_score over the cell, with
+    n = rows and n_pos = the impactful (label-True) count."""
+    rng = np.random.default_rng(0)
+    label = np.array([True] * 70 + [False] * 130)
+    dataset = pd.DataFrame(
+        {
+            "mavedb_urn": "urn:1",
+            "gene": "G",
+            "subset": "missense_variant",
+            "label": label,
+        }
+    )
+    score = rng.normal(size=len(label))
+    scores = pd.DataFrame({"score": score})
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    auprc = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    expected = average_precision_score(label.astype(int), score)
+    assert auprc["value"] == pytest.approx(expected)
+    assert auprc["n"] == 200
+    assert auprc["n_pos"] == 70
+
+
+def test_sge_subset_macro_is_mean_of_base_subsets():
+    """The per-accession _macro_avg_ subset = unweighted mean of the missense &
+    splicing AUPRC, with SE = sqrt(Σ SE²)/2 over the two."""
+    dataset, scores = _sge_data(seed=3)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    m = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    s = _val(out, metric="AUPRC", subset="splicing", accession="urn:1")
+    macro = _val(out, metric="AUPRC", subset=MACRO_AVG_SUBSET, accession="urn:1")
+    assert macro["value"] == pytest.approx((m["value"] + s["value"]) / 2)
+    assert macro["se"] == pytest.approx(math.sqrt(m["se"] ** 2 + s["se"] ** 2) / 2)
+    assert macro["n"] == 2
+
+
+def test_sge_accession_macro_is_mean_over_accessions():
+    """The accession _macro_avg_ row = unweighted mean over accessions of the
+    same subset scope; n records the count of accessions averaged."""
+    dataset, scores = _sge_data(seed=3)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    vals = [
+        _val(out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession=u)["value"]
+        for u in ("urn:1", "urn:2")
+    ]
+    macro = _val(
+        out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession=MACRO_AVG_SUBSET
+    )
+    assert macro["value"] == pytest.approx(sum(vals) / 2)
+    assert macro["n"] == 2
+
+
+def test_sge_n_min_auprc_gates_small_cells():
+    """A subset cell with <n_min_auprc of either label class is gated: it's still
+    emitted (so a blanked cell reports its class balance) but with value/se = NaN
+    and a real n / n_pos, and it's excluded from the subset-macro (which then
+    averages only the qualifying base subset, K=1)."""
+    rng = np.random.default_rng(0)
+
+    def block(subset: str, n_pos: int, n_neg: int) -> tuple[pd.DataFrame, np.ndarray]:
+        label = np.array([True] * n_pos + [False] * n_neg)
+        df = pd.DataFrame(
+            {"mavedb_urn": "urn:1", "gene": "G", "subset": subset, "label": label}
+        )
+        return df, rng.normal(size=n_pos + n_neg)
+
+    dm, sm = block("missense_variant", 60, 90)  # ≥30 each → qualifies
+    ds, ss = block("splicing", 10, 90)  # only 10 impactful (<30) → gated
+    dataset = pd.concat([dm, ds], ignore_index=True)
+    scores = pd.DataFrame({"score": np.concatenate([sm, ss])})
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+    miss = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    assert np.isfinite(miss["value"])
+    # Gated splicing cell: emitted, value NaN, but class counts preserved.
+    spl = _val(out, metric="AUPRC", subset="splicing", accession="urn:1")
+    assert np.isnan(spl["value"]) and np.isnan(spl["se"])
+    assert spl["n_pos"] == 10 and spl["n"] == 100  # n_neg = n - n_pos = 90
+    # Subset-macro excludes the gated cell → equals missense alone (K=1).
+    macro = _val(out, metric="AUPRC", subset=MACRO_AVG_SUBSET, accession="urn:1")
+    assert macro["value"] == pytest.approx(miss["value"])
+    assert macro["n"] == 1
+
+
+def test_sge_nan_scores_dropped():
+    """NaN scores (conservation has no value at unaligned loci) are dropped per
+    cell rather than raising; AUPRC is computed on the finite remainder."""
+    dataset, scores = _sge_data(seed=2)
+    scores = scores.copy()
+    scores.loc[:20, "score"] = (
+        np.nan
+    )  # 21 NaN scores in the first cell (urn:1 missense)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    a = out[out["metric"] == "AUPRC"]
+    assert len(a) > 0
+    # The first cell shrinks 150→129 but still clears the gate (≥30/class), so no
+    # cell is gated → every AUPRC value is finite. (A gated cell would carry NaN;
+    # this asserts the fixture stays un-gated, not that gating is impossible.)
+    assert a["value"].notna().all()
+    # The 21 NaN-score rows were dropped, not counted: n reflects the remainder.
+    first = a[(a["accession"] == "urn:1") & (a["subset"] == "missense_variant")]
+    assert int(first["n"].iloc[0]) == 150 - 21
+
+
+def test_sge_multiple_score_columns():
+    dataset, scores = _sge_data(seed=0)
+    scores = scores.copy()
+    scores["jsd"] = np.random.default_rng(1).normal(size=len(scores))
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert set(out["score_type"]) == {"score", "jsd"}
+
+
+def test_sge_urn_maps_to_multiple_genes_raises():
+    dataset = pd.DataFrame(
+        {
+            "mavedb_urn": ["urn:1"] * 4,
+            "gene": ["A", "A", "B", "B"],
+            "subset": ["missense_variant"] * 4,
+            "label": [True, False, True, False],
+        }
+    )
+    scores = pd.DataFrame({"score": [1.0, 2.0, 3.0, 4.0]})
+    with pytest.raises(AssertionError, match="maps to >1 gene"):
+        compute_sge_metrics(dataset, scores, n_bootstrap=2, rng=0)
+
+
+def test_sge_seed_reproducibility():
+    dataset, scores = _sge_data(seed=1)
+    a = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    b = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    pd.testing.assert_frame_equal(a, b)

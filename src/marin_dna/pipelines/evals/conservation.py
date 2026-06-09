@@ -21,7 +21,9 @@ download to avoid coupling.
 
 NaN policy: this module preserves NaNs from the bigWig (no alignment at that
 locus). Callers decide how to fill them — the ``conservation_eval`` pipeline
-applies ``fillna(0)`` only at the metrics-aggregation step.
+applies ``fillna(0)`` at the metrics-aggregation step (every eval protocol,
+SGE included; 0 is meaningful — neither conserved nor accelerated for phyloP,
+non-conserved for phastCons).
 """
 
 from pathlib import Path
@@ -35,6 +37,7 @@ from marin_dna.pipelines.evals.metrics import (
     MACRO_AVG_SUBSET,
     compute_auprc_metrics,
     compute_qtl_metrics,
+    compute_sge_metrics,
 )
 
 
@@ -87,6 +90,27 @@ QTL_VARIANT_COLUMNS: tuple[str, ...] = (
     "effect_size",
 )
 
+# Columns the saturation-genome-editing dataset (``evals_sge`` v3, issue #301)
+# carries instead of ``match_group`` / ``effect_size``: a boolean ``label`` (True =
+# impactful = calibrated abnormal — the AUPRC target), the MaveDB ``mavedb_urn``
+# (the per-study grouping key — scores are non-comparable across studies, so AUPRC
+# is computed per accession), the ``gene`` (display), and the consequence-group
+# ``subset`` ∈ {missense_variant, splicing}. Asserted by the ``eval_protocol: sge``
+# branch of each pipeline's score/metric rules. ``compute_variant_scores`` itself
+# only reads chrom/pos/ref/alt; asserting the metric columns early fails fast on
+# schema drift, since ``compute_sge_metrics`` depends on them surviving into the
+# scores parquet.
+SGE_VARIANT_COLUMNS: tuple[str, ...] = (
+    "chrom",
+    "pos",
+    "ref",
+    "alt",
+    "mavedb_urn",
+    "gene",
+    "subset",
+    "label",
+)
+
 
 def score_variants_at_positions(
     df: pd.DataFrame,
@@ -135,6 +159,19 @@ def score_variants_at_positions(
         bw.close()
 
     return scores
+
+
+def fill_score_nan(scores: pd.DataFrame) -> pd.DataFrame:
+    """The conservation NaN policy — the single shared home, used by **every**
+    eval-protocol aggregate (matched_pair / qtl_global / sge).
+
+    Unaligned bigWig loci have no value (NaN from ``score_variants_at_positions``).
+    Every conservation metric fills the score with 0 before scoring, because 0 is
+    semantically meaningful for both track types: neither conserved nor
+    accelerated (phyloP), non-conserved (phastCons). Callers that report an
+    ``n_nan`` diagnostic must count NaNs **before** calling this.
+    """
+    return scores.fillna(0)
 
 
 def aggregate_conservation_metrics(
@@ -196,7 +233,7 @@ def aggregate_conservation_metrics(
 
         m = compute_auprc_metrics(
             dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
-            scores=df[["score"]].fillna(0),
+            scores=fill_score_nan(df[["score"]]),
             score_columns=["score"],
             n_min=n_min,
             n_bootstrap=n_bootstrap,
@@ -376,7 +413,7 @@ def aggregate_conservation_qtl_metrics(
 
         m = compute_qtl_metrics(
             dataset=df[["label", "effect_size"]],
-            scores=df[["score"]].fillna(0),
+            scores=fill_score_nan(df[["score"]]),
             score_columns=["score"],
             n_bootstrap=n_bootstrap,
             rng=bootstrap_seed,
@@ -438,4 +475,116 @@ def _build_qtl_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
         + ", ".join(f"{s}={int(nan_map.get(s, 0))}" for s in score_names)
     )
 
+    return "\n".join(lines) + "\n"
+
+
+def aggregate_conservation_sge_metrics(
+    parquet_paths: dict[str, str | Path],
+    *,
+    n_bootstrap: int = 1000,
+    bootstrap_seed: int | None = 0,
+) -> tuple[pd.DataFrame, str]:
+    """SGE metrics across per-track scored parquets (``eval_protocol: sge``).
+
+    The conservation counterpart to the evals_v2 ``sge`` path. Each input parquet
+    is ``score_variants_at_positions`` output plus SGE_VARIANT_COLUMNS
+    (``[mavedb_urn, gene, subset, label, score]``). The per-track ``score`` is fed
+    into the **shared**
+    ``compute_sge_metrics`` (``score_columns=["score"]``) — no metric logic is
+    duplicated here; only the per-track loop + ``score_name`` stamping + markdown
+    are conservation-specific. ``score`` is ``.fillna(0)`` before scoring, the
+    same convention as the matched-pair / QTL conservation paths (0 is
+    semantically meaningful: neither conserved nor accelerated for phyloP,
+    non-conserved for phastCons). The pre-fill NaN count is reported per track.
+
+    Args:
+        parquet_paths: mapping ``score_name -> parquet path``; order preserved.
+        n_bootstrap: bootstrap iterations per cell.
+        bootstrap_seed: seed; ``None`` for fresh randomness. Default ``0`` keeps
+            outputs bit-stable across re-runs.
+
+    Returns:
+        ``(metrics_df, markdown)`` where ``metrics_df`` is ``compute_sge_metrics``
+        output (``[metric, subset, accession, gene, score_type, value, se, n,
+        n_pos]``, ``score_type == "score"``) plus ``[score_name, n_nan, n_total]``
+        per track.
+    """
+    assert parquet_paths, "parquet_paths must be non-empty"
+
+    score_names = list(parquet_paths)
+    metric_cols = ["mavedb_urn", "gene", "subset", "label"]
+    required = (*metric_cols, "score")
+    all_metrics: list[pd.DataFrame] = []
+
+    for score_name in score_names:
+        df = pd.read_parquet(parquet_paths[score_name])
+        for col in required:
+            assert col in df.columns, (
+                f"{parquet_paths[score_name]}: missing column {col!r}"
+            )
+
+        m = compute_sge_metrics(
+            dataset=df[metric_cols],
+            scores=fill_score_nan(df[["score"]]),
+            score_columns=["score"],
+            n_bootstrap=n_bootstrap,
+            rng=bootstrap_seed,
+        )
+        m["score_name"] = score_name
+        m["n_nan"] = int(df["score"].isna().sum())
+        m["n_total"] = int(len(df))
+        all_metrics.append(m)
+
+    metrics = pd.concat(all_metrics, ignore_index=True)
+    md = _build_sge_markdown(metrics, score_names)
+    return metrics, md
+
+
+def _build_sge_markdown(metrics: pd.DataFrame, score_names: list[str]) -> str:
+    """Render the SGE headline (across-accession × across-subset macro) as a
+    markdown table (metric × track). The full per-accession × per-subset grid
+    lives in the metrics parquet; this is the at-a-glance summary."""
+    lines: list[str] = []
+    lines.append("### SGE — headline macro (value ± bootstrap SE)")
+    lines.append("")
+    lines.append(
+        "Per-accession (MaveDB study) AUPRC predicting the binary `label` "
+        "(impactful vs not) from the conservation score, macro-averaged over "
+        "consequence subsets (missense/splicing) then over accessions. Unaligned "
+        "(NaN) scores are filled with 0 before scoring (the conservation-pipeline "
+        "convention)."
+    )
+    lines.append("")
+    headline = metrics[
+        (metrics["accession"] == MACRO_AVG_SUBSET)
+        & (metrics["subset"] == MACRO_AVG_SUBSET)
+    ]
+    val = headline.pivot_table(
+        index="metric", columns="score_name", values="value", aggfunc="first"
+    )
+    se = headline.pivot_table(
+        index="metric", columns="score_name", values="se", aggfunc="first"
+    )
+    header = ["metric", *score_names]
+    lines.append("| " + " | ".join(header) + " |")
+    lines.append("| " + " | ".join(["---"] * len(header)) + " |")
+    for metric in ("AUPRC",):
+        if metric not in val.index:
+            continue
+        cells = []
+        for s in score_names:
+            v = val.loc[metric, s] if s in val.columns else float("nan")
+            e = se.loc[metric, s] if s in se.columns else float("nan")
+            cells.append(f"{v:.3f} ± {e:.3f}" if pd.notna(v) and pd.notna(e) else "—")
+        lines.append("| " + " | ".join([metric, *cells]) + " |")
+
+    nan_map = (
+        metrics.drop_duplicates("score_name").set_index("score_name")["n_nan"].to_dict()
+    )
+    n_total = int(metrics["n_total"].iloc[0])
+    lines.append("")
+    lines.append(
+        f"n_total = {n_total}. NaN (unaligned) scores per track: "
+        + ", ".join(f"{s}={int(nan_map.get(s, 0))}" for s in score_names)
+    )
     return "\n".join(lines) + "\n"

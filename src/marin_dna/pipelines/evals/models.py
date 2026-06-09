@@ -28,6 +28,7 @@ ALL_DATASETS: tuple[str, ...] = (
     "complex_traits",
     "caqtl",
     "dsqtl",
+    "sge",
 )
 
 

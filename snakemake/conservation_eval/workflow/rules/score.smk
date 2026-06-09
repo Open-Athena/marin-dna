@@ -64,6 +64,12 @@ rule aggregate_metrics:
                 n_bootstrap=params.n_bootstrap,
                 bootstrap_seed=params.bootstrap_seed,
             )
+        elif get_dataset_protocol(wildcards.dataset) == "sge":
+            metrics, md = aggregate_conservation_sge_metrics(
+                parquet_paths,
+                n_bootstrap=params.n_bootstrap,
+                bootstrap_seed=params.bootstrap_seed,
+            )
         else:
             metrics, md = aggregate_conservation_metrics(
                 parquet_paths,

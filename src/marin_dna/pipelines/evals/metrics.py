@@ -108,6 +108,13 @@ def pairwise_accuracy(
 GLOBAL_SUBSET = "_global_"
 MACRO_AVG_SUBSET = "_macro_avg_"
 
+# Derived SGE subset scope. The dataset's real ``subset`` values are
+# ``missense_variant`` / ``splicing``; ``SGE_POOLED_SUBSET`` is the two pooled
+# within an accession ("both"), while ``MACRO_AVG_SUBSET`` (reused) is the
+# equal-weight mean of the base-subset values. Both the ``subset`` and the
+# ``accession`` axes use ``MACRO_AVG_SUBSET`` for their macro rows.
+SGE_POOLED_SUBSET = "both"
+
 # Per-strand LLR → score-protocol transforms. Keyed by the
 # ``score_protocol`` field in `snakemake/analysis/evals_v2/config/config.yaml`
 # and consumed by `metrics.smk` to materialize `{protocol}_{fwd,rc,avg}`
@@ -623,6 +630,263 @@ def compute_qtl_metrics(
                     "n_pos": n_pos,
                 }
             )
+
+    return pd.DataFrame(rows)
+
+
+def _macro(children: list[dict]) -> dict | None:
+    """Equal-weight macro over leaf/child metric dicts.
+
+    ``value`` = unweighted mean; ``se`` = SE-of-mean ``sqrt(Σ SE²)/K`` (same form
+    as ``compute_auprc_metrics``); ``n`` = K (children averaged); ``n_pos`` =
+    summed abnormal count, or NaN if any child's ``n_pos`` is NaN (Spearman
+    children carry no positive count). Returns ``None`` if there are no children.
+    """
+    if not children:
+        return None
+    k = len(children)
+    value = sum(c["value"] for c in children) / k
+    se = math.sqrt(sum(c["se"] ** 2 for c in children)) / k
+    n_pos_vals = [c["n_pos"] for c in children]
+    n_pos = (
+        float("nan") if any(np.isnan(v) for v in n_pos_vals) else int(sum(n_pos_vals))
+    )
+    return {"value": float(value), "se": float(se), "n": k, "n_pos": n_pos}
+
+
+def _sge_cell_metrics(
+    cell: pd.DataFrame,
+    score_col: str,
+    *,
+    n_bootstrap: int,
+    rng: np.random.Generator,
+    n_min_auprc: int,
+) -> tuple[dict[str, dict], int, int]:
+    """AUPRC for one (accession, subset-scope) cell and one score column.
+
+    Returns ``(out, n_pos, n_neg)``. ``out`` is ``{"AUPRC": dict(value, se, n,
+    n_pos)}`` when both classes of the binary ``label`` (True = impactful) have
+    ``>= n_min_auprc`` rows, else ``{}`` (the cell is gated — too few of one
+    class for a stable AUPRC). ``n_pos`` / ``n_neg`` are the (finite-score) class
+    counts, returned **regardless** of the gate so the caller can still report a
+    blanked cell's sample size. Plain row bootstrap via singleton ``match_group``
+    (as in ``compute_qtl_metrics``). NaN-score rows are dropped (conservation
+    fills unaligned loci with 0 upstream, so this is a defensive guard).
+    """
+    out: dict[str, dict] = {}
+    score = np.asarray(cell[score_col], dtype=float)
+    label = np.asarray(cell["label"]).astype(bool)
+    keep = np.isfinite(score)
+    label, score = label[keep], score[keep]
+    n_pos = int(label.sum())
+    n_neg = int((~label).sum())
+    if n_pos >= n_min_auprc and n_neg >= n_min_auprc:
+        res = auprc_with_bootstrap_se(
+            label=label.astype(int),
+            score=score,
+            match_group=np.arange(len(label)),
+            n_bootstrap=n_bootstrap,
+            rng=rng,
+        )
+        out["AUPRC"] = {
+            "value": res["value"],
+            "se": res["se"],
+            "n": res["n_rows"],
+            "n_pos": n_pos,
+        }
+    return out, n_pos, n_neg
+
+
+def compute_sge_metrics(
+    dataset: pd.DataFrame,
+    scores: pd.DataFrame,
+    score_columns: list[str] | None = None,
+    *,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+    n_min_auprc: int = 30,
+) -> pd.DataFrame:
+    """Per-accession × per-subset **AUPRC** for the SGE benchmark (#301).
+
+    Saturation-genome-editing (``evals_sge`` v3) is a binary VEP task: each
+    variant has a boolean ``label`` (True = impactful = calibrated abnormal). The
+    deleteriousness-oriented model score (gLM ``minus_llr`` / ``jsd``,
+    conservation ``score``) predicts ``label``; **AUPRC** (rank-based, so it
+    compares fairly across model families) is computed **per accession**
+    (``mavedb_urn``) — scores are per-study, non-comparable — then macro-averaged.
+    (Spearman vs the continuous function score was dropped in #301; the
+    continuous columns stay in the dataset for provenance.)
+
+    Per cell: AUPRC via a plain row bootstrap (singleton ``match_group``, as in
+    ``compute_qtl_metrics``); requires ``>= n_min_auprc`` per label class.
+
+    Two macro axes, each using the ``_macro_avg_`` sentinel:
+
+    - ``subset`` ∈ {each base subset (e.g. ``missense_variant`` / ``splicing``),
+      ``SGE_POOLED_SUBSET`` (``"both"``, pooled within the accession),
+      ``MACRO_AVG_SUBSET`` (equal-weight mean of the base-subset values)}.
+    - ``accession`` ∈ {each ``mavedb_urn``, ``MACRO_AVG_SUBSET`` (equal-weight
+      mean over qualifying accessions)} — taken of **every** subset scope above,
+      including the per-accession subset-macro.
+
+    The same single ``rng`` ``Generator`` is threaded through every bootstrap (as
+    in ``compute_qtl_metrics``) so outputs are bit-stable across re-runs.
+
+    Args:
+        dataset: columns ``[mavedb_urn, gene, subset, label]``, row-aligned with
+            ``scores``.
+        scores: model-score columns; row-aligned with ``dataset``. gLM passes
+            ``minus_llr_*`` + ``jsd_*``; conservation passes ``["score"]``.
+        score_columns: which score columns to evaluate (default: all of
+            ``scores``).
+        n_bootstrap: bootstrap iterations per cell.
+        rng: ``Generator`` / seed / ``None`` (default ``0`` → reproducible).
+        n_min_auprc: min count **per label class** per cell.
+
+    Returns:
+        DataFrame ``[metric, subset, accession, gene, score_type, value, se, n,
+        n_pos]``. ``metric`` is always ``"AUPRC"``. For leaf cells ``n`` is the
+        rows used and ``n_pos`` the impactful (label-True) count; for macro rows
+        ``n`` is K (children averaged) and ``n_pos`` the summed impactful count.
+        Leaf cells that fail the ``n_min_auprc`` gate are still emitted, with
+        ``value``/``se`` = NaN but a real ``n`` / ``n_pos`` (so a blanked cell's
+        class balance is still reported); these gated rows are excluded from
+        every macro.
+    """
+    for col in ("mavedb_urn", "gene", "subset", "label"):
+        assert col in dataset.columns, f"dataset missing required column {col!r}"
+    # Fail fast on the silent-corruption risks rather than coercing them: a null
+    # `label` would be turned into a wrong class by `.astype(bool)` (NaN→True,
+    # None→False) in `_sge_cell_metrics`; a null `subset` would be dropped from
+    # `base_subsets` yet still pooled into the SGE_POOLED_SUBSET ('both') scope,
+    # making 'both' a superset of the named subsets.
+    assert dataset["label"].notna().all(), (
+        "SGE dataset `label` has nulls (expected boolean)"
+    )
+    assert dataset["subset"].notna().all(), "SGE dataset `subset` has nulls"
+    assert len(dataset) == len(scores), (
+        f"length mismatch: dataset={len(dataset)} scores={len(scores)}"
+    )
+    if score_columns is None:
+        score_columns = list(scores.columns)
+
+    merged = pd.concat(
+        [dataset.reset_index(drop=True), scores.reset_index(drop=True)], axis=1
+    )
+
+    base_subsets = sorted(merged["subset"].dropna().unique().tolist())
+    assert base_subsets, "no subset values in dataset"
+    for sentinel in (SGE_POOLED_SUBSET, MACRO_AVG_SUBSET):
+        assert sentinel not in base_subsets, (
+            f"reserved subset name {sentinel!r} collides with a real subset"
+        )
+
+    # Each MaveDB study (mavedb_urn) identifies exactly one gene — fail loud on
+    # drift, then carry `gene` for display alongside the accession key.
+    urn_gene = merged.groupby("mavedb_urn")["gene"].nunique()
+    assert (urn_gene == 1).all(), (
+        f"mavedb_urn maps to >1 gene: {urn_gene[urn_gene > 1].to_dict()}"
+    )
+    urn_to_gene = merged.groupby("mavedb_urn")["gene"].first().to_dict()
+
+    rng = np.random.default_rng(rng)
+
+    rows: list[dict] = []
+    for score_col in score_columns:
+        # (accession, subset_scope, metric) -> dict(value, se, n, n_pos)
+        cells: dict[tuple[str, str, str], dict] = {}
+        # Leaf cells that failed the AUPRC gate: (accession, scope, n_pos, n_neg).
+        # Emitted as value=NaN rows so the grid still reports the blanked cell's
+        # class balance, but kept OUT of `cells` so they never enter a macro.
+        gated: list[tuple[str, str, int, int]] = []
+
+        for urn, urn_df in merged.groupby("mavedb_urn", sort=False):
+            scopes: dict[str, pd.DataFrame] = {
+                s: urn_df[urn_df["subset"] == s] for s in base_subsets
+            }
+            scopes[SGE_POOLED_SUBSET] = urn_df
+            for scope, cell_df in scopes.items():
+                got, n_pos, n_neg = _sge_cell_metrics(
+                    cell_df,
+                    score_col,
+                    n_bootstrap=n_bootstrap,
+                    rng=rng,
+                    n_min_auprc=n_min_auprc,
+                )
+                for metric, res in got.items():
+                    cells[(str(urn), scope, metric)] = res
+                if "AUPRC" not in got and (n_pos + n_neg) > 0:
+                    gated.append((str(urn), scope, n_pos, n_neg))
+
+            # Per-accession subset-macro: mean over base subsets that qualified.
+            for metric in ("AUPRC",):
+                kids = [
+                    cells[(str(urn), s, metric)]
+                    for s in base_subsets
+                    if (str(urn), s, metric) in cells
+                ]
+                macro = _macro(kids)
+                if macro is not None:
+                    cells[(str(urn), MACRO_AVG_SUBSET, metric)] = macro
+
+        # Per-accession rows.
+        for (urn, scope, metric), res in cells.items():
+            rows.append(
+                {
+                    "metric": metric,
+                    "subset": scope,
+                    "accession": urn,
+                    "gene": urn_to_gene[urn],
+                    "score_type": score_col,
+                    "value": res["value"],
+                    "se": res["se"],
+                    "n": res["n"],
+                    "n_pos": res["n_pos"],
+                }
+            )
+
+        # Gated leaf cells: value=NaN, but carry the class counts so the grid
+        # reports the sample size of each blanked cell (n_pos / n=n_pos+n_neg).
+        for urn, scope, n_pos, n_neg in gated:
+            rows.append(
+                {
+                    "metric": "AUPRC",
+                    "subset": scope,
+                    "accession": urn,
+                    "gene": urn_to_gene[urn],
+                    "score_type": score_col,
+                    "value": float("nan"),
+                    "se": float("nan"),
+                    "n": n_pos + n_neg,
+                    "n_pos": n_pos,
+                }
+            )
+
+        # Accession-macro: mean over accessions of every subset scope.
+        all_scopes = base_subsets + [SGE_POOLED_SUBSET, MACRO_AVG_SUBSET]
+        accessions = [str(u) for u in merged["mavedb_urn"].unique()]
+        for scope in all_scopes:
+            for metric in ("AUPRC",):
+                kids = [
+                    cells[(urn, scope, metric)]
+                    for urn in accessions
+                    if (urn, scope, metric) in cells
+                ]
+                macro = _macro(kids)
+                if macro is not None:
+                    rows.append(
+                        {
+                            "metric": metric,
+                            "subset": scope,
+                            "accession": MACRO_AVG_SUBSET,
+                            "gene": MACRO_AVG_SUBSET,
+                            "score_type": score_col,
+                            "value": macro["value"],
+                            "se": macro["se"],
+                            "n": macro["n"],
+                            "n_pos": macro["n_pos"],
+                        }
+                    )
 
     return pd.DataFrame(rows)
 
