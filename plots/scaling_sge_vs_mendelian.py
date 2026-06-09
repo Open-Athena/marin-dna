@@ -155,7 +155,11 @@ def main() -> None:
     x = [PARAMS[s] for s in SIZES]
     xt_labels = [SIZE_LABEL[s] for s in SIZES]
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 5))
+    # constrained layout auto-spaces the twin-axis labels/ticks between the two
+    # panels (the inner SGE/Mendelian labels would otherwise collide in the
+    # centre); the legend goes *outside* the panels so it can't overlap the data.
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5), layout="constrained")
+    handles = None
     gene_note = {}
     for ax, c in zip(axes, CONSEQUENCES):
         # Mendelian — left axis (blue)
@@ -168,11 +172,10 @@ def main() -> None:
             lw=1.5,
             color=MEN_COLOR,
             capsize=3,
-            label="Mendelian (left)",
         )
         ax.set_xscale("log")
         ax.set_xticks(x)
-        ax.set_xticklabels(xt_labels, rotation=45, fontsize=7)
+        ax.set_xticklabels(xt_labels, fontsize=8)
         ax.tick_params(axis="x", which="minor", bottom=False)
         ax.set_xlabel("model size (params)")
         ax.set_ylabel("Mendelian AUPRC", color=MEN_COLOR)
@@ -190,36 +193,44 @@ def main() -> None:
             lw=1.5,
             color=SGE_COLOR,
             capsize=3,
-            label="SGE (right)",
         )
-        ax2.set_ylabel("SGE AUPRC (macro across genes)", color=SGE_COLOR)
+        ax2.set_ylabel("SGE AUPRC (macro)", color=SGE_COLOR)
         ax2.tick_params(axis="y", labelcolor=SGE_COLOR)
 
         ng = sorted({sge[(s, c)]["n_genes"] for s in SIZES})
         gene_note[c] = f"{ng[0]}" if len(ng) == 1 else f"{ng[0]}–{ng[-1]}"
         ax.set_title(c.replace("_variant", ""))
-        ax.legend(handles=[h_men, h_sge], fontsize=8, loc="best")
+        if handles is None:
+            handles = [h_men, h_sge]
 
     fig.suptitle(
         f"Scaling ladder (46M→4B, n=8): Mendelian vs SGE AUPRC by model size — "
         f"{args.score_type}, FWD+RC (#306)"
     )
-    fig.text(
-        0.5,
-        -0.04,
-        f"Independent y-axes — compare shapes vs scale, not levels.  "
-        f"SGE = macro across genes (missense: {gene_note['missense_variant']}; "
-        f"splicing: {gene_note['splicing']}), unmatched.  "
-        f"Mendelian = pooled within-consequence, matched 1:9.",
-        ha="center",
-        fontsize=7.5,
-        color="dimgray",
+    # Single legend outside the axes at the bottom, with the caveat as its title —
+    # exactly one element on top (suptitle) and one at the bottom (legend), so
+    # nothing can overlap the lines, the suptitle, the inner axis labels, or each
+    # other (constrained_layout reserves room for all of it).
+    leg = fig.legend(
+        handles,
+        ["Mendelian (left axis)", "SGE (right axis)"],
+        loc="outside lower center",
+        ncol=2,
+        frameon=True,
+        title=(
+            "Independent y-axes — compare shapes/trends with scale, not the vertical gap.\n"
+            f"SGE = macro across genes ({gene_note['missense_variant']} missense / "
+            f"{gene_note['splicing']} splicing), unmatched   ·   "
+            "Mendelian = pooled within-consequence, matched 1:9"
+        ),
     )
+    leg.get_title().set_fontsize(8)
+    leg.get_title().set_color("dimgray")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     svg = OUT_DIR / "figure.svg"
-    fig.savefig(svg, bbox_inches="tight", dpi=200)
-    fig.savefig(svg.with_suffix(".png"), bbox_inches="tight", dpi=200)
+    fig.savefig(svg, dpi=200)
+    fig.savefig(svg.with_suffix(".png"), dpi=200)
     plt.close(fig)
     print(f"\nwrote {svg} (+ .png)")
 
