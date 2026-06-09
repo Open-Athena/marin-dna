@@ -1,22 +1,24 @@
-"""Issue #306 figure: AUPRC vs model size on SGE vs Mendelian, for missense & splicing.
+"""Issue #306 figure: AUPRC vs model size on Mendelian / complex traits / SGE.
 
 Two panels over the 8 `dna-bolinas-scaling-v0.5` sizes (46M→4B, step-215573):
   Panel A — missense_variant
   Panel B — splicing
 
-Within each panel, two lines on **two independent y-axes** (shared log-x = params):
-  left  (blue)  — Mendelian AUPRC: official evals_v2, pooled within-consequence,
-                  matched 1:9 cluster bootstrap (reused from #274, not recomputed).
-  right (red)   — SGE AUPRC: macro-averaged across genes (`accession == _macro_avg_`).
+Lines (shared log-x = params; two independent y-axes per panel):
+  left  — matched 1:9 AUPRC (baseline 0.10; same construction, comparable):
+            • Mendelian (blue, −LLR), and
+            • Complex traits (green, |LLR|) on both panels. NOTE complex
+              *splicing* rests on only ~19 match-groups (vs ~250 for missense),
+              so it carries a wide CI and is read with caution (caveat on figure).
+  right — SGE AUPRC (red): macro-averaged across genes (`accession == _macro_avg_`, −LLR).
 
-The two AUPRCs are constructed differently (Mendelian = pooled/matched; SGE =
-unmatched per-gene macro) and are **not level-comparable** — the dual axes make
-explicit that we compare the *shapes / trends with scale*, never the vertical gap
-between the lines. Both use `minus_llr_avg` (signed −LLR, FWD+RC mean).
+The matched-pair (left) and per-gene-macro SGE (right) AUPRCs are constructed
+differently and are **not level-comparable** — the dual axes make explicit that
+we compare *shapes / trends with scale*, never the vertical gap. All scores FWD+RC.
 
-Self-contained: reads the two evals_v2 metric parquets per model from S3. Params
-are the published final-checkpoint counts (issue #274 table), hardcoded so the
-recipe needs no W&B. Emits SVG + PNG to `plots/output/scaling_sge_vs_mendelian/`.
+Self-contained: reads the evals_v2 metric parquets per model from S3. Params are
+the published final-checkpoint counts (issue #274), hardcoded so the recipe needs
+no W&B. Emits SVG + PNG to `plots/output/scaling_sge_vs_mendelian/`.
 
 Usage:
     uv run python plots/scaling_sge_vs_mendelian.py \
@@ -66,7 +68,9 @@ SIZE_LABEL = {
 }
 CONSEQUENCES = ["missense_variant", "splicing"]
 
-MEN_COLOR, SGE_COLOR = "tab:blue", "tab:red"
+MEN_COLOR, COMPLEX_COLOR, SGE_COLOR = "tab:blue", "tab:green", "tab:red"
+# complex_traits scores with the abs_llr protocol (magnitude); mendelian & sge use minus_llr.
+COMPLEX_SCORE_TYPE = "abs_llr_avg"
 
 
 def _model(size: str) -> str:
@@ -94,6 +98,29 @@ def load_mendelian(prefix: str, score_type: str) -> dict[tuple[str, str], dict]:
                 f"{_model(s)} mendelian {c}: expected 1 row, got {hit.height}"
             )
             out[(s, c)] = {"value": hit["value"][0], "se": hit["se"][0]}
+    return out
+
+
+def load_complex(prefix: str, score_type: str) -> dict[tuple[str, str], dict]:
+    """(size, consequence) -> {value, se, n_groups}. Matched 1:9 AUPRC, abs_llr.
+
+    Complex *splicing* has very few match-groups (~19 vs ~250 for missense), so
+    its AUPRC carries a wide CI — plotted on both panels but caveated.
+    """
+    out: dict[tuple[str, str], dict] = {}
+    for s in SIZES:
+        m = _read(f"{prefix}/{_model(s)}/complex_traits.parquet", f"complex {s}")
+        m = m.filter(pl.col("score_type") == score_type)
+        for c in CONSEQUENCES:
+            hit = m.filter(pl.col("subset") == c)
+            assert hit.height == 1, (
+                f"{_model(s)} complex {c}: expected 1 row, got {hit.height}"
+            )
+            out[(s, c)] = {
+                "value": hit["value"][0],
+                "se": hit["se"][0],
+                "n_groups": int(hit["n_groups"][0]),
+            }
     return out
 
 
@@ -125,25 +152,29 @@ def main() -> None:
         "--metrics-prefix",
         default="s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics",
     )
-    ap.add_argument("--score-type", default="minus_llr_avg")
+    ap.add_argument("--score-type", default="minus_llr_avg", help="for mendelian & sge")
     args = ap.parse_args()
 
     men = load_mendelian(args.metrics_prefix, args.score_type)
+    cpx = load_complex(args.metrics_prefix, COMPLEX_SCORE_TYPE)
     sge = load_sge(args.metrics_prefix, args.score_type)
 
     # Console table (for the issue comment).
     print(
-        f"score_type={args.score_type}  (Mendelian pooled-within-consequence | SGE macro-across-genes)"
+        f"mendelian/sge={args.score_type} | complex={COMPLEX_SCORE_TYPE} "
+        "(left=matched 1:9 AUPRC | SGE=macro across genes)"
     )
+    hdr = ("size", "params", "men_M", "cpx_M", "sge_M", "men_S", "cpx_S", "sge_S")
     print(
-        f"{'size':>6} {'params':>8} | {'men_miss':>9} {'sge_miss':>9} ({'g':>2}) | {'men_splice':>10} {'sge_splice':>10} ({'g':>2})"
+        f"{hdr[0]:>6} {hdr[1]:>7} | {hdr[2]:>7} {hdr[3]:>7} {hdr[4]:>7} | "
+        f"{hdr[5]:>7} {hdr[6]:>7} {hdr[7]:>7}"
     )
     for s in SIZES:
-        mm, sm = men[(s, "missense_variant")], sge[(s, "missense_variant")]
-        mp, sp = men[(s, "splicing")], sge[(s, "splicing")]
+        v = lambda d, c: d[(s, c)]["value"]  # noqa: E731
         print(
-            f"{SIZE_LABEL[s]:>6} {PARAMS[s] / 1e6:>7.0f}M | {mm['value']:>9.3f} {sm['value']:>9.3f} ({sm['n_genes']:>2}) "
-            f"| {mp['value']:>10.3f} {sp['value']:>10.3f} ({sp['n_genes']:>2})"
+            f"{SIZE_LABEL[s]:>6} {PARAMS[s] / 1e6:>6.0f}M | "
+            f"{v(men, 'missense_variant'):>7.3f} {v(cpx, 'missense_variant'):>7.3f} {v(sge, 'missense_variant'):>7.3f} | "
+            f"{v(men, 'splicing'):>7.3f} {v(cpx, 'splicing'):>7.3f} {v(sge, 'splicing'):>7.3f}"
         )
 
     import matplotlib
@@ -154,15 +185,16 @@ def main() -> None:
 
     x = [PARAMS[s] for s in SIZES]
     xt_labels = [SIZE_LABEL[s] for s in SIZES]
+    cpx_spl_n = cpx[(SIZES[0], "splicing")]["n_groups"]  # constant across models
 
     # constrained layout auto-spaces the twin-axis labels/ticks between the two
-    # panels (the inner SGE/Mendelian labels would otherwise collide in the
-    # centre); the legend goes *outside* the panels so it can't overlap the data.
+    # panels (the inner labels would otherwise collide in the centre); the legend
+    # goes *outside* the panels so it can't overlap the data.
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5), layout="constrained")
-    handles = None
+    h_men_ref = h_cpx_ref = h_sge_ref = None
     gene_note = {}
     for ax, c in zip(axes, CONSEQUENCES):
-        # Mendelian — left axis (blue)
+        # Left axis — matched 1:9 AUPRC (neutral/black: hosts Mendelian + Complex).
         h_men = ax.errorbar(
             x,
             [men[(s, c)]["value"] for s in SIZES],
@@ -173,16 +205,25 @@ def main() -> None:
             color=MEN_COLOR,
             capsize=3,
         )
+        h_cpx = ax.errorbar(
+            x,
+            [cpx[(s, c)]["value"] for s in SIZES],
+            yerr=[cpx[(s, c)]["se"] for s in SIZES],
+            marker="^",
+            ms=5,
+            lw=1.5,
+            color=COMPLEX_COLOR,
+            capsize=3,
+        )
         ax.set_xscale("log")
         ax.set_xticks(x)
         ax.set_xticklabels(xt_labels, fontsize=8)
         ax.tick_params(axis="x", which="minor", bottom=False)
         ax.set_xlabel("model size (params)")
-        ax.set_ylabel("Mendelian AUPRC", color=MEN_COLOR)
-        ax.tick_params(axis="y", labelcolor=MEN_COLOR)
+        ax.set_ylabel("AUPRC — matched 1:9")
         ax.grid(True, alpha=0.3)
 
-        # SGE — right axis (red)
+        # Right axis — SGE macro across genes (red).
         ax2 = ax.twinx()
         h_sge = ax2.errorbar(
             x,
@@ -200,28 +241,32 @@ def main() -> None:
         ng = sorted({sge[(s, c)]["n_genes"] for s in SIZES})
         gene_note[c] = f"{ng[0]}" if len(ng) == 1 else f"{ng[0]}–{ng[-1]}"
         ax.set_title(c.replace("_variant", ""))
-        if handles is None:
-            handles = [h_men, h_sge]
+        h_men_ref, h_cpx_ref, h_sge_ref = h_men, h_cpx, h_sge
 
     fig.suptitle(
-        f"Scaling ladder (46M→4B, n=8): Mendelian vs SGE AUPRC by model size — "
-        f"{args.score_type}, FWD+RC (#306)"
+        "Scaling ladder (46M→4B, n=8): AUPRC by model size — "
+        "Mendelian / complex / SGE, FWD+RC (#306)"
     )
-    # Single legend outside the axes at the bottom, with the caveat as its title —
-    # exactly one element on top (suptitle) and one at the bottom (legend), so
-    # nothing can overlap the lines, the suptitle, the inner axis labels, or each
-    # other (constrained_layout reserves room for all of it).
+    # One legend outside the axes at the bottom, caveat as its title — exactly one
+    # element on top (suptitle) and one at the bottom (legend), so nothing overlaps
+    # the lines, the suptitle, the inner axis labels, or each other.
     leg = fig.legend(
-        handles,
-        ["Mendelian (left axis)", "SGE (right axis)"],
+        [h_men_ref, h_cpx_ref, h_sge_ref],
+        [
+            "Mendelian (left, −LLR)",
+            "Complex traits (left, |LLR|)",
+            "SGE (right, macro across genes)",
+        ],
         loc="outside lower center",
-        ncol=2,
+        ncol=3,
         frameon=True,
         title=(
-            "Independent y-axes — compare shapes/trends with scale, not the vertical gap.\n"
-            f"SGE = macro across genes ({gene_note['missense_variant']} missense / "
-            f"{gene_note['splicing']} splicing), unmatched   ·   "
-            "Mendelian = pooled within-consequence, matched 1:9"
+            "Independent y-axes — compare shapes/trends with scale, not the vertical gap.   "
+            "Left = matched 1:9 AUPRC (baseline 0.10); "
+            f"right = SGE macro across genes ({gene_note['missense_variant']} missense / "
+            f"{gene_note['splicing']} splicing), unmatched.\n"
+            f"Caveat: complex splicing rests on only ~{cpx_spl_n} match-groups → wide CI; "
+            "read its trend cautiously."
         ),
     )
     leg.get_title().set_fontsize(8)
