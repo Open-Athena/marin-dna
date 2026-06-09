@@ -134,6 +134,7 @@ def main() -> None:
                 f"  layer {frac:.2f}: concat AUPRC={ap_c:.3f}  delta AUPRC={ap_d:.3f}"
             )
     res = pl.DataFrame(rows)
+    OUT.mkdir(parents=True, exist_ok=True)  # ensure scratch/issue302/figs (and its parent) exist
     res.write_parquet("scratch/issue302/embedding_probe.parquet")
 
     # Figures
