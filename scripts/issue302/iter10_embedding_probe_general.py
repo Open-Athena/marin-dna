@@ -136,19 +136,14 @@ def fig_axis(df: pl.DataFrame, xlabel: str, logx: bool, fname: str, title: str):
     c = df.to_pandas()
     cl = c[c.layer_frac == c["layer_frac"].max()].sort_values("axval")
     fig, ax = plt.subplots(figsize=(6.8, 4.6))
-    ax.plot(
-        cl["axval"],
-        cl["delta_mg"],
-        "o-",
-        color="tab:green",
-        label="probe last layer (match_group CV)",
-    )
+    # chromosome-grouped CV only (the leak-proof genomic split) for presentation.
     ax.plot(
         cl["axval"],
         cl["delta_chrom"],
-        "s--",
-        color="tab:olive",
-        label="probe last layer (chromosome CV)",
+        "o-",
+        color="tab:green",
+        lw=2,
+        label="frozen-embedding probe (last layer)",
     )
     ax.plot(cl["axval"], cl["llr"], "D-", color="black", lw=2, label="zero-shot LLR")
     if logx:
