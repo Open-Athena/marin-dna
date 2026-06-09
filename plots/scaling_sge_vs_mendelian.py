@@ -1,23 +1,15 @@
-"""Issue #306 figures: scaling-ladder AUPRC vs model size on Mendelian / complex / SGE.
+"""Issue #306 figure: scaling-ladder native AUPRC vs model size, per dataset × subset.
 
-Two figures over the 8 `dna-bolinas-scaling-v0.5` sizes (46M→4B, step-215573),
-always keeping missense and splicing on separate axes (no cross-consequence mixing):
-
-  figure_relative — ALL 3 datasets on one shared axis. The three benchmarks live
-      on different scales (matched 1:9 Mendelian/complex ~0.1–0.6 baseline 0.10;
-      per-gene-macro SGE), so each series is **min-max normalized over the 8
-      sizes** → a proportion in [0, 1] (0 = that series' smallest, 1 = largest).
-      Compares only the *shape / trend with scale*. 2 panels (missense, splicing)
-      × 3 lines (Mendelian, Complex, SGE).
-
-  figure_native — native AUPRC, a **dataset × consequence grid** (2 rows =
-      consequence, 3 cols = dataset = 6 panels), each on its OWN scale so missense
-      and splicing never share an axis.
+One figure over the 8 `dna-bolinas-scaling-v0.5` sizes (46M→4B, step-215573): a
+**dataset × subset grid** — 3 rows (Mendelian, complex traits, SGE) × 2 cols
+(missense, splicing) = 6 panels, each on its **own native AUPRC scale** (missense
+and splicing never share an axis; no cross-consequence mixing).
 
 Scores (FWD+RC): Mendelian & SGE use −LLR (`minus_llr_avg`); complex uses |LLR|
-(`abs_llr_avg`, its score_protocol). SGE is macro-averaged across genes.
-**Error bars are ±1 SE (bootstrap)** — drawn capless (a dispersion indicator, not
-a bounded interval); in figure_relative they are the native SE / each series' range.
+(`abs_llr_avg`, its score_protocol). SGE is macro-averaged across genes; Mendelian
+and complex are pooled within-consequence, matched 1:9 (baseline 0.10).
+**Error bars are ±1 SE (bootstrap)** — drawn capless (a dispersion indicator, not a
+bounded interval).
 
 Caveat: complex *splicing* rests on only ~19 match-groups (vs ~250 missense) → its
 AUPRC has a very wide SE and is read with caution.
@@ -72,16 +64,10 @@ SIZE_LABEL = {
     "h2432-p2B": "2B",
     "h2944-p4B": "4B",
 }
-CONSEQUENCES = ["missense_variant", "splicing"]
-DATASETS = ["Mendelian", "Complex", "SGE"]
+CONSEQUENCES = ["missense_variant", "splicing"]  # columns
+DATASETS = ["Mendelian", "Complex", "SGE"]  # rows
 
 DATASET_COLOR = {"Mendelian": "tab:blue", "Complex": "tab:green", "SGE": "tab:red"}
-DATASET_MARKER = {"Mendelian": "o", "Complex": "^", "SGE": "s"}
-DATASET_SCORE = {
-    "Mendelian": "−LLR",
-    "Complex": "|LLR|",
-    "SGE": "−LLR, macro across genes",
-}
 CONSEQ_MARKER = {"missense_variant": "o", "splicing": "s"}
 
 # complex_traits scores with the abs_llr protocol (magnitude); mendelian & sge use minus_llr.
@@ -152,13 +138,6 @@ def _series(d: dict, c: str) -> tuple[list[float], list[float]]:
     return ([d[(s, c)]["value"] for s in SIZES], [d[(s, c)]["se"] for s in SIZES])
 
 
-def _minmax(vals: list[float], ses: list[float]) -> tuple[list[float], list[float]]:
-    """Min-max normalize a series to [0,1]; scale SE by the same range."""
-    lo, hi = min(vals), max(vals)
-    rng = (hi - lo) or 1.0
-    return [(v - lo) / rng for v in vals], [e / rng for e in ses]
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -197,81 +176,21 @@ def main() -> None:
     matplotlib.use("Agg")
     matplotlib.rcParams["svg.fonttype"] = "none"
     import matplotlib.pyplot as plt
-    from matplotlib.lines import Line2D
 
     x = [PARAMS[s] for s in SIZES]
     xt_labels = [SIZE_LABEL[s] for s in SIZES]
 
-    def _style_x(ax) -> None:
-        ax.set_xscale("log")
-        ax.set_xticks(x)
-        ax.set_xticklabels(xt_labels, fontsize=8)
-        ax.tick_params(axis="x", which="minor", bottom=False)
-        ax.set_xlabel("model size (params)")
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    # ===== Figure 1: relative (min-max normalized per series), all 3 datasets =====
-    # Error bars capless: ±1 SE is a dispersion indicator, not a bounded interval.
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5), layout="constrained")
-    handles = {}
-    for ax, c in zip(axes, CONSEQUENCES):
-        for dsname, d in data.items():
-            vals, ses = _series(d, c)
-            nv, nse = _minmax(vals, ses)
-            handles[dsname] = ax.errorbar(
-                x,
-                nv,
-                yerr=nse,
-                marker=DATASET_MARKER[dsname],
-                ms=5,
-                lw=1.5,
-                color=DATASET_COLOR[dsname],
-                elinewidth=1,
-                alpha=0.9,
-            )
-        _style_x(ax)
-        ax.grid(True, alpha=0.3)
-        ax.set_ylabel("relative AUPRC (0 = series min, 1 = max)")
-        ax.set_title(c.replace("_variant", ""))
-    fig.suptitle(
-        "Scaling ladder (46M→4B, n=8): relative AUPRC vs model size — "
-        "Mendelian / complex / SGE (#306)"
-    )
-    leg = fig.legend(
-        [handles[d] for d in DATASETS],
-        [
-            "Mendelian (−LLR)",
-            "Complex traits (|LLR|)",
-            "SGE (macro across genes, −LLR)",
-        ],
-        loc="outside lower center",
-        ncol=3,
-        frameon=True,
-        title=(
-            "Each series min-max normalized over the 8 sizes → proportion in [0,1] "
-            "(absolute scales differ; compare shape/trend only).\n"
-            "Error bars = ±1 SE (bootstrap), scaled by each series' min–max range.   "
-            f"Caveat: complex splicing rests on only ~{cpx_spl_n} match-groups → very wide SE."
-        ),
-    )
-    leg.get_title().set_fontsize(8)
-    leg.get_title().set_color("dimgray")
-    fig.savefig(OUT_DIR / "figure_relative.svg", dpi=200)
-    fig.savefig(OUT_DIR / "figure_relative.png", dpi=200)
-    plt.close(fig)
-
-    # ===== Figure 2: native AUPRC — dataset (cols) × consequence (rows) grid =====
-    # Each panel its own native scale: missense and splicing never share an axis.
+    # Native AUPRC grid: rows = dataset, cols = consequence. Each panel its own
+    # scale (missense / splicing never share an axis). Error bars capless ±1 SE.
     fig, axes = plt.subplots(
-        len(CONSEQUENCES),
         len(DATASETS),
-        figsize=(14, 8.5),
+        len(CONSEQUENCES),
+        figsize=(9.5, 11),
         sharex=True,
         layout="constrained",
     )
-    for ri, c in enumerate(CONSEQUENCES):
-        for ci, dsname in enumerate(DATASETS):
+    for ri, dsname in enumerate(DATASETS):
+        for ci, c in enumerate(CONSEQUENCES):
             ax = axes[ri, ci]
             vals, ses = _series(data[dsname], c)
             ax.errorbar(
@@ -287,40 +206,35 @@ def main() -> None:
             ax.set_xscale("log")
             ax.grid(True, alpha=0.3)
             ax.tick_params(axis="x", which="minor", bottom=False)
-            if ri == 0:
-                ax.set_title(f"{dsname}  ({DATASET_SCORE[dsname]})")
-            ax.set_ylabel(f"{c.replace('_variant', '')} AUPRC" if ci == 0 else "AUPRC")
-    for ax in axes[-1]:  # x labels on the bottom row (sharex hides the top row's)
-        _style_x(ax)
-    fig.suptitle(
-        "Scaling ladder (46M→4B, n=8): native AUPRC by dataset × consequence — FWD+RC (#306)"
-    )
-    proxies = [
-        Line2D([0], [0], color=DATASET_COLOR[d], marker=DATASET_MARKER[d], lw=1.5)
-        for d in DATASETS
-    ]
-    leg = fig.legend(
-        proxies,
-        [f"{d} ({DATASET_SCORE[d]})" for d in DATASETS],
-        loc="outside lower center",
-        ncol=3,
-        frameon=True,
-        title=(
-            "Each panel native scale (missense / splicing not shared).   "
-            "Error bars = ±1 SE (bootstrap).   Mendelian/complex = matched 1:9 (baseline 0.10); "
-            f"SGE = macro across genes ({sge_g['missense_variant']} missense / {sge_g['splicing']} splicing).\n"
-            f"Caveat: complex splicing rests on only ~{cpx_spl_n} match-groups → very wide SE; read its trend cautiously."
-        ),
-    )
-    leg.get_title().set_fontsize(8)
-    leg.get_title().set_color("dimgray")
-    fig.savefig(OUT_DIR / "figure_native.svg", dpi=200)
-    fig.savefig(OUT_DIR / "figure_native.png", dpi=200)
-    plt.close(fig)
+            if ri == 0:  # column header = consequence
+                ax.set_title(c.replace("_variant", ""), fontsize=12)
+            if ci == 0:  # row label = dataset
+                ax.set_ylabel(f"{dsname}\nAUPRC", fontsize=11)
+            else:
+                ax.set_ylabel("AUPRC")
+    for ax in axes[-1]:  # x labels on the bottom row (sharex hides the upper rows')
+        ax.set_xticks(x)
+        ax.set_xticklabels(xt_labels, fontsize=8)
+        ax.set_xlabel("model size (params)")
 
-    print(
-        f"\nwrote {OUT_DIR}/figure_relative.{{svg,png}} and figure_native.{{svg,png}}"
+    fig.suptitle(
+        "Scaling ladder (46M→4B, n=8): native AUPRC by dataset × subset — FWD+RC (#306)"
     )
+    fig.supxlabel(
+        "Error bars = ±1 SE (bootstrap).   Scores: Mendelian & SGE = −LLR, complex = |LLR|.   "
+        "Mendelian/complex = pooled within-consequence, matched 1:9 (baseline 0.10); "
+        f"SGE = macro across genes ({sge_g['missense_variant']} missense / {sge_g['splicing']} splicing).\n"
+        f"Caveat: complex splicing rests on only ~{cpx_spl_n} match-groups → very wide SE; read its trend cautiously.",
+        fontsize=8,
+        color="dimgray",
+    )
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    svg = OUT_DIR / "figure.svg"
+    fig.savefig(svg, dpi=200)
+    fig.savefig(svg.with_suffix(".png"), dpi=200)
+    plt.close(fig)
+    print(f"\nwrote {svg} (+ .png)")
 
 
 if __name__ == "__main__":
