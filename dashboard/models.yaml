@@ -325,6 +325,25 @@
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-27329
   datasets: [mendelian_traits, complex_traits]
 
+# Parameter-scaling ladder v0.5 — 4B, the largest converged rung (issues
+# #274 / #306; 84.8B tokens, genomes-v5, 255 bp + BOS). Added to the dashboard
+# for the cross-benchmark scaling comparison (mendelian / complex / SGE).
+- id: scaling-v0.5-h2944-p4B-step-215573
+  display: scaling-v0.5 4B
+  family: marin_dna
+  description: param-scaling ladder, 4B, genomes-v5, 84.8B tokens
+  training:
+    data: genomes_v5
+    params: 4.0e9
+    window_size: 255
+    objective: CLM
+  experiment: 274
+  issue: https://github.com/Open-Athena/marin-dna/issues/274
+  wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573
+  datasets: [mendelian_traits, complex_traits, sge]
+
 # Eric Czech's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Headline
 # uniform-mixture run + continued-training upstream-weighted variant.
 - id: mix-v0.9-p1B-i0-uniform-step-25004
