@@ -565,40 +565,41 @@ models:
   # LL gap itself rides the same registry via the `ll_gap:` section below. The
   # 4B is `h2944` (NOT the separate short/crashed `dna-bolinas-4b-v0.*` search).
   # 255 bp DNA + BOS.
-  # `datasets` widened to include `sge` (#306) — score the ladder on the SGE
-  # benchmark to compare missense/splicing AUPRC vs model size against Mendelian.
+  # `datasets` widened to include `sge` + `complex_traits` (#306) — score the
+  # ladder on SGE (missense/splicing) and complex traits (missense in the
+  # analysis) to compare AUPRC vs model size against Mendelian.
   - name: scaling-v0.5-h640-p46M-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h768-p76M-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h896-p128M-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h896-p128M-43ec40/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h1152-p255M-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h1408-p476M-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h1920-p1B-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h2432-p2B-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h2944-p4B-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
 
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
