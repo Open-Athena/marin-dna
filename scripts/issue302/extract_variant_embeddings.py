@@ -66,6 +66,8 @@ def main() -> None:
     ap.add_argument(
         "--subset", default="missense_variant", help="comma-sep subsets, or 'all'"
     )
+    ap.add_argument("--dataset", default=DATASET, help="HF variant dataset repo")
+    ap.add_argument("--revision", default=REVISION, help="HF dataset revision (pinned)")
     ap.add_argument("--batch_size", type=int, default=32)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--dtype", default="bfloat16")
@@ -90,8 +92,8 @@ def main() -> None:
         )
     assert ckpt, "need --s3_path, --gcs_path or --ckpt"
 
-    print("loading variants...", flush=True)
-    df = load_dataset(DATASET, revision=REVISION, split="train").to_pandas()
+    print(f"loading variants from {args.dataset}@{args.revision[:8]}...", flush=True)
+    df = load_dataset(args.dataset, revision=args.revision, split="train").to_pandas()
     df["chrom"] = df["chrom"].astype(str)
     if args.subset != "all":
         df = df[df["subset"].isin(args.subset.split(","))].reset_index(drop=True)
