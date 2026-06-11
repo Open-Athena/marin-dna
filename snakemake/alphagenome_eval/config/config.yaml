@@ -1,39 +1,51 @@
 input_hf_prefix: bolinas-dna/evals
 split: train
 
+# Matched-group AlphaGenome baseline (mendelian / complex traits): per-track
+# L2_DIFF_LOG1P → max across tracks → AUPRC ± cluster-bootstrap SE (cluster =
+# `match_group`, the 1:k matched set). Provides the AlphaGenome baseline row for the
+# mendelian/complex leaderboards. SHAs mirror
+# snakemake/analysis/evals_v2 (PR #194 k=9 rebuild); bumping one re-triggers
+# `compute_per_track_l2` via snakemake's `params:` hash (re-spends API budget).
 datasets:
-  # Per-dataset `hf_revision` pins the HF dataset commit consumed by
-  # this run. Bumping the SHA triggers re-execution via snakemake's
-  # `params:` hash. SHAs mirror evals_v2's pins (PR #194 k=9 rebuild).
   - name: mendelian_traits
     hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
   - name: complex_traits
     hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
-  # DART-Eval QTL benchmarks (PR #214). `qtl_global` → no subset/match_group;
-  # global AUPRC + Pearson/Spearman of alphagenome_max_l2 vs `effect_size`
-  # over positives only.
-  - name: caqtl
-    hf_revision: 9d004a21812c067b9ba1ebfe72f51b9095a5d0f8
-    eval_protocol: qtl_global
-  - name: dsqtl
-    hf_revision: b7e02a07beb831c7047286aacd3ddfd299d6f88f
-    eval_protocol: qtl_global
 
 # AlphaGenome rate-limits — keep workers low (4 has been a safe ceiling).
 num_workers: 4
 
 # Single column written by `aggregate_max` and consumed by `compute_metrics`.
-# Direction-agnostic by construction (max over per-track L2 of delta-log1p)
-# — same column works for both mendelian (pathogenic > common) and complex
-# (magnitude) datasets, so no per-dataset score_protocol fan-out.
+# Direction-agnostic (max over per-track L2 of delta-log1p) — same column works
+# for both mendelian (pathogenic > common) and complex (magnitude) datasets.
 score_column: alphagenome_max_l2
 
-# AUPRC cluster-bootstrap params (cluster = `match_group`), mirroring
-# evals_v2. Bumping `bootstrap_seed` re-triggers `compute_metrics` via
-# snakemake's `params:` hash.
+# AUPRC cluster-bootstrap params (cluster = `match_group`). Bumping `bootstrap_seed`
+# re-triggers `compute_metrics` via snakemake's `params:` hash.
 n_bootstrap: 1000
 bootstrap_seed: 0
 
 # Smoke-test knob: keep only the first N matched groups. Override via
 # `--config subset_n_pairs=5`. Leave null in production runs.
 subset_n_pairs: null
+
+# DNase-LFC QTL predictions (caqtl/dsqtl) for the supervised official-metrics
+# benchmark (#311). This produces only AlphaGenome's per-variant predictions — the
+# model-agnostic metrics/leaderboard are the `scripts/qtl_benchmark.py` driver.
+# `score_dnase_lfc` is resumable and seeds from `s3_prefix/{ds}.parquet`; for
+# caqtl/dsqtl those genome-native predictions already exist (corrected once by
+# `scripts/correct_ag_predictions.py`) so it spends 0 API. `max_new_calls` is a
+# fail-loud cap — raise it only to score a genuinely new dataset.
+dnase_lfc:
+  s3_prefix: s3://oa-bolinas/snakemake/alphagenome_eval/results/dnase_lfc
+  # hf_revision must match marin_dna.pipelines.evals.qtl_scoring.QTL_HF_REVISION (the
+  # benchmark scripts' single source) — snakemake reads YAML and can't import it.
+  datasets:
+    - name: caqtl
+      hf_revision: 27a24296f50ed55afdc412d1612df680d13138d6
+    - name: dsqtl
+      hf_revision: 4a3bf152cd7c28be290adde48a402ec40992cb62
+  num_workers: 4
+  chunk_size: 500
+  max_new_calls: 0

@@ -1,22 +1,23 @@
-"""Common imports + helpers for alphagenome_eval rules."""
+"""Common imports + helpers for alphagenome_eval rules.
 
-import os
+Two independent paths share this pipeline (and its AlphaGenome API setup):
+
+- **Matched-group baseline** (`datasets`: mendelian/complex) — per-track L2 → max →
+  AUPRC ± cluster-bootstrap SE (cluster = `match_group`, the 1:k matched set). Rules:
+  `compute_per_track_l2`, `aggregate_max`,
+  `compute_metrics` (`score.smk` / `metrics.smk`).
+- **DNase-LFC QTL predictions** (`dnase_lfc.datasets`: caqtl/dsqtl) — the single
+  GM12878-DNase LFC scorer for the supervised official-metrics benchmark (#311). Rule:
+  `score_dnase_lfc` (`dnase_lfc.smk`). The benchmark *metrics* are not here — they are
+  the model-agnostic `scripts/qtl_benchmark.py` driver.
+"""
 
 import pandas as pd
 from datasets import load_dataset
 
 from marin_dna.pipelines.evals.alphagenome import score_variants_alphagenome
-from marin_dna.pipelines.evals.conservation import (
-    QTL_VARIANT_COLUMNS,
-    REQUIRED_VARIANT_COLUMNS,
-)
-from marin_dna.pipelines.evals.metrics import compute_auprc_metrics, compute_qtl_metrics
-
-# Per-dataset eval protocol — see snakemake/analysis/evals_v2 common.smk.
-# `matched_pair` (default) → per-subset AUPRC + cluster bootstrap.
-# `qtl_global` → global AUPRC + positives-only effect_size correlation on the
-# unmatched DART-Eval QTL datasets (caqtl/dsqtl).
-EVAL_PROTOCOLS = ("matched_pair", "qtl_global")
+from marin_dna.pipelines.evals.conservation import REQUIRED_VARIANT_COLUMNS
+from marin_dna.pipelines.evals.metrics import compute_auprc_metrics
 
 
 def get_dataset_config(name):
@@ -26,26 +27,19 @@ def get_dataset_config(name):
     raise ValueError(f"dataset {name!r} not found in config")
 
 
-def get_dataset_protocol(name):
-    """Eval protocol for a dataset (default `matched_pair`)."""
-    return get_dataset_config(name).get("eval_protocol", "matched_pair")
-
-
-def get_dataset_variant_columns(name):
-    """Required variant columns for a dataset, keyed by eval protocol."""
-    return (
-        QTL_VARIANT_COLUMNS
-        if get_dataset_protocol(name) == "qtl_global"
-        else REQUIRED_VARIANT_COLUMNS
-    )
-
-
+# Matched-group datasets. Pinned in a `wildcard_constraints` on every matched-group
+# rule so its `{dataset}` wildcard can't match the DNase-LFC `{ds}` paths.
 DATASETS = [d["name"] for d in config["datasets"]]
+MATCHED_CONSTRAINT = "|".join(DATASETS)
 
-# Fail fast on an unknown eval_protocol (typo) at parse time.
-for _d in config["datasets"]:
-    _ep = _d.get("eval_protocol", "matched_pair")
-    assert _ep in EVAL_PROTOCOLS, (
-        f"dataset {_d['name']!r} `eval_protocol` must be one of "
-        f"{sorted(EVAL_PROTOCOLS)}, got {_ep!r}"
-    )
+# DNase-LFC QTL prediction datasets (#311).
+DNASE_LFC = config["dnase_lfc"]
+DNASE_LFC_DATASETS = [d["name"] for d in DNASE_LFC["datasets"]]
+DNASE_LFC_CONSTRAINT = "|".join(DNASE_LFC_DATASETS)
+
+
+def get_dnase_lfc_revision(name):
+    for d in DNASE_LFC["datasets"]:
+        if d["name"] == name:
+            return d["hf_revision"]
+    raise ValueError(f"dnase_lfc dataset {name!r} not found in config")

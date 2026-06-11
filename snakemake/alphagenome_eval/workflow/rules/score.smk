@@ -1,8 +1,7 @@
-"""AlphaGenome scoring + per-track aggregation.
+"""AlphaGenome scoring + per-track aggregation (matched-group baseline).
 
-Two rules so the per-track parquet is preserved on S3 — a future change to
-the aggregation protocol (e.g. per-assay) won't have to re-spend the API
-budget.
+Two rules so the per-track parquet is preserved on S3 — a future change to the
+aggregation protocol (e.g. per-assay) won't have to re-spend the API budget.
 """
 
 
@@ -10,29 +9,24 @@ rule compute_per_track_l2:
     output:
         "results/per_track_l2/{dataset}.parquet",
     wildcard_constraints:
-        dataset="|".join(DATASETS),
+        dataset=MATCHED_CONSTRAINT,
     threads: config["num_workers"]
     params:
-        # Pin the HF dataset commit. Bumping it triggers rerun via the
-        # `params:` hash. `load_dataset(revision=…)` raises
-        # `RevisionNotFoundError` on an unknown SHA — no silent fallback
-        # to `main`.
+        # Pin the HF dataset commit. Bumping it triggers rerun via the `params:`
+        # hash. `load_dataset(revision=…)` raises `RevisionNotFoundError` on an
+        # unknown SHA — no silent fallback to `main`.
         hf_path=lambda wc: f"{config['input_hf_prefix']}_{wc.dataset}",
         hf_revision=lambda wc: get_dataset_config(wc.dataset)["hf_revision"],
     run:
         ds = load_dataset(
             params.hf_path, split=config["split"], revision=params.hf_revision
         ).to_pandas()
-        # qtl_global datasets (caqtl/dsqtl) carry effect_size, no
-        # subset/match_group.
-        variant_cols = get_dataset_variant_columns(wildcards.dataset)
-        for col in variant_cols:
+        for col in REQUIRED_VARIANT_COLUMNS:
             assert col in ds.columns, f"dataset missing column {col!r}"
 
-        # subset_n_pairs is a matched-pair smoke knob (slices on match_group);
-        # QTL datasets have none, so it's ignored for them (null in production).
+        # subset_n_pairs is a smoke knob: keep only the first N matched groups.
         n_pairs = config.get("subset_n_pairs")
-        if n_pairs is not None and get_dataset_protocol(wildcards.dataset) == "matched_pair":
+        if n_pairs is not None:
             keep = ds["match_group"].drop_duplicates().head(int(n_pairs))
             ds = ds[ds["match_group"].isin(keep)].reset_index(drop=True)
             print(
@@ -47,7 +41,7 @@ rule compute_per_track_l2:
 
         out = pd.concat(
             [
-                ds[list(variant_cols)].reset_index(drop=True),
+                ds[list(REQUIRED_VARIANT_COLUMNS)].reset_index(drop=True),
                 per_track.reset_index(drop=True),
             ],
             axis=1,
@@ -65,17 +59,14 @@ rule aggregate_max:
     output:
         "results/scores/{dataset}.parquet",
     wildcard_constraints:
-        dataset="|".join(DATASETS),
+        dataset=MATCHED_CONSTRAINT,
     run:
         score_col = config["score_column"]
         df = pd.read_parquet(input[0])
-        # Exclude the variant columns (which for QTL datasets include
-        # effect_size) so only the real per-track L2 columns are max-reduced.
-        variant_cols = get_dataset_variant_columns(wildcards.dataset)
-        track_cols = [c for c in df.columns if c not in variant_cols]
+        track_cols = [c for c in df.columns if c not in REQUIRED_VARIANT_COLUMNS]
         assert track_cols, "no per-track columns found in input parquet"
 
-        out = df[list(variant_cols)].copy()
+        out = df[list(REQUIRED_VARIANT_COLUMNS)].copy()
         out[score_col] = df[track_cols].max(axis=1)
         assert (
             out[score_col].notna().all()
