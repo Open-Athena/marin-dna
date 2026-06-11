@@ -123,7 +123,7 @@ HIGH-impact, diagonal-concat."""
         exon_nc="results/intervals/exon_nc.parquet",
         tss_pc="results/intervals/tss_pc.parquet",
         tss_nc="results/intervals/tss_nc.parquet",
-        # Reuse the locally-staged GRCh38 (dart_eval_stage_genome).
+        # Reuse the locally-staged GRCh38 (stage_genome).
         genome=local("results/genome_staged/GRCh38.fa.gz"),
         genome_fai=local("results/genome_staged/GRCh38.fa.gz.fai"),
         genome_gzi=local("results/genome_staged/GRCh38.fa.gz.gzi"),

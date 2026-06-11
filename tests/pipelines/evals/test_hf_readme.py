@@ -223,10 +223,32 @@ class TestRender:
         with pytest.raises(ValueError, match="no README template"):
             hf_readme.render("not_a_real_dataset", SHA, train, test)
 
-    @pytest.mark.parametrize("dataset", ["caqtl", "dsqtl"])
-    def test_dart_eval_renders(self, tmp_path: Path, dataset: str) -> None:
-        # DART-Eval datasets are unmatched -> no qc_path.
-        train, test = _matched_train_test(tmp_path)
+    @pytest.mark.parametrize(
+        "dataset,synapse", [("caqtl", "syn64126781"), ("dsqtl", "syn64126779")]
+    )
+    def test_chrombpnet_qtl_renders(
+        self, tmp_path: Path, dataset: str, synapse: str
+    ) -> None:
+        # Standardized caQTL/dsQTL: unmatched (no qc_path), supervised official
+        # metrics, carrying precomputed baseline score columns.
+        def _qtl(chrom: str, path: Path) -> Path:
+            pl.DataFrame(
+                {
+                    "chrom": [chrom] * 4,
+                    "pos": [10, 20, 30, 40],
+                    "ref": ["A"] * 4,
+                    "alt": ["T"] * 4,
+                    "label": [True, False, False, False],
+                    "effect": [0.5, None, None, None],
+                    "chrombpnet_atac_ips": [1.0, 0.1, -0.2, 0.0],
+                    "chrombpnet_atac_logfc": [0.8, 0.1, -0.2, 0.0],
+                    "enformer_dnase_local_logfc": [0.7, 0.0, -0.1, 0.05],
+                }
+            ).write_parquet(path)
+            return path
+
+        train = _qtl("1", tmp_path / "train.parquet")
+        test = _qtl("2", tmp_path / "test.parquet")
         md = hf_readme.render(dataset, SHA, train, test)
         assert md.startswith("---\n")
         for tag in ("biology", "genomics", "dna"):
@@ -240,7 +262,15 @@ class TestRender:
         ):
             assert header in md, f"missing header: {header}"
         assert "No matching and no subsampling" in md
-        assert "DART-Eval" in md
+        # New supervised card: standardized source, carried baselines, no DART-Eval.
+        assert "DART-Eval" not in md
+        assert synapse in md
+        for col in (
+            "chrombpnet_atac_ips",
+            "chrombpnet_atac_logfc",
+            "enformer_dnase_local_logfc",
+        ):
+            assert f"`{col}`" in md
         assert SHA[:7] in md
 
     def test_sge_renders(self, tmp_path: Path) -> None:

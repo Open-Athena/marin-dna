@@ -441,74 +441,91 @@ Same terms as the raw companion dataset.
 """
 
 
-_DART_EVAL_META = {
+_CHROMBPNET_QTL_META = {
     "caqtl": {
         "assay": "ATAC-seq chromatin accessibility",
         "qtl": "caQTL",
-        "study": "African caQTLs, DeGorter *et al.* 2023 (bioRxiv)",
-        "synapse": "syn60756043",
+        "study": "African caQTLs (DeGorter *et al.* 2023)",
+        "synapse": "syn64126781",
         "build": "GRCh38 (native)",
+        "effect_src": "obs.beta",
         "extra_tags": ["variant-effect-prediction", "chromatin-accessibility", "caqtl"],
     },
     "dsqtl": {
         "assay": "DNase-seq chromatin accessibility",
         "qtl": "dsQTL",
-        "study": "Yoruban dsQTLs, Degner *et al.* *Nature* 2012",
-        "synapse": "syn60756039",
+        "study": "Yoruba dsQTLs (Degner *et al.* *Nature* 2012)",
+        "synapse": "syn64126779",
         "build": "GRCh38 (lifted from hg19)",
+        "effect_src": "obs.estimate",
         "extra_tags": ["variant-effect-prediction", "chromatin-accessibility", "dsqtl"],
     },
 }
 
+# Carried precomputed baseline scores (canonical column -> card description). Whichever
+# are present in the produced parquet are listed in the Columns table. All are signed
+# alt-vs-ref allelic scores (sign-flipped alongside `effect` on a ref/alt swap).
+_CARRIED_SCORE_DESC = {
+    "chrombpnet_atac_ips": "ChromBPNet GM12878 **ATAC** IPS (= logFC × JSD × AAQ) — the recommended **causality** score",
+    "chrombpnet_atac_logfc": "ChromBPNet GM12878 **ATAC** log2 fold-change — the recommended **direction** score",
+    "chrombpnet_dnase_ips": "ChromBPNet GM12878 **DNase** IPS",
+    "chrombpnet_dnase_logfc": "ChromBPNet GM12878 **DNase** log2 fold-change",
+    "enformer_dnase_local_logfc": "Enformer GM12878 DNase recomputed local-2 kb log2 fold-change",
+}
 
-def render_dart_eval(
+
+def render_chrombpnet_qtl(
     dataset: str,
     sha: str,
     train_path: str | Path,
     test_path: str | Path,
 ) -> str:
-    """Dataset card for the DART-Eval caQTL/dsQTL datasets.
+    """Dataset card for the standardized caQTL/dsQTL accessibility-QTL benchmarks.
 
-    Unlike the matched datasets these are **not** matched or subsampled — all
-    positives and negatives are kept at their natural ratio — so there is no
-    retention or AUPRC-leak diagnostic (no `qc_path`).
+    The canonical supervised official-metrics variant sets (#309/#310/#262), sourced
+    from the standardized ChromBPNet benchmark files used by both the ChromBPNet and
+    AlphaGenome papers. Each row carries precomputed ChromBPNet/Enformer baseline
+    scores so those baselines are free downstream. Unmatched / unsubsampled (natural
+    class ratio) — no retention or AUPRC-leak diagnostic (no `qc_path`).
     """
-    m = _DART_EVAL_META[dataset]
+    m = _CHROMBPNET_QTL_META[dataset]
     c = _split_counts(train_path, test_path)
     total = c["train_total"] + c["test_total"]
     pos = c["train_pos"] + c["test_pos"]
     neg = c["train_neg"] + c["test_neg"]
-    pval_se_rows = (
-        "| `pval` | float | caQTL association p-value (reference only) |\n"
-        "| `se` | float | Standard error of the effect estimate (`beta`); reference only |\n"
-        if dataset == "caqtl"
-        else ""
+    present = pl.read_parquet_schema(str(train_path))
+    carried_rows = "".join(
+        f"| `{col}` | float | {desc} |\n"
+        for col, desc in _CARRIED_SCORE_DESC.items()
+        if col in present
     )
     return f"""{_frontmatter(m["extra_tags"])}
 
 # evals_{dataset}
 
-Variant-effect-prediction benchmark of **{m["qtl"]}s** ({m["assay"]}):
-statistically significant chromatin-accessibility QTLs vs control variants,
-both within accessible peaks. Sourced from
-[DART-Eval](https://github.com/kundajelab/DART-Eval) Task 5 and brought into
-the `marin-dna` evals pipeline with chromosome-based **train/test splits** for
-model development.
+Supervised variant-effect-prediction benchmark of **{m["qtl"]}s** ({m["assay"]}):
+statistically significant chromatin-accessibility QTLs vs control variants. These
+are the **standardized** ChromBPNet benchmark variant sets (Synapse
+[`syn64126763`](https://www.synapse.org/Synapse:syn64126763)) used by *both* the
+ChromBPNet and AlphaGenome papers, brought into the `marin-dna` evals pipeline with
+chromosome-parity **train/test splits**. Each row carries **precomputed
+ChromBPNet/Enformer baseline scores**, so those baselines reproduce without running
+any model.
 
-**No matching and no subsampling** — every positive and negative is kept at
-its natural ratio (≈1:{round(neg / pos) if pos else "?"} positive:negative).
+**No matching and no subsampling** — every positive and negative is kept at its
+natural ratio (≈1:{round(neg / pos) if pos else "?"} positive:negative).
 
 ## Description
 
 | | |
 |---|---|
-| Positives | Significant {m["qtl"]}s within accessible peaks (`label = True`) |
-| Negatives | Control variants in peaks, no significant association (`label = False`) |
-| Assay | {m["assay"]} |
+| Positives | Significant {m["qtl"]}s (`label = True`; −log10p > 5) |
+| Negatives | Control variants (`label = False`; −log10p < 3) |
+| Assay | {m["assay"]} (GM12878 / LCL) |
 | Source study | {m["study"]} |
-| Source data | DART-Eval, Synapse [`{m["synapse"]}`](https://www.synapse.org/Synapse:{
+| Source data | Standardized ChromBPNet benchmark, Synapse [`{
         m["synapse"]
-    }) |
+    }`](https://www.synapse.org/Synapse:{m["synapse"]}) |
 | Genome build | {m["build"]} |
 | Variant type | SNVs only |
 | Coordinates | 1-based (`pos` is 1-based; `ref`/`alt` are single bases) |
@@ -517,6 +534,9 @@ its natural ratio (≈1:{round(neg / pos) if pos else "?"} positive:negative).
 ## Splits
 
 Chromosome-parity split (same convention as the other `evals_*` datasets).
+Chromosome subsets used by the official benchmark — all chroms, the AlphaGenome
+test chroms {{3, 6, 9, 12, 16, 18, 19, 21}}, or this train/test parity — are a
+**scoring-time slice** of the full variant set, not a re-score.
 
 | Split | Variants | Positives | Negatives | Chromosomes |
 |---|---:|---:|---:|---|
@@ -530,44 +550,30 @@ Chromosome-parity split (same convention as the other `evals_*` datasets).
 
 | Column | Type | Description |
 |---|---|---|
-| `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, GRCh38). `ref`/`alt` oriented against the reference. |
+| `chrom`, `pos`, `ref`, `alt` | str / int / str / str | Variant coordinates (1-based, GRCh38). `ref`/`alt` are genome-oriented (`alt` ≠ reference). |
 | `label` | bool | `True` for a significant {m["qtl"]}, `False` for a control variant |
 | `effect` | float | **Signed** study effect (`{
-        "beta" if dataset == "caqtl" else "obs.estimate"
-    }`), **oriented to the `alt` allele** — positive ⇒ `alt` increases accessibility; sign-flipped for variants whose ref/alt were swapped to match the reference{
-        ", and present for positives only" if dataset == "dsqtl" else ""
-    }. This is the value the Pearson correlation uses. |
-| `effect_size` | float | Unsigned effect magnitude (absolute value of `effect`). |
-{
-        pval_se_rows
-    }| `consequence`, `consequence_cre`, `consequence_final` | str | Ensembl VEP consequence (raw, with-CRE-class, and after TSS/exon-proximity recategorization); reference annotations |
-| `distance_tss_pc`, `distance_tss_nc`, `distance_tss` | int | Distance to nearest protein-coding / non-protein-coding TSS, and the minimum |
-| `tss_closest_pc_gene_id`, `tss_closest_nc_gene_id`, `tss_closest_gene_id` | str | Ensembl gene IDs at those distances |
-| `distance_exon_pc`, `distance_exon_nc`, `distance_exon` | int | Same shape, for nearest exon |
-| `exon_closest_pc_gene_id`, `exon_closest_nc_gene_id`, `exon_closest_gene_id` | str | Same shape |
-
-The consequence/distance columns are **reference annotations only** — they are
-not used to match or filter the variant set.
+        m["effect_src"]
+    }`), **oriented to the `alt` allele** — positive ⇒ `alt` increases accessibility; sign-flipped for variants whose ref/alt were swapped to match the reference. Present for every positive; controls may be null. |
+{carried_rows}
+The carried `chrombpnet_*` / `enformer_*` columns are the papers' precomputed
+per-variant baseline scores (signed, oriented to `alt`) — supplied so the
+ChromBPNet and Enformer baselines need no model run.
 
 ## Evaluation
 
-Following [DART-Eval](https://github.com/kundajelab/DART-Eval) Task 5 (§4.5) and
-[ARSENAL](https://www.biorxiv.org/content/10.64898/2026.02.05.703637v1.full),
-score each variant with a model's allelic effect (e.g. an alt-vs-ref
-log-likelihood ratio) and report two complementary metrics, **each over a
-different variant set**:
+Two official metrics (the ChromBPNet/AlphaGenome accessibility-QTL protocol; see
+issue #262), **each over a different variant set**:
 
-- **Classification — AUROC / AUPRC over _all_ variants:** significant
-  {m["qtl"]}s (`label = True`) vs control variants (`label = False`).
-- **Pearson correlation over the _positive_ variants only** (`label = True`):
-  between `effect` (signed, oriented to `alt`) and the model's signed
-  alt-vs-ref score. DART-Eval Table 6: *"for the positive variants, we computed
-  the correlation between measured and predicted allelic effects."* Controls
-  are not used in the correlation{
-        " (and for dsQTL they have no measured effect_size)"
-        if dataset == "dsqtl"
-        else ""
-    }.
+- **Causality — AUPRC over _all_ variants** on `|score|`: significant {m["qtl"]}s
+  (`label = True`) vs controls (`label = False`).
+- **Direction — Pearson over the _positive_ variants only** (`label = True`):
+  between `effect` (signed, oriented to `alt`) and the model's signed alt-vs-ref
+  score. Controls are not used in the correlation.
+
+ChromBPNet uses **IPS** for causality and **logFC** for direction; AlphaGenome /
+Enformer use signed accessibility log-fold-change. Metrics are computed by
+`marin_dna.pipelines.chrombpnet_eval.metrics.compute_supervised_qtl_metrics`.
 
 ## Provenance
 
@@ -575,22 +581,22 @@ Built by the [`marin-dna`]({REPO_ROOT_URL}) eval pipeline at commit
 [`{sha[:7]}`]({REPO_ROOT_URL}/tree/{sha}/snakemake/evals).
 
 - Curation pipeline: {_pipeline_link(sha)}
-- Rules: {_file_link(sha, "snakemake/evals/workflow/rules/dart_eval.smk")}
-- Parsing + annotation: {_file_link(sha, "src/marin_dna/pipelines/evals/dart_eval.py")}
+- Rules: {_file_link(sha, "snakemake/evals/workflow/rules/chrombpnet_qtl.smk")}
+- Build + parsing: {_file_link(sha, "src/marin_dna/pipelines/evals/chrombpnet_qtl.py")}
 
 ## License
 
-Released under the terms of its upstream sources. The variant set is
-redistributed from [DART-Eval](https://github.com/kundajelab/DART-Eval) (Task 5)
-and derives from the original QTL study ({m["study"]}); DART-Eval ships no
-explicit license, so consult it and the source study for redistribution and
+Released under the terms of its upstream sources. The variant set is redistributed
+from the standardized ChromBPNet benchmark (Synapse `syn64126763`) and derives from
+the original QTL study ({m["study"]}); consult those sources for redistribution and
 commercial-use terms.
 
 ## Citation
 
 If you use this benchmark, please cite the upstream sources:
 
-- DART-Eval — Patel *et al.* 2024, [arXiv 2412.05430](https://arxiv.org/abs/2412.05430) (NeurIPS D&B 2024)
+- ChromBPNet — Pampari *et al.* 2024, [bioRxiv 2024.12.25.630221](https://www.biorxiv.org/content/10.1101/2024.12.25.630221)
+- AlphaGenome — Avsec *et al.* 2025
 - {m["qtl"]} study — {m["study"]}
 """
 
@@ -1123,8 +1129,8 @@ def render(
     if dataset.startswith("mendelian_traits_harness_"):
         window = int(dataset.rsplit("_", 1)[1])
         return render_harness(sha, train_path, test_path, window_size=window)
-    if dataset in _DART_EVAL_META:
-        return render_dart_eval(dataset, sha, train_path, test_path)
+    if dataset in _CHROMBPNET_QTL_META:
+        return render_chrombpnet_qtl(dataset, sha, train_path, test_path)
     if dataset == "sge":
         return render_sge(
             dataset, sha, train_path, test_path, calibration_path=calibration_path
