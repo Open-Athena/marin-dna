@@ -53,14 +53,16 @@ def load_and_pool(
     keys: list[pl.DataFrame] = []
     proj: np.ndarray | None = None
     for npz in npzs:
-        emb = np.load(io.BytesIO(fs.open(f"s3://{npz}").read()))["emb"].astype(
-            np.float32
-        )
+        emb = np.load(io.BytesIO(fs.open(f"s3://{npz}").read()))["emb"]  # float16
+        assert np.isfinite(emb).all(), f"non-finite values in {npz}"
         keys.append(pl.read_parquet(f"s3://{npz}".replace(".npz", ".keys.parquet")))
         if proj is None:
             proj = random_projection(emb.shape[-1], cov_r, seed=0)
         for s in (0, 1):  # 0=fwd, 1=rc
-            ref_tok, alt_tok = emb[:, s, 0], emb[:, s, 1]  # [chunk, L, D]
+            # Upcast each [chunk, L, D] slice to float32 (one slice at a time, not
+            # the whole 2 GB shard) so pooling accumulates in float32 cleanly.
+            ref_tok = emb[:, s, 0].astype(np.float32)
+            alt_tok = emb[:, s, 1].astype(np.float32)
             for ext in POOLING_EXTENTS:
                 kw = dict(var_index=VAR_INDEX, n_center=n_center)
                 pools.setdefault((s, 0, ext), []).append(
@@ -71,6 +73,7 @@ def load_and_pool(
                 )
             inner[s].append(innerprod_feature(ref_tok, alt_tok))
             cov[s].append(cov_delta_feature(ref_tok, alt_tok, proj))
+        del emb  # free the 2 GB shard before streaming the next
     pooled = {k: np.concatenate(v) for k, v in pools.items()}
     inner_c = {s: np.concatenate(inner[s]) for s in (0, 1)}
     cov_c = {s: np.concatenate(cov[s]) for s in (0, 1)}
