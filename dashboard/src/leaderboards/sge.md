@@ -46,9 +46,15 @@ const meta = datasets.sge;
 
 // MarinDNA protocol → score_type column (signed LLR default; ALT direction is
 // informative, so not abs). Conservation has its single per-position score.
+// GPN-Star mirrors MarinDNA's signed convention: cLLR (calibrated, the default)
+// and LLR pick the `minus_llr*` columns — abnormal = loss of function =
+// deleterious, a directional signal (the `abs_llr*` atoms exist in the parquet
+// but aren't surfaced). The producer already FWD+RC-averages, so no `_avg`/`_fwd`
+// split here — one column per protocol.
 const SGE_SCORE_TYPE = {
   marin_dna: {LLR: "minus_llr_avg", JSD: "jsd_avg"},
   conservation: {score: "score"},
+  gpn_star: {cLLR: "minus_llr_calibrated", LLR: "minus_llr"},
 };
 // Columns: subset-macro leftmost (the headline), then the per-subset scopes.
 const SUBSET_COLS = [

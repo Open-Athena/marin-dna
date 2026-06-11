@@ -409,7 +409,7 @@
   msa: v100-200m
   training:
     params: 2.0e8       # 200M, from the "-200m" suffix in the MSA tag
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: GPN-Star-M
   display: GPN-Star (M)
@@ -418,7 +418,7 @@
   msa: m447-200m
   training:
     params: 2.0e8
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: GPN-Star-P
   display: GPN-Star (P)
@@ -427,7 +427,7 @@
   msa: p243-200m
   training:
     params: 2.0e8
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 # Evo 2 (issue #131) — AUPRC metrics via gist pinned in
 # `leaderboard.py::EVO2_METRICS_GIST_COMMIT`; mendelian_traits only.

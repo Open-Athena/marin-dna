@@ -413,6 +413,14 @@ def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
             # conservation's parquet path is split-specific (…/metrics_{SPLIT}.parquet),
             # so it only needs the per-track score_name select, no split filter.
             df = df.filter(pl.col("score_name") == method.id)
+        elif method.family == "gpn_star":
+            # All three GPN-Star variants (V/M/P) share ONE per-dataset parquet
+            # (`_parquet_path` is model-independent for this family), stacked with a
+            # `model` column. Filter to this method's model — without it each of the
+            # 3 registered methods would re-emit all 3 models' rows (9× duplication,
+            # mislabeled). Train-only parquet, so no split filter (mirrors
+            # fetch_method_metrics' gpn_star branch). `model` == `Model.id`.
+            df = df.filter(pl.col("model") == method.id)
         elif method.family == "marin_dna":
             # The per-model parquet path is NOT split-specific and carries a
             # `split` column for whichever split was scored — guard it like
