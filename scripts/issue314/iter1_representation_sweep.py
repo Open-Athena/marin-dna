@@ -22,6 +22,7 @@ import numpy as np
 import polars as pl
 import s3fs
 from sklearn.metrics import average_precision_score
+from tqdm import tqdm
 
 from marin_dna.pipelines.evals.variant_probe import (
     PAIR_COMBOS,
@@ -52,7 +53,7 @@ def load_and_pool(
     cov: dict[int, list[np.ndarray]] = {0: [], 1: []}
     keys: list[pl.DataFrame] = []
     proj: np.ndarray | None = None
-    for npz in npzs:
+    for npz in tqdm(npzs, desc="pool shards"):
         emb = np.load(io.BytesIO(fs.open(f"s3://{npz}").read()))["emb"]  # float16
         assert np.isfinite(emb).all(), f"non-finite values in {npz}"
         keys.append(pl.read_parquet(f"s3://{npz}".replace(".npz", ".keys.parquet")))
@@ -129,7 +130,7 @@ def main() -> None:
     reps = [("pool", ext, combo) for ext in POOLING_EXTENTS for combo in PAIR_COMBOS]
     reps += [("innerprod",), ("cov_delta",)]
     rows = []
-    for rep in reps:
+    for rep in tqdm(reps, desc="probe reps"):
         feat = build_feature(pooled, inner, cov, rep)[mask]
         oof = chrom_grouped_oof(
             feat, y, chrom, n_pca=args.n_pca, c=args.c, standardize=True

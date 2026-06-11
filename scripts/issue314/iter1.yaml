@@ -30,5 +30,6 @@ setup: |
 run: |
     set -euxo pipefail
     export PATH="$HOME/.local/bin:$PATH"
+    export PYTHONUNBUFFERED=1   # stream stdout (tqdm bars + the table) to the log
     uv run --group genome-s3 python scripts/issue314/iter1_representation_sweep.py \
         --cache "${CACHE}" --subset "${SUBSET}"
