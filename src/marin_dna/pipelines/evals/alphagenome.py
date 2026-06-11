@@ -429,6 +429,9 @@ def score_dnase_lfc_resumable(
         cached.write_parquet(checkpoint_path)
 
     out = work.join(cached, on=key, how="left")
-    n_null = int(out.get_column(_DNASE_LFC_COL).is_null().sum())
-    assert n_null == 0, f"{n_null} variants unscored after resumable run"
+    # is_null catches variants the join didn't cover; is_nan catches a variant the scorer
+    # returned NaN for (polars treats NaN as a non-null float, so is_null alone misses it).
+    scored = out.get_column(_DNASE_LFC_COL)
+    n_bad = int((scored.is_null() | scored.is_nan()).sum())
+    assert n_bad == 0, f"{n_bad} variants unscored or NaN after resumable run"
     return out

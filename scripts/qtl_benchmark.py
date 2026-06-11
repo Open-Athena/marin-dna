@@ -33,6 +33,7 @@ import polars as pl
 
 from marin_dna.pipelines.evals.qtl_scoring import (
     MODEL_SCORE_COLUMNS,
+    QTL_HF_REVISION,
     SUPPL_TABLE4_REFERENCE,
     compute_qtl_split_metrics,
     reference_metrics,
@@ -49,11 +50,6 @@ AG_DNASE_LFC = (
 )
 AG_LFC_COL = "alphagenome_dnase_lfc"
 
-HF_REVISION = {
-    "caqtl": "27a24296f50ed55afdc412d1612df680d13138d6",
-    "dsqtl": "4a3bf152cd7c28be290adde48a402ec40992cb62",
-}
-
 # Map built-in model keys to their AlphaGenome Suppl Table 4 reference name (Enformer is
 # the ChromBPNet-paper baseline, not in Suppl Table 4 → no published reference).
 REPRO_REF = {"alphagenome": "AlphaGenome", "chrombpnet": "ChromBPNet"}
@@ -67,7 +63,7 @@ def _split_s3(url: str) -> tuple[str, str]:
 
 def load_dataset(name: str) -> pl.DataFrame:
     """Canonical dataset (train ∪ test, ``split_source`` tagged) + genome-native AG LFC."""
-    rev = HF_REVISION[name]
+    rev = QTL_HF_REVISION[name]
     parts = [
         pl.read_parquet(
             f"hf://datasets/bolinas-dna/evals_{name}@{rev}/{split}.parquet"
@@ -110,8 +106,13 @@ def discover_models(name: str) -> list[str]:
 
 def compute_metrics(name: str, dataset: pl.DataFrame, n_bootstrap: int) -> pl.DataFrame:
     """Compute ``metrics/{model}/{name}`` for every discovered model + the reference."""
+    models = discover_models(name)
+    assert models, (
+        f"no models discovered under {BENCH}/scores/ for {name} — check the S3 prefix, "
+        "region, and that write_model_scores ran"
+    )
     rows = []
-    for model in discover_models(name):
+    for model in models:
         scores = pl.read_parquet(f"{BENCH}/scores/{model}/{name}.parquet")
         metrics = compute_qtl_split_metrics(
             scores, dataset, dataset=name, model=model, n_bootstrap=n_bootstrap

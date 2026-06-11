@@ -29,6 +29,7 @@ import argparse
 import polars as pl
 
 from marin_dna.pipelines.evals.qtl_scoring import (
+    QTL_HF_REVISION,
     SUPPL_TABLE4_REFERENCE,
     align_score_sign,
     compute_qtl_split_metrics,
@@ -44,12 +45,6 @@ AG_RESULTS = "s3://oa-bolinas/snakemake/alphagenome_eval/results"
 RAW_PREFIX = f"{AG_RESULTS}/dnase_lfc_raw"  # immutable #262 originals (raw convention)
 OUT_PREFIX = f"{AG_RESULTS}/dnase_lfc"  # convention-aligned (genome-native) predictions
 
-# Canonical caQTL/dsQTL datasets (#313). Pinned to the validated build for the
-# Suppl-Table-4 reproduction check and as the ChromBPNet sign anchor.
-HF_REVISION = {
-    "caqtl": "27a24296f50ed55afdc412d1612df680d13138d6",
-    "dsqtl": "4a3bf152cd7c28be290adde48a402ec40992cb62",
-}
 # Acceptance: reproduce Suppl Table 4 to ≤0.004 at the table's precision. The binding
 # case is the caQTL AlphaGenome *direction* (0.7328 vs published 0.7368, Δ0.0040) — the
 # forward-strand-only-vs-RC-averaged gap baked into the #262 predictions; every other
@@ -68,7 +63,7 @@ def _s3_exists(path: str) -> bool:
 def load_canonical(name: str) -> pl.DataFrame:
     """Canonical dataset (train ∪ test) from the pinned HF build, with a ``split_source``
     tag — carries ``label``, ``effect`` and the ChromBPNet/Enformer baseline columns."""
-    rev = HF_REVISION[name]
+    rev = QTL_HF_REVISION[name]
     parts = [
         pl.read_parquet(
             f"hf://datasets/bolinas-dna/evals_{name}@{rev}/{split}.parquet"
@@ -120,8 +115,10 @@ def verify_reproduction(
     """Assert the aligned AlphaGenome predictions reproduce Suppl Table 4 (AG-test slice)
     to ≤0.004 — causality auPRC and direction Pearson."""
     joined = dataset.join(corrected, on=KEY, how="left")
-    n_null = int(joined.get_column(LFC_COL).is_null().sum())
-    assert n_null == 0, f"{name}: {n_null} dataset variants missing a corrected score"
+    # is_null = unmatched variant; is_nan = a NaN score align_score_sign preserved.
+    score = joined.get_column(LFC_COL)
+    n_bad = int((score.is_null() | score.is_nan()).sum())
+    assert n_bad == 0, f"{name}: {n_bad} dataset variants missing/NaN corrected score"
 
     scores = to_score_interface(joined, LFC_COL, LFC_COL)
     metrics = compute_qtl_split_metrics(

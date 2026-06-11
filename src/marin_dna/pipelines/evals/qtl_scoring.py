@@ -76,6 +76,15 @@ SUPPL_TABLE4_REFERENCE: dict[str, dict[str, tuple[float, float]]] = {
 # Pearson for a random scorer is 0. Anchors for the dashboard (#312).
 RANDOM_BASELINE_AUPRC: dict[str, float] = {"caqtl": 0.0852, "dsqtl": 0.0200}
 
+# Canonical caQTL/dsQTL HF dataset revisions (#313 build) — the single source for the
+# benchmark scripts (correct_ag_predictions.py / qtl_benchmark.py). Keep in sync with
+# snakemake/alphagenome_eval/config/config.yaml (snakemake reads YAML and can't import
+# this).
+QTL_HF_REVISION: dict[str, str] = {
+    "caqtl": "27a24296f50ed55afdc412d1612df680d13138d6",
+    "dsqtl": "4a3bf152cd7c28be290adde48a402ec40992cb62",
+}
+
 _KEY: tuple[str, ...] = ("chrom", "pos", "ref", "alt")
 
 
@@ -195,8 +204,10 @@ def compute_qtl_split_metrics(
         how="inner",
     )
     assert joined.height == scores_df.height, (
-        f"{joined.height}/{scores_df.height} scored variants matched the dataset — "
-        "every scored variant must be a known dataset variant (key/orientation mismatch?)"
+        f"{joined.height}/{scores_df.height} scored variants matched the dataset — every "
+        "scored variant must be a known dataset variant (genome-orientation mismatch, or "
+        f"a (chrom,pos,ref,alt) key-dtype skew between the two frames: "
+        f"{[scores_df.schema[c] for c in key]} vs {[dataset_df.schema[c] for c in key]})"
     )
     coverage = round(joined.height / dataset_df.height, 4)
     for col in ("causality_score", "direction_score"):
