@@ -188,12 +188,18 @@ def ll_traj(api: wandb.Api, wd: float) -> pd.DataFrame:
     if (grp, token) not in _ll_cache:
         fk, nk = f"eval/{VAL_REC}_functional/loss", f"eval/{VAL_REC}_nonfunctional/loss"
         frames = [
-            r.history(keys=[fk, nk], samples=10000, pandas=True)
+            h
             for r in api.runs("marin", filters={"group": grp})
             if token in r.name
+            for h in [r.history(keys=[fk, nk], samples=10000, pandas=True)]
+            if len(h)
         ]
+        if not frames:
+            raise ValueError(
+                f"no val_cds LL history for wandb group {grp!r} / run token {token!r}"
+            )
         df = (
-            pd.concat([f for f in frames if len(f)])
+            pd.concat(frames)
             .dropna(subset=[fk, nk])
             .sort_values("_step")
             .drop_duplicates("_step", keep="last")

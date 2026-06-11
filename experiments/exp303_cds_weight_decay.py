@@ -533,6 +533,16 @@ def _build_train_step(strategy: str, dataset: str) -> ExecutorStep:
 
 
 def main() -> None:
+    # WEIGHT_DECAY is the swept axis and must be set explicitly per arm. The
+    # module-level default (0.1, for import-safety) is NOT a launch default:
+    # running unset would burn ~5K steps from scratch on a wd0p1 path, re-training
+    # the WD=0.1 baseline that exp232's v4_cds arm already provides (and must not
+    # be re-run).
+    if "WEIGHT_DECAY" not in os.environ:
+        raise RuntimeError(
+            "WEIGHT_DECAY must be set explicitly (e.g. `-e WEIGHT_DECAY 0.3`); "
+            "running unset would re-train a fresh wd0p1 baseline from scratch."
+        )
     selected = _selected_datasets()
     steps = [
         _build_train_step(strategy, dataset) for strategy, dataset in selected.items()
