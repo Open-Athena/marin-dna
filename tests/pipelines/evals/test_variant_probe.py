@@ -91,6 +91,20 @@ def test_pool_center_must_fit() -> None:
         pool_tokens(states, "center", n_center=6)
 
 
+def test_pool_tokens_returns_copies_not_views() -> None:
+    # Pooled features accumulate across shards; a view would pin the whole parent
+    # array and leak GBs (the #314 OOM). Every extent must return a fresh array.
+    states = np.zeros((3, 10, 4))
+    for extent, kw in [
+        ("entire_window", {}),
+        ("max", {}),
+        ("center", {"n_center": 4}),
+        ("variant_token", {"var_index": 3}),
+    ]:
+        out = pool_tokens(states, extent, **kw)
+        assert not np.shares_memory(out, states), f"{extent} returns a view"
+
+
 # --------------------------------------------------------------------------
 # Per-token features (innerprod, cov_delta)
 # --------------------------------------------------------------------------

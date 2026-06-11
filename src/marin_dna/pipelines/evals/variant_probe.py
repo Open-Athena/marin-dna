@@ -88,7 +88,9 @@ def pool_tokens(
         return states.max(axis=1)
     if extent == "variant_token":
         assert var_index is not None and 0 <= var_index < length, var_index
-        return states[:, var_index, :]
+        # .copy() — a bare slice is a view that pins the whole parent array; when
+        # pooled features accumulate across many shards that leaks GBs (issue #314).
+        return states[:, var_index, :].copy()
     if extent == "center":
         assert 0 < n_center <= length, (n_center, length)
         lo = (length - n_center) // 2
