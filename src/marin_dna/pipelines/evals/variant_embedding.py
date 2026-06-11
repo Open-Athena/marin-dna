@@ -18,7 +18,9 @@ metadata (label / subset / match_group / chrom for CV).
 """
 
 import argparse
-import io
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from typing import Literal
 
@@ -43,17 +45,25 @@ EMB_KEY_COLUMNS = ("chrom", "pos", "ref", "alt")
 _STRANDS: tuple[Literal["+", "-"], ...] = ("+", "-")
 
 
+# Uploading the npz from a SUBPROCESS keeps python s3fs out of the parent: initing
+# s3fs in the parent poisons the next DataLoader worker fork — the forked genome
+# reader inherits the broken fsspec async loop and hangs (memory:
+# fsspec_fork_deadlock_s3_inputs). The keys parquet goes through polars' native
+# object_store (Rust, no python s3fs), so writing it directly is safe.
+_S3_PUT = "import sys, s3fs; s3fs.S3FileSystem().put(sys.argv[1], sys.argv[2])"
+
+
 def _write_shard(out_dir: str, idx: int, emb: np.ndarray, keys: pd.DataFrame) -> None:
     """Write one ``emb`` npz + ``keys`` parquet shard (local path or ``s3://``)."""
     name = f"shard_{idx:04d}"
     if out_dir.startswith("s3://"):
-        import s3fs
-
-        fs = s3fs.S3FileSystem()
-        buf = io.BytesIO()
-        np.savez(buf, emb=emb)
-        with fs.open(f"{out_dir}/{name}.npz", "wb") as f:
-            f.write(buf.getvalue())
+        with tempfile.TemporaryDirectory() as tmp:
+            local_npz = f"{tmp}/{name}.npz"
+            np.savez(local_npz, emb=emb)
+            subprocess.run(
+                [sys.executable, "-c", _S3_PUT, local_npz, f"{out_dir}/{name}.npz"],
+                check=True,
+            )
     else:
         Path(out_dir).mkdir(parents=True, exist_ok=True)
         np.savez(f"{out_dir}/{name}.npz", emb=emb)
