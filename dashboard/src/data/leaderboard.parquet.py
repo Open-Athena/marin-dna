@@ -5,12 +5,11 @@ Pulls per-(method, dataset, subset) metric rows from S3 via
 ``dataset`` column, concatenates across datasets, and writes the resulting
 DataFrame as a parquet blob on stdout for the dashboard to read via DuckDB.
 
-Emits one parquet covering every leaderboard dataset: the matched-pair evals
-(mendelian_traits, complex_traits) and the DART-Eval QTL evals (caqtl, dsqtl,
-PR #217). Each page filters by ``dataset``, so they coexist in one file. For
-QTL rows the ``subset`` column holds the metric name (AUPRC / pearson /
-spearman) instead of a consequence subset — see
-``leaderboard.fetch_method_metrics``. eQTL was retired in PR #194 (issue #172).
+Emits one parquet covering the matched-pair leaderboard datasets (mendelian_traits,
+complex_traits). Each page filters by ``dataset``, so they coexist in one file. eQTL
+was retired in PR #194 (issue #172); the caQTL/dsQTL zero-shot path was retired in #312
+(the supervised official-metrics benchmark now lives on its own Accessibility QTL page,
+fed by ``accessibility_qtl.parquet.py``).
 """
 
 from __future__ import annotations
@@ -24,8 +23,6 @@ from marin_dna.pipelines.evals.leaderboard import normalized_rows
 LEADERBOARD_DATASETS: tuple[str, ...] = (
     "mendelian_traits",
     "complex_traits",
-    "caqtl",
-    "dsqtl",
 )
 
 

@@ -26,8 +26,6 @@ ALL_FAMILIES: tuple[Family, ...] = (
 ALL_DATASETS: tuple[str, ...] = (
     "mendelian_traits",
     "complex_traits",
-    "caqtl",
-    "dsqtl",
     "sge",
 )
 

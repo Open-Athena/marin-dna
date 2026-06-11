@@ -23,7 +23,7 @@
 #   family       enum    marin_dna | conservation | alphagenome | gpn_star.
 #                        Drives parquet path + per-method filter in the library.
 #   description  string  short tag for cards + (some) inline labels.
-#   datasets     [str]   subset of {mendelian_traits, complex_traits, caqtl, dsqtl}.
+#   datasets     [str]   subset of {mendelian_traits, complex_traits, sge}.
 #   training     dict    (marin_dna only) data, params, window_size, objective.
 #   experiment   int     (optional) experiment number — for grouping.
 #   issue        url     (optional) GitHub issue tracking the experiment.
@@ -41,31 +41,31 @@
   display: phastCons (100v)
   family: conservation
   description: phastCons across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phastCons_43p
   display: phastCons (43p)
   family: conservation
   description: phastCons across 43 primates
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phastCons_470m
   display: phastCons (470m)
   family: conservation
   description: phastCons across 470 mammals
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phyloP_100v
   display: phyloP (100v)
   family: conservation
   description: phyloP across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phyloP_447m
   display: phyloP (447m)
   family: conservation
   description: phyloP across 447 mammals
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl, sge]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 # ---------------------------------------------------------------------------
 # marin_dna gLMs — evals_v2 pipeline. Registry order matches the legacy
@@ -146,7 +146,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0
   checkpoint:
     gcs: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 # Convergence-style entries (final checkpoint only here per "last checkpoint
 # per run" convention). Scored on mendelian only in the evals_v2 config.
@@ -400,7 +400,7 @@
   display: AlphaGenome
   family: alphagenome
   description: variant scorer, API
-  datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
+  datasets: [mendelian_traits, complex_traits]
 
 - id: GPN-Star-V
   display: GPN-Star (V)

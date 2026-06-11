@@ -35,8 +35,7 @@ export default {
       pages: [
         {name: "Mendelian traits", path: "/leaderboards/mendelian"},
         {name: "Complex traits", path: "/leaderboards/complex"},
-        {name: "caQTL", path: "/leaderboards/caqtl"},
-        {name: "dsQTL", path: "/leaderboards/dsqtl"},
+        {name: "Accessibility QTL", path: "/leaderboards/accessibility-qtl"},
         {name: "Saturation genome editing", path: "/leaderboards/sge"},
         {name: "Protocol: MarinDNA", path: "/protocols/marin_dna"},
         {name: "Protocol: Evo 2", path: "/protocols/evo2"},
