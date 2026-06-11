@@ -144,13 +144,35 @@ def _load_train_variants(hf_dataset: str, revision: str | None) -> pd.DataFrame:
     return df
 
 
+def _load_variants_parquet(path: str) -> pd.DataFrame:
+    """Load variants from an evals_v2 score parquet (already the train split).
+
+    Bundles the zero-shot LLR baseline (``llr_fwd``/``llr_rc``) and all variant
+    annotations, and avoids HF auth — variants come straight from S3 under the
+    instance role. Asserts the rows are all train chromosomes.
+    """
+    df = pl.read_parquet(path).to_pandas()
+    df["chrom"] = df["chrom"].astype(str)
+    assert df["chrom"].isin(TRAIN_CHROMS).all(), (
+        f"non-train chromosome in {path}: {sorted(set(df['chrom']) - set(TRAIN_CHROMS))}"
+    )
+    return df
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", required=True, help="local HF checkpoint dir")
-    p.add_argument(
-        "--hf_dataset", required=True, help="e.g. bolinas-dna/evals_mendelian_traits"
+    src = p.add_mutually_exclusive_group(required=True)
+    src.add_argument(
+        "--variants_parquet",
+        help="S3/local evals_v2 score parquet (train split; bundles the LLR baseline)",
     )
-    p.add_argument("--revision", default=None)
+    src.add_argument(
+        "--hf_dataset", help="e.g. bolinas-dna/evals_mendelian_traits (train split)"
+    )
+    p.add_argument(
+        "--revision", default=None, help="HF dataset revision (with --hf_dataset)"
+    )
     p.add_argument("--out_dir", required=True, help="local dir or s3:// prefix")
     p.add_argument("--window_size", type=int, default=255)
     p.add_argument("--genome", default=DEFAULT_GENOME)
@@ -161,7 +183,10 @@ def main() -> None:
     p.add_argument("--limit", type=int, default=None, help="smoke-test row cap")
     args = p.parse_args()
 
-    variants = _load_train_variants(args.hf_dataset, args.revision)
+    if args.variants_parquet:
+        variants = _load_variants_parquet(args.variants_parquet)
+    else:
+        variants = _load_train_variants(args.hf_dataset, args.revision)
     n = cache_variant_embeddings(
         args.checkpoint,
         variants,
