@@ -77,6 +77,7 @@ def set_style() -> None:
         style="whitegrid",
         context="notebook",
         font="DejaVu Sans",
+        font_scale=1.05,
         rc={
             "figure.dpi": 130,
             "savefig.dpi": 140,
@@ -212,68 +213,52 @@ def fig_auprc_trajectory(api: wandb.Api) -> None:
                 rows.append(
                     {
                         "step": st,
-                        "auprc": v,
+                        "AUPRC": v,
                         "se": se,
-                        "wd": wd,
+                        "weight_decay": wd,
                         "subset": _short(subset),
                     }
                 )
     df = pd.DataFrame(rows)
+    order = [_short(s) for s in CDS_SUBSETS]
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 5.0), squeeze=False)
-    handles = labels = None
-    for j, subset in enumerate(CDS_SUBSETS):
-        ax = axes[0][j]
-        sub = df[df["subset"] == _short(subset)]
-        sns.lineplot(
-            data=sub,
-            x="step",
-            y="auprc",
-            hue="wd",
-            palette=WD_CMAP,
-            hue_norm=HUE_NORM,
-            marker="o",
-            markersize=6,
-            linewidth=1.9,
-            ax=ax,
-            legend=("full" if j == 0 else False),
-        )
-        if (
-            j == 0
-        ):  # let seaborn order the quantitative-hue legend; lift it to figure level
-            handles, labels = ax.get_legend_handles_labels()
-            ax.get_legend().remove()
+    g = sns.relplot(
+        data=df,
+        x="step",
+        y="AUPRC",
+        hue="weight_decay",
+        hue_norm=HUE_NORM,
+        palette=WD_CMAP,
+        col="subset",
+        col_order=order,
+        kind="line",
+        marker="o",
+        markersize=7,
+        height=4.0,
+        aspect=1.15,
+        facet_kws={"sharey": False},
+    )
+    for subset in CDS_SUBSETS:
+        ax = g.axes_dict[_short(subset)]
         # ±1 SE band for the offline baseline only (online arms have no per-step SE)
-        b = sub[(sub["wd"] == 0.1) & (sub["se"] > 0)].sort_values("step")
+        b = df[
+            (df["subset"] == _short(subset))
+            & (df["weight_decay"] == 0.1)
+            & (df["se"] > 0)
+        ].sort_values("step")
         ax.fill_between(
             b["step"],
-            b["auprc"] - b["se"],
-            b["auprc"] + b["se"],
+            b["AUPRC"] - b["se"],
+            b["AUPRC"] + b["se"],
             color=wd_color(0.1),
             alpha=0.18,
             lw=0,
         )
         ax.axhline(BASELINE, ls=":", color="gray", lw=0.9)
-        ax.set_title(f"{_short(subset)}  (n={N_VARIANTS[subset]})", fontsize=11.5)
-        ax.set_xlabel("training step", fontsize=9.5)
-        ax.set_ylabel("Mendelian AUPRC (minus_llr_avg)" if j == 0 else "")
-    fig.legend(
-        handles,
-        labels,
-        title="weight_decay",
-        loc="upper center",
-        bbox_to_anchor=(0.5, 0.94),
-        ncol=3,
-        fontsize=10,
-    )
-    fig.suptitle(
-        "exp303 (#303) — CDS specialist Mendelian AUPRC vs training step (0.25B v4_cds, single seed)\n"
-        "WD=0.1 exp232 offline (band = ±1 SE); WD=0.3/0.5 exp303 online (post-#266 BOS-faithful, no per-step SE); dotted = 0.10 prevalence baseline",
-        fontsize=10.5,
-        y=1.0,
-    )
-    fig.tight_layout(rect=(0, 0, 1, 0.9))
-    print("wrote", _save(fig, "auprc_trajectory"))
+        ax.set_title(f"{_short(subset)}  (n = {N_VARIANTS[subset]})")
+    g.set_axis_labels("training step", "Mendelian AUPRC (minus_llr_avg)")
+    g.tight_layout()
+    print("wrote", _save(g.figure, "auprc_trajectory"))
 
 
 def fig_ll_trajectory(api: wandb.Api) -> None:
@@ -282,42 +267,43 @@ def fig_ll_trajectory(api: wandb.Api) -> None:
         d = ll_traj(api, wd)
         for _, r in d.iterrows():
             rows.append(
-                {"step": int(r["_step"]), "wd": wd, "gap": r["gap"], "func": r["func"]}
+                {
+                    "step": int(r["_step"]),
+                    "weight_decay": wd,
+                    "metric": "LL gap",
+                    "value": r["gap"],
+                }
+            )
+            rows.append(
+                {
+                    "step": int(r["_step"]),
+                    "weight_decay": wd,
+                    "metric": "LL functional",
+                    "value": r["func"],
+                }
             )
     df = pd.DataFrame(rows)
 
-    panels = [
-        ("gap", "val_cds LL gap (nats)"),
-        ("func", "val_cds LL functional (= −loss)"),
-    ]
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), squeeze=False)
-    for j, (key, ylab) in enumerate(panels):
-        ax = axes[0][j]
-        sns.lineplot(
-            data=df,
-            x="step",
-            y=key,
-            hue="wd",
-            palette=WD_CMAP,
-            hue_norm=HUE_NORM,
-            marker="o",
-            markersize=5,
-            linewidth=1.8,
-            ax=ax,
-            legend=("full" if j == 0 else False),
-        )
-        if j == 0:
-            ax.get_legend().set_title("weight_decay")
-        ax.set_title(ylab, fontsize=11)
-        ax.set_xlabel("training step", fontsize=9.5)
-        ax.set_ylabel("")
-    fig.suptitle(
-        "exp303 (#303) — val_cds LL trajectory by weight_decay (LL = −loss; val = train-set, single run/arm)",
-        fontsize=10.5,
-        y=1.02,
+    g = sns.relplot(
+        data=df,
+        x="step",
+        y="value",
+        hue="weight_decay",
+        hue_norm=HUE_NORM,
+        palette=WD_CMAP,
+        col="metric",
+        col_order=["LL gap", "LL functional"],
+        kind="line",
+        marker="o",
+        markersize=6,
+        height=4.2,
+        aspect=1.2,
+        facet_kws={"sharey": False},
     )
-    fig.tight_layout()
-    print("wrote", _save(fig, "ll_trajectory"))
+    g.set_titles("{col_name}")
+    g.set_axis_labels("training step", "val_cds log-likelihood (nats, = −loss)")
+    g.tight_layout()
+    print("wrote", _save(g.figure, "ll_trajectory"))
 
 
 def table_endpoints(api: wandb.Api) -> None:
