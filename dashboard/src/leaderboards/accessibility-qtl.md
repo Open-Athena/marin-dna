@@ -50,24 +50,30 @@ const groupOf = (g) => GROUP[g] ?? GROUP.other;
 // entry until a gLM is actually scored (keeps the canonical GROUP order).
 const presentGroups = Object.keys(GROUP).filter((k) => rows.some((r) => r.group === k));
 
+// Per-assay train counts come straight from the loaded parquet (n is identical across
+// models within a scope), so the Dataset card can't drift from the leaderboard's own
+// `n=` headers. Returns the "<pos> significant QTLs / <total> variants (x% positive)"
+// blurb, or "—" if an assay is absent.
+const assayCountStr = (scope) => {
+  const r = rows.find((x) => x.scope === scope);
+  if (!r) return "—";
+  return `${r.n_pos.toLocaleString("en-US")} significant QTLs / ${r.n_rows.toLocaleString("en-US")} variants (${((100 * r.n_pos) / r.n_rows).toFixed(1)}% positive)`;
+};
+
 // Inlined dataset provenance for the card (these two HF datasets are now read only by
-// this page; #310 build, #311 metrics). Counts are the train/odd-chroms split shown.
+// this page; #310 build, #311 metrics) — variant counts come from the parquet above.
 const DATASETS = {
   caqtl: {
     name: "caQTL — chromatin accessibility (ATAC)",
     hf_repo: "bolinas-dna/evals_caqtl",
     hf_commit: "27a24296",
     study: "DeGorter et al. 2023",
-    n_pos: 3173,
-    n_rows: 38616,
   },
   dsqtl: {
     name: "dsQTL — DNase-I sensitivity",
     hf_repo: "bolinas-dna/evals_dsqtl",
     hf_commit: "4a3bf152",
     study: "Degner et al. 2012 (hg19→GRCh38)",
-    n_pos: 309,
-    n_rows: 15018,
   },
 };
 ```
@@ -83,8 +89,7 @@ display(html`<div class="card aqtl-card">
         <td><b>${key}</b></td>
         <td><a href=${`https://huggingface.co/datasets/${d.hf_repo}/tree/${d.hf_commit}`}><code>${d.hf_repo} @ ${d.hf_commit}</code></a></td>
         <td>${d.study}</td>
-        <td>${d.n_pos.toLocaleString("en-US")} significant QTLs / ${d.n_rows.toLocaleString("en-US")} variants
-            (${(100 * d.n_pos / d.n_rows).toFixed(1)}% positive)</td>
+        <td>${assayCountStr(key)}</td>
       </tr>`)}
     </tbody>
   </table>
@@ -194,7 +199,7 @@ function aqtlHeatmap(scope) {
 <div class="aqtl-legend">
   <span>Cells are the metric value; color ranks models within each column (own 0→max scale — the two metrics are not on a shared scale). Click a header to sort; hover for ± SE.</span>
   <span class="aqtl-grouplegend">
-    ${presentGroups.map((k) => groupOf(k)).map((g) => html`<span class="aqtl-glab"><span class="aqtl-swatch" style=${`background:${g.color}`}></span>${g.label}</span>`)}
+    ${presentGroups.map((k) => { const g = groupOf(k); return html`<span class="aqtl-glab"><span class="aqtl-swatch" style=${`background:${g.color}`}></span>${g.label}</span>`; })}
   </span>
 </div>
 

@@ -351,28 +351,25 @@ def macro_average_metrics(
     k = len(datasets)
     assert k >= 1, "need at least one dataset to average"
     sub = metrics.filter(pl.col("dataset").is_in(datasets))
-    present = sub.group_by("model", "split").agg(
-        pl.col("dataset").n_unique().alias("_nd")
+    # One pass: aggregate the metrics and the per-group dataset count together, then
+    # assert completeness before returning (an incomplete group's wrong mean never escapes).
+    macro = sub.group_by("model", "split").agg(
+        pl.col("dataset").n_unique().alias("_nd"),
+        pl.col("causality_auPRC").mean().alias("causality_auPRC"),
+        (pl.col("causality_se").pow(2).sum().sqrt() / k).alias("causality_se"),
+        pl.col("direction_pearson").mean().alias("direction_pearson"),
+        (pl.col("direction_pearson_se").pow(2).sum().sqrt() / k).alias(
+            "direction_pearson_se"
+        ),
+        pl.col("n_rows").sum().alias("n_rows"),
+        pl.col("n_pos").sum().alias("n_pos"),
     )
-    incomplete = present.filter(pl.col("_nd") != k)
+    incomplete = macro.filter(pl.col("_nd") != k)
     assert incomplete.height == 0, (
         f"macro-average needs all of {sorted(datasets)} per (model, split); incomplete "
         f"groups: {incomplete.select('model', 'split').rows()}"
     )
-    return (
-        sub.group_by("model", "split")
-        .agg(
-            pl.col("causality_auPRC").mean().alias("causality_auPRC"),
-            (pl.col("causality_se").pow(2).sum().sqrt() / k).alias("causality_se"),
-            pl.col("direction_pearson").mean().alias("direction_pearson"),
-            (pl.col("direction_pearson_se").pow(2).sum().sqrt() / k).alias(
-                "direction_pearson_se"
-            ),
-            pl.col("n_rows").sum().alias("n_rows"),
-            pl.col("n_pos").sum().alias("n_pos"),
-        )
-        .with_columns(pl.lit("macro").alias("dataset"))
-    )
+    return macro.drop("_nd").with_columns(pl.lit("macro").alias("dataset"))
 
 
 def assemble_benchmark_rows(metrics: pl.DataFrame) -> pl.DataFrame:
