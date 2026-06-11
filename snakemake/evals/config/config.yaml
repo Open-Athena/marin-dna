@@ -107,17 +107,22 @@ complex_traits:
   pip_pos_threshold: 0.9
   pip_neg_threshold: 0.01
 
-# ----- DART-Eval caQTL / dsQTL (Task 5 variant-effect-prediction) -----
-# Synapse FileEntity IDs (downloaded over HTTP with a Synapse PAT; export
-# SYNAPSE_AUTH_TOKEN). caqtl = Afr.CaQTLS.tsv (DeGorter et al. 2023, GRCh38);
-# dsqtl = yoruban.dsqtls.benchmarking.tsv (Degner et al. 2012, hg19 -> lifted).
+# ----- caQTL / dsQTL accessibility-QTL datasets (supervised official-metrics, #310) -----
+# Standardized ChromBPNet benchmark files (Synapse syn64126763 children; #262), the
+# canonical variant sets used by both the ChromBPNet and AlphaGenome papers. Each
+# FileEntity is a zip wrapping one .tsv (downloaded over HTTP with a Synapse PAT;
+# export SYNAPSE_AUTH_TOKEN). caqtl = African caQTLs (hg38); dsqtl = Yoruba dsQTLs
+# (hg19 -> lifted). IDs mirror STANDARDIZED_QTL in the chrombpnet_qtl library module.
+chrombpnet_qtl:
+  caqtl_synapse_id: syn64126781
+  dsqtl_synapse_id: syn64126779
+
+# ----- DART-Eval Task 3 cell-type peaks (#293) -----
+# Synapse FileEntity ID (Synapse PAT; export SYNAPSE_AUTH_TOKEN). DART-Eval's
+# top-5,000-per-cell-type `input_data/top_5000_deseq_peaks.tsv` (25,000 x 500 bp
+# peaks, 5,000 balanced per cell line) — the subset they feed their zero-shot
+# clustering / UMAP. Synapse project syn60581042.
 dart_eval:
-  caqtl_synapse_id: syn60756043
-  dsqtl_synapse_id: syn60756039
-  # Task 3 cell-type peak dataset (#293): DART-Eval's top-5,000-per-cell-type
-  # `input_data/top_5000_deseq_peaks.tsv` (25,000 x 500 bp peaks, 5,000 balanced
-  # per cell line) — the subset they feed their zero-shot clustering / UMAP.
-  # Synapse project syn60581042.
   task3_synapse_id: syn62161401
 
 # ----- SGE (saturation genome editing) variant-effect dataset (issue #289) -----

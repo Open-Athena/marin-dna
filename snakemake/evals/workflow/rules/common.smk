@@ -103,6 +103,31 @@ rule download_genome:
         "wget {params.url} -O {output}"
 
 
+rule stage_genome:
+    """Stage the canonical bgzipped GRCh38 reference (+ .fai/.gzi indexes) onto local
+    disk so check_ref_alt reads from disk instead of doing a per-variant S3 round-trip
+    (~100x faster on ~110k variants). Downloaded once via boto3 (the s3 storage
+    plugin's dependency — no s3fs needed) and kept local via local() so snakemake
+    doesn't round-trip it back to storage. pyfaidx needs the .fai (and, for BGZF, the
+    .gzi) as same-named siblings. Shared by the chrombpnet_qtl and sge builds."""
+    output:
+        fa=local("results/genome_staged/GRCh38.fa.gz"),
+        fai=local("results/genome_staged/GRCh38.fa.gz.fai"),
+        gzi=local("results/genome_staged/GRCh38.fa.gz.gzi"),
+    params:
+        src=config["canonical_genome_path"],
+    run:
+        import boto3
+        from urllib.parse import urlparse
+
+        u = urlparse(params.src)
+        bucket, key = u.netloc, u.path.lstrip("/")
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, output.fa)
+        s3.download_file(bucket, key + ".fai", output.fai)
+        s3.download_file(bucket, key + ".gzi", output.gzi)
+
+
 rule split_dataset_by_chrom:
     input:
         "results/dataset_unsplit/{dataset}.parquet",

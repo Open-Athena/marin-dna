@@ -17,8 +17,8 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 |---|---|---|---|
 | `mendelian_traits` | Mendelian disease pathogenic SNVs | HGMD ∪ OMIM ∪ Smedley et al. 2016 (de-duped, AF<0.001) | gnomAD common (AN≥25k, AF>0.001) |
 | `complex_traits` | UKBB fine-mapped complex-trait variants | SuSiE+FINEMAP `max(PIP across the traits where this variant was fine-mapped) > 0.9` | `max(PIP) < 0.01` AND no SuSiE/FINEMAP combine-step null PIP among those traits (`label_variants_by_pip(use_null_pip_guard=True)`) |
-| `caqtl` | DART-Eval African caQTLs (ATAC), GRCh38 | Significant caQTLs in peaks | Control variants in peaks (no matching) |
-| `dsqtl` | DART-Eval Yoruban dsQTLs (DNase), hg19→GRCh38 | Significant dsQTLs in peaks | Control variants in peaks (no matching) |
+| `caqtl` | African caQTLs (ATAC) — standardized ChromBPNet benchmark, GRCh38 | Significant caQTLs (−log10p>5) | Control variants (−log10p<3), no matching |
+| `dsqtl` | Yoruba dsQTLs (DNase) — standardized ChromBPNet benchmark, hg19→GRCh38 | Significant dsQTLs (−log10p>5) | Control variants (−log10p<3), no matching |
 | `sge` | Saturation genome editing function scores (12 genes; #289, #297) | — *(no binary label: a continuous experimental function score per SNV, plus a calibrated `abnormal`/`intermediate`/`normal` class)* | — |
 | `dart_task3` | DART-Eval Task 3 cell-type ATAC peaks — 500 bp intervals, **not variants** (#293) | — *(no pos/neg: 5-class cell-type label — GM12878 / H1ESC / HEPG2 / IMR90 / K562)* | — |
 
@@ -33,49 +33,58 @@ for the online lm_eval VEP scorer to average per variant (#179, #175 conclusion 
 `snakemake/analysis/evals_v2/`, which already does FWD+RC averaging in the
 batched VEP path.
 
-### DART-Eval caQTL / dsQTL
+### caQTL / dsQTL accessibility-QTL benchmarks
 
-`caqtl` and `dsqtl` are the [DART-Eval](https://github.com/kundajelab/DART-Eval)
-Task-5 chromatin-accessibility QTL benchmarks, brought in to give them
-train/test splits (DART-Eval ships none for this task — see issue #139).
+`caqtl` and `dsqtl` are the **standardized** ChromBPNet accessibility-QTL
+benchmarks (Synapse [`syn64126763`](https://www.synapse.org/Synapse:syn64126763)
+children) — the canonical variant sets used by *both* the ChromBPNet and
+AlphaGenome papers for the supervised official-metrics protocol (issues #309 /
+#310 / #262). They **replace** the earlier DART-Eval-derived `caqtl`/`dsqtl`.
 Unlike the two matched datasets above they are **not matched and not
-subsampled**: every significant QTL (positive) and control variant (negative)
-within accessible peaks is kept at its natural ratio (≈1:11 for caQTL, ≈1:48
-for dsQTL). The `consequence*` and `distance_*` columns are added as
-**reference annotations only** — they are not used to filter or match. The signed study `effect` is oriented to the
-`alt` allele (positive ⇒ alt increases accessibility, matching an alt-vs-ref /
-LLR model score; sign-flipped where ref/alt were swapped to the reference), and
-`effect_size` is its unsigned magnitude (`|effect|`); caQTL additionally carries
-the raw `pval` and `se` for the record. For dsQTL `effect`/`effect_size` are
-present for the significant variants only (controls have no measured effect).
+subsampled**: every significant QTL (positive, −log10p>5) and control variant
+(negative, −log10p<3; the ambiguous 3–5 middle is dropped via `var.isused`) is
+kept at its natural ratio.
 
-Evaluation follows DART-Eval Task 5 / ARSENAL, with the two metrics computed
-over **different variant sets**: a binary **AUROC/AUPRC over all variants**
-(significant QTLs vs controls, via `label`), and a **Pearson correlation over
-the positive variants only** (a model's signed alt-vs-ref score vs the signed
-`effect`). The dataset cards document this.
+The schema is minimal — `chrom, pos, ref, alt, label, effect` plus the papers'
+**precomputed per-variant baseline scores** (`chrombpnet_atac_{ips,logfc}`,
+`chrombpnet_dnase_{ips,logfc}`, `enformer_dnase_local_logfc`), carried through so
+the ChromBPNet and Enformer baselines need no model run downstream. The signed
+study `effect` and every signed score column are oriented to the `alt` allele
+(positive ⇒ alt increases accessibility; sign-flipped together where `check_ref_alt`
+swaps ref/alt to the reference, so the carried baselines stay aligned). `effect`
+is present for the significant variants; controls may have no measured effect.
 
-- **caqtl** — African caQTLs (DeGorter et al. 2023), Synapse `syn60756043`
-  (`Afr.CaQTLS.tsv`). Native **GRCh38**.
-- **dsqtl** — Yoruban dsQTLs (Degner et al. 2012), Synapse `syn60756039`
-  (`yoruban.dsqtls.benchmarking.tsv`). **hg19**, lifted to GRCh38 via
-  `lift_hg19_to_hg38`.
+Evaluation follows the ChromBPNet/AlphaGenome protocol (#262), two metrics over
+**different variant sets**: **causality** — AUPRC over *all* variants on `|score|`
+(significant QTLs vs controls), and **direction** — Pearson over the *positive*
+variants only (a model's signed alt-vs-ref score vs the signed `effect`).
+Chromosome subsets (all / AlphaGenome test {3,6,9,12,16,18,19,21} / our odd-even
+train/test) are a **scoring-time slice** of the full variant set, not baked into
+the dataset; the metric is `compute_supervised_qtl_metrics`. The dataset cards
+document this.
 
-These two skip the matching pipeline entirely: `dart_eval_dataset_unsplit` (in
-`workflow/rules/dart_eval.smk`) parses + annotates the raw TSV straight into
+- **caqtl** — African caQTLs (DeGorter et al. 2023), Synapse `syn64126781`.
+  Native **GRCh38**.
+- **dsqtl** — Yoruba dsQTLs (Degner et al. 2012), Synapse `syn64126779`.
+  **hg19**, lifted to GRCh38 via `lift_hg19_to_hg38`.
+
+These skip the matching pipeline entirely: `chrombpnet_qtl_dataset_unsplit` (in
+`workflow/rules/chrombpnet_qtl.smk`, building via
+`marin_dna.pipelines.evals.chrombpnet_qtl.build_qtl_dataset`) writes
 `results/dataset_unsplit/{caqtl,dsqtl}.parquet`, which the generic
-`split_dataset_by_chrom` rule then splits. They have **no** `results/qc/`
-artifact (no matching to diagnose).
+`split_dataset_by_chrom` rule then splits odd/even. They have **no**
+`results/qc/` artifact (no matching to diagnose).
 
-Building them needs **Synapse auth**: the raw TSVs live only on Synapse, so
-create a free Synapse account + a [Personal Access Token](https://www.synapse.org/#!PersonalAccessTokens:)
-(scopes: View, Download) and export it — the download is plain HTTPS via
-`curl`, no `synapseclient` needed. (AWS credentials with S3 read access are
-also required, as for the rest of the pipeline — see [Storage](#storage).)
+Building them needs **Synapse auth**: the standardized files live only on
+Synapse, so create a free Synapse account + a [Personal Access Token](https://www.synapse.org/#!PersonalAccessTokens:)
+(scopes: View, Download) and export it as `SYNAPSE_AUTH_TOKEN` — the download is
+plain HTTPS (each FileEntity is a zip wrapping one `.tsv`), no `synapseclient`
+needed. (AWS credentials with S3 read access are also required, as for the rest
+of the pipeline — see [Storage](#storage).)
 
-The `dart_eval_stage_genome` rule downloads the GRCh38 reference (+ `.fai`/`.gzi`
-indexes) to local disk once via boto3, so `check_ref_alt` reads from disk
-rather than doing a per-variant S3 round-trip.
+The `stage_genome` rule (in `common.smk`) downloads the GRCh38 reference (+
+`.fai`/`.gzi` indexes) to local disk once via boto3, so `check_ref_alt` reads
+from disk rather than doing a per-variant S3 round-trip.
 
 ```bash
 export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
@@ -397,7 +406,8 @@ Top-level keys:
 | `datasets` | Which datasets `rule all` builds + uploads. |
 | `mendelian_traits.*` | HGMD URL, Smedley URL, ClinVar release pin, submission summary date, AF threshold. |
 | `complex_traits.*` | Fine-mapping repo, LD-score S3 path, PIP thresholds. |
-| `dart_eval.*` | Synapse FileEntity IDs for the caQTL / dsQTL TSVs. |
+| `chrombpnet_qtl.*` | Synapse FileEntity IDs for the standardized caQTL / dsQTL benchmark files. |
+| `dart_eval.task3_synapse_id` | Synapse FileEntity ID for the DART-Eval Task 3 cell-type peaks. |
 
 `config/complex_traits.csv` lists the 119 UKBB traits used for `complex_traits`.
 

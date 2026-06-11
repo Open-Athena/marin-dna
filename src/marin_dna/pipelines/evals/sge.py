@@ -947,8 +947,8 @@ def annotate_sge_variants(
     HIGH-impact ``exclude_consequences`` drop + coarse ``consequence_group`` /
     ``subset`` grouping + optional group allowlist, with **no** matching or subsampling.
 
-    Mirrors :func:`marin_dna.pipelines.evals.dart_eval.annotate_variants` but (a)
-    drops ``exclude_consequences`` (the QTL path keeps them; SGE drops them), (b)
+    Like a variant-effect curation pass (lift + ref/alt + consequences) but (a)
+    drops ``exclude_consequences`` (SGE drops the HIGH-impact ones), (b)
     carries no signed ``effect`` (SGE has a direction-tied function score, not a
     QTL effect), and (c) **asserts zero ref/alt swaps**: an SGE function score is
     tied to the ref->alt substitution as the author defined it, so a swap (author
@@ -1022,8 +1022,8 @@ def annotate_sge_variants(
         "score is tied to ref->alt, so a swap signals a coordinate/strand/build "
         "mismatch, not a benign re-orientation"
     )
-    # Anchor retention to the ORIGINAL input (like dart_eval.annotate_variants), not the
-    # post-lift count: a near-total liftover loss makes n_lift tiny, so `n_ref >= 0.9 *
+    # Anchor retention to the ORIGINAL input, not the post-lift count: a near-total
+    # liftover loss makes n_lift tiny, so `n_ref >= 0.9 *
     # n_lift` would pass vacuously (0 >= 0) instead of catching the collapse.
     assert n_ref >= 0.5 * n_in, (
         f"check_ref_alt + liftover kept only {n_ref}/{n_in} variants for {name!r} — "
