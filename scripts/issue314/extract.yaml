@@ -1,0 +1,64 @@
+# SkyPilot task: extract + cache {fwd,rc}x{ref,alt} per-token variant embeddings
+# (issue #314), last layer only, via the shared HF runner. Pulls the checkpoint
+# from the evals_v2 S3 cache (instance-role creds — no gcloud/ADC), reads the
+# GRCh38 reference from S3, sources variants (+ the zero-shot LLR baseline) from
+# an evals_v2 score parquet, and writes float16 emb shards to OUT_DIR on S3.
+#
+# Smoke:  sky launch scripts/issue314/extract.yaml -c vep-emb-smoke --env LIMIT=64 -y
+# Full:   sky launch scripts/issue314/extract.yaml -c vep-emb-135 -y
+name: vep-emb-314
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1        # 24 GB Ampere, bf16-capable (matches evals_v2)
+    disk_size: 100              # checkpoint (~4 GB) + transient; shards go to S3
+    use_spot: false            # spot is IAM-blocked on this account (on-demand only)
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    CKPT_S3: "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/mix-v0.9-p1B-i24-exp135-m5.1-step-59158"
+    VARIANTS_PARQUET: "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet"
+    OUT_DIR: "s3://oa-bolinas/analysis/issue314/embeddings/exp135-1B-m5.1/mendelian_traits"
+    WINDOW: "255"
+    BATCH: "32"
+    CHUNK: "512"               # rows/shard; bounds host RAM (~2 GB/chunk at D=1920)
+    LIMIT: ""                  # set e.g. 64 for the smoke; empty = full dataset
+
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true   # no wandb on a fresh inference node
+
+    # Localize the checkpoint from the S3 cache (instance role; aws CLI is absent
+    # on sky nodes, so pull via s3fs). Single-line python -c avoids the YAML
+    # block-scalar heredoc gotcha.
+    rm -rf ckpt && mkdir -p ckpt
+    uv run --group genome-s3 python -c "
+    import os, s3fs
+    fs = s3fs.S3FileSystem()
+    for f in fs.ls(os.environ['CKPT_S3']):
+        name = f.rsplit('/', 1)[-1]
+        if name.startswith('.'):
+            continue
+        fs.get(f, 'ckpt/' + name)
+        print('pulled', name)
+    "
+
+    LIMIT_ARG=""; [ -n "${LIMIT}" ] && LIMIT_ARG="--limit ${LIMIT}"
+    uv run --group genome-s3 python -m marin_dna.pipelines.evals.variant_embedding \
+        --checkpoint ckpt \
+        --variants_parquet "${VARIANTS_PARQUET}" \
+        --out_dir "${OUT_DIR}" \
+        --window_size "${WINDOW}" \
+        --batch_size "${BATCH}" \
+        --chunk_size "${CHUNK}" \
+        ${LIMIT_ARG}
