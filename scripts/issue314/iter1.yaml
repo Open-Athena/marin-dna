@@ -1,9 +1,19 @@
-# SkyPilot task: run the iter1 representation sweep on an existing cluster
-# (issue #314). CPU-only sklearn over the streamed embedding cache; reuses the
-# extraction cluster's warm env. The table prints to the job log.
+# SkyPilot task: iter1 representation sweep on a dedicated CPU box (issue #314).
+# Probing is CPU-bound sklearn over the streamed embedding cache — no GPU. The
+# box streams the 63 GB cache from S3 and pools one shard at a time (RAM stays
+# well under the 32 GB here). The result table prints to the job log.
 #
-#   sky exec vep-emb-smoke scripts/issue314/iter1.yaml --env SUBSET=missense_variant
-name: vep-iter1
+#   sky launch scripts/issue314/iter1.yaml -c vep-probe -y --env SUBSET=missense_variant
+name: vep-probe
+
+resources:
+    infra: aws/us-east-2
+    cpus: 8+
+    memory: 32+
+    disk_size: 50
+    use_spot: false            # spot is IAM-blocked on this account
+    labels:
+        project: dna
 
 workdir: .
 
@@ -11,9 +21,14 @@ envs:
     CACHE: "s3://oa-bolinas/analysis/issue314/embeddings/exp135-1B-m5.1/mendelian_traits"
     SUBSET: "missense_variant"
 
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
 run: |
     set -euxo pipefail
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync --frozen --group genome-s3
     uv run --group genome-s3 python scripts/issue314/iter1_representation_sweep.py \
         --cache "${CACHE}" --subset "${SUBSET}"
