@@ -9,11 +9,12 @@ Public, version-controlled **benchmarks** and **interpretation** for genomic lan
 
 ## Benchmarks
 
-Matched-pair variant-effect leaderboards:
+Variant-effect leaderboards:
 
 - [**Mendelian traits**](./leaderboards/mendelian) — OMIM ∪ HGMD ∪ Smedley pathogenic SNVs (AF < 0.1%) vs gnomAD AF > 0.1%, 1:9 matched on consequence + chrom + continuous distance features. Sort axis: Macro Avg.
 - [**Complex traits**](./leaderboards/complex) — UKBB fine-mapped variants (`max(PIP) > 0.9`) vs non-fine-mapped, 1:9 matched on consequence + chrom + distance + MAF. Sort axis: Global.
-- [**caQTL**](./leaderboards/caqtl) / [**dsQTL**](./leaderboards/dsqtl) — DART-Eval Task-5 chromatin-accessibility / DNase-I-sensitivity QTLs (no matching; AUPRC / Pearson / Spearman).
+- [**Accessibility QTL**](./leaderboards/accessibility-qtl) — supervised caQTL (ATAC) + dsQTL (DNase-I) official metrics (causality auPRC + direction Pearson), with a Macro / caQTL / dsQTL scope selector. AlphaGenome, ChromBPNet, Enformer (+ future fine-tuned gLMs).
+- [**Saturation genome editing**](./leaderboards/sge) — MaveDB SGE per-variant function scores (12 genes; missense + splicing); AUPRC for the ClinGen/ExCALIBR-calibrated abnormal-vs-normal call, computed per accession then macro-averaged. Gene-scope selector.
 
 A model family's AUPRC depends on which score you compute it from — the **protocol** pages compare scoring approaches head-to-head on the same models and dataset:
 

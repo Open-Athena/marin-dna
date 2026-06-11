@@ -18,19 +18,8 @@ _METRIC = (
     "AUPRC is 0.10."
 )
 
-# QTL (caqtl/dsqtl) use the `qtl_global` eval path — no matching, no subsets —
-# so the metric story is different from the matched-pair `_METRIC` above
-# (which assumes 1:9 clustering and a 0.10 baseline). Pick one metric at a time
-# via the selector on the page.
-_QTL_METRIC = (
-    "Pick a metric with the selector above. **AUPRC** ± bootstrap SE — over "
-    "*all* variants (significant QTLs vs unmatched control variants); the "
-    "random baseline is the positive rate (not 0.10), which differs per "
-    "dataset. **Pearson r** / **Spearman ρ** ± bootstrap SE — correlation of "
-    "the variant-effect score with the measured `effect_size`, over the "
-    "*positives only*. The color scale and forest-plot axis rescale to the "
-    "selected metric."
-)
+# caQTL/dsQTL moved to the supervised official-metrics Accessibility QTL page (#312),
+# which carries its own dataset metadata — so no caqtl/dsqtl entries here anymore.
 
 _SGE_METRIC = (
     "**AUPRC** ± bootstrap SE for the ClinGen/ExCALIBR `calibrated_class` "
@@ -78,40 +67,6 @@ DATASETS = {
         "notes": [
             "Per-subset columns exclude subsets with fewer than 30 positives (`n < 300` under 1:9 matching). Most consequence subsets in this dataset fall below that threshold — distal and missense are the only ones reported.",
             "Sorted by Global by default. Score column is `abs_llr_avg` (magnitude) rather than `minus_llr_avg` — for complex-trait fine-mapped variants we don't have a pathogenicity direction, only that the variant is causal.",
-        ],
-    },
-    "caqtl": {
-        "name": "caQTL (chromatin accessibility)",
-        "hf_repo": "bolinas-dna/evals_caqtl",
-        "hf_commit": "9d004a21",
-        "score_type": "abs_llr_avg",
-        "issue": "https://github.com/Open-Athena/marin-dna/issues/214",
-        "split": "train",
-        "positives": "DART-Eval Task-5 significant chromatin-accessibility QTLs (3,173 of 41,382 variants; DeGorter et al. 2023)",
-        "negatives": "DART-Eval Task-5 control variants (non-significant)",
-        "matching": "none — variants scored as-is (no 1:9 matching, no subsetting)",
-        "metric": _QTL_METRIC,
-        "notes": [
-            "DART-Eval Task-5 caQTL benchmark (`eval_protocol: qtl_global`). No consequence subsets and no matched negatives, so the leaderboard is a single selected-metric column (+ forest plot) rather than the per-consequence heatmap.",
-            "Random-baseline AUPRC is the positive rate ≈ 0.077 (3,173 / 41,382). AUPRC is over all variants; Pearson/Spearman over the 3,173 positives only.",
-            "MarinDNA defaults to NucDep (Jensen-Shannon divergence, `jsd_avg`) here — a symmetric distributional distance suited to unsigned QTL effects; the LLR magnitude protocol (`abs_llr_avg`) is one click away via the protocol toggle.",
-        ],
-    },
-    "dsqtl": {
-        "name": "dsQTL (DNase I sensitivity)",
-        "hf_repo": "bolinas-dna/evals_dsqtl",
-        "hf_commit": "b7e02a07",
-        "score_type": "abs_llr_avg",
-        "issue": "https://github.com/Open-Athena/marin-dna/issues/214",
-        "split": "train",
-        "positives": "DART-Eval Task-5 significant DNase-I-sensitivity QTLs (309 of 15,018 variants; Degner et al. 2012, hg19→GRCh38)",
-        "negatives": "DART-Eval Task-5 control variants (non-significant)",
-        "matching": "none — variants scored as-is (no 1:9 matching, no subsetting)",
-        "metric": _QTL_METRIC,
-        "notes": [
-            "DART-Eval Task-5 dsQTL benchmark (`eval_protocol: qtl_global`). Single selected-metric column (+ forest plot); no subsets, no matched negatives.",
-            "Random-baseline AUPRC is the positive rate ≈ 0.021 (309 / 15,018). AUPRC is over all variants; Pearson/Spearman over the 309 positives only — the small positive count makes the correlation SEs wide (~0.06).",
-            "MarinDNA defaults to NucDep (Jensen-Shannon divergence, `jsd_avg`) here — a symmetric distributional distance suited to unsigned QTL effects; the LLR magnitude protocol (`abs_llr_avg`) is one click away via the protocol toggle.",
         ],
     },
     "sge": {
