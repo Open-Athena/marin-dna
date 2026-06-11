@@ -121,6 +121,16 @@ class TestLoadStandardizedQtl:
         with pytest.raises(AssertionError, match="positives with NaN effect"):
             load_standardized_qtl(path, STANDARDIZED_QTL["caqtl"])
 
+    def test_non_snv_raises(self, tmp_path: Path) -> None:
+        # A multi-base allele on a kept (var.isused) row must fail loud, not be
+        # silently dropped downstream by check_ref_alt's single-base lookup.
+        raw = _caqtl_raw().with_columns(
+            pl.Series("var.allele2", ["AT", "G", "A"])  # row 0 (kept) is an indel
+        )
+        path = _write_tsv(raw, tmp_path / "caqtl.tsv")
+        with pytest.raises(AssertionError, match="non-SNV"):
+            load_standardized_qtl(path, STANDARDIZED_QTL["caqtl"])
+
 
 class _FakeGenome:
     """Callable genome stub: returns a preset reference base per (chrom, 1-based pos).

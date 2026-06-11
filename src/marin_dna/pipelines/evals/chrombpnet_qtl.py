@@ -40,6 +40,7 @@ import polars as pl
 
 from marin_dna.data.genome import Genome
 from marin_dna.pipelines.evals.variants import (
+    NUCLEOTIDES,
     check_ref_alt,
     filter_chroms,
     lift_hg19_to_hg38,
@@ -202,6 +203,16 @@ def load_standardized_qtl(path: str, spec: StandardizedQTL) -> pl.DataFrame:
             )
     out = df.select(out_cols)
     assert out["label"].dtype == pl.Boolean, f"{spec.name}: label is not Boolean"
+    # SNV-only: the standardized benchmark is SNVs only. Fail loud on any indel /
+    # multi-base allele rather than letting check_ref_alt drop it silently later
+    # (a single-base genome lookup can never match a multi-base allele).
+    n_non_snv = out.filter(
+        ~(pl.col("ref").is_in(NUCLEOTIDES) & pl.col("alt").is_in(NUCLEOTIDES))
+    ).height
+    assert n_non_snv == 0, (
+        f"{spec.name}: {n_non_snv} non-SNV variants (ref/alt not a single A/C/G/T) "
+        "— the standardized benchmark should be SNV-only"
+    )
     # Every positive must carry a measured effect (controls legitimately may not).
     # CSV-empty floats read as null, not NaN, so check both.
     eff_pos = out.filter(pl.col("label")).get_column("effect")
@@ -271,8 +282,16 @@ def build_qtl_dataset(name: str, tsv_path: str, genome: Genome) -> pl.DataFrame:
         lift_cov = V.height / n_used
         assert lift_cov >= 0.999, f"{name}: lift coverage {lift_cov:.4f} < 0.999"
     # Liftover can map to alt/patch contigs absent from the primary assembly;
-    # restrict to canonical {1..22,X,Y} before the genome lookup.
+    # restrict to canonical {1..22,X,Y} before the genome lookup. Assert the drop is
+    # tiny — a large loss here (e.g. most variants lifted to non-canonical contigs)
+    # would otherwise be silent, falling between the lift- and orient-coverage checks.
+    n_pre_chrom = V.height
     V = V.pipe(filter_chroms)
+    chrom_cov = V.height / n_pre_chrom
+    assert chrom_cov >= 0.999, (
+        f"{name}: filter_chroms coverage {chrom_cov:.4f} < 0.999 "
+        "(variants on non-canonical contigs?)"
+    )
     n_before_orient = V.height
 
     # Genome-orient: check_ref_alt swaps ref<->alt where allele1 != reference. Flip
@@ -288,8 +307,8 @@ def build_qtl_dataset(name: str, tsv_path: str, genome: Genome) -> pl.DataFrame:
 
     print(
         f"[chrombpnet_qtl {name}] used={n_used} oriented={V.height} "
-        f"(orient_cov={orient_cov:.4f}) ref_alt_swapped={n_swapped} "
-        f"signed_cols_flipped={flipped}"
+        f"(chrom_cov={chrom_cov:.4f} orient_cov={orient_cov:.4f}) "
+        f"ref_alt_swapped={n_swapped} signed_cols_flipped={flipped}"
     )
 
     # Final invariants.
