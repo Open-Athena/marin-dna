@@ -1,0 +1,19 @@
+# SkyPilot task: run the iter1 representation sweep on an existing cluster
+# (issue #314). CPU-only sklearn over the streamed embedding cache; reuses the
+# extraction cluster's warm env. The table prints to the job log.
+#
+#   sky exec vep-emb-smoke scripts/issue314/iter1.yaml --env SUBSET=missense_variant
+name: vep-iter1
+
+workdir: .
+
+envs:
+    CACHE: "s3://oa-bolinas/analysis/issue314/embeddings/exp135-1B-m5.1/mendelian_traits"
+    SUBSET: "missense_variant"
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+    uv run --group genome-s3 python scripts/issue314/iter1_representation_sweep.py \
+        --cache "${CACHE}" --subset "${SUBSET}"
