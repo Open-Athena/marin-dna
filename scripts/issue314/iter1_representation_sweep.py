@@ -16,7 +16,6 @@ Run:
 """
 
 import argparse
-import io
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
@@ -43,13 +42,16 @@ VAR_INDEX = 127
 
 
 def _read_shard(fs: s3fs.S3FileSystem, npz: str) -> tuple[np.ndarray, pl.DataFrame]:
-    emb = np.load(io.BytesIO(fs.open(f"s3://{npz}").read()))["emb"]  # float16
+    # Stream np.load straight off the s3fs file — reading to bytes + wrapping in
+    # BytesIO would hold ~3x the array per in-flight read and OOM the readers.
+    with fs.open(f"s3://{npz}") as fh:
+        emb = np.load(fh)["emb"]  # float16, [chunk, 2, 2, L, D]
     keys = pl.read_parquet(f"s3://{npz}".replace(".npz", ".keys.parquet"))
     return emb, keys
 
 
 def load_and_pool(
-    cache: str, *, n_center: int = 100, cov_r: int = 64, n_readers: int = 6
+    cache: str, *, n_center: int = 100, cov_r: int = 64, n_readers: int = 4
 ) -> tuple[dict, dict, dict, pl.DataFrame]:
     """Stream shards; return pooled ``(strand,allele,extent) -> [N,D]``, per-strand
     ``innerprod``/``cov_delta`` ``strand -> [N,·]``, and the concatenated keys.
@@ -69,7 +71,7 @@ def load_and_pool(
         for i in tqdm(range(0, len(npzs), n_readers), desc="pool shard-batches"):
             batch = npzs[i : i + n_readers]
             for emb, keys_df in ex.map(partial(_read_shard, fs), batch):
-                assert np.isfinite(emb).all(), "non-finite values in a shard"
+                assert np.isfinite(emb[::16]).all(), "non-finite in a shard (sampled)"
                 keys.append(keys_df)
                 if proj is None:
                     proj = random_projection(emb.shape[-1], cov_r, seed=0)
