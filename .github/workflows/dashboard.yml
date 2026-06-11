@@ -23,11 +23,14 @@ name: Dashboard
 #           with audience `sts.amazonaws.com`.
 #         * IAM policy `BolinasDnaDashboardMetricsRead` granting `s3:GetObject`
 #           on these prefixes (one per eval pipeline; evals_v2 is `results/*` so
-#           the dashboard can also read the nuc_dep interpretation artifacts, #240):
+#           the dashboard can also read the nuc_dep interpretation artifacts, #240).
+#           The accessibility-QTL benchmark (#311/#312) is the one non-`snakemake/`
+#           top-level prefix — `accessibility_qtl.parquet.py` reads only `metrics/`:
 #             - `arn:aws:s3:::oa-bolinas/snakemake/analysis/evals_v2/results/*`
 #             - `arn:aws:s3:::oa-bolinas/snakemake/conservation_eval/results/*`
 #             - `arn:aws:s3:::oa-bolinas/snakemake/alphagenome_eval/results/metrics/*`
 #             - `arn:aws:s3:::oa-bolinas/snakemake/gpn_star_eval/results/metrics/*`
+#             - `arn:aws:s3:::oa-bolinas/qtl_benchmark/metrics/*`
 #         * IAM role `BolinasDnaDashboardCI` trusting the OIDC provider on
 #           two `sub` claims (so PR runs from this repo can also assume the
 #           role and run a pre-merge build):
