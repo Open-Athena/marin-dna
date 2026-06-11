@@ -649,10 +649,11 @@ def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
 
 
 def _sge_metrics_parquet(
-    score_types, *, score_name=None, split="train"
+    score_types, *, score_name=None, split="train", model=None
 ) -> pl.DataFrame:
     """Tiny SGE metrics parquet: one AUPRC row per score_type at the headline
-    (across-accession × across-subset macro) cell."""
+    (across-accession × across-subset macro) cell. ``model`` stamps the gpn_star
+    `model` column (V/M/P); ``score_name`` the conservation track column."""
     rows = [
         {
             "metric": "AUPRC",
@@ -673,6 +674,8 @@ def _sge_metrics_parquet(
     df = pl.DataFrame(rows)
     if score_name is not None:
         df = df.with_columns(pl.lit(score_name).alias("score_name"))
+    if model is not None:
+        df = df.with_columns(pl.lit(model).alias("model"))
     return df
 
 
@@ -735,6 +738,42 @@ def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPa
     # SGE v3 is AUPRC-only; every metric row is AUPRC with a finite n_pos.
     assert set(df["metric"].to_list()) == {"AUPRC"}
     assert df["n_pos"].is_finite().all()
+
+
+def test_sge_normalized_rows_gpn_star_filters_by_model(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """The 3 GPN-Star variants share ONE model-stacked sge parquet (the path is
+    model-independent for this family). sge_normalized_rows must filter each
+    method to its own `model` — without the filter every method would re-emit all
+    3 models' rows (9× duplication, mislabeled)."""
+    v = _mk_method(id="GPN-Star-V", family="gpn_star", datasets=("sge",))
+    m = _mk_method(id="GPN-Star-M", family="gpn_star", datasets=("sge",))
+    p = _mk_method(id="GPN-Star-P", family="gpn_star", datasets=("sge",))
+    _patch_methods(monkeypatch, (v, m, p))
+
+    # All three resolve to the same shared parquet path.
+    path = leaderboard._parquet_path(v, "sge")
+    assert leaderboard._parquet_path(m, "sge") == path
+    assert leaderboard._parquet_path(p, "sge") == path
+
+    # Model-stacked parquet: each model × 2 score_types (the cLLR + LLR columns).
+    stacked = pl.concat(
+        [
+            _sge_metrics_parquet(["minus_llr_calibrated", "minus_llr"], model=mid)
+            for mid in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P")
+        ]
+    )
+    _patch_read_parquet(monkeypatch, {path: stacked})
+
+    df = leaderboard.sge_normalized_rows("sge")
+    # Each method gets only its own 2 rows — 6 total, not 18 (no cross-model leak).
+    assert df.height == 6
+    for mid in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P"):
+        sub = df.filter(pl.col("method_id") == mid)
+        assert sub.height == 2
+        assert set(sub["score_type"].to_list()) == {"minus_llr_calibrated", "minus_llr"}
+        assert (sub["family"] == "gpn_star").all()
 
 
 def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPatch):
