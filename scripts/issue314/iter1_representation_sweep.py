@@ -17,6 +17,8 @@ Run:
 
 import argparse
 import io
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import numpy as np
 import polars as pl
@@ -40,11 +42,21 @@ from marin_dna.pipelines.evals.variant_probe import (
 VAR_INDEX = 127
 
 
+def _read_shard(fs: s3fs.S3FileSystem, npz: str) -> tuple[np.ndarray, pl.DataFrame]:
+    emb = np.load(io.BytesIO(fs.open(f"s3://{npz}").read()))["emb"]  # float16
+    keys = pl.read_parquet(f"s3://{npz}".replace(".npz", ".keys.parquet"))
+    return emb, keys
+
+
 def load_and_pool(
-    cache: str, *, n_center: int = 100, cov_r: int = 64
+    cache: str, *, n_center: int = 100, cov_r: int = 64, n_readers: int = 6
 ) -> tuple[dict, dict, dict, pl.DataFrame]:
     """Stream shards; return pooled ``(strand,allele,extent) -> [N,D]``, per-strand
-    ``innerprod``/``cov_delta`` ``strand -> [N,·]``, and the concatenated keys."""
+    ``innerprod``/``cov_delta`` ``strand -> [N,·]``, and the concatenated keys.
+
+    Shards are read in parallel batches (single-stream S3 is the bottleneck) and
+    pooled on arrival, so RAM stays bounded to ~``n_readers`` shards at a time.
+    """
     fs = s3fs.S3FileSystem()
     npzs = sorted(f for f in fs.ls(cache) if f.endswith(".npz"))
     assert npzs, f"no shards under {cache}"
@@ -53,28 +65,30 @@ def load_and_pool(
     cov: dict[int, list[np.ndarray]] = {0: [], 1: []}
     keys: list[pl.DataFrame] = []
     proj: np.ndarray | None = None
-    for npz in tqdm(npzs, desc="pool shards"):
-        emb = np.load(io.BytesIO(fs.open(f"s3://{npz}").read()))["emb"]  # float16
-        assert np.isfinite(emb).all(), f"non-finite values in {npz}"
-        keys.append(pl.read_parquet(f"s3://{npz}".replace(".npz", ".keys.parquet")))
-        if proj is None:
-            proj = random_projection(emb.shape[-1], cov_r, seed=0)
-        for s in (0, 1):  # 0=fwd, 1=rc
-            # Upcast each [chunk, L, D] slice to float32 (one slice at a time, not
-            # the whole 2 GB shard) so pooling accumulates in float32 cleanly.
-            ref_tok = emb[:, s, 0].astype(np.float32)
-            alt_tok = emb[:, s, 1].astype(np.float32)
-            for ext in POOLING_EXTENTS:
-                kw = dict(var_index=VAR_INDEX, n_center=n_center)
-                pools.setdefault((s, 0, ext), []).append(
-                    pool_tokens(ref_tok, ext, **kw)
-                )
-                pools.setdefault((s, 1, ext), []).append(
-                    pool_tokens(alt_tok, ext, **kw)
-                )
-            inner[s].append(innerprod_feature(ref_tok, alt_tok))
-            cov[s].append(cov_delta_feature(ref_tok, alt_tok, proj))
-        del emb  # free the 2 GB shard before streaming the next
+    with ThreadPoolExecutor(max_workers=n_readers) as ex:
+        for i in tqdm(range(0, len(npzs), n_readers), desc="pool shard-batches"):
+            batch = npzs[i : i + n_readers]
+            for emb, keys_df in ex.map(partial(_read_shard, fs), batch):
+                assert np.isfinite(emb).all(), "non-finite values in a shard"
+                keys.append(keys_df)
+                if proj is None:
+                    proj = random_projection(emb.shape[-1], cov_r, seed=0)
+                for s in (0, 1):  # 0=fwd, 1=rc
+                    # Upcast each [chunk, L, D] slice to float32 (one slice at a
+                    # time) so pooling accumulates in float32 cleanly.
+                    ref_tok = emb[:, s, 0].astype(np.float32)
+                    alt_tok = emb[:, s, 1].astype(np.float32)
+                    for ext in POOLING_EXTENTS:
+                        kw = dict(var_index=VAR_INDEX, n_center=n_center)
+                        pools.setdefault((s, 0, ext), []).append(
+                            pool_tokens(ref_tok, ext, **kw)
+                        )
+                        pools.setdefault((s, 1, ext), []).append(
+                            pool_tokens(alt_tok, ext, **kw)
+                        )
+                    inner[s].append(innerprod_feature(ref_tok, alt_tok))
+                    cov[s].append(cov_delta_feature(ref_tok, alt_tok, proj))
+                del emb  # free the shard before the next
     pooled = {k: np.concatenate(v) for k, v in pools.items()}
     inner_c = {s: np.concatenate(inner[s]) for s in (0, 1)}
     cov_c = {s: np.concatenate(cov[s]) for s in (0, 1)}
@@ -111,6 +125,7 @@ def main() -> None:
     ap.add_argument("--n_center", type=int, default=100)
     ap.add_argument("--n_pca", type=int, default=256)
     ap.add_argument("--c", type=float, default=0.5)
+    ap.add_argument("--out", default="s3://oa-bolinas/analysis/issue314/iter1")
     args = ap.parse_args()
 
     pooled, inner, cov, keys = load_and_pool(args.cache, n_center=args.n_center)
@@ -152,7 +167,7 @@ def main() -> None:
             "auprc_minus_llr": [r[2] - ap_llr for r in rows],
         }
     )
-    out_path = f"scratch/issue314_iter1_{args.subset}.parquet"
+    out_path = f"{args.out}/{args.subset}.parquet"
     out.write_parquet(out_path)
     print(f"\nwrote {out_path}  (LLR baseline AUPRC = {ap_llr:.3f})")
 
