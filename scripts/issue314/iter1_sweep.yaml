@@ -1,0 +1,17 @@
+# SkyPilot task: iter1 random-search sweep + attribution on an existing CPU box.
+#   sky exec vep-probe scripts/issue314/iter1_sweep.yaml --env MODEL=exp135-1B-m5.1
+name: vep-sweep
+
+workdir: .
+
+envs:
+    MODEL: "exp135-1B-m5.1"
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1   # threading backend; 1 BLAS thread/cell
+    CACHE="s3://oa-bolinas/analysis/issue314/embeddings/${MODEL}/mendelian_traits"
+    OUT="s3://oa-bolinas/analysis/issue314/iter1_search/${MODEL}"
+    uv run --group genome-s3 python scripts/issue314/iter1_sweep.py --cache "${CACHE}" --out "${OUT}"
+    uv run --group genome-s3 python scripts/issue314/iter1_attribution.py --in "${OUT}"
