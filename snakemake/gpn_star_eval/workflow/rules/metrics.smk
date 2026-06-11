@@ -50,14 +50,17 @@ rule compute_metrics:
             sub = df[df["model"] == model]
             if protocol == "sge":
                 # Per-accession × consequence-subset AUPRC on the binary `label`.
-                # `n_min_auprc` is the per-label-class floor per cell (config `n_min`).
+                # Leave `n_min_auprc` at the compute_sge_metrics default (the SGE
+                # per-label-class cell floor) so this matches evals_v2 +
+                # conservation_eval exactly — they don't pass it either. (config
+                # `n_min` is the matched_pair macro-entry gate, a different
+                # semantic, and is used only in the else branch below.)
                 metrics = compute_sge_metrics(
                     dataset=sub[["mavedb_urn", "gene", "subset", "label"]],
                     scores=sub[SCORE_COLUMNS],
                     score_columns=SCORE_COLUMNS,
                     n_bootstrap=config["n_bootstrap"],
                     rng=config["bootstrap_seed"],
-                    n_min_auprc=config["n_min"],
                 )
             else:
                 metrics = compute_auprc_metrics(
