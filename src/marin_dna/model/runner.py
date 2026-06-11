@@ -48,6 +48,7 @@ from marin_dna.model.scoring import (
     compute_ll_clm,
     compute_marginal_clm,
     compute_variant_score_bundle,
+    compute_variant_token_embeddings,
     compute_window_embedding,
 )
 
@@ -376,6 +377,57 @@ def run_window_embeddings(
         f"FWD/RC embedding shape mismatch: {fwd.shape} vs {rc_emb.shape}"
     )
     return (fwd + rc_emb) / 2
+
+
+def run_variant_embeddings(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    *,
+    strand: Literal["+", "-"],
+    layer_index: int = -1,
+    **kwargs: Any,
+) -> np.ndarray:
+    """Per-token REF/ALT embeddings for **one strand** (issue #314).
+
+    Mirrors ``run_variant_score_bundle``'s setup — ``transform_llr_clm`` builds the
+    reference window and carries the per-row ``alt_token_id``, and the token-level
+    ``var_pos`` is derived from ``window_size`` / ``strand`` / ``n_prefix`` and
+    bound into the kernel — but reads hidden states for the **full window** and
+    for **both alleles** instead of logits. ``compute_variant_token_embeddings``
+    runs the ref and alt forwards and returns ``[B, 2, L, D]``.
+
+    Deliberately single-strand and **un-fused**: a caller runs ``strand="+"`` and
+    ``strand="-"`` separately and caches ``{fwd, rc} × {ref, alt}`` raw, so FWD+RC
+    averaging (and RC ablation) stay a downstream CPU choice. Pass a base
+    ``AutoModel`` for ``layer_index == -1`` (reads ``last_hidden_state``).
+    ``**kwargs`` flow to ``run_inference`` (e.g. ``data_transform_on_the_fly=True``,
+    ``inference_kwargs={...}``).
+
+    Returns ``[N, 2, L, D]`` (axis 1: ``0`` = ref, ``1`` = alt; ``L`` = DNA tokens,
+    ``D`` = hidden size) as float16.
+    """
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+    var_pos = in_seq_var_pos(window_size, strand) + n_prefix
+    return np.asarray(
+        run_inference(
+            model,
+            tokenizer,
+            dataset,
+            compute_fn=partial(
+                compute_variant_token_embeddings,
+                var_pos=var_pos,
+                n_prefix=n_prefix,
+                layer_index=layer_index,
+            ),
+            data_transform_fn=partial(
+                transform_llr_clm, genome=genome, window_size=window_size, strand=strand
+            ),
+            **kwargs,
+        )
+    )
 
 
 def _run_inference(

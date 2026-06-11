@@ -513,3 +513,43 @@ def compute_window_embedding(
         f"center slice [{tok_lo}:{tok_hi}] out of bounds for seq length {hidden.shape[1]}"
     )
     return hidden[:, tok_lo:tok_hi].float().mean(dim=1)  # [B, D]
+
+
+def compute_variant_token_embeddings(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    alt_token_id: Int[Tensor, " B"],
+    *,
+    var_pos: int,
+    n_prefix: int,
+    layer_index: int = -1,
+) -> Float[Tensor, "B 2 L D"]:
+    """Per-token hidden states for the REF and ALT sequences (issue #314).
+
+    Reuses ``transform_llr_clm``'s output (``input_ids`` = the reference window,
+    ``alt_token_id`` = the per-row alt nucleotide token): runs the model on the
+    ref window, then on the alt window (the single token at ``var_pos`` swapped to
+    ``alt_token_id``), and stacks both. The ``n_prefix`` BOS/special positions are
+    dropped so the position axis is the ``L`` DNA tokens.
+
+    For the last layer (``layer_index == -1``) reads ``last_hidden_state`` — pass a
+    base ``AutoModel`` (no LM head). Returns ``[B, 2, L, D]`` (axis 1: ``0`` = ref,
+    ``1`` = alt), cast to float16 to halve the cache footprint.
+
+    There is **no** FWD/RC fusion here: ``input_ids`` is one strand's window, so a
+    caller runs both strands and caches ``{fwd, rc} × {ref, alt}`` raw — FWD+RC
+    averaging (and RC ablation) stay a downstream CPU choice (issue #314).
+    """
+
+    def _hidden(ids: Int[Tensor, "B L"]) -> Float[Tensor, "B L D"]:
+        if layer_index == -1:
+            h = model(ids).last_hidden_state
+        else:
+            h = model(ids, output_hidden_states=True).hidden_states[layer_index]
+        return h[:, n_prefix:, :]  # drop BOS/special prefix → DNA positions
+
+    ref_h = _hidden(input_ids)
+    alt_ids = input_ids.clone()
+    alt_ids[:, var_pos] = alt_token_id  # per-row swap at the (centered) variant
+    alt_h = _hidden(alt_ids)
+    return torch.stack([ref_h, alt_h], dim=1).half()  # [B, 2, L, D]
