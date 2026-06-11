@@ -4,7 +4,6 @@ The ``alphagenome`` package is an optional dep — the parse-response tests run
 without it; the scorer-construction test is gated on the import.
 """
 
-import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
