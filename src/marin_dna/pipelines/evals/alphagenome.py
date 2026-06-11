@@ -406,7 +406,10 @@ def score_dnase_lfc_resumable(
             pl.lit(None, dtype=pl.Float64).alias(_DNASE_LFC_COL)
         )
 
-    todo = work.join(cached.select(key), on=key, how="anti")
+    # maintain_order="left" keeps `todo` (and so the chunk boundaries) in `variants`
+    # order; polars' hash anti-join order is otherwise unspecified and varies with
+    # process-wide engine state, so it differed depending on what ran earlier in the run.
+    todo = work.join(cached.select(key), on=key, how="anti", maintain_order="left")
     n_missing = todo.height
     if max_new_calls is not None and n_missing > max_new_calls:
         raise RuntimeError(
@@ -428,7 +431,10 @@ def score_dnase_lfc_resumable(
         )
         cached.write_parquet(checkpoint_path)
 
-    out = work.join(cached, on=key, how="left")
+    # maintain_order="left" so the returned frame is aligned to `variants` (the documented
+    # contract) deterministically — a plain left-join's row order is unspecified in polars
+    # and varied with process-wide engine state (passed alone, scrambled in the full suite).
+    out = work.join(cached, on=key, how="left", maintain_order="left")
     # is_null catches variants the join didn't cover; is_nan catches a variant the scorer
     # returned NaN for (polars treats NaN as a non-null float, so is_null alone misses it).
     scored = out.get_column(_DNASE_LFC_COL)

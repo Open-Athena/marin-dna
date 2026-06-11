@@ -230,6 +230,10 @@ def test_score_dnase_lfc_resumable_scores_and_caches(tmp_path):
     )
     assert counter["rows"] == 4
     assert out.columns == ["chrom", "pos", "ref", "alt", "alphagenome_dnase_lfc"]
+    # Rows must stay aligned to `variants` order (the scorer's maintain_order joins). Scores
+    # are pos-derived, so a non-order-preserving join surfaces here as a permuted list — this
+    # was the symptom of the row-order bug that only appeared under the full-suite run.
+    assert out.select("chrom", "pos", "ref", "alt").rows() == _variants().rows()
     assert out["alphagenome_dnase_lfc"].to_list() == [1.0, 2.0, 3.0, 4.0]
 
     # Resume: the checkpoint now has all 4 → zero new API calls, same scores.
