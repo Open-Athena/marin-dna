@@ -566,8 +566,8 @@ models:
   # 4B is `h2944` (NOT the separate short/crashed `dna-bolinas-4b-v0.*` search).
   # 255 bp DNA + BOS.
   # `datasets` widened to include `sge` + `complex_traits` (#306) — score the
-  # ladder on SGE (missense/splicing) and complex traits (missense in the
-  # analysis) to compare AUPRC vs model size against Mendelian.
+  # ladder on SGE and complex traits (missense + splicing) to compare AUPRC vs
+  # model size against Mendelian.
   - name: scaling-v0.5-h640-p46M-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-215573
     window_size: 255
