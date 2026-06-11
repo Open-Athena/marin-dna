@@ -1,50 +1,50 @@
-# alphagenome_eval — AlphaGenome baseline on matched-pair eval datasets
+# alphagenome_eval — AlphaGenome predictions for the eval datasets
 
-AUPRC ± cluster-bootstrap SE (cluster = `match_group`) for
-[AlphaGenome](https://github.com/google-deepmind/alphagenome) on the
-matched-pair eval datasets `bolinas-dna/evals_mendelian_traits` and
-`bolinas-dna/evals_complex_traits` (1:k matched groups, PR #194 rebuild).
-Provides issue [#154](https://github.com/Open-Athena/marin-dna/issues/154)'s
-baseline row for the leaderboards in
-[#161](https://github.com/Open-Athena/marin-dna/issues/161) and
-[#162](https://github.com/Open-Athena/marin-dna/issues/162). The metric
-mirrors `snakemake/analysis/evals_v2/`'s post-PR-#195 schema.
+Runs the [AlphaGenome](https://github.com/google-deepmind/alphagenome) API to produce
+per-variant predictions, on a small CPU node, writing to S3. Two independent paths share
+this pipeline (and its one AlphaGenome API setup):
+
+1. **Matched-group baseline** (`mendelian_traits` / `complex_traits`) — AUPRC ±
+   cluster-bootstrap SE, the AlphaGenome baseline row for the mendelian/complex
+   leaderboards ([#161](https://github.com/Open-Athena/marin-dna/issues/161) /
+   [#162](https://github.com/Open-Athena/marin-dna/issues/162)).
+2. **DNase-LFC QTL predictions** (`caqtl` / `dsqtl`) — the single GM12878-DNase LFC
+   scorer for the supervised accessibility-QTL benchmark
+   ([#311](https://github.com/Open-Athena/marin-dna/issues/311) / #309). This pipeline
+   produces only AlphaGenome's per-variant predictions; the model-agnostic **metrics and
+   leaderboard** (ChromBPNet/Enformer baselines + the official metrics) are the
+   `scripts/qtl_benchmark.py` driver, not a rule here.
 
 ## What it does
 
+### Matched-group baseline (`mendelian_traits`, `complex_traits`)
+
 For each `dataset` in `config["datasets"]`:
 
-1. **Score** every variant via the AlphaGenome API. One forward-strand call per
-   variant returns L2_DIFF_LOG1P aggregated scores across 7 assays (ATAC,
-   DNASE, CHIP_TF, CHIP_HISTONE, CAGE, PROCAP, RNA_SEQ); each assay yields
-   many tracks (one per cell type / tissue), so the per-variant output is a
-   wide row with hundreds of track columns.
-2. **Aggregate** to a single column by taking the max across all track
-   columns: `alphagenome_max_l2`. The full per-track table is preserved on S3
-   so the aggregation protocol can change later (e.g. per-assay) without
-   re-spending the API budget.
-3. **Compute** AUPRC ± cluster-bootstrap SE per consequence subset on
-   `alphagenome_max_l2`, with `match_group` as the cluster (resamples
-   groups, not rows, so SE reflects the 1:k matched structure). Same
-   column for both datasets — L2 is direction-agnostic and fits both the
-   mendelian and complex-trait protocols. Output includes per-subset
-   rows plus `_global_` (pooled) and `_macro_avg_` (mean of qualifying
-   subsets) aggregates.
+1. **Score** every variant via the AlphaGenome API — one forward-strand call returns
+   L2_DIFF_LOG1P scores across 7 assays (ATAC, DNASE, CHIP_TF, CHIP_HISTONE, CAGE,
+   PROCAP, RNA_SEQ); each assay yields many tracks (cell types / tissues), so the
+   per-variant output is a wide row with hundreds of track columns.
+2. **Aggregate** to one column by max across all tracks: `alphagenome_max_l2`. The full
+   per-track table is preserved on S3 so the aggregation can change later (e.g.
+   per-assay) without re-spending the API budget.
+3. **Compute** AUPRC ± cluster-bootstrap SE per consequence subset on `alphagenome_max_l2`,
+   with `match_group` (the 1:k matched set) as the resampling cluster. Output includes
+   per-subset rows plus `_global_` (pooled) and `_macro_avg_` aggregates.
 
-### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
+### DNase-LFC QTL predictions (`caqtl`, `dsqtl`)
 
-The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
-**unmatched** (no `subset` / `match_group`), so a dataset entry with
-`eval_protocol: qtl_global` skips the per-subset path: scoring and max-across-
-tracks aggregation are unchanged, but `compute_metrics` calls
-`compute_qtl_metrics` — **global AUPRC** over all variants plus **Pearson /
-Spearman** of `alphagenome_max_l2` vs the dataset's `effect_size` over
-**positive variants only**. The metrics parquet then has a `metric` column
-(`AUPRC` / `pearson` / `spearman`) and no subset rows.
+`score_dnase_lfc` scores each variant with AlphaGenome's recommended accessibility
+scorer (Suppl Table 9): `CenterMaskScorer(DNASE, width=501, DIFF_LOG2_SUM)`,
+GM12878-matched (ontology `EFO:0002784`) — one signed log2 fold-change (alt vs ref) per
+variant. The scorer is **resumable + S3-checkpointed** (`score_dnase_lfc_resumable`): it
+seeds from `dnase_lfc.s3_prefix/{ds}.parquet` and scores only missing variants.
 
-> **API budget:** the train split alone is caQTL 41,382 + dsQTL 15,018
-> variants (~56K, ~5× mendelian_traits' ~11K) — one forward-strand call each.
-> Keep `num_workers` at 4 (rate-limit ceiling); a single 4-worker run is ~4 h.
+> **caQTL/dsQTL spend 0 API.** Their genome-native predictions already exist (the #262
+> run, corrected once into the dataset's sign convention by
+> `scripts/correct_ag_predictions.py`), so the rule seeds them and makes no API calls
+> (`max_new_calls: 0` is a fail-loud guard). Raise `max_new_calls` only to score a
+> genuinely new dataset.
 
 ## Outputs
 
@@ -52,84 +52,72 @@ S3 bucket `s3://oa-bolinas/snakemake/alphagenome_eval/`:
 
 ```
 results/
-├── per_track_l2/{dataset}.parquet    # variant cols + per-track L2 columns
-├── scores/{dataset}.parquet          # variant cols + alphagenome_max_l2
-└── metrics/{dataset}.parquet         # AUPRC ± cluster-bootstrap SE per subset
+├── per_track_l2/{dataset}.parquet   # matched-group: variant cols + per-track L2
+├── scores/{dataset}.parquet         # matched-group: variant cols + alphagenome_max_l2
+├── metrics/{dataset}.parquet         # matched-group: AUPRC ± cluster-bootstrap SE
+├── dnase_lfc/{ds}.parquet            # caqtl/dsqtl: genome-native GM12878-DNase LFC
+└── dnase_lfc_raw/{ds}.parquet        # caqtl/dsqtl: raw #262 originals (pre sign-alignment)
 ```
+
+The supervised-benchmark `scores/{model}/{ds}` and `metrics/{model}/{ds}` parquets live
+under a separate prefix, `s3://oa-bolinas/qtl_benchmark/`, written by
+`scripts/qtl_benchmark.py`.
 
 ## Conventions
 
-- **Train split only.** Test is held out for the final-eval pass.
-- **No reverse-complement averaging.** TraitGym's reference pipeline averages
-  forward + reverse strand calls. We skip the RC pass to halve the API budget;
-  the metric loss has been small in practice.
-- **No edge filtering.** The 1MB sequence context wraps near chromosome ends;
-  AlphaGenome handles this internally.
-- **Retries transient `INTERNAL` errors.** AlphaGenome's backend intermittently
-  returns `StatusCode.INTERNAL` ("bad machine" outages — a known, maintainer-
-  acknowledged server-side issue). The SDK's built-in `@retry_rpc` only retries
-  `RESOURCE_EXHAUSTED` / `UNAVAILABLE`, so `score_variants_alphagenome` re-wraps
-  `score_variant` to also retry `INTERNAL` / `DEADLINE_EXCEEDED` (10 attempts,
-  exponential backoff). Without this a single bad-machine hit aborts the whole
-  dataset; large runs (the ~41k-variant caQTL set) effectively require it.
+- **Matched-group: train split only.** Test is held out for the final-eval pass.
+- **No reverse-complement averaging.** TraitGym's reference averages forward + reverse
+  strand; we score forward only to halve the API budget (metric loss is small — it is
+  the ~0.004 gap on the caQTL AlphaGenome *direction* reproduction).
+- **DNase-LFC sign convention.** AlphaGenome's raw DNase-LFC is uniformly sign-flipped on
+  dsQTL relative to the study (a lift artifact of the #262 run). The genome-native
+  predictions are aligned once to the carried ChromBPNet baseline by
+  `scripts/correct_ag_predictions.py`; downstream there is no per-dataset flip.
+- **Retries transient `INTERNAL` errors.** AlphaGenome's backend intermittently returns
+  `StatusCode.INTERNAL` ("bad machine" outages). The SDK's `@retry_rpc` only retries
+  `RESOURCE_EXHAUSTED` / `UNAVAILABLE`, so the scorers re-wrap `score_variant` to also
+  retry `INTERNAL` / `DEADLINE_EXCEEDED` (10 attempts, exponential backoff). A single
+  un-retried bad-machine hit would otherwise abort a whole dataset.
 
 ## Setup
 
 `ALPHA_GENOME_API_KEY` env var (request one at
-[deepmind.google/alphagenome](https://deepmind.google/science/alphagenome)).
-Recommended: export it in `~/.bashrc` so every shell — including the one you
-launch SkyPilot from — has it set.
+[deepmind.google/alphagenome](https://deepmind.google/science/alphagenome)). Export it in
+`~/.bashrc` so every shell — including the one you launch SkyPilot from — has it set.
 
-```bash
-# In ~/.bashrc:
-export ALPHA_GENOME_API_KEY=...
-```
-
-The pipeline reads it from the env at the start of `compute_per_track_l2`;
-SkyPilot inherits it via the `envs:` block in `sky/run.yaml`.
-
-The official Google `alphagenome` Python client is in the optional
-`alphagenome-eval` dep group:
+The official Google `alphagenome` client is in the optional `alphagenome-eval` dep group:
 
 ```bash
 uv sync --group alphagenome-eval
 ```
 
-(SkyPilot's `setup:` does this automatically.)
+(SkyPilot's `setup:` does this automatically.) caQTL/dsQTL reuse the cached predictions,
+so a run that only refreshes `dnase_lfc` makes no API calls.
 
 ## Usage
 
 ### SkyPilot (recommended)
 
 ```bash
-# Once per session (or persisted in ~/.bashrc):
 export ALPHA_GENOME_API_KEY=...
-
 sky launch snakemake/alphagenome_eval/sky/run.yaml -c alphagenome-eval \
     --env ALPHA_GENOME_API_KEY
 ```
 
-The launch yaml provisions a small CPU EC2 node (`m6i.xlarge`-class — 16 GB
-to leave headroom for the per-variant API responses, us-east-2), runs the
-full pipeline (~2-3 h end-to-end), and writes outputs to S3. Tear down with
-`sky down alphagenome-eval`.
+Provisions a small CPU node (us-east-2), runs the full pipeline, writes to S3. Tear down
+with `sky down alphagenome-eval`.
 
-> **Re-running an existing dataset:** if the rule code or library changes,
-> Snakemake's provenance check will re-trigger `compute_per_track_l2` and
-> burn the API budget again. If the change is known to produce identical
-> outputs, skip the rerun with `snakemake --cleanup-metadata results/per_track_l2/{dataset}.parquet`.
+> **Re-running matched-group scoring:** a rule-code or library change re-triggers
+> `compute_per_track_l2` and burns the API budget again. If the change is known to
+> produce identical outputs, skip with
+> `snakemake --cleanup-metadata results/per_track_l2/{dataset}.parquet`.
 
-### Local (small subsets only)
+### Local
 
 ```bash
 cd snakemake/alphagenome_eval
-
-# Dry-run to inspect the DAG.
-uv run snakemake -n
-
-# Real run — will hit the AlphaGenome API for ~12K variants if you don't
-# subsample first; only do this if you mean to pay the wallclock.
-uv run snakemake
+uv run snakemake -n          # dry-run; confirm score_dnase_lfc is NOT scheduled to score
+uv run snakemake             # caqtl/dsqtl: 0 API; matched-group: ~11K+ API calls each
 ```
 
 ## Configuration (`config/config.yaml`)
@@ -137,27 +125,26 @@ uv run snakemake
 | Key | Purpose |
 | --- | --- |
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset}"`. |
-| `split` | `train` (test held out). |
-| `datasets` | List of `{name, hf_revision, [eval_protocol]}` entries. The SHA pins the HF commit consumed; bumping it forces a re-run via snakemake's `params:` hash (re-spends API budget). SHAs mirror `snakemake/analysis/evals_v2/config/config.yaml`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for caqtl/dsqtl. |
-| `num_workers` | Threads in the API ThreadPoolExecutor. Keep ≤ 4. |
-| `score_column` | Column name written by `aggregate_max` and consumed by `compute_metrics`. |
-| `n_bootstrap` | AUPRC cluster-bootstrap iterations per subset. |
-| `bootstrap_seed` | RNG seed for the bootstrap; bumping it re-triggers `compute_metrics`. |
+| `split` | Matched-group split (`train`; test held out). |
+| `datasets` | Matched-group `{name, hf_revision}` entries (mendelian/complex). The SHA pins the HF commit; bumping it re-runs scoring (re-spends API). |
+| `num_workers` | API ThreadPoolExecutor threads. Keep ≤ 4. |
+| `score_column` | Column written by `aggregate_max`, read by `compute_metrics`. |
+| `n_bootstrap` / `bootstrap_seed` | Matched-group AUPRC cluster-bootstrap. |
+| `subset_n_pairs` | Smoke knob: keep only the first N match groups (null in production). |
+| `dnase_lfc` | `{s3_prefix, datasets:[{name,hf_revision}], num_workers, chunk_size, max_new_calls}` for the caqtl/dsqtl DNase-LFC predictions. `max_new_calls: 0` ⇒ reuse-only (fail loud if the cache is incomplete). |
 
-The 7 assays, the 1MB sequence length, and `L2_DIFF_LOG1P` aggregation type
-are **code constants** in `marin_dna.evals.alphagenome`, not config.
+The 7 assays, the 1MB sequence length, and the aggregation types are **code constants**
+in `marin_dna.pipelines.evals.alphagenome`, not config.
 
 ## Library
 
-Pipeline rules are thin glue around `marin_dna.evals.alphagenome`:
+Rules are thin glue around `marin_dna.pipelines.evals.alphagenome`:
 
-- `score_variants_alphagenome(V, num_workers=4)` — main entry; threads through
-  forward-strand `model.score_variant` calls and returns a wide DataFrame.
-- `parse_score_response(tidy, scorer_repr_to_assay)` — pure helper converting
-  AlphaGenome's `tidy_scores` long-format output to a 1-row wide DataFrame
-  with `{assay}_{idx}` column names.
-- `make_scorers()` — the 7 `CenterMaskScorer(width=None, L2_DIFF_LOG1P)`
-  scorers and their reverse map.
+- `score_variants_alphagenome(V, num_workers=4)` — matched-group 7-assay L2 scorer.
+- `score_variants_dnase_lfc(V, num_workers=4)` / `make_dnase_lfc_scorer` /
+  `select_gm12878_dnase_lfc` — the single GM12878-DNase LFC scorer.
+- `score_dnase_lfc_resumable(variants, checkpoint_path, …)` — resumable, S3-checkpointed
+  DNase-LFC scoring (seed + score-missing + checkpoint, with a `max_new_calls` cap).
 
-Tests at `tests/evals/test_alphagenome.py` cover the parser without touching
-the API; the scorer-construction test is gated on `import alphagenome`.
+Tests at `tests/pipelines/evals/test_alphagenome.py` cover the parsers + the resumable
+scorer without touching the API (the scorer-construction tests are import-gated).
