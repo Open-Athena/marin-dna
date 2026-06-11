@@ -20,11 +20,15 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import numpy as np
+import pandas as pd
 import polars as pl
 import s3fs
-from sklearn.metrics import average_precision_score
 from tqdm import tqdm
 
+from marin_dna.pipelines.evals.metrics import (
+    auprc_with_bootstrap_se,
+    paired_metric_delta_bootstrap,
+)
 from marin_dna.pipelines.evals.variant_probe import (
     PAIR_COMBOS,
     POOLING_EXTENTS,
@@ -138,11 +142,17 @@ def main() -> None:
     y = kdf["label"].to_numpy().astype(int)[mask]
     chrom = kdf["chrom"].to_numpy()[mask]
     llr = (-(kdf["llr_fwd"] + kdf["llr_rc"]) / 2).to_numpy()[mask]  # minus_llr_avg
+    mg = kdf["match_group"].to_numpy()[mask]
+    ysr, mgsr, llrsr = pd.Series(y), pd.Series(mg), pd.Series(llr)
+    llr_stat = auprc_with_bootstrap_se(ysr, llrsr, mgsr)
     print(
-        f"subset={args.subset}  n={n}  n_pos={int(y.sum())}  n_chrom={len(set(chrom))}  "
-        f"probe: PCA-{args.n_pca} C={args.c} logistic, chrom-grouped OOF"
+        f"\nsubset={args.subset}  n={n}  n_pos={int(y.sum())}  n_chrom={len(set(chrom))}  "
+        f"n_match_groups={len(set(mg))}\n"
+        f"probe: PCA-{args.n_pca} C={args.c} logistic, chrom-grouped OOF; AUPRC ± "
+        f"cluster-bootstrap SE (resample match_group, 1000x); Δ vs LLR = paired "
+        f"bootstrap [95% CI], two-sided p\n"
+        f"zero-shot LLR (minus_llr_avg) AUPRC = {llr_stat['value']:.3f} ± {llr_stat['se']:.3f}"
     )
-    ap_llr = average_precision_score(y, llr)
 
     reps = [("pool", ext, combo) for ext in POOLING_EXTENTS for combo in PAIR_COMBOS]
     reps += [("innerprod",), ("cov_delta",)]
@@ -152,26 +162,39 @@ def main() -> None:
         oof = chrom_grouped_oof(
             feat, y, chrom, n_pca=args.n_pca, c=args.c, standardize=True
         )
-        rows.append((_rep_label(rep), feat.shape[1], average_precision_score(y, oof)))
+        oofsr = pd.Series(oof)
+        a = auprc_with_bootstrap_se(ysr, oofsr, mgsr)
+        d = paired_metric_delta_bootstrap(ysr, oofsr, llrsr, mgsr)
+        rows.append(
+            {
+                "representation": _rep_label(rep),
+                "dim": feat.shape[1],
+                "auprc": a["value"],
+                "auprc_se": a["se"],
+                "delta_llr": d["delta"],
+                "delta_se": d["se"],
+                "ci_low": d["ci_low"],
+                "ci_high": d["ci_high"],
+                "p": d["p_two_sided"],
+            }
+        )
 
-    rows.sort(key=lambda r: -r[2])
-    print(f"\n{'representation':28s} {'dim':>6s} {'AUPRC':>7s} {'vs LLR':>8s}")
-    print(f"{'zero-shot LLR (minus_llr_avg)':28s} {'-':>6s} {ap_llr:7.3f} {'—':>8s}")
-    print("-" * 53)
-    for label, dim, auprc in rows:
-        print(f"{label:28s} {dim:6d} {auprc:7.3f} {auprc - ap_llr:+8.3f}")
-
-    out = pl.DataFrame(
-        {
-            "representation": [r[0] for r in rows],
-            "dim": [r[1] for r in rows],
-            "auprc": [r[2] for r in rows],
-            "auprc_minus_llr": [r[2] - ap_llr for r in rows],
-        }
+    rows.sort(key=lambda r: -r["auprc"])
+    print(
+        f"\n{'representation':26s} {'dim':>5s} {'AUPRC ± SE':>14s} "
+        f"{'Δ vs LLR ± SE':>16s} {'p':>7s}"
     )
+    print("-" * 72)
+    for r in rows:
+        sig = "*" if r["p"] < 0.05 else " "
+        print(
+            f"{r['representation']:26s} {r['dim']:5d}   {r['auprc']:.3f} ± {r['auprc_se']:.3f}"
+            f"   {r['delta_llr']:+.3f} ± {r['delta_se']:.3f}  {r['p']:6.3f}{sig}"
+        )
+
     out_path = f"{args.out}/{args.subset}.parquet"
-    out.write_parquet(out_path)
-    print(f"\nwrote {out_path}  (LLR baseline AUPRC = {ap_llr:.3f})")
+    pl.DataFrame(rows).write_parquet(out_path)
+    print(f"\nwrote {out_path}")
 
 
 if __name__ == "__main__":

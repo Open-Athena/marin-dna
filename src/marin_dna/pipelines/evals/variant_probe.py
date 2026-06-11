@@ -133,7 +133,7 @@ def cov_delta_feature(
     assert proj.ndim == 2 and proj.shape[0] == ref_tok.shape[2], proj.shape
     x = alt_tok - ref_tok  # [N, L, D]
     y = x @ proj  # [N, L, r]
-    gram = np.einsum("nlr,nls->nrs", y, y)  # [N, r, r]
+    gram = np.matmul(np.swapaxes(y, 1, 2), y)  # [N, r, r] = YᵀY per sample (BLAS)
     return gram.reshape(gram.shape[0], -1)  # [N, r²]
 
 
