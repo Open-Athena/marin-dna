@@ -1,0 +1,33 @@
+# SkyPilot task: nested-LOCO probe on complex_traits (swap-invariant → abs-LLR baseline,
+# symmetric reps). Evaluates the distal-strong exp166-v0.1-p1B on the regulatory-enriched
+# complex-traits set (53% distal).
+#   sky launch scripts/issue314/complex_probe.yaml -c vep-complex -y --env MODEL=exp166-v0.1-p1B
+name: vep-complex
+
+resources:
+    infra: aws/us-east-2
+    cpus: 8+
+    memory: 32+
+    use_spot: false
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    MODEL: "exp166-v0.1-p1B"
+
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1
+    uv run --group genome-s3 python scripts/issue314/iter2_nested.py \
+        --cache "s3://oa-bolinas/analysis/issue314/embeddings/${MODEL}/complex_traits" \
+        --out "s3://oa-bolinas/analysis/issue314/iter2_nested_complex" \
+        --model "${MODEL}" --abs_llr --symmetric
