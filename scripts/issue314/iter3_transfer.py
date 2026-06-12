@@ -25,7 +25,9 @@ from sklearn.preprocessing import StandardScaler
 
 from iter1_representation_sweep import build_feature, load_and_pool
 
-REP = ("pool", "entire_window", "abs_delta")
+# mendelian is directional (ref=WT) → signed delta (the parsimony rule: signed feature for
+# signed datasets, abs_delta for swap-invariant ones like complex/QTL).
+REP = ("pool", "entire_window", "delta")
 C_GRID = np.logspace(-12, 2, 10)  # nested-tuned per fold (matches iter2's wide/heavy grid)
 MIN_VARIANTS = 100
 
