@@ -27,7 +27,9 @@ from marin_dna.pipelines.evals.metrics import (
 )
 from marin_dna.pipelines.evals.variant_probe import traitgym_nested_oof
 
-REPS = [("pool", "entire_window", "abs_delta"), ("pool", "entire_window", "delta")]
+DEFAULT_REPS = [("pool", "entire_window", "abs_delta"), ("pool", "entire_window", "delta")]
+# symmetric-only for swap-invariant datasets (complex_traits, qtl) — no signed delta
+SYMMETRIC_REPS = [("pool", "entire_window", "abs_delta"), ("pool", "entire_window", "sum_absdiff")]
 # Wide + heavy: the first pass (logspace(-8,2,12)) showed the 2944-dim exp166-4B pinned at
 # the 1e-8 floor on several subsets (it wants heavier reg), so the floor is extended to
 # 1e-12. selected-C range is reported per cell to confirm optima are interior (not truncated).
@@ -52,7 +54,12 @@ def main() -> None:
     ap.add_argument("--cache", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--model", required=True)
+    ap.add_argument("--abs_llr", action="store_true",
+                    help="swap-invariant datasets: baseline = abs_llr_avg, not minus_llr_avg")
+    ap.add_argument("--symmetric", action="store_true",
+                    help="swap-invariant datasets: symmetric reps only (no signed delta)")
     args = ap.parse_args()
+    reps = SYMMETRIC_REPS if args.symmetric else DEFAULT_REPS
 
     pooled, inner, cov, keys = load_and_pool(args.cache)
     kdf = keys.to_pandas()
@@ -61,8 +68,11 @@ def main() -> None:
     chrom_all = kdf["chrom"].to_numpy()
     subset_all = kdf["subset"].to_numpy()
     mg_all = kdf["match_group"].to_numpy()
-    llr_all = (-(kdf["llr_fwd"] + kdf["llr_rc"]) / 2).to_numpy()  # minus_llr_avg
-    feats = {_rep_label(r): build_feature(pooled, inner, cov, r) for r in REPS}
+    if args.abs_llr:
+        llr_all = ((kdf["llr_fwd"].abs() + kdf["llr_rc"].abs()) / 2).to_numpy()  # abs_llr_avg
+    else:
+        llr_all = (-(kdf["llr_fwd"] + kdf["llr_rc"]) / 2).to_numpy()  # minus_llr_avg
+    feats = {_rep_label(r): build_feature(pooled, inner, cov, r) for r in reps}
     del pooled, inner, cov
 
     subsets = [
