@@ -143,6 +143,7 @@ def make_linear_probe(
     c: float = 1.0,
     n_pca: int | None = None,
     standardize: bool = True,
+    class_weight: str | dict | None = None,
 ) -> Pipeline:
     """Build the linear-probe pipeline: ``[StandardScaler?] → [PCA?] → {logistic, ridge}``.
 
@@ -151,7 +152,11 @@ def make_linear_probe(
     regularization — mapped to logistic's ``C`` and to ridge's ``alpha = 1/c``.
     ``standardize`` and ``n_pca`` toggle the optional preprocessing steps that
     issue #314 evaluates (``StandardScaler`` on/off; PCA-k as a dimensionality
-    lens).
+    lens). ``class_weight`` (logistic only) is the minority-reweighting knob — e.g.
+    ``"balanced"`` up-weights positives by inverse frequency; it mostly shifts the
+    intercept (AUPRC-invisible) but under heavy L2 also nudges the slope/ranking,
+    so issue #314 treats it as an ablation axis, not a default. Ignored for ridge
+    (regression has no class weights).
     """
     steps: list[tuple[str, object]] = []
     if standardize:
@@ -161,7 +166,12 @@ def make_linear_probe(
     if loss == "logistic":
         # l1_ratio=0.0 is the sklearn 1.8+ idiom for a pure-L2 penalty (the
         # deprecated `penalty="l2"`); issue #314 locks the penalty to L2.
-        steps.append(("clf", LogisticRegression(l1_ratio=0.0, C=c, max_iter=2000)))
+        steps.append((
+            "clf",
+            LogisticRegression(
+                l1_ratio=0.0, C=c, max_iter=2000, class_weight=class_weight
+            ),
+        ))
     elif loss == "ridge":
         steps.append(("clf", Ridge(alpha=1.0 / c)))
     else:
@@ -179,6 +189,7 @@ def chrom_grouped_oof(
     n_pca: int | None = None,
     standardize: bool = True,
     n_splits: int = 5,
+    class_weight: str | dict | None = None,
 ) -> np.ndarray:
     """Out-of-fold probe scores via ``GroupKFold`` on ``groups`` (e.g. ``chrom``).
 
@@ -208,7 +219,8 @@ def chrom_grouped_oof(
             None if n_pca is None else min(n_pca, features.shape[1], len(tr) - 1)
         )
         probe = make_linear_probe(
-            loss=loss, c=c, n_pca=n_pca_eff, standardize=standardize
+            loss=loss, c=c, n_pca=n_pca_eff, standardize=standardize,
+            class_weight=class_weight,
         )
         probe.fit(features[tr], label[tr])
         if hasattr(probe, "predict_proba"):

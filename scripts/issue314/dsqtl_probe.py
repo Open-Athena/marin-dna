@@ -31,6 +31,7 @@ REPS = [
     ("cov_delta",),  # EVEE covariance pooling
 ]
 C_GRID = [1e-4, 1e-3, 1e-2, 1e-1, 1.0]
+CLASS_WEIGHTS: list[str | None] = [None, "balanced"]  # the minority-reweighting A/B
 CEILINGS = {"random": 0.020, "ChromBPNet ATAC": 0.538, "Enformer DNase": 0.526}
 
 
@@ -50,24 +51,30 @@ def main() -> None:
         f"(rate {y.mean():.4f}) chroms={len(set(chrom))}"
     )
     print("ceilings: " + "  ".join(f"{k} {v:.3f}" for k, v in CEILINGS.items()))
-    print(f"\n{'rep':26s} {'dim':>6}  best global AUPRC (C)")
+    print(f"\n{'rep':26s} {'dim':>6}  {'cw=None':>16}  {'cw=balanced':>16}")
     rows = []
     for rep in REPS:
         feat = build_feature(pooled, inner, cov, rep)
-        scan = []
-        for c in C_GRID:
-            oof = chrom_grouped_oof(
-                feat, y, chrom, loss="logistic", c=c,
-                n_pca=None, standardize=True, n_splits=args.n_splits,
-            )
-            scan.append((c, float(average_precision_score(y, oof))))
-        c_best, ap_best = max(scan, key=lambda t: t[1])
+        best: dict[str | None, tuple[float, float]] = {}
+        for cw in CLASS_WEIGHTS:
+            scan = []
+            for c in C_GRID:
+                oof = chrom_grouped_oof(
+                    feat, y, chrom, loss="logistic", c=c,
+                    n_pca=None, standardize=True, n_splits=args.n_splits,
+                    class_weight=cw,
+                )
+                scan.append((c, float(average_precision_score(y, oof))))
+            c_b, ap_b = max(scan, key=lambda t: t[1])
+            best[cw] = (ap_b, c_b)
+        (ap_n, c_n), (ap_b, c_b) = best[None], best["balanced"]
         print(
-            f"{_rep_label(rep):26s} {feat.shape[1]:>6}  {ap_best:.3f} (C={c_best:.0e})"
-            f"   grid: " + " ".join(f"{a:.3f}" for _, a in scan)
+            f"{_rep_label(rep):26s} {feat.shape[1]:>6}  "
+            f"{ap_n:.3f} (C={c_n:.0e})   {ap_b:.3f} (C={c_b:.0e})"
         )
         rows.append({"rep": _rep_label(rep), "dim": feat.shape[1],
-                     "best_auprc": ap_best, "best_c": c_best})
+                     "auprc_none": ap_n, "c_none": c_n,
+                     "auprc_balanced": ap_b, "c_balanced": c_b})
     pl.DataFrame(rows).write_parquet(
         "s3://oa-bolinas/analysis/issue314/dsqtl_probe/exp166-v0.1-p1B.parquet"
     )
