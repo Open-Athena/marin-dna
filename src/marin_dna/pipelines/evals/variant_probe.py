@@ -36,7 +36,9 @@ from marin_dna.pipelines.evals.metrics import auprc_with_bootstrap_se
 # ref↔alt combinations of pooled embeddings. The symmetric ones are invariant
 # under swapping which allele is "ref" — the only valid features for datasets
 # with no biological ref/alt direction, and for cross-dataset transfer.
-PAIR_COMBOS: tuple[str, ...] = ("delta", "concat", "abs_delta", "prod", "sum_absdiff")
+PAIR_COMBOS: tuple[str, ...] = (
+    "delta", "concat", "concat_ref_delta", "abs_delta", "prod", "sum_absdiff",
+)
 SYMMETRIC_COMBOS: frozenset[str] = frozenset({"abs_delta", "prod", "sum_absdiff"})
 
 POOLING_EXTENTS: tuple[str, ...] = ("entire_window", "center", "variant_token", "max")
@@ -45,16 +47,21 @@ POOLING_EXTENTS: tuple[str, ...] = ("entire_window", "center", "variant_token", 
 def pair_feature(ref: np.ndarray, alt: np.ndarray, combo: str) -> np.ndarray:
     """Combine pooled ref/alt embeddings ``[N, D]`` into a per-variant feature.
 
-    ``delta``/``concat`` are signed (ref↔alt direction matters); ``abs_delta``/
-    ``prod``/``sum_absdiff`` are invariant under a ref↔alt swap (see
-    ``SYMMETRIC_COMBOS``). Returns ``[N, D]`` for ``delta``/``abs_delta``/``prod``
-    and ``[N, 2D]`` for ``concat``/``sum_absdiff``.
+    ``delta``/``concat``/``concat_ref_delta`` are signed (ref↔alt direction
+    matters); ``abs_delta``/``prod``/``sum_absdiff`` are invariant under a ref↔alt
+    swap (see ``SYMMETRIC_COMBOS``). Returns ``[N, D]`` for
+    ``delta``/``abs_delta``/``prod`` and ``[N, 2D]`` for
+    ``concat``/``sum_absdiff``/``concat_ref_delta``.
     """
     assert ref.shape == alt.shape and ref.ndim == 2, (ref.shape, alt.shape)
     if combo == "delta":
         return alt - ref
     if combo == "concat":
         return np.concatenate([ref, alt], axis=1)
+    if combo == "concat_ref_delta":
+        # signed effect (alt−ref) + local context (ref). Spans the same space as
+        # `concat` but differs under L2 — the directional analog of `sum_absdiff`.
+        return np.concatenate([ref, alt - ref], axis=1)
     if combo == "abs_delta":
         return np.abs(alt - ref)
     if combo == "prod":

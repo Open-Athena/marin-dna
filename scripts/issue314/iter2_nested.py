@@ -30,6 +30,9 @@ from marin_dna.pipelines.evals.variant_probe import traitgym_nested_oof
 DEFAULT_REPS = [("pool", "entire_window", "abs_delta"), ("pool", "entire_window", "delta")]
 # symmetric-only for swap-invariant datasets (complex_traits, qtl) — no signed delta
 SYMMETRIC_REPS = [("pool", "entire_window", "abs_delta"), ("pool", "entire_window", "sum_absdiff")]
+# context-term ablation for directional datasets: signed delta vs delta + ref context
+REFDELTA_REPS = [("pool", "entire_window", "delta"),
+                 ("pool", "entire_window", "concat_ref_delta")]
 # Wide + heavy: the first pass (logspace(-8,2,12)) showed the 2944-dim exp166-4B pinned at
 # the 1e-8 floor on several subsets (it wants heavier reg), so the floor is extended to
 # 1e-12. selected-C range is reported per cell to confirm optima are interior (not truncated).
@@ -58,8 +61,11 @@ def main() -> None:
                     help="swap-invariant datasets: baseline = abs_llr_avg, not minus_llr_avg")
     ap.add_argument("--symmetric", action="store_true",
                     help="swap-invariant datasets: symmetric reps only (no signed delta)")
+    ap.add_argument("--refdelta", action="store_true",
+                    help="ablate the ref-context term: signed delta vs concat(ref, delta)")
     args = ap.parse_args()
-    reps = SYMMETRIC_REPS if args.symmetric else DEFAULT_REPS
+    reps = (REFDELTA_REPS if args.refdelta
+            else SYMMETRIC_REPS if args.symmetric else DEFAULT_REPS)
 
     pooled, inner, cov, keys = load_and_pool(args.cache)
     kdf = keys.to_pandas()

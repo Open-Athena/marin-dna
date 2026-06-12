@@ -53,6 +53,10 @@ def test_signed_combos_change_under_swap() -> None:
     )
     swapped = pair_feature(alt, ref, "concat")
     np.testing.assert_allclose(pair_feature(ref, alt, "concat")[:, :8], swapped[:, 8:])
+    # concat_ref_delta = [ref, alt-ref]: the delta half negates under swap (signed)
+    crd, crd_s = pair_feature(ref, alt, "concat_ref_delta"), pair_feature(alt, ref, "concat_ref_delta")
+    np.testing.assert_allclose(crd[:, 8:], -crd_s[:, 8:])
+    assert "concat_ref_delta" not in SYMMETRIC_COMBOS
 
 
 def test_pair_feature_shapes() -> None:
@@ -62,6 +66,7 @@ def test_pair_feature_shapes() -> None:
     assert pair_feature(ref, alt, "prod").shape == (5, 8)
     assert pair_feature(ref, alt, "concat").shape == (5, 16)
     assert pair_feature(ref, alt, "sum_absdiff").shape == (5, 16)
+    assert pair_feature(ref, alt, "concat_ref_delta").shape == (5, 16)
 
 
 def test_pair_feature_rejects_unknown() -> None:
