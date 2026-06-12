@@ -1,0 +1,14 @@
+# SkyPilot task: dsQTL accessibility probe (EDA) on an existing CPU box.
+#   sky exec vep-probe scripts/issue314/dsqtl_probe.yaml
+name: dsqtl-probe
+
+workdir: .
+
+envs:
+    CACHE: "s3://oa-bolinas/analysis/issue314/embeddings/exp166-v0.1-p1B/dsqtl"
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1
+    uv run --group genome-s3 python scripts/issue314/dsqtl_probe.py --cache "${CACHE}"
