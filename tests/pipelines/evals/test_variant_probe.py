@@ -21,6 +21,7 @@ from marin_dna.pipelines.evals.variant_probe import (
     pool_tokens,
     probe_auprc,
     random_projection,
+    traitgym_nested_oof,
 )
 
 
@@ -198,6 +199,21 @@ def test_oof_ridge_runs() -> None:
     feats, label, groups = _toy_dataset()
     oof = chrom_grouped_oof(feats, label, groups, loss="ridge", standardize=True)
     assert not np.isnan(oof).any()
+    assert average_precision_score(label, oof) > 0.75
+
+
+def test_nested_oof_covers_rows_tunes_C_and_recovers_signal() -> None:
+    feats, label, groups = _toy_dataset(n_groups=6, per_group=60, signal=3.0)
+    c_grid = np.logspace(-4, 2, 7)
+    oof, selected = traitgym_nested_oof(
+        feats, label, groups, c_grid=c_grid, inner_splits=3
+    )
+    # every row held out exactly once; one selected C per outer (LOGO) fold
+    assert oof.shape == label.shape and not np.isnan(oof).any()
+    assert len(selected) == len(np.unique(groups))
+    # tuned C is always drawn from the supplied grid
+    assert all(any(np.isclose(c, g) for g in c_grid) for c in selected)
+    # nested CV still recovers the planted signal
     assert average_precision_score(label, oof) > 0.75
 
 

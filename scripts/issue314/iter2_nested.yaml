@@ -1,0 +1,31 @@
+# SkyPilot task: iter2 TraitGym nested-LOCO protocol for one model (one cluster per model).
+#   sky launch scripts/issue314/iter2_nested.yaml -c vep-nest-p1b -y --env MODEL=exp166-v0.1-p1B
+name: vep-nested
+
+resources:
+    infra: aws/us-east-2
+    cpus: 8+
+    memory: 32+
+    use_spot: false           # spot is IAM-blocked on this account (on-demand only)
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    MODEL: "exp135-1B-m5.1"
+
+setup: |
+    set -euxo pipefail
+    command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1   # 1 BLAS thread/fit; GridSearchCV parallelizes
+    uv run --group genome-s3 python scripts/issue314/iter2_nested.py \
+        --cache "s3://oa-bolinas/analysis/issue314/embeddings/${MODEL}/mendelian_traits" \
+        --out "s3://oa-bolinas/analysis/issue314/iter2_nested" \
+        --model "${MODEL}"

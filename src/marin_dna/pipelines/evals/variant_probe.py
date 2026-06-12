@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GridSearchCV, GroupKFold, LeaveOneGroupOut
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -229,6 +229,62 @@ def chrom_grouped_oof(
             oof[te] = probe.predict(features[te])
     assert not np.isnan(oof).any(), "some rows were never held out — check groups"
     return oof
+
+
+def traitgym_nested_oof(
+    features: np.ndarray,
+    label: np.ndarray,
+    groups: np.ndarray,
+    *,
+    c_grid: np.ndarray | None = None,
+    inner_splits: int = 5,
+    standardize: bool = True,
+    class_weight: str | dict | None = None,
+    max_iter: int = 2000,
+) -> tuple[np.ndarray, list[float]]:
+    """Nested leave-one-group-out OOF — the TraitGym linear-probing protocol.
+
+    **Outer:** leave-one-group-out over ``groups`` (a whole chromosome held out each
+    fold). **Inner:** within each outer fold's training groups, ``GridSearchCV`` over a
+    ``GroupKFold`` of those groups tunes ``C`` by AUPRC — so ``C`` is **re-tuned per fold**
+    (hence per model and adaptively to its feature dimensionality), with no leakage. Fixed
+    pipeline ``StandardScaler → LogisticRegression`` (L2, **no PCA**), matching TraitGym
+    and the iter1 parsimony finding.
+
+    Returns ``(oof_scores, selected_Cs)`` — OOF ``predict_proba[:, 1]`` aligned to
+    ``features`` rows, and the ``C`` chosen on each outer fold (inspect the distribution to
+    confirm the grid isn't truncating any model: every optimum should be interior). The
+    default ``c_grid = np.logspace(-8, 2, 12)`` is deliberately wide and heavy (high-D
+    probes want strong reg); widen if optima pile at an edge.
+    """
+    if c_grid is None:
+        c_grid = np.logspace(-8, 2, 12)
+    X = np.asarray(features, dtype=np.float32)
+    y = np.asarray(label).astype(int)
+    g = np.asarray(groups)
+    n = len(y)
+    assert X.ndim == 2 and X.shape[0] == n == len(g), (X.shape, n, len(g))
+    assert len(np.unique(g)) >= 3, "need >=3 groups for nested LOGO"
+    steps: list[tuple[str, object]] = []
+    if standardize:
+        steps.append(("scaler", StandardScaler()))
+    steps.append((
+        "clf",
+        LogisticRegression(l1_ratio=0.0, max_iter=max_iter, class_weight=class_weight),
+    ))
+    oof = np.full(n, np.nan, dtype=float)
+    selected: list[float] = []
+    for tr, te in LeaveOneGroupOut().split(X, y, g):
+        k = min(inner_splits, len(np.unique(g[tr])))
+        gs = GridSearchCV(
+            Pipeline(steps), {"clf__C": c_grid},
+            cv=GroupKFold(n_splits=k), scoring="average_precision", n_jobs=-1,
+        )
+        gs.fit(X[tr], y[tr], groups=g[tr])
+        oof[te] = gs.predict_proba(X[te])[:, 1]
+        selected.append(float(gs.best_params_["clf__C"]))
+    assert not np.isnan(oof).any(), "some rows were never held out — check groups"
+    return oof, selected
 
 
 def probe_auprc(
