@@ -28,7 +28,10 @@ from marin_dna.pipelines.evals.metrics import (
 from marin_dna.pipelines.evals.variant_probe import traitgym_nested_oof
 
 REPS = [("pool", "entire_window", "abs_delta"), ("pool", "entire_window", "delta")]
-C_GRID = np.logspace(-8, 2, 12)  # wide + heavy; selected-C range reported to check truncation
+# Wide + heavy: the first pass (logspace(-8,2,12)) showed the 2944-dim exp166-4B pinned at
+# the 1e-8 floor on several subsets (it wants heavier reg), so the floor is extended to
+# 1e-12. selected-C range is reported per cell to confirm optima are interior (not truncated).
+C_GRID = np.logspace(-12, 2, 15)
 MIN_VARIANTS = 100
 
 
