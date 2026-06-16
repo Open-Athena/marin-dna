@@ -23,6 +23,35 @@ datasets:
     hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340  # PR #194 k=9 rebuild
     score_protocol: abs_llr     # fine-mapped positives — magnitude regardless of direction
 
+  # DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214). No
+  # matching / no subsampling, so `eval_protocol: qtl_global` selects the
+  # global path: AUPRC over all variants + Pearson/Spearman of the score vs
+  # `effect_size` over positives only (no subset/match_group, no macro-avg).
+  # `score_protocol: abs_llr` still drives the LLR→score transform, yielding
+  # the `abs_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}` score columns (abs-LLR + JSD).
+  - name: caqtl
+    hf_revision: 9d004a21812c067b9ba1ebfe72f51b9095a5d0f8
+    score_protocol: abs_llr
+    eval_protocol: qtl_global
+  - name: dsqtl
+    hf_revision: b7e02a07beb831c7047286aacd3ddfd299d6f88f
+    score_protocol: abs_llr
+    eval_protocol: qtl_global
+
+  # Saturation-genome-editing dataset (bolinas-dna/evals_sge, issue #301;
+  # builder #289, v2 rebuild #300, v3 label/AUPRC-only #301). Unmatched — no
+  # match_group; instead a boolean `label` (impactful = calibrated abnormal) +
+  # the consequence-group `subset`. `eval_protocol: sge` selects the
+  # SGE_VARIANT_COLUMNS assert set and the `compute_sge_metrics` path
+  # (per-accession × consequence-subset AUPRC on `label`, macro-averaged).
+  # `score_protocol: minus_llr` orients the gLM score toward deleteriousness
+  # (the assayed ALT's sign is informative — not abs), matching mendelian_traits;
+  # the raw llr_*/jsd_* atoms are stored regardless, so JSD stays available.
+  - name: sge
+    hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849  # evals_sge v3 (#301, AUPRC-only)
+    score_protocol: minus_llr
+    eval_protocol: sge
+
 # Model checkpoints. Each entry must have exactly one of:
 #   - `gcs_path`: full GCS URI to the checkpoint directory (includes /hf/step-{N});
 #                  pulled with `gcloud storage cp -r`.
@@ -71,6 +100,9 @@ models:
   - name: exp136-proj_v30-step-9999
     gcs_path: gs://marin-us-central1/checkpoints/dna-bolinas-enhancer-curation-v0.1-proj_v30-6692f0/hf/step-9999
     window_size: 255   # 255 bp DNA + BOS = 256 total tokens
+    # Explicit so only this checkpoint expands to the new QTL datasets; every
+    # other model stays scoped to mendelian_traits (see entries below).
+    datasets: [mendelian_traits, complex_traits, caqtl, dsqtl]
 
   # exp136 — enhancer-curation proj_v30, intermediate checkpoints (issue #136).
   # Native Levanter checkpoints were saved at every num_train_steps // 3 step
@@ -102,7 +134,406 @@ models:
   - name: exp166-v0.1-p1B-step-27329
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
     window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+
+  # exp166 v0.1 — generalist 4B run (74e146). Same 3 HF-exported
+  # checkpoints as 1B: 10000, 20000, 27329 (final). Intermediates scoped
+  # to mendelian_traits (convergence curve); final covers both leaderboards.
+  - name: exp166-v0.1-p4B-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp166-v0.1-p4B-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp166-v0.1-p4B-step-27329
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-27329
+    window_size: 255
     datasets: [mendelian_traits, complex_traits]
+
+  # exp187 — per-region Qwen3-1B sweep (issue #187). 6 v3 subsets × 5 HF
+  # checkpoint steps (1000, 2000, 3000, 4000, 4999). Computes AUPRC under the
+  # PR #194 / #195 pipeline (k=9 matched-pair dataset, cluster-bootstrap SE).
+  # Scoped to mendelian_traits — exp187 didn't train on complex-traits-aligned
+  # variants and there's no specific hypothesis on that dataset yet.
+  - name: exp187-v3_cds-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_cds-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_utr3-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ncrna_exon-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_tss_region_and_utr5-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_ccre_non_promoter-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp187-v3_bg-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+
+  # exp232 — per-region Qwen3-0.25B sweep (issue #232): all 6 region arms.
+  # Final step-4999 = the offline mendelian diagonal (#232); the full set of
+  # per-arm usable steps (= each arm's logged eval/HF-save cadence, where both
+  # an HF checkpoint and an in-training LL gap exist) = the LL↔AUPRC trajectory
+  # (#8). Steps differ per arm (preemption-offset cadence). 255 bp + BOS; the
+  # 0.25B model (hidden 1152) fits A10G at the global batch_size=128.
+  - name: exp232-v4_cds-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_cds-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_utr3-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_ccre_non_promoter-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ccre_non_promoter-v0.1-feca83/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_bg-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_bg-v0.1-4ec1c6/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+
+  # exp255 — order-deduplicated per-region 0.25B (issue #255). The 19-species
+  # one-per-order cohort counterpart to exp232's 108-species family arms, for the
+  # two largest v4 slices (cds, ccre_non_promoter). Final step-4999 checkpoints —
+  # offline mendelian for the order-vs-family comparison, and the online/offline
+  # AUPRC agreement is the post-#266 BOS-fix sanity check. 255 bp + BOS; 0.25B
+  # (hidden 1152) fits A10G at the global batch_size=128. ccre_order trained in
+  # europe-west4 (eu-west4 bucket); cds_order in us-east5.
+  - name: exp255-v4_cds_order-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_cds_order-v0.1-2059d2/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp255-v4_ccre_non_promoter_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_ccre_non_promoter_order-v0.1-4dc7c6/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  # The 3 smaller-region order arms (#255 5-region expansion) — all trained in
+  # europe-west4 (eu-west4 bucket); each survived a flaky-v6e SIGSEGV gauntlet.
+  - name: exp255-v4_utr3_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_utr3_order-v0.1-38e83f/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp255-v4_ncrna_exon_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_ncrna_exon_order-v0.1-f1b4b2/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp255-v4_tss_region_and_utr5_order-step-4999
+    gcs_path: gs://marin-eu-west4/checkpoints/dna-exp255-zoonomia-v1-0p25b-v4_tss_region_and_utr5_order-v0.1-252b96/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
 
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
@@ -117,6 +548,58 @@ models:
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
     window_size: 255
     datasets: [mendelian_traits]
+
+  # exp135-1B-m5.1 (Slack #bolinas, 2026-05-30): continued training from the
+  # animal-only uniform mix (~110B tokens), then a 5-way mix adding the new
+  # distal data (mammal ncRNA + mammal ccRE/enhancer). Final HF checkpoint
+  # step-59158; same 1B Qwen3 / 255 bp + BOS as the other mix-v0.9 runs.
+  # Scoped to mendelian_traits to match the other mix-v0.9 entries.
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
+  # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
+  # (~84.77B tokens; batch 1536 x seq 256; identical optimizer hparams). The
+  # Mendelian VEP scored here is the y-axis for the LL-gap-vs-loss analysis; the
+  # LL gap itself rides the same registry via the `ll_gap:` section below. The
+  # 4B is `h2944` (NOT the separate short/crashed `dna-bolinas-4b-v0.*` search).
+  # 255 bp DNA + BOS.
+  # `datasets` widened to include `sge` + `complex_traits` (#306) — score the
+  # ladder on SGE and complex traits (missense + splicing) to compare AUPRC vs
+  # model size against Mendelian.
+  - name: scaling-v0.5-h640-p46M-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h768-p76M-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h896-p128M-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h896-p128M-43ec40/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h1152-p255M-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h1408-p476M-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h1920-p1B-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h2432-p2B-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: scaling-v0.5-h2944-p4B-step-215573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
 
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
@@ -290,7 +773,7 @@ models:
   - name: exp13-mixture-proportional-step-26000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-26000
     window_size: 512
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, sge]
     batch_size: 64
 
   # exp55/exp58/exp59 — promoters/CDS/downstream across evolutionary timescales
@@ -682,3 +1165,130 @@ inference:
   bootstrap_seed: 0     # 0 → reproducible across re-runs. Bumping
                         # this triggers metric re-execution via
                         # snakemake's `params:` hash.
+
+
+# ---------------------------------------------------------------------------
+# cLLR mutation-rate calibration tables (stage 3, #267/#270). Off `rule all`;
+# build with `snakemake calibration` (or a single
+# results/calibration/<model>/llr_neutral_mean_n{n}.parquet target). Scores the
+# pinned, pre-filtered + subsampled neutral set with the fast LLR bundle (FWD+RC)
+# and bins by pentanuc_mut → per-checkpoint llr_neutral_mean table. The neutral set
+# is ACGT-window-filtered upstream (neutral_sites pipeline); this rule does no
+# genome filtering. Entropy calibration is a separate, deferred path. See
+# rules/calibration.smk.
+# ---------------------------------------------------------------------------
+calibration:
+  # S3 prefix of the neutral-sites pipeline's subsampled artifacts. The rule
+  # appends `/neutral_sites_n{n}_w{scoreable_window}.parquet`.
+  neutral_sites_s3_prefix: s3://oa-bolinas/snakemake/neutral_sites/results/subsampled
+  subsample_n: 100        # per-5-mer cap; selects neutral_sites_n100_w{w}.parquet
+                          # and names the `calibration` collector's targets.
+  scoreable_window: 512   # the neutral set is pre-filtered so every w-bp window is
+                          # all-ACGT; 512 = the largest model window, so ONE set is
+                          # valid for every model (255/256/512). Must be >= each
+                          # scored model's window_size (asserted in the rule).
+  min_bin_count: 10       # hard floor on observations per pentanuc_mut cell. At
+                          # n=100 the true min is 41 (CpG-depleted 5-mers); the
+                          # ACGT-window pre-filter shaves a few gap-adjacent sites,
+                          # so 10 catches a broken/empty cell without false-firing
+                          # on legitimate post-filter depletion.
+  rc: true                # FWD+RC average, matching the eval convention.
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (our winner / pilot model)
+
+
+# ---------------------------------------------------------------------------
+# Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.
+#
+# NOT a metric: these targets are kept off `rule all`. Build explicitly:
+#   snakemake nuc_dep                                  # all (locus, model) plots
+#   snakemake results/plots/nuc_dep/LDLR/<model>.svg   # one map
+#
+# Coordinates are 0-based half-open, GRCh38 (Ensembl chrom names, no `chr`).
+# Loci are reused from the nuc-dep paper's human examples so our maps can be
+# eyeballed against the published figures. Each locus must fit the model's
+# `window_size` (asserted at config load). HBA1 is 256 bp in the paper; we crop
+# 1 bp (trim the 3' end) so it fits the 255 bp window of the mix-v0.9 models —
+# GPN-Star likewise ran HBA1 with the locus filling the whole window (256/256),
+# so a locus == window_size (zero flank) is an intended, supported case.
+# ---------------------------------------------------------------------------
+nuc_dep:
+  window_size: 255     # fixed window for ALL models so they see the SAME input (#240),
+                       # overriding each model's native context (e.g. exp21's 512)
+  combines: [mean]     # stitched-FWD/RC symmetrization (#237/#240); max is near-identical (Spearman ~0.98), so we keep only mean
+  ord: inf             # vector-norm order collapsing each 4x4 nucleotide block
+  batch_size: 32       # sequences per forward pass (execution-only; tune for VRAM)
+  dpi: 100             # heatmap raster dpi (the SVG embeds one rasterized image; lower = smaller file)
+  # No-BOS models are supported (#240): the forward pass can't predict the
+  # window's first position and RC can't predict the last, but the FWD+RC stitch
+  # recovers both, so the map stays complete. Each locus must still fit
+  # `window_size` (HBA1 == 255 fills it exactly).
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+    - exp166-v0.1-p1B-step-27329  # 1B generalist (zoonomia v0.1), 255+BOS — 2nd dashboard model (#240)
+    - exp21-promoters-yolo-step-22000  # promoter specialist (final ckpt, on the leaderboard), 512-ctx no-BOS, run at 255 (#240)
+  loci:
+    LDLR:  {chrom: "19", start: 11089299,  end: 11089425,  strand: "+"}
+    TH:    {chrom: "11", start: 2171682,   end: 2171868,   strand: "-"}
+    GRIA4: {chrom: "11", start: 105609444, end: 105609472, strand: "+"}
+    # HBA1: paper locus 176699-176955 (256 bp) cropped to 255 (3' end -1) to fit.
+    HBA1:  {chrom: "16", start: 176699,    end: 176954,    strand: "+"}
+    # tRNA-Arg-TCT-4-1 (gtrnadb GRCh38), a structured ncRNA used in the nuc-dep
+    # paper (Fig 7) — the map should recover its cloverleaf base-pairing. UCSC
+    # display chr1:159141611-159141684 (-) is 1-based inclusive → 0-based
+    # half-open start 159141610, end 159141684 (74 bp).
+    tRNA_Arg_TCT: {chrom: "1", start: 159141610, end: 159141684, strand: "-"}
+
+# Embedding UMAP (GPN-Star Fig 4A/4B) — interpretation, issue #246. Off `rule all`;
+# build with `snakemake umap`. Install needs `--group genome-s3 --group umap`
+# (S3 genome read + the optional umap-learn group). Reuses the `models:` registry
+# above (entry must declare `window_size`); first pass is exp135-1B only.
+umap_embeddings:
+  dataset: songlab/gpn-star-umap-regions   # HF: 111,329 labeled 100 bp windows (chrom/start/end/label/cons)
+  layer_index: -1                          # last hidden layer (match GPN-Star); configurable for a later sweep
+  n_center_bp: 100                         # central positions to mean-pool (== the dataset window)
+  random_state: 42                         # UMAP seed (also forces single-threaded UMAP)
+  dpi: 200                                 # scatter raster dpi
+  # batch_size: keep at 128 (= inference.batch_size). On A10G, VRAM oscillates
+  # ~7.5–22 GB across strand 1 (Trainer.predict accumulating [N, 1920] outputs +
+  # a torch.compile workspace reservation — far heavier than the variant path's
+  # [N, 2]), peaking ~95% at batch 128. Higher would OOM. The run is also
+  # GPU-compute-bound, so a bigger batch wouldn't speed it up regardless.
+  batch_size: 128
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (255+BOS) — first pass, single model
+
+# Functional/non-functional LL gap (issue #274) — off `rule all`; build with
+# `snakemake ll_gap` (or one `results/ll_gap/scores/<model>/<region>.parquet`
+# per sky cluster, then `snakemake ll_gap` to gather). For each (model, region)
+# it scores the mean log-likelihood on uppercase (phyloP-functional) vs
+# lowercase (non-functional) target tokens over a mixed-case validation-interval
+# dataset, then aggregates to a per-(model, region) gap. These `datasets` are HF
+# `seq` datasets (the v5/v1/v15 sets the training runs used for
+# val_cds/val_upstream/val_downstream) — NOT the variant `datasets:` above.
+# `models` reuse the `models:` registry. FWD strand only (matches the
+# training-logged gap). m5.1 leads the list as the validation gate: it logged
+# `val_cds_{functional,nonfunctional}/loss` in W&B, so -LL_upper/-LL_lower must
+# reproduce those before the ladder gaps are trusted.
+ll_gap:
+  split: validation
+  datasets:
+    - name: cds          # v5 — CDS
+      hf_repo: bolinas-dna/genomes-v5-validation-intervals-v5_255_255
+      hf_revision: daff592f213aaa1cab1711d477a79ff6b1bc4ef4
+    - name: upstream     # v1 — promoter / upstream
+      hf_repo: bolinas-dna/genomes-v5-validation-intervals-v1_255_255
+      hf_revision: a761bc0b663a9827303f3112e4667d53d5326fac
+    - name: downstream   # v15 — 3' UTR / downstream
+      hf_repo: bolinas-dna/genomes-v5-validation-intervals-v15_255_255
+      hf_revision: d7b27eecd68453934ebb3e7e6e78d5401789faa5
+  models:
+    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # validation gate (has the W&B gap)
+    - scaling-v0.5-h640-p46M-step-215573
+    - scaling-v0.5-h768-p76M-step-215573
+    - scaling-v0.5-h896-p128M-step-215573
+    - scaling-v0.5-h1152-p255M-step-215573
+    - scaling-v0.5-h1408-p476M-step-215573
+    - scaling-v0.5-h1920-p1B-step-215573
+    - scaling-v0.5-h2432-p2B-step-215573
+    - scaling-v0.5-h2944-p4B-step-215573

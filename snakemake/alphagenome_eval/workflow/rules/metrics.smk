@@ -1,10 +1,10 @@
-"""AUPRC + cluster-bootstrap SE per (dataset).
+"""AUPRC + cluster-bootstrap SE per matched-group dataset.
 
-Cluster = `match_group`; resamples groups (not rows) so the SE accounts
-for the 1:k matched structure. Output schema mirrors
+Cluster = `match_group`; resamples groups (not rows) so the SE accounts for the 1:k
+matched structure. Output schema mirrors
 `marin_dna.pipelines.evals.metrics.compute_auprc_metrics`:
-`[score_type, subset, value, se, n_groups, n_rows]` plus `_global_` and
-`_macro_avg_` aggregate rows per score_type.
+`[score_type, subset, value, se, n_groups, n_rows]` plus `_global_` and `_macro_avg_`
+aggregate rows per score_type.
 """
 
 
@@ -14,7 +14,7 @@ rule compute_metrics:
     output:
         "results/metrics/{dataset}.parquet",
     wildcard_constraints:
-        dataset="|".join(DATASETS),
+        dataset=MATCHED_CONSTRAINT,
     params:
         n_bootstrap=config["n_bootstrap"],
         bootstrap_seed=config["bootstrap_seed"],
@@ -37,4 +37,6 @@ rule compute_metrics:
         metrics["dataset"] = wildcards.dataset
         metrics["split"] = config["split"]
         metrics.to_parquet(output[0], index=False)
-        print(f"[alphagenome_eval] {wildcards.dataset}: {len(metrics)} subset rows")
+        print(
+            f"[alphagenome_eval] {wildcards.dataset}: {len(metrics)} metric rows"
+        )

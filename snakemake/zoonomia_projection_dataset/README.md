@@ -141,8 +141,10 @@ The current pipeline ships one derived subset:
 ## HuggingFace datasets
 
 One HF dataset per (pipeline, intervals) combination. v1/v2 are the
-core cross-mammal training sets; v3_* is a per-region-label partition of
-v1 (six disjoint subsets summing to v1 at the anchor level).
+core cross-mammal training sets; v3_* and v4_* are each a per-region-label
+partition of v1 (six disjoint subsets summing to v1 at the anchor level) —
+two different labelings of the same anchors (v3 priority-on-presence, v4 the
+issue #221 scheme; see "v4 region labels" below).
 
 | HF repo                                          | pipeline | intervals               | source Parquet                                                              |
 |---|---|---|---|
@@ -154,11 +156,18 @@ v1 (six disjoint subsets summing to v1 at the anchor level).
 | `bolinas-dna/zoonomia-v1-v3_tss_region_and_utr5` | v1       | v3_tss_region_and_utr5  | `results/projection/min0.20/subsets/v3_tss_region_and_utr5.parquet`         |
 | `bolinas-dna/zoonomia-v1-v3_ccre_non_promoter`   | v1       | v3_ccre_non_promoter    | `results/projection/min0.20/subsets/v3_ccre_non_promoter.parquet`           |
 | `bolinas-dna/zoonomia-v1-v3_bg`                  | v1       | v3_bg                   | `results/projection/min0.20/subsets/v3_bg.parquet`                          |
+| `bolinas-dna/zoonomia-v1-v4_cds`                 | v1       | v4_cds                  | `results/projection/min0.20/subsets/v4_cds.parquet`                         |
+| `bolinas-dna/zoonomia-v1-v4_utr3`                | v1       | v4_utr3                 | `results/projection/min0.20/subsets/v4_utr3.parquet`                        |
+| `bolinas-dna/zoonomia-v1-v4_ncrna_exon`          | v1       | v4_ncrna_exon           | `results/projection/min0.20/subsets/v4_ncrna_exon.parquet`                  |
+| `bolinas-dna/zoonomia-v1-v4_tss_region_and_utr5` | v1       | v4_tss_region_and_utr5  | `results/projection/min0.20/subsets/v4_tss_region_and_utr5.parquet`         |
+| `bolinas-dna/zoonomia-v1-v4_ccre_non_promoter`   | v1       | v4_ccre_non_promoter    | `results/projection/min0.20/subsets/v4_ccre_non_promoter.parquet`           |
+| `bolinas-dna/zoonomia-v1-v4_bg`                  | v1       | v4_bg                   | `results/projection/min0.20/subsets/v4_bg.parquet`                          |
 
-Each v3 repo ships with its own auto-generated dataset card (README.md,
-written by `marin_dna.zoonomia_projection_dataset.region_labels.write_subset_hf_readme`);
-v1/v2 are card-less by design (semantics live in this pipeline README
-rather than per-repo).
+Each v3/v4 repo ships with its own auto-generated dataset card (README.md,
+written by `region_labels.write_subset_hf_readme` for v3 and
+`write_subset_hf_readme_v4` for v4); v1/v2 are card-less by design (semantics
+live in this pipeline README rather than per-repo). v3 and v4 are **two
+different partitions of the same v1 anchors** — see "v4 region labels" below.
 
 **Two-axis versioning.** `pipeline_version` (in `config/config.yaml`) snapshots species set, conservation cutoff (`project_min_p`), alignment backend, and resize/length-filter params — bump it and re-run the projection. `intervals_versions` lists the post-projection subset definitions; bumps are cheap (one new derivation rule + cheap re-runs of `subset_dataset_derived` + sharding + upload).
 
@@ -172,7 +181,8 @@ rather than per-repo).
 **Intervals:**
 - `v1` — identity (every row of `all_species_with_sequence.parquet`)
 - `v2` — window overlaps `[TSS − 256, TSS + 256]` for any Ensembl protein_coding transcript
-- `v3_<label>` — per-anchor region-type partition of v1 (`cds` / `utr3` / `ncrna_exon` / `tss_region_and_utr5` / `ccre_non_promoter` / `bg`). Each anchor is assigned exactly one label by the priority-walk in `region_labels.smk`; the six v3 subsets sum to v1 at the anchor level. See the "Region-type annotation" section below for label definitions and the partition stats.
+- `v3_<label>` — per-anchor region-type partition of v1 (`cds` / `utr3` / `ncrna_exon` / `tss_region_and_utr5` / `ccre_non_promoter` / `bg`). Each anchor is assigned exactly one label by the priority-walk in `regions.smk`; the six v3 subsets sum to v1 at the anchor level. See the "Region-type annotation" section below for label definitions and the partition stats.
+- `v4_<label>` — the same six labels, re-derived with the issue #227 labeling scheme (bp-priority + window-majority, PC-only TSS band, `ccre_flank=0`, `tss_region_and_utr5` above `ncrna_exon`). A different partition of the same v1 anchors; see "v4 region labels" below.
 
 **HF dataset schema** (single `train` split per repo; JSONL.zst-sharded at `data/train/shard_NNNN.jsonl.zst`):
 
@@ -197,6 +207,25 @@ rather than per-repo).
 **Bumping rules:**
 - Bump `pipeline_version` when ANY of: species TSV, `project_min_p`, alignment backend (rules in `project.smk`), resize / length-filter params changes. This invalidates all per-(pipeline, intervals) HF datasets and the projection itself must be re-run.
 - Bump `intervals_versions` (add a new entry) when you want a new subset definition. Cheap — only `subset_dataset_derived` + shard prep + upload re-run.
+
+**Species axis (third axis — issue #233).** A *species cohort* filters an existing dataset to a subset of the projection's species — a row-filter on the `species` column, orthogonal to `intervals_version` (a row-filter on `query_name`); the two compose. The default 108-family cohort is **implicit** (no label), so every `zoonomia-v1-*` repo above is unchanged. Non-default cohorts get a trailing repo suffix (scheme B): `zoonomia-{pipeline_version}-{intervals_version}-{cohort}`.
+
+A cohort must be a **subset** of the projection's species, so the v1 projection is reused as-is (no re-halLiftover) — `marin_dna.pipelines.projection.subset.filter_to_species` asserts the subset relationship. Cohorts are declared in `species_subsets` (label → species TSV); the `{intervals, species}` combos to build are listed in `species_subset_datasets`. `rule subset_species` writes `results/projection/min{p}/subsets_species/{intervals}-{cohort}.parquet`, which feeds the same `prepare_training_shards → compress_shard → hf_upload_dataset` chain; each cohort dataset ships its own card (`write_species_subset_hf_readme`).
+
+The pipeline ships one cohort dataset:
+
+| HF repo | pipeline | intervals | species cohort | source Parquet |
+|---|---|---|---|---|
+| `bolinas-dna/zoonomia-v1-v4_cds-order` | v1 | v4_cds | `order` (19, one-per-order) | `results/projection/min0.20/subsets_species/v4_cds-order.parquet` |
+
+The `order` cohort (`config/species_zoonomia_447_order_dedup.tsv`, 19 leaves) is a strict subset of the 108-family set, so `zoonomia-v1-v4_cds-order` is the v4 cds region partition restricted to those 19 deeply-diverged species — a species diversity-vs-quantity ablation against the 108-species `zoonomia-v1-v4_cds`, reusing the projection for free.
+
+Build it on the projection/upload cluster, where the v1 projection outputs + metadata are intact (a fresh local checkout otherwise re-plans the projection — `local()` FASTA intermediates are absent and S3 mtimes read as updated, exactly as for the v3/v4 subsets):
+
+```bash
+uv run snakemake --profile workflow/profiles/default \
+    results/upload.done/zoonomia-v1-v4_cds-order
+```
 
 **Run:**
 
@@ -338,6 +367,35 @@ uv run snakemake --profile workflow/profiles/default all_region_labels
 
 Per-region fractions (`*_frac` columns) are emitted regardless of priority and threshold, so you can re-derive labels downstream by sweeping `region_label_functional_threshold` or `region_label_priority` without re-running the bedtools-style overlap pass.
 
+## v4 region labels (`rule all_region_labels_v4`) — issue #227
+
+The v3 labeler above assigns each window the highest-**priority** region with *any* (≥1 bp) overlap. [Issue #221](https://github.com/Open-Athena/marin-dna/issues/221) showed this over-claims (a window grazing a coding exon becomes `cds`); v4 re-derives the partition with the scheme resolved there. **v3 and v4 are independent partitions of the same v1 anchors — v3 is frozen (existing checkpoints train on it); use v4 for new work.** Three coupled changes:
+
+1. **bp-priority + window-majority** (`label_windows_bp_majority`). Two stages: (a) *base-pair priority* — every base is assigned to exactly one region by subtracting higher-priority region sets from lower ones (a base in both CDS and a cCRE is `cds`), yielding five **disjoint** sets that sum to the functional union; (b) *window majority* — the window takes the disjoint region covering the most bases (≥ `region_label_functional_threshold` functional to escape `background`). This fixes both the v3 CDS over-claim and the naive-argmax failure where a coding exon nested in a cCRE would be labelled `ccre`.
+2. **PC-only TSS region** (`region_label_tss_pc_only_v4: true`). `tss_region_and_utr5` = (TSS region) ∪ (5′ UTR), one class. The 5′ UTR half is already protein-coding-only; v4 builds the **TSS-region half** from protein-coding transcripts too (v3 used every transcript), so the whole class is PC-derived and a standalone ncRNA's own TSS no longer collides with its exon.
+3. **`ccre_flank` 500 → 0** (`region_label_ccre_flank_v4: 0`). The ±500 bp flank was ~79% of the cCRE footprint; dropping it makes `v4_ccre_non_promoter` mean "actually cCRE-covered" and grows `background`.
+
+The **priority order flips `tss_region_and_utr5` above `ncrna_exon`** (`region_label_priority_v4`): after the PC-only change the residual ncRNA↔TSS overlap is divergent/antisense lncRNAs inside protein-coding promoters, whose pathogenic variants are promoter/5′ UTR (PC-TSS-centric in the eval), so the promoter arm should own them. `region_label_tss_radius` (256) and `region_label_functional_threshold` (0.20) are shared with v3.
+
+### Outputs
+
+- `results/human/intervals/region_labels/v4/min{min_p}.parquet` — same schema as v3, but the per-label `*_frac` columns are the **disjoint** (priority-resolved) coverages, so they sum to `functional_frac` rather than to the larger overlapping coverages.
+- `results/human/intervals/region_labels/v4/min{min_p}.composition.tsv` — per-label counts (via `region_label_composition_table`).
+- `results/projection/min{min_p}/subsets_def/v4_<label>.query_names.txt` → fed through the same `subset_dataset_derived` → shard → upload chain as v3 (six `bolinas-dna/zoonomia-v1-v4_<label>` repos, each with a v4 dataset card).
+
+### Run
+
+```bash
+# v4 labels + composition + per-label query_names lists (no projection needed):
+uv run snakemake --profile workflow/profiles/default all_region_labels_v4
+
+# A single v4 labels parquet:
+uv run snakemake --profile workflow/profiles/default \
+    results/human/intervals/region_labels/v4/min0.20.parquet
+```
+
+The v4 subset → shard → HF-upload step reuses the existing cross-mammal projection (`all_species_with_sequence.parquet`); it does **not** re-run halLiftover. On a fresh checkout where the projection's `local()` intermediates are absent, Snakemake may still *plan* to re-derive the projection for any new subset — run the subset/upload step where the projection outputs + metadata are intact (e.g. the projection cluster), as the v3 subsets were built.
+
 ## Run
 
 ```bash
@@ -377,17 +435,25 @@ sky exec   zoonomia-project   sky/project.yaml --env TIER=full
 sky down   zoonomia-project    # at end of session
 ```
 
-## Family-deduplicated species list
+## Rank-deduplicated species lists
 
-`config/species_zoonomia_447_family_dedup.tsv` (108 rows) is the static, committed input to the projection step. One leaf per NCBI family from the 447-mammalian Newick, with `Homo_sapiens`, `Mus_musculus`, `Bos_taurus` force-included. Per-leaf assembly metadata (`accession, assembly_level, contig_n50, quality_source`) comes from Zoonomia Supplementary Table 2 when available (~85 % of winners, true HAL-assembly stats) and NCBI Datasets v2 taxon proxy for the rest (mostly 447-only primate clade leaves).
+The projection step reads a static, committed species TSV chosen by `species_tsv:` in `config/config.yaml`. Two are shipped, both produced by the same one-off `scripts/build_species_list.py` via `dedup_by_rank` — one leaf per taxonomic group, ranked `quality_source → assembly_level → contig_n50 → name`, with `Homo_sapiens`, `Mus_musculus`, `Bos_taurus` force-included:
+
+- **`config/species_zoonomia_447_family_dedup.tsv`** (108 rows) — one leaf per NCBI **family**. The default `species_tsv` and the `v1` pipeline snapshot.
+- **`config/species_zoonomia_447_order_dedup.tsv`** (19 rows) — one leaf per NCBI **order**: a sparser, more deeply-diverged set (every pair separated by ~tens of My). The 108 families span 19 orders.
+
+The order set is a strict **subset** of the family set — the top-ranked leaf in an order is also the top-ranked in its own family — so `order (19) ⊂ family (108) ⊂ all-447`. Per-leaf assembly metadata (`accession, assembly_level, contig_n50, quality_source`) comes from Zoonomia Supplementary Table 2 when available (true HAL-assembly stats; 85 % of family winners, 79 % of order winners) and NCBI Datasets v2 taxon proxy for the rest.
+
+`species_tsv:` selects which list the **projection** uses (currently the family set / `v1`). Building a dataset on the **order** set neither changes `species_tsv` nor re-runs the projection: because `order ⊂ family`, it is a species-axis subset of the existing `v1` projection (see "Species axis" under HuggingFace datasets above — `zoonomia-v1-v4_cds-order`, issue #233), not a new `species_tsv` / projection run.
 
 To regenerate (only when the alignment changes):
 
 ```bash
-uv run --with openpyxl python scripts/build_species_list.py
+uv run --with openpyxl python scripts/build_species_list.py               # family (default)
+uv run --with openpyxl python scripts/build_species_list.py --rank order  # order
 ```
 
-The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/marin_dna/projection/taxonomy.py` (testable; the script is thin orchestration).
+The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/marin_dna/pipelines/projection/taxonomy.py` (testable; the script is thin orchestration).
 
 ## NaN semantics
 
@@ -409,7 +475,8 @@ Sanity-checked in `tests/conservation/test_scoring.py::test_score_windows_nan_co
 ```
 config/
   config.yaml                                  # all knobs (anchor windows + projection)
-  species_zoonomia_447_family_dedup.tsv        # 108 rows; committed input to projection
+  species_zoonomia_447_family_dedup.tsv        # 108 rows; one leaf per family (default species_tsv)
+  species_zoonomia_447_order_dedup.tsv         # 19 rows; one leaf per order (sparser; see issue #230)
 workflow/Snakefile                             # rule orchestration
 workflow/profiles/default/                     # cores, S3 storage, conda
 workflow/envs/bioinformatics.yaml              # bedtools, kentUtils (faToTwoBit, twoBitInfo)
@@ -422,11 +489,11 @@ workflow/rules/
   filter.smk                                   # filtered BED per cutoff
   project.smk                                  # cross-mammal halLiftover + filter + resize + sequence + subset
   subsets.smk                                  # derive query_names lists for v2 subset; subset_dataset_derived override
-  dataset.smk                                  # RC augment + shuffle + shard + hf upload-large-folder
+  dataset.smk                                  # RC augment + shuffle + shard + hf upload; species-subset axis (subset_species, #233)
   validation.smk                               # seven per-recipe validation parquets + HF upload (rule all_validation)
 scripts/
   calibrate_447m_threshold.py                  # one-off; uses src/marin_dna/conservation/
-  build_species_list.py                        # one-off; uses src/marin_dna/projection/taxonomy
+  build_species_list.py                        # one-off; --rank {family,order}; uses pipelines/projection/taxonomy
   zrs_sanity_check.py                          # smoke-tier ZRS cCRE assertion
 sky/
   run.yaml                                     # c6id.2xlarge — anchor windows

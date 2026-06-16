@@ -8,6 +8,8 @@ import pytest
 from marin_dna.pipelines.evals.conservation import (
     CONSERVATION_TRACKS,
     aggregate_conservation_metrics,
+    aggregate_conservation_qtl_metrics,
+    aggregate_conservation_sge_metrics,
     score_variants_at_positions,
 )
 from marin_dna.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
@@ -129,6 +131,168 @@ def _scored_parquet(tmp_path, name, scores, labels, subsets, match_groups):
     )
     df.to_parquet(path, index=False)
     return path
+
+
+def _qtl_scored_parquet(tmp_path, name, scores, labels, effect_sizes):
+    """Write a fake qtl_global scored-variant parquet (no subset/match_group)."""
+    path = tmp_path / f"{name}.parquet"
+    n = len(scores)
+    df = pd.DataFrame(
+        {
+            "chrom": ["chr1"] * n,
+            "pos": list(range(1, n + 1)),
+            "ref": ["A"] * n,
+            "alt": ["T"] * n,
+            "label": labels,
+            "effect_size": effect_sizes,
+            "score": scores,
+        }
+    )
+    df.to_parquet(path, index=False)
+    return path
+
+
+def test_aggregate_conservation_qtl_metrics(tmp_path):
+    """qtl_global aggregation: per-track global AUPRC + positives-only
+    effect_size correlation, with the expected schema, NaN→0 fill, and a
+    metric × track markdown table."""
+    rng = np.random.default_rng(0)
+    n_pos, n_neg = 20, 80
+    labels = [True] * n_pos + [False] * n_neg
+    es_pos = rng.uniform(0.1, 2.0, n_pos)
+    # Positives carry effect_size; controls are NaN (the dsQTL case).
+    effect_sizes = list(es_pos) + [np.nan] * n_neg
+    # Track 1: positives' score == effect_size (perfect corr) + low controls;
+    # one control's score is NaN (filled with 0 by the aggregator, n_nan=1).
+    s1 = list(es_pos) + list(rng.uniform(0.0, 0.05, n_neg))
+    s1[n_pos] = np.nan  # first control
+    # Track 2: random scores.
+    s2 = list(rng.uniform(0, 1, n_pos + n_neg))
+    p1 = _qtl_scored_parquet(tmp_path, "phyloP_241m", s1, labels, effect_sizes)
+    p2 = _qtl_scored_parquet(tmp_path, "phastCons_43p", s2, labels, effect_sizes)
+
+    metrics, md = aggregate_conservation_qtl_metrics(
+        {"phyloP_241m": p1, "phastCons_43p": p2}, n_bootstrap=50
+    )
+
+    # 3 metrics × 2 tracks = 6 rows; QTL schema (metric col, no subset rows).
+    assert len(metrics) == 6
+    assert set(metrics["metric"]) == {"AUPRC", "pearson", "spearman"}
+    assert set(metrics["score_name"]) == {"phyloP_241m", "phastCons_43p"}
+    assert {
+        "metric",
+        "score_type",
+        "value",
+        "se",
+        "n_rows",
+        "n_pos",
+        "score_name",
+        "n_nan",
+        "n_total",
+    } <= set(metrics.columns)
+    assert (metrics["score_type"] == "score").all()
+
+    t1 = metrics[metrics["score_name"] == "phyloP_241m"]
+    assert int(t1["n_total"].iloc[0]) == n_pos + n_neg
+    assert int(t1["n_pos"].iloc[0]) == n_pos
+    assert int(t1["n_nan"].iloc[0]) == 1  # the single NaN score (filled with 0)
+    # Track 1: positives' score == effect_size → perfect corr; positives all
+    # outrank controls → AUPRC = 1.
+    assert t1[t1["metric"] == "pearson"]["value"].iloc[0] == pytest.approx(
+        1.0, abs=1e-9
+    )
+    assert t1[t1["metric"] == "AUPRC"]["value"].iloc[0] == pytest.approx(1.0, abs=1e-12)
+
+    assert "caQTL/dsQTL" in md
+    for tok in ("phyloP_241m", "phastCons_43p", "AUPRC", "pearson", "spearman"):
+        assert tok in md
+
+
+def _sge_scored_parquet(
+    tmp_path, name, *, seed=0, n_per_cell=150, perfect=False, inject_nan=0
+):
+    """Write a fake SGE v3 scored-variant parquet (SGE_VARIANT_COLUMNS + score).
+
+    Two accessions × {missense_variant, splicing}, each with a boolean ``label``
+    (~40% True). With ``perfect=True`` the track ``score`` separates the classes
+    (impactful scores high) → AUPRC = 1. ``inject_nan`` NaNs the first rows' score."""
+    rng = np.random.default_rng(seed)
+    rows = []
+    score_blocks = []
+    for urn, gene in (("urn:1", "GENEA"), ("urn:2", "GENEB")):
+        for subset in ("missense_variant", "splicing"):
+            label = rng.random(n_per_cell) < 0.4
+            for lab in label:
+                rows.append(
+                    {
+                        "chrom": "chr1",
+                        "pos": len(rows) + 1,
+                        "ref": "A",
+                        "alt": "T",
+                        "mavedb_urn": urn,
+                        "gene": gene,
+                        "subset": subset,
+                        "label": bool(lab),
+                    }
+                )
+            score_blocks.append(
+                np.where(label, 1.0, 0.0) + rng.normal(0, 1e-6, n_per_cell)
+                if perfect
+                else rng.normal(size=n_per_cell)
+            )
+    df = pd.DataFrame(rows)
+    sc = np.concatenate(score_blocks)
+    if inject_nan:
+        sc[:inject_nan] = np.nan
+    df["score"] = sc
+    path = tmp_path / f"{name}.parquet"
+    df.to_parquet(path, index=False)
+    return path
+
+
+def test_aggregate_conservation_sge_metrics(tmp_path):
+    """SGE aggregation: per-track AUPRC via the shared compute_sge_metrics, with
+    score_name/n_nan stamping and an SGE markdown."""
+    p1 = _sge_scored_parquet(tmp_path, "phyloP_241m", seed=0, perfect=True)
+    p2 = _sge_scored_parquet(
+        tmp_path, "phastCons_43p", seed=1, perfect=False, inject_nan=3
+    )
+
+    metrics, md = aggregate_conservation_sge_metrics(
+        {"phyloP_241m": p1, "phastCons_43p": p2}, n_bootstrap=20
+    )
+
+    assert {
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "score_type",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+        "score_name",
+        "n_nan",
+        "n_total",
+    } <= set(metrics.columns)
+    assert set(metrics["metric"]) == {"AUPRC"}
+    assert (metrics["score_type"] == "score").all()
+    assert set(metrics["score_name"]) == {"phyloP_241m", "phastCons_43p"}
+
+    # Perfect track → headline (across-accession × across-subset) AUPRC ≈ 1.
+    head = metrics[
+        (metrics["score_name"] == "phyloP_241m")
+        & (metrics["accession"] == MACRO_AVG_SUBSET)
+        & (metrics["subset"] == MACRO_AVG_SUBSET)
+    ]
+    assert head["value"].iloc[0] == pytest.approx(1.0, abs=1e-9)
+    # NaN scores are counted, then filled with 0 (the shared conservation policy).
+    assert int(metrics[metrics["score_name"] == "phastCons_43p"]["n_nan"].iloc[0]) == 3
+
+    assert "SGE" in md
+    for tok in ("phyloP_241m", "phastCons_43p", "AUPRC"):
+        assert tok in md
 
 
 def test_aggregate_conservation_metrics_nan_accounting(tmp_path):

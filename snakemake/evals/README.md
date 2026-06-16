@@ -17,6 +17,10 @@ commit `e59d612e9`, so HGMD pathogenic SNVs are included as a positive source.
 |---|---|---|---|
 | `mendelian_traits` | Mendelian disease pathogenic SNVs | HGMD ∪ OMIM ∪ Smedley et al. 2016 (de-duped, AF<0.001) | gnomAD common (AN≥25k, AF>0.001) |
 | `complex_traits` | UKBB fine-mapped complex-trait variants | SuSiE+FINEMAP `max(PIP across the traits where this variant was fine-mapped) > 0.9` | `max(PIP) < 0.01` AND no SuSiE/FINEMAP combine-step null PIP among those traits (`label_variants_by_pip(use_null_pip_guard=True)`) |
+| `caqtl` | African caQTLs (ATAC) — standardized ChromBPNet benchmark, GRCh38 | Significant caQTLs (−log10p>5) | Control variants (−log10p<3), no matching |
+| `dsqtl` | Yoruba dsQTLs (DNase) — standardized ChromBPNet benchmark, hg19→GRCh38 | Significant dsQTLs (−log10p>5) | Control variants (−log10p<3), no matching |
+| `sge` | Saturation genome editing function scores (12 genes; #289, #297) | — *(no binary label: a continuous experimental function score per SNV, plus a calibrated `abnormal`/`intermediate`/`normal` class)* | — |
+| `dart_task3` | DART-Eval Task 3 cell-type ATAC peaks — 500 bp intervals, **not variants** (#293) | — *(no pos/neg: 5-class cell-type label — GM12878 / H1ESC / HEPG2 / IMR90 / K562)* | — |
 
 Only `mendelian_traits` has a corresponding `_harness_255` eval-harness
 variant. A 255 bp window centered on each variant is materialized into
@@ -28,6 +32,204 @@ for the online lm_eval VEP scorer to average per variant (#179, #175 conclusion 
 `complex_traits` has no harness variant: it's scored offline only via
 `snakemake/analysis/evals_v2/`, which already does FWD+RC averaging in the
 batched VEP path.
+
+### caQTL / dsQTL accessibility-QTL benchmarks
+
+`caqtl` and `dsqtl` are the **standardized** ChromBPNet accessibility-QTL
+benchmarks (Synapse [`syn64126763`](https://www.synapse.org/Synapse:syn64126763)
+children) — the canonical variant sets used by *both* the ChromBPNet and
+AlphaGenome papers for the supervised official-metrics protocol (issues #309 /
+#310 / #262). They **replace** the earlier DART-Eval-derived `caqtl`/`dsqtl`.
+Unlike the two matched datasets above they are **not matched and not
+subsampled**: every significant QTL (positive, −log10p>5) and control variant
+(negative, −log10p<3; the ambiguous 3–5 middle is dropped via `var.isused`) is
+kept at its natural ratio.
+
+The schema is minimal — `chrom, pos, ref, alt, label, effect` plus the papers'
+**precomputed per-variant baseline scores** (`chrombpnet_atac_{ips,logfc}`,
+`chrombpnet_dnase_{ips,logfc}`, `enformer_dnase_local_logfc`), carried through so
+the ChromBPNet and Enformer baselines need no model run downstream. The signed
+study `effect` and every signed score column are oriented to the `alt` allele
+(positive ⇒ alt increases accessibility; sign-flipped together where `check_ref_alt`
+swaps ref/alt to the reference, so the carried baselines stay aligned). `effect`
+is present for the significant variants; controls may have no measured effect.
+
+Evaluation follows the ChromBPNet/AlphaGenome protocol (#262), two metrics over
+**different variant sets**: **causality** — AUPRC over *all* variants on `|score|`
+(significant QTLs vs controls), and **direction** — Pearson over the *positive*
+variants only (a model's signed alt-vs-ref score vs the signed `effect`).
+Chromosome subsets (all / AlphaGenome test {3,6,9,12,16,18,19,21} / our odd-even
+train/test) are a **scoring-time slice** of the full variant set, not baked into
+the dataset; the metric is `compute_supervised_qtl_metrics`. The dataset cards
+document this.
+
+- **caqtl** — African caQTLs (DeGorter et al. 2023), Synapse `syn64126781`.
+  Native **GRCh38**.
+- **dsqtl** — Yoruba dsQTLs (Degner et al. 2012), Synapse `syn64126779`.
+  **hg19**, lifted to GRCh38 via `lift_hg19_to_hg38`.
+
+These skip the matching pipeline entirely: `chrombpnet_qtl_dataset_unsplit` (in
+`workflow/rules/chrombpnet_qtl.smk`, building via
+`marin_dna.pipelines.evals.chrombpnet_qtl.build_qtl_dataset`) writes
+`results/dataset_unsplit/{caqtl,dsqtl}.parquet`, which the generic
+`split_dataset_by_chrom` rule then splits odd/even. They have **no**
+`results/qc/` artifact (no matching to diagnose).
+
+Building them needs **Synapse auth**: the standardized files live only on
+Synapse, so create a free Synapse account + a [Personal Access Token](https://www.synapse.org/#!PersonalAccessTokens:)
+(scopes: View, Download) and export it as `SYNAPSE_AUTH_TOKEN` — the download is
+plain HTTPS (each FileEntity is a zip wrapping one `.tsv`), no `synapseclient`
+needed. (AWS credentials with S3 read access are also required, as for the rest
+of the pipeline — see [Storage](#storage).)
+
+The `stage_genome` rule (in `common.smk`) downloads the GRCh38 reference (+
+`.fai`/`.gzi` indexes) to local disk once via boto3, so `check_ref_alt` reads
+from disk rather than doing a per-variant S3 round-trip.
+
+```bash
+export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
+uv run snakemake \
+  results/dataset/caqtl/{train,test}.parquet \
+  results/dataset/dsqtl/{train,test}.parquet
+```
+
+### SGE (saturation genome editing) — `sge`
+
+`sge` is a saturation-genome-editing variant-effect benchmark (issue #289): per-SNV
+**experimental function scores** from endogenous SGE assays — a label axis orthogonal
+to the clinical/population/statistical labels above, and one that covers near-exon
+noncoding (splice-region, proximal-intronic) SNVs as well as missense. Like the
+DART-Eval datasets it is **not matched and not subsampled**, but unlike them:
+
+- it carries **no binary `label`**. The authors' continuous score(s) and discrete
+  class(es) are preserved verbatim under an `author_` prefix (no source metadata lost;
+  nothing collides with the pipeline's `consequence` / `distance_*` columns); v2 (#297)
+  adds harmonized, cross-gene columns on top of these (see *Harmonized columns* below);
+- the trivially-deleterious **HIGH-impact `exclude_consequences`** (canonical splice,
+  nonsense, frameshift, …) are **dropped** — those aren't the discriminative signal —
+  and v2 (#297) further keeps only the **`missense_variant` + `splicing`** consequence
+  groups (config `sge.consequence_group_allowlist`), the two where the SGE assay
+  actually measures function;
+- per-variant provenance is `(gene, mavedb_urn)`: the gene symbol plus the canonical
+  MaveDB accession of the source study (a gene can have >1 study, e.g. BRCA2);
+- a common `function_score` column carries each study's headline continuous score (so
+  it's usable across genes), alongside the full `author_` columns.
+
+Three loader paths feed it (`src/marin_dna/pipelines/evals/sge.py`), one per
+coordinate encoding — **12 genes** total:
+
+- **BRCA1** — `read_brca1_findlay`: the Evo2-bundled Findlay 2018 supplementary xlsx,
+  hg19 genomic coords for **all** SNVs incl. intronic (MaveDB's cDNA→genome map drops
+  intronic), lifted to GRCh38.
+- **Genome-targeted MaveDB genes** (BARD1, PALB2, RAD51D, XRCC2, CTCF, SFPQ) —
+  `load_mavedb_genomic_scoreset`: their MaveDB `hgvs_nt` is `NC_…:g.` (genomic), so
+  coordinates parse directly and intronic SNVs are kept with no transcript mapping;
+  GRCh38-native (no liftover).
+- **Transcript-targeted MaveDB genes** (BRCA2, RAD51C, BAP1, DDX3X, VHL) —
+  `load_mavedb_transcript_scoreset`: their `hgvs_nt` is `ENST…:c.` (transcript cDNA),
+  whose **intronic** variants MaveDB's own map drops. The `sge_recode_mavedb` rule
+  recovers genomic coords with **pyhgvs + cdot** (`recode_hgvs_c_to_genomic` —
+  cdot's GRCh38 REST transcript models project each `c.`/intronic HGVS onto the staged
+  FASTA; cached per gene). Needs the **`hgvs` dependency group** (`cdot`, `pyhgvs`).
+
+Non-SNVs (del/delins/MNV) and null-score rows are dropped throughout.
+
+`sge_dataset_unsplit` (in `workflow/rules/sge.smk`) downloads each MaveDB score-set,
+loads + annotates each gene (HIGH-impact dropped), and **diagonal-concats** them (each
+study contributes its own `author_` columns, sparse) into
+`results/dataset_unsplit/sge.parquet`. No `results/qc/` artifact (no matching). Needs
+AWS S3 read (the consequence/interval/genome artifacts) but **no** Synapse auth.
+
+**MaveDB study-level metadata.** The `sge_mavedb_metadata` rule fetches each study's
+MaveDB record once (`build_mavedb_metadata`) and emits two study-level artifacts:
+
+- `results/sge/assay_facts.parquet` — the experiment's controlled-vocabulary **assay
+  facts** (assay readout, mechanism, model system, endogenous-locus library mechanism,
+  …) as `assay_*` columns, one row per `(gene, mavedb_urn)`. These are **joined onto
+  the dataset** (by accession) as constant-per-gene `assay_*` columns, so the assay
+  characteristics are queryable alongside every variant. Every annotated study is a
+  loss-of-function assay; **BRCA2** is unannotated in MaveDB (blank `assay_*`).
+- `results/sge/calibrations.parquet` — the `scoreCalibrations` (investigator-provided
+  functional classes + ClinGen/ExCALIBR **ACMG** calibrations: `PS3`/`BS3` criterion,
+  evidence strength, signed points, `prior_probability_pathogenicity` OddsPath prior,
+  threshold-source PMIDs) flattened to a **tidy long companion table** (one row per
+  gene × calibration × functional class). It is *not* joined per-variant (wrong grain)
+  and ships alongside the splits as `calibrations.parquet` in the HF repo.
+
+**Harmonized columns (#297).** After the per-study loaders concat, the build turns the
+study-level calibrations + per-study discrete classes into clean per-variant columns so
+downstream evals don't re-derive them (functions in `sge.py`, called from the rule):
+
+- `consequence_group` + `subset` — the coarse grouping the matched-pair datasets carry
+  (same `consequence_groups` map / `.replace(...)` semantics), so SGE stratifies
+  identically; `subset` is an alias of `consequence_group`.
+- `function_direction` (+1/−1, null if unresolved) + `function_score_aligned`
+  (`= function_direction × function_score`) — harmonizes the per-study score direction
+  (DDX3X's assay is inverted) so "higher = more functional" holds across genes. Direction
+  is read from the **assay** (calibration ranges; the categorical-only gene DDX3X from
+  its author class), never the model.
+- `calibrated_class` ∈ {abnormal, intermediate, normal} + `calibration_scheme` +
+  `acmg_strength` — a per-variant ClinGen/ExCALIBR-calibrated class chosen with an
+  explicit **ExCALIBR-first policy** (`attach_calibrated_class`): prefer the live
+  `ExCALIBR calibration`, never a dated ClinVar snapshot, require finite normal+abnormal
+  ranges, else fall back to a numeric investigator scheme, else the harmonized author
+  class (DDX3X), else null (BRCA2 — no calibration).
+- `author_class_harmonized` — each study's discrete class mapped to a common
+  abnormal/intermediate/normal axis.
+
+```bash
+uv run --group hgvs snakemake results/dataset/sge/{train,test}.parquet
+```
+
+### DART-Eval Task 3 (cell-type peaks) — `dart_task3`
+
+`dart_task3` is [DART-Eval](https://github.com/kundajelab/DART-Eval) **Task 3**
+("Discriminating Cell-Type-Specific Elements", issue #293): a cell-type-specific
+**chromatin-accessibility peak** dataset — the embedding/interpretation
+counterpart to the Task-5 QTL datasets above. Each row is a **500 bp** ATAC-seq
+consensus-peak window (±250 bp around the summit, GRCh38), labeled by the
+**cell type** it is differentially accessible in — one of 5 cell lines
+(`GM12878`, `H1ESC`, `HEPG2`, `IMR90`, `K562`). The window set is DART-Eval's
+`input_data/top_5000_deseq_peaks.tsv` — the top-5,000 DESeq2
+differentially-accessible peaks per cell type (the subset they feed their
+zero-shot clustering / UMAP): **25,000 windows, 5,000 balanced per cell type**,
+with unique peak coordinates.
+
+It is an **interval dataset, not variants**, so it bypasses all the variant
+machinery — no ref/alt, no `consequence`/`distance_*` annotation, no matching, no
+subsampling — and uses its **own rules and output namespace**
+(`workflow/rules/dart_task3.smk`, `results/dart_task3/…`). The full 500 bp peak is
+stored (never pre-cropped to a model's context window), so the embedding context /
+pooling choice stays an open downstream decision.
+
+**Splits.** Unlike the rest of the pipeline (odd/even 2-way), `dart_task3` uses
+DART-Eval's canonical **3-way** chromosome holdout, shipped one file per split (HF
+convention: `train.parquet` / `validation.parquet` / `test.parquet`, no in-row
+`split` column):
+
+| File | Chromosomes |
+|---|---|
+| `train.parquet` | 1, 2, 3, 4, 7, 8, 9, 11, 12, 13, 15, 16, 17, 19, X, Y |
+| `validation.parquet` | 6, 21 |
+| `test.parquet` | 5, 10, 14, 18, 20, 22 |
+
+`dart_task3_dataset` parses the TSV (`parse_dart_task3`), runs a build-time sanity
+check (all 5 cell types, ~25k windows: `assert_full_dataset`), and routes windows
+to the 3 splits (`split_frames`) — all in
+`src/marin_dna/pipelines/evals/dart_task3.py`, so the logic is unit-tested. There
+is **no** `results/qc/` artifact (no matching).
+
+Like caqtl/dsqtl it needs **Synapse auth** (the same PAT mechanism): set
+`SYNAPSE_AUTH_TOKEN` (the source file is pinned in `config.yaml` as
+`dart_eval.task3_synapse_id: syn62161401`). It is deliberately **not** in
+`rule all` / `upload_all` (its own 3-split target); build and upload it
+explicitly:
+
+```bash
+export SYNAPSE_AUTH_TOKEN=...   # Synapse PAT
+uv run snakemake dart_task3                       # build the 3 split parquets
+uv run snakemake results/dart_task3/upload.done   # upload to bolinas-dna/evals_dart_task3
+```
 
 ## Matching scheme
 
@@ -204,6 +406,8 @@ Top-level keys:
 | `datasets` | Which datasets `rule all` builds + uploads. |
 | `mendelian_traits.*` | HGMD URL, Smedley URL, ClinVar release pin, submission summary date, AF threshold. |
 | `complex_traits.*` | Fine-mapping repo, LD-score S3 path, PIP thresholds. |
+| `chrombpnet_qtl.*` | Synapse FileEntity IDs for the standardized caQTL / dsQTL benchmark files. |
+| `dart_eval.task3_synapse_id` | Synapse FileEntity ID for the DART-Eval Task 3 cell-type peaks. |
 
 `config/complex_traits.csv` lists the 119 UKBB traits used for `complex_traits`.
 
@@ -238,9 +442,12 @@ Examples:
 - `bolinas-dna/evals_mendelian_traits`
 - `bolinas-dna/evals_complex_traits`
 - `bolinas-dna/evals_mendelian_traits_harness_255`
+- `bolinas-dna/evals_caqtl`
+- `bolinas-dna/evals_dsqtl`
 
 Locally, files live in `results/dataset/{dataset}/{train,test}.parquet`, and
-matching diagnostics in `results/qc/{dataset}.parquet`.
+matching diagnostics in `results/qc/{dataset}.parquet` (matched datasets only —
+`caqtl`/`dsqtl` have none).
 
 ### Eval-harness columns
 
@@ -256,7 +463,8 @@ and emit **two output rows per input variant** — one per strand:
 | `target` | Binary label (renamed from `label`; identical across the two strand rows). |
 
 Two-row layout exists so the online lm_eval VEP scorer (`marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval`)
-averages per-strand LLRs per variant before computing PairwiseAccuracy — the
+averages each variant's raw LLR across the two strands before computing AUPRC
+(migrated from PairwiseAccuracy in #225) — the
 FWD+RC averaging documented as #175 conclusion 2 (mirrors `snakemake/analysis/evals_v2/`'s
 `inference.rc_avg=true`). Rows are sorted by `(chrom, pos, ref, alt, strand)`
 so per-variant strand pairs are adjacent.

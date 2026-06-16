@@ -1,0 +1,19 @@
+configfile: "config/config.yaml"
+
+
+include: "rules/common.smk"
+include: "rules/download.smk"
+include: "rules/ancestral_repeats.smk"
+include: "rules/conserved.smk"
+include: "rules/neutral.smk"
+include: "rules/subsample.smk"
+
+
+# Default target is the full neutral set. The pentanucleotide-annotated,
+# ACGT-window-filtered, and per-5-mer-subsampled artifacts (rules/subsample.smk)
+# are requested explicitly by path, e.g.
+# `snakemake results/subsampled/neutral_sites_n100_w512.parquet`, since the cap
+# `n` and window `w` are deliberate choices (see README) — not built by `all`.
+rule all:
+    input:
+        "results/neutral_sites.parquet",

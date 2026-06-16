@@ -17,9 +17,15 @@ Score-type fan-out:
 transform (so `abs_llr_avg = |(llr_fwd + llr_rc)/2|`, matching the
 prior in-runner averaging behavior).
 
-Output parquet has one row per (subset × score_type) plus aggregate
-rows `_global_` and `_macro_avg_` per score_type — see
+Output parquet (matched_pair datasets) has one row per (subset × score_type)
+plus aggregate rows `_global_` and `_macro_avg_` per score_type — see
 `marin_dna.pipelines.evals.metrics.compute_auprc_metrics`.
+
+For `eval_protocol: qtl_global` datasets (caqtl/dsqtl) the unmatched path
+runs instead: `compute_qtl_metrics` emits one row per (metric × score_type)
+where metric ∈ {AUPRC, pearson, spearman} — global AUPRC over all variants
+plus Pearson/Spearman of the score vs `effect_size` over positives only. No
+subset/match_group, so the parquet has a `metric` column and no subset rows.
 """
 
 
@@ -39,7 +45,8 @@ rule compute_metrics:
         protocol = params.score_protocol
         transform = SCORE_PROTOCOLS[protocol]
         df = pd.read_parquet(input[0])
-        for col in REQUIRED_VARIANT_COLUMNS:
+        eval_protocol = get_dataset_protocol(wildcards.dataset)
+        for col in get_dataset_variant_columns(wildcards.dataset):
             assert col in df.columns, f"scores parquet missing column {col!r}"
 
         if "llr_rc" in df.columns:
@@ -57,18 +64,41 @@ rule compute_metrics:
                 score_cols.append(jsd_col)
         assert score_cols, "no score columns to evaluate — scores parquet schema?"
 
-        metrics = compute_auprc_metrics(
-            dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
-            scores=df[score_cols],
-            score_columns=score_cols,
-            n_bootstrap=params.n_bootstrap,
-            rng=params.bootstrap_seed,
-        )
+        if eval_protocol == "qtl_global":
+            # Global AUPRC + positives-only effect_size correlation. No
+            # subset/match_group; metrics frame carries a `metric` column.
+            metrics = compute_qtl_metrics(
+                dataset=df[["label", "effect_size"]],
+                scores=df[score_cols],
+                score_columns=score_cols,
+                n_bootstrap=params.n_bootstrap,
+                rng=params.bootstrap_seed,
+            )
+        elif eval_protocol == "sge":
+            # Per-accession (mavedb_urn) × consequence-subset AUPRC on the binary
+            # `label` (impactful = calibrated abnormal), macro-averaged over
+            # subsets and accessions. Frame carries `metric` / `subset` /
+            # `accession` columns.
+            metrics = compute_sge_metrics(
+                dataset=df[list(SGE_VARIANT_COLUMNS)],
+                scores=df[score_cols],
+                score_columns=score_cols,
+                n_bootstrap=params.n_bootstrap,
+                rng=params.bootstrap_seed,
+            )
+        else:
+            metrics = compute_auprc_metrics(
+                dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
+                scores=df[score_cols],
+                score_columns=score_cols,
+                n_bootstrap=params.n_bootstrap,
+                rng=params.bootstrap_seed,
+            )
         metrics["model"] = wildcards.model
         metrics["dataset"] = wildcards.dataset
         metrics["split"] = config["split"]
         metrics.to_parquet(output[0], index=False)
         print(
-            f"[evals_v2] {wildcards.model} {wildcards.dataset}: "
-            f"{len(metrics)} subset rows (score_cols={score_cols})"
+            f"[evals_v2] {wildcards.model} {wildcards.dataset} "
+            f"({eval_protocol}): {len(metrics)} metric rows (score_cols={score_cols})"
         )

@@ -61,12 +61,40 @@ pipeline_version: "v1"
 # v2 = mRNA-TSS proximity (window overlaps [TSS - tss_flank, TSS + tss_flank])
 # v3_<label> = per-anchor region-type partition (see region_label_subsets);
 #              six disjoint subsets summing to v1 at the anchor level.
+# v4_<label> = re-derived partition with the issue #221 labeling scheme
+#              (bp-priority/window-majority + PC-only TSS + ccre_flank=0); see
+#              region_label_*_v4 below. Also six disjoint subsets summing to v1.
 intervals_versions:
   ["v1", "v2",
    "v3_cds", "v3_utr3", "v3_ncrna_exon",
-   "v3_tss_region_and_utr5", "v3_ccre_non_promoter", "v3_bg"]
+   "v3_tss_region_and_utr5", "v3_ccre_non_promoter", "v3_bg",
+   "v4_cds", "v4_utr3", "v4_ncrna_exon",
+   "v4_tss_region_and_utr5", "v4_ccre_non_promoter", "v4_bg"]
 
 hf_owner: "bolinas-dna"
+
+# ===== Species-subset datasets (third axis; issue #233) =====
+# A species cohort is a row-filter on the `species` column, orthogonal to
+# intervals_versions (a row-filter on `query_name`); the two compose. The
+# default 108-family cohort is implicit (no label) — its zoonomia-v1-* repos
+# stay byte-unchanged. Non-default cohorts get a trailing repo suffix
+# (scheme B): zoonomia-{pipeline_version}-{intervals_version}-{cohort}.
+#
+# A cohort must be a SUBSET of the projection's species so the v1 projection
+# is reused as-is (no re-halLiftover); filter_to_species asserts this. The
+# one-per-order set (19 leaves) is a strict subset of the 108-family set.
+species_subsets:
+  order: "config/species_zoonomia_447_order_dedup.tsv"
+# (intervals_version, species cohort) datasets to build — each reuses the
+# existing intervals subset Parquet, filtered to the cohort. The five v4
+# specialist partitions (every region but v4_bg), 19-order set — issue #255:
+#   zoonomia-v1-v4_{cds,ccre_non_promoter,utr3,ncrna_exon,tss_region_and_utr5}-order
+species_subset_datasets:
+  - { intervals: "v4_cds", species: "order" }
+  - { intervals: "v4_ccre_non_promoter", species: "order" }
+  - { intervals: "v4_utr3", species: "order" }
+  - { intervals: "v4_ncrna_exon", species: "order" }
+  - { intervals: "v4_tss_region_and_utr5", species: "order" }
 
 # v2 subset: ± bp band around each mRNA TSS (Ensembl protein_coding biotype).
 # 256 bp matches the BOS+255 model context window.
@@ -126,3 +154,24 @@ region_label_priority:
 # via the dataset.smk shard + upload chain.
 region_label_subsets:
   ["v3_cds", "v3_utr3", "v3_ncrna_exon", "v3_tss_region_and_utr5", "v3_ccre_non_promoter", "v3_bg"]
+
+# ===== v4 region-type annotation (rule all_region_labels_v4) — issue #227 =====
+# Re-derives the per-region partition with the labeling scheme resolved in
+# issue #221, replacing v3's priority-on-presence. Three coupled changes:
+#   1. bp-priority + window-majority (label_windows_bp_majority): every base is
+#      assigned to one region by priority (disjoint sets), then the window takes
+#      the majority disjoint label. Fixes CDS over-claim + nested-region argmax.
+#   2. tss_pc_only: the TSS-region half of tss_region_and_utr5 is built from
+#      protein-coding transcripts only (the 5' UTR half already is), so the whole
+#      class is PC-derived and stops colliding with standalone-ncRNA TSSs.
+#   3. ccre_flank 500 -> 0: v4_ccre_non_promoter means "actually cCRE-covered".
+# Priority flips tss_region_and_utr5 above ncrna_exon (the divergent-lncRNA
+# windows left after PC-only TSS carry PC promoter/5' UTR variants in the eval).
+# region_label_tss_radius (256) and region_label_functional_threshold (0.20)
+# are shared with v3 above.
+region_label_ccre_flank_v4: 0
+region_label_tss_pc_only_v4: true
+region_label_priority_v4:
+  ["cds", "utr3", "tss_region_and_utr5", "ncrna_exon", "ccre_non_promoter"]
+region_label_subsets_v4:
+  ["v4_cds", "v4_utr3", "v4_ncrna_exon", "v4_tss_region_and_utr5", "v4_ccre_non_promoter", "v4_bg"]

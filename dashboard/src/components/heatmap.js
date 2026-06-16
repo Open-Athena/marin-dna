@@ -11,7 +11,7 @@
 import * as d3 from "npm:d3";
 import {html, svg} from "npm:htl";
 
-import {attachModelPopover} from "./model-cards.js";
+import {attachModelPopover, modelHref} from "./model-cards.js";
 
 const SUBSET_DISPLAY = {
   missense_variant: "Missense",
@@ -279,7 +279,7 @@ export function heatmap({
         ${methods.map((m) => {
           const meta = modelById.get(m.method_id);
           const family = m.family;
-          const anchor = html`<a href=${`/models#${encodeURIComponent(m.method_id)}`}><code>${m.method_display}</code></a>`;
+          const anchor = html`<a href=${modelHref(m.method_id)}><code>${m.method_display}</code></a>`;
           if (meta) attachModelPopover(anchor, meta);
           const modelCell = html`<td class="lb-method">
             <span class=${`lb-family lb-family-${family}`} title=${family}></span>

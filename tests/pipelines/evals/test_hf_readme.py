@@ -68,6 +68,68 @@ def _qc(tmp_path: Path, *, with_maf: bool = False) -> Path:
     return path
 
 
+def _sge_train_test(tmp_path: Path) -> tuple[Path, Path]:
+    # SGE v3 schema: binary `label` (True = impactful/abnormal, False = normal);
+    # provenance via (gene, mavedb_urn); author_-prefixed source columns +
+    # constant-per-gene assay_ keyword columns. BRCA1 is chr17 (odd) -> all in
+    # train, empty test.
+    train = pl.DataFrame(
+        {
+            "chrom": ["17", "17", "17"],
+            "pos": [43045705, 43045706, 43045707],
+            "ref": ["A", "C", "G"],
+            "alt": ["T", "G", "A"],
+            "gene": ["BRCA1", "BRCA1", "BRCA1"],
+            "assay": ["sge", "sge", "sge"],
+            "mavedb_urn": ["urn:mavedb:00000097-0-2"] * 3,
+            "label": [True, False, True],
+            "author_function_score_mean": [-1.0, 0.1, -2.0],
+            "author_func_class": ["LOF", "FUNC", "LOF"],
+            "assay_phenotypic_assay_method": ["Cell fitness"] * 3,
+            "assay_phenotypic_assay_mechanism": ["Loss of function"] * 3,
+            "assay_phenotypic_assay_model_system": ["Immortalized human cells"] * 3,
+            "consequence": ["missense_variant"] * 3,
+        }
+    )
+    train_path = tmp_path / "train.parquet"
+    test_path = tmp_path / "test.parquet"
+    train.write_parquet(train_path)
+    train.clear().write_parquet(test_path)  # empty test, same schema
+    return train_path, test_path
+
+
+def _sge_calibrations(tmp_path: Path) -> Path:
+    # Long-format calibration companion table (a couple of schemes for BRCA1).
+    cal = pl.DataFrame(
+        {
+            "gene": ["BRCA1", "BRCA1", "BRCA1"],
+            "mavedb_urn": ["urn:mavedb:00000097-0-2"] * 3,
+            "calibration_title": [
+                "Investigator-provided functional classes",
+                "Investigator-provided functional classes",
+                "ExCALIBR calibration",
+            ],
+            "research_use_only": [False, False, True],
+            "baseline_score": [0.0, 0.0, None],
+            "prior_probability_pathogenicity": [None, None, 0.2285],
+            "threshold_source_pmids": ["30209399", "30209399", None],
+            "class_label": ["Functional", "Non-functional", "PS3 Strong (5)"],
+            "go_classification": ["normal", "abnormal", "abnormal"],
+            "range_lower": [-0.748, None, None],
+            "range_upper": [None, -1.328, -1.368],
+            "inclusive_lower": [True, False, False],
+            "inclusive_upper": [False, True, True],
+            "variant_count": [2821, 823, 744],
+            "acmg_criterion": [None, None, "PS3"],
+            "acmg_evidence_strength": [None, None, "STRONG"],
+            "acmg_points": [None, None, 5],
+        }
+    )
+    path = tmp_path / "calibrations.parquet"
+    cal.write_parquet(path)
+    return path
+
+
 class TestRender:
     def test_mendelian_renders_with_expected_sections(self, tmp_path: Path) -> None:
         train, test = _matched_train_test(tmp_path)
@@ -160,6 +222,103 @@ class TestRender:
         train, test = _matched_train_test(tmp_path)
         with pytest.raises(ValueError, match="no README template"):
             hf_readme.render("not_a_real_dataset", SHA, train, test)
+
+    @pytest.mark.parametrize(
+        "dataset,synapse", [("caqtl", "syn64126781"), ("dsqtl", "syn64126779")]
+    )
+    def test_chrombpnet_qtl_renders(
+        self, tmp_path: Path, dataset: str, synapse: str
+    ) -> None:
+        # Standardized caQTL/dsQTL: unmatched (no qc_path), supervised official
+        # metrics, carrying precomputed baseline score columns.
+        def _qtl(chrom: str, path: Path) -> Path:
+            pl.DataFrame(
+                {
+                    "chrom": [chrom] * 4,
+                    "pos": [10, 20, 30, 40],
+                    "ref": ["A"] * 4,
+                    "alt": ["T"] * 4,
+                    "label": [True, False, False, False],
+                    "effect": [0.5, None, None, None],
+                    "chrombpnet_atac_ips": [1.0, 0.1, -0.2, 0.0],
+                    "chrombpnet_atac_logfc": [0.8, 0.1, -0.2, 0.0],
+                    "enformer_dnase_local_logfc": [0.7, 0.0, -0.1, 0.05],
+                }
+            ).write_parquet(path)
+            return path
+
+        train = _qtl("1", tmp_path / "train.parquet")
+        test = _qtl("2", tmp_path / "test.parquet")
+        md = hf_readme.render(dataset, SHA, train, test)
+        assert md.startswith("---\n")
+        for tag in ("biology", "genomics", "dna"):
+            assert tag in md
+        for header in (
+            f"# evals_{dataset}",
+            "## Splits",
+            "## Columns",
+            "## Provenance",
+            "## Citation",
+        ):
+            assert header in md, f"missing header: {header}"
+        assert "No matching and no subsampling" in md
+        # New supervised card: standardized source, carried baselines, no DART-Eval.
+        assert "DART-Eval" not in md
+        assert synapse in md
+        for col in (
+            "chrombpnet_atac_ips",
+            "chrombpnet_atac_logfc",
+            "enformer_dnase_local_logfc",
+        ):
+            assert f"`{col}`" in md
+        assert SHA[:7] in md
+
+    def test_sge_renders(self, tmp_path: Path) -> None:
+        train, test = _sge_train_test(tmp_path)
+        calib = _sge_calibrations(tmp_path)
+        md = hf_readme.render("sge", SHA, train, test, calibration_path=calib)
+        assert md.startswith("---\n")
+        # Minimal tag set only — no fine-grained extras (bolinas-dna convention).
+        frontmatter = md.split("# evals_sge")[0]
+        for tag in ("biology", "genomics", "dna"):
+            assert tag in frontmatter
+        assert "saturation-genome-editing" not in frontmatter
+        assert "variant-effect-prediction" not in frontmatter
+        for header in (
+            "# evals_sge",
+            "## Studies",
+            "## Assay characteristics",
+            "## Score calibration",
+            "## Splits",
+            "## Columns",
+            "## Provenance",
+            "## Citation",
+        ):
+            assert header in md, f"missing header: {header}"
+        # Per-(gene, study) provenance + the canonical accession.
+        assert "BRCA1" in md and "Findlay" in md
+        assert "urn:mavedb:00000097-0-2" in md
+        # Distinctive SGE framing + the v3 binary label.
+        assert "No matching, no subsampling" in md
+        assert "AUPRC target" in md  # the `label` column row
+        assert "exclude_consequences" in md
+        assert "author_" in md
+        # Assay facts: the loss-of-function readout + model system surface in the card.
+        assert "Loss of function" in md
+        assert "Immortalized human cells" in md
+        # Score calibration: ACMG strength + the companion-file pointer.
+        assert "calibrations.parquet" in md
+        assert "STRONG" in md
+        assert "prior_probability_pathogenicity" in md
+        assert SHA[:7] in md
+
+    def test_sge_renders_without_calibration(self, tmp_path: Path) -> None:
+        # The calibration section is optional (omitted when no companion is passed).
+        train, test = _sge_train_test(tmp_path)
+        md = hf_readme.render("sge", SHA, train, test)
+        assert "## Assay characteristics" in md  # still renders from assay_ columns
+        assert "## Score calibration" not in md
+        assert "## Splits" in md
 
     def test_retention_table_handles_zero_input(self, tmp_path: Path) -> None:
         path = tmp_path / "qc.parquet"

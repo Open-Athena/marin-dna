@@ -3,6 +3,7 @@ aggregation, plus the cluster-bootstrap AUPRC used by ``evals_v2``.
 Per-metric tests for ``pairwise_accuracy`` live in
 ``test_pairwise_accuracy.py``."""
 
+import math
 import tempfile
 from pathlib import Path
 
@@ -15,10 +16,14 @@ from marin_dna.pipelines.evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
     METRIC_FUNCTIONS,
+    SGE_POOLED_SUBSET,
     aggregate_metrics,
     auprc_with_bootstrap_se,
     compute_auprc_metrics,
     compute_metrics,
+    compute_qtl_metrics,
+    compute_sge_metrics,
+    paired_metric_delta_bootstrap,
 )
 
 
@@ -205,6 +210,19 @@ def test_auprc_random_scores_near_baseline():
     assert res["se"] > 0
 
 
+def test_auprc_n_bootstrap_zero_is_point_only():
+    """n_bootstrap=0 → skip the resample loop: identical point AUPRC, se=NaN,
+    and n_groups still computed (it feeds the macro-avg n_min gate). This is the
+    online in-training hot path (SE is computed offline instead)."""
+    labels, scores, mg = _matched_pairs(separable=False, seed=42)
+    full = auprc_with_bootstrap_se(labels, scores, mg, n_bootstrap=200, rng=0)
+    point = auprc_with_bootstrap_se(labels, scores, mg, n_bootstrap=0)
+    assert point["value"] == pytest.approx(full["value"])  # data-only point est.
+    assert np.isnan(point["se"])
+    assert point["n_groups"] == full["n_groups"]
+    assert point["n_rows"] == full["n_rows"]
+
+
 def test_auprc_seed_reproducibility():
     """Same seed → identical SE; different seeds → SE differs (sanity)."""
     labels, scores, mg = _matched_pairs(separable=False, seed=1)
@@ -247,6 +265,67 @@ def test_auprc_length_mismatch_raises():
     mg = np.array([0, 1, 2])
     with pytest.raises(AssertionError, match="length mismatch"):
         auprc_with_bootstrap_se(labels, scores, mg, n_bootstrap=10, rng=0)
+
+
+# ---------------------------------------------------------------------------
+# paired_metric_delta_bootstrap
+# ---------------------------------------------------------------------------
+
+
+def test_paired_delta_zero_for_identical_scores():
+    """A == B → delta exactly 0, SE 0, CI brackets 0, p≈1 (ties on both sides)."""
+    labels, scores, mg = _matched_pairs(separable=False, seed=5)
+    r = paired_metric_delta_bootstrap(
+        labels, scores, scores, mg, n_bootstrap=200, rng=0
+    )
+    assert r["delta"] == pytest.approx(0.0, abs=1e-12)
+    assert r["se"] == pytest.approx(0.0, abs=1e-12)
+    assert r["ci_low"] <= 0 <= r["ci_high"]
+    assert r["p_two_sided"] == pytest.approx(1.0)
+
+
+def test_paired_delta_positive_and_significant_when_a_better():
+    """A ranks positives above negatives, B random → delta>0, CI excludes 0, small p."""
+    labels, scores_b, mg = _matched_pairs(separable=False, seed=1)
+    scores_a = np.where(labels == 1, 0.9, 0.1)
+    r = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=300, rng=0
+    )
+    assert r["delta"] > 0
+    assert r["ci_low"] > 0  # CI excludes 0
+    assert r["p_two_sided"] < 0.05
+
+
+def test_paired_se_tighter_than_independence():
+    """The whole point: on shared rows the paired SE is below sqrt(SE_a² + SE_b²)."""
+    labels, scores_b, mg = _matched_pairs(separable=False, seed=3)
+    scores_a = scores_b.copy()
+    scores_a[labels == 1] += (
+        0.12  # A = B with positives nudged up → correlated, A better
+    )
+    se_a = auprc_with_bootstrap_se(labels, scores_a, mg, n_bootstrap=400, rng=0)["se"]
+    se_b = auprc_with_bootstrap_se(labels, scores_b, mg, n_bootstrap=400, rng=0)["se"]
+    indep = float(np.hypot(se_a, se_b))
+    r = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=400, rng=0
+    )
+    assert r["delta"] > 0
+    assert 0 < r["se"] < indep  # paired strictly tighter than the independence formula
+
+
+def test_paired_delta_seed_reproducibility():
+    """rng=0 twice → identical delta and SE (bit-stable for diffing claims)."""
+    labels, scores_b, mg = _matched_pairs(separable=False, seed=2)
+    scores_a = scores_b.copy()
+    scores_a[labels == 1] += 0.1
+    a = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=100, rng=0
+    )
+    b = paired_metric_delta_bootstrap(
+        labels, scores_a, scores_b, mg, n_bootstrap=100, rng=0
+    )
+    assert a["se"] == b["se"]
+    assert a["delta"] == b["delta"]
 
 
 # ---------------------------------------------------------------------------
@@ -412,3 +491,398 @@ def test_compute_auprc_metrics_n_min_excludes_small_subsets():
         (metrics["score_type"] == "score") & (metrics["subset"] == GLOBAL_SUBSET)
     ].iloc[0]
     assert global_row["n_groups"] == 50
+
+
+# ---------------------------------------------------------------------------
+# compute_qtl_metrics (unmatched DART-Eval QTL datasets: caqtl / dsqtl)
+# ---------------------------------------------------------------------------
+
+
+def _qtl_data(
+    n_pos: int = 40,
+    n_neg: int = 360,
+    *,
+    seed: int = 0,
+    perfect: bool = False,
+    control_effect_size_nan: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Synthesize an unmatched QTL dataset (no subset/match_group).
+
+    Positives carry a measured ``effect_size``. Controls' ``effect_size`` is
+    NaN by default (the dsQTL case — controls have no measured effect). With
+    ``perfect=True``, positives' score equals their effect_size (→ pearson /
+    spearman = 1 over positives) and controls score low (→ AUPRC = 1)."""
+    rng = np.random.default_rng(seed)
+    n = n_pos + n_neg
+    label = np.concatenate([np.ones(n_pos, dtype=bool), np.zeros(n_neg, dtype=bool)])
+
+    es_pos = rng.uniform(0.1, 2.0, n_pos)
+    effect_size = np.full(n, np.nan)
+    effect_size[:n_pos] = es_pos
+    if not control_effect_size_nan:
+        effect_size[n_pos:] = rng.uniform(0.1, 2.0, n_neg)
+
+    score = np.empty(n)
+    if perfect:
+        score[:n_pos] = es_pos  # positives: score == effect_size
+        score[n_pos:] = rng.uniform(0.0, 0.05, n_neg)  # controls clearly lower
+    else:
+        score[:] = rng.uniform(0.0, 1.0, n)
+
+    dataset = pd.DataFrame({"label": label, "effect_size": effect_size})
+    scores = pd.DataFrame({"score": score})
+    return dataset, scores
+
+
+def test_compute_qtl_metrics_shape():
+    """Three rows per score column (AUPRC, pearson, spearman); fixed columns."""
+    dataset, scores = _qtl_data(seed=3)
+    scores["score2"] = np.random.default_rng(4).uniform(size=len(dataset))
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    assert len(metrics) == 2 * 3  # 2 score columns × 3 metrics
+    assert set(metrics["metric"]) == {"AUPRC", "pearson", "spearman"}
+    assert set(metrics["score_type"]) == {"score", "score2"}
+    assert set(metrics.columns) == {
+        "metric",
+        "score_type",
+        "value",
+        "se",
+        "n_rows",
+        "n_pos",
+    }
+    assert metrics["value"].notna().all()
+    assert metrics["se"].notna().all()
+
+
+def test_compute_qtl_metrics_auprc_matches_sklearn():
+    """The AUPRC row equals sklearn's average_precision_score over all rows."""
+    dataset, scores = _qtl_data(seed=11)
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    auprc_row = metrics[metrics["metric"] == "AUPRC"].iloc[0]
+    expected = float(
+        average_precision_score(dataset["label"].astype(int), scores["score"])
+    )
+    assert auprc_row["value"] == pytest.approx(expected)
+    assert auprc_row["n_rows"] == len(dataset)
+    assert auprc_row["n_pos"] == int(dataset["label"].sum())
+
+
+def test_compute_qtl_metrics_perfect_correlation_and_separation():
+    """Positives' score == effect_size → pearson = spearman = 1 (SE≈0); and
+    controls scoring lower → AUPRC = 1."""
+    dataset, scores = _qtl_data(perfect=True, seed=5)
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    by_metric = metrics.set_index("metric")["value"]
+    assert by_metric["pearson"] == pytest.approx(1.0, abs=1e-9)
+    assert by_metric["spearman"] == pytest.approx(1.0, abs=1e-9)
+    assert by_metric["AUPRC"] == pytest.approx(1.0, abs=1e-12)
+    # Perfectly monotone positives → every bootstrap resample also corr=1.
+    corr_se = metrics[metrics["metric"].isin(["pearson", "spearman"])]["se"]
+    assert (corr_se < 1e-9).all()
+    # The correlation rows used only the positives.
+    n_pos = int(dataset["label"].sum())
+    assert metrics.loc[metrics["metric"] == "pearson", "n_rows"].iloc[0] == n_pos
+
+
+def test_compute_qtl_metrics_correlation_uses_positives_only():
+    """Controls are excluded from the correlation: positives are perfectly
+    correlated while controls are anti-correlated; result stays ~1."""
+    rng = np.random.default_rng(0)
+    n_pos, n_neg = 30, 200
+    es_pos = rng.uniform(0.1, 2.0, n_pos)
+    es_neg = rng.uniform(0.1, 2.0, n_neg)
+    label = np.concatenate([np.ones(n_pos, bool), np.zeros(n_neg, bool)])
+    effect_size = np.concatenate([es_pos, es_neg])
+    # Positives: score == effect_size (corr +1). Controls: score == -effect_size
+    # (corr -1). If controls leaked in, the pooled correlation would collapse.
+    score = np.concatenate([es_pos, -es_neg])
+    dataset = pd.DataFrame({"label": label, "effect_size": effect_size})
+    scores = pd.DataFrame({"score": score})
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert metrics.set_index("metric").loc["pearson", "value"] == pytest.approx(
+        1.0, abs=1e-9
+    )
+
+
+def test_compute_qtl_metrics_control_effect_size_nan_ok():
+    """Controls with NaN effect_size (the dsQTL case) must not raise — only
+    positives are required to carry a measured effect."""
+    dataset, scores = _qtl_data(control_effect_size_nan=True, seed=2)
+    assert dataset.loc[~dataset["label"], "effect_size"].isna().all()
+    metrics = compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert metrics["value"].notna().all()
+
+
+def test_compute_qtl_metrics_seed_reproducibility():
+    dataset, scores = _qtl_data(seed=9)
+    a = compute_qtl_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    b = compute_qtl_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_compute_qtl_metrics_missing_effect_size_raises():
+    dataset, scores = _qtl_data(seed=1)
+    with pytest.raises(AssertionError, match="effect_size"):
+        compute_qtl_metrics(dataset.drop(columns=["effect_size"]), scores)
+
+
+def test_compute_qtl_metrics_nan_effect_size_positive_raises():
+    """A positive missing its effect_size is a data error — fail loud."""
+    dataset, scores = _qtl_data(seed=1)
+    dataset.loc[0, "effect_size"] = np.nan  # row 0 is a positive
+    with pytest.raises(AssertionError, match="effect_size"):
+        compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+def test_compute_qtl_metrics_single_class_raises():
+    dataset = pd.DataFrame(
+        {"label": [True, True, True], "effect_size": [1.0, 2.0, 3.0]}
+    )
+    scores = pd.DataFrame({"score": [0.1, 0.2, 0.3]})
+    with pytest.raises(AssertionError, match="both classes"):
+        compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+def test_compute_qtl_metrics_nan_score_raises():
+    dataset, scores = _qtl_data(seed=1)
+    scores.loc[5, "score"] = np.nan
+    with pytest.raises(AssertionError, match="NaN"):
+        compute_qtl_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+
+# ---------------------------------------------------------------------------
+# compute_sge_metrics (saturation genome editing: evals_sge)
+# ---------------------------------------------------------------------------
+
+
+def _sge_data(
+    *,
+    n_per_cell: int = 150,
+    accessions: tuple[tuple[str, str], ...] = (("urn:1", "GENEA"), ("urn:2", "GENEB")),
+    seed: int = 0,
+    perfect: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Synthesize an SGE v3 frame: accessions × {missense_variant, splicing} cells,
+    each with a boolean ``label`` (~40% True = impactful) and a score. With
+    ``perfect=True`` the score separates the classes (impactful scores high) →
+    AUPRC = 1.
+    """
+    rng = np.random.default_rng(seed)
+    frames = []
+    score_blocks = []
+    for urn, gene in accessions:
+        for subset in ("missense_variant", "splicing"):
+            label = rng.random(n_per_cell) < 0.4  # ~40% impactful
+            frames.append(
+                pd.DataFrame(
+                    {
+                        "mavedb_urn": urn,
+                        "gene": gene,
+                        "subset": subset,
+                        "label": label,
+                    }
+                )
+            )
+            score_blocks.append(
+                np.where(label, 1.0, 0.0) + rng.normal(0, 1e-6, n_per_cell)
+                if perfect
+                else rng.normal(size=n_per_cell)
+            )
+    dataset = pd.concat(frames, ignore_index=True)
+    scores = pd.DataFrame({"score": np.concatenate(score_blocks)})
+    return dataset, scores
+
+
+def _val(df: pd.DataFrame, **filters: object) -> pd.Series:
+    """Fetch the single row matching all column==value filters."""
+    sub = df
+    for col, value in filters.items():
+        sub = sub[sub[col] == value]
+    assert len(sub) == 1, f"expected 1 row for {filters}, got {len(sub)}"
+    return sub.iloc[0]
+
+
+def test_sge_shape_and_grid():
+    """Columns fixed; AUPRC spans all four subset scopes per accession; the
+    across-accession macro row exists; gene carried for display."""
+    dataset, scores = _sge_data(seed=0)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    assert set(out.columns) == {
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "score_type",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+    }
+    assert set(out["metric"]) == {"AUPRC"}
+    assert set(out["subset"]) <= {
+        "missense_variant",
+        "splicing",
+        SGE_POOLED_SUBSET,
+        MACRO_AVG_SUBSET,
+    }
+    assert {"urn:1", "urn:2", MACRO_AVG_SUBSET} <= set(out["accession"])
+    for urn in ("urn:1", "urn:2"):
+        scopes = set(out[out["accession"] == urn]["subset"])
+        assert scopes == {
+            "missense_variant",
+            "splicing",
+            SGE_POOLED_SUBSET,
+            MACRO_AVG_SUBSET,
+        }, (urn, scopes)
+    assert (
+        _val(out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession="urn:1")["gene"]
+        == "GENEA"
+    )
+    assert (
+        _val(out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession=MACRO_AVG_SUBSET)[
+            "gene"
+        ]
+        == MACRO_AVG_SUBSET
+    )
+    assert out["value"].notna().all()
+    assert out["se"].notna().all()
+
+
+def test_sge_perfect_auprc():
+    """A score that separates the label (impactful scores high) → every AUPRC ≈ 1."""
+    dataset, scores = _sge_data(seed=0, perfect=True)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=30, rng=0)
+    assert (out["value"] > 0.999).all()
+
+
+def test_sge_auprc_matches_sklearn():
+    """A leaf AUPRC equals sklearn's average_precision_score over the cell, with
+    n = rows and n_pos = the impactful (label-True) count."""
+    rng = np.random.default_rng(0)
+    label = np.array([True] * 70 + [False] * 130)
+    dataset = pd.DataFrame(
+        {
+            "mavedb_urn": "urn:1",
+            "gene": "G",
+            "subset": "missense_variant",
+            "label": label,
+        }
+    )
+    score = rng.normal(size=len(label))
+    scores = pd.DataFrame({"score": score})
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    auprc = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    expected = average_precision_score(label.astype(int), score)
+    assert auprc["value"] == pytest.approx(expected)
+    assert auprc["n"] == 200
+    assert auprc["n_pos"] == 70
+
+
+def test_sge_subset_macro_is_mean_of_base_subsets():
+    """The per-accession _macro_avg_ subset = unweighted mean of the missense &
+    splicing AUPRC, with SE = sqrt(Σ SE²)/2 over the two."""
+    dataset, scores = _sge_data(seed=3)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    m = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    s = _val(out, metric="AUPRC", subset="splicing", accession="urn:1")
+    macro = _val(out, metric="AUPRC", subset=MACRO_AVG_SUBSET, accession="urn:1")
+    assert macro["value"] == pytest.approx((m["value"] + s["value"]) / 2)
+    assert macro["se"] == pytest.approx(math.sqrt(m["se"] ** 2 + s["se"] ** 2) / 2)
+    assert macro["n"] == 2
+
+
+def test_sge_accession_macro_is_mean_over_accessions():
+    """The accession _macro_avg_ row = unweighted mean over accessions of the
+    same subset scope; n records the count of accessions averaged."""
+    dataset, scores = _sge_data(seed=3)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=20, rng=0)
+    vals = [
+        _val(out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession=u)["value"]
+        for u in ("urn:1", "urn:2")
+    ]
+    macro = _val(
+        out, metric="AUPRC", subset=SGE_POOLED_SUBSET, accession=MACRO_AVG_SUBSET
+    )
+    assert macro["value"] == pytest.approx(sum(vals) / 2)
+    assert macro["n"] == 2
+
+
+def test_sge_n_min_auprc_gates_small_cells():
+    """A subset cell with <n_min_auprc of either label class is gated: it's still
+    emitted (so a blanked cell reports its class balance) but with value/se = NaN
+    and a real n / n_pos, and it's excluded from the subset-macro (which then
+    averages only the qualifying base subset, K=1)."""
+    rng = np.random.default_rng(0)
+
+    def block(subset: str, n_pos: int, n_neg: int) -> tuple[pd.DataFrame, np.ndarray]:
+        label = np.array([True] * n_pos + [False] * n_neg)
+        df = pd.DataFrame(
+            {"mavedb_urn": "urn:1", "gene": "G", "subset": subset, "label": label}
+        )
+        return df, rng.normal(size=n_pos + n_neg)
+
+    dm, sm = block("missense_variant", 60, 90)  # ≥30 each → qualifies
+    ds, ss = block("splicing", 10, 90)  # only 10 impactful (<30) → gated
+    dataset = pd.concat([dm, ds], ignore_index=True)
+    scores = pd.DataFrame({"score": np.concatenate([sm, ss])})
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+
+    miss = _val(out, metric="AUPRC", subset="missense_variant", accession="urn:1")
+    assert np.isfinite(miss["value"])
+    # Gated splicing cell: emitted, value NaN, but class counts preserved.
+    spl = _val(out, metric="AUPRC", subset="splicing", accession="urn:1")
+    assert np.isnan(spl["value"]) and np.isnan(spl["se"])
+    assert spl["n_pos"] == 10 and spl["n"] == 100  # n_neg = n - n_pos = 90
+    # Subset-macro excludes the gated cell → equals missense alone (K=1).
+    macro = _val(out, metric="AUPRC", subset=MACRO_AVG_SUBSET, accession="urn:1")
+    assert macro["value"] == pytest.approx(miss["value"])
+    assert macro["n"] == 1
+
+
+def test_sge_nan_scores_dropped():
+    """NaN scores (conservation has no value at unaligned loci) are dropped per
+    cell rather than raising; AUPRC is computed on the finite remainder."""
+    dataset, scores = _sge_data(seed=2)
+    scores = scores.copy()
+    scores.loc[:20, "score"] = (
+        np.nan
+    )  # 21 NaN scores in the first cell (urn:1 missense)
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    a = out[out["metric"] == "AUPRC"]
+    assert len(a) > 0
+    # The first cell shrinks 150→129 but still clears the gate (≥30/class), so no
+    # cell is gated → every AUPRC value is finite. (A gated cell would carry NaN;
+    # this asserts the fixture stays un-gated, not that gating is impossible.)
+    assert a["value"].notna().all()
+    # The 21 NaN-score rows were dropped, not counted: n reflects the remainder.
+    first = a[(a["accession"] == "urn:1") & (a["subset"] == "missense_variant")]
+    assert int(first["n"].iloc[0]) == 150 - 21
+
+
+def test_sge_multiple_score_columns():
+    dataset, scores = _sge_data(seed=0)
+    scores = scores.copy()
+    scores["jsd"] = np.random.default_rng(1).normal(size=len(scores))
+    out = compute_sge_metrics(dataset, scores, n_bootstrap=10, rng=0)
+    assert set(out["score_type"]) == {"score", "jsd"}
+
+
+def test_sge_urn_maps_to_multiple_genes_raises():
+    dataset = pd.DataFrame(
+        {
+            "mavedb_urn": ["urn:1"] * 4,
+            "gene": ["A", "A", "B", "B"],
+            "subset": ["missense_variant"] * 4,
+            "label": [True, False, True, False],
+        }
+    )
+    scores = pd.DataFrame({"score": [1.0, 2.0, 3.0, 4.0]})
+    with pytest.raises(AssertionError, match="maps to >1 gene"):
+        compute_sge_metrics(dataset, scores, n_bootstrap=2, rng=0)
+
+
+def test_sge_seed_reproducibility():
+    dataset, scores = _sge_data(seed=1)
+    a = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    b = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
+    pd.testing.assert_frame_equal(a, b)

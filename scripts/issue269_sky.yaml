@@ -1,0 +1,46 @@
+# SkyPilot task: validate the #269 marginal-LLR path on a GPU, in bf16 — the
+# same precision the evals_v2 scores parquets were computed in — so the
+# comparison is directly against the canonical S3 numbers.
+#
+# Reads the cached checkpoint + GRCh38 reference from s3://oa-bolinas via the
+# instance role (no GCS/gcloud needed), runs scripts/issue269_validate_marginal_llr.py,
+# and uploads the summary/plot back to s3://oa-bolinas/scratch/issue269_validation.
+#
+# Launch (auto-down after):
+#   sky launch -c issue269-validate --down scripts/issue269_sky.yaml
+
+name: issue269-validate
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1        # 24 GB Ampere, bf16-capable — matches the evals_v2 eval node.
+    disk_size: 100
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    MODEL: exp136-proj_v30-step-9999
+    WINDOW_SIZE: "255"
+    DATASET: mendelian_traits
+    N: "2000"                    # variant subset (0 = all 16,140)
+    BATCH_SIZE: "64"
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true   # no API key on a fresh node; this is inference-only.
+
+    uv run --group genome-s3 python scripts/issue269_validate_marginal_llr.py \
+        --model "$MODEL" --window-size "$WINDOW_SIZE" --dataset "$DATASET" \
+        --n "$N" --batch-size "$BATCH_SIZE" --device cuda --bf16 \
+        --upload-prefix s3://oa-bolinas/scratch/issue269_validation

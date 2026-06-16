@@ -1,7 +1,7 @@
-"""Family-deduplicate the Zoonomia 447 leaf set.
+"""Rank-deduplicate the Zoonomia 447 leaf set (one leaf per family or order).
 
 Pure functions over already-fetched data: Newick parsing, name
-normalization, and the per-family ranking + dedup policy. Network calls
+normalization, and the per-rank ranking + dedup policy. Network calls
 (NCBI Datasets v2, Zoonomia supplementary xlsx) live in the reproducer
 script ``snakemake/zoonomia_projection_dataset/scripts/build_species_list.py``,
 not here, so this module stays pure-Python testable.
@@ -37,7 +37,7 @@ ANCESTOR_LABEL_RE = re.compile(r"^(?:fullTreeAnc|PrimatesAnc|Anc)\d+$")
 
 @dataclass(frozen=True)
 class LeafMeta:
-    """Per-leaf record fed to :func:`dedup_by_family`."""
+    """Per-leaf record fed to :func:`dedup_by_rank`."""
 
     leaf: str
     family: str | None
@@ -102,35 +102,60 @@ def _rank_key(meta: LeafMeta) -> tuple[int, int, int, str]:
     )
 
 
-def dedup_by_family(
+# Taxonomic ranks we can deduplicate to. These are the only two fields
+# populated on LeafMeta (the build script fetches family + order from NCBI);
+# grouping on anything else would silently collapse every leaf into one
+# all-None group, so we guard against it.
+DEDUP_RANKS: tuple[str, ...] = ("family", "order")
+
+
+def dedup_by_rank(
     rows: list[LeafMeta],
+    rank: str,
     *,
     force_include: frozenset[str] = frozenset(
         {"Homo_sapiens", "Mus_musculus", "Bos_taurus"}
     ),
 ) -> list[LeafMeta]:
-    """Pick one leaf per family by the dedup policy.
+    """Pick one leaf per taxonomic ``rank`` group by the dedup policy.
+
+    ``rank`` selects the grouping attribute on :class:`LeafMeta` and must be
+    one of :data:`DEDUP_RANKS` (``"family"`` or ``"order"``) — the two
+    taxonomy fields the build script populates. ``"order"`` yields a sparser,
+    more deeply-diverged set than ``"family"``.
 
     Policy:
 
-    1. ``force_include`` species win their family unconditionally.
-    2. Other families pick by sort order :func:`_rank_key`.
+    1. ``force_include`` species win their group unconditionally.
+    2. Other groups pick by sort order :func:`_rank_key`.
 
-    Rows with ``family is None`` are dropped — they cannot participate in
-    family-level dedup. Force-include species missing from ``rows``
-    entirely are silently absent (caller asserts).
+    Rows whose ``rank`` value is ``None`` are dropped — they cannot
+    participate in dedup at that rank. Force-include species missing from
+    ``rows`` entirely are silently absent (caller asserts).
 
-    Returns the chosen LeafMeta records, sorted by family.
+    Returns the chosen LeafMeta records, sorted by the group key.
+
+    Subset invariant: every ``rank="order"`` winner is also a
+    ``rank="family"`` winner over the same rows, so
+    order-winners ⊆ family-winners. An order with no force-include is won by
+    its top-ranked leaf, which is also top-ranked in its own family (⊆ the
+    order). An order containing force-includes is won by its top-ranked
+    force-include, which is likewise the top-ranked force-include in its own
+    family — so it wins both ranks. (Any *other* force-include in that order
+    loses it but still wins its own family, which is fine: only the winner
+    need be a family winner.) Relied on by the dataset follow-up.
     """
-    by_family: dict[str, list[LeafMeta]] = {}
+    assert rank in DEDUP_RANKS, f"rank must be one of {DEDUP_RANKS}; got {rank!r}"
+    by_group: dict[str, list[LeafMeta]] = {}
     for r in rows:
-        if r.family is None:
+        key = getattr(r, rank)
+        if key is None:
             continue
-        by_family.setdefault(r.family, []).append(r)
+        by_group.setdefault(key, []).append(r)
 
     winners: list[LeafMeta] = []
-    for family in sorted(by_family.keys()):
-        candidates = by_family[family]
+    for key in sorted(by_group.keys()):
+        candidates = by_group[key]
         forced = [r for r in candidates if r.leaf in force_include]
         if forced:
             chosen = sorted(forced, key=_rank_key)[0]

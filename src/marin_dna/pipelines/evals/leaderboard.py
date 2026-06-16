@@ -12,8 +12,8 @@ AUPRC + cluster-bootstrap SE on 1:9 matched negatives.
     filter by ``score_name`` (the track).
   - ``snakemake/alphagenome_eval/``   → one parquet per dataset, filter by
     ``score_type`` + ``split``.
-  - gist (gpn_star)                   → one parquet per dataset with V/M/P
-    stacked, filter by ``score_type`` + ``split`` + ``model``.
+  - ``snakemake/gpn_star_eval/``      → one parquet per dataset with V/M/P
+    stacked, filter by ``score_type`` + ``model``.
 
 Model registry (display name, family, training metadata, etc.) lives in
 ``dashboard/models.yaml`` and is loaded via ``models.load_models``.
@@ -33,20 +33,13 @@ from marin_dna.pipelines.evals.models import ALL_DATASETS, Model, models_for_dat
 S3 = "s3://oa-bolinas"
 SPLIT = "train"
 
-# `family: gpn_star` AUPRC metrics live on a gist commit (issue #145, last
-# comment) — one parquet per dataset with V/M/P stacked and a `model`
-# column to filter on. Polars `read_parquet` handles https URLs natively
-# via fsspec, so the path resolver just hands back a stable URL string.
-# Bump this commit when a new AUPRC re-run is uploaded. Distinct from
-# `gpn_star.GPN_STAR_GIST_BASE`, which points at the per-variant
-# *prediction* gist; this one is the *metrics* gist.
-GPN_STAR_METRICS_GIST_OWNER = "gonzalobenegas"
-GPN_STAR_METRICS_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
-GPN_STAR_METRICS_GIST_COMMIT = "cba23a7fd89222cc72bcdddf3f37e86ee5c1075c"
-GPN_STAR_METRICS_GIST_BASE = (
-    f"https://gist.githubusercontent.com/{GPN_STAR_METRICS_GIST_OWNER}/"
-    f"{GPN_STAR_METRICS_GIST_ID}/raw/{GPN_STAR_METRICS_GIST_COMMIT}"
-)
+# `family: gpn_star` AUPRC metrics now come from the S3 pipeline
+# (`snakemake/gpn_star_eval`, refreshed in #278), same as the conservation /
+# alphagenome / marin_dna families — one parquet per dataset with V/M/P stacked
+# and a `model` column to filter on. The pipeline is the single source of truth;
+# the old metrics gist (`3649e68f@cba23a7`) is kept only as the #145 provenance
+# record, no longer read here. (Distinct from `gpn_star.GPN_STAR_GIST_BASE`,
+# the per-variant *prediction* gist, which the pipeline still consumes as input.)
 
 # `family: evo2` AUPRC metrics gist. Same gist as gpn_star, different
 # pinned commit. Bump `EVO2_METRICS_GIST_COMMIT` when re-uploading; see
@@ -177,7 +170,7 @@ def _parquet_path(method: Model, dataset: str) -> str:
         case "alphagenome":
             return f"{S3}/snakemake/alphagenome_eval/results/metrics/{dataset}.parquet"
         case "gpn_star":
-            return f"{GPN_STAR_METRICS_GIST_BASE}/{dataset}.GPN-Star.parquet"
+            return f"{S3}/snakemake/gpn_star_eval/results/metrics/{dataset}.parquet"
         case "evo2":
             short = EVO2_DATASET_SHORT[dataset]
             return f"{EVO2_METRICS_GIST_BASE}/{short}_{method.id}_train_metrics.parquet"
@@ -189,9 +182,12 @@ def fetch_method_metrics(
     method: Model, dataset: str, protocol: str | None = None
 ) -> pl.DataFrame:
     """Return rows ``[subset, value, se, n, n_positives]`` for one
-    ``(method, dataset, protocol)`` — including the ``_global_`` and
-    ``_macro_avg_`` aggregate rows. See ``normalized_rows`` for the
-    column semantics.
+    ``(method, dataset, protocol)``.
+
+    Matched-pair datasets (mendelian_traits, complex_traits) emit one row per
+    consequence ``subset`` plus the ``_global_`` / ``_macro_avg_`` aggregates;
+    ``subset`` carries the consequence name and ``n`` is total variants (or K
+    on the macro row). See ``normalized_rows`` for the column semantics.
 
     When ``protocol`` is ``None``, defaults to ``DEFAULT_PROTOCOL[family]``.
     """
@@ -250,15 +246,16 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
       - ``method_display``  — ``Model.display``
       - ``family``          — ``Model.family``
       - ``protocol``        — protocol name (e.g. ``LLR``, ``JSD``, ``cLLR``)
-      - ``subset``          — consequence subset OR ``_global_`` / ``_macro_avg_``
-      - ``value``           — AUPRC
-      - ``se``              — cluster-bootstrap SE
+      - ``subset``          — consequence subset OR ``_global_`` /
+        ``_macro_avg_`` (matched-pair).
+      - ``value``           — AUPRC.
+      - ``se``              — cluster-bootstrap SE.
       - ``n``               — total variants in the subset (positives +
         matched negatives), except on the ``_macro_avg_`` row where it
         carries K = number of qualifying subsets.
       - ``n_positives``     — positives in the subset (= ``n_groups`` from
-        the source AUPRC parquet); K on the macro row. Drives the
-        dashboard's ≥30-positives display threshold; never rendered.
+        the source AUPRC parquet); K on the macro row. Drives the dashboard's
+        ≥30-positives display threshold; never rendered.
     """
     # Soft-fail surface, intentionally narrow: only the two legitimate
     # "no data for this protocol yet" exception types.
@@ -301,4 +298,104 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
                         "n_positives": int(row["n_positives"]),
                     }
                 )
+    return pl.DataFrame(rows)
+
+
+# Columns kept from each method's SGE metrics parquet, in output order.
+_SGE_ROW_COLUMNS = (
+    "metric",
+    "subset",
+    "accession",
+    "gene",
+    "score_type",
+    "value",
+    "se",
+    "n",
+    "n_pos",
+)
+
+
+def _nan_float(x: object) -> float:
+    """Map a polars null back to NaN. A pandas float-NaN written to parquet
+    round-trips as a *null*, so Spearman rows (``n_pos`` = NaN, by design) and
+    any degenerate-bootstrap ``se`` come back as ``None``; keep them as NaN
+    rather than crashing on ``float(None)``."""
+    return float("nan") if x is None else float(x)
+
+
+def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
+    """Long-form SGE metrics across all registered methods (the dedicated SGE
+    leaderboard loader; ``dashboard/src/data/sge.parquet.py`` writes its output).
+
+    SGE keeps the full per-accession × per-subset × per-metric grid from
+    ``compute_sge_metrics`` — too rich for ``normalized_rows``' single
+    ``[subset, value, se, …]`` row shape — so this emits one row per
+    ``(method, score_type, metric, subset, accession)`` and lets the dashboard
+    page do the gene-scope / subset / metric / protocol selection.
+
+    Reuses ``_parquet_path``: marin_dna methods have a per-method parquet (every
+    ``score_type`` — ``minus_llr_*`` / ``jsd_*`` — kept, so the page's LLR/JSD
+    toggle works); conservation methods share one per-dataset parquet, filtered
+    to the track by ``score_name == method.id`` (``score_type`` is always
+    ``"score"`` there). Methods whose parquet isn't on S3 yet are skipped with a
+    warning (same soft-fail posture as ``normalized_rows``).
+
+    Columns: ``[method_id, method_display, family, score_type, metric, subset,
+    accession, gene, value, se, n, n_pos]``. ``n_pos`` is the abnormal count for
+    AUPRC rows and NaN for Spearman rows.
+    """
+    # A method registered for SGE may not have its metrics parquet on S3 yet
+    # (e.g. the gLMs before their scoring run is done) — polars surfaces an S3
+    # 404 as OSError (FileNotFoundError covers the local-path case). Skip + warn
+    # rather than fail the whole loader; the parquet appears once the run lands.
+    soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError, OSError)
+    rows: list[dict] = []
+    for method in models_for_dataset(dataset):
+        path = _parquet_path(method, dataset)
+        try:
+            df = _read_parquet(path)
+        except soft_fail as exc:
+            print(f"  ! sge skip for {method.id} ({path}): {exc}", file=sys.stderr)
+            continue
+        if method.family == "conservation":
+            # conservation's parquet path is split-specific (…/metrics_{SPLIT}.parquet),
+            # so it only needs the per-track score_name select, no split filter.
+            df = df.filter(pl.col("score_name") == method.id)
+        elif method.family == "gpn_star":
+            # All three GPN-Star variants (V/M/P) share ONE per-dataset parquet
+            # (`_parquet_path` is model-independent for this family), stacked with a
+            # `model` column. Filter to this method's model — without it each of the
+            # 3 registered methods would re-emit all 3 models' rows (9× duplication,
+            # mislabeled). Train-only parquet, so no split filter (mirrors
+            # fetch_method_metrics' gpn_star branch). `model` == `Model.id`.
+            df = df.filter(pl.col("model") == method.id)
+        elif method.family == "marin_dna":
+            # The per-model parquet path is NOT split-specific and carries a
+            # `split` column for whichever split was scored — guard it like
+            # fetch_method_metrics so a future test-split run can't leak in.
+            df = df.filter(pl.col("split") == SPLIT)
+        missing = [c for c in _SGE_ROW_COLUMNS if c not in df.columns]
+        assert not missing, (
+            f"SGE parquet for {method.id!r} missing columns {missing}; got {df.columns}"
+        )
+        if df.height == 0:
+            print(f"  ! sge no rows for {method.id} in {path}", file=sys.stderr)
+            continue
+        for row in df.iter_rows(named=True):
+            rows.append(
+                {
+                    "method_id": method.id,
+                    "method_display": method.display,
+                    "family": method.family,
+                    "score_type": row["score_type"],
+                    "metric": row["metric"],
+                    "subset": row["subset"],
+                    "accession": row["accession"],
+                    "gene": row["gene"],
+                    "value": _nan_float(row["value"]),
+                    "se": _nan_float(row["se"]),
+                    "n": int(row["n"]),
+                    "n_pos": _nan_float(row["n_pos"]),
+                }
+            )
     return pl.DataFrame(rows)

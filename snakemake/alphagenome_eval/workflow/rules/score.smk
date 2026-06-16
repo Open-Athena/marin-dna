@@ -1,8 +1,7 @@
-"""AlphaGenome scoring + per-track aggregation.
+"""AlphaGenome scoring + per-track aggregation (matched-group baseline).
 
-Two rules so the per-track parquet is preserved on S3 — a future change to
-the aggregation protocol (e.g. per-assay) won't have to re-spend the API
-budget.
+Two rules so the per-track parquet is preserved on S3 — a future change to the
+aggregation protocol (e.g. per-assay) won't have to re-spend the API budget.
 """
 
 
@@ -10,13 +9,12 @@ rule compute_per_track_l2:
     output:
         "results/per_track_l2/{dataset}.parquet",
     wildcard_constraints:
-        dataset="|".join(DATASETS),
+        dataset=MATCHED_CONSTRAINT,
     threads: config["num_workers"]
     params:
-        # Pin the HF dataset commit. Bumping it triggers rerun via the
-        # `params:` hash. `load_dataset(revision=…)` raises
-        # `RevisionNotFoundError` on an unknown SHA — no silent fallback
-        # to `main`.
+        # Pin the HF dataset commit. Bumping it triggers rerun via the `params:`
+        # hash. `load_dataset(revision=…)` raises `RevisionNotFoundError` on an
+        # unknown SHA — no silent fallback to `main`.
         hf_path=lambda wc: f"{config['input_hf_prefix']}_{wc.dataset}",
         hf_revision=lambda wc: get_dataset_config(wc.dataset)["hf_revision"],
     run:
@@ -26,6 +24,7 @@ rule compute_per_track_l2:
         for col in REQUIRED_VARIANT_COLUMNS:
             assert col in ds.columns, f"dataset missing column {col!r}"
 
+        # subset_n_pairs is a smoke knob: keep only the first N matched groups.
         n_pairs = config.get("subset_n_pairs")
         if n_pairs is not None:
             keep = ds["match_group"].drop_duplicates().head(int(n_pairs))
@@ -60,7 +59,7 @@ rule aggregate_max:
     output:
         "results/scores/{dataset}.parquet",
     wildcard_constraints:
-        dataset="|".join(DATASETS),
+        dataset=MATCHED_CONSTRAINT,
     run:
         score_col = config["score_column"]
         df = pd.read_parquet(input[0])

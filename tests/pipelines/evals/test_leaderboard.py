@@ -103,13 +103,10 @@ def test_score_type_for_returns_dataset_specific_column():
     assert score_type_for("gpn_star", "LLR", "mendelian_traits") == "minus_llr"
 
 
-def test_gpn_star_parquet_path_resolves_to_pinned_gist():
-    """The gist URL has the pinned commit + the dataset-stacked filename."""
-    from marin_dna.pipelines.evals.leaderboard import (
-        GPN_STAR_METRICS_GIST_BASE,
-        GPN_STAR_METRICS_GIST_COMMIT,
-        _parquet_path,
-    )
+def test_gpn_star_parquet_path_resolves_to_s3():
+    """GPN-Star metrics now come from the S3 pipeline output (snakemake/
+    gpn_star_eval), not the gist — same source pattern as the other S3 families."""
+    from marin_dna.pipelines.evals.leaderboard import _parquet_path
 
     method = _mk_method(
         id="GPN-Star-M",
@@ -120,10 +117,12 @@ def test_gpn_star_parquet_path_resolves_to_pinned_gist():
     )
     mendelian = _parquet_path(method, "mendelian_traits")
     complex_ = _parquet_path(method, "complex_traits")
-    assert mendelian.startswith(GPN_STAR_METRICS_GIST_BASE), mendelian
-    assert GPN_STAR_METRICS_GIST_COMMIT in mendelian
-    assert mendelian.endswith("/mendelian_traits.GPN-Star.parquet")
-    assert complex_.endswith("/complex_traits.GPN-Star.parquet")
+    assert mendelian == (
+        "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/mendelian_traits.parquet"
+    )
+    assert complex_ == (
+        "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/complex_traits.parquet"
+    )
 
 
 def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.MonkeyPatch):
@@ -149,12 +148,10 @@ def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.Monkey
 def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.MonkeyPatch):
     """gpn_star has cLLR + LLR protocols; both must appear in normalized_rows.
 
-    Source is the AUPRC-schema gist (issue #145 last comment). The dashboard
+    Source is the S3 pipeline output (``snakemake/gpn_star_eval``). The dashboard
     sees a single `n` column derived from `n_rows` (per-subset / global) or
     `n_groups` (macro_avg).
     """
-    from marin_dna.pipelines.evals.leaderboard import GPN_STAR_METRICS_GIST_BASE
-
     methods = (
         _mk_method(
             id="GPN-Star-M",
@@ -166,11 +163,12 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     )
     _patch_methods(monkeypatch, methods)
 
+    # No `split` column — the gpn_star S3 parquet is train-only and the read
+    # path filters by model + score_type, not split.
     def gpn_rows(score_type, value):
         return [
             {
                 "score_type": score_type,
-                "split": "train",
                 "model": "GPN-Star-M",
                 "subset": "missense_variant",
                 "value": value,
@@ -180,7 +178,6 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
             },
             {
                 "score_type": score_type,
-                "split": "train",
                 "model": "GPN-Star-M",
                 "subset": GLOBAL_SUBSET,
                 "value": value,
@@ -190,7 +187,6 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
             },
             {
                 "score_type": score_type,
-                "split": "train",
                 "model": "GPN-Star-M",
                 "subset": MACRO_AVG_SUBSET,
                 "value": value,
@@ -205,7 +201,10 @@ def test_normalized_rows_emits_one_block_per_protocol(monkeypatch: pytest.Monkey
     )
     _patch_read_parquet(
         monkeypatch,
-        {f"{GPN_STAR_METRICS_GIST_BASE}/mendelian_traits.GPN-Star.parquet": gpn_df},
+        {
+            "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/"
+            "mendelian_traits.parquet": gpn_df
+        },
     )
     df = normalized_rows("mendelian_traits")
     assert set(df["protocol"].unique().to_list()) == {"cLLR", "LLR"}
@@ -411,3 +410,156 @@ def test_storage_options_ignores_other_values(monkeypatch: pytest.MonkeyPatch):
     from marin_dna.pipelines.evals.leaderboard import _storage_options
 
     assert _storage_options() is None
+
+
+# ---- sge_normalized_rows ----------------------------------------------------
+
+
+def _sge_metrics_parquet(
+    score_types, *, score_name=None, split="train", model=None
+) -> pl.DataFrame:
+    """Tiny SGE metrics parquet: one AUPRC row per score_type at the headline
+    (across-accession × across-subset macro) cell. ``model`` stamps the gpn_star
+    `model` column (V/M/P); ``score_name`` the conservation track column."""
+    rows = [
+        {
+            "metric": "AUPRC",
+            "subset": MACRO_AVG_SUBSET,
+            "accession": MACRO_AVG_SUBSET,
+            "gene": MACRO_AVG_SUBSET,
+            "score_type": st,
+            "value": 0.3,
+            "se": 0.01,
+            "n": 5,
+            "n_pos": 100.0,
+            # The real evals_v2/conservation metrics parquets carry a `split`
+            # column; sge_normalized_rows filters marin_dna rows by it.
+            "split": split,
+        }
+        for st in score_types
+    ]
+    df = pl.DataFrame(rows)
+    if score_name is not None:
+        df = df.with_columns(pl.lit(score_name).alias("score_name"))
+    if model is not None:
+        df = df.with_columns(pl.lit(model).alias("model"))
+    return df
+
+
+def test_sge_normalized_rows_marin_and_conservation(monkeypatch: pytest.MonkeyPatch):
+    """marin_dna keeps every score_type (LLR/JSD toggle); conservation methods
+    share one parquet, each filtered to its own track by score_name."""
+    glm = _mk_method(id="glm1", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    cons2 = _mk_method(id="phastCons_43p", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons, cons2))
+
+    glm_path = leaderboard._parquet_path(glm, "sge")
+    cons_path = leaderboard._parquet_path(cons, "sge")  # shared by both tracks
+    cons_df = pl.concat(
+        [
+            _sge_metrics_parquet(["score"], score_name="phyloP_100v"),
+            _sge_metrics_parquet(["score"], score_name="phastCons_43p"),
+        ]
+    )
+    # The marin_dna parquet path is not split-specific, so it can carry both
+    # splits; only the train rows should survive.
+    glm_df = pl.concat(
+        [
+            _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"], split="train"),
+            _sge_metrics_parquet(["minus_llr_avg", "jsd_avg"], split="test"),
+        ]
+    )
+    _patch_read_parquet(
+        monkeypatch,
+        {
+            glm_path: glm_df,
+            cons_path: cons_df,
+        },
+    )
+
+    df = leaderboard.sge_normalized_rows("sge")
+    assert set(df.columns) == {
+        "method_id",
+        "method_display",
+        "family",
+        "score_type",
+        "metric",
+        "subset",
+        "accession",
+        "gene",
+        "value",
+        "se",
+        "n",
+        "n_pos",
+    }
+    # marin_dna: both score_types survive (drives the dashboard LLR/JSD toggle),
+    # but only the train split — the 2 test-split rows are filtered out (height 2).
+    g = df.filter(pl.col("method_id") == "glm1")
+    assert g.height == 2
+    assert set(g["score_type"].to_list()) == {"minus_llr_avg", "jsd_avg"}
+    # conservation: each method filtered to its own track, no cross-leak.
+    c = df.filter(pl.col("method_id") == "phyloP_100v")
+    assert c.height == 1 and (c["score_type"] == "score").all()
+    assert df.filter(pl.col("method_id") == "phastCons_43p").height == 1
+    # SGE v3 is AUPRC-only; every metric row is AUPRC with a finite n_pos.
+    assert set(df["metric"].to_list()) == {"AUPRC"}
+    assert df["n_pos"].is_finite().all()
+
+
+def test_sge_normalized_rows_gpn_star_filters_by_model(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """The 3 GPN-Star variants share ONE model-stacked sge parquet (the path is
+    model-independent for this family). sge_normalized_rows must filter each
+    method to its own `model` — without the filter every method would re-emit all
+    3 models' rows (9× duplication, mislabeled)."""
+    v = _mk_method(id="GPN-Star-V", family="gpn_star", datasets=("sge",))
+    m = _mk_method(id="GPN-Star-M", family="gpn_star", datasets=("sge",))
+    p = _mk_method(id="GPN-Star-P", family="gpn_star", datasets=("sge",))
+    _patch_methods(monkeypatch, (v, m, p))
+
+    # All three resolve to the same shared parquet path.
+    path = leaderboard._parquet_path(v, "sge")
+    assert leaderboard._parquet_path(m, "sge") == path
+    assert leaderboard._parquet_path(p, "sge") == path
+
+    # Model-stacked parquet: each model × 2 score_types (the cLLR + LLR columns).
+    stacked = pl.concat(
+        [
+            _sge_metrics_parquet(["minus_llr_calibrated", "minus_llr"], model=mid)
+            for mid in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P")
+        ]
+    )
+    _patch_read_parquet(monkeypatch, {path: stacked})
+
+    df = leaderboard.sge_normalized_rows("sge")
+    # Each method gets only its own 2 rows — 6 total, not 18 (no cross-model leak).
+    assert df.height == 6
+    for mid in ("GPN-Star-V", "GPN-Star-M", "GPN-Star-P"):
+        sub = df.filter(pl.col("method_id") == mid)
+        assert sub.height == 2
+        assert set(sub["score_type"].to_list()) == {"minus_llr_calibrated", "minus_llr"}
+        assert (sub["family"] == "gpn_star").all()
+
+
+def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPatch):
+    """A method whose metrics parquet isn't on S3 yet (polars surfaces an S3 404
+    as OSError) is skipped, not fatal — e.g. the gLMs before their scoring run."""
+    glm = _mk_method(id="glm_pending", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons))
+    glm_path = leaderboard._parquet_path(glm, "sge")
+    cons_path = leaderboard._parquet_path(cons, "sge")
+    leaderboard._read_parquet.cache_clear()
+
+    def fake(path: str) -> pl.DataFrame:
+        if path == glm_path:
+            raise OSError("object-store error: 404 Not Found")
+        if path == cons_path:
+            return _sge_metrics_parquet(["score"], score_name="phyloP_100v")
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr(leaderboard, "_read_parquet", fake)
+    df = leaderboard.sge_normalized_rows("sge")
+    assert set(df["method_id"].to_list()) == {"phyloP_100v"}

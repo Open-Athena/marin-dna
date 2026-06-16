@@ -15,17 +15,12 @@ top-level README).
 
 ## Launch
 
-Open an IAP tunnel to the iris controller (port-forward, no shell):
+`--cluster=marin` resolves the named cluster config and **auto-establishes the
+controller tunnel** (SSH-through-IAP) — no manual port-forward needed. Just make
+sure `gcloud` is authed first (`gcloud auth login`):
 
 ```bash
-gcloud compute start-iap-tunnel iris-controller-marin 10000 \
-  --local-host-port=localhost:10000 --zone=us-central1-a
-```
-
-Then submit:
-
-```bash
-uv run iris --controller-url=http://localhost:10000 --cluster=marin job run \
+uv run iris --cluster=marin job run \
   --no-wait \
   --user gonzalo \
   --job-name <descriptive-name> \
@@ -38,6 +33,17 @@ uv run iris --controller-url=http://localhost:10000 --cluster=marin job run \
   -- python experiments/<your-script>.py
 ```
 
+- **Don't** use `gcloud compute start-iap-tunnel … 10000`: the IAP firewall only
+  allows port 22, so a direct TCP forward to the controller's port 10000 fails
+  with `ERROR: … [4033: 'not authorized']`. `--cluster=marin` handles the tunnel
+  for you. If you genuinely need a persistent manual tunnel (e.g. to reuse one
+  across many invocations), open it via **SSH**-through-IAP and pass
+  `--controller-url`:
+  ```bash
+  gcloud compute ssh iris-controller-marin --zone=us-central1-a \
+    --project=hai-gcp-models --tunnel-through-iap -- -L 10000:localhost:10000 -N
+  # then add: --controller-url=http://localhost:10000
+  ```
 - `--no-wait` returns immediately; follow with `iris job logs <id> -f`.
 - `--cpu 1 --memory 2g` is the right coordinator footprint — `executor_main`
   parents spawn TPU sub-tasks via `remote(...)`; the parent stays CPU-only.
@@ -72,6 +78,9 @@ API churn.
 | `Failed to download "marin-zephyr==0.99.dev<DATE>"` (404) | `*-latest` rotated. Same `uv lock --upgrade-package` dance. |
 | `Build failed with exit_code=1` and `marin-root` pulls in workspace versions of `marin-*` that override find-links | Don't depend on `marin-root` from a consumer. Marin's `experiments/` package ships only with marin-root, which carries `[tool.uv.sources] marin-* = { workspace = true }` — that propagates and clobbers find-links. Vendor any experiments-package symbols you need inline. |
 | Parent job stuck `pending` with `Scheduler: Insufficient CPU (need 1 cores, available 0.05 cores)` | Don't over-constrain via `--zone`. Prefer `--region` so the coordinator can land in any zone in that region; only the TPU child needs the zone-specific accelerator. |
+| `CompileTimeHbmOom: Used <N>G of <M>G hbm` on a small-HBM TPU (e.g. v6e ≈31 GB/chip) at a large batch | The OOM is **activations**, not weights. Lower the per-chip microbatch via `per_device_parallelism` (= gradient accumulation); the effective `train_batch_size` is unchanged. `gradient_checkpointing` is already on by default — it's *not* the lever. |
+| Spot-TPU job dies with `RuntimeError: N step(s) failed`, coordinator exits, `preemptions=0` | A GCS-side TPU preemption crashed the step; marin propagates it as a hard failure and does **not** auto-resume. Relaunch → resumes from the last checkpoint. Neither TPU *type/size* nor `per_device_parallelism` is in the executor config hash (checkpoints re-shard on load), so you can **freely re-route an arm to any pool and set PDP to fit that slice's HBM** (e.g. `PDP=1024` on v6e-4, `PDP=-1` on v6e-8/v5p-8) — it still resumes. |
+| Preemptible v5p / v4 queued for hours behind reserved jobs | v6e / v5e (v5litepod) are usually abundant — re-route there (long `pending` is capacity, not a freeze). Keep `--region` matched to your data's GCS bucket, or you re-tokenize into the new region. |
 
 ## What an experiment script needs to declare
 

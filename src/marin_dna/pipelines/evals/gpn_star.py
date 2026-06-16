@@ -40,26 +40,67 @@ GPN_STAR_MODEL_INFO: dict[str, tuple[str, str]] = {
 
 # Prediction parquets uploaded by the producer to a gist; pinned commit so the
 # raw URL is stable. Replace if the producer re-uploads.
+#
+# Pinned to the **current-revision** upload (issue #145 comment
+# https://github.com/Open-Athena/marin-dna/issues/145#issuecomment-4489509362):
+# row-aligned to evals_mendelian_traits@4aed58e / evals_complex_traits@22f86a89
+# (the k=9 / AUPRC revisions this repo's evals_v2 targets). The earlier upload
+# (gist facb982f @ 35bfb2f) is the pre-#194 1:1 revision and is NOT compatible
+# with the current HF datasets — the alignment assert in score_variants_gpn_star
+# would fire. eQTL was retired (#172/#194) and is not in this gist.
 GPN_STAR_GIST_BASE: str = (
     "https://gist.githubusercontent.com/gonzalobenegas/"
-    "facb982f19878b46f8bc4f7f4564416f/raw/"
-    "35bfb2fa160ae0d83811e024b777d429caae43d1"
+    "db282f89aa00244fbb7437dce0f069ef/raw/"
+    "02484d50d9bfd80337e313652b26f98a9362b6b1"
 )
 
+# SGE (saturation genome editing) predictions live in a **separate** gist from
+# the matched-pair upload above — same producer, same file-naming + schema, but a
+# distinct gist id/commit. Row-aligned to ``bolinas-dna/evals_sge`` split=train @
+# revision 225d3d1e (issue #145 comment
+# https://github.com/Open-Athena/marin-dna/issues/145#issuecomment-4683700490),
+# the same revision evals_v2 / conservation_eval pin for SGE.
+GPN_STAR_SGE_GIST_BASE: str = (
+    "https://gist.githubusercontent.com/gonzalobenegas/"
+    "1285ea85cd068e522b1ff6fc1c76acec/raw/"
+    "571e443dca86630bd7d22506c3edfdeea21b2ee6"
+)
+
+# Which gist hosts each dataset's prediction parquets. Adding a dataset to the
+# GPN-Star baseline = add its gist base here (and its leaderboard column below).
+_GIST_BASE_BY_DATASET: dict[str, str] = {
+    "mendelian_traits": GPN_STAR_GIST_BASE,
+    "complex_traits": GPN_STAR_GIST_BASE,
+    "sge": GPN_STAR_SGE_GIST_BASE,
+}
+
 # Per-dataset leaderboard score column. The calibrated variant is what each
-# leaderboard issue (#161 / #162 / #172) renders. The uncalibrated counterpart
-# is reported in #145 for context.
+# leaderboard issue (#161 / #162) renders. The uncalibrated counterpart is
+# reported in #145 for context. (eQTL #172 retired in #194 — no current upload.)
+# SGE (#301): signed ``minus_llr_calibrated`` — abnormal = loss of function =
+# deleterious, a directional signal like Mendelian (not magnitude like complex).
 GPN_STAR_SCORE_COLUMN: dict[str, str] = {
     "mendelian_traits": "minus_llr_calibrated",
     "complex_traits": "abs_llr_calibrated",
-    "eqtl": "abs_llr_calibrated",
+    "sge": "minus_llr_calibrated",
 }
 
 
 def predictions_url(dataset: str, model: str) -> str:
-    """Return the gist raw URL for one GPN-Star prediction parquet."""
+    """Return the gist raw URL for one GPN-Star prediction parquet.
+
+    The upload names files ``bolinas_{dataset}_GPN-Star-{model}`` (underscore
+    separator). The hosting gist differs by dataset (see
+    :data:`_GIST_BASE_BY_DATASET`): matched-pair datasets share
+    :data:`GPN_STAR_GIST_BASE`; SGE uses :data:`GPN_STAR_SGE_GIST_BASE`.
+    """
     assert model in GPN_STAR_MODELS, f"unknown GPN-Star model {model!r}"
-    return f"{GPN_STAR_GIST_BASE}/bolinas_{dataset}.GPN-Star-{model}.parquet"
+    assert dataset in _GIST_BASE_BY_DATASET, (
+        f"no GPN-Star prediction gist for dataset {dataset!r}; "
+        f"known: {sorted(_GIST_BASE_BY_DATASET)}"
+    )
+    base = _GIST_BASE_BY_DATASET[dataset]
+    return f"{base}/bolinas_{dataset}_GPN-Star-{model}.parquet"
 
 
 def score_variants_gpn_star(

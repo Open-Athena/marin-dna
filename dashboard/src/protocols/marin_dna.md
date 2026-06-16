@@ -11,7 +11,7 @@ const leaderboard = await FileAttachment("../data/leaderboard.parquet").parquet(
 const methods = await FileAttachment("../data/models.json").json();
 const datasets = await FileAttachment("../data/datasets.json").json();
 import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
-import {PillSelect, ComparisonPicker, labeledRow} from "../components/controls.js";
+import {PillSelect, ComparisonPicker, labeledRow, protocolLabel} from "../components/controls.js";
 ```
 
 ```js
@@ -112,13 +112,13 @@ for (const cell of grouped.values()) {
 }
 ```
 
-Each cell below is **${alternative} AUPRC − ${baseline} AUPRC**, in percentage points. Green = ${alternative} scores higher; red = the reverse; yellow = no meaningful change.
+Each cell below is **${protocolLabel(alternative)} AUPRC − ${protocolLabel(baseline)} AUPRC**, in percentage points. Green = ${protocolLabel(alternative)} scores higher; red = the reverse; yellow = no meaningful change.
 
 **Protocol definitions** (each score is per-variant; transforms make higher = more variant-effect):
 
 - **LLR** — log-likelihood ratio of mutant vs. reference, averaged across forward and reverse-complement scores. Sign-flipped for Mendelian (`−LLR`) and absolute-valued for Complex (`|LLR|`). *Leaderboard default.*
-- **JSD** — per-position Jensen-Shannon divergence between the model's mutant and reference next-token distributions, averaged first across positions *downstream of the variant*, then across forward and reverse-complement scores.
-- **LLR-FWD / JSD-FWD** — same transforms applied to the forward strand only (no reverse-complement averaging). Surfaced here for strand-symmetry exploration; not used in the leaderboards.
+- **NucDep** (nucleotide dependency) — per-position Jensen-Shannon divergence between the model's mutant and reference next-token distributions, averaged first across positions *downstream of the variant*, then across forward and reverse-complement scores.
+- **LLR-FWD / NucDep-FWD** — same transforms applied to the forward strand only (no reverse-complement averaging). Surfaced here for strand-symmetry exploration; not used in the leaderboards.
 
 Cells aggregate across the same matched groups the [${DATASET_LABEL[dataset]} leaderboard](../leaderboards/${dataset === "mendelian_traits" ? "mendelian" : "complex"}) uses — only the score column changes.
 
@@ -177,10 +177,6 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
   margin-right: 6px;
   vertical-align: middle;
 }
-.lb-family-marin_dna      { background: #1f77b4; }
-.lb-family-conservation { background: #7f7f7f; }
-.lb-family-alphagenome  { background: #d62728; }
-.lb-family-gpn_star     { background: #9467bd; }
 .lb-cell { text-align: center; font-feature-settings: "tnum"; }
 .lb-na { text-align: center; color: #aaa; }
 
@@ -235,17 +231,12 @@ main > p, main > h1, main > h2, main > h3 { max-width: 1100px; }
 .lb-pop-family {
   display: inline-block;
   font-size: 0.7em;
+  font-weight: 500;
   padding: 1px 7px;
   border-radius: 9999px;
   color: #fff;
   width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
-.lb-pop-family.family-marin_dna      { background: #1f77b4; }
-.lb-pop-family.family-conservation { background: #7f7f7f; }
-.lb-pop-family.family-alphagenome  { background: #d62728; }
-.lb-pop-family.family-gpn_star     { background: #9467bd; }
 .lb-pop-display { font-size: 0.98em; font-weight: 600; }
 .lb-pop-desc { color: #555; margin: 4px 0 6px; font-size: 0.92em; }
 .lb-pop-specs { margin: 6px 0; }

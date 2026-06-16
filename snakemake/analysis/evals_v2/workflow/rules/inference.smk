@@ -38,7 +38,11 @@ rule compute_scores:
         ds = load_dataset(
             params.hf_path, split=config["split"], revision=params.hf_revision
         ).to_pandas()
-        for col in REQUIRED_VARIANT_COLUMNS:
+        # qtl_global datasets (caqtl/dsqtl) carry no subset/match_group; they
+        # require effect_size instead. `compute_variant_scores` only reads
+        # chrom/pos/ref/alt, and the concat below preserves every ds column,
+        # so effect_size reaches the scores parquet for the metric step.
+        for col in get_dataset_variant_columns(wildcards.dataset):
             assert col in ds.columns, f"dataset missing column {col!r}"
 
         scores = compute_variant_scores(

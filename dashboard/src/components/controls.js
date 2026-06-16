@@ -5,8 +5,9 @@
 
 import {html} from "npm:htl";
 
-// Short family labels used in pills/toggles. Distinct from the longer
-// `model-cards.js` labels (`"marin_dna gLM"` etc.) — those go on cards.
+// Family display labels — single source of truth. Shared across the
+// leaderboard pills/toggles, the Models page cards, and the heatmap hover
+// popover (model-cards.js imports this).
 export const FAMILY_LABEL = {
   marin_dna: "MarinDNA",
   conservation: "Conservation",
@@ -17,7 +18,7 @@ export const FAMILY_LABEL = {
 
 // Leaderboard-visible protocol options per family. This is the subset of
 // `PROTOCOLS` (in src/marin_dna/pipelines/evals/leaderboard.py) that the
-// leaderboards' `ProtocolPicker` exposes — additional protocols can live in
+// leaderboards' `FamilyProtocolToggle` exposes — additional protocols can live in
 // `PROTOCOLS` (e.g. `LLR-FWD`, `JSD-FWD` for the AVG-vs-FWD exploration on
 // the Protocols pages) without showing up as leaderboard toggles. Defaults
 // match `DEFAULT_PROTOCOL`.
@@ -34,73 +35,83 @@ export const PROTOCOL_DEFAULTS = {
   evo2: "LLR",
 };
 
-// Pill-row toggle for selecting which families to include. Value is the
-// array of currently-selected family slugs. Renders `all · none` quick
-// actions next to the pills.
-export function FamilyToggle(allFamilies, initial = allFamilies) {
-  const state = new Set(initial);
+// Protocol *display* labels — render layer only. Internal protocol keys
+// (the parquet `protocol` column / `PROTOCOLS` in
+// src/marin_dna/pipelines/evals/leaderboard.py) are unchanged; this maps a
+// key to how it reads in the UI. JSD is surfaced as "NucDep" (nucleotide
+// dependency). Unlisted keys fall back to themselves.
+export const PROTOCOL_LABEL = {
+  JSD: "NucDep",
+  "JSD-FWD": "NucDep-FWD",
+};
+export const protocolLabel = (p) => PROTOCOL_LABEL[p] ?? p;
+
+// Optional hover tooltip per protocol. Surfaces the underlying quantity for
+// renamed protocols on the leaderboard pills, which — unlike the Protocols
+// pages — carry no inline definition. Unlisted keys get no `title` (htl omits
+// the attribute when the value is null).
+export const PROTOCOL_TITLE = {
+  JSD: "Jensen-Shannon divergence (JSD)",
+  "JSD-FWD": "Jensen-Shannon divergence, forward strand only (JSD-FWD)",
+};
+export const protocolTitle = (p) => PROTOCOL_TITLE[p] ?? null;
+
+// Combined family selector + per-family protocol toggle. Each family renders
+// one compound pill; selecting a family reveals its protocol chips inset inside
+// the same colored pill (only for families with ≥2 protocols — single-protocol
+// families stay plain pills and fall back to `defaults`). Protocol choices
+// persist across deselect/reselect. Renders `all · none` quick actions after
+// the pills. Value is `{families: string[], protocols: {family: protocol}}`.
+export function FamilyProtocolToggle(allFamilies, options, defaults, initial = allFamilies) {
+  const selected = new Set(initial);
+  const protocols = {...defaults};
   const node = html`<div class="lb-family-toggle"></div>`;
-  let _value = [...state];
+  const compute = () => ({families: [...selected], protocols: {...protocols}});
+  let _value = compute();
   Object.defineProperty(node, "value", {get: () => _value});
   function fire() {
-    _value = [...state];
+    _value = compute();
     node.dispatchEvent(new Event("input", {bubbles: true}));
   }
   function setAll(next) {
-    state.clear();
-    next.forEach((f) => state.add(f));
+    selected.clear();
+    next.forEach((f) => selected.add(f));
     render();
     fire();
   }
   function render() {
     node.replaceChildren(html`<div class="lb-family-toggle-row">
-      ${allFamilies.map(
-        (f) => html`<button
-          type="button"
-          class=${`lb-pill family-${f}${state.has(f) ? " active" : ""}`}
-          aria-pressed=${state.has(f) ? "true" : "false"}
-          onclick=${() => {
-            state.has(f) ? state.delete(f) : state.add(f);
-            render();
-            fire();
-          }}
-        >${FAMILY_LABEL[f] ?? f}</button>`,
-      )}
+      ${allFamilies.map((f) => {
+        const protos = options[f] ?? [];
+        const active = selected.has(f);
+        return html`<span class=${`lb-cpill family-${f}${active ? " active" : ""}`}>
+          <button
+            type="button"
+            class="lb-cpill-name"
+            aria-pressed=${active ? "true" : "false"}
+            onclick=${() => {
+              selected.has(f) ? selected.delete(f) : selected.add(f);
+              render();
+              fire();
+            }}
+          >${FAMILY_LABEL[f] ?? f}</button>
+          ${active && protos.length >= 2
+            ? html`<span class="lb-cpill-protos">${protos.map((p) => html`<button
+                type="button"
+                class=${`lb-cpill-proto${protocols[f] === p ? " active" : ""}`}
+                aria-pressed=${protocols[f] === p ? "true" : "false"}
+                title=${protocolTitle(p)}
+                onclick=${() => { protocols[f] = p; render(); fire(); }}
+              >${protocolLabel(p)}</button>`)}</span>`
+            : null}
+        </span>`;
+      })}
       <span class="lb-toggle-actions">
         <button type="button" class="lb-link" onclick=${() => setAll(allFamilies)}>all</button>
         <span aria-hidden="true">·</span>
         <button type="button" class="lb-link" onclick=${() => setAll([])}>none</button>
       </span>
     </div>`);
-  }
-  render();
-  return node;
-}
-
-// Per-family protocol selector. Only families with ≥2 protocols render
-// a toggle row (single-protocol families fall back to PROTOCOL_DEFAULTS).
-// Value is `{family: protocol}` for every family in `options`.
-export function ProtocolPicker(options, defaults) {
-  const state = {...defaults};
-  const node = html`<div class="lb-protocol-picker"></div>`;
-  Object.defineProperty(node, "value", {get: () => ({...state})});
-  function fire() {
-    node.dispatchEvent(new Event("input", {bubbles: true}));
-  }
-  function render() {
-    const groups = [];
-    for (const [fam, protos] of Object.entries(options)) {
-      if (protos.length < 2) continue;
-      groups.push(html`<span class="lb-protocol-group">
-        <span class=${`lb-family-tag family-${fam}`}>${FAMILY_LABEL[fam] ?? fam}</span>
-        <span class="lb-protocol-segmented">${protos.map(p => html`<button
-          type="button"
-          class=${`lb-protocol-btn${state[fam] === p ? " active" : ""}`}
-          onclick=${() => { state[fam] = p; render(); fire(); }}
-        >${p}</button>`)}</span>
-      </span>`);
-    }
-    node.replaceChildren(html`<div class="lb-protocol-picker-row">${groups}</div>`);
   }
   render();
   return node;
@@ -155,7 +166,7 @@ export function ComparisonPicker(pairs, initialIdx = 0) {
         render();
         fire();
       }}
-    >${a} → ${b}</button>`));
+    >${protocolLabel(a)} → ${protocolLabel(b)}</button>`));
   }
   render();
   return node;

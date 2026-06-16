@@ -63,6 +63,13 @@ marin = [
     #   unzip -p .venv/lib/python3.12/site-packages/marin_levanter-*.dist-info/METADATA \
     #     | grep 'lm-eval @'
     "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
+    # ``dupekit`` is required by ``marin.datakit.normalize`` (imported by
+    # ``marin.processing.tokenize._core``), but isn't pulled transitively by
+    # any ``marin`` wheel — listing it here so the iris worker's
+    # ``uv sync --extra marin`` installs it from the find-link below. Failure
+    # mode without this: ``ModuleNotFoundError: No module named 'dupekit'``
+    # on any training script that touches ``marin.processing.tokenize``.
+    "dupekit",
     # marin-root (which ships marin's `experiments/` package) is deliberately
     # *not* depended on here — its pyproject carries
     # ``[tool.uv.sources] marin-* = { workspace = true }``, which propagates
@@ -71,6 +78,17 @@ marin = [
     # freshness check requires. The two `experiments.*` symbols the parity
     # check needs (`qwen3_0_6b_hd128`, `default_tokenize`) are vendored at
     # the bottom of `experiments/parity/exp160_parity.py`.
+]
+# Vendored ChromBPNet (arsenal-chrombpnet) for the supervised caQTL/dsQTL VEP
+# eval (issue #236). Opt in with `uv sync --extra chrombpnet`; snakemake / eval
+# contributors who don't train ChromBPNet skip the PyTorch Lightning install.
+# `pooch` is a top-level import in the vendored `genome.py`; `h5py` loads the
+# `.h5` bias model. (deepdish/weasyprint are lazy in unused functions; tensorflow
+# /deeplift/tangermeme live only in modules we don't import.)
+chrombpnet = [
+    "lightning",
+    "h5py",
+    "pooch",
 ]
 
 [dependency-groups]
@@ -106,6 +124,24 @@ aws-cli = [
 # with `--group genome-s3`.
 genome-s3 = [
     "s3fs>=2024",
+]
+# `umap-learn` for the embedding-UMAP interpretation (evals_v2, issue #246).
+# Pulls numba + a ~56 MB llvmlite (LLVM) wheel for one analysis, so it's an
+# opt-in group, not a core dep; `embedding_umap.fit_umap` lazy-imports it.
+# Pipelines that fit UMAP install with `--group umap` (alongside
+# `--group genome-s3` for the S3 genome read).
+umap = [
+    "umap-learn>=0.5",
+]
+# `cdot` + `pyhgvs` for transcript `c.` -> genomic mapping of the SGE
+# transcript-targeted score-sets (issue #289 phase 2b). `cdot`'s GRCh38 REST
+# transcripts + `pyhgvs` project each `c.`/intronic HGVS onto the staged GRCh38
+# FASTA (offline after the ~per-gene transcript fetch). Only the SGE dataset build
+# needs it; `marin_dna.pipelines.evals.sge._pyhgvs_cdot_mapper` lazy-imports it.
+# Build with `--group hgvs` (alongside `--group genome-s3`).
+hgvs = [
+    "cdot>=0.2.26",
+    "pyhgvs>=0.11.1",
 ]
 
 [tool.uv]

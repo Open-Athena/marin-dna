@@ -25,6 +25,10 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import torch.nn as nn
 
+# aggregate_ll_gap is model-agnostic; it lives in the ll_gap module (issue #274)
+# and is re-exported here so existing `from ...evo2 import aggregate_ll_gap` works.
+from marin_dna.pipelines.evals.ll_gap import aggregate_ll_gap  # noqa: F401
+
 if TYPE_CHECKING:
     from datasets import Dataset
 
@@ -244,41 +248,3 @@ def compute_evo2_ll(
     )
     assert np.isfinite(pred).all(), "non-finite values in Evo2 LL prediction"
     return pred
-
-
-def aggregate_ll_gap(pred: np.ndarray) -> dict[str, float]:
-    """Collapse a ``[N, 4]`` per-row LL prediction into dataset-wide
-    token-weighted means and the LL gap.
-
-    Cast to fp64 *before* summing — fp32 accumulation drift over ~10^6
-    target tokens is non-trivial.
-
-    Args:
-        pred: ``[N, 4]`` of ``(ll_sum_upper, ll_sum_lower, n_upper, n_lower)``.
-
-    Returns:
-        Dict with ``LL_all``, ``LL_upper``, ``LL_lower``, ``gap``,
-        ``n_upper``, ``n_lower``. ``LL_*`` are mean log-likelihoods per
-        target token (negative; closer to 0 is better — ``compute_ll_clm``
-        returns raw ``log p``, not NLL). ``gap = LL_upper - LL_lower``,
-        positive when uppercase (functional) bases are easier to predict
-        than lowercase.
-    """
-    pred = np.asarray(pred)
-    assert pred.ndim == 2 and pred.shape[1] == 4, (
-        f"expected [N, 4] pred, got {pred.shape}"
-    )
-    S_u, S_l, n_u, n_l = pred.astype(np.float64).sum(axis=0)
-    assert n_u > 0, "no upper (functional) target tokens — check case mask"
-    assert n_l > 0, "no lower (non-functional) target tokens — check case mask"
-    LL_upper = float(S_u / n_u)
-    LL_lower = float(S_l / n_l)
-    LL_all = float((S_u + S_l) / (n_u + n_l))
-    return {
-        "LL_all": LL_all,
-        "LL_upper": LL_upper,
-        "LL_lower": LL_lower,
-        "gap": LL_upper - LL_lower,
-        "n_upper": int(n_u),
-        "n_lower": int(n_l),
-    }

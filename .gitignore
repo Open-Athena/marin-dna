@@ -216,3 +216,4 @@ marimo/_lsp/
 __marimo__/
 tests/fixtures/*.fai
 _scratch/
+scratch/

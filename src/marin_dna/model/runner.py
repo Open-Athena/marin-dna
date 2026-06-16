@@ -41,10 +41,14 @@ from marin_dna.data.transforms import (
     in_seq_var_pos,
     transform_ll_clm,
     transform_llr_clm,
+    transform_variant_marginal_clm,
+    transform_window_embedding,
 )
 from marin_dna.model.scoring import (
     compute_ll_clm,
+    compute_marginal_clm,
     compute_variant_score_bundle,
+    compute_window_embedding,
 )
 
 
@@ -192,6 +196,186 @@ def run_variant_score_bundle(
     if rc:
         out["rc"] = np.asarray(_one("-"))
     return out
+
+
+def run_variant_marginal(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    rc: bool = False,
+    **kwargs: Any,
+) -> dict[str, np.ndarray]:
+    """Per-site 4-allele marginal ``log p(x)`` per strand → ``{"fwd": [N, 4], ...}``.
+
+    The opt-in entropy/calibration route (issue #269), parallel to and
+    independent of the default LLR+JSD bundle (``run_variant_score_bundle``),
+    which is left untouched. Each row's marginal over ``{A,C,G,T}`` at the
+    variant position is produced by ``compute_marginal_clm`` (1 prefix + 4
+    cached-suffix forwards — the bundle's prefix-sharing generalized to all four
+    alleles). Entropy (``entropy_from_marginal``), ref log-prob
+    (``marginal[:, ref]``) and the three LLRs (``marginal[:, alt] −
+    marginal[:, ref]``) are CPU reductions on the returned ``[N, 4]``. For FWD+RC,
+    average the two per-strand log-marginals first with ``rc_average_marginal``
+    (a plain mean after the complement realignment) and apply the reduction to
+    that — so the calibrated entropy is ``H`` of the FWD+RC-averaged marginal and
+    each LLR is the mean of the two per-strand LLRs.
+
+    Mirrors ``run_variant_score_bundle``: ``var_pos`` is computed per strand and
+    bound into the compute_fn as a Python int (constant within the call → no
+    torch.compile graph break), and FWD/RC are separate ``Trainer.predict``
+    passes (``var_pos`` differs across strands for even ``window_size``).
+
+    Args:
+        model: HF-shaped causal LM (see module docstring for the interface).
+        tokenizer: Tokenizer for the model.
+        dataset: Dataset with site information (chrom, pos, ref); ``alt`` is not
+            required — the kernel scores all four alleles.
+        genome: Genome object for sequence extraction.
+        window_size: Window size for sequence context.
+        rc: If True, also score the reverse-complemented window per site and
+            return its marginal. Doubles inference cost.
+        **kwargs: Additional arguments passed to ``run_inference``.
+
+    Returns:
+        ``{"fwd": [N, 4]}`` when ``rc=False``, else
+        ``{"fwd": [N, 4], "rc": [N, 4]}``. Columns are ``log p(A), log p(C),
+        log p(G), log p(T)`` in ``NUCLEOTIDES`` order on the requested strand
+        (the RC marginal is over RC-strand alleles, i.e. column ``i`` is the
+        forward-strand complement of ``NUCLEOTIDES[i]``; ``rc_average_marginal``
+        realigns this before averaging, and a per-strand ref/LLR gather must
+        account for it on RC).
+    """
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+    nuc_ids_dict = _get_nucleotide_token_ids(tokenizer)
+    nuc_token_ids = torch.tensor(
+        [nuc_ids_dict[nuc] for nuc in NUCLEOTIDES], dtype=torch.long
+    )
+
+    def _one(strand: Literal["+", "-"]) -> Any:
+        var_pos = in_seq_var_pos(window_size, strand) + n_prefix
+        return run_inference(
+            model,
+            tokenizer,
+            dataset,
+            compute_fn=partial(
+                compute_marginal_clm,
+                var_pos=var_pos,
+                nuc_token_ids=nuc_token_ids,
+            ),
+            data_transform_fn=partial(
+                transform_variant_marginal_clm,
+                genome=genome,
+                window_size=window_size,
+                strand=strand,
+            ),
+            **kwargs,
+        )
+
+    out: dict[str, np.ndarray] = {"fwd": np.asarray(_one("+"))}
+    if rc:
+        out["rc"] = np.asarray(_one("-"))
+    return out
+
+
+def _center_token_bounds(
+    window_size: int,
+    n_center_bp: int,
+    n_prefix: int,
+    strand: Literal["+", "-"],
+) -> tuple[int, int]:
+    """Token ``[lo, hi)`` slice for the central ``n_center_bp`` DNA positions.
+
+    Strand-aware so the forward and reverse-complement windows pool the **same**
+    genomic block: an RC window index ``k`` maps to forward index
+    ``window_size - 1 - k``, so the forward block ``[c0, c0+n)`` is covered on RC
+    by ``[window_size - n_center_bp - c0, …)``. When ``window_size - n_center_bp``
+    is even the two starts coincide; when odd they differ by one (the mirror of
+    ``in_seq_var_pos`` for the variant kernel — a shared slice would leave the two
+    strands pooling 1-bp-offset windows). ``n_prefix`` offsets past BOS/special
+    prefix tokens.
+    """
+    c0_fwd = (window_size - n_center_bp) // 2
+    c0 = c0_fwd if strand == "+" else window_size - n_center_bp - c0_fwd
+    lo = n_prefix + c0
+    return lo, lo + n_center_bp
+
+
+def run_window_embeddings(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    genome: Genome,
+    window_size: int,
+    *,
+    n_center_bp: int = 100,
+    layer_index: int = -1,
+    rc: bool = True,
+    **kwargs: Any,
+) -> np.ndarray:
+    """Center-pooled, FWD+RC-averaged window embeddings via the HF Trainer harness.
+
+    The embedding-UMAP readout (issue #246). Mirrors ``run_variant_score_bundle``
+    but reads hidden states instead of logits: each region's ``window_size``
+    context is tokenized (``transform_window_embedding``), the center
+    ``n_center_bp`` token positions of one layer are mean-pooled
+    (``compute_window_embedding``), and the forward and reverse-complement
+    strands are averaged. The center-pool token bounds are strand-aware
+    (``_center_token_bounds``) so both strands pool the *same* genomic block,
+    even when ``window_size - n_center_bp`` is odd.
+
+    Pass ``model`` as a base ``AutoModel`` (not ``AutoModelForCausalLM``) so the
+    forward skips the LM head — ``compute_window_embedding`` reads
+    ``last_hidden_state`` (``layer_index == -1``). ``**kwargs`` flow to
+    ``run_inference`` (e.g. ``data_transform_on_the_fly=True``,
+    ``inference_kwargs={...}`` carrying ``per_device_eval_batch_size`` /
+    ``bf16_full_eval`` / ``torch_compile`` / ``dataloader_num_workers``).
+
+    Returns ``[N, D]`` (``N = len(dataset)``, ``D`` = model hidden size).
+    """
+    assert n_center_bp <= window_size, (
+        f"n_center_bp {n_center_bp} exceeds window_size {window_size}"
+    )
+    n_prefix, _ = _get_special_token_counts(tokenizer)
+
+    # One Trainer.predict pass per strand with strand-aware center bounds, so
+    # FWD and RC pool the same genomic block before averaging. (Cannot use
+    # _run_strand_aware: it shares one compute_fn across strands, but the center
+    # bounds must differ by strand for odd window_size - n_center_bp.)
+    def _one(strand: Literal["+", "-"]) -> np.ndarray:
+        tok_lo, tok_hi = _center_token_bounds(
+            window_size, n_center_bp, n_prefix, strand
+        )
+        return np.asarray(
+            run_inference(
+                model,
+                tokenizer,
+                dataset,
+                compute_fn=partial(
+                    compute_window_embedding,
+                    tok_lo=tok_lo,
+                    tok_hi=tok_hi,
+                    layer_index=layer_index,
+                ),
+                data_transform_fn=partial(
+                    transform_window_embedding,
+                    genome=genome,
+                    window_size=window_size,
+                    strand=strand,
+                ),
+                **kwargs,
+            )
+        )
+
+    fwd = _one("+")
+    if not rc:
+        return fwd
+    rc_emb = _one("-")
+    assert fwd.shape == rc_emb.shape, (
+        f"FWD/RC embedding shape mismatch: {fwd.shape} vs {rc_emb.shape}"
+    )
+    return (fwd + rc_emb) / 2
 
 
 def _run_inference(

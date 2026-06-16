@@ -23,7 +23,7 @@
 #   family       enum    marin_dna | conservation | alphagenome | gpn_star.
 #                        Drives parquet path + per-method filter in the library.
 #   description  string  short tag for cards + (some) inline labels.
-#   datasets     [str]   subset of {mendelian_traits, complex_traits}.
+#   datasets     [str]   subset of {mendelian_traits, complex_traits, sge}.
 #   training     dict    (marin_dna only) data, params, window_size, objective.
 #   experiment   int     (optional) experiment number — for grouping.
 #   issue        url     (optional) GitHub issue tracking the experiment.
@@ -33,7 +33,7 @@
 #   msa          string  (gpn_star only) producer's MSA suffix (e.g. v100-200m).
 
 # ---------------------------------------------------------------------------
-# Conservation tracks — 7 phyloP / phastCons baselines, present on all three
+# Conservation tracks — 5 phyloP / phastCons baselines, present on all three
 # leaderboards. Same parquet path per dataset; per-track filter on score_name.
 # ---------------------------------------------------------------------------
 
@@ -41,43 +41,31 @@
   display: phastCons (100v)
   family: conservation
   description: phastCons across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phastCons_43p
   display: phastCons (43p)
   family: conservation
   description: phastCons across 43 primates
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phastCons_470m
   display: phastCons (470m)
   family: conservation
   description: phastCons across 470 mammals
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phyloP_100v
   display: phyloP (100v)
   family: conservation
   description: phyloP across 100 vertebrates
-  datasets: [mendelian_traits, complex_traits]
-
-- id: phyloP_241m
-  display: phyloP (241m)
-  family: conservation
-  description: phyloP across 241 mammals (Zoonomia)
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: phyloP_447m
   display: phyloP (447m)
   family: conservation
   description: phyloP across 447 mammals
-  datasets: [mendelian_traits, complex_traits]
-
-- id: phyloP_470m
-  display: phyloP (470m)
-  family: conservation
-  description: phyloP across 470 mammals
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 # ---------------------------------------------------------------------------
 # marin_dna gLMs — evals_v2 pipeline. Registry order matches the legacy
@@ -209,7 +197,7 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/promoter-cds-mixture-proportional-r01-6705f1
   checkpoint:
     gcs: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-26000
-  datasets: [mendelian_traits]
+  datasets: [mendelian_traits, sge]
 
 - id: exp27-cds-yolo-step-34000
   display: exp27-cds-yolo
@@ -318,7 +306,43 @@
   wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-exp166-v0.1-p1B-c127da
   checkpoint:
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
+  datasets: [mendelian_traits, complex_traits, sge]
+
+# Canonical 4B zoonomia generalist (v0.1), companion to the 1B above.
+- id: exp166-v0.1-p4B-step-27329
+  display: exp166-v0.1-p4B
+  family: marin_dna
+  description: zoonomia, generalist, 4B, v0.1
+  training:
+    data: zoonomia_v0.1
+    params: 4.0e9
+    window_size: 255
+    objective: CLM
+  experiment: 166
+  issue: https://github.com/Open-Athena/marin-dna/issues/166
+  wandb: https://wandb.ai/gonzalobenegas/marin/runs/dna-bolinas-exp166-v0.1-p4B-74e146
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-27329
   datasets: [mendelian_traits, complex_traits]
+
+# Parameter-scaling ladder v0.5 — 4B, the largest converged rung (issues
+# #274 / #306; 84.8B tokens, genomes-v5, 255 bp + BOS). Added to the dashboard
+# for the cross-benchmark scaling comparison (mendelian / complex / SGE).
+- id: scaling-v0.5-h2944-p4B-step-215573
+  display: scaling-v0.5 4B
+  family: marin_dna
+  description: param-scaling ladder, 4B, genomes-v5, 84.8B tokens
+  training:
+    data: genomes_v5
+    params: 4.0e9
+    window_size: 255
+    objective: CLM
+  experiment: 274
+  issue: https://github.com/Open-Athena/marin-dna/issues/274
+  wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573
+  datasets: [mendelian_traits, complex_traits, sge]
 
 # Eric Czech's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Headline
 # uniform-mixture run + continued-training upstream-weighted variant.
@@ -350,6 +374,24 @@
     gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
   datasets: [mendelian_traits]
 
+# Eric's 5-way distal mix (Slack #bolinas, 2026-05-30): continued training
+# from the animal-only uniform mix (~110B tokens), then a 5-way mixture adding
+# the new distal data (mammal ncRNA + mammal ccRE/enhancer). Final checkpoint
+# step-59158.
+- id: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+  display: exp135-1B-m5.1
+  family: marin_dna
+  description: mix v0.9, 5-way +distal (cont. from animal mix), 1B
+  training:
+    data: bolinas_mix_v0.9_zoonomia_m5.1
+    params: 1.0e9
+    window_size: 255
+    objective: CLM
+  wandb: https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e
+  checkpoint:
+    gcs: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+  datasets: [mendelian_traits, sge]
+
 # ---------------------------------------------------------------------------
 # External baselines (AlphaGenome, GPN-Star).
 # ---------------------------------------------------------------------------
@@ -367,7 +409,7 @@
   msa: v100-200m
   training:
     params: 2.0e8       # 200M, from the "-200m" suffix in the MSA tag
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: GPN-Star-M
   display: GPN-Star (M)
@@ -376,7 +418,7 @@
   msa: m447-200m
   training:
     params: 2.0e8
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 - id: GPN-Star-P
   display: GPN-Star (P)
@@ -385,7 +427,7 @@
   msa: p243-200m
   training:
     params: 2.0e8
-  datasets: [mendelian_traits, complex_traits]
+  datasets: [mendelian_traits, complex_traits, sge]
 
 # Evo 2 (issue #131) — AUPRC metrics via gist pinned in
 # `leaderboard.py::EVO2_METRICS_GIST_COMMIT`; mendelian_traits only.

@@ -1,4 +1,4 @@
-// Methods index — one card per registered method.
+// Models index — one card per registered model.
 //
 // Each card surfaces every field from models.yaml that would otherwise be
 // buried in the rendered tooltip / table cell: training metadata, all
@@ -6,13 +6,15 @@
 // method is evaluated on. Card grid is responsive (CSS grid auto-fill).
 
 import {html} from "npm:htl";
+// Family labels are shared with the leaderboard pills — single source of truth.
+import {FAMILY_LABEL} from "./controls.js";
 
-const FAMILY_LABEL = {
-  marin_dna: "MarinDNA gLM",
-  conservation: "Conservation track",
-  alphagenome: "AlphaGenome",
-  gpn_star: "GPN-Star",
-};
+// Link to a model's full card on the Models page. Relative (`../models`) so it
+// resolves under the production `/marin-dna/` base path AND locally at `/`.
+// Both callers — the heatmap row anchor and the hover popover below — render
+// only on one-level-deep pages (/leaderboards/*, /protocols/*), so `../`
+// reaches the root-level Models page.
+export const modelHref = (id) => `../models#${encodeURIComponent(id)}`;
 
 function paramsLabel(params) {
   if (params == null) return null;
@@ -148,7 +150,7 @@ export function modelPopoverContent(m) {
       });
       return html`<div class="lb-pop-links">${out}</div>`;
     })()}
-    <a class="lb-pop-more" href=${`/models#${encodeURIComponent(m.id)}`}>full card →</a>
+    <a class="lb-pop-more" href=${modelHref(m.id)}>full card →</a>
   </div>`;
 }
 

@@ -5,10 +5,11 @@ Pulls per-(method, dataset, subset) metric rows from S3 via
 ``dataset`` column, concatenates across datasets, and writes the resulting
 DataFrame as a parquet blob on stdout for the dashboard to read via DuckDB.
 
-Emits one parquet covering the matched-pair eval datasets
-(mendelian_traits, complex_traits). eQTL was retired in PR #194 — see
-issue #172 for the rationale; the page may be reinstated if and when
-the eqtl dataset is rebuilt under the AUPRC pipeline.
+Emits one parquet covering the matched-pair leaderboard datasets (mendelian_traits,
+complex_traits). Each page filters by ``dataset``, so they coexist in one file. eQTL
+was retired in PR #194 (issue #172); the caQTL/dsQTL zero-shot path was retired in #312
+(the supervised official-metrics benchmark now lives on its own Accessibility QTL page,
+fed by ``accessibility_qtl.parquet.py``).
 """
 
 from __future__ import annotations
@@ -19,12 +20,15 @@ import polars as pl
 
 from marin_dna.pipelines.evals.leaderboard import normalized_rows
 
-V1_DATASETS: tuple[str, ...] = ("mendelian_traits", "complex_traits")
+LEADERBOARD_DATASETS: tuple[str, ...] = (
+    "mendelian_traits",
+    "complex_traits",
+)
 
 
 def main() -> None:
     parts = []
-    for dataset in V1_DATASETS:
+    for dataset in LEADERBOARD_DATASETS:
         df = normalized_rows(dataset).with_columns(dataset=pl.lit(dataset))
         parts.append(df)
     out = pl.concat(parts, how="vertical_relaxed")

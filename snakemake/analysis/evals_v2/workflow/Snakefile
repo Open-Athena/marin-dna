@@ -9,6 +9,10 @@ include: "rules/common.smk"
 include: "rules/download.smk"
 include: "rules/inference.smk"
 include: "rules/metrics.smk"
+include: "rules/interpretation.smk"
+include: "rules/embedding_umap.smk"
+include: "rules/calibration.smk"
+include: "rules/ll_gap.smk"
 
 
 rule all:

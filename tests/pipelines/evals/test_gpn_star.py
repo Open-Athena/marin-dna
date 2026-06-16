@@ -12,6 +12,7 @@ from marin_dna.pipelines.evals.gpn_star import (
     GPN_STAR_MODELS,
     GPN_STAR_MODEL_INFO,
     GPN_STAR_SCORE_COLUMN,
+    GPN_STAR_SGE_GIST_BASE,
     predictions_url,
     score_variants_gpn_star,
 )
@@ -287,12 +288,26 @@ def test_score_variants_missing_pred_column() -> None:
 
 
 def test_predictions_url_format() -> None:
+    # Current-revision upload uses an underscore before ``GPN-Star`` (the earlier
+    # 1:1-revision upload used a dot). Matched-pair datasets (mendelian + complex)
+    # share GPN_STAR_GIST_BASE; eQTL retired (#172/#194).
     assert predictions_url("mendelian_traits", "V") == (
-        f"{GPN_STAR_GIST_BASE}/bolinas_mendelian_traits.GPN-Star-V.parquet"
+        f"{GPN_STAR_GIST_BASE}/bolinas_mendelian_traits_GPN-Star-V.parquet"
     )
-    assert predictions_url("eqtl", "P") == (
-        f"{GPN_STAR_GIST_BASE}/bolinas_eqtl.GPN-Star-P.parquet"
+    assert predictions_url("complex_traits", "P") == (
+        f"{GPN_STAR_GIST_BASE}/bolinas_complex_traits_GPN-Star-P.parquet"
     )
+
+
+def test_predictions_url_sge_uses_separate_gist() -> None:
+    # SGE predictions live in a different gist from the matched-pair upload
+    # (#145 comment 4683700490), but keep the same filename convention.
+    assert predictions_url("sge", "M") == (
+        f"{GPN_STAR_SGE_GIST_BASE}/bolinas_sge_GPN-Star-M.parquet"
+    )
+    # The two gists are distinct — a regression guard so a future edit can't
+    # collapse SGE back onto the matched-pair base.
+    assert GPN_STAR_SGE_GIST_BASE != GPN_STAR_GIST_BASE
 
 
 def test_predictions_url_unknown_model() -> None:
@@ -300,14 +315,19 @@ def test_predictions_url_unknown_model() -> None:
         predictions_url("mendelian_traits", "X")
 
 
+def test_predictions_url_unknown_dataset() -> None:
+    with pytest.raises(AssertionError, match="no GPN-Star prediction gist"):
+        predictions_url("caqtl", "V")
+
+
 def test_score_column_per_dataset_convention() -> None:
     # Mendelian uses signed (pathogenic ⇒ alt depleted under purifying selection).
     assert GPN_STAR_SCORE_COLUMN["mendelian_traits"] == "minus_llr_calibrated"
-    # Complex / eQTL use magnitude (direction-agnostic; eQTLs can go either way).
+    # Complex uses magnitude (direction-agnostic).
     assert GPN_STAR_SCORE_COLUMN["complex_traits"] == "abs_llr_calibrated"
-    assert GPN_STAR_SCORE_COLUMN["eqtl"] == "abs_llr_calibrated"
-    # No surprise datasets.
-    assert set(GPN_STAR_SCORE_COLUMN) == {"mendelian_traits", "complex_traits", "eqtl"}
+    # SGE: signed (abnormal = loss of function = deleterious), like Mendelian.
+    assert GPN_STAR_SCORE_COLUMN["sge"] == "minus_llr_calibrated"
+    assert set(GPN_STAR_SCORE_COLUMN) == {"mendelian_traits", "complex_traits", "sge"}
 
 
 def test_model_info_keys_match_models_tuple() -> None:

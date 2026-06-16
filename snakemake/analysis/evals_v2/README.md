@@ -44,6 +44,59 @@ The metrics parquet has columns
 with aggregate rows `_global_` and `_macro_avg_` per `score_type` —
 see `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` for details.
 
+### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
+
+The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
+**unmatched** — no `subset`, no `match_group`, no subsampling — so they take a
+separate global path selected by `eval_protocol: qtl_global` on the dataset
+entry. Scoring is identical (they still set `score_protocol: abs_llr`, so the
+score columns are `abs_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}` — abs-LLR and
+JSD), but the metric step calls
+`marin_dna.pipelines.evals.metrics.compute_qtl_metrics` instead, emitting **one
+row per (metric × score_type)** with a `metric` column ∈ `{AUPRC, pearson,
+spearman}`:
+
+- **AUPRC** over *all* variants (significant QTL vs control via `label`), with
+  a plain row-bootstrap SE.
+- **Pearson / Spearman** of the score vs the dataset's `effect_size` (unsigned
+  `|effect|`), over the **positive variants only** — controls are excluded
+  (for `dsqtl` they carry no measured effect at all).
+
+These metrics parquets have columns
+`[metric, score_type, value, se, n_rows, n_pos, model, dataset, split]` — note
+the `metric` column and the absence of subset rows.
+
+### SGE dataset (`sge`, `eval_protocol: sge`)
+
+The saturation-genome-editing benchmark (`bolinas-dna/evals_sge`, issue #301; v3
+label build) is **unmatched** and frames the task as a binary VEP: each variant
+carries a boolean `label` (True = impactful = ClinGen/ExCALIBR-calibrated
+abnormal) and a consequence-group `subset` ∈ {`missense_variant`, `splicing`}.
+The v3 build keeps only labeled variants (abnormal/normal); the continuous
+`function_score_aligned` + `calibrated_class` columns stay for provenance.
+`eval_protocol: sge` selects
+`marin_dna.pipelines.evals.metrics.compute_sge_metrics`. Scoring uses
+`score_protocol: minus_llr` (signed — the assayed ALT is the
+deleterious-*candidate*, so its sign is informative; not `abs`), giving score
+columns `minus_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}`.
+
+Scores are **non-comparable across studies**, so AUPRC is computed **per
+accession** (`mavedb_urn`) then macro-averaged. AUPRC is rank-based, so it
+compares fairly with the conservation tracks (Spearman vs the continuous
+function score was dropped in #301 to keep one classification metric and let the
+dataset shed unlabeled variants for faster inference).
+
+- **AUPRC** predicting `label` (impactful vs not) from the deleteriousness score;
+  requires ≥ 30 rows per label class per cell.
+
+It runs on a 2-axis grid: `subset` ∈ {`missense_variant`, `splicing`, `both`
+(pooled), `_macro_avg_` (mean of the two subsets)} × `accession` ∈ {each
+`mavedb_urn`, `_macro_avg_` (mean over accessions)}. Parquet columns:
+`[metric, subset, accession, gene, score_type, value, se, n, n_pos, model,
+dataset, split]` (`metric` is always `AUPRC`). The **same** `compute_sge_metrics`
+is reused by the conservation pipeline (`snakemake/conservation_eval/`). Scoped
+to the three #292 gLMs via their per-model `datasets:` lists.
+
 ## Conventions
 
 - **Train split only.** Test is held out for the final-eval pass; train is
@@ -90,6 +143,79 @@ uv run snakemake
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
+### Interpretation targets (off `rule all`)
+
+Two visual-interpretation analyses live alongside the metrics DAG but are kept
+**off `rule all`** (so they never perturb score/metric reruns); build them by
+name:
+
+- **Nucleotide dependency maps** (categorical Jacobian, #237) — `snakemake nuc_dep`.
+- **Embedding UMAP** (GPN-Star Fig 4A/4B, #246) — `snakemake umap`. Embeds the
+  labeled 100 bp windows from `songlab/gpn-star-umap-regions`, fits UMAP, and
+  writes `results/plots/umap/{model}/{region,conservation}.svg`. It needs the
+  optional `umap` group (a ~56 MB LLVM wheel via numba/llvmlite), so install it
+  alongside `--group genome-s3`:
+
+  ```bash
+  uv sync --frozen --group genome-s3 --group umap
+  uv run --group genome-s3 --group umap snakemake umap
+  ```
+
+  On a sky cluster, pass `EXTRA_UV_GROUPS` (threaded into both `uv sync` and
+  `uv run` by `sky/run.yaml`):
+
+  ```bash
+  sky launch sky/run.yaml -c evals-umap \
+    --env EXTRA_UV_GROUPS="--group umap" \
+    --env SNAKEMAKE_ARGS="-- umap"
+  ```
+
+### Calibration tables (cLLR, #267/#270)
+
+`snakemake calibration` builds a per-checkpoint **mutation-rate calibration**
+table — also kept **off `rule all`**. It scores the pinned, **pre-filtered +
+subsampled** neutral-site set from [`snakemake/neutral_sites`](../../neutral_sites/)
+(`neutral_sites_n{n}_w{w}.parquet`, default `n=100`, `w=scoreable_window=512`) with
+the same fast LLR bundle as `compute_scores` (FWD+RC), then bins by
+`pentanuc_mut = 5mer + "_" + alt`:
+
+```
+results/calibration/{model}/llr_neutral_mean_n{n}.parquet
+```
+
+columns `[pentanuc_mut, pentanuc, ref, alt, n_sites, llr_neutral_mean_{fwd,rc,avg},
+llr_neutral_std_avg, subsample_n]` (~3072 cells = 1024 five-mers × 3 alts). Stage 4
+(#271) subtracts it: `calibrated LLR = LLR − llr_neutral_mean(pentanuc_mut)`.
+**Entropy calibration** (the 4-forward marginal atom) is a separate, deferred
+path — this rule is LLR-only.
+
+The neutral set is **ACGT-window-filtered upstream** (in `neutral_sites`, once per
+window, reused by every model — see that pipeline's README), so this rule does **no
+genome filtering**; it asserts `scoreable_window >= the model's window_size` so the
+clean set is valid for the model. The set is staged via snakemake `storage()`
+(boto3, fork-safe), so it arrives as a **local** file: `pd.read_parquet("s3://…")`
+in the rule's parent process would initialize s3fs and deadlock the forked
+DataLoader workers that read the genome (the genome stays the only in-worker s3fs
+read). Configured under `calibration:` in `config.yaml` (`models`, `subsample_n`,
+`scoreable_window`, `min_bin_count`, `neutral_sites_s3_prefix`, `rc`). Build:
+
+```bash
+snakemake calibration                                                # all configured calibration models
+snakemake results/calibration/<model>/llr_neutral_mean_n100.parquet  # one model
+```
+
+- **LL gap** (functional vs non-functional log-likelihood, #274) — `snakemake ll_gap`.
+  For each `(model, region)` in the `ll_gap:` config it scores the model's mean
+  log-likelihood on uppercase (phyloP-functional) vs lowercase (non-functional)
+  target tokens over the mixed-case `genomes-v5` validation intervals
+  (`cds`/`upstream`/`downstream` = v5/v1/v15), then aggregates to
+  `results/ll_gap/summary.parquet` (`LL_upper`, `LL_lower`, `gap` per cell). A
+  metric rather than an interpretation, but kept off `rule all` for the same
+  reason. FWD strand only — matches the training-logged
+  `val_*_{functional,nonfunctional}` loss. For one sky cluster per cell, build
+  the per-cell `results/ll_gap/scores/{model}/{region}.parquet` targets, then
+  gather with `snakemake ll_gap`.
+
 ### Parallel sky-cluster sweep (one cluster per target)
 
 For a grid of independent targets — e.g. all checkpoints of one model arm,
@@ -131,9 +257,13 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset.name}"`. |
 | `genome_path` | Canonical GRCh38 FASTA. fsspec URI (e.g. `s3://...`) or local path. The S3 path requires `--group genome-s3` at install time. |
 | `split` | `train` (or `test` once held-out eval is unlocked). |
-| `datasets` | List of `{name, hf_revision, score_protocol}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. |
+| `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global, sge}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets; `sge` selects the per-accession × consequence-subset AUPRC-on-`label` path for `evals_sge` (see the SGE section above). |
 | `models` | List of `{name, window_size, ...}`. Each entry has exactly one of `gcs_path` (full GCS URI incl. `/hf/step-{N}`) or `hf_repo` (HuggingFace Hub repo ID), plus two optional fields: `datasets: [...]` to restrict which `datasets` this checkpoint evaluates on (defaults to all), and `batch_size: N` to override the global `inference.batch_size` for this checkpoint (useful when context size differs from the global default's tuning). |
 | `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
+| `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
+| `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
+| `calibration` | Optional; cLLR mutation-rate calibration tables (#267/#270, off `rule all`). `{neutral_sites_s3_prefix, subsample_n, scoreable_window, min_bin_count, rc, models: [...]}` — scores the pre-filtered + subsampled neutral set (`neutral_sites_n{subsample_n}_w{scoreable_window}.parquet`) → per-model `llr_neutral_mean`. See `rules/calibration.smk`. |
+| `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
 
 ## Library
 
@@ -143,6 +273,17 @@ Pipeline rules are thin glue around:
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
 - `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` — score columns
   → AUPRC ± cluster-bootstrap SE per subset (cluster = `match_group`).
+- `marin_dna.pipelines.evals.metrics.compute_qtl_metrics` — score columns
+  → global AUPRC + positives-only Pearson/Spearman vs `effect_size`
+  (the `eval_protocol: qtl_global` path for caqtl/dsqtl).
+- `marin_dna.pipelines.evals.calibration.compute_llr_neutral_mean` — checkpoint +
+  neutral sites → per-cell `llr_neutral_mean` calibration table (cLLR stage 3);
+  `expand_sites_to_variants` / `aggregate_llr_neutral_mean` are the tested pure pieces.
+- `marin_dna.pipelines.evals.ll_gap.compute_hf_ll_gap` — HF checkpoint +
+  mixed-case `seq` dataset → per-sequence functional/non-functional LL atoms
+  (`ll_sum_upper`, `ll_sum_lower`, `n_upper`, `n_lower`); `aggregate_ll_gap`
+  collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
 
-Both are tested at `tests/pipelines/evals/test_metrics.py`,
-`tests/pipelines/evals/test_inference.py`, and `tests/model/test_scoring.py`.
+These are tested at `tests/pipelines/evals/test_metrics.py`,
+`tests/pipelines/evals/test_inference.py`, `tests/pipelines/evals/test_calibration.py`,
+`tests/pipelines/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.

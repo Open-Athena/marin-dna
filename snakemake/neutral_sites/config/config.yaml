@@ -1,0 +1,45 @@
+# neutral_sites — GPN-Star neutral-site set on GRCh38 for mutation-rate
+# calibration (issue #267). Replicates GPN-Star's hg38 calibration inputs.
+
+# Reference genome (Ensembl GRCh38, soft-masked) for the ref base at each
+# neutral position. Same canonical reference as snakemake/analysis/evals_v2.
+# The S3 path requires `--group genome-s3` at install (pyfaidx + s3fs).
+genome_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+
+# Plain (uncompressed) FASTA + .fai, kept in S3 next to the bgzipped reference.
+# The pentanuc / scoreable-window rules read the genome **genome-wide** (one whole-
+# chromosome span each), where pyfaidx on the bgzipped file is pathologically slow;
+# `stage_genome_fasta` downloads this plain file once and mmaps it instead. Produced
+# once with `zcat …fa.gz > …fa && python -c "import pyfaidx; pyfaidx.Faidx('…fa')"`.
+genome_fasta_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
+
+# Source files — exactly what GPN-Star used for the hg38 calibration
+# (songlab-cal/gpn analysis/gpn-star/.../Snakefile_hg38 CALIBRATION_CONFIGS),
+# via UCSC https mirrors of GPN's ftp URLs (byte-identical files).
+rmsk_target_url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz
+rmsk_outgroup_url: https://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/rmsk.txt.gz
+chain_url: https://hgdownload.soe.ucsc.edu/goldenPath/mm39/vsHg38/reciprocalBest/mm39.hg38.rbest.chain.gz
+
+# Conservation tracks that define the low-constraint sites. Keys index
+# marin_dna.pipelines.evals.conservation.CONSERVATION_TRACKS (single source of
+# truth for the URLs) — phyloP_100v / phastCons_100v are the vertebrate 100-way
+# tracks GPN-Star used.
+phylop_track: phyloP_100v
+phastcons_track: phastCons_100v
+
+# Neutral = |phyloP| < threshold AND phastCons == 0. GPN uses 0.1 in the
+# ancestral-repeat setting (0.05 without repeats).
+phylop_threshold: 0.1
+
+# Chromosomes to enumerate (autosomes + X + Y — GPN's CHROMS). The calibration
+# table is a genome-wide background model, so there is no train/test split here.
+chroms: ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y"]
+
+# bigWig scan granularity (bases per pyBigWig read).
+window_size: 1000000
+
+# Seed for the per-5-mer subsampling (rules/subsample.smk). The cap `n` and the
+# scoreable window `w` are path wildcards (`neutral_sites_n{n}_w{w}.parquet`); this
+# seed fixes which sites are drawn so the subsampled set is reproducible across runs
+# and shared by every checkpoint's calibration.
+subsample_seed: 270

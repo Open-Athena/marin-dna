@@ -97,6 +97,63 @@ def test_levanter_rename_patch_marker_set():
     assert getattr(LmEvalHarnessConfig, "_marin_dna_rename_patched", False) is True
 
 
+# --- [BOS] fix (#257 root cause; stopgap #263; durable fix #264) -------------
+
+
+@pytest.mark.parametrize(
+    "ids, bos, expected",
+    [
+        ([[10, 11], [12]], 2, [[2, 10, 11], [2, 12]]),  # prepend
+        ([[2, 10], [2, 12]], 2, [[2, 10], [2, 12]]),  # idempotent (already BOS)
+        ([[2, 10], [12]], 2, [[2, 10], [2, 12]]),  # mixed: only the BOS-less one
+        ([[10], [11]], None, [[10], [11]]),  # no-BOS tokenizer → no-op
+        ([[]], 2, [[2]]),  # empty completion still gets BOS
+    ],
+)
+def test_prepend_bos(ids, bos, expected):
+    from marin_dna.pipelines.evals.lm_eval import _prepend_bos
+
+    assert _prepend_bos(ids, bos) == expected
+
+
+def test_bos_patch_marker_set():
+    import marin_dna.pipelines.evals.lm_eval  # noqa: F401
+    from levanter import eval_harness
+
+    assert getattr(eval_harness, "_marin_dna_bos_patched", False) is True
+
+
+def test_bos_patch_is_idempotent():
+    """Re-running the installer must not double-wrap ``_encode_batch``."""
+    import marin_dna.pipelines.evals.lm_eval as pkg
+    from levanter import eval_harness
+
+    before = eval_harness._encode_batch
+    pkg._install_bos_fix()
+    pkg._install_bos_fix()
+    assert eval_harness._encode_batch is before
+
+
+def test_bos_patch_prepends_through_encode_batch():
+    """The patched ``_encode_batch`` prepends the tokenizer's BOS id; a tokenizer
+    without a BOS is left untouched (datasets stay tokenizer-agnostic)."""
+    import marin_dna.pipelines.evals.lm_eval  # noqa: F401  triggers the patch
+    from levanter import eval_harness
+
+    class _FakeTok:
+        def __init__(self, bos):
+            self.bos_token_id = bos
+
+        def encode_batch(self, texts):  # MarinTokenizer-style: list[list[int]]
+            return [[10, 11, 12] for _ in texts]
+
+    assert eval_harness._encode_batch(_FakeTok(bos=2), ["A", "C"]) == [
+        [2, 10, 11, 12],
+        [2, 10, 11, 12],
+    ]
+    assert eval_harness._encode_batch(_FakeTok(bos=None), ["A"]) == [[10, 11, 12]]
+
+
 def test_levanter_rename_patch_is_idempotent():
     import marin_dna.pipelines.evals.lm_eval  # noqa: F401
     from marin_dna.pipelines.evals.lm_eval import _install_levanter_rename_patch

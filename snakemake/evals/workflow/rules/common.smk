@@ -7,7 +7,7 @@ from pathlib import Path
 from marin_dna.data.genome import Genome
 from cyvcf2 import VCF
 from datasets import Dataset
-from huggingface_hub import HfApi
+from huggingface_hub import CommitOperationAdd, HfApi
 
 from marin_dna.pipelines.evals.labeling import label_variants_by_pip
 from marin_dna.pipelines.evals.materialize import materialize_sequences
@@ -103,6 +103,31 @@ rule download_genome:
         "wget {params.url} -O {output}"
 
 
+rule stage_genome:
+    """Stage the canonical bgzipped GRCh38 reference (+ .fai/.gzi indexes) onto local
+    disk so check_ref_alt reads from disk instead of doing a per-variant S3 round-trip
+    (~100x faster on ~110k variants). Downloaded once via boto3 (the s3 storage
+    plugin's dependency — no s3fs needed) and kept local via local() so snakemake
+    doesn't round-trip it back to storage. pyfaidx needs the .fai (and, for BGZF, the
+    .gzi) as same-named siblings. Shared by the chrombpnet_qtl and sge builds."""
+    output:
+        fa=local("results/genome_staged/GRCh38.fa.gz"),
+        fai=local("results/genome_staged/GRCh38.fa.gz.fai"),
+        gzi=local("results/genome_staged/GRCh38.fa.gz.gzi"),
+    params:
+        src=config["canonical_genome_path"],
+    run:
+        import boto3
+        from urllib.parse import urlparse
+
+        u = urlparse(params.src)
+        bucket, key = u.netloc, u.path.lstrip("/")
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, output.fa)
+        s3.download_file(bucket, key + ".fai", output.fai)
+        s3.download_file(bucket, key + ".gzi", output.gzi)
+
+
 rule split_dataset_by_chrom:
     input:
         "results/dataset_unsplit/{dataset}.parquet",
@@ -141,10 +166,21 @@ rule materialize_eval_harness_dataset:
 
 
 def _hf_qc_input(wildcards):
-    """QC parquet input — only matched datasets have one (not the harness derivatives)."""
-    if "_harness_" in wildcards.dataset:
+    """QC parquet input — only the matched datasets have one. Harness
+    derivatives and the unmatched DART-Eval datasets (caqtl, dsqtl) don't."""
+    if wildcards.dataset not in QC_CONTINUOUS_FEATURES:
         return []
     return f"results/qc/{wildcards.dataset}.parquet"
+
+
+def _hf_extra_files(dataset):
+    """Dataset-specific companion files (path_in_repo -> local path) uploaded in the
+    same commit as the splits + README. SGE ships its study-level MaveDB score
+    calibrations as a tidy long table (wrong grain to fold into the per-variant
+    splits)."""
+    if dataset == "sge":
+        return {"calibrations.parquet": "results/sge/calibrations.parquet"}
+    return {}
 
 
 rule hf_upload:
@@ -152,6 +188,7 @@ rule hf_upload:
         train="results/dataset/{dataset}/train.parquet",
         test="results/dataset/{dataset}/test.parquet",
         qc=_hf_qc_input,
+        extra=lambda wc: list(_hf_extra_files(wc.dataset).values()),
     output:
         touch("results/upload.done/{dataset}"),
     params:
@@ -159,6 +196,14 @@ rule hf_upload:
     run:
         api = HfApi()
         api.create_repo(params.repo_name, repo_type="dataset", exist_ok=True)
+        # Map each companion's repo filename -> its LOCALIZED input path. The S3
+        # storage provider deletes the bare `results/...` local copy once the
+        # producing rule finishes, so we must read the path snakemake localized for
+        # *this* rule (`input.extra`), not the logical `_hf_extra_files` value.
+        # keys() and the `extra` input (its values()) share dict order, so they zip.
+        extra_local = dict(
+            zip(_hf_extra_files(wildcards.dataset), input.extra)
+        )
         # README: per-dataset card with splits, columns, retention, AUPRC-leak
         # diagnostic, provenance (commit-pinned permalink to the pipeline).
         readme = hf_readme.render(
@@ -167,21 +212,34 @@ rule hf_upload:
             train_path=input.train,
             test_path=input.test,
             qc_path=input.qc if input.qc else None,
+            calibration_path=extra_local.get("calibrations.parquet"),
         )
-        api.upload_file(
-            path_or_fileobj=readme.encode(),
-            path_in_repo="README.md",
+        # Single atomic commit: README + both splits (+ any companion files) land
+        # together, so the repo is never in a half-updated state (train new / test
+        # stale).
+        ops = [
+            CommitOperationAdd(
+                path_in_repo="README.md", path_or_fileobj=readme.encode()
+            ),
+            CommitOperationAdd(
+                path_in_repo="train.parquet", path_or_fileobj=str(input.train)
+            ),
+            CommitOperationAdd(
+                path_in_repo="test.parquet", path_or_fileobj=str(input.test)
+            ),
+        ]
+        for path_in_repo, local in extra_local.items():
+            ops.append(
+                CommitOperationAdd(
+                    path_in_repo=path_in_repo, path_or_fileobj=str(local)
+                )
+            )
+        api.create_commit(
             repo_id=params.repo_name,
             repo_type="dataset",
+            operations=ops,
+            commit_message=f"Upload {wildcards.dataset} dataset ({len(ops)} files)",
         )
-        for f in [input.train, input.test]:
-            split = Path(f).stem
-            api.upload_file(
-                path_or_fileobj=f,
-                path_in_repo=f"{split}.parquet",
-                repo_id=params.repo_name,
-                repo_type="dataset",
-            )
 
 
 ruleorder: materialize_eval_harness_dataset > split_dataset_by_chrom

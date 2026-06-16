@@ -49,6 +49,32 @@ distal, splicing, promoter, …) — `_global_` and `_macro_avg_` aggregate rows
 flow through the parquet (used by the dashboard) but are excluded from the
 markdown.
 
+### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
+
+The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
+**unmatched** (no `subset` / `match_group`), so a dataset entry with
+`eval_protocol: qtl_global` takes a global path instead: scoring is identical
+(single-base bigWig lookup), but aggregation calls
+`aggregate_conservation_qtl_metrics`, which reports — per track — **global
+AUPRC** over all variants plus **Pearson / Spearman** of the track score vs the
+dataset's `effect_size` (unsigned `|effect|`) over **positive variants only**
+(controls excluded; `dsqtl` controls have no measured effect). Same `fillna(0)`
+and bootstrap-seed conventions; the bootstrap resamples rows (AUPRC) / positive
+rows (correlations). The markdown is a single `metric × track` table.
+
+### SGE dataset (`sge`, `eval_protocol: sge`)
+
+The saturation-genome-editing benchmark (`bolinas-dna/evals_sge` v3, issue #301)
+is also unmatched, framed as a binary VEP: each variant carries a boolean `label`
+(True = impactful = calibrated abnormal) and a consequence-group `subset`. A
+dataset entry with `eval_protocol: sge` runs the **same shared**
+`compute_sge_metrics` as `evals_v2` (no metric logic duplicated): per-accession
+(`mavedb_urn`) × consequence-subset **AUPRC** predicting `label` from the track
+score, macro-averaged over subsets then accessions. Aggregation is
+`aggregate_conservation_sge_metrics` — a thin wrapper (per-track loop + NaN-fill +
+`score_name` stamping + markdown). All five configured tracks run on it; the
+headline markdown is a `metric × track` table.
+
 ## Tracks
 
 | Name | Source URL | Notes |
@@ -67,14 +93,16 @@ URLs are owned by `marin_dna.evals.conservation.CONSERVATION_TRACKS` (single sou
 
 NaN values arise when the bigWig has no alignment at a given locus (e.g.
 patches, alt contigs, or genuinely unalignable bases). Before computing AUPRC
-we **`fillna(0)`**:
+we **`fillna(0)`** — via the single shared `conservation.fill_score_nan`, used by
+**every** eval protocol (matched_pair / qtl_global / sge) so the convention can't
+drift between benchmarks:
 
 - For phyloP, **0 is semantically meaningful**: neither conserved nor accelerated.
 - For phastCons, **0 is also semantically meaningful**: non-conserved.
 
 This matches the choice in TraitGym's own `eval/workflow/rules/conservation.smk`.
-`auprc_with_bootstrap_se` also asserts no NaN scores, so the fill is required
-upstream of the metric call.
+`auprc_with_bootstrap_se` (and the SGE path) assert/expect no NaN scores, so the
+fill is required upstream of the metric call.
 
 The per-variant parquets (`{score}_{split}.parquet`) preserve raw NaNs so you
 can apply a different policy without re-running scoring. Filling happens only
@@ -92,8 +120,9 @@ cd snakemake/conservation_eval
 uv run snakemake -n
 
 # Run locally (CPU-only — wall time is dominated by bigWig downloads on a
-# cold S3 cache; the full 7-track set is ~50 GB total). The cluster bootstrap
-# (1000 iters × 7 tracks × ~10 subsets × 2 datasets ≈ 140k iters) is fast.
+# cold S3 cache; the configured track set — 5 by default — totals tens of GB).
+# The cluster bootstrap (1000 iters × 5 tracks × ~10 subsets × 2 datasets
+# ≈ 100k iters) is fast.
 uv run snakemake
 ```
 
@@ -120,7 +149,10 @@ results/
 ```
 
 Each `metrics_{split}.parquet` has columns `[score_type, score_name, subset,
-value, se, n_groups, n_rows, n_nan, n_total, split, dataset]`.
+value, se, n_groups, n_rows, n_nan, n_total, split, dataset]`. For
+`qtl_global` datasets (caqtl/dsqtl) the schema is instead `[metric, score_type,
+value, se, n_rows, n_pos, score_name, n_nan, n_total, split, dataset]` —
+`metric` ∈ `{AUPRC, pearson, spearman}`, no subset rows.
 
 ## Library
 
@@ -128,7 +160,10 @@ Snakemake rules are thin glue around `marin_dna.evals.conservation`:
 
 - `score_variants_at_positions(df, bw_path)` — bigWig lookup, NaN preserved.
 - `aggregate_conservation_metrics(parquet_paths, *, n_bootstrap, bootstrap_seed)`
-  — `(metrics_df, markdown)` with AUPRC + cluster-bootstrap SE.
+  — `(metrics_df, markdown)` with AUPRC + cluster-bootstrap SE (matched-pair).
+- `aggregate_conservation_qtl_metrics(parquet_paths, *, n_bootstrap, bootstrap_seed)`
+  — `(metrics_df, markdown)` with global AUPRC + positives-only `effect_size`
+  correlation (the `qtl_global` path for caqtl/dsqtl).
 
 Tests live at `tests/pipelines/evals/test_conservation.py` and
 `tests/pipelines/evals/test_pairwise_accuracy.py` (CPU-only, no real bigWig download).
