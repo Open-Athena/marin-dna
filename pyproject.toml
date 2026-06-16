@@ -198,3 +198,12 @@ ignore = ["F722"]
 files = "src/marin_dna"
 ignore_missing_imports = true
 strict_optional = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    # Slow and/or network-dependent tests (e.g. the hg19→hg38 liftover test,
+    # which downloads a UCSC chain file). The default CI gate deselects these
+    # with `-m 'not slow'`; run them explicitly with `uv run pytest -m slow`.
+    "slow: slow and/or network-dependent; deselected in the default CI gate",
+]

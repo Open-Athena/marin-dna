@@ -1,0 +1,58 @@
+name: Test
+
+# CPU pytest gate. Runs the library test suite on every PR and on push to
+# main, so it acts as a required status check before merge.
+#
+# Runs on ubuntu-latest only: the suite is CPU-only (no `cuda`/`gpu`-marked
+# tests), and the repo's actual GPU/TPU training and large evals run on
+# SkyPilot/SLURM, not in CI. Linting is handled separately by pre-commit.ci.
+#
+# Install scope — base + `dev` (pytest) + `enhancer-classification`:
+#   * `enhancer-classification` (lightning, alphagenome-pytorch, torchmetrics,
+#     py2bit) is REQUIRED, or the enhancer_classification / enhancer_segmentation
+#     test modules fail to import at collection time (`ModuleNotFoundError:
+#     lightning`).
+#   * The heavy `marin` / `tpu` extras are intentionally excluded — the suite
+#     doesn't need JAX/Levanter. On Linux this install resolves transformers
+#     4.57.6 (the same version the `marin` extra pins), so model/scoring tests
+#     that depend on the pre-5.x cache API behave as the maintainers expect.
+#
+# `slow`-marked tests (currently the hg19->hg38 liftover, which downloads a
+# UCSC chain file over the network) are deselected to keep the gate hermetic
+# and fast; run them on demand with `uv run pytest -m slow`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen --group dev --group enhancer-classification
+
+      - name: Run tests
+        env:
+          # Tests pull public songlab/* tokenizers from the HF Hub; the token
+          # (if the secret is set) just avoids anonymous rate limits. An empty
+          # value is fine — the models are public.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: uv run pytest -m "not slow"

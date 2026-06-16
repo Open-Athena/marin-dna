@@ -645,11 +645,18 @@ class _ContentIndependentCausalLM(nn.Module):
 
 
 def _kv_cache_seq_len(past_kv: object) -> int:
-    """Length of the cached prefix in a tuple-of-(K, V) cache (or 0 if absent).
+    """Length of the cached prefix (0 if absent).
 
-    K shape is [B, num_heads, seq_len, head_dim]; head dim 2 is seq_len."""
+    Handles both the legacy tuple-of-(K, V) cache and HF's ``DynamicCache``:
+    production coerces this mock's legacy tuple into a ``DynamicCache``
+    (``scoring._repeat_interleave_kv_cache``), and transformers >= 5 dropped
+    tuple-style subscripting on ``Cache`` objects, so read the length via the
+    public API when it's present. K shape is [B, num_heads, seq_len, head_dim];
+    dim 2 is seq_len."""
     if past_kv is None:
         return 0
+    if hasattr(past_kv, "get_seq_length"):
+        return int(past_kv.get_seq_length())
     return int(past_kv[0][0].shape[2])
 
 
