@@ -1129,24 +1129,47 @@ def test_run_variant_marginal_matches_bundle_llr_end_to_end(tmp_path):
 # --- compute_variant_score_bundle return_embeddings (issue #318) -------------
 
 
+class _FixedHiddenBase(nn.Module):
+    """Stand-in for an HF base/decoder model: returns the fixed per-position
+    hidden as ``last_hidden_state``, so a forward hook on it captures the last
+    layer — exactly how ``compute_variant_score_bundle`` grabs hidden states
+    without ``output_hidden_states``. Position-aware via the cached-prefix offset
+    (``_kv_cache_seq_len``); ``logits_to_keep`` must NOT truncate it (mirrors HF),
+    so it always returns the full ``[B, L, D]`` window."""
+
+    def __init__(self, hidden_full: Tensor):
+        super().__init__()
+        self.register_buffer("hidden_full", hidden_full)  # [L_max, D]
+
+    def forward(self, input_ids, past_key_values=None, use_cache=False, **kwargs):
+        B, L = input_ids.shape
+        offset = _kv_cache_seq_len(past_key_values)
+        h = self.hidden_full[offset : offset + L]  # [L, D]
+        h = h.unsqueeze(0).expand(B, L, h.shape[-1]).contiguous()
+        pkv = None
+        if use_cache:
+            pkv = ((torch.zeros(B, 1, L, 1), torch.zeros(B, 1, L, 1)),)
+        return SimpleNamespace(last_hidden_state=h, past_key_values=pkv)
+
+
 class _FixedHiddenCausalLM(nn.Module):
     """Test double exposing a *fixed* per-position last-layer hidden state, so the
     pooled embedding has a closed form.
 
     ``hidden_full`` is ``[L_max, D]``: the last-layer state at absolute position
-    ``t`` is ``hidden_full[t]``, independent of token content. The forward is
-    position-aware via the cached-prefix offset (``_kv_cache_seq_len``), so the
-    prefix-shared call pattern (prefix forward at offset 0, suffix forward at
-    offset = prefix length) returns the matching slices — exactly what
-    ``compute_variant_score_bundle`` concatenates. Logits are content-independent
-    (``pos + vocab``) — valid for the 4-nuc LLR/JSD path but irrelevant to the
-    embedding columns under test. Content-independence ⇒ ``emb_ref == emb_alt``
-    (the only ref/alt difference is the token at ``var_pos``, which doesn't move
-    the hidden state here)."""
+    ``t`` is ``hidden_full[t]``, independent of token content. The ``base_model``
+    submodule returns it as ``last_hidden_state``, so the kernel's forward hook on
+    ``model.base_model`` captures the matching slice for the prefix-shared call
+    pattern (prefix forward at offset 0, suffix forward at offset = prefix length)
+    — exactly what ``compute_variant_score_bundle`` concatenates. Logits are
+    content-independent (``pos + vocab``) — valid for the 4-nuc LLR/JSD path but
+    irrelevant to the embedding columns under test. Content-independence ⇒
+    ``emb_ref == emb_alt`` (the only ref/alt difference is the token at
+    ``var_pos``, which doesn't move the hidden state here)."""
 
     def __init__(self, hidden_full: Tensor, vocab_size: int):
         super().__init__()
-        self.register_buffer("hidden_full", hidden_full)  # [L_max, D]
+        self.base_model = _FixedHiddenBase(hidden_full)
         self.vocab_size = vocab_size
 
     def forward(
@@ -1154,25 +1177,22 @@ class _FixedHiddenCausalLM(nn.Module):
         input_ids,
         past_key_values=None,
         use_cache=False,
-        output_hidden_states=False,
         logits_to_keep=0,
         **kwargs,
     ):
+        # Route through base_model so a forward hook on it fires (the kernel's
+        # no-all-layers hidden-state capture path).
+        base = self.base_model(
+            input_ids, past_key_values=past_key_values, use_cache=use_cache
+        )
         B, L = input_ids.shape
         offset = _kv_cache_seq_len(past_key_values)
         pos = torch.arange(offset, offset + L, dtype=torch.float).unsqueeze(-1)
         vocab = torch.arange(self.vocab_size, dtype=torch.float)
         logits = (pos + vocab).unsqueeze(0).expand(B, L, self.vocab_size).contiguous()
         out = SimpleNamespace(logits=logits)
-        if output_hidden_states:
-            # logits_to_keep must NOT truncate the hidden states (mirrors HF):
-            # always return the full [B, L, D] slice for this forward's window.
-            h = self.hidden_full[offset : offset + L]  # [L, D]
-            out.hidden_states = (h.unsqueeze(0).expand(B, L, h.shape[-1]).contiguous(),)
         if use_cache:
-            k = torch.zeros(B, 1, L, 1)
-            v = torch.zeros(B, 1, L, 1)
-            out.past_key_values = ((k, v),)
+            out.past_key_values = base.past_key_values
         return out
 
 
@@ -1360,6 +1380,34 @@ def test_variant_score_bundle_embeddings_require_pool_bounds():
             nuc_token_ids=_IDENTITY_NUC_IDS,
             return_embeddings=True,
         )
+
+
+def test_variant_score_bundle_embeddings_hook_removed_and_off_path_clean():
+    """The base-model forward hook is registered only when pooling and removed
+    after the call (no leak across the per-batch kernel calls Trainer.predict
+    makes); the off-path registers none at all."""
+    D = 4
+    model = _FixedHiddenCausalLM(
+        torch.arange(10 * D, dtype=torch.float).reshape(10, D), vocab_size=8
+    )
+    model.eval()
+    input_ids = torch.randint(0, 4, (2, 10))
+    alt_token_id = torch.randint(0, 4, (2,))
+    kw = dict(var_pos=4, nuc_token_ids=_IDENTITY_NUC_IDS)
+
+    compute_variant_score_bundle(
+        model,
+        input_ids,
+        alt_token_id,
+        return_embeddings=True,
+        pool_lo=1,
+        pool_hi=9,
+        **kw,
+    )
+    assert not model.base_model._forward_hooks, "forward hook leaked after the call"
+
+    compute_variant_score_bundle(model, input_ids, alt_token_id, **kw)  # off-path
+    assert not model.base_model._forward_hooks
 
 
 def test_run_variant_score_bundle_return_embeddings_end_to_end(tmp_path):

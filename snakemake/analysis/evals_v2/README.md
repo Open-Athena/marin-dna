@@ -113,15 +113,18 @@ gains two columns:
 
 The probe feature (`concat_ref_delta` / `sum_absdiff`, #320) is built downstream
 from these. Storage is ~`2·D·2` B/variant ≈ **1.5–2.3 GB/model** over the full
-suite (~500× smaller than the per-token cache #314 used). The kernel requests
-`output_hidden_states`, which makes the forward ~2× heavier in VRAM, so pair an
-embedding run with a smaller per-model `batch_size` (and optionally
-`inference.eval_accumulation_steps` to offload the wider `[N, 2+2D]` predictions
-to CPU). Requires `inference.rc: true` (the stored vector is the FWD+RC average;
-asserted at config load).
+suite (~500× smaller than the per-token cache #314 used). The kernel captures the
+last layer via a forward hook on `model.base_model` (grabbing `last_hidden_state`,
+*not* `output_hidden_states=True` — which would materialize every layer), so the
+extra VRAM is just the final `[B, L, D]` hidden states + the wider `[N, 2+2D]`
+predictions; still heavier than the slim LLR/JSD bundle, so pair an embedding run
+with a smaller per-model `batch_size` (and optionally
+`inference.eval_accumulation_steps` to offload the predictions to CPU). Requires
+`inference.rc: true` (the stored vector is the FWD+RC average; asserted at config
+load).
 
-Run embedding extractions **eager** (`torch_compile: false`): `torch_compile ×
-output_hidden_states` is unvalidated and memory-heavy. The ready-made overlay
+Run embedding extractions **eager** (`torch_compile: false`): compiling the
+hooked forward is unvalidated, and a small run doesn't need it. The ready-made overlay
 [`scripts/issue318_embed_overlay.yaml`](../../../scripts/issue318_embed_overlay.yaml)
 deep-merges `return_embeddings: true` + `batch_size: 32` + `torch_compile: false`
 over the config (preserving `rc` etc.), e.g.

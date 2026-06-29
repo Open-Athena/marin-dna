@@ -204,13 +204,15 @@ def compute_variant_score_bundle(
         nuc_token_ids: Length-4 tensor of token IDs for A/C/G/T in
             ``NUCLEOTIDES`` order.
         return_embeddings: If True, also emit the entire-window mean-pooled
-            last-layer hidden states for ref and alt — produced by requesting
-            ``output_hidden_states=True`` on the **same two** (prefix, suffix)
-            forwards (no extra pass). The prefix hidden states ``[B, p, D]`` are
-            shared by ref/alt (causal, shared prefix); concatenated with each
-            allele's suffix states ``[B, L-p, D]`` they equal a full forward's
-            last-layer states. Pooling accumulates in fp32. Off by default —
-            materializing ``[·, ·, D]`` hidden states is paid only when on.
+            last-layer hidden states for ref and alt — captured from the **same
+            two** (prefix, suffix) forwards (no extra pass) via a forward hook on
+            ``model.base_model`` that grabs its ``last_hidden_state`` (avoids
+            ``output_hidden_states=True``, which would materialize every layer's
+            activations when only the last is needed). The prefix hidden states
+            ``[B, p, D]`` are shared by ref/alt (causal, shared prefix);
+            concatenated with each allele's suffix states ``[B, L-p, D]`` they
+            equal a full forward's last-layer states. Pooling accumulates in fp32.
+            Off by default — the hidden states are materialized only when on.
         pool_lo: Token index (inclusive) where the pooled window starts. Required
             when ``return_embeddings``. The runner sets it to ``n_prefix`` so the
             BOS/special prefix tokens are **excluded** — the pool covers exactly
@@ -249,27 +251,36 @@ def compute_variant_score_bundle(
     suffixes = torch.stack([ref_suffix, alt_suffix], dim=1)  # [B, 2, L-p]
     suffixes_flat = rearrange(suffixes, "B V L -> (B V) L").contiguous()
 
-    # 1. Prefix forward — only need logits at the last prefix position
-    #    (predicts the variant token); skip the lm_head for the rest.
-    #    output_hidden_states (only when pooling embeddings) keeps the full
-    #    prefix hidden states [B, p, D] — logits_to_keep slices the lm_head, not
-    #    the hidden states.
-    prefix_out = model(
-        prefix,
-        use_cache=True,
-        logits_to_keep=1,
-        output_hidden_states=return_embeddings,
+    # 1-2. Prefix + suffix forwards. When pooling embeddings, capture each
+    #      forward's last_hidden_state via a forward hook on the base model.
+    #      output_hidden_states=True would instead materialize EVERY layer's
+    #      hidden states (~N x the memory for an N-layer model) — we only need the
+    #      final layer. `base_model` (the decoder beneath the LM head) returns
+    #      last_hidden_state for free; both are the universal HF decoder surface,
+    #      so the logits path (model(...) below) stays untouched, and
+    #      logits_to_keep still slices only the lm_head. Registered only when
+    #      pooling and removed in `finally`, so the off-path is unaffected.
+    hidden_capture: list[Tensor] = []
+    hook = (
+        model.base_model.register_forward_hook(
+            lambda _module, _inputs, output: hidden_capture.append(
+                output.last_hidden_state
+            )
+        )
+        if return_embeddings
+        else None
     )
-    prefix_last_logits = prefix_out.logits[:, -1]  # [B, V]
-    past_kv = _repeat_interleave_kv_cache(prefix_out.past_key_values, 2)
-
-    # 2. Suffix forward with cached prefix.
-    suffix_out = model(
-        suffixes_flat,
-        past_key_values=past_kv,
-        use_cache=False,
-        output_hidden_states=return_embeddings,
-    )
+    try:
+        # Prefix forward — only need logits at the last prefix position (predicts
+        # the variant token); skip the lm_head for the rest.
+        prefix_out = model(prefix, use_cache=True, logits_to_keep=1)
+        prefix_last_logits = prefix_out.logits[:, -1]  # [B, V]
+        past_kv = _repeat_interleave_kv_cache(prefix_out.past_key_values, 2)
+        # Suffix forward with cached prefix.
+        suffix_out = model(suffixes_flat, past_key_values=past_kv, use_cache=False)
+    finally:
+        if hook is not None:
+            hook.remove()
     suffix_logits = suffix_out.logits  # [B*2, L-p, V]
 
     # 3. 4-nuc log-softmax — shared by LLR and JSD. fp32 cast inherits
@@ -333,9 +344,15 @@ def compute_variant_score_bundle(
         f"pool bounds [{pool_lo}, {pool_hi}) invalid for var_pos {p}, length {L}; "
         f"expected 0 <= pool_lo < var_pos < pool_hi <= L"
     )
-    prefix_hidden = prefix_out.hidden_states[-1]  # [B, p, D]
+    # hidden_capture = [prefix last_hidden_state, suffix last_hidden_state], in
+    # call order (the hook fired once per model() forward above).
+    assert len(hidden_capture) == 2, (
+        f"expected 2 captured hidden states (prefix, suffix), got "
+        f"{len(hidden_capture)} — base-model forward hook didn't fire as expected"
+    )
+    prefix_hidden = hidden_capture[0]  # [B, p, D]
     suffix_hidden = rearrange(
-        suffix_out.hidden_states[-1], "(B V) S D -> B V S D", B=B
+        hidden_capture[1], "(B V) S D -> B V S D", B=B
     )  # [B, 2, L-p, D]
     n_pool = pool_hi - pool_lo
     # sum(dtype=float32) accumulates the bf16 hidden states in fp32 *without*

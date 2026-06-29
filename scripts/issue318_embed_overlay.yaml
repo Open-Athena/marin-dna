@@ -14,16 +14,19 @@
 #     results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet
 #
 # batch_size + torch_compile are execution knobs.
-# - batch_size: `output_hidden_states` makes the forward much heavier, so the default
-#   batch_size=128 would OOM the A10G (smoke measured 4.49 GB at batch 16 with
-#   embeddings → ~22 GB at 128); 32 is a safe margin. NOTE this sets the GLOBAL
+# - batch_size: the embedding forward materializes the final-layer [B, L, D] hidden
+#   states (last_hidden_state, captured by a hook — not all layers) plus the wider
+#   [N, 2+2D] predictions, so it's heavier than the slim LLR/JSD bundle; 32 is a
+#   conservative margin on the A10G (the original output_hidden_states path needed
+#   it most — the smoke measured 4.49 GB at batch 16 *with all layers*; the hook is
+#   lighter, so a larger batch likely fits if re-measured). NOTE this sets the GLOBAL
 #   inference.batch_size — a model carrying its own per-model `batch_size:` override
 #   (resolved by get_model_batch_size) would ignore this and could still OOM.
-# - torch_compile: disabled because compile × output_hidden_states is unvalidated and
-#   the smoke ran compile-off. Unlike batch_size, torch_compile is NOT output-identical
-#   — eager vs compiled shifts the stored `llr_*` by AUPRC-invariant float-reduction
-#   noise (see the evals_v2 README); fine for the embedding artifact, but don't treat
-#   an eager-computed scores parquet as byte-identical to a compiled one.
+# - torch_compile: disabled because compiling the hooked forward is unvalidated and
+#   a small run doesn't need it. Unlike batch_size, torch_compile is NOT
+#   output-identical — eager vs compiled shifts the stored `llr_*` by AUPRC-invariant
+#   float-reduction noise (see the evals_v2 README); fine for the embedding artifact,
+#   but don't treat an eager-computed scores parquet as byte-identical to a compiled one.
 inference:
   return_embeddings: true
   batch_size: 32
