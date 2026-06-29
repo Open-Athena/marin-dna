@@ -338,9 +338,18 @@ def compute_variant_score_bundle(
         suffix_out.hidden_states[-1], "(B V) S D -> B V S D", B=B
     )  # [B, 2, L-p, D]
     n_pool = pool_hi - pool_lo
-    prefix_sum = prefix_hidden[:, pool_lo:].float().sum(dim=1)  # [B, D] (shared)
-    ref_sum = prefix_sum + suffix_hidden[:, 0, : pool_hi - p].float().sum(dim=1)
-    alt_sum = prefix_sum + suffix_hidden[:, 1, : pool_hi - p].float().sum(dim=1)
+    # sum(dtype=float32) accumulates the bf16 hidden states in fp32 *without*
+    # materializing a full fp32 copy of each [B, ·, D] block first (bit-identical
+    # to .float().sum(); just fuses the upcast into the reduction).
+    prefix_sum = prefix_hidden[:, pool_lo:].sum(
+        dim=1, dtype=torch.float32
+    )  # [B, D] shared
+    ref_sum = prefix_sum + suffix_hidden[:, 0, : pool_hi - p].sum(
+        dim=1, dtype=torch.float32
+    )
+    alt_sum = prefix_sum + suffix_hidden[:, 1, : pool_hi - p].sum(
+        dim=1, dtype=torch.float32
+    )
     emb_ref = ref_sum / n_pool  # [B, D]
     emb_alt = alt_sum / n_pool  # [B, D]
     return torch.cat([scores, emb_ref, emb_alt], dim=1)  # [B, 2 + 2D]

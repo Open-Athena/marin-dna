@@ -26,7 +26,15 @@ def fwd_rc_average_f16(strand_embs: list[np.ndarray]) -> np.ndarray:
     for e in strand_embs:
         acc += np.asarray(e, dtype=np.float32)
     acc /= len(strand_embs)
-    return acc.astype(np.float16)
+    out = acc.astype(np.float16)
+    # Fail loud rather than silently ship inf: a pooled mean beyond float16's
+    # ±65504 (e.g. a persistent massive-activation channel) overflows on the cast,
+    # which would NaN-poison the downstream delta = emb_alt - emb_ref.
+    assert np.isfinite(out).all(), (
+        "non-finite pooled embedding after f16 cast — the fp32 mean exceeded the "
+        "float16 range (±65504) or was non-finite upstream"
+    )
+    return out
 
 
 def compute_variant_scores(
@@ -142,13 +150,13 @@ def compute_variant_scores(
         # Each per-strand array is [N, 2 + 2D]: cols [2:2+D] = emb_ref,
         # [2+D:2+2D] = emb_alt (fp32, kernel-pooled). Average the strands in fp32
         # and store each as a length-D float16 vector per row (list[f16] column).
+        # Bundle layout is [B, 2 + 2D]: 2 score cols (llr, jsd), then emb_ref, emb_alt.
+        d = model.config.hidden_size
         width = next(iter(results.values())).shape[1]
-        hidden_size = model.config.hidden_size
-        assert width == 2 + 2 * hidden_size, (
-            f"score-bundle width {width} != 2 + 2*hidden_size "
-            f"(hidden_size={hidden_size}); embedding slicing would be wrong"
+        assert width == 2 + 2 * d, (
+            f"score-bundle width {width} != 2 + 2*hidden_size ({d}); the 2 score "
+            f"cols + 2 embedding blocks are mis-sized — emb slicing would be wrong"
         )
-        d = hidden_size
         cols["emb_ref"] = list(
             fwd_rc_average_f16([arr[:, 2 : 2 + d] for arr in results.values()])
         )

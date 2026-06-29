@@ -128,17 +128,19 @@ over the config (preserving `rc` etc.), e.g.
 `snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun
 compute_scores -- results/scores/<model>/<dataset>.parquet`. Eager makes the
 stored `llr_*` differ from the compiled default by float-reduction noise that
-accumulates in the LLR **sum** (JSD, a mean, is unaffected) — measured on exp135
-× mendelian: per-row LLR Pearson **0.9997**, and the derived AUPRC moves by
-**< SE/20** (`_global_` 0.4004 vs 0.4003), i.e. no metric impact.
+accumulates in the LLR **sum** (JSD, a mean, is unaffected); the difference is
+AUPRC-invariant — a deliberate execution tradeoff for embedding runs, not a
+correctness issue (the measured parity numbers live in #318 / the PR, not here).
 
 **Operational note.** `return_embeddings` is output-affecting (it lives in the
-rule's `params:`), so flipping it on — like any kernel edit — retriggers
-`compute_scores`. Don't run `snakemake all`: name the **targeted** targets you
-want embeddings for (e.g.
-`results/scores/<model>/<dataset>.parquet`) and, to avoid recomputing the
-identical `llr_*`/`jsd_*` of unrelated already-scored cells, add
-`--rerun-triggers mtime` (or `--touch` the untouched outputs).
+rule's `params:`). To extract embeddings into a cell whose scores parquet already
+exists, **force that specific target**:
+`snakemake --configfile scripts/issue318_embed_overlay.yaml --forcerun
+compute_scores -- results/scores/<model>/<dataset>.parquet`. (A bare
+`--rerun-triggers mtime` does *not* help here — it drops the `params` trigger that
+detects the `return_embeddings` flip, so a cell whose output already exists would
+be skipped with no embedding columns.) Name targeted targets rather than
+`snakemake all` so unrelated already-scored cells are left untouched.
 
 ## Conventions
 
