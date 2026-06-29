@@ -28,12 +28,18 @@ rule compute_scores:
         # to `main`.
         hf_revision=lambda wc: get_dataset_config(wc.dataset)["hf_revision"],
         rc=config["inference"]["rc"],
+        # Output-affecting (#318): when true, the parquet gains the pooled
+        # `emb_ref`/`emb_alt` columns, so it belongs in `params:`. Global toggle.
+        return_embeddings=config["inference"]["return_embeddings"],
     threads: config["inference"]["num_workers"]
     run:
         # batch_size is per-model but execution-only (numerics are batch-
         # size-invariant modulo float-reduction noise), so we read it here
         # rather than declare it as a snakemake param. See note in `params:`.
         batch_size = get_model_batch_size(wildcards.model)
+        # eval_accumulation_steps is execution-only (CPU-offload cadence for the
+        # wide embedding predictions; doesn't change the stored values).
+        eval_accumulation_steps = config["inference"].get("eval_accumulation_steps")
 
         ds = load_dataset(
             params.hf_path, split=config["split"], revision=params.hf_revision
@@ -57,6 +63,8 @@ rule compute_scores:
             data_transform_on_the_fly=config["inference"]["data_transform_on_the_fly"],
             torch_compile=config["inference"]["torch_compile"],
             rc=params.rc,
+            return_embeddings=params.return_embeddings,
+            eval_accumulation_steps=eval_accumulation_steps,
         )
         assert len(scores) == len(ds)
 

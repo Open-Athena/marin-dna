@@ -82,6 +82,13 @@ for _d in config["datasets"]:
         f"{sorted(EVAL_PROTOCOLS)}, got {_ep!r}"
     )
 
+# The pooled embedding (#318) is the FWD+RC average, so it needs both strands —
+# fail at config load rather than store a silently fwd-only vector mislabeled as
+# the average.
+assert not config["inference"].get("return_embeddings", False) or config[
+    "inference"
+]["rc"], "inference.return_embeddings=true requires inference.rc=true"
+
 
 # Wildcard alternations used across rules.
 DATASETS = [d["name"] for d in config["datasets"]]

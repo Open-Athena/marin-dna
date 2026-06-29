@@ -127,6 +127,7 @@ def run_variant_score_bundle(
     genome: Genome,
     window_size: int,
     rc: bool = False,
+    return_embeddings: bool = False,
     **kwargs: Any,
 ) -> dict[str, np.ndarray]:
     """Run the variant-score bundle (LLR + next-token JSD) in one forward pass.
@@ -141,6 +142,18 @@ def run_variant_score_bundle(
     Both scores share a single 4-nuc log_softmax in the kernel. The
     nucleotide token IDs come from ``_get_nucleotide_token_ids`` (handles
     BOS / n_prefix offset).
+
+    With ``return_embeddings=True`` the same forwards also emit the entire-window
+    mean-pooled last-layer hidden states for ref and alt (issue #318): the kernel
+    is asked for ``output_hidden_states`` and pools token positions
+    ``[n_prefix, n_prefix + window_size)`` — the ``window_size`` DNA positions,
+    BOS excluded (the #314 ``entire_window`` extent). These pool bounds are
+    strand-independent (entire-window covers the same genomic block on FWD and
+    RC), so they are bound into the kernel once; ``var_pos`` still differs per
+    strand. Each per-strand array widens from ``[B, 2]`` to ``[B, 2 + 2D]``
+    (``D`` = model hidden size): columns ``[2:2+D]`` = ``emb_ref``,
+    ``[2+D:2+2D]`` = ``emb_alt`` (fp32). The driver FWD+RC-averages and casts to
+    f16.
 
     The token-level variant position is computed here per-strand and
     bound into the compute_fn as a Python int — constant within the
@@ -162,18 +175,31 @@ def run_variant_score_bundle(
             each variant and return both strands' arrays. Doubles
             inference cost. Callers compose the per-strand arrays
             (averaging, applying ``minus_llr``/``abs_llr``, etc.).
+        return_embeddings: If True, widen each per-strand array to
+            ``[B, 2 + 2D]`` with the entire-window-pooled ``emb_ref``/``emb_alt``
+            (issue #318; see the function summary). ``output_hidden_states`` makes
+            the forward heavier — pair with a smaller ``per_device_eval_batch_size``
+            (and optionally ``eval_accumulation_steps``) in ``inference_kwargs``.
         **kwargs: Additional arguments passed to run_inference.
 
     Returns:
-        Dict ``{"fwd": [B, 2]}`` when ``rc=False``, or
-        ``{"fwd": [B, 2], "rc": [B, 2]}`` when ``rc=True``. Column 0
-        of each array is LLR; column 1 is ``next_token_jsd_mean``.
+        Dict ``{"fwd": A}`` when ``rc=False``, or ``{"fwd": A, "rc": A}`` when
+        ``rc=True``. Each array ``A`` is ``[B, 2]`` (``return_embeddings=False``)
+        or ``[B, 2 + 2D]`` (``True``): column 0 is LLR, column 1 is
+        ``next_token_jsd_mean``, and (when on) ``[2:2+D]`` / ``[2+D:2+2D]`` are
+        the fp32 pooled ``emb_ref`` / ``emb_alt``.
     """
     n_prefix, _ = _get_special_token_counts(tokenizer)
     nuc_ids_dict = _get_nucleotide_token_ids(tokenizer)
     nuc_token_ids = torch.tensor(
         [nuc_ids_dict[nuc] for nuc in NUCLEOTIDES], dtype=torch.long
     )
+    # Entire-window pool bounds: the window_size DNA token positions, excluding
+    # the n_prefix BOS/special tokens. Strand-independent (entire-window pooling
+    # covers the same genomic block on FWD and RC; mean is order-invariant), so
+    # bound into the kernel once — only var_pos differs per strand.
+    pool_lo = n_prefix
+    pool_hi = n_prefix + window_size
 
     def _one(strand: Literal["+", "-"]) -> Any:
         var_pos = in_seq_var_pos(window_size, strand) + n_prefix
@@ -185,6 +211,9 @@ def run_variant_score_bundle(
                 compute_variant_score_bundle,
                 var_pos=var_pos,
                 nuc_token_ids=nuc_token_ids,
+                return_embeddings=return_embeddings,
+                pool_lo=pool_lo,
+                pool_hi=pool_hi,
             ),
             data_transform_fn=partial(
                 transform_llr_clm, genome=genome, window_size=window_size, strand=strand

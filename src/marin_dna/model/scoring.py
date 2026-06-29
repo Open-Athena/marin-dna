@@ -157,7 +157,10 @@ def compute_variant_score_bundle(
     *,
     var_pos: int,
     nuc_token_ids: Int[Tensor, " 4"],
-) -> Float[Tensor, "B 2"]:
+    return_embeddings: bool = False,
+    pool_lo: int | None = None,
+    pool_hi: int | None = None,
+) -> Float[Tensor, "B 2"] | Float[Tensor, "B 2+2D"]:
     """Compute LLR and per-position next-token JSD using prefix-sharing.
 
     SNV-only kernel. For each row, the alt sequence equals ``input_ids`` with
@@ -200,11 +203,33 @@ def compute_variant_score_bundle(
         var_pos: Token-level variant position (Python int, constant within batch).
         nuc_token_ids: Length-4 tensor of token IDs for A/C/G/T in
             ``NUCLEOTIDES`` order.
+        return_embeddings: If True, also emit the entire-window mean-pooled
+            last-layer hidden states for ref and alt — produced by requesting
+            ``output_hidden_states=True`` on the **same two** (prefix, suffix)
+            forwards (no extra pass). The prefix hidden states ``[B, p, D]`` are
+            shared by ref/alt (causal, shared prefix); concatenated with each
+            allele's suffix states ``[B, L-p, D]`` they equal a full forward's
+            last-layer states. Pooling accumulates in fp32. Off by default —
+            materializing ``[·, ·, D]`` hidden states is paid only when on.
+        pool_lo: Token index (inclusive) where the pooled window starts. Required
+            when ``return_embeddings``. The runner sets it to ``n_prefix`` so the
+            BOS/special prefix tokens are **excluded** — the pool covers exactly
+            the ``window_size`` DNA positions (matching the #314 ``entire_window``
+            extent and ``compute_window_embedding``'s ``n_prefix`` offset).
+        pool_hi: Token index (exclusive) where the pooled window ends. Required
+            when ``return_embeddings``; the runner sets it to ``n_prefix +
+            window_size``. ``pool_hi - pool_lo == window_size`` positions are
+            pooled.
 
     Returns:
-        Tensor with shape ``[B, 2]``:
+        When ``return_embeddings=False``, a tensor with shape ``[B, 2]``:
             - [:, 0]: LLR (alt_logprob - ref_logprob, 4-nuc-softmax space)
             - [:, 1]: next_token_jsd_mean (mean per-position 4-nuc JSD over downstream positions)
+        When ``return_embeddings=True``, the scores are concatenated with the two
+        pooled fp32 embeddings into ``[B, 2 + 2D]`` (``D`` = model hidden size):
+        columns ``[0:2]`` are LLR/JSD as above, ``[2:2+D]`` is ``emb_ref``,
+        ``[2+D:2+2D]`` is ``emb_alt``. A single tensor (not a tuple) keeps the
+        HF ``Trainer.predict`` collation contract; the runner/driver slice it.
     """
     B, L = input_ids.shape
     p = var_pos
@@ -226,14 +251,26 @@ def compute_variant_score_bundle(
 
     # 1. Prefix forward — only need logits at the last prefix position
     #    (predicts the variant token); skip the lm_head for the rest.
-    prefix_out = model(prefix, use_cache=True, logits_to_keep=1)
+    #    output_hidden_states (only when pooling embeddings) keeps the full
+    #    prefix hidden states [B, p, D] — logits_to_keep slices the lm_head, not
+    #    the hidden states.
+    prefix_out = model(
+        prefix,
+        use_cache=True,
+        logits_to_keep=1,
+        output_hidden_states=return_embeddings,
+    )
     prefix_last_logits = prefix_out.logits[:, -1]  # [B, V]
     past_kv = _repeat_interleave_kv_cache(prefix_out.past_key_values, 2)
 
     # 2. Suffix forward with cached prefix.
-    suffix_logits = model(
-        suffixes_flat, past_key_values=past_kv, use_cache=False
-    ).logits  # [B*2, L-p, V]
+    suffix_out = model(
+        suffixes_flat,
+        past_key_values=past_kv,
+        use_cache=False,
+        output_hidden_states=return_embeddings,
+    )
+    suffix_logits = suffix_out.logits  # [B*2, L-p, V]
 
     # 3. 4-nuc log-softmax — shared by LLR and JSD. fp32 cast inherits
     #    the biofoundation#21 numerical-stability fix.
@@ -276,7 +313,37 @@ def compute_variant_score_bundle(
 
     llr = llr_at_var + llr_downstream
 
-    return torch.stack([llr, next_token_jsd_mean], dim=1)
+    scores = torch.stack([llr, next_token_jsd_mean], dim=1)  # [B, 2]
+    if not return_embeddings:
+        return scores
+
+    # 6. Entire-window mean-pool of the last-layer hidden states, ref & alt.
+    #    Pool over token positions [pool_lo, pool_hi) = the window_size DNA
+    #    positions (n_prefix BOS tokens excluded). The prefix forward gives the
+    #    shared states [B, p, D]; the suffix forward (run with the cached prefix)
+    #    gives each allele's states at [p, L), so prefix[pool_lo:] ++ suffix[:pool_hi-p]
+    #    reconstructs the pooled-window states without a full re-forward. The
+    #    var-position token is the suffix's first position — included in the pool.
+    #    Accumulate in fp32 (bf16/f16 summed over hundreds of positions accrues
+    #    rounding error); the driver FWD+RC-averages (still fp32) and casts to f16.
+    assert pool_lo is not None and pool_hi is not None, (
+        "pool_lo/pool_hi are required when return_embeddings=True"
+    )
+    assert 0 <= pool_lo < p < pool_hi <= L, (
+        f"pool bounds [{pool_lo}, {pool_hi}) invalid for var_pos {p}, length {L}; "
+        f"expected 0 <= pool_lo < var_pos < pool_hi <= L"
+    )
+    prefix_hidden = prefix_out.hidden_states[-1]  # [B, p, D]
+    suffix_hidden = rearrange(
+        suffix_out.hidden_states[-1], "(B V) S D -> B V S D", B=B
+    )  # [B, 2, L-p, D]
+    n_pool = pool_hi - pool_lo
+    prefix_sum = prefix_hidden[:, pool_lo:].float().sum(dim=1)  # [B, D] (shared)
+    ref_sum = prefix_sum + suffix_hidden[:, 0, : pool_hi - p].float().sum(dim=1)
+    alt_sum = prefix_sum + suffix_hidden[:, 1, : pool_hi - p].float().sum(dim=1)
+    emb_ref = ref_sum / n_pool  # [B, D]
+    emb_alt = alt_sum / n_pool  # [B, D]
+    return torch.cat([scores, emb_ref, emb_alt], dim=1)  # [B, 2 + 2D]
 
 
 def compute_marginal_clm(

@@ -35,7 +35,7 @@ Outputs land in S3 at `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`:
 ```
 results/
 ├── checkpoints/{model}/                         # cached HF model dir
-├── scores/{model}/{dataset}.parquet             # variant cols + per-strand score atoms
+├── scores/{model}/{dataset}.parquet             # variant cols + per-strand score atoms (+ emb_ref/emb_alt if return_embeddings)
 └── metrics/{model}/{dataset}.parquet            # AUPRC ± bootstrap SE per (subset × score_type)
 ```
 
@@ -96,6 +96,37 @@ It runs on a 2-axis grid: `subset` ∈ {`missense_variant`, `splicing`, `both`
 dataset, split]` (`metric` is always `AUPRC`). The **same** `compute_sge_metrics`
 is reused by the conservation pipeline (`snakemake/conservation_eval/`). Scoped
 to the three #292 gLMs via their per-model `datasets:` lists.
+
+### Pooled embeddings (`inference.return_embeddings`, #318)
+
+For the frozen-embedding linear-probe VEP protocol (#314 → productionized in
+#321/#320), the **same two (FWD, RC) forward passes** that produce LLR/JSD can
+*also* emit a pooled both-allele embedding — no second pass, no parallel cache.
+Set the global toggle `inference.return_embeddings: true` and the scores parquet
+gains two columns:
+
+- `emb_ref`, `emb_alt` — each a length-`D` (model hidden size) `float16` vector
+  per variant: the **entire-DNA-window mean-pooled** (the `window_size` DNA
+  positions, BOS/special tokens excluded — the #314 `entire_window` extent),
+  **FWD+RC-averaged** last-layer hidden state for that allele. Pooling and the
+  strand average accumulate in **fp32**; only the stored vector is cast to f16.
+
+The probe feature (`concat_ref_delta` / `sum_absdiff`, #320) is built downstream
+from these. Storage is ~`2·D·2` B/variant ≈ **1.5–2.3 GB/model** over the full
+suite (~500× smaller than the per-token cache #314 used). The kernel requests
+`output_hidden_states`, which makes the forward ~2× heavier in VRAM, so pair an
+embedding run with a smaller per-model `batch_size` (and optionally
+`inference.eval_accumulation_steps` to offload the wider `[N, 2+2D]` predictions
+to CPU). Requires `inference.rc: true` (the stored vector is the FWD+RC average;
+asserted at config load).
+
+**Operational note.** `return_embeddings` is output-affecting (it lives in the
+rule's `params:`), so flipping it on — like any kernel edit — retriggers
+`compute_scores`. Don't run `snakemake all`: name the **targeted** targets you
+want embeddings for (e.g.
+`results/scores/<model>/<dataset>.parquet`) and, to avoid recomputing the
+identical `llr_*`/`jsd_*` of unrelated already-scored cells, add
+`--rerun-triggers mtime` (or `--touch` the untouched outputs).
 
 ## Conventions
 
