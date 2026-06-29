@@ -162,12 +162,18 @@ issue #221 scheme; see "v4 region labels" below).
 | `bolinas-dna/zoonomia-v1-v4_tss_region_and_utr5` | v1       | v4_tss_region_and_utr5  | `results/projection/min0.20/subsets/v4_tss_region_and_utr5.parquet`         |
 | `bolinas-dna/zoonomia-v1-v4_ccre_non_promoter`   | v1       | v4_ccre_non_promoter    | `results/projection/min0.20/subsets/v4_ccre_non_promoter.parquet`           |
 | `bolinas-dna/zoonomia-v1-v4_bg`                  | v1       | v4_bg                   | `results/projection/min0.20/subsets/v4_bg.parquet`                          |
+| `bolinas-dna/zoonomia-v1-v4_ccre_noexon`         | v1       | v4_ccre_noexon          | `results/projection/min0.20/subsets/v4_ccre_noexon.parquet`                 |
+| `bolinas-dna/zoonomia-v1-v4_ccre_noexon_enhancer`| v1       | v4_ccre_noexon_enhancer | `results/projection/min0.20/subsets/v4_ccre_noexon_enhancer.parquet`        |
 
 Each v3/v4 repo ships with its own auto-generated dataset card (README.md,
-written by `region_labels.write_subset_hf_readme` for v3 and
-`write_subset_hf_readme_v4` for v4); v1/v2 are card-less by design (semantics
+written by `region_labels.write_subset_hf_readme` for v3,
+`write_subset_hf_readme_v4` for v4, and `write_curated_ccre_hf_readme` for the
+two #326 curated cCRE sub-filters); v1/v2 are card-less by design (semantics
 live in this pipeline README rather than per-repo). v3 and v4 are **two
 different partitions of the same v1 anchors** — see "v4 region labels" below.
+The last two rows (`v4_ccre_noexon{,_enhancer}`) are **not** part of the v4
+partition — they are de-contaminated *sub-filters* of `v4_ccre_non_promoter`
+for issue #326; see "Curated cCRE/enhancer sub-filters" below.
 
 **Two-axis versioning.** `pipeline_version` (in `config/config.yaml`) snapshots species set, conservation cutoff (`project_min_p`), alignment backend, and resize/length-filter params — bump it and re-run the projection. `intervals_versions` lists the post-projection subset definitions; bumps are cheap (one new derivation rule + cheap re-runs of `subset_dataset_derived` + sharding + upload).
 
@@ -183,6 +189,7 @@ different partitions of the same v1 anchors** — see "v4 region labels" below.
 - `v2` — window overlaps `[TSS − 256, TSS + 256]` for any Ensembl protein_coding transcript
 - `v3_<label>` — per-anchor region-type partition of v1 (`cds` / `utr3` / `ncrna_exon` / `tss_region_and_utr5` / `ccre_non_promoter` / `bg`). Each anchor is assigned exactly one label by the priority-walk in `regions.smk`; the six v3 subsets sum to v1 at the anchor level. See the "Region-type annotation" section below for label definitions and the partition stats.
 - `v4_<label>` — the same six labels, re-derived with the issue #227 labeling scheme (bp-priority + window-majority, PC-only TSS band, `ccre_flank=0`, `tss_region_and_utr5` above `ncrna_exon`). A different partition of the same v1 anchors; see "v4 region labels" below.
+- `v4_ccre_noexon` / `v4_ccre_noexon_enhancer` — de-contaminated **sub-filters** of `v4_ccre_non_promoter` (issue #326), *not* part of the six-way partition. See "Curated cCRE/enhancer sub-filters" below.
 
 **HF dataset schema** (single `train` split per repo; JSONL.zst-sharded at `data/train/shard_NNNN.jsonl.zst`):
 
@@ -395,6 +402,25 @@ uv run snakemake --profile workflow/profiles/default \
 ```
 
 The v4 subset → shard → HF-upload step reuses the existing cross-mammal projection (`all_species_with_sequence.parquet`); it does **not** re-run halLiftover. On a fresh checkout where the projection's `local()` intermediates are absent, Snakemake may still *plan* to re-derive the projection for any new subset — run the subset/upload step where the projection outputs + metadata are intact (e.g. the projection cluster), as the v3 subsets were built.
+
+## Curated cCRE/enhancer sub-filters (`v4_ccre_noexon{,_enhancer}`) — issue #326
+
+Two **de-contaminated sub-filters** of the v4 `ccre_non_promoter` arm — *not* part of the six-way v4 partition — built to test whether cleaning the enhancer training set unsticks distal (enhancer) variant-effect prediction ([#283](https://github.com/Open-Athena/marin-dna/issues/283) H1/H2). Each is a new `query_names` filter over the v4 region-labels parquet (`derive_subset_v4_ccre_*` in `regions.smk` → `select_ccre_noexon{,_enhancer}` in `region_labels.py`):
+
+- **`v4_ccre_noexon`** — every `ccre_non_promoter` window whose four higher-priority disjoint fracs (`cds_frac` / `utr3_frac` / `ncrna_exon_frac` / `tss_region_and_utr5_frac`) are all 0, i.e. its functional content is *purely* cCRE. Drops the ~13% of windows that span an exon edge (mostly CDS) — the H1 contamination that lets the enhancer arm leak coding/splice skill.
+- **`v4_ccre_noexon_enhancer`** — the above, further restricted to **enhancer-dominant** windows (dELS+pELS basepair coverage ≥ the other non-PLS cCRE classes), population-matching the `val_enhancer` LL-gap probe and removing the ~17% non-enhancer (CA/CTCF/TF) heterogeneity (H2). Needs the cCRE parquet for per-class membership (the disjoint region-labels fracs don't carry cCRE subclass).
+
+These ship a minimal per-repo card (`write_curated_ccre_hf_readme`) stating provenance + a commit-pinned permalink; they are strict subsets of `v4_ccre_non_promoter`, so concatenating them does **not** reconstruct v1.
+
+```bash
+# query_names lists only (cheap; needs the v4 labels parquet + cCRE + defined on disk/S3):
+uv run snakemake --profile workflow/profiles/default all_curated_ccre_subsets
+
+# Assemble + upload both HF datasets (reuses the v1 projection; run where the
+# projection outputs are intact — the upload cluster):
+sky launch -c zoonomia-upload-ccre sky/upload.yaml \
+    --env UPLOAD_MODE=curated_ccre --env COMMIT_SHA=$(git rev-parse HEAD)
+```
 
 ## Run
 
