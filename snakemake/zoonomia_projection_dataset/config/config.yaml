@@ -64,12 +64,16 @@ pipeline_version: "v1"
 # v4_<label> = re-derived partition with the issue #221 labeling scheme
 #              (bp-priority/window-majority + PC-only TSS + ccre_flank=0); see
 #              region_label_*_v4 below. Also six disjoint subsets summing to v1.
+# v4_ccre_noexon{,_enhancer} = curated sub-filters of v4_ccre_non_promoter
+#              (issue #326); NOT part of the six-way partition. Built by
+#              derive_subset_v4_ccre_* (regions.smk) → select_ccre_noexon{,_enhancer}.
 intervals_versions:
   ["v1", "v2",
    "v3_cds", "v3_utr3", "v3_ncrna_exon",
    "v3_tss_region_and_utr5", "v3_ccre_non_promoter", "v3_bg",
    "v4_cds", "v4_utr3", "v4_ncrna_exon",
-   "v4_tss_region_and_utr5", "v4_ccre_non_promoter", "v4_bg"]
+   "v4_tss_region_and_utr5", "v4_ccre_non_promoter", "v4_bg",
+   "v4_ccre_noexon", "v4_ccre_noexon_enhancer"]
 
 hf_owner: "bolinas-dna"
 

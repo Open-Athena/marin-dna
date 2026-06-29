@@ -1280,3 +1280,151 @@ def test_write_species_subset_hf_readme_rejects_unknown_cohort(tmp_path: Path) -
             n_samples=1,
             species_tsv="config/whatever.tsv",
         )
+
+
+# ============================================================================
+# Curated cCRE/enhancer sub-filters (issue #326)
+# ============================================================================
+
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+    select_ccre_noexon,
+    select_ccre_noexon_enhancer,
+    write_curated_ccre_hf_readme,
+)
+
+
+def _ccre_labels_frame() -> pl.DataFrame:
+    """Synthetic v4 region-labels frame (the disjoint-frac columns the selectors
+    read): six ``ccre_non_promoter`` windows — w1/w2 pure, w3 clips CDS, w4
+    clips a TSS band, w5 clips a 3'UTR, w6 clips an ncRNA exon — plus one
+    genuinely ``cds``-labelled row.
+    """
+    return pl.DataFrame(
+        {
+            "name": ["w1", "w2", "w3", "w4", "w5", "w6", "c1"],
+            "chrom": ["1"] * 7,
+            "start": [0, 300, 600, 900, 1200, 1500, 1800],
+            "end": [255, 555, 855, 1155, 1455, 1755, 2055],
+            "label": ["ccre_non_promoter"] * 6 + ["cds"],
+            "cds_frac": [0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 1.0],
+            "utr3_frac": [0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0],
+            "ncrna_exon_frac": [0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0],
+            "tss_region_and_utr5_frac": [0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0],
+            "ccre_non_promoter_frac": [0.8, 0.7, 0.6, 0.4, 0.7, 0.5, 0.0],
+        }
+    )
+
+
+def test_select_ccre_noexon_keeps_only_pure_ccre() -> None:
+    # Only w1/w2 are ccre-labelled with all four higher-priority fracs == 0;
+    # w3 (CDS), w4 (TSS), w5 (3'UTR), w6 (ncRNA) all clip another element.
+    out = select_ccre_noexon(_ccre_labels_frame())
+    assert out["name"].to_list() == ["w1", "w2"]
+
+
+def test_select_ccre_noexon_missing_column_asserts() -> None:
+    with pytest.raises(AssertionError, match="missing columns"):
+        select_ccre_noexon(_ccre_labels_frame().drop("cds_frac"))
+
+
+def test_select_ccre_noexon_all_contaminated_asserts() -> None:
+    # Every ccre window clips CDS → zero survivors → loud failure (not a silent
+    # empty subset that would surface as a 0-row HF dataset later).
+    df = _ccre_labels_frame().with_columns(
+        pl.when(pl.col("label") == "ccre_non_promoter")
+        .then(pl.lit(0.2))
+        .otherwise(pl.col("cds_frac"))
+        .alias("cds_frac")
+    )
+    with pytest.raises(AssertionError, match="0 windows"):
+        select_ccre_noexon(df)
+
+
+def _pure_ccre_pair() -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "name": ["w1", "w2"],
+            "chrom": ["1", "1"],
+            "start": [0, 1000],
+            "end": [255, 1255],
+            "label": ["ccre_non_promoter", "ccre_non_promoter"],
+            "cds_frac": [0.0, 0.0],
+            "utr3_frac": [0.0, 0.0],
+            "ncrna_exon_frac": [0.0, 0.0],
+            "tss_region_and_utr5_frac": [0.0, 0.0],
+            "ccre_non_promoter_frac": [0.8, 0.6],
+        }
+    )
+
+
+def test_select_ccre_noexon_enhancer_keeps_enhancer_dominant(tmp_path: Path) -> None:
+    # w1: dELS 200 bp, no other → enhancer-dominant, kept.
+    # w2: pELS 50 bp vs CA 155 bp → CA-dominant, dropped.
+    cre = pl.DataFrame(
+        {
+            "chrom": ["1", "1", "1"],
+            "start": [0, 1000, 1100],
+            "end": [200, 1050, 1255],
+            "cre_class": ["dELS", "pELS", "CA"],
+        }
+    )
+    cre_path = tmp_path / "cre.parquet"
+    cre.write_parquet(cre_path)
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [5000]}))
+    out = select_ccre_noexon_enhancer(_pure_ccre_pair(), cre_path, defined)
+    assert out["name"].to_list() == ["w1"]
+
+
+def test_select_ccre_noexon_enhancer_no_enhancer_asserts(tmp_path: Path) -> None:
+    # Only CA cCREs overlap → no enhancer-dominant window → loud failure.
+    cre = pl.DataFrame(
+        {
+            "chrom": ["1", "1"],
+            "start": [0, 1000],
+            "end": [200, 1200],
+            "cre_class": ["CA", "CA"],
+        }
+    )
+    cre_path = tmp_path / "cre.parquet"
+    cre.write_parquet(cre_path)
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [5000]}))
+    with pytest.raises(AssertionError, match="0 windows"):
+        select_ccre_noexon_enhancer(_pure_ccre_pair(), cre_path, defined)
+
+
+def test_write_curated_ccre_hf_readme_renders(tmp_path: Path) -> None:
+    out = tmp_path / "README.md"
+    write_curated_ccre_hf_readme(
+        "v4_ccre_noexon_enhancer",
+        out,
+        commit_sha="a" * 40,
+        hf_owner="bolinas-dna",
+        pipeline_version="v1",
+        n_samples=12_345_678,
+    )
+    body = out.read_text()
+    assert "# `bolinas-dna/zoonomia-v1-v4_ccre_noexon_enhancer`" in body
+    assert "#326" in body
+    assert "enhancer-dominant" in body
+    assert f"{12_345_678:,}" in body
+    assert (
+        "https://github.com/Open-Athena/marin-dna/tree/" + "a" * 40 + "/"
+        "snakemake/zoonomia_projection_dataset" in body
+    )
+    # Parent partition referenced; the subsets are not a partition of v1.
+    assert "zoonomia-v1-v4_ccre_non_promoter" in body
+    # Exactly the three canonical tags (biology / genomics / DNA).
+    front_matter, _, _ = body.partition("---\n\n")
+    assert front_matter.count("- ") == 3
+
+
+def test_write_curated_ccre_hf_readme_rejects_unknown(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="unknown curated subset"):
+        write_curated_ccre_hf_readme(
+            "v4_cds",
+            tmp_path / "bad.md",
+            commit_sha="a" * 40,
+            hf_owner="bolinas-dna",
+            pipeline_version="v1",
+            n_samples=1,
+        )

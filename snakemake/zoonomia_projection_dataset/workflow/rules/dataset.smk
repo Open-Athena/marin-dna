@@ -260,6 +260,48 @@ rule dataset_hf_readme_v4:
         )
 
 
+# The curated-ccre card (below) and the v4 partition card both match v4_\w+;
+# prefer the curated card for the two #326 sub-filter names (the v4 card would
+# fail looking them up in the six-label composition TSV).
+ruleorder: dataset_hf_readme_curated_ccre > dataset_hf_readme_v4
+
+
+rule dataset_hf_readme_curated_ccre:
+    """Minimal HF dataset card for the #326 curated cCRE/enhancer subsets.
+
+    These sub-filters of v4_ccre_non_promoter are not part of the v4 partition,
+    so the card just states provenance (the filter, a commit-pinned pipeline
+    permalink, the row count, tags) rather than a composition story — disjoint
+    from dataset_hf_readme_v4 by the exact-name constraint + the ruleorder above.
+    """
+    input:
+        source=lambda wc: INTERVALS_SOURCES[wc.intervals_version],
+    output:
+        "results/dataset/zoonomia-{pipeline_version}-{intervals_version}/README.md",
+    wildcard_constraints:
+        pipeline_version=r"v\d+",
+        intervals_version=r"v4_ccre_noexon(?:_enhancer)?",
+    params:
+        commit_sha=GIT_COMMIT_SHA,
+        hf_owner=HF_OWNER,
+        add_rc=ADD_RC,
+    run:
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+            write_curated_ccre_hf_readme,
+        )
+
+        n_rows = pl.scan_parquet(input.source).select(pl.len()).collect().item()
+        n_samples = n_rows * (2 if params.add_rc else 1)
+        write_curated_ccre_hf_readme(
+            wildcards.intervals_version,
+            output[0],
+            commit_sha=params.commit_sha,
+            hf_owner=params.hf_owner,
+            pipeline_version=wildcards.pipeline_version,
+            n_samples=n_samples,
+        )
+
+
 rule dataset_hf_readme_species_subset:
     """HF dataset card for a species-subset dataset (e.g. v4_cds-order; #233).
 

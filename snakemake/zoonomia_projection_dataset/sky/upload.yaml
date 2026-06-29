@@ -29,10 +29,16 @@ file_mounts:
 # v4 (issue #227). Override at launch: `sky launch ... --env UPLOAD_VERSION=v4`.
 # UPLOAD_MODE selects WHICH datasets to push:
 #   region        (default) — the six v3_*/v4_* region partitions for
-#                  UPLOAD_VERSION (the default 108-family species cohort).
+#                  UPLOAD_VERSION (the default 108-family species cohort). The
+#                  curated cCRE sub-filters (below) are excluded — they are not
+#                  partitions.
 #   species_subset — the species_subset_datasets combos (issue #233), e.g.
 #                  zoonomia-v1-v4_cds-order. UPLOAD_VERSION is ignored.
 #                  Launch: `sky launch ... --env UPLOAD_MODE=species_subset`.
+#   curated_ccre  — the two #326 curated cCRE/enhancer sub-filters of
+#                  v4_ccre_non_promoter (v4_ccre_noexon{,_enhancer}).
+#                  UPLOAD_VERSION is ignored.
+#                  Launch: `sky launch ... --env UPLOAD_MODE=curated_ccre`.
 envs:
     COMMIT_SHA: ""
     UPLOAD_VERSION: v3
@@ -76,13 +82,19 @@ run: |
     cfg = yaml.safe_load(open('config/config.yaml'))
     pv = cfg['pipeline_version']
     mode = os.environ['UPLOAD_MODE']
+    # The #326 curated cCRE sub-filters are NOT region partitions; keep them out
+    # of region mode and give them their own curated_ccre mode.
+    curated = [s for s in cfg['intervals_versions'] if s.startswith('v4_ccre_noexon')]
     if mode == 'species_subset':
         for d in cfg.get('species_subset_datasets', []):
             print(f'results/upload.done/zoonomia-{pv}-{d[\"intervals\"]}-{d[\"species\"]}')
+    elif mode == 'curated_ccre':
+        for iv in curated:
+            print(f'results/upload.done/zoonomia-{pv}-{iv}')
     else:
         ver = os.environ['UPLOAD_VERSION']
         for iv in cfg['intervals_versions']:
-            if iv.startswith(ver + '_'):
+            if iv.startswith(ver + '_') and iv not in curated:
                 print(f'results/upload.done/zoonomia-{pv}-{iv}')
     ")
     test -n "$UPLOAD_TARGETS"  # fail loudly if the mode/version matched nothing
@@ -101,6 +113,12 @@ run: |
     # region-label / projection rules are deliberately absent so Snakemake errors
     # rather than walking back into them — their outputs (query_names,
     # composition, subset parquets' source) already exist in S3.
+    # EXCEPTION (#326): the two curated cCRE sub-filters are new, so their
+    # query_names do NOT yet exist in S3 — whitelist their derive rules (which
+    # read only the v4 region-labels parquet + cCRE + defined, all in S3, so
+    # they don't walk into the projection) and their minimal card rule. These
+    # fire only in curated_ccre mode; in region/species_subset mode the existing
+    # S3 outputs satisfy mtime and they stay dormant.
     ALLOWED_RULES=(
         subset_dataset_derived
         subset_species
@@ -109,6 +127,9 @@ run: |
         dataset_hf_readme_v3
         dataset_hf_readme_v4
         dataset_hf_readme_species_subset
+        derive_subset_v4_ccre_noexon
+        derive_subset_v4_ccre_noexon_enhancer
+        dataset_hf_readme_curated_ccre
         hf_upload_dataset
     )
 

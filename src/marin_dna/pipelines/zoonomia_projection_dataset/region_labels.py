@@ -32,6 +32,7 @@ import polars as pl
 
 from marin_dna.data.intervals import GenomicSet
 from marin_dna.data.utils import (
+    ENHANCER_CRE_CLASSES,
     get_cds,
     get_exons,
     get_promoters_from_exons,
@@ -485,6 +486,142 @@ def label_windows_bp_majority(
             "intergenic_frac": intergenic_frac,
         }
     )
+
+
+# ============================================================================
+# Curated cCRE/enhancer sub-filters (issue #326)
+#
+# Two *derived* subsets of the v4 ``ccre_non_promoter`` arm — NOT part of the
+# six-way v4 partition — built to test whether de-contaminating the enhancer
+# training set unsticks distal VEP (#283 H1/H2):
+#   * ``select_ccre_noexon``          — drop windows overlapping any other
+#     functional element (H1: CDS/exon-edge contamination).
+#   * ``select_ccre_noexon_enhancer`` — further keep only enhancer-dominant
+#     (dELS+pELS) windows (H2: heterogeneity; population-match ``val_enhancer``).
+# Both take the ``label_windows_bp_majority`` output (the v4 region-labels
+# parquet) and return a filtered copy, one row per surviving anchor.
+# ============================================================================
+
+CCRE_LABEL = "ccre_non_promoter"
+# The higher-priority functional labels whose disjoint coverage must be zero
+# for a window to be "pure cCRE" (no exon / coding / TSS sequence in it).
+_NON_CCRE_FUNCTIONAL_FRACS = (
+    "cds_frac",
+    "utr3_frac",
+    "ncrna_exon_frac",
+    "tss_region_and_utr5_frac",
+)
+
+
+def select_ccre_noexon(labels_df: pl.DataFrame) -> pl.DataFrame:
+    """Arm A (#326): ``ccre_non_promoter`` windows with no other functional bp.
+
+    Keeps every window labelled ``ccre_non_promoter`` whose four
+    higher-priority disjoint fractions (``cds_frac``, ``utr3_frac``,
+    ``ncrna_exon_frac``, ``tss_region_and_utr5_frac``) are all exactly 0 — i.e.
+    the window's functional content is *purely* cCRE. Because the
+    :func:`label_windows_bp_majority` fracs are disjoint and priority-resolved,
+    a ccre-labelled window with ``cds_frac > 0`` contains CDS bases (claimed by
+    the higher-priority ``cds`` set) → it spans an exon edge and carries coding
+    sequence + a splice site, the #283 H1 contamination. Such windows are
+    dropped here.
+
+    Args:
+        labels_df: a v4 region-labels frame (``label_windows_bp_majority``
+            output) with ``name, label`` + the disjoint ``*_frac`` columns.
+
+    Returns:
+        The filtered frame (same schema), one row per surviving anchor.
+    """
+    required = {"name", "label", *_NON_CCRE_FUNCTIONAL_FRACS}
+    missing = required - set(labels_df.columns)
+    assert not missing, f"labels_df missing columns: {sorted(missing)}"
+
+    out = labels_df.filter(
+        (pl.col("label") == CCRE_LABEL)
+        & (pl.col("cds_frac") == 0.0)
+        & (pl.col("utr3_frac") == 0.0)
+        & (pl.col("ncrna_exon_frac") == 0.0)
+        & (pl.col("tss_region_and_utr5_frac") == 0.0)
+    )
+    assert len(out) > 0, (
+        "select_ccre_noexon produced 0 windows — wrong parquet or all ccre "
+        "windows overlap another functional element (config/biology bug?)"
+    )
+    return out
+
+
+def select_ccre_noexon_enhancer(
+    labels_df: pl.DataFrame,
+    cre_parquet: str | Path,
+    defined: GenomicSet,
+) -> pl.DataFrame:
+    """Arm B (#326): :func:`select_ccre_noexon` windows that are enhancer-dominant.
+
+    Restricts arm A to windows whose cCRE content is dominated by the
+    enhancer-like classes ``dELS`` + ``pELS`` (``ENHANCER_CRE_CLASSES``): keeps
+    a window iff its enhancer-class basepair coverage is > 0 **and** ≥ its
+    coverage by the other non-PLS classes (``CA`` / ``CA-CTCF`` / ``CA-TF`` /
+    ``CA-H3K4me3`` / ``TF``). This removes the ~17% non-enhancer heterogeneity
+    (#283 H2) so the arm population-matches the ``val_enhancer`` LL-gap probe
+    (also dELS+pELS). cCRE sub-class isn't in the disjoint region-labels fracs,
+    so this needs the cCRE parquet for per-class membership.
+
+    Assumes the v4 labeler's ``ccre_flank == 0`` (the cCRE intervals are used
+    raw, matching how ``ccre_non_promoter`` was built in
+    :func:`build_region_beds`).
+
+    Args:
+        labels_df: v4 region-labels frame (see :func:`select_ccre_noexon`),
+            with ``chrom, start, end`` window coordinates.
+        cre_parquet: ENCODE cCRE V4 parquet (``chrom, start, end, cre_class``).
+        defined: ``genome − N`` GenomicSet, intersected into both cCRE sets so
+            coverage never counts unsequenceable masked bases (matches
+            :func:`build_region_beds`).
+
+    Returns:
+        The filtered frame (same schema), one row per surviving anchor.
+    """
+    base = select_ccre_noexon(labels_df)
+    for col in ("chrom", "start", "end"):
+        assert col in base.columns, f"labels_df missing window coord column {col!r}"
+
+    cre = pl.read_parquet(cre_parquet)
+    assert "cre_class" in cre.columns, f"{cre_parquet} has no cre_class column"
+    enhancer_set = (
+        GenomicSet(
+            cre.filter(pl.col("cre_class").is_in(list(ENHANCER_CRE_CLASSES))).select(
+                ["chrom", "start", "end"]
+            )
+        )
+        & defined
+    )
+    other_set = (
+        GenomicSet(
+            cre.filter(
+                (pl.col("cre_class") != "PLS")
+                & (~pl.col("cre_class").is_in(list(ENHANCER_CRE_CLASSES)))
+            ).select(["chrom", "start", "end"])
+        )
+        & defined
+    )
+
+    windows = (
+        base.select(["chrom", "start", "end"])
+        .to_pandas()
+        .astype({"chrom": str})
+        .reset_index(drop=True)
+    )
+    enhancer_bp = _coverage_bp(windows, enhancer_set.to_pandas())
+    other_bp = _coverage_bp(windows, other_set.to_pandas())
+    keep = (enhancer_bp > 0) & (enhancer_bp >= other_bp)
+
+    out = base.filter(pl.Series(name="_keep_enhancer", values=keep))
+    assert len(out) > 0, (
+        "select_ccre_noexon_enhancer produced 0 windows — no enhancer-dominant "
+        "pure-cCRE windows (wrong cCRE parquet / cre_class vocabulary?)"
+    )
+    return out
 
 
 def region_label_composition_table(df: pl.DataFrame) -> pl.DataFrame:
@@ -1011,6 +1148,108 @@ Same as [`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/dat
 - Region labeler library: `marin_dna.pipelines.zoonomia_projection_dataset.region_labels.label_windows_bp_majority`
 - Sister cross-mammal datasets: `{hf_owner}/zoonomia-{pipeline_version}-v1`, `{hf_owner}/zoonomia-{pipeline_version}-v2`
 - Sister validation datasets: `{hf_owner}/zoonomia-{pipeline_version}-val_*`
+"""
+    Path(output_path).write_text(body)
+
+
+# Curated cCRE/enhancer subsets (issue #326): provenance blurb per subset.
+_CURATED_CCRE_BLURBS: dict[str, str] = {
+    "v4_ccre_noexon": (
+        "the **v4 `ccre_non_promoter`** arm with every window that overlaps any "
+        "other functional element (CDS / 3′UTR / ncRNA exon / TSS+5′UTR) "
+        "removed — i.e. windows whose functional content is *purely* cCRE. "
+        "Drops the ~13% of `ccre_non_promoter` windows that span an exon edge "
+        "(mostly CDS), the #283 H1 contamination that lets the enhancer arm "
+        "leak coding/splice skill. Filter: "
+        "`region_labels.select_ccre_noexon`."
+    ),
+    "v4_ccre_noexon_enhancer": (
+        "`v4_ccre_noexon` further restricted to **enhancer-dominant** windows "
+        "(dELS+pELS basepair coverage ≥ the other non-PLS cCRE classes), "
+        "population-matching the `val_enhancer` LL-gap probe and removing the "
+        "~17% non-enhancer (CA / CTCF / TF) heterogeneity (#283 H2). Filter: "
+        "`region_labels.select_ccre_noexon_enhancer`."
+    ),
+}
+
+
+def write_curated_ccre_hf_readme(
+    subset: str,
+    output_path: str | Path,
+    *,
+    commit_sha: str,
+    hf_owner: str,
+    pipeline_version: str,
+    n_samples: int,
+    github_repo: str = _GITHUB_REPO,
+) -> None:
+    """Write the HF dataset card for a curated cCRE/enhancer subset (issue #326).
+
+    Deliberately minimal (vs :func:`write_subset_hf_readme_v4`): these are
+    experimental sub-filters of ``v4_ccre_non_promoter``, not part of the v4
+    partition, so the card just states provenance — what filter produced it, a
+    commit-pinned permalink to the pipeline, the row count, and the standard
+    tags — rather than re-deriving a partition/composition story.
+    """
+    if subset not in _CURATED_CCRE_BLURBS:
+        raise ValueError(
+            f"unknown curated subset {subset!r}; expected one of "
+            f"{sorted(_CURATED_CCRE_BLURBS)}"
+        )
+
+    repo_name = f"{hf_owner}/zoonomia-{pipeline_version}-{subset}"
+    pipeline_permalink = (
+        f"https://github.com/{github_repo}/tree/{commit_sha}/{_GITHUB_PIPELINE_PATH}"
+    )
+    pipeline_main_link = (
+        f"https://github.com/{github_repo}/tree/main/{_GITHUB_PIPELINE_PATH}"
+    )
+    parent_repo = f"{hf_owner}/zoonomia-{pipeline_version}-v4_ccre_non_promoter"
+    blurb = _CURATED_CCRE_BLURBS[subset]
+
+    body = f"""---
+tags:
+- biology
+- genomics
+- DNA
+---
+
+# `{repo_name}`
+
+A **curated enhancer training set** for issue
+[#326](https://github.com/{github_repo}/issues/326) — a de-contaminated
+derivation of the v4 `ccre_non_promoter` arm of
+[`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/datasets/{hf_owner}/zoonomia-{pipeline_version}-v1),
+built by the
+[`{_GITHUB_PIPELINE_PATH}`]({pipeline_permalink}) pipeline at commit
+[`{commit_sha[:12]}`]({pipeline_permalink}).
+
+## Provenance
+
+This subset is {blurb}
+
+It is a strict subset of
+[`{parent_repo}`](https://huggingface.co/datasets/{parent_repo}); concatenating
+the curated subsets does **not** reconstruct v1 (they are experimental probes,
+not a partition). Contains **{n_samples:,} training samples** (human anchors ×
+up to 108 Zoonomia mammals × reverse-complement augmentation) — the exact row
+count across all JSONL.zst shards.
+
+## Schema
+
+Identical to
+[`{hf_owner}/zoonomia-{pipeline_version}-v1`](https://huggingface.co/datasets/{hf_owner}/zoonomia-{pipeline_version}-v1)
+— a single `train` split of JSONL.zst shards at
+`data/train/shard_NNNN.jsonl.zst`; key field `sequence` is exactly 255 bp,
+strand-aware. See the parent card for the full column table.
+
+## Source code
+
+- Pipeline: [{_GITHUB_PIPELINE_PATH}]({pipeline_main_link}) (latest)
+- Pinned to this dataset's build: [commit `{commit_sha[:12]}`]({pipeline_permalink})
+- Filter library: `marin_dna.pipelines.zoonomia_projection_dataset.region_labels`
+  (`select_ccre_noexon` / `select_ccre_noexon_enhancer`)
+- Parent partition: [`{parent_repo}`](https://huggingface.co/datasets/{parent_repo})
 """
     Path(output_path).write_text(body)
 
