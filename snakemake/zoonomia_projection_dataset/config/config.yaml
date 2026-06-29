@@ -75,6 +75,15 @@ intervals_versions:
    "v4_tss_region_and_utr5", "v4_ccre_non_promoter", "v4_bg",
    "v4_ccre_noexon", "v4_ccre_noexon_enhancer"]
 
+# Single source of truth for which intervals_versions are the #326 curated
+# cCRE sub-filters (experimental probes, not partition members). Read by
+# dataset.smk (excluded from the bare `all_hf` aggregate — built on demand via
+# their explicit targets / `sky/upload.yaml --env UPLOAD_MODE=curated_ccre`),
+# regions.smk (the all_curated_ccre_subsets target), and sky/upload.yaml
+# (curated_ccre mode + region-mode exclusion). Must be a subset of
+# intervals_versions.
+curated_ccre_subsets: ["v4_ccre_noexon", "v4_ccre_noexon_enhancer"]
+
 hf_owner: "bolinas-dna"
 
 # ===== Species-subset datasets (third axis; issue #233) =====

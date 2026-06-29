@@ -606,20 +606,29 @@ def select_ccre_noexon_enhancer(
         & defined
     )
 
+    # Coverage matches windows ↔ region by chrom-key equality (``_coverage_bp``
+    # groups both by ``chrom``), so both sides must share the chrom dtype AND
+    # naming convention. Cast both to ``str`` (the labels parquet uses bare
+    # Ensembl names like ``"1"``); a silent dtype/convention mismatch would zero
+    # all coverage and trip the assert below with a misleading message.
     windows = (
         base.select(["chrom", "start", "end"])
         .to_pandas()
         .astype({"chrom": str})
         .reset_index(drop=True)
     )
-    enhancer_bp = _coverage_bp(windows, enhancer_set.to_pandas())
-    other_bp = _coverage_bp(windows, other_set.to_pandas())
+    enhancer_df = enhancer_set.to_pandas().astype({"chrom": str})
+    other_df = other_set.to_pandas().astype({"chrom": str})
+    enhancer_bp = _coverage_bp(windows, enhancer_df)
+    other_bp = _coverage_bp(windows, other_df)
     keep = (enhancer_bp > 0) & (enhancer_bp >= other_bp)
 
     out = base.filter(pl.Series(name="_keep_enhancer", values=keep))
     assert len(out) > 0, (
         "select_ccre_noexon_enhancer produced 0 windows — no enhancer-dominant "
-        "pure-cCRE windows (wrong cCRE parquet / cre_class vocabulary?)"
+        "pure-cCRE windows. Check the cCRE parquet's cre_class vocabulary and "
+        "that its chrom convention matches the labels parquet (bare Ensembl "
+        "names, e.g. '1' not 'chr1')."
     )
     return out
 

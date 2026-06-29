@@ -4,6 +4,15 @@ import re
 
 PIPELINE_VERSION = config["pipeline_version"]
 INTERVALS_VERSIONS = list(config["intervals_versions"])
+# #326 curated cCRE sub-filters — experimental probes, not partition members.
+# Kept in INTERVALS_SOURCES (buildable on demand) but excluded from the bare
+# `all_hf` aggregate below, mirroring sky/upload.yaml's region-mode exclusion;
+# they upload via their explicit targets / UPLOAD_MODE=curated_ccre.
+CURATED_CCRE_SUBSETS = list(config.get("curated_ccre_subsets", []))
+assert set(CURATED_CCRE_SUBSETS) <= set(INTERVALS_VERSIONS), (
+    f"curated_ccre_subsets {CURATED_CCRE_SUBSETS} must be a subset of "
+    f"intervals_versions"
+)
 HF_OWNER = config["hf_owner"]
 ADD_RC = bool(config.get("add_rc", True))
 N_SHARDS = int(config.get("n_shards", 64))
@@ -70,7 +79,9 @@ for _d in SPECIES_SUBSET_DATASETS:
     SPECIES_SUBSET_SLUGS.append(_slug)
 
 # Every dataset all_hf pushes: default-species intervals versions + cohort slugs.
-ALL_DATASETS = list(INTERVALS_VERSIONS) + SPECIES_SUBSET_SLUGS
+ALL_DATASETS = [
+    iv for iv in INTERVALS_VERSIONS if iv not in CURATED_CCRE_SUBSETS
+] + SPECIES_SUBSET_SLUGS
 
 
 # Pin pipeline_version so the zoonomia-{pipeline_version}-{dataset} repo slug

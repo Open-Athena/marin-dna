@@ -344,6 +344,11 @@ rule all_region_labels_v4:
 # derive_subset_v4_region's REGION_LABEL_SUBSET_V4_RE constraint.
 # ============================================================================
 
+# Single source of truth (config/config.yaml) for which subsets are curated;
+# shared with dataset.smk's all_hf exclusion and sky/upload.yaml's curated_ccre
+# mode so the three never drift.
+CURATED_CCRE_SUBSETS = list(config.get("curated_ccre_subsets", []))
+
 
 rule derive_subset_v4_ccre_noexon:
     """Arm A (#326): v4 ccre windows with zero overlap of any other functional
@@ -393,5 +398,5 @@ rule all_curated_ccre_subsets:
         expand(
             "results/projection/min{min_p}/subsets_def/{subset}.query_names.txt",
             min_p=[f"{config['project_min_p']}"],
-            subset=["v4_ccre_noexon", "v4_ccre_noexon_enhancer"],
+            subset=CURATED_CCRE_SUBSETS,
         ),

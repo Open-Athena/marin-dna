@@ -83,8 +83,10 @@ run: |
     pv = cfg['pipeline_version']
     mode = os.environ['UPLOAD_MODE']
     # The #326 curated cCRE sub-filters are NOT region partitions; keep them out
-    # of region mode and give them their own curated_ccre mode.
-    curated = [s for s in cfg['intervals_versions'] if s.startswith('v4_ccre_noexon')]
+    # of region mode and give them their own curated_ccre mode. Single source of
+    # truth = config's curated_ccre_subsets (shared with dataset.smk + regions.smk),
+    # not a name-prefix heuristic that could catch an unintended future name.
+    curated = list(cfg.get('curated_ccre_subsets', []))
     if mode == 'species_subset':
         for d in cfg.get('species_subset_datasets', []):
             print(f'results/upload.done/zoonomia-{pv}-{d[\"intervals\"]}-{d[\"species\"]}')
