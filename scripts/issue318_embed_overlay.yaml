@@ -12,5 +12,14 @@
 #     --configfile ../../../scripts/issue318_embed_overlay.yaml \
 #     --forcerun compute_scores -- \
 #     results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet
+#
+# batch_size + torch_compile are execution-only overrides (the stored values are
+# identical either way): `output_hidden_states` makes the forward much heavier, so
+# the default batch_size=128 would OOM the A10G (smoke measured 4.49 GB at batch 16
+# with embeddings → ~22 GB extrapolated at 128); 32 is a safe margin. torch_compile
+# is disabled because compile × output_hidden_states is unvalidated and the smoke
+# ran compile-off — a small run doesn't need it.
 inference:
   return_embeddings: true
+  batch_size: 32
+  torch_compile: false
