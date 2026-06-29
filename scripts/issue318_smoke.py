@@ -24,6 +24,7 @@ Run on a GPU node:
 from __future__ import annotations
 
 import argparse
+import os
 import tempfile
 
 import numpy as np
@@ -48,10 +49,23 @@ MEND_REV = (
 
 
 def localize_checkpoint() -> str:
+    """Download the cached HF checkpoint into a flat local dir.
+
+    Get each file individually rather than ``fs.get(prefix, dst, recursive=True)``:
+    the recursive form nests the files under ``dst/<basename>/`` (fsspec copies the
+    dir, not its contents), so ``from_pretrained(dst)`` then can't find config.json.
+    """
     fs = s3fs.S3FileSystem()
     assert fs.exists(CKPT_S3), f"checkpoint cache missing: s3://{CKPT_S3}"
     dst = tempfile.mkdtemp(prefix="exp135_ckpt_")
-    fs.get(CKPT_S3, dst, recursive=True)
+    for f in fs.ls(CKPT_S3, detail=False):
+        name = f.rstrip("/").split("/")[-1]
+        if name.startswith("."):  # skip .snakemake_timestamp etc.
+            continue
+        fs.get_file(f, os.path.join(dst, name))
+    assert os.path.exists(os.path.join(dst, "config.json")), (
+        f"config.json not localized into {dst}"
+    )
     return dst
 
 
