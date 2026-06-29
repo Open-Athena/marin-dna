@@ -120,6 +120,18 @@ embedding run with a smaller per-model `batch_size` (and optionally
 to CPU). Requires `inference.rc: true` (the stored vector is the FWD+RC average;
 asserted at config load).
 
+Run embedding extractions **eager** (`torch_compile: false`): `torch_compile ×
+output_hidden_states` is unvalidated and memory-heavy. The ready-made overlay
+[`scripts/issue318_embed_overlay.yaml`](../../../scripts/issue318_embed_overlay.yaml)
+deep-merges `return_embeddings: true` + `batch_size: 32` + `torch_compile: false`
+over the config (preserving `rc` etc.), e.g.
+`snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun
+compute_scores -- results/scores/<model>/<dataset>.parquet`. Eager makes the
+stored `llr_*` differ from the compiled default by float-reduction noise that
+accumulates in the LLR **sum** (JSD, a mean, is unaffected) — measured on exp135
+× mendelian: per-row LLR Pearson **0.9997**, and the derived AUPRC moves by
+**< SE/20** (`_global_` 0.4004 vs 0.4003), i.e. no metric impact.
+
 **Operational note.** `return_embeddings` is output-affecting (it lives in the
 rule's `params:`), so flipping it on — like any kernel edit — retriggers
 `compute_scores`. Don't run `snakemake all`: name the **targeted** targets you
