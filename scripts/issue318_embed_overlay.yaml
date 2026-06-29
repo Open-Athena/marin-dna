@@ -14,14 +14,15 @@
 #     results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet
 #
 # batch_size + torch_compile are execution knobs.
-# - batch_size: the embedding forward materializes the final-layer [B, L, D] hidden
-#   states (last_hidden_state, captured by a hook — not all layers) plus the wider
-#   [N, 2+2D] predictions, so it's heavier than the slim LLR/JSD bundle; 32 is a
-#   conservative margin on the A10G (the original output_hidden_states path needed
-#   it most — the smoke measured 4.49 GB at batch 16 *with all layers*; the hook is
-#   lighter, so a larger batch likely fits if re-measured). NOTE this sets the GLOBAL
-#   inference.batch_size — a model carrying its own per-model `batch_size:` override
-#   (resolved by get_model_batch_size) would ignore this and could still OOM.
+# - batch_size: the embedding forward materializes the final-layer hidden states
+#   (last_hidden_state, captured by a hook — not all layers) + the suffix logits over
+#   the full vocab + the wider [N, 2+2D] predictions, so it's heavier than the slim
+#   LLR/JSD bundle and scales ~linearly with batch. Measured on exp135 (1B) / A10G
+#   24 GB via scripts/issue318_batch_sweep.py: 32→7.0 GB, 64→11.5, 96→16.0 (68%),
+#   128→20.6 (87%), 192→OOM. 96 is the largest with headroom for the full-dataset
+#   prediction accumulation (~1.3 GB on caqtl); 128 is too tight. NOTE this sets the
+#   GLOBAL inference.batch_size — a model with its own per-model `batch_size:` override
+#   (get_model_batch_size) ignores it, and a bigger model (e.g. 4B) needs a lower value.
 # - torch_compile: disabled because compiling the hooked forward is unvalidated and
 #   a small run doesn't need it. Unlike batch_size, torch_compile is NOT
 #   output-identical — eager vs compiled shifts the stored `llr_*` by AUPRC-invariant
@@ -29,5 +30,5 @@
 #   but don't treat an eager-computed scores parquet as byte-identical to a compiled one.
 inference:
   return_embeddings: true
-  batch_size: 32
+  batch_size: 96
   torch_compile: false
