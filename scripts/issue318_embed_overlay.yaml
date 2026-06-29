@@ -1,0 +1,16 @@
+# evals_v2 config overlay — turns ON the pooled-embedding bundle (#318) for a
+# one-off extraction, without committing the default-on. Deep-merges over
+# config/config.yaml via snakemake's `--configfile` (only flips this one key;
+# batch_size / rc / num_workers are preserved).
+#
+# Used to produce the first in-bundle embedding artifact for #320 to consume —
+# exp135 (mix-v0.9-p1B-i24-exp135-m5.1-step-59158) × mendelian_traits, the #314
+# pilot model/dataset with documented per-chrom probe AUPRC to check parity against.
+#
+# Invoke (from snakemake/analysis/evals_v2, e.g. via sky run.yaml SNAKEMAKE_ARGS):
+#   snakemake --profile workflow/profiles/default \
+#     --configfile ../../../scripts/issue318_embed_overlay.yaml \
+#     --forcerun compute_scores -- \
+#     results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet
+inference:
+  return_embeddings: true
