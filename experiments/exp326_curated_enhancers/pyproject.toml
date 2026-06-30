@@ -1,0 +1,71 @@
+[project]
+name = "exp326-curated-enhancers"
+version = "0.1.0"
+description = "Curated cCRE/enhancer per-region Qwen3-0.25B training (issue #326), packaged as a self-contained marin-consumer experiment (issue #328). Mirrors the marin-experiments/tiny-stories + Open-Athena/MarinFold canonical pattern: marin in BASE deps (so Iris/zephyr workers get the runtime however the job ships its env) and the local lib via a git dep (so the same pyproject resolves on remote workers)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # marin packages in BASE deps (not an extra). This is the fix for #328's
+    # zephyr-worker failure: with marin in an *extra*, the zephyr-dispatched
+    # tokenize worker's `uv sync` didn't install it → No module named 'zephyr'.
+    # In base, the worker gets it. (Confirmed by MarinFold exp53's comment.)
+    # No version pins: resolves to the 06-17 marin build + transformers 4.x — the
+    # de-facto current target (the 0.2.32 head is broken on transformers-5/lm-eval).
+    "marin-core",
+    "marin-levanter",
+    "marin-iris",
+    "marin-zephyr",
+    "marin-rigging",
+    "marin-dupekit",
+    # 06-17 finelog: iris 0.2.19 imports `finelog.client.proxy`, which the latest
+    # marin-finelog (0.2.12.dev2026-06-28+) dropped. Drop once marin's 0.2.x is
+    # consumable end-to-end (#328).
+    "marin-finelog==0.2.11.dev202606171051",
+    "marin-finelog-server==0.2.11.dev202606171051",
+    # marin-levanter[lm_eval]'s extra is a URL dep; uv requires URL deps top-level.
+    "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
+    # Our library code (marin_dna.levanter.* formats/defaults + the mendelian
+    # lm_eval task config). Git dep (NOT a local path) so the SAME pyproject
+    # resolves on remote Iris/zephyr workers — they clone + install it rather
+    # than relying on the (unreliable) workspace bundle. (Matches MarinFold exp53.)
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@main",
+    # exp53's pin: with prerelease=allow, httpx otherwise floats to 1.0.dev*,
+    # whose Client() dropped the `timeout` kwarg marin-iris's GCP provider passes
+    # → iris CLI crashes on submit.
+    "httpx>=0.28.1,<1",
+]
+
+[project.optional-dependencies]
+tpu = ["marin-core[tpu]; sys_platform == 'linux'"]
+
+# Iris's remote worker runs `uv sync --all-packages --no-group dev`, which errors
+# if the dev group doesn't exist — define an empty one. (Per tiny-stories.)
+[dependency-groups]
+dev = []
+
+[tool.uv]
+package = false
+fork-strategy = "fewest"
+prerelease = "allow"
+environments = [
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
+]
+# Mirrored from marin's pyproject — omitting these makes uv resolution fail the
+# same way it does for marin itself (+ our pandas<3 pin to keep parquet dtypes).
+override-dependencies = [
+    "omegaconf>=2.4.0.dev4",
+    "antlr4-python3-runtime==4.11",
+    "python-multipart>=0.0.22",
+    "wheel>=0.46.2",
+    "datasets>=3.1.0,<4.0.0",
+    "equinox>=0.11.10",
+    "pandas>=2.0,<3.0",
+]
+
+# marin depends on resiliparse>=0.17.2 which only exists on this custom index.
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+[tool.uv.sources]
+resiliparse = { index = "marin-resiliparse" }
