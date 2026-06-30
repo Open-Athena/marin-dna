@@ -19,8 +19,8 @@ Four metric families live here:
   pipelines select this path per-dataset via ``eval_protocol: qtl_global``.
 - ``pairwise_accuracy`` / ``compute_pairwise_metrics``: matched-pair within-
   ``match_group`` accuracy (ties = 0.5) with Wald-binomial SE. Used on 1:1
-  match groups by the ``gpn_star_eval`` pipeline and the ``lm_eval`` DNA-VEP
-  harness (``dna_vep_llr_eval``).
+  match groups by the ``gpn_star_eval`` pipeline, the ``scripts/evo2_eval/``
+  scripts, and the ``lm_eval`` DNA-VEP harness (``dna_vep_llr_eval``).
 - ``METRIC_FUNCTIONS`` / ``compute_metrics``: classical AUPRC / AUROC /
   Spearman over (label, score) pairs (a general-purpose helper).
 """
