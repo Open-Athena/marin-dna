@@ -18,8 +18,8 @@ _METRIC = (
     "AUPRC is 0.10."
 )
 
-# caQTL/dsQTL moved to the supervised official-metrics Accessibility QTL page (#312),
-# which carries its own dataset metadata — so no caqtl/dsqtl entries here anymore.
+# caQTL/dsQTL: the supervised accessibility-QTL benchmark and its dashboard page
+# were removed in #332 — no caqtl/dsqtl entries here.
 
 _SGE_METRIC = (
     "**AUPRC** ± bootstrap SE for the ClinGen/ExCALIBR `calibrated_class` "
