@@ -7,7 +7,11 @@ Four metric families live here:
   matched-pair clustering). Used by the ``evals_v2``, ``conservation_eval``,
   and ``alphagenome_eval`` pipelines on the matched-pair datasets
   (``mendelian_traits`` / ``complex_traits``), whose 1:k structure (PR #194)
-  the Wald-binomial pairwise metric can't represent.
+  the Wald-binomial pairwise metric can't represent. ``per_chrom_weighted_ap``
+  is the within-chromosome, sample-size-weighted AUPRC — the headline metric of
+  the #314/#319 frozen-embedding linear-probe protocol; scoring within each
+  chromosome sidesteps the cross-chromosome score-calibration artifact that
+  biases the global pooled AUPRC.
 - ``compute_qtl_metrics``: global AUPRC (plain row bootstrap) plus Pearson /
   Spearman of the model score vs ``effect_size`` over the positive variants
   only. For the unmatched DART-Eval QTL datasets (``caqtl`` / ``dsqtl``,
@@ -221,6 +225,60 @@ def auprc_with_bootstrap_se(
         "n_groups": int(n_groups),
         "n_rows": int(len(label_arr)),
     }
+
+
+def per_chrom_weighted_ap(
+    y: np.ndarray,
+    score: np.ndarray,
+    chrom: np.ndarray,
+) -> float:
+    """Per-chromosome-weighted AUPRC — the #314/#319 linear-probe headline metric.
+
+    For each unique chromosome, computes ``average_precision_score`` over that
+    chromosome's finite-score variants, then returns the mean of those
+    per-chromosome AUPRCs weighted by each chromosome's (finite-score) variant
+    count.
+
+    Why per-chromosome rather than a single global pooled AUPRC: pooling
+    variants across chromosomes lets a cross-fold score-calibration offset
+    masquerade as discrimination, systematically *understating* a probe that is
+    well-calibrated *within* each chromosome (#314 saw e.g. exp166-4B 5'UTR
+    global 0.134 vs per-chrom 0.322). Scoring within each chromosome and then
+    size-weighting removes that artifact. This is TraitGym's metric and the
+    single headline number for the protocol.
+
+    Chromosomes lacking both classes among their finite-score variants are
+    skipped (AUPRC is undefined on a single class). Non-finite scores (NaN /
+    ±inf) are dropped per chromosome — the ``iter3`` finite-score guard — so an
+    unaligned or uncomputable locus neither counts as a class member nor enters
+    the size weight.
+
+    Args:
+        y: 0/1 (or bool) label per variant.
+        score: numeric score per variant; non-finite entries are dropped.
+        chrom: chromosome id per variant (any comparable dtype — string names
+            like ``"chr1"`` or ints).
+
+    Returns:
+        Sample-size-weighted mean of the per-chromosome AUPRCs, or ``nan`` when
+        no chromosome has both classes among its finite-score variants.
+    """
+    y = np.asarray(y)
+    score = np.asarray(score, dtype=float)
+    chrom = np.asarray(chrom)
+    assert len(y) == len(score) == len(chrom), (
+        f"length mismatch: y={len(y)} score={len(score)} chrom={len(chrom)}"
+    )
+    total, weight = 0.0, 0
+    for c in np.unique(chrom):
+        keep = (chrom == c) & np.isfinite(score)
+        n = int(keep.sum())
+        # Skip a chromosome unless it carries at least one of each class among
+        # its finite-score variants — AUPRC is undefined on a single class.
+        if 0 < int(y[keep].sum()) < n:
+            total += float(average_precision_score(y[keep], score[keep])) * n
+            weight += n
+    return total / weight if weight else float("nan")
 
 
 def paired_metric_delta_bootstrap(
