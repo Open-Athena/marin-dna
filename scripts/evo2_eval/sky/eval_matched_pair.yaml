@@ -80,6 +80,8 @@ envs:
                         # evo2_40b, D=8192, already at bs=1).
   EMB_LAYER: "norm"     # Evo2 module to pool the embedding from (default post-final-
                         # norm last-layer state; validated vs evo2.model.named_modules)
+  EMB_DTYPE: "float16"  # emb_ref/emb_alt storage dtype: float16 (gLM #325 schema) or
+                        # float32 (lossless; for Evo2 massive-activation channels, #131)
   HF_TOKEN: ""
 
 setup: |
@@ -134,6 +136,7 @@ run: |
     -e SKIP_METRICS="${SKIP_METRICS:-}" \
     -e RETURN_EMBEDDINGS="${RETURN_EMBEDDINGS:-}" \
     -e EMB_LAYER="${EMB_LAYER:-norm}" \
+    -e EMB_DTYPE="${EMB_DTYPE:-float16}" \
     -e CUDA_VISIBLE_DEVICES=0 \
     -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     -e OMP_NUM_THREADS=8 \
@@ -162,7 +165,7 @@ run: |
       SKIP_METRICS_ARG=""
       if [ -n "${SKIP_METRICS:-}" ]; then SKIP_METRICS_ARG="--skip-metrics"; fi
       EMB_ARG=""
-      if [ -n "${RETURN_EMBEDDINGS:-}" ]; then EMB_ARG="--return-embeddings --emb-layer ${EMB_LAYER:-norm}"; fi
+      if [ -n "${RETURN_EMBEDDINGS:-}" ]; then EMB_ARG="--return-embeddings --emb-layer ${EMB_LAYER:-norm} --emb-dtype ${EMB_DTYPE:-float16}"; fi
       DS_NAME="${DATASET:-mendelian_traits}"
       OUT="results/evo2_${DS_NAME}/${MODEL}_train${OUTPUT_SUFFIX:-}.parquet"
       OUT_METRICS="results/evo2_${DS_NAME}/${MODEL}_train${OUTPUT_SUFFIX:-}_metrics.parquet"

@@ -40,7 +40,7 @@ Extra envs the YAML threads through to the eval script:
 
 - `DATASET_REVISION=<sha>` — pins the HF dataset to a specific commit / tag / branch (default: HEAD).
 - `SKIP_METRICS=1` — writes only the scores parquet and skips `PairwiseAccuracy`. Use when the dataset isn't 1:1 paired (e.g. the 1:9 design in `evals_mendelian_traits` post-#194).
-- `RETURN_EMBEDDINGS=1` — also fold the entire-window mean-pooled, both-allele, FWD+RC-averaged last-layer embeddings into the scores parquet as `emb_ref`/`emb_alt` `list[f16]` columns (issue #131; the Evo2 analog of the gLM #325 bundle). `EMB_LAYER=norm` (default) picks the Evo2 module to pool — `norm` is the post-final-norm last-layer state, the HF `last_hidden_state` analog; validated against `evo2.model.named_modules()` and fails loud with candidates if absent. **Requires RC on** (don't combine with `NO_RC_AVG`) and makes the forward heavier (it materializes a `[2·bs, 8192, D]` hidden state) — **halve `BATCH_SIZE`**, especially `evo2_40b` (`D=8192`, already at bs=1). The scores columns are byte-identical to a non-embedding run; the embeddings just ride along. Feed the resulting parquet to `train_variant_probe.py` (below).
+- `RETURN_EMBEDDINGS=1` — also fold the entire-window mean-pooled, both-allele, FWD+RC-averaged last-layer embeddings into the scores parquet as `emb_ref`/`emb_alt` `list[f16]` columns (issue #131; the Evo2 analog of the gLM #325 bundle). `EMB_LAYER=norm` (default) picks the Evo2 module to pool — `norm` is the post-final-norm last-layer state, the HF `last_hidden_state` analog; validated against `evo2.model.named_modules()` and fails loud with candidates if absent. **Requires RC on** (don't combine with `NO_RC_AVG`) and makes the forward heavier (it materializes a `[2·bs, 8192, D]` hidden state) — **halve `BATCH_SIZE`**, especially `evo2_40b` (`D=8192`, already at bs=1). The scores columns are byte-identical to a non-embedding run; the embeddings just ride along. `EMB_DTYPE=float16` (default, the gLM schema) or `float32` — the lossless escape hatch if the embedding smoke (below) shows f16 storage corrupting the probe delta on Evo2's massive-activation channels. Feed the resulting parquet to `train_variant_probe.py` (below).
 
 ### Metrics — AUPRC + cluster-bootstrap SE (post-PR-#194)
 
@@ -80,7 +80,23 @@ for m in evo2_1b_base evo2_7b evo2_40b; do
 done
 ```
 
-This is the same protocol the gLMs run through the evals_v2 `probe`/metrics rules, so Evo2 vs the in-house gLMs is an apples-to-apples probe comparison (same feature rule, nested-LOOC CV, and headline metric). The `--emb-layer` of the scoring step is the one Evo2-specific knob — `norm` (last layer) keeps protocol parity; sweep mid-network layers (`--emb-layer blocks.<i>...`) only if the last layer underperforms.
+This is the same protocol the gLMs run through the evals_v2 `probe`/metrics rules, so Evo2 vs the in-house gLMs is an apples-to-apples probe comparison (same feature rule, nested-LOOC CV, and headline metric). The `--emb-layer` of the scoring step is the one Evo2-specific knob — `norm` (last layer) keeps protocol parity (our gLM bundle takes `base_model.last_hidden_state`, which is post-final-norm for the Qwen3 checkpoints); sweep mid-network layers (`--emb-layer blocks.<i>...`) only if the last layer underperforms.
+
+### Validating the embedding bundle — GH200 smoke (#131)
+
+`embed_smoke.py` / `sky/embed_smoke.yaml` exercise the production embedding path on a real GH200 (the CPU stub tests can't), asserting the four things that need real hardware + a real checkpoint:
+
+- **(a)** `--emb-layer` resolves against the real Evo2 module tree (`--env LIST_LAYERS=1` just dumps the module names if `norm` is ever in doubt);
+- **(b)** the heavier embedding forward fits VRAM (reports peak);
+- **(c)** `llr`/`jsd` are **unchanged** whether or not embeddings are requested (the hook must not perturb the logits — Evo2-internal, so checked on hardware);
+- **(d)** f16 storage doesn't corrupt the probe delta — scores once in `float32`, then compares the `emb_alt − emb_ref` delta in f32 vs round-tripped through f16 (Pearson), and reports the `|emb|` magnitude distribution so Evo2's massive-activation channels show up. If it fails, re-score production with `EMB_DTYPE=float32`.
+
+```bash
+sky launch -c evo2-smoke scripts/evo2_eval/sky/embed_smoke.yaml --env MODEL=evo2_1b_base
+sky down evo2-smoke
+```
+
+Run this before the full sweep — it confirms `EMB_LAYER`/`EMB_DTYPE` once on the cheap 1B (module names are shared across sizes).
 
 ### Tear down
 

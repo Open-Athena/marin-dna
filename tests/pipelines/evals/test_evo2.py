@@ -403,6 +403,22 @@ def test_fwd_rc_average_f16_fp32_accumulation_and_f16_cast():
     assert np.array_equal(one, fwd.astype(np.float16))
 
 
+def test_fwd_rc_average_f16_float32_out_dtype_is_lossless():
+    """out_dtype='float32' (the #131 massive-activation escape hatch) returns the
+    exact fp32 FWD+RC mean — no rounding."""
+    mod = _load_scoring()
+    rng = np.random.default_rng(4)
+    fwd = rng.standard_normal((12, 5)).astype(np.float32)
+    rev = rng.standard_normal((12, 5)).astype(np.float32)
+    out = mod.fwd_rc_average_f16([fwd, rev], out_dtype=np.float32)
+    assert out.dtype == np.float32
+    assert np.array_equal(out, ((fwd + rev) / 2).astype(np.float32))
+    # A value that overflows f16 is fine in f32 (no overflow assert tripped).
+    big = np.full((2, 3), 1e6, dtype=np.float32)
+    out_big = mod.fwd_rc_average_f16([big, big], out_dtype=np.float32)
+    assert np.isfinite(out_big).all() and out_big.dtype == np.float32
+
+
 def test_fwd_rc_average_f16_rejects_overflow():
     import pytest
 

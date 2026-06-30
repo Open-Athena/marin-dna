@@ -35,34 +35,47 @@ from tqdm import tqdm
 from marin_dna.data.dna import complement_base, reverse_complement
 
 
-def fwd_rc_average_f16(strand_embs: list[np.ndarray]) -> np.ndarray:
-    """FWD+RC mean of per-strand fp32 pooled embeddings, cast to float16 for storage.
+def fwd_rc_average_f16(
+    strand_embs: list[np.ndarray], out_dtype: np.typing.DTypeLike = np.float16
+) -> np.ndarray:
+    """FWD+RC mean of per-strand fp32 pooled embeddings, cast to ``out_dtype`` for storage.
 
     Each ``strand_embs[i]`` is one strand's pooled vectors ``[N, K]`` (fp32). The
     mean is the #314 protocol's FWD+RC average. Accumulate in **fp32** and cast to
-    f16 only at the very end: f16 storage of allele *means* already bounds the
-    downstream probe feature ``delta = emb_alt - emb_ref`` (a small difference of
-    two near-equal vectors — catastrophic cancellation), so the aggregation itself
-    must not add rounding on top of it (issue #318). Returns ``[N, K]`` f16.
+    the storage dtype only at the very end: f16 storage of allele *means* already
+    bounds the downstream probe feature ``delta = emb_alt - emb_ref`` (a small
+    difference of two near-equal vectors — catastrophic cancellation), so the
+    aggregation itself must not add rounding on top of it (issue #318). Returns
+    ``[N, K]`` in ``out_dtype``.
 
-    Duplicated verbatim from ``marin_dna.pipelines.evals.inference.fwd_rc_average_f16``
-    (the gLM #325 driver): the Evo2 docker image deliberately omits transformers, so
-    importing that module (top-level ``from transformers import ...``) would fail. The
-    helper is pure-numpy and model-agnostic; per CLAUDE.md this is the "duplication
-    beats a cross-dependency" case — keep the two byte-identical.
+    ``out_dtype`` defaults to ``float16`` — the gLM #325 schema, half the storage,
+    and validated adequate for *that* model family's activations. Evo2 is known for
+    persistent "massive-activation" channels whose post-norm magnitude can give f16
+    coarse resolution exactly where the delta cancels the shared context (issue #131);
+    ``float32`` is the lossless escape hatch (2× storage, same probe-compatible
+    ``list`` column — ``pair_feature_from_bundle`` upcasts to f32 either way). The
+    ``embed_smoke.py`` check measures the f16-vs-f32 delta corruption to decide.
+
+    Duplicated from ``marin_dna.pipelines.evals.inference.fwd_rc_average_f16`` (the
+    gLM #325 driver), with the ``out_dtype`` param added: the Evo2 docker image
+    deliberately omits transformers, so importing that module (top-level
+    ``from transformers import ...``) would fail. The helper is pure-numpy and
+    model-agnostic; per CLAUDE.md this is the "duplication beats a cross-dependency"
+    case.
     """
     assert strand_embs, "need at least one strand's embeddings to average"
     acc = np.zeros_like(strand_embs[0], dtype=np.float32)
     for e in strand_embs:
         acc += np.asarray(e, dtype=np.float32)
     acc /= len(strand_embs)
-    out = acc.astype(np.float16)
+    out = acc.astype(out_dtype)
     # Fail loud rather than silently ship inf: a pooled mean beyond float16's
     # ±65504 (e.g. a persistent massive-activation channel) overflows on the cast,
-    # which would NaN-poison the downstream delta = emb_alt - emb_ref.
+    # which would NaN-poison the downstream delta = emb_alt - emb_ref. (No-op for
+    # float32, whose range covers any finite fp32 mean — a free safety check.)
     assert np.isfinite(out).all(), (
-        "non-finite pooled embedding after f16 cast — the fp32 mean exceeded the "
-        "float16 range (±65504) or was non-finite upstream"
+        f"non-finite pooled embedding after {np.dtype(out_dtype).name} cast — the "
+        f"fp32 mean exceeded the storage dtype's range or was non-finite upstream"
     )
     return out
 
@@ -301,6 +314,7 @@ def compute_evo2_bundle(
     rc_avg: bool = True,
     return_embeddings: bool = False,
     emb_layer: str = "norm",
+    emb_dtype: str = "float16",
 ) -> pd.DataFrame:
     """Score Evo2 variants → DataFrame[llr, minus_llr, abs_llr, next_token_jsd_mean].
 
@@ -329,6 +343,11 @@ def compute_evo2_bundle(
             state, the HF ``last_hidden_state`` analog). Validated against
             ``evo2.model.named_modules()`` before the run; fails loud with the
             candidate names if absent.
+        emb_dtype: Storage dtype for ``emb_ref``/``emb_alt`` — ``"float16"``
+            (default, the gLM #325 schema) or ``"float32"`` (lossless escape hatch
+            for Evo2's massive-activation channels, #131). The pool + FWD+RC average
+            are always fp32; this only sets the final cast. The probe upcasts to f32
+            regardless, so both are probe-compatible.
 
     Returns:
         DataFrame with [llr, minus_llr, abs_llr, next_token_jsd_mean] (× {avg,
@@ -340,6 +359,9 @@ def compute_evo2_bundle(
     assert rc_avg or not return_embeddings, (
         "return_embeddings=True requires rc_avg=True — the stored embedding is the "
         "FWD+RC average; a forward-only embedding would be silently mislabeled"
+    )
+    assert emb_dtype in ("float16", "float32"), (
+        f"emb_dtype must be 'float16' or 'float32', got {emb_dtype!r}"
     )
 
     fa = Fasta(str(genome_path))
@@ -444,7 +466,9 @@ def compute_evo2_bundle(
         assert width == 2 + 2 * d, (
             f"score-bundle width {width} != 2 + 2*D; embeddings mis-sized"
         )
-        avg_emb = fwd_rc_average_f16([per_strand[s][:, 2:] for s in strands])  # [N, 2D]
+        avg_emb = fwd_rc_average_f16(
+            [per_strand[s][:, 2:] for s in strands], out_dtype=np.dtype(emb_dtype)
+        )  # [N, 2D]
         cols["emb_ref"] = list(avg_emb[:, :d])
         cols["emb_alt"] = list(avg_emb[:, d:])
     return pd.DataFrame(cols)

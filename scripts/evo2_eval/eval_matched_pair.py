@@ -156,6 +156,15 @@ def main() -> None:
         "last_hidden_state analog). Validated against evo2.model.named_modules().",
     )
     p.add_argument(
+        "--emb-dtype",
+        type=str,
+        default="float16",
+        choices=("float16", "float32"),
+        help="Storage dtype for emb_ref/emb_alt (default float16 = gLM #325 schema; "
+        "float32 = lossless escape hatch for Evo2 massive-activation channels, #131). "
+        "Probe upcasts to f32 either way.",
+    )
+    p.add_argument(
         "--skip-metrics",
         action="store_true",
         help="Write the scores parquet and exit; skip PairwiseAccuracy. "
@@ -217,6 +226,7 @@ def main() -> None:
         rc_avg=not args.no_rc_avg,
         return_embeddings=args.return_embeddings,
         emb_layer=args.emb_layer,
+        emb_dtype=args.emb_dtype,
     )
 
     if rank != 0:
@@ -239,7 +249,10 @@ def main() -> None:
         )
         d = len(out["emb_ref"].iloc[0])
         assert all(len(v) == d for v in out["emb_ref"]), "ragged emb_ref vectors"
-        print(f"[evo2] embeddings: emb_ref/emb_alt as list[f16], D={d}")
+        print(
+            f"[evo2] embeddings: emb_ref/emb_alt as list[{args.emb_dtype}], "
+            f"D={d}, layer={args.emb_layer!r}"
+        )
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)

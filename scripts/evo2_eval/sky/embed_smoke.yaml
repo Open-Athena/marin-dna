@@ -1,0 +1,105 @@
+# SkyPilot task: GH200 smoke for the Evo2 embedding bundle (issue #131).
+#
+# Runs scripts/evo2_eval/embed_smoke.py on a real GH200 with a real Evo2
+# checkpoint — validates the four things the CPU stub tests can't:
+#   (a) --emb-layer resolves against the real module tree (default `norm`),
+#   (b) the embedding forward fits VRAM,
+#   (c) llr/jsd are unchanged with embeddings requested vs not,
+#   (d) f16 storage doesn't corrupt the probe delta (f16-vs-f32 Pearson; also
+#       reports the |emb| magnitude distribution → Evo2 massive-activation check).
+# Touches no production parquet.
+#
+# The resources + docker setup MIRROR scripts/evo2_eval/sky/eval_matched_pair.yaml
+# (the canonical Evo2 image build); keep them in sync. Default model is the 1B
+# (fast, and the module names are shared across sizes); the smoke confirms the
+# layer name once.
+#
+# Launch:
+#   sky launch -c evo2-smoke scripts/evo2_eval/sky/embed_smoke.yaml \
+#     --env MODEL=evo2_1b_base
+#   # Discover layer names first if `norm` is ever in doubt:
+#   sky launch -c evo2-smoke scripts/evo2_eval/sky/embed_smoke.yaml \
+#     --env MODEL=evo2_1b_base --env LIST_LAYERS=1
+# Tear down:
+#   sky down evo2-smoke
+
+name: evo2-smoke
+
+resources:
+  any_of:
+    - {cloud: Lambda, accelerators: GH200:1, region: us-east-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-east-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-east-3}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-midwest-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-south-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-south-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-south-3}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-west-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-west-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: us-west-3}
+    - {cloud: Lambda, accelerators: GH200:1, region: europe-central-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: europe-south-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: me-west-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: asia-northeast-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: asia-northeast-2}
+    - {cloud: Lambda, accelerators: GH200:1, region: asia-south-1}
+    - {cloud: Lambda, accelerators: GH200:1, region: australia-east-1}
+  labels:
+    project: dna
+  disk_size: 256
+
+workdir: .
+
+file_mounts:
+  /home/ubuntu/sky_workdir/results/genome.fa.gz: ~/genome_cache/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+  /home/ubuntu/sky_workdir/results/genome.fa.gz.fai: ~/genome_cache/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.fai
+  /home/ubuntu/sky_workdir/results/genome.fa.gz.gzi: ~/genome_cache/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.gzi
+
+envs:
+  MODEL: evo2_1b_base
+  N: "128"
+  BATCH_SIZE: "8"
+  EMB_LAYER: "norm"
+  LIST_LAYERS: ""   # set to any non-empty to just dump module names and exit
+  HF_TOKEN: ""
+
+setup: |
+  set -euxo pipefail
+  # Same image as eval_matched_pair.yaml — see that file for the rationale (NGC
+  # pytorch base + evo2 + a datasets upgrade + pyfaidx/scipy/scikit-learn; no HF
+  # transformers). Keep in sync.
+  sudo docker pull nvcr.io/nvidia/pytorch:25.04-py3
+  cat > /tmp/evo2.Dockerfile <<'EOF'
+  FROM nvcr.io/nvidia/pytorch:25.04-py3
+  RUN pip install --break-system-packages evo2
+  RUN PIP_CONSTRAINT= pip install --break-system-packages -U \
+    "datasets>=3.1,<4" pyfaidx scipy scikit-learn
+  WORKDIR /workspace
+  EOF
+  sudo docker build -t evo2-eval:latest -f /tmp/evo2.Dockerfile /tmp
+
+run: |
+  set -euxo pipefail
+  CONTAINER_NAME="evo2-smoke-${MODEL}-$$"
+  trap 'sudo docker rm -f "$CONTAINER_NAME" 2>/dev/null || true' EXIT INT TERM
+  sudo docker run --rm --name "$CONTAINER_NAME" --gpus all --ipc=host --shm-size=16g \
+    -v "$PWD":/workspace -w /workspace \
+    -v "$HOME/.sky/file_mounts:$HOME/.sky/file_mounts:ro" \
+    -e MODEL="$MODEL" -e HF_TOKEN="${HF_TOKEN:-}" \
+    -e N="${N:-128}" -e BATCH_SIZE="${BATCH_SIZE:-8}" \
+    -e EMB_LAYER="${EMB_LAYER:-norm}" -e LIST_LAYERS="${LIST_LAYERS:-}" \
+    -e CUDA_VISIBLE_DEVICES=0 \
+    -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+    -e OMP_NUM_THREADS=8 \
+    -e PYTHONPATH=/workspace/src \
+    evo2-eval:latest \
+    bash -c '
+      set -euxo pipefail
+      if [ -n "${HF_TOKEN:-}" ]; then export HUGGING_FACE_HUB_TOKEN="$HF_TOKEN"; fi
+      LIST_ARG=""
+      if [ -n "${LIST_LAYERS:-}" ]; then LIST_ARG="--list-layers"; fi
+      python scripts/evo2_eval/embed_smoke.py \
+        --model "$MODEL" --n "${N:-128}" --batch-size "${BATCH_SIZE:-8}" \
+        --emb-layer "${EMB_LAYER:-norm}" --genome-path results/genome.fa.gz \
+        ${LIST_ARG}
+    '
