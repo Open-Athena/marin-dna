@@ -1,6 +1,0 @@
-# Local-first: this pipeline pulls ~15 GB of bigWigs + rmsk/chain as scratch
-# and emits a single small parquet. We keep everything local (no
-# default-storage-provider) and upload only the final neutral_sites.parquet to
-# S3 at pin time — see README. `use-conda` provides bedtools + liftOver.
-cores: all
-use-conda: true
