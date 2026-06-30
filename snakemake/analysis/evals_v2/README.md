@@ -264,6 +264,69 @@ snakemake results/calibration/<model>/llr_neutral_mean_n100.parquet  # one model
   the per-cell `results/ll_gap/scores/{model}/{region}.parquet` targets, then
   gather with `snakemake ll_gap`.
 
+### Linear probe (frozen-embedding VEP, #320)
+
+`snakemake probe` trains a **frozen-embedding linear probe** per `(model,
+dataset)` — the productionized form of #314's settled protocol — also kept **off
+`rule all`**. It consumes the in-bundle pooled embeddings (`emb_ref`/`emb_alt`, the
+#318 columns), so the cell's scores parquet **must** have been produced with
+`inference.return_embeddings: true` (the rule fails fast otherwise). CPU-only — no
+GPU; the probe logic lives in
+`marin_dna.pipelines.evals.variant_probe.run_subset_probes`.
+
+The protocol is **one** approach, no sweeps:
+
+- **Feature** — `emb_ref`/`emb_alt` upcast f16→**f32** (a cancellation guard, #318),
+  then one per-dataset pair-feature: `concat_ref_delta = [ref, alt−ref]` for
+  directional datasets (`score_protocol: minus_llr`), `sum_absdiff = [ref+alt,
+  |alt−ref|]` for swap-invariant ones (`abs_llr`). Override per dataset with an
+  optional `probe_feature:`.
+- **Per consequence `subset`** (or one synthetic `all` group when the dataset has no
+  `subset`, e.g. caqtl/dsqtl), trained only if it clears `min_variants` **and**
+  `min_chroms`; smaller subsets get `NaN` `probe_score` and no classifier.
+- **Probe** — `StandardScaler → LogisticRegression(L2)`; the only tuned knob is the
+  L2 strength `C`.
+- **CV** — leave-one-chromosome-out predictions with an inner `GroupKFold`
+  `GridSearchCV` re-tuning `C` per fold (leakage-free, the TraitGym protocol); the
+  reusable classifier is the same pipeline fit on all the subset's variants.
+- **C-edge diagnostic (verified)** — `c_grid = logspace(-12, 4, 17)` is anchored at
+  both regularization limits: the high end (`1e4`) is a saturation cap whose ranking
+  equals the unregularized `C→∞` limit (no `inf` needed), and the low end (`1e-12`)
+  is a heavy-reg floor (as `C→0` the L2 fit shrinks to the scale-free mean-difference
+  direction — *not* a constant predictor, since AUPRC is rank-based). For each subset
+  the joblib `c_summary` records the pin counts **and verifies** them: from the
+  all-data inner-CV curve, `high_edge_gain` / `low_edge_gain` measure whether a
+  pinned edge is still improving vs its interior neighbor, and `truncation_risk`
+  fires only if it is (which the anchored grid avoids). So an edge pin is confirmed
+  *saturated/flat (benign)* rather than assumed.
+
+Two artifacts per cell:
+
+```
+results/probe/{model}/{dataset}.parquet   # variant cols (minus emb_ref/emb_alt) + probe_score (NaN for skipped subsets)
+results/probe/{model}/{dataset}.joblib    # {subset: {pipeline, C, feature, n, n_pos, c_summary}}
+```
+
+The predictions parquet (the LOOC `probe_score` per variant) is consumed by the
+**downstream metrics step** (a separate issue); the joblib classifiers are
+serialized for **reuse on other datasets**. Configured under `probe:` in
+`config.yaml` (`min_variants`, `min_chroms`, `c_grid` = `logspace(lo, hi, num)`,
+`inner_splits`, `n_jobs`, and `models: [{name, datasets}]` — datasets listed
+explicitly since embeddings are per-cell). Build:
+
+```bash
+# `--rerun-triggers mtime` is required: the scores parquet was built with the #318
+# overlay (return_embeddings: true) but the committed default is false, so the default
+# `params` trigger would otherwise rebuild it — dropping the embeddings the rule needs
+# (and a rebuild needs a GPU the probe node doesn't have).
+snakemake probe --rerun-triggers mtime                              # all configured probe cells
+snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime   # one cell
+
+# A cell whose scores parquet predates the embeddings must be re-scored first:
+snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun \
+  compute_scores -- results/scores/<model>/<dataset>.parquet
+```
+
 ### Parallel sky-cluster sweep (one cluster per target)
 
 For a grid of independent targets — e.g. all checkpoints of one model arm,

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from datasets import load_dataset
@@ -19,6 +20,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_qtl_metrics,
     compute_sge_metrics,
 )
+from marin_dna.pipelines.evals.variant_probe import PAIR_COMBOS, run_subset_probes
 
 # Per-dataset eval protocol. `matched_pair` (default) → per-subset AUPRC +
 # cluster bootstrap over `match_group` (mendelian/complex). `qtl_global` →
@@ -221,4 +223,64 @@ for _m in LL_GAP_MODELS:
 for _d in LL_GAP_CFG.get("datasets", []):
     assert "hf_repo" in _d and "hf_revision" in _d, (
         f"ll_gap dataset {_d.get('name')!r} needs `hf_repo` + `hf_revision`"
+    )
+
+
+# --- Linear probe (frozen-embedding VEP, issue #320) ------------------------
+# Optional `probe:` config section; targets kept OFF `rule all` (see
+# rules/probe.smk). Reuses the `models:` registry. Each probe entry is
+# `{name, datasets: [...]}` — datasets are listed explicitly (not derived) because
+# probing a cell requires its scores parquet to carry emb_ref/emb_alt
+# (inference.return_embeddings), which is per-cell, not per-model.
+PROBE_CFG = config.get("probe", {})
+PROBE_MODELS = PROBE_CFG.get("models", [])
+
+# Probe pair-feature per dataset: directional datasets (minus_llr) take the signed
+# `concat_ref_delta = [ref, alt−ref]`; swap-invariant ones (abs_llr) take the
+# symmetric `sum_absdiff = [ref+alt, |alt−ref|]` (issue #314 feature rule).
+PROBE_FEATURE_BY_PROTOCOL = {
+    "minus_llr": "concat_ref_delta",
+    "abs_llr": "sum_absdiff",
+}
+
+# Fail fast: the feature map must cover every score protocol a dataset can declare
+# (config load already asserts each dataset's score_protocol ∈ SCORE_PROTOCOLS), so
+# get_probe_feature never raises a bare KeyError late at rule-eval — mirroring the
+# guard the metrics path already has on its own SCORE_PROTOCOLS lookup.
+_unmapped_protocols = sorted(set(SCORE_PROTOCOLS) - set(PROBE_FEATURE_BY_PROTOCOL))
+assert not _unmapped_protocols, (
+    f"PROBE_FEATURE_BY_PROTOCOL is missing entries for score protocols "
+    f"{_unmapped_protocols}; add them or get_probe_feature will KeyError"
+)
+
+
+def get_probe_feature(name):
+    """Probe pair-feature combo for a dataset, from its `score_protocol`; an
+    explicit `probe_feature` on the dataset entry overrides."""
+    cfg = get_dataset_config(name)
+    if "probe_feature" in cfg:
+        return cfg["probe_feature"]
+    return PROBE_FEATURE_BY_PROTOCOL[cfg["score_protocol"]]
+
+
+# Fail fast: every probe entry names a known checkpoint and lists datasets that
+# model is actually evaluated on; any explicit `probe_feature` override is a known
+# combo. A typo would otherwise surface late inside the rule.
+for _pm in PROBE_MODELS:
+    assert isinstance(_pm, dict) and {"name", "datasets"} <= _pm.keys(), (
+        f"probe `models` entry must be a mapping with `name` + `datasets` keys "
+        f"(unlike the bare-string `models:` of calibration/umap), got {_pm!r}"
+    )
+    assert _pm["name"] in MODELS, f"probe model {_pm['name']!r} not found in `models`"
+    _model_datasets = get_model_datasets(_pm["name"])
+    for _d in _pm["datasets"]:
+        assert _d in _model_datasets, (
+            f"probe model {_pm['name']!r} dataset {_d!r} not in its evaluated "
+            f"datasets {_model_datasets}"
+        )
+for _d in config["datasets"]:
+    _pf = _d.get("probe_feature")
+    assert _pf is None or _pf in PAIR_COMBOS, (
+        f"dataset {_d['name']!r} `probe_feature` must be one of {PAIR_COMBOS}, "
+        f"got {_pf!r}"
     )
