@@ -92,12 +92,16 @@ def _emb_frame(ref: np.ndarray, alt: np.ndarray, **cols) -> pd.DataFrame:
 
 
 def test_pair_feature_from_bundle_upcasts_f16_before_combining() -> None:
-    # values exact in f16 so the only thing under test is the upcast + combine.
-    ref = np.array([[1.0, 2.0], [0.5, 4.0]], dtype=np.float32)
-    alt = np.array([[1.5, 2.5], [0.25, 4.5]], dtype=np.float32)
-    feat = pair_feature_from_bundle(_emb_frame(ref, alt), "delta")
+    # 1500/1501 are exact in f16, but their sum 3001 is NOT (f16 spacing is 2 above
+    # 2048), so `ref+alt` computed in f16 rounds to 3000 while f32 keeps 3001. Using
+    # `sum_absdiff` (which adds) makes the upcast observable — `delta` alone can't,
+    # since f16 subtraction of near-equal values is exact (Sterbenz). A missing
+    # pre-combine upcast would return f16 [[3000, 1]] and fail both asserts.
+    ref = np.array([[1500.0]], dtype=np.float32)
+    alt = np.array([[1501.0]], dtype=np.float32)
+    feat = pair_feature_from_bundle(_emb_frame(ref, alt), "sum_absdiff")
     assert feat.dtype == np.float32
-    np.testing.assert_allclose(feat, alt - ref)
+    np.testing.assert_array_equal(feat, [[3001.0, 1.0]])
 
 
 def test_pair_feature_from_bundle_matches_manual_stack() -> None:
@@ -246,6 +250,28 @@ def test_summarize_selected_c_low_edge_flat_is_benign() -> None:
     assert out["truncation_risk"] is False
 
 
+def test_summarize_selected_c_low_edge_truncation_flagged() -> None:
+    # full_c pins the floor and the curve is STILL higher there than its interior
+    # neighbor (descending) → wants heavier reg than the grid allows → flagged.
+    scores = np.array([0.60, 0.40, 0.30, 0.20, 0.10])  # best at the heavy-reg floor
+    out = summarize_selected_c(
+        [0.01], full_c=0.01, c_grid=C_GRID_TEST, full_c_scores=scores
+    )
+    assert out["low_edge_gain"] == pytest.approx(0.20)  # 0.60 - 0.40
+    assert out["truncation_risk"] is True
+
+
+def test_summarize_selected_c_nan_edge_gain_flags_risk() -> None:
+    # A failed/single-class inner-CV fold leaves mean_test_score NaN at the pinned
+    # edge; saturation can't be verified, so it must NOT be reported benign.
+    scores = np.array([0.30, 0.40, 0.50, 0.55, np.nan])  # NaN at the pinned high edge
+    out = summarize_selected_c(
+        [100.0], full_c=100.0, c_grid=C_GRID_TEST, full_c_scores=scores
+    )
+    assert np.isnan(out["high_edge_gain"])
+    assert out["truncation_risk"] is True  # not silently False via `nan > tol`
+
+
 # --------------------------------------------------------------------------
 # run_subset_probes — per-subset orchestration
 # --------------------------------------------------------------------------
@@ -360,3 +386,70 @@ def test_run_subset_probes_all_below_threshold_raises() -> None:
             min_variants=1000,
             n_jobs=1,
         )
+
+
+def test_run_subset_probes_skips_single_class_subset() -> None:
+    # a subset that clears the size/chrom gates but is all-one-class must be skipped
+    # (LogisticRegression needs both classes), not crash the run.
+    df = _toy_bundle({"normal": 80, "allneg": 80})
+    df.loc[df["subset"] == "allneg", "label"] = 0  # force single-class
+    preds, clfs = run_subset_probes(
+        df,
+        feature_combo="concat_ref_delta",
+        c_grid=C_GRID_TEST,
+        min_variants=40,
+        min_chroms=3,
+        inner_splits=3,
+        n_jobs=1,
+    )
+    assert set(clfs) == {"normal"}
+    assert preds.loc[preds["subset"] == "allneg", "probe_score"].isna().all()
+
+
+def test_run_subset_probes_skips_below_min_chroms() -> None:
+    # plenty of variants but only 2 chromosomes (< min_chroms) → skipped, not fed to
+    # LeaveOneGroupOut (which needs >=3 groups).
+    wide = _toy_bundle({"wide": 80}, n_chrom=4)
+    narrow = _toy_bundle({"narrow": 80}, n_chrom=2, seed=1)
+    df = pd.concat([wide, narrow], ignore_index=True)
+    preds, clfs = run_subset_probes(
+        df,
+        feature_combo="concat_ref_delta",
+        c_grid=C_GRID_TEST,
+        min_variants=40,
+        min_chroms=3,
+        inner_splits=3,
+        n_jobs=1,
+    )
+    assert set(clfs) == {"wide"}
+    assert preds.loc[preds["subset"] == "narrow", "probe_score"].isna().all()
+
+
+def test_run_subset_probes_keeps_going_when_one_subset_errors(monkeypatch) -> None:
+    # the per-subset try/except must keep an unattended multi-subset run alive: one
+    # erroring subset is skipped (NaN), siblings still train.
+    from marin_dna.pipelines.evals import variant_probe as vp
+
+    df = _toy_bundle({"aaa_bad": 80, "zzz_good": 80})  # sorted() → aaa_bad first
+    real = vp.traitgym_nested_oof
+    calls = {"n": 0}
+
+    def flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:  # only the first subset errors
+            raise RuntimeError("boom")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(vp, "traitgym_nested_oof", flaky)
+    preds, clfs = vp.run_subset_probes(
+        df,
+        feature_combo="concat_ref_delta",
+        c_grid=C_GRID_TEST,
+        min_variants=40,
+        min_chroms=3,
+        inner_splits=3,
+        n_jobs=1,
+    )
+    assert set(clfs) == {"zzz_good"}
+    assert preds.loc[preds["subset"] == "aaa_bad", "probe_score"].isna().all()
+    assert not preds.loc[preds["subset"] == "zzz_good", "probe_score"].isna().any()

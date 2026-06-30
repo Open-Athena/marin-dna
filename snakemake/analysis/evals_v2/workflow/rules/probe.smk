@@ -12,10 +12,15 @@ CPU-only (sklearn on cached embeddings — no GPU). Requires the input scores pa
 carry `emb_ref`/`emb_alt`, i.e. it must have been produced with
 `inference.return_embeddings: true` (the #318 overlay); the rule fails fast otherwise.
 
-Kept OFF `rule all` (a few-models analysis, like `calibration` / `umap`); build by name:
+Kept OFF `rule all` (a few-models analysis, like `calibration` / `umap`). Pass
+`--rerun-triggers mtime` on every invocation: the input scores parquet was built with
+the #318 overlay (`return_embeddings: true`), which differs from the committed default
+(`false`), so snakemake's default `params` trigger would otherwise try to rebuild it —
+and a rebuild on this CPU node (no GPU/gcloud) would drop the very `emb_ref`/`emb_alt`
+the rule asserts on. Build by name:
 
-    snakemake probe                                   # every configured probe cell
-    snakemake results/probe/<model>/<dataset>.parquet
+    snakemake probe --rerun-triggers mtime                              # every configured probe cell
+    snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime
 """
 
 

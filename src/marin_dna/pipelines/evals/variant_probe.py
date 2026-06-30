@@ -114,6 +114,9 @@ def pair_feature_from_bundle(df: pd.DataFrame, combo: str) -> np.ndarray:
         "scores parquet lacks emb_ref/emb_alt columns — re-score with "
         "inference.return_embeddings=true (the #318 overlay)"
     )
+    # Guard the empty frame: np.stack([]) raises an opaque "need at least one array
+    # to stack" before the shape assert below could give a domain message.
+    assert len(df) > 0, "empty frame — no variants to build a probe feature from"
     # f16 store -> f32 BEFORE the difference (cancellation guard).
     ref = np.stack(df["emb_ref"].to_numpy()).astype(np.float32)
     alt = np.stack(df["emb_alt"].to_numpy()).astype(np.float32)
@@ -125,15 +128,34 @@ def pair_feature_from_bundle(df: pd.DataFrame, combo: str) -> np.ndarray:
 def _probe_pipeline() -> Pipeline:
     """The locked probe: ``StandardScaler → L2 LogisticRegression``.
 
-    ``l1_ratio=0.0`` is the sklearn 1.8 idiom for a pure-L2 penalty (the bare
-    ``penalty='l2'`` argument is deprecated there). ``C`` is set per grid point by
-    the caller's ``GridSearchCV``.
+    sklearn 1.8 defaults ``LogisticRegression`` to L2 (the ``penalty`` arg is
+    mid-deprecation — passing ``penalty='l2'`` warns). ``l1_ratio`` only takes effect
+    under elasticnet, so ``l1_ratio=0.0`` is a no-op here; it's passed to pin the
+    intent to pure-L2 (and to guard against a future default drifting toward
+    elasticnet). ``C`` is set per grid point by the caller's ``GridSearchCV``.
     """
     return Pipeline(
         [
             ("scaler", StandardScaler()),
             ("clf", LogisticRegression(l1_ratio=0.0, max_iter=_MAX_ITER)),
         ]
+    )
+
+
+def _inner_c_search(c_grid: np.ndarray, k: int, n_jobs: int) -> GridSearchCV:
+    """The inner C-tuning search shared by the OOF folds and the all-data fit.
+
+    Kept in one place so the leak-free OOF folds (``traitgym_nested_oof``) and the
+    reusable all-data classifier (``fit_full_classifier``) tune ``C`` *identically* —
+    same pipeline, same ``GroupKFold`` AUPRC inner CV. Diverging the two would break
+    the leakage-equivalence the protocol relies on.
+    """
+    return GridSearchCV(
+        _probe_pipeline(),
+        {"clf__C": c_grid},
+        cv=GroupKFold(n_splits=k),
+        scoring="average_precision",
+        n_jobs=n_jobs,
     )
 
 
@@ -170,13 +192,7 @@ def traitgym_nested_oof(
     selected: list[float] = []
     for tr, te in LeaveOneGroupOut().split(X, y, g):
         k = min(inner_splits, len(np.unique(g[tr])))
-        gs = GridSearchCV(
-            _probe_pipeline(),
-            {"clf__C": c_grid},
-            cv=GroupKFold(n_splits=k),
-            scoring="average_precision",
-            n_jobs=n_jobs,
-        )
+        gs = _inner_c_search(c_grid, k, n_jobs)
         gs.fit(X[tr], y[tr], groups=g[tr])
         oof[te] = gs.predict_proba(X[te])[:, 1]
         selected.append(float(gs.best_params_["clf__C"]))
@@ -212,13 +228,7 @@ def fit_full_classifier(
     assert X.ndim == 2 and X.shape[0] == n == len(g), (X.shape, n, len(g))
     k = min(inner_splits, len(np.unique(g)))
     assert k >= 2, f"need >=2 groups for inner C-search, got {len(np.unique(g))}"
-    gs = GridSearchCV(
-        _probe_pipeline(),
-        {"clf__C": c_grid},
-        cv=GroupKFold(n_splits=k),
-        scoring="average_precision",
-        n_jobs=n_jobs,
-    )
+    gs = _inner_c_search(c_grid, k, n_jobs)
     gs.fit(X, y, groups=g)
     # Inner-CV mean AUPRC per grid C, ordered ascending in C so c_scores[0] is the
     # heavy-reg floor and c_scores[-1] the weak-reg cap (the edge-saturation check).
@@ -258,6 +268,7 @@ def summarize_selected_c(
     sel = np.asarray(selected_cs, dtype=float)
     grid = np.sort(np.asarray(c_grid, dtype=float))
     assert sel.ndim == 1 and sel.size >= 1, sel.shape
+    assert grid.size >= 2, f"c_grid needs >=2 points for edge logic, got {grid.size}"
     lo, hi = float(grid[0]), float(grid[-1])
     n_low = int(np.sum(sel == lo))
     n_high = int(np.sum(sel == hi))
@@ -284,9 +295,13 @@ def summarize_selected_c(
         low_pinned = n_low > 0 or full_c == lo
         out["high_edge_gain"] = high_gain
         out["low_edge_gain"] = low_gain
-        out["truncation_risk"] = bool(
-            (high_pinned and high_gain > tol) or (low_pinned and low_gain > tol)
-        )
+        # A pinned edge is risky if it's still improving past tol — OR if its gain is
+        # NaN (a failed/single-class inner-CV fold left mean_test_score NaN): we then
+        # could NOT verify saturation, so we must not silently report "benign"
+        # (`nan > tol` is False, which would). Flag it instead.
+        high_risky = high_pinned and (np.isnan(high_gain) or high_gain > tol)
+        low_risky = low_pinned and (np.isnan(low_gain) or low_gain > tol)
+        out["truncation_risk"] = bool(high_risky or low_risky)
     return out
 
 

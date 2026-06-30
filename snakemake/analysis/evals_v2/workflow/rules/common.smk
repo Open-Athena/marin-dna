@@ -243,6 +243,16 @@ PROBE_FEATURE_BY_PROTOCOL = {
     "abs_llr": "sum_absdiff",
 }
 
+# Fail fast: the feature map must cover every score protocol a dataset can declare
+# (config load already asserts each dataset's score_protocol ∈ SCORE_PROTOCOLS), so
+# get_probe_feature never raises a bare KeyError late at rule-eval — mirroring the
+# guard the metrics path already has on its own SCORE_PROTOCOLS lookup.
+_unmapped_protocols = sorted(set(SCORE_PROTOCOLS) - set(PROBE_FEATURE_BY_PROTOCOL))
+assert not _unmapped_protocols, (
+    f"PROBE_FEATURE_BY_PROTOCOL is missing entries for score protocols "
+    f"{_unmapped_protocols}; add them or get_probe_feature will KeyError"
+)
+
 
 def get_probe_feature(name):
     """Probe pair-feature combo for a dataset, from its `score_protocol`; an
@@ -257,6 +267,10 @@ def get_probe_feature(name):
 # model is actually evaluated on; any explicit `probe_feature` override is a known
 # combo. A typo would otherwise surface late inside the rule.
 for _pm in PROBE_MODELS:
+    assert isinstance(_pm, dict) and {"name", "datasets"} <= _pm.keys(), (
+        f"probe `models` entry must be a mapping with `name` + `datasets` keys "
+        f"(unlike the bare-string `models:` of calibration/umap), got {_pm!r}"
+    )
     assert _pm["name"] in MODELS, f"probe model {_pm['name']!r} not found in `models`"
     _model_datasets = get_model_datasets(_pm["name"])
     for _d in _pm["datasets"]:

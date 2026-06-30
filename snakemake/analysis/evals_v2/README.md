@@ -315,8 +315,12 @@ serialized for **reuse on other datasets**. Configured under `probe:` in
 explicitly since embeddings are per-cell). Build:
 
 ```bash
-snakemake probe                                          # all configured probe cells
-snakemake results/probe/<model>/<dataset>.parquet        # one cell
+# `--rerun-triggers mtime` is required: the scores parquet was built with the #318
+# overlay (return_embeddings: true) but the committed default is false, so the default
+# `params` trigger would otherwise rebuild it — dropping the embeddings the rule needs
+# (and a rebuild needs a GPU the probe node doesn't have).
+snakemake probe --rerun-triggers mtime                              # all configured probe cells
+snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime   # one cell
 
 # A cell whose scores parquet predates the embeddings must be re-scored first:
 snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun \
