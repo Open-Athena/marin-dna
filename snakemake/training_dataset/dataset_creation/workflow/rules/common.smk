@@ -35,8 +35,6 @@ from marin_dna.data.utils import (
     read_bed_to_pandas,
     write_pandas_to_bed,
 )
-from marin_dna.pipelines.enhancer_classification.predict import sliding_windows
-from marin_dna.pipelines.enhancer_segmentation.predict_genome import tile_chromosomes
 
 tqdm.pandas()
 

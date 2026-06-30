@@ -163,7 +163,7 @@ Edit `config/config.yaml` to customize the pipeline:
 
 - **`intervals`** - Interval types to generate
   - `intervals.training`: list of `{recipe}/{window_size}/{overlap}` strings; built across the cartesian product of *every* `genome_set`.
-  - `intervals.training_per_genome_set` (optional): mapping `{genome_set: [recipes...]}` for recipes that only apply to a specific genome_set (e.g., `v20` segmentation-predicted enhancers only exist for the 20 mammals scored in PR #126, exposed as `enhancer_seg_mammals_v1`). For any genome_set listed here, the given recipes **replace** (not extend) the cartesian-product training recipes — so the listed set won't also get the default `intervals.training` recipes built.
+  - `intervals.training_per_genome_set` (optional): mapping `{genome_set: [recipes...]}` for recipes that only apply to a specific genome_set (e.g., the cCRE recipes `v30`-`v33` only apply to the 20 mammals in `mammals_seg20`). For any genome_set listed here, the given recipes **replace** (not extend) the cartesian-product training recipes — so the listed set won't also get the default `intervals.training` recipes built.
   - `intervals.validation`: list of recipes used to build the conservation-aware human validation parquet.
   - Format: `{recipe}/{window_size}/{overlap}`
   - Examples:
@@ -177,7 +177,7 @@ Edit `config/config.yaml` to customize the pipeline:
 
 - **`genome_sets`** - Groupings for separate datasets. Each entry has a `name`, plus *either*:
   - `rank_key` + `rank_value` for taxonomic filtering (e.g., `{rank_key: "class", rank_value: "Mammalia"}`), or
-  - `accessions`: an explicit list of Assembly Accessions (e.g., the 20 species in `enhancer_seg_mammals_v1`).
+  - `accessions`: an explicit list of Assembly Accessions (e.g., the 20 species in `mammals_seg20`).
   - Creates separate datasets for each group.
 
 - **`output_hf_prefix`** - HuggingFace repository prefix (e.g., "username/dataset-name")
@@ -210,72 +210,6 @@ Edit `config/config.yaml` to customize the pipeline:
 # Run pipeline
 uv run snakemake
 ```
-
-## Enhancer prediction (recipe v19)
-
-Recipe v19 produces enhancer intervals from a trained `EnhancerClassifier` (see [issue #96](https://github.com/Open-Athena/marin-dna/issues/96) for the classifier and [issue #104](https://github.com/Open-Athena/marin-dna/issues/104) for the inference pipeline). The classifier is run genome-wide with sliding-window inference, and bins above a logit threshold become the enhancer interval set.
-
-**Pipeline**: `extract_exons` → `scannable_regions` (defined − exons) → `enhancer_prediction_windows` → `predict_enhancers` → `intervals_recipe_v19`.
-
-**Prerequisites**:
-- Install enhancer-classification dependencies: `uv sync --group enhancer-classification`
-- A trained classifier checkpoint (configured via `enhancer_prediction.checkpoint` in `config.yaml`, supports `s3://` URIs via Snakemake `storage()`)
-- A GPU for the `predict_enhancers` rule
-
-**Configuration** (`enhancer_prediction` block in `config.yaml`):
-- `checkpoint`: path or S3 URI to the Lightning checkpoint
-- `window_size`, `step_size`: sliding-window parameters (default 255bp / 128bp)
-- `batch_size`, `num_workers`: inference DataLoader settings
-- `threshold`: logit threshold for recipe v19 (set after analyzing the genome-wide logit distribution)
-
-**Status**: working but slow (~1.4h per genome on L4 GPU). For a faster alternative being explored, see [issue #115](https://github.com/Open-Athena/marin-dna/issues/115) (per-bin segmentation).
-
-## Whole-genome segmentation prediction
-
-Runs the per-bin segmentation model from [issue #115](https://github.com/Open-Athena/marin-dna/issues/115) across whole genomes, producing 128bp-resolution enhancer logits — see [issue #118](https://github.com/Open-Athena/marin-dna/issues/118).
-
-**Pipeline**: `segmentation_prediction_windows` → `predict_enhancers_segmentation`. Aggregate target: `all_enhancer_predictions_segmentation`.
-
-**Prerequisites**:
-- Install enhancer-classification dependencies: `uv sync --group enhancer-classification`
-- A trained `EnhancerSegmenter` checkpoint (configured via `enhancer_prediction_segmentation.checkpoint` in `config.yaml`; supports `s3://` URIs via Snakemake `storage()`)
-- A GPU for the prediction rule
-- ~5GB free local disk per active job for the Snakemake S3 cache (genome ~2–3GB + checkpoint ~1.5GB). The cache is cleaned up between jobs.
-
-**Configuration** (`enhancer_prediction_segmentation` block in `config.yaml`):
-- `checkpoint`: path or S3 URI to the Lightning checkpoint
-- `window_size`: window size in bp (64kbp for the default 64k-context transformer model)
-- `bin_size`: output bin size in bp (128 for the default model)
-- `batch_size`, `num_workers`: inference DataLoader settings
-- `max_windows`: truncate to first N windows for smoke tests (0 = no limit)
-- `genomes`: list of Assembly Accessions to predict
-
-**Window tiling**: only full-context windows are emitted — the model was trained on unpadded sequence and is not robust to N-padded inputs. Consequence: contigs smaller than `window_size` and chromosome tails not aligned to `window_size` are uncovered. This restricts the selection to Chromosome-level assemblies; see #118 for discussion of future improvements (training with padding, smaller-context model).
-
-**Output**: one parquet per genome at `results/enhancer_predictions_segmentation/{g}.parquet` (stored to S3 by the default profile) with schema `(chrom: str, bin_start: int64, bin_end: int64, logit: float32)` — one row per 128bp bin.
-
-**Status**: ~1h per genome on L4 GPU (~65 min). See #118 for benchmarks and a follow-up [#119](https://github.com/Open-Athena/marin-dna/issues/119) for parallel execution across multiple GPU instances via AWS Batch.
-
-## Recipe v20 (segmentation-based enhancers)
-
-Recipe v20 is the segmentation analogue of v19: it converts the per-bin segmentation logits from PR #126 into 255 bp enhancer windows for use as gLM training data. See [issue #133](https://github.com/Open-Athena/marin-dna/issues/133).
-
-**Pipeline**: `predict_enhancers_segmentation` (per-bin parquet from #118) → `intervals_recipe_v20`.
-
-**Algorithm**:
-1. Load per-bin logits.
-2. Threshold by per-genome quantile: keep bins with `logit >= quantile(1 - top_quantile)`. No held-out PR-curve calibration in this iteration.
-3. Resize each surviving 128 bp bin to a `recipe_target_size` bp window centered on its midpoint (auto-merge overlapping windows via `GenomicSet`).
-4. Subtract all functional exons (`get_exons_for_masking` — CDS + UTR + ncRNA, low-quality biotypes already excluded).
-5. Intersect with `defined` (drops N-runs and clips off-chromosome edges).
-
-**Configuration** (`enhancer_prediction_segmentation` block in `config.yaml`):
-- `recipe_top_quantile` (default `0.01` — top 1% of bins per genome)
-- `recipe_target_size` (default `255` bp)
-
-**Coverage**: only the 20 chromosome-level mammals listed in `enhancer_prediction_segmentation.genomes`, exposed as the `enhancer_seg_mammals_v1` genome_set. The recipe is wired into the dataset-assembly via `intervals.training_per_genome_set` so the `all` rule produces the HF dataset `bolinas-dna/genomes-v5-genome_set-enhancer_seg_mammals_v1-intervals-v20_255_128`.
-
-**Threshold calibration on chr7 with held-out PR curves is deferred** — that would replace the quantile threshold with a precision-targeted one. Tracked under #96.
 
 ## Interval projection across genomes (`interval_mappings`)
 
@@ -318,7 +252,7 @@ Following [#136](https://github.com/Open-Athena/marin-dna/issues/136), where pro
 | v32 | phastCons-43p | ≥0.961 | ≥20 bp | `ELS_phastCons_43p_conserved_20_mmseqs2_s75` |
 | v33 | phastCons-43p | ≥0.961 | ≥50 bp | `ELS_phastCons_43p_conserved_50_mmseqs2_s75` |
 
-phastCons-43p is the Zoonomia 43-primate phastCons track (URL in `enhancer_classification/config/config.yaml:329-331`); 0.961 is calibrated to a ~3.46% conserved-base fraction matching phyloP-241way 2.27 at the per-base level. The per-cCRE filter is absolute conserved bp (`pct_conserved × size ≥ N`); 20 bp is ~7% of the median ELS length (272 bp), 50 bp ~18%. Caveat: phastCons-43p selects primate-conserved cCREs by construction, so v32/v33 may project worse to non-primate mammals than v30/v31.
+phastCons-43p is the Zoonomia 43-primate phastCons track; 0.961 is calibrated to a ~3.46% conserved-base fraction matching phyloP-241way 2.27 at the per-base level. The per-cCRE filter is absolute conserved bp (`pct_conserved × size ≥ N`); 20 bp is ~7% of the median ELS length (272 bp), 50 bp ~18%. Caveat: phastCons-43p selects primate-conserved cCREs by construction, so v32/v33 may project worse to non-primate mammals than v30/v31.
 
 ## Output
 

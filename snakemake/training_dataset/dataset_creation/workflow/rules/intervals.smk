@@ -543,8 +543,7 @@ rule intervals_recipe_v18:
 # passthrough (equivalent to v18 after resize+scannable); on other genomes
 # it's the mmseqs2 best-hit projection from hg38. Scannable = defined
 # minus low-quality-excluded exons (see `rule scannable_regions` in
-# `enhancer_prediction.smk`); using the same masking as recipe v19 so the
-# two recipes are directly comparable.
+# `scannable.smk`).
 rule intervals_recipe_v30:
     input:
         projected="results/intervals/ELS_conserved_20_mmseqs2_s75/{g}.parquet",

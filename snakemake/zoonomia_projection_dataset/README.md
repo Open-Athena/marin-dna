@@ -37,7 +37,7 @@ The next experiment (issue #149) trains a mammalian gLM on human-anchored interv
 
 ## Window size = 255 bp (not 256)
 
-The model adds a BOS token. A 255 bp BED becomes a 256-token context after tokenization. Same convention as `enhancer_classification`.
+The model adds a BOS token. A 255 bp BED becomes a 256-token context after tokenization.
 
 ## phyloP_447m threshold (calibration)
 
