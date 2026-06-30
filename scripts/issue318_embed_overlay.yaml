@@ -1,0 +1,34 @@
+# evals_v2 config overlay — turns ON the pooled-embedding bundle (#318) for a
+# one-off extraction, without committing the default-on. Deep-merges over
+# config/config.yaml via snakemake's `--configfile` (only flips this one key;
+# batch_size / rc / num_workers are preserved).
+#
+# Used to produce the first in-bundle embedding artifact for #320 to consume —
+# exp135 (mix-v0.9-p1B-i24-exp135-m5.1-step-59158) × mendelian_traits, the #314
+# pilot model/dataset with documented per-chrom probe AUPRC to check parity against.
+#
+# Invoke (from snakemake/analysis/evals_v2, e.g. via sky run.yaml SNAKEMAKE_ARGS):
+#   snakemake --profile workflow/profiles/default \
+#     --configfile ../../../scripts/issue318_embed_overlay.yaml \
+#     --forcerun compute_scores -- \
+#     results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet
+#
+# batch_size + torch_compile are execution knobs.
+# - batch_size: the embedding forward materializes the final-layer hidden states
+#   (last_hidden_state, captured by a hook — not all layers) + the suffix logits over
+#   the full vocab + the wider [N, 2+2D] predictions, so it's heavier than the slim
+#   LLR/JSD bundle and scales ~linearly with batch. Measured on exp135 (1B) / A10G
+#   24 GB via scripts/issue318_batch_sweep.py: 32→7.0 GB, 64→11.5, 96→16.0 (68%),
+#   128→20.6 (87%), 192→OOM. 96 is the largest with headroom for the full-dataset
+#   prediction accumulation (~1.3 GB on caqtl); 128 is too tight. NOTE this sets the
+#   GLOBAL inference.batch_size — a model with its own per-model `batch_size:` override
+#   (get_model_batch_size) ignores it, and a bigger model (e.g. 4B) needs a lower value.
+# - torch_compile: disabled because compiling the hooked forward is unvalidated and
+#   a small run doesn't need it. Unlike batch_size, torch_compile is NOT
+#   output-identical — eager vs compiled shifts the stored `llr_*` by AUPRC-invariant
+#   float-reduction noise (see the evals_v2 README); fine for the embedding artifact,
+#   but don't treat an eager-computed scores parquet as byte-identical to a compiled one.
+inference:
+  return_embeddings: true
+  batch_size: 96
+  torch_compile: false

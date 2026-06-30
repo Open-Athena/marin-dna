@@ -1160,6 +1160,21 @@ inference:
                         # inference time but is the validated default
                         # per issue #175 conclusion 2. AVG / minus_llr /
                         # abs_llr columns are derived in the metrics rule.
+  return_embeddings: false  # GLOBAL opt-in (#318): also emit the entire-DNA-window
+                        # mean-pooled, both-allele, FWD+RC-averaged last-layer
+                        # embeddings as `emb_ref`/`emb_alt` (list[f16]) columns in
+                        # the SAME scores parquet, from the SAME forwards. Default
+                        # off — `output_hidden_states` makes the forward ~2x heavier
+                        # and adds ~1.5–2.3 GB/model storage. Requires `rc: true`.
+                        # Output-affecting → in `params:`, so flipping it on (or any
+                        # kernel edit) retriggers scoring: run TARGETED targets +
+                        # `--rerun-triggers mtime` to avoid recomputing identical
+                        # llr/jsd on unrelated cells. Pair with a smaller per-model
+                        # `batch_size` (and `eval_accumulation_steps`) for VRAM.
+  eval_accumulation_steps: null  # Execution-only: offload Trainer.predict outputs
+                        # to CPU every N steps (null = accumulate on-device). Set a
+                        # small int for embedding runs so the wide [N, 2+2D]
+                        # predictions don't OOM the GPU. Not output-affecting.
   n_bootstrap: 1000     # AUPRC cluster-bootstrap iterations per
                         # (subset × score_type).
   bootstrap_seed: 0     # 0 → reproducible across re-runs. Bumping

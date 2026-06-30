@@ -35,7 +35,7 @@ Outputs land in S3 at `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`:
 ```
 results/
 ├── checkpoints/{model}/                         # cached HF model dir
-├── scores/{model}/{dataset}.parquet             # variant cols + per-strand score atoms
+├── scores/{model}/{dataset}.parquet             # variant cols + per-strand score atoms (+ emb_ref/emb_alt if return_embeddings)
 └── metrics/{model}/{dataset}.parquet            # AUPRC ± bootstrap SE per (subset × score_type)
 ```
 
@@ -96,6 +96,54 @@ It runs on a 2-axis grid: `subset` ∈ {`missense_variant`, `splicing`, `both`
 dataset, split]` (`metric` is always `AUPRC`). The **same** `compute_sge_metrics`
 is reused by the conservation pipeline (`snakemake/conservation_eval/`). Scoped
 to the three #292 gLMs via their per-model `datasets:` lists.
+
+### Pooled embeddings (`inference.return_embeddings`, #318)
+
+For the frozen-embedding linear-probe VEP protocol (#314 → productionized in
+#321/#320), the **same two (FWD, RC) forward passes** that produce LLR/JSD can
+*also* emit a pooled both-allele embedding — no second pass, no parallel cache.
+Set the global toggle `inference.return_embeddings: true` and the scores parquet
+gains two columns:
+
+- `emb_ref`, `emb_alt` — each a length-`D` (model hidden size) `float16` vector
+  per variant: the **entire-DNA-window mean-pooled** (the `window_size` DNA
+  positions, BOS/special tokens excluded — the #314 `entire_window` extent),
+  **FWD+RC-averaged** last-layer hidden state for that allele. Pooling and the
+  strand average accumulate in **fp32**; only the stored vector is cast to f16.
+
+The probe feature (`concat_ref_delta` / `sum_absdiff`, #320) is built downstream
+from these. Storage is ~`2·D·2` B/variant ≈ **1.5–2.3 GB/model** over the full
+suite (~500× smaller than the per-token cache #314 used). The kernel captures the
+last layer via a forward hook on `model.base_model` (grabbing `last_hidden_state`,
+*not* `output_hidden_states=True` — which would materialize every layer), so the
+extra VRAM is just the final `[B, L, D]` hidden states + the wider `[N, 2+2D]`
+predictions; still heavier than the slim LLR/JSD bundle, so pair an embedding run
+with a smaller per-model `batch_size` (and optionally
+`inference.eval_accumulation_steps` to offload the predictions to CPU). Requires
+`inference.rc: true` (the stored vector is the FWD+RC average; asserted at config
+load).
+
+Run embedding extractions **eager** (`torch_compile: false`): compiling the
+hooked forward is unvalidated, and a small run doesn't need it. The ready-made overlay
+[`scripts/issue318_embed_overlay.yaml`](../../../scripts/issue318_embed_overlay.yaml)
+deep-merges `return_embeddings: true` + `batch_size: 32` + `torch_compile: false`
+over the config (preserving `rc` etc.), e.g.
+`snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun
+compute_scores -- results/scores/<model>/<dataset>.parquet`. Eager makes the
+stored `llr_*` differ from the compiled default by float-reduction noise that
+accumulates in the LLR **sum** (JSD, a mean, is unaffected); the difference is
+AUPRC-invariant — a deliberate execution tradeoff for embedding runs, not a
+correctness issue (the measured parity numbers live in #318 / the PR, not here).
+
+**Operational note.** `return_embeddings` is output-affecting (it lives in the
+rule's `params:`). To extract embeddings into a cell whose scores parquet already
+exists, **force that specific target**:
+`snakemake --configfile scripts/issue318_embed_overlay.yaml --forcerun
+compute_scores -- results/scores/<model>/<dataset>.parquet`. (A bare
+`--rerun-triggers mtime` does *not* help here — it drops the `params` trigger that
+detects the `return_embeddings` flip, so a cell whose output already exists would
+be skipped with no embedding columns.) Name targeted targets rather than
+`snakemake all` so unrelated already-scored cells are left untouched.
 
 ## Conventions
 

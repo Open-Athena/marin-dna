@@ -1,0 +1,46 @@
+# SkyPilot task: GPU smoke for #318 (pooled embeddings in the score bundle).
+#
+# Runs scripts/issue318_smoke.py on a real A10G — exercises the production
+# compute_variant_scores(return_embeddings=True) path on the exp135 checkpoint
+# (pulled from the evals_v2 S3 cache via the instance role; no gcloud/GCS) and a
+# small slice of the public mendelian dataset + the S3 genome. Validates emb
+# columns + the llr/jsd-unchanged invariant + reports peak VRAM. Touches no
+# production parquet.
+#
+# Launch from the repo (worktree) root:
+#   sky launch scripts/issue318_smoke.yaml -c smoke318 -y
+# Tear down when done:
+#   sky down smoke318 -y
+
+name: smoke318
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1          # 24 GB Ampere, bf16-capable (matches evals_v2)
+    disk_size: 200
+    labels:
+        project: dna
+    # Prefer spot (~70% cheaper) with on-demand fallback; the smoke is short and
+    # re-runnable, so a preemption is cheap.
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    # --group genome-s3 pulls s3fs so pyfaidx reads the GRCh38 reference from S3
+    # and the script can localize the cached checkpoint.
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true          # inference job; no wandb on a fresh node
+    nvidia-smi
+    uv run --group genome-s3 python scripts/issue318_smoke.py --n 128 --batch-size 16

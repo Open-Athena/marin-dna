@@ -1124,3 +1124,331 @@ def test_run_variant_marginal_matches_bundle_llr_end_to_end(tmp_path):
     rows = np.arange(len(dataset))
     marg_llr = marg["fwd"][rows, alt_idx] - marg["fwd"][rows, ref_idx]
     np.testing.assert_allclose(marg_llr, bundle["fwd"][:, 0], rtol=1e-4, atol=1e-4)
+
+
+# --- compute_variant_score_bundle return_embeddings (issue #318) -------------
+
+
+class _FixedHiddenBase(nn.Module):
+    """Stand-in for an HF base/decoder model: returns the fixed per-position
+    hidden as ``last_hidden_state``, so a forward hook on it captures the last
+    layer — exactly how ``compute_variant_score_bundle`` grabs hidden states
+    without ``output_hidden_states``. Position-aware via the cached-prefix offset
+    (``_kv_cache_seq_len``); ``logits_to_keep`` must NOT truncate it (mirrors HF),
+    so it always returns the full ``[B, L, D]`` window."""
+
+    def __init__(self, hidden_full: Tensor):
+        super().__init__()
+        self.register_buffer("hidden_full", hidden_full)  # [L_max, D]
+
+    def forward(self, input_ids, past_key_values=None, use_cache=False, **kwargs):
+        B, L = input_ids.shape
+        offset = _kv_cache_seq_len(past_key_values)
+        h = self.hidden_full[offset : offset + L]  # [L, D]
+        h = h.unsqueeze(0).expand(B, L, h.shape[-1]).contiguous()
+        pkv = None
+        if use_cache:
+            pkv = ((torch.zeros(B, 1, L, 1), torch.zeros(B, 1, L, 1)),)
+        return SimpleNamespace(last_hidden_state=h, past_key_values=pkv)
+
+
+class _FixedHiddenCausalLM(nn.Module):
+    """Test double exposing a *fixed* per-position last-layer hidden state, so the
+    pooled embedding has a closed form.
+
+    ``hidden_full`` is ``[L_max, D]``: the last-layer state at absolute position
+    ``t`` is ``hidden_full[t]``, independent of token content. The ``base_model``
+    submodule returns it as ``last_hidden_state``, so the kernel's forward hook on
+    ``model.base_model`` captures the matching slice for the prefix-shared call
+    pattern (prefix forward at offset 0, suffix forward at offset = prefix length)
+    — exactly what ``compute_variant_score_bundle`` concatenates. Logits are
+    content-independent (``pos + vocab``) — valid for the 4-nuc LLR/JSD path but
+    irrelevant to the embedding columns under test. Content-independence ⇒
+    ``emb_ref == emb_alt`` (the only ref/alt difference is the token at
+    ``var_pos``, which doesn't move the hidden state here)."""
+
+    def __init__(self, hidden_full: Tensor, vocab_size: int):
+        super().__init__()
+        self.base_model = _FixedHiddenBase(hidden_full)
+        self.vocab_size = vocab_size
+
+    def forward(
+        self,
+        input_ids,
+        past_key_values=None,
+        use_cache=False,
+        logits_to_keep=0,
+        **kwargs,
+    ):
+        # Route through base_model so a forward hook on it fires (the kernel's
+        # no-all-layers hidden-state capture path).
+        base = self.base_model(
+            input_ids, past_key_values=past_key_values, use_cache=use_cache
+        )
+        B, L = input_ids.shape
+        offset = _kv_cache_seq_len(past_key_values)
+        pos = torch.arange(offset, offset + L, dtype=torch.float).unsqueeze(-1)
+        vocab = torch.arange(self.vocab_size, dtype=torch.float)
+        logits = (pos + vocab).unsqueeze(0).expand(B, L, self.vocab_size).contiguous()
+        out = SimpleNamespace(logits=logits)
+        if use_cache:
+            out.past_key_values = base.past_key_values
+        return out
+
+
+_IDENTITY_NUC_IDS = torch.tensor([0, 1, 2, 3], dtype=torch.long)
+
+
+def test_variant_score_bundle_embeddings_pool_math_and_bos_exclusion():
+    """Entire-window pool is the fp32 mean over [pool_lo, pool_hi) DNA positions,
+    with the n_prefix BOS token(s) excluded.
+
+    Fixed hidden state ``h(t)[d] = t + d`` ⇒ the pooled embedding is
+    ``mean_{t in [lo,hi)}(t) + d`` in closed form. ``pool_lo=1`` drops position 0
+    (the BOS analog); ``pool_hi=L-1`` drops the trailing position — so the pool is
+    exactly the inner DNA block, and including position 0 would shift the mean."""
+    L, D, vocab = 12, 5, 8
+    var_pos = 4
+    # h(t)[d] = t + d
+    hidden_full = (
+        torch.arange(L, dtype=torch.float)[:, None]
+        + torch.arange(D, dtype=torch.float)[None, :]
+    )  # [L, D]
+    model = _FixedHiddenCausalLM(hidden_full, vocab_size=vocab)
+    model.eval()
+    input_ids = torch.randint(0, 4, (3, L))  # nucleotide tokens (ids 0-3)
+    alt_token_id = torch.randint(0, 4, (3,))
+    pool_lo, pool_hi = 1, L - 1  # exclude BOS (idx 0) and trailing (idx L-1)
+
+    out = compute_variant_score_bundle(
+        model,
+        input_ids,
+        alt_token_id,
+        var_pos=var_pos,
+        nuc_token_ids=_IDENTITY_NUC_IDS,
+        return_embeddings=True,
+        pool_lo=pool_lo,
+        pool_hi=pool_hi,
+    )
+    assert out.shape == (3, 2 + 2 * D)
+    emb_ref = out[:, 2 : 2 + D].numpy()
+    emb_alt = out[:, 2 + D : 2 + 2 * D].numpy()
+    # Content-independent hidden ⇒ ref/alt pools identical.
+    np.testing.assert_allclose(emb_ref, emb_alt, atol=1e-5)
+    # Closed form: mean over t in [pool_lo, pool_hi) of (t + d).
+    mean_t = float(np.mean(np.arange(pool_lo, pool_hi)))
+    expected = mean_t + np.arange(D)
+    np.testing.assert_allclose(emb_ref[0], expected, atol=1e-4)
+    # Pooled count == window_size, BOS excluded: pooling [0, pool_hi) would shift
+    # the mean down — the shipped pool must NOT equal that.
+    mean_with_bos = float(np.mean(np.arange(0, pool_hi)))
+    assert not np.allclose(emb_ref[0], mean_with_bos + np.arange(D), atol=1e-3)
+    assert np.isfinite(out.numpy()).all()
+
+
+def test_variant_score_bundle_embeddings_accumulate_in_fp32():
+    """The window pool accumulates in fp32, not the model's (bf16) hidden dtype.
+
+    With bf16 hidden states summed over many positions, the kernel's fp32-cast
+    pool matches an fp32 accumulation of those bf16 values and DIFFERS measurably
+    from a bf16 accumulation — the latter is the silent-corruption path the
+    ``.float()`` cast prevents (cf. ``test_logits_to_logprobs_promotes_bf16_to_fp32``)."""
+    torch.manual_seed(0)
+    L, D, vocab = 20, 6, 8
+    var_pos = 7
+    pool_lo, pool_hi = 1, L - 1
+    hidden_full = (torch.randn(L, D) * 50.0).to(torch.bfloat16)  # large ⇒ bf16 rounds
+    model = _FixedHiddenCausalLM(hidden_full, vocab_size=vocab)
+    model.eval()
+    input_ids = torch.randint(0, 4, (2, L))
+    alt_token_id = torch.randint(0, 4, (2,))
+
+    out = compute_variant_score_bundle(
+        model,
+        input_ids,
+        alt_token_id,
+        var_pos=var_pos,
+        nuc_token_ids=_IDENTITY_NUC_IDS,
+        return_embeddings=True,
+        pool_lo=pool_lo,
+        pool_hi=pool_hi,
+    )
+    emb_kernel = out[:, 2 : 2 + D]
+    assert emb_kernel.dtype == torch.float32, "pooled embedding must be fp32"
+
+    window = hidden_full[pool_lo:pool_hi]  # [n_pool, D] bf16
+    emb_fp32 = window.float().mean(0)  # fp32 accumulation (what the kernel does)
+    emb_bf16 = window.mean(0).float()  # bf16 accumulation (the wrong way)
+    # Kernel matches the fp32 accumulation (rows identical — content-independent).
+    np.testing.assert_allclose(
+        emb_kernel.numpy(), emb_fp32.numpy()[None].repeat(2, 0), atol=1e-2
+    )
+    # ...and the fp32 vs bf16 accumulations differ by a meaningful margin.
+    assert (emb_fp32 - emb_bf16).abs().max().item() > 0.05
+
+
+def test_variant_score_bundle_embeddings_match_full_forward_pool():
+    """On a real CLM, the prefix-shared pooled embeddings equal a naive
+    full-forward-then-mean-pool over the same window — the KV-cache concat
+    reconstructs the full-window hidden states, and ref/alt genuinely differ."""
+    torch.manual_seed(0)
+    model = AutoModelForCausalLM.from_pretrained(TINY_CLM)
+    model.eval()
+    D = model.config.hidden_size
+    L, var_pos = 12, 5
+    pool_lo, pool_hi = 1, L - 1
+    # Nucleotide tokens (songlab ACGT live at ids 3-6). Force alt != ref at var_pos.
+    input_ids = torch.randint(3, 7, (3, L))
+    alt_token_id = ((input_ids[:, var_pos] - 3 + 1) % 4) + 3
+
+    with torch.no_grad():
+        out = compute_variant_score_bundle(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS,
+            return_embeddings=True,
+            pool_lo=pool_lo,
+            pool_hi=pool_hi,
+        )
+        ref_ids = input_ids
+        alt_ids = input_ids.clone()
+        alt_ids[:, var_pos] = alt_token_id
+        ref_h = model(ref_ids, output_hidden_states=True).hidden_states[-1]
+        alt_h = model(alt_ids, output_hidden_states=True).hidden_states[-1]
+        exp_ref = ref_h[:, pool_lo:pool_hi].float().mean(1)
+        exp_alt = alt_h[:, pool_lo:pool_hi].float().mean(1)
+
+    assert out.shape == (3, 2 + 2 * D)
+    np.testing.assert_allclose(out[:, 2 : 2 + D].numpy(), exp_ref.numpy(), atol=1e-4)
+    np.testing.assert_allclose(
+        out[:, 2 + D : 2 + 2 * D].numpy(), exp_alt.numpy(), atol=1e-4
+    )
+    # ref and alt embeddings genuinely differ (context-dependent model).
+    assert not np.allclose(
+        out[:, 2 : 2 + D].numpy(), out[:, 2 + D : 2 + 2 * D].numpy(), atol=1e-4
+    )
+
+
+def test_variant_score_bundle_scores_unchanged_by_embeddings():
+    """The LLR/JSD columns are bit-identical with embeddings on vs off — the same
+    two forwards, with ``output_hidden_states`` only *adding* outputs."""
+    torch.manual_seed(0)
+    model = AutoModelForCausalLM.from_pretrained(TINY_CLM)
+    model.eval()
+    L, var_pos = 12, 5
+    input_ids = torch.randint(3, 7, (4, L))
+    alt_token_id = ((input_ids[:, var_pos] - 3 + 2) % 4) + 3
+
+    with torch.no_grad():
+        off = compute_variant_score_bundle(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS,
+        )
+        on = compute_variant_score_bundle(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS,
+            return_embeddings=True,
+            pool_lo=1,
+            pool_hi=L - 1,
+        )
+    assert off.shape == (4, 2)
+    np.testing.assert_array_equal(off.numpy(), on[:, :2].numpy())
+
+
+def test_variant_score_bundle_embeddings_require_pool_bounds():
+    """``return_embeddings=True`` without pool bounds is a loud error."""
+    import pytest
+
+    model = _FixedHiddenCausalLM(torch.zeros(8, 3), vocab_size=8)
+    model.eval()
+    input_ids = torch.randint(0, 4, (1, 8))
+    alt_token_id = torch.randint(0, 4, (1,))
+    with pytest.raises(AssertionError):
+        compute_variant_score_bundle(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=3,
+            nuc_token_ids=_IDENTITY_NUC_IDS,
+            return_embeddings=True,
+        )
+
+
+def test_variant_score_bundle_embeddings_hook_removed_and_off_path_clean():
+    """The base-model forward hook is registered only when pooling and removed
+    after the call (no leak across the per-batch kernel calls Trainer.predict
+    makes); the off-path registers none at all."""
+    D = 4
+    model = _FixedHiddenCausalLM(
+        torch.arange(10 * D, dtype=torch.float).reshape(10, D), vocab_size=8
+    )
+    model.eval()
+    input_ids = torch.randint(0, 4, (2, 10))
+    alt_token_id = torch.randint(0, 4, (2,))
+    kw = dict(var_pos=4, nuc_token_ids=_IDENTITY_NUC_IDS)
+
+    compute_variant_score_bundle(
+        model,
+        input_ids,
+        alt_token_id,
+        return_embeddings=True,
+        pool_lo=1,
+        pool_hi=9,
+        **kw,
+    )
+    assert not model.base_model._forward_hooks, "forward hook leaked after the call"
+
+    compute_variant_score_bundle(model, input_ids, alt_token_id, **kw)  # off-path
+    assert not model.base_model._forward_hooks
+
+
+def test_run_variant_score_bundle_return_embeddings_end_to_end(tmp_path):
+    """``run_variant_score_bundle(return_embeddings=True)`` threads the wide
+    ``[B, 2+2D]`` tensor through the HF Trainer harness (transform + batching +
+    pad/slice) and binds the strand-independent pool bounds. The ``[:, :2]``
+    scores match the embeddings-off run; the embedding block is ``2*D`` wide and
+    finite, on both strands."""
+    torch.manual_seed(0)
+    tokenizer = AutoTokenizer.from_pretrained("songlab/tokenizer-dna-mlm")
+    model = AutoModelForCausalLM.from_pretrained(TINY_CLM)
+    model.eval()
+    D = model.config.hidden_size
+    genome = Genome(_write_long_fasta(tmp_path))
+    dataset = _make_variant_dataset()
+    window_size = 16
+
+    scores_only = run_variant_score_bundle(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    with_emb = run_variant_score_bundle(
+        model,
+        tokenizer,
+        dataset,
+        genome,
+        window_size,
+        rc=True,
+        return_embeddings=True,
+        data_transform_on_the_fly=True,
+        inference_kwargs=_INFERENCE_KWARGS,
+    )
+    for strand in ("fwd", "rc"):
+        assert with_emb[strand].shape == (4, 2 + 2 * D)
+        np.testing.assert_allclose(
+            with_emb[strand][:, :2], scores_only[strand], rtol=1e-5, atol=1e-6
+        )
+        assert np.isfinite(with_emb[strand]).all()
