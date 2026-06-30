@@ -19,7 +19,7 @@ validation_intervals = config["intervals"]["validation"]
 
 # Genome sets listed in training_per_genome_set use ONLY the recipes given
 # there (replace, not extend) — keeps specialised sets like
-# enhancer_seg_mammals_v1 from also pulling in the default v5/v1/v15.
+# mammals_seg20 from also pulling in the default v5/v1/v15.
 for gs in training_per_genome_set:
     assert gs in genome_sets, (
         f"training_per_genome_set references unknown genome_set {gs!r}"
@@ -50,7 +50,7 @@ include: "rules/intervals.smk"
 include: "rules/stats.smk"
 include: "rules/dataset.smk"
 include: "rules/eda.smk"
-include: "rules/enhancer_prediction.smk"
+include: "rules/scannable.smk"
 include: "rules/interval_alignment.smk"
 
 

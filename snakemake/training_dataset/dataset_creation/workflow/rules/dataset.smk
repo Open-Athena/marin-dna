@@ -120,7 +120,7 @@ rule merge_datasets:
     # Use explicit {recipe}/{w}/{s} wildcards (each bounded by '/' in the
     # path template) instead of a single {intervals} wildcard whose slashes
     # would race with the genome_set wildcard for greedy matching, producing
-    # bogus splits like `genome_set=enhancer_seg_mammals_v1/v20/255, intervals=128`.
+    # bogus splits like `genome_set=mammals_seg20/v30/255, intervals=128`.
     input:
         lambda wildcards: expand(
             "results/dataset_genome/{recipe}/{w}/{s}/{g}.parquet",

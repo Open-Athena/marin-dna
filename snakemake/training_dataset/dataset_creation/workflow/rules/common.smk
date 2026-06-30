@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # MarinDNA module imports
-from marin_dna.data.bin_predictions import top_quantile_bins_to_windows
 from marin_dna.data.intervals import GenomicSet
 from marin_dna.data.utils import (
     ENHANCER_CRE_CLASSES,
@@ -35,8 +34,6 @@ from marin_dna.data.utils import (
     read_bed_to_pandas,
     write_pandas_to_bed,
 )
-from marin_dna.pipelines.enhancer_classification.predict import sliding_windows
-from marin_dna.pipelines.enhancer_segmentation.predict_genome import tile_chromosomes
 
 tqdm.pandas()
 

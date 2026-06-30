@@ -37,8 +37,9 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    # `enhancer-classification` group pulls alphagenome_pytorch, transitively
-    # imported by common.smk via marin_dna.enhancer_classification.predict.
+    # `enhancer-classification` group is retained only for `py2bit` (common.smk
+    # reads `.2bit` genomes); the enhancer pipelines themselves are gone (#332
+    # Tier 3). TODO #332 Tier 4: relocate py2bit so this group isn't needed here.
     uv sync --group enhancer-classification
 
 run: |

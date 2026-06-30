@@ -11,7 +11,6 @@ rule download_phylop_conservation:
 # Zoonomia/Cactus 43-primate phastCons. The remote filename says "phyloP" but
 # this is the phastCons track (0-1 score, threshold 0.961 calibrated to a ~3.5%
 # conserved-base fraction matching phyloP-241way 2.27).
-# See snakemake/enhancer_classification/config/config.yaml:329-331.
 rule download_phastcons_43p_conservation:
     output:
         "results/conservation/phastCons_43p.bw",

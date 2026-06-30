@@ -1,5 +1,0 @@
-default-storage-provider: s3
-default-storage-prefix: s3://oa-bolinas/snakemake/enhancer_classification/
-cores: all
-use-conda: true
-latency-wait: 10

@@ -15,8 +15,8 @@ variant-effect datasets (e.g. ``bolinas-dna/evals_mendelian_traits``,
 The first three tracks (``phyloP_100v``, ``phyloP_241m``, ``phastCons_43p``)
 are the original TraitGym set; their URLs are copied verbatim from
 TraitGym's ``eval/workflow/rules/conservation.smk``. The same bigWigs are
-also used elsewhere in this repo (enhancer_classification,
-training_dataset/dataset_creation) but each pipeline manages its own
+also used elsewhere in this repo (training_dataset/dataset_creation)
+but each pipeline manages its own
 download to avoid coupling.
 
 NaN policy: this module preserves NaNs from the bigWig (no alignment at that

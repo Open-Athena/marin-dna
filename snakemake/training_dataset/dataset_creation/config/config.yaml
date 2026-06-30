@@ -18,12 +18,10 @@ intervals:
         - v5/255/128 # CDS
         - v1/255/128 # upstream
         - v15/255/128 # downstream
-    # Recipes that only apply to a subset of genome_sets (e.g., v20 segmentation-
-    # predicted enhancers only exist for the 20 mammals scored in PR #126).
+    # Recipes that only apply to a subset of genome_sets (e.g., the v30-v33
+    # cCRE recipes only apply to the 20 mammals in `mammals_seg20`).
     # Each entry: {genome_set: [recipe/w/s, ...]}.
     training_per_genome_set:
-        enhancer_seg_mammals_v1:
-            - v20/255/128
         mammals_seg20:
             - v30/255/128 # mmseqs2-projected ELS_conserved_20 minus functional exons
             - v31/255/128 # v30 with phyloP-241way per-cCRE filter raised to ≥50 bp
@@ -51,42 +49,12 @@ genome_sets:
     - name: humans
       rank_key: species
       rank_value: "Homo sapiens"
-    # Explicit accession list for the 20 mammals covered by the segmentation
-    # prediction pipeline. Must stay in sync with
-    # enhancer_prediction_segmentation.genomes below.
-    - name: enhancer_seg_mammals_v1
-      accessions:
-          - GCF_050624435.1   # Tenrec ecaudatus (Afrosoricida)
-          - GCF_009834535.1   # Camelus ferus (Artiodactyla)
-          - GCF_018350215.1   # Panthera leo (Carnivora)
-          - GCF_027574615.1   # Eptesicus fuscus (Chiroptera)
-          - GCF_030445035.2   # Dasypus novemcinctus (Cingulata)
-          - GCF_902635505.1   # Sarcophilus harrisii (Dasyuromorphia)
-          - GCF_027409185.1   # Cynocephalus volans (Dermoptera)
-          - GCF_027887165.1   # Monodelphis domestica (Didelphimorphia)
-          - GCF_011100635.1   # Trichosurus vulpecula (Diprotodontia)
-          - GCF_027595985.1   # Sorex araneus (Eulipotyphla)
-          - GCF_030435755.1   # Ochotona princeps (Lagomorpha)
-          - GCF_019393635.1   # Dromiciops gliroides (Microbiotheria)
-          - GCF_004115215.2   # Ornithorhynchus anatinus (Monotremata)
-          - GCF_037893015.1   # Macrotis lagotis (Peramelemorphia)
-          - GCF_037783145.1   # Equus przewalskii (Perissodactyla)
-          - GCF_040802235.1   # Manis javanica (Pholidota)
-          - GCF_023851605.1   # Tamandua tetradactyla (Pilosa)
-          - GCF_000001405.40  # Homo sapiens (Primates)
-          - GCF_024166365.1   # Elephas maximus indicus (Proboscidea)
-          - GCF_000001635.27  # Mus musculus (Rodentia)
     - name: human_mouse
       accessions:
           - GCF_000001405.40 # Human
           - GCF_000001635.27 # Mouse
-    # One species per mammalian order (Chromosome-level assemblies only),
-    # matching the #118 segmentation benchmark subset so v30 is directly
-    # comparable to the whole-genome segmentation model's outputs on the
-    # same species. 20 species total. Source / selection criteria are
-    # documented on `enhancer_prediction_segmentation.genomes` below; this
-    # set duplicates the accession list so `load_genome_sets` can consume
-    # it and downstream rules iterate over the same per-species set.
+    # One species per mammalian order (Chromosome-level assemblies only, 20
+    # species total) -- the genome set for the cCRE recipes v30-v33.
     - name: mammals_seg20
       accessions:
           - GCF_050624435.1  # Tenrec ecaudatus (Afrosoricida)
@@ -240,8 +208,7 @@ region_labels:
 conservation:
     phylop_cutoff: 2.27 # bases with phyloP >= this value are considered conserved
     # Zoonomia 43-primate phastCons. 0.961 is calibrated to a ~3.46% conserved
-    # base fraction matching phyloP-241way 2.27 (~3.48%); see
-    # snakemake/enhancer_classification/config/config.yaml:329-331.
+    # base fraction matching phyloP-241way 2.27 (~3.48%).
     phastcons_43p_cutoff: 0.961
 
 # Promoter variants for comparison plot
@@ -250,71 +217,6 @@ promoter_comparison_regions:
     - promoters_mRNA/2048/2048
     - promoters/256/256
     - promoters/2048/2048
-
-enhancer_prediction:
-    checkpoint: "s3://oa-bolinas/snakemake/enhancer_classification/results/model/finetune/v8b/best.ckpt"
-    window_size: 255
-    step_size: 128
-    batch_size: 1024
-    num_workers: 4
-    threshold: 0.0  # logit threshold for recipe v19 (set after genome-wide analysis)
-
-enhancer_prediction_segmentation:
-    checkpoint: "s3://oa-bolinas/snakemake/enhancer_classification/results/segmentation/model/xfmr2_w64k_s42_full/seg_v1_64k/best.ckpt"
-    window_size: 65536
-    bin_size: 128
-    batch_size: 32
-    num_workers: 4
-    max_windows: 0  # 0 = all windows; set small (e.g. 10) for smoke tests
-    # Recipe v20 thresholding: keep the top fraction of bins by logit (per-genome
-    # quantile, label-free). Each surviving bin is resized to recipe_target_size
-    # bp centered on its midpoint, then exon-masked and intersected with defined.
-    recipe_top_quantile: 0.01
-    recipe_target_size: 255
-    # One species per mammalian order, restricted to Chromosome-level or
-    # better assemblies, and forcing human + mouse as the Primates /
-    # Rodentia reps (our training species). Other orders pick the smallest
-    # genome at Chromosome level. Orders with no Chromosome-level assembly
-    # (Macroscelidea, Scandentia, Sirenia) are dropped — they only have
-    # highly fragmented Scaffold-level genomes.
-    #
-    # Generated via:
-    #
-    #     import pandas as pd
-    #     FORCE_INCLUDE = ["GCF_000001405.40", "GCF_000001635.27"]
-    #     g = pd.read_parquet("config/genomes.parquet")
-    #     mammals = g[g["class"] == "Mammalia"].copy()
-    #     forced = mammals[mammals["Assembly Accession"].isin(FORCE_INCLUDE)]
-    #     others = mammals[
-    #         ~mammals["Assembly Accession"].isin(FORCE_INCLUDE)
-    #         & ~mammals["order"].isin(set(forced["order"]))
-    #         & (mammals["Assembly Level"] == "Chromosome")
-    #     ].copy()
-    #     picked = others.sort_values(
-    #         ["Assembly Stats Total Sequence Length", "Organism Name"]
-    #     ).drop_duplicates("order")
-    #     selected = pd.concat([forced, picked]).sort_values("order")
-    genomes:
-        - GCF_050624435.1   # Tenrec ecaudatus (Afrosoricida, 3.9GB)
-        - GCF_009834535.1   # Camelus ferus (Artiodactyla, 2.1GB)
-        - GCF_018350215.1   # Panthera leo (Carnivora, 2.3GB)
-        - GCF_027574615.1   # Eptesicus fuscus (Chiroptera, 2.0GB)
-        - GCF_030445035.2   # Dasypus novemcinctus (Cingulata, 3.6GB)
-        - GCF_902635505.1   # Sarcophilus harrisii (Dasyuromorphia, 3.1GB)
-        - GCF_027409185.1   # Cynocephalus volans (Dermoptera, 2.8GB)
-        - GCF_027887165.1   # Monodelphis domestica (Didelphimorphia, 3.6GB)
-        - GCF_011100635.1   # Trichosurus vulpecula (Diprotodontia, 3.4GB)
-        - GCF_027595985.1   # Sorex araneus (Eulipotyphla, 2.4GB)
-        - GCF_030435755.1   # Ochotona princeps (Lagomorpha, 2.6GB)
-        - GCF_019393635.1   # Dromiciops gliroides (Microbiotheria, 3.3GB)
-        - GCF_004115215.2   # Ornithorhynchus anatinus (Monotremata, 1.9GB)
-        - GCF_037893015.1   # Macrotis lagotis (Peramelemorphia, 3.7GB)
-        - GCF_037783145.1   # Equus przewalskii (Perissodactyla, 2.5GB)
-        - GCF_040802235.1   # Manis javanica (Pholidota, 2.6GB)
-        - GCF_023851605.1   # Tamandua tetradactyla (Pilosa, 3.2GB)
-        - GCF_000001405.40  # Homo sapiens (Primates, 3.1GB)
-        - GCF_024166365.1   # Elephas maximus indicus (Proboscidea, 3.4GB)
-        - GCF_000001635.27  # Mus musculus (Rodentia, 2.7GB)
 
 genome_subset_bed:
     - GCF_000001405.40 # Human
