@@ -84,6 +84,14 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--window-size", type=int, default=8192)
     ap.add_argument("--emb-layer", default="norm")
+    ap.add_argument(
+        "--emb-dtype",
+        default="float32",
+        choices=("float16", "float32"),
+        help="The production storage dtype being validated (default float32). When "
+        "'float16', check (d) hard-asserts the f16-vs-f32 delta Pearson; when "
+        "'float32' it only reports it (float32 is lossless by construction).",
+    )
     ap.add_argument("--genome-path", default="results/genome.fa.gz")
     ap.add_argument(
         "--list-layers",
@@ -155,15 +163,22 @@ def main() -> None:
     rel_l2 = float(
         np.linalg.norm(delta16 - delta32) / (np.linalg.norm(delta32) + 1e-12)
     )
+    verdict = "OK" if pearson > args.pearson_min else "f16 INADEQUATE → use float32"
     print(
-        f"[d] probe delta (alt−ref): |delta32| mean={np.abs(delta32).mean():.4f}; "
-        f"f16-vs-f32 Pearson={pearson:.5f}  rel_L2_err={rel_l2:.4f}"
+        f"[d] probe delta (alt−ref): |delta32| mean={np.abs(delta32).mean():.6f}; "
+        f"f16-vs-f32 Pearson={pearson:.5f}  rel_L2_err={rel_l2:.4f}  [{verdict}]"
     )
-    assert pearson > args.pearson_min, (
-        f"f16 storage corrupts the probe delta (Pearson {pearson:.4f} < "
-        f"{args.pearson_min}) — Evo2 massive activations likely; re-score the "
-        f"production bundle with --emb-dtype float32"
-    )
+    # The corruption is signal-dilution, not massive activations: the entire-window
+    # 8192-pool makes the per-variant delta ~1e-4, below f16's resolution at the emb
+    # scale. Hard-fail only if production is configured for the inadequate dtype.
+    if args.emb_dtype == "float16":
+        assert pearson > args.pearson_min, (
+            f"production --emb-dtype float16 but the f16-vs-f32 delta Pearson is "
+            f"{pearson:.4f} < {args.pearson_min}: f16 corrupts the probe feature. "
+            f"Use --emb-dtype float32 (the Evo2 default)."
+        )
+    else:
+        print(f"[d] production dtype is {args.emb_dtype} (lossless) — OK")
 
     # --- (c) LLR/JSD unchanged with embeddings off ---
     base = _score(

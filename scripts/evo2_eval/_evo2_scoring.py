@@ -314,7 +314,7 @@ def compute_evo2_bundle(
     rc_avg: bool = True,
     return_embeddings: bool = False,
     emb_layer: str = "norm",
-    emb_dtype: str = "float16",
+    emb_dtype: str = "float32",
 ) -> pd.DataFrame:
     """Score Evo2 variants → DataFrame[llr, minus_llr, abs_llr, next_token_jsd_mean].
 
@@ -343,11 +343,15 @@ def compute_evo2_bundle(
             state, the HF ``last_hidden_state`` analog). Validated against
             ``evo2.model.named_modules()`` before the run; fails loud with the
             candidate names if absent.
-        emb_dtype: Storage dtype for ``emb_ref``/``emb_alt`` — ``"float16"``
-            (default, the gLM #325 schema) or ``"float32"`` (lossless escape hatch
-            for Evo2's massive-activation channels, #131). The pool + FWD+RC average
-            are always fp32; this only sets the final cast. The probe upcasts to f32
-            regardless, so both are probe-compatible.
+        emb_dtype: Storage dtype for ``emb_ref``/``emb_alt`` — ``"float32"``
+            (default) or ``"float16"`` (the gLM #325 schema, half the storage). The
+            pool + FWD+RC average are always fp32; this only sets the final cast.
+            **Evo2 defaults to float32** because the embed smoke (#131) found f16
+            corrupts the probe delta: the entire-window 8192-pool makes the
+            per-variant ``emb_alt − emb_ref`` ~1e-4, *below* f16's resolution at the
+            ~0.07 embedding scale (f16-vs-f32 delta Pearson ≈ 0.82). The gLM's much
+            smaller window dilutes far less, so it keeps f16. The probe upcasts to
+            f32 regardless, so both are probe-compatible.
 
     Returns:
         DataFrame with [llr, minus_llr, abs_llr, next_token_jsd_mean] (× {avg,

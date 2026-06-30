@@ -158,11 +158,12 @@ def main() -> None:
     p.add_argument(
         "--emb-dtype",
         type=str,
-        default="float16",
+        default="float32",
         choices=("float16", "float32"),
-        help="Storage dtype for emb_ref/emb_alt (default float16 = gLM #325 schema; "
-        "float32 = lossless escape hatch for Evo2 massive-activation channels, #131). "
-        "Probe upcasts to f32 either way.",
+        help="Storage dtype for emb_ref/emb_alt. Default float32: the #131 embed "
+        "smoke found f16 corrupts the probe delta (entire-window 8192-pool makes it "
+        "~1e-4, below f16 resolution; delta Pearson ~0.82). float16 is the gLM #325 "
+        "schema (smaller window, f16-fine). Probe upcasts to f32 either way.",
     )
     p.add_argument(
         "--skip-metrics",

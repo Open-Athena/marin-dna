@@ -80,8 +80,9 @@ envs:
                         # evo2_40b, D=8192, already at bs=1).
   EMB_LAYER: "norm"     # Evo2 module to pool the embedding from (default post-final-
                         # norm last-layer state; validated vs evo2.model.named_modules)
-  EMB_DTYPE: "float16"  # emb_ref/emb_alt storage dtype: float16 (gLM #325 schema) or
-                        # float32 (lossless; for Evo2 massive-activation channels, #131)
+  EMB_DTYPE: "float32"  # emb_ref/emb_alt storage dtype. Default float32: the #131
+                        # embed smoke found f16 corrupts the diluted 8192-pool delta
+                        # (Pearson ~0.82). float16 = gLM #325 schema (smaller window).
   HF_TOKEN: ""
 
 setup: |

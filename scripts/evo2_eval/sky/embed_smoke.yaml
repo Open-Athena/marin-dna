@@ -74,6 +74,7 @@ envs:
   N: "128"
   BATCH_SIZE: "8"
   EMB_LAYER: "norm"
+  EMB_DTYPE: "float32"  # production dtype to validate; float16 hard-asserts check (d)
   LIST_LAYERS: ""   # set to any non-empty to just dump module names and exit
   HF_TOKEN: ""
 
@@ -104,7 +105,8 @@ run: |
     -v "$HOME/.sky/file_mounts:$HOME/.sky/file_mounts:ro" \
     -e MODEL="$MODEL" -e HF_TOKEN="${HF_TOKEN:-}" \
     -e N="${N:-128}" -e BATCH_SIZE="${BATCH_SIZE:-8}" \
-    -e EMB_LAYER="${EMB_LAYER:-norm}" -e LIST_LAYERS="${LIST_LAYERS:-}" \
+    -e EMB_LAYER="${EMB_LAYER:-norm}" -e EMB_DTYPE="${EMB_DTYPE:-float32}" \
+    -e LIST_LAYERS="${LIST_LAYERS:-}" \
     -e CUDA_VISIBLE_DEVICES=0 \
     -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     -e OMP_NUM_THREADS=8 \
@@ -117,6 +119,7 @@ run: |
       if [ -n "${LIST_LAYERS:-}" ]; then LIST_ARG="--list-layers"; fi
       python scripts/evo2_eval/embed_smoke.py \
         --model "$MODEL" --n "${N:-128}" --batch-size "${BATCH_SIZE:-8}" \
-        --emb-layer "${EMB_LAYER:-norm}" --genome-path results/genome.fa.gz \
+        --emb-layer "${EMB_LAYER:-norm}" --emb-dtype "${EMB_DTYPE:-float32}" \
+        --genome-path results/genome.fa.gz \
         ${LIST_ARG}
     '
