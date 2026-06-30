@@ -8,7 +8,8 @@ DataFrame as a parquet blob on stdout for the dashboard to read via DuckDB.
 Emits one parquet covering the matched-pair leaderboard datasets (mendelian_traits,
 complex_traits). Each page filters by ``dataset``, so they coexist in one file. eQTL
 was retired in PR #194 (issue #172); the caQTL/dsQTL zero-shot path was retired in #312
-(the supervised accessibility-QTL benchmark + its dashboard page were removed in #332).
+(the supervised official-metrics benchmark now lives on its own Accessibility QTL page,
+fed by ``accessibility_qtl.parquet.py``).
 """
 
 from __future__ import annotations

@@ -38,8 +38,9 @@ subset_n_pairs: null
 # only to score a genuinely new dataset.
 dnase_lfc:
   s3_prefix: s3://oa-bolinas/snakemake/alphagenome_eval/results/dnase_lfc
-  # hf_revision pins the frozen accessibility-QTL HF dataset revision (the QTL
-  # benchmark code, incl. qtl_scoring, was removed in #332 — this is now the source).
+  # hf_revision pins the frozen accessibility-QTL HF dataset revision. Its former
+  # source-of-truth constant (qtl_scoring.QTL_HF_REVISION) was removed with the QTL
+  # benchmark scorer in #332 — this config is now the source.
   datasets:
     - name: caqtl
       hf_revision: 27a24296f50ed55afdc412d1612df680d13138d6
