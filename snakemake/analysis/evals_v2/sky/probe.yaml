@@ -1,0 +1,64 @@
+# SkyPilot task: run the evals_v2 linear-probe rule (#320) on a CPU node.
+#
+# Unlike `run.yaml` (GPU inference: compute_scores), the probe is CPU-only —
+# it reads the in-bundle embeddings from the existing scores parquet on S3,
+# fits sklearn probes, and writes probe artifacts back to S3. No GPU, no GCS
+# checkpoint pull (so no gcloud / ADC mount). AWS creds for S3 come from the
+# instance role.
+#
+# Launch one (model, dataset) probe cell:
+#   sky launch snakemake/analysis/evals_v2/sky/probe.yaml -c evals-v2-probe \
+#     --env SNAKEMAKE_ARGS="--rerun-triggers mtime --set-threads compute_probe=8 \
+#       -- results/probe/<model>/<dataset>.parquet" -i 10 --down -y
+#
+# The input scores parquet must already carry emb_ref/emb_alt (scored with
+# inference.return_embeddings: true); the rule fails fast otherwise.
+
+name: evals-v2-probe
+
+resources:
+    infra: aws/us-east-2
+    cpus: 8+
+    memory: 16+
+    disk_size: 100
+    labels:
+        project: dna
+    # Prefer spot (≈70% cheaper) with an on-demand fallback. The probe is short
+    # and resumable (snakemake re-runs the cell), so a spot preemption is cheap.
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    SNAKEMAKE_ARGS: ""           # e.g. "-- results/probe/<model>/<dataset>.parquet"
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+
+    # `--group genome-s3` matches run.yaml (s3fs + the snakemake S3 storage
+    # deps). The probe reads its scores parquet via the snakemake S3 storage
+    # plugin (boto3, staged to a local path), so it never inits s3fs itself.
+    uv sync --frozen --group genome-s3
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    # common.smk imports the inference module (torch) at load; no training here.
+    export WANDB_DISABLED=true
+
+    cd snakemake/analysis/evals_v2
+
+    # $SNAKEMAKE_ARGS goes last so its trailing `-- <target>` stays positional.
+    uv run --project ../../.. --group genome-s3 snakemake \
+        --profile workflow/profiles/default \
+        --printshellcmds \
+        --rerun-incomplete \
+        $SNAKEMAKE_ARGS

@@ -1183,6 +1183,45 @@ inference:
 
 
 # ---------------------------------------------------------------------------
+# Frozen-embedding linear-probe VEP training (issue #320). Off `rule all`; build
+# with `snakemake probe` (or a single results/probe/<model>/<dataset>.parquet
+# target). Trains a per-consequence-subset, leave-one-chromosome-out (LOOC)
+# L2-logistic probe on the in-bundle pooled embeddings (emb_ref/emb_alt, #318) and
+# writes the per-variant LOOC predictions (`probe_score`) + the fitted per-subset
+# classifiers (joblib, for reuse on other datasets). The downstream metrics step
+# consumes the predictions parquet. REQUIRES each scored cell to have been produced
+# with `inference.return_embeddings: true`; the rule fails fast otherwise. See
+# rules/probe.smk.
+# ---------------------------------------------------------------------------
+probe:
+  min_variants: 300       # train a subset's probe only if it has >= this many
+                          # variants (1:9-matched ⇒ ~10% positives, so 300 ⇒ ~30
+                          # positives — enough for stable per-fold C selection).
+                          # Smaller subsets get NaN probe_score + no classifier.
+  min_chroms: 3           # and >= this many distinct chromosomes (nested LOOC needs
+                          # ≥3 groups: outer leave-one-chrom-out + inner CV).
+  c_grid: [-12, 4, 17]    # np.logspace(lo, hi, num) L2-strength grid, anchored at
+                          # both regularization regimes: low 1e-12 = practical
+                          # constant-predictor floor (below the ~1/p optimum for any
+                          # realistic model); high 1e4 = saturation cap whose ranking
+                          # matches the unregularized C→∞ limit (so no np.inf needed).
+                          # Edge-pinned C is recorded per subset as a diagnostic (low
+                          # = ~no signal, high = minimal reg), not a truncation.
+  inner_splits: 5         # inner GroupKFold splits for the per-fold C GridSearchCV.
+  n_jobs: 4               # GridSearchCV parallelism. Execution-only (not output-
+                          # affecting) → read via the rule's `threads`, so tuning it
+                          # never forces a re-run. The shared dev box is 4-vCPU; bump
+                          # on a roomier CPU instance.
+  models:
+    # Explicit per-model `datasets` (not derived): probing a cell needs its scores
+    # parquet to carry emb_ref/emb_alt, which is per-cell. Seeded with the #314
+    # headline generalist whose mendelian cell already has embeddings on S3; add
+    # entries here as more cells are re-scored with inference.return_embeddings.
+    - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+      datasets: [mendelian_traits]
+
+
+# ---------------------------------------------------------------------------
 # cLLR mutation-rate calibration tables (stage 3, #267/#270). Off `rule all`;
 # build with `snakemake calibration` (or a single
 # results/calibration/<model>/llr_neutral_mean_n{n}.parquet target). Scores the
