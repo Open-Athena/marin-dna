@@ -23,9 +23,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from datasets import Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from marin_dna.model.runner import run_ll_clm
+# NOTE: ``transformers`` AND ``marin_dna.model.runner`` (which itself imports
+# transformers' Trainer at module top) are imported lazily inside
+# ``compute_hf_ll_gap`` — the only user — NOT at module top. ``aggregate_ll_gap``
+# is re-exported from ``pipelines.evals.evo2`` (issue #274), so a top-level import
+# of either here would transitively pull transformers into every ``evo2.py``
+# importer — including the Evo2 scoring scripts that run in a deliberately
+# transformers-free docker image. Keep heavy/optional deps lazy (cf. ``_evo2_scoring``
+# importing ``evo2`` and ``evo2.py`` importing ``run_ll_clm`` inside their functions).
 
 
 def compute_hf_ll_gap(
@@ -81,7 +87,14 @@ def compute_hf_ll_gap(
     )
 
     # AutoTokenizer / AutoModelForCausalLM satisfy the duck-typed interface
-    # marin_dna.model.runner expects — no adapter wrappers needed.
+    # marin_dna.model.runner expects — no adapter wrappers needed. Imported here
+    # (not at module top) — along with run_ll_clm, whose module imports the HF
+    # Trainer — so importing this module, and ``evo2.py`` which re-exports
+    # ``aggregate_ll_gap`` from it, needs no transformers.
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    from marin_dna.model.runner import run_ll_clm
+
     tokenizer: Any = AutoTokenizer.from_pretrained(checkpoint_path)
     model: Any = AutoModelForCausalLM.from_pretrained(
         checkpoint_path, trust_remote_code=True

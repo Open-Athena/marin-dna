@@ -86,8 +86,11 @@ setup: |
   cat > /tmp/evo2.Dockerfile <<'EOF'
   FROM nvcr.io/nvidia/pytorch:25.04-py3
   RUN pip install --break-system-packages evo2
+  # numpy<2: the NGC torch is compiled against NumPy 1.x and crashes torch<->numpy
+  # interop under numpy 2.x. The smoke needs no scipy/scikit-learn (it's all numpy),
+  # so they're dropped here (the eval image keeps them for the metrics path).
   RUN PIP_CONSTRAINT= pip install --break-system-packages -U \
-    "datasets>=3.1,<4" pyfaidx scipy scikit-learn
+    "datasets>=3.1,<4" pyfaidx "numpy<2"
   WORKDIR /workspace
   EOF
   sudo docker build -t evo2-eval:latest -f /tmp/evo2.Dockerfile /tmp

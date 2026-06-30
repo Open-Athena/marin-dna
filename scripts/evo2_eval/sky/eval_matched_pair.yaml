@@ -105,8 +105,10 @@ setup: |
   # accelerate are NOT needed — the local kernel skips HF Trainer entirely.
   # PIP_CONSTRAINT= bypass: nvcr's /etc/pip/constraint.txt pins dill==0.3.9
   # but datasets>=3.1 needs dill<0.3.9 → ResolutionImpossible without bypass.
+  # numpy<2: the NGC torch is compiled against NumPy 1.x and crashes torch<->numpy
+  # interop under numpy 2.x (which an unpinned -U now pulls); pin pip to a 1.x line.
   RUN PIP_CONSTRAINT= pip install --break-system-packages -U \
-    "datasets>=3.1,<4" pyfaidx scipy scikit-learn
+    "datasets>=3.1,<4" pyfaidx scipy scikit-learn "numpy<2"
   # marin_dna is installed via PYTHONPATH at run-time (pure Python, no build).
   WORKDIR /workspace
   EOF
