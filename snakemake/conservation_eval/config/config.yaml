@@ -1,4 +1,5 @@
-# Matched-pair eval datasets on HuggingFace (produced by snakemake/evals/).
+# Matched-pair eval datasets on HuggingFace (frozen; the construction pipeline
+# that built them was removed in #332).
 # Each dataset is loaded as f"{input_hf_prefix}_{dataset.name}". Per-dataset
 # `hf_revision` pins the HF dataset commit consumed by this run — bumping
 # the SHA triggers re-execution via snakemake's `params:` hash. Mirrors

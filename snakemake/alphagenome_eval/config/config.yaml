@@ -30,17 +30,17 @@ bootstrap_seed: 0
 # `--config subset_n_pairs=5`. Leave null in production runs.
 subset_n_pairs: null
 
-# DNase-LFC QTL predictions (caqtl/dsqtl) for the supervised official-metrics
-# benchmark (#311). This produces only AlphaGenome's per-variant predictions — the
-# model-agnostic metrics/leaderboard are the `scripts/qtl_benchmark.py` driver.
-# `score_dnase_lfc` is resumable and seeds from `s3_prefix/{ds}.parquet`; for
-# caqtl/dsqtl those genome-native predictions already exist (corrected once by
-# `scripts/correct_ag_predictions.py`) so it spends 0 API. `max_new_calls` is a
-# fail-loud cap — raise it only to score a genuinely new dataset.
+# DNase-LFC QTL predictions (caqtl/dsqtl): AlphaGenome's per-variant predictions on
+# the frozen accessibility-QTL HF datasets. The supervised QTL benchmark that consumed
+# them (metrics engine + driver scripts) was removed in #332. `score_dnase_lfc` is
+# resumable and seeds from `s3_prefix/{ds}.parquet` (the genome-native predictions
+# already exist) so it spends 0 API. `max_new_calls` is a fail-loud cap — raise it
+# only to score a genuinely new dataset.
 dnase_lfc:
   s3_prefix: s3://oa-bolinas/snakemake/alphagenome_eval/results/dnase_lfc
-  # hf_revision must match marin_dna.pipelines.evals.qtl_scoring.QTL_HF_REVISION (the
-  # benchmark scripts' single source) — snakemake reads YAML and can't import it.
+  # hf_revision pins the frozen accessibility-QTL HF dataset revision. Its former
+  # source-of-truth constant (qtl_scoring.QTL_HF_REVISION) was removed with the QTL
+  # benchmark scorer in #332 — this config is now the source.
   datasets:
     - name: caqtl
       hf_revision: 27a24296f50ed55afdc412d1612df680d13138d6

@@ -63,7 +63,7 @@ CONSERVATION_TRACKS: dict[str, str] = {
 
 # Variant columns the pipeline preserves end-to-end. Asserted by the score
 # and aggregate stages so a schema drift fails fast. ``match_group`` links
-# 1:k matched positives and negatives produced by ``snakemake/evals/`` (PR
+# 1:k matched positives and negatives of the matched-pair eval datasets (PR
 # #194 switched the matched-pair datasets to 1:9 via k=9 nearest neighbors).
 REQUIRED_VARIANT_COLUMNS: tuple[str, ...] = (
     "chrom",
