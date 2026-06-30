@@ -387,43 +387,42 @@ def test_evo2_kernel_ref_alt_pools_differ_only_downstream():
     assert not torch.allclose(emb_ref, emb_alt), "ref/alt pools should differ"
 
 
-def test_fwd_rc_average_f16_fp32_accumulation_and_f16_cast():
-    """The aggregator averages strands in fp32 and casts to f16 only at the end."""
-    mod = _load_scoring()
-    rng = np.random.default_rng(3)
-    fwd = rng.standard_normal((20, 7)).astype(np.float32)
-    rev = rng.standard_normal((20, 7)).astype(np.float32)
-    out = mod.fwd_rc_average_f16([fwd, rev])
-    assert out.dtype == np.float16
-    # Reference: fp32 mean then cast — must match bit-for-bit.
-    ref = ((fwd + rev) / 2).astype(np.float16)
-    assert np.array_equal(out, ref)
-    # Single strand → identity (just the f16 cast).
-    one = mod.fwd_rc_average_f16([fwd])
-    assert np.array_equal(one, fwd.astype(np.float16))
-
-
-def test_fwd_rc_average_f16_float32_out_dtype_is_lossless():
-    """out_dtype='float32' (the #131 massive-activation escape hatch) returns the
-    exact fp32 FWD+RC mean — no rounding."""
+def test_fwd_rc_average_default_float32_is_lossless():
+    """The default out_dtype is float32 (the Evo2 #131 default) — the exact fp32
+    FWD+RC mean, no rounding, and no f16 anywhere on the default path."""
     mod = _load_scoring()
     rng = np.random.default_rng(4)
     fwd = rng.standard_normal((12, 5)).astype(np.float32)
     rev = rng.standard_normal((12, 5)).astype(np.float32)
-    out = mod.fwd_rc_average_f16([fwd, rev], out_dtype=np.float32)
+    out = mod.fwd_rc_average([fwd, rev])  # no out_dtype → float32
     assert out.dtype == np.float32
     assert np.array_equal(out, ((fwd + rev) / 2).astype(np.float32))
     # A value that overflows f16 is fine in f32 (no overflow assert tripped).
     big = np.full((2, 3), 1e6, dtype=np.float32)
-    out_big = mod.fwd_rc_average_f16([big, big], out_dtype=np.float32)
+    out_big = mod.fwd_rc_average([big, big])
     assert np.isfinite(out_big).all() and out_big.dtype == np.float32
+
+
+def test_fwd_rc_average_f16_opt_in_fp32_accumulation_and_cast():
+    """With out_dtype=float16 (gLM schema), averages in fp32 and casts to f16 only at
+    the end (bit-for-bit fp32-mean-then-cast); single strand → identity cast."""
+    mod = _load_scoring()
+    rng = np.random.default_rng(3)
+    fwd = rng.standard_normal((20, 7)).astype(np.float32)
+    rev = rng.standard_normal((20, 7)).astype(np.float32)
+    out = mod.fwd_rc_average([fwd, rev], out_dtype=np.float16)
+    assert out.dtype == np.float16
+    ref = ((fwd + rev) / 2).astype(np.float16)
+    assert np.array_equal(out, ref)
+    one = mod.fwd_rc_average([fwd], out_dtype=np.float16)
+    assert np.array_equal(one, fwd.astype(np.float16))
 
 
 def test_fwd_rc_average_f16_rejects_overflow():
     import pytest
 
     mod = _load_scoring()
-    # A channel beyond float16's +-65504 overflows to inf on the cast → assert.
+    # A channel beyond float16's +-65504 overflows to inf on the f16 cast → assert.
     big = np.full((2, 3), 1e6, dtype=np.float32)
     with pytest.raises(AssertionError, match="non-finite"):
-        mod.fwd_rc_average_f16([big, big])
+        mod.fwd_rc_average([big, big], out_dtype=np.float16)
