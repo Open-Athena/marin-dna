@@ -1,3 +1,0 @@
-default-storage-provider: s3
-default-storage-prefix: s3://oa-bolinas/snakemake/analysis/evals_v1/
-cores: all

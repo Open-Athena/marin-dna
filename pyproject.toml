@@ -75,9 +75,7 @@ marin = [
     # ``[tool.uv.sources] marin-* = { workspace = true }``, which propagates
     # to consumers and overrides the find-links wheels for every marin
     # sister package, dropping the BUILD_DATE the iris controller's
-    # freshness check requires. The two `experiments.*` symbols the parity
-    # check needs (`qwen3_0_6b_hd128`, `default_tokenize`) are vendored at
-    # the bottom of `experiments/parity/exp160_parity.py`.
+    # freshness check requires.
 ]
 # Vendored ChromBPNet (arsenal-chrombpnet) for the supervised caQTL/dsQTL VEP
 # eval (issue #236). Opt in with `uv sync --extra chrombpnet`; snakemake / eval

@@ -47,7 +47,7 @@ Three things. No more.
    ```
 
    No `🤖` prefix on the title — [CLAUDE.md](../../../CLAUDE.md) mandates the prefix on *comments*, and the `agent-generated` label already signals provenance.
-3. If a pipeline is needed, scaffold `snakemake/analysis/<name>/` following an existing example (e.g. `snakemake/analysis/sequence_similarity/`) and link it from the issue body.
+3. If a pipeline is needed, scaffold `snakemake/analysis/<name>/` following an existing example (e.g. `snakemake/analysis/evals_v2/`) and link it from the issue body.
 
 The repo's `.github/ISSUE_TEMPLATE/experiment.md` is WandB-flavored and does not match this workflow — do not route through it.
 
