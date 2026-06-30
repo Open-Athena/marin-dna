@@ -1222,36 +1222,6 @@ probe:
 
 
 # ---------------------------------------------------------------------------
-# cLLR mutation-rate calibration tables (stage 3, #267/#270). Off `rule all`;
-# build with `snakemake calibration` (or a single
-# results/calibration/<model>/llr_neutral_mean_n{n}.parquet target). Scores the
-# pinned, pre-filtered + subsampled neutral set with the fast LLR bundle (FWD+RC)
-# and bins by pentanuc_mut → per-checkpoint llr_neutral_mean table. The neutral set
-# is ACGT-window-filtered upstream (neutral_sites pipeline); this rule does no
-# genome filtering. Entropy calibration is a separate, deferred path. See
-# rules/calibration.smk.
-# ---------------------------------------------------------------------------
-calibration:
-  # S3 prefix of the neutral-sites pipeline's subsampled artifacts. The rule
-  # appends `/neutral_sites_n{n}_w{scoreable_window}.parquet`.
-  neutral_sites_s3_prefix: s3://oa-bolinas/snakemake/neutral_sites/results/subsampled
-  subsample_n: 100        # per-5-mer cap; selects neutral_sites_n100_w{w}.parquet
-                          # and names the `calibration` collector's targets.
-  scoreable_window: 512   # the neutral set is pre-filtered so every w-bp window is
-                          # all-ACGT; 512 = the largest model window, so ONE set is
-                          # valid for every model (255/256/512). Must be >= each
-                          # scored model's window_size (asserted in the rule).
-  min_bin_count: 10       # hard floor on observations per pentanuc_mut cell. At
-                          # n=100 the true min is 41 (CpG-depleted 5-mers); the
-                          # ACGT-window pre-filter shaves a few gap-adjacent sites,
-                          # so 10 catches a broken/empty cell without false-firing
-                          # on legitimate post-filter depletion.
-  rc: true                # FWD+RC average, matching the eval convention.
-  models:
-    - mix-v0.9-p1B-i24-exp135-m5.1-step-59158   # exp135-1B-m5.1 (our winner / pilot model)
-
-
-# ---------------------------------------------------------------------------
 # Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.
 #
 # NOT a metric: these targets are kept off `rule all`. Build explicitly:

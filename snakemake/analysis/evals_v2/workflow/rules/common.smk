@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset
 
-from marin_dna.pipelines.evals.calibration import compute_llr_neutral_mean
 from marin_dna.pipelines.evals.conservation import (
     QTL_VARIANT_COLUMNS,
     REQUIRED_VARIANT_COLUMNS,
@@ -188,17 +187,6 @@ for _m in UMAP_MODELS:
     )
 
 
-# --- cLLR calibration tables (mutation-rate calibration, #267/#270) ----------
-# Optional `calibration:` config section; targets kept off `rule all`
-# (see rules/calibration.smk). Reuses the `models:` registry.
-CALIBRATION_CFG = config.get("calibration", {})
-CALIBRATION_MODELS = CALIBRATION_CFG.get("models", [])
-
-# Fail fast: every calibration model is a known checkpoint.
-for _m in CALIBRATION_MODELS:
-    assert _m in MODELS, f"calibration model {_m!r} not found in `models`"
-
-
 # --- LL gap (functional vs non-functional log-likelihood, issue #274) --------
 # Optional `ll_gap:` config section; targets kept off `rule all` (see
 # rules/ll_gap.smk). Reuses the `models:` registry. Its `datasets` are mixed-case
@@ -269,7 +257,7 @@ def get_probe_feature(name):
 for _pm in PROBE_MODELS:
     assert isinstance(_pm, dict) and {"name", "datasets"} <= _pm.keys(), (
         f"probe `models` entry must be a mapping with `name` + `datasets` keys "
-        f"(unlike the bare-string `models:` of calibration/umap), got {_pm!r}"
+        f"(unlike the bare-string `models:` of umap/ll_gap), got {_pm!r}"
     )
     assert _pm["name"] in MODELS, f"probe model {_pm['name']!r} not found in `models`"
     _model_datasets = get_model_datasets(_pm["name"])
