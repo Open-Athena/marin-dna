@@ -257,7 +257,7 @@ def get_probe_feature(name):
 for _pm in PROBE_MODELS:
     assert isinstance(_pm, dict) and {"name", "datasets"} <= _pm.keys(), (
         f"probe `models` entry must be a mapping with `name` + `datasets` keys "
-        f"(unlike the bare-string `models:` of umap), got {_pm!r}"
+        f"(unlike the bare-string `models:` of umap/ll_gap), got {_pm!r}"
     )
     assert _pm["name"] in MODELS, f"probe model {_pm['name']!r} not found in `models`"
     _model_datasets = get_model_datasets(_pm["name"])

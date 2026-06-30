@@ -12,7 +12,7 @@ CPU-only (sklearn on cached embeddings — no GPU). Requires the input scores pa
 carry `emb_ref`/`emb_alt`, i.e. it must have been produced with
 `inference.return_embeddings: true` (the #318 overlay); the rule fails fast otherwise.
 
-Kept OFF `rule all` (a few-models analysis, like `calibration` / `umap`). Pass
+Kept OFF `rule all` (a few-models analysis, like `umap` / `ll_gap`). Pass
 `--rerun-triggers mtime` on every invocation: the input scores parquet was built with
 the #318 overlay (`return_embeddings: true`), which differs from the committed default
 (`false`), so snakemake's default `params` trigger would otherwise try to rebuild it —
