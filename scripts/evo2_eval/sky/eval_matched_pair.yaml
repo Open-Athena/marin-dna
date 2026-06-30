@@ -73,6 +73,13 @@ envs:
   DATASET_REVISION: ""  # pin HF dataset to a commit SHA / tag / branch; empty = HEAD
   SKIP_METRICS: ""      # set to any non-empty to skip pairwise metrics (e.g. when
                         # the dataset is 1:9 matched and pairwise PA no longer applies)
+  RETURN_EMBEDDINGS: "" # set to any non-empty to also emit emb_ref/emb_alt list[f16]
+                        # columns (#131) for the #320 linear probe. Requires RC on
+                        # (don't combine with NO_RC_AVG); halve BATCH_SIZE — the extra
+                        # [2*bs, 8192, D] hidden state makes the forward heavier (esp.
+                        # evo2_40b, D=8192, already at bs=1).
+  EMB_LAYER: "norm"     # Evo2 module to pool the embedding from (default post-final-
+                        # norm last-layer state; validated vs evo2.model.named_modules)
   HF_TOKEN: ""
 
 setup: |
@@ -125,6 +132,8 @@ run: |
     -e DATASET="${DATASET:-mendelian_traits}" \
     -e DATASET_REVISION="${DATASET_REVISION:-}" \
     -e SKIP_METRICS="${SKIP_METRICS:-}" \
+    -e RETURN_EMBEDDINGS="${RETURN_EMBEDDINGS:-}" \
+    -e EMB_LAYER="${EMB_LAYER:-norm}" \
     -e CUDA_VISIBLE_DEVICES=0 \
     -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     -e OMP_NUM_THREADS=8 \
@@ -152,6 +161,8 @@ run: |
       if [ -n "${DATASET_REVISION:-}" ]; then REV_ARG="--dataset-revision ${DATASET_REVISION}"; fi
       SKIP_METRICS_ARG=""
       if [ -n "${SKIP_METRICS:-}" ]; then SKIP_METRICS_ARG="--skip-metrics"; fi
+      EMB_ARG=""
+      if [ -n "${RETURN_EMBEDDINGS:-}" ]; then EMB_ARG="--return-embeddings --emb-layer ${EMB_LAYER:-norm}"; fi
       DS_NAME="${DATASET:-mendelian_traits}"
       OUT="results/evo2_${DS_NAME}/${MODEL}_train${OUTPUT_SUFFIX:-}.parquet"
       OUT_METRICS="results/evo2_${DS_NAME}/${MODEL}_train${OUTPUT_SUFFIX:-}_metrics.parquet"
@@ -161,5 +172,5 @@ run: |
         --dataset-name "$DS_NAME" \
         --genome-path results/genome.fa.gz \
         --output "$OUT" --output-metrics "$OUT_METRICS" \
-        ${LIMIT_ARG} ${BS_ARG} ${RC_ARG} ${SUBSET_ARG} ${REV_ARG} ${SKIP_METRICS_ARG}
+        ${LIMIT_ARG} ${BS_ARG} ${RC_ARG} ${SUBSET_ARG} ${REV_ARG} ${SKIP_METRICS_ARG} ${EMB_ARG}
     '

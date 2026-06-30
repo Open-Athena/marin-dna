@@ -35,6 +35,38 @@ from tqdm import tqdm
 from marin_dna.data.dna import complement_base, reverse_complement
 
 
+def fwd_rc_average_f16(strand_embs: list[np.ndarray]) -> np.ndarray:
+    """FWD+RC mean of per-strand fp32 pooled embeddings, cast to float16 for storage.
+
+    Each ``strand_embs[i]`` is one strand's pooled vectors ``[N, K]`` (fp32). The
+    mean is the #314 protocol's FWD+RC average. Accumulate in **fp32** and cast to
+    f16 only at the very end: f16 storage of allele *means* already bounds the
+    downstream probe feature ``delta = emb_alt - emb_ref`` (a small difference of
+    two near-equal vectors — catastrophic cancellation), so the aggregation itself
+    must not add rounding on top of it (issue #318). Returns ``[N, K]`` f16.
+
+    Duplicated verbatim from ``marin_dna.pipelines.evals.inference.fwd_rc_average_f16``
+    (the gLM #325 driver): the Evo2 docker image deliberately omits transformers, so
+    importing that module (top-level ``from transformers import ...``) would fail. The
+    helper is pure-numpy and model-agnostic; per CLAUDE.md this is the "duplication
+    beats a cross-dependency" case — keep the two byte-identical.
+    """
+    assert strand_embs, "need at least one strand's embeddings to average"
+    acc = np.zeros_like(strand_embs[0], dtype=np.float32)
+    for e in strand_embs:
+        acc += np.asarray(e, dtype=np.float32)
+    acc /= len(strand_embs)
+    out = acc.astype(np.float16)
+    # Fail loud rather than silently ship inf: a pooled mean beyond float16's
+    # ±65504 (e.g. a persistent massive-activation channel) overflows on the cast,
+    # which would NaN-poison the downstream delta = emb_alt - emb_ref.
+    assert np.isfinite(out).all(), (
+        "non-finite pooled embedding after f16 cast — the fp32 mean exceeded the "
+        "float16 range (±65504) or was non-finite upstream"
+    )
+    return out
+
+
 def _get_variant_window(
     fa: Fasta,
     chrom: str,
@@ -95,6 +127,8 @@ def _compute_evo2_kernel(
     *,
     var_pos: int,
     nuc_token_ids: torch.Tensor,  # [4]
+    return_embeddings: bool = False,
+    emb_layer: str | None = None,
 ) -> torch.Tensor:
     """Return ``[B, 2] = (LLR, next_token_jsd_mean)`` for a batch.
 
@@ -105,11 +139,30 @@ def _compute_evo2_kernel(
 
     Args:
         evo2_model: An ``evo2.Evo2`` instance. Native API used directly:
-            ``outputs, _ = evo2_model(input_ids)`` with ``outputs[0]`` as logits.
+            ``outputs, emb = evo2_model(input_ids, ...)`` with ``outputs[0]`` as
+            logits and ``emb`` a ``{layer_name: tensor}`` dict (empty unless
+            ``return_embeddings`` is passed to Evo2).
         input_ids: Ref token IDs ``[B, L]``.
         alt_token_id: Alt nucleotide token ID per row ``[B]``.
         var_pos: Variant position (Python int, constant within batch).
         nuc_token_ids: Token IDs for [A, C, G, T] in tokenizer order ``[4]``.
+        return_embeddings: If True, also emit the entire-window mean-pooled,
+            both-allele hidden states from the layer named by ``emb_layer``,
+            captured from the **same single** ``[2B, L]`` forward that produces the
+            logits (no second pass — mirrors the gLM #325 bundle). Returns
+            ``[B, 2 + 2D]`` instead of ``[B, 2]``.
+        emb_layer: Evo2 module name to read the hidden state from (e.g. ``"norm"``
+            for the post-final-norm last-layer state — the HF ``last_hidden_state``
+            analog). Required when ``return_embeddings``. Passed straight to Evo2's
+            ``layer_names``; validated against ``evo2_model.model.named_modules()``
+            by the driver before the loop.
+
+    Returns:
+        ``[B, 2]`` of ``(LLR, next_token_jsd_mean)``, or — when
+        ``return_embeddings`` — ``[B, 2 + 2D]`` with columns ``[0:2]`` the two
+        scores, ``[2:2+D]`` the pooled ref embedding, ``[2+D:2+2D]`` the pooled
+        alt embedding (``D`` = model hidden size). Embeddings are fp32 (the driver
+        FWD+RC-averages and casts to f16).
     """
     B, L = input_ids.shape
     p = var_pos
@@ -122,7 +175,18 @@ def _compute_evo2_kernel(
     combined = torch.cat([input_ids, alt_seq], dim=0)  # [2B, L]
 
     with torch.inference_mode():
-        outputs, _ = evo2_model(combined)
+        if return_embeddings:
+            assert emb_layer is not None, "emb_layer required when return_embeddings"
+            # Evo2's native hook path: registers a forward hook on the named module
+            # and returns its output in `emb` — the same single forward also yields
+            # the logits, so no second pass.
+            outputs, emb = evo2_model(
+                combined, return_embeddings=True, layer_names=[emb_layer]
+            )
+            hidden = emb[emb_layer]  # [2B, L, D]
+        else:
+            outputs, _ = evo2_model(combined)
+            hidden = None
     logits = outputs[0]  # [2B, L, V]
 
     # 4-nuc log_softmax in fp32 (numerical stability — biofoundation #21).
@@ -159,7 +223,32 @@ def _compute_evo2_kernel(
     kl_alt = (p_alt * (log_p_alt_ds - log_m)).sum(dim=-1)
     jsd_mean = (0.5 * (kl_ref + kl_alt)).mean(dim=-1)  # [B]
 
-    return torch.stack([llr, jsd_mean], dim=1)
+    scores = torch.stack([llr, jsd_mean], dim=1)  # [B, 2]
+    if not return_embeddings:
+        return scores
+
+    # Entire-window mean-pool of the chosen layer's hidden states, ref & alt.
+    # Evo2 has no BOS/special tokens (CharLevelTokenizer), so the input IS the
+    # window_size DNA window — pool over all L positions ([0, L)), the literal
+    # #314 "entire_window". `hidden` is [2B, L, D] in call order [ref rows; alt
+    # rows] (combined = cat([ref, alt])); reshape to [2, B, L, D] and reduce L.
+    # Accumulate in fp32 (bf16/fp8 summed over thousands of positions accrues
+    # rounding error) via sum(dtype=float32)/L — bit-identical to .float().mean()
+    # but skips a full fp32 copy of the [2B, L, D] block. The driver FWD+RC
+    # -averages (still fp32) and casts to f16.
+    assert hidden is not None
+    assert hidden.shape[:2] == (2 * B, L), (
+        f"hidden {tuple(hidden.shape)} != expected (2B={2 * B}, L={L}, D); "
+        f"emb_layer={emb_layer!r} captured an unexpected shape"
+    )
+    d = hidden.shape[-1]
+    # reshape (not view): a hook-captured hidden state may be non-contiguous. The
+    # leading 2B rows are ordered [ref (B); alt (B)] (combined = cat([ref, alt])),
+    # so (2, B) splits ref/alt correctly.
+    pooled = hidden.reshape(2, B, L, d).sum(dim=2, dtype=torch.float32) / L  # [2, B, D]
+    emb_ref = pooled[0]  # [B, D]
+    emb_alt = pooled[1]  # [B, D]
+    return torch.cat([scores.float(), emb_ref, emb_alt], dim=1)  # [B, 2 + 2D]
 
 
 def _build_token_arrays(
@@ -210,6 +299,8 @@ def compute_evo2_bundle(
     window_size: int = 8192,
     batch_size: int = 16,
     rc_avg: bool = True,
+    return_embeddings: bool = False,
+    emb_layer: str = "norm",
 ) -> pd.DataFrame:
     """Score Evo2 variants → DataFrame[llr, minus_llr, abs_llr, next_token_jsd_mean].
 
@@ -223,13 +314,33 @@ def compute_evo2_bundle(
         window_size: Context length (Evo2 design = 8192).
         batch_size: Per-batch row count. With this kernel each batch
             feeds the model ``[2*batch_size, window_size]`` tokens.
+            ``return_embeddings`` makes the forward heavier (it materializes a
+            ``[2*batch_size, window_size, D]`` hidden state) — use a smaller batch.
         rc_avg: If True, score forward + reverse-complement windows and
             return the element-wise mean (matches evals_v2 protocol).
+        return_embeddings: If True, also emit the entire-window mean-pooled,
+            both-allele, FWD+RC-averaged last-layer embeddings as ``emb_ref`` /
+            ``emb_alt`` ``list[f16]`` columns — the same schema the gLM #325
+            bundle writes, so the #320 linear probe + #331 per-chrom AUPRC consume
+            them unchanged. Requires ``rc_avg=True`` (the stored vector is the
+            FWD+RC average; a forward-only embedding would be silently mislabeled).
+        emb_layer: Evo2 module name to pool the hidden state from when
+            ``return_embeddings`` (default ``"norm"`` = post-final-norm last-layer
+            state, the HF ``last_hidden_state`` analog). Validated against
+            ``evo2.model.named_modules()`` before the run; fails loud with the
+            candidate names if absent.
 
     Returns:
-        DataFrame with [llr, minus_llr, abs_llr, next_token_jsd_mean].
+        DataFrame with [llr, minus_llr, abs_llr, next_token_jsd_mean] (× {avg,
+        _fwd, _rev} when ``rc_avg``). With ``return_embeddings``, also ``emb_ref``
+        and ``emb_alt`` (each a length-``D`` f16 vector per row).
     """
     from evo2 import Evo2
+
+    assert rc_avg or not return_embeddings, (
+        "return_embeddings=True requires rc_avg=True — the stored embedding is the "
+        "FWD+RC average; a forward-only embedding would be silently mislabeled"
+    )
 
     fa = Fasta(str(genome_path))
     evo2 = Evo2(model_name)
@@ -240,13 +351,27 @@ def compute_evo2_bundle(
     except (StopIteration, AttributeError):
         device = torch.device("cuda:0")
 
+    if return_embeddings:
+        # Fail fast with the candidate names rather than letting Evo2's hook path
+        # silently capture nothing (empty emb dict → KeyError mid-loop). Evo2 matches
+        # `layer_names` against `evo2.model.named_modules()`.
+        available = {name for name, _ in evo2.model.named_modules()}
+        assert emb_layer in available, (
+            f"emb_layer={emb_layer!r} is not a module in evo2.model; "
+            f"final-stack candidates: "
+            f"{sorted(n for n in available if 'norm' in n or n.endswith('unembed'))} "
+            f"(blocks: {sum(1 for n in available if n.startswith('blocks.') and n.count('.') == 1)})"
+        )
+        print(f"[evo2] return_embeddings=True, emb_layer={emb_layer!r}", flush=True)
+
     nuc_token_ids = torch.tensor(
         [int(tokenizer.tokenize(b)[0]) for b in "ACGT"], dtype=torch.long, device=device
     )
 
     n = len(df)
     strands: tuple[Literal["+", "-"], ...] = ("+", "-") if rc_avg else ("+",)
-    per_strand: dict[str, np.ndarray] = {}  # strand → [N, 2] kernel output
+    # strand → [N, W] kernel output, W = 2 (scores) or 2 + 2D (scores + emb_ref/alt).
+    per_strand: dict[str, np.ndarray] = {}
     for strand in strands:
         print(f"[evo2] strand={strand}: tokenizing {n} variants...", flush=True)
         input_ids_np, alt_token_ids_np, var_pos = _build_token_arrays(
@@ -259,7 +384,7 @@ def compute_evo2_bundle(
             f"running inference (bs={batch_size}, {n} variants)...",
             flush=True,
         )
-        strand_out = np.zeros((n, 2), dtype=np.float64)
+        strand_out: np.ndarray | None = None  # allocated on the first batch (width W)
         batch_starts = list(range(0, n, batch_size))
         for i in tqdm(batch_starts, desc=f"strand={strand}", unit="batch"):
             batch_ids = input_ids[i : i + batch_size]
@@ -270,11 +395,18 @@ def compute_evo2_bundle(
                 batch_alt,
                 var_pos=var_pos,
                 nuc_token_ids=nuc_token_ids,
+                return_embeddings=return_embeddings,
+                emb_layer=emb_layer if return_embeddings else None,
             )
-            strand_out[i : i + batch_size] = bundle.detach().cpu().numpy()
+            bundle_np = bundle.detach().cpu().numpy()
+            if strand_out is None:
+                strand_out = np.zeros((n, bundle_np.shape[1]), dtype=np.float64)
+            strand_out[i : i + batch_size] = bundle_np
+        assert strand_out is not None, "empty df — no batches ran"
         per_strand[strand] = strand_out
 
     def _expand(out_arr: np.ndarray, suffix: str) -> dict[str, np.ndarray]:
+        # out_arr[:, :2] are the two scores even when embeddings ride along.
         llr_ = out_arr[:, 0]
         jsd_ = out_arr[:, 1]
         assert np.isfinite(llr_).all(), f"non-finite LLR{suffix}"
@@ -288,7 +420,7 @@ def compute_evo2_bundle(
             f"next_token_jsd_mean{suffix}": jsd_,
         }
 
-    cols: dict[str, np.ndarray] = {}
+    cols: dict[str, object] = {}
     if rc_avg:
         # FWD+RC averaging: keep per-strand columns + the averaged columns
         # (which is what the leaderboard scores against). Per-strand columns
@@ -300,4 +432,19 @@ def compute_evo2_bundle(
         cols.update(_expand(per_strand["-"], suffix="_rev"))
     else:
         cols.update(_expand(per_strand["+"], suffix=""))
+
+    if return_embeddings:
+        # Each per-strand array is [N, 2 + 2D]: [:, 2:2+D] = emb_ref, [:, 2+D:] =
+        # emb_alt (fp32, kernel-pooled). FWD+RC-average the full [N, 2D] emb block in
+        # fp32 then split — the average is linear, so split-then-average ==
+        # average-then-split. Store each allele as a length-D f16 vector per row
+        # (list[f16] column), matching the gLM #325 schema the probe reads.
+        width = per_strand["+"].shape[1]
+        d = (width - 2) // 2
+        assert width == 2 + 2 * d, (
+            f"score-bundle width {width} != 2 + 2*D; embeddings mis-sized"
+        )
+        avg_emb = fwd_rc_average_f16([per_strand[s][:, 2:] for s in strands])  # [N, 2D]
+        cols["emb_ref"] = list(avg_emb[:, :d])
+        cols["emb_alt"] = list(avg_emb[:, d:])
     return pd.DataFrame(cols)

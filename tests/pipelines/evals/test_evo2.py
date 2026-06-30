@@ -260,3 +260,154 @@ def test_driver_end_to_end_on_synthetic_predictions(tmp_path):
     assert (metrics["model"] == "evo2_test").all()
     assert (metrics["dataset"] == "mendelian_traits").all()  # default
     assert (metrics["split"] == "train").all()
+
+
+# --------------------------------------------------------------------------- #
+# scripts/evo2_eval/_evo2_scoring.py — embedding-bundle kernel (issue #131)
+#
+# The full inference path needs evo2 + a GPU, but the kernel takes the model as
+# an ARGUMENT, so the pooling math + the f16 FWD/RC aggregator are testable with a
+# fake Evo2 stub on CPU (mirrors the gLM #325 kernel tests). The real forward is
+# checked at runtime on the GH200 smoke.
+# --------------------------------------------------------------------------- #
+
+
+def _load_scoring():
+    """Load the script-local Evo2 scoring module by path (not a package)."""
+    import importlib.util
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[3]
+    script = repo / "scripts" / "evo2_eval" / "_evo2_scoring.py"
+    spec = importlib.util.spec_from_file_location("_evo2_scoring", script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class _FakeEvo2:
+    """Minimal Evo2-shaped stub: ``model(ids[, return_embeddings, layer_names])``
+    returns ``(outputs, emb)`` where ``outputs[0]`` is logits and ``emb`` is
+    ``{layer: hidden}`` (empty unless embeddings requested).
+
+    Both logits and hidden are deterministic table look-ups of the token ids, so
+    the test can recompute the expected entire-window mean-pool independently and
+    confirm the logits (hence scores) don't depend on the embeddings flag.
+    """
+
+    def __init__(self, logit_table, emb_table):
+        self._logit_table = logit_table  # [V, V]
+        self._emb_table = emb_table  # [V, D]
+
+    def __call__(self, input_ids, return_embeddings=False, layer_names=None):
+        logits = self._logit_table[input_ids]  # [2B, L, V]
+        emb = {}
+        if return_embeddings:
+            assert layer_names is not None and len(layer_names) == 1
+            emb[layer_names[0]] = self._emb_table[input_ids]  # [2B, L, D]
+        return (logits,), emb
+
+
+def _fake_kernel_inputs(seed=0):
+    import torch
+
+    rng = np.random.default_rng(seed)
+    V, D, B, L = 8, 5, 3, 8  # vocab, hidden, batch, window (var_pos = L//2 = 4)
+    nuc_token_ids = torch.arange(4)  # A,C,G,T -> 0,1,2,3
+    input_ids = torch.from_numpy(rng.integers(0, 4, size=(B, L))).long()
+    alt_token_id = torch.from_numpy(rng.integers(0, 4, size=B)).long()
+    logit_table = torch.from_numpy(rng.standard_normal((V, V))).float()
+    emb_table = torch.from_numpy(rng.standard_normal((V, D))).float()
+    model = _FakeEvo2(logit_table, emb_table)
+    return model, input_ids, alt_token_id, nuc_token_ids, B, D, L
+
+
+def test_evo2_kernel_embeddings_entire_window_pool_and_layout():
+    """``return_embeddings`` returns ``[B, 2 + 2D]``: cols [0:2] = scores
+    (unchanged vs the no-embedding call), [2:2+D] = ref entire-window mean-pool,
+    [2+D:2+2D] = alt entire-window mean-pool.
+    """
+    import torch
+
+    mod = _load_scoring()
+    model, input_ids, alt_token_id, nuc, B, D, L = _fake_kernel_inputs()
+    var_pos = L // 2
+
+    scores = mod._compute_evo2_kernel(
+        model, input_ids, alt_token_id, var_pos=var_pos, nuc_token_ids=nuc
+    )
+    bundle = mod._compute_evo2_kernel(
+        model,
+        input_ids,
+        alt_token_id,
+        var_pos=var_pos,
+        nuc_token_ids=nuc,
+        return_embeddings=True,
+        emb_layer="norm",
+    )
+    assert scores.shape == (B, 2)
+    assert bundle.shape == (B, 2 + 2 * D)
+    # Scores must be byte-identical whether or not embeddings ride along.
+    assert torch.allclose(bundle[:, :2], scores, atol=0, rtol=0)
+
+    # Independently recompute the entire-window mean-pool. The kernel forms
+    # combined = cat([ref, alt]) where alt = ref with var_pos swapped to alt_token.
+    alt_seq = input_ids.clone()
+    alt_seq[:, var_pos] = alt_token_id
+    emb_table = model._emb_table
+    emb_ref_expected = emb_table[input_ids].float().mean(dim=1)  # [B, D]
+    emb_alt_expected = emb_table[alt_seq].float().mean(dim=1)  # [B, D]
+    assert torch.allclose(bundle[:, 2 : 2 + D], emb_ref_expected, atol=1e-5)
+    assert torch.allclose(bundle[:, 2 + D :], emb_alt_expected, atol=1e-5)
+
+
+def test_evo2_kernel_ref_alt_pools_differ_only_downstream():
+    """ref and alt windows are identical except at/after var_pos, so the pooled
+    delta is non-zero (the variant changes >=1 position) — guards against a
+    stub/pool bug that would collapse emb_ref == emb_alt.
+    """
+    import torch
+
+    mod = _load_scoring()
+    model, input_ids, alt_token_id, nuc, B, D, L = _fake_kernel_inputs(seed=1)
+    var_pos = L // 2
+    # Force a real allele change at var_pos for every row (alt != ref).
+    alt_token_id = (input_ids[:, var_pos] + 1) % 4
+    bundle = mod._compute_evo2_kernel(
+        model,
+        input_ids,
+        alt_token_id,
+        var_pos=var_pos,
+        nuc_token_ids=nuc,
+        return_embeddings=True,
+        emb_layer="norm",
+    )
+    emb_ref = bundle[:, 2 : 2 + D]
+    emb_alt = bundle[:, 2 + D :]
+    assert not torch.allclose(emb_ref, emb_alt), "ref/alt pools should differ"
+
+
+def test_fwd_rc_average_f16_fp32_accumulation_and_f16_cast():
+    """The aggregator averages strands in fp32 and casts to f16 only at the end."""
+    mod = _load_scoring()
+    rng = np.random.default_rng(3)
+    fwd = rng.standard_normal((20, 7)).astype(np.float32)
+    rev = rng.standard_normal((20, 7)).astype(np.float32)
+    out = mod.fwd_rc_average_f16([fwd, rev])
+    assert out.dtype == np.float16
+    # Reference: fp32 mean then cast — must match bit-for-bit.
+    ref = ((fwd + rev) / 2).astype(np.float16)
+    assert np.array_equal(out, ref)
+    # Single strand → identity (just the f16 cast).
+    one = mod.fwd_rc_average_f16([fwd])
+    assert np.array_equal(one, fwd.astype(np.float16))
+
+
+def test_fwd_rc_average_f16_rejects_overflow():
+    import pytest
+
+    mod = _load_scoring()
+    # A channel beyond float16's +-65504 overflows to inf on the cast → assert.
+    big = np.full((2, 3), 1e6, dtype=np.float32)
+    with pytest.raises(AssertionError, match="non-finite"):
+        mod.fwd_rc_average_f16([big, big])

@@ -36,10 +36,11 @@ rsync -avz sky-evo2-eval:/workspace/results/evo2_complex_traits/ \
   results/evo2_complex_traits/
 ```
 
-Two extra envs the YAML threads through to the eval script:
+Extra envs the YAML threads through to the eval script:
 
 - `DATASET_REVISION=<sha>` — pins the HF dataset to a specific commit / tag / branch (default: HEAD).
 - `SKIP_METRICS=1` — writes only the scores parquet and skips `PairwiseAccuracy`. Use when the dataset isn't 1:1 paired (e.g. the 1:9 design in `evals_mendelian_traits` post-#194).
+- `RETURN_EMBEDDINGS=1` — also fold the entire-window mean-pooled, both-allele, FWD+RC-averaged last-layer embeddings into the scores parquet as `emb_ref`/`emb_alt` `list[f16]` columns (issue #131; the Evo2 analog of the gLM #325 bundle). `EMB_LAYER=norm` (default) picks the Evo2 module to pool — `norm` is the post-final-norm last-layer state, the HF `last_hidden_state` analog; validated against `evo2.model.named_modules()` and fails loud with candidates if absent. **Requires RC on** (don't combine with `NO_RC_AVG`) and makes the forward heavier (it materializes a `[2·bs, 8192, D]` hidden state) — **halve `BATCH_SIZE`**, especially `evo2_40b` (`D=8192`, already at bs=1). The scores columns are byte-identical to a non-embedding run; the embeddings just ride along. Feed the resulting parquet to `train_variant_probe.py` (below).
 
 ### Metrics — AUPRC + cluster-bootstrap SE (post-PR-#194)
 
@@ -59,6 +60,27 @@ done
 ```
 
 This mirrors `snakemake/analysis/evals_v2/workflow/rules/metrics.smk` (PR #195) but in script form, since evo2 isn't wired into the evals_v2 pipeline. Output schema matches `compute_auprc_metrics` + `[model, dataset, split]` — the same shape the dashboard's `marin_dna`-family parquets use, so the metrics flow straight into `src/marin_dna/pipelines/evals/leaderboard.py`'s `family: evo2` resolver. Re-uploading means: upload via `gh-upload-asset`, bump `EVO2_METRICS_GIST_COMMIT` in `leaderboard.py`, rebuild the dashboard.
+
+### Supervised linear probe on frozen embeddings (#131)
+
+`train_variant_probe.py` trains the frozen-embedding linear probe on an Evo2 bundle that was scored with `RETURN_EMBEDDINGS=1`, reusing the exact library code — **no new logistic regression or metric**:
+
+- `marin_dna.pipelines.evals.variant_probe.run_subset_probes` (#320) — the per-subset, nested leave-one-chromosome-out L2 probe over the in-bundle `emb_ref`/`emb_alt`, emitting a LOOC `probe_score` per variant.
+- `marin_dna.pipelines.evals.metrics.per_chrom_weighted_ap` (#331) — the TraitGym per-chromosome-weighted AUPRC (primary), scored on `probe_score` and on the zero-shot LLR baseline through the same metric, plus the global match-group-bootstrap AUPRC (secondary).
+
+CPU-only (sklearn on cached embeddings) — run it on the dev box / a CPU instance after rsyncing the bundle, like `compute_auprc_metrics.py`. The feature combo and LLR baseline are dataset-derived (directional `concat_ref_delta` + `minus_llr` for mendelian/sge; symmetric `sum_absdiff` + `abs_llr` for complex/caqtl/dsqtl), overridable with `--feature-combo` / `--baseline-col`.
+
+```bash
+for m in evo2_1b_base evo2_7b evo2_40b; do
+  uv run python scripts/evo2_eval/train_variant_probe.py \
+    --input results/evo2_mendelian_traits/${m}_train.parquet \
+    --output-predictions results/evo2_mendelian_traits/${m}_train_probe.parquet \
+    --output-metrics results/evo2_mendelian_traits/${m}_train_probe_metrics.parquet \
+    --model "$m" --dataset mendelian_traits
+done
+```
+
+This is the same protocol the gLMs run through the evals_v2 `probe`/metrics rules, so Evo2 vs the in-house gLMs is an apples-to-apples probe comparison (same feature rule, nested-LOOC CV, and headline metric). The `--emb-layer` of the scoring step is the one Evo2-specific knob — `norm` (last layer) keeps protocol parity; sweep mid-network layers (`--emb-layer blocks.<i>...`) only if the last layer underperforms.
 
 ### Tear down
 

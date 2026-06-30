@@ -139,6 +139,23 @@ def main() -> None:
         "matching evals_v2 and the #161 leaderboard protocol.",
     )
     p.add_argument(
+        "--return-embeddings",
+        action="store_true",
+        help="Also emit entire-window mean-pooled, both-allele, FWD+RC-averaged "
+        "last-layer embeddings as emb_ref/emb_alt list[f16] columns (issue #131, "
+        "mirroring the gLM #325 bundle) — the schema the #320 linear probe + #331 "
+        "per-chrom AUPRC consume. Requires RC on (incompatible with --no-rc-avg) "
+        "and makes the forward heavier (smaller --batch-size).",
+    )
+    p.add_argument(
+        "--emb-layer",
+        type=str,
+        default="norm",
+        help="Evo2 module name to pool the embedding from when --return-embeddings "
+        "(default 'norm' = post-final-norm last-layer state, the HF "
+        "last_hidden_state analog). Validated against evo2.model.named_modules().",
+    )
+    p.add_argument(
         "--skip-metrics",
         action="store_true",
         help="Write the scores parquet and exit; skip PairwiseAccuracy. "
@@ -148,6 +165,11 @@ def main() -> None:
         "post-hoc to get AUPRC + cluster-bootstrap SE for the dashboard.",
     )
     args = p.parse_args()
+
+    assert not (args.return_embeddings and args.no_rc_avg), (
+        "--return-embeddings requires RC on (the stored embedding is the FWD+RC "
+        "average); drop --no-rc-avg"
+    )
 
     if args.dataset_hf_path is None:
         args.dataset_hf_path = f"bolinas-dna/evals_{args.dataset_name}"
@@ -193,6 +215,8 @@ def main() -> None:
         window_size=args.window_size,
         batch_size=args.batch_size,
         rc_avg=not args.no_rc_avg,
+        return_embeddings=args.return_embeddings,
+        emb_layer=args.emb_layer,
     )
 
     if rank != 0:
@@ -208,6 +232,14 @@ def main() -> None:
     assert len(out) == len(ds)
     assert np.isfinite(out["llr"]).all()
     assert np.isfinite(out["next_token_jsd_mean"]).all()
+
+    if args.return_embeddings:
+        assert "emb_ref" in out.columns and "emb_alt" in out.columns, (
+            "--return-embeddings set but emb_ref/emb_alt missing from bundle"
+        )
+        d = len(out["emb_ref"].iloc[0])
+        assert all(len(v) == d for v in out["emb_ref"]), "ragged emb_ref vectors"
+        print(f"[evo2] embeddings: emb_ref/emb_alt as list[f16], D={d}")
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
