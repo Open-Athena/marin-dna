@@ -897,9 +897,10 @@ def test_sge_seed_reproducibility():
 def _ref_per_chrom_weighted_ap(
     y: np.ndarray, score: np.ndarray, chrom: np.ndarray
 ) -> float:
-    """Verbatim copy of the iter3 inlined helper (the finite-score-guard variant
-    from ``scripts/issue314/iter3_transfer.py``) — the bit-for-bit reference the
-    library function must reproduce."""
+    """Verbatim copy of the iter3 inlined helper (the finite-score-guard variant) —
+    the bit-for-bit reference the library function must reproduce. The source lives
+    on the #314 branch, not ``main``: ``scripts/issue314/iter3_transfer.py`` at commit
+    e963ebd (.../blob/e963ebd/scripts/issue314/iter3_transfer.py#L35-L42)."""
     tot, w = 0.0, 0
     for c in np.unique(chrom):
         m = (chrom == c) & np.isfinite(score)
@@ -1011,3 +1012,15 @@ def test_per_chrom_weighted_ap_matches_inlined_reference(seed: int):
     got = per_chrom_weighted_ap(y, score, chrom)
     expected = _ref_per_chrom_weighted_ap(y, score, chrom)
     assert got == pytest.approx(expected, nan_ok=True)
+
+
+def test_per_chrom_weighted_ap_non_binary_labels_raise():
+    """Labels outside {0, 1} fail loud rather than silently mis-skipping a
+    chromosome — an un-cast object/str column or a {0, 2} encoding would otherwise
+    corrupt the size-weighted mean (silently, via a string-concatenated sum)."""
+    with pytest.raises(AssertionError, match="labels must be 0/1"):
+        per_chrom_weighted_ap(
+            np.array([2, 0, 2, 0]),
+            np.array([0.9, 0.2, 0.8, 0.1]),
+            np.array(["chr1", "chr1", "chr1", "chr1"]),
+        )

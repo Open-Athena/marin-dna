@@ -71,7 +71,16 @@ def check1_metric_anchor(ref_llr: pd.Series, subsets: list[str]) -> None:
         d = pl.read_parquet(ITER1_OOF.format(s)).to_pandas()
         d["chrom"] = d["chrom"].astype(str)
         y = d["label"].to_numpy().astype(int)
-        mine = per_chrom_weighted_ap(y, _minus_llr_avg(d), d["chrom"].to_numpy())
+        minus_llr = _minus_llr_avg(d)
+        # iter2 computed the saved llr_perchrom with NO finite mask (m = chrom==c);
+        # the library uses the iter3 finite-MASKED variant. They agree bit-for-bit
+        # only where the llr is all-finite (the mask is then a no-op). Assert that
+        # precondition so a non-finite #314 llr surfaces here, not as a phantom
+        # "metric mismatch" below.
+        assert np.isfinite(minus_llr).all(), (
+            f"{s}: non-finite #314 llr breaks the anchor"
+        )
+        mine = per_chrom_weighted_ap(y, minus_llr, d["chrom"].to_numpy())
         r = float(ref_llr[s])
         worst = max(worst, abs(mine - r))
         print(f"    {s:36s} {len(d):5d} {mine:10.6f} {r:10.6f} {mine - r:+11.2e}")
@@ -82,9 +91,9 @@ def check1_metric_anchor(ref_llr: pd.Series, subsets: list[str]) -> None:
     print("    PASS — library metric == #314 helper, bit-for-bit.\n")
 
 
-def check2_probe_vs_matching_arm(ref_concat: pd.Series, subsets: list[str]) -> None:
-    pred = pl.read_parquet(PRED).to_pandas()
-    pred["chrom"] = pred["chrom"].astype(str)
+def check2_probe_vs_matching_arm(
+    pred: pd.DataFrame, ref_concat: pd.Series, subsets: list[str]
+) -> None:
     print(
         f"[2] productionized probe ({PROBE_FEATURE}) per-chrom  vs  #314 concat_ref_delta arm"
     )
@@ -92,9 +101,16 @@ def check2_probe_vs_matching_arm(ref_concat: pd.Series, subsets: list[str]) -> N
         f"    {'subset':36s} {'n':>5s} {'probe_pc':>9s} {'probe_g':>8s} "
         f"{'#314':>8s} {'Δ':>8s}"
     )
-    deltas = []
+    deltas, n_gt = [], 0
     for s in subsets:
         dp = pred[(pred["subset"] == s) & pred["probe_score"].notna()]
+        # The llr-derived `subsets` is ungated; a subset can be below the probe's
+        # min_variants (all-NaN probe_score → empty `dp`) or absent from the
+        # refdelta arm. Skip rather than KeyError / hit auprc's both-classes assert
+        # on an empty frame — per-chrom is probe-gated, the llr anchor isn't.
+        if dp.empty or s not in ref_concat.index:
+            print(f"    {s:36s} {len(dp):5d}  (unprobed / no refdelta ref — skipped)")
+            continue
         y = dp["label"].to_numpy().astype(int)
         sp = dp["probe_score"].to_numpy()
         pc = per_chrom_weighted_ap(y, sp, dp["chrom"].to_numpy())
@@ -103,19 +119,21 @@ def check2_probe_vs_matching_arm(ref_concat: pd.Series, subsets: list[str]) -> N
         ]
         r = float(ref_concat[s])
         deltas.append(abs(pc - r))
-        assert pc > g, f"{s}: per-chrom {pc:.3f} !> global {g:.3f} (the #314 finding)"
+        n_gt += int(pc > g)
         print(f"    {s:36s} {len(dp):5d} {pc:9.4f} {g:8.4f} {r:8.4f} {pc - r:+8.4f}")
     print(f"    mean |Δ| = {np.mean(deltas):.4f}, max |Δ| = {np.max(deltas):.4f}")
+    # per-chrom > global is the #314 calibration *tendency* (and pc drops
+    # single-class chroms that g keeps), not a hard invariant — report the count.
     print(
-        "    (probe per-chrom > global on every subset; ~0.01 from #314's matching arm.)\n"
+        f"    (per-chrom > global on {n_gt}/{len(deltas)} subsets; "
+        "~0.01 from #314's matching arm.)\n"
     )
 
 
-def check3_parent_reproducibility(ref_concat: pd.Series) -> None:
+def check3_parent_reproducibility(saved: pd.DataFrame) -> None:
     print(
         "[3] re-run #320 run_subset_probes on its input embeddings  vs  saved probe_score"
     )
-    saved = pd.read_parquet(PRED, columns=KEY + ["subset", "label", "probe_score"])
     print(
         f"    {'subset':22s} {'n':>5s} {'max|Δscore|':>12s} {'pc(rerun)':>10s} {'pc(saved)':>10s}"
     )
@@ -128,10 +146,17 @@ def check3_parent_reproducibility(ref_concat: pd.Series) -> None:
             min_variants=300,
             min_chroms=3,
             inner_splits=5,
-            n_jobs=4,
+            n_jobs=2,  # local-node etiquette: cap at nproc/2 on the shared 4-vCPU box
         )
         rerun = preds[KEY + ["probe_score"]].rename(columns={"probe_score": "rerun"})
-        sv = saved[saved["subset"] == s].reset_index(drop=True).merge(rerun, on=KEY)
+        # (chrom,pos,ref,alt) is unique within a subset → validate one-to-one so a
+        # duplicate key fails loud instead of silently cartesian-inflating (and
+        # re-weighting) the per-chrom comparison.
+        sv = (
+            saved[saved["subset"] == s]
+            .reset_index(drop=True)
+            .merge(rerun, on=KEY, validate="one_to_one")
+        )
         sv = sv[sv["probe_score"].notna() & sv["rerun"].notna()]
         mad = float((sv["probe_score"] - sv["rerun"]).abs().max())
         y = sv["label"].to_numpy().astype(int)
@@ -153,11 +178,22 @@ def main() -> None:
     ref_concat = rd[rd["rep"] == "entire_window/concat_ref_delta"].set_index("subset")[
         "probe_perchrom"
     ]
+    assert not ref_concat.empty, (
+        "no 'entire_window/concat_ref_delta' rows in the refdelta parquet — the rep "
+        "label or schema changed; check [2] would otherwise KeyError on every subset"
+    )
     subsets = sorted(ref_llr.index)
 
+    # Read the productionized predictions once (column subset) and share across
+    # checks [2] and [3] rather than re-reading the S3 object twice.
+    pred = pd.read_parquet(
+        PRED, columns=KEY + ["subset", "label", "match_group", "probe_score"]
+    )
+    pred["chrom"] = pred["chrom"].astype(str)
+
     check1_metric_anchor(ref_llr, subsets)
-    check2_probe_vs_matching_arm(ref_concat, subsets)
-    check3_parent_reproducibility(ref_concat)
+    check2_probe_vs_matching_arm(pred, ref_concat, subsets)
+    check3_parent_reproducibility(pred)
 
 
 if __name__ == "__main__":

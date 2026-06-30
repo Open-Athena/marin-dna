@@ -263,11 +263,19 @@ def per_chrom_weighted_ap(
         Sample-size-weighted mean of the per-chromosome AUPRCs, or ``nan`` when
         no chromosome has both classes among its finite-score variants.
     """
-    y = np.asarray(y)
+    # Labels must be 0/1 (or bool). Cast like the module's other metrics
+    # (``auprc_with_bootstrap_se``) so a 0/1-valued object/float column still
+    # works, then fail loud on a non-binary encoding: an un-cast object/str label
+    # would make ``y[keep].sum()`` string-concatenate and silently skip every
+    # chromosome (a wrong ``nan``) instead of raising.
+    y = np.asarray(y).astype(int)
     score = np.asarray(score, dtype=float)
     chrom = np.asarray(chrom)
     assert len(y) == len(score) == len(chrom), (
         f"length mismatch: y={len(y)} score={len(score)} chrom={len(chrom)}"
+    )
+    assert np.isin(y, (0, 1)).all(), (
+        f"labels must be 0/1 (or bool), got values={np.unique(y)[:5]}"
     )
     total, weight = 0.0, 0
     for c in np.unique(chrom):
