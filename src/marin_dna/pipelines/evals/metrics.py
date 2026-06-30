@@ -22,8 +22,7 @@ Four metric families live here:
   match groups by the ``gpn_star_eval`` pipeline, the ``scripts/evo2_eval/``
   scripts, and the ``lm_eval`` DNA-VEP harness (``dna_vep_llr_eval``).
 - ``METRIC_FUNCTIONS`` / ``compute_metrics``: classical AUPRC / AUROC /
-  Spearman over (label, score) pairs. Still used by older pipelines
-  (``snakemake/analysis/evals_v1/``, ``scripts/evo2_eval/``).
+  Spearman over (label, score) pairs (a general-purpose helper).
 """
 
 import math

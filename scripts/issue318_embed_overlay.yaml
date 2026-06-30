@@ -18,7 +18,7 @@
 #   (last_hidden_state, captured by a hook — not all layers) + the suffix logits over
 #   the full vocab + the wider [N, 2+2D] predictions, so it's heavier than the slim
 #   LLR/JSD bundle and scales ~linearly with batch. Measured on exp135 (1B) / A10G
-#   24 GB via scripts/issue318_batch_sweep.py: 32→7.0 GB, 64→11.5, 96→16.0 (68%),
+#   24 GB: 32→7.0 GB, 64→11.5, 96→16.0 (68%),
 #   128→20.6 (87%), 192→OOM. 96 is the largest with headroom for the full-dataset
 #   prediction accumulation (~1.3 GB on caqtl); 128 is too tight. NOTE this sets the
 #   GLOBAL inference.batch_size — a model with its own per-model `batch_size:` override

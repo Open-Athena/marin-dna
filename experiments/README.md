@@ -95,5 +95,3 @@ Two pieces of marin context that aren't obvious from the python:
    inherit parent `-e` flags. Bake `HF_HUB_DOWNLOAD_TIMEOUT` and
    `UV_LOCK_TIMEOUT` into the script's `remote()`s; don't rely on
    `iris job run -e ...` reaching tokenize/train workers.
-
-See `experiments/parity/exp179_eval_only.py` for a worked example.
