@@ -15,7 +15,7 @@ from marin.evaluation.evaluation_config import EvalTaskConfig
 # scoring). #179 (ab)used it as a cache-busting bump (0 → 1) when it changed the
 # metric + dataset. #225 migrated the online metric to AUPRC + per-variant FWD/RC
 # averaging (was PairwiseAccuracy); the dataset is
-# bolinas-dna/evals_mendelian_traits_harness_255 (snakemake/evals/ output).
+# bolinas-dna/evals_mendelian_traits_harness_255 (a frozen HF dataset).
 MENDELIAN_TRAITS_255 = EvalTaskConfig(
     "mendelian_traits_255", 1, task_alias="mendelian_traits_255"
 )

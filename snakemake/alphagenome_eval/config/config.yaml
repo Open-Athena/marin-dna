@@ -39,8 +39,8 @@ subset_n_pairs: null
 # fail-loud cap — raise it only to score a genuinely new dataset.
 dnase_lfc:
   s3_prefix: s3://oa-bolinas/snakemake/alphagenome_eval/results/dnase_lfc
-  # hf_revision must match marin_dna.pipelines.evals.qtl_scoring.QTL_HF_REVISION (the
-  # benchmark scripts' single source) — snakemake reads YAML and can't import it.
+  # hf_revision pins the frozen accessibility-QTL HF dataset revision (the QTL
+  # benchmark code, incl. qtl_scoring, was removed in #332 — this is now the source).
   datasets:
     - name: caqtl
       hf_revision: 27a24296f50ed55afdc412d1612df680d13138d6

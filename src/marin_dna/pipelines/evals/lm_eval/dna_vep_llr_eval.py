@@ -283,8 +283,7 @@ class DnaVepLlrEvalTask(Task):
     alt_completion, target, match_group]``. Optional: ``subset`` (str) — metrics
     computed per distinct value plus ``_global_`` and ``_macro_avg_``.
     Optional: ``strand`` (str, ``"+"`` or ``"-"``) — when present the same variant
-    appears once per strand (see
-    :func:`marin_dna.pipelines.evals.materialize.materialize_sequences`).
+    appears once per strand.
 
     The lm-eval headline scalar is ``_global_/avg/{metric}``.
 

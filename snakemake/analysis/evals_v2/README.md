@@ -167,8 +167,7 @@ node:
 # Auth for GCS checkpoint pulls.
 gcloud auth application-default login
 
-# Verify gcloud is on PATH and AWS creds reach S3 (same setup as
-# snakemake/evals/ — see that pipeline's README).
+# Verify gcloud is on PATH and AWS creds reach S3.
 gcloud storage ls gs://marin-us-central1/checkpoints/ | head
 aws s3 ls s3://oa-bolinas/snakemake/analysis/evals_v2/ 2>&1 | head
 

@@ -1,7 +1,6 @@
 # Conservation scores baseline (issue #146)
 
-Per-variant conservation scores on the matched-pair eval datasets produced by
-`snakemake/evals/`:
+Per-variant conservation scores on the matched-pair eval datasets (frozen on HF):
 
 - `bolinas-dna/evals_mendelian_traits` — Mendelian-disease pathogenic SNVs vs
   gnomAD common (MAF ≥ 5 %), 1:9 k-nearest-neighbor matched (PR #194).
@@ -134,7 +133,7 @@ sky launch snakemake/conservation_eval/sky/run.yaml -c conservation-eval
 
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/conservation_eval/`. AWS credentials need S3
-access — same setup as `snakemake/evals/`.
+access — same S3-credential setup as the other eval pipelines.
 
 ## Outputs
 
