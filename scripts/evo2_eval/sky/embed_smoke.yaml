@@ -44,6 +44,20 @@ resources:
     - {cloud: Lambda, accelerators: GH200:1, region: asia-northeast-2}
     - {cloud: Lambda, accelerators: GH200:1, region: asia-south-1}
     - {cloud: Lambda, accelerators: GH200:1, region: australia-east-1}
+    # H100 fallbacks (also Hopper / fp8 — the #131 baseline's 1B/7B ran on 2×H100;
+    # a single 80 GB H100 fits the 1B smoke). GH200 is cheaper so it's preferred when
+    # available; these widen the pool when GH200 is capacity-out (it often is).
+    - {cloud: Lambda, accelerators: H100:1, region: us-east-1}
+    - {cloud: Lambda, accelerators: H100:1, region: us-east-2}
+    - {cloud: Lambda, accelerators: H100:1, region: us-east-3}
+    - {cloud: Lambda, accelerators: H100:1, region: us-south-1}
+    - {cloud: Lambda, accelerators: H100:1, region: us-south-2}
+    - {cloud: Lambda, accelerators: H100:1, region: us-south-3}
+    - {cloud: Lambda, accelerators: H100:1, region: us-west-1}
+    - {cloud: Lambda, accelerators: H100:1, region: us-west-2}
+    - {cloud: Lambda, accelerators: H100:1, region: us-west-3}
+    - {cloud: Lambda, accelerators: H100:1, region: europe-central-1}
+    - {cloud: Lambda, accelerators: H100:1, region: asia-northeast-1}
   labels:
     project: dna
   disk_size: 256
