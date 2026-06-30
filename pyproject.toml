@@ -43,14 +43,21 @@ dependencies = [
 # auto-picks up future jax/torch/libtpu bumps. Linux-only at the consumer
 # level (matches marin-experiments/tiny-stories@28d53c6 from 2026-05-08);
 # TPU isn't usable on Mac so dropping the macOS install is correct.
-tpu = ["marin[tpu]; sys_platform == 'linux'"]
+tpu = ["marin-core[tpu]; sys_platform == 'linux'"]
 # Marin-launched DNA experiments. Iris workers run ``uv sync`` with `--extra`
 # flags (not `--group`), so this lives under `[project.optional-dependencies]`
 # rather than `[dependency-groups]`. Local users opt in with
 # `uv sync --extra marin`; snakemake / PyTorch contributors who don't run
 # marin experiments leave it out and skip the JAX/levanter install cost.
 marin = [
-    "marin",
+    # PyPI distribution (2026-06; marin-community/marin#6324). The marin library
+    # ("marin" namespace: marin.training / .execution / .processing.tokenize) is
+    # published as **marin-core**; the GitHub release find-links are deprecated
+    # (frozen at 0.99.dev20260529, below the iris controller's freshness floor).
+    # marin-core pins its sisters at == its own version, so this is one coherent
+    # set; the iris client date comes from the wheel's BUILD_DATE (a recent PyPI
+    # dev build clears the floor — no more GitHub wheels needed).
+    "marin-core",
     "marin-levanter",
     "marin-iris",
     "marin-zephyr",
@@ -63,21 +70,19 @@ marin = [
     #   unzip -p .venv/lib/python3.12/site-packages/marin_levanter-*.dist-info/METADATA \
     #     | grep 'lm-eval @'
     "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
-    # ``dupekit`` is required by ``marin.datakit.normalize`` (imported by
-    # ``marin.processing.tokenize._core``), but isn't pulled transitively by
-    # any ``marin`` wheel — listing it here so the iris worker's
-    # ``uv sync --extra marin`` installs it from the find-link below. Failure
-    # mode without this: ``ModuleNotFoundError: No module named 'dupekit'``
-    # on any training script that touches ``marin.processing.tokenize``.
-    "dupekit",
+    # ``marin-dupekit`` (was ``dupekit``) is required by ``marin.datakit.normalize``
+    # (imported by ``marin.processing.tokenize._core``), but isn't pulled
+    # transitively unless you take ``marin-core[dedup]`` — list it directly so the
+    # iris worker's ``uv sync --extra marin`` installs it. Failure mode without
+    # it: ``ModuleNotFoundError`` on any script that touches
+    # ``marin.processing.tokenize``.
+    "marin-dupekit",
     # marin-root (which ships marin's `experiments/` package) is deliberately
-    # *not* depended on here — its pyproject carries
-    # ``[tool.uv.sources] marin-* = { workspace = true }``, which propagates
-    # to consumers and overrides the find-links wheels for every marin
-    # sister package, dropping the BUILD_DATE the iris controller's
-    # freshness check requires. The two `experiments.*` symbols the parity
-    # check needs (`qwen3_0_6b_hd128`, `default_tokenize`) are vendored at
-    # the bottom of `experiments/parity/exp160_parity.py`.
+    # *not* depended on here — it's not published to PyPI and ships an
+    # `experiments/` top-level that would collide with ours. The two
+    # `experiments.*` symbols the parity check needs (`qwen3_0_6b_hd128`,
+    # `default_tokenize`) are vendored at the bottom of
+    # `experiments/parity/exp160_parity.py`.
 ]
 # Vendored ChromBPNet (arsenal-chrombpnet) for the supervised caQTL/dsQTL VEP
 # eval (issue #236). Opt in with `uv sync --extra chrombpnet`; snakemake / eval
@@ -183,24 +188,12 @@ override-dependencies = [
     # marin-dna code on the same pandas major it was developed against.
     "pandas>=2.0,<3.0",
 ]
-# marin sister-packages, kitoken, and dupekit ship as GitHub release wheels
-# (not PyPI). Released marin-* wheels carry a baked-in BUILD_DATE that the
-# iris controller's freshness check needs; workspace builds don't stamp it.
-# `marin-finelog-latest` was added by `marin-community/marin#5565` after this
-# repo first locked — the issue was tracked at
-# https://github.com/marin-community/marin/issues/5564.
-find-links = [
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-haliax-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-levanter-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-iris-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-zephyr-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-rigging-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-fray-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-finelog-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/dupekit-0.1.0-40ac799",
-    "https://github.com/marin-community/kitoken/releases/expanded_assets/kitoken-0.10.2-a3012f4",
-]
+# The marin sister-packages, kitoken, and dupekit now publish to **PyPI**
+# (marin-community/marin#6324, 2026-06) — the GitHub release find-links that used
+# to live here are deprecated and frozen at 0.99.dev20260529 (below the iris
+# controller's freshness floor), so they're removed. Everything resolves from
+# PyPI: marin-core / marin-{levanter,iris,zephyr,rigging,haliax,fray,finelog,dupekit}
+# (the dev builds carry a recent BUILD_DATE) and kitoken.
 
 [[tool.uv.index]]
 name = "marin-resiliparse"
