@@ -66,7 +66,13 @@ envs:
   DATASET: mendelian_traits  # or `complex_traits`; drives HF path + output dir
   LIMIT: ""
   BATCH_SIZE: ""
-  SKIP_SELF_TEST: ""
+  SKIP_SELF_TEST: "1"  # skip by default (#131): the current evo2 (vtx 1.1.0)
+                       # `python -m evo2.test.test_evo2` fails on single-GPU GH200 and
+                       # leaves the GPU "busy/unavailable", so the eval that follows
+                       # dies at `import evo2` (triton "0 active drivers"). A clean
+                       # `import evo2` works fine — it's the failed self-test that
+                       # corrupts state. Re-enable (set "") once upstream's test is
+                       # GH200-clean. (Was opt-in when the self-test ran cleanly.)
   NO_RC_AVG: ""    # empty = RC on (default); set to any non-empty to disable
   SUBSET: ""       # if set (e.g. "splicing"), filter the dataset to that subset
   OUTPUT_SUFFIX: ""  # optional suffix on output parquet filenames (avoid clobber)

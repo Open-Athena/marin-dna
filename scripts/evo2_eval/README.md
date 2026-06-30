@@ -150,7 +150,7 @@ Per-row LL sums + token counts (not means — means break for all-upper or all-l
 
 3. **HF Trainer puts inputs on `cuda:0`, but Vortex may shard the embedding onto another device.** `_Evo2QuackModel` wraps `model.forward` with a small adapter that moves `input_ids` to the embedding's device on entry and moves logits back to the caller's device on exit. No-op on single-GPU.
 
-4. **Running evo2's self-test on a sharded model leaks state** that corrupts the next real inference (hits the same rotary-sin=None error we saw pre-expandable_segments). `SKIP_SELF_TEST=1` is the clean workaround when sharding. On single-GPU GH200 the self-test runs cleanly.
+4. **Running evo2's self-test leaks GPU state that breaks the eval that follows.** Originally seen on sharded models (rotary-sin=None); as of the current evo2 (vtx 1.1.0) it also fails on **single-GPU GH200** and leaves the GPU "busy/unavailable", so the eval dies at `import evo2` with triton `0 active drivers` / `Can't initialize NVML`. A *clean* `import evo2` works fine — it's the failed self-test that corrupts state. So `SKIP_SELF_TEST` now defaults to `"1"` in the yaml (#131); re-enable (`--env SKIP_SELF_TEST=`) once upstream's `test_evo2` is GH200-clean. (The earlier "runs cleanly on GH200" held for the older evo2.)
 
 5. **Self-test numerics differ slightly across GPU generations.** Upstream eps is `1e-3`; on GH200 our `evo2_7b_base` test gave loss 0.354 vs expected 0.352 (diff 0.002, fails eps strictly but within rounding).
 
