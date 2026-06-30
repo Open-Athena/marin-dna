@@ -24,6 +24,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_qtl_metrics,
     compute_sge_metrics,
     paired_metric_delta_bootstrap,
+    per_chrom_weighted_ap,
 )
 
 
@@ -886,3 +887,140 @@ def test_sge_seed_reproducibility():
     a = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
     b = compute_sge_metrics(dataset, scores, n_bootstrap=50, rng=0)
     pd.testing.assert_frame_equal(a, b)
+
+
+# ---------------------------------------------------------------------------
+# per_chrom_weighted_ap (TraitGym / #314 linear-probe headline metric)
+# ---------------------------------------------------------------------------
+
+
+def _ref_per_chrom_weighted_ap(
+    y: np.ndarray, score: np.ndarray, chrom: np.ndarray
+) -> float:
+    """Verbatim copy of the iter3 inlined helper (the finite-score-guard variant) —
+    the bit-for-bit reference the library function must reproduce. The source lives
+    on the #314 branch, not ``main``: ``scripts/issue314/iter3_transfer.py`` at commit
+    e963ebd (.../blob/e963ebd/scripts/issue314/iter3_transfer.py#L35-L42)."""
+    tot, w = 0.0, 0
+    for c in np.unique(chrom):
+        m = (chrom == c) & np.isfinite(score)
+        if 0 < int(y[m].sum()) < int(m.sum()):
+            tot += average_precision_score(y[m], score[m]) * int(m.sum())
+            w += int(m.sum())
+    return tot / w if w else float("nan")
+
+
+def test_per_chrom_weighted_ap_perfect_separation():
+    """Within every chromosome positives outscore negatives → each chrom AUPRC=1
+    → weighted mean 1.0, regardless of the (unequal) chromosome sizes."""
+    y = np.array([1, 1, 0, 0, 0, 1, 0, 0])
+    score = np.array([0.9, 0.8, 0.2, 0.1, 0.3, 0.95, 0.05, 0.15])
+    chrom = np.array(["chr1", "chr1", "chr1", "chr1", "chr1", "chr2", "chr2", "chr2"])
+    assert per_chrom_weighted_ap(y, score, chrom) == pytest.approx(1.0)
+
+
+def test_per_chrom_weighted_ap_single_class_chrom_skipped():
+    """A chromosome with only one class is dropped: the result is exactly the
+    AUPRC of the lone both-class chromosome (the skipped one adds no weight)."""
+    y = np.array([1, 1, 0, 0, 1, 1, 1, 1])
+    score = np.array([0.9, 0.3, 0.6, 0.2, 0.7, 0.5, 0.4, 0.8])
+    chrom = np.array(["chr1"] * 5 + ["chr2"] * 3)  # chr2 is all-positive → skipped
+    m1 = chrom == "chr1"
+    expected = average_precision_score(y[m1], score[m1])
+    assert per_chrom_weighted_ap(y, score, chrom) == pytest.approx(expected)
+
+
+def test_per_chrom_weighted_ap_size_weighted_not_equal_weighted():
+    """The mean is weighted by chromosome size: two both-class chromosomes of
+    different sizes and different AUPRCs → the result is the size-weighted mean
+    and differs from the plain (equal-weight) mean."""
+    # chr1: 10 variants, imperfect ranking. chr2: 4 variants, perfect ranking.
+    y1 = np.array([1, 0, 1, 0, 0, 1, 0, 0, 0, 0])
+    s1 = np.array([0.5, 0.9, 0.4, 0.3, 0.2, 0.8, 0.1, 0.05, 0.6, 0.7])
+    y2 = np.array([1, 0, 1, 0])
+    s2 = np.array([0.9, 0.1, 0.8, 0.2])
+    y = np.concatenate([y1, y2])
+    score = np.concatenate([s1, s2])
+    chrom = np.array(["chr1"] * len(y1) + ["chr2"] * len(y2))
+    ap1 = average_precision_score(y1, s1)
+    ap2 = average_precision_score(y2, s2)
+    n1, n2 = len(y1), len(y2)
+    expected = (ap1 * n1 + ap2 * n2) / (n1 + n2)
+    got = per_chrom_weighted_ap(y, score, chrom)
+    assert got == pytest.approx(expected)
+    # Guard the fixture: the chroms must actually differ in AUPRC and size, so
+    # the test genuinely separates size-weighting from equal-weighting.
+    assert ap1 != pytest.approx(ap2) and n1 != n2
+    assert got != pytest.approx((ap1 + ap2) / 2)
+
+
+def test_per_chrom_weighted_ap_nonfinite_scores_dropped():
+    """Non-finite scores (NaN, ±inf) are excluded per chromosome — they neither
+    count toward a class nor toward the size weight; a chromosome left
+    single-class after the drop is skipped."""
+    # chr1: a NaN and a +inf dropped → finite rows [0.9 (pos), 0.2 (neg)] → AP=1, n=2.
+    y1 = np.array([1, 1, 0, 0])
+    s1 = np.array([0.9, np.nan, 0.2, np.inf])
+    # chr2: a -inf dropped → finite labels [1, 0, 0], scores [0.5, 0.6, 0.4].
+    y2 = np.array([1, 0, 1, 0])
+    s2 = np.array([0.5, 0.6, -np.inf, 0.4])
+    # chr3: its only finite-score row is a positive → single class → skipped.
+    y3 = np.array([1, 1])
+    s3 = np.array([np.nan, 0.5])
+    y = np.concatenate([y1, y2, y3])
+    score = np.concatenate([s1, s2, s3])
+    chrom = np.array(["chr1"] * 4 + ["chr2"] * 4 + ["chr3"] * 2)
+
+    f1, f2 = np.isfinite(s1), np.isfinite(s2)
+    ap1, n1 = average_precision_score(y1[f1], s1[f1]), int(f1.sum())
+    ap2, n2 = average_precision_score(y2[f2], s2[f2]), int(f2.sum())
+    expected = (ap1 * n1 + ap2 * n2) / (n1 + n2)  # chr3 contributes nothing
+    assert per_chrom_weighted_ap(y, score, chrom) == pytest.approx(expected)
+
+
+def test_per_chrom_weighted_ap_all_single_class_returns_nan():
+    """No chromosome has both classes → undefined → nan (not 0, not a crash)."""
+    y = np.array([1, 1, 0, 0])
+    score = np.array([0.9, 0.8, 0.2, 0.1])
+    chrom = np.array(["chr1", "chr1", "chr2", "chr2"])  # chr1 all-pos, chr2 all-neg
+    assert math.isnan(per_chrom_weighted_ap(y, score, chrom))
+
+
+def test_per_chrom_weighted_ap_length_mismatch_raises():
+    with pytest.raises(AssertionError, match="length mismatch"):
+        per_chrom_weighted_ap(
+            np.array([1, 0, 1]),
+            np.array([0.5, 0.5]),
+            np.array(["chr1", "chr1", "chr2"]),
+        )
+
+
+@pytest.mark.parametrize("seed", [0, 1, 7])
+def test_per_chrom_weighted_ap_matches_inlined_reference(seed: int):
+    """Bit-for-bit agreement with the verbatim iter3 helper on a randomized
+    fixture spanning non-finite scores and a forced single-class chromosome
+    (the issue's stated verification)."""
+    rng = np.random.default_rng(seed)
+    n = 200
+    y = (rng.random(n) < 0.3).astype(int)
+    score = rng.normal(size=n)
+    score[rng.choice(n, size=15, replace=False)] = np.nan
+    score[rng.choice(n, size=5, replace=False)] = np.inf
+    chrom = rng.choice(["chr1", "chr2", "chr3", "chr4"], size=n)
+    chrom[:6] = "chrX"  # force a single-class chromosome into the mix
+    y[:6] = 1
+    got = per_chrom_weighted_ap(y, score, chrom)
+    expected = _ref_per_chrom_weighted_ap(y, score, chrom)
+    assert got == pytest.approx(expected, nan_ok=True)
+
+
+def test_per_chrom_weighted_ap_non_binary_labels_raise():
+    """Labels outside {0, 1} fail loud rather than silently mis-skipping a
+    chromosome — an un-cast object/str column or a {0, 2} encoding would otherwise
+    corrupt the size-weighted mean (silently, via a string-concatenated sum)."""
+    with pytest.raises(AssertionError, match="labels must be 0/1"):
+        per_chrom_weighted_ap(
+            np.array([2, 0, 2, 0]),
+            np.array([0.9, 0.2, 0.8, 0.1]),
+            np.array(["chr1", "chr1", "chr1", "chr1"]),
+        )
