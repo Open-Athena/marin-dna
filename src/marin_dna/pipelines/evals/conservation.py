@@ -1,8 +1,10 @@
 """Per-variant conservation scoring via UCSC bigWig tracks.
 
-Used by ``snakemake/conservation_eval/`` (issue #146) to score matched-pair
-variant-effect datasets (e.g. ``bolinas-dna/evals_mendelian_traits``,
-``bolinas-dna/evals_complex_traits``) with classical conservation tracks:
+Scores matched-pair variant-effect datasets (e.g. ``bolinas-dna/evals_mendelian_traits``,
+``bolinas-dna/evals_complex_traits``) with classical conservation tracks. On ``main`` the
+``CONSERVATION_TRACKS`` registry below is consumed by ``evals_v2`` and
+``zoonomia_projection_dataset``; the ``conservation_eval`` baseline pipeline (issue #146)
+that was its original driver now runs from a branch (frozen results on S3; see #332):
 
 - ``phyloP_100v``    — UCSC 100-vertebrate phyloP (multiz alignment)
 - ``phastCons_100v`` — UCSC 100-vertebrate phastCons (multiz alignment)

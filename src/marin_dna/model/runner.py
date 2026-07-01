@@ -12,7 +12,7 @@ CLM-only and rewritten to operate directly on HF objects — no
   tuple of layer outputs indexable with ``[-1]`` (last) and
   ``[len // 2]`` (middle). HF ``AutoModelForCausalLM`` satisfies this
   natively. Non-HF models (e.g. Evo2) can be wrapped to expose the same
-  surface — see ``pipelines/evals/evo2.py`` for an example.
+  surface.
 
 - ``tokenizer``: any object exposing ``.encode(text) -> list[int]``,
   ``.bos_token_id``, ``.eos_token_id``. HF ``PreTrainedTokenizerBase``

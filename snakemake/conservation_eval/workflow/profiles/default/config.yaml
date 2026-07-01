@@ -1,3 +1,0 @@
-default-storage-provider: s3
-default-storage-prefix: s3://oa-bolinas/snakemake/conservation_eval/
-cores: all

@@ -9,8 +9,7 @@ output_hidden_states=True).hidden_states[i]``) — no ``CausalLM`` /
 The ``model`` argument is duck-typed: any callable whose output exposes
 ``.logits`` (and ``.hidden_states`` when ``output_hidden_states=True`` is
 passed) works. HF ``AutoModelForCausalLM`` satisfies this natively;
-non-HF models (e.g. Evo2) should be wrapped to expose the same surface —
-see ``pipelines/evals/evo2.py`` for an example.
+non-HF models (e.g. Evo2) should be wrapped to expose the same surface.
 """
 
 from __future__ import annotations

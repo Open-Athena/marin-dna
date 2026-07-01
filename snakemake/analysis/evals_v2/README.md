@@ -94,7 +94,7 @@ It runs on a 2-axis grid: `subset` ∈ {`missense_variant`, `splicing`, `both`
 `mavedb_urn`, `_macro_avg_` (mean over accessions)}. Parquet columns:
 `[metric, subset, accession, gene, score_type, value, se, n, n_pos, model,
 dataset, split]` (`metric` is always `AUPRC`). The **same** `compute_sge_metrics`
-is reused by the conservation pipeline (`snakemake/conservation_eval/`). Scoped
+is reused by the `conservation_eval` baseline pipeline (now branch-run — #332). Scoped
 to the three #292 gLMs via their per-model `datasets:` lists.
 
 ### Pooled embeddings (`inference.return_embeddings`, #318)
