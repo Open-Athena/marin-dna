@@ -42,11 +42,11 @@ Three things. No more.
    ```
    gh issue create \
      --title "<short phrasing of the question>" \
-     --label agent-generated --label <topic> \
+     --label agent-generated --label eda \
      --body-file <path>
    ```
 
-   No `🤖` prefix on the title — [CLAUDE.md](../../../CLAUDE.md) mandates the prefix on *comments*, and the `agent-generated` label already signals provenance.
+   Labels: `agent-generated` + a **Type** (`eda` usually, `research-question` for a durable question) + any relevant **Area** label(s) (`evals`, `data`, …) — see [§ Artifacts](#artifacts). No `🤖` prefix on the title — [CLAUDE.md](../../../CLAUDE.md) mandates the prefix on *comments*, and the `agent-generated` label already signals provenance.
 3. If a pipeline is needed, scaffold `snakemake/analysis/<name>/` following an existing example (e.g. `snakemake/analysis/evals_v2/`) and link it from the issue body.
 
 For UI-created issues, the `research-question.md` / `eda.md` templates match this workflow's body structure; this skill itself creates via `--body-file`. Don't route an investigation through the WandB-flavored `experiment.md` template.
