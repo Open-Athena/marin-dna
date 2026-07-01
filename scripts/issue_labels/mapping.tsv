@@ -1,0 +1,170 @@
+# Retroactive issue-label mapping for the Type x Area + meta taxonomy.
+# Columns: number <TAB> type <TAB> areas(csv) <TAB> meta(csv) <TAB> note
+# type: exactly one of research-question|experiment|eda|infrastructure|bug  (empty = legacy area-hub/stub, area-only)
+# areas: 0+ of evals,data,modeling,baselines,hyperparameter-optimization,interpretation
+# meta: agent-generated,marin  (preserved as already set; never auto-added to old human issues)
+# NOTE: modeling = PRETRAINING recipe ONLY (architecture/objective/tokenization/context/loss).
+#       VEP / scoring / eval-performance => evals.  region & enhancer data choices => data.
+#       enhancer-classifier / segmentation / whole-genome-prediction = data-curation tooling => data (+infra).
+# FLAG: = a judgment call worth your eyes. RE-TYPE = changed Type vs current label.
+#
+# number	type	areas	meta	note
+1	infrastructure			Create issue templates — repo tooling
+3	experiment	modeling		objective = pretraining recipe
+4	infrastructure	data,evals		early promoters "experimental system" (data + eval setup)
+5	infrastructure	data,evals		early CDS "experimental system" (data + eval setup)
+6	experiment	data		evolutionary-timescale training data
+7	experiment	hyperparameter-optimization		scaling
+8	eda	evals		FLAG: perplexity-vs-metrics relationship — evals(metric) analysis
+9	experiment	modeling		repeat downweighting = loss-weighting recipe
+10	infrastructure	modeling		support position-wise loss weight
+11	infrastructure	modeling		support MLM objective
+12	infrastructure	evals		in-training zero-shot LLR eval support
+13	experiment	data		region mixture
+14	experiment	modeling		sliding-window attention = architecture
+15	infrastructure			launch marin experiments (our setup, not upstream)
+21	experiment	data		promoters YOLO run (region = data)
+22	experiment	data		mRNA+promoters YOLO run
+23	experiment	hyperparameter-optimization		weight decay
+27	experiment	data		CDS YOLO run
+28	infrastructure	data		train/test splits by sequence similarity
+36	eda	data		genomic-region statistics
+37	experiment	modeling		context size = recipe
+41	experiment	data		promoters mRNA vs ncRNA
+42	experiment	data		promoter radius
+43	experiment	data		mixing 5 regions
+49	eda	evals		FLAG: causal-variant stats (3'UTR) — eval-variant characterization
+50	eda	evals		FLAG: causal-variant stats (ncRNA)
+53	experiment	data		datasets by distance-from-CDS
+55	experiment	data		promoters by timescale
+57	experiment	hyperparameter-optimization		scaling on a mixture dataset (scaling = HPO)
+58	experiment	data		CDS by timescale
+59	experiment	data		downstream by timescale
+64	experiment	modeling		k-mer tokenization = recipe
+67	eda	data		sequence-similarity stats across splits
+68	infrastructure	modeling		BOS/EOS tokens = tokenization
+79		data		legacy area-hub "Data curation" (was epic; closed) — area-only, no Type
+80		hyperparameter-optimization		legacy area-hub "Hyperparameter optimization" (was epic; closed) — area-only
+87	experiment	modeling		loss-weighting ablation across FLOP budgets (loss weighting = recipe)
+88		data		legacy target-hub "Enhancers" (was epic; closed; no target axis) — area-only
+89		data		legacy region stub "ncRNA" (closed) — area-only
+90		data		legacy region stub "CDS" (closed)
+91		data		legacy region stub "5' UTR" (closed)
+92		data		legacy region stub "3' UTR" (closed)
+93		data		legacy region stub "Promoters" (closed)
+94	eda	data		understanding enhancer definitions
+96		data		legacy project-hub "cross-species enhancer classifier" (was epic; closed) — area-only
+97	infrastructure	data		FLAG: train enhancer-classifier on multi-species dataset (curation tool, not gLM)
+98	infrastructure	data		enhancer-classifier train/eval datasets (eval is of the classifier, not the gLM)
+99	infrastructure	data		enhancer-classifier probe (AlphaGenome features) — curation tool, not gLM baseline/modeling
+104	infrastructure	data		genome-wide enhancer prediction (curation inference pipeline)
+105	eda	data		visualize enhancer predictions in UCSC browser
+109	experiment	hyperparameter-optimization		transferred scaling sweep
+110	eda	modeling		pretraining-task exploration
+115	infrastructure	data		per-bin segmentation for enhancer prediction (curation tool)
+118	infrastructure	data	agent-generated	genome-wide prediction with segmentation model (curation)
+119	infrastructure	data	agent-generated	parallelize enhancer prediction across GPUs (curation compute)
+120	eda	data	agent-generated	dELS-ortholog method comparison (data)
+121	infrastructure	data	agent-generated	enhancer dataset via halLiftover
+122	eda	data	agent-generated	findings-note: cCRE class asymmetry across species
+123	infrastructure	data	agent-generated	enhancer dataset via minimap2
+130		baselines	agent-generated	legacy area-hub "Baselines" (was epic; closed) — area-only
+131	infrastructure	baselines	agent-generated	establish Evo2 baseline
+132	experiment	data	agent-generated	FLAG: positive-set-definition exploration (borderline eda)
+133	infrastructure	data	agent-generated	build v20 training dataset from segmentation predictions
+135	experiment	data	agent-generated	heuristic data-mix sweep
+136	experiment	data	agent-generated	compare enhancer data-curation strategies (VEP = measurement, not evals)
+137		evals		legacy area-hub "Evals" (was epic; closed) — area-only
+138	infrastructure	evals		build a TraitGym-like eval
+139	infrastructure	evals		DART-Eval integration
+142	experiment	data	agent-generated	compare source-curation filters (v30-v33)
+143	eda	data	agent-generated	v20-vs-v30 interval diagnostic
+144	eda	data		explore EnhancAR data availability
+145	infrastructure	baselines		establish GPN-Star baseline
+146	infrastructure	baselines		establish conservation-scores baseline
+147		interpretation		legacy area-hub "Model interpretation" (was epic; closed) — area-only
+149	infrastructure	data	agent-generated	human-anchored alignment-projection approach (training data)
+150	eda	data	agent-generated	survey of reference mammal genome counts
+153	infrastructure	data	agent-generated	"Benchmark" = perf comparison of projection methods, NOT an eval dataset
+154	infrastructure	baselines		establish AlphaGenome baseline
+155	infrastructure	evals	agent-generated	eval matching-design construction
+156	eda	evals	agent-generated	leakage diagnosis in eval matching design
+160	experiment	data	agent-generated	sanity-check projection pipeline via training
+161	infrastructure	evals	agent-generated	Mendelian leaderboard (eval apparatus)
+162	infrastructure	evals	agent-generated	Complex-traits leaderboard
+165	infrastructure	evals	agent-generated	add eQTL matched-pair eval dataset
+166	experiment	hyperparameter-optimization	agent-generated	scaled-up 1B/4B + transferred AdamH hparams
+168	infrastructure		agent-generated	set up repo as marin-consumer (our setup, not upstream)
+172	infrastructure	evals	agent-generated	eQTL leaderboard
+175	eda	evals	agent-generated	RE-TYPE experiment->eda: zero-shot VEP scoring-rules exploration (scoring = evals)
+177	eda	data	agent-generated	audit zoonomia N-stretches / repeat-masking
+179	infrastructure	evals	agent-generated	RC-strand averaging = scoring convention
+180	experiment	evals	agent-generated	supervised-probe VEP protocol (scoring = evals, not modeling)
+187	experiment	data	agent-generated	per-region 1B specialists (region = data)
+203	eda	baselines	agent-generated	Evo2 baseline scale-behavior on VEP (characterizes the baseline)
+206	infrastructure		agent-generated	HF org migration
+207	infrastructure		agent-generated	S3 bucket rename
+213	eda	data,evals	agent-generated	FLAG: eval-positive coverage vs conservation regions (evals+data)
+221	eda	data	agent-generated	was `question`; region-labeling scheme decision
+225	bug	evals	agent-generated	eval metric reports chance (fix to AUPRC+RC)
+227	infrastructure	data	agent-generated	was `enhancement`; build v4_* per-region datasets
+230	infrastructure	data	agent-generated	was `enhancement`; per-order species subsetting
+232	experiment	data	agent-generated	per-region 0.25B specialists (region = data)
+233	infrastructure	data	agent-generated	was `enhancement`; species-subset axis + cds-order build
+234	infrastructure	evals	agent-generated	build zero-shot embedding eval (Consens) — deferred, no status label
+236	infrastructure	evals	agent-generated	FLAG: supervised ChromBPNet VEP eval OVER our gLM reps (probe = evals, not baseline)
+237	infrastructure	interpretation	agent-generated	implement nucleotide-dependency maps into evals_v2
+240	infrastructure	interpretation	agent-generated	was `enhancement`; Observatory dashboard interpretation section
+241	infrastructure	evals,baselines	agent-generated	FLAG: chrombpnet-eval M1b — one-hot ChromBPNet IS the DART-Eval baseline
+242	infrastructure	evals	agent-generated	live caQTL/dsQTL eval callback
+243	experiment	evals	agent-generated	M2 ChromBPNet-on-gLM-embeddings (probe = evals; not modeling/baseline)
+246	infrastructure	interpretation	agent-generated	implement embedding-UMAP into evals_v2
+247	bug	baselines,evals	agent-generated	FLAG: one-hot ChromBPNet NaN-divergence (baseline model inside an eval)
+251	infrastructure	interpretation	agent-generated	regenerate embedding-UMAP artifacts
+252	infrastructure	baselines	agent-generated	lint/type the vendored arsenal-chrombpnet
+255	experiment	data	agent-generated	0.25B region specialists, species diversity vs quantity (region = data)
+257	bug	evals	agent-generated	FLAG: online-vs-offline VEP softmax-convention divergence (could be eda)
+259	experiment	baselines,evals	agent-generated	FLAG: strengthen one-hot ChromBPNet baseline (recipe ablations)
+261	bug		agent-generated	FLAG: HF-export vs levanter forward divergence (not pretraining; maybe meta:marin)
+262	infrastructure	evals,baselines	agent-generated	standard caQTL/dsQTL benchmarking protocol (ChromBPNet & AlphaGenome)
+263	bug	evals	agent-generated	online VEP omits [BOS] (eval scoring bug)
+264	infrastructure	evals	agent-generated,marin	was `enhancement`; upstream levanter add_special_tokens for eval tokenization
+267	infrastructure	evals	agent-generated	implement cLLR/entropy/JSD scoring
+268	infrastructure	evals	agent-generated	cLLR 1/4 neutral-site pipeline (eval/scoring dataset -> evals, NOT data)
+269	infrastructure	evals	agent-generated	cLLR 2/4 4-allele scoring atom
+270	infrastructure	evals	agent-generated	cLLR 3/4 score neutral sites -> calibration
+271	infrastructure	evals	agent-generated	cLLR 4/4 apply calibration -> leaderboard columns
+273	infrastructure		agent-generated	checkpoint inventory (ops)
+274	eda	evals,hyperparameter-optimization	agent-generated	does LL gap predict VEP across the scaling ladder (VEP perf = evals; scale = HPO)
+279	eda	evals,hyperparameter-optimization	agent-generated	RE-TYPE research-question->eda: missense VEP degrades with scale (evals + HPO)
+282	bug	evals	agent-generated,marin	FLAG: preemption drops paired eval/export (dropped infra Type; kept bug)
+283	research-question	data,evals	agent-generated	FLAG(areas): why distal/enhancer VEP doesn't improve — kept research-question (open, spawns exps)
+284	experiment	data	agent-generated	FLAG: epoch reshuffling / slice-mix = data ordering (not pretraining recipe)
+286	infrastructure	interpretation		"TF-MoDISco" stub — interp method to build
+287	research-question	modeling		north-star: does species/clade conditioning help (conditioning = recipe)
+288	infrastructure	interpretation		"Sparse autoencoders" stub — interp method to build
+289	infrastructure	evals	agent-generated	was `enhancement`; build evals_sge dataset
+290	infrastructure	evals	agent-generated	was `enhancement`; build evals_prime_editing dataset
+292	infrastructure	evals	agent-generated	wire evals_sge into evals_v2 + metrics
+293	infrastructure	evals	agent-generated	build evals_dart_task3 dataset
+296	eda	evals	agent-generated	RE-TYPE experiment->eda: does stratified LL-gap predict missense VEP (VEP perf = evals)
+297	infrastructure	evals	agent-generated	evals_sge dataset issues to fix on rebuild
+298	eda	interpretation	agent-generated	FLAG: DART task3 cell-type UMAP, 255 vs 500 bp context
+301	infrastructure	evals,baselines	agent-generated	formalize SGE benchmark (3 gLMs + conservation baselines)
+302	eda	evals,hyperparameter-optimization	agent-generated	missense VEP error-pattern analysis across scale/training (VEP = evals)
+303	experiment	hyperparameter-optimization	agent-generated	weight-decay sweep on CDS specialist
+306	eda	evals,hyperparameter-optimization	agent-generated	scaling ladder on SGE: AUPRC vs size (VEP perf = evals; scale = HPO)
+309	infrastructure	evals	agent-generated	build official accessibility-QTL benchmark (parent of 310-312)
+310	infrastructure	evals	agent-generated	qtl-benchmark dataset pipeline
+311	infrastructure	evals	agent-generated	qtl-benchmark scoring + official-metrics
+312	infrastructure	evals	agent-generated	qtl-benchmark dashboard/leaderboard
+314	experiment	evals	agent-generated	linear-probe VEP protocol (scoring = evals, not modeling)
+318	infrastructure	evals	agent-generated	pooled both-allele embeddings score bundle in evals_v2
+319	infrastructure	evals	agent-generated	per-chromosome-weighted AUPRC metric
+320	infrastructure	evals	agent-generated	nested-LOCO probe-training + transfer protocol
+321	infrastructure	evals	agent-generated	productionize the linear-probe VEP protocol
+323	infrastructure		agent-generated	mypy + snakefmt CI gate
+326	experiment	data	agent-generated	exp326 curated enhancer data arm (VEP = measurement, not evals)
+328	infrastructure		agent-generated,marin	marin PyPI migration breaks iris launches
+332	infrastructure		agent-generated	trim main to reusable core
+341	eda	evals,hyperparameter-optimization	agent-generated	scaling ladder (HPO) + probe-vs-zeroshot scoring (evals)
