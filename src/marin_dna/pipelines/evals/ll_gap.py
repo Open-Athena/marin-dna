@@ -11,8 +11,7 @@ This is the model-agnostic core: the computation kernel
 ``transform_ll_clm``) is shared with the Evo2 path; only the model loader
 differs. ``compute_hf_ll_gap`` loads an HF ``AutoModelForCausalLM`` directly (no
 Evo2 shims). ``aggregate_ll_gap`` (used by both paths) lives here because it is
-pure numpy and not Evo2-specific; ``pipelines.evals.evo2`` re-exports it for
-backward compatibility.
+pure numpy and not Evo2-specific.
 """
 
 from __future__ import annotations

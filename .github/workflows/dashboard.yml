@@ -51,7 +51,6 @@ on:
       - src/marin_dna/pipelines/evals/leaderboard.py
       - src/marin_dna/pipelines/evals/models.py
       - src/marin_dna/pipelines/evals/metrics.py
-      - src/marin_dna/pipelines/evals/gpn_star.py
       - src/marin_dna/pipelines/evals/interpretation_catalog.py
       - snakemake/analysis/evals_v2/config/config.yaml  # nuc_dep loci/models the loader reads (#240)
       - .github/workflows/dashboard.yml

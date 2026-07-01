@@ -4,8 +4,9 @@ Four metric families live here:
 
 - ``auprc_with_bootstrap_se`` / ``compute_auprc_metrics``: AUPRC with a
   cluster bootstrap SE that resamples ``match_group``s (preserving the
-  matched-pair clustering). Used by the ``evals_v2``, ``conservation_eval``,
-  and ``alphagenome_eval`` pipelines on the matched-pair datasets
+  matched-pair clustering). Used by the ``evals_v2`` pipeline (and the
+  ``conservation_eval`` / ``alphagenome_eval`` baselines, now branch-run — #332)
+  on the matched-pair datasets
   (``mendelian_traits`` / ``complex_traits``), whose 1:k structure (PR #194)
   the Wald-binomial pairwise metric can't represent. ``per_chrom_weighted_ap``
   is the within-chromosome, sample-size-weighted AUPRC — the headline metric of
@@ -19,8 +20,8 @@ Four metric families live here:
   pipelines select this path per-dataset via ``eval_protocol: qtl_global``.
 - ``pairwise_accuracy`` / ``compute_pairwise_metrics``: matched-pair within-
   ``match_group`` accuracy (ties = 0.5) with Wald-binomial SE. Used on 1:1
-  match groups by the ``gpn_star_eval`` pipeline, the ``scripts/evo2_eval/``
-  scripts, and the ``lm_eval`` DNA-VEP harness (``dna_vep_llr_eval``).
+  match groups by the ``gpn_star_eval`` / evo2 baselines (now branch-run — #332);
+  on ``main`` only unit tests exercise it.
 - ``METRIC_FUNCTIONS`` / ``compute_metrics``: classical AUPRC / AUROC /
   Spearman over (label, score) pairs (a general-purpose helper).
 """
@@ -53,8 +54,8 @@ def pairwise_accuracy(
     Do **not** call this on the new 1:k matched-pair datasets from PR #194
     — the assertion will fire and the Wald SE assumes paired comparisons.
     Use ``auprc_with_bootstrap_se`` on those instead. This function is
-    retained for the ``conservation_eval`` pipeline, which still produces
-    1:1 datasets.
+    retained for the ``conservation_eval`` baseline (now branch-run — #332),
+    which still produces 1:1 datasets.
 
     Args:
         label: 0/1 (or bool) per row. Cast to int internally.

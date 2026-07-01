@@ -4,16 +4,20 @@ Reads per-(method, dataset) metrics parquets emitted by the eval snakemake
 pipelines (or pinned gist commits, for families without an S3 pipeline),
 filters by protocol / score-type, and emits one row per
 ``(method, protocol, subset)`` for the dashboard. All families now emit
-AUPRC + cluster-bootstrap SE on 1:9 matched negatives.
+AUPRC + cluster-bootstrap SE on 1:9 matched negatives. The competitor-baseline
+pipelines (``conservation_eval`` / ``alphagenome_eval`` / ``gpn_star_eval``) now run
+from branches with their result parquets frozen on S3 (see #332); this loader reads
+those frozen prefixes, so no baseline code lives on ``main``.
 
-  - ``snakemake/analysis/evals_v2/``  → one parquet per ``(model, dataset)``,
+  - ``snakemake/analysis/evals_v2/``      → one parquet per ``(model, dataset)``,
     filter by ``score_type`` + ``split``.
-  - ``snakemake/conservation_eval/``  → one parquet per ``(dataset, split)``,
+  - ``conservation_eval`` S3 results   → one parquet per ``(dataset, split)``,
     filter by ``score_name`` (the track).
-  - ``snakemake/alphagenome_eval/``   → one parquet per dataset, filter by
+  - ``alphagenome_eval`` S3 results    → one parquet per dataset, filter by
     ``score_type`` + ``split``.
-  - ``snakemake/gpn_star_eval/``      → one parquet per dataset with V/M/P
+  - ``gpn_star_eval`` S3 results       → one parquet per dataset with V/M/P
     stacked, filter by ``score_type`` + ``model``.
+  (The three baseline pipelines are branch-run; their results are frozen on S3.)
 
 Model registry (display name, family, training metadata, etc.) lives in
 ``dashboard/models.yaml`` and is loaded via ``models.load_models``.
@@ -33,17 +37,16 @@ from marin_dna.pipelines.evals.models import ALL_DATASETS, Model, models_for_dat
 S3 = "s3://oa-bolinas"
 SPLIT = "train"
 
-# `family: gpn_star` AUPRC metrics now come from the S3 pipeline
-# (`snakemake/gpn_star_eval`, refreshed in #278), same as the conservation /
-# alphagenome / marin_dna families — one parquet per dataset with V/M/P stacked
-# and a `model` column to filter on. The pipeline is the single source of truth;
-# the old metrics gist (`3649e68f@cba23a7`) is kept only as the #145 provenance
-# record, no longer read here. (Distinct from `gpn_star.GPN_STAR_GIST_BASE`,
-# the per-variant *prediction* gist, which the pipeline still consumes as input.)
+# `family: gpn_star` AUPRC metrics now come from the frozen S3 results of the
+# `gpn_star_eval` pipeline (refreshed in #278; the pipeline itself now runs from a
+# branch — #332), same as the conservation / alphagenome / marin_dna families — one
+# parquet per dataset with V/M/P stacked and a `model` column to filter on. Those
+# frozen results are the single source of truth; the old metrics gist
+# (`3649e68f@cba23a7`) is kept only as the #145 provenance record, no longer read here.
 
 # `family: evo2` AUPRC metrics gist. Same gist as gpn_star, different
-# pinned commit. Bump `EVO2_METRICS_GIST_COMMIT` when re-uploading; see
-# `scripts/evo2_eval/README.md` for the upload recipe.
+# pinned commit. Bump `EVO2_METRICS_GIST_COMMIT` when re-uploading; the evo2
+# eval (with its upload recipe) now runs from a branch — see #131 / #332.
 EVO2_METRICS_GIST_OWNER = "gonzalobenegas"
 EVO2_METRICS_GIST_ID = "3649e68fb63ca1f3443e4486078eb4d8"
 EVO2_METRICS_GIST_COMMIT = "1bce02fe0d831382d24ecbac305d401f153c65fc"
