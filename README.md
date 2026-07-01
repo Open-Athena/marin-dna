@@ -29,16 +29,13 @@ uv sync
 | Selector | Purpose |
 |---|---|
 | `--group dev` | Pre-commit, ruff, pytest, snakefmt. |
-| `--extra marin` | marin / marin-levanter / marin-iris / marin-zephyr / marin-rigging — for marin-launched DNA experiments under `experiments/`. Lives as an extra (not a group) so iris workers can install it via `uv sync --extra marin`. |
 | `--group aws-cli` | `awscli` for snakemake rules that shell out to `aws s3 cp` (e.g. `evals/ldscore_download`). |
+| `--group genome-s3` | Modern `s3fs` for `Genome(s3://…)` FASTA reads (e.g. evals_v2). Mutually exclusive with `aws-cli` (which pins older fsspec/s3fs). |
 
-The `marin` extra and `aws-cli` group are mutually exclusive (awscli pins
-fsspec/s3fs older than marin's requirements). For TPU training under marin,
-also pass `--extra tpu`:
-
-```bash
-uv sync --extra marin --extra tpu
-```
+**Marin-launched experiments** (`marin`/`levanter`/`iris`/jax) are *not* installed
+from here — each experiment is a self-contained directory with its own
+`pyproject.toml` (marin in base deps). See the
+[`marin-experiment` skill](.agents/skills/marin-experiment/SKILL.md).
 
 </details>
 
