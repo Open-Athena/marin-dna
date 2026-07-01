@@ -30,7 +30,7 @@ Do NOT use for:
 
 Three things. No more.
 
-- A **GitHub issue** labeled `agent-generated` plus one topic label chosen per case (`eda`, `experiment`, `infrastructure`, etc. — reuse existing labels; don't invent a new workflow label).
+- A **GitHub issue** labeled `agent-generated` plus a **Type** label — usually `eda`, sometimes `research-question` — and any relevant **Area** label(s) (`evals`, `data`, `modeling`, …). Reuse existing labels; don't invent a workflow label. See [CLAUDE.md](../../../CLAUDE.md) → *GitHub Communication* → *Issue labels* for the taxonomy.
 - *Optionally* a `snakemake/analysis/<name>/` pipeline if the investigation produces one. Its README stays strictly how-to-run.
 - Plots and data files attached via the [gh-upload-asset](../gh-upload-asset/SKILL.md) skill.
 
@@ -49,7 +49,7 @@ Three things. No more.
    No `🤖` prefix on the title — [CLAUDE.md](../../../CLAUDE.md) mandates the prefix on *comments*, and the `agent-generated` label already signals provenance.
 3. If a pipeline is needed, scaffold `snakemake/analysis/<name>/` following an existing example (e.g. `snakemake/analysis/evals_v2/`) and link it from the issue body.
 
-The repo's `.github/ISSUE_TEMPLATE/experiment.md` is WandB-flavored and does not match this workflow — do not route through it.
+For UI-created issues, the `research-question.md` / `eda.md` templates match this workflow's body structure; this skill itself creates via `--body-file`. Don't route an investigation through the WandB-flavored `experiment.md` template.
 
 ## Issue body structure
 
