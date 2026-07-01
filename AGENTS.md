@@ -43,6 +43,13 @@ The codebase has five main components:
 
 5. **Scripts** (`scripts/`) - One-off, investigation, and reproduction scripts (analysis, ad-hoc evals, uploads, debugging). **Tracked**, so they can be committed and **permalinked** from issues/PRs. Put any one-off script you might re-run, reference, or cite for reproduction here — *not* in gitignored `scratch/`. Group by issue when it helps (`scripts/issue<N>_*.py` or `scripts/issue<N>/`). Reserve `scratch/` (gitignored) for ephemeral data/artifacts only — checkpoint downloads, intermediate parquets, dumps — never for code you'll point at. This still applies to library logic: anything reusable or worth a test belongs in `src/marin_dna/` (see **Research Code Values**); `scripts/` is for the genuinely one-off.
 
+### What gets merged to `main`
+
+`main` is the **reusable-core framework**: the library kernel, training-data construction, our-model evaluation (`evals_v2`), and `dashboard`/`docs`. Open a PR to `main` only for that core.
+
+- **Assume non-core work never merges.** Experiments, one-off analyses, competitor baselines, and dead-ends stay on their own branches — the aim isn't to prune them out of `main` later, it's to never entangle them in the first place. Keep them self-contained (`experiments/`, `scripts/`), not woven into the library. Lifecycle complement to **Stay in scope** and **No premature generalizations** above.
+- **A branch is a permanent reference — merging isn't.** Commit and push freely: a commit-pinned permalink to an unmerged branch is all you need to cite a result or reproduce an experiment from its tracking issue. Nothing has to land on `main` to stay reachable.
+
 ## Development Practices
 
 - **Package management**: Use `uv` for Python dependencies
