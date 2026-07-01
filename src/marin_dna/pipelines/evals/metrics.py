@@ -289,6 +289,72 @@ def per_chrom_weighted_ap(
     return total / weight if weight else float("nan")
 
 
+def per_chrom_ap_table(
+    df: pd.DataFrame,
+    score_columns: list[str],
+    *,
+    label_col: str = "label",
+    subset_col: str = "subset",
+    chrom_col: str = "chrom",
+) -> pd.DataFrame:
+    """Per-subset per-chromosome-weighted AUPRC for one or more score columns.
+
+    For each ``(subset, score_col)`` this computes ``per_chrom_weighted_ap`` over
+    that subset's rows — the tidy paired-comparison table behind the #341
+    linear-probe scaling-ladder analysis. Pass the ``compute_probe`` predictions
+    frame with ``score_columns=["probe_score", "minus_llr_avg"]`` to get the probe
+    and its matched zero-shot LLR baseline scored on **identical rows** under the
+    identical per-chromosome metric.
+
+    ``n`` / ``n_pos`` / ``n_chrom`` are subset-level counts (independent of the
+    score column) for context; ``value`` is per (subset, score_col) and is
+    ``NaN`` when no chromosome carries both classes among that score's finite
+    values — e.g. a subset whose probe was skipped (all-``NaN`` ``probe_score``),
+    which surfaces as a ``NaN`` probe row beside a finite baseline row.
+
+    Args:
+        df: variant frame with ``label`` / ``subset`` / ``chrom`` columns plus
+            every name in ``score_columns`` (row-aligned).
+        score_columns: score column names to score (e.g. ``probe_score``).
+        label_col: 0/1 label column name.
+        subset_col: consequence-subset column name (the grouping key).
+        chrom_col: chromosome column name (the per-chrom weighting key).
+
+    Returns:
+        DataFrame ``[score_type, subset, value, n, n_pos, n_chrom]``, one row per
+        ``(subset, score_col)`` in first-appearance subset order.
+    """
+    for col in (label_col, subset_col, chrom_col):
+        assert col in df.columns, f"df missing required column {col!r}"
+    missing = [c for c in score_columns if c not in df.columns]
+    assert not missing, f"df missing score columns {missing}"
+
+    rows: list[dict] = []
+    for subset_name, sub in df.groupby(subset_col, sort=False):
+        n = int(len(sub))
+        n_pos = int(np.asarray(sub[label_col]).astype(int).sum())
+        n_chrom = int(pd.unique(sub[chrom_col]).size)
+        for score_col in score_columns:
+            value = per_chrom_weighted_ap(
+                sub[label_col].to_numpy(),
+                sub[score_col].to_numpy(),
+                sub[chrom_col].to_numpy(),
+            )
+            rows.append(
+                {
+                    "score_type": score_col,
+                    "subset": str(subset_name),
+                    "value": value,
+                    "n": n,
+                    "n_pos": n_pos,
+                    "n_chrom": n_chrom,
+                }
+            )
+    return pd.DataFrame(
+        rows, columns=["score_type", "subset", "value", "n", "n_pos", "n_chrom"]
+    )
+
+
 def paired_metric_delta_bootstrap(
     label: pd.Series,
     score_a: pd.Series,

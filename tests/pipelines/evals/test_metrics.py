@@ -24,6 +24,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_qtl_metrics,
     compute_sge_metrics,
     paired_metric_delta_bootstrap,
+    per_chrom_ap_table,
     per_chrom_weighted_ap,
 )
 
@@ -1024,3 +1025,99 @@ def test_per_chrom_weighted_ap_non_binary_labels_raise():
             np.array([0.9, 0.2, 0.8, 0.1]),
             np.array(["chr1", "chr1", "chr1", "chr1"]),
         )
+
+
+# ---------------------------------------------------------------------------
+# per_chrom_ap_table (per-subset per-chrom-weighted AUPRC table, #341)
+# ---------------------------------------------------------------------------
+
+
+def _probe_like_frame() -> pd.DataFrame:
+    """Two subsets × two score columns, each subset spanning two chromosomes so the
+    per-chrom weighting is exercised — mirrors the ``compute_probe`` predictions frame
+    (``label`` / ``subset`` / ``chrom`` + score columns)."""
+    return pd.DataFrame(
+        {
+            "label": [1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0],
+            "subset": ["missense"] * 6 + ["synonymous"] * 6,
+            "chrom": (
+                ["chr1", "chr1", "chr1", "chr2", "chr2", "chr2"]
+                + ["chr1", "chr1", "chr1", "chr3", "chr3", "chr3"]
+            ),
+            "probe_score": [0.9, 0.7, 0.2, 0.3, 0.8, 0.6, 0.4, 0.9, 0.1, 0.7, 0.2, 0.5],
+            "minus_llr_avg": [
+                0.2,
+                0.4,
+                0.8,
+                0.7,
+                0.1,
+                0.3,
+                0.6,
+                0.2,
+                0.9,
+                0.4,
+                0.8,
+                0.5,
+            ],
+        }
+    )
+
+
+def test_per_chrom_ap_table_shape_and_matches_direct():
+    """One row per (subset, score_col); each ``value`` reproduces
+    ``per_chrom_weighted_ap`` called directly on that subset's rows."""
+    df = _probe_like_frame()
+    out = per_chrom_ap_table(df, ["probe_score", "minus_llr_avg"])
+    assert list(out.columns) == [
+        "score_type",
+        "subset",
+        "value",
+        "n",
+        "n_pos",
+        "n_chrom",
+    ]
+    assert len(out) == 4  # 2 subsets × 2 score columns
+    assert set(out["subset"]) == {"missense", "synonymous"}
+    assert set(out["score_type"]) == {"probe_score", "minus_llr_avg"}
+    for (subset, score_type), row in out.set_index(["subset", "score_type"]).iterrows():
+        sub = df[df["subset"] == subset]
+        expected = per_chrom_weighted_ap(
+            sub["label"].to_numpy(),
+            sub[score_type].to_numpy(),
+            sub["chrom"].to_numpy(),
+        )
+        assert row["value"] == pytest.approx(expected)
+    missense = out[out["subset"] == "missense"].iloc[0]
+    assert missense["n"] == 6 and missense["n_pos"] == 3 and missense["n_chrom"] == 2
+
+
+def test_per_chrom_ap_table_all_nan_score_is_nan_row():
+    """A score column that is all-NaN within a subset (a skipped probe) yields a NaN
+    value for that (subset, score) while the baseline stays finite; the subset-level
+    counts are score-independent."""
+    df = _probe_like_frame()
+    df.loc[df["subset"] == "missense", "probe_score"] = np.nan
+    out = per_chrom_ap_table(df, ["probe_score", "minus_llr_avg"])
+    probe_row = out[
+        (out["subset"] == "missense") & (out["score_type"] == "probe_score")
+    ].iloc[0]
+    base_row = out[
+        (out["subset"] == "missense") & (out["score_type"] == "minus_llr_avg")
+    ].iloc[0]
+    assert math.isnan(probe_row["value"])
+    assert np.isfinite(base_row["value"])
+    assert probe_row["n"] == 6 and probe_row["n_pos"] == 3 and probe_row["n_chrom"] == 2
+
+
+def test_per_chrom_ap_table_preserves_subset_order():
+    """Subsets appear in first-appearance order (``groupby(sort=False)``)."""
+    out = per_chrom_ap_table(_probe_like_frame(), ["probe_score"])
+    assert list(out["subset"]) == ["missense", "synonymous"]
+
+
+def test_per_chrom_ap_table_missing_column_raises():
+    """A missing key column or a missing score column fails loud."""
+    with pytest.raises(AssertionError, match="missing required column"):
+        per_chrom_ap_table(_probe_like_frame().drop(columns=["chrom"]), ["probe_score"])
+    with pytest.raises(AssertionError, match="missing score columns"):
+        per_chrom_ap_table(_probe_like_frame(), ["nonexistent"])
