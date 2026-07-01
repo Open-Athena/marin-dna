@@ -37,10 +37,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    # `enhancer-classification` group is retained only for `py2bit` (common.smk
-    # reads `.2bit` genomes); the enhancer pipelines themselves are gone (#332
-    # Tier 3). TODO #332 Tier 4: relocate py2bit so this group isn't needed here.
-    uv sync --group enhancer-classification
+    uv sync
 
 run: |
     set -euxo pipefail
@@ -59,7 +56,7 @@ run: |
     # `rule all` end-to-end dataset build). Positional target comes before
     # `--configfile` because snakemake's argument parser otherwise absorbs
     # it as an additional configfile path.
-    uv run --project ../../.. --group enhancer-classification snakemake \
+    uv run --project ../../.. snakemake \
         results/intervals/ELS_conserved_20_mmseqs2_s75/GCF_000001635.27.parquet \
         --cores 32 \
         --use-conda \
