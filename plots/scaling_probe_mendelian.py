@@ -174,7 +174,8 @@ def print_table(df: pl.DataFrame, subsets: list[str]) -> None:
 
             def _v(st: str) -> float:
                 hit = cell.filter(pl.col("score_type") == st)
-                return hit["value"][0] if hit.height else float("nan")
+                v = hit["value"][0] if hit.height else None
+                return float("nan") if v is None else float(v)
 
             pv, zv = _v(PROBE_ST), _v(LLR_ST)
             print(
