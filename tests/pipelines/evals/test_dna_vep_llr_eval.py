@@ -12,7 +12,10 @@ synthetic per-variant rows and call the collapse helper / aggregation directly.
 import numpy as np
 import pytest
 
-pytest.importorskip("lm_eval", reason="install with `uv sync --extra marin` to run")
+pytest.importorskip(
+    "lm_eval",
+    reason="requires the marin runtime (not a core dep); see the marin-experiment skill",
+)
 
 from marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval import (  # noqa: E402
     _MIN_GROUPS_PER_SUBSET,

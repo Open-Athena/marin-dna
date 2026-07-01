@@ -11,7 +11,10 @@ import importlib.resources
 
 import pytest
 
-pytest.importorskip("lm_eval", reason="install with `uv sync --extra marin` to run")
+pytest.importorskip(
+    "lm_eval",
+    reason="requires the marin runtime (not a core dep); see the marin-experiment skill",
+)
 
 
 @pytest.fixture

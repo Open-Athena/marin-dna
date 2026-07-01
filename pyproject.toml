@@ -33,50 +33,15 @@ dependencies = [
     "torch",
     "tqdm",
     "tokenizers",
-    "transformers[torch]",
+    # Pin <5: model/scoring/interpretation tests depend on the pre-5.x
+    # transformers cache API (see .github/workflows/test.yml). Until the marin
+    # extra was removed this was pinned implicitly (marin-levanter pins 4.57.6
+    # and `fork-strategy = "fewest"` shared it into the base resolve); now it's
+    # explicit.
+    "transformers[torch]<5",
     "zstandard",
     "snakemake-storage-plugin-s3>=0.3.6",
     "wandb",
-]
-
-[project.optional-dependencies]
-# Delegate to marin's own `tpu` extra so `uv lock --upgrade-package marin`
-# auto-picks up future jax/torch/libtpu bumps. Linux-only at the consumer
-# level (matches marin-experiments/tiny-stories@28d53c6 from 2026-05-08);
-# TPU isn't usable on Mac so dropping the macOS install is correct.
-tpu = ["marin[tpu]; sys_platform == 'linux'"]
-# Marin-launched DNA experiments. Iris workers run ``uv sync`` with `--extra`
-# flags (not `--group`), so this lives under `[project.optional-dependencies]`
-# rather than `[dependency-groups]`. Local users opt in with
-# `uv sync --extra marin`; snakemake / PyTorch contributors who don't run
-# marin experiments leave it out and skip the JAX/levanter install cost.
-marin = [
-    "marin",
-    "marin-levanter",
-    "marin-iris",
-    "marin-zephyr",
-    "marin-rigging",
-    # `marin-levanter[lm_eval]`'s extra is a URL dep (`lm-eval @ git+...`);
-    # uv requires URL deps as direct (top-level) requirements. **Bump the rev
-    # in lockstep with marin-levanter** — no automated check ties them, so
-    # after `uv lock --upgrade-package marin-levanter` verify the rev still
-    # matches the one marin-levanter pins:
-    #   unzip -p .venv/lib/python3.12/site-packages/marin_levanter-*.dist-info/METADATA \
-    #     | grep 'lm-eval @'
-    "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
-    # ``dupekit`` is required by ``marin.datakit.normalize`` (imported by
-    # ``marin.processing.tokenize._core``), but isn't pulled transitively by
-    # any ``marin`` wheel — listing it here so the iris worker's
-    # ``uv sync --extra marin`` installs it from the find-link below. Failure
-    # mode without this: ``ModuleNotFoundError: No module named 'dupekit'``
-    # on any training script that touches ``marin.processing.tokenize``.
-    "dupekit",
-    # marin-root (which ships marin's `experiments/` package) is deliberately
-    # *not* depended on here — its pyproject carries
-    # ``[tool.uv.sources] marin-* = { workspace = true }``, which propagates
-    # to consumers and overrides the find-links wheels for every marin
-    # sister package, dropping the BUILD_DATE the iris controller's
-    # freshness check requires.
 ]
 
 [dependency-groups]
@@ -90,9 +55,9 @@ dev = [
 ]
 # `aws` CLI for the complex_traits / ldscore_download snakemake rule (added
 # in #159 — the rule shells out to `aws s3 cp ...`). awscli pins older
-# fsspec/s3fs that conflict with marin's; gate it as an opt-in group via
-# `[tool.uv.conflicts]` below so the marin group can lock independently.
-# Pipeline users running ldscore_download install with `--group aws-cli`.
+# fsspec/s3fs that conflict with the modern s3fs the `genome-s3` group needs;
+# gate it as an opt-in group via `[tool.uv.conflicts]` below so each locks
+# independently. Pipeline users running ldscore_download install with `--group aws-cli`.
 aws-cli = [
     "awscli>=1.45.2",
 ]
@@ -114,72 +79,26 @@ umap = [
 ]
 
 [tool.uv]
-# awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the
-# versions marin requires; resolve them in separate "universes" so each
-# extra/group locks against its own compatible set. The `tpu` extra now
-# delegates to `marin[tpu]`, so it transitively pulls marin in too and
-# needs the same isolation.
+# awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the versions
+# the `genome-s3` group's modern s3fs needs; resolve them in separate
+# "universes" so each group locks against its own compatible set.
 conflicts = [
-    [
-        { extra = "marin" },
-        { group = "aws-cli" },
-    ],
-    [
-        { extra = "tpu" },
-        { group = "aws-cli" },
-    ],
     [
         { group = "genome-s3" },
         { group = "aws-cli" },
     ],
 ]
 fork-strategy = "fewest"
-prerelease = "allow"
 environments = [
     "sys_platform == 'darwin'",
     "sys_platform == 'linux'",
 ]
 override-dependencies = [
-    "omegaconf>=2.4.0.dev4",
-    "antlr4-python3-runtime==4.11",
-    "python-multipart>=0.0.22",
-    "wheel>=0.46.2",
     "datasets>=3.1.0,<4.0.0",
-    "equinox>=0.11.10",
-    # Pin pandas to 2.x — `prerelease = "allow"` (above) lets uv pick the
-    # 3.0 prerelease, which changes parquet round-trip dtypes from `object`
-    # to `StringDtype` and breaks tests/test_intervals.py. Keeps existing
-    # marin-dna code on the same pandas major it was developed against.
+    # Pin pandas to 2.x — pandas 3.0 changes parquet round-trip dtypes from
+    # `object` to `StringDtype`, which breaks tests/test_intervals.py.
     "pandas>=2.0,<3.0",
 ]
-# marin sister-packages, kitoken, and dupekit ship as GitHub release wheels
-# (not PyPI). Released marin-* wheels carry a baked-in BUILD_DATE that the
-# iris controller's freshness check needs; workspace builds don't stamp it.
-# `marin-finelog-latest` was added by `marin-community/marin#5565` after this
-# repo first locked — the issue was tracked at
-# https://github.com/marin-community/marin/issues/5564.
-find-links = [
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-haliax-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-levanter-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-iris-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-zephyr-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-rigging-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-fray-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/marin-finelog-latest",
-    "https://github.com/marin-community/marin/releases/expanded_assets/dupekit-0.1.0-40ac799",
-    "https://github.com/marin-community/kitoken/releases/expanded_assets/kitoken-0.10.2-a3012f4",
-]
-
-[[tool.uv.index]]
-name = "marin-resiliparse"
-url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
-
-[tool.uv.sources]
-resiliparse = { index = "marin-resiliparse" }
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
