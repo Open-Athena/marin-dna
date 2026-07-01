@@ -9,7 +9,10 @@ upstream marin tests).
 
 import pytest
 
-pytest.importorskip("levanter", reason="requires the marin runtime (not a core dep); see the marin-experiment skill")
+pytest.importorskip(
+    "levanter",
+    reason="requires the marin runtime (not a core dep); see the marin-experiment skill",
+)
 
 from levanter.data.text.formats import LmDatasetFormatBase  # noqa: E402
 
