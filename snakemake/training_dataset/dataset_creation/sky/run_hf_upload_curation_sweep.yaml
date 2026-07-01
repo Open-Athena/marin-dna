@@ -40,7 +40,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync --group enhancer-classification
+    uv sync
 
 run: |
     set -euxo pipefail
@@ -54,7 +54,7 @@ run: |
     # Target the v31/v32/v33 / mammals_seg20 datasets explicitly so this run
     # only touches the sweep DAG slice — the historical v5/v1/v15/v30
     # datasets in `rule all` aren't requested here.
-    uv run --project ../../.. --group enhancer-classification snakemake \
+    uv run --project ../../.. snakemake \
         --cores 32 \
         --use-conda \
         --resources mem_mb=220000 \

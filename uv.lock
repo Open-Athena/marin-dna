@@ -155,71 +155,6 @@ wheels = [
 ]
 
 [[package]]
-name = "alphagenome"
-version = "0.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "absl-py", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "anndata", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "immutabledict", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "intervaltree", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "jaxtyping", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "matplotlib", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "ml-dtypes", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pandas", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pyarrow", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "scipy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "seaborn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typeguard", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/8a/f254142f59b83c4e64770b41247f5929dada3299ad75678b41abf1cfe769/alphagenome-0.6.1.tar.gz", hash = "sha256:f2ce286a5216884f98c95b59fb57b12ef6056d46d873fb7260ff8fce27c2e7d9", size = 7893741, upload-time = "2026-03-03T14:53:32.955Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/d4/09a77fe4cc07923fdb335789c0a105e0abfc72d86ea9438f1f64c7388945/alphagenome-0.6.1-py3-none-any.whl", hash = "sha256:232f458a679c0d2bbffe7e43a9d0d2f6700689fc5d5853e1d8047ab0739ecba6", size = 176929, upload-time = "2026-03-03T14:53:31.051Z" },
-]
-
-[[package]]
-name = "alphagenome-pytorch"
-version = "0.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "safetensors", version = "0.6.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "safetensors", version = "0.8.0rc0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra != 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli')" },
-    { name = "torch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/82/3a/cd1577a6d33de806207c8be7c1722780c33b7e2617c64dcf24e8323f9310/alphagenome_pytorch-0.3.1.tar.gz", hash = "sha256:5a22de9b4aaad6c3798d8e752d10580e4cb0d6ce4b53e3d822c35a8bb00b04a3", size = 2427767, upload-time = "2026-04-17T21:38:25.775Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/48/9e82423976ad7283a452163e2b5bd4b7d1b2a3842612324941419e97a890/alphagenome_pytorch-0.3.1-py3-none-any.whl", hash = "sha256:0a9530b4d326c6a359df0f8faed4073208fba04a2fecb7c38573591556ad83cb", size = 190064, upload-time = "2026-04-17T21:38:23.566Z" },
-]
-
-[[package]]
-name = "anndata"
-version = "0.12.13"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "array-api-compat", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "h5py", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "legacy-api-wrap", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "natsort", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pandas", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "scipy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "scverse-misc", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "zarr", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/b6/8e1737f36dd3715d5ec10d3c8627f003af22ec33d0871496f302703b5482/anndata-0.12.13.tar.gz", hash = "sha256:a66b00590aa47c5b31aee0ac20c7ba63b55b6f868d5b70e7ecb32a97fbf5f058", size = 2254241, upload-time = "2026-05-06T23:54:59.034Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/13/b40a1372e7f66871966bddfea94eb095844517e0de2a252043d439ee4641/anndata-0.12.13-py3-none-any.whl", hash = "sha256:8fbe923c64dc75da50e472de9dcd87c0aa034d35c412ac4ed61f29c5c71074d5", size = 174442, upload-time = "2026-05-06T23:54:57.109Z" },
-]
-
-[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -272,15 +207,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1a/ff/a2e4e328075ddef2ac3c9431eb12247e4ba707a70324894f1e6b4f43c286/argparse_dataclass-2.0.0.tar.gz", hash = "sha256:09ab641c914a2f12882337b9c3e5086196dbf2ee6bf0ef67895c74002cc9297f", size = 6395, upload-time = "2023-06-11T20:32:54.465Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/66/e6c0a808950ba5a4042e2fcedd577fc7401536c7db063de4d7c36be06f84/argparse_dataclass-2.0.0-py3-none-any.whl", hash = "sha256:3ffc8852a88d9d98d1364b4441a712491320afb91fb56049afd8a51d74bb52d2", size = 8762, upload-time = "2023-06-11T20:32:52.724Z" },
-]
-
-[[package]]
-name = "array-api-compat"
-version = "1.14.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/89/e5/9a12dd1c2b0ad61f3c3ad0fc14b888c65fd735dd9d26805f77317303cbe5/array_api_compat-1.14.0.tar.gz", hash = "sha256:c819ba707f5c507800cb545f7e6348ff1ecc46538381d9ad9b371ffc9cd6d784", size = 106369, upload-time = "2026-02-26T12:02:42.452Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/d3/54cd560804a8c2b898824778e86c13c2a14600bc83532a9c4f69f2f469c3/array_api_compat-1.14.0-py3-none-any.whl", hash = "sha256:ed5af1f9b6595a199c942505f281ec994892556b6efc24679a0501e87a7d6279", size = 60124, upload-time = "2026-02-26T12:02:41.127Z" },
 ]
 
 [[package]]
@@ -404,19 +330,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bioutils"
-version = "0.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "attrs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/50/d6/10fbd7127cd6618dae4041305313b672d2597a44c0da6a7e32b0e5eefec2/bioutils-0.6.1.tar.gz", hash = "sha256:6ad7a9b6da73beea798a935499339d8b60a434edc37dfc803474d2e93e0e64aa", size = 387598, upload-time = "2024-11-04T01:43:19.683Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/b5/29234ceb28f4cb81c925145bb2edfb8105206243144f84d960478e255484/bioutils-0.6.1-py3-none-any.whl", hash = "sha256:9928297331b9fc0a4fd4235afdef9a80a0916d8b5c2811ab781bded0dad4b9b6", size = 313484, upload-time = "2024-11-04T01:43:17.544Z" },
-]
-
-[[package]]
 name = "black"
 version = "26.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -524,21 +437,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/54/93/badd4f5ccf25209f3fef2573073da9fe4a45a3da99fca2f800f942130c0f/braceexpand-0.1.7.tar.gz", hash = "sha256:e6e539bd20eaea53547472ff94f4fb5c3d3bf9d0a89388c4b56663aba765f705", size = 7777, upload-time = "2021-05-07T13:49:07.323Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/93/e8c04e80e82391a6e51f218ca49720f64236bc824e92152a2633b74cf7ab/braceexpand-0.1.7-py2.py3-none-any.whl", hash = "sha256:91332d53de7828103dcae5773fb43bc34950b0c8160e35e0f44c4427a3b85014", size = 5923, upload-time = "2021-05-07T13:49:05.146Z" },
-]
-
-[[package]]
-name = "cdot"
-version = "0.2.26"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "bioutils", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "intervaltree", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "lazy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/62/f63febd29ad39c56d3616244d01f308f703b6901f6245fd8e1ac8c5221ed/cdot-0.2.26.tar.gz", hash = "sha256:6f9b9fb4076722f5d92d189fa4ef5a7e2af1cdd4f790068bb7d9a5d3ba73921b", size = 16399, upload-time = "2024-08-15T04:48:21.436Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/ab/90cf9f3011a1018e874e86001c20a0d26f7004ac5c19697b8fbf62dec9b8/cdot-0.2.26-py3-none-any.whl", hash = "sha256:f9f6c3dbdb9dffda3779e77d9acef33ae3111c11a4de18fba5ff1d77cbc83c00", size = 13870, upload-time = "2024-08-15T04:48:19.801Z" },
 ]
 
 [[package]]
@@ -951,18 +849,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/330ea8d383eb2ce973df34d1239b3b21e91cd8c865d21ff82902d952f91f/docutils-0.19.tar.gz", hash = "sha256:33995a6753c30b7f577febfc2c50411fec6aac7f7ffeb7c4cfe5991072dcf9e6", size = 2056383, upload-time = "2022-07-05T20:17:31.045Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/93/69/e391bd51bc08ed9141ecd899a0ddb61ab6465309f1eb470905c0c8868081/docutils-0.19-py3-none-any.whl", hash = "sha256:5e1de4d849fee02c63b040a4a3fd567f4ab104defd8a5511fbbc24a8a017efbc", size = 570472, upload-time = "2022-07-05T20:17:26.388Z" },
-]
-
-[[package]]
-name = "donfig"
-version = "0.8.1.post1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/25/71/80cc718ff6d7abfbabacb1f57aaa42e9c1552bfdd01e64ddd704e4a03638/donfig-0.8.1.post1.tar.gz", hash = "sha256:3bef3413a4c1c601b585e8d297256d0c1470ea012afa6e8461dc28bfb7c23f52", size = 19506, upload-time = "2024-05-23T14:14:31.513Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/d5/c5db1ea3394c6e1732fb3286b3bd878b59507a8f77d32a2cebda7d7b7cd4/donfig-0.8.1.post1-py3-none-any.whl", hash = "sha256:2a3175ce74a06109ff9307d90a230f81215cbac9a751f4d1c6194644b8204f9d", size = 21592, upload-time = "2024-05-23T14:13:55.283Z" },
 ]
 
 [[package]]
@@ -1460,7 +1346,7 @@ name = "grpcio"
 version = "1.80.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "typing-extensions", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b7/48/af6173dbca4454f4637a4678b67f52ca7e0c1ed7d5894d89d434fecede05/grpcio-1.80.0.tar.gz", hash = "sha256:29aca15edd0688c22ba01d7cc01cb000d72b2033f4a3c72a81a19b56fd143257", size = 12978905, upload-time = "2026-03-30T08:49:10.502Z" }
 wheels = [
@@ -1495,23 +1381,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
-]
-
-[[package]]
-name = "h5py"
-version = "3.16.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/db/33/acd0ce6863b6c0d7735007df01815403f5589a21ff8c2e1ee2587a38f548/h5py-3.16.0.tar.gz", hash = "sha256:a0dbaad796840ccaa67a4c144a0d0c8080073c34c76d5a6941d6818678ef2738", size = 446526, upload-time = "2026-03-06T13:49:08.07Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/c0/5d4119dba94093bbafede500d3defd2f5eab7897732998c04b54021e530b/h5py-3.16.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:c5313566f4643121a78503a473f0fb1e6dcc541d5115c44f05e037609c565c4d", size = 3685604, upload-time = "2026-03-06T13:48:04.198Z" },
-    { url = "https://files.pythonhosted.org/packages/b0/42/c84efcc1d4caebafb1ecd8be4643f39c85c47a80fe254d92b8b43b1eadaf/h5py-3.16.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:42b012933a83e1a558c673176676a10ce2fd3759976a0fedee1e672d1e04fc9d", size = 3061940, upload-time = "2026-03-06T13:48:05.783Z" },
-    { url = "https://files.pythonhosted.org/packages/89/84/06281c82d4d1686fde1ac6b0f307c50918f1c0151062445ab3b6fa5a921d/h5py-3.16.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:ff24039e2573297787c3063df64b60aab0591980ac898329a08b0320e0cf2527", size = 5198852, upload-time = "2026-03-06T13:48:07.482Z" },
-    { url = "https://files.pythonhosted.org/packages/9e/e9/1a19e42cd43cc1365e127db6aae85e1c671da1d9a5d746f4d34a50edb577/h5py-3.16.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:dfc21898ff025f1e8e67e194965a95a8d4754f452f83454538f98f8a3fcb207e", size = 5405250, upload-time = "2026-03-06T13:48:09.628Z" },
-    { url = "https://files.pythonhosted.org/packages/b7/8e/9790c1655eabeb85b92b1ecab7d7e62a2069e53baefd58c98f0909c7a948/h5py-3.16.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:698dd69291272642ffda44a0ecd6cd3bda5faf9621452d255f57ce91487b9794", size = 5190108, upload-time = "2026-03-06T13:48:11.26Z" },
-    { url = "https://files.pythonhosted.org/packages/51/d7/ab693274f1bd7e8c5f9fdd6c7003a88d59bedeaf8752716a55f532924fbb/h5py-3.16.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:2b2c02b0a160faed5fb33f1ba8a264a37ee240b22e049ecc827345d0d9043074", size = 5419216, upload-time = "2026-03-06T13:48:13.322Z" },
 ]
 
 [[package]]
@@ -1716,18 +1585,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "intervaltree"
-version = "3.2.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sortedcontainers", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/53/c3/b2afa612aa0373f3e6bb190e6de35f293b307d1537f109e3e25dbfcdf212/intervaltree-3.2.1.tar.gz", hash = "sha256:f3f7e8baeb7dd75b9f7a6d33cf3ec10025984a8e66e3016d537e52130c73cfe2", size = 1231531, upload-time = "2025-12-24T04:25:06.773Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/7f/8a80a1c7c2ed05822b5a2b312d2995f30c533641f8198366ba2e26a7bb03/intervaltree-3.2.1-py2.py3-none-any.whl", hash = "sha256:a8a8381bbd35d48ceebee932c77ffc988492d22fb1d27d0ba1d74a7694eb8f0b", size = 25929, upload-time = "2025-12-24T04:25:05.298Z" },
 ]
 
 [[package]]
@@ -1954,24 +1811,6 @@ wheels = [
 ]
 
 [[package]]
-name = "lazy"
-version = "1.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3c/e6/704c32da169b023a9ac86d116f5433b42d02b4afeda24c9400a69b3530e5/lazy-1.6.tar.gz", hash = "sha256:7127324ec709e8324f08cb4611c1abe01776bda53bb9ce68dc5dfa46ca0ed3e9", size = 10562, upload-time = "2023-09-14T13:31:13.666Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/ae/3ae578fc22dc9c5f60ddcb5c254fe808d45ee7b4cd03315245caf5db6a47/lazy-1.6-py2.py3-none-any.whl", hash = "sha256:449375c125c7acac6b7a93f71b8e7ccb06546c37b161613f92d2d3981f793244", size = 5246, upload-time = "2023-09-14T13:31:11.688Z" },
-]
-
-[[package]]
-name = "legacy-api-wrap"
-version = "1.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/58/49/f06f94048c8974205730d40beca879e43b6eee08efb0101cfb8623e60f41/legacy_api_wrap-1.5.tar.gz", hash = "sha256:b41ba6532f3ebfe3a897a35a7f97dec3be04b92a450f6c2bcf89f1b91c9cadf2", size = 11610, upload-time = "2025-11-03T13:21:12.437Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/5b/058db09c45ba58a7321bdf2294cae651b37d6fec68117265af90cde043b0/legacy_api_wrap-1.5-py3-none-any.whl", hash = "sha256:5a8ea50e3e3bcbcdec3447b77034fd0d32cb2cf4089db799238708e4d7e0098d", size = 10182, upload-time = "2025-11-03T13:21:11.102Z" },
-]
-
-[[package]]
 name = "lenses"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2019,39 +1858,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e2/2b/563790d2ac71cf8fa003b720429782468601e0302c912a078e3f2302a15e/liftover-1.4.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:50ca1f40dd1b3396152c7bd018b37624662694087a2ead6b262f7d65e0dadc53", size = 1007446, upload-time = "2026-04-18T01:44:58.961Z" },
     { url = "https://files.pythonhosted.org/packages/f9/9b/2a5e2f8c0f3926287faefaf3a1ff57063d731e6b28bd0baae31a49631b47/liftover-1.4.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:6b33ac5e587525ded2a004ccec170cd59ed802000ea82a1e12401bcbc79e0b69", size = 1961586, upload-time = "2026-04-18T01:45:00.411Z" },
     { url = "https://files.pythonhosted.org/packages/e3/bf/bbaba897adfcee4515597c43478a3c851ea56ccd64bc4128e86b223ba1d5/liftover-1.4.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:8e1b78d4ca2ecf23ab9f5356d53cc57af57e428791e218c2ac3537d840870dc2", size = 2050805, upload-time = "2026-04-18T01:45:02.235Z" },
-]
-
-[[package]]
-name = "lightning"
-version = "2.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "fsspec", extra = ["http"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "lightning-utilities", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pytorch-lightning", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "torch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "torchmetrics", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/15/ad/a1c91a795521be252209d45fb080f28a4f1e7244d3b37121fcc6e3e43034/lightning-2.6.1.tar.gz", hash = "sha256:859104b98c61add6fe60d0c623abf749baf25f2950a66ebdfb4bd18aa7decba9", size = 663175, upload-time = "2026-01-30T14:59:13.92Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/6d/42640e15a8c34b57dc7ea922152440c0c6692214a08d5282b6e3eb46ddf4/lightning-2.6.1-py3-none-any.whl", hash = "sha256:30e1adac23004c713663928541bd72ecb1371b7abc9aff9f46b7fd2644988d30", size = 853631, upload-time = "2026-01-30T14:59:11.687Z" },
-]
-
-[[package]]
-name = "lightning-utilities"
-version = "0.15.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/45/7fa8f56b17dc0f0a41ec70dd307ecd6787254483549843bef4c30ab5adce/lightning_utilities-0.15.3.tar.gz", hash = "sha256:792ae0204c79f6859721ac7f386c237a33b0ed06ba775009cb894e010a842033", size = 33553, upload-time = "2026-02-22T14:48:53.348Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/f4/ead6e0e37209b07c9baa3e984ccdb0348ca370b77cea3aaea8ddbb097e00/lightning_utilities-0.15.3-py3-none-any.whl", hash = "sha256:6c55f1bee70084a1cbeaa41ada96e4b3a0fea5909e844dd335bd80f5a73c5f91", size = 31906, upload-time = "2026-02-22T14:48:52.488Z" },
 ]
 
 [[package]]
@@ -2208,6 +2014,7 @@ dependencies = [
     { name = "pandas", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "polars", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "polars-bio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "py2bit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "pyarrow", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "pybigwig", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "pyfaidx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2226,11 +2033,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-chrombpnet = [
-    { name = "h5py", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "lightning", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pooch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
 marin = [
     { name = "dupekit", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "lm-eval", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2245,9 +2047,6 @@ tpu = [
 ]
 
 [package.dev-dependencies]
-alphagenome-eval = [
-    { name = "alphagenome", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
 aws-cli = [
     { name = "awscli", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
@@ -2259,18 +2058,8 @@ dev = [
     { name = "ruff", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "snakefmt", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
-enhancer-classification = [
-    { name = "alphagenome-pytorch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "lightning", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "py2bit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "torchmetrics", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
 genome-s3 = [
     { name = "s3fs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-hgvs = [
-    { name = "cdot", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pyhgvs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 umap = [
     { name = "umap-learn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -2284,11 +2073,9 @@ requires-dist = [
     { name = "datasets" },
     { name = "dupekit", marker = "extra == 'marin'" },
     { name = "einops" },
-    { name = "h5py", marker = "extra == 'chrombpnet'" },
     { name = "huggingface-hub" },
     { name = "jaxtyping" },
     { name = "liftover" },
-    { name = "lightning", marker = "extra == 'chrombpnet'" },
     { name = "lm-eval", marker = "extra == 'marin'", git = "https://github.com/stanford-crfm/lm-evaluation-harness.git?rev=d5e3391f22cde186c827674d5c3ec7c5f4fe0cab" },
     { name = "marin", marker = "extra == 'marin'" },
     { name = "marin", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'" },
@@ -2302,7 +2089,7 @@ requires-dist = [
     { name = "pandas" },
     { name = "polars" },
     { name = "polars-bio" },
-    { name = "pooch", marker = "extra == 'chrombpnet'" },
+    { name = "py2bit" },
     { name = "pyarrow", specifier = ">=21.0.0" },
     { name = "pybigwig" },
     { name = "pyfaidx", specifier = ">=0.8.0" },
@@ -2318,10 +2105,9 @@ requires-dist = [
     { name = "wandb" },
     { name = "zstandard" },
 ]
-provides-extras = ["tpu", "marin", "chrombpnet"]
+provides-extras = ["tpu", "marin"]
 
 [package.metadata.requires-dev]
-alphagenome-eval = [{ name = "alphagenome" }]
 aws-cli = [{ name = "awscli", specifier = ">=1.45.2" }]
 dev = [
     { name = "mypy", specifier = ">=1.18.0" },
@@ -2331,17 +2117,7 @@ dev = [
     { name = "ruff", specifier = ">=0.12.11" },
     { name = "snakefmt" },
 ]
-enhancer-classification = [
-    { name = "alphagenome-pytorch", specifier = ">=0.3.0" },
-    { name = "lightning", specifier = ">=2.0" },
-    { name = "py2bit" },
-    { name = "torchmetrics", specifier = ">=1.0" },
-]
 genome-s3 = [{ name = "s3fs", specifier = ">=2024" }]
-hgvs = [
-    { name = "cdot", specifier = ">=0.2.26" },
-    { name = "pyhgvs", specifier = ">=0.11.1" },
-]
 umap = [{ name = "umap-learn", specifier = ">=0.5" }]
 
 [[package]]
@@ -2669,7 +2445,7 @@ name = "ml-dtypes"
 version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "numpy", marker = "(sys_platform == 'darwin' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-marin') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra != 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/4a/c27b42ed9b1c7d13d9ba8b6905dece787d6259152f2309338aed29b2447b/ml_dtypes-0.5.4.tar.gz", hash = "sha256:8ab06a50fb9bf9666dd0fe5dfb4676fa2b0ac0f31ecff72a6c3af8e22c063453", size = 692314, upload-time = "2025-11-17T22:32:31.031Z" }
 wheels = [
@@ -2804,15 +2580,6 @@ wheels = [
 ]
 
 [[package]]
-name = "natsort"
-version = "8.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e2/a9/a0c57aee75f77794adaf35322f8b6404cbd0f89ad45c87197a937764b7d0/natsort-8.4.0.tar.gz", hash = "sha256:45312c4a0e5507593da193dedd04abb1469253b601ecaf63445ad80f0a1ea581", size = 76575, upload-time = "2023-06-20T04:17:19.925Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/82/7a9d0550484a62c6da82858ee9419f3dd1ccc9aa1c26a1e43da3ecd20b0d/natsort-8.4.0-py3-none-any.whl", hash = "sha256:4732914fb471f56b5cce04d7bae6f164a592c7712e1c85f9ef585e197299521c", size = 38268, upload-time = "2023-06-20T04:17:17.522Z" },
-]
-
-[[package]]
 name = "nbformat"
 version = "5.10.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2873,22 +2640,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/57/bc/76f8f8c5cf9adee47fdb7bbb03be8900f76f902d451d7477cf12b845e1de/numba-0.65.1-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:ac3f1e77c352dd0ea9712732c2d8f9ca507717435eec5b5013bf138ac33c4a08", size = 2681371, upload-time = "2026-04-24T02:02:26.105Z" },
     { url = "https://files.pythonhosted.org/packages/69/47/a415af0283e4db0398104c6d1c11c9861a98dc67a7aa442a7769ed5d6196/numba-0.65.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:52bc6f3ceb8fcaff9b2ae26b4c6b1e9fee39db8d355534c0fe4f39a901246b84", size = 3802467, upload-time = "2026-04-24T02:02:27.712Z" },
     { url = "https://files.pythonhosted.org/packages/46/36/246f73ec99cfeab2f2cb2ce7d4218766cc36a2da418901223f4f4da9c813/numba-0.65.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:90ca10b3463bae0bd70589726fe3c77d01d6b5fc86bee54bcdf9fb6b47c28977", size = 3502628, upload-time = "2026-04-24T02:02:29.763Z" },
-]
-
-[[package]]
-name = "numcodecs"
-version = "0.16.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/44/bd/8a391e7c356366224734efd24da929cc4796fff468bfb179fe1af6548535/numcodecs-0.16.5.tar.gz", hash = "sha256:0d0fb60852f84c0bd9543cc4d2ab9eefd37fc8efcc410acd4777e62a1d300318", size = 6276387, upload-time = "2025-11-21T02:49:48.986Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/cc/55420f3641a67f78392dc0bc5d02cb9eb0a9dcebf2848d1ac77253ca61fa/numcodecs-0.16.5-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:24e675dc8d1550cd976a99479b87d872cb142632c75cc402fea04c08c4898523", size = 1656287, upload-time = "2025-11-21T02:49:25.755Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/6c/86644987505dcb90ba6d627d6989c27bafb0699f9fd00187e06d05ea8594/numcodecs-0.16.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:94ddfa4341d1a3ab99989d13b01b5134abb687d3dab2ead54b450aefe4ad5bd6", size = 1148899, upload-time = "2025-11-21T02:49:26.87Z" },
-    { url = "https://files.pythonhosted.org/packages/97/1e/98aaddf272552d9fef1f0296a9939d1487914a239e98678f6b20f8b0a5c8/numcodecs-0.16.5-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b554ab9ecf69de7ca2b6b5e8bc696bd9747559cb4dd5127bd08d7a28bec59c3a", size = 8534814, upload-time = "2025-11-21T02:49:28.547Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/53/78c98ef5c8b2b784453487f3e4d6c017b20747c58b470393e230c78d18e8/numcodecs-0.16.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ad1a379a45bd3491deab8ae6548313946744f868c21d5340116977ea3be5b1d6", size = 9173471, upload-time = "2025-11-21T02:49:30.444Z" },
 ]
 
 [[package]]
@@ -3296,15 +3047,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pip"
-version = "26.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/01/91/47e7d486260f618783899587af63ccf7980fb60245c3e63dd4571c6b57ad/pip-26.1.2.tar.gz", hash = "sha256:f49cd134c61cf2fd75e0ce2676db03e4054504a5a4986d00f8299ae632dc4605", size = 1840799, upload-time = "2026-05-31T17:33:58.56Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/95/6b5cb3461ea5673ba0995989746db58eb18b91b54dbf331e72f569540946/pip-26.1.2-py3-none-any.whl", hash = "sha256:382ff9f685ee3bc25864f820aa50505825f10f5458ffff07e30a6d96e5715cab", size = 1813144, upload-time = "2026-05-31T17:33:56.772Z" },
-]
-
-[[package]]
 name = "platformdirs"
 version = "4.9.6"
 source = { registry = "https://pypi.org/simple" }
@@ -3386,20 +3128,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/15/ef/7d57ceb0651af74194e97ed6583e148d352f03d696090221b8059cdfc90b/polars_runtime_32-1.40.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8d7f42a8b3f16fc66002cc0f6516f7dd7653396886ae0ed362ab95c0b3408b59", size = 56250788, upload-time = "2026-04-22T19:14:39.743Z" },
     { url = "https://files.pythonhosted.org/packages/10/0f/e4b3ffc748827a14a474ec9c42e45c066050e440fec57e914091d9adda75/polars_runtime_32-1.40.1-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:e5f7becc237a7ec9d9a10878dc8e54b73bbf4e2d94a2991c37d7a0b38590d8f9", size = 50432590, upload-time = "2026-04-22T19:14:43.388Z" },
     { url = "https://files.pythonhosted.org/packages/d9/0b/b8d95fbed869fa4caabe9c400e4210374913b376e925e96fdcfa9be6416b/polars_runtime_32-1.40.1-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:992d14cf191dde043d36fbdbc98a65e43fbc7e9a5024cecd45f838ac4988c1ee", size = 54155564, upload-time = "2026-04-22T19:14:47.239Z" },
-]
-
-[[package]]
-name = "pooch"
-version = "1.9.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "platformdirs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/83/43/85ef45e8b36c6a48546af7b266592dc32d7f67837a6514d111bced6d7d75/pooch-1.9.0.tar.gz", hash = "sha256:de46729579b9857ffd3e741987a2f6d5e0e03219892c167c6578c0091fb511ed", size = 61788, upload-time = "2026-01-30T19:15:09.649Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/2d/d4bf65e47cea8ff2c794a600c4fd1273a7902f268757c531e0ee9f18aa58/pooch-1.9.0-py3-none-any.whl", hash = "sha256:f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b", size = 67175, upload-time = "2026-01-30T19:15:08.36Z" },
 ]
 
 [[package]]
@@ -3647,15 +3375,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyhgvs"
-version = "0.11.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pip", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/92/2f/6e8c1cb3b8137ca3c011d069a288ecdfcbf59b360d1ca2d41a2830e44ee0/pyhgvs-0.11.1.tar.gz", hash = "sha256:507076f4dca681113c4ac1b8e8ea72003bd663c32512771756527cc3e5313444", size = 28027, upload-time = "2019-11-21T23:19:29.376Z" }
-
-[[package]]
 name = "pyjwt"
 version = "2.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3825,25 +3544,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/bf/3c/2d5297d82286f6f3d92770289fd439956b201c0a4fc7e72efb9b2293758e/pytokens-0.4.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:24afde1f53d95348b5a0eb19488661147285ca4dd7ed752bbc3e1c6242a304d1", size = 269779, upload-time = "2026-01-30T01:03:09.756Z" },
     { url = "https://files.pythonhosted.org/packages/20/01/7436e9ad693cebda0551203e0bf28f7669976c60ad07d6402098208476de/pytokens-0.4.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:5ad948d085ed6c16413eb5fec6b3e02fa00dc29a2534f088d3302c47eb59adf9", size = 268076, upload-time = "2026-01-30T01:03:10.957Z" },
     { url = "https://files.pythonhosted.org/packages/c6/78/397db326746f0a342855b81216ae1f0a32965deccfd7c830a2dbc66d2483/pytokens-0.4.1-py3-none-any.whl", hash = "sha256:26cef14744a8385f35d0e095dc8b3a7583f6c953c2e3d269c7f82484bf5ad2de", size = 13729, upload-time = "2026-01-30T01:03:45.029Z" },
-]
-
-[[package]]
-name = "pytorch-lightning"
-version = "2.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "fsspec", extra = ["http"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "lightning-utilities", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "torch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "torchmetrics", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/ac/ebd5f6f58691cbd4f73836e43e1727f3814311b960c41f88e259606ca2b2/pytorch_lightning-2.6.1.tar.gz", hash = "sha256:ba08f8901cf226fcca473046ad9346f414e99117762dc869c76e650d5b3d7bdc", size = 665563, upload-time = "2026-01-30T14:59:11.636Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0e/93/c8c361bf0a2fe50f828f32def460e8b8a14b93955d3fd302b1a9b63b19e4/pytorch_lightning-2.6.1-py3-none-any.whl", hash = "sha256:1f8118567ec829e3055f16cf1aa320883a86a47c836951bfd9dcfa34ec7ffd59", size = 857273, upload-time = "2026-01-30T14:59:10.141Z" },
 ]
 
 [[package]]
@@ -4190,19 +3890,6 @@ wheels = [
 ]
 
 [[package]]
-name = "scverse-misc"
-version = "0.0.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "session-info2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a3/c3/46767c8948e0e17c1bebb3b222c407fd815daf7dfb9778a30aab7401d338/scverse_misc-0.0.5.tar.gz", hash = "sha256:73c6adddcb0b17feb37a560c6a735c80f27ab9ff8491c318f63f3e06c7097a24", size = 29164, upload-time = "2026-04-28T12:48:55.089Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/ca/7d26336021cc1aff971869de91fc18e3818ee3b59e401f51a44d7e886adb/scverse_misc-0.0.5-py3-none-any.whl", hash = "sha256:536d999a88fb80f0ad5cb9a61531f2163e03ea704f69766a7f75b0231109bc1f", size = 12478, upload-time = "2026-04-28T12:48:53.771Z" },
-]
-
-[[package]]
 name = "seaborn"
 version = "0.13.2"
 source = { registry = "https://pypi.org/simple" }
@@ -4228,15 +3915,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/a5/747ab268f2cf3f4cb50af521e1a85a959411f74cf4a2ecf47782e1981cee/sentry_sdk-3.0.0a7.tar.gz", hash = "sha256:439a858d409b84407560df6b7ebb760acd9ad3d14e05cd919ae36b204e411cb2", size = 329999, upload-time = "2025-10-20T13:50:38.131Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/5e/23837eadf18ad4f9d5894c1210e6c2591136fd36cff338bedc90a1222bf2/sentry_sdk-3.0.0a7-py2.py3-none-any.whl", hash = "sha256:ada791a77c2d489e07b04c068e0fcacd6bbcfe1cb40b5f303207738baf38e868", size = 353618, upload-time = "2025-10-20T13:50:36.158Z" },
-]
-
-[[package]]
-name = "session-info2"
-version = "0.4.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/50/17/c6a81d91781734bd10d7842c32de665f34395b4db234abdc80dac271632b/session_info2-0.4.1.tar.gz", hash = "sha256:3bb2bf7b73b2e13a1737e9aa91a6dae55e2c49e83bee973f24245f31ae264a1f", size = 25207, upload-time = "2026-04-08T11:30:55.959Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5e/d7/6893c9c2a52e4bcbeca2a2bf2aee970a686cc7bf555f97db13b00f35250e/session_info2-0.4.1-py3-none-any.whl", hash = "sha256:423b3f6bb7023433cfc3f791a6fdbb6a2cfbe226770ae6c127c3b2c4cf5a9d56", size = 17696, upload-time = "2026-04-08T11:30:54.707Z" },
 ]
 
 [[package]]
@@ -4467,15 +4145,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/87/a6771e1546d97e7e041b6ae58d80074f81b7d5121207425c964ddf5cfdbd/sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc", size = 20372, upload-time = "2024-02-25T23:20:04.057Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/44/75a9c9421471a6c4805dbf2356f7c181a29c1879239abab1ea2cc8f38b40/sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2", size = 10235, upload-time = "2024-02-25T23:20:01.196Z" },
-]
-
-[[package]]
-name = "sortedcontainers"
-version = "2.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e8/c4/ba2f8066cceb6f23394729afe52f3bf7adec04bf9ed2c820b39e19299111/sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88", size = 30594, upload-time = "2021-05-16T22:03:42.897Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0", size = 29575, upload-time = "2021-05-16T22:03:41.177Z" },
 ]
 
 [[package]]
@@ -4739,21 +4408,6 @@ wheels = [
 ]
 
 [[package]]
-name = "torchmetrics"
-version = "1.9.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lightning-utilities", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "torch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/81/34/39b8b749333db56c0585d7a11fa62a283c087bb1dfc897d69fb8cedbefb1/torchmetrics-1.9.0.tar.gz", hash = "sha256:a488609948600df52d3db4fcdab02e62aab2a85ef34da67037dc3e65b8512faa", size = 581765, upload-time = "2026-03-09T17:41:22.443Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/a2/c7f6ebf546f8f644edf0f999aa98ece106986a77a7b922316bf6414ff825/torchmetrics-1.9.0-py3-none-any.whl", hash = "sha256:bfdcbff3dd1d96b3374bb2496eb39f23c4b28b8a845b6a18c313688e0d2d9ca1", size = 983384, upload-time = "2026-03-09T17:41:19.756Z" },
-]
-
-[[package]]
 name = "torchvision"
 version = "0.25.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4891,18 +4545,6 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/5d/08201db32823bdf77a0e2b9039540080b2e5c23a20706ddba942924ebcd6/triton-3.6.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:374f52c11a711fd062b4bfbb201fd9ac0a5febd28a96fb41b4a0f51dde3157f4", size = 176128243, upload-time = "2026-01-20T16:16:07.857Z" },
     { url = "https://files.pythonhosted.org/packages/ab/a8/cdf8b3e4c98132f965f88c2313a4b493266832ad47fb52f23d14d4f86bb5/triton-3.6.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:74caf5e34b66d9f3a429af689c1c7128daba1d8208df60e81106b115c00d6fca", size = 188266850, upload-time = "2026-01-20T16:00:43.041Z" },
-]
-
-[[package]]
-name = "typeguard"
-version = "4.5.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/e8/66e25efcc18542d58706ce4e50415710593721aae26e794ab1dec34fb66f/typeguard-4.5.1.tar.gz", hash = "sha256:f6f8ecbbc819c9bc749983cc67c02391e16a9b43b8b27f15dc70ed7c4a007274", size = 80121, upload-time = "2026-02-19T16:09:03.392Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/88/b55b3117287a8540b76dbdd87733808d4d01c8067a3b339408c250bb3600/typeguard-4.5.1-py3-none-any.whl", hash = "sha256:44d2bf329d49a244110a090b55f5f91aa82d9a9834ebfd30bcc73651e4a8cc40", size = 36745, upload-time = "2026-02-19T16:09:01.6Z" },
 ]
 
 [[package]]
@@ -5294,23 +4936,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/44/f5/7e44620e6e077bfe624b9a17c329b8e0d0159e176e1f1a93c2790428ab2c/yte-1.9.4.tar.gz", hash = "sha256:86a47e6d722cec9419a7ac88be57d0d6c4ce28f02860393b71a66f2c674069f6", size = 8101, upload-time = "2025-11-27T12:55:00.85Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/63/6a44729fdc60eb255a7b156a84e7552290174a9bf151e3b6c18e83d6fbfa/yte-1.9.4-py3-none-any.whl", hash = "sha256:5dac63303d3e6bc2ebadc36ece3c3fb09343772fe6e25e9356d9baf8f9dfaf6d", size = 10618, upload-time = "2025-11-27T12:55:01.685Z" },
-]
-
-[[package]]
-name = "zarr"
-version = "3.2.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "donfig", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "google-crc32c", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "numcodecs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'extra-9-marin-dna-marin' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'extra-9-marin-dna-tpu' and extra == 'group-9-marin-dna-aws-cli') or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/93/8d/aeb164004f87543b06ef54f885d02c342c31ceb274e2bbec470a98927621/zarr-3.2.1.tar.gz", hash = "sha256:71565b738a0e7e8ed226f0516eba8c6bb53440ad7669a8c48ebb3534a161d035", size = 675161, upload-time = "2026-05-05T12:37:22.383Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/0a/469e2bd01be1490336e6c8707386845655d59261543315778a3ccc7e8019/zarr-3.2.1-py3-none-any.whl", hash = "sha256:f78cdd3d9687ad0e9f9cba2c5683b64f0c52589c19f685eeabe872e93cc0d2c7", size = 319617, upload-time = "2026-05-05T12:37:20.66Z" },
 ]
 
 [[package]]

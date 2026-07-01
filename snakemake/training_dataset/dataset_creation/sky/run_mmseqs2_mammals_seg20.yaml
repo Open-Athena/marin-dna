@@ -31,7 +31,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync --group enhancer-classification
+    uv sync
 
 run: |
     set -euxo pipefail
@@ -47,7 +47,7 @@ run: |
     # projection + exon subtraction end-to-end per species, producing
     # recipe-ready beds. Excludes the downstream HF upload path so `rule all`
     # doesn't get triggered.
-    uv run --project ../../.. --group enhancer-classification snakemake \
+    uv run --project ../../.. snakemake \
         all_intervals_recipe_v30_mammals_seg20 \
         --cores 32 \
         --use-conda \

@@ -38,7 +38,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync --group enhancer-classification
+    uv sync
 
 run: |
     set -euxo pipefail
@@ -55,7 +55,7 @@ run: |
     # cre_conservation_phastcons_43p + cre_filter_* + mmseqs2 projection
     # (×3 mappings × 20 species) + recipe wrapper. Excludes the downstream
     # HF upload — see run_hf_upload_curation_sweep.yaml.
-    uv run --project ../../.. --group enhancer-classification snakemake \
+    uv run --project ../../.. snakemake \
         all_intervals_recipe_curation_sweep_mammals_seg20 \
         --cores 32 \
         --use-conda \

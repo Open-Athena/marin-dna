@@ -7,11 +7,9 @@ name: Test
 # tests), and the repo's actual GPU/TPU training and large evals run on
 # SkyPilot/SLURM, not in CI. Linting is handled separately by pre-commit.ci.
 #
-# Install scope — base + `dev` (pytest) + `enhancer-classification`:
-#   * `enhancer-classification` (lightning, alphagenome-pytorch, torchmetrics,
-#     py2bit) is REQUIRED, or the enhancer_classification / enhancer_segmentation
-#     test modules fail to import at collection time (`ModuleNotFoundError:
-#     lightning`).
+# Install scope — base + `dev` (pytest):
+#   * The base deps (incl. `py2bit`, used by the training-data pipeline's
+#     `.2bit` reads) plus the `dev` group (pytest) are all the suite needs.
 #   * The heavy `marin` / `tpu` extras are intentionally excluded — the suite
 #     doesn't need JAX/Levanter. On Linux this install resolves transformers
 #     4.57.6 (the same version the `marin` extra pins), so model/scoring tests
@@ -47,7 +45,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev --group enhancer-classification
+        run: uv sync --frozen --group dev
 
       - name: Run tests
         env:

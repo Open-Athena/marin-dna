@@ -30,8 +30,6 @@ uv sync
 |---|---|
 | `--group dev` | Pre-commit, ruff, pytest, snakefmt. |
 | `--extra marin` | marin / marin-levanter / marin-iris / marin-zephyr / marin-rigging — for marin-launched DNA experiments under `experiments/`. Lives as an extra (not a group) so iris workers can install it via `uv sync --extra marin`. |
-| `--group enhancer-classification` | AlphaGenome-Pytorch, Lightning, py2bit — for the enhancer-classification training path. |
-| `--group alphagenome-eval` | AlphaGenome — for AlphaGenome eval pipelines. |
 | `--group aws-cli` | `awscli` for snakemake rules that shell out to `aws s3 cp` (e.g. `evals/ldscore_download`). |
 
 The `marin` extra and `aws-cli` group are mutually exclusive (awscli pins

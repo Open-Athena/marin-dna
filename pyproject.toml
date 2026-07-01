@@ -24,6 +24,7 @@ dependencies = [
     "polars-bio",
     "pyarrow>=21.0.0",
     "pyBigWig",
+    "py2bit",
     "pyfaidx>=0.8.0",
     "scikit-learn",
     "scipy",
@@ -77,17 +78,6 @@ marin = [
     # sister package, dropping the BUILD_DATE the iris controller's
     # freshness check requires.
 ]
-# Vendored ChromBPNet (arsenal-chrombpnet) for the supervised caQTL/dsQTL VEP
-# eval (issue #236). Opt in with `uv sync --extra chrombpnet`; snakemake / eval
-# contributors who don't train ChromBPNet skip the PyTorch Lightning install.
-# `pooch` is a top-level import in the vendored `genome.py`; `h5py` loads the
-# `.h5` bias model. (deepdish/weasyprint are lazy in unused functions; tensorflow
-# /deeplift/tangermeme live only in modules we don't import.)
-chrombpnet = [
-    "lightning",
-    "h5py",
-    "pooch",
-]
 
 [dependency-groups]
 dev = [
@@ -97,15 +87,6 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "snakefmt",
-]
-enhancer-classification = [
-    "alphagenome-pytorch>=0.3.0",
-    "lightning>=2.0",
-    "py2bit",
-    "torchmetrics>=1.0",
-]
-alphagenome-eval = [
-    "alphagenome",
 ]
 # `aws` CLI for the complex_traits / ldscore_download snakemake rule (added
 # in #159 — the rule shells out to `aws s3 cp ...`). awscli pins older
@@ -130,16 +111,6 @@ genome-s3 = [
 # `--group genome-s3` for the S3 genome read).
 umap = [
     "umap-learn>=0.5",
-]
-# `cdot` + `pyhgvs` for transcript `c.` -> genomic mapping of the SGE
-# transcript-targeted score-sets (issue #289 phase 2b). `cdot`'s GRCh38 REST
-# transcripts + `pyhgvs` project each `c.`/intronic HGVS onto the staged GRCh38
-# FASTA (offline after the ~per-gene transcript fetch). Only the SGE dataset build
-# needs it; `marin_dna.pipelines.evals.sge._pyhgvs_cdot_mapper` lazy-imports it.
-# Build with `--group hgvs` (alongside `--group genome-s3`).
-hgvs = [
-    "cdot>=0.2.26",
-    "pyhgvs>=0.11.1",
 ]
 
 [tool.uv]
