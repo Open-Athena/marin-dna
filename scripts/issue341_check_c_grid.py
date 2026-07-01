@@ -45,13 +45,17 @@ def load_joblib(path: str):
 
 def main() -> None:
     any_risk = False
+    any_unverifiable = False  # an edge pin whose truncation_risk could not be computed
     edge_pins: list[str] = []
     for size in SIZES:
         path = f"{PREFIX}/{_model(size)}/mendelian_traits.joblib"
         try:
             probes = load_joblib(path)
-        except Exception as e:  # noqa: BLE001
-            print(f"[{size}] MISSING ({e})")
+        except FileNotFoundError:
+            # Genuinely absent (cell not computed yet) — skip. A corrupt/partial
+            # joblib or a deserialization error is a real problem, so let it raise
+            # rather than masquerade as MISSING.
+            print(f"[{size}] MISSING (not on S3)")
             continue
         print(f"\n=== {size} ({len(probes)} subset probes) ===")
         print(
@@ -71,7 +75,9 @@ def main() -> None:
                 f"{('' if hg is None else f'{hg:+.3f}'):>8} {str(bool(risk)):>5}"
             )
             if at_edge:
-                edge_pins.append(f"{size}/{subset} (risk={bool(risk)})")
+                edge_pins.append(f"{size}/{subset} (risk={risk})")
+                if risk is None:  # pinned but saturation could not be verified
+                    any_unverifiable = True
             if risk:
                 any_risk = True
 
@@ -81,6 +87,11 @@ def main() -> None:
         print(f"  - {e}")
     if any_risk:
         print("\n⚠️  TRUNCATION RISK present — widen c_grid and re-run the probe.")
+    elif any_unverifiable:
+        print(
+            "\n⚠️  Some edge pins have truncation_risk=None (saturation not verified) "
+            "— inspect those cells manually before trusting the grid width."
+        )
     else:
         print(
             "\n✅ No truncation_risk: every edge pin is saturated/flat (benign). "

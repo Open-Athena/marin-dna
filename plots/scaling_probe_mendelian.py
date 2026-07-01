@@ -32,7 +32,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import math
 from pathlib import Path
 
 import pandas as pd
@@ -142,11 +141,12 @@ def to_long(df: pl.DataFrame) -> pd.DataFrame:
         df.filter(
             pl.col("score_type").is_in([PROBE_ST, LLR_ST])
             & pl.col("subset").is_in(KEEP_SUBSETS)
+            & pl.col("value").is_not_null()
+            & pl.col("value").is_finite()
         )
-        .select(["size", "subset", "score_type", "value", "n_pos"])
+        .select(["size", "subset", "score_type", "value"])
         .to_pandas()
     )
-    pdf = pdf[pdf["value"].apply(lambda v: v is not None and math.isfinite(v))].copy()
     pdf["params"] = pdf["size"].map(PARAMS)
     pdf["subset_disp"] = pdf["subset"].map(_disp)
     pdf["score"] = pdf["score_type"].map(LABEL_BY_ST)
@@ -209,7 +209,8 @@ def build_grid(sns, pdf: pd.DataFrame, subsets: list[str]) -> None:
     _style_axes(g)
     g.set_axis_labels("model size (params, log)", "per-chrom AUPRC")
     g.set_titles("{col_name}")
-    g.legend.set_title("")
+    if g.legend is not None:  # seaborn leaves legend None on empty data
+        g.legend.set_title("")
     g.figure.suptitle(
         "Scaling ladder (46M→4B): Mendelian per-chrom-weighted AUPRC by subset — "
         "linear probe vs zero-shot LLR (#341)",
@@ -236,7 +237,8 @@ def build_missense(sns, pdf: pd.DataFrame) -> None:
     )
     _style_axes(g)
     g.set_axis_labels("model size (params, log)", "per-chrom-weighted AUPRC")
-    g.legend.set_title("")
+    if g.legend is not None:  # seaborn leaves legend None on empty data
+        g.legend.set_title("")
     g.figure.suptitle(
         "Mendelian missense: linear probe vs zero-shot LLR across scale "
         "(#341, cf. #302 iter10)",
