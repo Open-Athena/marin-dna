@@ -34,8 +34,8 @@ The codebase has five main components:
    - Invoke as `uv run snakemake …` from the repo root, not bare `snakemake`.
    - Put pipeline-wide defaults (`cores`, `use-conda`, `default-storage-provider`, etc.) in the pipeline's `workflow/profiles/default/config.yaml`, not on the CLI. Snakemake auto-loads that profile, so every invocation picks them up.
 
-3. **Experiments** (`experiments/`) - Marin-launched training/eval scripts. See `experiments/README.md` for setup.
-   - **wandb run names.** Training scripts run from `experiments/` should set wandb run names that include `dna-exp<N>` where `<N>` is the experiment number from the issue/directory. Lets runs be filtered by experiment.
+3. **Experiments** - Marin-launched training/eval scripts. Each experiment is a **self-contained directory on its own branch** (its own `pyproject.toml` with marin in *base* deps + a `launch.py`), **not merged to `main`** (see "What gets merged to `main`" above) — cite it from its tracking issue via commit-pinned permalinks. Full setup, launch flow, and hard-won lessons live in the **`marin-experiment` skill** (`.agents/skills/marin-experiment/`).
+   - **wandb run names.** Set run names that include `dna-exp<N>` (`<N>` = the experiment number from the issue) so runs filter by experiment.
 
 4. **Plots** (`plots/`) - Self-contained Python scripts that turn pipeline metric parquets into figures. One file per recipe; outputs to gitignored `plots/output/<recipe>/`.
    - Load parquets from S3 with `polars.read_parquet("s3://…")` — native object_store support, no fsspec/s3fs needed.
