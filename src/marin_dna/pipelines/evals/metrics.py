@@ -328,6 +328,15 @@ def per_chrom_ap_table(
         assert col in df.columns, f"df missing required column {col!r}"
     missing = [c for c in score_columns if c not in df.columns]
     assert not missing, f"df missing score columns {missing}"
+    # Fail loud on nulls in the grouping / weighting keys: a null ``subset`` would be
+    # silently dropped by ``groupby`` (pandas ``dropna=True`` default) and a null
+    # ``chrom``/``label`` would mis-weight or mis-count the per-chromosome AUPRC — a
+    # silent-corruption risk (mirrors ``compute_sge_metrics``'s ``subset`` notna guard).
+    for col in (subset_col, chrom_col, label_col):
+        assert df[col].notna().all(), (
+            f"{col!r} contains nulls; per_chrom_ap_table would silently drop / "
+            f"mis-weight those rows — fail loud instead"
+        )
 
     rows: list[dict] = []
     for subset_name, sub in df.groupby(subset_col, sort=False):

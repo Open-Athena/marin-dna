@@ -1121,3 +1121,13 @@ def test_per_chrom_ap_table_missing_column_raises():
         per_chrom_ap_table(_probe_like_frame().drop(columns=["chrom"]), ["probe_score"])
     with pytest.raises(AssertionError, match="missing score columns"):
         per_chrom_ap_table(_probe_like_frame(), ["nonexistent"])
+
+
+def test_per_chrom_ap_table_null_key_raises():
+    """A null subset / chrom / label fails loud rather than being silently dropped by
+    groupby(dropna) or mis-weighting the per-chrom AUPRC."""
+    for key in ("subset", "chrom", "label"):
+        df = _probe_like_frame()
+        df.loc[0, key] = None
+        with pytest.raises(AssertionError, match="contains nulls"):
+            per_chrom_ap_table(df, ["probe_score"])
