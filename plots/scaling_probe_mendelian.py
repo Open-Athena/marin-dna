@@ -85,18 +85,18 @@ LABEL_BY_ST = {PROBE_ST: PROBE_LABEL, LLR_ST: LLR_LABEL}
 PALETTE = {PROBE_LABEL: "tab:blue", LLR_LABEL: "tab:red"}
 HUE_ORDER = [PROBE_LABEL, LLR_LABEL]
 
-# Preferred facet order (missense first — the #302 focus); any other subset present
-# is appended alphabetically.
-PREFERRED_SUBSETS = [
+# Subsets to plot, in facet order (missense first — the #302 focus). Restricted to
+# the consequence classes the models actually see during training — coding
+# (missense / synonymous), splicing, both UTRs, and TSS-proximal. Deliberately
+# EXCLUDES distal / non_coding_transcript_exon / mature_miRNA (not / barely covered
+# in training), so the VEP comparison stays on in-distribution consequence classes.
+KEEP_SUBSETS = [
     "missense_variant",
     "synonymous_variant",
     "splicing",
     "5_prime_UTR_variant",
     "3_prime_UTR_variant",
     "tss_proximal",
-    "distal",
-    "non_coding_transcript_exon_variant",
-    "mature_miRNA_variant",
 ]
 
 
@@ -129,17 +129,20 @@ def load(prefix: str) -> pl.DataFrame:
 
 
 def ordered_subsets(df: pl.DataFrame) -> list[str]:
+    """The kept subsets that are actually present, in KEEP_SUBSETS order."""
     present = set(df["subset"].unique().to_list())
-    ordered = [s for s in PREFERRED_SUBSETS if s in present]
-    ordered += sorted(present - set(ordered))
-    return ordered
+    return [s for s in KEEP_SUBSETS if s in present]
 
 
 def to_long(df: pl.DataFrame) -> pd.DataFrame:
     """Tidy long-form for seaborn: one row per (size, subset, score) with a finite
-    value. Drops non-finite values (a subset whose probe was skipped → NaN)."""
+    value. Restricted to KEEP_SUBSETS; drops non-finite values (a subset whose probe
+    was skipped → NaN)."""
     pdf = (
-        df.filter(pl.col("score_type").is_in([PROBE_ST, LLR_ST]))
+        df.filter(
+            pl.col("score_type").is_in([PROBE_ST, LLR_ST])
+            & pl.col("subset").is_in(KEEP_SUBSETS)
+        )
         .select(["size", "subset", "score_type", "value", "n_pos"])
         .to_pandas()
     )
