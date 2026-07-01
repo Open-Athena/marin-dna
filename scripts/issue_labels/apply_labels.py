@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Apply the retroactive issue-label mapping in mapping.tsv.
 
-Sets each issue to EXACTLY the label set implied by its row (type + areas +
-meta), adding what's missing and removing anything else (including retired
-labels like `enhancement`/`question` and `epic` where dropped). Idempotent.
+Sets each issue's **Type/Area** labels to exactly what its row implies, and
+removes retired labels (`enhancement`/`question`) and dropped `epic`. **Meta
+labels (`agent-generated`/`marin`) and any other non-taxonomy label are left
+untouched** — provenance is set at issue-creation time, so this tool never adds
+or strips it (the meta column in mapping.tsv is documentation only). Idempotent.
 
 Usage:
     python scripts/issue_labels/apply_labels.py --dry-run   # preview diffs
@@ -30,13 +32,28 @@ AREAS = {
     "interpretation",
 }
 META = {"agent-generated", "marin"}
-ALLOWED = TYPES | AREAS | META
+
+# Labels this tool actively manages (adds/removes to match the mapping).
+MANAGED = TYPES | AREAS
+# Retired labels to strip wherever present; `epic` is dropped from issues too
+# (kept as a label for future engineering use). META is deliberately absent —
+# it is never added or removed.
+REMOVABLE = MANAGED | {"enhancement", "question", "epic"}
+
+
+def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run a command, surfacing its stderr before propagating a failure."""
+    try:
+        return subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write(e.stderr or "")
+        raise
 
 
 def parse_mapping(path: Path) -> dict[int, set[str]]:
-    """number -> desired exact label set."""
+    """number -> desired label set (Type + Area + meta, for display/validation)."""
     desired: dict[int, set[str]] = {}
-    for lineno, raw in enumerate(path.read_text().splitlines(), 1):
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
         cols = raw.split("\t")
@@ -63,12 +80,7 @@ def parse_mapping(path: Path) -> dict[int, set[str]]:
 
 
 def current_labels(number: int) -> set[str]:
-    out = subprocess.run(
-        ["gh", "issue", "view", str(number), "--json", "labels"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
+    out = _run(["gh", "issue", "view", str(number), "--json", "labels"]).stdout
     return {lab["name"] for lab in json.loads(out)["labels"]}
 
 
@@ -83,23 +95,24 @@ def main() -> int:
     args = ap.parse_args()
 
     desired = parse_mapping(MAPPING)
-    if args.only:
+    if args.only is not None:
         desired = {n: v for n, v in desired.items() if n in args.only}
-    print(f"{len(desired)} issues in mapping{' (filtered)' if args.only else ''}\n")
+    print(
+        f"{len(desired)} issues in mapping{' (filtered)' if args.only is not None else ''}\n"
+    )
 
     changed = 0
     for number in sorted(desired):
         want = desired[number]
         have = current_labels(number)
-        # only reconcile taxonomy-relevant labels; leave any unknown label
-        # untouched EXCEPT the ones we explicitly retire.
-        retire = {"enhancement", "question"}
-        add = want - have
-        remove = (have - want) & (ALLOWED | retire | {"epic"})
+        # Only add/remove Type+Area (and strip retired/epic); META and any other
+        # label the issue already carries are left exactly as-is.
+        add = (want & MANAGED) - have
+        remove = (have - want) & REMOVABLE
         if not add and not remove:
             continue
         changed += 1
-        print(f"#{number}: {sorted(have)} -> {sorted(want)}")
+        print(f"#{number}: {sorted(have)} -> {sorted((have - remove) | add)}")
         print(f"    +{sorted(add)}  -{sorted(remove)}")
         if args.dry_run:
             continue
@@ -108,7 +121,7 @@ def main() -> int:
             cmd += ["--add-label", lab]
         for lab in sorted(remove):
             cmd += ["--remove-label", lab]
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        _run(cmd)
 
     print(f"\n{'Would change' if args.dry_run else 'Changed'} {changed} issues.")
     return 0

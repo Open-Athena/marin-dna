@@ -72,7 +72,7 @@
 131	infrastructure	baselines	agent-generated	establish Evo2 baseline
 132	experiment	data	agent-generated	FLAG: positive-set-definition exploration (borderline eda)
 133	infrastructure	data	agent-generated	build v20 training dataset from segmentation predictions
-135	experiment	data	agent-generated	heuristic data-mix sweep
+135	experiment	data		heuristic data-mix sweep (issue #135 is human-authored — no agent-generated)
 136	experiment	data	agent-generated	compare enhancer data-curation strategies (VEP = measurement, not evals)
 137		evals		legacy area-hub "Evals" (was epic; closed) — area-only
 138	infrastructure	evals		build a TraitGym-like eval
