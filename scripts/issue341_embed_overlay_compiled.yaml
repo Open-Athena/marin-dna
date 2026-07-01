@@ -1,0 +1,28 @@
+# evals_v2 config overlay — pooled-embedding bundle (#318) turned ON, COMPILED.
+#
+# Same purpose as scripts/issue318_embed_overlay.yaml (deep-merge return_embeddings:
+# true over config/config.yaml via snakemake's `--configfile`, without committing the
+# default-on), but with `torch_compile: true`. The #318 overlay runs the embedding
+# extraction eager because compiling the last_hidden_state forward-hook was unvalidated;
+# for the #341 scaling-ladder re-score we WANT compile on (faster, and the stored `llr_*`
+# stay consistent with the compiled default rather than picking up eager float-reduction
+# noise). Compile-validate on the smallest rung (h640-p46M) first — confirm `emb_ref`/
+# `emb_alt` populate (non-null, length == hidden size) and the hooked forward doesn't
+# graph-break — before mass-launching; fall back to the eager #318 overlay if it breaks.
+#
+# Invoke (from snakemake/analysis/evals_v2, e.g. via sky run.yaml SNAKEMAKE_ARGS):
+#   snakemake --profile workflow/profiles/default \
+#     --configfile ../../../scripts/issue341_embed_overlay_compiled.yaml \
+#     --forcerun compute_scores -- \
+#     results/scores/scaling-v0.5-h640-p46M-step-215573/mendelian_traits.parquet
+#
+# batch_size 32 (GLOBAL): conservative so it also fits the 2B/4B rungs on A10G 24 GB
+# with the compiled + hidden-states forward (the #318 overlay's 96 was tuned on the 1B
+# eager). Validate 4B VRAM (nvidia-smi) early; lower to 16 here and re-launch just the
+# big rungs if it OOMs. Small rungs are fast regardless of batch. torch_compile: true
+# is NOT output-identical vs eager (AUPRC-invariant float-reduction noise in llr_*), but
+# it MATCHES the compiled default the ladder's original (embedding-less) scores used.
+inference:
+  return_embeddings: true
+  batch_size: 32
+  torch_compile: true

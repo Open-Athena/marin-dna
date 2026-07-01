@@ -273,7 +273,7 @@ results/probe/{model}/{dataset}.joblib    # {subset: {pipeline, C, feature, n, n
 ```
 
 The predictions parquet (the LOOC `probe_score` per variant) is consumed by the
-**downstream metrics step** (a separate issue); the joblib classifiers are
+**`compute_probe_metrics`** rule below; the joblib classifiers are
 serialized for **reuse on other datasets**. Configured under `probe:` in
 `config.yaml` (`min_variants`, `min_chroms`, `c_grid` = `logspace(lo, hi, num)`,
 `inner_splits`, `n_jobs`, and `models: [{name, datasets}]` — datasets listed
@@ -290,6 +290,31 @@ snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime   # one
 # A cell whose scores parquet predates the embeddings must be re-scored first:
 snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun \
   compute_scores -- results/scores/<model>/<dataset>.parquet
+```
+
+### Linear-probe metrics (per-subset per-chrom AUPRC, #331/#341)
+
+`snakemake probe_metrics` scores the probe against its matched zero-shot LLR
+baseline, per `(model, dataset)`, also **off `rule all`**. The `compute_probe_metrics`
+rule reads a `results/probe/{model}/{dataset}.parquet` — which carries **both**
+`probe_score` **and** the raw `llr_fwd`/`llr_rc` atoms (only `emb_ref`/`emb_alt` are
+dropped) — so the probe and its baseline are scored on **identical rows** under one
+metric. It emits, per consequence `subset`, the **per-chromosome-weighted AUPRC** (the
+TraitGym / #314 headline; `marin_dna.pipelines.evals.metrics.per_chrom_ap_table` →
+`per_chrom_weighted_ap`) for two score types: `probe_score` and the dataset's
+zero-shot baseline (its `score_protocol` applied to the FWD/RC-averaged LLR, e.g.
+`minus_llr_avg` for mendelian). `matched_pair` datasets only (needs `subset` + `chrom`;
+`qtl_global`/`sge` are rejected).
+
+```
+results/probe_metrics/{model}/{dataset}.parquet   # [score_type, subset, value, n, n_pos, n_chrom, model, dataset, split]
+```
+
+```bash
+# Same `--rerun-triggers mtime` note as `probe` (its upstream scores parquet was
+# built with the embedding overlay, differing from the committed default).
+snakemake probe_metrics --rerun-triggers mtime                                    # all configured probe cells
+snakemake results/probe_metrics/<model>/<dataset>.parquet --rerun-triggers mtime  # one cell
 ```
 
 ### Parallel sky-cluster sweep (one cluster per target)

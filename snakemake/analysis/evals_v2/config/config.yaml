@@ -1220,6 +1220,30 @@ probe:
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
       datasets: [mendelian_traits]
 
+    # Parameter-scaling ladder v0.5 (#274), 8 rungs at step-215573 — the #341
+    # probe-vs-zero-shot ladder analysis (reproducing #302 iter10 through the
+    # official pipeline). Each rung's mendelian_traits scores parquet must be
+    # (re)built with the #318 embedding overlay first (compiled variant
+    # scripts/issue341_embed_overlay_compiled.yaml); the committed default is
+    # return_embeddings: false, so run compute_probe/compute_probe_metrics with
+    # `--rerun-triggers mtime`.
+    - name: scaling-v0.5-h640-p46M-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h768-p76M-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h896-p128M-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h1152-p255M-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h1408-p476M-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h1920-p1B-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h2432-p2B-step-215573
+      datasets: [mendelian_traits]
+    - name: scaling-v0.5-h2944-p4B-step-215573
+      datasets: [mendelian_traits]
+
 
 # ---------------------------------------------------------------------------
 # Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.

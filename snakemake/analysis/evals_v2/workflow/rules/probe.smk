@@ -82,3 +82,71 @@ rule probe:
             for pm in PROBE_MODELS
             for dataset in pm["datasets"]
         ],
+
+
+rule compute_probe_metrics:
+    """Per-subset per-chromosome-weighted AUPRC (#331 / TraitGym) for the probe vs its
+    matched zero-shot LLR baseline — the metrics step of the #320/#331 protocol (wires
+    #319; #341).
+
+    The probe predictions parquet carries BOTH `probe_score` AND the raw `llr_fwd`/
+    `llr_rc` atoms (`compute_probe` drops only `emb_ref`/`emb_alt`), so the probe and
+    its zero-shot baseline are scored on IDENTICAL rows under the identical metric — a
+    paired probe-vs-LLR comparison in one parquet. The baseline is the dataset's own
+    `score_protocol` applied to the FWD/RC-averaged LLR (`minus_llr_avg` for mendelian),
+    matching `compute_metrics`'s `_avg` semantics. The per-subset per-chrom-weighted
+    metric is the matched_pair (subset + chrom) path, so qtl_global/sge are rejected.
+
+    Thin glue over `marin_dna.pipelines.evals.metrics.per_chrom_ap_table`. CPU-only; off
+    `rule all`. Reads a probe parquet, so the same `--rerun-triggers mtime` note as
+    `compute_probe` applies (its upstream scores parquet was built with the #318
+    overlay)."""
+    input:
+        "results/probe/{model}/{dataset}.parquet",
+    output:
+        "results/probe_metrics/{model}/{dataset}.parquet",
+    wildcard_constraints:
+        model="|".join(MODELS),
+        dataset="|".join(DATASETS),
+    params:
+        score_protocol=lambda wc: get_dataset_config(wc.dataset)["score_protocol"],
+    run:
+        eval_protocol = get_dataset_protocol(wildcards.dataset)
+        assert eval_protocol == "matched_pair", (
+            f"compute_probe_metrics is the per-subset per-chrom-weighted AUPRC "
+            f"(matched_pair / TraitGym) path — needs subset + chrom; dataset "
+            f"{wildcards.dataset!r} is eval_protocol {eval_protocol!r}"
+        )
+        transform = SCORE_PROTOCOLS[params.score_protocol]
+        df = pd.read_parquet(input[0])
+        for col in ("probe_score", "label", "subset", "chrom", "llr_fwd", "llr_rc"):
+            assert col in df.columns, (
+                f"{input[0]} missing column {col!r} — expected a compute_probe "
+                f"predictions parquet"
+            )
+        # Zero-shot baseline on the identical rows: the dataset's score protocol applied
+        # to the FWD/RC-averaged raw LLR (== compute_metrics `_avg`).
+        baseline_col = f"{params.score_protocol}_avg"
+        df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)
+
+        metrics = per_chrom_ap_table(df, ["probe_score", baseline_col])
+        metrics["model"] = wildcards.model
+        metrics["dataset"] = wildcards.dataset
+        metrics["split"] = config["split"]
+        metrics.to_parquet(output[0], index=False)
+        print(
+            f"[evals_v2] probe_metrics {wildcards.model} {wildcards.dataset}: "
+            f"{metrics['subset'].nunique()} subsets × 2 score types "
+            f"(probe_score, {baseline_col})"
+        )
+
+
+rule probe_metrics:
+    """Aggregate convenience target: probe_metrics for every configured probe cell.
+    Not part of `rule all`."""
+    input:
+        [
+            f"results/probe_metrics/{pm['name']}/{dataset}.parquet"
+            for pm in PROBE_MODELS
+            for dataset in pm["datasets"]
+        ],
