@@ -9,14 +9,15 @@ pipelines (``conservation_eval`` / ``alphagenome_eval`` / ``gpn_star_eval``) now
 from branches with their result parquets frozen on S3 (see #332); this loader reads
 those frozen prefixes, so no baseline code lives on ``main``.
 
-  - ``snakemake/analysis/evals_v2/``  → one parquet per ``(model, dataset)``,
+  - ``snakemake/analysis/evals_v2/``      → one parquet per ``(model, dataset)``,
     filter by ``score_type`` + ``split``.
-  - ``snakemake/conservation_eval/``  → one parquet per ``(dataset, split)``,
+  - ``conservation_eval`` S3 results   → one parquet per ``(dataset, split)``,
     filter by ``score_name`` (the track).
-  - ``snakemake/alphagenome_eval/``   → one parquet per dataset, filter by
+  - ``alphagenome_eval`` S3 results    → one parquet per dataset, filter by
     ``score_type`` + ``split``.
-  - ``snakemake/gpn_star_eval/``      → one parquet per dataset with V/M/P
+  - ``gpn_star_eval`` S3 results       → one parquet per dataset with V/M/P
     stacked, filter by ``score_type`` + ``model``.
+  (The three baseline pipelines are branch-run; their results are frozen on S3.)
 
 Model registry (display name, family, training metadata, etc.) lives in
 ``dashboard/models.yaml`` and is loaded via ``models.load_models``.

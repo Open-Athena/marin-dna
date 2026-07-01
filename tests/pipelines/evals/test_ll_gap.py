@@ -3,8 +3,8 @@
 The real forward pass needs a GPU + a downloaded checkpoint, so the model,
 tokenizer, and compute kernel are mocked — this exercises the DataFrame
 contract, the ``id`` passthrough, the ``window_size`` guard, the missing-column
-guard, and the flat-array reshape. The aggregator math is covered more fully in
-``test_evo2.py`` (same ``aggregate_ll_gap``, re-exported there).
+guard, and the flat-array reshape. The pure-numpy aggregator (``aggregate_ll_gap``)
+is checked separately by ``test_aggregate_ll_gap_canonical_import_and_gap_sign`` below.
 """
 
 from __future__ import annotations
