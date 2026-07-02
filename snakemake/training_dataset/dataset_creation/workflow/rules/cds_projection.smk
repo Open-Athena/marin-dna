@@ -92,7 +92,10 @@ rule cds_proj_align:
         sensitivity=CDS["sensitivity"],
         max_accept=CDS["max_accept"],
         split_memory_limit=CDS["split_memory_limit"],
-    threads: workflow.cores
+    # ~8 threads/search lets ~4 searches run concurrently on a 32-core box
+    # (each peaks ~34 GB RAM — see config.cloud mem_mb); much faster than one
+    # 32-thread search at a time across 203 species.
+    threads: 8
     resources:
         mem_mb=CDS["mem_mb"],
     wildcard_constraints:
@@ -269,6 +272,15 @@ rule cds_proj_hf_upload:
         mkdir -p $(dirname {output})
         touch {output}
         """
+
+
+rule all_cds_projection_parquets:
+    """Full projection through per-genome parquets, WITHOUT the HF upload — the
+    Arm B training data + per-species yields (reach-vs-divergence). Draft the HF
+    dataset card and get sign-off before running `all_cds_projection` (which
+    merges, shards, and pushes to HF)."""
+    input:
+        expand("results/cds_projection/dataset_genome/{g}.parquet", g=CDS_SPECIES),
 
 
 rule all_cds_projection:
