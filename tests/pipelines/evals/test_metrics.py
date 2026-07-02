@@ -1250,3 +1250,50 @@ def test_per_chrom_ap_table_single_class_subset_nan_and_excluded():
         (out["subset"] == "missense") & (out["score_type"] == "probe_score")
     ].iloc[0]
     assert macro["value"] == pytest.approx(missense["value"])
+
+
+def test_per_chrom_ap_table_se_independent_of_score_column_order():
+    """A cell's SE is a pure function of its own data + seed: reordering `score_columns`
+    must not change any (subset, score) SE (the per-cell fresh-`default_rng` fix — a single
+    shared generator threaded through the loop made SEs depend on column order)."""
+    df = _probe_like_frame()
+    fwd = per_chrom_ap_table(
+        df, ["probe_score", "minus_llr_avg"], n_bootstrap=200, rng=0, n_min=1
+    )
+    rev = per_chrom_ap_table(
+        df, ["minus_llr_avg", "probe_score"], n_bootstrap=200, rng=0, n_min=1
+    )
+    key = ["subset", "score_type"]
+    pd.testing.assert_series_equal(
+        fwd.set_index(key)["se"].sort_index(),
+        rev.set_index(key)["se"].sort_index(),
+    )
+
+
+def test_per_chrom_ap_table_macro_se_partial_chrom_overlap():
+    """The joint macro bootstrap tolerates subsets on partially-disjoint chromosome sets:
+    finite macro SE, all-chromosomes `n_chrom` = the deduped union, and no crash when a
+    draw could void a subset (the fixed-K `np.isfinite(vals).all()` guard)."""
+
+    def block(chrom: str, good: bool) -> pd.DataFrame:
+        # One pos + one neg on a chromosome; `good` ranks the pos above (per-chrom AUPRC
+        # 1.0) else below (0.5), so per-chrom values vary and the bootstrap has spread.
+        scores = [0.9, 0.1] if good else [0.1, 0.9]
+        return pd.DataFrame(
+            {"label": [1, 0], "chrom": [chrom, chrom], "probe_score": scores}
+        )
+
+    specs = {
+        "A": ["chr1", "chr2", "chr3", "chr4"],
+        "B": ["chr3", "chr4", "chr5", "chr6"],
+    }
+    frames = []
+    for subset, chroms in specs.items():
+        for i, c in enumerate(chroms):
+            frames.append(block(c, good=(i % 2 == 0)).assign(subset=subset))
+    df = pd.concat(frames, ignore_index=True)
+
+    out = per_chrom_ap_table(df, ["probe_score"], n_bootstrap=300, rng=0, n_min=1)
+    macro = out[out["subset"] == MACRO_AVG_SUBSET].iloc[0]
+    assert np.isfinite(macro["se"]) and macro["se"] >= 0
+    assert macro["n_chrom"] == 6  # union of chr1..chr6 across the two subsets

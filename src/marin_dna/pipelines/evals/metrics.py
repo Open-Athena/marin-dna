@@ -339,7 +339,7 @@ def _per_chrom_cluster_bootstrap_se(
     ap: np.ndarray,
     weight: np.ndarray,
     n_bootstrap: int,
-    gen: np.random.Generator,
+    rng: np.random.Generator | int | None,
 ) -> float:
     """Chromosome-cluster bootstrap SE of a subset's per-chromosome-weighted AUPRC.
 
@@ -348,10 +348,18 @@ def _per_chrom_cluster_bootstrap_se(
     returns the ``ddof=1`` std of the resampled weighted means. ``nan`` when
     ``n_bootstrap <= 0`` or fewer than two chromosomes contribute — a cluster-bootstrap
     SE needs at least two clusters.
+
+    A fresh ``default_rng(rng)`` is constructed here rather than threaded in from the
+    caller, so this cell's SE is a pure function of its own data + seed — independent of
+    how many other cells were bootstrapped before it (mirrors ``auprc_with_bootstrap_se``,
+    which ``compute_auprc_metrics`` calls once per cell). With an ``int`` seed the shared
+    value only correlates the per-iteration noise across cells; it doesn't couple their
+    data or make one cell's SE depend on the ``score_columns`` order.
     """
     m = len(ap)
     if n_bootstrap <= 0 or m < 2:
         return float("nan")
+    gen = np.random.default_rng(rng)
     boot = np.empty(n_bootstrap, dtype=float)
     for b in range(n_bootstrap):
         idx = gen.integers(0, m, size=m)
@@ -362,7 +370,7 @@ def _per_chrom_cluster_bootstrap_se(
 def _macro_joint_chrom_bootstrap_se(
     components: list[tuple[np.ndarray, np.ndarray, np.ndarray]],
     n_bootstrap: int,
-    gen: np.random.Generator,
+    rng: np.random.Generator | int | None,
 ) -> float:
     """Joint chromosome-cluster bootstrap SE of the macro-average AUPRC.
 
@@ -375,8 +383,17 @@ def _macro_joint_chrom_bootstrap_se(
     together, and the SE reflects that coupling. ``nan`` when ``n_bootstrap <= 0`` or the
     union has fewer than two chromosomes.
 
+    Every retained iteration averages over ALL K subsets (like the point macro), so the
+    bootstrap stays centered on the point estimate. A draw that assigns multiplicity 0 to
+    every chromosome some subset owns leaves that subset undefined; that whole draw is
+    dropped (``nan``) rather than averaging the survivors — averaging survivors would bias
+    the center toward a smaller-K macro and let subset-dropout masquerade as sampling
+    noise. Under the heavy chromosome overlap of genome-wide consequence subsets this is
+    vanishingly rare (only near-disjoint chromosome sets trigger it).
+
     ``components`` is the list of ``(chroms, ap, weight)`` from ``_per_chrom_components``
-    for the qualifying subsets (those entering the macro average).
+    for the qualifying subsets. A fresh ``default_rng(rng)`` is constructed here so the
+    macro SE is order-independent (see ``_per_chrom_cluster_bootstrap_se``).
     """
     if n_bootstrap <= 0:
         return float("nan")
@@ -396,13 +413,16 @@ def _macro_joint_chrom_bootstrap_se(
             ap_u[pos[c]] = a
             w_u[pos[c]] = wi
         aligned.append((ap_u, w_u))
+    gen = np.random.default_rng(rng)
     boot = np.empty(n_bootstrap, dtype=float)
     for b in range(n_bootstrap):
         mult = np.bincount(
             gen.integers(0, n_union, size=n_union), minlength=n_union
         ).astype(float)
         vals = np.array([_weighted_ap(ap_u, w_u, mult) for ap_u, w_u in aligned])
-        boot[b] = float(np.nanmean(vals)) if np.isfinite(vals).any() else np.nan
+        # Keep the draw only if every subset is defined under it, so each retained macro is
+        # a fixed-K mean centered on the point estimate; a dropped-out subset voids the draw.
+        boot[b] = float(np.mean(vals)) if np.isfinite(vals).all() else np.nan
     return float(np.nanstd(boot, ddof=1))
 
 
@@ -431,11 +451,15 @@ def per_chrom_ap_table(
     disjoint-cluster SE-of-mean formula (``compute_auprc_metrics``) would misstate it.
     **No ``_global_`` row** — probe scores come from a separate per-subset classifier, so a
     pooled global ranking is undefined (unlike the matched-pair leaderboard). The macro row
-    keeps honest ``n`` / ``n_pos`` sums (the dashboard read layer overloads the displayed
-    ``n`` to K, as it already does for the matched-pair macro).
+    keeps honest ``n`` / ``n_pos`` sums and an all-chromosomes ``n_chrom`` (the #348 dashboard
+    read layer will overload the displayed ``n`` to K, as ``fetch_method_metrics`` already
+    does for the matched-pair macro).
 
     ``n`` / ``n_pos`` / ``n_chrom`` are subset-level counts (independent of the score
-    column); ``value`` / ``se`` are per ``(subset, score_col)`` and ``NaN`` when no
+    column); on the ``_macro_avg_`` row ``n`` / ``n_pos`` are sums over the qualifying
+    subsets and ``n_chrom`` is the count of distinct chromosomes across them (same
+    all-chromosomes sense as the per-subset ``n_chrom``, deduped). ``value`` / ``se`` are
+    per ``(subset, score_col)`` and ``NaN`` when no
     chromosome carries both classes among that score's finite values (e.g. a skipped
     probe's all-``NaN`` ``probe_score`` beside a finite baseline row). ``se`` is also
     ``NaN`` when ``n_bootstrap <= 0`` or fewer than two chromosomes contribute.
@@ -449,9 +473,11 @@ def per_chrom_ap_table(
         chrom_col: chromosome column name (per-chrom weighting + bootstrap-cluster key).
         n_bootstrap: chromosome-cluster bootstrap iterations; ``<= 0`` skips the resample
             (``se = NaN``, point estimates only) — the macro row is still emitted.
-        rng: ``numpy.random.Generator``, seed int, or ``None``. ``0`` (default) →
-            reproducible across re-runs (bit-stable pipeline output); ``None`` → fresh
-            randomness.
+        rng: seed int (recommended), ``numpy.random.Generator``, or ``None``. Each SE
+            builds its own ``default_rng(rng)``, so with an ``int`` seed (``0`` default →
+            bit-stable pipeline output) every cell's SE is reproducible AND independent of
+            the ``score_columns`` order; ``None`` → fresh randomness. Passing a live
+            ``Generator`` re-couples cells to draw order (as in ``auprc_with_bootstrap_se``).
         n_min: minimum ``n_pos`` for a subset to enter the macro average. Default 30
             (project-wide leaderboard convention; a 300-variant 1:9-matched subset ⇒ ~30
             positives, matching the probe's ``min_variants`` gate).
@@ -475,18 +501,20 @@ def per_chrom_ap_table(
             f"mis-weight those rows — fail loud instead"
         )
 
-    gen = np.random.default_rng(rng)
     rows: list[dict] = []
     # Per score column, gather the qualifying subsets' components (for the joint macro
-    # bootstrap), point values (for the macro mean), and counts — in first-appearance
-    # order so the macro is deterministic.
+    # bootstrap), point values (for the macro mean), counts, and the union of their (all)
+    # chromosomes (for the macro's n_chrom) — in first-appearance order so the macro is
+    # deterministic.
     qual_components: dict[str, list[tuple]] = {sc: [] for sc in score_columns}
     qual_values: dict[str, list[float]] = {sc: [] for sc in score_columns}
     qual_counts: dict[str, list[tuple[int, int]]] = {sc: [] for sc in score_columns}
+    qual_chroms: dict[str, set] = {sc: set() for sc in score_columns}
     for subset_name, sub in df.groupby(subset_col, sort=False):
         n = int(len(sub))
         n_pos = int(np.asarray(sub[label_col]).astype(int).sum())
-        n_chrom = int(pd.unique(sub[chrom_col]).size)
+        sub_chroms = pd.unique(sub[chrom_col])
+        n_chrom = int(sub_chroms.size)
         for score_col in score_columns:
             chroms, ap, weight = _per_chrom_components(
                 sub[label_col].to_numpy(),
@@ -494,7 +522,9 @@ def per_chrom_ap_table(
                 sub[chrom_col].to_numpy(),
             )
             value = _weighted_ap(ap, weight)
-            se = _per_chrom_cluster_bootstrap_se(ap, weight, n_bootstrap, gen)
+            # A fresh default_rng(rng) is built inside the helper per call, so this cell's
+            # SE doesn't depend on the score_columns order (see _per_chrom_cluster_bootstrap_se).
+            se = _per_chrom_cluster_bootstrap_se(ap, weight, n_bootstrap, rng)
             rows.append(
                 {
                     "score_type": score_col,
@@ -510,19 +540,22 @@ def per_chrom_ap_table(
                 qual_components[score_col].append((chroms, ap, weight))
                 qual_values[score_col].append(value)
                 qual_counts[score_col].append((n, n_pos))
+                qual_chroms[score_col].update(sub_chroms.tolist())
 
     for score_col in score_columns:
         comps = qual_components[score_col]
         if comps:
-            union_chroms = {c for chroms, _, _ in comps for c in chroms.tolist()}
             macro = {
                 "score_type": score_col,
                 "subset": MACRO_AVG_SUBSET,
                 "value": float(np.mean(qual_values[score_col])),
-                "se": _macro_joint_chrom_bootstrap_se(comps, n_bootstrap, gen),
+                "se": _macro_joint_chrom_bootstrap_se(comps, n_bootstrap, rng),
                 "n": sum(n for n, _ in qual_counts[score_col]),
                 "n_pos": sum(n_pos for _, n_pos in qual_counts[score_col]),
-                "n_chrom": len(union_chroms),
+                # All distinct chromosomes across the qualifying subsets (deduped) — same
+                # all-chromosomes sense as the per-subset n_chrom, not the contributing-only
+                # union the joint bootstrap uses internally.
+                "n_chrom": len(qual_chroms[score_col]),
             }
         else:
             # No subset cleared n_min with a finite value — still emit the macro row (NaN)
