@@ -67,6 +67,10 @@ rule make_centered_anchors:
 
         cre = pl.read_parquet(input.cre)
         anchors = make_enhancer_anchors(cre, WINDOW_SIZE)
+        if TIER == "smoke":
+            # Fast smoke: a couple thousand chr1 anchors, projected to the 4
+            # smoke species — exercises the whole run-block chain cheaply.
+            anchors = anchors.filter(pl.col("chrom") == "1").head(2000)
 
         undef = pl.read_csv(
             input.undefined,
