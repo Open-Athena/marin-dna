@@ -18,6 +18,7 @@ from marin_dna.pipelines.evals.leaderboard import (
     PROTOCOLS,
     fetch_method_metrics,
     normalized_rows,
+    probe_normalized_rows,
     score_type_for,
 )
 from marin_dna.pipelines.evals.models import Model
@@ -563,3 +564,149 @@ def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(leaderboard, "_read_parquet", fake)
     df = leaderboard.sge_normalized_rows("sge")
     assert set(df["method_id"].to_list()) == {"phyloP_100v"}
+
+
+# ---- probe_normalized_rows (supervised linear-probe view, #348) --------------
+
+
+def _probe_path(method_id: str, dataset: str = "mendelian_traits") -> str:
+    return (
+        f"{leaderboard.S3}/snakemake/analysis/evals_v2/results/probe_metrics/"
+        f"{method_id}/{dataset}.parquet"
+    )
+
+
+def _probe_parquet(
+    *, model: str = "m1", with_se: bool = True, with_macro: bool = True
+) -> pl.DataFrame:
+    """Synthetic ``compute_probe_metrics`` output: two qualifying subsets (missense,
+    splicing) + one below-gate subset (mature_miRNA, null probe value) for both the
+    ``probe_score`` and its ``minus_llr_avg`` baseline, plus the pipeline's ``_macro_avg_``
+    row. ``with_se=False`` / ``with_macro=False`` reproduce a pre-#347 (stale) parquet."""
+    # (subset, n, n_pos, probe_value, baseline_value)
+    subs = [
+        ("missense_variant", 500, 50, 0.55, 0.50),
+        ("splicing", 400, 40, 0.60, 0.55),
+        ("mature_miRNA_variant", 40, 4, None, 0.80),  # below gate; probe skipped (null)
+    ]
+    value_idx = {"probe_score": 3, "minus_llr_avg": 4}
+    rows: list[dict] = []
+    for score_type, vi in value_idx.items():
+        for s in subs:
+            rows.append(
+                dict(
+                    score_type=score_type,
+                    subset=s[0],
+                    value=s[vi],
+                    se=0.03,
+                    n=s[1],
+                    n_pos=s[2],
+                    n_chrom=10,
+                    model=model,
+                    dataset="mendelian_traits",
+                    split="train",
+                )
+            )
+        if with_macro:
+            qual = [s for s in subs if s[vi] is not None and s[2] >= 30]
+            rows.append(
+                dict(
+                    score_type=score_type,
+                    subset=MACRO_AVG_SUBSET,
+                    value=sum(s[vi] for s in qual) / len(qual),
+                    se=0.015,
+                    n=sum(s[1] for s in qual),
+                    n_pos=sum(s[2] for s in qual),
+                    n_chrom=12,
+                    model=model,
+                    dataset="mendelian_traits",
+                    split="train",
+                )
+            )
+    df = pl.DataFrame(rows)
+    return df.drop("se") if not with_se else df
+
+
+_PROBE_COLS = {
+    "method_id",
+    "method_display",
+    "family",
+    "protocol",
+    "subset",
+    "value",
+    "se",
+    "n",
+    "n_positives",
+}
+
+
+def test_probe_normalized_rows_maps_supervised_schema(monkeypatch: pytest.MonkeyPatch):
+    """A marin_dna model with a #347-schema probe parquet → probe_score per-subset + macro
+    rows, protocol='probe', no _global_, macro n/n_positives overloaded to K (qualifying
+    subsets), and the below-gate subset kept as a NaN row."""
+    m = _mk_method(id="m1", display="M1", family="marin_dna")
+    _patch_methods(monkeypatch, (m,))
+    _patch_read_parquet(monkeypatch, {_probe_path("m1"): _probe_parquet(model="m1")})
+
+    df = probe_normalized_rows("mendelian_traits")
+    assert set(df.columns) == _PROBE_COLS
+    assert df["protocol"].unique().to_list() == ["probe"]
+    # Only probe_score survives (the baseline is dropped); no _global_ row.
+    assert GLOBAL_SUBSET not in df["subset"].to_list()
+    assert MACRO_AVG_SUBSET in df["subset"].to_list()
+
+    macro = df.filter(pl.col("subset") == MACRO_AVG_SUBSET)
+    assert macro["n"].to_list() == [2] and macro["n_positives"].to_list() == [2]  # K
+    assert macro["value"][0] == pytest.approx((0.55 + 0.60) / 2)
+
+    mis = df.filter(pl.col("subset") == "missense_variant")
+    assert mis["n"][0] == 500 and mis["n_positives"][0] == 50  # per-subset totals
+    mir = df.filter(pl.col("subset") == "mature_miRNA_variant")
+    assert mir.height == 1 and mir["value"][0] != mir["value"][0]  # NaN, still emitted
+
+
+def test_probe_normalized_rows_only_marin_dna(monkeypatch: pytest.MonkeyPatch):
+    """Only marin_dna contributes supervised rows; other families are skipped before any
+    read (their probe path is never even requested)."""
+    marin = _mk_method(id="m1", family="marin_dna")
+    cons = _mk_method(id="phyloP_100v", family="conservation")
+    _patch_methods(monkeypatch, (marin, cons))
+    _patch_read_parquet(monkeypatch, {_probe_path("m1"): _probe_parquet(model="m1")})
+
+    df = probe_normalized_rows("mendelian_traits")
+    assert df["family"].unique().to_list() == ["marin_dna"]
+
+
+def test_probe_normalized_rows_skips_stale_schema(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+):
+    """A pre-#347 parquet (no `se` column, no `_macro_avg_` row) is skipped with a warning
+    rather than shown with blank error bars / no aggregate."""
+    fresh = _mk_method(id="fresh", family="marin_dna")
+    stale = _mk_method(id="stale", family="marin_dna")
+    _patch_methods(monkeypatch, (fresh, stale))
+    _patch_read_parquet(
+        monkeypatch,
+        {
+            _probe_path("fresh"): _probe_parquet(model="fresh"),
+            _probe_path("stale"): _probe_parquet(
+                model="stale", with_se=False, with_macro=False
+            ),
+        },
+    )
+
+    df = probe_normalized_rows("mendelian_traits")
+    assert df["method_id"].unique().to_list() == ["fresh"]
+    assert "stale-schema" in capsys.readouterr().err
+
+
+def test_probe_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPatch):
+    """A marin_dna model whose probe parquet isn't on S3 yet is skipped (soft-fail), and
+    the empty result still carries the explicit schema so it concatenates downstream."""
+    m = _mk_method(id="pending", family="marin_dna")
+    _patch_methods(monkeypatch, (m,))
+    _patch_read_parquet(monkeypatch, {})  # every read raises FileNotFoundError
+
+    df = probe_normalized_rows("mendelian_traits")
+    assert df.height == 0
+    assert set(df.columns) == _PROBE_COLS
