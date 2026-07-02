@@ -91,6 +91,9 @@ def _inference_kwargs(
         "bf16_full_eval": True,
         "dataloader_num_workers": num_workers,
         "remove_unused_columns": False,
+        # A pure inference benchmark never logs to a tracker; without this HF
+        # Trainer defaults report_to="all" and crashes when wandb has no API key.
+        "report_to": "none",
     }
     if eval_accumulation_steps is not None:
         kw["eval_accumulation_steps"] = eval_accumulation_steps
