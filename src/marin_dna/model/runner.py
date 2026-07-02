@@ -61,6 +61,7 @@ def run_inference(
     data_transform_on_the_fly: bool = False,
     data_transform_kwargs: dict[str, Any] | None = None,
     inference_kwargs: dict[str, Any] | None = None,
+    callbacks: list[Any] | None = None,
 ) -> Any:
     processed_dataset = _process_dataset(
         dataset,
@@ -72,6 +73,7 @@ def run_inference(
     return _run_inference(
         _ModelComputeFnWrapper(model, compute_fn),
         processed_dataset,
+        callbacks=callbacks,
         **(inference_kwargs or {}),
     )
 
@@ -410,6 +412,8 @@ def run_window_embeddings(
 def _run_inference(
     model: nn.Module,
     dataset: datasets.Dataset,
+    *,
+    callbacks: list[Any] | None = None,
     **kwargs: Any,
 ) -> Any:
     """Run inference on a dataset using a trained model via HF Trainer.
@@ -418,6 +422,10 @@ def _run_inference(
         model: A trained PyTorch model that can be used with the HuggingFace Trainer.
         dataset: HuggingFace dataset to run inference on. The dataset should be
             compatible with the model's expected input format.
+        callbacks: Optional list of ``transformers.TrainerCallback`` passed to the
+            ``Trainer``. ``None`` (default) reproduces the prior behaviour exactly.
+            A ``on_prediction_step`` callback gives per-batch timing for benchmarks
+            (e.g. steady-state throughput excluding the torch.compile warmup batch).
         **kwargs: Additional keyword arguments to pass to TrainingArguments.
             Common options include:
             - per_device_eval_batch_size: Batch size for evaluation
@@ -453,7 +461,7 @@ def _run_inference(
             output_dir=output_dir,
             **(kwargs or {}),
         )
-        trainer = Trainer(model=model, args=training_args)
+        trainer = Trainer(model=model, args=training_args, callbacks=callbacks)
         predictions = trainer.predict(test_dataset=dataset).predictions
 
     if pad_n > 0:
