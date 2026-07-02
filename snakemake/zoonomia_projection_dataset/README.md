@@ -470,6 +470,25 @@ proportion = conserved / (end - start)                   # full window denom
 
 Sanity-checked in `tests/conservation/test_scoring.py::test_score_windows_nan_counted_as_zero`.
 
+## Enhancer-centered windows (exp351, #351)
+
+An alternative window **anchoring** for enhancer training data. Instead of the uniform tiling above (tile the genome, then label each tile by cCRE overlap), `rules/centered.smk` defines each window **directly from an ENCODE cCRE V4 enhancer** — one 255 bp window centered on each dELS/pELS cCRE (`region_labels.make_enhancer_anchors`; keep-all, so clustered enhancers each keep their own window — `GenomicSet.resize` can't be used as it merges overlaps). The windows are then conservation-filtered (`proportion_conserved ≥ project_min_p`, same `score_windows`) and exon-subtracted (`select_anchors_noexon`, the same `build_region_beds` / `label_windows_bp_majority` `*_frac` machinery as the tiled curated arm), and given their **own scoped `halLiftover`** to the `order` cohort only (19 species) — *not* a subset of the 108-family projection.
+
+The result registers as `INTERVALS_SOURCES['v4_ccre_enhancer_centered']` via the general `extra_intervals_sources` config hook (dataset.smk), then flows through the shared `subset_species → shard → upload` chain to `bolinas-dna/zoonomia-v1-v4_ccre_enhancer_centered-order` (its own card, `write_centered_hf_readme`). It is the **centered arm** of exp351; the **tiled control** is exp326's `v4_ccre_noexon_enhancer` at the same `order` cohort (declared in `species_subset_datasets`) — the two differ *only* in anchoring.
+
+Build (needs the HAL, like `project.yaml` — this is a fresh projection, not a species subset):
+
+```bash
+# projection (c6id, stages the HAL). Run tier=smoke first for a fast check.
+sky launch -c zoonomia-centered sky/project.yaml \
+    --env TIER=full --env TARGET=results/centered/order/all_species_with_sequence.parquet
+# then upload both exp351 arms (the five pre-existing -order datasets skip on mtime):
+sky launch -c zoonomia-upload sky/upload.yaml \
+    --env UPLOAD_MODE=species_subset --env COMMIT_SHA=$(git rev-parse HEAD)
+```
+
+`--env TIER=smoke` head-truncates to ~2000 chr1 anchors × the 4 smoke species. Smoke and full write the same output paths, so clear `results/centered/` on S3 between a smoke and a full build.
+
 ## Layout
 
 ```
@@ -488,6 +507,7 @@ workflow/rules/
   score.smk                                    # binarize + score
   filter.smk                                   # filtered BED per cutoff
   project.smk                                  # cross-mammal halLiftover + filter + resize + sequence + subset
+  centered.smk                                 # exp351 (#351): enhancer-centered anchors + scoped order-cohort halLiftover
   subsets.smk                                  # derive query_names lists for v2 subset; subset_dataset_derived override
   dataset.smk                                  # RC augment + shuffle + shard + hf upload; species-subset axis (subset_species, #233)
   validation.smk                               # seven per-recipe validation parquets + HF upload (rule all_validation)
