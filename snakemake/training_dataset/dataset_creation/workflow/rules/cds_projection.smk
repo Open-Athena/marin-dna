@@ -57,7 +57,7 @@ rule cds_proj_source_windows:
         """
         mkdir -p $(dirname {output})
         bedtools makewindows -b {input} -w {params.w} -s {params.s} | \
-        awk '$3-$2 == {params.w}' > {output}
+        awk 'BEGIN {{OFS="\\t"}} $3-$2 == {params.w} {{print $1, $2, $3, $1":"$2"-"$3}}' > {output}
         """
 
 
