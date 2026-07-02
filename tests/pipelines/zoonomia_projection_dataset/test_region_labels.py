@@ -17,6 +17,7 @@ from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     build_region_beds,
     label_windows,
     label_windows_bp_majority,
+    make_enhancer_anchors,
 )
 
 # v4 priority (issue #227): tss_region_and_utr5 promoted above ncrna_exon.
@@ -1428,3 +1429,46 @@ def test_write_curated_ccre_hf_readme_rejects_unknown(tmp_path: Path) -> None:
             pipeline_version="v1",
             n_samples=1,
         )
+
+
+# ============================================================================
+# Enhancer-centered anchors (exp351 #351): make_enhancer_anchors
+# ============================================================================
+
+
+def test_make_enhancer_anchors_centers_keeps_all_and_exact_width() -> None:
+    """Each dELS/pELS cCRE → its own 255 bp window centered on its midpoint;
+    overlapping enhancers are BOTH kept (keep-all — no GenomicSet merge)."""
+    cre = pl.DataFrame(
+        {
+            "chrom": ["1", "1", "1", "2"],
+            # two overlapping enhancers on chr1 (would merge under GenomicSet),
+            # one isolated, one PLS (must be dropped).
+            "start": [1000, 1050, 5000, 200000],
+            "end": [1300, 1400, 5200, 200300],
+            "cre_class": ["dELS", "pELS", "dELS", "PLS"],
+        }
+    )
+    anchors = make_enhancer_anchors(cre, window_size=255)
+
+    # PLS dropped → exactly the 3 enhancer cCREs, each as its own row (keep-all).
+    assert anchors.height == 3
+    # every anchor exactly 255 bp (a GenomicSet.resize merge of the two
+    # overlapping chr1 enhancers would produce a wider, single interval).
+    assert ((anchors["end"] - anchors["start"]) == 255).all()
+    # centered on each input cCRE midpoint (within 1 bp for odd-size shift).
+    mids_in = sorted([(1000 + 1300) // 2, (1050 + 1400) // 2, (5000 + 5200) // 2])
+    mids_out = sorted(((anchors["start"] + anchors["end"]) // 2).to_list())
+    assert all(abs(a - b) <= 1 for a, b in zip(mids_in, mids_out))
+    # unique query ids for halLiftover tracking.
+    assert anchors["name"].n_unique() == 3
+    assert anchors["name"].str.starts_with("enh_").all()
+
+
+def test_make_enhancer_anchors_requires_enhancer_classes() -> None:
+    """No dELS/pELS in the input → loud failure (not a silent empty set)."""
+    cre = pl.DataFrame(
+        {"chrom": ["1"], "start": [100], "end": [400], "cre_class": ["PLS"]}
+    )
+    with pytest.raises(AssertionError, match="no dELS/pELS"):
+        make_enhancer_anchors(cre, window_size=255)

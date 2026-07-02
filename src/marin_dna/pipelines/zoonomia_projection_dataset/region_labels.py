@@ -633,6 +633,63 @@ def select_ccre_noexon_enhancer(
     return out
 
 
+def make_enhancer_anchors(cre: pl.DataFrame, window_size: int) -> pl.DataFrame:
+    """Enhancer-CENTERED anchor windows: one window per dELS/pELS cCRE, keep-all.
+
+    The exp351 (#351) centered arm's alternative to uniform tiling: instead of
+    labelling fixed grid tiles by cCRE overlap, define the training window
+    directly from the enhancer — a ``window_size`` bp window centered on each
+    dELS/pELS cCRE. Unlike :meth:`GenomicSet.resize` (which merges overlapping
+    results into a *set*), this resizes **per row**, so clustered enhancers each
+    keep their own centered window — the #351 "keep all overlapping" decision.
+    Conservation (≥ 0.20), N-region and exon subtraction are applied downstream
+    (in the rule), not here — this is the pure centering primitive.
+
+    Args:
+        cre: ENCODE cCRE V4 rows with ``chrom, start, end, cre_class`` (the
+            ``cre_process`` output), 0-based half-open.
+        window_size: anchor width in bp (255, matching the model context).
+
+    Returns:
+        ``chrom, start, end, name`` — one row per dELS/pELS cCRE, each exactly
+        ``window_size`` bp wide and centered on the cCRE midpoint
+        (``(start + end) // 2``). ``name`` is a unique ``enh_<9-digit>`` query
+        id for halLiftover tracking. Anchors whose centered window would fall
+        off a chromosome start (``start < 0``) are dropped; near-end / N-overlap
+        clipping is left to the downstream ``& defined`` intersection.
+    """
+    assert window_size > 0, f"window_size must be positive, got {window_size}"
+    required = {"chrom", "start", "end", "cre_class"}
+    missing = required - set(cre.columns)
+    assert not missing, f"cre missing columns: {sorted(missing)}"
+
+    enh = cre.filter(pl.col("cre_class").is_in(list(ENHANCER_CRE_CLASSES)))
+    assert enh.height > 0, (
+        f"no dELS/pELS cCREs in input; cre_class values present: "
+        f"{cre['cre_class'].unique().to_list()[:10]}"
+    )
+
+    half = window_size // 2
+    anchors = (
+        enh.with_columns(_mid=(pl.col("start") + pl.col("end")) // 2)
+        .select(
+            chrom="chrom",
+            start=(pl.col("_mid") - half),
+            end=(pl.col("_mid") - half + window_size),
+        )
+        .filter(pl.col("start") >= 0)  # drop windows falling off the chrom start
+        .with_row_index("_i")
+        .with_columns(name=pl.format("enh_{}", pl.col("_i").cast(pl.Utf8).str.zfill(9)))
+        .drop("_i")
+    )
+    widths = anchors["end"] - anchors["start"]
+    assert (widths == window_size).all(), (
+        f"anchor width != {window_size}; got {widths.unique().to_list()[:5]}"
+    )
+    assert anchors["name"].n_unique() == anchors.height, "anchor names not unique"
+    return anchors
+
+
 def region_label_composition_table(df: pl.DataFrame) -> pl.DataFrame:
     """Per-label composition table for a region-labels parquet.
 
