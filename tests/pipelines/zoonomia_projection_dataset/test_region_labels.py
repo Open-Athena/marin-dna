@@ -19,6 +19,7 @@ from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     label_windows_bp_majority,
     make_enhancer_anchors,
     select_anchors_noexon,
+    write_centered_hf_readme,
 )
 
 # v4 priority (issue #227): tss_region_and_utr5 promoted above ncrna_exon.
@@ -1501,3 +1502,27 @@ def test_select_anchors_noexon_keeps_exon_free_ignoring_label() -> None:
     out = select_anchors_noexon(labeled)
     # a (ccre) + b (background) are exon-free → kept; c (cds), d (utr3), e (ncrna) dropped.
     assert set(out["name"].to_list()) == {"a", "b"}
+
+
+def test_write_centered_hf_readme_renders(tmp_path: Path) -> None:
+    out = tmp_path / "README.md"
+    write_centered_hf_readme(
+        out,
+        commit_sha="a" * 40,
+        hf_owner="bolinas-dna",
+        pipeline_version="v1",
+        n_samples=4_237_620,
+        n_anchors=116_162,
+        n_species=19,
+    )
+    body = out.read_text()
+    front_matter, _, _ = body.partition("---\n\n")
+    assert front_matter.count("- ") == 3  # exactly biology / genomics / DNA
+    assert "v4_ccre_enhancer_centered-order" in body
+    assert "workflow/rules/centered.smk" in body
+    assert "116,162" in body and "4,237,620" in body
+    # links the tiled control + is pinned to the build commit
+    assert "v4_ccre_noexon_enhancer-order" in body
+    assert "a" * 40 in body
+    # framed as its own scoped projection, NOT a species-subset of a 108-family set
+    assert "not** a subset of the 108-family" in body

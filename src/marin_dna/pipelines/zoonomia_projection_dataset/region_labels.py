@@ -1356,6 +1356,93 @@ strand-aware. See the parent card for the full column table.
     Path(output_path).write_text(body)
 
 
+def write_centered_hf_readme(
+    output_path: str | Path,
+    *,
+    commit_sha: str,
+    hf_owner: str,
+    pipeline_version: str,
+    n_samples: int,
+    n_anchors: int,
+    n_species: int,
+    github_repo: str = _GITHUB_REPO,
+) -> None:
+    """Write the HF dataset card for the exp351 enhancer-CENTERED dataset (#351).
+
+    Dedicated (NOT the species-subset card): this dataset is not a species-subset
+    of a 108-family partition — its windows are enhancer-centered and it has its
+    own scoped ``halLiftover`` straight to the one-per-order cohort. The card
+    states that provenance and links the tiled control it is compared against.
+    """
+    slug = "v4_ccre_enhancer_centered-order"
+    repo_name = f"{hf_owner}/zoonomia-{pipeline_version}-{slug}"
+    control_repo = (
+        f"{hf_owner}/zoonomia-{pipeline_version}-v4_ccre_noexon_enhancer-order"
+    )
+    pipeline_permalink = (
+        f"https://github.com/{github_repo}/tree/{commit_sha}/{_GITHUB_PIPELINE_PATH}"
+    )
+    pipeline_main_link = (
+        f"https://github.com/{github_repo}/tree/main/{_GITHUB_PIPELINE_PATH}"
+    )
+    centered_permalink = (
+        f"https://github.com/{github_repo}/blob/{commit_sha}/"
+        f"{_GITHUB_PIPELINE_PATH}/workflow/rules/centered.smk"
+    )
+
+    body = f"""---
+tags:
+- biology
+- genomics
+- DNA
+---
+
+# `{repo_name}`
+
+An **enhancer-CENTERED** training set for issue
+[#351](https://github.com/{github_repo}/issues/351), built by the
+[`{_GITHUB_PIPELINE_PATH}`]({pipeline_permalink}) pipeline
+([`workflow/rules/centered.smk`]({centered_permalink})) at commit
+[`{commit_sha[:12]}`]({pipeline_permalink}).
+
+## Provenance
+
+Each training window is defined **directly from an ENCODE cCRE V4 enhancer**
+(dELS + pELS): one **255 bp window centered** on the cCRE midpoint
+(`make_enhancer_anchors`, keep-all — clustered enhancers each keep their own
+window), rather than a uniform genome tile labelled by cCRE overlap. Windows are
+then conservation-filtered (phyloP-447way `proportion_conserved ≥ 0.20`) and
+exon-subtracted (no CDS / UTR / ncRNA-exon / TSS overlap) with the **same**
+machinery as the tiled arm, and **natively projected** via `halLiftover` to the
+**{n_species}-species one-per-order** Zoonomia cohort — its own scoped projection,
+**not** a subset of the 108-family set.
+
+Contains **{n_anchors:,} distinct human enhancer anchors** → **{n_samples:,}
+training samples** (anchors × up to {n_species} mammals × reverse-complement
+augmentation) — the exact row count across all JSONL.zst shards.
+
+This is the **centered arm** of exp351; it is compared head-to-head against the
+**tiled control**
+[`{control_repo}`](https://huggingface.co/datasets/{control_repo})
+(exp326's curated `v4_ccre_noexon_enhancer` at the same one-per-order cohort) —
+the two differ **only** in window anchoring (uniform grid tile vs enhancer-centered).
+
+## Schema
+
+A single `train` split of JSONL.zst shards at `data/train/shard_NNNN.jsonl.zst`;
+key field `sequence` is exactly 255 bp, strand-aware.
+
+## Source code
+
+- Pipeline: [{_GITHUB_PIPELINE_PATH}]({pipeline_main_link}) (latest)
+- Pinned to this dataset's build: [commit `{commit_sha[:12]}`]({pipeline_permalink})
+- Centering + filters: [`workflow/rules/centered.smk`]({centered_permalink}) →
+  `region_labels.make_enhancer_anchors` / `select_anchors_noexon`
+- Tiled control: [`{control_repo}`](https://huggingface.co/datasets/{control_repo})
+"""
+    Path(output_path).write_text(body)
+
+
 # Human-readable description per species cohort (the third dataset axis,
 # issue #233). The default 108-family cohort is implicit and has no entry.
 # {n_species} is substituted at render time.

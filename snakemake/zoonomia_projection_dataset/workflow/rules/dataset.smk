@@ -367,6 +367,55 @@ rule dataset_hf_readme_species_subset:
         )
 
 
+ruleorder: dataset_hf_readme_centered > dataset_hf_readme_species_subset
+
+
+rule dataset_hf_readme_centered:
+    """Dedicated HF card for the exp351 enhancer-centered dataset (#351).
+
+    Its own scoped halLiftover to the order cohort — NOT a species-subset of a
+    108-family partition — so it gets a bespoke card (``write_centered_hf_readme``)
+    rather than the species_subset one. Disjoint from
+    ``dataset_hf_readme_species_subset`` by the fixed intervals name + the
+    ruleorder above.
+    """
+    input:
+        source="results/centered/order/all_species_with_sequence.parquet",
+    output:
+        "results/dataset/zoonomia-{pipeline_version}-v4_ccre_enhancer_centered-order/README.md",
+    wildcard_constraints:
+        pipeline_version=r"v\d+",
+    params:
+        commit_sha=GIT_COMMIT_SHA,
+        hf_owner=HF_OWNER,
+        add_rc=ADD_RC,
+        order_tsv=lambda wc: SPECIES_SUBSETS["order"],
+    run:
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+            write_centered_hf_readme,
+        )
+
+        lf = pl.scan_parquet(input.source)
+        n_rows = lf.select(pl.len()).collect().item()
+        n_anchors = (
+            lf.filter(pl.col("species") == "Homo_sapiens")
+            .select(pl.col("query_name").n_unique())
+            .collect()
+            .item()
+        )
+        n_samples = n_rows * (2 if params.add_rc else 1)
+        n_species = len(load_species(params.order_tsv))
+        write_centered_hf_readme(
+            output[0],
+            commit_sha=params.commit_sha,
+            hf_owner=params.hf_owner,
+            pipeline_version=wildcards.pipeline_version,
+            n_samples=n_samples,
+            n_anchors=n_anchors,
+            n_species=n_species,
+        )
+
+
 rule hf_upload_dataset:
     """Upload a dataset's compressed shard folder to HF Hub (single train split).
 
