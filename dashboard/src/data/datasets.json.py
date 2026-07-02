@@ -25,9 +25,9 @@ _PROBE_METRIC = (
     "Per-chromosome-weighted AUPRC (TraitGym) ± chromosome-cluster bootstrap SE (#347) — "
     "AUPRC is computed within each chromosome then size-weighted, and Macro Avg is the "
     "unweighted mean over subsets (no Global column: the probe fits a separate classifier "
-    "per subset). MarinDNA only, since probes read our per-allele embeddings; a subset is "
-    "probed only with at least 300 variants and 3 chromosomes. Not level-comparable to the "
-    "Unsupervised metric above — different weighting and matching."
+    "per subset). MarinDNA and Evo 2, since a probe reads that model's own per-allele "
+    "embeddings; a subset is probed only with at least 300 variants and 3 chromosomes. Not "
+    "level-comparable to the Unsupervised metric above — different weighting and matching."
 )
 
 # caQTL/dsQTL moved to the supervised official-metrics Accessibility QTL page (#312),

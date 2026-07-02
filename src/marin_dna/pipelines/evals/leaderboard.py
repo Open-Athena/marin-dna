@@ -54,6 +54,15 @@ EVO2_METRICS_GIST_BASE = (
     f"https://gist.githubusercontent.com/{EVO2_METRICS_GIST_OWNER}/"
     f"{EVO2_METRICS_GIST_ID}/raw/{EVO2_METRICS_GIST_COMMIT}"
 )
+# `family: evo2` frozen-embedding probe (supervised) metrics — SAME gist, a SEPARATE pinned
+# commit (uploaded later than the zero-shot metrics above, at its own commit; each artifact is
+# pinned independently, so this is decoupled from the zero-shot pin on purpose — bumping one
+# never disturbs the other). Bump when re-uploading probe metrics. See #352 / #131.
+EVO2_PROBE_METRICS_GIST_COMMIT = "3ac60cd5e37148fd135c4d55bed12386dc065dc6"
+EVO2_PROBE_METRICS_GIST_BASE = (
+    f"https://gist.githubusercontent.com/{EVO2_METRICS_GIST_OWNER}/"
+    f"{EVO2_METRICS_GIST_ID}/raw/{EVO2_PROBE_METRICS_GIST_COMMIT}"
+)
 # Dataset → metric-parquet filename prefix. Extend when adding complex_traits.
 EVO2_DATASET_SHORT: dict[str, str] = {
     "mendelian_traits": "mendelian",
@@ -304,7 +313,7 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
-# Explicit schema so an empty result (no marin_dna model has a probe parquet yet) still
+# Explicit schema so an empty result (no probe-capable model has a probe parquet yet) still
 # concatenates cleanly with `normalized_rows` in the dashboard loader. Mirrors the column
 # order and dtypes `normalized_rows` produces.
 _PROBE_ROW_SCHEMA: dict[str, pl.DataType] = {
@@ -319,20 +328,50 @@ _PROBE_ROW_SCHEMA: dict[str, pl.DataType] = {
     "n_positives": pl.Int64,
 }
 
+# Families whose per-allele embeddings we probe. `marin_dna` metrics come from the evals_v2
+# pipeline on S3; `evo2` runs off-pipeline (Vortex backend, no HF KV-cache) and is published to
+# the pinned Evo 2 gist — see `_probe_parquet_path`. Zero-shot-only families (conservation,
+# gpn_star, alphagenome) have no probe (no per-allele embedding to read).
+PROBE_FAMILIES = ("marin_dna", "evo2")
+
+
+def _probe_parquet_path(method: Model, dataset: str) -> str:
+    """Path to one model's frozen-embedding probe-metrics parquet, dispatched by family.
+
+    ``marin_dna`` probes are the ``evals_v2`` pipeline's ``probe_metrics`` output on S3; ``evo2``
+    probes are computed off-pipeline and published to the pinned Evo 2 gist, mirroring
+    ``_parquet_path``'s zero-shot ``case "evo2"``.
+    """
+    match method.family:
+        case "marin_dna":
+            return (
+                f"{S3}/snakemake/analysis/evals_v2/results/probe_metrics/"
+                f"{method.id}/{dataset}.parquet"
+            )
+        case "evo2":
+            short = EVO2_DATASET_SHORT[dataset]
+            return (
+                f"{EVO2_PROBE_METRICS_GIST_BASE}/"
+                f"{short}_{method.id}_train_probe_metrics.parquet"
+            )
+        case _:
+            raise ValueError(f"family {method.family!r} has no probe-metrics source")
+
 
 def probe_normalized_rows(dataset: str) -> pl.DataFrame:
     """Long-form linear-probe (supervised) rows for the dashboard's Supervised mode.
 
-    Reads the frozen-embedding probe metrics (``probe_metrics/{id}/{dataset}.parquet`` from
-    the ``evals_v2`` pipeline — per-subset per-chromosome-weighted AUPRC + chromosome-cluster
-    bootstrap SE + a ``_macro_avg_`` row, #347) for every ``marin_dna`` model registered for
-    ``dataset``, keeps the ``probe_score`` rows on the ``train`` split, and maps them onto the
-    same schema as ``normalized_rows`` so the leaderboard heatmap renders them unchanged.
+    Reads the frozen-embedding probe metrics (per-subset per-chromosome-weighted AUPRC +
+    chromosome-cluster bootstrap SE + a ``_macro_avg_`` row, #347) for every probe-capable model
+    (``PROBE_FAMILIES``) registered for ``dataset``, keeps the ``probe_score`` rows on the
+    ``train`` split, and maps them onto the same schema as ``normalized_rows`` so the leaderboard
+    heatmap renders them unchanged. Source is per family (``_probe_parquet_path``): ``marin_dna``
+    from the ``evals_v2`` pipeline on S3, ``evo2`` from the pinned Evo 2 gist.
 
-    Only ``marin_dna`` has probes (they need our ``emb_ref``/``emb_alt`` embeddings), so no
-    other family contributes supervised rows. The pipeline already emits the ``_macro_avg_``
+    Only families with per-allele ``emb_ref``/``emb_alt`` embeddings have probes; zero-shot-only
+    families contribute nothing here. Each family's metrics already carry the ``_macro_avg_``
     aggregate (**no** ``_global_`` — probe scores come from a separate per-subset classifier),
-    so nothing is synthesized here. Models whose probe parquet isn't on S3 yet are skipped
+    so nothing is synthesized here. Models whose probe parquet isn't published yet are skipped
     with a warning (same soft-fail posture as ``normalized_rows``).
 
     Emits ``[method_id, method_display, family, protocol, subset, value, se, n, n_positives]``
@@ -342,18 +381,21 @@ def probe_normalized_rows(dataset: str) -> pl.DataFrame:
     matched-pair macro; per-subset ``n`` / ``n_positives`` are the probe parquet's total
     variants / positives.
     """
-    # OSError covers the S3-404 case (a marin_dna model registered for the dataset whose probe
-    # run hasn't landed); the others mirror `normalized_rows`' soft-fail set.
+    # OSError covers the 404 case (a probe-capable model registered for the dataset whose probe
+    # run hasn't landed — S3 for marin_dna, gist for evo2); the others mirror `normalized_rows`'
+    # soft-fail set.
     soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError, OSError)
     rows: list[dict] = []
     for method in models_for_dataset(dataset):
-        if method.family != "marin_dna":
+        if method.family not in PROBE_FAMILIES:
             continue
-        path = (
-            f"{S3}/snakemake/analysis/evals_v2/results/probe_metrics/"
-            f"{method.id}/{dataset}.parquet"
-        )
         try:
+            # Inside the try so a per-model path-construction LookupError (e.g. a probe family
+            # registered for a dataset absent from `EVO2_DATASET_SHORT`) soft-fails that one
+            # model — matching the zero-shot path — rather than aborting the whole build. A
+            # non-probe family reaching `_probe_parquet_path` still raises `ValueError` (not in
+            # `soft_fail`) so a `PROBE_FAMILIES`/dispatch mismatch fails loud.
+            path = _probe_parquet_path(method, dataset)
             df = _read_parquet(path).filter(
                 (pl.col("score_type") == "probe_score") & (pl.col("split") == SPLIT)
             )
