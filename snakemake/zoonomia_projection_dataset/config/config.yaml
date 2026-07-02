@@ -108,6 +108,11 @@ species_subset_datasets:
   - { intervals: "v4_utr3", species: "order" }
   - { intervals: "v4_ncrna_exon", species: "order" }
   - { intervals: "v4_tss_region_and_utr5", species: "order" }
+  # exp351 (#351) tiled-control arm: the curated enhancer subset at one-per-order,
+  # reusing exp326's v4_ccre_noexon_enhancer subset parquet (already on S3) —
+  # pure species row-filter, no re-halLiftover. Compared head-to-head against the
+  # enhancer-CENTERED build (v4_ccre_enhancer_centered-order) below.
+  - { intervals: "v4_ccre_noexon_enhancer", species: "order" }
 
 # v2 subset: ± bp band around each mRNA TSS (Ensembl protein_coding biotype).
 # 256 bp matches the BOS+255 model context window.
