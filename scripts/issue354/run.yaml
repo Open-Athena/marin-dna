@@ -24,32 +24,15 @@ name: dna-exp135-inference-cost
 
 resources:
     accelerators: GH200:1
+    cloud: lambda
     disk_size: 128
     labels:
         project: dna
-    # GH200 is Lambda-only and capacity-scarce; bare `cloud: lambda` pins ONE
-    # region, so --retry-until-up spins on a single (often empty) region.
-    # Enumerate every Lambda GH200 region so --retry-until-up cycles them and
-    # grabs whichever frees up first. (For a cheap x86 validation instead, launch
-    # with `--gpus A10G:1 --infra aws/us-east-2`, which overrides this block.)
-    any_of:
-      - {cloud: lambda, region: us-east-1}
-      - {cloud: lambda, region: us-east-2}
-      - {cloud: lambda, region: us-east-3}
-      - {cloud: lambda, region: us-west-1}
-      - {cloud: lambda, region: us-west-2}
-      - {cloud: lambda, region: us-west-3}
-      - {cloud: lambda, region: us-south-1}
-      - {cloud: lambda, region: us-south-2}
-      - {cloud: lambda, region: us-south-3}
-      - {cloud: lambda, region: us-midwest-1}
-      - {cloud: lambda, region: europe-central-1}
-      - {cloud: lambda, region: europe-south-1}
-      - {cloud: lambda, region: me-west-1}
-      - {cloud: lambda, region: asia-south-1}
-      - {cloud: lambda, region: asia-northeast-1}
-      - {cloud: lambda, region: asia-northeast-2}
-      - {cloud: lambda, region: australia-east-1}
+    # GH200 is Lambda-only and capacity-scarce. Region cycling is handled at
+    # LAUNCH time by grab_gh200.sh, which passes `--infra lambda/<region>` per
+    # attempt — sky's any_of does NOT cycle regions on retry (it reuses the INIT
+    # cluster's original region, and it overrides --infra). For a cheap x86
+    # validation, launch with `--gpus A10G:1 --infra aws/us-east-2`.
 
 workdir: .
 
