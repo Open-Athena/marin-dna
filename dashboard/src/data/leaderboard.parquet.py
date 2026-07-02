@@ -32,23 +32,28 @@ LEADERBOARD_DATASETS: tuple[str, ...] = (
     "complex_traits",
 )
 
+# Datasets that also have frozen-embedding probe metrics on S3 (the Supervised view). Only
+# mendelian today; extend as models are probed on other datasets. Kept explicit so the build
+# doesn't issue a doomed S3 read (one 404 per marin_dna model) for datasets with no probes.
+PROBE_DATASETS: tuple[str, ...] = ("mendelian_traits",)
+
 
 def main() -> None:
-    parts = []
-    for dataset in LEADERBOARD_DATASETS:
-        parts.append(
-            normalized_rows(dataset).with_columns(
-                dataset=pl.lit(dataset), supervision=pl.lit("unsupervised")
-            )
+    parts = [
+        normalized_rows(dataset).with_columns(
+            dataset=pl.lit(dataset), supervision=pl.lit("unsupervised")
         )
-        # Supervised (linear-probe) rows where a marin_dna model has #347-schema probe
-        # metrics on S3 — mendelian only today, empty elsewhere. Appended only when present
-        # so an empty frame never perturbs the concat schema.
-        supervised = probe_normalized_rows(dataset).with_columns(
+        for dataset in LEADERBOARD_DATASETS
+    ]
+    # Supervised (linear-probe) rows, tagged with the same `supervision` column the Mendelian
+    # page's mode toggle filters on. probe_normalized_rows returns an explicitly-typed frame
+    # (empty if a dataset has no probes yet), so it concatenates cleanly.
+    parts += [
+        probe_normalized_rows(dataset).with_columns(
             dataset=pl.lit(dataset), supervision=pl.lit("supervised")
         )
-        if supervised.height:
-            parts.append(supervised)
+        for dataset in PROBE_DATASETS
+    ]
     out = pl.concat(parts, how="vertical_relaxed")
     out.write_parquet(sys.stdout.buffer)
 

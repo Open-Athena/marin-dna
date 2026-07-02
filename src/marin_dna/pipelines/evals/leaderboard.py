@@ -37,12 +37,6 @@ from marin_dna.pipelines.evals.models import ALL_DATASETS, Model, models_for_dat
 S3 = "s3://oa-bolinas"
 SPLIT = "train"
 
-# Positives gate for a subset to count toward the probe Supervised view's macro `n` (the
-# heatmap's "K subsets" header). Matches the leaderboard display threshold (heatmap.js
-# `N_POSITIVES_MIN`) and the probe pipeline's macro `n_min` (#347), so K = the subsets the
-# heatmap actually renders as columns.
-_MACRO_MIN_POSITIVES = 30
-
 # `family: gpn_star` AUPRC metrics now come from the frozen S3 results of the
 # `gpn_star_eval` pipeline (refreshed in #278; the pipeline itself now runs from a
 # branch — #332), same as the conservation / alphagenome / marin_dna families — one
@@ -313,7 +307,7 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
 # Explicit schema so an empty result (no marin_dna model has a probe parquet yet) still
 # concatenates cleanly with `normalized_rows` in the dashboard loader. Mirrors the column
 # order and dtypes `normalized_rows` produces.
-_PROBE_ROW_SCHEMA: dict = {
+_PROBE_ROW_SCHEMA: dict[str, pl.DataType] = {
     "method_id": pl.String,
     "method_display": pl.String,
     "family": pl.String,
@@ -383,14 +377,14 @@ def probe_normalized_rows(dataset: str) -> pl.DataFrame:
                 file=sys.stderr,
             )
             continue
-        # K = subsets entering the macro: per-subset rows with a finite value that clear the
-        # display gate — the same set the probe pipeline's `n_min` averaged and the heatmap
-        # renders as columns. Overloaded onto the macro row's n / n_positives (the "K subsets"
-        # header), matching `fetch_method_metrics`'s matched-pair macro.
+        # K = subsets entering the macro = per-subset rows with a finite value. A finite probe
+        # value already implies the subset cleared `min_variants=300` (⇒ ≥30 positives under
+        # 1:9), i.e. exactly the set the pipeline's macro `n_min` averaged and the heatmap
+        # renders as columns — so no separate positives threshold is needed here. Overloaded
+        # onto the macro row's n / n_positives (the "K subsets" header), matching
+        # `fetch_method_metrics`'s matched-pair macro.
         k = df.filter(
-            (pl.col("subset") != MACRO_AVG_SUBSET)
-            & pl.col("value").is_not_null()
-            & (pl.col("n_pos") >= _MACRO_MIN_POSITIVES)
+            (pl.col("subset") != MACRO_AVG_SUBSET) & pl.col("value").is_not_null()
         ).height
         for row in df.iter_rows(named=True):
             is_macro = row["subset"] == MACRO_AVG_SUBSET

@@ -77,6 +77,18 @@ const mode = view(labeledRow(
 ```
 
 ```js
+// One-way watcher: reset the sort column to the leading aggregate whenever the mode changes.
+// The persisted sort key may name a column the new mode lacks (e.g. Global in Supervised),
+// which would otherwise blank the "Best per family" table + forest plot and drop the row
+// order to alphabetical. Reads `mode` (the trigger) but not sortKeyState, so header-click
+// writes don't re-fire it (no cycle) — same idiom as protocols/marin_dna.md.
+{
+  mode;
+  setSortKey(leadingAggregateSubset(meta));
+}
+```
+
+```js
 // Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
 // to surface a new family pill. Selecting a family reveals its protocol
 // chips inset in the pill (multi-protocol families only).
