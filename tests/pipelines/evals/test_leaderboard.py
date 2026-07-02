@@ -665,16 +665,54 @@ def test_probe_normalized_rows_maps_supervised_schema(monkeypatch: pytest.Monkey
     assert mir.height == 1 and mir["value"][0] != mir["value"][0]  # NaN, still emitted
 
 
-def test_probe_normalized_rows_only_marin_dna(monkeypatch: pytest.MonkeyPatch):
-    """Only marin_dna contributes supervised rows; other families are skipped before any
-    read (their probe path is never even requested)."""
+def test_probe_parquet_path_dispatches_by_family():
+    """marin_dna probe metrics come from the evals_v2 S3 tree; evo2 from the pinned gist; a
+    zero-shot-only family has no probe source (ValueError)."""
     marin = _mk_method(id="m1", family="marin_dna")
+    evo = _mk_method(id="evo2_7b", family="evo2")
     cons = _mk_method(id="phyloP_100v", family="conservation")
-    _patch_methods(monkeypatch, (marin, cons))
-    _patch_read_parquet(monkeypatch, {_probe_path("m1"): _probe_parquet(model="m1")})
+
+    assert leaderboard._probe_parquet_path(marin, "mendelian_traits") == (
+        f"{leaderboard.S3}/snakemake/analysis/evals_v2/results/probe_metrics/"
+        f"m1/mendelian_traits.parquet"
+    )
+    assert leaderboard._probe_parquet_path(evo, "mendelian_traits") == (
+        f"{leaderboard.EVO2_PROBE_METRICS_GIST_BASE}/"
+        f"mendelian_evo2_7b_train_probe_metrics.parquet"
+    )
+    with pytest.raises(ValueError, match="no probe-metrics source"):
+        leaderboard._probe_parquet_path(cons, "mendelian_traits")
+
+
+def test_probe_normalized_rows_probe_families(monkeypatch: pytest.MonkeyPatch):
+    """Both probe-capable families contribute supervised rows — marin_dna from S3 and evo2
+    from the gist — while a zero-shot-only family (conservation) is skipped before any read
+    (it has no per-allele embedding to probe)."""
+    marin = _mk_method(id="m1", family="marin_dna")
+    evo = _mk_method(id="evo2_1b_base", family="evo2")
+    cons = _mk_method(id="phyloP_100v", family="conservation")
+    _patch_methods(monkeypatch, (marin, evo, cons))
+    _patch_read_parquet(
+        monkeypatch,
+        {
+            leaderboard._probe_parquet_path(marin, "mendelian_traits"): _probe_parquet(
+                model="m1"
+            ),
+            leaderboard._probe_parquet_path(evo, "mendelian_traits"): _probe_parquet(
+                model="evo2_1b_base"
+            ),
+        },
+    )
 
     df = probe_normalized_rows("mendelian_traits")
-    assert df["family"].unique().to_list() == ["marin_dna"]
+    assert sorted(df["family"].unique().to_list()) == ["evo2", "marin_dna"]
+    assert "conservation" not in df["family"].to_list()
+    # evo2 rows are the gist-sourced probe rows (macro n/n_positives overloaded to K=2).
+    evo_macro = df.filter(
+        (pl.col("family") == "evo2") & (pl.col("subset") == MACRO_AVG_SUBSET)
+    )
+    assert evo_macro.height == 1
+    assert evo_macro["n"][0] == 2 and evo_macro["n_positives"][0] == 2
 
 
 def test_probe_normalized_rows_skips_stale_schema(
