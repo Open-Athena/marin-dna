@@ -13,10 +13,6 @@ assignees: ''
 
 (What we're trying to learn, 2–4 sentences, written for a reader who knows genomics and ML broadly but not this thread.)
 
-## Scope
-
-(Short bullets of what's in and what's explicitly *out*.)
-
 ## Current findings
 
 (Living — edited as results settle across experiments. Plots via gist links.)
@@ -25,7 +21,7 @@ assignees: ''
 
 (Curated links to the issues bearing on this question, added as they accrue. Many-to-many: an experiment may inform several questions, and this is a plain reference list, not sub-issue metadata.)
 
-## Open questions / next steps
+## Open questions
 
 (Edited, not appended.)
 
