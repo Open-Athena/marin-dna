@@ -1,0 +1,87 @@
+# SkyPilot task: exp135-1B-m5.1 steady-state inference-cost benchmark (issue #354).
+#
+# Runs scripts/issue354/inference_cost.py on a single GPU. The box is kept
+# CRED-LIGHT: the checkpoint comes from GCS (mounted ADC), the SGE dataset from
+# HF (HF_TOKEN), and the genome is a LOCAL file mounted from the launching dev
+# box — so NO AWS creds are needed on the box, and the genome read is off the
+# timed loop (no S3 byte-range jitter). Outputs stay local and are fetched back.
+#
+# Primary target — GH200 (same hardware as the Evo 2 #131 cost table):
+#   scripts/issue354/stage_genome.sh                 # dev box: S3 -> ~/issue354_genome
+#   sky launch scripts/issue354/run.yaml -c dna-exp135-cost --retry-until-up \
+#       --env HF_TOKEN=$HF_TOKEN
+#   # GH200 is Lambda-only; if capacity pins one region, re-launch --retry-until-up
+#   # or add `region:` under resources (see marin_dna GH200 region note).
+#
+# Cheap x86 validation first (compile+embeddings + script end-to-end, small sweep):
+#   sky launch scripts/issue354/run.yaml -c dna-exp135-val \
+#       --gpus A10G:1 --infra aws/us-east-2 --use-spot \
+#       --env HF_TOKEN=$HF_TOKEN --env BATCH_SIZES=64
+#
+# Fetch results:  rsync -Pa dna-exp135-cost:~/out/ ./issue354_out/   (or `sky` scp)
+
+name: dna-exp135-inference-cost
+
+resources:
+    accelerators: GH200:1
+    cloud: lambda
+    disk_size: 128
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    CHECKPOINT_GCS: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    BATCH_SIZES: "128,256,512,1024"
+    HF_TOKEN: ""   # required — pass `--env HF_TOKEN=$HF_TOKEN`; SGE dataset is private
+
+file_mounts:
+    # GCS Application Default Credentials so `gcloud storage cp` can pull the
+    # private checkpoint. (Read-only GCS; no AWS creds anywhere on this box.)
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+    # Canonical GRCh38 (bgzip + .fai + .gzi), staged from the dev box by
+    # scripts/issue354/stage_genome.sh. Mounted local → no S3 read on the box.
+    /genome/GRCh38.fa.gz: ~/issue354_genome/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+    /genome/GRCh38.fa.gz.fai: ~/issue354_genome/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.fai
+    /genome/GRCh38.fa.gz.gzi: ~/issue354_genome/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.gzi
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+
+    # Base env only — the genome is local, so no `--group genome-s3` (s3fs).
+    # NOTE (aarch64 GH200): if `uv sync` resolves a CPU-only torch, the run
+    # step's `assert torch.cuda.is_available()` fails fast — reinstall a CUDA
+    # torch wheel here if so.
+    uv sync --frozen
+
+    # Pull the checkpoint from GCS into ~/ckpt (config.json + safetensors + tokenizer).
+    mkdir -p ~/ckpt
+    gcloud storage cp -r "$CHECKPOINT_GCS/*" ~/ckpt/
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+
+    nvidia-smi   # babysit: confirm a GPU is actually present before scoring
+
+    mkdir -p ~/out
+    uv run python scripts/issue354/inference_cost.py \
+        --checkpoint ~/ckpt \
+        --genome /genome/GRCh38.fa.gz \
+        --dataset bolinas-dna/evals_sge \
+        --batch-sizes "$BATCH_SIZES" \
+        --out-dir ~/out
+
+    echo "=== inference_cost.json ==="
+    cat ~/out/inference_cost.json
