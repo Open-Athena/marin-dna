@@ -18,6 +18,7 @@ from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     label_windows,
     label_windows_bp_majority,
     make_enhancer_anchors,
+    select_anchors_noexon,
 )
 
 # v4 priority (issue #227): tss_region_and_utr5 promoted above ncrna_exon.
@@ -1472,3 +1473,31 @@ def test_make_enhancer_anchors_requires_enhancer_classes() -> None:
     )
     with pytest.raises(AssertionError, match="no dELS/pELS"):
         make_enhancer_anchors(cre, window_size=255)
+
+
+def test_select_anchors_noexon_keeps_exon_free_ignoring_label() -> None:
+    """Anchors with all four exon fracs == 0 survive regardless of bp-majority label;
+    any exon overlap (cds / utr3 / ncrna_exon / tss) drops the anchor."""
+    labeled = pl.DataFrame(
+        {
+            "name": ["a", "b", "c", "d", "e"],
+            "chrom": ["1"] * 5,
+            "start": [0, 300, 600, 900, 1200],
+            "end": [255, 555, 855, 1155, 1455],
+            # b is background but exon-free → kept (no label gate, unlike arm A).
+            "label": [
+                "ccre_non_promoter",
+                "background",
+                "cds",
+                "ccre_non_promoter",
+                "ccre_non_promoter",
+            ],
+            "cds_frac": [0.0, 0.0, 0.4, 0.0, 0.0],
+            "utr3_frac": [0.0, 0.0, 0.0, 0.1, 0.0],
+            "ncrna_exon_frac": [0.0, 0.0, 0.0, 0.0, 0.2],
+            "tss_region_and_utr5_frac": [0.0, 0.0, 0.0, 0.0, 0.0],
+        }
+    )
+    out = select_anchors_noexon(labeled)
+    # a (ccre) + b (background) are exon-free → kept; c (cds), d (utr3), e (ncrna) dropped.
+    assert set(out["name"].to_list()) == {"a", "b"}

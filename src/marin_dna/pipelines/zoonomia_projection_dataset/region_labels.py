@@ -690,6 +690,42 @@ def make_enhancer_anchors(cre: pl.DataFrame, window_size: int) -> pl.DataFrame:
     return anchors
 
 
+def select_anchors_noexon(labeled_df: pl.DataFrame) -> pl.DataFrame:
+    """Drop anchors overlapping any exon — the #326 noexon condition, no label gate.
+
+    The exp351 (#351) centered arm's exon-subtraction: keep every anchor whose four
+    exon-ish disjoint fractions (``cds_frac``, ``utr3_frac``, ``ncrna_exon_frac``,
+    ``tss_region_and_utr5_frac``) are all exactly 0 — the window carries no coding /
+    UTR / ncRNA-exon / TSS-band sequence. Unlike :func:`select_ccre_noexon` (arm A,
+    which additionally requires ``label == ccre_non_promoter``), this does NOT gate on
+    the bp-majority label: the centered anchors are dELS/pELS by construction, so an
+    enhancer window that is bp-majority-``background`` but exon-free is still a valid
+    clean enhancer window and is kept. The exon *definition* is identical to arm A/B
+    (same :func:`label_windows_bp_majority` fracs), so the only difference vs the tiled
+    curated arm is window anchoring.
+
+    Args:
+        labeled_df: a :func:`label_windows_bp_majority` frame with the disjoint
+            ``*_frac`` columns (plus ``chrom, start, end, name``).
+
+    Returns:
+        The filtered frame (same schema), one row per surviving anchor.
+    """
+    missing = set(_NON_CCRE_FUNCTIONAL_FRACS) - set(labeled_df.columns)
+    assert not missing, f"labeled_df missing frac columns: {sorted(missing)}"
+    out = labeled_df.filter(
+        (pl.col("cds_frac") == 0.0)
+        & (pl.col("utr3_frac") == 0.0)
+        & (pl.col("ncrna_exon_frac") == 0.0)
+        & (pl.col("tss_region_and_utr5_frac") == 0.0)
+    )
+    assert len(out) > 0, (
+        "select_anchors_noexon produced 0 anchors — all centered enhancer windows "
+        "overlap an exon? (wrong parquet or a labeling bug)"
+    )
+    return out
+
+
 def region_label_composition_table(df: pl.DataFrame) -> pl.DataFrame:
     """Per-label composition table for a region-labels parquet.
 

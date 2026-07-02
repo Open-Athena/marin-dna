@@ -39,6 +39,14 @@ assert set(INTERVALS_VERSIONS) <= set(INTERVALS_SOURCES), (
     f"{set(INTERVALS_VERSIONS) - set(INTERVALS_SOURCES)}"
 )
 
+# Datasets whose source Parquet is NOT a subset of the standard 108-family
+# projection — e.g. exp351's enhancer-CENTERED build (its own scoped
+# halLiftover to the order cohort, produced by rules/centered.smk). Registered
+# here so the shared species_subset → shard → upload chain can consume them;
+# a plain map {intervals_version: source_parquet_path}. Deliberately NOT added
+# to `intervals_versions` (those are derived as subsets of the 108-projection).
+INTERVALS_SOURCES.update(dict(config.get("extra_intervals_sources", {})))
+
 # ===== Species-subset datasets (third axis; issue #233) =====
 # A species cohort filters an existing intervals subset to a subset of the
 # projection's species, reusing the v1 projection (no re-halLiftover). The

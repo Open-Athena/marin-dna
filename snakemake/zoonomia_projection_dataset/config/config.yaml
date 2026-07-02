@@ -113,6 +113,19 @@ species_subset_datasets:
   # pure species row-filter, no re-halLiftover. Compared head-to-head against the
   # enhancer-CENTERED build (v4_ccre_enhancer_centered-order) below.
   - { intervals: "v4_ccre_noexon_enhancer", species: "order" }
+  # exp351 (#351) CENTERED arm: windows defined directly from each dELS/pELS cCRE
+  # (rules/centered.smk), natively projected to the order cohort. Its source parquet
+  # is registered via `extra_intervals_sources` below (not a 108-projection subset),
+  # so this `subset_species` step is a no-op species filter that just routes it
+  # through the shared shard/upload chain. Only difference vs the tiled control above
+  # is window anchoring (tiled vs centered) — the exp351 experiment variable.
+  - { intervals: "v4_ccre_enhancer_centered", species: "order" }
+
+# Dataset sources that are NOT a subset of the 108-family projection (so not derivable
+# via the standard subset rules) — merged into INTERVALS_SOURCES by dataset.smk. exp351's
+# centered build has its own scoped halLiftover (rules/centered.smk → order cohort only).
+extra_intervals_sources:
+  v4_ccre_enhancer_centered: "results/centered/order/all_species_with_sequence.parquet"
 
 # v2 subset: ± bp band around each mRNA TSS (Ensembl protein_coding biotype).
 # 256 bp matches the BOS+255 model context window.

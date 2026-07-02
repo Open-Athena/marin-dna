@@ -12,6 +12,7 @@ include: "rules/subsets.smk"
 include: "rules/dataset.smk"
 include: "rules/validation.smk"
 include: "rules/regions.smk"
+include: "rules/centered.smk"
 
 
 rule all:
