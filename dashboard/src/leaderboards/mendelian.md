@@ -31,18 +31,6 @@ const meta = datasets.mendelian_traits;
 ```
 
 ```js
-// Top-level mode toggle: swaps the whole leaderboard between the two metric-worlds. They
-// are not level-comparable (matched-pair AUPRC vs per-chromosome-weighted AUPRC), so they
-// are never shown together — everything below filters on this. Default = Unsupervised
-// (current behaviour). Supervised = the frozen-embedding linear probe (MarinDNA only).
-const mode = view(labeledRow(
-  "Supervision",
-  PillSelect(Object.keys(SUPERVISION_LABEL), "unsupervised", (m) => SUPERVISION_LABEL[m]),
-  "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA only). Different metrics — shown one at a time.",
-));
-```
-
-```js
 // Sort column state — lives outside the heatmap so it survives re-mounts
 // when family / protocol / search filters change. Mutable persists
 // across all later heatmap re-renders.
@@ -66,12 +54,24 @@ display(html`<div class="card">
     <div><b>Positives:</b> ${meta.positives}</div>
     <div><b>Negatives:</b> ${meta.negatives}</div>
     <div><b>Matching:</b> ${meta.matching}</div>
-    <div><b>Metric:</b> ${mode === "supervised" ? meta.probe_metric : meta.metric}</div>
+    <div><b>Metric — Unsupervised:</b> ${meta.metric}</div>
+    <div><b>Metric — Supervised:</b> ${meta.probe_metric}</div>
   </div>
   <div class="dataset-notes">
-    ${(mode === "supervised" ? meta.probe_notes : meta.notes).map((n) => html`<div>${n}</div>`)}
+    ${meta.notes.map((n) => html`<div>${n}</div>`)}
   </div>
 </div>`);
+```
+
+```js
+// Top-level mode toggle: swaps the whole leaderboard between the two metric-worlds. They
+// are not level-comparable (matched-pair AUPRC vs per-chromosome-weighted AUPRC), so they
+// are never shown together — everything below filters on this. Default = Unsupervised.
+const mode = view(labeledRow(
+  "Supervision",
+  PillSelect(Object.keys(SUPERVISION_LABEL), "unsupervised", (m) => SUPERVISION_LABEL[m]),
+  "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA only). Different metrics — shown one at a time.",
+));
 ```
 
 ## Leaderboard
@@ -152,6 +152,50 @@ const displayRows = (() => {
 ```
 
 <style>
+/* Top-level supervision toggle — a modern segmented "pill" control (iOS-style:
+   rounded track, white raised active segment). */
+.lb-control-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0.25em 0 1.25em;
+  flex-wrap: wrap;
+}
+.lb-control-label { color: #333; font-weight: 600; font-size: 0.9em; }
+.lb-control-hint {
+  color: #9a9a9a;
+  font-size: 0.8em;
+  line-height: 1.35;
+  max-width: 52ch;
+}
+.lb-protocol-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: #eef0f3;
+  border-radius: 9999px;
+}
+.lb-protocol-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  border-radius: 9999px;
+  padding: 6px 18px;
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+.lb-protocol-btn:hover:not(.active) { color: #111; }
+.lb-protocol-btn.active {
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.06);
+}
+
 /* Observable Framework's default theme caps prose elements at 640px and
    constrains main to ~1072px even on a wide page. Override both so the
    heatmap and the side-by-side forest plot fit on one row. */

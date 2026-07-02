@@ -18,16 +18,16 @@ _METRIC = (
     "AUPRC is 0.10."
 )
 
-# Supervised-mode (linear-probe) metric caption — shown in place of `_METRIC` when the
-# Mendelian page's mode toggle is on Supervised. Same dataset/variants, different scoring.
+# Supervised (linear-probe) metric caption — shown alongside `_METRIC` in the dataset card
+# (both are always listed). Same dataset/variants, different scoring. Plain prose (the card
+# renders the string as text, not markdown), caveats folded in.
 _PROBE_METRIC = (
-    "**Per-chromosome-weighted AUPRC (TraitGym) ± chromosome-cluster bootstrap SE.** For "
-    "each consequence subset, `average_precision_score` is computed *within* each "
-    "chromosome then size-weighted across chromosomes (the TraitGym metric); SE is a "
-    "cluster bootstrap resampling chromosomes (#347). Macro Avg is the unweighted mean over "
-    "subsets — there is **no Global** column, because the probe trains a separate classifier "
-    "per subset, so a pooled global ranking is undefined. 1:9 matching ⇒ the random-baseline "
-    "AUPRC is 0.10."
+    "Per-chromosome-weighted AUPRC (TraitGym) ± chromosome-cluster bootstrap SE (#347) — "
+    "AUPRC is computed within each chromosome then size-weighted, and Macro Avg is the "
+    "unweighted mean over subsets (no Global column: the probe fits a separate classifier "
+    "per subset). MarinDNA only, since probes read our per-allele embeddings; a subset is "
+    "probed only with at least 300 variants and 3 chromosomes. Not level-comparable to the "
+    "Unsupervised metric above — different weighting and matching."
 )
 
 # caQTL/dsQTL moved to the supervised official-metrics Accessibility QTL page (#312),
@@ -63,11 +63,6 @@ DATASETS = {
             "Sorted by Macro Avg by default — the consequence-subset distribution is dominated by missense (a ClinVar annotator-history artifact, not pathogenicity reality), so Global AUPRC over-weights protein-coding-specialist methods. Macro Avg gives equal weight to each subset.",
         ],
         "probe_metric": _PROBE_METRIC,
-        "probe_notes": [
-            "**Supervised:** a frozen-embedding L2-logistic linear probe (nested leave-one-chromosome-out; #314/#320) on **MarinDNA models only** — probes read our per-allele embeddings, so no competitor family appears here.",
-            "A subset is probed only if it has ≥300 variants and ≥3 chromosomes (`min_variants` / `min_chroms`); smaller subsets (e.g. mature-miRNA) get no probe score.",
-            "Not comparable to the Unsupervised metric (matched-pair AUPRC) — different weighting and matching. The toggle switches worlds; the two are never shown together.",
-        ],
     },
     "complex_traits": {
         "name": "Complex Traits",
