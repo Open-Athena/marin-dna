@@ -85,8 +85,9 @@ rule probe:
 
 
 rule compute_probe_metrics:
-    """Per-subset per-chromosome-weighted AUPRC (#331 / TraitGym) for the probe vs its
-    matched zero-shot LLR baseline — the metrics step of the #320/#331 protocol (wires
+    """Per-subset per-chromosome-weighted AUPRC + chromosome-cluster bootstrap SE and a
+    `_macro_avg_` aggregate row (#331 / TraitGym; SE + macro per #347) for the probe vs
+    its matched zero-shot LLR baseline — the metrics step of the #320/#331 protocol (wires
     #319; #341).
 
     The probe predictions parquet carries BOTH `probe_score` AND the raw `llr_fwd`/
@@ -110,6 +111,8 @@ rule compute_probe_metrics:
         dataset="|".join(DATASETS),
     params:
         score_protocol=lambda wc: get_dataset_config(wc.dataset)["score_protocol"],
+        n_bootstrap=config["probe"]["n_bootstrap"],
+        n_min=config["probe"]["n_min"],
     run:
         eval_protocol = get_dataset_protocol(wildcards.dataset)
         assert eval_protocol == "matched_pair", (
@@ -129,15 +132,22 @@ rule compute_probe_metrics:
         baseline_col = f"{params.score_protocol}_avg"
         df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)
 
-        metrics = per_chrom_ap_table(df, ["probe_score", baseline_col])
+        metrics = per_chrom_ap_table(
+            df,
+            ["probe_score", baseline_col],
+            n_bootstrap=params.n_bootstrap,
+            rng=0,
+            n_min=params.n_min,
+        )
         metrics["model"] = wildcards.model
         metrics["dataset"] = wildcards.dataset
         metrics["split"] = config["split"]
         metrics.to_parquet(output[0], index=False)
         print(
             f"[evals_v2] probe_metrics {wildcards.model} {wildcards.dataset}: "
-            f"{metrics['subset'].nunique()} subsets × 2 score types "
-            f"(probe_score, {baseline_col})"
+            f"{len(metrics)} rows (per-subset + macro_avg × 2 score types: "
+            f"probe_score, {baseline_col}); SE from {params.n_bootstrap} "
+            f"chromosome-cluster bootstraps"
         )
 
 

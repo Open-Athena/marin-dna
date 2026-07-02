@@ -1064,22 +1064,28 @@ def _probe_like_frame() -> pd.DataFrame:
 
 
 def test_per_chrom_ap_table_shape_and_matches_direct():
-    """One row per (subset, score_col); each ``value`` reproduces
-    ``per_chrom_weighted_ap`` called directly on that subset's rows."""
+    """One row per (subset, score_col) plus a ``_macro_avg_`` row per score column; each
+    per-subset ``value`` reproduces ``per_chrom_weighted_ap`` on that subset's rows.
+    ``n_bootstrap=0`` → point-only (``se`` NaN), so this stays a pure value/shape test."""
     df = _probe_like_frame()
-    out = per_chrom_ap_table(df, ["probe_score", "minus_llr_avg"])
+    out = per_chrom_ap_table(df, ["probe_score", "minus_llr_avg"], n_bootstrap=0)
     assert list(out.columns) == [
         "score_type",
         "subset",
         "value",
+        "se",
         "n",
         "n_pos",
         "n_chrom",
     ]
-    assert len(out) == 4  # 2 subsets × 2 score columns
-    assert set(out["subset"]) == {"missense", "synonymous"}
-    assert set(out["score_type"]) == {"probe_score", "minus_llr_avg"}
-    for (subset, score_type), row in out.set_index(["subset", "score_type"]).iterrows():
+    per_subset = out[out["subset"] != MACRO_AVG_SUBSET]
+    assert len(per_subset) == 4  # 2 subsets × 2 score columns
+    assert (out["subset"] == MACRO_AVG_SUBSET).sum() == 2  # one macro row per score
+    assert set(per_subset["subset"]) == {"missense", "synonymous"}
+    assert set(per_subset["score_type"]) == {"probe_score", "minus_llr_avg"}
+    for (subset, score_type), row in per_subset.set_index(
+        ["subset", "score_type"]
+    ).iterrows():
         sub = df[df["subset"] == subset]
         expected = per_chrom_weighted_ap(
             sub["label"].to_numpy(),
@@ -1087,8 +1093,12 @@ def test_per_chrom_ap_table_shape_and_matches_direct():
             sub["chrom"].to_numpy(),
         )
         assert row["value"] == pytest.approx(expected)
-    missense = out[out["subset"] == "missense"].iloc[0]
+    missense = per_subset[
+        (per_subset["subset"] == "missense")
+        & (per_subset["score_type"] == "probe_score")
+    ].iloc[0]
     assert missense["n"] == 6 and missense["n_pos"] == 3 and missense["n_chrom"] == 2
+    assert out["se"].isna().all()  # n_bootstrap=0 → SE suppressed
 
 
 def test_per_chrom_ap_table_all_nan_score_is_nan_row():
@@ -1097,7 +1107,7 @@ def test_per_chrom_ap_table_all_nan_score_is_nan_row():
     counts are score-independent."""
     df = _probe_like_frame()
     df.loc[df["subset"] == "missense", "probe_score"] = np.nan
-    out = per_chrom_ap_table(df, ["probe_score", "minus_llr_avg"])
+    out = per_chrom_ap_table(df, ["probe_score", "minus_llr_avg"], n_bootstrap=0)
     probe_row = out[
         (out["subset"] == "missense") & (out["score_type"] == "probe_score")
     ].iloc[0]
@@ -1110,9 +1120,12 @@ def test_per_chrom_ap_table_all_nan_score_is_nan_row():
 
 
 def test_per_chrom_ap_table_preserves_subset_order():
-    """Subsets appear in first-appearance order (``groupby(sort=False)``)."""
-    out = per_chrom_ap_table(_probe_like_frame(), ["probe_score"])
-    assert list(out["subset"]) == ["missense", "synonymous"]
+    """Per-subset rows appear in first-appearance order (``groupby(sort=False)``); the
+    ``_macro_avg_`` row is appended last."""
+    out = per_chrom_ap_table(_probe_like_frame(), ["probe_score"], n_bootstrap=0)
+    per_subset = out[out["subset"] != MACRO_AVG_SUBSET]
+    assert list(per_subset["subset"]) == ["missense", "synonymous"]
+    assert out["subset"].iloc[-1] == MACRO_AVG_SUBSET
 
 
 def test_per_chrom_ap_table_missing_column_raises():
@@ -1131,3 +1144,156 @@ def test_per_chrom_ap_table_null_key_raises():
         df.loc[0, key] = None
         with pytest.raises(AssertionError, match="contains nulls"):
             per_chrom_ap_table(df, ["probe_score"])
+
+
+# ---------------------------------------------------------------------------
+# per_chrom_ap_table: chromosome-cluster bootstrap SE + macro-avg row (#347)
+# ---------------------------------------------------------------------------
+
+
+def test_per_chrom_ap_table_emits_macro_never_global():
+    """One ``_macro_avg_`` row per score column and never a ``_global_`` row — probe
+    scores come from a separate per-subset classifier, so a pooled global ranking is
+    undefined."""
+    out = per_chrom_ap_table(
+        _probe_like_frame(), ["probe_score", "minus_llr_avg"], n_bootstrap=0, n_min=1
+    )
+    macro = out[out["subset"] == MACRO_AVG_SUBSET]
+    assert len(macro) == 2
+    assert set(macro["score_type"]) == {"probe_score", "minus_llr_avg"}
+    assert GLOBAL_SUBSET not in set(out["subset"])
+
+
+def test_per_chrom_ap_table_macro_value_is_mean_of_qualifying():
+    """The ``_macro_avg_`` value is the unweighted mean of the qualifying subsets'
+    per-chrom values; ``n`` / ``n_pos`` are honest sums (n_min=1 → both toy subsets
+    qualify)."""
+    df = _probe_like_frame()
+    out = per_chrom_ap_table(df, ["probe_score"], n_bootstrap=0, n_min=1)
+    per_subset = out[
+        (out["subset"] != MACRO_AVG_SUBSET) & (out["score_type"] == "probe_score")
+    ]
+    macro = out[
+        (out["subset"] == MACRO_AVG_SUBSET) & (out["score_type"] == "probe_score")
+    ].iloc[0]
+    assert macro["value"] == pytest.approx(per_subset["value"].mean())
+    assert macro["n"] == int(per_subset["n"].sum())
+    assert macro["n_pos"] == int(per_subset["n_pos"].sum())
+
+
+def test_per_chrom_ap_table_macro_below_n_min_is_nan():
+    """With the default ``n_min=30`` and a tiny fixture (3 positives/subset) no subset
+    qualifies, but the macro row is still emitted — as NaN — so the loader always finds
+    it."""
+    out = per_chrom_ap_table(_probe_like_frame(), ["probe_score"], n_bootstrap=0)
+    macro = out[out["subset"] == MACRO_AVG_SUBSET].iloc[0]
+    assert math.isnan(macro["value"]) and math.isnan(macro["se"])
+    assert macro["n"] == 0 and macro["n_pos"] == 0
+
+
+def test_per_chrom_ap_table_se_present_and_reproducible():
+    """``n_bootstrap > 0`` gives finite, non-negative per-subset and macro SEs, and a
+    pinned ``rng`` seed is bit-stable across calls."""
+    df = _probe_like_frame()
+    a = per_chrom_ap_table(df, ["probe_score"], n_bootstrap=200, rng=0, n_min=1)
+    b = per_chrom_ap_table(df, ["probe_score"], n_bootstrap=200, rng=0, n_min=1)
+    per_subset = a[a["subset"] != MACRO_AVG_SUBSET]
+    assert per_subset["se"].notna().all() and (per_subset["se"] >= 0).all()
+    assert np.isfinite(a[a["subset"] == MACRO_AVG_SUBSET].iloc[0]["se"])
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_per_chrom_ap_table_se_shrinks_with_more_chromosomes():
+    """The chromosome-cluster bootstrap SE tightens as the number of (equally-weighted,
+    value-varying) chromosomes grows — #347's headline SE property."""
+
+    def frame(reps: int) -> pd.DataFrame:
+        # `reps` copies of a 2-chromosome motif: a "good" chromosome ranks its positive
+        # above its negative (per-chrom AUPRC 1.0), a "bad" one below (0.5). More
+        # chromosomes, same per-chrom value spread → tighter bootstrap SE (~1/sqrt(m)).
+        labels, scores, chroms = [], [], []
+        for r in range(reps):
+            chroms += [f"g{r}", f"g{r}"]
+            labels += [1, 0]
+            scores += [0.9, 0.1]
+            chroms += [f"b{r}", f"b{r}"]
+            labels += [1, 0]
+            scores += [0.1, 0.9]
+        return pd.DataFrame(
+            {
+                "label": labels,
+                "subset": ["s"] * len(labels),
+                "chrom": chroms,
+                "probe_score": scores,
+            }
+        )
+
+    def subset_se(reps: int) -> float:
+        out = per_chrom_ap_table(frame(reps), ["probe_score"], n_bootstrap=400, rng=0)
+        return out[out["subset"] == "s"].iloc[0]["se"]
+
+    assert subset_se(6) < subset_se(1)
+
+
+def test_per_chrom_ap_table_single_class_subset_nan_and_excluded():
+    """A single-class subset yields NaN value + NaN SE and drops out of the macro
+    average, which then reflects only the finite subset."""
+    df = _probe_like_frame()
+    df.loc[df["subset"] == "synonymous", "label"] = 1  # no chromosome has both classes
+    out = per_chrom_ap_table(df, ["probe_score"], n_bootstrap=100, rng=0, n_min=1)
+    syn = out[
+        (out["subset"] == "synonymous") & (out["score_type"] == "probe_score")
+    ].iloc[0]
+    assert math.isnan(syn["value"]) and math.isnan(syn["se"])
+    macro = out[out["subset"] == MACRO_AVG_SUBSET].iloc[0]
+    missense = out[
+        (out["subset"] == "missense") & (out["score_type"] == "probe_score")
+    ].iloc[0]
+    assert macro["value"] == pytest.approx(missense["value"])
+
+
+def test_per_chrom_ap_table_se_independent_of_score_column_order():
+    """A cell's SE is a pure function of its own data + seed: reordering `score_columns`
+    must not change any (subset, score) SE (the per-cell fresh-`default_rng` fix — a single
+    shared generator threaded through the loop made SEs depend on column order)."""
+    df = _probe_like_frame()
+    fwd = per_chrom_ap_table(
+        df, ["probe_score", "minus_llr_avg"], n_bootstrap=200, rng=0, n_min=1
+    )
+    rev = per_chrom_ap_table(
+        df, ["minus_llr_avg", "probe_score"], n_bootstrap=200, rng=0, n_min=1
+    )
+    key = ["subset", "score_type"]
+    pd.testing.assert_series_equal(
+        fwd.set_index(key)["se"].sort_index(),
+        rev.set_index(key)["se"].sort_index(),
+    )
+
+
+def test_per_chrom_ap_table_macro_se_partial_chrom_overlap():
+    """The joint macro bootstrap tolerates subsets on partially-disjoint chromosome sets:
+    finite macro SE, all-chromosomes `n_chrom` = the deduped union, and no crash when a
+    draw could void a subset (the fixed-K `np.isfinite(vals).all()` guard)."""
+
+    def block(chrom: str, good: bool) -> pd.DataFrame:
+        # One pos + one neg on a chromosome; `good` ranks the pos above (per-chrom AUPRC
+        # 1.0) else below (0.5), so per-chrom values vary and the bootstrap has spread.
+        scores = [0.9, 0.1] if good else [0.1, 0.9]
+        return pd.DataFrame(
+            {"label": [1, 0], "chrom": [chrom, chrom], "probe_score": scores}
+        )
+
+    specs = {
+        "A": ["chr1", "chr2", "chr3", "chr4"],
+        "B": ["chr3", "chr4", "chr5", "chr6"],
+    }
+    frames = []
+    for subset, chroms in specs.items():
+        for i, c in enumerate(chroms):
+            frames.append(block(c, good=(i % 2 == 0)).assign(subset=subset))
+    df = pd.concat(frames, ignore_index=True)
+
+    out = per_chrom_ap_table(df, ["probe_score"], n_bootstrap=300, rng=0, n_min=1)
+    macro = out[out["subset"] == MACRO_AVG_SUBSET].iloc[0]
+    assert np.isfinite(macro["se"]) and macro["se"] >= 0
+    assert macro["n_chrom"] == 6  # union of chr1..chr6 across the two subsets

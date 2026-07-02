@@ -1208,6 +1208,14 @@ probe:
                           # Edge-pinned C is recorded per subset as a diagnostic (low
                           # = ~no signal, high = minimal reg), not a truncation.
   inner_splits: 5         # inner GroupKFold splits for the per-fold C GridSearchCV.
+  # --- compute_probe_metrics knobs (chrom-cluster bootstrap SE + macro-avg row, #347) ---
+  n_bootstrap: 1000       # chromosome-cluster bootstrap iterations for the per-subset AND
+                          # joint macro-avg AUPRC SE. Output-affecting → a `params` rerun
+                          # trigger; the rng seed is pinned to 0 in-rule for bit-stable
+                          # re-runs.
+  n_min: 30               # min positives for a subset to enter the macro average
+                          # (project-wide leaderboard convention; 300-variant 1:9 ⇒ ~30,
+                          # matching the min_variants probe-training gate above).
   n_jobs: 4               # GridSearchCV parallelism. Execution-only (not output-
                           # affecting) → read via the rule's `threads`, so tuning it
                           # never forces a re-run. The shared dev box is 4-vCPU; bump
