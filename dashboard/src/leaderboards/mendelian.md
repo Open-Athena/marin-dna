@@ -72,7 +72,7 @@ display(html`<div class="card">
 const mode = view(labeledRow(
   "Supervision",
   PillSelect(Object.keys(SUPERVISION_LABEL), "unsupervised", (m) => SUPERVISION_LABEL[m]),
-  "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA only). Different metrics — shown one at a time.",
+  "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA + Evo 2). Different metrics — shown one at a time.",
 ));
 ```
 
