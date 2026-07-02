@@ -332,3 +332,71 @@ rule all_region_labels_v4:
             min_p=[f"{config['project_min_p']}"],
             subset=REGION_LABEL_SUBSETS_V4,
         ),
+
+
+# ============================================================================
+# Curated cCRE/enhancer subsets (issue #326): de-contaminated derivations of
+# the v4 ``ccre_non_promoter`` arm to test whether removing exon-overlap (H1)
+# and non-enhancer cCRE classes (H2) unsticks distal VEP (#283). These are
+# *sub-filters* of v4_ccre_non_promoter, NOT part of the six-way v4 partition,
+# so they live outside REGION_LABEL_SUBSETS_V4 with their own derive rules. The
+# explicit (non-wildcarded) subset names keep them disjoint from
+# derive_subset_v4_region's REGION_LABEL_SUBSET_V4_RE constraint.
+# ============================================================================
+
+# Single source of truth (config/config.yaml) for which subsets are curated;
+# shared with dataset.smk's all_hf exclusion and sky/upload.yaml's curated_ccre
+# mode so the three never drift.
+CURATED_CCRE_SUBSETS = list(config.get("curated_ccre_subsets", []))
+
+
+rule derive_subset_v4_ccre_noexon:
+    """Arm A (#326): v4 ccre windows with zero overlap of any other functional
+    element (CDS / 3'UTR / ncRNA exon / TSS+5'UTR). select_ccre_noexon."""
+    input:
+        labels="results/human/intervals/region_labels/v4/min{min_p}.parquet",
+    output:
+        names="results/projection/min{min_p}/subsets_def/v4_ccre_noexon.query_names.txt",
+    run:
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+            select_ccre_noexon,
+        )
+
+        df = select_ccre_noexon(pl.read_parquet(input.labels))
+        with open(output.names, "w") as fh:
+            for name in df["name"].to_list():
+                fh.write(f"{name}\n")
+
+
+rule derive_subset_v4_ccre_noexon_enhancer:
+    """Arm B (#326): arm A windows whose cCRE content is enhancer-dominant
+    (dELS+pELS ≥ other non-PLS classes). select_ccre_noexon_enhancer."""
+    input:
+        labels="results/human/intervals/region_labels/v4/min{min_p}.parquet",
+        cre="results/human/intervals/cre/all.parquet",
+        defined="results/human/intervals/defined.bed",
+    output:
+        names="results/projection/min{min_p}/subsets_def/v4_ccre_noexon_enhancer.query_names.txt",
+    run:
+        from marin_dna.data.intervals import GenomicSet
+        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+            select_ccre_noexon_enhancer,
+        )
+
+        defined = GenomicSet.read_bed(input.defined)
+        df = select_ccre_noexon_enhancer(
+            pl.read_parquet(input.labels), input.cre, defined
+        )
+        with open(output.names, "w") as fh:
+            for name in df["name"].to_list():
+                fh.write(f"{name}\n")
+
+
+rule all_curated_ccre_subsets:
+    """Aggregate target: both #326 curated-ccre query_names lists."""
+    input:
+        expand(
+            "results/projection/min{min_p}/subsets_def/{subset}.query_names.txt",
+            min_p=[f"{config['project_min_p']}"],
+            subset=CURATED_CCRE_SUBSETS,
+        ),
