@@ -748,3 +748,22 @@ def test_probe_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyP
     df = probe_normalized_rows("mendelian_traits")
     assert df.height == 0
     assert set(df.columns) == _PROBE_COLS
+
+
+def test_probe_normalized_rows_soft_fails_unknown_dataset_short(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+):
+    """A probe-family model registered for a dataset with no `EVO2_DATASET_SHORT` entry
+    soft-fails that one model (the path-construction `LookupError` is caught) rather than
+    aborting the whole build — the `_probe_parquet_path` call sits inside the try, symmetric
+    with the zero-shot loader."""
+    # evo2 has no `complex_traits` entry in EVO2_DATASET_SHORT, so path construction raises
+    # KeyError (⊂ LookupError). The read is never reached.
+    evo = _mk_method(id="evo2_1b_base", family="evo2", datasets=("complex_traits",))
+    _patch_methods(monkeypatch, (evo,))
+    _patch_read_parquet(monkeypatch, {})
+
+    df = probe_normalized_rows("complex_traits")  # must not raise
+    assert df.height == 0
+    assert set(df.columns) == _PROBE_COLS
+    assert "probe skip" in capsys.readouterr().err

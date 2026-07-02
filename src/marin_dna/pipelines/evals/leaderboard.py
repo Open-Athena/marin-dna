@@ -55,9 +55,9 @@ EVO2_METRICS_GIST_BASE = (
     f"{EVO2_METRICS_GIST_ID}/raw/{EVO2_METRICS_GIST_COMMIT}"
 )
 # `family: evo2` frozen-embedding probe (supervised) metrics — SAME gist, a SEPARATE pinned
-# commit (uploaded later than the zero-shot metrics above; the gist HEAD is a placeholder and
-# every artifact is pinned to its own upload commit, so this is decoupled from the zero-shot
-# pin on purpose). Bump when re-uploading probe metrics. See #352 / #131.
+# commit (uploaded later than the zero-shot metrics above, at its own commit; each artifact is
+# pinned independently, so this is decoupled from the zero-shot pin on purpose — bumping one
+# never disturbs the other). Bump when re-uploading probe metrics. See #352 / #131.
 EVO2_PROBE_METRICS_GIST_COMMIT = "3ac60cd5e37148fd135c4d55bed12386dc065dc6"
 EVO2_PROBE_METRICS_GIST_BASE = (
     f"https://gist.githubusercontent.com/{EVO2_METRICS_GIST_OWNER}/"
@@ -389,8 +389,13 @@ def probe_normalized_rows(dataset: str) -> pl.DataFrame:
     for method in models_for_dataset(dataset):
         if method.family not in PROBE_FAMILIES:
             continue
-        path = _probe_parquet_path(method, dataset)
         try:
+            # Inside the try so a per-model path-construction LookupError (e.g. a probe family
+            # registered for a dataset absent from `EVO2_DATASET_SHORT`) soft-fails that one
+            # model — matching the zero-shot path — rather than aborting the whole build. A
+            # non-probe family reaching `_probe_parquet_path` still raises `ValueError` (not in
+            # `soft_fail`) so a `PROBE_FAMILIES`/dispatch mismatch fails loud.
+            path = _probe_parquet_path(method, dataset)
             df = _read_parquet(path).filter(
                 (pl.col("score_type") == "probe_score") & (pl.col("split") == SPLIT)
             )
