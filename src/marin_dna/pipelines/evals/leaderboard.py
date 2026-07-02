@@ -304,6 +304,106 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
+# Explicit schema so an empty result (no marin_dna model has a probe parquet yet) still
+# concatenates cleanly with `normalized_rows` in the dashboard loader. Mirrors the column
+# order and dtypes `normalized_rows` produces.
+_PROBE_ROW_SCHEMA: dict[str, pl.DataType] = {
+    "method_id": pl.String,
+    "method_display": pl.String,
+    "family": pl.String,
+    "protocol": pl.String,
+    "subset": pl.String,
+    "value": pl.Float64,
+    "se": pl.Float64,
+    "n": pl.Int64,
+    "n_positives": pl.Int64,
+}
+
+
+def probe_normalized_rows(dataset: str) -> pl.DataFrame:
+    """Long-form linear-probe (supervised) rows for the dashboard's Supervised mode.
+
+    Reads the frozen-embedding probe metrics (``probe_metrics/{id}/{dataset}.parquet`` from
+    the ``evals_v2`` pipeline — per-subset per-chromosome-weighted AUPRC + chromosome-cluster
+    bootstrap SE + a ``_macro_avg_`` row, #347) for every ``marin_dna`` model registered for
+    ``dataset``, keeps the ``probe_score`` rows on the ``train`` split, and maps them onto the
+    same schema as ``normalized_rows`` so the leaderboard heatmap renders them unchanged.
+
+    Only ``marin_dna`` has probes (they need our ``emb_ref``/``emb_alt`` embeddings), so no
+    other family contributes supervised rows. The pipeline already emits the ``_macro_avg_``
+    aggregate (**no** ``_global_`` — probe scores come from a separate per-subset classifier),
+    so nothing is synthesized here. Models whose probe parquet isn't on S3 yet are skipped
+    with a warning (same soft-fail posture as ``normalized_rows``).
+
+    Emits ``[method_id, method_display, family, protocol, subset, value, se, n, n_positives]``
+    with ``protocol == "probe"`` (the Supervised view has a single protocol). On the
+    ``_macro_avg_`` row ``n`` / ``n_positives`` are overloaded to K = the number of subsets
+    entering the macro (the heatmap's "K subsets" header), mirroring ``fetch_method_metrics``'s
+    matched-pair macro; per-subset ``n`` / ``n_positives`` are the probe parquet's total
+    variants / positives.
+    """
+    # OSError covers the S3-404 case (a marin_dna model registered for the dataset whose probe
+    # run hasn't landed); the others mirror `normalized_rows`' soft-fail set.
+    soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError, OSError)
+    rows: list[dict] = []
+    for method in models_for_dataset(dataset):
+        if method.family != "marin_dna":
+            continue
+        path = (
+            f"{S3}/snakemake/analysis/evals_v2/results/probe_metrics/"
+            f"{method.id}/{dataset}.parquet"
+        )
+        try:
+            df = _read_parquet(path).filter(
+                (pl.col("score_type") == "probe_score") & (pl.col("split") == SPLIT)
+            )
+        except soft_fail as exc:
+            print(f"  ! probe skip for {method.id} ({dataset}): {exc}", file=sys.stderr)
+            continue
+        if df.height == 0:
+            print(
+                f"  ! probe no probe_score rows for {method.id} ({dataset}) in {path}",
+                file=sys.stderr,
+            )
+            continue
+        # Require the #347 schema — an `se` column and the pipeline-emitted `_macro_avg_`
+        # row. A pre-#347 parquet (per-subset only, no SE, no aggregate — e.g. a #341
+        # scaling-ladder run) is skipped rather than shown with blank error bars and no
+        # Macro Avg column; re-run its `compute_probe_metrics` to surface it.
+        if "se" not in df.columns or not (df["subset"] == MACRO_AVG_SUBSET).any():
+            print(
+                f"  ! probe stale-schema for {method.id} ({dataset}): missing se/_macro_avg_ "
+                f"(pre-#347) — re-run compute_probe_metrics to surface it",
+                file=sys.stderr,
+            )
+            continue
+        # K = subsets entering the macro = per-subset rows with a finite value. A finite probe
+        # value already implies the subset cleared `min_variants=300` (⇒ ≥30 positives under
+        # 1:9), i.e. exactly the set the pipeline's macro `n_min` averaged and the heatmap
+        # renders as columns — so no separate positives threshold is needed here. Overloaded
+        # onto the macro row's n / n_positives (the "K subsets" header), matching
+        # `fetch_method_metrics`'s matched-pair macro.
+        k = df.filter(
+            (pl.col("subset") != MACRO_AVG_SUBSET) & pl.col("value").is_not_null()
+        ).height
+        for row in df.iter_rows(named=True):
+            is_macro = row["subset"] == MACRO_AVG_SUBSET
+            rows.append(
+                {
+                    "method_id": method.id,
+                    "method_display": method.display,
+                    "family": method.family,
+                    "protocol": "probe",
+                    "subset": row["subset"],
+                    "value": _nan_float(row["value"]),
+                    "se": _nan_float(row["se"]),
+                    "n": k if is_macro else int(row["n"]),
+                    "n_positives": k if is_macro else int(row["n_pos"]),
+                }
+            )
+    return pl.DataFrame(rows, schema=_PROBE_ROW_SCHEMA)
+
+
 # Columns kept from each method's SGE metrics parquet, in output order.
 _SGE_ROW_COLUMNS = (
     "metric",

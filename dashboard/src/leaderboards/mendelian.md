@@ -13,10 +13,13 @@ const datasets = await FileAttachment("../data/datasets.json").json();
 import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
 import {
   FAMILY_LABEL,
+  SUPERVISION_LABEL,
   PROTOCOL_OPTIONS,
   PROTOCOL_DEFAULTS,
   FamilyProtocolToggle,
   PillToggle,
+  PillSelect,
+  labeledRow,
 } from "../components/controls.js";
 ```
 
@@ -51,7 +54,8 @@ display(html`<div class="card">
     <div><b>Positives:</b> ${meta.positives}</div>
     <div><b>Negatives:</b> ${meta.negatives}</div>
     <div><b>Matching:</b> ${meta.matching}</div>
-    <div><b>Metric:</b> ${meta.metric}</div>
+    <div><b>Metric — Unsupervised:</b> ${meta.metric}</div>
+    <div><b>Metric — Supervised:</b> ${meta.probe_metric}</div>
   </div>
   <div class="dataset-notes">
     ${meta.notes.map((n) => html`<div>${n}</div>`)}
@@ -62,11 +66,47 @@ display(html`<div class="card">
 ## Leaderboard
 
 ```js
+// Top-level mode toggle: swaps the whole leaderboard between the two metric-worlds. They
+// are not level-comparable (matched-pair AUPRC vs per-chromosome-weighted AUPRC), so they
+// are never shown together — everything below filters on this. Default = Unsupervised.
+const mode = view(labeledRow(
+  "Supervision",
+  PillSelect(Object.keys(SUPERVISION_LABEL), "unsupervised", (m) => SUPERVISION_LABEL[m]),
+  "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA only). Different metrics — shown one at a time.",
+));
+```
+
+```js
+// One-way watcher: reset the sort column to the leading aggregate whenever the mode changes.
+// The persisted sort key may name a column the new mode lacks (e.g. Global in Supervised),
+// which would otherwise blank the "Best per family" table + forest plot and drop the row
+// order to alphabetical. Reads `mode` (the trigger) but not sortKeyState, so header-click
+// writes don't re-fire it (no cycle) — same idiom as protocols/marin_dna.md.
+{
+  mode;
+  setSortKey(leadingAggregateSubset(meta));
+}
+```
+
+```js
 // Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
 // to surface a new family pill. Selecting a family reveals its protocol
 // chips inset in the pill (multi-protocol families only).
-const families = Object.keys(FAMILY_LABEL);
-const sel = view(FamilyProtocolToggle(families, PROTOCOL_OPTIONS, PROTOCOL_DEFAULTS));
+//
+// Supervised mode restricts to the families that actually have probe rows (only
+// `marin_dna` today) and drops the protocol chips — the probe is a single "probe"
+// protocol, so passing empty options makes FamilyProtocolToggle render plain pills.
+const supervisedFamilies = [
+  ...new Set(mendelian.filter(r => r.supervision === "supervised").map(r => r.family)),
+];
+const families = mode === "supervised"
+  ? Object.keys(FAMILY_LABEL).filter(f => supervisedFamilies.includes(f))
+  : Object.keys(FAMILY_LABEL);
+const sel = view(FamilyProtocolToggle(
+  families,
+  mode === "supervised" ? {} : PROTOCOL_OPTIONS,
+  mode === "supervised" ? {} : PROTOCOL_DEFAULTS,
+));
 ```
 
 ```js
@@ -84,11 +124,15 @@ const bestOnly = view(PillToggle("Best per family", false));
 
 ```js
 const filtered = mendelian.filter(r => {
+  if (r.supervision !== mode) return false;
   if (!sel.families.includes(r.family)) return false;
-  // One protocol per family. Falls back to DEFAULTS for families that
-  // don't appear in `sel.protocols` (single-option families).
-  const wantedProtocol = sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family];
-  if (r.protocol !== wantedProtocol) return false;
+  // Unsupervised: one protocol per family (LLR / JSD / cLLR …), falling back to DEFAULTS
+  // for single-option families. Supervised has a single "probe" protocol, so there is no
+  // protocol chip to match against — skip the check.
+  if (mode !== "supervised") {
+    const wantedProtocol = sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family];
+    if (r.protocol !== wantedProtocol) return false;
+  }
   if (search && !r.method_display.toLowerCase().includes(search.toLowerCase())) return false;
   return true;
 });
@@ -120,6 +164,50 @@ const displayRows = (() => {
 ```
 
 <style>
+/* Top-level supervision toggle — a modern segmented "pill" control (iOS-style:
+   rounded track, white raised active segment). */
+.lb-control-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0.25em 0 1.25em;
+  flex-wrap: wrap;
+}
+.lb-control-label { color: #333; font-weight: 600; font-size: 0.9em; }
+.lb-control-hint {
+  color: #9a9a9a;
+  font-size: 0.8em;
+  line-height: 1.35;
+  max-width: 52ch;
+}
+.lb-protocol-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: #eef0f3;
+  border-radius: 9999px;
+}
+.lb-protocol-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  border-radius: 9999px;
+  padding: 6px 18px;
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+.lb-protocol-btn:hover:not(.active) { color: #111; }
+.lb-protocol-btn.active {
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.06);
+}
+
 /* Observable Framework's default theme caps prose elements at 640px and
    constrains main to ~1072px even on a wide page. Override both so the
    heatmap and the side-by-side forest plot fit on one row. */
@@ -309,6 +397,10 @@ display(
     sortKey: sortKeyState,
     onSortChange: setSortKey,
     leadingAggregate: meta.leading_aggregate === "macro_avg" ? "_macro_avg_" : "_global_",
+    // Supervised probe has no pooled Global (separate per-subset classifiers); drop the
+    // column so it doesn't render as an all-"—" ghost. The ±1 SE forest plot stays on —
+    // probe rows carry the chromosome-cluster bootstrap SE (#347).
+    showGlobal: mode !== "supervised",
   }),
 );
 ```

@@ -18,6 +18,18 @@ _METRIC = (
     "AUPRC is 0.10."
 )
 
+# Supervised (linear-probe) metric caption — shown alongside `_METRIC` in the dataset card
+# (both are always listed). Same dataset/variants, different scoring. Plain prose (the card
+# renders the string as text, not markdown), caveats folded in.
+_PROBE_METRIC = (
+    "Per-chromosome-weighted AUPRC (TraitGym) ± chromosome-cluster bootstrap SE (#347) — "
+    "AUPRC is computed within each chromosome then size-weighted, and Macro Avg is the "
+    "unweighted mean over subsets (no Global column: the probe fits a separate classifier "
+    "per subset). MarinDNA only, since probes read our per-allele embeddings; a subset is "
+    "probed only with at least 300 variants and 3 chromosomes. Not level-comparable to the "
+    "Unsupervised metric above — different weighting and matching."
+)
+
 # caQTL/dsQTL moved to the supervised official-metrics Accessibility QTL page (#312),
 # which carries its own dataset metadata — so no caqtl/dsqtl entries here anymore.
 
@@ -50,6 +62,7 @@ DATASETS = {
             "Per-subset columns exclude subsets with fewer than 30 positives (`n < 300` under 1:9 matching).",
             "Sorted by Macro Avg by default — the consequence-subset distribution is dominated by missense (a ClinVar annotator-history artifact, not pathogenicity reality), so Global AUPRC over-weights protein-coding-specialist methods. Macro Avg gives equal weight to each subset.",
         ],
+        "probe_metric": _PROBE_METRIC,
     },
     "complex_traits": {
         "name": "Complex Traits",

@@ -22,7 +22,10 @@ import {
 
 ```js
 const allRows = rowsFromLeaderboard(leaderboard);
-const complex = allRows.filter(r => r.dataset === "complex_traits");
+// Zero-shot view only: exclude any `supervision === "supervised"` (linear-probe) rows. None
+// exist for complex_traits today, but this keeps the page correct-by-construction if a
+// complex probe cell is ever added — the two metric-worlds must never mix in one ranking.
+const complex = allRows.filter(r => r.dataset === "complex_traits" && r.supervision !== "supervised");
 const modelById = new Map(methods.map(m => [m.id, m]));
 const meta = datasets.complex_traits;
 ```

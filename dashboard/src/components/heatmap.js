@@ -48,6 +48,9 @@ export function rowsFromLeaderboard(leaderboard) {
     n: Number(r.n),
     n_positives: Number(r.n_positives),
     dataset: String(r.dataset),
+    // "unsupervised" (zero-shot) / "supervised" (linear probe). Drives the Mendelian
+    // page's top-level mode toggle; absent on other pages → "undefined" (harmless).
+    supervision: String(r.supervision),
   }));
 }
 
@@ -137,6 +140,7 @@ export function heatmap({
   onSortChange,
   palette = PALETTE_ABSOLUTE,
   showForest = true,
+  showGlobal = true,
 }) {
   // Group by method_id; collect cells in a Map keyed by subset.
   const byMethod = new Map();
@@ -178,16 +182,18 @@ export function heatmap({
     .filter(([s, n_pos]) => n_pos >= N_POSITIVES_MIN && s in SUBSET_DISPLAY)
     .sort((a, b) => b[1] - a[1])
     .map(([s]) => s);
-  const aggCols =
-    leadingAggregate === MACRO ? [MACRO, GLOBAL] : [GLOBAL, MACRO];
+  // `showGlobal: false` drops the Global column — the supervised probe view has no pooled
+  // global (each subset has its own classifier), so only Macro Avg is meaningful.
+  const aggCols = (
+    leadingAggregate === MACRO ? [MACRO, GLOBAL] : [GLOBAL, MACRO]
+  ).filter((c) => showGlobal || c !== GLOBAL);
   const columns = [...aggCols, ...subsetCols];
 
-  // Sample any method that has both aggregate rows to read the per-column
-  // header counts (n for global, K for macro_avg). Aggregates are constant
-  // across methods (same match_groups).
-  const sample = [...byMethod.values()].find(
-    (m) => m.cells.has(GLOBAL) && m.cells.has(MACRO),
-  );
+  // Sample any method with a MACRO row to read the per-column header counts
+  // (K for macro_avg; n for global when present). Aggregates are constant across
+  // methods. Require only MACRO, not GLOBAL — the supervised probe view has no
+  // Global row, and also requiring GLOBAL would leave macroK = 0 ("0 subsets").
+  const sample = [...byMethod.values()].find((m) => m.cells.has(MACRO));
   const globalN = sample?.cells.get(GLOBAL)?.n ?? 0;
   // The macro_avg cell's `n` carries K (qualifying subsets), not variant
   // count — overload set in `leaderboard.fetch_method_metrics`.
