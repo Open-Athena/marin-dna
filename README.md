@@ -4,10 +4,20 @@
 
 <p align="center"><sub>Inspired by <a href="https://github.com/marin-community/marin">Marin</a>.</sub></p>
 
-## Experiments
+## Research
 
-Tracked as GitHub issues. See the
-[experiment-labeled issues](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment).
+Tracked as GitHub issues under a two-axis label taxonomy — **Type** (the kind of work) × **Area** (the part of the project). See [AGENTS.md](AGENTS.md#issue-labels) for what each label means.
+
+**By type** — [research questions](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aresearch-question) (durable north-stars) ·
+[experiments](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment) (preregistered runs) ·
+[exploratory analyses](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aeda)
+
+**By area** — [evals](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aevals) ·
+[data](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Adata) ·
+[modeling](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Amodeling) ·
+[baselines](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Abaselines) ·
+[hyperparameter-optimization](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ahyperparameter-optimization) ·
+[interpretation](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ainterpretation)
 
 ## Leaderboard
 
