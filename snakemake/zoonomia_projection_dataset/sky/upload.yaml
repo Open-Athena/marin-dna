@@ -109,6 +109,7 @@ run: |
         dataset_hf_readme_v3
         dataset_hf_readme_v4
         dataset_hf_readme_species_subset
+        dataset_hf_readme_centered
         hf_upload_dataset
     )
 
