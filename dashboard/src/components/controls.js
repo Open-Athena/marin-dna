@@ -16,6 +16,16 @@ export const FAMILY_LABEL = {
   evo2: "Evo 2",
 };
 
+// Top-level supervision mode for the Mendelian leaderboard — the score-world a row was
+// computed in. "Unsupervised" = zero-shot likelihood metrics; "Supervised" = the trained
+// frozen-embedding linear probe (#347/#348). The two use different, non-level-comparable
+// metrics (matched-pair AUPRC vs per-chromosome-weighted AUPRC), so the page renders one at
+// a time — never mixed in a single ranked view. Keys match the parquet `supervision` column.
+export const SUPERVISION_LABEL = {
+  unsupervised: "Unsupervised",
+  supervised: "Supervised",
+};
+
 // Leaderboard-visible protocol options per family. This is the subset of
 // `PROTOCOLS` (in src/marin_dna/pipelines/evals/leaderboard.py) that the
 // leaderboards' `FamilyProtocolToggle` exposes — additional protocols can live in

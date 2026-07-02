@@ -18,6 +18,18 @@ _METRIC = (
     "AUPRC is 0.10."
 )
 
+# Supervised-mode (linear-probe) metric caption — shown in place of `_METRIC` when the
+# Mendelian page's mode toggle is on Supervised. Same dataset/variants, different scoring.
+_PROBE_METRIC = (
+    "**Per-chromosome-weighted AUPRC (TraitGym) ± chromosome-cluster bootstrap SE.** For "
+    "each consequence subset, `average_precision_score` is computed *within* each "
+    "chromosome then size-weighted across chromosomes (the TraitGym metric); SE is a "
+    "cluster bootstrap resampling chromosomes (#347). Macro Avg is the unweighted mean over "
+    "subsets — there is **no Global** column, because the probe trains a separate classifier "
+    "per subset, so a pooled global ranking is undefined. 1:9 matching ⇒ the random-baseline "
+    "AUPRC is 0.10."
+)
+
 # caQTL/dsQTL moved to the supervised official-metrics Accessibility QTL page (#312),
 # which carries its own dataset metadata — so no caqtl/dsqtl entries here anymore.
 
@@ -49,6 +61,12 @@ DATASETS = {
         "notes": [
             "Per-subset columns exclude subsets with fewer than 30 positives (`n < 300` under 1:9 matching).",
             "Sorted by Macro Avg by default — the consequence-subset distribution is dominated by missense (a ClinVar annotator-history artifact, not pathogenicity reality), so Global AUPRC over-weights protein-coding-specialist methods. Macro Avg gives equal weight to each subset.",
+        ],
+        "probe_metric": _PROBE_METRIC,
+        "probe_notes": [
+            "**Supervised:** a frozen-embedding L2-logistic linear probe (nested leave-one-chromosome-out; #314/#320) on **MarinDNA models only** — probes read our per-allele embeddings, so no competitor family appears here.",
+            "A subset is probed only if it has ≥300 variants and ≥3 chromosomes (`min_variants` / `min_chroms`); smaller subsets (e.g. mature-miRNA) get no probe score.",
+            "Not comparable to the Unsupervised metric (matched-pair AUPRC) — different weighting and matching. The toggle switches worlds; the two are never shown together.",
         ],
     },
     "complex_traits": {

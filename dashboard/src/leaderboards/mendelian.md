@@ -13,10 +13,13 @@ const datasets = await FileAttachment("../data/datasets.json").json();
 import {heatmap, colorLegend, leadingAggregateSubset, rowsFromLeaderboard} from "../components/heatmap.js";
 import {
   FAMILY_LABEL,
+  SUPERVISION_LABEL,
   PROTOCOL_OPTIONS,
   PROTOCOL_DEFAULTS,
   FamilyProtocolToggle,
   PillToggle,
+  PillSelect,
+  labeledRow,
 } from "../components/controls.js";
 ```
 
@@ -25,6 +28,18 @@ const allRows = rowsFromLeaderboard(leaderboard);
 const mendelian = allRows.filter(r => r.dataset === "mendelian_traits");
 const modelById = new Map(methods.map(m => [m.id, m]));
 const meta = datasets.mendelian_traits;
+```
+
+```js
+// Top-level mode toggle: swaps the whole leaderboard between the two metric-worlds. They
+// are not level-comparable (matched-pair AUPRC vs per-chromosome-weighted AUPRC), so they
+// are never shown together — everything below filters on this. Default = Unsupervised
+// (current behaviour). Supervised = the frozen-embedding linear probe (MarinDNA only).
+const mode = view(labeledRow(
+  "Supervision",
+  PillSelect(Object.keys(SUPERVISION_LABEL), "unsupervised", (m) => SUPERVISION_LABEL[m]),
+  "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA only). Different metrics — shown one at a time.",
+));
 ```
 
 ```js
@@ -51,10 +66,10 @@ display(html`<div class="card">
     <div><b>Positives:</b> ${meta.positives}</div>
     <div><b>Negatives:</b> ${meta.negatives}</div>
     <div><b>Matching:</b> ${meta.matching}</div>
-    <div><b>Metric:</b> ${meta.metric}</div>
+    <div><b>Metric:</b> ${mode === "supervised" ? meta.probe_metric : meta.metric}</div>
   </div>
   <div class="dataset-notes">
-    ${meta.notes.map((n) => html`<div>${n}</div>`)}
+    ${(mode === "supervised" ? meta.probe_notes : meta.notes).map((n) => html`<div>${n}</div>`)}
   </div>
 </div>`);
 ```
@@ -65,8 +80,21 @@ display(html`<div class="card">
 // Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
 // to surface a new family pill. Selecting a family reveals its protocol
 // chips inset in the pill (multi-protocol families only).
-const families = Object.keys(FAMILY_LABEL);
-const sel = view(FamilyProtocolToggle(families, PROTOCOL_OPTIONS, PROTOCOL_DEFAULTS));
+//
+// Supervised mode restricts to the families that actually have probe rows (only
+// `marin_dna` today) and drops the protocol chips — the probe is a single "probe"
+// protocol, so passing empty options makes FamilyProtocolToggle render plain pills.
+const supervisedFamilies = [
+  ...new Set(mendelian.filter(r => r.supervision === "supervised").map(r => r.family)),
+];
+const families = mode === "supervised"
+  ? Object.keys(FAMILY_LABEL).filter(f => supervisedFamilies.includes(f))
+  : Object.keys(FAMILY_LABEL);
+const sel = view(FamilyProtocolToggle(
+  families,
+  mode === "supervised" ? {} : PROTOCOL_OPTIONS,
+  mode === "supervised" ? {} : PROTOCOL_DEFAULTS,
+));
 ```
 
 ```js
@@ -84,11 +112,15 @@ const bestOnly = view(PillToggle("Best per family", false));
 
 ```js
 const filtered = mendelian.filter(r => {
+  if (r.supervision !== mode) return false;
   if (!sel.families.includes(r.family)) return false;
-  // One protocol per family. Falls back to DEFAULTS for families that
-  // don't appear in `sel.protocols` (single-option families).
-  const wantedProtocol = sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family];
-  if (r.protocol !== wantedProtocol) return false;
+  // Unsupervised: one protocol per family (LLR / JSD / cLLR …), falling back to DEFAULTS
+  // for single-option families. Supervised has a single "probe" protocol, so there is no
+  // protocol chip to match against — skip the check.
+  if (mode !== "supervised") {
+    const wantedProtocol = sel.protocols[r.family] ?? PROTOCOL_DEFAULTS[r.family];
+    if (r.protocol !== wantedProtocol) return false;
+  }
   if (search && !r.method_display.toLowerCase().includes(search.toLowerCase())) return false;
   return true;
 });
@@ -309,6 +341,10 @@ display(
     sortKey: sortKeyState,
     onSortChange: setSortKey,
     leadingAggregate: meta.leading_aggregate === "macro_avg" ? "_macro_avg_" : "_global_",
+    // Supervised probe has no pooled Global (separate per-subset classifiers); drop the
+    // column so it doesn't render as an all-"—" ghost. The ±1 SE forest plot stays on —
+    // probe rows carry the chromosome-cluster bootstrap SE (#347).
+    showGlobal: mode !== "supervised",
   }),
 );
 ```
