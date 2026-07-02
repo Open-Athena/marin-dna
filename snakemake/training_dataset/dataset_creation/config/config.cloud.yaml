@@ -47,3 +47,20 @@ interval_mappings:
       split_memory_limit: "220G"
       mem_mb: 220000
       flank_bp: 0
+
+# cds_projection (issue #353 Arm B) is a dict; Snakemake replaces it wholesale
+# on merge, so the FULL block is repeated here with the big-memory knobs —
+# unsplit mmseqs2 (split-memory-limit 220G) on the 256 GB r6i.8xlarge.
+cds_projection:
+    hf_prefix: bolinas-dna/animals-cds-proj-v1
+    genome_set: animals_order204
+    source_genome: GCF_000001405.40
+    source_recipe: v5
+    window_size: 255
+    step_size: 128
+    target_len: 255
+    sensitivity: 7.5
+    max_accept: 1
+    split_memory_limit: "220G"
+    mem_mb: 220000
+    add_rc: true

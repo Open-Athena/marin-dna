@@ -1,0 +1,63 @@
+name: cds-projection
+
+# Arm B of the issue #353 CDS projection-vs-annotation experiment: projects the
+# human v5 CDS windows onto the `animals_order204` species via mmseqs2 (v30
+# flags, unsplit on 256 GB). Parameterise the snakemake target via
+# SNAKEMAKE_ARGS:
+#   smoke (1-2 species):
+#     --env SNAKEMAKE_ARGS="results/cds_projection/intervals/<acc>.bed.gz ..."
+#   full run:
+#     (default) all_cds_projection
+#
+# All 204 target 2bit genomes + the v5 human CDS bed already exist on S3, so no
+# downloads — the heavy step is the per-species whole-genome mmseqs2 search.
+
+resources:
+    infra: aws/us-east-2
+    instance_type: r6i.8xlarge # 32 vCPU, 256 GB RAM
+    disk_size: 300 # target 2bit/fa + mmseqs DBs + conda envs
+    labels:
+        project: dna
+
+workdir: .
+
+envs:
+    SNAKEMAKE_ARGS: all_cds_projection
+
+setup: |
+    set -euxo pipefail
+
+    if [ ! -d "$HOME/miniforge3" ]; then
+        curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+        bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
+        rm /tmp/miniforge.sh
+    fi
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+
+    grep -q 'miniforge3/bin' "$HOME/.bashrc" || \
+        echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync
+
+run: |
+    set -euxo pipefail
+
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+    export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+    export CONDA_EXE="$HOME/miniforge3/bin/conda"
+    conda --version
+
+    cd snakemake/training_dataset/dataset_creation
+
+    uv run --project ../../.. snakemake \
+        $SNAKEMAKE_ARGS \
+        --cores 32 \
+        --use-conda \
+        --resources mem_mb=220000 \
+        --configfile config/config.yaml config/config.cloud.yaml \
+        --printshellcmds \
+        --rerun-incomplete
