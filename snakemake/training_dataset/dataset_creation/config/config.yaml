@@ -149,6 +149,27 @@ interval_mappings:
 
 output_hf_prefix: bolinas-dna/genomes-v5
 
+# Arm B of the issue #353 CDS projection-vs-annotation experiment. A
+# self-contained duplicate chain (workflow/rules/cds_projection.smk) that
+# projects the human v5 CDS windows onto every animals_order204 species via
+# mmseqs2 (v30 flags), isolated under results/cds_projection/ + its own HF repo
+# so nothing clashes with the shared training_dataset outputs. Target:
+# `all_cds_projection`.
+cds_projection:
+    hf_prefix: bolinas-dna/animals-cds-proj-v1
+    genome_set: animals_order204
+    source_genome: GCF_000001405.40 # human — v5 CDS windows are the projection query
+    source_recipe: v5
+    window_size: 255
+    step_size: 128
+    target_len: 255
+    # mmseqs2 nucleotide search — same operating point as v30 (#120/#123).
+    sensitivity: 7.5
+    max_accept: 1
+    split_memory_limit: "12G" # dev-box default; override on the big-mem cloud run
+    mem_mb: 14000
+    add_rc: true
+
 # Subset of genomes for one-off analysis (6 priority + 30 random, seed=42)
 genome_subset_analysis:
     - GCF_000001405.40 # Human

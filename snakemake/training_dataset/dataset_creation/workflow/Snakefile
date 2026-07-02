@@ -52,6 +52,7 @@ include: "rules/dataset.smk"
 include: "rules/eda.smk"
 include: "rules/scannable.smk"
 include: "rules/interval_alignment.smk"
+include: "rules/cds_projection.smk"
 
 
 rule all:
