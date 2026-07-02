@@ -27,6 +27,11 @@ intervals:
             - v31/255/128 # v30 with phyloP-241way per-cCRE filter raised to ≥50 bp
             - v32/255/128 # v30 with phastCons-43p track at ≥0.961, ≥20 bp
             - v33/255/128 # v30 with phastCons-43p track at ≥0.961, ≥50 bp
+        # issue #353 CDS projection-vs-annotation experiment. Arm A only for
+        # now (v5 = each species' own annotated CDS); Arm B (human-CDS
+        # projection) is added as an interval_mappings recipe in a follow-up.
+        animals_order204:
+            - v5/255/128 # CDS — Arm A (per-species annotation)
     validation: # step = window for max diversity
         - v5/255/255
         - v1/255/255
@@ -77,6 +82,12 @@ genome_sets:
           - GCF_000001405.40 # Homo sapiens (Primates)
           - GCF_024166365.1  # Elephas maximus indicus (Proboscidea)
           - GCF_000001635.27 # Mus musculus (Rodentia)
+    # One genome per Metazoan order (annotated RefSeq): the order-level dedup of
+    # the family universe in config/genomes.parquet, 204 species across 17
+    # phyla. Target species for the issue #353 CDS projection-vs-annotation
+    # experiment. Regenerate with scripts/issue353_build_animal_order_species.py.
+    - name: animals_order204
+      accessions_tsv: config/animals_order204.tsv
 
 # Interval sets defined on one source genome and projected onto others via
 # local pairwise alignment. Each entry produces intervals at

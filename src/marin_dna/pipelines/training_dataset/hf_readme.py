@@ -126,6 +126,7 @@ GENOME_SET_TITLES: dict[str, str] = {
     "human_mouse": "Human + mouse",
     "enhancer_seg_mammals_v1": "20 mammals (segmentation)",
     "mammals_seg20": "20 mammals",
+    "animals_order204": "204 animals (one per order)",
 }
 
 GENOME_SET_BLURBS: dict[str, str] = {
@@ -156,6 +157,13 @@ GENOME_SET_BLURBS: dict[str, str] = {
     "mammals_seg20": (
         "20 chromosome-level mammalian assemblies, one per order (the same "
         "set as `enhancer_seg_mammals_v1`)."
+    ),
+    "animals_order204": (
+        "One annotated RefSeq genome per **Metazoan order** (**{n_genomes} "
+        "genomes** across 17 phyla) — the order-level dedup of the `animals` "
+        "family universe, target species for the "
+        "[issue #353](https://github.com/Open-Athena/marin-dna/issues/353) "
+        "CDS projection-vs-annotation experiment."
     ),
 }
 

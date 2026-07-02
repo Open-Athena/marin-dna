@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 # MarinDNA module imports
 from marin_dna.data.intervals import GenomicSet
+from marin_dna.pipelines.training_dataset.genome_selection import read_accessions_tsv
 from marin_dna.data.utils import (
     ENHANCER_CRE_CLASSES,
     HUMAN_GENOME,
@@ -102,11 +103,14 @@ def load_genome_sets(
     """
     Load genome sets based on taxonomic filtering or an explicit accession list.
 
-    Each entry in ``genome_sets_config`` must have a ``name``, plus either:
+    Each entry in ``genome_sets_config`` must have a ``name``, plus one of:
       - ``rank_key`` + ``rank_value`` to select all genomes with
-        ``genomes[rank_key] == rank_value`` (e.g., all Mammalia), or
+        ``genomes[rank_key] == rank_value`` (e.g., all Mammalia),
       - ``accessions``: an explicit list of Assembly Accessions
-        (e.g., the 20 genomes covered by segmentation prediction).
+        (e.g., the 20 genomes covered by segmentation prediction), or
+      - ``accessions_tsv``: path to a committed TSV whose ``Assembly Accession``
+        column lists the genomes (e.g. ``config/animals_order204.tsv``), for
+        curated sets too large to inline.
 
     Returns:
         Dictionary mapping subset names to lists of genome Assembly Accessions.
@@ -114,8 +118,11 @@ def load_genome_sets(
     genome_sets = {}
     for genome_set in genome_sets_config:
         name = genome_set["name"]
-        if "accessions" in genome_set:
-            accessions = list(genome_set["accessions"])
+        if "accessions" in genome_set or "accessions_tsv" in genome_set:
+            if "accessions_tsv" in genome_set:
+                accessions = read_accessions_tsv(genome_set["accessions_tsv"])
+            else:
+                accessions = list(genome_set["accessions"])
             unknown = [a for a in accessions if a not in genomes.index]
             assert not unknown, (
                 f"genome_set {name!r} references unknown accessions: {unknown}"
