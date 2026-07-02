@@ -22,8 +22,8 @@ label bug               d73a4a "Type: something is broken"
 label evals                       aaaaaa "Area: work on the eval apparatus — new eval dataset, scoring protocol, or metric"
 label data                        9d1bf3 "Area: training-data construction — projection, labeling, filtering (eval sets go under evals)"
 label modeling                    fbca04 "Area: core gLM recipe — architecture, objective, tokenization, loss weighting, context"
-label baselines                   006b75 "Area: competitor/reference models — Evo2, GPN-Star, AlphaGenome, conservation, ChromBPNet"
-label hyperparameter-optimization 0052cc "Area: hyperparameter/optimizer/schedule sweeps, incl. scaling (size/compute) sweeps"
+label baselines                   006b75 "Area: reference models — Evo2, GPN-Star, AlphaGenome, conservation, ChromBPNet"
+label hyperparameter-optimization 0052cc "Area: hyperparameter/optimizer/schedule sweeps and model scaling (size/compute)"
 label interpretation              0e8a16 "Area: model interpretation — UMAP, nucleotide-dependency maps, SAEs, TF-MoDISco"
 
 # --- Meta / structural ---
