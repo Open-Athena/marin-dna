@@ -1,0 +1,57 @@
+# CPU instance to run a frozen-embedding probe (#131) — for a heavy feature whose
+# nested-LOCO GridSearch overruns the GPU eval cluster's cap (e.g. evo2_40b:
+# concat_ref_delta = [ref(8192), delta(8192)] = 16384-dim → ~1 h even on 64 cores).
+# The probe is CPU-only (sklearn), so run it here, not on an idle GPU.
+#
+# GOTCHA (why the run block uses taskset): SkyPilot runs `run:` under Ray, which
+# pins the process to 1 CPU — `nproc` returns 1, so a naive `--n-jobs $(nproc)`
+# runs SERIAL (~24 h for 40B). We reset affinity with `taskset` over the true core
+# count (`nproc --all`, which ignores the pin) and pass that as --n-jobs. If a
+# repro still shows load ~1 (a cpuset cgroup rather than plain affinity), run the
+# probe over plain SSH instead — `ssh <cluster> '<the python cmd>'` sees all cores.
+name: evo2-probe-cpu
+
+resources:
+  cloud: aws
+  region: us-east-2
+  cpus: 64+
+  memory: 100+
+  disk_size: 64
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .   # code only; .skyignore excludes results/ scratch/ .venv/ from the sync
+
+envs:
+  MODEL: evo2_40b   # stamped into the output filenames + --model
+
+file_mounts:
+  # The scored bundle to probe (must carry emb_ref/emb_alt). Point at the model
+  # matching MODEL above.
+  /data/scores.parquet: results/evo2_mendelian_traits/evo2_40b_train.parquet
+
+setup: |
+  set -euxo pipefail
+  command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  uv venv --python 3.12 /tmp/probeenv
+  VIRTUAL_ENV=/tmp/probeenv uv pip install numpy pandas "scikit-learn>=1.5,<2" scipy pyarrow joblib
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+  export PYTHONPATH="$PWD/src"
+  NCPU=$(nproc --all)   # true core count (plain `nproc` returns 1 under Ray's pin)
+  mkdir -p out
+  taskset -c "0-$((NCPU-1))" /tmp/probeenv/bin/python scripts/evo2_eval/train_variant_probe.py \
+    --input /data/scores.parquet \
+    --output-predictions "out/${MODEL}_train_probe.parquet" \
+    --output-metrics "out/${MODEL}_train_probe_metrics.parquet" \
+    --model "$MODEL" --dataset mendelian_traits --n-jobs "$NCPU"
+  echo "=== PROBE DONE ==="; ls -la out/
+  # Pull results back with:
+  #   rsync -avz <cluster>:~/sky_workdir/out/ results/evo2_mendelian_traits/

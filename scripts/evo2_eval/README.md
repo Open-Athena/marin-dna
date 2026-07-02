@@ -80,6 +80,10 @@ for m in evo2_1b_base evo2_7b evo2_40b; do
 done
 ```
 
+**Heavy features → a CPU instance.** The `concat_ref_delta` feature is `2·D`-dim, so the nested-LOCO GridSearch scales with model width: fine locally for 1B/7B (D=1920/4096), but **evo2_40b** (D=8192 → 16,384-dim) runs ~1 h even on 64 cores and overruns any GPU-cluster probe cap. Run it on a short-lived CPU box with `scripts/evo2_eval/sky/probe_cpu.yaml` (`--env MODEL=evo2_40b`), then `rsync` the `out/` parquets back. Note the SkyPilot/Ray 1-CPU-pin gotcha documented in that yaml (use `taskset`, or run the probe over plain SSH).
+
+**Inference cost.** `scripts/evo2_eval/inference_cost.py` reports the steady-state per-variant scoring cost (variants/hr · accel-sec/variant · peak VRAM · \$/1k · TFLOP/var) — one `Run` row per (model, config); drop our own gLMs in later for an apples-to-apples cost comparison.
+
 This is the same protocol the gLMs run through the evals_v2 `probe`/metrics rules, so Evo2 vs the in-house gLMs is an apples-to-apples probe comparison (same feature rule, nested-LOOC CV, and headline metric). The `--emb-layer` of the scoring step is the one Evo2-specific knob — `norm` (last layer) keeps protocol parity (our gLM bundle takes `base_model.last_hidden_state`, which is post-final-norm for the Qwen3 checkpoints); sweep mid-network layers (`--emb-layer blocks.<i>...`) only if the last layer underperforms.
 
 ### Validating the embedding bundle — GH200 smoke (#131)
