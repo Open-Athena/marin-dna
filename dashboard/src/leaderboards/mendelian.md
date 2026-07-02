@@ -63,6 +63,8 @@ display(html`<div class="card">
 </div>`);
 ```
 
+## Leaderboard
+
 ```js
 // Top-level mode toggle: swaps the whole leaderboard between the two metric-worlds. They
 // are not level-comparable (matched-pair AUPRC vs per-chromosome-weighted AUPRC), so they
@@ -73,8 +75,6 @@ const mode = view(labeledRow(
   "Unsupervised = zero-shot likelihood. Supervised = frozen-embedding linear probe (MarinDNA only). Different metrics — shown one at a time.",
 ));
 ```
-
-## Leaderboard
 
 ```js
 // Single source of truth: add/remove a key in `FAMILY_LABEL` (controls.js)
