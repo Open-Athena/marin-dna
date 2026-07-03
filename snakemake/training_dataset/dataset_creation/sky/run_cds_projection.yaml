@@ -21,6 +21,11 @@ resources:
 
 workdir: .
 
+# Mount the user's HF token so `hf upload` can authenticate (only needed when
+# SNAKEMAKE_ARGS includes upload targets; harmless otherwise).
+file_mounts:
+    ~/.cache/huggingface: ~/.cache/huggingface
+
 envs:
     SNAKEMAKE_ARGS: all_cds_projection
 
