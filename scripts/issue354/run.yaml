@@ -78,6 +78,14 @@ setup: |
     # torch wheel here if so.
     uv sync --frozen
 
+    # On aarch64 (GH200/Grace) uv resolves the CPU-only PyPI torch, so the GPU is
+    # invisible (torch.cuda.is_available() == False). Swap in the CUDA build from
+    # the pytorch cu128 index. Idempotent + platform-guarded: on x86 uv already
+    # installs a CUDA torch, so this branch is skipped.
+    if ! uv run python -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
+        uv pip install --reinstall "torch==2.10.0" --index-url https://download.pytorch.org/whl/cu128
+    fi
+
     # Pull the checkpoint from GCS into ~/ckpt (config.json + safetensors + tokenizer).
     mkdir -p ~/ckpt
     gcloud storage cp -r "$CHECKPOINT_GCS/*" ~/ckpt/
@@ -85,11 +93,15 @@ setup: |
 run: |
     set -euxo pipefail
     export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    # Pin the single GPU: sky can leave CUDA_VISIBLE_DEVICES blank in the job env.
+    export CUDA_VISIBLE_DEVICES=0
 
     nvidia-smi   # babysit: confirm a GPU is actually present before scoring
 
     mkdir -p ~/out
-    uv run python scripts/issue354/inference_cost.py \
+    # --no-sync so `uv run` doesn't re-sync the venv back to the lockfile's CPU
+    # torch (the setup step swapped in the CUDA build for aarch64).
+    uv run --no-sync python scripts/issue354/inference_cost.py \
         --checkpoint ~/ckpt \
         --genome /genome/GRCh38.fa.gz \
         --dataset bolinas-dna/evals_sge \
