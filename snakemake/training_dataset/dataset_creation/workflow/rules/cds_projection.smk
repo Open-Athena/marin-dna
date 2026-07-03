@@ -296,6 +296,64 @@ rule all_cds_projection_parquets:
         expand("results/cds_projection/dataset_genome/{g}.parquet", g=CDS_SPECIES),
 
 
+rule cds_proj_hf_readme:
+    """Generate the HF dataset card for one cohort (exact n_rows from parquet footers)."""
+    input:
+        lambda w: expand(
+            "results/cds_projection/dataset_genome/{g}.parquet",
+            g=genome_sets[CDS_COHORTS[w.cohort]],
+        ),
+    output:
+        "results/cds_projection/readme/{cohort}/README.md",
+    wildcard_constraints:
+        cohort="|".join(CDS_COHORTS),
+    run:
+        from marin_dna.pipelines.training_dataset.cds_projection import (
+            build_cds_projection_readme,
+        )
+        from marin_dna.pipelines.training_dataset.hf_readme import count_parquet_rows
+
+        prefix = workflow.storage_settings.default_storage_prefix
+        assert prefix, "cds_proj_hf_readme needs the S3 default-storage profile"
+        species = genome_sets[CDS_COHORTS[wildcards.cohort]]
+        uris = [
+            f"{prefix.rstrip('/')}/results/cds_projection/dataset_genome/{g}.parquet"
+            for g in species
+        ]
+        md = build_cds_projection_readme(
+            cohort=wildcards.cohort,
+            n_species=len(species),
+            n_rows=count_parquet_rows(uris),
+            commit_sha=GIT_COMMIT_SHA,
+            is_vertebrate_subset=(wildcards.cohort != "all204"),
+        )
+        os.makedirs(os.path.dirname(output[0]), exist_ok=True)
+        with open(output[0], "w") as f:
+            f.write(md)
+
+
+rule cds_proj_hf_upload_readme:
+    """Push the cohort's dataset card (`hf upload-large-folder` skips top-level files)."""
+    input:
+        "results/cds_projection/readme/{cohort}/README.md",
+    output:
+        "results/cds_projection/upload.done/readme/{cohort}",
+    params:
+        name=lambda w: f"{CDS['hf_prefix']}-{w.cohort}",
+    wildcard_constraints:
+        cohort="|".join(CDS_COHORTS),
+    shell:
+        """
+        hf upload {params.name} {input} README.md --repo-type dataset
+        mkdir -p $(dirname {output})
+        touch {output}
+        """
+
+
 rule all_cds_projection:
     input:
         expand("results/cds_projection/upload.done/{cohort}", cohort=list(CDS_COHORTS)),
+        expand(
+            "results/cds_projection/upload.done/readme/{cohort}",
+            cohort=list(CDS_COHORTS),
+        ),
