@@ -1,6 +1,6 @@
 """GH200 steady-state inference-cost benchmark for exp135-1B-m5.1 (issue #354).
 
-Measures steady-state variant-scoring throughput + $/1k variants + peak VRAM on
+Measures steady-state variant-scoring throughput + time & $ per 1M variants + VRAM on
 whatever single GPU it runs on, using the **real** evals_v2 scoring path
 (``run_variant_score_bundle``) with the production inference config: FWD+RC,
 bf16, torch.compile, and ``return_embeddings=True`` (the ~2x-heavier
@@ -55,6 +55,18 @@ from marin_dna.pipelines.evals.inference import fwd_rc_average_f16
 REQUIRED_COLS = ["chrom", "pos", "ref", "alt"]
 SECONDS_PER_HOUR = 3600.0
 BYTES_PER_GB = 1024**3
+
+
+def _fmt_duration(hours: float) -> str:
+    """A given number of hours as a human-natural string (s / min / hr / days)."""
+    seconds = hours * SECONDS_PER_HOUR
+    if seconds < 90:
+        return f"{seconds:.0f} s"
+    if seconds < 5400:  # < 90 min
+        return f"{seconds / 60:.0f} min"
+    if hours < 48:
+        return f"{hours:.1f} hr"
+    return f"{hours / 24:.1f} days"
 
 
 class TimingCallback(TrainerCallback):
@@ -261,7 +273,8 @@ def _steady_state_row(
         "sec_per_strand_batch_p90": float(np.percentile(diffs, 90)),
         "wall_s_full_pass": wall,
         "variants_per_hr": variants_per_hr,
-        "usd_per_1k_variants": 1000.0 / variants_per_hr * price_per_hr,
+        "hours_per_1M_variants": 1e6 / variants_per_hr,
+        "usd_per_1M_variants": 1e6 / variants_per_hr * price_per_hr,
         "peak_vram_reserved_gb": torch.cuda.max_memory_reserved() / BYTES_PER_GB,
         "peak_vram_allocated_gb": torch.cuda.max_memory_allocated() / BYTES_PER_GB,
     }
@@ -398,12 +411,15 @@ def main() -> None:
     print(
         "\n=== cost table (context = 256 tok; FWD+RC; embeddings on; f16 storage) ==="
     )
-    print(f"{'batch':>6} {'variants/hr':>12} {'$/1k':>8} {'peakVRAM(GB)':>13}")
+    print(
+        f"{'batch':>6} {'variants/hr':>12} {'time/1M':>10} {'$/1M':>8} {'peakVRAM(GB)':>13}"
+    )
     for r in rows:
         if r.get("ok"):
             print(
                 f"{r['batch_size']:>6} {r['variants_per_hr']:>12,.0f} "
-                f"{r['usd_per_1k_variants']:>8.3f} {r['peak_vram_reserved_gb']:>13.1f}"
+                f"{_fmt_duration(r['hours_per_1M_variants']):>10} "
+                f"{r['usd_per_1M_variants']:>8.2f} {r['peak_vram_reserved_gb']:>13.1f}"
             )
         else:
             print(f"{r['batch_size']:>6}  FAILED: {r.get('error')}")

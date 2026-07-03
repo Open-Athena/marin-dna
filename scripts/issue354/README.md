@@ -1,6 +1,6 @@
 # issue #354 — exp135-1B-m5.1 GH200 inference-cost benchmark
 
-Steady-state variant-scoring throughput + `$/1k` variants + peak VRAM for
+Steady-state variant-scoring throughput + time & `$` per 1M variants + peak VRAM for
 `exp135-1B-m5.1` on a GH200, like-for-like with the Evo 2 cost table in
 [#131](https://github.com/Open-Athena/marin-dna/issues/131#issuecomment-4869179889).
 Results (the cost table) go in issue #354 — **not** here.
@@ -26,7 +26,8 @@ over 256 tokens, so f16 is sufficient — unlike Evo 2's 8192-token pool (see #3
    median of inter-step diffs (drops the compile batch + the FWD→RC boundary).
    `variants/hr = 3600 · B / (2 · sec_per_strand_batch)` (the 2 = both strands
    per unique variant, matching Evo 2's FWD+RC accounting).
-   `$/1k = 1000 / (variants/hr) · price_per_hr` (default `$2.29`, the #131 GH200 rate).
+   `$/1M = 1e6 / (variants/hr) · price_per_hr` and `hours/1M = 1e6 / (variants/hr)`
+   (price default `$2.29`, the #131 GH200 rate; time printed in natural units).
 3. **Scores dump** — `sge_scores.parquet` (llr/jsd atoms + f16 emb_ref/emb_alt +
    variant columns) for the offline SGE-AUPRC regression check.
 
