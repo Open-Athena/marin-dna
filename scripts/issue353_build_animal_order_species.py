@@ -39,6 +39,10 @@ REPO = Path(__file__).resolve().parents[1]
 CONFIG = REPO / "snakemake/training_dataset/dataset_creation/config"
 GENOMES = CONFIG / "genomes.parquet"
 OUT = CONFIG / "animals_order204.tsv"
+# Vertebrate (Chordata) subset — the species where nucleotide CDS projection
+# actually carries data (20–79% for true vertebrates; the invertebrate phyla sit
+# at a ~2% reach floor). The matched set for the vertebrate-scope arm of #353.
+VERT_OUT = CONFIG / "animals_order204_chordata.tsv"
 
 COLS = [
     "Assembly Accession",
@@ -64,6 +68,11 @@ def main() -> None:
     print(f"wrote {len(out)} rows -> {OUT.relative_to(REPO)}")
     print(f"phyla: {out['phylum'].nunique()}  classes: {out['class'].nunique()}")
     print(out["phylum"].value_counts().to_string())
+
+    vert = out[out["phylum"] == "Chordata"].reset_index(drop=True)
+    assert "GCF_000001405.40" in set(vert["Assembly Accession"]), "human missing"
+    VERT_OUT.write_text(vert.to_csv(sep="\t", index=False))
+    print(f"\nwrote {len(vert)} Chordata rows -> {VERT_OUT.relative_to(REPO)}")
 
 
 if __name__ == "__main__":

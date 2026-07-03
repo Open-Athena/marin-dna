@@ -127,6 +127,7 @@ GENOME_SET_TITLES: dict[str, str] = {
     "enhancer_seg_mammals_v1": "20 mammals (segmentation)",
     "mammals_seg20": "20 mammals",
     "animals_order204": "204 animals (one per order)",
+    "vertebrates_order125": "125 vertebrates (one per order)",
 }
 
 GENOME_SET_BLURBS: dict[str, str] = {
@@ -164,6 +165,13 @@ GENOME_SET_BLURBS: dict[str, str] = {
         "family universe, target species for the "
         "[issue #353](https://github.com/Open-Athena/marin-dna/issues/353) "
         "CDS projection-vs-annotation experiment."
+    ),
+    "vertebrates_order125": (
+        "The **Chordata** subset of `animals_order204` (**{n_genomes} genomes**) "
+        "— the vertebrate scope of the "
+        "[issue #353](https://github.com/Open-Athena/marin-dna/issues/353) CDS "
+        "projection-vs-annotation sweep, where nucleotide CDS projection carries "
+        "real data (invertebrate phyla sit at a ~2% reach floor)."
     ),
 }
 

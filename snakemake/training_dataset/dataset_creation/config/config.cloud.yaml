@@ -64,3 +64,6 @@ cds_projection:
     split_memory_limit: "220G" # unsplit; per-search peak ~34 GB (observed)
     mem_mb: 45000 # ~4 concurrent searches on the 220 GB budget
     add_rc: true
+    cohorts:
+        all204: animals_order204
+        vert125: vertebrates_order125

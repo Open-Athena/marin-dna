@@ -32,6 +32,10 @@ CDS_SOURCE = CDS["source_genome"]
 CDS_SPECIES = genome_sets[CDS["genome_set"]]
 CDS_TARGETS = [g for g in CDS_SPECIES if g != CDS_SOURCE]
 CDS_TARGET_LEN = int(CDS["target_len"])
+# Dataset cohorts (issue #353 sweep): cohort name -> genome_set to merge. All
+# cohorts reuse the same per-genome projection parquets (built over the full
+# `genome_set`); a cohort just row-filters the merge to its species.
+CDS_COHORTS = CDS["cohorts"]
 
 assert CDS_SOURCE in CDS_SPECIES, (
     f"cds_projection source_genome {CDS_SOURCE!r} must be in genome_set "
@@ -237,13 +241,19 @@ rule cds_proj_parquet:
 
 
 rule cds_proj_merge:
-    """Merge all per-genome parquets, shuffle, and shard into JSONL (mirrors merge_datasets)."""
+    """Merge one cohort's per-genome parquets, shuffle, shard into JSONL (mirrors merge_datasets)."""
     input:
-        expand("results/cds_projection/dataset_genome/{g}.parquet", g=CDS_SPECIES),
+        lambda w: expand(
+            "results/cds_projection/dataset_genome/{g}.parquet",
+            g=genome_sets[CDS_COHORTS[w.cohort]],
+        ),
     output:
         temp(local(expand(
-            "results/cds_projection/dataset/data/train/{shard}.jsonl", shard=SHARDS
+            "results/cds_projection/dataset/{{cohort}}/data/train/{shard}.jsonl",
+            shard=SHARDS,
         ))),
+    wildcard_constraints:
+        cohort="|".join(CDS_COHORTS),
     threads: workflow.cores
     run:
         df = pl.concat(
@@ -255,16 +265,19 @@ rule cds_proj_merge:
 
 
 rule cds_proj_hf_upload:
-    """Upload the projected-CDS dataset shards to its own HF repo."""
+    """Upload one cohort's shards to its HF repo (`{hf_prefix}-{cohort}`)."""
     input:
         local(expand(
-            "results/cds_projection/dataset/data/train/{shard}.jsonl.zst", shard=SHARDS
+            "results/cds_projection/dataset/{{cohort}}/data/train/{shard}.jsonl.zst",
+            shard=SHARDS,
         )),
     output:
-        "results/cds_projection/upload.done",
+        "results/cds_projection/upload.done/{cohort}",
     params:
-        name=CDS["hf_prefix"],
-        data_dir="results/cds_projection/dataset",
+        name=lambda w: f"{CDS['hf_prefix']}-{w.cohort}",
+        data_dir=lambda w: f"results/cds_projection/dataset/{w.cohort}",
+    wildcard_constraints:
+        cohort="|".join(CDS_COHORTS),
     threads: workflow.cores
     shell:
         """
@@ -285,4 +298,4 @@ rule all_cds_projection_parquets:
 
 rule all_cds_projection:
     input:
-        "results/cds_projection/upload.done",
+        expand("results/cds_projection/upload.done/{cohort}", cohort=list(CDS_COHORTS)),

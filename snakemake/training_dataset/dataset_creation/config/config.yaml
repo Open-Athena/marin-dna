@@ -31,7 +31,9 @@ intervals:
         # now (v5 = each species' own annotated CDS); Arm B (human-CDS
         # projection) is added as an interval_mappings recipe in a follow-up.
         animals_order204:
-            - v5/255/128 # CDS — Arm A (per-species annotation)
+            - v5/255/128 # CDS — Arm A (per-species annotation), all-204 scope
+        vertebrates_order125:
+            - v5/255/128 # CDS — Arm A, vertebrate scope
     validation: # step = window for max diversity
         - v5/255/255
         - v1/255/255
@@ -88,6 +90,11 @@ genome_sets:
     # experiment. Regenerate with scripts/issue353_build_animal_order_species.py.
     - name: animals_order204
       accessions_tsv: config/animals_order204.tsv
+    # Vertebrate (Chordata) subset of animals_order204 — the 125 species where CDS
+    # projection carries real data. The matched vertebrate-scope set for the #353
+    # sweep (both arms).
+    - name: vertebrates_order125
+      accessions_tsv: config/animals_order204_chordata.tsv
 
 # Interval sets defined on one source genome and projected onto others via
 # local pairwise alignment. Each entry produces intervals at
@@ -169,6 +176,12 @@ cds_projection:
     split_memory_limit: "12G" # dev-box default; override on the big-mem cloud run
     mem_mb: 14000
     add_rc: true
+    # Dataset cohorts (the #353 sweep): cohort -> genome_set to merge. Both reuse
+    # the same per-genome projection parquets; each becomes its own HF repo
+    # bolinas-dna/animals-cds-proj-v1-{cohort}.
+    cohorts:
+        all204: animals_order204
+        vert125: vertebrates_order125
 
 # Subset of genomes for one-off analysis (6 priority + 30 random, seed=42)
 genome_subset_analysis:
