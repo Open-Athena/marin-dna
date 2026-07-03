@@ -13,11 +13,11 @@ dependencies = [
     # pre-06-30 window (<=0.2.31, transformers-4), and the pytorch-cpu index +
     # tpu-extra torch/torchvision routing (below) makes the tpu extra resolvable
     # there — the full recipe (#356 partial fix; this repo's marin-blocker notes).
-    "marin-core==0.2.20.*",
-    "marin-levanter==0.2.20.*",
-    "marin-iris==0.2.20.*",
-    "marin-zephyr==0.2.20.*",
-    "marin-rigging==0.2.20.*",
+    "marin-core==0.2.31.*",
+    "marin-levanter==0.2.31.*",
+    "marin-iris==0.2.31.*",
+    "marin-zephyr==0.2.31.*",
+    "marin-rigging==0.2.31.*",
     "marin-dupekit",
     # 06-17 finelog: iris 0.2.20 still imports `finelog.client.proxy`, which
     # finelog 0.2.12 (06-28+) dropped → "No module named 'finelog.client.proxy'"
