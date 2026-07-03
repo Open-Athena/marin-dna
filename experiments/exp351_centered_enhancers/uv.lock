@@ -805,8 +805,8 @@ requires-dist = [
     { name = "marin-core", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'" },
     { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=main" },
     { name = "marin-dupekit" },
-    { name = "marin-finelog" },
-    { name = "marin-finelog-server" },
+    { name = "marin-finelog", specifier = "==0.2.11.dev202606171051" },
+    { name = "marin-finelog-server", specifier = "==0.2.11.dev202606171051" },
     { name = "marin-iris", specifier = "==0.2.20.*" },
     { name = "marin-levanter", specifier = "==0.2.20.*" },
     { name = "marin-rigging", specifier = "==0.2.20.*" },
@@ -1775,7 +1775,7 @@ wheels = [
 
 [[package]]
 name = "marin-finelog"
-version = "0.2.12.dev202607010941"
+version = "0.2.11.dev202606171051"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click", marker = "sys_platform == 'linux'" },
@@ -1789,19 +1789,19 @@ dependencies = [
     { name = "pyyaml", marker = "sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/34/825ab71bbd44c1e4bf792b86746a0b609a218aae51bc60da13e620baaf83/marin_finelog-0.2.12.dev202607010941.tar.gz", hash = "sha256:054f0a2222eaf649293f06dff421ac9cdc502af5ef407d322dbb614247850119", size = 55592, upload-time = "2026-07-01T10:15:40.572Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/cd/93923fff5de6471b66470b6ed26d210e96350570e49980728ea6e9e69708/marin_finelog-0.2.11.dev202606171051.tar.gz", hash = "sha256:2d49c6dc737fac49affd768e617fd15201f9ed8868cdf3efa77480d1fa3c9580", size = 52226, upload-time = "2026-06-17T11:22:04.646Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/2c/71635da3584124bd6410c9f5b162cf7a74da0bedcc4e9cbe8428eefe25af/marin_finelog-0.2.12.dev202607010941-py3-none-any.whl", hash = "sha256:c95d6791d0ce6c9e3d16d80e356f0212c3509211b69959d4790d8d432f59caa0", size = 56371, upload-time = "2026-07-01T10:15:27.439Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/c9/8eaf8c2ad3721f3762a74adfd001b965d45c9eb5c346c5b34a8c9877de84/marin_finelog-0.2.11.dev202606171051-py3-none-any.whl", hash = "sha256:6c93f3e929f193a09ebd48a94144b42a2dc39eeeb6b1c751b9fc0439262bd22f", size = 53557, upload-time = "2026-06-17T11:21:47.737Z" },
 ]
 
 [[package]]
 name = "marin-finelog-server"
-version = "0.2.12.dev202607010941"
+version = "0.2.11.dev202606171051"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/34/ba/fdb24907140cc00715d22fcee24ef54ea4e4cf3f11402dcef6f89823bed1/marin_finelog_server-0.2.12.dev202607010941.tar.gz", hash = "sha256:4f099af5673dca845b4c39b8815b3c9bb8c553a8344c85bb5feaaeda30f38e67", size = 203964, upload-time = "2026-07-01T10:15:41.459Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/c3/8e92322aa15c1d0ff197f9ad3209b7eccae4fe22ba7c58914c8cef8f4549/marin_finelog_server-0.2.11.dev202606171051.tar.gz", hash = "sha256:a8113084fa1f0ecb1217f69cb173cd3be01a12bcc5cc16f8284db90bc4c565f3", size = 197924, upload-time = "2026-06-17T11:22:05.675Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/67/c55c055d66caa5deac982ff6725054ea913ec8b37c2428c815c33489e9e2/marin_finelog_server-0.2.12.dev202607010941-cp312-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:b5593a30c9ba8d927bb78ad28b3626f3bd45776ee57c39d780629987b6e47eae", size = 40729913, upload-time = "2026-07-01T10:15:34.351Z" },
-    { url = "https://files.pythonhosted.org/packages/93/66/f688d4dcaec82687a6768ecffddb05f8a537ef05b827515cd8d3d09ad479/marin_finelog_server-0.2.12.dev202607010941-cp312-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:f3cf5da1c46bd1c08304b90e6c5ba5d3bb3c9a7a9c6f1b951298492596c600df", size = 43287357, upload-time = "2026-07-01T10:15:38.172Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/e8/316f96af992a1b5e79f28915face84fbc6cd02316fe22ddede6b3e2e465d/marin_finelog_server-0.2.11.dev202606171051-cp311-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:7c0f6e4428c7c9d8a85d6ede8c5eb7b9a8ecfad011ef2f4052123ed082a61fff", size = 40490328, upload-time = "2026-06-17T11:21:58.009Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/c4/9d9287fe11ccb44c9ab689abca1bb6c736a1560eb766755a7f3bbd88f723/marin_finelog_server-0.2.11.dev202606171051-cp311-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:27227b2ee9d85423613fe02f8d08b58305541bd15a0a05f914d839979df5c997", size = 43060541, upload-time = "2026-06-17T11:22:02.36Z" },
 ]
 
 [[package]]
