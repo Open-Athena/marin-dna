@@ -64,6 +64,14 @@ setup: |
     export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
     export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
 
+    # pyBigWig (a marin-dna base dep) has no aarch64 wheel, so on the GH200
+    # (Grace/ARM) it builds from source and needs libcurl headers, which the
+    # Lambda base image lacks (x86 A10G used a prebuilt wheel, so this never
+    # bit there). Install them before uv sync.
+    if ! dpkg -s libcurl4-openssl-dev >/dev/null 2>&1; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq libcurl4-openssl-dev
+    fi
+
     # Base env only — the genome is local, so no `--group genome-s3` (s3fs).
     # NOTE (aarch64 GH200): if `uv sync` resolves a CPU-only torch, the run
     # step's `assert torch.cuda.is_available()` fails fast — reinstall a CUDA
