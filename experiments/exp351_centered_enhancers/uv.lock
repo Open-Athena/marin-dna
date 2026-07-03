@@ -259,6 +259,15 @@ wheels = [
 ]
 
 [[package]]
+name = "blinker"
+version = "1.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/28/9b3f50ce0e048515135495f198351908d99540d69bfdc8c1d15b73dc55ce/blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf", size = 22460, upload-time = "2024-11-08T17:25:47.436Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc", size = 8458, upload-time = "2024-11-08T17:25:46.184Z" },
+]
+
+[[package]]
 name = "boto3"
 version = "1.41.5"
 source = { registry = "https://pypi.org/simple" }
@@ -792,16 +801,16 @@ tpu = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1,<1" },
     { name = "lm-eval", git = "https://github.com/stanford-crfm/lm-evaluation-harness.git?rev=d5e3391f22cde186c827674d5c3ec7c5f4fe0cab" },
-    { name = "marin-core", specifier = ">=0.2.20.dev0" },
+    { name = "marin-core", specifier = "==0.2.20.*" },
     { name = "marin-core", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'" },
     { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=main" },
     { name = "marin-dupekit" },
     { name = "marin-finelog" },
     { name = "marin-finelog-server" },
-    { name = "marin-iris", specifier = ">=0.2.20.dev0" },
-    { name = "marin-levanter", specifier = ">=0.2.20.dev0" },
-    { name = "marin-rigging", specifier = ">=0.2.20.dev0" },
-    { name = "marin-zephyr", specifier = ">=0.2.20.dev0" },
+    { name = "marin-iris", specifier = "==0.2.20.*" },
+    { name = "marin-levanter", specifier = "==0.2.20.*" },
+    { name = "marin-rigging", specifier = "==0.2.20.*" },
+    { name = "marin-zephyr", specifier = "==0.2.20.*" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'tpu'", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torchvision", marker = "sys_platform == 'linux' and extra == 'tpu'", index = "https://download.pytorch.org/whl/cpu" },
 ]
@@ -824,6 +833,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d3/af/a5f50ccfa659ec1802cb4ca842c23f06d906a8cc9aef6016a2caeea3d4ed/fastapi-0.139.0.tar.gz", hash = "sha256:99ab7b2d92223c76d6cf10757ab3f89d45b38267fc20b2a136cf02f6beac3145", size = 423016, upload-time = "2026-07-01T16:35:33.436Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/7c/8e3c6ad324ea5cb36604fc3f968554887891c316d9dfde57761611d907ad/fastapi-0.139.0-py3-none-any.whl", hash = "sha256:cf15e1e9e667ddb0ad63811e60bd11390d1aac838ca4a7a23f421807b2308189", size = 130339, upload-time = "2026-07-01T16:35:32.19Z" },
+]
+
+[[package]]
+name = "fasteners"
+version = "0.20"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2d/18/7881a99ba5244bfc82f06017316ffe93217dbbbcfa52b887caa1d4f2a6d3/fasteners-0.20.tar.gz", hash = "sha256:55dce8792a41b56f727ba6e123fcaee77fd87e638a6863cec00007bfea84c8d8", size = 25087, upload-time = "2025-08-11T10:19:37.785Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/ac/e5d886f892666d2d1e5cb8c1a41146e1d79ae8896477b1153a21711d3b44/fasteners-0.20-py3-none-any.whl", hash = "sha256:9422c40d1e350e4259f509fb2e608d6bc43c0136f79a00db1b49046029d0b3b7", size = 18702, upload-time = "2025-08-11T10:19:35.716Z" },
 ]
 
 [[package]]
@@ -862,6 +880,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e6/dc/be6cbe99670cd6e4ad387123647cb08e0c32975e223f82551e914c5568a6/filelock-3.29.4.tar.gz", hash = "sha256:10cdb3656fc44541cdf30652a93fb10ec6b05325620eb316bd26893e4201538a", size = 63028, upload-time = "2026-06-13T16:12:00.744Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/13/37/a065dc3bd6e49423a6532c642ca7378d3f467b1ef44c2800c937af7f9739/filelock-3.29.4-py3-none-any.whl", hash = "sha256:dac1648087d5115554850d113e7dd8c83ab2d38e3435dde2d4f163847e57b767", size = 42757, upload-time = "2026-06-13T16:11:59.582Z" },
+]
+
+[[package]]
+name = "flask"
+version = "3.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "blinker", marker = "sys_platform == 'linux'" },
+    { name = "click", marker = "sys_platform == 'linux'" },
+    { name = "itsdangerous", marker = "sys_platform == 'linux'" },
+    { name = "jinja2", marker = "sys_platform == 'linux'" },
+    { name = "markupsafe", marker = "sys_platform == 'linux'" },
+    { name = "werkzeug", marker = "sys_platform == 'linux'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/00/35d85dcce6c57fdc871f3867d465d780f302a175ea360f62533f12b27e2b/flask-3.1.3.tar.gz", hash = "sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb", size = 759004, upload-time = "2026-02-19T05:00:57.678Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/9c/34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18/flask-3.1.3-py3-none-any.whl", hash = "sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c", size = 103424, upload-time = "2026-02-19T05:00:56.027Z" },
 ]
 
 [[package]]
@@ -1078,6 +1113,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/58/72/86f94e1639a8bcd9d33e8e01b49afcaa1c3a13bda7683c681717e0901e15/google_cloud_storage-3.12.0.tar.gz", hash = "sha256:03ae9847c6babb368f35f054126b8a08cbc0e3266efb990eb17b9926a45cf3be", size = 17338620, upload-time = "2026-06-12T18:03:29.215Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1b/bd/a89eaebd2f9db5f92ddcc8e4f23c266be1dbd11058bb83451d8dd029f34c/google_cloud_storage-3.12.0-py3-none-any.whl", hash = "sha256:3880773754ddf7c27567b04e2a4d193950b6b99429f37b9097d873686e95b09c", size = 340605, upload-time = "2026-06-12T18:03:12.677Z" },
+]
+
+[[package]]
+name = "google-cloud-storage-transfer"
+version = "1.21.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"], marker = "sys_platform == 'linux'" },
+    { name = "google-auth", marker = "sys_platform == 'linux'" },
+    { name = "grpcio", marker = "sys_platform == 'linux'" },
+    { name = "proto-plus", marker = "sys_platform == 'linux'" },
+    { name = "protobuf", marker = "sys_platform == 'linux'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c6/77/ecb60a7358737c4ea39010332829eac034bce4c00394ec9f8d0505dc9b49/google_cloud_storage_transfer-1.21.0.tar.gz", hash = "sha256:0b44134cad89e18b5350d0d368af25a1a370bd7f18cfd9824856a72e65c6e928", size = 112957, upload-time = "2026-06-03T16:14:02.159Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/7a/5fced858dffbaaa58eeafa574bae1acd9146c781841e33e11b4b3692019b/google_cloud_storage_transfer-1.21.0-py3-none-any.whl", hash = "sha256:a88e9d43a98ea86a0f87cd8f7b353c2bb429e3532b0363c10fb08673c290ffc9", size = 93222, upload-time = "2026-06-03T16:12:44.677Z" },
 ]
 
 [[package]]
@@ -1325,8 +1376,17 @@ wheels = [
 ]
 
 [[package]]
+name = "itsdangerous"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/cb/8ac0172223afbccb63986cc25049b154ecfb5e85932587206f42317be31d/itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173", size = 54410, upload-time = "2024-04-16T21:28:15.614Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/96/92447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4/itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef", size = 16234, upload-time = "2024-04-16T21:28:14.499Z" },
+]
+
+[[package]]
 name = "jax"
-version = "0.10.1"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jaxlib", marker = "sys_platform == 'linux'" },
@@ -1335,14 +1395,14 @@ dependencies = [
     { name = "opt-einsum", marker = "sys_platform == 'linux'" },
     { name = "scipy", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/24/49/b082387119c4a6bc7596296bbdc6bce034628cdd2845ebb27304cbca3624/jax-0.10.1.tar.gz", hash = "sha256:11672410faf8752429eb9a131de203dc488a2a3a012d509baa2b39878008810d", size = 2718178, upload-time = "2026-05-20T14:54:09.441Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/f0/bcb81d28267d2054d0daed766c7fa16bcee5e481331b4d1e14f5fbe662be/jax-0.10.0.tar.gz", hash = "sha256:0119c767de1645f407df72345d28a3837dc904f1d698911c121d8f2b396fdece", size = 2663397, upload-time = "2026-04-22T13:22:28.563Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/6e/5087e0347188f6970aba1ffbd0018754d23c3f3461e9f21785f2f27a02c2/jax-0.10.1-py3-none-any.whl", hash = "sha256:47f3192c76e9e3358de1b106a8af5e943fccb10510903f25d96ea53652729134", size = 3150973, upload-time = "2026-05-20T14:51:30.066Z" },
+    { url = "https://files.pythonhosted.org/packages/70/aa/dfac6d72cc35bc07e7587115b6946e333ef4ccb2e6cd26ecf639438c5d26/jax-0.10.0-py3-none-any.whl", hash = "sha256:76c42ba163c8db3dc2e449e225b888c0edfb623ded31efdc96d85e0fda1d26e8", size = 3094950, upload-time = "2026-04-16T12:32:11.576Z" },
 ]
 
 [[package]]
 name = "jaxlib"
-version = "0.10.1"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes", marker = "sys_platform == 'linux'" },
@@ -1350,8 +1410,8 @@ dependencies = [
     { name = "scipy", marker = "sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/29/0b4eaaca005708751ff301903a2ca760dcc34175dadb7536498c57a7de85/jaxlib-0.10.1-cp312-cp312-manylinux_2_27_aarch64.whl", hash = "sha256:12126603ba472300c62480f86d20972d563143041039d9dea349ad510aa6123c", size = 80294034, upload-time = "2026-05-20T14:52:56.941Z" },
-    { url = "https://files.pythonhosted.org/packages/38/69/2912ab63036e21c72748019e1d8e09e8a1fc3368b3e83fc27898a1858575/jaxlib-0.10.1-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:f3cdf5b7f48470ab5455ab79aab746419694ccb6b52651cc2ce5fb27def03588", size = 85828774, upload-time = "2026-05-20T14:53:01.749Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/cd/59ead5a90df739d1b8c1d1d00443558fd30adf5abb0319966ce340d49ff3/jaxlib-0.10.0-cp312-cp312-manylinux_2_27_aarch64.whl", hash = "sha256:aa1d70f1a4e27eb403654e71e2fb28d5786d3e9b77fc1847e8c5389880927ca4", size = 79398938, upload-time = "2026-04-16T12:33:34.14Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/20/9b07fc8b327b222b6f72a4978eb4f2ebe856ee71237d63c4d808ec3945e0/jaxlib-0.10.0-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:b0bfb865a07df2e6d7418c0b0c292dd294b5500523b1dd5872b180db2aa480d4", size = 85028702, upload-time = "2026-04-16T12:33:37.815Z" },
 ]
 
 [[package]]
@@ -1523,10 +1583,10 @@ wheels = [
 
 [[package]]
 name = "libtpu"
-version = "0.0.41"
+version = "0.0.40"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/bb/70a97644f2114fe5dff0fb7ac58922e2188b6355a0439ea6ae14358a61d0/libtpu-0.0.41-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:47feeac3cd4cd88c58342c20f3cb3635d1f2d53f8689aa24bbe9690e664629de", size = 211768760, upload-time = "2026-05-13T22:40:22.982Z" },
+    { url = "https://files.pythonhosted.org/packages/92/27/47a8ccb0007b5e52b49e9dd156213c5ec9eb14cefed880d4a4ebadc25198/libtpu-0.0.40-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:aa861000608ae4b8cc8f01728253ec2829532894dfccb691665bde79a7aa5f3c", size = 227429479, upload-time = "2026-04-14T04:09:18.49Z" },
 ]
 
 [[package]]
@@ -1589,22 +1649,46 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/51/d7/5ca72059bef4c7ecd7c535e214aed0b908a2fd284f263c4d615c30e401e5/lxml-7.0.0a3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:1f24edf92b881d7a8ce7c154d61cf3fae0dfe758ad3f64ee2313a6210459ce6f", size = 5370450, upload-time = "2026-06-17T01:57:04.757Z" },
 ]
 
+[package.optional-dependencies]
+html-clean = [
+    { name = "lxml-html-clean", marker = "sys_platform == 'linux'" },
+]
+
+[[package]]
+name = "lxml-html-clean"
+version = "0.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lxml", marker = "sys_platform == 'linux'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/63/195dfdde380a84df309e3bccf4384b034b745dba43426886f7ae623b4fba/lxml_html_clean-0.4.5.tar.gz", hash = "sha256:e2a4c7d5beedd17cd7b484d848a0571e54baa239a4f9df5546e3acba7f990560", size = 24142, upload-time = "2026-05-20T12:17:53.574Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/bd/6e2b76a6c5dee10397db9c929f0c5066766ec1036046f0335b7ca7ca08b8/lxml_html_clean-0.4.5-py3-none-any.whl", hash = "sha256:c76fcadd1e5bfb9b8bafc2200d51e4e78eb0dad67f56881c21dfb6484c7e7746", size = 14573, upload-time = "2026-05-20T12:17:52.215Z" },
+]
+
 [[package]]
 name = "marin-core"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backports-zstd", marker = "sys_platform == 'linux'" },
     { name = "braceexpand", marker = "sys_platform == 'linux'" },
+    { name = "cryptography", marker = "sys_platform == 'linux'" },
     { name = "datasets", marker = "sys_platform == 'linux'" },
+    { name = "deepdiff", marker = "sys_platform == 'linux'" },
     { name = "draccus", marker = "sys_platform == 'linux'" },
+    { name = "fasteners", marker = "sys_platform == 'linux'" },
     { name = "fasttext-wheel", marker = "sys_platform == 'linux'" },
+    { name = "flask", marker = "sys_platform == 'linux'" },
     { name = "fsspec", marker = "sys_platform == 'linux'" },
     { name = "gcsfs", marker = "sys_platform == 'linux'" },
     { name = "google-api-python-client", marker = "sys_platform == 'linux'" },
     { name = "google-cloud-storage", marker = "sys_platform == 'linux'" },
+    { name = "google-cloud-storage-transfer", marker = "sys_platform == 'linux'" },
     { name = "jax", marker = "sys_platform == 'linux'" },
     { name = "jaxopt", marker = "sys_platform == 'linux'" },
+    { name = "lxml", extra = ["html-clean"], marker = "sys_platform == 'linux'" },
+    { name = "lxml-html-clean", marker = "sys_platform == 'linux'" },
     { name = "marin-fray", marker = "sys_platform == 'linux'" },
     { name = "marin-haliax", marker = "sys_platform == 'linux'" },
     { name = "marin-iris", marker = "sys_platform == 'linux'" },
@@ -1613,6 +1697,7 @@ dependencies = [
     { name = "marin-zephyr", marker = "sys_platform == 'linux'" },
     { name = "markdownify", marker = "sys_platform == 'linux'" },
     { name = "mcp", marker = "sys_platform == 'linux'" },
+    { name = "multiprocess", marker = "sys_platform == 'linux'" },
     { name = "numpy", marker = "sys_platform == 'linux'" },
     { name = "openai", marker = "sys_platform == 'linux'" },
     { name = "pandas", marker = "sys_platform == 'linux'" },
@@ -1622,14 +1707,15 @@ dependencies = [
     { name = "requests", marker = "sys_platform == 'linux'" },
     { name = "resiliparse", marker = "sys_platform == 'linux'" },
     { name = "s3fs", marker = "sys_platform == 'linux'" },
+    { name = "toml", marker = "sys_platform == 'linux'" },
     { name = "tqdm", marker = "sys_platform == 'linux'" },
     { name = "tqdm-loggable", marker = "sys_platform == 'linux'" },
-    { name = "transformers", marker = "sys_platform == 'linux'" },
     { name = "wandb", marker = "sys_platform == 'linux'" },
+    { name = "warcio", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/40/dac6553ff83330a7763cb7d878a39d9328fff72f71ed6b2eb9a44749e086/marin_core-0.2.34.dev202607020839.tar.gz", hash = "sha256:e5118c242aa779fdb3c6e3395cc303f323b356bf589e7e1e5d2891165235f56b", size = 509730, upload-time = "2026-07-02T08:40:54.458Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/d4/df049979098fad08fdc6fef2a355745ceadba1df4de9111fd29e7d4f9ce2/marin_core-0.2.20.dev202606180959.tar.gz", hash = "sha256:74267f52254cb1d8c38712fe8d224d55a27e77511f26be3cbd1b9ff13057259b", size = 504022, upload-time = "2026-06-18T10:00:48.025Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9b/1b/f6c777751ba28c2fde51e40b466419b6a9be47ecc038fda37b9b12a5a314/marin_core-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:0707b001a53fb1a9c7ec319e1d89a1c56fb122b24e9e25c6e4205cb3818f1e51", size = 659824, upload-time = "2026-07-02T08:40:43.601Z" },
+    { url = "https://files.pythonhosted.org/packages/60/c6/30db3aa04138c1d72882454fd4498750a3cb17bc349f1fc552d3f7460e08/marin_core-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:8a07fed53ea74545b840679c960fcc74d5e3520ddcd0c1b3b9714faa18c096b2", size = 650761, upload-time = "2026-06-18T10:00:38.56Z" },
 ]
 
 [package.optional-dependencies]
@@ -1720,21 +1806,33 @@ wheels = [
 
 [[package]]
 name = "marin-fray"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "click", marker = "sys_platform == 'linux'" },
     { name = "cloudpickle", marker = "sys_platform == 'linux'" },
+    { name = "fastapi", marker = "sys_platform == 'linux'" },
+    { name = "flask", marker = "sys_platform == 'linux'" },
+    { name = "fsspec", marker = "sys_platform == 'linux'" },
+    { name = "httpx", marker = "sys_platform == 'linux'" },
+    { name = "humanfriendly", marker = "sys_platform == 'linux'" },
     { name = "marin-iris", marker = "sys_platform == 'linux'" },
     { name = "marin-rigging", marker = "sys_platform == 'linux'" },
+    { name = "mergedeep", marker = "sys_platform == 'linux'" },
+    { name = "pyyaml", marker = "sys_platform == 'linux'" },
+    { name = "tabulate", marker = "sys_platform == 'linux'" },
+    { name = "typing-extensions", marker = "sys_platform == 'linux'" },
+    { name = "uvicorn", extra = ["standard"], marker = "sys_platform == 'linux'" },
+    { name = "zstandard", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c6/2b/6f05505c92d6b86cb2308490866c8f71e708fa05eed4aa1f7837ffd78546/marin_fray-0.2.34.dev202607020839.tar.gz", hash = "sha256:f93d4e605270a79df7aa2987fdf22f67b5e9b757ac9a2b92372149de6c9edb5d", size = 31268, upload-time = "2026-07-02T08:40:55.737Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/fa/ea43a9d3a8a0205bbe4b1a21c10cdbc4e023c06fa6da3ba0d288e5885ccb/marin_fray-0.2.20.dev202606180959.tar.gz", hash = "sha256:9e4bc2cf620271ec03cb302093cc5fb66936f6694d81edd1692f5f9a3495111e", size = 29248, upload-time = "2026-06-18T10:00:49.305Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/04/68/8f33223ac2e3159147a226b4262cf64ed2df339e0509c28a254361ea3476/marin_fray-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:25f6e3acb6c13d11ed7ea53742869648e0d6cc2825f185a0621fdfadde75602f", size = 28242, upload-time = "2026-07-02T08:40:45.509Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/cb/134479f506bc497ac22d6ad01ea91ed8a535b11cc009effdba8d70d0a952/marin_fray-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:a813850232787d5912f34373491a6e18ebebb265e0795148ff098b6f22b2d06f", size = 26638, upload-time = "2026-06-18T10:00:40.125Z" },
 ]
 
 [[package]]
 name = "marin-haliax"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aqtp", marker = "sys_platform == 'linux'" },
@@ -1744,14 +1842,14 @@ dependencies = [
     { name = "jmp", marker = "sys_platform == 'linux'" },
     { name = "safetensors", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/57/26/423e5b1aaeec150b34f14c7a6600043ef7c7384330bc9389badbc6a8e964/marin_haliax-0.2.34.dev202607020839.tar.gz", hash = "sha256:e7845d82f4b3b8ff0a8a92e5a79640615a6f2da1385c3cf4cff61a5521b216b2", size = 779096, upload-time = "2026-07-02T08:40:56.843Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/b0/df4b13f08e49810ed9308b67cdf51a54a420085512b7098c527aec9e377c/marin_haliax-0.2.20.dev202606180959.tar.gz", hash = "sha256:42ef513f944b77c30a7953fdfdb0a03d53f1dcf7a72a2924786dc7b26692a03c", size = 773250, upload-time = "2026-06-18T10:00:50.387Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/8f/ca03ae2c440a06ebbbe8808bd1abc916e2f9b2916fa046fc743e66605ab4/marin_haliax-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:e8782122e6df52a5928fc6ecd66f51dd45b707e2cdb9c6bdd57f37f0f2f7fd09", size = 157358, upload-time = "2026-07-02T08:40:46.756Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/c8/5115839f16ced636e6909c56082370c49e954c2b3afd765eba69c9ecd000/marin_haliax-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:c5de87d752b08089aa803af23dd396e5f4ad1514432a3008bbf9498552af7ed4", size = 155367, upload-time = "2026-06-18T10:00:41.423Z" },
 ]
 
 [[package]]
 name = "marin-iris"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click", marker = "sys_platform == 'linux'" },
@@ -1778,14 +1876,14 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"], marker = "sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/30/74b227705e0d2cdb8737763e6e4eaa796657567deef07f1a7c0d64136d13/marin_iris-0.2.34.dev202607020839.tar.gz", hash = "sha256:8c8fe92d3fc79f0b4db4dcd983e550abd732d276b2ab9e626df679a79830abf2", size = 723627, upload-time = "2026-07-02T08:40:58.526Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/50/475aeb14fc6f4d474a3171081f2ab70e307a8cc7e510d613e9da0361ce11/marin_iris-0.2.20.dev202606180959.tar.gz", hash = "sha256:b21910731c1f091abad20385587efb2c86519648fb6c74240e057c5ad3c35c6c", size = 665627, upload-time = "2026-06-18T10:00:51.644Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ab/44/5f6be7e460d15d619ef84f443ef30980c7f6f8e111f918d9821f294f1ffc/marin_iris-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:8c551bdd1fe6a8404809873684c3970d32cfd003f3e4f327d56b5c4ec4b9efcf", size = 862253, upload-time = "2026-07-02T08:40:48.253Z" },
+    { url = "https://files.pythonhosted.org/packages/45/88/fff54b397c5d6cf68d77df657861c5f2cc684a02d6271b332d8cee1c5b67/marin_iris-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:a0ba5e5424f33a07209e15aafcbbd257ad2eaed32488facd1d5b7418632ced9a", size = 791790, upload-time = "2026-06-18T10:00:42.692Z" },
 ]
 
 [[package]]
 name = "marin-levanter"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru", marker = "sys_platform == 'linux'" },
@@ -1809,7 +1907,6 @@ dependencies = [
     { name = "lenses", marker = "sys_platform == 'linux'" },
     { name = "marin-fray", marker = "sys_platform == 'linux'" },
     { name = "marin-haliax", marker = "sys_platform == 'linux'" },
-    { name = "marin-iris", marker = "sys_platform == 'linux'" },
     { name = "marin-rigging", marker = "sys_platform == 'linux'" },
     { name = "marin-zephyr", marker = "sys_platform == 'linux'" },
     { name = "optax", marker = "sys_platform == 'linux'" },
@@ -1826,9 +1923,9 @@ dependencies = [
     { name = "wandb", marker = "sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/87/5dcc2c757f55701f273c58330b9aa4500eba5ce3396b3a75d5f7327bed1a/marin_levanter-0.2.34.dev202607020839.tar.gz", hash = "sha256:07d0bb13797189e1211dcc8aeee8aa3898555ffcb412ef8d774bb86c84282469", size = 638155, upload-time = "2026-07-02T08:41:00.187Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fc/1b/d386192898b617c0f8adfaf6ca8151740240f9ac6242cf018a267678bed5/marin_levanter-0.2.20.dev202606180959.tar.gz", hash = "sha256:2972179a4a7daad5f8bea0e0ab837c4359faccc682720bd6752e1bfd0cffa49a", size = 618773, upload-time = "2026-06-18T10:00:53.282Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/04/4e0cc6955f85dc5a97f7186696cd3cce5e145d3e8111dfb12be538af5910/marin_levanter-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:98c45f981d32b3640cd8c404338f8fd6edb5ec9127f9895e9b2bd932cd61c6a9", size = 772813, upload-time = "2026-07-02T08:40:49.926Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/21/4e72829e89c5228ea6803bbe31fb94dfd9c7ef2127cebfaae4cbde709a5d/marin_levanter-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:71466d0211d0665c647f0d54213d57ef6ea993dbb334635982cfb586becab796", size = 751940, upload-time = "2026-06-18T10:00:44.14Z" },
 ]
 
 [package.optional-dependencies]
@@ -1840,26 +1937,22 @@ serve = [
 
 [[package]]
 name = "marin-rigging"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "sys_platform == 'linux'" },
     { name = "connect-python", marker = "sys_platform == 'linux'" },
     { name = "fsspec", marker = "sys_platform == 'linux'" },
     { name = "gcsfs", marker = "sys_platform == 'linux'" },
-    { name = "google-auth", marker = "sys_platform == 'linux'" },
-    { name = "pyyaml", marker = "sys_platform == 'linux'" },
-    { name = "requests", marker = "sys_platform == 'linux'" },
     { name = "s3fs", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2c/22/a4112dde6349b91399280410f161e58d3cc252e05b2e9a3d5d9a2eca4f4d/marin_rigging-0.2.34.dev202607020839.tar.gz", hash = "sha256:0f5c56b152d4a2855c9cd78bf9a4df72032832acabac48a2838869a98ecb9061", size = 85841, upload-time = "2026-07-02T08:41:01.46Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b8/50/706f1795e8e9e54bf1e96af5e8e4a6e35be8ff2dbbebb1c66d76cf601ae7/marin_rigging-0.2.20.dev202606180959.tar.gz", hash = "sha256:791374205c509062784427765a8aaa9c25ae740cf68f0c08481b7e1075088c63", size = 46997, upload-time = "2026-06-18T10:00:54.394Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d2/8b/ad6f86ed2327ffa5cd3d4a62fc3e9262b8dd53a49feeb147c9eb8ed5f37f/marin_rigging-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:63ef87525952e94b8f1f2c363e909bceb71e3a1550b68d4d36c95da9c18ba5ce", size = 69916, upload-time = "2026-07-02T08:40:51.656Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/c6/1ed3f82a985fd885ae84fc9ae16722aca958c4c18a28c2cc3355a1ff50a5/marin_rigging-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:cc091dffc8fc5381042d0ace68d2bcfbc52cfd83f38b6854e66ef14ea7cc38a4", size = 38611, upload-time = "2026-06-18T10:00:45.656Z" },
 ]
 
 [[package]]
 name = "marin-zephyr"
-version = "0.2.34.dev202607020839"
+version = "0.2.20.dev202606180959"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "braceexpand", marker = "sys_platform == 'linux'" },
@@ -1873,13 +1966,15 @@ dependencies = [
     { name = "msgspec", marker = "sys_platform == 'linux'" },
     { name = "numpy", marker = "sys_platform == 'linux'" },
     { name = "psutil", marker = "sys_platform == 'linux'" },
+    { name = "tqdm-loggable", marker = "sys_platform == 'linux'" },
+    { name = "typing-extensions", marker = "sys_platform == 'linux'" },
     { name = "vortex-data", marker = "sys_platform == 'linux'" },
     { name = "xxhash", marker = "sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/25/2172fe100de839ac677d52c4e6f6d783aa175feb9ab0433c90759c3ed77d/marin_zephyr-0.2.34.dev202607020839.tar.gz", hash = "sha256:2701bb4f0b802f4bba16c1e5337cbbba16763c707530942d12abbb12cfa81f9b", size = 84132, upload-time = "2026-07-02T08:41:02.525Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4d/58/c76316f08fa5cd016fb8561a056ab1ba92c587da6ee52a4f7f73ca901f8a/marin_zephyr-0.2.20.dev202606180959.tar.gz", hash = "sha256:3c8aceb574fb22f9b2f63e5bf882d1429f9d425752e0ff33388f16c24b673bf2", size = 84787, upload-time = "2026-06-18T10:00:55.386Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/aa/ae66fadda19deb2de97196c8575097af1c0d0a2a6093ba5b6b40d49ee899/marin_zephyr-0.2.34.dev202607020839-py3-none-any.whl", hash = "sha256:2a3fd018fe191ce950dc307873e072ac1605fe0fa3924e556c1a24a9f6fc18d1", size = 93697, upload-time = "2026-07-02T08:40:53.01Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/9e/b709ba705fed73f5a126d5cc5f87caea732fe2f11551e9c3cd021151d998/marin_zephyr-0.2.20.dev202606180959-py3-none-any.whl", hash = "sha256:f8a34b7477ae4aa94f7858ae2963e8957142c350f634d11abc565162b581dff3", size = 94341, upload-time = "2026-06-18T10:00:46.876Z" },
 ]
 
 [[package]]
@@ -2308,7 +2403,7 @@ wheels = [
 
 [[package]]
 name = "orbax-checkpoint"
-version = "0.12.1"
+version = "0.11.39"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py", marker = "sys_platform == 'linux'" },
@@ -2318,7 +2413,6 @@ dependencies = [
     { name = "jax", marker = "sys_platform == 'linux'" },
     { name = "msgpack", marker = "sys_platform == 'linux'" },
     { name = "numpy", marker = "sys_platform == 'linux'" },
-    { name = "prometheus-client", marker = "sys_platform == 'linux'" },
     { name = "protobuf", marker = "sys_platform == 'linux'" },
     { name = "psutil", marker = "sys_platform == 'linux'" },
     { name = "pyyaml", marker = "sys_platform == 'linux'" },
@@ -2327,9 +2421,9 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'linux'" },
     { name = "uvloop", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/70/e8b4c7f382c77d198128c50076611b9b3b7b18e795f6d7d5931755af0106/orbax_checkpoint-0.12.1.tar.gz", hash = "sha256:e9b014ccad4c9b2648cdb9946cd2550339bc3eb388ac1f494a27fda4739b4e19", size = 703150, upload-time = "2026-06-24T19:13:15.993Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/f0/0da3a8af4d348b906ad659b24ddcdfd5c2aa2def72a9a4f386ae087060a6/orbax_checkpoint-0.11.39.tar.gz", hash = "sha256:047f5078c4e6baa823efd1341886f690931d2c7a58c69e7b8aa3da08b37cfae2", size = 621347, upload-time = "2026-05-06T19:19:12.206Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/87/0ae1baf8271a7a68bcc5b91103892b201cd723ac3dd67bc6ef3e5fc4747e/orbax_checkpoint-0.12.1-py3-none-any.whl", hash = "sha256:e123b4d6e5d9f9144bb9b5a1d88b1eddc81c71f8a12b07b995f61e0d3022b0f1", size = 1311120, upload-time = "2026-06-24T19:13:14.262Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/1b/6a69800c82bffaee8d10bd6f063da1ec9d745b20826daba22a87acff778d/orbax_checkpoint-0.11.39-py3-none-any.whl", hash = "sha256:6bf22a6d4d20ed98f4e576248e4f53adb85b5a18353f08f323e29f2fc79fd2d1", size = 1177559, upload-time = "2026-05-06T19:19:10.371Z" },
 ]
 
 [[package]]
@@ -2467,15 +2561,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5e/77/65b857a69ed876e1951e88aaba60f5ce6120c33703f7cb61a3c894b8c1b6/portalocker-3.2.0.tar.gz", hash = "sha256:1f3002956a54a8c3730586c5c77bf18fae4149e07eaf1c29fc3faf4d5a3f89ac", size = 95644, upload-time = "2025-06-14T13:20:40.03Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4b/a6/38c8e2f318bf67d338f4d629e93b0b4b9af331f455f0390ea8ce4a099b26/portalocker-3.2.0-py3-none-any.whl", hash = "sha256:3cdc5f565312224bc570c49337bd21428bba0ef363bbcf58b9ef4a9f11779968", size = 22424, upload-time = "2025-06-14T13:20:38.083Z" },
-]
-
-[[package]]
-name = "prometheus-client"
-version = "0.25.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1b/fb/d9aa83ffe43ce1f19e557c0971d04b90561b0cfd50762aafb01968285553/prometheus_client-0.25.0.tar.gz", hash = "sha256:5e373b75c31afb3c86f1a52fa1ad470c9aace18082d39ec0d2f918d11cc9ba28", size = 86035, upload-time = "2026-04-09T19:53:42.359Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8d/9b/d4b1e644385499c8346fa9b622a3f030dce14cd6ef8a1871c221a17a67e7/prometheus_client-0.25.0-py3-none-any.whl", hash = "sha256:d5aec89e349a6ec230805d0df882f3807f74fd6c1a2fa86864e3c2279059fed1", size = 64154, upload-time = "2026-04-09T19:53:41.324Z" },
 ]
 
 [[package]]
@@ -3390,16 +3475,16 @@ wheels = [
 
 [[package]]
 name = "tensorstore"
-version = "0.1.84"
+version = "0.1.81"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes", marker = "sys_platform == 'linux'" },
     { name = "numpy", marker = "sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/83/18/c8e8b4faffab1a434b6c013d54cf7f5b754a6849429d9dbb718297705796/tensorstore-0.1.84.tar.gz", hash = "sha256:3cb091dfde68600e6d8f03a389ccc92ffa7c0798a0c600d1013c0138d7163e6b", size = 7208048, upload-time = "2026-05-16T06:17:58.448Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/f6/e2403fc05b97ba74ad408a98a42c288e6e1b8eacc23780c153b0e5166179/tensorstore-0.1.81.tar.gz", hash = "sha256:687546192ea6f6c8ae28d18f13103336f68017d928b9f5a00325e9b0548d9c25", size = 7120819, upload-time = "2026-02-06T18:56:12.535Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/36/f88b4bf267902f12cd2ca33aff10fabd6839dd1ce7d51876ebefa98aaf2c/tensorstore-0.1.84-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3ace00cf2e45dc5d64fe3a10c2cbef61343915683808a10a3e081233566a7231", size = 19345134, upload-time = "2026-05-16T06:17:17.984Z" },
-    { url = "https://files.pythonhosted.org/packages/18/7c/b7b24e10e5cb0213c85204d53fcd60d0568d986ea0001a00a815e14e01e1/tensorstore-0.1.84-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:64c8039558d5607b73903948fce058725731df410c5c196cf58b3fc6222395b5", size = 20968745, upload-time = "2026-05-16T06:17:20.569Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/e4/b4343eae773f72a8777f82c5328191a06d8a5195e62105c14b7dcc49823f/tensorstore-0.1.81-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6c27e07f4e91e6dc6a0878e13e2c5931d1716196b67b0df927f2f571de2576e9", size = 19043982, upload-time = "2026-02-06T18:55:30.076Z" },
+    { url = "https://files.pythonhosted.org/packages/31/6c/d8c8508a9f4a83dc910d2365c484ba0debf5e531782065e3657fc8fc9b54/tensorstore-0.1.81-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:fcb4786c4955e2d88d518b5b5a367427e3ad21d059cba366ad7aebf5fcc2302e", size = 21049171, upload-time = "2026-02-06T18:55:34.383Z" },
 ]
 
 [[package]]
@@ -3732,6 +3817,18 @@ wheels = [
 ]
 
 [[package]]
+name = "warcio"
+version = "1.8.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six", marker = "sys_platform == 'linux'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/78/df7e1c40a3751ea966be84eb6645270831e511f9932740b5251ace028cfa/warcio-1.8.1.tar.gz", hash = "sha256:76f71b22159ca3c043521e10ee8a2478d167672ad1d137c7c15e40b0d5c73ccd", size = 65772, upload-time = "2026-03-31T16:10:32.196Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c5/be/d92c0899bd52c7f82fc0f8caa8fb3c624e6d1006ee208c710060cda216c2/warcio-1.8.1-py2.py3-none-any.whl", hash = "sha256:82345c5914d36cb5e0513210dbf759e3db348bf8d0f7762996ccce3a5ce6e87b", size = 41578, upload-time = "2026-03-31T16:10:31.059Z" },
+]
+
+[[package]]
 name = "watchfiles"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3762,6 +3859,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/34/9bf8df0c0cf88fa7bfe36678dc7b02970c9a7d5e065a3099292db87b1be2/websockets-16.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:a0b31e0b424cc6b5a04b8838bbaec1688834b2383256688cf47eb97412531da1", size = 185583, upload-time = "2026-01-10T09:22:53.443Z" },
     { url = "https://files.pythonhosted.org/packages/47/88/4dd516068e1a3d6ab3c7c183288404cd424a9a02d585efbac226cb61ff2d/websockets-16.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:485c49116d0af10ac698623c513c1cc01c9446c058a4e61e3bf6c19dff7335a2", size = 184880, upload-time = "2026-01-10T09:22:55.033Z" },
     { url = "https://files.pythonhosted.org/packages/6f/28/258ebab549c2bf3e64d2b0217b973467394a9cea8c42f70418ca2c5d0d2e/websockets-16.0-py3-none-any.whl", hash = "sha256:1637db62fad1dc833276dded54215f2c7fa46912301a24bd94d45d46a011ceec", size = 171598, upload-time = "2026-01-10T09:23:45.395Z" },
+]
+
+[[package]]
+name = "werkzeug"
+version = "3.1.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markupsafe", marker = "sys_platform == 'linux'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dd/b2/381be8cfdee792dd117872481b6e378f85c957dd7c5bca38897b08f765fd/werkzeug-3.1.8.tar.gz", hash = "sha256:9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44", size = 875852, upload-time = "2026-04-02T18:49:14.268Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/8c/2e650f2afeb7ee576912636c23ddb621c91ac6a98e66dc8d29c3c69446e1/werkzeug-3.1.8-py3-none-any.whl", hash = "sha256:63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50", size = 226459, upload-time = "2026-04-02T18:49:12.72Z" },
 ]
 
 [[package]]
