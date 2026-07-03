@@ -1,0 +1,94 @@
+[project]
+name = "exp353-cds-proj-vs-annot"
+version = "0.1.0"
+description = "CDS annotation-vs-projection Qwen3-0.25B sweep (issue #353): 4 arms = {annotation, projection} × {all-204 animals, 125 vertebrates}, identical geometry/optimizer/steps, differing only in the training dataset. Self-contained marin-consumer experiment (issue #328): marin in BASE deps + the local lib via a git dep. pyproject recipe cloned from exp351 (the verified 0.2.31 launch)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # marin packages in BASE deps (not an extra). This is the fix for #328's
+    # zephyr-worker failure: with marin in an *extra*, the zephyr-dispatched
+    # tokenize worker's `uv sync` didn't install it → No module named 'zephyr'.
+    # Pinned to 0.2.31.* — the controller freshness floor (deploy-14d) advances
+    # daily and aged out exp326's 06-17; 0.2.32+ removed ExecutorStep/executor_main
+    # (launch.py would ImportError on the coordinator). Window closes ~mid-July
+    # (#356/#358). The transformers<5 override + pytorch-cpu routing below make
+    # the tpu extra resolvable in this pre-06-30 window.
+    "marin-core==0.2.31.*",
+    "marin-levanter==0.2.31.*",
+    "marin-iris==0.2.31.*",
+    "marin-zephyr==0.2.31.*",
+    "marin-rigging==0.2.31.*",
+    "marin-dupekit",
+    # 06-17 finelog: iris <=0.2.31 imports `finelog.client.proxy`, dropped by
+    # finelog 0.2.12 (06-28+). Pin the last build that has it.
+    "marin-finelog==0.2.11.dev202606171051",
+    "marin-finelog-server==0.2.11.dev202606171051",
+    # marin-levanter[lm_eval]'s extra is a URL dep; uv requires URL deps top-level.
+    "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
+    # Our library code (marin_dna.levanter.* formats/defaults + the mendelian
+    # lm_eval task). Git dep (NOT a path) so the SAME pyproject resolves on remote
+    # Iris/zephyr workers — they clone + install it. @main: the training/eval
+    # config is core (the cds_projection pipeline code isn't needed for training).
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@main",
+    # With prerelease=allow, httpx otherwise floats to 1.0.dev*, whose Client()
+    # dropped the `timeout` kwarg marin-iris's GCP provider passes → iris crash.
+    "httpx>=0.28.1,<1",
+]
+
+[project.optional-dependencies]
+# torch/torchvision listed here (not just routed in [tool.uv.sources]) because uv
+# only applies an index source to a package that is a DIRECT dep of the extra —
+# without this the tpu extra's transitive torch/torchvision==...+cpu isn't pulled
+# from pytorch-cpu and the tpu closure backtracks to the (too-old) 0.2.19.
+tpu = [
+    "marin-core[tpu]; sys_platform == 'linux'",
+    "torch; sys_platform == 'linux'",
+    "torchvision; sys_platform == 'linux'",
+]
+
+# Iris's remote worker runs `uv sync --all-packages --no-group dev`, which errors
+# if the dev group doesn't exist — define an empty one.
+[dependency-groups]
+dev = []
+
+[tool.uv]
+package = false
+fork-strategy = "fewest"
+prerelease = "allow"
+# Linux-only: we launch from the linux dev box and all Iris/zephyr workers are
+# linux. Dropping darwin removes the mac branch, where the tpu extra is trivially
+# unsatisfiable and derails the whole resolution (#356).
+environments = [
+    "sys_platform == 'linux'",
+]
+# Mirrored from marin's pyproject — omitting these makes uv resolution fail the
+# same way it does for marin itself. transformers<5: marin >=0.2.32 declares
+# transformers-5, which breaks lm-eval@d5e3391 (AutoModelForVision2Seq renamed in
+# tf5); the override keeps uv on transformers-4 (#356 layer 3).
+override-dependencies = [
+    "omegaconf>=2.4.0.dev4",
+    "antlr4-python3-runtime==4.11",
+    "python-multipart>=0.0.22",
+    "wheel>=0.46.2",
+    "datasets>=3.1.0,<4.0.0",
+    "equinox>=0.11.10",
+    "pandas>=2.0,<3.0",
+    "transformers>=4.57,<5",
+]
+
+# marin depends on resiliparse>=0.17.2 which only exists on this custom index.
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+# marin-core[tpu] >=0.2.20 pins torch/torchvision ==...+cpu local-tag wheels that
+# only live on PyTorch's CPU index. Explicit so it doesn't shadow PyPI globally;
+# torch/torchvision are routed here AND listed in the tpu extra above (#356).
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+resiliparse = { index = "marin-resiliparse" }
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
