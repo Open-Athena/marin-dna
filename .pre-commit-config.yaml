@@ -23,14 +23,14 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: v0.15.20
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/snakemake/snakefmt
-    rev: v2.0.1
+    rev: v2.0.3
     hooks:
       - id: snakefmt
         files: (Snakefile|\.smk)$
