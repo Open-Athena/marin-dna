@@ -1032,6 +1032,61 @@ def compute_sge_metrics(
     return pd.DataFrame(rows)
 
 
+def compute_sge_probe_metrics(
+    probe_df: pd.DataFrame,
+    score_protocol: str,
+    n_bootstrap: int = 1000,
+    rng: int = 0,
+) -> pd.DataFrame:
+    """Per-accession × consequence-subset AUPRC for an SGE linear probe vs its paired
+    zero-shot baseline (#353).
+
+    The linear-probe path (issue #320) trains per-subset leave-one-chromosome-out probes
+    and emits a ``probe_score`` alongside the raw ``llr_fwd``/``llr_rc`` atoms. For SGE the
+    headline is the same per-accession (``mavedb_urn``) × subset AUPRC that
+    ``compute_sge_metrics`` computes for the zero-shot score — so this reuses it on two
+    score columns: the ``probe_score`` and its zero-shot baseline (the dataset's
+    ``score_protocol`` applied to the FWD/RC-averaged LLR), scored on identical rows for a
+    paired probe-vs-zero-shot comparison.
+
+    Rows whose ``probe_score`` is NaN — subsets the probe skipped because they failed the
+    min-variants / min-chromosomes gate — are dropped, so sklearn's AUPRC never sees a NaN
+    score and the paired baseline covers exactly the probe-scored rows.
+
+    Args:
+        probe_df: A ``compute_probe`` predictions frame for an SGE dataset — carries
+            ``probe_score`` + the SGE keys (``mavedb_urn``, ``gene``, ``subset``,
+            ``label``) + the raw ``llr_fwd``/``llr_rc`` atoms.
+        score_protocol: The dataset's score protocol (``minus_llr`` for SGE); selects the
+            LLR→score transform for the zero-shot baseline column.
+        n_bootstrap: Bootstrap resamples for the AUPRC SE (passed through).
+        rng: Bootstrap seed (passed through).
+
+    Returns:
+        The ``compute_sge_metrics`` frame (``[metric, subset, accession, gene,
+        score_type, value, se, n, n_pos]``) for two ``score_type``s: ``probe_score`` and
+        the baseline ``f"{score_protocol}_avg"``.
+    """
+    assert score_protocol in SCORE_PROTOCOLS, (
+        f"score_protocol must be one of {sorted(SCORE_PROTOCOLS)}, got {score_protocol!r}"
+    )
+    for col in ("probe_score", "llr_fwd", "llr_rc"):
+        assert col in probe_df.columns, f"probe_df missing required column {col!r}"
+    transform = SCORE_PROTOCOLS[score_protocol]
+    baseline_col = f"{score_protocol}_avg"
+    df = probe_df.copy()
+    df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)
+    scored = df[df["probe_score"].notna()].reset_index(drop=True)
+    assert len(scored) > 0, "no rows with a non-NaN probe_score to evaluate"
+    return compute_sge_metrics(
+        dataset=scored[["mavedb_urn", "gene", "subset", "label"]],
+        scores=scored[["probe_score", baseline_col]],
+        score_columns=["probe_score", baseline_col],
+        n_bootstrap=n_bootstrap,
+        rng=rng,
+    )
+
+
 def compute_pairwise_metrics(
     dataset: pd.DataFrame,
     scores: pd.DataFrame,

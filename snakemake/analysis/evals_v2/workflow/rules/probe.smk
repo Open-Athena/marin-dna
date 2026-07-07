@@ -85,22 +85,31 @@ rule probe:
 
 
 rule compute_probe_metrics:
-    """Per-subset per-chromosome-weighted AUPRC (#331 / TraitGym) for the probe vs its
-    matched zero-shot LLR baseline — the metrics step of the #320/#331 protocol (wires
-    #319; #341).
+    """Probe-vs-zero-shot AUPRC for a probe cell — the metrics step of the #320/#331
+    protocol (wires #319; #341), routed by eval_protocol:
 
-    The probe predictions parquet carries BOTH `probe_score` AND the raw `llr_fwd`/
-    `llr_rc` atoms (`compute_probe` drops only `emb_ref`/`emb_alt`), so the probe and
-    its zero-shot baseline are scored on IDENTICAL rows under the identical metric — a
-    paired probe-vs-LLR comparison in one parquet. The baseline is the dataset's own
-    `score_protocol` applied to the FWD/RC-averaged LLR (`minus_llr_avg` for mendelian),
-    matching `compute_metrics`'s `_avg` semantics. The per-subset per-chrom-weighted
-    metric is the matched_pair (subset + chrom) path, so qtl_global/sge are rejected.
+    - **matched_pair** (mendelian / complex): per-subset per-chromosome-weighted AUPRC
+      (TraitGym / #331), via `per_chrom_ap_table` — needs `subset` + `chrom`.
+    - **sge**: per-accession (mavedb_urn) × consequence-subset AUPRC, macro-averaged,
+      via `compute_sge_metrics` on the probe score — the same per-accession path the
+      zero-shot SGE metrics use (#353), needs `mavedb_urn` + `gene` + `subset`. Rows
+      the probe skipped (NaN `probe_score`, a subset that failed the
+      min-variants/min-chroms gate) are dropped so the per-accession AUPRC and its
+      paired baseline cover only probe-scored cells.
 
-    Thin glue over `marin_dna.pipelines.evals.metrics.per_chrom_ap_table`. CPU-only; off
-    `rule all`. Reads a probe parquet, so the same `--rerun-triggers mtime` note as
-    `compute_probe` applies (its upstream scores parquet was built with the #318
-    overlay)."""
+    `qtl_global` has no subset/accession structure and is rejected.
+
+    In every case the probe predictions parquet carries BOTH `probe_score` AND the raw
+    `llr_fwd`/`llr_rc` atoms (`compute_probe` drops only `emb_ref`/`emb_alt`), so the
+    probe and its zero-shot baseline are scored on IDENTICAL rows under the identical
+    metric — a paired comparison in one parquet. The baseline is the dataset's own
+    `score_protocol` applied to the FWD/RC-averaged LLR (`minus_llr_avg` for mendelian /
+    sge), matching `compute_metrics`'s `_avg` semantics.
+
+    Thin glue over `marin_dna.pipelines.evals.metrics.{per_chrom_ap_table,
+    compute_sge_metrics}`. CPU-only; off `rule all`. Reads a probe parquet, so the same
+    `--rerun-triggers mtime` note as `compute_probe` applies (its upstream scores parquet
+    was built with the #318 overlay)."""
     input:
         "results/probe/{model}/{dataset}.parquet",
     output:
@@ -110,34 +119,52 @@ rule compute_probe_metrics:
         dataset="|".join(DATASETS),
     params:
         score_protocol=lambda wc: get_dataset_config(wc.dataset)["score_protocol"],
+        n_bootstrap=config["inference"]["n_bootstrap"],
+        bootstrap_seed=config["inference"]["bootstrap_seed"],
     run:
         eval_protocol = get_dataset_protocol(wildcards.dataset)
-        assert eval_protocol == "matched_pair", (
-            f"compute_probe_metrics is the per-subset per-chrom-weighted AUPRC "
-            f"(matched_pair / TraitGym) path — needs subset + chrom; dataset "
-            f"{wildcards.dataset!r} is eval_protocol {eval_protocol!r}"
+        assert eval_protocol in ("matched_pair", "sge"), (
+            f"compute_probe_metrics supports matched_pair (per-chrom AUPRC) + sge "
+            f"(per-accession AUPRC); dataset {wildcards.dataset!r} is eval_protocol "
+            f"{eval_protocol!r}"
         )
-        transform = SCORE_PROTOCOLS[params.score_protocol]
         df = pd.read_parquet(input[0])
-        for col in ("probe_score", "label", "subset", "chrom", "llr_fwd", "llr_rc"):
+        for col in ("probe_score", "label", "subset", "llr_fwd", "llr_rc"):
             assert col in df.columns, (
                 f"{input[0]} missing column {col!r} — expected a compute_probe "
                 f"predictions parquet"
             )
-        # Zero-shot baseline on the identical rows: the dataset's score protocol applied
-        # to the FWD/RC-averaged raw LLR (== compute_metrics `_avg`).
-        baseline_col = f"{params.score_protocol}_avg"
-        df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)
 
-        metrics = per_chrom_ap_table(df, ["probe_score", baseline_col])
+        if eval_protocol == "matched_pair":
+            # Per-subset per-chromosome-weighted AUPRC (TraitGym / #331). Zero-shot
+            # baseline on the identical rows = the dataset's score protocol applied to the
+            # FWD/RC-averaged raw LLR (== compute_metrics `_avg`).
+            assert "chrom" in df.columns, (
+                f"{input[0]} missing 'chrom' — matched_pair per-chrom AUPRC needs it"
+            )
+            transform = SCORE_PROTOCOLS[params.score_protocol]
+            baseline_col = f"{params.score_protocol}_avg"
+            df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)
+            metrics = per_chrom_ap_table(df, ["probe_score", baseline_col])
+        else:  # sge — per-accession × subset AUPRC (probe vs its paired zero-shot).
+            for col in ("mavedb_urn", "gene"):
+                assert col in df.columns, (
+                    f"{input[0]} missing {col!r} — sge per-accession AUPRC needs the "
+                    f"accession key + gene"
+                )
+            metrics = compute_sge_probe_metrics(
+                df,
+                params.score_protocol,
+                n_bootstrap=params.n_bootstrap,
+                rng=params.bootstrap_seed,
+            )
         metrics["model"] = wildcards.model
         metrics["dataset"] = wildcards.dataset
         metrics["split"] = config["split"]
         metrics.to_parquet(output[0], index=False)
         print(
-            f"[evals_v2] probe_metrics {wildcards.model} {wildcards.dataset}: "
-            f"{metrics['subset'].nunique()} subsets × 2 score types "
-            f"(probe_score, {baseline_col})"
+            f"[evals_v2] probe_metrics {wildcards.model} {wildcards.dataset} "
+            f"({eval_protocol}): {len(metrics)} rows"
         )
 
 
