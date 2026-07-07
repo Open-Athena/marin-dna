@@ -23,13 +23,15 @@ dependencies = [
     # iris/zephyr worker's plain `uv sync` install them. In an *extra* the
     # tokenize worker fails: `ModuleNotFoundError: No module named 'zephyr'`.
     #
-    # PIN these to the NEWEST build that (a) clears the controller freshness floor
-    # AND (b) still has the marin.execution symbols your launch.py imports. marin
-    # 0.2.32+ removed ExecutorStep / executor_main / this_output_path /
-    # ensure_versioned → an old launch.py submits fine then dies on the coordinator
-    # with `ImportError: cannot import name 'ExecutorStep'`. The floor advances
-    # daily (deploy−14d) so this window shrinks — 0.2.31 below is a CURRENT example
-    # (will rot); check #356 for today's build, or migrate launch.py to the new API.
+    # PIN these to the NEWEST build that clears the controller freshness floor while
+    # (a) keeping the marin.execution symbols your launch.py imports AND (b) staying
+    # on transformers-4. Two separate refactors bound the window: marin 0.2.33+ removed
+    # ExecutorStep / executor_main / this_output_path / ensure_versioned (an old
+    # launch.py then submits fine but dies on the coordinator with `ImportError: cannot
+    # import name 'ExecutorStep'`), and 0.2.32+ declares transformers-5 (breaks lm-eval
+    # — see the override below). So 0.2.31 (06-29) is the newest clearing BOTH. The floor
+    # advances daily (deploy−14d) so this shrinks — 0.2.31 WILL rot; check #356 for
+    # today's build, or migrate launch.py to the new API.
     "marin-core==0.2.31.*",       # NB: PyPI name is marin-core, not `marin`
     "marin-levanter==0.2.31.*",
     "marin-iris==0.2.31.*",
@@ -37,7 +39,8 @@ dependencies = [
     "marin-rigging==0.2.31.*",
     "marin-dupekit",              # PyPI name is marin-dupekit, not `dupekit`
     # finelog 06-17: iris (<=0.2.31) imports finelog.client.proxy, which finelog
-    # 0.2.12 (06-28+) dropped → "No module named 'finelog.client.proxy'".
+    # dropped at its 06-23 build (0.2.12.dev202606230935; last-good 06-22) → "No
+    # module named 'finelog.client.proxy'". The 06-17 pin below is safely before it.
     "marin-finelog==0.2.11.dev202606171051",
     "marin-finelog-server==0.2.11.dev202606171051",
     # marin-levanter[lm_eval]'s extra is a URL dep; uv requires URL deps top-level.
@@ -143,7 +146,7 @@ Anchored to specific worker-log messages so they survive iris/marin churn.
 |---|---|
 | `ModuleNotFoundError: No module named 'zephyr'` in the tokenize worker's `cloudpickle.loads` | marin is in an **extra**, not base deps. Move `marin-*` into base `dependencies` (see the template). The worker's `--no-group dev` sync (no `--extra`) then installs it. |
 | `marin-iris client is too old (build <date>; minimum <floor>)` at submit | The controller's freshness floor (deploy − 14 d) **advances daily**. Bump the marin pin to the newest build that BOTH still has your launch.py's `marin.execution` symbols (ExecutorStep row below) AND resolves the tpu extra (torchvision row below). Not a blind `uv lock --upgrade` — that jumps to a head whose executor API breaks your launch.py. Wheels are on **PyPI** (`marin-core`, not GitHub find-links). |
-| `ImportError: cannot import name 'ExecutorStep' from 'marin.execution'` — the job **submits OK then fails on the coordinator** (before any dispatch; `iris job summary` shows the coordinator task errored) | marin **0.2.32+ refactored the executor API** (`ExecutorStep` / `executor_main` / `this_output_path` / `ensure_versioned` removed). Pin marin to the newest build that still has them (`0.2.31`, early July — the closing "old-API window"), or migrate launch.py to the new API. Verify with `uv run python -c "import launch"` before relaunching. |
+| `ImportError: cannot import name 'ExecutorStep' from 'marin.execution'` — the job **submits OK then fails on the coordinator** (before any dispatch; `iris job summary` shows the coordinator task errored) | marin **0.2.33+ removed the executor API** (`ExecutorStep` / `executor_main` / `this_output_path` / `ensure_versioned`). Pin marin to the newest build that still has them **and** stays on transformers-4 — that's **`0.2.31` (06-29)**: 0.2.32 keeps the executor API but declares transformers-5 (breaks lm-eval), and 0.2.33 drops the API. Or migrate launch.py to the new API. Verify with `uv run python -c "import launch"` before relaunching. |
 | `no version of torchvision==0.26.0+cpu` / the tpu closure only resolves at a too-old marin (e.g. 0.2.19) | `marin-core[tpu]` (>=0.2.20) pins torch/torchvision `==…+cpu`, published only on **PyTorch's CPU index**. Add a `pytorch-cpu` **explicit** index AND list `torch`/`torchvision` as **direct deps of the `tpu` extra** (uv only routes an extra's *direct* deps — routing them only in `[tool.uv.sources]` isn't enough). Also set `environments = ["sys_platform == 'linux'"]` (the darwin branch has no such wheels and derails resolution). See template. |
 | `error: Extra "cpu" is not defined…` on a `remote(...)` step | `pip_dependency_groups` names a non-existent extra. Use `[]` (marin is base) for CPU/tokenize, `["tpu"]` for TPU-train. |
 | `Timeout (Ns) waiting for lock on /uv/cache/.../lm-eval...` | `-e UV_LOCK_TIMEOUT 7200` on `job run` **and** in the step's `env_vars=`. Many zephyr workers share a uv cache; the first build serializes and the 300 s default races. |
@@ -156,7 +159,7 @@ Anchored to specific worker-log messages so they survive iris/marin churn.
 
 ## Sources & the fast-churn caveat
 
-marin/iris infra changes **rapidly** — the build/pin choices here rot fast; verify against the current known-good build (tracked in [#328](https://github.com/Open-Athena/marin-dna/issues/328)) before trusting them.
+marin/iris infra changes **rapidly** — the build/pin choices here rot fast; verify against the current known-good build (the live recipe in [#356](https://github.com/Open-Athena/marin-dna/issues/356); [#328](https://github.com/Open-Athena/marin-dna/issues/328) is the older migration hub) before trusting them.
 
 - **Reference consumer repos** (our per-experiment pyproject mirrors theirs): [`marin-community/marin-experiments`](https://github.com/marin-community/marin-experiments) (e.g. `tiny-stories/`) and [`Open-Athena/MarinFold`](https://github.com/Open-Athena/MarinFold).
 - **marin Discord** — public read-only mirror at `https://marin-discord.pages.dev/archive.db`; download the SQLite and query it locally for "what's been said about X".
