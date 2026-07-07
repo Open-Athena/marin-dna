@@ -15,9 +15,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
-from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics
+from plots.blog._scaling import VEP_PANELS, ladder_llr_table
 from plots.blog._style.figure_style import (
     EARTH_QUAL,
     FIGURE_WIDTH,
@@ -26,40 +25,14 @@ from plots.blog._style.figure_style import (
 )
 from plots.blog._style.savefig import save_figure
 
-DATA = Path(__file__).resolve().parent / "data" / "parameter_scaling_results.csv"
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
-LADDER_FINAL_STEP = 215573
 
-# Subset → display label, in EARTH_QUAL color-slot order (Eric's VEP_PANELS), so a
-# variant type keeps its color across Figs 5/6.
-VEP_PANELS: tuple[tuple[str, str], ...] = (
-    ("missense_variant", "missense"),
-    ("tss_proximal", "promoter"),
-    ("5_prime_UTR_variant", "5' UTR"),
-    ("3_prime_UTR_variant", "3' UTR"),
-    ("splicing", "splicing"),
-    ("synonymous_variant", "synonymous"),
-)
 # 1×3 task-group panels (Eric's grouping). Subset color = its VEP_PANELS slot.
 FIGURE5_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("CDS", ("missense_variant", "synonymous_variant")),
     ("upstream", ("tss_proximal", "5_prime_UTR_variant")),
     ("other", ("3_prime_UTR_variant", "splicing")),
 )
-
-
-def ladder_llr_table() -> pd.DataFrame:
-    """``(params, subset, value)`` AUPRC for the 8 ladder endpoints (new Mendelian LLR)."""
-    meta = pd.read_csv(DATA)[["run_name", "params"]]
-    frames = []
-    for _, r in meta.iterrows():
-        stem = r["run_name"].removeprefix("dna-bolinas-")  # scaling-v0.5-hH-pP
-        df = read_llr_metrics(
-            f"{stem}-step-{LADDER_FINAL_STEP}", "mendelian_traits"
-        ).to_pandas()
-        df["params"] = r["params"]
-        frames.append(df)
-    return pd.concat(frames, ignore_index=True)
 
 
 def build() -> None:
