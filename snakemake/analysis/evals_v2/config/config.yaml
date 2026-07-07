@@ -1148,6 +1148,29 @@ models:
     window_size: 256
     datasets: [mendelian_traits]
 
+  # exp353 (#353) — CDS annotation-vs-projection 0.25B sweep, final step-4999.
+  # 2 methods (annotation / projection) × 2 species scopes (all-204 animal orders
+  # / 125-Chordata). window_size 255 = 255 bp DNA + BOS (Qwen3-0.25B,
+  # DNA_BASE_SEQ_LEN=255). Scoped to mendelian_traits + sge — the two zero-shot
+  # benchmarks for this comparison; the same cells are re-scored with embeddings
+  # (issue318 overlay) to feed the linear probes under `probe.models`.
+  - name: exp353-annot_all204-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp353-cds-0p25b-annot_all204-v0.1-1e4df7/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: exp353-proj_all204-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp353-cds-0p25b-proj_all204-v0.1-5a8414/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: exp353-annot_vert125-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp353-cds-0p25b-annot_vert125-v0.1-14fc97/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: exp353-proj_vert125-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp353-cds-0p25b-proj_vert125-v0.1-1e0134/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
 inference:
   batch_size: 128       # Was 64 with output_hidden_states=True keeping all
                         # 19+2 layers' activations alive (~2.6 GB at L=256,
@@ -1219,6 +1242,18 @@ probe:
     # entries here as more cells are re-scored with inference.return_embeddings.
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
       datasets: [mendelian_traits]
+    # exp353 (#353) — probe the 4 CDS specialists on mendelian_traits + sge.
+    # Requires each cell's scores parquet to carry emb_ref/emb_alt (issue318
+    # overlay). mendelian uses the matched-pair per-chrom AUPRC path; sge uses
+    # the per-accession `compute_sge_probe_metrics` path (this work).
+    - name: exp353-annot_all204-step-4999
+      datasets: [mendelian_traits, sge]
+    - name: exp353-proj_all204-step-4999
+      datasets: [mendelian_traits, sge]
+    - name: exp353-annot_vert125-step-4999
+      datasets: [mendelian_traits, sge]
+    - name: exp353-proj_vert125-step-4999
+      datasets: [mendelian_traits, sge]
 
 
 # ---------------------------------------------------------------------------
