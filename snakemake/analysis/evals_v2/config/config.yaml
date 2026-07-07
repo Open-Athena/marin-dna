@@ -601,6 +601,50 @@ models:
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
 
+  # Blog Figs 7/8 (#364, branch-only): 1B scaling-ladder training-curve
+  # intermediates, mendelian_traits only. Results land at
+  # results/metrics/<name>/mendelian_traits.parquet — read by blog_metrics.
+  - name: scaling-v0.5-h1920-p1B-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-140000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-140000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-150000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-150000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-160000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-160000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-170000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-170000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-180000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-180000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-190000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-190000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-200000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-200000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: scaling-v0.5-h1920-p1B-step-210000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-210000
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
   # was weak in #21, and the matched-pair mendelian dataset is the one of
