@@ -103,6 +103,12 @@ override-dependencies = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
 
+[tool.ruff]
+# The blog figure style is vendored verbatim from eric-czech/marin-dna-post-202606
+# (see plots/blog/_style/README.md); exclude it from lint + format so it stays
+# byte-for-byte re-fetchable and doesn't fight ruff (e.g. its unused import).
+extend-exclude = ["plots/blog/_style"]
+
 [tool.ruff.lint]
 # jaxtyping uses string annotations like ``Int[Tensor, "B L"]`` that ruff's
 # F722 parser rejects; suppress for the whole project.
