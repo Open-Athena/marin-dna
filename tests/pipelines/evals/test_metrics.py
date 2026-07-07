@@ -23,6 +23,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_metrics,
     compute_qtl_metrics,
     compute_sge_metrics,
+    compute_sge_probe_metrics,
     paired_metric_delta_bootstrap,
     per_chrom_ap_table,
     per_chrom_weighted_ap,
@@ -807,6 +808,68 @@ def test_sge_accession_macro_is_mean_over_accessions():
     )
     assert macro["value"] == pytest.approx(sum(vals) / 2)
     assert macro["n"] == 2
+
+
+# ---------------------------------------------------------------------------
+# compute_sge_probe_metrics (SGE linear-probe vs paired zero-shot baseline, #353)
+# ---------------------------------------------------------------------------
+
+
+def _sge_probe_df(
+    *, seed: int = 0, perfect_probe: bool = True, nan_subset: str | None = None
+) -> pd.DataFrame:
+    """A ``compute_probe`` predictions frame for SGE: the ``_sge_data`` keys +
+    ``probe_score`` (separates ``label`` when ``perfect_probe``) + the raw
+    ``llr_fwd``/``llr_rc`` atoms the baseline is built from. If ``nan_subset`` is set,
+    that subset's ``probe_score`` is all-NaN (a subset the probe skipped)."""
+    dataset, _ = _sge_data(seed=seed)
+    rng = np.random.default_rng(seed + 100)
+    n = len(dataset)
+    label = dataset["label"].to_numpy()
+    df = dataset.copy()
+    df["probe_score"] = (
+        np.where(label, 1.0, 0.0) + rng.normal(0, 1e-6, n)
+        if perfect_probe
+        else rng.normal(size=n)
+    )
+    # Raw LLR atoms: impactful (label True) gets negative LLR → minus_llr high (the SGE
+    # deleteriousness orientation), so the zero-shot baseline is weakly informative.
+    signal = np.where(label, -1.0, 1.0)
+    df["llr_fwd"] = signal + rng.normal(0, 0.5, n)
+    df["llr_rc"] = signal + rng.normal(0, 0.5, n)
+    if nan_subset is not None:
+        df.loc[df["subset"] == nan_subset, "probe_score"] = np.nan
+    return df
+
+
+def test_sge_probe_metrics_shape_and_paired_baseline():
+    """Reuses the per-accession × subset SGE grid, emitting BOTH the probe score and its
+    paired zero-shot baseline (minus_llr_avg); a perfect probe → AUPRC ≈ 1."""
+    df = _sge_probe_df(seed=0, perfect_probe=True)
+    out = compute_sge_probe_metrics(df, "minus_llr", n_bootstrap=20, rng=0)
+    # Exactly two score types on identical rows: the probe + its zero-shot baseline.
+    assert set(out["score_type"]) == {"probe_score", "minus_llr_avg"}
+    # Same per-accession × subset structure as compute_sge_metrics.
+    assert set(out["subset"]) <= {
+        "missense_variant",
+        "splicing",
+        SGE_POOLED_SUBSET,
+        MACRO_AVG_SUBSET,
+    }
+    assert {"urn:1", "urn:2", MACRO_AVG_SUBSET} <= set(out["accession"])
+    probe_cells = out[(out["score_type"] == "probe_score") & out["value"].notna()]
+    assert (probe_cells["value"] > 0.999).all()
+
+
+def test_sge_probe_metrics_drops_skipped_subset():
+    """Rows the probe skipped (all-NaN ``probe_score`` for a subset below the gate) are
+    dropped, so that subset is absent while the scored subset is still evaluated for both
+    score types."""
+    df = _sge_probe_df(seed=1, perfect_probe=True, nan_subset="splicing")
+    out = compute_sge_probe_metrics(df, "minus_llr", n_bootstrap=20, rng=0)
+    assert "splicing" not in set(out["subset"])
+    assert "missense_variant" in set(out["subset"])
+    assert set(out["score_type"]) == {"probe_score", "minus_llr_avg"}
 
 
 def test_sge_n_min_auprc_gates_small_cells():

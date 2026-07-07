@@ -18,6 +18,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_auprc_metrics,
     compute_qtl_metrics,
     compute_sge_metrics,
+    compute_sge_probe_metrics,
     per_chrom_ap_table,
 )
 from marin_dna.pipelines.evals.variant_probe import PAIR_COMBOS, run_subset_probes
