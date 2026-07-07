@@ -61,18 +61,27 @@ def table_from_normalized(rows: pl.DataFrame) -> pd.DataFrame:
     ).reindex(columns=keep)
 
 
-def render_heatmap(table: pd.DataFrame, *, title: str, out_name: str) -> None:
+def render_heatmap(
+    table: pd.DataFrame,
+    *,
+    title: str,
+    out_name: str,
+    subset_order: list[str] = SUBSET_ORDER,
+    subset_display: dict[str, str] = SUBSET_DISPLAY,
+) -> None:
     """Render one leaderboard heatmap (Eric's style) and save SVG/PNG/PDF.
 
     ``table``: index ``(method_display, family)``, columns ``[_macro_avg_,
-    *SUBSET_ORDER]``, values AUPRC %. Rows are sorted by Macro Avg; the Macro Avg
+    *subset_order]``, values AUPRC %. Rows are sorted by Macro Avg; the Macro Avg
     column is boxed; ``marin_dna`` row labels are bolded; blank cells are left empty.
+    ``subset_order`` / ``subset_display`` default to the 8 Mendelian consequence
+    subsets; SGE passes its own (Missense / Splicing) via ``table_from_sge``.
     """
     table = table.sort_values(MACRO_AVG_SUBSET, ascending=False)
     disp = [idx[0] for idx in table.index]
     fams = [idx[1] for idx in table.index]
-    col_labels = ["Macro Avg", *[SUBSET_DISPLAY[s] for s in SUBSET_ORDER]]
-    matrix = table[[MACRO_AVG_SUBSET, *SUBSET_ORDER]].to_numpy(dtype=float)
+    col_labels = ["Macro Avg", *[subset_display[s] for s in subset_order]]
+    matrix = table[[MACRO_AVG_SUBSET, *subset_order]].to_numpy(dtype=float)
     n, m = matrix.shape
 
     finite = matrix[np.isfinite(matrix)]
@@ -127,3 +136,37 @@ def render_heatmap(table: pd.DataFrame, *, title: str, out_name: str) -> None:
     ax.set_title(title, fontsize=9.5, pad=10)
     fig.tight_layout()
     save_figure(fig, OUTPUT_DIR, out_name)
+
+
+# SGE assays only coding/splice consequences, so its heatmap is a narrower
+# Macro / Missense / Splicing view (display order).
+SGE_SUBSET_DISPLAY: dict[str, str] = {
+    "missense_variant": "Missense",
+    "splicing": "Splicing",
+}
+SGE_SUBSET_ORDER = list(SGE_SUBSET_DISPLAY)
+
+
+def table_from_sge(rows: pl.DataFrame, *, score_type: str) -> pd.DataFrame:
+    """Long-form ``sge_normalized_rows`` → the pandas heatmap table for one
+    ``score_type`` (the LLR world = ``minus_llr_avg``).
+
+    SGE is a per-accession (per-gene) grid; take the **across-gene macro**
+    (``accession == _macro_avg_``) AUPRC per consequence subset. Columns:
+    ``[_macro_avg_, *SGE_SUBSET_ORDER]`` (Macro Avg / Missense / Splicing), AUPRC %.
+    """
+    keep = [MACRO_AVG_SUBSET, *SGE_SUBSET_ORDER]
+    pdf = (
+        rows.filter(
+            (pl.col("score_type") == score_type)
+            & (pl.col("metric") == "AUPRC")
+            & (pl.col("accession") == MACRO_AVG_SUBSET)
+            & pl.col("subset").is_in(keep)
+        )
+        .with_columns(value=pl.col("value") * 100.0)
+        .select(["method_display", "family", "subset", "value"])
+        .to_pandas()
+    )
+    return pdf.pivot_table(
+        index=["method_display", "family"], columns="subset", values="value"
+    ).reindex(columns=keep)
