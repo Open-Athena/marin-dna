@@ -849,13 +849,12 @@ def test_sge_probe_metrics_shape_and_paired_baseline():
     out = compute_sge_probe_metrics(df, "minus_llr", n_bootstrap=20, rng=0)
     # Exactly two score types on identical rows: the probe + its zero-shot baseline.
     assert set(out["score_type"]) == {"probe_score", "minus_llr_avg"}
-    # Same per-accession × subset structure as compute_sge_metrics.
-    assert set(out["subset"]) <= {
-        "missense_variant",
-        "splicing",
-        SGE_POOLED_SUBSET,
-        MACRO_AVG_SUBSET,
-    }
+    # Per-subset cells + the subset-macro, but NOT the pooled cross-subset `both` scope —
+    # separate per-subset probe classifiers aren't comparable across subsets.
+    assert set(out["subset"]) <= {"missense_variant", "splicing", MACRO_AVG_SUBSET}
+    assert SGE_POOLED_SUBSET not in set(out["subset"]), (
+        "pooled 'both' scope must be dropped for per-subset probe scores"
+    )
     assert {"urn:1", "urn:2", MACRO_AVG_SUBSET} <= set(out["accession"])
     probe_cells = out[(out["score_type"] == "probe_score") & out["value"].notna()]
     assert (probe_cells["value"] > 0.999).all()

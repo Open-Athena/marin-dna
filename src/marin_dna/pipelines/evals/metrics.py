@@ -1277,8 +1277,10 @@ def compute_sge_probe_metrics(
 
     Returns:
         The ``compute_sge_metrics`` frame (``[metric, subset, accession, gene,
-        score_type, value, se, n, n_pos]``) for two ``score_type``s: ``probe_score`` and
-        the baseline ``f"{score_protocol}_avg"``.
+        score_type, value, se, n, n_pos]``) for two ``score_type``s (``probe_score`` and
+        the baseline ``f"{score_protocol}_avg"``), **with the pooled ``SGE_POOLED_SUBSET``
+        ("both") scope removed** — the per-subset probes are separate classifiers whose
+        scores are not comparable across subsets, so a pooled ranking would be confounded.
     """
     assert score_protocol in SCORE_PROTOCOLS, (
         f"score_protocol must be one of {sorted(SCORE_PROTOCOLS)}, got {score_protocol!r}"
@@ -1291,13 +1293,19 @@ def compute_sge_probe_metrics(
     df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)
     scored = df[df["probe_score"].notna()].reset_index(drop=True)
     assert len(scored) > 0, "no rows with a non-NaN probe_score to evaluate"
-    return compute_sge_metrics(
+    out = compute_sge_metrics(
         dataset=scored[["mavedb_urn", "gene", "subset", "label"]],
         scores=scored[["probe_score", baseline_col]],
-        score_columns=["probe_score", baseline_col],
         n_bootstrap=n_bootstrap,
         rng=rng,
     )
+    # Drop the pooled ``SGE_POOLED_SUBSET`` ("both") scope. The per-subset probes are
+    # SEPARATE per-subset leave-one-chromosome-out classifiers, so their ``probe_score``
+    # scales are not comparable ACROSS subsets — a pooled missense+splicing ranking would
+    # be a calibration-confounded, silently-wrong AUPRC. (The matched-pair probe path omits
+    # its analogous ``_global_`` row for exactly this reason.) The per-subset cells and the
+    # subset ``_macro_avg_`` — a mean of within-subset AUPRCs — remain valid.
+    return out[out["subset"] != SGE_POOLED_SUBSET].reset_index(drop=True)
 
 
 def compute_pairwise_metrics(

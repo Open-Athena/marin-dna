@@ -303,11 +303,17 @@ metric. It emits, per consequence `subset`, the **per-chromosome-weighted AUPRC*
 TraitGym / #314 headline; `marin_dna.pipelines.evals.metrics.per_chrom_ap_table` →
 `per_chrom_weighted_ap`) for two score types: `probe_score` and the dataset's
 zero-shot baseline (its `score_protocol` applied to the FWD/RC-averaged LLR, e.g.
-`minus_llr_avg` for mendelian). `matched_pair` datasets only (needs `subset` + `chrom`;
-`qtl_global`/`sge` are rejected).
+`minus_llr_avg` for mendelian). Routed by `eval_protocol`: **`matched_pair`** (mendelian /
+complex; needs `subset` + `chrom`) takes the per-chromosome-weighted path above, while
+**`sge`** takes a per-accession (`mavedb_urn`) × consequence-subset AUPRC macro-averaged over
+genes (`compute_sge_probe_metrics` → `compute_sge_metrics`) — dropping the pooled `both`
+scope, since the separate per-subset probe classifiers aren't comparable across subsets.
+`qtl_global` is rejected.
 
 ```
-results/probe_metrics/{model}/{dataset}.parquet   # [score_type, subset, value, n, n_pos, n_chrom, model, dataset, split]
+# matched_pair: [score_type, subset, value, se, n, n_pos, n_chrom, model, dataset, split]
+results/probe_metrics/{model}/{dataset}.parquet
+# sge:          [metric, subset, accession, gene, score_type, value, se, n, n_pos, model, dataset, split]
 ```
 
 ```bash
