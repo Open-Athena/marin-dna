@@ -1193,7 +1193,7 @@ models:
     datasets: [mendelian_traits]
 
 inference:
-  batch_size: 128       # Was 64 with output_hidden_states=True keeping all
+  batch_size: 64        # blog #364: 64 for embedding runs (return_embeddings on). Was 64 with output_hidden_states=True keeping all
                         # 19+2 layers' activations alive (~2.6 GB at L=256,
                         # hidden=1920); the slim LLR+JSD bundle frees that
                         # headroom for ~2x batch on A10G (24 GB).
@@ -1204,7 +1204,7 @@ inference:
                         # inference time but is the validated default
                         # per issue #175 conclusion 2. AVG / minus_llr /
                         # abs_llr columns are derived in the metrics rule.
-  return_embeddings: false  # GLOBAL opt-in (#318): also emit the entire-DNA-window
+  return_embeddings: true  # blog #364: ON so one forward pass yields zero-shot + probe. GLOBAL opt-in (#318): also emit the entire-DNA-window
                         # mean-pooled, both-allele, FWD+RC-averaged last-layer
                         # embeddings as `emb_ref`/`emb_alt` (list[f16]) columns in
                         # the SAME scores parquet, from the SAME forwards. Default
@@ -1215,7 +1215,7 @@ inference:
                         # `--rerun-triggers mtime` to avoid recomputing identical
                         # llr/jsd on unrelated cells. Pair with a smaller per-model
                         # `batch_size` (and `eval_accumulation_steps`) for VRAM.
-  eval_accumulation_steps: null  # Execution-only: offload Trainer.predict outputs
+  eval_accumulation_steps: 8  # blog #364: offload wide embedding predictions to avoid A10G OOM. Execution-only: offload Trainer.predict outputs
                         # to CPU every N steps (null = accumulate on-device). Set a
                         # small int for embedding runs so the wide [N, 2+2D]
                         # predictions don't OOM the GPU. Not output-affecting.
