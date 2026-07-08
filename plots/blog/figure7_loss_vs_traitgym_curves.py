@@ -22,7 +22,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter
 from scipy.ndimage import gaussian_filter1d
 
-from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics
+from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics, read_probe_metrics
 from plots.blog._style.figure_style import EARTH_QUAL, FIGURE_WIDTH, figsize
 from plots.blog._style.savefig import save_figure
 
@@ -84,30 +84,34 @@ _SMOOTH_SIGMA = 1.5
 
 
 def _trajectory(
-    stem: str, steps: tuple[int, ...]
+    stem: str, steps: tuple[int, ...], read_fn
 ) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """{subset: (steps, auprc)} across the scored HF steps of one scale (skips unscored)."""
+    """{subset: (steps, auprc)} across the scored HF steps of one scale (skips unscored).
+
+    ``read_fn`` selects the world — ``read_llr_metrics`` (M·LLR) or
+    ``read_probe_metrics`` (M·Probe). Below-gate probe subsets (null value) are skipped.
+    """
     acc: dict[str, tuple[list[int], list[float]]] = {t: ([], []) for t, _, _ in TRAITS}
     for s in steps:
         try:
-            df = read_llr_metrics(f"{stem}-step-{s}", "mendelian_traits")
+            df = read_fn(f"{stem}-step-{s}", "mendelian_traits")
         except (LookupError, FileNotFoundError, OSError):
             continue  # not scored yet
         vals = {row["subset"]: row["value"] for row in df.iter_rows(named=True)}
         for t, _, _ in TRAITS:
-            if t in vals:
+            if vals.get(t) is not None:
                 acc[t][0].append(s)
                 acc[t][1].append(vals[t])
     return {t: (np.array(x), np.array(y)) for t, (x, y) in acc.items()}
 
 
-def build() -> None:
+def build(world: str, read_fn, metric_label: str) -> None:
     color_for = {t: EARTH_QUAL[slot] for t, _, slot in TRAITS}
     label_for = {t: lab for t, lab, _ in TRAITS}
 
     fig, axes = plt.subplots(1, 3, figsize=figsize(FIGURE_WIDTH, 4.4), sharey=True)
     for ax, (scale_label, stem, steps) in zip(axes, SCALES, strict=True):
-        traj = _trajectory(stem, steps)
+        traj = _trajectory(stem, steps, read_fn)
         for t, _, _ in TRAITS:
             x, y = traj[t]
             if len(x) < 2:
@@ -160,7 +164,7 @@ def build() -> None:
     ]
     fig.subplots_adjust(top=0.80, bottom=0.22, left=0.06, right=0.99, wspace=0.06)
     fig.suptitle(
-        "Parameter scaling — VEP AUPRC across training steps (new eval)",
+        f"Parameter scaling — VEP AUPRC across training steps · {metric_label}",
         fontsize=11,
         y=0.94,
     )
@@ -174,8 +178,13 @@ def build() -> None:
         title_fontsize=9,
         fontsize=9,
     )
-    save_figure(fig, OUTPUT_DIR, "figure7_loss_vs_traitgym_curves__mendelian_llr")
+    save_figure(fig, OUTPUT_DIR, f"figure7_loss_vs_traitgym_curves__mendelian_{world}")
+
+
+def build_all() -> None:
+    build("llr", read_llr_metrics, "zero-shot LLR (new eval)")
+    build("probe", read_probe_metrics, "frozen-embedding linear probe")
 
 
 if __name__ == "__main__":
-    build()
+    build_all()
