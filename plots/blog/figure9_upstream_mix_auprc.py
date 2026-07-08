@@ -106,7 +106,7 @@ def build(world) -> None:
         zorder=3,
     )
     ax.set_xlabel("upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
-    ax.set_ylabel(f"macro avg VEP AUPRC · {world.label}")
+    ax.set_ylabel("macro avg VEP AUPRC")
     ax.set_title(
         f"Continued pretraining from uniform mixture · {world.label}", fontsize=11
     )
