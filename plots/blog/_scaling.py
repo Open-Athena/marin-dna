@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics
+from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics, read_probe_metrics
 
 DATA = Path(__file__).resolve().parent / "data" / "parameter_scaling_results.csv"
 LADDER_FINAL_STEP = 215573
@@ -30,21 +30,29 @@ VEP_PANELS: tuple[tuple[str, str], ...] = (
 )
 
 
-def ladder_llr_table() -> pd.DataFrame:
+def ladder_table(read_fn) -> pd.DataFrame:
     """Long-form ``(subset, value, n, params, eval_loss)`` for the 8 ladder endpoints.
 
-    ``value`` = new-Mendelian LLR AUPRC (per subset, incl. the ``_global_`` /
-    ``_macro_avg_`` aggregates); ``params`` / ``eval_loss`` come from the vendored
-    scaling CSV (joined by run-name stem).
+    ``read_fn`` selects the world — ``read_llr_metrics`` (M·LLR) or
+    ``read_probe_metrics`` (M·Probe). ``value`` = per-subset AUPRC; ``params`` /
+    ``eval_loss`` come from the vendored scaling CSV (joined by run-name stem).
     """
     meta = pd.read_csv(DATA)[["run_name", "params", "eval_loss"]]
     frames = []
     for _, r in meta.iterrows():
         stem = r["run_name"].removeprefix("dna-bolinas-")  # scaling-v0.5-hH-pP
-        df = read_llr_metrics(
-            f"{stem}-step-{LADDER_FINAL_STEP}", "mendelian_traits"
-        ).to_pandas()
+        df = read_fn(f"{stem}-step-{LADDER_FINAL_STEP}", "mendelian_traits").to_pandas()
         df["params"] = int(r["params"])
         df["eval_loss"] = float(r["eval_loss"])
         frames.append(df)
     return pd.concat(frames, ignore_index=True)
+
+
+def ladder_llr_table() -> pd.DataFrame:
+    """M·LLR convenience wrapper for :func:`ladder_table`."""
+    return ladder_table(read_llr_metrics)
+
+
+def ladder_probe_table() -> pd.DataFrame:
+    """M·Probe convenience wrapper for :func:`ladder_table`."""
+    return ladder_table(read_probe_metrics)

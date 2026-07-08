@@ -16,7 +16,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from plots.blog._scaling import VEP_PANELS, ladder_llr_table
+from plots.blog._scaling import VEP_PANELS, ladder_llr_table, ladder_probe_table
 from plots.blog._style.figure_style import (
     FIGURE_WIDTH,
     X_LABEL_PAD,
@@ -30,8 +30,7 @@ OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
 _MARKER_AREA = 110.0
 
 
-def build() -> None:
-    data = ladder_llr_table()
+def build(world: str, data, metric_label: str) -> None:
     params_present = sorted({int(p) for p in data["params"].unique()})
     pal = palette(params_present)
 
@@ -82,7 +81,7 @@ def build() -> None:
         ax.set_ylabel("AUPRC")
 
     fig.suptitle(
-        "Parameter scaling — loss vs VEP AUPRC by variant type (new eval)",
+        f"Parameter scaling — loss vs VEP AUPRC by variant type · {metric_label}",
         fontsize=11,
         y=0.96,
     )
@@ -90,8 +89,13 @@ def build() -> None:
     attach_params_legend_below(
         fig, pal, params_present, width_scale=0.4, handlelength=1.0
     )
-    save_figure(fig, OUTPUT_DIR, "figure6_loss_vs_vep_auprc__mendelian_llr")
+    save_figure(fig, OUTPUT_DIR, f"figure6_loss_vs_vep_auprc__mendelian_{world}")
+
+
+def build_all() -> None:
+    build("llr", ladder_llr_table(), "zero-shot LLR (new eval)")
+    build("probe", ladder_probe_table(), "frozen-embedding linear probe")
 
 
 if __name__ == "__main__":
-    build()
+    build_all()

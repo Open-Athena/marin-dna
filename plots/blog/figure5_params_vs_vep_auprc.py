@@ -16,7 +16,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from plots.blog._scaling import VEP_PANELS, ladder_llr_table
+from plots.blog._scaling import VEP_PANELS, ladder_llr_table, ladder_probe_table
 from plots.blog._style.figure_style import (
     EARTH_QUAL,
     FIGURE_WIDTH,
@@ -35,8 +35,7 @@ FIGURE5_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
-def build() -> None:
-    data = ladder_llr_table()
+def build(world: str, data, metric_label: str) -> None:
     color_for = {s: EARTH_QUAL[i] for i, (s, _label) in enumerate(VEP_PANELS)}
     label_for = {s: label for s, label in VEP_PANELS}
 
@@ -71,13 +70,18 @@ def build() -> None:
     axes[1].set_xlabel("model params", labelpad=X_LABEL_PAD)
 
     fig.suptitle(
-        "Parameter scaling — params vs VEP AUPRC by variant type (new eval)",
+        f"Parameter scaling — params vs VEP AUPRC by variant type · {metric_label}",
         fontsize=11,
         y=0.97,
     )
     fig.tight_layout(rect=(0, 0.02, 1, 0.99))
-    save_figure(fig, OUTPUT_DIR, "figure5_params_vs_vep_auprc__mendelian_llr")
+    save_figure(fig, OUTPUT_DIR, f"figure5_params_vs_vep_auprc__mendelian_{world}")
+
+
+def build_all() -> None:
+    build("llr", ladder_llr_table(), "zero-shot LLR (new eval)")
+    build("probe", ladder_probe_table(), "frozen-embedding linear probe")
 
 
 if __name__ == "__main__":
-    build()
+    build_all()
