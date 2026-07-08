@@ -543,11 +543,11 @@ models:
   - name: mix-v0.9-p1B-i0-uniform-step-25004
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217/hf/step-25004
     window_size: 255
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, sge]
   - name: mix-v0.9-p1B-i16-upstream-step-8333
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
     window_size: 255
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, sge]
 
   # exp135-1B-m5.1 (Slack #bolinas, 2026-05-30): continued training from the
   # animal-only uniform mix (~110B tokens), then a 5-way mix adding the new
@@ -556,6 +556,188 @@ models:
   # Scoped to mendelian_traits to match the other mix-v0.9 entries.
   - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
+  # Blog Figs 9/10 (epic #361/#366) — full v0.9 mixture lineage, HF-exported
+  # checkpoints only (the offline-reproducible set; see #273 + plots/blog/_mixture.py).
+  # Fig 9 = uniform baseline + uniform->upstream sweep finals; Fig 10 = the m1.3 /
+  # m3.3 / m5.1 continuation lineages, every HF step (3-4/stage). All 1B, 255bp+BOS,
+  # scored on mendelian_traits + sge (embeddings on → LLR + probe from one pass).
+  - name: mix-v0.9-p1B-i0-uniform-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i0-uniform-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i10-uniform_to_upstream_1-step-2501
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i10-uniform_to_upstream_1-bb0570/hf/step-2501
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i11-uniform_to_upstream_2-step-2501
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i11-uniform_to_upstream_2-52dd3a/hf/step-2501
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i12-uniform_to_upstream_3-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i12-uniform_to_upstream_3-de18d1/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i13-uniform_to_upstream_4-step-2499
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i13-uniform_to_upstream_4-cdebab/hf/step-2499
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i14-uniform_to_upstream_5-step-2501
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i14-uniform_to_upstream_5-13a591/hf/step-2501
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i15-uniform_to_upstream_3.5-step-8332
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i15-uniform_to_upstream_3.5-d0cfb0/hf/step-8332
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i18-uniform_to_uniform_1-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i18-uniform_to_uniform_1-84cd83/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i18-uniform_to_uniform_1-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i18-uniform_to_uniform_1-84cd83/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i18-uniform_to_uniform_1-step-29579
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i18-uniform_to_uniform_1-84cd83/hf/step-29579
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-30000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-30000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-40000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-40000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-50000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-50000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i20-exp135-zoonomia-m1-3ea283/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i20-exp135-zoonomia-m1-3ea283/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-29579
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i20-exp135-zoonomia-m1-3ea283/hf/step-29579
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-256ffd/hf/step-30000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-40000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-256ffd/hf/step-40000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-50000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-256ffd/hf/step-50000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-53243
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-256ffd/hf/step-53243
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-b52d8b/hf/step-50000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-60000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-b52d8b/hf/step-60000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-70000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-b52d8b/hf/step-70000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-70991
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-b52d8b/hf/step-70991
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-60000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-c3a54c/hf/step-60000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-c3a54c/hf/step-70000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-80000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-c3a54c/hf/step-80000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-c3a54c/hf/step-82823
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i22-exp135-zoonomia-m3-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i22-exp135-zoonomia-m3-3aae5f/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i22-exp135-zoonomia-m3-step-20000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i22-exp135-zoonomia-m3-3aae5f/hf/step-20000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i22-exp135-zoonomia-m3-step-29578
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i22-exp135-zoonomia-m3-3aae5f/hf/step-29578
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-step-30000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-e9bc43/hf/step-30000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-step-40000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-e9bc43/hf/step-40000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-step-50000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-e9bc43/hf/step-50000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-step-53238
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i25-exp135-zoonomia-m3.1-e9bc43/hf/step-53238
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-step-50000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-da7a05/hf/step-50000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-step-60000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-da7a05/hf/step-60000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-step-70000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-da7a05/hf/step-70000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-step-70983
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i27-exp135-zoonomia-m3.2-da7a05/hf/step-70983
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-step-60000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-148abf/hf/step-60000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-step-70000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-148abf/hf/step-70000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-step-80000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-148abf/hf/step-80000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-step-82813
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i29-exp135-zoonomia-m3.3-148abf/hf/step-82813
     window_size: 255
     datasets: [mendelian_traits, sge]
 

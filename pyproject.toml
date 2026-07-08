@@ -104,10 +104,11 @@ override-dependencies = [
 packages = ["src/marin_dna"]
 
 [tool.ruff]
-# The blog figure style is vendored verbatim from eric-czech/marin-dna-post-202606
-# (see plots/blog/_style/README.md); exclude it from lint + format so it stays
-# byte-for-byte re-fetchable and doesn't fight ruff (e.g. its unused import).
-extend-exclude = ["plots/blog/_style"]
+# The blog figure style + mixture-lineage graph are vendored verbatim from
+# eric-czech/marin-dna-post-202606 (see plots/blog/_style/README.md and the
+# _mixture_lineage.py header); exclude them from lint + format so they stay
+# byte-for-byte re-fetchable and don't fight ruff (e.g. long LINEAGE literals).
+extend-exclude = ["plots/blog/_style", "plots/blog/_mixture_lineage.py"]
 
 [tool.ruff.lint]
 # jaxtyping uses string annotations like ``Int[Tensor, "B L"]`` that ruff's
