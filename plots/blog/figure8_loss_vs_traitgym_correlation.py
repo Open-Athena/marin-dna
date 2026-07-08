@@ -110,6 +110,32 @@ def _scored(
     return out
 
 
+def correlations(world: World) -> tuple[dict[str, float], int]:
+    """Per-scale mean Spearman ρ(−loss, AUPRC) over the world's traits, computed on
+    the **shared-step intersection** (the same quantity ``build`` renders as the bar
+    panel). Returns ``({scale_label: mean_rho}, n_common_steps)``. Exposed for
+    verification/reporting so the correlation claim can be cited with a number."""
+    trait_keys = [t for t, _, _ in world.traits]
+    scored = {label: _scored(stem, steps, world) for label, _run, stem, steps in SCALES}
+    present = [
+        (label, run) for label, run, _stem, _steps in SCALES if len(scored[label]) >= 2
+    ]
+    if not present:
+        return {}, 0
+    common = sorted(set.intersection(*(set(scored[label]) for label, _ in present)))
+    out: dict[str, float] = {}
+    for label, run in present:
+        loss = _loss_at(run, np.array(common, dtype=float))
+        rhos = []
+        for t in trait_keys:
+            y = np.array([scored[label][int(s)].get(t, np.nan) for s in common])
+            ok = np.isfinite(y)
+            if ok.sum() >= 3:
+                rhos.append(spearmanr(-loss[ok], y[ok]).statistic)
+        out[label] = float(np.nanmean(rhos)) if rhos else float("nan")
+    return out, len(common)
+
+
 def build(world: World) -> None:
     trait_keys = [t for t, _, _ in world.traits]
     trait_labels = [lab for _, lab, _ in world.traits]
