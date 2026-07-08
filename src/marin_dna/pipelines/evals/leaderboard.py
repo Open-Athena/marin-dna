@@ -544,3 +544,62 @@ def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
                 }
             )
     return pl.DataFrame(rows)
+
+
+def sge_probe_normalized_rows(dataset: str = "sge") -> pl.DataFrame:
+    """Long-form SGE frozen-embedding linear-probe metrics — the SGE analog of
+    ``probe_normalized_rows`` (which is Mendelian-only).
+
+    Reads each probe-capable model's ``probe_metrics/<id>/sge.parquet`` (the same
+    per-accession × subset × metric grid as ``sge_normalized_rows``, but
+    ``score_type == "probe_score"``) and maps it onto the identical row schema, so
+    ``table_from_sge(rows, score_type="probe_score")`` renders the S·Probe heatmap
+    unchanged.
+
+    Only ``PROBE_FAMILIES`` (per-allele ``emb_ref``/``emb_alt`` embeddings) contribute
+    — for SGE that is ``marin_dna``; conservation / GPN-Star are zero-shot-only, and
+    the Evo 2 probe gist is Mendelian-only (so it soft-fails here). Same soft-fail
+    posture as ``sge_normalized_rows``: a model whose SGE probe hasn't landed yet is
+    skipped with a warning. Columns match ``sge_normalized_rows``.
+    """
+    soft_fail = (LookupError, pl.exceptions.ComputeError, FileNotFoundError, OSError)
+    rows: list[dict] = []
+    for method in models_for_dataset(dataset):
+        if method.family not in PROBE_FAMILIES:
+            continue
+        try:
+            path = _probe_parquet_path(method, dataset)
+            df = _read_parquet(path).filter(pl.col("score_type") == "probe_score")
+        except soft_fail as exc:
+            print(f"  ! sge-probe skip for {method.id} ({dataset}): {exc}", file=sys.stderr)
+            continue
+        # marin_dna's per-model probe parquet is not split-specific and carries a
+        # `split` column — guard it like sge_normalized_rows so a future test-split
+        # run can't leak in. (evo2's gist is train-only.)
+        if method.family == "marin_dna" and "split" in df.columns:
+            df = df.filter(pl.col("split") == SPLIT)
+        missing = [c for c in _SGE_ROW_COLUMNS if c not in df.columns]
+        assert not missing, (
+            f"SGE probe parquet for {method.id!r} missing columns {missing}; got {df.columns}"
+        )
+        if df.height == 0:
+            print(f"  ! sge-probe no probe_score rows for {method.id} in {path}", file=sys.stderr)
+            continue
+        for row in df.iter_rows(named=True):
+            rows.append(
+                {
+                    "method_id": method.id,
+                    "method_display": method.display,
+                    "family": method.family,
+                    "score_type": row["score_type"],
+                    "metric": row["metric"],
+                    "subset": row["subset"],
+                    "accession": row["accession"],
+                    "gene": row["gene"],
+                    "value": _nan_float(row["value"]),
+                    "se": _nan_float(row["se"]),
+                    "n": int(row["n"]),
+                    "n_pos": _nan_float(row["n_pos"]),
+                }
+            )
+    return pl.DataFrame(rows)

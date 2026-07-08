@@ -566,6 +566,35 @@ def test_sge_normalized_rows_skips_missing_parquet(monkeypatch: pytest.MonkeyPat
     assert set(df["method_id"].to_list()) == {"phyloP_100v"}
 
 
+def test_sge_probe_normalized_rows_probe_families_only(monkeypatch: pytest.MonkeyPatch):
+    """SGE frozen-embedding probe view: only PROBE_FAMILIES (marin_dna) contribute —
+    conservation is zero-shot-only and skipped — and marin_dna probe rows are
+    train-split-filtered (the parquet isn't split-specific)."""
+    glm = _mk_method(id="glm1", family="marin_dna", datasets=("sge",))
+    cons = _mk_method(id="phyloP_100v", family="conservation", datasets=("sge",))
+    _patch_methods(monkeypatch, (glm, cons))
+
+    glm_path = leaderboard._probe_parquet_path(glm, "sge")
+    # Same SGE grid shape as the metrics parquet, but score_type == probe_score;
+    # both splits present, only train should survive.
+    glm_df = pl.concat(
+        [
+            _sge_metrics_parquet(["probe_score"], split="train"),
+            _sge_metrics_parquet(["probe_score"], split="test"),
+        ]
+    )
+    _patch_read_parquet(monkeypatch, {glm_path: glm_df})
+
+    df = leaderboard.sge_probe_normalized_rows("sge")
+    # conservation (not probe-capable) contributes nothing; only glm1's train row.
+    assert set(df["method_id"].to_list()) == {"glm1"}
+    assert df.height == 1
+    assert (df["score_type"] == "probe_score").all()
+    assert set(df["metric"].to_list()) == {"AUPRC"}
+    # Same column schema as the zero-shot SGE loader (so table_from_sge is reusable).
+    assert "accession" in df.columns and "n_pos" in df.columns
+
+
 # ---- probe_normalized_rows (supervised linear-probe view, #348) --------------
 
 

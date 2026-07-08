@@ -26,6 +26,7 @@ from marin_dna.pipelines.evals.leaderboard import (
     normalized_rows,
     probe_normalized_rows,
     sge_normalized_rows,
+    sge_probe_normalized_rows,
 )
 from plots.blog._leaderboard import (
     SGE_SUBSET_DISPLAY,
@@ -105,10 +106,31 @@ def build_sge_llr() -> None:
     )
 
 
+def build_sge_probe() -> None:
+    """S·Probe: SGE frozen-embedding linear-probe AUPRC, across-gene macro.
+
+    Only probe-capable families contribute (``marin_dna`` — conservation / GPN-Star
+    are zero-shot-only), so this is the thinnest of the four heatmaps until more gLMs
+    are SGE-probed. ``score_type='probe_score'`` selects the probe world.
+    """
+    rows = sge_probe_normalized_rows("sge")
+    if rows.height == 0:
+        print("figure11: no SGE probe rows — skipping S·Probe")
+        return
+    render_heatmap(
+        table_from_sge(rows, score_type="probe_score"),
+        title="SGE benchmark — AUPRC (%) · frozen-embedding linear probe",
+        out_name="figure11_leaderboard_heatmap__sge_probe",
+        subset_order=SGE_SUBSET_ORDER,
+        subset_display=SGE_SUBSET_DISPLAY,
+    )
+
+
 def build() -> None:
     build_mendelian_llr()
     build_mendelian_probe()
     build_sge_llr()
+    build_sge_probe()
 
 
 if __name__ == "__main__":
