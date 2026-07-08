@@ -674,58 +674,72 @@ models:
   - name: scaling-v0.5-h2944-p4B-step-80000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-80000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-90000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-90000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-100000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-100000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-110000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-110000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-120000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-120000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-130000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-130000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-140000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-140000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-150000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-150000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-160000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-160000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-170000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-170000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-180000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-180000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-190000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-190000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-200000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-200000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
   - name: scaling-v0.5-h2944-p4B-step-210000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-210000
     window_size: 255
+    batch_size: 16  # blog #364: 4B+embeddings OOMs A10G at 64
     datasets: [mendelian_traits]
 
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
