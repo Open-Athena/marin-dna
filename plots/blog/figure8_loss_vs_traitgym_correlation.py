@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
-from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics
+from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics, read_probe_metrics
 from plots.blog._style.figure_style import DIVERGING_CMAP, figsize
 from plots.blog._style.savefig import save_figure
 
@@ -104,21 +104,27 @@ def _loss_at(run_name: str, steps: np.ndarray) -> np.ndarray:
     return np.interp(np.log10(np.clip(steps, 1, None)), xs, h["value"].to_numpy())
 
 
-def _scored(stem: str, steps: tuple[int, ...]) -> dict[int, dict[str, float]]:
-    """{step: {subset: auprc}} for the steps that are scored (skips unscored)."""
+def _scored(stem: str, steps: tuple[int, ...], read_fn) -> dict[int, dict[str, float]]:
+    """{step: {subset: auprc}} for the steps that are scored (skips unscored).
+
+    ``read_fn`` selects the world — ``read_llr_metrics`` (M·LLR) or
+    ``read_probe_metrics`` (M·Probe).
+    """
     out: dict[int, dict[str, float]] = {}
     for s in steps:
         try:
-            df = read_llr_metrics(f"{stem}-step-{s}", "mendelian_traits")
+            df = read_fn(f"{stem}-step-{s}", "mendelian_traits")
         except (LookupError, FileNotFoundError, OSError):
             continue
         out[s] = {r["subset"]: r["value"] for r in df.iter_rows(named=True)}
     return out
 
 
-def build() -> None:
+def build(world: str, read_fn, metric_label: str) -> None:
     # Collect scored AUPRC per scale, then the intersection of scored steps.
-    scored = {label: _scored(stem, steps) for label, _run, stem, steps in SCALES}
+    scored = {
+        label: _scored(stem, steps, read_fn) for label, _run, stem, steps in SCALES
+    }
     present = [
         (label, run) for label, run, _stem, _steps in SCALES if len(scored[label]) >= 2
     ]
@@ -184,13 +190,20 @@ def build() -> None:
     cb.set_label("Spearman ρ", fontsize=9)
 
     fig.suptitle(
-        f"Loss ↔ VEP AUPRC correlation across training · shared {common[0] // 1000}k–{common[-1] // 1000}k steps",
+        f"Loss ↔ VEP AUPRC correlation · {metric_label} · shared {common[0] // 1000}k–{common[-1] // 1000}k steps",
         fontsize=11,
         y=0.98,
     )
     fig.tight_layout(rect=(0, 0, 1, 0.96))
-    save_figure(fig, OUTPUT_DIR, "figure8_loss_vs_traitgym_correlation__mendelian_llr")
+    save_figure(
+        fig, OUTPUT_DIR, f"figure8_loss_vs_traitgym_correlation__mendelian_{world}"
+    )
+
+
+def build_all() -> None:
+    build("llr", read_llr_metrics, "zero-shot LLR")
+    build("probe", read_probe_metrics, "linear probe")
 
 
 if __name__ == "__main__":
-    build()
+    build_all()
