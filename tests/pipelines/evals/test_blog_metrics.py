@@ -156,3 +156,45 @@ def test_read_probe_metrics_drops_baseline_and_overloads_macro(
     assert macro["n"][0] == 2 and macro["n_positives"][0] == 2  # K
     mis = df.filter(pl.col("subset") == "missense_variant")
     assert mis["n"][0] == 500 and mis["n_positives"][0] == 50
+
+
+def _probe_parquet_lean(*, split: str = "train") -> pl.DataFrame:
+    """The leaner per-subset-only probe schema (no ``se``, no ``_macro_avg_`` row) — what
+    the blog ladder/lineage cells emit; the #347 SE + aggregate isn't produced there."""
+
+    def row(score_type: str, subset: str, value, n: int, n_pos: int) -> dict:
+        return {
+            "score_type": score_type,
+            "split": split,
+            "subset": subset,
+            "value": value,
+            "n": n,
+            "n_pos": n_pos,
+        }
+
+    return pl.DataFrame(
+        [
+            row("probe_score", "missense_variant", 0.48, 5800, 580),
+            row("probe_score", "splicing", 0.55, 3190, 319),
+            row("probe_score", "mature_miRNA_variant", None, 40, 4),  # below gate
+            row(
+                "minus_llr_avg", "missense_variant", 0.42, 5800, 580
+            ),  # baseline, dropped
+        ]
+    )
+
+
+def test_read_probe_metrics_tolerates_lean_schema(monkeypatch: pytest.MonkeyPatch):
+    """Pre-#347 probe parquet (no ``se``, no ``_macro_avg_``): ``se`` fills NaN, per-subset
+    ``n`` / ``n_positives`` pass through, baseline dropped, below-gate subset kept as NaN."""
+    path = blog_metrics.probe_metrics_path("lean", "mendelian_traits")
+    _patch_read(monkeypatch, {path: _probe_parquet_lean()})
+    df = blog_metrics.read_probe_metrics("lean", "mendelian_traits")
+
+    assert df.columns == ["model_id", "subset", "value", "se", "n", "n_positives"]
+    assert df.height == 3  # 3 probe_score subsets; baseline dropped
+    assert df["se"].is_nan().all()  # se absent → NaN
+    mis = df.filter(pl.col("subset") == "missense_variant")
+    assert mis["n"][0] == 5800 and mis["n_positives"][0] == 580  # passthrough, no macro
+    mir = df.filter(pl.col("subset") == "mature_miRNA_variant")
+    assert mir["value"][0] is None  # below-gate null preserved

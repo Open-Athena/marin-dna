@@ -126,7 +126,14 @@ def read_probe_metrics(
     k = df.filter(
         (pl.col("subset") != MACRO_AVG_SUBSET) & pl.col("value").is_not_null()
     ).height
+    # `se` is absent in the leaner per-subset-only probe schema (the #347 chrom-cluster
+    # SE + `_macro_avg_` aggregate isn't emitted by every probe run — e.g. the blog
+    # ladder/lineage cells). Fill NaN to keep the tidy schema stable; when there's no
+    # `_macro_avg_` row the `when` branches below never fire, so per-subset `n` /
+    # `n_positives` pass through unchanged.
+    se_expr = pl.col("se") if "se" in df.columns else pl.lit(float("nan"))
     return df.with_columns(
+        se_expr.alias("se"),
         pl.when(pl.col("subset") == MACRO_AVG_SUBSET)
         .then(k)
         .otherwise(pl.col("n"))
