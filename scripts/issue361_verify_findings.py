@@ -228,102 +228,86 @@ def finding_5_loss_auprc_corr() -> None:
 
 
 def finding_6_paired_bootstrap() -> None:
-    """Firm up the Fig 11 M·LLR ties with a PAIRED cluster-bootstrap of the macro
-    AUPRC delta (m5.1 − competitor) on the SAME variants — tighter than the
-    conservative independent-SE in Finding 1."""
+    """Paired cluster-bootstrap of the Fig 11 M·LLR macro-AUPRC ties (m5.1 − competitor)
+    on the SAME variants — tighter than Finding-1's conservative independent-SE. Uses
+    ONLY existing/cached per-variant scores (S3 for m5.1 + AlphaGenome; a pinned gist
+    for Evo 2-40B) — **no model is re-scored** (Evo 2 inference is expensive)."""
     import numpy as np
     from sklearn.metrics import average_precision_score
 
     print("\n=== Finding 6 — paired bootstrap of the Fig 11 M·LLR macro-AUPRC ties ===")
     s3 = "s3://oa-bolinas/snakemake"
+    # Pinned per-variant gist (cached; NOT a re-score) — evo2_40b LLR on our Mendelian build.
+    evo40b = (
+        "https://gist.githubusercontent.com/gonzalobenegas/3649e68fb63ca1f3443e4486078eb4d8/"
+        "raw/2b425e759811c201ca806ae4c8733fd7732220a6/evo2_40b_train.parquet"
+    )
     m5 = (
         pl.read_parquet(
             f"{s3}/analysis/evals_v2/results/scores/mix-v0.9-p1B-i24-exp135-m5.1-step-59158/mendelian_traits.parquet"
         )
-        .with_columns((-(pl.col("llr_fwd") + pl.col("llr_rc")) / 2).alias("m5"))
+        .with_columns(
+            pl.col("chrom").cast(str),
+            (-(pl.col("llr_fwd") + pl.col("llr_rc")) / 2).alias("m5"),
+        )
         .select("chrom", "pos", "ref", "alt", "label", "subset", "match_group", "m5")
     )
-    ag = pl.read_parquet(
-        f"{s3}/alphagenome_eval/results/scores/mendelian_traits.parquet"
-    ).select("chrom", "pos", "ref", "alt", pl.col("alphagenome_max_l2").alias("ag"))
-    # Evo2-40B comparability: is its leaderboard number even on THIS variant set?
-    n_cur = m5.height
-    print(
-        f"  current mendelian eval: {n_cur} variants (m5.1); AlphaGenome scores join 1:1."
-    )
-    print(
-        "  Evo2-40B: leaderboard metric is read from a gist (per-variant scores not on this"
-    )
-    print(
-        "  branch); the #203/#302 per-variant gists are a possibly-different build → a true"
-    )
-    print(
-        "  m5.1-vs-Evo2 paired bootstrap needs Evo2-40B re-scored on these variants. Skipped."
-    )
-
-    # Evo2-40B comparability: total scored variants vs the current 16140. Filter to a
-    # SINGLE protocol (Evo2 emits LLR/JSD/±FWD) so we don't 4×-count the same variants.
-    ev = normalized_rows("mendelian_traits").filter(
-        (pl.col("method_display") == "Evo 2 (40B)")
-        & (pl.col("protocol") == "LLR")
-        & (~pl.col("subset").is_in(["_global_", MACRO_AVG_SUBSET]))
-    )
-    if ev.height:
-        same = int(ev["n"].sum()) == n_cur
-        print(
-            f"  [Evo2-40B leaderboard n = {int(ev['n'].sum())} variants vs current {n_cur} "
-            f"→ {'SAME build (leaderboard comparison is valid)' if same else 'DIFFERENT build!'}]"
-        )
-
-    j = m5.join(ag, on=["chrom", "pos", "ref", "alt"], how="inner").to_pandas()
-    print(f"\n  m5.1 ∩ AlphaGenome: {len(j)} variants")
-    MIN_VARIANTS = 300  # leaderboard subset gate
-    subsets = [
-        s
-        for s in j["subset"].unique()
-        if s not in ("_global_", MACRO_AVG_SUBSET)
-        and (j["subset"] == s).sum() >= MIN_VARIANTS
-        and 0 < int(j[j["subset"] == s]["label"].sum()) < (j["subset"] == s).sum()
-    ]
-    print(f"  macro over {len(subsets)} subsets (≥{MIN_VARIANTS} variants each)")
-
-    def macro(df: "pd.DataFrame", col: str) -> float:
-        aps = [
-            average_precision_score(g["label"], g[col])
-            for s in subsets
-            for g in [df[df["subset"] == s]]
-            if 0 < g["label"].sum() < len(g)
-        ]
-        return float(np.mean(aps)) if aps else float("nan")
-
-    pt_m5, pt_ag = macro(j, "m5"), macro(j, "ag")
-    print(
-        f"  point macro AUPRC: m5.1={pt_m5 * 100:.1f}  AlphaGenome={pt_ag * 100:.1f}  "
-        f"(Δ={(pt_m5 - pt_ag) * 100:+.1f})   [leaderboard: 39.5 / 40.1]"
-    )
-
-    groups = j["match_group"].to_numpy()
-    uniq = np.unique(groups)
-    g2i = {g: np.where(groups == g)[0] for g in uniq}
+    comps = {
+        "AlphaGenome": (
+            pl.read_parquet(f"{s3}/alphagenome_eval/results/scores/mendelian_traits.parquet")
+            .with_columns(pl.col("chrom").cast(str))
+            .select("chrom", "pos", "ref", "alt", pl.col("alphagenome_max_l2").alias("c")),
+            40.1,
+        ),
+        "Evo 2 (40B)": (
+            pl.read_parquet(evo40b)
+            .with_columns(pl.col("chrom").cast(str))
+            .select("chrom", "pos", "ref", "alt", pl.col("minus_llr").alias("c")),
+            38.2,
+        ),
+    }
+    min_variants = 300  # leaderboard subset gate
     rng = np.random.default_rng(0)
-    deltas = []
-    for _ in range(1000):
-        pick = rng.choice(uniq, size=len(uniq), replace=True)
-        idx = np.concatenate([g2i[g] for g in pick])
-        r = j.iloc[idx]
-        deltas.append(macro(r, "m5") - macro(r, "ag"))
-    deltas = np.array(deltas)
-    se = float(deltas.std())
-    p = 2 * min((deltas <= 0).mean(), (deltas >= 0).mean())
-    lo, hi = np.percentile(deltas, [2.5, 97.5])
-    print(
-        f"  PAIRED bootstrap Δ(m5.1−AG) macro = {(pt_m5 - pt_ag) * 100:+.1f}  "
-        f"± {se * 100:.1f} SE  95% CI [{lo * 100:+.1f}, {hi * 100:+.1f}]  p={p:.2f}"
-    )
-    print(
-        f"  → {'SIGNIFICANT' if abs(pt_m5 - pt_ag) > 2 * se else 'TIE (not sig)'} "
-        "— vs Finding-1 conservative z=−0.3; paired SE is tighter but conclusion holds if still a tie."
-    )
+    for name, (comp, lb) in comps.items():
+        j = m5.join(comp, on=["chrom", "pos", "ref", "alt"], how="inner").to_pandas()
+        subsets = [
+            s
+            for s in j["subset"].unique()
+            if s not in ("_global_", MACRO_AVG_SUBSET)
+            and (j["subset"] == s).sum() >= min_variants
+            and 0 < int(j[j["subset"] == s]["label"].sum()) < (j["subset"] == s).sum()
+        ]
+
+        def macro(df: pd.DataFrame, col: str, subsets=subsets) -> float:
+            aps = [
+                average_precision_score(g["label"], g[col])
+                for s in subsets
+                for g in [df[df["subset"] == s]]
+                if 0 < g["label"].sum() < len(g)
+            ]
+            return float(np.mean(aps)) if aps else float("nan")
+
+        pm, pc = macro(j, "m5"), macro(j, "c")
+        groups = j["match_group"].to_numpy()
+        uniq = np.unique(groups)
+        g2i = {g: np.where(groups == g)[0] for g in uniq}
+        deltas = np.empty(1000)
+        for b in range(1000):
+            idx = np.concatenate([g2i[g] for g in rng.choice(uniq, len(uniq), replace=True)])
+            r = j.iloc[idx]
+            deltas[b] = macro(r, "m5") - macro(r, "c")
+        se = float(deltas.std())
+        lo, hi = np.percentile(deltas, [2.5, 97.5])
+        p = 2 * min((deltas <= 0).mean(), (deltas >= 0).mean())
+        verdict = "TIE (not sig)" if abs(pm - pc) <= 2 * se else "SIGNIFICANT"
+        print(
+            f"  m5.1 vs {name:12s} (∩={len(j)}, {len(subsets)} subsets ≥{min_variants}): "
+            f"macro {pm * 100:.1f} vs {pc * 100:.1f} [leaderboard {lb}]  "
+            f"Δ={(pm - pc) * 100:+.1f} ±{se * 100:.1f} SE  CI[{lo * 100:+.1f},{hi * 100:+.1f}]  "
+            f"p={p:.2f} → {verdict}"
+        )
+    print("  (Evo 2-40B scores are the pinned per-variant gist — 100% join to the current")
+    print("   16,140-variant build; no Evo 2 re-scoring.)")
 
 
 if __name__ == "__main__":
