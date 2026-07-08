@@ -144,3 +144,37 @@ def read_probe_metrics(
         .alias("n_positives"),
         pl.lit(model_id).alias("model_id"),
     ).select(_TIDY_COLUMNS)
+
+
+def read_sge_metrics(
+    model_id: str,
+    *,
+    kind: str = "metrics",
+    score_type: str = "minus_llr_avg",
+    split: str = SPLIT,
+) -> pl.DataFrame:
+    """Tidy across-gene macro SGE AUPRC per consequence subset for one checkpoint.
+
+    SGE metrics are a per-``(subset, accession)`` grid; this takes the **across-gene
+    macro** (``accession == _macro_avg_``) for ``score_type``. ``kind`` selects the
+    world: ``"metrics"`` (S·LLR, ``score_type="minus_llr_avg"``) or ``"probe_metrics"``
+    (S·Probe, ``score_type="probe_score"``). SGE assays only coding/splice, so the
+    subsets are ``missense_variant`` / ``splicing`` / ``both`` / ``_macro_avg_``.
+    Returns the same tidy schema as the other readers.
+    """
+    path = f"{_RESULTS}/{kind}/{model_id}/sge.parquet"
+    df = _read_parquet(path).filter(
+        (pl.col("score_type") == score_type)
+        & (pl.col("metric") == "AUPRC")
+        & (pl.col("accession") == MACRO_AVG_SUBSET)
+    )
+    if "split" in df.columns:
+        df = df.filter(pl.col("split") == split)
+    if df.height == 0:
+        raise LookupError(
+            f"no SGE {score_type!r} across-gene-macro rows for {model_id!r} in {path}"
+        )
+    return df.with_columns(
+        pl.col("n_pos").alias("n_positives"),
+        pl.lit(model_id).alias("model_id"),
+    ).select(_TIDY_COLUMNS)

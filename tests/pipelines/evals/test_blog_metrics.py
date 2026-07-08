@@ -198,3 +198,67 @@ def test_read_probe_metrics_tolerates_lean_schema(monkeypatch: pytest.MonkeyPatc
     assert mis["n"][0] == 5800 and mis["n_positives"][0] == 580  # passthrough, no macro
     mir = df.filter(pl.col("subset") == "mature_miRNA_variant")
     assert mir["value"][0] is None  # below-gate null preserved
+
+
+# ---- read_sge_metrics -------------------------------------------------------
+
+
+def _sge_parquet(
+    *, score_type: str = "minus_llr_avg", split: str = "train"
+) -> pl.DataFrame:
+    """SGE per-(subset, accession) grid: per-gene rows + the across-gene macro rows."""
+
+    def row(subset: str, accession: str, value: float, n: int, n_pos: int) -> dict:
+        return {
+            "metric": "AUPRC",
+            "subset": subset,
+            "accession": accession,
+            "gene": "G",
+            "score_type": score_type,
+            "value": value,
+            "se": 0.02,
+            "n": n,
+            "n_pos": n_pos,
+            "split": split,
+        }
+
+    return pl.DataFrame(
+        [
+            row("missense_variant", "urn:1", 0.30, 1, 300),  # per-gene → ignored
+            row("missense_variant", MACRO_AVG_SUBSET, 0.33, 8, 3000),  # macro → kept
+            row("splicing", MACRO_AVG_SUBSET, 0.46, 6, 500),
+            row(MACRO_AVG_SUBSET, MACRO_AVG_SUBSET, 0.37, 8, 3500),
+        ]
+    )
+
+
+def test_read_sge_metrics_takes_across_gene_macro(monkeypatch: pytest.MonkeyPatch):
+    """Keep only accession==_macro_avg_ rows for the requested score_type; the tidy
+    schema matches the other readers (n_pos → n_positives)."""
+    path = f"{blog_metrics._RESULTS}/metrics/m1/sge.parquet"
+    both = pl.concat(
+        [_sge_parquet(), _sge_parquet(score_type="jsd_avg")]
+    )  # +noise score_type
+    _patch_read(monkeypatch, {path: both})
+    df = blog_metrics.read_sge_metrics("m1", score_type="minus_llr_avg")
+
+    assert df.columns == ["model_id", "subset", "value", "se", "n", "n_positives"]
+    assert set(df["subset"].to_list()) == {
+        "missense_variant",
+        "splicing",
+        MACRO_AVG_SUBSET,
+    }
+    mis = df.filter(pl.col("subset") == "missense_variant")
+    assert (
+        mis["value"][0] == 0.33 and mis["n_positives"][0] == 3000
+    )  # macro row, not per-gene
+
+
+def test_read_sge_metrics_probe_kind_path(monkeypatch: pytest.MonkeyPatch):
+    """kind='probe_metrics' + score_type='probe_score' reads the SGE probe parquet."""
+    path = f"{blog_metrics._RESULTS}/probe_metrics/m1/sge.parquet"
+    _patch_read(monkeypatch, {path: _sge_parquet(score_type="probe_score")})
+    df = blog_metrics.read_sge_metrics(
+        "m1", kind="probe_metrics", score_type="probe_score"
+    )
+    assert df.filter(pl.col("subset") == "splicing")["value"][0] == 0.46

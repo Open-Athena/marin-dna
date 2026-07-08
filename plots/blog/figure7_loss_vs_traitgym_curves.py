@@ -1,15 +1,14 @@
-"""Figure 7 (M·LLR): VEP AUPRC across training steps, by model scale (new eval).
+"""Figure 7: VEP AUPRC across training steps, by model scale — all four worlds.
 
-Redo of Eric's Fig 7 (1×3 panels, 128M / 1B / 4B) from the **new** offline eval:
-per scale, the min-max-normalized trajectory of missense / promoter / splicing
-AUPRC across the scored HF checkpoints, via ``blog_metrics`` on the #364 ladder
-intermediates. Eric's version used dense wandb in-training history; ours samples
-the saved HF steps (sparser, but the same offline eval as every other figure).
-Normalizing each trace min→max lets shapes be compared across traits/scales;
-absolute levels live in Figs 5/6.
+Redo of Eric's Fig 7 (1×3 panels, 128M / 1B / 4B) from the **new** offline eval,
+rendered for every metric-world (Mendelian/SGE × zero-shot-LLR/probe): per scale,
+the min-max-normalized trajectory of each trait's AUPRC across the scored HF
+checkpoints, via ``_worlds`` readers on the #364 ladder intermediates. Eric's
+version used dense wandb history; ours samples the saved HF steps. Normalizing each
+trace min→max compares shapes across traits/scales; absolute levels live in Figs 5/6.
 
 Run:  uv run python -m plots.blog.figure7_loss_vs_traitgym_curves
-Out:  plots/output/blog/figure7_loss_vs_traitgym_curves__mendelian_llr.{svg,png,pdf}
+Out:  plots/output/blog/figure7_loss_vs_traitgym_curves__{world}.{svg,png,pdf}
 """
 
 from __future__ import annotations
@@ -22,9 +21,9 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter
 from scipy.ndimage import gaussian_filter1d
 
-from marin_dna.pipelines.evals.blog_metrics import read_llr_metrics, read_probe_metrics
 from plots.blog._style.figure_style import EARTH_QUAL, FIGURE_WIDTH, figsize
 from plots.blog._style.savefig import save_figure
+from plots.blog._worlds import WORLDS, World
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
 
@@ -74,48 +73,45 @@ SCALES: tuple[tuple[str, str, tuple[int, ...]], ...] = (
         ),
     ),
 )
-# (subset, label, EARTH_QUAL color slot) — same colors as Figs 5/6.
-TRAITS: tuple[tuple[str, str, int], ...] = (
-    ("missense_variant", "missense", 0),
-    ("tss_proximal", "promoter", 1),
-    ("splicing", "splicing", 4),
-)
 _SMOOTH_SIGMA = 1.5
 
 
 def _trajectory(
-    stem: str, steps: tuple[int, ...], read_fn
+    stem: str, steps: tuple[int, ...], world: World
 ) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     """{subset: (steps, auprc)} across the scored HF steps of one scale (skips unscored).
 
-    ``read_fn`` selects the world — ``read_llr_metrics`` (M·LLR) or
-    ``read_probe_metrics`` (M·Probe). Below-gate probe subsets (null value) are skipped.
+    ``world.read(model_id)`` binds the dataset+method; below-gate probe subsets
+    (null value) are skipped.
     """
-    acc: dict[str, tuple[list[int], list[float]]] = {t: ([], []) for t, _, _ in TRAITS}
+    keys = [t for t, _, _ in world.traits]
+    acc: dict[str, tuple[list[int], list[float]]] = {t: ([], []) for t in keys}
     for s in steps:
         try:
-            df = read_fn(f"{stem}-step-{s}", "mendelian_traits")
+            df = world.read(f"{stem}-step-{s}")
         except (LookupError, FileNotFoundError, OSError):
             continue  # not scored yet
         vals = {row["subset"]: row["value"] for row in df.iter_rows(named=True)}
-        for t, _, _ in TRAITS:
+        for t in keys:
             if vals.get(t) is not None:
                 acc[t][0].append(s)
                 acc[t][1].append(vals[t])
     return {t: (np.array(x), np.array(y)) for t, (x, y) in acc.items()}
 
 
-def build(world: str, read_fn, metric_label: str) -> None:
-    color_for = {t: EARTH_QUAL[slot] for t, _, slot in TRAITS}
-    label_for = {t: lab for t, lab, _ in TRAITS}
+def build(world: World) -> None:
+    color_for = {t: EARTH_QUAL[slot] for t, _, slot in world.traits}
+    label_for = {t: lab for t, lab, _ in world.traits}
 
     fig, axes = plt.subplots(1, 3, figsize=figsize(FIGURE_WIDTH, 4.4), sharey=True)
+    drawn = False
     for ax, (scale_label, stem, steps) in zip(axes, SCALES, strict=True):
-        traj = _trajectory(stem, steps, read_fn)
-        for t, _, _ in TRAITS:
+        traj = _trajectory(stem, steps, world)
+        for t, _, _ in world.traits:
             x, y = traj[t]
             if len(x) < 2:
                 continue
+            drawn = True
             y_min, y_max = float(y.min()), float(y.max())
             y_norm = (
                 (y - y_min) / (y_max - y_min) if y_max > y_min else np.zeros_like(y)
@@ -145,6 +141,11 @@ def build(world: str, read_fn, metric_label: str) -> None:
         ax.set_yticks([0.0, 1.0])
         ax.set_yticklabels(["Min", "Max"])
 
+    if not drawn:
+        plt.close(fig)
+        print(f"figure7: no data for world {world.key} — skipping")
+        return
+
     axes[0].set_ylabel("AUPRC (min–max normalized)")
     axes[1].set_xlabel("training step")
 
@@ -160,11 +161,11 @@ def build(world: str, read_fn, metric_label: str) -> None:
             linewidth=1.3,
             label=label_for[t],
         )
-        for t, _, _ in TRAITS
+        for t, _, _ in world.traits
     ]
     fig.subplots_adjust(top=0.80, bottom=0.22, left=0.06, right=0.99, wspace=0.06)
     fig.suptitle(
-        f"Parameter scaling — VEP AUPRC across training steps · {metric_label}",
+        f"Parameter scaling — VEP AUPRC across training steps · {world.label}",
         fontsize=11,
         y=0.94,
     )
@@ -172,18 +173,18 @@ def build(world: str, read_fn, metric_label: str) -> None:
         handles=handles,
         loc="upper center",
         bbox_to_anchor=(0.5, 0.10),
-        ncol=3,
+        ncol=len(handles),
         frameon=False,
         title="variant type",
         title_fontsize=9,
         fontsize=9,
     )
-    save_figure(fig, OUTPUT_DIR, f"figure7_loss_vs_traitgym_curves__mendelian_{world}")
+    save_figure(fig, OUTPUT_DIR, f"figure7_loss_vs_traitgym_curves__{world.key}")
 
 
 def build_all() -> None:
-    build("llr", read_llr_metrics, "zero-shot LLR (new eval)")
-    build("probe", read_probe_metrics, "frozen-embedding linear probe")
+    for world in WORLDS.values():
+        build(world)
 
 
 if __name__ == "__main__":
