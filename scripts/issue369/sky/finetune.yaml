@@ -13,7 +13,7 @@ name: dna-issue369-finetune
 
 resources:
     infra: aws/us-east-2
-    accelerators: A10G:1        # g5.xlarge, 24 GB — fits <=1B; 4B needs A100
+    instance_type: g5.2xlarge   # A10G 24 GB + 8 vCPU (bigger CPU for build/dataloading)
     disk_size: 200
     labels:
         project: dna
@@ -22,6 +22,10 @@ resources:
         - use_spot: false
 
 workdir: .
+
+file_mounts:
+    # wandb auth (machine api.wandb.ai login ...) so the WandbLogger authenticates.
+    ~/.netrc: ~/.netrc
 
 envs:
     RUN_ARGS: "--model 255M --mode smoke --out s3://oa-bolinas/analysis/issue369"

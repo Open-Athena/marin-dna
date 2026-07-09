@@ -15,6 +15,7 @@ dependencies = [
     "einops",
     "huggingface_hub",
     "jaxtyping",
+    "lightning",
     "liftover",
     "matplotlib",
     "numpy",

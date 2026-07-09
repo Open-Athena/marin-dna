@@ -1,10 +1,9 @@
-"""LoRA fine-tuning loop with per-step train/val/test AUPRC trajectory logging (#369).
+"""LoRA fine-tuning via PyTorch Lightning (#369).
 
-The trajectory *is* the instrument: we watch validation-chromosome AUPRC climb from a
-fresh head, (hopefully) clear the frozen-probe baseline line, peak, then overfit. Early
-stopping selects the peak on the **validation** chromosome; the reported number is the
-**test**-chromosome AUPRC at that val-selected step (leak-free). ``test`` AUPRC is logged
-every eval for the plot but never drives selection.
+One `pl.Trainer` fit per fold: RC-augmented training, per-epoch full-FWD+RC validation on
+the val chromosome (the overfitting instrument + early-stop signal, logged to wandb), and
+a single full-FWD+RC test pass on the **best-val** trainable state. Only the trainable
+LoRA+head params are snapshotted (the frozen base is never checkpointed).
 """
 
 from __future__ import annotations
@@ -12,35 +11,36 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+import lightning as L
 import numpy as np
 import torch
-import torch.nn.functional as F
-from transformers import get_cosine_schedule_with_warmup
+from lightning.pytorch.callbacks import EarlyStopping
+from torch.utils.data import DataLoader
 
 from marin_dna.pipelines.evals.metrics import per_chrom_weighted_ap
-from marin_dna.pipelines.finetune.data import VariantWindows, iter_minibatches
+from marin_dna.pipelines.finetune.data import VariantWindows, WindowDataset
+from marin_dna.pipelines.finetune.lit import LitVariantFinetune
 from marin_dna.pipelines.finetune.model import SiameseLoRAClassifier
 
 
 @dataclass
 class TrainConfig:
     """Fine-tuning hyperparameters. Regularization levers (the primary sweep axis) are
-    ``max_epochs``/``early_stop_patience`` (training length), ``weight_decay``,
-    ``lora_lr`` — the LoRA capacity levers live in ``build_model``."""
+    ``max_epochs``/``early_stop_patience`` (training length), ``weight_decay``, ``lora_lr``;
+    the capacity levers (rank, top-K-layers, target modules) live in ``build_model``."""
 
     max_epochs: int = 30
     batch_size: int = 32
+    eval_batch_size: int = 256  # inference has no grad/activations — batch big
     lora_lr: float = 1e-4
     head_lr: float = 1e-3
     weight_decay: float = 0.0  # on LoRA adapters ("pull toward the frozen model")
     head_weight_decay: float = 0.0
     warmup_frac: float = 0.1
     pos_weight: float | None = None  # None = plain BCE (10% positives)
-    rc_augment: bool = True  # random strand per example each step
-    eval_every: int = 50  # steps between trajectory points
-    eval_batch_size: int = 256  # inference has no grad/activations — batch big
-    early_stop_patience: int = 6  # eval points without val improvement -> stop
-    train_probe_subsample: int = 512  # cap for the train-AUPRC overfit probe
+    early_stop_patience: int = 6  # epochs without val-AUPRC improvement -> stop
+    num_workers: int = 0  # windows are in-memory tensors — 0 is optimal + fork-safe
+    compile_model: bool = False
 
 
 @dataclass
@@ -48,164 +48,161 @@ class FoldResult:
     test_chrom: str
     val_chrom: str
     seed: int = 0
-    trajectory: list[dict] = field(default_factory=list)  # per eval: step + AUPRCs
-    best_step: int = 0
+    trajectory: list[dict] = field(default_factory=list)  # per-epoch losses + val AUPRC
+    best_epoch: int = 0
     best_val_auprc: float = float("nan")
     best_test_auprc: float = float("nan")
-    best_test_scores: np.ndarray | None = None  # OOF logits on the test chrom
+    best_test_scores: np.ndarray | None = None  # test-chrom logits at best-val
     test_idx: np.ndarray | None = None
     num_trainable: int = 0
 
 
-def _lora_and_head_params(
-    clf: SiameseLoRAClassifier,
-) -> tuple[list[torch.nn.Parameter], list[torch.nn.Parameter]]:
-    head_ids = {id(p) for p in clf.head.parameters()}
-    head = [p for p in clf.head.parameters() if p.requires_grad]
-    lora = [
-        p
-        for p in clf.parameters()
-        if p.requires_grad and id(p) not in head_ids
-    ]
-    return lora, head
+class _MetricsHistory(L.Callback):
+    """Capture per-epoch train_loss / val_loss / val_auprc (the wandb-logged trajectory)."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict] = []
+
+    def on_validation_epoch_end(self, trainer, _pl) -> None:
+        m = trainer.callback_metrics
+        get = lambda k: float(m[k]) if k in m else float("nan")  # noqa: E731
+        self.rows.append(
+            {"epoch": int(trainer.current_epoch), "train_loss": get("train_loss"),
+             "val_loss": get("val_loss"), "val_auprc": get("val_auprc")}
+        )
 
 
-@torch.no_grad()
-def predict_rc_avg(
-    clf: SiameseLoRAClassifier,
-    windows: VariantWindows,
-    idx: np.ndarray,
-    device: torch.device,
-    batch_size: int,
-    autocast_dtype: torch.dtype | None,
-) -> np.ndarray:
-    """FWD+RC-averaged logits for the variants at ``idx`` (eval scoring)."""
-    clf.eval()
-    idx_t = torch.as_tensor(idx, dtype=torch.long)
-    out: list[torch.Tensor] = []
-    for start in range(0, len(idx_t), batch_size):
-        b = idx_t[start : start + batch_size]
-        args = [
-            windows.ref_fwd[b].to(device),
-            windows.alt_fwd[b].to(device),
-            windows.ref_rc[b].to(device),
-            windows.alt_rc[b].to(device),
-        ]
-        if autocast_dtype is not None:
-            with torch.autocast(device_type=device.type, dtype=autocast_dtype):
-                logit = clf.logit_rc_avg(*args)
-        else:
-            logit = clf.logit_rc_avg(*args)
-        out.append(logit.float().cpu())
-    return torch.cat(out).numpy()
+class _BestTrainable(L.Callback):
+    """Snapshot the trainable (LoRA+head) params at the best val-AUPRC epoch, on CPU."""
+
+    def __init__(self) -> None:
+        self.best = -float("inf")
+        self.best_epoch = 0
+        self.state: dict[str, torch.Tensor] | None = None
+
+    def on_validation_epoch_end(self, trainer, pl_module) -> None:
+        ap = float(trainer.callback_metrics.get("val_auprc", float("nan")))
+        if np.isfinite(ap) and ap > self.best:
+            self.best = ap
+            self.best_epoch = int(trainer.current_epoch)
+            self.state = {
+                n: p.detach().cpu().clone()
+                for n, p in pl_module.named_parameters()
+                if p.requires_grad
+            }
 
 
-def _auprc(windows: VariantWindows, idx: np.ndarray, scores: np.ndarray) -> float:
-    return per_chrom_weighted_ap(windows.label[idx], scores, windows.chrom[idx])
+def _loader(windows: VariantWindows, idx: np.ndarray, batch: int, cfg: TrainConfig,
+            *, shuffle: bool) -> DataLoader:
+    kw: dict = {"num_workers": cfg.num_workers, "pin_memory": True}
+    if cfg.num_workers > 0:  # s3fs was used in the parent (window build) — spawn, not fork
+        kw |= {"multiprocessing_context": "spawn", "persistent_workers": True}
+    return DataLoader(WindowDataset(windows, idx), batch_size=batch, shuffle=shuffle, **kw)
 
 
-def train_fold(
+def run_fold(
     clf: SiameseLoRAClassifier,
     windows: VariantWindows,
     masks: tuple[np.ndarray, np.ndarray, np.ndarray],
     cfg: TrainConfig,
-    device: torch.device,
+    *,
     seed: int = 0,
     test_chrom: str = "",
     val_chrom: str = "",
+    wandb_logger=None,
 ) -> FoldResult:
-    """Train on ``train`` mask, early-stop on ``val`` mask, report on ``test`` mask."""
-    torch.manual_seed(seed)
-    gen = torch.Generator().manual_seed(seed)
+    """Fit on ``train`` mask, early-stop/select on ``val`` mask, report on ``test`` mask."""
+    L.seed_everything(seed, workers=True)
     train_mask, val_mask, test_mask = masks
-    train_idx = np.where(train_mask)[0]
-    val_idx = np.where(val_mask)[0]
-    test_idx = np.where(test_mask)[0]
-    # fixed train subsample for the overfit probe (train AUPRC vs val AUPRC gap)
-    sub = train_idx
-    if len(train_idx) > cfg.train_probe_subsample:
-        perm = torch.randperm(len(train_idx), generator=gen).numpy()
-        sub = train_idx[perm[: cfg.train_probe_subsample]]
+    train_idx, val_idx, test_idx = (np.where(m)[0] for m in (train_mask, val_mask, test_mask))
+    num_trainable = clf.num_trainable()
 
-    lora_params, head_params = _lora_and_head_params(clf)
-    opt = torch.optim.AdamW(
-        [
-            {"params": lora_params, "lr": cfg.lora_lr, "weight_decay": cfg.weight_decay},
-            {"params": head_params, "lr": cfg.head_lr, "weight_decay": cfg.head_weight_decay},
-        ]
+    lit = LitVariantFinetune(
+        clf, label=windows.label, chrom=windows.chrom,
+        lora_lr=cfg.lora_lr, head_lr=cfg.head_lr, weight_decay=cfg.weight_decay,
+        head_weight_decay=cfg.head_weight_decay, warmup_frac=cfg.warmup_frac,
+        pos_weight=cfg.pos_weight, compile_model=cfg.compile_model,
     )
-    steps_per_epoch = math.ceil(len(train_idx) / cfg.batch_size)
-    total_steps = max(1, cfg.max_epochs * steps_per_epoch)
-    sched = get_cosine_schedule_with_warmup(
-        opt, int(cfg.warmup_frac * total_steps), total_steps
+    hist, best = _MetricsHistory(), _BestTrainable()
+    trainer = L.Trainer(
+        max_epochs=cfg.max_epochs,
+        precision="bf16-mixed",
+        accelerator="auto",
+        devices=1,
+        logger=wandb_logger or False,
+        callbacks=[EarlyStopping("val_auprc", mode="max", patience=cfg.early_stop_patience), best, hist],
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        log_every_n_steps=10,
     )
-    autocast_dtype = torch.bfloat16 if device.type == "cuda" else None
-    pos_weight = (
-        torch.tensor(cfg.pos_weight, device=device) if cfg.pos_weight else None
-    )
-
-    res = FoldResult(
-        test_chrom=test_chrom, val_chrom=val_chrom, seed=seed,
-        num_trainable=clf.num_trainable(),
+    trainer.fit(
+        lit,
+        _loader(windows, train_idx, cfg.batch_size, cfg, shuffle=True),
+        _loader(windows, val_idx, cfg.eval_batch_size, cfg, shuffle=False),
     )
 
-    def record(step: int) -> None:
-        eb = cfg.eval_batch_size
-        v = predict_rc_avg(clf, windows, val_idx, device, eb, autocast_dtype)
-        t = predict_rc_avg(clf, windows, test_idx, device, eb, autocast_dtype)
-        tr = predict_rc_avg(clf, windows, sub, device, eb, autocast_dtype)
-        val_ap, test_ap = _auprc(windows, val_idx, v), _auprc(windows, test_idx, t)
-        train_ap = _auprc(windows, sub, tr)
-        res.trajectory.append(
-            {"step": step, "train_auprc": train_ap, "val_auprc": val_ap, "test_auprc": test_ap}
-        )
-        if not (val_ap <= res.best_val_auprc):  # strictly-better or first finite
-            res.best_val_auprc = val_ap
-            res.best_test_auprc = test_ap
-            res.best_step = step
-            res.best_test_scores = t
+    # Restore the best-val trainable state, then one full-FWD+RC pass over the test chrom.
+    if best.state is not None:
+        lit.load_state_dict(best.state, strict=False)
+    preds = trainer.predict(
+        lit, _loader(windows, test_idx, cfg.eval_batch_size, cfg, shuffle=False)
+    )
+    scores = np.concatenate([p[0] for p in preds])
+    rows = np.concatenate([p[1] for p in preds])
+    order = np.argsort(rows)  # align to ascending row index == test_idx order
+    test_scores = scores[order]
+    test_auprc = per_chrom_weighted_ap(
+        windows.label[test_idx], test_scores, windows.chrom[test_idx]
+    )
+    return FoldResult(
+        test_chrom=test_chrom, val_chrom=val_chrom, seed=seed, trajectory=hist.rows,
+        best_epoch=best.best_epoch, best_val_auprc=best.best, best_test_auprc=test_auprc,
+        best_test_scores=test_scores, test_idx=test_idx, num_trainable=num_trainable,
+    )
 
-    ref_fwd, alt_fwd = windows.ref_fwd, windows.alt_fwd
-    ref_rc, alt_rc = windows.ref_rc, windows.alt_rc
-    labels = torch.as_tensor(windows.label, dtype=torch.float32)
 
-    record(0)  # fresh-head starting point
-    step = 0
-    stop = False
-    for _epoch in range(cfg.max_epochs):
-        if stop:
-            break
+@torch.no_grad()
+def overfit_sanity(clf: SiameseLoRAClassifier, windows: VariantWindows,
+                   device: torch.device, *, n: int = 96, steps: int = 200) -> float:
+    """Train on a tiny fixed subset; train AUPRC should climb to ~1.0 (gradients flow)."""
+    import torch.nn.functional as F
+
+    rng = np.random.default_rng(0)
+    pos = np.where(windows.label == 1)[0]
+    neg = np.where(windows.label == 0)[0]
+    idx = np.concatenate([rng.choice(pos, n // 2, replace=False),
+                          rng.choice(neg, n // 2, replace=False)])
+    clf = clf.to(device)
+    opt = torch.optim.AdamW(clf.trainable_parameters(), lr=3e-4)
+    gt = torch.as_tensor(idx, dtype=torch.long)
+    y = torch.as_tensor(windows.label[idx], dtype=torch.float32, device=device)
+    ac = torch.bfloat16 if device.type == "cuda" else None
+    ap = float("nan")
+    for s in range(steps):
         clf.train()
-        for batch in iter_minibatches(len(train_idx), cfg.batch_size, gen):
-            g = train_idx[batch.numpy()]
-            gt = torch.as_tensor(g, dtype=torch.long)
-            if cfg.rc_augment:
-                use_rc = torch.randint(0, 2, (len(g),), generator=gen).bool()
-                r = torch.where(use_rc[:, None], ref_rc[gt], ref_fwd[gt])
-                a = torch.where(use_rc[:, None], alt_rc[gt], alt_fwd[gt])
-            else:
-                r, a = ref_fwd[gt], alt_fwd[gt]
-            r, a = r.to(device), a.to(device)
-            y = labels[gt].to(device)
-            opt.zero_grad(set_to_none=True)
-            if autocast_dtype is not None:
-                with torch.autocast(device_type=device.type, dtype=autocast_dtype):
+        opt.zero_grad(set_to_none=True)
+        r, a = windows.ref_fwd[gt].to(device), windows.alt_fwd[gt].to(device)
+        with torch.enable_grad():
+            if ac is not None:
+                with torch.autocast(device_type=device.type, dtype=ac):
                     logit = clf(r, a)
-                loss = F.binary_cross_entropy_with_logits(logit.float(), y, pos_weight=pos_weight)
+                loss = F.binary_cross_entropy_with_logits(logit.float(), y)
             else:
-                logit = clf(r, a)
-                loss = F.binary_cross_entropy_with_logits(logit, y, pos_weight=pos_weight)
+                loss = F.binary_cross_entropy_with_logits(clf(r, a), y)
             loss.backward()
-            opt.step()
-            sched.step()
-            step += 1
-            if step % cfg.eval_every == 0:
-                record(step)
-                evals_since_best = (step - res.best_step) // cfg.eval_every
-                if evals_since_best >= cfg.early_stop_patience:
-                    stop = True
-                    break
-    if step % cfg.eval_every != 0:
-        record(step)  # final point
-    res.test_idx = test_idx
-    return res
+        opt.step()
+        if s % 50 == 0 or s == steps - 1:
+            clf.eval()
+            rf, af = windows.ref_fwd[gt].to(device), windows.alt_fwd[gt].to(device)
+            rr, ar = windows.ref_rc[gt].to(device), windows.alt_rc[gt].to(device)
+            with torch.autocast(device_type=device.type, dtype=ac) if ac else _null():
+                sc = clf.logit_rc_avg(rf, af, rr, ar).float().cpu().numpy()
+            ap = per_chrom_weighted_ap(windows.label[idx], sc, windows.chrom[idx])
+            print(f"[smoke] step {s:4d} loss={loss.item():.3f} train_ap={ap:.3f}", flush=True)
+    return ap
+
+
+class _null:
+    def __enter__(self): return None
+    def __exit__(self, *a): return False

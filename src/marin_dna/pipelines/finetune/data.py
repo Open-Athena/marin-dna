@@ -215,3 +215,31 @@ def iter_minibatches(
     )
     for start in range(0, n, batch_size):
         yield order[start : start + batch_size]
+
+
+class WindowDataset(torch.utils.data.Dataset):
+    """Precomputed windows for a subset of variants — yields both strands + label.
+
+    Returns ``(ref_fwd, alt_fwd, ref_rc, alt_rc, label, row_idx)`` per item. The training
+    step selects one strand per example (RC augmentation); the val/test step averages
+    FWD+RC. ``row_idx`` is the position in the parent ``VariantWindows`` (for OOF assembly).
+    The windows are small in-memory int tensors, so this needs no worker parallelism.
+    """
+
+    def __init__(self, windows: VariantWindows, idx: np.ndarray) -> None:
+        self.w = windows
+        self.idx = np.asarray(idx, dtype=np.int64)
+
+    def __len__(self) -> int:
+        return len(self.idx)
+
+    def __getitem__(self, i: int):
+        j = int(self.idx[i])
+        return (
+            self.w.ref_fwd[j],
+            self.w.alt_fwd[j],
+            self.w.ref_rc[j],
+            self.w.alt_rc[j],
+            float(self.w.label[j]),
+            j,
+        )
