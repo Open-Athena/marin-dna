@@ -43,6 +43,9 @@ run: |
     set -euxo pipefail
     export PATH="$HOME/.local/bin:$PATH"
     nvidia-smi || true
-    uv run python -c "import torch; print('CUDA', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU-ONLY')"
-    uv run pytest tests/finetune -q
-    uv run python scripts/issue369/run_finetune.py $RUN_ARGS
+    # Use the setup-built venv directly — `uv run` would re-sync the env to the base
+    # groups (dropping genome-s3), pairing base botocore 1.43.6 with aiobotocore 2.26.0
+    # and breaking s3fs. The venv from `uv sync --frozen --group genome-s3` is correct.
+    .venv/bin/python -c "import torch; print('CUDA', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU-ONLY')"
+    .venv/bin/pytest tests/finetune -q
+    .venv/bin/python scripts/issue369/run_finetune.py $RUN_ARGS

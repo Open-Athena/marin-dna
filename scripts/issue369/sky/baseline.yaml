@@ -1,0 +1,17 @@
+name: dna-issue369-baseline
+
+# Recompute the frozen-probe + zero-shot-LLR chr1-fold baselines (CPU sklearn probe
+# fits) on an already-set-up cluster. Run via:
+#   sky exec dna-ft scripts/issue369/sky/baseline.yaml --env BASE_ARGS="46M,128M,255M,1B,4B"
+# Add --full to a single model for the vs-#341 validation (slow full-12 nested OOF).
+
+workdir: .
+
+envs:
+    BASE_ARGS: "46M,128M,255M,1B,4B"
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    # venv directly (see finetune.yaml note): uv run would re-sync off genome-s3.
+    .venv/bin/python scripts/issue369/recompute_chr1_baselines.py $BASE_ARGS
