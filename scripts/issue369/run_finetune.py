@@ -60,6 +60,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weight-decay", type=float, default=0.0)
     p.add_argument("--max-epochs", type=int, default=30)
     p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--eval-batch-size", type=int, default=256)
     p.add_argument("--eval-every", type=int, default=50)
     p.add_argument("--patience", type=int, default=6)
     p.add_argument("--no-rc-aug", action="store_true")
@@ -152,8 +153,8 @@ def main() -> None:
     cfg = TrainConfig(
         max_epochs=args.max_epochs, batch_size=args.batch_size, lora_lr=args.lora_lr,
         head_lr=args.head_lr, weight_decay=args.weight_decay, rc_augment=not args.no_rc_aug,
-        eval_every=args.eval_every, early_stop_patience=args.patience,
-        pos_weight=args.pos_weight or None,
+        eval_every=args.eval_every, eval_batch_size=args.eval_batch_size,
+        early_stop_patience=args.patience, pos_weight=args.pos_weight or None,
     )
     seeds = tuple(int(s) for s in args.seeds.split(","))
     meta = {"model": args.model, "mode": args.mode, "rank": args.rank, "target": args.target,

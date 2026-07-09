@@ -38,8 +38,9 @@ class TrainConfig:
     pos_weight: float | None = None  # None = plain BCE (10% positives)
     rc_augment: bool = True  # random strand per example each step
     eval_every: int = 50  # steps between trajectory points
+    eval_batch_size: int = 256  # inference has no grad/activations — batch big
     early_stop_patience: int = 6  # eval points without val improvement -> stop
-    train_probe_subsample: int = 1000  # cap for the train-AUPRC overfit probe
+    train_probe_subsample: int = 512  # cap for the train-AUPRC overfit probe
 
 
 @dataclass
@@ -149,9 +150,10 @@ def train_fold(
     )
 
     def record(step: int) -> None:
-        v = predict_rc_avg(clf, windows, val_idx, device, cfg.batch_size, autocast_dtype)
-        t = predict_rc_avg(clf, windows, test_idx, device, cfg.batch_size, autocast_dtype)
-        tr = predict_rc_avg(clf, windows, sub, device, cfg.batch_size, autocast_dtype)
+        eb = cfg.eval_batch_size
+        v = predict_rc_avg(clf, windows, val_idx, device, eb, autocast_dtype)
+        t = predict_rc_avg(clf, windows, test_idx, device, eb, autocast_dtype)
+        tr = predict_rc_avg(clf, windows, sub, device, eb, autocast_dtype)
         val_ap, test_ap = _auprc(windows, val_idx, v), _auprc(windows, test_idx, t)
         train_ap = _auprc(windows, sub, tr)
         res.trajectory.append(
