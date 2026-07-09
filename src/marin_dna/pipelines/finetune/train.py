@@ -41,6 +41,7 @@ class TrainConfig:
     early_stop_patience: int = 2  # epochs without val-loss improvement -> stop (sharp overfit)
     num_workers: int = 0  # windows are in-memory tensors — 0 is optimal + fork-safe
     compile_model: bool = False
+    accumulate_grad_batches: int = 1  # micro-batches per optimizer step (hold eff. batch const)
 
 
 @dataclass
@@ -93,6 +94,9 @@ def run_fold(
         precision="bf16-mixed",
         accelerator="auto",
         devices=1,
+        # Lightning divides by this internally, so `estimated_stepping_batches` (used for the
+        # cosine schedule total) already counts OPTIMIZER steps, not micro-batches.
+        accumulate_grad_batches=cfg.accumulate_grad_batches,
         logger=wandb_logger or False,
         # Stop on val_loss (smooth); the reported checkpoint is still selected by best
         # val_auprc in-module (AUPRC on ~71 val positives is too noisy a stop signal).

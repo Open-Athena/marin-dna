@@ -57,6 +57,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--patience", type=int, default=2)
     p.add_argument("--pos-weight", type=float, default=0.0, help="0 = plain BCE")
     p.add_argument("--num-workers", type=int, default=0)
+    p.add_argument("--accum", type=int, default=1, help="grad accumulation (hold eff. batch const)")
     p.add_argument("--compile", action="store_true")
     # wandb / io
     p.add_argument("--wandb-project", default="dna-issue369")
@@ -113,7 +114,7 @@ def main() -> None:
         eval_batch_size=args.eval_batch_size, lora_lr=args.lora_lr, head_lr=args.head_lr,
         weight_decay=args.weight_decay, early_stop_patience=args.patience,
         pos_weight=args.pos_weight or None, num_workers=args.num_workers,
-        compile_model=args.compile,
+        compile_model=args.compile, accumulate_grad_batches=args.accum,
     )
     seeds = tuple(int(s) for s in args.seeds.split(","))
     meta = {"model": args.model, "mode": args.mode, "rank": args.rank, "target": args.target,

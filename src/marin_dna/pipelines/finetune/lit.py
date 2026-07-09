@@ -37,7 +37,10 @@ class LitVariantFinetune(L.LightningModule):
     ) -> None:
         super().__init__()
         self.clf = torch.compile(clf) if compile_model else clf
-        self._raw_clf = clf  # un-compiled handle for param groups / num_trainable
+        # Un-compiled handle for param groups — registered via object.__setattr__ so it is
+        # NOT a second registered submodule (else params/state_dict duplicate, and under
+        # compile the `_orig_mod` vs raw key names collide on the best-state load).
+        object.__setattr__(self, "_raw_clf", clf)
         self.label = np.asarray(label)
         self.chrom = np.asarray(chrom, dtype=str)
         self.lora_lr = lora_lr
