@@ -46,6 +46,7 @@ setup: |
 run: |
     set -euxo pipefail
     export PATH="$HOME/.local/bin:$PATH"
+    export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True   # reduce fragmentation OOM
     nvidia-smi || true
     # Use the setup-built venv directly — `uv run` would re-sync the env to the base
     # groups (dropping genome-s3), pairing base botocore 1.43.6 with aiobotocore 2.26.0
