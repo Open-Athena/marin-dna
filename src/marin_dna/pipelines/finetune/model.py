@@ -41,9 +41,14 @@ class SiameseLoRAClassifier(nn.Module):
         self.head = nn.Linear(2 * hidden_size, 1).float()
 
     def pool(self, input_ids: torch.Tensor) -> torch.Tensor:
-        """Entire-window mean-pool of the last hidden state, fp32 (BOS excluded)."""
-        h = self.decoder(input_ids=input_ids).last_hidden_state  # [B, L, D]
-        return h[:, self.pool_lo : self.pool_hi].float().mean(dim=1)  # [B, D]
+        """Entire-window mean-pool of the last hidden state, fp32 (BOS excluded).
+
+        Accepts a stacked ``[K*B, L]`` batch so the siamese ref/alt (and the 4 eval
+        strands) go through the backbone in **one** forward — halving/quartering the
+        kernel launches vs one call per allele.
+        """
+        h = self.decoder(input_ids=input_ids).last_hidden_state  # [K*B, L, D]
+        return h[:, self.pool_lo : self.pool_hi].float().mean(dim=1)  # [K*B, D]
 
     def _head(self, pool_ref: torch.Tensor, pool_alt: torch.Tensor) -> torch.Tensor:
         feat = torch.cat([pool_ref, pool_alt - pool_ref], dim=-1)  # concat_ref_delta
@@ -51,7 +56,9 @@ class SiameseLoRAClassifier(nn.Module):
 
     def forward(self, ref_ids: torch.Tensor, alt_ids: torch.Tensor) -> torch.Tensor:
         """Single-strand logit (training path — one strand per example, RC-augmented)."""
-        return self._head(self.pool(ref_ids), self.pool(alt_ids))
+        b = ref_ids.shape[0]
+        pooled = self.pool(torch.cat([ref_ids, alt_ids], dim=0))  # one forward of 2B
+        return self._head(pooled[:b], pooled[b:])
 
     def logit_rc_avg(
         self,
@@ -61,8 +68,10 @@ class SiameseLoRAClassifier(nn.Module):
         alt_rc: torch.Tensor,
     ) -> torch.Tensor:
         """FWD+RC pooled-average logit (eval path — matches the probe/pipeline scoring)."""
-        pool_ref = 0.5 * (self.pool(ref_fwd) + self.pool(ref_rc))
-        pool_alt = 0.5 * (self.pool(alt_fwd) + self.pool(alt_rc))
+        b = ref_fwd.shape[0]
+        pooled = self.pool(torch.cat([ref_fwd, alt_fwd, ref_rc, alt_rc], dim=0))  # one 4B fwd
+        pool_ref = 0.5 * (pooled[:b] + pooled[2 * b : 3 * b])
+        pool_alt = 0.5 * (pooled[b : 2 * b] + pooled[3 * b : 4 * b])
         return self._head(pool_ref, pool_alt)
 
     def trainable_parameters(self) -> list[nn.Parameter]:

@@ -38,7 +38,7 @@ class TrainConfig:
     head_weight_decay: float = 0.0
     warmup_frac: float = 0.1
     pos_weight: float | None = None  # None = plain BCE (10% positives)
-    early_stop_patience: int = 6  # epochs without val-AUPRC improvement -> stop
+    early_stop_patience: int = 2  # epochs without val-loss improvement -> stop (sharp overfit)
     num_workers: int = 0  # windows are in-memory tensors — 0 is optimal + fork-safe
     compile_model: bool = False
 
@@ -94,7 +94,9 @@ def run_fold(
         accelerator="auto",
         devices=1,
         logger=wandb_logger or False,
-        callbacks=[EarlyStopping("val_auprc", mode="max", patience=cfg.early_stop_patience)],
+        # Stop on val_loss (smooth); the reported checkpoint is still selected by best
+        # val_auprc in-module (AUPRC on ~71 val positives is too noisy a stop signal).
+        callbacks=[EarlyStopping("val_loss", mode="min", patience=cfg.early_stop_patience)],
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,

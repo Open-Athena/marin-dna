@@ -54,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-epochs", type=int, default=30)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--eval-batch-size", type=int, default=256)
-    p.add_argument("--patience", type=int, default=6)
+    p.add_argument("--patience", type=int, default=2)
     p.add_argument("--pos-weight", type=float, default=0.0, help="0 = plain BCE")
     p.add_argument("--num-workers", type=int, default=0)
     p.add_argument("--compile", action="store_true")
