@@ -95,6 +95,7 @@ def trajectory_rows(results, meta: dict) -> list[dict]:
 
 def main() -> None:
     args = parse_args()
+    torch.set_float32_matmul_precision("high")  # A10G Tensor Cores
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
     print(f"[run] device={device} dtype={dtype} model={args.model} mode={args.mode}", flush=True)

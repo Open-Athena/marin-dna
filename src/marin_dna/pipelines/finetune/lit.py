@@ -52,6 +52,13 @@ class LitVariantFinetune(L.LightningModule):
         )
         self._val_scores: list[np.ndarray] = []
         self._val_rows: list[np.ndarray] = []
+        # best-val trainable-state snapshot + per-epoch trajectory, tracked in-module so
+        # they use the FRESH val_auprc + the weights that produced it (callbacks run
+        # before the module logs, giving a one-epoch lag — issue #369).
+        self._history: list[dict] = []
+        self._best_val: float = -float("inf")
+        self._best_epoch: int = 0
+        self._best_state: dict[str, torch.Tensor] | None = None
 
     # ---- training: one random strand per example (RC augmentation) --------------
     def training_step(self, batch, _idx):
@@ -78,10 +85,26 @@ class LitVariantFinetune(L.LightningModule):
     def on_validation_epoch_end(self):
         rows = np.concatenate(self._val_rows)
         scores = np.concatenate(self._val_scores)
-        ap = per_chrom_weighted_ap(self.label[rows], scores, self.chrom[rows])
-        self.log("val_auprc", float(ap), prog_bar=True)
+        ap = float(per_chrom_weighted_ap(self.label[rows], scores, self.chrom[rows]))
+        self.log("val_auprc", ap, prog_bar=True)
         self._val_scores.clear()
         self._val_rows.clear()
+        m = self.trainer.callback_metrics
+        self._history.append({
+            "epoch": int(self.current_epoch),
+            "train_loss": float(m["train_loss"]) if "train_loss" in m else float("nan"),
+            "val_loss": float(m["val_loss"]) if "val_loss" in m else float("nan"),
+            "val_auprc": ap,
+        })
+        # Snapshot the trainable (LoRA+head) params that just produced this val AUPRC.
+        if np.isfinite(ap) and ap > self._best_val:
+            self._best_val = ap
+            self._best_epoch = int(self.current_epoch)
+            self._best_state = {
+                n: p.detach().cpu().clone()
+                for n, p in self.named_parameters()
+                if p.requires_grad
+            }
 
     # ---- test/predict: full FWD+RC on the best checkpoint -----------------------
     def predict_step(self, batch, _idx):

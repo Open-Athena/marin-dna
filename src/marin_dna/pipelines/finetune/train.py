@@ -57,41 +57,6 @@ class FoldResult:
     num_trainable: int = 0
 
 
-class _MetricsHistory(L.Callback):
-    """Capture per-epoch train_loss / val_loss / val_auprc (the wandb-logged trajectory)."""
-
-    def __init__(self) -> None:
-        self.rows: list[dict] = []
-
-    def on_validation_epoch_end(self, trainer, _pl) -> None:
-        m = trainer.callback_metrics
-        get = lambda k: float(m[k]) if k in m else float("nan")  # noqa: E731
-        self.rows.append(
-            {"epoch": int(trainer.current_epoch), "train_loss": get("train_loss"),
-             "val_loss": get("val_loss"), "val_auprc": get("val_auprc")}
-        )
-
-
-class _BestTrainable(L.Callback):
-    """Snapshot the trainable (LoRA+head) params at the best val-AUPRC epoch, on CPU."""
-
-    def __init__(self) -> None:
-        self.best = -float("inf")
-        self.best_epoch = 0
-        self.state: dict[str, torch.Tensor] | None = None
-
-    def on_validation_epoch_end(self, trainer, pl_module) -> None:
-        ap = float(trainer.callback_metrics.get("val_auprc", float("nan")))
-        if np.isfinite(ap) and ap > self.best:
-            self.best = ap
-            self.best_epoch = int(trainer.current_epoch)
-            self.state = {
-                n: p.detach().cpu().clone()
-                for n, p in pl_module.named_parameters()
-                if p.requires_grad
-            }
-
-
 def _loader(windows: VariantWindows, idx: np.ndarray, batch: int, cfg: TrainConfig,
             *, shuffle: bool) -> DataLoader:
     kw: dict = {"num_workers": cfg.num_workers, "pin_memory": True}
@@ -123,14 +88,13 @@ def run_fold(
         head_weight_decay=cfg.head_weight_decay, warmup_frac=cfg.warmup_frac,
         pos_weight=cfg.pos_weight, compile_model=cfg.compile_model,
     )
-    hist, best = _MetricsHistory(), _BestTrainable()
     trainer = L.Trainer(
         max_epochs=cfg.max_epochs,
         precision="bf16-mixed",
         accelerator="auto",
         devices=1,
         logger=wandb_logger or False,
-        callbacks=[EarlyStopping("val_auprc", mode="max", patience=cfg.early_stop_patience), best, hist],
+        callbacks=[EarlyStopping("val_auprc", mode="max", patience=cfg.early_stop_patience)],
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
@@ -142,9 +106,10 @@ def run_fold(
         _loader(windows, val_idx, cfg.eval_batch_size, cfg, shuffle=False),
     )
 
-    # Restore the best-val trainable state, then one full-FWD+RC pass over the test chrom.
-    if best.state is not None:
-        lit.load_state_dict(best.state, strict=False)
+    # Restore the best-val trainable state (tracked in-module), then one full-FWD+RC pass
+    # over the test chrom.
+    if lit._best_state is not None:
+        lit.load_state_dict(lit._best_state, strict=False)
     preds = trainer.predict(
         lit, _loader(windows, test_idx, cfg.eval_batch_size, cfg, shuffle=False)
     )
@@ -156,8 +121,8 @@ def run_fold(
         windows.label[test_idx], test_scores, windows.chrom[test_idx]
     )
     return FoldResult(
-        test_chrom=test_chrom, val_chrom=val_chrom, seed=seed, trajectory=hist.rows,
-        best_epoch=best.best_epoch, best_val_auprc=best.best, best_test_auprc=test_auprc,
+        test_chrom=test_chrom, val_chrom=val_chrom, seed=seed, trajectory=lit._history,
+        best_epoch=lit._best_epoch, best_val_auprc=lit._best_val, best_test_auprc=test_auprc,
         best_test_scores=test_scores, test_idx=test_idx, num_trainable=num_trainable,
     )
 
