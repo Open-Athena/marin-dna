@@ -46,6 +46,7 @@ class TrainConfig:
 class FoldResult:
     test_chrom: str
     val_chrom: str
+    seed: int = 0
     trajectory: list[dict] = field(default_factory=list)  # per eval: step + AUPRCs
     best_step: int = 0
     best_val_auprc: float = float("nan")
@@ -143,7 +144,8 @@ def train_fold(
     )
 
     res = FoldResult(
-        test_chrom=test_chrom, val_chrom=val_chrom, num_trainable=clf.num_trainable()
+        test_chrom=test_chrom, val_chrom=val_chrom, seed=seed,
+        num_trainable=clf.num_trainable(),
     )
 
     def record(step: int) -> None:

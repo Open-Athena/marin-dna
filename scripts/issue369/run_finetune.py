@@ -129,7 +129,7 @@ def trajectory_rows(results, meta: dict) -> list[dict]:
     rows = []
     for r in results:
         for pt in r.trajectory:
-            rows.append({**meta, "test_chrom": r.test_chrom, "val_chrom": r.val_chrom,
+            rows.append({**meta, "seed": r.seed, "test_chrom": r.test_chrom, "val_chrom": r.val_chrom,
                          "num_trainable": r.num_trainable, "best_step": r.best_step,
                          "best_val_auprc": r.best_val_auprc, "best_test_auprc": r.best_test_auprc, **pt})
     return rows

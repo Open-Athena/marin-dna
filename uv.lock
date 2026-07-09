@@ -959,6 +959,7 @@ dependencies = [
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "openpyxl", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "pandas", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "peft", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "polars", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "polars-bio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "py2bit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -1011,6 +1012,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "openpyxl" },
     { name = "pandas" },
+    { name = "peft" },
     { name = "polars" },
     { name = "polars-bio" },
     { name = "py2bit" },
@@ -1463,6 +1465,27 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5a/82/42f767fc1c1143d6fd36efb827202a2d997a375e160a71eb2888a925aac1/pathspec-1.1.1.tar.gz", hash = "sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a", size = 135180, upload-time = "2026-04-27T01:46:08.907Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl", hash = "sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189", size = 57328, upload-time = "2026-04-27T01:46:07.06Z" },
+]
+
+[[package]]
+name = "peft"
+version = "0.19.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "accelerate", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "huggingface-hub", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "psutil", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "safetensors", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "torch", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+    { name = "transformers", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/86/cf/037f1e3d5186496c05513a6754639e2dab3038a05f384284d49a9bd06a2d/peft-0.19.1.tar.gz", hash = "sha256:0d97542fe96dcdaa20d3b81c06f26f988618f416a73544ab23c3618ccb674a40", size = 763738, upload-time = "2026-04-16T15:46:45.105Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/b6/f54d676ed93cc2dd2234c3b172ea9c8c3d7d29361e66b1b23dec57a67465/peft-0.19.1-py3-none-any.whl", hash = "sha256:2113f72a81621b5913ef28f9022204c742df111890c5f49d812716a4a301e356", size = 680692, upload-time = "2026-04-16T15:46:42.886Z" },
 ]
 
 [[package]]

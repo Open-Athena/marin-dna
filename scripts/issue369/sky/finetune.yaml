@@ -34,7 +34,10 @@ setup: |
     grep -q '.local/bin' "$HOME/.bashrc" || \
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync --group genome-s3
+    # --frozen: install the exact locked genome-s3 stack (s3fs/aiobotocore/botocore
+    # must match; a non-frozen re-resolve mixes in the base snakemake-s3 botocore and
+    # breaks s3fs with a compute_endpoint_resolver_builtin_defaults TypeError).
+    uv sync --frozen --group genome-s3
 
 run: |
     set -euxo pipefail
