@@ -1,0 +1,33 @@
+name: dna-issue369-probe-cpu
+
+# Frozen-probe + LLR chr1-fold AUPRC grids on a many-core CPU box (probes are CPU-bound
+# and parallelize over the C-grid; no GPU). Computes the data-scaling probe curve (255M
+# missense x fractions) and the per-subset probe baselines (255M + 476M, all subsets) for
+# the pooled-all comparison.
+
+resources:
+    infra: aws/us-east-2
+    instance_type: c6i.8xlarge   # 32 vCPU
+    disk_size: 60
+    labels:
+        project: dna
+    any_of:
+        - use_spot: true
+        - use_spot: false
+
+workdir: .
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; fi
+    grep -q '.local/bin' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen   # base only: polars (native S3) + sklearn; no genome-s3/GPU
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    P=".venv/bin/python scripts/issue369/probe_grid.py"
+    $P --model 255M --subsets missense_variant --train-fracs 0.0625,0.125,0.25,0.5,1.0
+    $P --model 255M --subsets all --train-fracs 1.0
+    $P --model 476M --subsets all --train-fracs 1.0
