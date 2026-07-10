@@ -63,6 +63,18 @@ class LitVariantFinetune(L.LightningModule):
         self._best_epoch: int = 0
         self._best_state: dict[str, torch.Tensor] | None = None
 
+    def on_train_start(self):
+        t = self.trainer
+        nb = t.num_training_batches  # micro-batches / epoch
+        acc = t.accumulate_grad_batches
+        print(
+            f"[steps] micro-batches/epoch={nb} accum={acc} "
+            f"optimizer-steps/epoch={-(-nb // acc)} "
+            f"total-optimizer-steps(estimated_stepping_batches)={t.estimated_stepping_batches} "
+            f"max_epochs={t.max_epochs}",
+            flush=True,
+        )
+
     # ---- training: one random strand per example (RC augmentation) --------------
     def training_step(self, batch, _idx):
         ref_fwd, alt_fwd, ref_rc, alt_rc, y, _j = batch
