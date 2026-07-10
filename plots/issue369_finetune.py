@@ -106,8 +106,39 @@ def fig_pooled() -> None:
     plt.close(fig)
 
 
+# --- Fig 4: the 2x2 — pooling is a shared data effect (255M, chr1) ----------------
+import numpy as np  # noqa: E402
+
+GRID = {  # subset -> (probe per-subset, probe pooled, FT pooled)
+    "synonymous": (0.697, 0.268, 0.384), "splicing": (0.531, 0.455, 0.457),
+    "missense": (0.523, 0.481, 0.447), "distal": (0.480, 0.611, 0.500),
+    "tss-prox": (0.255, 0.211, 0.155), "5'UTR": (0.187, 0.272, 0.278),
+    "ncRNA-exon": (0.150, 0.207, 0.196), "3'UTR": (0.125, 0.247, 0.265),
+}
+
+
+def fig_2x2() -> None:
+    labels = list(GRID)
+    pp, ppool, ftpool = (list(t) for t in zip(*GRID.values()))
+    y, h = np.arange(len(labels)), 0.26
+    fig, ax = plt.subplots(figsize=(10, 6.5))
+    ax.barh(y + h, pp, h, color=C["probe"], label="probe · per-subset")
+    ax.barh(y, ppool, h, color="#8ecae6", label="probe · pooled")
+    ax.barh(y - h, ftpool, h, color=C["ft"], label="FT · pooled")
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.set_xlabel("chr1 AUPRC (255M)")
+    ax.set_title("Pooling is a shared data effect — pooled FT ≈ pooled probe")
+    ax.legend(frameon=False, loc="lower right", fontsize=12)
+    fig.tight_layout()
+    for ext in ("svg", "png"):
+        fig.savefig(OUT / f"two_by_two_255M.{ext}", dpi=140)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig_scale()
     fig_datascaling()
     fig_pooled()
+    fig_2x2()
     print(f"wrote figures to {OUT}/")
