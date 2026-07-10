@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from marin_dna.pipelines.evals.metrics import MACRO_AVG_SUBSET
+from plots.blog._regions import REGION_COLORS, VARIANT_REGION, region_legend_handles
 from plots.blog._scaling import DATA, LADDER_FINAL_STEP
 from plots.blog._style.figure_style import (
     EARTH_QUAL,
@@ -30,7 +31,15 @@ from plots.blog._worlds import WORLDS
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
 
-# (subset, label, EARTH_QUAL slot) — missense/splicing colors match Figs 5–8; macro slate.
+# Fig 5 assays only the two SGE consequences — one panel each, no macro-avg
+# (per request). Panel color = the variant's training region (see VARIANT_REGION).
+FIG5_SGE_TRAITS: tuple[tuple[str, str], ...] = (
+    ("missense_variant", "missense"),
+    ("splicing", "splicing"),
+)
+
+# (subset, label, EARTH_QUAL slot) — Fig 6 keeps the multi-line layout: missense /
+# splicing colors match Figs 5–8, macro slate.
 SGE_TRAITS: tuple[tuple[str, str, int], ...] = (
     ("missense_variant", "missense", 0),
     ("splicing", "splicing", 4),
@@ -63,34 +72,54 @@ def build(world) -> None:
     params_present = sorted({int(p) for p in data["params"].unique()})
     pal = palette(params_present)
 
-    # Fig 5 (params → AUPRC), single panel.
-    fig5, ax = plt.subplots(figsize=figsize(5.0, 4.2))
-    for subset, label, _ in SGE_TRAITS:
+    # Fig 5 (params → AUPRC): one panel per variant type (no macro), region-colored.
+    fig5, axes = plt.subplots(1, 2, figsize=figsize(6.4, 4.2), sharex=True)
+    for ax, (subset, label) in zip(axes, FIG5_SGE_TRAITS, strict=True):
+        color = REGION_COLORS[VARIANT_REGION[subset]]
         d = data[data["subset"] == subset].sort_values("params")
-        if d.empty:
-            continue
-        ax.plot(
-            d["params"],
-            d["value"],
-            marker="o",
-            linestyle="-",
-            color=color_for[subset],
-            linewidth=1.3,
-            markersize=6,
-            markeredgecolor="k",
-            markeredgewidth=0.4,
-            label=label,
-            zorder=3,
-        )
-    ax.set_xscale("log")
-    ax.set_xlabel("model params", labelpad=X_LABEL_PAD)
-    ax.set_ylabel("AUPRC")
-    ax.grid(False)
-    ax.legend(fontsize=8, frameon=False, handletextpad=0.4)
-    fig5.suptitle(
-        f"Parameter scaling — SGE AUPRC vs params · {world.label}", fontsize=11
+        if not d.empty:
+            # Capless ±1 SE bars (drawn only where `se` is finite).
+            ax.errorbar(
+                d["params"],
+                d["value"],
+                yerr=d["se"],
+                marker="o",
+                linestyle="-",
+                color=color,
+                ecolor=color,
+                elinewidth=1.0,
+                capsize=0,
+                linewidth=1.3,
+                markersize=6,
+                markeredgecolor="k",
+                markeredgewidth=0.4,
+                zorder=3,
+            )
+        ax.set_xscale("log")
+        ax.set_title(label[:1].upper() + label[1:], fontsize=10)
+        ax.set_xlabel("model params", labelpad=X_LABEL_PAD)
+        ax.grid(False)
+    axes[0].set_ylabel("AUPRC")
+
+    regions_used = list(dict.fromkeys(VARIANT_REGION[s] for s, _ in FIG5_SGE_TRAITS))
+    handles, labels = region_legend_handles(regions_used)
+    fig5.legend(
+        handles,
+        labels,
+        title="relevant training region",
+        ncol=len(handles),
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.12),
+        fontsize=9,
+        title_fontsize=9,
+        frameon=False,
+        handletextpad=0.4,
+        columnspacing=1.6,
     )
-    fig5.tight_layout(rect=(0, 0.02, 1, 0.99))
+    fig5.suptitle(
+        f"Parameter scaling — AUPRC by variant type · {world.label}", fontsize=11
+    )
+    fig5.tight_layout(rect=(0, 0.08, 1, 0.95))
     save_figure(fig5, OUTPUT_DIR, f"figure5_params_vs_vep_auprc__{world.key}")
 
     # Fig 6 (loss → AUPRC), single panel, params-colored markers.
