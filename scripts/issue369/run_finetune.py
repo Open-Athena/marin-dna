@@ -60,6 +60,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--accum", type=int, default=1, help="grad accumulation (hold eff. batch const)")
     p.add_argument("--compile", action="store_true")
     p.add_argument("--grad-checkpoint", action="store_true", help="fit big rungs on A10G")
+    p.add_argument("--train-frac", type=float, default=1.0, help="subsample train (data-scaling)")
     # wandb / io
     p.add_argument("--wandb-project", default="dna-issue369")
     p.add_argument("--wandb-entity", default="")
@@ -116,14 +117,16 @@ def main() -> None:
         weight_decay=args.weight_decay, early_stop_patience=args.patience,
         pos_weight=args.pos_weight or None, num_workers=args.num_workers,
         compile_model=args.compile, accumulate_grad_batches=args.accum,
+        train_frac=args.train_frac,
     )
     seeds = tuple(int(s) for s in args.seeds.split(","))
     meta = {"model": args.model, "mode": args.mode, "rank": args.rank, "target": args.target,
             "top_k_layers": args.top_k_layers, "lora_lr": args.lora_lr,
             "weight_decay": args.weight_decay, "dropout": args.dropout,
-            "batch_size": args.batch_size, "max_epochs": args.max_epochs}
+            "batch_size": args.batch_size, "max_epochs": args.max_epochs,
+            "train_frac": args.train_frac}
     group = (f"{args.model}-r{args.rank}-{args.target}-tk{args.top_k_layers}"
-             f"-lr{args.lora_lr:g}-wd{args.weight_decay:g}")
+             f"-lr{args.lora_lr:g}-wd{args.weight_decay:g}-tf{args.train_frac:g}")
 
     make_logger = None
     if not args.no_wandb:

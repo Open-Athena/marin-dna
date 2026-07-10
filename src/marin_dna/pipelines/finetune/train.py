@@ -42,6 +42,7 @@ class TrainConfig:
     num_workers: int = 0  # windows are in-memory tensors — 0 is optimal + fork-safe
     compile_model: bool = False
     accumulate_grad_batches: int = 1  # micro-batches per optimizer step (hold eff. batch const)
+    train_frac: float = 1.0  # subsample the training set (label-stratified) — data-scaling
 
 
 @dataclass
@@ -66,6 +67,19 @@ def _loader(windows: VariantWindows, idx: np.ndarray, batch: int, cfg: TrainConf
     return DataLoader(WindowDataset(windows, idx), batch_size=batch, shuffle=shuffle, **kw)
 
 
+def _subsample_train(train_idx: np.ndarray, label: np.ndarray, frac: float, seed: int) -> np.ndarray:
+    """Label-stratified subsample of the training indices (keeps the ~10% positive rate)."""
+    if frac >= 1.0:
+        return train_idx
+    rng = np.random.default_rng(1000 + seed)
+    parts = [
+        rng.choice(ci, max(1, round(len(ci) * frac)), replace=False)
+        for c in (0, 1)
+        for ci in [train_idx[label[train_idx] == c]]
+    ]
+    return np.sort(np.concatenate(parts))
+
+
 def run_fold(
     clf: SiameseLoRAClassifier,
     windows: VariantWindows,
@@ -81,6 +95,7 @@ def run_fold(
     L.seed_everything(seed, workers=True)
     train_mask, val_mask, test_mask = masks
     train_idx, val_idx, test_idx = (np.where(m)[0] for m in (train_mask, val_mask, test_mask))
+    train_idx = _subsample_train(train_idx, windows.label, cfg.train_frac, seed)
     num_trainable = clf.num_trainable()
 
     lit = LitVariantFinetune(
