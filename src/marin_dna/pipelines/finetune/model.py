@@ -91,16 +91,22 @@ def build_model(
     target_modules: tuple[str, ...] = ATTENTION_MODULES,
     top_k_layers: int | None = None,
     dtype: torch.dtype = torch.bfloat16,
+    gradient_checkpointing: bool = False,
 ) -> tuple[SiameseLoRAClassifier, AutoTokenizer]:
     """Load an HF checkpoint, inject LoRA, and wrap it in the siamese classifier.
 
     ``top_k_layers`` restricts LoRA to the *last* K decoder layers (a capacity/reg lever
     that also targets the degraded readout, #341) — ``None`` adapts every layer.
+    ``gradient_checkpointing`` trades compute for activation memory so bigger rungs (476M+)
+    fit on a 24 GB A10G without an A100.
     """
     tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
     model = AutoModelForCausalLM.from_pretrained(
         checkpoint_path, trust_remote_code=True, torch_dtype=dtype
     )
+    if gradient_checkpointing:
+        model.gradient_checkpointing_enable()
+        model.enable_input_require_grads()  # PEFT: frozen base needs grad-requiring inputs
     n_prefix, _ = _get_special_token_counts(tokenizer)
     hidden = model.config.hidden_size
     n_layers = model.config.num_hidden_layers

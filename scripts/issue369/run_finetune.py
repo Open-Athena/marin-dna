@@ -59,6 +59,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num-workers", type=int, default=0)
     p.add_argument("--accum", type=int, default=1, help="grad accumulation (hold eff. batch const)")
     p.add_argument("--compile", action="store_true")
+    p.add_argument("--grad-checkpoint", action="store_true", help="fit big rungs on A10G")
     # wandb / io
     p.add_argument("--wandb-project", default="dna-issue369")
     p.add_argument("--wandb-entity", default="")
@@ -77,7 +78,7 @@ def make_build_fn(ckpt: str, args: argparse.Namespace, dtype: torch.dtype):
         return build_model(
             ckpt, window_size=args.window_size, lora_rank=args.rank,
             lora_alpha=args.alpha, lora_dropout=args.dropout, target_modules=target,
-            top_k_layers=top_k, dtype=dtype,
+            top_k_layers=top_k, dtype=dtype, gradient_checkpointing=args.grad_checkpoint,
         )[0]
 
     return build
