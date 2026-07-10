@@ -37,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--model", default="255M")
     p.add_argument("--mode", default="smoke", choices=["smoke", "dev", "nested"])
+    p.add_argument("--subset", default="missense_variant", help="'all' pools every consequence")
     p.add_argument("--window-size", type=int, default=255)
     p.add_argument("--seeds", default="0,1,2")
     p.add_argument("--test-chrom", default="1")
@@ -105,8 +106,8 @@ def main() -> None:
 
     ckpt = str(download_checkpoint(args.model, args.ckpt_root))
     tokenizer = AutoTokenizer.from_pretrained(ckpt)
-    df = load_missense_train()
-    print(f"[run] missense variants: {len(df)} ({int(df['label'].sum())} pos)", flush=True)
+    df = load_missense_train(subset=None if args.subset == "all" else args.subset)
+    print(f"[run] variants ({args.subset}): {len(df)} ({int(df['label'].sum())} pos)", flush=True)
     windows = build_or_load_windows(df, tokenizer, args.window_size, args.cache_dir)
     print(f"[run] windows: {len(windows)} (pool [{windows.pool_lo},{windows.pool_hi}))", flush=True)
 
@@ -120,7 +121,8 @@ def main() -> None:
         train_frac=args.train_frac,
     )
     seeds = tuple(int(s) for s in args.seeds.split(","))
-    meta = {"model": args.model, "mode": args.mode, "rank": args.rank, "target": args.target,
+    meta = {"model": args.model, "mode": args.mode, "subset": args.subset,
+            "rank": args.rank, "target": args.target,
             "top_k_layers": args.top_k_layers, "lora_lr": args.lora_lr,
             "weight_decay": args.weight_decay, "dropout": args.dropout,
             "batch_size": args.batch_size, "max_epochs": args.max_epochs,
@@ -155,6 +157,17 @@ def main() -> None:
         summary["dev_mean"], summary["dev_sd"] = float(np.mean(best)), float(np.std(best))
         print(f"[dev] chr{args.test_chrom} best test AUPRC/seed: {[f'{b:.3f}' for b in best]} "
               f"mean={np.mean(best):.3f}+/-{np.std(best):.3f}", flush=True)
+        if windows.subset is not None:  # pooled-all: score each consequence separately
+            from marin_dna.pipelines.evals.metrics import per_chrom_weighted_ap as _ap
+            ti, sc = results[0].test_idx, results[0].best_test_scores
+            sub, lab, chm = windows.subset[ti], windows.label[ti], windows.chrom[ti]
+            persub = {
+                s: round(float(_ap(lab[sub == s], sc[sub == s], chm[sub == s])), 3)
+                for s in sorted(set(sub.tolist()))
+                if (sub == s).sum() >= 30 and 0 < lab[sub == s].sum() < (sub == s).sum()
+            }
+            summary["per_subset_auprc"] = persub
+            print(f"[dev] per-subset chr{args.test_chrom} AUPRC: {persub}", flush=True)
     else:  # nested
         _oof, results, overall = run_nested_loco(build_fn, windows, cfg, seed=seeds[0],
                                                  make_logger=make_logger)

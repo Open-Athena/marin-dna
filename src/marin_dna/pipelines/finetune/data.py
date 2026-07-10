@@ -34,21 +34,22 @@ GENOME_PATH = (
 
 
 def load_missense_train(
-    revision: str = MENDELIAN_REVISION, split: str = "train"
+    revision: str = MENDELIAN_REVISION,
+    split: str = "train",
+    subset: str | None = MISSENSE_SUBSET,
 ) -> pd.DataFrame:
-    """Load the Mendelian ``missense_variant`` rows of the given split (default train).
+    """Load Mendelian variant rows of the given split (default train, missense only).
 
-    Columns include ``chrom, pos, ref, alt, label, subset, match_group``. Kept as a
-    thin loader so tests can patch it; the heavy lifting is in ``build_variant_windows``.
+    ``subset=None`` loads **all** consequence subsets (pool ~16k vs ~5.8k missense) — the
+    cheap way to get more FT training data; evaluate per subset via the retained ``subset``
+    column. Columns include ``chrom, pos, ref, alt, label, subset, match_group``.
     """
     from datasets import load_dataset
 
-    df = (
-        load_dataset(MENDELIAN_HF, split=split, revision=revision)
-        .to_pandas()
-        .query("subset == @MISSENSE_SUBSET")
-        .reset_index(drop=True)
-    )
+    df = load_dataset(MENDELIAN_HF, split=split, revision=revision).to_pandas()
+    if subset is not None:
+        df = df.query("subset == @subset")
+    df = df.reset_index(drop=True)
     for col in ("chrom", "pos", "ref", "alt", "label", "subset", "match_group"):
         assert col in df.columns, f"missing column {col!r}"
     df["chrom"] = df["chrom"].astype(str)
@@ -78,6 +79,7 @@ class VariantWindows:
     chrom: np.ndarray
     label: np.ndarray
     match_group: np.ndarray
+    subset: np.ndarray | None = None  # consequence subset (for pooled-all per-subset eval)
 
     def __len__(self) -> int:
         return self.ref_fwd.shape[0]
@@ -126,6 +128,7 @@ def build_variant_windows(
         chrom=df["chrom"].astype(str).to_numpy(),
         label=df["label"].to_numpy().astype(np.int64),
         match_group=df["match_group"].to_numpy(),
+        subset=df["subset"].astype(str).to_numpy() if "subset" in df.columns else None,
     )
 
 
