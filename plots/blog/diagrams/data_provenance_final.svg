@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 398" role="img" aria-labelledby="t d" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="t">Training data provenance — five region datasets, sources and definitions</title>
+  <desc id="d">CDS, Upstream and Downstream from per-species RefSeq annotation over ~500 animals; ncRNA and Enhancer from human Ensembl r115 and ENCODE cCRE V4 anchors, conservation-filtered and projected onto ~108 Zoonomia mammals. Bar length proportional to dataset tokens. Each dataset links to its HuggingFace page.</desc>
+  <rect x="1" y="1" width="898" height="396" rx="14" fill="#f6f0e4" stroke="#ddd3bf"/>
+  <text x="26" y="34" font-size="17" font-weight="700" fill="#1f1e1b">Training data — five region datasets, two build pipelines</text>
+  <text x="26" y="53" font-size="11.5" fill="#7a6f5f">window size: 255 bp  ·  🤗 links to each source dataset</text>
+
+  <g stroke="#e6dcc6" stroke-width="1">
+    <line x1="380" y1="72" x2="380" y2="322"/><line x1="532" y1="72" x2="532" y2="322"/><line x1="684" y1="72" x2="684" y2="322"/><line x1="836" y1="72" x2="836" y2="322"/>
+  </g>
+
+  <text x="26" y="86" font-size="12.5" font-weight="700" fill="#5b4a36">① Annotation extraction — per-species RefSeq GTF · ~500 animal species</text>
+
+  <g>
+    <rect x="26" y="100" width="13" height="13" rx="3" fill="#9c4f2f"/><text x="45" y="111" font-size="12.5" font-weight="700" fill="#1f1e1b">CDS</text>
+    <a href="https://huggingface.co/datasets/bolinas-dna/genomes-v5-genome_set-animals-intervals-v5_255_128" target="_blank"><text x="356" y="112" font-size="12">🤗</text></a>
+    <text x="45" y="126" font-size="9.5" fill="#8a7d68">coding sequence</text>
+    <rect x="380" y="101" width="470" height="14" rx="2" fill="#9c4f2f"/><text x="843" y="112" font-size="10.5" font-weight="700" fill="#fff" text-anchor="end">61.8B</text>
+  </g>
+  <g>
+    <rect x="26" y="138" width="13" height="13" rx="3" fill="#2f6f63"/><text x="45" y="149" font-size="12.5" font-weight="700" fill="#1f1e1b">Upstream</text>
+    <a href="https://huggingface.co/datasets/bolinas-dna/genomes-v5-genome_set-animals-intervals-v1_255_128" target="_blank"><text x="356" y="150" font-size="12">🤗</text></a>
+    <text x="45" y="164" font-size="9.5" fill="#8a7d68">256 bp each side of protein-coding TSS → promoter + 5′UTR</text>
+    <rect x="380" y="139" width="132" height="14" rx="2" fill="#2f6f63"/><text x="518" y="150" font-size="10.5" font-weight="700" fill="#5b4a36">17.4B</text>
+  </g>
+  <g>
+    <rect x="26" y="176" width="13" height="13" rx="3" fill="#c0883a"/><text x="45" y="187" font-size="12.5" font-weight="700" fill="#1f1e1b">Downstream</text>
+    <a href="https://huggingface.co/datasets/bolinas-dna/genomes-v5-genome_set-animals-intervals-v15_255_128" target="_blank"><text x="356" y="188" font-size="12">🤗</text></a>
+    <text x="45" y="202" font-size="9.5" fill="#8a7d68">256 bp downstream of CDS end (3′) → 3′UTR</text>
+    <rect x="380" y="177" width="40" height="14" rx="2" fill="#c0883a"/><text x="426" y="188" font-size="10.5" font-weight="700" fill="#5b4a36">5.2B</text>
+  </g>
+
+  <text x="26" y="238" font-size="12.5" font-weight="700" fill="#3a4a4a">② Alignment projection — human anchors → conservation filter → halLiftover onto ~108 Zoonomia mammals</text>
+
+  <g>
+    <rect x="26" y="252" width="13" height="13" rx="3" fill="#6f7d3f"/><text x="45" y="263" font-size="12.5" font-weight="700" fill="#1f1e1b">Enhancer</text>
+    <a href="https://huggingface.co/datasets/bolinas-dna/zoonomia-v1-v3_ccre_non_promoter" target="_blank"><text x="356" y="264" font-size="12">🤗</text></a>
+    <text x="45" y="278" font-size="9.5" fill="#8a7d68">ENCODE cCRE V4 (SCREEN), non-promoter classes +500 bp</text>
+    <rect x="380" y="253" width="187" height="14" rx="2" fill="#6f7d3f"/><text x="573" y="264" font-size="10.5" font-weight="700" fill="#5b4a36">24.6B</text>
+  </g>
+  <g>
+    <rect x="26" y="290" width="13" height="13" rx="3" fill="#465c6e"/><text x="45" y="301" font-size="12.5" font-weight="700" fill="#1f1e1b">ncRNA</text>
+    <a href="https://huggingface.co/datasets/bolinas-dna/zoonomia-v1-v3_ncrna_exon" target="_blank"><text x="356" y="302" font-size="12">🤗</text></a>
+    <text x="45" y="316" font-size="9.5" fill="#8a7d68">Ensembl r115 non-protein-coding exons</text>
+    <rect x="380" y="291" width="30" height="14" rx="2" fill="#465c6e"/><text x="416" y="302" font-size="10.5" font-weight="700" fill="#5b4a36">3.9B</text>
+  </g>
+
+  <g font-size="9.5" fill="#a89a80" text-anchor="middle">
+    <text x="380" y="338">0</text><text x="532" y="338">20B</text><text x="684" y="338">40B</text><text x="836" y="338">60B</text>
+    <text x="608" y="356" fill="#8a7d68">dataset tokens</text>
+  </g>
+</svg>
