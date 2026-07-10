@@ -32,6 +32,7 @@ class LitVariantFinetune(L.LightningModule):
         weight_decay: float = 0.0,
         head_weight_decay: float = 0.0,
         warmup_frac: float = 0.1,
+        schedule: str = "cosine",  # "cosine" | "wsd" (warmup-stable-decay)
         pos_weight: float | None = None,
         compile_model: bool = False,
     ) -> None:
@@ -48,6 +49,7 @@ class LitVariantFinetune(L.LightningModule):
         self.weight_decay = weight_decay
         self.head_weight_decay = head_weight_decay
         self.warmup_frac = warmup_frac
+        self.schedule = schedule
         self.register_buffer(
             "pos_weight",
             torch.tensor(pos_weight) if pos_weight else None,
@@ -140,8 +142,13 @@ class LitVariantFinetune(L.LightningModule):
                 {"params": head, "lr": self.head_lr, "weight_decay": self.head_weight_decay},
             ]
         )
-        total = int(self.trainer.estimated_stepping_batches)
-        sched = get_cosine_schedule_with_warmup(
-            opt, int(self.warmup_frac * total), max(total, 1)
-        )
+        total = max(int(self.trainer.estimated_stepping_batches), 1)
+        warmup = int(self.warmup_frac * total)
+        if self.schedule == "wsd":  # warmup -> stable -> decay (last 20%)
+            from transformers import get_wsd_schedule
+
+            decay = max(1, int(0.2 * total))
+            sched = get_wsd_schedule(opt, warmup, max(0, total - warmup - decay), decay)
+        else:
+            sched = get_cosine_schedule_with_warmup(opt, warmup, total)
         return {"optimizer": opt, "lr_scheduler": {"scheduler": sched, "interval": "step"}}

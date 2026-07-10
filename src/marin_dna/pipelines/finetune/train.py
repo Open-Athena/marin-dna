@@ -37,6 +37,7 @@ class TrainConfig:
     weight_decay: float = 0.0  # on LoRA adapters ("pull toward the frozen model")
     head_weight_decay: float = 0.0
     warmup_frac: float = 0.1
+    schedule: str = "cosine"  # "cosine" | "wsd" (warmup-stable-decay)
     pos_weight: float | None = None  # None = plain BCE (10% positives)
     early_stop_patience: int = 2  # epochs without val-loss improvement -> stop (sharp overfit)
     num_workers: int = 0  # windows are in-memory tensors — 0 is optimal + fork-safe
@@ -102,7 +103,7 @@ def run_fold(
         clf, label=windows.label, chrom=windows.chrom,
         lora_lr=cfg.lora_lr, head_lr=cfg.head_lr, weight_decay=cfg.weight_decay,
         head_weight_decay=cfg.head_weight_decay, warmup_frac=cfg.warmup_frac,
-        pos_weight=cfg.pos_weight, compile_model=cfg.compile_model,
+        schedule=cfg.schedule, pos_weight=cfg.pos_weight, compile_model=cfg.compile_model,
     )
     trainer = L.Trainer(
         max_epochs=cfg.max_epochs,

@@ -44,6 +44,7 @@ def main() -> None:
     ap.add_argument("--model", default="255M")
     ap.add_argument("--subsets", default="missense_variant", help="comma list or 'all'")
     ap.add_argument("--train-fracs", default="1.0")
+    ap.add_argument("--pooled", action="store_true", help="ONE probe on all subsets, eval per-subset")
     ap.add_argument("--out", default="s3://oa-bolinas/analysis/issue369/probe_grid")
     args = ap.parse_args()
 
@@ -51,6 +52,33 @@ def main() -> None:
     df = pl.read_parquet(path).to_pandas()
     subs = sorted(df["subset"].unique()) if args.subsets == "all" else args.subsets.split(",")
     fracs = [float(x) for x in args.train_fracs.split(",")]
+
+    if args.pooled:  # ONE probe trained on all subsets pooled, evaluated per subset
+        keep = [s for s in df["subset"].unique() if len(df[df["subset"] == s]) >= 100]
+        pool = df[df["subset"].isin(keep)].reset_index(drop=True)
+        feat = pair_feature_from_bundle(pool, "concat_ref_delta")
+        label = pool["label"].to_numpy().astype(int)
+        chrom = pool["chrom"].astype(str).to_numpy()
+        ss = pool["subset"].astype(str).to_numpy()
+        chr1 = chrom == "1"
+        tr_all = np.where(~chr1)[0]
+        prows = []
+        for f in fracs:
+            tr = _subsample(tr_all, label, f)
+            gs = _inner_c_search(DEFAULT_C_GRID, 5, N_JOBS)
+            gs.fit(feat[tr], label[tr], groups=chrom[tr])
+            oof = gs.predict_proba(feat[chr1])[:, 1]
+            lab1, ss1, ch1 = label[chr1], ss[chr1], chrom[chr1]
+            for s in sorted(set(ss1.tolist())):
+                m = ss1 == s
+                if m.sum() >= 30 and 0 < lab1[m].sum() < m.sum():
+                    ap = float(per_chrom_weighted_ap(lab1[m], oof[m], ch1[m]))
+                    prows.append({"model": args.model, "subset": s, "train_frac": f,
+                                  "probe_pooled_chr1": round(ap, 3), "n_train": int(len(tr))})
+                    print(f"[probe-pooled] {args.model} {s} tf={f}: {ap:.3f}", flush=True)
+        pl.DataFrame(prows).write_parquet(f"{args.out}/{args.model}_pooled.parquet")
+        print(f"[probe] saved pooled -> {args.out}/{args.model}_pooled.parquet", flush=True)
+        return
 
     rows = []
     for s in subs:

@@ -57,6 +57,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--eval-batch-size", type=int, default=64)  # combined eval = 4x this
     p.add_argument("--patience", type=int, default=2)
     p.add_argument("--pos-weight", type=float, default=0.0, help="0 = plain BCE")
+    p.add_argument("--schedule", default="cosine", choices=["cosine", "wsd"])
     p.add_argument("--num-workers", type=int, default=0)
     p.add_argument("--accum", type=int, default=1, help="grad accumulation (hold eff. batch const)")
     p.add_argument("--compile", action="store_true")
@@ -118,7 +119,7 @@ def main() -> None:
         weight_decay=args.weight_decay, early_stop_patience=args.patience,
         pos_weight=args.pos_weight or None, num_workers=args.num_workers,
         compile_model=args.compile, accumulate_grad_batches=args.accum,
-        train_frac=args.train_frac,
+        train_frac=args.train_frac, schedule=args.schedule,
     )
     seeds = tuple(int(s) for s in args.seeds.split(","))
     meta = {"model": args.model, "mode": args.mode, "subset": args.subset,
@@ -126,9 +127,9 @@ def main() -> None:
             "top_k_layers": args.top_k_layers, "lora_lr": args.lora_lr,
             "weight_decay": args.weight_decay, "dropout": args.dropout,
             "batch_size": args.batch_size, "max_epochs": args.max_epochs,
-            "train_frac": args.train_frac}
+            "train_frac": args.train_frac, "schedule": args.schedule}
     group = (f"{args.model}-r{args.rank}-{args.target}-tk{args.top_k_layers}"
-             f"-lr{args.lora_lr:g}-wd{args.weight_decay:g}-tf{args.train_frac:g}")
+             f"-lr{args.lora_lr:g}-wd{args.weight_decay:g}-tf{args.train_frac:g}-{args.schedule}")
 
     make_logger = None
     if not args.no_wandb:

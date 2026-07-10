@@ -28,6 +28,6 @@ run: |
     set -euxo pipefail
     export PATH="$HOME/.local/bin:$PATH"
     P=".venv/bin/python scripts/issue369/probe_grid.py"
-    $P --model 255M --subsets missense_variant --train-fracs 0.0625,0.125,0.25,0.5,1.0
-    $P --model 255M --subsets all --train-fracs 1.0
-    $P --model 476M --subsets all --train-fracs 1.0
+    # completes the 2x2: ONE probe trained on all subsets pooled, evaluated per subset
+    $P --model 255M --subsets all --pooled --train-fracs 1.0
+    $P --model 476M --subsets all --pooled --train-fracs 1.0
