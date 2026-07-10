@@ -31,7 +31,7 @@ class TrainConfig:
 
     max_epochs: int = 30
     batch_size: int = 32
-    eval_batch_size: int = 256  # inference has no grad/activations — batch big
+    eval_batch_size: int = 64  # NB combined eval forward = 4x this; 256 OOMs 255M on A10G
     lora_lr: float = 1e-4
     head_lr: float = 1e-3
     weight_decay: float = 0.0  # on LoRA adapters ("pull toward the frozen model")
