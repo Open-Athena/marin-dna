@@ -76,7 +76,38 @@ def fig_datascaling() -> None:
     plt.close(fig)
 
 
+# --- Fig 3: pooled-all-subsets FT vs per-subset probe (255M, chr1) ----------------
+POOLED = {  # subset -> (pooled-all FT, per-subset probe)
+    "synonymous": (0.384, 0.697), "splicing": (0.457, 0.531),
+    "missense": (0.447, 0.523), "tss-prox": (0.155, 0.255),
+    "distal": (0.500, 0.480), "ncRNA-exon": (0.196, 0.150),
+    "5'UTR": (0.278, 0.187), "3'UTR": (0.265, 0.125),
+}
+
+
+def fig_pooled() -> None:
+    items = sorted(POOLED.items(), key=lambda kv: kv[1][0] - kv[1][1])
+    labels, ft = [k for k, _ in items], [v[0] for _, v in items]
+    pr = [v[1] for _, v in items]
+    y = list(range(len(items)))
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for i, (f, p) in enumerate(zip(ft, pr)):
+        ax.plot([p, f], [i, i], color=C["ft"] if f > p else C["probe"], lw=3, zorder=1)
+    ax.scatter(pr, y, color=C["probe"], s=95, label="per-subset probe", zorder=2)
+    ax.scatter(ft, y, color=C["ft"], s=95, label="pooled-all FT", zorder=2)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.set_xlabel("chr1 AUPRC (255M)")
+    ax.set_title("Pooled-all FT vs per-subset probe (255M)")
+    ax.legend(frameon=False, loc="lower right", fontsize=13)
+    fig.tight_layout()
+    for ext in ("svg", "png"):
+        fig.savefig(OUT / f"pooled_persubset_255M.{ext}", dpi=140)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig_scale()
     fig_datascaling()
+    fig_pooled()
     print(f"wrote figures to {OUT}/")
