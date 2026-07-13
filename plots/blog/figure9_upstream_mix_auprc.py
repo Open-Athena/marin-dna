@@ -1,5 +1,5 @@
 """Figure 9 — continued-pretraining mixture shift: macro-avg VEP AUPRC vs upstream
-proportion, across the four metric-worlds.
+proportion, across the two Mendelian metric worlds.
 
 Redo of the blog's Figure 9 on the offline evals_v2 eval. Seven
 ``uniform_to_upstream_*`` continuations (all warm-started from the 1·L uniform run)
@@ -9,9 +9,11 @@ upstream proportion of its mix, with the uniform run's score as a dotted referen
 The ⅓-mix continuations (``uniform_to_upstream_3.7`` / ``3.6.2``) are omitted — they
 just repeat the uniform mixture (matching Eric's ``UPSTREAM_SWEEP``).
 
-One parallel figure per world (M·LLR / M·Probe / S·LLR / S·Probe); the SGE worlds
-plot the SGE across-gene macro instead of the Mendelian one. Renders whatever worlds
-are scored (skips a world gracefully if its finals aren't on S3 yet).
+One parallel figure per Mendelian world (M·LLR / M·Probe). The macro is the
+unweighted mean over the six consequence subsets shown in Figure 5, not the
+benchmark-wide ``_macro_avg_`` (which also includes distal and non-coding exon).
+Renders whatever worlds are scored (skips a world gracefully if its finals aren't
+on S3 yet).
 
 Run:  uv run python -m plots.blog.figure9_upstream_mix_auprc
 Out:  plots/output/blog/figure9_upstream_mix_auprc__{world.key}.{svg,png,pdf}
@@ -22,11 +24,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
-from marin_dna.pipelines.evals.metrics import MACRO_AVG_SUBSET
 from plots.blog import _mixture as mx
 from plots.blog import _mixture_lineage as ml
+from plots.blog._regions import VARIANT_REGION
 from plots.blog._style.figure_style import (
     FIGURE_WIDTH,
     LARGEST_MODEL_COLOR,
@@ -50,23 +51,42 @@ UPSTREAM_SWEEP: tuple[str, ...] = (
 )
 BASELINE = "uniform"
 
+# Match Figure 5 exactly: the six variant types relevant to the CDS / upstream /
+# downstream mixture model. Keep this explicit so the plotted estimand is obvious.
+MENDELIAN_MACRO_SUBSETS: tuple[str, ...] = (
+    "missense_variant",
+    "synonymous_variant",
+    "splicing",
+    "tss_proximal",
+    "5_prime_UTR_variant",
+    "3_prime_UTR_variant",
+)
+assert set(MENDELIAN_MACRO_SUBSETS) == set(VARIANT_REGION), (
+    "Figure 9 macro subsets must match the Figure 5 variant panels"
+)
+
 
 def _macro_auprc(world, mix: str) -> float | None:
-    """A run's macro-average AUPRC in one world, from its FINAL HF checkpoint.
+    """Mean Figure-5-subset AUPRC at a run's final HF checkpoint.
 
-    Prefers the pipeline's ``_macro_avg_`` row (present in both the Mendelian and SGE
-    metrics/probe outputs); falls back to the mean over the world's trajectory
-    subsets. Returns ``None`` if the checkpoint isn't scored in this world yet."""
+    Returns ``None`` if the checkpoint is not scored yet. A present checkpoint must
+    contain exactly one finite value for every required subset; fail loudly instead
+    of silently changing the macro's estimand.
+    """
     try:
         df = world.read(mx.final_name(mix)).to_pandas()
     except (LookupError, FileNotFoundError, OSError):
         return None
-    macro = df[df["subset"] == MACRO_AVG_SUBSET]["value"]
-    if len(macro) and pd.notna(macro.iloc[0]):
-        return float(macro.iloc[0])
-    subsets = [s for s, _, _ in world.traits]
-    vals = df[df["subset"].isin(subsets)]["value"].dropna()
-    return float(vals.mean()) if len(vals) else None
+    rows = df[df["subset"].isin(MENDELIAN_MACRO_SUBSETS)]
+    assert len(rows) == len(MENDELIAN_MACRO_SUBSETS), (
+        f"{mix}: expected exactly one row for each Figure 9 macro subset; "
+        f"got {rows['subset'].value_counts().to_dict()}"
+    )
+    assert set(rows["subset"]) == set(MENDELIAN_MACRO_SUBSETS), (
+        f"{mix}: missing Figure 9 macro subsets; got {sorted(rows['subset'])}"
+    )
+    assert rows["value"].notna().all(), f"{mix}: Figure 9 macro contains null AUPRC"
+    return float(rows["value"].mean())
 
 
 def build(world) -> None:
@@ -118,7 +138,7 @@ def build(world) -> None:
 
 
 def build_all() -> None:
-    for key in ("mendelian_llr", "mendelian_probe", "sge_llr", "sge_probe"):
+    for key in ("mendelian_llr", "mendelian_probe"):
         build(WORLDS[key])
 
 

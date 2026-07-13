@@ -11,12 +11,53 @@ from __future__ import annotations
 
 import math
 
+import polars as pl
 import pytest
 
 from plots.blog import _mixture as mx
 from plots.blog import _mixture_lineage as ml
+from plots.blog import figure9_upstream_mix_auprc as fig9
 
 LEAVES = ("exp135-zoonomia-m5.1", "exp135-zoonomia-m1.3", "exp135-zoonomia-m3.3")
+
+
+class _Figure9World:
+    def __init__(self, rows: list[tuple[str, float]]) -> None:
+        self.rows = rows
+
+    def read(self, model_id: str) -> pl.DataFrame:
+        assert model_id == mx.final_name("uniform")
+        return pl.DataFrame(
+            {
+                "subset": [subset for subset, _ in self.rows],
+                "value": [value for _, value in self.rows],
+            }
+        )
+
+
+def test_figure9_macro_uses_only_six_figure5_subsets() -> None:
+    rows = list(zip(fig9.MENDELIAN_MACRO_SUBSETS, map(float, range(1, 7)), strict=True))
+    rows += [
+        ("distal", 100.0),
+        ("non_coding_transcript_exon_variant", 200.0),
+        ("_macro_avg_", 300.0),
+    ]
+    assert fig9._macro_auprc(_Figure9World(rows), "uniform") == pytest.approx(3.5)
+
+
+def test_figure9_macro_fails_if_a_required_subset_is_missing() -> None:
+    rows = list(
+        zip(fig9.MENDELIAN_MACRO_SUBSETS[:-1], map(float, range(1, 6)), strict=True)
+    )
+    with pytest.raises(AssertionError, match="expected exactly one row"):
+        fig9._macro_auprc(_Figure9World(rows), "uniform")
+
+
+def test_figure9_builds_only_mendelian_worlds(monkeypatch: pytest.MonkeyPatch) -> None:
+    built: list[str] = []
+    monkeypatch.setattr(fig9, "build", lambda world: built.append(world.key))
+    fig9.build_all()
+    assert built == ["mendelian_llr", "mendelian_probe"]
 
 
 def _all_scored(mixv: str, step: int) -> dict[str, float]:
