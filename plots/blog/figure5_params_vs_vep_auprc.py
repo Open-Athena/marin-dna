@@ -16,25 +16,17 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from plots.blog._regions import REGION_COLORS, VARIANT_REGION, region_legend_handles
+from plots.blog._regions import (
+    MENDELIAN_VARIANT_ORDER,
+    REGION_COLORS,
+    VARIANT_REGION,
+    region_legend_handles,
+)
 from plots.blog._scaling import VEP_PANELS, ladder_llr_table, ladder_probe_table
 from plots.blog._style.figure_style import FIGURE_WIDTH, X_LABEL_PAD, figsize
 from plots.blog._style.savefig import save_figure
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
-
-# One panel per variant type (2×3), ordered so training-region mates sit adjacent:
-# the top row probes CDS (missense / synonymous / splicing), the bottom row the
-# regulatory regions (promoter / 5' UTR / 3' UTR). Each panel is colored by its
-# variant's training region (``VARIANT_REGION`` → ``REGION_COLORS``).
-FIGURE5_ORDER: tuple[str, ...] = (
-    "missense_variant",
-    "synonymous_variant",
-    "splicing",
-    "tss_proximal",
-    "5_prime_UTR_variant",
-    "3_prime_UTR_variant",
-)
 
 
 def build(world: str, data, metric_label: str) -> None:
@@ -42,7 +34,7 @@ def build(world: str, data, metric_label: str) -> None:
     label_for = {s: lbl[:1].upper() + lbl[1:] for s, lbl in VEP_PANELS}
 
     fig, axes = plt.subplots(2, 3, figsize=figsize(FIGURE_WIDTH, 7.2), sharex=True)
-    for ax, subset in zip(axes.flat, FIGURE5_ORDER, strict=True):
+    for ax, subset in zip(axes.flat, MENDELIAN_VARIANT_ORDER, strict=True):
         color = REGION_COLORS[VARIANT_REGION[subset]]
         d = data[data["subset"] == subset].sort_values("params")
         # Capless ±1 SE bars (drawn only where `se` is finite).
@@ -71,7 +63,9 @@ def build(world: str, data, metric_label: str) -> None:
         ax.set_xlabel("model params", labelpad=X_LABEL_PAD)
 
     # Shared key: panel color encodes the variant's training-region dataset.
-    regions_used = list(dict.fromkeys(VARIANT_REGION[s] for s in FIGURE5_ORDER))
+    regions_used = list(
+        dict.fromkeys(VARIANT_REGION[s] for s in MENDELIAN_VARIANT_ORDER)
+    )
     handles, labels = region_legend_handles(regions_used)
     fig.legend(
         handles,

@@ -42,6 +42,20 @@ VARIANT_REGION: dict[str, str] = {
     "3_prime_UTR_variant": "downstream",
 }
 
+# Shared panel orders for Figs 5–6. Mendelian groups the CDS-relevant variants on
+# the first row and regulatory variants on the second; SGE has only its two
+# assayed consequences. Keeping these here makes the two figures' ordering an
+# explicit invariant rather than two recipes that can silently drift apart.
+MENDELIAN_VARIANT_ORDER: tuple[str, ...] = (
+    "missense_variant",
+    "synonymous_variant",
+    "splicing",
+    "tss_proximal",
+    "5_prime_UTR_variant",
+    "3_prime_UTR_variant",
+)
+SGE_VARIANT_ORDER: tuple[str, ...] = ("missense_variant", "splicing")
+
 
 def region_legend_handles(regions: list[str]) -> tuple[list[Line2D], list[str]]:
     """Proxy line artists (colored by region) for a `relevant training region` key.

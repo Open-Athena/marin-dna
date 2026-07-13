@@ -224,8 +224,9 @@ def _sge_parquet(
 
     return pl.DataFrame(
         [
-            row("missense_variant", "urn:1", 0.30, 1, 300),  # per-gene → ignored
-            row("missense_variant", MACRO_AVG_SUBSET, 0.33, 8, 3000),  # macro → kept
+            row("missense_variant", "urn:1", 0.30, 1000, 300),
+            row("splicing", "urn:2", 0.40, 400, 40),
+            row("missense_variant", MACRO_AVG_SUBSET, 0.33, 8, 3000),
             row("splicing", MACRO_AVG_SUBSET, 0.46, 6, 500),
             row(MACRO_AVG_SUBSET, MACRO_AVG_SUBSET, 0.37, 8, 3500),
         ]
@@ -242,7 +243,15 @@ def test_read_sge_metrics_takes_across_gene_macro(monkeypatch: pytest.MonkeyPatc
     _patch_read(monkeypatch, {path: both})
     df = blog_metrics.read_sge_metrics("m1", score_type="minus_llr_avg")
 
-    assert df.columns == ["model_id", "subset", "value", "se", "n", "n_positives"]
+    assert df.columns == [
+        "model_id",
+        "subset",
+        "value",
+        "se",
+        "n",
+        "n_positives",
+        "n_variants",
+    ]
     assert set(df["subset"].to_list()) == {
         "missense_variant",
         "splicing",
@@ -252,6 +261,10 @@ def test_read_sge_metrics_takes_across_gene_macro(monkeypatch: pytest.MonkeyPatc
     assert (
         mis["value"][0] == 0.33 and mis["n_positives"][0] == 3000
     )  # macro row, not per-gene
+    assert mis["n"][0] == 8  # qualifying accessions averaged
+    assert mis["n_variants"][0] == 1000  # variants in qualifying leaf cells
+    spl = df.filter(pl.col("subset") == "splicing")
+    assert spl["n"][0] == 6 and spl["n_variants"][0] == 400
 
 
 def test_read_sge_metrics_probe_kind_path(monkeypatch: pytest.MonkeyPatch):

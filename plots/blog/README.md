@@ -29,3 +29,6 @@ Outputs land in gitignored `plots/output/blog/` as `<name>.{svg,png,pdf}` — th
 
 If S3 reads fail for lack of credentials, set `BOLINAS_S3_ANON=1` to read the
 public bucket prefix anonymously.
+
+Fig 6 uses the validation loss for the training-data region mapped to each
+variant type (CDS / Upstream / Downstream), not the global validation loss.

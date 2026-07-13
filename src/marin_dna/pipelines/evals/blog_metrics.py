@@ -160,21 +160,37 @@ def read_sge_metrics(
     world: ``"metrics"`` (S·LLR, ``score_type="minus_llr_avg"``) or ``"probe_metrics"``
     (S·Probe, ``score_type="probe_score"``). SGE assays only coding/splice, so the
     subsets are ``missense_variant`` / ``splicing`` / ``both`` / ``_macro_avg_``.
-    Returns the same tidy schema as the other readers.
+    Returns the same tidy schema as the other readers plus ``n_variants``: the
+    total number of variant rows in the qualifying accession-level cells that
+    contribute to each across-accession macro. The existing ``n`` remains the
+    number of accession groups averaged.
     """
     path = f"{_RESULTS}/{kind}/{model_id}/sge.parquet"
     df = _read_parquet(path).filter(
-        (pl.col("score_type") == score_type)
-        & (pl.col("metric") == "AUPRC")
-        & (pl.col("accession") == MACRO_AVG_SUBSET)
+        (pl.col("score_type") == score_type) & (pl.col("metric") == "AUPRC")
     )
     if "split" in df.columns:
         df = df.filter(pl.col("split") == split)
     if df.height == 0:
+        raise LookupError(f"no SGE {score_type!r} rows for {model_id!r} in {path}")
+
+    variant_counts = (
+        df.filter(
+            (pl.col("accession") != MACRO_AVG_SUBSET)
+            & (pl.col("subset") != MACRO_AVG_SUBSET)
+            & pl.col("value").is_finite()
+        )
+        .group_by("subset")
+        .agg(pl.col("n").sum().alias("n_variants"))
+    )
+    out = df.filter(pl.col("accession") == MACRO_AVG_SUBSET).join(
+        variant_counts, on="subset", how="left", validate="1:1"
+    )
+    if out.height == 0:
         raise LookupError(
             f"no SGE {score_type!r} across-gene-macro rows for {model_id!r} in {path}"
         )
-    return df.with_columns(
+    return out.with_columns(
         pl.col("n_pos").alias("n_positives"),
         pl.lit(model_id).alias("model_id"),
-    ).select(_TIDY_COLUMNS)
+    ).select(*_TIDY_COLUMNS, "n_variants")
