@@ -1,5 +1,5 @@
-"""Figure 10 — composed VEP AUPRC trajectories across continuation lineages, across
-the four metric-worlds.
+"""Figure 10 — composed Mendelian VEP AUPRC trajectories across continuation
+lineages.
 
 Redo of the blog's Figure 10 on the offline evals_v2 eval. Three model lineages,
 each warm-started in sequence, are *composed* into a single trajectory over
@@ -18,8 +18,10 @@ after truncation ~9 land on-path per lineage) versus W&B's dense in-training eva
 so these trajectories are sparser and lean harder on the smoother. Raw points are
 drawn prominently for honesty.
 
-One parallel figure per world; the SGE worlds show the coding/splice panels only.
-Renders whatever worlds are scored (skips a world if its leaf has no evals yet).
+One parallel figure per Mendelian scoring method. SGE is intentionally excluded:
+this section optimizes the macro average across all Mendelian variant types, whereas
+SGE assays only missense and splicing. Renders whichever Mendelian worlds are scored
+(skips a world if its leaf has no evals yet).
 
 Run:  uv run python -m plots.blog.figure10_lineage_vep_trajectory
 Out:  plots/output/blog/figure10_lineage_vep_trajectory__{world.key}.{svg,png,pdf}
@@ -50,21 +52,17 @@ LINEAGES: tuple[tuple[str, str], ...] = (
 )
 LINEAGE_COLORS = {leaf: EARTH_QUAL[i] for i, (leaf, _) in enumerate(LINEAGES)}
 
-# Per-subset panels by world family (macro is prepended). Mendelian mirrors Eric's
-# 8; SGE assays only coding/splice.
+# Mendelian variant panels in the Figure 6 order, followed by the two additional
+# Figure 10 subsets. The macro-average panel is prepended in ``build``.
 MENDELIAN_PANELS: tuple[tuple[str, str], ...] = (
     ("missense_variant", "missense"),
+    ("synonymous_variant", "synonymous"),
+    ("splicing", "splicing"),
     ("tss_proximal", "promoter"),
     ("5_prime_UTR_variant", "5' UTR"),
     ("3_prime_UTR_variant", "3' UTR"),
-    ("splicing", "splicing"),
-    ("synonymous_variant", "synonymous"),
     ("distal", "distal"),
-    ("non_coding_transcript_exon_variant", "non-coding exon"),
-)
-SGE_PANELS: tuple[tuple[str, str], ...] = (
-    ("missense_variant", "missense"),
-    ("splicing", "splicing"),
+    ("non_coding_transcript_exon_variant", "ncRNA"),
 )
 
 MACRO_ACCENT = "#5e3418"
@@ -178,7 +176,8 @@ def _attach_legend(fig) -> None:
 
 def build(world) -> None:
     read = _reader(world)
-    panels = MENDELIAN_PANELS if world.key.startswith("mendelian") else SGE_PANELS
+    assert world.key.startswith("mendelian"), f"Figure 10 excludes {world.key}"
+    panels = MENDELIAN_PANELS
     all_subsets = tuple(s for s, _ in panels)
 
     # Guard: consistency check (crashes on a mis-stitched lineage) + skip an unscored
@@ -195,14 +194,14 @@ def build(world) -> None:
         return
     token_cutoff = float(np.max(m5_tokens))
 
-    # Panel grid: macro + per-subset. Mendelian → 3×3; SGE → 1×3.
+    # Panel grid: macro + eight per-subset panels → 3×3.
     grid_panels: list[tuple[tuple[str, ...], str, bool]] = [
         (all_subsets, "macro average", True)
     ]
     grid_panels += [((s,), title, False) for s, title in panels]
     n = len(grid_panels)
-    nrows, ncols = (3, 3) if n > 4 else (1, n)
-    height = 9.6 if nrows == 3 else 4.2
+    nrows, ncols = 3, 3
+    height = 9.6
     fig, axes = plt.subplots(
         nrows, ncols, sharex=True, figsize=figsize(FIGURE_WIDTH, height)
     )
@@ -241,7 +240,7 @@ def build(world) -> None:
                 fontsize=8.5,
                 labelpad=4,
             )
-    # Turn off any unused axes (SGE 1×3 fills exactly; mendelian 3×3 fills 9).
+    # Defensive in case the panel set changes without the grid being updated.
     for ax in axes_flat[n:]:
         ax.set_visible(False)
 
@@ -266,7 +265,7 @@ def build(world) -> None:
 
 
 def build_all() -> None:
-    for key in ("mendelian_llr", "mendelian_probe", "sge_llr", "sge_probe"):
+    for key in ("mendelian_llr", "mendelian_probe"):
         build(WORLDS[key])
 
 

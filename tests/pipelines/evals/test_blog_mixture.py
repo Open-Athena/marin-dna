@@ -17,6 +17,7 @@ import pytest
 from plots.blog import _mixture as mx
 from plots.blog import _mixture_lineage as ml
 from plots.blog import figure9_upstream_mix_auprc as fig9
+from plots.blog import figure10_lineage_vep_trajectory as fig10
 
 LEAVES = ("exp135-zoonomia-m5.1", "exp135-zoonomia-m1.3", "exp135-zoonomia-m3.3")
 
@@ -57,6 +58,26 @@ def test_figure9_builds_only_mendelian_worlds(monkeypatch: pytest.MonkeyPatch) -
     built: list[str] = []
     monkeypatch.setattr(fig9, "build", lambda world: built.append(world.key))
     fig9.build_all()
+    assert built == ["mendelian_llr", "mendelian_probe"]
+
+
+def test_figure10_panel_order_matches_figure6_then_adds_distal_and_ncrna() -> None:
+    assert tuple(subset for subset, _ in fig10.MENDELIAN_PANELS) == (
+        "missense_variant",
+        "synonymous_variant",
+        "splicing",
+        "tss_proximal",
+        "5_prime_UTR_variant",
+        "3_prime_UTR_variant",
+        "distal",
+        "non_coding_transcript_exon_variant",
+    )
+
+
+def test_figure10_builds_only_mendelian_worlds(monkeypatch: pytest.MonkeyPatch) -> None:
+    built: list[str] = []
+    monkeypatch.setattr(fig10, "build", lambda world: built.append(world.key))
+    fig10.build_all()
     assert built == ["mendelian_llr", "mendelian_probe"]
 
 
