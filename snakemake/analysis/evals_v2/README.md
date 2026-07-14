@@ -346,6 +346,23 @@ Cluster name = `evals-v2-{model}` derived from the target's parent dir,
 so you can't pass `mendelian_traits` and `complex_traits` for the *same*
 model in one invocation — split into two batches.
 
+#### Figure 8 complete-ladder sweep (#365)
+
+Figure 8 uses the seven saved checkpoints common to all eight scaling-ladder
+sizes: `160000, 170000, 180000, 190000, 200000, 210000, 215573`. The five sizes
+that were previously endpoint-only (46M, 76M, 255M, 476M, 2B) are registered at
+the six non-final steps for both `mendelian_traits` and `sge`. With
+`inference.return_embeddings: true`, each GPU scoring target produces the LLR
+scores and pooled embeddings needed by the corresponding probe target.
+
+Dry-run the explicit `results/metrics/<model>/<dataset>.parquet` target list
+before launching. Run one dataset per `parallel_sweep.sh` invocation because
+the helper derives cluster names from `<model>`, and split bursts into at most
+20 targets to stay below the usual us-east-2 capacity cliff. After the metric
+targets finish, build the matching
+`results/probe_metrics/<model>/<dataset>.parquet` cells with `sky/probe.yaml`
+and `--rerun-triggers mtime`; use a 128 GB memory override for the 2B probes.
+
 Two unavoidable AWS-side failure modes worth knowing about:
 
 - **`VcpuLimitExceeded`**: bursting more g5.xlarge in one invocation than

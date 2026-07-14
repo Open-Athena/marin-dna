@@ -785,6 +785,142 @@ models:
     batch_size: 16  # blog #364: big model + embeddings OOMs A10G at 64
     datasets: [mendelian_traits, complex_traits, sge]
 
+  # Figure 8 refresh (#365): complete the seven-step shared window across all
+  # eight scaling-ladder sizes. These five sizes were endpoint-only; the six
+  # intermediate steps below plus step-215573 make the common 160k–215573 grid.
+  # Each cell covers Mendelian + SGE with embeddings for LLR and probe worlds.
+  - name: scaling-v0.5-h640-p46M-step-160000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-160000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h640-p46M-step-170000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-170000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h640-p46M-step-180000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-180000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h640-p46M-step-190000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-190000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h640-p46M-step-200000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-200000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h640-p46M-step-210000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-210000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
+  - name: scaling-v0.5-h768-p76M-step-160000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-160000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h768-p76M-step-170000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-170000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h768-p76M-step-180000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-180000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h768-p76M-step-190000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-190000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h768-p76M-step-200000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-200000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h768-p76M-step-210000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-210000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
+  - name: scaling-v0.5-h1152-p255M-step-160000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-160000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1152-p255M-step-170000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-170000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1152-p255M-step-180000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-180000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1152-p255M-step-190000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-190000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1152-p255M-step-200000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-200000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1152-p255M-step-210000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-210000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
+  - name: scaling-v0.5-h1408-p476M-step-160000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-160000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1408-p476M-step-170000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-170000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1408-p476M-step-180000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-180000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1408-p476M-step-190000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-190000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1408-p476M-step-200000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-200000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h1408-p476M-step-210000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-210000
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
+  - name: scaling-v0.5-h2432-p2B-step-160000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-160000
+    window_size: 255
+    batch_size: 16  # 2B + embeddings: match the proven large-model setting
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h2432-p2B-step-170000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-170000
+    window_size: 255
+    batch_size: 16  # 2B + embeddings: match the proven large-model setting
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h2432-p2B-step-180000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-180000
+    window_size: 255
+    batch_size: 16  # 2B + embeddings: match the proven large-model setting
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h2432-p2B-step-190000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-190000
+    window_size: 255
+    batch_size: 16  # 2B + embeddings: match the proven large-model setting
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h2432-p2B-step-200000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-200000
+    window_size: 255
+    batch_size: 16  # 2B + embeddings: match the proven large-model setting
+    datasets: [mendelian_traits, sge]
+  - name: scaling-v0.5-h2432-p2B-step-210000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-210000
+    window_size: 255
+    batch_size: 16  # 2B + embeddings: match the proven large-model setting
+    datasets: [mendelian_traits, sge]
+
+
   # Blog Figs 7/8 (#364, branch-only): 1B scaling-ladder training-curve
   # intermediates, mendelian_traits only. Results land at
   # results/metrics/<name>/mendelian_traits.parquet — read by blog_metrics.
