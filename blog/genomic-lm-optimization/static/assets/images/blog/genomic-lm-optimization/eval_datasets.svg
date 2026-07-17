@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 650" role="img" aria-labelledby="t d" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="t">Variant-effect evaluation datasets — Mendelian and saturation genome editing</title>
+  <desc id="d">Side-by-side overview of the Mendelian TraitGym-inspired benchmark and the MaveDB saturation-genome-editing benchmark. Mendelian pathogenic variants are matched one to nine to gnomAD common controls; saturation genome editing variants are experimentally measured and calibrated as abnormal or normal without matching. Counts are shown for every consequence subset.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a7d68"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="1118" height="648" rx="14" fill="#f6f0e4" stroke="#ddd3bf"/>
+  <text x="26" y="36" font-size="18" font-weight="700" fill="#1f1e1b">Two views of variant effect — clinical evidence and experimental function</text>
+  <text x="26" y="56" font-size="11.5" fill="#7a6f5f">GRCh38 SNVs  ·  HIGH-impact consequences excluded  ·  counts include train + test  ·  odd chromosomes + X → train/val; even + Y → test</text>
+
+  <!-- Mendelian panel -->
+  <rect x="22" y="76" width="528" height="515" rx="12" fill="#fffaf0" stroke="#d9cbb1"/>
+  <rect x="22" y="76" width="528" height="44" rx="12" fill="#eadcc2"/>
+  <rect x="22" y="108" width="528" height="12" fill="#eadcc2"/>
+  <text x="42" y="101" font-size="16" font-weight="700" fill="#1f1e1b">Mendelian disease</text>
+  <text x="530" y="101" font-size="11" fill="#7a6f5f" text-anchor="end">TraitGym-inspired</text>
+
+  <text x="42" y="143" font-size="11" font-weight="700" letter-spacing="0.8" fill="#8a7d68">DEFINE THE CLASSES</text>
+  <rect x="42" y="154" width="488" height="76" rx="8" fill="#f6f0e4" stroke="#e6dcc6"/>
+  <circle cx="59" cy="176" r="5" fill="#9c4f2f"/>
+  <text x="72" y="180" font-size="11.5" font-weight="700" fill="#1f1e1b">Pathogenic</text>
+  <text x="151" y="180" font-size="10.5" fill="#5f574b">OMIM + Smedley et al. 2016 + HGMD · AF &lt; 0.1%</text>
+  <circle cx="59" cy="205" r="5" fill="#9c4f2f" fill-opacity="0.22" stroke="#9c4f2f"/>
+  <text x="72" y="209" font-size="11.5" font-weight="700" fill="#1f1e1b">Control</text>
+  <text x="128" y="209" font-size="10.5" fill="#5f574b">gnomAD common SNVs · AF &gt; 0.1%</text>
+
+  <line x1="286" y1="234" x2="286" y2="248" stroke="#8a7d68" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="42" y="251" width="488" height="62" rx="8" fill="#f1eadb" stroke="#d9cbb1"/>
+  <text x="58" y="274" font-size="11.5" font-weight="700" fill="#1f1e1b">1 pathogenic + 9 controls</text>
+  <text x="58" y="294" font-size="10.5" fill="#5f574b">Matched on chromosome · consequence · TSS distance · exon distance</text>
+
+  <text x="42" y="340" font-size="11" font-weight="700" letter-spacing="0.8" fill="#8a7d68">SUBSET COUNTS</text>
+  <text x="514" y="340" font-size="9.5" fill="#8a7d68" text-anchor="end">dark = pathogenic · tint = matched controls</text>
+
+  <!-- Every bar uses the same scale (120 px = 10,000 variants). -->
+  <g font-size="10.5" fill="#1f1e1b">
+    <text x="42" y="365">missense</text>
+    <rect x="173" y="353" width="12" height="14" rx="2" fill="#9c4f2f"/><rect x="185" y="353" width="108" height="14" rx="2" fill="#9c4f2f" fill-opacity="0.22"/><text x="301" y="365">10,000</text>
+    <text x="42" y="387">splicing</text>
+    <rect x="173" y="375" width="7" height="14" rx="2" fill="#9c4f2f"/><rect x="180" y="375" width="59" height="14" rx="2" fill="#9c4f2f" fill-opacity="0.22"/><text x="247" y="387">5,500</text>
+    <text x="42" y="409">5′ UTR</text>
+    <rect x="173" y="397" width="4" height="14" rx="2" fill="#2f6f63"/><rect x="177" y="397" width="33" height="14" rx="2" fill="#2f6f63" fill-opacity="0.22"/><text x="218" y="409">3,050</text>
+    <text x="42" y="431">TSS proximal</text>
+    <rect x="173" y="419" width="3" height="14" rx="2" fill="#2f6f63"/><rect x="176" y="419" width="29" height="14" rx="2" fill="#2f6f63" fill-opacity="0.22"/><text x="213" y="431">2,700</text>
+    <text x="42" y="453">ncRNA</text>
+    <rect x="173" y="441" width="2" height="14" rx="2" fill="#465c6e"/><rect x="175" y="441" width="17" height="14" rx="2" fill="#465c6e" fill-opacity="0.22"/><text x="200" y="453">1,590</text>
+    <text x="42" y="475">3′ UTR</text>
+    <rect x="173" y="463" width="2" height="14" rx="2" fill="#c0883a"/><rect x="175" y="463" width="11" height="14" rx="2" fill="#c0883a" fill-opacity="0.22"/><text x="194" y="475">1,100</text>
+    <text x="42" y="497">distal</text>
+    <rect x="173" y="485" width="2" height="14" rx="2" fill="#6f7d3f"/><rect x="175" y="485" width="10" height="14" rx="2" fill="#6f7d3f" fill-opacity="0.22"/><text x="193" y="497">990</text>
+    <text x="42" y="519">synonymous</text>
+    <rect x="173" y="507" width="2" height="14" rx="2" fill="#9c4f2f"/><rect x="175" y="507" width="6" height="14" rx="2" fill="#9c4f2f" fill-opacity="0.22"/><text x="189" y="519">650</text>
+    <text x="42" y="541">mature miRNA</text>
+    <rect x="173" y="529" width="2" height="14" rx="2" fill="#465c6e"/><text x="183" y="541">50</text>
+  </g>
+
+  <line x1="42" y1="555" x2="530" y2="555" stroke="#e6dcc6"/>
+  <text x="42" y="578" font-size="12" font-weight="700" fill="#1f1e1b">25,630 variants</text>
+  <text x="178" y="578" font-size="10.5" fill="#7a6f5f">2,563 pathogenic · 23,067 controls</text>
+  <a href="https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits" target="_blank"><text x="385" y="578" font-size="10.5" font-weight="700" fill="#2f6f63">HF</text><text x="404" y="578" font-size="10.5">🤗</text></a>
+  <a href="https://openathena.ai/marin-dna/leaderboards/mendelian" target="_blank"><text x="438" y="578" font-size="10.5" font-weight="700" fill="#2f6f63">Leaderboard</text><text x="508" y="578" font-size="10.5">🏆</text></a>
+
+  <!-- SGE panel -->
+  <rect x="570" y="76" width="528" height="515" rx="12" fill="#fffaf0" stroke="#d9cbb1"/>
+  <rect x="570" y="76" width="528" height="44" rx="12" fill="#dce6df"/>
+  <rect x="570" y="108" width="528" height="12" fill="#dce6df"/>
+  <text x="590" y="101" font-size="16" font-weight="700" fill="#1f1e1b">Saturation genome editing</text>
+  <text x="1078" y="101" font-size="11" fill="#5d7167" text-anchor="end">MaveDB · 11 studies</text>
+
+  <text x="590" y="143" font-size="11" font-weight="700" letter-spacing="0.8" fill="#8a7d68">MEASURE FUNCTION AT THE ENDOGENOUS LOCUS</text>
+  <rect x="590" y="154" width="488" height="76" rx="8" fill="#f6f0e4" stroke="#e6dcc6"/>
+  <text x="606" y="178" font-size="11.5" font-weight="700" fill="#1f1e1b">CRISPR-HDR variant library</text>
+  <text x="606" y="198" font-size="10.5" fill="#5f574b">cell fitness / proliferation → continuous function score</text>
+  <text x="606" y="216" font-size="10" fill="#8a7d68">Only missense + near-exon splicing retained</text>
+
+  <line x1="834" y1="234" x2="834" y2="248" stroke="#8a7d68" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="590" y="251" width="488" height="62" rx="8" fill="#f1eadb" stroke="#d9cbb1"/>
+  <text x="606" y="274" font-size="11.5" font-weight="700" fill="#1f1e1b">Calibrated class → abnormal vs normal</text>
+  <text x="606" y="294" font-size="10.5" fill="#5f574b">ClinGen / ExCALIBR or author thresholds  ·  intermediate + uncalibrated rows dropped</text>
+
+  <text x="590" y="340" font-size="11" font-weight="700" letter-spacing="0.8" fill="#8a7d68">SUBSET COUNTS</text>
+  <text x="1062" y="340" font-size="9.5" fill="#8a7d68" text-anchor="end">dark = abnormal · tint = normal</text>
+
+  <text x="590" y="373" font-size="11.5" font-weight="700" fill="#1f1e1b">missense</text>
+  <rect x="672" y="357" width="51" height="18" rx="3" fill="#9c4f2f"/>
+  <rect x="723" y="357" width="325" height="18" rx="3" fill="#9c4f2f" fill-opacity="0.22"/>
+  <text x="672" y="397" font-size="10.5" fill="#5f574b">31,316 total</text>
+  <text x="800" y="397" font-size="10.5" fill="#9c4f2f">4,250 abnormal</text>
+  <text x="915" y="397" font-size="10.5" fill="#7a6f5f">27,066 normal</text>
+
+  <text x="590" y="445" font-size="11.5" font-weight="700" fill="#1f1e1b">splicing</text>
+  <rect x="672" y="429" width="9" height="18" rx="3" fill="#9c4f2f"/>
+  <rect x="681" y="429" width="80" height="18" rx="3" fill="#9c4f2f" fill-opacity="0.22"/>
+  <text x="672" y="469" font-size="10.5" fill="#5f574b">7,425 total</text>
+  <text x="800" y="469" font-size="10.5" fill="#9c4f2f">735 abnormal</text>
+  <text x="915" y="469" font-size="10.5" fill="#7a6f5f">6,690 normal</text>
+
+  <rect x="590" y="493" width="488" height="49" rx="8" fill="#edf2ee" stroke="#dce6df"/>
+  <text x="606" y="514" font-size="11.5" font-weight="700" fill="#1f1e1b">No matching · no subsampling</text>
+  <text x="606" y="532" font-size="10.5" fill="#5f574b">AUPRC within each MaveDB study, then macro-average across studies</text>
+
+  <line x1="590" y1="555" x2="1078" y2="555" stroke="#e6dcc6"/>
+  <text x="590" y="578" font-size="12" font-weight="700" fill="#1f1e1b">38,741 variants</text>
+  <text x="732" y="578" font-size="10.5" fill="#7a6f5f">4,985 abnormal · 33,756 normal</text>
+  <a href="https://huggingface.co/datasets/bolinas-dna/evals_sge" target="_blank"><text x="925" y="578" font-size="10.5" font-weight="700" fill="#2f6f63">HF</text><text x="944" y="578" font-size="10.5">🤗</text></a>
+  <a href="https://openathena.ai/marin-dna/leaderboards/sge" target="_blank"><text x="970" y="578" font-size="10.5" font-weight="700" fill="#2f6f63">Leaderboard</text><text x="1050" y="578" font-size="10.5">🏆</text></a>
+
+  <!-- Training-region color key carried over from the provenance/scaling diagrams. -->
+  <text x="26" y="620" font-size="10" font-weight="700" fill="#7a6f5f">relevant training region</text>
+  <rect x="164" y="610" width="11" height="11" rx="2" fill="#9c4f2f"/><text x="181" y="620" font-size="10" fill="#5f574b">CDS</text>
+  <rect x="228" y="610" width="11" height="11" rx="2" fill="#2f6f63"/><text x="245" y="620" font-size="10" fill="#5f574b">Upstream</text>
+  <rect x="316" y="610" width="11" height="11" rx="2" fill="#c0883a"/><text x="333" y="620" font-size="10" fill="#5f574b">Downstream</text>
+  <rect x="420" y="610" width="11" height="11" rx="2" fill="#465c6e"/><text x="437" y="620" font-size="10" fill="#5f574b">ncRNA</text>
+  <rect x="491" y="610" width="11" height="11" rx="2" fill="#6f7d3f"/><text x="508" y="620" font-size="10" fill="#5f574b">Enhancer</text>
+</svg>
