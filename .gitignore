@@ -217,3 +217,7 @@ __marimo__/
 tests/fixtures/*.fai
 _scratch/
 scratch/
+
+# Issue #373 blog staging workspace outputs
+blog/genomic-lm-optimization/.preview/
+blog/genomic-lm-optimization/export/

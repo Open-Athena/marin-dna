@@ -21,6 +21,9 @@ repos:
       - id: check-added-large-files
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # Preserve the byte-identical Matplotlib SVGs imported from website PR #59.
+        exclude: >-
+          ^blog/genomic-lm-optimization/static/assets/images/blog/genomic-lm-optimization/.*\.svg$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.20
