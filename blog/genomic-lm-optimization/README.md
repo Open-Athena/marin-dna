@@ -57,8 +57,10 @@ Then open
 [http://127.0.0.1:8765/blog/genomic-lm-optimization/](http://127.0.0.1:8765/blog/genomic-lm-optimization/).
 The command clones the website at the renderer pin into an isolated temporary
 directory, overlays the canonical article/assets, runs the website's own build,
-writes the ignored local output to `.preview/`, and serves it. Stop it with
-Ctrl-C. There is intentionally no hosted preview.
+writes only the rendered gLM article and its referenced CSS/fonts/assets to the
+ignored `.preview/` directory, and serves it. Other website pages and articles
+are neither copied into `.preview/` nor available from the local server. Stop
+it with Ctrl-C. There is intentionally no hosted preview.
 
 Useful non-serving commands are:
 

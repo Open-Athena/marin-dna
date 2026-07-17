@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -24,6 +25,10 @@ MARKDOWN_IMAGE_RE = re.compile(
 )
 HTML_IMAGE_RE = re.compile(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"']", re.IGNORECASE)
 PLOTLY_RE = re.compile(r"\{\{\s*plotly:\s*([^|}\s]+)", re.IGNORECASE)
+HTML_FILE_ATTRIBUTE_RE = re.compile(
+    r"\b(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE
+)
+CSS_URL_RE = re.compile(r"""\burl\(\s*(?:["']([^"']+)["']|([^\s)'"]+))\s*\)""")
 FOOTNOTE_DEFINITION_RE = re.compile(r"(?m)^[ \t]{0,3}\[\^([^\]\s]+)\]:")
 FOOTNOTE_TOKEN_RE = re.compile(r"\[\^([^\]\s]+)\]")
 
@@ -316,21 +321,74 @@ def _run_renderer_build(config: WorkspaceConfig, renderer: Path) -> Path:
     return dist
 
 
-def _replace_generated_tree(
-    source: Path, destination: Path, workspace_root: Path
-) -> None:
-    """Replace one explicitly generated tree below the workspace root."""
+def _resolve_generated_reference(
+    reference: str, document_relative: Path
+) -> Path | None:
+    """Resolve one generated-document reference within the renderer output."""
+    parsed = urlsplit(reference)
+    if parsed.scheme or parsed.netloc or reference.startswith(("#", "data:")):
+        return None
+    decoded = unquote(parsed.path)
+    if not decoded or decoded.endswith("/"):
+        return None
+    if decoded.startswith("/"):
+        joined = decoded.removeprefix("/")
+    else:
+        joined = str(PurePosixPath(document_relative.parent.as_posix()) / decoded)
+    normalized = PurePosixPath(posixpath.normpath(joined))
+    assert not normalized.is_absolute(), reference
+    assert normalized.parts and normalized.parts[0] != "..", reference
+    return Path(*normalized.parts)
+
+
+def materialize_article_preview(
+    dist: Path, output: Path, page_relative: Path, workspace_root: Path
+) -> list[Path]:
+    """Copy only one rendered article and its transitive local file dependencies."""
     resolved_root = workspace_root.resolve()
-    resolved_destination = destination.resolve()
-    assert resolved_destination.is_relative_to(resolved_root)
-    assert resolved_destination != resolved_root
-    if destination.exists():
-        shutil.rmtree(destination)
-    shutil.copytree(source, destination)
+    resolved_output = output.resolve()
+    assert resolved_output.is_relative_to(resolved_root)
+    assert resolved_output != resolved_root
+    assert (dist / page_relative).is_file(), page_relative
+
+    pending = [page_relative]
+    selected: set[Path] = set()
+    text_suffixes = {".css", ".html", ".js", ".json", ".svg"}
+    while pending:
+        relative = pending.pop()
+        if relative in selected:
+            continue
+        source = dist / relative
+        assert source.resolve().is_relative_to(dist.resolve()), relative
+        assert source.is_file(), source
+        selected.add(relative)
+        if source.suffix.lower() not in text_suffixes:
+            continue
+        document = source.read_text(errors="strict")
+        references = HTML_FILE_ATTRIBUTE_RE.findall(document)
+        references.extend(
+            quoted or unquoted for quoted, unquoted in CSS_URL_RE.findall(document)
+        )
+        for reference in references:
+            dependency = _resolve_generated_reference(reference, relative)
+            if dependency is not None and (dist / dependency).is_file():
+                pending.append(dependency)
+
+    html_files = {path for path in selected if path.suffix.lower() == ".html"}
+    assert html_files == {page_relative}, (
+        f"single-article preview unexpectedly includes HTML: {html_files}"
+    )
+    if output.exists():
+        shutil.rmtree(output)
+    for relative in sorted(selected):
+        destination = output / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(dist / relative, destination)
+    return sorted(selected)
 
 
 def build_preview(config: WorkspaceConfig, output: Path | None = None) -> Path:
-    """Build the article with the pinned real renderer into a local output tree."""
+    """Build and retain only the article and its real-renderer dependencies."""
     validate_workspace(config)
     output = output or config.root / ".preview"
     with tempfile.TemporaryDirectory(prefix="marin-dna-blog-renderer-") as temporary:
@@ -338,7 +396,8 @@ def build_preview(config: WorkspaceConfig, output: Path | None = None) -> Path:
         clone_renderer(config, renderer)
         overlay_workspace(config, renderer)
         dist = _run_renderer_build(config, renderer)
-        _replace_generated_tree(dist, output, config.root)
+        page_relative = Path("blog") / config.slug / "index.html"
+        materialize_article_preview(dist, output, page_relative, config.root)
     return output
 
 
