@@ -56,12 +56,9 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 ### Why alignment-free gLMs?
 
-- State-of-the-art genomic sequence models often rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), or functional-genomics data, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0), resources that are available for only a subset of species.
-- On the other hand, we have unlabeled DNA sequences for a rapidly growing number of species.
-- Alignment-free or single-sequence gLMs can tap into this diversity of unlabeled genomic sequences to provide zero-shot VEP, support sequence design, or enable transfer learning.
-- For humans and other well-studied species, single-sequence gLMs are far from replacing alignment-based models or models supervised on functional-genomics data.
-- Our near-term goal is to build useful models for species where those tools do not exist.
-- Longer term, sequence-only models may learn complementary patterns or representations that remain useful even when alignments, conservation scores, and functional-genomics data are available.
+Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species. Unlabeled DNA sequence, by contrast, is available for a rapidly growing number of species. Alignment-free, or single-sequence, gLMs can learn directly from this growing collection of genomes for applications including zero-shot VEP, sequence design, and transfer learning.
+
+For humans and other well-studied species, single-sequence gLMs are still far from replacing alignment-based or functionally supervised models. Their near-term value lies elsewhere: our goal is to build useful models for species that lack high-quality whole-genome alignments and functional-genomics data. Longer term, sequence-only models may learn from sequence in ways that complement alignments, conservation scores, and functional-genomics models even in data-rich species.
 
 ### Why data curation?
 
