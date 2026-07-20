@@ -69,6 +69,18 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 - Those results motivated MarinDNA to treat dataset construction as a primary modeling lever.
 - We therefore began with clearly defined functional elements, then later asked how to balance region types, add new ones, and order their exposure during training.
 
+### Training datasets
+
+- We started our experiments with annotation-derived datasets: coding sequence, upstream sequence, and downstream sequence.
+- Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
+
+![Three annotation-derived datasets used for hyperparameter transfer and scaling](/assets/images/blog/genomic-lm-optimization/data_provenance_three_region.svg)
+
+- Later, we added alignment-projected datasets: ncRNA exons and enhancers.
+- Comparable annotations were not directly available across the target species, so these datasets required a more involved pipeline that projects human annotations through whole-genome alignments.
+
+![Two alignment-projected datasets added during the later mixture experiments](/assets/images/blog/genomic-lm-optimization/data_provenance_projected_additions.svg)
+
 ### Why GPT-style architecture?
 
 By GPT-style, we mean the dumb approach of training a stock causal, autoregressive, decoder-only language-model architecture on DNA that we pretend is text. In these experiments, that architecture is literally Qwen3 rather than a genomics-specific design. This approach is not new; a substantial line of prior gLM work has used causal language modeling with GPT- or Llama-like architectures.[^causal-glm-precedent] What is new here is the quality target. Even recent models in this family, such as Carbon, generally aim for non-inferiority to smaller Evo 2 checkpoints and still underperform Evo 2 40B on the broad zero-shot VEP setting we care about.[^carbon-eval] If the quality gap can be closed, GPT-style models have obvious advantages for deployment. They run through familiar training and inference stacks, move cleanly across hardware, and avoid model-specific kernels or bespoke architecture code, which matters a lot for cost, flexibility, and usability. E.g., the inference cost associated with the evaluations below is roughly $10 / billion tokens for our 1B model, compared with roughly $100 / billion tokens for Evo 2 40B (TODO: get real numbers).[^throughput-comparison]
