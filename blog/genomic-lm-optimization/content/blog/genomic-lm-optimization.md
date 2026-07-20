@@ -147,7 +147,34 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 ## Results
 
+### Promoter and CDS specialists
+
+- Promoter YOLO trained a modest causal Qwen3 specialist on an earlier animal-promoter dataset, using reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later.[^promoter-yolo]
+- On promoter-relevant Mendelian variants, it exceeded Evo 2 40B's point estimates for both 5′ UTR and TSS-proximal variants.
+- CDS YOLO repeated the same specialist strategy on an earlier animal coding-sequence dataset.[^cds-yolo]
+- On missense VEP, CDS YOLO matched Evo 2 40B.
+- Neither specialist beat GPN-Star, providing an early indication of the limitations of the alignment-free specialist approach.
+- **Image to add:** Create a paired Promoter YOLO/CDS YOLO figure in the blog palette, with region-matched AUPRC results and Evo 2 40B and GPN-Star references.
+
+### Balancing promoter and CDS data
+
+- After testing promoter and CDS specialists independently, the next experiment asked whether one model could retain both capabilities.[^promoter-cds-mixture]
+- Proportional sampling—10% promoters and 90% CDS—behaved similarly to CDS-only training.
+- Equal 50/50 promoter/CDS sampling produced balanced performance across both regions.
+- This made explicit mixture control, rather than raw dataset size, a central part of the training strategy.
+- **Image to add:** Redraw the promoter/CDS mixture comparison from issue #13 in the blog palette.
+
+[^promoter-yolo]: See [Open-Athena/marin-dna issue #21](https://github.com/Open-Athena/marin-dna/issues/21).
+
+[^cds-yolo]: See [Open-Athena/marin-dna issue #27](https://github.com/Open-Athena/marin-dna/issues/27).
+
+[^promoter-cds-mixture]: See [Open-Athena/marin-dna issue #13](https://github.com/Open-Athena/marin-dna/issues/13).
+
 ### Hyperparameter transfer
+
+- Our first attempt to scale manually lowered the learning rate as the model grew from 0.6B to 1.7B and 4B parameters ([issue #57](https://github.com/Open-Athena/marin-dna/issues/57)).
+- The larger models did not improve over the 0.6B model, and the early 4B run became unstable.
+- That failure made systematic hyperparameter transfer a prerequisite: without a trustworthy optimization recipe, a model-size comparison would confound scale with tuning quality.
 
 The conserved metazoan DNA pool we can plausibly train on is only O(100B) tokens.[^metazoan-token-pool] That is large by genomics standards, but small relative to modern accelerator chips, making this a data-constrained problem in principle even though our practical constraints are messier. We are building on preemptible Google TPU Research Cloud resources, do not have consistent access to slices much larger than roughly 32 H100s worth of peak FLOPs, and want the recipe to remain reproducible at academic compute scale. O(100B) tokens therefore lands in an awkward middle ground where compute-constrained methods are still relevant, even though modest epoching is possible and likely breaks their assumptions at some unknown rate. The first thing to check is whether the learning-rate prediction survives that regime (Figure 1).
 
@@ -177,6 +204,12 @@ That validation is a fairly unforgiving test. If the transferred learning rate w
 [^completed-framework]: Complete(d) refers to the compute-constrained hyperparameter-transfer framework described in [Complete(d): Data-Optimizing Hyperparameter Transfer](https://arxiv.org/abs/2512.22382).
 
 ### Parameter scaling
+
+- The scaling ladder holds the training recipe and three-region data mixture fixed while varying model size from 46M to 4B parameters.
+- Every model uses transferred optimizer hyperparameters rather than a separately hand-tuned recipe.
+- This sweep asks whether loss scaling becomes predictable once optimization quality is controlled.
+
+![Eight-model parameter-scaling ladder](/assets/images/blog/genomic-lm-optimization/mini_scaling_ladder.svg)
 
 Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months — fitting the hyperparameter transfer heuristic, running the validation experiments, and training the 4B model, which alone took about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep. That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
@@ -214,9 +247,13 @@ Ultimately, the most useful finding is that monotonicity is scale-dependent (Fig
 
 **Figure 8:** Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.
 
-### Mixture experiments
+### Later mixture experiments
+
+#### Reweighting the original three regions
 
 At this point we move away from theoretically-grounded, compute-constrained methods. The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity. But the actual optimization problem becomes much more ad hoc — we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
+
+![Upstream-reweighting continuations from a shared parent](/assets/images/blog/genomic-lm-optimization/mini_fig9_mixture.svg)
 
 The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. Figure 9 shows why simply shifting weight upstream does not solve this problem. The gains are countered by losses in other genomic regions, and similar continuations from upstream-only or proportionally mixed checkpoints from the parameter-scaling sweep did not produce clear net wins.
 
@@ -224,11 +261,26 @@ The first clear gap we try to correct is in upstream performance. Promoter AUPRC
 
 **Figure 9:** Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.
 
+- The 50% upstream continuation has the highest displayed zero-shot LLR point estimate.
+- The probe point estimates instead favor the uniform parent before continuation.
+- The continuation runs have unequal token budgets, so the displayed pattern cannot be attributed uniquely to mixture composition.
+- We therefore treat Figure 9 as evidence that heavy upstream weighting can hurt, not as evidence for an optimal upstream percentage.
+
+#### Adding ncRNA exons and enhancers
+
 A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens (Figure 10). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
+
+![Three-region to five-region exposure history for m5.1](/assets/images/blog/genomic-lm-optimization/mini_m5.1_lineage.svg)
 
 ![VEP AUPRC trajectories by mixture lineage](/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg)
 
 **Figure 10:** VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.
+
+- m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
+- The ncRNA and enhancer datasets were introduced to cover new functional regions; the promoter gain was partly unexpected because the ncRNA collection also contained substantial promoter sequence.
+- Among the three displayed lineages, m5.1 finishes with the highest eight-subset Mendelian macro under both LLR and probe.
+- Its advantage is broad but not universal: the one-fifth mixture lineages retain stronger endpoints for some distal and ncRNA subsets.
+- The late improvement appears after and is temporally aligned with the five-region shift, but the experiment does not isolate mixture composition from additional training or inherited lineage state.
 
 [^upstream-only-issue]: See [Open-Athena/marin-dna issue #55](https://github.com/Open-Athena/marin-dna/issues/55).
 
