@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 166" role="img" aria-labelledby="t" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
   <title id="t">Scaling ladder — one proportional mixture shared by all 8 model sizes</title>
   <rect x="1" y="1" width="718" height="164" rx="12" fill="#f6f0e4" stroke="#ddd3bf"/>
-  <text x="24" y="28" font-size="9" font-weight="700" letter-spacing="0.6" fill="#a89a80">PARAMETER SCALING · FIGS 5–8</text>
+  <text x="24" y="28" font-size="9" font-weight="700" letter-spacing="0.6" fill="#a89a80">PARAMETER SCALING · FIGS 4–8</text>
   <text x="24" y="48" font-size="13" font-weight="700" fill="#1f1e1b">Scaling ladder — one mixture, all 8 sizes (46M → 4B)</text>
   <a href="https://huggingface.co/bolinas-dna" target="_blank"><text x="694" y="30" text-anchor="end"><tspan font-size="10" fill="#8a7d68">Models </tspan><tspan font-size="13">🤗</tspan></text></a>
   <g>

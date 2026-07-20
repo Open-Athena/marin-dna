@@ -23,7 +23,7 @@
     <rect x="477" y="120" width="109" height="26" fill="#465c6e"/><text x="531" y="137" font-size="9.5" fill="#fff" text-anchor="middle">ncRNA 20%</text>
     <rect x="586" y="120" width="110" height="26" fill="#6f7d3f"/><text x="641" y="137" font-size="9.5" fill="#fff" text-anchor="middle">Enh 20%</text>
   </g>
-  <text x="24" y="167" font-size="9" fill="#a89a80">warm-start from the 3-region base beats de-novo 5-region training — order of exposure matters</text>
+  <text x="24" y="167" font-size="9" fill="#a89a80">the warm-start lineage finishes ahead of the displayed de-novo 5-region lineage</text>
   <g font-size="9.5" fill="#5b4a36">
     <rect x="24" y="200" width="11" height="11" rx="2" fill="#9c4f2f"/><text x="40" y="209">CDS</text>
     <rect x="86" y="200" width="11" height="11" rx="2" fill="#2f6f63"/><text x="102" y="209">Upstream</text>
