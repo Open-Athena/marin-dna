@@ -9,7 +9,6 @@ from marin_dna.blog_workspace import (
     load_config,
     materialize_article_preview,
     read_baseline_manifest,
-    sha256_file,
     validate_footnotes,
     validate_workspace,
 )
@@ -42,15 +41,13 @@ def test_validate_footnotes_rejects_undefined_reference() -> None:
         validate_footnotes("reference[^missing]\n")
 
 
-def test_imported_workspace_is_valid_and_matches_manifest() -> None:
+def test_edited_workspace_is_valid_and_baseline_manifest_is_readable() -> None:
     config = load_config(default_config_path())
     referenced_assets = validate_workspace(config)
     manifest = read_baseline_manifest(config)
 
-    assert len(referenced_assets) == 11
+    assert len(referenced_assets) == 18
     assert len(manifest) == 12
-    for relative, expected_digest in manifest.items():
-        assert sha256_file(config.root / relative) == expected_digest
 
 
 def test_export_uses_exact_website_paths(tmp_path: Path) -> None:

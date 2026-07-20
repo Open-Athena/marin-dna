@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 214" role="img" aria-labelledby="t" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="t">Data mixture — reweighting toward Upstream (Fig 9)</title>
+  <rect x="1" y="1" width="718" height="212" rx="12" fill="#f6f0e4" stroke="#ddd3bf"/>
+  <text x="24" y="28" font-size="9" font-weight="700" letter-spacing="0.6" fill="#a89a80">DATA MIXTURE · FIG 9</text>
+  <text x="24" y="48" font-size="13" font-weight="700" fill="#1f1e1b">Reweight toward Upstream (best at 40%, gains marginal)</text>
+  <a href="https://huggingface.co/bolinas-dna" target="_blank"><text x="694" y="30" text-anchor="end"><tspan font-size="10" fill="#8a7d68">Models </tspan><tspan font-size="13">🤗</tspan></text></a>
+  <text x="24" y="83" font-size="9.5" fill="#5b4a36">uniform base</text>
+  <g>
+    <rect x="140" y="66" width="185" height="26" fill="#9c4f2f"/><text x="232" y="83" font-size="10" fill="#fff" text-anchor="middle">CDS 33%</text>
+    <rect x="325" y="66" width="185" height="26" fill="#2f6f63"/><text x="417" y="83" font-size="10" fill="#fff" text-anchor="middle">Up 33%</text>
+    <rect x="510" y="66" width="186" height="26" fill="#c0883a"/><text x="603" y="83" font-size="10" fill="#fff" text-anchor="middle">Down 33%</text>
+  </g>
+  <text x="24" y="121" font-size="9.5" fill="#5b4a36">40% upstream ★</text>
+  <g>
+    <rect x="140" y="104" width="167" height="26" fill="#9c4f2f"/><text x="223" y="121" font-size="10" fill="#fff" text-anchor="middle">CDS 30%</text>
+    <rect x="307" y="104" width="222" height="26" fill="#2f6f63"/><text x="418" y="121" font-size="10" fill="#fff" text-anchor="middle">Up 40%</text>
+    <rect x="529" y="104" width="167" height="26" fill="#c0883a"/><text x="612" y="121" font-size="10" fill="#fff" text-anchor="middle">Down 30%</text>
+  </g>
+  <text x="24" y="154" font-size="9" fill="#a89a80">swept upstream 33→90%; the upstream gains kept getting countered by losses in other regions</text>
+  <g font-size="9.5" fill="#5b4a36">
+    <rect x="24" y="184" width="11" height="11" rx="2" fill="#9c4f2f"/><text x="40" y="193">CDS</text>
+    <rect x="86" y="184" width="11" height="11" rx="2" fill="#2f6f63"/><text x="102" y="193">Upstream</text>
+    <rect x="176" y="184" width="11" height="11" rx="2" fill="#c0883a"/><text x="192" y="193">Downstream</text>
+  </g>
+</svg>
