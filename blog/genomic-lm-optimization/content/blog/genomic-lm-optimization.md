@@ -56,9 +56,14 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 ### Why alignment-free gLMs?
 
-Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species. Unlabeled DNA sequence, by contrast, is available for a rapidly growing number of species. Alignment-free, or single-sequence, gLMs can learn directly from this growing collection of genomes for applications including zero-shot VEP, sequence design, and transfer learning.
+Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species.
+Unlabeled DNA sequence, by contrast, is available for a rapidly growing number of species.
+Alignment-free, or single-sequence, gLMs can learn directly from this growing collection of genomes for applications including evolutionary constraint prediction, sequence design, and transfer learning.
 
-For humans and other well-studied species, single-sequence gLMs are still far from replacing alignment-based or functionally supervised models. Their near-term value lies elsewhere: our goal is to build useful models for species that lack high-quality whole-genome alignments and functional-genomics data. Longer term, sequence-only models may learn from sequence in ways that complement alignments, conservation scores, and functional-genomics models even in data-rich species.
+For humans and other well-studied species, single-sequence gLMs are still far from replacing alignment-based models or models supervised with functional-genomics data.
+Our near-term goal is to build useful models for species that lack high-quality whole-genome alignments and functional-genomics data.
+As a concrete example, we would like to provide a map of sequence constraint for every mammalian genome.[^constraint-map-every-genome]
+Longer term, sequence-only models may learn from sequence in ways that complement alignments, conservation scores, and functional-genomics models even in data-rich species.
 
 ### Why data curation?
 
@@ -120,6 +125,12 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 [^glm-tokenization]: Examples include learned or tokenizer-free approaches such as [dnaHNet](https://arxiv.org/abs/2602.10603) and [DNACHUNKER](https://arxiv.org/abs/2601.03019), multi-scale Transformers such as [MegaDNA](https://www.biorxiv.org/content/10.1101/2023.12.18.572218v3.full), and multi-scale attention in [TrinityDNA](https://arxiv.org/abs/2507.19229).
 
 [^glm-biology]: Examples include reverse-complement equivariance in [Caduceus](https://arxiv.org/abs/2403.03234), double-helix groove fusion in [TrinityDNA](https://arxiv.org/abs/2507.19229), genomic loss weighting in [Evo 2](https://doi.org/10.1101/2025.02.18.638918) and [GPN](https://www.pnas.org/doi/10.1073/pnas.2311219120), factorized nucleotide supervision in [GENERATOR-v2](https://doi.org/10.64898/2026.01.27.702015) and related objective design in [Carbon](https://doi.org/10.64898/2026.05.22.727119). Outside unsupervised, single-sequence DNA language modeling, related architectural examples include the convolutional U-Net Transformer plus pairwise contact-map model in [AlphaGenome](https://doi.org/10.1101/2025.06.25.661532) and sequence-alignment plus phylogeny-aware attention in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619).
+
+[^constraint-map-every-genome]: Zoonomia illustrates the gap between having an alignment and having a ready-to-use constraint track for each mammalian genome.
+    Producing these tracks requires running per-base scoring in each target genome's coordinate system, which can require substantial intermediate storage and compute.
+    The project's [data page](https://zoonomiaproject.org/the-data/) links to a reference-free 241-way mammalian alignment, but the associated [CGL resource page](https://cglgenomics.ucsc.edu/november-2020-nature-mammalian-and-avian-alignments/) offers a single score download explicitly labeled “Human PhyloP scores.”
+    The [expanded 447-way resource](https://cglgenomics.ucsc.edu/november-2023-nature-zoonomia-with-expanded-primates-alignment/) publishes alignment files but no phyloP score downloads; UCSC's standard [447-way phyloP track](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP447way/) is likewise exposed only under human hg38.
+    This is part of a broader gap: as of July 2026, UCSC's standard [goldenPath](https://hgdownload.soe.ucsc.edu/goldenPath/) download tree contained phyloP tracks for only 20 species, nine of them mammals.
 
 [^vep-clinical]: Examples include zero-shot or disease-focused variant interpretation results in [Evo 2](https://doi.org/10.1101/2025.02.18.638918), [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), [Carbon](https://doi.org/10.64898/2026.05.22.727119), and [EnTao-GPM](https://arxiv.org/abs/2507.21706).
 
