@@ -82,7 +82,9 @@ We began with annotation-derived datasets for coding, upstream, and downstream s
 
 Later, we added ncRNA exons and enhancers built by alignment projection. Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
-![Training dataset provenance and token counts](/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg)
+![Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets](/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg)
+
+**Training datasets:** Five sequence types derived from annotations or whole-genome alignments.
 
 ### Why GPT-style architecture?
 
