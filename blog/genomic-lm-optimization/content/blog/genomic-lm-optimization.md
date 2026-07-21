@@ -168,6 +168,10 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 - Neither specialist beat GPN-Star, providing an early indication of the limitations of the alignment-free specialist approach.
 - **Image to add:** Create a paired Promoter YOLO/CDS YOLO figure in the blog palette, with region-matched AUPRC results and Evo 2 40B and GPN-Star references.
 
+[^promoter-yolo]: See [Open-Athena/marin-dna issue #21](https://github.com/Open-Athena/marin-dna/issues/21).
+
+[^cds-yolo]: See [Open-Athena/marin-dna issue #27](https://github.com/Open-Athena/marin-dna/issues/27).
+
 ### Balancing promoter and CDS data
 
 - After testing promoter and CDS specialists independently, the next experiment asked whether one model could retain both capabilities.[^promoter-cds-mixture]
@@ -175,10 +179,6 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 - Equal 50/50 promoter/CDS sampling produced balanced performance across both regions.
 - This made explicit mixture control, rather than raw dataset size, a central part of the training strategy.
 - **Image to add:** Redraw the promoter/CDS mixture comparison from issue #13 in the blog palette.
-
-[^promoter-yolo]: See [Open-Athena/marin-dna issue #21](https://github.com/Open-Athena/marin-dna/issues/21).
-
-[^cds-yolo]: See [Open-Athena/marin-dna issue #27](https://github.com/Open-Athena/marin-dna/issues/27).
 
 [^promoter-cds-mixture]: See [Open-Athena/marin-dna issue #13](https://github.com/Open-Athena/marin-dna/issues/13).
 
@@ -278,6 +278,8 @@ The first clear gap we try to correct is in upstream performance. Promoter AUPRC
 - The continuation runs have unequal token budgets, so the displayed pattern cannot be attributed uniquely to mixture composition.
 - We therefore treat Figure 9 as evidence that heavy upstream weighting can hurt, not as evidence for an optimal upstream percentage.
 
+[^upstream-only-issue]: See [Open-Athena/marin-dna issue #55](https://github.com/Open-Athena/marin-dna/issues/55).
+
 #### Adding ncRNA exons and enhancers
 
 A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens (Figure 10). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
@@ -293,8 +295,6 @@ A more productive strategy is to mix in new sequence types from species with les
 - Among the three displayed lineages, m5.1 finishes with the highest eight-subset Mendelian macro under both LLR and probe.
 - Its advantage is broad but not universal: the one-fifth mixture lineages retain stronger endpoints for some distal and ncRNA subsets.
 - The late improvement appears after and is temporally aligned with the five-region shift, but the experiment does not isolate mixture composition from additional training or inherited lineage state.
-
-[^upstream-only-issue]: See [Open-Athena/marin-dna issue #55](https://github.com/Open-Athena/marin-dna/issues/55).
 
 ### Leaderboard scores
 
