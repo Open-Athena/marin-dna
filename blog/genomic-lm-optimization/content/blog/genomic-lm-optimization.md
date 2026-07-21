@@ -78,15 +78,11 @@ MarinDNA therefore treats dataset construction as a primary modeling lever: whic
 
 ### Training datasets
 
-- We started our experiments with annotation-derived datasets: coding sequence, upstream sequence, and downstream sequence.
-- Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
+We began with annotation-derived datasets for coding, upstream, and downstream sequences. Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
 
-![Three annotation-derived datasets used for hyperparameter transfer and scaling](/assets/images/blog/genomic-lm-optimization/data_provenance_three_region.svg)
+Later, we added ncRNA exons and enhancers built by alignment projection. Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
-- Later, we added alignment-projected datasets: ncRNA exons and enhancers.
-- Comparable annotations were not directly available across the target species, so these datasets required a more involved pipeline that projects human annotations through whole-genome alignments.
-
-![Two alignment-projected datasets added during the later mixture experiments](/assets/images/blog/genomic-lm-optimization/data_provenance_projected_additions.svg)
+![Training dataset provenance and token counts](/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg)
 
 ### Why GPT-style architecture?
 
