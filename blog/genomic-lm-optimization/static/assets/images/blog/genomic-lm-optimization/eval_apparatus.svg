@@ -51,9 +51,9 @@
   <rect x="478" y="65" width="7" height="116" rx="3.5" fill="#9c4f2f"/>
   <text x="502" y="91" font-size="9.5" font-weight="700" letter-spacing="0.7" fill="#9c4f2f">ZERO-SHOT</text>
   <text x="502" y="116" font-size="15" font-weight="750" fill="#1f1e1b">Sequence likelihoods</text>
-  <text x="502" y="138" font-size="11" fill="#5b3424">Which allele does the model prefer?</text>
+  <text x="502" y="138" font-size="11" fill="#5b3424">How much does ALT change likelihood relative to REF?</text>
   <rect x="502" y="149" width="282" height="22" rx="7" fill="#f4e9e1"/>
-  <text x="643" y="165" font-size="10" font-weight="700" text-anchor="middle" fill="#7a4a35">P(REF) vs P(ALT)</text>
+  <text x="643" y="165" font-size="10" font-weight="700" text-anchor="middle" fill="#7a4a35">log P(ALT) − log P(REF)</text>
 
   <!-- Linear-probe readout -->
   <rect x="478" y="205" width="330" height="116" rx="13" fill="#fcfaf5" stroke="#b9d2ca"/>
