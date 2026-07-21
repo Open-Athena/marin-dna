@@ -99,10 +99,10 @@ That choice also need not permanently constrain the model to left-to-right repre
 
 ### Why short context?
 
-- Our first goal is to model individual functional elements of the genome—such as an exon or an enhancer—well.
-- We deliberately use a short 255-bp context because it was sufficient for the functional-element tasks we tested while making training and evaluation much faster.
-- Centering each example on an individual functional element also makes the training data easier to construct, filter, audit, and interpret.
-- We leave to future work how best to extend context, either through additional long-context next-token pretraining or directly during downstream-task fine-tuning.
+Our first goal is to model individual functional elements of the genome—such as an exon or an enhancer—well.
+We therefore deliberately use a short 255-bp context: it was sufficient for the functional-element tasks we tested while making training and evaluation much faster.
+Centering each example on an individual functional element also makes the training data easier to construct, filter, audit, and interpret.
+We leave to future work how best to extend context, either through additional long-context next-token pretraining or directly during downstream-task fine-tuning.
 
 ### Why VEP evaluation?
 
