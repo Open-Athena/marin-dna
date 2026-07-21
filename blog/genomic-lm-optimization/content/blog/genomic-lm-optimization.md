@@ -67,10 +67,14 @@ Longer term, sequence-only models may learn from sequence in ways that complemen
 
 ### Why data curation?
 
-- TraitGym's GPN-Promoter, a small masked model trained on promoter sequence, showed strong promoter-proximal VEP performance and suggested that careful functional-region curation can make scaling substantially more compute-efficient, reaching strong performance at much smaller training budgets.[^gpn-promoter-motivation]
-- TraitGym also showed Evo 2 struggling particularly on enhancer variants—the only evaluated region type that was not purposefully curated into its training data—suggesting that the composition of the training mixture matters alongside its scale.[^gpn-promoter-motivation]
-- Those results motivated MarinDNA to treat dataset construction as a primary modeling lever.
-- We therefore began with clearly defined functional elements, then later asked how to balance region types, add new ones, and order their exposure during training.
+Many early gLMs were trained on the human genome alone, with little to no filtering.
+Subsequent work made it clear that two factors were key drivers of model performance: including multiple species, and enriching for functional regions rather than sampling uniformly from the majority-neutral background of mammalian genomes.[^data-curation-evidence]
+
+In this work, we follow up on two findings from [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/).
+First, 152M-parameter GPN-Promoter, trained only on animal promoters, performed comparably to Evo 2 40B on human promoter variants.
+Second, Evo 2 improved substantially with scale overall but still struggled on distal enhancers, the only region of the genome not actively curated into its training data; enhancers were also sparse among the intergenic regions it saw.
+
+MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include, which functional regions to sample, how to weight them, and when during training to introduce them.
 
 ### Training datasets
 
@@ -138,7 +142,7 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 [^human-variant-curation]: [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/intro/) archives submitted reports relating human genomic variation to disease, cancer, drug response, and supporting evidence; [OMIM](https://doi.org/10.1093/nar/gku1205) is a curated catalog of human genes, genetic disorders, and gene-phenotype relationships. Nothing comparable exists for any other species: this depth reflects decades of clinical genetics effort directed specifically at human disease, an investment that has simply not been made for non-human genomes.
 
-[^gpn-promoter-motivation]: [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/) introduced GPN-Promoter; its [implementation](https://github.com/songlab-cal/gpn/blob/ce8954b6c1c13919001a896d83a58f3f024c4f6f/analysis/gpn_animal_promoter/README.md#L1-L4) describes the promoter-specialized training setup.
+[^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), and [Evo 2](https://doi.org/10.1038/s41586-026-10176-5).
 
 [^evo2-regions]: Here, diverse conserved genomic regions means variant effects spanning non-coding enhancers, promoters, UTRs, coding exons, and introns.
 
