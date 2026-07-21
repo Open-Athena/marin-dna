@@ -134,13 +134,21 @@ We leave to future work how best to extend context, either through additional lo
 
 ### Why VEP evaluation?
 
-VEP is arguably the most important application of gLMs. A useful VEP model can help scale clinical interpretation for rare disease, hereditary cancer, and variants of uncertain significance.[^vep-clinical] It can also help connect genetic association signals to disease mechanisms, target selection, and causal-variant prioritization in GWAS fine-mapping.[^vep-therapeutic] The same kind of evidence is relevant to clinical trial design when genetics can inform patient stratification, enrollment criteria, or mechanism-based cohort definition. Together, these are commonly used levers for improving the efficiency of pharmaceutical development, and it is uncommon for other gLM evaluations to have such a direct connection to commercially relevant research tasks. VEP is also one of the few evaluations backed by decades of costly clinical genetics curation, with resources such as ClinVar and OMIM providing a level of human variant evidence that has no real analogue in other species.[^human-variant-curation] That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology. If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
+Variant effect prediction (VEP) is one the most important application of gLMs.
+A useful VEP model can help scale clinical interpretation for rare disease, hereditary cancer, and variants of uncertain significance.[^vep-clinical]
+It can also help connect genetic association signals to disease mechanisms, target selection, and causal-variant prioritization in GWAS fine-mapping.[^vep-therapeutic]
+The same kind of evidence is relevant to clinical trial design when genetics can inform patient stratification, enrollment criteria, or mechanism-based cohort definition.
+Together, these are commonly used levers for improving the efficiency of pharmaceutical development, and it is uncommon for other gLM evaluations to have such a direct connection to commercially relevant research tasks.
+VEP is also one of the few evaluations backed by decades of costly clinical genetics curation, with resources such as ClinVar and OMIM providing a level of human variant evidence that has no real analogue in other species.[^human-variant-curation]
+That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology.
+If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
 
-- By VEP, we mean estimating whether a sequence variant is likely to disrupt biological function—for example through deleteriousness, pathogenicity, or evidence of evolutionary constraint.
-- We use two complementary sources of evidence: clinically curated Mendelian variants and saturation genome-editing measurements.
-- The Mendelian benchmark compares pathogenic and putatively benign variants across coding and non-coding consequence types.
-- The SGE benchmark uses experimentally measured variant effects from MaveDB, currently covering missense and splicing variants.
-- These benchmarks have different evidence sources, matching designs, and class definitions, so their absolute AUPRC values should not be compared directly.
+- In this work, we focus on predicting deleteriousness, pathogenicity, or more generally functional constraint.
+- This task is the most directly connected to the language modeling training objective, and is therefore easy to evaluate with zero-shot or linear probing protocols.
+- We leave predicting changes in gene expression (the main application of sequence-to-function models) to follow up work, as this requires more complex finetuning protocols (and much larger context sizes) (insert footnote about how chromatin accessibility is a more tractable intermediate step, ARSENAL work showing very promising results).
+- We use two complementary sources of evidence: clinically curated Mendelian variants (footnote with a few key differences with published TraitGym) and saturation genome-editing (SGE) measurements.
+- The Mendelian benchmark compares pathogenic and putatively benign variants across broad coding and non-coding consequence types.
+- The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
 
 <figure>
 <img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
@@ -148,7 +156,7 @@ VEP is arguably the most important application of gLMs. A useful VEP model can h
 </figure>
 
 - We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
-- The zero-shot score asks what the language model itself prefers; the probe asks what variant-relevant information is present in its learned representation.
+- The zero-shot score asks what the language model itself prefers (TODO: this could be improved); the probe asks what variant-relevant information is present in its learned representation.
 
 <figure>
 <img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
