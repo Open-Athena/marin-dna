@@ -92,9 +92,10 @@ MarinDNA therefore treats dataset construction as a primary modeling lever: whic
 
 By GPT-style, we mean the dumb approach of training a stock causal, autoregressive, decoder-only language-model architecture on DNA that we pretend is text. In these experiments, that architecture is literally Qwen3 rather than a genomics-specific design. This approach is not new; a substantial line of prior gLM work has used causal language modeling with GPT- or Llama-like architectures.[^causal-glm-precedent] What is new here is the quality target. Even recent models in this family, such as Carbon, generally aim for non-inferiority to smaller Evo 2 checkpoints and still underperform Evo 2 40B on the broad zero-shot VEP setting we care about.[^carbon-eval] If the quality gap can be closed, GPT-style models have obvious advantages for deployment. They run through familiar training and inference stacks, move cleanly across hardware, and avoid model-specific kernels or bespoke architecture code, which matters a lot for cost, flexibility, and usability. E.g., the inference cost associated with the evaluations below is roughly $10 / billion tokens for our 1B model, compared with roughly $100 / billion tokens for Evo 2 40B (TODO: get real numbers).[^throughput-comparison]
 
-- MarinDNA's first experiment compared masked language modeling, causal language modeling, and masked diffusion on promoter sequence ([issue #3](https://github.com/Open-Athena/marin-dna/issues/3)).
-- Causal language modeling looked most promising in the initial training steps—not a definitive matched-compute comparison of objectives, but enough direction-setting evidence to pursue a simple causal architecture.
-- Causal pretraining need not permanently constrain a model to left-to-right representations: decoder-only language models can be adapted into bidirectional encoders with further training.[^clm-bidirectional-adaptation]
+MarinDNA's first experiment compared masked language modeling, causal language modeling, and masked diffusion on promoter sequence ([issue #3](https://github.com/Open-Athena/marin-dna/issues/3)).
+Causal language modeling looked most promising in the initial training steps.
+This was not a definitive matched-compute comparison of objectives, but it provided enough direction-setting evidence to pursue a simple causal architecture.
+That choice also need not permanently constrain the model to left-to-right representations: decoder-only language models can be adapted into bidirectional encoders with further training.[^clm-bidirectional-adaptation]
 
 ### Why short context?
 
