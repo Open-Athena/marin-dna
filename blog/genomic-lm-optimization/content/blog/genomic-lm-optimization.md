@@ -64,11 +64,11 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 ### Why data curation?
 
-- Many early gLMs were trained on the human genome: one species, little to no filtering.[^early-human-glms]
+- Many early gLMs were trained on the human genome: one species, little to no filtering.
 - Subsequent work made it clear that (i) including multiple species and (ii) enriching for functional regions (as opposed to the majority neutral regions in mammals) were key drivers of model performance.[^data-curation-evidence]
 - In this work, we follow up on two findings from [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/):
-  - TraitGym's 152M-parameter GPN-Promoter model, trained only on promoters from 434 animal species, performed comparably to Evo 2 40B (trained across all domains of life) on human promoter variants.[^gpn-promoter-motivation]
-  - Evo 2 improved substantially with scale overall, but still struggled on distal enhancers, the only region of the genome not actively curated into their training data, and sparse among intergenic regions.[^evo2-enhancer-curation]
+  - TraitGym's 152M-parameter GPN-Promoter model, trained only on promoters from 434 animal species, performed comparably to Evo 2 40B (trained across all domains of life) on human promoter variants.
+  - Evo 2 improved substantially with scale overall, but still struggled on distal enhancers, the only region of the genome not actively curated into their training data, and sparse among intergenic regions.
 - MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include, which functional regions to sample, how to weight them, and when during training to introduce them.
 
 ### Training datasets
@@ -131,13 +131,7 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 [^human-variant-curation]: [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/intro/) archives submitted reports relating human genomic variation to disease, cancer, drug response, and supporting evidence; [OMIM](https://doi.org/10.1093/nar/gku1205) is a curated catalog of human genes, genetic disorders, and gene-phenotype relationships. Nothing comparable exists for any other species: this depth reflects decades of clinical genetics effort directed specifically at human disease, an investment that has simply not been made for non-human genomes.
 
-[^early-human-glms]: Table 1 of [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013) lists BigBird, DNABERT, GeneBERT, Epigenomic BERT, and LOGO as trained on human sequence.
-
-[^data-curation-evidence]: The “Training data” section of [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013) reports that 3.3% of human-reference bases show significant mammalian constraint, discusses the roughly 50% repetitive fraction, and surveys genomic curation strategies including downweighting, downsampling, and base-level loss weighting. Evidence that species diversity and functional-region enrichment affect gLM performance includes [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), and [Evo 2](https://doi.org/10.1038/s41586-026-10176-5). In the nucleotide-dependency study, multispecies models substantially outperformed human-only models even when the human-only training data included population variation from 3,202 human genomes.
-
-[^gpn-promoter-motivation]: [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/) reports that the 152M-parameter GPN-Promoter model, trained only on promoters from 434 animal species, performed comparably to Evo 2 40B on human promoter variants; its [implementation](https://github.com/songlab-cal/gpn/blob/ce8954b6c1c13919001a896d83a58f3f024c4f6f/analysis/gpn_animal_promoter/README.md#L1-L4) describes the promoter-specialized training setup.
-
-[^evo2-enhancer-curation]: [Evo 2](https://doi.org/10.1038/s41586-026-10176-5), Fig. 1d, enumerates its explicitly augmented or weighted eukaryotic subsets—genic sequence; promoters, exons, and splice sites; mRNAs; 5-kb windows; ncRNA; and EPDnew promoters—but no enhancer-specific subset. [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/) identifies distal enhancers as Evo 2's main weakness and notes that enhancers were sparse in its training data. Together, these support the statement that distal enhancers were the only TraitGym region not actively curated into OpenGenome2.
+[^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), and [Evo 2](https://doi.org/10.1038/s41586-026-10176-5).
 
 [^evo2-regions]: Here, diverse conserved genomic regions means variant effects spanning non-coding enhancers, promoters, UTRs, coding exons, and introns.
 
