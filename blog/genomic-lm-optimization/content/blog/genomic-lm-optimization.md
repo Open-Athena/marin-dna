@@ -78,13 +78,21 @@ MarinDNA therefore treats dataset construction as a primary modeling lever: whic
 
 ### Training datasets
 
-We began with annotation-derived datasets for coding, upstream, and downstream sequences. Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
+We began with annotation-derived datasets for coding, upstream, and downstream sequences.[^training-downstream]
+Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
 
-Later, we added ncRNA exons and enhancers built by alignment projection. Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
+Later, we added ncRNA exons[^training-ncrna] and enhancers[^training-enhancer] built by alignment projection.
+Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
 ![Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets](/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg)
 
-**Training datasets:** Five sequence types derived from annotations or whole-genome alignments.
+*Dataset provenance and token counts for each sequence type.*
+
+[^training-downstream]: “Downstream” denotes the 256 bp immediately downstream of each annotated CDS end, rather than annotated 3′ UTR intervals. In [experiment #53](https://github.com/Open-Athena/marin-dna/issues/53), this distance-based definition produced better 3′ UTR VEP performance than the annotation-derived baseline, suggesting the smaller, more conserved proxy was preferable.
+
+[^training-ncrna]: Most species had ncRNA annotations, but in [experiment #43](https://github.com/Open-Athena/marin-dna/issues/43), an annotation-derived ncRNA specialist showed little improvement on ncRNA variants. This motivated the later use of human annotations projected through whole-genome alignments.
+
+[^training-enhancer]: “Enhancer” is shorthand for the ENCODE V4 non-promoter cCRE set. It includes enhancer-like signatures (dELS and pELS), but also classes such as CA, CA-CTCF, CA-TF, CA-H3K4me3, and TF.
 
 ### Why GPT-style architecture?
 
