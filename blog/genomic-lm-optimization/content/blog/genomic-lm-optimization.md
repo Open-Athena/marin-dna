@@ -68,7 +68,7 @@ Many early gLMs were trained on the human genome alone, with little to no filter
 Subsequent work made it clear that two factors were key drivers of model performance: including multiple species, and enriching for functional regions rather than sampling uniformly from the majority-neutral background of mammalian genomes.[^data-curation-evidence]
 
 In this work, we follow up on two findings from [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/).
-First, TraitGym's 152M-parameter GPN-Promoter model, trained only on promoters from 434 animal species, performed comparably to Evo 2 40B, which was trained across all domains of life, on human promoter variants.
+First, 152M-parameter GPN-Promoter, trained only on animal promoters, performed comparably on human promoter variants to Evo 2 40B, which was trained across all domains of life.
 Second, Evo 2 improved substantially with scale overall but still struggled on distal enhancers, the only region of the genome not actively curated into its training data; enhancers were also sparse among the intergenic regions it saw.
 
 MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include, which functional regions to sample, how to weight them, and when during training to introduce them.
