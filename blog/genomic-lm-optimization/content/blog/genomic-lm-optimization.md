@@ -142,14 +142,17 @@ VEP is arguably the most important application of gLMs. A useful VEP model can h
 - The SGE benchmark uses experimentally measured variant effects from MaveDB, currently covering missense and splicing variants.
 - These benchmarks have different evidence sources, matching designs, and class definitions, so their absolute AUPRC values should not be compared directly.
 
-![Mendelian and SGE evaluation datasets](/assets/images/blog/genomic-lm-optimization/eval_datasets.svg)
+<figure>
+<img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
+<figcaption>The benchmarks use different labels and sampling, so their absolute scores are not directly comparable.</figcaption>
+</figure>
 
 - We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
 - The zero-shot score asks what the language model itself prefers; the probe asks what variant-relevant information is present in its learned representation.
 
 <figure>
-<img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Zero-shot and linear-probe variant scoring" />
-<figcaption>The two readouts ask different questions of the same frozen model: zero-shot scoring tests whether reference-to-alternate likelihood changes track variant deleteriousness, while linear probing asks whether the paired allele embeddings contain variant-relevant information.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
+<figcaption>Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired allele embeddings.</figcaption>
 </figure>
 
 [^vep-clinical]: Examples include zero-shot or disease-focused variant interpretation results in [Evo 2](https://doi.org/10.1101/2025.02.18.638918), [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), [Carbon](https://doi.org/10.64898/2026.05.22.727119), and [EnTao-GPM](https://arxiv.org/abs/2507.21706).
