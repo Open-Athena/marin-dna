@@ -200,20 +200,20 @@ We first trained a 1.7B upstream-region specialist, trying to replicate the succ
 
 *Region-matched Mendelian VEP AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).*
 *Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel.*
-*Error bars are capless ±1 chromosome-cluster bootstrap SE.*
+*Error bars denote SE.*
 
 ### Balancing upstream and CDS data
 
-- After testing upstream and CDS specialists independently, the next experiment asked whether one model could retain both capabilities.[^upstream-cds-mixture]
-- Proportional sampling—10% upstream and 90% CDS—behaved similarly to CDS-only training.
-- Equal 50/50 upstream/CDS sampling produced balanced performance across both regions.
-- This made explicit mixture control, rather than raw dataset size, a central part of the training strategy.
+After testing upstream and CDS specialists independently, the next experiment asked whether one model could retain both capabilities ([experiment #13](https://github.com/Open-Athena/marin-dna/issues/13)).
+Sampling in proportion to dataset size—10% upstream and 90% CDS—is the naive default when the two datasets are simply pooled without reweighting.
+In practice, it behaved similarly to CDS-only training.
+Equal 50/50 upstream/CDS sampling produced balanced performance across both regions.
+This made explicit mixture control a central axis of investigation.
+Even the 50/50 mixture may not be optimal: regions can differ both in size and in the density of learnable biological signal.
 
 ![Promoter and missense VEP AUPRC trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures](/assets/images/blog/genomic-lm-optimization/upstream_cds_balance.svg)
 
-*Draft upstream/CDS mixture comparison. Each panel uses the six training checkpoints shared by all four arms; the right panel is the unweighted mean of the promoter and missense AUPRCs.*
-
-[^upstream-cds-mixture]: See [Open-Athena/marin-dna issue #13](https://github.com/Open-Athena/marin-dna/issues/13).
+*Upstream/CDS mixture comparison (zero-shot). The right panel is the unweighted mean of the promoter and missense AUPRCs.*
 
 ### Hyperparameter transfer
 

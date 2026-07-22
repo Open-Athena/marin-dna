@@ -204,6 +204,7 @@ def apply_style() -> None:
     mpl.rcParams.update(
         {
             "svg.fonttype": "none",
+            "svg.hashsalt": Path(__file__).stem,
             "font.family": "sans-serif",
             "font.size": 18,
             "axes.titlesize": 22,
@@ -366,7 +367,14 @@ def main() -> None:
     BLOG_SVG.parent.mkdir(parents=True, exist_ok=True)
     outputs = (OUTPUT_DIR / "figure.svg", OUTPUT_DIR / "figure.png", BLOG_SVG)
     for output in outputs:
-        figure.savefig(output, dpi=180, bbox_inches="tight")
+        metadata = {"Date": None} if output.suffix == ".svg" else None
+        figure.savefig(output, dpi=180, bbox_inches="tight", metadata=metadata)
+        if output.suffix == ".svg":
+            svg = output.read_text(encoding="utf-8")
+            output.write_text(
+                "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
+                encoding="utf-8",
+            )
         print(f"wrote {output}")
     plt.close(figure)
 
