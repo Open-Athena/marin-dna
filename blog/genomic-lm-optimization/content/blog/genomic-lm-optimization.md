@@ -197,9 +197,14 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 - Promoter YOLO trained a modest causal Qwen3 specialist on an earlier animal-promoter dataset, using reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later.[^promoter-yolo]
 - On promoter-relevant Mendelian variants, it exceeded Evo 2 40B's point estimates for both 5′ UTR and TSS-proximal variants.
 - CDS YOLO repeated the same specialist strategy on an earlier animal coding-sequence dataset.[^cds-yolo]
-- On missense VEP, CDS YOLO matched Evo 2 40B.
-- Neither specialist beat GPN-Star, providing an early indication of the limitations of the alignment-free specialist approach.
-- **Image to add:** Create a paired Promoter YOLO/CDS YOLO figure in the blog palette, with region-matched AUPRC results and Evo 2 40B and GPN-Star references.
+- At the point-estimate level, CDS YOLO exceeded Evo 2 40B on missense variants, was nearly identical on splicing variants, and trailed it on synonymous variants.
+- GPN-Star remained stronger on TSS-proximal, missense, and synonymous variants, while the specialist point estimates were close to GPN-Star on 5′ UTR and splicing variants.
+
+![Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes](/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg)
+
+*Region-matched Mendelian VEP AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).*
+*Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel.*
+*Error bars are capless ±1 chromosome-cluster bootstrap SE.*
 
 [^promoter-yolo]: See [Open-Athena/marin-dna issue #21](https://github.com/Open-Athena/marin-dna/issues/21).
 
