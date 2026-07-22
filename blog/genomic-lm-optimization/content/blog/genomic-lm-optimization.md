@@ -112,7 +112,7 @@ Because comparable annotations were not directly available across the target spe
 
 By GPT-style, we mean the dumb approach of training a stock causal, autoregressive, decoder-only language-model architecture on DNA that we pretend is text. In these experiments, that architecture is literally Qwen3 rather than a genomics-specific design. This approach is not new; a substantial line of prior gLM work has used causal language modeling with GPT- or Llama-like architectures.[^causal-glm-precedent] What is new here is the quality target. Even recent models in this family, such as Carbon, generally aim for non-inferiority to smaller Evo 2 checkpoints and still underperform Evo 2 40B on the broad zero-shot VEP setting we care about.[^carbon-eval] If the quality gap can be closed, GPT-style models have obvious advantages for deployment. They run through familiar training and inference stacks, move cleanly across hardware, and avoid model-specific kernels or bespoke architecture code, which matters a lot for cost, flexibility, and usability. E.g., the inference cost associated with the evaluations below is roughly $10 / billion tokens for our 1B model, compared with roughly $100 / billion tokens for Evo 2 40B (TODO: get real numbers).[^throughput-comparison]
 
-MarinDNA's first experiment compared masked language modeling, causal language modeling, and masked diffusion on promoter sequence ([issue #3](https://github.com/Open-Athena/marin-dna/issues/3)).
+MarinDNA's first experiment compared masked language modeling, causal language modeling, and masked diffusion on promoter sequence ([experiment #3](https://github.com/Open-Athena/marin-dna/issues/3)).
 Causal language modeling looked most promising in the initial training steps.
 This was not a definitive matched-compute comparison of objectives, but it provided enough direction-setting evidence to pursue a simple causal architecture.
 That choice also need not permanently constrain the model to left-to-right representations: decoder-only language models can be adapted into bidirectional encoders with further training.[^clm-bidirectional-adaptation]
@@ -192,18 +192,15 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 ## Results
 
-### Promoter and CDS specialists
+### Upstream and CDS specialists
 
-- Promoter YOLO trained a modest causal Qwen3 specialist on an earlier animal-promoter dataset, using reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later.[^promoter-yolo]
-- On promoter-relevant Mendelian variants, it exceeded Evo 2 40B's point estimates for both 5′ UTR and TSS-proximal variants.
-- CDS YOLO repeated the same specialist strategy on an earlier animal coding-sequence dataset.[^cds-yolo]
-- On missense VEP, CDS YOLO matched Evo 2 40B.
-- Neither specialist beat GPN-Star, providing an early indication of the limitations of the alignment-free specialist approach.
-- **Image to add:** Create a paired Promoter YOLO/CDS YOLO figure in the blog palette, with region-matched AUPRC results and Evo 2 40B and GPN-Star references.
+We first trained a 1.7B upstream-region specialist, trying to replicate the success of GPN-Promoter ([experiment #21](https://github.com/Open-Athena/marin-dna/issues/21)). Although we used reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later, performance was broadly comparable to Evo 2 40B. We saw a similar pattern when training a CDS specialist ([experiment #27](https://github.com/Open-Athena/marin-dna/issues/27)). Overall, however, GPN-Star remained stronger.
 
-[^promoter-yolo]: See [Open-Athena/marin-dna issue #21](https://github.com/Open-Athena/marin-dna/issues/21).
+![Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes](/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg)
 
-[^cds-yolo]: See [Open-Athena/marin-dna issue #27](https://github.com/Open-Athena/marin-dna/issues/27).
+*Region-matched Mendelian VEP AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).*
+*Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel.*
+*Error bars are capless ±1 chromosome-cluster bootstrap SE.*
 
 ### Balancing promoter and CDS data
 
