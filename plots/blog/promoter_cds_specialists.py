@@ -226,6 +226,7 @@ def build_figure(data: pd.DataFrame) -> Figure:
     mpl.rcParams.update(
         {
             "svg.fonttype": "none",
+            "svg.hashsalt": OUTPUT_NAME,
             "axes.spines.top": False,
             "axes.spines.right": False,
             "text.color": INK,
@@ -317,7 +318,10 @@ def build_figure(data: pd.DataFrame) -> Figure:
 def save_figure(figure: Figure) -> None:
     """Save the web SVG and a high-resolution PNG for visual review."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for extension, kwargs in (("svg", {}), ("png", {"dpi": 300})):
+    for extension, kwargs in (
+        ("svg", {"metadata": {"Date": None}}),
+        ("png", {"dpi": 300}),
+    ):
         path = OUTPUT_DIR / f"{OUTPUT_NAME}.{extension}"
         figure.savefig(path, bbox_inches="tight", transparent=True, **kwargs)
         if extension == "svg":
