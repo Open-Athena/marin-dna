@@ -134,26 +134,53 @@ We leave to future work how best to extend context, either through additional lo
 
 ### Why VEP evaluation?
 
-VEP is arguably the most important application of gLMs. A useful VEP model can help scale clinical interpretation for rare disease, hereditary cancer, and variants of uncertain significance.[^vep-clinical] It can also help connect genetic association signals to disease mechanisms, target selection, and causal-variant prioritization in GWAS fine-mapping.[^vep-therapeutic] The same kind of evidence is relevant to clinical trial design when genetics can inform patient stratification, enrollment criteria, or mechanism-based cohort definition. Together, these are commonly used levers for improving the efficiency of pharmaceutical development, and it is uncommon for other gLM evaluations to have such a direct connection to commercially relevant research tasks. VEP is also one of the few evaluations backed by decades of costly clinical genetics curation, with resources such as ClinVar and OMIM providing a level of human variant evidence that has no real analogue in other species.[^human-variant-curation] That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology. If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
+Variant effect prediction (VEP) is one the most important application of gLMs.
+A useful VEP model can help scale clinical interpretation for rare disease, hereditary cancer, and variants of uncertain significance.[^vep-clinical]
+It can also help connect genetic association signals to disease mechanisms, target selection, and causal-variant prioritization in GWAS fine-mapping.[^vep-therapeutic]
+The same kind of evidence is relevant to clinical trial design when genetics can inform patient stratification, enrollment criteria, or mechanism-based cohort definition.
+Together, these are commonly used levers for improving the efficiency of pharmaceutical development, and it is uncommon for other gLM evaluations to have such a direct connection to commercially relevant research tasks.
+VEP is also one of the few evaluations backed by decades of costly clinical genetics curation, with resources such as ClinVar and OMIM providing a level of human variant evidence that has no real analogue in other species.[^human-variant-curation]
+That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology.
+If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
 
-- By VEP, we mean estimating whether a sequence variant is likely to disrupt biological function—for example through deleteriousness, pathogenicity, or evidence of evolutionary constraint.
-- We use two complementary sources of evidence: clinically curated Mendelian variants and saturation genome-editing measurements.
-- The Mendelian benchmark compares pathogenic and putatively benign variants across coding and non-coding consequence types.
-- The SGE benchmark uses experimentally measured variant effects from MaveDB, currently covering missense and splicing variants.
-- These benchmarks have different evidence sources, matching designs, and class definitions, so their absolute AUPRC values should not be compared directly.
+This creates a deliberate mismatch between evaluation and intended use: although we expect gLMs to be especially valuable for non-model organisms in the near term, we evaluate them in humans because comparable variant-effect data are not yet available across species.
+Human VEP is therefore the most rigorous available test of learned functional constraint, but it does not by itself establish transfer to other organisms; evaluating that transfer will require broader population-genetic or experimental datasets.
 
-![Mendelian and SGE evaluation datasets](/assets/images/blog/genomic-lm-optimization/eval_datasets.svg)
+In this work, we focus on predicting deleteriousness, pathogenicity, or, more generally, functional constraint.
+This task is the one most directly connected to the language-modeling training objective and is therefore easy to evaluate with zero-shot or linear-probing protocols.
+We leave the prediction of changes in gene expression—the main application of sequence-to-function models—to follow-up work, as it requires more complex fine-tuning protocols and much larger context sizes.[^sequence-to-function-follow-up]
 
-- We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
-- The zero-shot score asks what the language model itself prefers; the probe asks what variant-relevant information is present in its learned representation.
+We use two complementary sources of evidence: clinically curated Mendelian variants[^mendelian-traitgym-differences] and saturation genome-editing (SGE) measurements.
+The Mendelian benchmark compares pathogenic and putatively benign variants across broad coding and non-coding consequence types.
+The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
 
-![Reference/alternate inference with zero-shot and probe readouts](/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg)
+<figure>
+<img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
+<figcaption>The benchmarks use different labels and sampling, so their absolute scores are not directly comparable.</figcaption>
+</figure>
+
+We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
+The zero-shot score tests whether the model's learned sequence likelihood reflects functional constraint: deleterious alternate alleles should incur larger likelihood penalties relative to the reference allele.
+The probe instead asks what variant-relevant information is encoded in the model's learned representation, including information that may not be directly reflected in its sequence likelihoods.
+
+<figure>
+<img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
+<figcaption>Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired allele embeddings.</figcaption>
+</figure>
 
 [^vep-clinical]: Examples include zero-shot or disease-focused variant interpretation results in [Evo 2](https://doi.org/10.1101/2025.02.18.638918), [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), [Carbon](https://doi.org/10.64898/2026.05.22.727119), and [EnTao-GPM](https://arxiv.org/abs/2507.21706).
 
 [^vep-therapeutic]: Examples include fine-mapped GWAS and broader human-genetics results in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), regulatory variant-effect prediction in [AlphaGenome](https://doi.org/10.1101/2025.06.25.661532) and [ChromBPNet](https://www.biorxiv.org/content/10.1101/2024.12.25.630221v2), and the broader observation that human genetic evidence can support target-disease hypotheses in drug discovery in [Nelson et al.](https://doi.org/10.1038/ng.3314).
 
 [^human-variant-curation]: [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/intro/) archives submitted reports relating human genomic variation to disease, cancer, drug response, and supporting evidence; [OMIM](https://doi.org/10.1093/nar/gku1205) is a curated catalog of human genes, genetic disorders, and gene-phenotype relationships. Nothing comparable exists for any other species: this depth reflects decades of clinical genetics effort directed specifically at human disease, an investment that has simply not been made for non-human genomes.
+
+[^sequence-to-function-follow-up]: One promising intermediate sequence-to-function target is chromatin accessibility. [ARSENAL](https://doi.org/10.64898/2026.02.05.703637) showed that embeddings from a short-context regulatory gLM improved supervised chromatin-accessibility prediction over strong ab initio baselines across multiple cell types, while also improving regulatory-variant scoring.
+
+[^mendelian-traitgym-differences]: Our Mendelian benchmark is inspired by the published [TraitGym](https://doi.org/10.1101/2025.02.11.637758) benchmark.
+    Relative to TraitGym, we broadened the gnomAD control set by lowering the minimum allele frequency from 5% to 0.1%; we refer to variants above this threshold as non-rare.
+    The larger control pool allowed us to match potential confounders within each consequence class—including TSS distance and, for splicing variants, exon distance—so that these features are largely non-predictive of the label.
+    We also expanded the benchmark to include missense and splicing variants, incorporated additional sources of pathogenic variants, and created chromosome-disjoint splits for development and final testing.
+    See the [pinned dataset card](https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f) for the full construction and matching diagnostics.
 
 ### Why Evo 2 40B baseline?
 
