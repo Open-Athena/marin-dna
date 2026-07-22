@@ -218,56 +218,59 @@ Even the 50/50 mixture may not be optimal: regions can differ both in size and i
 
 ### Hyperparameter transfer
 
-- Our first attempt to scale manually lowered the learning rate as the model grew from 0.6B to 1.7B and 4B parameters ([issue #57](https://github.com/Open-Athena/marin-dna/issues/57)).
-- The larger models did not improve over the 0.6B model, and the early 4B run became unstable.
-- That failure made systematic hyperparameter transfer a prerequisite: without a trustworthy optimization recipe, a model-size comparison would confound scale with tuning quality.
+Our first attempt to scale manually lowered the learning rate as the model grew from 0.6B to 1.7B and 4B parameters ([experiment #57](https://github.com/Open-Athena/marin-dna/issues/57)).
+The larger models did not improve over the 0.6B model, and the early 4B run became unstable.
+That failure made systematic hyperparameter transfer a prerequisite: without a trustworthy optimization recipe, a model-size comparison would confound scale with tuning quality.
 
-The conserved metazoan DNA pool we can plausibly train on is only O(100B) tokens.[^metazoan-token-pool] That is large by genomics standards, but small relative to modern accelerator chips, making this a data-constrained problem in principle even though our practical constraints are messier. We are building on preemptible Google TPU Research Cloud resources, do not have consistent access to slices much larger than roughly 32 H100s worth of peak FLOPs, and want the recipe to remain reproducible at academic compute scale. O(100B) tokens therefore lands in an awkward middle ground where compute-constrained methods are still relevant, even though modest epoching is possible and likely breaks their assumptions at some unknown rate. The first thing to check is whether the learning-rate prediction survives that regime, as shown in the [learning-rate transfer comparison](#fig-learning-rate-transfer).
+<figure id="fig-annotation-derived-training-pool">
+<img src="/assets/images/blog/genomic-lm-optimization/annotation_derived_training_pool.svg" alt="Approximately 85 billion annotation-derived DNA tokens in a proportional CDS, upstream, and downstream mixture" />
+<figcaption><strong>Figure 6:</strong> Available annotation-derived training pool: approximately 85B DNA tokens in a proportional animal-region mixture.</figcaption>
+</figure>
+
+<figure id="fig-hyperparameter-transfer-methodology">
+<img src="/assets/images/blog/genomic-lm-optimization/parameter_transfer_methodology_v1.svg" alt="DNA optimizer hyperparameter transfer methodology" />
+<figcaption><strong>Figure 7:</strong> DNA reference calibration, Complete(d) AdamH transfer, and target-regime validation.</figcaption>
+</figure>
+
+The annotation-derived DNA pool available at the time contained ~85B tokens, large by genomics standards but small relative to modern accelerator chips. The reference calibration and transfer validation consume 2.5B and 10B tokens from that shared pool, respectively, while each parameter-scaling model gets roughly one full pass. This makes the project data-constrained in principle even though our practical constraints are messier. We train on preemptible Google TPU Research Cloud resources, do not have consistent access to slices much larger than roughly 32 H100s worth of peak FLOPs, and want the recipe to remain reproducible at academic compute scale. O(100B) tokens therefore lands in an awkward middle ground where compute-constrained methods are still relevant, even though modest epoching is possible and likely breaks their assumptions at some unknown rate.
+
+We started with hyperparameter transfer for that reason. If a proven data-constrained transfer framework existed, we would use it. We do not know of one, so we followed the same basic pattern as [Delphi](https://openathena.ai/blog/delphi/), fitting a small reference sweep with the Vizier Bayesian optimization framework and then scaling the result using Complete(d).[^completed-framework] The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters from 255M to 1B parameters, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The first thing to check was whether the learning-rate prediction survived that regime; the less sensitive optimizer hyperparameters are shown separately in the [Adam hyperparameter transfer comparison](#fig-adam-transfer).
 
 <figure id="fig-learning-rate-transfer">
 <img src="/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" />
-<figcaption><strong>Figure 6:</strong> Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales. The <code>control</code> run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (<code>sweep</code> run type), for all model sizes.</figcaption>
+<figcaption><strong>Figure 8:</strong> Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales. The <code>control</code> run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (<code>sweep</code> run type), for all model sizes.</figcaption>
 </figure>
-
-We started with hyperparameter transfer for that reason. If a proven data-constrained transfer framework existed, we would use it. We do not know of one, so we followed the same basic pattern as [Delphi](https://openathena.ai/blog/delphi/), fitting a small reference sweep with the Vizier Bayesian optimization framework and then scaling the result using Complete(d).[^completed-framework] The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters from 255M to 1B parameters, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The less sensitive optimizer hyperparameters are shown separately in the [Adam hyperparameter transfer comparison](#fig-adam-transfer).
 
 <figure id="fig-adam-transfer">
 <img src="/assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg" alt="Adam beta2 and epsilon transfer across model scales" />
-<figcaption><strong>Figure 7:</strong> Adam β₂ and ε transfer across the same scales as <a href="#fig-learning-rate-transfer">the learning-rate transfer comparison</a>.</figcaption>
+<figcaption><strong>Figure 9:</strong> Adam β₂ and ε transfer across the same scales as <a href="#fig-learning-rate-transfer">the learning-rate transfer comparison</a>.</figcaption>
 </figure>
 
 That validation is a fairly unforgiving test. If the transferred learning rate were merely close by accident, it would be surprising for it to land correctly across all three validation scales, but the prediction remains well centered at each one. For DNA, that is a pretty cool result. Prior biology foundation-model work has used μP-style transfer, but we are not aware of a DNA result showing that a more inclusive framework like Complete(d) works across token horizon and batch size, which are the axes we keep leaning on later in ad hoc runs across epochs. The same is mostly true for the other optimizer hyperparameters too, although Adam β₂ shows some signs of being a bit aggressive at the largest scale. The [region-specific transfer comparison](#fig-region-hyperparameter-transfer) makes the same point across CDS, upstream, and downstream sequence, with no qualitative difference in transfer behavior across region types. That gives us enough confidence that the following parameter-scaling runs are at least close to optimally configured.
 
 <details>
-<summary>Figure 8: transfer validation by region</summary>
+<summary>Figure 10: transfer validation by region</summary>
 
 <figure id="fig-region-hyperparameter-transfer">
 <img src="/assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" />
-<figcaption><strong>Figure 8:</strong> Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).</figcaption>
+<figcaption><strong>Figure 10:</strong> Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).</figcaption>
 </figure>
 
 </details>
-
-[^metazoan-token-pool]: The proportional mix used here spans CDS, upstream, and downstream regions, with ~331M training examples and ~85B tokens from 366,411 RefSeq accessions across ~500 animal species. Each region is cycled only once, which is necessary to avoid invalidating assumptions of common hyperparameter transfer frameworks.
 
 [^completed-framework]: Complete(d) refers to the compute-constrained hyperparameter-transfer framework described in [Complete(d): Data-Optimizing Hyperparameter Transfer](https://arxiv.org/abs/2512.22382).
 
 ### Parameter scaling
 
-- The scaling ladder holds the training recipe and three-region data mixture fixed while varying model size from 46M to 4B parameters.
+- The parameter sweep holds the training recipe and three-region data mixture fixed while varying model size from 46M to 4B parameters.
 - Every model uses transferred optimizer hyperparameters rather than a separately hand-tuned recipe.
 - This sweep asks whether loss scaling becomes predictable once optimization quality is controlled.
-
-<figure id="fig-parameter-scaling-ladder">
-<img src="/assets/images/blog/genomic-lm-optimization/mini_scaling_ladder.svg" alt="Eight-model parameter-scaling ladder" />
-<figcaption><strong>Figure 9:</strong> Eight-model parameter-scaling ladder from 46M to 4B parameters.</figcaption>
-</figure>
 
 Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months — fitting the hyperparameter transfer heuristic, running the validation experiments, and training the 4B model, which alone took about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep. That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
 <figure id="fig-loss-scaling">
 <img src="/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" />
-<figcaption><strong>Figure 10:</strong> Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fit.</figcaption>
+<figcaption><strong>Figure 11:</strong> Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fit.</figcaption>
 </figure>
 
 The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably, as shown in the [loss-scaling comparison](#fig-loss-scaling). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. Most importantly, the sweep gives a high-quality Kaplan scaling-law fit (R<sup>2</sup>=0.999), which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
@@ -282,26 +285,26 @@ The relationship between validation loss and VEP performance is much less tidy. 
 
 <figure id="fig-parameters-vs-vep">
 <img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" />
-<figcaption><strong>Figure 11:</strong> Composite VEP AUPRC vs parameter count.</figcaption>
+<figcaption><strong>Figure 12:</strong> Composite VEP AUPRC vs parameter count.</figcaption>
 </figure>
 
 <figure id="fig-loss-vs-vep">
 <img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" />
-<figcaption><strong>Figure 12:</strong> Composite VEP AUPRC vs validation loss.</figcaption>
+<figcaption><strong>Figure 13:</strong> Composite VEP AUPRC vs validation loss.</figcaption>
 </figure>
 
 Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale in the [VEP training trajectories](#fig-vep-training-curves). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.
 
 <figure id="fig-vep-training-curves">
 <img src="/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg" alt="VEP AUPRC training curves by model scale" />
-<figcaption><strong>Figure 13:</strong> VEP AUPRC training curves by model scale.</figcaption>
+<figcaption><strong>Figure 14:</strong> VEP AUPRC training curves by model scale.</figcaption>
 </figure>
 
 Ultimately, the most useful finding from the [loss–VEP correlation summary](#fig-loss-vep-correlation) is that monotonicity is scale-dependent. Mid-sized models are the most reliable by this measure, which gave us a practical target range for later experiments that train beyond one pass through the data.
 
 <figure id="fig-loss-vep-correlation">
 <img src="/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg" alt="Loss vs VEP AUPRC correlation within model-size ranges" />
-<figcaption><strong>Figure 14:</strong> Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.</figcaption>
+<figcaption><strong>Figure 15:</strong> Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.</figcaption>
 </figure>
 
 ### Later mixture experiments
@@ -312,14 +315,14 @@ At this point we move away from theoretically-grounded, compute-constrained meth
 
 <figure id="fig-upstream-reweighting-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/mini_fig9_mixture.svg" alt="Upstream-reweighting continuations from a shared parent" />
-<figcaption><strong>Figure 15:</strong> Upstream-reweighting continuations from a shared parent.</figcaption>
+<figcaption><strong>Figure 16:</strong> Upstream-reweighting continuations from a shared parent.</figcaption>
 </figure>
 
 The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. The [upstream-mixture sweep](#fig-upstream-mixture-sweep) shows why simply shifting weight upstream does not solve this problem. The gains are countered by losses in other genomic regions, and similar continuations from upstream-only or proportionally mixed checkpoints from the parameter-scaling sweep did not produce clear net wins.
 
 <figure id="fig-upstream-mixture-sweep">
 <img src="/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg" alt="Macro average VEP AUPRC vs upstream mixture proportion" />
-<figcaption><strong>Figure 16:</strong> Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.</figcaption>
+<figcaption><strong>Figure 17:</strong> Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.</figcaption>
 </figure>
 
 - The 50% upstream continuation has the highest displayed zero-shot LLR point estimate.
@@ -335,12 +338,12 @@ A more productive strategy is to mix in new sequence types from species with les
 
 <figure id="fig-five-region-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/mini_m5.1_lineage.svg" alt="Three-region to five-region exposure history for m5.1" />
-<figcaption><strong>Figure 17:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
+<figcaption><strong>Figure 18:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
 </figure>
 
 <figure id="fig-mixture-lineage-trajectories">
 <img src="/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg" alt="VEP AUPRC trajectories by mixture lineage" />
-<figcaption><strong>Figure 18:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
+<figcaption><strong>Figure 19:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
 </figure>
 
 - m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
@@ -355,7 +358,7 @@ The result of the previous mixture experiments is the m5.1 model used for the he
 
 <figure id="fig-mendelian-leaderboard">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" />
-<figcaption><strong>Figure 19:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-upstream-mixture-sweep">upstream-mixture sweep</a> and <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
+<figcaption><strong>Figure 20:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-upstream-mixture-sweep">upstream-mixture sweep</a> and <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
 </figure>
 
 ## Conclusion

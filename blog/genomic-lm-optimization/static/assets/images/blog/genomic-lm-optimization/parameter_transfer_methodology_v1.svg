@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="title">DNA optimizer hyperparameter transfer methodology</title>
+  <desc id="desc">A three-stage schematic. First, a detailed DNA reference sweep tunes AdamH hyperparameters on a small Qwen3 model using five initialization scales and Bayesian optimization. Second, Completed AdamH transforms the reference optimum for a target batch size and token horizon. Third, one-dimensional validation sweeps test whether the transferred prediction lies near each target loss minimum.</desc>
+
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#5b4a36" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a7d68"/>
+    </marker>
+    <linearGradient id="anchorBand" x1="0" x2="1">
+      <stop offset="0" stop-color="#2f6f63"/>
+      <stop offset="1" stop-color="#465c6e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- canvas -->
+  <rect x="1" y="1" width="1278" height="758" rx="18" fill="#f6f0e4" stroke="#ddd3bf"/>
+
+  <!-- title -->
+  <text x="36" y="40" font-size="10" font-weight="750" letter-spacing="1.1" fill="#a89a80">OPTIMIZER HYPERPARAMETER TRANSFER · EXP109</text>
+  <text x="36" y="70" font-size="23" font-weight="760" fill="#1f1e1b">Calibrate once on DNA, transfer by rule, validate at the target regime</text>
+  <text x="36" y="94" font-size="12.5" fill="#7a6f5f">The transferred object is an optimizer recipe—not a checkpoint. Every target model starts from newly initialized weights.</text>
+
+  <!-- connectors behind cards -->
+  <path d="M 626 400 C 642 400, 646 400, 661 400" fill="none" stroke="#8a7d68" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M 936 400 C 952 400, 956 400, 971 400" fill="none" stroke="#8a7d68" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 1 card -->
+  <g filter="url(#shadow)">
+    <rect x="28" y="122" width="598" height="570" rx="16" fill="#fffaf0" stroke="#d8ccb5"/>
+  </g>
+  <circle cx="54" cy="151" r="14" fill="#9c4f2f"/>
+  <text x="54" y="155" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">1</text>
+  <text x="78" y="155" font-size="16" font-weight="760" fill="#1f1e1b">Build a DNA-specific reference optimum</text>
+  <text x="54" y="179" font-size="11.5" fill="#7a6f5f">An inexpensive but realistic reference problem makes broad tuning feasible.</text>
+
+  <!-- Fixed reference regime -->
+  <rect x="48" y="198" width="558" height="96" rx="11" fill="#f2eadb" stroke="#e0d5c0"/>
+  <text x="64" y="220" font-size="10" font-weight="750" letter-spacing="0.8" fill="#8a7d68">FIXED REFERENCE REGIME</text>
+  <g font-size="11" font-weight="650" fill="#3b3934">
+    <rect x="64" y="232" width="116" height="27" rx="13.5" fill="#fffaf0" stroke="#ddd3bf"/>
+    <text x="122" y="250" text-anchor="middle">Qwen3 · ~25M</text>
+    <rect x="188" y="232" width="108" height="27" rx="13.5" fill="#fffaf0" stroke="#ddd3bf"/>
+    <text x="242" y="250" text-anchor="middle">2.5B tokens</text>
+    <rect x="304" y="232" width="124" height="27" rx="13.5" fill="#fffaf0" stroke="#ddd3bf"/>
+    <text x="366" y="250" text-anchor="middle">batch 16,384</text>
+    <rect x="436" y="232" width="148" height="27" rx="13.5" fill="#fffaf0" stroke="#ddd3bf"/>
+    <text x="510" y="250" text-anchor="middle">255 bp + BOS</text>
+  </g>
+  <text x="64" y="278" font-size="9.5" fill="#8a7d68">Sequence source: shared annotation-derived pool shown above</text>
+
+  <!-- Search design -->
+  <text x="48" y="324" font-size="10" font-weight="750" letter-spacing="0.8" fill="#8a7d68">SEARCH DESIGN</text>
+
+  <!-- initialization grid -->
+  <rect x="48" y="338" width="145" height="142" rx="11" fill="#fbf5e9" stroke="#e0d5c0"/>
+  <text x="64" y="360" font-size="11.5" font-weight="720" fill="#1f1e1b">Initialization scale</text>
+  <text x="64" y="376" font-size="9.5" fill="#8a7d68">5 independent studies</text>
+  <g font-size="10" fill="#5b4a36">
+    <rect x="65" y="391" width="67" height="14" rx="7" fill="#9c4f2f" opacity="0.95"/><text x="142" y="402">.040</text>
+    <rect x="65" y="410" width="50" height="14" rx="7" fill="#9c4f2f" opacity="0.82"/><text x="142" y="421">.020</text>
+    <rect x="65" y="429" width="36" height="14" rx="7" fill="#9c4f2f" opacity="0.68"/><text x="142" y="440">.010</text>
+    <rect x="65" y="448" width="25" height="14" rx="7" fill="#9c4f2f" opacity="0.54"/><text x="142" y="459">.005</text>
+    <rect x="65" y="467" width="17" height="7" rx="3.5" fill="#9c4f2f" opacity="0.42"/><text x="142" y="475">.0025</text>
+  </g>
+
+  <text x="207" y="411" text-anchor="middle" font-size="22" fill="#a89a80">×</text>
+
+  <!-- Vizier box -->
+  <rect x="221" y="338" width="385" height="142" rx="11" fill="#fbf5e9" stroke="#e0d5c0"/>
+  <text x="237" y="360" font-size="11.5" font-weight="720" fill="#1f1e1b">Vizier Bayesian optimization</text>
+  <text x="237" y="376" font-size="9.5" fill="#8a7d68">suggest → train → observe validation loss → update</text>
+  <g font-size="9.5" font-weight="650" fill="#3b3934">
+    <rect x="237" y="389" width="54" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="264" y="404" text-anchor="middle">LR</text>
+    <rect x="297" y="389" width="72" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="333" y="404" text-anchor="middle">Adam LR</text>
+    <rect x="375" y="389" width="54" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="402" y="404" text-anchor="middle">β₁</text>
+    <rect x="435" y="389" width="54" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="462" y="404" text-anchor="middle">β₂</text>
+    <rect x="495" y="389" width="54" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="522" y="404" text-anchor="middle">ε</text>
+    <rect x="237" y="419" width="118" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="296" y="434" text-anchor="middle">gradient clip</text>
+    <rect x="361" y="419" width="86" height="23" rx="11.5" fill="#e8f0ed" stroke="#c7d9d3"/><text x="404" y="434" text-anchor="middle">z-loss</text>
+  </g>
+  <g fill="#2f6f63">
+    <circle cx="470" cy="430" r="3" opacity="0.30"/><circle cx="481" cy="430" r="3" opacity="0.40"/><circle cx="492" cy="430" r="3" opacity="0.50"/><circle cx="503" cy="430" r="3" opacity="0.60"/><circle cx="514" cy="430" r="3" opacity="0.70"/><circle cx="525" cy="430" r="3" opacity="0.80"/><circle cx="536" cy="430" r="3" opacity="0.90"/>
+    <circle cx="547" cy="430" r="3"/><circle cx="558" cy="430" r="3" opacity="0.85"/><circle cx="569" cy="430" r="3" opacity="0.65"/>
+  </g>
+  <text x="237" y="463" font-size="9.5" fill="#8a7d68">10 adaptive rounds × 4 proposals · 183 feasible runs</text>
+
+  <!-- Select optimum -->
+  <path d="M 327 480 V 505" fill="none" stroke="#8a7d68" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="48" y="505" width="558" height="78" rx="11" fill="#f2eadb" stroke="#e0d5c0"/>
+  <text x="64" y="527" font-size="11.5" font-weight="720" fill="#1f1e1b">Select the run with lowest validation loss</text>
+  <text x="64" y="544" font-size="9.5" fill="#8a7d68">Each point is a complete reference training run; the star becomes the calibration anchor.</text>
+  <line x1="370" y1="560" x2="579" y2="560" stroke="#cfc3ad"/>
+  <line x1="370" y1="549" x2="370" y2="573" stroke="#cfc3ad"/>
+  <g fill="#a89a80" opacity="0.75">
+    <circle cx="388" cy="552" r="3"/><circle cx="405" cy="557" r="3"/><circle cx="422" cy="550" r="3"/><circle cx="440" cy="561" r="3"/><circle cx="458" cy="555" r="3"/><circle cx="476" cy="566" r="3"/><circle cx="495" cy="559" r="3"/><circle cx="513" cy="570" r="3"/><circle cx="532" cy="564" r="3"/><circle cx="551" cy="571" r="3"/>
+  </g>
+  <path d="M 570 552 l 3 7 8 1 -6 5 2 8 -7 -4 -7 4 2 -8 -6 -5 8 -1 z" fill="#9c4f2f"/>
+  <text x="579" y="546" text-anchor="end" font-size="9" font-weight="700" fill="#9c4f2f">best</text>
+
+  <!-- Anchor output -->
+  <rect x="48" y="602" width="558" height="70" rx="12" fill="url(#anchorBand)"/>
+  <text x="67" y="627" font-size="10" font-weight="750" letter-spacing="0.7" fill="#dce9e5">DNA REFERENCE ANCHOR</text>
+  <text x="67" y="651" font-size="15" font-weight="760" fill="#fff">h₀ at B₀ = 16,384 · T₀ = 2.5B</text>
+  <rect x="424" y="618" width="162" height="35" rx="8" fill="#ffffff" opacity="0.14"/>
+  <text x="505" y="633" text-anchor="middle" font-size="9.5" fill="#eaf3f0">winning initialization</text>
+  <text x="505" y="648" text-anchor="middle" font-size="13" font-weight="760" fill="#fff">σ = 0.02</text>
+
+  <!-- Stage 2 card -->
+  <g filter="url(#shadow)">
+    <rect x="662" y="122" width="274" height="570" rx="16" fill="#fffaf0" stroke="#d8ccb5"/>
+  </g>
+  <circle cx="688" cy="151" r="14" fill="#2f6f63"/>
+  <text x="688" y="155" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">2</text>
+  <text x="712" y="155" font-size="16" font-weight="760" fill="#1f1e1b">Apply the transfer rule</text>
+  <text x="688" y="179" font-size="11.5" fill="#7a6f5f">Predict a recipe for a new training regime.</text>
+
+  <!-- Inputs -->
+  <rect x="686" y="204" width="100" height="54" rx="10" fill="#e8f0ed" stroke="#c7d9d3"/>
+  <text x="736" y="224" text-anchor="middle" font-size="9.5" fill="#5d756e">reference</text>
+  <text x="736" y="244" text-anchor="middle" font-size="15" font-weight="760" fill="#2f6f63">h₀, B₀, T₀</text>
+  <rect x="812" y="204" width="100" height="54" rx="10" fill="#edf0f2" stroke="#cbd3d8"/>
+  <text x="862" y="224" text-anchor="middle" font-size="9.5" fill="#667681">target</text>
+  <text x="862" y="244" text-anchor="middle" font-size="15" font-weight="760" fill="#465c6e">B, T</text>
+  <path d="M 736 258 V 282 H 790" fill="none" stroke="#8a7d68" stroke-width="1.5"/>
+  <path d="M 862 258 V 282 H 808" fill="none" stroke="#8a7d68" stroke-width="1.5"/>
+  <path d="M 799 282 V 304" fill="none" stroke="#8a7d68" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="686" y="310" width="226" height="64" rx="12" fill="#2f6f63"/>
+  <text x="799" y="336" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="0.7" fill="#dce9e5">COMPLETED ADAMH</text>
+  <text x="799" y="358" text-anchor="middle" font-size="15" font-weight="760" fill="#fff">h(B, T)</text>
+
+  <!-- Equations -->
+  <text x="686" y="405" font-size="10" font-weight="750" letter-spacing="0.7" fill="#8a7d68">TRANSFORMED</text>
+  <g font-size="11" fill="#3b3934">
+    <text x="690" y="430"><tspan font-weight="720" fill="#2f6f63">LR</tspan><tspan> ∝ √(B/B₀) · (T₀/T)</tspan><tspan baseline-shift="super" font-size="8">0.3</tspan></text>
+    <text x="690" y="455"><tspan font-weight="720" fill="#2f6f63">Adam LR</tspan><tspan> ∝ √(r/r₀)</tspan></text>
+    <text x="690" y="480"><tspan font-weight="720" fill="#2f6f63">ε</tspan><tspan> ∝ √(r₀/r)</tspan></text>
+    <text x="690" y="505"><tspan font-weight="720" fill="#2f6f63">β₂</tspan><tspan> ← β₂,₀</tspan><tspan baseline-shift="super" font-size="8">B/B₀</tspan></text>
+  </g>
+  <text x="690" y="527" font-size="9" fill="#8a7d68">r = B × sequence length / T · configured clips apply</text>
+
+  <!-- Key conceptual callouts -->
+  <rect x="686" y="553" width="226" height="57" rx="10" fill="#f2eadb" stroke="#e0d5c0"/>
+  <text x="799" y="575" text-anchor="middle" font-size="10.5" font-weight="720" fill="#5b4a36">Optimizer transfer uses B and T</text>
+  <text x="799" y="594" text-anchor="middle" font-size="10.5" fill="#7a6f5f">not model size</text>
+  <rect x="686" y="622" width="226" height="50" rx="10" fill="#f8e9df" stroke="#e5c8b5"/>
+  <text x="799" y="643" text-anchor="middle" font-size="10.5" font-weight="750" fill="#9c4f2f">No weights are transferred</text>
+  <text x="799" y="660" text-anchor="middle" font-size="9.5" fill="#8a5e49">target models initialize from scratch</text>
+
+  <!-- Stage 3 card -->
+  <g filter="url(#shadow)">
+    <rect x="972" y="122" width="280" height="570" rx="16" fill="#fffaf0" stroke="#d8ccb5"/>
+  </g>
+  <circle cx="998" cy="151" r="14" fill="#465c6e"/>
+  <text x="998" y="155" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">3</text>
+  <text x="1022" y="155" font-size="16" font-weight="760" fill="#1f1e1b">Validate the prediction</text>
+  <text x="998" y="179" font-size="11.5" fill="#7a6f5f">Test the transfer before applying it at scale.</text>
+
+  <!-- target regime -->
+  <rect x="996" y="204" width="232" height="83" rx="11" fill="#edf0f2" stroke="#cbd3d8"/>
+  <text x="1012" y="226" font-size="10" font-weight="750" letter-spacing="0.7" fill="#667681">TARGET VALIDATION REGIME</text>
+  <text x="1012" y="248" font-size="11.5" font-weight="700" fill="#354854">255M · 476M · 1.1B models</text>
+  <text x="1012" y="269" font-size="10.5" fill="#667681">10B tokens · batch 4,096</text>
+
+  <!-- validation procedure -->
+  <text x="996" y="319" font-size="10" font-weight="750" letter-spacing="0.7" fill="#8a7d68">ONE-DIMENSIONAL CHECKS</text>
+  <text x="996" y="339" font-size="10.5" fill="#5b4a36">Sweep around the predicted center:</text>
+
+  <!-- mini plot 1 -->
+  <g transform="translate(996 356)">
+    <rect width="232" height="67" rx="9" fill="#fbf5e9" stroke="#e0d5c0"/>
+    <text x="13" y="20" font-size="10.5" font-weight="720" fill="#2f6f63">learning rate</text>
+    <path d="M 15 27 C 54 29, 76 50, 116 54 C 156 50, 180 29, 218 27" fill="none" stroke="#8a7d68" stroke-width="1.7"/>
+    <line x1="116" y1="21" x2="116" y2="58" stroke="#2f6f63" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <circle cx="116" cy="54" r="4" fill="#2f6f63"/>
+    <text x="127" y="26" font-size="8.5" fill="#2f6f63">prediction</text>
+  </g>
+
+  <!-- mini plot 2 -->
+  <g transform="translate(996 434)">
+    <rect width="232" height="67" rx="9" fill="#fbf5e9" stroke="#e0d5c0"/>
+    <text x="13" y="20" font-size="10.5" font-weight="720" fill="#465c6e">β₂</text>
+    <path d="M 15 27 C 49 29, 72 49, 105 54 C 145 52, 179 30, 218 27" fill="none" stroke="#8a7d68" stroke-width="1.7"/>
+    <line x1="126" y1="21" x2="126" y2="58" stroke="#2f6f63" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <circle cx="126" cy="52" r="4" fill="#2f6f63"/>
+    <circle cx="105" cy="54" r="3.5" fill="#9c4f2f"/>
+    <text x="137" y="26" font-size="8.5" fill="#2f6f63">prediction</text>
+  </g>
+
+  <!-- mini plot 3 -->
+  <g transform="translate(996 512)">
+    <rect width="232" height="67" rx="9" fill="#fbf5e9" stroke="#e0d5c0"/>
+    <text x="13" y="20" font-size="10.5" font-weight="720" fill="#c0883a">ε</text>
+    <path d="M 15 27 C 50 30, 76 50, 116 54 C 158 50, 184 30, 218 27" fill="none" stroke="#8a7d68" stroke-width="1.7"/>
+    <line x1="116" y1="21" x2="116" y2="58" stroke="#2f6f63" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <circle cx="116" cy="54" r="4" fill="#2f6f63"/>
+    <text x="127" y="26" font-size="8.5" fill="#2f6f63">prediction</text>
+  </g>
+
+  <!-- validation output -->
+  <rect x="996" y="598" width="232" height="74" rx="11" fill="#465c6e"/>
+  <text x="1112" y="622" text-anchor="middle" font-size="10" font-weight="750" letter-spacing="0.7" fill="#dce4e8">VALIDATED RECIPE</text>
+  <text x="1112" y="645" text-anchor="middle" font-size="12.5" font-weight="760" fill="#fff">predicted centers near minima</text>
+  <text x="1112" y="661" text-anchor="middle" font-size="9.5" fill="#dce4e8">β₂ showed the main residual mismatch</text>
+
+  <!-- footer -->
+  <line x1="36" y1="716" x2="1244" y2="716" stroke="#ddd3bf"/>
+  <g font-size="9.5" fill="#8a7d68">
+    <rect x="36" y="730" width="10" height="10" rx="2" fill="#9c4f2f"/><text x="52" y="739">reference calibration</text>
+    <rect x="172" y="730" width="10" height="10" rx="2" fill="#2f6f63"/><text x="188" y="739">transferred prediction</text>
+    <rect x="329" y="730" width="10" height="10" rx="2" fill="#465c6e"/><text x="345" y="739">target validation</text>
+    <text x="1244" y="739" text-anchor="end">Source: marin #4251 · Open-Athena/marin-dna #109</text>
+  </g>
+</svg>

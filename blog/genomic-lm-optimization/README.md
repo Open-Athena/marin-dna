@@ -58,9 +58,16 @@ Then open
 The command clones the website at the renderer pin into an isolated temporary
 directory, overlays the canonical article/assets, runs the website's own build,
 writes only the rendered gLM article and its referenced CSS/fonts/assets to the
-ignored `.preview/` directory, and serves it. Other website pages and articles
-are neither copied into `.preview/` nor available from the local server. Stop
-it with Ctrl-C. There is intentionally no hosted preview.
+ignored `.preview/` directory, and serves it. It watches the canonical Markdown
+and asset directory, debounces saves, rebuilds with the pinned renderer, and
+automatically reloads every connected browser after a successful build. A
+failed rebuild is reported in the terminal while the last successful preview
+remains available.
+
+Other website pages and articles are neither copied into `.preview/` nor
+available from the local server. Pass `--no-watch` to serve one build without
+watching or browser reload. Stop the server with Ctrl-C. There is intentionally
+no hosted preview.
 
 Useful non-serving commands are:
 

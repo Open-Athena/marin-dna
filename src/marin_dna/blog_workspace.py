@@ -10,6 +10,8 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 import tomllib
 from collections import Counter
 from dataclasses import dataclass
@@ -31,6 +33,29 @@ HTML_FILE_ATTRIBUTE_RE = re.compile(
 CSS_URL_RE = re.compile(r"""\burl\(\s*(?:["']([^"']+)["']|([^\s)'"]+))\s*\)""")
 FOOTNOTE_DEFINITION_RE = re.compile(r"(?m)^[ \t]{0,3}\[\^([^\]\s]+)\]:")
 FOOTNOTE_TOKEN_RE = re.compile(r"\[\^([^\]\s]+)\]")
+
+LIVE_RELOAD_RELATIVE_PATH = Path("__marin_dna_live_reload__")
+LIVE_RELOAD_SCRIPT = """
+<script>
+(() => {
+  let revision = null;
+  async function checkForUpdate() {
+    try {
+      const response = await fetch(
+        "/__marin_dna_live_reload__?cache=" + Date.now(),
+        {cache: "no-store"}
+      );
+      if (!response.ok) return;
+      const nextRevision = (await response.text()).trim();
+      if (revision === null) revision = nextRevision;
+      else if (nextRevision !== revision) window.location.reload();
+    } catch (_) {}
+  }
+  checkForUpdate();
+  window.setInterval(checkForUpdate, 750);
+})();
+</script>
+""".strip()
 
 
 @dataclass(frozen=True)
@@ -401,6 +426,131 @@ def build_preview(config: WorkspaceConfig, output: Path | None = None) -> Path:
     return output
 
 
+def inject_live_reload(output: Path, page_relative: Path, revision: str) -> None:
+    """Add a preview-only reload client and publish its current revision."""
+    assert revision and "\n" not in revision
+    page = output / page_relative
+    assert page.is_file(), page
+    html = page.read_text()
+    assert html.count("</body>") == 1, "expected exactly one closing body tag"
+    page.write_text(html.replace("</body>", f"{LIVE_RELOAD_SCRIPT}\n</body>"))
+    (output / LIVE_RELOAD_RELATIVE_PATH).write_text(f"{revision}\n")
+
+
+def _remove_preview_tree(path: Path, workspace_root: Path) -> None:
+    """Remove one known preview tree while guarding against broad deletion."""
+    resolved_root = workspace_root.resolve()
+    resolved_path = path.resolve()
+    assert resolved_path.is_relative_to(resolved_root)
+    assert resolved_path != resolved_root
+    if resolved_path.exists():
+        assert resolved_path.is_dir(), resolved_path
+        shutil.rmtree(resolved_path)
+
+
+def refresh_live_preview(
+    config: WorkspaceConfig,
+    revision: str,
+    output: Path | None = None,
+) -> Path:
+    """Build a live-reload preview and replace the last good build on success."""
+    output = output or config.root / ".preview"
+    staging = output.with_name(f"{output.name}.next")
+    previous = output.with_name(f"{output.name}.previous")
+    _remove_preview_tree(staging, config.root)
+    _remove_preview_tree(previous, config.root)
+
+    try:
+        build_preview(config, staging)
+        page_relative = Path("blog") / config.slug / "index.html"
+        inject_live_reload(staging, page_relative, revision)
+    except Exception:
+        _remove_preview_tree(staging, config.root)
+        raise
+
+    if output.exists():
+        assert output.is_dir(), output
+        os.replace(output, previous)
+    try:
+        os.replace(staging, output)
+    except Exception:
+        if previous.exists():
+            os.replace(previous, output)
+        _remove_preview_tree(staging, config.root)
+        raise
+    _remove_preview_tree(previous, config.root)
+    return output
+
+
+PreviewSourceSignature = tuple[tuple[str, int, int], ...]
+
+
+def preview_source_signature(config: WorkspaceConfig) -> PreviewSourceSignature:
+    """Capture the article and asset file set, mtimes, and sizes."""
+    sources = [config.article]
+    sources.extend(path for path in config.assets.rglob("*") if path.is_file())
+    workspace_root = config.root.resolve()
+    signature: list[tuple[str, int, int]] = []
+    for source in sorted(sources):
+        resolved = source.resolve()
+        assert resolved.is_relative_to(workspace_root), resolved
+        metadata = resolved.stat()
+        signature.append(
+            (
+                resolved.relative_to(workspace_root).as_posix(),
+                metadata.st_mtime_ns,
+                metadata.st_size,
+            )
+        )
+    return tuple(signature)
+
+
+def watch_preview_sources(
+    config: WorkspaceConfig,
+    initial_signature: PreviewSourceSignature,
+    stop: threading.Event,
+    poll_seconds: float = 0.25,
+    debounce_seconds: float = 0.4,
+) -> None:
+    """Rebuild after stable source changes while preserving the last good build."""
+    assert poll_seconds > 0
+    assert debounce_seconds >= 0
+    signature = initial_signature
+    while not stop.wait(poll_seconds):
+        try:
+            changed = preview_source_signature(config)
+        except OSError:
+            continue
+        if changed == signature:
+            continue
+
+        signature = changed
+        deadline = time.monotonic() + debounce_seconds
+        while not stop.wait(poll_seconds):
+            try:
+                candidate = preview_source_signature(config)
+            except OSError:
+                continue
+            if candidate != signature:
+                signature = candidate
+                deadline = time.monotonic() + debounce_seconds
+            if time.monotonic() >= deadline:
+                break
+        if stop.is_set():
+            return
+
+        try:
+            refresh_live_preview(config, revision=str(time.time_ns()))
+        except Exception as error:
+            print(
+                "Preview rebuild failed; continuing to serve the last good build: "
+                f"{type(error).__name__}: {error}",
+                flush=True,
+            )
+        else:
+            print("Preview rebuilt; reloading connected browsers.", flush=True)
+
+
 def verify_import(config: WorkspaceConfig) -> str:
     """Verify byte identity with the pinned PR and build the untouched baseline."""
     validate_workspace(config)
@@ -448,18 +598,38 @@ def export_workspace(config: WorkspaceConfig, destination: Path) -> list[Path]:
     return exported
 
 
-def serve_preview(config: WorkspaceConfig, host: str, port: int) -> None:
+def serve_preview(
+    config: WorkspaceConfig, host: str, port: int, watch: bool = True
+) -> None:
     """Build and serve the preview until interrupted."""
-    output = build_preview(config)
+    initial_signature = preview_source_signature(config)
+    if watch:
+        output = refresh_live_preview(config, revision=str(time.time_ns()))
+    else:
+        output = build_preview(config)
     handler = partial(SimpleHTTPRequestHandler, directory=str(output))
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Preview: http://{host}:{port}/blog/{config.slug}/", flush=True)
+    stop = threading.Event()
+    watcher: threading.Thread | None = None
+    if watch:
+        watcher = threading.Thread(
+            target=watch_preview_sources,
+            args=(config, initial_signature, stop),
+            name="blog-preview-watcher",
+            daemon=True,
+        )
+        watcher.start()
+        print("Watching the article and assets for changes.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        stop.set()
         server.server_close()
+        if watcher is not None:
+            watcher.join(timeout=2)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -473,6 +643,11 @@ def _parser() -> argparse.ArgumentParser:
     preview = subparsers.add_parser("preview")
     preview.add_argument("--host", default="127.0.0.1")
     preview.add_argument("--port", type=int, default=8765)
+    preview.add_argument(
+        "--no-watch",
+        action="store_true",
+        help="serve one build without watching files or reloading the browser",
+    )
     export = subparsers.add_parser("export")
     export.add_argument("--destination", type=Path)
     return parser
@@ -493,7 +668,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Built preview at {output}")
     elif args.command == "preview":
         assert 0 < args.port < 65536
-        serve_preview(config, args.host, args.port)
+        serve_preview(config, args.host, args.port, watch=not args.no_watch)
     elif args.command == "export":
         destination = (
             args.destination or config.root / "export" / "open-athena.github.io"
