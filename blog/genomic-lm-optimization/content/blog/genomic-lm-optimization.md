@@ -147,9 +147,9 @@ In this work, we focus on predicting deleteriousness, pathogenicity, or, more ge
 This task is the one most directly connected to the language-modeling training objective and is therefore easy to evaluate with zero-shot or linear-probing protocols.
 We leave the prediction of changes in gene expression—the main application of sequence-to-function models—to follow-up work, as it requires more complex fine-tuning protocols and much larger context sizes.[^sequence-to-function-follow-up]
 
-- We use two complementary sources of evidence: clinically curated Mendelian variants (footnote with a few key differences with published TraitGym) and saturation genome-editing (SGE) measurements.
-- The Mendelian benchmark compares pathogenic and putatively benign variants across broad coding and non-coding consequence types.
-- The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
+We use two complementary sources of evidence: clinically curated Mendelian variants[^mendelian-traitgym-differences] and saturation genome-editing (SGE) measurements.
+The Mendelian benchmark compares pathogenic and putatively benign variants across broad coding and non-coding consequence types.
+The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
 
 <figure>
 <img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
@@ -171,6 +171,12 @@ We leave the prediction of changes in gene expression—the main application of 
 [^human-variant-curation]: [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/intro/) archives submitted reports relating human genomic variation to disease, cancer, drug response, and supporting evidence; [OMIM](https://doi.org/10.1093/nar/gku1205) is a curated catalog of human genes, genetic disorders, and gene-phenotype relationships. Nothing comparable exists for any other species: this depth reflects decades of clinical genetics effort directed specifically at human disease, an investment that has simply not been made for non-human genomes.
 
 [^sequence-to-function-follow-up]: One promising intermediate sequence-to-function target is chromatin accessibility. [ARSENAL](https://doi.org/10.64898/2026.02.05.703637) showed that embeddings from a short-context regulatory gLM improved supervised chromatin-accessibility prediction over strong ab initio baselines across multiple cell types, while also improving regulatory-variant scoring.
+
+[^mendelian-traitgym-differences]: Our Mendelian benchmark is inspired by the published [TraitGym](https://doi.org/10.1101/2025.02.11.637758) benchmark.
+Relative to TraitGym, we broadened the gnomAD control set by lowering the minimum allele frequency from 5% to 0.1%; we refer to variants above this threshold as non-rare.
+The larger control pool allowed us to match potential confounders within each consequence class—including TSS distance and, for splicing variants, exon distance—so that these features are largely non-predictive of the label.
+We also expanded the benchmark to include missense and splicing variants, incorporated additional sources of pathogenic variants, and created chromosome-disjoint splits for development and final testing.
+See the [pinned dataset card](https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f) for the full construction and matching diagnostics.
 
 ### Why Evo 2 40B baseline?
 

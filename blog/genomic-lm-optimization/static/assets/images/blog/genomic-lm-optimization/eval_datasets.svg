@@ -47,7 +47,7 @@
   <text x="160" y="216" font-size="10.5" fill="#5f574b">OMIM + Smedley et al. 2016 + HGMD · AF &lt; 0.1%</text>
   <circle cx="60" cy="244" r="5" fill="#f4e9e1" stroke="#9c4f2f"/>
   <text x="74" y="248" font-size="12" font-weight="750" fill="#1f1e1b">Control</text>
-  <text x="160" y="248" font-size="10.5" fill="#5f574b">gnomAD common SNVs · AF &gt; 0.1%</text>
+  <text x="160" y="248" font-size="10.5" fill="#5f574b">gnomAD non-rare SNVs · AF &gt; 0.1%</text>
 
   <line x1="245" y1="274" x2="245" y2="287" stroke="#8a7d68" stroke-width="1.5" marker-end="url(#arrow)"/>
   <rect x="40" y="292" width="410" height="68" rx="10" fill="#f3ead8" stroke="#d9cbb1"/>
