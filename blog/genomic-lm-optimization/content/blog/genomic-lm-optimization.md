@@ -98,9 +98,10 @@ Standard genome annotations make these regions relatively easy to identify and e
 Later, we added ncRNA exons[^training-ncrna] and enhancers[^training-enhancer] built by alignment projection.
 Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
-![Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets](/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg)
-
-*Dataset provenance and token counts for each sequence type.*
+<figure id="fig-training-datasets">
+<img src="/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
+<figcaption><strong>Figure 1:</strong> Dataset provenance and token counts for each sequence type.</figcaption>
+</figure>
 
 [^training-downstream]: “Downstream” denotes the 256 bp immediately downstream of each annotated CDS end, rather than annotated 3′ UTR intervals. In [experiment #53](https://github.com/Open-Athena/marin-dna/issues/53), this distance-based definition produced better 3′ UTR VEP performance than the annotation-derived baseline, suggesting the smaller, more conserved proxy was preferable.
 
@@ -154,18 +155,18 @@ We use two complementary sources of evidence: clinically curated Mendelian varia
 The Mendelian benchmark compares pathogenic and putatively benign variants across broad coding and non-coding consequence types.
 The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
 
-<figure>
+<figure id="fig-evaluation-datasets">
 <img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
-<figcaption>The benchmarks use different labels and sampling, so their absolute scores are not directly comparable.</figcaption>
+<figcaption><strong>Figure 2:</strong> The benchmarks use different labels and sampling, so their absolute scores are not directly comparable.</figcaption>
 </figure>
 
 We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
 The zero-shot score tests whether the model's learned sequence likelihood reflects functional constraint: deleterious alternate alleles should incur larger likelihood penalties relative to the reference allele.
 The probe instead asks what variant-relevant information is encoded in the model's learned representation, including information that may not be directly reflected in its sequence likelihoods.
 
-<figure>
+<figure id="fig-evaluation-readouts">
 <img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
-<figcaption>Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired allele embeddings.</figcaption>
+<figcaption><strong>Figure 3:</strong> Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired allele embeddings.</figcaption>
 </figure>
 
 [^vep-clinical]: Examples include zero-shot or disease-focused variant interpretation results in [Evo 2](https://doi.org/10.1101/2025.02.18.638918), [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), [Carbon](https://doi.org/10.64898/2026.05.22.727119), and [EnTao-GPM](https://arxiv.org/abs/2507.21706).
@@ -196,11 +197,10 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 We first trained a 1.7B upstream-region specialist, trying to replicate the success of GPN-Promoter ([experiment #21](https://github.com/Open-Athena/marin-dna/issues/21)). Although we used reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later, performance was broadly comparable to Evo 2 40B. We saw a similar pattern when training a CDS specialist ([experiment #27](https://github.com/Open-Athena/marin-dna/issues/27)). Overall, however, GPN-Star remained stronger.
 
-![Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes](/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg)
-
-*Region-matched Mendelian VEP AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).*
-*Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel.*
-*Error bars denote SE.*
+<figure id="fig-upstream-cds-specialists">
+<img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
+<figcaption><strong>Figure 4:</strong> Region-matched Mendelian VEP AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR). Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel. Error bars denote SE.</figcaption>
+</figure>
 
 ### Balancing upstream and CDS data
 
@@ -211,9 +211,10 @@ Equal 50/50 upstream/CDS sampling produced balanced performance across both regi
 This made explicit mixture control a central axis of investigation.
 Even the 50/50 mixture may not be optimal: regions can differ both in size and in the density of learnable biological signal.
 
-![Promoter and missense VEP AUPRC trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures](/assets/images/blog/genomic-lm-optimization/upstream_cds_balance.svg)
-
-*Upstream/CDS mixture comparison (zero-shot). The right panel is the unweighted mean of the promoter and missense AUPRCs.*
+<figure id="fig-upstream-cds-balance">
+<img src="/assets/images/blog/genomic-lm-optimization/upstream_cds_balance.svg" alt="Promoter and missense VEP AUPRC trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures" />
+<figcaption><strong>Figure 5:</strong> Upstream/CDS mixture comparison (zero-shot). The right panel is the unweighted mean of the promoter and missense AUPRCs.</figcaption>
+</figure>
 
 ### Hyperparameter transfer
 
@@ -221,26 +222,29 @@ Even the 50/50 mixture may not be optimal: regions can differ both in size and i
 - The larger models did not improve over the 0.6B model, and the early 4B run became unstable.
 - That failure made systematic hyperparameter transfer a prerequisite: without a trustworthy optimization recipe, a model-size comparison would confound scale with tuning quality.
 
-The conserved metazoan DNA pool we can plausibly train on is only O(100B) tokens.[^metazoan-token-pool] That is large by genomics standards, but small relative to modern accelerator chips, making this a data-constrained problem in principle even though our practical constraints are messier. We are building on preemptible Google TPU Research Cloud resources, do not have consistent access to slices much larger than roughly 32 H100s worth of peak FLOPs, and want the recipe to remain reproducible at academic compute scale. O(100B) tokens therefore lands in an awkward middle ground where compute-constrained methods are still relevant, even though modest epoching is possible and likely breaks their assumptions at some unknown rate. The first thing to check is whether the learning-rate prediction survives that regime (Figure 1).
+The conserved metazoan DNA pool we can plausibly train on is only O(100B) tokens.[^metazoan-token-pool] That is large by genomics standards, but small relative to modern accelerator chips, making this a data-constrained problem in principle even though our practical constraints are messier. We are building on preemptible Google TPU Research Cloud resources, do not have consistent access to slices much larger than roughly 32 H100s worth of peak FLOPs, and want the recipe to remain reproducible at academic compute scale. O(100B) tokens therefore lands in an awkward middle ground where compute-constrained methods are still relevant, even though modest epoching is possible and likely breaks their assumptions at some unknown rate. The first thing to check is whether the learning-rate prediction survives that regime, as shown in the [learning-rate transfer comparison](#fig-learning-rate-transfer).
 
-![Learning-rate transfer across model scales](/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg)
+<figure id="fig-learning-rate-transfer">
+<img src="/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" />
+<figcaption><strong>Figure 6:</strong> Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales. The <code>control</code> run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (<code>sweep</code> run type), for all model sizes.</figcaption>
+</figure>
 
-**Figure 1:** Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales. The `control` run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (`sweep` run type), for all model sizes.
+We started with hyperparameter transfer for that reason. If a proven data-constrained transfer framework existed, we would use it. We do not know of one, so we followed the same basic pattern as [Delphi](https://openathena.ai/blog/delphi/), fitting a small reference sweep with the Vizier Bayesian optimization framework and then scaling the result using Complete(d).[^completed-framework] The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters from 255M to 1B parameters, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The less sensitive optimizer hyperparameters are shown separately in the [Adam hyperparameter transfer comparison](#fig-adam-transfer).
 
-We started with hyperparameter transfer for that reason. If a proven data-constrained transfer framework existed, we would use it. We do not know of one, so we followed the same basic pattern as [Delphi](https://openathena.ai/blog/delphi/), fitting a small reference sweep with the Vizier Bayesian optimization framework and then scaling the result using Complete(d).[^completed-framework] The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters from 255M to 1B parameters, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The less sensitive optimizer hyperparameters are shown separately in Figure 2.
+<figure id="fig-adam-transfer">
+<img src="/assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg" alt="Adam beta2 and epsilon transfer across model scales" />
+<figcaption><strong>Figure 7:</strong> Adam β₂ and ε transfer across the same scales as <a href="#fig-learning-rate-transfer">the learning-rate transfer comparison</a>.</figcaption>
+</figure>
 
-![Adam beta2 and epsilon transfer across model scales](/assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg)
-
-**Figure 2:** Adam β₂ and ε transfer across the same scales as Figure 1.
-
-That validation is a fairly unforgiving test. If the transferred learning rate were merely close by accident, it would be surprising for it to land correctly across all three validation scales, but the prediction remains well centered at each one. For DNA, that is a pretty cool result. Prior biology foundation-model work has used μP-style transfer, but we are not aware of a DNA result showing that a more inclusive framework like Complete(d) works across token horizon and batch size, which are the axes we keep leaning on later in ad hoc runs across epochs. The same is mostly true for the other optimizer hyperparameters too, although Adam β₂ shows some signs of being a bit aggressive at the largest scale. Figure 3 makes the same point across CDS, upstream, and downstream sequence, with no qualitative difference in transfer behavior across region types. That gives us enough confidence that the following parameter-scaling runs are at least close to optimally configured.
+That validation is a fairly unforgiving test. If the transferred learning rate were merely close by accident, it would be surprising for it to land correctly across all three validation scales, but the prediction remains well centered at each one. For DNA, that is a pretty cool result. Prior biology foundation-model work has used μP-style transfer, but we are not aware of a DNA result showing that a more inclusive framework like Complete(d) works across token horizon and batch size, which are the axes we keep leaning on later in ad hoc runs across epochs. The same is mostly true for the other optimizer hyperparameters too, although Adam β₂ shows some signs of being a bit aggressive at the largest scale. The [region-specific transfer comparison](#fig-region-hyperparameter-transfer) makes the same point across CDS, upstream, and downstream sequence, with no qualitative difference in transfer behavior across region types. That gives us enough confidence that the following parameter-scaling runs are at least close to optimally configured.
 
 <details>
-<summary>Transfer validation by region (Figure 3)</summary>
+<summary>Figure 8: transfer validation by region</summary>
 
-![Hyperparameter transfer validated per genomic region](/assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg)
-
-**Figure 3:** Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).
+<figure id="fig-region-hyperparameter-transfer">
+<img src="/assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" />
+<figcaption><strong>Figure 8:</strong> Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).</figcaption>
+</figure>
 
 </details>
 
@@ -254,15 +258,19 @@ That validation is a fairly unforgiving test. If the transferred learning rate w
 - Every model uses transferred optimizer hyperparameters rather than a separately hand-tuned recipe.
 - This sweep asks whether loss scaling becomes predictable once optimization quality is controlled.
 
-![Eight-model parameter-scaling ladder](/assets/images/blog/genomic-lm-optimization/mini_scaling_ladder.svg)
+<figure id="fig-parameter-scaling-ladder">
+<img src="/assets/images/blog/genomic-lm-optimization/mini_scaling_ladder.svg" alt="Eight-model parameter-scaling ladder" />
+<figcaption><strong>Figure 9:</strong> Eight-model parameter-scaling ladder from 46M to 4B parameters.</figcaption>
+</figure>
 
 Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months — fitting the hyperparameter transfer heuristic, running the validation experiments, and training the 4B model, which alone took about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep. That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
-![Loss scaling across model sizes with Kaplan power-law fits](/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg)
+<figure id="fig-loss-scaling">
+<img src="/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" />
+<figcaption><strong>Figure 10:</strong> Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fit.</figcaption>
+</figure>
 
-**Figure 4:** Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fit.
-
-The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. Most importantly, the sweep gives a high-quality Kaplan scaling-law fit (R<sup>2</sup>=0.999), which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
+The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably, as shown in the [loss-scaling comparison](#fig-loss-scaling). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. Most importantly, the sweep gives a high-quality Kaplan scaling-law fit (R<sup>2</sup>=0.999), which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
 
 [^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
 
@@ -270,27 +278,31 @@ The result is about as tidy as we could hope for. Training is stable at every sc
 
 ### Downstream performance
 
-The relationship between validation loss and VEP performance is much less tidy. That is not a new or unexpected finding, but it was not obvious at the start whether better tuning and a more controlled parameter sweep would make the downstream picture less messy, and the sweep shows the same basic problem. VEP performance is not monotonic in parameter count for most variant types (Figure 5), nor does it correlate well with validation loss (Figure 6). CDS tasks peak around the middle of the sweep, upstream tasks improve more clearly with scale, and the remaining variant types are mixed.
+The relationship between validation loss and VEP performance is much less tidy. That is not a new or unexpected finding, but it was not obvious at the start whether better tuning and a more controlled parameter sweep would make the downstream picture less messy, and the sweep shows the same basic problem. VEP performance is not monotonic in parameter count for most variant types in the [parameter-count comparison](#fig-parameters-vs-vep), nor does it correlate well with validation loss in the [validation-loss comparison](#fig-loss-vs-vep). CDS tasks peak around the middle of the sweep, upstream tasks improve more clearly with scale, and the remaining variant types are mixed.
 
-![Composite VEP AUPRC vs parameter count](/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg)
+<figure id="fig-parameters-vs-vep">
+<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" />
+<figcaption><strong>Figure 11:</strong> Composite VEP AUPRC vs parameter count.</figcaption>
+</figure>
 
-**Figure 5:** Composite VEP AUPRC vs parameter count.
+<figure id="fig-loss-vs-vep">
+<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" />
+<figcaption><strong>Figure 12:</strong> Composite VEP AUPRC vs validation loss.</figcaption>
+</figure>
 
-![Composite VEP AUPRC vs validation loss](/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg)
+Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale in the [VEP training trajectories](#fig-vep-training-curves). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.
 
-**Figure 6:** Composite VEP AUPRC vs validation loss.
+<figure id="fig-vep-training-curves">
+<img src="/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg" alt="VEP AUPRC training curves by model scale" />
+<figcaption><strong>Figure 13:</strong> VEP AUPRC training curves by model scale.</figcaption>
+</figure>
 
-Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.
+Ultimately, the most useful finding from the [loss–VEP correlation summary](#fig-loss-vep-correlation) is that monotonicity is scale-dependent. Mid-sized models are the most reliable by this measure, which gave us a practical target range for later experiments that train beyond one pass through the data.
 
-![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg)
-
-**Figure 7:** VEP AUPRC training curves by model scale.
-
-Ultimately, the most useful finding is that monotonicity is scale-dependent (Figure 8). Mid-sized models are the most reliable by this measure, which gave us a practical target range for later experiments that train beyond one pass through the data.
-
-![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg)
-
-**Figure 8:** Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.
+<figure id="fig-loss-vep-correlation">
+<img src="/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg" alt="Loss vs VEP AUPRC correlation within model-size ranges" />
+<figcaption><strong>Figure 14:</strong> Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.</figcaption>
+</figure>
 
 ### Later mixture experiments
 
@@ -298,30 +310,38 @@ Ultimately, the most useful finding is that monotonicity is scale-dependent (Fig
 
 At this point we move away from theoretically-grounded, compute-constrained methods. The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity. But the actual optimization problem becomes much more ad hoc — we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
 
-![Upstream-reweighting continuations from a shared parent](/assets/images/blog/genomic-lm-optimization/mini_fig9_mixture.svg)
+<figure id="fig-upstream-reweighting-lineage">
+<img src="/assets/images/blog/genomic-lm-optimization/mini_fig9_mixture.svg" alt="Upstream-reweighting continuations from a shared parent" />
+<figcaption><strong>Figure 15:</strong> Upstream-reweighting continuations from a shared parent.</figcaption>
+</figure>
 
-The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. Figure 9 shows why simply shifting weight upstream does not solve this problem. The gains are countered by losses in other genomic regions, and similar continuations from upstream-only or proportionally mixed checkpoints from the parameter-scaling sweep did not produce clear net wins.
+The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. The [upstream-mixture sweep](#fig-upstream-mixture-sweep) shows why simply shifting weight upstream does not solve this problem. The gains are countered by losses in other genomic regions, and similar continuations from upstream-only or proportionally mixed checkpoints from the parameter-scaling sweep did not produce clear net wins.
 
-![Macro average VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg)
-
-**Figure 9:** Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.
+<figure id="fig-upstream-mixture-sweep">
+<img src="/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg" alt="Macro average VEP AUPRC vs upstream mixture proportion" />
+<figcaption><strong>Figure 16:</strong> Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.</figcaption>
+</figure>
 
 - The 50% upstream continuation has the highest displayed zero-shot LLR point estimate.
 - The probe point estimates instead favor the uniform parent before continuation.
 - The continuation runs have unequal token budgets, so the displayed pattern cannot be attributed uniquely to mixture composition.
-- We therefore treat Figure 9 as evidence that heavy upstream weighting can hurt, not as evidence for an optimal upstream percentage.
+- We therefore treat [the upstream-mixture sweep](#fig-upstream-mixture-sweep) as evidence that heavy upstream weighting can hurt, not as evidence for an optimal upstream percentage.
 
 [^upstream-only-issue]: See [Open-Athena/marin-dna issue #55](https://github.com/Open-Athena/marin-dna/issues/55).
 
 #### Adding ncRNA exons and enhancers
 
-A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens (Figure 10). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
+A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens, as shown in the [mixture-lineage trajectories](#fig-mixture-lineage-trajectories). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
 
-![Three-region to five-region exposure history for m5.1](/assets/images/blog/genomic-lm-optimization/mini_m5.1_lineage.svg)
+<figure id="fig-five-region-lineage">
+<img src="/assets/images/blog/genomic-lm-optimization/mini_m5.1_lineage.svg" alt="Three-region to five-region exposure history for m5.1" />
+<figcaption><strong>Figure 17:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
+</figure>
 
-![VEP AUPRC trajectories by mixture lineage](/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg)
-
-**Figure 10:** VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.
+<figure id="fig-mixture-lineage-trajectories">
+<img src="/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg" alt="VEP AUPRC trajectories by mixture lineage" />
+<figcaption><strong>Figure 18:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
+</figure>
 
 - m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
 - The ncRNA and enhancer datasets were introduced to cover new functional regions; the promoter gain was partly unexpected because the ncRNA collection also contained substantial promoter sequence.
@@ -331,11 +351,12 @@ A more productive strategy is to mix in new sequence types from species with les
 
 ### Leaderboard scores
 
-The result of the previous mixture experiments is the m5.1 model used for the headline comparison. Figure 11 is a snapshot of the Mendelian VEP leaderboard we host at [openathena.ai/marin-dna/leaderboards/mendelian](https://openathena.ai/marin-dna/leaderboards/mendelian), where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.
+The result of the previous mixture experiments is the m5.1 model used for the headline comparison. The [Mendelian VEP leaderboard](#fig-mendelian-leaderboard) is a snapshot of the benchmark we host at [openathena.ai/marin-dna/leaderboards/mendelian](https://openathena.ai/marin-dna/leaderboards/mendelian), where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.
 
-![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg)
-
-**Figure 11:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier figures in the text (e.g. Figures 9 and 10); this is why m5.1's end-of-training score in Figure 10 does not match its current leaderboard score here.
+<figure id="fig-mendelian-leaderboard">
+<img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" />
+<figcaption><strong>Figure 19:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-upstream-mixture-sweep">upstream-mixture sweep</a> and <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
+</figure>
 
 ## Conclusion
 
