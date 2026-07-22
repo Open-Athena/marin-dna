@@ -143,9 +143,10 @@ VEP is also one of the few evaluations backed by decades of costly clinical gene
 That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology.
 If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
 
-- In this work, we focus on predicting deleteriousness, pathogenicity, or more generally functional constraint.
-- This task is the most directly connected to the language modeling training objective, and is therefore easy to evaluate with zero-shot or linear probing protocols.
-- We leave predicting changes in gene expression (the main application of sequence-to-function models) to follow up work, as this requires more complex finetuning protocols (and much larger context sizes) (insert footnote about how chromatin accessibility is a more tractable intermediate step, ARSENAL work showing very promising results).
+In this work, we focus on predicting deleteriousness, pathogenicity, or, more generally, functional constraint.
+This task is the one most directly connected to the language-modeling training objective and is therefore easy to evaluate with zero-shot or linear-probing protocols.
+We leave the prediction of changes in gene expression—the main application of sequence-to-function models—to follow-up work, as it requires more complex fine-tuning protocols and much larger context sizes.[^sequence-to-function-follow-up]
+
 - We use two complementary sources of evidence: clinically curated Mendelian variants (footnote with a few key differences with published TraitGym) and saturation genome-editing (SGE) measurements.
 - The Mendelian benchmark compares pathogenic and putatively benign variants across broad coding and non-coding consequence types.
 - The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
@@ -168,6 +169,8 @@ If a model has learned useful sequence-level constraints from DNA alone, it shou
 [^vep-therapeutic]: Examples include fine-mapped GWAS and broader human-genetics results in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), regulatory variant-effect prediction in [AlphaGenome](https://doi.org/10.1101/2025.06.25.661532) and [ChromBPNet](https://www.biorxiv.org/content/10.1101/2024.12.25.630221v2), and the broader observation that human genetic evidence can support target-disease hypotheses in drug discovery in [Nelson et al.](https://doi.org/10.1038/ng.3314).
 
 [^human-variant-curation]: [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/intro/) archives submitted reports relating human genomic variation to disease, cancer, drug response, and supporting evidence; [OMIM](https://doi.org/10.1093/nar/gku1205) is a curated catalog of human genes, genetic disorders, and gene-phenotype relationships. Nothing comparable exists for any other species: this depth reflects decades of clinical genetics effort directed specifically at human disease, an investment that has simply not been made for non-human genomes.
+
+[^sequence-to-function-follow-up]: One promising intermediate sequence-to-function target is chromatin accessibility. [ARSENAL](https://doi.org/10.64898/2026.02.05.703637) showed that embeddings from a short-context regulatory gLM improved supervised chromatin-accessibility prediction over strong ab initio baselines across multiple cell types, while also improving regulatory-variant scoring.
 
 ### Why Evo 2 40B baseline?
 
