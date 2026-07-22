@@ -174,10 +174,10 @@ The probe instead asks what variant-relevant information is encoded in the model
 [^sequence-to-function-follow-up]: One promising intermediate sequence-to-function target is chromatin accessibility. [ARSENAL](https://doi.org/10.64898/2026.02.05.703637) showed that embeddings from a short-context regulatory gLM improved supervised chromatin-accessibility prediction over strong ab initio baselines across multiple cell types, while also improving regulatory-variant scoring.
 
 [^mendelian-traitgym-differences]: Our Mendelian benchmark is inspired by the published [TraitGym](https://doi.org/10.1101/2025.02.11.637758) benchmark.
-Relative to TraitGym, we broadened the gnomAD control set by lowering the minimum allele frequency from 5% to 0.1%; we refer to variants above this threshold as non-rare.
-The larger control pool allowed us to match potential confounders within each consequence class—including TSS distance and, for splicing variants, exon distance—so that these features are largely non-predictive of the label.
-We also expanded the benchmark to include missense and splicing variants, incorporated additional sources of pathogenic variants, and created chromosome-disjoint splits for development and final testing.
-See the [pinned dataset card](https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f) for the full construction and matching diagnostics.
+    Relative to TraitGym, we broadened the gnomAD control set by lowering the minimum allele frequency from 5% to 0.1%; we refer to variants above this threshold as non-rare.
+    The larger control pool allowed us to match potential confounders within each consequence class—including TSS distance and, for splicing variants, exon distance—so that these features are largely non-predictive of the label.
+    We also expanded the benchmark to include missense and splicing variants, incorporated additional sources of pathogenic variants, and created chromosome-disjoint splits for development and final testing.
+    See the [pinned dataset card](https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f) for the full construction and matching diagnostics.
 
 ### Why Evo 2 40B baseline?
 
