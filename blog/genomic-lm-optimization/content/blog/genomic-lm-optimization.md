@@ -156,8 +156,9 @@ The SGE benchmark uses experimentally measured variant effects from a few genes 
 <figcaption>The benchmarks use different labels and sampling, so their absolute scores are not directly comparable.</figcaption>
 </figure>
 
-- We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
-- The zero-shot score asks what the language model itself prefers (TODO: this could be improved); the probe asks what variant-relevant information is present in its learned representation.
+We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
+The zero-shot score tests whether the model's learned sequence likelihood reflects functional constraint: deleterious alternate alleles should incur larger likelihood penalties relative to the reference allele.
+The probe instead asks what variant-relevant information is encoded in the model's learned representation, including information that may not be directly reflected in its sequence likelihoods.
 
 <figure>
 <img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
