@@ -143,6 +143,9 @@ VEP is also one of the few evaluations backed by decades of costly clinical gene
 That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology.
 If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
 
+This creates a deliberate mismatch between evaluation and intended use: although we expect gLMs to be especially valuable for non-model organisms in the near term, we evaluate them in humans because comparable variant-effect data are not yet available across species.
+Human VEP is therefore the most rigorous available test of learned functional constraint, but it does not by itself establish transfer to other organisms; evaluating that transfer will require broader population-genetic or experimental datasets.
+
 In this work, we focus on predicting deleteriousness, pathogenicity, or, more generally, functional constraint.
 This task is the one most directly connected to the language-modeling training objective and is therefore easy to evaluate with zero-shot or linear-probing protocols.
 We leave the prediction of changes in gene expression—the main application of sequence-to-function models—to follow-up work, as it requires more complex fine-tuning protocols and much larger context sizes.[^sequence-to-function-follow-up]
