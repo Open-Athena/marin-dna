@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "issue": {
+    "number": 389,
+    "url": "https://github.com/Open-Athena/marin-dna/issues/389"
+  },
+  "human_review": {
+    "model_card_approved": false,
+    "approved_by": null,
+    "approved_at_utc": null
+  },
+  "provenance": {
+    "source_run": "dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e",
+    "source_run_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e",
+    "checkpoint_step": 59158,
+    "training_script": "https://github.com/marin-community/marin/blob/a41a83fdddf85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657",
+    "blog": "https://openathena.ai/blog/genomic-lm-optimization/",
+    "analysis_issue": "https://github.com/Open-Athena/marin-dna/issues/361",
+    "interpretation_issue": "https://github.com/Open-Athena/marin-dna/issues/370"
+  },
+  "source": {
+    "canonical_gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158",
+    "transfer_s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+    "ignored_s3_files": [
+      ".snakemake_timestamp"
+    ],
+    "total_checkpoint_bytes": 4483118239,
+    "files": {
+      "config.json": {
+        "size": 2403,
+        "md5_hex": "bf7a50450959337e76b92cfacae1f923",
+        "sha256": "1e5efceab894c1b165c9c247002b8288987855c38f7841aa0a6abe6f8cd6b75c",
+        "gcs": {
+          "generation": "1780113994711134",
+          "md5_base64": "v3pQRQlZM352uSz6yuH5Iw==",
+          "crc32c_base64": "r7FSJg=="
+        },
+        "s3": {
+          "etag": "bf7a50450959337e76b92cfacae1f923",
+          "checksum_crc64nvme_base64": "VIkzARYX8yY="
+        }
+      },
+      "model.safetensors": {
+        "size": 4483112944,
+        "md5_hex": "c4debc529b272433e3856ea7b4e54cd4",
+        "sha256": "da8fcb8dc0c2eef3206c9636c608bea39c227f87ff7c690aeb749a1bba63d02e",
+        "gcs": {
+          "generation": "1780113993605573",
+          "md5_base64": "xN68UpsnJDPjhW6ntOVM1A==",
+          "crc32c_base64": "t9n7eQ=="
+        },
+        "s3": {
+          "etag": "852c52744e74d1314c87233b8ec3bfa7-535",
+          "checksum_crc64nvme_base64": "SWgdiotnmqY="
+        }
+      },
+      "special_tokens_map.json": {
+        "size": 417,
+        "md5_hex": "480979465778d6dbdde0b0a61e1e7d13",
+        "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+        "gcs": {
+          "generation": "1780113994716024",
+          "md5_base64": "SAl5Rld41tvd4LCmHh59Ew==",
+          "crc32c_base64": "dClSWg=="
+        },
+        "s3": {
+          "etag": "480979465778d6dbdde0b0a61e1e7d13",
+          "checksum_crc64nvme_base64": "gIACe2bYR7w="
+        }
+      },
+      "tokenizer.json": {
+        "size": 1693,
+        "md5_hex": "028b31d552bf7ce41e8a424179c4daec",
+        "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+        "gcs": {
+          "generation": "1780113994713267",
+          "md5_base64": "Aosx1VK/fOQeikJBecTa7A==",
+          "crc32c_base64": "tgp55g=="
+        },
+        "s3": {
+          "etag": "028b31d552bf7ce41e8a424179c4daec",
+          "checksum_crc64nvme_base64": "v7iQCHdEUFQ="
+        }
+      },
+      "tokenizer_config.json": {
+        "size": 782,
+        "md5_hex": "0537f68e86c4601aa9e2ac4c5d61222c",
+        "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+        "gcs": {
+          "generation": "1780113994724651",
+          "md5_base64": "BTf2jobEYBqp4qxMXWEiLA==",
+          "crc32c_base64": "+FiSAg=="
+        },
+        "s3": {
+          "etag": "0537f68e86c4601aa9e2ac4c5d61222c",
+          "checksum_crc64nvme_base64": "TDfI/MpT8FI="
+        }
+      }
+    }
+  },
+  "model": {
+    "architecture": "Qwen3ForCausalLM",
+    "model_type": "qwen3",
+    "parameter_count": 1120772224,
+    "tensor_count": 212,
+    "tensor_bytes": 4483088896,
+    "stored_dtype": "F32",
+    "config": {
+      "vocab_size": 7,
+      "max_position_embeddings": 256,
+      "hidden_size": 1920,
+      "intermediate_size": 7680,
+      "num_hidden_layers": 19,
+      "num_attention_heads": 15,
+      "num_key_value_heads": 15,
+      "head_dim": 128,
+      "bos_token_id": 2,
+      "pad_token_id": 0,
+      "eos_token_id": null,
+      "tie_word_embeddings": false
+    },
+    "approximate_training_exposure": {
+      "unit": "nucleotide_tokens",
+      "total": 166018940928,
+      "phases": [
+        {
+          "name": "inherited_pre_cooldown_uniform_three_region",
+          "tokens": 41951428608,
+          "mixture": {
+            "cds": 0.3333333333333333,
+            "upstream": 0.3333333333333333,
+            "downstream": 0.3333333333333333
+          }
+        },
+        {
+          "name": "continued_uniform_three_region",
+          "tokens": 62033756160,
+          "mixture": {
+            "cds": 0.3333333333333333,
+            "upstream": 0.3333333333333333,
+            "downstream": 0.3333333333333333
+          }
+        },
+        {
+          "name": "uniform_five_region_m5.1",
+          "tokens": 62033756160,
+          "mixture": {
+            "cds": 0.2,
+            "upstream": 0.2,
+            "downstream": 0.2,
+            "enhancer": 0.2,
+            "ncrna": 0.2
+          }
+        }
+      ],
+      "note": "Approximate lineage accounting from run token tags and the 0.8 pre-cooldown fork; the released checkpoint is step 59158."
+    }
+  },
+  "tokenizer": {
+    "class": "PreTrainedTokenizerFast",
+    "vocab_size": 7,
+    "vocab": {
+      "[PAD]": 0,
+      "[UNK]": 1,
+      "[BOS]": 2,
+      "a": 3,
+      "c": 4,
+      "g": 5,
+      "t": 6
+    },
+    "lowercase": true,
+    "prepends_bos": true,
+    "appends_eos": false,
+    "bos_token": "[BOS]",
+    "bos_token_id": 2,
+    "pad_token": "[PAD]",
+    "pad_token_id": 0,
+    "unk_token": "[UNK]",
+    "unk_token_id": 1,
+    "eos_token": null,
+    "eos_token_id": null,
+    "maximum_dna_bases": 255
+  },
+  "deterministic_inference": {
+    "sequence": "ACGTACGTTGCAACGTGATTACAGACGTACGT",
+    "input_ids": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      3,
+      4,
+      5,
+      6,
+      6,
+      5,
+      4,
+      3,
+      3,
+      4,
+      5,
+      6,
+      5,
+      3,
+      6,
+      6,
+      3,
+      4,
+      3,
+      5,
+      3,
+      4,
+      5,
+      6,
+      3,
+      4,
+      5,
+      6
+    ],
+    "last_token_logits": [
+      -20.981515884399414,
+      -12.756708145141602,
+      -20.983211517333984,
+      -0.32151246070861816,
+      -1.0935702323913574,
+      -0.9360262751579285,
+      1.1841518878936768
+    ],
+    "absolute_tolerance": 0.00005,
+    "predicted_token_id": 6,
+    "predicted_token": "t",
+    "reference_runtime": {
+      "transformers": "4.57.6",
+      "torch": "2.10.0+cu128",
+      "attention_implementation": "eager",
+      "device": "cpu",
+      "dtype": "float32"
+    }
+  },
+  "destination": {
+    "repo_id": "bolinas-dna/marin-dna-exp135-m5.1",
+    "repo_type": "model",
+    "private": false,
+    "gated": false,
+    "license": "apache-2.0",
+    "required_tags": [
+      "biology",
+      "genomics",
+      "dna"
+    ],
+    "final_revision": null,
+    "release_files": {
+      "README.md": {
+        "source": "scripts/issue389/model_card.md",
+        "size": 7139,
+        "sha256": "3550b04b747fa25f9908faa43494665cd07b514922bbb8b221f9d2978f9d455f"
+      },
+      "LICENSE": {
+        "source": "LICENSE",
+        "size": 11357,
+        "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      }
+    },
+    "allowed_additional_files": [
+      ".gitattributes"
+    ]
+  },
+  "datasets_observed_at_utc": "2026-07-23",
+  "datasets": [
+    {
+      "group": "training",
+      "label": "CDS",
+      "repo_id": "bolinas-dna/genomes-v5-genome_set-animals-intervals-v5_255_128",
+      "revision": "ffe3e78c99868077c65ad6568e1445d80e480794",
+      "last_modified": "2026-06-04T18:05:08+00:00"
+    },
+    {
+      "group": "training",
+      "label": "Upstream",
+      "repo_id": "bolinas-dna/genomes-v5-genome_set-animals-intervals-v1_255_128",
+      "revision": "d93209847b02a0c9be5c03591a0a5e56ee09c35d",
+      "last_modified": "2026-06-04T18:05:07+00:00"
+    },
+    {
+      "group": "training",
+      "label": "Downstream",
+      "repo_id": "bolinas-dna/genomes-v5-genome_set-animals-intervals-v15_255_128",
+      "revision": "b009afaab756937d75b8da3b1271ad8f0cec0b4d",
+      "last_modified": "2026-06-04T18:05:07+00:00"
+    },
+    {
+      "group": "training",
+      "label": "Enhancer",
+      "repo_id": "bolinas-dna/zoonomia-v1-v3_ccre_non_promoter",
+      "revision": "862485aa18eed53a53e693ba4c2eb45e0afc5087",
+      "last_modified": "2026-05-11T21:04:23+00:00"
+    },
+    {
+      "group": "training",
+      "label": "ncRNA",
+      "repo_id": "bolinas-dna/zoonomia-v1-v3_ncrna_exon",
+      "revision": "3e48d9ae7c604b99ccfc8bd07e391b960c1ea21a",
+      "last_modified": "2026-05-11T21:04:22+00:00"
+    },
+    {
+      "group": "training_validation",
+      "label": "CDS validation",
+      "repo_id": "bolinas-dna/genomes-v5-validation-intervals-v5_255_255",
+      "revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4",
+      "last_modified": "2026-06-04T18:05:23+00:00"
+    },
+    {
+      "group": "training_validation",
+      "label": "Upstream/promoter validation",
+      "repo_id": "bolinas-dna/genomes-v5-validation-intervals-v1_255_255",
+      "revision": "a761bc0b663a9827303f3112e4667d53d5326fac",
+      "last_modified": "2026-06-04T18:05:22+00:00"
+    },
+    {
+      "group": "training_validation",
+      "label": "Downstream validation",
+      "repo_id": "bolinas-dna/genomes-v5-validation-intervals-v15_255_255",
+      "revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5",
+      "last_modified": "2026-06-04T18:05:21+00:00"
+    },
+    {
+      "group": "training_validation",
+      "label": "Enhancer validation",
+      "repo_id": "bolinas-dna/zoonomia-v1-val_enhancer",
+      "revision": "d40d1e067b2a56ac812af122de029eb79cab1106",
+      "last_modified": "2026-05-08T19:50:35+00:00"
+    },
+    {
+      "group": "training_validation",
+      "label": "ncRNA validation",
+      "repo_id": "bolinas-dna/zoonomia-v1-val_ncrna",
+      "revision": "76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
+      "last_modified": "2026-05-08T19:50:37+00:00"
+    },
+    {
+      "group": "downstream_evaluation",
+      "label": "Mendelian",
+      "repo_id": "bolinas-dna/evals_mendelian_traits",
+      "revision": "4aed58e50c5dea0b878a665007af2ef9e5108e9f",
+      "last_modified": "2026-05-19T00:44:05+00:00"
+    },
+    {
+      "group": "downstream_evaluation",
+      "label": "SGE",
+      "repo_id": "bolinas-dna/evals_sge",
+      "revision": "225d3d1ea32a4af547891b13c33b5e92a5aae849",
+      "last_modified": "2026-06-08T22:58:41+00:00"
+    }
+  ],
+  "collection": {
+    "title": "MarinDNA - Genomic Language Model Optimization Blog 2026 07",
+    "namespace": "bolinas-dna",
+    "private": false,
+    "slug": null,
+    "description": {
+      "source": "scripts/issue389/collection_description.md",
+      "size": 880,
+      "sha256": "9de0dc49136664c7b8b186163d2f68524b8ecf0f82e27c7618543acf4cd2c655"
+    },
+    "items": [
+      {
+        "item_type": "model",
+        "item_id": "bolinas-dna/marin-dna-exp135-m5.1",
+        "note": "Released model — final m5.1 base checkpoint at step 59158."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/genomes-v5-genome_set-animals-intervals-v5_255_128",
+        "note": "Training dataset — CDS."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/genomes-v5-genome_set-animals-intervals-v1_255_128",
+        "note": "Training dataset — upstream."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/genomes-v5-genome_set-animals-intervals-v15_255_128",
+        "note": "Training dataset — downstream."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/zoonomia-v1-v3_ccre_non_promoter",
+        "note": "Training dataset — enhancer."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/zoonomia-v1-v3_ncrna_exon",
+        "note": "Training dataset — ncRNA."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/genomes-v5-validation-intervals-v5_255_255",
+        "note": "Training-validation probe — CDS; not training data."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/genomes-v5-validation-intervals-v1_255_255",
+        "note": "Training-validation probe — upstream/promoter; not training data."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/genomes-v5-validation-intervals-v15_255_255",
+        "note": "Training-validation probe — downstream; not training data."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/zoonomia-v1-val_enhancer",
+        "note": "Training-validation probe — enhancer; not training data."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/zoonomia-v1-val_ncrna",
+        "note": "Training-validation probe — ncRNA; not training data."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/evals_mendelian_traits",
+        "note": "Downstream evaluation only — Mendelian; not training data and not level-comparable with SGE."
+      },
+      {
+        "item_type": "dataset",
+        "item_id": "bolinas-dna/evals_sge",
+        "note": "Downstream evaluation only — SGE; not training data and not level-comparable with Mendelian."
+      }
+    ]
+  }
+}
