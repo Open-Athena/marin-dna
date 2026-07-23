@@ -274,10 +274,6 @@ That validation is a fairly unforgiving test. If the transferred learning rate w
 
 ### Parameter scaling
 
-- The parameter sweep holds the training recipe and three-region data mixture fixed while varying model size from 46M to 4B parameters.
-- Every model uses transferred optimizer hyperparameters rather than a separately hand-tuned recipe.
-- This sweep asks whether loss scaling becomes predictable once optimization quality is controlled.
-
 Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months — fitting the hyperparameter transfer heuristic, running the validation experiments, and training the 4B model, which alone took about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep. That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
 <figure id="fig-loss-scaling">
