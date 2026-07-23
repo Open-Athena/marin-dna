@@ -1,83 +1,86 @@
----
-title: MarinDNA Sequence Explorer
-emoji: 🧬
-colorFrom: indigo
-colorTo: green
-sdk: gradio
-sdk_version: 5.49.1
-python_version: 3.12
-app_file: app.py
-fullWidth: true
-startup_duration_timeout: 30m
-license: apache-2.0
-models:
-  - bolinas-dna/marin-dna-exp135-m5.1
-tags:
-  - biology
-  - genomics
-  - dna
-preload_from_hub:
-  - bolinas-dna/marin-dna-exp135-m5.1 config.json,model.safetensors,special_tokens_map.json,tokenizer.json,tokenizer_config.json c0676b2012b8b9c526deb26ff517f6b92b6d375d
----
-
 # MarinDNA sequence explorer
 
-This directory is the self-contained Hugging Face Space application for
+This directory contains the molab-hosted marimo application for
 [Open-Athena/marin-dna issue #387](https://github.com/Open-Athena/marin-dna/issues/387).
 It runs the pinned public model
 [`bolinas-dna/marin-dna-exp135-m5.1`](https://huggingface.co/bolinas-dna/marin-dna-exp135-m5.1)
 at revision `c0676b2012b8b9c526deb26ff517f6b92b6d375d`.
 
-The Gradio layer is intentionally thin. Sequence validation, the
-forward/reverse-complement probability logo, and the categorical-Jacobian
-dependency map live in `src/marin_dna/` and are installed from a pinned GitHub
-revision for deployment.
+The marimo notebook is intentionally thin. Sequence validation, the
+forward/reverse-complement probability logo, the categorical-Jacobian
+dependency map, built-in examples, Plotly figures, linked-span conversion, and
+in-memory downloads are imported from the installable `marin_dna` package.
+The notebook declares its immutable deployment dependencies with PEP 723
+metadata; `requirements.txt` contains only the extra dependencies used for
+local checks. A GitHub-synced molab notebook therefore does not depend on
+sibling files.
 
-## Deployment
+## Deployment on molab
 
-1. `requirements.txt` pins the computation package to immutable Git commit
-   `2653622de8945e4ba2578458cb30b47803e63d9e`. Advance that pin deliberately
-   only after the replacement commit passes the core and Space-specific test
-   suites.
-2. Mirror this directory to a Gradio Space under `gonzalobenegas`.
-3. Select ZeroGPU hardware in the Space settings. The README metadata does not
-   assign hardware automatically.
-4. Set `SOURCE_REVISION` to the immutable GitHub application commit shown by the
-   mirror job.
-5. Keep `PROGRESSIVE_MIN_LENGTH` unset until the benchmark below determines a
-   threshold. If a sequence-length range has at least 3 seconds of
-   dependency-map work after the logo, set it to the shortest measured length
-   in that range.
+molab is currently a public preview and provides its GPU for free subject to
+reasonable-use limits. This application must not enable a paid resource or
+billable fallback.
 
-Current Hugging Face documentation says personal accounts need a PRO
-subscription to host ZeroGPU Spaces. Confirm the target account's eligibility
-before deployment; creating or upgrading a Space is an external account action
-and is not done by this repository.
+1. Push a fully tested application commit and replace the `marin-dna` Git pin in
+   `app.py` with that immutable commit.
+2. In [molab](https://molab.marimo.io/), create a synced notebook from the
+   commit-pinned GitHub URL for `apps/sequence_explorer/app.py`. GitHub remains
+   the source of truth.
+3. Open the notebook specs menu and attach the free NVIDIA RTX Pro 6000
+   Blackwell GPU. The application asserts CUDA availability and will not fall
+   back to CPU.
+4. Run the notebook, then choose **Run as app** from molab's share menu. Record
+   the public app URL in issue #387.
+5. Keep `PROGRESSIVE_MIN_LENGTH` unset until the benchmark below establishes a
+   threshold. If a sequence-length range has at least 3 seconds of dependency
+   work after the logo, set it to the shortest measured length in that range.
+
+A molab session can run for at most 12 hours and is stopped after 90 minutes of
+inactivity. A new session reloads the environment and pinned model. If molab's
+free GPU becomes unavailable, stop and revisit the platform decision instead
+of incurring cost.
 
 ## Benchmark gate
 
-Run 74, 126, and 255 bp inputs on the deployed ZeroGPU Space and record:
+Run the built-in 74, 126, and 255 bp examples on the deployed free molab GPU
+and record:
 
-- cold-start time;
+- environment/model cold-start time;
 - warm total runtime;
 - time to logo;
 - additional time from logo to dependency map;
-- peak VRAM.
+- peak VRAM and detected GPU.
 
-The UI reports the last four values for each submission. Record cold start from
-the Space runtime logs. Tune `NUCLEOTIDE_DEPENDENCY_BATCH_SIZE` if the 255 bp
-warm run exceeds 120 seconds. Do not enable CPU fallback or change the
-dependency method.
+The app reports the last four values for each submission. Record complete cold
+start externally from opening the ephemeral server through the first result.
+Tune `NUCLEOTIDE_DEPENDENCY_BATCH_SIZE` if the 255 bp warm run exceeds 120
+seconds. Do not enable CPU fallback or change the dependency method.
+
+## Privacy
+
+molab's terms prohibit sensitive data. The interface tells users to submit only
+public reference, synthetic, or otherwise non-sensitive sequences. Submitted
+sequences and matrices remain in session memory; the application does not add
+persistent caching, analytics, or sequence logging.
 
 ## Local checks
 
-The app loads the 4.5 GB model at module import and expects ZeroGPU's CUDA
-emulation, so normal local tests should import `examples.py` and `ui.py`, not
-`app.py`. The core computation is covered by:
+The notebook imports without loading the model because model loading is cached
+inside a marimo cell and begins only after a valid submission. Validate the
+notebook and focused app tests with:
+
+```bash
+uv run --with-requirements apps/sequence_explorer/requirements.txt \
+  marimo check apps/sequence_explorer/app.py
+uv run --with-requirements apps/sequence_explorer/requirements.txt \
+  pytest apps/sequence_explorer/tests
+```
+
+The core computation remains covered by:
 
 ```bash
 uv run pytest tests/model/test_sequence_interpretation.py
 ```
 
-Install this directory's requirements in an isolated environment to smoke-test
-the Gradio layout on a CUDA-capable machine.
+A complete inference smoke test requires a CUDA GPU and downloads the 4.5 GB
+pinned model. Do not run it on CPU.

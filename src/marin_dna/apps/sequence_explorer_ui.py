@@ -1,4 +1,4 @@
-"""Pure plotting and download helpers for the Gradio application."""
+"""Pure plotting and download helpers for the hosted sequence explorer."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ import base64
 import csv
 import html
 import io
+import math
 from functools import cache
 from typing import Any
 
 import numpy as np
-import pandas as pd
 import plotly.graph_objects as go
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
@@ -197,7 +197,7 @@ def logo_figure(
         title={"text": "Model-predicted information-content logo", "x": 0.02},
         dragmode="pan",
         hovermode="closest",
-        uirevision="sequence-logo",
+        uirevision=f"sequence-logo-{start}-{end}",
     )
     figure.update_xaxes(
         title="Sequence position (0-based)",
@@ -256,7 +256,7 @@ def dependency_figure(
         paper_bgcolor="white",
         title={"text": "Forward/reverse-complement dependency map", "x": 0.02},
         dragmode="pan",
-        uirevision="dependency-map",
+        uirevision=f"dependency-map-{start}-{end}",
     )
     figure.update_xaxes(
         title="Sequence position (0-based)",
@@ -288,16 +288,6 @@ def dependency_loading_figure() -> go.Figure:
     figure.update_yaxes(visible=False)
     figure.update_layout(height=650, margin={"l": 20, "r": 20, "t": 20, "b": 20})
     return figure
-
-
-def navigator_dataframe(logo: NucleotideLogo) -> pd.DataFrame:
-    length = len(logo.information_bits)
-    return pd.DataFrame(
-        {
-            "position": np.arange(length, dtype=int),
-            "information_bits": logo.information_bits,
-        }
-    )
 
 
 def _csv_data_url(text: str) -> str:
@@ -366,3 +356,57 @@ def download_links_html(
         "Download dependency matrix (CSV)</a>"
         "</div>"
     )
+
+
+def navigator_figure(logo: NucleotideLogo) -> go.Figure:
+    """Full-sequence information navigator with horizontal brush selection."""
+    length = len(logo.information_bits)
+    assert length >= 1
+    positions = np.arange(length)
+    figure = go.Figure(
+        go.Scatter(
+            x=positions,
+            y=logo.information_bits,
+            mode="lines",
+            fill="tozeroy",
+            line={"color": "#4F46E5", "width": 1.5},
+            fillcolor="rgba(79, 70, 229, 0.18)",
+            hovertemplate=("Position %{x}<br>Information %{y:.4f} bits<extra></extra>"),
+        )
+    )
+    figure.update_layout(
+        height=190,
+        margin={"l": 64, "r": 24, "t": 44, "b": 48},
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        title={"text": "Full-sequence navigator", "x": 0.02},
+        dragmode="select",
+        selectdirection="h",
+        newselection={"line": {"color": "#4F46E5", "width": 2}},
+    )
+    figure.update_xaxes(
+        title="Sequence position (0-based)",
+        range=[-0.5, length - 0.5],
+        fixedrange=False,
+    )
+    figure.update_yaxes(title="Bits", range=[0, 2], fixedrange=True)
+    return figure
+
+
+def span_from_plotly_ranges(
+    length: int,
+    ranges: dict[str, list[float]] | None,
+) -> tuple[int, int]:
+    """Convert a Plotly horizontal brush into a 0-based half-open span."""
+    assert length >= 1
+    if not ranges:
+        return 0, length
+    raw_range = ranges.get("x") or ranges.get("xaxis")
+    if raw_range is None:
+        return 0, length
+    assert len(raw_range) == 2
+    raw_start, raw_end = sorted(float(value) for value in raw_range)
+    start = max(0, min(length - 1, math.ceil(raw_start)))
+    end = max(start + 1, min(length, math.floor(raw_end) + 1))
+    assert 0 <= start < end <= length
+    return start, end
