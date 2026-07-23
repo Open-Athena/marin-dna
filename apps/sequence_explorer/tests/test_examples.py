@@ -1,4 +1,4 @@
-from examples import DEFAULT_EXAMPLE, EXAMPLES
+from marin_dna.apps.sequence_explorer_examples import DEFAULT_EXAMPLE, EXAMPLES
 
 
 def test_recommended_examples_match_issue_387():

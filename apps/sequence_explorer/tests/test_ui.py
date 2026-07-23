@@ -3,10 +3,12 @@ import re
 
 import numpy as np
 
-from ui import (
+from marin_dna.apps.sequence_explorer_ui import (
     dependency_figure,
     download_links_html,
     logo_figure,
+    navigator_figure,
+    span_from_plotly_ranges,
 )
 from marin_dna.model.sequence_interpretation import NucleotideLogo
 
@@ -72,3 +74,19 @@ def test_downloads_are_in_memory_csvs_with_revisions_and_no_sequence():
     assert decoded[1].splitlines()[-1].startswith("2,")
     assert "ACGT" not in decoded[0]
     assert "ACGT" not in decoded[1]
+
+
+def test_navigator_supports_horizontal_brush_and_full_range():
+    figure = navigator_figure(_logo())
+    assert figure.layout.dragmode == "select"
+    assert figure.layout.selectdirection == "h"
+    assert figure.layout.xaxis.range == (-0.5, 2.5)
+    assert figure.layout.yaxis.range == (0, 2)
+
+
+def test_plotly_ranges_convert_to_zero_based_half_open_span():
+    assert span_from_plotly_ranges(10, None) == (0, 10)
+    assert span_from_plotly_ranges(10, {}) == (0, 10)
+    assert span_from_plotly_ranges(10, {"x": [1.2, 4.7]}) == (2, 5)
+    assert span_from_plotly_ranges(10, {"x": [9.8, -2.0]}) == (0, 10)
+    assert span_from_plotly_ranges(10, {"xaxis": [6.1, 6.2]}) == (7, 8)

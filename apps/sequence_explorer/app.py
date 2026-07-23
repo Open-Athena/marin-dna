@@ -1,405 +1,404 @@
-"""Public MarinDNA sequence explorer (issue #387)."""
+# /// script
+# requires-python = ">=3.12,<3.13"
+# dependencies = [
+#     "marimo==0.23.15",
+#     "matplotlib==3.10.8",
+#     "numpy==2.4.3",
+#     "plotly==6.9.0",
+#     "torch==2.8.0",
+#     "transformers==4.57.6",
+#     "marin-dna @ git+https://github.com/Open-Athena/marin-dna.git@2653622de8945e4ba2578458cb30b47803e63d9e",
+# ]
+# ///
 
-from __future__ import annotations
+"""Public molab-hosted MarinDNA sequence explorer (issue #387)."""
 
-import math
-import os
-import time
-from collections.abc import Generator
-from typing import Any
+import marimo
 
-import gradio as gr
-import numpy as np
-import pandas as pd
-import spaces
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-from examples import DEFAULT_EXAMPLE, EXAMPLES, EXAMPLES_BY_LABEL
-from marin_dna.model.interpretation import nucleotide_dependency_map
-from marin_dna.model.sequence_interpretation import (
-    NucleotideLogo,
-    normalize_dna_sequence,
-    nucleotide_logo,
-)
-from ui import (
-    dependency_figure,
-    dependency_loading_figure,
-    download_links_html,
-    logo_figure,
-    navigator_dataframe,
-)
-
-MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
-MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
-APPLICATION_REVISION = os.getenv(
-    "SOURCE_REVISION", os.getenv("SPACE_COMMIT_SHA", "local-development")
-)
-APPLICATION_SOURCE_URL = (
-    "https://github.com/Open-Athena/marin-dna/tree/"
-    f"{APPLICATION_REVISION}/apps/sequence_explorer"
-)
-BATCH_SIZE = int(os.getenv("NUCLEOTIDE_DEPENDENCY_BATCH_SIZE", "32"))
-GPU_DURATION_SECONDS = 120
-
-# This remains unset until the required ZeroGPU benchmark establishes the
-# shortest sequence length whose post-logo delay is >=3 s. Set it to that
-# measured threshold at deployment time; do not guess.
-_progressive_threshold = os.getenv("PROGRESSIVE_MIN_LENGTH")
-PROGRESSIVE_MIN_LENGTH = int(_progressive_threshold) if _progressive_threshold else None
+__generated_with = "0.23.15"
+app = marimo.App(width="full", app_title="MarinDNA sequence explorer")
 
 
-# ZeroGPU's CUDA emulation is active at module load. Hugging Face explicitly
-# recommends placing models on CUDA here rather than moving them inside the
-# decorated function, so model downloads and transfers are not repeated per
-# submission.
-TOKENIZER = AutoTokenizer.from_pretrained(
-    MODEL_ID,
-    revision=MODEL_REVISION,
-)
-MODEL = AutoModelForCausalLM.from_pretrained(
-    MODEL_ID,
-    revision=MODEL_REVISION,
-    torch_dtype=torch.bfloat16,
-    attn_implementation="sdpa",
-).to("cuda")
-MODEL.eval()
+@app.cell
+def _():
+    import os
+    import time
+    from functools import cache
 
+    import marimo as mo
+    import numpy as np
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-def _estimate_text(raw_sequence: str) -> str:
-    compact = "".join(raw_sequence.split()).upper()
-    if not compact:
-        return "Enter 16–255 A/C/G/T bases. Invalid input never requests a GPU."
-    invalid = sorted(set(compact) - set("ACGT"))
-    if invalid:
-        return "Fix unsupported characters before submission; no GPU will be requested."
-    if len(compact) < 16:
-        return f"{len(compact)} bp entered; at least 16 bp are required."
-    if len(compact) > 255:
-        return f"{len(compact)} bp entered; the maximum is 255 bp."
+    from marin_dna.apps.sequence_explorer_examples import DEFAULT_EXAMPLE, EXAMPLES
+    from marin_dna.apps.sequence_explorer_ui import (
+        dependency_figure,
+        dependency_loading_figure,
+        download_links_html,
+        logo_figure,
+        navigator_figure,
+        span_from_plotly_ranges,
+    )
+    from marin_dna.model.interpretation import nucleotide_dependency_map
+    from marin_dna.model.sequence_interpretation import (
+        normalize_dna_sequence,
+        nucleotide_logo,
+    )
+
     return (
-        f"Valid input: **{len(compact)} bp**. The ZeroGPU allocation is capped at "
-        f"**{GPU_DURATION_SECONDS} seconds**; the measured length-specific estimate "
-        "will replace this cap after the benchmark gate."
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        DEFAULT_EXAMPLE,
+        EXAMPLES,
+        cache,
+        dependency_figure,
+        dependency_loading_figure,
+        download_links_html,
+        logo_figure,
+        mo,
+        navigator_figure,
+        normalize_dna_sequence,
+        np,
+        nucleotide_dependency_map,
+        nucleotide_logo,
+        os,
+        span_from_plotly_ranges,
+        time,
+        torch,
     )
 
 
-def _validate_submission(raw_sequence: str) -> tuple[str, str]:
+@app.cell
+def _(os):
+    MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
+    MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
+    APPLICATION_REVISION = os.getenv("SOURCE_REVISION", "local-development")
+    APPLICATION_SOURCE_URL = (
+        "https://github.com/Open-Athena/marin-dna/tree/"
+        f"{APPLICATION_REVISION}/apps/sequence_explorer"
+    )
+    BATCH_SIZE = int(os.getenv("NUCLEOTIDE_DEPENDENCY_BATCH_SIZE", "32"))
+    _progressive_threshold = os.getenv("PROGRESSIVE_MIN_LENGTH")
+    PROGRESSIVE_MIN_LENGTH = (
+        int(_progressive_threshold) if _progressive_threshold else None
+    )
+    assert BATCH_SIZE >= 1
+    assert PROGRESSIVE_MIN_LENGTH is None or PROGRESSIVE_MIN_LENGTH >= 16
+    return (
+        APPLICATION_REVISION,
+        APPLICATION_SOURCE_URL,
+        BATCH_SIZE,
+        MODEL_ID,
+        MODEL_REVISION,
+        PROGRESSIVE_MIN_LENGTH,
+    )
+
+
+@app.cell
+def _(
+    APPLICATION_SOURCE_URL,
+    MODEL_ID,
+    MODEL_REVISION,
+    mo,
+):
+    mo.vstack(
+        [
+            mo.md(
+                f"""
+                # MarinDNA sequence explorer
+
+                Paste a DNA sequence to inspect what the headline MarinDNA 1B
+                model has learned. The logo averages forward and transformed
+                reverse-complement **logits** before softmax. The dependency map
+                reuses the tested forward/RC categorical-Jacobian implementation.
+
+                These are **model interpretations**, not measurements of biological
+                function or clinical predictions. Submit only public reference,
+                synthetic, or otherwise non-sensitive sequences. **Do not submit
+                personal, confidential, identifiable, patient, or protected genetic
+                data.** Execution occurs on third-party CoreWeave infrastructure;
+                see the [privacy policy](https://marimo.io/pages/legal/privacy) and
+                [molab terms](https://molab.marimo.io/pages/legal/terms).
+
+                [Open Athena / MarinDNA source]({APPLICATION_SOURCE_URL}) ·
+                [Pinned model](https://huggingface.co/{MODEL_ID}/tree/{MODEL_REVISION})
+                """
+            ),
+            mo.Html(
+                """
+                <style>
+                  main { max-width: 1180px !important; }
+                  .download-links { display: flex; flex-wrap: wrap; gap: .75rem; }
+                  .download-links a {
+                    border: 1px solid #cbd5e1; border-radius: .5rem;
+                    padding: .55rem .8rem; color: #0f172a;
+                    text-decoration: none; background: #f8fafc;
+                  }
+                  .download-links a:hover { background: #e2e8f0; }
+                </style>
+                """
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(DEFAULT_EXAMPLE, EXAMPLES, mo):
+    _example_options = {
+        "Custom sequence": "",
+        **{example.label: example.sequence for example in EXAMPLES},
+    }
+    example_picker = mo.ui.dropdown(
+        options=_example_options,
+        value=DEFAULT_EXAMPLE.label,
+        label="Recommended example",
+        searchable=True,
+        full_width=True,
+    )
+    example_picker
+    return (example_picker,)
+
+
+@app.cell
+def _(example_picker, mo):
+    sequence_form = mo.ui.text_area(
+        value=example_picker.value,
+        placeholder="Enter 16–255 A/C/G/T bases",
+        rows=6,
+        label="DNA sequence (16–255 bp; A/C/G/T only)",
+        full_width=True,
+    ).form(
+        submit_button_label="Analyze sequence",
+        submit_button_tooltip="Run the pinned model on the submitted sequence",
+        clear_on_submit=False,
+    )
+    sequence_form
+    return (sequence_form,)
+
+
+@app.cell
+def _(
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    MODEL_ID,
+    MODEL_REVISION,
+    cache,
+    nucleotide_logo,
+    torch,
+):
+    @cache
+    def load_model():
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "A CUDA GPU is required. In molab, attach the free GPU from the "
+                "notebook specs menu; analysis will not fall back to CPU."
+            )
+        gpu_name = torch.cuda.get_device_name(torch.cuda.current_device())
+        tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_ID,
+            revision=MODEL_REVISION,
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_ID,
+            revision=MODEL_REVISION,
+            torch_dtype=torch.bfloat16,
+            attn_implementation="sdpa",
+        ).to("cuda")
+        model.eval()
+        # One deterministic warm-up also checks BOS and one-token-per-base
+        # tokenizer assumptions before a user sequence reaches inference.
+        nucleotide_logo(model, tokenizer, "ACGTACGTACGTACGT")
+        torch.cuda.synchronize()
+        return model, tokenizer, gpu_name
+
+    return (load_model,)
+
+
+@app.cell
+def _(
+    APPLICATION_REVISION,
+    BATCH_SIZE,
+    MODEL_ID,
+    MODEL_REVISION,
+    PROGRESSIVE_MIN_LENGTH,
+    dependency_loading_figure,
+    load_model,
+    logo_figure,
+    mo,
+    normalize_dna_sequence,
+    np,
+    nucleotide_dependency_map,
+    nucleotide_logo,
+    sequence_form,
+    time,
+    torch,
+):
+    _raw_sequence = sequence_form.value
+    mo.stop(
+        _raw_sequence is None,
+        mo.callout(
+            "Select an example or enter a custom sequence, then press "
+            "**Analyze sequence**. Editing and linked zoom never trigger inference.",
+            kind="info",
+        ),
+    )
     try:
-        normalized = normalize_dna_sequence(raw_sequence)
-    except ValueError as error:
-        raise gr.Error(str(error)) from error
-    return normalized, normalized
+        _normalized = normalize_dna_sequence(_raw_sequence)
+    except ValueError as _error:
+        mo.stop(True, mo.callout(str(_error), kind="danger"))
 
+    _length = len(_normalized)
+    _preparation_started = time.perf_counter()
+    with mo.status.spinner(
+        title="Running MarinDNA",
+        subtitle="Loading and warming the pinned model for this session…",
+    ) as _spinner:
+        _model, _tokenizer, _gpu_name = load_model()
+        _model_ready = time.perf_counter()
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.synchronize()
+        _logo_started = time.perf_counter()
+        _logo = nucleotide_logo(_model, _tokenizer, _normalized)
+        torch.cuda.synchronize()
+        _logo_finished = time.perf_counter()
 
-def _select_example(label: str, current_sequence: str) -> tuple[str, str]:
-    if label == "Custom sequence":
-        return current_sequence, _estimate_text(current_sequence)
-    example = EXAMPLES_BY_LABEL[label]
-    return example.sequence, _estimate_text(example.sequence)
+        _preparation_seconds = _model_ready - _preparation_started
+        _logo_seconds = _logo_finished - _logo_started
+        _progressive = (
+            PROGRESSIVE_MIN_LENGTH is not None and _length >= PROGRESSIVE_MIN_LENGTH
+        )
+        if _progressive:
+            mo.output.replace(
+                mo.vstack(
+                    [
+                        mo.md(
+                            f"Length: **{_length} bp** · Time to logo: "
+                            f"**{_logo_seconds:.2f} s**"
+                        ),
+                        logo_figure(_logo, span=(0, _length)),
+                        dependency_loading_figure(),
+                    ]
+                )
+            )
+        _spinner.update(subtitle="Building the nucleotide-dependency map…")
+        _dependency = nucleotide_dependency_map(
+            _model,
+            _tokenizer,
+            _normalized,
+            rc=True,
+            combine="mean",
+            norm_ord=np.inf,
+            batch_size=BATCH_SIZE,
+        )
+        torch.cuda.synchronize()
+        _finished = time.perf_counter()
 
+    _dependency_seconds = _finished - _logo_finished
+    _peak_vram_bytes = int(torch.cuda.max_memory_allocated())
+    assert _dependency.shape == (_length, _length)
+    assert np.isfinite(_dependency).all()
+    assert np.allclose(_dependency, _dependency.T, atol=1e-6)
 
-def _mark_custom(raw_sequence: str) -> tuple[Any, str]:
-    return gr.Dropdown(value="Custom sequence"), _estimate_text(raw_sequence)
-
-
-def _metadata(length: int) -> dict[str, str]:
-    return {
+    _metadata = {
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
         "application_revision": APPLICATION_REVISION,
-        "sequence_length_bp": str(length),
+        "sequence_length_bp": str(_length),
         "coordinate_system": "0-based sequence-relative",
         "logo_strand_rule": "mean_forward_and_transformed_rc_logits_then_softmax",
         "dependency_combine": "mean",
+        "gpu": _gpu_name,
     }
-
-
-def _result_state(
-    logo: NucleotideLogo,
-    dependency: np.ndarray,
-) -> dict[str, Any]:
-    assert dependency.shape == (
-        logo.probabilities.shape[0],
-        logo.probabilities.shape[0],
-    )
-    return {"logo": logo, "dependency": dependency}
-
-
-def _status_markdown(
-    *,
-    length: int,
-    time_to_logo: float,
-    dependency_seconds: float | None,
-    peak_vram_bytes: int | None,
-) -> str:
-    runtime = (
-        "Dependency map is still running."
-        if dependency_seconds is None
-        else (
-            f"Additional dependency-map time: **{dependency_seconds:.2f} s** · "
-            f"Total: **{time_to_logo + dependency_seconds:.2f} s**"
-        )
-    )
-    vram = (
-        "Peak VRAM: pending"
-        if peak_vram_bytes is None
-        else f"Peak VRAM: **{peak_vram_bytes / 2**30:.2f} GiB**"
-    )
-    return (
-        f"Length: **{length} bp** · Time to logo: **{time_to_logo:.2f} s** · "
-        f"{runtime} · {vram}  \n"
-        f"Model `{MODEL_REVISION}` · Application `{APPLICATION_REVISION}`"
-    )
-
-
-@spaces.GPU(duration=GPU_DURATION_SECONDS)
-def _analyze_sequence(
-    sequence: str,
-) -> Generator[tuple[Any, ...], None, None]:
-    """One GPU allocation and one Gradio generator for both interpretations."""
-    if not torch.cuda.is_available():
-        raise gr.Error(
-            "A ZeroGPU allocation was not provided. Analysis will not fall back to CPU."
-        )
-    # Validation ran in the preceding CPU event. Assert again inside the trust
-    # boundary without logging or persisting the submitted sequence.
-    normalized = normalize_dna_sequence(sequence)
-    length = len(normalized)
-    torch.cuda.reset_peak_memory_stats()
-    torch.cuda.synchronize()
-    started_at = time.perf_counter()
-
-    logo = nucleotide_logo(MODEL, TOKENIZER, normalized)
-    torch.cuda.synchronize()
-    logo_finished_at = time.perf_counter()
-    time_to_logo = logo_finished_at - started_at
-    nav_data = navigator_dataframe(logo)
-    full_span = (0, length)
-
-    progressive = (
-        PROGRESSIVE_MIN_LENGTH is not None and length >= PROGRESSIVE_MIN_LENGTH
-    )
-    if progressive:
-        yield (
-            logo_figure(logo, span=full_span),
-            dependency_loading_figure(),
-            nav_data,
-            f"Visible span: **[0, {length})**",
-            _status_markdown(
-                length=length,
-                time_to_logo=time_to_logo,
-                dependency_seconds=None,
-                peak_vram_bytes=None,
-            ),
-            "<p>Download links appear when the dependency map finishes.</p>",
-            None,
-        )
-
-    dependency = nucleotide_dependency_map(
-        MODEL,
-        TOKENIZER,
-        normalized,
-        rc=True,
-        combine="mean",
-        norm_ord=np.inf,
-        batch_size=BATCH_SIZE,
-    )
-    torch.cuda.synchronize()
-    finished_at = time.perf_counter()
-    dependency_seconds = finished_at - logo_finished_at
-    peak_vram = int(torch.cuda.max_memory_allocated())
-    result = _result_state(logo, dependency)
-
-    yield (
-        logo_figure(logo, span=full_span),
-        dependency_figure(dependency, span=full_span),
-        nav_data,
-        f"Visible span: **[0, {length})**",
-        _status_markdown(
-            length=length,
-            time_to_logo=time_to_logo,
-            dependency_seconds=dependency_seconds,
-            peak_vram_bytes=peak_vram,
+    analysis_result = {
+        "logo": _logo,
+        "dependency": _dependency,
+        "length": _length,
+        "metadata": _metadata,
+    }
+    mo.callout(
+        mo.md(
+            f"""
+            **Analysis complete.** Length: **{_length} bp** · GPU: **{_gpu_name}**<br>
+            Session/model preparation: **{_preparation_seconds:.2f} s** ·
+            Time to logo: **{_logo_seconds:.2f} s** · Additional dependency-map
+            time: **{_dependency_seconds:.2f} s** · Analysis total:
+            **{_logo_seconds + _dependency_seconds:.2f} s** · Peak VRAM:
+            **{_peak_vram_bytes / 2**30:.2f} GiB**<br>
+            Model `{MODEL_REVISION}` · Application `{APPLICATION_REVISION}`
+            """
         ),
-        download_links_html(
-            logo,
-            dependency,
-            metadata=_metadata(length),
-        ),
-        result,
+        kind="success",
     )
+    return (analysis_result,)
 
 
-def _span_from_selection(length: int, selection: gr.SelectData) -> tuple[int, int]:
-    assert isinstance(selection.index, (list, tuple)) and len(selection.index) == 2
-    raw_start, raw_end = sorted(float(value) for value in selection.index)
-    start = max(0, min(length - 1, math.ceil(raw_start)))
-    end = max(start + 1, min(length, math.floor(raw_end) + 1))
-    assert 0 <= start < end <= length
-    return start, end
-
-
-def _select_span(
-    result: dict[str, Any] | None,
-    selection: gr.SelectData,
-) -> tuple[Any, Any, str]:
-    if result is None:
-        raise gr.Error("Run an analysis before selecting a visible span.")
-    logo = result["logo"]
-    dependency = result["dependency"]
-    span = _span_from_selection(len(logo.information_bits), selection)
-    return (
-        logo_figure(logo, span=span),
-        dependency_figure(dependency, span=span),
-        f"Visible span: **[{span[0]}, {span[1]})**",
+@app.cell
+def _(mo):
+    reset_span = mo.ui.button(
+        value=0,
+        on_click=lambda count: count + 1,
+        label="Reset to full sequence",
+        tooltip="Clear the navigator brush without rerunning the model",
     )
+    return (reset_span,)
 
 
-def _reset_span(
-    result: dict[str, Any] | None,
-) -> tuple[Any, Any, str, pd.DataFrame]:
-    if result is None:
-        raise gr.Error("Run an analysis before resetting the visible span.")
-    logo = result["logo"]
-    dependency = result["dependency"]
-    length = len(logo.information_bits)
-    return (
-        logo_figure(logo),
-        dependency_figure(dependency),
-        f"Visible span: **[0, {length})**",
-        navigator_dataframe(logo),
-    )
-
-
-INTRODUCTION = f"""
-# MarinDNA sequence explorer
-
-Paste a DNA sequence to inspect what the headline MarinDNA 1B model has learned.
-The logo averages forward and reverse-complement **logits** in forward-sequence
-coordinates, then applies softmax. The dependency map reuses the tested
-forward/RC categorical-Jacobian implementation.
-
-These are **model interpretations**, not measurements of biological function or
-clinical predictions. Do not submit personal, confidential, or identifiable
-genetic data. Requests run on third-party Hugging Face infrastructure; see the
-[Hugging Face privacy policy](https://huggingface.co/privacy).
-
-[Open Athena / MarinDNA source]({APPLICATION_SOURCE_URL})
-· [Pinned model](https://huggingface.co/{MODEL_ID}/tree/{MODEL_REVISION})
-"""
-
-CSS = """
-.gradio-container { max-width: 1180px !important; }
-.download-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.5rem 0; }
-.download-links a {
-  border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.55rem 0.8rem;
-  color: #0f172a; text-decoration: none; background: #f8fafc;
-}
-.download-links a:hover { background: #e2e8f0; }
-"""
-
-empty_navigator = pd.DataFrame(
-    {"position": pd.Series(dtype=int), "information_bits": pd.Series(dtype=float)}
-)
-example_choices = ["Custom sequence", *[example.label for example in EXAMPLES]]
-
-with gr.Blocks(title="MarinDNA sequence explorer", css=CSS) as demo:
-    result_state = gr.State(value=None)
-    validated_sequence = gr.State(value="")
-    gr.Markdown(INTRODUCTION)
-    with gr.Row():
-        example_dropdown = gr.Dropdown(
-            choices=example_choices,
-            value=DEFAULT_EXAMPLE.label,
-            label="Recommended example",
-            scale=2,
-        )
-        run_button = gr.Button("Analyze sequence", variant="primary", scale=1)
-    sequence_input = gr.Textbox(
-        value=DEFAULT_EXAMPLE.sequence,
-        label="DNA sequence (16–255 bp; A/C/G/T only)",
-        lines=5,
-        max_lines=8,
-        show_copy_button=True,
-    )
-    estimate = gr.Markdown(_estimate_text(DEFAULT_EXAMPLE.sequence))
-
-    status = gr.Markdown(
-        f"Model `{MODEL_REVISION}` · Application `{APPLICATION_REVISION}`"
-    )
-    logo_plot = gr.Plot(label="Information-content sequence logo")
-    dependency_plot = gr.Plot(label="Nucleotide-dependency map")
-    gr.Markdown(
-        "Drag a horizontal region in the navigator to link both views. "
-        "Selections are interpreted as 0-based, half-open intervals."
-    )
-    navigator = gr.LinePlot(
-        value=empty_navigator,
-        x="position",
-        y="information_bits",
-        title="Full-sequence navigator",
-        x_title="Sequence position (0-based)",
-        y_title="Information (bits)",
-        height=180,
+@app.cell
+def _(analysis_result, mo, navigator_figure, reset_span):
+    # Referencing the reset counter recreates the navigator and clears its
+    # selection. The analysis cell does not depend on this button.
+    _reset_generation = reset_span.value
+    navigator = mo.ui.plotly(
+        navigator_figure(analysis_result["logo"]),
+        config={"displaylogo": False, "scrollZoom": False},
         label="Full-sequence navigator",
     )
-    with gr.Row():
-        visible_span = gr.Markdown("Visible span: run an analysis")
-        reset_button = gr.Button("Reset to full sequence")
-    downloads = gr.HTML("<p>Download links appear after analysis.</p>")
-
-    example_dropdown.input(
-        _select_example,
-        inputs=[example_dropdown, sequence_input],
-        outputs=[sequence_input, estimate],
-        queue=False,
-    )
-    sequence_input.input(
-        _mark_custom,
-        inputs=sequence_input,
-        outputs=[example_dropdown, estimate],
-        queue=False,
-    )
-    validation_event = run_button.click(
-        _validate_submission,
-        inputs=sequence_input,
-        outputs=[validated_sequence, sequence_input],
-        queue=False,
-    )
-    validation_event.success(
-        _analyze_sequence,
-        inputs=validated_sequence,
-        outputs=[
-            logo_plot,
-            dependency_plot,
+    mo.vstack(
+        [
+            mo.md(
+                "Drag a horizontal span below to link both views. Selections use "
+                "0-based, half-open coordinates `[start, end)`. Double-clicking "
+                "the navigator also clears its Plotly selection."
+            ),
             navigator,
-            visible_span,
-            status,
-            downloads,
-            result_state,
-        ],
+            reset_span,
+        ]
     )
-    navigator.select(
-        _select_span,
-        inputs=result_state,
-        outputs=[logo_plot, dependency_plot, visible_span],
-        queue=False,
-    )
-    navigator.double_click(
-        _reset_span,
-        inputs=result_state,
-        outputs=[logo_plot, dependency_plot, visible_span, navigator],
-        queue=False,
-    )
-    reset_button.click(
-        _reset_span,
-        inputs=result_state,
-        outputs=[logo_plot, dependency_plot, visible_span, navigator],
-        queue=False,
-    )
+    return (navigator,)
 
-demo.queue(default_concurrency_limit=1, max_size=8)
+
+@app.cell
+def _(
+    analysis_result,
+    dependency_figure,
+    download_links_html,
+    logo_figure,
+    mo,
+    navigator,
+    span_from_plotly_ranges,
+):
+    _span = span_from_plotly_ranges(
+        analysis_result["length"],
+        navigator.ranges,
+    )
+    mo.vstack(
+        [
+            mo.md(f"Visible span: **[{_span[0]}, {_span[1]})**"),
+            logo_figure(analysis_result["logo"], span=_span),
+            dependency_figure(analysis_result["dependency"], span=_span),
+            mo.Html(
+                download_links_html(
+                    analysis_result["logo"],
+                    analysis_result["dependency"],
+                    metadata=analysis_result["metadata"],
+                )
+            ),
+        ],
+        gap=1.0,
+    )
+    return
+
 
 if __name__ == "__main__":
-    demo.launch()
+    app.run()
