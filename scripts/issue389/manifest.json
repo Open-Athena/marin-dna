@@ -13,7 +13,7 @@
     "source_run": "dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e",
     "source_run_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e",
     "checkpoint_step": 59158,
-    "training_script": "https://github.com/marin-community/marin/blob/a41a83fdddf85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657",
+    "training_script": "https://github.com/marin-community/marin/blob/a41a83fdddfdef85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657",
     "blog": "https://openathena.ai/blog/genomic-lm-optimization/",
     "analysis_issue": "https://github.com/Open-Athena/marin-dna/issues/361",
     "interpretation_issue": "https://github.com/Open-Athena/marin-dna/issues/370"
@@ -253,8 +253,8 @@
     "release_files": {
       "README.md": {
         "source": "scripts/issue389/model_card.md",
-        "size": 7139,
-        "sha256": "3550b04b747fa25f9908faa43494665cd07b514922bbb8b221f9d2978f9d455f"
+        "size": 7145,
+        "sha256": "585b78266e1d6560ec426fd1261101305e5bae0c48a17ebbd2586db2f6fad521"
       },
       "LICENSE": {
         "source": "LICENSE",

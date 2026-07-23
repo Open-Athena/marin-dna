@@ -28,7 +28,7 @@ MarinDNA m5.1 is a 1.12B-parameter, nucleotide-level causal language model devel
 
 The source checkpoint is
 `gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158`.
-The commit-pinned [training script](https://github.com/marin-community/marin/blob/a41a83fdddf85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657) defines the experiment.
+The commit-pinned [training script](https://github.com/marin-community/marin/blob/a41a83fdddfdef85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657) defines the experiment.
 
 ## Loading
 
@@ -109,6 +109,6 @@ Additional limitations:
 - [Genomic Language Model Optimization blog](https://openathena.ai/blog/genomic-lm-optimization/)
 - [Blog analysis and figures tracker](https://github.com/Open-Athena/marin-dna/issues/361)
 - [Figures 5–11 review dossier and supported interpretations](https://github.com/Open-Athena/marin-dna/issues/370)
-- [Commit-pinned training script](https://github.com/marin-community/marin/blob/a41a83fdddf85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657)
+- [Commit-pinned training script](https://github.com/marin-community/marin/blob/a41a83fdddfdef85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657)
 
 The tracked release manifest records source and destination inventories, byte sizes, checksums, model configuration, tokenizer details, dataset revisions, and the deterministic inference reference.
