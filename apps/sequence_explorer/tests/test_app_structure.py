@@ -14,6 +14,7 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert isinstance(module.app, marimo.App)
     source = (app_directory / "app.py").read_text()
     assert "c0676b2012b8b9c526deb26ff517f6b92b6d375d" in source
+    assert source.count("05c1c89bb7d4811fe2150728981957bb7fde619b") == 2
     assert "PROGRESSIVE_MIN_LENGTH = (" in source
     assert "marimo.App" in source
     assert "@spaces.GPU" not in source

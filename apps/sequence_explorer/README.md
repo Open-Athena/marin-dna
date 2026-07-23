@@ -5,6 +5,8 @@ This directory contains the molab-hosted marimo application for
 It runs the pinned public model
 [`bolinas-dna/marin-dna-exp135-m5.1`](https://huggingface.co/bolinas-dna/marin-dna-exp135-m5.1)
 at revision `c0676b2012b8b9c526deb26ff517f6b92b6d375d`.
+The application code and installed `marin_dna` package are pinned to Git commit
+`05c1c89bb7d4811fe2150728981957bb7fde619b`.
 
 The marimo notebook is intentionally thin. Sequence validation, the
 forward/reverse-complement probability logo, the categorical-Jacobian

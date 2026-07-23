@@ -7,7 +7,7 @@
 #     "plotly==6.9.0",
 #     "torch==2.8.0",
 #     "transformers==4.57.6",
-#     "marin-dna @ git+https://github.com/Open-Athena/marin-dna.git@2653622de8945e4ba2578458cb30b47803e63d9e",
+#     "marin-dna @ git+https://github.com/Open-Athena/marin-dna.git@05c1c89bb7d4811fe2150728981957bb7fde619b",
 # ]
 # ///
 
@@ -72,7 +72,9 @@ def _():
 def _(os):
     MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
     MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
-    APPLICATION_REVISION = os.getenv("SOURCE_REVISION", "local-development")
+    APPLICATION_REVISION = os.getenv(
+        "SOURCE_REVISION", "05c1c89bb7d4811fe2150728981957bb7fde619b"
+    )
     APPLICATION_SOURCE_URL = (
         "https://github.com/Open-Athena/marin-dna/tree/"
         f"{APPLICATION_REVISION}/apps/sequence_explorer"
