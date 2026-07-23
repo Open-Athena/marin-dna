@@ -49,6 +49,19 @@ class _PrefixSumCausalLM(nn.Module):
         return SimpleNamespace(logits=logits)
 
 
+class _BatchSizeSensitiveCausalLM(_PrefixSumCausalLM):
+    """Simulate mixed-precision kernels whose rounding depends on batch shape."""
+
+    def forward(self, input_ids, **kwargs):
+        output = super().forward(input_ids, **kwargs)
+        batch_offset = (
+            0.01
+            * input_ids.shape[0]
+            * torch.arange(self.vocab_size, dtype=output.logits.dtype)
+        )
+        return SimpleNamespace(logits=output.logits + batch_offset)
+
+
 def _nuc_token_ids(tokenizer):
     from marin_dna.data.dna import NUCLEOTIDES
     from marin_dna.data.transforms import _get_nucleotide_token_ids
@@ -120,6 +133,25 @@ def test_categorical_jacobian_batching_invariant():
     a = categorical_jacobian(model, input_ids, batch_size=4, **kw)
     b = categorical_jacobian(model, input_ids, batch_size=40, **kw)
     torch.testing.assert_close(a, b)
+
+
+def test_categorical_jacobian_matches_baseline_batch_shape():
+    """A batch-shaped baseline prevents false non-causal mixed-precision noise."""
+    tok = create_char_tokenizer(bos=True, eos=True)
+    model = _BatchSizeSensitiveCausalLM(vocab_size=8).eval()
+    seq = "ACGTACGT"
+    input_ids = torch.tensor(tok.encode(seq), dtype=torch.long)
+    jac = categorical_jacobian(
+        model,
+        input_ids,
+        nuc_token_ids=_nuc_token_ids(tok),
+        n_prefix=1,
+        window_size=len(seq),
+        batch_size=32,
+    )
+    for i in range(len(seq)):
+        for m in range(i + 1):
+            assert torch.all(jac[i, :, m, :] == 0.0)
 
 
 # --------------------------------------------------------------------------- #

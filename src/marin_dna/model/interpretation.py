@@ -100,8 +100,6 @@ def categorical_jacobian(
         # leak into the near-zero lower triangle and break the causal assert.
         return F.log_softmax(sel.float(), dim=-1)
 
-    base = _readout(input_ids.unsqueeze(0))[0]  # [W, 4]
-
     # All single-position substitutions: pert[i, a] = input_ids with DNA pos i
     # set to nucleotide a. Shape [W, 4, L].
     pert = input_ids.view(1, 1, L).repeat(W, 4, 1)
@@ -109,11 +107,23 @@ def categorical_jacobian(
         pert[i, :, n_prefix + i] = nuc_token_ids
     pert = pert.reshape(W * 4, L)
 
-    out = torch.empty((W * 4, W, 4), dtype=torch.float32, device=device)
+    jac_flat = torch.empty((W * 4, W, 4), dtype=torch.float32, device=device)
+    base_by_batch_size: dict[int, Tensor] = {}
     for s in range(0, W * 4, batch_size):
-        out[s : s + batch_size] = _readout(pert[s : s + batch_size])
+        e = min(s + batch_size, W * 4)
+        current_batch_size = e - s
+        if current_batch_size not in base_by_batch_size:
+            # Match the substitution batch shape. Mixed-precision GPU kernels
+            # can produce shape-dependent rounding, so subtracting a batch-1
+            # baseline creates false non-causal signal even though the model's
+            # attention mask is correct.
+            base_ids = input_ids.unsqueeze(0).repeat(current_batch_size, 1)
+            base_by_batch_size[current_batch_size] = _readout(base_ids)[0]
+        jac_flat[s:e] = (
+            _readout(pert[s:e]) - base_by_batch_size[current_batch_size]
+        )
 
-    jac = out.reshape(W, 4, W, 4) - base.view(1, 1, W, 4)
+    jac = jac_flat.reshape(W, 4, W, 4)
     if n_blind:
         # No real distribution at the window's first target position(s); zero the
         # blinded column so this strand stays upper-triangular (the clamped
