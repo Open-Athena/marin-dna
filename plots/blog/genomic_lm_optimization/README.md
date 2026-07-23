@@ -1,0 +1,74 @@
+# Genomic LM optimization blog figures
+
+This directory is the durable source bundle for the charts in `blog/genomic-lm-optimization/`. It preserves the complete plotting project, committed input snapshots, appendix analyses, and the mapping from article figure numbers to recipes and checked-in SVG assets.
+
+The imported project comes from [`eric-czech/marin-dna-post-202606`](https://github.com/eric-czech/marin-dna-post-202606) at commit [`2abef91b37a16fde9c9cdf1cfa0046942442b97f`](https://github.com/eric-czech/marin-dna-post-202606/commit/2abef91b37a16fde9c9cdf1cfa0046942442b97f). The Figure 8–11 typography and Figure 10 label fixes were then applied locally in this branch.
+
+## Reproduce
+
+Run from the MarinDNA repository root. Use the nested project lock because it preserves the Matplotlib version that produced the checked-in layouts. The committed CSV snapshots are sufficient for article Figures 8–13, 17, 19, and 20:
+
+```bash
+uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/figures/__main__.py
+```
+
+Outputs are written to `plots/output/blog/genomic_lm_optimization/` as SVG, PNG, and PDF. Figure 11 also writes its Kaplan-fit report there. Outputs are deterministic at the preserved dependency lock and SVG trailing whitespace is normalized.
+
+Figures 14 and 15 fetch training histories from the `eric-czech/marin` WandB project:
+
+```bash
+uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/figures/figure7_loss_vs_traitgym_curves.py
+uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/figures/figure8_loss_vs_traitgym_correlation.py
+```
+
+After inspecting generated SVGs and PNGs, copy only approved assets into the blog with the explicit sync command:
+
+```bash
+uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/sync_blog_assets.py figure1_lr_transfer figure2_beta2_epsilon_transfer
+```
+
+Refresh the committed sweep and mixture CSV snapshots from WandB with:
+
+```bash
+uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/data.py
+```
+
+`model_leaderboard.csv` is a dated extraction whose provenance URL is recorded in its first line.
+
+## Article mapping
+
+| Blog figure | Blog asset | Plot recipe or source | Inputs |
+|---:|---|---|---|
+| 1 | `data_provenance_training_datasets.svg` | Authored SVG; no plot recipe | Values documented in the article |
+| 2 | `eval_datasets.svg` | Authored SVG; no plot recipe | Benchmark metadata |
+| 3 | `eval_apparatus.svg` | Authored SVG; no plot recipe | Evaluation protocol |
+| 4 | `promoter_cds_specialists.svg` | `plots/blog/promoter_cds_specialists.py` | Current `evals_v2` metrics |
+| 5 | `upstream_cds_balance.svg` | `plots/upstream_cds_balance.py` | Current `evals_v2` metrics on S3 |
+| 6 | `annotation_derived_training_pool.svg` | Authored SVG; no plot recipe | Dataset token counts |
+| 7 | `parameter_transfer_methodology_v1.svg` | Authored SVG; no plot recipe | Transfer methodology |
+| 8 | `figure1_lr_transfer.svg` | `src/figures/figure1_lr_transfer.py` | `transfer_validation_results.csv` |
+| 9 | `figure2_beta2_epsilon_transfer.svg` | `src/figures/figure2_beta2_epsilon_transfer.py` | `transfer_validation_results.csv` |
+| 10 | `figure3_region_hyper_transfer.svg` | `src/figures/figure3_region_hyper_transfer.py` | `transfer_validation_results.csv` |
+| 11 | `figure4_loss_scaling.svg` | `src/figures/figure4_loss_scaling.py` | `parameter_scaling_results.csv`, `parameter_scaling_history.csv` |
+| 12 | `figure5_params_vs_vep_auprc.svg` | `src/figures/figure5_params_vs_vep_auprc.py` | `parameter_scaling_results.csv` |
+| 13 | `figure6_loss_vs_vep_auprc.svg` | `src/figures/figure6_loss_vs_vep_auprc.py` | `parameter_scaling_results.csv` |
+| 14 | `figure7_loss_vs_traitgym_curves.svg` | `src/figures/figure7_loss_vs_traitgym_curves.py` | WandB histories plus scaling snapshot |
+| 15 | `figure8_loss_vs_traitgym_correlation.svg` | `src/figures/figure8_loss_vs_traitgym_correlation.py` | WandB histories plus scaling snapshot |
+| 16 | `mini_fig9_mixture.svg` | Authored SVG; no plot recipe | Mixture continuation design |
+| 17 | `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data_mixture_results.csv` |
+| 18 | `mini_m5.1_lineage.svg` | Authored SVG; no plot recipe | m5.1 lineage |
+| 19 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
+| 20 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
+
+Paths beginning with `src/` and CSV names in this table are relative to this directory.
+
+## Appendix analyses
+
+| Analysis | Recipe | Data source |
+|---|---|---|
+| Mixture continuation tree | `src/figures/appendix/mixture_tree.py` | Committed mixture results |
+| Cooldown counterfactuals | `src/figures/appendix/cooldown_effects.py` | Committed VEP history plus WandB loss |
+| Pooled vs unpooled matching | `src/figures/appendix/pooled_vs_unpooled.py` | WandB histories |
+| Per-region loss scaling | `src/figures/appendix/region_loss_scaling.py` | WandB summaries |
+
+Appendix outputs land in `plots/output/blog/genomic_lm_optimization/appendix/`. The imported `docs/outline.md` records the source projects, sweep definitions, and constants referenced by recipe comments.

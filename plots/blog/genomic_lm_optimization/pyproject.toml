@@ -1,0 +1,20 @@
+[project]
+name = "oa-post-202605-bolinas"
+version = "0.1.0"
+description = "Bolinas DNA scaling sweep analysis"
+requires-python = ">=3.11"
+dependencies = [
+    "wandb>=0.18",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "scipy>=1.11",
+    # Static-site build for post/ (mirrors the Open Athena site generator).
+    "jinja2",
+    "mistune",
+    "python-frontmatter",
+    "pyyaml",
+]
+
+[tool.uv]
+package = false
