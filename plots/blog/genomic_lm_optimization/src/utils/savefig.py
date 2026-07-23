@@ -33,7 +33,7 @@ def save_figure(fig, directory: Path, name: str) -> None:
     with mpl.rc_context({"svg.hashsalt": name}):
         for ext, extra in (
             ("png", {"dpi": 300}),
-            ("pdf", {}),
+            ("pdf", {"metadata": {"CreationDate": None, "ModDate": None}}),
             ("svg", {"metadata": {"Date": None}}),
         ):
             path = directory / f"{name}.{ext}"
