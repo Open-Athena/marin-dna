@@ -277,7 +277,12 @@ def verify_collection(
     expected = manifest["collection"]
     collection = api.get_collection(collection_slug, token=False)
     assert collection.title == expected["title"]
-    assert collection.owner == expected["namespace"]
+    owner = (
+        collection.owner.get("name")
+        if isinstance(collection.owner, dict)
+        else collection.owner
+    )
+    assert owner == expected["namespace"]
     assert not collection.private
     expected_description = (REPO_ROOT / expected["description"]["source"]).read_text(
         encoding="utf-8"

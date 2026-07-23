@@ -7,9 +7,10 @@ intended for MarinDNA `main`.
 
 ## Human-review gate
 
-No Hugging Face repository or Collection may be created until a human approves
-[`model_card.md`](model_card.md). The Collection copy is in
-[`collection_description.md`](collection_description.md).
+[`model_card.md`](model_card.md) was approved by `gonzalobenegas` before
+publication on 2026-07-23. The Collection copy is in
+[`collection_description.md`](collection_description.md), and the approval
+record is pinned in `manifest.json`.
 
 ## Files
 
@@ -47,4 +48,17 @@ uv run python scripts/issue389/verify_release.py \
   --run-inference
 ```
 
-Post-publication commands will be added after the required model-card review.
+## Public release verification
+
+The manifest pins the public model revision and Collection slug. Verify the
+anonymous public download, exact release hashes, deterministic inference, all
+dataset revisions, model-card metadata, and ordered Collection contents:
+
+```bash
+uv run python scripts/issue389/verify_release.py \
+  --check-cloud \
+  --check-datasets \
+  --hub \
+  --hub-dir scratch/issue389/public_checkpoint \
+  --run-inference
+```

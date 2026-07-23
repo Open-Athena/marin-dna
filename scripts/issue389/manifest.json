@@ -5,9 +5,9 @@
     "url": "https://github.com/Open-Athena/marin-dna/issues/389"
   },
   "human_review": {
-    "model_card_approved": false,
-    "approved_by": null,
-    "approved_at_utc": null
+    "model_card_approved": true,
+    "approved_by": "gonzalobenegas",
+    "approved_at_utc": "2026-07-23T20:02:12Z"
   },
   "provenance": {
     "source_run": "dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e",
@@ -249,7 +249,7 @@
       "genomics",
       "dna"
     ],
-    "final_revision": null,
+    "final_revision": "c0676b2012b8b9c526deb26ff517f6b92b6d375d",
     "release_files": {
       "README.md": {
         "source": "scripts/issue389/model_card.md",
@@ -357,17 +357,17 @@
     "title": "MarinDNA - Genomic Language Model Optimization Blog 2026 07",
     "namespace": "bolinas-dna",
     "private": false,
-    "slug": null,
+    "slug": "bolinas-dna/marindna-genomic-language-model-optimization-blog-2026-07-6a627428aa94a4960c855072",
     "description": {
       "source": "scripts/issue389/collection_description.md",
-      "size": 880,
-      "sha256": "9de0dc49136664c7b8b186163d2f68524b8ecf0f82e27c7618543acf4cd2c655"
+      "size": 145,
+      "sha256": "f85bdda44d09269ab02a846597f21668719f9a7d95ff31dc81fb2e2f5be22361"
     },
     "items": [
       {
         "item_type": "model",
         "item_id": "bolinas-dna/marin-dna-exp135-m5.1",
-        "note": "Released model — final m5.1 base checkpoint at step 59158."
+        "note": "Released with the blog — final m5.1 base checkpoint at step 59158; the five listed training datasets were not used in every phase."
       },
       {
         "item_type": "dataset",
@@ -430,5 +430,20 @@
         "note": "Downstream evaluation only — SGE; not training data and not level-comparable with Mendelian."
       }
     ]
+  },
+  "verification": {
+    "verified_at_utc": "2026-07-23T20:11:03Z",
+    "public_model_url": "https://huggingface.co/bolinas-dna/marin-dna-exp135-m5.1",
+    "public_model_revision": "c0676b2012b8b9c526deb26ff517f6b92b6d375d",
+    "public_collection_url": "https://huggingface.co/collections/bolinas-dna/marindna-genomic-language-model-optimization-blog-2026-07-6a627428aa94a4960c855072",
+    "unauthenticated_snapshot_download": true,
+    "clean_environment": {
+      "implicit_hugging_face_token_disabled": true,
+      "transformers": "4.57.6",
+      "torch": "2.10.0+cu128",
+      "parameter_count": 1120772224,
+      "max_absolute_logit_difference": 0.0,
+      "predicted_token": "t"
+    }
   }
 }
