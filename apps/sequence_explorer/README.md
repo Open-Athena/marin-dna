@@ -33,8 +33,9 @@ billable fallback.
    commit-pinned GitHub URL for `apps/sequence_explorer/app.py`. GitHub remains
    the source of truth.
 3. Open the notebook specs menu and attach the free NVIDIA RTX Pro 6000
-   Blackwell GPU. The application asserts CUDA availability and will not fall
-   back to CPU.
+   Blackwell GPU. Confirm that the application runtime-status callout names the
+   GPU and reports CUDA as available. The application will not fall back to CPU
+   and reports the failing stage and exception if analysis cannot proceed.
 4. Run the notebook, then choose **Run as app** from molab's share menu. Record
    the public app URL in issue #387.
 5. Keep `PROGRESSIVE_MIN_LENGTH` unset until the benchmark below establishes a

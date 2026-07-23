@@ -94,6 +94,7 @@ def _():
         nucleotide_logo,
         os,
         span_from_plotly_ranges,
+        sys,
         time,
         torch,
     )
@@ -170,6 +171,35 @@ def _(
                 """
             ),
         ]
+    )
+    return
+
+
+@app.cell
+def _(mo, sys, torch):
+    try:
+        _cuda_available = torch.cuda.is_available()
+        _gpu_name = (
+            torch.cuda.get_device_name(torch.cuda.current_device())
+            if _cuda_available
+            else "none"
+        )
+        _runtime_error = None
+    except Exception as _error:
+        _cuda_available = False
+        _gpu_name = "unavailable"
+        _runtime_error = f"{type(_error).__name__}: {_error}"
+
+    _runtime_summary = (
+        f"Python **{sys.version.split()[0]}** · PyTorch **{torch.__version__}** · "
+        f"PyTorch CUDA **{torch.version.cuda or 'none'}** · "
+        f"CUDA available: **{_cuda_available}** · Device: **{_gpu_name}**"
+    )
+    if _runtime_error is not None:
+        _runtime_summary += f"\n\nCUDA initialization error: `{_runtime_error}`"
+    mo.callout(
+        mo.md(f"**Runtime status.** {_runtime_summary}"),
+        kind="success" if _cuda_available else "danger",
     )
     return
 
@@ -281,49 +311,65 @@ def _(
 
     _length = len(_normalized)
     _preparation_started = time.perf_counter()
-    with mo.status.spinner(
-        title="Running MarinDNA",
-        subtitle="Loading and warming the pinned model for this session…",
-    ) as _spinner:
-        _model, _tokenizer, _gpu_name = load_model()
-        _model_ready = time.perf_counter()
-        torch.cuda.reset_peak_memory_stats()
-        torch.cuda.synchronize()
-        _logo_started = time.perf_counter()
-        _logo = nucleotide_logo(_model, _tokenizer, _normalized)
-        torch.cuda.synchronize()
-        _logo_finished = time.perf_counter()
+    _stage = "model download and warm-up"
+    try:
+        with mo.status.spinner(
+            title="Running MarinDNA",
+            subtitle="Loading and warming the pinned model for this session…",
+        ) as _spinner:
+            _model, _tokenizer, _gpu_name = load_model()
+            _model_ready = time.perf_counter()
+            _stage = "CUDA memory initialization"
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
+            _stage = "probability logo"
+            _logo_started = time.perf_counter()
+            _logo = nucleotide_logo(_model, _tokenizer, _normalized)
+            torch.cuda.synchronize()
+            _logo_finished = time.perf_counter()
 
-        _preparation_seconds = _model_ready - _preparation_started
-        _logo_seconds = _logo_finished - _logo_started
-        _progressive = (
-            PROGRESSIVE_MIN_LENGTH is not None and _length >= PROGRESSIVE_MIN_LENGTH
-        )
-        if _progressive:
-            mo.output.replace(
-                mo.vstack(
-                    [
-                        mo.md(
-                            f"Length: **{_length} bp** · Time to logo: "
-                            f"**{_logo_seconds:.2f} s**"
-                        ),
-                        logo_figure(_logo, span=(0, _length)),
-                        dependency_loading_figure(),
-                    ]
-                )
+            _preparation_seconds = _model_ready - _preparation_started
+            _logo_seconds = _logo_finished - _logo_started
+            _progressive = (
+                PROGRESSIVE_MIN_LENGTH is not None
+                and _length >= PROGRESSIVE_MIN_LENGTH
             )
-        _spinner.update(subtitle="Building the nucleotide-dependency map…")
-        _dependency = nucleotide_dependency_map(
-            _model,
-            _tokenizer,
-            _normalized,
-            rc=True,
-            combine="mean",
-            norm_ord=np.inf,
-            batch_size=BATCH_SIZE,
+            if _progressive:
+                mo.output.replace(
+                    mo.vstack(
+                        [
+                            mo.md(
+                                f"Length: **{_length} bp** · Time to logo: "
+                                f"**{_logo_seconds:.2f} s**"
+                            ),
+                            logo_figure(_logo, span=(0, _length)),
+                            dependency_loading_figure(),
+                        ]
+                    )
+                )
+            _stage = "nucleotide-dependency map"
+            _spinner.update(subtitle="Building the nucleotide-dependency map…")
+            _dependency = nucleotide_dependency_map(
+                _model,
+                _tokenizer,
+                _normalized,
+                rc=True,
+                combine="mean",
+                norm_ord=np.inf,
+                batch_size=BATCH_SIZE,
+            )
+            torch.cuda.synchronize()
+            _finished = time.perf_counter()
+    except Exception as _error:
+        _failure = f"{type(_error).__name__}: {_error}"
+        print(f"Analysis failed during {_stage}: {_failure}", flush=True)
+        mo.stop(
+            True,
+            mo.callout(
+                f"Analysis failed during **{_stage}**.\n\n`{_failure}`",
+                kind="danger",
+            ),
         )
-        torch.cuda.synchronize()
-        _finished = time.perf_counter()
 
     _dependency_seconds = _finished - _logo_finished
     _peak_vram_bytes = int(torch.cuda.max_memory_allocated())

@@ -20,6 +20,8 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "marin-dna @ git+" not in source
     assert "cyvcf2" not in source
     assert "PROGRESSIVE_MIN_LENGTH = (" in source
+    assert "**Runtime status.**" in source
+    assert "Analysis failed during **{_stage}**." in source
     assert "marimo.App" in source
     assert "@spaces.GPU" not in source
     assert "import gradio" not in source
