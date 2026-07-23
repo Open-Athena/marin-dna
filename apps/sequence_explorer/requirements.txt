@@ -7,4 +7,4 @@ plotly==6.9.0
 spaces==0.40.3
 torch==2.8.0
 transformers==4.57.6
-marin-dna @ git+https://github.com/Open-Athena/marin-dna.git@claude/issue-387-sequence-explorer
+marin-dna @ git+https://github.com/Open-Athena/marin-dna.git@2653622de8945e4ba2578458cb30b47803e63d9e
