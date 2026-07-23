@@ -6,7 +6,7 @@ It runs the pinned public model
 [`bolinas-dna/marin-dna-exp135-m5.1`](https://huggingface.co/bolinas-dna/marin-dna-exp135-m5.1)
 at revision `c0676b2012b8b9c526deb26ff517f6b92b6d375d`.
 The application code and installed `marin_dna` package are pinned to Git commit
-`6bb12e0cd50f6c742e6d3cc2e4e4dee27ee5c9c1`.
+`62619aacb3c20d64ead0e98dda4e9bd4e180ea32`.
 
 The marimo notebook is intentionally thin. Sequence validation, the
 forward/reverse-complement probability logo, the categorical-Jacobian
