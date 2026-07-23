@@ -35,9 +35,10 @@ revision for deployment.
 
 ## Deployment
 
-1. Before mirroring this directory to the Space, replace the branch revision on
-   the `marin-dna` line in `requirements.txt` with the immutable Git commit that
-   contains the computation code.
+1. `requirements.txt` pins the computation package to immutable Git commit
+   `2653622de8945e4ba2578458cb30b47803e63d9e`. Advance that pin deliberately
+   only after the replacement commit passes the core and Space-specific test
+   suites.
 2. Mirror this directory to a Gradio Space under `gonzalobenegas`.
 3. Select ZeroGPU hardware in the Space settings. The README metadata does not
    assign hardware automatically.
