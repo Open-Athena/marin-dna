@@ -367,18 +367,6 @@ wheels = [
 ]
 
 [[package]]
-name = "coloredlogs"
-version = "15.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "humanfriendly", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/c7/eed8f27100517e8c0e6b923d5f0845d0cb99763da6fdee00478f91db7325/coloredlogs-15.0.1.tar.gz", hash = "sha256:7c991aa71a4577af2f82600d8f8f3a89f936baeaf9b50a9c197da014e5bf16b0", size = 278520, upload-time = "2021-06-11T10:22:45.202Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/06/3d6badcf13db419e25b07041d9c7b4a2c331d3f4e7134445ec5df57714cd/coloredlogs-15.0.1-py2.py3-none-any.whl", hash = "sha256:612ee75c546f53e92e70049c9dbfcc18c935a2b9a53b66085ce9ef6a6e5c0934", size = 46018, upload-time = "2021-06-11T10:22:42.561Z" },
-]
-
-[[package]]
 name = "conda-inject"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -472,25 +460,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a9/95/a3dbbb5028f35eafb79008e7522a75244477d2838f38cbb722248dabc2a8/cycler-0.12.1.tar.gz", hash = "sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c", size = 7615, upload-time = "2023-10-07T05:32:18.335Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl", hash = "sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30", size = 8321, upload-time = "2023-10-07T05:32:16.783Z" },
-]
-
-[[package]]
-name = "cyvcf2"
-version = "0.32.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "coloredlogs", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8e/2e/381ce60871b9f842222cc704f422b9205497f491372b070ac893c7c97277/cyvcf2-0.32.1.tar.gz", hash = "sha256:34f3f4464f27794a4956413481e9c08a00dbf87d998b8cc72d33560de874f263", size = 1354911, upload-time = "2026-02-23T18:15:32.553Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/2b/8702ad63928fb91e4ed733faaa7ee126402cbd2e60607b926e06be6964ea/cyvcf2-0.32.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:74c3678cc5208cbd1a9e9663aa23ceb9a9ce94a37fdc0f8396de4430e15556d6", size = 1386558, upload-time = "2026-02-23T18:14:52.012Z" },
-    { url = "https://files.pythonhosted.org/packages/6e/50/22615ac0caa9f1819afb714061620363ca6144d3b009d98030e02cb081bc/cyvcf2-0.32.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a1d9d70564aa8a25f902f7ef01a57f7d88314f5c48aa649ac57d0378cab866c6", size = 1317927, upload-time = "2026-02-23T18:14:53.638Z" },
-    { url = "https://files.pythonhosted.org/packages/91/c9/65f89382870c8cf8277b06680f81ea7621324de4c49fbce7276e0fd17ce5/cyvcf2-0.32.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:2842527fc28250271a1ca36988c54d522d4bc18d50f1ceb6b0c5be91cfbf5b5d", size = 6806744, upload-time = "2026-02-23T18:14:55.074Z" },
-    { url = "https://files.pythonhosted.org/packages/00/6b/fdb19c25e9251467dd1a420c38c64d30b86abb18e32ad56371d8812953cb/cyvcf2-0.32.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:87d4e2963305ce758f0b6d22cfc51b965ffbbf24e5b93bdb6a836f02ab9592bd", size = 7130774, upload-time = "2026-02-23T18:14:57.136Z" },
-    { url = "https://files.pythonhosted.org/packages/56/d2/217352dcd02737c6ed86b820c9321b271dd1a8d485b39e67c27c8c21a98a/cyvcf2-0.32.1-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:5f434865660f47beabf0c9a1f2cc0aaadb1f46684daddebfb067305e849fc503", size = 7439129, upload-time = "2026-02-23T18:14:58.587Z" },
-    { url = "https://files.pythonhosted.org/packages/d9/5d/bf7d572967f2dcc5b98dfeedca9ff8111b280012b1c21d39f33eaf008243/cyvcf2-0.32.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:e5e32dd63c9bdd670dbb17dd9e3decefb6e06267a50c20ee683cc84b921cb631", size = 7281811, upload-time = "2026-02-23T18:15:00.065Z" },
 ]
 
 [[package]]
@@ -949,7 +918,6 @@ source = { editable = "." }
 dependencies = [
     { name = "bioframe", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "biopython", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
-    { name = "cyvcf2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "datasets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "einops", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
     { name = "huggingface-hub", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or (extra == 'group-9-marin-dna-aws-cli' and extra == 'group-9-marin-dna-genome-s3')" },
@@ -1001,7 +969,6 @@ umap = [
 requires-dist = [
     { name = "bioframe" },
     { name = "biopython", specifier = ">=1.85" },
-    { name = "cyvcf2" },
     { name = "datasets" },
     { name = "einops" },
     { name = "huggingface-hub" },
