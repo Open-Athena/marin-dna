@@ -51,8 +51,7 @@ def _():
                 "--python",
                 sys.executable,
                 "--no-deps",
-                "git+https://github.com/Open-Athena/marin-dna.git"
-                f"@{SOURCE_REVISION}",
+                f"git+https://github.com/Open-Athena/marin-dna.git@{SOURCE_REVISION}",
             ],
             check=True,
         )
