@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 234" role="img" aria-labelledby="t" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="t">Best recipe — continued training onto a uniform 5-region mix (m5.1, Fig 10)</title>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8a7d68"/></marker>
+  </defs>
+  <rect x="1" y="1" width="718" height="232" rx="12" fill="#f6f0e4" stroke="#ddd3bf"/>
+  <text x="24" y="28" font-size="9" font-weight="700" letter-spacing="0.6" fill="#a89a80">BEST RECIPE · FIG 10</text>
+  <text x="24" y="48" font-size="13" font-weight="700" fill="#1f1e1b">Continue onto a uniform 5-region mix → m5.1</text>
+  <a href="https://huggingface.co/bolinas-dna/marin-dna-exp135-m5.1" target="_blank"><text x="694" y="30" text-anchor="end"><tspan font-size="10" fill="#8a7d68">Model </tspan><tspan font-size="13">🤗</tspan></text></a>
+  <text x="24" y="81" font-size="9.5" fill="#5b4a36">uniform 3-region</text>
+  <g>
+    <rect x="150" y="64" width="182" height="26" fill="#9c4f2f"/><text x="241" y="81" font-size="10" fill="#fff" text-anchor="middle">CDS 33%</text>
+    <rect x="332" y="64" width="182" height="26" fill="#2f6f63"/><text x="423" y="81" font-size="10" fill="#fff" text-anchor="middle">Up 33%</text>
+    <rect x="514" y="64" width="182" height="26" fill="#c0883a"/><text x="605" y="81" font-size="10" fill="#fff" text-anchor="middle">Down 33%</text>
+  </g>
+  <path d="M92 92 L92 116" fill="none" stroke="#8a7d68" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="150" y="107" font-size="9.5" font-style="italic" fill="#6f6350">+ ncRNA + Enhancer (continue training)</text>
+  <text x="24" y="137" font-size="9.5" font-weight="700" fill="#9c4f2f">m5.1 ★</text>
+  <g>
+    <rect x="150" y="120" width="109" height="26" fill="#9c4f2f"/><text x="204" y="137" font-size="9.5" fill="#fff" text-anchor="middle">CDS 20%</text>
+    <rect x="259" y="120" width="109" height="26" fill="#2f6f63"/><text x="313" y="137" font-size="9.5" fill="#fff" text-anchor="middle">Up 20%</text>
+    <rect x="368" y="120" width="109" height="26" fill="#c0883a"/><text x="422" y="137" font-size="9.5" fill="#fff" text-anchor="middle">Down 20%</text>
+    <rect x="477" y="120" width="109" height="26" fill="#465c6e"/><text x="531" y="137" font-size="9.5" fill="#fff" text-anchor="middle">ncRNA 20%</text>
+    <rect x="586" y="120" width="110" height="26" fill="#6f7d3f"/><text x="641" y="137" font-size="9.5" fill="#fff" text-anchor="middle">Enh 20%</text>
+  </g>
+  <text x="24" y="167" font-size="9" fill="#a89a80">the warm-start lineage finishes ahead of the displayed de-novo 5-region lineage</text>
+  <g font-size="9.5" fill="#5b4a36">
+    <rect x="24" y="200" width="11" height="11" rx="2" fill="#9c4f2f"/><text x="40" y="209">CDS</text>
+    <rect x="86" y="200" width="11" height="11" rx="2" fill="#2f6f63"/><text x="102" y="209">Upstream</text>
+    <rect x="176" y="200" width="11" height="11" rx="2" fill="#c0883a"/><text x="192" y="209">Downstream</text>
+    <rect x="288" y="200" width="11" height="11" rx="2" fill="#465c6e"/><text x="304" y="209">ncRNA</text>
+    <rect x="360" y="200" width="11" height="11" rx="2" fill="#6f7d3f"/><text x="376" y="209">Enhancer</text>
+  </g>
+</svg>
