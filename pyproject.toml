@@ -10,7 +10,6 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "bioframe",
     "biopython>=1.85",
-    "cyvcf2",
     "datasets",
     "einops",
     "huggingface_hub",
@@ -116,7 +115,7 @@ ignore = ["F722"]
 
 [tool.mypy]
 # Lax baseline: many transitive deps (datasets, polars-bio, bioframe,
-# cyvcf2, …) have no stubs. Don't gate the project
+# etc.) have no stubs. Don't gate the project
 # on missing stubs. `strict_optional` off matches the existing code's
 # implicit-None tolerance — tighten incrementally.
 files = "src/marin_dna"

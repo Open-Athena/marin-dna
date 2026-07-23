@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
 # dependencies = [
+#     "jaxtyping==0.3.9",
 #     "marimo==0.23.15",
 #     "matplotlib==3.10.8",
 #     "numpy==2.4.3",
 #     "plotly==6.9.0",
 #     "torch==2.8.0",
 #     "transformers==4.57.6",
-#     "marin-dna @ git+https://github.com/Open-Athena/marin-dna.git@05c1c89bb7d4811fe2150728981957bb7fde619b",
 # ]
 # ///
 
@@ -21,7 +21,12 @@ app = marimo.App(width="full", app_title="MarinDNA sequence explorer")
 
 @app.cell
 def _():
+    import importlib
+    import importlib.util
     import os
+    import shutil
+    import subprocess
+    import sys
     import time
     from functools import cache
 
@@ -29,6 +34,32 @@ def _():
     import numpy as np
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    SOURCE_REVISION = "05c1c89bb7d4811fe2150728981957bb7fde619b"
+    if importlib.util.find_spec("marin_dna") is None:
+        _uv = shutil.which("uv")
+        if _uv is None:
+            raise RuntimeError(
+                "The pinned MarinDNA source requires the uv executable supplied "
+                "by molab, but uv was not found on PATH."
+            )
+        subprocess.run(
+            [
+                _uv,
+                "pip",
+                "install",
+                "--python",
+                sys.executable,
+                "--no-deps",
+                "git+https://github.com/Open-Athena/marin-dna.git"
+                f"@{SOURCE_REVISION}",
+            ],
+            check=True,
+        )
+        importlib.invalidate_caches()
+    assert importlib.util.find_spec("marin_dna") is not None, (
+        "the pinned MarinDNA source package was not installed"
+    )
 
     from marin_dna.apps.sequence_explorer_examples import DEFAULT_EXAMPLE, EXAMPLES
     from marin_dna.apps.sequence_explorer_ui import (
@@ -50,6 +81,7 @@ def _():
         AutoTokenizer,
         DEFAULT_EXAMPLE,
         EXAMPLES,
+        SOURCE_REVISION,
         cache,
         dependency_figure,
         dependency_loading_figure,
@@ -69,12 +101,10 @@ def _():
 
 
 @app.cell
-def _(os):
+def _(SOURCE_REVISION, os):
     MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
     MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
-    APPLICATION_REVISION = os.getenv(
-        "SOURCE_REVISION", "05c1c89bb7d4811fe2150728981957bb7fde619b"
-    )
+    APPLICATION_REVISION = os.getenv("SOURCE_REVISION", SOURCE_REVISION)
     APPLICATION_SOURCE_URL = (
         "https://github.com/Open-Athena/marin-dna/tree/"
         f"{APPLICATION_REVISION}/apps/sequence_explorer"

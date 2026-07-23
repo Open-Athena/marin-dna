@@ -12,10 +12,14 @@ The marimo notebook is intentionally thin. Sequence validation, the
 forward/reverse-complement probability logo, the categorical-Jacobian
 dependency map, built-in examples, Plotly figures, linked-span conversion, and
 in-memory downloads are imported from the installable `marin_dna` package.
-The notebook declares its immutable deployment dependencies with PEP 723
-metadata; `requirements.txt` contains only the extra dependencies used for
-local checks. A GitHub-synced molab notebook therefore does not depend on
-sibling files.
+The notebook declares its minimal immutable runtime dependencies with PEP 723
+metadata, then installs the commit-pinned `marin_dna` source with
+`uv pip install --no-deps`. The full research environment includes unrelated
+genomics and pipeline dependencies that are unnecessary for this app and may
+require build tools unavailable in molab. `requirements.txt` contains only the
+extra dependencies used for local checks. A GitHub-synced molab notebook
+therefore does not depend on sibling files or install unrelated pipeline
+dependencies.
 
 ## Deployment on molab
 
@@ -23,7 +27,7 @@ molab is currently a public preview and provides its GPU for free subject to
 reasonable-use limits. This application must not enable a paid resource or
 billable fallback.
 
-1. Push a fully tested application commit and replace the `marin-dna` Git pin in
+1. Push a fully tested application commit and replace `SOURCE_REVISION` in
    `app.py` with that immutable commit.
 2. In [molab](https://molab.marimo.io/), create a synced notebook from the
    commit-pinned GitHub URL for `apps/sequence_explorer/app.py`. GitHub remains

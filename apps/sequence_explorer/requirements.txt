@@ -1,3 +1,4 @@
+jaxtyping==0.3.9
 marimo==0.23.15
 matplotlib==3.10.8
 numpy==2.4.3
