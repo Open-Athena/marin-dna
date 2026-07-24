@@ -48,7 +48,7 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "allow_self_loops=True" in source
     assert "mo.ui.plotly" in source
     assert "on_change=_update_track_view" in source
-    assert "None\n            if _selected_span is None" in source
+    assert "if _selected_span is None:\n            return" in source
     assert "sequence_tracks.value" not in source
     assert '{"range": sequence_tracks.ranges}' not in source
     assert "Showing positions" in source
@@ -56,6 +56,7 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert source.index("_reset_view,\n            sequence_tracks,") > source.index(
         'label="Reset view"'
     )
+    assert '"reset",' in source
     assert "Reset axes" not in source
     assert "_current_sequence," in source
     assert "DNA sequence** track" in source

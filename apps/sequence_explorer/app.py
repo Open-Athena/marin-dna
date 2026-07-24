@@ -502,10 +502,10 @@ def _(
 
     def _update_track_view(selection):
         _selected_span = span_from_plotly_points(analysis_result["length"], selection)
+        if _selected_span is None:
+            return
         set_track_view(
-            None
-            if _selected_span is None
-            else {
+            {
                 "sequence_sha256": analysis_result["sequence_sha256"],
                 "span": list(_selected_span),
             }
@@ -531,6 +531,7 @@ def _(
                 "zoomOut2d",
                 "autoScale2d",
                 "resetScale2d",
+                "reset",
                 "lasso2d",
             ],
         },
