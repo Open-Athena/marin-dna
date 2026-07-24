@@ -22,6 +22,10 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "PROGRESSIVE_MIN_LENGTH = (" in source
     assert "**Runtime status.**" in source
     assert "Analysis failed during **{_stage}**." in source
+    assert "example_picker" not in source
+    assert ".batch(" in source
+    assert '_submission["custom_sequence"].strip()' in source
+    assert 'or _submission["example_sequence"]' in source
     assert "marimo.App" in source
     assert "@spaces.GPU" not in source
     assert "import gradio" not in source

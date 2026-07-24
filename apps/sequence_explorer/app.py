@@ -206,33 +206,42 @@ def _(mo, sys, torch):
 
 @app.cell
 def _(DEFAULT_EXAMPLE, EXAMPLES, mo):
-    _example_options = {
-        "Custom sequence": "",
-        **{example.label: example.sequence for example in EXAMPLES},
-    }
-    example_picker = mo.ui.dropdown(
-        options=_example_options,
-        value=DEFAULT_EXAMPLE.label,
-        label="Recommended example",
-        searchable=True,
-        full_width=True,
-    )
-    example_picker
-    return (example_picker,)
+    _example_options = {example.label: example.sequence for example in EXAMPLES}
+    sequence_form = (
+        mo.md(
+            """
+            **Recommended example**
 
+            {example_sequence}
 
-@app.cell
-def _(example_picker, mo):
-    sequence_form = mo.ui.text_area(
-        value=example_picker.value,
-        placeholder="Enter 16–255 A/C/G/T bases",
-        rows=6,
-        label="DNA sequence (16–255 bp; A/C/G/T only)",
-        full_width=True,
-    ).form(
-        submit_button_label="Analyze sequence",
-        submit_button_tooltip="Run the pinned model on the submitted sequence",
-        clear_on_submit=False,
+            **Custom DNA sequence (optional)**
+
+            {custom_sequence}
+
+            Leave the custom field empty to analyze the selected example.
+            Custom input overrides the example only after submission.
+            """
+        )
+        .batch(
+            example_sequence=mo.ui.dropdown(
+                options=_example_options,
+                value=DEFAULT_EXAMPLE.label,
+                searchable=True,
+                full_width=True,
+            ),
+            custom_sequence=mo.ui.text_area(
+                value="",
+                placeholder="Enter 16–255 A/C/G/T bases",
+                rows=6,
+                label="16–255 bp; A/C/G/T only",
+                full_width=True,
+            ),
+        )
+        .form(
+            submit_button_label="Analyze sequence",
+            submit_button_tooltip="Run the pinned model on the submitted sequence",
+            clear_on_submit=False,
+        )
     )
     sequence_form
     return (sequence_form,)
@@ -295,14 +304,17 @@ def _(
     time,
     torch,
 ):
-    _raw_sequence = sequence_form.value
+    _submission = sequence_form.value
     mo.stop(
-        _raw_sequence is None,
+        _submission is None,
         mo.callout(
             "Select an example or enter a custom sequence, then press "
             "**Analyze sequence**. Editing and linked zoom never trigger inference.",
             kind="info",
         ),
+    )
+    _raw_sequence = (
+        _submission["custom_sequence"].strip() or _submission["example_sequence"]
     )
     try:
         _normalized = normalize_dna_sequence(_raw_sequence)
@@ -331,8 +343,7 @@ def _(
             _preparation_seconds = _model_ready - _preparation_started
             _logo_seconds = _logo_finished - _logo_started
             _progressive = (
-                PROGRESSIVE_MIN_LENGTH is not None
-                and _length >= PROGRESSIVE_MIN_LENGTH
+                PROGRESSIVE_MIN_LENGTH is not None and _length >= PROGRESSIVE_MIN_LENGTH
             )
             if _progressive:
                 mo.output.replace(
