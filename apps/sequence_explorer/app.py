@@ -82,7 +82,7 @@ def _():
         dependency_loading_figure,
         download_links_html,
         logo_figure,
-        sequence_tracks_figure,
+        sequence_tracks_figures,
         span_from_plotly_points,
     )
     from marin_dna.model.interpretation import nucleotide_dependency_map
@@ -109,7 +109,7 @@ def _():
         nucleotide_dependency_map,
         nucleotide_logo,
         os,
-        sequence_tracks_figure,
+        sequence_tracks_figures,
         span_from_plotly_points,
         sys,
         time,
@@ -476,7 +476,7 @@ def _(
     hashlib,
     mo,
     normalize_dna_sequence,
-    sequence_tracks_figure,
+    sequence_tracks_figures,
     set_track_view,
     span_from_plotly_points,
 ):
@@ -513,13 +513,14 @@ def _(
     def _reset_track_view(_value):
         set_track_view(None)
 
+    _sequence_figure, _dependency_figure = sequence_tracks_figures(
+        _current_sequence,
+        analysis_result["logo"],
+        analysis_result["dependency"],
+        span=_span,
+    )
     sequence_tracks = mo.ui.plotly(
-        sequence_tracks_figure(
-            _current_sequence,
-            analysis_result["logo"],
-            analysis_result["dependency"],
-            span=_span,
-        ),
+        _sequence_figure,
         config={
             "displaylogo": False,
             "scrollZoom": False,
@@ -537,6 +538,25 @@ def _(
         label="Aligned sequence tracks",
         on_change=_update_track_view,
     )
+    dependency_track = mo.ui.plotly(
+        _dependency_figure,
+        config={
+            "displaylogo": False,
+            "scrollZoom": False,
+            "modeBarButtonsToRemove": [
+                "zoom2d",
+                "pan2d",
+                "select2d",
+                "lasso2d",
+                "zoomIn2d",
+                "zoomOut2d",
+                "autoScale2d",
+                "resetScale2d",
+                "reset",
+            ],
+        },
+        label="Nucleotide dependency map",
+    )
     reset_view = mo.ui.button(
         label="Reset view",
         tooltip="Restore the full sequence span",
@@ -547,12 +567,13 @@ def _(
         if _span is not None
         else f"Showing the full **0–{analysis_result['length'] - 1}** span."
     )
-    return reset_view, sequence_tracks, visible_span
+    return dependency_track, reset_view, sequence_tracks, visible_span
 
 
 @app.cell
 def _(
     analysis_result,
+    dependency_track,
     download_links_html,
     mo,
     reset_view,
@@ -569,6 +590,7 @@ def _(
             ),
             reset_view,
             sequence_tracks,
+            dependency_track,
             mo.Html(
                 download_links_html(
                     analysis_result["logo"],

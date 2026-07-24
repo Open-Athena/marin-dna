@@ -8,7 +8,7 @@ from marin_dna.apps.sequence_explorer_ui import (
     dependency_figure,
     download_links_html,
     logo_figure,
-    sequence_tracks_figure,
+    sequence_tracks_figures,
     span_from_plotly_points,
     span_from_plotly_selection,
 )
@@ -112,49 +112,69 @@ def test_downloads_are_in_memory_csvs_with_revisions_and_no_sequence():
     assert "ACGT" not in decoded[1]
 
 
-def test_sequence_tracks_are_aligned_and_raw_dna_drives_square_zoom():
+def test_sequence_tracks_are_aligned_and_dependency_is_not_selectable():
     dependency = np.arange(9, dtype=float).reshape(3, 3)
     dependency = (dependency + dependency.T) / 2.0
-    figure = sequence_tracks_figure("ACG", _logo(), dependency, span=(1, 3))
+    sequence_figure, dependency_figure = sequence_tracks_figures(
+        "ACG",
+        _logo(),
+        dependency,
+        span=(1, 3),
+    )
 
-    assert figure.layout.dragmode == "select"
-    assert figure.layout.selectdirection == "h"
-    assert figure.layout.xaxis.range == (0.5, 2.5)
-    assert figure.layout.xaxis2.range == (0.5, 2.5)
-    assert figure.layout.xaxis3.range == (0.5, 2.5)
+    assert sequence_figure.layout.dragmode == "select"
+    assert sequence_figure.layout.selectdirection == "h"
+    assert dependency_figure.layout.dragmode is False
+    assert sequence_figure.layout.xaxis.range == (0.5, 2.5)
+    assert sequence_figure.layout.xaxis2.range == (0.5, 2.5)
+    assert dependency_figure.layout.xaxis.range == (0.5, 2.5)
     assert (
-        figure.layout.xaxis.domain
-        == figure.layout.xaxis2.domain
-        == figure.layout.xaxis3.domain
+        sequence_figure.layout.xaxis.domain
+        == sequence_figure.layout.xaxis2.domain
+        == dependency_figure.layout.xaxis.domain
         == (0.0, 1.0)
     )
-    assert figure.layout.xaxis.matches == "x3"
-    assert figure.layout.xaxis2.matches == "x3"
-    assert figure.layout.yaxis3.matches is None
-    assert figure.layout.yaxis3.scaleanchor == "x3"
-    assert figure.layout.yaxis3.scaleratio == 1
-    assert figure.layout.yaxis3.range == (2.5, 0.5)
-    assert figure.layout.yaxis.fixedrange
-    assert figure.layout.yaxis2.fixedrange
+    assert sequence_figure.layout.xaxis.matches == "x2"
+    assert sequence_figure.layout.yaxis.fixedrange
+    assert sequence_figure.layout.yaxis2.fixedrange
+    assert dependency_figure.layout.xaxis.fixedrange
+    assert dependency_figure.layout.yaxis.fixedrange
+    assert dependency_figure.layout.yaxis.scaleanchor == "x"
+    assert dependency_figure.layout.yaxis.scaleratio == 1
+    assert dependency_figure.layout.yaxis.range == (2.5, 0.5)
 
-    raw_positions = {int(position) for trace in figure.data[:4] for position in trace.x}
+    raw_positions = {
+        int(position) for trace in sequence_figure.data[:4] for position in trace.x
+    }
     assert raw_positions == {0, 1, 2}
-    assert figure.data[0].xaxis == "x"
-    assert figure.data[4].xaxis == "x2"
-    assert figure.data[5].xaxis == "x3"
-    assert figure.data[5].yaxis == "y3"
+    assert sequence_figure.data[0].xaxis == "x"
+    assert sequence_figure.data[4].xaxis == "x2"
+    assert dependency_figure.data[0].xaxis is None
+    assert dependency_figure.data[0].yaxis is None
     assert all(
-        shape.xref == "x2" and shape.yref == "y2" for shape in figure.layout.shapes
+        shape.xref == "x2" and shape.yref == "y2"
+        for shape in sequence_figure.layout.shapes
     )
 
-    assert figure.layout.margin.autoexpand is False
-    plot_width = figure.layout.width - figure.layout.margin.l - figure.layout.margin.r
-    plot_height = figure.layout.height - figure.layout.margin.t - figure.layout.margin.b
-    dependency_domain = figure.layout.yaxis3.domain
-    dependency_height = plot_height * (dependency_domain[1] - dependency_domain[0])
+    assert sequence_figure.layout.width == dependency_figure.layout.width
+    assert sequence_figure.layout.margin.l == dependency_figure.layout.margin.l
+    assert sequence_figure.layout.margin.r == dependency_figure.layout.margin.r
+    plot_width = (
+        dependency_figure.layout.width
+        - dependency_figure.layout.margin.l
+        - dependency_figure.layout.margin.r
+    )
+    dependency_height = (
+        dependency_figure.layout.height
+        - dependency_figure.layout.margin.t
+        - dependency_figure.layout.margin.b
+    )
     assert dependency_height == pytest.approx(plot_width)
-    assert {annotation.text for annotation in figure.layout.annotations} == {
+    assert {annotation.text for annotation in sequence_figure.layout.annotations} == {
         "DNA sequence · drag horizontally to zoom",
         "Sequence logo",
-        "Nucleotide dependency",
     }
+    [dependency_title] = dependency_figure.layout.annotations
+    assert dependency_title.text == "Nucleotide dependency"
+    assert dependency_title.y > 1
+    assert dependency_title.yanchor == "bottom"

@@ -43,7 +43,7 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "_raw_sequence = sequence_input.value" in source
     assert 'analysis_result["sequence_sha256"]' in source
     assert "_current_sha256 !=" in source
-    assert "sequence_tracks_figure" in source
+    assert "sequence_tracks_figures" in source
     assert "span_from_plotly_points" in source
     assert "allow_self_loops=True" in source
     assert "mo.ui.plotly" in source
@@ -53,7 +53,10 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert '{"range": sequence_tracks.ranges}' not in source
     assert "Showing positions" in source
     assert 'label="Reset view"' in source
-    assert "return reset_view, sequence_tracks, visible_span" in source
+    assert 'label="Nucleotide dependency map"' in source
+    assert (
+        "return dependency_track, reset_view, sequence_tracks, visible_span" in source
+    )
     assert source.index("reset_view,\n            sequence_tracks,") > source.index(
         'label="Reset view"'
     )
