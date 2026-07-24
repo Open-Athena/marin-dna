@@ -25,5 +25,7 @@ hf_training_repo: "bolinas-dna/zoonomia-rag-v1-v1"
 source_mendelian_harness:
   train: "https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits_harness_255/resolve/7b92f047f9a36f90e9ac47886afa2a99264ee35c/train.parquet"
   test: "https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits_harness_255/resolve/7b92f047f9a36f90e9ac47886afa2a99264ee35c/test.parquet"
+hal_path: "/mnt/nvme/zoonomia/447-mammalian-2022v1.hal"
+upstream_species_chrom_sizes_prefix: "s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/projection/chrom_sizes"
 upstream_species_twobit_prefix: "s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/projection/genomes"
 hf_mendelian_repo: "bolinas-dna/evals_mendelian_traits_rag_harness_255_v1"

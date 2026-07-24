@@ -86,32 +86,40 @@ rule is an error and must stop the run.
 ## Mendelian RAG harness
 
 The evaluation build preserves the pinned 255-base Mendelian harness splits
-and derives non-human windows without new lift-over. Mendelian `pos` is
-1-based at the source boundary; all coordinates introduced by this pipeline
-are 0-based, half-open.
+and directly projects each exact unique variant-centered human window through
+the pinned Zoonomia 447-mammalian 2022 v1 HAL. Mendelian `pos` is 1-based at
+the source boundary; the BED and every other coordinate introduced here are
+0-based, half-open.
 
-Variant-centered windows are not direct keys in the conserved projection. The
-build chooses the containing 255-base conserved human anchor whose center is
-closest to the SNV (ties by source start and anchor ID), propagates the
-variant's anchor offset through each existing strand-aware projected interval,
-and extracts a centered window from the archived species 2bit genome. A
-variant/species without a valid containing projection receives `N × 255`.
+The isolated projection uses `halLiftover --noDupes` and the canonical v1
+quality contract: each query must resolve to one target chromosome and strand,
+the merged pre-resize span must be in `[128, 512]`, and the target interval is
+midpoint-resized and bounds-checked to exactly 255 bases. Sequences come from
+the already-archived per-species 2bit genomes and are reverse-complemented for
+negative target strands. A variant/species that does not survive these checks
+receives `N × 255`. The training corpus and canonical Zoonomia projection
+outputs remain immutable; all new outputs live under `results/mendelian/`.
 
 The output has one row per variant per strand with all seven non-human
 sequences, fixed-slot audit metadata, `context`, `ref_completion`, and
 `alt_completion` already materialized. Scoring therefore requires only the
 pinned HF dataset and a model checkpoint.
 
-Build and upload on SkyPilot (the task dry-runs before execution and permits
-only the four additive harness rules):
+Build and upload on SkyPilot. The task stages the 1.18-TiB HAL onto instance
+NVMe, dry-runs before execution, and permits only the five additive harness
+rule types:
 
 ```bash
 COMMIT_SHA=$(git rev-parse HEAD)
-sky launch -c dna-exp402-mendelian sky/mendelian.yaml \
+sky launch -c dna-exp402-mendelian-hal sky/mendelian.yaml \
   --env COMMIT_SHA="$COMMIT_SHA"
-sky logs dna-exp402-mendelian
-sky down dna-exp402-mendelian
+sky logs dna-exp402-mendelian-hal
+sky down dna-exp402-mendelian-hal
 ```
+
+The expected DAG is 17 jobs: one exact-window build, seven direct projections,
+seven 2bit extractions, one harness materialization, and one Hugging Face
+upload. Any training-data or canonical Zoonomia projection rule is an error.
 
 Outputs are stored under `results/mendelian/` in the existing RAG S3
 namespace and uploaded to

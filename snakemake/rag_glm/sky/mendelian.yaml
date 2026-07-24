@@ -1,8 +1,8 @@
-name: dna-exp402-rag-mendelian-harness
+name: dna-exp402-rag-mendelian-hal-harness
 
 resources:
   infra: aws/us-east-2
-  instance_type: r6i.4xlarge
+  instance_type: c6id.8xlarge
   disk_size: 100
   labels:
     project: dna
@@ -23,28 +23,69 @@ setup: |
       curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
   export PATH="$HOME/.local/bin:$PATH"
+
+  CACTUS_VERSION=3.1.4
+  CACTUS_DIR="$HOME/cactus-bin-v${CACTUS_VERSION}"
+  if [ ! -d "$CACTUS_DIR" ]; then
+      curl -fsSL -o /tmp/cactus.tar.gz \
+          "https://github.com/ComparativeGenomicsToolkit/cactus/releases/download/v${CACTUS_VERSION}/cactus-bin-v${CACTUS_VERSION}.tar.gz"
+      tar -xzf /tmp/cactus.tar.gz -C "$HOME"
+      rm /tmp/cactus.tar.gz
+  fi
+
   uv sync
 
 run: |
   set -euxo pipefail
-  export PATH="$HOME/.local/bin:$PATH"
-  cd snakemake/rag_glm
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.1.4/bin:$PATH"
+  export LD_LIBRARY_PATH="$HOME/cactus-bin-v3.1.4/lib:${LD_LIBRARY_PATH:-}"
 
+  command -v aws >/dev/null
+  command -v halLiftover >/dev/null
   test -n "$COMMIT_SHA"
 
+  if ! mountpoint -q /mnt/nvme; then
+      NVMES=$(lsblk -dn -o NAME,TYPE,MOUNTPOINT | awk '$2=="disk" && $3=="" && $1 ~ /^nvme[1-9]/ {print "/dev/"$1}')
+      N_NVME=$(echo "$NVMES" | wc -w)
+      test "$N_NVME" -ge 1
+      if [ "$N_NVME" -ge 2 ]; then
+          sudo apt-get update
+          sudo apt-get install -y mdadm
+          sudo mdadm --create /dev/md0 --level=0 --raid-devices="$N_NVME" $NVMES --force --run
+          NVME_DEV=/dev/md0
+      else
+          NVME_DEV=$NVMES
+      fi
+      sudo mkfs.ext4 -F -E nodiscard "$NVME_DEV"
+      sudo mkdir -p /mnt/nvme
+      sudo mount -o noatime "$NVME_DEV" /mnt/nvme
+      sudo chown ubuntu:ubuntu /mnt/nvme
+  fi
+
+  HAL_DIR=/mnt/nvme/zoonomia
+  HAL_PATH="$HAL_DIR/447-mammalian-2022v1.hal"
+  S3_HAL="s3://oa-bolinas/staging/447-mammalian-2022v1.hal"
+  mkdir -p "$HAL_DIR"
+  AVAILABLE_BYTES=$(df --output=avail -B1 /mnt/nvme | tail -1)
+  test "$AVAILABLE_BYTES" -gt 1300000000000
+  if [ ! -f "$HAL_PATH" ]; then
+      aws s3 cp --only-show-errors "$S3_HAL" "$HAL_PATH"
+  fi
+  HAL_BYTES=$(stat -c %s "$HAL_PATH")
+  test "$HAL_BYTES" -gt 1000000000000
+
+  cd snakemake/rag_glm
+  ALLOWED_RULES="build_mendelian_variant_windows project_mendelian_variant_windows extract_mendelian_orthologs build_mendelian_rag_harness upload_mendelian_rag_harness"
+
   uv run snakemake --profile workflow/profiles/default \
-      --config "commit_sha=$COMMIT_SHA" \
-      --allowed-rules build_mendelian_projection_mapping \
-          extract_mendelian_orthologs build_mendelian_rag_harness \
-          upload_mendelian_rag_harness \
+      --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
+      --allowed-rules $ALLOWED_RULES \
       --printshellcmds \
       -n "$SNAKEMAKE_TARGET"
 
   uv run snakemake --profile workflow/profiles/default \
-      --config "commit_sha=$COMMIT_SHA" \
-      --allowed-rules build_mendelian_projection_mapping \
-          extract_mendelian_orthologs build_mendelian_rag_harness \
-          upload_mendelian_rag_harness \
+      --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
+      --allowed-rules $ALLOWED_RULES \
       --printshellcmds \
       --rerun-incomplete \
       "$SNAKEMAKE_TARGET"

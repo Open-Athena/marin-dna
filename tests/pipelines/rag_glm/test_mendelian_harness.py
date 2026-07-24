@@ -10,11 +10,11 @@ from marin_dna.pipelines.rag_glm.dataset import (
     PROVISIONAL_SPECIES_ORDER,
 )
 from marin_dna.pipelines.rag_glm.mendelian_harness import (
-    MAPPING_VERSION,
-    derive_projected_variant_intervals,
+    PROJECTION_VERSION,
+    build_mendelian_variant_windows,
     extract_ortholog_sequences_from_twobit,
     materialize_mendelian_rag_harness,
-    select_containing_projection_anchors,
+    project_mendelian_variant_windows,
     validate_source_harness,
 )
 
@@ -53,92 +53,124 @@ def _source_variant_rows(
     ]
 
 
-def test_select_containing_projection_anchors_nearest_center_and_missing() -> None:
-    variants = pl.DataFrame(
-        {
-            "chrom": ["1", "1", "1"],
-            "pos": [192, 257, 1_001],
-            "ref": ["A", "C", "G"],
-            "alt": ["G", "T", "A"],
-        }
+def test_build_mendelian_variant_windows_uses_exact_centered_coordinates(
+    tmp_path: Path,
+) -> None:
+    train = pl.DataFrame(
+        _source_variant_rows(chrom="chr2", pos=256, ref="C", alt="T", match_group=2)
     )
-    human = pl.DataFrame(
-        {
-            "query_name": ["anchor_0", "anchor_128"],
-            "t_chrom": ["chr1", "chr1"],
-            "t_start": [0, 128],
-            "t_end": [255, 383],
-            "t_strand": ["+", "+"],
-        }
+    test = pl.DataFrame(
+        _source_variant_rows(chrom="1", pos=128, ref="A", alt="G", match_group=1)
     )
+    train_path = tmp_path / "train.parquet"
+    test_path = tmp_path / "test.parquet"
+    variants_path = tmp_path / "variants.parquet"
+    bed_path = tmp_path / "variants.bed"
+    train.write_parquet(train_path)
+    test.write_parquet(test_path)
 
-    got = select_containing_projection_anchors(variants, human).sort("pos")
-
-    # pos=192 means pos0=191: both tiles are 64 bases from the SNV, so the
-    # documented stable tie-break chooses the lower source start.
-    assert got["source_anchor_id"].to_list() == ["anchor_0", "anchor_128", None]
-    assert got["source_anchor_offset"].to_list() == [191, 128, None]
-    assert got["mapping_version"].unique().to_list() == [MAPPING_VERSION]
-
-
-def test_derive_projected_variant_intervals_strand_and_bounds() -> None:
-    mapping = pl.DataFrame(
-        {
-            "chrom": ["1", "1", "1"],
-            "pos": [128, 256, 1],
-            "ref": ["A", "C", "G"],
-            "alt": ["G", "T", "A"],
-            "variant_id": ["1:128:A>G", "1:256:C>T", "1:1:G>A"],
-            "variant_pos0": [127, 255, 0],
-            "source_anchor_id": ["plus", "minus", "edge"],
-            "source_anchor_start": [0, 128, 0],
-            "source_anchor_end": [255, 383, 255],
-            "source_anchor_center_distance": [0, 0, 127],
-            "source_anchor_offset": [127, 127, 0],
-            "mapping_version": [MAPPING_VERSION] * 3,
-        }
+    assert (
+        build_mendelian_variant_windows(
+            source_harness_urls=[str(train_path), str(test_path)],
+            variants_path=variants_path,
+            bed_path=bed_path,
+        )
+        == 2
     )
-    projections = pl.DataFrame(
-        {
-            "query_name": ["plus", "minus", "edge"],
-            "species": ["Mus_musculus"] * 3,
-            "t_chrom": ["chrA", "chrB", "chrC"],
-            "t_start": [1_000, 2_000, 0],
-            "t_end": [1_255, 2_255, 255],
-            "t_strand": ["+", "-", "+"],
-            "t_src_size": [10_000, 10_000, 10_000],
-        }
+    variants = pl.read_parquet(variants_path).sort("chrom")
+    assert variants["chrom"].to_list() == ["1", "2"]
+    assert variants["variant_pos0"].to_list() == [127, 255]
+    assert variants["human_start"].to_list() == [0, 128]
+    assert variants["human_end"].to_list() == [255, 383]
+    assert variants["projection_version"].unique().to_list() == [PROJECTION_VERSION]
+    assert variants["query_name"].n_unique() == 2
+
+    bed = pl.read_csv(
+        bed_path,
+        separator="\t",
+        has_header=False,
+        new_columns=["chrom", "start", "end", "name", "score", "strand"],
+    ).sort("chrom")
+    assert bed.select("chrom", "start", "end").rows() == [
+        ("chr1", 0, 255),
+        ("chr2", 128, 383),
+    ]
+    assert set(bed["strand"]) == {"+"}
+
+
+def test_project_mendelian_variant_windows_reuses_canonical_quality_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_bed = tmp_path / "source.bed"
+    source_bed.write_text("chr1\t0\t255\tmendelian_00000000\t0\t+\n")
+    chrom_sizes = tmp_path / "chrom.sizes"
+    chrom_sizes.write_text("chrA\t10000\nchrB\t10000\n")
+    output = tmp_path / "projection.parquet"
+    raw = tmp_path / "raw.bed"
+
+    def fake_halliftover(
+        hal_path: str | Path,
+        src_species: str,
+        src_bed: str | Path,
+        tgt_species: str,
+        out_bed: str | Path,
+        *,
+        no_dupes: bool,
+    ) -> float:
+        assert str(hal_path).endswith("test.hal")
+        assert src_species == "Homo_sapiens"
+        assert Path(src_bed) == source_bed
+        assert tgt_species == "Mus_musculus"
+        assert no_dupes
+        Path(out_bed).write_text(
+            "chrA\t1000\t1100\tmendelian_00000000\t0\t+\n"
+            "chrA\t1100\t1200\tmendelian_00000000\t0\t+\n"
+            "chrA\t2000\t2100\tmulti_chrom\t0\t+\n"
+            "chrB\t2100\t2200\tmulti_chrom\t0\t+\n"
+            "chrA\t3000\t3050\ttoo_short\t0\t+\n"
+        )
+        return 0.01
+
+    monkeypatch.setattr(
+        "marin_dna.pipelines.rag_glm.mendelian_harness.run_halliftover",
+        fake_halliftover,
     )
-
-    got = derive_projected_variant_intervals(
-        mapping, projections, species="Mus_musculus"
-    ).sort("pos")
-
-    assert got.height == 2  # edge target cannot retain a centered 255-base window
-    assert got["projected_variant_pos0"].to_list() == [1_127, 2_127]
-    assert got["extraction_start"].to_list() == [1_000, 2_000]
-    assert got["extraction_end"].to_list() == [1_255, 2_255]
+    assert (
+        project_mendelian_variant_windows(
+            hal_path=tmp_path / "test.hal",
+            source_bed=source_bed,
+            target_species="Mus_musculus",
+            target_chrom_sizes=chrom_sizes,
+            output_parquet=output,
+            raw_bed_path=raw,
+        )
+        == 1
+    )
+    got = pl.read_parquet(output)
+    assert got["query_name"].to_list() == ["mendelian_00000000"]
+    assert got["species"].to_list() == ["Mus_musculus"]
+    assert got["t_start"].to_list() == [973]
+    assert got["t_end"].to_list() == [1228]
+    assert not raw.exists()
 
 
 def test_extract_twobit_sequences_is_row_aligned_and_oriented(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    intervals = pl.DataFrame(
+    projections = pl.DataFrame(
         {
-            "chrom": ["1", "1"],
-            "pos": [128, 256],
-            "ref": ["A", "C"],
-            "alt": ["G", "T"],
-            "variant_id": ["1:128:A>G", "1:256:C>T"],
-            "projection_chrom": ["chrA", "chrB"],
-            "extraction_start": [1_000, 2_000],
-            "extraction_end": [1_255, 2_255],
-            "projection_strand": ["+", "-"],
+            "query_name": ["q0", "q1"],
+            "species": ["Mus_musculus"] * 2,
+            "t_chrom": ["chrA", "chrB"],
+            "t_start": [1_000, 2_000],
+            "t_end": [1_255, 2_255],
+            "t_strand": ["+", "-"],
+            "t_src_size": [10_000, 10_000],
         }
     )
-    interval_path = tmp_path / "intervals.parquet"
+    projection_path = tmp_path / "projection.parquet"
     output_path = tmp_path / "sequences.parquet"
-    intervals.write_parquet(interval_path)
+    projections.write_parquet(projection_path)
 
     class FakeTwoBit:
         def chroms(self) -> dict[str, int]:
@@ -155,14 +187,13 @@ def test_extract_twobit_sequences_is_row_aligned_and_oriented(
             return None
 
     monkeypatch.setattr("py2bit.open", lambda _: FakeTwoBit())
-
     assert (
         extract_ortholog_sequences_from_twobit(
-            interval_path, tmp_path / "species.2bit", output_path
+            projection_path, tmp_path / "species.2bit", output_path
         )
         == 2
     )
-    got = pl.read_parquet(output_path).sort("pos")
+    got = pl.read_parquet(output_path).sort("query_name")
     assert got["sequence"].to_list() == ["A" * 255, "T" * 255]
 
 
@@ -180,51 +211,43 @@ def test_materialize_mendelian_rag_harness_geometry_and_missing_slots(
     train_source.write_parquet(train_source_path)
     test_source.write_parquet(test_source_path)
 
-    mapping = pl.DataFrame(
-        {
-            "chrom": ["1", "2"],
-            "pos": [128, 256],
-            "ref": ["A", "C"],
-            "alt": ["G", "T"],
-            "variant_id": ["1:128:A>G", "2:256:C>T"],
-            "variant_pos0": [127, 255],
-            "source_anchor_id": ["anchor_1", None],
-            "source_anchor_start": [0, None],
-            "source_anchor_end": [255, None],
-            "source_anchor_center_distance": [0, None],
-            "source_anchor_offset": [127, None],
-            "mapping_version": [MAPPING_VERSION, MAPPING_VERSION],
-        }
+    variants_path = tmp_path / "variants.parquet"
+    build_mendelian_variant_windows(
+        source_harness_urls=[str(train_source_path), str(test_source_path)],
+        variants_path=variants_path,
+        bed_path=tmp_path / "variants.bed",
     )
-    mapping_path = tmp_path / "mapping.parquet"
-    mapping.write_parquet(mapping_path)
+    variants = pl.read_parquet(variants_path).sort("chrom")
+    query_1 = variants["query_name"][0]
 
     sequence_paths: dict[str, Path] = {}
-    interval_schema = {
-        "variant_id": pl.String,
+    projection_schema = {
+        "query_name": pl.String,
+        "species": pl.String,
+        "t_chrom": pl.String,
+        "t_start": pl.Int64,
+        "t_end": pl.Int64,
+        "t_strand": pl.String,
+        "t_src_size": pl.Int64,
         "sequence": pl.String,
-        "projection_chrom": pl.String,
-        "extraction_start": pl.Int64,
-        "extraction_end": pl.Int64,
-        "projection_strand": pl.String,
-        "projected_variant_pos0": pl.Int64,
     }
     for slot, species in enumerate(PROVISIONAL_SPECIES_ORDER[:-1]):
         path = tmp_path / f"{species}.parquet"
         if slot == 0:
             pl.DataFrame(
                 {
-                    "variant_id": ["1:128:A>G"],
+                    "query_name": [query_1],
+                    "species": [species],
+                    "t_chrom": ["chrA"],
+                    "t_start": [1_000],
+                    "t_end": [1_255],
+                    "t_strand": ["+"],
+                    "t_src_size": [10_000],
                     "sequence": ["A" * BASES_PER_SLOT],
-                    "projection_chrom": ["chrA"],
-                    "extraction_start": [1_000],
-                    "extraction_end": [1_255],
-                    "projection_strand": ["+"],
-                    "projected_variant_pos0": [1_127],
                 }
             ).write_parquet(path)
         else:
-            pl.DataFrame(schema=interval_schema).write_parquet(path)
+            pl.DataFrame(schema=projection_schema).write_parquet(path)
         sequence_paths[species] = path
 
     output_paths = {
@@ -238,7 +261,7 @@ def test_materialize_mendelian_rag_harness_geometry_and_missing_slots(
             "train": str(train_source_path),
             "test": str(test_source_path),
         },
-        mapping_path=mapping_path,
+        variants_path=variants_path,
         species_sequence_paths=sequence_paths,
         output_split_paths=output_paths,
         manifest_path=manifest_path,
@@ -261,7 +284,8 @@ def test_materialize_mendelian_rag_harness_geometry_and_missing_slots(
 
     manifest = json.loads(manifest_path.read_text())
     assert manifest["split_rows"] == {"train": 2, "test": 2}
-    assert manifest["n_variants_with_containing_anchor"] == 1
+    assert manifest["projection_version"] == PROJECTION_VERSION
+    assert manifest["projection"]["hal_liftover_no_dupes"] is True
     assert manifest["centered_variant_token_index"] == 1_920
     assert "biology" in readme_path.read_text()
 

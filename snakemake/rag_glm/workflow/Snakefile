@@ -1,6 +1,7 @@
 """Issue #402 fixed-layout RAG dataset pipeline."""
 
 import os
+from pathlib import Path
 
 
 configfile: "config/config.yaml"
@@ -16,10 +17,6 @@ NON_HUMAN_SPECIES = tuple(config["species_order"][:-1])
 MENDELIAN_WORK_DIR = "results/mendelian"
 MENDELIAN_DATASET_DIR = (
     f"{MENDELIAN_WORK_DIR}/dataset/evals_mendelian_traits_rag_harness_255_v1"
-)
-MENDELIAN_INTERVALS = expand(
-    f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
-    species=NON_HUMAN_SPECIES,
 )
 MENDELIAN_SEQUENCES = expand(
     f"{MENDELIAN_WORK_DIR}/sequences/{{species}}.parquet",
@@ -121,33 +118,55 @@ rule upload_training_dataset:
         """
 
 
-rule build_mendelian_projection_mapping:
-    """Map arbitrary SNVs through containing immutable projection anchors."""
+rule build_mendelian_variant_windows:
+    """Materialize exact centered human variant windows for HAL projection."""
     output:
-        mapping=f"{MENDELIAN_WORK_DIR}/mapping/variants.parquet",
-        intervals=MENDELIAN_INTERVALS,
-        audit=f"{MENDELIAN_WORK_DIR}/mapping/audit.json",
-    threads: 2
+        variants=f"{MENDELIAN_WORK_DIR}/source/variants.parquet",
+        bed=f"{MENDELIAN_WORK_DIR}/source/variants.ucsc.bed",
+    threads: 1
     resources:
-        mem_mb=64000,
+        mem_mb=4000,
     params:
         source_harness_urls=tuple(config["source_mendelian_harness"].values()),
-        projection_parquet=config["upstream_projection_parquet"],
-        species_order=tuple(config["species_order"]),
     run:
         from marin_dna.pipelines.rag_glm.mendelian_harness import (
-            build_mendelian_projection_mapping,
+            build_mendelian_variant_windows,
         )
 
-        build_mendelian_projection_mapping(
+        build_mendelian_variant_windows(
             source_harness_urls=params.source_harness_urls,
-            projection_parquet=params.projection_parquet,
-            mapping_path=output.mapping,
-            interval_paths=dict(
-                zip(NON_HUMAN_SPECIES, output.intervals, strict=True)
-            ),
-            audit_path=output.audit,
-            species_order=params.species_order,
+            variants_path=output.variants,
+            bed_path=output.bed,
+        )
+
+
+rule project_mendelian_variant_windows:
+    """Directly project exact variant windows through the pinned Zoonomia HAL."""
+    input:
+        bed=f"{MENDELIAN_WORK_DIR}/source/variants.ucsc.bed",
+        chrom_sizes=lambda wc: storage(
+            f"{config['upstream_species_chrom_sizes_prefix']}/{wc.species}.tsv"
+        ),
+    output:
+        f"{MENDELIAN_WORK_DIR}/projection/{{species}}.parquet",
+    threads: 1
+    resources:
+        mem_mb=2000,
+    params:
+        hal_path=config["hal_path"],
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            project_mendelian_variant_windows,
+        )
+
+        output_path = Path(str(output[0]))
+        project_mendelian_variant_windows(
+            hal_path=params.hal_path,
+            source_bed=input.bed,
+            target_species=wildcards.species,
+            target_chrom_sizes=input.chrom_sizes,
+            output_parquet=output_path,
+            raw_bed_path=output_path.with_suffix(".raw.bed"),
         )
 
 
@@ -157,7 +176,7 @@ rule extract_mendelian_orthologs:
         twobit=lambda wc: storage(
             f"{config['upstream_species_twobit_prefix']}/{wc.species}.2bit"
         ),
-        intervals=f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
+        projection=f"{MENDELIAN_WORK_DIR}/projection/{{species}}.parquet",
     output:
         f"{MENDELIAN_WORK_DIR}/sequences/{{species}}.parquet",
     threads: 1
@@ -169,7 +188,7 @@ rule extract_mendelian_orthologs:
         )
 
         extract_ortholog_sequences_from_twobit(
-            input.intervals,
+            input.projection,
             input.twobit,
             output[0],
         )
@@ -178,7 +197,7 @@ rule extract_mendelian_orthologs:
 rule build_mendelian_rag_harness:
     """Assemble the one-row-per-variant-per-strand frozen RAG harness."""
     input:
-        mapping=f"{MENDELIAN_WORK_DIR}/mapping/variants.parquet",
+        variants=f"{MENDELIAN_WORK_DIR}/source/variants.parquet",
         sequences=MENDELIAN_SEQUENCES,
     output:
         train=f"{MENDELIAN_DATASET_DIR}/train.parquet",
@@ -200,7 +219,7 @@ rule build_mendelian_rag_harness:
 
         materialize_mendelian_rag_harness(
             source_harness_urls=params.source_harness_urls,
-            mapping_path=input.mapping,
+            variants_path=input.variants,
             species_sequence_paths=dict(
                 zip(NON_HUMAN_SPECIES, input.sequences, strict=True)
             ),
