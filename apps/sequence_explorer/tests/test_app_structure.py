@@ -41,9 +41,12 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "_current_sha256 !=" in source
     assert "sequence_tracks_figure" in source
     assert "span_from_plotly_selection" in source
-    assert "allow_self_loops=True" in source
+    assert "allow_self_loops=True" not in source
     assert "mo.ui.plotly" in source
-    assert "on_change=_update_track_view" in source
+    assert "on_change=_update_track_view" not in source
+    assert "sequence_tracks.value" in source
+    assert '{"range": sequence_tracks.ranges}' in source
+    assert "Showing positions" in source
     assert 'label="Reset view"' in source
     assert "Reset axes" not in source
     assert "_current_sequence," in source
