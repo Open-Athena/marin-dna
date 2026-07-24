@@ -502,13 +502,14 @@ def _(
 
     def _update_track_view(selection):
         _selected_span = span_from_plotly_points(analysis_result["length"], selection)
-        if _selected_span is not None:
-            set_track_view(
-                {
-                    "sequence_sha256": analysis_result["sequence_sha256"],
-                    "span": list(_selected_span),
-                }
-            )
+        set_track_view(
+            None
+            if _selected_span is None
+            else {
+                "sequence_sha256": analysis_result["sequence_sha256"],
+                "span": list(_selected_span),
+            }
+        )
 
     def _reset_track_view(_value):
         set_track_view(None)
@@ -554,8 +555,8 @@ def _(
                 "all three aligned tracks. The dependency map uses the same span on "
                 f"both axes. {_visible_span}"
             ),
-            sequence_tracks,
             _reset_view,
+            sequence_tracks,
             mo.Html(
                 download_links_html(
                     analysis_result["logo"],
