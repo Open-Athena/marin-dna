@@ -109,6 +109,7 @@ def test_sequence_tracks_are_aligned_and_raw_dna_drives_square_zoom():
         shape.xref == "x2" and shape.yref == "y2" for shape in figure.layout.shapes
     )
 
+    assert figure.layout.margin.autoexpand is False
     plot_width = figure.layout.width - figure.layout.margin.l - figure.layout.margin.r
     plot_height = figure.layout.height - figure.layout.margin.t - figure.layout.margin.b
     dependency_domain = figure.layout.yaxis3.domain

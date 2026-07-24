@@ -370,6 +370,7 @@ def sequence_tracks_figure(
             "r": right_margin,
             "t": top_margin,
             "b": bottom_margin,
+            "autoexpand": False,
         },
         plot_bgcolor="white",
         paper_bgcolor="white",
