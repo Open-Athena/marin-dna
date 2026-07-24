@@ -47,8 +47,9 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 | 13 | `figure6_loss_vs_vep_auprc.svg` | `src/figures/figure6_loss_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 14 | `figure6b_marin_evo2_missense.svg` | `src/figures/figure6b_marin_evo2_missense.py` | Paired MarinDNA endpoint predictions on S3; commit-pinned Evo 2 probe metrics |
 | 15 | `continued_training_data_exposures.svg` | Authored SVG; no plot recipe | Figure 10 mixture-lineage definitions and token accounting |
-| 16 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
-| 17 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
+| 16 | `figure16_offline_lineage_llr_prototype.svg` | `src/figures/figure16_offline_lineage_prototype.py` | Existing `evals_v2` Mendelian metric Parquets on S3; mixture results CSV for lineage token accounting |
+| 17 | `figure16_offline_lineage_probe_prototype.svg` (collapsed) | `src/figures/figure16_offline_lineage_prototype.py` | Existing `evals_v2` probe-metric Parquets on S3; mixture results CSV for lineage token accounting |
+| 18 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
 
 The upstream-reweighting analysis remains reproducible in this source bundle but is not currently included in the article.
 Its displayed endpoints confound mixture proportion with continuation budget: the 40% and 50% upstream arms received about 8.3k steps, while the other five arms received about 2.5k, and no exact checkpoint step is retained across all seven runs.

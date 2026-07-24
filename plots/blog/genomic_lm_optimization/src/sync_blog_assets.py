@@ -16,6 +16,8 @@ ASSET_NAMES = (
     "figure6b_marin_evo2_missense",
     "figure9_upstream_mix_auprc",
     "figure10_lineage_vep_trajectory",
+    "figure16_offline_lineage_llr_prototype",
+    "figure16_offline_lineage_probe_prototype",
     "figure11_leaderboard_heatmap",
 )
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]

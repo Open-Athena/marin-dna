@@ -348,11 +348,19 @@ The result suggests that mid-flight improvement is possible, with the gain appea
 <figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA exons and enhancers for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%. Same-data continuations and restarts are collapsed, so stage boundaries indicate changes in data rather than training-job boundaries.</figcaption>
 </figure>
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure10_lineage_vep_trajectory.py -->
+<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py -->
 <figure id="fig-mixture-lineage-trajectories">
-<img src="/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg?v=auprc-percent" alt="VEP AUPRC (%) trajectories by mixture lineage" />
-<figcaption><strong>Figure 16:</strong> VEP AUPRC (%) trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_llr_prototype.svg?v=offline-nine-panel-v5" alt="Nine-panel zero-shot Mendelian AUPRC (%) trajectories along each mixture lineage" />
+<figcaption><strong>Figure 16:</strong> Zero-shot Mendelian AUPRC (%) vs training tokens for three model-mixture lineages.</figcaption>
 </figure>
+
+<details>
+<summary>Show the frozen-embedding linear-probe view</summary>
+<figure id="fig-mixture-lineage-probe">
+<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_probe_prototype.svg?v=offline-nine-panel-v5" alt="Nine-panel frozen-embedding linear-probe Mendelian AUPRC (%) trajectories along each mixture lineage" />
+<figcaption><strong>Figure 17:</strong> Frozen-embedding linear-probe Mendelian AUPRC (%) vs training tokens for three model-mixture lineages.</figcaption>
+</figure>
+</details>
 
 - m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
 - The ncRNA and enhancer datasets were introduced to cover new functional regions; the promoter gain was partly unexpected because the ncRNA collection also contained substantial promoter sequence.
@@ -367,7 +375,7 @@ The result of the previous mixture experiments is the m5.1 model used for the he
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC (%) heatmap across models" />
-<figcaption><strong>Figure 17:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
+<figcaption><strong>Figure 18:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
 </figure>
 
 ## Conclusion
