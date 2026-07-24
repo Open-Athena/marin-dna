@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import datasets
 from lm_eval.api.instance import Instance
 
 from marin_dna_evals.lm_eval.dna_vep_llr_eval import DnaVepLlrEvalTask
@@ -18,6 +19,31 @@ class RagDnaVepLlrEvalTask(DnaVepLlrEvalTask):
     """Keep both completions in one request so the adapter must share the prefix."""
 
     VERSION = 1
+
+    def download(self, data_dir=None, cache_dir=None, download_mode=None) -> None:
+        """Load the frozen Parquets directly instead of rediscovering the repo.
+
+        Fresh Iris workers occasionally fail in Hugging Face dataset discovery
+        before any training step. These issue-402 repositories have an asserted
+        two-file layout, so commit-pinned resolve URLs are both simpler and more
+        deterministic.
+        """
+        assert self.DATASET_PATH, "RAG eval task requires dataset_path"
+        assert self.DATASET_REVISION, "RAG eval task requires dataset_revision"
+        base_url = (
+            f"https://huggingface.co/datasets/{self.DATASET_PATH}/resolve/"
+            f"{self.DATASET_REVISION}"
+        )
+        data_files = {
+            split: f"{base_url}/{split}.parquet" for split in ("train", "test")
+        }
+        self.dataset = datasets.load_dataset(
+            path="parquet",
+            data_files=data_files,
+            data_dir=data_dir,
+            cache_dir=cache_dir,
+            download_mode=download_mode,
+        )
 
     def construct_requests(self, doc: Any, ctx: str, **kwargs: Any) -> Instance:
         metadata = kwargs.get("metadata", (None, None, None))

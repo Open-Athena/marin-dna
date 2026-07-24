@@ -29,6 +29,7 @@ import logging
 import pathlib
 import sys
 import types
+from copy import deepcopy
 from functools import wraps
 
 _logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ def _install_task_manager_patch() -> None:
         [f.name for f in yaml_files],
     )
     original_init = TaskManager.__init__
+    original_load_config = TaskManager.load_config
 
     @wraps(original_init)
     def patched_init(self, *args, include_path=None, **kwargs):
@@ -86,6 +88,16 @@ def _install_task_manager_patch() -> None:
         return original_init(self, *args, include_path=merged, **kwargs)
 
     TaskManager.__init__ = patched_init
+
+    @wraps(original_load_config)
+    def patched_load_config(self, config):
+        # lm-eval's load_config passes the caller-owned dict to
+        # _load_individual_task_or_group, which pops its ``task`` key. Levanter
+        # retries get_task_dict with that same object after transient Hub
+        # failures, so attempt 2 otherwise receives a malformed task spec.
+        return original_load_config(self, deepcopy(config))
+
+    TaskManager.load_config = patched_load_config
     TaskManager._marin_dna_patched = True
 
 

@@ -69,6 +69,21 @@ def test_caller_include_path_preserved_as_list(tmp_path, patched_task_manager):
     assert mgr.include_path == [p1, p2, marin_dna_path]
 
 
+def test_load_config_does_not_mutate_retry_input(patched_task_manager):
+    class InlineTask:
+        def __init__(self, config):
+            self.config = config
+
+    config = {"task": "retryable_inline_task", "class": InlineTask}
+    expected = config.copy()
+
+    manager = patched_task_manager(include_defaults=False)
+    loaded = manager.load_config(config)
+
+    assert config == expected
+    assert set(loaded) == {"retryable_inline_task"}
+
+
 def test_levanter_rename_patch_handles_plain_task():
     """`LmEvalHarnessConfig.to_task_dict()` must work for our plain-Task
     subclass — upstream `_rename_tasks_for_eval_harness` only handles

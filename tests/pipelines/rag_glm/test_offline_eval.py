@@ -8,6 +8,9 @@ import polars as pl
 import pytest
 import torch
 
+from marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval import (
+    RagDnaVepLlrEvalTask,
+)
 from marin_dna.pipelines.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
@@ -38,6 +41,36 @@ def test_encode_rag_batch_has_exact_fixed_geometry() -> None:
     assert ref.shape == alt.shape == (2, 128)
     assert nucleotide_token_ids(tokenizer).unique().numel() == 4
     assert torch.equal(ref[:, 1:], alt[:, 1:])
+
+
+def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
+    observed = {}
+
+    def fake_load_dataset(**kwargs):
+        observed.update(kwargs)
+        return {"train": [], "test": []}
+
+    monkeypatch.setattr(
+        "marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval.datasets.load_dataset",
+        fake_load_dataset,
+    )
+    task = object.__new__(RagDnaVepLlrEvalTask)
+    task.DATASET_PATH = "owner/frozen-rag"
+    task.DATASET_REVISION = "a" * 40
+
+    task.download(cache_dir="/tmp/test-rag-cache")
+
+    base = f"https://huggingface.co/datasets/owner/frozen-rag/resolve/{'a' * 40}"
+    assert observed == {
+        "path": "parquet",
+        "data_files": {
+            "train": f"{base}/train.parquet",
+            "test": f"{base}/test.parquet",
+        },
+        "data_dir": None,
+        "cache_dir": "/tmp/test-rag-cache",
+        "download_mode": None,
+    }
 
 
 def test_dataset_repo_override_requires_revision() -> None:
