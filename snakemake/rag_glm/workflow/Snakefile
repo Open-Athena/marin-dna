@@ -153,46 +153,13 @@ rule build_mendelian_projection_mapping:
         )
 
 
-rule mendelian_extraction_bed:
-    """Write one row-aligned BED per non-human species."""
-    input:
-        f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
-    output:
-        local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.bed"),
-    threads: 1
-    resources:
-        mem_mb=1000,
-    run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
-            write_extraction_bed,
-        )
-
-        write_extraction_bed(input[0], output[0])
-
-
 rule extract_mendelian_orthologs:
-    """Extract centered target windows from archived species 2bit genomes."""
+    """Extract and orient centered windows from archived species 2bit genomes."""
     input:
         twobit=lambda wc: storage(
             f"{config['upstream_species_twobit_prefix']}/{wc.species}.2bit"
         ),
-        bed=local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.bed"),
-    output:
-        local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.fa"),
-    conda:
-        "envs/bioinformatics.yaml"
-    threads: 1
-    resources:
-        mem_mb=2000,
-    shell:
-        "twoBitToFa {input.twobit} {output} -bed={input.bed} -bedPos"
-
-
-rule attach_mendelian_orthologs:
-    """Normalize extracted target windows to the human-anchor orientation."""
-    input:
         intervals=f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
-        fasta=local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.fa"),
     output:
         f"{MENDELIAN_WORK_DIR}/sequences/{{species}}.parquet",
     threads: 1
@@ -200,12 +167,12 @@ rule attach_mendelian_orthologs:
         mem_mb=2000,
     run:
         from marin_dna.pipelines.rag_glm.mendelian_harness import (
-            attach_extracted_ortholog_sequences,
+            extract_ortholog_sequences_from_twobit,
         )
 
-        attach_extracted_ortholog_sequences(
+        extract_ortholog_sequences_from_twobit(
             input.intervals,
-            input.fasta,
+            input.twobit,
             output[0],
         )
 

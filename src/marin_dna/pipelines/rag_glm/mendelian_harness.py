@@ -14,7 +14,6 @@ from pathlib import Path
 import polars as pl
 
 from marin_dna.data.dna import reverse_complement
-from marin_dna.pipelines.projection.sequence import parse_bedtools_getfasta_output
 from marin_dna.pipelines.rag_glm.dataset import (
     BASES_PER_SLOT,
     DOCUMENT_TOKENS,
@@ -264,48 +263,43 @@ def derive_projected_variant_intervals(
     return rows.sort(VARIANT_KEY_COLUMNS)
 
 
-def write_extraction_bed(
+def extract_ortholog_sequences_from_twobit(
     interval_parquet: str | Path,
-    output_bed: str | Path,
+    twobit_path: str | Path,
+    output_parquet: str | Path,
 ) -> int:
-    """Write row-aligned BED4 intervals for ``twoBitToFa``."""
+    """Extract target windows and normalize them to human-anchor orientation."""
+    import py2bit
+
     rows = pl.read_parquet(interval_parquet).sort(VARIANT_KEY_COLUMNS)
     required = {
-        "variant_id",
         "projection_chrom",
         "extraction_start",
         "extraction_end",
+        "projection_strand",
     }
     assert required <= set(rows.columns)
     assert rows.filter(
         pl.col("extraction_end") - pl.col("extraction_start") != BASES_PER_SLOT
     ).is_empty()
-    output = Path(output_bed)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    rows.select(
-        "projection_chrom",
-        "extraction_start",
-        "extraction_end",
-        "variant_id",
-    ).write_csv(output, separator="\t", include_header=False)
-    return rows.height
-
-
-def attach_extracted_ortholog_sequences(
-    interval_parquet: str | Path,
-    extracted_fasta: str | Path,
-    output_parquet: str | Path,
-) -> int:
-    """Attach row-aligned 2bit extracts and normalize them to human orientation."""
-    rows = pl.read_parquet(interval_parquet).sort(VARIANT_KEY_COLUMNS)
-    sequences = [
-        sequence.upper() for sequence in parse_bedtools_getfasta_output(extracted_fasta)
-    ]
-    assert len(sequences) == rows.height, (
-        f"extracted {len(sequences)} sequences for {rows.height} intervals"
-    )
-    assert all(len(sequence) == BASES_PER_SLOT for sequence in sequences)
     assert set(rows["projection_strand"].unique()).issubset({"+", "-"})
+
+    genome = py2bit.open(str(twobit_path))
+    try:
+        chrom_sizes = genome.chroms()
+        sequences = []
+        for chrom, start, end in rows.select(
+            "projection_chrom", "extraction_start", "extraction_end"
+        ).iter_rows():
+            assert chrom in chrom_sizes, f"2bit is missing chromosome {chrom!r}"
+            assert 0 <= start < end <= chrom_sizes[chrom]
+            sequence = genome.sequence(chrom, start, end)
+            assert sequence is not None
+            sequences.append(sequence.upper())
+    finally:
+        genome.close()
+
+    assert all(len(sequence) == BASES_PER_SLOT for sequence in sequences)
     oriented = [
         reverse_complement(sequence) if strand == "-" else sequence
         for sequence, strand in zip(sequences, rows["projection_strand"].to_list())

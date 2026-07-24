@@ -35,8 +35,7 @@ run: |
   uv run snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" \
       --allowed-rules build_mendelian_projection_mapping \
-          mendelian_extraction_bed extract_mendelian_orthologs \
-          attach_mendelian_orthologs build_mendelian_rag_harness \
+          extract_mendelian_orthologs build_mendelian_rag_harness \
           upload_mendelian_rag_harness \
       --printshellcmds \
       -n "$SNAKEMAKE_TARGET"
@@ -44,8 +43,7 @@ run: |
   uv run snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" \
       --allowed-rules build_mendelian_projection_mapping \
-          mendelian_extraction_bed extract_mendelian_orthologs \
-          attach_mendelian_orthologs build_mendelian_rag_harness \
+          extract_mendelian_orthologs build_mendelian_rag_harness \
           upload_mendelian_rag_harness \
       --printshellcmds \
       --rerun-incomplete \

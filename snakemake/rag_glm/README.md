@@ -103,7 +103,7 @@ sequences, fixed-slot audit metadata, `context`, `ref_completion`, and
 pinned HF dataset and a model checkpoint.
 
 Build and upload on SkyPilot (the task dry-runs before execution and permits
-only the six additive harness rules):
+only the four additive harness rules):
 
 ```bash
 COMMIT_SHA=$(git rev-parse HEAD)

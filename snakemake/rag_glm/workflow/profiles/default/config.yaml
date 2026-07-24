@@ -1,6 +1,5 @@
 default-storage-provider: s3
 default-storage-prefix: s3://oa-bolinas/snakemake/rag_glm/
 cores: 4
-use-conda: true
 resources:
   mem_mb: 115000

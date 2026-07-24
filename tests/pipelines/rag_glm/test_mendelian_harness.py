@@ -11,12 +11,11 @@ from marin_dna.pipelines.rag_glm.dataset import (
 )
 from marin_dna.pipelines.rag_glm.mendelian_harness import (
     MAPPING_VERSION,
-    attach_extracted_ortholog_sequences,
     derive_projected_variant_intervals,
+    extract_ortholog_sequences_from_twobit,
     materialize_mendelian_rag_harness,
     select_containing_projection_anchors,
     validate_source_harness,
-    write_extraction_bed,
 )
 
 
@@ -121,8 +120,8 @@ def test_derive_projected_variant_intervals_strand_and_bounds() -> None:
     assert got["extraction_end"].to_list() == [1_255, 2_255]
 
 
-def test_write_and_attach_extracted_sequences_is_row_aligned_and_oriented(
-    tmp_path: Path,
+def test_extract_twobit_sequences_is_row_aligned_and_oriented(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     intervals = pl.DataFrame(
         {
@@ -138,22 +137,30 @@ def test_write_and_attach_extracted_sequences_is_row_aligned_and_oriented(
         }
     )
     interval_path = tmp_path / "intervals.parquet"
-    bed_path = tmp_path / "intervals.bed"
-    fasta_path = tmp_path / "sequences.fa"
     output_path = tmp_path / "sequences.parquet"
     intervals.write_parquet(interval_path)
 
-    assert write_extraction_bed(interval_path, bed_path) == 2
-    assert bed_path.read_text().splitlines() == [
-        "chrA\t1000\t1255\t1:128:A>G",
-        "chrB\t2000\t2255\t1:256:C>T",
-    ]
-    fasta_path.write_text(
-        ">chrA:1000-1255\n" + "A" * 255 + "\n>chrB:2000-2255\n" + "A" * 255 + "\n"
-    )
+    class FakeTwoBit:
+        def chroms(self) -> dict[str, int]:
+            return {"chrA": 10_000, "chrB": 10_000}
+
+        def sequence(self, chrom: str, start: int, end: int) -> str:
+            assert (chrom, start, end) in {
+                ("chrA", 1_000, 1_255),
+                ("chrB", 2_000, 2_255),
+            }
+            return "A" * (end - start)
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr("py2bit.open", lambda _: FakeTwoBit())
 
     assert (
-        attach_extracted_ortholog_sequences(interval_path, fasta_path, output_path) == 2
+        extract_ortholog_sequences_from_twobit(
+            interval_path, tmp_path / "species.2bit", output_path
+        )
+        == 2
     )
     got = pl.read_parquet(output_path).sort("pos")
     assert got["sequence"].to_list() == ["A" * 255, "T" * 255]
