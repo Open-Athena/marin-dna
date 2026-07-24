@@ -1,13 +1,9 @@
 """Shared PCHIP interpolation utilities for the figure set.
 
-Two consumers:
-  - appendix/pooled_vs_unpooled.py: overlay independently-fit PCHIP curves on a
-    common grid restricted to data overlap (no extrapolation).
-  - figure8_loss_vs_traitgym_correlation.py: align an eval/loss series and an
-    lm_eval auprc series at matched steps (within the overlap) so they can
-    be correlated as a time series.
+Used by ``appendix/pooled_vs_unpooled.py`` to overlay independently-fit PCHIP
+curves on a common grid restricted to data overlap (no extrapolation).
 
-Both rely on the same primitive: fit a monotone piecewise-cubic Hermite
+The utilities rely on one primitive: fit a monotone piecewise-cubic Hermite
 interpolant on log10(x) and only evaluate inside the data range.
 """
 

@@ -302,35 +302,31 @@ The result is about as tidy as we could hope for. Training is stable at every sc
 
 ### Downstream performance
 
-The relationship between validation loss and VEP performance is much less tidy. That is not a new or unexpected finding, but it was not obvious at the start whether better tuning and a more controlled parameter sweep would make the downstream picture less messy, and the sweep shows the same basic problem. VEP performance is not monotonic in parameter count for most variant types in the [parameter-count comparison](#fig-parameters-vs-vep), nor does it correlate well with validation loss in the [validation-loss comparison](#fig-loss-vs-vep). CDS tasks peak around the middle of the sweep, upstream tasks improve more clearly with scale, and the remaining variant types are mixed.
+The final sweep shows a mostly consistent relationship between parameter count and downstream VEP performance. When zero-shot LLR and frozen-embedding linear probes are evaluated on identical variants, performance improves with scale for most variant types. The clearest exception is Mendelian missense: zero-shot LLR peaks at 128M parameters and then deteriorates, even as linear-probe performance continues to improve.[^zero-shot-scaling] This is not a general failure on missense variants—the SGE missense benchmark improves with scale under both scoring protocols.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py -->
 <figure id="fig-parameters-vs-vep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" />
-<figcaption><strong>Figure 12:</strong> Composite VEP AUPRC vs parameter count.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="VEP performance across model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figcaption><strong>Figure 12:</strong> VEP performance across the parameter-scaling ladder, comparing zero-shot LLR with a frozen-embedding linear probe on identical variants. Performance is measured as chromosome-weighted AUPRC; facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
+
+Plotting the same results against matched-region validation log likelihood gives the same picture. Better validation log likelihood is associated with better downstream performance across the other variant types and scoring protocols. Zero-shot Mendelian missense again points in the opposite direction: performance declines even as validation log likelihood improves.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py -->
 <figure id="fig-loss-vs-vep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" />
-<figcaption><strong>Figure 13:</strong> Composite VEP AUPRC vs validation loss.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="VEP performance versus matched-region validation log likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figcaption><strong>Figure 13:</strong> VEP performance versus matched-region validation log likelihood (LL; shown as −loss) across the eight parameter-scaling endpoints. Performance is measured as chromosome-weighted AUPRC. Lines are least-squares fits, and <em>r</em> denotes Pearson correlation; facet axes vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
-Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale in the [VEP training trajectories](#fig-vep-training-curves). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.
+This divergence is not unique to MarinDNA. On the same Mendelian missense benchmark, Evo 2 also shows improving linear-probe performance alongside declining zero-shot LLR performance as model size increases. For now, this should be interpreted as a recurring pattern for Mendelian missense across these two model families—not as evidence that zero-shot readouts generally deteriorate with scale. It also cautions against using zero-shot LLR alone to judge whether scaling has improved the learned representations for this task.
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure7_loss_vs_traitgym_curves.py -->
-<figure id="fig-vep-training-curves">
-<img src="/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg" alt="VEP AUPRC training curves by model scale" />
-<figcaption><strong>Figure 14:</strong> VEP AUPRC training curves by model scale.</figcaption>
+<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6b_marin_evo2_missense.py -->
+<figure id="fig-missense-readout-scaling">
+<img src="/assets/images/blog/genomic-lm-optimization/figure6b_marin_evo2_missense.svg" alt="Missense VEP performance across MarinDNA and Evo 2 model scales, comparing zero-shot LLR and frozen-embedding linear probes" />
+<figcaption><strong>Figure 14:</strong> Missense VEP performance across model scale for MarinDNA and Evo 2, comparing zero-shot LLR with a frozen-embedding linear probe on identical Mendelian variants. Performance is measured as chromosome-weighted AUPRC; error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
-Ultimately, the most useful finding from the [loss–VEP correlation summary](#fig-loss-vep-correlation) is that monotonicity is scale-dependent. Mid-sized models are the most reliable by this measure, which gave us a practical target range for later experiments that train beyond one pass through the data.
-
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure8_loss_vs_traitgym_correlation.py -->
-<figure id="fig-loss-vep-correlation">
-<img src="/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg" alt="Loss vs VEP AUPRC correlation within model-size ranges" />
-<figcaption><strong>Figure 15:</strong> Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.</figcaption>
-</figure>
+[^zero-shot-scaling]: Non-monotonic likelihood-based zero-shot variant-effect performance with increasing model scale has previously been observed in other settings. [Gordon et al.](https://proceedings.iclr.cc/paper_files/paper/2025/hash/62cf81a87f367758cebabce08e8d40d8-Abstract-Conference.html) report that ESM-2 performance on protein deep-mutational-scanning benchmarks degrades beyond an intermediate model size and show that performance depends on the likelihood assigned to the wild-type sequence. [Pugh et al.](https://proceedings.neurips.cc/paper_files/paper/2025/hash/bdb30687f1c2255c29b11b0b45204ebe-Abstract-Conference.html) similarly report plateaus or regressions for larger protein language models under standard likelihood-based scoring. These studies concern protein models and different evaluation regimes; we do not know whether our Mendelian missense result has the same cause.
 
 ### Later mixture experiments
 
@@ -340,7 +336,7 @@ At this point we move away from theoretically-grounded, compute-constrained meth
 
 <figure id="fig-upstream-reweighting-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/mini_fig9_mixture.svg" alt="Upstream-reweighting continuations from a shared parent" />
-<figcaption><strong>Figure 16:</strong> Upstream-reweighting continuations from a shared parent.</figcaption>
+<figcaption><strong>Figure 15:</strong> Upstream-reweighting continuations from a shared parent.</figcaption>
 </figure>
 
 The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. The [upstream-mixture sweep](#fig-upstream-mixture-sweep) shows why simply shifting weight upstream does not solve this problem. The gains are countered by losses in other genomic regions, and similar continuations from upstream-only or proportionally mixed checkpoints from the parameter-scaling sweep did not produce clear net wins.
@@ -348,7 +344,7 @@ The first clear gap we try to correct is in upstream performance. Promoter AUPRC
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure9_upstream_mix_auprc.py -->
 <figure id="fig-upstream-mixture-sweep">
 <img src="/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg" alt="Macro average VEP AUPRC vs upstream mixture proportion" />
-<figcaption><strong>Figure 17:</strong> Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.</figcaption>
+<figcaption><strong>Figure 16:</strong> Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.</figcaption>
 </figure>
 
 - The 50% upstream continuation has the highest displayed zero-shot LLR point estimate.
@@ -364,13 +360,13 @@ A more productive strategy is to mix in new sequence types from species with les
 
 <figure id="fig-five-region-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/mini_m5.1_lineage.svg" alt="Three-region to five-region exposure history for m5.1" />
-<figcaption><strong>Figure 18:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
+<figcaption><strong>Figure 17:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
 </figure>
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure10_lineage_vep_trajectory.py -->
 <figure id="fig-mixture-lineage-trajectories">
 <img src="/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg" alt="VEP AUPRC trajectories by mixture lineage" />
-<figcaption><strong>Figure 19:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
+<figcaption><strong>Figure 18:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
 </figure>
 
 - m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
@@ -386,7 +382,7 @@ The result of the previous mixture experiments is the m5.1 model used for the he
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" />
-<figcaption><strong>Figure 20:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-upstream-mixture-sweep">upstream-mixture sweep</a> and <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
+<figcaption><strong>Figure 19:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-upstream-mixture-sweep">upstream-mixture sweep</a> and <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
 </figure>
 
 ## Conclusion

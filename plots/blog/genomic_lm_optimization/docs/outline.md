@@ -68,14 +68,12 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 ## Downstream Performance
 
-- As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning and scaling law results
+- Parameter scaling generally improves VEP under paired zero-shot and linear-probe evaluation; zero-shot Mendelian missense is the main exception
   - Show `figure5_params_vs_vep_auprc`
-- Loss correlation is weak
+- Matched-region validation log likelihood tracks VEP across the other task and readout combinations, while zero-shot Mendelian missense moves in the opposite direction
   - Show `figure6_loss_vs_vep_auprc`
-- Notably, VEP performance degrades at the largest model scales with more tokens
-  - Show `figure7_loss_vs_traitgym_curves`
-- However, we can see that VEP performance scales more monotonically within a range of model sizes
-  - Show `figure8_loss_vs_traitgym_correlation`
+- The Mendelian missense readout divergence appears in both MarinDNA and Evo 2
+  - Show `figure6b_marin_evo2_missense`
 
  ## Mixture Experiments
 
