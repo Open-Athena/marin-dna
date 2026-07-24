@@ -1,0 +1,55 @@
+name: dna-exp402-rag-benchmark-harnesses
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6id.8xlarge
+  disk_size: 100
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  COMMIT_SHA: ""
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  command -v uv >/dev/null
+  test -d "$HOME/cactus-bin-v3.1.4"
+  uv sync --project "$HOME/sky_workdir"
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.1.4/bin:$PATH"
+  export LD_LIBRARY_PATH="$HOME/cactus-bin-v3.1.4/lib:${LD_LIBRARY_PATH:-}"
+  test -n "$COMMIT_SHA"
+  mountpoint -q /mnt/nvme
+
+  HAL_PATH=/mnt/nvme/zoonomia/447-mammalian-2022v1.hal
+  test -f "$HAL_PATH"
+  HAL_BYTES=$(stat -c %s "$HAL_PATH")
+  test "$HAL_BYTES" -gt 1000000000000
+
+  cd snakemake/rag_glm
+  ALLOWED_RULES="build_benchmark_variant_windows project_benchmark_variant_windows extract_benchmark_orthologs build_benchmark_rag_harness"
+  TARGETS="results/complex_traits/dataset/evals_complex_traits_rag_harness_255_v1/README.md results/sge/dataset/evals_sge_rag_harness_255_v1/README.md"
+
+  uv run snakemake --profile workflow/profiles/default \
+      --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
+      --allowed-rules $ALLOWED_RULES \
+      --printshellcmds \
+      -n $TARGETS
+
+  uv run snakemake --profile workflow/profiles/default \
+      --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
+      --allowed-rules $ALLOWED_RULES \
+      --printshellcmds \
+      --rerun-incomplete \
+      $TARGETS
+
+  for BENCHMARK in complex_traits sge; do
+      PREFIX="s3://oa-bolinas/snakemake/rag_glm/results/$BENCHMARK/dataset/evals_${BENCHMARK}_rag_harness_255_v1"
+      aws s3 cp --only-show-errors "$PREFIX/README.md" -
+      aws s3 cp --only-show-errors "$PREFIX/manifest.json" -
+  done

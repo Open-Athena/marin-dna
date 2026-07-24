@@ -28,4 +28,20 @@ source_mendelian_harness:
 hal_path: "/mnt/nvme/zoonomia/447-mammalian-2022v1.hal"
 upstream_species_chrom_sizes_prefix: "s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/projection/chrom_sizes"
 upstream_species_twobit_prefix: "s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/projection/genomes"
-hf_mendelian_repo: "bolinas-dna/evals_mendelian_traits_rag_harness_255_v1"
+hf_mendelian_repo: "marin-dna/evals_mendelian_traits_rag_harness_255_v1"
+
+benchmark_harnesses:
+  complex_traits:
+    source_revision: "22f86a89c65cb8f3007ac3cc2739f40efefa4340"
+    source_urls:
+      train: "https://huggingface.co/datasets/marin-dna/evals_complex_traits/resolve/22f86a89c65cb8f3007ac3cc2739f40efefa4340/train.parquet"
+      test: "https://huggingface.co/datasets/marin-dna/evals_complex_traits/resolve/22f86a89c65cb8f3007ac3cc2739f40efefa4340/test.parquet"
+    hf_repo: "marin-dna/evals_complex_traits_rag_harness_255_v1"
+    leaderboard_url: "https://openathena.ai/marin-dna/leaderboards/complex"
+  sge:
+    source_revision: "225d3d1ea32a4af547891b13c33b5e92a5aae849"
+    source_urls:
+      train: "https://huggingface.co/datasets/marin-dna/evals_sge/resolve/225d3d1ea32a4af547891b13c33b5e92a5aae849/train.parquet"
+      test: "https://huggingface.co/datasets/marin-dna/evals_sge/resolve/225d3d1ea32a4af547891b13c33b5e92a5aae849/test.parquet"
+    hf_repo: "marin-dna/evals_sge_rag_harness_255_v1"
+    leaderboard_url: "https://openathena.ai/marin-dna/leaderboards/sge"

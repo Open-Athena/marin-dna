@@ -22,6 +22,8 @@ MENDELIAN_SEQUENCES = expand(
     f"{MENDELIAN_WORK_DIR}/sequences/{{species}}.parquet",
     species=NON_HUMAN_SPECIES,
 )
+BENCHMARK_HARNESSES = dict(config["benchmark_harnesses"])
+BENCHMARKS = tuple(BENCHMARK_HARNESSES)
 COMMIT_SHA = str(config.get("commit_sha") or os.environ.get("COMMIT_SHA") or "")
 
 
@@ -246,6 +248,168 @@ rule upload_mendelian_rag_harness:
         local_dataset_dir=(
             ".snakemake/storage/s3/oa-bolinas/snakemake/rag_glm/"
             f"{MENDELIAN_DATASET_DIR}"
+        ),
+    shell:
+        """
+        test -d {params.local_dataset_dir}
+        hf upload-large-folder {params.repo} --repo-type dataset {params.local_dataset_dir}
+        mkdir -p $(dirname {output})
+        touch {output}
+        """
+
+
+rule build_benchmark_variant_windows:
+    """Build exact GRCh38 windows for Complex traits or SGE."""
+    input:
+        human_twobit=lambda wc: storage(
+            f"{config['upstream_species_twobit_prefix']}/Homo_sapiens.2bit"
+        ),
+    output:
+        variants="results/{benchmark}/source/variants.parquet",
+        bed="results/{benchmark}/source/variants.ucsc.bed",
+    wildcard_constraints:
+        benchmark="|".join(BENCHMARKS),
+    threads: 1
+    resources:
+        mem_mb=8000,
+    params:
+        source_urls=lambda wc: dict(BENCHMARK_HARNESSES[wc.benchmark]["source_urls"]),
+    run:
+        from marin_dna.pipelines.rag_glm.benchmark_harness import (
+            build_benchmark_variant_windows,
+        )
+
+        build_benchmark_variant_windows(
+            benchmark=wildcards.benchmark,
+            source_urls=params.source_urls,
+            human_twobit_path=input.human_twobit,
+            variants_path=output.variants,
+            bed_path=output.bed,
+        )
+
+
+rule project_benchmark_variant_windows:
+    """Project exact Complex/SGE windows through the already-staged HAL."""
+    input:
+        bed="results/{benchmark}/source/variants.ucsc.bed",
+        chrom_sizes=lambda wc: storage(
+            f"{config['upstream_species_chrom_sizes_prefix']}/{wc.species}.tsv"
+        ),
+    output:
+        "results/{benchmark}/projection/{species}.parquet",
+    wildcard_constraints:
+        benchmark="|".join(BENCHMARKS),
+        species="|".join(NON_HUMAN_SPECIES),
+    threads: 1
+    resources:
+        mem_mb=4000,
+    params:
+        hal_path=config["hal_path"],
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            project_mendelian_variant_windows,
+        )
+
+        output_path = Path(str(output[0]))
+        project_mendelian_variant_windows(
+            hal_path=params.hal_path,
+            source_bed=input.bed,
+            target_species=wildcards.species,
+            target_chrom_sizes=input.chrom_sizes,
+            output_parquet=output_path,
+            raw_bed_path=output_path.with_suffix(".raw.bed"),
+        )
+
+
+rule extract_benchmark_orthologs:
+    """Extract and source-orient projected Complex/SGE ortholog windows."""
+    input:
+        twobit=lambda wc: storage(
+            f"{config['upstream_species_twobit_prefix']}/{wc.species}.2bit"
+        ),
+        projection="results/{benchmark}/projection/{species}.parquet",
+    output:
+        "results/{benchmark}/sequences/{species}.parquet",
+    wildcard_constraints:
+        benchmark="|".join(BENCHMARKS),
+        species="|".join(NON_HUMAN_SPECIES),
+    threads: 1
+    resources:
+        mem_mb=4000,
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            extract_ortholog_sequences_from_twobit,
+        )
+
+        extract_ortholog_sequences_from_twobit(
+            input.projection,
+            input.twobit,
+            output[0],
+        )
+
+
+rule build_benchmark_rag_harness:
+    """Assemble both frozen splits for one Complex/SGE RAG harness."""
+    input:
+        variants="results/{benchmark}/source/variants.parquet",
+        sequences=lambda wc: expand(
+            f"results/{wc.benchmark}/sequences/{{species}}.parquet",
+            species=NON_HUMAN_SPECIES,
+        ),
+    output:
+        train="results/{benchmark}/dataset/evals_{benchmark}_rag_harness_255_v1/train.parquet",
+        test="results/{benchmark}/dataset/evals_{benchmark}_rag_harness_255_v1/test.parquet",
+        manifest="results/{benchmark}/dataset/evals_{benchmark}_rag_harness_255_v1/manifest.json",
+        readme="results/{benchmark}/dataset/evals_{benchmark}_rag_harness_255_v1/README.md",
+    wildcard_constraints:
+        benchmark="|".join(BENCHMARKS),
+    threads: 2
+    resources:
+        mem_mb=64000,
+    params:
+        source_urls=lambda wc: dict(BENCHMARK_HARNESSES[wc.benchmark]["source_urls"]),
+        source_revision=lambda wc: BENCHMARK_HARNESSES[wc.benchmark]["source_revision"],
+        hf_repo=lambda wc: BENCHMARK_HARNESSES[wc.benchmark]["hf_repo"],
+        leaderboard_url=lambda wc: BENCHMARK_HARNESSES[wc.benchmark]["leaderboard_url"],
+        species_order=tuple(config["species_order"]),
+    run:
+        from marin_dna.pipelines.rag_glm.benchmark_harness import (
+            materialize_benchmark_rag_harness,
+        )
+
+        materialize_benchmark_rag_harness(
+            benchmark=wildcards.benchmark,
+            source_urls=params.source_urls,
+            source_revision=params.source_revision,
+            variants_path=input.variants,
+            species_sequence_paths=dict(
+                zip(NON_HUMAN_SPECIES, input.sequences, strict=True)
+            ),
+            output_split_paths={"train": output.train, "test": output.test},
+            manifest_path=output.manifest,
+            readme_path=output.readme,
+            commit_sha=COMMIT_SHA,
+            hf_repo=params.hf_repo,
+            leaderboard_url=params.leaderboard_url,
+            species_order=params.species_order,
+        )
+
+
+rule upload_benchmark_rag_harness:
+    """Upload one reviewed Complex/SGE RAG harness to Hugging Face."""
+    input:
+        rules.build_benchmark_rag_harness.output,
+    output:
+        touch("results/{benchmark}/upload.done/evals_{benchmark}_rag_harness_255_v1"),
+    wildcard_constraints:
+        benchmark="|".join(BENCHMARKS),
+    threads: 4
+    params:
+        repo=lambda wc: BENCHMARK_HARNESSES[wc.benchmark]["hf_repo"],
+        local_dataset_dir=lambda wc: (
+            ".snakemake/storage/s3/oa-bolinas/snakemake/rag_glm/"
+            f"results/{wc.benchmark}/dataset/"
+            f"evals_{wc.benchmark}_rag_harness_255_v1"
         ),
     shell:
         """

@@ -123,4 +123,42 @@ upload. Any training-data or canonical Zoonomia projection rule is an error.
 
 Outputs are stored under `results/mendelian/` in the existing RAG S3
 namespace and uploaded to
-`bolinas-dna/evals_mendelian_traits_rag_harness_255_v1`.
+`marin-dna/evals_mendelian_traits_rag_harness_255_v1`.
+
+## Complex-traits and SGE RAG harnesses
+
+The same staged HAL can build retrieval-conditioned versions of the other two
+variant leaderboards without repeating the 1.18-TiB transfer. The source
+revisions are pinned independently:
+
+| Benchmark | Source revision | Source variants (train/test) | HF output |
+| --- | --- | ---: | --- |
+| Complex traits | `22f86a89c65cb8f3007ac3cc2739f40efefa4340` | 11,630 / 10,000 | `marin-dna/evals_complex_traits_rag_harness_255_v1` |
+| SGE | `225d3d1ea32a4af547891b13c33b5e92a5aae849` | 23,853 / 14,888 | `marin-dna/evals_sge_rag_harness_255_v1` |
+
+Both builds preserve every original source column and add the same frozen RAG
+fields as the Mendelian harness. Source `pos` is converted from 1-based to a
+0-based centered interval only at the build boundary. The human REF allele is
+asserted against the archived `Homo_sapiens` 2bit before any projection, and
+the two source splits must be variant-disjoint. Whole-document reverse
+complements, exact 2,048-token geometry, one row per variant per strand, and
+full-slot missing values are asserted during assembly.
+
+Dry-run the two cards (32 additive jobs) before execution:
+
+```bash
+uv run snakemake --profile workflow/profiles/default \
+  --config commit_sha="$COMMIT_SHA" hal_path="$HAL_PATH" \
+  --allowed-rules build_benchmark_variant_windows \
+    project_benchmark_variant_windows extract_benchmark_orthologs \
+    build_benchmark_rag_harness \
+  -n \
+  results/complex_traits/dataset/evals_complex_traits_rag_harness_255_v1/README.md \
+  results/sge/dataset/evals_sge_rag_harness_255_v1/README.md
+```
+
+Review each generated `README.md` and `manifest.json` before invoking its
+`upload_benchmark_rag_harness` target. Intermediate projections and final
+datasets live under `results/{complex_traits,sge}/` in the RAG S3 namespace;
+the canonical leaderboard sources and Zoonomia projection artifacts remain
+read-only.
