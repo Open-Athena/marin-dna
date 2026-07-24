@@ -1,6 +1,18 @@
 """Issue #402 fixed-layout RAG dataset pipeline."""
 
+import os
+
+
 configfile: "config/config.yaml"
+
+
+N_TRAINING_SHARDS = int(config["training_n_shards"])
+TRAINING_SHARDS = [
+    f"part-{index:05d}-of-{N_TRAINING_SHARDS:05d}.parquet"
+    for index in range(N_TRAINING_SHARDS)
+]
+TRAINING_DATASET_DIR = "results/dataset/zoonomia-rag-v1-v1"
+COMMIT_SHA = str(config.get("commit_sha") or os.environ.get("COMMIT_SHA") or "")
 
 
 rule species_audit:
@@ -10,15 +22,15 @@ rule species_audit:
         pairwise="results/audit/panel_pairwise_identity.tsv",
         sample_ids="results/audit/sample_anchor_ids.txt",
         summary="results/audit/summary.json",
+    threads: 1
+    resources:
+        mem_mb=32000,
     params:
         source_parquet=config["upstream_projection_parquet"],
         species_tsv=config["species_tsv"],
         sample_size=int(config["audit_sample_size"]),
         sample_seed=int(config["audit_sample_seed"]),
         panel=tuple(config["species_order"]),
-    threads: 1
-    resources:
-        mem_mb=32000,
     run:
         from marin_dna.pipelines.rag_glm.audit import run_species_audit
 
@@ -33,3 +45,62 @@ rule species_audit:
             sample_seed=params.sample_seed,
             panel=params.panel,
         )
+
+
+rule build_training_dataset:
+    """Pivot the frozen projection into train/validation document shards."""
+    output:
+        training=expand(
+            f"{TRAINING_DATASET_DIR}/data/train/{{shard}}",
+            shard=TRAINING_SHARDS,
+        ),
+        validation=f"{TRAINING_DATASET_DIR}/data/validation/part-00000-of-00001.parquet",
+        manifest=f"{TRAINING_DATASET_DIR}/manifest.json",
+        readme=f"{TRAINING_DATASET_DIR}/README.md",
+    threads: 4
+    resources:
+        mem_mb=110000,
+    params:
+        source_parquet=config["upstream_projection_parquet"],
+        species_order=tuple(config["species_order"]),
+        species_order_version=config["species_order_version"],
+        validation_size=int(config["validation_size"]),
+        validation_seed=int(config["validation_seed"]),
+        shuffle_seed=int(config["training_shuffle_seed"]),
+        commit_sha=COMMIT_SHA,
+        hf_repo=config["hf_training_repo"],
+    run:
+        from marin_dna.pipelines.rag_glm.dataset import materialize_training_dataset
+
+        materialize_training_dataset(
+            source_parquet=params.source_parquet,
+            training_shard_paths=list(output.training),
+            validation_path=output.validation,
+            manifest_path=output.manifest,
+            readme_path=output.readme,
+            species_order=params.species_order,
+            species_order_version=params.species_order_version,
+            validation_size=params.validation_size,
+            validation_seed=params.validation_seed,
+            shuffle_seed=params.shuffle_seed,
+            commit_sha=params.commit_sha,
+            hf_repo=params.hf_repo,
+        )
+
+
+rule upload_training_dataset:
+    """Upload the reviewed training dataset card and Parquet splits to HF."""
+    input:
+        rules.build_training_dataset.output,
+    output:
+        touch("results/upload.done/zoonomia-rag-v1-v1"),
+    threads: 4
+    params:
+        repo=config["hf_training_repo"],
+        dataset_dir=TRAINING_DATASET_DIR,
+    shell:
+        """
+        hf upload-large-folder {params.repo} --repo-type dataset {params.dataset_dir}
+        mkdir -p $(dirname {output})
+        touch {output}
+        """

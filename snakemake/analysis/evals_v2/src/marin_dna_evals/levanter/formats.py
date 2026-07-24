@@ -20,6 +20,7 @@ from levanter.data.text.formats import LmDatasetFormatBase
 from levanter.tokenizers import MarinTokenizer
 
 from marin_dna_evals.levanter.batch_tokenizer import DNABatchTokenizer
+from marin_dna_evals.levanter.rag_batch_tokenizer import RAGDNABatchTokenizer
 
 
 @LmDatasetFormatBase.register_subclass("dna")
@@ -60,6 +61,24 @@ class DNALmDatasetFormat(LmDatasetFormatBase):
             uppercase_weight=self.uppercase_weight,
             lowercase_weight=self.lowercase_weight,
         )
+
+
+@LmDatasetFormatBase.register_subclass("rag_dna")
+@dataclass(frozen=True)
+class RAGDNALmDatasetFormat(DNALmDatasetFormat):
+    """Issue #402 fixed-layout DNA format with uniform next-token loss."""
+
+    def build_preprocessor(
+        self,
+        tokenizer: MarinTokenizer,
+        *,
+        enforce_eos: bool = True,
+        enforce_bos: bool = True,
+    ) -> BatchProcessor[dict, dict]:
+        del enforce_eos, enforce_bos
+        assert self.uppercase_weight == 1.0
+        assert self.lowercase_weight == 1.0
+        return RAGDNABatchTokenizer(tokenizer, text_field=self.text_key)
 
 
 def _install_dataset_for_component_patch() -> None:

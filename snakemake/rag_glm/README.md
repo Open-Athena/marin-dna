@@ -52,10 +52,33 @@ uv run snakemake --profile workflow/profiles/default \
 The intended execution environment is SkyPilot:
 
 ```bash
-sky launch -c dna-exp402-data sky/dataset.yaml
-sky logs dna-exp402-data
-sky down dna-exp402-data
+sky launch -c dna-exp402-audit sky/audit.yaml
+sky logs dna-exp402-audit
+sky down dna-exp402-audit
 ```
 
 The Sky job performs the dry-run gate before the real invocation. Its outputs
 are stored under `s3://oa-bolinas/snakemake/rag_glm/`.
+
+## Training dataset
+
+`rule build_training_dataset` pivots all frozen source anchors into eight fixed
+slots, fills missing non-human slots with 255 Ns, excludes chromosome 18 from
+training, chooses exactly 2,048 chromosome 18 validation anchors, and applies
+one whole-document reverse-complement augmentation to training only. It emits
+32 train Parquets, one validation Parquet, `manifest.json`, and the reviewed HF
+dataset card under `results/dataset/zoonomia-rag-v1-v1/`.
+
+The upload target is deliberately restricted to the two additive RAG rules:
+
+```bash
+COMMIT_SHA=$(git rev-parse HEAD)
+sky launch -c dna-exp402-data sky/dataset.yaml \
+  --env COMMIT_SHA="$COMMIT_SHA"
+sky logs dna-exp402-data
+sky down dna-exp402-data
+```
+
+The launch performs a dry-run first. It must show only
+`build_training_dataset` and `upload_training_dataset`; any upstream projection
+rule is an error and must stop the run.

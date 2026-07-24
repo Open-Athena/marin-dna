@@ -14,3 +14,10 @@ species_order:
   - "Mus_musculus"
   - "Microcebus_murinus"
   - "Homo_sapiens"
+
+validation_size: 2048
+validation_seed: 42
+training_shuffle_seed: 42
+training_n_shards: 32
+
+hf_training_repo: "bolinas-dna/zoonomia-rag-v1-v1"

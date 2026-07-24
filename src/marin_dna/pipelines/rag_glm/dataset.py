@@ -7,10 +7,13 @@ normalizes negative-strand ortholog sequences to the human-anchor orientation.
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Sequence
+from pathlib import Path
 
 import polars as pl
 
+from marin_dna.data.utils import get_array_split_pairs
 from marin_dna.pipelines.projection.dataset import reverse_complement_col
 
 BASES_PER_SLOT = 255
@@ -288,3 +291,225 @@ def add_document_reverse_complements(training: pl.DataFrame) -> pl.DataFrame:
         .is_empty()
     )
     return augmented
+
+
+def _dataset_manifest(
+    documents: pl.DataFrame,
+    training: pl.DataFrame,
+    validation: pl.DataFrame,
+    *,
+    source_parquet: str,
+    species_order: tuple[str, ...],
+    species_order_version: str,
+    validation_seed: int,
+    shuffle_seed: int,
+    commit_sha: str,
+) -> dict[str, object]:
+    """Build an auditable manifest from the materialized document frames."""
+    missingness = []
+    for slot, species in enumerate(species_order):
+        n_available = documents.select(pl.col(f"available_{slot}").sum()).item()
+        missingness.append(
+            {
+                "slot": slot,
+                "species": species,
+                "n_available": int(n_available),
+                "n_missing": documents.height - int(n_available),
+                "missing_fraction": 1.0 - int(n_available) / documents.height,
+            }
+        )
+    return {
+        "source_parquet": source_parquet,
+        "producing_commit": commit_sha,
+        "coordinate_system": "0-based, half-open",
+        "species_order_version": species_order_version,
+        "species_order": list(species_order),
+        "n_distinct_anchors": documents.height,
+        "n_training_anchors": training.select(pl.col("anchor_id").n_unique()).item(),
+        "n_training_documents": training.height,
+        "n_validation_anchors": validation.select(
+            pl.col("anchor_id").n_unique()
+        ).item(),
+        "n_validation_documents": validation.height,
+        "validation_tokens": validation.height * DOCUMENT_TOKENS,
+        "validation_chrom": "18",
+        "validation_seed": validation_seed,
+        "validation_rank": "blake2b-64-v1",
+        "training_shuffle_seed": shuffle_seed,
+        "document_tokens": DOCUMENT_TOKENS,
+        "next_token_targets": DOCUMENT_TOKENS - 1,
+        "human_segment": [HUMAN_SEGMENT_START, DOCUMENT_TOKENS],
+        "centered_variant_token_index": HUMAN_VARIANT_TOKEN_INDEX,
+        "conservation": {
+            "source": CONSERVATION_SOURCE,
+            "base_threshold": CONSERVATION_THRESHOLD,
+            "window_min_proportion": WINDOW_MIN_PROPORTION_CONSERVED,
+        },
+        "reference_assembly": REFERENCE_ASSEMBLY,
+        "hal_source": HAL_SOURCE,
+        "missingness": missingness,
+    }
+
+
+def write_training_dataset_readme(
+    output_path: str | Path,
+    *,
+    manifest: dict[str, object],
+    commit_sha: str,
+    hf_repo: str,
+) -> None:
+    """Write the reviewed Hugging Face dataset card for the training corpus."""
+    assert len(commit_sha) == 40
+    assert manifest["n_validation_documents"] == 2_048
+    species_lines = "\n".join(
+        f"{row['slot']}. *{row['species'].replace('_', ' ')}* — "
+        f"{row['missing_fraction']:.2%} missing"
+        for row in manifest["missingness"]
+    )
+    pipeline_url = (
+        f"https://github.com/Open-Athena/marin-dna/tree/{commit_sha}/snakemake/rag_glm"
+    )
+    text = f"""---
+tags:
+- biology
+- genomics
+- dna
+---
+
+# {hf_repo}
+
+Fixed-layout 2,048-token documents built from conservation-filtered GRCh38
+255-base anchors, seven fixed Zoonomia mammalian ortholog slots, and a final
+human slot. Missing non-human projections are filled with 255 `N` bases;
+chromosome 18 is validation-only.
+
+Produced by the commit-pinned [issue #402 RAG pipeline]({pipeline_url}). The
+immutable upstream input is the existing Zoonomia v1
+`min0.20/all_species_with_sequence.parquet` projection. No `halLiftover` was
+run for this dataset.
+
+## Splits
+
+| Split | Documents | Distinct human anchors | Orientation |
+| --- | ---: | ---: | --- |
+| train | {manifest["n_training_documents"]:,} | {manifest["n_training_anchors"]:,} | forward + whole-document reverse complement |
+| validation | {manifest["n_validation_documents"]:,} | {manifest["n_validation_anchors"]:,} | forward only |
+
+Training excludes every chromosome 18 anchor. Validation is a deterministic
+2,048-anchor chromosome 18 sample (`blake2b-64-v1`, seed
+{manifest["validation_seed"]}) and contains exactly
+{manifest["validation_tokens"]:,} input tokens.
+
+## Fixed slot order (`{manifest["species_order_version"]}`)
+
+{species_lines}
+
+Slot 7 is always human. Every raw slot is exactly 255 bases. Documents are
+assembled as `slot_0[SEQ]... [SEQ]slot_7`; `[SEQ]` is one atomic token and one
+BOS token is prepended as CLS. The final human segment is token interval
+`[1793, 2048)`. Raw `N` bases map to the tokenizer unknown token.
+
+## Provenance
+
+- Reference: {manifest["reference_assembly"]}
+- Conservation: `{CONSERVATION_SOURCE} >= {CONSERVATION_THRESHOLD}` at least
+  `{WINDOW_MIN_PROPORTION_CONSERVED:.2f}` of positions in each 255-base window
+- Alignment: {manifest["hal_source"]}
+- Coordinates: 0-based, half-open
+- Producing commit: `{commit_sha}`
+
+`manifest.json` contains exact row counts, seeds, token positions, and
+per-slot missingness.
+"""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def materialize_training_dataset(
+    *,
+    source_parquet: str,
+    training_shard_paths: list[str],
+    validation_path: str,
+    manifest_path: str,
+    readme_path: str,
+    species_order: Sequence[str],
+    species_order_version: str,
+    validation_size: int,
+    validation_seed: int,
+    shuffle_seed: int,
+    commit_sha: str,
+    hf_repo: str,
+) -> None:
+    """Build, validate, and shard the complete RAG training dataset."""
+    assert training_shard_paths
+    assert len(commit_sha) == 40, f"expected a full commit SHA, got {commit_sha!r}"
+    order = validate_species_order(species_order)
+
+    source = pl.scan_parquet(source_parquet)
+    if "augmentation" in source.collect_schema().names():
+        source = source.filter(pl.col("augmentation") == "+")
+    projection_rows = (
+        source.filter(pl.col("species").is_in(order))
+        .select(sorted(_SOURCE_COLUMNS))
+        .collect(engine="streaming")
+    )
+    documents = assemble_fixed_layout_documents(
+        projection_rows,
+        species_order=order,
+        species_order_version=species_order_version,
+    )
+    training_forward, validation = split_training_validation(
+        documents,
+        validation_size=validation_size,
+        validation_seed=validation_seed,
+    )
+    training = add_document_reverse_complements(training_forward).sample(
+        fraction=1.0,
+        shuffle=True,
+        seed=shuffle_seed,
+    )
+
+    assert validation.height == 2_048
+    assert validation.height * DOCUMENT_TOKENS == 4_194_304
+    assert validation.filter(pl.col("augmentation") != "+").is_empty()
+    assert training.filter(pl.col("chrom") == "18").is_empty()
+    assert training.select(pl.col("anchor_id").n_unique()).item() * 2 == training.height
+
+    from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+
+    tokenizer = create_rag_char_tokenizer()
+    validation_sample = validation["seq"].head(32).to_list()
+    tokenized = tokenizer(validation_sample)["input_ids"]
+    assert all(len(ids) == DOCUMENT_TOKENS for ids in tokenized)
+
+    for path, (start, end) in zip(
+        training_shard_paths,
+        get_array_split_pairs(training.height, len(training_shard_paths)),
+    ):
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        training.slice(start, end - start).write_parquet(
+            path, compression="zstd", statistics=True
+        )
+    Path(validation_path).parent.mkdir(parents=True, exist_ok=True)
+    validation.write_parquet(validation_path, compression="zstd", statistics=True)
+
+    manifest = _dataset_manifest(
+        documents,
+        training,
+        validation,
+        source_parquet=source_parquet,
+        species_order=order,
+        species_order_version=species_order_version,
+        validation_seed=validation_seed,
+        shuffle_seed=shuffle_seed,
+        commit_sha=commit_sha,
+    )
+    Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(manifest_path).write_text(json.dumps(manifest, indent=2) + "\n")
+    write_training_dataset_readme(
+        readme_path,
+        manifest=manifest,
+        commit_sha=commit_sha,
+        hf_repo=hf_repo,
+    )

@@ -1,5 +1,7 @@
 """Tests for fixed-layout RAG document construction."""
 
+import json
+
 import polars as pl
 import pytest
 
@@ -15,6 +17,7 @@ from marin_dna.pipelines.rag_glm.dataset import (
     add_document_reverse_complements,
     assemble_document,
     assemble_fixed_layout_documents,
+    materialize_training_dataset,
     reverse_complement_document_slots,
     split_training_validation,
     stable_anchor_rank,
@@ -168,3 +171,44 @@ def test_reverse_complement_augmentation_is_document_wide_and_involutive() -> No
         tuple(forward[f"sequence_{slot}"] for slot in range(8))
     )
     assert reverse["seq"] == assemble_document(reverse_slots)
+
+
+def test_materialize_training_dataset_writes_valid_splits_and_card(tmp_path) -> None:
+    source_path = tmp_path / "projection.parquet"
+    _projection_frame(n_chr18=2_048).write_parquet(source_path)
+    training_paths = [
+        tmp_path / "data" / "train" / "part-0.parquet",
+        tmp_path / "data" / "train" / "part-1.parquet",
+    ]
+    validation_path = tmp_path / "data" / "validation" / "part-0.parquet"
+    manifest_path = tmp_path / "manifest.json"
+    readme_path = tmp_path / "README.md"
+
+    materialize_training_dataset(
+        source_parquet=str(source_path),
+        training_shard_paths=[str(path) for path in training_paths],
+        validation_path=str(validation_path),
+        manifest_path=str(manifest_path),
+        readme_path=str(readme_path),
+        species_order=PROVISIONAL_SPECIES_ORDER,
+        species_order_version="test-v1",
+        validation_size=2_048,
+        validation_seed=42,
+        shuffle_seed=42,
+        commit_sha="a" * 40,
+        hf_repo="bolinas-dna/test-rag",
+    )
+
+    training = pl.concat([pl.read_parquet(path) for path in training_paths])
+    validation = pl.read_parquet(validation_path)
+    manifest = json.loads(manifest_path.read_text())
+    assert training.height == 4
+    assert training.select(pl.col("anchor_id").n_unique()).item() == 2
+    assert set(training["augmentation"]) == {"+", "-"}
+    assert set(training["chrom"]) == {"1", "2"}
+    assert validation.height == 2_048
+    assert set(validation["chrom"]) == {"18"}
+    assert set(validation["augmentation"]) == {"+"}
+    assert manifest["validation_tokens"] == 4_194_304
+    assert "biology" in readme_path.read_text()
+    assert "/tree/" + "a" * 40 + "/snakemake/rag_glm" in readme_path.read_text()

@@ -1,4 +1,4 @@
-name: dna-exp402-rag-dataset
+name: dna-exp402-rag-audit
 
 resources:
   infra: aws/us-east-2
@@ -8,13 +8,6 @@ resources:
     project: dna
 
 workdir: ../..
-
-file_mounts:
-  ~/.cache/huggingface: ~/.cache/huggingface
-
-envs:
-  COMMIT_SHA: ""
-  SNAKEMAKE_TARGET: "results/upload.done/zoonomia-rag-v1-v1"
 
 setup: |
   set -euxo pipefail
@@ -30,20 +23,16 @@ run: |
   export PATH="$HOME/.local/bin:$PATH"
   cd snakemake/rag_glm
 
-  test -n "$COMMIT_SHA"
-
   uv run snakemake --profile workflow/profiles/default \
-      --config "commit_sha=$COMMIT_SHA" \
-      --allowed-rules build_training_dataset upload_training_dataset \
+      --allowed-rules species_audit \
       --printshellcmds \
-      -n "$SNAKEMAKE_TARGET"
+      -n results/audit/summary.json
 
   uv run snakemake --profile workflow/profiles/default \
-      --config "commit_sha=$COMMIT_SHA" \
-      --allowed-rules build_training_dataset upload_training_dataset \
+      --allowed-rules species_audit \
       --printshellcmds \
       --rerun-incomplete \
-      "$SNAKEMAKE_TARGET"
+      results/audit/summary.json
 
   uv run python -c "
   import boto3
@@ -51,7 +40,7 @@ run: |
 
   boto3.client('s3').download_fileobj(
       'oa-bolinas',
-      'snakemake/rag_glm/results/dataset/zoonomia-rag-v1-v1/manifest.json',
+      'snakemake/rag_glm/results/audit/summary.json',
       sys.stdout.buffer,
   )
   "
