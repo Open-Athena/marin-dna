@@ -46,7 +46,7 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 | 12 | `figure5_params_vs_vep_auprc.svg` | `src/figures/figure5_params_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 13 | `figure6_loss_vs_vep_auprc.svg` | `src/figures/figure6_loss_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 14 | `figure6b_marin_evo2_missense.svg` | `src/figures/figure6b_marin_evo2_missense.py` | Paired MarinDNA endpoint predictions on S3; commit-pinned Evo 2 probe metrics |
-| 15 | `mini_m5.1_lineage.svg` | Authored SVG; no plot recipe | m5.1 lineage |
+| 15 | `continued_training_data_exposures.svg` | Authored SVG; no plot recipe | Figure 10 mixture-lineage definitions and token accounting |
 | 16 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
 | 17 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
 
