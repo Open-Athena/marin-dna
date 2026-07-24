@@ -14,7 +14,7 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert isinstance(module.app, marimo.App)
     source = (app_directory / "app.py").read_text()
     assert "c0676b2012b8b9c526deb26ff517f6b92b6d375d" in source
-    assert source.count("182ebd94a23a3de185fa466a3137a726fe6afbd5") == 1
+    assert source.count("3fe94227186175fa6f5bf074c27d6cd3c3b0f391") == 1
     assert '"jaxtyping==0.3.9"' in source
     assert '"--no-deps"' in source
     assert "marin-dna @ git+" not in source
