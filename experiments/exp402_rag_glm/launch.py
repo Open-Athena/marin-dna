@@ -17,15 +17,16 @@ from levanter.optim.adamh import AdamHConfig
 from marin.execution.lazy import ArtifactStep, StepContext
 from marin.execution.remote import remote
 from marin.experiment.cli import experiment_main
-from marin.experiment.train import train_lm
+from marin.experiment.train import EvalSuite, train_lm
 from marin.processing.tokenize.tokenize import (
     HfTokenizeConfig,
     TokenizedCache,
     tokenize,
 )
 from marin_dna.levanter.formats import RAGDNALmDatasetFormat
+from marin_dna.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_RAG_255
 
-MARIN_DNA_REVISION = "52044801cdc32a80f4d350df6d7cae93b332871b"
+MARIN_DNA_REVISION = "55adcf038180e09f29f21660dfdb9f9b79de5f05"
 DATASET_REPO = "bolinas-dna/zoonomia-rag-v1-v1"
 DATASET_REVISION = "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"
 TOKENIZER_PATH = "tokenizer"
@@ -41,6 +42,7 @@ TRAIN_BATCH_SIZE = 64
 TARGET_TOKENS = 1_000_000_000
 TRAIN_STEPS = round(TARGET_TOKENS / (TRAIN_BATCH_SIZE * SEQ_LEN))
 ACTUAL_TOKENS = TRAIN_STEPS * TRAIN_BATCH_SIZE * SEQ_LEN
+RAG_EVAL_EVERY = 3_000
 
 DATASET_ARTIFACT_VERSION = "2026.07.24"
 CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-1b"
@@ -182,7 +184,7 @@ def build() -> ArtifactStep:
         seq_len=SEQ_LEN,
         num_train_steps=TRAIN_STEPS,
         z_loss_weight=1.0e-7,
-        evals=None,
+        evals=EvalSuite(tasks=(MENDELIAN_TRAITS_RAG_255,), every=RAG_EVAL_EVERY),
         resources=ResourceConfig.with_tpu("v5p-8", disk="100g"),
         steps_per_eval=500,
         wandb_project="marin",

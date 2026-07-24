@@ -11,8 +11,11 @@ from marin_dna.pipelines.rag_glm.dataset import MISSING_SEQUENCE, assemble_docum
 
 from launch import (
     ACTUAL_TOKENS,
+    MARIN_DNA_REVISION,
+    MENDELIAN_TRAITS_RAG_255,
     MODEL,
     OPTIMIZER,
+    RAG_EVAL_EVERY,
     SEQ_LEN,
     TARGET_TOKENS,
     TOKENIZER_PATH,
@@ -23,6 +26,14 @@ from launch import (
     RAGTokenizedCache,
     rag_tokenized_dataset,
 )
+
+
+def test_online_eval_is_the_pinned_mendelian_rag_task() -> None:
+    assert MARIN_DNA_REVISION == "55adcf038180e09f29f21660dfdb9f9b79de5f05"
+    assert MENDELIAN_TRAITS_RAG_255.name == "mendelian_traits_rag_255"
+    assert MENDELIAN_TRAITS_RAG_255.num_fewshot == 0
+    assert RAG_EVAL_EVERY == 3_000
+    assert TRAIN_STEPS // RAG_EVAL_EVERY == 2
 
 
 def test_model_is_the_46m_rung_at_full_document_length() -> None:

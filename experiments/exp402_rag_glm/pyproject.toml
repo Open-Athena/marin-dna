@@ -13,9 +13,12 @@ dependencies = [
     "marin-levanter==0.2.57.dev202607240800",
     "marin-rigging==0.2.57.dev202607240800",
     "marin-zephyr==0.2.57.dev202607240800",
+    # Current Marin declares an lm_eval extra, but the wheel metadata omits its
+    # dependency. Pin the exact fork/revision used by Marin's source tree.
+    "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
     # Remote workers install the exact library revision containing the RAG
     # tokenizer and dataset format. A local path would not survive dispatch.
-    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@52044801cdc32a80f4d350df6d7cae93b332871b",
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@55adcf038180e09f29f21660dfdb9f9b79de5f05",
 ]
 
 [project.optional-dependencies]

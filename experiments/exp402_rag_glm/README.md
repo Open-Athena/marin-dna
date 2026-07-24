@@ -24,6 +24,7 @@ those digests in the tokenized-cache fingerprint.
 | Tokens | 999,948,288 |
 | Initialization | Scratch |
 | Accelerator | One preemptible `v5p-8` |
+| Online eval | Mendelian RAG harness at steps 3,000, 6,000, and final 7,629 |
 | W&B | group `dna-exp402-v1`, run `dna-exp402-rag-h640-p46M-1B` |
 
 AdamH is transferred from the Complete(d)-inspired reference at the actual
@@ -43,6 +44,16 @@ linear decay  = 0.2
 The existing 46M/256-token checkpoint is deliberately not loaded: expanding
 both its context and vocabulary would add a second experimental variable to
 this first operational run. The geometry, not the weights, is reused.
+
+The online harness is `mendelian_traits_rag_255`, backed by the immutable
+`marin-dna/evals_mendelian_traits_rag_harness_255_v1` revision
+`9acedb683463477f34745af30a63a289873008a4`. Each example shares its 1,920-token
+retrieval prefix across the reference and alternate branches through Levanter's
+paged KV cache. Fixed batches of 16 reduce device dispatch overhead; raw
+nucleotide log-likelihood ratios are aggregated by the existing matched-variant
+AUPRC metric. The experiment pins Marin's exact `lm-eval` fork because the
+current Marin wheel advertises that integration but omits the dependency from
+its built metadata.
 
 ## Validate
 
