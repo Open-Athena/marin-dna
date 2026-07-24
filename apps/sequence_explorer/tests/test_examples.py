@@ -11,7 +11,7 @@ def test_recommended_examples_match_issue_387():
     ]
     assert [len(example.sequence) for example in EXAMPLES] == [126, 186, 28, 255, 74]
     assert [example.strand for example in EXAMPLES] == ["+", "-", "+", "+", "-"]
-    assert DEFAULT_EXAMPLE.name == "LDLR"
+    assert DEFAULT_EXAMPLE.name == "TH"
     for example in EXAMPLES:
         assert len(example.sequence) == example.end - example.start
         assert set(example.sequence) <= set("ACGT")

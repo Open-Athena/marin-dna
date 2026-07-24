@@ -190,7 +190,7 @@ def logo_figure(
     )
     figure.update_layout(
         shapes=shapes,
-        height=430,
+        height=280,
         margin={"l": 64, "r": 24, "t": 54, "b": 52},
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -274,52 +274,110 @@ def dependency_figure(
 
 
 def sequence_tracks_figure(
+    sequence: str,
     logo: NucleotideLogo,
     dependency: np.ndarray,
 ) -> go.Figure:
-    """Aligned logo and dependency tracks with one shared nucleotide x-axis."""
-    length = int(logo.probabilities.shape[0])
+    """Raw DNA, logo, and a square dependency map with one linked span."""
+    length = len(sequence)
+    assert length >= 1
+    assert set(sequence) <= set(NUCLEOTIDES)
+    assert logo.probabilities.shape == (length, 4)
     assert dependency.shape == (length, length)
     logo_track = logo_figure(logo)
     dependency_track = dependency_figure(dependency)
 
+    figure_width = 1050
+    left_margin = 72
+    right_margin = 112
+    top_margin = 70
+    bottom_margin = 60
+    dependency_size = figure_width - left_margin - right_margin
+    raw_sequence_height = 56
+    logo_height = 150
+    gap = 32
+    plot_height = dependency_size + raw_sequence_height + logo_height + 2 * gap
+    figure_height = top_margin + plot_height + bottom_margin
+
+    dependency_domain = [0.0, dependency_size / plot_height]
+    logo_domain = [
+        (dependency_size + gap) / plot_height,
+        (dependency_size + gap + logo_height) / plot_height,
+    ]
+    raw_sequence_domain = [
+        (dependency_size + 2 * gap + logo_height) / plot_height,
+        1.0,
+    ]
+    assert dependency_size > 0
+    assert 0 < dependency_domain[1] < logo_domain[0] < logo_domain[1]
+    assert logo_domain[1] < raw_sequence_domain[0] < 1
+
     figure = make_subplots(
-        rows=2,
+        rows=3,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.08,
-        row_heights=[0.34, 0.66],
+        vertical_spacing=0,
     )
+    positions = np.arange(length)
+    sequence_array = np.asarray(list(sequence))
+    for nucleotide in NUCLEOTIDES:
+        nucleotide_positions = positions[sequence_array == nucleotide]
+        figure.add_trace(
+            go.Scatter(
+                x=nucleotide_positions,
+                y=np.full(len(nucleotide_positions), 0.5),
+                text=[nucleotide] * len(nucleotide_positions),
+                mode="text",
+                textfont={
+                    "color": NUCLEOTIDE_COLORS[nucleotide],
+                    "family": "DejaVu Sans Mono, monospace",
+                    "size": 14,
+                },
+                hovertemplate=(
+                    f"Position %{{x}}<br>Nucleotide {nucleotide}<extra></extra>"
+                ),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+        )
     for trace in logo_track.data:
-        figure.add_trace(trace, row=1, col=1)
+        figure.add_trace(trace, row=2, col=1)
     for trace in dependency_track.data:
         trace.colorbar.update(
             x=1.02,
             xanchor="left",
-            y=0.31,
-            len=0.6,
+            y=sum(dependency_domain) / 2,
+            len=dependency_domain[1] - dependency_domain[0],
             thickness=16,
         )
-        figure.add_trace(trace, row=2, col=1)
+        figure.add_trace(trace, row=3, col=1)
 
     shapes: list[dict[str, Any]] = []
     for shape in logo_track.layout.shapes:
         shape_json = shape.to_plotly_json()
-        shape_json.update(xref="x", yref="y")
+        shape_json.update(xref="x2", yref="y2")
         shapes.append(shape_json)
 
     shared_range = [-0.5, length - 0.5]
     figure.update_layout(
         shapes=shapes,
-        height=960,
-        margin={"l": 72, "r": 112, "t": 76, "b": 60},
+        width=figure_width,
+        height=figure_height,
+        autosize=False,
+        margin={
+            "l": left_margin,
+            "r": right_margin,
+            "t": top_margin,
+            "b": bottom_margin,
+        },
         plot_bgcolor="white",
         paper_bgcolor="white",
         dragmode="zoom",
         hovermode="closest",
         selectdirection="h",
         newselection={"line": {"color": "#4F46E5", "width": 2}},
-        uirevision=f"sequence-tracks-{length}",
+        uirevision=f"sequence-tracks-{sequence}",
     )
     figure.update_xaxes(
         range=shared_range,
@@ -330,33 +388,65 @@ def sequence_tracks_figure(
         col=1,
     )
     figure.update_xaxes(
+        range=shared_range,
+        domain=[0.0, 1.0],
+        showgrid=False,
+        zeroline=False,
+        row=2,
+        col=1,
+    )
+    figure.update_xaxes(
         title="Sequence position (0-based)",
         range=shared_range,
         domain=[0.0, 1.0],
-        row=2,
+        constrain="domain",
+        row=3,
+        col=1,
+    )
+    figure.update_yaxes(
+        range=[0, 1],
+        domain=raw_sequence_domain,
+        visible=False,
+        fixedrange=True,
+        row=1,
         col=1,
     )
     figure.update_yaxes(
         title="Information (bits)",
         range=[0, 2],
+        domain=logo_domain,
         tick0=0,
         dtick=0.5,
         showgrid=True,
         gridcolor="#E5E7EB",
         zeroline=False,
-        row=1,
+        fixedrange=True,
+        row=2,
         col=1,
     )
     figure.update_yaxes(
         title="Sequence position (0-based)",
-        range=[length - 0.5, -0.5],
-        row=2,
+        range=shared_range,
+        domain=dependency_domain,
+        matches="x3",
+        constrain="domain",
+        row=3,
         col=1,
+    )
+    figure.add_annotation(
+        text="DNA sequence · drag horizontally to zoom",
+        x=0,
+        y=1.025,
+        xref="paper",
+        yref="paper",
+        xanchor="left",
+        showarrow=False,
+        font={"size": 18},
     )
     figure.add_annotation(
         text="Sequence logo",
         x=0,
-        y=1.04,
+        y=logo_domain[1] + 0.014,
         xref="paper",
         yref="paper",
         xanchor="left",
@@ -366,7 +456,7 @@ def sequence_tracks_figure(
     figure.add_annotation(
         text="Nucleotide dependency",
         x=0,
-        y=0.64,
+        y=dependency_domain[1] + 0.014,
         xref="paper",
         yref="paper",
         xanchor="left",

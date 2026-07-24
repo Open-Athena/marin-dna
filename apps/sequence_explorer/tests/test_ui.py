@@ -2,6 +2,7 @@ import base64
 import re
 
 import numpy as np
+import pytest
 
 from marin_dna.apps.sequence_explorer_ui import (
     dependency_figure,
@@ -75,25 +76,46 @@ def test_downloads_are_in_memory_csvs_with_revisions_and_no_sequence():
     assert "ACGT" not in decoded[1]
 
 
-def test_sequence_tracks_share_exact_nucleotide_axis_and_logo_is_navigator():
+def test_sequence_tracks_are_aligned_and_raw_dna_drives_square_zoom():
     dependency = np.arange(9, dtype=float).reshape(3, 3)
     dependency = (dependency + dependency.T) / 2.0
-    figure = sequence_tracks_figure(_logo(), dependency)
+    figure = sequence_tracks_figure("ACG", _logo(), dependency)
 
     assert figure.layout.dragmode == "zoom"
     assert figure.layout.selectdirection == "h"
     assert figure.layout.xaxis.range == (-0.5, 2.5)
     assert figure.layout.xaxis2.range == (-0.5, 2.5)
-    assert figure.layout.xaxis.domain == figure.layout.xaxis2.domain == (0.0, 1.0)
-    assert figure.layout.xaxis.matches == "x2"
-    assert figure.data[0].xaxis == "x"
-    assert figure.data[1].xaxis == "x2"
-    assert all(
-        shape.xref == "x" and shape.yref == "y" for shape in figure.layout.shapes
+    assert figure.layout.xaxis3.range == (-0.5, 2.5)
+    assert (
+        figure.layout.xaxis.domain
+        == figure.layout.xaxis2.domain
+        == figure.layout.xaxis3.domain
+        == (0.0, 1.0)
     )
-    assert figure.layout.yaxis.range == (0, 2)
-    assert figure.layout.yaxis2.range == (2.5, -0.5)
+    assert figure.layout.xaxis.matches == "x3"
+    assert figure.layout.xaxis2.matches == "x3"
+    assert figure.layout.yaxis3.matches == "x3"
+    assert figure.layout.yaxis3.range == (-0.5, 2.5)
+    assert figure.layout.yaxis.fixedrange
+    assert figure.layout.yaxis2.fixedrange
+
+    raw_positions = {int(position) for trace in figure.data[:4] for position in trace.x}
+    assert raw_positions == {0, 1, 2}
+    assert figure.data[0].xaxis == "x"
+    assert figure.data[4].xaxis == "x2"
+    assert figure.data[5].xaxis == "x3"
+    assert figure.data[5].yaxis == "y3"
+    assert all(
+        shape.xref == "x2" and shape.yref == "y2" for shape in figure.layout.shapes
+    )
+
+    plot_width = figure.layout.width - figure.layout.margin.l - figure.layout.margin.r
+    plot_height = figure.layout.height - figure.layout.margin.t - figure.layout.margin.b
+    dependency_domain = figure.layout.yaxis3.domain
+    dependency_height = plot_height * (dependency_domain[1] - dependency_domain[0])
+    assert dependency_height == pytest.approx(plot_width)
     assert {annotation.text for annotation in figure.layout.annotations} == {
+        "DNA sequence · drag horizontally to zoom",
         "Sequence logo",
         "Nucleotide dependency",
     }

@@ -61,7 +61,11 @@ def _():
         "the pinned MarinDNA source package was not installed"
     )
 
-    from marin_dna.apps.sequence_explorer_examples import DEFAULT_EXAMPLE, EXAMPLES
+    from marin_dna.apps.sequence_explorer_examples import (
+        CUSTOM_SEQUENCE_LABEL,
+        DEFAULT_EXAMPLE,
+        EXAMPLES,
+    )
     from marin_dna.apps.sequence_explorer_ui import (
         dependency_loading_figure,
         download_links_html,
@@ -77,6 +81,7 @@ def _():
     return (
         AutoModelForCausalLM,
         AutoTokenizer,
+        CUSTOM_SEQUENCE_LABEL,
         DEFAULT_EXAMPLE,
         EXAMPLES,
         SOURCE_REVISION,
@@ -137,10 +142,9 @@ def _(
                 f"""
                 # MarinDNA sequence explorer
 
-                Paste a DNA sequence to inspect what the headline MarinDNA 1B
-                model has learned. The logo averages forward and transformed
-                reverse-complement **logits** before softmax. The dependency map
-                reuses the tested forward/RC categorical-Jacobian implementation.
+                Explore the MarinDNA 1B model's **sequence logo** and
+                **nucleotide dependency map** (forward/RC averaged) for a DNA
+                sequence.
 
                 [Open Athena / MarinDNA source]({APPLICATION_SOURCE_URL}) ·
                 [Pinned model](https://huggingface.co/{MODEL_ID}/tree/{MODEL_REVISION})
@@ -196,18 +200,34 @@ def _(mo, sys, torch):
 
 @app.cell
 def _(DEFAULT_EXAMPLE, mo):
-    get_example_sequence, set_example_sequence = mo.state(DEFAULT_EXAMPLE.sequence)
-    return get_example_sequence, set_example_sequence
+    get_sequence, set_sequence = mo.state(DEFAULT_EXAMPLE.sequence)
+    get_sequence_source, set_sequence_source = mo.state(DEFAULT_EXAMPLE.label)
+    return get_sequence, get_sequence_source, set_sequence, set_sequence_source
 
 
 @app.cell
-def _(DEFAULT_EXAMPLE, EXAMPLES, mo, set_example_sequence):
-    _example_options = {example.label: example.sequence for example in EXAMPLES}
+def _(
+    CUSTOM_SEQUENCE_LABEL,
+    EXAMPLES,
+    get_sequence_source,
+    mo,
+    set_sequence,
+    set_sequence_source,
+):
+    _examples_by_label = {example.label: example.sequence for example in EXAMPLES}
+    _selection_options = [*list(_examples_by_label), CUSTOM_SEQUENCE_LABEL]
+
+    def _select_sequence_source(label):
+        assert label in _selection_options
+        set_sequence_source(label)
+        if label != CUSTOM_SEQUENCE_LABEL:
+            set_sequence(_examples_by_label[label])
+
     example_selector = mo.ui.dropdown(
-        options=_example_options,
-        value=DEFAULT_EXAMPLE.label,
-        label="Recommended example",
-        on_change=set_example_sequence,
+        options=_selection_options,
+        value=get_sequence_source(),
+        label="Recommended examples",
+        on_change=_select_sequence_source,
         searchable=True,
         full_width=True,
     )
@@ -216,15 +236,25 @@ def _(DEFAULT_EXAMPLE, EXAMPLES, mo, set_example_sequence):
 
 
 @app.cell
-def _(get_example_sequence, mo, set_example_sequence):
+def _(
+    CUSTOM_SEQUENCE_LABEL,
+    get_sequence,
+    mo,
+    set_sequence,
+    set_sequence_source,
+):
+    def _set_custom_sequence(sequence):
+        set_sequence(sequence)
+        set_sequence_source(CUSTOM_SEQUENCE_LABEL)
+
     sequence_input = mo.ui.text_area(
-        value=get_example_sequence(),
+        value=get_sequence(),
         placeholder="Enter 16–255 A/C/G/T bases",
         rows=6,
         label="DNA sequence (16–255 bp; A/C/G/T only)",
         debounce=300,
         full_width=True,
-        on_change=set_example_sequence,
+        on_change=_set_custom_sequence,
     )
     analyze_button = mo.ui.run_button(
         label="Analyze sequence",
@@ -306,8 +336,10 @@ def _(
     mo.stop(
         not analyze_button.value,
         mo.callout(
-            "Choose or edit a sequence, then press **Analyze sequence**. "
-            "Editing the sequence clears existing plots and never triggers inference.",
+            mo.md(
+                "Choose or edit a sequence, then press **Analyze sequence**. "
+                "Editing clears existing plots and never triggers inference."
+            ),
             kind="info",
         ),
     )
@@ -376,7 +408,7 @@ def _(
         mo.stop(
             True,
             mo.callout(
-                f"Analysis failed during **{_stage}**.\n\n`{_failure}`",
+                mo.md(f"Analysis failed during **{_stage}**.\n\n`{_failure}`"),
                 kind="danger",
             ),
         )
@@ -420,14 +452,14 @@ def _(
 def _(
     analysis_result,
     download_links_html,
-    get_example_sequence,
+    get_sequence,
     hashlib,
     mo,
     normalize_dna_sequence,
     sequence_tracks_figure,
 ):
     try:
-        _current_sequence = normalize_dna_sequence(get_example_sequence())
+        _current_sequence = normalize_dna_sequence(get_sequence())
     except ValueError:
         _current_sequence = None
     _current_sha256 = (
@@ -438,6 +470,7 @@ def _(
     mo.stop(_current_sha256 != analysis_result["sequence_sha256"], mo.md(""))
 
     _tracks = sequence_tracks_figure(
+        _current_sequence,
         analysis_result["logo"],
         analysis_result["dependency"],
     )
@@ -445,9 +478,9 @@ def _(
         [
             mo.callout(mo.md(analysis_result["summary"]), kind="success"),
             mo.md(
-                "Drag horizontally over the **sequence logo** to zoom both aligned "
-                "tracks. Use the Plotly modebar to switch between zoom and box "
-                "selection, and use **Reset axes** there to restore the full sequence."
+                "Drag horizontally over the **DNA sequence** track to zoom all three "
+                "aligned tracks. The dependency map follows on both axes. Use "
+                "**Reset axes** in the Plotly modebar to restore the full sequence."
             ),
             _tracks,
             mo.Html(

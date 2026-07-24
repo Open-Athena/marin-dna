@@ -92,4 +92,6 @@ EXAMPLES: tuple[RecommendedExample, ...] = (
 )
 
 EXAMPLES_BY_LABEL = {example.label: example for example in EXAMPLES}
-DEFAULT_EXAMPLE = EXAMPLES[0]
+CUSTOM_SEQUENCE_LABEL = "Custom sequence"
+DEFAULT_EXAMPLE = next(example for example in EXAMPLES if example.name == "TH")
+assert DEFAULT_EXAMPLE.name == "TH"
