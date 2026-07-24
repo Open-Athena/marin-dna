@@ -46,11 +46,16 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 | 12 | `figure5_params_vs_vep_auprc.svg` | `src/figures/figure5_params_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 13 | `figure6_loss_vs_vep_auprc.svg` | `src/figures/figure6_loss_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 14 | `figure6b_marin_evo2_missense.svg` | `src/figures/figure6b_marin_evo2_missense.py` | Paired MarinDNA endpoint predictions on S3; commit-pinned Evo 2 probe metrics |
-| 15 | `mini_fig9_mixture.svg` | Authored SVG; no plot recipe | Mixture continuation design |
-| 16 | `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data_mixture_results.csv` |
-| 17 | `mini_m5.1_lineage.svg` | Authored SVG; no plot recipe | m5.1 lineage |
-| 18 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
-| 19 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
+| 15 | `mini_m5.1_lineage.svg` | Authored SVG; no plot recipe | m5.1 lineage |
+| 16 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
+| 17 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
+
+The upstream-reweighting analysis remains reproducible in this source bundle but is not currently included in the article:
+
+| Retained asset | Source | Inputs |
+|---|---|---|
+| `mini_fig9_mixture.svg` | Authored SVG; no plot recipe | Mixture continuation design |
+| `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data_mixture_results.csv` |
 
 Paths beginning with `src/` and CSV names in this table are relative to this directory.
 
