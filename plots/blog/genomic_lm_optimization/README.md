@@ -6,13 +6,13 @@ The imported project comes from [`eric-czech/marin-dna-post-202606`](https://git
 
 ## Reproduce
 
-Run from the MarinDNA repository root. Use the nested project lock because it preserves the Matplotlib version that produced the checked-in layouts. The committed CSV snapshots back the transfer, loss-scaling, mixture, and leaderboard figures. Figures 12–14 additionally read the paired endpoint predictions used to recompute both readouts with the same chromosome-weighted AUPRC implementation:
+Run from the MarinDNA repository root using the repository root project. Figures 12–14 import MarinDNA evaluation code and require its Parquet dependencies, so the complete current build does not use this directory’s historical nested lock. The committed CSV snapshots back the transfer, loss-scaling, mixture, and leaderboard figures; Figures 12–14 additionally read the paired endpoint predictions used to recompute both readouts with the same chromosome-weighted AUPRC implementation:
 
 ```bash
-uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/figures/__main__.py
+uv run --frozen python plots/blog/genomic_lm_optimization/src/figures/__main__.py
 ```
 
-Outputs are written to `plots/output/blog/genomic_lm_optimization/` as SVG, PNG, and PDF. Figure 11 also writes its Kaplan-fit report there. Outputs are deterministic at the preserved dependency lock and SVG trailing whitespace is normalized.
+Outputs are written to `plots/output/blog/genomic_lm_optimization/` as SVG, PNG, and PDF. Figure 11 also writes its Kaplan-fit report there, and SVG trailing whitespace is normalized.
 
 After inspecting generated SVGs and PNGs, copy only approved assets into the blog with the explicit sync command:
 
