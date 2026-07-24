@@ -98,9 +98,11 @@ rule upload_training_dataset:
     params:
         repo=config["hf_training_repo"],
         dataset_dir=TRAINING_DATASET_DIR,
+        local_dataset_dir=f".snakemake/storage/s3/oa-bolinas/snakemake/rag_glm/{TRAINING_DATASET_DIR}",
     shell:
         """
-        hf upload-large-folder {params.repo} --repo-type dataset {params.dataset_dir}
+        test -d {params.local_dataset_dir}
+        hf upload-large-folder {params.repo} --repo-type dataset {params.local_dataset_dir}
         mkdir -p $(dirname {output})
         touch {output}
         """
