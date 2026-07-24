@@ -21,6 +21,7 @@ app = marimo.App(width="full", app_title="MarinDNA sequence explorer")
 
 @app.cell
 def _():
+    import hashlib
     import importlib
     import importlib.util
     import os
@@ -83,6 +84,7 @@ def _():
         dependency_loading_figure,
         download_links_html,
         logo_figure,
+        hashlib,
         mo,
         normalize_dna_sequence,
         np,
@@ -214,7 +216,7 @@ def _(DEFAULT_EXAMPLE, EXAMPLES, mo, set_example_sequence):
 
 
 @app.cell
-def _(get_example_sequence, mo):
+def _(get_example_sequence, mo, set_example_sequence):
     sequence_input = mo.ui.text_area(
         value=get_example_sequence(),
         placeholder="Enter 16–255 A/C/G/T bases",
@@ -222,6 +224,7 @@ def _(get_example_sequence, mo):
         label="DNA sequence (16–255 bp; A/C/G/T only)",
         debounce=300,
         full_width=True,
+        on_change=set_example_sequence,
     )
     analyze_button = mo.ui.run_button(
         label="Analyze sequence",
@@ -290,6 +293,7 @@ def _(
     dependency_loading_figure,
     load_model,
     logo_figure,
+    hashlib,
     mo,
     normalize_dna_sequence,
     np,
@@ -312,6 +316,9 @@ def _(
         _normalized = normalize_dna_sequence(_raw_sequence)
     except ValueError as _error:
         mo.stop(True, mo.callout(str(_error), kind="danger"))
+
+    _sequence_sha256 = hashlib.sha256(_normalized.encode("ascii")).hexdigest()
+    assert len(_sequence_sha256) == 64
 
     _length = len(_normalized)
     _preparation_started = time.perf_counter()
@@ -394,11 +401,9 @@ def _(
         "logo": _logo,
         "dependency": _dependency,
         "length": _length,
+        "sequence_sha256": _sequence_sha256,
         "metadata": _metadata,
-    }
-    mo.callout(
-        mo.md(
-            f"""
+        "summary": f"""
             **Analysis complete.** Length: **{_length} bp** · GPU: **{_gpu_name}**<br>
             Session/model preparation: **{_preparation_seconds:.2f} s** ·
             Time to logo: **{_logo_seconds:.2f} s** · Additional dependency-map
@@ -406,21 +411,39 @@ def _(
             **{_logo_seconds + _dependency_seconds:.2f} s** · Peak VRAM:
             **{_peak_vram_bytes / 2**30:.2f} GiB**<br>
             Model `{MODEL_REVISION}` · Application `{APPLICATION_REVISION}`
-            """
-        ),
-        kind="success",
-    )
+            """,
+    }
     return (analysis_result,)
 
 
 @app.cell
-def _(analysis_result, download_links_html, mo, sequence_tracks_figure):
+def _(
+    analysis_result,
+    download_links_html,
+    get_example_sequence,
+    hashlib,
+    mo,
+    normalize_dna_sequence,
+    sequence_tracks_figure,
+):
+    try:
+        _current_sequence = normalize_dna_sequence(get_example_sequence())
+    except ValueError:
+        _current_sequence = None
+    _current_sha256 = (
+        hashlib.sha256(_current_sequence.encode("ascii")).hexdigest()
+        if _current_sequence is not None
+        else None
+    )
+    mo.stop(_current_sha256 != analysis_result["sequence_sha256"], mo.md(""))
+
     _tracks = sequence_tracks_figure(
         analysis_result["logo"],
         analysis_result["dependency"],
     )
     mo.vstack(
         [
+            mo.callout(mo.md(analysis_result["summary"]), kind="success"),
             mo.md(
                 "Drag horizontally over the **sequence logo** to zoom both aligned "
                 "tracks. Use the Plotly modebar to switch between zoom and box "

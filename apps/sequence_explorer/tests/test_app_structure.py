@@ -26,10 +26,12 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "Full-sequence navigator" not in source
     assert "navigator_figure" not in source
     assert "mo.state(DEFAULT_EXAMPLE.sequence)" in source
-    assert "on_change=set_example_sequence" in source
+    assert source.count("on_change=set_example_sequence") == 2
     assert "mo.ui.run_button" in source
     assert "not analyze_button.value" in source
     assert "_raw_sequence = sequence_input.value" in source
+    assert 'analysis_result["sequence_sha256"]' in source
+    assert "_current_sha256 !=" in source
     assert "sequence_tracks_figure" in source
     assert "These are **model interpretations**" not in source
     assert "marimo.App" in source
