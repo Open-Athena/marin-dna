@@ -306,14 +306,14 @@ The relationship between validation loss and VEP performance is much less tidy. 
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py -->
 <figure id="fig-parameters-vs-vep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Chromosome-weighted AUPRC versus model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
-<figcaption><strong>Figure 12:</strong> Chromosome-weighted AUPRC across the parameter-scaling ladder, comparing zero-shot LLR with a frozen-embedding linear probe on identical variants. Facet y-scales vary independently; error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="VEP performance across model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figcaption><strong>Figure 12:</strong> VEP performance across the parameter-scaling ladder, comparing zero-shot LLR with a frozen-embedding linear probe on identical variants. Performance is measured as chromosome-weighted AUPRC; facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py -->
 <figure id="fig-loss-vs-vep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" />
-<figcaption><strong>Figure 13:</strong> Composite VEP AUPRC vs validation loss.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="VEP performance versus matched-region validation log likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figcaption><strong>Figure 13:</strong> VEP performance versus matched-region validation log likelihood (LL; shown as −loss) across the eight parameter-scaling endpoints. Performance is measured as chromosome-weighted AUPRC. Lines are least-squares fits, and <em>r</em> denotes Pearson correlation; facet axes vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale in the [VEP training trajectories](#fig-vep-training-curves). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.

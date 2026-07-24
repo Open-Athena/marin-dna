@@ -20,7 +20,10 @@ from figures.figure1_lr_transfer import build as figure1  # noqa: E402
 from figures.figure2_beta2_epsilon_transfer import build as figure2  # noqa: E402
 from figures.figure3_region_hyper_transfer import build as figure3  # noqa: E402
 from figures.figure4_loss_scaling import build as figure4  # noqa: E402
-from figures.figure5_params_vs_vep_auprc import build as figure5  # noqa: E402
+from figures.figure5_params_vs_vep_auprc import (  # noqa: E402
+    build as figure5,
+    load_parameter_scaling_metrics,
+)
 from figures.figure6_loss_vs_vep_auprc import build as figure6  # noqa: E402
 
 # Figures 7 & 8 (loss_vs_traitgym_curves / _correlation) are wandb-fed standalone
@@ -53,8 +56,9 @@ def main() -> None:
     figure2(transfer_df, transfer_palette, transfer_params)
     figure3(transfer_df, transfer_palette, transfer_params)
     figure4(scaling_history, scaling_results, scaling_palette)
-    figure5()
-    figure6(scaling_results, scaling_palette)
+    parameter_scaling_metrics = load_parameter_scaling_metrics()
+    figure5(parameter_scaling_metrics)
+    figure6(scaling_results, parameter_scaling_metrics)
     figure9(mixture_df)
     figure10(mixture_df, mixture_history_df)
     figure11(leaderboard_df)
