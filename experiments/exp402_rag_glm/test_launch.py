@@ -1,0 +1,77 @@
+"""Focused invariants for the issue #402 experiment recipe."""
+
+import math
+import tempfile
+
+from marin.execution.artifact import ArtifactRecord, result_type_name, write_record
+from marin.execution.lazy import materialized_config
+from marin_dna.levanter.formats import RAGDNALmDatasetFormat
+
+from launch import (
+    ACTUAL_TOKENS,
+    MODEL,
+    OPTIMIZER,
+    SEQ_LEN,
+    TARGET_TOKENS,
+    TOKENIZER_REPO,
+    TRAIN_BATCH_SIZE,
+    TRAIN_STEPS,
+    VOCAB_SIZE,
+    RAGTokenizedCache,
+    rag_tokenized_dataset,
+)
+
+
+def test_model_is_the_46m_rung_at_full_document_length() -> None:
+    assert MODEL.max_seq_len == SEQ_LEN == 2_048
+    assert MODEL.hidden_dim == 640
+    assert MODEL.intermediate_dim == 2_560
+    assert MODEL.num_layers == 7
+    assert MODEL.num_heads == MODEL.num_kv_heads == 5
+    assert 45_000_000 < MODEL.total_trainable_params(VOCAB_SIZE) < 47_000_000
+
+
+def test_resolved_training_horizon_and_adamh_values() -> None:
+    assert TRAIN_STEPS == 7_629
+    assert ACTUAL_TOKENS == 999_948_288
+    assert abs(ACTUAL_TOKENS - TARGET_TOKENS) < TRAIN_BATCH_SIZE * SEQ_LEN
+    assert math.isclose(OPTIMIZER.learning_rate, 0.008293207887305696)
+    assert math.isclose(OPTIMIZER.adam_lr, 0.0010372270725352284)
+    assert math.isclose(OPTIMIZER.epsilon, 1.1700427342623003e-08)
+    assert OPTIMIZER.beta1 == 0.9
+    assert OPTIMIZER.beta2 == 0.9999
+    assert OPTIMIZER.max_grad_norm == 0.1
+
+
+def test_tokenize_config_pins_data_and_fixed_layout() -> None:
+    handle = rag_tokenized_dataset()
+    config = materialized_config(handle, "gs://example-prefix")
+    assert config.id == "bolinas-dna/zoonomia-rag-v1-v1"
+    assert config.revision == "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"
+    assert config.tokenizer == "bolinas-dna/tokenizer-char-bos-seq-v1"
+    assert config.format.text_key == "seq"
+    assert config.max_workers == 32
+
+
+def test_tokenized_cache_reload_preserves_rag_loss_format() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        write_record(
+            ArtifactRecord(
+                name="datasets/dna-exp402-rag-tokenized",
+                output_path=tmpdir,
+                result_type=result_type_name(RAGTokenizedCache),
+                config={
+                    "tokenizer": TOKENIZER_REPO,
+                    "format": {
+                        "text_key": "seq",
+                        "uppercase_weight": 1.0,
+                        "lowercase_weight": 1.0,
+                    },
+                },
+            )
+        )
+        cache = RAGTokenizedCache.raw_load(tmpdir)
+        component = cache.as_component()
+
+    assert isinstance(component.format, RAGDNALmDatasetFormat)
+    assert component.format.text_key == "seq"
