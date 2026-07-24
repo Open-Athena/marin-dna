@@ -22,7 +22,7 @@ from marin.processing.tokenize.tokenize import (
 )
 from marin_dna.levanter.formats import RAGDNALmDatasetFormat
 
-MARIN_DNA_REVISION = "d57e37085355912762538f7f044cddd2cfd0a5e1"
+MARIN_DNA_REVISION = "52044801cdc32a80f4d350df6d7cae93b332871b"
 DATASET_REPO = "bolinas-dna/zoonomia-rag-v1-v1"
 DATASET_REVISION = "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"
 TOKENIZER_REPO = "bolinas-dna/tokenizer-char-bos-seq-v1"

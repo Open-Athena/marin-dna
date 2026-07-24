@@ -716,7 +716,7 @@ dev = [
 requires-dist = [
     { name = "marin-core", specifier = "==0.2.57.dev202607240800" },
     { name = "marin-core", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'", specifier = "==0.2.57.dev202607240800" },
-    { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=d57e37085355912762538f7f044cddd2cfd0a5e1" },
+    { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=52044801cdc32a80f4d350df6d7cae93b332871b" },
     { name = "marin-dupekit", specifier = "==0.1.1" },
     { name = "marin-fray", specifier = "==0.2.57.dev202607240800" },
     { name = "marin-haliax", specifier = "==0.2.57.dev202607240800" },
@@ -1579,7 +1579,7 @@ tpu = [
 [[package]]
 name = "marin-dna"
 version = "0.0.1"
-source = { git = "https://github.com/Open-Athena/marin-dna.git?rev=d57e37085355912762538f7f044cddd2cfd0a5e1#d57e37085355912762538f7f044cddd2cfd0a5e1" }
+source = { git = "https://github.com/Open-Athena/marin-dna.git?rev=52044801cdc32a80f4d350df6d7cae93b332871b#52044801cdc32a80f4d350df6d7cae93b332871b" }
 dependencies = [
     { name = "bioframe", marker = "sys_platform == 'linux'" },
     { name = "biopython", marker = "sys_platform == 'linux'" },
