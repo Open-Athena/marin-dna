@@ -71,6 +71,7 @@ def _():
         download_links_html,
         logo_figure,
         sequence_tracks_figure,
+        span_from_plotly_selection,
     )
     from marin_dna.model.interpretation import nucleotide_dependency_map
     from marin_dna.model.sequence_interpretation import (
@@ -97,6 +98,7 @@ def _():
         nucleotide_logo,
         os,
         sequence_tracks_figure,
+        span_from_plotly_selection,
         sys,
         time,
         torch,
@@ -203,6 +205,12 @@ def _(DEFAULT_EXAMPLE, mo):
     get_sequence, set_sequence = mo.state(DEFAULT_EXAMPLE.sequence)
     get_sequence_source, set_sequence_source = mo.state(DEFAULT_EXAMPLE.label)
     return get_sequence, get_sequence_source, set_sequence, set_sequence_source
+
+
+@app.cell
+def _(mo):
+    get_track_view, set_track_view = mo.state(None, allow_self_loops=True)
+    return get_track_view, set_track_view
 
 
 @app.cell
@@ -453,10 +461,13 @@ def _(
     analysis_result,
     download_links_html,
     get_sequence,
+    get_track_view,
     hashlib,
     mo,
     normalize_dna_sequence,
     sequence_tracks_figure,
+    set_track_view,
+    span_from_plotly_selection,
 ):
     try:
         _current_sequence = normalize_dna_sequence(get_sequence())
@@ -469,20 +480,67 @@ def _(
     )
     mo.stop(_current_sha256 != analysis_result["sequence_sha256"], mo.md(""))
 
-    _tracks = sequence_tracks_figure(
-        _current_sequence,
-        analysis_result["logo"],
-        analysis_result["dependency"],
+    _view_state = get_track_view()
+    _span = (
+        tuple(_view_state["span"])
+        if _view_state is not None
+        and _view_state["sequence_sha256"] == analysis_result["sequence_sha256"]
+        else None
+    )
+
+    def _update_track_view(_selection):
+        _selected_span = span_from_plotly_selection(
+            analysis_result["length"], {"range": _tracks.ranges}
+        )
+        if _selected_span is not None:
+            set_track_view(
+                {
+                    "sequence_sha256": analysis_result["sequence_sha256"],
+                    "span": list(_selected_span),
+                }
+            )
+
+    def _reset_track_view(_value):
+        set_track_view(None)
+
+    _tracks = mo.ui.plotly(
+        sequence_tracks_figure(
+            _current_sequence,
+            analysis_result["logo"],
+            analysis_result["dependency"],
+            span=_span,
+        ),
+        config={
+            "displaylogo": False,
+            "scrollZoom": False,
+            "modeBarButtonsToRemove": [
+                "zoom2d",
+                "pan2d",
+                "zoomIn2d",
+                "zoomOut2d",
+                "autoScale2d",
+                "resetScale2d",
+                "lasso2d",
+            ],
+        },
+        label="Aligned sequence tracks",
+        on_change=_update_track_view,
+    )
+    _reset_view = mo.ui.button(
+        label="Reset view",
+        tooltip="Restore the full sequence span",
+        on_click=_reset_track_view,
     )
     mo.vstack(
         [
             mo.callout(mo.md(analysis_result["summary"]), kind="success"),
             mo.md(
-                "Drag horizontally over the **DNA sequence** track to zoom all three "
-                "aligned tracks. The dependency map follows on both axes. Use "
-                "**Reset axes** in the Plotly modebar to restore the full sequence."
+                "Drag horizontally over the **DNA sequence** track to select and zoom "
+                "all three aligned tracks. The dependency map uses the same span on "
+                "both axes."
             ),
             _tracks,
+            _reset_view,
             mo.Html(
                 download_links_html(
                     analysis_result["logo"],

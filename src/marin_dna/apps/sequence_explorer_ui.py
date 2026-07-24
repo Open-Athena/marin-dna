@@ -6,6 +6,7 @@ import base64
 import csv
 import html
 import io
+import math
 from functools import cache
 from typing import Any
 
@@ -273,10 +274,36 @@ def dependency_figure(
     return figure
 
 
+def span_from_plotly_selection(
+    length: int,
+    selection: dict[str, Any] | None,
+) -> tuple[int, int] | None:
+    """Convert a horizontal Plotly selection to a 0-based half-open span."""
+    assert length >= 1
+    if not selection:
+        return None
+    ranges = selection.get("range")
+    if not isinstance(ranges, dict):
+        return None
+    raw_range = next(
+        (ranges[key] for key in ("x", "x2", "x3") if key in ranges),
+        None,
+    )
+    if not isinstance(raw_range, list) or len(raw_range) != 2:
+        return None
+    raw_start, raw_end = sorted(float(value) for value in raw_range)
+    start = max(0, min(length - 1, math.ceil(raw_start)))
+    end = max(start + 1, min(length, math.floor(raw_end) + 1))
+    assert 0 <= start < end <= length
+    return start, end
+
+
 def sequence_tracks_figure(
     sequence: str,
     logo: NucleotideLogo,
     dependency: np.ndarray,
+    *,
+    span: tuple[int, int] | None = None,
 ) -> go.Figure:
     """Raw DNA, logo, and a square dependency map with one linked span."""
     length = len(sequence)
@@ -284,6 +311,7 @@ def sequence_tracks_figure(
     assert set(sequence) <= set(NUCLEOTIDES)
     assert logo.probabilities.shape == (length, 4)
     assert dependency.shape == (length, length)
+    start, end = _normalized_span(length, span)
     logo_track = logo_figure(logo)
     dependency_track = dependency_figure(dependency)
 
@@ -359,7 +387,7 @@ def sequence_tracks_figure(
         shape_json.update(xref="x2", yref="y2")
         shapes.append(shape_json)
 
-    shared_range = [-0.5, length - 0.5]
+    shared_range = [start - 0.5, end - 0.5]
     figure.update_layout(
         shapes=shapes,
         width=figure_width,
@@ -374,11 +402,11 @@ def sequence_tracks_figure(
         },
         plot_bgcolor="white",
         paper_bgcolor="white",
-        dragmode="zoom",
+        dragmode="select",
         hovermode="closest",
         selectdirection="h",
         newselection={"line": {"color": "#4F46E5", "width": 2}},
-        uirevision=f"sequence-tracks-{sequence}",
+        uirevision=f"sequence-tracks-{sequence}-{start}-{end}",
     )
     figure.update_xaxes(
         range=shared_range,
@@ -429,7 +457,8 @@ def sequence_tracks_figure(
         title="Sequence position (0-based)",
         range=[shared_range[1], shared_range[0]],
         domain=dependency_domain,
-        matches="x3",
+        scaleanchor="x3",
+        scaleratio=1,
         constrain="domain",
         row=3,
         col=1,

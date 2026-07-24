@@ -9,6 +9,7 @@ from marin_dna.apps.sequence_explorer_ui import (
     download_links_html,
     logo_figure,
     sequence_tracks_figure,
+    span_from_plotly_selection,
 )
 from marin_dna.model.sequence_interpretation import NucleotideLogo
 
@@ -54,6 +55,20 @@ def test_dependency_figure_has_same_half_open_span_on_both_axes():
     assert "Dependency" in figure.data[0].hovertemplate
 
 
+def test_plotly_selection_converts_to_half_open_span():
+    assert span_from_plotly_selection(10, None) is None
+    assert span_from_plotly_selection(10, {}) is None
+    assert span_from_plotly_selection(10, {"range": {"x": [1.2, 4.7]}}) == (2, 5)
+    assert span_from_plotly_selection(10, {"range": {"x3": [9.8, -2.0]}}) == (
+        0,
+        10,
+    )
+    assert span_from_plotly_selection(10, {"range": {"x2": [6.1, 6.2]}}) == (
+        7,
+        8,
+    )
+
+
 def test_downloads_are_in_memory_csvs_with_revisions_and_no_sequence():
     logo = _logo()
     dependency = np.eye(3)
@@ -79,13 +94,13 @@ def test_downloads_are_in_memory_csvs_with_revisions_and_no_sequence():
 def test_sequence_tracks_are_aligned_and_raw_dna_drives_square_zoom():
     dependency = np.arange(9, dtype=float).reshape(3, 3)
     dependency = (dependency + dependency.T) / 2.0
-    figure = sequence_tracks_figure("ACG", _logo(), dependency)
+    figure = sequence_tracks_figure("ACG", _logo(), dependency, span=(1, 3))
 
-    assert figure.layout.dragmode == "zoom"
+    assert figure.layout.dragmode == "select"
     assert figure.layout.selectdirection == "h"
-    assert figure.layout.xaxis.range == (-0.5, 2.5)
-    assert figure.layout.xaxis2.range == (-0.5, 2.5)
-    assert figure.layout.xaxis3.range == (-0.5, 2.5)
+    assert figure.layout.xaxis.range == (0.5, 2.5)
+    assert figure.layout.xaxis2.range == (0.5, 2.5)
+    assert figure.layout.xaxis3.range == (0.5, 2.5)
     assert (
         figure.layout.xaxis.domain
         == figure.layout.xaxis2.domain
@@ -94,8 +109,10 @@ def test_sequence_tracks_are_aligned_and_raw_dna_drives_square_zoom():
     )
     assert figure.layout.xaxis.matches == "x3"
     assert figure.layout.xaxis2.matches == "x3"
-    assert figure.layout.yaxis3.matches == "x3"
-    assert figure.layout.yaxis3.range == (2.5, -0.5)
+    assert figure.layout.yaxis3.matches is None
+    assert figure.layout.yaxis3.scaleanchor == "x3"
+    assert figure.layout.yaxis3.scaleratio == 1
+    assert figure.layout.yaxis3.range == (2.5, 0.5)
     assert figure.layout.yaxis.fixedrange
     assert figure.layout.yaxis2.fixedrange
 
