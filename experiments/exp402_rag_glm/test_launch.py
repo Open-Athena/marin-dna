@@ -32,8 +32,8 @@ def test_online_eval_is_the_pinned_mendelian_rag_task() -> None:
     assert MARIN_DNA_REVISION == "55adcf038180e09f29f21660dfdb9f9b79de5f05"
     assert MENDELIAN_TRAITS_RAG_255.name == "mendelian_traits_rag_255"
     assert MENDELIAN_TRAITS_RAG_255.num_fewshot == 0
-    assert RAG_EVAL_EVERY == 3_000
-    assert TRAIN_STEPS // RAG_EVAL_EVERY == 2
+    assert RAG_EVAL_EVERY == 1_000
+    assert TRAIN_STEPS // RAG_EVAL_EVERY == 7
 
 
 def test_model_is_the_46m_rung_at_full_document_length() -> None:

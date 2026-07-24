@@ -24,7 +24,7 @@ those digests in the tokenized-cache fingerprint.
 | Tokens | 999,948,288 |
 | Initialization | Scratch |
 | Accelerator | One preemptible `v5p-8` |
-| Online eval | Mendelian RAG harness at steps 3,000, 6,000, and final 7,629 |
+| Online eval | Mendelian RAG harness every 1,000 steps and at final step 7,629 |
 | W&B | group `dna-exp402-v1`, run `dna-exp402-rag-h640-p46M-1B` |
 
 AdamH is transferred from the Complete(d)-inspired reference at the actual
