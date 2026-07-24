@@ -53,7 +53,8 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert '{"range": sequence_tracks.ranges}' not in source
     assert "Showing positions" in source
     assert 'label="Reset view"' in source
-    assert source.index("_reset_view,\n            sequence_tracks,") > source.index(
+    assert "return reset_view, sequence_tracks, visible_span" in source
+    assert source.index("reset_view,\n            sequence_tracks,") > source.index(
         'label="Reset view"'
     )
     assert '"reset",' in source

@@ -471,7 +471,6 @@ def _(
 @app.cell
 def _(
     analysis_result,
-    download_links_html,
     get_sequence,
     get_track_view,
     hashlib,
@@ -538,25 +537,37 @@ def _(
         label="Aligned sequence tracks",
         on_change=_update_track_view,
     )
-    _reset_view = mo.ui.button(
+    reset_view = mo.ui.button(
         label="Reset view",
         tooltip="Restore the full sequence span",
         on_click=_reset_track_view,
     )
-    _visible_span = (
+    visible_span = (
         f"Showing positions **{_span[0]}–{_span[1] - 1}** ({_span[1] - _span[0]} bp)."
         if _span is not None
         else f"Showing the full **0–{analysis_result['length'] - 1}** span."
     )
+    return reset_view, sequence_tracks, visible_span
+
+
+@app.cell
+def _(
+    analysis_result,
+    download_links_html,
+    mo,
+    reset_view,
+    sequence_tracks,
+    visible_span,
+):
     mo.vstack(
         [
             mo.callout(mo.md(analysis_result["summary"]), kind="success"),
             mo.md(
                 "Drag horizontally over the **DNA sequence** track to select and zoom "
                 "all three aligned tracks. The dependency map uses the same span on "
-                f"both axes. {_visible_span}"
+                f"both axes. {visible_span}"
             ),
-            _reset_view,
+            reset_view,
             sequence_tracks,
             mo.Html(
                 download_links_html(
