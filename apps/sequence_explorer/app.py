@@ -121,7 +121,7 @@ def _():
 def _(SOURCE_REVISION, os):
     MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
     MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
-    APPLICATION_REVISION = os.getenv("SOURCE_REVISION", SOURCE_REVISION)
+    APPLICATION_REVISION = SOURCE_REVISION
     APPLICATION_SOURCE_URL = (
         "https://github.com/Open-Athena/marin-dna/tree/"
         f"{APPLICATION_REVISION}/apps/sequence_explorer"

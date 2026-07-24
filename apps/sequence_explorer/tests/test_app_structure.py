@@ -19,6 +19,8 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert '"--no-deps"' in source
     assert '"--reinstall"' in source
     assert ".marin_dna-source-revision" in source
+    assert "APPLICATION_REVISION = SOURCE_REVISION" in source
+    assert 'os.getenv("SOURCE_REVISION"' not in source
     assert "marin-dna @ git+" not in source
     assert "cyvcf2" not in source
     assert "PROGRESSIVE_MIN_LENGTH = (" in source
