@@ -44,6 +44,7 @@ TRAIN_STEPS = round(TARGET_TOKENS / (TRAIN_BATCH_SIZE * SEQ_LEN))
 ACTUAL_TOKENS = TRAIN_STEPS * TRAIN_BATCH_SIZE * SEQ_LEN
 RAG_EVAL_EVERY = 1_000
 TRAIN_TPU = "v6e-4"
+TRAIN_REGIONS = ("us-east5", "europe-west4")
 
 DATASET_ARTIFACT_VERSION = "2026.07.24"
 CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-1b"
@@ -186,7 +187,11 @@ def build() -> ArtifactStep:
         num_train_steps=TRAIN_STEPS,
         z_loss_weight=1.0e-7,
         evals=EvalSuite(tasks=(MENDELIAN_TRAITS_RAG_255,), every=RAG_EVAL_EVERY),
-        resources=ResourceConfig.with_tpu(TRAIN_TPU, disk="100g"),
+        resources=ResourceConfig.with_tpu(
+            TRAIN_TPU,
+            disk="100g",
+            regions=TRAIN_REGIONS,
+        ),
         steps_per_eval=500,
         wandb_project="marin",
         wandb_group="dna-exp402-v1",
