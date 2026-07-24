@@ -447,7 +447,7 @@ def _(
             mo.md(
                 "Drag horizontally over the **sequence logo** to zoom both aligned "
                 "tracks. Use the Plotly modebar to switch between zoom and box "
-                "selection; double-click to reset the full sequence."
+                "selection, and use **Reset axes** there to restore the full sequence."
             ),
             _tracks,
             mo.Html(
