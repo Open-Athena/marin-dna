@@ -27,9 +27,28 @@ Importing this module installs three idempotent monkeypatches:
 
 import logging
 import pathlib
+import sys
+import types
 from functools import wraps
 
 _logger = logging.getLogger(__name__)
+
+
+def _install_transformers5_lm_eval_compat() -> None:
+    """Skip an unused multimodal registrar that is incompatible with TF5.
+
+    The RAG experiment uses current Marin with Transformers 5.  Marin's pinned
+    lm-eval fork eagerly imports ``hf_vlms``, which reads a removed vision-only
+    symbol.  The DNA tasks are text-only and use Levanter directly, so register
+    an empty module before lm-eval's eager model discovery reaches it.
+    """
+    try:
+        import transformers
+    except ImportError:
+        return
+    if not hasattr(transformers, "AutoModelForVision2Seq"):
+        name = "lm_eval.models.hf_vlms"
+        sys.modules.setdefault(name, types.ModuleType(name))
 
 
 def _install_task_manager_patch() -> None:
@@ -138,6 +157,7 @@ def _install_bos_fix() -> None:
     eval_harness._marin_dna_bos_patched = True
 
 
+_install_transformers5_lm_eval_compat()
 _install_task_manager_patch()
 _install_levanter_rename_patch()
 _install_bos_fix()

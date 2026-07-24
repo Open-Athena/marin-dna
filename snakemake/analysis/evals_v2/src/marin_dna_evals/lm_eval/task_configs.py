@@ -19,3 +19,7 @@ from marin.evaluation.evaluation_config import EvalTaskConfig
 MENDELIAN_TRAITS_255 = EvalTaskConfig(
     "mendelian_traits_255", 1, task_alias="mendelian_traits_255"
 )
+
+MENDELIAN_TRAITS_RAG_255 = EvalTaskConfig(
+    "mendelian_traits_rag_255", 0, task_alias="mendelian_traits_rag_255"
+)

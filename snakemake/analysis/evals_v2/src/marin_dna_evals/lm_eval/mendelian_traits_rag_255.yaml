@@ -1,0 +1,14 @@
+task: mendelian_traits_rag_255
+class: !function rag_dna_vep_llr_eval.RagDnaVepLlrEvalTask
+dataset_path: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+dataset_name: default
+# Direct-HAL issue #402 harness. This immutable revision contains fully
+# materialized contexts and paired completions; scoring must not access HAL or
+# genome files. Source pins are recorded in its manifest and dataset card.
+dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+# Match the established Mendelian online task: "train" contains the benchmark
+# training/validation variants used for in-training trend evaluation.
+test_split: train
+llr_transform: negate
+metrics:
+  - auprc
