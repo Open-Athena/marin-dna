@@ -330,43 +330,28 @@ This divergence is not unique to MarinDNA. On the same Mendelian missense benchm
 
 ### Later mixture experiments
 
-#### Reweighting the original three regions
-
-At this point we move away from theoretically-grounded, compute-constrained methods. The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity. But the actual optimization problem becomes much more ad hoc — we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
-
-<figure id="fig-upstream-reweighting-lineage">
-<img src="/assets/images/blog/genomic-lm-optimization/mini_fig9_mixture.svg" alt="Upstream-reweighting continuations from a shared parent" />
-<figcaption><strong>Figure 15:</strong> Upstream-reweighting continuations from a shared parent.</figcaption>
-</figure>
-
-The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. The [upstream-mixture sweep](#fig-upstream-mixture-sweep) shows why simply shifting weight upstream does not solve this problem. The gains are countered by losses in other genomic regions, and similar continuations from upstream-only or proportionally mixed checkpoints from the parameter-scaling sweep did not produce clear net wins.
-
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure9_upstream_mix_auprc.py -->
-<figure id="fig-upstream-mixture-sweep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg" alt="Macro average VEP AUPRC vs upstream mixture proportion" />
-<figcaption><strong>Figure 16:</strong> Macro average VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.</figcaption>
-</figure>
-
-- The 50% upstream continuation has the highest displayed zero-shot LLR point estimate.
-- The probe point estimates instead favor the uniform parent before continuation.
-- The continuation runs have unequal token budgets, so the displayed pattern cannot be attributed uniquely to mixture composition.
-- We therefore treat [the upstream-mixture sweep](#fig-upstream-mixture-sweep) as evidence that heavy upstream weighting can hurt, not as evidence for an optimal upstream percentage.
-
-[^upstream-only-issue]: See [Open-Athena/marin-dna issue #55](https://github.com/Open-Athena/marin-dna/issues/55).
+At this point we move away from theoretically-grounded, compute-constrained methods.
+The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity.
+But the actual optimization problem becomes much more ad hoc — we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
 
 #### Adding ncRNA exons and enhancers
 
-A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens, as shown in the [mixture-lineage trajectories](#fig-mixture-lineage-trajectories). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
+To cover missing functional regions, we mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals.
+We expand the pool from CDS, upstream, and downstream sequence to a uniformly weighted 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence.
+The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held.
+The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens, as shown in the [mixture-lineage trajectories](#fig-mixture-lineage-trajectories).
+Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter.
+The result suggests that mid-flight improvement is possible, with the gain appearing after new, uniformly-weighted mixture components are introduced.
 
 <figure id="fig-five-region-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/mini_m5.1_lineage.svg" alt="Three-region to five-region exposure history for m5.1" />
-<figcaption><strong>Figure 17:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
+<figcaption><strong>Figure 15:</strong> Three-region to five-region exposure history for m5.1.</figcaption>
 </figure>
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure10_lineage_vep_trajectory.py -->
 <figure id="fig-mixture-lineage-trajectories">
 <img src="/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg" alt="VEP AUPRC trajectories by mixture lineage" />
-<figcaption><strong>Figure 18:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
+<figcaption><strong>Figure 16:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. Curves for m1.3 and m3.3 are truncated at the m5.1 token horizon so the longer runs do not contribute extra evals. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption>
 </figure>
 
 - m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
@@ -382,7 +367,7 @@ The result of the previous mixture experiments is the m5.1 model used for the he
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" />
-<figcaption><strong>Figure 19:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-upstream-mixture-sweep">upstream-mixture sweep</a> and <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
+<figcaption><strong>Figure 17:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
 </figure>
 
 ## Conclusion
