@@ -86,3 +86,20 @@ def test_online_cached_scores_match_naive_full_forward() -> None:
     assert float(cached[0]) == pytest.approx(float(naive_ref), abs=2e-5)
     assert float(cached[1]) == pytest.approx(float(naive_alt), abs=2e-5)
     assert float(cached[2]) == pytest.approx(float(naive_alt - naive_ref), abs=2e-5)
+
+    from marin_dna.pipelines.rag_glm.levanter_scoring import score_rag_batch_levanter
+
+    batched = score_rag_batch_levanter(
+        model,
+        jnp.stack([prefix, prefix]),
+        jnp.stack([reference, alternate]),
+        jnp.stack([alternate, reference]),
+        nucleotides,
+        prefix_length=8,
+        completion_length=4,
+        page_size=4,
+        compute_dtype=jnp.float32,
+    )
+    assert batched.shape == (2, 3)
+    assert float(batched[0, 0]) == pytest.approx(float(naive_ref), abs=2e-5)
+    assert float(batched[0, 1]) == pytest.approx(float(naive_alt), abs=2e-5)

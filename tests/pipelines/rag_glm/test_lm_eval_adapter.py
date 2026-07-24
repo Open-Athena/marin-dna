@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from marin_dna.pipelines.rag_glm.lm_eval_adapter import encode_rag_request
+from marin_dna.pipelines.rag_glm.lm_eval_adapter import (
+    encode_rag_request,
+    padded_rag_batches,
+)
 from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
 
 
@@ -34,3 +37,14 @@ def test_encode_rag_request_rejects_nonshared_suffix() -> None:
             "G" + "T" * 127,
             "A" + "C" + "T" * 126,
         )
+
+
+def test_padded_batches_preserve_order_and_report_real_rows() -> None:
+    tokenizer = create_rag_char_tokenizer()
+    row = encode_rag_request(tokenizer, _context(), "G" + "T" * 127, "A" + "T" * 127)
+    rows = [row] * 17
+    batches = padded_rag_batches(rows, batch_size=16)
+    assert [n_real for _, n_real in batches] == [16, 1]
+    assert [len(batch) for batch, _ in batches] == [16, 16]
+    assert batches[1][0][0] == row
+    assert batches[1][0][-1] == row

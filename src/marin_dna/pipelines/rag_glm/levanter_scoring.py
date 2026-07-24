@@ -219,3 +219,38 @@ def score_rag_completions_levanter(
             paired_loglikelihoods[1] - paired_loglikelihoods[0],
         ]
     )
+
+
+def score_rag_batch_levanter(
+    model: Any,
+    prefix_ids: Any,
+    ref_completion_ids: Any,
+    alt_completion_ids: Any,
+    nucleotide_token_ids: Any,
+    *,
+    prefix_length: int = RAG_PREFIX_TOKENS,
+    completion_length: int = RAG_COMPLETION_TOKENS,
+    page_size: int = 128,
+    compute_dtype: Any = None,
+) -> Any:
+    """Vectorize the paired paged-cache scorer over a fixed host batch."""
+    import jax
+
+    assert prefix_ids.ndim == 2
+    assert ref_completion_ids.ndim == 2
+    assert alt_completion_ids.ndim == 2
+    assert prefix_ids.shape[0] == ref_completion_ids.shape[0]
+    assert prefix_ids.shape[0] == alt_completion_ids.shape[0]
+    return jax.vmap(
+        lambda prefix, ref, alt: score_rag_completions_levanter(
+            model,
+            prefix,
+            ref,
+            alt,
+            nucleotide_token_ids,
+            prefix_length=prefix_length,
+            completion_length=completion_length,
+            page_size=page_size,
+            compute_dtype=compute_dtype,
+        )
+    )(prefix_ids, ref_completion_ids, alt_completion_ids)

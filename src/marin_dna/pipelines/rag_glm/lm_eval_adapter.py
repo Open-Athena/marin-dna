@@ -15,6 +15,8 @@ from marin_dna.pipelines.rag_glm.hf_scoring import (
     RAG_PREFIX_TOKENS,
 )
 
+RAG_EVAL_BATCH_SIZE = 16
+
 
 @dataclass(frozen=True)
 class EncodedRagRequest:
@@ -22,6 +24,22 @@ class EncodedRagRequest:
     ref_completion_ids: tuple[int, ...]
     alt_completion_ids: tuple[int, ...]
     nucleotide_token_ids: tuple[int, ...]
+
+
+def padded_rag_batches(
+    rows: list[EncodedRagRequest], batch_size: int = RAG_EVAL_BATCH_SIZE
+) -> list[tuple[list[EncodedRagRequest], int]]:
+    """Return fixed-shape batches plus each batch's unpadded row count."""
+    assert batch_size > 0
+    batches: list[tuple[list[EncodedRagRequest], int]] = []
+    for start in range(0, len(rows), batch_size):
+        batch = rows[start : start + batch_size]
+        n_real = len(batch)
+        assert n_real > 0
+        batch.extend([batch[-1]] * (batch_size - n_real))
+        assert len(batch) == batch_size
+        batches.append((batch, n_real))
+    return batches
 
 
 def _encode_without_special_tokens(tokenizer: Any, text: str) -> list[int]:
@@ -92,7 +110,7 @@ def install_levanter_rag_loglikelihood() -> None:
         return
 
     from marin_dna.pipelines.rag_glm.levanter_scoring import (
-        score_rag_completions_levanter,
+        score_rag_batch_levanter,
     )
 
     def rag_loglikelihood(
@@ -111,7 +129,7 @@ def install_levanter_rag_loglikelihood() -> None:
             ) -> Any:
                 if mixed_precision is not None:
                     model = mixed_precision.cast_to_compute(model)
-                return score_rag_completions_levanter(
+                return score_rag_batch_levanter(
                     model,
                     prefix,
                     ref,
@@ -125,15 +143,17 @@ def install_levanter_rag_loglikelihood() -> None:
                 out_axis_resources={},
             )
 
-        outputs: list[tuple[float, float, float]] = []
+        encoded_requests: list[EncodedRagRequest] = []
         current_task = getattr(self, "_current_task", "rag_loglikelihood_task")
         for request in requests:
             context, ref_completion, alt_completion = request.args
-            encoded = encode_rag_request(
-                self.tokenizer,
-                context,
-                ref_completion,
-                alt_completion,
+            encoded_requests.append(
+                encode_rag_request(
+                    self.tokenizer,
+                    context,
+                    ref_completion,
+                    alt_completion,
+                )
             )
             bucket = self._prepare_bucket(current_task)
             if bucket is not None:
@@ -143,17 +163,23 @@ def install_levanter_rag_loglikelihood() -> None:
                         "generation": f"ref={ref_completion};alt={alt_completion}",
                     }
                 )
+        outputs: list[tuple[float, float, float]] = []
+        for batch, n_real in padded_rag_batches(encoded_requests):
+            nucleotide_ids = batch[0].nucleotide_token_ids
+            assert all(row.nucleotide_token_ids == nucleotide_ids for row in batch)
             self._handle_profiler_step()
             scores = self._marin_dna_rag_jit(
                 self.leader.model,
-                jnp.asarray(encoded.prefix_ids, dtype=jnp.int32),
-                jnp.asarray(encoded.ref_completion_ids, dtype=jnp.int32),
-                jnp.asarray(encoded.alt_completion_ids, dtype=jnp.int32),
-                jnp.asarray(encoded.nucleotide_token_ids, dtype=jnp.int32),
+                jnp.asarray([row.prefix_ids for row in batch], dtype=jnp.int32),
+                jnp.asarray([row.ref_completion_ids for row in batch], dtype=jnp.int32),
+                jnp.asarray([row.alt_completion_ids for row in batch], dtype=jnp.int32),
+                jnp.asarray(nucleotide_ids, dtype=jnp.int32),
             )
             observed = jax.device_get(scores)
-            assert observed.shape == (3,)
-            outputs.append(tuple(float(value) for value in observed))
+            assert observed.shape == (RAG_EVAL_BATCH_SIZE, 3)
+            outputs.extend(
+                tuple(float(value) for value in row) for row in observed[:n_real]
+            )
             self._current_step += 1
         self._stop_profiler_if_needed()
         return outputs
