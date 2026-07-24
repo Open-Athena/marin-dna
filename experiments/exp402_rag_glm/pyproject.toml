@@ -18,7 +18,7 @@ dependencies = [
     "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
     # Remote workers install the exact library revision containing the RAG
     # tokenizer and dataset format. A local path would not survive dispatch.
-    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@55adcf038180e09f29f21660dfdb9f9b79de5f05",
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@46ba9f51fca53f50a055ac92041a4ded224b3ea1",
 ]
 
 [project.optional-dependencies]
