@@ -1,0 +1,35 @@
+"""Issue #402 fixed-layout RAG dataset pipeline."""
+
+configfile: "config/config.yaml"
+
+
+rule species_audit:
+    """Audit candidate projection coverage, ambiguity, and panel redundancy."""
+    output:
+        statistics="results/audit/species_statistics.tsv",
+        pairwise="results/audit/panel_pairwise_identity.tsv",
+        sample_ids="results/audit/sample_anchor_ids.txt",
+        summary="results/audit/summary.json",
+    params:
+        source_parquet=config["upstream_projection_parquet"],
+        species_tsv=config["species_tsv"],
+        sample_size=int(config["audit_sample_size"]),
+        sample_seed=int(config["audit_sample_seed"]),
+        panel=tuple(config["species_order"]),
+    threads: 1
+    resources:
+        mem_mb=32000,
+    run:
+        from marin_dna.pipelines.rag_glm.audit import run_species_audit
+
+        run_species_audit(
+            source_parquet=params.source_parquet,
+            species_tsv=params.species_tsv,
+            statistics_path=output.statistics,
+            pairwise_path=output.pairwise,
+            sample_ids_path=output.sample_ids,
+            summary_path=output.summary,
+            sample_size=params.sample_size,
+            sample_seed=params.sample_seed,
+            panel=params.panel,
+        )

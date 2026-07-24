@@ -1,0 +1,16 @@
+upstream_projection_parquet: "s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/projection/min0.20/all_species_with_sequence.parquet"
+species_tsv: "../zoonomia_projection_dataset/config/species_zoonomia_447_family_dedup.tsv"
+
+audit_sample_size: 8192
+audit_sample_seed: 402
+
+species_order_version: "zoonomia-rag-v1"
+species_order:
+  - "Microgale_talazaci"
+  - "Loxodonta_africana"
+  - "Tolypeutes_matacus"
+  - "Bos_taurus"
+  - "Equus_caballus"
+  - "Mus_musculus"
+  - "Microcebus_murinus"
+  - "Homo_sapiens"

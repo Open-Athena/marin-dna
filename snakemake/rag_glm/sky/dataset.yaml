@@ -1,0 +1,50 @@
+name: dna-exp402-rag-dataset
+
+resources:
+  infra: aws/us-east-2
+  instance_type: r6i.4xlarge
+  disk_size: 100
+  labels:
+    project: dna
+
+workdir: ../..
+
+envs:
+  SNAKEMAKE_TARGET: "results/audit/summary.json"
+
+setup: |
+  set -euxo pipefail
+
+  if ! command -v uv >/dev/null 2>&1; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  uv sync
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  cd snakemake/rag_glm
+
+  uv run snakemake --profile workflow/profiles/default \
+      --allowed-rules species_audit \
+      --printshellcmds \
+      -n "$SNAKEMAKE_TARGET"
+
+  uv run snakemake --profile workflow/profiles/default \
+      --allowed-rules species_audit \
+      --printshellcmds \
+      --rerun-incomplete \
+      "$SNAKEMAKE_TARGET"
+
+  uv run python -c "
+  import json
+  import polars as pl
+  from pathlib import Path
+  from marin_dna.pipelines.rag_glm.dataset import PROVISIONAL_SPECIES_ORDER
+
+  print(Path('results/audit/summary.json').read_text())
+  stats = pl.read_csv('results/audit/species_statistics.tsv', separator='\t')
+  print(stats.filter(pl.col('species').is_in(PROVISIONAL_SPECIES_ORDER)))
+  print(pl.read_csv('results/audit/panel_pairwise_identity.tsv', separator='\t'))
+  "
