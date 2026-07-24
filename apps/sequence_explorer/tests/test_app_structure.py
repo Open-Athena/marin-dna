@@ -22,10 +22,16 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert "PROGRESSIVE_MIN_LENGTH = (" in source
     assert "**Runtime status.**" in source
     assert "Analysis failed during **{_stage}**." in source
-    assert "example_picker" not in source
-    assert ".batch(" in source
-    assert '_submission["custom_sequence"].strip()' in source
-    assert 'or _submission["example_sequence"]' in source
+    assert "sequence_form" not in source
+    assert "Full-sequence navigator" not in source
+    assert "navigator_figure" not in source
+    assert "mo.state(DEFAULT_EXAMPLE.sequence)" in source
+    assert "on_change=set_example_sequence" in source
+    assert "mo.ui.run_button" in source
+    assert "not analyze_button.value" in source
+    assert "_raw_sequence = sequence_input.value" in source
+    assert "sequence_tracks_figure" in source
+    assert "These are **model interpretations**" not in source
     assert "marimo.App" in source
     assert "@spaces.GPU" not in source
     assert "import gradio" not in source

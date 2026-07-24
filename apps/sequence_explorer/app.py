@@ -62,12 +62,10 @@ def _():
 
     from marin_dna.apps.sequence_explorer_examples import DEFAULT_EXAMPLE, EXAMPLES
     from marin_dna.apps.sequence_explorer_ui import (
-        dependency_figure,
         dependency_loading_figure,
         download_links_html,
         logo_figure,
-        navigator_figure,
-        span_from_plotly_ranges,
+        sequence_tracks_figure,
     )
     from marin_dna.model.interpretation import nucleotide_dependency_map
     from marin_dna.model.sequence_interpretation import (
@@ -82,18 +80,16 @@ def _():
         EXAMPLES,
         SOURCE_REVISION,
         cache,
-        dependency_figure,
         dependency_loading_figure,
         download_links_html,
         logo_figure,
         mo,
-        navigator_figure,
         normalize_dna_sequence,
         np,
         nucleotide_dependency_map,
         nucleotide_logo,
         os,
-        span_from_plotly_ranges,
+        sequence_tracks_figure,
         sys,
         time,
         torch,
@@ -143,14 +139,6 @@ def _(
                 model has learned. The logo averages forward and transformed
                 reverse-complement **logits** before softmax. The dependency map
                 reuses the tested forward/RC categorical-Jacobian implementation.
-
-                These are **model interpretations**, not measurements of biological
-                function or clinical predictions. Submit only public reference,
-                synthetic, or otherwise non-sensitive sequences. **Do not submit
-                personal, confidential, identifiable, patient, or protected genetic
-                data.** Execution occurs on third-party CoreWeave infrastructure;
-                see the [privacy policy](https://marimo.io/pages/legal/privacy) and
-                [molab terms](https://molab.marimo.io/pages/legal/terms).
 
                 [Open Athena / MarinDNA source]({APPLICATION_SOURCE_URL}) ·
                 [Pinned model](https://huggingface.co/{MODEL_ID}/tree/{MODEL_REVISION})
@@ -205,46 +193,52 @@ def _(mo, sys, torch):
 
 
 @app.cell
-def _(DEFAULT_EXAMPLE, EXAMPLES, mo):
+def _(DEFAULT_EXAMPLE, mo):
+    get_example_sequence, set_example_sequence = mo.state(DEFAULT_EXAMPLE.sequence)
+    return get_example_sequence, set_example_sequence
+
+
+@app.cell
+def _(DEFAULT_EXAMPLE, EXAMPLES, mo, set_example_sequence):
     _example_options = {example.label: example.sequence for example in EXAMPLES}
-    sequence_form = (
-        mo.md(
-            """
-            **Recommended example**
-
-            {example_sequence}
-
-            **Custom DNA sequence (optional)**
-
-            {custom_sequence}
-
-            Leave the custom field empty to analyze the selected example.
-            Custom input overrides the example only after submission.
-            """
-        )
-        .batch(
-            example_sequence=mo.ui.dropdown(
-                options=_example_options,
-                value=DEFAULT_EXAMPLE.label,
-                searchable=True,
-                full_width=True,
-            ),
-            custom_sequence=mo.ui.text_area(
-                value="",
-                placeholder="Enter 16–255 A/C/G/T bases",
-                rows=6,
-                label="16–255 bp; A/C/G/T only",
-                full_width=True,
-            ),
-        )
-        .form(
-            submit_button_label="Analyze sequence",
-            submit_button_tooltip="Run the pinned model on the submitted sequence",
-            clear_on_submit=False,
-        )
+    example_selector = mo.ui.dropdown(
+        options=_example_options,
+        value=DEFAULT_EXAMPLE.label,
+        label="Recommended example",
+        on_change=set_example_sequence,
+        searchable=True,
+        full_width=True,
     )
-    sequence_form
-    return (sequence_form,)
+    example_selector
+    return (example_selector,)
+
+
+@app.cell
+def _(get_example_sequence, mo):
+    sequence_input = mo.ui.text_area(
+        value=get_example_sequence(),
+        placeholder="Enter 16–255 A/C/G/T bases",
+        rows=6,
+        label="DNA sequence (16–255 bp; A/C/G/T only)",
+        debounce=300,
+        full_width=True,
+    )
+    analyze_button = mo.ui.run_button(
+        label="Analyze sequence",
+        tooltip="Run the pinned model on the current sequence",
+        kind="success",
+    )
+    mo.vstack(
+        [
+            sequence_input,
+            analyze_button,
+            mo.md(
+                "Changing the example repopulates the editable sequence. Any edit "
+                "clears the current plots; press **Analyze sequence** to recompute."
+            ),
+        ]
+    )
+    return analyze_button, sequence_input
 
 
 @app.cell
@@ -288,6 +282,7 @@ def _(
 @app.cell
 def _(
     APPLICATION_REVISION,
+    analyze_button,
     BATCH_SIZE,
     MODEL_ID,
     MODEL_REVISION,
@@ -300,22 +295,19 @@ def _(
     np,
     nucleotide_dependency_map,
     nucleotide_logo,
-    sequence_form,
+    sequence_input,
     time,
     torch,
 ):
-    _submission = sequence_form.value
     mo.stop(
-        _submission is None,
+        not analyze_button.value,
         mo.callout(
-            "Select an example or enter a custom sequence, then press "
-            "**Analyze sequence**. Editing and linked zoom never trigger inference.",
+            "Choose or edit a sequence, then press **Analyze sequence**. "
+            "Editing the sequence clears existing plots and never triggers inference.",
             kind="info",
         ),
     )
-    _raw_sequence = (
-        _submission["custom_sequence"].strip() or _submission["example_sequence"]
-    )
+    _raw_sequence = sequence_input.value
     try:
         _normalized = normalize_dna_sequence(_raw_sequence)
     except ValueError as _error:
@@ -422,59 +414,19 @@ def _(
 
 
 @app.cell
-def _(mo):
-    reset_span = mo.ui.button(
-        value=0,
-        on_click=lambda count: count + 1,
-        label="Reset to full sequence",
-        tooltip="Clear the navigator brush without rerunning the model",
-    )
-    return (reset_span,)
-
-
-@app.cell
-def _(analysis_result, mo, navigator_figure, reset_span):
-    # Referencing the reset counter recreates the navigator and clears its
-    # selection. The analysis cell does not depend on this button.
-    _reset_generation = reset_span.value
-    navigator = mo.ui.plotly(
-        navigator_figure(analysis_result["logo"]),
-        config={"displaylogo": False, "scrollZoom": False},
-        label="Full-sequence navigator",
+def _(analysis_result, download_links_html, mo, sequence_tracks_figure):
+    _tracks = sequence_tracks_figure(
+        analysis_result["logo"],
+        analysis_result["dependency"],
     )
     mo.vstack(
         [
             mo.md(
-                "Drag a horizontal span below to link both views. Selections use "
-                "0-based, half-open coordinates `[start, end)`. Double-clicking "
-                "the navigator also clears its Plotly selection."
+                "Drag horizontally over the **sequence logo** to zoom both aligned "
+                "tracks. Use the Plotly modebar to switch between zoom and box "
+                "selection; double-click to reset the full sequence."
             ),
-            navigator,
-            reset_span,
-        ]
-    )
-    return (navigator,)
-
-
-@app.cell
-def _(
-    analysis_result,
-    dependency_figure,
-    download_links_html,
-    logo_figure,
-    mo,
-    navigator,
-    span_from_plotly_ranges,
-):
-    _span = span_from_plotly_ranges(
-        analysis_result["length"],
-        navigator.ranges,
-    )
-    mo.vstack(
-        [
-            mo.md(f"Visible span: **[{_span[0]}, {_span[1]})**"),
-            logo_figure(analysis_result["logo"], span=_span),
-            dependency_figure(analysis_result["dependency"], span=_span),
+            _tracks,
             mo.Html(
                 download_links_html(
                     analysis_result["logo"],

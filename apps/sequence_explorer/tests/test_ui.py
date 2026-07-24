@@ -7,8 +7,7 @@ from marin_dna.apps.sequence_explorer_ui import (
     dependency_figure,
     download_links_html,
     logo_figure,
-    navigator_figure,
-    span_from_plotly_ranges,
+    sequence_tracks_figure,
 )
 from marin_dna.model.sequence_interpretation import NucleotideLogo
 
@@ -76,17 +75,25 @@ def test_downloads_are_in_memory_csvs_with_revisions_and_no_sequence():
     assert "ACGT" not in decoded[1]
 
 
-def test_navigator_supports_horizontal_brush_and_full_range():
-    figure = navigator_figure(_logo())
-    assert figure.layout.dragmode == "select"
+def test_sequence_tracks_share_exact_nucleotide_axis_and_logo_is_navigator():
+    dependency = np.arange(9, dtype=float).reshape(3, 3)
+    dependency = (dependency + dependency.T) / 2.0
+    figure = sequence_tracks_figure(_logo(), dependency)
+
+    assert figure.layout.dragmode == "zoom"
     assert figure.layout.selectdirection == "h"
     assert figure.layout.xaxis.range == (-0.5, 2.5)
+    assert figure.layout.xaxis2.range == (-0.5, 2.5)
+    assert figure.layout.xaxis.domain == figure.layout.xaxis2.domain == (0.0, 1.0)
+    assert figure.layout.xaxis.matches == "x2"
+    assert figure.data[0].xaxis == "x"
+    assert figure.data[1].xaxis == "x2"
+    assert all(
+        shape.xref == "x" and shape.yref == "y" for shape in figure.layout.shapes
+    )
     assert figure.layout.yaxis.range == (0, 2)
-
-
-def test_plotly_ranges_convert_to_zero_based_half_open_span():
-    assert span_from_plotly_ranges(10, None) == (0, 10)
-    assert span_from_plotly_ranges(10, {}) == (0, 10)
-    assert span_from_plotly_ranges(10, {"x": [1.2, 4.7]}) == (2, 5)
-    assert span_from_plotly_ranges(10, {"x": [9.8, -2.0]}) == (0, 10)
-    assert span_from_plotly_ranges(10, {"xaxis": [6.1, 6.2]}) == (7, 8)
+    assert figure.layout.yaxis2.range == (2.5, -0.5)
+    assert {annotation.text for annotation in figure.layout.annotations} == {
+        "Sequence logo",
+        "Nucleotide dependency",
+    }

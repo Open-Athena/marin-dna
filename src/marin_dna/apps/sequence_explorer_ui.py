@@ -6,7 +6,6 @@ import base64
 import csv
 import html
 import io
-import math
 from functools import cache
 from typing import Any
 
@@ -15,6 +14,7 @@ import plotly.graph_objects as go
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 from matplotlib.textpath import TextPath
+from plotly.subplots import make_subplots
 
 from marin_dna.data.dna import NUCLEOTIDES
 from marin_dna.model.sequence_interpretation import NucleotideLogo
@@ -273,6 +273,109 @@ def dependency_figure(
     return figure
 
 
+def sequence_tracks_figure(
+    logo: NucleotideLogo,
+    dependency: np.ndarray,
+) -> go.Figure:
+    """Aligned logo and dependency tracks with one shared nucleotide x-axis."""
+    length = int(logo.probabilities.shape[0])
+    assert dependency.shape == (length, length)
+    logo_track = logo_figure(logo)
+    dependency_track = dependency_figure(dependency)
+
+    figure = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        row_heights=[0.34, 0.66],
+    )
+    for trace in logo_track.data:
+        figure.add_trace(trace, row=1, col=1)
+    for trace in dependency_track.data:
+        trace.colorbar.update(
+            x=1.02,
+            xanchor="left",
+            y=0.31,
+            len=0.6,
+            thickness=16,
+        )
+        figure.add_trace(trace, row=2, col=1)
+
+    shapes: list[dict[str, Any]] = []
+    for shape in logo_track.layout.shapes:
+        shape_json = shape.to_plotly_json()
+        shape_json.update(xref="x", yref="y")
+        shapes.append(shape_json)
+
+    shared_range = [-0.5, length - 0.5]
+    figure.update_layout(
+        shapes=shapes,
+        height=960,
+        margin={"l": 72, "r": 112, "t": 76, "b": 60},
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        dragmode="zoom",
+        hovermode="closest",
+        selectdirection="h",
+        newselection={"line": {"color": "#4F46E5", "width": 2}},
+        uirevision=f"sequence-tracks-{length}",
+    )
+    figure.update_xaxes(
+        range=shared_range,
+        domain=[0.0, 1.0],
+        showgrid=False,
+        zeroline=False,
+        row=1,
+        col=1,
+    )
+    figure.update_xaxes(
+        title="Sequence position (0-based)",
+        range=shared_range,
+        domain=[0.0, 1.0],
+        row=2,
+        col=1,
+    )
+    figure.update_yaxes(
+        title="Information (bits)",
+        range=[0, 2],
+        tick0=0,
+        dtick=0.5,
+        showgrid=True,
+        gridcolor="#E5E7EB",
+        zeroline=False,
+        row=1,
+        col=1,
+    )
+    figure.update_yaxes(
+        title="Sequence position (0-based)",
+        range=[length - 0.5, -0.5],
+        row=2,
+        col=1,
+    )
+    figure.add_annotation(
+        text="Sequence logo",
+        x=0,
+        y=1.04,
+        xref="paper",
+        yref="paper",
+        xanchor="left",
+        showarrow=False,
+        font={"size": 18},
+    )
+    figure.add_annotation(
+        text="Nucleotide dependency",
+        x=0,
+        y=0.64,
+        xref="paper",
+        yref="paper",
+        xanchor="left",
+        showarrow=False,
+        font={"size": 18},
+    )
+    return figure
+
+
 def dependency_loading_figure() -> go.Figure:
     figure = go.Figure()
     figure.add_annotation(
@@ -356,57 +459,3 @@ def download_links_html(
         "Download dependency matrix (CSV)</a>"
         "</div>"
     )
-
-
-def navigator_figure(logo: NucleotideLogo) -> go.Figure:
-    """Full-sequence information navigator with horizontal brush selection."""
-    length = len(logo.information_bits)
-    assert length >= 1
-    positions = np.arange(length)
-    figure = go.Figure(
-        go.Scatter(
-            x=positions,
-            y=logo.information_bits,
-            mode="lines",
-            fill="tozeroy",
-            line={"color": "#4F46E5", "width": 1.5},
-            fillcolor="rgba(79, 70, 229, 0.18)",
-            hovertemplate=("Position %{x}<br>Information %{y:.4f} bits<extra></extra>"),
-        )
-    )
-    figure.update_layout(
-        height=190,
-        margin={"l": 64, "r": 24, "t": 44, "b": 48},
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        title={"text": "Full-sequence navigator", "x": 0.02},
-        dragmode="select",
-        selectdirection="h",
-        newselection={"line": {"color": "#4F46E5", "width": 2}},
-    )
-    figure.update_xaxes(
-        title="Sequence position (0-based)",
-        range=[-0.5, length - 0.5],
-        fixedrange=False,
-    )
-    figure.update_yaxes(title="Bits", range=[0, 2], fixedrange=True)
-    return figure
-
-
-def span_from_plotly_ranges(
-    length: int,
-    ranges: dict[str, list[float]] | None,
-) -> tuple[int, int]:
-    """Convert a Plotly horizontal brush into a 0-based half-open span."""
-    assert length >= 1
-    if not ranges:
-        return 0, length
-    raw_range = ranges.get("x") or ranges.get("xaxis")
-    if raw_range is None:
-        return 0, length
-    assert len(raw_range) == 2
-    raw_start, raw_end = sorted(float(value) for value in raw_range)
-    start = max(0, min(length - 1, math.ceil(raw_start)))
-    end = max(start + 1, min(length, math.floor(raw_end) + 1))
-    assert 0 <= start < end <= length
-    return start, end
