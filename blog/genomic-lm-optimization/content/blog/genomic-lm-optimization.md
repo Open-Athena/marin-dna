@@ -337,7 +337,7 @@ But the actual optimization problem becomes much more ad hoc — we start changi
 #### Adding ncRNA exons and enhancers
 
 To cover missing functional regions, we mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals.
-We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting.
+We expand the pool from CDS, upstream, and downstream sequence to a uniformly weighted 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence.
 The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held.
 The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens, as shown in the [mixture-lineage trajectories](#fig-mixture-lineage-trajectories).
 Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter.

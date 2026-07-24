@@ -50,12 +50,14 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 | 16 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
 | 17 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
 
-The upstream-reweighting analysis remains reproducible in this source bundle but is not currently included in the article:
+The upstream-reweighting analysis remains reproducible in this source bundle but is not currently included in the article.
+Its displayed endpoints confound mixture proportion with continuation budget: the 40% and 50% upstream arms received about 8.3k steps, while the other five arms received about 2.5k, and no exact checkpoint step is retained across all seven runs.
+See the canonical review in [issue #370](https://github.com/Open-Athena/marin-dna/issues/370).
 
 | Retained asset | Source | Inputs |
 |---|---|---|
 | `mini_fig9_mixture.svg` | Authored SVG; no plot recipe | Mixture continuation design |
-| `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data_mixture_results.csv` |
+| `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data/data_mixture_results.csv` |
 
 Paths beginning with `src/` and CSV names in this table are relative to this directory.
 
