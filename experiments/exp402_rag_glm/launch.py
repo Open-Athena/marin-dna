@@ -7,6 +7,9 @@ then a scratch Qwen3 model trains for approximately one billion tokens.
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 from fray.types import ResourceConfig
 from levanter.layers.rotary import Llama3RotaryEmbeddingsConfig
 from levanter.models.qwen import Qwen3Config
@@ -25,7 +28,12 @@ from marin_dna.levanter.formats import RAGDNALmDatasetFormat
 MARIN_DNA_REVISION = "52044801cdc32a80f4d350df6d7cae93b332871b"
 DATASET_REPO = "bolinas-dna/zoonomia-rag-v1-v1"
 DATASET_REVISION = "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"
-TOKENIZER_REPO = "bolinas-dna/tokenizer-char-bos-seq-v1"
+TOKENIZER_PATH = "tokenizer"
+TOKENIZER_SHA256 = {
+    "tokenizer.json": "153a64aabc254c997a634a1a70f2f4d15e96976ccc5df3adeb0e09da2f2fad87",
+    "tokenizer_config.json": "f8ce17f8700fd20305a0b6d857c3add59cc44ebe8165456a0db5786f48eededa",
+    "special_tokens_map.json": "665d3a4f8b01ce09165d983256c457b1c6dddbb4dc639eab910fb5e17a210238",
+}
 
 SEQ_LEN = 2_048
 VOCAB_SIZE = 8
@@ -52,7 +60,7 @@ MODEL = Qwen3Config(
     use_sliding_window=False,
     rope=Llama3RotaryEmbeddingsConfig(),
     tie_word_embeddings=False,
-    tokenizer=TOKENIZER_REPO,
+    tokenizer=TOKENIZER_PATH,
 )
 
 
@@ -90,6 +98,15 @@ def resolve_completed_adamh(
 OPTIMIZER = resolve_completed_adamh()
 
 
+def validate_vendored_tokenizer() -> None:
+    """Fail if any committed tokenizer byte differs from the frozen recipe."""
+    for filename, expected in TOKENIZER_SHA256.items():
+        path = Path(TOKENIZER_PATH, filename)
+        assert path.is_file(), f"missing vendored tokenizer file {path}"
+        observed = hashlib.sha256(path.read_bytes()).hexdigest()
+        assert observed == expected, f"{path} sha256 changed: {observed} != {expected}"
+
+
 class RAGTokenizedCache(TokenizedCache):
     """Tokenized cache that preserves the registered RAG format on reload.
 
@@ -103,7 +120,7 @@ class RAGTokenizedCache(TokenizedCache):
         record = self.record
         assert record is not None, f"missing artifact record at {self.path}"
         config = record.config or {}
-        assert config.get("tokenizer") == TOKENIZER_REPO
+        assert config.get("tokenizer") == TOKENIZER_PATH
         serialized_format = config.get("format")
         assert isinstance(serialized_format, dict)
         assert serialized_format.get("text_key") == "seq"
@@ -114,15 +131,24 @@ class RAGTokenizedCache(TokenizedCache):
 
 def rag_tokenized_dataset() -> ArtifactStep[RAGTokenizedCache]:
     """Return the immutable training/validation token-cache build."""
+    validate_vendored_tokenizer()
 
     def build_config(ctx: StepContext) -> HfTokenizeConfig:
         return HfTokenizeConfig(
             id=DATASET_REPO,
             revision=DATASET_REVISION,
             cache_path=ctx.output_path,
-            tokenizer=TOKENIZER_REPO,
+            tokenizer=TOKENIZER_PATH,
             format=RAGDNALmDatasetFormat(),
-            tags=["dna", "rag", "exp402"],
+            tags=[
+                "dna",
+                "rag",
+                "exp402",
+                *[
+                    f"{filename}-sha256={digest}"
+                    for filename, digest in sorted(TOKENIZER_SHA256.items())
+                ],
+            ],
             max_workers=32,
             worker_resources=ResourceConfig.with_cpu(cpu=2, ram="8g", disk="16g"),
             levanter_batch_size=2_048,

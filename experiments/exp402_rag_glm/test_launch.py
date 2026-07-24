@@ -3,9 +3,11 @@
 import math
 import tempfile
 
+from levanter.tokenizers import load_tokenizer
 from marin.execution.artifact import ArtifactRecord, result_type_name, write_record
 from marin.execution.lazy import materialized_config
 from marin_dna.levanter.formats import RAGDNALmDatasetFormat
+from marin_dna.pipelines.rag_glm.dataset import MISSING_SEQUENCE, assemble_document
 
 from launch import (
     ACTUAL_TOKENS,
@@ -13,7 +15,8 @@ from launch import (
     OPTIMIZER,
     SEQ_LEN,
     TARGET_TOKENS,
-    TOKENIZER_REPO,
+    TOKENIZER_PATH,
+    TOKENIZER_SHA256,
     TRAIN_BATCH_SIZE,
     TRAIN_STEPS,
     VOCAB_SIZE,
@@ -48,9 +51,13 @@ def test_tokenize_config_pins_data_and_fixed_layout() -> None:
     config = materialized_config(handle, "gs://example-prefix")
     assert config.id == "bolinas-dna/zoonomia-rag-v1-v1"
     assert config.revision == "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"
-    assert config.tokenizer == "bolinas-dna/tokenizer-char-bos-seq-v1"
+    assert config.tokenizer == TOKENIZER_PATH == "tokenizer"
     assert config.format.text_key == "seq"
     assert config.max_workers == 32
+    assert all(
+        f"{filename}-sha256={digest}" in config.tags
+        for filename, digest in TOKENIZER_SHA256.items()
+    )
 
 
 def test_tokenized_cache_reload_preserves_rag_loss_format() -> None:
@@ -61,7 +68,7 @@ def test_tokenized_cache_reload_preserves_rag_loss_format() -> None:
                 output_path=tmpdir,
                 result_type=result_type_name(RAGTokenizedCache),
                 config={
-                    "tokenizer": TOKENIZER_REPO,
+                    "tokenizer": TOKENIZER_PATH,
                     "format": {
                         "text_key": "seq",
                         "uppercase_weight": 1.0,
@@ -75,3 +82,25 @@ def test_tokenized_cache_reload_preserves_rag_loss_format() -> None:
 
     assert isinstance(component.format, RAGDNALmDatasetFormat)
     assert component.format.text_key == "seq"
+
+
+def test_vendored_tokenizer_runs_fixed_layout_preprocessor() -> None:
+    tokenizer = load_tokenizer(TOKENIZER_PATH)
+    document = assemble_document(
+        (
+            "A" * 255,
+            "C" * 255,
+            "G" * 255,
+            "T" * 255,
+            MISSING_SEQUENCE,
+            "A" * 255,
+            "C" * 255,
+            "G" * 255,
+        )
+    )
+    row = RAGDNALmDatasetFormat().build_preprocessor(tokenizer)([{"seq": document}])[0]
+    assert row["input_ids"].shape == (2_048,)
+    assert row["loss_weight"].shape == (2_048,)
+    assert row["input_ids"][0] == tokenizer.bos_token_id == 2
+    assert row["input_ids"][256] == tokenizer.convert_tokens_to_ids("[SEQ]") == 3
+    assert row["loss_weight"].tolist() == [1.0] * 2_047 + [0.0]

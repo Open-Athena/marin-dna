@@ -6,6 +6,12 @@ immutable `bolinas-dna/zoonomia-rag-v1-v1` revision, tokenizes the 2,048-token
 documents with uniform causal loss, and trains a scratch 45.9M-parameter Qwen3
 model for 999,948,288 tokens.
 
+The eight-token character tokenizer is vendored in [`tokenizer/`](tokenizer/).
+This keeps the exact `[PAD]`, `[UNK]`, `[BOS]`, `[SEQ]`, `a`, `c`, `g`, `t`
+mapping inside the experiment workspace copied to every Iris/Zephyr worker.
+The launcher checks SHA-256 digests for all three tokenizer files and includes
+those digests in the tokenized-cache fingerprint.
+
 ## Frozen recipe
 
 | Item | Value |
@@ -69,4 +75,3 @@ uv run iris --cluster=marin job run \
 The immutable tokenized-cache artifact is built first. Re-launches reuse that
 cache and the rolling checkpoint. The launcher uses current Marin's lazy
 artifact API; no removed `ExecutorStep` compatibility layer is involved.
-
