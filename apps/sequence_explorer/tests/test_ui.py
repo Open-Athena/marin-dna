@@ -9,6 +9,7 @@ from marin_dna.apps.sequence_explorer_ui import (
     download_links_html,
     logo_figure,
     sequence_tracks_figure,
+    span_from_plotly_points,
     span_from_plotly_selection,
 )
 from marin_dna.model.sequence_interpretation import NucleotideLogo
@@ -53,6 +54,26 @@ def test_dependency_figure_has_same_half_open_span_on_both_axes():
     assert figure.layout.yaxis.scaleanchor == "x"
     assert "Position i" in figure.data[0].hovertemplate
     assert "Dependency" in figure.data[0].hovertemplate
+
+
+def test_plotly_points_convert_to_half_open_span():
+    assert span_from_plotly_points(10, None) is None
+    assert span_from_plotly_points(10, []) is None
+    assert span_from_plotly_points(10, [{"x": 4}, {"x": 2}, {"x": 3}]) == (
+        2,
+        5,
+    )
+    assert span_from_plotly_points(
+        10,
+        [
+            {"x2": 0},
+            {"Sequence position (0-based)": 9},
+            {"x": float("nan")},
+            {"x": 2.5},
+            {"x": 12},
+        ],
+    ) == (0, 10)
+    assert span_from_plotly_points(10, [{"not_x": 4}]) is None
 
 
 def test_plotly_selection_converts_to_half_open_span():

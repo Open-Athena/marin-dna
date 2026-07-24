@@ -274,6 +274,43 @@ def dependency_figure(
     return figure
 
 
+def span_from_plotly_points(
+    length: int,
+    points: list[dict[str, Any]] | None,
+) -> tuple[int, int] | None:
+    """Convert selected Plotly nucleotide points to a 0-based half-open span."""
+    assert length >= 1
+    if not points:
+        return None
+    positions: list[int] = []
+    for point in points:
+        raw_position = next(
+            (
+                point[key]
+                for key in ("x", "x2", "x3", "Sequence position (0-based)")
+                if key in point
+            ),
+            None,
+        )
+        try:
+            value = float(raw_position)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(value):
+            continue
+        position = round(value)
+        if not math.isclose(value, position, abs_tol=1e-6):
+            continue
+        if 0 <= position < length:
+            positions.append(position)
+    if not positions:
+        return None
+    start = min(positions)
+    end = max(positions) + 1
+    assert 0 <= start < end <= length
+    return start, end
+
+
 def span_from_plotly_selection(
     length: int,
     selection: dict[str, Any] | None,

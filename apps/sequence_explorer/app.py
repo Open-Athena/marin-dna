@@ -71,7 +71,7 @@ def _():
         download_links_html,
         logo_figure,
         sequence_tracks_figure,
-        span_from_plotly_selection,
+        span_from_plotly_points,
     )
     from marin_dna.model.interpretation import nucleotide_dependency_map
     from marin_dna.model.sequence_interpretation import (
@@ -98,7 +98,7 @@ def _():
         nucleotide_logo,
         os,
         sequence_tracks_figure,
-        span_from_plotly_selection,
+        span_from_plotly_points,
         sys,
         time,
         torch,
@@ -209,18 +209,8 @@ def _(DEFAULT_EXAMPLE, mo):
 
 @app.cell
 def _(mo):
-    get_track_view, set_track_view = mo.state(None)
+    get_track_view, set_track_view = mo.state(None, allow_self_loops=True)
     return get_track_view, set_track_view
-
-
-@app.cell
-def _(mo, set_track_view):
-    reset_track_view = mo.ui.button(
-        label="Reset view",
-        tooltip="Restore the full sequence span",
-        on_click=lambda _value: set_track_view(None),
-    )
-    return (reset_track_view,)
 
 
 @app.cell
@@ -475,8 +465,9 @@ def _(
     hashlib,
     mo,
     normalize_dna_sequence,
-    reset_track_view,
     sequence_tracks_figure,
+    set_track_view,
+    span_from_plotly_points,
 ):
     try:
         _current_sequence = normalize_dna_sequence(get_sequence())
@@ -496,6 +487,20 @@ def _(
         and _view_state["sequence_sha256"] == analysis_result["sequence_sha256"]
         else None
     )
+
+    def _update_track_view(selection):
+        _selected_span = span_from_plotly_points(analysis_result["length"], selection)
+        if _selected_span is not None:
+            set_track_view(
+                {
+                    "sequence_sha256": analysis_result["sequence_sha256"],
+                    "span": list(_selected_span),
+                }
+            )
+
+    def _reset_track_view(_value):
+        set_track_view(None)
+
     sequence_tracks = mo.ui.plotly(
         sequence_tracks_figure(
             _current_sequence,
@@ -517,6 +522,12 @@ def _(
             ],
         },
         label="Aligned sequence tracks",
+        on_change=_update_track_view,
+    )
+    _reset_view = mo.ui.button(
+        label="Reset view",
+        tooltip="Restore the full sequence span",
+        on_click=_reset_track_view,
     )
     _visible_span = (
         f"Showing positions **{_span[0]}–{_span[1] - 1}** ({_span[1] - _span[0]} bp)."
@@ -532,7 +543,7 @@ def _(
                 f"both axes. {_visible_span}"
             ),
             sequence_tracks,
-            reset_track_view,
+            _reset_view,
             mo.Html(
                 download_links_html(
                     analysis_result["logo"],
@@ -543,27 +554,6 @@ def _(
         ],
         gap=1.0,
     )
-    return (sequence_tracks,)
-
-
-@app.cell
-def _(
-    analysis_result,
-    sequence_tracks,
-    set_track_view,
-    span_from_plotly_selection,
-):
-    _selected_span = span_from_plotly_selection(
-        analysis_result["length"],
-        {"range": sequence_tracks.ranges},
-    )
-    if sequence_tracks.value is not None and _selected_span is not None:
-        set_track_view(
-            {
-                "sequence_sha256": analysis_result["sequence_sha256"],
-                "span": list(_selected_span),
-            }
-        )
     return
 
 
