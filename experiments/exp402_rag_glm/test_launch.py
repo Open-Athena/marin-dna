@@ -21,6 +21,8 @@ from launch import (
     TOKENIZER_PATH,
     TOKENIZER_SHA256,
     TRAIN_BATCH_SIZE,
+    TRAIN_HOST_CPU,
+    TRAIN_HOST_RAM,
     TRAIN_REGIONS,
     TRAIN_STEPS,
     TRAIN_TPU,
@@ -38,6 +40,8 @@ def test_online_eval_is_the_pinned_mendelian_rag_task() -> None:
     assert TRAIN_STEPS // RAG_EVAL_EVERY == 7
     assert TRAIN_TPU == ("v6e-4", "v5p-8")
     assert TRAIN_REGIONS == ("us-east5",)
+    assert TRAIN_HOST_CPU == 16
+    assert TRAIN_HOST_RAM == "64g"
 
 
 def test_model_is_the_46m_rung_at_full_document_length() -> None:

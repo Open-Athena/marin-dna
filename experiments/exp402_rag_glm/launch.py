@@ -45,6 +45,8 @@ ACTUAL_TOKENS = TRAIN_STEPS * TRAIN_BATCH_SIZE * SEQ_LEN
 RAG_EVAL_EVERY = 1_000
 TRAIN_TPU = ("v6e-4", "v5p-8")
 TRAIN_REGIONS = ("us-east5",)
+TRAIN_HOST_CPU = 16
+TRAIN_HOST_RAM = "64g"
 
 DATASET_ARTIFACT_VERSION = "2026.07.24"
 CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-1b"
@@ -189,6 +191,8 @@ def build() -> ArtifactStep:
         evals=EvalSuite(tasks=(MENDELIAN_TRAITS_RAG_255,), every=RAG_EVAL_EVERY),
         resources=ResourceConfig.with_tpu(
             TRAIN_TPU,
+            cpu=TRAIN_HOST_CPU,
+            ram=TRAIN_HOST_RAM,
             disk="100g",
             regions=TRAIN_REGIONS,
         ),
