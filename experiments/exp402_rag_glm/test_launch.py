@@ -36,8 +36,8 @@ def test_online_eval_is_the_pinned_mendelian_rag_task() -> None:
     assert MENDELIAN_TRAITS_RAG_255.num_fewshot == 0
     assert RAG_EVAL_EVERY == 1_000
     assert TRAIN_STEPS // RAG_EVAL_EVERY == 7
-    assert TRAIN_TPU == "v6e-4"
-    assert TRAIN_REGIONS == ("us-east5", "europe-west4")
+    assert TRAIN_TPU == ("v6e-4", "v5p-8")
+    assert TRAIN_REGIONS == ("us-east5",)
 
 
 def test_model_is_the_46m_rung_at_full_document_length() -> None:
