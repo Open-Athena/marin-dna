@@ -1,0 +1,63 @@
+name: dna-exp402-rag-mendelian-harness
+
+resources:
+  infra: aws/us-east-2
+  instance_type: r6i.4xlarge
+  disk_size: 100
+  labels:
+    project: dna
+
+workdir: ../..
+
+file_mounts:
+  ~/.cache/huggingface/token: ~/.cache/huggingface/token
+
+envs:
+  COMMIT_SHA: ""
+  SNAKEMAKE_TARGET: "results/mendelian/upload.done/evals_mendelian_traits_rag_harness_255_v1"
+
+setup: |
+  set -euxo pipefail
+
+  if ! command -v uv >/dev/null 2>&1; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  uv sync
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  cd snakemake/rag_glm
+
+  test -n "$COMMIT_SHA"
+
+  uv run snakemake --profile workflow/profiles/default \
+      --config "commit_sha=$COMMIT_SHA" \
+      --allowed-rules build_mendelian_projection_mapping \
+          mendelian_extraction_bed extract_mendelian_orthologs \
+          attach_mendelian_orthologs build_mendelian_rag_harness \
+          upload_mendelian_rag_harness \
+      --printshellcmds \
+      -n "$SNAKEMAKE_TARGET"
+
+  uv run snakemake --profile workflow/profiles/default \
+      --config "commit_sha=$COMMIT_SHA" \
+      --allowed-rules build_mendelian_projection_mapping \
+          mendelian_extraction_bed extract_mendelian_orthologs \
+          attach_mendelian_orthologs build_mendelian_rag_harness \
+          upload_mendelian_rag_harness \
+      --printshellcmds \
+      --rerun-incomplete \
+      "$SNAKEMAKE_TARGET"
+
+  uv run python -c "
+  import boto3
+  import sys
+
+  boto3.client('s3').download_fileobj(
+      'oa-bolinas',
+      'snakemake/rag_glm/results/mendelian/dataset/evals_mendelian_traits_rag_harness_255_v1/manifest.json',
+      sys.stdout.buffer,
+  )
+  "

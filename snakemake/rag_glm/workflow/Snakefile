@@ -12,6 +12,19 @@ TRAINING_SHARDS = [
     for index in range(N_TRAINING_SHARDS)
 ]
 TRAINING_DATASET_DIR = "results/dataset/zoonomia-rag-v1-v1"
+NON_HUMAN_SPECIES = tuple(config["species_order"][:-1])
+MENDELIAN_WORK_DIR = "results/mendelian"
+MENDELIAN_DATASET_DIR = (
+    f"{MENDELIAN_WORK_DIR}/dataset/evals_mendelian_traits_rag_harness_255_v1"
+)
+MENDELIAN_INTERVALS = expand(
+    f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
+    species=NON_HUMAN_SPECIES,
+)
+MENDELIAN_SEQUENCES = expand(
+    f"{MENDELIAN_WORK_DIR}/sequences/{{species}}.parquet",
+    species=NON_HUMAN_SPECIES,
+)
 COMMIT_SHA = str(config.get("commit_sha") or os.environ.get("COMMIT_SHA") or "")
 
 
@@ -99,6 +112,163 @@ rule upload_training_dataset:
         repo=config["hf_training_repo"],
         dataset_dir=TRAINING_DATASET_DIR,
         local_dataset_dir=f".snakemake/storage/s3/oa-bolinas/snakemake/rag_glm/{TRAINING_DATASET_DIR}",
+    shell:
+        """
+        test -d {params.local_dataset_dir}
+        hf upload-large-folder {params.repo} --repo-type dataset {params.local_dataset_dir}
+        mkdir -p $(dirname {output})
+        touch {output}
+        """
+
+
+rule build_mendelian_projection_mapping:
+    """Map arbitrary SNVs through containing immutable projection anchors."""
+    output:
+        mapping=f"{MENDELIAN_WORK_DIR}/mapping/variants.parquet",
+        intervals=MENDELIAN_INTERVALS,
+        audit=f"{MENDELIAN_WORK_DIR}/mapping/audit.json",
+    threads: 2
+    resources:
+        mem_mb=64000,
+    params:
+        source_harness_urls=tuple(config["source_mendelian_harness"].values()),
+        projection_parquet=config["upstream_projection_parquet"],
+        interval_paths={
+            species: f"{MENDELIAN_WORK_DIR}/mapping/intervals/{species}.parquet"
+            for species in NON_HUMAN_SPECIES
+        },
+        species_order=tuple(config["species_order"]),
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            build_mendelian_projection_mapping,
+        )
+
+        build_mendelian_projection_mapping(
+            source_harness_urls=params.source_harness_urls,
+            projection_parquet=params.projection_parquet,
+            mapping_path=output.mapping,
+            interval_paths=params.interval_paths,
+            audit_path=output.audit,
+            species_order=params.species_order,
+        )
+
+
+rule mendelian_extraction_bed:
+    """Write one row-aligned BED per non-human species."""
+    input:
+        f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
+    output:
+        local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.bed"),
+    threads: 1
+    resources:
+        mem_mb=1000,
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            write_extraction_bed,
+        )
+
+        write_extraction_bed(input[0], output[0])
+
+
+rule extract_mendelian_orthologs:
+    """Extract centered target windows from archived species 2bit genomes."""
+    input:
+        twobit=lambda wc: storage(
+            f"{config['upstream_species_twobit_prefix']}/{wc.species}.2bit"
+        ),
+        bed=local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.bed"),
+    output:
+        local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.fa"),
+    conda:
+        "envs/bioinformatics.yaml"
+    threads: 1
+    resources:
+        mem_mb=2000,
+    shell:
+        "twoBitToFa {input.twobit} {output} -bed={input.bed} -bedPos"
+
+
+rule attach_mendelian_orthologs:
+    """Normalize extracted target windows to the human-anchor orientation."""
+    input:
+        intervals=f"{MENDELIAN_WORK_DIR}/mapping/intervals/{{species}}.parquet",
+        fasta=local(f"{MENDELIAN_WORK_DIR}/extraction/{{species}}.fa"),
+    output:
+        f"{MENDELIAN_WORK_DIR}/sequences/{{species}}.parquet",
+    threads: 1
+    resources:
+        mem_mb=2000,
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            attach_extracted_ortholog_sequences,
+        )
+
+        attach_extracted_ortholog_sequences(
+            input.intervals,
+            input.fasta,
+            output[0],
+        )
+
+
+rule build_mendelian_rag_harness:
+    """Assemble the one-row-per-variant-per-strand frozen RAG harness."""
+    input:
+        mapping=f"{MENDELIAN_WORK_DIR}/mapping/variants.parquet",
+        sequences=MENDELIAN_SEQUENCES,
+    output:
+        train=f"{MENDELIAN_DATASET_DIR}/train.parquet",
+        test=f"{MENDELIAN_DATASET_DIR}/test.parquet",
+        manifest=f"{MENDELIAN_DATASET_DIR}/manifest.json",
+        readme=f"{MENDELIAN_DATASET_DIR}/README.md",
+    threads: 2
+    resources:
+        mem_mb=32000,
+    params:
+        source_harness_urls=dict(config["source_mendelian_harness"]),
+        species_sequence_paths={
+            species: f"{MENDELIAN_WORK_DIR}/sequences/{species}.parquet"
+            for species in NON_HUMAN_SPECIES
+        },
+        output_split_paths={
+            "train": f"{MENDELIAN_DATASET_DIR}/train.parquet",
+            "test": f"{MENDELIAN_DATASET_DIR}/test.parquet",
+        },
+        commit_sha=COMMIT_SHA,
+        hf_repo=config["hf_mendelian_repo"],
+        species_order=tuple(config["species_order"]),
+    run:
+        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+            materialize_mendelian_rag_harness,
+        )
+
+        materialize_mendelian_rag_harness(
+            source_harness_urls=params.source_harness_urls,
+            mapping_path=input.mapping,
+            species_sequence_paths=params.species_sequence_paths,
+            output_split_paths=params.output_split_paths,
+            manifest_path=output.manifest,
+            readme_path=output.readme,
+            commit_sha=params.commit_sha,
+            hf_repo=params.hf_repo,
+            species_order=params.species_order,
+        )
+
+
+rule upload_mendelian_rag_harness:
+    """Upload the reviewed, fully materialized RAG evaluation harness."""
+    input:
+        rules.build_mendelian_rag_harness.output,
+    output:
+        touch(
+            f"{MENDELIAN_WORK_DIR}/upload.done/evals_mendelian_traits_rag_harness_255_v1"
+        ),
+    threads: 4
+    params:
+        repo=config["hf_mendelian_repo"],
+        local_dataset_dir=(
+            ".snakemake/storage/s3/oa-bolinas/snakemake/rag_glm/"
+            f"{MENDELIAN_DATASET_DIR}"
+        ),
     shell:
         """
         test -d {params.local_dataset_dir}

@@ -82,3 +82,37 @@ sky down dna-exp402-data
 The launch performs a dry-run first. It must show only
 `build_training_dataset` and `upload_training_dataset`; any upstream projection
 rule is an error and must stop the run.
+
+## Mendelian RAG harness
+
+The evaluation build preserves the pinned 255-base Mendelian harness splits
+and derives non-human windows without new lift-over. Mendelian `pos` is
+1-based at the source boundary; all coordinates introduced by this pipeline
+are 0-based, half-open.
+
+Variant-centered windows are not direct keys in the conserved projection. The
+build chooses the containing 255-base conserved human anchor whose center is
+closest to the SNV (ties by source start and anchor ID), propagates the
+variant's anchor offset through each existing strand-aware projected interval,
+and extracts a centered window from the archived species 2bit genome. A
+variant/species without a valid containing projection receives `N × 255`.
+
+The output has one row per variant per strand with all seven non-human
+sequences, fixed-slot audit metadata, `context`, `ref_completion`, and
+`alt_completion` already materialized. Scoring therefore requires only the
+pinned HF dataset and a model checkpoint.
+
+Build and upload on SkyPilot (the task dry-runs before execution and permits
+only the six additive harness rules):
+
+```bash
+COMMIT_SHA=$(git rev-parse HEAD)
+sky launch -c dna-exp402-mendelian sky/mendelian.yaml \
+  --env COMMIT_SHA="$COMMIT_SHA"
+sky logs dna-exp402-mendelian
+sky down dna-exp402-mendelian
+```
+
+Outputs are stored under `results/mendelian/` in the existing RAG S3
+namespace and uploaded to
+`bolinas-dna/evals_mendelian_traits_rag_harness_255_v1`.
