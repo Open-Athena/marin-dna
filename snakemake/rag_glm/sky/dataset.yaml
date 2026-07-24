@@ -10,7 +10,7 @@ resources:
 workdir: ../..
 
 file_mounts:
-  ~/.cache/huggingface: ~/.cache/huggingface
+  ~/.cache/huggingface/token: ~/.cache/huggingface/token
 
 envs:
   COMMIT_SHA: ""
