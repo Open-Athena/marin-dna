@@ -427,7 +427,7 @@ def sequence_tracks_figure(
     )
     figure.update_yaxes(
         title="Sequence position (0-based)",
-        range=shared_range,
+        range=[shared_range[1], shared_range[0]],
         domain=dependency_domain,
         matches="x3",
         constrain="domain",

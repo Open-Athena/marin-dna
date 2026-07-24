@@ -95,7 +95,7 @@ def test_sequence_tracks_are_aligned_and_raw_dna_drives_square_zoom():
     assert figure.layout.xaxis.matches == "x3"
     assert figure.layout.xaxis2.matches == "x3"
     assert figure.layout.yaxis3.matches == "x3"
-    assert figure.layout.yaxis3.range == (-0.5, 2.5)
+    assert figure.layout.yaxis3.range == (2.5, -0.5)
     assert figure.layout.yaxis.fixedrange
     assert figure.layout.yaxis2.fixedrange
 
