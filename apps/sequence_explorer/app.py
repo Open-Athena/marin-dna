@@ -36,7 +36,7 @@ def _():
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    SOURCE_REVISION = "eda6a3da470fa8aff7af1b5c4cac96f811311499"
+    SOURCE_REVISION = "ed77f96ae82a3effcd1f004d756b1773a79b444d"
     _revision_marker = os.path.join(sys.prefix, ".marin_dna-source-revision")
     try:
         with open(_revision_marker, encoding="utf-8") as _marker_file:
