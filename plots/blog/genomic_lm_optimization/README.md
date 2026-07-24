@@ -14,13 +14,6 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 
 Outputs are written to `plots/output/blog/genomic_lm_optimization/` as SVG, PNG, and PDF. Figure 11 also writes its Kaplan-fit report there. Outputs are deterministic at the preserved dependency lock and SVG trailing whitespace is normalized.
 
-Figures 15 and 16 fetch training histories from the `eric-czech/marin` WandB project:
-
-```bash
-uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/figures/figure7_loss_vs_traitgym_curves.py
-uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/figures/figure8_loss_vs_traitgym_correlation.py
-```
-
 After inspecting generated SVGs and PNGs, copy only approved assets into the blog with the explicit sync command:
 
 ```bash
@@ -53,13 +46,11 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 | 12 | `figure5_params_vs_vep_auprc.svg` | `src/figures/figure5_params_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 13 | `figure6_loss_vs_vep_auprc.svg` | `src/figures/figure6_loss_vs_vep_auprc.py` | Scaling snapshot; paired endpoint predictions on S3 |
 | 14 | `figure6b_marin_evo2_missense.svg` | `src/figures/figure6b_marin_evo2_missense.py` | Paired MarinDNA endpoint predictions on S3; commit-pinned Evo 2 probe metrics |
-| 15 | `figure7_loss_vs_traitgym_curves.svg` | `src/figures/figure7_loss_vs_traitgym_curves.py` | WandB histories plus scaling snapshot |
-| 16 | `figure8_loss_vs_traitgym_correlation.svg` | `src/figures/figure8_loss_vs_traitgym_correlation.py` | WandB histories plus scaling snapshot |
-| 17 | `mini_fig9_mixture.svg` | Authored SVG; no plot recipe | Mixture continuation design |
-| 18 | `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data_mixture_results.csv` |
-| 19 | `mini_m5.1_lineage.svg` | Authored SVG; no plot recipe | m5.1 lineage |
-| 20 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
-| 21 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
+| 15 | `mini_fig9_mixture.svg` | Authored SVG; no plot recipe | Mixture continuation design |
+| 16 | `figure9_upstream_mix_auprc.svg` | `src/figures/figure9_upstream_mix_auprc.py` | `data_mixture_results.csv` |
+| 17 | `mini_m5.1_lineage.svg` | Authored SVG; no plot recipe | m5.1 lineage |
+| 18 | `figure10_lineage_vep_trajectory.svg` | `src/figures/figure10_lineage_vep_trajectory.py` | Mixture result and history CSVs |
+| 19 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
 
 Paths beginning with `src/` and CSV names in this table are relative to this directory.
 

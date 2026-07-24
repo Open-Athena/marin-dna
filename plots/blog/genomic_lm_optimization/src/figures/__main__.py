@@ -27,8 +27,6 @@ from figures.figure5_params_vs_vep_auprc import (  # noqa: E402
 from figures.figure6_loss_vs_vep_auprc import build as figure6  # noqa: E402
 from figures.figure6b_marin_evo2_missense import build as figure6b  # noqa: E402
 
-# Figures 7 & 8 (loss_vs_traitgym_curves / _correlation) are wandb-fed standalone
-# scripts — run separately, not part of this shared build.
 from figures.figure9_upstream_mix_auprc import build as figure9  # noqa: E402
 from figures.figure10_lineage_vep_trajectory import build as figure10  # noqa: E402
 from figures.figure11_leaderboard_heatmap import build as figure11  # noqa: E402

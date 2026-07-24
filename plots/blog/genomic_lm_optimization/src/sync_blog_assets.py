@@ -14,8 +14,6 @@ ASSET_NAMES = (
     "figure5_params_vs_vep_auprc",
     "figure6_loss_vs_vep_auprc",
     "figure6b_marin_evo2_missense",
-    "figure7_loss_vs_traitgym_curves",
-    "figure8_loss_vs_traitgym_correlation",
     "figure9_upstream_mix_auprc",
     "figure10_lineage_vep_trajectory",
     "figure11_leaderboard_heatmap",

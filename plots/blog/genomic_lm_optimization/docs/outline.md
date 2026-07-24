@@ -72,10 +72,6 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
   - Show `figure5_params_vs_vep_auprc`
 - Loss correlation is weak
   - Show `figure6_loss_vs_vep_auprc`
-- Notably, VEP performance degrades at the largest model scales with more tokens
-  - Show `figure7_loss_vs_traitgym_curves`
-- However, we can see that VEP performance scales more monotonically within a range of model sizes
-  - Show `figure8_loss_vs_traitgym_correlation`
 
  ## Mixture Experiments
 
