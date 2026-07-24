@@ -350,15 +350,15 @@ The result suggests that mid-flight improvement is possible, with the gain appea
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py -->
 <figure id="fig-mixture-lineage-trajectories">
-<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_llr_prototype.svg?v=offline-nine-panel-v5" alt="Nine-panel zero-shot Mendelian AUPRC (%) trajectories along each mixture lineage" />
-<figcaption><strong>Figure 16:</strong> Zero-shot Mendelian AUPRC (%) vs training tokens for three model-mixture lineages.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_llr_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel zero-shot Mendelian pooled AUPRC (%) trajectories with error bars along each mixture lineage" />
+<figcaption><strong>Figure 16:</strong> Zero-shot Mendelian AUPRC (%) vs training tokens for three model-mixture lineages. Within each subset, this is global (pooled) AUPRC across variants; the macro panel is the unweighted mean across subsets. Error bars show ±1 SE from a matched-group cluster bootstrap.</figcaption>
 </figure>
 
 <details>
 <summary>Show the frozen-embedding linear-probe view</summary>
 <figure id="fig-mixture-lineage-probe">
-<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_probe_prototype.svg?v=offline-nine-panel-v5" alt="Nine-panel frozen-embedding linear-probe Mendelian AUPRC (%) trajectories along each mixture lineage" />
-<figcaption><strong>Figure 17:</strong> Frozen-embedding linear-probe Mendelian AUPRC (%) vs training tokens for three model-mixture lineages.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_probe_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel frozen-embedding linear-probe Mendelian chromosome-weighted AUPRC (%) trajectories with error bars along each mixture lineage" />
+<figcaption><strong>Figure 17:</strong> Frozen-embedding linear-probe Mendelian AUPRC (%) vs training tokens for three model-mixture lineages. Within each subset, this is the sample-size-weighted mean of per-chromosome AUPRCs; the macro panel is the unweighted mean across subsets. Error bars show ±1 SE from a chromosome-cluster bootstrap.</figcaption>
 </figure>
 </details>
 

@@ -9,9 +9,9 @@ Two nine-panel figures are emitted:
 * Mendelian zero-shot LLR
 * Mendelian frozen-embedding linear probe
 
-Raw observations are connected by straight segments. No kernel smoother is
-applied: the sparse, irregular checkpoint cadence does not support a smooth
-trajectory estimate.
+Raw observations are connected by straight segments and shown with the
+already-computed ±1 SE error bars. No kernel smoother is applied: the sparse,
+irregular checkpoint cadence does not support a smooth trajectory estimate.
 """
 
 from __future__ import annotations
@@ -83,10 +83,17 @@ PANELS: tuple[tuple[str, str], ...] = (
     ("non_coding_transcript_exon_variant", "ncRNA"),
 )
 ALL_SUBSETS = tuple(subset for subset, _label in PANELS)
+MACRO_SUBSET = "_macro_avg_"
+ALL_METRIC_SUBSETS = (*ALL_SUBSETS, MACRO_SUBSET)
 
 WORLD_CONFIG = {
-    "llr": ("metrics", "minus_llr_avg", "zero-shot LLR"),
-    "probe": ("probe_metrics", "probe_score", "frozen-embedding probe"),
+    "llr": ("metrics", "minus_llr_avg", "pooled AUPRC", "zero-shot LLR"),
+    "probe": (
+        "probe_metrics",
+        "probe_score",
+        "chromosome-weighted AUPRC",
+        "frozen-embedding probe",
+    ),
 }
 
 MACRO_ACCENT = "#59636e"
@@ -100,9 +107,11 @@ def _model_id(mix: str, step: int) -> str:
 
 
 @lru_cache(maxsize=None)
-def _read_checkpoint(kind: str, mix: str, step: int) -> dict[str, float]:
-    """Read one existing metric parquet and return its eight subset AUPRCs."""
-    result_kind, score_type, _label = WORLD_CONFIG[kind]
+def _read_checkpoint(
+    kind: str, mix: str, step: int
+) -> dict[str, tuple[float, float]]:
+    """Return stored ``(AUPRC, SE)`` values for the eight subsets and their macro."""
+    result_kind, score_type, _metric_label, _method_label = WORLD_CONFIG[kind]
     model_id = _model_id(mix, step)
     path = f"{RESULTS_ROOT}/{result_kind}/{model_id}/mendelian_traits.parquet"
     data = (
@@ -110,17 +119,23 @@ def _read_checkpoint(kind: str, mix: str, step: int) -> dict[str, float]:
         .filter(
             (pl.col("score_type") == score_type)
             & (pl.col("split") == "train")
-            & pl.col("subset").is_in(ALL_SUBSETS)
+            & pl.col("subset").is_in(ALL_METRIC_SUBSETS)
         )
-        .select("subset", "value")
+        .select("subset", "value", "se")
     )
-    assert data.height == len(ALL_SUBSETS), (
-        f"{model_id}/{kind}: expected {len(ALL_SUBSETS)} subsets, got {data.height}"
+    assert data.height == len(ALL_METRIC_SUBSETS), (
+        f"{model_id}/{kind}: expected {len(ALL_METRIC_SUBSETS)} metric rows, "
+        f"got {data.height}"
     )
-    assert data["subset"].n_unique() == len(ALL_SUBSETS)
+    assert data["subset"].n_unique() == len(ALL_METRIC_SUBSETS)
     assert data["value"].is_not_null().all()
+    assert data["se"].is_not_null().all()
     assert data["value"].is_between(0, 1, closed="both").all()
-    return dict(zip(data["subset"].to_list(), data["value"].to_list(), strict=True))
+    assert data["se"].is_between(0, 1, closed="both").all()
+    return {
+        subset: (float(value), float(se))
+        for subset, value, se in data.iter_rows()
+    }
 
 
 def _chain(leaf: str) -> list[str]:
@@ -142,15 +157,16 @@ def _phase_start_step(mix: str, results: pd.DataFrame) -> float:
 def _composed_curve(
     kind: str,
     leaf: str,
-    subsets: tuple[str, ...],
+    subset: str,
     results: pd.DataFrame,
     own_tokens: dict[str, float],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compose existing offline checkpoints on the cumulative-token axis."""
     chain = _chain(leaf)
     offsets = [sum(ml.inherited_components(mix, own_tokens).values()) for mix in chain]
     tokens: list[float] = []
     values: list[float] = []
+    ses: list[float] = []
 
     for phase_index, mix in enumerate(chain):
         start = _phase_start_step(mix, results)
@@ -171,15 +187,15 @@ def _composed_curve(
             cumulative_tokens = offsets[phase_index] + (step - start) * TOKENS_PER_STEP
             if cumulative_tokens > cutoff:
                 continue
-            by_subset = _read_checkpoint(kind, mix, step)
-            subset_values = [by_subset[subset] for subset in subsets]
-            assert len(subset_values) == len(subsets)
+            value, se = _read_checkpoint(kind, mix, step)[subset]
             tokens.append(cumulative_tokens)
-            values.append(float(np.mean(subset_values)))
+            values.append(value)
+            ses.append(se)
 
     order = np.argsort(tokens)
     result_tokens = np.asarray(tokens)[order]
     result_values = np.asarray(values)[order]
+    result_ses = np.asarray(ses)[order]
     expected_checkpoints = 8 if leaf == "exp135-zoonomia-m5.1" else 9
     assert len(result_tokens) == expected_checkpoints, (
         f"{kind}/{leaf}: expected {expected_checkpoints} on-path checkpoints, "
@@ -188,30 +204,34 @@ def _composed_curve(
     assert np.all(np.diff(result_tokens) > 0), (
         f"{kind}/{leaf}: token order is not strict"
     )
-    return result_tokens, result_values
+    return result_tokens, result_values, result_ses
 
 
 def _draw_panel(
     ax: plt.Axes,
     *,
     kind: str,
-    subsets: tuple[str, ...],
+    subset: str,
     results: pd.DataFrame,
     own_tokens: dict[str, float],
     token_cutoff: float,
 ) -> None:
-    """Draw raw offline checkpoints connected by straight segments."""
+    """Draw raw offline checkpoints with capless ±1 SE bars."""
     for leaf, _label, color, marker in LINEAGES:
-        tokens, values = _composed_curve(kind, leaf, subsets, results, own_tokens)
+        tokens, values, ses = _composed_curve(
+            kind, leaf, subset, results, own_tokens
+        )
         if leaf != "exp135-zoonomia-m5.1":
             keep = tokens <= token_cutoff
             if keep.any() and not keep.all():
                 keep[np.argmax(~keep)] = True
             tokens = tokens[keep]
             values = values[keep]
-        ax.plot(
+            ses = ses[keep]
+        ax.errorbar(
             tokens / 1e9,
             values * 100.0,
+            yerr=ses * 100.0,
             color=color,
             linewidth=1.2,
             marker=marker,
@@ -219,6 +239,9 @@ def _draw_panel(
             markerfacecolor=color,
             markeredgecolor="white",
             markeredgewidth=0.35,
+            ecolor=color,
+            elinewidth=0.65,
+            capsize=0,
             alpha=0.9,
             zorder=3,
         )
@@ -275,10 +298,10 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
     results = results_df.set_index("mix")
     own_tokens = {mix: float(results.loc[mix, "tokens"]) for mix in results.index}
 
-    m5_tokens, _m5_values = _composed_curve(
+    m5_tokens, _m5_values, _m5_ses = _composed_curve(
         kind,
         "exp135-zoonomia-m5.1",
-        ALL_SUBSETS,
+        MACRO_SUBSET,
         results,
         own_tokens,
     )
@@ -293,10 +316,10 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         / 1e9
     )
 
-    grid_panels: list[tuple[tuple[str, ...], str, bool]] = [
-        (ALL_SUBSETS, "macro average", True)
+    grid_panels: list[tuple[str, str, bool]] = [
+        (MACRO_SUBSET, "macro average", True)
     ]
-    grid_panels.extend(((subset,), label, False) for subset, label in PANELS)
+    grid_panels.extend((subset, label, False) for subset, label in PANELS)
 
     fig, axes = plt.subplots(
         3,
@@ -313,11 +336,11 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         hspace=0.16,
     )
 
-    for ax, (subsets, title, is_macro) in zip(axes.flat, grid_panels, strict=True):
+    for ax, (subset, title, is_macro) in zip(axes.flat, grid_panels, strict=True):
         _draw_panel(
             ax,
             kind=kind,
-            subsets=subsets,
+            subset=subset,
             results=results,
             own_tokens=own_tokens,
             token_cutoff=token_cutoff,
@@ -378,9 +401,9 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
     for ax in axes[:, 0]:
         ax.set_ylabel("AUPRC (%)", fontsize=11)
 
-    _result_kind, _score_type, world_label = WORLD_CONFIG[kind]
+    _result_kind, _score_type, metric_label, method_label = WORLD_CONFIG[kind]
     fig.suptitle(
-        f"Mendelian AUPRC by mixture strategy · {world_label}",
+        f"Mendelian {metric_label} by mixture strategy · {method_label}",
         fontsize=13,
         y=0.985,
     )
