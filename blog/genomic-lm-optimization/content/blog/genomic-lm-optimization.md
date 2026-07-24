@@ -306,8 +306,8 @@ The relationship between validation loss and VEP performance is much less tidy. 
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py -->
 <figure id="fig-parameters-vs-vep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" />
-<figcaption><strong>Figure 12:</strong> Composite VEP AUPRC vs parameter count.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Chromosome-weighted AUPRC versus model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figcaption><strong>Figure 12:</strong> Chromosome-weighted AUPRC across the parameter-scaling ladder, comparing zero-shot LLR with a frozen-embedding linear probe on identical variants. Facet y-scales vary independently; error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py -->

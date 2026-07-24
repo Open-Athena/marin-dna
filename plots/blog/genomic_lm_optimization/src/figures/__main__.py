@@ -53,7 +53,7 @@ def main() -> None:
     figure2(transfer_df, transfer_palette, transfer_params)
     figure3(transfer_df, transfer_palette, transfer_params)
     figure4(scaling_history, scaling_results, scaling_palette)
-    figure5(scaling_results)
+    figure5()
     figure6(scaling_results, scaling_palette)
     figure9(mixture_df)
     figure10(mixture_df, mixture_history_df)
