@@ -5,8 +5,11 @@ This directory contains the molab-hosted marimo application for
 It runs the pinned public model
 [`bolinas-dna/marin-dna-exp135-m5.1`](https://huggingface.co/bolinas-dna/marin-dna-exp135-m5.1)
 at revision `c0676b2012b8b9c526deb26ff517f6b92b6d375d`.
-The application code and installed `marin_dna` package are pinned to Git commit
-`77295aa492e3fdb6ffc890ac978c486a2d60593c`.
+The hosted notebook reports and installs the tested application implementation
+at Git commit `04f44dbd9b5a5bc4cc172f4caf925d548d4bf911`.
+
+Public app:
+https://molab.marimo.io/notebooks/nb_NVBA22c11zoZkSDoysi5bR/app
 
 The marimo notebook is intentionally thin. Sequence validation, the
 forward/reverse-complement probability logo, the categorical-Jacobian
@@ -65,10 +68,9 @@ seconds. Do not enable CPU fallback or change the dependency method.
 
 ## Privacy
 
-molab's terms prohibit sensitive data. The interface tells users to submit only
-public reference, synthetic, or otherwise non-sensitive sequences. Submitted
-sequences and matrices remain in session memory; the application does not add
-persistent caching, analytics, or sequence logging.
+molab's terms prohibit sensitive data. Submitted sequences and matrices remain
+in session memory; the application does not add persistent caching, analytics,
+or sequence logging.
 
 ## Local checks
 
