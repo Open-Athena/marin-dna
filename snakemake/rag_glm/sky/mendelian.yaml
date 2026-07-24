@@ -7,7 +7,7 @@ resources:
   labels:
     project: dna
 
-workdir: ../..
+workdir: .
 
 file_mounts:
   ~/.cache/huggingface/token: ~/.cache/huggingface/token
@@ -33,7 +33,7 @@ setup: |
       rm /tmp/cactus.tar.gz
   fi
 
-  uv sync
+  uv sync --project "$HOME/sky_workdir"
 
 run: |
   set -euxo pipefail
