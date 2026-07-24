@@ -35,7 +35,7 @@ def _():
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    SOURCE_REVISION = "77295aa492e3fdb6ffc890ac978c486a2d60593c"
+    SOURCE_REVISION = "c1d209f1e370bed6128f5bc69aa5a1812f1b6b56"
     if importlib.util.find_spec("marin_dna") is None:
         _uv = shutil.which("uv")
         if _uv is None:
