@@ -37,7 +37,16 @@ def _():
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     SOURCE_REVISION = "1c22b21e28cf5506babf077758a365fdf9d5cf70"
-    if importlib.util.find_spec("marin_dna") is None:
+    _revision_marker = os.path.join(sys.prefix, ".marin_dna-source-revision")
+    try:
+        with open(_revision_marker, encoding="utf-8") as _marker_file:
+            _installed_revision = _marker_file.read().strip()
+    except OSError:
+        _installed_revision = None
+    if (
+        importlib.util.find_spec("marin_dna") is None
+        or _installed_revision != SOURCE_REVISION
+    ):
         _uv = shutil.which("uv")
         if _uv is None:
             raise RuntimeError(
@@ -52,10 +61,13 @@ def _():
                 "--python",
                 sys.executable,
                 "--no-deps",
+                "--reinstall",
                 f"git+https://github.com/Open-Athena/marin-dna.git@{SOURCE_REVISION}",
             ],
             check=True,
         )
+        with open(_revision_marker, "w", encoding="utf-8") as _marker_file:
+            _marker_file.write(SOURCE_REVISION)
         importlib.invalidate_caches()
     assert importlib.util.find_spec("marin_dna") is not None, (
         "the pinned MarinDNA source package was not installed"

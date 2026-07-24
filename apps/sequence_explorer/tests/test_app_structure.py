@@ -17,6 +17,8 @@ def test_marimo_app_builds_without_loading_the_model(monkeypatch):
     assert source.count("1c22b21e28cf5506babf077758a365fdf9d5cf70") == 1
     assert '"jaxtyping==0.3.9"' in source
     assert '"--no-deps"' in source
+    assert '"--reinstall"' in source
+    assert ".marin_dna-source-revision" in source
     assert "marin-dna @ git+" not in source
     assert "cyvcf2" not in source
     assert "PROGRESSIVE_MIN_LENGTH = (" in source
