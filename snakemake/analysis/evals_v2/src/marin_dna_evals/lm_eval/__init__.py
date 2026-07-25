@@ -129,6 +129,31 @@ def _install_levanter_rename_patch() -> None:
     LmEvalHarnessConfig._marin_dna_rename_patched = True
 
 
+def _install_get_task_dict_trace() -> None:
+    """Expose the first lm-eval loader traceback hidden by Levanter retries."""
+    try:
+        import lm_eval.tasks as lm_eval_tasks
+    except ImportError:
+        return
+
+    original_get_task_dict = lm_eval_tasks.get_task_dict
+    if getattr(original_get_task_dict, "_marin_dna_trace_patched", False):
+        return
+
+    @wraps(original_get_task_dict)
+    def patched_get_task_dict(*args, **kwargs):
+        try:
+            return original_get_task_dict(*args, **kwargs)
+        except Exception:
+            _logger.exception(
+                "lm_eval.tasks.get_task_dict failed before Levanter retry"
+            )
+            raise
+
+    patched_get_task_dict._marin_dna_trace_patched = True
+    lm_eval_tasks.get_task_dict = patched_get_task_dict
+
+
 def _prepend_bos(ids: list[list[int]], bos_token_id: int | None) -> list[list[int]]:
     """Prepend ``bos_token_id`` to each token sequence (idempotent).
 
@@ -172,4 +197,5 @@ def _install_bos_fix() -> None:
 _install_transformers5_lm_eval_compat()
 _install_task_manager_patch()
 _install_levanter_rename_patch()
+_install_get_task_dict_trace()
 _install_bos_fix()

@@ -115,6 +115,16 @@ def test_levanter_rename_patch_marker_set():
     assert getattr(LmEvalHarnessConfig, "_marin_dna_rename_patched", False) is True
 
 
+def test_get_task_dict_trace_patch_is_idempotent():
+    import lm_eval.tasks as lm_eval_tasks
+    import marin_dna.pipelines.evals.lm_eval as pkg
+
+    before = lm_eval_tasks.get_task_dict
+    assert getattr(before, "_marin_dna_trace_patched", False) is True
+    pkg._install_get_task_dict_trace()
+    assert lm_eval_tasks.get_task_dict is before
+
+
 # --- [BOS] fix (#257 root cause; stopgap #263; durable fix #264) -------------
 
 
