@@ -46,6 +46,54 @@ def test_encode_rag_batch_has_exact_fixed_geometry() -> None:
     assert ref.shape == alt.shape == (2, 128)
     assert nucleotide_token_ids(tokenizer).unique().numel() == 4
     assert torch.equal(ref[:, 1:], alt[:, 1:])
+    boundary_id = tokenizer.convert_tokens_to_ids("[SEQ]")
+    for row in prefix:
+        assert torch.nonzero(row == boundary_id).flatten().tolist() == [
+            256,
+            512,
+            768,
+            1024,
+            1280,
+            1536,
+            1792,
+        ]
+    assert bool((prefix[:, 0] == tokenizer.bos_token_id).all())
+
+
+@pytest.mark.parametrize(
+    ("mutated_position", "replacement", "message"),
+    [
+        (0, 4, "BOS"),
+        (512, 4, "SEQ"),
+        (1_793, 1, "human"),
+    ],
+)
+def test_encode_rag_batch_rejects_special_or_human_token_corruption(
+    monkeypatch, mutated_position: int, replacement: int, message: str
+) -> None:
+    tokenizer = create_rag_char_tokenizer()
+    original_call = type(tokenizer).__call__
+    calls = 0
+
+    def corrupt(self, *args, **kwargs):
+        nonlocal calls
+        encoded = original_call(self, *args, **kwargs)
+        if calls == 0:
+            encoded["input_ids"][:, mutated_position] = replacement
+        calls += 1
+        return encoded
+
+    # Special methods are looked up on the class, so wrap the class call instead.
+    monkeypatch.setattr(type(tokenizer), "__call__", corrupt)
+    rows = pl.DataFrame(
+        {
+            "context": [_context()],
+            "ref_completion": ["A" + "C" * 127],
+            "alt_completion": ["G" + "C" * 127],
+        }
+    )
+    with pytest.raises(AssertionError, match=message):
+        encode_rag_batch(tokenizer, rows)
 
 
 def test_select_paired_rag_rows_preserves_complete_strand_pairs() -> None:

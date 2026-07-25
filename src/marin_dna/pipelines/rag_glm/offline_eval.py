@@ -37,6 +37,7 @@ from marin_dna.pipelines.rag_glm.hf_scoring import (
     RAG_PREFIX_TOKENS,
     score_rag_completions_hf,
 )
+from marin_dna.pipelines.rag_glm.model_sanity import assert_rag_token_geometry
 
 RAGBenchmark = Literal["mendelian_traits", "complex_traits", "sge"]
 RAG_BENCHMARK_DATASETS: dict[RAGBenchmark, tuple[str, str]] = {
@@ -252,6 +253,17 @@ def encode_rag_batch(
     assert prefix.shape == (rows.height, RAG_PREFIX_TOKENS)
     assert ref.shape == (rows.height, RAG_COMPLETION_TOKENS)
     assert alt.shape == ref.shape
+    assert_rag_token_geometry(
+        prefix,
+        bos_token_id=tokenizer.bos_token_id,
+        boundary_token_id=tokenizer.convert_tokens_to_ids("[SEQ]"),
+        pad_token_id=tokenizer.pad_token_id,
+        unk_token_id=tokenizer.unk_token_id,
+        nucleotide_token_ids=nucleotide_token_ids(tokenizer).tolist(),
+    )
+    nucleotide_ids = nucleotide_token_ids(tokenizer)
+    assert bool(torch.isin(ref, nucleotide_ids).all())
+    assert bool(torch.isin(alt, nucleotide_ids).all())
     assert bool((ref[:, 1:] == alt[:, 1:]).all())
     assert bool((ref[:, 0] != alt[:, 0]).all())
     return prefix, ref, alt

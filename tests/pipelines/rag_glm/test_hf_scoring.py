@@ -149,6 +149,34 @@ def test_rejects_non_shared_downstream_completion() -> None:
         raise AssertionError("expected malformed paired completions to fail")
 
 
+def test_literal_human_only_cached_scores_match_naive() -> None:
+    nucleotide_ids = torch.tensor([4, 5, 6, 7])
+    prefix_tokens = 128
+    prefix = torch.cat(
+        [torch.tensor([[2]]), torch.full((1, prefix_tokens - 1), 4)], dim=1
+    )
+    ref = torch.full((1, RAG_COMPLETION_TOKENS), 5)
+    alt = ref.clone()
+    alt[:, 0] = 6
+    cached = score_rag_completions_hf(
+        _CountingCausalModel(),
+        prefix,
+        ref,
+        alt,
+        nucleotide_token_ids=nucleotide_ids,
+        expected_prefix_tokens=prefix_tokens,
+    )
+    naive = score_rag_completions_naive_hf(
+        _CountingCausalModel(),
+        prefix,
+        ref,
+        alt,
+        nucleotide_token_ids=nucleotide_ids,
+        expected_prefix_tokens=prefix_tokens,
+    )
+    torch.testing.assert_close(cached, naive, rtol=1e-4, atol=5e-5)
+
+
 def test_human_segment_embeddings_match_naive_full_forwards() -> None:
     torch.manual_seed(402)
     config = Qwen3Config(

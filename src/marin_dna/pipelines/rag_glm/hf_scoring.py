@@ -70,6 +70,7 @@ def score_rag_completions_hf(
     *,
     nucleotide_token_ids: Int[Tensor, " 4"],
     return_embeddings: bool = False,
+    expected_prefix_tokens: int = RAG_PREFIX_TOKENS,
 ) -> Float[Tensor, "B W"]:
     """Score paired RAG completions with one prefix forward per document.
 
@@ -86,7 +87,8 @@ def score_rag_completions_hf(
     assert ref_completion_ids.ndim == 2
     assert alt_completion_ids.ndim == 2
     batch_size, prefix_length = prefix_ids.shape
-    assert prefix_length == RAG_PREFIX_TOKENS
+    assert expected_prefix_tokens > 0
+    assert prefix_length == expected_prefix_tokens
     assert ref_completion_ids.shape == (batch_size, RAG_COMPLETION_TOKENS)
     assert alt_completion_ids.shape == ref_completion_ids.shape
     assert nucleotide_token_ids.shape == (4,)
@@ -97,7 +99,11 @@ def score_rag_completions_hf(
     assert bool((ref_completion_ids[:, 0] != alt_completion_ids[:, 0]).all()), (
         "reference and alternate alleles must differ"
     )
-    assert prefix_length + ref_completion_ids.shape[1] == RAG_DOCUMENT_TOKENS
+    assert prefix_length + ref_completion_ids.shape[1] <= RAG_DOCUMENT_TOKENS
+    if return_embeddings:
+        assert expected_prefix_tokens == RAG_PREFIX_TOKENS, (
+            "human-segment embeddings require the fixed 2,048-token geometry"
+        )
 
     device_nucleotides = nucleotide_token_ids.to(prefix_ids.device)
     _token_id_to_nucleotide_index(ref_completion_ids, device_nucleotides)
@@ -213,35 +219,36 @@ def score_rag_completions_naive_hf(
     alt_completion_ids: Int[Tensor, "B C"],
     *,
     nucleotide_token_ids: Int[Tensor, " 4"],
+    expected_prefix_tokens: int = RAG_PREFIX_TOKENS,
 ) -> Float[Tensor, "B 3"]:
     """Reference-score complete paired documents without a KV cache."""
     assert prefix_ids.ndim == 2
     batch_size, prefix_length = prefix_ids.shape
-    assert prefix_length == RAG_PREFIX_TOKENS
+    assert expected_prefix_tokens > 0
+    assert prefix_length == expected_prefix_tokens
     assert ref_completion_ids.shape == (batch_size, RAG_COMPLETION_TOKENS)
     assert alt_completion_ids.shape == ref_completion_ids.shape
     assert bool((ref_completion_ids[:, 1:] == alt_completion_ids[:, 1:]).all())
     assert bool((ref_completion_ids[:, 0] != alt_completion_ids[:, 0]).all())
 
     device_nucleotides = nucleotide_token_ids.to(prefix_ids.device)
-    completions = torch.stack(
-        [ref_completion_ids, alt_completion_ids], dim=1
-    ).flatten(0, 1)
-    documents = torch.cat(
-        [prefix_ids.repeat_interleave(2, dim=0), completions], dim=1
+    completions = torch.stack([ref_completion_ids, alt_completion_ids], dim=1).flatten(
+        0, 1
     )
-    assert documents.shape == (batch_size * 2, RAG_DOCUMENT_TOKENS)
+    documents = torch.cat([prefix_ids.repeat_interleave(2, dim=0), completions], dim=1)
+    document_tokens = expected_prefix_tokens + RAG_COMPLETION_TOKENS
+    assert document_tokens <= RAG_DOCUMENT_TOKENS
+    assert documents.shape == (batch_size * 2, document_tokens)
     logits = model(documents, use_cache=False).logits
-    nucleotide_logits = logits[
-        :, RAG_PREFIX_TOKENS - 1 : -1, device_nucleotides
-    ]
+    nucleotide_logits = logits[:, expected_prefix_tokens - 1 : -1, device_nucleotides]
     log_probs = F.log_softmax(nucleotide_logits.float(), dim=-1)
-    target_indices = _token_id_to_nucleotide_index(
-        completions, device_nucleotides
+    target_indices = _token_id_to_nucleotide_index(completions, device_nucleotides)
+    loglikelihoods = (
+        log_probs.gather(-1, target_indices.unsqueeze(-1))
+        .squeeze(-1)
+        .sum(dim=-1)
+        .unflatten(0, (batch_size, 2))
     )
-    loglikelihoods = log_probs.gather(
-        -1, target_indices.unsqueeze(-1)
-    ).squeeze(-1).sum(dim=-1).unflatten(0, (batch_size, 2))
     ref_loglikelihood = loglikelihoods[:, 0]
     alt_loglikelihood = loglikelihoods[:, 1]
     return torch.stack(
