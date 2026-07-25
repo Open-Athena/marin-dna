@@ -33,7 +33,7 @@ from launch import (
 
 
 def test_online_eval_is_the_pinned_mendelian_rag_task() -> None:
-    assert MARIN_DNA_REVISION == "571b9752891db2a800a05d456463ac9976b1b3e1"
+    assert MARIN_DNA_REVISION == "987178f22c22b082fbfde5602e7006c75a0b85a4"
     assert MENDELIAN_TRAITS_RAG_255.name == "mendelian_traits_rag_255"
     assert MENDELIAN_TRAITS_RAG_255.num_fewshot == 0
     assert RAG_EVAL_EVERY == 1_000
