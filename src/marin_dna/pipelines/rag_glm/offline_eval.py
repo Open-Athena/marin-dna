@@ -16,7 +16,8 @@ import numpy as np
 import polars as pl
 import torch
 from torch import Tensor
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from huggingface_hub import hf_hub_download
+from transformers import PreTrainedTokenizerFast
 
 from marin_dna.pipelines.evals.metrics import compute_auprc_metrics, compute_sge_metrics
 from marin_dna.pipelines.rag_glm.hf_scoring import (
@@ -110,31 +111,43 @@ def load_rag_tokenizer_hf(
     *,
     revision: str | None = None,
 ) -> Any:
-    """Load a RAG tokenizer across the Transformers 5 exporter/4 reader boundary.
+    """Load the fixed RAG tokenizer without version-specific exporter metadata.
 
-    Levanter currently exports tokenizer metadata with the Transformers 5-only
-    class name ``TokenizersBackend``. The serialized ``tokenizer.json`` itself
-    is the standard fast-tokenizer format, so Transformers 4 can load it
-    losslessly by selecting ``PreTrainedTokenizerFast`` explicitly.
+    Levanter currently emits a Transformers 5-only class name and special-token
+    schema in ``tokenizer_config.json``. The immutable ``tokenizer.json`` is
+    version-neutral, so reconstruct the experiment's known special-token
+    contract explicitly instead of interpreting incompatible metadata.
     """
-    kwargs: dict[str, object] = {"trust_remote_code": True}
-    if revision is not None:
-        kwargs["revision"] = revision
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path, **kwargs
+    model_path = Path(pretrained_model_name_or_path)
+    if model_path.exists():
+        assert model_path.is_dir()
+        tokenizer_file = model_path / "tokenizer.json"
+    else:
+        tokenizer_file = Path(
+            hf_hub_download(
+                repo_id=str(pretrained_model_name_or_path),
+                filename="tokenizer.json",
+                revision=revision,
+            )
         )
-    except ValueError as error:
-        if "Tokenizer class TokenizersBackend" not in str(error):
-            raise
-        tokenizer = PreTrainedTokenizerFast.from_pretrained(
-            pretrained_model_name_or_path, **kwargs
-        )
-    assert tokenizer.bos_token_id is not None
-    assert tokenizer.pad_token_id is not None
+    assert tokenizer_file.is_file()
+    tokenizer = PreTrainedTokenizerFast(
+        tokenizer_file=str(tokenizer_file),
+        bos_token="[BOS]",
+        cls_token="[BOS]",
+        pad_token="[PAD]",
+        unk_token="[UNK]",
+        additional_special_tokens=["[SEQ]"],
+        clean_up_tokenization_spaces=False,
+        model_max_length=2_048,
+    )
+    assert tokenizer.vocab_size == 8
+    assert tokenizer.pad_token_id == 0
+    assert tokenizer.unk_token_id == 1
+    assert tokenizer.bos_token_id == tokenizer.cls_token_id == 2
     assert tokenizer.eos_token_id is None
-    assert tokenizer.convert_tokens_to_ids("[SEQ]") != tokenizer.unk_token_id
-    assert nucleotide_token_ids(tokenizer).unique().numel() == 4
+    assert tokenizer.convert_tokens_to_ids("[SEQ]") == 3
+    assert nucleotide_token_ids(tokenizer).tolist() == [4, 5, 6, 7]
     return tokenizer
 
 

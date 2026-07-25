@@ -83,6 +83,7 @@ def test_load_transformers_5_exported_tokenizer_with_transformers_4(tmp_path) ->
     config_path = tmp_path / "tokenizer_config.json"
     config = json.loads(config_path.read_text())
     config["tokenizer_class"] = "TokenizersBackend"
+    config["extra_special_tokens"] = ["[SEQ]"]
     config_path.write_text(json.dumps(config))
 
     loaded = load_rag_tokenizer_hf(tmp_path)

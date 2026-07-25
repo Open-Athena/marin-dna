@@ -69,7 +69,7 @@ run: |
   test -s "$CHECKPOINT_DIR/tokenizer.json"
 
   for BENCHMARK in mendelian_traits complex_traits sge; do
-    uv run python scripts/issue402_score_rag_hf.py \
+    uv run --no-dev python scripts/issue402_score_rag_hf.py \
       --benchmark "$BENCHMARK" \
       --split test \
       --model "$CHECKPOINT_DIR" \
