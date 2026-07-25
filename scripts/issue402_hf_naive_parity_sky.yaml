@@ -1,0 +1,63 @@
+# SkyPilot task: compare the exported final issue #402 checkpoint's cached and
+# naive full-forward Hugging Face scores on one complete strand pair.
+
+name: dna-exp402-hf-naive-parity
+
+resources:
+  infra: aws/us-east-2
+  accelerators: A10G:1
+  disk_size: 100
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .
+
+envs:
+  CHECKPOINT_URI: ""
+  CODE_REVISION: ""
+
+file_mounts:
+  ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  if ! command -v gcloud >/dev/null 2>&1; then
+    curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+    bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+  fi
+  uv sync --frozen --no-dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+  export WANDB_DISABLED=true
+  test -n "$CHECKPOINT_URI"
+  test "${#CODE_REVISION}" -eq 40
+  nvidia-smi
+
+  CHECKPOINT_DIR="$HOME/issue402-hf-naive-checkpoint"
+  mkdir -p "$CHECKPOINT_DIR"
+  gcloud storage rsync "$CHECKPOINT_URI" "$CHECKPOINT_DIR" --recursive
+  test -s "$CHECKPOINT_DIR/config.json"
+  test -s "$CHECKPOINT_DIR/model.safetensors"
+  test -s "$CHECKPOINT_DIR/tokenizer.json"
+
+  uv run --no-dev python scripts/issue402_score_rag_hf.py \
+    --benchmark mendelian_traits \
+    --split train \
+    --max-rows 2 \
+    --verify-naive-only \
+    --model "$CHECKPOINT_DIR" \
+    --code-revision "$CODE_REVISION" \
+    --output-dir /tmp/issue402-hf-naive-unused \
+    --batch-size 2 \
+    --n-bootstrap 0 \
+    --device cuda

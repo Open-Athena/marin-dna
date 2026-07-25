@@ -13,6 +13,7 @@ from marin_dna.pipelines.rag_glm.hf_scoring import (
     RAG_HUMAN_POOL_START,
     RAG_PREFIX_TOKENS,
     score_rag_completions_hf,
+    score_rag_completions_naive_hf,
 )
 
 
@@ -98,6 +99,13 @@ def test_cached_scores_match_naive_and_prefix_runs_once() -> None:
         alt,
         nucleotide_token_ids=nucleotide_ids,
     )
+    naive_paired = score_rag_completions_naive_hf(
+        _CountingCausalModel(),
+        prefix,
+        ref,
+        alt,
+        nucleotide_token_ids=nucleotide_ids,
+    )
 
     naive_model = _CountingCausalModel()
     naive_ref = _naive_score(naive_model, prefix, ref, nucleotide_ids)
@@ -105,6 +113,7 @@ def test_cached_scores_match_naive_and_prefix_runs_once() -> None:
 
     torch.testing.assert_close(cached[:, 0], naive_ref)
     torch.testing.assert_close(cached[:, 1], naive_alt)
+    torch.testing.assert_close(cached, naive_paired, rtol=1e-4, atol=5e-5)
     torch.testing.assert_close(cached[:, 2], cached[:, 1] - cached[:, 0])
     torch.testing.assert_close(
         cached[:, 2], naive_alt - naive_ref, rtol=1e-4, atol=5e-5

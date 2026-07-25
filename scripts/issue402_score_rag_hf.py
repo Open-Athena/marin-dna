@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import torch
@@ -15,11 +16,17 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     compute_rag_benchmark_metrics,
     load_rag_eval_split,
     load_rag_tokenizer_hf,
+    encode_rag_batch,
+    nucleotide_token_ids,
     run_rag_mendelian_probe,
     score_rag_rows_hf,
     select_paired_rag_rows,
     write_rag_evaluation_outputs,
     write_rag_probe_outputs,
+)
+from marin_dna.pipelines.rag_glm.hf_scoring import (
+    score_rag_completions_hf,
+    score_rag_completions_naive_hf,
 )
 
 
@@ -65,6 +72,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--probe-n-jobs", type=int, default=4)
     parser.add_argument(
+        "--verify-naive-only",
+        action="store_true",
+        help="Print metadata-only cached/naive score pairs and exit before metrics",
+    )
+    parser.add_argument(
         "--device", default="cuda" if torch.cuda.is_available() else "cpu"
     )
     return parser.parse_args()
@@ -92,6 +104,8 @@ def main() -> None:
     )
     assert args.probe_n_jobs > 0
     assert args.max_rows is None or args.max_rows > 0
+    assert not args.verify_naive_only or args.max_rows is not None
+    assert not args.verify_naive_only or args.max_rows <= 16
 
     pretrained_kwargs: dict[str, object] = {"trust_remote_code": True}
     if args.model_revision is not None:
@@ -113,6 +127,50 @@ def main() -> None:
         revision=dataset_revision,
     )
     rows = select_paired_rag_rows(rows, args.max_rows)
+    if args.verify_naive_only:
+        prefix, ref, alt = encode_rag_batch(tokenizer, rows)
+        prefix = prefix.to(args.device)
+        ref = ref.to(args.device)
+        alt = alt.to(args.device)
+        nucleotides = nucleotide_token_ids(tokenizer).to(args.device)
+        with torch.inference_mode():
+            cached = score_rag_completions_hf(
+                model,
+                prefix,
+                ref,
+                alt,
+                nucleotide_token_ids=nucleotides,
+            ).float().cpu()
+            naive = score_rag_completions_naive_hf(
+                model,
+                prefix,
+                ref,
+                alt,
+                nucleotide_token_ids=nucleotides,
+            ).float().cpu()
+        assert torch.isfinite(cached).all()
+        assert torch.isfinite(naive).all()
+        for index, row in enumerate(rows.iter_rows(named=True)):
+            print(
+                "RAG_HF_PARITY_ROW "
+                + json.dumps(
+                    {
+                        "document_id": row["document_id"],
+                        "cached_ref_loglikelihood": float(cached[index, 0]),
+                        "cached_alt_loglikelihood": float(cached[index, 1]),
+                        "cached_llr": float(cached[index, 2]),
+                        "naive_ref_loglikelihood": float(naive[index, 0]),
+                        "naive_alt_loglikelihood": float(naive[index, 1]),
+                        "naive_llr": float(naive[index, 2]),
+                    },
+                    sort_keys=True,
+                )
+            )
+        print(
+            "RAG_HF_PARITY_MAX_ABS "
+            f"{float((cached - naive).abs().max()):.9g}"
+        )
+        return
     documents = score_rag_rows_hf(
         model,
         tokenizer,

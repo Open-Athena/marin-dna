@@ -204,3 +204,51 @@ def score_rag_completions_hf(
     emb_ref = ref_human_sum / RAG_HUMAN_POOL_TOKENS
     emb_alt = alt_human_sum / RAG_HUMAN_POOL_TOKENS
     return torch.cat([scores, emb_ref, emb_alt], dim=-1)
+
+
+def score_rag_completions_naive_hf(
+    model: Any,
+    prefix_ids: Int[Tensor, "B P"],
+    ref_completion_ids: Int[Tensor, "B C"],
+    alt_completion_ids: Int[Tensor, "B C"],
+    *,
+    nucleotide_token_ids: Int[Tensor, " 4"],
+) -> Float[Tensor, "B 3"]:
+    """Reference-score complete paired documents without a KV cache."""
+    assert prefix_ids.ndim == 2
+    batch_size, prefix_length = prefix_ids.shape
+    assert prefix_length == RAG_PREFIX_TOKENS
+    assert ref_completion_ids.shape == (batch_size, RAG_COMPLETION_TOKENS)
+    assert alt_completion_ids.shape == ref_completion_ids.shape
+    assert bool((ref_completion_ids[:, 1:] == alt_completion_ids[:, 1:]).all())
+    assert bool((ref_completion_ids[:, 0] != alt_completion_ids[:, 0]).all())
+
+    device_nucleotides = nucleotide_token_ids.to(prefix_ids.device)
+    completions = torch.stack(
+        [ref_completion_ids, alt_completion_ids], dim=1
+    ).flatten(0, 1)
+    documents = torch.cat(
+        [prefix_ids.repeat_interleave(2, dim=0), completions], dim=1
+    )
+    assert documents.shape == (batch_size * 2, RAG_DOCUMENT_TOKENS)
+    logits = model(documents, use_cache=False).logits
+    nucleotide_logits = logits[
+        :, RAG_PREFIX_TOKENS - 1 : -1, device_nucleotides
+    ]
+    log_probs = F.log_softmax(nucleotide_logits.float(), dim=-1)
+    target_indices = _token_id_to_nucleotide_index(
+        completions, device_nucleotides
+    )
+    loglikelihoods = log_probs.gather(
+        -1, target_indices.unsqueeze(-1)
+    ).squeeze(-1).sum(dim=-1).unflatten(0, (batch_size, 2))
+    ref_loglikelihood = loglikelihoods[:, 0]
+    alt_loglikelihood = loglikelihoods[:, 1]
+    return torch.stack(
+        [
+            ref_loglikelihood,
+            alt_loglikelihood,
+            alt_loglikelihood - ref_loglikelihood,
+        ],
+        dim=-1,
+    )
