@@ -113,6 +113,27 @@ inner five-fold chromosome-grouped tuning over `C = logspace(-12, 4, 17)`, with
 four CPU workers. Probe and zero-shot likelihood AUPRC are computed on the same
 prediction rows with the existing per-chromosome-weighted metric.
 
+`online_eval_100m.py` keeps online-eval debugging off the training critical
+path. It loads the completed 104M Levanter checkpoint, limits the frozen
+Mendelian task to an even number of rows so strand pairs stay together, enables
+sample logging for raw-score inspection, and runs the same custom paged-cache
+method as the in-training callback. It does not update model weights. The full
+1,000-step curves continue to come from the independent offline scorer.
+
+Run the 32-row parity smoke directly on one TPU worker:
+
+```bash
+uv run iris --cluster=marin job run --no-wait --user ubuntu \
+  --job-name dna-exp402-online-parity-p104m-final-smoke1 \
+  --enable-extra-resources --tpu v6e-4 --preemptible \
+  --cpu 16 --memory 56g --disk 100g --region us-east5 --timeout 1800 \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e EXP402_ONLINE_CHECKPOINT_PATH "$EXP402_ONLINE_CHECKPOINT_PATH" \
+  -e EXP402_ONLINE_MAX_EXAMPLES 32 \
+  -e EXP402_ONLINE_RUN_ID dna-exp402-online-parity-p104M-final-smoke1 \
+  -- python online_eval_100m.py
+```
+
 ## Gated 103.8M scale rung
 
 After the completed 45.9M run showed checkpoint-1,000 AUPRC above the fixed
