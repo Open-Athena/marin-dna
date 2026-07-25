@@ -3,6 +3,7 @@
 import math
 import tempfile
 
+import pytest
 from levanter.tokenizers import load_tokenizer
 from marin.execution.artifact import ArtifactRecord, result_type_name, write_record
 from marin.execution.lazy import materialized_config
@@ -14,6 +15,7 @@ from launch import (
     MARIN_DNA_REVISION,
     MENDELIAN_TRAITS_RAG_255,
     MODEL,
+    ONLINE_EVAL_ENV,
     OPTIMIZER,
     RAG_EVAL_EVERY,
     SEQ_LEN,
@@ -28,6 +30,7 @@ from launch import (
     TRAIN_TPU,
     VOCAB_SIZE,
     RAGTokenizedCache,
+    online_eval_enabled,
     rag_tokenized_dataset,
 )
 
@@ -42,6 +45,16 @@ def test_online_eval_is_the_pinned_mendelian_rag_task() -> None:
     assert TRAIN_REGIONS == ("us-east5",)
     assert TRAIN_HOST_CPU == 16
     assert TRAIN_HOST_RAM == "64g"
+
+
+def test_online_eval_can_be_disabled_for_offline_scoring(monkeypatch) -> None:
+    monkeypatch.delenv(ONLINE_EVAL_ENV, raising=False)
+    assert online_eval_enabled()
+    monkeypatch.setenv(ONLINE_EVAL_ENV, "0")
+    assert not online_eval_enabled()
+    monkeypatch.setenv(ONLINE_EVAL_ENV, "invalid")
+    with pytest.raises(AssertionError, match="must be 0 or 1"):
+        online_eval_enabled()
 
 
 def test_model_is_the_46m_rung_at_full_document_length() -> None:

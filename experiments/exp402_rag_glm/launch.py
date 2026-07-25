@@ -8,6 +8,7 @@ then a scratch Qwen3 model trains for approximately one billion tokens.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 from fray.types import ResourceConfig
@@ -43,6 +44,7 @@ TARGET_TOKENS = 1_000_000_000
 TRAIN_STEPS = round(TARGET_TOKENS / (TRAIN_BATCH_SIZE * SEQ_LEN))
 ACTUAL_TOKENS = TRAIN_STEPS * TRAIN_BATCH_SIZE * SEQ_LEN
 RAG_EVAL_EVERY = 1_000
+ONLINE_EVAL_ENV = "EXP402_ONLINE_EVAL"
 TRAIN_TPU = ("v6e-4", "v5p-8")
 TRAIN_REGIONS = ("us-east5",)
 TRAIN_HOST_CPU = 16
@@ -102,6 +104,18 @@ def resolve_completed_adamh(
 
 
 OPTIMIZER = resolve_completed_adamh()
+
+
+def online_eval_enabled() -> bool:
+    """Return whether the in-training RAG harness should be attached.
+
+    The model/data/optimizer recipe is unchanged when this operational switch
+    is off. Checkpoints can then be scored by the same frozen harness offline,
+    keeping training progress independent of lm-eval initialization.
+    """
+    value = os.environ.get(ONLINE_EVAL_ENV, "1")
+    assert value in {"0", "1"}, f"{ONLINE_EVAL_ENV} must be 0 or 1, got {value!r}"
+    return value == "1"
 
 
 def validate_vendored_tokenizer() -> None:
@@ -188,7 +202,11 @@ def build() -> ArtifactStep:
         seq_len=SEQ_LEN,
         num_train_steps=TRAIN_STEPS,
         z_loss_weight=1.0e-7,
-        evals=EvalSuite(tasks=(MENDELIAN_TRAITS_RAG_255,), every=RAG_EVAL_EVERY),
+        evals=(
+            EvalSuite(tasks=(MENDELIAN_TRAITS_RAG_255,), every=RAG_EVAL_EVERY)
+            if online_eval_enabled()
+            else None
+        ),
         resources=ResourceConfig.with_tpu(
             TRAIN_TPU,
             cpu=TRAIN_HOST_CPU,
