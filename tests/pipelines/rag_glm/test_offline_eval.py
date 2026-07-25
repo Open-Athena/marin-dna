@@ -19,6 +19,8 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     load_rag_eval_split,
     load_rag_tokenizer_hf,
     nucleotide_token_ids,
+    run_rag_mendelian_probe,
+    write_rag_probe_outputs,
     write_rag_evaluation_outputs,
 )
 from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
@@ -142,6 +144,82 @@ def test_aggregate_raw_strands_before_protocol(
     assert variants["label"].item()
 
 
+def test_aggregate_embeddings_averages_strands_in_float32() -> None:
+    rows = pl.DataFrame(
+        {
+            "chrom": ["1", "1"],
+            "pos": [101, 101],
+            "ref": ["A", "A"],
+            "alt": ["G", "G"],
+            "variant_id": ["1:101:A>G"] * 2,
+            "strand": ["+", "-"],
+            "ref_loglikelihood": [-10.0, -12.0],
+            "alt_loglikelihood": [-7.0, -11.0],
+            "llr": [3.0, 1.0],
+            "emb_ref": [[1.0, 3.0], [5.0, 7.0]],
+            "emb_alt": [[2.0, 4.0], [6.0, 8.0]],
+            "target": [True, True],
+            "subset": ["coding"] * 2,
+            "match_group": [1, 1],
+        }
+    ).with_columns(
+        pl.col("emb_ref").cast(pl.Array(pl.Float32, 2)),
+        pl.col("emb_alt").cast(pl.Array(pl.Float32, 2)),
+    )
+
+    variants = aggregate_rag_variant_scores(rows, "mendelian_traits")
+
+    assert variants["emb_ref"].dtype == pl.Array(pl.Float32, 2)
+    assert variants["emb_alt"].dtype == pl.Array(pl.Float32, 2)
+    assert variants["emb_ref"].item().to_list() == [3.0, 5.0]
+    assert variants["emb_alt"].item().to_list() == [4.0, 6.0]
+    assert not any(
+        column.endswith(("_fwd", "_rc"))
+        for column in variants.columns
+        if column.startswith("emb_")
+    )
+
+
+def test_mendelian_probe_scores_identical_rows(monkeypatch) -> None:
+    variants = pl.DataFrame(
+        {
+            "chrom": ["1", "1", "2", "2"],
+            "label": [True, False, True, False],
+            "subset": ["coding"] * 4,
+            "llr_fwd": [-4.0, -2.0, -6.0, -1.0],
+            "llr_rc": [-2.0, 0.0, -4.0, -1.0],
+            "minus_llr_avg": [3.0, 1.0, 5.0, 1.0],
+            "emb_ref": [[1.0, 2.0]] * 4,
+            "emb_alt": [[2.0, 3.0]] * 4,
+        }
+    ).with_columns(
+        pl.col("emb_ref").cast(pl.Array(pl.Float32, 2)),
+        pl.col("emb_alt").cast(pl.Array(pl.Float32, 2)),
+    )
+
+    def fake_run_subset_probes(df, **kwargs):
+        assert kwargs["feature_combo"] == "concat_ref_delta"
+        assert kwargs["min_variants"] == 300
+        assert kwargs["min_chroms"] == 3
+        assert kwargs["inner_splits"] == 5
+        predictions = df.drop(columns=["emb_ref", "emb_alt"]).copy()
+        predictions["probe_score"] = [0.9, 0.1, 0.8, 0.2]
+        return predictions, {"coding": {"C": 1.0}}
+
+    monkeypatch.setattr(
+        "marin_dna.pipelines.rag_glm.offline_eval.run_subset_probes",
+        fake_run_subset_probes,
+    )
+    predictions, metrics, classifiers = run_rag_mendelian_probe(
+        variants, n_jobs=2, n_bootstrap=0
+    )
+
+    assert classifiers == {"coding": {"C": 1.0}}
+    assert predictions["minus_llr_avg"].to_list() == [3.0, 1.0, 5.0, 1.0]
+    assert set(metrics["score_type"]) == {"probe_score", "minus_llr_avg"}
+    assert set(metrics["subset"]) == {"coding", "_macro_avg_"}
+
+
 def test_mendelian_metrics_and_output_manifest(tmp_path) -> None:
     variants = pl.DataFrame(
         {
@@ -179,3 +257,23 @@ def test_mendelian_metrics_and_output_manifest(tmp_path) -> None:
     assert (tmp_path / "documents.parquet").is_file()
     assert (tmp_path / "variants.parquet").is_file()
     assert (tmp_path / "metrics.parquet").is_file()
+
+    probe_predictions = variants.with_columns(pl.lit(0.5).alias("probe_score"))
+    write_rag_probe_outputs(
+        predictions=probe_predictions,
+        metrics=metrics,
+        classifiers={"coding": {"C": 1.0}},
+        output_dir=tmp_path,
+        model="local-model",
+        model_revision=None,
+        dataset_repo=RAG_BENCHMARK_DATASETS["mendelian_traits"][0],
+        dataset_revision=RAG_BENCHMARK_DATASETS["mendelian_traits"][1],
+        code_revision="1" * 40,
+    )
+    probe_manifest = json.loads((tmp_path / "probe_manifest.json").read_text())
+    assert probe_manifest["human_pooling"]["start"] == 1_793
+    assert probe_manifest["human_pooling"]["stop"] == 2_048
+    assert probe_manifest["n_probe_scored"] == 4
+    assert (tmp_path / "probe_predictions.parquet").is_file()
+    assert (tmp_path / "probe_metrics.parquet").is_file()
+    assert (tmp_path / "probe_classifiers.joblib").is_file()

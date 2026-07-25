@@ -95,3 +95,20 @@ uv run iris --cluster=marin job run \
 The immutable tokenized-cache artifact is built first. Re-launches reuse that
 cache and the rolling checkpoint. The launcher uses current Marin's lazy
 artifact API; no removed `ExecutorStep` compatibility layer is involved.
+
+## Offline evaluation and frozen probe
+
+`scripts/issue402_offline_eval_sky.yaml` scores one exported checkpoint on the
+frozen Mendelian, Complex, and SGE harnesses. The checkpoint sweep uses one
+queued Sky job per 1,000-step export so it gets early signals without holding
+training open on the in-process harness.
+
+The final Mendelian representation probe is a separate Sky task,
+`scripts/issue402_probe_sky.yaml`. It pools exactly the final human segment at
+0-based half-open token coordinates `[1793, 2048)` (255 tokens), averages the
+forward/reverse-complement allele embeddings in float32, and uses
+`[emb_ref, emb_alt - emb_ref]`. The frozen classifier protocol is
+`StandardScaler` plus L2 logistic regression, outer leave-one-chromosome-out CV,
+inner five-fold chromosome-grouped tuning over `C = logspace(-12, 4, 17)`, with
+four CPU workers. Probe and zero-shot likelihood AUPRC are computed on the same
+prediction rows with the existing per-chromosome-weighted metric.

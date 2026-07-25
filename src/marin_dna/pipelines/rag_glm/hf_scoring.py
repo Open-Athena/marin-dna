@@ -20,6 +20,8 @@ RAG_PREFIX_TOKENS = 1_920
 RAG_COMPLETION_TOKENS = 128
 RAG_DOCUMENT_TOKENS = RAG_PREFIX_TOKENS + RAG_COMPLETION_TOKENS
 RAG_VARIANT_TOKEN_INDEX = RAG_PREFIX_TOKENS
+RAG_HUMAN_POOL_START = 1_793
+RAG_HUMAN_POOL_TOKENS = 255
 
 
 def _token_id_to_nucleotide_index(
@@ -67,7 +69,8 @@ def score_rag_completions_hf(
     alt_completion_ids: Int[Tensor, "B C"],
     *,
     nucleotide_token_ids: Int[Tensor, " 4"],
-) -> Float[Tensor, "B 3"]:
+    return_embeddings: bool = False,
+) -> Float[Tensor, "B W"]:
     """Score paired RAG completions with one prefix forward per document.
 
     The returned columns are ``ref_loglikelihood``, ``alt_loglikelihood``, and
@@ -100,19 +103,35 @@ def score_rag_completions_hf(
     _token_id_to_nucleotide_index(ref_completion_ids, device_nucleotides)
     _token_id_to_nucleotide_index(alt_completion_ids, device_nucleotides)
 
-    # Exactly one model call computes every document's complete shared prefix.
-    prefix_output = model(prefix_ids, use_cache=True, logits_to_keep=1)
-    prefix_logits = prefix_output.logits[:, -1]
-    paired_cache = _duplicate_rag_kv_cache(prefix_output.past_key_values)
+    # Capture only the final decoder layer when embeddings are requested. A
+    # base-model hook avoids materializing every layer via output_hidden_states.
+    hidden_capture: list[Tensor] = []
+    hook = (
+        model.base_model.register_forward_hook(
+            lambda _module, _inputs, output: hidden_capture.append(
+                output.last_hidden_state
+            )
+        )
+        if return_embeddings
+        else None
+    )
+    try:
+        # Exactly one model call computes every document's complete shared prefix.
+        prefix_output = model(prefix_ids, use_cache=True, logits_to_keep=1)
+        prefix_logits = prefix_output.logits[:, -1]
+        paired_cache = _duplicate_rag_kv_cache(prefix_output.past_key_values)
 
-    completions = torch.stack([ref_completion_ids, alt_completion_ids], dim=1).flatten(
-        0, 1
-    )
-    continuation_output = model(
-        completions,
-        past_key_values=paired_cache,
-        use_cache=False,
-    )
+        completions = torch.stack(
+            [ref_completion_ids, alt_completion_ids], dim=1
+        ).flatten(0, 1)
+        continuation_output = model(
+            completions,
+            past_key_values=paired_cache,
+            use_cache=False,
+        )
+    finally:
+        if hook is not None:
+            hook.remove()
     continuation_logits = continuation_output.logits.unflatten(0, (batch_size, 2))
 
     prefix_log_probs = F.log_softmax(
@@ -149,7 +168,7 @@ def score_rag_completions_hf(
     paired_loglikelihoods = first_log_probs + downstream_log_probs.sum(dim=-1)
     ref_loglikelihood = paired_loglikelihoods[:, 0]
     alt_loglikelihood = paired_loglikelihoods[:, 1]
-    return torch.stack(
+    scores = torch.stack(
         [
             ref_loglikelihood,
             alt_loglikelihood,
@@ -157,3 +176,31 @@ def score_rag_completions_hf(
         ],
         dim=-1,
     )
+    if not return_embeddings:
+        return scores
+
+    assert RAG_PREFIX_TOKENS - RAG_HUMAN_POOL_START == 127
+    assert RAG_DOCUMENT_TOKENS - RAG_HUMAN_POOL_START == RAG_HUMAN_POOL_TOKENS
+    assert len(hidden_capture) == 2, (
+        f"expected prefix and continuation hidden states, got {len(hidden_capture)}"
+    )
+    prefix_hidden = hidden_capture[0]
+    continuation_hidden = hidden_capture[1].unflatten(0, (batch_size, 2))
+    assert prefix_hidden.shape[:2] == (batch_size, RAG_PREFIX_TOKENS)
+    assert continuation_hidden.shape[:3] == (
+        batch_size,
+        2,
+        RAG_COMPLETION_TOKENS,
+    )
+    prefix_human_sum = prefix_hidden[:, RAG_HUMAN_POOL_START:].sum(
+        dim=1, dtype=torch.float32
+    )
+    ref_human_sum = prefix_human_sum + continuation_hidden[:, 0].sum(
+        dim=1, dtype=torch.float32
+    )
+    alt_human_sum = prefix_human_sum + continuation_hidden[:, 1].sum(
+        dim=1, dtype=torch.float32
+    )
+    emb_ref = ref_human_sum / RAG_HUMAN_POOL_TOKENS
+    emb_alt = alt_human_sum / RAG_HUMAN_POOL_TOKENS
+    return torch.cat([scores, emb_ref, emb_alt], dim=-1)

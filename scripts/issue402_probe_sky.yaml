@@ -1,0 +1,94 @@
+# SkyPilot task: extract the frozen 255-token human-segment embeddings from
+# issue #402's final 46M checkpoint, then run the preregistered Mendelian probe.
+#
+# Launch from the repository root with a commit containing this task:
+#   sky launch -c dna-exp402-probe-final --down \
+#     scripts/issue402_probe_sky.yaml \
+#     --env CHECKPOINT_URI=gs://.../hf/step-7628 \
+#     --env OUTPUT_URI=gs://.../step-7628/mendelian_traits_probe \
+#     --env CODE_REVISION=<full-commit-sha>
+
+name: dna-exp402-mendelian-probe
+
+resources:
+  infra: aws/us-east-2
+  accelerators: A10G:1
+  cpus: 8+
+  memory: 32+
+  disk_size: 100
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .
+
+envs:
+  CHECKPOINT_URI: ""
+  OUTPUT_URI: ""
+  CODE_REVISION: ""
+  BATCH_SIZE: "16"
+  N_BOOTSTRAP: "1000"
+  PROBE_N_JOBS: "4"
+
+file_mounts:
+  ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+
+  if ! command -v gcloud >/dev/null 2>&1; then
+    curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+    bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+  fi
+
+  uv sync --frozen --no-dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+  export WANDB_DISABLED=true
+
+  test -n "$CHECKPOINT_URI"
+  test -n "$OUTPUT_URI"
+  test "${#CODE_REVISION}" -eq 40
+  test "$BATCH_SIZE" -gt 0
+  test "$N_BOOTSTRAP" -gt 0
+  test "$PROBE_N_JOBS" -gt 0
+  nvidia-smi
+
+  CHECKPOINT_DIR="$HOME/issue402-checkpoint"
+  RESULTS_DIR="$HOME/issue402-probe-results"
+  mkdir -p "$CHECKPOINT_DIR" "$RESULTS_DIR"
+  gcloud storage rsync "$CHECKPOINT_URI" "$CHECKPOINT_DIR" --recursive
+  test -s "$CHECKPOINT_DIR/config.json"
+  test -s "$CHECKPOINT_DIR/model.safetensors"
+  test -s "$CHECKPOINT_DIR/tokenizer.json"
+
+  uv run --no-dev python scripts/issue402_score_rag_hf.py \
+    --benchmark mendelian_traits \
+    --split test \
+    --model "$CHECKPOINT_DIR" \
+    --code-revision "$CODE_REVISION" \
+    --output-dir "$RESULTS_DIR" \
+    --batch-size "$BATCH_SIZE" \
+    --n-bootstrap "$N_BOOTSTRAP" \
+    --return-embeddings \
+    --run-probe \
+    --probe-n-jobs "$PROBE_N_JOBS" \
+    --device cuda
+
+  for ARTIFACT in \
+    metrics.parquet manifest.json \
+    probe_predictions.parquet probe_metrics.parquet \
+    probe_classifiers.joblib probe_manifest.json; do
+    test -s "$RESULTS_DIR/$ARTIFACT"
+  done
+  gcloud storage rsync "$RESULTS_DIR" "$OUTPUT_URI" --recursive

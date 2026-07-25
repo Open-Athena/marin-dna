@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
+import joblib
 import numpy as np
 import polars as pl
 import torch
@@ -19,9 +20,19 @@ from torch import Tensor
 from huggingface_hub import hf_hub_download
 from transformers import PreTrainedTokenizerFast
 
-from marin_dna.pipelines.evals.metrics import compute_auprc_metrics, compute_sge_metrics
+from marin_dna.pipelines.evals.metrics import (
+    compute_auprc_metrics,
+    compute_sge_metrics,
+    per_chrom_ap_table,
+)
+from marin_dna.pipelines.evals.variant_probe import (
+    DEFAULT_C_GRID,
+    run_subset_probes,
+)
 from marin_dna.pipelines.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
+    RAG_HUMAN_POOL_START,
+    RAG_HUMAN_POOL_TOKENS,
     RAG_PREFIX_TOKENS,
     score_rag_completions_hf,
 )
@@ -48,6 +59,7 @@ RAG_SCORE_COLUMNS: dict[RAGBenchmark, str] = {
 }
 VARIANT_KEY_COLUMNS = ["chrom", "pos", "ref", "alt"]
 DOCUMENT_SCORE_COLUMNS = ["ref_loglikelihood", "alt_loglikelihood", "llr"]
+DOCUMENT_EMBEDDING_COLUMNS = ["emb_ref", "emb_alt"]
 _BENCHMARK_METADATA: dict[RAGBenchmark, list[str]] = {
     "mendelian_traits": ["target", "subset", "match_group"],
     "complex_traits": ["label", "subset", "match_group"],
@@ -200,6 +212,7 @@ def score_rag_rows_hf(
     *,
     batch_size: int,
     device: str | torch.device | None = None,
+    return_embeddings: bool = False,
 ) -> pl.DataFrame:
     """Add raw paired-completion log-likelihoods to materialized strand rows."""
     assert batch_size > 0
@@ -232,16 +245,33 @@ def score_rag_rows_hf(
                     ref.to(resolved_device),
                     alt.to(resolved_device),
                     nucleotide_token_ids=nucleotide_ids,
+                    return_embeddings=return_embeddings,
                 ).cpu()
             )
     scores = torch.cat(chunks, dim=0).float().numpy()
-    assert scores.shape == (rows.height, 3)
+    hidden_size = int(model.config.hidden_size)
+    expected_width = 3 + (2 * hidden_size if return_embeddings else 0)
+    assert scores.shape == (rows.height, expected_width)
     assert np.isfinite(scores).all()
-    return rows.with_columns(
+    scored = rows.with_columns(
         *[
             pl.Series(column, scores[:, index], dtype=pl.Float32)
             for index, column in enumerate(DOCUMENT_SCORE_COLUMNS)
         ]
+    )
+    if not return_embeddings:
+        return scored
+    return scored.with_columns(
+        pl.Series(
+            "emb_ref",
+            scores[:, 3 : 3 + hidden_size].tolist(),
+            dtype=pl.Array(pl.Float32, hidden_size),
+        ),
+        pl.Series(
+            "emb_alt",
+            scores[:, 3 + hidden_size :].tolist(),
+            dtype=pl.Array(pl.Float32, hidden_size),
+        ),
     )
 
 
@@ -257,6 +287,9 @@ def aggregate_rag_variant_scores(
         *DOCUMENT_SCORE_COLUMNS,
     }
     assert required <= set(rows.columns)
+    has_embeddings = [column in rows.columns for column in DOCUMENT_EMBEDDING_COLUMNS]
+    assert len(set(has_embeddings)) == 1, "emb_ref and emb_alt must be present together"
+    embedding_columns = DOCUMENT_EMBEDDING_COLUMNS if all(has_embeddings) else []
     group_columns = [*VARIANT_KEY_COLUMNS, "variant_id"]
     metadata_columns = _BENCHMARK_METADATA[benchmark]
     counts = rows.group_by(group_columns).agg(
@@ -278,10 +311,12 @@ def aggregate_rag_variant_scores(
         *group_columns,
         *metadata_columns,
         *[pl.col(column).alias(f"{column}_fwd") for column in DOCUMENT_SCORE_COLUMNS],
+        *[pl.col(column).alias(f"{column}_fwd") for column in embedding_columns],
     )
     reverse = rows.filter(pl.col("strand") == "-").select(
         *group_columns,
         *[pl.col(column).alias(f"{column}_rc") for column in DOCUMENT_SCORE_COLUMNS],
+        *[pl.col(column).alias(f"{column}_rc") for column in embedding_columns],
     )
     assert forward.height == reverse.height == counts.height
     variants = forward.join(reverse, on=group_columns, how="inner", validate="1:1")
@@ -293,6 +328,33 @@ def aggregate_rag_variant_scores(
             for column in DOCUMENT_SCORE_COLUMNS
         ]
     )
+    if embedding_columns:
+        averaged_embeddings: list[pl.Series] = []
+        for column in embedding_columns:
+            forward_embedding = np.stack(variants[f"{column}_fwd"].to_list()).astype(
+                np.float32
+            )
+            reverse_embedding = np.stack(variants[f"{column}_rc"].to_list()).astype(
+                np.float32
+            )
+            assert forward_embedding.shape == reverse_embedding.shape
+            assert forward_embedding.ndim == 2
+            averaged = (forward_embedding + reverse_embedding) / np.float32(2)
+            assert np.isfinite(averaged).all()
+            averaged_embeddings.append(
+                pl.Series(
+                    column,
+                    averaged.tolist(),
+                    dtype=pl.Array(pl.Float32, averaged.shape[1]),
+                )
+            )
+        variants = variants.drop(
+            *[
+                f"{column}_{strand}"
+                for column in embedding_columns
+                for strand in ("fwd", "rc")
+            ]
+        ).with_columns(*averaged_embeddings)
     assert np.allclose(
         variants["llr_avg"].to_numpy(),
         (
@@ -311,6 +373,57 @@ def aggregate_rag_variant_scores(
         variants = variants.with_columns(pl.col("target").alias("label"))
     assert variants.filter(~pl.col(score_column).is_finite()).is_empty()
     return variants.sort(VARIANT_KEY_COLUMNS)
+
+
+def run_rag_mendelian_probe(
+    variants: pl.DataFrame,
+    *,
+    n_jobs: int = 4,
+    n_bootstrap: int = 1_000,
+    rng: np.random.Generator | int | None = 0,
+) -> tuple[pl.DataFrame, pl.DataFrame, dict[str, Any]]:
+    """Run issue #402's frozen human-segment Mendelian probe protocol."""
+    assert n_jobs > 0
+    required = {
+        "chrom",
+        "label",
+        "subset",
+        "llr_fwd",
+        "llr_rc",
+        "minus_llr_avg",
+        *DOCUMENT_EMBEDDING_COLUMNS,
+    }
+    assert required <= set(variants.columns)
+    c_grid = np.logspace(-12, 4, 17)
+    assert np.array_equal(c_grid, DEFAULT_C_GRID)
+    predictions, classifiers = run_subset_probes(
+        variants.to_pandas(),
+        feature_combo="concat_ref_delta",
+        c_grid=c_grid,
+        min_variants=300,
+        min_chroms=3,
+        inner_splits=5,
+        n_jobs=n_jobs,
+    )
+    paired_baseline = -(
+        predictions["llr_fwd"].to_numpy(dtype=np.float32)
+        + predictions["llr_rc"].to_numpy(dtype=np.float32)
+    ) / np.float32(2)
+    assert np.allclose(
+        paired_baseline,
+        predictions["minus_llr_avg"].to_numpy(dtype=np.float32),
+        rtol=1e-5,
+        atol=1e-4,
+    )
+    predictions["minus_llr_avg"] = paired_baseline
+    metrics = per_chrom_ap_table(
+        predictions,
+        ["probe_score", "minus_llr_avg"],
+        n_bootstrap=n_bootstrap,
+        rng=rng,
+        n_min=30,
+    )
+    return pl.from_pandas(predictions), pl.from_pandas(metrics), classifiers
 
 
 def compute_rag_benchmark_metrics(
@@ -386,3 +499,54 @@ def write_rag_evaluation_outputs(
         "aggregation": "average raw fwd/rc LLR, then apply score transform",
     }
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+
+def write_rag_probe_outputs(
+    *,
+    predictions: pl.DataFrame,
+    metrics: pl.DataFrame,
+    classifiers: dict[str, Any],
+    output_dir: str | Path,
+    model: str,
+    model_revision: str | None,
+    dataset_repo: str,
+    dataset_revision: str,
+    code_revision: str,
+) -> None:
+    """Write probe predictions, metrics, classifiers, and frozen protocol metadata."""
+    assert len(dataset_revision) == 40
+    assert len(code_revision) == 40
+    assert classifiers
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    predictions.write_parquet(output / "probe_predictions.parquet", compression="zstd")
+    metrics.write_parquet(output / "probe_metrics.parquet", compression="zstd")
+    joblib.dump(classifiers, output / "probe_classifiers.joblib")
+    manifest = {
+        "benchmark": "mendelian_traits",
+        "model": model,
+        "model_revision": model_revision,
+        "dataset_repo": dataset_repo,
+        "dataset_revision": dataset_revision,
+        "code_revision": code_revision,
+        "human_pooling": {
+            "coordinates": "0-based half-open token indices",
+            "start": RAG_HUMAN_POOL_START,
+            "stop": RAG_HUMAN_POOL_START + RAG_HUMAN_POOL_TOKENS,
+            "n_tokens": RAG_HUMAN_POOL_TOKENS,
+            "strand_aggregation": "float32 arithmetic mean of fwd/rc allele embeddings",
+        },
+        "feature": "concat_ref_delta = [emb_ref, emb_alt - emb_ref]",
+        "probe": "StandardScaler + L2 LogisticRegression",
+        "outer_cv": "leave-one-chromosome-out",
+        "inner_cv": "GroupKFold(n_splits=5), retuned within every outer fold",
+        "c_grid": np.logspace(-12, 4, 17).tolist(),
+        "min_variants": 300,
+        "min_chroms": 3,
+        "metric": "per-chromosome-weighted AUPRC",
+        "n_min": 30,
+        "n_predictions": predictions.height,
+        "n_probe_scored": predictions.filter(pl.col("probe_score").is_finite()).height,
+        "n_classifiers": len(classifiers),
+    }
+    (output / "probe_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

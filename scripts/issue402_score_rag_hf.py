@@ -15,8 +15,10 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     compute_rag_benchmark_metrics,
     load_rag_tokenizer_hf,
     load_rag_eval_split,
+    run_rag_mendelian_probe,
     score_rag_rows_hf,
     write_rag_evaluation_outputs,
+    write_rag_probe_outputs,
 )
 
 
@@ -46,6 +48,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n-bootstrap", type=int, default=1_000)
     parser.add_argument(
+        "--return-embeddings",
+        action="store_true",
+        help="Pool the 255-token human segment for each allele and strand",
+    )
+    parser.add_argument(
+        "--run-probe",
+        action="store_true",
+        help="Run the frozen Mendelian chromosome-held-out linear probe",
+    )
+    parser.add_argument("--probe-n-jobs", type=int, default=4)
+    parser.add_argument(
         "--device", default="cuda" if torch.cuda.is_available() else "cpu"
     )
     return parser.parse_args()
@@ -65,6 +78,13 @@ def main() -> None:
         )
     assert len(args.code_revision) == 40
     assert len(dataset_revision) == 40
+    assert not args.run_probe or args.benchmark == "mendelian_traits", (
+        "--run-probe is frozen for the Mendelian benchmark"
+    )
+    assert not args.run_probe or args.return_embeddings, (
+        "--run-probe requires --return-embeddings"
+    )
+    assert args.probe_n_jobs > 0
 
     pretrained_kwargs: dict[str, object] = {"trust_remote_code": True}
     if args.model_revision is not None:
@@ -91,6 +111,7 @@ def main() -> None:
         rows,
         batch_size=args.batch_size,
         device=args.device,
+        return_embeddings=args.return_embeddings,
     )
     variants = aggregate_rag_variant_scores(documents, args.benchmark)
     metrics = compute_rag_benchmark_metrics(
@@ -112,6 +133,23 @@ def main() -> None:
         code_revision=args.code_revision,
         batch_size=args.batch_size,
     )
+    if args.run_probe:
+        predictions, probe_metrics, classifiers = run_rag_mendelian_probe(
+            variants,
+            n_jobs=args.probe_n_jobs,
+            n_bootstrap=args.n_bootstrap,
+        )
+        write_rag_probe_outputs(
+            predictions=predictions,
+            metrics=probe_metrics,
+            classifiers=classifiers,
+            output_dir=args.output_dir,
+            model=args.model,
+            model_revision=args.model_revision,
+            dataset_repo=dataset_repo,
+            dataset_revision=dataset_revision,
+            code_revision=args.code_revision,
+        )
 
 
 if __name__ == "__main__":

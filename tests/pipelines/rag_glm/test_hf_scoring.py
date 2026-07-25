@@ -6,9 +6,11 @@ from types import SimpleNamespace
 
 import torch
 import torch.nn.functional as F
+from transformers import Qwen3Config, Qwen3ForCausalLM
 
 from marin_dna.pipelines.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
+    RAG_HUMAN_POOL_START,
     RAG_PREFIX_TOKENS,
     score_rag_completions_hf,
 )
@@ -136,3 +138,69 @@ def test_rejects_non_shared_downstream_completion() -> None:
         assert "differ only at the SNV" in str(exc)
     else:  # pragma: no cover - fail loudly without adding pytest to the module
         raise AssertionError("expected malformed paired completions to fail")
+
+
+def test_human_segment_embeddings_match_naive_full_forwards() -> None:
+    torch.manual_seed(402)
+    config = Qwen3Config(
+        vocab_size=8,
+        hidden_size=16,
+        intermediate_size=32,
+        num_hidden_layers=1,
+        num_attention_heads=2,
+        num_key_value_heads=2,
+        head_dim=8,
+        max_position_embeddings=2_048,
+        bos_token_id=2,
+        pad_token_id=0,
+        eos_token_id=None,
+    )
+    model = Qwen3ForCausalLM(config).eval()
+    prefix = torch.cat(
+        [torch.tensor([[2]]), torch.randint(4, 8, (1, RAG_PREFIX_TOKENS - 1))],
+        dim=1,
+    )
+    ref = torch.randint(4, 8, (1, RAG_COMPLETION_TOKENS))
+    alt = ref.clone()
+    alt[:, 0] = ((ref[:, 0] - 4 + 1) % 4) + 4
+    nucleotide_ids = torch.tensor([4, 5, 6, 7])
+
+    with torch.no_grad():
+        scores_only = score_rag_completions_hf(
+            model,
+            prefix,
+            ref,
+            alt,
+            nucleotide_token_ids=nucleotide_ids,
+        )
+        scores_and_embeddings = score_rag_completions_hf(
+            model,
+            prefix,
+            ref,
+            alt,
+            nucleotide_token_ids=nucleotide_ids,
+            return_embeddings=True,
+        )
+        ref_hidden = model(
+            torch.cat([prefix, ref], dim=1), output_hidden_states=True
+        ).hidden_states[-1]
+        alt_hidden = model(
+            torch.cat([prefix, alt], dim=1), output_hidden_states=True
+        ).hidden_states[-1]
+
+    hidden_size = config.hidden_size
+    assert scores_and_embeddings.shape == (1, 3 + 2 * hidden_size)
+    torch.testing.assert_close(scores_and_embeddings[:, :3], scores_only)
+    torch.testing.assert_close(
+        scores_and_embeddings[:, 3 : 3 + hidden_size],
+        ref_hidden[:, RAG_HUMAN_POOL_START:].float().mean(dim=1),
+        rtol=1e-5,
+        atol=1e-5,
+    )
+    torch.testing.assert_close(
+        scores_and_embeddings[:, 3 + hidden_size :],
+        alt_hidden[:, RAG_HUMAN_POOL_START:].float().mean(dim=1),
+        rtol=1e-5,
+        atol=1e-5,
+    )
+    assert not model.base_model._forward_hooks
