@@ -119,6 +119,14 @@ Mendelian task to an even number of rows so strand pairs stay together, enables
 sample logging for raw-score inspection, and runs the same custom paged-cache
 method as the in-training callback. It does not update model weights. The full
 1,000-step curves continue to come from the independent offline scorer.
+The experiment-local compatibility shim excludes lm-eval's unused multimodal
+HF adapter under Transformers 5; the text-only Levanter adapter and evaluator
+remain loaded and are asserted in tests.
+
+`scripts/issue402_parity_eval_sky.yaml` scores the exact first 32 rows of the
+frozen training split with the independent HF implementation. It asserts that
+the deterministic prefix contains 16 complete forward/reverse-complement pairs
+and writes the row-selection policy into the output manifest.
 
 Run the 32-row parity smoke directly on one TPU worker:
 

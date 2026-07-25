@@ -1,4 +1,5 @@
-from levanter.eval_harness import EvalHarnessMainConfig
+import subprocess
+import sys
 
 from online_eval_100m import (
     RAG_EVAL_BATCH_SIZE,
@@ -8,6 +9,8 @@ from online_eval_100m import (
 
 
 def test_build_config_is_bounded_eval_only() -> None:
+    from levanter.eval_harness import EvalHarnessMainConfig
+
     config = build_config(
         checkpoint_path="gs://example/checkpoints",
         max_examples=32,
@@ -29,6 +32,25 @@ def test_build_config_is_bounded_eval_only() -> None:
     assert config.model.max_seq_len == 2_048
     assert config.model.hidden_dim == 768
     assert config.model.num_layers == 11
+
+
+def test_fresh_process_loads_real_lm_eval_evaluator() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import online_eval_100m; "
+                "from levanter.eval_harness import evaluator; "
+                "assert evaluator is not object; "
+                "assert hasattr(evaluator, 'evaluate')"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_build_config_rejects_partial_strand_pair() -> None:

@@ -16,8 +16,8 @@ import joblib
 import numpy as np
 import polars as pl
 import torch
-from torch import Tensor
 from huggingface_hub import hf_hub_download
+from torch import Tensor
 from transformers import PreTrainedTokenizerFast
 
 from marin_dna.pipelines.evals.metrics import (
@@ -106,6 +106,28 @@ def load_rag_eval_split(
     rows = pl.read_parquet(url, columns=rag_eval_columns(benchmark))
     assert rows.height > 0
     return rows
+
+
+def select_paired_rag_rows(rows: pl.DataFrame, max_rows: int | None) -> pl.DataFrame:
+    """Select a deterministic prefix while preserving complete strand pairs."""
+    if max_rows is None:
+        return rows
+    assert max_rows > 0
+    assert max_rows % 2 == 0
+    assert max_rows <= rows.height
+    required = {*VARIANT_KEY_COLUMNS, "document_id", "strand"}
+    assert required <= set(rows.columns)
+    selected = rows.head(max_rows)
+    assert selected["document_id"].n_unique() == selected.height
+    pairs = selected.group_by(VARIANT_KEY_COLUMNS).agg(
+        pl.len().alias("n_rows"),
+        pl.col("strand").sort().alias("strands"),
+    )
+    assert pairs.height * 2 == selected.height
+    for pair in pairs.iter_rows(named=True):
+        assert pair["n_rows"] == 2
+        assert pair["strands"] == ["+", "-"]
+    return selected
 
 
 def nucleotide_token_ids(tokenizer: Any) -> Tensor:
@@ -475,6 +497,7 @@ def write_rag_evaluation_outputs(
     dataset_revision: str,
     code_revision: str,
     batch_size: int,
+    max_rows: int | None = None,
 ) -> None:
     """Write lossless score tables and a complete reproducibility manifest."""
     assert len(dataset_revision) == 40
@@ -493,6 +516,9 @@ def write_rag_evaluation_outputs(
         "dataset_revision": dataset_revision,
         "code_revision": code_revision,
         "batch_size": batch_size,
+        "row_selection": (
+            "all" if max_rows is None else f"first_{max_rows}_paired_rows"
+        ),
         "n_document_rows": document_scores.height,
         "n_variants": variant_scores.height,
         "score_column": RAG_SCORE_COLUMNS[benchmark],

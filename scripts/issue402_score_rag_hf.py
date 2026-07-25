@@ -13,10 +13,11 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
     compute_rag_benchmark_metrics,
-    load_rag_tokenizer_hf,
     load_rag_eval_split,
+    load_rag_tokenizer_hf,
     run_rag_mendelian_probe,
     score_rag_rows_hf,
+    select_paired_rag_rows,
     write_rag_evaluation_outputs,
     write_rag_probe_outputs,
 )
@@ -47,6 +48,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n-bootstrap", type=int, default=1_000)
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        help="Score only the first N rows, asserting complete fwd/rc variant pairs",
+    )
     parser.add_argument(
         "--return-embeddings",
         action="store_true",
@@ -85,6 +91,7 @@ def main() -> None:
         "--run-probe requires --return-embeddings"
     )
     assert args.probe_n_jobs > 0
+    assert args.max_rows is None or args.max_rows > 0
 
     pretrained_kwargs: dict[str, object] = {"trust_remote_code": True}
     if args.model_revision is not None:
@@ -105,6 +112,7 @@ def main() -> None:
         repo=dataset_repo,
         revision=dataset_revision,
     )
+    rows = select_paired_rag_rows(rows, args.max_rows)
     documents = score_rag_rows_hf(
         model,
         tokenizer,
@@ -132,6 +140,7 @@ def main() -> None:
         dataset_revision=dataset_revision,
         code_revision=args.code_revision,
         batch_size=args.batch_size,
+        max_rows=args.max_rows,
     )
     if args.run_probe:
         predictions, probe_metrics, classifiers = run_rag_mendelian_probe(

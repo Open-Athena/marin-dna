@@ -9,6 +9,10 @@ from __future__ import annotations
 
 import os
 
+from lm_eval_compat import stub_unused_transformers5_multimodal_adapter
+
+stub_unused_transformers5_multimodal_adapter()
+
 import jmp
 import levanter.tracker
 from haliax.partitioning import ResourceAxis

@@ -20,8 +20,9 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     load_rag_tokenizer_hf,
     nucleotide_token_ids,
     run_rag_mendelian_probe,
-    write_rag_probe_outputs,
+    select_paired_rag_rows,
     write_rag_evaluation_outputs,
+    write_rag_probe_outputs,
 )
 from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
 
@@ -44,6 +45,39 @@ def test_encode_rag_batch_has_exact_fixed_geometry() -> None:
     assert ref.shape == alt.shape == (2, 128)
     assert nucleotide_token_ids(tokenizer).unique().numel() == 4
     assert torch.equal(ref[:, 1:], alt[:, 1:])
+
+
+def test_select_paired_rag_rows_preserves_complete_strand_pairs() -> None:
+    rows = pl.DataFrame(
+        {
+            "chrom": ["1", "1", "2", "2"],
+            "pos": [10, 10, 20, 20],
+            "ref": ["A", "A", "C", "C"],
+            "alt": ["G", "G", "T", "T"],
+            "document_id": ["one|+", "one|-", "two|+", "two|-"],
+            "strand": ["+", "-", "+", "-"],
+        }
+    )
+
+    selected = select_paired_rag_rows(rows, 2)
+    assert selected["document_id"].to_list() == ["one|+", "one|-"]
+    assert select_paired_rag_rows(rows, None).equals(rows)
+
+
+def test_select_paired_rag_rows_rejects_partial_pair() -> None:
+    rows = pl.DataFrame(
+        {
+            "chrom": ["1", "1", "2", "2"],
+            "pos": [10, 20, 10, 20],
+            "ref": ["A", "C", "A", "C"],
+            "alt": ["G", "T", "G", "T"],
+            "document_id": ["one|+", "two|+", "one|-", "two|-"],
+            "strand": ["+", "+", "-", "-"],
+        }
+    )
+
+    with pytest.raises(AssertionError):
+        select_paired_rag_rows(rows, 2)
 
 
 def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
@@ -249,10 +283,12 @@ def test_mendelian_metrics_and_output_manifest(tmp_path) -> None:
         dataset_revision=RAG_BENCHMARK_DATASETS["mendelian_traits"][1],
         code_revision="1" * 40,
         batch_size=16,
+        max_rows=2,
     )
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     assert manifest["n_document_rows"] == 2
     assert manifest["n_variants"] == 4
+    assert manifest["row_selection"] == "first_2_paired_rows"
     assert manifest["aggregation"].startswith("average raw fwd/rc LLR")
     assert (tmp_path / "documents.parquet").is_file()
     assert (tmp_path / "variants.parquet").is_file()
