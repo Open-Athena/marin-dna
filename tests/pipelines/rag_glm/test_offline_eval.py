@@ -67,9 +67,7 @@ def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
             "train": f"{base}/train.parquet",
             "test": f"{base}/test.parquet",
         },
-        "data_dir": None,
         "cache_dir": "/tmp/test-rag-cache",
-        "download_mode": None,
     }
 
 
