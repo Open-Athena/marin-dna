@@ -28,6 +28,7 @@ Importing this module installs three idempotent monkeypatches:
 import logging
 import pathlib
 import sys
+import traceback
 import types
 from copy import deepcopy
 from functools import wraps
@@ -145,6 +146,16 @@ def _install_get_task_dict_trace() -> None:
         try:
             return original_get_task_dict(*args, **kwargs)
         except Exception:
+            # Levanter catches this exception and only logs its type/message
+            # while retrying. Some Iris worker logging configurations filter
+            # this package's logger, so write the traceback directly as well:
+            # stderr is captured unconditionally in the job log.
+            print(
+                "marin-dna: lm_eval.tasks.get_task_dict traceback follows",
+                file=sys.stderr,
+                flush=True,
+            )
+            traceback.print_exc(file=sys.stderr)
             _logger.exception(
                 "lm_eval.tasks.get_task_dict failed before Levanter retry"
             )
