@@ -780,7 +780,7 @@ requires-dist = [
     { name = "lm-eval", git = "https://github.com/stanford-crfm/lm-evaluation-harness.git?rev=d5e3391f22cde186c827674d5c3ec7c5f4fe0cab" },
     { name = "marin-core", specifier = "==0.2.57.dev202607240800" },
     { name = "marin-core", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'", specifier = "==0.2.57.dev202607240800" },
-    { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=bdf83c3ae37cf8c35f6b2a190cc6c8c8ef08efac" },
+    { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=c5eedc333e215fa71c2e4ae854c1e4f5d05d2ce5" },
     { name = "marin-dupekit", specifier = "==0.1.1" },
     { name = "marin-fray", specifier = "==0.2.57.dev202607240800" },
     { name = "marin-haliax", specifier = "==0.2.57.dev202607240800" },
@@ -1700,7 +1700,7 @@ tpu = [
 [[package]]
 name = "marin-dna"
 version = "0.0.1"
-source = { git = "https://github.com/Open-Athena/marin-dna.git?rev=bdf83c3ae37cf8c35f6b2a190cc6c8c8ef08efac#bdf83c3ae37cf8c35f6b2a190cc6c8c8ef08efac" }
+source = { git = "https://github.com/Open-Athena/marin-dna.git?rev=c5eedc333e215fa71c2e4ae854c1e4f5d05d2ce5#c5eedc333e215fa71c2e4ae854c1e4f5d05d2ce5" }
 dependencies = [
     { name = "bioframe", marker = "sys_platform == 'linux'" },
     { name = "biopython", marker = "sys_platform == 'linux'" },
