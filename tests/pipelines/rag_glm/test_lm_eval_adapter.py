@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from marin_dna.pipelines.rag_glm.lm_eval_adapter import (
     encode_rag_request,
     padded_rag_batches,
+    rag_parity_diagnostic_records,
 )
 from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
 
@@ -48,3 +51,49 @@ def test_padded_batches_preserve_order_and_report_real_rows() -> None:
     assert [len(batch) for batch, _ in batches] == [16, 16]
     assert batches[1][0][0] == row
     assert batches[1][0][-1] == row
+
+
+def test_parity_diagnostic_records_keep_only_metadata_and_raw_scores() -> None:
+    requests = [
+        SimpleNamespace(
+            doc={
+                "chrom": "chr1",
+                "pos": 402,
+                "ref": "A",
+                "alt": "G",
+                "strand": "+",
+                "document_id": "variant-402:+",
+                "context": "must-not-be-logged",
+            }
+        ),
+        SimpleNamespace(
+            doc={
+                "chrom": "chr1",
+                "pos": 402,
+                "ref": "A",
+                "alt": "G",
+                "strand": "-",
+                "document_id": "variant-402:-",
+                "context": "must-not-be-logged",
+            }
+        ),
+    ]
+    records = rag_parity_diagnostic_records(
+        requests,
+        [(-3.0, -2.25, 0.75), (-4.0, -4.5, -0.5)],
+        max_rows=1,
+    )
+    assert records == [
+        {
+            "chrom": "chr1",
+            "pos": 402,
+            "ref": "A",
+            "alt": "G",
+            "strand": "+",
+            "document_id": "variant-402:+",
+            "ref_loglikelihood": -3.0,
+            "alt_loglikelihood": -2.25,
+            "llr": 0.75,
+        }
+    ]
+    assert "context" not in records[0]

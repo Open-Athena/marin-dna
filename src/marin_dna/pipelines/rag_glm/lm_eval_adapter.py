@@ -7,6 +7,9 @@ once and branches only after the page-aligned 1,920-token prefix.
 
 from __future__ import annotations
 
+import json
+import logging
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -16,6 +19,9 @@ from marin_dna.pipelines.rag_glm.hf_scoring import (
 )
 
 RAG_EVAL_BATCH_SIZE = 16
+RAG_PARITY_LOG_ROWS_ENV = "MARIN_DNA_RAG_PARITY_LOG_ROWS"
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -24,6 +30,36 @@ class EncodedRagRequest:
     ref_completion_ids: tuple[int, ...]
     alt_completion_ids: tuple[int, ...]
     nucleotide_token_ids: tuple[int, ...]
+
+
+def rag_parity_diagnostic_records(
+    requests: list[Any],
+    outputs: list[tuple[float, float, float]],
+    max_rows: int,
+) -> list[dict[str, Any]]:
+    """Return metadata-only raw-score rows for a bounded parity diagnostic."""
+    assert max_rows >= 0
+    assert len(requests) == len(outputs)
+    records: list[dict[str, Any]] = []
+    for request, (ref_loglikelihood, alt_loglikelihood, raw_llr) in zip(
+        requests[:max_rows], outputs[:max_rows], strict=True
+    ):
+        doc = request.doc
+        record = {
+            "chrom": str(doc["chrom"]),
+            "pos": int(doc["pos"]),
+            "ref": str(doc["ref"]),
+            "alt": str(doc["alt"]),
+            "strand": str(doc["strand"]),
+            "document_id": str(doc["document_id"]),
+            "ref_loglikelihood": float(ref_loglikelihood),
+            "alt_loglikelihood": float(alt_loglikelihood),
+            "llr": float(raw_llr),
+        }
+        observed_delta = record["alt_loglikelihood"] - record["ref_loglikelihood"]
+        assert abs(record["llr"] - observed_delta) < 1.0e-4
+        records.append(record)
+    return records
 
 
 def padded_rag_batches(
@@ -181,6 +217,13 @@ def install_levanter_rag_loglikelihood() -> None:
                 tuple(float(value) for value in row) for row in observed[:n_real]
             )
             self._current_step += 1
+        assert len(outputs) == len(requests)
+        parity_log_rows = int(os.environ.get(RAG_PARITY_LOG_ROWS_ENV, "0"))
+        assert 0 <= parity_log_rows <= len(requests)
+        for record in rag_parity_diagnostic_records(
+            requests, outputs, parity_log_rows
+        ):
+            _logger.warning("RAG_PARITY_ROW %s", json.dumps(record, sort_keys=True))
         self._stop_profiler_if_needed()
         return outputs
 
