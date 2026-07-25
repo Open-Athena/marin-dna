@@ -29,7 +29,12 @@ from launch import (
     TRAIN_TPU,
     VOCAB_SIZE,
     online_eval_enabled,
-    rag_tokenized_dataset,
+)
+from launch import (
+    RAGTokenizedCache as _BaseRAGTokenizedCache,
+)
+from launch import (
+    rag_tokenized_dataset as _base_rag_tokenized_dataset,
 )
 
 CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h768-p104m-1b"
@@ -51,6 +56,24 @@ MODEL = Qwen3Config(
     tokenizer=TOKENIZER_PATH,
 )
 assert MODEL.total_trainable_params(VOCAB_SIZE) == 103_838_976
+
+
+class RAGTokenizedCache(_BaseRAGTokenizedCache):
+    """Keep the cache result type under this executable's ``__main__`` module.
+
+    The completed cache was produced by executing ``launch.py`` as a script, so
+    Marin recorded ``__main__.RAGTokenizedCache``. Defining the same local class
+    name here preserves that identity when ``launch_100m.py`` is also executed
+    as a script, while inheriting the exact fixed-format reload behavior.
+    """
+
+
+def rag_tokenized_dataset() -> ArtifactStep[RAGTokenizedCache]:
+    """Reuse the frozen cache handle with its recorded executable-local type."""
+    return replace(
+        _base_rag_tokenized_dataset(),
+        artifact_type=RAGTokenizedCache,
+    )
 
 
 def build() -> ArtifactStep:

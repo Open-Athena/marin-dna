@@ -14,7 +14,14 @@ from launch import (
     TRAIN_STEPS,
     VOCAB_SIZE,
 )
-from launch_100m import CHECKPOINT_NAME, MODEL, RUN_ID, build
+from launch_100m import (
+    CHECKPOINT_NAME,
+    MODEL,
+    RUN_ID,
+    RAGTokenizedCache,
+    build,
+    rag_tokenized_dataset,
+)
 
 
 def test_model_is_the_104m_rung_at_the_same_document_length() -> None:
@@ -24,6 +31,12 @@ def test_model_is_the_104m_rung_at_the_same_document_length() -> None:
     assert MODEL.num_layers == 11
     assert MODEL.num_heads == MODEL.num_kv_heads == 6
     assert MODEL.total_trainable_params(VOCAB_SIZE) == 103_838_976
+
+
+def test_scale_rung_preserves_the_cache_artifact_type_name() -> None:
+    dataset = rag_tokenized_dataset()
+    assert dataset.artifact_type is RAGTokenizedCache
+    assert RAGTokenizedCache.__name__ == "RAGTokenizedCache"
 
 
 def test_scale_rung_preserves_horizon_optimizer_and_export_cadence(monkeypatch) -> None:
