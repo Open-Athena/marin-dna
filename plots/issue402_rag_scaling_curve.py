@@ -13,11 +13,11 @@ import seaborn as sns
 
 DEFAULT_INPUT_ROOTS = {
     "46M": (
-        "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h640-p46m-1b/noeval2-dev"
+        "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h640-p46m-1b/ropefix"
     ),
     "104M": (
         "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h768-p104m-1b/schedfix-dev"
+        "dna-exp402-rag-h768-p104m-1b/ropefix"
     ),
 }
 DEFAULT_STEPS = (1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 7_000, 7_628)

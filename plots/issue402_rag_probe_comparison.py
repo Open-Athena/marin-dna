@@ -12,7 +12,7 @@ import seaborn as sns
 
 DEFAULT_INPUT = (
     "gs://marin-us-east5/users/ubuntu/evals/"
-    "dna-exp402-rag-h640-p46m-1b/noeval2-dev/step-7628/"
+    "dna-exp402-rag-h640-p46m-1b/ropefix/step-7628/"
     "mendelian_traits_probe/probe_metrics.parquet"
 )
 SCORE_LABELS = {
