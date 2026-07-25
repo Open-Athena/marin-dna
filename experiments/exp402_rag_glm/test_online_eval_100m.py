@@ -1,6 +1,10 @@
 from levanter.eval_harness import EvalHarnessMainConfig
 
-from online_eval_100m import RAG_EVAL_BATCH_SIZE, build_config
+from online_eval_100m import (
+    RAG_EVAL_BATCH_SIZE,
+    build_config,
+    finish_tracker_if_initialized,
+)
 
 
 def test_build_config_is_bounded_eval_only() -> None:
@@ -38,3 +42,11 @@ def test_build_config_rejects_partial_strand_pair() -> None:
         assert "strand" in str(error)
     else:
         raise AssertionError("odd max_examples must fail")
+
+
+def test_finish_tracker_tolerates_preinitialization_failure(monkeypatch) -> None:
+    def no_tracker():
+        raise RuntimeError("No global tracker set")
+
+    monkeypatch.setattr("online_eval_100m.levanter.tracker.current_tracker", no_tracker)
+    finish_tracker_if_initialized()

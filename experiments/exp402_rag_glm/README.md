@@ -126,6 +126,7 @@ Run the 32-row parity smoke directly on one TPU worker:
 uv run iris --cluster=marin job run --no-wait --user ubuntu \
   --job-name dna-exp402-online-parity-p104m-final-smoke1 \
   --enable-extra-resources --tpu v6e-4 --preemptible \
+  --extra tpu \
   --cpu 16 --memory 56g --disk 100g --region us-east5 --timeout 1800 \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e EXP402_ONLINE_CHECKPOINT_PATH "$EXP402_ONLINE_CHECKPOINT_PATH" \

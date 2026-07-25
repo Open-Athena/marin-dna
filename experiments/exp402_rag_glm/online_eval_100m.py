@@ -88,6 +88,16 @@ def build_config(*, checkpoint_path: str, max_examples: int, run_id: str) -> Eva
     )
 
 
+def finish_tracker_if_initialized() -> None:
+    """Flush W&B only if Levanter initialized a global tracker."""
+    try:
+        tracker = levanter.tracker.current_tracker()
+    except RuntimeError as error:
+        assert "No global tracker set" in str(error)
+        return
+    tracker.finish()
+
+
 def main() -> None:
     checkpoint_path = os.environ.get(CHECKPOINT_PATH_ENV)
     assert checkpoint_path, f"set {CHECKPOINT_PATH_ENV} to a Levanter checkpoint root"
@@ -104,9 +114,7 @@ def main() -> None:
         assert "results" in outputs
         assert "mendelian_traits_rag_255" in outputs["results"]
     finally:
-        tracker = levanter.tracker.current_tracker()
-        if tracker is not None:
-            tracker.finish()
+        finish_tracker_if_initialized()
 
 
 if __name__ == "__main__":
