@@ -169,7 +169,7 @@ def plot_joined(joined: pl.DataFrame, output_dir: Path) -> None:
         height=4.2,
         aspect=1.05,
     )
-    grid.set_axis_labels("Validation loss", "AUPRC")
+    grid.set_axis_labels("", "AUPRC")
     for benchmark, axis in grid.axes_dict.items():
         subset = data[data["benchmark"] == benchmark]
         assert len(subset) == len(MODELS) * len(STEPS)
@@ -188,6 +188,7 @@ def plot_joined(joined: pl.DataFrame, output_dir: Path) -> None:
                 alpha=0.75,
             )
     grid.figure.suptitle("Ortholog-RAG AUPRC versus exact-step validation loss")
+    grid.figure.supxlabel("Validation loss", y=0.075)
     grid.figure.text(
         0.5,
         0.015,
@@ -196,7 +197,7 @@ def plot_joined(joined: pl.DataFrame, output_dir: Path) -> None:
         ha="center",
         fontsize=10,
     )
-    grid.figure.subplots_adjust(top=0.84, bottom=0.19, wspace=0.28)
+    grid.figure.subplots_adjust(top=0.84, bottom=0.22, wspace=0.28)
     grid.figure.savefig(output_dir / "figure.svg", bbox_inches="tight")
     grid.figure.savefig(output_dir / "figure.png", dpi=180, bbox_inches="tight")
     plt.close(grid.figure)
