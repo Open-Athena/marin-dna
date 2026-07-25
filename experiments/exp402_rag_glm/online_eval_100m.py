@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import os
 
-from lm_eval_compat import stub_unused_transformers5_multimodal_adapter
+from lm_eval_compat import (
+    allow_zero_shot_rag_sample_logging,
+    stub_unused_transformers5_multimodal_adapter,
+)
 
 stub_unused_transformers5_multimodal_adapter()
 
@@ -29,6 +32,8 @@ from marin_dna.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_RAG_
 
 from launch import TOKENIZER_PATH
 from launch_100m import MODEL
+
+allow_zero_shot_rag_sample_logging()
 
 CHECKPOINT_PATH_ENV = "EXP402_ONLINE_CHECKPOINT_PATH"
 MAX_EXAMPLES_ENV = "EXP402_ONLINE_MAX_EXAMPLES"

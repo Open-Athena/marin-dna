@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import types
+from typing import Any
 
 import transformers
 
@@ -20,3 +21,23 @@ def stub_unused_transformers5_multimodal_adapter() -> None:
         return
     module_name = "lm_eval.models.hf_vlms"
     sys.modules.setdefault(module_name, types.ModuleType(module_name))
+
+
+def allow_zero_shot_rag_sample_logging() -> None:
+    """Provide lm-eval's logging-only target for the custom paired request.
+
+    The pinned fork now calls ``doc_to_target`` only while assembling logged
+    samples. This task is fixed at zero-shot and constructs its complete paired
+    request itself, so an empty logging target cannot affect model inputs or
+    metrics.
+    """
+    from marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval import (
+        RagDnaVepLlrEvalTask,
+    )
+
+    def _logging_target(self: RagDnaVepLlrEvalTask, doc: Any) -> str:
+        del self
+        assert isinstance(doc, dict)
+        return ""
+
+    RagDnaVepLlrEvalTask.doc_to_target = _logging_target

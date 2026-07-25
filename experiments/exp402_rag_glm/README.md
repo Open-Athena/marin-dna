@@ -121,7 +121,9 @@ method as the in-training callback. It does not update model weights. The full
 1,000-step curves continue to come from the independent offline scorer.
 The experiment-local compatibility shim excludes lm-eval's unused multimodal
 HF adapter under Transformers 5; the text-only Levanter adapter and evaluator
-remain loaded and are asserted in tests.
+remain loaded and are asserted in tests. It also supplies the empty,
+logging-only target that the current lm-eval caller requests for sample logs;
+the task stays zero-shot and its paired model request is unchanged.
 
 `scripts/issue402_parity_eval_sky.yaml` scores the exact first 32 rows of the
 frozen training split with the independent HF implementation. It asserts that
