@@ -13,6 +13,7 @@ from typing import Literal
 import polars as pl
 import torch
 import torch.nn.functional as F
+from Bio.Align import PairwiseAligner
 from torch import Tensor
 
 from marin_dna.pipelines.rag_glm.dataset import (
@@ -327,6 +328,182 @@ def alignment_attention_rows(
     result = pl.DataFrame(rows)
     assert result.height > 0
     assert result.filter(~pl.col("mean_attention").is_finite()).is_empty()
+    return result
+
+
+def pairwise_alignment_rows(
+    ortholog_sequence: str,
+    human_sequence: str,
+) -> pl.DataFrame:
+    """Infer a basewise ortholog↔human map for one fixed projected window.
+
+    This is a manual diagnostic rather than a reconstruction of the HAL path:
+    the first optimal global pairwise alignment is used with a fixed scoring
+    scheme. Retaining one row per alignment column makes gaps in either
+    sequence explicit and lets downstream attention checks map a human target
+    base to a possibly shifted ortholog key.
+    """
+    for name, sequence in (
+        ("ortholog_sequence", ortholog_sequence),
+        ("human_sequence", human_sequence),
+    ):
+        assert len(sequence) == BASES_PER_SLOT, (
+            f"{name} must have {BASES_PER_SLOT} bases, got {len(sequence)}"
+        )
+        assert set(sequence.upper()) <= set("ACGTN"), (
+            f"{name} contains an unexpected base"
+        )
+
+    # Case encodes per-base conservation in the frozen training corpus; it is
+    # not a nucleotide difference and must not affect the inferred alignment.
+    ortholog_sequence = ortholog_sequence.upper()
+    human_sequence = human_sequence.upper()
+
+    aligner = PairwiseAligner()
+    aligner.mode = "global"
+    aligner.match_score = 2.0
+    aligner.mismatch_score = -1.0
+    aligner.open_gap_score = -3.0
+    aligner.extend_gap_score = -0.5
+    alignment = aligner.align(ortholog_sequence, human_sequence)[0]
+    ortholog_indices, human_indices = alignment.indices
+    assert len(ortholog_indices) == len(human_indices)
+
+    rows: list[dict[str, object]] = []
+    for column, (ortholog_index_raw, human_index_raw) in enumerate(
+        zip(ortholog_indices, human_indices, strict=True)
+    ):
+        ortholog_index = int(ortholog_index_raw)
+        human_index = int(human_index_raw)
+        ortholog_offset = None if ortholog_index < 0 else ortholog_index
+        human_offset = None if human_index < 0 else human_index
+        ortholog_base = (
+            "-" if ortholog_offset is None else ortholog_sequence[ortholog_offset]
+        )
+        human_base = "-" if human_offset is None else human_sequence[human_offset]
+        if ortholog_offset is None:
+            relationship = "ortholog_gap"
+        elif human_offset is None:
+            relationship = "human_gap"
+        elif ortholog_base == human_base:
+            relationship = "match"
+        else:
+            relationship = "mismatch"
+        rows.append(
+            {
+                "alignment_column": column,
+                "ortholog_offset": ortholog_offset,
+                "human_offset": human_offset,
+                "ortholog_base": ortholog_base,
+                "human_base": human_base,
+                "relationship": relationship,
+                "shift": (
+                    None
+                    if ortholog_offset is None or human_offset is None
+                    else ortholog_offset - human_offset
+                ),
+                "alignment_score": float(alignment.score),
+            }
+        )
+    result = pl.DataFrame(rows)
+    assert result["alignment_column"].to_list() == list(range(result.height))
+    assert result.filter(pl.col("ortholog_offset").is_not_null())[
+        "ortholog_offset"
+    ].cast(pl.Int64).to_list() == list(range(BASES_PER_SLOT))
+    assert result.filter(pl.col("human_offset").is_not_null())["human_offset"].cast(
+        pl.Int64
+    ).to_list() == list(range(BASES_PER_SLOT))
+    assert result.filter(
+        pl.col("relationship").is_in(["ortholog_gap", "human_gap"])
+    ).height == 2 * (result.height - BASES_PER_SLOT)
+    return result
+
+
+def indel_mapped_attention_rows(
+    attention: Tensor,
+    alignment: pl.DataFrame,
+    *,
+    slot: int,
+    layer: int,
+    query_stride: int = 4,
+) -> pl.DataFrame:
+    """Compare attention at pairwise-mapped and naive equal-offset keys.
+
+    Human target offset ``t`` is predicted by the query at ``t - 1``. The
+    naive no-indel key is therefore ortholog offset ``t`` (the ``+1`` peak in
+    the raw-offset diagnostic); the mapped key comes from
+    :func:`pairwise_alignment_rows` and may differ after an indel.
+    """
+    assert attention.ndim == 4
+    assert attention.shape[0] == 1
+    assert attention.shape[-2:] == (DOCUMENT_TOKENS, DOCUMENT_TOKENS)
+    assert 0 <= slot < N_NON_HUMAN_SLOTS
+    assert layer >= 0
+    assert query_stride > 0
+    required = {
+        "ortholog_offset",
+        "human_offset",
+        "ortholog_base",
+        "human_base",
+        "relationship",
+        "shift",
+    }
+    assert required <= set(alignment.columns)
+    mapped = alignment.filter(
+        pl.col("ortholog_offset").is_not_null()
+        & pl.col("human_offset").is_between(1, BASES_PER_SLOT - 1)
+        & (((pl.col("human_offset") - 1) % query_stride) == 0)
+    ).sort("human_offset")
+    assert mapped.height > 0
+    assert mapped.filter(
+        ~pl.col("relationship").is_in(["match", "mismatch"])
+    ).is_empty()
+
+    human_targets = torch.tensor(
+        mapped["human_offset"].cast(pl.Int64).to_list(),
+        dtype=torch.long,
+        device=attention.device,
+    )
+    ortholog_offsets = torch.tensor(
+        mapped["ortholog_offset"].cast(pl.Int64).to_list(),
+        dtype=torch.long,
+        device=attention.device,
+    )
+    query_positions = HUMAN_SEGMENT_START + human_targets - 1
+    slot_start = 1 + slot * (BASES_PER_SLOT + 1)
+    mapped_keys = slot_start + ortholog_offsets
+    naive_keys = slot_start + human_targets
+    assert bool((mapped_keys >= slot_start).all())
+    assert bool((mapped_keys < slot_start + BASES_PER_SLOT).all())
+    assert bool((naive_keys < slot_start + BASES_PER_SLOT).all())
+
+    mapped_attention = attention[0, :, query_positions, mapped_keys].float().mean(dim=0)
+    naive_attention = attention[0, :, query_positions, naive_keys].float().mean(dim=0)
+    result = (
+        mapped.select(
+            pl.col("human_offset").cast(pl.Int64).alias("human_target_offset"),
+            pl.col("ortholog_offset").cast(pl.Int64),
+            pl.col("shift").cast(pl.Int64),
+            "human_base",
+            "ortholog_base",
+            "relationship",
+        )
+        .with_columns(
+            pl.lit(layer).alias("layer"),
+            pl.lit(slot).alias("slot"),
+            pl.lit(PROVISIONAL_SPECIES_ORDER[slot]).alias("species"),
+            pl.Series("mapped_attention", mapped_attention.cpu().tolist()),
+            pl.Series("naive_attention", naive_attention.cpu().tolist()),
+        )
+        .with_columns(
+            (pl.col("mapped_attention") - pl.col("naive_attention")).alias(
+                "mapped_minus_naive"
+            )
+        )
+    )
+    assert result.filter(
+        ~pl.col("mapped_attention").is_finite() | ~pl.col("naive_attention").is_finite()
+    ).is_empty()
     return result
 
 

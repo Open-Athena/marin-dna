@@ -22,6 +22,8 @@ from marin_dna.pipelines.rag_glm.model_sanity import (
     attention_mask_diagnostics,
     attention_region_rows,
     causal_token_losses,
+    indel_mapped_attention_rows,
+    pairwise_alignment_rows,
     rag_target_position_metadata,
 )
 from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
@@ -153,3 +155,30 @@ def test_attention_alignment_and_causal_diagnostics() -> None:
     )
     assert set(regions["region"]) == {"bos", "all_boundaries", "ortholog_slot"}
     assert regions.filter(pl.col("region") == "ortholog_slot").height == 7
+
+    # Equal-length windows can still have a leading insertion and trailing
+    # deletion. The inferred map shifts the aligned core by +1, so mapped
+    # attention must read a different key from the naive +1 geometry.
+    human = "ACGT" * 63 + "ACG"
+    ortholog = "T" + human[:-1]
+    alignment = pairwise_alignment_rows(ortholog, human)
+    assert pairwise_alignment_rows(ortholog.lower(), human.lower()).equals(alignment)
+    core = alignment.filter(
+        pl.col("ortholog_offset").is_not_null() & pl.col("human_offset").is_not_null()
+    )
+    assert core.height == 254
+    assert core["shift"].unique().to_list() == [1]
+    for target in range(1, 255, 32):
+        query = HUMAN_SEGMENT_START + target - 1
+        attention[0, 0, query, 1 + target] = 0.25
+        attention[0, 0, query, 1 + target + 1] = 0.75
+    mapped = indel_mapped_attention_rows(
+        attention,
+        alignment,
+        slot=0,
+        layer=0,
+        query_stride=32,
+    )
+    assert mapped["shift"].unique().to_list() == [1]
+    assert mapped["mapped_attention"].to_list() == [0.75] * mapped.height
+    assert mapped["naive_attention"].to_list() == [0.25] * mapped.height

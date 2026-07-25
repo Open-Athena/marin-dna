@@ -12,9 +12,7 @@ resources:
   disk_size: 100
   labels:
     project: dna
-  any_of:
-    - use_spot: true
-    - use_spot: false
+  use_spot: false
 
 workdir: .
 

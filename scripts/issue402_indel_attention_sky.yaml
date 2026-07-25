@@ -1,0 +1,71 @@
+# SkyPilot task: compare issue #402 attention at pairwise-inferred indel-shifted
+# ortholog positions for both final checkpoints.
+
+name: dna-exp402-indel-attention
+
+resources:
+  infra: aws/us-east-2
+  accelerators: A10G:1
+  disk_size: 100
+  labels:
+    project: dna
+  use_spot: false
+
+workdir: .
+
+envs:
+  CHECKPOINT_46M_URI: ""
+  CHECKPOINT_104M_URI: ""
+  OUTPUT_URI: ""
+  CODE_REVISION: ""
+
+file_mounts:
+  ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  if ! command -v gcloud >/dev/null 2>&1; then
+    curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+    bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+  fi
+  uv sync --frozen --no-dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+  export WANDB_DISABLED=true
+  test -n "$CHECKPOINT_46M_URI"
+  test -n "$CHECKPOINT_104M_URI"
+  test -n "$OUTPUT_URI"
+  test "${#CODE_REVISION}" -eq 40
+  nvidia-smi
+
+  CHECKPOINTS_DIR="$HOME/issue402-indel-checkpoints"
+  RESULTS_DIR="$HOME/issue402-indel-attention"
+  mkdir -p "$CHECKPOINTS_DIR/46M" "$CHECKPOINTS_DIR/104M" "$RESULTS_DIR"
+  gcloud storage rsync "$CHECKPOINT_46M_URI" "$CHECKPOINTS_DIR/46M" --recursive
+  gcloud storage rsync "$CHECKPOINT_104M_URI" "$CHECKPOINTS_DIR/104M" --recursive
+  test -s "$CHECKPOINTS_DIR/46M/model.safetensors"
+  test -s "$CHECKPOINTS_DIR/104M/model.safetensors"
+
+  for MODEL_LABEL in 46M 104M; do
+    uv run --no-dev python scripts/issue402_indel_attention.py \
+      --model "$CHECKPOINTS_DIR/$MODEL_LABEL" \
+      --model-label "$MODEL_LABEL" \
+      --code-revision "$CODE_REVISION" \
+      --output-dir "$RESULTS_DIR/$MODEL_LABEL" \
+      --query-stride 4 \
+      --device cuda
+    test -s "$RESULTS_DIR/$MODEL_LABEL/manifest.json"
+    test -s "$RESULTS_DIR/$MODEL_LABEL/alignment_summary.parquet"
+    test -s "$RESULTS_DIR/$MODEL_LABEL/mapped_attention.parquet"
+    gcloud storage rsync \
+      "$RESULTS_DIR/$MODEL_LABEL" \
+      "$OUTPUT_URI/$MODEL_LABEL" \
+      --recursive
+  done
