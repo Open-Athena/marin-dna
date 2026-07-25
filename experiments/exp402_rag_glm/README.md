@@ -115,15 +115,15 @@ prediction rows with the existing per-chromosome-weighted metric.
 
 `online_eval_100m.py` keeps online-eval debugging off the training critical
 path. It loads the completed 104M Levanter checkpoint, limits the frozen
-Mendelian task to an even number of rows so strand pairs stay together, enables
-sample logging for raw-score inspection, and runs the same custom paged-cache
-method as the in-training callback. It does not update model weights. The full
-1,000-step curves continue to come from the independent offline scorer.
+Mendelian task to an even number of rows so strand pairs stay together, and
+runs the same custom paged-cache method as the in-training callback. It does not
+update model weights. The full 1,000-step curves and raw scores continue to come
+from the independent offline scorer. Per-sample online logging is disabled
+because the zero-shot custom task constructs requests directly and intentionally
+has no `doc_to_target`; the aggregate online metric does not call that method.
 The experiment-local compatibility shim excludes lm-eval's unused multimodal
 HF adapter under Transformers 5; the text-only Levanter adapter and evaluator
-remain loaded and are asserted in tests. It also supplies the empty,
-logging-only target that the current lm-eval caller requests for sample logs;
-the task stays zero-shot and its paired model request is unchanged.
+remain loaded and are asserted in tests.
 
 `scripts/issue402_parity_eval_sky.yaml` scores the exact first 32 rows of the
 frozen training split with the independent HF implementation. It asserts that

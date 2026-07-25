@@ -1,7 +1,6 @@
 import subprocess
 import sys
 
-from lm_eval_compat import allow_zero_shot_rag_sample_logging
 from online_eval_100m import (
     RAG_EVAL_BATCH_SIZE,
     build_config,
@@ -23,7 +22,7 @@ def test_build_config_is_bounded_eval_only() -> None:
     assert config.checkpoint_is_hf is False
     assert config.eval_harness.max_examples == 32
     assert config.eval_harness.max_length == 2_048
-    assert config.eval_harness.log_samples is True
+    assert config.eval_harness.log_samples is False
     assert config.eval_harness.bootstrap_iters == 0
     assert len(config.eval_harness.task_spec) == 1
     assert config.eval_harness.task_spec[0].task == "mendelian_traits_rag_255"
@@ -52,22 +51,6 @@ def test_fresh_process_loads_real_lm_eval_evaluator() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-
-
-def test_rag_sample_logging_target_does_not_change_requests() -> None:
-    from marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval import (
-        RagDnaVepLlrEvalTask,
-    )
-
-    allow_zero_shot_rag_sample_logging()
-    task = object.__new__(RagDnaVepLlrEvalTask)
-    doc = {
-        "ref_completion": "A" * 128,
-        "alt_completion": "G" * 128,
-    }
-    assert task.doc_to_target(doc) == ""
-    request = task.construct_requests(doc, "prefix")
-    assert request.args == ("prefix", "A" * 128, "G" * 128)
 
 
 def test_build_config_rejects_partial_strand_pair() -> None:
