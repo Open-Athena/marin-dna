@@ -18,6 +18,7 @@ from launch_100m import (
     CHECKPOINT_NAME,
     MODEL,
     RUN_ID,
+    TRAIN_HOST_RAM_100M,
     RAGTokenizedCache,
     build,
     rag_tokenized_dataset,
@@ -55,6 +56,7 @@ def test_scale_rung_preserves_horizon_optimizer_and_export_cadence(monkeypatch) 
     assert TRAIN_BATCH_SIZE == 64
     assert TRAIN_STEPS == 7_629
     assert ACTUAL_TOKENS == 999_948_288
+    assert TRAIN_HOST_RAM_100M == "56g"
     assert pod_config.train_config.optimizer == OPTIMIZER
     assert pod_config.train_config.hf_save_steps == HF_SAVE_EVERY == 1_000
     assert RAG_EVAL_EVERY == 1_000

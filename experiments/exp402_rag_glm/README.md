@@ -123,3 +123,5 @@ cache, batch 64, 999,948,288-token horizon, transferred AdamH values, TPU policy
 and 1,000-step HF export cadence from the 46M run. Launch it with
 `EXP402_ONLINE_EVAL=0`; the already-running offline scorer provides the requested
 early evaluation without coupling training progress to harness initialization.
+The 104M task requests 56 GB host RAM because v6e workers expose 60.2 GB
+allocatable; the model and accelerator configuration are otherwise unchanged.

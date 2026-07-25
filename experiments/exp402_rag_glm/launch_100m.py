@@ -23,7 +23,6 @@ from launch import (
     TOKENIZER_PATH,
     TRAIN_BATCH_SIZE,
     TRAIN_HOST_CPU,
-    TRAIN_HOST_RAM,
     TRAIN_REGIONS,
     TRAIN_STEPS,
     TRAIN_TPU,
@@ -39,6 +38,9 @@ from launch import (
 
 CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h768-p104m-1b"
 RUN_ID = "dna-exp402-rag-h768-p104M-1B"
+# v6e workers expose 60.2 GiB allocatable host RAM. Requesting the shared 64g
+# value prevents the task from starting before model initialization.
+TRAIN_HOST_RAM_100M = "56g"
 
 # One modest size step above the completed 45.9M rung. All head dimensions and
 # width ratios remain conventional; 11 layers lands at 103,838,976 parameters.
@@ -96,7 +98,7 @@ def build() -> ArtifactStep:
         resources=ResourceConfig.with_tpu(
             TRAIN_TPU,
             cpu=TRAIN_HOST_CPU,
-            ram=TRAIN_HOST_RAM,
+            ram=TRAIN_HOST_RAM_100M,
             disk="100g",
             regions=TRAIN_REGIONS,
         ),
