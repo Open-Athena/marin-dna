@@ -8,6 +8,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import FuncFormatter
 import polars as pl
 import seaborn as sns
 
@@ -16,8 +17,7 @@ DEFAULT_INPUT_ROOTS = {
         "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h640-p46m-1b/ropefix"
     ),
     "104M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h768-p104m-1b/ropefix"
+        "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h768-p104m-1b/ropefix"
     ),
 }
 DEFAULT_STEPS = (1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 7_000, 7_628)
@@ -34,6 +34,11 @@ MODEL_STYLES = {
     "46M": {"linestyle": "-", "marker": "o"},
     "104M": {"linestyle": "--", "marker": "s"},
 }
+
+
+def _format_training_step(value: float, _position: int) -> str:
+    """Render dense checkpoint ticks without overlapping four-digit labels."""
+    return f"{value / 1_000:g}k"
 
 
 def parse_args() -> argparse.Namespace:
@@ -203,6 +208,7 @@ def plot_curves(curves: pl.DataFrame, output_dir: Path) -> None:
         axis.tick_params(axis="y", colors=primary_color)
         axis.spines["left"].set_color(primary_color)
         axis.set_title(BENCHMARK_TITLES[benchmark])
+        axis.xaxis.set_major_formatter(FuncFormatter(_format_training_step))
 
         if benchmark != "SGE":
             macro_axis = axis.twinx()

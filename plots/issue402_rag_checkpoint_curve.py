@@ -7,12 +7,12 @@ import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import polars as pl
 import seaborn as sns
 
 DEFAULT_INPUT_ROOT = (
-    "gs://marin-us-east5/users/ubuntu/evals/"
-    "dna-exp402-rag-h640-p46m-1b/ropefix"
+    "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h640-p46m-1b/ropefix"
 )
 DEFAULT_STEPS = (1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 7_000, 7_628)
 BENCHMARK_TITLES = {
@@ -24,6 +24,11 @@ AGGREGATE_COLORS = {
     "global": "#3366cc",
     "macro": "#d95f02",
 }
+
+
+def _format_training_step(value: float, _position: int) -> str:
+    """Render dense checkpoint ticks without overlapping four-digit labels."""
+    return f"{value / 1_000:g}k"
 
 
 def parse_args() -> argparse.Namespace:
@@ -92,9 +97,7 @@ def load_curve(input_root: str, steps: list[int] | tuple[int, ...]) -> pl.DataFr
             & pl.col("subset").is_in(["missense_variant", "splicing"])
         )
         assert sge_cells.height == 6
-        sge_chance = sge_cells.select(
-            (pl.col("n_pos") / pl.col("n")).mean()
-        ).item()
+        sge_chance = sge_cells.select((pl.col("n_pos") / pl.col("n")).mean()).item()
         sge_chance_values.append(float(sge_chance))
         rows.append(
             {
@@ -170,6 +173,7 @@ def plot_curve(curve: pl.DataFrame, output_dir: Path) -> None:
         axis.spines["left"].set_color(primary_color)
         axis.set_title(BENCHMARK_TITLES[benchmark])
         axis.tick_params(axis="x", labelrotation=0)
+        axis.xaxis.set_major_formatter(FuncFormatter(_format_training_step))
 
         if benchmark != "SGE":
             macro_rows = subset[subset["aggregate"] == "macro"]
