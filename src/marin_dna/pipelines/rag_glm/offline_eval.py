@@ -19,6 +19,7 @@ import torch
 from huggingface_hub import hf_hub_download
 from torch import Tensor
 from transformers import PreTrainedTokenizerFast
+from transformers import AutoConfig
 
 from marin_dna.pipelines.evals.metrics import (
     compute_auprc_metrics,
@@ -183,6 +184,44 @@ def load_rag_tokenizer_hf(
     assert tokenizer.convert_tokens_to_ids("[SEQ]") == 3
     assert nucleotide_token_ids(tokenizer).tolist() == [4, 5, 6, 7]
     return tokenizer
+
+
+def load_rag_model_config_hf(
+    pretrained_model_name_or_path: str | Path,
+    *,
+    revision: str | None = None,
+) -> Any:
+    """Load a Levanter HF export without silently dropping Llama-3 RoPE.
+
+    Levanter's Transformers 5 exporter writes the new ``rope_parameters``
+    field. Transformers 4.57's Qwen3 config instead consumes
+    ``rope_scaling`` and otherwise defaults to unscaled RoPE. Translate the
+    exported field explicitly so the offline model matches the native model.
+    """
+    config = AutoConfig.from_pretrained(
+        pretrained_model_name_or_path,
+        revision=revision,
+        trust_remote_code=True,
+    )
+    rope_parameters = getattr(config, "rope_parameters", None)
+    if rope_parameters is None:
+        return config
+
+    assert isinstance(rope_parameters, dict)
+    observed_scaling = getattr(config, "rope_scaling", None)
+    if observed_scaling is not None:
+        assert observed_scaling == rope_parameters, (
+            "conflicting rope_parameters and rope_scaling in model export"
+        )
+        return config
+
+    rope_scaling = dict(rope_parameters)
+    exported_theta = rope_scaling.pop("rope_theta", None)
+    if exported_theta is not None:
+        config.rope_theta = float(exported_theta)
+    assert rope_scaling.get("rope_type") == "llama3"
+    config.rope_scaling = rope_scaling
+    return config
 
 
 def encode_rag_batch(

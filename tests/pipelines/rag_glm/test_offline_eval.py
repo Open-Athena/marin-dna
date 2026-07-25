@@ -17,6 +17,7 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     compute_rag_benchmark_metrics,
     encode_rag_batch,
     load_rag_eval_split,
+    load_rag_model_config_hf,
     load_rag_tokenizer_hf,
     nucleotide_token_ids,
     run_rag_mendelian_probe,
@@ -127,6 +128,45 @@ def test_load_transformers_5_exported_tokenizer_with_transformers_4(tmp_path) ->
     assert loaded("ACGT", add_special_tokens=False)["input_ids"] == [4, 5, 6, 7]
     assert loaded.bos_token_id == 2
     assert loaded.convert_tokens_to_ids("[SEQ]") == 3
+
+
+def test_load_transformers_5_exported_rope_with_transformers_4(tmp_path) -> None:
+    config = {
+        "model_type": "qwen3",
+        "vocab_size": 8,
+        "hidden_size": 16,
+        "intermediate_size": 32,
+        "num_hidden_layers": 1,
+        "num_attention_heads": 1,
+        "num_key_value_heads": 1,
+        "head_dim": 16,
+        "max_position_embeddings": 2_048,
+        "rope_theta": 500_000,
+        "rope_parameters": {
+            "factor": 8.0,
+            "low_freq_factor": 1.0,
+            "high_freq_factor": 4.0,
+            "original_max_position_embeddings": 8_192,
+            "rope_type": "llama3",
+            "rope_theta": 500_000,
+        },
+    }
+    (tmp_path / "config.json").write_text(json.dumps(config))
+
+    loaded = load_rag_model_config_hf(tmp_path)
+
+    expected_scaling = {
+        "factor": 8.0,
+        "low_freq_factor": 1.0,
+        "high_freq_factor": 4.0,
+        "original_max_position_embeddings": 8_192,
+        "rope_type": "llama3",
+    }
+    if getattr(loaded, "rope_theta", None) is None:
+        assert loaded.rope_scaling == {**expected_scaling, "rope_theta": 500_000}
+    else:
+        assert loaded.rope_theta == 500_000
+        assert loaded.rope_scaling == expected_scaling
 
 
 @pytest.mark.parametrize(

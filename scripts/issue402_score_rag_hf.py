@@ -15,6 +15,7 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     aggregate_rag_variant_scores,
     compute_rag_benchmark_metrics,
     load_rag_eval_split,
+    load_rag_model_config_hf,
     load_rag_tokenizer_hf,
     encode_rag_batch,
     nucleotide_token_ids,
@@ -114,7 +115,12 @@ def main() -> None:
         args.tokenizer or args.model,
         revision=args.model_revision,
     )
+    model_config = load_rag_model_config_hf(
+        args.model,
+        revision=args.model_revision,
+    )
     model_kwargs = dict(pretrained_kwargs)
+    model_kwargs["config"] = model_config
     if torch.device(args.device).type == "cuda":
         model_kwargs["torch_dtype"] = torch.bfloat16
     model = AutoModelForCausalLM.from_pretrained(args.model, **model_kwargs)
