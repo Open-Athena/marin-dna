@@ -1,5 +1,5 @@
 # SkyPilot task: extract the frozen 255-token human-segment embeddings from
-# issue #402's final 46M checkpoint, then run the preregistered Mendelian probe.
+# one of issue #402's final checkpoints, then run the frozen Mendelian probe.
 #
 # Launch from the repository root with a commit containing this task:
 #   sky launch -c dna-exp402-probe-final --down \
