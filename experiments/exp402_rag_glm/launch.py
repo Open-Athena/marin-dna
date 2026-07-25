@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from dataclasses import replace
 from pathlib import Path
 
 from fray.types import ResourceConfig
@@ -44,6 +45,7 @@ TARGET_TOKENS = 1_000_000_000
 TRAIN_STEPS = round(TARGET_TOKENS / (TRAIN_BATCH_SIZE * SEQ_LEN))
 ACTUAL_TOKENS = TRAIN_STEPS * TRAIN_BATCH_SIZE * SEQ_LEN
 RAG_EVAL_EVERY = 1_000
+HF_SAVE_EVERY = 1_000
 ONLINE_EVAL_ENV = "EXP402_ONLINE_EVAL"
 TRAIN_TPU = ("v6e-4", "v5p-8")
 TRAIN_REGIONS = ("us-east5",)
@@ -193,7 +195,7 @@ def rag_tokenized_dataset() -> ArtifactStep[RAGTokenizedCache]:
 def build() -> ArtifactStep:
     """Assemble the tokenization dependency and scratch 46M training run."""
     dataset = rag_tokenized_dataset()
-    return train_lm(
+    training = train_lm(
         name=CHECKPOINT_NAME,
         model=MODEL,
         optimizer=OPTIMIZER,
@@ -220,6 +222,19 @@ def build() -> ArtifactStep:
         run_id=RUN_ID,
         tags=("dna", "dna-exp402", "rag", "qwen3", "46M", "scratch"),
     )
+    original_build_config = training.build_config
+
+    def build_config_with_early_hf_exports(ctx: StepContext):
+        pod_config = original_build_config(ctx)
+        return replace(
+            pod_config,
+            train_config=replace(
+                pod_config.train_config,
+                hf_save_steps=HF_SAVE_EVERY,
+            ),
+        )
+
+    return replace(training, build_config=build_config_with_early_hf_exports)
 
 
 if __name__ == "__main__":

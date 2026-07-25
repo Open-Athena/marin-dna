@@ -6,12 +6,15 @@ import tempfile
 import pytest
 from levanter.tokenizers import load_tokenizer
 from marin.execution.artifact import ArtifactRecord, result_type_name, write_record
-from marin.execution.lazy import materialized_config
+from marin.execution.build_context import BuildContext, VersionCodex, build_context
+from marin.execution.lazy import StepContext, materialized_config
 from marin_dna.levanter.formats import RAGDNALmDatasetFormat
 from marin_dna.pipelines.rag_glm.dataset import MISSING_SEQUENCE, assemble_document
 
 from launch import (
     ACTUAL_TOKENS,
+    CHECKPOINT_NAME,
+    HF_SAVE_EVERY,
     MARIN_DNA_REVISION,
     MENDELIAN_TRAITS_RAG_255,
     MODEL,
@@ -30,6 +33,7 @@ from launch import (
     TRAIN_TPU,
     VOCAB_SIZE,
     RAGTokenizedCache,
+    build,
     online_eval_enabled,
     rag_tokenized_dataset,
 )
@@ -55,6 +59,23 @@ def test_online_eval_can_be_disabled_for_offline_scoring(monkeypatch) -> None:
     monkeypatch.setenv(ONLINE_EVAL_ENV, "invalid")
     with pytest.raises(AssertionError, match="must be 0 or 1"):
         online_eval_enabled()
+
+
+def test_offline_mode_exports_every_thousand_steps(monkeypatch) -> None:
+    monkeypatch.setenv(ONLINE_EVAL_ENV, "0")
+    versions = VersionCodex(
+        default="2026.07.24",
+        overrides={CHECKPOINT_NAME: "test-dev"},
+    )
+    with build_context(BuildContext(versions=versions)):
+        training = build()
+    ctx = StepContext.for_fingerprint(
+        training.runtime_args.keys(),
+        training.deps,
+    )
+    pod_config = training.build_config(ctx)
+    assert pod_config.train_config.hf_save_steps == HF_SAVE_EVERY == 1_000
+    assert pod_config.train_config.eval_harness is None
 
 
 def test_model_is_the_46m_rung_at_full_document_length() -> None:

@@ -23,8 +23,9 @@ those digests in the tokenized-cache fingerprint.
 | Steps | 7,629 |
 | Tokens | 999,948,288 |
 | Initialization | Scratch |
-| Accelerator | One preemptible `v5p-8` |
-| Online eval | Mendelian RAG harness every 1,000 steps and at final step 7,629 |
+| Accelerator | One `v6e-4`, with `v5p-8` fallback |
+| Online eval | Mendelian RAG harness every 1,000 steps by default; optional offline-only fallback |
+| HF exports | Every 1,000 steps and at final step 7,629 |
 | W&B | group `dna-exp402-v1`, run `dna-exp402-rag-h640-p46M-1B` |
 
 AdamH is transferred from the Complete(d)-inspired reference at the actual
@@ -55,6 +56,13 @@ AUPRC metric. The experiment pins Marin's exact `lm-eval` fork because the
 current Marin wheel advertises that integration but omits the dependency from
 its built metadata.
 
+If online harness initialization blocks training, launch with
+`EXP402_ONLINE_EVAL=0`. This changes no model, data, optimizer, or training
+horizon setting; it only omits the in-process harness. The launcher always
+exports Hugging Face checkpoints at steps 1,000, 2,000, … under the run's
+`hf/step-<N>` directory so the same frozen Mendelian, Complex, and SGE datasets
+can be scored independently with `scripts/issue402_score_rag_hf.py`.
+
 ## Validate
 
 From this directory:
@@ -80,6 +88,7 @@ uv run iris --cluster=marin job run \
   --cpu 1 --memory 2g --region us-east5 \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
+  -e EXP402_ONLINE_EVAL 1 \
   -- python launch.py --version 2026.07.24 --run
 ```
 
