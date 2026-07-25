@@ -103,6 +103,16 @@ frozen Mendelian, Complex, and SGE harnesses. The checkpoint sweep uses one
 queued Sky job per 1,000-step export so it gets early signals without holding
 training open on the in-process harness.
 
+The exports use Transformers 5's Qwen3 config schema: Llama-3 scaling and
+`rope_theta=500000` are stored under `rope_parameters`. The repository-wide
+offline environment intentionally remains on Transformers 4.57, so all offline
+loads must go through `load_rag_model_config_hf` in
+`src/marin_dna/pipelines/rag_glm/offline_eval.py`; it translates those values to
+Transformers 4's `rope_scaling` and top-level `rope_theta` before model
+construction. Calling `AutoModelForCausalLM.from_pretrained` directly in that
+environment silently falls back to unscaled RoPE with theta 10,000 and produces
+invalid metrics.
+
 The final Mendelian representation probe is a separate Sky task,
 `scripts/issue402_probe_sky.yaml`. It pools exactly the final human segment at
 0-based half-open token coordinates `[1793, 2048)` (255 tokens), averages the
@@ -149,12 +159,12 @@ uv run iris --cluster=marin job run --no-wait --user ubuntu \
 
 ## Gated 103.8M scale rung
 
-After the completed 45.9M run showed checkpoint-1,000 AUPRC above the fixed
-prevalence references on Mendelian, Complex, and SGE, `launch_100m.py` freezes a
-single modest size step: Qwen3 hidden 768, MLP 3072, 11 layers, and 6 query/KV
-heads (103,838,976 parameters at vocabulary size 8). It reuses the exact token
-cache, batch 64, 999,948,288-token horizon, transferred AdamH values, TPU policy,
-and 1,000-step HF export cadence from the 46M run. Launch it with
+After the completed 45.9M run was operationally healthy, the approved scale
+rung in `launch_100m.py` froze a single modest size step: Qwen3 hidden 768, MLP
+3072, 11 layers, and 6 query/KV heads (103,838,976 parameters at vocabulary size
+8). It reuses the exact token cache, batch 64, 999,948,288-token horizon,
+transferred AdamH values, TPU policy, and 1,000-step HF export cadence from the
+46M run. Launch it with
 `EXP402_ONLINE_EVAL=0`; the already-running offline scorer provides the requested
 early evaluation without coupling training progress to harness initialization.
 The 104M task requests 56 GB host RAM because v6e workers expose 60.2 GB
