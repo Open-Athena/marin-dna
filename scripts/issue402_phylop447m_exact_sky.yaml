@@ -1,0 +1,78 @@
+# SkyPilot task: score the exact issue #402 test variants with phyloP (447m).
+#
+# The 10 GB bigWig is bulk-downloaded from the project's public S3 mirror.
+# Variant coordinates never leave the worker in coordinate-dependent requests.
+
+name: dna-exp402-phylop447m-exact
+
+resources:
+  infra: aws/us-east-2
+  cpus: 2+
+  memory: 8+
+  disk_size: 100
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .
+
+envs:
+  VARIANTS_URI: ""
+  OUTPUT_URI: ""
+  CODE_REVISION: ""
+  N_BOOTSTRAP: "1000"
+
+file_mounts:
+  ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  if ! command -v gcloud >/dev/null 2>&1; then
+    curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+    bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+  fi
+  uv sync --frozen --no-dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+  test -n "$VARIANTS_URI"
+  test -n "$OUTPUT_URI"
+  test "${#CODE_REVISION}" -eq 40
+  test "$N_BOOTSTRAP" -gt 0
+
+  VARIANTS_DIR="$HOME/issue402-variants"
+  RESULTS_DIR="$HOME/issue402-phylop447m"
+  BIGWIG="$HOME/phyloP_447m.bw"
+  mkdir -p "$VARIANTS_DIR" "$RESULTS_DIR"
+  for BENCHMARK in mendelian_traits complex_traits sge; do
+    mkdir -p "$VARIANTS_DIR/$BENCHMARK"
+    gcloud storage cp \
+      "$VARIANTS_URI/$BENCHMARK/variants.parquet" \
+      "$VARIANTS_DIR/$BENCHMARK/variants.parquet"
+  done
+  curl --fail --location --retry 5 \
+    --output "$BIGWIG" \
+    "https://oa-bolinas.s3.us-east-2.amazonaws.com/snakemake/conservation_eval/results/conservation/phyloP_447m.bw"
+  test "$(stat -c %s "$BIGWIG")" -eq 10022801463
+
+  uv run --no-dev python scripts/issue402_phylop447m_exact_baseline.py \
+    --variants-root "$VARIANTS_DIR" \
+    --bigwig "$BIGWIG" \
+    --output-dir "$RESULTS_DIR" \
+    --code-revision "$CODE_REVISION" \
+    --source-uri "s3://oa-bolinas/snakemake/conservation_eval/results/conservation/phyloP_447m.bw" \
+    --n-bootstrap "$N_BOOTSTRAP"
+  test -s "$RESULTS_DIR/manifest.json"
+  for BENCHMARK in mendelian_traits complex_traits sge; do
+    test -s "$RESULTS_DIR/$BENCHMARK/metrics.parquet"
+    test -s "$RESULTS_DIR/$BENCHMARK/variants.parquet"
+  done
+  gcloud storage rsync "$RESULTS_DIR" "$OUTPUT_URI" --recursive
