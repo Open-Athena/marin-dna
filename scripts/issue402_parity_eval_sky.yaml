@@ -1,11 +1,11 @@
-# SkyPilot task: score the exact first 32 paired training rows used by issue
+# SkyPilot task: score the exact first 1,842 paired training rows used by issue
 # #402's bounded online-harness parity smoke.
 #
 # Launch from the repository root with a commit containing this task:
 #   sky launch -c dna-exp402-parity-p104m-final --down \
 #     scripts/issue402_parity_eval_sky.yaml \
 #     --env CHECKPOINT_URI=gs://.../hf/step-7628 \
-#     --env OUTPUT_URI=gs://.../parity/train-first-32 \
+#     --env OUTPUT_URI=gs://.../parity/train-first-1842 \
 #     --env CODE_REVISION=<full-commit-sha>
 
 name: dna-exp402-offline-parity
@@ -26,7 +26,7 @@ envs:
   CHECKPOINT_URI: ""
   OUTPUT_URI: ""
   CODE_REVISION: ""
-  MAX_ROWS: "32"
+  MAX_ROWS: "1842"
   BATCH_SIZE: "16"
 
 file_mounts:
@@ -56,7 +56,7 @@ run: |
   test -n "$CHECKPOINT_URI"
   test -n "$OUTPUT_URI"
   test "${#CODE_REVISION}" -eq 40
-  test "$MAX_ROWS" -eq 32
+  test "$MAX_ROWS" -eq 1842
   test $((MAX_ROWS % 2)) -eq 0
   test "$BATCH_SIZE" -gt 0
   nvidia-smi

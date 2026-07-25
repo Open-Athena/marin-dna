@@ -66,6 +66,15 @@ def test_build_config_rejects_partial_strand_pair() -> None:
         raise AssertionError("odd max_examples must fail")
 
 
+def test_build_config_accepts_smallest_class_complete_prefix() -> None:
+    config = build_config(
+        checkpoint_path="gs://example/checkpoints",
+        max_examples=1_842,
+        run_id="dna-exp402-online-parity-class-complete-test",
+    )
+    assert config.eval_harness.max_examples == 1_842
+
+
 def test_finish_tracker_tolerates_preinitialization_failure(monkeypatch) -> None:
     def no_tracker():
         raise RuntimeError("No global tracker set")

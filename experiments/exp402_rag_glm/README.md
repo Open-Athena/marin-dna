@@ -125,12 +125,14 @@ The experiment-local compatibility shim excludes lm-eval's unused multimodal
 HF adapter under Transformers 5; the text-only Levanter adapter and evaluator
 remain loaded and are asserted in tests.
 
-`scripts/issue402_parity_eval_sky.yaml` scores the exact first 32 rows of the
-frozen training split with the independent HF implementation. It asserts that
-the deterministic prefix contains 16 complete forward/reverse-complement pairs
-and writes the row-selection policy into the output manifest.
+`scripts/issue402_parity_eval_sky.yaml` scores the exact first 1,842 rows of the
+frozen training split with the independent HF implementation. This is the
+smallest deterministic prefix that has both target classes in every represented
+annotation subset; it contains 921 complete forward/reverse-complement pairs.
+The scorer asserts those pairs and writes the row-selection policy into the
+output manifest.
 
-Run the 32-row parity smoke directly on one TPU worker:
+Run the 1,842-row parity smoke directly on one TPU worker:
 
 ```bash
 uv run iris --cluster=marin job run --no-wait --user ubuntu \
@@ -140,7 +142,7 @@ uv run iris --cluster=marin job run --no-wait --user ubuntu \
   --cpu 16 --memory 56g --disk 100g --region us-east5 --timeout 1800 \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e EXP402_ONLINE_CHECKPOINT_PATH "$EXP402_ONLINE_CHECKPOINT_PATH" \
-  -e EXP402_ONLINE_MAX_EXAMPLES 32 \
+  -e EXP402_ONLINE_MAX_EXAMPLES 1842 \
   -e EXP402_ONLINE_RUN_ID dna-exp402-online-parity-p104M-final-smoke1 \
   -- python online_eval_100m.py
 ```

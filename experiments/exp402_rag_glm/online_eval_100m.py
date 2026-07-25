@@ -33,7 +33,7 @@ from launch_100m import MODEL
 CHECKPOINT_PATH_ENV = "EXP402_ONLINE_CHECKPOINT_PATH"
 MAX_EXAMPLES_ENV = "EXP402_ONLINE_MAX_EXAMPLES"
 RUN_ID_ENV = "EXP402_ONLINE_RUN_ID"
-DEFAULT_MAX_EXAMPLES = 32
+DEFAULT_MAX_EXAMPLES = 1_842
 DEFAULT_RUN_ID = "dna-exp402-online-parity-p104M-final-smoke1"
 RAG_EVAL_BATCH_SIZE = 16
 _TOKEN_AXES = (ResourceAxis.REPLICA_DCN, ResourceAxis.REPLICA, ResourceAxis.DATA)
@@ -43,7 +43,7 @@ def build_config(*, checkpoint_path: str, max_examples: int, run_id: str) -> Eva
     """Build the standalone Levanter harness config without starting JAX."""
     assert checkpoint_path
     assert max_examples > 0
-    assert max_examples <= 256
+    assert max_examples <= 2_048
     assert max_examples % 2 == 0, "keep both strand rows for every limited variant"
     assert run_id.startswith("dna-exp402-")
     task_spec = convert_to_levanter_task_config([MENDELIAN_TRAITS_RAG_255])
