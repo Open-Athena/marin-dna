@@ -112,3 +112,14 @@ forward/reverse-complement allele embeddings in float32, and uses
 inner five-fold chromosome-grouped tuning over `C = logspace(-12, 4, 17)`, with
 four CPU workers. Probe and zero-shot likelihood AUPRC are computed on the same
 prediction rows with the existing per-chromosome-weighted metric.
+
+## Gated 103.8M scale rung
+
+After the completed 45.9M run showed checkpoint-1,000 AUPRC above the fixed
+prevalence references on Mendelian, Complex, and SGE, `launch_100m.py` freezes a
+single modest size step: Qwen3 hidden 768, MLP 3072, 11 layers, and 6 query/KV
+heads (103,838,976 parameters at vocabulary size 8). It reuses the exact token
+cache, batch 64, 999,948,288-token horizon, transferred AdamH values, TPU policy,
+and 1,000-step HF export cadence from the 46M run. Launch it with
+`EXP402_ONLINE_EVAL=0`; the already-running offline scorer provides the requested
+early evaluation without coupling training progress to harness initialization.
