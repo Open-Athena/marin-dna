@@ -116,56 +116,108 @@ def load_curve(input_root: str, steps: list[int] | tuple[int, ...]) -> pl.DataFr
 
 
 def plot_curve(curve: pl.DataFrame, output_dir: Path) -> None:
-    """Render independent benchmark facets with capless ±1 SE bars."""
+    """Render benchmark facets with independent global/macro y-axes."""
     output_dir.mkdir(parents=True, exist_ok=True)
     curve.write_parquet(output_dir / "metrics.parquet", compression="zstd")
     data = curve.to_pandas()
+    primary = data[
+        ((data["benchmark"] != "SGE") & (data["aggregate"] == "global"))
+        | ((data["benchmark"] == "SGE") & (data["aggregate"] == "macro"))
+    ]
     sns.set_theme(style="whitegrid", context="talk")
     grid = sns.relplot(
-        data=data,
+        data=primary,
         x="step",
         y="value",
         hue="aggregate",
-        col="benchmark",
-        col_order=["Mendelian", "Complex", "SGE"],
+        hue_order=["global", "macro"],
+        row="benchmark",
+        row_order=["Mendelian", "Complex", "SGE"],
         kind="line",
         marker="o",
         dashes=False,
         palette=AGGREGATE_COLORS,
-        facet_kws={"sharey": False},
-        height=4.6,
-        aspect=0.9,
+        facet_kws={"sharex": True, "sharey": False},
+        height=2.8,
+        aspect=2.4,
     )
     grid.set_axis_labels("", "AUPRC")
+    twin_axes = []
     for benchmark, axis in grid.axes_dict.items():
         subset = data[data["benchmark"] == benchmark]
-        for aggregate, group in subset.groupby("aggregate", sort=False):
-            axis.errorbar(
-                group["step"],
-                group["value"],
-                yerr=group["se"],
+        primary_aggregate = "macro" if benchmark == "SGE" else "global"
+        primary_rows = subset[subset["aggregate"] == primary_aggregate]
+        assert len(primary_rows) == subset["step"].nunique()
+        primary_color = AGGREGATE_COLORS[primary_aggregate]
+        axis.errorbar(
+            primary_rows["step"],
+            primary_rows["value"],
+            yerr=primary_rows["se"],
+            fmt="none",
+            capsize=0,
+            color=primary_color,
+            alpha=0.7,
+            linewidth=1.2,
+        )
+        reference = float(primary_rows["prevalence_reference"].iloc[0])
+        assert (primary_rows["prevalence_reference"] == reference).all()
+        axis.axhline(reference, color=primary_color, linestyle="--", linewidth=1)
+        axis.set_ylabel(
+            f"{primary_aggregate.title()} AUPRC",
+            color=primary_color,
+        )
+        axis.tick_params(axis="y", colors=primary_color)
+        axis.spines["left"].set_color(primary_color)
+        axis.set_title(BENCHMARK_TITLES[benchmark])
+        axis.tick_params(axis="x", labelrotation=0)
+
+        if benchmark != "SGE":
+            macro_rows = subset[subset["aggregate"] == "macro"]
+            assert len(macro_rows) == len(primary_rows)
+            macro_axis = axis.twinx()
+            macro_axis.plot(
+                macro_rows["step"],
+                macro_rows["value"],
+                color=AGGREGATE_COLORS["macro"],
+                marker="o",
+            )
+            macro_axis.errorbar(
+                macro_rows["step"],
+                macro_rows["value"],
+                yerr=macro_rows["se"],
                 fmt="none",
                 capsize=0,
-                color=AGGREGATE_COLORS[aggregate],
+                color=AGGREGATE_COLORS["macro"],
                 alpha=0.7,
                 linewidth=1.2,
             )
-        reference = float(subset["prevalence_reference"].iloc[0])
-        assert (subset["prevalence_reference"] == reference).all()
-        axis.axhline(reference, color="#666666", linestyle="--", linewidth=1)
-        axis.set_title(BENCHMARK_TITLES[benchmark])
-        axis.tick_params(axis="x", labelrotation=30)
+            macro_reference = float(macro_rows["prevalence_reference"].iloc[0])
+            assert (macro_rows["prevalence_reference"] == macro_reference).all()
+            macro_axis.axhline(
+                macro_reference,
+                color=AGGREGATE_COLORS["macro"],
+                linestyle="--",
+                linewidth=1,
+            )
+            macro_axis.set_ylabel("Macro AUPRC", color=AGGREGATE_COLORS["macro"])
+            macro_axis.tick_params(axis="y", colors=AGGREGATE_COLORS["macro"])
+            macro_axis.spines["right"].set_color(AGGREGATE_COLORS["macro"])
+            macro_axis.grid(False)
+            twin_axes.append(macro_axis)
+    assert len(twin_axes) == 2
+    assert grid._legend is not None
+    grid._legend.remove()
     grid.figure.suptitle("46M ortholog-RAG offline variant metrics across training")
-    grid.figure.supxlabel("Training step", y=0.08)
+    grid.figure.supxlabel("Training step", y=0.065)
     grid.figure.text(
         0.5,
-        0.01,
-        "Error bars = ±1 SE; dashed lines = fixed prevalence reference. "
-        "Facet y-axes are independent.",
+        0.008,
+        "Error bars = ±1 SE; dashed lines = fixed prevalence on the corresponding "
+        "axis. Global/macro y-axes are independent.",
         ha="center",
         fontsize=10,
     )
-    grid.figure.subplots_adjust(top=0.78, bottom=0.35)
+    grid.figure.subplots_adjust(top=0.91, bottom=0.16, hspace=0.45)
     grid.figure.savefig(output_dir / "figure.svg", bbox_inches="tight")
     grid.figure.savefig(output_dir / "figure.png", dpi=180, bbox_inches="tight")
     plt.close(grid.figure)
