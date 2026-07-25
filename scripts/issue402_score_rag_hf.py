@@ -7,12 +7,13 @@ import argparse
 from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM
 
 from marin_dna.pipelines.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
     compute_rag_benchmark_metrics,
+    load_rag_tokenizer_hf,
     load_rag_eval_split,
     score_rag_rows_hf,
     write_rag_evaluation_outputs,
@@ -68,8 +69,9 @@ def main() -> None:
     pretrained_kwargs: dict[str, object] = {"trust_remote_code": True}
     if args.model_revision is not None:
         pretrained_kwargs["revision"] = args.model_revision
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.tokenizer or args.model, **pretrained_kwargs
+    tokenizer = load_rag_tokenizer_hf(
+        args.tokenizer or args.model,
+        revision=args.model_revision,
     )
     model_kwargs = dict(pretrained_kwargs)
     if torch.device(args.device).type == "cuda":

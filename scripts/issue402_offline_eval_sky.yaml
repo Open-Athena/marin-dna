@@ -45,7 +45,7 @@ setup: |
     bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
   fi
 
-  uv sync --frozen
+  uv sync --frozen --no-dev
 
 run: |
   set -euxo pipefail

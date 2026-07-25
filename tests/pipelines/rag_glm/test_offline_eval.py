@@ -16,8 +16,9 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     aggregate_rag_variant_scores,
     compute_rag_benchmark_metrics,
     encode_rag_batch,
-    nucleotide_token_ids,
     load_rag_eval_split,
+    load_rag_tokenizer_hf,
+    nucleotide_token_ids,
     write_rag_evaluation_outputs,
 )
 from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
@@ -74,6 +75,21 @@ def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
 def test_dataset_repo_override_requires_revision() -> None:
     with pytest.raises(AssertionError, match="also requires an explicit revision"):
         load_rag_eval_split("mendelian_traits", "test", repo="someone/other")
+
+
+def test_load_transformers_5_exported_tokenizer_with_transformers_4(tmp_path) -> None:
+    tokenizer = create_rag_char_tokenizer()
+    tokenizer.save_pretrained(tmp_path)
+    config_path = tmp_path / "tokenizer_config.json"
+    config = json.loads(config_path.read_text())
+    config["tokenizer_class"] = "TokenizersBackend"
+    config_path.write_text(json.dumps(config))
+
+    loaded = load_rag_tokenizer_hf(tmp_path)
+
+    assert loaded("ACGT", add_special_tokens=False)["input_ids"] == [4, 5, 6, 7]
+    assert loaded.bos_token_id == 2
+    assert loaded.convert_tokens_to_ids("[SEQ]") == 3
 
 
 @pytest.mark.parametrize(

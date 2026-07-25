@@ -16,6 +16,7 @@ import numpy as np
 import polars as pl
 import torch
 from torch import Tensor
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from marin_dna.pipelines.evals.metrics import compute_auprc_metrics, compute_sge_metrics
 from marin_dna.pipelines.rag_glm.hf_scoring import (
@@ -102,6 +103,39 @@ def nucleotide_token_ids(tokenizer: Any) -> Tensor:
     token_ids = torch.tensor([ids[0] for ids in encoded], dtype=torch.long)
     assert token_ids.unique().numel() == 4
     return token_ids
+
+
+def load_rag_tokenizer_hf(
+    pretrained_model_name_or_path: str | Path,
+    *,
+    revision: str | None = None,
+) -> Any:
+    """Load a RAG tokenizer across the Transformers 5 exporter/4 reader boundary.
+
+    Levanter currently exports tokenizer metadata with the Transformers 5-only
+    class name ``TokenizersBackend``. The serialized ``tokenizer.json`` itself
+    is the standard fast-tokenizer format, so Transformers 4 can load it
+    losslessly by selecting ``PreTrainedTokenizerFast`` explicitly.
+    """
+    kwargs: dict[str, object] = {"trust_remote_code": True}
+    if revision is not None:
+        kwargs["revision"] = revision
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path, **kwargs
+        )
+    except ValueError as error:
+        if "Tokenizer class TokenizersBackend" not in str(error):
+            raise
+        tokenizer = PreTrainedTokenizerFast.from_pretrained(
+            pretrained_model_name_or_path, **kwargs
+        )
+    assert tokenizer.bos_token_id is not None
+    assert tokenizer.pad_token_id is not None
+    assert tokenizer.eos_token_id is None
+    assert tokenizer.convert_tokens_to_ids("[SEQ]") != tokenizer.unk_token_id
+    assert nucleotide_token_ids(tokenizer).unique().numel() == 4
+    return tokenizer
 
 
 def encode_rag_batch(
