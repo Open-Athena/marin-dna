@@ -28,7 +28,7 @@ from marin.processing.tokenize.tokenize import (
 from marin_dna.levanter.formats import RAGDNALmDatasetFormat
 from marin_dna.pipelines.evals.lm_eval.task_configs import MENDELIAN_TRAITS_RAG_255
 
-MARIN_DNA_REVISION = "c5eedc333e215fa71c2e4ae854c1e4f5d05d2ce5"
+MARIN_DNA_REVISION = "eaac2efffb73d33b87ba75bcf5521809af74fec7"
 DATASET_REPO = "bolinas-dna/zoonomia-rag-v1-v1"
 DATASET_REVISION = "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"
 TOKENIZER_PATH = "tokenizer"
