@@ -20,6 +20,7 @@ from marin_dna.pipelines.rag_glm.hf_scoring import (
 
 RAG_EVAL_BATCH_SIZE = 16
 RAG_PARITY_LOG_ROWS_ENV = "MARIN_DNA_RAG_PARITY_LOG_ROWS"
+RAG_PARITY_NAIVE_ENV = "MARIN_DNA_RAG_PARITY_NAIVE"
 
 _logger = logging.getLogger(__name__)
 
@@ -146,6 +147,7 @@ def install_levanter_rag_loglikelihood() -> None:
         return
 
     from marin_dna.pipelines.rag_glm.levanter_scoring import (
+        score_rag_batch_naive_levanter,
         score_rag_batch_levanter,
     )
 
@@ -157,6 +159,11 @@ def install_levanter_rag_loglikelihood() -> None:
             "keep the experiment on v5p-8 or add an explicit worker message"
         )
 
+        use_naive = os.environ.get(RAG_PARITY_NAIVE_ENV, "0")
+        assert use_naive in {"0", "1"}
+        use_naive_reference = use_naive == "1"
+        batch_size = 1 if use_naive_reference else RAG_EVAL_BATCH_SIZE
+
         if not hasattr(self, "_marin_dna_rag_jit"):
             mixed_precision = self.leader.mp
 
@@ -165,7 +172,12 @@ def install_levanter_rag_loglikelihood() -> None:
             ) -> Any:
                 if mixed_precision is not None:
                     model = mixed_precision.cast_to_compute(model)
-                return score_rag_batch_levanter(
+                score_fn = (
+                    score_rag_batch_naive_levanter
+                    if use_naive_reference
+                    else score_rag_batch_levanter
+                )
+                return score_fn(
                     model,
                     prefix,
                     ref,
@@ -200,7 +212,7 @@ def install_levanter_rag_loglikelihood() -> None:
                     }
                 )
         outputs: list[tuple[float, float, float]] = []
-        for batch, n_real in padded_rag_batches(encoded_requests):
+        for batch, n_real in padded_rag_batches(encoded_requests, batch_size):
             nucleotide_ids = batch[0].nucleotide_token_ids
             assert all(row.nucleotide_token_ids == nucleotide_ids for row in batch)
             self._handle_profiler_step()
@@ -212,7 +224,7 @@ def install_levanter_rag_loglikelihood() -> None:
                 jnp.asarray(nucleotide_ids, dtype=jnp.int32),
             )
             observed = jax.device_get(scores)
-            assert observed.shape == (RAG_EVAL_BATCH_SIZE, 3)
+            assert observed.shape == (batch_size, 3)
             outputs.extend(
                 tuple(float(value) for value in row) for row in observed[:n_real]
             )

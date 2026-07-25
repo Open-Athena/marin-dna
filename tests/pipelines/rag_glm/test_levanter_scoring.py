@@ -30,6 +30,7 @@ def test_online_cached_scores_match_naive_full_forward() -> None:
 
     from marin_dna.pipelines.rag_glm.levanter_scoring import (
         score_rag_completions_levanter,
+        score_rag_completions_naive_levanter,
     )
 
     config = Qwen3Config(
@@ -83,6 +84,17 @@ def test_online_cached_scores_match_naive_full_forward() -> None:
 
     naive_ref = naive(reference)
     naive_alt = naive(alternate)
+    reference_scores = score_rag_completions_naive_levanter(
+        model,
+        prefix,
+        reference,
+        alternate,
+        nucleotides,
+        prefix_length=8,
+        completion_length=4,
+    )
+    assert float(reference_scores[0]) == pytest.approx(float(naive_ref), abs=2e-5)
+    assert float(reference_scores[1]) == pytest.approx(float(naive_alt), abs=2e-5)
     assert float(cached[0]) == pytest.approx(float(naive_ref), abs=2e-5)
     assert float(cached[1]) == pytest.approx(float(naive_alt), abs=2e-5)
     assert float(cached[2]) == pytest.approx(float(naive_alt - naive_ref), abs=2e-5)

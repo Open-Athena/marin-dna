@@ -254,3 +254,83 @@ def score_rag_batch_levanter(
             compute_dtype=compute_dtype,
         )
     )(prefix_ids, ref_completion_ids, alt_completion_ids)
+
+
+def score_rag_completions_naive_levanter(
+    model: Any,
+    prefix_ids: Any,
+    ref_completion_ids: Any,
+    alt_completion_ids: Any,
+    nucleotide_token_ids: Any,
+    *,
+    prefix_length: int = RAG_PREFIX_TOKENS,
+    completion_length: int = RAG_COMPLETION_TOKENS,
+) -> Any:
+    """Reference-score two complete documents without a KV cache."""
+    import haliax as hax
+    import jax
+    import jax.numpy as jnp
+    from levanter.layers.attention import AttentionMask
+
+    document_length = prefix_length + completion_length
+    assert prefix_ids.shape == (prefix_length,)
+    assert ref_completion_ids.shape == (completion_length,)
+    assert alt_completion_ids.shape == (completion_length,)
+    assert nucleotide_token_ids.shape == (4,)
+    assert document_length <= model.max_length
+
+    def score_completion(completion_ids: Any) -> Any:
+        tokens = jnp.concatenate([prefix_ids, completion_ids])
+        position = hax.Axis("position", document_length)
+        logits = model(
+            hax.named(tokens, position),
+            attn_mask=AttentionMask.causal(),
+            pos_ids=hax.named(jnp.arange(document_length, dtype=jnp.int32), position),
+            key=None,
+        ).rearrange((position, model.Vocab)).array
+        nucleotide_logits = logits[prefix_length - 1 : -1, nucleotide_token_ids]
+        log_probs = jax.nn.log_softmax(
+            nucleotide_logits.astype(jnp.float32), axis=-1
+        )
+        target_indices = _jax_nucleotide_indices(
+            completion_ids, nucleotide_token_ids
+        )
+        return jnp.take_along_axis(
+            log_probs, target_indices[:, None], axis=-1
+        ).sum()
+
+    ref_loglikelihood = score_completion(ref_completion_ids)
+    alt_loglikelihood = score_completion(alt_completion_ids)
+    return jnp.stack(
+        [
+            ref_loglikelihood,
+            alt_loglikelihood,
+            alt_loglikelihood - ref_loglikelihood,
+        ]
+    )
+
+
+def score_rag_batch_naive_levanter(
+    model: Any,
+    prefix_ids: Any,
+    ref_completion_ids: Any,
+    alt_completion_ids: Any,
+    nucleotide_token_ids: Any,
+) -> Any:
+    """Vectorize the full-forward reference scorer over a small debug batch."""
+    import jax
+
+    assert prefix_ids.ndim == 2
+    assert ref_completion_ids.ndim == 2
+    assert alt_completion_ids.ndim == 2
+    assert prefix_ids.shape[0] == ref_completion_ids.shape[0]
+    assert prefix_ids.shape[0] == alt_completion_ids.shape[0]
+    return jax.vmap(
+        lambda prefix, ref, alt: score_rag_completions_naive_levanter(
+            model,
+            prefix,
+            ref,
+            alt,
+            nucleotide_token_ids,
+        )
+    )(prefix_ids, ref_completion_ids, alt_completion_ids)
