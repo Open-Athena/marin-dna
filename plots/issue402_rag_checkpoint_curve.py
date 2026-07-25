@@ -133,10 +133,10 @@ def plot_curve(curve: pl.DataFrame, output_dir: Path) -> None:
         dashes=False,
         palette=AGGREGATE_COLORS,
         facet_kws={"sharey": False},
-        height=4.2,
+        height=4.6,
         aspect=0.9,
     )
-    grid.set_axis_labels("Training step", "AUPRC")
+    grid.set_axis_labels("", "AUPRC")
     for benchmark, axis in grid.axes_dict.items():
         subset = data[data["benchmark"] == benchmark]
         for aggregate, group in subset.groupby("aggregate", sort=False):
@@ -156,6 +156,7 @@ def plot_curve(curve: pl.DataFrame, output_dir: Path) -> None:
         axis.set_title(BENCHMARK_TITLES[benchmark])
         axis.tick_params(axis="x", labelrotation=30)
     grid.figure.suptitle("46M ortholog-RAG offline variant metrics across training")
+    grid.figure.supxlabel("Training step", y=0.08)
     grid.figure.text(
         0.5,
         0.01,
@@ -164,7 +165,7 @@ def plot_curve(curve: pl.DataFrame, output_dir: Path) -> None:
         ha="center",
         fontsize=10,
     )
-    grid.figure.subplots_adjust(top=0.78, bottom=0.22)
+    grid.figure.subplots_adjust(top=0.78, bottom=0.35)
     grid.figure.savefig(output_dir / "figure.svg", bbox_inches="tight")
     grid.figure.savefig(output_dir / "figure.png", dpi=180, bbox_inches="tight")
     plt.close(grid.figure)
