@@ -11,7 +11,8 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 dry_run=${DRY_RUN:-0}
 artifact_version=2026.07.26.5
-revision_short=4566dfb
+frozen_revision=7d9a7c9f5a2f8040af3daadb8c2be10804c211fc
+revision_short=${frozen_revision:0:7}
 output_root="$repo_root/plots/output"
 
 checkpoint_46m="gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/$artifact_version"
@@ -54,19 +55,88 @@ if (( ! dry_run )); then
         done
     done
     for root in "$eval_46m" "$eval_104m"; do
+        if [[ "$root" == "$eval_46m" ]]; then
+            expected_checkpoint_root=$checkpoint_46m
+        else
+            expected_checkpoint_root=$checkpoint_104m
+        fi
         for step in "${steps[@]}"; do
             for benchmark in mendelian_traits complex_traits sge; do
-                gcloud storage ls "$root/step-$step/$benchmark/manifest.json" >/dev/null
-                gcloud storage ls "$root/step-$step/$benchmark/metrics.parquet" >/dev/null
+                case "$benchmark" in
+                    mendelian_traits)
+                        dataset_repo=marin-dna/evals_mendelian_traits_rag_harness_255_v1
+                        dataset_revision=9acedb683463477f34745af30a63a289873008a4
+                        score_column=minus_llr_avg
+                        ;;
+                    complex_traits)
+                        dataset_repo=marin-dna/evals_complex_traits_rag_harness_255_v1
+                        dataset_revision=0252a883f650819a8e1fa22062027daafe956540
+                        score_column=abs_llr_avg
+                        ;;
+                    sge)
+                        dataset_repo=marin-dna/evals_sge_rag_harness_255_v1
+                        dataset_revision=c20cc58fceb9bc053a55152a89d160f1b070f75d
+                        score_column=minus_llr_avg
+                        ;;
+                esac
+                benchmark_root="$root/step-$step/$benchmark"
+                for filename in documents.parquet variants.parquet metrics.parquet; do
+                    gcloud storage ls "$benchmark_root/$filename" >/dev/null
+                done
+                gcloud storage cat "$benchmark_root/manifest.json" \
+                    | jq -e \
+                        --arg benchmark "$benchmark" \
+                        --arg model_source "$expected_checkpoint_root/hf/step-$step" \
+                        --arg code_revision "$frozen_revision" \
+                        --arg dataset_repo "$dataset_repo" \
+                        --arg dataset_revision "$dataset_revision" \
+                        --arg score_column "$score_column" \
+                        '.benchmark == $benchmark
+                         and .split == "test"
+                         and .model_source == $model_source
+                         and .code_revision == $code_revision
+                         and .dataset_repo == $dataset_repo
+                         and .dataset_revision == $dataset_revision
+                         and .score_column == $score_column
+                         and .aggregation == "average raw fwd/rc LLR, then apply score transform"
+                         and .row_selection == "all"
+                         and .batch_size == 16
+                         and .n_document_rows > 0
+                         and .n_document_rows == (2 * .n_variants)' >/dev/null
             done
         done
     done
-    for root in "$sanity_46m" "$sanity_104m"; do
-        gcloud storage ls "$root/manifest.json" >/dev/null
-        gcloud storage ls "$root/vep_special_token_diagnostics.parquet" >/dev/null
-    done
     for model in 46M 104M; do
-        gcloud storage ls "$indel_root/$model/manifest.json" >/dev/null
+        if [[ "$model" == 46M ]]; then
+            root=$sanity_46m
+            model_source="$checkpoint_46m/hf/step-29999"
+        else
+            root=$sanity_104m
+            model_source="$checkpoint_104m/hf/step-29999"
+        fi
+        gcloud storage ls "$root/vep_special_token_diagnostics.parquet" >/dev/null
+        gcloud storage cat "$root/manifest.json" \
+            | jq -e \
+                --arg model "$model" \
+                --arg model_source "$model_source" \
+                --arg code_revision "$frozen_revision" \
+                '.model_label == $model
+                 and .model_source == $model_source
+                 and .code_revision == $code_revision
+                 and .validation_rows == 2048
+                 and .ablation_rows == 512
+                 and .attention_rows == 4
+                 and .n_bootstrap == 1000' >/dev/null
+        gcloud storage cat "$indel_root/$model/manifest.json" \
+            | jq -e \
+                --arg model "$model" \
+                --arg model_source "$model_source" \
+                --arg code_revision "$frozen_revision" \
+                '.model_label == $model
+                 and .model_source == $model_source
+                 and .code_revision == $code_revision
+                 and (.anchor_ids | length) >= 2
+                 and .query_stride == 4' >/dev/null
     done
 fi
 
