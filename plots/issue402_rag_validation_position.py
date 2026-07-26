@@ -26,6 +26,8 @@ BASE_TOKEN_TYPES = ["ortholog_base", "human_base"]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-46m", default=SANITY_ROOTS["46M"])
+    parser.add_argument("--input-104m", default=SANITY_ROOTS["104M"])
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -34,15 +36,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_position_loss() -> pl.DataFrame:
+def load_position_loss(roots: dict[str, str] = SANITY_ROOTS) -> pl.DataFrame:
     """Load and smooth the frozen per-position validation summaries."""
+    assert set(roots) == set(MODEL_ORDER)
     frames = [
         pl.read_parquet(f"{root}/validation_position_loss.parquet")
-        for root in SANITY_ROOTS.values()
+        for root in roots.values()
     ]
     data = pl.concat(frames).sort("model", "segment_index", "within_segment_offset")
-    assert data.height == len(SANITY_ROOTS) * 2_047
-    assert sorted(data["model"].unique()) == sorted(SANITY_ROOTS)
+    assert data.height == len(roots) * 2_047
+    assert sorted(data["model"].unique()) == sorted(roots)
     bases = (
         data.filter(pl.col("layout_token_type").is_in(BASE_TOKEN_TYPES))
         .with_columns(
@@ -53,7 +56,7 @@ def load_position_loss() -> pl.DataFrame:
         )
         .sort("model", "segment_index", "within_segment_offset")
     )
-    assert bases.height == len(SANITY_ROOTS) * 8 * 255
+    assert bases.height == len(roots) * 8 * 255
     assert bases.filter(~pl.col("smoothed_loss").is_finite()).is_empty()
     return bases
 
@@ -104,7 +107,7 @@ def plot_position_loss(data: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    data = load_position_loss()
+    data = load_position_loss({"46M": args.input_46m, "104M": args.input_104m})
     plot_position_loss(data, args.output_dir)
     print(
         data.group_by("model", "segment_index", "segment")

@@ -28,6 +28,7 @@ MANUAL_EXAMPLES = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-root", default=ATTENTION_ROOT)
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -50,11 +51,15 @@ def _scope_rows(source: pl.DataFrame, scope: str) -> pl.DataFrame:
     return scoped.with_columns(pl.lit(scope).alias("scope"))
 
 
-def load_attention_metrics() -> tuple[pl.DataFrame, pl.DataFrame]:
+def load_attention_metrics(
+    attention_root: str = ATTENTION_ROOT,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Aggregate shifted-position attention by layer and over all layers."""
     source = pl.concat(
         [
-            pl.read_parquet(f"{ATTENTION_ROOT}/{model}/mapped_attention.parquet")
+            pl.read_parquet(
+                f"{attention_root.rstrip('/')}/{model}/mapped_attention.parquet"
+            )
             for model in MODEL_ORDER
         ]
     ).filter(pl.col("shift") != 0)
@@ -106,21 +111,27 @@ def load_attention_metrics() -> tuple[pl.DataFrame, pl.DataFrame]:
         ~pl.col("mapped_to_naive_ratio").is_finite()
         | (pl.col("mapped_to_naive_ratio") <= 0)
     ).is_empty()
-    expected_aggregate = {
-        ("46M", "All 13 orthologs"): 10.9385,
-        ("46M", "Bos taurus"): 5.6197,
-        ("46M", "Tolypeutes matacus"): 16.1735,
-        ("104M", "All 13 orthologs"): 6.2013,
-        ("104M", "Bos taurus"): 4.9024,
-        ("104M", "Tolypeutes matacus"): 9.7635,
-    }
-    observed = {
-        (row["model"], row["scope"]): row["mapped_to_naive_ratio"]
-        for row in aggregate_metrics.to_dicts()
-    }
-    assert observed.keys() == expected_aggregate.keys()
-    for key, expected in expected_aggregate.items():
-        assert abs(observed[key] - expected) < 5e-4, (key, observed[key], expected)
+    assert aggregate_metrics.height == len(MODEL_ORDER) * len(SCOPE_ORDER)
+    if attention_root.rstrip("/") == ATTENTION_ROOT.rstrip("/"):
+        expected_aggregate = {
+            ("46M", "All 13 orthologs"): 10.9385,
+            ("46M", "Bos taurus"): 5.6197,
+            ("46M", "Tolypeutes matacus"): 16.1735,
+            ("104M", "All 13 orthologs"): 6.2013,
+            ("104M", "Bos taurus"): 4.9024,
+            ("104M", "Tolypeutes matacus"): 9.7635,
+        }
+        observed = {
+            (row["model"], row["scope"]): row["mapped_to_naive_ratio"]
+            for row in aggregate_metrics.to_dicts()
+        }
+        assert observed.keys() == expected_aggregate.keys()
+        for key, expected in expected_aggregate.items():
+            assert abs(observed[key] - expected) < 5e-4, (
+                key,
+                observed[key],
+                expected,
+            )
     return layer_metrics, aggregate_metrics
 
 
@@ -185,7 +196,7 @@ def plot_attention(
 
 def main() -> None:
     args = parse_args()
-    layer_metrics, aggregate_metrics = load_attention_metrics()
+    layer_metrics, aggregate_metrics = load_attention_metrics(args.input_root)
     plot_attention(layer_metrics, aggregate_metrics, args.output_dir)
     print(aggregate_metrics)
 

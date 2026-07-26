@@ -14,6 +14,7 @@ ROOTS = {
     "46M": ("gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-30k/2026.07.26"),
     "104M": ("gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-30k/2026.07.26"),
 }
+SANITY_ROOTS = {model: f"{root}/sanity-ac7016" for model, root in ROOTS.items()}
 MODEL_ORDER = ["46M", "104M"]
 MODEL_COLORS = {"46M": "#3366cc", "104M": "#d95f02"}
 BENCHMARKS = {
@@ -30,6 +31,10 @@ CONTEXTS = [
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--eval-46m", default=ROOTS["46M"])
+    parser.add_argument("--eval-104m", default=ROOTS["104M"])
+    parser.add_argument("--sanity-46m", default=SANITY_ROOTS["46M"])
+    parser.add_argument("--sanity-104m", default=SANITY_ROOTS["104M"])
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -60,9 +65,9 @@ def _metric_row(
     }
 
 
-def _random_baseline(root: str, benchmark: str, slug: str) -> float:
+def _random_baseline(sanity_root: str, benchmark: str, slug: str) -> float:
     variants = pl.read_parquet(
-        f"{root}/sanity-ac7016/vep/{slug}/all_n/variants.parquet"
+        f"{sanity_root.rstrip('/')}/vep/{slug}/all_n/variants.parquet"
     )
     if benchmark == "SGE":
         value = (
@@ -79,16 +84,22 @@ def _random_baseline(root: str, benchmark: str, slug: str) -> float:
     return float(value)
 
 
-def load_context_results() -> tuple[pl.DataFrame, pl.DataFrame]:
+def load_context_results(
+    eval_roots: dict[str, str] = ROOTS,
+    sanity_roots: dict[str, str] = SANITY_ROOTS,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Load corrected full-context and both ortholog-free controls."""
+    assert set(eval_roots) == set(MODEL_ORDER)
+    assert set(sanity_roots) == set(MODEL_ORDER)
     rows: list[dict[str, object]] = []
-    for model, root in ROOTS.items():
+    for model, root in eval_roots.items():
         for benchmark, (slug, score_type) in BENCHMARKS.items():
             for context_index, (context, context_label) in enumerate(CONTEXTS):
                 if context == "full":
-                    path = f"{root}/step-29999/{slug}/metrics.parquet"
+                    path = f"{root.rstrip('/')}/step-29999/{slug}/metrics.parquet"
                 else:
-                    path = f"{root}/sanity-ac7016/vep/{slug}/{context}/metrics.parquet"
+                    sanity_root = sanity_roots[model].rstrip("/")
+                    path = f"{sanity_root}/vep/{slug}/{context}/metrics.parquet"
                 rows.append(
                     {
                         "model": model,
@@ -100,11 +111,11 @@ def load_context_results() -> tuple[pl.DataFrame, pl.DataFrame]:
                     }
                 )
     data = pl.DataFrame(rows)
-    assert data.height == len(ROOTS) * len(BENCHMARKS) * len(CONTEXTS)
+    assert data.height == len(eval_roots) * len(BENCHMARKS) * len(CONTEXTS)
     assert data.filter(
         ~pl.col("auprc").is_finite() | ~pl.col("se").is_finite()
     ).is_empty()
-    baseline_root = ROOTS["46M"]
+    baseline_root = sanity_roots["46M"]
     baselines = pl.DataFrame(
         [
             {
@@ -192,7 +203,10 @@ def plot_context_results(
 
 def main() -> None:
     args = parse_args()
-    data, baselines = load_context_results()
+    data, baselines = load_context_results(
+        {"46M": args.eval_46m, "104M": args.eval_104m},
+        {"46M": args.sanity_46m, "104M": args.sanity_104m},
+    )
     plot_context_results(data, baselines, args.output_dir)
     print(data.sort("benchmark", "model", "context_index"))
     print(baselines.sort("benchmark"))

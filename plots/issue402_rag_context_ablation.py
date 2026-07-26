@@ -39,6 +39,8 @@ GROUP_MODES = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-46m", default=SANITY_ROOTS["46M"])
+    parser.add_argument("--input-104m", default=SANITY_ROOTS["104M"])
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -47,20 +49,21 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_ablations() -> pl.DataFrame:
+def load_ablations(roots: dict[str, str] = SANITY_ROOTS) -> pl.DataFrame:
     """Load each model's frozen human-token loss ablations."""
+    assert set(roots) == set(MODEL_ORDER)
     source = pl.concat(
         [
             pl.read_parquet(f"{root}/validation_context_ablation.parquet")
-            for root in SANITY_ROOTS.values()
+            for root in roots.values()
         ]
     )
-    assert source.height == len(SANITY_ROOTS) * 6
+    assert source.height == len(roots) * 6
     rows: list[dict[str, object]] = []
     for group, modes in GROUP_MODES.items():
         for index, (mode, label) in enumerate(modes):
             selected = source.filter(pl.col("mode") == mode)
-            assert selected.height == len(SANITY_ROOTS)
+            assert selected.height == len(roots)
             rows.extend(
                 {
                     **row,
@@ -71,7 +74,7 @@ def load_ablations() -> pl.DataFrame:
                 for row in selected.to_dicts()
             )
     data = pl.DataFrame(rows)
-    assert data.height == len(SANITY_ROOTS) * sum(map(len, GROUP_MODES.values()))
+    assert data.height == len(roots) * sum(map(len, GROUP_MODES.values()))
     assert data.filter(
         ~pl.col("mean_human_loss").is_finite() | ~pl.col("se_human_loss").is_finite()
     ).is_empty()
@@ -139,7 +142,7 @@ def plot_ablations(data: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    data = load_ablations()
+    data = load_ablations({"46M": args.input_46m, "104M": args.input_104m})
     plot_ablations(data, args.output_dir)
     print(
         data.sort("group", "model", "ablation_index").select(

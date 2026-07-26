@@ -26,6 +26,8 @@ MODEL_COLORS = {"46M": "#3366cc", "104M": "#d95f02"}
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-46m", default=SANITY_ROOTS["46M"])
+    parser.add_argument("--input-104m", default=SANITY_ROOTS["104M"])
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -34,16 +36,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_alignment() -> pl.DataFrame:
+def load_alignment(roots: dict[str, str] = SANITY_ROOTS) -> pl.DataFrame:
     """Pool attention over layers, slots, sampled queries, and documents."""
+    assert set(roots) == set(MODEL_ORDER)
     source = pl.concat(
         [
             pl.read_parquet(f"{root}/attention_alignment.parquet")
-            for root in SANITY_ROOTS.values()
+            for root in roots.values()
         ]
     ).with_columns((pl.col("n_documents") * pl.col("n_query_offsets")).alias("weight"))
     assert source.height > 20_000
-    assert sorted(source["model"].unique()) == sorted(SANITY_ROOTS)
+    assert sorted(source["model"].unique()) == sorted(roots)
     pooled = (
         source.group_by("model", "availability", "offset")
         .agg(
@@ -60,7 +63,7 @@ def load_alignment() -> pl.DataFrame:
         )
         .sort("model", "availability", "offset")
     )
-    assert pooled.height == len(SANITY_ROOTS) * 2 * 65
+    assert pooled.height == len(roots) * 2 * 65
     assert pooled.filter(pl.col("mean_attention") <= 0).is_empty()
     return pooled
 
@@ -118,7 +121,7 @@ def plot_alignment(data: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    data = load_alignment()
+    data = load_alignment({"46M": args.input_46m, "104M": args.input_104m})
     plot_alignment(data, args.output_dir)
     print(
         data.sort(
