@@ -73,6 +73,7 @@ run: |
       --benchmark "$BENCHMARK" \
       --split test \
       --model "$CHECKPOINT_DIR" \
+      --model-source "$CHECKPOINT_URI" \
       --code-revision "$CODE_REVISION" \
       --output-dir "$RESULTS_DIR/$BENCHMARK" \
       --batch-size "$BATCH_SIZE" \

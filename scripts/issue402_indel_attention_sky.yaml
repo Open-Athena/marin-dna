@@ -54,8 +54,14 @@ run: |
   test -s "$CHECKPOINTS_DIR/104M/model.safetensors"
 
   for MODEL_LABEL in 46M 104M; do
+    if test "$MODEL_LABEL" = 46M; then
+      MODEL_SOURCE="$CHECKPOINT_46M_URI"
+    else
+      MODEL_SOURCE="$CHECKPOINT_104M_URI"
+    fi
     uv run --no-dev python scripts/issue402_indel_attention.py \
       --model "$CHECKPOINTS_DIR/$MODEL_LABEL" \
+      --model-source "$MODEL_SOURCE" \
       --model-label "$MODEL_LABEL" \
       --code-revision "$CODE_REVISION" \
       --output-dir "$RESULTS_DIR/$MODEL_LABEL" \

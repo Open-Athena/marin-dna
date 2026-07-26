@@ -37,6 +37,9 @@ DEFAULT_ANCHORS = ("win_18_000432221", "win_18_000064770")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", required=True)
+    parser.add_argument(
+        "--model-source", required=True, help="Immutable checkpoint URI"
+    )
     parser.add_argument("--model-label", required=True, choices=("46M", "104M"))
     parser.add_argument("--code-revision", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -215,6 +218,7 @@ def _run_attention(
 def main() -> None:
     args = parse_args()
     assert len(args.code_revision) == 40
+    assert args.model_source
     assert args.query_stride > 0
     anchor_ids = args.anchor_id or list(DEFAULT_ANCHORS)
     assert len(anchor_ids) >= 2
@@ -257,6 +261,7 @@ def main() -> None:
     manifest = {
         "analysis": "issue402 indel-aware manual attention check",
         "model": args.model,
+        "model_source": args.model_source,
         "model_label": args.model_label,
         "code_revision": args.code_revision,
         "training_dataset": TRAIN_DATASET_REPO,

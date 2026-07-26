@@ -68,6 +68,9 @@ LM_ABLATIONS = ("full", "all_n", "roll", "unrelated", "bos_to_pad", "seq_to_unk"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", required=True, help="Local HF checkpoint directory")
+    parser.add_argument(
+        "--model-source", required=True, help="Immutable checkpoint URI"
+    )
     parser.add_argument("--model-label", required=True, choices=("46M", "104M"))
     parser.add_argument("--code-revision", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -519,6 +522,7 @@ def _run_attention(
 def main() -> None:
     args = parse_args()
     assert len(args.code_revision) == 40
+    assert args.model_source
     assert args.batch_size > 1
     assert args.vep_batch_size > 0
     assert args.validation_rows > 1
@@ -581,6 +585,7 @@ def main() -> None:
 
     manifest = {
         "model": args.model,
+        "model_source": args.model_source,
         "model_label": args.model_label,
         "code_revision": args.code_revision,
         "training_dataset": TRAIN_DATASET_REPO,

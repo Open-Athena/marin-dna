@@ -41,6 +41,10 @@ def parse_args() -> argparse.Namespace:
         "--model", required=True, help="Local path or Hugging Face model ID"
     )
     parser.add_argument(
+        "--model-source",
+        help="Immutable source URI/ID recorded in outputs; defaults to --model",
+    )
+    parser.add_argument(
         "--model-revision", help="Required full SHA for remote model IDs"
     )
     parser.add_argument("--tokenizer", help="Tokenizer path/ID; defaults to --model")
@@ -97,6 +101,8 @@ def main() -> None:
         )
     assert len(args.code_revision) == 40
     assert len(dataset_revision) == 40
+    model_source = args.model_source or args.model
+    assert model_source
     assert not args.run_probe or args.benchmark == "mendelian_traits", (
         "--run-probe is frozen for the Mendelian benchmark"
     )
@@ -140,20 +146,28 @@ def main() -> None:
         alt = alt.to(args.device)
         nucleotides = nucleotide_token_ids(tokenizer).to(args.device)
         with torch.inference_mode():
-            cached = score_rag_completions_hf(
-                model,
-                prefix,
-                ref,
-                alt,
-                nucleotide_token_ids=nucleotides,
-            ).float().cpu()
-            naive = score_rag_completions_naive_hf(
-                model,
-                prefix,
-                ref,
-                alt,
-                nucleotide_token_ids=nucleotides,
-            ).float().cpu()
+            cached = (
+                score_rag_completions_hf(
+                    model,
+                    prefix,
+                    ref,
+                    alt,
+                    nucleotide_token_ids=nucleotides,
+                )
+                .float()
+                .cpu()
+            )
+            naive = (
+                score_rag_completions_naive_hf(
+                    model,
+                    prefix,
+                    ref,
+                    alt,
+                    nucleotide_token_ids=nucleotides,
+                )
+                .float()
+                .cpu()
+            )
         assert torch.isfinite(cached).all()
         assert torch.isfinite(naive).all()
         for index, row in enumerate(rows.iter_rows(named=True)):
@@ -172,10 +186,7 @@ def main() -> None:
                     sort_keys=True,
                 )
             )
-        print(
-            "RAG_HF_PARITY_MAX_ABS "
-            f"{float((cached - naive).abs().max()):.9g}"
-        )
+        print(f"RAG_HF_PARITY_MAX_ABS {float((cached - naive).abs().max()):.9g}")
         return
     documents = score_rag_rows_hf(
         model,
@@ -199,6 +210,7 @@ def main() -> None:
         benchmark=args.benchmark,
         split=args.split,
         model=args.model,
+        model_source=model_source,
         model_revision=args.model_revision,
         dataset_repo=dataset_repo,
         dataset_revision=dataset_revision,
@@ -218,6 +230,7 @@ def main() -> None:
             classifiers=classifiers,
             output_dir=args.output_dir,
             model=args.model,
+            model_source=model_source,
             model_revision=args.model_revision,
             dataset_repo=dataset_repo,
             dataset_revision=dataset_revision,

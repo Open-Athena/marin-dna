@@ -68,6 +68,7 @@ run: |
 
   uv run --no-dev python scripts/issue402_model_sanity.py \
     --model "$CHECKPOINT_DIR" \
+    --model-source "$CHECKPOINT_URI" \
     --model-label "$MODEL_LABEL" \
     --code-revision "$CODE_REVISION" \
     --output-dir "$RESULTS_DIR" \

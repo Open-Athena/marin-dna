@@ -547,6 +547,7 @@ def write_rag_evaluation_outputs(
     benchmark: RAGBenchmark,
     split: str,
     model: str,
+    model_source: str,
     model_revision: str | None,
     dataset_repo: str,
     dataset_revision: str,
@@ -557,6 +558,7 @@ def write_rag_evaluation_outputs(
     """Write lossless score tables and a complete reproducibility manifest."""
     assert len(dataset_revision) == 40
     assert len(code_revision) == 40
+    assert model_source
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     document_scores.write_parquet(output / "documents.parquet", compression="zstd")
@@ -566,6 +568,7 @@ def write_rag_evaluation_outputs(
         "benchmark": benchmark,
         "split": split,
         "model": model,
+        "model_source": model_source,
         "model_revision": model_revision,
         "dataset_repo": dataset_repo,
         "dataset_revision": dataset_revision,
@@ -589,6 +592,7 @@ def write_rag_probe_outputs(
     classifiers: dict[str, Any],
     output_dir: str | Path,
     model: str,
+    model_source: str,
     model_revision: str | None,
     dataset_repo: str,
     dataset_revision: str,
@@ -597,6 +601,7 @@ def write_rag_probe_outputs(
     """Write probe predictions, metrics, classifiers, and frozen protocol metadata."""
     assert len(dataset_revision) == 40
     assert len(code_revision) == 40
+    assert model_source
     assert classifiers
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -606,6 +611,7 @@ def write_rag_probe_outputs(
     manifest = {
         "benchmark": "mendelian_traits",
         "model": model,
+        "model_source": model_source,
         "model_revision": model_revision,
         "dataset_repo": dataset_repo,
         "dataset_revision": dataset_revision,

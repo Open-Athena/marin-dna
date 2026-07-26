@@ -366,6 +366,7 @@ def test_mendelian_metrics_and_output_manifest(tmp_path) -> None:
         benchmark="mendelian_traits",
         split="test",
         model="local-model",
+        model_source="gs://example/checkpoints/model/hf/step-5000",
         model_revision=None,
         dataset_repo=RAG_BENCHMARK_DATASETS["mendelian_traits"][0],
         dataset_revision=RAG_BENCHMARK_DATASETS["mendelian_traits"][1],
@@ -377,6 +378,7 @@ def test_mendelian_metrics_and_output_manifest(tmp_path) -> None:
     assert manifest["n_document_rows"] == 2
     assert manifest["n_variants"] == 4
     assert manifest["row_selection"] == "first_2_paired_rows"
+    assert manifest["model_source"] == "gs://example/checkpoints/model/hf/step-5000"
     assert manifest["aggregation"].startswith("average raw fwd/rc LLR")
     assert (tmp_path / "documents.parquet").is_file()
     assert (tmp_path / "variants.parquet").is_file()
@@ -389,12 +391,16 @@ def test_mendelian_metrics_and_output_manifest(tmp_path) -> None:
         classifiers={"coding": {"C": 1.0}},
         output_dir=tmp_path,
         model="local-model",
+        model_source="gs://example/checkpoints/model/hf/step-5000",
         model_revision=None,
         dataset_repo=RAG_BENCHMARK_DATASETS["mendelian_traits"][0],
         dataset_revision=RAG_BENCHMARK_DATASETS["mendelian_traits"][1],
         code_revision="1" * 40,
     )
     probe_manifest = json.loads((tmp_path / "probe_manifest.json").read_text())
+    assert (
+        probe_manifest["model_source"] == "gs://example/checkpoints/model/hf/step-5000"
+    )
     assert probe_manifest["human_pooling"]["start"] == 1_793
     assert probe_manifest["human_pooling"]["stop"] == 2_048
     assert probe_manifest["n_probe_scored"] == 4
