@@ -14,6 +14,8 @@ artifact_version=2026.07.26.5
 revision_short=4566dfb
 output_root="$repo_root/plots/output"
 
+checkpoint_46m="gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/$artifact_version"
+checkpoint_104m="gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/$artifact_version"
 eval_46m="gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-b2m-30k/$artifact_version"
 eval_104m="gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-b2m-30k/$artifact_version"
 final_46m="$eval_46m/step-29999"
@@ -23,6 +25,7 @@ sanity_104m="$eval_104m/sanity-$revision_short"
 indel_root="gs://marin-us-east5/evals/issue402-rag-large-batch-30k/$artifact_version/indel-attention-$revision_short"
 phylop_root="gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-phylop447m/exact-test-a57a69c"
 steps=(5000 10000 15000 20000 25000 29999)
+checkpoint_steps=({1000..29000..1000} 29999)
 
 [[ "$dry_run" == 0 || "$dry_run" == 1 ]]
 
@@ -38,7 +41,18 @@ run() {
 
 if (( ! dry_run )); then
     command -v gcloud >/dev/null
+    command -v jq >/dev/null
     command -v uv >/dev/null
+    for root in "$checkpoint_46m" "$checkpoint_104m"; do
+        for checkpoint_step in "${checkpoint_steps[@]}"; do
+            gcloud storage cat "$root/checkpoints/step-$checkpoint_step/metadata.json" \
+                | jq -e --argjson expected "$checkpoint_step" \
+                    '.step == $expected and .is_temporary == false' >/dev/null
+            for filename in config.json model.safetensors tokenizer.json; do
+                gcloud storage ls "$root/hf/step-$checkpoint_step/$filename" >/dev/null
+            done
+        done
+    done
     for root in "$eval_46m" "$eval_104m"; do
         for step in "${steps[@]}"; do
             for benchmark in mendelian_traits complex_traits sge; do
