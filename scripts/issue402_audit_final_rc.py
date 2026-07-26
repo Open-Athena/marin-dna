@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 import polars as pl
 
@@ -26,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-46m", default=ROOTS["46M"])
     parser.add_argument("--input-104m", default=ROOTS["104M"])
+    parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
 
@@ -115,5 +117,9 @@ def audit(roots: dict[str, str] = ROOTS) -> pl.DataFrame:
 
 if __name__ == "__main__":
     args = parse_args()
+    result = audit({"46M": args.input_46m, "104M": args.input_104m})
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        result.write_parquet(args.output, compression="zstd")
     with pl.Config(tbl_rows=20, tbl_cols=20, tbl_width_chars=180):
-        print(audit({"46M": args.input_46m, "104M": args.input_104m}))
+        print(result)
