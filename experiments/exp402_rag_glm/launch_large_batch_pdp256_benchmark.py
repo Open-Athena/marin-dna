@@ -23,9 +23,9 @@ from launch_large_batch_30k import (
 )
 
 BENCHMARK_CHECKPOINT_NAME = (
-    "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp256-warm6"
+    "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp256-warm6-v2"
 )
-BENCHMARK_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-pdp256-warm6"
+BENCHMARK_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-pdp256-warm6-v2"
 BENCHMARK_STEPS = 6
 BENCHMARK_PER_DEVICE_PARALLELISM = 256
 
@@ -88,7 +88,7 @@ def build() -> ArtifactStep:
                 trainer=replace(
                     trainer,
                     per_device_parallelism=BENCHMARK_PER_DEVICE_PARALLELISM,
-                    max_eval_batches=0,
+                    max_eval_batches=1,
                     checkpointer=replace(trainer.checkpointer, keep=[]),
                 ),
                 hf_save_path=None,

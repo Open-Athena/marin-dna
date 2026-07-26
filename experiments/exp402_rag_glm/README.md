@@ -340,8 +340,9 @@ device. The original two-step timing was not a steady-state measurement:
 Levanter compiles train-step variants during both early updates. Its timing
 implementation does establish that loading and hooks are separate from
 `throughput/duration`; after the initial 20--22 second cache fill, measured
-batch handoff was below one millisecond. Six-step, validation-free benchmarks
-will select the production geometry from warmed updates 3--6: PDP=256
+batch handoff was below one millisecond. Six-step benchmarks, with validation
+limited to one final out-of-step batch, will select the production geometry
+from warmed updates 3--6: PDP=256
 (no accumulation) for 46M and PDP=128 (two exact microsteps) for 104M.
 
 Validate and lower all production and accumulation-smoke plans from this

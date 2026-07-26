@@ -76,7 +76,7 @@ def test_104m_pdp128_benchmark_is_compile_warmed_and_isolated(monkeypatch) -> No
     assert trainer.num_train_steps == BENCHMARK_STEPS == 6
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
     assert trainer.per_device_parallelism == BENCHMARK_PER_DEVICE_PARALLELISM == 128
-    assert trainer.max_eval_batches == 0
+    assert trainer.max_eval_batches == 1
     assert trainer.checkpointer.keep == []
     assert pod_config.train_config.hf_save_path is None
     assert pod_config.train_config.model == MODEL
