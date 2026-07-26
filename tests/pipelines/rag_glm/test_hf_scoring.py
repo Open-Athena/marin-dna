@@ -128,6 +128,49 @@ def test_cached_scores_match_naive_and_prefix_runs_once() -> None:
     ]
 
 
+def test_cached_scores_depend_on_bos_and_sequence_boundaries() -> None:
+    """Guard against silently slicing special tokens out of VEP prefixes."""
+    nucleotide_ids = torch.tensor([4, 5, 6, 7])
+    boundary_positions = [256, 512, 768, 1_024, 1_280, 1_536, 1_792]
+    prefix = torch.full((1, RAG_PREFIX_TOKENS), 4)
+    prefix[:, 0] = 2
+    prefix[:, boundary_positions] = 3
+    ref = torch.full((1, RAG_COMPLETION_TOKENS), 5)
+    alt = ref.clone()
+    alt[:, 0] = 6
+
+    full = score_rag_completions_hf(
+        _CountingCausalModel(),
+        prefix,
+        ref,
+        alt,
+        nucleotide_token_ids=nucleotide_ids,
+    )
+    bos_replaced = prefix.clone()
+    bos_replaced[:, 0] = 0
+    without_bos_identity = score_rag_completions_hf(
+        _CountingCausalModel(),
+        bos_replaced,
+        ref,
+        alt,
+        nucleotide_token_ids=nucleotide_ids,
+    )
+    boundaries_replaced = prefix.clone()
+    boundaries_replaced[:, boundary_positions] = 1
+    without_boundary_identity = score_rag_completions_hf(
+        _CountingCausalModel(),
+        boundaries_replaced,
+        ref,
+        alt,
+        nucleotide_token_ids=nucleotide_ids,
+    )
+
+    assert not torch.equal(full, without_bos_identity)
+    assert not torch.equal(full, without_boundary_identity)
+    assert full[0, 2] != without_bos_identity[0, 2]
+    assert full[0, 2] != without_boundary_identity[0, 2]
+
+
 def test_rejects_non_shared_downstream_completion() -> None:
     prefix = torch.full((1, RAG_PREFIX_TOKENS), 4)
     ref = torch.full((1, RAG_COMPLETION_TOKENS), 4)
