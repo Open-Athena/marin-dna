@@ -209,3 +209,17 @@ Launch both with `EXP402_ONLINE_EVAL=0`; the frozen Mendelian, Complex, and SGE
 tasks are scored offline at every 1,000-step HF export. This keeps the blocked
 in-process harness off the training critical path while preserving the
 requested early-signal cadence.
+
+After exports exist, launch their offline evaluations in bounded spot-only
+batches from the repository root:
+
+```bash
+CODE_REVISION=$(git rev-parse HEAD) MAX_PARALLEL=4 \
+  scripts/issue402_30k_eval_sweep.sh \
+  46m:1000 104m:1000 46m:2000 104m:2000
+```
+
+The dispatcher checks that each export exists, skips checkpoints whose three
+benchmark metric parquets are already complete, and writes one local log per
+Sky cluster. It never selects on-demand instances; failed spot runs can be
+passed to the same command again after inspecting their logs.
