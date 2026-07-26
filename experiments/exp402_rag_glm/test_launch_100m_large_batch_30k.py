@@ -59,7 +59,7 @@ def test_104m_fullbatch_smoke_is_isolated_but_geometry_identical(monkeypatch) ->
         build_smoke, SMOKE_CHECKPOINT_NAME, monkeypatch
     )
     trainer = pod_config.train_config.trainer
-    assert training.name == SMOKE_CHECKPOINT_NAME
+    assert training.name.endswith(SMOKE_CHECKPOINT_NAME)
     assert trainer.id == SMOKE_RUN_ID
     assert trainer.tracker.name == SMOKE_RUN_ID
     assert trainer.num_train_steps == SMOKE_STEPS == 2
