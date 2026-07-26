@@ -12,12 +12,10 @@ import seaborn as sns
 
 RAG_ROOTS = {
     "RAG 46M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h640-p46m-1b/ropefix/step-7628"
+        "gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-30k/2026.07.26/step-29999"
     ),
     "RAG 104M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h768-p104m-1b/ropefix/step-7628"
+        "gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-30k/2026.07.26/step-29999"
     ),
 }
 PHYLOP_ROOT = (

@@ -11,7 +11,7 @@ import polars as pl
 import seaborn as sns
 
 ATTENTION_ROOT = (
-    "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-indel-attention/ed3b0ba"
+    "gs://marin-us-east5/evals/issue402-rag-30k/2026.07.26/indel-attention-ac7016"
 )
 MODEL_ORDER = ["46M", "104M"]
 SCOPE_ORDER = ["All 13 orthologs", "Bos taurus", "Tolypeutes matacus"]
@@ -107,12 +107,12 @@ def load_attention_metrics() -> tuple[pl.DataFrame, pl.DataFrame]:
         | (pl.col("mapped_to_naive_ratio") <= 0)
     ).is_empty()
     expected_aggregate = {
-        ("46M", "All 13 orthologs"): 7.7445,
-        ("46M", "Bos taurus"): 10.0903,
-        ("46M", "Tolypeutes matacus"): 28.6609,
-        ("104M", "All 13 orthologs"): 8.9872,
-        ("104M", "Bos taurus"): 8.8822,
-        ("104M", "Tolypeutes matacus"): 20.4751,
+        ("46M", "All 13 orthologs"): 10.9385,
+        ("46M", "Bos taurus"): 5.6197,
+        ("46M", "Tolypeutes matacus"): 16.1735,
+        ("104M", "All 13 orthologs"): 6.2013,
+        ("104M", "Bos taurus"): 4.9024,
+        ("104M", "Tolypeutes matacus"): 9.7635,
     }
     observed = {
         (row["model"], row["scope"]): row["mapped_to_naive_ratio"]

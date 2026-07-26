@@ -13,14 +13,10 @@ import polars as pl
 import seaborn as sns
 
 DEFAULT_INPUT_ROOTS = {
-    "46M": (
-        "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h640-p46m-1b/ropefix"
-    ),
-    "104M": (
-        "gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h768-p104m-1b/ropefix"
-    ),
+    "46M": ("gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-30k/2026.07.26"),
+    "104M": ("gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-30k/2026.07.26"),
 }
-DEFAULT_STEPS = (1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 7_000, 7_628)
+DEFAULT_STEPS = (*range(1_000, 30_000, 1_000), 29_999)
 BENCHMARK_TITLES = {
     "Mendelian": "Mendelian traits",
     "Complex": "Complex traits",

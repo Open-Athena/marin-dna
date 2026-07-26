@@ -12,12 +12,12 @@ import seaborn as sns
 
 SANITY_ROOTS = {
     "46M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h640-p46m-1b/sanity-c274a04"
+        "gs://marin-us-east5/evals/"
+        "dna-exp402-rag-h640-p46m-30k/2026.07.26/sanity-ac7016"
     ),
     "104M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h768-p104m-1b/sanity-c274a04"
+        "gs://marin-us-east5/evals/"
+        "dna-exp402-rag-h768-p104m-30k/2026.07.26/sanity-ac7016"
     ),
 }
 MODEL_ORDER = ["46M", "104M"]

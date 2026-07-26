@@ -12,13 +12,13 @@ import seaborn as sns
 
 DEFAULT_INPUTS = {
     "46M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h640-p46m-1b/ropefix/step-7628/"
+        "gs://marin-us-east5/evals/"
+        "dna-exp402-rag-h640-p46m-30k/2026.07.26/step-29999/"
         "mendelian_traits_probe/probe_metrics.parquet"
     ),
     "104M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h768-p104m-1b/ropefix/step-7628/"
+        "gs://marin-us-east5/evals/"
+        "dna-exp402-rag-h768-p104m-30k/2026.07.26/step-29999/"
         "mendelian_traits_probe/probe_metrics.parquet"
     ),
 }
@@ -125,9 +125,7 @@ def plot_comparison(comparison: pl.DataFrame, output_dir: Path) -> None:
     for model_size, axis in grid.axes_dict.items():
         model_rows = data[data["model_size"] == model_size]
         for subset in SUBSET_ORDER:
-            values = model_rows.loc[
-                model_rows["display_subset"] == subset, "value"
-            ]
+            values = model_rows.loc[model_rows["display_subset"] == subset, "value"]
             assert len(values) == 2
             axis.plot(
                 [values.min(), values.max()],
@@ -168,9 +166,7 @@ def plot_comparison(comparison: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    comparison = load_comparison(
-        {"46M": args.input_46m, "104M": args.input_104m}
-    )
+    comparison = load_comparison({"46M": args.input_46m, "104M": args.input_104m})
     plot_comparison(comparison, args.output_dir)
     print(comparison.sort("subset", "score_type"))
 

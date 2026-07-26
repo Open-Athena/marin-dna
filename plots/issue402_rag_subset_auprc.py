@@ -12,12 +12,10 @@ import seaborn as sns
 
 ROOTS = {
     "46M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h640-p46m-1b/ropefix/step-7628"
+        "gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-30k/2026.07.26/step-29999"
     ),
     "104M": (
-        "gs://marin-us-east5/users/ubuntu/evals/"
-        "dna-exp402-rag-h768-p104m-1b/ropefix/step-7628"
+        "gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-30k/2026.07.26/step-29999"
     ),
 }
 MODEL_ORDER = ["46M", "104M"]
@@ -216,7 +214,8 @@ def plot_subset_metrics(data: pl.DataFrame, output_dir: Path) -> None:
     grid.figure.text(
         0.5,
         0.01,
-        "Step 7,628; points ±1 bootstrap SE. SGE is macro-averaged across three "
+        "Step 29,999 (30,000 updates); points ±1 bootstrap SE. SGE is "
+        "macro-averaged across three "
         "accessions; benchmark x-axes are independent.\nMature miRNA (one matched group, "
         "AUPRC 1.0) is reported in the table only.",
         ha="center",

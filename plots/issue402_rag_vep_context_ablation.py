@@ -11,8 +11,8 @@ import polars as pl
 import seaborn as sns
 
 ROOTS = {
-    "46M": ("gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h640-p46m-1b"),
-    "104M": ("gs://marin-us-east5/users/ubuntu/evals/dna-exp402-rag-h768-p104m-1b"),
+    "46M": ("gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-30k/2026.07.26"),
+    "104M": ("gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-30k/2026.07.26"),
 }
 MODEL_ORDER = ["46M", "104M"]
 MODEL_COLORS = {"46M": "#3366cc", "104M": "#d95f02"}
@@ -62,7 +62,7 @@ def _metric_row(
 
 def _random_baseline(root: str, benchmark: str, slug: str) -> float:
     variants = pl.read_parquet(
-        f"{root}/sanity-c274a04/vep/{slug}/all_n/variants.parquet"
+        f"{root}/sanity-ac7016/vep/{slug}/all_n/variants.parquet"
     )
     if benchmark == "SGE":
         value = (
@@ -86,9 +86,9 @@ def load_context_results() -> tuple[pl.DataFrame, pl.DataFrame]:
         for benchmark, (slug, score_type) in BENCHMARKS.items():
             for context_index, (context, context_label) in enumerate(CONTEXTS):
                 if context == "full":
-                    path = f"{root}/ropefix/step-7628/{slug}/metrics.parquet"
+                    path = f"{root}/step-29999/{slug}/metrics.parquet"
                 else:
-                    path = f"{root}/sanity-c274a04/vep/{slug}/{context}/metrics.parquet"
+                    path = f"{root}/sanity-ac7016/vep/{slug}/{context}/metrics.parquet"
                 rows.append(
                     {
                         "model": model,
