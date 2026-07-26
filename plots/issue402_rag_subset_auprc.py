@@ -66,6 +66,8 @@ SUBSET_LABELS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-46m", default=ROOTS["46M"])
+    parser.add_argument("--input-104m", default=ROOTS["104M"])
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -74,9 +76,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_benchmark(model: str, benchmark: str) -> pl.DataFrame:
+def _load_benchmark(roots: dict[str, str], model: str, benchmark: str) -> pl.DataFrame:
     slug, score_type = BENCHMARK_SPECS[benchmark]
-    metrics = pl.read_parquet(f"{ROOTS[model]}/{slug}/metrics.parquet")
+    metrics = pl.read_parquet(f"{roots[model].rstrip('/')}/{slug}/metrics.parquet")
     if benchmark == "SGE":
         selected = metrics.filter(
             (pl.col("metric") == "AUPRC")
@@ -126,11 +128,12 @@ def _load_benchmark(model: str, benchmark: str) -> pl.DataFrame:
     )
 
 
-def load_subset_metrics() -> pl.DataFrame:
+def load_subset_metrics(roots: dict[str, str] = ROOTS) -> pl.DataFrame:
     """Load every non-aggregate subset row at the corrected final checkpoint."""
+    assert set(roots) == set(MODEL_ORDER)
     data = pl.concat(
         [
-            _load_benchmark(model, benchmark)
+            _load_benchmark(roots, model, benchmark)
             for model in MODEL_ORDER
             for benchmark in BENCHMARK_ORDER
         ]
@@ -229,7 +232,7 @@ def plot_subset_metrics(data: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    data = load_subset_metrics()
+    data = load_subset_metrics({"46M": args.input_46m, "104M": args.input_104m})
     plot_subset_metrics(data, args.output_dir)
     print(
         data.select(

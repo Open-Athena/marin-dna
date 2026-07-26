@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import argparse
+
 import polars as pl
 
 ROOTS = {
@@ -20,12 +22,22 @@ BENCHMARKS = {
 }
 
 
-def audit() -> pl.DataFrame:
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-46m", default=ROOTS["46M"])
+    parser.add_argument("--input-104m", default=ROOTS["104M"])
+    return parser.parse_args()
+
+
+def audit(roots: dict[str, str] = ROOTS) -> pl.DataFrame:
     """Assert exact RC averaging and return strand-consistency diagnostics."""
+    assert set(roots) == set(ROOTS)
     rows: list[dict[str, object]] = []
-    for model, root in ROOTS.items():
+    for model, root in roots.items():
         for benchmark, (directory, score_column) in BENCHMARKS.items():
-            variants = pl.read_parquet(f"{root}/{directory}/variants.parquet")
+            variants = pl.read_parquet(
+                f"{root.rstrip('/')}/{directory}/variants.parquet"
+            )
             assert variants["variant_id"].n_unique() == variants.height
             required = {
                 "llr_fwd",
@@ -102,5 +114,6 @@ def audit() -> pl.DataFrame:
 
 
 if __name__ == "__main__":
+    args = parse_args()
     with pl.Config(tbl_rows=20, tbl_cols=20, tbl_width_chars=180):
-        print(audit())
+        print(audit({"46M": args.input_46m, "104M": args.input_104m}))

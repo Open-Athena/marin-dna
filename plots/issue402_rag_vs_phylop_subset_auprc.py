@@ -74,6 +74,9 @@ SUBSET_LABELS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-46m", default=RAG_ROOTS["RAG 46M"])
+    parser.add_argument("--input-104m", default=RAG_ROOTS["RAG 104M"])
+    parser.add_argument("--phylop-root", default=PHYLOP_ROOT)
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -115,10 +118,15 @@ def _select_subset_rows(
     )
 
 
-def _load_method(method: str, benchmark: str) -> pl.DataFrame:
+def _load_method(
+    rag_roots: dict[str, str],
+    phylop_root: str,
+    method: str,
+    benchmark: str,
+) -> pl.DataFrame:
     slug, rag_score_type = BENCHMARK_SPECS[benchmark]
     is_phylop = method == "phyloP 447-way"
-    root = PHYLOP_ROOT if is_phylop else RAG_ROOTS[method]
+    root = phylop_root if is_phylop else rag_roots[method]
     score_type = "score" if is_phylop else rag_score_type
     selected = _select_subset_rows(
         pl.read_parquet(f"{root}/{slug}/metrics.parquet"),
@@ -146,11 +154,15 @@ def _load_method(method: str, benchmark: str) -> pl.DataFrame:
     )
 
 
-def load_subset_metrics() -> pl.DataFrame:
+def load_subset_metrics(
+    rag_roots: dict[str, str] = RAG_ROOTS,
+    phylop_root: str = PHYLOP_ROOT,
+) -> pl.DataFrame:
     """Load exact-row RAG and phyloP metrics and assert support parity."""
+    assert set(rag_roots) == {"RAG 46M", "RAG 104M"}
     data = pl.concat(
         [
-            _load_method(method, benchmark)
+            _load_method(rag_roots, phylop_root, method, benchmark)
             for method in METHOD_ORDER
             for benchmark in BENCHMARK_ORDER
         ]
@@ -254,7 +266,10 @@ def plot_subset_metrics(data: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    data = load_subset_metrics()
+    data = load_subset_metrics(
+        {"RAG 46M": args.input_46m, "RAG 104M": args.input_104m},
+        args.phylop_root,
+    )
     plot_subset_metrics(data, args.output_dir)
     print(
         data.select(
