@@ -37,6 +37,7 @@ from marin_dna.pipelines.rag_glm.model_sanity import (
     attention_mask_diagnostics,
     attention_region_rows,
     causal_token_losses,
+    paired_special_token_llr_diagnostics,
     rag_target_position_metadata,
 )
 from marin_dna.pipelines.rag_glm.offline_eval import (
@@ -58,7 +59,9 @@ BENCHMARKS: tuple[RAGBenchmark, ...] = (
     "complex_traits",
     "sge",
 )
-VEP_MODES = ("all_n", "human_only")
+VEP_MODES = ("full", "all_n", "human_only", "bos_to_pad", "seq_to_unk")
+VEP_CONTEXT_MODES = {"full", "all_n", "human_only"}
+VEP_TOKEN_MODES = {"bos_to_pad", "seq_to_unk"}
 LM_ABLATIONS = ("full", "all_n", "roll", "unrelated", "bos_to_pad", "seq_to_unk")
 
 
@@ -247,7 +250,7 @@ def _encode_vep_batch(
         return_tensors="pt",
     )["input_ids"]
     expected_prefix = (
-        RAG_VEP_PREFIX_TOKENS if mode == "all_n" else RAG_HUMAN_ONLY_PREFIX_TOKENS
+        RAG_HUMAN_ONLY_PREFIX_TOKENS if mode == "human_only" else RAG_VEP_PREFIX_TOKENS
     )
     assert prefix.shape == (rows.height, expected_prefix)
     assert ref.shape == alt.shape == (rows.height, RAG_COMPLETION_TOKENS)
@@ -256,7 +259,7 @@ def _encode_vep_batch(
     assert bool(torch.isin(alt, nucleotide_ids).all())
     assert bool((ref[:, 1:] == alt[:, 1:]).all())
     assert bool((ref[:, 0] != alt[:, 0]).all())
-    if mode == "all_n":
+    if mode != "human_only":
         assert_rag_token_geometry(
             prefix,
             bos_token_id=tokenizer.bos_token_id,
@@ -265,6 +268,7 @@ def _encode_vep_batch(
             unk_token_id=tokenizer.unk_token_id,
             nucleotide_token_ids=nucleotide_ids.tolist(),
         )
+    if mode == "all_n":
         ortholog_prefix = prefix[:, 1 : HUMAN_SEGMENT_START - 1]
         assert bool(
             (
@@ -272,10 +276,18 @@ def _encode_vep_batch(
                 | (ortholog_prefix == tokenizer.convert_tokens_to_ids("[SEQ]"))
             ).all()
         )
-    else:
+    elif mode == "human_only":
         assert bool((prefix[:, 0] == tokenizer.bos_token_id).all())
         assert bool((prefix == tokenizer.bos_token_id).sum(dim=1).eq(1).all())
         assert bool(torch.isin(prefix[:, 1:], nucleotide_ids).all())
+    elif mode in VEP_TOKEN_MODES:
+        prefix = ablate_rag_token_ids(
+            prefix,
+            mode,  # type: ignore[arg-type]
+            unk_token_id=tokenizer.unk_token_id,
+            pad_token_id=tokenizer.pad_token_id,
+            boundary_token_id=tokenizer.convert_tokens_to_ids("[SEQ]"),
+        )
     return prefix, ref, alt, expected_prefix
 
 
@@ -288,7 +300,11 @@ def _score_vep_mode(
     batch_size: int,
     device: torch.device,
 ) -> pl.DataFrame:
-    transformed = ablate_rag_rows(rows, mode)  # type: ignore[arg-type]
+    transformed = (
+        ablate_rag_rows(rows, mode)  # type: ignore[arg-type]
+        if mode in VEP_CONTEXT_MODES
+        else rows
+    )
     score_chunks: list[torch.Tensor] = []
     model.eval()
     with torch.inference_mode():
@@ -329,8 +345,10 @@ def _run_vep_ablations(
     n_bootstrap: int,
     device: torch.device,
 ) -> None:
+    diagnostic_frames: list[pl.DataFrame] = []
     for benchmark in BENCHMARKS:
         rows = load_rag_eval_split(benchmark, "test")
+        documents_by_mode: dict[str, pl.DataFrame] = {}
         for mode in VEP_MODES:
             mode_dir = output_dir / "vep" / benchmark / mode
             mode_dir.mkdir(parents=True, exist_ok=True)
@@ -342,6 +360,7 @@ def _run_vep_ablations(
                 batch_size=batch_size,
                 device=device,
             )
+            documents_by_mode[mode] = documents
             variants = aggregate_rag_variant_scores(documents, benchmark)
             metrics = compute_rag_benchmark_metrics(
                 variants, benchmark, n_bootstrap=n_bootstrap
@@ -361,7 +380,19 @@ def _run_vep_ablations(
                         "geometry": (
                             "fixed_2048_all_ortholog_slots_N"
                             if mode == "all_n"
-                            else "literal_256_BOS_plus_human_out_of_distribution"
+                            else (
+                                "literal_256_BOS_plus_human_out_of_distribution"
+                                if mode == "human_only"
+                                else (
+                                    "fixed_2048_BOS_replaced_by_PAD"
+                                    if mode == "bos_to_pad"
+                                    else (
+                                        "fixed_2048_SEQ_replaced_by_UNK"
+                                        if mode == "seq_to_unk"
+                                        else "fixed_2048_full_context"
+                                    )
+                                )
+                            )
                         ),
                     },
                     indent=2,
@@ -369,6 +400,21 @@ def _run_vep_ablations(
                 )
                 + "\n"
             )
+        full = documents_by_mode["full"]
+        for mode in sorted(VEP_TOKEN_MODES):
+            diagnostic_frames.append(
+                paired_special_token_llr_diagnostics(
+                    full,
+                    documents_by_mode[mode],
+                    benchmark=benchmark,
+                    ablation=mode,
+                )
+            )
+    diagnostics = pl.concat(diagnostic_frames).sort("benchmark", "ablation")
+    assert diagnostics.height == len(BENCHMARKS) * len(VEP_TOKEN_MODES)
+    diagnostics.write_parquet(
+        output_dir / "vep_special_token_diagnostics.parquet", compression="zstd"
+    )
 
 
 def _select_attention_rows(

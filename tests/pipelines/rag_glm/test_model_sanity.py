@@ -23,6 +23,7 @@ from marin_dna.pipelines.rag_glm.model_sanity import (
     attention_region_rows,
     causal_token_losses,
     indel_mapped_attention_rows,
+    paired_special_token_llr_diagnostics,
     pairwise_alignment_rows,
     rag_target_position_metadata,
 )
@@ -104,6 +105,58 @@ def test_token_ablation_changes_only_intended_regions() -> None:
     )
     assert torch.equal(rolled[:, HUMAN_SEGMENT_START:], ids[:, HUMAN_SEGMENT_START:])
     assert torch.equal(rolled[:, 1:256], torch.roll(ids[:, 1:256], 31, 1))
+
+    for source in (ids, ids[:, :1_920]):
+        bos_to_pad = ablate_rag_token_ids(
+            source,
+            "bos_to_pad",
+            unk_token_id=1,
+            pad_token_id=0,
+            boundary_token_id=3,
+        )
+        assert bool((bos_to_pad[:, 0] == 0).all())
+        assert torch.equal(bos_to_pad[:, 1:], source[:, 1:])
+
+        seq_to_unk = ablate_rag_token_ids(
+            source,
+            "seq_to_unk",
+            unk_token_id=1,
+            pad_token_id=0,
+            boundary_token_id=3,
+        )
+        expected = source.clone()
+        expected[:, list(RAG_BOUNDARY_POSITIONS)] = 1
+        assert torch.equal(seq_to_unk, expected)
+
+
+def test_paired_special_token_llr_diagnostics_detects_effect_and_order() -> None:
+    full = pl.DataFrame({"document_id": ["a", "b", "c"], "llr": [-2.0, 0.0, 2.0]})
+    ablated = pl.DataFrame({"document_id": ["a", "b", "c"], "llr": [-1.5, 0.0, 1.0]})
+    result = paired_special_token_llr_diagnostics(
+        full,
+        ablated,
+        benchmark="mendelian_traits",
+        ablation="bos_to_pad",
+    )
+    assert result.height == 1
+    assert result["n_documents"].item() == 3
+    assert result["fraction_llr_changed_gt_1e_6"].item() == pytest.approx(2 / 3)
+    assert result["mean_abs_llr_delta"].item() == pytest.approx(0.5)
+
+    with pytest.raises(AssertionError):
+        paired_special_token_llr_diagnostics(
+            full,
+            ablated.reverse(),
+            benchmark="mendelian_traits",
+            ablation="seq_to_unk",
+        )
+    with pytest.raises(AssertionError):
+        paired_special_token_llr_diagnostics(
+            full,
+            full,
+            benchmark="mendelian_traits",
+            ablation="seq_to_unk",
+        )
 
 
 def test_causal_losses_and_position_metadata() -> None:

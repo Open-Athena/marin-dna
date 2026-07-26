@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot issue #402 full-context versus ortholog-free VEP performance."""
+"""Plot issue #402 context and special-token VEP ablations."""
 
 from __future__ import annotations
 
@@ -22,10 +22,14 @@ BENCHMARKS = {
     "Complex": ("complex_traits", "abs_llr_avg"),
     "SGE": ("sge", "minus_llr_avg"),
 }
-CONTEXTS = [
+BASE_CONTEXTS = [
     ("full", "Full\northologs"),
     ("all_n", "All N\n(fixed 2048)"),
     ("human_only", "Human only\n(OOD 256)"),
+]
+SPECIAL_TOKEN_CONTEXTS = [
+    ("bos_to_pad", "BOS→PAD\n(fixed 2048)"),
+    ("seq_to_unk", "[SEQ]→UNK\n(fixed 2048)"),
 ]
 
 
@@ -39,6 +43,11 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         default=Path("plots/output/issue402_rag_vep_context_ablation"),
+    )
+    parser.add_argument(
+        "--include-special-token-controls",
+        action="store_true",
+        help="Include fixed-length BOS→PAD and [SEQ]→UNK VEP controls.",
     )
     return parser.parse_args()
 
@@ -87,14 +96,19 @@ def _random_baseline(sanity_root: str, benchmark: str, slug: str) -> float:
 def load_context_results(
     eval_roots: dict[str, str] = ROOTS,
     sanity_roots: dict[str, str] = SANITY_ROOTS,
+    *,
+    include_special_token_controls: bool = False,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Load corrected full-context and both ortholog-free controls."""
+    """Load full-context and selected fixed-checkpoint VEP controls."""
     assert set(eval_roots) == set(MODEL_ORDER)
     assert set(sanity_roots) == set(MODEL_ORDER)
+    contexts = BASE_CONTEXTS + (
+        SPECIAL_TOKEN_CONTEXTS if include_special_token_controls else []
+    )
     rows: list[dict[str, object]] = []
     for model, root in eval_roots.items():
         for benchmark, (slug, score_type) in BENCHMARKS.items():
-            for context_index, (context, context_label) in enumerate(CONTEXTS):
+            for context_index, (context, context_label) in enumerate(contexts):
                 if context == "full":
                     path = f"{root.rstrip('/')}/step-29999/{slug}/metrics.parquet"
                 else:
@@ -111,7 +125,7 @@ def load_context_results(
                     }
                 )
     data = pl.DataFrame(rows)
-    assert data.height == len(eval_roots) * len(BENCHMARKS) * len(CONTEXTS)
+    assert data.height == len(eval_roots) * len(BENCHMARKS) * len(contexts)
     assert data.filter(
         ~pl.col("auprc").is_finite() | ~pl.col("se").is_finite()
     ).is_empty()
@@ -130,9 +144,13 @@ def load_context_results(
 
 
 def plot_context_results(
-    data: pl.DataFrame, baselines: pl.DataFrame, output_dir: Path
+    data: pl.DataFrame,
+    baselines: pl.DataFrame,
+    output_dir: Path,
+    *,
+    include_special_token_controls: bool = False,
 ) -> None:
-    """Render full and ortholog-free VEP performance with random baselines."""
+    """Render VEP ablations with random-prevalence baselines."""
     output_dir.mkdir(parents=True, exist_ok=True)
     data.write_parquet(output_dir / "metrics.parquet", compression="zstd")
     baselines.write_parquet(output_dir / "baselines.parquet", compression="zstd")
@@ -157,7 +175,10 @@ def plot_context_results(
         facet_kws={"sharex": True, "sharey": False},
     )
     grid.set_axis_labels("", "AUPRC")
-    context_labels = [label for _, label in CONTEXTS]
+    contexts = BASE_CONTEXTS + (
+        SPECIAL_TOKEN_CONTEXTS if include_special_token_controls else []
+    )
+    context_labels = [label for _, label in contexts]
     for benchmark, axis in grid.axes_dict.items():
         subset = frame[frame["benchmark"] == benchmark]
         axis.set_title(benchmark)
@@ -185,7 +206,9 @@ def plot_context_results(
                 alpha=0.85,
             )
     grid.figure.suptitle(
-        "Variant-effect performance collapses without ortholog sequence content"
+        "Variant-effect performance under context and special-token ablations"
+        if include_special_token_controls
+        else "Variant-effect performance collapses without ortholog sequence content"
     )
     grid.figure.text(
         0.5,
@@ -206,8 +229,14 @@ def main() -> None:
     data, baselines = load_context_results(
         {"46M": args.eval_46m, "104M": args.eval_104m},
         {"46M": args.sanity_46m, "104M": args.sanity_104m},
+        include_special_token_controls=args.include_special_token_controls,
     )
-    plot_context_results(data, baselines, args.output_dir)
+    plot_context_results(
+        data,
+        baselines,
+        args.output_dir,
+        include_special_token_controls=args.include_special_token_controls,
+    )
     print(data.sort("benchmark", "model", "context_index"))
     print(baselines.sort("benchmark"))
 

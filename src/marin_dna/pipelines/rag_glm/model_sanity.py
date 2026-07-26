@@ -154,9 +154,9 @@ def ablate_rag_token_ids(
     donor_input_ids: Tensor | None = None,
     roll_bases: int = 31,
 ) -> Tensor:
-    """Apply controlled ortholog/special-token ablations to full documents."""
+    """Apply controlled ablations to full documents or fixed VEP prefixes."""
     assert input_ids.ndim == 2
-    assert input_ids.shape[1] == DOCUMENT_TOKENS
+    assert input_ids.shape[1] in {RAG_VEP_PREFIX_TOKENS, DOCUMENT_TOKENS}
     result = input_ids.clone()
     if mode == "full":
         pass
@@ -194,10 +194,76 @@ def ablate_rag_token_ids(
             result[:, list(RAG_BOUNDARY_POSITIONS)],
             input_ids[:, list(RAG_BOUNDARY_POSITIONS)],
         )
+    elif mode == "bos_to_pad":
+        assert bool((result[:, 0] == pad_token_id).all())
+        assert torch.equal(
+            result[:, list(RAG_BOUNDARY_POSITIONS)],
+            input_ids[:, list(RAG_BOUNDARY_POSITIONS)],
+        )
+    else:
+        assert torch.equal(result[:, 0], input_ids[:, 0])
+        assert bool((result[:, list(RAG_BOUNDARY_POSITIONS)] == unk_token_id).all())
     assert torch.equal(
         result[:, HUMAN_SEGMENT_START:], input_ids[:, HUMAN_SEGMENT_START:]
     )
     return result
+
+
+def paired_special_token_llr_diagnostics(
+    full: pl.DataFrame,
+    ablated: pl.DataFrame,
+    *,
+    benchmark: str,
+    ablation: str,
+    change_threshold: float = 1.0e-6,
+) -> pl.DataFrame:
+    """Summarize paired document LLR changes under one token intervention."""
+    assert benchmark
+    assert ablation in {"bos_to_pad", "seq_to_unk"}
+    assert change_threshold > 0
+    required = {"document_id", "llr"}
+    assert required <= set(full.columns)
+    assert required <= set(ablated.columns)
+    assert full.height == ablated.height > 1
+    assert full["document_id"].n_unique() == full.height
+    assert ablated["document_id"].n_unique() == ablated.height
+    assert full["document_id"].to_list() == ablated["document_id"].to_list()
+
+    comparison = full.select(
+        "document_id", pl.col("llr").alias("full_llr")
+    ).with_columns(pl.Series("ablated_llr", ablated["llr"].to_list(), dtype=pl.Float64))
+    comparison = comparison.with_columns(
+        (pl.col("ablated_llr") - pl.col("full_llr")).alias("llr_delta")
+    )
+    summary = comparison.select(
+        pl.len().alias("n_documents"),
+        pl.col("llr_delta").abs().mean().alias("mean_abs_llr_delta"),
+        pl.col("llr_delta").abs().max().alias("max_abs_llr_delta"),
+        (pl.col("llr_delta").abs() > change_threshold)
+        .mean()
+        .alias("fraction_llr_changed_gt_1e_6"),
+        pl.corr("full_llr", "ablated_llr").alias("llr_pearson"),
+    ).with_columns(
+        pl.lit(benchmark).alias("benchmark"),
+        pl.lit(ablation).alias("ablation"),
+    )
+    assert summary["n_documents"].item() == full.height
+    assert summary.filter(
+        ~pl.col("mean_abs_llr_delta").is_finite()
+        | ~pl.col("max_abs_llr_delta").is_finite()
+        | ~pl.col("llr_pearson").is_finite()
+    ).is_empty()
+    assert summary["max_abs_llr_delta"].item() > change_threshold, summary
+    assert summary["fraction_llr_changed_gt_1e_6"].item() > 0, summary
+    return summary.select(
+        "benchmark",
+        "ablation",
+        "n_documents",
+        "mean_abs_llr_delta",
+        "max_abs_llr_delta",
+        "fraction_llr_changed_gt_1e_6",
+        "llr_pearson",
+    )
 
 
 def causal_token_losses(logits: Tensor, input_ids: Tensor) -> Tensor:

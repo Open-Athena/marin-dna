@@ -318,6 +318,13 @@ in tokens while retaining the 2,048-token RAG documents:
 | Validation loss | Every 1,000 updates |
 | Offline VEP | Mendelian, Complex, and SGE every 5,000 updates plus final |
 
+The final-checkpoint sanity pass also reruns VEP with two fixed-length
+special-token interventions: BOS is replaced by PAD, and every `[SEQ]`
+boundary is replaced by UNK. It records paired document-level LLR deltas and
+fails if either intervention leaves every prediction unchanged. These controls
+directly guard against the historical failure mode where a CLS/BOS-like token
+was present in the model input but silently omitted from variant scoring.
+
 AdamH is re-resolved for the actual batch and 62.9B-token horizon. The pinned
 values are:
 

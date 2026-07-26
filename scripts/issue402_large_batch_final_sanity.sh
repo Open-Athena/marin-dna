@@ -4,8 +4,10 @@
 # Usage:
 #   CODE_REVISION=<40-char-sha> scripts/issue402_large_batch_final_sanity.sh
 #
-# The two model-sanity jobs run concurrently on spot A10Gs. The combined
-# indel-aware attention job starts only after both complete.
+# The two model-sanity jobs run concurrently on spot A10Gs. They include
+# fixed-length BOS/[SEQ] VEP interventions as a guard against special tokens
+# being silently ignored. The combined indel-aware attention job starts only
+# after both model-sanity jobs complete.
 #
 # Environment:
 #   LOG_DIR  Local Sky logs (default: /tmp/issue402_large_batch_final_sanity).

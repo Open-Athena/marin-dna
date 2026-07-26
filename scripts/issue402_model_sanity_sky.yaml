@@ -81,7 +81,10 @@ run: |
   test -s "$RESULTS_DIR/manifest.json"
   test -s "$RESULTS_DIR/validation_position_loss.parquet"
   test -s "$RESULTS_DIR/attention_alignment.parquet"
+  test -s "$RESULTS_DIR/vep_special_token_diagnostics.parquet"
+  test -s "$RESULTS_DIR/vep/mendelian_traits/bos_to_pad/metrics.parquet"
   test -s "$RESULTS_DIR/vep/mendelian_traits/human_only/metrics.parquet"
   test -s "$RESULTS_DIR/vep/complex_traits/all_n/metrics.parquet"
+  test -s "$RESULTS_DIR/vep/complex_traits/seq_to_unk/metrics.parquet"
   test -s "$RESULTS_DIR/vep/sge/human_only/metrics.parquet"
   gcloud storage rsync "$RESULTS_DIR" "$OUTPUT_URI" --recursive
