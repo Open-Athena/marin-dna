@@ -49,9 +49,9 @@ def test_large_batch_recipe_and_completed_transfer(monkeypatch) -> None:
     assert LARGE_BATCH_SIZE * SEQ_LEN == 2_097_152
     assert ACTUAL_TOKENS_LARGE_BATCH == 62_914_560_000
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
-    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == 16
+    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == 256
     assert TRAIN_DEVICE_COUNT == 4
-    assert GRADIENT_ACCUMULATION_STEPS == 16
+    assert GRADIENT_ACCUMULATION_STEPS == 1
     assert (
         trainer.train_batch_size
         == trainer.per_device_parallelism

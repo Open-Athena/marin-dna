@@ -23,7 +23,7 @@ from launch_large_batch_30k import (
     LARGE_BATCH_SIZE,
     NATIVE_CHECKPOINT_EVERY,
     OPTIMIZER_LARGE_BATCH,
-    PER_DEVICE_PARALLELISM,
+    TRAIN_DEVICE_COUNT,
     TRAIN_STEPS_LARGE_BATCH,
 )
 from launch_large_batch_30k import RAGTokenizedCache as _BaseRAGTokenizedCache
@@ -33,6 +33,11 @@ from launch_large_batch_30k import (
 
 CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h768-p104m-b2m-30k"
 RUN_ID = "dna-exp402-rag-h768-p104M-B2M-30K-scratch"
+PER_DEVICE_PARALLELISM_100M = 128
+GRADIENT_ACCUMULATION_STEPS_100M = LARGE_BATCH_SIZE // (
+    PER_DEVICE_PARALLELISM_100M * TRAIN_DEVICE_COUNT
+)
+assert GRADIENT_ACCUMULATION_STEPS_100M == 2
 
 
 class RAGTokenizedCache(_BaseRAGTokenizedCache):
@@ -102,7 +107,7 @@ def build() -> ArtifactStep:
                 pod_config.train_config,
                 trainer=replace(
                     trainer,
-                    per_device_parallelism=PER_DEVICE_PARALLELISM,
+                    per_device_parallelism=PER_DEVICE_PARALLELISM_100M,
                     checkpointer=replace(
                         trainer.checkpointer,
                         keep=[{"every": NATIVE_CHECKPOINT_EVERY}],

@@ -308,8 +308,8 @@ in tokens while retaining the 2,048-token RAG documents:
 | Launchers | `launch_large_batch_30k.py`, `launch_100m_large_batch_30k.py` |
 | Parameters | 45.9M and 103.8M |
 | Global batch | 1,024 documents × 2,048 = 2,097,152 tokens/update |
-| Device geometry | 4 TPU chips; final microbatch selected by a compile-warmed benchmark |
-| Accumulation | Candidate: none for 46M; minimum 2 microsteps for 104M |
+| Device geometry | 4 TPU chips; 256 documents/chip (46M), 128 documents/chip/microstep (104M) |
+| Accumulation | None for 46M; two exact microsteps for 104M |
 | Updates | 30,000 from scratch |
 | Tokens/model | 62,914,560,000 |
 | Schedule | 10% warmup, 70% stable, 20% linear decay to zero |
@@ -342,8 +342,11 @@ implementation does establish that loading and hooks are separate from
 `throughput/duration`; after the initial 20--22 second cache fill, measured
 batch handoff was below one millisecond. Six-step benchmarks, with validation
 limited to one final out-of-step batch, will select the production geometry
-from warmed updates 3--6: PDP=256
-(no accumulation) for 46M and PDP=128 (two exact microsteps) for 104M.
+from warmed updates 3--6. The completed medians were 1.712 seconds/update
+(1.225M tokens/s, 12.88% MFU) for 46M at PDP=256 with no accumulation and
+3.449 seconds/update (610k tokens/s, 13.82% MFU) for 104M at PDP=128 with two
+exact microsteps. Median loader handoff was 0.00032 and 0.00556 seconds,
+respectively, confirming that data loading is not the steady-state bottleneck.
 
 Validate and lower all production and accumulation-smoke plans from this
 directory:

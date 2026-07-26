@@ -5,7 +5,13 @@ from marin.execution.lazy import StepContext
 
 from launch import HF_SAVE_EVERY, ONLINE_EVAL_ENV, RAG_EVAL_EVERY, VOCAB_SIZE
 from launch_100m import MODEL
-from launch_100m_large_batch_30k import CHECKPOINT_NAME, RUN_ID, build
+from launch_100m_large_batch_30k import (
+    CHECKPOINT_NAME,
+    GRADIENT_ACCUMULATION_STEPS_100M,
+    PER_DEVICE_PARALLELISM_100M,
+    RUN_ID,
+    build,
+)
 from launch_100m_large_batch_pdp128_benchmark import (
     BENCHMARK_CHECKPOINT_NAME,
     BENCHMARK_PER_DEVICE_PARALLELISM,
@@ -17,11 +23,9 @@ from launch_100m_large_batch_pdp128_benchmark import (
 )
 from launch_large_batch_30k import (
     ACTUAL_TOKENS_LARGE_BATCH,
-    GRADIENT_ACCUMULATION_STEPS,
     LARGE_BATCH_SIZE,
     NATIVE_CHECKPOINT_EVERY,
     OPTIMIZER_LARGE_BATCH,
-    PER_DEVICE_PARALLELISM,
     TRAIN_DEVICE_COUNT,
     TRAIN_STEPS_LARGE_BATCH,
 )
@@ -45,14 +49,14 @@ def test_104m_large_batch_changes_only_model_scale_and_identity(monkeypatch) -> 
     assert RUN_ID == "dna-exp402-rag-h768-p104M-B2M-30K-scratch"
     assert MODEL.total_trainable_params(VOCAB_SIZE) == 103_838_976
     assert trainer.train_batch_size == LARGE_BATCH_SIZE == 1_024
-    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == 16
+    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM_100M == 128
     assert TRAIN_DEVICE_COUNT == 4
-    assert GRADIENT_ACCUMULATION_STEPS == 16
+    assert GRADIENT_ACCUMULATION_STEPS_100M == 2
     assert (
         trainer.train_batch_size
         == trainer.per_device_parallelism
         * TRAIN_DEVICE_COUNT
-        * GRADIENT_ACCUMULATION_STEPS
+        * GRADIENT_ACCUMULATION_STEPS_100M
     )
     assert trainer.num_train_steps == TRAIN_STEPS_LARGE_BATCH == 30_000
     assert ACTUAL_TOKENS_LARGE_BATCH == 62_914_560_000
