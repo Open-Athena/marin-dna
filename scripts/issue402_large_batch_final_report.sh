@@ -43,8 +43,12 @@ if (( ! dry_run )); then
         for checkpoint_step in "${checkpoint_steps[@]}"; do
             gcloud storage cat "$root/checkpoints/step-$checkpoint_step/metadata.json" \
                 | jq -e --argjson expected "$checkpoint_step" \
-                    '.step == $expected and .is_temporary == false' >/dev/null
-            for filename in config.json model.safetensors tokenizer.json; do
+                    '.step == $expected
+                     and .is_temporary == false
+                     and (.timestamp | type == "string")' >/dev/null
+            gcloud storage ls \
+                "$root/checkpoints/step-$checkpoint_step/manifest.ocdbt" >/dev/null
+            for filename in config.json model.safetensors tokenizer.json tokenizer_config.json; do
                 gcloud storage ls "$root/hf/step-$checkpoint_step/$filename" >/dev/null
             done
         done
