@@ -44,6 +44,9 @@ current_revision=$(git -C "$repo_root" rev-parse HEAD)
     exit 2
 }
 
+# Sky packages the caller's current directory, so execute from the same clean
+# repository root whose commit was validated above.
+cd "$repo_root"
 mkdir -p "$log_dir"
 revision_short=${code_revision:0:7}
 checkpoint_46m="gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/$artifact_version/hf/step-29999"
