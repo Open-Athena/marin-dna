@@ -46,6 +46,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-104m", default=INPUT_ROOTS["104M"])
     parser.add_argument("--steps", type=int, nargs="+", default=EVAL_STEPS)
     parser.add_argument(
+        "--steps-46m",
+        type=int,
+        nargs="+",
+        help="Live override for completed 46M steps (requires --allow-running).",
+    )
+    parser.add_argument(
+        "--steps-104m",
+        type=int,
+        nargs="+",
+        help="Live override for completed 104M steps (requires --allow-running).",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("plots/output/issue402_rag_large_batch_auprc"),
@@ -65,16 +77,19 @@ def _one_row(frame: pl.DataFrame, predicate: pl.Expr) -> dict[str, object]:
 
 
 def load_headline_metrics(
-    input_roots: dict[str, str], steps: list[int] | tuple[int, ...]
+    input_roots: dict[str, str], steps_by_model: dict[str, list[int]]
 ) -> pl.DataFrame:
     """Load the frozen headline metric for each benchmark and checkpoint."""
     assert set(input_roots) == set(MODEL_ORDER)
-    assert steps and len(set(steps)) == len(steps)
-    assert set(steps) <= set(EVAL_STEPS)
+    assert set(steps_by_model) == set(MODEL_ORDER)
+    for model, steps in steps_by_model.items():
+        assert steps and len(set(steps)) == len(steps), (model, steps)
+        assert steps == sorted(steps), (model, steps)
+        assert set(steps) <= set(EVAL_STEPS), (model, steps)
     rows: list[dict[str, object]] = []
     sge_chances: list[float] = []
     for model in MODEL_ORDER:
-        for step in sorted(steps):
+        for step in steps_by_model[model]:
             root = f"{input_roots[model].rstrip('/')}/step-{step}"
             mendelian = pl.read_parquet(f"{root}/mendelian_traits/metrics.parquet")
             complex_traits = pl.read_parquet(f"{root}/complex_traits/metrics.parquet")
@@ -130,7 +145,8 @@ def load_headline_metrics(
                 )
     assert max(sge_chances) - min(sge_chances) < 1e-12
     metrics = pl.DataFrame(rows).sort("benchmark", "model", "step")
-    assert metrics.height == len(MODEL_ORDER) * len(steps) * len(BENCHMARK_ORDER)
+    expected_rows = sum(map(len, steps_by_model.values())) * len(BENCHMARK_ORDER)
+    assert metrics.height == expected_rows
     assert metrics.filter(
         ~pl.col("auprc").is_finite()
         | ~pl.col("se").is_finite()
@@ -138,21 +154,24 @@ def load_headline_metrics(
         | (pl.col("auprc") > 1)
         | (pl.col("se") < 0)
     ).is_empty()
-    assert metrics.group_by("model", "benchmark").len()["len"].unique().to_list() == [
-        len(steps)
-    ]
+    for model in MODEL_ORDER:
+        model_counts = (
+            metrics.filter(pl.col("model") == model).group_by("benchmark").len()
+        )
+        assert model_counts["len"].unique().to_list() == [len(steps_by_model[model])]
     return metrics
 
 
 def load_exact_validation_losses(
     api: wandb.Api,
-    steps: list[int] | tuple[int, ...],
+    steps_by_model: dict[str, list[int]],
     *,
     allow_running: bool,
 ) -> pl.DataFrame:
     """Load the validation loss logged at each offline-eval checkpoint."""
     rows: list[dict[str, object]] = []
     for model in MODEL_ORDER:
+        steps = steps_by_model[model]
         run = api.run(RUNS[model])
         if allow_running:
             assert run.state in {"running", "finished"}, (model, run.state)
@@ -176,7 +195,7 @@ def load_exact_validation_losses(
                 }
             )
     losses = pl.DataFrame(rows)
-    assert losses.height == len(MODEL_ORDER) * len(steps)
+    assert losses.height == sum(map(len, steps_by_model.values()))
     assert losses.filter(
         ~pl.col("validation_loss").is_finite() | (pl.col("validation_loss") <= 0)
     ).is_empty()
@@ -287,21 +306,29 @@ def plot_headline_metrics(metrics: pl.DataFrame, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    steps = list(args.steps)
+    has_model_overrides = args.steps_46m is not None or args.steps_104m is not None
+    assert not has_model_overrides or args.allow_running, (
+        "Per-model step overrides are only valid with --allow-running"
+    )
+    steps_by_model = {
+        "46M": list(args.steps_46m or args.steps),
+        "104M": list(args.steps_104m or args.steps),
+    }
     metrics = load_headline_metrics(
         {"46M": args.input_46m, "104M": args.input_104m},
-        steps,
+        steps_by_model,
     ).join(
         load_exact_validation_losses(
             wandb.Api(),
-            steps,
+            steps_by_model,
             allow_running=args.allow_running,
         ),
         on=["model", "step"],
         how="inner",
         validate="m:1",
     )
-    assert metrics.height == len(MODEL_ORDER) * len(steps) * len(BENCHMARK_ORDER)
+    expected_rows = sum(map(len, steps_by_model.values())) * len(BENCHMARK_ORDER)
+    assert metrics.height == expected_rows
     plot_headline_metrics(metrics, args.output_dir)
     print(metrics)
 
