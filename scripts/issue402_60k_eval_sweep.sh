@@ -10,6 +10,9 @@
 # Environment:
 #   MAX_PARALLEL  Maximum simultaneous Sky launch processes (default: 4).
 #   LOG_DIR       Local per-cluster logs (default: /tmp/issue402_60k_evals).
+#   ALLOW_ON_DEMAND
+#                 Set to 1 to let the task's spot-first resource policy fall
+#                 back to on-demand after spot capacity is exhausted.
 #   DRY_RUN       Set to 1 to validate inputs and print commands only.
 
 set -uo pipefail
@@ -27,6 +30,7 @@ task_yaml="$repo_root/scripts/issue402_offline_eval_sky.yaml"
 code_revision=${CODE_REVISION:-}
 max_parallel=${MAX_PARALLEL:-4}
 log_dir=${LOG_DIR:-/tmp/issue402_60k_evals}
+allow_on_demand=${ALLOW_ON_DEMAND:-0}
 dry_run=${DRY_RUN:-0}
 
 [[ "$code_revision" =~ ^[0-9a-f]{40}$ ]] || {
@@ -48,6 +52,10 @@ current_revision=$(git -C "$repo_root" rev-parse HEAD)
 }
 [[ "$dry_run" == 0 || "$dry_run" == 1 ]] || {
     echo "DRY_RUN must be 0 or 1" >&2
+    exit 2
+}
+[[ "$allow_on_demand" == 0 || "$allow_on_demand" == 1 ]] || {
+    echo "ALLOW_ON_DEMAND must be 0 or 1" >&2
     exit 2
 }
 mkdir -p "$log_dir"
@@ -116,8 +124,12 @@ for spec in "$@"; do
         fi
     fi
 
+    spot_args=(--use-spot)
+    if (( allow_on_demand )); then
+        spot_args=()
+    fi
     command=(
-        sky launch --yes --use-spot --down
+        sky launch --yes "${spot_args[@]}" --down
         -c "$cluster"
         "$task_yaml"
         --env "CHECKPOINT_URI=$checkpoint_uri"

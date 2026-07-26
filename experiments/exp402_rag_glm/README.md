@@ -286,3 +286,8 @@ CODE_REVISION=$(git rev-parse HEAD) MAX_PARALLEL=4 \
   scripts/issue402_60k_eval_sweep.sh \
   46m:25000 104m:25000 46m:30000 104m:30000
 ```
+
+The dispatcher is spot-only by default. If every `us-east-2` availability zone
+rejects the A10G spot request, set `ALLOW_ON_DEMAND=1` to retain the task YAML's
+spot-first policy while permitting its on-demand fallback. This keeps the
+fallback explicit and leaves `MAX_PARALLEL` as the concurrency bound.
