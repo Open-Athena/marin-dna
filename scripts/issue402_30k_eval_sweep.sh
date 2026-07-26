@@ -31,6 +31,15 @@ dry_run=${DRY_RUN:-0}
     echo "CODE_REVISION must be a full 40-character lowercase commit SHA" >&2
     exit 2
 }
+current_revision=$(git -C "$repo_root" rev-parse HEAD)
+[[ "$code_revision" == "$current_revision" ]] || {
+    echo "CODE_REVISION $code_revision does not match worktree HEAD $current_revision" >&2
+    exit 2
+}
+[[ -z "$(git -C "$repo_root" status --porcelain)" ]] || {
+    echo "worktree must be clean so Sky sync and CODE_REVISION describe identical code" >&2
+    exit 2
+}
 [[ "$max_parallel" =~ ^[1-9][0-9]*$ ]] || {
     echo "MAX_PARALLEL must be a positive integer" >&2
     exit 2
