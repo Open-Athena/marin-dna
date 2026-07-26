@@ -209,19 +209,23 @@ def load_rag_model_config_hf(
         return config
 
     assert isinstance(rope_parameters, dict)
+    translated_scaling = dict(rope_parameters)
+    exported_theta = translated_scaling.pop("rope_theta", None)
+    assert translated_scaling.get("rope_type") == "llama3"
     observed_scaling = getattr(config, "rope_scaling", None)
     if observed_scaling is not None:
-        assert observed_scaling == rope_parameters, (
+        assert observed_scaling in (translated_scaling, rope_parameters), (
             "conflicting rope_parameters and rope_scaling in model export"
         )
+        if exported_theta is not None:
+            observed_theta = getattr(config, "rope_theta", None)
+            if observed_theta is not None:
+                assert float(observed_theta) == float(exported_theta)
         return config
 
-    rope_scaling = dict(rope_parameters)
-    exported_theta = rope_scaling.pop("rope_theta", None)
     if exported_theta is not None:
         config.rope_theta = float(exported_theta)
-    assert rope_scaling.get("rope_type") == "llama3"
-    config.rope_scaling = rope_scaling
+    config.rope_scaling = translated_scaling
     return config
 
 
