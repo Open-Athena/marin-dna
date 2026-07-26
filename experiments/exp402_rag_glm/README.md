@@ -169,3 +169,43 @@ transferred AdamH values, TPU policy, and 1,000-step HF export cadence from the
 early evaluation without coupling training progress to harness initialization.
 The 104M task requests 56 GB host RAM because v6e workers expose 60.2 GB
 allocatable; the model and accelerator configuration are otherwise unchanged.
+
+## Fresh 30,000-step follow-up
+
+The 1B-token loss curves were still falling at their final checkpoints, so the
+approved follow-up trains **both** model sizes from scratch for 30,000 optimizer
+steps (3,932,160,000 tokens each):
+
+| Launcher | Parameters | W&B run |
+| --- | ---: | --- |
+| `launch_30k.py` | 45.9M | `dna-exp402-rag-h640-p46M-30K-scratch` |
+| `launch_100m_30k.py` | 103.8M | `dna-exp402-rag-h768-p104M-30K-scratch` |
+
+Both launchers reuse the immutable corpus and token cache, batch 64, context
+2,048, and the same Complete(d)-inspired AdamH transfer function. The transfer
+is re-resolved at the actual 3.932B-token horizon. Its schedule is 10% warmup,
+70% stable learning rate, then 20% linear decay to zero.
+
+Validation loss, permanent native checkpoints (including optimizer state), and
+Hugging Face exports all occur every 1,000 steps. This explicitly fixes the
+first runs' retention mistake: those launchers exported HF weights every 1,000
+steps but inherited Marin's `keep=[]`, so only the final native optimizer-state
+checkpoint survived.
+
+Both launchers request 56 GB of host RAM so their v6e-4 tasks fit below the
+worker's 60.2 GB allocatable limit.
+
+Validate and lower the two plans from this directory:
+
+```bash
+uv run pytest -q
+uv run ruff check launch_30k.py launch_100m_30k.py \
+  test_launch_30k.py test_launch_100m_30k.py
+EXP402_ONLINE_EVAL=0 uv run python launch_30k.py --version 2026.07.26
+EXP402_ONLINE_EVAL=0 uv run python launch_100m_30k.py --version 2026.07.26
+```
+
+Launch both with `EXP402_ONLINE_EVAL=0`; the frozen Mendelian, Complex, and SGE
+tasks are scored offline at every 1,000-step HF export. This keeps the blocked
+in-process harness off the training critical path while preserving the
+requested early-signal cadence.
