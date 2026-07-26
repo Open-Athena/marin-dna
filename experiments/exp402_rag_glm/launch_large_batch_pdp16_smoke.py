@@ -1,4 +1,4 @@
-"""Disposable two-step full-batch memory smoke for the 45.9M large-batch run."""
+"""Disposable two-step accumulation smoke for the 45.9M large-batch run."""
 
 from dataclasses import replace
 
@@ -23,8 +23,8 @@ from launch_large_batch_30k import (
     TRAIN_HOST_RAM_LARGE_BATCH,
 )
 
-SMOKE_CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-b2m-fullbatch-smoke"
-SMOKE_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-fullbatch-smoke"
+SMOKE_CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp16-smoke"
+SMOKE_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-pdp16-smoke"
 SMOKE_STEPS = 2
 
 
@@ -41,7 +41,7 @@ def rag_tokenized_dataset() -> ArtifactStep[RAGTokenizedCache]:
 
 
 def build() -> ArtifactStep:
-    """Run two full-batch updates in an isolated artifact and W&B run."""
+    """Run two 16-microstep updates in an isolated artifact and W&B run."""
     dataset = rag_tokenized_dataset()
     training = train_lm(
         name=SMOKE_CHECKPOINT_NAME,
@@ -64,7 +64,15 @@ def build() -> ArtifactStep:
         wandb_project="marin",
         wandb_group="dna-exp402-v1",
         run_id=SMOKE_RUN_ID,
-        tags=("dna", "dna-exp402", "rag", "46M", "large-batch", "memory-smoke"),
+        tags=(
+            "dna",
+            "dna-exp402",
+            "rag",
+            "46M",
+            "large-batch",
+            "pdp16",
+            "accumulation-smoke",
+        ),
     )
     original_build_config = training.build_config
 

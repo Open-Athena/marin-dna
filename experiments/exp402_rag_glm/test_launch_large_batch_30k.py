@@ -9,20 +9,22 @@ from launch import HF_SAVE_EVERY, MODEL, ONLINE_EVAL_ENV, RAG_EVAL_EVERY, SEQ_LE
 from launch_large_batch_30k import (
     ACTUAL_TOKENS_LARGE_BATCH,
     CHECKPOINT_NAME,
+    GRADIENT_ACCUMULATION_STEPS,
     LARGE_BATCH_SIZE,
     NATIVE_CHECKPOINT_EVERY,
     OPTIMIZER_LARGE_BATCH,
     PER_DEVICE_PARALLELISM,
     RUN_ID,
+    TRAIN_DEVICE_COUNT,
     TRAIN_STEPS_LARGE_BATCH,
     build,
 )
-from launch_large_batch_smoke import (
+from launch_large_batch_pdp16_smoke import (
     SMOKE_CHECKPOINT_NAME,
     SMOKE_RUN_ID,
     SMOKE_STEPS,
 )
-from launch_large_batch_smoke import (
+from launch_large_batch_pdp16_smoke import (
     build as build_smoke,
 )
 
@@ -46,7 +48,15 @@ def test_large_batch_recipe_and_completed_transfer(monkeypatch) -> None:
     assert LARGE_BATCH_SIZE * SEQ_LEN == 2_097_152
     assert ACTUAL_TOKENS_LARGE_BATCH == 62_914_560_000
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
-    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == -1
+    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == 16
+    assert TRAIN_DEVICE_COUNT == 4
+    assert GRADIENT_ACCUMULATION_STEPS == 16
+    assert (
+        trainer.train_batch_size
+        == trainer.per_device_parallelism
+        * TRAIN_DEVICE_COUNT
+        * GRADIENT_ACCUMULATION_STEPS
+    )
     assert trainer.num_train_steps == TRAIN_STEPS_LARGE_BATCH == 30_000
     assert trainer.steps_per_eval == RAG_EVAL_EVERY == 1_000
     assert trainer.checkpointer.keep == [{"every": NATIVE_CHECKPOINT_EVERY}]
@@ -63,7 +73,7 @@ def test_large_batch_recipe_and_completed_transfer(monkeypatch) -> None:
     assert OPTIMIZER_LARGE_BATCH.decay == 0.2
 
 
-def test_46m_fullbatch_smoke_is_isolated_but_geometry_identical(monkeypatch) -> None:
+def test_46m_pdp16_smoke_is_isolated_but_geometry_identical(monkeypatch) -> None:
     training, pod_config = _pod_config(
         build_smoke, SMOKE_CHECKPOINT_NAME, monkeypatch
     )
@@ -73,7 +83,7 @@ def test_46m_fullbatch_smoke_is_isolated_but_geometry_identical(monkeypatch) -> 
     assert trainer.tracker.name == SMOKE_RUN_ID
     assert trainer.num_train_steps == SMOKE_STEPS == 2
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
-    assert trainer.per_device_parallelism == -1
+    assert trainer.per_device_parallelism == 16
     assert trainer.checkpointer.keep == []
     assert pod_config.train_config.model == MODEL
     assert pod_config.train_config.optimizer == OPTIMIZER_LARGE_BATCH

@@ -6,20 +6,22 @@ from marin.execution.lazy import StepContext
 from launch import HF_SAVE_EVERY, ONLINE_EVAL_ENV, RAG_EVAL_EVERY, VOCAB_SIZE
 from launch_100m import MODEL
 from launch_100m_large_batch_30k import CHECKPOINT_NAME, RUN_ID, build
-from launch_100m_large_batch_smoke import (
+from launch_100m_large_batch_pdp16_smoke import (
     SMOKE_CHECKPOINT_NAME,
     SMOKE_RUN_ID,
     SMOKE_STEPS,
 )
-from launch_100m_large_batch_smoke import (
+from launch_100m_large_batch_pdp16_smoke import (
     build as build_smoke,
 )
 from launch_large_batch_30k import (
     ACTUAL_TOKENS_LARGE_BATCH,
+    GRADIENT_ACCUMULATION_STEPS,
     LARGE_BATCH_SIZE,
     NATIVE_CHECKPOINT_EVERY,
     OPTIMIZER_LARGE_BATCH,
     PER_DEVICE_PARALLELISM,
+    TRAIN_DEVICE_COUNT,
     TRAIN_STEPS_LARGE_BATCH,
 )
 
@@ -42,7 +44,15 @@ def test_104m_large_batch_changes_only_model_scale_and_identity(monkeypatch) -> 
     assert RUN_ID == "dna-exp402-rag-h768-p104M-B2M-30K-scratch"
     assert MODEL.total_trainable_params(VOCAB_SIZE) == 103_838_976
     assert trainer.train_batch_size == LARGE_BATCH_SIZE == 1_024
-    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == -1
+    assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == 16
+    assert TRAIN_DEVICE_COUNT == 4
+    assert GRADIENT_ACCUMULATION_STEPS == 16
+    assert (
+        trainer.train_batch_size
+        == trainer.per_device_parallelism
+        * TRAIN_DEVICE_COUNT
+        * GRADIENT_ACCUMULATION_STEPS
+    )
     assert trainer.num_train_steps == TRAIN_STEPS_LARGE_BATCH == 30_000
     assert ACTUAL_TOKENS_LARGE_BATCH == 62_914_560_000
     assert trainer.steps_per_eval == RAG_EVAL_EVERY == 1_000
@@ -54,7 +64,7 @@ def test_104m_large_batch_changes_only_model_scale_and_identity(monkeypatch) -> 
     assert train_config.eval_harness is None
 
 
-def test_104m_fullbatch_smoke_is_isolated_but_geometry_identical(monkeypatch) -> None:
+def test_104m_pdp16_smoke_is_isolated_but_geometry_identical(monkeypatch) -> None:
     training, pod_config = _pod_config(
         build_smoke, SMOKE_CHECKPOINT_NAME, monkeypatch
     )
@@ -64,7 +74,7 @@ def test_104m_fullbatch_smoke_is_isolated_but_geometry_identical(monkeypatch) ->
     assert trainer.tracker.name == SMOKE_RUN_ID
     assert trainer.num_train_steps == SMOKE_STEPS == 2
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
-    assert trainer.per_device_parallelism == -1
+    assert trainer.per_device_parallelism == 16
     assert trainer.checkpointer.keep == []
     assert pod_config.train_config.model == MODEL
     assert pod_config.train_config.optimizer == OPTIMIZER_LARGE_BATCH
