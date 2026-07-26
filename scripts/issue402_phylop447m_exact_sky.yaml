@@ -56,9 +56,15 @@ run: |
       "$VARIANTS_URI/$BENCHMARK/variants.parquet" \
       "$VARIANTS_DIR/$BENCHMARK/variants.parquet"
   done
-  curl --fail --location --retry 5 \
-    --output "$BIGWIG" \
-    "https://oa-bolinas.s3.us-east-2.amazonaws.com/snakemake/conservation_eval/results/conservation/phyloP_447m.bw"
+  BIGWIG="$BIGWIG" uv run --no-dev python -c '
+import os
+import boto3
+boto3.client("s3", region_name="us-east-2").download_file(
+    "oa-bolinas",
+    "snakemake/conservation_eval/results/conservation/phyloP_447m.bw",
+    os.environ["BIGWIG"],
+)
+'
   test "$(stat -c %s "$BIGWIG")" -eq 10022801463
 
   uv run --no-dev python scripts/issue402_phylop447m_exact_baseline.py \
