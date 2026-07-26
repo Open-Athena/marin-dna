@@ -32,6 +32,7 @@ max_parallel=${MAX_PARALLEL:-4}
 log_dir=${LOG_DIR:-/tmp/issue402_large_batch_evals}
 allow_on_demand=${ALLOW_ON_DEMAND:-0}
 dry_run=${DRY_RUN:-0}
+artifact_version=2026.07.26.5
 
 [[ "$code_revision" =~ ^[0-9a-f]{40}$ ]] || {
     echo "CODE_REVISION must be a full 40-character lowercase commit SHA" >&2
@@ -100,8 +101,8 @@ for spec in "$@"; do
     else
         artifact="dna-exp402-rag-h768-p104m-b2m-30k"
     fi
-    checkpoint_uri="gs://marin-us-east5/checkpoints/$artifact/2026.07.26/hf/step-$step"
-    output_uri="gs://marin-us-east5/evals/$artifact/2026.07.26/step-$step"
+    checkpoint_uri="gs://marin-us-east5/checkpoints/$artifact/$artifact_version/hf/step-$step"
+    output_uri="gs://marin-us-east5/evals/$artifact/$artifact_version/step-$step"
     cluster="dna402-b2m-${model}-s${step}"
 
     if [[ "$dry_run" == 0 ]]; then

@@ -361,9 +361,9 @@ uv run ruff check launch_large_batch_30k.py \
   test_launch_large_batch_30k.py \
   test_launch_100m_large_batch_30k.py
 EXP402_ONLINE_EVAL=0 uv run python launch_large_batch_30k.py \
-  --version 2026.07.26
+  --version 2026.07.26.5
 EXP402_ONLINE_EVAL=0 uv run python launch_100m_large_batch_30k.py \
-  --version 2026.07.26
+  --version 2026.07.26.5
 ```
 
 Lowering prints the plans and does not run them. Actual execution must go
@@ -377,7 +377,7 @@ uv run iris --cluster=marin job run \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
   -e EXP402_ONLINE_EVAL 0 -- \
-  python launch_large_batch_30k.py --version 2026.07.26 \
+  python launch_large_batch_30k.py --version 2026.07.26.5 \
   --run --max-concurrent 2
 
 uv run iris --cluster=marin job run \
@@ -386,7 +386,7 @@ uv run iris --cluster=marin job run \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
   -e EXP402_ONLINE_EVAL 0 -- \
-  python launch_100m_large_batch_30k.py --version 2026.07.26 \
+  python launch_100m_large_batch_30k.py --version 2026.07.26.5 \
   --run --max-concurrent 2
 ```
 
