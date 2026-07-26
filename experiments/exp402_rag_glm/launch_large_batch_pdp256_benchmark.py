@@ -1,4 +1,4 @@
-"""Disposable two-step accumulation smoke for the 45.9M large-batch run."""
+"""Six-step, compile-warmed full-batch benchmark for the 45.9M run."""
 
 from dataclasses import replace
 
@@ -19,13 +19,15 @@ from launch import rag_tokenized_dataset as _base_rag_tokenized_dataset
 from launch_large_batch_30k import (
     LARGE_BATCH_SIZE,
     OPTIMIZER_LARGE_BATCH,
-    PER_DEVICE_PARALLELISM,
     TRAIN_HOST_RAM_LARGE_BATCH,
 )
 
-SMOKE_CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp16-smoke"
-SMOKE_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-pdp16-smoke"
-SMOKE_STEPS = 2
+BENCHMARK_CHECKPOINT_NAME = (
+    "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp256-warm6"
+)
+BENCHMARK_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-pdp256-warm6"
+BENCHMARK_STEPS = 6
+BENCHMARK_PER_DEVICE_PARALLELISM = 256
 
 
 class RAGTokenizedCache(_BaseRAGTokenizedCache):
@@ -41,16 +43,16 @@ def rag_tokenized_dataset() -> ArtifactStep[RAGTokenizedCache]:
 
 
 def build() -> ArtifactStep:
-    """Run two 16-microstep updates in an isolated artifact and W&B run."""
+    """Run six full-batch updates so updates 3--6 measure warmed throughput."""
     dataset = rag_tokenized_dataset()
     training = train_lm(
-        name=SMOKE_CHECKPOINT_NAME,
+        name=BENCHMARK_CHECKPOINT_NAME,
         model=MODEL,
         optimizer=OPTIMIZER_LARGE_BATCH,
         datasets={dataset: 1.0},
         batch_size=LARGE_BATCH_SIZE,
         seq_len=SEQ_LEN,
-        num_train_steps=SMOKE_STEPS,
+        num_train_steps=BENCHMARK_STEPS,
         z_loss_weight=1.0e-7,
         evals=None,
         resources=ResourceConfig.with_tpu(
@@ -60,18 +62,18 @@ def build() -> ArtifactStep:
             disk="100g",
             regions=TRAIN_REGIONS,
         ),
-        steps_per_eval=1,
+        steps_per_eval=1_000,
         wandb_project="marin",
         wandb_group="dna-exp402-v1",
-        run_id=SMOKE_RUN_ID,
+        run_id=BENCHMARK_RUN_ID,
         tags=(
             "dna",
             "dna-exp402",
             "rag",
             "46M",
             "large-batch",
-            "pdp16",
-            "accumulation-smoke",
+            "pdp256",
+            "warm-throughput-benchmark",
         ),
     )
     original_build_config = training.build_config
@@ -85,10 +87,11 @@ def build() -> ArtifactStep:
                 pod_config.train_config,
                 trainer=replace(
                     trainer,
-                    per_device_parallelism=PER_DEVICE_PARALLELISM,
+                    per_device_parallelism=BENCHMARK_PER_DEVICE_PARALLELISM,
+                    max_eval_batches=0,
                     checkpointer=replace(trainer.checkpointer, keep=[]),
                 ),
-                hf_save_steps=SMOKE_STEPS,
+                hf_save_path=None,
             ),
         )
 

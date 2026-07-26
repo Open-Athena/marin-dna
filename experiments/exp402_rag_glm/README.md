@@ -224,7 +224,13 @@ benchmark metric parquets are already complete, and writes one local log per
 Sky cluster. It never selects on-demand instances; failed spot runs can be
 passed to the same command again after inspecting their logs.
 
-## Full-state continuation to 60,000 steps
+## Superseded full-state continuation to 60,000 steps
+
+The later optimizer-batch audit superseded these continuations: their global
+batch contained 16 times fewer tokens than the historical 256-token reference
+recipe. Both were stopped after their already-saved native and Hugging Face
+checkpoints were verified. The retained artifacts are diagnostic only; this
+section preserves how that superseded run was constructed.
 
 Because validation loss was still descending at step 30k, `launch_60k.py` and
 `launch_100m_60k.py` extend both model sizes to 60,000 total steps. They restore
@@ -291,3 +297,106 @@ The dispatcher is spot-only by default. If every `us-east-2` availability zone
 rejects the A10G spot request, set `ALLOW_ON_DEMAND=1` to retain the task YAML's
 spot-first policy while permitting its on-demand fallback. This keeps the
 fallback explicit and leaves `MAX_PARALLEL` as the concurrency bound.
+
+## Replacement 2M-token-batch scratch runs
+
+The replacement experiment matches the historical per-region optimizer batch
+in tokens while retaining the 2,048-token RAG documents:
+
+| Item | Value |
+| --- | --- |
+| Launchers | `launch_large_batch_30k.py`, `launch_100m_large_batch_30k.py` |
+| Parameters | 45.9M and 103.8M |
+| Global batch | 1,024 documents × 2,048 = 2,097,152 tokens/update |
+| Device geometry | 4 TPU chips; final microbatch selected by a compile-warmed benchmark |
+| Accumulation | Candidate: none for 46M; minimum 2 microsteps for 104M |
+| Updates | 30,000 from scratch |
+| Tokens/model | 62,914,560,000 |
+| Schedule | 10% warmup, 70% stable, 20% linear decay to zero |
+| Native checkpoints | Permanent every 1,000 updates, including optimizer state |
+| HF exports | Every 1,000 updates and terminal `step-29999` |
+| Validation loss | Every 1,000 updates |
+| Offline VEP | Mendelian, Complex, and SGE every 5,000 updates plus final |
+
+AdamH is re-resolved for the actual batch and 62.9B-token horizon. The pinned
+values are:
+
+```text
+learning_rate = 0.009575405934753806
+adam_lr       = 0.0005230681221568245
+epsilon       = 2.3201566843642267e-08
+beta1         = 0.9
+beta2         = 0.9984011994401821
+max_grad_norm = 0.1
+warmup        = 0.1
+linear decay  = 0.2
+```
+
+The accumulation setting has an explicit measurement gate. With no
+microbatching, Levanter resolves the global batch to 256 documents per chip.
+The 46M full-batch smoke completed two optimizer updates; the 104M full-batch
+HLO did not compile because it requested 31.66 GiB from a 31.25 GiB HBM
+device. The original two-step timing was not a steady-state measurement:
+Levanter compiles train-step variants during both early updates. Its timing
+implementation does establish that loading and hooks are separate from
+`throughput/duration`; after the initial 20--22 second cache fill, measured
+batch handoff was below one millisecond. Six-step, validation-free benchmarks
+will select the production geometry from warmed updates 3--6: PDP=256
+(no accumulation) for 46M and PDP=128 (two exact microsteps) for 104M.
+
+Validate and lower all production and accumulation-smoke plans from this
+directory:
+
+```bash
+uv run pytest -q test_launch_large_batch_30k.py \
+  test_launch_100m_large_batch_30k.py
+uv run ruff check launch_large_batch_30k.py \
+  launch_100m_large_batch_30k.py \
+  launch_large_batch_pdp256_benchmark.py \
+  launch_100m_large_batch_pdp128_benchmark.py \
+  test_launch_large_batch_30k.py \
+  test_launch_100m_large_batch_30k.py
+EXP402_ONLINE_EVAL=0 uv run python launch_large_batch_30k.py \
+  --version 2026.07.26
+EXP402_ONLINE_EVAL=0 uv run python launch_100m_large_batch_30k.py \
+  --version 2026.07.26
+```
+
+Lowering prints the plans and does not run them. Actual execution must go
+through Iris; never add `--run` to a launcher invoked directly on the shared
+node.
+
+```bash
+uv run iris --cluster=marin job run \
+  --no-wait --user ubuntu --job-name dna-exp402-rag-h640-p46m-b2m-30k \
+  --cpu 1 --memory 2g --region us-east5 \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
+  -e EXP402_ONLINE_EVAL 0 -- \
+  python launch_large_batch_30k.py --version 2026.07.26 \
+  --run --max-concurrent 2
+
+uv run iris --cluster=marin job run \
+  --no-wait --user ubuntu --job-name dna-exp402-rag-h768-p104m-b2m-30k \
+  --cpu 1 --memory 2g --region us-east5 \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
+  -e EXP402_ONLINE_EVAL 0 -- \
+  python launch_100m_large_batch_30k.py --version 2026.07.26 \
+  --run --max-concurrent 2
+```
+
+Launch only exports that exist, in bounded batches, from the repository root:
+
+```bash
+CODE_REVISION=$(git rev-parse HEAD) MAX_PARALLEL=4 \
+  scripts/issue402_large_batch_30k_eval_sweep.sh \
+  46m:5000 104m:5000 46m:10000 104m:10000
+```
+
+The dispatcher accepts 5k, 10k, 15k, 20k, 25k, and final 29,999. It requires
+an exact clean HEAD, checks each HF export before launch, skips complete output
+triples, uses spot-only Sky resources by default, and retains the explicit
+`ALLOW_ON_DEMAND=1` capacity fallback. Plot final curves against both optimizer
+step and cumulative training tokens so their scale remains legible beside the
+earlier 131,072-token/update runs.

@@ -6,13 +6,14 @@ from marin.execution.lazy import StepContext
 from launch import HF_SAVE_EVERY, ONLINE_EVAL_ENV, RAG_EVAL_EVERY, VOCAB_SIZE
 from launch_100m import MODEL
 from launch_100m_large_batch_30k import CHECKPOINT_NAME, RUN_ID, build
-from launch_100m_large_batch_pdp16_smoke import (
-    SMOKE_CHECKPOINT_NAME,
-    SMOKE_RUN_ID,
-    SMOKE_STEPS,
+from launch_100m_large_batch_pdp128_benchmark import (
+    BENCHMARK_CHECKPOINT_NAME,
+    BENCHMARK_PER_DEVICE_PARALLELISM,
+    BENCHMARK_RUN_ID,
+    BENCHMARK_STEPS,
 )
-from launch_100m_large_batch_pdp16_smoke import (
-    build as build_smoke,
+from launch_100m_large_batch_pdp128_benchmark import (
+    build as build_benchmark,
 )
 from launch_large_batch_30k import (
     ACTUAL_TOKENS_LARGE_BATCH,
@@ -64,17 +65,19 @@ def test_104m_large_batch_changes_only_model_scale_and_identity(monkeypatch) -> 
     assert train_config.eval_harness is None
 
 
-def test_104m_pdp16_smoke_is_isolated_but_geometry_identical(monkeypatch) -> None:
+def test_104m_pdp128_benchmark_is_compile_warmed_and_isolated(monkeypatch) -> None:
     training, pod_config = _pod_config(
-        build_smoke, SMOKE_CHECKPOINT_NAME, monkeypatch
+        build_benchmark, BENCHMARK_CHECKPOINT_NAME, monkeypatch
     )
     trainer = pod_config.train_config.trainer
-    assert training.name.endswith(SMOKE_CHECKPOINT_NAME)
-    assert trainer.id == SMOKE_RUN_ID
-    assert trainer.tracker.name == SMOKE_RUN_ID
-    assert trainer.num_train_steps == SMOKE_STEPS == 2
+    assert training.name.endswith(BENCHMARK_CHECKPOINT_NAME)
+    assert trainer.id == BENCHMARK_RUN_ID
+    assert trainer.tracker.name == BENCHMARK_RUN_ID
+    assert trainer.num_train_steps == BENCHMARK_STEPS == 6
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
-    assert trainer.per_device_parallelism == 16
+    assert trainer.per_device_parallelism == BENCHMARK_PER_DEVICE_PARALLELISM == 128
+    assert trainer.max_eval_batches == 0
     assert trainer.checkpointer.keep == []
+    assert pod_config.train_config.hf_save_path is None
     assert pod_config.train_config.model == MODEL
     assert pod_config.train_config.optimizer == OPTIMIZER_LARGE_BATCH

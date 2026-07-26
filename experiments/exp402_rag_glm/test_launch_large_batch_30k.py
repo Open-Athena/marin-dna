@@ -19,13 +19,14 @@ from launch_large_batch_30k import (
     TRAIN_STEPS_LARGE_BATCH,
     build,
 )
-from launch_large_batch_pdp16_smoke import (
-    SMOKE_CHECKPOINT_NAME,
-    SMOKE_RUN_ID,
-    SMOKE_STEPS,
+from launch_large_batch_pdp256_benchmark import (
+    BENCHMARK_CHECKPOINT_NAME,
+    BENCHMARK_PER_DEVICE_PARALLELISM,
+    BENCHMARK_RUN_ID,
+    BENCHMARK_STEPS,
 )
-from launch_large_batch_pdp16_smoke import (
-    build as build_smoke,
+from launch_large_batch_pdp256_benchmark import (
+    build as build_benchmark,
 )
 
 
@@ -73,17 +74,19 @@ def test_large_batch_recipe_and_completed_transfer(monkeypatch) -> None:
     assert OPTIMIZER_LARGE_BATCH.decay == 0.2
 
 
-def test_46m_pdp16_smoke_is_isolated_but_geometry_identical(monkeypatch) -> None:
+def test_46m_pdp256_benchmark_is_compile_warmed_and_isolated(monkeypatch) -> None:
     training, pod_config = _pod_config(
-        build_smoke, SMOKE_CHECKPOINT_NAME, monkeypatch
+        build_benchmark, BENCHMARK_CHECKPOINT_NAME, monkeypatch
     )
     trainer = pod_config.train_config.trainer
-    assert training.name.endswith(SMOKE_CHECKPOINT_NAME)
-    assert trainer.id == SMOKE_RUN_ID
-    assert trainer.tracker.name == SMOKE_RUN_ID
-    assert trainer.num_train_steps == SMOKE_STEPS == 2
+    assert training.name.endswith(BENCHMARK_CHECKPOINT_NAME)
+    assert trainer.id == BENCHMARK_RUN_ID
+    assert trainer.tracker.name == BENCHMARK_RUN_ID
+    assert trainer.num_train_steps == BENCHMARK_STEPS == 6
     assert trainer.train_batch_size == LARGE_BATCH_SIZE
-    assert trainer.per_device_parallelism == 16
+    assert trainer.per_device_parallelism == BENCHMARK_PER_DEVICE_PARALLELISM == 256
+    assert trainer.max_eval_batches == 0
     assert trainer.checkpointer.keep == []
+    assert pod_config.train_config.hf_save_path is None
     assert pod_config.train_config.model == MODEL
     assert pod_config.train_config.optimizer == OPTIMIZER_LARGE_BATCH
