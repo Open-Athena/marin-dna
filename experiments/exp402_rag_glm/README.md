@@ -254,6 +254,31 @@ EXP402_ONLINE_EVAL=0 uv run python launch_60k.py --version 2026.07.26
 EXP402_ONLINE_EVAL=0 uv run python launch_100m_60k.py --version 2026.07.26
 ```
 
+The commands above only print the plans. Submit each plan through an Iris
+coordinator; do **not** add `--run` to a launcher invoked directly on the local
+shared node, because without an Iris client context Marin falls back to its
+local executor and attempts to rebuild the frozen cache locally.
+
+```bash
+WANDB_API_KEY=$(grep -A2 api.wandb.ai ~/.netrc | grep password | awk '{print $2}')
+
+EXP402_ONLINE_EVAL=0 uv run iris --cluster=marin job run \
+  --no-wait --user ubuntu --job-name dna-exp402-rag-h640-p46m-60k \
+  --cpu 1 --memory 2g --region us-east5 \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
+  -e EXP402_ONLINE_EVAL 0 -- \
+  python launch_60k.py --version 2026.07.26 --run --max-concurrent 2
+
+EXP402_ONLINE_EVAL=0 uv run iris --cluster=marin job run \
+  --no-wait --user ubuntu --job-name dna-exp402-rag-h768-p104m-60k \
+  --cpu 1 --memory 2g --region us-east5 \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
+  -e EXP402_ONLINE_EVAL 0 -- \
+  python launch_100m_60k.py --version 2026.07.26 --run --max-concurrent 2
+```
+
 Evaluate the 5k checkpoints from the repository root:
 
 ```bash
