@@ -223,3 +223,41 @@ The dispatcher checks that each export exists, skips checkpoints whose three
 benchmark metric parquets are already complete, and writes one local log per
 Sky cluster. It never selects on-demand instances; failed spot runs can be
 passed to the same command again after inspecting their logs.
+
+## Full-state continuation to 60,000 steps
+
+Because validation loss was still descending at step 30k, `launch_60k.py` and
+`launch_100m_60k.py` extend both model sizes to 60,000 total steps. They restore
+the permanent native step-24,000 checkpoints with model weights, optimizer
+moments, global step, RNG, and data-loader offset intact. W&B records the full
+plateau LR at step 24,000 and the first reduction at step 24,001, so this is the
+last checkpoint before any decay.
+
+The continuations deliberately retain `OPTIMIZER_30K` rather than re-resolving
+the token-transfer hyperparameters: changing its learning rates would introduce
+a discontinuity against the restored optimizer state. Raising the trainer
+horizon to 60k keeps the LR flat through step 48k and applies the same 20%
+linear-decay fraction over steps 48k--60k.
+
+Native optimizer-state checkpoints and HF exports remain on the 1,000-step
+cadence. Validation loss remains every 1,000 steps, while the expensive frozen
+offline VEP suites run only every 5,000 steps. Levanter names the terminal HF
+export `step-59999`; the native terminal checkpoint is `step-60000`.
+
+Validate and lower the continuation plans from this directory:
+
+```bash
+uv run pytest -q test_launch_60k.py test_launch_100m_60k.py
+uv run ruff check launch_60k.py launch_100m_60k.py \
+  test_launch_60k.py test_launch_100m_60k.py
+EXP402_ONLINE_EVAL=0 uv run python launch_60k.py --version 2026.07.26
+EXP402_ONLINE_EVAL=0 uv run python launch_100m_60k.py --version 2026.07.26
+```
+
+Evaluate the 5k checkpoints from the repository root:
+
+```bash
+CODE_REVISION=$(git rev-parse HEAD) MAX_PARALLEL=4 \
+  scripts/issue402_60k_eval_sweep.sh \
+  46m:25000 104m:25000 46m:30000 104m:30000
+```
