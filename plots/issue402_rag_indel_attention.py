@@ -157,7 +157,7 @@ def plot_attention(
         aspect=1.1,
         facet_kws={"sharex": False, "sharey": True},
     )
-    grid.set_axis_labels("Layer", "Mean attention ratio: indel-mapped / same-offset")
+    grid.set_axis_labels("Layer", "Attention ratio")
     grid.set_titles("{col_name} model")
     for axis in grid.axes.flat:
         axis.set_yscale("log")
@@ -176,8 +176,10 @@ def plot_attention(
         fontsize=9.5,
     )
     grid.figure.subplots_adjust(top=0.82, bottom=0.23, wspace=0.18)
-    grid.figure.savefig(output_dir / "figure.svg", bbox_inches="tight")
-    grid.figure.savefig(output_dir / "figure.png", dpi=180, bbox_inches="tight")
+    grid.figure.savefig(output_dir / "figure.svg", bbox_inches="tight", pad_inches=0.25)
+    grid.figure.savefig(
+        output_dir / "figure.png", dpi=180, bbox_inches="tight", pad_inches=0.25
+    )
     plt.close(grid.figure)
 
 
