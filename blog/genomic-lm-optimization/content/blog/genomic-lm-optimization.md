@@ -340,7 +340,6 @@ Our starting point was a uniform mixture of CDS, upstream, and downstream sequen
 These were the three region datasets we could initially construct consistently across many species from standard genome annotations.
 The scaling study had instead sampled these regions in proportion to dataset size.
 Echoing the earlier mixture experiments, that recipe produced good CDS performance but left a large gap on the less abundant upstream tasks.
-Downstream performance could benefit somewhat from cross-region transfer under proportional sampling, but not enough to offset the upstream deficit.
 We therefore switched to uniform weighting so that each functional region received meaningful exposure.
 
 By then, we had already trained m5.1 for ~104B tokens on the uniform three-region mixture.
