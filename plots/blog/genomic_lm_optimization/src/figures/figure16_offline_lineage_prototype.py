@@ -73,13 +73,13 @@ LINEAGES: tuple[tuple[str, str, str, str], ...] = (
 )
 
 PANELS: tuple[tuple[str, str], ...] = (
-    ("missense_variant", "missense"),
-    ("splicing", "splicing"),
-    ("synonymous_variant", "synonymous"),
-    ("tss_proximal", "promoter"),
+    ("missense_variant", "Missense"),
+    ("splicing", "Splicing"),
+    ("synonymous_variant", "Synonymous"),
+    ("tss_proximal", "Promoter"),
     ("5_prime_UTR_variant", "5' UTR"),
     ("3_prime_UTR_variant", "3' UTR"),
-    ("distal", "distal"),
+    ("distal", "Distal"),
     ("non_coding_transcript_exon_variant", "ncRNA"),
 )
 ALL_SUBSETS = tuple(subset for subset, _label in PANELS)
@@ -309,7 +309,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         / 1e9
     )
 
-    grid_panels: list[tuple[str, str, bool]] = [(MACRO_SUBSET, "macro average", True)]
+    grid_panels: list[tuple[str, str, bool]] = [(MACRO_SUBSET, "Macro Avg", True)]
     grid_panels.extend((subset, label, False) for subset, label in PANELS)
 
     fig, axes = plt.subplots(

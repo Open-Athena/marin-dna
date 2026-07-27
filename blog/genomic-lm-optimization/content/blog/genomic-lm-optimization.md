@@ -82,7 +82,7 @@ Subsequent work made it clear that two factors were key drivers of model perform
 
 In this work, we follow up on two findings from [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/).
 First, 152M-parameter GPN-Promoter, trained only on animal promoters, performed comparably to Evo 2 40B on human promoter variants.
-Second, Evo 2 improved substantially with scale overall but still struggled on distal enhancers, the only region of the genome not actively curated into its training data; enhancers were also sparse among the intergenic regions it saw.
+Second, Evo 2 improved substantially with scale overall but still struggled on distal variants. Enhancers were the only region type not actively curated into its training data and were sparse among the intergenic regions it saw.
 
 MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include ([research question #394](https://github.com/Open-Athena/marin-dna/issues/394)), which functional regions to sample and how to identify them ([research question #395](https://github.com/Open-Athena/marin-dna/issues/395)), how to weight them, and when during training to introduce them.
 
@@ -91,7 +91,7 @@ MarinDNA therefore treats dataset construction as a primary modeling lever: whic
 We began with annotation-derived datasets for coding, upstream, and downstream sequences.[^training-downstream]
 Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
 
-Later, we added ncRNA exons[^training-ncrna] and enhancers[^training-enhancer] built by alignment projection.
+Later, we added ncRNA[^training-ncrna] and enhancers[^training-enhancer] built by alignment projection.
 Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
 <figure id="fig-training-datasets">
@@ -331,7 +331,7 @@ Echoing the earlier mixture experiments, that recipe produced good CDS performan
 We therefore switched to uniform weighting so that each functional region received meaningful exposure.
 
 By then, we had already trained m5.1 for ~104B tokens on the uniform three-region mixture.
-Alignment projection then made it possible to turn human ncRNA-exon and enhancer annotations into comparable multi-species training datasets.
+Alignment projection then made it possible to turn human ncRNA and enhancer annotations into comparable multi-species training datasets.
 Once those data became available, we added them to form a uniform five-region mixture and continued training the same model for another ~62B tokens.
 We compare this staged history with two lineages trained on five-region mixtures from the beginning.
 
@@ -339,15 +339,15 @@ We compare this staged history with two lineages trained on five-region mixtures
 
 <figure id="fig-five-region-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/continued_training_data_exposures.svg" alt="Training-data exposure histories for m5.1, m1.3, and m3.3 through a shared 166-billion-token horizon" />
-<figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA exons and enhancers for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%. Same-data continuations and restarts are collapsed, so stage boundaries indicate changes in data rather than training-job boundaries.</figcaption>
+<figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA and enhancer data for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%. Same-data continuations and restarts are collapsed, so stage boundaries indicate changes in data rather than training-job boundaries.</figcaption>
 </figure>
 
-For m5.1, the first evaluated checkpoint after adding ncRNA-exon and enhancer data shows gains in variant-effect performance in the corresponding ncRNA and distal subsets.
+For m5.1, the first evaluated checkpoint after adding ncRNA and enhancer data shows gains in variant-effect performance in the corresponding ncRNA and distal subsets.
 Across all eight subsets, m5.1 ultimately finishes with the highest macro-average AUPRC under both zero-shot LLR and the linear probe, although the linear-probe trajectories are visibly noisier.[^mixture-probe-noise]
 Its advantage is broad but not universal: the lineages trained on five regions from the beginning retain stronger endpoints for some distal and ncRNA subsets.
-m5.1's strong endpoint raises the possibility that exposure order matters: learning first from the three-region mixture and introducing ncRNA exons and enhancers later may be more effective than training on all five regions from the beginning, though this remains uncertain and requires further investigation.
+m5.1's strong endpoint raises the possibility that exposure order matters: learning first from the three-region mixture and introducing ncRNA and enhancer data later may be more effective than training on all five regions from the beginning, though this remains uncertain and requires further investigation.
 
-[^mixture-probe-noise]: The curves shown here use a separate probe trained within each variant subset. In a [separate 255M analysis on one held-out chromosome](https://github.com/Open-Athena/marin-dna/issues/369#issuecomment-4936655473), training one probe across all subsets improved the AUPRC point estimate on several data-starved subsets, including ncRNA-exon and distal, while hurting stronger or more specialized subsets. This makes limited labeled data one plausible contributor to the noise, but that analysis did not directly test the checkpoint-to-checkpoint variability in these 1B lineage curves.
+[^mixture-probe-noise]: The curves shown here use a separate probe trained within each variant subset. In a [separate 255M analysis on one held-out chromosome](https://github.com/Open-Athena/marin-dna/issues/369#issuecomment-4936655473), training one probe across all subsets improved the AUPRC point estimate on several data-starved subsets, including ncRNA and distal, while hurting stronger or more specialized subsets. This makes limited labeled data one plausible contributor to the noise, but that analysis did not directly test the checkpoint-to-checkpoint variability in these 1B lineage curves.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py -->
 <figure id="fig-mixture-lineage-trajectories">
@@ -371,7 +371,7 @@ m5.1 was trained on 166B tokens (~1.1e21 FLOPs), compared with 9.3T tokens (~2.2
 
 [^inference-throughput]: This benchmark measures steady-state scoring with forward and reverse-complement passes and embeddings enabled. m5.1 uses a 256-token context, while Evo 2 40B uses an 8,192-token context, so this measures as-deployed throughput rather than same-context or per-token efficiency. See [issue #354](https://github.com/Open-Athena/marin-dna/issues/354) for the full methodology and results.
 
-Most notably, m5.1 closes Evo 2's main gap on distal enhancers, outperforming Evo 2 40B there under both readouts. The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on promoters and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
+Most notably, m5.1 closes Evo 2's main gap on distal variants, outperforming Evo 2 40B there under both readouts. The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on the Promoter subset and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
 
 The [current leaderboard](https://openathena.ai/marin-dna/leaderboards/mendelian) also suggests there is considerable headroom: although m5.1 leads on Macro Avg among MarinDNA models, another MarinDNA run has a higher point estimate in seven of the eight displayed subsets, with m5.1 leading only on ncRNA. Several of these winners are region specialists, suggesting that further mixture refinement could recover more of their complementary strengths.
 
@@ -406,7 +406,7 @@ There is plenty of work left to do, but we think these results clearly show the 
 - [🧪 MarinDNA repository](https://github.com/Open-Athena/marin-dna) (source code and experiments tracked through GitHub issues)
 - [🤗 Hugging Face collection](https://huggingface.co/collections/marin-dna/marindna-genomic-language-model-optimization-blog-2026-07) (training datasets, benchmarks, and model)
 - [🏆 MarinDNA leaderboard](https://openathena.ai/marin-dna/)
-- [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_NVBA22c11zoZkSDoysi5bR/app)
+- [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
 
 ## Acknowledgements
 

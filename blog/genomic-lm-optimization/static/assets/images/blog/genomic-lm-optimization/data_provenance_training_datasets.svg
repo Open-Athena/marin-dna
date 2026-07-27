@@ -36,7 +36,7 @@
     <rect x="340" y="194" width="167" height="12" rx="2" fill="#6f7d3f"/><text x="513" y="204" font-size="10.5" font-weight="700" fill="#5b4a36">24.6B</text>
   </g>
   <g>
-    <rect x="26" y="219" width="11" height="11" rx="2.5" fill="#465c6e"/><text x="45" y="229" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">ncRNA</tspan><tspan font-size="10.5" fill="#8a7d68"> · Ensembl non-protein-coding exons</tspan></text>
+    <rect x="26" y="219" width="11" height="11" rx="2.5" fill="#465c6e"/><text x="45" y="229" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">ncRNA</tspan><tspan font-size="10.5" fill="#8a7d68"> · Ensembl annotations</tspan></text>
     <rect x="340" y="220" width="27" height="12" rx="2" fill="#465c6e"/><text x="373" y="230" font-size="10.5" font-weight="700" fill="#5b4a36">3.9B</text>
   </g>
 

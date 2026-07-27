@@ -228,7 +228,7 @@ L 233.202018 97.870293
 " clip-path="url(#p58d7c3769e)" style="fill: none; stroke: #cc79a7; stroke-opacity: 0.9; stroke-width: 0.65"/>
    </g>
    <g id="text_6">
-    <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="180.224746" y="61.530113" transform="rotate(-0 180.224746 61.530113)">macro average</text>
+    <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="180.224746" y="61.530113" transform="rotate(-0 180.224746 61.530113)">Macro Avg</text>
    </g>
    <g id="line2d_9">
     <path d="M 127.247473 111.531571
@@ -529,7 +529,7 @@ L 370.731018 119.173642
 " clip-path="url(#p97017d14bd)" style="fill: none; stroke: #cc79a7; stroke-opacity: 0.9; stroke-width: 0.65"/>
    </g>
    <g id="text_12">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="317.753746" y="61.530113" transform="rotate(-0 317.753746 61.530113)">missense</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="317.753746" y="61.530113" transform="rotate(-0 317.753746 61.530113)">Missense</text>
    </g>
    <g id="line2d_20">
     <path d="M 264.776473 108.122591
@@ -774,7 +774,7 @@ L 508.260018 141.313242
 " clip-path="url(#p2fa12f9747)" style="fill: none; stroke: #cc79a7; stroke-opacity: 0.9; stroke-width: 0.65"/>
    </g>
    <g id="text_17">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="455.282746" y="61.530113" transform="rotate(-0 455.282746 61.530113)">splicing</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="455.282746" y="61.530113" transform="rotate(-0 455.282746 61.530113)">Splicing</text>
    </g>
    <g id="line2d_31">
     <path d="M 402.305473 128.457937
@@ -1032,7 +1032,7 @@ L 233.202018 263.976593
 " clip-path="url(#pc0aa143263)" style="fill: none; stroke: #cc79a7; stroke-opacity: 0.9; stroke-width: 0.65"/>
    </g>
    <g id="text_24">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="180.224746" y="206.28738" transform="rotate(-0 180.224746 206.28738)">synonymous</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="180.224746" y="206.28738" transform="rotate(-0 180.224746 206.28738)">Synonymous</text>
    </g>
    <g id="line2d_43">
     <path d="M 127.247473 263.752981
@@ -1277,7 +1277,7 @@ L 370.731018 259.975798
 " clip-path="url(#pb5cb640ade)" style="fill: none; stroke: #cc79a7; stroke-opacity: 0.9; stroke-width: 0.65"/>
    </g>
    <g id="text_29">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="317.753746" y="206.28738" transform="rotate(-0 317.753746 206.28738)">promoter</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="317.753746" y="206.28738" transform="rotate(-0 317.753746 206.28738)">Promoter</text>
    </g>
    <g id="line2d_54">
     <path d="M 264.776473 266.414771
@@ -2036,7 +2036,7 @@ L 370.731018 380.114376
 " clip-path="url(#p7b056ff2ad)" style="fill: none; stroke: #cc79a7; stroke-opacity: 0.9; stroke-width: 0.65"/>
    </g>
    <g id="text_52">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="317.753746" y="351.044647" transform="rotate(-0 317.753746 351.044647)">distal</text>
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="317.753746" y="351.044647" transform="rotate(-0 317.753746 351.044647)">Distal</text>
    </g>
    <g id="line2d_87">
     <path d="M 264.776473 429.005104
