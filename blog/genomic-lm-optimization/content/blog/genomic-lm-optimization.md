@@ -403,3 +403,7 @@ There is plenty of work left to do, but we think these results clearly show the 
 - [🤗 Hugging Face collection](https://huggingface.co/collections/marin-dna/marindna-genomic-language-model-optimization-blog-2026-07) (training datasets, benchmarks, and model)
 - [🏆 MarinDNA leaderboard](https://openathena.ai/marin-dna/)
 - [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_NVBA22c11zoZkSDoysi5bR/app)
+
+## Acknowledgements
+
+We thank Isaac Hodes, Yael Elmatad, David Hall, Will Held, and Jeff Hammerbacher, as well as others across the Open Athena and Marin communities, for thoughtful discussions. We also thank the Google TPU Research Cloud (TRC) program for providing compute resources.
