@@ -22,9 +22,7 @@ from launch_large_batch_30k import (
     TRAIN_HOST_RAM_LARGE_BATCH,
 )
 
-BENCHMARK_CHECKPOINT_NAME = (
-    "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp256-warm6-v2"
-)
+BENCHMARK_CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h640-p46m-b2m-pdp256-warm6-v2"
 BENCHMARK_RUN_ID = "dna-exp402-rag-h640-p46M-B2M-pdp256-warm6-v2"
 BENCHMARK_STEPS = 6
 BENCHMARK_PER_DEVICE_PARALLELISM = 256

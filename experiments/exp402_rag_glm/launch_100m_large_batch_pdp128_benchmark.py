@@ -16,9 +16,7 @@ from launch_large_batch_30k import (
     OPTIMIZER_LARGE_BATCH,
 )
 
-BENCHMARK_CHECKPOINT_NAME = (
-    "checkpoints/dna-exp402-rag-h768-p104m-b2m-pdp128-warm6-v2"
-)
+BENCHMARK_CHECKPOINT_NAME = "checkpoints/dna-exp402-rag-h768-p104m-b2m-pdp128-warm6-v2"
 BENCHMARK_RUN_ID = "dna-exp402-rag-h768-p104M-B2M-pdp128-warm6-v2"
 BENCHMARK_STEPS = 6
 BENCHMARK_PER_DEVICE_PARALLELISM = 128
