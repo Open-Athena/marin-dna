@@ -339,7 +339,8 @@ We standardized these experiments on a 1B-parameter model.[^later-mixture-model-
 Our starting point was a uniform mixture of CDS, upstream, and downstream sequence.
 These were the three region datasets we could initially construct consistently across many species from standard genome annotations.
 The scaling study had instead sampled these regions in proportion to dataset size.
-Echoing the earlier mixture experiments, that recipe produced good CDS performance but left large gaps in the less abundant upstream and downstream regions.
+Echoing the earlier mixture experiments, that recipe produced good CDS performance but left a large gap on the less abundant upstream tasks.
+Downstream performance could benefit somewhat from cross-region transfer under proportional sampling, but not enough to offset the upstream deficit.
 We therefore switched to uniform weighting so that each functional region received meaningful exposure.
 
 By then, we had already trained m5.1 for ~104B tokens on the uniform three-region mixture.
@@ -354,12 +355,12 @@ We compare this staged history with two lineages trained on five-region mixtures
 <figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA exons and enhancers for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%. Same-data continuations and restarts are collapsed, so stage boundaries indicate changes in data rather than training-job boundaries.</figcaption>
 </figure>
 
-For m5.1, adding ncRNA-exon and enhancer data is followed by immediate gains in variant-effect performance in the corresponding ncRNA and distal subsets.
-Across all eight subsets, m5.1 ultimately finishes with the highest Mendelian macro under both zero-shot LLR and the linear probe, although the linear-probe trajectories are visibly noisier.[^mixture-probe-noise]
+For m5.1, the first evaluated checkpoint after adding ncRNA-exon and enhancer data shows gains in variant-effect performance in the corresponding ncRNA and distal subsets.
+Across all eight subsets, m5.1 ultimately finishes with the highest macro-average AUPRC under both zero-shot LLR and the linear probe, although the linear-probe trajectories are visibly noisier.[^mixture-probe-noise]
 Its advantage is broad but not universal: the lineages trained on five regions from the beginning retain stronger endpoints for some distal and ncRNA subsets.
 m5.1's strong endpoint raises the possibility that exposure order matters: learning first from the three-region mixture and introducing ncRNA exons and enhancers later may be more effective than training on all five regions from the beginning, though this remains uncertain and requires further investigation.
 
-[^mixture-probe-noise]: The curves shown here use a separate probe trained within each variant subset. A [follow-up pooled-probe analysis](https://github.com/Open-Athena/marin-dna/issues/369#issuecomment-4936655473) found that training one probe across all subsets improved several data-starved subsets, including ncRNA-exon and distal, while hurting stronger or more specialized subsets. This suggests that some of the per-subset noise may reflect limited labeled data rather than the underlying representation.
+[^mixture-probe-noise]: The curves shown here use a separate probe trained within each variant subset. In a [separate 255M analysis on one held-out chromosome](https://github.com/Open-Athena/marin-dna/issues/369#issuecomment-4936655473), training one probe across all subsets improved point AUPRC on several data-starved subsets, including ncRNA-exon and distal, while hurting stronger or more specialized subsets. This makes limited labeled data one plausible contributor to the noise, but that analysis did not directly test the checkpoint-to-checkpoint variability in these 1B lineage curves.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py -->
 <figure id="fig-mixture-lineage-trajectories">
