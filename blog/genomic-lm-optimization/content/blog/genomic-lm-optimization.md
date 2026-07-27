@@ -331,22 +331,35 @@ This divergence is not unique to MarinDNA. On the same Mendelian missense benchm
 ### Later mixture experiments
 
 At this point we move away from theoretically-grounded, compute-constrained methods.
-The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity.
+The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons.
 But the actual optimization problem becomes much more ad hoc — we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
 
-#### Adding ncRNA exons and enhancers
+We standardized these experiments on a 1B-parameter model.[^later-mixture-model-size]
 
-To cover missing functional regions, we mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals.
-We expand the pool from CDS, upstream, and downstream sequence to a uniformly weighted 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence.
-The new mixture produced significant gains, improving promoter VEP from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly held.
-The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens, as shown in the [mixture-lineage trajectories](#fig-mixture-lineage-trajectories).
-Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter.
-The result suggests that mid-flight improvement is possible, with the gain appearing after new, uniformly-weighted mixture components are introduced.
+Our starting point was a uniform mixture of CDS, upstream, and downstream sequence.
+These were the three region datasets we could initially construct consistently across many species from standard genome annotations.
+The scaling study had instead sampled these regions in proportion to dataset size.
+Echoing the earlier mixture experiments, that recipe produced good CDS performance but left large gaps in the less abundant upstream and downstream regions.
+We therefore switched to uniform weighting so that each functional region received meaningful exposure.
+
+By then, we had already trained m5.1 for ~104B tokens on the uniform three-region mixture.
+Alignment projection then made it possible to turn human ncRNA-exon and enhancer annotations into comparable multi-species training datasets.
+Once those data became available, we added them to form a uniform five-region mixture and continued training the same model for another ~62B tokens.
+We compare this staged history with two lineages trained on five-region mixtures from the beginning.
+
+[^later-mixture-model-size]: At the time, 1B had reached a good level of zero-shot performance under our then-current evaluation. We had not established it as the optimal model size. The later linear-probe results change this judgment most: they continued to improve with scale even where zero-shot Mendelian missense did not, making a larger model a more compelling choice in retrospect.
 
 <figure id="fig-five-region-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/continued_training_data_exposures.svg" alt="Training-data exposure histories for m5.1, m1.3, and m3.3 through a shared 166-billion-token horizon" />
 <figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA exons and enhancers for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%. Same-data continuations and restarts are collapsed, so stage boundaries indicate changes in data rather than training-job boundaries.</figcaption>
 </figure>
+
+For m5.1, adding ncRNA-exon and enhancer data is followed by immediate gains in variant-effect performance in the corresponding ncRNA and distal subsets.
+Across all eight subsets, m5.1 ultimately finishes with the highest Mendelian macro under both zero-shot LLR and the linear probe, although the linear-probe trajectories are visibly noisier.[^mixture-probe-noise]
+Its advantage is broad but not universal: the lineages trained on five regions from the beginning retain stronger endpoints for some distal and ncRNA subsets.
+m5.1's strong endpoint raises the possibility that exposure order matters: learning first from the three-region mixture and introducing ncRNA exons and enhancers later may be more effective than training on all five regions from the beginning, though this remains uncertain and requires further investigation.
+
+[^mixture-probe-noise]: The curves shown here use a separate probe trained within each variant subset. A [follow-up pooled-probe analysis](https://github.com/Open-Athena/marin-dna/issues/369#issuecomment-4936655473) found that training one probe across all subsets improved several data-starved subsets, including ncRNA-exon and distal, while hurting stronger or more specialized subsets. This suggests that some of the per-subset noise may reflect limited labeled data rather than the underlying representation.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py -->
 <figure id="fig-mixture-lineage-trajectories">
@@ -361,12 +374,6 @@ The result suggests that mid-flight improvement is possible, with the gain appea
 <figcaption><strong>Figure 17:</strong> Frozen-embedding linear-probe Mendelian AUPRC (%) vs training tokens for three model-mixture lineages. Within each subset, this is the sample-size-weighted mean of per-chromosome AUPRCs; the macro panel is the unweighted mean across subsets. Error bars show ±1 SE from a chromosome-cluster bootstrap.</figcaption>
 </figure>
 </details>
-
-- m5.1 trains for approximately 104B tokens on a uniformly weighted three-region mixture and then approximately 62B tokens on a uniformly weighted five-region mixture.
-- The ncRNA and enhancer datasets were introduced to cover new functional regions; the promoter gain was partly unexpected because the ncRNA collection also contained substantial promoter sequence.
-- Among the three displayed lineages, m5.1 finishes with the highest eight-subset Mendelian macro under both LLR and probe.
-- Its advantage is broad but not universal: the one-fifth mixture lineages retain stronger endpoints for some distal and ncRNA subsets.
-- The late improvement appears after and is temporally aligned with the five-region shift, but the experiment does not isolate mixture composition from additional training or inherited lineage state.
 
 ### Leaderboard scores
 
