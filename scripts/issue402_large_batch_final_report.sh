@@ -68,7 +68,8 @@ run uv run python plots/issue402_rag_batch_size_validation_loss.py
 run uv run python scripts/issue402_audit_training_dynamics.py
 run uv run python plots/issue402_rag_large_batch_auprc.py \
     --input-46m "$eval_46m" \
-    --input-104m "$eval_104m"
+    --input-104m "$eval_104m" \
+    --phylop-root "$phylop_root"
 run uv run python plots/issue402_rag_subset_auprc.py \
     --input-46m "$final_46m" \
     --input-104m "$final_104m" \

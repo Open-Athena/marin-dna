@@ -18,6 +18,10 @@ INPUT_ROOTS = {
         "gs://marin-us-east5/evals/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5"
     ),
 }
+PHYLOP_ROOT = (
+    "gs://marin-us-east5/users/ubuntu/evals/"
+    "dna-exp402-rag-phylop447m/exact-test-a57a69c"
+)
 LOSS_KEY = "eval/datasets/dna-exp402-rag-tokenized/loss"
 RUNS = {
     "46M": "gonzalobenegas/marin/dna-exp402-rag-h640-p46M-B2M-30K-scratch",
@@ -44,6 +48,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-46m", default=INPUT_ROOTS["46M"])
     parser.add_argument("--input-104m", default=INPUT_ROOTS["104M"])
+    parser.add_argument("--phylop-root", default=PHYLOP_ROOT)
     parser.add_argument("--steps", type=int, nargs="+", default=EVAL_STEPS)
     parser.add_argument(
         "--steps-46m",
@@ -128,6 +133,12 @@ def load_headline_metrics(
                 ("Complex", complex_row, 0.1),
                 ("SGE", sge_row, sge_chance),
             ):
+                if benchmark == "SGE":
+                    support_primary = metric_row["n"]
+                    support_secondary = metric_row["n_pos"]
+                else:
+                    support_primary = metric_row["n_groups"]
+                    support_secondary = metric_row["n_rows"]
                 rows.append(
                     {
                         "model": model,
@@ -140,6 +151,8 @@ def load_headline_metrics(
                         "benchmark": benchmark,
                         "auprc": metric_row["value"],
                         "se": metric_row["se"],
+                        "support_primary": support_primary,
+                        "support_secondary": support_secondary,
                         "prevalence_reference": chance,
                     }
                 )
@@ -160,6 +173,80 @@ def load_headline_metrics(
         )
         assert model_counts["len"].unique().to_list() == [len(steps_by_model[model])]
     return metrics
+
+
+def load_phylop_baselines(phylop_root: str) -> pl.DataFrame:
+    """Load exact-row phyloP headline metrics for the three frozen benchmarks."""
+    root = phylop_root.rstrip("/")
+    mendelian = pl.read_parquet(f"{root}/mendelian_traits/metrics.parquet")
+    complex_traits = pl.read_parquet(f"{root}/complex_traits/metrics.parquet")
+    sge = pl.read_parquet(f"{root}/sge/metrics.parquet")
+    mendelian_row = _one_row(
+        mendelian,
+        (pl.col("subset") == "_global_") & (pl.col("score_type") == "score"),
+    )
+    complex_row = _one_row(
+        complex_traits,
+        (pl.col("subset") == "_global_") & (pl.col("score_type") == "score"),
+    )
+    sge_row = _one_row(
+        sge,
+        (pl.col("metric") == "AUPRC")
+        & (pl.col("subset") == "_macro_avg_")
+        & (pl.col("accession") == "_macro_avg_")
+        & (pl.col("gene") == "_macro_avg_")
+        & (pl.col("score_type") == "score"),
+    )
+    rows: list[dict[str, object]] = []
+    for benchmark, metric_row in (
+        ("Mendelian", mendelian_row),
+        ("Complex", complex_row),
+        ("SGE", sge_row),
+    ):
+        if benchmark == "SGE":
+            support_primary = metric_row["n"]
+            support_secondary = metric_row["n_pos"]
+        else:
+            support_primary = metric_row["n_groups"]
+            support_secondary = metric_row["n_rows"]
+        rows.append(
+            {
+                "benchmark": benchmark,
+                "method": "phyloP 447-way",
+                "auprc": metric_row["value"],
+                "se": metric_row["se"],
+                "support_primary": support_primary,
+                "support_secondary": support_secondary,
+            }
+        )
+    baselines = pl.DataFrame(rows).sort("benchmark")
+    assert baselines.height == len(BENCHMARK_ORDER)
+    assert set(baselines["benchmark"]) == set(BENCHMARK_ORDER)
+    assert baselines.filter(
+        ~pl.col("auprc").is_finite()
+        | ~pl.col("se").is_finite()
+        | (pl.col("auprc") < 0)
+        | (pl.col("auprc") > 1)
+        | (pl.col("se") < 0)
+    ).is_empty()
+    return baselines
+
+
+def assert_phylop_support_parity(
+    metrics: pl.DataFrame, phylop_baselines: pl.DataFrame
+) -> None:
+    """Assert RAG and phyloP headline metrics use identical frozen support."""
+    rag_support = metrics.select(
+        "benchmark", "support_primary", "support_secondary"
+    ).unique()
+    assert rag_support.height == len(BENCHMARK_ORDER), rag_support
+    phylop_support = phylop_baselines.select(
+        "benchmark", "support_primary", "support_secondary"
+    )
+    assert rag_support.sort("benchmark").equals(phylop_support.sort("benchmark")), (
+        rag_support,
+        phylop_support,
+    )
 
 
 def load_exact_validation_losses(
@@ -210,10 +297,15 @@ def _format_billions(value: float, _position: int) -> str:
     return f"{value:g}B"
 
 
-def plot_headline_metrics(metrics: pl.DataFrame, output_dir: Path) -> None:
+def plot_headline_metrics(
+    metrics: pl.DataFrame, phylop_baselines: pl.DataFrame, output_dir: Path
+) -> None:
     """Render checkpoint AUPRC on both progress scales."""
     output_dir.mkdir(parents=True, exist_ok=True)
     metrics.write_parquet(output_dir / "metrics.parquet", compression="zstd")
+    phylop_baselines.write_parquet(
+        output_dir / "phylop_baselines.parquet", compression="zstd"
+    )
     plot_data = pl.concat(
         [
             metrics.with_columns(
@@ -269,6 +361,25 @@ def plot_headline_metrics(metrics: pl.DataFrame, output_dir: Path) -> None:
         subset = metrics.filter(pl.col("benchmark") == benchmark).to_pandas()
         reference = subset["prevalence_reference"].unique()
         assert len(reference) == 1
+        baseline = phylop_baselines.filter(pl.col("benchmark") == benchmark)
+        assert baseline.height == 1
+        phylop_auprc = float(baseline["auprc"].item())
+        phylop_se = float(baseline["se"].item())
+        axis.axhspan(
+            phylop_auprc - phylop_se,
+            phylop_auprc + phylop_se,
+            color="#238b45",
+            alpha=0.09,
+            linewidth=0,
+            zorder=0,
+        )
+        axis.axhline(
+            phylop_auprc,
+            color="#238b45",
+            linestyle="--",
+            linewidth=1.2,
+            zorder=1,
+        )
         axis.axhline(
             float(reference[0]),
             color="#737373",
@@ -291,9 +402,10 @@ def plot_headline_metrics(metrics: pl.DataFrame, output_dir: Path) -> None:
     grid.figure.text(
         0.5,
         0.01,
-        "Error bars = ±1 bootstrap SE; dotted lines = fixed prevalence. "
+        "RAG error bars and green phyloP bands = ±1 bootstrap SE; green dashed "
+        "lines = phyloP point estimates; gray dotted lines = fixed prevalence. "
         "Loss decreases left-to-right in the bottom row. Each benchmark/row "
-        "y-axis is independently scaled. Complex uses "
+        "y-axis is independently scaled. Complex RAG uses "
         "|mean(forward LLR, reverse-complement LLR)|.",
         ha="center",
         fontsize=9.5,
@@ -329,8 +441,12 @@ def main() -> None:
     )
     expected_rows = sum(map(len, steps_by_model.values())) * len(BENCHMARK_ORDER)
     assert metrics.height == expected_rows
-    plot_headline_metrics(metrics, args.output_dir)
+    phylop_baselines = load_phylop_baselines(args.phylop_root)
+    assert_phylop_support_parity(metrics, phylop_baselines)
+    plot_headline_metrics(metrics, phylop_baselines, args.output_dir)
     print(metrics)
+    print("\nMAMMALIAN PHYLOP BASELINES")
+    print(phylop_baselines)
 
 
 if __name__ == "__main__":
