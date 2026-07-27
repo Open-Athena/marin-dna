@@ -396,3 +396,10 @@ A fast, high-quality, easy-to-replicate gLM for human variant prioritization, wi
 There are also still important gaps. The largest technical omission is regularization, an obvious lever for data-constrained modeling. We are in an awkward regime between data-constrained and compute-constrained training, though the narrowed recipe and better infrastructure (TODO: link iris post) for using the Google TPU Research Cloud compute donated for these efforts should make that lever much easier to use. The other major gap is attribution. It is not yet clear exactly where the largest gains are coming from; data curation is almost certainly the biggest contributor, and we plan to explain those details separately.
 
 There is plenty of work left to do, but we think these results clearly show the potential value of a general-purpose training platform like Marin for accelerating scientific foundation model development.
+
+## Resources
+
+- [🧪 MarinDNA repository](https://github.com/Open-Athena/marin-dna) (source code and experiments tracked through GitHub issues)
+- [🤗 Hugging Face collection](https://huggingface.co/collections/marin-dna/marindna-genomic-language-model-optimization-blog-2026-07) (training datasets, benchmarks, and model)
+- [🏆 MarinDNA leaderboard](https://openathena.ai/marin-dna/)
+- [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_NVBA22c11zoZkSDoysi5bR/app)
