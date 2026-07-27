@@ -105,7 +105,9 @@ def load_history(api: wandb.Api, *, allow_running: bool) -> pl.DataFrame:
     return history
 
 
-def summarize(history: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
+def summarize(
+    history: pl.DataFrame,
+) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """Summarize steady training and a matched early-update clipping window."""
     after_1k = history.filter(pl.col("step") >= EARLY_WINDOW[0])
     summary = (
@@ -120,6 +122,10 @@ def summarize(history: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
             (pl.col("grad/norm/total") > GRADIENT_CLIP_NORM)
             .mean()
             .alias("fraction_preclip_norm_gt_0_1"),
+            (pl.lit(GRADIENT_CLIP_NORM) / pl.col("grad/norm/total"))
+            .clip(upper_bound=1.0)
+            .median()
+            .alias("implied_clip_scale_p50"),
             pl.col("params/norm/total")
             .sort_by("step")
             .first()
@@ -188,17 +194,56 @@ def summarize(history: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
         .filter(pl.col("n_last_steps") != 1)
         .is_empty()
     ), early
-    return summary, early
+
+    large_batch_post10k = (
+        history.filter((pl.col("batch") == "2.10M") & (pl.col("step") >= 10_000))
+        .group_by("model", "batch", "run_state")
+        .agg(
+            pl.len().alias("n_logged_steps"),
+            pl.col("step").min().alias("first_step"),
+            pl.col("step").max().alias("last_step"),
+            pl.col("grad/norm/total").median().alias("grad_norm_p50"),
+            pl.col("grad/norm/total").quantile(0.95).alias("grad_norm_p95"),
+            (pl.col("grad/norm/total") > GRADIENT_CLIP_NORM)
+            .mean()
+            .alias("fraction_preclip_norm_gt_0_1"),
+            (pl.lit(GRADIENT_CLIP_NORM) / pl.col("grad/norm/total"))
+            .clip(upper_bound=1.0)
+            .median()
+            .alias("implied_clip_scale_p50"),
+            (pl.lit(GRADIENT_CLIP_NORM) / pl.col("grad/norm/total"))
+            .clip(upper_bound=1.0)
+            .quantile(0.05)
+            .alias("implied_clip_scale_p05"),
+            pl.col("train/loss").median().alias("train_loss_p50"),
+            pl.col("optim/learning_rate").median().alias("learning_rate_p50"),
+        )
+        .sort("model")
+    )
+    assert large_batch_post10k.height == 2, large_batch_post10k
+    assert set(large_batch_post10k["model"]) == {"46M", "104M"}
+    assert large_batch_post10k.filter(
+        (pl.col("n_logged_steps") < 100)
+        | ~pl.col("grad_norm_p50").is_finite()
+        | ~pl.col("implied_clip_scale_p50").is_finite()
+        | ~pl.col("implied_clip_scale_p05").is_finite()
+        | (pl.col("implied_clip_scale_p05") <= 0)
+        | (pl.col("implied_clip_scale_p50") > 1)
+    ).is_empty(), large_batch_post10k
+    return summary, early, large_batch_post10k
 
 
 def main() -> None:
     args = parse_args()
     history = load_history(wandb.Api(), allow_running=args.allow_running)
-    summary, early = summarize(history)
+    summary, early, large_batch_post10k = summarize(history)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     history.write_parquet(args.output_dir / "history.parquet", compression="zstd")
     summary.write_parquet(args.output_dir / "summary.parquet", compression="zstd")
     early.write_parquet(args.output_dir / "early_matched.parquet", compression="zstd")
+    large_batch_post10k.write_parquet(
+        args.output_dir / "large_batch_post10k.parquet", compression="zstd"
+    )
     with pl.Config(tbl_rows=20, tbl_cols=30, tbl_width_chars=220):
         print("STEADY/LIVE SUMMARY")
         print(summary)
@@ -206,6 +251,8 @@ def main() -> None:
             "\nCOMMON EARLY WINDOW (steps 1,000–per-model shared end, capped at 3,600)"
         )
         print(early)
+        print("\nLARGE-BATCH POST-10K CLIPPING")
+        print(large_batch_post10k)
 
 
 if __name__ == "__main__":
