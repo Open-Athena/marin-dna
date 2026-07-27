@@ -6,13 +6,19 @@ The imported project comes from [`eric-czech/marin-dna-post-202606`](https://git
 
 ## Reproduce
 
-Run from the MarinDNA repository root using the repository root project. Figures 12–14 import MarinDNA evaluation code and require its Parquet dependencies, so the complete current build does not use this directory’s historical nested lock. The committed CSV snapshots back the transfer, loss-scaling, mixture, and leaderboard figures; Figures 12–14 additionally read the paired endpoint predictions used to recompute both readouts with the same chromosome-weighted AUPRC implementation:
+Run from the MarinDNA repository root using the repository root project. Figures 12–14 import MarinDNA evaluation code and require its Parquet dependencies, so the complete historical build does not use this directory’s nested lock. The committed CSV snapshots back the transfer, loss-scaling, mixture, and historical leaderboard figures; Figures 12–14 additionally read the paired endpoint predictions used to recompute both readouts with the same chromosome-weighted AUPRC implementation:
 
 ```bash
 uv run --frozen python plots/blog/genomic_lm_optimization/src/figures/__main__.py
 ```
 
-Outputs are written to `plots/output/blog/genomic_lm_optimization/` as SVG, PNG, and PDF. Figure 11 also writes its Kaplan-fit report there, and SVG trailing whitespace is normalized.
+Generate the current live-evals leaderboard panels separately:
+
+```bash
+uv run python -m plots.blog.figure11_leaderboard_heatmap
+```
+
+Historical-bundle outputs are written to `plots/output/blog/genomic_lm_optimization/`; the current leaderboard panels are written to `plots/output/blog/`. Both locations contain SVG, PNG, and PDF artifacts. Figure 11 also writes its Kaplan-fit report to the historical output directory, and SVG trailing whitespace is normalized.
 
 After inspecting generated SVGs and PNGs, copy only approved assets into the blog with the explicit sync command:
 
@@ -49,7 +55,8 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 | 15 | `continued_training_data_exposures.svg` | Authored SVG; no plot recipe | Figure 10 mixture-lineage definitions and token accounting |
 | 16 | `figure16_offline_lineage_llr_prototype.svg` | `src/figures/figure16_offline_lineage_prototype.py` | Existing `evals_v2` Mendelian metric Parquets on S3; mixture results CSV for lineage token accounting |
 | 17 | `figure16_offline_lineage_probe_prototype.svg` (collapsed) | `src/figures/figure16_offline_lineage_prototype.py` | Existing `evals_v2` probe-metric Parquets on S3; mixture results CSV for lineage token accounting |
-| 18 | `figure11_leaderboard_heatmap.svg` | `src/figures/figure11_leaderboard_heatmap.py` | `model_leaderboard.csv` |
+| 18 | `figure11_leaderboard_heatmap__mendelian_llr.svg` | `../figure11_leaderboard_heatmap.py` | Current `evals_v2` Mendelian zero-shot metrics |
+| 19 | `figure11_leaderboard_heatmap__mendelian_probe.svg` (collapsed) | `../figure11_leaderboard_heatmap.py` | Current `evals_v2` Mendelian probe metrics |
 
 The upstream-reweighting analysis remains reproducible in this source bundle but is not currently included in the article.
 Its displayed endpoints confound mixture proportion with continuation budget: the 40% and 50% upstream arms received about 8.3k steps, while the other five arms received about 2.5k, and no exact checkpoint step is retained across all seven runs.
