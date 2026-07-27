@@ -69,7 +69,7 @@ Alignment-free, or single-sequence, gLMs can learn directly from this growing co
 For humans and other well-studied species, single-sequence gLMs are still far from replacing alignment-based models or models supervised with functional-genomics data.
 Our near-term goal is to build useful models for species that lack high-quality whole-genome alignments and functional-genomics data.
 As a concrete example, we would like to provide a map of sequence constraint for every mammalian genome.[^constraint-map-every-genome]
-Longer term, sequence-only models may learn from sequence in ways that complement alignments, conservation scores, and functional-genomics models even in data-rich species.
+Longer term, sequence-only models may learn from sequence in ways that complement alignments, conservation scores, and functional-genomics models even in data-rich species ([research question #396](https://github.com/Open-Athena/marin-dna/issues/396)).
 
 [^constraint-map-every-genome]: Zoonomia illustrates the gap between having an alignment and having a ready-to-use constraint track for each mammalian genome.
     Producing these tracks requires running per-base scoring in each target genome's coordinate system, which can require substantial intermediate storage and compute.
@@ -86,11 +86,9 @@ In this work, we follow up on two findings from [TraitGym](https://pmc.ncbi.nlm.
 First, 152M-parameter GPN-Promoter, trained only on animal promoters, performed comparably to Evo 2 40B on human promoter variants.
 Second, Evo 2 improved substantially with scale overall but still struggled on distal enhancers, the only region of the genome not actively curated into its training data; enhancers were also sparse among the intergenic regions it saw.
 
-MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include, which functional regions to sample, how to weight them, and when during training to introduce them.
+MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include ([research question #394](https://github.com/Open-Athena/marin-dna/issues/394)), which functional regions to sample and how to identify them ([research question #395](https://github.com/Open-Athena/marin-dna/issues/395)), how to weight them, and when during training to introduce them.
 
 [^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), and [Evo 2](https://doi.org/10.1038/s41586-026-10176-5).
-
-### Training datasets
 
 We began with annotation-derived datasets for coding, upstream, and downstream sequences.[^training-downstream]
 Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
@@ -116,20 +114,16 @@ By GPT-style, we mean the dumb approach of training a stock causal, autoregressi
 MarinDNA's first experiment compared masked language modeling, causal language modeling, and masked diffusion on promoter sequence ([experiment #3](https://github.com/Open-Athena/marin-dna/issues/3)).
 Causal language modeling looked most promising in the initial training steps.
 This was not a definitive matched-compute comparison of objectives, but it provided enough direction-setting evidence to pursue a simple causal architecture.
-That choice also need not permanently constrain the model to left-to-right representations: decoder-only language models can be adapted into bidirectional encoders with further training.[^clm-bidirectional-adaptation]
+That choice also need not permanently constrain the model to left-to-right representations: decoder-only language models can be adapted into bidirectional encoders with further training ([research question #393](https://github.com/Open-Athena/marin-dna/issues/393)).
 
 [^causal-glm-precedent]: GPT-style or otherwise causal genomic models include [GenSLM](https://pmc.ncbi.nlm.nih.gov/articles/PMC9709791/), [DNAGPT](https://arxiv.org/abs/2307.05628), [METAGENE-1](https://arxiv.org/abs/2501.02045), [GENERATOR](https://arxiv.org/abs/2502.07272), [GENERATOR-v2](https://doi.org/10.64898/2026.01.27.702015), [Gene42](https://arxiv.org/abs/2503.16565), and [Carbon](https://doi.org/10.64898/2026.05.22.727119). The closest human-DNA precedents are Carbon, GENERATOR, Gene42, and DNAGPT; several of the others are important causal gLM examples but are less directly relevant to human VEP.
 
 [^carbon-eval]: The [Carbon-3B model card](https://huggingface.co/HuggingFaceBio/Carbon-3B) describes Carbon-3B as a 3B-parameter decoder-only autoregressive genomic model implemented as a stock `LlamaForCausalLM`, with 6-mer DNA tokenization, long-context support, and a two-stage training schedule that switches from a standard cross-entropy objective to a factorized nucleotide supervision loss, bridging its coarse 6-mer tokenization with single-nucleotide resolution. Its public zero-shot table compares to Evo 2 7B, not Evo 2 40B: Carbon-3B is slightly ahead on BRCA2 and ClinVar noncoding, but behind on ClinVar coding and TraitGym Mendelian.
 
-[^clm-bidirectional-adaptation]: [LLM2Vec](https://arxiv.org/abs/2404.05961) provides a proof of principle outside genomics: it transforms causally pretrained decoder-only language models into bidirectional encoders by enabling bidirectional attention and continuing training with masked next-token prediction and contrastive learning.
-
-### Why short context?
-
 Our first goal is to model individual functional elements of the genome—such as an exon or an enhancer—well.
 We therefore deliberately use a short 255-bp context: it was sufficient for the functional-element tasks we tested while making training and evaluation much faster.
 Centering each example on an individual functional element also makes the training data easier to construct, filter, audit, and interpret.
-We leave to future work how best to extend context, either through additional long-context next-token pretraining or directly during downstream-task fine-tuning.
+We leave to future work how best to extend context, either through additional long-context next-token pretraining or directly during downstream-task fine-tuning ([research question #392](https://github.com/Open-Athena/marin-dna/issues/392)).
 
 ### Why VEP evaluation?
 
@@ -181,8 +175,6 @@ The probe instead asks what variant-relevant information is encoded in the model
     We also expanded the benchmark to include missense and splicing variants, incorporated additional sources of pathogenic variants, and created chromosome-disjoint splits for development and final testing.
     See the [pinned dataset card](https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f) for the full construction and matching diagnostics.
 
-### Why Evo 2 40B baseline?
-
 Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline among unsupervised, single-sequence DNA models. Within that same setting, we are not aware of another method with comparable performance across diverse genomic regions. The other reason Evo 2 40B matters is its training budget. Its reported 2.25e24 training FLOPs are unrivaled among gLMs, corresponding to roughly $2.5M of H100 time.[^evo2-cost] That budget is unusual in biology and comparable to major open-weight LLM training runs from recent model generations,[^evo2-llm-compute] e.g. just above Qwen2.5-14B and below Qwen2.5-32B, and roughly between DeepSeek-V2 and DeepSeek-V3. Since the literature has not really moved past this target yet, we believe it is the right baseline for asking whether a much simpler single-sequence gLM can be competitive.
 
 [^evo2-cost]: This estimate uses the [Evo 2](https://doi.org/10.1101/2025.02.18.638918) reported training compute of 2.25e24 FLOPs, 50% H100 model FLOP utilization following the costing convention in [Beyond Chinchilla](https://arxiv.org/abs/2401.00448), 989 TFLOP/s BF16 peak throughput for an H100 SXM, and $2 per H100-hour from [OLMo 3](https://arxiv.org/abs/2512.13961). The resulting accelerator requirement is about 1.26M H100-hours.
@@ -191,7 +183,7 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 ## Results
 
-### Upstream and CDS specialists
+### Early mixture experiments
 
 We first trained a 1.7B upstream-region specialist, trying to replicate the success of GPN-Promoter ([experiment #21](https://github.com/Open-Athena/marin-dna/issues/21)). Although we used reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later, performance was broadly comparable to Evo 2 40B. We saw a similar pattern when training a CDS specialist ([experiment #27](https://github.com/Open-Athena/marin-dna/issues/27)). Overall, however, GPN-Star remained stronger.
 
@@ -200,8 +192,6 @@ We first trained a 1.7B upstream-region specialist, trying to replicate the succ
 <img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
 <figcaption><strong>Figure 4:</strong> Region-matched Mendelian VEP AUPRC (%) under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR). Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel. Error bars denote SE.</figcaption>
 </figure>
-
-### Balancing upstream and CDS data
 
 After testing upstream and CDS specialists independently, the next experiment asked whether one model could retain both capabilities ([experiment #13](https://github.com/Open-Athena/marin-dna/issues/13)).
 Sampling in proportion to dataset size—10% upstream and 90% CDS—is the naive default when the two datasets are simply pooled without reweighting.
@@ -383,7 +373,7 @@ At their native context lengths on the same GH200, m5.1 scores one million varia
 
 Most notably, m5.1 closes Evo 2's main gap on distal enhancers, outperforming Evo 2 40B there under both readouts. The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on promoters and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
 
-On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome and substantially behind GPN-Star. These are different model families: AlphaGenome learns from functional-genomics supervision, while GPN-Star uses whole-genome alignments. Further improvements to the alignment-free recipe may narrow the gap to GPN-Star, but it is not clear that they will eliminate it. Some of the remaining difference may reflect information that an alignment-free model cannot recover from unaligned sequence alone.
+On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome and substantially behind GPN-Star. These are different model families: AlphaGenome learns from functional-genomics supervision, while GPN-Star uses whole-genome alignments. Further improvements to the alignment-free recipe may narrow the gap to GPN-Star, but it is not clear that they will eliminate it. Some of the remaining difference may reflect information that an alignment-free model cannot recover from unaligned sequence alone ([research question #397](https://github.com/Open-Athena/marin-dna/issues/397)).
 
 <!-- Plot recipe: plots/blog/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard">
