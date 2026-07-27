@@ -54,9 +54,7 @@ def rag_tokenized_dataset() -> ArtifactStep[RAGTokenizedCache]:
 
 def build() -> ArtifactStep:
     """Assemble the scratch 103.8M, 2M-token-batch training run."""
-    assert ACTUAL_TOKENS_LARGE_BATCH == (
-        TRAIN_STEPS_LARGE_BATCH * LARGE_BATCH_SIZE * SEQ_LEN
-    )
+    assert ACTUAL_TOKENS_LARGE_BATCH == (TRAIN_STEPS_LARGE_BATCH * LARGE_BATCH_SIZE * SEQ_LEN)
     dataset = rag_tokenized_dataset()
     training = train_lm(
         name=CHECKPOINT_NAME,

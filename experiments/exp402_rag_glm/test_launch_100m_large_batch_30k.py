@@ -54,9 +54,7 @@ def test_104m_large_batch_changes_only_model_scale_and_identity(monkeypatch) -> 
     assert GRADIENT_ACCUMULATION_STEPS_100M == 2
     assert (
         trainer.train_batch_size
-        == trainer.per_device_parallelism
-        * TRAIN_DEVICE_COUNT
-        * GRADIENT_ACCUMULATION_STEPS_100M
+        == trainer.per_device_parallelism * TRAIN_DEVICE_COUNT * GRADIENT_ACCUMULATION_STEPS_100M
     )
     assert trainer.num_train_steps == TRAIN_STEPS_LARGE_BATCH == 30_000
     assert ACTUAL_TOKENS_LARGE_BATCH == 62_914_560_000
@@ -70,9 +68,7 @@ def test_104m_large_batch_changes_only_model_scale_and_identity(monkeypatch) -> 
 
 
 def test_104m_pdp128_benchmark_is_compile_warmed_and_isolated(monkeypatch) -> None:
-    training, pod_config = _pod_config(
-        build_benchmark, BENCHMARK_CHECKPOINT_NAME, monkeypatch
-    )
+    training, pod_config = _pod_config(build_benchmark, BENCHMARK_CHECKPOINT_NAME, monkeypatch)
     trainer = pod_config.train_config.trainer
     assert training.name.endswith(BENCHMARK_CHECKPOINT_NAME)
     assert trainer.id == BENCHMARK_RUN_ID

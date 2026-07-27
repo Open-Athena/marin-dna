@@ -54,9 +54,7 @@ def test_large_batch_recipe_and_completed_transfer(monkeypatch) -> None:
     assert GRADIENT_ACCUMULATION_STEPS == 1
     assert (
         trainer.train_batch_size
-        == trainer.per_device_parallelism
-        * TRAIN_DEVICE_COUNT
-        * GRADIENT_ACCUMULATION_STEPS
+        == trainer.per_device_parallelism * TRAIN_DEVICE_COUNT * GRADIENT_ACCUMULATION_STEPS
     )
     assert trainer.num_train_steps == TRAIN_STEPS_LARGE_BATCH == 30_000
     assert trainer.steps_per_eval == RAG_EVAL_EVERY == 1_000
@@ -75,9 +73,7 @@ def test_large_batch_recipe_and_completed_transfer(monkeypatch) -> None:
 
 
 def test_46m_pdp256_benchmark_is_compile_warmed_and_isolated(monkeypatch) -> None:
-    training, pod_config = _pod_config(
-        build_benchmark, BENCHMARK_CHECKPOINT_NAME, monkeypatch
-    )
+    training, pod_config = _pod_config(build_benchmark, BENCHMARK_CHECKPOINT_NAME, monkeypatch)
     trainer = pod_config.train_config.trainer
     assert training.name.endswith(BENCHMARK_CHECKPOINT_NAME)
     assert trainer.id == BENCHMARK_RUN_ID
