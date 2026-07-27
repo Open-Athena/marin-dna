@@ -86,6 +86,11 @@ for model in 46m 104m; do
             --step "$step"
     done
 done
+# Revalidate the one accepted paid sanity bundle and prove that its intact
+# scoring branch is byte-for-byte identical to the scheduled step-5k scorer.
+# These audits only read existing artifacts; they do not launch model inference.
+run uv run python scripts/issue402_audit_large_batch_sanity.py
+run uv run python scripts/issue402_audit_step5_sanity_parity.py
 run uv run python plots/issue402_rag_large_batch_validation_loss.py
 run uv run python plots/issue402_rag_batch_size_validation_loss.py
 run uv run python scripts/issue402_audit_training_dynamics.py
