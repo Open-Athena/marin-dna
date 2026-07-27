@@ -30,6 +30,7 @@ from figures.figure6b_marin_evo2_missense import build as figure6b  # noqa: E402
 from figures.figure9_upstream_mix_auprc import build as figure9  # noqa: E402
 from figures.figure10_lineage_vep_trajectory import build as figure10  # noqa: E402
 from figures.figure11_leaderboard_heatmap import build as figure11  # noqa: E402
+from figures.figure16_offline_lineage_prototype import build as figure16  # noqa: E402
 from utils.figure_style import palette  # noqa: E402
 
 
@@ -61,6 +62,8 @@ def main() -> None:
     figure6b(parameter_scaling_metrics)
     figure9(mixture_df)
     figure10(mixture_df, mixture_history_df)
+    figure16("llr", mixture_df)
+    figure16("probe", mixture_df)
     figure11(leaderboard_df)
 
 

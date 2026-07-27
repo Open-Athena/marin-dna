@@ -239,8 +239,17 @@ def _draw_panel(
                 continue
         color = LINEAGE_COLORS[leaf]
         x = tokens / 1e9
-        ax.scatter(x, values, s=7, color=color, alpha=0.55, edgecolors="none", zorder=2)
-        gx, gy = _smooth_xy(x, values)
+        percentage_values = values * 100.0
+        ax.scatter(
+            x,
+            percentage_values,
+            s=7,
+            color=color,
+            alpha=0.55,
+            edgecolors="none",
+            zorder=2,
+        )
+        gx, gy = _smooth_xy(x, percentage_values)
         ax.plot(gx, gy, color=color, lw=1.6, zorder=3)
 
 
@@ -340,10 +349,10 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
     # Primary x-axis label once, under the center facet of the bottom row.
     axes[-1, 1].set_xlabel("tokens (B)", labelpad=4, fontsize=9)
     for ax in axes[:, 0]:
-        ax.set_ylabel("VEP AUPRC")
+        ax.set_ylabel("VEP AUPRC (%)")
 
     fig.tight_layout(rect=(0, 0.05, 1, 0.93))
-    fig.suptitle("VEP AUPRC trajectories by mixture strategy", fontsize=11, y=0.952)
+    fig.suptitle("VEP AUPRC (%) trajectories by mixture strategy", fontsize=11, y=0.952)
     _attach_legends(fig)
     save(fig, "figure10_lineage_vep_trajectory")
 

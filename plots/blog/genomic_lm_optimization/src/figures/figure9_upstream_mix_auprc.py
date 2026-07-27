@@ -37,17 +37,18 @@ def build(df: pd.DataFrame) -> None:
         for mix in UPSTREAM_SWEEP
     )
     xs = [p[0] for p in pts]
-    ys = [p[1] for p in pts]
+    ys = [p[1] * 100.0 for p in pts]
 
     # Author at full FIGURE_WIDTH like every other figure so the post (which
     # displays all figures at one column width) doesn't upscale this one and
     # blow up its label text. Height is kept short for a single trend line —
     # a wide, low aspect that doesn't look oversized next to the other figures.
     fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH, 4.0))
-    ax.axhline(score[BASELINE], color="0.4", lw=1.0, ls=":", zorder=1)
+    baseline = score[BASELINE] * 100.0
+    ax.axhline(baseline, color="0.4", lw=1.0, ls=":", zorder=1)
     ax.text(
         max(xs),
-        score[BASELINE],
+        baseline,
         "baseline (step=0)  ",
         ha="right",
         va="bottom",
@@ -67,7 +68,7 @@ def build(df: pd.DataFrame) -> None:
         zorder=3,
     )
     ax.set_xlabel("upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
-    ax.set_ylabel("macro avg VEP AUPRC")
+    ax.set_ylabel("macro avg VEP AUPRC (%)")
     ax.set_title("Continued pretraining from uniform mixture", fontsize=11)
     ax.grid(False)
 

@@ -86,11 +86,11 @@ def _plot_panel(
         assert len(series) == 8
         assert series["ll"].is_unique
         xs = series["ll"].to_numpy(dtype=float)
-        ys = series["value"].to_numpy(dtype=float)
+        ys = series["value"].to_numpy(dtype=float) * 100.0
         ax.errorbar(
             xs,
             ys,
-            yerr=series["se"],
+            yerr=series["se"] * 100.0,
             color=color,
             ecolor=color,
             marker=marker,
@@ -128,7 +128,7 @@ def _plot_panel(
     ax.set_title(title, fontsize=10)
     ax.set_xlabel("LL (-loss)", labelpad=X_LABEL_PAD)
     if show_ylabel:
-        ax.set_ylabel("AUPRC")
+        ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
     ax.margins(x=0.08, y=0.13)
     ax.set_box_aspect(1)

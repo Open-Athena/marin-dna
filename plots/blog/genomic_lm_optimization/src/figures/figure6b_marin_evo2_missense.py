@@ -126,8 +126,8 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
             assert len(series) == expected
             ax.errorbar(
                 series["params"],
-                series["value"],
-                yerr=series["se"],
+                series["value"] * 100.0,
+                yerr=series["se"] * 100.0,
                 color=color,
                 ecolor=color,
                 marker=marker,
@@ -145,7 +145,7 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
     ax.set_xticks([value for value, _label in X_TICKS])
     ax.set_xticklabels([label for _value, label in X_TICKS])
     ax.set_xlabel("model params", labelpad=X_LABEL_PAD)
-    ax.set_ylabel("AUPRC")
+    ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
     ax.margins(x=0.04, y=0.12)
 
