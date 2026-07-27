@@ -1,5 +1,5 @@
 ---
-title: "Genomic Language Model Optimization"
+title: "Building efficient and balanced genomic language models"
 slug: "genomic-lm-optimization"
 author: "Eric Czech & Gonzalo Benegas"
 date: 2026-06-25
@@ -48,9 +48,13 @@ summary: "How Marin can be used to train single-sequence, vanilla Transformer gL
 }
 </style>
 
+> **⚠️ OUTDATED — revise before publication.**
+
 How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers DNA hyperparameter transfer, scaling law, and data mixture experiments.
 
 ## Introduction
+
+> **⚠️ OUTDATED — revise before publication.**
 
 Optimization of genomic language models (gLMs) has historically involved a lot of focus on model architecture. At a high level, the field has explored many architecture ideas borrowed from language and vision,[^glm-architecture] methods for making raw DNA usable at long context,[^glm-tokenization] and genomics-specific priors that encode biological symmetries, structure, or evolution.[^glm-biology] Our results here show that these inductive biases are not necessary for human variant effect prediction (VEP), arguably the most important near-term use case for gLMs. In the zero-shot setting, a standard GPT-style model can surpass Evo 2 40B when it is paired with careful data curation, the scaling practices we used previously in [Delphi](https://openathena.ai/blog/delphi/), and a set of less-principled ad hoc data mixture optimizations. The final model in this line of experiments does so with 1.8% as many training tokens (166B vs. 9.3T) and roughly 0.05% as many FLOPs (1.1e21 vs. 2.25e24).
 
@@ -390,6 +394,8 @@ On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome a
 </details>
 
 ## Conclusion
+
+> **⚠️ OUTDATED — revise before publication.**
 
 A fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a significant contribution to the field. The experiments above show how to check most of those boxes with a standard GPT-style model, though "easy-to-replicate" is still a work in progress. Many less successful attempts are not discussed here and are documented in [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
 
