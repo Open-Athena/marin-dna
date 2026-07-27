@@ -3,6 +3,7 @@
 #
 # Usage:
 #   scripts/issue402_large_batch_final_report.sh
+#   scripts/issue402_large_batch_final_report.sh --dry-run
 #   DRY_RUN=1 scripts/issue402_large_batch_final_report.sh
 
 set -euo pipefail
@@ -10,6 +11,14 @@ set -euo pipefail
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 dry_run=${DRY_RUN:-0}
+if (( $# )); then
+    if [[ $# == 1 && "$1" == --dry-run ]]; then
+        dry_run=1
+    else
+        echo "usage: $0 [--dry-run]" >&2
+        exit 2
+    fi
+fi
 artifact_version=2026.07.26.5
 output_root="$repo_root/plots/output"
 
@@ -40,6 +49,20 @@ if (( ! dry_run )); then
     command -v jq >/dev/null
     command -v uv >/dev/null
     for root in "$checkpoint_46m" "$checkpoint_104m"; do
+        # Require one finite immutable validation-loss record at every retained
+        # 1k boundary, including the zero-based final step 29,999. This proves
+        # the validation cadence independently of W&B history.
+        gcloud storage cat "$root/checkpoints/eval_metrics.jsonl" \
+            | jq -s -e '
+                def expected: ([range(1; 30) | . * 1000] + [29999]);
+                (map(select(.step as $step | expected | index($step)))
+                    | sort_by(.step)) as $rows
+                | ($rows | map(.step)) == expected
+                  and all($rows[];
+                      (."eval/loss" | type) == "number"
+                      and ."eval/loss" > 0
+                      and ."eval/loss" < 10)
+            ' >/dev/null
         for checkpoint_step in "${checkpoint_steps[@]}"; do
             gcloud storage cat "$root/checkpoints/step-$checkpoint_step/metadata.json" \
                 | jq -e --argjson expected "$checkpoint_step" \
