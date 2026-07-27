@@ -371,6 +371,8 @@ m5.1 was trained on 166B tokens (~1.1e21 FLOPs), compared with 9.3T tokens (~2.2
 
 Most notably, m5.1 closes Evo 2's main gap on distal enhancers, outperforming Evo 2 40B there under both readouts. The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on promoters and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
 
+The [current leaderboard](https://openathena.ai/marin-dna/leaderboards/mendelian) also suggests there is considerable headroom: although m5.1 leads on Macro Avg among MarinDNA models, another MarinDNA run has a higher point estimate in seven of the eight displayed subsets, with m5.1 leading only on ncRNA. Several of these winners are region specialists, suggesting that further mixture refinement could recover more of their complementary strengths.
+
 On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome and substantially behind GPN-Star. These are different model families: AlphaGenome learns from functional-genomics supervision, while GPN-Star uses whole-genome alignments. Further improvements to the alignment-free recipe may narrow the gap to GPN-Star, but it is not clear that they will eliminate it. Some of the remaining difference may reflect information that an alignment-free model cannot recover from unaligned sequence alone ([research question #397](https://github.com/Open-Athena/marin-dna/issues/397)).
 
 <!-- Plot recipe: plots/blog/figure11_leaderboard_heatmap.py -->
