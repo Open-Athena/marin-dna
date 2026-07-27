@@ -16,13 +16,14 @@
 import marimo
 
 __generated_with = "0.23.15"
-app = marimo.App(width="full", app_title="MarinDNA sequence explorer")
+app = marimo.App(width="full", app_title="MarinDNA Sequence Explorer")
 
 
 @app.cell
 def _():
     import hashlib
     import importlib
+    import importlib.metadata
     import importlib.util
     import os
     import shutil
@@ -35,6 +36,39 @@ def _():
     import numpy as np
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    # Molab's public app sandbox does not currently install the notebook's
+    # PEP 723 dependencies before evaluating cells. Install this one dependency
+    # before importing the commit-pinned MarinDNA package, whose transitive
+    # dependencies are intentionally suppressed below.
+    _jaxtyping_requirement = "jaxtyping==0.3.9"
+    try:
+        _jaxtyping_version = importlib.metadata.version("jaxtyping")
+    except importlib.metadata.PackageNotFoundError:
+        _jaxtyping_version = None
+    if _jaxtyping_version != "0.3.9":
+        _uv = shutil.which("uv")
+        if _uv is None:
+            raise RuntimeError(
+                "The pinned jaxtyping dependency requires the uv executable "
+                "supplied by molab, but uv was not found on PATH."
+            )
+        subprocess.run(
+            [
+                _uv,
+                "pip",
+                "install",
+                "--python",
+                sys.executable,
+                "--reinstall",
+                _jaxtyping_requirement,
+            ],
+            check=True,
+        )
+        importlib.invalidate_caches()
+    assert importlib.metadata.version("jaxtyping") == "0.3.9", (
+        "the pinned jaxtyping dependency was not installed"
+    )
 
     SOURCE_REVISION = "04f44dbd9b5a5bc4cc172f4caf925d548d4bf911"
     _revision_marker = os.path.join(sys.prefix, ".marin_dna-source-revision")

@@ -9,20 +9,22 @@ The hosted notebook reports and installs the tested application implementation
 at Git commit `04f44dbd9b5a5bc4cc172f4caf925d548d4bf911`.
 
 Public app:
-https://molab.marimo.io/notebooks/nb_NVBA22c11zoZkSDoysi5bR/app
+https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app
 
 The marimo notebook is intentionally thin. Sequence validation, the
 forward/reverse-complement probability logo, the categorical-Jacobian
 dependency map, built-in examples, Plotly figures, linked-span conversion, and
 in-memory downloads are imported from the installable `marin_dna` package.
 The notebook declares its minimal immutable runtime dependencies with PEP 723
-metadata, then installs the commit-pinned `marin_dna` source with
-`uv pip install --no-deps`. The full research environment includes unrelated
-genomics and pipeline dependencies that are unnecessary for this app and may
-require build tools unavailable in molab. `requirements.txt` contains only the
-extra dependencies used for local checks. A GitHub-synced molab notebook
-therefore does not depend on sibling files or install unrelated pipeline
-dependencies.
+metadata. Because molab's public app sandbox does not currently install those
+dependencies before evaluating cells, the first cell defensively installs the
+same pinned `jaxtyping==0.3.9` dependency before installing the commit-pinned
+`marin_dna` source with `uv pip install --no-deps`. The full research
+environment includes unrelated genomics and pipeline dependencies that are
+unnecessary for this app and may require build tools unavailable in molab.
+`requirements.txt` contains only the extra dependencies used for local checks.
+A GitHub-synced molab notebook therefore does not depend on sibling files or
+install unrelated pipeline dependencies.
 
 ## Deployment on molab
 
