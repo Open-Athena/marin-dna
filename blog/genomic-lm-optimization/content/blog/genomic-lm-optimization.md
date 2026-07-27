@@ -48,9 +48,9 @@ summary: "How Marin can be used to train single-sequence, vanilla Transformer gL
 }
 </style>
 
-> **⚠️ OUTDATED — revise before publication.**
+MarinDNA applies the tools and open-development approach of [Marin](https://marin.community/) to genomic language modeling. This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~1,500× faster.
 
-How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers DNA hyperparameter transfer, scaling law, and data mixture experiments.
+> **A note on open development.** MarinDNA is developed in the open. This post turns a branching research process into a linear narrative; the [MarinDNA repository](https://github.com/Open-Athena/marin-dna) preserves the underlying experiments—including unsuccessful and inconclusive directions—through GitHub issues and experiment branches. It should be read as a guide to that evolving record rather than as a conventional paper or final account.
 
 ## Introduction
 
