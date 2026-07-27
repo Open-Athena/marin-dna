@@ -232,9 +232,7 @@ def install_levanter_rag_loglikelihood() -> None:
         assert len(outputs) == len(requests)
         parity_log_rows = int(os.environ.get(RAG_PARITY_LOG_ROWS_ENV, "0"))
         assert 0 <= parity_log_rows <= len(requests)
-        for record in rag_parity_diagnostic_records(
-            requests, outputs, parity_log_rows
-        ):
+        for record in rag_parity_diagnostic_records(requests, outputs, parity_log_rows):
             _logger.warning("RAG_PARITY_ROW %s", json.dumps(record, sort_keys=True))
         self._stop_profiler_if_needed()
         return outputs

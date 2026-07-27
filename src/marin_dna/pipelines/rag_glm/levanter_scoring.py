@@ -282,22 +282,22 @@ def score_rag_completions_naive_levanter(
     def score_completion(completion_ids: Any) -> Any:
         tokens = jnp.concatenate([prefix_ids, completion_ids])
         position = hax.Axis("position", document_length)
-        logits = model(
-            hax.named(tokens, position),
-            attn_mask=AttentionMask.causal(),
-            pos_ids=hax.named(jnp.arange(document_length, dtype=jnp.int32), position),
-            key=None,
-        ).rearrange((position, model.Vocab)).array
+        logits = (
+            model(
+                hax.named(tokens, position),
+                attn_mask=AttentionMask.causal(),
+                pos_ids=hax.named(
+                    jnp.arange(document_length, dtype=jnp.int32), position
+                ),
+                key=None,
+            )
+            .rearrange((position, model.Vocab))
+            .array
+        )
         nucleotide_logits = logits[prefix_length - 1 : -1, nucleotide_token_ids]
-        log_probs = jax.nn.log_softmax(
-            nucleotide_logits.astype(jnp.float32), axis=-1
-        )
-        target_indices = _jax_nucleotide_indices(
-            completion_ids, nucleotide_token_ids
-        )
-        return jnp.take_along_axis(
-            log_probs, target_indices[:, None], axis=-1
-        ).sum()
+        log_probs = jax.nn.log_softmax(nucleotide_logits.astype(jnp.float32), axis=-1)
+        target_indices = _jax_nucleotide_indices(completion_ids, nucleotide_token_ids)
+        return jnp.take_along_axis(log_probs, target_indices[:, None], axis=-1).sum()
 
     ref_loglikelihood = score_completion(ref_completion_ids)
     alt_loglikelihood = score_completion(alt_completion_ids)
