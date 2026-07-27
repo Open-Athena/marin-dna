@@ -51,7 +51,7 @@ def test_edited_workspace_is_valid_and_baseline_manifest_is_readable() -> None:
     referenced_assets = validate_workspace(config)
     manifest = read_baseline_manifest(config)
 
-    assert len(referenced_assets) == 18
+    assert len(referenced_assets) == 19
     assert len(manifest) == 12
 
 

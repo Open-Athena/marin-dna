@@ -377,13 +377,25 @@ m5.1's strong endpoint raises the possibility that exposure order matters: learn
 
 ### Leaderboard scores
 
-The result of the previous mixture experiments is the m5.1 model used for the headline comparison. The [Mendelian VEP leaderboard](#fig-mendelian-leaderboard) is a snapshot of the benchmark we host at [openathena.ai/marin-dna/leaderboards/mendelian](https://openathena.ai/marin-dna/leaderboards/mendelian), where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.
+The result of the previous mixture experiments is m5.1, a 1B GPT-style model evaluated alongside other models on our [live Mendelian VEP leaderboard](https://openathena.ai/marin-dna/leaderboards/mendelian), where we continue to add experimental runs and baselines. In the zero-shot snapshot shown here, m5.1 comes out slightly ahead of Evo 2 40B. Its advantage is considerably larger under frozen-embedding linear probing.
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure11_leaderboard_heatmap.py -->
+Most notably, m5.1 closes Evo 2's main gap on distal enhancers, outperforming Evo 2 40B there under both readouts. The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on promoters and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
+
+On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome and substantially behind GPN-Star. These are different model families: AlphaGenome learns from functional-genomics supervision, while GPN-Star uses whole-genome alignments. Further improvements to the alignment-free recipe may narrow the gap to GPN-Star, but it is not clear that they will eliminate it. Some of the remaining difference may reflect information that an alignment-free model cannot recover from unaligned sequence alone.
+
+<!-- Plot recipe: plots/blog/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard">
-<img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC (%) heatmap across models" />
-<figcaption><strong>Figure 18:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted. This leaderboard is computed with a newer version of the TraitGym Mendelian eval, so its scores are not directly comparable to those in the earlier <a href="#fig-mixture-lineage-trajectories">mixture-lineage trajectories</a>; this is why m5.1's end-of-training score in the latter does not match its current leaderboard score here.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_llr.svg" alt="Mendelian VEP benchmark zero-shot AUPRC (%) heatmap across six headline models" />
+<figcaption><strong>Figure 18:</strong> Mendelian VEP benchmark — zero-shot AUPRC (%) across six headline models using each model family's canonical scoring protocol, with the Macro Avg column highlighted.</figcaption>
 </figure>
+
+<details>
+<summary>Show the frozen-embedding linear-probe leaderboard</summary>
+<figure id="fig-mendelian-leaderboard-probe">
+<img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_probe.svg" alt="Mendelian VEP benchmark frozen-embedding linear-probe AUPRC (%) heatmap across four overlapping models" />
+<figcaption><strong>Figure 19:</strong> Frozen-embedding linear-probe AUPRC (%) for the four models that also appear in the zero-shot leaderboard and have compatible probe metrics. The two heatmaps are sorted and color-normalized independently, and their subset metrics use different aggregation: Figure 18 pools variants within each subset before computing AUPRC, whereas Figure 19 computes a sample-size-weighted mean of per-chromosome AUPRCs; both Macro Avg columns are unweighted means across subsets. Compare model names and within-panel values rather than row positions, colors, or absolute values across panels. GPN-Star and AlphaGenome are absent because no compatible probe result is available here, not because of their performance.</figcaption>
+</figure>
+</details>
 
 ## Conclusion
 

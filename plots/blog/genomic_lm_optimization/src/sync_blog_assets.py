@@ -19,10 +19,19 @@ ASSET_NAMES = (
     "figure16_offline_lineage_llr_prototype",
     "figure16_offline_lineage_probe_prototype",
     "figure11_leaderboard_heatmap",
+    "figure11_leaderboard_heatmap__mendelian_llr",
+    "figure11_leaderboard_heatmap__mendelian_probe",
+)
+CURRENT_LEADERBOARD_NAMES = frozenset(
+    {
+        "figure11_leaderboard_heatmap__mendelian_llr",
+        "figure11_leaderboard_heatmap__mendelian_probe",
+    }
 )
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = PACKAGE_ROOT.parents[2]
 OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog" / "genomic_lm_optimization"
+CURRENT_LEADERBOARD_OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog"
 BLOG_ASSET_DIR = (
     REPO_ROOT
     / "blog"
@@ -42,7 +51,12 @@ def main() -> None:
 
     BLOG_ASSET_DIR.mkdir(parents=True, exist_ok=True)
     for name in args.names:
-        source = OUTPUT_DIR / f"{name}.svg"
+        source_dir = (
+            CURRENT_LEADERBOARD_OUTPUT_DIR
+            if name in CURRENT_LEADERBOARD_NAMES
+            else OUTPUT_DIR
+        )
+        source = source_dir / f"{name}.svg"
         destination = BLOG_ASSET_DIR / f"{name}.svg"
         if not source.is_file():
             raise FileNotFoundError(f"generate {source} before syncing it")
