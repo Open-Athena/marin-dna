@@ -107,9 +107,7 @@ def _model_id(mix: str, step: int) -> str:
 
 
 @lru_cache(maxsize=None)
-def _read_checkpoint(
-    kind: str, mix: str, step: int
-) -> dict[str, tuple[float, float]]:
+def _read_checkpoint(kind: str, mix: str, step: int) -> dict[str, tuple[float, float]]:
     """Return stored ``(AUPRC, SE)`` values for the eight subsets and their macro."""
     result_kind, score_type, _metric_label, _method_label = WORLD_CONFIG[kind]
     model_id = _model_id(mix, step)
@@ -132,10 +130,7 @@ def _read_checkpoint(
     assert data["se"].is_not_null().all()
     assert data["value"].is_between(0, 1, closed="both").all()
     assert data["se"].is_between(0, 1, closed="both").all()
-    return {
-        subset: (float(value), float(se))
-        for subset, value, se in data.iter_rows()
-    }
+    return {subset: (float(value), float(se)) for subset, value, se in data.iter_rows()}
 
 
 def _chain(leaf: str) -> list[str]:
@@ -218,9 +213,7 @@ def _draw_panel(
 ) -> None:
     """Draw raw offline checkpoints with capless ±1 SE bars."""
     for leaf, _label, color, marker in LINEAGES:
-        tokens, values, ses = _composed_curve(
-            kind, leaf, subset, results, own_tokens
-        )
+        tokens, values, ses = _composed_curve(kind, leaf, subset, results, own_tokens)
         if leaf != "exp135-zoonomia-m5.1":
             keep = tokens <= token_cutoff
             if keep.any() and not keep.all():
@@ -316,9 +309,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         / 1e9
     )
 
-    grid_panels: list[tuple[str, str, bool]] = [
-        (MACRO_SUBSET, "macro average", True)
-    ]
+    grid_panels: list[tuple[str, str, bool]] = [(MACRO_SUBSET, "macro average", True)]
     grid_panels.extend((subset, label, False) for subset, label in PANELS)
 
     fig, axes = plt.subplots(
