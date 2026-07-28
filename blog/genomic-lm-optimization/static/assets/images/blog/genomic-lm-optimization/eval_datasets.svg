@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 760" role="img" aria-labelledby="title desc" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">
   <title id="title">Two complementary sources of evidence for variant effects</title>
-  <desc id="desc">Side-by-side comparison of the Mendelian disease and saturation genome editing benchmarks. The diagram preserves their evidence sources, label construction, matching and calibration protocols, consequence-subset counts, totals, links, chromosome split, and relevant training-region legend.</desc>
+  <desc id="desc">Side-by-side comparison of the Mendelian disease and saturation genome editing benchmarks. The diagram preserves their evidence sources, label construction, matching and calibration protocols, consequence-subset counts, totals, chromosome split, and relevant training-region legend.</desc>
 
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -30,14 +30,6 @@
   <rect x="20" y="99" width="450" height="594" rx="14" fill="#fffaf0" stroke="#d9cbb1"/>
   <path d="M 20 113 Q 20 99 34 99 H 456 Q 470 99 470 113 V 160 H 20 Z" fill="#eadcc2"/>
   <text x="40" y="135" font-size="16" font-weight="750" fill="#1f1e1b">Mendelian disease</text>
-  <a href="https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits" target="_blank">
-    <rect x="292" y="115" width="60" height="29" rx="14.5" fill="#fcfaf5" stroke="#d0c3aa"/>
-    <text x="322" y="134" font-size="10" font-weight="750" text-anchor="middle" fill="#2f6f63">HF 🤗</text>
-  </a>
-  <a href="https://openathena.ai/marin-dna/leaderboards/mendelian" target="_blank">
-    <rect x="358" y="115" width="92" height="29" rx="14.5" fill="#fcfaf5" stroke="#d0c3aa"/>
-    <text x="404" y="134" font-size="9.5" font-weight="750" text-anchor="middle" fill="#2f6f63">Leaderboard 🏆</text>
-  </a>
 
   <text x="40" y="174" font-size="11" font-weight="750" letter-spacing="0.8" fill="#8a7d68">CLINICAL EVIDENCE</text>
   <text x="450" y="174" font-size="10" font-weight="650" text-anchor="end" fill="#8a7d68">TraitGym-inspired</text>
@@ -60,12 +52,12 @@
 
   <!-- Mendelian bars: one shared total-count scale; dark:tint = 1:9 matching. -->
   <g font-size="10.5" fill="#1f1e1b">
-    <text x="42" y="408">missense</text>
+    <text x="42" y="408">Missense</text>
     <rect x="162" y="396" width="22" height="14" rx="2" fill="#9c4f2f"/>
     <rect x="184" y="396" width="198" height="14" rx="2" fill="#9c4f2f" fill-opacity="0.22"/>
     <text x="436" y="408" text-anchor="end">10,000</text>
 
-    <text x="42" y="430">splicing</text>
+    <text x="42" y="430">Splicing</text>
     <rect x="162" y="418" width="12" height="14" rx="2" fill="#9c4f2f"/>
     <rect x="174" y="418" width="109" height="14" rx="2" fill="#9c4f2f" fill-opacity="0.22"/>
     <text x="436" y="430" text-anchor="end">5,500</text>
@@ -75,7 +67,7 @@
     <rect x="168" y="440" width="61" height="14" rx="2" fill="#2f6f63" fill-opacity="0.22"/>
     <text x="436" y="452" text-anchor="end">3,050</text>
 
-    <text x="42" y="474">TSS proximal</text>
+    <text x="42" y="474">Promoter</text>
     <rect x="162" y="462" width="6" height="14" rx="2" fill="#2f6f63"/>
     <rect x="168" y="462" width="54" height="14" rx="2" fill="#2f6f63" fill-opacity="0.22"/>
     <text x="436" y="474" text-anchor="end">2,700</text>
@@ -90,12 +82,12 @@
     <rect x="165" y="506" width="21" height="14" rx="2" fill="#c0883a" fill-opacity="0.22"/>
     <text x="436" y="518" text-anchor="end">1,100</text>
 
-    <text x="42" y="540">distal</text>
+    <text x="42" y="540">Distal</text>
     <rect x="162" y="528" width="3" height="14" rx="2" fill="#6f7d3f"/>
     <rect x="165" y="528" width="19" height="14" rx="2" fill="#6f7d3f" fill-opacity="0.22"/>
     <text x="436" y="540" text-anchor="end">990</text>
 
-    <text x="42" y="562">synonymous</text>
+    <text x="42" y="562">Synonymous</text>
     <rect x="162" y="550" width="2" height="14" rx="2" fill="#9c4f2f"/>
     <rect x="164" y="550" width="13" height="14" rx="2" fill="#9c4f2f" fill-opacity="0.22"/>
     <text x="436" y="562" text-anchor="end">650</text>
@@ -113,21 +105,13 @@
   <rect x="490" y="99" width="450" height="594" rx="14" fill="#fffaf0" stroke="#d9cbb1"/>
   <path d="M 490 113 Q 490 99 504 99 H 926 Q 940 99 940 113 V 160 H 490 Z" fill="#dce6df"/>
   <text x="510" y="135" font-size="16" font-weight="750" fill="#1f1e1b">Saturation genome editing</text>
-  <a href="https://huggingface.co/datasets/bolinas-dna/evals_sge" target="_blank">
-    <rect x="762" y="115" width="60" height="29" rx="14.5" fill="#fcfaf5" stroke="#b9d2ca"/>
-    <text x="792" y="134" font-size="10" font-weight="750" text-anchor="middle" fill="#2f6f63">HF 🤗</text>
-  </a>
-  <a href="https://openathena.ai/marin-dna/leaderboards/sge" target="_blank">
-    <rect x="828" y="115" width="92" height="29" rx="14.5" fill="#fcfaf5" stroke="#b9d2ca"/>
-    <text x="874" y="134" font-size="9.5" font-weight="750" text-anchor="middle" fill="#2f6f63">Leaderboard 🏆</text>
-  </a>
 
   <text x="510" y="174" font-size="11" font-weight="750" letter-spacing="0.8" fill="#8a7d68">EXPERIMENTAL EVIDENCE</text>
   <text x="920" y="174" font-size="10" font-weight="650" text-anchor="end" fill="#8a7d68">MaveDB · 11 studies</text>
   <rect x="510" y="186" width="410" height="86" rx="10" fill="#fcfaf5" stroke="#d4e0db"/>
   <text x="526" y="211" font-size="12.5" font-weight="750" fill="#1f1e1b">CRISPR-HDR variant library</text>
   <text x="526" y="234" font-size="10.5" fill="#5f574b">cell fitness / proliferation → continuous function score</text>
-  <text x="526" y="255" font-size="10" fill="#8a7d68">Only missense + near-exon splicing retained</text>
+  <text x="526" y="255" font-size="10" fill="#8a7d68">Only Missense + near-exon Splicing retained</text>
 
   <line x1="715" y1="274" x2="715" y2="287" stroke="#8a7d68" stroke-width="1.5" marker-end="url(#arrow)"/>
   <rect x="510" y="292" width="410" height="68" rx="10" fill="#eaf1ed" stroke="#c8dbd4"/>
@@ -138,14 +122,14 @@
   <text x="920" y="382" font-size="9.5" text-anchor="end" fill="#8a7d68">dark = abnormal · tint = normal</text>
 
   <!-- SGE bars use one shared total-count scale. -->
-  <text x="510" y="412" font-size="11.5" font-weight="750" fill="#1f1e1b">missense</text>
+  <text x="510" y="412" font-size="11.5" font-weight="750" fill="#1f1e1b">Missense</text>
   <text x="920" y="412" font-size="10.5" text-anchor="end" fill="#1f1e1b">31,316 total</text>
   <rect x="615" y="398" width="31" height="18" rx="3" fill="#9c4f2f"/>
   <rect x="646" y="398" width="199" height="18" rx="3" fill="#9c4f2f" fill-opacity="0.22"/>
   <text x="615" y="439" font-size="10.5" fill="#9c4f2f">4,250 abnormal</text>
   <text x="740" y="439" font-size="10.5" fill="#7a6f5f">27,066 normal</text>
 
-  <text x="510" y="482" font-size="11.5" font-weight="750" fill="#1f1e1b">splicing</text>
+  <text x="510" y="482" font-size="11.5" font-weight="750" fill="#1f1e1b">Splicing</text>
   <text x="920" y="482" font-size="10.5" text-anchor="end" fill="#1f1e1b">7,425 total</text>
   <rect x="615" y="468" width="6" height="18" rx="3" fill="#9c4f2f"/>
   <rect x="621" y="468" width="51" height="18" rx="3" fill="#9c4f2f" fill-opacity="0.22"/>
