@@ -34,6 +34,57 @@ app = marimo.App(width="full", app_title="MarinDNA inference and VEP")
 
 @app.cell
 def _():
+    from importlib import invalidate_caches as _invalidate_caches
+    from importlib.util import find_spec as _find_spec
+    import subprocess as _subprocess
+    import sys as _sys
+
+    required_modules = {
+        "accelerate": "accelerate==1.13.0",
+        "datasets": "datasets==3.6.0",
+        "einops": "einops==0.8.1",
+        "fsspec": "fsspec==2025.3.0",
+        "huggingface_hub": "huggingface-hub==0.36.2",
+        "IPython": "ipython==9.15.0",
+        "jaxtyping": "jaxtyping==0.3.9",
+        "joblib": "joblib==1.5.3",
+        "logomaker": "logomaker==0.8.7",
+        "matplotlib": "matplotlib==3.10.8",
+        "numpy": "numpy==2.4.3",
+        "pandas": "pandas==2.3.3",
+        "pyfaidx": "pyfaidx==0.9.0.4",
+        "s3fs": "s3fs==2025.3.0",
+        "sklearn": "scikit-learn==1.8.0",
+        "seaborn": "seaborn==0.13.2",
+        "transformers": "transformers==4.57.6",
+        "umap": "umap-learn==0.5.12",
+    }
+    missing_requirements = [
+        requirement
+        for module, requirement in required_modules.items()
+        if _find_spec(module) is None
+    ]
+    if missing_requirements:
+        _subprocess.run(
+            [
+                _sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                *missing_requirements,
+            ],
+            check=True,
+        )
+        _invalidate_caches()
+
+    assert all(_find_spec(module) is not None for module in required_modules)
+    runtime_dependencies_ready = True
+    return runtime_dependencies_ready
+
+
+@app.cell
+def _(runtime_dependencies_ready):
     import importlib
     import importlib.util
     import os
@@ -42,6 +93,8 @@ def _():
     import sys
     from functools import cache
     from pathlib import Path
+
+    assert runtime_dependencies_ready
 
     import joblib
     import logomaker
@@ -60,7 +113,15 @@ def _():
     # The notebook is self-contained when opened from a commit-pinned GitHub URL.
     # Install only MarinDNA itself here; every runtime dependency is pinned above.
     SOURCE_REVISION = "8bf15b6707e495987c16b62bcd4ef93618ffb134"
-    revision_marker = Path(sys.prefix) / ".marin_dna-issue409-source-revision"
+    NOTEBOOK_REVISION = "05fa583f13c59a7b3ff000473ee57c862af5950e"
+    revision_marker = (
+        Path.home()
+        / ".cache"
+        / "marin_dna"
+        / "model_inference_and_vep"
+        / "source-revision"
+    )
+    revision_marker.parent.mkdir(parents=True, exist_ok=True)
     installed_revision = (
         revision_marker.read_text(encoding="utf-8").strip()
         if revision_marker.exists()
@@ -71,17 +132,20 @@ def _():
         or installed_revision != SOURCE_REVISION
     ):
         uv_executable = shutil.which("uv")
-        if uv_executable is None:
-            raise RuntimeError(
-                "Installing the commit-pinned MarinDNA package requires `uv` on PATH."
-            )
-        subprocess.run(
+        install_command = (
             [
                 uv_executable,
                 "pip",
                 "install",
                 "--python",
                 sys.executable,
+            ]
+            if uv_executable is not None
+            else [sys.executable, "-m", "pip", "install"]
+        )
+        subprocess.run(
+            [
+                *install_command,
                 "--no-deps",
                 "--reinstall",
                 (f"git+https://github.com/Open-Athena/marin-dna.git@{SOURCE_REVISION}"),
@@ -109,6 +173,7 @@ def _():
         Dataset,
         Genome,
         NUCLEOTIDES,
+        NOTEBOOK_REVISION,
         Path,
         SOURCE_REVISION,
         StandardScaler,
@@ -136,7 +201,7 @@ def _():
 
 
 @app.cell
-def _(SOURCE_REVISION):
+def _(NOTEBOOK_REVISION):
     MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
     MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
     MODEL_DOWNLOAD_BYTES = 4_483_112_944
@@ -159,7 +224,7 @@ def _(SOURCE_REVISION):
     VEP_EVAL_ACCUMULATION_STEPS = 1
     SOURCE_URL = (
         "https://github.com/Open-Athena/marin-dna/blob/"
-        f"{SOURCE_REVISION}/examples/model_inference_and_vep.py"
+        f"{NOTEBOOK_REVISION}/examples/model_inference_and_vep.py"
     )
     return (
         CONTEXT_SIZE,
@@ -763,7 +828,7 @@ def _(mo):
                 This is the expensive execution boundary. The raw bundle is cached
                 outside the repository and keyed by model revision, dataset
                 revision, reference, context, strand/embedding options, batching,
-                and MarinDNA source revision. Editing plots or metrics downstream
+                and notebook/source revisions. Editing plots or metrics downstream
                 does not rerun model forwards.
                 """
             ),
@@ -779,6 +844,7 @@ def _(
     DATASET_REVISION,
     MODEL_ID,
     MODEL_REVISION,
+    NOTEBOOK_REVISION,
     Path,
     REFERENCE_FASTA,
     SOURCE_REVISION,
@@ -796,6 +862,7 @@ def _(
     )
     score_cache = joblib.Memory(cache_root, verbose=0)
     vep_cache_key = (
+        NOTEBOOK_REVISION,
         SOURCE_REVISION,
         MODEL_ID,
         MODEL_REVISION,
