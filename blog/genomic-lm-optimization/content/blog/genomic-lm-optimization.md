@@ -48,7 +48,7 @@ summary: "How MarinDNA combined data curation, hyperparameter transfer, scaling,
 }
 </style>
 
-MarinDNA applies the tools and open-development approach of [Marin](https://marin.community/) to genomic language modeling. This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~1,500× faster.
+MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling. This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~1,500× faster.
 
 > **A note on open development.** MarinDNA is developed in the open. This post turns a branching research process into a linear narrative; the [MarinDNA repository](https://github.com/Open-Athena/marin-dna) preserves the underlying experiments—including unsuccessful and inconclusive directions—through GitHub issues and experiment branches. It should be read as a guide to that evolving record rather than as a conventional paper or final account.
 
@@ -62,11 +62,11 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species.
 Unlabeled DNA sequence, by contrast, is available for a rapidly growing number of species.
-Alignment-free, or single-sequence, gLMs can learn directly from this growing collection of genomes for applications including evolutionary constraint prediction, sequence design, and transfer learning.
+Alignment-free gLMs—also called single-sequence gLMs—can be trained directly on this growing collection of genomes and applied to evolutionary constraint prediction, sequence design, and transfer learning.
 
 For humans and other well-studied species, single-sequence gLMs are still far from replacing alignment-based models or models supervised with functional-genomics data.
 Our near-term goal is to build useful models for species that lack high-quality whole-genome alignments and functional-genomics data.
-As a concrete example, we would like to provide a map of sequence constraint for every mammalian genome.[^constraint-map-every-genome]
+As a concrete example, we aim to enable accurate, cost-effective genome-wide mapping of evolutionary constraint for any mammalian species.[^constraint-map-every-genome]
 Longer term, sequence-only models may learn from sequence in ways that complement alignments, conservation scores, and functional-genomics models even in data-rich species ([research question #396](https://github.com/Open-Athena/marin-dna/issues/396)).
 
 [^constraint-map-every-genome]: Zoonomia illustrates the gap between having an alignment and having a ready-to-use constraint track for each mammalian genome.
@@ -86,7 +86,7 @@ Second, Evo 2 improved substantially with scale overall but still struggled on d
 
 MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include ([research question #394](https://github.com/Open-Athena/marin-dna/issues/394)), which functional regions to sample and how to identify them ([research question #395](https://github.com/Open-Athena/marin-dna/issues/395)), how to weight them, and when during training to introduce them.
 
-[^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), and [Evo 2](https://doi.org/10.1038/s41586-026-10176-5).
+[^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), [Evo 2](https://doi.org/10.1038/s41586-026-10176-5), and [ARSENAL](https://doi.org/10.64898/2026.02.05.703637).
 
 We began with annotation-derived datasets for coding, upstream, and downstream sequences.[^training-downstream]
 Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
@@ -99,7 +99,7 @@ Because comparable annotations were not directly available across the target spe
 <figcaption><strong>Figure 1:</strong> Dataset provenance and token counts for each sequence type.</figcaption>
 </figure>
 
-[^training-downstream]: “Downstream” denotes the 256 bp immediately downstream of each annotated CDS end, rather than annotated 3′ UTR intervals. In [experiment #53](https://github.com/Open-Athena/marin-dna/issues/53), this distance-based definition produced better 3′ UTR VEP performance than the annotation-derived baseline, suggesting the smaller, more conserved proxy was preferable.
+[^training-downstream]: “Downstream” denotes the 256 bp immediately downstream of each annotated CDS end, rather than annotated 3′ UTR intervals. In [experiment #53](https://github.com/Open-Athena/marin-dna/issues/53), this distance-based definition produced better 3′ UTR VEP performance than the annotation-derived baseline.
 
 [^training-ncrna]: Most species had ncRNA annotations, but in [experiment #43](https://github.com/Open-Athena/marin-dna/issues/43), an annotation-derived ncRNA specialist showed little improvement on ncRNA variants. This motivated the later use of human annotations projected through whole-genome alignments.
 
@@ -107,9 +107,9 @@ Because comparable annotations were not directly available across the target spe
 
 ### Why GPT-style architecture?
 
-By GPT-style, we mean the dumb approach of training a stock causal, autoregressive, decoder-only language-model architecture on DNA that we pretend is text. In these experiments, that architecture is literally Qwen3 rather than a genomics-specific design. This approach is not new; a substantial line of prior gLM work has used causal language modeling with GPT- or Llama-like architectures.[^causal-glm-precedent] What is new here is the quality target. Even recent models in this family, such as Carbon, generally aim for non-inferiority to smaller Evo 2 checkpoints and still underperform Evo 2 40B on the broad zero-shot VEP setting we care about.[^carbon-eval] If the quality gap can be closed, GPT-style models have obvious advantages for deployment. They run through familiar training and inference stacks, move cleanly across hardware, and avoid model-specific kernels or bespoke architecture code, which matters a lot for cost, flexibility, and usability.
+By GPT-style, we mean the deliberately simple approach of treating DNA as text and training a stock causal, autoregressive, decoder-only language model on it. In these experiments, that architecture is literally Qwen3 rather than a genomics-specific design. This approach is not new; a substantial line of prior gLM work has used causal language modeling with GPT- or Llama-like architectures.[^causal-glm-precedent] What is new here is the quality target. Even recent models in this family, such as Carbon, generally aim for non-inferiority to smaller Evo 2 checkpoints and still underperform Evo 2 40B on the broad zero-shot VEP setting we care about.[^carbon-eval] If the quality gap can be closed, GPT-style models have obvious advantages for deployment. They run through familiar training and inference stacks, move cleanly across hardware, and avoid model-specific kernels or bespoke architecture code, which matters a lot for cost, flexibility, and usability.
 
-MarinDNA's first experiment compared masked language modeling, causal language modeling, and masked diffusion on promoter sequence ([experiment #3](https://github.com/Open-Athena/marin-dna/issues/3)).
+MarinDNA's first experiment compared three training objectives on promoter sequences: causal language modeling, masked language modeling, and masked diffusion ([experiment #3](https://github.com/Open-Athena/marin-dna/issues/3)).
 Causal language modeling looked most promising in the initial training steps.
 This was not a definitive matched-compute comparison of objectives, but it provided enough direction-setting evidence to pursue a simple causal architecture.
 That choice also need not permanently constrain the model to left-to-right representations: decoder-only language models can be adapted into bidirectional encoders with further training ([research question #393](https://github.com/Open-Athena/marin-dna/issues/393)).
@@ -118,10 +118,10 @@ That choice also need not permanently constrain the model to left-to-right repre
 
 [^carbon-eval]: The [Carbon-3B model card](https://huggingface.co/HuggingFaceBio/Carbon-3B) describes Carbon-3B as a 3B-parameter decoder-only autoregressive genomic model implemented as a stock `LlamaForCausalLM`, with 6-mer DNA tokenization, long-context support, and a two-stage training schedule that switches from a standard cross-entropy objective to a factorized nucleotide supervision loss, bridging its coarse 6-mer tokenization with single-nucleotide resolution. Its public zero-shot table compares to Evo 2 7B, not Evo 2 40B: Carbon-3B is slightly ahead on BRCA2 and ClinVar noncoding, but behind on ClinVar coding and TraitGym Mendelian.
 
-Our first goal is to model individual functional elements of the genome—such as an exon or an enhancer—well.
-We therefore deliberately use a short 255-bp context: it was sufficient for the functional-element tasks we tested while making training and evaluation much faster.
-Centering each example on an individual functional element also makes the training data easier to construct, filter, audit, and interpret.
-We leave to future work how best to extend context, either through additional long-context next-token pretraining or directly during downstream-task fine-tuning ([research question #392](https://github.com/Open-Athena/marin-dna/issues/392)).
+Our initial goal was to model individual functional elements of the genome—such as an exon or an enhancer—well.
+We therefore deliberately used a short 255-bp context: it was sufficient for the functional-element tasks we tested and made training and evaluation much faster.
+Centering each example on an individual functional element also made the training data easier to construct, filter, audit, and interpret.
+How best to extend context—either through additional long-context next-token pretraining or during downstream-task fine-tuning—remains future work ([research question #392](https://github.com/Open-Athena/marin-dna/issues/392)).
 
 ### Why VEP evaluation?
 
@@ -134,7 +134,7 @@ VEP is also one of the few evaluations backed by decades of costly clinical gene
 That combination makes it a substantive test of whether a gLM has learned sequence constraints that actually matter for human biology.
 If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is weak or nonexistent.
 
-This creates a deliberate mismatch between evaluation and intended use: although we expect gLMs to be especially valuable for non-model organisms in the near term, we evaluate them in humans because comparable variant-effect data are not yet available across species.
+This creates a deliberate mismatch between evaluation and intended use: although we expect single-sequence gLMs to be especially valuable for non-model organisms in the near term, we evaluate them in humans because comparable variant-effect data are not yet available across species.
 Human VEP is therefore the most rigorous available test of learned functional constraint, but it does not by itself establish transfer to other organisms; evaluating that transfer will require broader population-genetic or experimental datasets.
 
 In this work, we focus on predicting deleteriousness, pathogenicity, or, more generally, functional constraint.
@@ -190,7 +190,7 @@ We first trained a 1.7B upstream-region specialist, trying to replicate the succ
 <!-- Plot recipe: plots/blog/promoter_cds_specialists.py -->
 <figure id="fig-upstream-cds-specialists">
 <img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
-<figcaption><strong>Figure 4:</strong> Region-matched Mendelian VEP AUPRC (%) under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR). Promoter denotes the TSS-proximal subset; each panel has an independent y-axis beginning at the 10% prevalence baseline, so compare models only within a panel. Error bars denote SE.</figcaption>
+<figcaption><strong>Figure 4:</strong> Region-matched Mendelian VEP AUPRC (%) under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR). Error bars denote SE.</figcaption>
 </figure>
 
 After testing upstream and CDS specialists independently, the next experiment asked whether one model could retain both capabilities ([experiment #13](https://github.com/Open-Athena/marin-dna/issues/13)).
@@ -298,12 +298,12 @@ The final sweep shows a mostly consistent relationship between parameter count a
 <figcaption><strong>Figure 12:</strong> VEP performance across the parameter-scaling ladder, comparing zero-shot LLR with a frozen-embedding linear probe on identical variants. Performance is measured as chromosome-weighted AUPRC (%); facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
-Plotting the same results against matched-region validation log likelihood gives the same picture. Better validation log likelihood is associated with better downstream performance across the other variant types and scoring protocols. Zero-shot Mendelian missense again points in the opposite direction: performance declines even as validation log likelihood improves.
+Plotting the same results against matched-region validation log-likelihood gives the same picture. Better validation log-likelihood is associated with better downstream performance across the other variant types and scoring protocols. Zero-shot Mendelian missense again points in the opposite direction: performance declines even as validation log-likelihood improves.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py -->
 <figure id="fig-loss-vs-vep">
-<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance versus matched-region validation log likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
-<figcaption><strong>Figure 13:</strong> VEP performance versus matched-region validation log likelihood (LL; shown as −loss) across the eight parameter-scaling endpoints. Performance is measured as chromosome-weighted AUPRC (%). Lines are least-squares fits, and <em>r</em> denotes Pearson correlation; facet axes vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
+<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance versus matched-region validation log-likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figcaption><strong>Figure 13:</strong> VEP performance versus matched-region validation log-likelihood (LL; shown as −loss) across the eight parameter-scaling endpoints. Performance is measured as chromosome-weighted AUPRC (%). Lines are least-squares fits, and <em>r</em> denotes Pearson correlation; facet axes vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 This divergence is not unique to MarinDNA. On the same Mendelian missense benchmark, Evo 2 also shows improving linear-probe performance alongside declining zero-shot LLR performance as model size increases. For now, this should be interpreted as a recurring pattern for Mendelian missense across these two model families—not as evidence that zero-shot readouts generally deteriorate with scale. It also cautions against using zero-shot LLR alone to judge whether scaling has improved the learned representations for this task.
@@ -339,7 +339,7 @@ We compare this staged history with two lineages trained on five-region mixtures
 
 <figure id="fig-five-region-lineage">
 <img src="/assets/images/blog/genomic-lm-optimization/continued_training_data_exposures.svg" alt="Training-data exposure histories for m5.1, m1.3, and m3.3 through a shared 166-billion-token horizon" />
-<figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA and enhancer data for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%. Same-data continuations and restarts are collapsed, so stage boundaries indicate changes in data rather than training-job boundaries.</figcaption>
+<figcaption><strong>Figure 15:</strong> Training-data exposure histories for the three recipes compared below. m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA and enhancer data for approximately 62B tokens. The de novo m1.3 and m3.3 controls keep fixed five-region mixtures over the same displayed token horizon; m3.3 gives upstream sequence 25% weight and each other region 18.75%.</figcaption>
 </figure>
 
 For m5.1, the first evaluated checkpoint after adding ncRNA and enhancer data shows gains in variant-effect performance in the corresponding ncRNA and distal subsets.
