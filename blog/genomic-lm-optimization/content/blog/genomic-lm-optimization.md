@@ -393,11 +393,9 @@ On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome a
 
 ## Conclusion
 
-> **⚠️ OUTDATED — revise before publication.**
+These experiments show how far a simple and standardized genomic modeling recipe can go. By keeping the architecture within the GPT family and iterating on data curation, training hyperparameters, model scale, and data mixtures, MarinDNA produced an alignment-free 1B model that is competitive with Evo 2 40B on Mendelian variant effect prediction while requiring far less training compute and offering much faster inference. In terms of capabilities, we next want to improve our performance on complex-trait variant effect prediction ([research question #391](https://github.com/Open-Athena/marin-dna/issues/391)).
 
-A fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a significant contribution to the field. The experiments above show how to check most of those boxes with a standard GPT-style model, though "easy-to-replicate" is still a work in progress. Many less successful attempts are not discussed here and are documented in [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
-
-There are also still important gaps. The largest technical omission is regularization, an obvious lever for data-constrained modeling. We are in an awkward regime between data-constrained and compute-constrained training, though the narrowed recipe and better infrastructure (TODO: link iris post) for using the Google TPU Research Cloud compute donated for these efforts should make that lever much easier to use. The other major gap is attribution. It is not yet clear exactly where the largest gains are coming from; data curation is almost certainly the biggest contributor, and we plan to explain those details separately.
+On the training side, neither scaling nor optimization appears exhausted. Performance continued to improve through the largest model we tested, with no clear sign of saturation, making scaling beyond 1B parameters a natural next step. Regularization also remains a largely unexplored part of the training recipe and may be especially valuable in the awkward regime between data- and compute-constrained training. The narrowed recipe and [better infrastructure](https://openathena.ai/blog/cluster-scheduling-with-iris/) for using the Google TPU Research Cloud compute donated for this work should make both larger-scale runs and more systematic optimization easier to pursue.
 
 There is plenty of work left to do, but we think these results clearly show the potential value of a general-purpose training platform like Marin for accelerating scientific foundation model development.
 
