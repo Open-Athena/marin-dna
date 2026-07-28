@@ -6,6 +6,7 @@
 #     "einops==0.8.1",
 #     "fsspec==2025.3.0",
 #     "huggingface-hub==0.36.2",
+#     "ipython==9.15.0",
 #     "jaxtyping==0.3.9",
 #     "joblib==1.5.3",
 #     "logomaker==0.8.7",

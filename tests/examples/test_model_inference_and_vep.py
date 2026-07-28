@@ -25,6 +25,7 @@ def test_notebook_declares_complete_analysis_stack():
     source = NOTEBOOK.read_text(encoding="utf-8")
     for requirement in (
         "datasets==",
+        "ipython==",
         "logomaker==",
         "marimo==",
         "s3fs==",
