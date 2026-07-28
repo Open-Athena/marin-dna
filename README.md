@@ -23,6 +23,18 @@ Tracked as GitHub issues under a two-axis label taxonomy — **Type** (the kind 
 
 Variant effect prediction leaderboards (under construction): [openathena.ai/marin-dna](https://openathena.ai/marin-dna/).
 
+## Examples
+
+- **[Inference and VEP notebook](examples/model_inference_and_vep.py):**
+  code-visible Marimo tutorial for loading a pinned MarinDNA model, inspecting
+  sequence outputs, and running zero-shot BRCA1 variant-effect prediction.
+- **[Sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app):**
+  task-focused interactive application for sequence-logo and
+  nucleotide-dependency visualizations.
+
+See [examples/README.md](examples/README.md) for the distinction, hardware
+requirements, source links, and launch instructions.
+
 ## News
 
 - **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
