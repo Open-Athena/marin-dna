@@ -2,7 +2,7 @@
 title: "Building efficient and balanced genomic language models"
 slug: "genomic-lm-optimization"
 author: "Eric Czech & Gonzalo Benegas"
-date: 2026-06-25
+date: 2026-07-28
 published: true
 math: false
 toc: true
@@ -125,7 +125,7 @@ How best to extend context—either through additional long-context next-token p
 
 ### Why VEP evaluation?
 
-Variant effect prediction (VEP) is one the most important application of gLMs.
+Variant effect prediction (VEP) is one of the most important applications of gLMs.
 A useful VEP model can help scale clinical interpretation for rare disease, hereditary cancer, and variants of uncertain significance.[^vep-clinical]
 It can also help connect genetic association signals to disease mechanisms, target selection, and causal-variant prioritization in GWAS fine-mapping.[^vep-therapeutic]
 The same kind of evidence is relevant to clinical trial design when genetics can inform patient stratification, enrollment criteria, or mechanism-based cohort definition.
@@ -318,7 +318,7 @@ This divergence is not unique to MarinDNA. On the same Mendelian missense benchm
 
 ### Later mixture experiments
 
-At this point we move away from theoretically-grounded, compute-constrained methods.
+At this point we move away from theoretically grounded, compute-constrained methods.
 The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons.
 But the actual optimization problem becomes much more ad hoc — we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
 
