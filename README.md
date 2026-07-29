@@ -28,7 +28,7 @@ Variant effect prediction leaderboards (under construction): [openathena.ai/mari
 - **[Inference and VEP notebook](examples/model_inference_and_vep.py):**
   code-visible Marimo tutorial for loading a pinned MarinDNA model, inspecting
   sequence outputs, and running zero-shot BRCA1 variant-effect prediction;
-  [open the current immutable revision on Molab](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/962858557e6a8d7f5c5998fe030c62f8e5447cec/examples/model_inference_and_vep.py).
+  [open the current immutable revision on Molab](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/1ac1acc9aef2d5979cbea41272509a0e72f2be25/examples/model_inference_and_vep.py).
 - **[Sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app):**
   task-focused interactive application for sequence-logo and
   nucleotide-dependency visualizations.
