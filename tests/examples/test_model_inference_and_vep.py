@@ -36,7 +36,6 @@ def test_notebook_declares_complete_analysis_stack():
         "seaborn==",
         "torch==",
         "transformers==",
-        "umap-learn==",
     ):
         assert f'"{requirement}' in source
 
@@ -64,15 +63,13 @@ def test_notebook_exposes_required_inference_and_vep_paths():
         "aggregate_sequence_strands(",
         "run_variant_score_bundle(",
         "rc=True",
-        "return_embeddings=True",
+        "return_embeddings=False",
         '"llr_avg"',
         '"minus_llr_avg"',
         '"official evals-v2 AUPRC"',
         '"absolute delta from official"',
         "parity_tolerance = 1e-3",
-        '"concat_ref_delta"',
-        "random_state=409",
-        "VEP_BATCH_SIZE = 64",
+        "VEP_BATCH_SIZE = 128",
         "VEP_DATALOADER_WORKERS = 4",
         "VEP_TORCH_COMPILE = True",
         '"torch_compile": VEP_TORCH_COMPILE',
@@ -104,30 +101,25 @@ def test_notebook_presents_exact_th_paper_interval_with_hidden_setup():
     assert th_panel.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def test_notebook_contains_ecdf_and_mutation_aware_embedding_diagnostics():
+def test_notebook_contains_ecdf_and_official_auprc_parity():
     source = NOTEBOOK.read_text(encoding="utf-8")
 
     for required_snippet in (
         'kind="ecdf"',
-        "snv_substitution_classes(",
-        "residualize_features_by_category(",
-        "genomic_position_regions(",
-        "neighbor_locality_summary(",
-        "len(substitution_counts) == 12",
-        "len(rc_canonical_counts) == 6",
-        "len(assayed_exon_counts) == 13",
-        '"author_experiment"',
-        '"assayed BRCA1 exon"',
-        '"after exon mean subtraction"',
-        "len(exact_site_counts) == 1_080",
-        "Independent within-substitution PCAs",
-        "Independent within-substitution UMAPs",
-        '"within-class UMAP 1"',
-        "Which half of `[reference, ALT − REF]` drives locality?",
-        "Does the `ALT − REF` geometry organize by function?",
-        "ALT − REF embedding-delta UMAP colored by functional label and subset",
-        "UMAP after subtracting each directed substitution's feature mean",
-        "Regress out the mean of each assayed exon",
-        "UMAP after subtracting each assayed exon's feature mean",
+        '"official evals-v2 AUPRC"',
+        '"official bootstrap SE"',
+        '"absolute delta from official"',
+        "parity_tolerance = 1e-3",
     ):
         assert required_snippet in source
+
+    for excluded_snippet in (
+        "umap",
+        "UMAP",
+        "PCA",
+        "variant_embedding_diagnostics",
+        "pair_feature",
+        "author_experiment",
+        "return_embeddings=True",
+    ):
+        assert excluded_snippet not in source
