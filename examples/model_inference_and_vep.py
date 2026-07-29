@@ -1550,17 +1550,28 @@ def _(
             },
         ]
     )
-    neighbor_summary = neighbor_locality_summary(
+    unadjusted_neighbor_summary = neighbor_locality_summary(
         variant_features_standardized,
         genomic_positions,
         assayed_exon,
         n_neighbors=10,
         context_size=CONTEXT_SIZE,
     )
+    exon_centered_neighbor_summary = neighbor_locality_summary(
+        exon_residual_standardized,
+        genomic_positions,
+        assayed_exon,
+        n_neighbors=10,
+        context_size=CONTEXT_SIZE,
+    )
+    assert unadjusted_neighbor_summary.keys() == exon_centered_neighbor_summary.keys()
     neighbor_locality_table = pd.DataFrame(
         {
-            "10-nearest-neighbor diagnostic": list(neighbor_summary),
-            "value": list(neighbor_summary.values()),
+            "10-nearest-neighbor diagnostic": list(unadjusted_neighbor_summary),
+            "unadjusted": list(unadjusted_neighbor_summary.values()),
+            "after exon mean subtraction": list(
+                exon_centered_neighbor_summary.values()
+            ),
         }
     )
     within_class_pca_table = pd.DataFrame(pca_summary_rows)

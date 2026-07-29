@@ -118,6 +118,7 @@ def test_notebook_contains_ecdf_and_mutation_aware_embedding_diagnostics():
         "len(assayed_exon_counts) == 13",
         '"author_experiment"',
         '"assayed BRCA1 exon"',
+        '"after exon mean subtraction"',
         "len(exact_site_counts) == 1_080",
         "Independent within-substitution PCAs",
         "Independent within-substitution UMAPs",
