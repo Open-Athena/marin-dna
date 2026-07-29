@@ -62,9 +62,12 @@ def test_notebook_exposes_required_inference_and_vep_paths():
         "align_sequence_strand_outputs(",
         "aggregate_sequence_strands(",
         "run_variant_score_bundle(",
-        "variant_score_bundle_view(raw_variant_bundle)",
+        "hidden_size=model.config.hidden_size",
         "rc=True",
-        "return_embeddings=False",
+        "return_embeddings=True",
+        "ref_embeddings",
+        "alt_embeddings",
+        "linear probing",
         '"llr_avg"',
         '"minus_llr_avg"',
         '"official evals-v2 AUPRC"',
@@ -115,12 +118,12 @@ def test_notebook_contains_ecdf_and_official_auprc_parity():
         assert required_snippet in source
 
     for excluded_snippet in (
-        "umap",
-        "UMAP",
-        "PCA",
+        "import umap",
+        "umap.UMAP(",
+        "from sklearn.decomposition import PCA",
+        "PCA(",
         "variant_embedding_diagnostics",
         "pair_feature",
         "author_experiment",
-        "return_embeddings=True",
     ):
         assert excluded_snippet not in source

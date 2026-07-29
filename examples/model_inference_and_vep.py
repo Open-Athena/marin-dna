@@ -882,7 +882,7 @@ def _(VEP_BATCH_SIZE, VEP_DATALOADER_WORKERS, VEP_TORCH_COMPILE, mo):
         f"""
         The complete VEP runs automatically. Its raw bundle is cached outside the
         repository and keyed by model revision, dataset revision, reference,
-        context, strand/scoring options, batching, and notebook/source revisions.
+        context, strand/embedding options, batching, and notebook/source revisions.
         Editing plots or metrics downstream does not rerun model forwards.
 
         **Execution:** BF16 · `torch.compile={VEP_TORCH_COMPILE}` · batch size
@@ -928,7 +928,7 @@ def _(
         REFERENCE_FASTA,
         CONTEXT_SIZE,
         True,
-        False,
+        True,
         VEP_BATCH_SIZE,
         VEP_DATALOADER_WORKERS,
         VEP_TORCH_COMPILE,
@@ -951,7 +951,7 @@ def _(
             genome,
             CONTEXT_SIZE,
             rc=True,
-            return_embeddings=False,
+            return_embeddings=True,
             data_transform_on_the_fly=True,
             inference_kwargs={
                 "per_device_eval_batch_size": VEP_BATCH_SIZE,
@@ -988,9 +988,12 @@ def _(
         dataset=scoring_dataset,
         genome=genome,
     )
-    bundle_view = variant_score_bundle_view(raw_variant_bundle)
-    assert bundle_view.ref_embeddings is None
-    assert bundle_view.alt_embeddings is None
+    bundle_view = variant_score_bundle_view(
+        raw_variant_bundle,
+        hidden_size=model.config.hidden_size,
+    )
+    assert bundle_view.ref_embeddings is not None
+    assert bundle_view.alt_embeddings is not None
     variant_scores = bundle_view.scores.copy()
     variant_scores["llr_avg"] = (
         variant_scores["llr_fwd"] + variant_scores["llr_rc"]
@@ -1003,14 +1006,20 @@ def _(
         [scoring_frame.reset_index(drop=True), variant_scores],
         axis=1,
     )
+    ref_embeddings = bundle_view.ref_embeddings
+    alt_embeddings = bundle_view.alt_embeddings
     assert len(variant_results) == len(scoring_frame)
     assert np.array_equal(
         variant_results["row_id"].to_numpy(),
         np.arange(len(variant_results), dtype=np.int64),
     )
+    assert ref_embeddings.shape == alt_embeddings.shape
+    assert ref_embeddings.shape == (len(variant_results), model.config.hidden_size)
     assert np.isfinite(variant_scores.to_numpy()).all()
+    assert np.isfinite(ref_embeddings).all()
+    assert np.isfinite(alt_embeddings).all()
     peak_vram_gib = torch.cuda.max_memory_allocated() / 2**30
-    return peak_vram_gib, variant_results
+    return alt_embeddings, peak_vram_gib, ref_embeddings, variant_results
 
 
 @app.cell
@@ -1021,6 +1030,11 @@ def _(mo, peak_vram_gib, variant_results):
             **VEP bundle ready:** {len(variant_results):,} rows in original order ·
             raw `llr_fwd`, `llr_rc`, `jsd_fwd`, and `jsd_rc` retained ·
             peak allocated VRAM observed for this execution: **{peak_vram_gib:.2f} GiB**.
+
+            The FWD/RC-averaged `ref_embeddings` and `alt_embeddings` arrays
+            are also available with shape `{(len(variant_results), 1_920)}` for
+            downstream analyses such as linear probing. This tutorial returns
+            them but deliberately does not apply PCA or UMAP.
 
             `LLR = log P(ALT) - log P(REF)` is a summed log-likelihood ratio in
             **nats** over the variant and downstream causal predictions in the
@@ -1155,10 +1169,9 @@ def _(SOURCE_REVISION, average_precision_score, mo, pd, variant_results):
                     embedding-bearing score artifact using the
                     [`minus_llr_avg` transform and SGE aggregation](
                     https://github.com/Open-Athena/marin-dna/blob/{SOURCE_REVISION}/snakemake/analysis/evals_v2/workflow/rules/metrics.smk#L42-L86).
-                    Its eager embedding extraction and this compiled, score-only,
-                    batch-128 notebook can perturb BF16 reductions and a few
-                    near-tied ranks; the point estimates nevertheless agree to
-                    <0.001.
+                    Its eager embedding extraction and this compiled, batch-128
+                    notebook can perturb BF16 reductions and a few near-tied
+                    ranks; the point estimates nevertheless agree to <0.001.
                     """
                 ),
                 kind="success",
