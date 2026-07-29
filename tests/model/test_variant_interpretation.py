@@ -66,6 +66,26 @@ def test_variant_score_bundle_view_handles_forward_only_scores():
     assert view.alt_embeddings is None
 
 
+def test_variant_score_bundle_view_handles_both_strands_without_embeddings():
+    fwd = np.array([[1.0, 0.1], [2.0, 0.2]], dtype=np.float32)
+    rc = np.array([[-1.0, 0.3], [-2.0, 0.4]], dtype=np.float32)
+
+    view = variant_score_bundle_view({"fwd": fwd, "rc": rc})
+
+    assert list(view.scores.columns) == [
+        "llr_fwd",
+        "jsd_fwd",
+        "llr_rc",
+        "jsd_rc",
+    ]
+    np.testing.assert_array_equal(view.scores["llr_fwd"], fwd[:, 0])
+    np.testing.assert_array_equal(view.scores["jsd_fwd"], fwd[:, 1])
+    np.testing.assert_array_equal(view.scores["llr_rc"], rc[:, 0])
+    np.testing.assert_array_equal(view.scores["jsd_rc"], rc[:, 1])
+    assert view.ref_embeddings is None
+    assert view.alt_embeddings is None
+
+
 @pytest.mark.parametrize(
     ("results", "hidden_size", "message"),
     [

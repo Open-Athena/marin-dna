@@ -988,10 +988,7 @@ def _(
         dataset=scoring_dataset,
         genome=genome,
     )
-    bundle_view = variant_score_bundle_view(
-        raw_variant_bundle,
-        hidden_size=model.config.hidden_size,
-    )
+    bundle_view = variant_score_bundle_view(raw_variant_bundle)
     assert bundle_view.ref_embeddings is None
     assert bundle_view.alt_embeddings is None
     variant_scores = bundle_view.scores.copy()

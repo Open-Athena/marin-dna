@@ -62,6 +62,7 @@ def test_notebook_exposes_required_inference_and_vep_paths():
         "align_sequence_strand_outputs(",
         "aggregate_sequence_strands(",
         "run_variant_score_bundle(",
+        "variant_score_bundle_view(raw_variant_bundle)",
         "rc=True",
         "return_embeddings=False",
         '"llr_avg"',
