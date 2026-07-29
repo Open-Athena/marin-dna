@@ -239,8 +239,9 @@ def _(NOTEBOOK_REVISION):
         "CCGCAGGGCCGTGTCTGAGCTGGACGCCAAGCAGGCAGAGGCCATCATGGTAAGAGGGCAGGT"
     )
     CONTEXT_SIZE = 255
-    VEP_BATCH_SIZE = 32
-    VEP_EVAL_ACCUMULATION_STEPS = 1
+    VEP_BATCH_SIZE = 64
+    VEP_DATALOADER_WORKERS = 4
+    VEP_TORCH_COMPILE = True
     SOURCE_URL = (
         "https://github.com/Open-Athena/marin-dna/blob/"
         f"{NOTEBOOK_REVISION}/examples/model_inference_and_vep.py"
@@ -262,7 +263,8 @@ def _(NOTEBOOK_REVISION):
         TH_START,
         TH_STRAND,
         VEP_BATCH_SIZE,
-        VEP_EVAL_ACCUMULATION_STEPS,
+        VEP_DATALOADER_WORKERS,
+        VEP_TORCH_COMPILE,
     )
 
 
@@ -831,7 +833,7 @@ def _(DATASET_ID, DATASET_REVISION, brca1_frame, mo):
 
 
 @app.cell
-def _(mo):
+def _(VEP_BATCH_SIZE, VEP_DATALOADER_WORKERS, VEP_TORCH_COMPILE, mo):
     run_vep = mo.ui.run_button(
         label="Run or load cached BRCA1 VEP",
         tooltip=(
@@ -843,12 +845,16 @@ def _(mo):
         [
             run_vep,
             mo.md(
-                """
+                f"""
                 This is the expensive execution boundary. The raw bundle is cached
                 outside the repository and keyed by model revision, dataset
                 revision, reference, context, strand/embedding options, batching,
                 and notebook/source revisions. Editing plots or metrics downstream
                 does not rerun model forwards.
+
+                **Execution:** BF16 · `torch.compile={VEP_TORCH_COMPILE}` · batch
+                size `{VEP_BATCH_SIZE}` · `{VEP_DATALOADER_WORKERS}` data-loader
+                workers · no evaluation accumulation barrier.
                 """
             ),
         ]
@@ -868,7 +874,8 @@ def _(
     REFERENCE_FASTA,
     SOURCE_REVISION,
     VEP_BATCH_SIZE,
-    VEP_EVAL_ACCUMULATION_STEPS,
+    VEP_DATALOADER_WORKERS,
+    VEP_TORCH_COMPILE,
     joblib,
     os,
     run_variant_score_bundle,
@@ -892,8 +899,8 @@ def _(
         True,
         True,
         VEP_BATCH_SIZE,
-        VEP_EVAL_ACCUMULATION_STEPS,
-        False,
+        VEP_DATALOADER_WORKERS,
+        VEP_TORCH_COMPILE,
     )
 
     @score_cache.cache(ignore=["model", "tokenizer", "dataset", "genome"])
@@ -918,10 +925,9 @@ def _(
             inference_kwargs={
                 "per_device_eval_batch_size": VEP_BATCH_SIZE,
                 "bf16_full_eval": True,
-                "torch_compile": False,
-                "dataloader_num_workers": 0,
+                "torch_compile": VEP_TORCH_COMPILE,
+                "dataloader_num_workers": VEP_DATALOADER_WORKERS,
                 "remove_unused_columns": False,
-                "eval_accumulation_steps": VEP_EVAL_ACCUMULATION_STEPS,
                 "report_to": [],
             },
         )

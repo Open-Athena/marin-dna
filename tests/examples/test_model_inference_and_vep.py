@@ -69,6 +69,12 @@ def test_notebook_exposes_required_inference_and_vep_paths():
         '"minus_llr_avg"',
         '"concat_ref_delta"',
         "random_state=409",
+        "VEP_BATCH_SIZE = 64",
+        "VEP_DATALOADER_WORKERS = 4",
+        "VEP_TORCH_COMPILE = True",
+        '"torch_compile": VEP_TORCH_COMPILE',
+        '"dataloader_num_workers": VEP_DATALOADER_WORKERS',
         'genome("chr17", int(pos) - 1, int(pos))',
     ):
         assert required_snippet in source
+    assert "eval_accumulation_steps" not in source
