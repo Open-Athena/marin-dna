@@ -560,6 +560,16 @@ def _repeat_interleave_kv_cache(past_kv: Any, n: int) -> Any:
 
     Mutates an input ``Cache`` in place — caller doesn't reuse the original.
     """
+    assert n >= 1
+
+    # Current Transformers cache objects expose a public batch operation. Use it
+    # before inspecting version-specific storage: Transformers 4.57 stores layers
+    # under ``.layers``, older releases use ``.key_cache``/``.value_cache``, and
+    # treating either cache object as a legacy iterable is not portable.
+    if hasattr(past_kv, "batch_repeat_interleave"):
+        past_kv.batch_repeat_interleave(n)
+        return past_kv
+
     if hasattr(past_kv, "key_cache") and hasattr(past_kv, "value_cache"):
         for i in range(len(past_kv.key_cache)):
             past_kv.key_cache[i] = past_kv.key_cache[i].repeat_interleave(n, dim=0)

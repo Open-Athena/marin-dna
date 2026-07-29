@@ -20,6 +20,7 @@ from types import SimpleNamespace
 
 import datasets
 import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -40,6 +41,7 @@ from marin_dna.model.runner import (
 )
 from marin_dna.model.scoring import (
     _logits_to_logprobs,
+    _repeat_interleave_kv_cache,
     _token_id_to_nuc_idx,
     compute_ll_clm,
     compute_marginal_clm,
@@ -458,6 +460,44 @@ class _DeterministicCausalLM(nn.Module):
             v = torch.zeros(B, 1, L, 1)
             out.past_key_values = ((k, v),)
         return out
+
+
+class _ModernCacheDouble:
+    """Cache object whose public batch API must be used instead of iteration."""
+
+    def __init__(self, keys: Tensor, values: Tensor):
+        self.keys = keys
+        self.values = values
+        self.repeat_calls: list[int] = []
+
+    def batch_repeat_interleave(self, repeats: int) -> None:
+        self.repeat_calls.append(repeats)
+        self.keys = self.keys.repeat_interleave(repeats, dim=0)
+        self.values = self.values.repeat_interleave(repeats, dim=0)
+
+    def __iter__(self):
+        raise AssertionError(
+            "modern cache objects must not be treated as legacy tuples"
+        )
+
+
+def test_repeat_interleave_kv_cache_uses_public_batch_api():
+    keys = torch.arange(12).reshape(2, 1, 3, 2)
+    values = keys + 100
+    cache = _ModernCacheDouble(keys.clone(), values.clone())
+
+    repeated = _repeat_interleave_kv_cache(cache, 3)
+
+    assert repeated is cache
+    assert cache.repeat_calls == [3]
+    torch.testing.assert_close(cache.keys, keys.repeat_interleave(3, dim=0))
+    torch.testing.assert_close(cache.values, values.repeat_interleave(3, dim=0))
+
+
+def test_repeat_interleave_kv_cache_rejects_nonpositive_repeat():
+    cache = _ModernCacheDouble(torch.zeros(1, 1, 1, 1), torch.zeros(1, 1, 1, 1))
+    with pytest.raises(AssertionError):
+        _repeat_interleave_kv_cache(cache, 0)
 
 
 def test_run_variant_score_bundle_rc_returns_both_strands(tmp_path):
