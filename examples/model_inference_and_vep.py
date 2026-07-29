@@ -41,15 +41,22 @@ def _():
 
     required_modules = {
         "accelerate": "accelerate==1.13.0",
+        "aiobotocore": "aiobotocore==2.26.0",
+        "aiohttp": "aiohttp==3.14.3",
+        "aioitertools": "aioitertools==0.13.0",
+        "botocore": "botocore==1.41.5",
         "datasets": "datasets==3.6.0",
+        "dateutil": "python-dateutil==2.9.0.post0",
         "einops": "einops==0.8.1",
         "fsspec": "fsspec==2025.3.0",
         "huggingface_hub": "huggingface-hub==0.36.2",
         "IPython": "ipython==9.15.0",
         "jaxtyping": "jaxtyping==0.3.9",
         "joblib": "joblib==1.5.3",
+        "jmespath": "jmespath==1.1.0",
         "logomaker": "logomaker==0.8.7",
         "matplotlib": "matplotlib==3.10.8",
+        "multidict": "multidict==6.7.1",
         "numpy": "numpy==2.4.3",
         "pandas": "pandas==2.3.3",
         "pyfaidx": "pyfaidx==0.9.0.4",
@@ -58,6 +65,7 @@ def _():
         "seaborn": "seaborn==0.13.2",
         "transformers": "transformers==4.57.6",
         "umap": "umap-learn==0.5.12",
+        "wrapt": "wrapt==1.17.3",
     }
     missing_requirements = [
         requirement

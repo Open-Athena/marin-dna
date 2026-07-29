@@ -43,6 +43,9 @@ def test_notebook_declares_complete_analysis_stack():
 def test_notebook_bootstraps_missing_runtime_dependencies():
     source = NOTEBOOK.read_text(encoding="utf-8")
     assert "missing_requirements = [" in source
+    assert '"aiobotocore": "aiobotocore==2.26.0"' in source
+    assert '"aioitertools": "aioitertools==0.13.0"' in source
+    assert '"botocore": "botocore==1.41.5"' in source
     assert "runtime_dependencies_ready" in source
     assert "--disable-pip-version-check" in source
     assert "--no-deps" in source
