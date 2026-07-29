@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
 NOTEBOOK = Path(__file__).parents[2] / "examples" / "model_inference_and_vep.py"
+SESSION_SNAPSHOT = (
+    NOTEBOOK.parent / "__marimo__" / "session" / "model_inference_and_vep.py.json"
+)
 SOURCE_REVISION = "93654118aecf6b767f96fc1859648b2db772303c"
 NOTEBOOK_REVISION = "1ac1acc9aef2d5979cbea41272509a0e72f2be25"
 MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
@@ -127,3 +131,27 @@ def test_notebook_contains_ecdf_and_official_auprc_parity():
         "author_experiment",
     ):
         assert excluded_snippet not in source
+
+
+def test_notebook_session_snapshot_contains_complete_rendered_run():
+    session = json.loads(SESSION_SNAPSHOT.read_text(encoding="utf-8"))
+
+    assert session["version"] == "1"
+    assert session["metadata"]["marimo_version"] == "0.23.15"
+    assert len(session["cells"]) == 29
+    assert all(len(cell["outputs"]) == 1 for cell in session["cells"])
+    assert all(
+        output.get("type") != "error"
+        for cell in session["cells"]
+        for output in cell["outputs"]
+    )
+
+    rendered_session = json.dumps(session)
+    for expected_output in (
+        "VEP bundle ready:",
+        "Official evals-v2 parity:",
+        "ref_embeddings",
+        "alt_embeddings",
+        "AUPRC",
+    ):
+        assert expected_output in rendered_session

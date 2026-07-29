@@ -17,11 +17,15 @@ uv run marimo edit examples/model_inference_and_vep.py
 ```
 
 GitHub remains the source of truth. Open the
-[public code-visible Molab notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/1ac1acc9aef2d5979cbea41272509a0e72f2be25/examples/model_inference_and_vep.py)
-to inspect or execute the current committed revision. Choose **Server**,
-then **Configure compute → GPU**, before running cells. The GitHub-backed source
-preview does not store executed outputs, and WebAssembly cannot provide the
-CUDA/native PyTorch runtime this notebook requires.
+[public rendered Molab notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/7f5a000921f0fd25f84f5a5ebbb4815ecdf2a788/examples/model_inference_and_vep.py)
+to inspect the complete output of the current committed revision without
+running it. To execute or modify the notebook, choose **Server**, then
+**Configure compute → GPU**, before running cells. WebAssembly cannot provide
+the CUDA/native PyTorch runtime this notebook requires. The rendered preview is
+backed by the committed Marimo session snapshot at
+`__marimo__/session/model_inference_and_vep.py.json`; regenerate it with
+`marimo export session examples/model_inference_and_vep.py` after changing the
+notebook.
 
 ## Sequence explorer
 
