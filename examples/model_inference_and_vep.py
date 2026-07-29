@@ -1508,6 +1508,8 @@ def _(
                     "UMAP 2": block_coordinates[:, 1],
                     "feature block": block_name,
                     "BRCA1 exon": assayed_exon,
+                    "label": label_display,
+                    "subset": subset_display,
                 }
             )
             for block_name, block_coordinates in feature_block_coordinates.items()
@@ -1729,17 +1731,43 @@ def _(feature_block_umap_frame, mo, seaborn):
         "Independent UMAPs isolate the two allele-pair feature blocks",
         y=1.03,
     )
+    delta_umap_frame = feature_block_umap_frame[
+        feature_block_umap_frame["feature block"] == "ALT − REF embedding delta"
+    ]
+    assert len(delta_umap_frame) * 2 == len(feature_block_umap_frame)
+    delta_label_umap = seaborn.relplot(
+        data=delta_umap_frame,
+        x="UMAP 1",
+        y="UMAP 2",
+        hue="label",
+        style="subset",
+        kind="scatter",
+        palette={"normal": "#4c78a8", "abnormal": "#e45756"},
+        alpha=0.7,
+        s=35,
+        height=6,
+        aspect=1.2,
+    )
+    delta_label_umap.figure.suptitle(
+        "ALT − REF embedding-delta UMAP colored by functional label and subset",
+        y=1.02,
+    )
     mo.vstack(
         [
             mo.md("### Which half of `[reference, ALT − REF]` drives locality?"),
             feature_block_umap.figure,
+            mo.md("### Does the `ALT − REF` geometry organize by function?"),
+            delta_label_umap.figure,
             mo.callout(
                 mo.md(
                     """
                     These are independent seeded projections with unrelated axes.
                     Coloring both by the same assayed-exon labels tests whether
                     genomic-context locality lives in the reference representation,
-                    the allele-change representation, or both.
+                    the allele-change representation, or both. The additional
+                    delta-only view uses color for the calibrated functional label
+                    and marker style for the missense/splicing subset; it is still
+                    descriptive and is not a fitted classifier.
                     """
                 ),
                 kind="info",

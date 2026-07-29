@@ -124,6 +124,8 @@ def test_notebook_contains_ecdf_and_mutation_aware_embedding_diagnostics():
         "Independent within-substitution UMAPs",
         '"within-class UMAP 1"',
         "Which half of `[reference, ALT − REF]` drives locality?",
+        "Does the `ALT − REF` geometry organize by function?",
+        "ALT − REF embedding-delta UMAP colored by functional label and subset",
         "UMAP after subtracting each directed substitution's feature mean",
         "Regress out the mean of each assayed exon",
         "UMAP after subtracting each assayed exon's feature mean",
