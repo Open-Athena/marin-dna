@@ -182,8 +182,8 @@ def _(runtime_dependencies_ready):
     from marin_dna.model.runner import run_variant_score_bundle
     from marin_dna.model.sequence_interpretation import (
         aggregate_sequence_strands,
-        align_sequence_strand_outputs,
         normalize_dna_sequence,
+        run_aligned_sequence_strand,
     )
     from marin_dna.model.variant_interpretation import variant_score_bundle_view
 
@@ -199,7 +199,6 @@ def _(runtime_dependencies_ready):
         SOURCE_REVISION,
         StandardScaler,
         aggregate_sequence_strands,
-        align_sequence_strand_outputs,
         average_precision_score,
         cache,
         joblib,
@@ -212,6 +211,7 @@ def _(runtime_dependencies_ready):
         pd,
         plt,
         reverse_complement,
+        run_aligned_sequence_strand,
         run_variant_score_bundle,
         seaborn,
         torch,
@@ -270,7 +270,7 @@ def _(NOTEBOOK_REVISION):
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(MODEL_DOWNLOAD_BYTES, MODEL_ID, MODEL_REVISION, SOURCE_URL, mo):
     mo.vstack(
         [
@@ -323,7 +323,7 @@ def _(torch):
     return device, gpu_name, model_dtype
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(gpu_name, mo, model_dtype, torch):
     mo.callout(
         mo.md(
@@ -370,7 +370,7 @@ def _(
     return model, tokenizer
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     CONTEXT_SIZE,
     MODEL_ID,
@@ -406,7 +406,7 @@ def _(Genome, REFERENCE_FASTA):
     return (genome,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(REFERENCE_FASTA, mo):
     mo.callout(
         mo.md(
@@ -462,7 +462,7 @@ def _(
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     TH_CHROM,
     TH_END,
@@ -506,7 +506,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.vstack(
         [
@@ -567,7 +567,7 @@ def _(
     return forward_input_ids, reverse_input_ids
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(forward_input_ids, mo, pd, reverse_input_ids, tokenizer):
     tokenization_details = pd.DataFrame(
         [
@@ -595,65 +595,26 @@ def _(forward_input_ids, mo, pd, reverse_input_ids, tokenizer):
 
 
 @app.cell
-def _(forward_input_ids, model, reverse_input_ids, torch):
-    # Exactly one forward pass per strand. Request logits plus all hidden states,
-    # then retain only the final layer needed below.
-    with torch.inference_mode():
-        forward_model_output = model(
-            forward_input_ids,
-            output_hidden_states=True,
-            use_cache=False,
-            return_dict=True,
-        )
-        reverse_model_output = model(
-            reverse_input_ids,
-            output_hidden_states=True,
-            use_cache=False,
-            return_dict=True,
-        )
-    forward_logits = forward_model_output.logits
-    reverse_logits = reverse_model_output.logits
-    forward_final_hidden_state = forward_model_output.hidden_states[-1]
-    reverse_final_hidden_state = reverse_model_output.hidden_states[-1]
-    assert forward_logits.shape[:2] == forward_input_ids.shape
-    assert reverse_logits.shape[:2] == reverse_input_ids.shape
-    assert forward_final_hidden_state.shape[:2] == forward_input_ids.shape
-    assert reverse_final_hidden_state.shape[:2] == reverse_input_ids.shape
-    return (
-        forward_final_hidden_state,
-        forward_logits,
-        reverse_final_hidden_state,
-        reverse_logits,
-    )
-
-
-@app.cell
 def _(
     TH_CONTEXT_SIZE,
     aggregate_sequence_strands,
-    align_sequence_strand_outputs,
-    forward_final_hidden_state,
     forward_input_ids,
-    forward_logits,
     model,
-    reverse_final_hidden_state,
     reverse_input_ids,
-    reverse_logits,
+    run_aligned_sequence_strand,
     tokenizer,
 ):
-    forward_aligned = align_sequence_strand_outputs(
-        forward_input_ids,
-        forward_logits,
-        forward_final_hidden_state,
+    forward_aligned = run_aligned_sequence_strand(
+        model,
         tokenizer,
+        forward_input_ids,
         TH_CONTEXT_SIZE,
         reverse_complemented=False,
     )
-    reverse_aligned = align_sequence_strand_outputs(
-        reverse_input_ids,
-        reverse_logits,
-        reverse_final_hidden_state,
+    reverse_aligned = run_aligned_sequence_strand(
+        model,
         tokenizer,
+        reverse_input_ids,
         TH_CONTEXT_SIZE,
         reverse_complemented=True,
     )
@@ -670,7 +631,7 @@ def _(
     return (sequence_outputs,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### Align before averaging
@@ -707,11 +668,11 @@ def _(NUCLEOTIDES, logomaker, pd, plt, sequence_outputs):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(TH_CONTEXT_SIZE, mo, pd, sequence_outputs):
     likelihood_table = pd.DataFrame(
         {
-            "strand": ["forward", "reverse complement", "average"],
+            "strand": ["forward", "reverse complement", "strand mean"],
             "mean log-likelihood (nats/base)": [
                 sequence_outputs.forward_log_likelihood_nats_per_base,
                 sequence_outputs.reverse_complement_log_likelihood_nats_per_base,
@@ -723,19 +684,26 @@ def _(TH_CONTEXT_SIZE, mo, pd, sequence_outputs):
         [
             mo.callout(
                 mo.md(
-                    "**Main sequence likelihood:** "
-                    f"`{sequence_outputs.average_log_likelihood_nats_per_base:.4f}` "
-                    "nats/base (forward/RC mean)."
+                    "**Mean sequence log-likelihood (nats/base):** "
+                    f"forward "
+                    f"`{sequence_outputs.forward_log_likelihood_nats_per_base:.4f}` · "
+                    f"reverse complement "
+                    f"`{sequence_outputs.reverse_complement_log_likelihood_nats_per_base:.4f}` · "
+                    f"strand mean "
+                    f"`{sequence_outputs.average_log_likelihood_nats_per_base:.4f}`."
                 ),
                 kind="success",
             ),
             mo.md(
                 """
-                Likelihood uses a **full-vocabulary** `log_softmax`, gathers each
-                observed nucleotide target, averages over the
+                Log-likelihood uses a **full-vocabulary** `log_softmax`, gathers
+                the log-probability of each observed nucleotide target, averages
+                over the
                 {TH_CONTEXT_SIZE} bases on each
-                strand, then averages the two strand scalars. It does not use the
-                logo's four-nucleotide renormalization.
+                strand, then averages the two strand log-likelihoods. These are
+                mean log-probabilities in nats/base, not probabilities. This
+                calculation does not use the logo's four-nucleotide
+                renormalization.
                 """.format(TH_CONTEXT_SIZE=TH_CONTEXT_SIZE)
             ),
             likelihood_table,
@@ -834,7 +802,7 @@ def _(DATASET_ID, DATASET_REVISION, Dataset, genome, load_dataset, np):
     return brca1_frame, scoring_dataset, scoring_frame
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(DATASET_ID, DATASET_REVISION, brca1_frame, mo):
     dataset_counts = (
         brca1_frame.groupby(["subset", "label"], observed=True)
@@ -876,7 +844,7 @@ def _(DATASET_ID, DATASET_REVISION, brca1_frame, mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(VEP_BATCH_SIZE, VEP_DATALOADER_WORKERS, VEP_TORCH_COMPILE, mo):
     mo.md(
         f"""
@@ -1022,7 +990,7 @@ def _(
     return alt_embeddings, peak_vram_gib, ref_embeddings, variant_results
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, peak_vram_gib, variant_results):
     mo.callout(
         mo.md(

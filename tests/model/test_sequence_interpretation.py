@@ -21,6 +21,7 @@ from marin_dna.model.sequence_interpretation import (
     interpret_sequence,
     normalize_dna_sequence,
     nucleotide_logo,
+    run_aligned_sequence_strand,
 )
 from marin_dna.tokenizer.char import create_char_tokenizer
 
@@ -42,7 +43,15 @@ class _PrefixSumCausalLM(nn.Module):
             + 0.17 * positions.view(1, -1, 1)
             + 0.53 * vocabulary
         )
-        return SimpleNamespace(logits=logits)
+        hidden = torch.stack(
+            [
+                x,
+                prefix,
+                positions.expand_as(x),
+            ],
+            dim=-1,
+        )
+        return SimpleNamespace(logits=logits, hidden_states=(hidden,))
 
 
 @pytest.mark.parametrize(
@@ -159,6 +168,45 @@ def test_align_reverse_complement_outputs_reverses_correct_axes():
         aligned.embeddings,
         hidden[base_indices].numpy()[::-1],
     )
+
+
+@pytest.mark.parametrize("reverse_complemented", [False, True])
+def test_run_aligned_sequence_strand_matches_explicit_forward_and_alignment(
+    reverse_complemented,
+):
+    tokenizer = create_char_tokenizer(bos=True, eos=True)
+    sequence = "AACG"
+    model = _PrefixSumCausalLM(vocab_size=8).eval()
+    input_ids = torch.tensor(tokenizer.encode(sequence))[None, :]
+
+    actual = run_aligned_sequence_strand(
+        model,
+        tokenizer,
+        input_ids,
+        len(sequence),
+        reverse_complemented=reverse_complemented,
+    )
+    model_output = model(
+        input_ids,
+        output_hidden_states=True,
+        use_cache=False,
+        return_dict=True,
+    )
+    expected = align_sequence_strand_outputs(
+        input_ids,
+        model_output.logits,
+        model_output.hidden_states[-1],
+        tokenizer,
+        len(sequence),
+        reverse_complemented=reverse_complemented,
+    )
+
+    np.testing.assert_allclose(actual.nucleotide_logits, expected.nucleotide_logits)
+    np.testing.assert_allclose(
+        actual.observed_log_probabilities_nats,
+        expected.observed_log_probabilities_nats,
+    )
+    np.testing.assert_allclose(actual.embeddings, expected.embeddings)
 
 
 def test_aggregate_sequence_strands_keeps_likelihood_and_embedding_rules_distinct():

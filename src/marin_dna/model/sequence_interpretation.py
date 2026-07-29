@@ -229,6 +229,42 @@ def align_sequence_strand_outputs(
     )
 
 
+@torch.inference_mode()
+def run_aligned_sequence_strand(
+    model: Any,
+    tokenizer: Any,
+    input_ids: Tensor,
+    sequence_length: int,
+    *,
+    reverse_complemented: bool,
+) -> AlignedSequenceStrandOutputs:
+    """Run one model strand and align its readouts to forward coordinates."""
+    if input_ids.ndim == 1:
+        input_ids = input_ids.unsqueeze(0)
+    assert input_ids.ndim == 2 and input_ids.shape[0] == 1, (
+        f"expected singleton input batch [1,T], got {tuple(input_ids.shape)}"
+    )
+
+    model_output = model(
+        input_ids,
+        output_hidden_states=True,
+        use_cache=False,
+        return_dict=True,
+    )
+    assert model_output.logits.shape[:2] == input_ids.shape
+    assert model_output.hidden_states is not None
+    final_hidden_state = model_output.hidden_states[-1]
+    assert final_hidden_state.shape[:2] == input_ids.shape
+    return align_sequence_strand_outputs(
+        input_ids,
+        model_output.logits,
+        final_hidden_state,
+        tokenizer,
+        sequence_length,
+        reverse_complemented=reverse_complemented,
+    )
+
+
 def _nucleotide_logo_from_probabilities(probabilities: np.ndarray) -> NucleotideLogo:
     assert probabilities.ndim == 2 and probabilities.shape[1] == len(NUCLEOTIDES)
     log_probabilities = np.zeros_like(probabilities)
@@ -287,16 +323,16 @@ def aggregate_sequence_strands(
         forward.nucleotide_logits,
         reverse_complement.nucleotide_logits,
     )
-    forward_likelihood = float(
+    forward_log_likelihood = float(
         np.mean(forward.observed_log_probabilities_nats, dtype=np.float64)
     )
-    reverse_likelihood = float(
+    reverse_log_likelihood = float(
         np.mean(
             reverse_complement.observed_log_probabilities_nats,
             dtype=np.float64,
         )
     )
-    average_likelihood = (forward_likelihood + reverse_likelihood) / 2.0
+    average_log_likelihood = (forward_log_likelihood + reverse_log_likelihood) / 2.0
     mean_observed_log_probabilities = (
         np.asarray(forward.observed_log_probabilities_nats, dtype=np.float32)
         + np.asarray(
@@ -312,9 +348,9 @@ def aggregate_sequence_strands(
     assert np.isfinite(embeddings).all()
     return SequenceModelOutputs(
         logo=logo,
-        forward_log_likelihood_nats_per_base=forward_likelihood,
-        reverse_complement_log_likelihood_nats_per_base=reverse_likelihood,
-        average_log_likelihood_nats_per_base=average_likelihood,
+        forward_log_likelihood_nats_per_base=forward_log_likelihood,
+        reverse_complement_log_likelihood_nats_per_base=reverse_log_likelihood,
+        average_log_likelihood_nats_per_base=average_log_likelihood,
         mean_observed_log_probabilities_nats=mean_observed_log_probabilities,
         embeddings=embeddings,
     )

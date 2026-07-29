@@ -61,9 +61,7 @@ def test_notebook_bootstraps_missing_runtime_dependencies():
 def test_notebook_exposes_required_inference_and_vep_paths():
     source = NOTEBOOK.read_text(encoding="utf-8")
     for required_snippet in (
-        "with torch.inference_mode():",
-        "output_hidden_states=True",
-        "align_sequence_strand_outputs(",
+        "run_aligned_sequence_strand(",
         "aggregate_sequence_strands(",
         "run_variant_score_bundle(",
         "hidden_size=model.config.hidden_size",
@@ -97,7 +95,7 @@ def test_notebook_presents_exact_th_paper_interval_with_hidden_setup():
         NOTEBOOK.parents[1] / "dashboard" / "src" / "interpretation" / "refs" / "TH.png"
     )
 
-    assert source.count("@app.cell(hide_code=True)") >= 2
+    assert source.count("@app.cell(hide_code=True)") >= 14
     assert "TH_START = 2_171_682" in source
     assert "TH_END = 2_171_868" in source
     assert "TH_CONTEXT_SIZE = 186" in source
@@ -122,6 +120,7 @@ def test_notebook_contains_ecdf_and_official_auprc_parity():
         assert required_snippet in source
 
     for excluded_snippet in (
+        "**Main sequence likelihood:**",
         "import umap",
         "umap.UMAP(",
         "from sklearn.decomposition import PCA",
@@ -131,6 +130,9 @@ def test_notebook_contains_ecdf_and_official_auprc_parity():
         "author_experiment",
     ):
         assert excluded_snippet not in source
+
+    assert "**Mean sequence log-likelihood (nats/base):**" in source
+    assert "mean log-probabilities in nats/base, not probabilities" in source
 
 
 def test_notebook_session_snapshot_contains_complete_rendered_run():
