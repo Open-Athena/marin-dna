@@ -16,6 +16,7 @@ def test_notebook_is_valid_python_with_immutable_revisions():
     source = NOTEBOOK.read_text(encoding="utf-8")
     ast.parse(source)
     assert "PIN_AFTER_FIRST_COMMIT" not in source
+    assert "mo.code(" not in source
     assert f'SOURCE_REVISION = "{SOURCE_REVISION}"' in source
     assert f'NOTEBOOK_REVISION = "{NOTEBOOK_REVISION}"' in source
     assert f'MODEL_REVISION = "{MODEL_REVISION}"' in source

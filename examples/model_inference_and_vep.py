@@ -489,7 +489,7 @@ def _(
                 `[{original_oriented_start}, {original_oriented_end})`.
                 """
             ),
-            mo.code(th_sequence, language="text"),
+            mo.md(f"```text\n{th_sequence}\n```"),
         ]
     )
     return
