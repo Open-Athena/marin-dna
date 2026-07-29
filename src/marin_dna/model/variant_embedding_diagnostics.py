@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
 _NUCLEOTIDES = frozenset("ACGT")
 _COMPLEMENT = {"A": "T", "C": "G", "G": "C", "T": "A"}
@@ -118,3 +119,94 @@ def residualize_features_by_category(
     assert -1e-6 <= explained_fraction <= 1.0 + 1e-6
     explained_fraction = float(np.clip(explained_fraction, 0.0, 1.0))
     return residuals, explained_fraction
+
+
+def genomic_position_regions(
+    positions: Sequence[int] | np.ndarray,
+    *,
+    max_gap: int,
+) -> np.ndarray:
+    """Label position blocks separated by more than ``max_gap`` bases."""
+    position_array = np.asarray(positions)
+    assert position_array.ndim == 1, (
+        f"expected one-dimensional positions, got {position_array.shape}"
+    )
+    assert len(position_array) > 0, "need at least one genomic position"
+    assert np.issubdtype(position_array.dtype, np.integer), (
+        f"positions must be integers, got {position_array.dtype}"
+    )
+    assert np.all(position_array >= 0), "positions must be non-negative"
+    assert max_gap >= 0, f"max_gap must be non-negative, got {max_gap}"
+
+    unique_positions = np.unique(position_array)
+    region_for_unique_position = np.zeros(len(unique_positions), dtype=np.int64)
+    if len(unique_positions) > 1:
+        region_for_unique_position[1:] = np.cumsum(np.diff(unique_positions) > max_gap)
+    position_indices = np.searchsorted(unique_positions, position_array)
+    assert np.array_equal(unique_positions[position_indices], position_array)
+    region_indices = region_for_unique_position[position_indices]
+    labels = np.asarray(
+        [f"region {region_index + 1:02d}" for region_index in region_indices],
+        dtype=str,
+    )
+    assert len(labels) == len(position_array)
+    return labels
+
+
+def neighbor_locality_summary(
+    features: np.ndarray,
+    positions: Sequence[int] | np.ndarray,
+    regions: Sequence[str] | np.ndarray,
+    *,
+    n_neighbors: int,
+    context_size: int,
+) -> dict[str, float]:
+    """Summarize genomic locality among high-dimensional nearest neighbors."""
+    feature_array = np.asarray(features, dtype=np.float32)
+    position_array = np.asarray(positions)
+    region_array = np.asarray(regions, dtype=str)
+    assert feature_array.ndim == 2
+    assert len(feature_array) > 1 and feature_array.shape[1] > 0
+    assert np.isfinite(feature_array).all()
+    assert position_array.ndim == 1 and len(position_array) == len(feature_array)
+    assert np.issubdtype(position_array.dtype, np.integer)
+    assert region_array.ndim == 1 and len(region_array) == len(feature_array)
+    assert np.all(region_array != "")
+    assert 1 <= n_neighbors < len(feature_array)
+    assert context_size > 1
+
+    candidate_indices = (
+        NearestNeighbors(
+            n_neighbors=n_neighbors + 1,
+            algorithm="brute",
+            metric="euclidean",
+        )
+        .fit(feature_array)
+        .kneighbors(feature_array, return_distance=False)
+    )
+    neighbor_indices = np.empty(
+        (len(feature_array), n_neighbors),
+        dtype=np.int64,
+    )
+    for row_index, row_candidates in enumerate(candidate_indices):
+        without_self = row_candidates[row_candidates != row_index]
+        assert len(without_self) >= n_neighbors
+        neighbor_indices[row_index] = without_self[:n_neighbors]
+
+    position_distances = np.abs(
+        position_array[neighbor_indices] - position_array[:, None]
+    )
+    same_position = position_distances == 0
+    same_region = region_array[neighbor_indices] == region_array[:, None]
+    half_context = context_size // 2
+    return {
+        "same exact position fraction": float(same_position.mean()),
+        "same assayed region fraction": float(same_region.mean()),
+        f"within {half_context} bp fraction": float(
+            (position_distances <= half_context).mean()
+        ),
+        f"within {context_size} bp fraction": float(
+            (position_distances <= context_size).mean()
+        ),
+        "median absolute position distance (bp)": float(np.median(position_distances)),
+    }

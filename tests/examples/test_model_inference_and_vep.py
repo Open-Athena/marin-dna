@@ -108,9 +108,16 @@ def test_notebook_contains_ecdf_and_mutation_aware_embedding_diagnostics():
         'kind="ecdf"',
         "snv_substitution_classes(",
         "residualize_features_by_category(",
+        "genomic_position_regions(",
+        "neighbor_locality_summary(",
         "len(substitution_counts) == 12",
         "len(rc_canonical_counts) == 6",
+        "len(assayed_region_counts) == 13",
+        "len(exact_site_counts) == 1_080",
         "Independent within-substitution PCAs",
+        "Independent within-substitution UMAPs",
+        '"within-class UMAP 1"',
+        "Which half of `[reference, ALT − REF]` drives locality?",
         "UMAP after subtracting each directed substitution's feature mean",
     ):
         assert required_snippet in source

@@ -191,6 +191,8 @@ def _(runtime_dependencies_ready):
         normalize_dna_sequence,
     )
     from marin_dna.model.variant_embedding_diagnostics import (
+        genomic_position_regions,
+        neighbor_locality_summary,
         residualize_features_by_category,
         snv_substitution_classes,
     )
@@ -213,10 +215,12 @@ def _(runtime_dependencies_ready):
         align_sequence_strand_outputs,
         average_precision_score,
         cache,
+        genomic_position_regions,
         joblib,
         load_dataset,
         logomaker,
         mo,
+        neighbor_locality_summary,
         normalize_dna_sequence,
         np,
         os,
@@ -1152,9 +1156,12 @@ def _(average_precision_score, mo, pd, variant_results):
 
 @app.cell
 def _(
+    CONTEXT_SIZE,
     PCA,
     StandardScaler,
     alt_embeddings,
+    genomic_position_regions,
+    neighbor_locality_summary,
     np,
     pair_feature,
     pd,
@@ -1188,6 +1195,30 @@ def _(
     assert int(substitution_counts.sum()) == len(variant_results)
     assert substitution_counts.min() > 2
 
+    genomic_positions = variant_results["source_pos_1based"].to_numpy(
+        dtype=np.int64,
+    )
+    exact_site = np.asarray(
+        [
+            f"{chrom}:{position}"
+            for chrom, position in zip(
+                variant_results["source_chrom"],
+                genomic_positions,
+            )
+        ],
+        dtype=str,
+    )
+    assayed_region = genomic_position_regions(
+        genomic_positions,
+        max_gap=CONTEXT_SIZE,
+    )
+    assayed_region_counts = pd.Series(assayed_region).value_counts().sort_index()
+    exact_site_counts = pd.Series(exact_site).value_counts()
+    assert len(assayed_region_counts) == 13
+    assert len(exact_site_counts) == 1_080
+    assert int(assayed_region_counts.sum()) == len(variant_results)
+    assert exact_site_counts.max() == 3
+
     variant_features_standardized = (
         StandardScaler().fit_transform(variant_features).astype(np.float32, copy=False)
     )
@@ -1203,6 +1234,34 @@ def _(
     assert umap_coordinates.shape == (len(variant_results), 2)
     assert np.isfinite(umap_coordinates).all()
 
+    hidden_size = ref_embeddings.shape[1]
+    reference_features_standardized = (
+        StandardScaler()
+        .fit_transform(variant_features[:, :hidden_size])
+        .astype(np.float32, copy=False)
+    )
+    delta_features_standardized = (
+        StandardScaler()
+        .fit_transform(variant_features[:, hidden_size:])
+        .astype(np.float32, copy=False)
+    )
+    feature_block_coordinates = {}
+    for block_name, block_features in (
+        ("reference embedding", reference_features_standardized),
+        ("ALT − REF embedding delta", delta_features_standardized),
+    ):
+        block_coordinates = umap.UMAP(
+            n_components=2,
+            n_neighbors=30,
+            min_dist=0.2,
+            metric="euclidean",
+            random_state=409,
+            n_jobs=1,
+        ).fit_transform(block_features)
+        assert block_coordinates.shape == (len(variant_results), 2)
+        assert np.isfinite(block_coordinates).all()
+        feature_block_coordinates[block_name] = block_coordinates
+
     mutation_residual_features, mutation_explained_fraction = (
         residualize_features_by_category(
             variant_features,
@@ -1212,6 +1271,22 @@ def _(
     _, rc_canonical_explained_fraction = residualize_features_by_category(
         variant_features,
         rc_canonical_class,
+    )
+    _, region_explained_fraction = residualize_features_by_category(
+        variant_features,
+        assayed_region,
+    )
+    _, site_explained_fraction = residualize_features_by_category(
+        variant_features,
+        exact_site,
+    )
+    _, subset_explained_fraction = residualize_features_by_category(
+        variant_features,
+        variant_results["subset"].astype(str).to_numpy(),
+    )
+    _, label_explained_fraction = residualize_features_by_category(
+        variant_features,
+        variant_results["label"].astype(str).to_numpy(),
     )
     assert rc_canonical_explained_fraction <= mutation_explained_fraction + 1e-6
     mutation_residual_standardized = (
@@ -1235,6 +1310,10 @@ def _(
         (len(variant_results), 2),
         dtype=np.float32,
     )
+    within_class_umap_coordinates = np.empty(
+        (len(variant_results), 2),
+        dtype=np.float32,
+    )
     pca_summary_rows = []
     for substitution in sorted(substitution_counts.index):
         row_indices = np.flatnonzero(substitution_class == substitution)
@@ -1249,6 +1328,18 @@ def _(
         assert class_coordinates.shape == (len(row_indices), 2)
         assert np.isfinite(class_coordinates).all()
         within_class_pca_coordinates[row_indices] = class_coordinates
+        class_umap_coordinates = umap.UMAP(
+            n_components=2,
+            n_neighbors=min(15, len(row_indices) - 1),
+            min_dist=0.2,
+            metric="euclidean",
+            init="random",
+            random_state=409,
+            n_jobs=1,
+        ).fit_transform(variant_features_standardized[row_indices])
+        assert class_umap_coordinates.shape == (len(row_indices), 2)
+        assert np.isfinite(class_umap_coordinates).all()
+        within_class_umap_coordinates[row_indices] = class_umap_coordinates
         pca_summary_rows.append(
             {
                 "REF>ALT": substitution,
@@ -1259,6 +1350,7 @@ def _(
             }
         )
     assert np.isfinite(within_class_pca_coordinates).all()
+    assert np.isfinite(within_class_umap_coordinates).all()
 
     label_display = (
         variant_results["label"].map({False: "normal", True: "abnormal"}).to_numpy()
@@ -1276,6 +1368,8 @@ def _(
             "subset": subset_display,
             "REF>ALT": substitution_class,
             "RC-canonical class": rc_canonical_class,
+            "assayed region": assayed_region,
+            "GRCh38 position": genomic_positions,
         }
     )
     residual_umap_frame = pd.DataFrame(
@@ -1296,8 +1390,43 @@ def _(
             "REF>ALT": substitution_class,
         }
     )
-    mutation_variance_table = pd.DataFrame(
+    within_class_umap_frame = pd.DataFrame(
+        {
+            "within-class UMAP 1": within_class_umap_coordinates[:, 0],
+            "within-class UMAP 2": within_class_umap_coordinates[:, 1],
+            "label": label_display,
+            "subset": subset_display,
+            "REF>ALT": substitution_class,
+        }
+    )
+    feature_block_umap_frame = pd.concat(
         [
+            pd.DataFrame(
+                {
+                    "UMAP 1": block_coordinates[:, 0],
+                    "UMAP 2": block_coordinates[:, 1],
+                    "feature block": block_name,
+                    "assayed region": assayed_region,
+                }
+            )
+            for block_name, block_coordinates in feature_block_coordinates.items()
+        ],
+        ignore_index=True,
+    )
+    driver_variance_table = pd.DataFrame(
+        [
+            {
+                "categorical fixed effect": "exact genomic site",
+                "groups": len(exact_site_counts),
+                "embedding variance fraction explained": site_explained_fraction,
+            },
+            {
+                "categorical fixed effect": (
+                    f"assayed region (position gaps > {CONTEXT_SIZE} bp)"
+                ),
+                "groups": len(assayed_region_counts),
+                "embedding variance fraction explained": region_explained_fraction,
+            },
             {
                 "categorical fixed effect": "12 directed REF>ALT classes",
                 "groups": len(substitution_counts),
@@ -1310,15 +1439,41 @@ def _(
                     rc_canonical_explained_fraction
                 ),
             },
+            {
+                "categorical fixed effect": "missense vs splicing subset",
+                "groups": int(variant_results["subset"].nunique()),
+                "embedding variance fraction explained": subset_explained_fraction,
+            },
+            {
+                "categorical fixed effect": "calibrated functional label",
+                "groups": int(variant_results["label"].nunique()),
+                "embedding variance fraction explained": label_explained_fraction,
+            },
         ]
+    )
+    neighbor_summary = neighbor_locality_summary(
+        variant_features_standardized,
+        genomic_positions,
+        assayed_region,
+        n_neighbors=10,
+        context_size=CONTEXT_SIZE,
+    )
+    neighbor_locality_table = pd.DataFrame(
+        {
+            "10-nearest-neighbor diagnostic": list(neighbor_summary),
+            "value": list(neighbor_summary.values()),
+        }
     )
     within_class_pca_table = pd.DataFrame(pca_summary_rows)
     return (
-        mutation_variance_table,
+        driver_variance_table,
+        feature_block_umap_frame,
+        neighbor_locality_table,
         residual_umap_frame,
         umap_frame,
         within_class_pca_frame,
         within_class_pca_table,
+        within_class_umap_frame,
     )
 
 
@@ -1363,7 +1518,7 @@ def _(mo, seaborn, umap_frame):
 
 
 @app.cell
-def _(mo, mutation_variance_table, seaborn, umap_frame):
+def _(driver_variance_table, mo, neighbor_locality_table, seaborn, umap_frame):
     substitution_umap = seaborn.relplot(
         data=umap_frame,
         x="UMAP 1",
@@ -1396,19 +1551,82 @@ def _(mo, mutation_variance_table, seaborn, umap_frame):
         "Reverse-complement partners share six canonical colors",
         y=1.02,
     )
+    region_umap = seaborn.relplot(
+        data=umap_frame,
+        x="UMAP 1",
+        y="UMAP 2",
+        hue="assayed region",
+        kind="scatter",
+        palette="tab20",
+        alpha=0.75,
+        s=30,
+        height=6,
+        aspect=1.2,
+    )
+    region_umap.figure.suptitle(
+        "The same unadjusted UMAP colored by 13 assayed genomic regions",
+        y=1.02,
+    )
     mo.vstack(
         [
-            mo.md("### Diagnose the substitution-class geometry"),
-            mutation_variance_table,
+            mo.md("### Diagnose the embedding-island geometry"),
+            driver_variance_table,
+            neighbor_locality_table,
+            region_umap.figure,
             substitution_umap.figure,
             rc_canonical_umap.figure,
             mo.callout(
                 mo.md(
                     """
-                    The 12 `REF>ALT` classes are the full directed SNV alphabet.
-                    Complementing both alleles pairs them into six canonical
-                    classes (for example, `A>C` with `T>G`). The table quantifies
-                    their high-dimensional effect before any 2D projection.
+                    Assayed regions are maximal position blocks whose consecutive
+                    sites are at most 255 bp apart; the BRCA1 set contains 13.
+                    Exact-site variance is a descriptive high-cardinality upper
+                    bound (1,080 groups). The 12 `REF>ALT` classes are the full
+                    directed SNV alphabet, paired into six canonical classes by
+                    complementing both alleles. The tables and nearest-neighbor
+                    diagnostics operate in high dimensions before any 2D projection.
+                    """
+                ),
+                kind="info",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(feature_block_umap_frame, mo, seaborn):
+    feature_block_umap = seaborn.relplot(
+        data=feature_block_umap_frame,
+        x="UMAP 1",
+        y="UMAP 2",
+        hue="assayed region",
+        col="feature block",
+        col_order=["reference embedding", "ALT − REF embedding delta"],
+        kind="scatter",
+        palette="tab20",
+        alpha=0.75,
+        s=25,
+        height=5,
+        aspect=1.0,
+        facet_kws={"sharex": False, "sharey": False},
+    )
+    feature_block_umap.set_titles("{col_name}")
+    feature_block_umap.figure.suptitle(
+        "Independent UMAPs isolate the two allele-pair feature blocks",
+        y=1.03,
+    )
+    mo.vstack(
+        [
+            mo.md("### Which half of `[reference, ALT − REF]` drives locality?"),
+            feature_block_umap.figure,
+            mo.callout(
+                mo.md(
+                    """
+                    These are independent seeded projections with unrelated axes.
+                    Coloring both by the same assayed-region labels tests whether
+                    genomic-context locality lives in the reference representation,
+                    the allele-change representation, or both.
                     """
                 ),
                 kind="info",
@@ -1458,6 +1676,49 @@ def _(
                     axes and scales are independent across facets. Read structure
                     *within* a substitution; do not compare absolute coordinates
                     between panels.
+                    """
+                ),
+                kind="info",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, seaborn, within_class_umap_frame):
+    within_class_umap = seaborn.relplot(
+        data=within_class_umap_frame,
+        x="within-class UMAP 1",
+        y="within-class UMAP 2",
+        hue="label",
+        style="subset",
+        col="REF>ALT",
+        col_wrap=4,
+        kind="scatter",
+        palette={"normal": "#4c78a8", "abnormal": "#e45756"},
+        alpha=0.7,
+        s=22,
+        height=2.4,
+        aspect=1.0,
+        facet_kws={"sharex": False, "sharey": False},
+    )
+    within_class_umap.set_titles("{col_name}")
+    within_class_umap.figure.suptitle(
+        "Independent within-substitution UMAPs of standardized embeddings",
+        y=1.01,
+    )
+    mo.vstack(
+        [
+            mo.md("### Nonlinear views within each of the 12 substitutions"),
+            within_class_umap.figure,
+            mo.callout(
+                mo.md(
+                    """
+                    Each facet fits its own deterministic UMAP with random
+                    initialization. Coordinates are unrelated across facets:
+                    compare neighborhood structure only within a substitution,
+                    never absolute positions between panels.
                     """
                 ),
                 kind="info",

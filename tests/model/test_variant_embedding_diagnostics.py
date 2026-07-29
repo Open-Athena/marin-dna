@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 
 from marin_dna.model.variant_embedding_diagnostics import (
+    genomic_position_regions,
+    neighbor_locality_summary,
     residualize_features_by_category,
     snv_substitution_classes,
 )
@@ -76,3 +78,50 @@ def test_residualize_features_by_category_rejects_invalid_inputs(
 ):
     with pytest.raises(AssertionError, match=message):
         residualize_features_by_category(features, categories)
+
+
+def test_genomic_position_regions_handles_unsorted_duplicates():
+    labels = genomic_position_regions(
+        np.array([1_000, 10, 11, 1_000, 300, 12]),
+        max_gap=10,
+    )
+    np.testing.assert_array_equal(
+        labels,
+        ["region 03", "region 01", "region 01", "region 03", "region 02", "region 01"],
+    )
+
+
+@pytest.mark.parametrize(
+    ("positions", "max_gap", "message"),
+    [
+        (np.array([[1, 2]]), 10, "one-dimensional"),
+        (np.array([], dtype=np.int64), 10, "at least one"),
+        (np.array([1.0, 2.0]), 10, "integers"),
+        (np.array([-1, 2]), 10, "non-negative"),
+        (np.array([1, 2]), -1, "non-negative"),
+    ],
+)
+def test_genomic_position_regions_rejects_invalid_inputs(
+    positions,
+    max_gap,
+    message,
+):
+    with pytest.raises(AssertionError, match=message):
+        genomic_position_regions(positions, max_gap=max_gap)
+
+
+def test_neighbor_locality_summary_uses_nonself_nearest_neighbors():
+    summary = neighbor_locality_summary(
+        np.array([[0.0], [0.1], [1.0], [10.0]]),
+        np.array([10, 10, 100, 1_000]),
+        np.array(["region 01", "region 01", "region 01", "region 02"]),
+        n_neighbors=1,
+        context_size=255,
+    )
+    assert summary == {
+        "same exact position fraction": 0.5,
+        "same assayed region fraction": 0.75,
+        "within 127 bp fraction": 0.75,
+        "within 255 bp fraction": 0.75,
+        "median absolute position distance (bp)": 45.0,
+    }
