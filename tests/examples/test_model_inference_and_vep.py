@@ -133,6 +133,7 @@ def test_notebook_contains_ecdf_and_official_auprc_parity():
 
     assert "**Mean sequence log-likelihood (nats/base):**" in source
     assert "mean log-probabilities in nats/base, not probabilities" in source
+    assert "matching the official VEP scorer's precision policy" in source
 
 
 def test_notebook_session_snapshot_contains_complete_rendered_run():

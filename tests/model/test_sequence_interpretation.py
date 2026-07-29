@@ -248,6 +248,27 @@ def test_aggregate_sequence_strands_keeps_likelihood_and_embedding_rules_distinc
     )
 
 
+def test_aggregate_sequence_strands_accumulates_log_likelihood_in_fp32():
+    from marin_dna.model.sequence_interpretation import AlignedSequenceStrandOutputs
+
+    observed = np.array([-1e8, -3.0, -3.0], dtype=np.float32)
+    assert float(np.mean(observed, dtype=np.float32)) != float(
+        np.mean(observed, dtype=np.float64)
+    )
+    strand = AlignedSequenceStrandOutputs(
+        nucleotide_logits=np.zeros((3, 4), dtype=np.float32),
+        observed_log_probabilities_nats=observed,
+        embeddings=np.zeros((3, 2), dtype=np.float32),
+    )
+
+    result = aggregate_sequence_strands(strand, strand)
+
+    expected = float(np.mean(observed, dtype=np.float32))
+    assert result.forward_log_likelihood_nats_per_base == expected
+    assert result.reverse_complement_log_likelihood_nats_per_base == expected
+    assert result.average_log_likelihood_nats_per_base == expected
+
+
 def test_nucleotide_logo_averages_logits_before_softmax():
     tokenizer = create_char_tokenizer(bos=True, eos=True)
     model = _PrefixSumCausalLM(vocab_size=8).eval()

@@ -323,16 +323,27 @@ def aggregate_sequence_strands(
         forward.nucleotide_logits,
         reverse_complement.nucleotide_logits,
     )
-    forward_log_likelihood = float(
-        np.mean(forward.observed_log_probabilities_nats, dtype=np.float64)
+    strand_log_likelihoods = np.array(
+        [
+            np.mean(
+                forward.observed_log_probabilities_nats,
+                dtype=np.float32,
+            ),
+            np.mean(
+                reverse_complement.observed_log_probabilities_nats,
+                dtype=np.float32,
+            ),
+        ],
+        dtype=np.float32,
     )
-    reverse_log_likelihood = float(
+    forward_log_likelihood = float(strand_log_likelihoods[0])
+    reverse_log_likelihood = float(strand_log_likelihoods[1])
+    average_log_likelihood = float(
         np.mean(
-            reverse_complement.observed_log_probabilities_nats,
-            dtype=np.float64,
+            strand_log_likelihoods,
+            dtype=np.float32,
         )
     )
-    average_log_likelihood = (forward_log_likelihood + reverse_log_likelihood) / 2.0
     mean_observed_log_probabilities = (
         np.asarray(forward.observed_log_probabilities_nats, dtype=np.float32)
         + np.asarray(

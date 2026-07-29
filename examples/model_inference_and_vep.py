@@ -704,6 +704,13 @@ def _(TH_CONTEXT_SIZE, mo, pd, sequence_outputs):
                 mean log-probabilities in nats/base, not probabilities. This
                 calculation does not use the logo's four-nucleotide
                 renormalization.
+
+                The model forward runs in BF16. Logits are cast to FP32 before
+                `log_softmax`, and the per-base and two-strand means accumulate
+                in FP32, matching the official VEP scorer's precision policy.
+                The score itself is different: this is full-vocabulary sequence
+                log-likelihood, whereas VEP reports a four-nucleotide
+                log-likelihood ratio.
                 """.format(TH_CONTEXT_SIZE=TH_CONTEXT_SIZE)
             ),
             likelihood_table,
