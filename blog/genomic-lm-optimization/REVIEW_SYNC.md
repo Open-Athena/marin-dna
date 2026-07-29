@@ -177,10 +177,10 @@ successful preview status.
 
 Import `review.docx` through Google Drive's native conversion flow using the
 bundle's `document_title`. Move it to the approved folder and apply exactly the
-approved sharing policy. Before handoff, use a revision-guarded native Docs
-`updateDocumentStyle` request to set
-`documentFormat.documentMode = PAGELESS` with the field mask
-`documentFormat.documentMode`; verify the readback reports `PAGELESS`.
+approved sharing policy. Keep `documentFormat.documentMode = PAGES` so native
+footnotes render at the bottom of their reference page; verify the readback
+reports `PAGES`. Switch to `PAGELESS` only when the user explicitly requests it
+for that snapshot.
 
 Before recording success, verify:
 
@@ -188,7 +188,7 @@ Before recording success, verify:
 - the blue provenance notice links to the exact source SHA and names the
   request ID, generation time, authoritative staging branch, and review-only
   status of Doc edits;
-- native Google Docs heading structure and pageless document mode;
+- native Google Docs heading structure and paged document mode;
 - all 19 figures in canonical order, each followed by its caption;
 - working article hyperlinks and all 27 Markdown notes as native, hoverable
   Google Docs footnotes in first-reference order; and
