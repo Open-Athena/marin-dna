@@ -10,7 +10,7 @@ NOTEBOOK = Path(__file__).parents[2] / "examples" / "model_inference_and_vep.py"
 SESSION_SNAPSHOT = (
     NOTEBOOK.parent / "__marimo__" / "session" / "model_inference_and_vep.py.json"
 )
-SOURCE_REVISION = "93654118aecf6b767f96fc1859648b2db772303c"
+SOURCE_REVISION = "0242fc668389d02399ff9835a56326dda11ece98"
 NOTEBOOK_REVISION = "0242fc668389d02399ff9835a56326dda11ece98"
 MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
 DATASET_REVISION = "225d3d1ea32a4af547891b13c33b5e92a5aae849"
