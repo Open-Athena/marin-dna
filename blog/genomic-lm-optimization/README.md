@@ -133,3 +133,14 @@ own tests or build afterward, then commit the exported paths there for the
 final hand-off tracked by
 [MarinDNA issue #367](https://github.com/Open-Athena/marin-dna/issues/367).
 There is no concatenation or copy-paste step.
+
+## Website and Google Doc review sync
+
+Issue #408 adds an explicit, retry-safe snapshot workflow after editorial
+integration. It prepares an immutable Markdown/DOCX bundle, updates the
+existing website PR #59 preview, and creates a new Google Doc for each distinct
+user request while preserving the staging Markdown as the sole source of
+truth.
+
+See [`REVIEW_SYNC.md`](REVIEW_SYNC.md) for the Drive-policy gate, request/event
+identity, exact commands, verification checklist, and partial-recovery rules.
