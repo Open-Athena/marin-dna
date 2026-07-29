@@ -141,7 +141,7 @@ def test_notebook_session_snapshot_contains_complete_rendered_run():
 
     assert session["version"] == "1"
     assert session["metadata"]["marimo_version"] == "0.23.15"
-    assert len(session["cells"]) == 29
+    assert len(session["cells"]) == 28
     assert all(len(cell["outputs"]) == 1 for cell in session["cells"])
     assert all(
         output.get("type") != "error"
@@ -151,6 +151,7 @@ def test_notebook_session_snapshot_contains_complete_rendered_run():
 
     rendered_session = json.dumps(session)
     for expected_output in (
+        "Mean sequence log-likelihood (nats/base):",
         "VEP bundle ready:",
         "Official evals-v2 parity:",
         "ref_embeddings",
@@ -158,3 +159,4 @@ def test_notebook_session_snapshot_contains_complete_rendered_run():
         "AUPRC",
     ):
         assert expected_output in rendered_session
+    assert "Main sequence likelihood:" not in rendered_session
