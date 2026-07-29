@@ -7,7 +7,7 @@ from pathlib import Path
 
 NOTEBOOK = Path(__file__).parents[2] / "examples" / "model_inference_and_vep.py"
 SOURCE_REVISION = "af3fe5069b370de6c38cc5766a0b5836519d670c"
-NOTEBOOK_REVISION = "af3fe5069b370de6c38cc5766a0b5836519d670c"
+NOTEBOOK_REVISION = "7224b7e60349ac8746a4df537185130d2c9e6fd9"
 MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
 DATASET_REVISION = "225d3d1ea32a4af547891b13c33b5e92a5aae849"
 
