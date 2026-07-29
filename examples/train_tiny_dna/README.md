@@ -9,6 +9,9 @@ recipe.
 
 From a fresh clone:
 
+Requires CPython 3.12 on Apple-silicon macOS or glibc-based x86_64/aarch64
+Linux; the pinned JAX release has no Intel-macOS or musl-Linux wheel.
+
 ```bash
 cd examples/train_tiny_dna
 uv sync --locked
