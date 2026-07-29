@@ -72,6 +72,7 @@ def _():
                 "pip",
                 "install",
                 "--disable-pip-version-check",
+                "--no-deps",
                 *missing_requirements,
             ],
             check=True,
@@ -96,6 +97,13 @@ def _(runtime_dependencies_ready):
 
     assert runtime_dependencies_ready
 
+    # UMAP probes TensorFlow when it is installed. Molab ships a TensorFlow build
+    # that is irrelevant to this PyTorch-only notebook and can crash while probing
+    # the attached GPU, so make both UMAP and Transformers skip that backend.
+    os.environ["USE_TF"] = "0"
+    assert "tensorflow" not in sys.modules
+    sys.modules["tensorflow"] = None
+
     import joblib
     import logomaker
     import marimo as mo
@@ -105,6 +113,9 @@ def _(runtime_dependencies_ready):
     import seaborn as sns
     import torch
     import umap
+
+    del sys.modules["tensorflow"]
+
     from datasets import Dataset, load_dataset
     from sklearn.metrics import average_precision_score
     from sklearn.preprocessing import StandardScaler

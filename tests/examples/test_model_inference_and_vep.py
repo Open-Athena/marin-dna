@@ -45,6 +45,9 @@ def test_notebook_bootstraps_missing_runtime_dependencies():
     assert "missing_requirements = [" in source
     assert "runtime_dependencies_ready" in source
     assert "--disable-pip-version-check" in source
+    assert "--no-deps" in source
+    assert 'os.environ["USE_TF"] = "0"' in source
+    assert 'sys.modules["tensorflow"] = None' in source
     assert 'else [sys.executable, "-m", "pip", "install"]' in source
 
 
