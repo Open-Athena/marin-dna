@@ -497,18 +497,33 @@ def _process_dataset(
     )
 
 
+class _BatchTransform:
+    """Picklable batched adapter for spawn-based DataLoader workers."""
+
+    def __init__(
+        self,
+        transform_fn: Callable[[dict[str, Any]], dict[str, Any]],
+    ) -> None:
+        self.transform_fn = transform_fn
+
+    def __call__(self, batch: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        assert batch, "batch transform received no columns"
+        lengths = {len(values) for values in batch.values()}
+        assert len(lengths) == 1, f"batch columns have mismatched lengths: {lengths}"
+        (batch_size,) = lengths
+        assert batch_size > 0, "batch transform received an empty batch"
+
+        examples = [dict(zip(batch.keys(), values)) for values in zip(*batch.values())]
+        transformed_examples = [self.transform_fn(example) for example in examples]
+        output_keys = transformed_examples[0].keys()
+        assert all(example.keys() == output_keys for example in transformed_examples)
+        return {
+            key: [example[key] for example in transformed_examples]
+            for key in output_keys
+        }
+
+
 def _make_batch_transform(
     transform_fn: Callable[[dict[str, Any]], dict[str, Any]],
 ) -> Callable[[dict[str, list[Any]]], dict[str, list[Any]]]:
-    def batch_transform_fn(batch: dict[str, list[Any]]) -> dict[str, list[Any]]:
-        # Convert batch format to list of examples
-        examples = [dict(zip(batch.keys(), values)) for values in zip(*batch.values())]
-        # Apply transform to each example
-        transformed_examples = [transform_fn(example) for example in examples]
-        # Convert back to batch format
-        return {
-            key: [ex[key] for ex in transformed_examples]
-            for key in transformed_examples[0].keys()
-        }
-
-    return batch_transform_fn
+    return _BatchTransform(transform_fn)

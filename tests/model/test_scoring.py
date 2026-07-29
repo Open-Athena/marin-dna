@@ -15,6 +15,7 @@ here. After the migration, ``marin_dna.model.scoring`` calls
 """
 
 import math
+import pickle
 from functools import partial
 from types import SimpleNamespace
 
@@ -34,6 +35,7 @@ from marin_dna.data.transforms import (
     transform_reflogprob_clm,
 )
 from marin_dna.model.runner import (
+    _make_batch_transform,
     run_inference,
     run_ll_clm,
     run_variant_marginal,
@@ -422,6 +424,18 @@ def test_run_reflogprob_clm_fwd_and_rc_differ():
         inference_kwargs=_INFERENCE_KWARGS,
     )
     assert not np.allclose(fwd, rc, atol=1e-6)
+
+
+def _increment_value(example: dict[str, int]) -> dict[str, int]:
+    return {"value": example["value"] + 1}
+
+
+def test_batch_transform_is_picklable_for_spawn_workers():
+    transform = _make_batch_transform(_increment_value)
+
+    restored_transform = pickle.loads(pickle.dumps(transform))
+
+    assert restored_transform({"value": [1, 4]}) == {"value": [2, 5]}
 
 
 class _DeterministicCausalLM(nn.Module):
