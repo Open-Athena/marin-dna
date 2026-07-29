@@ -814,6 +814,7 @@ def _(DATASET_ID, DATASET_REVISION, Dataset, genome, load_dataset, np):
         "subset",
         "gene",
         "mavedb_urn",
+        "author_experiment",
     ]
     brca1_frame = brca1_dataset.select_columns(retained_columns).to_pandas()
 
@@ -827,6 +828,21 @@ def _(DATASET_ID, DATASET_REVISION, Dataset, genome, load_dataset, np):
         True: 598,
     }
     assert brca1_frame["mavedb_urn"].unique().tolist() == ["urn:mavedb:00000097-0-2"]
+    assert set(brca1_frame["author_experiment"]) == {
+        "X2",
+        "X3",
+        "X4",
+        "X5",
+        "X15",
+        "X16",
+        "X17",
+        "X18",
+        "X19",
+        "X20",
+        "X21",
+        "X22",
+        "X23",
+    }
     assert brca1_frame["chrom"].unique().tolist() == ["17"]
     assert brca1_frame["gene"].unique().tolist() == ["BRCA1"]
     assert brca1_frame["label"].nunique() == 2
@@ -1097,7 +1113,7 @@ def _(seaborn, variant_results):
 
 
 @app.cell
-def _(average_precision_score, mo, pd, variant_results):
+def _(SOURCE_REVISION, average_precision_score, mo, pd, variant_results):
     pooled_prevalence = float(variant_results["label"].mean())
     pooled_auprc = float(
         average_precision_score(
@@ -1132,6 +1148,37 @@ def _(average_precision_score, mo, pd, variant_results):
             }
         )
     auprc_table = pd.DataFrame(auprc_rows)
+    official_evals_v2 = pd.DataFrame(
+        [
+            {
+                "scope": "pooled BRCA1",
+                "official evals-v2 AUPRC": 0.3883988428066554,
+                "official bootstrap SE": 0.0200169324033533,
+            },
+            {
+                "scope": "missense",
+                "official evals-v2 AUPRC": 0.4034596892875675,
+                "official bootstrap SE": 0.023155120660151324,
+            },
+            {
+                "scope": "splicing",
+                "official evals-v2 AUPRC": 0.307823544062546,
+                "official bootstrap SE": 0.0377770810842366,
+            },
+        ]
+    )
+    auprc_table = auprc_table.merge(
+        official_evals_v2,
+        on="scope",
+        how="left",
+        validate="one_to_one",
+    )
+    auprc_table["absolute delta from official"] = (
+        auprc_table["AUPRC from -llr_avg"] - auprc_table["official evals-v2 AUPRC"]
+    ).abs()
+    parity_tolerance = 1e-3
+    max_auprc_delta = float(auprc_table["absolute delta from official"].max())
+    assert max_auprc_delta <= parity_tolerance
     mo.vstack(
         [
             mo.callout(
@@ -1144,6 +1191,17 @@ def _(average_precision_score, mo, pd, variant_results):
                     The ECDF intentionally displays raw `llr_avg`; AUPRC
                     explicitly uses `minus_llr_avg` so a larger score predicts the
                     impactful/calibrated-abnormal (`label=True`) class.
+
+                    **Official evals-v2 parity:** the largest absolute AUPRC
+                    delta across pooled, missense, and splicing cells is
+                    `{max_auprc_delta:.6f}` (required ≤ `{parity_tolerance:g}`).
+                    The reference cells were reproduced from the official
+                    embedding-bearing score artifact using the
+                    [`minus_llr_avg` transform and SGE aggregation](
+                    https://github.com/Open-Athena/marin-dna/blob/{SOURCE_REVISION}/snakemake/analysis/evals_v2/workflow/rules/metrics.smk#L42-L86).
+                    Its eager embedding extraction and this compiled, batch-64
+                    notebook can perturb BF16 reductions and a few near-tied
+                    ranks; the point estimates nevertheless agree to <0.001.
                     """
                 ),
                 kind="success",
@@ -1208,15 +1266,31 @@ def _(
         ],
         dtype=str,
     )
-    assayed_region = genomic_position_regions(
+    position_block = genomic_position_regions(
         genomic_positions,
         max_gap=CONTEXT_SIZE,
     )
-    assayed_region_counts = pd.Series(assayed_region).value_counts().sort_index()
+    assayed_exon = np.asarray(
+        [
+            f"exon {int(experiment.removeprefix('X')):02d}"
+            for experiment in variant_results["author_experiment"].astype(str)
+        ],
+        dtype=str,
+    )
+    block_exon_pairs = pd.DataFrame(
+        {
+            "position block": position_block,
+            "BRCA1 exon": assayed_exon,
+        }
+    ).drop_duplicates()
+    assayed_exon_counts = pd.Series(assayed_exon).value_counts().sort_index()
     exact_site_counts = pd.Series(exact_site).value_counts()
-    assert len(assayed_region_counts) == 13
+    assert block_exon_pairs["position block"].nunique() == 13
+    assert block_exon_pairs["BRCA1 exon"].nunique() == 13
+    assert len(block_exon_pairs) == 13
+    assert len(assayed_exon_counts) == 13
     assert len(exact_site_counts) == 1_080
-    assert int(assayed_region_counts.sum()) == len(variant_results)
+    assert int(assayed_exon_counts.sum()) == len(variant_results)
     assert exact_site_counts.max() == 3
 
     variant_features_standardized = (
@@ -1272,9 +1346,9 @@ def _(
         variant_features,
         rc_canonical_class,
     )
-    _, region_explained_fraction = residualize_features_by_category(
+    exon_residual_features, exon_explained_fraction = residualize_features_by_category(
         variant_features,
-        assayed_region,
+        assayed_exon,
     )
     _, site_explained_fraction = residualize_features_by_category(
         variant_features,
@@ -1305,6 +1379,23 @@ def _(
     ).fit_transform(mutation_residual_standardized)
     assert residual_umap_coordinates.shape == (len(variant_results), 2)
     assert np.isfinite(residual_umap_coordinates).all()
+
+    exon_residual_standardized = (
+        StandardScaler()
+        .fit_transform(exon_residual_features)
+        .astype(np.float32, copy=False)
+    )
+    assert np.isfinite(exon_residual_standardized).all()
+    exon_residual_umap_coordinates = umap.UMAP(
+        n_components=2,
+        n_neighbors=30,
+        min_dist=0.2,
+        metric="euclidean",
+        random_state=409,
+        n_jobs=1,
+    ).fit_transform(exon_residual_standardized)
+    assert exon_residual_umap_coordinates.shape == (len(variant_results), 2)
+    assert np.isfinite(exon_residual_umap_coordinates).all()
 
     within_class_pca_coordinates = np.empty(
         (len(variant_results), 2),
@@ -1368,7 +1459,7 @@ def _(
             "subset": subset_display,
             "REF>ALT": substitution_class,
             "RC-canonical class": rc_canonical_class,
-            "assayed region": assayed_region,
+            "BRCA1 exon": assayed_exon,
             "GRCh38 position": genomic_positions,
         }
     )
@@ -1379,6 +1470,16 @@ def _(
             "label": label_display,
             "subset": subset_display,
             "REF>ALT": substitution_class,
+        }
+    )
+    exon_residual_umap_frame = pd.DataFrame(
+        {
+            "exon-residual UMAP 1": exon_residual_umap_coordinates[:, 0],
+            "exon-residual UMAP 2": exon_residual_umap_coordinates[:, 1],
+            "label": label_display,
+            "subset": subset_display,
+            "REF>ALT": substitution_class,
+            "BRCA1 exon": assayed_exon,
         }
     )
     within_class_pca_frame = pd.DataFrame(
@@ -1406,7 +1507,7 @@ def _(
                     "UMAP 1": block_coordinates[:, 0],
                     "UMAP 2": block_coordinates[:, 1],
                     "feature block": block_name,
-                    "assayed region": assayed_region,
+                    "BRCA1 exon": assayed_exon,
                 }
             )
             for block_name, block_coordinates in feature_block_coordinates.items()
@@ -1421,11 +1522,9 @@ def _(
                 "embedding variance fraction explained": site_explained_fraction,
             },
             {
-                "categorical fixed effect": (
-                    f"assayed region (position gaps > {CONTEXT_SIZE} bp)"
-                ),
-                "groups": len(assayed_region_counts),
-                "embedding variance fraction explained": region_explained_fraction,
+                "categorical fixed effect": "assayed BRCA1 exon",
+                "groups": len(assayed_exon_counts),
+                "embedding variance fraction explained": exon_explained_fraction,
             },
             {
                 "categorical fixed effect": "12 directed REF>ALT classes",
@@ -1454,7 +1553,7 @@ def _(
     neighbor_summary = neighbor_locality_summary(
         variant_features_standardized,
         genomic_positions,
-        assayed_region,
+        assayed_exon,
         n_neighbors=10,
         context_size=CONTEXT_SIZE,
     )
@@ -1467,6 +1566,7 @@ def _(
     within_class_pca_table = pd.DataFrame(pca_summary_rows)
     return (
         driver_variance_table,
+        exon_residual_umap_frame,
         feature_block_umap_frame,
         neighbor_locality_table,
         residual_umap_frame,
@@ -1551,11 +1651,11 @@ def _(driver_variance_table, mo, neighbor_locality_table, seaborn, umap_frame):
         "Reverse-complement partners share six canonical colors",
         y=1.02,
     )
-    region_umap = seaborn.relplot(
+    exon_umap = seaborn.relplot(
         data=umap_frame,
         x="UMAP 1",
         y="UMAP 2",
-        hue="assayed region",
+        hue="BRCA1 exon",
         kind="scatter",
         palette="tab20",
         alpha=0.75,
@@ -1563,8 +1663,8 @@ def _(driver_variance_table, mo, neighbor_locality_table, seaborn, umap_frame):
         height=6,
         aspect=1.2,
     )
-    region_umap.figure.suptitle(
-        "The same unadjusted UMAP colored by 13 assayed genomic regions",
+    exon_umap.figure.suptitle(
+        "The same unadjusted UMAP colored by the 13 assayed BRCA1 exons",
         y=1.02,
     )
     mo.vstack(
@@ -1572,14 +1672,16 @@ def _(driver_variance_table, mo, neighbor_locality_table, seaborn, umap_frame):
             mo.md("### Diagnose the embedding-island geometry"),
             driver_variance_table,
             neighbor_locality_table,
-            region_umap.figure,
+            exon_umap.figure,
             substitution_umap.figure,
             rc_canonical_umap.figure,
             mo.callout(
                 mo.md(
                     """
-                    Assayed regions are maximal position blocks whose consecutive
-                    sites are at most 255 bp apart; the BRCA1 set contains 13.
+                    The 13 position blocks map one-to-one to the 13 exons assayed
+                    by Findlay et al.: exons 2–5 and 15–23. Within each exon,
+                    consecutive sites are at most 255 bp apart; between exons they
+                    are farther apart than one model context.
                     Exact-site variance is a descriptive high-cardinality upper
                     bound (1,080 groups). The 12 `REF>ALT` classes are the full
                     directed SNV alphabet, paired into six canonical classes by
@@ -1600,7 +1702,7 @@ def _(feature_block_umap_frame, mo, seaborn):
         data=feature_block_umap_frame,
         x="UMAP 1",
         y="UMAP 2",
-        hue="assayed region",
+        hue="BRCA1 exon",
         col="feature block",
         col_order=["reference embedding", "ALT − REF embedding delta"],
         kind="scatter",
@@ -1624,7 +1726,7 @@ def _(feature_block_umap_frame, mo, seaborn):
                 mo.md(
                     """
                     These are independent seeded projections with unrelated axes.
-                    Coloring both by the same assayed-region labels tests whether
+                    Coloring both by the same assayed-exon labels tests whether
                     genomic-context locality lives in the reference representation,
                     the allele-change representation, or both.
                     """
@@ -1776,6 +1878,64 @@ def _(mo, residual_umap_frame, seaborn):
                     classes and subtracts the fitted class mean *before* scaling
                     and UMAP. This is a descriptive nuisance adjustment, not a
                     supervised classifier or a train/test evaluation.
+                    """
+                ),
+                kind="warn",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(exon_residual_umap_frame, mo, seaborn):
+    exon_residual_label_umap = seaborn.relplot(
+        data=exon_residual_umap_frame,
+        x="exon-residual UMAP 1",
+        y="exon-residual UMAP 2",
+        hue="label",
+        style="subset",
+        kind="scatter",
+        palette={"normal": "#4c78a8", "abnormal": "#e45756"},
+        alpha=0.7,
+        s=35,
+        height=6,
+        aspect=1.2,
+    )
+    exon_residual_label_umap.figure.suptitle(
+        "UMAP after subtracting each assayed exon's feature mean",
+        y=1.02,
+    )
+    exon_residual_exon_umap = seaborn.relplot(
+        data=exon_residual_umap_frame,
+        x="exon-residual UMAP 1",
+        y="exon-residual UMAP 2",
+        hue="BRCA1 exon",
+        kind="scatter",
+        palette="tab20",
+        alpha=0.75,
+        s=30,
+        height=6,
+        aspect=1.2,
+    )
+    exon_residual_exon_umap.figure.suptitle(
+        "Exon-centered UMAP recolored by exon to test residual locality",
+        y=1.02,
+    )
+    mo.vstack(
+        [
+            mo.md("### Regress out the mean of each assayed exon"),
+            exon_residual_label_umap.figure,
+            exon_residual_exon_umap.figure,
+            mo.callout(
+                mo.md(
+                    """
+                    For every high-dimensional feature independently, this
+                    subtracts the centroid of its assayed exon before global
+                    scaling and UMAP. The exon-colored view asks whether
+                    exon-specific neighborhood structure remains after removing
+                    the 13 exon means; it does not force the full within-exon
+                    distributions to match.
                     """
                 ),
                 kind="warn",
