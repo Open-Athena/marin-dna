@@ -32,7 +32,7 @@ __generated_with = "0.23.15"
 app = marimo.App(width="full", app_title="MarinDNA inference and VEP")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     from importlib import invalidate_caches as _invalidate_caches
     from importlib.util import find_spec as _find_spec
@@ -92,7 +92,7 @@ def _():
     return runtime_dependencies_ready
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(runtime_dependencies_ready):
     import importlib
     import importlib.util
@@ -122,9 +122,17 @@ def _(runtime_dependencies_ready):
     import torch
     import umap
 
+    # The notebook opens the remote FASTA in the parent before VEP. Linux fork
+    # would inherit fsspec's async-loop state without its thread, deadlocking
+    # every data worker on its first S3 open. Spawn gives each worker a clean
+    # loop and matches hosted notebook runtimes.
+    torch.multiprocessing.set_start_method("spawn", force=True)
+    assert torch.multiprocessing.get_start_method() == "spawn"
+
     del sys.modules["tensorflow"]
 
     from datasets import Dataset, load_dataset
+    from sklearn.decomposition import PCA
     from sklearn.metrics import average_precision_score
     from sklearn.preprocessing import StandardScaler
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -182,6 +190,10 @@ def _(runtime_dependencies_ready):
         align_sequence_strand_outputs,
         normalize_dna_sequence,
     )
+    from marin_dna.model.variant_embedding_diagnostics import (
+        residualize_features_by_category,
+        snv_substitution_classes,
+    )
     from marin_dna.model.variant_interpretation import variant_score_bundle_view
     from marin_dna.pipelines.evals.variant_probe import pair_feature
 
@@ -193,6 +205,7 @@ def _(runtime_dependencies_ready):
         Genome,
         NUCLEOTIDES,
         NOTEBOOK_REVISION,
+        PCA,
         Path,
         SOURCE_REVISION,
         StandardScaler,
@@ -211,11 +224,13 @@ def _(runtime_dependencies_ready):
         pd,
         plt,
         reverse_complement,
+        residualize_features_by_category,
         run_variant_score_bundle,
         seaborn,
         torch,
         umap,
         variant_score_bundle_view,
+        snv_substitution_classes,
     )
 
 
@@ -228,8 +243,8 @@ def _(NOTEBOOK_REVISION):
     DATASET_REVISION = "225d3d1ea32a4af547891b13c33b5e92a5aae849"
     REFERENCE_FASTA = "s3://broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"
     TH_CHROM = "chr11"
-    TH_START = 2_171_648
-    TH_END = 2_171_903
+    TH_START = 2_171_682
+    TH_END = 2_171_868
     TH_STRAND = "-"
     TH_ORIGINAL_START = 2_171_682
     TH_ORIGINAL_END = 2_171_868
@@ -239,6 +254,7 @@ def _(NOTEBOOK_REVISION):
         "CCGCAGGGCCGTGTCTGAGCTGGACGCCAAGCAGGCAGAGGCCATCATGGTAAGAGGGCAGGT"
     )
     CONTEXT_SIZE = 255
+    TH_CONTEXT_SIZE = 186
     VEP_BATCH_SIZE = 64
     VEP_DATALOADER_WORKERS = 4
     VEP_TORCH_COMPILE = True
@@ -256,6 +272,7 @@ def _(NOTEBOOK_REVISION):
         REFERENCE_FASTA,
         SOURCE_URL,
         TH_CHROM,
+        TH_CONTEXT_SIZE,
         TH_END,
         TH_ORIGINAL_END,
         TH_ORIGINAL_SEQUENCE,
@@ -269,12 +286,6 @@ def _(NOTEBOOK_REVISION):
 
 
 @app.cell
-def _(mo):
-    is_script_mode = mo.app_meta().mode == "script"
-    return (is_script_mode,)
-
-
-@app.cell
 def _(MODEL_DOWNLOAD_BYTES, MODEL_ID, MODEL_REVISION, SOURCE_URL, mo):
     mo.vstack(
         [
@@ -284,7 +295,7 @@ def _(MODEL_DOWNLOAD_BYTES, MODEL_ID, MODEL_REVISION, SOURCE_URL, mo):
 
                 This linear, code-visible tutorial loads the pinned public
                 [`{MODEL_ID}`](https://huggingface.co/{MODEL_ID}/tree/{MODEL_REVISION}),
-                runs a real 255 bp GRCh38 sequence in both orientations, and scores
+                runs a real 186 bp GRCh38 sequence in both orientations, and scores
                 the complete pinned BRCA1 saturation-genome-editing set.
 
                 [Commit-pinned notebook source]({SOURCE_URL})
@@ -299,6 +310,10 @@ def _(MODEL_DOWNLOAD_BYTES, MODEL_ID, MODEL_REVISION, SOURCE_URL, mo):
                     loudly when CUDA is unavailable; running this 1.12B-parameter
                     model and 2,751-variant VEP workload on CPU is not a practical
                     fallback.
+
+                    **Molab:** choose **Server**, then **Configure compute → GPU**,
+                    and restart the runtime before running cells. WebAssembly has
+                    no CUDA device and cannot execute this notebook.
                     """
                 ),
                 kind="info",
@@ -425,8 +440,8 @@ def _(REFERENCE_FASTA, mo):
 
 @app.cell
 def _(
-    CONTEXT_SIZE,
     TH_CHROM,
+    TH_CONTEXT_SIZE,
     TH_END,
     TH_ORIGINAL_END,
     TH_ORIGINAL_SEQUENCE,
@@ -440,15 +455,15 @@ def _(
     th_sequence = genome(TH_CHROM, TH_START, TH_END, strand=TH_STRAND).upper()
     th_sequence = normalize_dna_sequence(
         th_sequence,
-        min_length=CONTEXT_SIZE,
-        max_length=CONTEXT_SIZE,
+        min_length=TH_CONTEXT_SIZE,
+        max_length=TH_CONTEXT_SIZE,
     )
-    assert len(th_sequence) == CONTEXT_SIZE == TH_END - TH_START
+    assert len(th_sequence) == TH_CONTEXT_SIZE == TH_END - TH_START
 
     # Negative-strand oriented coordinates reverse the offset calculation.
     original_oriented_start = TH_END - TH_ORIGINAL_END
     original_oriented_end = TH_END - TH_ORIGINAL_START
-    assert (original_oriented_start, original_oriented_end) == (35, 221)
+    assert (original_oriented_start, original_oriented_end) == (0, 186)
     assert (
         th_sequence[original_oriented_start:original_oriented_end]
         == TH_ORIGINAL_SEQUENCE
@@ -479,19 +494,62 @@ def _(
         [
             mo.md(
                 f"""
-                ### Real 255 bp input
+                ### Real 186 bp TH input
 
                 **TH · GRCh38 {TH_CHROM}:{TH_START}-{TH_END} ({TH_STRAND}) ·
-                0-based, half-open · 255 bp**
+                0-based, half-open · 186 bp**
 
                 The sequence below is reverse-complemented into 5′→3′ order on
-                the annotated negative strand. The sequence explorer's original
-                `{TH_CHROM}:{TH_ORIGINAL_START}-{TH_ORIGINAL_END} ({TH_STRAND})`
-                interval is preserved exactly at oriented slice
-                `[{original_oriented_start}, {original_oriented_end})`.
+                the annotated negative strand. This is exactly the interval used
+                by the GPN-Star paper reference and the MarinDNA nucleotide-
+                dependency dashboard, preserved at oriented slice
+                `[{original_oriented_start}, {original_oriented_end})`. The model
+                supports inputs shorter than its 255 bp training context; VEP
+                below continues to use the full 255 bp context.
                 """
             ),
-            mo.md(f"```text\n{th_sequence}\n```"),
+            mo.md(
+                "```text\n"
+                + "\n".join(
+                    th_sequence[offset : offset + 62]
+                    for offset in range(0, len(th_sequence), 62)
+                )
+                + "\n```"
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.vstack(
+        [
+            mo.md("### Functional context from GPN-Star"),
+            mo.image(
+                (
+                    "https://raw.githubusercontent.com/Open-Athena/marin-dna/"
+                    "4cb54842e787c07df1a718cd05ecf19a41fdf86c/"
+                    "dashboard/src/interpretation/refs/TH.png"
+                ),
+                alt=(
+                    "Annotated GPN-Star reference panel for the 186 bp "
+                    "tyrosine-hydroxylase locus"
+                ),
+                width="100%",
+                rounded=True,
+                caption=(
+                    "Annotated reference — GPN-Star, Ye, Benegas et al., bioRxiv 2025"
+                ),
+            ),
+            mo.md(
+                """
+                The annotations make the promoter and functional elements in this
+                compact sequence concrete before inspecting model-derived views.
+                See the [live MarinDNA nucleotide-dependency dashboard](https://openathena.ai/marin-dna/interpretation/nucleotide-dependency)
+                and the [GPN-Star preprint](https://www.biorxiv.org/content/10.1101/2025.09.21.677619v1).
+                """
+            ),
         ]
     )
     return
@@ -499,7 +557,7 @@ def _(
 
 @app.cell
 def _(
-    CONTEXT_SIZE,
+    TH_CONTEXT_SIZE,
     device,
     th_reverse_complement,
     th_sequence,
@@ -520,7 +578,7 @@ def _(
     assert forward_input_ids[0, 0].item() == tokenizer.bos_token_id
     assert reverse_input_ids[0, 0].item() == tokenizer.bos_token_id
     assert forward_input_ids.shape == reverse_input_ids.shape
-    assert forward_input_ids.shape == (1, CONTEXT_SIZE + 1)
+    assert forward_input_ids.shape == (1, TH_CONTEXT_SIZE + 1)
     return forward_input_ids, reverse_input_ids
 
 
@@ -586,7 +644,7 @@ def _(forward_input_ids, model, reverse_input_ids, torch):
 
 @app.cell
 def _(
-    CONTEXT_SIZE,
+    TH_CONTEXT_SIZE,
     aggregate_sequence_strands,
     align_sequence_strand_outputs,
     forward_final_hidden_state,
@@ -603,7 +661,7 @@ def _(
         forward_logits,
         forward_final_hidden_state,
         tokenizer,
-        CONTEXT_SIZE,
+        TH_CONTEXT_SIZE,
         reverse_complemented=False,
     )
     reverse_aligned = align_sequence_strand_outputs(
@@ -611,17 +669,17 @@ def _(
         reverse_logits,
         reverse_final_hidden_state,
         tokenizer,
-        CONTEXT_SIZE,
+        TH_CONTEXT_SIZE,
         reverse_complemented=True,
     )
     sequence_outputs = aggregate_sequence_strands(
         forward_aligned,
         reverse_aligned,
     )
-    assert forward_aligned.nucleotide_logits.shape == (CONTEXT_SIZE, 4)
-    assert reverse_aligned.nucleotide_logits.shape == (CONTEXT_SIZE, 4)
+    assert forward_aligned.nucleotide_logits.shape == (TH_CONTEXT_SIZE, 4)
+    assert reverse_aligned.nucleotide_logits.shape == (TH_CONTEXT_SIZE, 4)
     assert sequence_outputs.embeddings.shape == (
-        CONTEXT_SIZE,
+        TH_CONTEXT_SIZE,
         model.config.hidden_size,
     )
     return (sequence_outputs,)
@@ -665,7 +723,7 @@ def _(NUCLEOTIDES, logomaker, pd, plt, sequence_outputs):
 
 
 @app.cell
-def _(mo, pd, sequence_outputs):
+def _(TH_CONTEXT_SIZE, mo, pd, sequence_outputs):
     likelihood_table = pd.DataFrame(
         {
             "strand": ["forward", "reverse complement", "average"],
@@ -689,10 +747,11 @@ def _(mo, pd, sequence_outputs):
             mo.md(
                 """
                 Likelihood uses a **full-vocabulary** `log_softmax`, gathers each
-                observed nucleotide target, averages over the 255 bases on each
+                observed nucleotide target, averages over the
+                {TH_CONTEXT_SIZE} bases on each
                 strand, then averages the two strand scalars. It does not use the
                 logo's four-nucleotide renormalization.
-                """
+                """.format(TH_CONTEXT_SIZE=TH_CONTEXT_SIZE)
             ),
             likelihood_table,
         ]
@@ -834,32 +893,19 @@ def _(DATASET_ID, DATASET_REVISION, brca1_frame, mo):
 
 @app.cell
 def _(VEP_BATCH_SIZE, VEP_DATALOADER_WORKERS, VEP_TORCH_COMPILE, mo):
-    run_vep = mo.ui.run_button(
-        label="Run or load cached BRCA1 VEP",
-        tooltip=(
-            "Run the complete pinned BRCA1 workload, or load an exact-key cache hit"
-        ),
-        kind="success",
-    )
-    mo.vstack(
-        [
-            run_vep,
-            mo.md(
-                f"""
-                This is the expensive execution boundary. The raw bundle is cached
-                outside the repository and keyed by model revision, dataset
-                revision, reference, context, strand/embedding options, batching,
-                and notebook/source revisions. Editing plots or metrics downstream
-                does not rerun model forwards.
+    mo.md(
+        f"""
+        The complete VEP runs automatically. Its raw bundle is cached outside the
+        repository and keyed by model revision, dataset revision, reference,
+        context, strand/embedding options, batching, and notebook/source revisions.
+        Editing plots or metrics downstream does not rerun model forwards.
 
-                **Execution:** BF16 · `torch.compile={VEP_TORCH_COMPILE}` · batch
-                size `{VEP_BATCH_SIZE}` · `{VEP_DATALOADER_WORKERS}` data-loader
-                workers · no evaluation accumulation barrier.
-                """
-            ),
-        ]
+        **Execution:** BF16 · `torch.compile={VEP_TORCH_COMPILE}` · batch size
+        `{VEP_BATCH_SIZE}` · `{VEP_DATALOADER_WORKERS}` data-loader workers · no
+        evaluation accumulation barrier.
+        """
     )
-    return (run_vep,)
+    return
 
 
 @app.cell
@@ -938,13 +984,10 @@ def _(
 @app.cell
 def _(
     genome,
-    is_script_mode,
-    mo,
     model,
     np,
     pd,
     run_cached_variant_scoring,
-    run_vep,
     scoring_dataset,
     scoring_frame,
     tokenizer,
@@ -952,13 +995,6 @@ def _(
     variant_score_bundle_view,
     vep_cache_key,
 ):
-    mo.stop(
-        not is_script_mode and not run_vep.value,
-        mo.callout(
-            "Press the button above to cross the explicit VEP execution boundary.",
-            kind="info",
-        ),
-    )
     torch.cuda.reset_peak_memory_stats()
     raw_variant_bundle = run_cached_variant_scoring(
         vep_cache_key,
@@ -1026,36 +1062,33 @@ def _(mo, peak_vram_gib, variant_results):
 
 @app.cell
 def _(seaborn, variant_results):
-    histogram_frame = variant_results.assign(
+    ecdf_frame = variant_results.assign(
         label_display=variant_results["label"].map({False: "normal", True: "abnormal"}),
         subset_display=variant_results["subset"].map(
             {"missense_variant": "missense", "splicing": "splicing"}
         ),
     )
-    llr_distribution = seaborn.displot(
-        data=histogram_frame,
+    llr_ecdf = seaborn.displot(
+        data=ecdf_frame,
         x="llr_avg",
         hue="label_display",
         col="subset_display",
-        stat="density",
-        common_norm=False,
-        element="step",
-        fill=True,
-        bins=45,
+        kind="ecdf",
+        stat="proportion",
         palette={"normal": "#4c78a8", "abnormal": "#e45756"},
         height=4,
         aspect=1.35,
     )
-    llr_distribution.set_axis_labels(
+    llr_ecdf.set_axis_labels(
         "Raw FWD/RC-mean LLR (nats; ALT − REF)",
-        "Within-label density",
+        "Within-label cumulative fraction",
     )
-    llr_distribution.set_titles("{col_name} variants")
-    llr_distribution.figure.suptitle(
-        "BRCA1 zero-shot LLR distributions (each label normalized separately)",
+    llr_ecdf.set_titles("{col_name} variants")
+    llr_ecdf.figure.suptitle(
+        "BRCA1 zero-shot LLR ECDFs (each label normalized separately)",
         y=1.04,
     )
-    llr_distribution.figure
+    llr_ecdf.figure
     return
 
 
@@ -1104,7 +1137,7 @@ def _(average_precision_score, mo, pd, variant_results):
                     **positive-class prevalence / no-skill baseline:**
                     `{pooled_prevalence:.4f}`.
 
-                    The histogram intentionally displays raw `llr_avg`; AUPRC
+                    The ECDF intentionally displays raw `llr_avg`; AUPRC
                     explicitly uses `minus_llr_avg` so a larger score predicts the
                     impactful/calibrated-abnormal (`label=True`) class.
                     """
@@ -1119,12 +1152,15 @@ def _(average_precision_score, mo, pd, variant_results):
 
 @app.cell
 def _(
+    PCA,
     StandardScaler,
     alt_embeddings,
     np,
     pair_feature,
     pd,
     ref_embeddings,
+    residualize_features_by_category,
+    snv_substitution_classes,
     umap,
     variant_results,
 ):
@@ -1140,9 +1176,22 @@ def _(
         2 * ref_embeddings.shape[1],
     )
     assert np.isfinite(variant_features).all()
-    variant_features_standardized = StandardScaler().fit_transform(variant_features)
-    assert np.isfinite(variant_features_standardized).all()
 
+    substitution_class, rc_canonical_class = snv_substitution_classes(
+        variant_results["ref"].astype(str).to_numpy(),
+        variant_results["alt"].astype(str).to_numpy(),
+    )
+    substitution_counts = pd.Series(substitution_class).value_counts().sort_index()
+    rc_canonical_counts = pd.Series(rc_canonical_class).value_counts().sort_index()
+    assert len(substitution_counts) == 12
+    assert len(rc_canonical_counts) == 6
+    assert int(substitution_counts.sum()) == len(variant_results)
+    assert substitution_counts.min() > 2
+
+    variant_features_standardized = (
+        StandardScaler().fit_transform(variant_features).astype(np.float32, copy=False)
+    )
+    assert np.isfinite(variant_features_standardized).all()
     umap_coordinates = umap.UMAP(
         n_components=2,
         n_neighbors=30,
@@ -1153,17 +1202,124 @@ def _(
     ).fit_transform(variant_features_standardized)
     assert umap_coordinates.shape == (len(variant_results), 2)
     assert np.isfinite(umap_coordinates).all()
+
+    mutation_residual_features, mutation_explained_fraction = (
+        residualize_features_by_category(
+            variant_features,
+            substitution_class,
+        )
+    )
+    _, rc_canonical_explained_fraction = residualize_features_by_category(
+        variant_features,
+        rc_canonical_class,
+    )
+    assert rc_canonical_explained_fraction <= mutation_explained_fraction + 1e-6
+    mutation_residual_standardized = (
+        StandardScaler()
+        .fit_transform(mutation_residual_features)
+        .astype(np.float32, copy=False)
+    )
+    assert np.isfinite(mutation_residual_standardized).all()
+    residual_umap_coordinates = umap.UMAP(
+        n_components=2,
+        n_neighbors=30,
+        min_dist=0.2,
+        metric="euclidean",
+        random_state=409,
+        n_jobs=1,
+    ).fit_transform(mutation_residual_standardized)
+    assert residual_umap_coordinates.shape == (len(variant_results), 2)
+    assert np.isfinite(residual_umap_coordinates).all()
+
+    within_class_pca_coordinates = np.empty(
+        (len(variant_results), 2),
+        dtype=np.float32,
+    )
+    pca_summary_rows = []
+    for substitution in sorted(substitution_counts.index):
+        row_indices = np.flatnonzero(substitution_class == substitution)
+        class_pca = PCA(
+            n_components=2,
+            svd_solver="randomized",
+            random_state=409,
+        )
+        class_coordinates = class_pca.fit_transform(
+            variant_features_standardized[row_indices]
+        )
+        assert class_coordinates.shape == (len(row_indices), 2)
+        assert np.isfinite(class_coordinates).all()
+        within_class_pca_coordinates[row_indices] = class_coordinates
+        pca_summary_rows.append(
+            {
+                "REF>ALT": substitution,
+                "n": len(row_indices),
+                "PC1 + PC2 variance fraction": float(
+                    class_pca.explained_variance_ratio_.sum()
+                ),
+            }
+        )
+    assert np.isfinite(within_class_pca_coordinates).all()
+
+    label_display = (
+        variant_results["label"].map({False: "normal", True: "abnormal"}).to_numpy()
+    )
+    subset_display = (
+        variant_results["subset"]
+        .map({"missense_variant": "missense", "splicing": "splicing"})
+        .to_numpy()
+    )
     umap_frame = pd.DataFrame(
         {
             "UMAP 1": umap_coordinates[:, 0],
             "UMAP 2": umap_coordinates[:, 1],
-            "label": variant_results["label"].map({False: "normal", True: "abnormal"}),
-            "subset": variant_results["subset"].map(
-                {"missense_variant": "missense", "splicing": "splicing"}
-            ),
+            "label": label_display,
+            "subset": subset_display,
+            "REF>ALT": substitution_class,
+            "RC-canonical class": rc_canonical_class,
         }
     )
-    return (umap_frame,)
+    residual_umap_frame = pd.DataFrame(
+        {
+            "residual UMAP 1": residual_umap_coordinates[:, 0],
+            "residual UMAP 2": residual_umap_coordinates[:, 1],
+            "label": label_display,
+            "subset": subset_display,
+            "REF>ALT": substitution_class,
+        }
+    )
+    within_class_pca_frame = pd.DataFrame(
+        {
+            "within-class PC 1": within_class_pca_coordinates[:, 0],
+            "within-class PC 2": within_class_pca_coordinates[:, 1],
+            "label": label_display,
+            "subset": subset_display,
+            "REF>ALT": substitution_class,
+        }
+    )
+    mutation_variance_table = pd.DataFrame(
+        [
+            {
+                "categorical fixed effect": "12 directed REF>ALT classes",
+                "groups": len(substitution_counts),
+                "embedding variance fraction explained": (mutation_explained_fraction),
+            },
+            {
+                "categorical fixed effect": ("6 reverse-complement-canonical classes"),
+                "groups": len(rc_canonical_counts),
+                "embedding variance fraction explained": (
+                    rc_canonical_explained_fraction
+                ),
+            },
+        ]
+    )
+    within_class_pca_table = pd.DataFrame(pca_summary_rows)
+    return (
+        mutation_variance_table,
+        residual_umap_frame,
+        umap_frame,
+        within_class_pca_frame,
+        within_class_pca_table,
+    )
 
 
 @app.cell
@@ -1182,20 +1338,183 @@ def _(mo, seaborn, umap_frame):
         aspect=1.2,
     )
     embedding_umap.figure.suptitle(
-        "Exploratory BRCA1 UMAP of standardized [ref, alt − ref] embeddings",
+        "Unadjusted BRCA1 UMAP of standardized [ref, alt − ref] embeddings",
         y=1.02,
     )
     mo.vstack(
         [
+            mo.md("### Unadjusted embedding UMAP"),
             embedding_umap.figure,
             mo.callout(
                 mo.md(
                     """
-                    **Descriptive only.** This seeded UMAP is an unsupervised 2D
-                    view of the pooled allele embeddings. Visual separation is not
-                    a validated classifier, no performance is computed from these
-                    coordinates, and no train/test split is implied. The scalar
-                    `-llr_avg` AUPRC above is the quantitative VEP result.
+                    **Descriptive only.** This preserves the original seeded UMAP.
+                    Visual separation is not a validated classifier, no performance
+                    is computed from these coordinates, and no train/test split is
+                    implied. The scalar `-llr_avg` AUPRC above is the quantitative
+                    VEP result.
+                    """
+                ),
+                kind="warn",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, mutation_variance_table, seaborn, umap_frame):
+    substitution_umap = seaborn.relplot(
+        data=umap_frame,
+        x="UMAP 1",
+        y="UMAP 2",
+        hue="REF>ALT",
+        kind="scatter",
+        palette="tab20",
+        alpha=0.75,
+        s=30,
+        height=6,
+        aspect=1.2,
+    )
+    substitution_umap.figure.suptitle(
+        "The same unadjusted UMAP colored by 12 directed substitutions",
+        y=1.02,
+    )
+    rc_canonical_umap = seaborn.relplot(
+        data=umap_frame,
+        x="UMAP 1",
+        y="UMAP 2",
+        hue="RC-canonical class",
+        kind="scatter",
+        palette="colorblind",
+        alpha=0.75,
+        s=30,
+        height=6,
+        aspect=1.2,
+    )
+    rc_canonical_umap.figure.suptitle(
+        "Reverse-complement partners share six canonical colors",
+        y=1.02,
+    )
+    mo.vstack(
+        [
+            mo.md("### Diagnose the substitution-class geometry"),
+            mutation_variance_table,
+            substitution_umap.figure,
+            rc_canonical_umap.figure,
+            mo.callout(
+                mo.md(
+                    """
+                    The 12 `REF>ALT` classes are the full directed SNV alphabet.
+                    Complementing both alleles pairs them into six canonical
+                    classes (for example, `A>C` with `T>G`). The table quantifies
+                    their high-dimensional effect before any 2D projection.
+                    """
+                ),
+                kind="info",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(
+    mo,
+    seaborn,
+    within_class_pca_frame,
+    within_class_pca_table,
+):
+    within_class_pca = seaborn.relplot(
+        data=within_class_pca_frame,
+        x="within-class PC 1",
+        y="within-class PC 2",
+        hue="label",
+        style="subset",
+        col="REF>ALT",
+        col_wrap=4,
+        kind="scatter",
+        palette={"normal": "#4c78a8", "abnormal": "#e45756"},
+        alpha=0.7,
+        s=22,
+        height=2.4,
+        aspect=1.0,
+        facet_kws={"sharex": False, "sharey": False},
+    )
+    within_class_pca.set_titles("{col_name}")
+    within_class_pca.figure.suptitle(
+        "Independent within-substitution PCAs of standardized embeddings",
+        y=1.01,
+    )
+    mo.vstack(
+        [
+            mo.md("### Look within each of the 12 substitutions"),
+            within_class_pca.figure,
+            within_class_pca_table,
+            mo.callout(
+                mo.md(
+                    """
+                    Each facet fits its own deterministic two-component PCA, so
+                    axes and scales are independent across facets. Read structure
+                    *within* a substitution; do not compare absolute coordinates
+                    between panels.
+                    """
+                ),
+                kind="info",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, residual_umap_frame, seaborn):
+    residual_label_umap = seaborn.relplot(
+        data=residual_umap_frame,
+        x="residual UMAP 1",
+        y="residual UMAP 2",
+        hue="label",
+        style="subset",
+        kind="scatter",
+        palette={"normal": "#4c78a8", "abnormal": "#e45756"},
+        alpha=0.7,
+        s=35,
+        height=6,
+        aspect=1.2,
+    )
+    residual_label_umap.figure.suptitle(
+        "UMAP after subtracting each directed substitution's feature mean",
+        y=1.02,
+    )
+    residual_substitution_umap = seaborn.relplot(
+        data=residual_umap_frame,
+        x="residual UMAP 1",
+        y="residual UMAP 2",
+        hue="REF>ALT",
+        kind="scatter",
+        palette="tab20",
+        alpha=0.75,
+        s=30,
+        height=6,
+        aspect=1.2,
+    )
+    residual_substitution_umap.figure.suptitle(
+        "Residual UMAP recolored by REF>ALT to check class mixing",
+        y=1.02,
+    )
+    mo.vstack(
+        [
+            mo.md("### Regress out directed substitution identity"),
+            residual_label_umap.figure,
+            residual_substitution_umap.figure,
+            mo.callout(
+                mo.md(
+                    """
+                    For every high-dimensional feature independently, this fits an
+                    intercept plus a one-hot fixed effect for the 12 `REF>ALT`
+                    classes and subtracts the fitted class mean *before* scaling
+                    and UMAP. This is a descriptive nuisance adjustment, not a
+                    supervised classifier or a train/test evaluation.
                     """
                 ),
                 kind="warn",

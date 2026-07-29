@@ -4,8 +4,9 @@
 
 [`model_inference_and_vep.py`](model_inference_and_vep.py) is a linear,
 code-visible Marimo tutorial for loading the pinned public MarinDNA 1B model,
-running a real 255 bp GRCh38 sequence, and scoring the pinned BRCA1
-saturation-genome-editing dataset through the existing VEP runner.
+running the exact 186 bp negative-strand TH interval shown in the GPN-Star
+reference panel, and scoring the pinned BRCA1 saturation-genome-editing dataset
+with 255 bp contexts through the existing VEP runner.
 
 The notebook declares its complete environment with PEP 723 metadata. It
 requires a CUDA GPU with BF16 support and intentionally does not fall back to
@@ -17,7 +18,10 @@ uv run marimo edit examples/model_inference_and_vep.py
 
 GitHub remains the source of truth. Open the
 [public code-visible Molab notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/7224b7e60349ac8746a4df537185130d2c9e6fd9/examples/model_inference_and_vep.py)
-to inspect or execute the GPU-verified committed revision.
+to inspect or execute the GPU-verified committed revision. Choose **Server**,
+then **Configure compute → GPU**, before running cells. The GitHub-backed source
+preview does not store executed outputs, and WebAssembly cannot provide the
+CUDA/native PyTorch runtime this notebook requires.
 
 ## Sequence explorer
 

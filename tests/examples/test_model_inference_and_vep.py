@@ -75,6 +75,42 @@ def test_notebook_exposes_required_inference_and_vep_paths():
         '"torch_compile": VEP_TORCH_COMPILE',
         '"dataloader_num_workers": VEP_DATALOADER_WORKERS',
         'genome("chr17", int(pos) - 1, int(pos))',
+        'torch.multiprocessing.set_start_method("spawn", force=True)',
     ):
         assert required_snippet in source
     assert "eval_accumulation_steps" not in source
+    assert "mo.ui.run_button" not in source
+    assert "mo.stop(" not in source
+
+
+def test_notebook_presents_exact_th_paper_interval_with_hidden_setup():
+    source = NOTEBOOK.read_text(encoding="utf-8")
+    th_panel = (
+        NOTEBOOK.parents[1] / "dashboard" / "src" / "interpretation" / "refs" / "TH.png"
+    )
+
+    assert source.count("@app.cell(hide_code=True)") >= 2
+    assert "TH_START = 2_171_682" in source
+    assert "TH_END = 2_171_868" in source
+    assert "TH_CONTEXT_SIZE = 186" in source
+    assert "CONTEXT_SIZE = 255" in source
+    assert "4cb54842e787c07df1a718cd05ecf19a41fdf86c" in source
+    assert "dashboard/src/interpretation/refs/TH.png" in source
+    assert "VEP" in source
+    assert "below continues to use the full 255 bp context" in source
+    assert th_panel.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_notebook_contains_ecdf_and_mutation_aware_embedding_diagnostics():
+    source = NOTEBOOK.read_text(encoding="utf-8")
+
+    for required_snippet in (
+        'kind="ecdf"',
+        "snv_substitution_classes(",
+        "residualize_features_by_category(",
+        "len(substitution_counts) == 12",
+        "len(rc_canonical_counts) == 6",
+        "Independent within-substitution PCAs",
+        "UMAP after subtracting each directed substitution's feature mean",
+    ):
+        assert required_snippet in source
