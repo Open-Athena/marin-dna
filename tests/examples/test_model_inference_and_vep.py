@@ -6,8 +6,8 @@ import ast
 from pathlib import Path
 
 NOTEBOOK = Path(__file__).parents[2] / "examples" / "model_inference_and_vep.py"
-SOURCE_REVISION = "8bf15b6707e495987c16b62bcd4ef93618ffb134"
-NOTEBOOK_REVISION = "05fa583f13c59a7b3ff000473ee57c862af5950e"
+SOURCE_REVISION = "c572176be9f06dd41cead9d3dacff10bb37a2559"
+NOTEBOOK_REVISION = "c572176be9f06dd41cead9d3dacff10bb37a2559"
 MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
 DATASET_REVISION = "225d3d1ea32a4af547891b13c33b5e92a5aae849"
 
