@@ -24,20 +24,33 @@ summary: "How MarinDNA combined data curation, hyperparameter transfer, scaling,
 }
 .blog-post-content figure img,
 .blog-post-content figure svg.figure-svg {
+  display: block;
+  margin-inline: auto;
+  box-sizing: border-box;
   background: #ece3d5;
   padding: 1rem 1.25rem;
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(31, 30, 27, 0.10);
+}
+/* Keep each caption visually attached to its image. The table wrapper
+   shrink-wraps narrower figures while max-width keeps wide figures inside the
+   article column; table-caption then inherits that same rendered width. */
+.blog-post-content figure {
+  display: table;
+  max-width: 100%;
+  margin-inline: auto;
+}
+.blog-post-content figure figcaption {
+  display: table-caption;
+  caption-side: bottom;
 }
 /* Inlined matplotlib figures: the viewBox carries the aspect ratio, so let the
    SVG fill the column and scale its height automatically. Authored with live
    <text> and currentColor (see site/build.py + utils.figure_theme), so labels
    render in the page font and follow the page ink. */
 .blog-post-content figure svg.figure-svg {
-  display: block;
   width: 100%;
   height: auto;
-  box-sizing: border-box;
 }
 /* Nested lists inherit ul's 1rem margin-bottom, which stacks with the parent
    <li>'s margin to leave an oversized gap before the next top-level bullet.
