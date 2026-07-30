@@ -85,8 +85,9 @@ uv run --no-project python src/marin_dna/blog_workspace.py verify-import
 
 Validation fails loudly for missing local article assets, duplicate footnote
 definitions, undefined footnotes, a renderer checkout that does not resolve to
-the pinned commit, a changed baseline manifest, missing built CSS/fonts/assets,
-or any website build failure.
+the pinned commit, referenced SVGs without positive intrinsic dimensions or with
+dimensions that disagree with their view box, a changed baseline manifest,
+missing built CSS/fonts/assets, or any website build failure.
 
 ## Branch and PR topology
 

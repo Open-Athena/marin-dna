@@ -46,6 +46,29 @@ def test_validate_footnotes_rejects_undefined_reference() -> None:
         validate_footnotes("reference[^missing]\n")
 
 
+def test_validate_svg_intrinsic_dimensions_rejects_viewbox_only_svg(
+    tmp_path: Path,
+) -> None:
+    svg = tmp_path / "figure.svg"
+    svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440"/>')
+
+    with pytest.raises(AssertionError, match="lacks intrinsic width"):
+        blog_workspace.validate_svg_intrinsic_dimensions(svg)
+
+
+def test_validate_svg_intrinsic_dimensions_rejects_mismatched_aspect_ratio(
+    tmp_path: Path,
+) -> None:
+    svg = tmp_path / "figure.svg"
+    svg.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" '
+        'viewBox="0 0 960 440"/>'
+    )
+
+    with pytest.raises(AssertionError, match="different aspect ratios"):
+        blog_workspace.validate_svg_intrinsic_dimensions(svg)
+
+
 def test_edited_workspace_is_valid_and_baseline_manifest_is_readable() -> None:
     config = load_config(default_config_path())
     referenced_assets = validate_workspace(config)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import math
 import os
 import posixpath
 import re
@@ -19,6 +20,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
+from xml.etree import ElementTree
 
 
 DEFAULT_WORKSPACE_RELATIVE_PATH = Path("blog/genomic-lm-optimization")
@@ -33,6 +35,7 @@ HTML_FILE_ATTRIBUTE_RE = re.compile(
 CSS_URL_RE = re.compile(r"""\burl\(\s*(?:["']([^"']+)["']|([^\s)'"]+))\s*\)""")
 FOOTNOTE_DEFINITION_RE = re.compile(r"(?m)^[ \t]{0,3}\[\^([^\]\s]+)\]:")
 FOOTNOTE_TOKEN_RE = re.compile(r"\[\^([^\]\s]+)\]")
+SVG_LENGTH_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?|\.[0-9]+)(px|pt|pc|mm|cm|in)?")
 
 LIVE_RELOAD_RELATIVE_PATH = Path("__marin_dna_live_reload__")
 LIVE_RELOAD_SCRIPT = """
@@ -215,6 +218,47 @@ def _asset_reference_to_static_path(reference: str, slug: str) -> Path:
     return Path(*relative.parts)
 
 
+def validate_svg_intrinsic_dimensions(path: Path) -> None:
+    """Reject SVG sizing that can collapse or distort a shrink-wrapped figure."""
+    root = ElementTree.parse(path).getroot()
+    assert root.tag.rsplit("}", maxsplit=1)[-1] == "svg", f"not an SVG root: {path}"
+
+    dimensions: dict[str, float] = {}
+    units: dict[str, str | None] = {}
+    for attribute in ("width", "height"):
+        value = root.get(attribute)
+        assert value is not None, (
+            f"referenced SVG lacks intrinsic {attribute} and will render at the "
+            f"browser fallback size: {path}"
+        )
+        match = SVG_LENGTH_RE.fullmatch(value.strip())
+        assert match is not None and float(match.group(1)) > 0, (
+            f"referenced SVG has invalid intrinsic {attribute}={value!r}: {path}"
+        )
+        dimensions[attribute] = float(match.group(1))
+        units[attribute] = match.group(2)
+
+    assert units["width"] == units["height"], (
+        f"referenced SVG width and height use different units: {path}"
+    )
+    view_box = root.get("viewBox")
+    assert view_box is not None, f"referenced SVG lacks viewBox: {path}"
+    raw_view_box = view_box.replace(",", " ").split()
+    assert len(raw_view_box) == 4, f"invalid SVG viewBox={view_box!r}: {path}"
+    _, _, view_box_width, view_box_height = map(float, raw_view_box)
+    assert view_box_width > 0 and view_box_height > 0, (
+        f"non-positive SVG viewBox={view_box!r}: {path}"
+    )
+    assert math.isclose(
+        dimensions["width"] / dimensions["height"],
+        view_box_width / view_box_height,
+        rel_tol=1e-6,
+    ), (
+        f"referenced SVG intrinsic dimensions and viewBox have different aspect "
+        f"ratios: {path}"
+    )
+
+
 def validate_workspace(config: WorkspaceConfig) -> list[Path]:
     """Validate the canonical article, footnotes, and referenced local assets."""
     assert config.article.is_file(), f"missing canonical article: {config.article}"
@@ -227,6 +271,8 @@ def validate_workspace(config: WorkspaceConfig) -> list[Path]:
         relative = _asset_reference_to_static_path(reference, config.slug)
         source = config.static / relative
         assert source.is_file(), f"missing local asset {reference}: expected {source}"
+        if source.suffix.lower() == ".svg":
+            validate_svg_intrinsic_dimensions(source)
         referenced_paths.append(source)
     assert referenced_paths, "article has no local assets"
     return referenced_paths

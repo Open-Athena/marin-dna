@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 282" role="img" aria-labelledby="t d" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="282" viewBox="0 0 820 282" role="img" aria-labelledby="t d" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
   <title id="t">Training datasets</title>
   <desc id="d">The initial three-region mixture used coding sequence, upstream and downstream datasets extracted from per-species RefSeq annotations across 499 animal genomes. Later experiments added enhancer and ncRNA datasets built from human annotations, conservation-filtered and projected across 108 Zoonomia mammals. Bar length is proportional to dataset tokens.</desc>
   <rect x="1" y="1" width="818" height="280" rx="14" fill="#f6f0e4" stroke="#ddd3bf"/>
