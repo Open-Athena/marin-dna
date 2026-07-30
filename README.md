@@ -4,6 +4,10 @@
 
 <p align="center"><sub>Inspired by <a href="https://github.com/marin-community/marin">Marin</a>.</sub></p>
 
+## News
+
+- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
+
 ## Research
 
 Tracked as GitHub issues under a two-axis label taxonomy — **Type** (the kind of work) × **Area** (the part of the project). See [AGENTS.md](AGENTS.md#issue-labels) for what each label means.
@@ -18,6 +22,13 @@ Tracked as GitHub issues under a two-axis label taxonomy — **Type** (the kind 
 [baselines](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Abaselines) ·
 [hyperparameter-optimization](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ahyperparameter-optimization) ·
 [interpretation](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ainterpretation)
+
+## Resources
+
+- [🤗 Models and datasets on Hugging Face](https://huggingface.co/marin-dna)
+- [🏆 Variant effect prediction leaderboard](https://openathena.ai/marin-dna/)
+- [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
+- [💻 Model inference and BRCA1 variant effect prediction notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/20f48809013a34c4cf4bee94582e9ba94b56b5b2/examples/model_inference_and_vep.py)
 
 ## Example
 
@@ -75,14 +86,6 @@ tiny_enhancer_model = train_lm(
 if __name__ == "__main__":
     StepRunner().run([lower(tiny_enhancer_model)])
 ```
-
-## Leaderboard
-
-Variant effect prediction leaderboards (under construction): [openathena.ai/marin-dna](https://openathena.ai/marin-dna/).
-
-## News
-
-- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
 
 ## Installation
 
