@@ -374,7 +374,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
                 fontsize=8.5,
                 color="#59636e",
                 zorder=4,
-                linespacing=1.15,
+                linespacing=1.35,
                 bbox={
                     "boxstyle": "square,pad=0.15",
                     "facecolor": MACRO_FILL,
@@ -388,7 +388,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
                     "shrinkB": 0,
                 },
             )
-    axes[-1, 1].set_xlabel("tokens (B)", labelpad=4, fontsize=11)
+    axes[-1, 1].set_xlabel("Tokens (B)", labelpad=4, fontsize=11)
     for ax in axes[:, 0]:
         ax.set_ylabel("AUPRC (%)", fontsize=11)
 

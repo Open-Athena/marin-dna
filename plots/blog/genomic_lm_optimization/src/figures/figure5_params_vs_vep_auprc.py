@@ -23,6 +23,10 @@ import numpy as np
 import pandas as pd
 
 from figures.data import SCALING_RESULTS_PATH, save
+from marin_dna.blog_figure_typography import (
+    FIGURE_BODY_SIZE_PX,
+    FIGURE_PANEL_TITLE_SIZE_PX,
+)
 from marin_dna.pipelines.evals.metrics import per_chrom_ap_table
 from utils.figure_style import X_LABEL_PAD, figsize
 
@@ -165,8 +169,8 @@ def _plot_panel(
             zorder=3,
         )
     ax.set_xscale("log")
-    ax.set_title(title, fontsize=10)
-    ax.set_xlabel("model params", labelpad=X_LABEL_PAD)
+    ax.set_title(title, fontsize=FIGURE_PANEL_TITLE_SIZE_PX)
+    ax.set_xlabel("Model parameters", labelpad=X_LABEL_PAD)
     if show_ylabel:
         ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
@@ -248,12 +252,12 @@ def build(data: pd.DataFrame | None = None) -> None:
         handles,
         labels,
         title="Scoring protocol",
-        title_fontsize=9,
+        title_fontsize=FIGURE_BODY_SIZE_PX,
         ncol=2,
         loc="upper center",
         bbox_to_anchor=(0.5, 0.985),
         frameon=False,
-        fontsize=9,
+        fontsize=FIGURE_BODY_SIZE_PX,
         handletextpad=0.5,
         columnspacing=1.8,
     )

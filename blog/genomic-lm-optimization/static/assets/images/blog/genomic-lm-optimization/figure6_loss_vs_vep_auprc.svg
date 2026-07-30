@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="466.687613pt" height="465.804781pt" viewBox="0 0 466.687613 465.804781" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="466.687613pt" height="465.804781pt" viewBox="0 0 466.687613 465.804781" xmlns="http://www.w3.org/2000/svg" version="1.1" data-figure-typography="lato-v1" font-family="Lato, sans-serif" data-figure-render-width="560">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -51,7 +51,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_1">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="86.094194" y="162.19077" transform="rotate(-0 86.094194 162.19077)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="86.094194" y="162.19077" transform="rotate(-0 86.094194 162.19077)">−1.0</text>
      </g>
     </g>
     <g id="xtick_2">
@@ -61,11 +61,11 @@ L 0 3.5
       </g>
      </g>
      <g id="text_2">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="146.682334" y="162.19077" transform="rotate(-0 146.682334 162.19077)">−0.5</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="146.682334" y="162.19077" transform="rotate(-0 146.682334 162.19077)">−0.5</text>
      </g>
     </g>
     <g id="text_3">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="172.191551" transform="rotate(-0 128.725412 172.191551)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="172.191551" transform="rotate(-0 128.725412 172.191551)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
@@ -81,7 +81,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="131.790698" transform="rotate(-0 75.013095 131.790698)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="131.790698" transform="rotate(-0 75.013095 131.790698)">40</text>
      </g>
     </g>
     <g id="ytick_2">
@@ -91,7 +91,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="100.457597" transform="rotate(-0 75.013095 100.457597)">50</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="100.457597" transform="rotate(-0 75.013095 100.457597)">50</text>
      </g>
     </g>
     <g id="ytick_3">
@@ -101,11 +101,11 @@ L -3.5 0
       </g>
      </g>
      <g id="text_6">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="69.124496" transform="rotate(-0 75.013095 69.124496)">60</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="69.124496" transform="rotate(-0 75.013095 69.124496)">60</text>
      </g>
     </g>
     <g id="text_7">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="100.880797" transform="rotate(-90 55.885751 100.880797)">AUPRC (%)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="100.880797" transform="rotate(-90 55.885751 100.880797)">AUPRC (%)</text>
     </g>
    </g>
    <g id="line2d_6">
@@ -155,16 +155,11 @@ L 168.99465 124.11007
 " clip-path="url(#pe0017f8d47)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_8">
-    <!-- $r = -0.70$ -->
+    <!-- $r$ = −0.70 -->
     <g style="fill: #465c6e" transform="translate(85.75008 63.98359)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">−</tspan>
-      <tspan x="19.8125" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="24.902344" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="27.445312" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">7</tspan>
-      <tspan x="32.535156" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = −0.70</tspan>
      </text>
     </g>
    </g>
@@ -195,20 +190,16 @@ L 168.99465 63.80753
 " clip-path="url(#pe0017f8d47)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_9">
-    <!-- $r = 0.99$ -->
-    <g style="fill: #9c4f2f" transform="translate(85.75008 73.326054)">
+    <!-- $r$ = 0.99 -->
+    <g style="fill: #9c4f2f" transform="translate(85.75008 78.926054)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.99</tspan>
      </text>
     </g>
    </g>
    <g id="text_10">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="48.16848" transform="rotate(-0 128.725412 48.16848)">Missense</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="48.16848" transform="rotate(-0 128.725412 48.16848)">Missense</text>
    </g>
    <g id="line2d_8">
     <defs>
@@ -274,7 +265,7 @@ z
       </g>
      </g>
      <g id="text_11">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="226.972782" y="162.19077" transform="rotate(-0 226.972782 162.19077)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="226.972782" y="162.19077" transform="rotate(-0 226.972782 162.19077)">−1.0</text>
      </g>
     </g>
     <g id="xtick_4">
@@ -284,11 +275,11 @@ z
       </g>
      </g>
      <g id="text_12">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="287.560922" y="162.19077" transform="rotate(-0 287.560922 162.19077)">−0.5</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="287.560922" y="162.19077" transform="rotate(-0 287.560922 162.19077)">−0.5</text>
      </g>
     </g>
     <g id="text_13">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="172.191551" transform="rotate(-0 269.604 172.191551)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="172.191551" transform="rotate(-0 269.604 172.191551)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_4">
@@ -299,7 +290,7 @@ z
       </g>
      </g>
      <g id="text_14">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="132.888058" transform="rotate(-0 215.891683 132.888058)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="132.888058" transform="rotate(-0 215.891683 132.888058)">40</text>
      </g>
     </g>
     <g id="ytick_5">
@@ -309,7 +300,7 @@ z
       </g>
      </g>
      <g id="text_15">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="89.920315" transform="rotate(-0 215.891683 89.920315)">60</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="89.920315" transform="rotate(-0 215.891683 89.920315)">60</text>
      </g>
     </g>
    </g>
@@ -360,15 +351,11 @@ L 309.873239 75.414251
 " clip-path="url(#pe4a762698c)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_16">
-    <!-- $r = 0.99$ -->
+    <!-- $r$ = 0.99 -->
     <g style="fill: #465c6e" transform="translate(226.628669 63.98359)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.99</tspan>
      </text>
     </g>
    </g>
@@ -399,20 +386,16 @@ L 309.873239 63.80753
 " clip-path="url(#pe4a762698c)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_17">
-    <!-- $r = 0.99$ -->
-    <g style="fill: #9c4f2f" transform="translate(226.628669 73.326054)">
+    <!-- $r$ = 0.99 -->
+    <g style="fill: #9c4f2f" transform="translate(226.628669 78.926054)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.99</tspan>
      </text>
     </g>
    </g>
    <g id="text_18">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="48.16848" transform="rotate(-0 269.604 48.16848)">Splicing</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="48.16848" transform="rotate(-0 269.604 48.16848)">Splicing</text>
    </g>
    <g id="line2d_16">
     <g clip-path="url(#pe4a762698c)">
@@ -457,7 +440,7 @@ z
       </g>
      </g>
      <g id="text_19">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="367.851371" y="162.19077" transform="rotate(-0 367.851371 162.19077)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="367.851371" y="162.19077" transform="rotate(-0 367.851371 162.19077)">−1.0</text>
      </g>
     </g>
     <g id="xtick_6">
@@ -467,11 +450,11 @@ z
       </g>
      </g>
      <g id="text_20">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="428.439511" y="162.19077" transform="rotate(-0 428.439511 162.19077)">−0.5</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="428.439511" y="162.19077" transform="rotate(-0 428.439511 162.19077)">−0.5</text>
      </g>
     </g>
     <g id="text_21">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="172.191551" transform="rotate(-0 410.482588 172.191551)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="172.191551" transform="rotate(-0 410.482588 172.191551)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_6">
@@ -482,7 +465,7 @@ z
       </g>
      </g>
      <g id="text_22">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="146.845517" transform="rotate(-0 356.770271 146.845517)">20</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="146.845517" transform="rotate(-0 356.770271 146.845517)">20</text>
      </g>
     </g>
     <g id="ytick_7">
@@ -492,7 +475,7 @@ z
       </g>
      </g>
      <g id="text_23">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="112.096912" transform="rotate(-0 356.770271 112.096912)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="112.096912" transform="rotate(-0 356.770271 112.096912)">40</text>
      </g>
     </g>
     <g id="ytick_8">
@@ -502,7 +485,7 @@ z
       </g>
      </g>
      <g id="text_24">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="77.348307" transform="rotate(-0 356.770271 77.348307)">60</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="77.348307" transform="rotate(-0 356.770271 77.348307)">60</text>
      </g>
     </g>
    </g>
@@ -553,15 +536,11 @@ L 450.751827 86.83504
 " clip-path="url(#p0b18904826)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_25">
-    <!-- $r = 0.91$ -->
+    <!-- $r$ = 0.91 -->
     <g style="fill: #465c6e" transform="translate(367.507257 63.98359)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">1</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.91</tspan>
      </text>
     </g>
    </g>
@@ -592,20 +571,16 @@ L 450.751827 63.80753
 " clip-path="url(#p0b18904826)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_26">
-    <!-- $r = 0.59$ -->
-    <g style="fill: #9c4f2f" transform="translate(367.507257 73.326054)">
+    <!-- $r$ = 0.59 -->
+    <g style="fill: #9c4f2f" transform="translate(367.507257 78.926054)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">5</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.59</tspan>
      </text>
     </g>
    </g>
    <g id="text_27">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="48.16848" transform="rotate(-0 410.482588 48.16848)">Synonymous</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="48.16848" transform="rotate(-0 410.482588 48.16848)">Synonymous</text>
    </g>
    <g id="line2d_25">
     <g clip-path="url(#p0b18904826)">
@@ -650,7 +625,7 @@ z
       </g>
      </g>
      <g id="text_28">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="119.829548" y="304.196213" transform="rotate(-0 119.829548 304.196213)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="119.829548" y="304.196213" transform="rotate(-0 119.829548 304.196213)">−1.0</text>
      </g>
     </g>
     <g id="xtick_8">
@@ -660,11 +635,11 @@ z
       </g>
      </g>
      <g id="text_29">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="175.165393" y="304.196213" transform="rotate(-0 175.165393 304.196213)">−0.8</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="175.165393" y="304.196213" transform="rotate(-0 175.165393 304.196213)">−0.8</text>
      </g>
     </g>
     <g id="text_30">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="314.196994" transform="rotate(-0 128.725412 314.196994)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="314.196994" transform="rotate(-0 128.725412 314.196994)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_8">
@@ -675,7 +650,7 @@ z
       </g>
      </g>
      <g id="text_31">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="291.001654" transform="rotate(-0 75.013095 291.001654)">10</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="291.001654" transform="rotate(-0 75.013095 291.001654)">10</text>
      </g>
     </g>
     <g id="ytick_10">
@@ -685,7 +660,7 @@ z
       </g>
      </g>
      <g id="text_32">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="261.906261" transform="rotate(-0 75.013095 261.906261)">20</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="261.906261" transform="rotate(-0 75.013095 261.906261)">20</text>
      </g>
     </g>
     <g id="ytick_11">
@@ -695,7 +670,7 @@ z
       </g>
      </g>
      <g id="text_33">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="232.810867" transform="rotate(-0 75.013095 232.810867)">30</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="232.810867" transform="rotate(-0 75.013095 232.810867)">30</text>
      </g>
     </g>
     <g id="ytick_12">
@@ -705,11 +680,11 @@ z
       </g>
      </g>
      <g id="text_34">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="203.715474" transform="rotate(-0 75.013095 203.715474)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="203.715474" transform="rotate(-0 75.013095 203.715474)">40</text>
      </g>
     </g>
     <g id="text_35">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="242.88624" transform="rotate(-90 55.885751 242.88624)">AUPRC (%)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="242.88624" transform="rotate(-90 55.885751 242.88624)">AUPRC (%)</text>
     </g>
    </g>
    <g id="line2d_33">
@@ -759,15 +734,11 @@ L 168.99465 218.393984
 " clip-path="url(#p07fbc828ee)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_36">
-    <!-- $r = 0.96$ -->
+    <!-- $r$ = 0.96 -->
     <g style="fill: #465c6e" transform="translate(85.75008 205.989034)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">6</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.96</tspan>
      </text>
     </g>
    </g>
@@ -798,20 +769,16 @@ L 168.99465 206.691015
 " clip-path="url(#p07fbc828ee)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_37">
-    <!-- $r = 0.86$ -->
-    <g style="fill: #9c4f2f" transform="translate(85.75008 215.331497)">
+    <!-- $r$ = 0.86 -->
+    <g style="fill: #9c4f2f" transform="translate(85.75008 220.931497)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">8</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">6</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.86</tspan>
      </text>
     </g>
    </g>
    <g id="text_38">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="190.173923" transform="rotate(-0 128.725412 190.173923)">Promoter</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="190.173923" transform="rotate(-0 128.725412 190.173923)">Promoter</text>
    </g>
    <g id="line2d_35">
     <g clip-path="url(#p07fbc828ee)">
@@ -856,7 +823,7 @@ z
       </g>
      </g>
      <g id="text_39">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="260.708136" y="304.196213" transform="rotate(-0 260.708136 304.196213)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="260.708136" y="304.196213" transform="rotate(-0 260.708136 304.196213)">−1.0</text>
      </g>
     </g>
     <g id="xtick_10">
@@ -866,11 +833,11 @@ z
       </g>
      </g>
      <g id="text_40">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="316.043982" y="304.196213" transform="rotate(-0 316.043982 304.196213)">−0.8</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="316.043982" y="304.196213" transform="rotate(-0 316.043982 304.196213)">−0.8</text>
      </g>
     </g>
     <g id="text_41">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="314.196994" transform="rotate(-0 269.604 314.196994)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="314.196994" transform="rotate(-0 269.604 314.196994)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_10">
@@ -881,7 +848,7 @@ z
       </g>
      </g>
      <g id="text_42">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="276.478281" transform="rotate(-0 215.891683 276.478281)">20</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="276.478281" transform="rotate(-0 215.891683 276.478281)">20</text>
      </g>
     </g>
     <g id="ytick_14">
@@ -891,7 +858,7 @@ z
       </g>
      </g>
      <g id="text_43">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="241.550112" transform="rotate(-0 215.891683 241.550112)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="241.550112" transform="rotate(-0 215.891683 241.550112)">40</text>
      </g>
     </g>
     <g id="ytick_15">
@@ -901,7 +868,7 @@ z
       </g>
      </g>
      <g id="text_44">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="206.621943" transform="rotate(-0 215.891683 206.621943)">60</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="206.621943" transform="rotate(-0 215.891683 206.621943)">60</text>
      </g>
     </g>
    </g>
@@ -952,15 +919,11 @@ L 309.873239 218.801098
 " clip-path="url(#pdaccee0538)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_45">
-    <!-- $r = 0.97$ -->
+    <!-- $r$ = 0.97 -->
     <g style="fill: #465c6e" transform="translate(226.628669 205.989034)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">7</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.97</tspan>
      </text>
     </g>
    </g>
@@ -991,20 +954,16 @@ L 309.873239 214.73683
 " clip-path="url(#pdaccee0538)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_46">
-    <!-- $r = 0.96$ -->
-    <g style="fill: #9c4f2f" transform="translate(226.628669 215.331497)">
+    <!-- $r$ = 0.96 -->
+    <g style="fill: #9c4f2f" transform="translate(226.628669 220.931497)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">6</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.96</tspan>
      </text>
     </g>
    </g>
    <g id="text_47">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="190.173923" transform="rotate(-0 269.604 190.173923)">5′ UTR</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="190.173923" transform="rotate(-0 269.604 190.173923)">5′ UTR</text>
    </g>
    <g id="line2d_44">
     <g clip-path="url(#pdaccee0538)">
@@ -1049,7 +1008,7 @@ z
       </g>
      </g>
      <g id="text_48">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="371.294586" y="304.196213" transform="rotate(-0 371.294586 304.196213)">−1.2</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="371.294586" y="304.196213" transform="rotate(-0 371.294586 304.196213)">−1.2</text>
      </g>
     </g>
     <g id="xtick_12">
@@ -1059,7 +1018,7 @@ z
       </g>
      </g>
      <g id="text_49">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="409.320396" y="304.196213" transform="rotate(-0 409.320396 304.196213)">−1.1</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="409.320396" y="304.196213" transform="rotate(-0 409.320396 304.196213)">−1.1</text>
      </g>
     </g>
     <g id="xtick_13">
@@ -1069,11 +1028,11 @@ z
       </g>
      </g>
      <g id="text_50">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="447.346207" y="304.196213" transform="rotate(-0 447.346207 304.196213)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="447.346207" y="304.196213" transform="rotate(-0 447.346207 304.196213)">−1.0</text>
      </g>
     </g>
     <g id="text_51">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="314.196994" transform="rotate(-0 410.482588 314.196994)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="314.196994" transform="rotate(-0 410.482588 314.196994)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_12">
@@ -1084,7 +1043,7 @@ z
       </g>
      </g>
      <g id="text_52">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="268.533689" transform="rotate(-0 356.770271 268.533689)">20</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="268.533689" transform="rotate(-0 356.770271 268.533689)">20</text>
      </g>
     </g>
     <g id="ytick_17">
@@ -1094,7 +1053,7 @@ z
       </g>
      </g>
      <g id="text_53">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="238.407342" transform="rotate(-0 356.770271 238.407342)">30</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="238.407342" transform="rotate(-0 356.770271 238.407342)">30</text>
      </g>
     </g>
     <g id="ytick_18">
@@ -1104,7 +1063,7 @@ z
       </g>
      </g>
      <g id="text_54">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="208.280995" transform="rotate(-0 356.770271 208.280995)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="208.280995" transform="rotate(-0 356.770271 208.280995)">40</text>
      </g>
     </g>
    </g>
@@ -1155,15 +1114,11 @@ L 450.751827 231.303997
 " clip-path="url(#p2509e5d81f)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_55">
-    <!-- $r = 0.83$ -->
+    <!-- $r$ = 0.83 -->
     <g style="fill: #465c6e" transform="translate(367.507257 205.989034)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">8</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">3</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.83</tspan>
      </text>
     </g>
    </g>
@@ -1194,20 +1149,16 @@ L 450.751827 229.548376
 " clip-path="url(#p2509e5d81f)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_56">
-    <!-- $r = 0.65$ -->
-    <g style="fill: #9c4f2f" transform="translate(367.507257 215.331497)">
+    <!-- $r$ = 0.65 -->
+    <g style="fill: #9c4f2f" transform="translate(367.507257 220.931497)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">6</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">5</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.65</tspan>
      </text>
     </g>
    </g>
    <g id="text_57">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="190.173923" transform="rotate(-0 410.482588 190.173923)">3′ UTR</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="190.173923" transform="rotate(-0 410.482588 190.173923)">3′ UTR</text>
    </g>
    <g id="line2d_54">
     <g clip-path="url(#p2509e5d81f)">
@@ -1252,7 +1203,7 @@ z
       </g>
      </g>
      <g id="text_58">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="156.533488" y="446.201656" transform="rotate(-0 156.533488 446.201656)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="156.533488" y="446.201656" transform="rotate(-0 156.533488 446.201656)">−1.0</text>
      </g>
     </g>
     <g id="xtick_15">
@@ -1262,11 +1213,11 @@ z
       </g>
      </g>
      <g id="text_59">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="217.121628" y="446.201656" transform="rotate(-0 217.121628 446.201656)">−0.5</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="217.121628" y="446.201656" transform="rotate(-0 217.121628 446.201656)">−0.5</text>
      </g>
     </g>
     <g id="text_60">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="456.202438" transform="rotate(-0 199.164706 456.202438)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="456.202438" transform="rotate(-0 199.164706 456.202438)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_14">
@@ -1277,7 +1228,7 @@ z
       </g>
      </g>
      <g id="text_61">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="412.230594" transform="rotate(-0 145.452389 412.230594)">30</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="412.230594" transform="rotate(-0 145.452389 412.230594)">30</text>
      </g>
     </g>
     <g id="ytick_20">
@@ -1287,7 +1238,7 @@ z
       </g>
      </g>
      <g id="text_62">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="387.399409" transform="rotate(-0 145.452389 387.399409)">35</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="387.399409" transform="rotate(-0 145.452389 387.399409)">35</text>
      </g>
     </g>
     <g id="ytick_21">
@@ -1297,11 +1248,11 @@ z
       </g>
      </g>
      <g id="text_63">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="362.568224" transform="rotate(-0 145.452389 362.568224)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="362.568224" transform="rotate(-0 145.452389 362.568224)">40</text>
      </g>
     </g>
     <g id="text_64">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="126.325045" y="384.891683" transform="rotate(-90 126.325045 384.891683)">AUPRC (%)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="126.325045" y="384.891683" transform="rotate(-90 126.325045 384.891683)">AUPRC (%)</text>
     </g>
    </g>
    <g id="line2d_61">
@@ -1351,15 +1302,11 @@ L 239.433945 363.078002
 " clip-path="url(#p4dd2b6828c)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_65">
-    <!-- $r = 0.95$ -->
+    <!-- $r$ = 0.95 -->
     <g style="fill: #465c6e" transform="translate(156.189374 347.994477)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">5</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.95</tspan>
      </text>
     </g>
    </g>
@@ -1390,20 +1337,16 @@ L 239.433945 347.818416
 " clip-path="url(#p4dd2b6828c)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_66">
-    <!-- $r = 0.93$ -->
-    <g style="fill: #9c4f2f" transform="translate(156.189374 357.33694)">
+    <!-- $r$ = 0.93 -->
+    <g style="fill: #9c4f2f" transform="translate(156.189374 362.93694)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">3</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.93</tspan>
      </text>
     </g>
    </g>
    <g id="text_67">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="332.179366" transform="rotate(-0 199.164706 332.179366)">Missense</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="332.179366" transform="rotate(-0 199.164706 332.179366)">Missense</text>
    </g>
    <g id="line2d_63">
     <g clip-path="url(#p4dd2b6828c)">
@@ -1448,7 +1391,7 @@ z
       </g>
      </g>
      <g id="text_68">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="297.412077" y="446.201656" transform="rotate(-0 297.412077 446.201656)">−1.0</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="297.412077" y="446.201656" transform="rotate(-0 297.412077 446.201656)">−1.0</text>
      </g>
     </g>
     <g id="xtick_17">
@@ -1458,11 +1401,11 @@ z
       </g>
      </g>
      <g id="text_69">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="358.000216" y="446.201656" transform="rotate(-0 358.000216 446.201656)">−0.5</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="358.000216" y="446.201656" transform="rotate(-0 358.000216 446.201656)">−0.5</text>
      </g>
     </g>
     <g id="text_70">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="456.202438" transform="rotate(-0 340.043294 456.202438)">LL (-loss)</text>
+     <text style="font-size: 10.833px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="456.202438" transform="rotate(-0 340.043294 456.202438)">LL (−loss)</text>
     </g>
    </g>
    <g id="matplotlib.axis_16">
@@ -1473,7 +1416,7 @@ z
       </g>
      </g>
      <g id="text_71">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="435.008419" transform="rotate(-0 286.330977 435.008419)">20</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="435.008419" transform="rotate(-0 286.330977 435.008419)">20</text>
      </g>
     </g>
     <g id="ytick_23">
@@ -1483,7 +1426,7 @@ z
       </g>
      </g>
      <g id="text_72">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="398.442809" transform="rotate(-0 286.330977 398.442809)">40</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="398.442809" transform="rotate(-0 286.330977 398.442809)">40</text>
      </g>
     </g>
     <g id="ytick_24">
@@ -1493,7 +1436,7 @@ z
       </g>
      </g>
      <g id="text_73">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="361.8772" transform="rotate(-0 286.330977 361.8772)">60</text>
+      <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="361.8772" transform="rotate(-0 286.330977 361.8772)">60</text>
      </g>
     </g>
    </g>
@@ -1544,15 +1487,11 @@ L 380.312533 357.246901
 " clip-path="url(#pea05b9ea0f)" style="fill: none; stroke: #465c6e; stroke-width: 0.9"/>
    </g>
    <g id="text_74">
-    <!-- $r = 0.98$ -->
+    <!-- $r$ = 0.98 -->
     <g style="fill: #465c6e" transform="translate(297.067963 347.994477)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">9</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #465c6e">8</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #465c6e"> = 0.98</tspan>
      </text>
     </g>
    </g>
@@ -1583,20 +1522,16 @@ L 380.312533 347.818416
 " clip-path="url(#pea05b9ea0f)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_75">
-    <!-- $r = 0.88$ -->
-    <g style="fill: #9c4f2f" transform="translate(297.067963 357.33694)">
+    <!-- $r$ = 0.88 -->
+    <g style="fill: #9c4f2f" transform="translate(297.067963 362.93694)">
      <text>
-      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">r</tspan>
-      <tspan x="4.847656" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">=</tspan>
-      <tspan x="13.109375" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">0</tspan>
-      <tspan x="18.199219" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">.</tspan>
-      <tspan x="20.742188" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">8</tspan>
-      <tspan x="25.832031" y="-0.0625" style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #9c4f2f">8</tspan>
+      <tspan x="0" y="-0.0625" style="font-style: oblique; font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f">r</tspan>
+      <tspan x="6.5" y="-0.0625" style="font-size: 9.167px; font-family: 'Lato', sans-serif; fill: #9c4f2f"> = 0.88</tspan>
      </text>
     </g>
    </g>
    <g id="text_76">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="332.179366" transform="rotate(-0 340.043294 332.179366)">Splicing</text>
+    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="332.179366" transform="rotate(-0 340.043294 332.179366)">Splicing</text>
    </g>
    <g id="line2d_72">
     <g clip-path="url(#pea05b9ea0f)">
@@ -1624,14 +1559,14 @@ L 380.312533 347.818416
    </g>
   </g>
   <g id="text_77">
-   <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="48.286368" transform="rotate(-0 7.2 48.286368)">Mendelian</text>
+   <text style="font-weight: 700; font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="48.286368" transform="rotate(-0 7.2 48.286368)">Mendelian</text>
   </g>
   <g id="text_78">
-   <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="332.297254" transform="rotate(-0 7.2 332.297254)">SGE</text>
+   <text style="font-weight: 700; font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="332.297254" transform="rotate(-0 7.2 332.297254)">SGE</text>
   </g>
   <g id="legend_1">
    <g id="text_79">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="226.264078" y="17.638594" transform="rotate(-0 226.264078 17.638594)">Scoring protocol</text>
+    <text style="font-size: 10px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="226.264078" y="17.638594" transform="rotate(-0 226.264078 17.638594)">Scoring protocol</text>
    </g>
    <g id="line2d_74">
     <path d="M 172.593141 27.989297
@@ -1643,7 +1578,7 @@ L 190.593141 27.989297
     </g>
    </g>
    <g id="text_80">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="195.093141" y="31.139297" transform="rotate(-0 195.093141 31.139297)">Zero-shot LLR</text>
+    <text style="font-size: 9.168px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="195.093141" y="31.139297" transform="rotate(-0 195.093141 31.139297)">Zero-shot LLR</text>
    </g>
    <g id="line2d_75">
     <path d="M 273.989391 27.989297
@@ -1655,7 +1590,7 @@ L 291.989391 27.989297
     </g>
    </g>
    <g id="text_81">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="296.489391" y="31.139297" transform="rotate(-0 296.489391 31.139297)">Linear probe</text>
+    <text style="font-size: 9.168px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="296.489391" y="31.139297" transform="rotate(-0 296.489391 31.139297)">Linear probe</text>
    </g>
   </g>
  </g>

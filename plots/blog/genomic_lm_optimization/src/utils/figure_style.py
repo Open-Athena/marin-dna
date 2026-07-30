@@ -13,6 +13,11 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.transforms import Bbox
 
+from marin_dna.blog_figure_typography import (
+    FIGURE_BODY_SIZE_PX,
+    FIGURE_NOTE_SIZE_PX,
+)
+
 # Natural (unscaled) dimensions. Width is constant across figures so they line
 # up in any side-by-side rendering.
 FIGURE_WIDTH = 12.0
@@ -80,8 +85,8 @@ X_LABEL_PAD = 0
 
 # Tight label↔marker spacing, generous between (marker, label) pairs.
 LEGEND_KW = dict(
-    fontsize=9,
-    title_fontsize=9,
+    fontsize=FIGURE_NOTE_SIZE_PX,
+    title_fontsize=FIGURE_BODY_SIZE_PX,
     frameon=False,
     handletextpad=0.3,
     columnspacing=2.2,
@@ -141,10 +146,10 @@ def shape_legend_handles(include_reference: bool = True):
     sweep = Line2D([0], [0], marker="o", markersize=8, **common)
     optimal = Line2D([0], [0], marker="s", markersize=8, **common)
     handles = [sweep, optimal]
-    labels = ["sweep", "optimal (predicted)"]
+    labels = ["Sweep", "Optimal (predicted)"]
     if include_reference:
         handles.append(Line2D([0], [0], marker="D", markersize=8, **common))
-        labels.append("control (reference)")
+        labels.append("Control (reference)")
     return handles, labels
 
 
@@ -191,7 +196,7 @@ def attach_params_legend_below(
         p_handles,
         p_labels,
         ncol=len(p_handles),
-        title="model params",
+        title="Model parameters",
         loc="upper center",
         bbox_to_anchor=(0.5, LEGEND_Y),
         **kw,
@@ -230,7 +235,7 @@ def attach_legends_below(
         p_handles,
         p_labels,
         ncol=len(p_handles),
-        title="model params",
+        title="Model parameters",
         loc="upper left",
         bbox_to_anchor=(0.0, legend_y),
         **TWO_LEGEND_KW,
@@ -240,7 +245,7 @@ def attach_legends_below(
         s_handles,
         s_labels,
         ncol=len(s_handles),
-        title="run type",
+        title="Run type",
         loc="upper left",
         bbox_to_anchor=(0.0, legend_y),
         **TWO_LEGEND_KW,
@@ -259,6 +264,43 @@ def attach_legends_below(
     x0 = center - (w1 + gap + w2) / 2.0
     leg_params.set_bbox_to_anchor((x0, legend_y), transform=fig.transFigure)
     leg_shape.set_bbox_to_anchor((x0 + w1 + gap, legend_y), transform=fig.transFigure)
+
+
+def attach_stacked_legends_below(
+    fig,
+    palette: dict,
+    params: list[int],
+    *,
+    include_reference: bool = True,
+    params_y: float = 0.10,
+    run_y: float = 0.01,
+) -> None:
+    """Stack the parameter and run-type legends at compact display widths.
+
+    The inline legend block above works for wide canvases. For figures rendered
+    at roughly 500–700 CSS pixels, two centered rows preserve the same semantic
+    hierarchy without compressing labels until they touch.
+    """
+    param_handles, param_labels = params_legend_handles(palette, params)
+    fig.legend(
+        param_handles,
+        param_labels,
+        ncol=len(param_handles),
+        title="Model parameters",
+        loc="lower center",
+        bbox_to_anchor=(0.5, params_y),
+        **TWO_LEGEND_KW,
+    )
+    run_handles, run_labels = shape_legend_handles(include_reference=include_reference)
+    fig.legend(
+        run_handles,
+        run_labels,
+        ncol=len(run_handles),
+        title="Run type",
+        loc="lower center",
+        bbox_to_anchor=(0.5, run_y),
+        **TWO_LEGEND_KW,
+    )
 
 
 def set_plain_decimal_yticks(ax) -> None:

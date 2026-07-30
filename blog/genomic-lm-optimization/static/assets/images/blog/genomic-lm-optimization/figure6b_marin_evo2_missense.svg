@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="411.509343pt" height="294.775981pt" viewBox="0 0 411.509343 294.775981" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="411.509343pt" height="294.775981pt" viewBox="0 0 411.509343 294.775981" xmlns="http://www.w3.org/2000/svg" version="1.1" data-figure-typography="lato-v1" font-family="Lato, sans-serif" data-figure-render-width="500">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -51,7 +51,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_1">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="54.38989" y="275.172856" transform="rotate(-0 54.38989 275.172856)">46M</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="54.38989" y="275.172856" transform="rotate(-0 54.38989 275.172856)">46M</text>
      </g>
     </g>
     <g id="xtick_2">
@@ -61,7 +61,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_2">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="105.549549" y="275.172856" transform="rotate(-0 105.549549 275.172856)">128M</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="105.549549" y="275.172856" transform="rotate(-0 105.549549 275.172856)">128M</text>
      </g>
     </g>
     <g id="xtick_3">
@@ -71,7 +71,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_3">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="170.61474" y="275.172856" transform="rotate(-0 170.61474 275.172856)">476M</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="170.61474" y="275.172856" transform="rotate(-0 170.61474 275.172856)">476M</text>
      </g>
     </g>
     <g id="xtick_4">
@@ -81,7 +81,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="213.147888" y="275.172856" transform="rotate(-0 213.147888 275.172856)">1B</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="213.147888" y="275.172856" transform="rotate(-0 213.147888 275.172856)">1B</text>
      </g>
     </g>
     <g id="xtick_5">
@@ -91,7 +91,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="276.656339" y="275.172856" transform="rotate(-0 276.656339 275.172856)">4B</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="276.656339" y="275.172856" transform="rotate(-0 276.656339 275.172856)">4B</text>
      </g>
     </g>
     <g id="xtick_6">
@@ -101,7 +101,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_6">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="304.218835" y="275.172856" transform="rotate(-0 304.218835 275.172856)">7B</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="304.218835" y="275.172856" transform="rotate(-0 304.218835 275.172856)">7B</text>
      </g>
     </g>
     <g id="xtick_7">
@@ -111,7 +111,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_7">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="390.836467" y="275.172856" transform="rotate(-0 390.836467 275.172856)">40B</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="390.836467" y="275.172856" transform="rotate(-0 390.836467 275.172856)">40B</text>
      </g>
     </g>
     <g id="xtick_8">
@@ -288,7 +288,7 @@ L 0 2
      </g>
     </g>
     <g id="text_8">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="222.6098" y="285.173637" transform="rotate(-0 222.6098 285.173637)">model params</text>
+     <text style="font-size: 10.699px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="222.6098" y="285.173637" transform="rotate(-0 222.6098 285.173637)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
@@ -304,7 +304,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_9">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="250.023972" transform="rotate(-0 33.925 250.023972)">35</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="250.023972" transform="rotate(-0 33.925 250.023972)">35</text>
      </g>
     </g>
     <g id="ytick_2">
@@ -314,7 +314,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_10">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="216.989459" transform="rotate(-0 33.925 216.989459)">40</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="216.989459" transform="rotate(-0 33.925 216.989459)">40</text>
      </g>
     </g>
     <g id="ytick_3">
@@ -324,7 +324,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_11">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="183.954946" transform="rotate(-0 33.925 183.954946)">45</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="183.954946" transform="rotate(-0 33.925 183.954946)">45</text>
      </g>
     </g>
     <g id="ytick_4">
@@ -334,7 +334,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_12">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="150.920434" transform="rotate(-0 33.925 150.920434)">50</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="150.920434" transform="rotate(-0 33.925 150.920434)">50</text>
      </g>
     </g>
     <g id="ytick_5">
@@ -344,7 +344,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_13">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="117.885921" transform="rotate(-0 33.925 117.885921)">55</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="117.885921" transform="rotate(-0 33.925 117.885921)">55</text>
      </g>
     </g>
     <g id="ytick_6">
@@ -354,11 +354,11 @@ L -3.5 0
       </g>
      </g>
      <g id="text_14">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="84.851408" transform="rotate(-0 33.925 84.851408)">60</text>
+      <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="33.925" y="84.851408" transform="rotate(-0 33.925 84.851408)">60</text>
      </g>
     </g>
     <g id="text_15">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="14.797656" y="156.546" transform="rotate(-90 14.797656 156.546)">AUPRC (%)</text>
+     <text style="font-size: 10.699px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="14.797656" y="156.546" transform="rotate(-90 14.797656 156.546)">AUPRC (%)</text>
     </g>
    </g>
    <g id="patch_3">
@@ -554,7 +554,7 @@ z
   </g>
   <g id="legend_1">
    <g id="text_16">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="105.050838" y="17.638594" transform="rotate(-0 105.050838 17.638594)">Scoring protocol</text>
+    <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="105.050838" y="17.638594" transform="rotate(-0 105.050838 17.638594)">Scoring protocol</text>
    </g>
    <g id="line2d_42">
     <path d="M 46.879901 27.989297
@@ -563,7 +563,7 @@ L 68.479901 27.989297
 " style="fill: none; stroke-dasharray: 5.55,2.4; stroke-dashoffset: 0; stroke: #465c6e; stroke-width: 1.5"/>
    </g>
    <g id="text_17">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="75.679901" y="31.139297" transform="rotate(-0 75.679901 31.139297)">Zero-shot LLR</text>
+    <text style="font-size: 9.054px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="75.679901" y="31.139297" transform="rotate(-0 75.679901 31.139297)">Zero-shot LLR</text>
    </g>
    <g id="line2d_43">
     <path d="M 150.976151 27.989297
@@ -572,12 +572,12 @@ L 172.576151 27.989297
 " style="fill: none; stroke: #9c4f2f; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="text_18">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="179.776151" y="31.139297" transform="rotate(-0 179.776151 31.139297)">Linear probe</text>
+    <text style="font-size: 9.054px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="179.776151" y="31.139297" transform="rotate(-0 179.776151 31.139297)">Linear probe</text>
    </g>
   </g>
   <g id="legend_2">
    <g id="text_19">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="105.050838" y="17.638594" transform="rotate(-0 105.050838 17.638594)">Scoring protocol</text>
+    <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="105.050838" y="17.638594" transform="rotate(-0 105.050838 17.638594)">Scoring protocol</text>
    </g>
    <g id="line2d_44">
     <path d="M 46.879901 27.989297
@@ -586,7 +586,7 @@ L 68.479901 27.989297
 " style="fill: none; stroke-dasharray: 5.55,2.4; stroke-dashoffset: 0; stroke: #465c6e; stroke-width: 1.5"/>
    </g>
    <g id="text_20">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="75.679901" y="31.139297" transform="rotate(-0 75.679901 31.139297)">Zero-shot LLR</text>
+    <text style="font-size: 9.054px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="75.679901" y="31.139297" transform="rotate(-0 75.679901 31.139297)">Zero-shot LLR</text>
    </g>
    <g id="line2d_45">
     <path d="M 150.976151 27.989297
@@ -595,12 +595,12 @@ L 172.576151 27.989297
 " style="fill: none; stroke: #9c4f2f; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="text_21">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="179.776151" y="31.139297" transform="rotate(-0 179.776151 31.139297)">Linear probe</text>
+    <text style="font-size: 9.054px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="179.776151" y="31.139297" transform="rotate(-0 179.776151 31.139297)">Linear probe</text>
    </g>
   </g>
   <g id="legend_3">
    <g id="text_22">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="309.822703" y="17.638594" transform="rotate(-0 309.822703 17.638594)">Model family</text>
+    <text style="font-size: 9.876px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="309.822703" y="17.638594" transform="rotate(-0 309.822703 17.638594)">Model family</text>
    </g>
    <g id="line2d_46">
     <defs>
@@ -621,7 +621,7 @@ z
     </g>
    </g>
    <g id="text_23">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="298.197937" y="31.139297" transform="rotate(-0 298.197937 31.139297)">MarinDNA</text>
+    <text style="font-size: 9.054px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="298.197937" y="31.139297" transform="rotate(-0 298.197937 31.139297)">MarinDNA</text>
    </g>
    <g id="line2d_47">
     <defs>
@@ -637,7 +637,7 @@ z
     </g>
    </g>
    <g id="text_24">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="375.602156" y="31.139297" transform="rotate(-0 375.602156 31.139297)">Evo 2</text>
+    <text style="font-size: 9.054px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="375.602156" y="31.139297" transform="rotate(-0 375.602156 31.139297)">Evo 2</text>
    </g>
   </g>
  </g>

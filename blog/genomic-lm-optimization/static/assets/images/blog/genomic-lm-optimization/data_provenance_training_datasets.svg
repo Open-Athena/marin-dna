@@ -1,47 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="820" height="282" viewBox="0 0 820 282" role="img" aria-labelledby="t d" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="282" viewBox="0 0 820 282" role="img" aria-labelledby="t d" font-family="Lato, sans-serif" data-figure-typography="lato-v1" data-figure-render-width="660">
   <title id="t">Training datasets</title>
   <desc id="d">The initial three-region mixture used coding sequence, upstream and downstream datasets extracted from per-species RefSeq annotations across 499 animal genomes. Later experiments added enhancer and ncRNA datasets built from human annotations, conservation-filtered and projected across 108 Zoonomia mammals. Bar length is proportional to dataset tokens.</desc>
   <rect x="1" y="1" width="818" height="280" rx="14" fill="#f6f0e4" stroke="#ddd3bf"/>
-  <text x="26" y="29" font-size="17" font-weight="700" fill="#1f1e1b">Training datasets</text>
-  <text x="26" y="47" font-size="11.5" fill="#7a6f5f">255-bp windows  ·  one species per taxonomic family</text>
+  <text x="26" y="29" font-size="19.879" font-weight="700" fill="#1f1e1b">Training datasets</text>
+  <text x="26" y="47" font-size="14.964" fill="#7a6f5f">255-bp windows  ·  One species per taxonomic family</text>
 
   <g stroke="#e6dcc6" stroke-width="1">
     <line x1="340" y1="54" x2="340" y2="235"/><line x1="476" y1="54" x2="476" y2="235"/><line x1="612" y1="54" x2="612" y2="235"/><line x1="748" y1="54" x2="748" y2="235"/>
   </g>
 
-  <rect x="26" y="56" width="142" height="16" rx="8" fill="#eadcca"/>
-  <text x="97" y="67.5" font-size="9.5" font-weight="700" fill="#5b4a36" text-anchor="middle">ANNOTATION-DERIVED</text>
-  <text x="179" y="68" font-size="12.5" font-weight="700" fill="#5b4a36">Per-species RefSeq annotation extraction · 499 animal genomes</text>
+  <rect x="26" y="56" width="165" height="16" rx="8" fill="#eadcca"/>
+  <text x="108.5" y="67.5" font-size="14.909" font-weight="700" fill="#5b4a36" text-anchor="middle">ANNOTATION-DERIVED</text>
+  <text x="210" y="68" font-size="16.265" font-weight="700" fill="#5b4a36">Per-species RefSeq annotation extraction · 499 animal genomes</text>
 
   <g>
-    <rect x="26" y="83" width="11" height="11" rx="2.5" fill="#9c4f2f"/><text x="45" y="93" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">CDS</tspan><tspan font-size="10.5" fill="#8a7d68"> · coding sequence</tspan></text>
-    <rect x="340" y="84" width="420" height="12" rx="2" fill="#9c4f2f"/><text x="753" y="94" font-size="10.5" font-weight="700" fill="#fff" text-anchor="end">61.8B</text>
+    <rect x="26" y="83" width="11" height="11" rx="2.5" fill="#9c4f2f"/><text x="45" y="93" font-size="16.265" fill="#1f1e1b"><tspan font-weight="700">CDS</tspan><tspan font-size="13.663" fill="#8a7d68"> · coding sequence</tspan></text>
+    <rect x="340" y="84" width="420" height="12" rx="2" fill="#9c4f2f"/><text x="753" y="94" font-size="14.909" font-weight="700" fill="#fff" text-anchor="end">61.8B</text>
   </g>
   <g>
-    <rect x="26" y="109" width="11" height="11" rx="2.5" fill="#2f6f63"/><text x="45" y="119" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">Upstream</tspan><tspan font-size="10.5" fill="#8a7d68"> · promoter + 5′ UTR</tspan></text>
-    <rect x="340" y="110" width="118" height="12" rx="2" fill="#2f6f63"/><text x="464" y="120" font-size="10.5" font-weight="700" fill="#5b4a36">17.4B</text>
+    <rect x="26" y="109" width="11" height="11" rx="2.5" fill="#2f6f63"/><text x="45" y="119" font-size="16.265" fill="#1f1e1b"><tspan font-weight="700">Upstream</tspan><tspan font-size="13.663" fill="#8a7d68"> · promoter + 5′ UTR</tspan></text>
+    <rect x="340" y="110" width="118" height="12" rx="2" fill="#2f6f63"/><text x="464" y="120" font-size="14.909" font-weight="700" fill="#5b4a36">17.4B</text>
   </g>
   <g>
-    <rect x="26" y="135" width="11" height="11" rx="2.5" fill="#c0883a"/><text x="45" y="145" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">Downstream</tspan><tspan font-size="10.5" fill="#8a7d68"> · 3′ UTR</tspan></text>
-    <rect x="340" y="136" width="35" height="12" rx="2" fill="#c0883a"/><text x="381" y="146" font-size="10.5" font-weight="700" fill="#5b4a36">5.2B</text>
+    <rect x="26" y="135" width="11" height="11" rx="2.5" fill="#c0883a"/><text x="45" y="145" font-size="16.265" fill="#1f1e1b"><tspan font-weight="700">Downstream</tspan><tspan font-size="13.663" fill="#8a7d68"> · 3′ UTR</tspan></text>
+    <rect x="340" y="136" width="35" height="12" rx="2" fill="#c0883a"/><text x="381" y="146" font-size="14.909" font-weight="700" fill="#5b4a36">5.2B</text>
   </g>
 
   <line x1="26" y1="158" x2="794" y2="158" stroke="#ddd3bf"/>
-  <rect x="26" y="166" width="142" height="16" rx="8" fill="#dfe3d0"/>
-  <text x="97" y="177.5" font-size="9.5" font-weight="700" fill="#4d5a35" text-anchor="middle">ALIGNMENT-PROJECTED</text>
-  <text x="179" y="178" font-size="12.5" font-weight="700" fill="#3a4a4a">Human anchors → conservation filter → halLiftover across 108 Zoonomia mammals</text>
+  <rect x="26" y="166" width="165" height="16" rx="8" fill="#dfe3d0"/>
+  <text x="108.5" y="177.5" font-size="14.909" font-weight="700" fill="#4d5a35" text-anchor="middle">ALIGNMENT-PROJECTED</text>
+  <text x="210" y="178" font-size="16.265" font-weight="700" fill="#3a4a4a">Human anchors → conservation filter → halLiftover across 108 Zoonomia mammals</text>
 
   <g>
-    <rect x="26" y="193" width="11" height="11" rx="2.5" fill="#6f7d3f"/><text x="45" y="203" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">Enhancer</tspan><tspan font-size="10.5" fill="#8a7d68"> · ENCODE non-promoter cCREs</tspan></text>
-    <rect x="340" y="194" width="167" height="12" rx="2" fill="#6f7d3f"/><text x="513" y="204" font-size="10.5" font-weight="700" fill="#5b4a36">24.6B</text>
+    <rect x="26" y="193" width="11" height="11" rx="2.5" fill="#6f7d3f"/><text x="45" y="203" font-size="16.265" fill="#1f1e1b"><tspan font-weight="700">Enhancer</tspan><tspan font-size="13.663" fill="#8a7d68"> · ENCODE non-promoter cCREs</tspan></text>
+    <rect x="340" y="194" width="167" height="12" rx="2" fill="#6f7d3f"/><text x="513" y="204" font-size="14.909" font-weight="700" fill="#5b4a36">24.6B</text>
   </g>
   <g>
-    <rect x="26" y="219" width="11" height="11" rx="2.5" fill="#465c6e"/><text x="45" y="229" font-size="12.5" fill="#1f1e1b"><tspan font-weight="700">ncRNA</tspan><tspan font-size="10.5" fill="#8a7d68"> · Ensembl annotations</tspan></text>
-    <rect x="340" y="220" width="27" height="12" rx="2" fill="#465c6e"/><text x="373" y="230" font-size="10.5" font-weight="700" fill="#5b4a36">3.9B</text>
+    <rect x="26" y="219" width="11" height="11" rx="2.5" fill="#465c6e"/><text x="45" y="229" font-size="16.265" fill="#1f1e1b"><tspan font-weight="700">ncRNA</tspan><tspan font-size="13.663" fill="#8a7d68"> · Ensembl annotations</tspan></text>
+    <rect x="340" y="220" width="27" height="12" rx="2" fill="#465c6e"/><text x="373" y="230" font-size="14.909" font-weight="700" fill="#5b4a36">3.9B</text>
   </g>
 
-  <g font-size="9.5" fill="#a89a80" text-anchor="middle">
+  <g font-size="14.909" fill="#a89a80" text-anchor="middle">
     <text x="340" y="254">0</text><text x="476" y="254">20B</text><text x="612" y="254">40B</text><text x="748" y="254">60B</text>
-    <text x="544" y="272" fill="#8a7d68">dataset tokens</text>
+    <text x="544" y="272" fill="#8a7d68">Dataset tokens</text>
   </g>
 </svg>

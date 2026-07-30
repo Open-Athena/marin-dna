@@ -299,7 +299,6 @@ def plot(data: pl.DataFrame) -> plt.Figure:
         axis.set_title(
             title,
             color=TITLE_COLORS[title],
-            fontweight="bold",
             fontsize=POSTER_TITLE_FS,
         )
 
@@ -322,12 +321,11 @@ def plot(data: pl.DataFrame) -> plt.Figure:
     mean_axis.set_title(
         "Mean of both",
         color=TITLE_COLORS["Mean of both"],
-        fontweight="bold",
         fontsize=POSTER_TITLE_FS,
     )
 
     for axis in axes:
-        axis.set_xlabel("training step", fontsize=POSTER_LABEL_FS)
+        axis.set_xlabel("Training step", fontsize=POSTER_LABEL_FS)
         axis.tick_params(axis="both", labelsize=POSTER_TICK_FS)
         axis.grid(False)
     axes[0].set_ylabel("AUPRC (%)", fontsize=POSTER_LABEL_FS)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="519.655172pt" height="225.264187pt" viewBox="0 0 519.655172 225.264187" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="519.655172pt" height="225.264187pt" viewBox="0 0 519.655172 225.264187" xmlns="http://www.w3.org/2000/svg" version="1.1" data-figure-typography="lato-v1" font-family="Lato, sans-serif" data-figure-render-width="640">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -46,55 +46,55 @@ iVBORw0KGgoAAAANSUhEUgAAAeoAAADVCAYAAACYNrP2AAAEdElEQVR4nO3Xy4oIYBjHYYfJRFhMNiIl
     <g id="xtick_1">
      <g id="line2d_1"/>
      <g id="text_1">
-      <text style="font-weight: 700; font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(87.258657 213.754715) rotate(-30)">Macro Avg</text>
+      <text style="font-weight: 700; font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(87.258657 213.754715) rotate(-30)">Macro Avg</text>
      </g>
     </g>
     <g id="xtick_2">
      <g id="line2d_2"/>
      <g id="text_2">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(136.786122 207.773839) rotate(-30)">Missense</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(136.786122 207.773839) rotate(-30)">Missense</text>
      </g>
     </g>
     <g id="xtick_3">
      <g id="line2d_3"/>
      <g id="text_3">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(180.990372 204.865714) rotate(-30)">Splicing</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(180.990372 204.865714) rotate(-30)">Splicing</text>
      </g>
     </g>
     <g id="xtick_4">
      <g id="line2d_4"/>
      <g id="text_4">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(225.26404 201.916902) rotate(-30)">5' UTR</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(225.26404 201.916902) rotate(-30)">5' UTR</text>
      </g>
     </g>
     <g id="xtick_5">
      <g id="line2d_5"/>
      <g id="text_5">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(254.108789 207.87659) rotate(-30)">Promoter</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(254.108789 207.87659) rotate(-30)">Promoter</text>
      </g>
     </g>
     <g id="xtick_6">
      <g id="line2d_6"/>
      <g id="text_6">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(303.25385 202.115886) rotate(-30)">ncRNA</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(303.25385 202.115886) rotate(-30)">ncRNA</text>
      </g>
     </g>
     <g id="xtick_7">
      <g id="line2d_7"/>
      <g id="text_7">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(342.765731 201.916902) rotate(-30)">3' UTR</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(342.765731 201.916902) rotate(-30)">3' UTR</text>
      </g>
     </g>
     <g id="xtick_8">
      <g id="line2d_8"/>
      <g id="text_8">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(385.167566 200.050011) rotate(-30)">Distal</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(385.167566 200.050011) rotate(-30)">Distal</text>
      </g>
     </g>
     <g id="xtick_9">
      <g id="line2d_9"/>
      <g id="text_9">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; fill: #1f1e1b" transform="translate(396.375437 216.191746) rotate(-30)">Synonymous</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(396.375437 216.191746) rotate(-30)">Synonymous</text>
      </g>
     </g>
     <g id="xtick_10">
@@ -182,25 +182,25 @@ L 467.223978 24.418516
     <g id="ytick_1">
      <g id="line2d_30"/>
      <g id="text_10">
-      <text style="font-weight: 700; font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="47.010034" transform="rotate(-0 111.218906 47.010034)">MarinDNA (1B/m5.1)</text>
+      <text style="font-weight: 700; font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="47.010034" transform="rotate(-0 111.218906 47.010034)">MarinDNA (1B/m5.1)</text>
      </g>
     </g>
     <g id="ytick_2">
      <g id="line2d_31"/>
      <g id="text_11">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="85.354125" transform="rotate(-0 111.218906 85.354125)">Evo 2 (7B)</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="85.354125" transform="rotate(-0 111.218906 85.354125)">Evo 2 (7B)</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_32"/>
      <g id="text_12">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="123.698568" transform="rotate(-0 111.218906 123.698568)">Evo 2 (40B)</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="123.698568" transform="rotate(-0 111.218906 123.698568)">Evo 2 (40B)</text>
      </g>
     </g>
     <g id="ytick_4">
      <g id="line2d_33"/>
      <g id="text_13">
-      <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="162.043362" transform="rotate(-0 111.218906 162.043362)">Evo 2 (1B base)</text>
+      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="162.043362" transform="rotate(-0 111.218906 162.043362)">Evo 2 (1B base)</text>
      </g>
     </g>
     <g id="ytick_5">
@@ -245,115 +245,115 @@ L 467.223978 177.796287
     </g>
    </g>
    <g id="text_14">
-    <text style="font-weight: 700; font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="134.302521" y="45.668862" transform="rotate(-0 134.302521 45.668862)">48.9</text>
+    <text style="font-weight: 700; font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="134.302521" y="45.668862" transform="rotate(-0 134.302521 45.668862)">48.9</text>
    </g>
    <g id="text_15">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="173.469752" y="45.668862" transform="rotate(-0 173.469752 45.668862)">53.8</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="173.469752" y="45.668862" transform="rotate(-0 173.469752 45.668862)">53.8</text>
    </g>
    <g id="text_16">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="45.668862" transform="rotate(-0 212.636982 45.668862)">55.1</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="45.668862" transform="rotate(-0 212.636982 45.668862)">55.1</text>
    </g>
    <g id="text_17">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="251.804212" y="45.668862" transform="rotate(-0 251.804212 45.668862)">50.3</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="251.804212" y="45.668862" transform="rotate(-0 251.804212 45.668862)">50.3</text>
    </g>
    <g id="text_18">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="290.971442" y="45.668862" transform="rotate(-0 290.971442 45.668862)">34.2</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="290.971442" y="45.668862" transform="rotate(-0 290.971442 45.668862)">34.2</text>
    </g>
    <g id="text_19">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="330.138672" y="45.668862" transform="rotate(-0 330.138672 45.668862)">40.8</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="330.138672" y="45.668862" transform="rotate(-0 330.138672 45.668862)">40.8</text>
    </g>
    <g id="text_20">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="369.305903" y="45.668862" transform="rotate(-0 369.305903 45.668862)">52.2</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="369.305903" y="45.668862" transform="rotate(-0 369.305903 45.668862)">52.2</text>
    </g>
    <g id="text_21">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="408.473133" y="45.668862" transform="rotate(-0 408.473133 45.668862)">51.2</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="408.473133" y="45.668862" transform="rotate(-0 408.473133 45.668862)">51.2</text>
    </g>
    <g id="text_22">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="447.640363" y="45.668862" transform="rotate(-0 447.640363 45.668862)">53.9</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="447.640363" y="45.668862" transform="rotate(-0 447.640363 45.668862)">53.9</text>
    </g>
    <g id="text_23">
-    <text style="font-weight: 700; font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="134.302521" y="84.013305" transform="rotate(-0 134.302521 84.013305)">38.0</text>
+    <text style="font-weight: 700; font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="134.302521" y="84.013305" transform="rotate(-0 134.302521 84.013305)">38.0</text>
    </g>
    <g id="text_24">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="173.469752" y="84.013305" transform="rotate(-0 173.469752 84.013305)">57.5</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="173.469752" y="84.013305" transform="rotate(-0 173.469752 84.013305)">57.5</text>
    </g>
    <g id="text_25">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="84.013305" transform="rotate(-0 212.636982 84.013305)">70.4</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="84.013305" transform="rotate(-0 212.636982 84.013305)">70.4</text>
    </g>
    <g id="text_26">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="251.804212" y="84.013305" transform="rotate(-0 251.804212 84.013305)">40.2</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="251.804212" y="84.013305" transform="rotate(-0 251.804212 84.013305)">40.2</text>
    </g>
    <g id="text_27">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="290.971442" y="84.013305" transform="rotate(-0 290.971442 84.013305)">21.5</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="290.971442" y="84.013305" transform="rotate(-0 290.971442 84.013305)">21.5</text>
    </g>
    <g id="text_28">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="330.138672" y="84.013305" transform="rotate(-0 330.138672 84.013305)">19.6</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="330.138672" y="84.013305" transform="rotate(-0 330.138672 84.013305)">19.6</text>
    </g>
    <g id="text_29">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="369.305903" y="84.013305" transform="rotate(-0 369.305903 84.013305)">33.6</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="369.305903" y="84.013305" transform="rotate(-0 369.305903 84.013305)">33.6</text>
    </g>
    <g id="text_30">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="408.473133" y="84.013305" transform="rotate(-0 408.473133 84.013305)">24.8</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="408.473133" y="84.013305" transform="rotate(-0 408.473133 84.013305)">24.8</text>
    </g>
    <g id="text_31">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="447.640363" y="84.013305" transform="rotate(-0 447.640363 84.013305)">36.3</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="447.640363" y="84.013305" transform="rotate(-0 447.640363 84.013305)">36.3</text>
    </g>
    <g id="text_32">
-    <text style="font-weight: 700; font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="134.302521" y="122.357748" transform="rotate(-0 134.302521 122.357748)">36.7</text>
+    <text style="font-weight: 700; font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="134.302521" y="122.357748" transform="rotate(-0 134.302521 122.357748)">36.7</text>
    </g>
    <g id="text_33">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="173.469752" y="122.357748" transform="rotate(-0 173.469752 122.357748)">59.7</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="173.469752" y="122.357748" transform="rotate(-0 173.469752 122.357748)">59.7</text>
    </g>
    <g id="text_34">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="122.357748" transform="rotate(-0 212.636982 122.357748)">66.4</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="122.357748" transform="rotate(-0 212.636982 122.357748)">66.4</text>
    </g>
    <g id="text_35">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="251.804212" y="122.357748" transform="rotate(-0 251.804212 122.357748)">38.7</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="251.804212" y="122.357748" transform="rotate(-0 251.804212 122.357748)">38.7</text>
    </g>
    <g id="text_36">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="290.971442" y="122.357748" transform="rotate(-0 290.971442 122.357748)">27.7</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="290.971442" y="122.357748" transform="rotate(-0 290.971442 122.357748)">27.7</text>
    </g>
    <g id="text_37">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="330.138672" y="122.357748" transform="rotate(-0 330.138672 122.357748)">18.5</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="330.138672" y="122.357748" transform="rotate(-0 330.138672 122.357748)">18.5</text>
    </g>
    <g id="text_38">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="369.305903" y="122.357748" transform="rotate(-0 369.305903 122.357748)">28.8</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="369.305903" y="122.357748" transform="rotate(-0 369.305903 122.357748)">28.8</text>
    </g>
    <g id="text_39">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="408.473133" y="122.357748" transform="rotate(-0 408.473133 122.357748)">18.7</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="408.473133" y="122.357748" transform="rotate(-0 408.473133 122.357748)">18.7</text>
    </g>
    <g id="text_40">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="447.640363" y="122.357748" transform="rotate(-0 447.640363 122.357748)">35.1</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="447.640363" y="122.357748" transform="rotate(-0 447.640363 122.357748)">35.1</text>
    </g>
    <g id="text_41">
-    <text style="font-weight: 700; font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="134.302521" y="160.702191" transform="rotate(-0 134.302521 160.702191)">28.5</text>
+    <text style="font-weight: 700; font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="134.302521" y="160.702191" transform="rotate(-0 134.302521 160.702191)">28.5</text>
    </g>
    <g id="text_42">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="173.469752" y="160.702191" transform="rotate(-0 173.469752 160.702191)">48.2</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="173.469752" y="160.702191" transform="rotate(-0 173.469752 160.702191)">48.2</text>
    </g>
    <g id="text_43">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="160.702191" transform="rotate(-0 212.636982 160.702191)">63.8</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="212.636982" y="160.702191" transform="rotate(-0 212.636982 160.702191)">63.8</text>
    </g>
    <g id="text_44">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="251.804212" y="160.702191" transform="rotate(-0 251.804212 160.702191)">10.1</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="251.804212" y="160.702191" transform="rotate(-0 251.804212 160.702191)">10.1</text>
    </g>
    <g id="text_45">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="290.971442" y="160.702191" transform="rotate(-0 290.971442 160.702191)">12.7</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="290.971442" y="160.702191" transform="rotate(-0 290.971442 160.702191)">12.7</text>
    </g>
    <g id="text_46">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="330.138672" y="160.702191" transform="rotate(-0 330.138672 160.702191)">13.0</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="330.138672" y="160.702191" transform="rotate(-0 330.138672 160.702191)">13.0</text>
    </g>
    <g id="text_47">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="369.305903" y="160.702191" transform="rotate(-0 369.305903 160.702191)">24.9</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="369.305903" y="160.702191" transform="rotate(-0 369.305903 160.702191)">24.9</text>
    </g>
    <g id="text_48">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="408.473133" y="160.702191" transform="rotate(-0 408.473133 160.702191)">20.2</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="408.473133" y="160.702191" transform="rotate(-0 408.473133 160.702191)">20.2</text>
    </g>
    <g id="text_49">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle" x="447.640363" y="160.702191" transform="rotate(-0 447.640363 160.702191)">34.7</text>
+    <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle" x="447.640363" y="160.702191" transform="rotate(-0 447.640363 160.702191)">34.7</text>
    </g>
    <g id="text_50">
-    <text style="font-size: 9.5px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="290.971442" y="14.418516" transform="rotate(-0 290.971442 14.418516)">Mendelian VEP benchmark — AUPRC (%) · frozen-embedding linear probe</text>
+    <text style="font-size: 11.565px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="290.971442" y="14.418516" transform="rotate(-0 290.971442 14.418516)">Mendelian VEP benchmark — AUPRC (%) · frozen-embedding linear probe</text>
    </g>
    <g id="patch_3">
     <path d="M 114.718906 24.418516
@@ -391,7 +391,7 @@ L 3.5 0
       </g>
      </g>
      <g id="text_51">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="155.701927" transform="rotate(-0 489.275172 155.701927)">20</text>
+      <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="155.701927" transform="rotate(-0 489.275172 155.701927)">20</text>
      </g>
     </g>
     <g id="ytick_11">
@@ -401,7 +401,7 @@ L 3.5 0
       </g>
      </g>
      <g id="text_52">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="130.266834" transform="rotate(-0 489.275172 130.266834)">30</text>
+      <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="130.266834" transform="rotate(-0 489.275172 130.266834)">30</text>
      </g>
     </g>
     <g id="ytick_12">
@@ -411,7 +411,7 @@ L 3.5 0
       </g>
      </g>
      <g id="text_53">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="104.831741" transform="rotate(-0 489.275172 104.831741)">40</text>
+      <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="104.831741" transform="rotate(-0 489.275172 104.831741)">40</text>
      </g>
     </g>
     <g id="ytick_13">
@@ -421,7 +421,7 @@ L 3.5 0
       </g>
      </g>
      <g id="text_54">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="79.396647" transform="rotate(-0 489.275172 79.396647)">50</text>
+      <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="79.396647" transform="rotate(-0 489.275172 79.396647)">50</text>
      </g>
     </g>
     <g id="ytick_14">
@@ -431,7 +431,7 @@ L 3.5 0
       </g>
      </g>
      <g id="text_55">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="53.961554" transform="rotate(-0 489.275172 53.961554)">60</text>
+      <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="53.961554" transform="rotate(-0 489.275172 53.961554)">60</text>
      </g>
     </g>
     <g id="ytick_15">
@@ -441,11 +441,11 @@ L 3.5 0
       </g>
      </g>
      <g id="text_56">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="28.526461" transform="rotate(-0 489.275172 28.526461)">70</text>
+      <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="489.275172" y="28.526461" transform="rotate(-0 489.275172 28.526461)">70</text>
      </g>
     </g>
     <g id="text_57">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="510.293063" y="101.107401" transform="rotate(-90 510.293063 101.107401)">AUPRC (%)</text>
+     <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="510.293063" y="101.107401" transform="rotate(-90 510.293063 101.107401)">AUPRC (%)</text>
     </g>
    </g>
    <g id="LineCollection_1"/>

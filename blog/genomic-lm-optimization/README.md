@@ -75,6 +75,9 @@ Useful non-serving commands are:
 # Fast local checks: missing referenced assets and footnote invariants.
 uv run --no-project python src/marin_dna/blog_workspace.py validate
 
+# Normalize every referenced SVG to the shared Lato font and size hierarchy.
+uv run --no-project python src/marin_dna/blog_workspace.py normalize-figures
+
 # Build the real site into the ignored .preview/ directory.
 uv run --no-project python src/marin_dna/blog_workspace.py build
 
@@ -85,9 +88,33 @@ uv run --no-project python src/marin_dna/blog_workspace.py verify-import
 
 Validation fails loudly for missing local article assets, duplicate footnote
 definitions, undefined footnotes, a renderer checkout that does not resolve to
-the pinned commit, referenced SVGs without positive intrinsic dimensions or with
-dimensions that disagree with their view box, a changed baseline manifest,
-missing built CSS/fonts/assets, or any website build failure.
+the pinned commit, referenced SVGs without positive intrinsic dimensions, SVG
+dimensions that disagree with their view box, SVG typography outside the
+shared Lato 11–16px hierarchy at final article width, a changed baseline
+manifest, missing built CSS/fonts/assets, or any website build failure.
+
+## Figure regeneration and layout review
+
+Every SVG figure in the article has a `data-figure-width` on its `<figure>`
+element. This is the outer frame width, including 20px of padding on each side;
+use a compact width for a sparse figure and reserve the 740px maximum for dense
+multi-panel figures. The workspace validator checks that the SVG was normalized
+for the corresponding inner width, so changing a display width requires running
+`normalize-figures` again.
+
+Plot recipes keep SVG text live. `sync_blog_assets.py` copies selected generated
+SVGs and then runs the workspace normalizer automatically, preserving the shared
+Lato hierarchy after regeneration. For a full rendered review, start the preview
+and run the collision audit with a local Chromium executable:
+
+```bash
+CHROME_BIN=/path/to/chromium node scripts/issue361_capture_blog_figures.mjs \
+  http://127.0.0.1:8765/blog/genomic-lm-optimization/ /tmp/blog-figures
+```
+
+The audit captures all 19 figures and writes `layout-audit.json` with text-text,
+pill, SVG-boundary, and caption-frame collision results. Pass `390 844` after the
+output path for the mobile-width review.
 
 ## Branch and PR topology
 

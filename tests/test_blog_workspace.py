@@ -4,10 +4,15 @@ from pathlib import Path
 import pytest
 
 from marin_dna import blog_workspace
+from marin_dna.blog_figure_typography import (
+    normalize_svg_typography,
+    validate_svg_typography,
+)
 from marin_dna.blog_workspace import (
     default_config_path,
     export_workspace,
     extract_local_asset_references,
+    extract_svg_render_widths,
     inject_live_reload,
     load_config,
     materialize_article_preview,
@@ -67,6 +72,61 @@ def test_validate_svg_intrinsic_dimensions_rejects_mismatched_aspect_ratio(
 
     with pytest.raises(AssertionError, match="different aspect ratios"):
         blog_workspace.validate_svg_intrinsic_dimensions(svg)
+
+
+def test_normalize_svg_typography_is_idempotent_and_preserves_monospace() -> None:
+    original = """
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440"
+     viewBox="0 0 960 440" font-family="system-ui, sans-serif">
+  <text font-size="9">tick</text>
+  <text style="font-size: 20px; font-family: 'DejaVu Sans'">Title</text>
+  <g font-size="10" font-family="ui-monospace, monospace"><text>ACGT</text></g>
+</svg>
+"""
+    normalized = normalize_svg_typography(original)
+
+    assert normalize_svg_typography(normalized) == normalized
+    assert 'data-figure-typography="lato-v1"' in normalized
+    assert 'data-figure-render-width="700"' in normalized
+    assert 'font-family="Lato, sans-serif"' in normalized
+    assert "font-family: 'Lato', sans-serif" in normalized
+    assert 'font-family="ui-monospace, monospace"' in normalized
+
+
+def test_validate_svg_typography_rejects_unscaled_text(tmp_path: Path) -> None:
+    svg = tmp_path / "figure.svg"
+    svg.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440" '
+        'viewBox="0 0 960 440" data-figure-typography="lato-v1" '
+        'data-figure-render-width="700" '
+        'font-family="Lato, sans-serif"><text font-size="9">tiny</text></svg>'
+    )
+
+    with pytest.raises(AssertionError, match="outside the 11–16px hierarchy"):
+        validate_svg_typography(svg)
+
+
+def test_extract_svg_render_widths_accounts_for_frame_padding() -> None:
+    markdown = """
+<figure id="compact" data-figure-width="600">
+<img src="/assets/images/blog/post/compact.svg?v=2" />
+<figcaption>Compact figure</figcaption>
+</figure>
+<figure id="raster" data-figure-width="500">
+<img src="/assets/images/blog/post/photo.png" />
+</figure>
+"""
+
+    assert extract_svg_render_widths(markdown) == {
+        "/assets/images/blog/post/compact.svg": 560.0
+    }
+
+
+def test_extract_svg_render_widths_requires_declared_width() -> None:
+    markdown = '<figure><img src="/assets/images/blog/post/figure.svg" /></figure>'
+
+    with pytest.raises(AssertionError, match="lacks data-figure-width"):
+        extract_svg_render_widths(markdown)
 
 
 def test_edited_workspace_is_valid_and_baseline_manifest_is_readable() -> None:

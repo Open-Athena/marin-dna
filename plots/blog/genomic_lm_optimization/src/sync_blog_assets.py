@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import subprocess
 from pathlib import Path
 
 ASSET_NAMES = (
@@ -62,6 +63,19 @@ def main() -> None:
             raise FileNotFoundError(f"generate {source} before syncing it")
         shutil.copyfile(source, destination)
         print(f"Copied {source} -> {destination}")
+
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-project",
+            "python",
+            "src/marin_dna/blog_workspace.py",
+            "normalize-figures",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+    )
 
 
 if __name__ == "__main__":

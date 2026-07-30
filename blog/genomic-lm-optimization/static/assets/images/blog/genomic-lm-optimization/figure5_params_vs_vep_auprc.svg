@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="464.394905pt" height="467.607125pt" viewBox="0 0 464.394905 467.607125" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="464.394905pt" height="467.607125pt" viewBox="0 0 464.394905 467.607125" xmlns="http://www.w3.org/2000/svg" version="1.1" data-figure-typography="lato-v1" font-family="Lato, sans-serif" data-figure-render-width="560">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -54,9 +54,9 @@ L 0 3.5
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(92.741744 163.993114)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -71,9 +71,9 @@ L 0 3.5
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(135.680146 163.993114)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -210,7 +210,7 @@ L 0 2
      </g>
     </g>
     <g id="text_3">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="173.993895" transform="rotate(-0 128.725412 173.993895)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="173.993895" transform="rotate(-0 128.725412 173.993895)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
@@ -226,7 +226,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="131.790698" transform="rotate(-0 75.013095 131.790698)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="131.790698" transform="rotate(-0 75.013095 131.790698)">40</text>
      </g>
     </g>
     <g id="ytick_2">
@@ -236,7 +236,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="100.457597" transform="rotate(-0 75.013095 100.457597)">50</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="100.457597" transform="rotate(-0 75.013095 100.457597)">50</text>
      </g>
     </g>
     <g id="ytick_3">
@@ -246,11 +246,11 @@ L -3.5 0
       </g>
      </g>
      <g id="text_6">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="69.124496" transform="rotate(-0 75.013095 69.124496)">60</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="69.124496" transform="rotate(-0 75.013095 69.124496)">60</text>
      </g>
     </g>
     <g id="text_7">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="100.880797" transform="rotate(-90 55.885751 100.880797)">AUPRC (%)</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="100.880797" transform="rotate(-90 55.885751 100.880797)">AUPRC (%)</text>
     </g>
    </g>
    <g id="patch_3">
@@ -316,7 +316,7 @@ L 170.432838 63.80753
 " clip-path="url(#p686bd9263a)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_8">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="48.16848" transform="rotate(-0 128.725412 48.16848)">Missense</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="48.16848" transform="rotate(-0 128.725412 48.16848)">Missense</text>
    </g>
    <g id="line2d_24">
     <path d="M 87.017986 114.091225
@@ -403,9 +403,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(233.620332 163.993114)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -420,9 +420,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(276.558734 163.993114)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -554,7 +554,7 @@ z
      </g>
     </g>
     <g id="text_11">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="173.993895" transform="rotate(-0 269.604 173.993895)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="173.993895" transform="rotate(-0 269.604 173.993895)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_4">
@@ -565,7 +565,7 @@ z
       </g>
      </g>
      <g id="text_12">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="132.888058" transform="rotate(-0 215.891683 132.888058)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="132.888058" transform="rotate(-0 215.891683 132.888058)">40</text>
      </g>
     </g>
     <g id="ytick_5">
@@ -575,7 +575,7 @@ z
       </g>
      </g>
      <g id="text_13">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="89.920315" transform="rotate(-0 215.891683 89.920315)">60</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="89.920315" transform="rotate(-0 215.891683 89.920315)">60</text>
      </g>
     </g>
    </g>
@@ -642,7 +642,7 @@ L 311.311426 63.80753
 " clip-path="url(#pdcc161a1f1)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_14">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="48.16848" transform="rotate(-0 269.604 48.16848)">Splicing</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="48.16848" transform="rotate(-0 269.604 48.16848)">Splicing</text>
    </g>
    <g id="line2d_48">
     <path d="M 227.896574 132.346271
@@ -708,9 +708,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(374.498921 163.993114)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -725,9 +725,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(417.437323 163.993114)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -859,7 +859,7 @@ z
      </g>
     </g>
     <g id="text_17">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="173.993895" transform="rotate(-0 410.482588 173.993895)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="173.993895" transform="rotate(-0 410.482588 173.993895)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_6">
@@ -870,7 +870,7 @@ z
       </g>
      </g>
      <g id="text_18">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="146.845517" transform="rotate(-0 356.770271 146.845517)">20</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="146.845517" transform="rotate(-0 356.770271 146.845517)">20</text>
      </g>
     </g>
     <g id="ytick_7">
@@ -880,7 +880,7 @@ z
       </g>
      </g>
      <g id="text_19">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="112.096912" transform="rotate(-0 356.770271 112.096912)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="112.096912" transform="rotate(-0 356.770271 112.096912)">40</text>
      </g>
     </g>
     <g id="ytick_8">
@@ -890,7 +890,7 @@ z
       </g>
      </g>
      <g id="text_20">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="77.348307" transform="rotate(-0 356.770271 77.348307)">60</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="77.348307" transform="rotate(-0 356.770271 77.348307)">60</text>
      </g>
     </g>
    </g>
@@ -957,7 +957,7 @@ L 452.190014 63.80753
 " clip-path="url(#p0f0644c51f)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_21">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="48.16848" transform="rotate(-0 410.482588 48.16848)">Synonymous</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="48.16848" transform="rotate(-0 410.482588 48.16848)">Synonymous</text>
    </g>
    <g id="line2d_73">
     <path d="M 368.775162 128.738627
@@ -1023,9 +1023,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(92.741744 305.998557)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -1040,9 +1040,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(135.680146 305.998557)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -1174,7 +1174,7 @@ z
      </g>
     </g>
     <g id="text_24">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="315.999338" transform="rotate(-0 128.725412 315.999338)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="315.999338" transform="rotate(-0 128.725412 315.999338)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_8">
@@ -1185,7 +1185,7 @@ z
       </g>
      </g>
      <g id="text_25">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="292.180145" transform="rotate(-0 75.013095 292.180145)">10</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="292.180145" transform="rotate(-0 75.013095 292.180145)">10</text>
      </g>
     </g>
     <g id="ytick_10">
@@ -1195,7 +1195,7 @@ z
       </g>
      </g>
      <g id="text_26">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="262.663462" transform="rotate(-0 75.013095 262.663462)">20</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="262.663462" transform="rotate(-0 75.013095 262.663462)">20</text>
      </g>
     </g>
     <g id="ytick_11">
@@ -1205,7 +1205,7 @@ z
       </g>
      </g>
      <g id="text_27">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="233.14678" transform="rotate(-0 75.013095 233.14678)">30</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="233.14678" transform="rotate(-0 75.013095 233.14678)">30</text>
      </g>
     </g>
     <g id="ytick_12">
@@ -1215,11 +1215,11 @@ z
       </g>
      </g>
      <g id="text_28">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="203.630098" transform="rotate(-0 75.013095 203.630098)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="75.013095" y="203.630098" transform="rotate(-0 75.013095 203.630098)">40</text>
      </g>
     </g>
     <g id="text_29">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="242.88624" transform="rotate(-90 55.885751 242.88624)">AUPRC (%)</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="55.885751" y="242.88624" transform="rotate(-90 55.885751 242.88624)">AUPRC (%)</text>
     </g>
    </g>
    <g id="patch_12">
@@ -1285,7 +1285,7 @@ L 170.432838 206.703728
 " clip-path="url(#pe174b7cfca)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_30">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="190.173923" transform="rotate(-0 128.725412 190.173923)">Promoter</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="190.173923" transform="rotate(-0 128.725412 190.173923)">Promoter</text>
    </g>
    <g id="line2d_99">
     <path d="M 87.017986 277.798467
@@ -1351,9 +1351,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(233.620332 305.998557)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -1368,9 +1368,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(276.558734 305.998557)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -1502,7 +1502,7 @@ z
      </g>
     </g>
     <g id="text_33">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="315.999338" transform="rotate(-0 269.604 315.999338)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="315.999338" transform="rotate(-0 269.604 315.999338)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_10">
@@ -1513,7 +1513,7 @@ z
       </g>
      </g>
      <g id="text_34">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="276.478281" transform="rotate(-0 215.891683 276.478281)">20</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="276.478281" transform="rotate(-0 215.891683 276.478281)">20</text>
      </g>
     </g>
     <g id="ytick_14">
@@ -1523,7 +1523,7 @@ z
       </g>
      </g>
      <g id="text_35">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="241.550112" transform="rotate(-0 215.891683 241.550112)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="241.550112" transform="rotate(-0 215.891683 241.550112)">40</text>
      </g>
     </g>
     <g id="ytick_15">
@@ -1533,7 +1533,7 @@ z
       </g>
      </g>
      <g id="text_36">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="206.621943" transform="rotate(-0 215.891683 206.621943)">60</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="215.891683" y="206.621943" transform="rotate(-0 215.891683 206.621943)">60</text>
      </g>
     </g>
    </g>
@@ -1600,7 +1600,7 @@ L 311.311426 214.73683
 " clip-path="url(#pbf52701858)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_37">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="190.173923" transform="rotate(-0 269.604 190.173923)">5′ UTR</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="190.173923" transform="rotate(-0 269.604 190.173923)">5′ UTR</text>
    </g>
    <g id="line2d_124">
     <path d="M 227.896574 275.694627
@@ -1666,9 +1666,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(374.498921 305.998557)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -1683,9 +1683,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(417.437323 305.998557)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -1817,7 +1817,7 @@ z
      </g>
     </g>
     <g id="text_40">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="315.999338" transform="rotate(-0 410.482588 315.999338)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="315.999338" transform="rotate(-0 410.482588 315.999338)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_12">
@@ -1828,7 +1828,7 @@ z
       </g>
      </g>
      <g id="text_41">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="268.533689" transform="rotate(-0 356.770271 268.533689)">20</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="268.533689" transform="rotate(-0 356.770271 268.533689)">20</text>
      </g>
     </g>
     <g id="ytick_17">
@@ -1838,7 +1838,7 @@ z
       </g>
      </g>
      <g id="text_42">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="238.407342" transform="rotate(-0 356.770271 238.407342)">30</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="238.407342" transform="rotate(-0 356.770271 238.407342)">30</text>
      </g>
     </g>
     <g id="ytick_18">
@@ -1848,7 +1848,7 @@ z
       </g>
      </g>
      <g id="text_43">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="208.280995" transform="rotate(-0 356.770271 208.280995)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="356.770271" y="208.280995" transform="rotate(-0 356.770271 208.280995)">40</text>
      </g>
     </g>
    </g>
@@ -1915,7 +1915,7 @@ L 452.190014 229.548376
 " clip-path="url(#pab52e3dbc1)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_44">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="190.173923" transform="rotate(-0 410.482588 190.173923)">3′ UTR</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="190.173923" transform="rotate(-0 410.482588 190.173923)">3′ UTR</text>
    </g>
    <g id="line2d_149">
     <path d="M 368.775162 271.558919
@@ -1981,9 +1981,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(163.181038 448.004)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -1998,9 +1998,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(206.11944 448.004)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -2132,7 +2132,7 @@ z
      </g>
     </g>
     <g id="text_47">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="458.004781" transform="rotate(-0 199.164706 458.004781)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="458.004781" transform="rotate(-0 199.164706 458.004781)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_14">
@@ -2143,7 +2143,7 @@ z
       </g>
      </g>
      <g id="text_48">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="412.230594" transform="rotate(-0 145.452389 412.230594)">30</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="412.230594" transform="rotate(-0 145.452389 412.230594)">30</text>
      </g>
     </g>
     <g id="ytick_20">
@@ -2153,7 +2153,7 @@ z
       </g>
      </g>
      <g id="text_49">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="387.399409" transform="rotate(-0 145.452389 387.399409)">35</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="387.399409" transform="rotate(-0 145.452389 387.399409)">35</text>
      </g>
     </g>
     <g id="ytick_21">
@@ -2163,11 +2163,11 @@ z
       </g>
      </g>
      <g id="text_50">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="362.568224" transform="rotate(-0 145.452389 362.568224)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.452389" y="362.568224" transform="rotate(-0 145.452389 362.568224)">40</text>
      </g>
     </g>
     <g id="text_51">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="126.325045" y="384.891683" transform="rotate(-90 126.325045 384.891683)">AUPRC (%)</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="126.325045" y="384.891683" transform="rotate(-90 126.325045 384.891683)">AUPRC (%)</text>
     </g>
    </g>
    <g id="patch_21">
@@ -2233,7 +2233,7 @@ L 240.872132 347.818416
 " clip-path="url(#pf7e4d8da78)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_52">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="332.179366" transform="rotate(-0 199.164706 332.179366)">Missense</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="332.179366" transform="rotate(-0 199.164706 332.179366)">Missense</text>
    </g>
    <g id="line2d_174">
     <path d="M 157.45728 405.415145
@@ -2299,9 +2299,9 @@ z
       <!-- $\mathdefault{10^{8}}$ -->
       <g style="fill: #1f1e1b" transform="translate(304.059627 448.004)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">8</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">8</tspan>
        </text>
       </g>
      </g>
@@ -2316,9 +2316,9 @@ z
       <!-- $\mathdefault{10^{9}}$ -->
       <g style="fill: #1f1e1b" transform="translate(346.998028 448.004)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #1f1e1b">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #1f1e1b">9</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 9.951px; font-family: 'Lato', sans-serif; fill: #1f1e1b">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 6.966px; font-family: 'Lato', sans-serif; fill: #1f1e1b">9</tspan>
        </text>
       </g>
      </g>
@@ -2450,7 +2450,7 @@ z
      </g>
     </g>
     <g id="text_55">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="458.004781" transform="rotate(-0 340.043294 458.004781)">model params</text>
+     <text style="font-size: 10.778px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="458.004781" transform="rotate(-0 340.043294 458.004781)">Model parameters</text>
     </g>
    </g>
    <g id="matplotlib.axis_16">
@@ -2461,7 +2461,7 @@ z
       </g>
      </g>
      <g id="text_56">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="435.008419" transform="rotate(-0 286.330977 435.008419)">20</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="435.008419" transform="rotate(-0 286.330977 435.008419)">20</text>
      </g>
     </g>
     <g id="ytick_23">
@@ -2471,7 +2471,7 @@ z
       </g>
      </g>
      <g id="text_57">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="398.442809" transform="rotate(-0 286.330977 398.442809)">40</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="398.442809" transform="rotate(-0 286.330977 398.442809)">40</text>
      </g>
     </g>
     <g id="ytick_24">
@@ -2481,7 +2481,7 @@ z
       </g>
      </g>
      <g id="text_58">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="361.8772" transform="rotate(-0 286.330977 361.8772)">60</text>
+      <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="286.330977" y="361.8772" transform="rotate(-0 286.330977 361.8772)">60</text>
      </g>
     </g>
    </g>
@@ -2548,7 +2548,7 @@ L 381.75072 347.818416
 " clip-path="url(#pee2e1f65b3)" style="fill: none; stroke: #9c4f2f; stroke-width: 0.9"/>
    </g>
    <g id="text_59">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="332.179366" transform="rotate(-0 340.043294 332.179366)">Splicing</text>
+    <text style="font-size: 11.61px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="332.179366" transform="rotate(-0 340.043294 332.179366)">Splicing</text>
    </g>
    <g id="line2d_199">
     <path d="M 298.335868 415.540217
@@ -2594,14 +2594,14 @@ L 381.75072 360.892851
    </g>
   </g>
   <g id="text_60">
-   <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="48.286368" transform="rotate(-0 7.2 48.286368)">Mendelian</text>
+   <text style="font-weight: 700; font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="48.286368" transform="rotate(-0 7.2 48.286368)">Mendelian</text>
   </g>
   <g id="text_61">
-   <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="332.297254" transform="rotate(-0 7.2 332.297254)">SGE</text>
+   <text style="font-weight: 700; font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="7.2" y="332.297254" transform="rotate(-0 7.2 332.297254)">SGE</text>
   </g>
   <g id="legend_1">
    <g id="text_62">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="226.264078" y="17.638594" transform="rotate(-0 226.264078 17.638594)">Scoring protocol</text>
+    <text style="font-size: 9.951px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="226.264078" y="17.638594" transform="rotate(-0 226.264078 17.638594)">Scoring protocol</text>
    </g>
    <g id="line2d_201">
     <path d="M 172.593141 27.989297
@@ -2613,7 +2613,7 @@ L 190.593141 27.989297
     </g>
    </g>
    <g id="text_63">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="195.093141" y="31.139297" transform="rotate(-0 195.093141 31.139297)">Zero-shot LLR</text>
+    <text style="font-size: 9.123px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="195.093141" y="31.139297" transform="rotate(-0 195.093141 31.139297)">Zero-shot LLR</text>
    </g>
    <g id="line2d_202">
     <path d="M 273.989391 27.989297
@@ -2625,7 +2625,7 @@ L 291.989391 27.989297
     </g>
    </g>
    <g id="text_64">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans', sans-serif; text-anchor: start; fill: #1f1e1b" x="296.489391" y="31.139297" transform="rotate(-0 296.489391 31.139297)">Linear probe</text>
+    <text style="font-size: 9.123px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="296.489391" y="31.139297" transform="rotate(-0 296.489391 31.139297)">Linear probe</text>
    </g>
   </g>
  </g>

@@ -23,6 +23,10 @@ import numpy as np
 import pandas as pd
 
 from figures.data import SCALING_RESULTS_PATH, save
+from marin_dna.blog_figure_typography import (
+    FIGURE_NOTE_SIZE_PX,
+    FIGURE_PANEL_TITLE_SIZE_PX,
+)
 from figures.figure5_params_vs_vep_auprc import (
     MENDELIAN_SUBSETS,
     READOUTS,
@@ -116,17 +120,17 @@ def _plot_panel(
         assert np.isfinite(correlation)
         ax.text(
             0.04,
-            0.96 - index * 0.1,
-            rf"$r = {correlation:.2f}$",
+            0.96 - index * 0.16,
+            rf"$r$ = {correlation:.2f}",
             transform=ax.transAxes,
             ha="left",
             va="top",
-            fontsize=8,
+            fontsize=FIGURE_NOTE_SIZE_PX,
             color=color,
         )
 
-    ax.set_title(title, fontsize=10)
-    ax.set_xlabel("LL (-loss)", labelpad=X_LABEL_PAD)
+    ax.set_title(title, fontsize=FIGURE_PANEL_TITLE_SIZE_PX)
+    ax.set_xlabel("LL (−loss)", labelpad=X_LABEL_PAD)
     if show_ylabel:
         ax.set_ylabel("AUPRC (%)")
     ax.grid(False)

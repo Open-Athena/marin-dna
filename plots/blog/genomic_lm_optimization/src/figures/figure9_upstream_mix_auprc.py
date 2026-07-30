@@ -49,7 +49,7 @@ def build(df: pd.DataFrame) -> None:
     ax.text(
         max(xs),
         baseline,
-        "baseline (step=0)  ",
+        "Baseline (step=0)  ",
         ha="right",
         va="bottom",
         fontsize=10,
@@ -67,8 +67,8 @@ def build(df: pd.DataFrame) -> None:
         markeredgewidth=0.5,
         zorder=3,
     )
-    ax.set_xlabel("upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
-    ax.set_ylabel("macro avg VEP AUPRC (%)")
+    ax.set_xlabel("Upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
+    ax.set_ylabel("Macro-average VEP AUPRC (%)")
     ax.set_title("Continued pretraining from uniform mixture", fontsize=11)
     ax.grid(False)
 

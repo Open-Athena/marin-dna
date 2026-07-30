@@ -7,9 +7,8 @@ import pandas as pd
 
 from figures.data import save
 from utils.figure_style import (
-    FIGURE_HEIGHT,
     FIGURE_WIDTH,
-    attach_legends_below,
+    attach_stacked_legends_below,
     figsize,
     fmt_beta2,
     fmt_epsilon,
@@ -18,7 +17,7 @@ from utils.sweep_panel import plot_axis
 
 
 def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=figsize(FIGURE_WIDTH, FIGURE_HEIGHT))
+    fig, axes = plt.subplots(1, 2, figsize=figsize(FIGURE_WIDTH, 5.8))
     plot_axis(
         axes[0],
         df,
@@ -45,7 +44,14 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     )
     # Pull the ε label up closer to the tick labels.
     axes[1].xaxis.labelpad = -4
-    fig.suptitle("Transfer validation — loss vs β₂ and ε", fontsize=11, y=0.95)
-    fig.tight_layout(rect=(0, 0.08, 1, 0.99))
-    attach_legends_below(fig, palette, params, include_reference=False)
+    fig.suptitle("Transfer validation — Loss vs. β₂ and ε", y=0.95)
+    fig.tight_layout(rect=(0, 0.31, 1, 0.91))
+    attach_stacked_legends_below(
+        fig,
+        palette,
+        params,
+        include_reference=False,
+        params_y=0.17,
+        run_y=0.01,
+    )
     save(fig, "figure2_beta2_epsilon_transfer")

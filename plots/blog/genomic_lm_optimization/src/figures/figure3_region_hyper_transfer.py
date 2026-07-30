@@ -8,7 +8,7 @@ import pandas as pd
 from figures.data import save
 from utils.figure_style import (
     FIGURE_WIDTH,
-    attach_legends_below,
+    attach_stacked_legends_below,
     figsize,
     fmt_beta2,
     fmt_epsilon,
@@ -24,7 +24,7 @@ _REGION_ROWS: tuple[tuple[str, str], ...] = (
 )
 # Cols of figure 3: (axis role, axis field, axis label, log scale, formatter).
 _HYPER_COLS: tuple[tuple[str, str, str, bool, "callable"], ...] = (
-    ("learning_rate", "learning_rate", "learning rate (η)", True, fmt_lr),
+    ("learning_rate", "learning_rate", "Learning rate (η)", True, fmt_lr),
     ("beta2", "beta2", "β₂", False, fmt_beta2),
     ("epsilon", "epsilon", "ε", True, fmt_epsilon),
 )
@@ -39,7 +39,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     Negative controls are omitted (this figure focuses on transfer-vs-direct
     sweep shapes per region).
     """
-    fig, axes = plt.subplots(3, 3, figsize=figsize(FIGURE_WIDTH, 8.0))
+    fig, axes = plt.subplots(3, 3, figsize=figsize(FIGURE_WIDTH, 8.8))
     for r, (region_key, region_label) in enumerate(_REGION_ROWS):
         y_field = f"eval_loss_{region_key}"
         for c, (axis_role, axis_field, axis_label, log_scale, fmt) in enumerate(
@@ -57,20 +57,26 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
                 palette=palette,
                 include_negative_control=False,
                 y_field=y_field,
-                y_label=f"{region_label} loss" if c == 0 else "",
+                y_label=f"{region_label} Loss" if c == 0 else "",
+                tick_stride=2 if c > 0 else 1,
             )
             if r != 2:
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
     fig.suptitle(
-        "Transfer validation — per-region loss vs learning rate, β₂, and ε",
-        fontsize=11,
+        "Transfer validation — Per-region Loss vs. learning rate, β₂, and ε",
         y=0.985,
     )
     # Explicit margins (no tight_layout) so the title and legend hug the plot grid tightly.
     fig.subplots_adjust(
-        top=0.9525, bottom=0.1225, left=0.055, right=0.99, hspace=0.12, wspace=0.18
+        top=0.9525, bottom=0.32, left=0.055, right=0.99, hspace=0.12, wspace=0.18
     )
-    # Centered, tightly-spaced two-legend strip at the bottom (shared helper).
-    attach_legends_below(fig, palette, params, include_reference=False, legend_y=0.03)
+    attach_stacked_legends_below(
+        fig,
+        palette,
+        params,
+        include_reference=False,
+        params_y=0.12,
+        run_y=0.005,
+    )
     save(fig, "figure3_region_hyper_transfer")

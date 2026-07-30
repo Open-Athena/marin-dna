@@ -22,12 +22,26 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree
 
+from marin_dna.blog_figure_typography import (
+    FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    normalize_svg_typography_file,
+    validate_svg_typography,
+)
+
 
 DEFAULT_WORKSPACE_RELATIVE_PATH = Path("blog/genomic-lm-optimization")
 MARKDOWN_IMAGE_RE = re.compile(
     r"!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\)"
 )
 HTML_IMAGE_RE = re.compile(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"']", re.IGNORECASE)
+HTML_FIGURE_RE = re.compile(
+    r"<figure\b(?P<attributes>[^>]*)>(?P<body>.*?)</figure>",
+    re.IGNORECASE | re.DOTALL,
+)
+FIGURE_WIDTH_RE = re.compile(
+    r"\bdata-figure-width=[\"'](?P<width>[0-9]+(?:\.[0-9]+)?)[\"']",
+    re.IGNORECASE,
+)
 PLOTLY_RE = re.compile(r"\{\{\s*plotly:\s*([^|}\s]+)", re.IGNORECASE)
 HTML_FILE_ATTRIBUTE_RE = re.compile(
     r"\b(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE
@@ -183,6 +197,33 @@ def extract_local_asset_references(markdown: str) -> list[str]:
     return local
 
 
+def extract_svg_render_widths(markdown: str) -> dict[str, float]:
+    """Map each raw-HTML SVG figure URL to its intended inner drawing width."""
+    widths: dict[str, float] = {}
+    for figure_match in HTML_FIGURE_RE.finditer(markdown):
+        images = HTML_IMAGE_RE.findall(figure_match.group("body"))
+        svg_images = [
+            unquote(urlsplit(image).path)
+            for image in images
+            if urlsplit(image).path.lower().endswith(".svg")
+        ]
+        if not svg_images:
+            continue
+        assert len(svg_images) == 1, "each SVG figure must contain exactly one image"
+        width_match = FIGURE_WIDTH_RE.search(figure_match.group("attributes"))
+        assert width_match is not None, (
+            f"SVG figure {svg_images[0]} lacks data-figure-width"
+        )
+        frame_width = float(width_match.group("width"))
+        render_width = frame_width - FIGURE_FRAME_HORIZONTAL_PADDING_PX
+        assert 320.0 <= render_width <= 700.0, (
+            f"SVG figure {svg_images[0]} has unsupported inner width {render_width:g}px"
+        )
+        assert svg_images[0] not in widths, f"duplicate SVG figure {svg_images[0]}"
+        widths[svg_images[0]] = render_width
+    return widths
+
+
 def validate_footnotes(markdown: str) -> None:
     """Reject duplicate definitions and references without definitions."""
     definitions = FOOTNOTE_DEFINITION_RE.findall(markdown)
@@ -265,6 +306,7 @@ def validate_workspace(config: WorkspaceConfig) -> list[Path]:
     assert config.assets.is_dir(), f"missing canonical asset directory: {config.assets}"
     markdown = config.article.read_text()
     validate_footnotes(markdown)
+    svg_render_widths = extract_svg_render_widths(markdown)
 
     referenced_paths: list[Path] = []
     for reference in extract_local_asset_references(markdown):
@@ -272,10 +314,38 @@ def validate_workspace(config: WorkspaceConfig) -> list[Path]:
         source = config.static / relative
         assert source.is_file(), f"missing local asset {reference}: expected {source}"
         if source.suffix.lower() == ".svg":
+            assert reference in svg_render_widths, (
+                f"referenced SVG is not inside a sized figure: {reference}"
+            )
             validate_svg_intrinsic_dimensions(source)
+            validate_svg_typography(source, svg_render_widths[reference])
         referenced_paths.append(source)
     assert referenced_paths, "article has no local assets"
     return referenced_paths
+
+
+def normalize_workspace_svg_typography(config: WorkspaceConfig) -> list[Path]:
+    """Normalize every SVG referenced by the canonical article."""
+    assert config.article.is_file(), f"missing canonical article: {config.article}"
+    markdown = config.article.read_text()
+    svg_render_widths = extract_svg_render_widths(markdown)
+    normalized: list[Path] = []
+    for reference in extract_local_asset_references(markdown):
+        relative = _asset_reference_to_static_path(reference, config.slug)
+        source = config.static / relative
+        assert source.is_file(), f"missing local asset {reference}: expected {source}"
+        if source.suffix.lower() != ".svg":
+            continue
+        assert reference in svg_render_widths, (
+            f"referenced SVG is not inside a sized figure: {reference}"
+        )
+        validate_svg_intrinsic_dimensions(source)
+        render_width = svg_render_widths[reference]
+        normalize_svg_typography_file(source, render_width)
+        validate_svg_typography(source, render_width)
+        normalized.append(source)
+    assert normalized, "article has no referenced SVG assets"
+    return normalized
 
 
 def read_baseline_manifest(config: WorkspaceConfig) -> dict[Path, str]:
@@ -684,6 +754,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, default=default_config_path())
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate")
+    subparsers.add_parser("normalize-figures")
     subparsers.add_parser("verify-import")
     subparsers.add_parser("build")
     preview = subparsers.add_parser("preview")
@@ -706,6 +777,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate":
         assets = validate_workspace(config)
         print(f"Validated article and {len(assets)} referenced assets")
+    elif args.command == "normalize-figures":
+        assets = normalize_workspace_svg_typography(config)
+        print(f"Normalized typography in {len(assets)} referenced SVG assets")
     elif args.command == "verify-import":
         page_digest = verify_import(config)
         print(f"Baseline import and render verified; page sha256={page_digest}")

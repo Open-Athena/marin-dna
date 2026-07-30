@@ -13,12 +13,25 @@ consistent.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 import matplotlib as mpl
+
+# Plot recipes run in their small, isolated uv project. Add this monorepo's
+# tracked library source so the shared SVG normalizer remains the single source
+# of truth without pulling the full training dependency graph into that lock.
+REPO_SRC = Path(__file__).resolve().parents[5] / "src"
+assert (REPO_SRC / "marin_dna" / "blog_figure_typography.py").is_file(), REPO_SRC
+if str(REPO_SRC) not in sys.path:
+    sys.path.insert(0, str(REPO_SRC))
+
+from marin_dna.blog_figure_typography import (  # noqa: E402
+    normalize_svg_typography_file,
+)
 
 # Imported for its side effect: applies the web-native rcParams (svg.fonttype,
 # despine, page-ink colors) to every figure, since all figures import this
 # module to save.
-from utils import figure_theme  # noqa: F401
+from utils import figure_theme  # noqa: E402, F401
 
 
 def _normalize_svg(path: Path) -> None:
@@ -40,5 +53,6 @@ def save_figure(fig, directory: Path, name: str) -> None:
             fig.savefig(path, bbox_inches="tight", transparent=True, **extra)
             if ext == "svg":
                 _normalize_svg(path)
+                normalize_svg_typography_file(path)
             paths.append(path)
     print("Wrote " + ", ".join(str(p) for p in paths))

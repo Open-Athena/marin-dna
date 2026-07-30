@@ -144,7 +144,7 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
     ax.set_xscale("log")
     ax.set_xticks([value for value, _label in X_TICKS])
     ax.set_xticklabels([label for _value, label in X_TICKS])
-    ax.set_xlabel("model params", labelpad=X_LABEL_PAD)
+    ax.set_xlabel("Model parameters", labelpad=X_LABEL_PAD)
     ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
     ax.margins(x=0.04, y=0.12)

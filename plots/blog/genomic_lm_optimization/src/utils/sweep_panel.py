@@ -11,6 +11,7 @@ import math
 
 import pandas as pd
 
+from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
 from utils.figure_style import X_LABEL_PAD
 
 CONTROL_ROLES = ("positive-control", "negative-control")
@@ -50,7 +51,8 @@ def plot_axis(
     palette: dict,
     include_negative_control: bool = True,
     y_field: str = "eval_loss",
-    y_label: str = "loss",
+    y_label: str = "Loss",
+    tick_stride: int = 1,
 ) -> None:
     """Plot `y_field` vs `axis_field` for the relevant rows. One series per param scale.
 
@@ -150,9 +152,16 @@ def plot_axis(
                     zorder=4,
                 )
 
-    ax.set_xticks(grid_xs)
+    assert tick_stride >= 1
+    shown = list(range(0, len(grid_values), tick_stride))
+    if shown[-1] != len(grid_values) - 1:
+        shown.append(len(grid_values) - 1)
+    ax.set_xticks([grid_xs[index] for index in shown])
     ax.set_xticklabels(
-        [value_formatter(v) for v in grid_values], rotation=30, ha="right", fontsize=8
+        [value_formatter(grid_values[index]) for index in shown],
+        rotation=30,
+        ha="right",
+        fontsize=FIGURE_NOTE_SIZE_PX,
     )
     ax.set_xlabel(axis_label, labelpad=X_LABEL_PAD)
     ax.set_ylabel(y_label)
