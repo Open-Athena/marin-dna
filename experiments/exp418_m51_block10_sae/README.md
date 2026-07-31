@@ -84,11 +84,12 @@ aws s3 cp --recursive \
   "s3://oa-bolinas/experiments/exp418/${EXP418_RUN_ID}/"
 ```
 
-Only if that wiring `manifest.json` reports `engineering_gate_passed: true`, launch the fresh micro-run with the stable manifest URI. Use a new run ID and cluster name:
+Only if that wiring `manifest.json` reports `engineering_gate_passed: true`, launch the fresh micro-run. Lambda does not receive the local machine AWS credential: pass a one-hour read-only pre-signed URL to the process, while separately recording the stable S3 URI in the resulting provenance. Use a new run ID and cluster name:
 
 ```bash
 EXP418_COMMIT=$(git rev-parse HEAD)
-EXP418_WIRING_URI="s3://oa-bolinas/experiments/exp418/<wiring-run-id>/manifest.json"
+EXP418_WIRING_RECORD_URI="s3://oa-bolinas/experiments/exp418/<wiring-run-id>/manifest.json"
+EXP418_WIRING_READ_URI="$(aws s3 presign "$EXP418_WIRING_RECORD_URI" --expires-in 3600)"
 EXP418_RUN_ID="dna-exp418-micro-seed288-${EXP418_COMMIT:0:12}"
 
 sky launch sky.yaml \
@@ -97,7 +98,8 @@ sky launch sky.yaml \
   --instance-type gpu_1x_h100_pcie \
   --env TIER=micro \
   --env RUN_ID="$EXP418_RUN_ID" \
-  --env WIRING_MANIFEST_URI="$EXP418_WIRING_URI" \
+  --env WIRING_MANIFEST_URI="$EXP418_WIRING_READ_URI" \
+  --env WIRING_MANIFEST_RECORD_URI="$EXP418_WIRING_RECORD_URI" \
   --env COMPUTE_PROVIDER=lambda \
   --env COMPUTE_INSTANCE_TYPE=gpu_1x_h100_pcie \
   --env SKYPILOT_CLUSTER_NAME=exp418-lambda-micro \
@@ -108,6 +110,28 @@ sky launch sky.yaml \
 For an EC2 fallback, replace the Lambda resource flags with `--infra aws/us-east-2 --instance-type p5.4xlarge --no-use-spot`, and record `COMPUTE_PROVIDER=aws` and `COMPUTE_INSTANCE_TYPE=p5.4xlarge`. Use `--use-spot` only after explicitly accepting preemption. Artifact copying and teardown are otherwise identical.
 
 The launcher also supports direct object-store upload through `--artifact-prefix` or `ARTIFACT_PREFIX`, but the provider-neutral default is `--no-upload` plus `rsync`. It refuses to overwrite an existing local or remote run.
+
+## Compact GRCh38 interpretation
+
+Build the coordinate-clean panel locally so the reference FASTA and AWS credentials never enter the Lambda VM:
+
+```bash
+uv run python interpret.py prepare \
+  --fasta ../../scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+  --gtf ../../scratch/issue418/reference/Homo_sapiens.GRCh38.115.gtf.gz \
+  --output ../../scratch/issue418/interpretation/panel.parquet
+```
+
+The fixed split is chromosome 20 for the 31-bp one-hot logistic baseline, chromosome 21 for SAE-feature, raw-dimension, and threshold selection, and untouched chromosome 22 for final reporting. Donor and acceptor negatives have the same focal `GT` or `AG` motif as the positive and come from the same intron. GTF coordinates are converted from 1-based closed to 0-based half-open at parse time. Nucleotide-identity tasks are positive controls.
+
+`interpret_sky.yaml` mounts the local panel and final SAE without sending an AWS secret to Lambda. Dry-run it first, then launch only with explicit paid-compute approval:
+
+```bash
+sky launch --dryrun --yes interpret_sky.yaml --cluster exp418-lambda-interpret
+sky launch interpret_sky.yaml --cluster exp418-lambda-interpret
+```
+
+The result compares one selected SAE feature with the best signed raw residual dimension and the fixed sequence baseline on chromosome 22. It also records a shuffled-label null, paired bootstrap interval, reverse-complement correlation, and top activating contexts.
 
 ## Produced evidence
 

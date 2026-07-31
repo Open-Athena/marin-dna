@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from launch import (
     BUFFER_CONTEXT_BATCHES,
     CONTEXT_TOKENS,
@@ -12,6 +14,7 @@ from launch import (
     _checkpoint_dirs,
     _dry_run_manifest,
     _runner_config,
+    _validate_wiring_gate,
     tier_config,
 )
 
@@ -23,6 +26,36 @@ def test_checkpoint_dirs_accepts_saelens_run_id_directory(tmp_path) -> None:
     second.mkdir()
 
     assert _checkpoint_dirs(tmp_path) == [first, second]
+
+
+def test_wiring_gate_records_stable_uri_not_presigned_input(tmp_path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "tier": {"name": "wiring"},
+                "engineering_gate_passed": True,
+                "fixed_config": {
+                    "model_revision": MODEL_REVISION,
+                    "saelens_revision": SAELENS_REVISION,
+                    "seed": SEED,
+                },
+                "artifact_uri": "s3://bucket/wiring/",
+                "run_id": "wiring-run",
+            }
+        )
+    )
+
+    result = _validate_wiring_gate(
+        str(manifest_path),
+        record_uri="s3://bucket/wiring/manifest.json",
+    )
+
+    assert result == {
+        "manifest_uri": "s3://bucket/wiring/manifest.json",
+        "artifact_uri": "s3://bucket/wiring/",
+        "run_id": "wiring-run",
+    }
 
 
 def test_training_batches_and_budgets_are_exact() -> None:
