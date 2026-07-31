@@ -1,6 +1,6 @@
 ---
 name: Experiment
-about: Tracking issue for an experiment
+about: Tracking issue for a preregistered experiment
 title: Experiment
 labels: experiment
 assignees: ''
@@ -11,26 +11,47 @@ assignees: ''
 
 ## Description
 
-(Add enough context someone outside could understand what you're trying to do. Doesn't need to be too long, but enough you could explain it to someone working on LLMs at another lab.)
+<!-- Add enough context for someone outside the immediate project. -->
 
-## Hypothesis or Goal
+## Hypothesis or goal
 
-(What are you trying to learn or achieve? An experiment is preregistered — fill this in before running.)
+<!-- State the falsifiable prediction or fixed objective before running. -->
 
 ## Informs research-question(s)
 
-(Plain references to any `research-question` issues this bears on, e.g. `#287` — not a sub-issue link. Optional; an experiment may inform several, or none.)
+<!-- Plain references to any research-question issues this bears on.
+Optional and many-to-many; do not use sub-issue metadata. -->
 
+## Prior evidence / why now
 
-### Links
+<!-- Record the internal results and external literature motivating this
+experiment. State which design decisions follow from that evidence. -->
 
-(Delete any that aren't applicable.)
+## Preregistered design
 
-* WandB Report:  (link)
-* Data Browser: (link)
-* (etc.)
+<!-- Specify the fixed arms and invariants, data and splits, primary endpoint
+or success criterion, and important secondary diagnostics. -->
 
+## Execution and scope
+
+<!-- Record implementation sequencing, resource or stopping constraints when
+relevant, failure handling, and anything explicitly out of scope. -->
+
+## Deviations from preregistration
+
+<!-- None at launch. Announce material deviations in a comment before updating
+this section. -->
 
 ## Results
 
-(What did you find, including relevant evaluation metrics, etc.)
+<!-- Report every preregistered arm, including nulls, uncertainty, artifacts,
+provenance, and actual resource use where relevant. -->
+
+## Links
+
+<!-- Delete entries that do not apply.
+
+- WandB report:
+- Data browser:
+- Code or artifacts:
+-->
