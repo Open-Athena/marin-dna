@@ -141,10 +141,20 @@ scripts/issue419_relay_gh200_release.sh \
 The relay streams each browser-facing release file through SSH, packages the
 many small plans and logs into deterministic archives, and does not stage large
 artifacts on the controller. It verifies every uploaded object size, publishes
-SHA-256 sidecars for the archives, and uploads `COMPLETE.json` last. The durable destination is
+SHA-256 sidecars for the archives, and uploads `COMPLETE.json` last. The durable
+destination is
 `s3://oa-bolinas/snakemake/analysis/chinchilla_logo/issue419-full/runs/<commit>/`.
 Only tear the cluster down after the relay reports success. Resumable shards
 remain local and are not uploaded.
+
+For an unattended run, the watcher preserves the cluster after any job or relay
+failure and tears it down only after a successful relay when `--down` is explicit:
+
+```bash
+scripts/issue419_watch_gh200_release.sh \
+  chinchilla-logo-gh200-full JOB_ID COMMIT_SHA --down
+```
+
 There is no Hugging Face credential mount or upload step.
 
 ## Resumption and bounded memory
