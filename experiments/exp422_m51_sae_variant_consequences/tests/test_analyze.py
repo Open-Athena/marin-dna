@@ -50,11 +50,26 @@ def test_bootstrap_block_ap_returns_finite_interval() -> None:
     scores = np.array([0.9, 0.8, 0.1, 0.2, 0.7, 0.6, 0.3, 0.4])
     positive = np.array([1, 1, 0, 0, 1, 1, 0, 0], dtype=bool)
     blocks = np.array([1, 1, 1, 1, 2, 2, 2, 2])
-    low, high, n_blocks = bootstrap_block_ap(
+    low, high, n_blocks, positive_blocks = bootstrap_block_ap(
         scores, positive, blocks, seed=1, samples=50
     )
+    assert low is not None and high is not None
     assert 0 <= low <= high <= 1
-    assert n_blocks == 2
+    assert n_blocks == positive_blocks == 2
+
+
+def test_bootstrap_block_ap_omits_interval_without_spatial_replication() -> None:
+    scores = np.array([0.9, 0.8, 0.1, 0.2, 0.3, 0.4])
+    positive = np.array([1, 1, 0, 0, 0, 0], dtype=bool)
+    blocks = np.array([1, 1, 2, 2, 3, 3])
+
+    low, high, n_blocks, positive_blocks = bootstrap_block_ap(
+        scores, positive, blocks, seed=1, samples=50
+    )
+
+    assert low is None and high is None
+    assert n_blocks == 3
+    assert positive_blocks == 1
 
 
 def test_choose_transform_uses_validation_not_test() -> None:

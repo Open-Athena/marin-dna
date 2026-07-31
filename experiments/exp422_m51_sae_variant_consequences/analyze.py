@@ -218,10 +218,15 @@ def bootstrap_block_ap(
     *,
     seed: int,
     samples: int = BOOTSTRAPS,
-) -> tuple[float, float, int]:
+) -> tuple[float | None, float | None, int, int]:
     assert scores.shape == positive.shape == blocks.shape
     unique_blocks = np.unique(blocks)
+    positive_blocks = np.unique(blocks[positive])
     assert len(unique_blocks) >= 2
+    assert len(positive_blocks) >= 1
+    if len(positive_blocks) < 2:
+        return None, None, len(unique_blocks), len(positive_blocks)
+
     block_rows = [np.flatnonzero(blocks == block) for block in unique_blocks]
     rng = np.random.default_rng(seed)
     values: list[float] = []
@@ -235,7 +240,7 @@ def bootstrap_block_ap(
             )
     assert len(values) >= samples * 0.9
     low, high = np.quantile(values, [0.025, 0.975])
-    return float(low), float(high), len(unique_blocks)
+    return float(low), float(high), len(unique_blocks), len(positive_blocks)
 
 
 def choose_transform(results: pl.DataFrame) -> pl.DataFrame:
@@ -635,7 +640,7 @@ def analyze(
         )
         scores = row["direction"] * column_values(transformed, test, row["dimension"])
         positive = labels[test] == row["class"]
-        low, high, test_blocks = bootstrap_block_ap(
+        low, high, test_blocks, test_positive_blocks = bootstrap_block_ap(
             scores,
             positive,
             blocks[test],
@@ -647,6 +652,7 @@ def analyze(
                 "test_ap_ci95_low": low,
                 "test_ap_ci95_high": high,
                 "test_blocks": test_blocks,
+                "test_positive_blocks": test_positive_blocks,
             }
         )
     selected = pl.DataFrame(selected_rows).sort(["class", "orientation", "space"])
@@ -769,6 +775,7 @@ def analyze(
             "minimum_discovery_support": MIN_DISCOVERY_SUPPORT,
             "minimum_positive_support": MIN_POSITIVE_SUPPORT,
             "block_bootstraps": BOOTSTRAPS,
+            "minimum_positive_blocks_for_ci": 2,
             "probe_alphas": list(PROBE_ALPHAS),
             "context_radius": CONTEXT_RADIUS,
             "orientation_order": list(ORIENTATIONS),
