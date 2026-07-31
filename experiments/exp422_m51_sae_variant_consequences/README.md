@@ -94,7 +94,9 @@ and RC separately before the fixed arithmetic-mean view and includes raw-residua
 substitution, and 31 bp k-mer-delta controls.
 
 For the dense multiclass controls, `sky_analysis.yaml` uses a 16-vCPU EC2
-instance and parallelizes only the deterministic one-vs-rest class fits:
+instance and parallelizes only the deterministic one-vs-rest class fits. Every
+SAE, raw-residual, and sequence-control probe receives the same fixed 100 SGD
+epochs:
 
 ```bash
 sky launch --dryrun -c dna-exp422-consequence-analysis \
