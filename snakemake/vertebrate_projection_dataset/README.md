@@ -100,6 +100,9 @@ combination, non-chromosome-18 training writes, QC aggregation, and inspection
 candidate selection also use lazy streaming scans. Only one species' contract
 rows, the human anchor catalog, the capped chromosome-18 validation candidates,
 or the small deterministic inspection sample is materialized at a time.
+Full-species HAL contract jobs peak near 20 GB RSS on the full anchor catalog
+and therefore reserve 24 GB so the scheduler cannot admit an unsafe number in
+parallel on the 96 GB worker.
 The conservation-filtered anchor BED is compressed through a temporary plain
 file, fully decompressed to verify its row count, and atomically installed only
 after the gzip stream passes its CRC check.
