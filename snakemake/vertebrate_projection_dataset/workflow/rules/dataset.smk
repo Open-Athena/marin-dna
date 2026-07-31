@@ -10,7 +10,9 @@ from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
 HAL_REJECTIONS = expand(
     f"{RESULTS}/hal/rejected/{{species}}.parquet", species=MAMMALS
 ) + expand(f"{RESULTS}/hal/sequence_rejected/{{species}}.parquet", species=MAMMALS)
-MULTIZ_REJECTIONS = [f"{RESULTS}/multiz/rejected/all.parquet"] + expand(
+MULTIZ_REJECTIONS = expand(
+    f"{RESULTS}/multiz/rejected/{{species}}.parquet", species=NON_MAMMALS
+) + expand(
     f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",
     species=NON_MAMMALS,
 )
@@ -77,6 +79,8 @@ rule dataset_splits:
         summary=f"{RESULTS}/datasets/{{region}}/split_summary.json",
     wildcard_constraints:
         region=COHORT_RE,
+    resources:
+        mem_mb=24000,
     run:
         write_dataset_split_files(
             input[0],
@@ -102,6 +106,8 @@ rule dataset_card:
         f"{RESULTS}/datasets/{{region}}/README.md",
     wildcard_constraints:
         region=COHORT_RE,
+    resources:
+        mem_mb=2000,
     params:
         repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
     run:

@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import polars as pl
 import py2bit
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from marin_dna.pipelines.projection.dataset import reverse_complement_col
 from marin_dna.pipelines.vertebrate_projection_dataset.adapters import (
@@ -24,13 +27,14 @@ from marin_dna.pipelines.vertebrate_projection_dataset.inspection import (
     render_inspection_report,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.maf import (
-    project_anchors_from_maf,
+    FRAGMENT_SCHEMA,
+    iter_projected_anchor_fragments,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.manifest import (
     read_species_manifest,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.qc import (
-    build_projection_qc_tables,
+    write_projection_qc_tables_streaming,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.split import (
     assign_train_validation_splits,
@@ -80,10 +84,114 @@ def write_maf_candidates(
     anchors_path: str | Path,
     manifest_path: str | Path,
     output_path: str | Path,
+    *,
+    rows_per_batch: int = 5_000,
 ) -> None:
+    """Stream MAF candidates into species-clustered Parquet row groups.
+
+    Full chromosome MAFs can yield millions of Python fragment records. Small
+    per-species buffers keep parsing bounded in memory, and species-clustered
+    row groups let downstream per-species contract jobs prune almost all I/O.
+    """
+    assert rows_per_batch > 0
     anchors = read_anchor_catalog(anchors_path)
     manifest = read_species_manifest(str(manifest_path))
-    project_anchors_from_maf(maf_path, anchors, manifest).write_parquet(output_path)
+    selected = manifest.filter(
+        (pl.col("backend") == "ucsc_multiz100way") & pl.col("selected")
+    )
+    alignment_names = sorted(selected["alignment_name"].to_list())
+    assert alignment_names
+    buffers: dict[str, list[dict[str, object]]] = {name: [] for name in alignment_names}
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.unlink(missing_ok=True)
+
+    with TemporaryDirectory(prefix=".maf-fragments-", dir=output.parent) as temp_dir:
+        temporary = Path(temp_dir)
+        writers: dict[str, pq.ParquetWriter] = {}
+
+        def flush(alignment_name: str) -> None:
+            rows = buffers[alignment_name]
+            if not rows:
+                return
+            table = pl.DataFrame(rows, schema=FRAGMENT_SCHEMA).to_arrow()
+            writer = writers.get(alignment_name)
+            if writer is None:
+                writer = pq.ParquetWriter(
+                    temporary / f"{alignment_name}.parquet",
+                    table.schema,
+                    compression="zstd",
+                    write_statistics=True,
+                )
+                writers[alignment_name] = writer
+            writer.write_table(table)
+            rows.clear()
+
+        try:
+            for fragment in iter_projected_anchor_fragments(
+                maf_path, anchors, manifest
+            ):
+                alignment_name = str(fragment["alignment_name"])
+                assert alignment_name in buffers
+                buffers[alignment_name].append(fragment)
+                if len(buffers[alignment_name]) >= rows_per_batch:
+                    flush(alignment_name)
+            for alignment_name in alignment_names:
+                flush(alignment_name)
+        finally:
+            for writer in writers.values():
+                writer.close()
+
+        output_writer: pq.ParquetWriter | None = None
+        try:
+            for alignment_name in alignment_names:
+                part_path = temporary / f"{alignment_name}.parquet"
+                if not part_path.exists():
+                    continue
+                for batch in pq.ParquetFile(part_path).iter_batches(
+                    batch_size=rows_per_batch
+                ):
+                    table = pa.Table.from_batches([batch])
+                    if output_writer is None:
+                        output_writer = pq.ParquetWriter(
+                            output,
+                            table.schema,
+                            compression="zstd",
+                            write_statistics=True,
+                        )
+                    output_writer.write_table(table)
+        finally:
+            if output_writer is not None:
+                output_writer.close()
+
+    if not output.exists():
+        pl.DataFrame(schema=FRAGMENT_SCHEMA).write_parquet(output)
+
+    stats = (
+        pl.scan_parquet(output)
+        .select(
+            pl.len().alias("rows"),
+            (pl.col("source_fragment_start") < pl.col("source_start"))
+            .sum()
+            .alias("invalid_source_starts"),
+            (pl.col("source_fragment_end") > pl.col("source_end"))
+            .sum()
+            .alias("invalid_source_ends"),
+            (pl.col("t_start") < 0).sum().alias("invalid_target_starts"),
+            (pl.col("t_end") > pl.col("t_src_size")).sum().alias("invalid_target_ends"),
+        )
+        .collect(engine="streaming")
+        .row(0, named=True)
+    )
+    assert all(
+        int(stats[column]) == 0
+        for column in [
+            "invalid_source_starts",
+            "invalid_source_ends",
+            "invalid_target_starts",
+            "invalid_target_ends",
+        ]
+    )
 
 
 def write_hal_fragments(
@@ -114,6 +222,46 @@ def write_contract_outputs(
     )
     result.accepted.write_parquet(accepted_path)
     result.rejected.write_parquet(rejected_path)
+
+
+def write_contract_outputs_for_alignment(
+    fragments_path: str | Path,
+    alignment_name: str,
+    accepted_path: str | Path,
+    rejected_path: str | Path,
+    *,
+    target_length: int,
+    pre_resize_min_length: int,
+    pre_resize_max_length: int,
+) -> None:
+    """Apply the shared contract to one species from clustered MAF fragments."""
+    fragments = (
+        pl.scan_parquet(fragments_path)
+        .filter(pl.col("alignment_name") == alignment_name)
+        .collect(engine="streaming")
+    )
+    result = apply_projection_contract(
+        fragments,
+        target_length=target_length,
+        pre_resize_min_length=pre_resize_min_length,
+        pre_resize_max_length=pre_resize_max_length,
+    )
+    Path(accepted_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(rejected_path).parent.mkdir(parents=True, exist_ok=True)
+    result.accepted.write_parquet(accepted_path)
+    result.rejected.write_parquet(rejected_path)
+
+
+def merge_parquets_streaming(input_paths: list[str], output_path: str | Path) -> None:
+    """Concatenate schema-identical Parquets with bounded peak memory."""
+    assert input_paths
+    schemas = [pl.read_parquet_schema(path) for path in input_paths]
+    assert all(schema == schemas[0] for schema in schemas)
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    pl.concat(
+        [pl.scan_parquet(path) for path in input_paths], how="vertical"
+    ).sink_parquet(output)
 
 
 def write_twobit_sequences(
@@ -175,13 +323,37 @@ def write_human_reference_sequences(
 
 def combine_sequence_parquets(input_paths: list[str], output_path: str | Path) -> None:
     assert input_paths
-    frames = [pl.read_parquet(path) for path in input_paths]
-    columns = frames[0].columns
-    assert all(frame.columns == columns for frame in frames)
-    combined = pl.concat(frames)
-    assert combined.select("query_name", "species").is_unique().all()
-    assert (combined["sequence"].str.len_bytes() == 255).all()
-    combined.sort("query_name", "species").write_parquet(output_path)
+    schemas = [pl.read_parquet_schema(path) for path in input_paths]
+    assert all(schema == schemas[0] for schema in schemas)
+    observed_species: set[str] = set()
+    expected_rows = 0
+    for path in input_paths:
+        stats = (
+            pl.scan_parquet(path)
+            .select(
+                pl.len().alias("rows"),
+                pl.col("query_name").n_unique().alias("queries"),
+                pl.col("species").unique().alias("species"),
+                (pl.col("sequence").str.len_bytes() != 255)
+                .sum()
+                .alias("invalid_lengths"),
+            )
+            .collect(engine="streaming")
+            .row(0, named=True)
+        )
+        assert int(stats["rows"]) == int(stats["queries"])
+        assert int(stats["invalid_lengths"]) == 0
+        species = list(stats["species"])
+        assert len(species) == 1, f"{path} contains multiple species: {species}"
+        assert str(species[0]) not in observed_species
+        observed_species.add(str(species[0]))
+        expected_rows += int(stats["rows"])
+
+    merge_parquets_streaming(input_paths, output_path)
+    actual_rows = (
+        pl.scan_parquet(output_path).select(pl.len()).collect(engine="streaming").item()
+    )
+    assert actual_rows == expected_rows
 
 
 def write_dataset_split_files(
@@ -198,38 +370,57 @@ def write_dataset_split_files(
     max_validation_rows: int,
     seed: int,
 ) -> None:
-    original = pl.read_parquet(combined_path)
+    original = pl.scan_parquet(combined_path)
     if region_label != "all":
         original = original.filter(pl.col("region_label") == region_label)
-    assert not original.is_empty(), f"empty region cohort: {region_label}"
+    original_rows = original.select(pl.len()).collect(engine="streaming").item()
+    assert original_rows > 0, f"empty region cohort: {region_label}"
+
+    train_original = original.filter(pl.col("source_chrom") != validation_chrom)
     if add_rc:
-        rows = pl.concat(
+        train = pl.concat(
             [
-                original.with_columns(pl.lit("+").alias("augmentation")),
-                original.with_columns(
+                train_original.with_columns(pl.lit("+").alias("augmentation")),
+                train_original.with_columns(
                     reverse_complement_col(pl.col("sequence")).alias("sequence"),
                     pl.lit("-").alias("augmentation"),
                 ),
-            ]
+            ],
+            how="vertical",
         )
     else:
-        rows = original.with_columns(pl.lit("+").alias("augmentation"))
+        train = train_original.with_columns(pl.lit("+").alias("augmentation"))
+
+    for path in [train_path, validation_path, selection_path, species_counts_path]:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+    train.sink_parquet(train_path)
+
+    candidates = (
+        original.filter(pl.col("source_chrom") == validation_chrom)
+        .collect(engine="streaming")
+        .with_columns(pl.lit("+").alias("augmentation"))
+    )
     result = assign_train_validation_splits(
-        rows,
+        candidates,
         validation_chrom=validation_chrom,
         max_validation_rows=max_validation_rows,
         seed=seed,
     )
-    result.train.write_parquet(train_path)
-    result.validation.write_parquet(validation_path)
+    assert result.train.is_empty()
+    result.validation.drop("row_id").write_parquet(validation_path)
     result.selection_manifest.write_csv(selection_path, separator="\t")
     result.species_counts.write_csv(species_counts_path, separator="\t")
+    train_rows = (
+        pl.scan_parquet(train_path).select(pl.len()).collect(engine="streaming").item()
+    )
     Path(summary_path).write_text(
         json.dumps(
             {
                 "region_label": region_label,
                 "seed": seed,
                 "validation_chrom": validation_chrom,
+                "train_rows": train_rows,
+                "eligible_validation_rows": candidates.height,
                 "validation_rows": result.validation.height,
                 "realized_token_count": result.realized_token_count,
             },
@@ -257,18 +448,16 @@ def write_qc_files(
         .otherwise(pl.lit("train"))
         .alias("split")
     )
-    rejected_frames = [pl.read_parquet(path) for path in rejected_paths]
-    rejected = pl.concat(rejected_frames) if rejected_frames else pl.DataFrame()
-    tables = build_projection_qc_tables(
+    write_projection_qc_tables_streaming(
         anchors,
-        pl.read_parquet(accepted_path),
-        rejected,
+        accepted_path,
+        rejected_paths,
         read_species_manifest(str(manifest_path)),
+        per_anchor_path,
+        per_scope_path,
+        rejections_path,
+        aggregates_path,
     )
-    tables.per_anchor.write_parquet(per_anchor_path)
-    tables.per_anchor_scope.write_parquet(per_scope_path)
-    tables.rejection_counts.write_parquet(rejections_path)
-    tables.aggregates.write_parquet(aggregates_path)
 
 
 def write_inspection_files(
@@ -283,19 +472,117 @@ def write_inspection_files(
     fragmented_rows: int,
     rejected_rows_per_reason: int,
 ) -> None:
-    """Write a deterministic sample plus an explicitly pending review report."""
-    sequences = pl.read_parquet(sequences_path)
-    assert_zrs_broad_recovery(sequences)
+    """Write bounded-memory deterministic samples and a pending review report."""
+    assert rows_per_region > 0
+    assert fragmented_rows >= 0
+    assert rejected_rows_per_reason > 0
+    sequences = pl.scan_parquet(sequences_path)
+    identity_hash = pl.concat_str(
+        [
+            pl.col("query_name"),
+            pl.col("species"),
+            pl.col("alignment_source"),
+            pl.col("t_chrom"),
+            pl.col("t_start").cast(pl.String),
+        ],
+        separator="\t",
+    ).hash(seed=seed)
+
+    candidate_query_names: set[str] = set()
+    zrs_rows = sequences.filter(
+        pl.col("query_name").str.to_lowercase().str.starts_with("zrs_")
+    ).collect(engine="streaming")
+    assert_zrs_broad_recovery(zrs_rows)
+    candidate_query_names.update(zrs_rows["query_name"].unique().to_list())
+
+    # Select a small set of candidate anchors with Polars' bounded top-k, then
+    # materialize every species for only those anchors. The existing pure
+    # sampler makes the final row choices and computes complete clade counts.
+    candidate_multiplier = 4
+    for region_label in ["cds", "ccre_non_promoter"]:
+        candidates = (
+            sequences.filter(pl.col("region_label") == region_label)
+            .select("query_name", identity_hash.alias("_sample_hash"))
+            .bottom_k(
+                rows_per_region * candidate_multiplier,
+                by="_sample_hash",
+            )
+            .collect(engine="streaming")
+        )
+        assert candidates.height > 0, (
+            f"inspection requires recovered {region_label} rows"
+        )
+        candidate_query_names.update(candidates["query_name"].to_list())
+
+    if fragmented_rows:
+        fragmented_candidates = (
+            sequences.filter(pl.col("fragment_count") > 1)
+            .select("query_name", identity_hash.alias("_sample_hash"))
+            .bottom_k(
+                fragmented_rows * candidate_multiplier,
+                by="_sample_hash",
+            )
+            .collect(engine="streaming")
+        )
+        candidate_query_names.update(fragmented_candidates["query_name"].to_list())
+
+    assert candidate_query_names
+    inspection_rows = sequences.filter(
+        pl.col("query_name").is_in(candidate_query_names)
+    ).collect(engine="streaming")
     sample = build_inspection_sample(
-        sequences,
+        inspection_rows,
         seed=seed,
         rows_per_region=rows_per_region,
         fragmented_rows=fragmented_rows,
     )
-    rejected = pl.concat([pl.read_parquet(path) for path in rejected_paths])
-    rejected_sample = build_rejection_inspection_sample(
-        rejected, seed=seed, rows_per_reason=rejected_rows_per_reason
+    assert rejected_paths
+    rejected = pl.concat(
+        [pl.scan_parquet(path) for path in rejected_paths], how="vertical"
     )
+    rejection_reasons = (
+        rejected.select("rejection_reason")
+        .unique()
+        .collect(engine="streaming")["rejection_reason"]
+        .sort()
+        .to_list()
+    )
+    rejected_samples: list[pl.DataFrame] = []
+    rejected_hash = pl.concat_str(
+        [
+            pl.col("query_name"),
+            pl.col("species"),
+            pl.col("alignment_source"),
+            pl.col("source_chrom"),
+            pl.col("source_start").cast(pl.String),
+        ],
+        separator="\t",
+    ).hash(seed=seed)
+    for rejection_reason in rejection_reasons:
+        rejected_samples.append(
+            rejected.filter(pl.col("rejection_reason") == rejection_reason)
+            .with_columns(rejected_hash.alias("_sample_hash"))
+            .sort(
+                "fragment_count",
+                "_sample_hash",
+                descending=[True, False],
+            )
+            .limit(rejected_rows_per_reason)
+            .drop("_sample_hash")
+            .collect(engine="streaming")
+        )
+    rejected_candidates = (
+        pl.concat(rejected_samples, how="vertical")
+        if rejected_samples
+        else pl.DataFrame(schema=pl.read_parquet_schema(rejected_paths[0]))
+    )
+    rejected_sample = build_rejection_inspection_sample(
+        rejected_candidates,
+        seed=seed,
+        rows_per_reason=rejected_rows_per_reason,
+    )
+    for path in [sample_path, rejected_sample_path, report_path]:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
     sample.write_csv(sample_path, separator="\t")
     rejected_sample.write_csv(rejected_sample_path, separator="\t")
     Path(report_path).write_text(
@@ -315,8 +602,17 @@ def write_dataset_card(
 ) -> None:
     """Write the reviewable HF README required before any upload."""
     assert len(pipeline_commit) == 40, "dataset cards require a commit-pinned SHA"
-    train = pl.read_parquet(train_path)
-    validation = pl.read_parquet(validation_path)
+    train_rows = (
+        pl.scan_parquet(train_path).select(pl.len()).collect(engine="streaming").item()
+    )
+    validation_rows = (
+        pl.scan_parquet(validation_path)
+        .select(pl.len())
+        .collect(engine="streaming")
+        .item()
+    )
+    train_schema = pl.read_parquet_schema(train_path)
+    assert train_schema == pl.read_parquet_schema(validation_path)
     selected = read_species_manifest(str(manifest_path)).filter(pl.col("selected"))
     species_counts = (
         selected.group_by("backend", "clade")
@@ -328,7 +624,7 @@ def write_dataset_card(
         for backend, clade, count in species_counts.iter_rows()
     )
     schema_lines = "\n".join(
-        f"- `{column}`: `{dtype}`" for column, dtype in train.schema.items()
+        f"- `{column}`: `{dtype}`" for column, dtype in train_schema.items()
     )
     pipeline_url = (
         "https://github.com/Open-Athena/marin-dna/blob/"
@@ -351,9 +647,9 @@ Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
 
 ## Splits
 
-- `train`: {train.height:,} rows; no chromosome-18 source anchors.
-- `validation`: {validation.height:,} original-orientation chromosome-18 rows
-  ({validation.height * 256:,} tokens including BOS).
+- `train`: {train_rows:,} rows; no chromosome-18 source anchors.
+- `validation`: {validation_rows:,} original-orientation chromosome-18 rows
+  ({validation_rows * 256:,} tokens including BOS).
 
 The selected target manifest contains {selected.height:,} family-deduplicated
 projection targets; human reference rows are added separately once per anchor.

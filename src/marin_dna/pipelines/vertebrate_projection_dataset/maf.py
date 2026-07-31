@@ -237,18 +237,19 @@ def _fragment_runs(
     return runs
 
 
-def project_anchors_from_maf(
+def iter_projected_anchor_fragments(
     maf_path: str | Path,
     anchors: pl.DataFrame,
     species_manifest: pl.DataFrame,
     *,
     source_alignment_name: str = "hg38",
-) -> pl.DataFrame:
-    """Project anchors through a human-referenced MAF into common fragments.
+) -> Iterator[dict[str, object]]:
+    """Yield common fragments projected through a human-referenced MAF.
 
-    The returned rows are *candidates*, not accepted projections.  Split
-    blocks, gaps, duplicated source coverage, and target ambiguity remain
-    explicit for the shared projection contract to adjudicate.
+    Rows are *candidates*, not accepted projections. Split blocks, gaps,
+    duplicated source coverage, and target ambiguity remain explicit for the
+    shared projection contract to adjudicate. The iterator keeps full-size MAF
+    parsing bounded in memory; callers that need a DataFrame may materialize it.
     """
     required_anchor_columns = {
         "query_name",
@@ -287,7 +288,6 @@ def project_anchors_from_maf(
             int(row["source_end"]) - int(row["source_start"]) for row in rows
         )
 
-    fragments: list[dict[str, object]] = []
     for block in iter_maf_blocks(maf_path):
         source_rows = [
             row
@@ -338,33 +338,49 @@ def project_anchors_from_maf(
                 for run_number, run in enumerate(runs):
                     source_coordinates = [pair[0] for pair in run]
                     target_coordinates = [pair[1] for pair in run]
-                    fragments.append(
-                        {
-                            "query_name": str(anchor["query_name"]),
-                            "source_chrom": str(anchor["source_chrom"]),
-                            "source_start": anchor_start,
-                            "source_end": anchor_end,
-                            "region_label": str(anchor["region_label"]),
-                            "source_fragment_start": min(source_coordinates),
-                            "source_fragment_end": max(source_coordinates) + 1,
-                            "species": str(metadata["scientific_name"]),
-                            "alignment_name": alignment_name,
-                            "assembly": str(metadata["assembly"]),
-                            "taxonomy_id": _as_int(metadata["taxonomy_id"]),
-                            "family": str(metadata["family"]),
-                            "clade": str(metadata["clade"]),
-                            "phylogenetic_rank": _as_int(metadata["phylogenetic_rank"]),
-                            "alignment_source": "ucsc_multiz100way",
-                            "t_chrom": target.chrom,
-                            "t_start": min(target_coordinates),
-                            "t_end": max(target_coordinates) + 1,
-                            "t_strand": target_strand,
-                            "t_src_size": target.src_size,
-                            "mapping_id": mapping_id,
-                            "fragment_id": f"{mapping_id}:{run_number}",
-                            "aligned_bases": len(run),
-                        }
-                    )
+                    yield {
+                        "query_name": str(anchor["query_name"]),
+                        "source_chrom": str(anchor["source_chrom"]),
+                        "source_start": anchor_start,
+                        "source_end": anchor_end,
+                        "region_label": str(anchor["region_label"]),
+                        "source_fragment_start": min(source_coordinates),
+                        "source_fragment_end": max(source_coordinates) + 1,
+                        "species": str(metadata["scientific_name"]),
+                        "alignment_name": alignment_name,
+                        "assembly": str(metadata["assembly"]),
+                        "taxonomy_id": _as_int(metadata["taxonomy_id"]),
+                        "family": str(metadata["family"]),
+                        "clade": str(metadata["clade"]),
+                        "phylogenetic_rank": _as_int(metadata["phylogenetic_rank"]),
+                        "alignment_source": "ucsc_multiz100way",
+                        "t_chrom": target.chrom,
+                        "t_start": min(target_coordinates),
+                        "t_end": max(target_coordinates) + 1,
+                        "t_strand": target_strand,
+                        "t_src_size": target.src_size,
+                        "mapping_id": mapping_id,
+                        "fragment_id": f"{mapping_id}:{run_number}",
+                        "aligned_bases": len(run),
+                    }
+
+
+def project_anchors_from_maf(
+    maf_path: str | Path,
+    anchors: pl.DataFrame,
+    species_manifest: pl.DataFrame,
+    *,
+    source_alignment_name: str = "hg38",
+) -> pl.DataFrame:
+    """Materialize projected MAF candidates for tests and small inputs."""
+    fragments = list(
+        iter_projected_anchor_fragments(
+            maf_path,
+            anchors,
+            species_manifest,
+            source_alignment_name=source_alignment_name,
+        )
+    )
 
     if not fragments:
         return pl.DataFrame(schema=FRAGMENT_SCHEMA)

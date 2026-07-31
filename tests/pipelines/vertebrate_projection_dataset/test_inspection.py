@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import polars as pl
 
-from marin_dna.pipelines.vertebrate_projection_dataset.contract import ACCEPTED_SCHEMA
+from marin_dna.pipelines.vertebrate_projection_dataset.contract import (
+    ACCEPTED_SCHEMA,
+    REJECTION_SCHEMA,
+)
 from marin_dna.pipelines.vertebrate_projection_dataset.inspection import (
     assert_zrs_broad_recovery,
     build_inspection_sample,
     build_rejection_inspection_sample,
     render_inspection_report,
+)
+from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
+    write_inspection_files,
 )
 
 
@@ -122,3 +130,84 @@ def test_inspection_rejects_invalid_sequence() -> None:
         pass
     else:
         raise AssertionError("invalid sequence should fail inspection prechecks")
+
+
+def test_streaming_inspection_materializes_only_sample_candidates(
+    tmp_path: Path,
+) -> None:
+    schema = {**ACCEPTED_SCHEMA, "sequence": pl.String}
+    rows = pl.DataFrame(
+        [
+            _row("zrs_one", "Homo sapiens", "human_reference", "mammals", 0),
+            _row("zrs_one", "Mus musculus", "zoonomia_cactus", "mammals", 1),
+            _row("zrs_one", "Gallus gallus", "ucsc_multiz100way", "birds", 2),
+            _row("zrs_one", "Danio rerio", "ucsc_multiz100way", "fish", 6),
+            _row(
+                "cds_one",
+                "Mus musculus",
+                "zoonomia_cactus",
+                "mammals",
+                1,
+                region_label="cds",
+            ),
+            _row(
+                "ccre_one",
+                "Gallus gallus",
+                "ucsc_multiz100way",
+                "birds",
+                2,
+            ),
+        ],
+        schema=schema,
+    ).with_columns(
+        pl.when(pl.col("query_name") == "ccre_one")
+        .then(pl.lit(2))
+        .otherwise(pl.col("fragment_count"))
+        .alias("fragment_count")
+    )
+    rejected = pl.DataFrame(
+        [
+            {
+                "query_name": "cds_rejected",
+                "source_chrom": "chr1",
+                "source_start": 10,
+                "source_end": 265,
+                "region_label": "cds",
+                "species": "Xenopus tropicalis",
+                "assembly": "xenTro7",
+                "taxonomy_id": 8364,
+                "family": "Pipidae",
+                "clade": "amphibians",
+                "phylogenetic_rank": 4,
+                "alignment_source": "ucsc_multiz100way",
+                "rejection_reason": "multi_strand",
+                "detail": "+,-",
+                "fragment_count": 2,
+            }
+        ],
+        schema=REJECTION_SCHEMA,
+    )
+    sequences_path = tmp_path / "sequences.parquet"
+    rejected_path = tmp_path / "rejected.parquet"
+    rows.write_parquet(sequences_path)
+    rejected.write_parquet(rejected_path)
+    sample_path = tmp_path / "sample.tsv"
+    rejected_sample_path = tmp_path / "rejected.tsv"
+    report_path = tmp_path / "report.md"
+
+    write_inspection_files(
+        sequences_path,
+        [str(rejected_path)],
+        sample_path,
+        rejected_sample_path,
+        report_path,
+        seed=7,
+        rows_per_region=1,
+        fragmented_rows=1,
+        rejected_rows_per_reason=1,
+    )
+
+    sample = pl.read_csv(sample_path, separator="\t")
+    assert {"zrs_one", "cds_one", "ccre_one"} <= set(sample["query_name"])
+    assert pl.read_csv(rejected_sample_path, separator="\t").height == 1
+    assert "pending human review" in report_path.read_text()

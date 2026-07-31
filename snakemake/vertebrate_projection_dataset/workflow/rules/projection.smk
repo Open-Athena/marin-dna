@@ -8,7 +8,9 @@ from marin_dna.pipelines.projection.hal import (
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
     combine_sequence_parquets,
+    merge_parquets_streaming,
     write_contract_outputs,
+    write_contract_outputs_for_alignment,
     write_hal_bed6,
     write_hal_fragments,
     write_human_reference_sequences,
@@ -66,6 +68,8 @@ rule hal_chrom_sizes:
         f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
     wildcard_constraints:
         species=MAMMAL_RE,
+    resources:
+        mem_mb=2000,
     run:
         write_chrom_sizes(input.hal, wildcards.species, output[0])
 
@@ -78,6 +82,9 @@ rule hal_liftover:
         f"{RESULTS}/hal/raw/{{species}}.bed",
     wildcard_constraints:
         species=MAMMAL_RE,
+    threads: 4
+    resources:
+        mem_mb=6000,
     run:
         Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
         run_halliftover(
@@ -100,6 +107,8 @@ rule hal_fragments:
         f"{RESULTS}/hal/fragments/{{species}}.parquet",
     wildcard_constraints:
         species=MAMMAL_RE,
+    resources:
+        mem_mb=8000,
     run:
         records = attach_src_size(
             parse_halliftover_bed(input.raw, wildcards.species), input.sizes
@@ -115,6 +124,8 @@ rule hal_contract:
         rejected=f"{RESULTS}/hal/rejected/{{species}}.parquet",
     wildcard_constraints:
         species=MAMMAL_RE,
+    resources:
+        mem_mb=8000,
     run:
         write_contract_outputs(
             input[0],
@@ -133,6 +144,9 @@ rule hal_to_fasta:
         local(f"{RESULTS}/hal/genomes/{{species}}.fa"),
     wildcard_constraints:
         species=MAMMAL_RE,
+    threads: 4
+    resources:
+        mem_mb=4000,
     shell:
         "hal2fasta {input.hal} {wildcards.species} > {output}"
 
@@ -144,6 +158,9 @@ rule hal_fasta_to_twobit:
         f"{RESULTS}/hal/genomes/{{species}}.2bit",
     wildcard_constraints:
         species=MAMMAL_RE,
+    threads: 2
+    resources:
+        mem_mb=4000,
     conda:
         "../envs/bioinformatics.yaml"
     shell:
@@ -159,6 +176,8 @@ rule hal_sequences:
         rejected=f"{RESULTS}/hal/sequence_rejected/{{species}}.parquet",
     wildcard_constraints:
         species=MAMMAL_RE,
+    resources:
+        mem_mb=12000,
     run:
         write_twobit_sequences(
             input.accepted, input.twobit, output.sequences, output.rejected
@@ -174,28 +193,28 @@ rule multiz_candidates:
         f"{RESULTS}/multiz/fragments/{{chrom}}.parquet",
     wildcard_constraints:
         chrom=CHROM_RE,
+    threads: 4
+    resources:
+        mem_mb=16000,
     run:
         write_maf_candidates(input.maf, input.anchors, input.manifest, output[0])
 
 
-rule merge_multiz_fragments:
-    input:
-        expand(f"{RESULTS}/multiz/fragments/{{chrom}}.parquet", chrom=CHROMS),
-    output:
-        f"{RESULTS}/multiz/fragments/all.parquet",
-    run:
-        pl.concat([pl.read_parquet(path) for path in input]).write_parquet(output[0])
-
-
 rule multiz_contract:
     input:
-        f"{RESULTS}/multiz/fragments/all.parquet",
+        f"{RESULTS}/multiz/fragments/{{chrom}}.parquet",
     output:
-        accepted=f"{RESULTS}/multiz/accepted/all.parquet",
-        rejected=f"{RESULTS}/multiz/rejected/all.parquet",
+        accepted=f"{RESULTS}/multiz/accepted/by_chrom/{{chrom}}/{{species}}.parquet",
+        rejected=f"{RESULTS}/multiz/rejected/by_chrom/{{chrom}}/{{species}}.parquet",
+    wildcard_constraints:
+        chrom=CHROM_RE,
+        species=NON_MAMMAL_RE,
+    resources:
+        mem_mb=8000,
     run:
-        write_contract_outputs(
+        write_contract_outputs_for_alignment(
             input[0],
+            wildcards.species,
             output.accepted,
             output.rejected,
             target_length=TARGET_LENGTH,
@@ -204,23 +223,38 @@ rule multiz_contract:
         )
 
 
-rule subset_multiz_accepted:
+rule merge_multiz_accepted:
     input:
-        accepted=f"{RESULTS}/multiz/accepted/all.parquet",
-        manifest=ACTIVE_MANIFEST,
+        lambda wc: expand(
+            f"{RESULTS}/multiz/accepted/by_chrom/{{chrom}}/{{species}}.parquet",
+            chrom=CHROMS,
+            species=[wc.species],
+        ),
     output:
         f"{RESULTS}/multiz/accepted/{{species}}.parquet",
     wildcard_constraints:
         species=NON_MAMMAL_RE,
+    resources:
+        mem_mb=4000,
     run:
-        manifest = pl.read_csv(input.manifest, separator="\t")
-        scientific_name = manifest.filter(
-            pl.col("alignment_name") == wildcards.species
-        )["scientific_name"].item()
-        frame = pl.read_parquet(input.accepted).filter(
-            pl.col("species") == scientific_name
+        merge_parquets_streaming(list(input), output[0])
+
+
+rule merge_multiz_rejected:
+    input:
+        lambda wc: expand(
+            f"{RESULTS}/multiz/rejected/by_chrom/{{chrom}}/{{species}}.parquet",
+            chrom=CHROMS,
+            species=[wc.species],
         )
-        frame.write_parquet(output[0])
+    output:
+        f"{RESULTS}/multiz/rejected/{{species}}.parquet",
+    wildcard_constraints:
+        species=NON_MAMMAL_RE,
+    resources:
+        mem_mb=4000,
+    run:
+        merge_parquets_streaming(list(input), output[0])
 
 
 rule download_multiz_twobit:
@@ -247,6 +281,8 @@ rule multiz_sequences:
         rejected=f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",
     wildcard_constraints:
         species=NON_MAMMAL_RE,
+    resources:
+        mem_mb=12000,
     run:
         write_twobit_sequences(
             input.accepted, input.twobit, output.sequences, output.rejected

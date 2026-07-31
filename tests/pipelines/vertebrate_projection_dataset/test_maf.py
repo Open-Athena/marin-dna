@@ -12,6 +12,10 @@ from marin_dna.pipelines.vertebrate_projection_dataset.maf import (
     iter_maf_blocks,
     project_anchors_from_maf,
 )
+from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
+    write_contract_outputs_for_alignment,
+    write_maf_candidates,
+)
 from tests.pipelines.vertebrate_projection_dataset.helpers import species_manifest
 
 
@@ -87,3 +91,54 @@ def test_anchor_split_across_maf_blocks_is_accepted(tmp_path: Path) -> None:
     )
     assert result.accepted.height == 1
     assert result.accepted.select("t_start", "t_end").row(0) == (200, 210)
+
+
+def test_streaming_maf_writer_clusters_species_for_contract(
+    tmp_path: Path,
+) -> None:
+    sequence = "A" * 255
+    maf = tmp_path / "full_length.maf"
+    maf.write_text(
+        "##maf version=1\n\n"
+        "a score=1\n"
+        f"s hg38.chr1 100 255 + 1000 {sequence}\n"
+        f"s galGal4.chr2 200 255 + 1000 {sequence}\n"
+        f"s xenTro7.scaf 300 255 + 1000 {sequence}\n"
+    )
+    anchors = tmp_path / "anchors.tsv"
+    pl.DataFrame(
+        {
+            "query_name": ["anchor1"],
+            "source_chrom": ["chr1"],
+            "source_start": [100],
+            "source_end": [355],
+            "region_label": ["cds"],
+        }
+    ).write_csv(anchors, separator="\t")
+    manifest = tmp_path / "species.tsv"
+    species_manifest().write_csv(manifest, separator="\t")
+    fragments = tmp_path / "fragments.parquet"
+
+    write_maf_candidates(
+        maf,
+        anchors,
+        manifest,
+        fragments,
+        rows_per_batch=1,
+    )
+
+    frame = pl.read_parquet(fragments)
+    assert frame["alignment_name"].to_list() == ["galGal4", "xenTro7"]
+    accepted = tmp_path / "accepted.parquet"
+    rejected = tmp_path / "rejected.parquet"
+    write_contract_outputs_for_alignment(
+        fragments,
+        "galGal4",
+        accepted,
+        rejected,
+        target_length=255,
+        pre_resize_min_length=128,
+        pre_resize_max_length=512,
+    )
+    assert pl.read_parquet(accepted).height == 1
+    assert pl.read_parquet(rejected).is_empty()

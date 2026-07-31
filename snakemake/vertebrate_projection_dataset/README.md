@@ -90,6 +90,15 @@ has at least the anchor ID and source interval, region label, species/assembly/
 clade/backend provenance, target interval/strand/source size, fragment count,
 aligned-base count, and 255 bp sequence.
 
+The full tier is deliberately organized around bounded-memory intermediates.
+Each chromosome MAF is parsed into species-clustered Parquet row groups, the
+shared contract runs independently for each chromosome/species pair, and the
+accepted/rejected outputs are then streamed into per-species Parquets. Sequence
+combination, non-chromosome-18 training writes, QC aggregation, and inspection
+candidate selection also use lazy streaming scans. Only one species' contract
+rows, the human anchor catalog, the capped chromosome-18 validation candidates,
+or the small deterministic inspection sample is materialized at a time.
+
 ## Runbook
 
 The checked-in profile caps local work at four cores and carries pipeline-wide
@@ -146,6 +155,13 @@ Actively inspect first-run setup, HAL transfer rate, mounted capacity, rule
 progress, and ZRS/QC outputs. Reuse the same node for a later approved full run
 with `sky exec ... --env TIER=full`; terminate it with
 `sky down vertebrate-project` when inspection is complete.
+
+HAL staging downloads to a temporary filename and atomically renames it only
+after the S3 object size matches and `halStats --genomes` succeeds. The staged
+HAL and generated results live on instance-store NVMe: they survive `sky exec`
+jobs but not instance termination. Keep the cluster running until required
+results have been copied to durable storage or uploaded through the reviewed
+dataset targets.
 
 ## Splits and output datasets
 

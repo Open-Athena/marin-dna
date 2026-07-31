@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import polars as pl
 
+from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
+    write_dataset_split_files,
+)
 from marin_dna.pipelines.vertebrate_projection_dataset.split import (
     add_stable_row_ids,
     assign_train_validation_splits,
@@ -86,3 +92,45 @@ def test_all_chr18_original_rows_are_retained_when_below_cap() -> None:
     result = assign_train_validation_splits(rows, max_validation_rows=20, seed=42)
     assert result.validation.height == 9
     assert result.realized_token_count == 9 * 256
+
+
+def test_streaming_split_writes_schema_matched_outputs(tmp_path: Path) -> None:
+    combined = (
+        _rows()
+        .filter(pl.col("augmentation") == "+")
+        .drop("augmentation")
+        .with_columns(pl.lit("cds").alias("region_label"))
+    )
+    combined_path = tmp_path / "combined.parquet"
+    combined.write_parquet(combined_path)
+    train_path = tmp_path / "train.parquet"
+    validation_path = tmp_path / "validation.parquet"
+    selection_path = tmp_path / "selection.tsv"
+    counts_path = tmp_path / "counts.tsv"
+    summary_path = tmp_path / "summary.json"
+
+    write_dataset_split_files(
+        combined_path,
+        train_path,
+        validation_path,
+        selection_path,
+        counts_path,
+        summary_path,
+        region_label="cds",
+        add_rc=True,
+        validation_chrom="chr18",
+        max_validation_rows=5,
+        seed=7,
+    )
+
+    train = pl.read_parquet(train_path)
+    validation = pl.read_parquet(validation_path)
+    assert train.schema == validation.schema
+    assert train.height == 6
+    assert set(train["augmentation"]) == {"+", "-"}
+    assert validation.height == 5
+    assert set(validation["augmentation"]) == {"+"}
+    assert "row_id" not in validation.columns
+    assert pl.read_csv(selection_path, separator="\t").height == 5
+    assert pl.read_csv(counts_path, separator="\t").height == 3
+    assert json.loads(summary_path.read_text())["train_rows"] == 6
