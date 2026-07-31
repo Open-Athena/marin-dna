@@ -3,6 +3,7 @@
 from marin_dna.pipelines.vertebrate_projection_dataset.mirror import (
     mirror_source_object,
     read_mirror_manifest,
+    stage_hal_object,
     stage_s3_object,
 )
 
@@ -26,9 +27,10 @@ rule stage_hal:
         local(HAL_PATH),
     params:
         source=str(config["hal_s3_uri"]),
-    shell:
-        "mkdir -p $(dirname {output}) && "
-        "aws s3 cp {params.source} {output} --no-progress"
+    resources:
+        mem_mb=1000,
+    run:
+        stage_hal_object(params.source, output[0])
 
 
 rule stage_multiz_maf:

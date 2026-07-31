@@ -104,6 +104,76 @@ def _s3_bucket_key(uri: str) -> tuple[str, str]:
     return parsed.netloc, key
 
 
+def s3_object_size(uri: str) -> int:
+    """Read the authoritative S3 object size without downloading it."""
+    bucket, key = _s3_bucket_key(uri)
+    result = subprocess.run(
+        [
+            "aws",
+            "s3api",
+            "head-object",
+            "--bucket",
+            bucket,
+            "--key",
+            key,
+            "--query",
+            "ContentLength",
+            "--output",
+            "text",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    size = int(result.stdout.strip())
+    assert size > 0, f"invalid S3 object size for {uri}: {size}"
+    return size
+
+
+def verify_hal_object(
+    path: str | Path,
+    *,
+    expected_size: int,
+    required_genome: str = "Homo_sapiens",
+) -> None:
+    """Fail on a truncated or unreadable HAL before projection begins."""
+    hal_path = Path(path)
+    assert hal_path.is_file(), f"missing staged HAL: {hal_path}"
+    observed_size = hal_path.stat().st_size
+    assert observed_size == expected_size, (
+        f"HAL size mismatch for {hal_path}: {observed_size} != {expected_size}"
+    )
+    result = subprocess.run(
+        ["halStats", "--genomes", str(hal_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    genomes = result.stdout.split()
+    assert required_genome in genomes, (
+        f"staged HAL is missing required genome {required_genome!r}: {genomes[:10]}"
+    )
+
+
+def stage_hal_object(source_uri: str, destination: str | Path) -> None:
+    """Copy a HAL from S3, then verify its byte size and readable genome index."""
+    expected_size = s3_object_size(source_uri)
+    destination_path = Path(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "aws",
+            "s3",
+            "cp",
+            source_uri,
+            str(destination_path),
+            "--no-progress",
+        ],
+        check=True,
+    )
+    verify_hal_object(destination_path, expected_size=expected_size)
+
+
 def s3_object_matches(expected: MirrorObject) -> bool:
     """Check resumable bootstrap metadata without downloading the object."""
     bucket, key = _s3_bucket_key(expected.s3_uri)

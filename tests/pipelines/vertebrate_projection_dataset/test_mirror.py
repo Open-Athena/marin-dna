@@ -11,7 +11,9 @@ from marin_dna.pipelines.vertebrate_projection_dataset.mirror import (
     MirrorObject,
     file_md5,
     s3_object_matches,
+    s3_object_size,
     validate_multiz_mirror_contents,
+    verify_hal_object,
     verify_local_object,
 )
 
@@ -103,3 +105,36 @@ def test_s3_object_matches_requires_size_and_pinned_md5_metadata(
 
     monkeypatch.setattr(subprocess, "run", stale_run)
     assert not s3_object_matches(expected)
+
+
+def test_s3_object_size_reads_head_content_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def head_run(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(args=[], returncode=0, stdout="1263\n")
+
+    monkeypatch.setattr(subprocess, "run", head_run)
+    assert s3_object_size("s3://example/staging/genomes.hal") == 1263
+
+
+def test_verify_hal_checks_size_and_required_genome(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hal_path = tmp_path / "small.hal"
+    hal_path.write_bytes(b"test-hal")
+
+    def halstats_run(
+        *_args: object, **_kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="Homo_sapiens Mus_musculus\n",
+        )
+
+    monkeypatch.setattr(subprocess, "run", halstats_run)
+    verify_hal_object(hal_path, expected_size=8)
+    with pytest.raises(AssertionError, match="HAL size mismatch"):
+        verify_hal_object(hal_path, expected_size=9)
+    with pytest.raises(AssertionError, match="missing required genome"):
+        verify_hal_object(hal_path, expected_size=8, required_genome="Gallus_gallus")
