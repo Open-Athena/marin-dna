@@ -8,13 +8,14 @@ import pandas as pd
 from figures.data import save
 from utils.figure_style import (
     FIGURE_WIDTH,
-    attach_stacked_legends_below,
+    attach_legends_below,
     figsize,
-    fmt_beta2,
-    fmt_epsilon,
-    fmt_lr,
+    pack_horizontal_axis_columns,
+    set_square_subplot_height,
 )
 from utils.sweep_panel import plot_axis
+
+SUBPLOT_HEIGHT_PX = 148.0
 
 # Rows of figure 3: (region key, label used in axis text / row title).
 _REGION_ROWS: tuple[tuple[str, str], ...] = (
@@ -22,11 +23,11 @@ _REGION_ROWS: tuple[tuple[str, str], ...] = (
     ("upstream", "Upstream"),
     ("downstream", "Downstream"),
 )
-# Cols of figure 3: (axis role, axis field, axis label, log scale, formatter).
-_HYPER_COLS: tuple[tuple[str, str, str, bool, "callable"], ...] = (
-    ("learning_rate", "learning_rate", "Learning rate (η)", True, fmt_lr),
-    ("beta2", "beta2", "β₂", False, fmt_beta2),
-    ("epsilon", "epsilon", "ε", True, fmt_epsilon),
+# Cols of figure 3: (axis role, axis field, axis label, log scale).
+_HYPER_COLS: tuple[tuple[str, str, str, bool], ...] = (
+    ("learning_rate", "learning_rate", "Learning rate (η)", True),
+    ("beta2", "beta2", "β₂", False),
+    ("epsilon", "epsilon", "ε", True),
 )
 
 
@@ -42,7 +43,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     fig, axes = plt.subplots(3, 3, figsize=figsize(FIGURE_WIDTH, 8.8))
     for r, (region_key, region_label) in enumerate(_REGION_ROWS):
         y_field = f"eval_loss_{region_key}"
-        for c, (axis_role, axis_field, axis_label, log_scale, fmt) in enumerate(
+        for c, (axis_role, axis_field, axis_label, log_scale) in enumerate(
             _HYPER_COLS
         ):
             ax = axes[r, c]
@@ -53,26 +54,24 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
                 axis_field=axis_field,
                 axis_label=axis_label if r == 2 else "",
                 log_scale=log_scale,
-                value_formatter=fmt,
                 palette=palette,
+                native_numeric_axis=True,
                 include_negative_control=False,
                 y_field=y_field,
-                y_label=f"{region_label} Loss" if c == 0 else "",
+                y_label=f"{region_label} loss" if c == 0 else "",
             )
             if r != 2:
                 ax.tick_params(axis="x", labelbottom=False)
                 ax.set_xlabel("")
             ax.set_box_aspect(1)
-    # Explicit margins keep the legend close to the square plot grid.
-    fig.subplots_adjust(
-        top=0.99, bottom=0.32, left=0.055, right=0.99, hspace=0.12, wspace=0.18
-    )
-    attach_stacked_legends_below(
+    fig.tight_layout(rect=(0, 0.15, 1, 1), h_pad=0.5, w_pad=0)
+    set_square_subplot_height(fig, axes.flat, SUBPLOT_HEIGHT_PX)
+    pack_horizontal_axis_columns(fig, axes)
+    attach_legends_below(
         fig,
         palette,
         params,
         include_reference=False,
-        params_y=0.12,
-        run_y=0.005,
+        legend_y=0.13,
     )
     save(fig, "figure3_region_hyper_transfer")

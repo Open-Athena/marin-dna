@@ -287,7 +287,7 @@ Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline 
 
 We first trained a 1.7B upstream-region specialist, trying to replicate the success of GPN-Promoter ([experiment #21](https://github.com/Open-Athena/marin-dna/issues/21)).[^early-mixture-datasets] Although we used reasonable defaults rather than the systematic hyperparameter-transfer recipe developed later, performance was broadly comparable to Evo 2 40B. We saw a similar pattern when training a CDS specialist ([experiment #27](https://github.com/Open-Athena/marin-dna/issues/27)). Overall, however, GPN-Star remained stronger.
 
-[^early-mixture-datasets]: The upstream and CDS datasets used in these early experiments were earlier versions of those summarized in Figure 1: broadly comparable, but not identical. These models also used a 512-bp context without a BOS token, roughly twice the 255-bp context adopted for the later recipe.
+[^early-mixture-datasets]: The upstream and CDS datasets used in these early experiments were earlier versions of those summarized in [Fig. 1](#fig-training-datasets): broadly comparable, but not identical. These models also used a 512-bp context without a BOS token, roughly twice the 255-bp context adopted for the later recipe.
 
 <!-- Plot recipe: plots/blog/promoter_cds_specialists.py -->
 <figure id="fig-upstream-cds-specialists" data-figure-width="477.357">
@@ -314,7 +314,7 @@ Our first attempt to scale manually lowered the learning rate as the model grew 
 The larger models did not improve over the 0.6B model, and the early 4B run became unstable.
 That failure made systematic hyperparameter transfer a prerequisite: without a trustworthy optimization recipe, a model-size comparison would confound scale with tuning quality.
 
-The annotation-derived DNA pool available at the time contained ~85B tokens. [Figure 6](#fig-annotation-derived-training-pool) shows its proportional CDS, upstream, and downstream composition.
+The annotation-derived DNA pool available at the time contained ~85B tokens. [Fig. 6](#fig-annotation-derived-training-pool) shows its proportional CDS, upstream, and downstream composition.
 
 <figure id="fig-annotation-derived-training-pool" data-figure-width="680">
 <img src="/assets/images/blog/genomic-lm-optimization/annotation_derived_training_pool.svg" alt="Approximately 85 billion annotation-derived DNA tokens in a proportional CDS, upstream, and downstream mixture" />
@@ -330,9 +330,9 @@ We started with hyperparameter transfer for that reason. If a proven data-constr
 <figcaption><strong>Figure 7: Hyperparameter calibration and transfer.</strong> Reference calibration followed by transfer to a new model and training scale.</figcaption>
 </figure>
 
-Figure 7 separates reference calibration from target application. Two heuristics sit behind that workflow and are fixed before tuning: an inherited rule maps hidden width D to model geometry,[^architecture-geometry] and a second rule maps reference optimizer settings to a new batch size B and token horizon T. The reference sweep tunes initialization scale, the two learning rates, β₁, β₂, ε, gradient clipping, and z-loss. Here, tuning a learning rate means tuning its peak value under a fixed fractional schedule; the target run reuses that schedule shape, so warmup and decay scale with the run length rather than keeping fixed absolute step counts.[^learning-rate-schedule] At the target, the two learning rates, β₂, and ε are transformed with B and T, while initialization scale, β₁, gradient clipping, and z-loss are reused unchanged.[^optimizer-transfer-rule]
+[Fig. 7](#fig-hyperparameter-transfer-methodology) separates reference calibration from target application. Two heuristics sit behind that workflow and are fixed before tuning: an inherited rule maps hidden width D to model geometry,[^architecture-geometry] and a second rule maps reference optimizer settings to a new batch size B and token horizon T. The reference sweep tunes initialization scale, the two learning rates, β₁, β₂, ε, gradient clipping, and z-loss. Here, tuning a learning rate means tuning its peak value under a fixed fractional schedule; the target run reuses that schedule shape, so warmup and decay scale with the run length rather than keeping fixed absolute step counts.[^learning-rate-schedule] At the target, the two learning rates, β₂, and ε are transformed with B and T, while initialization scale, β₁, gradient clipping, and z-loss are reused unchanged.[^optimizer-transfer-rule]
 
-The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters across 255M–1B-parameter models, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The first test was whether the learning-rate prediction survived that regime. [Figure 8](#fig-learning-rate-transfer) shows that the transferred prediction lands exactly on the best observed learning-rate setting at all three validation scales, outperforming both the unchanged reference optimum and every other target-scale sweep setting; the less sensitive optimizer hyperparameters are shown separately in [Figure 9](#fig-adam-transfer).
+The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters across 255M–1B-parameter models, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The first test was whether the learning-rate prediction survived that regime. [Fig. 8](#fig-learning-rate-transfer) shows that the transferred prediction lands exactly on the best observed learning-rate setting at all three validation scales, outperforming both the unchanged reference optimum and every other target-scale sweep setting; the less sensitive optimizer hyperparameters are shown separately in [Fig. 9](#fig-adam-transfer).
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure1_lr_transfer.py -->
 <figure id="fig-learning-rate-transfer" data-figure-width="410.702">
@@ -341,18 +341,18 @@ The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16
 </figure>
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure2_beta2_epsilon_transfer.py -->
-<figure id="fig-adam-transfer" data-figure-width="663.798">
+<figure id="fig-adam-transfer" data-figure-width="476.974">
 <img src="/assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg" alt="Adam beta2 and epsilon transfer across model scales" />
-<figcaption><strong>Figure 9: Adam β₂ and ε transfer.</strong> Results across the same scales as <a href="#fig-learning-rate-transfer">the learning-rate transfer comparison</a>.</figcaption>
+<figcaption><strong>Figure 9: Adam β₂ and ε transfer.</strong> Results across the same scales as <a href="#fig-learning-rate-transfer">Fig. 8</a>.</figcaption>
 </figure>
 
-That validation is a fairly unforgiving test. If the transferred learning rate were merely close by accident, it would be surprising for it to land correctly across all three validation scales, but the prediction remains well centered at each one. For DNA, that is a pretty cool result. Prior biology foundation-model work has used μP-style transfer, but we are not aware of a DNA result showing that a more inclusive framework like Complete(d) works across token horizon and batch size, which are the axes we keep leaning on later in ad hoc runs across epochs. The same is mostly true for the other optimizer hyperparameters too, although Adam β₂ shows some signs of being a bit aggressive at the largest scale. The [region-specific transfer comparison](#fig-region-hyperparameter-transfer) makes the same point across CDS, upstream, and downstream sequence, with no qualitative difference in transfer behavior across region types. That gives us enough confidence that the following parameter-scaling runs are at least close to optimally configured.
+That validation is a fairly unforgiving test. If the transferred learning rate were merely close by accident, it would be surprising for it to land correctly across all three validation scales, but the prediction remains well centered at each one. For DNA, that is a pretty cool result. Prior biology foundation-model work has used μP-style transfer, but we are not aware of a DNA result showing that a more inclusive framework like Complete(d) works across token horizon and batch size, which are the axes we keep leaning on later in ad hoc runs across epochs. The same is mostly true for the other optimizer hyperparameters too, although Adam β₂ shows some signs of being a bit aggressive at the largest scale. [Fig. 10](#fig-region-hyperparameter-transfer) makes the same point across CDS, upstream, and downstream sequence, with no qualitative difference in transfer behavior across region types. That gives us enough confidence that the following parameter-scaling runs are at least close to optimally configured.
 
 <details>
-<summary>Figure 10: transfer validation by region</summary>
+<summary>Fig. 10: Transfer validation by region</summary>
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure3_region_hyper_transfer.py -->
-<figure id="fig-region-hyperparameter-transfer" data-figure-width="737.043">
+<figure id="fig-region-hyperparameter-transfer" data-figure-width="662.7">
 <img src="/assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" />
 <figcaption><strong>Figure 10: Region-specific hyperparameter transfer.</strong> Transfer validated separately for CDS, upstream, and downstream regions.</figcaption>
 </figure>
@@ -377,7 +377,7 @@ Before asking whether better validation loss[^validation-loss] translates into b
 <figcaption><strong>Figure 11: Loss scaling across model sizes.</strong> Eight models from 46M to 4B parameters, with a Kaplan power-law fit.</figcaption>
 </figure>
 
-The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably, as shown in the [loss-scaling comparison](#fig-loss-scaling). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. Most importantly, the sweep gives a high-quality Kaplan scaling-law fit (R<sup>2</sup>=0.999), which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
+The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably, as shown in [Fig. 11](#fig-loss-scaling). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. Most importantly, the sweep gives a high-quality Kaplan scaling-law fit (R<sup>2</sup>=0.999), which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
 
 [^validation-loss]: Here, “validation loss” is best understood as a training-loss-like monitoring statistic computed on a fixed set of human training sequences, rather than a conventional estimate on held-out data.
     We have not yet found a satisfactory way to construct clean held-out genomic splits: genomes are phylogenetically correlated, and identifying orthologous non-coding regions by sequence alignment is difficult.
@@ -388,7 +388,7 @@ The result is about as tidy as we could hope for. Training is stable at every sc
 
 [^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
 
-[^muennighoff]: See Figure 4 of [Muennighoff et al.](https://arxiv.org/abs/2305.16264), "Scaling Data-Constrained Language Models" (NeurIPS 2023).
+[^muennighoff]: See Fig. 4 of [Muennighoff et al.](https://arxiv.org/abs/2305.16264), "Scaling Data-Constrained Language Models" (NeurIPS 2023).
 
 ### Downstream performance
 
@@ -489,7 +489,7 @@ On the broader zero-shot leaderboard, m5.1 remains slightly behind AlphaGenome a
 <summary>Show the frozen-embedding linear-probe leaderboard</summary>
 <figure id="fig-mendelian-leaderboard-probe" data-figure-width="668.67">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_probe.svg" alt="Mendelian VEP benchmark frozen-embedding linear-probe AUPRC (%) heatmap across four overlapping models" />
-<figcaption><strong>Figure 19: Frozen-embedding linear-probe leaderboard.</strong> AUPRC (%) for the four models that also appear in the zero-shot leaderboard and have compatible probe metrics. The two heatmaps are sorted and color-normalized independently, and their subset metrics use different aggregation: Figure 18 pools variants within each subset before computing AUPRC, whereas Figure 19 computes a sample-size-weighted mean of per-chromosome AUPRCs; both Macro Avg columns are unweighted means across subsets. Compare model names and within-panel values rather than row positions, colors, or absolute values across panels. GPN-Star and AlphaGenome are absent because no compatible probe result is available here, not because of their performance.</figcaption>
+<figcaption><strong>Figure 19: Frozen-embedding linear-probe leaderboard.</strong> AUPRC (%) for the four models that also appear in the zero-shot leaderboard and have compatible probe metrics. The two heatmaps are sorted and color-normalized independently, and their subset metrics use different aggregation: <a href="#fig-mendelian-leaderboard">Fig. 18</a> pools variants within each subset before computing AUPRC, whereas <a href="#fig-mendelian-leaderboard-probe">Fig. 19</a> computes a sample-size-weighted mean of per-chromosome AUPRCs; both Macro Avg columns are unweighted means across subsets. Compare model names and within-panel values rather than row positions, colors, or absolute values across panels. GPN-Star and AlphaGenome are absent because no compatible probe result is available here, not because of their performance.</figcaption>
 </figure>
 </details>
 

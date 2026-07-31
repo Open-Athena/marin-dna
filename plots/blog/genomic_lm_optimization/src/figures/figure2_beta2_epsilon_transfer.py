@@ -8,12 +8,14 @@ import pandas as pd
 from figures.data import save
 from utils.figure_style import (
     FIGURE_WIDTH,
-    attach_stacked_legends_below,
+    attach_legends_below,
     figsize,
-    fmt_beta2,
-    fmt_epsilon,
+    pack_horizontal_axes,
+    set_square_subplot_height,
 )
 from utils.sweep_panel import plot_axis
+
+SUBPLOT_HEIGHT_PX = 148.0
 
 
 def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
@@ -25,12 +27,10 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         axis_field="beta2",
         axis_label="β₂",
         log_scale=False,
-        value_formatter=fmt_beta2,
         palette=palette,
+        native_numeric_axis=True,
         include_negative_control=False,
     )
-    # Push the β₂ label down slightly relative to the global label pad.
-    axes[0].xaxis.labelpad = 4
     plot_axis(
         axes[1],
         df,
@@ -38,21 +38,20 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         axis_field="epsilon",
         axis_label="ε",
         log_scale=True,
-        value_formatter=fmt_epsilon,
         palette=palette,
+        native_numeric_axis=True,
         include_negative_control=False,
     )
     for ax in axes:
         ax.set_box_aspect(1)
-    # Pull the ε label up closer to the tick labels.
-    axes[1].xaxis.labelpad = -4
-    fig.tight_layout(rect=(0, 0.31, 1, 1))
-    attach_stacked_legends_below(
+    fig.tight_layout(rect=(0, 0.31, 1, 1), w_pad=0)
+    set_square_subplot_height(fig, axes, SUBPLOT_HEIGHT_PX)
+    pack_horizontal_axes(fig, axes)
+    attach_legends_below(
         fig,
         palette,
         params,
         include_reference=False,
-        params_y=0.17,
-        run_y=0.01,
+        legend_y=0.35,
     )
     save(fig, "figure2_beta2_epsilon_transfer")

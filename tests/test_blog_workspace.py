@@ -219,6 +219,46 @@ def test_all_blog_figure_captions_lead_with_a_bold_number_and_title() -> None:
         ), caption
 
 
+def test_blog_figure_references_use_compact_linked_labels() -> None:
+    root = Path(__file__).resolve().parents[1]
+    article = (
+        root
+        / "blog"
+        / "genomic-lm-optimization"
+        / "content"
+        / "blog"
+        / "genomic-lm-optimization.md"
+    ).read_text(encoding="utf-8")
+    figure_numbers = {
+        figure_id: int(number)
+        for figure_id, number in re.findall(
+            r'<figure id="([^"]+)"[^>]*>.*?'
+            r"<figcaption><strong>Figure (\d+):",
+            article,
+            flags=re.DOTALL,
+        )
+    }
+    markdown_references = [
+        (figure_id, label)
+        for label, figure_id in re.findall(
+            r"\[([^]]+)\]\(#(fig-[^)]+)\)", article
+        )
+    ]
+    html_references = re.findall(
+        r'<a href="#(fig-[^"]+)">([^<]+)</a>', article
+    )
+
+    assert figure_numbers
+    for figure_id, label in markdown_references + html_references:
+        assert figure_id in figure_numbers, figure_id
+        assert label == f"Fig. {figure_numbers[figure_id]}", (figure_id, label)
+
+    outside_captions = re.sub(
+        r"<figcaption>.*?</figcaption>", "", article, flags=re.DOTALL
+    )
+    assert not re.search(r"\bFigure \d+\b", outside_captions)
+
+
 def test_active_data_plot_recipes_omit_overall_figure_titles() -> None:
     root = Path(__file__).resolve().parents[1]
     failures: list[str] = []

@@ -8,6 +8,7 @@ the figures *look* but not what data they show.
 from __future__ import annotations
 
 import numpy as np
+import matplotlib as mpl
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
@@ -101,6 +102,70 @@ def set_square_subplot_height(fig, axes, displayed_height_px: float) -> None:
         resized_height_px,
         displayed_height_px,
     )
+
+
+def pack_horizontal_axes(fig, axes, gap_font_sizes: float = 1.0) -> None:
+    """Pack axes left-to-right using their rendered labels as boundaries."""
+    assert gap_font_sizes >= 0
+    axes = tuple(axes)
+    assert len(axes) > 1
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    gap_pixels = mpl.rcParams["font.size"] * fig.dpi / 72.0 * gap_font_sizes
+    previous_right = axes[0].get_tightbbox(renderer=renderer).x1
+    for axis in axes[1:]:
+        tight_bbox = axis.get_tightbbox(renderer=renderer)
+        shift_pixels = previous_right + gap_pixels - tight_bbox.x0
+        position = axis.get_position()
+        axis.set_position(
+            (
+                position.x0 + shift_pixels / fig.bbox.width,
+                position.y0,
+                position.width,
+                position.height,
+            )
+        )
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        previous_right = axis.get_tightbbox(renderer=renderer).x1
+
+
+def pack_horizontal_axis_columns(fig, axes, gap_font_sizes: float = 1.0) -> None:
+    """Pack a grid's columns while preserving alignment between its rows."""
+    assert gap_font_sizes >= 0
+    rows = tuple(tuple(row) for row in axes)
+    assert rows
+    column_count = len(rows[0])
+    assert column_count > 1
+    assert all(len(row) == column_count for row in rows)
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    gap_pixels = mpl.rcParams["font.size"] * fig.dpi / 72.0 * gap_font_sizes
+    previous_right = max(
+        row[0].get_tightbbox(renderer=renderer).x1 for row in rows
+    )
+    for column_index in range(1, column_count):
+        column = tuple(row[column_index] for row in rows)
+        current_left = min(
+            axis.get_tightbbox(renderer=renderer).x0 for axis in column
+        )
+        shift_pixels = previous_right + gap_pixels - current_left
+        for axis in column:
+            position = axis.get_position()
+            axis.set_position(
+                (
+                    position.x0 + shift_pixels / fig.bbox.width,
+                    position.y0,
+                    position.width,
+                    position.height,
+                )
+            )
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        previous_right = max(
+            axis.get_tightbbox(renderer=renderer).x1 for axis in column
+        )
 
 
 # Warm, earthy palette tuned to the page theme (tan/brown). Replaces viridis,
