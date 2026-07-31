@@ -1,10 +1,10 @@
-# Direct Lambda H100 extraction for the issue #422 chr21 consequence panel.
+# Direct EC2 A10G extraction for the issue #422 chr21 consequence panel.
 
 name: dna-exp422-variant-consequences
 
 resources:
-    infra: lambda/us-south-2
-    instance_type: gpu_1x_h100_sxm5
+    infra: aws/us-east-2
+    instance_type: g5.xlarge
     disk_size: 150
     autostop:
         idle_minutes: 30

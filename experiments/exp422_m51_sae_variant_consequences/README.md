@@ -47,7 +47,7 @@ SAE weights and configuration, panel/source hashes, protocol, and every output
 hash so the same panel can be compared across later SAE versions.
 
 The checked-in Sky task mounts the frozen panel, issue #418 SAE, and GRCh38
-reference. Dry-run it before requesting an H100:
+reference. Dry-run it before requesting an EC2 A10G:
 
 ```bash
 sky launch -y -d --dryrun sky.yaml
@@ -61,7 +61,7 @@ sky launch -y -d -c dna-exp422-consequence \
   --env EXPERIMENT_COMMIT=<40-character-commit> sky.yaml
 ```
 
-The task uses one Lambda H100, validates CUDA during setup, auto-stops after 30
+The task uses one EC2 A10G, validates CUDA during setup, auto-stops after 30
 idle minutes, and writes results under
 `artifacts/dna-exp422-variant-consequences-seed288/`. Download that directory
 before the cluster is torn down.
