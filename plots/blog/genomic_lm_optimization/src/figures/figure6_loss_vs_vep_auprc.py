@@ -24,7 +24,7 @@ import pandas as pd
 
 from figures.data import SCALING_RESULTS_PATH, save
 from marin_dna.blog_figure_typography import (
-    FIGURE_NOTE_SIZE_PX,
+    MATPLOTLIB_NOTE_SIZE,
 )
 from figures.figure5_params_vs_vep_auprc import (
     MENDELIAN_SUBSETS,
@@ -98,11 +98,8 @@ def _plot_panel(
             ecolor=color,
             marker=marker,
             linestyle="none",
-            elinewidth=0.9,
             capsize=0,
-            markersize=5,
             markeredgecolor="#1f1e1b",
-            markeredgewidth=0.45,
             zorder=3,
         )
         slope, intercept = np.polyfit(xs, ys, 1)
@@ -112,7 +109,6 @@ def _plot_panel(
             slope * x_line + intercept,
             color=color,
             linestyle=linestyle,
-            linewidth=1.35,
             zorder=2,
         )
         correlation = float(np.corrcoef(xs, ys)[0, 1])
@@ -124,7 +120,7 @@ def _plot_panel(
             transform=ax.transAxes,
             ha="left",
             va="top",
-            fontsize=FIGURE_NOTE_SIZE_PX,
+            fontsize=MATPLOTLIB_NOTE_SIZE,
             color=color,
         )
 
@@ -205,10 +201,7 @@ def build(
             color=color,
             marker=marker,
             linestyle=linestyle,
-            linewidth=1.35,
             markeredgecolor="#1f1e1b",
-            markeredgewidth=0.45,
-            markersize=5,
         )
         for _score, _label, color, marker, linestyle in READOUTS
     ]

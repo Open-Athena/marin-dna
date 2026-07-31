@@ -90,7 +90,7 @@ Validation fails loudly for missing local article assets, duplicate footnote
 definitions, undefined footnotes, a renderer checkout that does not resolve to
 the pinned commit, referenced SVGs without positive intrinsic dimensions, SVG
 dimensions that disagree with their view box, SVG typography outside the
-shared Lato 11–16px hierarchy at final article width, a changed baseline
+shared Lato 10–16px hierarchy at final article width, a changed baseline
 manifest, missing built CSS/fonts/assets, or any website build failure.
 
 ## Figure regeneration and layout review
@@ -102,10 +102,14 @@ multi-panel figures. The workspace validator checks that the SVG was normalized
 for the corresponding inner width, so changing a display width requires running
 `normalize-figures` again.
 
-Plot recipes keep SVG text live. `sync_blog_assets.py` copies selected generated
-SVGs and then runs the workspace normalizer automatically, preserving the shared
-Lato hierarchy after regeneration. For a full rendered review, start the preview
-and run the collision audit with a local Chromium executable:
+Plot recipes keep SVG text live and inherit Matplotlib's default font, line,
+marker, and automatic tick settings. A single central 1.2× whole-SVG scale is
+then applied to every data-driven plot; recipes cannot override it. They may
+change subplot height and layout when a figure needs more or less space.
+`sync_blog_assets.py` copies selected generated SVGs, derives each article frame
+width from that shared scale, and runs the workspace normalizer automatically.
+For a full rendered review, start the preview and run the collision audit with a
+local Chromium executable:
 
 ```bash
 CHROME_BIN=/path/to/chromium node scripts/issue361_capture_blog_figures.mjs \

@@ -29,7 +29,7 @@ from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 
 from figures import mixture_lineage as ml
 from figures.data import load_mixture, save
-from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
+from marin_dna.blog_figure_typography import MATPLOTLIB_NOTE_SIZE
 from utils.figure_style import FIGURE_WIDTH, LEGEND_KW, figsize
 
 TOKENS_PER_STEP = 8192 * 256
@@ -227,14 +227,10 @@ def _draw_panel(
             values * 100.0,
             yerr=ses * 100.0,
             color=color,
-            linewidth=1.2,
             marker=marker,
-            markersize=4.0,
             markerfacecolor=color,
             markeredgecolor="white",
-            markeredgewidth=0.35,
             ecolor=color,
-            elinewidth=0.65,
             capsize=0,
             alpha=0.9,
             zorder=3,
@@ -264,12 +260,9 @@ def _attach_legend(fig: plt.Figure) -> None:
             [0],
             [0],
             color=color,
-            linewidth=1.2,
             marker=marker,
-            markersize=4,
             markerfacecolor=color,
             markeredgecolor="white",
-            markeredgewidth=0.35,
         )
         for _leaf, _label, color, marker in LINEAGES
     ]
@@ -370,7 +363,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
                 textcoords=ax.transAxes,
                 ha="right",
                 va="bottom",
-                fontsize=FIGURE_NOTE_SIZE_PX,
+                fontsize=MATPLOTLIB_NOTE_SIZE,
                 color="#59636e",
                 zorder=4,
                 linespacing=1.35,

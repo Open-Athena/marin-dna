@@ -109,14 +109,9 @@ def plot_axis(
                 line_xs,
                 line_pts[y_field].values,
                 color=color,
-                linewidth=1,
                 alpha=0.6,
                 zorder=2,
             )
-
-        # Marker size shared across roles so circles / squares / diamonds read as
-        # equally weighted; only the shape encodes role.
-        marker_size = 60
 
         # Sweep points: circles, raw individual runs.
         sweep = scale[scale["role"] == axis_role]
@@ -125,11 +120,9 @@ def plot_axis(
             ax.scatter(
                 sweep_xs,
                 sweep[y_field].values,
-                s=marker_size,
                 color=color,
                 marker="o",
                 edgecolors="k",
-                linewidths=0.4,
                 zorder=3,
             )
 
@@ -140,11 +133,9 @@ def plot_axis(
             ax.scatter(
                 pos_xs,
                 pos[y_field].values,
-                s=marker_size,
                 color=color,
                 marker="s",
                 edgecolors="k",
-                linewidths=0.6,
                 zorder=4,
             )
 
@@ -162,11 +153,9 @@ def plot_axis(
                 ax.scatter(
                     [x],
                     [row[y_field]],
-                    s=marker_size,
                     color=color,
                     marker="D",
                     edgecolors="k",
-                    linewidths=0.6,
                     zorder=4,
                 )
 
@@ -177,10 +166,12 @@ def plot_axis(
     ax.xaxis.set_major_locator(_AutoGridLocator(len(grid_values)))
     ax.xaxis.set_major_formatter(
         FuncFormatter(
-            lambda position, _index: value_formatter(grid_values[round(position)])
-            if math.isclose(position, round(position))
-            and 0 <= round(position) < len(grid_values)
-            else ""
+            lambda position, _index: (
+                value_formatter(grid_values[round(position)])
+                if math.isclose(position, round(position))
+                and 0 <= round(position) < len(grid_values)
+                else ""
+            )
         )
     )
     ax.tick_params(axis="x", labelrotation=30)

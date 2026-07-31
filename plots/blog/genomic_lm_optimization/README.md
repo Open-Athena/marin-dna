@@ -20,6 +20,13 @@ uv run python -m plots.blog.figure11_leaderboard_heatmap
 
 Historical-bundle outputs are written to `plots/output/blog/genomic_lm_optimization/`; the current leaderboard panels are written to `plots/output/blog/`. Both locations contain SVG, PNG, and PDF artifacts. Figure 11 also writes its Kaplan-fit report to the historical output directory, and SVG trailing whitespace is normalized.
 
+All data plots inherit Matplotlib's default font, line, marker, and automatic
+tick settings. Saving applies the single shared 1.2× whole-SVG render scale from
+`src/marin_dna/blog_figure_typography.py`; individual recipes cannot override
+it. Adjust plot density through subplot height and layout only. The sync command
+derives the article frame width from the scaled SVG, so a browser does not
+silently apply a second, figure-specific scale.
+
 After inspecting generated SVGs and PNGs, copy only approved assets into the blog with the explicit sync command:
 
 ```bash

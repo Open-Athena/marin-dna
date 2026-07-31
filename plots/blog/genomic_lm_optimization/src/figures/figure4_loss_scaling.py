@@ -10,13 +10,14 @@ import pandas as pd
 from matplotlib.patches import FancyBboxPatch
 
 from figures.data import FIGURES_DIR, save
-from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
+from marin_dna.blog_figure_typography import MATPLOTLIB_NOTE_SIZE
 from utils.figure_style import (
     FIGURE_WIDTH,
     X_LABEL_PAD,
     attach_params_legend_below,
     figsize,
     set_plain_decimal_yticks,
+    set_square_subplot_height,
 )
 
 # Scaling-sweep summary: N, D, C ranges across all 8 models. N spans the full
@@ -25,6 +26,7 @@ from utils.figure_style import (
 _SCALING_SUBTITLE = "N = 46M–4B, D = 84B, C = 2.5 × 10¹⁹–2.1 × 10²¹"
 
 KAPLAN_FIT_REPORT_PATH = FIGURES_DIR / "figure4_loss_scaling.txt"
+SUBPLOT_HEIGHT_PX = 268.5
 
 
 def _fit_kaplan_law(
@@ -160,7 +162,6 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
                 line["step"],
                 line["value"],
                 color=palette[int(params)],
-                linewidth=1.3,
                 zorder=line_zorder[ax],
             )
         ax.set_xscale("log")
@@ -180,16 +181,17 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     # can render both in the same page font as the rest of the figure.
     fig.suptitle(
         "Parameter scaling — Loss curves & scaling law",
-        y=0.965,
+        y=0.98,
     )
     fig.text(
         0.5,
-        0.925,
+        0.91,
         _SCALING_SUBTITLE,
         ha="center",
         va="center",
     )
     fig.tight_layout(rect=(0, 0.08, 1, 0.90))
+    set_square_subplot_height(fig, axes, SUBPLOT_HEIGHT_PX)
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
     attach_params_legend_below(
@@ -249,7 +251,6 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         P_grid,
         A * P_grid ** (-alpha) + L_inf,
         color="0.2",
-        linewidth=1.3,
         alpha=0.92,
         zorder=2,
     )
@@ -258,9 +259,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
             [p],
             [loss],
             color=palette[int(p)],
-            s=32,
             edgecolors="k",
-            linewidths=0.5,
             zorder=3,
         )
 
@@ -285,7 +284,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         transform=parent_ax.transAxes,
         ha="left",
         va="bottom",
-        fontsize=FIGURE_NOTE_SIZE_PX,
+        fontsize=MATPLOTLIB_NOTE_SIZE,
         color="0.15",
         linespacing=1.6,
         zorder=25,

@@ -13,7 +13,10 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.patches import Rectangle
 
-from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
+from marin_dna.blog_figure_typography import (
+    MATPLOTLIB_NOTE_SIZE,
+    normalize_matplotlib_svg_typography_file,
+)
 from marin_dna.pipelines.evals.metrics import MACRO_AVG_SUBSET
 from plots.blog.genomic_lm_optimization.src.utils import figure_theme as _figure_theme  # noqa: F401
 from plots.blog.genomic_lm_optimization.src.utils.figure_style import (
@@ -76,6 +79,7 @@ def _save_figure(fig: plt.Figure, name: str) -> None:
             if extension == "svg":
                 lines = path.read_text().splitlines()
                 path.write_text("\n".join(line.rstrip() for line in lines) + "\n")
+                normalize_matplotlib_svg_typography_file(path)
             paths.append(path)
     print("Wrote " + ", ".join(str(path) for path in paths))
 
@@ -120,7 +124,7 @@ def render_heatmap(
                 f"{value:.1f}",
                 ha="center",
                 va="center",
-                fontsize=FIGURE_NOTE_SIZE_PX,
+                fontsize=MATPLOTLIB_NOTE_SIZE,
                 color=text_color,
                 fontweight="bold" if column_index == 0 else "normal",
             )

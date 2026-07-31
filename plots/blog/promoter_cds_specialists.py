@@ -19,10 +19,8 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-import re
 import shutil
 from typing import Any
-from xml.etree import ElementTree
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -33,9 +31,10 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 
 from marin_dna.blog_figure_typography import (
-    FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    FIGURE_GLOBAL_RENDER_SCALE,
     matplotlib_typography_rcparams,
-    normalize_svg_typography_file,
+    normalize_matplotlib_svg_typography_file,
+    sync_article_figure_width,
     validate_svg_typography,
 )
 from marin_dna.pipelines.evals.leaderboard import (
@@ -205,7 +204,6 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
         palette=palette,
         errorbar=None,
         edgecolor=INK,
-        linewidth=0.7,
         saturation=0.9,
         ax=ax,
         legend=False,
@@ -224,7 +222,6 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
             value,
             yerr=se,
             color=INK,
-            linewidth=0.9,
             capsize=0,
             zorder=5,
         )
@@ -264,7 +261,14 @@ def build_figure(data: pd.DataFrame) -> Figure:
             "axes.titlecolor": INK,
         }
     )
-    figure, axes = plt.subplots(2, 3, figsize=(5.0, 3.2), sharex=False, sharey=False)
+    layout_scale = SUBPLOT_HEIGHT_PX / 100.0
+    figure, axes = plt.subplots(
+        2,
+        3,
+        figsize=(5.0 * layout_scale, 3.2 * layout_scale),
+        sharex=False,
+        sharey=False,
+    )
     panel_axes = (axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1], axes[1, 2])
     for ax, subset in zip(panel_axes, PANEL_ORDER, strict=True):
         _draw_panel(ax, data.loc[data["subset"] == subset], subset)
@@ -278,13 +282,11 @@ def build_figure(data: pd.DataFrame) -> Figure:
         Patch(
             facecolor=REGION_COLORS["upstream"],
             edgecolor=INK,
-            linewidth=0.7,
             label="Upstream",
         ),
         Patch(
             facecolor=REGION_COLORS["cds"],
             edgecolor=INK,
-            linewidth=0.7,
             label="CDS",
         ),
     ]
@@ -292,13 +294,11 @@ def build_figure(data: pd.DataFrame) -> Figure:
         Patch(
             facecolor=BASELINE_COLORS["Evo 2 (40B)"],
             edgecolor=INK,
-            linewidth=0.7,
             label="Evo 2 (40B)",
         ),
         Patch(
             facecolor=BASELINE_COLORS["GPN-Star (M)"],
             edgecolor=INK,
-            linewidth=0.7,
             label="GPN-Star (M)",
         ),
     ]
@@ -352,42 +352,6 @@ def _square_panel_height_points(figure: Figure) -> float:
     return heights[0]
 
 
-def _svg_view_box_width(svg_path: Path) -> float:
-    root = ElementTree.fromstring(svg_path.read_text(encoding="utf-8"))
-    view_box = root.get("viewBox")
-    assert view_box is not None
-    values = [float(value) for value in view_box.replace(",", " ").split()]
-    assert len(values) == 4
-    assert math.isfinite(values[2]) and values[2] > 0
-    return values[2]
-
-
-def _derived_render_width(svg_path: Path, panel_height_points: float) -> float:
-    """Derive the inner CSS width that renders square panels at the target size."""
-    raw_render_width = (
-        SUBPLOT_HEIGHT_PX * _svg_view_box_width(svg_path) / panel_height_points
-    )
-    frame_width = round(raw_render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX)
-    render_width = frame_width - FIGURE_FRAME_HORIZONTAL_PADDING_PX
-    assert 320.0 <= render_width <= 700.0, render_width
-    return render_width
-
-
-def _sync_article_width(render_width: float) -> None:
-    """Write the derived frame width into the article's Figure 4 declaration."""
-    frame_width = render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX
-    assert frame_width.is_integer(), frame_width
-    article = BLOG_ARTICLE.read_text(encoding="utf-8")
-    pattern = re.compile(
-        rf'(<figure id="{re.escape(FIGURE_ID)}" data-figure-width=")'
-        r"[0-9]+(?:\.[0-9]+)?(\">)"
-    )
-    updated, count = pattern.subn(rf"\g<1>{frame_width:.0f}\g<2>", article)
-    assert count == 1, f"expected one {FIGURE_ID} declaration, found {count}"
-    if updated != article:
-        BLOG_ARTICLE.write_text(updated, encoding="utf-8")
-
-
 def save_figure(figure: Figure) -> None:
     """Save the web SVG and a high-resolution PNG for visual review."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -407,15 +371,19 @@ def save_figure(figure: Figure) -> None:
         print(f"Wrote {path}")
 
     svg_path = OUTPUT_DIR / f"{OUTPUT_NAME}.svg"
-    render_width = _derived_render_width(svg_path, panel_height_points)
-    normalize_svg_typography_file(svg_path, render_width)
-    validate_svg_typography(svg_path, render_width)
+    displayed_panel_height = panel_height_points * FIGURE_GLOBAL_RENDER_SCALE
+    assert math.isclose(displayed_panel_height, SUBPLOT_HEIGHT_PX, abs_tol=0.2), (
+        displayed_panel_height,
+        SUBPLOT_HEIGHT_PX,
+    )
+    normalize_matplotlib_svg_typography_file(svg_path)
+    validate_svg_typography(svg_path)
     BLOG_SVG.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(svg_path, BLOG_SVG)
-    _sync_article_width(render_width)
+    frame_width = sync_article_figure_width(BLOG_ARTICLE, FIGURE_ID, BLOG_SVG)
     print(
         f"Synced {BLOG_SVG} at {SUBPLOT_HEIGHT_PX:g}px square panels "
-        f"({render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX:.0f}px frame)"
+        f"({frame_width:.1f}px frame)"
     )
 
 

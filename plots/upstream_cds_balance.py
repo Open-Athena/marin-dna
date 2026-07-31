@@ -31,9 +31,10 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Wedge
 
 from marin_dna.blog_figure_typography import (
-    FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    FIGURE_GLOBAL_RENDER_SCALE,
     matplotlib_typography_rcparams,
-    normalize_svg_typography_file,
+    normalize_matplotlib_svg_typography_file,
+    sync_article_figure_width,
     validate_svg_typography,
 )
 
@@ -92,8 +93,15 @@ BLOG_SVG = (
     / "genomic-lm-optimization"
     / "upstream_cds_balance.svg"
 )
-BLOG_FIGURE_WIDTH_PX = 620.0
-BLOG_RENDER_WIDTH_PX = BLOG_FIGURE_WIDTH_PX - FIGURE_FRAME_HORIZONTAL_PADDING_PX
+BLOG_ARTICLE = (
+    REPO_ROOT
+    / "blog"
+    / "genomic-lm-optimization"
+    / "content"
+    / "blog"
+    / "genomic-lm-optimization.md"
+)
+FIGURE_ID = "fig-upstream-cds-balance"
 
 # The only figure-size control. All three plotting axes are square; the canvas
 # dimensions follow from this height and the fixed one-row, three-panel layout.
@@ -160,7 +168,7 @@ class HandlerLineMarkerWithPie(HandlerBase):
             marker=orig_handle.get_marker(),
             markersize=orig_handle.get_markersize(),
             markeredgecolor=TEXT_COLOR,
-            markeredgewidth=1.0,
+            markeredgewidth=orig_handle.get_markeredgewidth(),
             linestyle="None",
         )
         line.set_transform(trans)
@@ -177,7 +185,6 @@ class HandlerLineMarkerWithPie(HandlerBase):
                 radius,
                 facecolor=REGION_COLORS[region],
                 edgecolor=TEXT_COLOR,
-                linewidth=1.0,
             )
             circle.set_transform(trans)
             artists.append(circle)
@@ -191,7 +198,6 @@ class HandlerLineMarkerWithPie(HandlerBase):
                 theta_top,
                 facecolor=REGION_COLORS["upstream"],
                 edgecolor=TEXT_COLOR,
-                linewidth=1.0,
             )
             cds_wedge = Wedge(
                 (center_x, line_y),
@@ -200,7 +206,6 @@ class HandlerLineMarkerWithPie(HandlerBase):
                 theta_top + (1.0 - upstream_fraction) * 360.0,
                 facecolor=REGION_COLORS["cds"],
                 edgecolor=TEXT_COLOR,
-                linewidth=1.0,
             )
             upstream_wedge.set_transform(trans)
             cds_wedge.set_transform(trans)
@@ -218,7 +223,6 @@ def apply_style() -> None:
             **matplotlib_typography_rcparams(),
             "axes.edgecolor": TEXT_COLOR,
             "axes.labelcolor": TEXT_COLOR,
-            "axes.linewidth": 1.8,
             "axes.spines.top": False,
             "axes.spines.right": False,
             "figure.facecolor": "none",
@@ -226,8 +230,6 @@ def apply_style() -> None:
             "xtick.color": TEXT_COLOR,
             "ytick.color": TEXT_COLOR,
             "legend.frameon": False,
-            "lines.linewidth": 4.5,
-            "lines.markersize": 14,
             "savefig.facecolor": "none",
             "savefig.transparent": True,
         }
@@ -287,7 +289,9 @@ def plot(data: pl.DataFrame) -> plt.Figure:
     """Create upstream, missense, and two-subset-mean trajectory panels."""
     apply_style()
     axes_height_fraction = 0.70 - 0.09
-    figure_height_inches = SUBPLOT_HEIGHT_PX / (72.0 * axes_height_fraction)
+    figure_height_inches = SUBPLOT_HEIGHT_PX / (
+        72.0 * axes_height_fraction * FIGURE_GLOBAL_RENDER_SCALE
+    )
     fig, axes = plt.subplots(
         1,
         3,
@@ -382,9 +386,10 @@ def main() -> None:
                 "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
                 encoding="utf-8",
             )
-            normalize_svg_typography_file(output, BLOG_RENDER_WIDTH_PX)
-            validate_svg_typography(output, BLOG_RENDER_WIDTH_PX)
+            normalize_matplotlib_svg_typography_file(output)
+            validate_svg_typography(output)
         print(f"wrote {output}")
+    sync_article_figure_width(BLOG_ARTICLE, FIGURE_ID, BLOG_SVG)
     plt.close(figure)
 
 

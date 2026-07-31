@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ASSET_NAMES = (
@@ -31,6 +32,13 @@ CURRENT_LEADERBOARD_NAMES = frozenset(
 )
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = PACKAGE_ROOT.parents[2]
+REPO_SRC = REPO_ROOT / "src"
+assert (REPO_SRC / "marin_dna" / "blog_figure_typography.py").is_file(), REPO_SRC
+if str(REPO_SRC) not in sys.path:
+    sys.path.insert(0, str(REPO_SRC))
+
+from marin_dna.blog_figure_typography import sync_article_figure_width  # noqa: E402
+
 OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog" / "genomic_lm_optimization"
 CURRENT_LEADERBOARD_OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog"
 BLOG_ASSET_DIR = (
@@ -43,6 +51,29 @@ BLOG_ASSET_DIR = (
     / "blog"
     / "genomic-lm-optimization"
 )
+BLOG_ARTICLE = (
+    REPO_ROOT
+    / "blog"
+    / "genomic-lm-optimization"
+    / "content"
+    / "blog"
+    / "genomic-lm-optimization.md"
+)
+ARTICLE_FIGURE_IDS = {
+    "figure1_lr_transfer": "fig-learning-rate-transfer",
+    "figure2_beta2_epsilon_transfer": "fig-adam-transfer",
+    "figure3_region_hyper_transfer": "fig-region-hyperparameter-transfer",
+    "figure4_loss_scaling": "fig-loss-scaling",
+    "figure5_params_vs_vep_auprc": "fig-parameters-vs-vep",
+    "figure6_loss_vs_vep_auprc": "fig-loss-vs-vep",
+    "figure6b_marin_evo2_missense": "fig-missense-readout-scaling",
+    "figure16_offline_lineage_llr_prototype": "fig-mixture-lineage-trajectories",
+    "figure16_offline_lineage_probe_prototype": "fig-mixture-lineage-probe",
+    "figure11_leaderboard_heatmap__mendelian_llr": "fig-mendelian-leaderboard",
+    "figure11_leaderboard_heatmap__mendelian_probe": (
+        "fig-mendelian-leaderboard-probe"
+    ),
+}
 
 
 def main() -> None:
@@ -62,6 +93,12 @@ def main() -> None:
         if not source.is_file():
             raise FileNotFoundError(f"generate {source} before syncing it")
         shutil.copyfile(source, destination)
+        figure_id = ARTICLE_FIGURE_IDS.get(name)
+        if figure_id is not None:
+            frame_width = sync_article_figure_width(
+                BLOG_ARTICLE, figure_id, destination
+            )
+            print(f"Synced {figure_id} to {frame_width:.1f}px")
         print(f"Copied {source} -> {destination}")
 
     subprocess.run(

@@ -13,26 +13,59 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.transforms import Bbox
 
+from marin_dna.blog_figure_typography import FIGURE_GLOBAL_RENDER_SCALE
+
 # Natural (unscaled) dimensions. Width is constant across figures so they line
 # up in any side-by-side rendering.
 FIGURE_WIDTH = 12.0
 FIGURE_HEIGHT = 5.0
 
-# Figures are naturally wide but display at the ~720px blog column, which shrinks
-# their point-sized text to roughly half the body copy. Author every figure at
-# this fraction of its natural size — via figsize() below — so labels read at
-# ~body size on the page, with layout (tight_layout, legends) computed at the
-# final size. One knob; 1.0 = natural size, smaller = larger on-page text.
-SCALE = 0.74
+# Initial canvas geometry for the historical recipes. This is not a style or
+# browser scale: every data plot receives the same final whole-SVG scale from
+# ``FIGURE_GLOBAL_RENDER_SCALE`` when it is saved.
+LAYOUT_SCALE = 0.74
 
 
 def figsize(w: float, h: float) -> tuple[float, float]:
-    """Scale a natural (width, height) in inches by SCALE for on-page sizing.
+    """Return the historical recipe's initial canvas geometry in inches.
 
-    Every figure builds with ``figsize=figsize(...)`` so the figure is authored
-    at its final size (no post-hoc resize), keeping layout WYSIWYG.
+    Plot styling is unaffected; fonts, lines, and markers inherit Matplotlib
+    defaults and the saved SVG receives the one shared whole-figure scale.
     """
-    return (w * SCALE, h * SCALE)
+    return (w * LAYOUT_SCALE, h * LAYOUT_SCALE)
+
+
+def set_square_subplot_height(fig, axes, displayed_height_px: float) -> None:
+    """Resize a canvas so square data axes render at ``displayed_height_px``.
+
+    Width stays tied to height. This changes only plot geometry: text and data
+    glyphs retain Matplotlib's shared defaults and are scaled later by the one
+    global whole-SVG factor.
+    """
+    assert displayed_height_px > 0
+    axes = tuple(axes)
+    assert axes
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    extents = [axis.get_window_extent(renderer=renderer) for axis in axes]
+    for extent in extents:
+        assert np.isclose(extent.width, extent.height, rtol=1e-6), extent
+    heights_points = [extent.height * 72.0 / fig.dpi for extent in extents]
+    assert max(heights_points) - min(heights_points) < 0.01, heights_points
+    current_height_px = heights_points[0] * FIGURE_GLOBAL_RENDER_SCALE
+    resize_factor = displayed_height_px / current_height_px
+    fig.set_size_inches(
+        fig.get_figwidth() * resize_factor,
+        fig.get_figheight() * resize_factor,
+        forward=True,
+    )
+    fig.canvas.draw()
+    resized = axes[0].get_window_extent(renderer=fig.canvas.get_renderer())
+    resized_height_px = resized.height * 72.0 / fig.dpi * FIGURE_GLOBAL_RENDER_SCALE
+    assert np.isclose(resized_height_px, displayed_height_px, atol=0.1), (
+        resized_height_px,
+        displayed_height_px,
+    )
 
 
 # Warm, earthy palette tuned to the page theme (tan/brown). Replaces viridis,
@@ -133,15 +166,14 @@ def shape_legend_handles(include_reference: bool = True):
         color="w",
         markerfacecolor="lightgray",
         markeredgecolor="k",
-        markeredgewidth=0.6,
         linestyle="",
     )
-    sweep = Line2D([0], [0], marker="o", markersize=8, **common)
-    optimal = Line2D([0], [0], marker="s", markersize=8, **common)
+    sweep = Line2D([0], [0], marker="o", **common)
+    optimal = Line2D([0], [0], marker="s", **common)
     handles = [sweep, optimal]
     labels = ["Sweep", "Optimal (predicted)"]
     if include_reference:
-        handles.append(Line2D([0], [0], marker="D", markersize=8, **common))
+        handles.append(Line2D([0], [0], marker="D", **common))
         labels.append("Control (reference)")
     return handles, labels
 
@@ -157,8 +189,6 @@ def params_legend_handles(palette: dict, params: list[int]):
             color="w",
             markerfacecolor=palette[p],
             markeredgecolor="k",
-            markeredgewidth=0.6,
-            markersize=8,
             linestyle="",
         )
         for p in sorted_params

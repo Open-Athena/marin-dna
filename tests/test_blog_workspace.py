@@ -7,15 +7,20 @@ from pathlib import Path
 import threading
 import time
 from urllib.request import Request, urlopen
+from xml.etree import ElementTree
 
 import pytest
 
 from marin_dna import blog_workspace
 from marin_dna.blog_figure_typography import (
     FIGURE_BASE_SIZE_PX,
+    FIGURE_GLOBAL_RENDER_SCALE,
+    MATPLOTLIB_BASE_SIZE,
+    MATPLOTLIB_NOTE_SIZE,
     MATPLOTLIB_SMALL_SIZE_RATIO,
     MATPLOTLIB_TITLE_SIZE_RATIO,
     matplotlib_typography_rcparams,
+    normalize_matplotlib_svg_typography,
     normalize_svg_typography,
     validate_svg_typography,
 )
@@ -47,6 +52,24 @@ ACTIVE_BLOG_PLOT_RECIPES = (
     "plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py",
     "plots/blog/genomic_lm_optimization/src/figures/figure6b_marin_evo2_missense.py",
     "plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py",
+    "plots/blog/genomic_lm_optimization/src/utils/figure_style.py",
+    "plots/blog/genomic_lm_optimization/src/utils/sweep_panel.py",
+)
+
+ACTIVE_DATA_FIGURE_ASSETS = (
+    "promoter_cds_specialists.svg",
+    "upstream_cds_balance.svg",
+    "figure1_lr_transfer.svg",
+    "figure2_beta2_epsilon_transfer.svg",
+    "figure3_region_hyper_transfer.svg",
+    "figure4_loss_scaling.svg",
+    "figure5_params_vs_vep_auprc.svg",
+    "figure6_loss_vs_vep_auprc.svg",
+    "figure6b_marin_evo2_missense.svg",
+    "figure16_offline_lineage_llr_prototype.svg",
+    "figure16_offline_lineage_probe_prototype.svg",
+    "figure11_leaderboard_heatmap__mendelian_llr.svg",
+    "figure11_leaderboard_heatmap__mendelian_probe.svg",
 )
 
 
@@ -122,10 +145,13 @@ def test_normalize_svg_typography_is_idempotent_and_preserves_monospace() -> Non
 def test_matplotlib_typography_uses_one_base_and_explicit_ratios() -> None:
     params = matplotlib_typography_rcparams()
 
+    assert FIGURE_GLOBAL_RENDER_SCALE == 1.2
     assert MATPLOTLIB_TITLE_SIZE_RATIO == 1.2
     assert MATPLOTLIB_SMALL_SIZE_RATIO == 5.0 / 6.0
-    assert params["axes.titlesize"] == FIGURE_BASE_SIZE_PX * 1.2
-    assert params["figure.titlesize"] == FIGURE_BASE_SIZE_PX * 1.2
+    assert FIGURE_BASE_SIZE_PX == MATPLOTLIB_BASE_SIZE * FIGURE_GLOBAL_RENDER_SCALE
+    assert MATPLOTLIB_NOTE_SIZE == MATPLOTLIB_BASE_SIZE * (5.0 / 6.0)
+    assert params["axes.titlesize"] == MATPLOTLIB_BASE_SIZE * 1.2
+    assert params["figure.titlesize"] == MATPLOTLIB_BASE_SIZE * 1.2
     for role in (
         "font.size",
         "axes.labelsize",
@@ -134,7 +160,43 @@ def test_matplotlib_typography_uses_one_base_and_explicit_ratios() -> None:
         "legend.fontsize",
         "legend.title_fontsize",
     ):
-        assert params[role] == FIGURE_BASE_SIZE_PX
+        assert params[role] == MATPLOTLIB_BASE_SIZE
+
+
+def test_matplotlib_svg_uses_the_one_shared_whole_figure_scale() -> None:
+    original = """
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440"
+     viewBox="0 0 960 440" font-family="DejaVu Sans">
+  <text font-size="10">Body</text>
+  <text font-size="12">Title</text>
+</svg>
+"""
+    normalized = normalize_matplotlib_svg_typography(original)
+
+    assert 'data-figure-render-scale="1.2"' in normalized
+    assert 'data-figure-render-width="1152"' in normalized
+    assert 'font-size="10"' in normalized
+    assert 'font-size="12"' in normalized
+    assert normalize_svg_typography(normalized, render_width_px=1152) == normalized
+
+
+def test_all_active_data_figures_use_the_one_shared_scale() -> None:
+    root = Path(__file__).resolve().parents[1]
+    asset_dir = (
+        root
+        / "blog"
+        / "genomic-lm-optimization"
+        / "static"
+        / "assets"
+        / "images"
+        / "blog"
+        / "genomic-lm-optimization"
+    )
+    for name in ACTIVE_DATA_FIGURE_ASSETS:
+        svg_root = ElementTree.parse(asset_dir / name).getroot()
+        assert float(svg_root.attrib["data-figure-render-scale"]) == (
+            FIGURE_GLOBAL_RENDER_SCALE
+        ), name
 
 
 def test_active_plot_recipes_cannot_override_standard_element_font_sizes() -> None:
@@ -170,8 +232,50 @@ def test_active_plot_recipes_cannot_override_standard_element_font_sizes() -> No
             )
             if present:
                 failures.append(f"{relative_path}:{node.lineno}: {present}")
-    assert not failures, "standard typography must come from shared rcParams:\n" + "\n".join(
-        failures
+    assert not failures, (
+        "standard typography must come from shared rcParams:\n" + "\n".join(failures)
+    )
+
+
+def test_active_plot_recipes_cannot_override_primary_glyph_sizes() -> None:
+    root = Path(__file__).resolve().parents[1]
+    standard_calls = {
+        "plot": {"linewidth", "markersize", "markeredgewidth"},
+        "errorbar": {
+            "linewidth",
+            "elinewidth",
+            "markersize",
+            "markeredgewidth",
+        },
+        "scatter": {"s", "linewidths"},
+        "Line2D": {"linewidth", "markersize", "markeredgewidth"},
+    }
+    failures: list[str] = []
+    for relative_path in ACTIVE_BLOG_PLOT_RECIPES:
+        path = root / relative_path
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Attribute):
+                call_name = node.func.attr
+            elif isinstance(node.func, ast.Name):
+                call_name = node.func.id
+            else:
+                continue
+            forbidden = standard_calls.get(call_name, set())
+            for keyword in node.keywords:
+                if keyword.arg not in forbidden:
+                    continue
+                value = keyword.value
+                if isinstance(value, ast.Constant) and isinstance(
+                    value.value, int | float
+                ):
+                    failures.append(
+                        f"{relative_path}:{node.lineno}: {keyword.arg}={value.value}"
+                    )
+    assert not failures, (
+        "primary glyph sizes must inherit Matplotlib defaults:\n" + "\n".join(failures)
     )
 
 

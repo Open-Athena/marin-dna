@@ -133,12 +133,8 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
                 ecolor=color,
                 marker=marker,
                 linestyle=linestyle,
-                linewidth=1.5,
-                elinewidth=0.9,
                 capsize=0,
-                markersize=6,
                 markeredgecolor="#1f1e1b",
-                markeredgewidth=0.5,
                 zorder=3,
             )
 
@@ -157,7 +153,6 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
             [0],
             color=color,
             linestyle=linestyle,
-            linewidth=1.5,
             label=label,
         )
         for _score, label, color, _marker, linestyle in READOUTS
@@ -170,8 +165,6 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
             marker=marker,
             linestyle="none",
             markeredgecolor="#1f1e1b",
-            markeredgewidth=0.5,
-            markersize=6,
             label=family,
         )
         for family, marker in FAMILIES

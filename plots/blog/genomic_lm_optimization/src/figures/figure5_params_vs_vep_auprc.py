@@ -156,12 +156,8 @@ def _plot_panel(
             ecolor=color,
             marker=marker,
             linestyle=linestyle,
-            linewidth=1.35,
-            elinewidth=0.9,
             capsize=0,
-            markersize=5,
             markeredgecolor="#1f1e1b",
-            markeredgewidth=0.45,
             zorder=3,
         )
     ax.set_xscale("log")
@@ -236,10 +232,7 @@ def build(data: pd.DataFrame | None = None) -> None:
             color=color,
             marker=marker,
             linestyle=linestyle,
-            linewidth=1.35,
             markeredgecolor="#1f1e1b",
-            markeredgewidth=0.45,
-            markersize=5,
         )
         for _score, _label, color, marker, linestyle in READOUTS
     ]

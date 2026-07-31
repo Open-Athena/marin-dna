@@ -16,15 +16,16 @@ FIGURE_FONT_FAMILY = "Lato, sans-serif"
 FIGURE_FRAME_HORIZONTAL_PADDING_PX = 40.0
 FIGURE_RENDER_WIDTH_PX = 700.0
 
-# Matplotlib's default semantic hierarchy expressed explicitly: ``large`` is
-# 1.2x the base size, while ``small`` is 5/6x. Plot recipes cannot choose or
-# override these values: they control subplot geometry only. The SVG normalizer
-# maps that fixed hierarchy through each canvas-to-display scale so it renders
-# at the same sizes in the article.
-FIGURE_BASE_SIZE_PX = 12.0
+# Matplotlib authors plots at its native defaults. The browser then renders the
+# complete SVG 1.2x larger, preserving the intended proportions among text,
+# lines, markers, and whitespace instead of resizing fonts independently.
+MATPLOTLIB_BASE_SIZE = 10.0
+FIGURE_GLOBAL_RENDER_SCALE = 1.2
 MATPLOTLIB_TITLE_SIZE_RATIO = 1.2
 MATPLOTLIB_SMALL_SIZE_RATIO = 5.0 / 6.0
 
+MATPLOTLIB_NOTE_SIZE = MATPLOTLIB_BASE_SIZE * MATPLOTLIB_SMALL_SIZE_RATIO
+FIGURE_BASE_SIZE_PX = MATPLOTLIB_BASE_SIZE * FIGURE_GLOBAL_RENDER_SCALE
 FIGURE_BODY_SIZE_PX = FIGURE_BASE_SIZE_PX
 FIGURE_AXIS_LABEL_SIZE_PX = FIGURE_BASE_SIZE_PX
 FIGURE_TICK_SIZE_PX = FIGURE_BASE_SIZE_PX
@@ -67,23 +68,26 @@ _TYPOGRAPHY_MARKER_RE = re.compile(
 _RENDER_WIDTH_MARKER_RE = re.compile(
     r"\bdata-figure-render-width\s*=\s*[\"'][^\"']*[\"']", re.IGNORECASE
 )
+_RENDER_SCALE_MARKER_RE = re.compile(
+    r"\bdata-figure-render-scale\s*=\s*[\"'][^\"']*[\"']", re.IGNORECASE
+)
 _PRESERVE_TYPOGRAPHY_RE = re.compile(
     r"\bdata-figure-preserve-typography\s*=\s*[\"']true[\"']", re.IGNORECASE
 )
 
 
 def matplotlib_typography_rcparams() -> dict[str, float]:
-    """Return the fixed Matplotlib hierarchy used by every blog plot."""
-    title_size = FIGURE_BASE_SIZE_PX * MATPLOTLIB_TITLE_SIZE_RATIO
+    """Return Matplotlib's fixed default semantic font hierarchy."""
+    title_size = MATPLOTLIB_BASE_SIZE * MATPLOTLIB_TITLE_SIZE_RATIO
     return {
-        "font.size": FIGURE_BASE_SIZE_PX,
+        "font.size": MATPLOTLIB_BASE_SIZE,
         "axes.titlesize": title_size,
         "figure.titlesize": title_size,
-        "axes.labelsize": FIGURE_BASE_SIZE_PX,
-        "xtick.labelsize": FIGURE_BASE_SIZE_PX,
-        "ytick.labelsize": FIGURE_BASE_SIZE_PX,
-        "legend.fontsize": FIGURE_BASE_SIZE_PX,
-        "legend.title_fontsize": FIGURE_BASE_SIZE_PX,
+        "axes.labelsize": MATPLOTLIB_BASE_SIZE,
+        "xtick.labelsize": MATPLOTLIB_BASE_SIZE,
+        "ytick.labelsize": MATPLOTLIB_BASE_SIZE,
+        "legend.fontsize": MATPLOTLIB_BASE_SIZE,
+        "legend.title_fontsize": MATPLOTLIB_BASE_SIZE,
     }
 
 
@@ -229,7 +233,9 @@ def _normalize_font_families(svg: str) -> str:
     return _ATTRIBUTE_FONT_FAMILY_RE.sub(replace_attribute, svg)
 
 
-def _mark_root(svg: str, render_width_px: float) -> str:
+def _mark_root(
+    svg: str, render_width_px: float, render_scale: float | None = None
+) -> str:
     match = _SVG_ROOT_RE.search(svg)
     assert match is not None, "SVG has no root element"
     root = match.group(0)
@@ -246,9 +252,27 @@ def _mark_root(svg: str, render_width_px: float) -> str:
         root = _RENDER_WIDTH_MARKER_RE.sub(render_width_marker, root)
     else:
         root = root[:-1] + f" {render_width_marker}>"
+    if render_scale is not None:
+        render_scale_marker = (
+            f'data-figure-render-scale="{_format_number(render_scale)}"'
+        )
+        if _RENDER_SCALE_MARKER_RE.search(root):
+            root = _RENDER_SCALE_MARKER_RE.sub(render_scale_marker, root)
+        else:
+            root = root[:-1] + f" {render_scale_marker}>"
     if not _ATTRIBUTE_FONT_FAMILY_RE.search(root):
         root = root[:-1] + f' font-family="{FIGURE_FONT_FAMILY}">'
     return svg[: match.start()] + root + svg[match.end() :]
+
+
+def _root_render_scale(svg: str) -> float | None:
+    root = ElementTree.fromstring(svg)
+    raw_scale = root.get("data-figure-render-scale")
+    if raw_scale is None:
+        return None
+    scale = float(raw_scale)
+    assert math.isfinite(scale) and scale > 0, raw_scale
+    return scale
 
 
 def normalize_svg_typography(
@@ -257,9 +281,74 @@ def normalize_svg_typography(
     """Return an SVG using Lato and a normalized final-width size hierarchy."""
     assert math.isfinite(render_width_px) and render_width_px > 0, render_width_px
     view_box_width = _view_box_width(svg)
+    render_scale = _root_render_scale(svg)
+    if render_scale is not None:
+        assert math.isclose(render_scale, FIGURE_GLOBAL_RENDER_SCALE), (
+            "Matplotlib plots must use the one shared figure render scale: "
+            f"{FIGURE_GLOBAL_RENDER_SCALE:g}, not {render_scale:g}"
+        )
+        expected_width = view_box_width * render_scale
+        assert math.isclose(render_width_px, expected_width, abs_tol=0.01), (
+            render_width_px,
+            expected_width,
+        )
+        normalized = _normalize_font_families(svg)
+        return _mark_root(normalized, expected_width, render_scale)
     normalized = _normalize_sizes(svg, view_box_width, render_width_px)
     normalized = _normalize_font_families(normalized)
     return _mark_root(normalized, render_width_px)
+
+
+def normalize_matplotlib_svg_typography(svg: str) -> str:
+    """Apply the one shared whole-figure scale to a Matplotlib SVG."""
+    render_width_px = _view_box_width(svg) * FIGURE_GLOBAL_RENDER_SCALE
+    normalized = _normalize_font_families(svg)
+    return _mark_root(normalized, render_width_px, FIGURE_GLOBAL_RENDER_SCALE)
+
+
+def normalize_matplotlib_svg_typography_file(path: Path) -> bool:
+    """Normalize one Matplotlib SVG in place and report whether it changed."""
+    original = path.read_text()
+    normalized = normalize_matplotlib_svg_typography(original)
+    if normalized == original:
+        return False
+    path.write_text(normalized)
+    return True
+
+
+def sync_article_figure_width(
+    article_path: Path, figure_id: str, svg_path: Path
+) -> float:
+    """Sync one plot frame to the whole-SVG render width declared by its SVG."""
+    svg = svg_path.read_text(encoding="utf-8")
+    root = ElementTree.fromstring(svg)
+    raw_render_width = root.get("data-figure-render-width")
+    raw_render_scale = root.get("data-figure-render-scale")
+    assert raw_render_width is not None, svg_path
+    assert raw_render_scale is not None, svg_path
+    render_width = float(raw_render_width)
+    render_scale = float(raw_render_scale)
+    assert math.isclose(render_scale, FIGURE_GLOBAL_RENDER_SCALE), (
+        svg_path,
+        render_scale,
+    )
+    assert math.isclose(
+        render_width,
+        _view_box_width(svg, svg_path) * render_scale,
+        abs_tol=0.01,
+    )
+    frame_width = render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX
+    article = article_path.read_text(encoding="utf-8")
+    pattern = re.compile(
+        rf'(<figure id="{re.escape(figure_id)}" data-figure-width=")'
+        r"[0-9]+(?:\.[0-9]+)?(\">)"
+    )
+    replacement = _format_number(frame_width)
+    updated, count = pattern.subn(rf"\g<1>{replacement}\g<2>", article)
+    assert count == 1, f"expected one {figure_id} declaration, found {count}"
+    if updated != article:
+        article_path.write_text(updated, encoding="utf-8")
+    return frame_width
 
 
 def normalize_svg_typography_file(
@@ -296,6 +385,16 @@ def validate_svg_typography(
             f"referenced SVG was normalized for {render_width_px:g}px but the article "
             f"renders it at {expected_render_width_px:g}px: {path}"
         )
+    raw_render_scale = root.get("data-figure-render-scale")
+    if raw_render_scale is not None:
+        render_scale = float(raw_render_scale)
+        assert math.isclose(render_scale, FIGURE_GLOBAL_RENDER_SCALE), (
+            f"referenced SVG uses {render_scale:g}x rather than the shared "
+            f"{FIGURE_GLOBAL_RENDER_SCALE:g}x plot scale: {path}"
+        )
+        assert math.isclose(
+            render_width_px, _view_box_width(svg, path) * render_scale, abs_tol=0.01
+        ), f"referenced SVG whole-figure scale is inconsistent: {path}"
 
     families = [
         match.group("value").strip()

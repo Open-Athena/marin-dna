@@ -25,7 +25,7 @@ if str(REPO_SRC) not in sys.path:
     sys.path.insert(0, str(REPO_SRC))
 
 from marin_dna.blog_figure_typography import (  # noqa: E402
-    normalize_svg_typography_file,
+    normalize_matplotlib_svg_typography_file,
 )
 
 # Imported for its side effect: applies the web-native rcParams (svg.fonttype,
@@ -53,6 +53,6 @@ def save_figure(fig, directory: Path, name: str) -> None:
             fig.savefig(path, bbox_inches="tight", transparent=True, **extra)
             if ext == "svg":
                 _normalize_svg(path)
-                normalize_svg_typography_file(path)
+                normalize_matplotlib_svg_typography_file(path)
             paths.append(path)
     print("Wrote " + ", ".join(str(p) for p in paths))
