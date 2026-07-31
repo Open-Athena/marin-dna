@@ -133,6 +133,29 @@ sky launch interpret_sky.yaml --cluster exp418-lambda-interpret
 
 The result compares one selected SAE feature with the best signed raw residual dimension and the fixed sequence baseline on chromosome 22. It also records a shuffled-label null, paired bootstrap interval, reverse-complement correlation, and top activating contexts.
 
+### Focused splice mutagenesis
+
+After the held-out interpretation result exists, `mutagenesis_sky.yaml` runs a small post-hoc dependency map for the selected donor and acceptor features. It takes the ten highest-activating unique positive chromosome-22 contexts per task, substitutes every target base at every position in the center ±30 bp, and evaluates 4,880 counterfactual sequences. This is an exploratory explanation of the selected features, not a second independent test set.
+
+Dry-run first. For an approved launch, pin the exact experiment commit in the artifact manifest and use a fresh run ID:
+
+```bash
+EXP418_COMMIT=$(git rev-parse HEAD)
+EXP418_RUN_ID="dna-exp418-mutagenesis-seed288-${EXP418_COMMIT:0:12}"
+
+sky launch --dryrun --yes mutagenesis_sky.yaml \
+  --cluster exp418-lambda-mutagenesis \
+  --env RUN_ID="$EXP418_RUN_ID" \
+  --env EXPERIMENT_COMMIT="$EXP418_COMMIT"
+
+sky launch mutagenesis_sky.yaml \
+  --cluster exp418-lambda-mutagenesis \
+  --env RUN_ID="$EXP418_RUN_ID" \
+  --env EXPERIMENT_COMMIT="$EXP418_COMMIT"
+```
+
+The task mounts the exact panel, interpretation result, and SAE artifact; their SHA-256 hashes are written to `manifest.json`. It emits per-context `mutations.parquet`, an aggregated `summary.parquet`, and both PNG and SVG dependency maps. Retrieve and verify the artifact before terminating the cluster, using the same `rsync` / S3 procedure as the training runs.
+
 ## Produced evidence
 
 Each run records the dependency lock/config, exact model/data/tokenizer revisions, hook shape and bitwise logit-invariance result, finite-state checks, checkpoint-resume evidence, throughput and accelerator hours, reconstruction and next-base loss metrics, BatchTopK versus exported JumpReLU L0, threshold support mismatch, held-out inactive-feature fraction, feature-use concentration, and SHA-256 hashes for the final SAE weights/config.
