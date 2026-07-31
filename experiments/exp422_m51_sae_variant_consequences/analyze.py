@@ -35,6 +35,7 @@ MIN_DISCOVERY_SUPPORT = 32
 MIN_POSITIVE_SUPPORT = 8
 BOOTSTRAPS = 250
 PROBE_ALPHAS = (1e-5, 1e-4, 1e-3)
+PROBE_EPOCHS = 100
 RANDOM_SEED = 422
 CONTEXT_RADIUS = 15
 
@@ -280,8 +281,8 @@ def fit_probe(
             loss="log_loss",
             penalty="l2",
             alpha=alpha,
-            max_iter=2_000,
-            tol=1e-4,
+            max_iter=PROBE_EPOCHS,
+            tol=None,
             random_state=RANDOM_SEED,
             average=True,
             n_jobs=probe_jobs,
@@ -298,8 +299,8 @@ def fit_probe(
         loss="log_loss",
         penalty="l2",
         alpha=alpha,
-        max_iter=2_000,
-        tol=1e-4,
+        max_iter=PROBE_EPOCHS,
+        tol=None,
         random_state=RANDOM_SEED,
         average=True,
         n_jobs=probe_jobs,
@@ -317,6 +318,7 @@ def fit_probe(
             "space": space,
             "transform": transform,
             "alpha": alpha,
+            "epochs": int(classifier.n_iter_),
             "validation_macro_f1": validation_macro_f1,
             "test_macro_f1": float(
                 f1_score(encoded[test], prediction, average="macro")
@@ -784,6 +786,7 @@ def analyze(
             "block_bootstraps": BOOTSTRAPS,
             "minimum_positive_blocks_for_ci": 2,
             "probe_alphas": list(PROBE_ALPHAS),
+            "probe_epochs": PROBE_EPOCHS,
             "probe_jobs": probe_jobs,
             "context_radius": CONTEXT_RADIUS,
             "orientation_order": list(ORIENTATIONS),
