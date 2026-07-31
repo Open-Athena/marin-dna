@@ -103,8 +103,8 @@ Copy `results/benchmark/gh200` back after the run, then terminate the cluster.
 
 ### Full-assembly GH200 production run
 
-`sky/run_gh200_full.yaml` scores every sequence in the browser-authoritative
-UCSC `chrom.sizes` inventory, builds the eight BigWigs and UCSC hub on the same
+`sky/run_gh200_full.yaml` pins Lambda `us-east-3`, scores every sequence in
+the UCSC `chrom.sizes` inventory, and builds the eight BigWigs and UCSC hub on the same
 GH200, and copies the release to persistent object storage before the cluster
 is torn down. It keeps one model, tokenizer, and indexed genome handle resident
 across scaffolds. The measured production configuration is batch size 128,

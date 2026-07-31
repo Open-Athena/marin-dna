@@ -8,7 +8,7 @@
 name: chinchilla-logo-gh200-full
 
 resources:
-  infra: lambda
+  infra: lambda/us-east-3
   accelerators: GH200:1
   use_spot: false
   disk_size: 300
