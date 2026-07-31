@@ -28,19 +28,13 @@ setup: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync \
-        --project experiments/exp422_m51_sae_variant_consequences \
-        --frozen \
-        --no-dev
+    uv sync --frozen --no-dev
 
 run: |
     set -euxo pipefail
 
     export PATH="$HOME/.local/bin:$PATH"
-    uv run \
-        --project experiments/exp422_m51_sae_variant_consequences \
-        --no-dev \
-        python experiments/exp422_m51_sae_variant_consequences/analyze.py \
+    uv run --no-dev python analyze.py \
         --extraction-dir /home/ubuntu/exp422_analysis_inputs/extraction \
         --panel /home/ubuntu/exp422_analysis_inputs/panel/panel.parquet \
         --fasta /home/ubuntu/exp422_analysis_inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \

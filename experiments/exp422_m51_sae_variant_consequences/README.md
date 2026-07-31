@@ -92,3 +92,16 @@ blocks. An interval is omitted when a class has positives in fewer than two test
 blocks because spatial uncertainty is not identifiable. The script reports FWD
 and RC separately before the fixed arithmetic-mean view and includes raw-residual,
 substitution, and 31 bp k-mer-delta controls.
+
+For the dense multiclass controls, `sky_analysis.yaml` uses a 16-vCPU EC2
+instance and parallelizes only the deterministic one-vs-rest class fits:
+
+```bash
+sky launch --dryrun -c dna-exp422-consequence-analysis \
+  --env ANALYSIS_COMMIT=<40-character-commit> sky_analysis.yaml
+sky launch -y -d -c dna-exp422-consequence-analysis \
+  --env ANALYSIS_COMMIT=<40-character-commit> sky_analysis.yaml
+```
+
+Retrieve `artifacts/dna-exp422-variant-consequence-analysis/` before terminating
+the cluster.
