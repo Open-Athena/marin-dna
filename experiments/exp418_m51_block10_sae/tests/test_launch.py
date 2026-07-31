@@ -9,10 +9,20 @@ from launch import (
     SAELENS_REVISION,
     SEED,
     TRAIN_BATCH_TOKENS,
+    _checkpoint_dirs,
     _dry_run_manifest,
     _runner_config,
     tier_config,
 )
+
+
+def test_checkpoint_dirs_accepts_saelens_run_id_directory(tmp_path) -> None:
+    first = tmp_path / "wandb-run-id" / "334050"
+    second = tmp_path / "wandb-run-id" / "668100"
+    first.mkdir(parents=True)
+    second.mkdir()
+
+    assert _checkpoint_dirs(tmp_path) == [first, second]
 
 
 def test_training_batches_and_budgets_are_exact() -> None:

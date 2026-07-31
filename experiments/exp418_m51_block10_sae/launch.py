@@ -448,7 +448,18 @@ def _evaluate_export(
 
 
 def _checkpoint_dirs(checkpoint_path: Path) -> list[Path]:
-    result = [path for path in checkpoint_path.iterdir() if path.name.isdigit()]
+    direct = [path for path in checkpoint_path.iterdir() if path.name.isdigit()]
+    run_directories = [path for path in checkpoint_path.iterdir() if path.is_dir()]
+    if direct:
+        assert set(direct) == set(run_directories), run_directories
+        result = direct
+    else:
+        assert len(run_directories) == 1, run_directories
+        result = [
+            path for path in run_directories[0].iterdir() if path.name.isdigit()
+        ]
+        assert result, run_directories[0]
+        assert set(result) == set(run_directories[0].iterdir()), run_directories[0]
     return sorted(result, key=lambda path: int(path.name))
 
 
