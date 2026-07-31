@@ -168,6 +168,8 @@ def test_notebook_session_snapshot_contains_complete_rendered_run():
         "AUPRC",
     ):
         assert expected_output in rendered_session
+    assert "marin-dna/human-genome" in rendered_session
+    assert "Broad/1000 Genomes" not in rendered_session
     assert "Main sequence likelihood:" not in rendered_session
 
 
