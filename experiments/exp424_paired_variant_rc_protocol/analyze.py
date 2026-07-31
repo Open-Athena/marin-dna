@@ -562,7 +562,7 @@ def plot_reducers(summary: pl.DataFrame, output_dir: Path) -> None:
 def plot_symmetry(
     symmetry: pl.DataFrame, matches: pl.DataFrame, output_dir: Path
 ) -> None:
-    figure, axes = plt.subplots(1, 2, figsize=(12, 5), constrained_layout=True)
+    figure, axes = plt.subplots(1, 2, figsize=(14, 5.5), constrained_layout=True)
     split_order = ["discovery", "validation", "test"]
     thresholds = np.array([0.01, 0.05, 0.1])
     positions = np.arange(len(thresholds))
@@ -582,7 +582,7 @@ def plot_symmetry(
         )
     axes[0].set_xticks(positions, [f"|r| ≥ {value:g}" for value in thresholds])
     axes[0].set_ylabel("Fraction of features")
-    axes[0].set_title("Same-ID strand agreement (support ≥ 32 on both)")
+    axes[0].set_title("Same-ID FWD/RC agreement (support ≥ 32)")
     axes[0].legend()
     same = np.abs(matches["same_id_validation_pearson"].to_numpy())
     matched = np.abs(matches["matched_validation_pearson"].to_numpy())
@@ -593,7 +593,7 @@ def plot_symmetry(
     axes[1].set_ylim(0, limit)
     axes[1].set_xlabel("Absolute same-ID validation Pearson")
     axes[1].set_ylabel("Absolute cross-ID validation Pearson")
-    axes[1].set_title("Discovery-matched feature transfer")
+    axes[1].set_title("Discovery-matched cross-ID transfer")
     for suffix in ("png", "svg"):
         figure.savefig(output_dir / f"strand_symmetry.{suffix}", dpi=180)
     plt.close(figure)
