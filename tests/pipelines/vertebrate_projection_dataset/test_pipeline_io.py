@@ -7,7 +7,46 @@ import pytest
 
 from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
     combine_sequence_parquets,
+    write_filtered_anchor_bed,
 )
+
+
+def test_write_filtered_anchor_bed_is_valid_deterministic_gzip(
+    tmp_path: Path,
+) -> None:
+    scored_paths: list[str] = []
+    for chrom, offset in [("chr1", 0), ("chr2", 1_000)]:
+        path = tmp_path / f"{chrom}.parquet"
+        pl.DataFrame(
+            {
+                "chrom": [chrom, chrom],
+                "start": [offset, offset + 255],
+                "end": [offset + 255, offset + 510],
+                "name": [f"{chrom}-keep", f"{chrom}-drop"],
+                "proportion_conserved": [0.8, 0.2],
+            }
+        ).write_parquet(path)
+        scored_paths.append(str(path))
+
+    first = tmp_path / "first.bed.gz"
+    second = tmp_path / "second.bed.gz"
+    for output in [first, second]:
+        write_filtered_anchor_bed(
+            scored_paths,
+            output,
+            min_proportion_conserved=0.65,
+        )
+
+    assert first.read_bytes() == second.read_bytes()
+    assert pl.read_csv(
+        first,
+        separator="\t",
+        has_header=False,
+        new_columns=["chrom", "start", "end", "name"],
+    ).to_dicts() == [
+        {"chrom": 1, "start": 0, "end": 255, "name": "chr1-keep"},
+        {"chrom": 2, "start": 1_000, "end": 1_255, "name": "chr2-keep"},
+    ]
 
 
 def test_combine_sequence_parquets_accepts_one_species_per_input(

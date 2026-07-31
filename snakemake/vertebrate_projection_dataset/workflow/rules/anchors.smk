@@ -1,9 +1,10 @@
 """Independent reproduction of the 255 bp conservation-filtered anchors."""
 
-import gzip
-
 from marin_dna.pipelines.conservation.scoring import score_windows
 from marin_dna.pipelines.evals.conservation import CONSERVATION_TRACKS
+from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
+    write_filtered_anchor_bed,
+)
 from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     REGION_LABELS,
 )
@@ -123,16 +124,11 @@ rule filter_anchor_windows:
     output:
         f"{RESULTS}/anchors/filtered.bare.bed.gz",
     run:
-        scored = pl.concat([pl.read_parquet(path) for path in input])
-        kept = scored.filter(pl.col("proportion_conserved") >= MIN_PROPORTION)
-        assert 0 < kept.height <= scored.height
-        with gzip.open(output[0], "wt") as handle:
-            kept.select(
-                pl.col("chrom").str.strip_prefix("chr"),
-                "start",
-                "end",
-                "name",
-            ).write_csv(handle, separator="\t", include_header=False)
+        write_filtered_anchor_bed(
+            list(input),
+            output[0],
+            min_proportion_conserved=MIN_PROPORTION,
+        )
 
 
 rule download_ensembl_gtf:

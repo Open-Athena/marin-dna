@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
+import shutil
 from tempfile import TemporaryDirectory
 
 import polars as pl
@@ -39,6 +41,50 @@ from marin_dna.pipelines.vertebrate_projection_dataset.qc import (
 from marin_dna.pipelines.vertebrate_projection_dataset.split import (
     assign_train_validation_splits,
 )
+
+
+def write_filtered_anchor_bed(
+    scored_paths: list[str],
+    output_path: str | Path,
+    *,
+    min_proportion_conserved: float,
+) -> None:
+    """Write a deterministic, integrity-checked gzip BED of retained anchors."""
+    assert scored_paths
+    assert 0.0 <= min_proportion_conserved <= 1.0
+    scored = pl.concat([pl.read_parquet(path) for path in scored_paths])
+    required = {"chrom", "start", "end", "name", "proportion_conserved"}
+    assert required <= set(scored.columns)
+    kept = scored.filter(
+        pl.col("proportion_conserved") >= min_proportion_conserved
+    ).select(
+        pl.col("chrom").str.strip_prefix("chr"),
+        "start",
+        "end",
+        "name",
+    )
+    assert 0 < kept.height <= scored.height
+    assert kept["name"].n_unique() == kept.height
+    assert (kept["start"] >= 0).all()
+    assert (kept["end"] > kept["start"]).all()
+    assert (~kept["chrom"].str.starts_with("chr")).all()
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(dir=output.parent, prefix=f".{output.name}.") as temp:
+        temporary = Path(temp)
+        plain_path = temporary / "anchors.bed"
+        compressed_path = temporary / "anchors.bed.gz"
+        kept.write_csv(plain_path, separator="\t", include_header=False)
+        with plain_path.open("rb") as source, compressed_path.open("wb") as raw:
+            with gzip.GzipFile(
+                filename="", fileobj=raw, mode="wb", mtime=0
+            ) as destination:
+                shutil.copyfileobj(source, destination, length=1024 * 1024)
+        with gzip.open(compressed_path, "rt") as handle:
+            written_rows = sum(1 for _ in handle)
+        assert written_rows == kept.height
+        compressed_path.replace(output)
 
 
 def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.DataFrame:
