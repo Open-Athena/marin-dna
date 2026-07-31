@@ -2,5 +2,6 @@ cores: 4
 use-conda: true
 resources:
   mem_mb: 30000
+  ucsc_downloads: 4
 printshellcmds: true
 rerun-triggers: mtime

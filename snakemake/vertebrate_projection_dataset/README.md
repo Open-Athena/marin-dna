@@ -69,7 +69,9 @@ NVMe and verify size and MD5 before use. They fail on a missing/mismatched S3
 object and never fall back to UCSC. The Zoonomia HAL follows the same S3-to-NVMe
 staging pattern. Target-genome sequence extraction uses UCSC's `gbdb` 2bit
 endpoint, which is available for all 28 selected current and legacy assemblies;
-this does not substitute for or bypass the mirrored MAF projection input.
+this does not substitute for or bypass the mirrored MAF projection input. UCSC
+downloads are capped at four concurrent transfers and retry refused/transient
+connections so a full-worker startup cannot overload the shared endpoint.
 
 ## Projection contract
 

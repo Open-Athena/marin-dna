@@ -22,10 +22,13 @@ from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
 rule download_human_twobit:
     output:
         f"{RESULTS}/reference/hg38.2bit",
+    resources:
+        ucsc_downloads=1,
     params:
         url=str(config["human_twobit_url"]),
     shell:
-        "wget -q -O {output} {params.url}"
+        "wget -q --retry-connrefused --waitretry=5 --timeout=60 --tries=20 "
+        "-O {output} {params.url}"
 
 
 rule human_chrom_sizes:
@@ -161,11 +164,11 @@ rule hal_fasta_to_twobit:
         f"{RESULTS}/hal/genomes/{{species}}.2bit",
     wildcard_constraints:
         species=MAMMAL_RE,
+    conda:
+        "../envs/bioinformatics.yaml"
     threads: 2
     resources:
         mem_mb=4000,
-    conda:
-        "../envs/bioinformatics.yaml"
     shell:
         "faToTwoBit {input} {output}"
 
@@ -249,7 +252,7 @@ rule merge_multiz_rejected:
             f"{RESULTS}/multiz/rejected/by_chrom/{{chrom}}/{{species}}.parquet",
             chrom=CHROMS,
             species=[wc.species],
-        )
+        ),
     output:
         f"{RESULTS}/multiz/rejected/{{species}}.parquet",
     wildcard_constraints:
@@ -265,6 +268,8 @@ rule download_multiz_twobit:
         f"{RESULTS}/multiz/genomes/{{species}}.2bit",
     wildcard_constraints:
         species=NON_MAMMAL_RE,
+    resources:
+        ucsc_downloads=1,
     params:
         # gbdb is the stable UCSC endpoint across both current and legacy
         # assemblies in the 2015 hg38 MultiZ release.
@@ -272,7 +277,8 @@ rule download_multiz_twobit:
             f"https://hgdownload.soe.ucsc.edu/gbdb/{wc.species}/{wc.species}.2bit"
         ),
     shell:
-        "wget -q -O {output} {params.url}"
+        "wget -q --retry-connrefused --waitretry=5 --timeout=60 --tries=20 "
+        "-O {output} {params.url}"
 
 
 rule multiz_sequences:
