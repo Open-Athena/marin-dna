@@ -10,7 +10,7 @@ dependencies = [
     "fsspec",
     "huggingface-hub",
     "s3fs>=2024",
-    "torch",
+    "torch==2.11.0",
     "transformers>=4.57,<5",
     "wandb",
 ]
@@ -41,8 +41,14 @@ override-dependencies = [
 name = "marin-resiliparse"
 url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
 
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
 [tool.uv.sources]
 resiliparse = { index = "marin-resiliparse" }
+torch = { index = "pytorch-cu128" }
 
 [tool.ruff]
 line-length = 88

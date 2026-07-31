@@ -31,6 +31,8 @@ setup: |
     fi
     export PATH="$HOME/.local/bin:$PATH"
     uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
 
 run: |
     set -euxo pipefail
@@ -38,7 +40,7 @@ run: |
     export PATH="$HOME/.local/bin:$PATH"
     export HF_HUB_DOWNLOAD_TIMEOUT=120
     export UV_LOCK_TIMEOUT=7200
-    uv run python launch.py \
+    uv run --no-dev python launch.py \
         --tier "$TIER" \
         --run-id "$RUN_ID" \
         --local-root artifacts \
