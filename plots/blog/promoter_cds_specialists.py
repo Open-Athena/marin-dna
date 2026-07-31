@@ -17,8 +17,12 @@ Out: plots/output/blog/promoter_cds_specialists.{svg,png}
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
+import re
+import shutil
 from typing import Any
+from xml.etree import ElementTree
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -28,6 +32,11 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 
+from marin_dna.blog_figure_typography import (
+    FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    normalize_svg_typography_file,
+    validate_svg_typography,
+)
 from marin_dna.pipelines.evals.leaderboard import (
     DEFAULT_PROTOCOL,
     fetch_method_metrics,
@@ -37,6 +46,33 @@ from marin_dna.pipelines.evals.models import models_for_dataset
 DATASET = "mendelian_traits"
 OUTPUT_DIR = Path("plots/output/blog")
 OUTPUT_NAME = "promoter_cds_specialists"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BLOG_ARTICLE = (
+    REPO_ROOT
+    / "blog"
+    / "genomic-lm-optimization"
+    / "content"
+    / "blog"
+    / "genomic-lm-optimization.md"
+)
+BLOG_SVG = (
+    REPO_ROOT
+    / "blog"
+    / "genomic-lm-optimization"
+    / "static"
+    / "assets"
+    / "images"
+    / "blog"
+    / "genomic-lm-optimization"
+    / f"{OUTPUT_NAME}.svg"
+)
+FIGURE_ID = "fig-upstream-cds-specialists"
+
+# The sole display-size control. Each plotting axes is square, so its displayed
+# width follows from this height; the 3x2 grid then determines the SVG and
+# article-frame widths automatically. Typography and tick locators remain
+# independent global/style concerns.
+SUBPLOT_HEIGHT_PX = 100.0
 
 INK = "#1f1e1b"
 AUPRC_BASELINE_PCT = 10.0
@@ -191,16 +227,6 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
             capsize=0,
             zorder=5,
         )
-        ax.text(
-            x,
-            value + se + 0.9,
-            f"{value:.1f}",
-            ha="center",
-            va="bottom",
-            fontsize=8,
-            color=INK,
-        )
-
     ax.set_axisbelow(True)
     ax.grid(False)
     top_padding = max(2.0, 0.07 * (panel_top - AUPRC_BASELINE_PCT))
@@ -316,9 +342,60 @@ def build_figure(data: pd.DataFrame) -> Figure:
     return figure
 
 
+def _square_panel_height_points(figure: Figure) -> float:
+    """Return a representative square panel height in SVG point units."""
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    panel_axes = [axis for axis in figure.axes if axis.axison]
+    assert len(panel_axes) == len(PANEL_ORDER)
+    panel_sizes = [axis.get_window_extent(renderer=renderer) for axis in panel_axes]
+    for bounds in panel_sizes:
+        assert math.isclose(bounds.width, bounds.height, rel_tol=1e-6), bounds
+    heights = [bounds.height * 72.0 / figure.dpi for bounds in panel_sizes]
+    assert max(heights) - min(heights) < 1e-6, heights
+    return heights[0]
+
+
+def _svg_view_box_width(svg_path: Path) -> float:
+    root = ElementTree.fromstring(svg_path.read_text(encoding="utf-8"))
+    view_box = root.get("viewBox")
+    assert view_box is not None
+    values = [float(value) for value in view_box.replace(",", " ").split()]
+    assert len(values) == 4
+    assert math.isfinite(values[2]) and values[2] > 0
+    return values[2]
+
+
+def _derived_render_width(svg_path: Path, panel_height_points: float) -> float:
+    """Derive the inner CSS width that renders square panels at the target size."""
+    raw_render_width = (
+        SUBPLOT_HEIGHT_PX * _svg_view_box_width(svg_path) / panel_height_points
+    )
+    frame_width = round(raw_render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX)
+    render_width = frame_width - FIGURE_FRAME_HORIZONTAL_PADDING_PX
+    assert 320.0 <= render_width <= 700.0, render_width
+    return render_width
+
+
+def _sync_article_width(render_width: float) -> None:
+    """Write the derived frame width into the article's Figure 4 declaration."""
+    frame_width = render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX
+    assert frame_width.is_integer(), frame_width
+    article = BLOG_ARTICLE.read_text(encoding="utf-8")
+    pattern = re.compile(
+        rf'(<figure id="{re.escape(FIGURE_ID)}" data-figure-width=")'
+        r"[0-9]+(?:\.[0-9]+)?(\">)"
+    )
+    updated, count = pattern.subn(rf"\g<1>{frame_width:.0f}\g<2>", article)
+    assert count == 1, f"expected one {FIGURE_ID} declaration, found {count}"
+    if updated != article:
+        BLOG_ARTICLE.write_text(updated, encoding="utf-8")
+
+
 def save_figure(figure: Figure) -> None:
     """Save the web SVG and a high-resolution PNG for visual review."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    panel_height_points = _square_panel_height_points(figure)
     for extension, kwargs in (
         ("svg", {"metadata": {"Date": None}}),
         ("png", {"dpi": 300}),
@@ -332,6 +409,18 @@ def save_figure(figure: Figure) -> None:
                 encoding="utf-8",
             )
         print(f"Wrote {path}")
+
+    svg_path = OUTPUT_DIR / f"{OUTPUT_NAME}.svg"
+    render_width = _derived_render_width(svg_path, panel_height_points)
+    normalize_svg_typography_file(svg_path, render_width)
+    validate_svg_typography(svg_path, render_width)
+    BLOG_SVG.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(svg_path, BLOG_SVG)
+    _sync_article_width(render_width)
+    print(
+        f"Synced {BLOG_SVG} at {SUBPLOT_HEIGHT_PX:g}px square panels "
+        f"({render_width + FIGURE_FRAME_HORIZONTAL_PADDING_PX:.0f}px frame)"
+    )
 
 
 def build() -> None:

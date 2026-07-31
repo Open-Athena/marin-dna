@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="361.918916pt" height="227.494594pt" viewBox="0 0 361.918916 227.494594" xmlns="http://www.w3.org/2000/svg" version="1.1" data-figure-typography="lato-v1" data-figure-render-width="640" font-family="Lato, sans-serif">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="361.918916pt" height="227.494594pt" viewBox="0 0 361.918916 227.494594" xmlns="http://www.w3.org/2000/svg" version="1.1" data-figure-typography="lato-v1" data-figure-render-width="434" font-family="Lato, sans-serif">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -52,7 +52,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_1">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="108.257408" transform="rotate(-0 31.38 108.257408)">10</text>
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="108.257408" transform="rotate(-0 31.38 108.257408)">10</text>
      </g>
     </g>
     <g id="ytick_2">
@@ -62,7 +62,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_2">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="89.990894" transform="rotate(-0 31.38 89.990894)">20</text>
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="89.990894" transform="rotate(-0 31.38 89.990894)">20</text>
      </g>
     </g>
     <g id="ytick_3">
@@ -72,7 +72,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_3">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="71.72438" transform="rotate(-0 31.38 71.72438)">30</text>
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="71.72438" transform="rotate(-0 31.38 71.72438)">30</text>
      </g>
     </g>
     <g id="ytick_4">
@@ -82,7 +82,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="53.457865" transform="rotate(-0 31.38 53.457865)">40</text>
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="53.457865" transform="rotate(-0 31.38 53.457865)">40</text>
      </g>
     </g>
     <g id="ytick_5">
@@ -92,11 +92,11 @@ L -3.5 0
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="35.191351" transform="rotate(-0 31.38 35.191351)">50</text>
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="35.191351" transform="rotate(-0 31.38 35.191351)">50</text>
      </g>
     </g>
     <g id="text_6">
-     <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="14.797656" y="63.508001" transform="rotate(-90 14.797656 63.508001)">AUPRC (%)</text>
+     <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="14.797656" y="63.508001" transform="rotate(-90 14.797656 63.508001)">AUPRC (%)</text>
     </g>
    </g>
    <g id="patch_3">
@@ -134,16 +134,7 @@ L 121.80069 105.218346
 " style="fill: none; stroke: #1f1e1b; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_7">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="53.005705" y="38.796391" transform="rotate(-0 53.005705 38.796391)">40.8</text>
-   </g>
-   <g id="text_8">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="80.090345" y="50.315386" transform="rotate(-0 80.090345 50.315386)">34.9</text>
-   </g>
-   <g id="text_9">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="107.174984" y="23.689223" transform="rotate(-0 107.174984 23.689223)">49.6</text>
-   </g>
-   <g id="text_10">
-    <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #2f6f63" x="80.090345" y="14.797656" transform="rotate(-0 80.090345 14.797656)">Promoter</text>
+    <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #2f6f63" x="80.090345" y="14.797656" transform="rotate(-0 80.090345 14.797656)">Promoter</text>
    </g>
    <g id="LineCollection_1">
     <path d="M 53.005705 55.575582
@@ -191,8 +182,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="105.218346" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_11">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="108.257408" transform="rotate(-0 145.808571 108.257408)">10</text>
+     <g id="text_8">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="108.257408" transform="rotate(-0 145.808571 108.257408)">10</text>
      </g>
     </g>
     <g id="ytick_7">
@@ -201,8 +192,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="85.216158" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_12">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="88.255221" transform="rotate(-0 145.808571 88.255221)">20</text>
+     <g id="text_9">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="88.255221" transform="rotate(-0 145.808571 88.255221)">20</text>
      </g>
     </g>
     <g id="ytick_8">
@@ -211,8 +202,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="65.21397" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_13">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="68.253033" transform="rotate(-0 145.808571 68.253033)">30</text>
+     <g id="text_10">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="68.253033" transform="rotate(-0 145.808571 68.253033)">30</text>
      </g>
     </g>
     <g id="ytick_9">
@@ -221,8 +212,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="45.211783" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_14">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="48.250845" transform="rotate(-0 145.808571 48.250845)">40</text>
+     <g id="text_11">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="48.250845" transform="rotate(-0 145.808571 48.250845)">40</text>
      </g>
     </g>
     <g id="ytick_10">
@@ -231,8 +222,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="25.209595" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_15">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="28.248658" transform="rotate(-0 145.808571 28.248658)">50</text>
+     <g id="text_12">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="28.248658" transform="rotate(-0 145.808571 28.248658)">50</text>
      </g>
     </g>
    </g>
@@ -270,17 +261,8 @@ L 152.808571 21.797656
 L 236.229261 105.218346
 " style="fill: none; stroke: #1f1e1b; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_16">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="167.434277" y="23.533013" transform="rotate(-0 167.434277 23.533013)">45.5</text>
-   </g>
-   <g id="text_17">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="194.518916" y="38.954968" transform="rotate(-0 194.518916 38.954968)">37.9</text>
-   </g>
-   <g id="text_18">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="221.603556" y="27.38678" transform="rotate(-0 221.603556 27.38678)">43.6</text>
-   </g>
-   <g id="text_19">
-    <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #2f6f63" x="194.518916" y="14.797656" transform="rotate(-0 194.518916 14.797656)">5′ UTR</text>
+   <g id="text_13">
+    <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #2f6f63" x="194.518916" y="14.797656" transform="rotate(-0 194.518916 14.797656)">5′ UTR</text>
    </g>
    <g id="LineCollection_4">
     <path d="M 167.434277 40.968545
@@ -312,8 +294,8 @@ L 221.603556 31.108852
   </g>
   <g id="axes_3">
    <g id="legend_1">
-    <g id="text_20">
-     <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="272.030666" y="32.74482" transform="rotate(-0 272.030666 32.74482)">Specialists</text>
+    <g id="text_14">
+     <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="272.030666" y="32.74482" transform="rotate(-0 272.030666 32.74482)">Specialists</text>
     </g>
     <g id="patch_14">
      <path d="M 268.206916 43.145445
@@ -323,8 +305,8 @@ L 268.206916 37.545445
 z
 " style="fill: #2f6f63; stroke: #1f1e1b; stroke-width: 0.7; stroke-linejoin: miter"/>
     </g>
-    <g id="text_21">
-     <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="43.145445" transform="rotate(-0 279.406916 43.145445)">Upstream</text>
+    <g id="text_15">
+     <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="43.145445" transform="rotate(-0 279.406916 43.145445)">Upstream</text>
     </g>
     <g id="patch_15">
      <path d="M 268.206916 53.54607
@@ -334,13 +316,13 @@ L 268.206916 47.94607
 z
 " style="fill: #9c4f2f; stroke: #1f1e1b; stroke-width: 0.7; stroke-linejoin: miter"/>
     </g>
-    <g id="text_22">
-     <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="53.54607" transform="rotate(-0 279.406916 53.54607)">CDS</text>
+    <g id="text_16">
+     <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="53.54607" transform="rotate(-0 279.406916 53.54607)">CDS</text>
     </g>
    </g>
    <g id="legend_2">
-    <g id="text_23">
-     <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="277.190041" y="66.113096" transform="rotate(-0 277.190041 66.113096)">Generalists</text>
+    <g id="text_17">
+     <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="277.190041" y="66.113096" transform="rotate(-0 277.190041 66.113096)">Generalists</text>
     </g>
     <g id="patch_16">
      <path d="M 268.206916 76.513721
@@ -350,8 +332,8 @@ L 268.206916 70.913721
 z
 " style="fill: #999999; stroke: #1f1e1b; stroke-width: 0.7; stroke-linejoin: miter"/>
     </g>
-    <g id="text_24">
-     <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="76.513721" transform="rotate(-0 279.406916 76.513721)">Evo 2 (40B)</text>
+    <g id="text_18">
+     <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="76.513721" transform="rotate(-0 279.406916 76.513721)">Evo 2 (40B)</text>
     </g>
     <g id="patch_17">
      <path d="M 268.206916 86.914346
@@ -361,8 +343,8 @@ L 268.206916 81.314346
 z
 " style="fill: #555555; stroke: #1f1e1b; stroke-width: 0.7; stroke-linejoin: miter"/>
     </g>
-    <g id="text_25">
-     <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="86.914346" transform="rotate(-0 279.406916 86.914346)">GPN-Star (M)</text>
+    <g id="text_19">
+     <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: start; fill: #1f1e1b" x="279.406916" y="86.914346" transform="rotate(-0 279.406916 86.914346)">GPN-Star (M)</text>
     </g>
    </g>
   </g>
@@ -384,8 +366,8 @@ z
        <use xlink:href="#m7291acd6cf" x="38.38" y="201.128894" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_26">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="204.167957" transform="rotate(-0 31.38 204.167957)">20</text>
+     <g id="text_20">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="204.167957" transform="rotate(-0 31.38 204.167957)">20</text>
      </g>
     </g>
     <g id="ytick_12">
@@ -394,8 +376,8 @@ z
        <use xlink:href="#m7291acd6cf" x="38.38" y="172.719371" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_27">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="175.758433" transform="rotate(-0 31.38 175.758433)">40</text>
+     <g id="text_21">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="175.758433" transform="rotate(-0 31.38 175.758433)">40</text>
      </g>
     </g>
     <g id="ytick_13">
@@ -404,12 +386,12 @@ z
        <use xlink:href="#m7291acd6cf" x="38.38" y="144.309847" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_28">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="147.348909" transform="rotate(-0 31.38 147.348909)">60</text>
+     <g id="text_22">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="31.38" y="147.348909" transform="rotate(-0 31.38 147.348909)">60</text>
      </g>
     </g>
-    <g id="text_29">
-     <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="14.797656" y="173.623311" transform="rotate(-90 14.797656 173.623311)">AUPRC (%)</text>
+    <g id="text_23">
+     <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="14.797656" y="173.623311" transform="rotate(-90 14.797656 173.623311)">AUPRC (%)</text>
     </g>
    </g>
    <g id="patch_19">
@@ -446,17 +428,8 @@ L 38.38 131.912967
 L 121.80069 215.333656
 " style="fill: none; stroke: #1f1e1b; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_30">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="53.005705" y="156.1605" transform="rotate(-0 53.005705 156.1605)">47.5</text>
-   </g>
-   <g id="text_31">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="80.090345" y="173.281866" transform="rotate(-0 80.090345 173.281866)">35.6</text>
-   </g>
-   <g id="text_32">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="107.174984" y="134.170091" transform="rotate(-0 107.174984 134.170091)">63.1</text>
-   </g>
-   <g id="text_33">
-    <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #9c4f2f" x="80.090345" y="124.912967" transform="rotate(-0 80.090345 124.912967)">Missense</text>
+   <g id="text_24">
+    <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #9c4f2f" x="80.090345" y="124.912967" transform="rotate(-0 80.090345 124.912967)">Missense</text>
    </g>
    <g id="LineCollection_7">
     <path d="M 53.005705 164.818841
@@ -504,8 +477,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="201.161903" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_34">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="204.200966" transform="rotate(-0 145.808571 204.200966)">20</text>
+     <g id="text_25">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="204.200966" transform="rotate(-0 145.808571 204.200966)">20</text>
      </g>
     </g>
     <g id="ytick_15">
@@ -514,8 +487,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="172.818397" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_35">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="175.857459" transform="rotate(-0 145.808571 175.857459)">40</text>
+     <g id="text_26">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="175.857459" transform="rotate(-0 145.808571 175.857459)">40</text>
      </g>
     </g>
     <g id="ytick_16">
@@ -524,8 +497,8 @@ z
        <use xlink:href="#m7291acd6cf" x="152.808571" y="144.47489" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_36">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="147.513953" transform="rotate(-0 145.808571 147.513953)">60</text>
+     <g id="text_27">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="145.808571" y="147.513953" transform="rotate(-0 145.808571 147.513953)">60</text>
      </g>
     </g>
    </g>
@@ -563,17 +536,8 @@ L 152.808571 131.912967
 L 236.229261 215.333656
 " style="fill: none; stroke: #1f1e1b; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_37">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="167.434277" y="136.701544" transform="rotate(-0 167.434277 136.701544)">60.8</text>
-   </g>
-   <g id="text_38">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="194.518916" y="135.899544" transform="rotate(-0 194.518916 135.899544)">60.9</text>
-   </g>
-   <g id="text_39">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="221.603556" y="134.173062" transform="rotate(-0 221.603556 134.173062)">62.6</text>
-   </g>
-   <g id="text_40">
-    <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #9c4f2f" x="194.518916" y="124.912967" transform="rotate(-0 194.518916 124.912967)">Splicing</text>
+   <g id="text_28">
+    <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #9c4f2f" x="194.518916" y="124.912967" transform="rotate(-0 194.518916 124.912967)">Splicing</text>
    </g>
    <g id="LineCollection_10">
     <path d="M 167.434277 146.746829
@@ -621,8 +585,8 @@ z
        <use xlink:href="#m7291acd6cf" x="267.237143" y="215.333656" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_41">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="218.372719" transform="rotate(-0 260.237143 218.372719)">10</text>
+     <g id="text_29">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="218.372719" transform="rotate(-0 260.237143 218.372719)">10</text>
      </g>
     </g>
     <g id="ytick_18">
@@ -631,8 +595,8 @@ z
        <use xlink:href="#m7291acd6cf" x="267.237143" y="197.271729" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_42">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="200.310792" transform="rotate(-0 260.237143 200.310792)">20</text>
+     <g id="text_30">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="200.310792" transform="rotate(-0 260.237143 200.310792)">20</text>
      </g>
     </g>
     <g id="ytick_19">
@@ -641,8 +605,8 @@ z
        <use xlink:href="#m7291acd6cf" x="267.237143" y="179.209803" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_43">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="182.248865" transform="rotate(-0 260.237143 182.248865)">30</text>
+     <g id="text_31">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="182.248865" transform="rotate(-0 260.237143 182.248865)">30</text>
      </g>
     </g>
     <g id="ytick_20">
@@ -651,8 +615,8 @@ z
        <use xlink:href="#m7291acd6cf" x="267.237143" y="161.147876" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_44">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="164.186938" transform="rotate(-0 260.237143 164.186938)">40</text>
+     <g id="text_32">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="164.186938" transform="rotate(-0 260.237143 164.186938)">40</text>
      </g>
     </g>
     <g id="ytick_21">
@@ -661,8 +625,8 @@ z
        <use xlink:href="#m7291acd6cf" x="267.237143" y="143.085949" style="fill: #1f1e1b; stroke: #1f1e1b; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_45">
-      <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="146.125012" transform="rotate(-0 260.237143 146.125012)">50</text>
+     <g id="text_33">
+      <text style="font-size: 10.007px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="260.237143" y="146.125012" transform="rotate(-0 260.237143 146.125012)">50</text>
      </g>
     </g>
    </g>
@@ -700,17 +664,8 @@ L 267.237143 131.912967
 L 350.657833 215.333656
 " style="fill: none; stroke: #1f1e1b; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_46">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="281.862848" y="161.218793" transform="rotate(-0 281.862848 161.218793)">32.2</text>
-   </g>
-   <g id="text_47">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="308.947488" y="141.266587" transform="rotate(-0 308.947488 141.266587)">42.2</text>
-   </g>
-   <g id="text_48">
-    <text style="font-size: 6.786px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="336.032127" y="133.822946" transform="rotate(-0 336.032127 133.822946)">47.2</text>
-   </g>
-   <g id="text_49">
-    <text style="font-size: 8.482px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #9c4f2f" x="308.947488" y="124.912967" transform="rotate(-0 308.947488 124.912967)">Synonymous</text>
+   <g id="text_34">
+    <text style="font-size: 12.509px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #9c4f2f" x="308.947488" y="124.912967" transform="rotate(-0 308.947488 124.912967)">Synonymous</text>
    </g>
    <g id="LineCollection_13">
     <path d="M 281.862848 185.724287
