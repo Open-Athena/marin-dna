@@ -87,5 +87,7 @@ uv run python analyze.py \
 
 Feature and transform selection use discovery/validation blocks only. Test AUPRC
 and macro-F1 are read once, with AUPRC intervals bootstrapped over held-out 1 Mb
-blocks. The script reports FWD and RC separately before the fixed arithmetic-mean
-view and includes raw-residual, substitution, and 31 bp k-mer-delta controls.
+blocks. An interval is omitted when a class has positives in fewer than two test
+blocks because spatial uncertainty is not identifiable. The script reports FWD
+and RC separately before the fixed arithmetic-mean view and includes raw-residual,
+substitution, and 31 bp k-mer-delta controls.
