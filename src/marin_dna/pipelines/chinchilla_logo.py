@@ -737,6 +737,7 @@ def score_window_plan(
     total_inference_seconds = 0.0
     resumed_shards = 0
     shard_count = 0
+    shard_timings: list[dict[str, Any]] = []
     for chunk_index, start in enumerate(range(0, len(windows), windows_per_chunk)):
         chunk = windows[start : start + windows_per_chunk]
         shard_path = output_dir / f"part-{chunk_index:06d}.npz"
@@ -750,8 +751,16 @@ def score_window_plan(
             "logical_sequences_per_window": 2,
         }
         if shard_path.exists():
-            total_inference_seconds += _validate_resumable_shard(
-                shard_path, chunk, invariant_metadata
+            elapsed = _validate_resumable_shard(shard_path, chunk, invariant_metadata)
+            total_inference_seconds += elapsed
+            shard_timings.append(
+                {
+                    "chunk_index": chunk_index,
+                    "window_count": len(chunk),
+                    "scored_base_count": sum(window.n_emitted for window in chunk),
+                    "inference_seconds": elapsed,
+                    "resumed": True,
+                }
             )
             resumed_shards += 1
             shard_count += 1
@@ -791,6 +800,15 @@ def score_window_plan(
             metadata=shard_metadata,
         )
         total_inference_seconds += elapsed
+        shard_timings.append(
+            {
+                "chunk_index": chunk_index,
+                "window_count": len(chunk),
+                "scored_base_count": sum(window.n_emitted for window in chunk),
+                "inference_seconds": elapsed,
+                "resumed": False,
+            }
+        )
         shard_count += 1
         del dataset, strand_logits, scores
 
@@ -826,6 +844,7 @@ def score_window_plan(
         "torch_compile": torch_compile,
         "bf16_full_eval": bf16_full_eval,
         "eval_accumulation_steps": eval_accumulation_steps,
+        "per_shard": shard_timings,
     }
     _write_json(runtime_path, runtime)
     _write_json(done_path, {"complete": True, **runtime})
@@ -949,6 +968,35 @@ def write_bigwig_sets(
     for key, temporary in temporary_paths.items():
         temporary.replace(final_paths[key])
     return final_paths
+
+
+def write_bigwig_sets_with_metrics(
+    shard_paths: Sequence[str | Path],
+    chrom_sizes_path: str | Path,
+    output_root: str | Path,
+    runtime_path: str | Path,
+) -> dict[str, Path]:
+    """Write both BigWig sets and record construction time and file sizes."""
+    resolved_shards = [Path(path) for path in shard_paths]
+    start = time.perf_counter()
+    paths = write_bigwig_sets(resolved_shards, chrom_sizes_path, output_root)
+    wall_seconds = time.perf_counter() - start
+    file_bytes = {key: path.stat().st_size for key, path in paths.items()}
+    metrics = {
+        "wall_seconds": wall_seconds,
+        "shard_count": len(resolved_shards),
+        "input_shard_bytes": sum(path.stat().st_size for path in resolved_shards),
+        "total_bigwig_bytes": sum(file_bytes.values()),
+        "logprob_bigwig_bytes": sum(
+            size for key, size in file_bytes.items() if key.startswith("logprob/")
+        ),
+        "logo_bigwig_bytes": sum(
+            size for key, size in file_bytes.items() if key.startswith("logo/")
+        ),
+        "files": file_bytes,
+    }
+    _write_json(runtime_path, metrics)
+    return paths
 
 
 def write_ucsc_hub(
@@ -1107,6 +1155,7 @@ def write_release_manifest(
     stride: int = DEFAULT_STRIDE,
     retain_start: int = DEFAULT_RETAIN_START,
     retain_end: int = DEFAULT_RETAIN_END,
+    artifact_runtime_paths: Sequence[str | Path] = (),
 ) -> dict[str, Any]:
     """Write the machine-readable release manifest after artifact validation."""
     assert len(application_commit) == 40
@@ -1116,6 +1165,9 @@ def write_release_manifest(
     full_assembly_span = sum(size for _chrom, size in chrom_sizes)
     plans = [json.loads(Path(path).read_text()) for path in plan_metadata_paths]
     runtimes = [json.loads(Path(path).read_text()) for path in runtime_paths]
+    artifact_runtimes = [
+        json.loads(Path(path).read_text()) for path in artifact_runtime_paths
+    ]
     coverage_rows = [plan["coverage"] for plan in plans]
     scoped_span = sum(int(row["chrom_size"]) for row in coverage_rows)
     coverage = {
@@ -1181,7 +1233,10 @@ def write_release_manifest(
         },
         "coverage": coverage,
         "per_scaffold_coverage": coverage_rows,
-        "runtime": runtimes,
+        "runtime": {
+            "scoring": runtimes,
+            "artifact_construction": artifact_runtimes,
+        },
         "storage": {
             "dtype": "Float32",
             "decimal_rounded": False,

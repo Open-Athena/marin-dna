@@ -1,0 +1,83 @@
+# Stage 2 one-scaffold benchmark for issue #419.
+#
+# Launch from the repository root after committing the current branch:
+#   sky launch -c chinchilla-logo-a10g \
+#     snakemake/analysis/chinchilla_logo/sky/run_a10g.yaml \
+#     --env COMMIT_SHA=$(git rev-parse HEAD)
+
+name: chinchilla-logo-a10g
+
+resources:
+  infra: aws/us-east-2
+  instance_type: g5.xlarge
+  use_spot: false
+  disk_size: 250
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  COMMIT_SHA: ""
+
+setup: |
+  set -euxo pipefail
+
+  if [ ! -d "$HOME/miniforge3" ]; then
+    curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
+    rm /tmp/miniforge.sh
+  fi
+
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+
+  grep -q 'miniforge3/bin' "$HOME/.bashrc" || \
+    echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+
+  export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  conda config --set channel_priority strict
+  uv sync --frozen
+
+  nvidia-smi
+  uv run python -c 'import torch; assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))'
+
+run: |
+  set -euxo pipefail
+
+  source "$HOME/miniforge3/etc/profile.d/conda.sh"
+  export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  export WANDB_DISABLED=true
+  test "${#COMMIT_SHA}" -eq 40
+
+  cd snakemake/analysis/chinchilla_logo
+  mkdir -p results/benchmark
+
+  nvidia-smi \
+    --query-gpu=timestamp,name,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu,clocks.sm \
+    --format=csv \
+    --loop=5 > results/benchmark/gpu.csv &
+  GPU_MONITOR_PID=$!
+  cleanup() {
+    kill "$GPU_MONITOR_PID" 2>/dev/null || true
+  }
+  trap cleanup EXIT
+
+  uv run --project ../../.. snakemake \
+    --profile workflow/profiles/default \
+    --config "commit_sha=$COMMIT_SHA" \
+    --printshellcmds \
+    --dry-run | tee results/benchmark/dryrun.log
+
+  /usr/bin/time -v -o results/benchmark/snakemake.time \
+    uv run --project ../../.. snakemake \
+      --profile workflow/profiles/default \
+      --config "commit_sha=$COMMIT_SHA" \
+      --printshellcmds \
+      --rerun-incomplete
+
+  cleanup
+  trap - EXIT
+  nvidia-smi

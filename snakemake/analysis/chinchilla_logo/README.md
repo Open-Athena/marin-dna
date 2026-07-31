@@ -44,6 +44,35 @@ uv run snakemake \
   --directory snakemake/analysis/chinchilla_logo
 ```
 
+### Stage 2 A10G benchmark
+
+The checked-in SkyPilot task pins an on-demand AWS `g5.xlarge` (one A10G) in
+`us-east-2` with a 250 GB disk. It records five-second GPU utilization/VRAM/power
+samples, the cluster dry-run, `/usr/bin/time` process statistics, per-shard
+inference timings, and BigWig construction time/file sizes.
+
+Commit and push first so the manifest and dataset card can cite the exact code,
+then launch from the repository root:
+
+```bash
+sky launch -c chinchilla-logo-a10g \
+  snakemake/analysis/chinchilla_logo/sky/run_a10g.yaml \
+  --env COMMIT_SHA=$(git rev-parse HEAD)
+```
+
+Watch the new configuration actively during startup and early inference:
+
+```bash
+sky logs chinchilla-logo-a10g --follow
+sky exec chinchilla-logo-a10g nvidia-smi
+```
+
+The task intentionally leaves the cluster available so results can be copied
+back before teardown. Retrieve `results/benchmark`, `results/plans`,
+`results/shards`, and `results/release`, verify them locally, then explicitly
+terminate the cluster to stop compute charges.
+
+
 ## Resumption and bounded memory
 
 `score_scaffold` loads the pinned model once for a scaffold, then invokes the existing Hugging Face `Trainer.predict` harness on fixed-size window chunks. The harness pads the last physical batch and removes padded predictions, preserving one static compiled shape.

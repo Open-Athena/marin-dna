@@ -28,7 +28,7 @@ from marin_dna.pipelines.chinchilla_logo import (
     sha256_file,
     tile_canonical_run,
     tile_sequence,
-    write_bigwig_sets,
+    write_bigwig_sets_with_metrics,
     write_dataset_readme,
     write_release_manifest,
     write_score_shard,
@@ -232,7 +232,16 @@ def test_bigwig_sets_round_trip_and_leave_missing_intervals_absent(tmp_path):
     chrom_sizes = tmp_path / "chrom.sizes"
     chrom_sizes.write_text("chr1\t12\nchrUnused\t4\n")
     output_root = tmp_path / "release"
-    paths = write_bigwig_sets([shard_path], chrom_sizes, output_root)
+    runtime_path = output_root / "manifest" / "bigwig_build.json"
+    paths = write_bigwig_sets_with_metrics(
+        [shard_path], chrom_sizes, output_root, runtime_path
+    )
+    metrics = json.loads(runtime_path.read_text())
+    assert metrics["shard_count"] == 1
+    assert metrics["input_shard_bytes"] == shard_path.stat().st_size
+    assert metrics["total_bigwig_bytes"] == sum(
+        path.stat().st_size for path in paths.values()
+    )
 
     shard = load_score_shard(shard_path)
     expected_logo = logo_from_log_probabilities(shard.log_probabilities)
@@ -333,6 +342,8 @@ def test_release_manifest_reconciles_scope_and_hashes_artifacts(tmp_path):
     assert manifest["assembly"]["scoped_span"] == 12
     assert manifest["assembly"]["out_of_scope_bases"] == 5
     assert manifest["coverage"]["scored_bases"] == 7
+    assert manifest["runtime"]["scoring"] == [{"chrom": "chr1", "gpu": "test"}]
+    assert manifest["runtime"]["artifact_construction"] == []
     assert manifest["files"]["README.md"]["sha256"] == sha256_file(
         release / "README.md"
     )

@@ -2,7 +2,7 @@
 
 from marin_dna.pipelines.chinchilla_logo import (
     list_score_shards,
-    write_bigwig_sets,
+    write_bigwig_sets_with_metrics,
     write_dataset_readme,
     write_release_manifest,
     write_ucsc_hub,
@@ -14,17 +14,19 @@ rule build_bigwigs:
         done=SCORE_DONE_OUTPUTS,
         chrom_sizes=CHROM_SIZES,
     output:
-        BIGWIG_OUTPUTS,
+        bigwigs=BIGWIG_OUTPUTS,
+        runtime="results/release/manifest/bigwig_build.json",
     run:
         shard_paths = list_score_shards(
             [f"results/shards/{scaffold}" for scaffold in SCAFFOLDS]
         )
-        written = write_bigwig_sets(
+        written = write_bigwig_sets_with_metrics(
             shard_paths,
             input.chrom_sizes,
             "results/release",
+            output.runtime,
         )
-        assert {str(path) for path in written.values()} == set(output)
+        assert {str(path) for path in written.values()} == set(output.bigwigs)
 
 
 rule write_hub:
@@ -64,6 +66,7 @@ rule write_manifest:
         plans=PLAN_METADATA_OUTPUTS,
         runtimes=RUNTIME_OUTPUTS,
         chrom_sizes=CHROM_SIZES,
+        bigwig_runtime="results/release/manifest/bigwig_build.json",
     output:
         "results/release/manifest/release.json",
     params:
@@ -74,6 +77,7 @@ rule write_manifest:
             input.chrom_sizes,
             input.plans,
             input.runtimes,
+            artifact_runtime_paths=[input.bigwig_runtime],
             application_commit=params.application_commit,
             model_repository=config["model"]["repository"],
             model_revision=config["model"]["revision"],
