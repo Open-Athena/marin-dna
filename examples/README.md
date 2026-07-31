@@ -17,7 +17,7 @@ uv run marimo edit examples/model_inference_and_vep.py
 ```
 
 GitHub remains the source of truth. Open the
-[public rendered Molab notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/20f48809013a34c4cf4bee94582e9ba94b56b5b2/examples/model_inference_and_vep.py)
+[public rendered Molab notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/5d1925fe0d6569c0ee0c29db06b8f287c2347065/examples/model_inference_and_vep.py)
 to inspect the complete output of the current committed revision without
 running it. To execute or modify the notebook, choose **Server**, then
 **Configure compute → GPU**, before running cells. WebAssembly cannot provide
