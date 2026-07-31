@@ -276,12 +276,15 @@ def test_ucsc_hub_defaults_and_dataset_readme(tmp_path):
 
     readme = tmp_path / "README.md"
     commit = "a" * 40
-    write_dataset_readme(readme, application_commit=commit)
+    write_dataset_readme(readme, application_commit=commit, scaffolds=["chr1"])
     text = readme.read_text()
     assert f"blob/{commit}/snakemake/analysis/chinchilla_logo" in text
     assert MODEL_REVISION in text
     assert all(f"- {tag}" in text for tag in ("biology", "genomics", "dna"))
     assert "not an LLR" in text
+    assert "only the following configured scaffold" in text
+    assert "`chr1`" in text
+    assert "not a genome-wide" in text
 
 
 def test_chrom_sizes_and_sha256_are_deterministic(tmp_path):

@@ -50,6 +50,7 @@ rule write_dataset_card:
         write_dataset_readme(
             output[0],
             application_commit=params.application_commit,
+            scaffolds=SCAFFOLDS,
             model_repository=config["model"]["repository"],
             model_revision=config["model"]["revision"],
             assembly_accession=ASSEMBLY,

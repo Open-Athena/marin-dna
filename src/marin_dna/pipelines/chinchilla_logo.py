@@ -1094,6 +1094,7 @@ def write_dataset_readme(
     path: str | Path,
     *,
     application_commit: str,
+    scaffolds: Sequence[str],
     repository: str = "Open-Athena/marin-dna",
     model_repository: str = MODEL_REPOSITORY,
     model_revision: str = MODEL_REVISION,
@@ -1103,6 +1104,8 @@ def write_dataset_readme(
     assert len(application_commit) == 40, (
         "dataset README requires a full commit SHA for its immutable pipeline link"
     )
+    assert scaffolds and len(scaffolds) == len(set(scaffolds))
+    scaffold_lines = "\n".join(f"- `{scaffold}`" for scaffold in scaffolds)
     pipeline_url = (
         f"https://github.com/{repository}/blob/{application_commit}/"
         "snakemake/analysis/chinchilla_logo"
@@ -1126,6 +1129,16 @@ revision `{model_revision}` by the commit-pinned [chinchilla-logo pipeline]({pip
 This is a predictive next-token logo, not an LLR, mutation-effect, or constraint
 track. Each scored window uses exactly two logical sequences: the forward
 reference and its reverse complement.
+
+## Scope
+
+This pilot release scores only the following configured scaffold(s):
+
+{scaffold_lines}
+
+It is not a genome-wide chinchilla release. Positions outside the listed
+scaffold(s), assembly gaps, non-A/C/G/T bases, and canonical-run borders without
+full model context are absent rather than encoded as zero.
 
 ## Files
 
