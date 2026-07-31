@@ -42,6 +42,7 @@ import matplotlib.pyplot as plt
 
 TASKS = ("donor", "acceptor")
 DEFAULT_RADIUS = 30
+NOOP_ABSOLUTE_TOLERANCE = 0.02
 
 
 def counterfactual_sequences(sequence: str, *, radius: int) -> list[dict[str, Any]]:
@@ -265,8 +266,18 @@ def run_mutagenesis(
     assert record_frame.height == expected_rows
     unchanged = record_frame.filter(~pl.col("changed"))
     assert unchanged.height == len(TASKS) * 10 * (2 * radius + 1)
-    assert unchanged.select(pl.col("sae_delta").abs().max()).item() == 0
-    assert unchanged.select(pl.col("raw_delta").abs().max()).item() == 0
+    max_abs_noop_sae_delta = float(
+        unchanged.select(pl.col("sae_delta").abs().max()).item()
+    )
+    max_abs_noop_raw_delta = float(
+        unchanged.select(pl.col("raw_delta").abs().max()).item()
+    )
+    # The no-op sequences are byte-identical to the originals, but CUDA bf16
+    # kernels can change their accumulation order when the batch shape differs.
+    # Record the discrepancy and fail if it exceeds a few bf16 units rather
+    # than requiring bitwise equality across differently shaped batches.
+    assert max_abs_noop_sae_delta <= NOOP_ABSOLUTE_TOLERANCE
+    assert max_abs_noop_raw_delta <= NOOP_ABSOLUTE_TOLERANCE
     summary = (
         record_frame.group_by("task", "relative_position", "target_base")
         .agg(
@@ -305,6 +316,11 @@ def run_mutagenesis(
             "radius": radius,
             "target_bases_per_position": len(NUCLEOTIDES),
             "counterfactual_sequences": expected_rows,
+            "noop_absolute_tolerance": NOOP_ABSOLUTE_TOLERANCE,
+        },
+        "numerical_noop_check": {
+            "max_abs_sae_delta": max_abs_noop_sae_delta,
+            "max_abs_raw_delta": max_abs_noop_raw_delta,
         },
         "task_features": task_metadata,
         "runtime": {
