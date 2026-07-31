@@ -1,0 +1,45 @@
+# Direct SkyPilot task for the exp418 wiring and micro gates. Lambda Cloud is
+# the default; README.md documents the EC2 override. Autodown leaves a
+# 30-minute window after the job finishes to copy artifacts out of the VM.
+
+name: dna-exp418-sae
+
+resources:
+    infra: lambda/europe-central-1
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 100
+    autostop:
+        idle_minutes: 30
+        down: true
+
+workdir: .
+
+envs:
+    TIER: wiring
+    RUN_ID: dna-exp418-wiring-seed288
+    WIRING_MANIFEST_URI: ""
+    COMPUTE_PROVIDER: lambda
+    COMPUTE_INSTANCE_TYPE: gpu_1x_h100_pcie
+    SKYPILOT_CLUSTER_NAME: exp418-lambda
+    EXPERIMENT_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export HF_HUB_DOWNLOAD_TIMEOUT=120
+    export UV_LOCK_TIMEOUT=7200
+    uv run python launch.py \
+        --tier "$TIER" \
+        --run-id "$RUN_ID" \
+        --local-root artifacts \
+        --no-upload

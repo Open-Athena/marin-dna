@@ -554,12 +554,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     assert len(experiment_commit) == 40 and all(
         character in "0123456789abcdef" for character in experiment_commit
     ), "EXPERIMENT_COMMIT must be the full lowercase Git commit SHA"
+    wiring_manifest_uri = args.wiring_manifest_uri or os.environ.get(
+        "WIRING_MANIFEST_URI"
+    )
     wiring_prerequisite = None
     if tier.name == "micro":
-        assert args.wiring_manifest_uri, (
-            "--wiring-manifest-uri is required: the micro-run cannot bypass the wiring gate"
+        assert wiring_manifest_uri, (
+            "--wiring-manifest-uri or WIRING_MANIFEST_URI is required: "
+            "the micro-run cannot bypass the wiring gate"
         )
-        wiring_prerequisite = _validate_wiring_gate(args.wiring_manifest_uri)
+        wiring_prerequisite = _validate_wiring_gate(wiring_manifest_uri)
 
     local_dir = Path(args.local_root) / run_id
     assert not local_dir.exists(), f"refusing to overwrite local run: {local_dir}"
@@ -675,8 +679,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     destination_uri = None
     if not args.no_upload:
-        artifact_prefix = args.artifact_prefix or os.environ.get("MARIN_PREFIX")
-        assert artifact_prefix, "--artifact-prefix or MARIN_PREFIX is required"
+        artifact_prefix = args.artifact_prefix or os.environ.get("ARTIFACT_PREFIX")
+        assert artifact_prefix, "--artifact-prefix or ARTIFACT_PREFIX is required"
         destination_uri = f"{artifact_prefix.rstrip('/')}/experiments/exp418/{run_id}"
 
     manifest = {
@@ -702,7 +706,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "torch": torch.__version__,
             "cuda": torch.version.cuda,
             "sae_lens": importlib.metadata.version("sae-lens"),
-            "marin_iris": importlib.metadata.version("marin-iris"),
+            "compute_provider": os.environ.get("COMPUTE_PROVIDER", "unrecorded"),
+            "compute_instance_type": os.environ.get(
+                "COMPUTE_INSTANCE_TYPE", "unrecorded"
+            ),
+            "skypilot_cluster": os.environ.get(
+                "SKYPILOT_CLUSTER_NAME", "unrecorded"
+            ),
         },
         "artifact_hashes": {
             "sae_weights.safetensors": _sha256(weights_path),
