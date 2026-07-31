@@ -42,5 +42,22 @@ sky launch -d -c dna-exp420-mendelian-deltas \
 ```
 
 Retrieve `artifacts/$RUN_ID`, validate hashes and tables locally, and bring the
-cluster down immediately. The run writes compact selected-feature results and
-contexts rather than persisting the full dense feature-delta matrices.
+cluster down immediately. The run writes compact selected-feature results,
+per-row selected scores, and contexts rather than persisting the full dense
+feature-delta matrices.
+
+## Forward/RC score aggregate
+
+After inspecting the two orientations separately, combine their independently
+selected scores without averaging feature IDs:
+
+```bash
+uv run python aggregate.py \
+  --selected-scores <run>/selected_scores.parquet \
+  --results-json <run>/results.json \
+  --output-dir <run>/aggregate
+```
+
+The aggregator centers scores within each unlabeled match group, scales each
+orientation by its discovery+validation standard deviation, and takes a fixed
+equal-weight mean. No test labels or test-tuned weights enter the aggregate.

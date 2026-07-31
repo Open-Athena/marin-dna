@@ -765,6 +765,7 @@ def evaluate(
     baseline_rows: list[dict[str, Any]] = []
     cross_rows: list[dict[str, Any]] = []
     context_rows: list[dict[str, Any]] = []
+    selected_score_rows: list[dict[str, Any]] = []
     subsets = sorted(set(frame["subset"]) - DESCRIPTIVE_SUBSETS)
     with tempfile.TemporaryDirectory(prefix="dense-", dir=output_dir) as temp_name:
         matrices = _fill_delta_matrices(
@@ -778,6 +779,7 @@ def evaluate(
         labels_all = frame["label"].to_numpy().astype(np.int8)
         groups_all = frame["match_group"].to_numpy()
         for subset in subsets:
+            all_subset_indices = np.flatnonzero(frame["subset"].to_numpy() == subset)
             discovery_indices = _rows_for(frame, split="discovery", subset=subset)
             validation_indices = _rows_for(frame, split="validation", subset=subset)
             test_indices = _rows_for(frame, split="test", subset=subset)
@@ -854,6 +856,32 @@ def evaluate(
                             **result,
                         }
                     )
+                    oriented_subset_scores = direction * np.asarray(
+                        matrix[all_subset_indices, selected]
+                    )
+                    for global_index, score in zip(
+                        all_subset_indices, oriented_subset_scores, strict=True
+                    ):
+                        panel_row = frame.row(int(global_index), named=True)
+                        selected_score_rows.append(
+                            {
+                                "row_index": int(global_index),
+                                "subset": subset,
+                                "orientation": orientation,
+                                "space": space,
+                                "dimension": selected,
+                                "direction": direction,
+                                "validation_direction_consistent": replicated,
+                                "split": panel_row["split"],
+                                "label": panel_row["label"],
+                                "match_group": panel_row["match_group"],
+                                "chrom": panel_row["chrom"],
+                                "pos": panel_row["pos"],
+                                "ref": panel_row["ref"],
+                                "alt": panel_row["alt"],
+                                "score": float(score),
+                            }
+                        )
                     if space != "sae":
                         continue
                     source_scores = direction * np.asarray(matrix[:, selected])
@@ -929,6 +957,9 @@ def evaluate(
     cross = pl.DataFrame(cross_rows).sort(
         ["source_subset", "orientation", "target_subset"]
     )
+    selected_scores = pl.DataFrame(selected_score_rows).sort(
+        ["subset", "space", "orientation", "row_index"]
+    )
     contexts = pl.DataFrame(context_rows).sort(
         ["source_subset", "orientation", "label", "rank"],
         descending=[False, False, True, False],
@@ -938,12 +969,17 @@ def evaluate(
     assert baselines.height == len(subsets) * 3
     assert cross.height == len(subsets) ** 2 * len(ORIENTATIONS)
     assert contexts.height == len(subsets) * len(ORIENTATIONS) * 10
+    analyzed_rows = frame.filter(
+        ~pl.col("subset").is_in(sorted(DESCRIPTIVE_SUBSETS))
+    ).height
+    assert selected_scores.height == (analyzed_rows * len(ORIENTATIONS) * len(SPACES))
     for name, table in (
         ("summary", summary),
         ("candidates", candidates),
         ("baselines", baselines),
         ("cross_subset", cross),
         ("contexts", contexts),
+        ("selected_scores", selected_scores),
     ):
         assert table.null_count().sum_horizontal().sum() == (
             summary["known_nucleotide_base"].null_count() if name == "summary" else 0
