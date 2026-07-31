@@ -1,0 +1,18 @@
+"""Issue #419: chinchilla m5.1 two-pass predictive sequence-logo tracks."""
+
+
+configfile: "config/config.yaml"
+
+
+include: "rules/common.smk"
+include: "rules/reference.smk"
+include: "rules/score.smk"
+include: "rules/release.smk"
+
+
+rule all:
+    input:
+        "results/release/manifest/release.json",
+        "results/release/README.md",
+        "results/release/ucsc/hub.txt",
+        *BIGWIG_OUTPUTS,

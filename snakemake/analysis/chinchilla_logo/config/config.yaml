@@ -1,0 +1,29 @@
+assembly:
+  accession: GCF_000276665.1
+  base_url: https://hgdownload.soe.ucsc.edu/hubs/GCF/000/276/665/GCF_000276665.1
+  chrom_sizes_url: https://hgdownload.soe.ucsc.edu/hubs/GCF/000/276/665/GCF_000276665.1/GCF_000276665.1.chrom.sizes.txt
+  two_bit_url: https://hgdownload.soe.ucsc.edu/hubs/GCF/000/276/665/GCF_000276665.1/GCF_000276665.1.2bit
+
+# Stage 2 starts with the largest scaffold. Expanding this list is a paid-compute
+# decision made only after the benchmark and top-15 browser-value pilot.
+scaffolds:
+  - NW_004955402.1
+
+model:
+  repository: marin-dna/marin-dna-exp135-m5.1
+  revision: c0676b2012b8b9c526deb26ff517f6b92b6d375d
+
+tiling:
+  context_size: 255
+  stride: 128
+  retain_start: 63
+  retain_end: 191
+  phase: 0
+
+inference:
+  windows_per_chunk: 4096
+  batch_size: 128
+  num_workers: 2
+  torch_compile: true
+  bf16_full_eval: true
+  eval_accumulation_steps: null

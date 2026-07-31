@@ -1,0 +1,4 @@
+cores: 2
+use-conda: true
+printshellcmds: true
+show-failed-logs: true
