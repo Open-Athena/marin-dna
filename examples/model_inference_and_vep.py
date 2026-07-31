@@ -127,7 +127,7 @@ def _(runtime_dependencies_ready):
     # The notebook is self-contained when opened from a commit-pinned GitHub URL.
     # Install only MarinDNA itself here; every runtime dependency is pinned above.
     SOURCE_REVISION = "0242fc668389d02399ff9835a56326dda11ece98"
-    NOTEBOOK_REVISION = "852b13a4535d4610ac6cba6f517f5fcddda2ad78"
+    NOTEBOOK_REVISION = "a036d31d66a86474f79520503a24ec29b6dfd16a"
     revision_marker = (
         Path.home()
         / ".cache"
