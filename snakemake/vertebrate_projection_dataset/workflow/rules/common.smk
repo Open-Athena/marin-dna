@@ -1,6 +1,5 @@
 """Constants and fail-fast configuration checks for issue #417."""
 
-import subprocess
 from pathlib import Path
 
 import polars as pl
@@ -11,6 +10,9 @@ from marin_dna.pipelines.vertebrate_projection_dataset.manifest import (
 from marin_dna.pipelines.vertebrate_projection_dataset.mirror import (
     read_mirror_manifest,
     validate_multiz_mirror_contents,
+)
+from marin_dna.pipelines.vertebrate_projection_dataset.provenance import (
+    resolve_pipeline_commit,
 )
 
 PIPELINE_VERSION = str(config["pipeline_version"])
@@ -69,18 +71,6 @@ COHORT_RE = "|".join(COHORTS)
 
 HUMAN_SEQUENCES = f"{RESULTS}/sequences/human_reference.parquet"
 COMBINED_SEQUENCES = f"{RESULTS}/sequences/all_sources.parquet"
-
-
-def _git_sha():
-    result = subprocess.run(
-        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-    )
-    sha = result.stdout.strip()
-    assert len(sha) == 40
-    return sha
-
-
-GIT_SHA = _git_sha()
 
 
 rule active_species_manifest:

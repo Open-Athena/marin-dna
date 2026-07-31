@@ -4,9 +4,11 @@ name: vertebrate-projection
 # on the two local NVMes of c6id.12xlarge, combined as ~2.85 TB RAID0.
 #
 #   sky launch -c vertebrate-project \
-#     snakemake/vertebrate_projection_dataset/sky/project.yaml --env TIER=smoke
+#     snakemake/vertebrate_projection_dataset/sky/project.yaml \
+#     --env TIER=smoke --env PIPELINE_COMMIT_SHA=$(git rev-parse HEAD)
 #   sky exec vertebrate-project \
-#     snakemake/vertebrate_projection_dataset/sky/project.yaml --env TIER=full
+#     snakemake/vertebrate_projection_dataset/sky/project.yaml \
+#     --env TIER=full --env PIPELINE_COMMIT_SHA=$(git rev-parse HEAD)
 #   sky down vertebrate-project
 
 resources:

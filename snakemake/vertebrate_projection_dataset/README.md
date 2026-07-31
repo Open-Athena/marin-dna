@@ -138,7 +138,8 @@ sky launch -c vertebrate-multiz-mirror \
 
 sky launch -c vertebrate-project \
   snakemake/vertebrate_projection_dataset/sky/project.yaml \
-  --env TIER=smoke
+  --env TIER=smoke \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 
 Actively inspect first-run setup, HAL transfer rate, mounted capacity, rule

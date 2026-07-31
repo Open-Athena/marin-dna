@@ -110,7 +110,7 @@ rule dataset_card:
             input.validation,
             input.manifest,
             output[0],
-            pipeline_commit=GIT_SHA,
+            pipeline_commit=resolve_pipeline_commit(),
             hf_repo=params.repo,
             region_label=wildcards.region,
         )
