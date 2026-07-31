@@ -73,7 +73,7 @@ before the cluster is torn down.
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
-individual-feature, multiclass-probe, sequence-control, context, and plot
+individual-feature, SAE-only multiclass-probe, context, and plot
 analysis locally:
 
 ```bash
@@ -90,13 +90,12 @@ Feature and transform selection use discovery/validation blocks only. Test AUPRC
 and macro-F1 are read once, with AUPRC intervals bootstrapped over held-out 1 Mb
 blocks. An interval is omitted when a class has positives in fewer than two test
 blocks because spatial uncertainty is not identifiable. The script reports FWD
-and RC separately before the fixed arithmetic-mean view and includes raw-residual,
-substitution, and 31 bp k-mer-delta controls.
+and RC separately before the fixed arithmetic-mean view, then writes activating
+reference/alternate contexts for the selected SAE features.
 
-For the dense multiclass controls, `sky_analysis.yaml` uses a 16-vCPU EC2
-instance and parallelizes only the deterministic one-vs-rest class fits. Every
-SAE, raw-residual, and sequence-control probe receives the same fixed 100 SGD
-epochs:
+For the lightweight SAE-only multiclass check, `sky_analysis.yaml` uses a
+16-vCPU EC2 instance and parallelizes only the deterministic one-vs-rest class
+fits. Every orientation/transform receives the same fixed 100 SGD epochs:
 
 ```bash
 sky launch --dryrun -c dna-exp422-consequence-analysis \

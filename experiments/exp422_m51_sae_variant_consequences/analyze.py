@@ -16,7 +16,6 @@ import pyarrow.parquet as pq
 from marin_dna.data.dna import reverse_complement
 from marin_dna.data.genome import Genome
 from scipy import sparse
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import (
     accuracy_score,
@@ -25,10 +24,10 @@ from sklearn.metrics import (
     confusion_matrix,
     f1_score,
 )
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 ORIENTATIONS = ("forward", "reverse_complement", "mean")
-SPACES = ("sae", "raw")
+SPACES = ("sae",)
 TRANSFORMS = ("signed", "absolute")
 TOP_CANDIDATES = 64
 MIN_DISCOVERY_SUPPORT = 32
@@ -39,7 +38,7 @@ PROBE_EPOCHS = 100
 RANDOM_SEED = 422
 CONTEXT_RADIUS = 15
 
-Matrix = np.ndarray | np.memmap | sparse.csr_matrix
+Matrix = np.ndarray | sparse.csr_matrix
 
 
 def sha256_file(path: Path) -> str:
@@ -335,59 +334,6 @@ def fit_probe(
     )
 
 
-def sequence_context_matrix(
-    panel: pl.DataFrame,
-    *,
-    fasta_path: Path,
-    split: np.ndarray,
-) -> tuple[sparse.csr_matrix, int]:
-    genome = Genome(fasta_path, subset_chroms={"21"})
-    references: list[str] = []
-    alternates: list[str] = []
-    for row in panel.iter_rows(named=True):
-        pos0 = int(row["pos"]) - 1
-        start = pos0 - CONTEXT_RADIUS
-        end = pos0 + CONTEXT_RADIUS + 1
-        assert start >= 0
-        reference = genome("21", start, end, "+").upper()
-        assert len(reference) == 2 * CONTEXT_RADIUS + 1
-        assert reference[CONTEXT_RADIUS] == row["ref"]
-        alternate = (
-            reference[:CONTEXT_RADIUS] + row["alt"] + reference[CONTEXT_RADIUS + 1 :]
-        )
-        references.append(reference)
-        alternates.append(alternate)
-    discovery = np.flatnonzero(split == "discovery")
-    training_text = [references[index] for index in discovery] + [
-        alternates[index] for index in discovery
-    ]
-    vectorizer = CountVectorizer(
-        analyzer="char",
-        ngram_range=(1, 5),
-        lowercase=False,
-        min_df=2,
-        dtype=np.float32,
-    ).fit(training_text)
-    matrix = vectorizer.transform(alternates) - vectorizer.transform(references)
-    matrix = matrix.tocsr().astype(np.float32)
-    matrix.eliminate_zeros()
-    return matrix, len(vectorizer.vocabulary_)
-
-
-def substitution_matrix(panel: pl.DataFrame, split: np.ndarray) -> sparse.csr_matrix:
-    substitutions = np.asarray(
-        [f"{ref}>{alt}" for ref, alt in panel.select("ref", "alt").iter_rows()]
-    ).reshape(-1, 1)
-    discovery = np.flatnonzero(split == "discovery")
-    encoder = OneHotEncoder(
-        handle_unknown="ignore", sparse_output=True, dtype=np.float32
-    )
-    encoder.fit(substitutions[discovery])
-    output = encoder.transform(substitutions).tocsr()
-    assert output.shape[1] == 12
-    return output
-
-
 def context_rows(
     panel: pl.DataFrame,
     selected: pl.DataFrame,
@@ -461,9 +407,6 @@ def plot_summary(
         ("forward", "sae", "FWD SAE"),
         ("reverse_complement", "sae", "RC SAE"),
         ("mean", "sae", "mean SAE"),
-        ("forward", "raw", "FWD raw"),
-        ("reverse_complement", "raw", "RC raw"),
-        ("mean", "raw", "mean raw"),
     ]
     heatmap = np.full((len(class_order), len(columns)), np.nan)
     for row_index, class_name in enumerate(class_order):
@@ -587,9 +530,6 @@ def analyze(
             rows=panel.height,
             columns=d_sae,
         )
-        raw = np.load(extraction_dir / f"raw_delta_{orientation}.npy", mmap_mode="r")
-        assert raw.shape == (panel.height, 1_920) and np.isfinite(raw).all()
-        matrices[(orientation, "raw")] = raw
     mean_sae = (
         (matrices[("forward", "sae")] + matrices[("reverse_complement", "sae")])
         .multiply(0.5)
@@ -598,11 +538,6 @@ def analyze(
     mean_sae.eliminate_zeros()
     mean_sae.sort_indices()
     matrices[("mean", "sae")] = mean_sae
-    matrices[("mean", "raw")] = (
-        np.asarray(matrices[("forward", "raw")], dtype=np.float32)
-        + np.asarray(matrices[("reverse_complement", "raw")], dtype=np.float32)
-    ) * np.float32(0.5)
-
     individual_rows: list[dict[str, Any]] = []
     for orientation in ORIENTATIONS:
         for space in SPACES:
@@ -706,57 +641,6 @@ def analyze(
                             }
                         )
 
-    substitution = substitution_matrix(panel, split)
-    metrics, matrix_confusion, probe_classes = fit_probe(
-        substitution,
-        labels,
-        split,
-        orientation="sequence",
-        space="substitution",
-        transform="categorical",
-        probe_jobs=probe_jobs,
-    )
-    probe_rows.append(metrics)
-    for i, true_class in enumerate(probe_classes):
-        for j, predicted_class in enumerate(probe_classes):
-            confusion_data.append(
-                {
-                    "orientation": "sequence",
-                    "space": "substitution",
-                    "transform": "categorical",
-                    "true_class": true_class,
-                    "predicted_class": predicted_class,
-                    "fraction": float(matrix_confusion[i, j]),
-                }
-            )
-
-    kmer, vocabulary_size = sequence_context_matrix(
-        panel, fasta_path=fasta_path, split=split
-    )
-    metrics, matrix_confusion, probe_classes = fit_probe(
-        kmer,
-        labels,
-        split,
-        orientation="sequence",
-        space="31bp_kmer_delta",
-        transform="signed",
-        probe_jobs=probe_jobs,
-    )
-    metrics["features"] = vocabulary_size
-    probe_rows.append(metrics)
-    for i, true_class in enumerate(probe_classes):
-        for j, predicted_class in enumerate(probe_classes):
-            confusion_data.append(
-                {
-                    "orientation": "sequence",
-                    "space": "31bp_kmer_delta",
-                    "transform": "signed",
-                    "true_class": true_class,
-                    "predicted_class": predicted_class,
-                    "fraction": float(matrix_confusion[i, j]),
-                }
-            )
-
     probes = pl.DataFrame(probe_rows).sort(["space", "orientation", "transform"])
     confusion = pl.DataFrame(confusion_data).sort(
         ["space", "orientation", "transform", "true_class", "predicted_class"]
@@ -788,6 +672,7 @@ def analyze(
             "probe_alphas": list(PROBE_ALPHAS),
             "probe_epochs": PROBE_EPOCHS,
             "probe_jobs": probe_jobs,
+            "spaces": list(SPACES),
             "context_radius": CONTEXT_RADIUS,
             "orientation_order": list(ORIENTATIONS),
         },
