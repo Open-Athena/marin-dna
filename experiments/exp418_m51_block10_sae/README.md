@@ -29,42 +29,83 @@ One optimizer batch is exactly five windows × 255 nucleotide activations = 1,27
 
 The wiring stage saves two checkpoints, reloads the later checkpoint at an empty passthrough-buffer boundary, and makes the final artifact from the resumed runner. The micro stage is a fresh seed-288 run and requires the successful wiring `manifest.json` URI, preventing the larger run from bypassing the gate.
 
-## Accelerator launch (requires explicit approval)
+## Direct accelerator launch (requires explicit approval)
 
-Do not run either command until the user explicitly approves paid accelerator use. Run from this directory with the experiment branch committed and pushed. The public Hugging Face checkpoint means CoreWeave does not need GCS access.
+This experiment does not use Marin or Iris. The default [`sky.yaml`](sky.yaml) launches a single H100 PCIe directly on Lambda Cloud. Lambda is the first choice for these short gates: its on-demand H100 is non-preemptible and currently listed at $3.29/GPU-hour. AWS EC2 remains a CLI override; SkyPilot's current catalog lists `p5.4xlarge` at $6.88/hour on demand or about $2.81/hour on spot. The small spot discount versus Lambda is not worth adding preemption to the first wiring run. Prices and capacity can change; check [Lambda pricing](https://lambda.ai/pricing) and the dry-run estimate immediately before launch.
 
-```bash
-uv run iris --cluster=marin job run --no-wait \
-  --target-cluster cw-rno2a \
-  --job-name exp418-wiring \
-  --enable-extra-resources \
-  --gpu H100 --cpu 16 --memory 128g --disk 100g \
-  -e WANDB_API_KEY "$WANDB_API_KEY" \
-  -e MARIN_PREFIX s3://marin-us-east-02a/marin \
-  -e HF_HUB_DOWNLOAD_TIMEOUT 120 \
-  -e UV_LOCK_TIMEOUT 7200 \
-  -e EXPERIMENT_COMMIT "$(git rev-parse HEAD)" \
-  -- python launch.py --tier wiring
-```
-
-After the wiring `manifest.json` reports `engineering_gate_passed: true`, launch the fresh micro-run with its stable S3 URI:
+The installed SkyPilot client currently reports both providers enabled. Recheck without allocating anything:
 
 ```bash
-uv run iris --cluster=marin job run --no-wait \
-  --target-cluster cw-rno2a \
-  --job-name exp418-micro \
-  --enable-extra-resources \
-  --gpu H100 --cpu 16 --memory 128g --disk 100g \
-  -e WANDB_API_KEY "$WANDB_API_KEY" \
-  -e MARIN_PREFIX s3://marin-us-east-02a/marin \
-  -e HF_HUB_DOWNLOAD_TIMEOUT 120 \
-  -e UV_LOCK_TIMEOUT 7200 \
-  -e EXPERIMENT_COMMIT "$(git rev-parse HEAD)" \
-  -- python launch.py --tier micro \
-  --wiring-manifest-uri s3://marin-us-east-02a/marin/experiments/exp418/<wiring-run-id>/manifest.json
+sky check lambda
+sky check aws
+sky launch --dryrun --yes sky.yaml \
+  --infra lambda/europe-central-1 \
+  --instance-type gpu_1x_h100_pcie
 ```
 
-Artifacts land below the explicitly supplied S3-backed `MARIN_PREFIX` at `experiments/exp418/<run-id>/`. The launcher refuses to overwrite an existing local or S3 run.
+Do not remove `--dryrun` until the user explicitly approves paid accelerator use. For an approved wiring run, run from this directory with `WANDB_API_KEY` set and the experiment branch committed and pushed:
+
+```bash
+EXP418_COMMIT=$(git rev-parse HEAD)
+EXP418_RUN_ID="dna-exp418-wiring-seed288-${EXP418_COMMIT:0:12}"
+
+sky launch sky.yaml \
+  --cluster exp418-lambda \
+  --infra lambda/europe-central-1 \
+  --instance-type gpu_1x_h100_pcie \
+  --env TIER=wiring \
+  --env RUN_ID="$EXP418_RUN_ID" \
+  --env COMPUTE_PROVIDER=lambda \
+  --env COMPUTE_INSTANCE_TYPE=gpu_1x_h100_pcie \
+  --env SKYPILOT_CLUSTER_NAME=exp418-lambda \
+  --env EXPERIMENT_COMMIT="$EXP418_COMMIT" \
+  --secret WANDB_API_KEY
+```
+
+The task has a 30-minute idle **autodown**, not autostop: Lambda VMs cannot be stopped and restarted. Babysit the first run while `sky launch` streams logs. When it finishes, copy the complete artifact before the countdown expires, inspect the manifest, and then terminate immediately:
+
+```bash
+mkdir -p ../../scratch/issue418
+rsync -Pavz \
+  "exp418-lambda:~/sky_workdir/artifacts/${EXP418_RUN_ID}/" \
+  "../../scratch/issue418/${EXP418_RUN_ID}/"
+uv run python -m json.tool \
+  "../../scratch/issue418/${EXP418_RUN_ID}/manifest.json"
+sky down exp418-lambda
+```
+
+After verifying the local artifact, persist it from this AWS-authenticated machine at a reviewed S3 prefix. This step is intentionally local because the available AWS credential is an EC2 IAM role and should not be assumed portable to Lambda:
+
+```bash
+aws s3 cp --recursive \
+  "../../scratch/issue418/${EXP418_RUN_ID}/" \
+  "s3://oa-bolinas/experiments/exp418/${EXP418_RUN_ID}/"
+```
+
+Only if that wiring `manifest.json` reports `engineering_gate_passed: true`, launch the fresh micro-run with the stable manifest URI. Use a new run ID and cluster name:
+
+```bash
+EXP418_COMMIT=$(git rev-parse HEAD)
+EXP418_WIRING_URI="s3://oa-bolinas/experiments/exp418/<wiring-run-id>/manifest.json"
+EXP418_RUN_ID="dna-exp418-micro-seed288-${EXP418_COMMIT:0:12}"
+
+sky launch sky.yaml \
+  --cluster exp418-lambda-micro \
+  --infra lambda/europe-central-1 \
+  --instance-type gpu_1x_h100_pcie \
+  --env TIER=micro \
+  --env RUN_ID="$EXP418_RUN_ID" \
+  --env WIRING_MANIFEST_URI="$EXP418_WIRING_URI" \
+  --env COMPUTE_PROVIDER=lambda \
+  --env COMPUTE_INSTANCE_TYPE=gpu_1x_h100_pcie \
+  --env SKYPILOT_CLUSTER_NAME=exp418-lambda-micro \
+  --env EXPERIMENT_COMMIT="$EXP418_COMMIT" \
+  --secret WANDB_API_KEY
+```
+
+For an EC2 fallback, replace the Lambda resource flags with `--infra aws/us-east-2 --instance-type p5.4xlarge --no-use-spot`, and record `COMPUTE_PROVIDER=aws` and `COMPUTE_INSTANCE_TYPE=p5.4xlarge`. Use `--use-spot` only after explicitly accepting preemption. Artifact copying and teardown are otherwise identical.
+
+The launcher also supports direct object-store upload through `--artifact-prefix` or `ARTIFACT_PREFIX`, but the provider-neutral default is `--no-upload` plus `rsync`. It refuses to overwrite an existing local or remote run.
 
 ## Produced evidence
 
