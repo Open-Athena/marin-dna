@@ -1,0 +1,89 @@
+# Small Lambda GH200 throughput benchmark for issue #419.
+#
+# Launch from the repository root after committing the current branch:
+#   sky launch -c chinchilla-logo-gh200-bench \
+#     snakemake/analysis/chinchilla_logo/sky/run_gh200_benchmark.yaml \
+#     --env COMMIT_SHA=$(git rev-parse HEAD)
+
+name: chinchilla-logo-gh200-benchmark
+
+resources:
+  infra: lambda
+  accelerators: GH200:1
+  use_spot: false
+  disk_size: 100
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  COMMIT_SHA: ""
+
+setup: |
+  set -euxo pipefail
+
+  # Lambda GH200 nodes are ARM64. Use NVIDIA's multi-architecture PyTorch
+  # container so CUDA PyTorch and torch.compile are both available.
+  sudo docker pull nvcr.io/nvidia/pytorch:26.06-py3
+  sudo docker run --rm --gpus all \
+    nvcr.io/nvidia/pytorch:26.06-py3 \
+    python -c "import platform, torch; assert torch.cuda.is_available(); print(platform.machine()); print(torch.__version__); print(torch.cuda.get_device_name(0))"
+
+run: |
+  set -euxo pipefail
+  test "${#COMMIT_SHA}" -eq 40
+
+  sudo docker run --rm --gpus all --ipc=host \
+    --ulimit memlock=-1 --ulimit stack=67108864 \
+    -e COMMIT_SHA -e WANDB_DISABLED=true \
+    -v "$PWD:/workspace/bolinas-dna" \
+    -w /workspace/bolinas-dna \
+    nvcr.io/nvidia/pytorch:26.06-py3 \
+    bash -lc '
+      set -euxo pipefail
+
+      if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+      fi
+      export PATH="/root/.local/bin:$PATH"
+      uv venv --python python --system-site-packages .venv
+      uv sync --frozen --no-dev --no-install-package torch --inexact
+      uv run python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__); print(torch.cuda.get_device_name(0))"
+
+      cd snakemake/analysis/chinchilla_logo
+      BENCHMARK_ROOT=results/benchmark/gh200
+      mkdir -p "$BENCHMARK_ROOT"
+
+      nvidia-smi \
+        --query-gpu=timestamp,name,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu,clocks.sm \
+        --format=csv \
+        --loop=2 > "$BENCHMARK_ROOT/gpu.csv" &
+      GPU_MONITOR_PID=$!
+      cleanup() {
+        kill "$GPU_MONITOR_PID" 2>/dev/null || true
+      }
+      trap cleanup EXIT
+
+      uv run --project ../../.. python ../../../scripts/issue419_prepare_region_benchmark.py \
+        --commit-sha "$COMMIT_SHA" \
+        --output-dir "$BENCHMARK_ROOT/input" \
+        --end 2000000 \
+        --min-windows 8192
+
+      /usr/bin/time -v -o "$BENCHMARK_ROOT/batch_sweep.time" \
+        uv run --project ../../.. python ../../../scripts/issue419_batch_sweep.py \
+          --plan "$BENCHMARK_ROOT/input/plan.parquet" \
+          --genome "$BENCHMARK_ROOT/input/region.fa" \
+          --output-dir "$BENCHMARK_ROOT/batch_sweep" \
+          --batch-sizes 128 256 \
+          --sample-windows 8192 \
+          --windows-per-chunk 4096 \
+          --num-workers 4 8 \
+          --gpu-hourly-cost 2.29
+
+      cleanup
+      trap - EXIT
+      nvidia-smi
+    '
+

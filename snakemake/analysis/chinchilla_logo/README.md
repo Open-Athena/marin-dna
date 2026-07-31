@@ -76,6 +76,30 @@ back before teardown. Retrieve `results/benchmark`, `results/plans`,
 `results/shards`, and `results/release`, verify them locally, then explicitly
 terminate the cluster to stop compute charges.
 
+### Lambda GH200 cost calibration
+
+`sky/run_gh200_benchmark.yaml` measures the same m5.1 two-pass scoring path on
+one on-demand Lambda GH200 without running the full scaffold. It fetches a
+2 Mb prefix of `NW_004955402.1` through UCSC's sequence API, plans canonical
+windows with the production tiling code, and scores 8,192 windows (about
+1.05 million retained bases) per configuration. The primary configuration
+matches the VEP evaluation default: batch size 128, four DataLoader workers,
+BF16 evaluation, and `torch.compile`. Batch size 256 and eight workers are
+execution-only neighbors that test whether the larger GH200 benefits from more
+device or input parallelism.
+The task pins NVIDIA's official `26.06-py3` multi-architecture PyTorch
+container so the GH200's ARM64 CUDA runtime and PyTorch build are explicit and
+reproducible.
+
+Launch only after explicit paid-compute approval:
+
+```bash
+sky launch -c chinchilla-logo-gh200-bench \
+  snakemake/analysis/chinchilla_logo/sky/run_gh200_benchmark.yaml \
+  --env COMMIT_SHA=$(git rev-parse HEAD)
+```
+
+Copy `results/benchmark/gh200` back after the run, then terminate the cluster.
 
 ## Resumption and bounded memory
 
