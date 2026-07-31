@@ -43,6 +43,8 @@ sky launch --dryrun --yes sky.yaml \
   --instance-type gpu_1x_h100_pcie
 ```
 
+The runtime pins the official PyTorch `2.11.0+cu128` wheel. Lambda's current H100 driver supports CUDA 12.8 but not the CUDA 13.0 wheel selected by unbounded PyTorch resolution. Remote setup asserts CUDA availability, exactly one GPU, and the device name before the job starts.
+
 Do not remove `--dryrun` until the user explicitly approves paid accelerator use. For an approved wiring run, run from this directory with `WANDB_API_KEY` set and the experiment branch committed and pushed:
 
 ```bash
