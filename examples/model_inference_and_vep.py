@@ -4,7 +4,7 @@
 #     "accelerate==1.13.0",
 #     "datasets==3.6.0",
 #     "einops==0.8.1",
-#     "fsspec==2025.3.0",
+#     "fsspec[http]==2025.3.0",
 #     "huggingface-hub==0.36.2",
 #     "ipython==9.15.0",
 #     "jaxtyping==0.3.9",
@@ -15,7 +15,6 @@
 #     "numpy==2.4.3",
 #     "pandas==2.3.3",
 #     "pyfaidx==0.9.0.4",
-#     "s3fs==2025.3.0",
 #     "scikit-learn==1.8.0",
 #     "seaborn==0.13.2",
 #     "torch==2.8.0",
@@ -40,10 +39,7 @@ def _():
 
     required_modules = {
         "accelerate": "accelerate==1.13.0",
-        "aiobotocore": "aiobotocore==2.26.0",
         "aiohttp": "aiohttp==3.14.3",
-        "aioitertools": "aioitertools==0.13.0",
-        "botocore": "botocore==1.41.5",
         "datasets": "datasets==3.6.0",
         "dateutil": "python-dateutil==2.9.0.post0",
         "einops": "einops==0.8.1",
@@ -52,18 +48,15 @@ def _():
         "IPython": "ipython==9.15.0",
         "jaxtyping": "jaxtyping==0.3.9",
         "joblib": "joblib==1.5.3",
-        "jmespath": "jmespath==1.1.0",
         "logomaker": "logomaker==0.8.7",
         "matplotlib": "matplotlib==3.10.8",
         "multidict": "multidict==6.7.1",
         "numpy": "numpy==2.4.3",
         "pandas": "pandas==2.3.3",
         "pyfaidx": "pyfaidx==0.9.0.4",
-        "s3fs": "s3fs==2025.3.0",
         "sklearn": "scikit-learn==1.8.0",
         "seaborn": "seaborn==0.13.2",
         "transformers": "transformers==4.57.6",
-        "wrapt": "wrapt==1.17.3",
     }
     missing_requirements = [
         requirement
@@ -118,10 +111,9 @@ def _(runtime_dependencies_ready):
     import seaborn as sns
     import torch
 
-    # The notebook opens the remote FASTA in the parent before VEP. Linux fork
-    # would inherit fsspec's async-loop state without its thread, deadlocking
-    # every data worker on its first S3 open. Spawn gives each worker a clean
-    # loop and matches hosted notebook runtimes.
+    # The notebook opens the remote FASTA in the parent before VEP. Spawn gives
+    # each data-loader worker a clean pyfaidx/fsspec HTTP handle and async loop,
+    # matching hosted notebook runtimes.
     torch.multiprocessing.set_start_method("spawn", force=True)
     assert torch.multiprocessing.get_start_method() == "spawn"
 
@@ -221,13 +213,13 @@ def _(runtime_dependencies_ready):
 
 @app.cell
 def _(NOTEBOOK_REVISION):
-    MODEL_ID = "bolinas-dna/marin-dna-exp135-m5.1"
+    MODEL_ID = "marin-dna/marin-dna-exp135-m5.1"
     MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
     MODEL_DOWNLOAD_BYTES = 4_483_112_944
-    DATASET_ID = "bolinas-dna/evals_sge"
+    DATASET_ID = "marin-dna/evals_sge"
     DATASET_REVISION = "225d3d1ea32a4af547891b13c33b5e92a5aae849"
-    REFERENCE_FASTA = "s3://broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"
-    TH_CHROM = "chr11"
+    REFERENCE_FASTA = "https://huggingface.co/datasets/marin-dna/human-genome/resolve/11b9433582981bb929af333bc6422f10a8fd71b4/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa"
+    TH_CHROM = "11"
     TH_START = 2_171_682
     TH_END = 2_171_868
     TH_STRAND = "-"
@@ -400,9 +392,9 @@ def _(
 
 @app.cell
 def _(Genome, REFERENCE_FASTA):
-    genome = Genome(REFERENCE_FASTA, storage_options={"anon": True})
-    assert genome.chroms["chr11"] == 135_086_622
-    assert genome.chroms["chr17"] == 83_257_441
+    genome = Genome(REFERENCE_FASTA)
+    assert genome.chroms["11"] == 135_086_622
+    assert genome.chroms["17"] == 83_257_441
     return (genome,)
 
 
@@ -410,12 +402,12 @@ def _(Genome, REFERENCE_FASTA):
 def _(REFERENCE_FASTA, mo):
     mo.callout(
         mo.md(
-            f"""
-            **Reference asset:** Broad/1000 Genomes GRCh38 analysis-set FASTA
-            `{REFERENCE_FASTA}`. It uses `chr`-prefixed contigs and is accessed
-            anonymously through byte-range reads with its adjacent `.fai`; this
-            does not download all of GRCh38. It is not assumed interchangeable
-            with MarinDNA's Ensembl release 115 soft-masked primary assembly.
+            """
+            **Reference asset:** pinned public Ensembl release 115 GRCh38
+            soft-masked primary assembly from
+            [`marin-dna/human-genome`](https://huggingface.co/datasets/marin-dna/human-genome).
+            It uses Ensembl contig names and credential-free HTTP byte-range
+            reads with its adjacent `.fai`; this does not download all of GRCh38.
             """
         ),
         kind="info",
@@ -791,17 +783,14 @@ def _(DATASET_ID, DATASET_REVISION, Dataset, genome, load_dataset, np):
     assert brca1_frame["ref"].isin(list("ACGT")).all()
     assert brca1_frame["alt"].isin(list("ACGT")).all()
 
-    # Preserve source fields, but map the runner-facing contig to this FASTA.
+    # Preserve source fields; they already use the Ensembl contig names.
     scoring_frame = brca1_frame.copy()
     scoring_frame["row_id"] = np.arange(len(scoring_frame), dtype=np.int64)
     scoring_frame["source_chrom"] = scoring_frame["chrom"]
     scoring_frame["source_pos_1based"] = scoring_frame["pos"]
-    scoring_frame["chrom"] = "chr" + scoring_frame["chrom"].astype(str)
+    scoring_frame["chrom"] = scoring_frame["chrom"].astype(str)
     reference_bases = np.array(
-        [
-            genome("chr17", int(pos) - 1, int(pos)).upper()
-            for pos in scoring_frame["pos"]
-        ]
+        [genome("17", int(pos) - 1, int(pos)).upper() for pos in scoring_frame["pos"]]
     )
     assert np.array_equal(reference_bases, scoring_frame["ref"].to_numpy())
     scoring_dataset = Dataset.from_pandas(scoring_frame, preserve_index=False)
@@ -841,8 +830,8 @@ def _(DATASET_ID, DATASET_REVISION, brca1_frame, mo):
                 1-based**. Every reference check above explicitly reads the
                 0-based, half-open FASTA interval **`[pos - 1, pos)`**. Direct
                 `Genome` intervals elsewhere in MarinDNA remain 0-based,
-                half-open. Source contig `17` is preserved for display and mapped
-                to Broad FASTA contig `chr17` only at the scoring boundary.
+                half-open. Source contig `17` already matches the Ensembl FASTA,
+                so no contig renaming is needed at the scoring boundary.
                 """
             ),
             dataset_counts,

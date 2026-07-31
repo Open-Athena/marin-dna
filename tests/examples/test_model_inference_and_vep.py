@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 from pathlib import Path
+
+import pytest
 
 NOTEBOOK = Path(__file__).parents[2] / "examples" / "model_inference_and_vep.py"
 SESSION_SNAPSHOT = (
@@ -14,6 +17,8 @@ SOURCE_REVISION = "0242fc668389d02399ff9835a56326dda11ece98"
 NOTEBOOK_REVISION = "852b13a4535d4610ac6cba6f517f5fcddda2ad78"
 MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
 DATASET_REVISION = "225d3d1ea32a4af547891b13c33b5e92a5aae849"
+BROAD_REFERENCE_FASTA = "s3://broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"
+ENSEMBL_REFERENCE_FASTA = "https://huggingface.co/datasets/marin-dna/human-genome/resolve/11b9433582981bb929af333bc6422f10a8fd71b4/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa"
 
 
 def test_notebook_is_valid_python_with_immutable_revisions():
@@ -25,7 +30,12 @@ def test_notebook_is_valid_python_with_immutable_revisions():
     assert f'NOTEBOOK_REVISION = "{NOTEBOOK_REVISION}"' in source
     assert f'MODEL_REVISION = "{MODEL_REVISION}"' in source
     assert f'DATASET_REVISION = "{DATASET_REVISION}"' in source
-    assert '"s3://broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"' in source
+    assert (
+        "marin-dna/human-genome/resolve/11b9433582981bb929af333bc6422f10a8fd71b4"
+        in source
+    )
+    assert 'MODEL_ID = "marin-dna/marin-dna-exp135-m5.1"' in source
+    assert 'DATASET_ID = "marin-dna/evals_sge"' in source
 
 
 def test_notebook_declares_complete_analysis_stack():
@@ -35,7 +45,7 @@ def test_notebook_declares_complete_analysis_stack():
         "ipython==",
         "logomaker==",
         "marimo==",
-        "s3fs==",
+        "fsspec[http]==",
         "scikit-learn==",
         "seaborn==",
         "torch==",
@@ -47,9 +57,8 @@ def test_notebook_declares_complete_analysis_stack():
 def test_notebook_bootstraps_missing_runtime_dependencies():
     source = NOTEBOOK.read_text(encoding="utf-8")
     assert "missing_requirements = [" in source
-    assert '"aiobotocore": "aiobotocore==2.26.0"' in source
-    assert '"aioitertools": "aioitertools==0.13.0"' in source
-    assert '"botocore": "botocore==1.41.5"' in source
+    assert '"aiohttp": "aiohttp==3.14.3"' in source
+    assert '"s3fs":' not in source
     assert "runtime_dependencies_ready" in source
     assert "--disable-pip-version-check" in source
     assert "--no-deps" in source
@@ -80,7 +89,7 @@ def test_notebook_exposes_required_inference_and_vep_paths():
         "VEP_TORCH_COMPILE = True",
         '"torch_compile": VEP_TORCH_COMPILE',
         '"dataloader_num_workers": VEP_DATALOADER_WORKERS',
-        'genome("chr17", int(pos) - 1, int(pos))',
+        'genome("17", int(pos) - 1, int(pos))',
         'torch.multiprocessing.set_start_method("spawn", force=True)',
     ):
         assert required_snippet in source
@@ -160,3 +169,54 @@ def test_notebook_session_snapshot_contains_complete_rendered_run():
     ):
         assert expected_output in rendered_session
     assert "Main sequence likelihood:" not in rendered_session
+
+
+@pytest.mark.skipif(
+    os.getenv("MARIN_DNA_VALIDATE_BRCA1_REFERENCE") != "1",
+    reason="set MARIN_DNA_VALIDATE_BRCA1_REFERENCE=1 for remote reference validation",
+)
+def test_public_ensembl_reference_matches_all_notebook_model_inputs():
+    from datasets import load_dataset
+
+    from marin_dna.data.genome import Genome
+
+    broad = Genome(BROAD_REFERENCE_FASTA, storage_options={"anon": True})
+    ensembl = Genome(ENSEMBL_REFERENCE_FASTA)
+    assert broad.chroms["chr11"] == ensembl.chroms["11"] == 135_086_622
+    assert broad.chroms["chr17"] == ensembl.chroms["17"] == 83_257_441
+
+    th_start = 2_171_682
+    th_end = 2_171_868
+    broad_th = broad("chr11", th_start, th_end, strand="-").upper()
+    ensembl_th = ensembl("11", th_start, th_end, strand="-").upper()
+    assert broad_th == ensembl_th
+    assert len(ensembl_th) == th_end - th_start == 186
+
+    sge = load_dataset(
+        "marin-dna/evals_sge",
+        split="train",
+        revision=DATASET_REVISION,
+    )
+    brca1 = sge.filter(lambda row: row["gene"] == "BRCA1").select_columns(
+        ["chrom", "pos", "ref"]
+    )
+    frame = brca1.to_pandas()
+    assert len(frame) == 2_751
+    assert frame["chrom"].unique().tolist() == ["17"]
+
+    window_size = 255
+    left_flank = window_size // 2
+    positions = frame["pos"].astype(int)
+    block_start = int(positions.min()) - 1 - left_flank
+    block_end = int(positions.max()) - 1 - left_flank + window_size
+    broad_block = broad("chr17", block_start, block_end).upper()
+    ensembl_block = ensembl("17", block_start, block_end).upper()
+    assert broad_block == ensembl_block
+    assert len(ensembl_block) == block_end - block_start
+
+    for pos, ref in zip(positions, frame["ref"], strict=True):
+        window_start = int(pos) - 1 - left_flank
+        offset = window_start - block_start
+        context = ensembl_block[offset : offset + window_size]
+        assert len(context) == window_size
+        assert context[left_flank] == ref
