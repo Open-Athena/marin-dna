@@ -1,0 +1,132 @@
+# Full GCF_000276665.1 scoring and UCSC-hub build for issue #419.
+#
+# Launch from the repository root after committing the current branch:
+#   sky launch -c chinchilla-logo-gh200-full --detach-run --down \
+#     snakemake/analysis/chinchilla_logo/sky/run_gh200_full.yaml \
+#     --env COMMIT_SHA=$(git rev-parse HEAD)
+
+name: chinchilla-logo-gh200-full
+
+resources:
+  infra: lambda
+  accelerators: GH200:1
+  use_spot: false
+  disk_size: 300
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  COMMIT_SHA: ""
+
+file_mounts:
+  /issue419-persistent:
+    source: s3://oa-bolinas
+    mode: MOUNT
+
+setup: |
+  set -euxo pipefail
+
+  # Lambda GH200 nodes are ARM64. NVIDIA's multi-architecture container
+  # supplies the matching CUDA PyTorch build; Snakemake creates an ARM64
+  # conda environment for twoBitToFa and samtools inside the container.
+  sudo docker pull nvcr.io/nvidia/pytorch:26.06-py3
+  sudo docker run --rm --gpus all \
+    nvcr.io/nvidia/pytorch:26.06-py3 \
+    python -c "import platform, torch; assert torch.cuda.is_available(); assert platform.machine() == 'aarch64'; print(torch.__version__); print(torch.cuda.get_device_name(0))"
+
+run: |
+  set -euxo pipefail
+  test "${#COMMIT_SHA}" -eq 40
+
+  RUN_ROOT="/issue419-persistent/snakemake/analysis/chinchilla_logo/issue419-full/runs/$COMMIT_SHA"
+  mkdir -p "$RUN_ROOT/logs" "$RUN_ROOT/shards"
+  printf '%s\n' "$COMMIT_SHA" > "$RUN_ROOT/STORAGE_SMOKE_TEST"
+  test "$(cat "$RUN_ROOT/STORAGE_SMOKE_TEST")" = "$COMMIT_SHA"
+
+  sudo docker run --rm --gpus all --ipc=host --network=host \
+    --ulimit memlock=-1 --ulimit stack=67108864 \
+    -e COMMIT_SHA="$COMMIT_SHA" -e WANDB_DISABLED=true \
+    -v "$PWD:/workspace/bolinas-dna" \
+    -v /issue419-persistent:/issue419-persistent \
+    -w /workspace/bolinas-dna \
+    nvcr.io/nvidia/pytorch:26.06-py3 \
+    bash -lc '
+      set -euxo pipefail
+      RUN_ROOT="/issue419-persistent/snakemake/analysis/chinchilla_logo/issue419-full/runs/$COMMIT_SHA"
+
+      if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+      fi
+      export PATH="/root/.local/bin:$PATH"
+      NGC_PYTHON="$(command -v python)"
+
+      if [ ! -x .issue419/miniforge3/bin/conda ]; then
+        mkdir -p .issue419
+        curl -fsSL -o .issue419/miniforge.sh \
+          https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh
+        bash .issue419/miniforge.sh -b -p "$PWD/.issue419/miniforge3"
+      fi
+      export PATH="$PWD/.issue419/miniforge3/bin:$PATH"
+      export CONDA_EXE="$PWD/.issue419/miniforge3/bin/conda"
+      conda config --set channel_priority strict
+
+      if ! .venv/bin/python -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+        uv venv --clear --python "$NGC_PYTHON" --system-site-packages .venv
+        uv sync --frozen --no-dev --no-install-package torch --inexact
+      fi
+      uv run --no-sync python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__); print(torch.cuda.get_device_name(0))"
+
+      cd snakemake/analysis/chinchilla_logo
+      mkdir -p results
+      test ! -e results/shards
+      ln -s "$RUN_ROOT/shards" results/shards
+
+      nvidia-smi \
+        --query-gpu=timestamp,name,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu,clocks.sm \
+        --format=csv \
+        --loop=5 > "$RUN_ROOT/logs/gpu.csv" &
+      GPU_MONITOR_PID=$!
+      cleanup() {
+        kill "$GPU_MONITOR_PID" 2>/dev/null || true
+      }
+      trap cleanup EXIT
+
+      # Full-DAG parsing reads the ordered UCSC sequence inventory, so fetch
+      # that small prerequisite under the default configuration first.
+      uv run --no-sync --project ../../.. snakemake \
+        --profile workflow/profiles/default \
+        --config "commit_sha=$COMMIT_SHA" \
+        --printshellcmds \
+        results/reference/GCF_000276665.1.chrom.sizes.txt
+
+      uv run --no-sync --project ../../.. snakemake \
+        --profile workflow/profiles/default \
+        --configfile config/full_genome.yaml \
+        --config "commit_sha=$COMMIT_SHA" \
+        --printshellcmds \
+        --dry-run > "$RUN_ROOT/logs/dryrun.log"
+
+      /usr/bin/time -v -o "$RUN_ROOT/logs/snakemake.time" \
+        uv run --no-sync --project ../../.. snakemake \
+          --profile workflow/profiles/default \
+          --configfile config/full_genome.yaml \
+          --config "commit_sha=$COMMIT_SHA" \
+          --printshellcmds \
+          --rerun-incomplete 2>&1 | tee "$RUN_ROOT/logs/snakemake.log"
+
+      mkdir -p "$RUN_ROOT/release" "$RUN_ROOT/plans"
+      cp -a results/release/. "$RUN_ROOT/release/"
+      cp -a results/plans/. "$RUN_ROOT/plans/"
+
+      find results/release -type f -printf "%P\t%s\n" | sort > /tmp/local-release-inventory.tsv
+      find "$RUN_ROOT/release" -type f -printf "%P\t%s\n" | sort > "$RUN_ROOT/release-inventory.tsv"
+      diff -u /tmp/local-release-inventory.tsv "$RUN_ROOT/release-inventory.tsv"
+      printf "{\"application_commit\":\"%s\",\"complete\":true}\n" \
+        "$COMMIT_SHA" > "$RUN_ROOT/COMPLETE.json"
+
+      cleanup
+      trap - EXIT
+      nvidia-smi
+    '

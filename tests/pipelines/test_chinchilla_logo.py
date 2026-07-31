@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -11,6 +12,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+import marin_dna.pipelines.chinchilla_logo as chinchilla_logo
 from marin_dna.data.dna import reverse_complement
 from marin_dna.model.sequence_interpretation import (
     _strand_nucleotide_logits,
@@ -22,9 +24,11 @@ from marin_dna.pipelines.chinchilla_logo import (
     aggregate_strand_logits,
     canonical_runs,
     compute_window_nucleotide_logits,
+    list_score_shards,
     load_score_shard,
     logo_from_log_probabilities,
     parse_chrom_sizes,
+    score_window_plans,
     sha256_file,
     tile_canonical_run,
     tile_sequence,
@@ -33,6 +37,7 @@ from marin_dna.pipelines.chinchilla_logo import (
     write_release_manifest,
     write_score_shard,
     write_ucsc_hub,
+    write_window_plans,
 )
 from marin_dna.tokenizer.char import create_char_tokenizer
 
@@ -108,6 +113,48 @@ def test_tile_sequence_reconciles_gaps_short_runs_and_boundaries():
     )
     assert windows[0].run_start == 259
     _assert_exact_once(windows)
+
+
+def test_write_window_plans_reuses_genome_and_keeps_empty_scaffolds(
+    tmp_path, monkeypatch
+):
+    sequences = {"chr1": "A" * 300, "chr2": "N" * 20}
+    genome_instances = []
+
+    class _Genome:
+        def __init__(self, _path, *, subset_chroms):
+            assert subset_chroms == set(sequences)
+            self.chroms = {
+                chrom: len(sequence) for chrom, sequence in sequences.items()
+            }
+            genome_instances.append(self)
+
+        def __call__(self, chrom, start, end):
+            return sequences[chrom][start:end]
+
+    monkeypatch.setattr(chinchilla_logo, "Genome", _Genome)
+    chrom_sizes = tmp_path / "chrom.sizes"
+    chrom_sizes.write_text("chr1\t300\nchr2\t20\n")
+    plan_dir = tmp_path / "plans"
+    stats = write_window_plans(
+        tmp_path / "genome.fa",
+        chrom_sizes,
+        ["chr1", "chr2"],
+        plan_dir,
+    )
+
+    assert len(genome_instances) == 1
+    assert [row.chrom for row in stats] == ["chr1", "chr2"]
+    assert stats[0].window_count == 2
+    assert stats[1].window_count == 0
+    assert (plan_dir / "chr1.parquet").is_file()
+    assert (plan_dir / "chr2.parquet").is_file()
+    assert (
+        json.loads((plan_dir / "chr2.coverage.json").read_text())["coverage"][
+            "scored_bases"
+        ]
+        == 0
+    )
 
 
 def test_shifted_phase_has_shared_positions_from_different_frames():
@@ -298,6 +345,18 @@ def test_ucsc_hub_defaults_and_dataset_readme(tmp_path):
     assert "`chr1`" in text
     assert "not a genome-wide" in text
 
+    full_readme = tmp_path / "FULL_README.md"
+    write_dataset_readme(
+        full_readme,
+        application_commit=commit,
+        scaffolds=["chr1", "chr2"],
+        full_assembly=True,
+    )
+    full_text = full_readme.read_text()
+    assert "genome-wide release covers all 2 sequences" in full_text
+    assert "browser-authoritative UCSC" in full_text
+    assert "not a genome-wide" not in full_text
+
 
 def test_chrom_sizes_and_sha256_are_deterministic(tmp_path):
     path = tmp_path / "chrom.sizes"
@@ -316,6 +375,120 @@ def test_score_shard_metadata_is_json(tmp_path):
     write_score_shard(path, [window], logp, metadata=metadata)
     with np.load(path, allow_pickle=False) as archive:
         assert json.loads(str(archive["metadata_json"].item())) == metadata
+
+
+def test_list_score_shards_can_allow_unscoreable_scaffolds(tmp_path):
+    scored = tmp_path / "scored"
+    empty = tmp_path / "empty"
+    scored.mkdir()
+    empty.mkdir()
+    shard = scored / "part-000000.npz"
+    shard.touch()
+
+    assert list_score_shards([scored, empty], allow_empty=True) == [shard]
+    with pytest.raises(AssertionError, match="no score shards"):
+        list_score_shards([scored, empty])
+
+
+def test_score_window_plans_loads_one_model_for_multiple_scaffolds(
+    tmp_path, monkeypatch
+):
+    tokenizer = object()
+    model = nn.Identity()
+    factory_calls = {"tokenizer": 0, "model": 0, "genome": 0}
+
+    def _tokenizer_factory(*_args, **_kwargs):
+        factory_calls["tokenizer"] += 1
+        return tokenizer
+
+    def _model_factory(*_args, **_kwargs):
+        factory_calls["model"] += 1
+        return model
+
+    class _Genome:
+        def __init__(self, _path, *, subset_chroms):
+            factory_calls["genome"] += 1
+            self.chroms = {chrom: 300 for chrom in subset_chroms}
+
+    calls = []
+
+    def _score_one(
+        plan_path,
+        _genome_path,
+        _shard_dir,
+        runtime_path,
+        done_path,
+        *,
+        expected_chrom,
+        model: nn.Module,
+        tokenizer,
+        genome,
+        **_kwargs,
+    ):
+        assert plan_path == tmp_path / f"{expected_chrom}.parquet"
+        assert model is test_model
+        assert tokenizer is test_tokenizer
+        assert genome.chroms[expected_chrom] == 300
+        calls.append(expected_chrom)
+        runtime = {
+            "chrom": expected_chrom,
+            "window_count": 1,
+            "logical_scored_sequence_count": 2,
+            "scored_base_count": 128,
+            "shard_count": 1,
+            "resumed_shard_count": 0,
+            "model_inference_seconds": 2.0,
+            "wall_seconds_this_invocation": 2.1,
+            "windows_per_second": 0.5,
+            "bases_per_second": 64.0,
+            "gpu": "test-gpu",
+            "peak_vram_bytes": 123,
+            "batch_size": 128,
+            "num_workers": 4,
+            "torch_compile": True,
+            "bf16_full_eval": True,
+            "eval_accumulation_steps": None,
+            "per_shard": [],
+        }
+        Path(runtime_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(runtime_path).write_text(json.dumps(runtime))
+        Path(done_path).write_text(json.dumps({"complete": True, **runtime}))
+        return runtime
+
+    test_model = model
+    test_tokenizer = tokenizer
+    monkeypatch.setattr(
+        chinchilla_logo.AutoTokenizer,
+        "from_pretrained",
+        staticmethod(_tokenizer_factory),
+    )
+    monkeypatch.setattr(
+        chinchilla_logo.AutoModelForCausalLM,
+        "from_pretrained",
+        staticmethod(_model_factory),
+    )
+    monkeypatch.setattr(chinchilla_logo, "Genome", _Genome)
+    monkeypatch.setattr(chinchilla_logo, "score_window_plan", _score_one)
+
+    runtime_path = tmp_path / "shards" / "scope.runtime.json"
+    done_path = tmp_path / "shards" / "scope.done.json"
+    runtime = score_window_plans(
+        [tmp_path / "chr1.parquet", tmp_path / "chr2.parquet"],
+        ["chr1", "chr2"],
+        tmp_path / "genome.fa",
+        tmp_path / "shards",
+        runtime_path,
+        done_path,
+        application_commit="a" * 40,
+        num_workers=4,
+    )
+
+    assert factory_calls == {"tokenizer": 1, "model": 1, "genome": 1}
+    assert calls == ["chr1", "chr2"]
+    assert runtime["scaffold_count"] == 2
+    assert runtime["window_count"] == 2
+    assert runtime["scored_base_count"] == 256
+    assert runtime_path.is_file() and done_path.is_file()
 
 
 def test_release_manifest_reconciles_scope_and_hashes_artifacts(tmp_path):
@@ -367,3 +540,40 @@ def test_release_manifest_reconciles_scope_and_hashes_artifacts(tmp_path):
     )
     assert not any(path.startswith(".cache/") for path in manifest["files"])
     assert "manifest/release.json" not in manifest["files"]
+
+    second_plan = tmp_path / "coverage2.json"
+    second_plan.write_text(
+        json.dumps(
+            {
+                "coverage": {
+                    "chrom": "chr2",
+                    "chrom_size": 5,
+                    "canonical_bases": 5,
+                    "noncanonical_bases": 0,
+                    "short_run_bases": 5,
+                    "border_excluded_bases": 0,
+                    "scored_bases": 0,
+                    "canonical_run_count": 1,
+                    "scoreable_run_count": 0,
+                    "window_count": 0,
+                }
+            }
+        )
+    )
+    aggregate_runtime = tmp_path / "aggregate-runtime.json"
+    aggregate_runtime.write_text(
+        json.dumps({"scope": "multi-scaffold", "scaffold_count": 2})
+    )
+    full_manifest = write_release_manifest(
+        release,
+        chrom_sizes,
+        [plan, second_plan],
+        [aggregate_runtime],
+        application_commit="b" * 40,
+    )
+    assert full_manifest["assembly"]["scoped_span"] == 17
+    assert full_manifest["assembly"]["out_of_scope_bases"] == 0
+    assert full_manifest["coverage"]["short_run_bases"] == 6
+    assert full_manifest["runtime"]["scoring"] == [
+        {"scope": "multi-scaffold", "scaffold_count": 2}
+    ]

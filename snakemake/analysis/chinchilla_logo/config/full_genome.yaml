@@ -1,0 +1,15 @@
+# Full browser-authoritative UCSC sequence inventory. The chrom.sizes target
+# must exist before Snakemake parses this configuration; common.smk reads its
+# ordered names and the planning step validates every FASTA length against it.
+scaffolds_from_chrom_sizes: true
+resident_model_across_scaffolds: true
+
+# GH200 calibration for issue #419: the VEP-like batch 128 / four-worker
+# setting narrowly led the measured 1.045 Mb sweep. Keep all output-affecting
+# settings explicit in this production override.
+inference:
+  windows_per_chunk: 4096
+  batch_size: 128
+  num_workers: 4
+  torch_compile: true
+  bf16_full_eval: true

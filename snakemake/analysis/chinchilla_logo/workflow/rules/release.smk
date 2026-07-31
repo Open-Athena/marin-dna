@@ -18,7 +18,8 @@ rule build_bigwigs:
         runtime="results/release/manifest/bigwig_build.json",
     run:
         shard_paths = list_score_shards(
-            [f"results/shards/{scaffold}" for scaffold in SCAFFOLDS]
+            [f"results/shards/{scaffold}" for scaffold in SCAFFOLDS],
+            allow_empty=FULL_ASSEMBLY,
         )
         written = write_bigwig_sets_with_metrics(
             shard_paths,
@@ -56,6 +57,7 @@ rule write_dataset_card:
             model_repository=config["model"]["repository"],
             model_revision=config["model"]["revision"],
             assembly_accession=ASSEMBLY,
+            full_assembly=FULL_ASSEMBLY,
         )
 
 

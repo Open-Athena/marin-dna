@@ -377,6 +377,63 @@ def write_window_plan(
     return stats
 
 
+def write_window_plans(
+    genome_path: str | Path,
+    chrom_sizes_path: str | Path,
+    chroms: Sequence[str],
+    plan_dir: str | Path,
+    *,
+    context_size: int = DEFAULT_CONTEXT_SIZE,
+    stride: int = DEFAULT_STRIDE,
+    retain_start: int = DEFAULT_RETAIN_START,
+    retain_end: int = DEFAULT_RETAIN_END,
+    phase: int = 0,
+) -> list[CoverageStats]:
+    """Plan multiple scaffolds while keeping one indexed genome open."""
+    assert chroms and len(chroms) == len(set(chroms))
+    chrom_sizes = dict(parse_chrom_sizes(chrom_sizes_path))
+    missing = set(chroms) - set(chrom_sizes)
+    assert not missing, f"scaffolds absent from UCSC chrom sizes: {sorted(missing)}"
+    genome = Genome(genome_path, subset_chroms=set(chroms))
+    assert genome.chroms == {chrom: chrom_sizes[chrom] for chrom in chroms}, (
+        "FASTA and UCSC chrom.sizes disagree for the configured scaffold scope"
+    )
+
+    output_dir = Path(plan_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    results: list[CoverageStats] = []
+    for chrom in chroms:
+        sequence = genome(chrom, 0, chrom_sizes[chrom])
+        assert len(sequence) == chrom_sizes[chrom]
+        windows, stats = tile_sequence(
+            chrom,
+            sequence,
+            context_size=context_size,
+            stride=stride,
+            retain_start=retain_start,
+            retain_end=retain_end,
+            phase=phase,
+        )
+        _plan_frame(windows).write_parquet(output_dir / f"{chrom}.parquet")
+        _write_json(
+            output_dir / f"{chrom}.coverage.json",
+            {
+                "coordinate_system": "0-based-half-open",
+                "parameters": {
+                    "context_size": context_size,
+                    "stride": stride,
+                    "retain_start": retain_start,
+                    "retain_end": retain_end,
+                    "phase": phase,
+                    "canonical_run_policy": ("maximal case-insensitive A/C/G/T runs"),
+                },
+                "coverage": asdict(stats),
+            },
+        )
+        results.append(stats)
+    return results
+
+
 def read_window_plan(path: str | Path) -> list[WindowSpec]:
     """Load and defensively validate a window-plan Parquet."""
     frame = pl.read_parquet(path)
@@ -694,32 +751,45 @@ def score_window_plan(
     torch_compile: bool = True,
     bf16_full_eval: bool = True,
     eval_accumulation_steps: int | None = None,
+    application_commit: str | None = None,
+    expected_chrom: str | None = None,
+    model: torch.nn.Module | None = None,
+    tokenizer: Any | None = None,
+    genome: Genome | None = None,
 ) -> dict[str, Any]:
     """Score a scaffold plan with one resident model and resumable chunks."""
     assert windows_per_chunk > 0 and batch_size > 0 and num_workers >= 0
+    assert application_commit is None or re.fullmatch(
+        r"[0-9a-f]{40}", application_commit
+    )
     windows = read_window_plan(plan_path)
-    assert windows, f"window plan has no scoreable windows: {plan_path}"
     chroms = {window.chrom for window in windows}
-    assert len(chroms) == 1
-    chrom = next(iter(chroms))
+    assert len(chroms) <= 1
+    chrom = next(iter(chroms)) if chroms else expected_chrom
+    assert chrom, f"empty window plan requires expected_chrom: {plan_path}"
+    assert expected_chrom is None or chrom == expected_chrom
     assert all(
         window.window_start + context_size <= window.run_end for window in windows
     )
 
     output_dir = Path(shard_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_repository,
-        revision=model_revision,
-        trust_remote_code=True,
-    )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_repository,
-        revision=model_revision,
-        trust_remote_code=True,
-    )
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_repository,
+            revision=model_revision,
+            trust_remote_code=True,
+        )
+    if model is None:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_repository,
+            revision=model_revision,
+            trust_remote_code=True,
+        )
     model.eval()
-    genome = Genome(genome_path, subset_chroms={chrom})
+    if genome is None:
+        genome = Genome(genome_path, subset_chroms={chrom})
+    assert genome.chroms.get(chrom) is not None, f"{chrom!r} absent from genome"
     if torch.cuda.is_available():
         torch.cuda.reset_peak_memory_stats()
 
@@ -749,6 +819,7 @@ def score_window_plan(
             "model_repository": model_repository,
             "model_revision": model_revision,
             "logical_sequences_per_window": 2,
+            "application_commit": application_commit,
         }
         if shard_path.exists():
             elapsed = _validate_resumable_shard(shard_path, chunk, invariant_metadata)
@@ -851,14 +922,128 @@ def score_window_plan(
     return runtime
 
 
-def list_score_shards(shard_dirs: Iterable[str | Path]) -> list[Path]:
-    """List all score shards, failing if any requested scaffold has none."""
+def score_window_plans(
+    plan_paths: Sequence[str | Path],
+    chroms: Sequence[str],
+    genome_path: str | Path,
+    shard_root: str | Path,
+    runtime_path: str | Path,
+    done_path: str | Path,
+    *,
+    model_repository: str = MODEL_REPOSITORY,
+    model_revision: str = MODEL_REVISION,
+    context_size: int = DEFAULT_CONTEXT_SIZE,
+    windows_per_chunk: int = 4096,
+    batch_size: int = 128,
+    num_workers: int = 2,
+    torch_compile: bool = True,
+    bf16_full_eval: bool = True,
+    eval_accumulation_steps: int | None = None,
+    application_commit: str,
+) -> dict[str, Any]:
+    """Score multiple scaffold plans with one shared model and genome handle."""
+    assert plan_paths and len(plan_paths) == len(chroms)
+    assert len(chroms) == len(set(chroms))
+    assert re.fullmatch(r"[0-9a-f]{40}", application_commit)
+    for plan_path, chrom in zip(plan_paths, chroms):
+        assert Path(plan_path).name == f"{chrom}.parquet"
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_repository,
+        revision=model_revision,
+        trust_remote_code=True,
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_repository,
+        revision=model_revision,
+        trust_remote_code=True,
+    )
+    model.eval()
+    genome = Genome(genome_path, subset_chroms=set(chroms))
+    assert set(genome.chroms) == set(chroms)
+
+    root = Path(shard_root)
+    root.mkdir(parents=True, exist_ok=True)
+    wall_start = time.perf_counter()
+    per_scaffold: list[dict[str, Any]] = []
+    for plan_path, chrom in zip(plan_paths, chroms):
+        scaffold_runtime = score_window_plan(
+            plan_path,
+            genome_path,
+            root / chrom,
+            root / f"{chrom}.runtime.json",
+            root / f"{chrom}.done.json",
+            model_repository=model_repository,
+            model_revision=model_revision,
+            context_size=context_size,
+            windows_per_chunk=windows_per_chunk,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            torch_compile=torch_compile,
+            bf16_full_eval=bf16_full_eval,
+            eval_accumulation_steps=eval_accumulation_steps,
+            application_commit=application_commit,
+            expected_chrom=chrom,
+            model=model,
+            tokenizer=tokenizer,
+            genome=genome,
+        )
+        per_scaffold.append(scaffold_runtime)
+
+    inference_seconds = sum(
+        float(row["model_inference_seconds"]) for row in per_scaffold
+    )
+    window_count = sum(int(row["window_count"]) for row in per_scaffold)
+    scored_bases = sum(int(row["scored_base_count"]) for row in per_scaffold)
+    assert window_count > 0 and scored_bases > 0 and inference_seconds > 0
+    aggregate = {
+        "scope": "multi-scaffold",
+        "application_commit": application_commit,
+        "scaffold_count": len(chroms),
+        "scoreable_scaffold_count": sum(
+            int(row["window_count"]) > 0 for row in per_scaffold
+        ),
+        "window_count": window_count,
+        "logical_scored_sequence_count": 2 * window_count,
+        "scored_base_count": scored_bases,
+        "shard_count": sum(int(row["shard_count"]) for row in per_scaffold),
+        "resumed_shard_count": sum(
+            int(row["resumed_shard_count"]) for row in per_scaffold
+        ),
+        "model_inference_seconds": inference_seconds,
+        "wall_seconds_this_invocation": time.perf_counter() - wall_start,
+        "windows_per_second": window_count / inference_seconds,
+        "bases_per_second": scored_bases / inference_seconds,
+        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
+        "peak_vram_bytes": max(int(row["peak_vram_bytes"]) for row in per_scaffold),
+        "batch_size": batch_size,
+        "num_workers": num_workers,
+        "torch_compile": torch_compile,
+        "bf16_full_eval": bf16_full_eval,
+        "eval_accumulation_steps": eval_accumulation_steps,
+        "model_repository": model_repository,
+        "model_revision": model_revision,
+        "per_scaffold": [
+            {key: value for key, value in row.items() if key != "per_shard"}
+            for row in per_scaffold
+        ],
+    }
+    _write_json(runtime_path, aggregate)
+    _write_json(done_path, {"complete": True, **aggregate})
+    return aggregate
+
+
+def list_score_shards(
+    shard_dirs: Iterable[str | Path], *, allow_empty: bool = False
+) -> list[Path]:
+    """List score shards, optionally permitting unscoreable scaffolds."""
     paths: list[Path] = []
     for shard_dir in shard_dirs:
         directory = Path(shard_dir)
         found = sorted(directory.glob("part-*.npz"))
-        assert found, f"no score shards found in {directory}"
+        assert found or allow_empty, f"no score shards found in {directory}"
         paths.extend(found)
+    assert paths, "the configured scope produced no score shards"
     return paths
 
 
@@ -1123,13 +1308,30 @@ def write_dataset_readme(
     model_repository: str = MODEL_REPOSITORY,
     model_revision: str = MODEL_REVISION,
     assembly_accession: str = ASSEMBLY_ACCESSION,
+    full_assembly: bool = False,
 ) -> None:
     """Draft the Hugging Face dataset card required before publication."""
     assert len(application_commit) == 40, (
         "dataset README requires a full commit SHA for its immutable pipeline link"
     )
     assert scaffolds and len(scaffolds) == len(set(scaffolds))
-    scaffold_lines = "\n".join(f"- `{scaffold}`" for scaffold in scaffolds)
+    if full_assembly:
+        scope_text = (
+            f"This genome-wide release covers all {len(scaffolds):,} sequences in "
+            f"the browser-authoritative UCSC `{assembly_accession}` inventory. "
+            "Assembly gaps, non-A/C/G/T bases, short canonical runs, and canonical-"
+            "run borders without full model context are absent rather than encoded "
+            "as zero."
+        )
+    else:
+        scaffold_lines = "\n".join(f"- `{scaffold}`" for scaffold in scaffolds)
+        scope_text = f"""This pilot release scores only the following configured scaffold(s):
+
+{scaffold_lines}
+
+It is not a genome-wide chinchilla release. Positions outside the listed
+scaffold(s), assembly gaps, non-A/C/G/T bases, and canonical-run borders without
+full model context are absent rather than encoded as zero."""
     pipeline_url = (
         f"https://github.com/{repository}/blob/{application_commit}/"
         "snakemake/analysis/chinchilla_logo"
@@ -1156,13 +1358,7 @@ reference and its reverse complement.
 
 ## Scope
 
-This pilot release scores only the following configured scaffold(s):
-
-{scaffold_lines}
-
-It is not a genome-wide chinchilla release. Positions outside the listed
-scaffold(s), assembly gaps, non-A/C/G/T bases, and canonical-run borders without
-full model context are absent rather than encoded as zero.
+{scope_text}
 
 ## Files
 
@@ -1196,12 +1392,20 @@ def write_release_manifest(
 ) -> dict[str, Any]:
     """Write the machine-readable release manifest after artifact validation."""
     assert len(application_commit) == 40
-    assert len(plan_metadata_paths) == len(runtime_paths) > 0
+    assert plan_metadata_paths and runtime_paths
     root = Path(output_root)
     chrom_sizes = parse_chrom_sizes(chrom_sizes_path)
     full_assembly_span = sum(size for _chrom, size in chrom_sizes)
     plans = [json.loads(Path(path).read_text()) for path in plan_metadata_paths]
     runtimes = [json.loads(Path(path).read_text()) for path in runtime_paths]
+    if len(runtimes) == 1 and len(plans) > 1:
+        assert int(runtimes[0].get("scaffold_count", -1)) == len(plans), (
+            "aggregate runtime scaffold count does not match plan metadata"
+        )
+    else:
+        assert len(plans) == len(runtimes), (
+            "runtime paths must be per-scaffold or one validated aggregate"
+        )
     artifact_runtimes = [
         json.loads(Path(path).read_text()) for path in artifact_runtime_paths
     ]

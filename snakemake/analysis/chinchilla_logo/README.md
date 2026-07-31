@@ -101,9 +101,46 @@ sky launch -c chinchilla-logo-gh200-bench \
 
 Copy `results/benchmark/gh200` back after the run, then terminate the cluster.
 
+### Full-assembly GH200 production run
+
+`sky/run_gh200_full.yaml` scores every sequence in the browser-authoritative
+UCSC `chrom.sizes` inventory, builds the eight BigWigs and UCSC hub on the same
+GH200, and copies the release to persistent object storage before the cluster
+is torn down. It keeps one model, tokenizer, and indexed genome handle resident
+across scaffolds. The measured production configuration is batch size 128,
+four DataLoader workers, BF16 evaluation, and `torch.compile`.
+
+Full-DAG parsing needs the downloaded `chrom.sizes` inventory. The Sky task
+therefore fetches that small target with the default configuration, performs a
+full-assembly dry-run, and only then invokes the real workflow with
+`config/full_genome.yaml`. Completed score shards are written directly through
+the SkyPilot S3 mount, so a retry at the same application commit validates and
+resumes them rather than starting inference over.
+
+After explicit paid-compute approval, commit and push the exact code first,
+then launch from the repository root:
+
+```bash
+sky launch -c chinchilla-logo-gh200-full --detach-run --down \
+  snakemake/analysis/chinchilla_logo/sky/run_gh200_full.yaml \
+  --env COMMIT_SHA=$(git rev-parse HEAD)
+```
+
+The run-specific persistent root is
+`s3://oa-bolinas/snakemake/analysis/chinchilla_logo/issue419-full/runs/<commit>/`.
+It contains live GPU and Snakemake logs, resumable score shards, plans, the
+validated release tree, a file-size inventory, and `COMPLETE.json`. Automatic
+teardown happens only after the local and persistent release inventories match.
+There is no Hugging Face credential mount or upload step.
+
 ## Resumption and bounded memory
 
-`score_scaffold` loads the pinned model once for a scaffold, then invokes the existing Hugging Face `Trainer.predict` harness on fixed-size window chunks. The harness pads the last physical batch and removes padded predictions, preserving one static compiled shape.
+The default `score_scaffold` rule loads the pinned model once for one scaffold.
+The full-assembly `score_scope` rule loads the model, tokenizer, and genome once
+for the entire assembly, then scores each scaffold in fixed-size resumable
+chunks. The existing Hugging Face `Trainer.predict` harness pads the last
+physical batch and removes padded predictions, preserving one static compiled
+shape.
 
 Each completed chunk is written immediately under `results/shards/<scaffold>/part-*.npz`. The Snakemake output is a separate `.done.json` marker, so an interrupted rule retains validated chunks. On retry, shard coordinates and output-affecting metadata must exactly match the current plan before the chunk is skipped.
 
