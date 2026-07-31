@@ -1,0 +1,46 @@
+# Direct Lambda H100 task for the issue #420 matched Mendelian variant panel.
+# Public/baseline data are prepared locally, so no AWS credential is sent.
+
+name: dna-exp420-mendelian-deltas
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 150
+    autostop:
+        idle_minutes: 30
+        down: true
+
+workdir: .
+
+file_mounts:
+    /home/ubuntu/exp420_inputs/panel: ../../scratch/issue420/input
+    /home/ubuntu/exp420_inputs/sae: ../../scratch/issue418/dna-exp418-micro-seed288-e816ec343c30/sae
+    /home/ubuntu/exp420_inputs/reference: ../../scratch/issue418/reference
+
+envs:
+    RUN_ID: dna-exp420-mendelian-deltas-seed288
+    EXPERIMENT_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export HF_HUB_DOWNLOAD_TIMEOUT=120
+    uv run --no-dev python analysis.py evaluate \
+        --panel /home/ubuntu/exp420_inputs/panel/panel.parquet \
+        --panel-manifest /home/ubuntu/exp420_inputs/panel/panel.manifest.json \
+        --fasta /home/ubuntu/exp420_inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+        --sae /home/ubuntu/exp420_inputs/sae \
+        --output-dir "artifacts/$RUN_ID"
