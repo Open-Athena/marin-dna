@@ -1,0 +1,48 @@
+# CPU analysis for the issue #422 chr21 consequence extraction.
+
+name: dna-exp422-variant-consequence-analysis
+
+resources:
+    infra: aws/us-east-2
+    instance_type: c7i.4xlarge
+    disk_size: 100
+    autostop:
+        idle_minutes: 30
+        down: true
+
+workdir: .
+
+file_mounts:
+    /home/ubuntu/exp422_analysis_inputs/extraction: ../../scratch/issue422/run
+    /home/ubuntu/exp422_analysis_inputs/panel: ../../scratch/issue422/input
+    /home/ubuntu/exp422_analysis_inputs/reference: ../../scratch/issue418/reference
+
+envs:
+    ANALYSIS_COMMIT: ""
+    PROBE_JOBS: "16"
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync \
+        --project experiments/exp422_m51_sae_variant_consequences \
+        --frozen \
+        --no-dev
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    uv run \
+        --project experiments/exp422_m51_sae_variant_consequences \
+        --no-dev \
+        python experiments/exp422_m51_sae_variant_consequences/analyze.py \
+        --extraction-dir /home/ubuntu/exp422_analysis_inputs/extraction \
+        --panel /home/ubuntu/exp422_analysis_inputs/panel/panel.parquet \
+        --fasta /home/ubuntu/exp422_analysis_inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+        --output-dir artifacts/dna-exp422-variant-consequence-analysis \
+        --probe-jobs "$PROBE_JOBS"

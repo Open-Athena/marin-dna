@@ -7,6 +7,7 @@ from analyze import (
     bootstrap_block_ap,
     choose_transform,
     column_stats,
+    fit_probe,
     select_individual_feature,
 )
 
@@ -88,3 +89,32 @@ def test_choose_transform_uses_validation_not_test() -> None:
     selected = choose_transform(frame)
     assert selected.height == 1
     assert selected["transform"].item() == "signed"
+
+
+def test_fit_probe_uses_requested_parallelism() -> None:
+    rng = np.random.default_rng(7)
+    labels: list[str] = []
+    splits: list[str] = []
+    rows: list[np.ndarray] = []
+    for split in ("discovery", "validation", "test"):
+        for class_index, class_name in enumerate(("a", "b", "c")):
+            for _ in range(20):
+                row = rng.normal(0, 0.1, size=5).astype(np.float32)
+                row[class_index] += 2
+                rows.append(row)
+                labels.append(class_name)
+                splits.append(split)
+
+    metrics, matrix_confusion, classes = fit_probe(
+        np.stack(rows),
+        np.asarray(labels),
+        np.asarray(splits),
+        orientation="test",
+        space="test",
+        transform="signed",
+        probe_jobs=2,
+    )
+
+    assert metrics["test_macro_f1"] > 0.99
+    assert matrix_confusion.shape == (3, 3)
+    assert classes == ["a", "b", "c"]
