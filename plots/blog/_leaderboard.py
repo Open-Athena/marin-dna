@@ -87,7 +87,6 @@ def _save_figure(fig: plt.Figure, name: str) -> None:
 def render_heatmap(
     table: pd.DataFrame,
     *,
-    title: str,
     output_name: str,
 ) -> None:
     """Render one independently sorted and color-normalized leaderboard."""
@@ -159,7 +158,6 @@ def render_heatmap(
     )
     colorbar.set_label("AUPRC (%)")
 
-    ax.set_title(title, pad=10)
     fig.tight_layout()
     _save_figure(fig, output_name)
     plt.close(fig)

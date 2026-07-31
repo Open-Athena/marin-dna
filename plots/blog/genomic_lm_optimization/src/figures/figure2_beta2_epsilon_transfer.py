@@ -46,8 +46,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         ax.set_box_aspect(1)
     # Pull the ε label up closer to the tick labels.
     axes[1].xaxis.labelpad = -4
-    fig.suptitle("Transfer validation — Loss vs. β₂ and ε", y=0.95)
-    fig.tight_layout(rect=(0, 0.31, 1, 0.91))
+    fig.tight_layout(rect=(0, 0.31, 1, 1))
     attach_stacked_legends_below(
         fig,
         palette,

@@ -63,13 +63,9 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
                 ax.tick_params(axis="x", labelbottom=False)
                 ax.set_xlabel("")
             ax.set_box_aspect(1)
-    fig.suptitle(
-        "Transfer validation — Per-region Loss vs. learning rate, β₂, and ε",
-        y=0.985,
-    )
-    # Explicit margins (no tight_layout) so the title and legend hug the plot grid tightly.
+    # Explicit margins keep the legend close to the square plot grid.
     fig.subplots_adjust(
-        top=0.9525, bottom=0.32, left=0.055, right=0.99, hspace=0.12, wspace=0.18
+        top=0.99, bottom=0.32, left=0.055, right=0.99, hspace=0.12, wspace=0.18
     )
     attach_stacked_legends_below(
         fig,

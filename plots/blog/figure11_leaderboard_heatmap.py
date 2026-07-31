@@ -83,7 +83,6 @@ def build_mendelian_llr() -> None:
     )
     render_heatmap(
         _table_for_displays(rows, ZERO_SHOT_DISPLAYS),
-        title="Mendelian VEP benchmark — AUPRC (%) · zero-shot LLR",
         output_name="figure11_leaderboard_heatmap__mendelian_llr",
     )
 
@@ -95,7 +94,6 @@ def build_mendelian_probe() -> None:
             probe_normalized_rows("mendelian_traits"),
             PROBE_DISPLAYS,
         ),
-        title="Mendelian VEP benchmark — AUPRC (%) · frozen-embedding linear probe",
         output_name="figure11_leaderboard_heatmap__mendelian_probe",
     )
 

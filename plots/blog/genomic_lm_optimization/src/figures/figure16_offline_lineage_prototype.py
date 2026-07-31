@@ -384,11 +384,6 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
     for ax in axes[:, 0]:
         ax.set_ylabel("AUPRC (%)")
 
-    _result_kind, _score_type, metric_label, method_label = WORLD_CONFIG[kind]
-    fig.suptitle(
-        f"Mendelian {metric_label} by mixture strategy · {method_label}",
-        y=0.985,
-    )
     _attach_legend(fig)
     save(fig, f"figure16_offline_lineage_{kind}_prototype")
     plt.close(fig)

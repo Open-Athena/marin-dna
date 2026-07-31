@@ -106,6 +106,9 @@ Plot recipes keep SVG text live and inherit Matplotlib's default font, line,
 marker, and automatic tick settings. A single central 1.2× whole-SVG scale is
 then applied to every data-driven plot; recipes cannot override it. They may
 change subplot height and layout when a figure needs more or less space.
+Data plots omit an overall title inside the SVG; each caption instead begins
+with a bold figure number and concise descriptive title, followed by regular-
+weight methodological or interpretive detail.
 `sync_blog_assets.py` copies selected generated SVGs, derives each article frame
 width from that shared scale, and runs the workspace normalizer automatically.
 For a full rendered review, start the preview and run the collision audit with a

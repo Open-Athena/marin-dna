@@ -66,8 +66,9 @@ def plot_axis(
     axis_field: str,
     axis_label: str,
     log_scale: bool,
-    value_formatter,
     palette: dict,
+    value_formatter=None,
+    native_numeric_axis: bool = False,
     include_negative_control: bool = True,
     y_field: str = "eval_loss",
     y_label: str = "Loss",
@@ -104,7 +105,11 @@ def plot_axis(
             .sort_values(axis_field)
         )
         if not line_pts.empty:
-            line_xs = [grid_lookup[v] for v in line_pts[axis_field]]
+            line_xs = (
+                line_pts[axis_field].to_numpy()
+                if native_numeric_axis
+                else [grid_lookup[v] for v in line_pts[axis_field]]
+            )
             ax.plot(
                 line_xs,
                 line_pts[y_field].values,
@@ -116,7 +121,11 @@ def plot_axis(
         # Sweep points: circles, raw individual runs.
         sweep = scale[scale["role"] == axis_role]
         if not sweep.empty:
-            sweep_xs = [grid_lookup[v] for v in sweep[axis_field]]
+            sweep_xs = (
+                sweep[axis_field].to_numpy()
+                if native_numeric_axis
+                else [grid_lookup[v] for v in sweep[axis_field]]
+            )
             ax.scatter(
                 sweep_xs,
                 sweep[y_field].values,
@@ -129,7 +138,11 @@ def plot_axis(
         # Positive control: square, sits at the grid center value (same for every scale).
         pos = scale[scale["role"] == "positive-control"]
         if not pos.empty:
-            pos_xs = [grid_lookup[v] for v in pos[axis_field]]
+            pos_xs = (
+                pos[axis_field].to_numpy()
+                if native_numeric_axis
+                else [grid_lookup[v] for v in pos[axis_field]]
+            )
             ax.scatter(
                 pos_xs,
                 pos[y_field].values,
@@ -147,8 +160,12 @@ def plot_axis(
         )
         if not neg.empty:
             for _, row in neg.iterrows():
-                x = _interpolate_x(
-                    float(row[axis_field]), grid_values, grid_xs, log_scale
+                x = (
+                    float(row[axis_field])
+                    if native_numeric_axis
+                    else _interpolate_x(
+                        float(row[axis_field]), grid_values, grid_xs, log_scale
+                    )
                 )
                 ax.scatter(
                     [x],
@@ -159,24 +176,30 @@ def plot_axis(
                     zorder=4,
                 )
 
-    # Keep the equal-spaced sweep grid, but let Matplotlib decide how many
-    # labels fit at the rendered axis width. The formatter maps the selected
-    # integer grid positions back to their underlying hyperparameter values.
-    ax.set_xlim(-0.4, len(grid_values) - 0.6)
-    ax.xaxis.set_major_locator(_AutoGridLocator(len(grid_values)))
-    ax.xaxis.set_major_formatter(
-        FuncFormatter(
-            lambda position, _index: (
-                value_formatter(grid_values[round(position)])
-                if math.isclose(position, round(position))
-                and 0 <= round(position) < len(grid_values)
-                else ""
+    if native_numeric_axis:
+        if log_scale:
+            ax.set_xscale("log")
+        ax.margins(x=0.06)
+    else:
+        assert value_formatter is not None
+        # Keep the equal-spaced sweep grid, but let Matplotlib decide how many
+        # labels fit at the rendered axis width. The formatter maps the selected
+        # integer grid positions back to their underlying hyperparameter values.
+        ax.set_xlim(-0.4, len(grid_values) - 0.6)
+        ax.xaxis.set_major_locator(_AutoGridLocator(len(grid_values)))
+        ax.xaxis.set_major_formatter(
+            FuncFormatter(
+                lambda position, _index: (
+                    value_formatter(grid_values[round(position)])
+                    if math.isclose(position, round(position))
+                    and 0 <= round(position) < len(grid_values)
+                    else ""
+                )
             )
         )
-    )
-    ax.tick_params(axis="x", labelrotation=30)
-    for label in ax.get_xticklabels():
-        label.set_ha("right")
+        ax.tick_params(axis="x", labelrotation=30)
+        for label in ax.get_xticklabels():
+            label.set_ha("right")
     ax.set_xlabel(axis_label, labelpad=X_LABEL_PAD)
     ax.set_ylabel(y_label)
     ax.grid(False)

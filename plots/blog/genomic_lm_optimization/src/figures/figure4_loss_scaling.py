@@ -20,11 +20,6 @@ from utils.figure_style import (
     set_square_subplot_height,
 )
 
-# Scaling-sweep summary: N, D, C ranges across all 8 models. N spans the full
-# range (46M–4B); D is one epoch over the training mixture (~84B tokens);
-# C range is taken from `#### Parameter scaling sweep` in outline.md.
-_SCALING_SUBTITLE = "N = 46M–4B, D = 84B, C = 2.5 × 10¹⁹–2.1 × 10²¹"
-
 KAPLAN_FIT_REPORT_PATH = FIGURES_DIR / "figure4_loss_scaling.txt"
 SUBPLOT_HEIGHT_PX = 268.5
 
@@ -177,20 +172,7 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     # Sits in the bottom-left empty region (low-step / low-loss has no curve data there).
     _attach_kaplan_inset(axes[1], results, palette)
 
-    # Keep the title and subtitle as plain Unicode text so the SVG normalizer
-    # can render both in the same page font as the rest of the figure.
-    fig.suptitle(
-        "Parameter scaling — Loss curves & scaling law",
-        y=0.98,
-    )
-    fig.text(
-        0.5,
-        0.91,
-        _SCALING_SUBTITLE,
-        ha="center",
-        va="center",
-    )
-    fig.tight_layout(rect=(0, 0.08, 1, 0.90))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
     set_square_subplot_height(fig, axes, SUBPLOT_HEIGHT_PX)
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})

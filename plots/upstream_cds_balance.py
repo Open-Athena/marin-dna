@@ -355,10 +355,12 @@ def plot(data: pl.DataFrame) -> plt.Figure:
     fig.legend(
         [handles[index] for index in legend_order],
         [labels[index] for index in legend_order],
+        title="Training data mixture",
         handler_map=handler_map,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.0),
+        bbox_to_anchor=(0.5, 1.08),
         ncol=2,
+        alignment="center",
         columnspacing=0.4,
         handlelength=4.0,
         handletextpad=0.4,

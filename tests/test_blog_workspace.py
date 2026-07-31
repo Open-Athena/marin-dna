@@ -4,6 +4,7 @@ from email.utils import formatdate
 from functools import partial
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+import re
 import threading
 import time
 from urllib.request import Request, urlopen
@@ -197,6 +198,41 @@ def test_all_active_data_figures_use_the_one_shared_scale() -> None:
         assert float(svg_root.attrib["data-figure-render-scale"]) == (
             FIGURE_GLOBAL_RENDER_SCALE
         ), name
+
+
+def test_all_blog_figure_captions_lead_with_a_bold_number_and_title() -> None:
+    root = Path(__file__).resolve().parents[1]
+    article = (
+        root
+        / "blog"
+        / "genomic-lm-optimization"
+        / "content"
+        / "blog"
+        / "genomic-lm-optimization.md"
+    ).read_text(encoding="utf-8")
+    captions = re.findall(r"<figcaption>(.*?)</figcaption>", article)
+
+    assert len(captions) == 19
+    for number, caption in enumerate(captions, start=1):
+        assert re.match(
+            rf"<strong>Figure {number}: [^<]+\.</strong>(?: .+)?$", caption
+        ), caption
+
+
+def test_active_data_plot_recipes_omit_overall_figure_titles() -> None:
+    root = Path(__file__).resolve().parents[1]
+    failures: list[str] = []
+    for relative_path in ACTIVE_BLOG_PLOT_RECIPES:
+        path = root / relative_path
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "suptitle"
+            ):
+                failures.append(f"{relative_path}:{node.lineno}")
+    assert not failures, "overall titles belong in captions:\n" + "\n".join(failures)
 
 
 def test_active_plot_recipes_cannot_override_standard_element_font_sizes() -> None:
