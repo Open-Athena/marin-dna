@@ -55,7 +55,7 @@ upload_release() {
   while IFS=$'\t' read -r relative_path expected_bytes; do
     if [[ ! $relative_path =~ ^[A-Za-z0-9._/-]+$ ]] ||
       [[ $relative_path == /* ]] || [[ $relative_path == *..* ]]; then
-      echo "Unsafe remote path in $tree inventory: $relative_path" >&2
+      echo "Unsafe remote path in release inventory: $relative_path" >&2
       exit 3
     fi
     [[ $expected_bytes =~ ^[0-9]+$ ]]
