@@ -270,6 +270,14 @@ def test_ucsc_hub_defaults_and_dataset_readme(tmp_path):
     assert "logo on" in track_db
     assert "viewLimits 0:2" in track_db
     assert "track marinDnaM51LogProb" in track_db
+    assert (
+        "track marinDnaM51LogProb\n"
+        "shortLabel MarinDNA m5.1 logp\n"
+        "longLabel MarinDNA m5.1 canonical A/C/G/T log-probabilities\n"
+        "container multiWig\n"
+        "aggregate transparentOverlay\n"
+        "type bigWig\n"
+    ) in track_db
     assert "visibility hide" in track_db
     for color in ("0,128,0", "0,0,255", "255,166,0", "255,0,0"):
         assert color in track_db
@@ -310,6 +318,9 @@ def test_release_manifest_reconciles_scope_and_hashes_artifacts(tmp_path):
     release = tmp_path / "release"
     release.mkdir()
     (release / "README.md").write_text("dataset card\n")
+    upload_cache = release / ".cache" / "huggingface"
+    upload_cache.mkdir(parents=True)
+    (upload_cache / "README.md.metadata").write_text("transient\n")
     chrom_sizes = tmp_path / "chrom.sizes"
     chrom_sizes.write_text("chr1\t12\nchr2\t5\n")
     plan = tmp_path / "coverage.json"
@@ -350,4 +361,5 @@ def test_release_manifest_reconciles_scope_and_hashes_artifacts(tmp_path):
     assert manifest["files"]["README.md"]["sha256"] == sha256_file(
         release / "README.md"
     )
+    assert not any(path.startswith(".cache/") for path in manifest["files"])
     assert "manifest/release.json" not in manifest["files"]

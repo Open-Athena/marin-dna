@@ -9,6 +9,7 @@ from pathlib import Path
 from marin_dna.pipelines.chinchilla_logo import (
     write_dataset_readme,
     write_release_manifest,
+    write_ucsc_hub,
 )
 
 
@@ -37,6 +38,7 @@ def main() -> None:
     assert chrom_sizes_path.is_file()
     release_root = results_root / "release"
 
+    write_ucsc_hub(release_root)
     write_dataset_readme(
         release_root / "README.md",
         application_commit=args.application_commit,

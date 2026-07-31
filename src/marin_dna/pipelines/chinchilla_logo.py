@@ -1058,6 +1058,7 @@ def write_ucsc_hub(
             "longLabel MarinDNA m5.1 canonical A/C/G/T log-probabilities",
             "container multiWig",
             "aggregate transparentOverlay",
+            "type bigWig",
             "autoScale on",
             "visibility hide",
             "",
@@ -1207,7 +1208,9 @@ def write_release_manifest(
     artifact_paths = sorted(
         path
         for path in root.rglob("*")
-        if path.is_file() and path != root / "manifest" / "release.json"
+        if path.is_file()
+        and path != root / "manifest" / "release.json"
+        and ".cache" not in path.relative_to(root).parts
     )
     artifacts = {
         str(path.relative_to(root)): {
