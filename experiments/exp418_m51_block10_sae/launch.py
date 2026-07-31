@@ -455,9 +455,7 @@ def _checkpoint_dirs(checkpoint_path: Path) -> list[Path]:
         result = direct
     else:
         assert len(run_directories) == 1, run_directories
-        result = [
-            path for path in run_directories[0].iterdir() if path.name.isdigit()
-        ]
+        result = [path for path in run_directories[0].iterdir() if path.name.isdigit()]
         assert result, run_directories[0]
         assert set(result) == set(run_directories[0].iterdir()), run_directories[0]
     return sorted(result, key=lambda path: int(path.name))
@@ -470,7 +468,7 @@ def _read_json_uri(uri: str) -> dict[str, Any]:
     return value
 
 
-def _validate_wiring_gate(uri: str) -> dict[str, Any]:
+def _validate_wiring_gate(uri: str, *, record_uri: str | None = None) -> dict[str, Any]:
     manifest = _read_json_uri(uri)
     assert manifest["tier"]["name"] == "wiring"
     assert manifest["engineering_gate_passed"] is True
@@ -478,7 +476,10 @@ def _validate_wiring_gate(uri: str) -> dict[str, Any]:
     assert manifest["fixed_config"]["saelens_revision"] == SAELENS_REVISION
     assert manifest["fixed_config"]["seed"] == SEED
     return {
-        "manifest_uri": uri,
+        # ``uri`` may be a short-lived pre-signed URL used to cross the private
+        # S3 boundary. Never persist that credential-bearing URL in artifacts
+        # or logs; record the stable reviewed object URI instead.
+        "manifest_uri": record_uri or uri,
         "artifact_uri": manifest.get("artifact_uri"),
         "run_id": manifest["run_id"],
     }
@@ -568,13 +569,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     wiring_manifest_uri = args.wiring_manifest_uri or os.environ.get(
         "WIRING_MANIFEST_URI"
     )
+    wiring_manifest_record_uri = args.wiring_manifest_record_uri or os.environ.get(
+        "WIRING_MANIFEST_RECORD_URI"
+    )
     wiring_prerequisite = None
     if tier.name == "micro":
         assert wiring_manifest_uri, (
             "--wiring-manifest-uri or WIRING_MANIFEST_URI is required: "
             "the micro-run cannot bypass the wiring gate"
         )
-        wiring_prerequisite = _validate_wiring_gate(wiring_manifest_uri)
+        wiring_prerequisite = _validate_wiring_gate(
+            wiring_manifest_uri,
+            record_uri=wiring_manifest_record_uri,
+        )
 
     local_dir = Path(args.local_root) / run_id
     assert not local_dir.exists(), f"refusing to overwrite local run: {local_dir}"
@@ -721,9 +728,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "compute_instance_type": os.environ.get(
                 "COMPUTE_INSTANCE_TYPE", "unrecorded"
             ),
-            "skypilot_cluster": os.environ.get(
-                "SKYPILOT_CLUSTER_NAME", "unrecorded"
-            ),
+            "skypilot_cluster": os.environ.get("SKYPILOT_CLUSTER_NAME", "unrecorded"),
         },
         "artifact_hashes": {
             "sae_weights.safetensors": _sha256(weights_path),
@@ -751,6 +756,7 @@ def main() -> None:
     parser.add_argument("--no-upload", action="store_true")
     parser.add_argument("--artifact-prefix")
     parser.add_argument("--wiring-manifest-uri")
+    parser.add_argument("--wiring-manifest-record-uri")
     parser.add_argument("--local-root", default="/tmp/dna-exp418")
     args = parser.parse_args()
     print(json.dumps(_json_safe(run(args)), indent=2, sort_keys=True, allow_nan=False))

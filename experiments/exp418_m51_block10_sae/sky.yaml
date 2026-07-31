@@ -18,6 +18,7 @@ envs:
     TIER: wiring
     RUN_ID: dna-exp418-wiring-seed288
     WIRING_MANIFEST_URI: ""
+    WIRING_MANIFEST_RECORD_URI: ""
     COMPUTE_PROVIDER: lambda
     COMPUTE_INSTANCE_TYPE: gpu_1x_h100_pcie
     SKYPILOT_CLUSTER_NAME: exp418-lambda
