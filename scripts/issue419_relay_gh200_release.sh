@@ -45,12 +45,11 @@ assert payload == {
 }
 PY
 
-upload_tree() {
-  local tree=$1
-  local inventory="$relay_tmp/$tree-inventory.tsv"
+upload_release() {
+  local inventory="$relay_tmp/release-inventory.tsv"
 
   ssh -o BatchMode=yes "$cluster" \
-    "find '$remote_root/$tree' -type f -printf '%P\\t%s\\n' | sort" > "$inventory"
+    "find '$remote_root/release' -type f -printf '%P\\t%s\\n' | sort" > "$inventory"
   test -s "$inventory"
 
   while IFS=$'\t' read -r relative_path expected_bytes; do
@@ -61,11 +60,19 @@ upload_tree() {
     fi
     [[ $expected_bytes =~ ^[0-9]+$ ]]
 
-    remote_path="$remote_root/$tree/$relative_path"
-    object_key="$prefix/$tree/$relative_path"
+    case $relative_path in
+      *.html) content_type=text/html ;;
+      *.json) content_type=application/json ;;
+      *.txt) content_type=text/plain ;;
+      *) content_type=application/octet-stream ;;
+    esac
+
+    remote_path="$remote_root/release/$relative_path"
+    object_key="$prefix/release/$relative_path"
     ssh -o BatchMode=yes "$cluster" "cat '$remote_path'" |
       aws s3 cp - "s3://$bucket/$object_key" \
-        --expected-size "$expected_bytes" --only-show-errors
+        --content-type "$content_type" --expected-size "$expected_bytes" \
+        --only-show-errors
 
     uploaded_bytes=$(aws s3api head-object \
       --bucket "$bucket" --key "$object_key" \
@@ -73,15 +80,45 @@ upload_tree() {
     test "$uploaded_bytes" = "$expected_bytes"
   done < "$inventory"
 
-  aws s3 cp "$inventory" "s3://$bucket/$prefix/$tree-inventory.tsv" \
+  aws s3 cp "$inventory" "s3://$bucket/$prefix/release-inventory.tsv" \
     --content-type text/tab-separated-values --only-show-errors
+}
+
+upload_archive() {
+  local tree=$1
+  local archive="$tree.tar.gz"
+  local remote_archive="$remote_root/$archive"
+
+  # Thousands of small plan files would make one SSH connection per object
+  # prohibitively slow. Build one deterministic archive on the GH200 node,
+  # then stream and verify it without staging it on the controller.
+  ssh -o BatchMode=yes "$cluster" \
+    "tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -C '$remote_root' -czf '$remote_archive' '$tree'"
+  ssh -o BatchMode=yes "$cluster" \
+    "stat -c '%s' '$remote_archive'; sha256sum '$remote_archive'" > "$relay_tmp/$tree-metadata.txt"
+  expected_bytes=$(sed -n '1p' "$relay_tmp/$tree-metadata.txt")
+  expected_sha256=$(sed -n '2p' "$relay_tmp/$tree-metadata.txt" | cut -d' ' -f1)
+  [[ $expected_bytes =~ ^[0-9]+$ ]]
+  [[ $expected_sha256 =~ ^[0-9a-f]{64}$ ]]
+
+  ssh -o BatchMode=yes "$cluster" "cat '$remote_archive'" |
+    aws s3 cp - "s3://$bucket/$prefix/$archive" \
+      --content-type application/gzip --expected-size "$expected_bytes" \
+      --only-show-errors
+  uploaded_bytes=$(aws s3api head-object \
+    --bucket "$bucket" --key "$prefix/$archive" \
+    --query ContentLength --output text)
+  test "$uploaded_bytes" = "$expected_bytes"
+  printf '%s  %s\n' "$expected_sha256" "$archive" |
+    aws s3 cp - "s3://$bucket/$prefix/$archive.sha256" \
+      --content-type text/plain --only-show-errors
 }
 
 # Upload artifacts before the completion marker. Consumers can therefore use
 # COMPLETE.json as an atomic indication that every advertised object exists.
-upload_tree release
-upload_tree plans
-upload_tree logs
+upload_release
+upload_archive plans
+upload_archive logs
 
 python - "$relay_tmp/COMPLETE.json" <<'PY'
 import json

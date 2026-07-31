@@ -138,9 +138,10 @@ scripts/issue419_relay_gh200_release.sh \
   chinchilla-logo-gh200-full $(git rev-parse HEAD)
 ```
 
-The relay streams each release, plan, and log file through SSH without staging
-large artifacts on the controller, checks every S3 object size, and uploads
-`COMPLETE.json` last. The durable destination is
+The relay streams each browser-facing release file through SSH, packages the
+many small plans and logs into deterministic archives, and does not stage large
+artifacts on the controller. It verifies every uploaded object size, publishes
+SHA-256 sidecars for the archives, and uploads `COMPLETE.json` last. The durable destination is
 `s3://oa-bolinas/snakemake/analysis/chinchilla_logo/issue419-full/runs/<commit>/`.
 Only tear the cluster down after the relay reports success. Resumable shards
 remain local and are not uploaded.
