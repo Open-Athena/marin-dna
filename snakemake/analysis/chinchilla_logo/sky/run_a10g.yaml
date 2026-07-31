@@ -71,6 +71,21 @@ run: |
     --printshellcmds \
     --dry-run | tee results/benchmark/dryrun.log
 
+  uv run --project ../../.. snakemake \
+    --profile workflow/profiles/default \
+    --config "commit_sha=$COMMIT_SHA" \
+    --printshellcmds \
+    results/plans/NW_004955402.1.parquet
+
+  uv run --project ../../.. python ../../../scripts/issue419_batch_sweep.py \
+    --plan results/plans/NW_004955402.1.parquet \
+    --genome results/reference/GCF_000276665.1.fa \
+    --output-dir results/benchmark/batch_sweep \
+    --batch-sizes 64 128 \
+    --sample-windows 16384 \
+    --windows-per-chunk 4096 \
+    --gpu-hourly-cost 1.006
+
   /usr/bin/time -v -o results/benchmark/snakemake.time \
     uv run --project ../../.. snakemake \
       --profile workflow/profiles/default \

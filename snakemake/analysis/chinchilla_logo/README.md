@@ -49,7 +49,10 @@ uv run snakemake \
 The checked-in SkyPilot task pins an on-demand AWS `g5.xlarge` (one A10G) in
 `us-east-2` with a 250 GB disk. It records five-second GPU utilization/VRAM/power
 samples, the cluster dry-run, `/usr/bin/time` process statistics, per-shard
-inference timings, and BigWig construction time/file sizes.
+inference timings, and BigWig construction time/file sizes. Before the full
+scaffold run, it compares batch sizes 64 and 128 on the same 16,384-window
+sample. The first 4,096-window chunk captures compilation and warm-up; the
+remaining three chunks provide the steady-state throughput comparison.
 
 Commit and push first so the manifest and dataset card can cite the exact code,
 then launch from the repository root:
