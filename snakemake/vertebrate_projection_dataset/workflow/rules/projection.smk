@@ -87,9 +87,9 @@ rule hal_liftover:
         f"{RESULTS}/hal/raw/{{species}}.bed",
     wildcard_constraints:
         species=MAMMAL_RE,
-    threads: 4
+    threads: 1
     resources:
-        mem_mb=6000,
+        mem_mb=2000,
     run:
         Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
         run_halliftover(

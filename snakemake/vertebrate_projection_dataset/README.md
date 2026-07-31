@@ -142,6 +142,11 @@ NVMes combined as RAID0, explicit free-space checks, Cactus binaries, and
 symlinks that keep Snakemake state and all generated results off the 100 GB root
 volume.
 
+`halLiftover` is single-threaded. Its rule declares one thread and 2 GB of
+memory so the 48-core worker can project species concurrently without reserving
+four idle cores per process; the memory limit remains above observed full-tier
+usage.
+
 The 74.7 GB MultiZ source mirror is bootstrapped separately and resumably. Each
 uploaded object records its pinned MD5 as S3 user metadata; reruns skip objects
 only when both byte size and MD5 metadata match.
