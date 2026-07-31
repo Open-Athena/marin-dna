@@ -57,7 +57,7 @@ run: |
 
       apt-get update
       DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libcurl4-openssl-dev zlib1g-dev
+        libcurl4-openssl-dev time zlib1g-dev
 
       if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
