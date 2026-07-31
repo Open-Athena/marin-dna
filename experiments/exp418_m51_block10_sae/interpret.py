@@ -265,10 +265,18 @@ def _splice_rows(
         ).digest()
     )
     rows: list[dict[str, Any]] = []
+    used_positive_focals: set[tuple[str, int]] = set()
+    used_decoy_focals: set[tuple[str, int]] = set()
     for intron in candidates:
         positive_focal = focal_reference_coordinate(intron, task)
+        positive_key = (intron.strand, positive_focal)
+        if positive_key in used_positive_focals:
+            continue
         decoy_focal = _decoy_focal(genome, intron, task, annotated_focals)
         if decoy_focal is None:
+            continue
+        decoy_key = (intron.strand, decoy_focal)
+        if decoy_key in used_decoy_focals:
             continue
         pair_id = hashlib.sha256(f"{split}|{task}|{intron}".encode()).hexdigest()[:20]
         positive = _window_row(
@@ -291,6 +299,8 @@ def _splice_rows(
         )
         if positive is None or negative is None:
             continue
+        used_positive_focals.add(positive_key)
+        used_decoy_focals.add(decoy_key)
         rows.extend((positive, negative))
         if len(rows) == 2 * pair_count:
             break
@@ -302,6 +312,7 @@ def _splice_rows(
     )
     assert sum(row["label"] for row in rows) == pair_count
     assert len({row["pair_id"] for row in rows}) == pair_count
+    assert len({(row["strand"], row["start"], row["end"]) for row in rows}) == len(rows)
     return rows
 
 
@@ -399,6 +410,14 @@ def prepare_panel(
         2 * len(SPLICE_TASKS) * splice_pairs + len(NUCLEOTIDES) * nucleotides_per_base
     )
     assert frame["row_id"].n_unique() == frame.height
+    assert (
+        frame.select(
+            pl.struct("split", "task", "label", "chrom", "start", "end", "strand")
+            .n_unique()
+            .alias("unique_loci")
+        ).item()
+        == frame.height
+    )
     assert frame.filter(pl.col("end") - pl.col("start") != WINDOW_BP).is_empty()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     frame.write_parquet(output_path)
