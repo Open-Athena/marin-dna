@@ -1,0 +1,45 @@
+# Direct Lambda H100 task for causal base-substitution maps of the selected
+# exp418 donor and acceptor features. No cloud secret is sent to the VM.
+
+name: dna-exp418-mutagenesis
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 100
+    autostop:
+        idle_minutes: 30
+        down: true
+
+workdir: .
+
+file_mounts:
+    /home/ubuntu/exp418_inputs/panel: ../../scratch/issue418/interpretation
+    /home/ubuntu/exp418_inputs/sae: ../../scratch/issue418/dna-exp418-micro-seed288-e816ec343c30/sae
+    /home/ubuntu/exp418_inputs/interpretation: ../../scratch/issue418/dna-exp418-interpret-dedup-seed288-e885a1e090a7
+
+envs:
+    RUN_ID: dna-exp418-mutagenesis-seed288
+    EXPERIMENT_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export HF_HUB_DOWNLOAD_TIMEOUT=120
+    uv run --no-dev python mutagenesis.py \
+        --panel /home/ubuntu/exp418_inputs/panel/panel.parquet \
+        --interpretation-results /home/ubuntu/exp418_inputs/interpretation/results.json \
+        --sae /home/ubuntu/exp418_inputs/sae \
+        --output-dir "artifacts/$RUN_ID"
