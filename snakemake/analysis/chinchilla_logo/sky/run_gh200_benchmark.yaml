@@ -73,8 +73,7 @@ run: |
         --end 2000000 \
         --min-windows 8192
 
-      /usr/bin/time -v -o "$BENCHMARK_ROOT/batch_sweep.time" \
-        uv run --no-sync --project ../../.. python ../../../scripts/issue419_batch_sweep.py \
+      uv run --no-sync --project ../../.. python ../../../scripts/issue419_batch_sweep.py \
           --plan "$BENCHMARK_ROOT/input/plan.parquet" \
           --genome "$BENCHMARK_ROOT/input/region.fa" \
           --output-dir "$BENCHMARK_ROOT/batch_sweep" \
