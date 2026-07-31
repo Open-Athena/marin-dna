@@ -46,55 +46,55 @@ iVBORw0KGgoAAAANSUhEUgAAAeoAAADVCAYAAACYNrP2AAAFDUlEQVR4nO3XPa8YYhjHYac9+kqXNpqI
     <g id="xtick_1">
      <g id="line2d_1"/>
      <g id="text_1">
-      <text style="font-weight: 700; font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(87.258657 213.754715) rotate(-30)">Macro Avg</text>
+      <text style="font-weight: 700; font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(87.258657 213.754715) rotate(-30)">Macro Avg</text>
      </g>
     </g>
     <g id="xtick_2">
      <g id="line2d_2"/>
      <g id="text_2">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(136.786122 207.773839) rotate(-30)">Missense</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(136.786122 207.773839) rotate(-30)">Missense</text>
      </g>
     </g>
     <g id="xtick_3">
      <g id="line2d_3"/>
      <g id="text_3">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(180.990372 204.865714) rotate(-30)">Splicing</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(180.990372 204.865714) rotate(-30)">Splicing</text>
      </g>
     </g>
     <g id="xtick_4">
      <g id="line2d_4"/>
      <g id="text_4">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(225.26404 201.916902) rotate(-30)">5' UTR</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(225.26404 201.916902) rotate(-30)">5' UTR</text>
      </g>
     </g>
     <g id="xtick_5">
      <g id="line2d_5"/>
      <g id="text_5">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(254.108789 207.87659) rotate(-30)">Promoter</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(254.108789 207.87659) rotate(-30)">Promoter</text>
      </g>
     </g>
     <g id="xtick_6">
      <g id="line2d_6"/>
      <g id="text_6">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(303.25385 202.115886) rotate(-30)">ncRNA</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(303.25385 202.115886) rotate(-30)">ncRNA</text>
      </g>
     </g>
     <g id="xtick_7">
      <g id="line2d_7"/>
      <g id="text_7">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(342.765731 201.916902) rotate(-30)">3' UTR</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(342.765731 201.916902) rotate(-30)">3' UTR</text>
      </g>
     </g>
     <g id="xtick_8">
      <g id="line2d_8"/>
      <g id="text_8">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(385.167566 200.050011) rotate(-30)">Distal</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(385.167566 200.050011) rotate(-30)">Distal</text>
      </g>
     </g>
     <g id="xtick_9">
      <g id="line2d_9"/>
      <g id="text_9">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(396.375437 216.191746) rotate(-30)">Synonymous</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; fill: #1f1e1b" transform="translate(396.375437 216.191746) rotate(-30)">Synonymous</text>
      </g>
     </g>
     <g id="xtick_10">
@@ -182,37 +182,37 @@ L 467.223978 24.418516
     <g id="ytick_1">
      <g id="line2d_30"/>
      <g id="text_10">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="40.618942" transform="rotate(-0 111.218906 40.618942)">GPN-Star (M)</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="40.618942" transform="rotate(-0 111.218906 40.618942)">GPN-Star (M)</text>
      </g>
     </g>
     <g id="ytick_2">
      <g id="line2d_31"/>
      <g id="text_11">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="66.182255" transform="rotate(-0 111.218906 66.182255)">AlphaGenome</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="66.182255" transform="rotate(-0 111.218906 66.182255)">AlphaGenome</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_32"/>
      <g id="text_12">
-      <text style="font-weight: 700; font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="91.745217" transform="rotate(-0 111.218906 91.745217)">MarinDNA (1B/m5.1)</text>
+      <text style="font-weight: 700; font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="91.745217" transform="rotate(-0 111.218906 91.745217)">MarinDNA (1B/m5.1)</text>
      </g>
     </g>
     <g id="ytick_4">
      <g id="line2d_33"/>
      <g id="text_13">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="117.307828" transform="rotate(-0 111.218906 117.307828)">Evo 2 (40B)</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="117.307828" transform="rotate(-0 111.218906 117.307828)">Evo 2 (40B)</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_34"/>
      <g id="text_14">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="142.870789" transform="rotate(-0 111.218906 142.870789)">Evo 2 (7B)</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="142.870789" transform="rotate(-0 111.218906 142.870789)">Evo 2 (7B)</text>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_35"/>
      <g id="text_15">
-      <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="168.434103" transform="rotate(-0 111.218906 168.434103)">Evo 2 (1B base)</text>
+      <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: end; fill: #1f1e1b" x="111.218906" y="168.434103" transform="rotate(-0 111.218906 168.434103)">Evo 2 (1B base)</text>
      </g>
     </g>
     <g id="ytick_7">
@@ -435,7 +435,7 @@ L 467.223978 177.796287
     <text style="font-size: 9.744px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #ffffff" x="447.640363" y="167.092931" transform="rotate(-0 447.640363 167.092931)">47.7</text>
    </g>
    <g id="text_70">
-    <text style="font-size: 11.565px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="290.971442" y="14.418516" transform="rotate(-0 290.971442 14.418516)">Mendelian VEP benchmark — AUPRC (%) · zero-shot LLR</text>
+    <text style="font-size: 11.558px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="290.971442" y="14.418516" transform="rotate(-0 290.971442 14.418516)">Mendelian VEP benchmark — AUPRC (%) · zero-shot LLR</text>
    </g>
    <g id="patch_3">
     <path d="M 114.718906 24.418516
@@ -517,7 +517,7 @@ L 3.5 0
      </g>
     </g>
     <g id="text_76">
-     <text style="font-size: 10.956px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="510.293063" y="101.107401" transform="rotate(-90 510.293063 101.107401)">AUPRC (%)</text>
+     <text style="font-size: 10.949px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="510.293063" y="101.107401" transform="rotate(-90 510.293063 101.107401)">AUPRC (%)</text>
     </g>
    </g>
    <g id="LineCollection_1"/>

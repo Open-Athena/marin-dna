@@ -218,6 +218,7 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
         color=REGION_COLORS[region],
         pad=7,
     )
+    ax.set_box_aspect(1)
 
 
 def build_figure(data: pd.DataFrame) -> Figure:

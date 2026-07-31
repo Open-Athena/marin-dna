@@ -11,14 +11,14 @@
   </defs>
 
   <rect x="1" y="1" width="958" height="328" rx="16" fill="#f6f0e4" stroke="#ddd3bf"/>
-  <text x="28" y="35" font-size="23.267" font-weight="760" fill="#1f1e1b">Calibrate once, transfer hyperparameters across scales</text>
+  <text x="28" y="35" font-size="23.258" font-weight="760" fill="#1f1e1b">Calibrate once, transfer hyperparameters across scales</text>
 
   <g filter="url(#shadow)">
     <rect x="24" y="50" width="390" height="265" rx="14" fill="#fffaf0" stroke="#d8ccb5"/>
   </g>
-  <circle cx="49" cy="75" r="13" fill="#9c4f2f"/>
-  <text x="49" y="79.5" text-anchor="middle" font-size="22.805" font-weight="800" fill="#fff">1</text>
-  <text x="70" y="80" font-size="23.267" font-weight="760" fill="#1f1e1b">Tune on a small reference model</text>
+  <circle cx="49" cy="75" r="16" fill="#9c4f2f"/>
+  <text x="49" y="81" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">1</text>
+  <text x="70" y="80" font-size="23.258" font-weight="760" fill="#1f1e1b">Tune on a small reference model</text>
 
   <rect x="46" y="97" width="346" height="61" rx="9" fill="#f2eadb" stroke="#e0d5c0"/>
   <text x="62" y="117" font-size="17.455" font-weight="750" letter-spacing="0.65" fill="#8a7d68">REFERENCE SETTING</text>
@@ -50,14 +50,14 @@
 
   <path d="M 414 183 H 449" fill="none" stroke="#8a7d68" stroke-width="2" marker-end="url(#arrow)"/>
   <rect x="421" y="151" width="36" height="23" rx="11.5" fill="#f2eadb" stroke="#e0d5c0"/>
-  <text x="439" y="167" text-anchor="middle" font-size="20.82" font-weight="750" fill="#5b4a36">h₀</text>
+  <text x="439" y="167" text-anchor="middle" font-size="20.811" font-weight="750" fill="#5b4a36">h₀</text>
 
   <g filter="url(#shadow)">
     <rect x="462" y="50" width="474" height="265" rx="14" fill="#fffaf0" stroke="#d8ccb5"/>
   </g>
-  <circle cx="487" cy="75" r="13" fill="#2f6f63"/>
-  <text x="487" y="79.5" text-anchor="middle" font-size="22.805" font-weight="800" fill="#fff">2</text>
-  <text x="508" y="80" font-size="23.267" font-weight="760" fill="#1f1e1b">Apply at the target scale</text>
+  <circle cx="487" cy="75" r="16" fill="#2f6f63"/>
+  <text x="487" y="81" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">2</text>
+  <text x="508" y="80" font-size="23.258" font-weight="760" fill="#1f1e1b">Apply at the target scale</text>
 
   <rect x="484" y="97" width="202" height="199" rx="9" fill="#e8f0ed" stroke="#c7d9d3"/>
   <text x="585" y="120" text-anchor="middle" font-size="17.455" font-weight="760" letter-spacing="0.6" fill="#5d756e">TRANSFORM WITH</text>

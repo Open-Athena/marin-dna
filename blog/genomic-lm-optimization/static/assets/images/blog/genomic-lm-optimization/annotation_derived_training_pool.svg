@@ -16,6 +16,6 @@
   <g>
     <text x="269.5" y="99" text-anchor="middle" font-size="16.5" font-weight="700" fill="#fff">CDS 73%</text>
     <text x="585.5" y="99" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Upstream 21%</text>
-    <text x="676" y="68" text-anchor="middle" font-size="13.5" font-weight="700" fill="#9a6b2f">Downstream 6%</text>
+    <text x="696" y="68" text-anchor="end" font-size="13.5" font-weight="700" fill="#9a6b2f">Downstream 6%</text>
   </g>
 </svg>

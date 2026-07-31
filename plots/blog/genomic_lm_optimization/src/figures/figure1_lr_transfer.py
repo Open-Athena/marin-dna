@@ -29,7 +29,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     # A compact near-square canvas matches this single panel's information
     # density. The article declares its exact display width, so typography stays
     # consistent with wider multi-panel figures.
-    fig, ax = plt.subplots(figsize=figsize(8.2, 7.2))
+    fig, ax = plt.subplots(figsize=figsize(7.2, 7.2))
     plot_axis(
         ax,
         df,
@@ -43,16 +43,17 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         value_formatter=fmt_lr,
         palette=palette,
     )
+    ax.set_box_aspect(1)
     # A little extra gap so the x-axis label clears the rotated LR tick labels.
     ax.xaxis.labelpad = 6
     fig.suptitle(
         "Transfer validation — Loss vs. learning rate",
         fontsize=FIGURE_TITLE_SIZE_PX,
-        y=0.985,
+        y=0.975,
     )
     fig.text(
         0.5,
-        0.925,
+        0.915,
         _REFERENCE_SUBTITLE,
         ha="center",
         va="top",
@@ -60,7 +61,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     )
     fig.text(
         0.5,
-        0.885,
+        0.875,
         _TARGET_SUBTITLE,
         ha="center",
         va="top",
@@ -75,8 +76,8 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         palette,
         params,
         include_reference=True,
-        params_y=0.105,
-        run_y=0.015,
+        params_y=0.125,
+        run_y=0.035,
     )
-    fig.tight_layout(rect=(0, 0.27, 1, 0.82))
+    fig.tight_layout(rect=(0, 0.21, 1, 0.88))
     save(fig, "figure1_lr_transfer")

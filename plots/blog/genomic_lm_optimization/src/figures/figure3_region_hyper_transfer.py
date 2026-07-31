@@ -58,11 +58,11 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
                 include_negative_control=False,
                 y_field=y_field,
                 y_label=f"{region_label} Loss" if c == 0 else "",
-                tick_stride=2 if c > 0 else 1,
             )
             if r != 2:
-                ax.set_xticklabels([])
+                ax.tick_params(axis="x", labelbottom=False)
                 ax.set_xlabel("")
+            ax.set_box_aspect(1)
     fig.suptitle(
         "Transfer validation — Per-region Loss vs. learning rate, β₂, and ε",
         y=0.985,

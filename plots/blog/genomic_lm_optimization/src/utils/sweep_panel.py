@@ -10,11 +10,31 @@ from __future__ import annotations
 import math
 
 import pandas as pd
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
 from utils.figure_style import X_LABEL_PAD
 
 CONTROL_ROLES = ("positive-control", "negative-control")
+
+
+class _AutoGridLocator(MaxNLocator):
+    """Choose a readable subset of integer positions on an equal-spaced grid."""
+
+    def __init__(self, grid_size: int) -> None:
+        assert grid_size > 1
+        self._grid_size = grid_size
+        super().__init__(nbins="auto", integer=True, min_n_ticks=min(3, grid_size))
+
+    def tick_values(self, vmin: float, vmax: float):
+        ticks = super().tick_values(
+            max(vmin, 0.0), min(vmax, float(self._grid_size - 1))
+        )
+        return [
+            tick
+            for tick in ticks
+            if 0 <= tick < self._grid_size and math.isclose(tick, round(tick))
+        ]
 
 
 def _interpolate_x(
@@ -52,7 +72,6 @@ def plot_axis(
     include_negative_control: bool = True,
     y_field: str = "eval_loss",
     y_label: str = "Loss",
-    tick_stride: int = 1,
 ) -> None:
     """Plot `y_field` vs `axis_field` for the relevant rows. One series per param scale.
 
@@ -152,17 +171,22 @@ def plot_axis(
                     zorder=4,
                 )
 
-    assert tick_stride >= 1
-    shown = list(range(0, len(grid_values), tick_stride))
-    if shown[-1] != len(grid_values) - 1:
-        shown.append(len(grid_values) - 1)
-    ax.set_xticks([grid_xs[index] for index in shown])
-    ax.set_xticklabels(
-        [value_formatter(grid_values[index]) for index in shown],
-        rotation=30,
-        ha="right",
-        fontsize=FIGURE_NOTE_SIZE_PX,
+    # Keep the equal-spaced sweep grid, but let Matplotlib decide how many
+    # labels fit at the rendered axis width. The formatter maps the selected
+    # integer grid positions back to their underlying hyperparameter values.
+    ax.set_xlim(-0.4, len(grid_values) - 0.6)
+    ax.xaxis.set_major_locator(_AutoGridLocator(len(grid_values)))
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(
+            lambda position, _index: value_formatter(grid_values[round(position)])
+            if math.isclose(position, round(position))
+            and 0 <= round(position) < len(grid_values)
+            else ""
+        )
     )
+    ax.tick_params(axis="x", labelsize=FIGURE_NOTE_SIZE_PX, labelrotation=30)
+    for label in ax.get_xticklabels():
+        label.set_ha("right")
     ax.set_xlabel(axis_label, labelpad=X_LABEL_PAD)
     ax.set_ylabel(y_label)
     ax.grid(False)

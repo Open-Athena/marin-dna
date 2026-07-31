@@ -199,7 +199,7 @@ L 168.99465 63.80753
     </g>
    </g>
    <g id="text_10">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="48.16848" transform="rotate(-0 128.725412 48.16848)">Missense</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="48.16848" transform="rotate(-0 128.725412 48.16848)">Missense</text>
    </g>
    <g id="line2d_8">
     <defs>
@@ -395,7 +395,7 @@ L 309.873239 63.80753
     </g>
    </g>
    <g id="text_18">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="48.16848" transform="rotate(-0 269.604 48.16848)">Splicing</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="48.16848" transform="rotate(-0 269.604 48.16848)">Splicing</text>
    </g>
    <g id="line2d_16">
     <g clip-path="url(#pe4a762698c)">
@@ -580,7 +580,7 @@ L 450.751827 63.80753
     </g>
    </g>
    <g id="text_27">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="48.16848" transform="rotate(-0 410.482588 48.16848)">Synonymous</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="48.16848" transform="rotate(-0 410.482588 48.16848)">Synonymous</text>
    </g>
    <g id="line2d_25">
     <g clip-path="url(#p0b18904826)">
@@ -778,7 +778,7 @@ L 168.99465 206.691015
     </g>
    </g>
    <g id="text_38">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="190.173923" transform="rotate(-0 128.725412 190.173923)">Promoter</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="128.725412" y="190.173923" transform="rotate(-0 128.725412 190.173923)">Promoter</text>
    </g>
    <g id="line2d_35">
     <g clip-path="url(#p07fbc828ee)">
@@ -963,7 +963,7 @@ L 309.873239 214.73683
     </g>
    </g>
    <g id="text_47">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="190.173923" transform="rotate(-0 269.604 190.173923)">5′ UTR</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="269.604" y="190.173923" transform="rotate(-0 269.604 190.173923)">5′ UTR</text>
    </g>
    <g id="line2d_44">
     <g clip-path="url(#pdaccee0538)">
@@ -1158,7 +1158,7 @@ L 450.751827 229.548376
     </g>
    </g>
    <g id="text_57">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="190.173923" transform="rotate(-0 410.482588 190.173923)">3′ UTR</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="410.482588" y="190.173923" transform="rotate(-0 410.482588 190.173923)">3′ UTR</text>
    </g>
    <g id="line2d_54">
     <g clip-path="url(#p2509e5d81f)">
@@ -1346,7 +1346,7 @@ L 239.433945 347.818416
     </g>
    </g>
    <g id="text_67">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="332.179366" transform="rotate(-0 199.164706 332.179366)">Missense</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="199.164706" y="332.179366" transform="rotate(-0 199.164706 332.179366)">Missense</text>
    </g>
    <g id="line2d_63">
     <g clip-path="url(#p4dd2b6828c)">
@@ -1531,7 +1531,7 @@ L 380.312533 347.818416
     </g>
    </g>
    <g id="text_76">
-    <text style="font-size: 11.672px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="332.179366" transform="rotate(-0 340.043294 332.179366)">Splicing</text>
+    <text style="font-size: 11.679px; font-family: 'Lato', sans-serif; text-anchor: middle; fill: #1f1e1b" x="340.043294" y="332.179366" transform="rotate(-0 340.043294 332.179366)">Splicing</text>
    </g>
    <g id="line2d_72">
     <g clip-path="url(#pea05b9ea0f)">

@@ -339,7 +339,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         ax.grid(False)
         ax.margins(y=0.12)
         ax.tick_params(axis="both", labelsize=9)
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=5, integer=True))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins="auto", integer=True))
         ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.0f}"))
         ax.set_box_aspect(1)
         for spine in ax.spines.values():

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import FuncFormatter, LogLocator
 import pandas as pd
 import polars as pl
 
@@ -46,15 +47,15 @@ EVO2_MODELS: tuple[tuple[str, float], ...] = (
     ("evo2_7b", 7.0e9),
     ("evo2_40b", 40.0e9),
 )
-X_TICKS: tuple[tuple[float, str], ...] = (
-    (45.9e6, "46M"),
-    (128.5e6, "128M"),
-    (475.9e6, "476M"),
-    (1.12e9, "1B"),
-    (4.02e9, "4B"),
-    (7.0e9, "7B"),
-    (40.0e9, "40B"),
-)
+
+
+def _format_parameter_count(value: float, _position: int) -> str:
+    """Compact labels for Matplotlib-selected log-scale parameter ticks."""
+    if value >= 1e9:
+        return f"{value / 1e9:g}B"
+    if value >= 1e6:
+        return f"{value / 1e6:g}M"
+    return f"{value:g}"
 
 
 def _evo2_path(model: str) -> str:
@@ -115,7 +116,7 @@ def load_missense_comparison(
 def build(marin_metrics: pd.DataFrame | None = None) -> None:
     """Build the combined MarinDNA + Evo 2 missense scaling figure."""
     data = load_missense_comparison(marin_metrics)
-    fig, ax = plt.subplots(figsize=figsize(8.8, 5.5))
+    fig, ax = plt.subplots(figsize=figsize(7.2, 7.2))
 
     for family, marker in FAMILIES:
         for score_type, _label, color, _score_marker, linestyle in READOUTS:
@@ -142,12 +143,13 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
             )
 
     ax.set_xscale("log")
-    ax.set_xticks([value for value, _label in X_TICKS])
-    ax.set_xticklabels([label for _value, label in X_TICKS])
+    ax.xaxis.set_major_locator(LogLocator(base=10))
+    ax.xaxis.set_major_formatter(FuncFormatter(_format_parameter_count))
     ax.set_xlabel("Model parameters", labelpad=X_LABEL_PAD)
     ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
     ax.margins(x=0.04, y=0.12)
+    ax.set_box_aspect(1)
 
     protocol_handles = [
         Line2D(

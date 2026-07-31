@@ -171,6 +171,7 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
         ax.set_xlabel("Step", labelpad=X_LABEL_PAD)
         ax.set_ylabel(ylabel)
         ax.grid(False)
+        ax.set_box_aspect(1)
         # Loss values span ~0.5–1.5; render as plain decimals rather than 6×10⁻¹ etc.
         set_plain_decimal_yticks(ax)
 

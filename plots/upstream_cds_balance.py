@@ -282,7 +282,7 @@ def shared_step_data(trajectories: pl.DataFrame) -> pl.DataFrame:
 def plot(data: pl.DataFrame) -> plt.Figure:
     """Create upstream, missense, and two-subset-mean trajectory panels."""
     apply_style()
-    fig, axes = plt.subplots(1, 3, figsize=(15, 6.5), sharex=True, sharey=False)
+    fig, axes = plt.subplots(1, 3, figsize=(13, 5.2), sharex=True, sharey=False)
 
     for axis, (title, subset) in zip(axes[:2], SUBSETS.items(), strict=True):
         for arm_key, arm in ARMS.items():
@@ -328,6 +328,7 @@ def plot(data: pl.DataFrame) -> plt.Figure:
         axis.set_xlabel("Training step", fontsize=POSTER_LABEL_FS)
         axis.tick_params(axis="both", labelsize=POSTER_TICK_FS)
         axis.grid(False)
+        axis.set_box_aspect(1)
     axes[0].set_ylabel("AUPRC (%)", fontsize=POSTER_LABEL_FS)
 
     handles, labels = axes[0].get_legend_handles_labels()
@@ -346,13 +347,13 @@ def plot(data: pl.DataFrame) -> plt.Figure:
         bbox_to_anchor=(0.5, 1.0),
         ncol=2,
         fontsize=POSTER_LEGEND_FS,
-        columnspacing=2.0,
+        columnspacing=0.4,
         handlelength=4.0,
         handletextpad=0.4,
-        labelspacing=0.6,
+        labelspacing=0.25,
         borderpad=0.0,
     )
-    fig.subplots_adjust(bottom=0.10, top=0.62, left=0.09, right=0.98, wspace=0.28)
+    fig.subplots_adjust(bottom=0.09, top=0.70, left=0.09, right=0.98, wspace=0.28)
     return fig
 
 

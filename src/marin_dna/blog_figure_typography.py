@@ -51,6 +51,9 @@ _TYPOGRAPHY_MARKER_RE = re.compile(
 _RENDER_WIDTH_MARKER_RE = re.compile(
     r"\bdata-figure-render-width\s*=\s*[\"'][^\"']*[\"']", re.IGNORECASE
 )
+_PRESERVE_TYPOGRAPHY_RE = re.compile(
+    r"\bdata-figure-preserve-typography\s*=\s*[\"']true[\"']", re.IGNORECASE
+)
 
 
 def _view_box_width(svg: str, path: Path | None = None) -> float:
@@ -92,6 +95,8 @@ def _font_size_declarations(svg: str) -> list[tuple[str, float]]:
     declarations: list[tuple[str, float]] = []
     for tag_match in _SVG_TEXT_TAG_RE.finditer(svg):
         tag = tag_match.group(0)
+        if _PRESERVE_TYPOGRAPHY_RE.search(tag):
+            continue
         name = tag_match.group("name").lower()
         for pattern in (_CSS_FONT_SIZE_RE, _ATTRIBUTE_FONT_SIZE_RE):
             for match in pattern.finditer(tag):
@@ -141,6 +146,8 @@ def _normalize_sizes(svg: str, view_box_width: float, render_width_px: float) ->
     def normalize_tag(tag_match: re.Match[str]) -> str:
         tag_name = tag_match.group("name").lower()
         tag = tag_match.group(0)
+        if _PRESERVE_TYPOGRAPHY_RE.search(tag):
+            return tag
 
         def replace_css(match: re.Match[str]) -> str:
             value = _normalize_size(
@@ -175,12 +182,14 @@ def _normalize_sizes(svg: str, view_box_width: float, render_width_px: float) ->
 
 def _normalize_font_families(svg: str) -> str:
     def replace_css(match: re.Match[str]) -> str:
-        if "monospace" in match.group("value").lower():
+        family = match.group("value").lower()
+        if "monospace" in family or "emoji" in family:
             return match.group(0)
         return f"{match.group('prefix')}'Lato', sans-serif"
 
     def replace_attribute(match: re.Match[str]) -> str:
-        if "monospace" in match.group("value").lower():
+        family = match.group("value").lower()
+        if "monospace" in family or "emoji" in family:
             return match.group(0)
         quote = match.group("quote")
         return f"{match.group('prefix')}{quote}{FIGURE_FONT_FAMILY}{quote}"
@@ -266,7 +275,9 @@ def validate_svg_typography(
     unexpected = [
         family
         for family in families
-        if "lato" not in family.lower() and "monospace" not in family.lower()
+        if "lato" not in family.lower()
+        and "monospace" not in family.lower()
+        and "emoji" not in family.lower()
     ]
     assert not unexpected, (
         f"referenced SVG uses unexpected font families {sorted(set(unexpected))}: "

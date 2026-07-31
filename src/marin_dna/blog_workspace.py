@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree
 
@@ -73,6 +74,24 @@ LIVE_RELOAD_SCRIPT = """
 })();
 </script>
 """.strip()
+
+
+class PreviewRequestHandler(SimpleHTTPRequestHandler):
+    """Serve mutable preview files without browser or conditional caching."""
+
+    def send_head(self) -> BinaryIO | None:
+        for header in ("If-Modified-Since", "If-None-Match"):
+            if header in self.headers:
+                del self.headers[header]
+        return super().send_head()
+
+    def end_headers(self) -> None:
+        self.send_header(
+            "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"
+        )
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
 
 
 @dataclass(frozen=True)
@@ -723,7 +742,7 @@ def serve_preview(
         output = refresh_live_preview(config, revision=str(time.time_ns()))
     else:
         output = build_preview(config)
-    handler = partial(SimpleHTTPRequestHandler, directory=str(output))
+    handler = partial(PreviewRequestHandler, directory=str(output))
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Preview: http://{host}:{port}/blog/{config.slug}/", flush=True)
     stop = threading.Event()

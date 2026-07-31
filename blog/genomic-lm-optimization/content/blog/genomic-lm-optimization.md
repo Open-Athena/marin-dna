@@ -85,7 +85,7 @@ window.addEventListener('DOMContentLoaded', function () {
     var source = new URL(image.getAttribute('src'), document.baseURI);
     if (source.origin !== window.location.origin || !source.pathname.endsWith('.svg')) return;
 
-    fetch(source.href)
+    fetch(source.href, { cache: 'no-store' })
       .then(function (response) {
         if (!response.ok) throw new Error('SVG request failed: ' + response.status);
         return response.text();
@@ -196,8 +196,8 @@ Standard genome annotations make these regions relatively easy to identify and e
 Later, we added ncRNA[^training-ncrna] and enhancers[^training-enhancer] built by alignment projection.
 Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
-<figure id="fig-training-datasets" data-figure-width="700">
-<img src="/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
+<figure id="fig-training-datasets" data-figure-width="660">
+<img src="/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg?v=compact-bars" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
 <figcaption><strong>Figure 1:</strong> Dataset provenance and token counts for each sequence type.</figcaption>
 </figure>
 
@@ -257,7 +257,7 @@ The zero-shot score tests whether the model's learned sequence likelihood reflec
 The probe instead asks what variant-relevant information is encoded in the model's learned representation, including information that may not be directly reflected in its sequence likelihoods.
 
 <figure id="fig-evaluation-readouts" data-figure-width="680">
-<img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
+<img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg?v=standard-snowflake" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
 <figcaption><strong>Figure 3:</strong> Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired allele embeddings.</figcaption>
 </figure>
 
@@ -303,7 +303,7 @@ This made explicit mixture control a central axis of investigation.
 Even the 50/50 mixture may not be optimal: regions can differ both in size and in the density of learnable biological signal.
 
 <!-- Plot recipe: plots/upstream_cds_balance.py -->
-<figure id="fig-upstream-cds-balance" data-figure-width="680">
+<figure id="fig-upstream-cds-balance" data-figure-width="620">
 <img src="/assets/images/blog/genomic-lm-optimization/upstream_cds_balance.svg" alt="Promoter and missense VEP AUPRC (%) trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures" />
 <figcaption><strong>Figure 5:</strong> Upstream/CDS mixture comparison (zero-shot). The right panel is the unweighted mean of the promoter and missense AUPRC (%) values.</figcaption>
 </figure>
@@ -335,7 +335,7 @@ Figure 7 separates reference calibration from target application. Two heuristics
 The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters across 255M–1B-parameter models, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The first test was whether the learning-rate prediction survived that regime. [Figure 8](#fig-learning-rate-transfer) shows that the transferred prediction lands exactly on the best observed learning-rate setting at all three validation scales, outperforming both the unchanged reference optimum and every other target-scale sweep setting; the less sensitive optimizer hyperparameters are shown separately in [Figure 9](#fig-adam-transfer).
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure1_lr_transfer.py -->
-<figure id="fig-learning-rate-transfer" data-figure-width="520">
+<figure id="fig-learning-rate-transfer" data-figure-width="480">
 <img src="/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" />
 <figcaption><strong>Figure 8:</strong> Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales. The <code>control</code> run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (<code>sweep</code> run type), for all model sizes.</figcaption>
 </figure>

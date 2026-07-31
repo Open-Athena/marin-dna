@@ -1,5 +1,11 @@
 from dataclasses import replace
+from email.utils import formatdate
+from functools import partial
+from http.server import ThreadingHTTPServer
 from pathlib import Path
+import threading
+import time
+from urllib.request import Request, urlopen
 
 import pytest
 
@@ -106,6 +112,26 @@ def test_validate_svg_typography_rejects_unscaled_text(tmp_path: Path) -> None:
         validate_svg_typography(svg)
 
 
+def test_normalize_svg_typography_preserves_marked_emoji(tmp_path: Path) -> None:
+    original = """
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="350"
+     viewBox="0 0 840 350" font-family="system-ui, sans-serif">
+  <text font-size="16">Label</text>
+  <text data-figure-preserve-typography="true" font-size="48"
+        font-family="Noto Color Emoji, Apple Color Emoji, sans-serif">❄️</text>
+</svg>
+"""
+    normalized = normalize_svg_typography(original, render_width_px=640)
+
+    assert normalize_svg_typography(normalized, render_width_px=640) == normalized
+    assert 'data-figure-preserve-typography="true" font-size="48"' in normalized
+    assert 'font-family="Noto Color Emoji, Apple Color Emoji, sans-serif"' in normalized
+
+    svg = tmp_path / "figure.svg"
+    svg.write_text(normalized)
+    validate_svg_typography(svg, expected_render_width_px=640)
+
+
 def test_extract_svg_render_widths_accounts_for_frame_padding() -> None:
     markdown = """
 <figure id="compact" data-figure-width="600">
@@ -206,6 +232,32 @@ def test_inject_live_reload_adds_preview_only_client(tmp_path: Path) -> None:
 
     assert "__marin_dna_live_reload__" in page.read_text()
     assert (output / "__marin_dna_live_reload__").read_text() == "revision-1\n"
+
+
+def test_preview_request_handler_disables_conditional_cache(tmp_path: Path) -> None:
+    page = tmp_path / "index.html"
+    page.write_text("fresh preview")
+    handler = partial(blog_workspace.PreviewRequestHandler, directory=str(tmp_path))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        future = formatdate(time.time() + 3600, usegmt=True)
+        request = Request(
+            f"http://127.0.0.1:{server.server_port}/index.html",
+            headers={"If-Modified-Since": future},
+        )
+        with urlopen(request) as response:
+            assert response.status == 200
+            assert response.read() == b"fresh preview"
+            assert response.headers["Cache-Control"] == (
+                "no-store, no-cache, must-revalidate, max-age=0"
+            )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
 
 
 def test_preview_source_signature_tracks_article_and_assets(tmp_path: Path) -> None:

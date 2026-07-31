@@ -42,6 +42,8 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         palette=palette,
         include_negative_control=False,
     )
+    for ax in axes:
+        ax.set_box_aspect(1)
     # Pull the ε label up closer to the tick labels.
     axes[1].xaxis.labelpad = -4
     fig.suptitle("Transfer validation — Loss vs. β₂ and ε", y=0.95)
