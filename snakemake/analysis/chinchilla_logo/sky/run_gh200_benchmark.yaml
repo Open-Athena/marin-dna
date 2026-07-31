@@ -36,7 +36,7 @@ run: |
 
   sudo docker run --rm --gpus all --ipc=host \
     --ulimit memlock=-1 --ulimit stack=67108864 \
-    -e COMMIT_SHA -e WANDB_DISABLED=true \
+    -e COMMIT_SHA="$COMMIT_SHA" -e WANDB_DISABLED=true \
     -v "$PWD:/workspace/bolinas-dna" \
     -w /workspace/bolinas-dna \
     nvcr.io/nvidia/pytorch:26.06-py3 \
@@ -47,8 +47,10 @@ run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
       fi
       export PATH="/root/.local/bin:$PATH"
-      uv venv --clear --python python --system-site-packages .venv
-      uv sync --frozen --no-dev --no-install-package torch --inexact
+      if ! .venv/bin/python -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+        uv venv --clear --python python --system-site-packages .venv
+        uv sync --frozen --no-dev --no-install-package torch --inexact
+      fi
       uv run --no-sync python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__); print(torch.cuda.get_device_name(0))"
 
       cd snakemake/analysis/chinchilla_logo
