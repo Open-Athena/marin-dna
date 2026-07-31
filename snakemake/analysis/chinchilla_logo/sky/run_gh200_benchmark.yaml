@@ -47,9 +47,9 @@ run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
       fi
       export PATH="/root/.local/bin:$PATH"
-      uv venv --python python --system-site-packages .venv
+      uv venv --clear --python python --system-site-packages .venv
       uv sync --frozen --no-dev --no-install-package torch --inexact
-      uv run python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__); print(torch.cuda.get_device_name(0))"
+      uv run --no-sync python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__); print(torch.cuda.get_device_name(0))"
 
       cd snakemake/analysis/chinchilla_logo
       BENCHMARK_ROOT=results/benchmark/gh200
@@ -65,14 +65,14 @@ run: |
       }
       trap cleanup EXIT
 
-      uv run --project ../../.. python ../../../scripts/issue419_prepare_region_benchmark.py \
+      uv run --no-sync --project ../../.. python ../../../scripts/issue419_prepare_region_benchmark.py \
         --commit-sha "$COMMIT_SHA" \
         --output-dir "$BENCHMARK_ROOT/input" \
         --end 2000000 \
         --min-windows 8192
 
       /usr/bin/time -v -o "$BENCHMARK_ROOT/batch_sweep.time" \
-        uv run --project ../../.. python ../../../scripts/issue419_batch_sweep.py \
+        uv run --no-sync --project ../../.. python ../../../scripts/issue419_batch_sweep.py \
           --plan "$BENCHMARK_ROOT/input/plan.parquet" \
           --genome "$BENCHMARK_ROOT/input/region.fa" \
           --output-dir "$BENCHMARK_ROOT/batch_sweep" \
@@ -86,4 +86,3 @@ run: |
       trap - EXIT
       nvidia-smi
     '
-
