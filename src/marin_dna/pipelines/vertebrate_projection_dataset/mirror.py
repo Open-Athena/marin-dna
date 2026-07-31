@@ -138,7 +138,15 @@ def stage_s3_object(expected: MirrorObject, destination: str | Path) -> None:
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["aws", "s3", "cp", expected.s3_uri, str(destination_path)], check=True
+        [
+            "aws",
+            "s3",
+            "cp",
+            expected.s3_uri,
+            str(destination_path),
+            "--no-progress",
+        ],
+        check=True,
     )
     verify_local_object(destination_path, expected)
 
@@ -165,6 +173,7 @@ def mirror_source_object(expected: MirrorObject) -> None:
                 expected.s3_uri,
                 "--metadata",
                 f"md5={expected.md5}",
+                "--no-progress",
             ],
             check=True,
         )

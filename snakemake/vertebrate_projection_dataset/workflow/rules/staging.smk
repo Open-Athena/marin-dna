@@ -27,7 +27,8 @@ rule stage_hal:
     params:
         source=str(config["hal_s3_uri"]),
     shell:
-        "mkdir -p $(dirname {output}) && aws s3 cp {params.source} {output}"
+        "mkdir -p $(dirname {output}) && "
+        "aws s3 cp {params.source} {output} --no-progress"
 
 
 rule stage_multiz_maf:
