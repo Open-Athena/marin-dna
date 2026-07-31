@@ -23,6 +23,7 @@ workdir: .
 envs:
   TIER: smoke
   TARGET: all
+  DRY_RUN: "0"
 
 setup: |
   set -euxo pipefail
@@ -105,7 +106,13 @@ run: |
   fi
   ln -sfn "$SNAKEMAKE_NVME" "$SNAKEMAKE_LINK"
 
-  uv run snakemake "$TARGET" \
+  test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
+  SNAKEMAKE_MODE=()
+  if [ "$DRY_RUN" = "1" ]; then
+    SNAKEMAKE_MODE+=(--dry-run)
+  fi
+
+  uv run snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
     --snakefile snakemake/vertebrate_projection_dataset/workflow/Snakefile \
     --config tier="$TIER" \
     --cores 48 \

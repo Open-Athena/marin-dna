@@ -149,11 +149,16 @@ sky launch -c vertebrate-project \
   snakemake/vertebrate_projection_dataset/sky/project.yaml \
   --env TIER=smoke \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+
+sky exec vertebrate-project \
+  snakemake/vertebrate_projection_dataset/sky/project.yaml \
+  --env TIER=full --env TARGET=all --env DRY_RUN=1 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 
 Actively inspect first-run setup, HAL transfer rate, mounted capacity, rule
 progress, and ZRS/QC outputs. Reuse the same node for a later approved full run
-with `sky exec ... --env TIER=full`; terminate it with
+with the same `sky exec` command and `--env DRY_RUN=0`; terminate it with
 `sky down vertebrate-project` when inspection is complete.
 
 HAL staging downloads to a temporary filename and atomically renames it only
