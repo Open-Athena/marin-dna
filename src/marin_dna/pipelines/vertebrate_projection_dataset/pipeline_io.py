@@ -333,7 +333,8 @@ def combine_sequence_parquets(input_paths: list[str], output_path: str | Path) -
             .select(
                 pl.len().alias("rows"),
                 pl.col("query_name").n_unique().alias("queries"),
-                pl.col("species").unique().alias("species"),
+                pl.col("species").n_unique().alias("species_count"),
+                pl.col("species").first().alias("species"),
                 (pl.col("sequence").str.len_bytes() != 255)
                 .sum()
                 .alias("invalid_lengths"),
@@ -343,10 +344,12 @@ def combine_sequence_parquets(input_paths: list[str], output_path: str | Path) -
         )
         assert int(stats["rows"]) == int(stats["queries"])
         assert int(stats["invalid_lengths"]) == 0
-        species = list(stats["species"])
-        assert len(species) == 1, f"{path} contains multiple species: {species}"
-        assert str(species[0]) not in observed_species
-        observed_species.add(str(species[0]))
+        assert int(stats["species_count"]) == 1, (
+            f"{path} contains {stats['species_count']} species"
+        )
+        species = str(stats["species"])
+        assert species not in observed_species
+        observed_species.add(species)
         expected_rows += int(stats["rows"])
 
     merge_parquets_streaming(input_paths, output_path)
