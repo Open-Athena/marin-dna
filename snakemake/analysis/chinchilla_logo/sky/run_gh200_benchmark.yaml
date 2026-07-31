@@ -34,7 +34,7 @@ run: |
   set -euxo pipefail
   test "${#COMMIT_SHA}" -eq 40
 
-  sudo docker run --rm --gpus all --ipc=host \
+  sudo docker run --rm --gpus all --ipc=host --network=host \
     --ulimit memlock=-1 --ulimit stack=67108864 \
     -e COMMIT_SHA="$COMMIT_SHA" -e WANDB_DISABLED=true \
     -v "$PWD:/workspace/bolinas-dna" \
