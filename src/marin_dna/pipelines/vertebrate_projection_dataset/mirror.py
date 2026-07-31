@@ -1,0 +1,120 @@
+"""Checksum-verified UCSC-to-S3 mirroring and S3-to-NVMe staging."""
+
+from __future__ import annotations
+
+import hashlib
+import shutil
+import subprocess
+import tempfile
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+
+import polars as pl
+
+
+@dataclass(frozen=True)
+class MirrorObject:
+    kind: str
+    chrom: str
+    source_url: str
+    s3_uri: str
+    byte_size: int
+    md5: str
+
+
+def read_mirror_manifest(path: str | Path) -> list[MirrorObject]:
+    """Read and validate the immutable source-object manifest."""
+    frame = pl.read_csv(path, separator="\t")
+    required = {"kind", "chrom", "source_url", "s3_uri", "byte_size", "md5"}
+    missing = required - set(frame.columns)
+    assert not missing, f"mirror manifest missing columns: {sorted(missing)}"
+    assert frame.height > 0
+    assert frame["source_url"].n_unique() == frame.height
+    assert frame["s3_uri"].n_unique() == frame.height
+    assert (frame["byte_size"] > 0).all()
+    assert frame["md5"].str.contains(r"^[0-9a-f]{32}$").all()
+    assert frame["source_url"].str.starts_with("https://").all()
+    assert frame["s3_uri"].str.starts_with("s3://").all()
+    return [
+        MirrorObject(
+            kind=str(row["kind"]),
+            chrom=str(row["chrom"] or ""),
+            source_url=str(row["source_url"]),
+            s3_uri=str(row["s3_uri"]),
+            byte_size=int(row["byte_size"]),
+            md5=str(row["md5"]),
+        )
+        for row in frame.to_dicts()
+    ]
+
+
+def validate_multiz_mirror_contents(
+    objects: list[MirrorObject], required_chroms: list[str]
+) -> None:
+    """Require one MAF per configured primary chromosome and both tree files."""
+    assert objects
+    assert len(required_chroms) == len(set(required_chroms))
+    primary = [obj for obj in objects if obj.kind == "primary_chromosome_maf"]
+    observed = [obj.chrom for obj in primary]
+    assert len(observed) == len(set(observed)), "duplicate chromosome MAF objects"
+    assert set(observed) == set(required_chroms), (
+        f"mirror chromosomes differ: observed={sorted(observed)}, "
+        f"required={sorted(required_chroms)}"
+    )
+    metadata_names = {
+        Path(obj.source_url).name for obj in objects if obj.kind == "source_metadata"
+    }
+    assert "hg38.100way.nh" in metadata_names, "mirror is missing alignment-name tree"
+    assert "hg38.100way.scientificNames.nh" in metadata_names, (
+        "mirror is missing scientific-name tree"
+    )
+
+
+def file_md5(path: str | Path, *, chunk_size: int = 8 * 1024 * 1024) -> str:
+    """Hash a file without loading multi-gigabyte MAFs into memory."""
+    digest = hashlib.md5()
+    with Path(path).open("rb") as handle:
+        while chunk := handle.read(chunk_size):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_local_object(path: str | Path, expected: MirrorObject) -> None:
+    """Fail on missing, truncated, or content-mismatched staged objects."""
+    local_path = Path(path)
+    assert local_path.is_file(), f"missing staged object: {local_path}"
+    observed_size = local_path.stat().st_size
+    assert observed_size == expected.byte_size, (
+        f"size mismatch for {local_path}: {observed_size} != {expected.byte_size}"
+    )
+    observed_md5 = file_md5(local_path)
+    assert observed_md5 == expected.md5, (
+        f"MD5 mismatch for {local_path}: {observed_md5} != {expected.md5}"
+    )
+
+
+def stage_s3_object(expected: MirrorObject, destination: str | Path) -> None:
+    """Copy one mirrored object from S3 and verify it before use."""
+    destination_path = Path(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["aws", "s3", "cp", expected.s3_uri, str(destination_path)], check=True
+    )
+    verify_local_object(destination_path, expected)
+
+
+def mirror_source_object(expected: MirrorObject) -> None:
+    """Bootstrap one UCSC source object into its immutable S3 destination."""
+    with tempfile.TemporaryDirectory(prefix="marin-dna-multiz-") as temp_dir:
+        local_path = Path(temp_dir) / Path(expected.source_url).name
+        request = urllib.request.Request(
+            expected.source_url, headers={"User-Agent": "marin-dna/417"}
+        )
+        with urllib.request.urlopen(request, timeout=120) as response:
+            with local_path.open("wb") as output:
+                shutil.copyfileobj(response, output, length=8 * 1024 * 1024)
+        verify_local_object(local_path, expected)
+        subprocess.run(
+            ["aws", "s3", "cp", str(local_path), expected.s3_uri], check=True
+        )

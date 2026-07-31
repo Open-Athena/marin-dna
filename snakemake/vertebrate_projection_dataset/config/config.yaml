@@ -1,0 +1,54 @@
+pipeline_version: v1
+tier: smoke
+
+window_size: 255
+step_size: 128
+phyloP_447m_threshold: 2.2162
+min_proportion_conserved: 0.20
+target_length: 255
+pre_resize_min_length: 128
+pre_resize_max_length: 512
+
+ensembl_release: 115
+human_twobit_url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.2bit
+ccre_url: https://downloads.wenglab.org/Registry-V4/GRCh38-cCREs.bed
+standard_chroms:
+  [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10,
+   chr11, chr12, chr13, chr14, chr15, chr16, chr17, chr18, chr19,
+   chr20, chr21, chr22, chrX, chrY]
+
+species_candidates: snakemake/vertebrate_projection_dataset/config/species_candidates.tsv
+species_selected: snakemake/vertebrate_projection_dataset/config/species_selected.tsv
+multiz_mirror_manifest: snakemake/vertebrate_projection_dataset/config/multiz_mirror.tsv
+smoke_anchors: snakemake/vertebrate_projection_dataset/config/smoke_anchors.tsv
+
+hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal
+hal_stage_path: /mnt/nvme/vertebrate_projection/447-mammalian-2022v1.hal
+multiz_stage_dir: /mnt/nvme/vertebrate_projection/multiz100way/ucsc-2015-05-12
+
+smoke_chroms: [chr7, chr18]
+smoke_mammals: [Mus_musculus, Loxodonta_africana]
+smoke_non_mammals: [galGal4, allMis1, xenTro7, danRer10, petMar2]
+
+validation_chrom: chr18
+validation_max_rows: 16384
+validation_seed: 42
+add_rc: true
+inspection_seed: 417
+inspection_rows_per_region: 3
+inspection_fragmented_rows: 5
+inspection_rejected_rows_per_reason: 2
+region_cohorts:
+  [all, cds, utr3, ncrna_exon, tss_region_and_utr5,
+   ccre_non_promoter, background]
+
+hf_owner: bolinas-dna
+hf_repo_prefix: vertebrate-v1
+
+# v4 region labeling from issue #227, pinned independently here.
+region_label_tss_radius: 256
+region_label_ccre_flank: 0
+region_label_tss_pc_only: true
+region_label_functional_threshold: 0.20
+region_label_priority:
+  [cds, utr3, tss_region_and_utr5, ncrna_exon, ccre_non_promoter]

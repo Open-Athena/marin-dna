@@ -1,0 +1,19 @@
+configfile: "snakemake/vertebrate_projection_dataset/config/config.yaml"
+
+
+include: "rules/common.smk"
+include: "rules/anchors.smk"
+include: "rules/staging.smk"
+include: "rules/projection.smk"
+include: "rules/dataset.smk"
+
+
+rule all:
+    input:
+        COMBINED_SEQUENCES,
+        f"{RESULTS}/qc/per_anchor.parquet",
+        f"{RESULTS}/qc/aggregates.parquet",
+        f"{RESULTS}/qc/manual_inspection.md",
+        expand(f"{RESULTS}/datasets/{{region}}/train.parquet", region=COHORTS),
+        expand(f"{RESULTS}/datasets/{{region}}/validation.parquet", region=COHORTS),
+        expand(f"{RESULTS}/datasets/{{region}}/README.md", region=COHORTS),

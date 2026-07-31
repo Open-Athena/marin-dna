@@ -1,0 +1,6 @@
+query_name	source_chrom	source_start	source_end	region_label
+zrs_EH38E2604086	chr7	156791360	156791615	ccre_non_promoter
+zrs_EH38E2604087	chr7	156792658	156792913	ccre_non_promoter
+smoke_chr18_cds	chr18	100000	100255	cds
+smoke_chr18_enhancer	chr18	200000	200255	ccre_non_promoter
+smoke_chr18_background	chr18	300000	300255	background
