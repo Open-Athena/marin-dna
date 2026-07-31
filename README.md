@@ -28,7 +28,7 @@ Tracked as GitHub issues under a two-axis label taxonomy — **Type** (the kind 
 - [🤗 Models and datasets on Hugging Face](https://huggingface.co/marin-dna)
 - [🏆 Variant effect prediction leaderboard](https://openathena.ai/marin-dna/)
 - [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
-- [💻 Model inference and BRCA1 variant effect prediction notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/20f48809013a34c4cf4bee94582e9ba94b56b5b2/examples/model_inference_and_vep.py)
+- [💻 Model inference and BRCA1 variant effect prediction notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/5d1925fe0d6569c0ee0c29db06b8f287c2347065/examples/model_inference_and_vep.py)
 
 ## Example
 
