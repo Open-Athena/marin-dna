@@ -105,35 +105,45 @@ Copy `results/benchmark/gh200` back after the run, then terminate the cluster.
 
 `sky/run_gh200_full.yaml` pins Lambda `us-east-3`, scores every sequence in
 the UCSC `chrom.sizes` inventory, and builds the eight BigWigs and UCSC hub on the same
-GH200, and copies the release to persistent object storage before the cluster
-is torn down. It keeps one model, tokenizer, and indexed genome handle resident
-across scaffolds. The measured production configuration is batch size 128,
+GH200. It keeps one model, tokenizer, and indexed genome handle resident across
+scaffolds. The measured production configuration is batch size 128,
 four DataLoader workers, BF16 evaluation, and `torch.compile`.
 
 Full-DAG parsing needs the downloaded `chrom.sizes` inventory. The Sky task
 therefore fetches that small target with the default configuration, performs a
 full-assembly dry-run, and only then invokes the real workflow with
 `config/full_genome.yaml`. Completed score shards are written directly through
-the SkyPilot S3 mount, so a retry at the same application commit validates and
-resumes them rather than starting inference over.
+the GH200 node's local disk, so a retry on the same node at the same application
+commit validates and resumes them rather than starting inference over. Lambda
+does not provide AWS credentials to SkyPilot's cross-cloud S3 mount; local
+shards are therefore not durable if the node is destroyed before completion.
 
 After explicit paid-compute approval, commit and push the exact code first,
 then launch from the repository root:
 
 ```bash
 sky launch -c chinchilla-logo-gh200-full --detach-run \
-  --idle-minutes-to-autostop 60 --down \
   snakemake/analysis/chinchilla_logo/sky/run_gh200_full.yaml \
   --env COMMIT_SHA=$(git rev-parse HEAD)
 ```
 
-The run-specific persistent root is
+The run-specific local root is `~/.issue419/full-runs/<commit>/`. It contains
+live GPU and Snakemake logs, resumable score shards, plans, the validated
+release tree, a file-size inventory, and `COMPLETE.json`. Leave automatic
+teardown disabled until the release has been relayed and verified. After the
+job succeeds, run from the AWS-authenticated controller:
+
+```bash
+scripts/issue419_relay_gh200_release.sh \
+  chinchilla-logo-gh200-full $(git rev-parse HEAD)
+```
+
+The relay streams each release, plan, and log file through SSH without staging
+large artifacts on the controller, checks every S3 object size, and uploads
+`COMPLETE.json` last. The durable destination is
 `s3://oa-bolinas/snakemake/analysis/chinchilla_logo/issue419-full/runs/<commit>/`.
-It contains live GPU and Snakemake logs, resumable score shards, plans, the
-validated release tree, a file-size inventory, and `COMPLETE.json`. The
-one-hour idle grace period begins only after the job exits. A successful job has
-already matched the local and persistent release inventories; a failed one
-remains available for diagnosis during the grace period.
+Only tear the cluster down after the relay reports success. Resumable shards
+remain local and are not uploaded.
 There is no Hugging Face credential mount or upload step.
 
 ## Resumption and bounded memory

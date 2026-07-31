@@ -2,7 +2,6 @@
 #
 # Launch from the repository root after committing the current branch:
 #   sky launch -c chinchilla-logo-gh200-full --detach-run \
-#     --idle-minutes-to-autostop 60 --down \
 #     snakemake/analysis/chinchilla_logo/sky/run_gh200_full.yaml \
 #     --env COMMIT_SHA=$(git rev-parse HEAD)
 
@@ -21,11 +20,6 @@ workdir: .
 envs:
   COMMIT_SHA: ""
 
-file_mounts:
-  /issue419-persistent:
-    source: s3://oa-bolinas
-    mode: MOUNT
-
 setup: |
   set -euxo pipefail
 
@@ -41,21 +35,25 @@ run: |
   set -euxo pipefail
   test "${#COMMIT_SHA}" -eq 40
 
-  RUN_ROOT="/issue419-persistent/snakemake/analysis/chinchilla_logo/issue419-full/runs/$COMMIT_SHA"
-  mkdir -p "$RUN_ROOT/logs" "$RUN_ROOT/shards"
-  printf '%s\n' "$COMMIT_SHA" > "$RUN_ROOT/STORAGE_SMOKE_TEST"
-  test "$(cat "$RUN_ROOT/STORAGE_SMOKE_TEST")" = "$COMMIT_SHA"
+  # Lambda nodes do not expose AWS credentials to SkyPilot's cross-cloud S3
+  # mount. Keep resumable state on the node's local disk and relay only the
+  # validated release to S3 from the AWS-authenticated controller.
+  LOCAL_RUN_ROOT="$HOME/.issue419/full-runs/$COMMIT_SHA"
+  mkdir -p "$LOCAL_RUN_ROOT/logs" "$LOCAL_RUN_ROOT/shards"
+  printf '%s\n' "$COMMIT_SHA" > "$LOCAL_RUN_ROOT/STORAGE_SMOKE_TEST"
+  test "$(cat "$LOCAL_RUN_ROOT/STORAGE_SMOKE_TEST")" = "$COMMIT_SHA"
+  test "$(df --output=avail -B1 "$LOCAL_RUN_ROOT" | tail -n 1)" -ge 214748364800
 
   sudo docker run --rm --gpus all --ipc=host --network=host \
     --ulimit memlock=-1 --ulimit stack=67108864 \
     -e COMMIT_SHA="$COMMIT_SHA" -e WANDB_DISABLED=true \
     -v "$PWD:/workspace/bolinas-dna" \
-    -v /issue419-persistent:/issue419-persistent \
+    -v "$HOME/.issue419:/issue419-local" \
     -w /workspace/bolinas-dna \
     nvcr.io/nvidia/pytorch:26.06-py3 \
     bash -lc '
       set -euxo pipefail
-      RUN_ROOT="/issue419-persistent/snakemake/analysis/chinchilla_logo/issue419-full/runs/$COMMIT_SHA"
+      RUN_ROOT="/issue419-local/full-runs/$COMMIT_SHA"
 
       if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -81,8 +79,12 @@ run: |
 
       cd snakemake/analysis/chinchilla_logo
       mkdir -p results
-      test ! -e results/shards
-      ln -s "$RUN_ROOT/shards" results/shards
+      if [ -L results/shards ]; then
+        test "$(readlink -f results/shards)" = "$(readlink -f "$RUN_ROOT/shards")"
+      else
+        test ! -e results/shards
+        ln -s "$RUN_ROOT/shards" results/shards
+      fi
 
       nvidia-smi \
         --query-gpu=timestamp,name,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu,clocks.sm \
@@ -124,7 +126,7 @@ run: |
       find results/release -type f -printf "%P\t%s\n" | sort > /tmp/local-release-inventory.tsv
       find "$RUN_ROOT/release" -type f -printf "%P\t%s\n" | sort > "$RUN_ROOT/release-inventory.tsv"
       diff -u /tmp/local-release-inventory.tsv "$RUN_ROOT/release-inventory.tsv"
-      printf "{\"application_commit\":\"%s\",\"complete\":true}\n" \
+      printf "{\"application_commit\":\"%s\",\"complete\":true,\"s3_relay\":\"pending\"}\n" \
         "$COMMIT_SHA" > "$RUN_ROOT/COMPLETE.json"
 
       cleanup
