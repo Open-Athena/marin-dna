@@ -84,7 +84,17 @@ run: |
       cd snakemake/analysis/chinchilla_logo
       mkdir -p results
       if [ -L results/shards ]; then
-        test "$(readlink -f results/shards)" = "$(readlink -f "$RUN_ROOT/shards")"
+        CURRENT_SHARD_ROOT="$(readlink -f results/shards)"
+        EXPECTED_SHARD_ROOT="$(readlink -f "$RUN_ROOT/shards")"
+        if [ "$CURRENT_SHARD_ROOT" != "$EXPECTED_SHARD_ROOT" ]; then
+          # Code-only launch fixes change COMMIT_SHA. Replace a stale symlink
+          # only when its old target is completely empty; never abandon scored
+          # chunks implicitly.
+          test -d "$CURRENT_SHARD_ROOT"
+          test -z "$(find "$CURRENT_SHARD_ROOT" -mindepth 1 -print -quit)"
+          unlink results/shards
+          ln -s "$RUN_ROOT/shards" results/shards
+        fi
       else
         test ! -e results/shards
         ln -s "$RUN_ROOT/shards" results/shards
