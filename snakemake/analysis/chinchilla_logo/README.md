@@ -121,7 +121,8 @@ After explicit paid-compute approval, commit and push the exact code first,
 then launch from the repository root:
 
 ```bash
-sky launch -c chinchilla-logo-gh200-full --detach-run --down \
+sky launch -c chinchilla-logo-gh200-full --detach-run \
+  --idle-minutes-to-autostop 60 --down \
   snakemake/analysis/chinchilla_logo/sky/run_gh200_full.yaml \
   --env COMMIT_SHA=$(git rev-parse HEAD)
 ```
@@ -129,8 +130,10 @@ sky launch -c chinchilla-logo-gh200-full --detach-run --down \
 The run-specific persistent root is
 `s3://oa-bolinas/snakemake/analysis/chinchilla_logo/issue419-full/runs/<commit>/`.
 It contains live GPU and Snakemake logs, resumable score shards, plans, the
-validated release tree, a file-size inventory, and `COMPLETE.json`. Automatic
-teardown happens only after the local and persistent release inventories match.
+validated release tree, a file-size inventory, and `COMPLETE.json`. The
+one-hour idle grace period begins only after the job exits. A successful job has
+already matched the local and persistent release inventories; a failed one
+remains available for diagnosis during the grace period.
 There is no Hugging Face credential mount or upload step.
 
 ## Resumption and bounded memory

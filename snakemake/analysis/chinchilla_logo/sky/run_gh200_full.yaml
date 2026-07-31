@@ -1,7 +1,8 @@
 # Full GCF_000276665.1 scoring and UCSC-hub build for issue #419.
 #
 # Launch from the repository root after committing the current branch:
-#   sky launch -c chinchilla-logo-gh200-full --detach-run --down \
+#   sky launch -c chinchilla-logo-gh200-full --detach-run \
+#     --idle-minutes-to-autostop 60 --down \
 #     snakemake/analysis/chinchilla_logo/sky/run_gh200_full.yaml \
 #     --env COMMIT_SHA=$(git rev-parse HEAD)
 
