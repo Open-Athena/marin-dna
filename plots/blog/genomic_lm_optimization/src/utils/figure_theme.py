@@ -24,10 +24,7 @@ from __future__ import annotations
 import matplotlib as mpl
 
 from marin_dna.blog_figure_typography import (
-    FIGURE_AXIS_LABEL_SIZE_PX,
-    FIGURE_BODY_SIZE_PX,
-    FIGURE_PANEL_TITLE_SIZE_PX,
-    FIGURE_TITLE_SIZE_PX,
+    matplotlib_typography_rcparams,
 )
 
 # The page's body ink (--text in the Open Athena stylesheet).
@@ -46,16 +43,8 @@ mpl.rcParams.update(
         # Keep text as <text> (font-independent layout via DejaVu metrics, but
         # restyleable/selectable once inlined).
         "svg.fonttype": "none",
-        # Semantic defaults. Individual dense panels may opt down within the
-        # validated 11–16 px final-width range.
-        "font.size": FIGURE_BODY_SIZE_PX,
-        "axes.titlesize": FIGURE_PANEL_TITLE_SIZE_PX,
-        "axes.labelsize": FIGURE_AXIS_LABEL_SIZE_PX,
-        "xtick.labelsize": FIGURE_BODY_SIZE_PX,
-        "ytick.labelsize": FIGURE_BODY_SIZE_PX,
-        "legend.fontsize": FIGURE_BODY_SIZE_PX,
-        "legend.title_fontsize": FIGURE_BODY_SIZE_PX,
-        "figure.titlesize": FIGURE_TITLE_SIZE_PX,
+        # One base size plus Matplotlib's explicit semantic ratios.
+        **matplotlib_typography_rcparams(),
         # Open frame: drop the top/right spines like a native web chart.
         "axes.spines.top": False,
         "axes.spines.right": False,

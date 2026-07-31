@@ -1,3 +1,4 @@
+import ast
 from dataclasses import replace
 from email.utils import formatdate
 from functools import partial
@@ -11,6 +12,10 @@ import pytest
 
 from marin_dna import blog_workspace
 from marin_dna.blog_figure_typography import (
+    FIGURE_BASE_SIZE_PX,
+    MATPLOTLIB_SMALL_SIZE_RATIO,
+    MATPLOTLIB_TITLE_SIZE_RATIO,
+    matplotlib_typography_rcparams,
     normalize_svg_typography,
     validate_svg_typography,
 )
@@ -27,6 +32,21 @@ from marin_dna.blog_workspace import (
     refresh_live_preview,
     validate_footnotes,
     validate_workspace,
+)
+
+
+ACTIVE_BLOG_PLOT_RECIPES = (
+    "plots/blog/promoter_cds_specialists.py",
+    "plots/upstream_cds_balance.py",
+    "plots/blog/_leaderboard.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure1_lr_transfer.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure2_beta2_epsilon_transfer.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure3_region_hyper_transfer.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure4_loss_scaling.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure6b_marin_evo2_missense.py",
+    "plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py",
 )
 
 
@@ -99,6 +119,62 @@ def test_normalize_svg_typography_is_idempotent_and_preserves_monospace() -> Non
     assert 'font-family="ui-monospace, monospace"' in normalized
 
 
+def test_matplotlib_typography_uses_one_base_and_explicit_ratios() -> None:
+    params = matplotlib_typography_rcparams()
+
+    assert MATPLOTLIB_TITLE_SIZE_RATIO == 1.2
+    assert MATPLOTLIB_SMALL_SIZE_RATIO == 5.0 / 6.0
+    assert params["axes.titlesize"] == FIGURE_BASE_SIZE_PX * 1.2
+    assert params["figure.titlesize"] == FIGURE_BASE_SIZE_PX * 1.2
+    for role in (
+        "font.size",
+        "axes.labelsize",
+        "xtick.labelsize",
+        "ytick.labelsize",
+        "legend.fontsize",
+        "legend.title_fontsize",
+    ):
+        assert params[role] == FIGURE_BASE_SIZE_PX
+
+
+def test_active_plot_recipes_cannot_override_standard_element_font_sizes() -> None:
+    root = Path(__file__).resolve().parents[1]
+    standard_calls = {
+        "legend": {"fontsize", "title_fontsize"},
+        "set_title": {"fontsize"},
+        "suptitle": {"fontsize"},
+        "set_xlabel": {"fontsize"},
+        "set_ylabel": {"fontsize"},
+        "set_xticklabels": {"fontsize"},
+        "set_yticklabels": {"fontsize"},
+        "tick_params": {"labelsize"},
+    }
+    failures: list[str] = []
+    for relative_path in ACTIVE_BLOG_PLOT_RECIPES:
+        path = root / relative_path
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Attribute):
+                call_name = node.func.attr
+            elif isinstance(node.func, ast.Name):
+                call_name = node.func.id
+            else:
+                continue
+            forbidden = standard_calls.get(call_name, set())
+            present = sorted(
+                keyword.arg
+                for keyword in node.keywords
+                if keyword.arg is not None and keyword.arg in forbidden
+            )
+            if present:
+                failures.append(f"{relative_path}:{node.lineno}: {present}")
+    assert not failures, "standard typography must come from shared rcParams:\n" + "\n".join(
+        failures
+    )
+
+
 def test_validate_svg_typography_rejects_unscaled_text(tmp_path: Path) -> None:
     svg = tmp_path / "figure.svg"
     svg.write_text(
@@ -108,7 +184,7 @@ def test_validate_svg_typography_rejects_unscaled_text(tmp_path: Path) -> None:
         'font-family="Lato, sans-serif"><text font-size="9">tiny</text></svg>'
     )
 
-    with pytest.raises(AssertionError, match="outside the 11–16px hierarchy"):
+    with pytest.raises(AssertionError, match="outside the 10–16px hierarchy"):
         validate_svg_typography(svg)
 
 

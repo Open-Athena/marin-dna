@@ -290,7 +290,7 @@ We first trained a 1.7B upstream-region specialist, trying to replicate the succ
 [^early-mixture-datasets]: The upstream and CDS datasets used in these early experiments were earlier versions of those summarized in Figure 1: broadly comparable, but not identical. These models also used a 512-bp context without a BOS token, roughly twice the 255-bp context adopted for the later recipe.
 
 <!-- Plot recipe: plots/blog/promoter_cds_specialists.py -->
-<figure id="fig-upstream-cds-specialists" data-figure-width="474">
+<figure id="fig-upstream-cds-specialists" data-figure-width="500">
 <img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
 <figcaption><strong>Figure 4:</strong> Region-matched Mendelian VEP AUPRC (%) under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR). Error bars denote SE.</figcaption>
 </figure>

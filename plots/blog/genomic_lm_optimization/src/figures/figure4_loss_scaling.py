@@ -10,10 +10,7 @@ import pandas as pd
 from matplotlib.patches import FancyBboxPatch
 
 from figures.data import FIGURES_DIR, save
-from marin_dna.blog_figure_typography import (
-    FIGURE_BODY_SIZE_PX,
-    FIGURE_TITLE_SIZE_PX,
-)
+from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
 from utils.figure_style import (
     FIGURE_WIDTH,
     X_LABEL_PAD,
@@ -181,13 +178,9 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
 
     # Keep the title and subtitle as plain Unicode text so the SVG normalizer
     # can render both in the same page font as the rest of the figure.
-    fig.text(
-        0.5,
-        0.965,
+    fig.suptitle(
         "Parameter scaling — Loss curves & scaling law",
-        ha="center",
-        va="center",
-        fontsize=FIGURE_TITLE_SIZE_PX,
+        y=0.965,
     )
     fig.text(
         0.5,
@@ -195,7 +188,6 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
         _SCALING_SUBTITLE,
         ha="center",
         va="center",
-        fontsize=FIGURE_BODY_SIZE_PX,
     )
     fig.tight_layout(rect=(0, 0.08, 1, 0.90))
 
@@ -273,9 +265,9 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         )
 
     inset.set_xscale("log")
-    inset.set_xlabel("Parameters (N)", fontsize=9, labelpad=2)
+    inset.set_xlabel("Parameters (N)", labelpad=2)
     inset.set_ylabel("")
-    inset.tick_params(labelsize=8, length=2.5, pad=1)
+    inset.tick_params(length=2.5, pad=1)
     inset.minorticks_off()
     inset.grid(False)
     set_plain_decimal_yticks(inset)
@@ -293,7 +285,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         transform=parent_ax.transAxes,
         ha="left",
         va="bottom",
-        fontsize=8,
+        fontsize=FIGURE_NOTE_SIZE_PX,
         color="0.15",
         linespacing=1.6,
         zorder=25,

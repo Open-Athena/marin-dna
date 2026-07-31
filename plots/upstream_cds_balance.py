@@ -30,6 +30,13 @@ from matplotlib.legend_handler import HandlerBase
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Wedge
 
+from marin_dna.blog_figure_typography import (
+    FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    matplotlib_typography_rcparams,
+    normalize_svg_typography_file,
+    validate_svg_typography,
+)
+
 
 class Arm(NamedTuple):
     prefix: str
@@ -85,6 +92,12 @@ BLOG_SVG = (
     / "genomic-lm-optimization"
     / "upstream_cds_balance.svg"
 )
+BLOG_FIGURE_WIDTH_PX = 620.0
+BLOG_RENDER_WIDTH_PX = BLOG_FIGURE_WIDTH_PX - FIGURE_FRAME_HORIZONTAL_PADDING_PX
+
+# The only figure-size control. All three plotting axes are square; the canvas
+# dimensions follow from this height and the fixed one-row, three-panel layout.
+SUBPLOT_HEIGHT_PX = 120.0
 
 TEXT_COLOR = "#1f1e1b"
 # Canonical issue #370 region palette: Upstream = teal, CDS = rust.
@@ -94,10 +107,6 @@ TITLE_COLORS = {
     "Missense": REGION_COLORS["cds"],
     "Mean of both": TEXT_COLOR,
 }
-POSTER_TITLE_FS = 32
-POSTER_LABEL_FS = 30
-POSTER_TICK_FS = 26
-POSTER_LEGEND_FS = 32
 
 
 def blend_region_colors(upstream_fraction: float) -> tuple[float, float, float]:
@@ -206,9 +215,7 @@ def apply_style() -> None:
             "svg.fonttype": "none",
             "svg.hashsalt": Path(__file__).stem,
             "font.family": "sans-serif",
-            "font.size": 18,
-            "axes.titlesize": 22,
-            "axes.labelsize": 20,
+            **matplotlib_typography_rcparams(),
             "axes.edgecolor": TEXT_COLOR,
             "axes.labelcolor": TEXT_COLOR,
             "axes.linewidth": 1.8,
@@ -218,10 +225,7 @@ def apply_style() -> None:
             "axes.facecolor": "none",
             "xtick.color": TEXT_COLOR,
             "ytick.color": TEXT_COLOR,
-            "xtick.labelsize": 16,
-            "ytick.labelsize": 16,
             "legend.frameon": False,
-            "legend.fontsize": 16,
             "lines.linewidth": 4.5,
             "lines.markersize": 14,
             "savefig.facecolor": "none",
@@ -282,7 +286,15 @@ def shared_step_data(trajectories: pl.DataFrame) -> pl.DataFrame:
 def plot(data: pl.DataFrame) -> plt.Figure:
     """Create upstream, missense, and two-subset-mean trajectory panels."""
     apply_style()
-    fig, axes = plt.subplots(1, 3, figsize=(13, 5.2), sharex=True, sharey=False)
+    axes_height_fraction = 0.70 - 0.09
+    figure_height_inches = SUBPLOT_HEIGHT_PX / (72.0 * axes_height_fraction)
+    fig, axes = plt.subplots(
+        1,
+        3,
+        figsize=(2.5 * figure_height_inches, figure_height_inches),
+        sharex=True,
+        sharey=False,
+    )
 
     for axis, (title, subset) in zip(axes[:2], SUBSETS.items(), strict=True):
         for arm_key, arm in ARMS.items():
@@ -299,7 +311,6 @@ def plot(data: pl.DataFrame) -> plt.Figure:
         axis.set_title(
             title,
             color=TITLE_COLORS[title],
-            fontsize=POSTER_TITLE_FS,
         )
 
     mean_axis = axes[2]
@@ -321,15 +332,13 @@ def plot(data: pl.DataFrame) -> plt.Figure:
     mean_axis.set_title(
         "Mean of both",
         color=TITLE_COLORS["Mean of both"],
-        fontsize=POSTER_TITLE_FS,
     )
 
     for axis in axes:
-        axis.set_xlabel("Training step", fontsize=POSTER_LABEL_FS)
-        axis.tick_params(axis="both", labelsize=POSTER_TICK_FS)
+        axis.set_xlabel("Training step")
         axis.grid(False)
         axis.set_box_aspect(1)
-    axes[0].set_ylabel("AUPRC (%)", fontsize=POSTER_LABEL_FS)
+    axes[0].set_ylabel("AUPRC (%)")
 
     handles, labels = axes[0].get_legend_handles_labels()
     # Matplotlib fills a two-column legend column-first. This ordering displays
@@ -346,7 +355,6 @@ def plot(data: pl.DataFrame) -> plt.Figure:
         loc="upper center",
         bbox_to_anchor=(0.5, 1.0),
         ncol=2,
-        fontsize=POSTER_LEGEND_FS,
         columnspacing=0.4,
         handlelength=4.0,
         handletextpad=0.4,
@@ -374,6 +382,8 @@ def main() -> None:
                 "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
                 encoding="utf-8",
             )
+            normalize_svg_typography_file(output, BLOG_RENDER_WIDTH_PX)
+            validate_svg_typography(output, BLOG_RENDER_WIDTH_PX)
         print(f"wrote {output}")
     plt.close(figure)
 

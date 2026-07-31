@@ -15,11 +15,27 @@ FIGURE_FONT_FAMILY = "Lato, sans-serif"
 # The article's SVG frame uses 1.25rem (20px) of padding on each side.
 FIGURE_FRAME_HORIZONTAL_PADDING_PX = 40.0
 FIGURE_RENDER_WIDTH_PX = 700.0
-FIGURE_TITLE_SIZE_PX = 16.0
-FIGURE_PANEL_TITLE_SIZE_PX = 14.0
-FIGURE_AXIS_LABEL_SIZE_PX = 13.0
-FIGURE_BODY_SIZE_PX = 12.0
-FIGURE_NOTE_SIZE_PX = 11.0
+
+# Matplotlib's default semantic hierarchy expressed explicitly: ``large`` is
+# 1.2x the base size, while ``small`` is 5/6x. Plot recipes cannot choose or
+# override these values: they control subplot geometry only. The SVG normalizer
+# maps that fixed hierarchy through each canvas-to-display scale so it renders
+# at the same sizes in the article.
+FIGURE_BASE_SIZE_PX = 12.0
+MATPLOTLIB_TITLE_SIZE_RATIO = 1.2
+MATPLOTLIB_SMALL_SIZE_RATIO = 5.0 / 6.0
+
+FIGURE_BODY_SIZE_PX = FIGURE_BASE_SIZE_PX
+FIGURE_AXIS_LABEL_SIZE_PX = FIGURE_BASE_SIZE_PX
+FIGURE_TICK_SIZE_PX = FIGURE_BASE_SIZE_PX
+FIGURE_LEGEND_SIZE_PX = FIGURE_BASE_SIZE_PX
+FIGURE_TITLE_SIZE_PX = FIGURE_BASE_SIZE_PX * MATPLOTLIB_TITLE_SIZE_RATIO
+FIGURE_PANEL_TITLE_SIZE_PX = FIGURE_BASE_SIZE_PX * MATPLOTLIB_TITLE_SIZE_RATIO
+FIGURE_NOTE_SIZE_PX = FIGURE_BASE_SIZE_PX * MATPLOTLIB_SMALL_SIZE_RATIO
+
+# The normalizer also processes hand-authored explanatory diagrams. Keep their
+# existing 16px top-level headings valid; plot semantics use the ratios above.
+FIGURE_SVG_MAX_SIZE_PX = 16.0
 FIGURE_MATH_MIN_SIZE_PX = 7.0
 
 _NUMBER = r"(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)"
@@ -54,6 +70,21 @@ _RENDER_WIDTH_MARKER_RE = re.compile(
 _PRESERVE_TYPOGRAPHY_RE = re.compile(
     r"\bdata-figure-preserve-typography\s*=\s*[\"']true[\"']", re.IGNORECASE
 )
+
+
+def matplotlib_typography_rcparams() -> dict[str, float]:
+    """Return the fixed Matplotlib hierarchy used by every blog plot."""
+    title_size = FIGURE_BASE_SIZE_PX * MATPLOTLIB_TITLE_SIZE_RATIO
+    return {
+        "font.size": FIGURE_BASE_SIZE_PX,
+        "axes.titlesize": title_size,
+        "figure.titlesize": title_size,
+        "axes.labelsize": FIGURE_BASE_SIZE_PX,
+        "xtick.labelsize": FIGURE_BASE_SIZE_PX,
+        "ytick.labelsize": FIGURE_BASE_SIZE_PX,
+        "legend.fontsize": FIGURE_BASE_SIZE_PX,
+        "legend.title_fontsize": FIGURE_BASE_SIZE_PX,
+    }
 
 
 def _view_box_width(svg: str, path: Path | None = None) -> float:
@@ -132,7 +163,7 @@ def _normalize_size(
     scaled = _to_user_units(value, unit) * factor
     effective = scaled * render_width_px / view_box_width
     minimum = FIGURE_MATH_MIN_SIZE_PX if tag_name == "tspan" else FIGURE_NOTE_SIZE_PX
-    effective = min(max(effective, minimum), FIGURE_TITLE_SIZE_PX)
+    effective = min(max(effective, minimum), FIGURE_SVG_MAX_SIZE_PX)
     normalized = effective * view_box_width / render_width_px
     return _format_number(_from_user_units(normalized, unit))
 
@@ -292,7 +323,7 @@ def validate_svg_typography(
         minimum = (
             FIGURE_MATH_MIN_SIZE_PX if tag_name == "tspan" else FIGURE_NOTE_SIZE_PX
         )
-        assert minimum - 0.01 <= effective <= FIGURE_TITLE_SIZE_PX + 0.01, (
+        assert minimum - 0.01 <= effective <= FIGURE_SVG_MAX_SIZE_PX + 0.01, (
             f"referenced SVG {tag_name} font renders at {effective:.2f}px, outside "
-            f"the {minimum:g}–{FIGURE_TITLE_SIZE_PX:g}px hierarchy: {path}"
+            f"the {minimum:g}–{FIGURE_SVG_MAX_SIZE_PX:g}px hierarchy: {path}"
         )

@@ -12,7 +12,6 @@ import math
 import pandas as pd
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
-from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
 from utils.figure_style import X_LABEL_PAD
 
 CONTROL_ROLES = ("positive-control", "negative-control")
@@ -184,7 +183,7 @@ def plot_axis(
             else ""
         )
     )
-    ax.tick_params(axis="x", labelsize=FIGURE_NOTE_SIZE_PX, labelrotation=30)
+    ax.tick_params(axis="x", labelrotation=30)
     for label in ax.get_xticklabels():
         label.set_ha("right")
     ax.set_xlabel(axis_label, labelpad=X_LABEL_PAD)

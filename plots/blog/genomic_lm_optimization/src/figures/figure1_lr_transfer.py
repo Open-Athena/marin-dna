@@ -6,10 +6,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from figures.data import save
-from marin_dna.blog_figure_typography import (
-    FIGURE_BODY_SIZE_PX,
-    FIGURE_TITLE_SIZE_PX,
-)
 from utils.figure_style import (
     attach_stacked_legends_below,
     figsize,
@@ -48,7 +44,6 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     ax.xaxis.labelpad = 6
     fig.suptitle(
         "Transfer validation — Loss vs. learning rate",
-        fontsize=FIGURE_TITLE_SIZE_PX,
         y=0.975,
     )
     fig.text(
@@ -57,7 +52,6 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         _REFERENCE_SUBTITLE,
         ha="center",
         va="top",
-        fontsize=FIGURE_BODY_SIZE_PX,
     )
     fig.text(
         0.5,
@@ -65,7 +59,6 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         _TARGET_SUBTITLE,
         ha="center",
         va="top",
-        fontsize=FIGURE_BODY_SIZE_PX,
     )
 
     # Stack the two legend families. At this figure's compact article width,

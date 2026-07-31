@@ -13,6 +13,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.patches import Rectangle
 
+from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
 from marin_dna.pipelines.evals.metrics import MACRO_AVG_SUBSET
 from plots.blog.genomic_lm_optimization.src.utils import figure_theme as _figure_theme  # noqa: F401
 from plots.blog.genomic_lm_optimization.src.utils.figure_style import (
@@ -119,7 +120,7 @@ def render_heatmap(
                 f"{value:.1f}",
                 ha="center",
                 va="center",
-                fontsize=8,
+                fontsize=FIGURE_NOTE_SIZE_PX,
                 color=text_color,
                 fontweight="bold" if column_index == 0 else "normal",
             )
@@ -136,10 +137,10 @@ def render_heatmap(
         )
     )
     ax.set_xticks(range(n_columns))
-    ax.set_xticklabels(column_labels, rotation=30, ha="right", fontsize=9)
+    ax.set_xticklabels(column_labels, rotation=30, ha="right")
     ax.get_xticklabels()[0].set_fontweight("bold")
     ax.set_yticks(range(n_rows))
-    ax.set_yticklabels(display_names, fontsize=9)
+    ax.set_yticklabels(display_names)
     for tick, family in zip(ax.get_yticklabels(), families, strict=True):
         if family == "marin_dna":
             tick.set_fontweight("bold")
@@ -152,10 +153,9 @@ def render_heatmap(
         fraction=0.025,
         pad=0.02,
     )
-    colorbar.set_label("AUPRC (%)", fontsize=9)
-    colorbar.ax.tick_params(labelsize=8)
+    colorbar.set_label("AUPRC (%)")
 
-    ax.set_title(title, fontsize=9.5, pad=10)
+    ax.set_title(title, pad=10)
     fig.tight_layout()
     _save_figure(fig, output_name)
     plt.close(fig)

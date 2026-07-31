@@ -183,8 +183,6 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
         loc="upper center",
         bbox_to_anchor=(0.34, 0.99),
         frameon=False,
-        fontsize=9,
-        title_fontsize=9,
         handlelength=2.4,
         columnspacing=1.4,
     )
@@ -196,8 +194,6 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
         loc="upper center",
         bbox_to_anchor=(0.76, 0.99),
         frameon=False,
-        fontsize=9,
-        title_fontsize=9,
         handletextpad=0.4,
         columnspacing=1.2,
     )

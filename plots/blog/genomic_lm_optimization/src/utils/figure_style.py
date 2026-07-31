@@ -13,11 +13,6 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.transforms import Bbox
 
-from marin_dna.blog_figure_typography import (
-    FIGURE_BODY_SIZE_PX,
-    FIGURE_NOTE_SIZE_PX,
-)
-
 # Natural (unscaled) dimensions. Width is constant across figures so they line
 # up in any side-by-side rendering.
 FIGURE_WIDTH = 12.0
@@ -85,8 +80,6 @@ X_LABEL_PAD = 0
 
 # Tight label↔marker spacing, generous between (marker, label) pairs.
 LEGEND_KW = dict(
-    fontsize=FIGURE_NOTE_SIZE_PX,
-    title_fontsize=FIGURE_BODY_SIZE_PX,
     frameon=False,
     handletextpad=0.3,
     columnspacing=2.2,

@@ -34,6 +34,7 @@ from matplotlib.patches import Patch
 
 from marin_dna.blog_figure_typography import (
     FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    matplotlib_typography_rcparams,
     normalize_svg_typography_file,
     validate_svg_typography,
 )
@@ -235,12 +236,10 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
     ax.set_ylim(AUPRC_BASELINE_PCT, y_max)
     ax.set_xlabel("")
     ax.tick_params(axis="x", bottom=False, labelbottom=False)
-    ax.tick_params(axis="y", labelsize=8)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.set_title(
         SUBSET_DISPLAY[subset],
-        fontsize=10,
         color=REGION_COLORS[region],
         pad=7,
     )
@@ -254,6 +253,7 @@ def build_figure(data: pd.DataFrame) -> Figure:
         {
             "svg.fonttype": "none",
             "svg.hashsalt": OUTPUT_NAME,
+            **matplotlib_typography_rcparams(),
             "axes.spines.top": False,
             "axes.spines.right": False,
             "text.color": INK,
@@ -306,11 +306,9 @@ def build_figure(data: pd.DataFrame) -> Figure:
         handles=specialist_handles,
         title="Specialists",
         loc="upper left",
-        bbox_to_anchor=(0.02, 0.98),
+        bbox_to_anchor=(0.02, 1.28),
         ncol=1,
         frameon=False,
-        fontsize=8,
-        title_fontsize=8,
         handlelength=1.0,
         handletextpad=0.4,
         labelspacing=0.3,
@@ -324,8 +322,6 @@ def build_figure(data: pd.DataFrame) -> Figure:
         bbox_to_anchor=(0.02, 0.58),
         ncol=1,
         frameon=False,
-        fontsize=8,
-        title_fontsize=8,
         handlelength=1.0,
         handletextpad=0.4,
         labelspacing=0.3,

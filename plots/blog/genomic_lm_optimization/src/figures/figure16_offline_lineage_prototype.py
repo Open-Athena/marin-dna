@@ -29,6 +29,7 @@ from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 
 from figures import mixture_lineage as ml
 from figures.data import load_mixture, save
+from marin_dna.blog_figure_typography import FIGURE_NOTE_SIZE_PX
 from utils.figure_style import FIGURE_WIDTH, LEGEND_KW, figsize
 
 TOKENS_PER_STEP = 8192 * 256
@@ -279,7 +280,7 @@ def _attach_legend(fig: plt.Figure) -> None:
         ncol=3,
         loc="upper center",
         bbox_to_anchor=(0.5, 0.95),
-        **(LEGEND_KW | {"fontsize": 10, "title_fontsize": 10}),
+        **LEGEND_KW,
     )
 
 
@@ -338,7 +339,6 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         )
         ax.grid(False)
         ax.margins(y=0.12)
-        ax.tick_params(axis="both", labelsize=9)
         ax.yaxis.set_major_locator(MaxNLocator(nbins="auto", integer=True))
         ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.0f}"))
         ax.set_box_aspect(1)
@@ -349,7 +349,6 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
             _highlight_macro(ax)
         ax.set_title(
             title,
-            fontsize=12,
             fontweight="bold" if is_macro else "normal",
             y=1.03,
             pad=0,
@@ -371,7 +370,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
                 textcoords=ax.transAxes,
                 ha="right",
                 va="bottom",
-                fontsize=8.5,
+                fontsize=FIGURE_NOTE_SIZE_PX,
                 color="#59636e",
                 zorder=4,
                 linespacing=1.35,
@@ -388,14 +387,13 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
                     "shrinkB": 0,
                 },
             )
-    axes[-1, 1].set_xlabel("Tokens (B)", labelpad=4, fontsize=11)
+    axes[-1, 1].set_xlabel("Tokens (B)", labelpad=4)
     for ax in axes[:, 0]:
-        ax.set_ylabel("AUPRC (%)", fontsize=11)
+        ax.set_ylabel("AUPRC (%)")
 
     _result_kind, _score_type, metric_label, method_label = WORLD_CONFIG[kind]
     fig.suptitle(
         f"Mendelian {metric_label} by mixture strategy · {method_label}",
-        fontsize=13,
         y=0.985,
     )
     _attach_legend(fig)
