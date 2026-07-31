@@ -564,17 +564,26 @@ def plot_symmetry(
 ) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(12, 5), constrained_layout=True)
     split_order = ["discovery", "validation", "test"]
-    data = [
-        symmetry.filter(pl.col("split") == name)["delta_pearson"]
-        .drop_nulls()
-        .drop_nans()
-        .to_numpy()
-        for name in split_order
-    ]
-    axes[0].boxplot(data, tick_labels=split_order, showfliers=False)
-    axes[0].axhline(0, color="black", linewidth=1)
-    axes[0].set_ylabel("Same-ID FWD/RC Pearson correlation")
-    axes[0].set_title("All nonconstant SAE delta features")
+    thresholds = np.array([0.01, 0.05, 0.1])
+    positions = np.arange(len(thresholds))
+    for split_index, split_name in enumerate(split_order):
+        eligible = symmetry.filter(
+            (pl.col("split") == split_name)
+            & (pl.col("delta_forward_support") >= MIN_DISCOVERY_SUPPORT)
+            & (pl.col("delta_reverse_support") >= MIN_DISCOVERY_SUPPORT)
+            & pl.col("delta_pearson").is_finite()
+        )["delta_pearson"].to_numpy()
+        fractions = [float(np.mean(np.abs(eligible) >= value)) for value in thresholds]
+        axes[0].bar(
+            positions + (split_index - 1) * 0.25,
+            fractions,
+            width=0.25,
+            label=split_name,
+        )
+    axes[0].set_xticks(positions, [f"|r| ≥ {value:g}" for value in thresholds])
+    axes[0].set_ylabel("Fraction of features")
+    axes[0].set_title("Same-ID strand agreement (support ≥ 32 on both)")
+    axes[0].legend()
     same = np.abs(matches["same_id_validation_pearson"].to_numpy())
     matched = np.abs(matches["matched_validation_pearson"].to_numpy())
     axes[1].scatter(same, matched, alpha=0.65, s=24)
