@@ -12,6 +12,7 @@ dependencies = [
     "polars>=1.0",
     "pyarrow>=18",
     "scikit-learn>=1.5",
+    "scipy>=1.14",
     "torch==2.11.0",
     "transformers>=4.57,<5",
 ]

@@ -498,6 +498,7 @@ dependencies = [
     { name = "pyarrow", marker = "sys_platform == 'linux'" },
     { name = "sae-lens", marker = "sys_platform == 'linux'" },
     { name = "scikit-learn", marker = "sys_platform == 'linux'" },
+    { name = "scipy", marker = "sys_platform == 'linux'" },
     { name = "torch", marker = "sys_platform == 'linux'" },
     { name = "transformers", marker = "sys_platform == 'linux'" },
 ]
@@ -518,6 +519,7 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=18" },
     { name = "sae-lens", git = "https://github.com/decoderesearch/SAELens.git?rev=8be14080485952f729ed58d674bcddf9778e0aa4" },
     { name = "scikit-learn", specifier = ">=1.5" },
+    { name = "scipy", specifier = ">=1.14" },
     { name = "torch", specifier = "==2.11.0", index = "https://download.pytorch.org/whl/cu128" },
     { name = "transformers", specifier = ">=4.57,<5" },
 ]

@@ -21,12 +21,16 @@ uv run hf download songlab/hg38-variant-consequences 21.parquet \
 
 uv run python sample_panel.py \
   --input ../../scratch/issue422/source/21.parquet \
-  --output ../../scratch/issue422/input/panel.parquet
+  --output ../../scratch/issue422/input/panel.parquet \
+  --fasta ../../scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
 ```
 
 The sampler uses deterministic 1 Mb genomic-block splits and selects 256
 discovery, 128 validation, and 128 held-out variants from each of 35
-`consequence_cre` classes. Reuse the written panel and its manifest unchanged
+`consequence_cre` classes. Before exact selection, every oversampled candidate
+must have an A/C/G/T-only 255 bp GRCh38 window and an exact center-REF match;
+invalid candidates are recorded in the manifest and deterministically replaced
+within the same class/split. Reuse the written panel and its manifest unchanged
 when comparing future SAE layers, training budgets, seeds, or dictionaries.
 
 ## Tests
@@ -65,3 +69,23 @@ The task uses one EC2 A10G, validates CUDA during setup, auto-stops after 30
 idle minutes, and writes results under
 `artifacts/dna-exp422-variant-consequences-seed288/`. Download that directory
 before the cluster is torn down.
+
+## Held-out analysis
+
+After retrieving and hash-validating the extraction directory, run the sparse
+individual-feature, multiclass-probe, sequence-control, context, and plot
+analysis locally:
+
+```bash
+export ANALYSIS_COMMIT="$(git rev-parse HEAD)"
+uv run python analyze.py \
+  --extraction-dir ../../scratch/issue422/run \
+  --panel ../../scratch/issue422/input/panel.parquet \
+  --fasta ../../scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+  --output-dir ../../scratch/issue422/analysis
+```
+
+Feature and transform selection use discovery/validation blocks only. Test AUPRC
+and macro-F1 are read once, with AUPRC intervals bootstrapped over held-out 1 Mb
+blocks. The script reports FWD and RC separately before the fixed arithmetic-mean
+view and includes raw-residual, substitution, and 31 bp k-mer-delta controls.
