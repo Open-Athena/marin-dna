@@ -15,4 +15,6 @@ rule all:
         "results/release/manifest/release.json",
         "results/release/README.md",
         "results/release/ucsc/hub.txt",
+        "results/release/ucsc/description.html",
+        f"results/release/ucsc/{ASSEMBLY}/description.html",
         *BIGWIG_OUTPUTS,

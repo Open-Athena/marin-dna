@@ -36,6 +36,8 @@ rule write_hub:
         hub="results/release/ucsc/hub.txt",
         genomes="results/release/ucsc/genomes.txt",
         track_db=f"results/release/ucsc/{ASSEMBLY}/trackDb.txt",
+        hub_description="results/release/ucsc/description.html",
+        track_description=f"results/release/ucsc/{ASSEMBLY}/description.html",
     run:
         paths = write_ucsc_hub("results/release", assembly_accession=ASSEMBLY)
         assert {str(path) for path in paths.values()} == set(output)
@@ -63,6 +65,8 @@ rule write_manifest:
         hub="results/release/ucsc/hub.txt",
         genomes="results/release/ucsc/genomes.txt",
         track_db=f"results/release/ucsc/{ASSEMBLY}/trackDb.txt",
+        hub_description="results/release/ucsc/description.html",
+        track_description=f"results/release/ucsc/{ASSEMBLY}/description.html",
         readme="results/release/README.md",
         plans=PLAN_METADATA_OUTPUTS,
         runtimes=RUNTIME_OUTPUTS,

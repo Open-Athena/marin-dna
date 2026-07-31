@@ -85,11 +85,19 @@ def test_update_release_manifest_records_compact_benchmark_and_validation(tmp_pa
         "validation": {"sampled_position_count": 5},
     }
 
-    update_release_manifest(path, manifest, summary)
+    update_release_manifest(path, manifest, summary, ucsc_hub_check_kent_version=491)
 
     updated = json.loads(path.read_text())
     assert updated["files"] == manifest["files"]
     assert "per_shard" not in updated["benchmark"]["full_scaffold_scoring"]
     assert updated["benchmark"]["gpu_monitor"]["monitored_cost_usd"] == 2.0
     assert updated["validation"]["bigwig_round_trip"]["status"] == "passed"
-    assert updated["validation"]["ucsc_rendering"] == "pending manual user review"
+    assert updated["validation"]["ucsc_rendering"]["hub_check"] == {
+        "status": "passed",
+        "kent_source_version": 491,
+        "checked_remote_bigwig_count": 8,
+    }
+    assert (
+        updated["validation"]["ucsc_rendering"]["manual_browser_rendering"]
+        == "pending user review"
+    )

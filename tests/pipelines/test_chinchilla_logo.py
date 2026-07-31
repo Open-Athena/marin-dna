@@ -269,6 +269,10 @@ def test_ucsc_hub_defaults_and_dataset_readme(tmp_path):
     assert "aggregate stacked" in track_db
     assert "logo on" in track_db
     assert "viewLimits 0:2" in track_db
+    assert "descriptionUrl description.html" in hub_paths["hub"].read_text()
+    assert track_db.count("html description.html") == 10
+    assert hub_paths["hubDescription"].is_file()
+    assert hub_paths["trackDescription"].is_file()
     assert "track marinDnaM51LogProb" in track_db
     assert (
         "track marinDnaM51LogProb\n"

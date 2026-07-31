@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--max-sampled-shards", type=int, default=25)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--ucsc-hub-check-kent-version", type=int)
     parser.add_argument(
         "--update-release-manifest",
         action="store_true",
@@ -82,6 +83,7 @@ def update_release_manifest(
     path: Path,
     manifest: dict[str, Any],
     summary: dict[str, Any],
+    ucsc_hub_check_kent_version: int | None = None,
 ) -> None:
     """Record measured cost and external round-trip checks in the release manifest."""
     scoring = summary["full_scaffold_scoring"]
@@ -114,7 +116,18 @@ def update_release_manifest(
         "status": "passed",
         **summary["validation"],
     }
-    manifest["validation"]["ucsc_rendering"] = "pending manual user review"
+    hub_check: dict[str, Any] = {"status": "pending"}
+    if ucsc_hub_check_kent_version is not None:
+        assert ucsc_hub_check_kent_version > 0
+        hub_check = {
+            "status": "passed",
+            "kent_source_version": ucsc_hub_check_kent_version,
+            "checked_remote_bigwig_count": 8,
+        }
+    manifest["validation"]["ucsc_rendering"] = {
+        "hub_check": hub_check,
+        "manual_browser_rendering": "pending user review",
+    }
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
@@ -277,6 +290,7 @@ def main() -> None:
             results_root / "release" / "manifest" / "release.json",
             manifest,
             summary,
+            args.ucsc_hub_check_kent_version,
         )
     print(json.dumps(summary, indent=2, sort_keys=True))
 

@@ -97,7 +97,10 @@ results/release/
 └── ucsc/
     ├── hub.txt
     ├── genomes.txt
-    └── GCF_000276665.1/trackDb.txt
+    ├── description.html
+    └── GCF_000276665.1/
+        ├── trackDb.txt
+        └── description.html
 ```
 
 The logo composite is visible by default with a fixed 0–2-bit range and UCSC `logo on`; the log-probability multiWig is hidden by default. Missing positions are absent intervals. The BigWig headers use the complete UCSC `chrom.sizes` inventory even when the configured scoring scope is a subset of scaffolds.

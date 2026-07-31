@@ -1012,17 +1012,30 @@ def write_ucsc_hub(
     hub_path = ucsc_root / "hub.txt"
     genomes_path = ucsc_root / "genomes.txt"
     track_db_path = assembly_root / "trackDb.txt"
+    hub_description_path = ucsc_root / "description.html"
+    track_description_path = assembly_root / "description.html"
 
     hub_path.write_text(
         "hub marinDnaChinchillaLogo\n"
         "shortLabel MarinDNA chinchilla\n"
         "longLabel MarinDNA m5.1 two-pass predictive chinchilla sequence logo\n"
         "genomesFile genomes.txt\n"
+        "descriptionUrl description.html\n"
         "email info@openathena.ai\n"
     )
     genomes_path.write_text(
         f"genome {assembly_accession}\ntrackDb {assembly_accession}/trackDb.txt\n"
     )
+    description = (
+        "<h2>MarinDNA m5.1 chinchilla predictive sequence logo</h2>\n"
+        "<p>Canonical A/C/G/T log-probabilities and information-content glyph "
+        "heights from forward and reverse-complement model passes.</p>\n"
+        "<p>This is a predictive next-token logo, not an LLR, mutation-effect, "
+        "or constraint track. See the dataset card and release manifest for "
+        "model, assembly, coverage, and validation details.</p>\n"
+    )
+    hub_description_path.write_text(description)
+    track_description_path.write_text(description)
 
     lines = [
         "track marinDnaM51PredictiveLogo",
@@ -1035,6 +1048,7 @@ def write_ucsc_hub(
         "viewLimits 0:2",
         "logo on",
         "visibility full",
+        "html description.html",
         "",
     ]
     for priority, base in enumerate(NUCLEOTIDES, start=1):
@@ -1048,6 +1062,7 @@ def write_ucsc_hub(
                 "type bigWig 0 2",
                 f"color {BASE_COLORS[base]}",
                 f"priority {priority}",
+                "html description.html",
                 "",
             ]
         )
@@ -1061,6 +1076,7 @@ def write_ucsc_hub(
             "type bigWig",
             "autoScale on",
             "visibility hide",
+            "html description.html",
             "",
         ]
     )
@@ -1075,11 +1091,18 @@ def write_ucsc_hub(
                 "type bigWig",
                 f"color {BASE_COLORS[base]}",
                 f"priority {priority}",
+                "html description.html",
                 "",
             ]
         )
     track_db_path.write_text("\n".join(lines))
-    return {"hub": hub_path, "genomes": genomes_path, "trackDb": track_db_path}
+    return {
+        "hub": hub_path,
+        "genomes": genomes_path,
+        "trackDb": track_db_path,
+        "hubDescription": hub_description_path,
+        "trackDescription": track_description_path,
+    }
 
 
 def sha256_file(path: str | Path) -> str:
