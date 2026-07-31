@@ -1,0 +1,71 @@
+{
+  "analysis_commit": "6d990941006de64e302d63400c4f9cd68377578d",
+  "artifacts": {
+    "cross_id_strand_matches.parquet": {
+      "bytes": 8393,
+      "sha256": "4cb34ca497d961955da85637c7d77e778996ee2433554fd95f25a99d58dfacc2"
+    },
+    "paired_state_summary.parquet": {
+      "bytes": 13445,
+      "sha256": "660205d27388471cf55e74556fe1944f7ab317bae11c4310b43a4715766e4385"
+    },
+    "reducer_comparison.png": {
+      "bytes": 106340,
+      "sha256": "8c90f979411d6d7f2a6190e71da906c973e04ea5c87c8f19770b405a87b56827"
+    },
+    "reducer_comparison.svg": {
+      "bytes": 49370,
+      "sha256": "83480d455918aaf4415329382abe7808a1e4dcc3ab64f26add80ee2514f6c4f2"
+    },
+    "reducer_summary.parquet": {
+      "bytes": 2312,
+      "sha256": "33c90af1cea3f86bab1262793696ee7e7d09f8ee51e545e46fc4ce1523f3f548"
+    },
+    "results.json": {
+      "bytes": 810,
+      "sha256": "85ad2003f3ae6d7a1431e36614ee4b8b42ec429806d01a019bb6f285847fd232"
+    },
+    "same_id_strand_symmetry.parquet": {
+      "bytes": 1521456,
+      "sha256": "1c717936f391465e2d2df8cb11653afc8b7b0cb98feceb38a5d78aaea37c0b47"
+    },
+    "selected_reducer_features.parquet": {
+      "bytes": 9809,
+      "sha256": "31bb7727df9f80ebfba322b67d5607799d3619d90c6938aa4fd219cd1dfa4278"
+    },
+    "strand_symmetry.png": {
+      "bytes": 135857,
+      "sha256": "e003d3be1a6ff582bbaee066f008174a90c7c15f66c9448509f751b068eefd1f"
+    },
+    "strand_symmetry.svg": {
+      "bytes": 62362,
+      "sha256": "e7fcddd08c0cd1f56ba1d55c69e32b9bacc71b06d94700270811d95d1df8ff02"
+    },
+    "view_feature_metrics.parquet": {
+      "bytes": 25011,
+      "sha256": "a8d279a486764db8ac576a64e2c198ff32957f42ff5575d9365d3aa8573c0c22"
+    }
+  },
+  "classes": 35,
+  "d_sae": 15360,
+  "extraction_manifest_sha256": "6a96ae533b9eb5b2b02ca5965606b2e8771533def1b154f58b71cdc4fca410d7",
+  "panel_sha256": "b08f9cfff3eca9c2c433af2ace8c2c1465ab0d7ef6f5deac76843840bff84bbc",
+  "prior_selection_sha256": "eab45699a27cb7f5e6d4752e90200ff27bdee889a567a40752c3e0d72c579615",
+  "protocol": {
+    "aggregate_views": [
+      "signed_mean",
+      "abs_signed_mean",
+      "mean_abs",
+      "rms",
+      "max_abs"
+    ],
+    "block_bootstraps": 250,
+    "minimum_discovery_support": 32,
+    "minimum_positive_support": 8,
+    "random_seed": 424,
+    "top_candidates": 64
+  },
+  "rows": 17920,
+  "selected_aggregate_view": "signed_mean",
+  "selection_rule": "highest mean validation AP across 35 classes"
+}
