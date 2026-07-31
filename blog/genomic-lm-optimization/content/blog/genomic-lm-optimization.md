@@ -335,7 +335,7 @@ Figure 7 separates reference calibration from target application. Two heuristics
 The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters across 255M–1B-parameter models, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The first test was whether the learning-rate prediction survived that regime. [Figure 8](#fig-learning-rate-transfer) shows that the transferred prediction lands exactly on the best observed learning-rate setting at all three validation scales, outperforming both the unchanged reference optimum and every other target-scale sweep setting; the less sensitive optimizer hyperparameters are shown separately in [Figure 9](#fig-adam-transfer).
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure1_lr_transfer.py -->
-<figure id="fig-learning-rate-transfer" data-figure-width="404.845">
+<figure id="fig-learning-rate-transfer" data-figure-width="410.702">
 <img src="/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" />
 <figcaption><strong>Figure 8: Learning-rate transfer across model scales.</strong> Results across the 255M, 476M, and 1B validation scales. The <code>control</code> run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (<code>sweep</code> run type), for all model sizes.</figcaption>
 </figure>

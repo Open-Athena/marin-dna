@@ -50,15 +50,50 @@ def set_square_subplot_height(fig, axes, displayed_height_px: float) -> None:
     extents = [axis.get_window_extent(renderer=renderer) for axis in axes]
     for extent in extents:
         assert np.isclose(extent.width, extent.height, rtol=1e-6), extent
-    heights_points = [extent.height * 72.0 / fig.dpi for extent in extents]
+    points_per_display_pixel = 72.0 / fig.dpi
+    heights_points = [extent.height * points_per_display_pixel for extent in extents]
     assert max(heights_points) - min(heights_points) < 0.01, heights_points
     current_height_px = heights_points[0] * FIGURE_GLOBAL_RENDER_SCALE
     resize_factor = displayed_height_px / current_height_px
-    fig.set_size_inches(
-        fig.get_figwidth() * resize_factor,
-        fig.get_figheight() * resize_factor,
-        forward=True,
+
+    # Scale the subplot block while preserving its outer gutters in physical
+    # points. Fonts and legends therefore retain their standard size instead of
+    # being squeezed together when a recipe requests a smaller data area.
+    bounds_points = [
+        (
+            extent.x0 * points_per_display_pixel,
+            extent.y0 * points_per_display_pixel,
+            extent.width * points_per_display_pixel,
+            extent.height * points_per_display_pixel,
+        )
+        for extent in extents
+    ]
+    block_x0 = min(x for x, _y, _width, _height in bounds_points)
+    block_y0 = min(y for _x, y, _width, _height in bounds_points)
+    block_x1 = max(x + width for x, _y, width, _height in bounds_points)
+    block_y1 = max(y + height for _x, y, _width, height in bounds_points)
+    figure_width_points = fig.get_figwidth() * 72.0
+    figure_height_points = fig.get_figheight() * 72.0
+    right_gutter = figure_width_points - block_x1
+    top_gutter = figure_height_points - block_y1
+    new_width_points = (
+        block_x0 + (block_x1 - block_x0) * resize_factor + right_gutter
     )
+    new_height_points = (
+        block_y0 + (block_y1 - block_y0) * resize_factor + top_gutter
+    )
+    fig.set_size_inches(new_width_points / 72.0, new_height_points / 72.0, forward=True)
+    for axis, (x, y, width, height) in zip(axes, bounds_points, strict=True):
+        resized_x = block_x0 + (x - block_x0) * resize_factor
+        resized_y = block_y0 + (y - block_y0) * resize_factor
+        axis.set_position(
+            (
+                resized_x / new_width_points,
+                resized_y / new_height_points,
+                width * resize_factor / new_width_points,
+                height * resize_factor / new_height_points,
+            )
+        )
     fig.canvas.draw()
     resized = axes[0].get_window_extent(renderer=fig.canvas.get_renderer())
     resized_height_px = resized.height * 72.0 / fig.dpi * FIGURE_GLOBAL_RENDER_SCALE
@@ -322,6 +357,42 @@ def attach_stacked_legends_below(
         title="Run type",
         loc="lower center",
         bbox_to_anchor=(0.5, run_y),
+        **TWO_LEGEND_KW,
+    )
+
+
+def attach_stacked_legends_right(
+    fig,
+    ax,
+    palette: dict,
+    params: list[int],
+    *,
+    include_reference: bool = True,
+) -> None:
+    """Stack two one-column legend groups to the right of one subplot."""
+    param_handles, param_labels = params_legend_handles(palette, params)
+    param_legend = fig.legend(
+        param_handles,
+        param_labels,
+        ncol=1,
+        title="Model parameters",
+        loc="upper left",
+        bbox_to_anchor=(1.04, 1.08),
+        bbox_transform=ax.transAxes,
+        alignment="left",
+        **TWO_LEGEND_KW,
+    )
+    fig.add_artist(param_legend)
+    run_handles, run_labels = shape_legend_handles(include_reference=include_reference)
+    fig.legend(
+        run_handles,
+        run_labels,
+        ncol=1,
+        title="Run type",
+        loc="lower left",
+        bbox_to_anchor=(1.04, -0.10),
+        bbox_transform=ax.transAxes,
+        alignment="left",
         **TWO_LEGEND_KW,
     )
 

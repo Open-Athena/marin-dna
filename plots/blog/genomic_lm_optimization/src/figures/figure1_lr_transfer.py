@@ -7,10 +7,13 @@ import pandas as pd
 
 from figures.data import save
 from utils.figure_style import (
-    attach_stacked_legends_below,
+    attach_stacked_legends_right,
     figsize,
+    set_square_subplot_height,
 )
 from utils.sweep_panel import plot_axis
+
+SUBPLOT_HEIGHT_PX = 148.0
 
 
 def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
@@ -34,16 +37,15 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     ax.set_box_aspect(1)
     # A little extra gap so the x-axis label clears the rotated LR tick labels.
     ax.xaxis.labelpad = 6
-    # Stack the two legend families. At this figure's compact article width,
-    # placing them side-by-side makes labels collide even though the plot itself
-    # only needs one panel.
-    attach_stacked_legends_below(
+    fig.tight_layout(rect=(0, 0.21, 1, 1))
+    set_square_subplot_height(fig, [ax], SUBPLOT_HEIGHT_PX)
+    # A vertical legend block uses the plot's right side efficiently and avoids
+    # a separate column-spacing decision for this compact square panel.
+    attach_stacked_legends_right(
         fig,
+        ax,
         palette,
         params,
         include_reference=True,
-        params_y=0.125,
-        run_y=0.035,
     )
-    fig.tight_layout(rect=(0, 0.21, 1, 1))
     save(fig, "figure1_lr_transfer")
