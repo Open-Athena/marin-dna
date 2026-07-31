@@ -120,6 +120,32 @@ Do not launch the full projection or any paid/cloud job without explicit user
 approval. If the dry-run plans to recompute an upstream or unrelated artifact,
 stop before running it.
 
+### SkyPilot execution
+
+The 1.26 TB HAL cannot run on a normal root volume. `sky/project.yaml` owns the
+EC2 launch setup: `c6id.12xlarge` in `us-east-2`, both 1,425 GB instance-store
+NVMes combined as RAID0, explicit free-space checks, Cactus binaries, and
+symlinks that keep Snakemake state and all generated results off the 100 GB root
+volume.
+
+The 74.7 GB MultiZ source mirror is bootstrapped separately and resumably. Each
+uploaded object records its pinned MD5 as S3 user metadata; reruns skip objects
+only when both byte size and MD5 metadata match.
+
+```bash
+sky launch -c vertebrate-multiz-mirror \
+  snakemake/vertebrate_projection_dataset/sky/mirror.yaml
+
+sky launch -c vertebrate-project \
+  snakemake/vertebrate_projection_dataset/sky/project.yaml \
+  --env TIER=smoke
+```
+
+Actively inspect first-run setup, HAL transfer rate, mounted capacity, rule
+progress, and ZRS/QC outputs. Reuse the same node for a later approved full run
+with `sky exec ... --env TIER=full`; terminate it with
+`sky down vertebrate-project` when inspection is complete.
+
 ## Splits and output datasets
 
 Each configured region cohort gets one directory containing both

@@ -1,0 +1,112 @@
+name: vertebrate-projection
+
+# HAL + MultiZ projection requires the 1.26 TB Zoonomia HAL and therefore runs
+# on the two local NVMes of c6id.12xlarge, combined as ~2.85 TB RAID0.
+#
+#   sky launch -c vertebrate-project \
+#     snakemake/vertebrate_projection_dataset/sky/project.yaml --env TIER=smoke
+#   sky exec vertebrate-project \
+#     snakemake/vertebrate_projection_dataset/sky/project.yaml --env TIER=full
+#   sky down vertebrate-project
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6id.12xlarge
+  disk_size: 100
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  TIER: smoke
+  TARGET: all
+
+setup: |
+  set -euxo pipefail
+
+  if [ ! -d "$HOME/miniforge3" ]; then
+    curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
+    rm /tmp/miniforge.sh
+  fi
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  conda config --set channel_priority strict
+
+  CACTUS_VERSION=3.1.4
+  CACTUS_DIR="$HOME/cactus-bin-v${CACTUS_VERSION}"
+  if [ ! -d "$CACTUS_DIR" ]; then
+    curl -fsSL -o /tmp/cactus.tar.gz \
+      "https://github.com/ComparativeGenomicsToolkit/cactus/releases/download/v${CACTUS_VERSION}/cactus-bin-v${CACTUS_VERSION}.tar.gz"
+    tar -xzf /tmp/cactus.tar.gz -C "$HOME"
+    rm /tmp/cactus.tar.gz
+  fi
+  uv sync
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.1.4/bin:$PATH"
+  export LD_LIBRARY_PATH="$HOME/cactus-bin-v3.1.4/lib:${LD_LIBRARY_PATH:-}"
+  export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  command -v aws
+  command -v halLiftover
+  command -v halStats
+
+  if ! mountpoint -q /mnt/nvme; then
+    sudo apt-get update
+    sudo apt-get install -y mdadm
+    NVMES=$(lsblk -dn -o NAME,TYPE,MOUNTPOINT | awk '$2=="disk" && $3=="" && $1 ~ /^nvme[1-9]/ {print "/dev/"$1}')
+    N_NVME=$(echo "$NVMES" | wc -w)
+    if [ "$N_NVME" -ge 2 ]; then
+      sudo mdadm --create /dev/md0 --level=0 --raid-devices="$N_NVME" $NVMES --force --run
+      DEV=/dev/md0
+    elif [ "$N_NVME" -eq 1 ]; then
+      DEV=$NVMES
+    else
+      echo "ERROR: c6id instance-store NVMe devices were not found"
+      exit 1
+    fi
+    sudo mkfs.ext4 -F -E nodiscard "$DEV"
+    sudo mkdir -p /mnt/nvme
+    sudo mount -o noatime "$DEV" /mnt/nvme
+    sudo chown ubuntu:ubuntu /mnt/nvme
+  fi
+
+  AVAILABLE_BYTES=$(df --output=avail -B1 /mnt/nvme | tail -n 1)
+  test "$AVAILABLE_BYTES" -ge 2500000000000
+  df -h /mnt/nvme
+
+  aws s3api head-object \
+    --bucket oa-bolinas \
+    --key staging/447-mammalian-2022v1.hal \
+    --query ContentLength \
+    --output text
+
+  RESULTS_LINK="snakemake/vertebrate_projection_dataset/results/v1/${TIER}"
+  RESULTS_NVME="/mnt/nvme/vertebrate_projection/results/v1/${TIER}"
+  mkdir -p "$RESULTS_NVME" "$(dirname "$RESULTS_LINK")"
+  if [ -e "$RESULTS_LINK" ] && [ ! -L "$RESULTS_LINK" ]; then
+    echo "ERROR: refusing to replace non-symlink results path $RESULTS_LINK"
+    exit 1
+  fi
+  ln -sfn "$RESULTS_NVME" "$RESULTS_LINK"
+
+  SNAKEMAKE_LINK=.snakemake
+  SNAKEMAKE_NVME=/mnt/nvme/vertebrate_projection/_snakemake
+  mkdir -p "$SNAKEMAKE_NVME"
+  if [ -e "$SNAKEMAKE_LINK" ] && [ ! -L "$SNAKEMAKE_LINK" ]; then
+    echo "ERROR: refusing to replace non-symlink state path $SNAKEMAKE_LINK"
+    exit 1
+  fi
+  ln -sfn "$SNAKEMAKE_NVME" "$SNAKEMAKE_LINK"
+
+  uv run snakemake "$TARGET" \
+    --snakefile snakemake/vertebrate_projection_dataset/workflow/Snakefile \
+    --config tier="$TIER" \
+    --cores 48 \
+    --resources mem_mb=90000 \
+    --rerun-incomplete \
+    --printshellcmds

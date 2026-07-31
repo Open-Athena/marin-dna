@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import subprocess
 import tempfile
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import polars as pl
 
@@ -94,6 +96,43 @@ def verify_local_object(path: str | Path, expected: MirrorObject) -> None:
     )
 
 
+def _s3_bucket_key(uri: str) -> tuple[str, str]:
+    parsed = urlparse(uri)
+    assert parsed.scheme == "s3" and parsed.netloc
+    key = parsed.path.lstrip("/")
+    assert key
+    return parsed.netloc, key
+
+
+def s3_object_matches(expected: MirrorObject) -> bool:
+    """Check resumable bootstrap metadata without downloading the object."""
+    bucket, key = _s3_bucket_key(expected.s3_uri)
+    result = subprocess.run(
+        [
+            "aws",
+            "s3api",
+            "head-object",
+            "--bucket",
+            bucket,
+            "--key",
+            key,
+            "--output",
+            "json",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return False
+    payload = json.loads(result.stdout)
+    metadata = payload.get("Metadata", {})
+    return (
+        int(payload.get("ContentLength", -1)) == expected.byte_size
+        and metadata.get("md5") == expected.md5
+    )
+
+
 def stage_s3_object(expected: MirrorObject, destination: str | Path) -> None:
     """Copy one mirrored object from S3 and verify it before use."""
     destination_path = Path(destination)
@@ -106,6 +145,8 @@ def stage_s3_object(expected: MirrorObject, destination: str | Path) -> None:
 
 def mirror_source_object(expected: MirrorObject) -> None:
     """Bootstrap one UCSC source object into its immutable S3 destination."""
+    if s3_object_matches(expected):
+        return
     with tempfile.TemporaryDirectory(prefix="marin-dna-multiz-") as temp_dir:
         local_path = Path(temp_dir) / Path(expected.source_url).name
         request = urllib.request.Request(
@@ -116,5 +157,17 @@ def mirror_source_object(expected: MirrorObject) -> None:
                 shutil.copyfileobj(response, output, length=8 * 1024 * 1024)
         verify_local_object(local_path, expected)
         subprocess.run(
-            ["aws", "s3", "cp", str(local_path), expected.s3_uri], check=True
+            [
+                "aws",
+                "s3",
+                "cp",
+                str(local_path),
+                expected.s3_uri,
+                "--metadata",
+                f"md5={expected.md5}",
+            ],
+            check=True,
+        )
+        assert s3_object_matches(expected), (
+            f"uploaded S3 object failed metadata verification: {expected.s3_uri}"
         )
