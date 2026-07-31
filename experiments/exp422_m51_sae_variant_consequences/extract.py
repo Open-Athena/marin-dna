@@ -215,6 +215,17 @@ def sparse_union_table(
     )
 
 
+def encode_sae_features(sae: SAE, raw: torch.Tensor) -> torch.Tensor:
+    """Encode with a frozen SAE without constructing an autograd graph."""
+
+    assert not sae.training
+    assert all(not parameter.requires_grad for parameter in sae.parameters())
+    with torch.inference_mode():
+        features = sae.encode(raw)
+    assert not features.requires_grad
+    return features
+
+
 def extract_variant_batch(
     frame: pl.DataFrame,
     indices: Sequence[int],
@@ -271,7 +282,7 @@ def extract_variant_batch(
         block_index=block_index,
     )
     raw = activation_batch.activations[:, FOCAL_INDEX, :].float()
-    features = sae.encode(raw)
+    features = encode_sae_features(sae, raw)
     assert raw.shape == (2 * len(indices), M51_HIDDEN_SIZE)
     assert features.shape == (2 * len(indices), sae.cfg.d_sae)
     assert torch.isfinite(raw).all() and torch.isfinite(features).all()
@@ -398,6 +409,10 @@ def evaluate(
     checkpoint = Path(snapshot_download(repo_id=MODEL_ID, revision=MODEL_REVISION))
     frozen = load_frozen_m51(checkpoint, device="cuda", dtype=torch.bfloat16)
     sae = SAE.load_from_disk(sae_path, device="cuda", dtype="float32")
+    sae.requires_grad_(False)
+    sae.eval()
+    assert not sae.training
+    assert all(not parameter.requires_grad for parameter in sae.parameters())
     assert sae.cfg.architecture() == sae_provenance["architecture"]
     assert sae.cfg.d_in == sae_provenance["d_in"] == M51_HIDDEN_SIZE
     assert sae.cfg.d_sae == sae_provenance["d_sae"]

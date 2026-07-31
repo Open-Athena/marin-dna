@@ -4,12 +4,14 @@ import json
 
 import numpy as np
 import pyarrow as pa
+import torch
 
 from extract import (
     FOCAL_INDEX,
     MODEL_ID,
     MODEL_REVISION,
     SPARSE_SCHEMA,
+    encode_sae_features,
     read_sae_provenance,
     sparse_union_table,
     variant_sequences,
@@ -82,3 +84,22 @@ def test_read_sae_provenance_uses_artifact_metadata(tmp_path) -> None:
         "sae_weights.safetensors",
         "sparsity.safetensors",
     }
+
+
+class _TinySAE(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.projection = torch.nn.Linear(3, 5)
+
+    def encode(self, raw: torch.Tensor) -> torch.Tensor:
+        return self.projection(raw)
+
+
+def test_encode_sae_features_does_not_build_autograd_graph() -> None:
+    sae = _TinySAE().requires_grad_(False).eval()
+    raw = torch.ones((2, 3))
+
+    features = encode_sae_features(sae, raw)
+
+    assert features.shape == (2, 5)
+    assert not features.requires_grad
