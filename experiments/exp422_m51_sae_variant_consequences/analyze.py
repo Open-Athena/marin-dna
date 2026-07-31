@@ -263,7 +263,9 @@ def fit_probe(
     orientation: str,
     space: str,
     transform: str,
+    probe_jobs: int,
 ) -> tuple[dict[str, Any], np.ndarray, list[str]]:
+    assert probe_jobs >= 1
     encoder = LabelEncoder().fit(labels)
     encoded = encoder.transform(labels)
     discovery = np.flatnonzero(split == "discovery")
@@ -282,7 +284,7 @@ def fit_probe(
             tol=1e-4,
             random_state=RANDOM_SEED,
             average=True,
-            n_jobs=1,
+            n_jobs=probe_jobs,
         ).fit(discovery_x, encoded[discovery])
         prediction = classifier.predict(validation_x)
         candidates.append(
@@ -300,7 +302,7 @@ def fit_probe(
         tol=1e-4,
         random_state=RANDOM_SEED,
         average=True,
-        n_jobs=1,
+        n_jobs=probe_jobs,
     ).fit(scaler.transform(matrix[train]), encoded[train])
     prediction = classifier.predict(scaler.transform(matrix[test]))
     matrix_confusion = confusion_matrix(
@@ -555,8 +557,10 @@ def analyze(
     panel_path: Path,
     fasta_path: Path,
     output_dir: Path,
+    probe_jobs: int,
 ) -> dict[str, Any]:
     assert extraction_dir.is_dir() and panel_path.is_file() and fasta_path.is_file()
+    assert probe_jobs >= 1
     assert not output_dir.exists()
     analysis_commit = os.environ.get("ANALYSIS_COMMIT", "")
     assert len(analysis_commit) == 40
@@ -672,6 +676,7 @@ def analyze(
                     orientation=orientation,
                     space=space,
                     transform=transform,
+                    probe_jobs=probe_jobs,
                 )
                 probe_rows.append(metrics)
                 print(
@@ -707,6 +712,7 @@ def analyze(
         orientation="sequence",
         space="substitution",
         transform="categorical",
+        probe_jobs=probe_jobs,
     )
     probe_rows.append(metrics)
     for i, true_class in enumerate(probe_classes):
@@ -732,6 +738,7 @@ def analyze(
         orientation="sequence",
         space="31bp_kmer_delta",
         transform="signed",
+        probe_jobs=probe_jobs,
     )
     metrics["features"] = vocabulary_size
     probe_rows.append(metrics)
@@ -777,6 +784,7 @@ def analyze(
             "block_bootstraps": BOOTSTRAPS,
             "minimum_positive_blocks_for_ci": 2,
             "probe_alphas": list(PROBE_ALPHAS),
+            "probe_jobs": probe_jobs,
             "context_radius": CONTEXT_RADIUS,
             "orientation_order": list(ORIENTATIONS),
         },
@@ -798,12 +806,14 @@ def main() -> None:
     parser.add_argument("--panel", type=Path, required=True)
     parser.add_argument("--fasta", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--probe-jobs", type=int, default=1)
     args = parser.parse_args()
     manifest = analyze(
         extraction_dir=args.extraction_dir,
         panel_path=args.panel,
         fasta_path=args.fasta,
         output_dir=args.output_dir,
+        probe_jobs=args.probe_jobs,
     )
     print(json.dumps(manifest["artifacts"], indent=2, sort_keys=True))
 

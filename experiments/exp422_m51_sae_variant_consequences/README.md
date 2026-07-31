@@ -82,7 +82,8 @@ uv run python analyze.py \
   --extraction-dir ../../scratch/issue422/run \
   --panel ../../scratch/issue422/input/panel.parquet \
   --fasta ../../scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
-  --output-dir ../../scratch/issue422/analysis
+  --output-dir ../../scratch/issue422/analysis \
+  --probe-jobs 1
 ```
 
 Feature and transform selection use discovery/validation blocks only. Test AUPRC
