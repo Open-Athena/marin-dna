@@ -55,6 +55,10 @@ run: |
       set -euxo pipefail
       RUN_ROOT="/issue419-local/full-runs/$COMMIT_SHA"
 
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libcurl4-openssl-dev zlib1g-dev
+
       if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
       fi
@@ -71,7 +75,7 @@ run: |
       export CONDA_EXE="$PWD/.issue419/miniforge3/bin/conda"
       conda config --set channel_priority strict
 
-      if ! .venv/bin/python -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+      if ! .venv/bin/python -c "import pyBigWig, snakemake, torch; assert torch.cuda.is_available()" 2>/dev/null; then
         uv venv --clear --python "$NGC_PYTHON" --system-site-packages .venv
         uv sync --frozen --no-dev --no-install-package torch --inexact
       fi
