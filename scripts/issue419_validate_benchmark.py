@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--max-sampled-shards", type=int, default=25)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--update-release-manifest",
+        action="store_true",
+        help="Record benchmark and round-trip validation results in release.json.",
+    )
     return parser.parse_args()
 
 
@@ -45,11 +51,22 @@ def summarize_gpu_csv(path: Path) -> dict[str, Any]:
     memory_mib = np.array([_numeric_field(row[4]) for row in rows])
     power_watts = np.array([_numeric_field(row[6]) for row in rows])
     temperature_c = np.array([_numeric_field(row[7]) for row in rows])
+    timestamps = [
+        datetime.strptime(
+            row[0].strip(),
+            "%Y/%m/%d %H:%M:%S.%f" if "." in row[0] else "%Y/%m/%d %H:%M:%S",
+        )
+        for row in rows
+    ]
+    assert timestamps == sorted(timestamps), "GPU timestamps are not monotonic"
     active = utilization > 0
     assert active.any(), "GPU monitor contains no active samples"
     return {
         "sample_count": len(rows),
         "sampling_interval_seconds": 5,
+        "monitoring_started_at": timestamps[0].isoformat(),
+        "monitoring_ended_at": timestamps[-1].isoformat(),
+        "monitoring_wall_seconds": (timestamps[-1] - timestamps[0]).total_seconds(),
         "gpu_name": rows[0][1].strip(),
         "active_sample_count": int(active.sum()),
         "active_utilization_mean_percent": float(utilization[active].mean()),
@@ -59,6 +76,46 @@ def summarize_gpu_csv(path: Path) -> dict[str, Any]:
         "peak_power_watts": float(power_watts.max()),
         "peak_temperature_c": float(temperature_c.max()),
     }
+
+
+def update_release_manifest(
+    path: Path,
+    manifest: dict[str, Any],
+    summary: dict[str, Any],
+) -> None:
+    """Record measured cost and external round-trip checks in the release manifest."""
+    scoring = summary["full_scaffold_scoring"]
+    manifest["benchmark"] = {
+        "full_scaffold_scoring": {
+            key: scoring[key]
+            for key in (
+                "chrom",
+                "window_count",
+                "logical_scored_sequence_count",
+                "scored_base_count",
+                "model_inference_seconds",
+                "wall_seconds_this_invocation",
+                "bases_per_second",
+                "batch_size",
+                "num_workers",
+                "bf16_full_eval",
+                "torch_compile",
+                "peak_vram_bytes",
+                "gpu_hourly_cost_usd",
+                "model_inference_cost_usd",
+                "model_inference_usd_per_billion_scored_bases",
+            )
+        },
+        "batch_sweep": summary["batch_sweep"],
+        "gpu_monitor": summary["gpu_monitor"],
+        "bigwig_construction": summary["bigwig_construction"],
+    }
+    manifest["validation"]["bigwig_round_trip"] = {
+        "status": "passed",
+        **summary["validation"],
+    }
+    manifest["validation"]["ucsc_rendering"] = "pending manual user review"
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
 def _flat_index_to_position(shard: Any, flat_index: int) -> int:
@@ -182,6 +239,11 @@ def main() -> None:
     assert 0 < inference_seconds <= scoring_wall_seconds
     bases_per_second = scored_bases / inference_seconds
 
+    gpu_monitor = summarize_gpu_csv(results_root / "benchmark" / "gpu.csv")
+    gpu_monitor["gpu_hourly_cost_usd"] = args.gpu_hourly_cost
+    gpu_monitor["monitored_cost_usd"] = (
+        gpu_monitor["monitoring_wall_seconds"] / 3_600 * args.gpu_hourly_cost
+    )
     summary = {
         "application_commit": args.expected_commit,
         "coverage": manifest["coverage"],
@@ -202,7 +264,7 @@ def main() -> None:
             (results_root / "benchmark" / "batch_sweep" / "summary.json").read_text()
         ),
         "bigwig_construction": manifest["runtime"]["artifact_construction"][0],
-        "gpu_monitor": summarize_gpu_csv(results_root / "benchmark" / "gpu.csv"),
+        "gpu_monitor": gpu_monitor,
         "validation": validate_artifacts(
             results_root, manifest, args.max_sampled_shards
         ),
@@ -210,6 +272,12 @@ def main() -> None:
     output = args.output or results_root / "benchmark" / "summary.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    if args.update_release_manifest:
+        update_release_manifest(
+            results_root / "release" / "manifest" / "release.json",
+            manifest,
+            summary,
+        )
     print(json.dumps(summary, indent=2, sort_keys=True))
 
 
