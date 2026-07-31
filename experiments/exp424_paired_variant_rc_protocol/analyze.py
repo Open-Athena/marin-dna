@@ -528,6 +528,18 @@ def paired_state_summary(
     return pl.DataFrame(rows).sort(["class", "orientation", "group"])
 
 
+def choose_aggregate_view(reducer_summary: pl.DataFrame) -> str:
+    assert {"view", "validation_mean_ap", "test_mean_ap"}.issubset(
+        reducer_summary.columns
+    )
+    aggregate_summary = reducer_summary.filter(pl.col("view").is_in(AGGREGATE_VIEWS))
+    assert aggregate_summary.height == len(AGGREGATE_VIEWS)
+    selected = aggregate_summary.sort(
+        ["validation_mean_ap", "view"], descending=[True, False]
+    )
+    return str(selected["view"][0])
+
+
 def plot_reducers(summary: pl.DataFrame, output_dir: Path) -> None:
     ordered = summary.sort("validation_mean_ap", descending=True)
     names = ordered["view"].to_list()
@@ -654,10 +666,7 @@ def analyze(
         )
         .sort("view")
     )
-    aggregate_summary = reducer_summary.filter(pl.col("view").is_in(AGGREGATE_VIEWS))
-    selected_view = aggregate_summary.sort(
-        ["validation_mean_ap", "view"], descending=[True, False]
-    )["view"].item()
+    selected_view = choose_aggregate_view(reducer_summary)
     selected = metrics.filter(pl.col("view") == selected_view).sort("class")
     test = np.flatnonzero(split == "test")
     selected_rows: list[dict[str, Any]] = []
