@@ -32,16 +32,20 @@ from marin_dna.pipelines.evals.leaderboard import (
     EVO2_DATASET_SHORT,
     EVO2_PROBE_METRICS_GIST_BASE,
 )
-from utils.figure_style import X_LABEL_PAD, figsize
+from utils.figure_style import (
+    COMPARISON_ERRORBAR_ALPHA,
+    MODEL_FAMILY_MARKERS,
+    SCORING_PROTOCOL_COLORS,
+    SCORING_PROTOCOL_LINESTYLES,
+    X_LABEL_PAD,
+    figsize,
+)
 
 DATASET = "mendelian_traits"
 SUBSET = "missense_variant"
 MARIN = "MarinDNA"
 EVO2 = "Evo 2"
-FAMILIES: tuple[tuple[str, str], ...] = (
-    (MARIN, "o"),
-    (EVO2, "D"),
-)
+FAMILIES = (MARIN, EVO2)
 EVO2_MODELS: tuple[tuple[str, float], ...] = (
     ("evo2_1b_base", 1.0e9),
     ("evo2_7b", 7.0e9),
@@ -105,7 +109,7 @@ def load_missense_comparison(
         f"MarinDNA and Evo 2 missense rows differ: {sorted(result['n'].unique())}"
     )
     expected_cells = {
-        (family, score) for family, _marker in FAMILIES for score, *_rest in READOUTS
+        (family, score) for family in FAMILIES for score, *_rest in READOUTS
     }
     assert (
         set(zip(result["family"], result["score_type"], strict=True)) == expected_cells
@@ -118,24 +122,34 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
     data = load_missense_comparison(marin_metrics)
     fig, ax = plt.subplots(figsize=figsize(7.2, 7.2))
 
-    for family, marker in FAMILIES:
-        for score_type, _label, color, _score_marker, linestyle in READOUTS:
+    for family in FAMILIES:
+        family_key = "marindna" if family == MARIN else "evo2"
+        marker = MODEL_FAMILY_MARKERS[family_key]
+        for score_type, _label, protocol in READOUTS:
             series = data[
                 (data["family"] == family) & (data["score_type"] == score_type)
             ].sort_values("params")
             expected = 8 if family == MARIN else len(EVO2_MODELS)
             assert len(series) == expected
+            color = SCORING_PROTOCOL_COLORS[protocol]
+            ax.plot(
+                series["params"],
+                series["value"] * 100.0,
+                color=color,
+                linestyle=SCORING_PROTOCOL_LINESTYLES[protocol],
+                marker=marker,
+                markeredgecolor="#1f1e1b",
+                zorder=3,
+            )
             ax.errorbar(
                 series["params"],
                 series["value"] * 100.0,
                 yerr=series["se"] * 100.0,
-                color=color,
+                fmt="none",
                 ecolor=color,
-                marker=marker,
-                linestyle=linestyle,
+                alpha=COMPARISON_ERRORBAR_ALPHA,
                 capsize=0,
-                markeredgecolor="#1f1e1b",
-                zorder=3,
+                zorder=2,
             )
 
     ax.set_xscale("log")
@@ -144,30 +158,33 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
     ax.set_xlabel("Model parameters", labelpad=X_LABEL_PAD)
     ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
-    ax.margins(x=0.04, y=0.12)
+    ax.margins(x=0.04)
     ax.set_box_aspect(1)
 
     protocol_handles = [
         Line2D(
             [0],
             [0],
-            color=color,
-            linestyle=linestyle,
+            color=SCORING_PROTOCOL_COLORS[protocol],
+            linestyle=SCORING_PROTOCOL_LINESTYLES[protocol],
             label=label,
         )
-        for _score, label, color, _marker, linestyle in READOUTS
+        for _score, label, protocol in READOUTS
     ]
     family_handles = [
         Line2D(
             [0],
             [0],
             color="#4b4b4b",
-            marker=marker,
-            linestyle="none",
+            marker=MODEL_FAMILY_MARKERS[
+                "marindna" if family == MARIN else "evo2"
+            ],
+            markerfacecolor="#b8b0a3",
             markeredgecolor="#1f1e1b",
+            linestyle="none",
             label=family,
         )
-        for family, marker in FAMILIES
+        for family in FAMILIES
     ]
     protocol_legend = fig.legend(
         handles=protocol_handles,

@@ -24,9 +24,21 @@ import pandas as pd
 
 from figures.data import SCALING_RESULTS_PATH, save
 from marin_dna.pipelines.evals.metrics import per_chrom_ap_table
-from utils.figure_style import X_LABEL_PAD, figsize
+from utils.figure_style import (
+    COMPARISON_ERRORBAR_ALPHA,
+    SCORING_PROTOCOL_COLORS,
+    SCORING_PROTOCOL_LINESTYLES,
+    X_LABEL_PAD,
+    center_axes_block,
+    figsize,
+    pack_horizontal_axes,
+    pack_horizontal_axis_columns,
+    set_square_subplot_height,
+)
 
 FINAL_STEP = 215573
+SUBPLOT_HEIGHT_PX = 112.0
+REDUNDANT_LABEL_HEIGHT_FONT_SIZES = 1.4
 PROBE_RESULTS = (
     "s3://oa-bolinas/snakemake/analysis/evals_v2/results/probe/"
     "{model}/{dataset}.parquet"
@@ -51,9 +63,9 @@ SUBSETS = {
 
 # The two readouts are directly comparable within every panel: same variants,
 # same chromosome-weighted AUPRC implementation, and the same score rows.
-READOUTS: tuple[tuple[str, str, str, str, str], ...] = (
-    ("minus_llr_avg", "Zero-shot LLR", "#465c6e", "o", "--"),
-    ("probe_score", "Linear probe", "#9c4f2f", "s", "-"),
+READOUTS: tuple[tuple[str, str, str], ...] = (
+    ("minus_llr_avg", "Zero-shot LLR", "llr"),
+    ("probe_score", "Linear probe", "probe"),
 )
 
 
@@ -141,32 +153,40 @@ def _plot_panel(
     data: pd.DataFrame,
     *,
     title: str,
+    show_xlabel: bool,
     show_ylabel: bool,
 ) -> None:
     """Draw paired readout scaling curves for one consequence."""
     assert set(data["score_type"]) == {score for score, *_ in READOUTS}
-    for score_type, _label, color, marker, linestyle in READOUTS:
+    for score_type, _label, protocol in READOUTS:
         series = data[data["score_type"] == score_type].sort_values("params")
         assert len(series) == 8
+        color = SCORING_PROTOCOL_COLORS[protocol]
+        ax.plot(
+            series["params"],
+            series["value"] * 100.0,
+            color=color,
+            linestyle=SCORING_PROTOCOL_LINESTYLES[protocol],
+            zorder=3,
+        )
         ax.errorbar(
             series["params"],
             series["value"] * 100.0,
             yerr=series["se"] * 100.0,
-            color=color,
+            fmt="none",
             ecolor=color,
-            marker=marker,
-            linestyle=linestyle,
+            alpha=COMPARISON_ERRORBAR_ALPHA,
             capsize=0,
-            markeredgecolor="#1f1e1b",
-            zorder=3,
+            zorder=2,
         )
     ax.set_xscale("log")
     ax.set_title(title)
-    ax.set_xlabel("Model parameters", labelpad=X_LABEL_PAD)
+    if show_xlabel:
+        ax.set_xlabel("Model parameters", labelpad=X_LABEL_PAD)
     if show_ylabel:
         ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
-    ax.margins(x=0.06, y=0.13)
+    ax.margins(x=0.06)
     ax.set_box_aspect(1)
 
 
@@ -209,6 +229,7 @@ def build(data: pd.DataFrame | None = None) -> None:
             axes[axis_name],
             panel,
             title=title,
+            show_xlabel=index >= 3,
             show_ylabel=index in (0, 3),
         )
 
@@ -222,19 +243,43 @@ def build(data: pd.DataFrame | None = None) -> None:
             axes[axis_name],
             panel,
             title=title,
+            show_xlabel=True,
             show_ylabel=index == 0,
+        )
+
+    set_square_subplot_height(fig, axes.values(), SUBPLOT_HEIGHT_PX)
+    mendelian_rows = (
+        tuple(axes[axis_name] for axis_name, *_ in mendelian_axes[:3]),
+        tuple(axes[axis_name] for axis_name, *_ in mendelian_axes[3:]),
+    )
+    pack_horizontal_axis_columns(fig, mendelian_rows)
+    sge_row = tuple(axes[axis_name] for axis_name, *_ in sge_axes)
+    pack_horizontal_axes(fig, sge_row)
+    center_axes_block(fig, sge_row, (axis for row in mendelian_rows for axis in row))
+    freed_label_height = (
+        plt.rcParams["font.size"]
+        * REDUNDANT_LABEL_HEIGHT_FONT_SIZES
+        / (fig.get_figheight() * 72.0)
+    )
+    for axis_name, *_ in (*mendelian_axes[3:], *sge_axes):
+        position = axes[axis_name].get_position()
+        axes[axis_name].set_position(
+            (
+                position.x0,
+                position.y0 + freed_label_height,
+                position.width,
+                position.height,
+            )
         )
 
     handles = [
         Line2D(
             [0],
             [0],
-            color=color,
-            marker=marker,
-            linestyle=linestyle,
-            markeredgecolor="#1f1e1b",
+            color=SCORING_PROTOCOL_COLORS[protocol],
+            linestyle=SCORING_PROTOCOL_LINESTYLES[protocol],
         )
-        for _score, _label, color, marker, linestyle in READOUTS
+        for _score, _label, protocol in READOUTS
     ]
     labels = [label for _score, label, *_rest in READOUTS]
     fig.legend(

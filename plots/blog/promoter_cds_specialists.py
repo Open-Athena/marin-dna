@@ -210,13 +210,11 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
         dodge=False,
     )
 
-    panel_top = 0.0
     for x, role in enumerate(ROLE_ORDER):
         row = data.loc[data["role"] == role]
         assert len(row) == 1
         value = float(row["auprc_pct"].iloc[0])
         se = float(row["se_pct"].iloc[0])
-        panel_top = max(panel_top, value + se)
         ax.errorbar(
             x,
             value,
@@ -227,10 +225,7 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
         )
     ax.set_axisbelow(True)
     ax.grid(False)
-    top_padding = max(2.0, 0.07 * (panel_top - AUPRC_BASELINE_PCT))
-    y_max = panel_top + top_padding
-    assert y_max > AUPRC_BASELINE_PCT
-    ax.set_ylim(AUPRC_BASELINE_PCT, y_max)
+    ax.set_ylim(bottom=AUPRC_BASELINE_PCT)
     ax.set_xlabel("")
     ax.tick_params(axis="x", bottom=False, labelbottom=False)
     ax.spines["top"].set_visible(False)

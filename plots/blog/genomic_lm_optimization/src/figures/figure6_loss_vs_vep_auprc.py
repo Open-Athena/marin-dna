@@ -32,7 +32,14 @@ from figures.figure5_params_vs_vep_auprc import (
     SGE_SUBSETS,
     load_parameter_scaling_metrics,
 )
-from utils.figure_style import X_LABEL_PAD, figsize
+from utils.figure_style import (
+    COMPARISON_ERRORBAR_ALPHA,
+    MODEL_FAMILY_MARKERS,
+    SCORING_PROTOCOL_COLORS,
+    SCORING_PROTOCOL_LINESTYLES,
+    X_LABEL_PAD,
+    figsize,
+)
 
 MATCHED_LOSS_COLUMN = {
     "missense_variant": "eval_loss_cds",
@@ -84,22 +91,30 @@ def _plot_panel(
 ) -> None:
     """Draw paired protocol fits and endpoint AUPRCs for one consequence."""
     assert set(data["score_type"]) == {score for score, *_ in READOUTS}
-    for index, (score_type, _label, color, marker, linestyle) in enumerate(READOUTS):
+    marker = MODEL_FAMILY_MARKERS["marindna"]
+    for index, (score_type, _label, protocol) in enumerate(READOUTS):
         series = data[data["score_type"] == score_type].sort_values("ll")
         assert len(series) == 8
         assert series["ll"].is_unique
+        color = SCORING_PROTOCOL_COLORS[protocol]
         xs = series["ll"].to_numpy(dtype=float)
         ys = series["value"].to_numpy(dtype=float) * 100.0
         ax.errorbar(
             xs,
             ys,
             yerr=series["se"] * 100.0,
-            color=color,
+            fmt="none",
             ecolor=color,
-            marker=marker,
-            linestyle="none",
+            alpha=COMPARISON_ERRORBAR_ALPHA,
             capsize=0,
-            markeredgecolor="#1f1e1b",
+            zorder=1,
+        )
+        ax.scatter(
+            xs,
+            ys,
+            color=color,
+            marker=marker,
+            edgecolors="#1f1e1b",
             zorder=3,
         )
         slope, intercept = np.polyfit(xs, ys, 1)
@@ -108,7 +123,7 @@ def _plot_panel(
             x_line,
             slope * x_line + intercept,
             color=color,
-            linestyle=linestyle,
+            linestyle=SCORING_PROTOCOL_LINESTYLES[protocol],
             zorder=2,
         )
         correlation = float(np.corrcoef(xs, ys)[0, 1])
@@ -129,7 +144,7 @@ def _plot_panel(
     if show_ylabel:
         ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
-    ax.margins(x=0.08, y=0.13)
+    ax.margins(x=0.08)
     ax.set_box_aspect(1)
 
 
@@ -198,12 +213,10 @@ def build(
         Line2D(
             [0],
             [0],
-            color=color,
-            marker=marker,
-            linestyle=linestyle,
-            markeredgecolor="#1f1e1b",
+            color=SCORING_PROTOCOL_COLORS[protocol],
+            linestyle=SCORING_PROTOCOL_LINESTYLES[protocol],
         )
-        for _score, _label, color, marker, linestyle in READOUTS
+        for _score, _label, protocol in READOUTS
     ]
     labels = [label for _score, label, *_rest in READOUTS]
     fig.legend(

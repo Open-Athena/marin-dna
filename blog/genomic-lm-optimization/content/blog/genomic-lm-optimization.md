@@ -395,7 +395,7 @@ The result is about as tidy as we could hope for. Training is stable at every sc
 The final sweep shows a mostly consistent relationship between parameter count and downstream VEP performance. When zero-shot LLR and frozen-embedding linear probes are evaluated on identical variants, performance improves with scale for most variant types. The clearest exception is Mendelian missense: zero-shot LLR peaks at 128M parameters and then deteriorates, even as linear-probe performance continues to improve.[^zero-shot-scaling] This is not a general failure on missense variants—the SGE missense benchmark improves with scale under both scoring protocols.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py -->
-<figure id="fig-parameters-vs-vep" data-figure-width="597.274">
+<figure id="fig-parameters-vs-vep" data-figure-width="554.969">
 <img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance across model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 12: VEP performance across model scale.</strong> Zero-shot LLR and a frozen-embedding linear probe are compared on identical variants. Performance is measured as chromosome-weighted AUPRC (%); facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>

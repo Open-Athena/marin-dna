@@ -331,7 +331,6 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
             token_cutoff=token_cutoff,
         )
         ax.grid(False)
-        ax.margins(y=0.12)
         ax.yaxis.set_major_locator(MaxNLocator(nbins="auto", integer=True))
         ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.0f}"))
         ax.set_box_aspect(1)

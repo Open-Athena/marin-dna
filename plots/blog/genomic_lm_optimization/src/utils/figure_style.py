@@ -168,6 +168,33 @@ def pack_horizontal_axis_columns(fig, axes, gap_font_sizes: float = 1.0) -> None
         )
 
 
+def center_axes_block(fig, axes, reference_axes) -> None:
+    """Center one axes block on the rendered content of another."""
+    axes = tuple(axes)
+    reference_axes = tuple(reference_axes)
+    assert axes
+    assert reference_axes
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    block = Bbox.union([axis.get_tightbbox(renderer=renderer) for axis in axes])
+    reference = Bbox.union(
+        [axis.get_tightbbox(renderer=renderer) for axis in reference_axes]
+    )
+    shift_pixels = (
+        (reference.x0 + reference.x1) / 2.0 - (block.x0 + block.x1) / 2.0
+    )
+    for axis in axes:
+        position = axis.get_position()
+        axis.set_position(
+            (
+                position.x0 + shift_pixels / fig.bbox.width,
+                position.y0,
+                position.width,
+                position.height,
+            )
+        )
+
+
 # Warm, earthy palette tuned to the page theme (tan/brown). Replaces viridis,
 # whose purples and greens clash with the warm background. A muted teal -> rust
 # ramp: reads as earthy, holds good contrast on the #ece3d5 figure panels, and
@@ -192,6 +219,22 @@ HEATMAP_CMAP = LinearSegmentedColormap.from_list(
 # One strong earthy accent (terracotta) for single-series figures, drawn from
 # the warm end of PARAM_CMAP.
 SERIES_COLOR = "#9c4f2f"
+
+# Shared encodings for figures that compare model families and scoring
+# protocols. Protocol changes color and line style; family changes marker only.
+SCORING_PROTOCOL_COLORS = {
+    "llr": "#465c6e",
+    "probe": "#9c4f2f",
+}
+SCORING_PROTOCOL_LINESTYLES = {
+    "llr": "--",
+    "probe": "-",
+}
+MODEL_FAMILY_MARKERS = {
+    "marindna": "o",
+    "evo2": "s",
+}
+COMPARISON_ERRORBAR_ALPHA = 1.0
 
 # Earthy *qualitative* palette for categorical series (variant/trait types in
 # figures 5, A1, A2) — the warm counterpart to tab10. Six distinct, muted hues
