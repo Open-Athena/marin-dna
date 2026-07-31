@@ -63,6 +63,7 @@ assert MAMMALS and NON_MAMMALS and CHROMS
 ACTIVE_SPECIES = MAMMALS + NON_MAMMALS
 ACTIVE_MANIFEST = f"{RESULTS}/metadata/species_active.tsv"
 HAL_PATH = str(config["hal_stage_path"])
+HAL_VALIDATION = f"{RESULTS}/metadata/hal_stage_validated.txt"
 MULTIZ_STAGE_DIR = str(config["multiz_stage_dir"])
 MAMMAL_RE = "|".join(MAMMALS)
 NON_MAMMAL_RE = "|".join(NON_MAMMALS)

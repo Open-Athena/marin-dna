@@ -168,6 +168,11 @@ jobs but not instance termination. Keep the cluster running until required
 results have been copied to durable storage or uploaded through the reviewed
 dataset targets.
 
+Every HAL projection/extraction path also depends on the tier-specific
+`metadata/hal_stage_validated.txt` record. This rechecks exact S3/local byte
+size and HAL readability even when a complete staged HAL predates the current
+workdir sync, so an existing NVMe copy cannot bypass validation.
+
 ## Splits and output datasets
 
 Each configured region cohort gets one directory containing both

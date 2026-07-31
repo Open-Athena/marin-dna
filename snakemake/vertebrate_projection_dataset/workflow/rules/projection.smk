@@ -64,6 +64,7 @@ rule prepare_hal_bed:
 rule hal_chrom_sizes:
     input:
         hal=HAL_PATH,
+        validation=HAL_VALIDATION,
     output:
         f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
     wildcard_constraints:
@@ -78,6 +79,7 @@ rule hal_liftover:
     input:
         hal=HAL_PATH,
         bed=f"{RESULTS}/hal/input.bed",
+        validation=HAL_VALIDATION,
     output:
         f"{RESULTS}/hal/raw/{{species}}.bed",
     wildcard_constraints:
@@ -140,6 +142,7 @@ rule hal_contract:
 rule hal_to_fasta:
     input:
         hal=HAL_PATH,
+        validation=HAL_VALIDATION,
     output:
         local(f"{RESULTS}/hal/genomes/{{species}}.fa"),
     wildcard_constraints:
