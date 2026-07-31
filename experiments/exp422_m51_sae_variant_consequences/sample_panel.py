@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
+from marin_dna.data.genome import Genome
 
 HF_REPOSITORY = "songlab/hg38-variant-consequences"
 HF_REVISION = "eb3022cc6797b9369cca16af72ff3c4197df343a"
@@ -21,6 +22,9 @@ SOURCE_FILENAME = "21.parquet"
 SOURCE_SHA256 = "3be2188e6d9555058061710d58b94ccff2e7294cb39b53067b2531a2d7925347"
 
 BLOCK_SIZE = 1_000_000
+WINDOW_BP = 255
+FOCAL_INDEX = 127
+NUCLEOTIDES = frozenset("ACGT")
 HASH_SEEDS = (422, 288, 21, 5)
 OVERSAMPLE_FACTOR = 8
 QUOTAS: dict[str, int] = {
@@ -139,12 +143,57 @@ def _sampling_plan(
     return plan, retained, excluded
 
 
+def filter_valid_candidate_contexts(
+    candidates: pl.DataFrame, genome: Any
+) -> tuple[pl.DataFrame, list[dict[str, Any]]]:
+    """Remove candidates whose centered GRCh38 window is not exact A/C/G/T."""
+
+    valid: list[bool] = []
+    invalid: list[dict[str, Any]] = []
+    for row in candidates.iter_rows(named=True):
+        pos0 = int(row["pos"]) - 1
+        reasons: list[str] = []
+        if pos0 < FOCAL_INDEX:
+            reasons.append("window_before_chromosome_start")
+        else:
+            sequence = genome(
+                row["chrom"], pos0 - FOCAL_INDEX, pos0 + FOCAL_INDEX + 1, "+"
+            ).upper()
+            if len(sequence) != WINDOW_BP:
+                reasons.append(f"window_length={len(sequence)}")
+            else:
+                if sequence[FOCAL_INDEX] != row["ref"]:
+                    reasons.append(
+                        f"center_ref={sequence[FOCAL_INDEX]} expected={row['ref']}"
+                    )
+                unexpected = "".join(sorted(set(sequence) - NUCLEOTIDES))
+                if unexpected:
+                    reasons.append(f"non_acgt={unexpected}")
+        valid.append(not reasons)
+        if reasons:
+            invalid.append(
+                {
+                    **{column: row[column] for column in KEY_COLUMNS},
+                    "consequence_cre": row["consequence_cre"],
+                    "split": row["split"],
+                    "sample_hash": row["sample_hash"],
+                    "reasons": reasons,
+                }
+            )
+    mask = pl.Series("valid_context", valid)
+    assert len(mask) == candidates.height
+    filtered = candidates.filter(mask)
+    assert filtered.height + len(invalid) == candidates.height
+    return filtered, invalid
+
+
 def sample_balanced_panel(
     frame: pl.LazyFrame,
     *,
     quotas: dict[str, int] = QUOTAS,
     oversample_factor: int = OVERSAMPLE_FACTOR,
-) -> tuple[pl.DataFrame, pl.DataFrame, list[str], list[str]]:
+    genome: Any | None = None,
+) -> tuple[pl.DataFrame, pl.DataFrame, list[str], list[str], dict[str, Any]]:
     """Return an exact deterministic balanced panel and its availability counts.
 
     A deterministic Polars struct hash creates a small oversampled candidate set
@@ -178,6 +227,21 @@ def sample_balanced_panel(
         .collect(engine="streaming")
     )
 
+    candidate_rows_before_context_filter = candidates.height
+    invalid_contexts: list[dict[str, Any]] = []
+    if genome is not None:
+        candidates, invalid_contexts = filter_valid_candidate_contexts(
+            candidates, genome
+        )
+    context_audit = {
+        "checked": genome is not None,
+        "window_bp": WINDOW_BP,
+        "focal_index": FOCAL_INDEX,
+        "candidate_rows_before_filter": candidate_rows_before_context_filter,
+        "candidate_rows_after_filter": candidates.height,
+        "invalid_candidate_rows": invalid_contexts,
+    }
+
     selected_parts: list[pl.DataFrame] = []
     for split, quota in quotas.items():
         split_candidates = candidates.filter(pl.col("split") == split)
@@ -188,9 +252,7 @@ def sample_balanced_panel(
             f"increase oversample_factor: {too_small.to_dicts()}"
         )
         selected_parts.append(
-            split_candidates.sort(
-                ["consequence_cre", "sample_hash", *KEY_COLUMNS]
-            )
+            split_candidates.sort(["consequence_cre", "sample_hash", *KEY_COLUMNS])
             .group_by("consequence_cre", maintain_order=True)
             .head(quota)
         )
@@ -225,19 +287,26 @@ def sample_balanced_panel(
     assert observed.sort(["consequence_cre", "split"]).equals(
         expected.sort(["consequence_cre", "split"])
     )
-    return panel, counts, retained, excluded
+    return panel, counts, retained, excluded, context_audit
 
 
-def build_panel(input_path: Path, output_path: Path) -> dict[str, Any]:
+def build_panel(
+    input_path: Path, output_path: Path, fasta_path: Path
+) -> dict[str, Any]:
     """Validate the pinned source, write the sampled panel, and return a manifest."""
 
     assert input_path.is_file(), input_path
+    assert fasta_path.is_file(), fasta_path
+    assert Path(f"{fasta_path}.fai").is_file()
+    assert Path(f"{fasta_path}.gzi").is_file()
     source_sha256 = sha256_file(input_path)
     assert source_sha256 == SOURCE_SHA256, (source_sha256, SOURCE_SHA256)
 
-    panel, counts, retained, excluded = sample_balanced_panel(
-        pl.scan_parquet(input_path)
+    genome = Genome(fasta_path, subset_chroms={CHROMOSOME})
+    panel, counts, retained, excluded, context_audit = sample_balanced_panel(
+        pl.scan_parquet(input_path), genome=genome
     )
+    assert context_audit["checked"]
     assert len(retained) == EXPECTED_RETAINED_CLASS_COUNT, len(retained)
     assert set(excluded) == EXPECTED_EXCLUDED_CLASSES, excluded
 
@@ -256,6 +325,11 @@ def build_panel(input_path: Path, output_path: Path) -> dict[str, Any]:
             "hf_revision": HF_REVISION,
             "filename": SOURCE_FILENAME,
             "sha256": source_sha256,
+        },
+        "reference": {
+            "fasta": fasta_path.name,
+            "sha256": sha256_file(fasta_path),
+            "context_filter": context_audit,
         },
         "sampling": {
             "chromosome": CHROMOSOME,
@@ -287,8 +361,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--fasta", type=Path, required=True)
     args = parser.parse_args()
-    manifest = build_panel(args.input, args.output)
+    manifest = build_panel(args.input, args.output, args.fasta)
     print(json.dumps(manifest["output"], indent=2, sort_keys=True))
 
 
