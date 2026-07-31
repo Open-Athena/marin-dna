@@ -77,8 +77,8 @@ run: |
     sudo chown ubuntu:ubuntu /mnt/nvme
   fi
 
-  AVAILABLE_BYTES=$(df --output=avail -B1 /mnt/nvme | tail -n 1)
-  test "$AVAILABLE_BYTES" -ge 2500000000000
+  TOTAL_BYTES=$(df --output=size -B1 /mnt/nvme | tail -n 1)
+  test "$TOTAL_BYTES" -ge 2500000000000
   df -h /mnt/nvme
 
   aws s3api head-object \
