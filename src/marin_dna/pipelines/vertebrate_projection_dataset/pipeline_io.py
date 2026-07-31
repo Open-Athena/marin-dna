@@ -342,16 +342,20 @@ def combine_sequence_parquets(input_paths: list[str], output_path: str | Path) -
             .collect(engine="streaming")
             .row(0, named=True)
         )
-        assert int(stats["rows"]) == int(stats["queries"])
+        rows = int(stats["rows"])
+        assert rows == int(stats["queries"])
         assert int(stats["invalid_lengths"]) == 0
+        if rows == 0:
+            continue
         assert int(stats["species_count"]) == 1, (
             f"{path} contains {stats['species_count']} species"
         )
         species = str(stats["species"])
         assert species not in observed_species
         observed_species.add(species)
-        expected_rows += int(stats["rows"])
+        expected_rows += rows
 
+    assert expected_rows > 0
     merge_parquets_streaming(input_paths, output_path)
     actual_rows = (
         pl.scan_parquet(output_path).select(pl.len()).collect(engine="streaming").item()
