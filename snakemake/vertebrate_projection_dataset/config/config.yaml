@@ -39,7 +39,7 @@ inspection_rows_per_region: 3
 inspection_fragmented_rows: 5
 inspection_rejected_rows_per_reason: 2
 region_cohorts:
-  [all, cds, utr3, ncrna_exon, tss_region_and_utr5,
+  [all, cds, cds_mammals_only, utr3, ncrna_exon, tss_region_and_utr5,
    ccre_non_promoter, background]
 
 hf_owner: bolinas-dna

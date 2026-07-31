@@ -134,3 +134,49 @@ def test_streaming_split_writes_schema_matched_outputs(tmp_path: Path) -> None:
     assert pl.read_csv(selection_path, separator="\t").height == 5
     assert pl.read_csv(counts_path, separator="\t").height == 3
     assert json.loads(summary_path.read_text())["train_rows"] == 6
+
+
+def test_mammals_only_scope_filters_multiz_after_region_selection(
+    tmp_path: Path,
+) -> None:
+    combined = (
+        _rows()
+        .filter(pl.col("augmentation") == "+")
+        .drop("augmentation")
+        .with_columns(
+            pl.lit("cds").alias("region_label"),
+            pl.when(pl.col("species") == "Gallus gallus")
+            .then(pl.lit("ucsc_multiz100way"))
+            .otherwise(pl.col("alignment_source"))
+            .alias("alignment_source"),
+        )
+    )
+    combined_path = tmp_path / "combined.parquet"
+    combined.write_parquet(combined_path)
+    train_path = tmp_path / "train.parquet"
+    validation_path = tmp_path / "validation.parquet"
+    summary_path = tmp_path / "summary.json"
+
+    write_dataset_split_files(
+        combined_path,
+        train_path,
+        validation_path,
+        tmp_path / "selection.tsv",
+        tmp_path / "counts.tsv",
+        summary_path,
+        region_label="cds",
+        species_scope="mammals_only",
+        add_rc=True,
+        validation_chrom="chr18",
+        max_validation_rows=4,
+        seed=7,
+    )
+
+    train = pl.read_parquet(train_path)
+    validation = pl.read_parquet(validation_path)
+    assert set(train["species"]) == {"Homo sapiens", "Mus musculus"}
+    assert set(validation["species"]) == {"Homo sapiens", "Mus musculus"}
+    assert "ucsc_multiz100way" not in set(train["alignment_source"])
+    summary = json.loads(summary_path.read_text())
+    assert summary["region_label"] == "cds"
+    assert summary["species_scope"] == "mammals_only"

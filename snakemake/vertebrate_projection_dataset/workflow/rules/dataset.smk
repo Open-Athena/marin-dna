@@ -19,6 +19,14 @@ MULTIZ_REJECTIONS = expand(
 ALL_REJECTIONS = HAL_REJECTIONS + MULTIZ_REJECTIONS
 
 
+def dataset_region_label(cohort):
+    return "cds" if cohort == "cds_mammals_only" else cohort
+
+
+def dataset_species_scope(cohort):
+    return "mammals_only" if cohort == "cds_mammals_only" else "all"
+
+
 rule projection_qc:
     input:
         anchors=ANCHOR_CATALOG,
@@ -89,7 +97,8 @@ rule dataset_splits:
             output.selection,
             output.counts,
             output.summary,
-            region_label=wildcards.region,
+            region_label=dataset_region_label(wildcards.region),
+            species_scope=dataset_species_scope(wildcards.region),
             add_rc=bool(config["add_rc"]),
             validation_chrom=str(config["validation_chrom"]),
             max_validation_rows=int(config["validation_max_rows"]),
@@ -110,6 +119,8 @@ rule dataset_card:
         mem_mb=2000,
     params:
         repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
+        region=lambda wc: dataset_region_label(wc.region),
+        scope=lambda wc: dataset_species_scope(wc.region),
     run:
         write_dataset_card(
             input.train,
@@ -118,7 +129,8 @@ rule dataset_card:
             output[0],
             pipeline_commit=resolve_pipeline_commit(),
             hf_repo=params.repo,
-            region_label=wildcards.region,
+            region_label=params.region,
+            species_scope=params.scope,
         )
 
 

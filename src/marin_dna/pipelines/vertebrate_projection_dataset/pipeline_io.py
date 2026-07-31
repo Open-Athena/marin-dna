@@ -365,16 +365,24 @@ def write_dataset_split_files(
     summary_path: str | Path,
     *,
     region_label: str,
+    species_scope: str = "all",
     add_rc: bool,
     validation_chrom: str,
     max_validation_rows: int,
     seed: int,
 ) -> None:
+    assert species_scope in {"all", "mammals_only"}
     original = pl.scan_parquet(combined_path)
     if region_label != "all":
         original = original.filter(pl.col("region_label") == region_label)
+    if species_scope == "mammals_only":
+        original = original.filter(
+            pl.col("alignment_source").is_in(["human_reference", "zoonomia_cactus"])
+        )
     original_rows = original.select(pl.len()).collect(engine="streaming").item()
-    assert original_rows > 0, f"empty region cohort: {region_label}"
+    assert original_rows > 0, (
+        f"empty dataset cohort: region={region_label}, scope={species_scope}"
+    )
 
     train_original = original.filter(pl.col("source_chrom") != validation_chrom)
     if add_rc:
@@ -417,6 +425,7 @@ def write_dataset_split_files(
         json.dumps(
             {
                 "region_label": region_label,
+                "species_scope": species_scope,
                 "seed": seed,
                 "validation_chrom": validation_chrom,
                 "train_rows": train_rows,
@@ -599,6 +608,7 @@ def write_dataset_card(
     pipeline_commit: str,
     hf_repo: str,
     region_label: str,
+    species_scope: str,
 ) -> None:
     """Write the reviewable HF README required before any upload."""
     assert len(pipeline_commit) == 40, "dataset cards require a commit-pinned SHA"
@@ -613,7 +623,10 @@ def write_dataset_card(
     )
     train_schema = pl.read_parquet_schema(train_path)
     assert train_schema == pl.read_parquet_schema(validation_path)
+    assert species_scope in {"all", "mammals_only"}
     selected = read_species_manifest(str(manifest_path)).filter(pl.col("selected"))
+    if species_scope == "mammals_only":
+        selected = selected.filter(pl.col("backend") == "zoonomia_cactus")
     species_counts = (
         selected.group_by("backend", "clade")
         .len(name="species")
@@ -630,6 +643,14 @@ def write_dataset_card(
         "https://github.com/Open-Athena/marin-dna/blob/"
         f"{pipeline_commit}/snakemake/vertebrate_projection_dataset/README.md"
     )
+    source_description = (
+        "the Zoonomia 447-mammal Cactus alignment"
+        if species_scope == "mammals_only"
+        else (
+            "the Zoonomia 447-mammal Cactus alignment and UCSC hg38 "
+            "MultiZ 100-way alignment"
+        )
+    )
     text = f"""---
 tags:
 - biology
@@ -639,9 +660,9 @@ tags:
 
 # `{hf_repo}`
 
-Human-anchored 255 bp vertebrate sequences from the Zoonomia 447-mammal
-Cactus alignment and UCSC hg38 MultiZ 100-way alignment. This draft covers
-the `{region_label}` region cohort and preserves source FASTA/2bit letter case.
+Human-anchored 255 bp vertebrate sequences from {source_description}. This
+draft covers the `{region_label}` region cohort with `{species_scope}` species
+scope and preserves source FASTA/2bit letter case.
 
 Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
 

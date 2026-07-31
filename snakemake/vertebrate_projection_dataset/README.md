@@ -183,6 +183,14 @@ Each cohort also writes `validation_selection.tsv`,
 stable row IDs, per-species eligible/selected counts, and realized token count.
 At 16,384 rows, validation has exactly 4,194,304 tokens including BOS.
 
+The full tier additionally writes `datasets/cds_mammals_only/`, which applies
+the CDS label after the complete shared projection/acceptance pass and then
+retains only `human_reference` and `zoonomia_cactus` rows. The regular
+`datasets/cds/` cohort retains those identical rows plus
+`ucsc_multiz100way`. These are the two preregistered matched model arms; no
+coordinate, acceptance, split, augmentation, or sampling rule differs between
+them.
+
 Generated dataset cards contain the exact committed pipeline SHA, split row
 counts, schema, and selected species counts. Review them before the explicit
 upload target:
