@@ -1,0 +1,38 @@
+name: dna-exp421-alphagenome-tracks
+
+resources:
+  cloud: aws
+  region: us-east-2
+  instance_type: c7i.8xlarge
+  disk_size: 80
+
+workdir: .
+
+file_mounts:
+  /tmp/exp421-input/panel:
+    source: ../../scratch/issue420/input
+    mode: COPY
+  /tmp/exp421-input/extraction:
+    source: ../../scratch/issue420/retrieval/dna-exp420-sae-mendelian-all-features-seed288
+    mode: COPY
+  /tmp/exp421-input/track_metadata:
+    source: ../../scratch/issue421/track_metadata
+    mode: COPY
+
+run: |
+  set -euo pipefail
+  if [[ ! -x /tmp/exp421-cpu/bin/python ]]; then
+    uv venv --python 3.12 /tmp/exp421-cpu
+    uv pip install --python /tmp/exp421-cpu/bin/python \
+      matplotlib numpy pandas polars pyarrow scipy
+  fi
+  rm -rf /tmp/dna-exp421-alphagenome-tracks
+  /tmp/exp421-cpu/bin/python association.py \
+    --panel /tmp/exp421-input/panel/mendelian_panel.parquet \
+    --extraction-dir /tmp/exp421-input/extraction \
+    --alphagenome-uri s3://oa-bolinas/snakemake/alphagenome_eval/results/per_track_l2/mendelian_traits.parquet \
+    --track-metadata /tmp/exp421-input/track_metadata/track_metadata.parquet \
+    --track-metadata-manifest /tmp/exp421-input/track_metadata/manifest.json \
+    --output-dir /tmp/dna-exp421-alphagenome-tracks \
+    --extraction-commit "${EXTRACTION_COMMIT:?set EXTRACTION_COMMIT}" \
+    --analysis-commit "${ANALYSIS_COMMIT:?set ANALYSIS_COMMIT}"
