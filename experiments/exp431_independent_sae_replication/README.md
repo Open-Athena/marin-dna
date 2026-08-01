@@ -115,14 +115,37 @@ sky launch -c exp431-fresh-lambda sky.train-fresh.yaml \
   --env EXPERIMENT_COMMIT=COMMIT -y
 ```
 
-Retrieve the hash-complete run and terminate the H100:
+Retrieve and verify the hash-complete run, but keep the H100 warm for the frozen analysis:
 
 ```bash
 rsync -av --protect-args \
   exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/dna-exp431-fresh-seed289/ \
   ../../scratch/issue431/retrieval/fresh-seed289/
-sky down exp431-fresh-lambda -y
 ```
+
+### Fresh candidate transfer and held-out test
+
+After the fresh training manifest is independently verified, freeze decoder candidates and run the unchanged three-split analysis on the same H100:
+
+~~~bash
+sky launch --dryrun -y -c exp431-fresh-lambda sky.analyze-fresh.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT \
+  --env DICTIONARY_NAME=rc-balanced-normalized-seed289
+sky launch -c exp431-fresh-lambda sky.analyze-fresh.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT \
+  --env DICTIONARY_NAME=rc-balanced-normalized-seed289 -y
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/decoder-fresh/ \
+  ../../scratch/issue431/retrieval/decoder-fresh/
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/fresh-extraction/ \
+  ../../scratch/issue431/retrieval/fresh-extraction/
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/analysis-fresh/ \
+  ../../scratch/issue431/retrieval/analysis-fresh/
+~~~
+
+If any geometry-constrained concept fails, complete its registered whole-dictionary sensitivity before terminating the H100. Otherwise terminate it immediately after all retrieved manifests pass independent hash checks.
 
 ## Validation
 
