@@ -2,7 +2,24 @@ from __future__ import annotations
 
 import polars as pl
 
-from annotate_coding_candidates import summarize_annotations
+from annotate_coding_candidates import prepare_contexts, summarize_annotations
+
+
+def test_prepare_contexts_maps_class_to_consequence_schema() -> None:
+    frame = pl.DataFrame(
+        {
+            "class": ["stop_gained", "synonymous_variant", "missense_variant"],
+            "panel_row": [0, 1, 2],
+        }
+    )
+
+    prepared = prepare_contexts(frame)
+
+    assert prepared["panel_row"].to_list() == [0, 1]
+    assert prepared["consequence_cre"].to_list() == [
+        "stop_gained",
+        "synonymous_variant",
+    ]
 
 
 def test_summarize_annotations_preserves_top_and_codon_phase() -> None:

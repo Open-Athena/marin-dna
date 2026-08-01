@@ -18,13 +18,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from experiments.exp428_replicate_codon_context.panel import (
+from experiments.exp428_replicate_codon_context.panel import (  # noqa: E402
     annotate_candidates,
 )
 
 ISSUE = 429
 CODING_CLASSES = frozenset({"stop_gained", "synonymous_variant"})
 EXPECTED_ROWS_PER_CLASS = 1_024
+
+
+def prepare_contexts(contexts: pl.DataFrame) -> pl.DataFrame:
+    """Select coding candidates and adapt the class label for codon annotation."""
+
+    prepared = contexts.filter(
+        pl.col("class").is_in(sorted(CODING_CLASSES))
+    ).with_columns(pl.col("class").alias("consequence_cre"))
+    assert prepared.filter(pl.col("class") != pl.col("consequence_cre")).is_empty()
+    return prepared
 
 
 def summarize_annotations(
@@ -134,9 +144,7 @@ def annotate_coding_candidates(
     assert inspection_manifest["artifacts"][contexts_path.name][
         "sha256"
     ] == sha256_file(contexts_path)
-    contexts = pl.read_parquet(contexts_path).filter(
-        pl.col("class").is_in(sorted(CODING_CLASSES))
-    )
+    contexts = prepare_contexts(pl.read_parquet(contexts_path))
     assert contexts.height == len(CODING_CLASSES) * EXPECTED_ROWS_PER_CLASS
     assert contexts.select("panel_row").n_unique() == contexts.height
     annotated, metadata = annotate_candidates(
