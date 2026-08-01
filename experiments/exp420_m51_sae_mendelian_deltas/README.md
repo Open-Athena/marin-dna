@@ -87,3 +87,27 @@ once. Missense-versus-synonymous is reported separately for `label=0` and
 score mean. It also reports substitution and focal-excluded GC controls and a
 four-class analysis restricted to subsets with at least 20 match groups in
 every split. All output artifacts are hash-complete.
+
+## Primary prediction targets
+
+The follow-up analysis reorganizes the results around the three intended
+endpoints: `label` pooled across all subsets without stratification, `label`
+within each subset, and `subset` pooled across both labels. The primary metric
+is held-out row AUPRC. Label prevalence is exactly 10% in every match group and
+therefore both within each subset and overall.
+
+```bash
+uv run python prediction_targets.py \
+  --panel <panel.parquet> \
+  --extraction-dir <all-feature-extraction> \
+  --within-subset-summary <aggregate_summary.parquet> \
+  --within-subset-manifest <aggregate_manifest.json> \
+  --output-dir <prediction-target-output> \
+  --extraction-commit <all-feature-extraction-commit> \
+  --analysis-commit <prediction-analysis-commit>
+```
+
+The script is CPU-only and uses `prediction_primitives.py` so it does not load
+the model, SAE Lens, or CUDA dependencies. It verifies every input hash before
+reconstructing one orientation at a time, then writes hash-complete tables,
+plots, and a Markdown summary.

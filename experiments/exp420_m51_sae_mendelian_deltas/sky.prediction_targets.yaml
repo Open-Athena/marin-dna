@@ -1,0 +1,52 @@
+# CPU-only analysis of the three primary issue #420 prediction targets.
+
+name: dna-exp420-prediction-targets
+
+resources:
+    infra: aws/us-east-2
+    instance_type: c7i.8xlarge
+    disk_size: 100
+    autostop:
+        idle_minutes: 30
+        down: true
+
+workdir: .
+
+file_mounts:
+    /home/ubuntu/exp420_inputs/panel: ../../scratch/issue420/input
+    /home/ubuntu/exp420_inputs/extraction: ../../scratch/issue420/retrieval/dna-exp420-mendelian-subsets-seed288/extraction
+    /home/ubuntu/exp420_inputs/within_subset: ../../scratch/issue420/dna-exp420-mendelian-deltas-scores-seed288/aggregate
+
+envs:
+    RUN_ID: dna-exp420-prediction-targets-seed288
+    EXTRACTION_COMMIT: ""
+    ANALYSIS_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv venv --python 3.12 /tmp/exp420-cpu
+    uv pip install --python /tmp/exp420-cpu/bin/python \
+        'matplotlib>=3.9' 'numpy>=2.0' 'polars>=1.0' 'pyarrow>=18' \
+        'scikit-learn>=1.5'
+
+run: |
+    set -euxo pipefail
+
+    export OMP_NUM_THREADS=16
+    export MKL_NUM_THREADS=16
+    export OPENBLAS_NUM_THREADS=16
+    export NUMEXPR_NUM_THREADS=16
+    OUTPUT_DIR="artifacts/$RUN_ID"
+    /tmp/exp420-cpu/bin/python prediction_targets.py \
+        --panel /home/ubuntu/exp420_inputs/panel/panel.parquet \
+        --extraction-dir /home/ubuntu/exp420_inputs/extraction \
+        --within-subset-summary /home/ubuntu/exp420_inputs/within_subset/aggregate_summary.parquet \
+        --within-subset-manifest /home/ubuntu/exp420_inputs/within_subset/aggregate_manifest.json \
+        --output-dir "$OUTPUT_DIR" \
+        --extraction-commit "$EXTRACTION_COMMIT" \
+        --analysis-commit "$ANALYSIS_COMMIT"
