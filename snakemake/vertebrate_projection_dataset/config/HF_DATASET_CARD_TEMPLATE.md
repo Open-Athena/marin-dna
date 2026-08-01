@@ -13,6 +13,12 @@ Human-anchored 255 bp vertebrate sequences from the Zoonomia 447-mammal Cactus
 alignment and UCSC hg38 MultiZ 100-way alignment for the `<region>` cohort.
 Source FASTA/2bit letter case is preserved.
 
+Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
+Sequence case is independent of that filter: lowercase bases preserve source
+repeat masking, uppercase bases preserve source non-repeat-masked sequence, and
+conservation scores never rewrite emitted characters or case. The matched
+issue #417 models use lowercase loss weight 0.01 in both train and validation.
+
 Produced by the
 [`vertebrate_projection_dataset` pipeline](https://github.com/Open-Athena/marin-dna/blob/<COMMIT_SHA>/snakemake/vertebrate_projection_dataset/README.md).
 Replace `<COMMIT_SHA>` with the exact producing revision; never use a branch URL.

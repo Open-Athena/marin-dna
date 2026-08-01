@@ -800,6 +800,12 @@ Human-anchored 255 bp vertebrate sequences from {source_description}. This
 draft covers the `{region_label}` region cohort with `{species_scope}` species
 scope and preserves source FASTA/2bit letter case.
 
+Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
+Sequence case is independent of that filter: lowercase bases preserve source
+repeat masking, uppercase bases preserve source non-repeat-masked sequence, and
+conservation scores never rewrite emitted characters or case. The matched
+issue #417 models use lowercase loss weight 0.01 in both train and validation.
+
 Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
 
 ## Splits

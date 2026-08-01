@@ -8,10 +8,12 @@ import pytest
 from marin_dna.pipelines.vertebrate_projection_dataset.contract import ACCEPTED_SCHEMA
 from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
     combine_sequence_parquets,
+    write_dataset_card,
     write_filtered_anchor_bed,
     write_human_reference_sequences,
     write_twobit_sequences,
 )
+from tests.pipelines.vertebrate_projection_dataset.helpers import species_manifest
 
 
 def test_write_filtered_anchor_bed_is_valid_deterministic_gzip(
@@ -221,3 +223,42 @@ def test_combine_sequence_parquets_rejects_empty_input_with_wrong_schema(
         combine_sequence_parquets(
             [str(populated), str(malformed)], tmp_path / "combined.parquet"
         )
+
+
+def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
+    tmp_path: Path,
+) -> None:
+    train = tmp_path / "train.parquet"
+    validation = tmp_path / "validation.parquet"
+    manifest = tmp_path / "species.tsv"
+    card = tmp_path / "README.md"
+    frame = pl.DataFrame(
+        {
+            "query_name": ["anchor-1"],
+            "sequence": ["aCgT"],
+        }
+    )
+    frame.write_parquet(train)
+    frame.write_parquet(validation)
+    species_manifest().write_csv(manifest, separator="\t")
+
+    write_dataset_card(
+        train,
+        validation,
+        manifest,
+        card,
+        pipeline_commit="a" * 40,
+        hf_repo="bolinas-dna/vertebrate-v1-cds",
+        region_label="cds",
+        species_scope="all",
+    )
+
+    text = " ".join(card.read_text().split())
+    assert (
+        "Anchor eligibility uses the pipeline's pinned phyloP conservation filter."
+        in text
+    )
+    assert "lowercase bases preserve source repeat masking" in text
+    assert "Sequence case is independent of that filter" in text
+    assert "conservation scores never rewrite emitted characters or case" in text
+    assert "lowercase loss weight 0.01 in both train and validation" in text
