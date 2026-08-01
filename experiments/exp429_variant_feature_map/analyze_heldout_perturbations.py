@@ -100,10 +100,11 @@ def validate_heldout_inputs(
 
 
 def splice_context_contrasts(
-    responses: pl.DataFrame,
+    responses: pl.DataFrame, *, bootstrap_samples: int = 2_000
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Contrast preregistered motif positions with the remaining saturation window."""
 
+    assert bootstrap_samples > 0
     splice = responses.filter(
         (pl.col("response_role") == "primary")
         & (pl.col("perturbation_type") == "splice_saturation")
@@ -140,7 +141,7 @@ def splice_context_contrasts(
         low, high = bootstrap_mean_interval(
             values,
             seed=RANDOM_SEED + group_index,
-            samples=2_000,
+            samples=bootstrap_samples,
         )
         summary_rows.append(
             {
@@ -217,7 +218,9 @@ def analyze_heldout_perturbations(
         reverse_states=reverse,
     )
     splice_position, splice_substitution = splice_summaries(responses)
-    splice_contexts, splice_contrast = splice_context_contrasts(responses)
+    splice_contexts, splice_contrast = splice_context_contrasts(
+        responses, bootstrap_samples=bootstrap_samples
+    )
     codon_consequence, codon_identity = codon_summaries(responses)
     codon_input = responses.filter(
         (pl.col("response_role") == "primary")
