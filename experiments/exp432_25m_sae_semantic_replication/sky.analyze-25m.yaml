@@ -1,0 +1,55 @@
+# Freeze decoder candidates and run the registered 25M-dictionary test.
+
+name: dna-exp432-analyze-25m
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 250
+    autostop:
+        idle_minutes: 45
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp432-inputs/panels: ../../scratch/issue431/retrieval/panels
+    /home/ubuntu/exp432-inputs/reference-sae: ../../scratch/issue418/dna-exp418-micro-seed288-e816ec343c30/sae
+    /home/ubuntu/exp432-inputs/candidate-sae: ../../scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-25m
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    DICTIONARY_NAME: rc-balanced-normalized-seed288-25m
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp432-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-432-25m-sae-replication
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp432_25m_sae_semantic_replication"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c 'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT DICTIONARY_NAME
+    export POLARS_MAX_THREADS=8 RAYON_NUM_THREADS=8
+    export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+    cd "$HOME/exp432-repo/experiments/exp432_25m_sae_semantic_replication"
+    SAE=/home/ubuntu/exp432-inputs/candidate-sae
+    CANDIDATES="$HOME/exp432-artifacts/decoder-25m"
+    EXTRACTION="$HOME/exp432-artifacts/extraction-25m"
+    ANALYSIS="$HOME/exp432-artifacts/analysis-25m"
+    test -f "$SAE/sae_weights.safetensors"
+    test ! -e "$CANDIDATES"
+    test ! -e "$EXTRACTION"
+    test ! -e "$ANALYSIS"
+    /usr/bin/time -v uv run --no-dev python decoder_neighbors.py --reference-sae /home/ubuntu/exp432-inputs/reference-sae --candidate-sae "$SAE" --dictionary-name "$DICTIONARY_NAME" --output-dir "$CANDIDATES" --top-k 32
+    /usr/bin/time -v uv run --no-dev python extract_candidates.py --panel /home/ubuntu/exp432-inputs/panels/discovery/perturbation_panel.parquet --panel-manifest /home/ubuntu/exp432-inputs/panels/discovery/manifest.json --candidate-dir "$CANDIDATES" --sae "$SAE" --output-dir "$EXTRACTION/discovery" --dictionary-name "$DICTIONARY_NAME" --batch-size 32
+    /usr/bin/time -v uv run --no-dev python extract_candidates.py --panel /home/ubuntu/exp432-inputs/panels/validation/perturbation_panel.parquet --panel-manifest /home/ubuntu/exp432-inputs/panels/validation/manifest.json --candidate-dir "$CANDIDATES" --sae "$SAE" --output-dir "$EXTRACTION/validation" --dictionary-name "$DICTIONARY_NAME" --batch-size 32
+    /usr/bin/time -v uv run --no-dev python extract_candidates.py --panel /home/ubuntu/exp432-inputs/panels/test/perturbation_panel.parquet --panel-manifest /home/ubuntu/exp432-inputs/panels/test/manifest.json --candidate-dir "$CANDIDATES" --sae "$SAE" --output-dir "$EXTRACTION/test" --dictionary-name "$DICTIONARY_NAME" --batch-size 32
+    /usr/bin/time -v uv run --no-dev python analyze_replication.py --panel-root /home/ubuntu/exp432-inputs/panels --extraction-root "$EXTRACTION" --output-dir "$ANALYSIS" --dictionary-name "$DICTIONARY_NAME" --bootstraps 2000

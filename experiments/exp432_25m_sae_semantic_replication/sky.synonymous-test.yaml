@@ -1,0 +1,47 @@
+# Extract and test only the 25M feature/view frozen by the separate search job.
+
+name: dna-exp432-synonymous-test
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 250
+    autostop:
+        idle_minutes: 45
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp432-inputs/test: ../../scratch/issue431/retrieval/panels/test
+    /home/ubuntu/exp432-inputs/selection: ../../scratch/issue432/retrieval/synonymous-25m/selection
+    /home/ubuntu/exp432-inputs/candidate-sae: ../../scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-25m
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    DICTIONARY_NAME: rc-balanced-normalized-seed288-25m
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp432-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-432-25m-sae-replication
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp432_25m_sae_semantic_replication"
+    uv sync --frozen --no-dev
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT DICTIONARY_NAME
+    export POLARS_MAX_THREADS=8 RAYON_NUM_THREADS=8
+    export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+    cd "$HOME/exp432-repo/experiments/exp432_25m_sae_semantic_replication"
+    OUT="$HOME/exp432-artifacts/synonymous-25m"
+    test ! -e "$OUT/test"
+    test ! -e "$OUT/test-analysis"
+    mkdir -p "$OUT"
+    /usr/bin/time -v uv run --no-dev python full_dictionary_synonymous.py extract --panel /home/ubuntu/exp432-inputs/test/perturbation_panel.parquet --panel-manifest /home/ubuntu/exp432-inputs/test/manifest.json --sae /home/ubuntu/exp432-inputs/candidate-sae --selection-manifest /home/ubuntu/exp432-inputs/selection/manifest.json --output-dir "$OUT/test" --dictionary-name "$DICTIONARY_NAME" --source-split test --stage test --batch-size 32
+    /usr/bin/time -v uv run --no-dev python full_dictionary_synonymous.py test --test-dir "$OUT/test" --selection-dir /home/ubuntu/exp432-inputs/selection --output-dir "$OUT/test-analysis" --dictionary-name "$DICTIONARY_NAME" --bootstraps 2000
