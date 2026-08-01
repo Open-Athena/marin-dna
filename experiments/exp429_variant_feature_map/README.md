@@ -123,6 +123,12 @@ frequencies, and an enrichment heatmap. This is a hypothesis-generation step;
 held-out test scores are carried through from the prior analysis and are not
 used to select sequences.
 
+`annotate_coding_candidates.py` then reuses the tested Ensembl-109
+transcript/codon reconstruction from exp428 for the stop-gain and synonymous
+discovery contexts. It reports annotation coverage, codon phase, transcript-
+oriented substitutions, and unambiguous REF→ALT codon pairs for the top versus
+remaining same-class responses.
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
