@@ -16,6 +16,11 @@ if [[ ! -d "$results_dir" ]]; then
   echo "results directory does not exist: $results_dir" >&2
   exit 2
 fi
+first_symlink="$(find "$results_dir" -type l -print -quit)"
+if [[ -n "$first_symlink" ]]; then
+  echo "result tree contains a symlink that cannot be inventoried safely: $first_symlink" >&2
+  exit 1
+fi
 if [[ ! "$s3_uri" =~ ^s3://([^/]+)/(.+)$ ]]; then
   echo "destination must be a non-root S3 prefix: $s3_uri" >&2
   exit 2
@@ -39,6 +44,7 @@ fi
 
 aws s3 sync "$results_dir/" "$s3_uri/" \
   --exclude "$inventory_name" \
+  --no-follow-symlinks \
   --only-show-errors
 aws s3 cp "$local_inventory" "$s3_uri/$inventory_name" --only-show-errors
 
