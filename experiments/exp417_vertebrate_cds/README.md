@@ -106,6 +106,19 @@ Repeat with job name `dna-exp417-cds-combined-vertebrates` and
 training and reused after a retry. Validation loss, native optimizer-state
 checkpoints, and reloadable Hugging Face exports all use the 500-step cadence.
 
+## Launch record
+
+Both arms were submitted at 2026-08-01 23:09 UTC from immutable experiment
+commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580496681312d4664af9f7aee699/experiments/exp417_vertebrate_cds). The submitted workspace pins the two dataset revisions listed above.
+
+- [mammals-only Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only)
+- [combined-vertebrate Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates)
+
+Both jobs use the authorized free Iris/TRC allocation. The upload-only
+`issue417-hf` EC2 cluster was terminated after the publication artifacts and
+verification manifests were preserved in S3; the separate HAL staging cluster
+was left untouched.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
