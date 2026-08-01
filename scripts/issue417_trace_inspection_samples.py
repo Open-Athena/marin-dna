@@ -238,7 +238,9 @@ def trace_samples(
     assert multiz_stage.is_dir(), f"missing MultiZ stage: {multiz_stage}"
     assert rows_per_backend > 0
     assert len(expected_pipeline_commit) == 40
-    sample = pl.read_csv(results / "qc" / "manual_inspection.tsv", separator="\t")
+    sample = pl.read_csv(
+        results / "qc" / "manual_inspection_sample.tsv", separator="\t"
+    )
     manifest = pl.read_csv(results / "metadata" / "species_active.tsv", separator="\t")
     assert manifest["selected"].all()
 
