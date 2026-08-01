@@ -44,12 +44,18 @@ run: |
     export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 NUMEXPR_NUM_THREADS=2
     cd "$HOME/exp431-repo/experiments/exp431_independent_sae_replication"
     for SPLIT in discovery validation test; do
+        OUTPUT_DIR="$HOME/exp431-artifacts/existing/$SPLIT"
+        if [ -f "$OUTPUT_DIR/manifest.json" ]; then
+            echo "Reusing completed split: $SPLIT"
+            continue
+        fi
+        test ! -e "$OUTPUT_DIR"
         /usr/bin/time -v uv run --no-dev python extract_candidates.py \
             --panel "/home/ubuntu/exp431-inputs/panels/$SPLIT/perturbation_panel.parquet" \
             --panel-manifest "/home/ubuntu/exp431-inputs/panels/$SPLIT/manifest.json" \
             --candidate-dir /home/ubuntu/exp431-inputs/candidates \
             --sae /home/ubuntu/exp431-inputs/sae \
-            --output-dir "$HOME/exp431-artifacts/existing/$SPLIT" \
+            --output-dir "$OUTPUT_DIR" \
             --dictionary-name "$DICTIONARY_NAME" \
             --batch-size 32
     done

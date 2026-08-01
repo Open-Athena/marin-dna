@@ -72,6 +72,22 @@ def load_candidates(
     return table, feature_ids, manifest
 
 
+def validate_state_table(
+    panel: pl.DataFrame,
+    states: pl.DataFrame,
+    reference_indices: np.ndarray,
+    alternate_indices: np.ndarray,
+) -> None:
+    """Validate a deduplicated state table without assuming a minimum ratio."""
+
+    assert 0 < states.height <= 2 * panel.height
+    assert len(reference_indices) == len(alternate_indices) == panel.height
+    assert reference_indices.min() >= 0 and alternate_indices.min() >= 0
+    assert reference_indices.max() < states.height
+    assert alternate_indices.max() < states.height
+    assert np.all(reference_indices != alternate_indices)
+
+
 def extract_candidates(
     *,
     panel_path: Path,
@@ -100,7 +116,7 @@ def extract_candidates(
     )
     assert set(candidate_table["dictionary"].unique()) == {dictionary_name}
     states, reference_indices, alternate_indices = build_state_table(panel)
-    assert panel.height < states.height <= 2 * panel.height
+    validate_state_table(panel, states, reference_indices, alternate_indices)
     sae_provenance = read_sae_provenance(sae_path, block_index=BLOCK_INDEX)
 
     output_dir.mkdir(parents=True)
