@@ -13,9 +13,7 @@ from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
     write_contract_outputs_for_alignment,
     write_hal_bed6,
     write_hal_fragments,
-    write_human_reference_sequences,
     write_maf_candidates,
-    write_twobit_sequences,
 )
 
 
@@ -53,10 +51,10 @@ rule human_reference_sequences:
         "../envs/bioinformatics.yaml"
     resources:
         mem_mb=4000,
-    run:
-        write_human_reference_sequences(
-            input.anchors, input.twobit, input.sizes, output[0]
-        )
+    shell:
+        "uv run python -m "
+        "marin_dna.pipelines.vertebrate_projection_dataset.sequence_cli "
+        "human {input.anchors} {input.twobit} {input.sizes} {output}"
 
 
 rule prepare_hal_bed:
@@ -190,10 +188,10 @@ rule hal_sequences:
         "../envs/bioinformatics.yaml"
     resources:
         mem_mb=4000,
-    run:
-        write_twobit_sequences(
-            input.accepted, input.twobit, output.sequences, output.rejected
-        )
+    shell:
+        "uv run python -m "
+        "marin_dna.pipelines.vertebrate_projection_dataset.sequence_cli "
+        "projected {input.accepted} {input.twobit} {output.sequences} {output.rejected}"
 
 
 rule multiz_candidates:
@@ -300,10 +298,10 @@ rule multiz_sequences:
         "../envs/bioinformatics.yaml"
     resources:
         mem_mb=4000,
-    run:
-        write_twobit_sequences(
-            input.accepted, input.twobit, output.sequences, output.rejected
-        )
+    shell:
+        "uv run python -m "
+        "marin_dna.pipelines.vertebrate_projection_dataset.sequence_cli "
+        "projected {input.accepted} {input.twobit} {output.sequences} {output.rejected}"
 
 
 rule combine_sequences:
