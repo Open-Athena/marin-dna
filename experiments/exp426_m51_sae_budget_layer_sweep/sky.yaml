@@ -1,0 +1,72 @@
+# One direct Lambda H100 for the full registered trajectory, extraction, and
+# analysis. The retrieval tree deliberately excludes large resumable trainer
+# checkpoints while retaining every inference model and scientific artifact.
+
+name: dna-exp426-sae-layer-budget
+
+resources:
+    infra: lambda/europe-central-1
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 250
+    autostop:
+        idle_minutes: 30
+        down: true
+
+workdir: .
+
+file_mounts:
+    /home/ubuntu/exp426_inputs/panel: ../../scratch/issue422/input
+    /home/ubuntu/exp426_inputs/reference: ../../scratch/issue418/reference
+
+envs:
+    RUN_ID: dna-exp426-layer-budget-seed288
+    EXPERIMENT_COMMIT: ""
+    COMPUTE_PROVIDER: lambda
+    COMPUTE_INSTANCE_TYPE: gpu_1x_h100_pcie
+    SKYPILOT_CLUSTER_NAME: exp426-lambda
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export HF_HUB_DOWNLOAD_TIMEOUT=120
+    export UV_LOCK_TIMEOUT=7200
+    export EXPERIMENT_COMMIT
+    export ANALYSIS_COMMIT="$EXPERIMENT_COMMIT"
+
+    uv run --no-dev python train.py \
+        --run-id "$RUN_ID" \
+        --output-root artifacts
+
+    uv run --no-dev python extract.py \
+        --panel /home/ubuntu/exp426_inputs/panel/panel.parquet \
+        --panel-manifest /home/ubuntu/exp426_inputs/panel/panel.manifest.json \
+        --fasta /home/ubuntu/exp426_inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+        --models-root "artifacts/$RUN_ID/models" \
+        --output-dir "artifacts/$RUN_ID/extraction" \
+        --batch-size 16
+
+    uv run --no-dev python analyze.py \
+        --extraction-dir "artifacts/$RUN_ID/extraction" \
+        --extraction-manifest "artifacts/$RUN_ID/extraction/manifest.json" \
+        --training-manifest "artifacts/$RUN_ID/manifest.json" \
+        --panel /home/ubuntu/exp426_inputs/panel/panel.parquet \
+        --output-dir "artifacts/$RUN_ID/analysis"
+
+    mkdir -p "retrieval/$RUN_ID"
+    cp -a "artifacts/$RUN_ID/models" "retrieval/$RUN_ID/models"
+    cp -a "artifacts/$RUN_ID/extraction" "retrieval/$RUN_ID/extraction"
+    cp -a "artifacts/$RUN_ID/analysis" "retrieval/$RUN_ID/analysis"
+    cp -a "artifacts/$RUN_ID/results.json" "retrieval/$RUN_ID/results.json"
+    cp -a "artifacts/$RUN_ID/manifest.json" "retrieval/$RUN_ID/manifest.json"
