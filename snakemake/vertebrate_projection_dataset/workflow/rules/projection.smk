@@ -130,7 +130,7 @@ rule hal_contract:
     wildcard_constraints:
         species=MAMMAL_RE,
     resources:
-        mem_mb=24000,
+        mem_mb=6000,
     run:
         write_contract_outputs(
             input[0],

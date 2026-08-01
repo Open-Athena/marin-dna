@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import polars as pl
 import pytest
 
@@ -9,6 +11,9 @@ from marin_dna.pipelines.vertebrate_projection_dataset.contract import (
     reverse_complement_preserving_case,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.maf import FRAGMENT_SCHEMA
+from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
+    write_contract_outputs,
+)
 
 
 def _fragment(**updates: object) -> dict[str, object]:
@@ -100,6 +105,44 @@ def test_contract_rejects_pre_resize_length_outside_bounds() -> None:
         pre_resize_max_length=10,
     )
     assert result.rejected["rejection_reason"].to_list() == ["span_too_long"]
+
+
+def test_bounded_memory_writer_matches_monolithic_contract(tmp_path: Path) -> None:
+    fragments = _frame(
+        _fragment(query_name="a3", t_start=300, t_end=304),
+        _fragment(query_name="a2", source_fragment_end=102, t_end=202),
+        _fragment(query_name="a1"),
+        _fragment(
+            query_name="a2",
+            fragment_id="f2",
+            source_fragment_start=102,
+            t_chrom="chr3",
+            t_start=202,
+        ),
+    )
+    expected = apply_projection_contract(
+        fragments,
+        target_length=4,
+        pre_resize_min_length=1,
+        pre_resize_max_length=10,
+    )
+    fragments_path = tmp_path / "fragments.parquet"
+    accepted_path = tmp_path / "accepted.parquet"
+    rejected_path = tmp_path / "rejected.parquet"
+    fragments.write_parquet(fragments_path)
+
+    write_contract_outputs(
+        fragments_path,
+        accepted_path,
+        rejected_path,
+        target_length=4,
+        pre_resize_min_length=1,
+        pre_resize_max_length=10,
+        bucket_count=3,
+    )
+
+    assert pl.read_parquet(accepted_path).equals(expected.accepted)
+    assert pl.read_parquet(rejected_path).equals(expected.rejected)
 
 
 def test_sequence_orientation_preserves_source_case_and_ignores_conservation() -> None:

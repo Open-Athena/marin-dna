@@ -259,15 +259,53 @@ def write_contract_outputs(
     target_length: int,
     pre_resize_min_length: int,
     pre_resize_max_length: int,
+    bucket_count: int = 32,
 ) -> None:
-    result = apply_projection_contract(
-        pl.read_parquet(fragments_path),
-        target_length=target_length,
-        pre_resize_min_length=pre_resize_min_length,
-        pre_resize_max_length=pre_resize_max_length,
+    """Apply the contract in deterministic query buckets to bound peak memory."""
+    assert bucket_count > 0
+    schema = pl.read_parquet_schema(fragments_path)
+    missing = set(FRAGMENT_SCHEMA) - set(schema)
+    assert not missing, f"projection fragments missing columns: {sorted(missing)}"
+
+    accepted_parts: list[pl.DataFrame] = []
+    rejected_parts: list[pl.DataFrame] = []
+    for bucket in range(bucket_count):
+        fragments = (
+            pl.scan_parquet(fragments_path)
+            .filter(pl.col("query_name").hash(seed=0).mod(bucket_count) == bucket)
+            .collect(engine="streaming")
+        )
+        result = apply_projection_contract(
+            fragments,
+            target_length=target_length,
+            pre_resize_min_length=pre_resize_min_length,
+            pre_resize_max_length=pre_resize_max_length,
+        )
+        accepted_parts.append(result.accepted)
+        rejected_parts.append(result.rejected)
+
+    accepted = pl.concat(accepted_parts).sort("query_name", "species")
+    rejected = pl.concat(rejected_parts).sort("query_name", "species")
+    observed_groups = accepted.height + rejected.height
+    expected_groups = (
+        pl.scan_parquet(fragments_path)
+        .select("query_name", "species")
+        .unique()
+        .collect(engine="streaming")
+        .height
     )
-    result.accepted.write_parquet(accepted_path)
-    result.rejected.write_parquet(rejected_path)
+    assert observed_groups == expected_groups, (
+        f"contract emitted {observed_groups} groups for {expected_groups} inputs"
+    )
+    assert accepted.select("query_name", "species").is_unique().all()
+    assert rejected.select("query_name", "species").is_unique().all()
+
+    accepted_output = Path(accepted_path)
+    rejected_output = Path(rejected_path)
+    accepted_output.parent.mkdir(parents=True, exist_ok=True)
+    rejected_output.parent.mkdir(parents=True, exist_ok=True)
+    accepted.write_parquet(accepted_output)
+    rejected.write_parquet(rejected_output)
 
 
 def write_contract_outputs_for_alignment(
