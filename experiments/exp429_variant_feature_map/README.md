@@ -159,7 +159,7 @@ uv run python analyze_perturbations.py \
   --panel ../../scratch/issue429/retrieval/perturbation-design-r1/perturbation_panel.parquet \
   --design-manifest ../../scratch/issue429/retrieval/perturbation-design-r1/manifest.json \
   --extraction-dir ../../scratch/issue429/retrieval/perturbation-extraction-r1 \
-  --output-dir ../../scratch/issue429/perturbation-analysis-r1
+  --output-dir ../../scratch/issue429/perturbation-analysis-r2
 ```
 
 ## Held-out analysis

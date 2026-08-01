@@ -101,10 +101,15 @@ def bootstrap_mean_interval(
     return float(low), float(high)
 
 
-def codon_context_selectivity(responses: pl.DataFrame) -> pl.DataFrame:
+def codon_context_selectivity(
+    responses: pl.DataFrame, *, edit_distance: int | None = None
+) -> pl.DataFrame:
     """Compute within-context semantic-target versus other-codon responses."""
 
     coding = responses.filter(pl.col("perturbation_type") == "codon_sweep")
+    if edit_distance is not None:
+        assert edit_distance == 1 or edit_distance == 2 or edit_distance == 3
+        coding = coding.filter(pl.col("edit_distance") == edit_distance)
     rows: list[dict[str, Any]] = []
     keys = [
         "analysis_feature_id",
@@ -506,6 +511,14 @@ def analyze_perturbations(
     selectivity_summary = summarize_selectivity(
         selectivity_contexts, bootstrap_samples=bootstrap_samples
     )
+    one_edit_input = responses.filter(
+        (pl.col("response_role") == "primary")
+        | ((pl.col("analysis_feature_id") == 4281) & (pl.col("class") == "stop_gained"))
+    )
+    one_edit_contexts = codon_context_selectivity(one_edit_input, edit_distance=1)
+    one_edit_summary = summarize_selectivity(
+        one_edit_contexts, bootstrap_samples=bootstrap_samples
+    )
     top_positions = (
         splice_position.filter(pl.col("context_group") == "top")
         .sort(["class", "mean_response"], descending=[False, True])
@@ -522,11 +535,13 @@ def analyze_perturbations(
         "codon_identity_summary.parquet": codon_identity,
         "codon_context_selectivity.parquet": selectivity_contexts,
         "codon_selectivity_summary.parquet": selectivity_summary,
+        "codon_one_edit_context_selectivity.parquet": one_edit_contexts,
+        "codon_one_edit_selectivity_summary.parquet": one_edit_summary,
     }
     for filename, frame in outputs.items():
         frame.write_parquet(output_dir / filename)
     plot_splice_positions(splice_position, output_dir)
-    plot_codon_selectivity(selectivity_summary, output_dir)
+    plot_codon_selectivity(one_edit_summary, output_dir)
     result = {
         "issue": ISSUE,
         "perturbation_analysis_commit": analysis_commit,
@@ -546,6 +561,7 @@ def analyze_perturbations(
         },
         "top_splice_positions": top_positions.to_dicts(),
         "codon_selectivity": selectivity_summary.to_dicts(),
+        "codon_one_edit_selectivity": one_edit_summary.to_dicts(),
     }
     write_json(output_dir / "results.json", result)
     artifacts = {

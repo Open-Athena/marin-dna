@@ -44,6 +44,7 @@ def test_codon_selectivity_is_within_context() -> None:
             ]
             * 2,
             "response_score": [4.0, 6.0, 1.0, 3.0, 8.0, 10.0, 2.0, 4.0],
+            "edit_distance": [1, 1, 1, 2, 1, 1, 1, 2],
         }
     )
 
@@ -53,3 +54,6 @@ def test_codon_selectivity_is_within_context() -> None:
     assert contexts["target_minus_other"].to_list() == [3.0, 6.0]
     assert summary["mean_target_minus_other"].item() == 4.5
     assert summary["contexts"].item() == 2
+
+    one_edit = codon_context_selectivity(frame, edit_distance=1)
+    assert one_edit["target_minus_other"].to_list() == [4.0, 7.0]
