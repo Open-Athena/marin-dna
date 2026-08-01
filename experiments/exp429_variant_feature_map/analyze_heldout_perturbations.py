@@ -219,7 +219,14 @@ def analyze_heldout_perturbations(
     splice_position, splice_substitution = splice_summaries(responses)
     splice_contexts, splice_contrast = splice_context_contrasts(responses)
     codon_consequence, codon_identity = codon_summaries(responses)
-    codon_contexts = codon_context_selectivity(responses, edit_distance=1)
+    codon_input = responses.filter(
+        (pl.col("response_role") == "primary")
+        | (
+            (pl.col("analysis_feature_id") == 4281)
+            & (pl.col("class") == "stop_gained")
+        )
+    )
+    codon_contexts = codon_context_selectivity(codon_input, edit_distance=1)
     codon_selectivity = summarize_selectivity(
         codon_contexts, bootstrap_samples=bootstrap_samples
     )
