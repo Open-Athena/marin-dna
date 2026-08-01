@@ -1,0 +1,51 @@
+# Extract and test only the fresh feature/view frozen by the separate search job.
+
+name: dna-exp431-synonymous-fresh-test
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 250
+    autostop:
+        idle_minutes: 45
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp431-inputs/test: ../../scratch/issue431/retrieval/panels/test
+    /home/ubuntu/exp431-inputs/selection: ../../scratch/issue431/retrieval/synonymous-fresh/selection
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    DICTIONARY_NAME: rc-balanced-normalized-seed289
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp431-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-431-independent-sae-replication
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp431_independent_sae_replication"
+    uv sync --frozen --no-dev
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT DICTIONARY_NAME
+    export POLARS_MAX_THREADS=8 RAYON_NUM_THREADS=8
+    export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+    cd "$HOME/exp431-repo/experiments/exp431_independent_sae_replication"
+    SAE="$HOME/exp431-artifacts/dna-exp431-fresh-seed289/models/block10-5m"
+    OUT="$HOME/exp431-artifacts/synonymous-fresh"
+    test -f "$SAE/sae_weights.safetensors"
+    test ! -e "$OUT/test"
+    test ! -e "$OUT/test-analysis"
+    mkdir -p "$OUT"
+    /usr/bin/time -v uv run --no-dev python full_dictionary_synonymous.py extract --panel /home/ubuntu/exp431-inputs/test/perturbation_panel.parquet --panel-manifest /home/ubuntu/exp431-inputs/test/manifest.json --sae "$SAE" --selection-manifest /home/ubuntu/exp431-inputs/selection/manifest.json --output-dir "$OUT/test" --dictionary-name "$DICTIONARY_NAME" --source-split test --stage test --batch-size 32
+    /usr/bin/time -v uv run --no-dev python full_dictionary_synonymous.py test --test-dir "$OUT/test" --selection-dir /home/ubuntu/exp431-inputs/selection --output-dir "$OUT/test-analysis" --dictionary-name "$DICTIONARY_NAME" --bootstraps 2000

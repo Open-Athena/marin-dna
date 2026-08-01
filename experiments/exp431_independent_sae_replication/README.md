@@ -147,6 +147,27 @@ rsync -av --protect-args \
 
 If any geometry-constrained concept fails, complete its registered whole-dictionary sensitivity before terminating the H100. Otherwise terminate it immediately after all retrieved manifests pass independent hash checks.
 
+For the fresh synonymous sensitivity, the search job reuses the already-trained remote seed-289 SAE and receives discovery/validation only. Retrieve and verify the frozen selection before launching the test-only job:
+
+~~~bash
+sky launch -c exp431-fresh-lambda sky.synonymous-fresh-search.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT \
+  --env DICTIONARY_NAME=rc-balanced-normalized-seed289 -y
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/synonymous-fresh/selection/ \
+  ../../scratch/issue431/retrieval/synonymous-fresh/selection/
+
+sky launch -c exp431-fresh-lambda sky.synonymous-fresh-test.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT \
+  --env DICTIONARY_NAME=rc-balanced-normalized-seed289 -y
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/synonymous-fresh/test/ \
+  ../../scratch/issue431/retrieval/synonymous-fresh/test/
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/synonymous-fresh/test-analysis/ \
+  ../../scratch/issue431/retrieval/synonymous-fresh/test-analysis/
+~~~
+
 ## Validation
 
 Local checks are bounded to two threads under the shared-host lock:
