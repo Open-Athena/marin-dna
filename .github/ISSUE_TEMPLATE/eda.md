@@ -15,8 +15,7 @@ assignees: ''
 
 ## Informs research-question(s)
 
-<!-- Plain references to any research-question issues this EDA bears on.
-Optional and many-to-many; do not use sub-issue metadata. -->
+<!-- Plain references to any research-question issues this EDA bears on. Optional and many-to-many; do not use sub-issue metadata. -->
 
 ## Approach
 

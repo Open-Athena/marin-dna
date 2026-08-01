@@ -11,29 +11,19 @@ assignees: ''
 
 ## Question
 
-<!-- What are we trying to learn? Write 2–4 sentences for a reader who knows
-the broad field but not this research thread. -->
+<!-- What are we trying to learn? Write 2–4 sentences for a reader who knows the broad field but not this research thread. -->
 
 ## Current findings
 
-<!-- Living synthesis, edited as results settle across experiments.
-Embed plots via gist links. -->
+<!-- Living synthesis, edited as results settle across experiments. Embed plots via gist links. -->
 
 ## Related experiments & EDAs
 
-<!-- Curated links to issues bearing on this question. The relationship is
-many-to-many and uses plain issue references, not sub-issue metadata. -->
+<!-- Curated links to issues bearing on this question. The relationship is many-to-many and uses plain issue references, not sub-issue metadata. -->
 
 ## Relevant literature
 
-<!-- Curated, not exhaustive. Include work only when it materially changes
-the current answer or experiment program. For each entry, briefly record:
-
-- **Author et al. (year), [title](link).**
-  **Studied:** …
-  **Found:** …
-  **Relevance and remaining gap:** …
--->
+<!-- Curated, not exhaustive. Include work only when it materially changes the current answer or experiment program. Add each entry below as visible Markdown and briefly record the work's setup, main findings, methodological implications, hypotheses or observables it suggests, and remaining gap. -->
 
 ## Open questions
 
