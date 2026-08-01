@@ -7,6 +7,7 @@ import bisect
 import gzip
 import json
 import os
+import subprocess
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -462,6 +463,18 @@ def bsd_checksum(path: Path) -> tuple[int, int]:
     return checksum, (size + 1023) // 1024
 
 
+def assert_current_commit(value: str) -> None:
+    """Require the manifest pin to equal the checkout that is executing."""
+    assert_commit(value)
+    current = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert value == current, (value, current)
+
+
 def reverse_complement(sequence: str) -> str:
     assert set(sequence) <= set("ACGT")
     return sequence.translate(COMPLEMENT)[::-1]
@@ -764,12 +777,12 @@ def plot_coding_controls(metrics: pl.DataFrame, output_dir: Path) -> None:
             alpha=0.7,
         )
     axis.axvline(0.5, color="black", linestyle="--", linewidth=1)
-    axis.set_xlim(0.38, 0.9)
+    axis.set_xlim(0.38, 0.98)
     grid.set_axis_labels("Held-out missense vs synonymous AUROC", "")
     if grid.legend is not None:
         grid.legend.set_title("Comparison")
     grid.figure.suptitle(
-        "Coding phase explains much of the apparent SAE signal\n"
+        "Codon position is a strong shortcut; SAE signal persists after matching\n"
         "error bars = genomic-block bootstrap 95% CI",
         y=1.04,
     )
@@ -862,12 +875,20 @@ def analyze_coding_semantics(
     assert pairwise_metrics_path.is_file() and panel_path.is_file()
     assert gtf_path.is_file() and fasta_path.is_file() and not output_dir.exists()
     analysis_commit = os.environ.get("ANALYSIS_COMMIT", "")
-    assert_commit(analysis_commit)
+    assert_current_commit(analysis_commit)
     assert gtf_path.stat().st_size == GTF_BYTES
     assert bsd_checksum(gtf_path) == (GTF_FTP_BSD_CHECKSUM, GTF_FTP_BLOCKS)
     extraction_manifest = json.loads(extraction_manifest_path.read_text())
     assert extraction_manifest["issue"] == ISSUE
     assert sha256_file(panel_path) == extraction_manifest["panel"]["sha256"]
+    pairwise_metrics = pl.read_parquet(pairwise_metrics_path)
+    for arm, selected_view, feature_id, direction in SELECTED_FEATURES:
+        selected = pairwise_metrics.filter(
+            (pl.col("arm") == arm) & (pl.col("view") == selected_view)
+        )
+        assert selected.height == 1
+        assert selected["feature_id"][0] == feature_id
+        assert selected["direction"][0] == direction
 
     panel = pl.read_parquet(panel_path)
     pair_panel = panel.filter(pl.col("consequence_cre").is_in(PAIR_CLASSES))

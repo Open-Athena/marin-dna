@@ -12,6 +12,8 @@ All arms are then evaluated on the exact frozen chr21 panel from #422. Ref and a
 
 The post hoc `pairwise.py` follow-up directly compares the balanced missense and synonymous subsets. It preserves the same discovery/validation/test and genomic-block bootstrap boundaries, reports AUROC and average precision for FWD, RC, signed-mean, and max-absolute views of every arm, and loads only the requested Parquet panel rows so the analysis is safe on a small CPU node. AUROC is the primary pairwise metric because it is invariant to the block bootstrap's varying resampled class counts. This follow-up was specified after inspecting the registered 35-class results and is explicitly exploratory.
 
+The subsequent `coding_semantics.py` discriminator reconstructs transcript strand, codon position, codons, and amino-acid changes from the Ensembl release-109 GTF that matches the source dataset's VEP 109.1 labels. GTF coordinates are converted from 1-based closed to the repository's 0-based half-open convention at the parser boundary. Only CDS hits whose reconstructed standard-code consequence matches the panel's `--most_severe` label contribute to the strand/phase consensus. The three SAE features are fixed from the prior pairwise analysis; no feature is reselected. Held-out AUROC is reported overall, pair-weighted within codon position, and pair-weighted within codon position plus transcript-oriented ref→alt substitution. A discovery-fit codon-position-only baseline quantifies the dataset shortcut. The same fixed features are also evaluated in FWD, RC, signed mean/max absolute, coding-aligned, and coding-anti-aligned views.
+
 ## Local checks
 
 From this directory:
@@ -48,6 +50,25 @@ ANALYSIS_COMMIT="$(git rev-parse HEAD)" uv run python controls.py \
   --output-dir retrieval/dna-exp426-layer-budget-seed288-r5/analysis_controls
 ```
 
+Download and verify the transcript annotation used by VEP 109.1, then run the coding-semantics discriminator:
+
+```bash
+curl -sS \
+  https://ftp.ensembl.org/pub/release-109/gtf/homo_sapiens/Homo_sapiens.GRCh38.109.gtf.gz \
+  -o /path/to/Homo_sapiens.GRCh38.109.gtf.gz
+sum /path/to/Homo_sapiens.GRCh38.109.gtf.gz
+# Expected: 26235 52988
+
+ANALYSIS_COMMIT="$(git rev-parse HEAD)" uv run python coding_semantics.py \
+  --extraction-dir retrieval/dna-exp426-layer-budget-seed288-r5/extraction \
+  --extraction-manifest retrieval/dna-exp426-layer-budget-seed288-r5/extraction/manifest.json \
+  --pairwise-metrics retrieval/dna-exp426-layer-budget-seed288-r5/analysis_pairwise/missense_vs_synonymous.parquet \
+  --panel /path/to/issue422/panel.parquet \
+  --gtf /path/to/Homo_sapiens.GRCh38.109.gtf.gz \
+  --fasta /path/to/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+  --output-dir retrieval/dna-exp426-layer-budget-seed288-r5/analysis_coding_semantics
+```
+
 ## Launch
 
 The Sky task uses one direct Lambda H100 and runs training, variant extraction, and analysis serially. The caller must set `EXPERIMENT_COMMIT` to the full pushed commit SHA:
@@ -62,4 +83,4 @@ The task uses autostop/down after 180 idle minutes, providing a bounded post-job
 
 ## Output contract
 
-`artifacts/<run-id>/manifest.json` records the model/data revisions, exact training and normalization counts, hardware/runtime, per-arm health metrics, and hashes of every inference model file. `extraction/manifest.json` hashes all 16 paired activation parquets. `analysis/manifest.json` hashes the class-level metrics, arm summaries, continued-training comparisons, paired activation-state summaries, and both PNG/SVG figures. `analysis_pairwise/manifest.json` hashes the direct missense-vs-synonymous metrics and figure. `analysis_controls/manifest.json` hashes the simple sequence baselines, substitution-matched SAE metrics, and comparison figure.
+`artifacts/<run-id>/manifest.json` records the model/data revisions, exact training and normalization counts, hardware/runtime, per-arm health metrics, and hashes of every inference model file. `extraction/manifest.json` hashes all 16 paired activation parquets. `analysis/manifest.json` hashes the class-level metrics, arm summaries, continued-training comparisons, paired activation-state summaries, and both PNG/SVG figures. `analysis_pairwise/manifest.json` hashes the direct missense-vs-synonymous metrics and figure. `analysis_controls/manifest.json` hashes the simple sequence baselines, substitution-matched SAE metrics, and comparison figure. `analysis_coding_semantics/manifest.json` hashes the transcript-level and consensus annotations, fixed-feature score tables, phase/substitution-conditioned metrics, top-variant grammar table, and coding-control/orientation figures.

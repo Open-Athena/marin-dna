@@ -3,13 +3,16 @@ from __future__ import annotations
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 from scipy import sparse
 from sklearn.metrics import roc_auc_score
 
+import coding_semantics
 from analyze import bootstrap_mean_ap, make_views, select_feature
 from coding_semantics import (
     RawCdsSegment,
     annotate_transcript_hit,
+    assert_current_commit,
     build_transcript,
     parse_gtf_attributes,
 )
@@ -213,3 +216,17 @@ def test_annotate_transcript_hit_reconstructs_exon_spanning_codon() -> None:
     assert hit["alt_codon"] == "GGA"
     assert hit["amino_acid_change"] == "E>G"
     assert hit["predicted_consequence"] == "missense_variant"
+
+
+def test_assert_current_commit_rejects_a_different_sha(monkeypatch) -> None:
+    current = "a" * 40
+
+    class Result:
+        stdout = f"{current}\n"
+
+    monkeypatch.setattr(
+        coding_semantics.subprocess, "run", lambda *args, **kwargs: Result()
+    )
+    assert_current_commit(current)
+    with pytest.raises(AssertionError):
+        assert_current_commit("b" * 40)
