@@ -2,8 +2,10 @@
 
 import math
 import tempfile
+from pathlib import Path
 
 import pytest
+import yaml
 from levanter.tokenizers import load_tokenizer
 from marin.execution.artifact import ArtifactRecord, result_type_name, write_record
 from marin.execution.build_context import BuildContext, VersionCodex, build_context
@@ -227,7 +229,7 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
         assert config.hf_save_steps == HF_SAVE_EVERY
         assert trainer.id == RUN_IDS[arm]
 
-    assert TRAIN_TPU == ("v6e-4", "v5p-8")
+    assert TRAIN_TPU == "v6e-4"
     assert TRAIN_REGIONS == ("us-east5",)
     assert TRAIN_HOST_CPU == 16
     assert TRAIN_HOST_RAM == "56g"
@@ -235,6 +237,80 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
     assert TRAIN_STEPS == 5_000
     assert ACTUAL_TOKENS == 10_485_760_000
     assert VALIDATION_EVERY == NATIVE_CHECKPOINT_EVERY == HF_SAVE_EVERY == 500
+
+
+def test_runtime_training_config_restores_repeat_aware_format(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """The generic fingerprint placeholder must not leak into the worker config."""
+    _set_revisions(monkeypatch)
+    with build_context(BuildContext(versions=VersionCodex(default="2026.08.01"))):
+        arms = build()
+
+    for arm, training in arms.items():
+        (dataset,) = training.deps
+        dataset_path = dataset.path(str(tmp_path))
+        Path(dataset_path).mkdir(parents=True)
+        write_record(
+            ArtifactRecord(
+                name=dataset.name,
+                output_path=dataset_path,
+                result_type=result_type_name(VertebrateCDSTokenizedCache),
+                config={
+                    "tokenizer": TOKENIZER_PATH,
+                    "format": {
+                        "text_key": "sequence",
+                        "uppercase_weight": 1.0,
+                        "lowercase_weight": REPEAT_MASK_LOSS_WEIGHT,
+                    },
+                    "tags": [f"arm={arm}"],
+                },
+            )
+        )
+        ctx = StepContext.for_run(
+            output_path=training.path(str(tmp_path)),
+            prefix=str(tmp_path),
+            runtime_args=training.runtime_args,
+            deps=training.deps,
+        )
+        config = training.build_config(ctx).train_config
+        component = config.data.components[dataset.name]
+
+        assert isinstance(component.format, DNALmDatasetFormat)
+        assert component.format.text_key == "sequence"
+        assert component.format.uppercase_weight == 1.0
+        assert component.format.lowercase_weight == REPEAT_MASK_LOSS_WEIGHT == 0.01
+        assert config.data.train_weights == {dataset.name: 1.0}
+
+
+def test_offline_eval_overlay_is_frozen_to_terminal_checkpoints() -> None:
+    config = yaml.safe_load(Path(__file__).with_name("evals.yaml").read_text())
+    assert isinstance(config, dict)
+    assert config["split"] == "test"
+    assert {
+        (dataset["name"], dataset["hf_revision"], dataset["score_protocol"])
+        for dataset in config["datasets"]
+    } == {
+        ("mendelian_traits", "4aed58e50c5dea0b878a665007af2ef9e5108e9f", "minus_llr"),
+        ("complex_traits", "22f86a89c65cb8f3007ac3cc2739f40efefa4340", "abs_llr"),
+        ("sge", "225d3d1ea32a4af547891b13c33b5e92a5aae849", "minus_llr"),
+    }
+    assert [model["name"] for model in config["models"]] == [
+        "exp417-cds-mammals-only-step-4999",
+        "exp417-cds-combined-vertebrates-step-4999",
+    ]
+
+    for model in config["models"]:
+        assert model["gcs_path"].endswith("/2026.08.01/hf/step-4999")
+        assert model["window_size"] == 255
+        assert model["datasets"] == [
+            "mendelian_traits",
+            "complex_traits",
+            "sge",
+        ]
+    for section in ("nuc_dep", "umap_embeddings", "ll_gap", "probe"):
+        assert config[section]["models"] == []
 
 
 def test_tokenizer_digests_are_complete() -> None:
