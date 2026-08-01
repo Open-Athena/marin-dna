@@ -323,8 +323,6 @@ def bootstrap_mean_ap(
         class_labels[positive] = class_name
         assignment_counts += positive
     assert np.all(assignment_counts == 1)
-    for class_name in scores_by_class:
-        assert len(np.unique(blocks[class_labels == class_name])) >= 2
     rng = np.random.default_rng(seed)
     values: list[float] = []
     for _ in range(samples):
@@ -501,6 +499,16 @@ def analyze(
     assert set(np.unique(split)) == {"discovery", "validation", "test"}
     test = np.flatnonzero(split == "test")
     chance = 1 / len(classes)
+    test_labels = labels[test]
+    test_blocks = blocks[test]
+    test_block_counts = {
+        class_name: len(np.unique(test_blocks[test_labels == class_name]))
+        for class_name in classes
+    }
+    singleton_block_classes = sorted(
+        name for name, count in test_block_counts.items() if count == 1
+    )
+    assert singleton_block_classes == ["mature_miRNA_variant"]
 
     class_rows: list[dict[str, Any]] = []
     summary_rows: list[dict[str, Any]] = []
@@ -700,7 +708,9 @@ def analyze(
             "minimum_discovery_support": MIN_DISCOVERY_SUPPORT,
             "minimum_positive_support": MIN_POSITIVE_SUPPORT,
             "block_bootstraps": BOOTSTRAPS,
-            "bootstrap_scheme": "consequence-stratified genomic-block resampling; binary label strata for per-class CIs",
+            "bootstrap_scheme": "consequence-stratified genomic-block resampling; singleton strata held fixed; binary label strata for per-class CIs",
+            "test_blocks_per_class": test_block_counts,
+            "singleton_block_classes_held_fixed": singleton_block_classes,
             "random_seed": RANDOM_SEED,
             "feature_selection": "absolute discovery Welch t among eligible features; sign fixed on discovery; validation chooses among top 64; test untouched",
         },

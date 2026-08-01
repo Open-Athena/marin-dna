@@ -43,7 +43,7 @@ def test_select_feature_keeps_test_held_out() -> None:
 
 def test_mean_ap_bootstrap_preserves_spatially_clustered_classes() -> None:
     labels = np.asarray(["a"] * 4 + ["b"] * 4)
-    blocks = np.asarray([0, 0, 1, 1, 2, 2, 3, 3])
+    blocks = np.asarray([0, 0, 0, 0, 2, 2, 3, 3])
     positive_a = labels == "a"
     positive_b = labels == "b"
     scores_a = np.asarray([0.9, 0.8, 0.7, 0.6, 0.4, 0.3, 0.2, 0.1])
