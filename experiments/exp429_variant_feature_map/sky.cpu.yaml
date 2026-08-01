@@ -1,0 +1,45 @@
+name: dna-exp429-panel
+
+resources:
+    infra: aws/us-east-2
+    instance_type: m6i.2xlarge
+    disk_size: 100
+    autostop:
+        idle_minutes: 90
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp429-inputs/source/21.parquet: ../../scratch/issue422/source/21.parquet
+    /home/ubuntu/exp429-inputs/reference: ../../scratch/issue418/reference
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    RUN_ID: dna-exp429-cds-splice
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp429-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-429-variant-feature-map
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp429_variant_feature_map"
+    uv sync --frozen --no-dev
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT RUN_ID
+    export POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2
+    export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+    cd "$HOME/exp429-repo/experiments/exp429_variant_feature_map"
+    /usr/bin/time -v uv run --no-dev python sample_panel.py \
+        --input /home/ubuntu/exp429-inputs/source/21.parquet \
+        --output "$HOME/exp429-artifacts/panel/panel.parquet" \
+        --fasta /home/ubuntu/exp429-inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
