@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 from scipy import sparse
 
 from analyze import bootstrap_mean_ap, make_views, select_feature
+from pairwise import bootstrap_pairwise_metrics, load_selected_activations
 
 
 def test_make_views_uses_signed_mean_and_max_abs() -> None:
@@ -59,3 +62,42 @@ def test_mean_ap_bootstrap_preserves_spatially_clustered_classes() -> None:
     )
     assert 0 <= low <= high <= 1
     assert low > 0.9
+
+
+def test_load_selected_activations_remaps_panel_rows(tmp_path) -> None:
+    path = tmp_path / "activations.parquet"
+    table = pa.table(
+        {
+            "panel_row": [2, 2, 8, 8, 11],
+            "feature_id": [1, 3, 0, 2, 1],
+            "ref_activation": np.asarray([1, 0, 2, 1, 4], dtype=np.float32),
+            "alt_activation": np.asarray([3, 4, 1, 0, 7], dtype=np.float32),
+            "delta": np.asarray([2, 4, -1, -1, 3], dtype=np.float32),
+        }
+    )
+    pq.write_table(table, path, row_group_size=2)
+    loaded = load_selected_activations(
+        path, selected_rows=np.asarray([2, 8]), columns=4
+    )
+    np.testing.assert_array_equal(
+        loaded.ref.toarray(), np.asarray([[0, 1, 0, 0], [2, 0, 1, 0]])
+    )
+    np.testing.assert_array_equal(
+        loaded.alt.toarray(), np.asarray([[0, 3, 0, 4], [1, 0, 0, 0]])
+    )
+    np.testing.assert_array_equal(
+        loaded.delta.toarray(), (loaded.alt - loaded.ref).toarray()
+    )
+
+
+def test_pairwise_bootstrap_reports_perfect_separation() -> None:
+    positive = np.asarray([True, True, True, True, False, False, False, False])
+    blocks = np.asarray([0, 0, 1, 1, 2, 2, 3, 3])
+    scores = np.asarray([0.9, 0.8, 0.7, 0.6, 0.4, 0.3, 0.2, 0.1])
+    result = bootstrap_pairwise_metrics(scores, positive, blocks, seed=426, samples=100)
+    assert result == {
+        "test_average_precision_ci95_low": 1.0,
+        "test_average_precision_ci95_high": 1.0,
+        "test_auroc_ci95_low": 1.0,
+        "test_auroc_ci95_high": 1.0,
+    }

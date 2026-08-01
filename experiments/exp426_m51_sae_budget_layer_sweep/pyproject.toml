@@ -14,6 +14,7 @@ dependencies = [
     "pyarrow>=17",
     "s3fs>=2024",
     "scikit-learn>=1.5",
+    "seaborn>=0.13",
     "scipy>=1.14",
     "torch==2.11.0",
     "transformers>=4.57,<5",

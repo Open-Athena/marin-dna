@@ -10,6 +10,8 @@ The gLM runs in bfloat16; SAEs train in float32. The default is the manifest-rec
 
 All arms are then evaluated on the exact frozen chr21 panel from #422. Ref and alt sequences are extracted separately in FWD and RC orientation. The registered primary endpoint is mean held-out one-vs-rest AUPRC across the 35 `consequence_cre` classes using the signed mean of paired FWD/RC SAE deltas. FWD, RC, and max-absolute views are diagnostic. Discovery chooses candidates, validation selects among them, and test labels remain untouched until final scoring. Confidence intervals use consequence-stratified genomic-block resampling so spatial dependence is retained without allowing clustered classes to disappear from a balanced-panel replicate; a consequence represented in only one observed test block is held fixed because its within-class spatial variance is not identifiable.
 
+The post hoc `pairwise.py` follow-up directly compares the balanced missense and synonymous subsets. It preserves the same discovery/validation/test and genomic-block bootstrap boundaries, reports FWD, RC, signed-mean, and max-absolute views for every arm, and loads only the requested Parquet panel rows so the analysis is safe on a small CPU node. This follow-up was specified after inspecting the registered 35-class results and is explicitly exploratory.
+
 ## Local checks
 
 From this directory:
@@ -23,6 +25,16 @@ uv run python train.py --dry-run
 ```
 
 The dry run writes nothing and prints every pinned revision, exact batch boundary, normalization prefix, layer, budget, dtype, and performance setting.
+
+After retrieving a completed run, execute the CPU-only pairwise follow-up with the commit that contains `pairwise.py`:
+
+```bash
+ANALYSIS_COMMIT="$(git rev-parse HEAD)" uv run python pairwise.py \
+  --extraction-dir retrieval/dna-exp426-layer-budget-seed288-r5/extraction \
+  --extraction-manifest retrieval/dna-exp426-layer-budget-seed288-r5/extraction/manifest.json \
+  --panel /path/to/issue422/panel.parquet \
+  --output-dir retrieval/dna-exp426-layer-budget-seed288-r5/analysis_pairwise
+```
 
 ## Launch
 
@@ -38,4 +50,4 @@ The task uses autostop/down after 180 idle minutes, providing a bounded post-job
 
 ## Output contract
 
-`artifacts/<run-id>/manifest.json` records the model/data revisions, exact training and normalization counts, hardware/runtime, per-arm health metrics, and hashes of every inference model file. `extraction/manifest.json` hashes all 16 paired activation parquets. `analysis/manifest.json` hashes the class-level metrics, arm summaries, continued-training comparisons, paired activation-state summaries, and both PNG/SVG figures.
+`artifacts/<run-id>/manifest.json` records the model/data revisions, exact training and normalization counts, hardware/runtime, per-arm health metrics, and hashes of every inference model file. `extraction/manifest.json` hashes all 16 paired activation parquets. `analysis/manifest.json` hashes the class-level metrics, arm summaries, continued-training comparisons, paired activation-state summaries, and both PNG/SVG figures. `analysis_pairwise/manifest.json` hashes the direct missense-vs-synonymous metrics and figure.
