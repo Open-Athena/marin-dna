@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.stats import spearmanr
 
 from marin_dna.pipelines.evals.inference_benchmark import VARIANT_KEY_COLUMNS
 from marin_dna.pipelines.evals.metrics import paired_auprc_degradation_metrics
@@ -15,6 +16,20 @@ from marin_dna.pipelines.evals.metrics import paired_auprc_degradation_metrics
 
 SCORE_COLUMN = "minus_llr_avg"
 METADATA_COLUMNS = ["target", "subset", "match_group"]
+
+
+def _top_tail_overlap(
+    baseline_score: np.ndarray,
+    candidate_score: np.ndarray,
+    fraction: float,
+) -> dict[str, float | int]:
+    assert 0 < fraction <= 1
+    assert len(baseline_score) == len(candidate_score)
+    k = max(1, int(np.ceil(len(baseline_score) * fraction)))
+    baseline_top = np.argpartition(baseline_score, -k)[-k:]
+    candidate_top = np.argpartition(candidate_score, -k)[-k:]
+    overlap = len(np.intersect1d(baseline_top, candidate_top, assume_unique=True))
+    return {"k": k, "overlap": overlap, "fraction": overlap / k}
 
 
 def main() -> None:
@@ -95,6 +110,15 @@ def main() -> None:
             "p95_abs": float(np.percentile(abs_delta, 95)),
             "p99_abs": float(np.percentile(abs_delta, 99)),
             "max_abs": float(np.max(abs_delta)),
+        },
+        "rank_diagnostics": {
+            "spearman": float(spearmanr(baseline_score, candidate_score).statistic),
+            "top_1_percent_overlap": _top_tail_overlap(
+                baseline_score, candidate_score, 0.01
+            ),
+            "top_5_percent_overlap": _top_tail_overlap(
+                baseline_score, candidate_score, 0.05
+            ),
         },
         "degradation": degradation.to_dict(orient="records"),
     }
