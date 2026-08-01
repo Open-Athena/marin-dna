@@ -1,20 +1,22 @@
 from __future__ import annotations
 
-import pytest
+import polars as pl
 
-from design_panels import SPLITS, split_context_group
-
-
-def test_split_context_groups_are_unique_and_explicit() -> None:
-    groups = [split_context_group(split) for split in SPLITS]
-    assert len(set(groups)) == len(SPLITS)
-    assert groups == [
-        "response_independent_discovery_hash",
-        "response_independent_validation_hash",
-        "response_independent_test_hash",
-    ]
+from extract_candidates import build_state_table, validate_state_table
 
 
-def test_split_context_group_rejects_unknown_split() -> None:
-    with pytest.raises(AssertionError):
-        split_context_group("train")
+def test_state_validation_allows_cross_pair_deduplication() -> None:
+    panel = pl.DataFrame(
+        {
+            "chrom": ["21", "21"],
+            "window_start0": [100, 100],
+            "window_end0": [355, 355],
+            "reference_sequence": ["A" * 255, "C" + "A" * 254],
+            "alternate_sequence": ["C" + "A" * 254, "A" * 255],
+        }
+    )
+
+    states, reference_indices, alternate_indices = build_state_table(panel)
+
+    assert states.height == panel.height
+    validate_state_table(panel, states, reference_indices, alternate_indices)

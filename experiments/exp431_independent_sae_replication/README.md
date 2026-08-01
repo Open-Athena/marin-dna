@@ -82,7 +82,7 @@ Discovery retains 16 feature/view candidates per concept; validation requires th
 
 ## Fresh seed-289 stage
 
-The preregistered fresh primary arm is reported block 10 at the exact 5,000,550-activation checkpoint. To avoid a subtly different one-off trainer, `train_seed289.py` is an exact source copy of the successful #426 four-layer, two-budget trajectory with only the issue number, seed, and default run ID changed. It therefore also emits seven auxiliary layer/budget exports; those are not consulted when selecting or testing the #431 primary arm. The gLM is bf16, the SAEs are fp32, FWD/RC streams are exactly balanced, and two CPU workers prefetch batches. The tested eager path remains mandatory because #426 found that `torch.compile` dropped the dynamic multi-hook cache.
+The preregistered fresh arm is reported block 10 at the exact 5,000,550-activation endpoint. `train_seed289.py` narrows the successful #426 path to that one hook and one budget while retaining its optimizer, BatchTopK hyperparameters, 100-batch scalar normalization estimate, pinned data order, exact FWD/RC balance, and export diagnostics. It emits no auxiliary layer or 25M arms. The gLM is bf16, the SAE is fp32, and two LLM batches are prefetched. The tested eager path remains mandatory because #426 found that `torch.compile` dropped the dynamic multi-hook cache.
 
 Launch only after the candidate-extraction A10G has been terminated:
 

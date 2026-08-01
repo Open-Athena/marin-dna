@@ -1,4 +1,4 @@
-"""Repeat the exact issue 426 SAE trajectory with seed 289 for issue 431."""
+"""Train the registered block-10/5M seed-289 SAE replica for issue 431."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ HUMAN_FASTA_URI = (
     "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
 )
 
-BLOCK_INDICES = (3, 9, 15, 18)
+BLOCK_INDICES = (9,)
 REPORTED_BLOCKS = tuple(index + 1 for index in BLOCK_INDICES)
 ARM_NAMES = tuple(f"block{block:02d}" for block in REPORTED_BLOCKS)
 HOOK_NAMES = tuple(f"model.layers.{index}" for index in BLOCK_INDICES)
@@ -70,15 +70,13 @@ D_SAE = 15_360
 K = 64
 TRAIN_BATCH_TOKENS = N_STREAMS * WINDOW_BP
 BUFFER_CONTEXT_BATCHES = 10
-# MultiSAETrainer caches all hooks for this many batches simultaneously. At
-# four hooks, 1,000 batches would occupy about 78 GB before model/SAE state.
-# One hundred exactly balanced batches still estimate each layer's mean norm
-# from 255,000 nucleotide activations while keeping peak memory safe on H100.
+# MultiSAETrainer caches this hook for the normalization estimate. One hundred
+# exactly balanced batches estimate its mean norm from 255,000 nucleotide
+# activations while keeping peak memory safe on H100.
 NORM_ESTIMATE_BATCHES = 100
 COMPILE_SMOKE_BATCHES = 1
 SHORT_BUDGET = 5_000_550
-LONG_BUDGET = 25_000_200
-BUDGETS = (SHORT_BUDGET, LONG_BUDGET)
+BUDGETS = (SHORT_BUDGET,)
 HELDOUT_GAP_PER_STREAM = 1_000
 HELDOUT_EVAL_BATCHES = 8
 
@@ -87,7 +85,6 @@ assert max(BLOCK_INDICES) < M51_NUM_BLOCKS
 assert TRAIN_BATCH_TOKENS == 2_550
 assert all(budget % TRAIN_BATCH_TOKENS == 0 for budget in BUDGETS)
 assert SHORT_BUDGET // TRAIN_BATCH_TOKENS == 1_961
-assert LONG_BUDGET // TRAIN_BATCH_TOKENS == 9_804
 
 
 def sha256_file(path: Path) -> str:
@@ -154,7 +151,7 @@ def make_sae_config(block_index: int) -> BatchTopKTrainingSAEConfig:
             report_block=block_index + 1,
             dataset_path="exp426-pinned-five-way-fwd-rc-stream",
             seed=SEED,
-            trajectory_training_tokens=LONG_BUDGET,
+            trajectory_training_tokens=SHORT_BUDGET,
         ),
         k=float(K),
         aux_loss_coefficient=1.0,
@@ -194,7 +191,7 @@ def make_runner_config(
         streaming=True,
         context_size=CONTEXT_TOKENS,
         n_batches_in_buffer=BUFFER_CONTEXT_BATCHES,
-        training_tokens=LONG_BUDGET,
+        training_tokens=SHORT_BUDGET,
         store_batch_size_prompts=N_STREAMS,
         train_batch_size_tokens=TRAIN_BATCH_TOKENS,
         disable_concat_sequences=True,
@@ -217,7 +214,7 @@ def make_runner_config(
         feature_sampling_window=2_000,
         n_eval_batches=1,
         logger=logger,
-        n_checkpoints=4,
+        n_checkpoints=1,
         checkpoint_path=str(checkpoint_path),
         save_final_checkpoint=True,
         output_path=None,
@@ -226,7 +223,8 @@ def make_runner_config(
         n_batches_for_norm_estimate=NORM_ESTIMATE_BATCHES,
     )
     thresholds = checkpoint_thresholds(cfg.training_tokens, cfg.n_checkpoints)
-    assert first_step_after(thresholds[0], TRAIN_BATCH_TOKENS) == SHORT_BUDGET
+    assert len(thresholds) == 1
+    assert first_step_after(thresholds[0], TRAIN_BATCH_TOKENS) < SHORT_BUDGET
     return cfg
 
 
@@ -277,13 +275,27 @@ def validate_hook_contract(
 
 
 def find_checkpoint(checkpoint_root: Path, budget: int) -> Path:
-    name = str(budget) if budget != LONG_BUDGET else f"final_{budget}"
+    assert budget == SHORT_BUDGET
+    name = f"final_{budget}"
     matches = [path for path in checkpoint_root.rglob(name) if path.is_dir()]
     assert len(matches) == 1, (name, matches)
     checkpoint = matches[0]
     assert set(ARM_NAMES) <= {path.name for path in checkpoint.iterdir()}
     assert (checkpoint / "runner_cfg.json").is_file()
     return checkpoint
+
+
+def recorded_activation_norm_scaling_factor(checkpoint_root: Path) -> float:
+    """Read the single pre-fold normalization scalar from a recovery checkpoint."""
+
+    values: list[float] = []
+    for path in checkpoint_root.rglob("activation_scaler.json"):
+        scaler = ActivationScaler()
+        scaler.load(path)
+        if scaler.scaling_factor is not None:
+            values.append(float(scaler.scaling_factor))
+    assert len(values) == 1 and values[0] > 0, values
+    return values[0]
 
 
 def cast_multi_hook_activations(
@@ -392,7 +404,7 @@ def export_budget(
     budget: int,
     output_root: Path,
     multi_runner_config: dict[str, Any],
-    expected_scaling_factors: dict[int, float] | None = None,
+    activation_norm_scaling_factor: float,
 ) -> dict[str, Any]:
     assert budget in BUDGETS
     outputs: dict[str, Any] = {}
@@ -406,16 +418,9 @@ def export_budget(
         scaler = ActivationScaler()
         scaler.load(checkpoint_sae / "activation_scaler.json")
         checkpoint_scaling_factor = scaler.scaling_factor
-        if checkpoint_scaling_factor is not None:
-            assert budget == SHORT_BUDGET and checkpoint_scaling_factor > 0
-            assert expected_scaling_factors is None
-            training_sae.fold_activation_norm_scaling_factor(checkpoint_scaling_factor)
-            recorded_scaling_factor = checkpoint_scaling_factor
-        else:
-            assert budget == LONG_BUDGET
-            assert expected_scaling_factors is not None
-            recorded_scaling_factor = expected_scaling_factors[block_index]
-            assert recorded_scaling_factor > 0
+        assert checkpoint_scaling_factor is None
+        assert budget == SHORT_BUDGET and activation_norm_scaling_factor > 0
+        recorded_scaling_factor = activation_norm_scaling_factor
         assert training_sae.cfg.normalize_activations == "none"
         l0, dead = _checkpoint_sparsity(checkpoint_sae / SPARSITY_FILENAME)
         training_sae.cfg.metadata.training_tokens = budget
@@ -474,7 +479,7 @@ def _heldout_store(
     skip = (
         COMPILE_SMOKE_BATCHES
         + NORM_ESTIMATE_BATCHES
-        + training_windows_per_stream(LONG_BUDGET)
+        + training_windows_per_stream(SHORT_BUDGET)
         + HELDOUT_GAP_PER_STREAM
     )
     return ActivationsStore.from_config_multi_hook(
@@ -626,7 +631,7 @@ def evaluate_exports(
 
 
 def dry_run_manifest(run_id: str, *, compile_llm: bool) -> dict[str, Any]:
-    thresholds = checkpoint_thresholds(LONG_BUDGET, 4)
+    thresholds = checkpoint_thresholds(SHORT_BUDGET, 1)
     return {
         "run_id": run_id,
         "issue": ISSUE,
@@ -673,9 +678,9 @@ def dry_run_manifest(run_id: str, *, compile_llm: bool) -> dict[str, Any]:
         "heldout": {
             "skip_per_stream": COMPILE_SMOKE_BATCHES
             + NORM_ESTIMATE_BATCHES
-            + training_windows_per_stream(LONG_BUDGET)
+            + training_windows_per_stream(SHORT_BUDGET)
             + HELDOUT_GAP_PER_STREAM,
-            "gap_after_long_training_prefix_per_stream": HELDOUT_GAP_PER_STREAM,
+            "gap_after_training_prefix_per_stream": HELDOUT_GAP_PER_STREAM,
             "eval_batches": HELDOUT_EVAL_BATCHES,
         },
         "interpretation_boundary": {
@@ -746,30 +751,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "allocated_bytes": torch.cuda.max_memory_allocated(),
         "reserved_bytes": torch.cuda.max_memory_reserved(),
     }
-    short_checkpoint = find_checkpoint(checkpoints, SHORT_BUDGET)
-    long_checkpoint = find_checkpoint(checkpoints, LONG_BUDGET)
-    multi_runner_config = cfg.to_dict()
-    short_exports = export_budget(
-        checkpoint=short_checkpoint,
+    checkpoint = find_checkpoint(checkpoints, SHORT_BUDGET)
+    activation_norm_scaling_factor = recorded_activation_norm_scaling_factor(
+        checkpoints
+    )
+    exports = export_budget(
+        checkpoint=checkpoint,
         budget=SHORT_BUDGET,
         output_root=models_root,
-        multi_runner_config=multi_runner_config,
+        multi_runner_config=cfg.to_dict(),
+        activation_norm_scaling_factor=activation_norm_scaling_factor,
     )
-    scaling_factors = {
-        block_index: short_exports[arm_label(block_index, SHORT_BUDGET)][
-            "activation_norm_scaling_factor"
-        ]
-        for block_index in BLOCK_INDICES
-    }
-    long_exports = export_budget(
-        checkpoint=long_checkpoint,
-        budget=LONG_BUDGET,
-        output_root=models_root,
-        multi_runner_config=multi_runner_config,
-        expected_scaling_factors=scaling_factors,
-    )
-    exports = {**short_exports, **long_exports}
-    assert len(exports) == len(BLOCK_INDICES) * len(BUDGETS)
+    assert set(exports) == {"block10-5m"}
     torch.cuda.reset_peak_memory_stats()
     health = evaluate_exports(
         models_root=models_root, model=runner.model, tokenizer=tokenizer
@@ -788,7 +781,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "runtime": {
             "wall_seconds": elapsed,
             "normalization_and_training_runner_wall_seconds": runner_wall_seconds,
-            "trajectory_nucleotide_activations_per_second_per_layer": LONG_BUDGET
+            "trajectory_nucleotide_activations_per_second_per_layer": SHORT_BUDGET
             / runner_wall_seconds,
         },
         "platform": platform.platform(),
