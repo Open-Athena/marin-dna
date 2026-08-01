@@ -1,14 +1,15 @@
-# Stage the warm Lambda GH200 for issue #430 without starting a benchmark.
+# Stage one warm Lambda H100 PCIe for issue #430 without starting a benchmark.
 #
-# Re-run this task with `sky launch -c dna-issue430-gh200` when setup or file
-# mounts change. Subsequent benchmark iterations should use `sky exec` so the
-# checkpoint, environment, and compiled caches stay warm.
+# Subsequent benchmark iterations use `sky exec` so the checkpoint,
+# environment, and compiled caches stay warm. The cluster is explicitly
+# terminated when the H100 stage completes.
 
-name: dna-issue430-gh200-stage
+name: dna-issue430-h100-stage
 
 resources:
-  accelerators: GH200:1
+  accelerators: H100:1
   cloud: lambda
+  region: us-west-3
   disk_size: 128
   labels:
     project: dna
@@ -36,5 +37,7 @@ run: |
   export CUDA_VISIBLE_DEVICES=0
   ISSUE430_HF_PROJECT=scripts/issue430/environments/hf_torchao
   nvidia-smi
+  uname -m
   uv run --project "$ISSUE430_HF_PROJECT" --no-sync python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.cuda.get_device_name(0))"
+  uv run --project "$ISSUE430_HF_PROJECT" --no-sync python -c "import mslk"
   test -f "$HOME/ckpt/config.json"

@@ -1,0 +1,30 @@
+[project]
+name = "issue430-hf-torchao-runtime"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "datasets==3.6.0",
+    "einops==0.8.2",
+    "huggingface-hub==0.36.2",
+    "jaxtyping==0.3.9",
+    "mslk-cuda==1.0.0; platform_machine == 'x86_64'",
+    "numpy==2.4.4",
+    "pandas==2.3.3",
+    "pyarrow==22.0.0",
+    "scikit-learn==1.8.0",
+    "torch==2.10.0",
+    "torchao==0.16.0",
+    "transformers==4.57.6",
+]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux'"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
