@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import torch
+
 from train import (
     BLOCK_INDICES,
     BUDGETS,
@@ -8,12 +10,21 @@ from train import (
     SHORT_BUDGET,
     TRAIN_BATCH_TOKENS,
     arm_label,
+    cast_multi_hook_activations,
     checkpoint_thresholds,
     dry_run_manifest,
     first_step_after,
     make_runner_config,
     training_windows_per_stream,
 )
+
+
+def test_multi_hook_activations_are_cast_to_sae_dtype() -> None:
+    source = {"hook": torch.ones((2, 3), dtype=torch.bfloat16)}
+    cast = cast_multi_hook_activations(source, torch.float32)
+    assert source["hook"].dtype == torch.bfloat16
+    assert cast["hook"].dtype == torch.float32
+    assert torch.equal(cast["hook"], source["hook"].float())
 
 
 def test_exact_registered_budgets_and_checkpoint_boundary() -> None:
@@ -75,4 +86,5 @@ def test_dry_run_manifest_exposes_normalization_and_performance_contract() -> No
     assert fixed["sae_dtype"] == "float32"
     assert fixed["compile_llm"] is True
     assert fixed["model_use_cache"] is False
+    assert fixed["multi_hook_activation_dtype_adapter"] == "configured_store_dtype"
     assert manifest["data"]["orientations"] == ["forward", "reverse_complement"]

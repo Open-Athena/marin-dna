@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import importlib.metadata
 import json
@@ -32,6 +33,7 @@ from sae_lens.saes.batchtopk_sae import (
 from sae_lens.saes.sae import SAE, SAEMetadata
 from sae_lens.training.activation_scaler import ActivationScaler
 from sae_lens.training.activations_store import ActivationsStore
+from sae_lens.training.sae_trainer import SAETrainer
 from safetensors.torch import load_file
 
 from data import (
@@ -284,8 +286,31 @@ def find_checkpoint(checkpoint_root: Path, budget: int) -> Path:
     return checkpoint
 
 
-def run_compile_smoke(runner: MultiSAETrainingRunner) -> dict[str, Any]:
-    """Trigger the compiled shared-forward path before normalization/training."""
+def cast_multi_hook_activations(
+    activations: dict[str, torch.Tensor], dtype: torch.dtype
+) -> dict[str, torch.Tensor]:
+    assert activations
+    cast = {name: value.to(dtype=dtype) for name, value in activations.items()}
+    assert all(value.dtype == dtype for value in cast.values())
+    assert all(torch.isfinite(value).all() for value in cast.values())
+    return cast
+
+
+def install_multi_hook_dtype_adapter(store: ActivationsStore) -> None:
+    """Honor the configured store dtype in SAELens' pinned multi-hook path."""
+
+    original = store.get_multi_hook_activations
+
+    def casted(*args: Any, **kwargs: Any) -> dict[str, torch.Tensor]:
+        return cast_multi_hook_activations(original(*args, **kwargs), store.dtype)
+
+    store.get_multi_hook_activations = casted  # type: ignore[method-assign]
+
+
+def run_compile_smoke(
+    runner: MultiSAETrainingRunner,
+) -> tuple[dict[str, Any], dict[str, torch.Tensor]]:
+    """Exercise the shared-forward path before normalization/training."""
 
     assert COMPILE_SMOKE_BATCHES == 1
     started = time.monotonic()
@@ -294,7 +319,7 @@ def run_compile_smoke(runner: MultiSAETrainingRunner) -> dict[str, Any]:
     # one item would read two 2,550-token batches to clear its 2,560-token
     # threshold, then silently discard the second batch when the generator is
     # dropped. This pinned low-level store seam consumes exactly one balanced
-    # ten-window group while exercising the same compiled model path.
+    # ten-window group while exercising the same shared-forward model path.
     batch = runner.activations_store._get_filtered_multi_hook_llm_batch()
     counter_delta = runner.activations_store.n_dataset_processed - before
     # ActivationsStore increments this counter only when its generator resumes
@@ -305,9 +330,10 @@ def run_compile_smoke(runner: MultiSAETrainingRunner) -> dict[str, Any]:
     for hook_name, activations in batch.items():
         assert hook_name in HOOK_NAMES
         assert activations.shape == (TRAIN_BATCH_TOKENS, M51_HIDDEN_SIZE)
+        assert activations.dtype == torch.float32
         assert torch.isfinite(activations).all()
     torch.cuda.synchronize()
-    return {
+    metadata = {
         "batches": COMPILE_SMOKE_BATCHES,
         "logical_sequences_consumed": N_STREAMS,
         "activation_store_counter_delta": counter_delta,
@@ -317,6 +343,39 @@ def run_compile_smoke(runner: MultiSAETrainingRunner) -> dict[str, Any]:
         "elapsed_seconds": time.monotonic() - started,
         "peak_memory_allocated_bytes": torch.cuda.max_memory_allocated(),
         "peak_memory_reserved_bytes": torch.cuda.max_memory_reserved(),
+    }
+    return metadata, batch
+
+
+def run_optimizer_smoke(
+    runner: MultiSAETrainingRunner, batch: dict[str, torch.Tensor]
+) -> dict[str, Any]:
+    """Run one real optimizer step on an isolated SAE clone."""
+
+    started = time.monotonic()
+    name = ARM_NAMES[0]
+    hook_name = ARM_TO_HOOK[name]
+    sae = copy.deepcopy(runner.saes[name])
+    trainer = SAETrainer(
+        cfg=runner.cfg.to_sae_trainer_config(),
+        sae=sae,
+        data_provider=iter(()),
+        evaluator=None,
+        save_checkpoint_fn=None,
+    )
+    output = trainer.step(batch[hook_name])
+    torch.cuda.synchronize()
+    loss = float(output.loss.detach())
+    assert torch.isfinite(output.loss).all()
+    assert trainer.n_training_samples == TRAIN_BATCH_TOKENS
+    del output, trainer, sae
+    torch.cuda.empty_cache()
+    return {
+        "arm": name,
+        "input_dtype": str(batch[hook_name].dtype),
+        "samples": TRAIN_BATCH_TOKENS,
+        "loss": loss,
+        "elapsed_seconds": time.monotonic() - started,
     }
 
 
@@ -600,6 +659,7 @@ def dry_run_manifest(run_id: str, *, compile_llm: bool) -> dict[str, Any]:
             "autocast_lm": True,
             "compile_llm": compile_llm,
             "model_use_cache": False,
+            "multi_hook_activation_dtype_adapter": "configured_store_dtype",
             "llm_compilation_mode": "reduce-overhead" if compile_llm else None,
             "prefetch_llm_batches": 2,
             "checkpoint_thresholds": thresholds,
@@ -672,8 +732,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         override_dataset=build_balanced_dataset(tokenizer),
         override_model=model,
     )
+    install_multi_hook_dtype_adapter(runner.activations_store)
     torch.cuda.reset_peak_memory_stats()
-    compile_smoke = run_compile_smoke(runner)
+    compile_smoke, smoke_batch = run_compile_smoke(runner)
+    optimizer_smoke = run_optimizer_smoke(runner, smoke_batch)
+    del smoke_batch
+    torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
     runner_started = time.monotonic()
     runner.run()
@@ -734,6 +798,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "gpu": torch.cuda.get_device_name(0),
         "saelens": importlib.metadata.version("sae-lens"),
         "hook_validation": hook_validation,
+        "optimizer_smoke": optimizer_smoke,
         "compile_smoke": compile_smoke,
         "training_peak_memory": training_peak_memory,
         "export_evaluation_peak_memory": export_evaluation_peak_memory,
