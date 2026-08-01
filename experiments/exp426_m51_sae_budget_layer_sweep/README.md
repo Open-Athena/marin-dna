@@ -36,6 +36,18 @@ ANALYSIS_COMMIT="$(git rev-parse HEAD)" uv run python pairwise.py \
   --output-dir retrieval/dna-exp426-layer-budget-seed288-r5/analysis_pairwise
 ```
 
+The subsequent control analysis fits discovery-only categorical logistic baselines, selects regularization by validation AUROC, reports untouched test blocks, and compares every selected SAE feature both overall and within exact ref→alt substitution strata:
+
+```bash
+ANALYSIS_COMMIT="$(git rev-parse HEAD)" uv run python controls.py \
+  --extraction-dir retrieval/dna-exp426-layer-budget-seed288-r5/extraction \
+  --extraction-manifest retrieval/dna-exp426-layer-budget-seed288-r5/extraction/manifest.json \
+  --pairwise-metrics retrieval/dna-exp426-layer-budget-seed288-r5/analysis_pairwise/missense_vs_synonymous.parquet \
+  --panel /path/to/issue422/panel.parquet \
+  --fasta /path/to/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+  --output-dir retrieval/dna-exp426-layer-budget-seed288-r5/analysis_controls
+```
+
 ## Launch
 
 The Sky task uses one direct Lambda H100 and runs training, variant extraction, and analysis serially. The caller must set `EXPERIMENT_COMMIT` to the full pushed commit SHA:
@@ -50,4 +62,4 @@ The task uses autostop/down after 180 idle minutes, providing a bounded post-job
 
 ## Output contract
 
-`artifacts/<run-id>/manifest.json` records the model/data revisions, exact training and normalization counts, hardware/runtime, per-arm health metrics, and hashes of every inference model file. `extraction/manifest.json` hashes all 16 paired activation parquets. `analysis/manifest.json` hashes the class-level metrics, arm summaries, continued-training comparisons, paired activation-state summaries, and both PNG/SVG figures. `analysis_pairwise/manifest.json` hashes the direct missense-vs-synonymous metrics and figure.
+`artifacts/<run-id>/manifest.json` records the model/data revisions, exact training and normalization counts, hardware/runtime, per-arm health metrics, and hashes of every inference model file. `extraction/manifest.json` hashes all 16 paired activation parquets. `analysis/manifest.json` hashes the class-level metrics, arm summaries, continued-training comparisons, paired activation-state summaries, and both PNG/SVG figures. `analysis_pairwise/manifest.json` hashes the direct missense-vs-synonymous metrics and figure. `analysis_controls/manifest.json` hashes the simple sequence baselines, substitution-matched SAE metrics, and comparison figure.

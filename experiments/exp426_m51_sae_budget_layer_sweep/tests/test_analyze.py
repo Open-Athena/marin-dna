@@ -4,8 +4,10 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 from scipy import sparse
+from sklearn.metrics import roc_auc_score
 
 from analyze import bootstrap_mean_ap, make_views, select_feature
+from controls import make_baseline_designs, matched_substitution_auc
 from pairwise import bootstrap_pairwise_metrics, load_selected_activations
 
 
@@ -101,3 +103,23 @@ def test_pairwise_bootstrap_reports_perfect_separation() -> None:
         "test_auroc_ci95_low": 1.0,
         "test_auroc_ci95_high": 1.0,
     }
+
+
+def test_baseline_designs_keep_focal_context_and_alternate() -> None:
+    contexts = np.asarray(["A" * 15 + "C" + "G" * 15, "T" * 31])
+    alternate = np.asarray(["A", "G"])
+    designs = make_baseline_designs(contexts, alternate)
+    np.testing.assert_array_equal(designs["centered_1mer_alt"].ravel(), ["C>A", "T>G"])
+    np.testing.assert_array_equal(
+        designs["centered_3mer_alt"].ravel(), ["ACG>A", "TTT>G"]
+    )
+    assert designs["positional_31bp_alt"].shape == (2, 32)
+    np.testing.assert_array_equal(designs["positional_31bp_alt"][:, -1], alternate)
+
+
+def test_matched_substitution_auc_removes_allele_spectrum_signal() -> None:
+    substitutions = np.asarray(["A>C"] * 4 + ["G>T"] * 4)
+    positive = np.asarray([True, False, False, False, True, True, True, False])
+    scores = np.asarray([0.0] * 4 + [1.0] * 4)
+    assert roc_auc_score(positive, scores) > 0.5
+    assert matched_substitution_auc(scores, positive, substitutions) == 0.5
