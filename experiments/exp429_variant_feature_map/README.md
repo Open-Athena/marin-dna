@@ -148,6 +148,20 @@ COMMIT="$(git rev-parse HEAD)"
 uv run python launch.py perturbations --commit "$COMMIT" --execute
 ```
 
+After retrieving and hash-validating `perturbation-extraction-r1`, run the
+frozen causal analysis. It reports splice position-saturation curves and
+within-context codon selectivity with source-context bootstrap intervals; no
+feature, reducer, position, or codon state is selected from these outputs.
+
+```bash
+export PERTURBATION_ANALYSIS_COMMIT="$(git rev-parse HEAD)"
+uv run python analyze_perturbations.py \
+  --panel ../../scratch/issue429/retrieval/perturbation-design-r1/perturbation_panel.parquet \
+  --design-manifest ../../scratch/issue429/retrieval/perturbation-design-r1/manifest.json \
+  --extraction-dir ../../scratch/issue429/retrieval/perturbation-extraction-r1 \
+  --output-dir ../../scratch/issue429/perturbation-analysis-r1
+```
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
