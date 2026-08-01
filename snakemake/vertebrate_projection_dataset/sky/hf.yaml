@@ -1,0 +1,96 @@
+name: vertebrate-projection-hf-build
+
+# High-memory assembly of the reviewed JSONL.zst Hugging Face artifacts.
+# The projection/split Parquets are staged from the immutable issue #417 S3
+# snapshot; projection, extraction, and QC rules are deliberately disallowed.
+resources:
+  infra: aws/us-east-2
+  instance_type: r6i.8xlarge
+  disk_size: 1000
+  labels:
+    project: dna
+
+workdir: .
+
+file_mounts:
+  ~/.cache/huggingface: ~/.cache/huggingface
+
+envs:
+  DATA_SNAPSHOT_SHA: 06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d
+  PIPELINE_COMMIT_SHA: abaaf885a7d621fcbfab7e4d64901f600f87ccfd
+  TARGET: all_hf_files
+  DRY_RUN: "1"
+  ALLOW_HF_UPLOAD: "0"
+  ARTIFACT_S3_PREFIX: ""
+
+setup: |
+  set -euxo pipefail
+
+  if [ ! -d "$HOME/miniforge3" ]; then
+    curl -fsSL -o /tmp/miniforge.sh \
+      https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
+    rm /tmp/miniforge.sh
+  fi
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  uv sync
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  export CONDA_EXE="$HOME/miniforge3/bin/conda"
+
+  test "$TARGET" = "all_hf_files" -o "$TARGET" = "all_hf"
+  test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
+  if [ "$TARGET" = "all_hf" ]; then
+    test "$ALLOW_HF_UPLOAD" = "1"
+  fi
+
+  RESULTS="snakemake/vertebrate_projection_dataset/results/v1/full"
+  SNAPSHOT="s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/$DATA_SNAPSHOT_SHA/full"
+  mkdir -p "$RESULTS/datasets" "$RESULTS/metadata"
+  aws s3 cp "$SNAPSHOT/datasets/" "$RESULTS/datasets/" \
+    --recursive --only-show-errors \
+    --exclude "*" --include "*/train.parquet" --include "*/validation.parquet"
+  aws s3 cp "$SNAPSHOT/metadata/species_active.tsv" \
+    "$RESULTS/metadata/species_active.tsv" --only-show-errors
+
+  if [ -n "$ARTIFACT_S3_PREFIX" ] && \
+      aws s3 ls "$ARTIFACT_S3_PREFIX/" >/dev/null 2>&1; then
+    aws s3 cp "$ARTIFACT_S3_PREFIX/" "$RESULTS/hf/" \
+      --recursive --only-show-errors
+  fi
+
+  ALLOWED_RULES=(
+    prepare_train_jsonl_shards
+    prepare_validation_jsonl_shards
+    compress_publication_shard
+    dataset_card
+    all_hf_files
+  )
+  if [ "$TARGET" = "all_hf" ]; then
+    ALLOWED_RULES+=(hf_upload_dataset all_hf)
+  fi
+
+  SNAKEMAKE_MODE=()
+  if [ "$DRY_RUN" = "1" ]; then
+    SNAKEMAKE_MODE+=(--dry-run)
+  fi
+
+  uv run snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
+    --snakefile snakemake/vertebrate_projection_dataset/workflow/Snakefile \
+    --config tier=full \
+    --cores 32 \
+    --resources mem_mb=250000 final_large_scan=1 hf_uploads=1 \
+    --allowed-rules "${ALLOWED_RULES[@]}" \
+    --forcerun dataset_card \
+    --rerun-incomplete \
+    --printshellcmds
+
+  if [ "$DRY_RUN" = "0" ] && [ "$TARGET" = "all_hf_files" ] && \
+      [ -n "$ARTIFACT_S3_PREFIX" ]; then
+    aws s3 sync "$RESULTS/hf/" "$ARTIFACT_S3_PREFIX/" --only-show-errors
+  fi
