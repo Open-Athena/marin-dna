@@ -42,7 +42,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from experiments.exp428_replicate_codon_context.panel import (  # noqa: E402
+from experiments.exp428_replicate_codon_context.panel import (
     GENETIC_CODE,
     annotate_candidates,
 )
@@ -281,6 +281,28 @@ def one_edit_codon_rows(
     return rows
 
 
+def filter_coding_reference_matches(
+    frame: pl.DataFrame, *, genome: Genome
+) -> tuple[pl.DataFrame, int]:
+    """Reject transcript annotations whose reference codon disagrees with GRCh38."""
+
+    matches: list[bool] = []
+    for source in frame.iter_rows(named=True):
+        sequence, _, _ = reference_window(genome, source)
+        strand = str(source["consensus_strand"])
+        codon_position = int(source["consensus_codon_position"])
+        codon_start = coding_codon_start_index(codon_position, strand)
+        genomic_codon = sequence[codon_start : codon_start + 3]
+        transcript_codon = (
+            genomic_codon if strand == "+" else reverse_complement(genomic_codon)
+        )
+        matches.append(transcript_codon == source["consensus_ref_codon"])
+    result = frame.filter(pl.Series("reference_codon_matches", matches))
+    rejected = frame.height - result.height
+    assert result.height > 0 and rejected >= 0
+    return result, rejected
+
+
 def design_heldout_perturbations(
     *,
     panel_path: Path,
@@ -321,14 +343,21 @@ def design_heldout_perturbations(
         & (pl.col("consensus_codon_position").is_not_null())
         & (pl.col("consensus_ref_codon").is_not_null())
     )
-    assert not coding.select(
-        "consensus_strand", "consensus_codon_position", "consensus_ref_codon"
-    ).null_count().sum_horizontal().item()
+    assert (
+        not coding.select(
+            "consensus_strand", "consensus_codon_position", "consensus_ref_codon"
+        )
+        .null_count()
+        .sum_horizontal()
+        .item()
+    )
+    genome = Genome(fasta_path, subset_chroms={"21"})
+    coding, coding_reference_mismatches = filter_coding_reference_matches(
+        coding, genome=genome
+    )
     eligible = pl.concat((splice, coding), how="diagonal_relaxed")
     sources = deterministic_sources(eligible, contexts_per_class=contexts_per_class)
     assert set(sources["split"].unique()) == {SOURCE_SPLIT}
-
-    genome = Genome(fasta_path, subset_chroms={"21"})
     rows: list[dict[str, Any]] = []
     for source in sources.iter_rows(named=True):
         sequence, start0, end0 = reference_window(genome, source)
@@ -406,6 +435,7 @@ def design_heldout_perturbations(
             "coordinate_system": "source pos is 1-based; all derived coordinates are 0-based half-open",
         },
         "annotation_metadata": coding_metadata,
+        "coding_reference_codon_mismatches_rejected": coding_reference_mismatches,
         "eligible_rows": (
             eligible.group_by("consequence_cre").len().sort("consequence_cre")
         ).to_dicts(),

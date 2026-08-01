@@ -1,5 +1,6 @@
 import polars as pl
 
+import design_heldout_perturbations as module
 from design_heldout_perturbations import (
     Intron,
     deterministic_sources,
@@ -90,6 +91,26 @@ def test_one_edit_codon_rows_are_nine_single_edits() -> None:
         sum(a != b for a, b in zip("GCT", row["alternate_codon"], strict=True)) == 1
         for row in rows
     )
+
+
+def test_reference_codon_filter_rejects_mismatched_annotation(monkeypatch) -> None:
+    frame = pl.DataFrame(
+        {
+            "panel_row": [1, 2],
+            "consensus_strand": ["+", "+"],
+            "consensus_codon_position": [2, 2],
+            "consensus_ref_codon": ["GCT", "AAA"],
+        }
+    )
+    sequence = "A" * 126 + "GCT" + "A" * 126
+    monkeypatch.setattr(
+        module,
+        "reference_window",
+        lambda genome, source: (sequence, 0, 255),
+    )
+    filtered, rejected = module.filter_coding_reference_matches(frame, genome=object())
+    assert rejected == 1
+    assert filtered["panel_row"].to_list() == [1]
 
 
 def test_intron_ordering_is_deterministic() -> None:
