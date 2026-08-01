@@ -49,6 +49,10 @@ rule human_reference_sequences:
         sizes=f"{RESULTS}/reference/hg38.chrom.sizes",
     output:
         HUMAN_SEQUENCES,
+    conda:
+        "../envs/bioinformatics.yaml"
+    resources:
+        mem_mb=4000,
     run:
         write_human_reference_sequences(
             input.anchors, input.twobit, input.sizes, output[0]
@@ -130,7 +134,7 @@ rule hal_contract:
     wildcard_constraints:
         species=MAMMAL_RE,
     resources:
-        mem_mb=6000,
+        mem_mb=10000,
     run:
         write_contract_outputs(
             input[0],
@@ -182,8 +186,10 @@ rule hal_sequences:
         rejected=f"{RESULTS}/hal/sequence_rejected/{{species}}.parquet",
     wildcard_constraints:
         species=MAMMAL_RE,
+    conda:
+        "../envs/bioinformatics.yaml"
     resources:
-        mem_mb=12000,
+        mem_mb=4000,
     run:
         write_twobit_sequences(
             input.accepted, input.twobit, output.sequences, output.rejected
@@ -290,8 +296,10 @@ rule multiz_sequences:
         rejected=f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",
     wildcard_constraints:
         species=NON_MAMMAL_RE,
+    conda:
+        "../envs/bioinformatics.yaml"
     resources:
-        mem_mb=12000,
+        mem_mb=4000,
     run:
         write_twobit_sequences(
             input.accepted, input.twobit, output.sequences, output.rejected

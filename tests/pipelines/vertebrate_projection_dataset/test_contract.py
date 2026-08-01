@@ -6,6 +6,7 @@ import polars as pl
 import pytest
 
 from marin_dna.pipelines.vertebrate_projection_dataset.contract import (
+    _apply_projection_contract_reference,
     apply_projection_contract,
     extract_oriented_sequences,
     reverse_complement_preserving_case,
@@ -107,7 +108,7 @@ def test_contract_rejects_pre_resize_length_outside_bounds() -> None:
     assert result.rejected["rejection_reason"].to_list() == ["span_too_long"]
 
 
-def test_bounded_memory_writer_matches_monolithic_contract(tmp_path: Path) -> None:
+def test_vectorized_writer_matches_reference_contract(tmp_path: Path) -> None:
     fragments = _frame(
         _fragment(query_name="a3", t_start=300, t_end=304),
         _fragment(query_name="a2", source_fragment_end=102, t_end=202),
@@ -120,7 +121,7 @@ def test_bounded_memory_writer_matches_monolithic_contract(tmp_path: Path) -> No
             t_start=202,
         ),
     )
-    expected = apply_projection_contract(
+    expected = _apply_projection_contract_reference(
         fragments,
         target_length=4,
         pre_resize_min_length=1,
@@ -138,7 +139,6 @@ def test_bounded_memory_writer_matches_monolithic_contract(tmp_path: Path) -> No
         target_length=4,
         pre_resize_min_length=1,
         pre_resize_max_length=10,
-        bucket_count=3,
     )
 
     assert pl.read_parquet(accepted_path).equals(expected.accepted)

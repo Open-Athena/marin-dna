@@ -12,6 +12,7 @@ import polars as pl
 
 from marin_dna.pipelines.vertebrate_projection_dataset.pipeline_io import (
     write_contract_outputs,
+    write_contract_outputs_for_alignment,
 )
 
 
@@ -29,27 +30,36 @@ def main() -> None:
     parser.add_argument("expected_accepted", type=Path)
     parser.add_argument("expected_rejected", type=Path)
     parser.add_argument("output_dir", type=Path)
-    parser.add_argument("--bucket-count", type=int, default=32)
+    parser.add_argument("--alignment-name")
     args = parser.parse_args()
 
     assert args.fragments.is_file()
     assert args.expected_accepted.is_file()
     assert args.expected_rejected.is_file()
-    assert args.bucket_count > 0
     args.output_dir.mkdir(parents=True, exist_ok=True)
     accepted_path = args.output_dir / "accepted.parquet"
     rejected_path = args.output_dir / "rejected.parquet"
 
     started = time.monotonic()
-    write_contract_outputs(
-        args.fragments,
-        accepted_path,
-        rejected_path,
-        target_length=255,
-        pre_resize_min_length=128,
-        pre_resize_max_length=512,
-        bucket_count=args.bucket_count,
-    )
+    if args.alignment_name is None:
+        write_contract_outputs(
+            args.fragments,
+            accepted_path,
+            rejected_path,
+            target_length=255,
+            pre_resize_min_length=128,
+            pre_resize_max_length=512,
+        )
+    else:
+        write_contract_outputs_for_alignment(
+            args.fragments,
+            args.alignment_name,
+            accepted_path,
+            rejected_path,
+            target_length=255,
+            pre_resize_min_length=128,
+            pre_resize_max_length=512,
+        )
     elapsed_seconds = time.monotonic() - started
     accepted_rows = _assert_parquet_equal(accepted_path, args.expected_accepted)
     rejected_rows = _assert_parquet_equal(rejected_path, args.expected_rejected)
@@ -58,8 +68,8 @@ def main() -> None:
         json.dumps(
             {
                 "accepted_rows": accepted_rows,
+                "alignment_name": args.alignment_name,
                 "rejected_rows": rejected_rows,
-                "bucket_count": args.bucket_count,
                 "elapsed_seconds": elapsed_seconds,
                 "max_rss_mib": max_rss_mib,
             },

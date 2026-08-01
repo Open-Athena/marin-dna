@@ -96,16 +96,20 @@ The full tier is deliberately organized around bounded-memory intermediates.
 Each chromosome MAF is parsed into species-clustered Parquet row groups, the
 shared contract runs independently for each chromosome/species pair, and the
 accepted/rejected outputs are then streamed into per-species Parquets. Each HAL
-species contract scans its fragment Parquet in 32 deterministic query-name hash
-buckets, so every `(query_name, species)` group is evaluated intact without
-materializing all fragment groups together. Bucket results are globally sorted,
-and an assertion requires exactly one accepted or rejected row per input group.
-HAL contracts reserve 6 GB, allowing up to 15 to run concurrently on the 96 GB
-worker. Sequence combination, non-chromosome-18 training writes, QC aggregation,
-and inspection candidate selection also use lazy streaming scans. Only one HAL
-query bucket, one MultiZ species' contract rows, the human anchor catalog, the
-capped chromosome-18 validation candidates, or the small deterministic
-inspection sample is materialized at a time.
+species contract reads its fragment Parquet once, sorts fragments into target
+coordinate order, and derives consistency, bounds, duplicate, and overlap
+flags with vectorized group summaries. Rejection priority and resizing are also
+vectorized, and an assertion requires exactly one accepted or rejected row per
+input group. A 1.05-million-accepted-row full-species benchmark took 5.26 s at
+8.4 GiB peak RSS, so HAL contracts reserve 10 GB and at most nine run
+concurrently on the 96 GB worker.
+
+Human, HAL, and MultiZ sequence extraction all use one compiled
+`twoBitToFa -bed` call per genome. BED6 strand is honored by `twoBitToFa`, and
+soft-masked case from the 2bit source is preserved. A full-species benchmark
+took 5.7 s at 2.1 GiB peak RSS, so sequence rules reserve 4 GB. Sequence
+combination, non-chromosome-18 training writes, QC aggregation, and inspection
+candidate selection use lazy streaming scans.
 The conservation-filtered anchor BED is compressed through a temporary plain
 file, fully decompressed to verify its row count, and atomically installed only
 after the gzip stream passes its CRC check.
@@ -139,6 +143,19 @@ uv run snakemake \
 Do not launch the full projection or any paid/cloud job without explicit user
 approval. If the dry-run plans to recompute an upstream or unrelated artifact,
 stop before running it.
+
+### Shared local-node safety
+
+Run data-scale validation, tracing, global sorts/group-bys, and working sets
+larger than 500 MB on the SkyPilot worker, not on the shared development node.
+Any potentially heavy command that must run locally must first acquire the
+nonblocking `/tmp/marin-dna-local-heavy.lock`, require at least 6 GiB of
+`MemAvailable` and a one-minute load below 2, and run with `nice -n 10` and
+`ionice -c2 -n7`. Set `POLARS_MAX_THREADS=2` and `RAYON_NUM_THREADS=2`, and set
+`OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, and
+`NUMEXPR_NUM_THREADS` to 1 before importing their runtimes. Abort a newly
+started command if `MemAvailable` falls below 4 GiB or the one-minute load
+exceeds 3 during its first minute.
 
 ### SkyPilot execution
 

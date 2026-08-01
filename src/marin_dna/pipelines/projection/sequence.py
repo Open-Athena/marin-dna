@@ -1,10 +1,8 @@
 """Per-species sequence extraction at projected coordinates.
 
-The Snakemake rule converts each per-species projection Parquet into a
-6-column BED, then runs ``bedtools getfasta -s`` against the species
-FASTA (output of ``hal2fasta``) to extract strand-aware sequences. The
-helpers here are small Polars-backed glue, kept out of the rule for
-testability.
+Projection Parquets are converted into BED6 so compiled extractors can process
+all intervals in one batch and honor target strand. The helpers here are small
+Polars-backed glue, kept out of Snakemake rules for testability.
 """
 
 from __future__ import annotations
@@ -70,6 +68,31 @@ def parse_bedtools_getfasta_output(fasta_path: str | Path) -> list[str]:
                 assert stripped, f"empty sequence at line {line_no + 1}"
                 seqs.append(stripped)
     return seqs
+
+
+def parse_wrapped_fasta_output(fasta_path: str | Path) -> list[tuple[str, str]]:
+    """Parse ordinary wrapped FASTA while preserving record order and case."""
+    records: list[tuple[str, str]] = []
+    name: str | None = None
+    chunks: list[str] = []
+    with Path(fasta_path).open() as handle:
+        for line_no, line in enumerate(handle, start=1):
+            stripped = line.strip()
+            if stripped.startswith(">"):
+                if name is not None:
+                    assert chunks, f"empty sequence for {name!r}"
+                    records.append((name, "".join(chunks)))
+                name = stripped[1:].split(maxsplit=1)[0]
+                assert name, f"empty FASTA header at line {line_no}"
+                chunks = []
+            else:
+                assert name is not None, f"sequence before header at line {line_no}"
+                assert stripped, f"empty sequence line at line {line_no}"
+                chunks.append(stripped)
+    if name is not None:
+        assert chunks, f"empty sequence for {name!r}"
+        records.append((name, "".join(chunks)))
+    return records
 
 
 def attach_sequences_to_parquet(

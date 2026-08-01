@@ -6,21 +6,26 @@ import gzip
 import json
 from pathlib import Path
 import shutil
+import subprocess
 from tempfile import TemporaryDirectory
 
 import polars as pl
-import py2bit
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from marin_dna.pipelines.projection.dataset import reverse_complement_col
+from marin_dna.pipelines.projection.sequence import (
+    attach_sequences_to_parquet,
+    parquet_to_bed6,
+    parse_wrapped_fasta_output,
+)
 from marin_dna.pipelines.vertebrate_projection_dataset.adapters import (
-    build_human_reference_rows,
     hal_records_to_fragments,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.contract import (
+    ACCEPTED_SCHEMA,
+    REJECTION_SCHEMA,
     apply_projection_contract,
-    extract_oriented_sequences,
 )
 from marin_dna.pipelines.vertebrate_projection_dataset.inspection import (
     assert_zrs_broad_recovery,
@@ -259,53 +264,25 @@ def write_contract_outputs(
     target_length: int,
     pre_resize_min_length: int,
     pre_resize_max_length: int,
-    bucket_count: int = 32,
 ) -> None:
-    """Apply the contract in deterministic query buckets to bound peak memory."""
-    assert bucket_count > 0
+    """Apply the vectorized/fragmented contract in one read of the Parquet."""
     schema = pl.read_parquet_schema(fragments_path)
     missing = set(FRAGMENT_SCHEMA) - set(schema)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
-
-    accepted_parts: list[pl.DataFrame] = []
-    rejected_parts: list[pl.DataFrame] = []
-    for bucket in range(bucket_count):
-        fragments = (
-            pl.scan_parquet(fragments_path)
-            .filter(pl.col("query_name").hash(seed=0).mod(bucket_count) == bucket)
-            .collect(engine="streaming")
-        )
-        result = apply_projection_contract(
-            fragments,
-            target_length=target_length,
-            pre_resize_min_length=pre_resize_min_length,
-            pre_resize_max_length=pre_resize_max_length,
-        )
-        accepted_parts.append(result.accepted)
-        rejected_parts.append(result.rejected)
-
-    accepted = pl.concat(accepted_parts).sort("query_name", "species")
-    rejected = pl.concat(rejected_parts).sort("query_name", "species")
-    observed_groups = accepted.height + rejected.height
-    expected_groups = (
-        pl.scan_parquet(fragments_path)
-        .select("query_name", "species")
-        .unique()
-        .collect(engine="streaming")
-        .height
+    fragments = pl.read_parquet(fragments_path)
+    result = apply_projection_contract(
+        fragments,
+        target_length=target_length,
+        pre_resize_min_length=pre_resize_min_length,
+        pre_resize_max_length=pre_resize_max_length,
     )
-    assert observed_groups == expected_groups, (
-        f"contract emitted {observed_groups} groups for {expected_groups} inputs"
-    )
-    assert accepted.select("query_name", "species").is_unique().all()
-    assert rejected.select("query_name", "species").is_unique().all()
 
     accepted_output = Path(accepted_path)
     rejected_output = Path(rejected_path)
     accepted_output.parent.mkdir(parents=True, exist_ok=True)
     rejected_output.parent.mkdir(parents=True, exist_ok=True)
-    accepted.write_parquet(accepted_output)
-    rejected.write_parquet(rejected_output)
+    result.accepted.write_parquet(accepted_output)
+    result.rejected.write_parquet(rejected_output)
 
 
 def write_contract_outputs_for_alignment(
@@ -356,20 +333,57 @@ def write_twobit_sequences(
     *,
     target_length: int = 255,
 ) -> None:
-    accepted = pl.read_parquet(accepted_path)
-    genome = py2bit.open(str(two_bit_path))
+    """Extract one genome's accepted rows in a single compiled twoBitToFa call."""
+    accepted = Path(accepted_path)
+    two_bit = Path(two_bit_path)
+    sequence_output = Path(sequence_path)
+    rejection_output = Path(rejected_path)
+    assert accepted.is_file()
+    assert two_bit.is_file()
+    sequence_output.parent.mkdir(parents=True, exist_ok=True)
+    rejection_output.parent.mkdir(parents=True, exist_ok=True)
 
-    def fetch(_assembly: str, chrom: str, start: int, end: int) -> str | None:
-        return genome.sequence(chrom, start, end)
-
-    try:
-        result = extract_oriented_sequences(
-            accepted, fetch, target_length=target_length
+    expected_names = pl.read_parquet(accepted, columns=["query_name"])[
+        "query_name"
+    ].to_list()
+    with TemporaryDirectory(
+        prefix=".twobit-sequences-", dir=sequence_output.parent
+    ) as temp_dir:
+        temporary = Path(temp_dir)
+        bed_path = temporary / "intervals.bed"
+        fasta_path = temporary / "sequences.fa"
+        row_count = parquet_to_bed6(accepted, bed_path)
+        assert row_count == len(expected_names)
+        if row_count:
+            subprocess.run(
+                [
+                    "twoBitToFa",
+                    str(two_bit),
+                    f"-bed={bed_path}",
+                    str(fasta_path),
+                ],
+                check=True,
+            )
+            records = parse_wrapped_fasta_output(fasta_path)
+            observed_names = [name for name, _sequence in records]
+            assert observed_names == expected_names, (
+                "twoBitToFa output order/names differ from the accepted Parquet"
+            )
+            sequences = [sequence for _name, sequence in records]
+        else:
+            sequences = []
+        written = attach_sequences_to_parquet(
+            accepted,
+            sequences,
+            sequence_output,
+            target_len=target_length,
         )
-    finally:
-        genome.close()
-    result.accepted.write_parquet(sequence_path)
-    result.rejected.write_parquet(rejected_path)
+        assert written == row_count
+
+    # Coordinates were bounds-checked by the projection contract. A missing or
+    # short sequence is therefore corruption and fails above instead of being
+    # silently removed from the dataset.
+    pl.DataFrame(schema=REJECTION_SCHEMA).write_parquet(rejection_output)
 
 
 def write_human_reference_sequences(
@@ -385,24 +399,51 @@ def write_human_reference_sequences(
         chrom_sizes_path,
         separator="\t",
         has_header=False,
-        new_columns=["chrom", "size"],
+        new_columns=["source_chrom", "t_src_size"],
+        schema_overrides={"source_chrom": pl.String, "t_src_size": pl.Int64},
     )
-    chromosome_sizes = dict(sizes.iter_rows())
-    genome = py2bit.open(str(two_bit_path))
-
-    def fetch(_assembly: str, chrom: str, start: int, end: int) -> str | None:
-        return genome.sequence(chrom, start, end)
-
-    try:
-        rows = build_human_reference_rows(
-            anchors,
-            chromosome_sizes,
-            fetch,
+    assert sizes["source_chrom"].n_unique() == sizes.height
+    accepted = (
+        anchors.join(sizes, on="source_chrom", how="inner", validate="m:1")
+        .with_columns(
+            pl.lit("Homo sapiens").alias("species"),
+            pl.lit("hg38").alias("alignment_name"),
+            pl.lit("hg38").alias("assembly"),
+            pl.lit(9606, dtype=pl.Int64).alias("taxonomy_id"),
+            pl.lit("Hominidae").alias("family"),
+            pl.lit("mammals").alias("clade"),
+            pl.lit(0, dtype=pl.Int64).alias("phylogenetic_rank"),
+            pl.lit("human_reference").alias("alignment_source"),
+            pl.col("source_chrom").alias("t_chrom"),
+            pl.col("source_start").alias("t_start"),
+            pl.col("source_end").alias("t_end"),
+            pl.lit("+").alias("t_strand"),
+            pl.col("source_start").alias("pre_resize_t_start"),
+            pl.col("source_end").alias("pre_resize_t_end"),
+            pl.lit(1, dtype=pl.Int64).alias("fragment_count"),
+            pl.lit(target_length, dtype=pl.Int64).alias("aligned_bases"),
+        )
+        .select(ACCEPTED_SCHEMA.names())
+        .cast(ACCEPTED_SCHEMA)
+        .sort("query_name")
+    )
+    assert accepted.height == anchors.height
+    assert (accepted["t_end"] <= accepted["t_src_size"]).all()
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix=".human-reference-", dir=output.parent) as temp_dir:
+        temporary = Path(temp_dir)
+        accepted_path = temporary / "accepted.parquet"
+        rejected_path = temporary / "rejected.parquet"
+        accepted.write_parquet(accepted_path)
+        write_twobit_sequences(
+            accepted_path,
+            two_bit_path,
+            output,
+            rejected_path,
             target_length=target_length,
         )
-    finally:
-        genome.close()
-    rows.write_parquet(output_path)
+        assert pl.read_parquet(rejected_path).is_empty()
 
 
 def combine_sequence_parquets(input_paths: list[str], output_path: str | Path) -> None:

@@ -11,6 +11,7 @@ from marin_dna.pipelines.projection.sequence import (
     attach_sequences_to_parquet,
     parquet_to_bed6,
     parse_bedtools_getfasta_output,
+    parse_wrapped_fasta_output,
 )
 
 
@@ -110,6 +111,17 @@ def test_parse_bedtools_getfasta_output_rejects_empty_sequence(tmp_path: Path) -
     fa.write_text(">name1\n\n")
     with pytest.raises(AssertionError, match="empty sequence"):
         parse_bedtools_getfasta_output(fa)
+
+
+def test_parse_wrapped_fasta_output_preserves_names_order_and_case(
+    tmp_path: Path,
+) -> None:
+    fa = tmp_path / "wrapped.fa"
+    fa.write_text(">anchor-1\naC\ngT\n>anchor-2\nNN\naa\n")
+    assert parse_wrapped_fasta_output(fa) == [
+        ("anchor-1", "aCgT"),
+        ("anchor-2", "NNaa"),
+    ]
 
 
 def test_attach_sequences_to_parquet_writes_extended_schema(tmp_path: Path) -> None:
