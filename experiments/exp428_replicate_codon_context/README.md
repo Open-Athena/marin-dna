@@ -33,8 +33,34 @@ EXPERIMENT_COMMIT="$(git rev-parse HEAD)" uv run python panel.py \
 
 `panel.py` applies native-library thread caps before importing NumPy or Polars, requires at least 6 GiB of available memory, and holds the shared nonblocking `/tmp/marin-dna-local-heavy.lock` for the complete local build. Every other task on the shared node must use the same lock for potentially heavy local work. If the lock or memory gate fails, move the work to Sky rather than bypassing the guard.
 
-The GPU extraction and registered analysis commands are added after the panel passes its preflight invariants. The intended GPU is one AWS A10G; no second paid resource may be launched while another paid Sky resource is active.
+## Launch and retrieval
+
+The CPU panel and analysis stages use one AWS `m6i.2xlarge`; the fixed-feature extraction uses one AWS `g5.2xlarge` A10G. The CPU and GPU may overlap, but no second CPU or GPU worker is needed. The CPU cluster autodowns after 90 idle minutes and the GPU after 30. At current Sky estimates they cost about $0.38/hour and $1.21/hour respectively.
+
+Commit and push the complete protocol before any registered work. `launch.py` prints commands by default and mutates cloud state only with `--execute`:
+
+```bash
+COMMIT="$(git rev-parse HEAD)"
+uv run python launch.py panel --commit "$COMMIT" --execute
+
+mkdir -p ../../scratch/issue428/retrieval
+sky rsync-down exp428-cpu \
+  '~/exp428-artifacts/panel' \
+  ../../scratch/issue428/retrieval/
+
+uv run python launch.py extract --commit "$COMMIT" --execute
+sky rsync-down exp428-gpu \
+  '~/exp428-artifacts/extraction' \
+  ../../scratch/issue428/retrieval/
+
+uv run python launch.py analyze --commit "$COMMIT" --execute
+sky rsync-down exp428-cpu \
+  '~/exp428-artifacts/analysis' \
+  ../../scratch/issue428/retrieval/
+```
+
+Each Sky task clones and checks out the exact `EXPERIMENT_COMMIT`; the scripts independently assert that it is the current checkout. The CPU task records `/usr/bin/time -v` peak RSS for the real panel and analysis. The GPU task records CUDA peak allocation/reservation and deliberately uses eager `run_with_cache`: the pinned Qwen/SAELens hook path is known-correct in eager mode, while the prior compile attempt did not preserve the dynamic hook cache.
 
 ## Output contract
 
-`panel/manifest.json` pins input hashes, coordinate conversions, block assignment, candidate sampling, transcript annotation coverage, exact stratum balance, and the panel hash. Subsequent extraction and analysis manifests will pin the two reused SAE exports, selected feature IDs, ref/alt × FWD/RC activations, registered score construction, test metrics, bootstrap intervals, and figure hashes.
+`panel/manifest.json` pins input hashes, coordinate conversions, block assignment, candidate sampling, transcript annotation coverage, exact stratum balance, and the panel hash. `extraction/manifest.json` verifies the exact #426 source commit and hashes of both reused SAE exports, then pins the three selected feature IDs and dense ref/alt × FWD/RC outputs. `analysis/manifest.json` pins the registered score construction, discovery/validation-only sequence baseline, untouched test metrics, 1,000 block-bootstrap intervals, orientation diagnostics, and hashes of both SVG/PNG figures.

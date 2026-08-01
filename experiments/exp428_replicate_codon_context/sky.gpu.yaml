@@ -1,0 +1,51 @@
+name: dna-exp428-extract
+
+resources:
+    infra: aws/us-east-2
+    instance_type: g5.2xlarge
+    disk_size: 150
+    autostop:
+        idle_minutes: 30
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp428-inputs/panel: ../../scratch/issue428/retrieval/panel
+    /home/ubuntu/exp428-inputs/reference: ../../scratch/issue418/reference
+    /home/ubuntu/exp428-inputs/issue426/manifest.json: ../../scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/manifest.json
+    /home/ubuntu/exp428-inputs/issue426/models/block19-5m: ../../scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-5m
+    /home/ubuntu/exp428-inputs/issue426/models/block19-25m: ../../scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    RUN_ID: dna-exp428-phase-matched
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp428-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-428-replicate-codon-context
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp428_replicate_codon_context"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT RUN_ID HF_HUB_DOWNLOAD_TIMEOUT=120 UV_LOCK_TIMEOUT=7200
+    cd "$HOME/exp428-repo/experiments/exp428_replicate_codon_context"
+    /usr/bin/time -v uv run --no-dev python extract.py \
+        --panel /home/ubuntu/exp428-inputs/panel/panel.parquet \
+        --panel-manifest /home/ubuntu/exp428-inputs/panel/manifest.json \
+        --fasta /home/ubuntu/exp428-inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+        --models-root /home/ubuntu/exp428-inputs/issue426/models \
+        --output-dir "$HOME/exp428-artifacts/extraction" \
+        --batch-size 32

@@ -1,0 +1,47 @@
+name: dna-exp428-panel
+
+resources:
+    infra: aws/us-east-2
+    instance_type: m6i.2xlarge
+    disk_size: 100
+    autostop:
+        idle_minutes: 90
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp428-inputs/source/21.parquet: ../../scratch/issue422/source/21.parquet
+    /home/ubuntu/exp428-inputs/annotation/Homo_sapiens.GRCh38.109.gtf.gz: ../../scratch/issue426/Homo_sapiens.GRCh38.109.gtf.gz
+    /home/ubuntu/exp428-inputs/reference: ../../scratch/issue418/reference
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    RUN_ID: dna-exp428-phase-matched
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp428-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-428-replicate-codon-context
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp428_replicate_codon_context"
+    uv sync --frozen --no-dev
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT RUN_ID
+    export POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2
+    export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+    cd "$HOME/exp428-repo/experiments/exp428_replicate_codon_context"
+    /usr/bin/time -v uv run --no-dev python panel.py \
+        --source /home/ubuntu/exp428-inputs/source/21.parquet \
+        --gtf /home/ubuntu/exp428-inputs/annotation/Homo_sapiens.GRCh38.109.gtf.gz \
+        --fasta /home/ubuntu/exp428-inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
+        --output-dir "$HOME/exp428-artifacts/panel"
