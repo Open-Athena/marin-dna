@@ -44,18 +44,15 @@ COMMIT="$(git rev-parse HEAD)"
 uv run python launch.py panel --commit "$COMMIT" --execute
 
 mkdir -p ../../scratch/issue428/retrieval
-sky rsync-down exp428-cpu \
-  '~/exp428-artifacts/panel' \
+scp -r exp428-cpu:/home/ubuntu/exp428-artifacts/panel \
   ../../scratch/issue428/retrieval/
 
 uv run python launch.py extract --commit "$COMMIT" --execute
-sky rsync-down exp428-gpu \
-  '~/exp428-artifacts/extraction' \
+scp -r exp428-gpu:/home/ubuntu/exp428-artifacts/extraction \
   ../../scratch/issue428/retrieval/
 
 uv run python launch.py analyze --commit "$COMMIT" --execute
-sky rsync-down exp428-cpu \
-  '~/exp428-artifacts/analysis' \
+scp -r exp428-cpu:/home/ubuntu/exp428-artifacts/analysis \
   ../../scratch/issue428/retrieval/
 ```
 
