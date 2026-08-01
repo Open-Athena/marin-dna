@@ -9,7 +9,10 @@ resources:
     instance_type: gpu_1x_h100_pcie
     disk_size: 250
     autostop:
-        idle_minutes: 30
+        # Keep a bounded recovery window after the managed job exits. Long
+        # analysis/recovery commands must be submitted with `sky exec`; raw
+        # SSH processes are invisible to Sky's job-aware idle detector.
+        idle_minutes: 180
         down: true
 
 workdir: .
@@ -19,9 +22,11 @@ file_mounts:
     /home/ubuntu/exp426_inputs/reference: ../../scratch/issue418/reference
 
 envs:
-    RUN_ID: dna-exp426-layer-budget-seed288
+    RUN_ID: dna-exp426-layer-budget-seed288-r5
     EXPERIMENT_COMMIT: ""
-    COMPILE_LLM: "1"
+    # torch.compile currently drops the dynamic multi-layer hook cache used by
+    # the pinned Qwen/SAELens path. Eager is the tested, manifest-recorded path.
+    COMPILE_LLM: "0"
     COMPUTE_PROVIDER: lambda
     COMPUTE_INSTANCE_TYPE: gpu_1x_h100_pcie
     SKYPILOT_CLUSTER_NAME: exp426-lambda
