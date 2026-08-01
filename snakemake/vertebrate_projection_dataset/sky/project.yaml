@@ -116,6 +116,6 @@ run: |
     --snakefile snakemake/vertebrate_projection_dataset/workflow/Snakefile \
     --config tier="$TIER" \
     --cores 48 \
-    --resources mem_mb=90000 ucsc_downloads=4 final_large_scan=1 \
+    --resources mem_mb=90000 ucsc_downloads=4 final_large_scan=1 hf_uploads=1 \
     --rerun-incomplete \
     --printshellcmds
