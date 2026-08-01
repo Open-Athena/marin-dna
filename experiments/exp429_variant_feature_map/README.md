@@ -93,7 +93,14 @@ Transformers `Trainer` would not simplify this loop. `torch.compile` is
 deliberately disabled: eager execution is validated for the pinned dynamic hook
 path, whereas the earlier compile attempt did not preserve that cache correctly.
 The A10G launch uses batch size 32; GPU utilization is checked during the first
-few minutes.
+few minutes. After discovery/validation selection, the immediate candidate-only
+spatial pass saves ref and alt activations for the 18 frozen feature IDs at
+relative positions -15 through +15:
+
+```bash
+COMMIT="$(git rev-parse HEAD)"
+uv run python launch.py spatial --commit "$COMMIT" --execute
+```
 
 ## Held-out analysis
 

@@ -16,6 +16,7 @@ from extract import (
     sparse_union_table,
     variant_sequences,
 )
+from spatial import encode_selected_features
 
 
 def test_variant_sequences_changes_only_the_center() -> None:
@@ -84,6 +85,43 @@ def test_read_sae_provenance_uses_artifact_metadata(tmp_path) -> None:
         "sae_weights.safetensors",
         "sparsity.safetensors",
     }
+
+
+class _TinySubsetSAE(torch.nn.Module):
+    class _Cfg:
+        d_in = 3
+        normalize_activations = "none"
+
+        def architecture(self) -> str:
+            return "jumprelu"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.cfg = self._Cfg()
+        self.hook_z_reshaping_mode = False
+        self.W_enc = torch.nn.Parameter(
+            torch.tensor(
+                [[1.0, -1.0, 0.5, 2.0], [0.0, 2.0, 1.0, -1.0], [1.0, 0.0, -1.0, 1.0]]
+            )
+        )
+        self.b_enc = torch.nn.Parameter(torch.tensor([0.0, 0.5, -0.5, 0.0]))
+        self.threshold = torch.nn.Parameter(torch.tensor([0.5, 1.0, 0.0, 2.0]))
+        self.activation_fn = torch.nn.ReLU()
+
+    def process_sae_in(self, raw: torch.Tensor) -> torch.Tensor:
+        return raw
+
+
+def test_encode_selected_features_matches_full_jumprelu_formula() -> None:
+    sae = _TinySubsetSAE().eval()
+    raw = torch.tensor([[[1.0, 2.0, 3.0], [3.0, 0.0, 1.0]]])
+    feature_ids = torch.tensor([1, 3], dtype=torch.long)
+
+    observed = encode_selected_features(sae, raw, feature_ids)
+    hidden = raw @ sae.W_enc + sae.b_enc
+    full = torch.relu(hidden) * (hidden > sae.threshold)
+
+    torch.testing.assert_close(observed, full.index_select(-1, feature_ids))
 
 
 class _TinySAE(torch.nn.Module):
