@@ -8,13 +8,19 @@ def test_stage_commands_use_pinned_commit_and_expected_cluster() -> None:
     analyze = sky_command("analyze", commit)
     spatial = sky_command("spatial", commit)
     perturbations = sky_command("perturbations", commit)
+    heldout_design = sky_command("heldout-design", commit)
+    heldout_perturbations = sky_command("heldout-perturbations", commit)
     assert panel[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
     assert extract[:4] == ["sky", "launch", "-c", GPU_CLUSTER]
     assert analyze[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
     assert spatial[:4] == ["sky", "launch", "-c", GPU_CLUSTER]
     assert perturbations[:4] == ["sky", "launch", "-c", GPU_CLUSTER]
+    assert heldout_design[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
+    assert heldout_perturbations[:4] == ["sky", "launch", "-c", GPU_CLUSTER]
     assert f"EXPERIMENT_COMMIT={commit}" in panel
     assert f"EXPERIMENT_COMMIT={commit}" in extract
     assert f"ANALYSIS_COMMIT={commit}" in analyze
     assert f"SPATIAL_COMMIT={commit}" in spatial
     assert f"PERTURBATION_EXTRACTION_COMMIT={commit}" in perturbations
+    assert f"HELDOUT_DESIGN_COMMIT={commit}" in heldout_design
+    assert f"PERTURBATION_EXTRACTION_COMMIT={commit}" in heldout_perturbations

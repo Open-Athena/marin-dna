@@ -162,6 +162,31 @@ uv run python analyze_perturbations.py \
   --output-dir ../../scratch/issue429/perturbation-analysis-r2
 ```
 
+
+The prospective replication removes feature-response selection from source
+sampling. `design_heldout_perturbations.py` starts from the frozen **test**
+blocks, requires an unambiguous Ensembl-115 protein-coding transcript
+orientation, and takes the lowest 64 panel hashes per class. It never ranks
+sources by SAE activation. Acceptor and donor-fifth-base contexts receive the
+same transcript-oriented -12…+4 saturation; stop-gain and synonymous contexts
+receive all nine one-nucleotide codon substitutions, matching the primary
+causal contrast. This produces 7,680 paired perturbations.
+
+```bash
+COMMIT="$(git rev-parse HEAD)"
+uv run python launch.py heldout-design --commit "$COMMIT" --execute
+```
+
+Retrieve and hash-validate `heldout-perturbation-design-r1`, then run the same
+deduplicated five-feature FWD/RC extractor. Its validation contract accepts the
+original two context groups or a single manifest-declared replication group;
+all class, feature, coordinate, edit-distance, and sequence-pair invariants are
+unchanged.
+
+```bash
+uv run python launch.py heldout-perturbations --commit "$COMMIT" --execute
+```
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse

@@ -36,8 +36,6 @@ MODEL_REVISION = "c0676b2012b8b9c526deb26ff517f6b92b6d375d"
 DEFAULT_BLOCK_INDEX = 9
 ORIENTATIONS = ("forward", "reverse_complement")
 FEATURE_IDS = (3312, 4281, 6072, 11681, 11698)
-EXPECTED_ROWS = 7_296
-EXPECTED_STATES = 7_424
 EXPECTED_CLASSES = {
     "splice_acceptor_variant",
     "splice_donor_5th_base_variant",
@@ -124,14 +122,16 @@ def validate_design(
     }
     assert required <= set(panel.columns), required - set(panel.columns)
     assert manifest["artifacts"][panel_path.name]["sha256"] == sha256_file(panel_path)
-    assert manifest["rows"] == panel.height == EXPECTED_ROWS
+    assert manifest["rows"] == panel.height and panel.height > 0
     assert panel["perturbation_row"].to_list() == list(range(panel.height))
     assert set(panel["class"].unique()) == EXPECTED_CLASSES
     assert set(panel["feature_id"].unique()) == set(FEATURE_IDS) - {4281}
-    assert set(panel["context_group"].unique()) == {
-        "top",
-        "rank_spaced_control",
-    }
+    context_groups = set(panel["context_group"].unique())
+    declared_context_group = manifest["protocol"].get("context_group")
+    if declared_context_group is None:
+        assert context_groups == set(manifest["protocol"]["context_groups"])
+    else:
+        assert context_groups == {declared_context_group}
     for row in panel.select(
         "window_start0",
         "window_end0",
@@ -303,7 +303,7 @@ def evaluate(
     panel = pl.read_parquet(panel_path)
     validate_design(panel, panel_manifest, panel_path=panel_path)
     states, reference_indices, alternate_indices = build_state_table(panel)
-    assert states.height == EXPECTED_STATES
+    assert panel.height < states.height <= 2 * panel.height
     sae_provenance = read_sae_provenance(sae_path, block_index=block_index)
     assert max(FEATURE_IDS) < sae_provenance["d_sae"]
 

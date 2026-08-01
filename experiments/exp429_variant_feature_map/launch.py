@@ -18,6 +18,11 @@ STAGE_CONFIG = {
         "sky.perturbations.yaml",
         "PERTURBATION_EXTRACTION_COMMIT",
     ),
+    "heldout-design": ("sky.heldout-design.yaml", "HELDOUT_DESIGN_COMMIT"),
+    "heldout-perturbations": (
+        "sky.heldout-perturbations.yaml",
+        "PERTURBATION_EXTRACTION_COMMIT",
+    ),
     "analyze": ("sky.analysis.yaml", "ANALYSIS_COMMIT"),
 }
 
@@ -27,7 +32,9 @@ def sky_command(stage: str, commit: str) -> list[str]:
     assert len(commit) == 40
     config, commit_environment = STAGE_CONFIG[stage]
     cluster = (
-        GPU_CLUSTER if stage in {"extract", "spatial", "perturbations"} else CPU_CLUSTER
+        GPU_CLUSTER
+        if stage in {"extract", "spatial", "perturbations", "heldout-perturbations"}
+        else CPU_CLUSTER
     )
     # Always use launch, including for a warm cluster: `sky exec` skips the
     # YAML setup phase, which is responsible for checking out the pinned
