@@ -170,6 +170,12 @@ memory so the 48-core worker can project species concurrently without reserving
 four idle cores per process; the memory limit remains above observed full-tier
 usage.
 
+The combined projection table is much larger than an individual species file.
+QC, manual inspection, and each cohort writer therefore reserve the shared
+`final_large_scan` resource. Its capacity is one in both the default profile
+and the SkyPilot command, so these consumers run serially instead of
+materializing several copies of the table and exhausting worker memory.
+
 The 74.7 GB MultiZ source mirror is bootstrapped separately and resumably. Each
 uploaded object records its pinned MD5 as S3 user metadata; reruns skip objects
 only when both byte size and MD5 metadata match.

@@ -38,6 +38,9 @@ rule projection_qc:
         per_scope=f"{RESULTS}/qc/per_anchor_scope.parquet",
         rejections=f"{RESULTS}/qc/rejection_counts.parquet",
         aggregates=f"{RESULTS}/qc/aggregates.parquet",
+    resources:
+        mem_mb=30000,
+        final_large_scan=1,
     run:
         write_qc_files(
             input.anchors,
@@ -60,6 +63,9 @@ rule projection_inspection_report:
         sample=f"{RESULTS}/qc/manual_inspection_sample.tsv",
         rejected=f"{RESULTS}/qc/manual_inspection_rejections.tsv",
         report=f"{RESULTS}/qc/manual_inspection.md",
+    resources:
+        mem_mb=30000,
+        final_large_scan=1,
     run:
         write_inspection_files(
             input.sequences,
@@ -89,6 +95,7 @@ rule dataset_splits:
         region=COHORT_RE,
     resources:
         mem_mb=24000,
+        final_large_scan=1,
     run:
         write_dataset_split_files(
             input[0],
