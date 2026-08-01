@@ -146,7 +146,8 @@ def main() -> None:
         revision=DATASET_REVISION,
         split="train",
     ).to_pandas()
-    prepared = prepare_harness_llr(harness, tokenizer, subset=args.subset)
+    selected_subset = None if args.subset == "all" else args.subset
+    prepared = prepare_harness_llr(harness, tokenizer, subset=selected_subset)
     preprocessing_seconds = time.perf_counter() - preprocess_start
 
     model_load_start = time.perf_counter()
@@ -236,7 +237,7 @@ def main() -> None:
         "dollars_per_million": dollars_per_million,
         "peak_vram_allocated_gib": benchmark.peak_vram_allocated_bytes / BYTES_PER_GIB,
         "peak_vram_reserved_gib": benchmark.peak_vram_reserved_bytes / BYTES_PER_GIB,
-        "missense_auprc": auprc,
+        "auprc": auprc,
         "parity": parity,
         "gpu": properties.name,
         "gpu_total_memory_gib": properties.total_memory / BYTES_PER_GIB,
@@ -246,6 +247,8 @@ def main() -> None:
         "datasets": datasets.__version__,
         "platform": platform.platform(),
     }
+    if args.subset == "missense_variant":
+        summary["missense_auprc"] = auprc
     (out_dir / "benchmark.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary, indent=2), flush=True)
 

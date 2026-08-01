@@ -161,7 +161,7 @@ def main() -> None:
         }
         for event in top_events
     ]
-    gpu_self_time_seconds = (
+    summed_profiler_device_time_seconds = (
         sum(event.self_device_time_total for event in events) / 1_000_000
     )
     summary = {
@@ -180,8 +180,9 @@ def main() -> None:
         "dataloader_wait_seconds": dataloader_wait_seconds,
         "h2d_milliseconds": h2d_milliseconds,
         "forward_milliseconds": forward_milliseconds,
-        "gpu_self_time_seconds": gpu_self_time_seconds,
-        "gpu_self_time_fraction_of_wall": gpu_self_time_seconds / profile_seconds,
+        # This sum includes nested events and can exceed wall time. It is useful
+        # only for comparing identical traces, not as GPU utilization.
+        "summed_profiler_device_time_seconds": summed_profiler_device_time_seconds,
         "peak_vram_allocated_gib": torch.cuda.max_memory_allocated() / BYTES_PER_GIB,
         "peak_vram_reserved_gib": torch.cuda.max_memory_reserved() / BYTES_PER_GIB,
         "gpu": torch.cuda.get_device_name(0),
