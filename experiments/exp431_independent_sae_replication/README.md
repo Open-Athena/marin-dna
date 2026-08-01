@@ -40,8 +40,8 @@ sky launch -c exp431-cpu sky.panels.yaml \
 Retrieve the completed artifact:
 
 ```bash
-sky rsync-down exp431-cpu \
-  '$HOME/exp431-artifacts/panels/' \
+rsync -av --protect-args \
+  exp431-cpu:/home/ubuntu/exp431-artifacts/panels/ \
   ../../scratch/issue431/retrieval/panels/
 ```
 
@@ -58,8 +58,8 @@ sky launch -c exp431-gpu-existing sky.extract-existing.yaml \
 Retrieve and then terminate the GPU:
 
 ```bash
-sky rsync-down exp431-gpu-existing \
-  '$HOME/exp431-artifacts/existing/' \
+rsync -av --protect-args \
+  exp431-gpu-existing:/home/ubuntu/exp431-artifacts/existing/ \
   ../../scratch/issue431/retrieval/existing/
 sky down exp431-gpu-existing -y
 ```
@@ -72,8 +72,8 @@ The three split extractions run sequentially on the same GPU. Base-model inferen
 sky launch -c exp431-cpu sky.analyze-existing.yaml \
   --env EXPERIMENT_COMMIT=COMMIT \
   --env DICTIONARY_NAME=rc-balanced-normalized-seed288 -y
-sky rsync-down exp431-cpu \
-  '$HOME/exp431-artifacts/analysis-existing/' \
+rsync -av --protect-args \
+  exp431-cpu:/home/ubuntu/exp431-artifacts/analysis-existing/ \
   ../../scratch/issue431/retrieval/analysis-existing/
 sky down exp431-cpu -y
 ```
