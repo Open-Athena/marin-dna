@@ -36,6 +36,7 @@ setup: |
   if ! uv run python -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
     uv pip install --reinstall "torch==2.10.0" --index-url https://download.pytorch.org/whl/cu128
   fi
+  uv pip install "torchao==0.16.0"
 
   uv run --no-sync python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='$CHECKPOINT_HF', revision='$CHECKPOINT_REVISION', local_dir='$HOME/ckpt')"
 
