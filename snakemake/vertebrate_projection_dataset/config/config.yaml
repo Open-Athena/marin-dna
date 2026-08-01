@@ -34,6 +34,10 @@ validation_chrom: chr18
 validation_max_rows: 16384
 validation_seed: 42
 add_rc: true
+publication_train_shards: 64
+publication_smoke_train_shards: 4
+publication_validation_shards: 1
+publication_shuffle_seed: 42
 inspection_seed: 417
 inspection_rows_per_region: 3
 inspection_fragmented_rows: 5
@@ -42,7 +46,7 @@ region_cohorts:
   [all, cds, cds_mammals_only, utr3, ncrna_exon, tss_region_and_utr5,
    ccre_non_promoter, background]
 
-hf_owner: bolinas-dna
+hf_owner: marin-dna
 hf_repo_prefix: vertebrate-v1
 
 # v4 region labeling from issue #227, pinned independently here.

@@ -796,9 +796,9 @@ configs:
 - config_name: default
   data_files:
   - split: train
-    path: train.parquet
+    path: data/train/*.jsonl.zst
   - split: validation
-    path: validation.parquet
+    path: data/validation/*.jsonl.zst
 ---
 
 # `{hf_repo}`
@@ -810,8 +810,7 @@ scope and preserves source FASTA/2bit letter case.
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source
 repeat masking, uppercase bases preserve source non-repeat-masked sequence, and
-conservation scores never rewrite emitted characters or case. The matched
-issue #417 models use lowercase loss weight 0.01 in both train and validation.
+conservation scores never rewrite emitted characters or case.
 
 Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
 

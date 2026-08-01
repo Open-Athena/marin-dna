@@ -7,12 +7,12 @@ configs:
 - config_name: default
   data_files:
   - split: train
-    path: train.parquet
+    path: data/train/*.jsonl.zst
   - split: validation
-    path: validation.parquet
+    path: data/validation/*.jsonl.zst
 ---
 
-# `bolinas-dna/vertebrate-v1-<region>`
+# `marin-dna/vertebrate-v1-<region>`
 
 Review status: **draft; do not upload until generated values are checked**.
 
@@ -23,8 +23,7 @@ Source FASTA/2bit letter case is preserved.
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source
 repeat masking, uppercase bases preserve source non-repeat-masked sequence, and
-conservation scores never rewrite emitted characters or case. The matched
-issue #417 models use lowercase loss weight 0.01 in both train and validation.
+conservation scores never rewrite emitted characters or case.
 
 Produced by the
 [`vertebrate_projection_dataset` pipeline](https://github.com/Open-Athena/marin-dna/blob/<COMMIT_SHA>/snakemake/vertebrate_projection_dataset/README.md).

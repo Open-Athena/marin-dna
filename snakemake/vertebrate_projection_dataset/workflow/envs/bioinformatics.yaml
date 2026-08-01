@@ -7,3 +7,4 @@ dependencies:
   - ucsc-fatotwobit
   - ucsc-twobitinfo
   - ucsc-twobittofa
+  - zstd

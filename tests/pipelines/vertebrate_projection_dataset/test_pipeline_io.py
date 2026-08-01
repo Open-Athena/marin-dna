@@ -248,7 +248,7 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
         manifest,
         card,
         pipeline_commit="a" * 40,
-        hf_repo="bolinas-dna/vertebrate-v1-cds",
+        hf_repo="marin-dna/vertebrate-v1-cds",
         region_label="cds",
         species_scope="all",
     )
@@ -256,7 +256,8 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     text = " ".join(card.read_text().split())
     assert (
         "configs: - config_name: default data_files: - split: train path: "
-        "train.parquet - split: validation path: validation.parquet" in text
+        "data/train/*.jsonl.zst - split: validation path: "
+        "data/validation/*.jsonl.zst" in text
     )
     assert (
         "Anchor eligibility uses the pipeline's pinned phyloP conservation filter."
@@ -265,4 +266,4 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     assert "lowercase bases preserve source repeat masking" in text
     assert "Sequence case is independent of that filter" in text
     assert "conservation scores never rewrite emitted characters or case" in text
-    assert "lowercase loss weight 0.01 in both train and validation" in text
+    assert "loss weight" not in text

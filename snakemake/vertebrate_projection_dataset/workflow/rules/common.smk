@@ -69,6 +69,25 @@ MAMMAL_RE = "|".join(MAMMALS)
 NON_MAMMAL_RE = "|".join(NON_MAMMALS)
 CHROM_RE = "|".join(CHROMS)
 COHORT_RE = "|".join(COHORTS)
+PUBLICATION_TRAIN_SHARD_COUNT = int(
+    config[
+        (
+            "publication_smoke_train_shards"
+            if TIER == "smoke"
+            else "publication_train_shards"
+        )
+    ]
+)
+PUBLICATION_VALIDATION_SHARD_COUNT = int(config["publication_validation_shards"])
+PUBLICATION_SHUFFLE_SEED = int(config["publication_shuffle_seed"])
+assert PUBLICATION_TRAIN_SHARD_COUNT > 0 and PUBLICATION_VALIDATION_SHARD_COUNT > 0
+PUBLICATION_TRAIN_SHARDS = [
+    f"shard_{i:04d}" for i in range(PUBLICATION_TRAIN_SHARD_COUNT)
+]
+PUBLICATION_VALIDATION_SHARDS = [
+    f"shard_{i:04d}" for i in range(PUBLICATION_VALIDATION_SHARD_COUNT)
+]
+HF_RESULTS = f"{RESULTS}/hf"
 
 HUMAN_SEQUENCES = f"{RESULTS}/sequences/human_reference.parquet"
 COMBINED_SEQUENCES = f"{RESULTS}/sequences/all_sources.parquet"

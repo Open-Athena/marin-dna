@@ -114,13 +114,89 @@ rule dataset_splits:
         )
 
 
+rule prepare_train_jsonl_shards:
+    """Shuffle the augmented train Parquet into established JSONL shards."""
+    input:
+        f"{RESULTS}/datasets/{{region}}/train.parquet",
+    output:
+        temp(
+            local(
+                expand(
+                    f"{HF_RESULTS}/{{{{region}}}}/data/train/{{shard}}.jsonl",
+                    shard=PUBLICATION_TRAIN_SHARDS,
+                )
+            )
+        ),
+    wildcard_constraints:
+        region=COHORT_RE,
+    threads: workflow.cores
+    resources:
+        mem_mb=240000,
+        final_large_scan=1,
+    run:
+        from marin_dna.pipelines.projection.dataset import prepare_shards
+
+        prepare_shards(
+            parquet_path=str(input[0]),
+            shard_paths=[str(path) for path in output],
+            add_rc=False,
+            shuffle_seed=PUBLICATION_SHUFFLE_SEED,
+        )
+
+
+rule prepare_validation_jsonl_shards:
+    """Shuffle the held-out original-orientation rows into JSONL shards."""
+    input:
+        f"{RESULTS}/datasets/{{region}}/validation.parquet",
+    output:
+        temp(
+            local(
+                expand(
+                    f"{HF_RESULTS}/{{{{region}}}}/data/validation/{{shard}}.jsonl",
+                    shard=PUBLICATION_VALIDATION_SHARDS,
+                )
+            )
+        ),
+    wildcard_constraints:
+        region=COHORT_RE,
+    threads: workflow.cores
+    resources:
+        mem_mb=8000,
+    run:
+        from marin_dna.pipelines.projection.dataset import prepare_shards
+
+        prepare_shards(
+            parquet_path=str(input[0]),
+            shard_paths=[str(path) for path in output],
+            add_rc=False,
+            shuffle_seed=PUBLICATION_SHUFFLE_SEED,
+        )
+
+
+rule compress_publication_shard:
+    """Compress one JSONL shard with the established zstd encoding."""
+    input:
+        local(f"{HF_RESULTS}/{{region}}/data/{{split}}/{{shard}}.jsonl"),
+    output:
+        local(f"{HF_RESULTS}/{{region}}/data/{{split}}/{{shard}}.jsonl.zst"),
+    wildcard_constraints:
+        region=COHORT_RE,
+        split="train|validation",
+        shard=r"shard_\d{4}",
+    conda:
+        "../envs/bioinformatics.yaml"
+    threads: 8
+    shell:
+        "zstd -T{threads} --force {input} -o {output}"
+
+
 rule dataset_card:
     input:
         train=f"{RESULTS}/datasets/{{region}}/train.parquet",
         validation=f"{RESULTS}/datasets/{{region}}/validation.parquet",
         manifest=ACTIVE_MANIFEST,
     output:
-        f"{RESULTS}/datasets/{{region}}/README.md",
+        f"{HF_RESULTS}/{{region}}/README.md",
     wildcard_constraints:
         region=COHORT_RE,
     resources:
@@ -142,12 +218,34 @@ rule dataset_card:
         )
 
 
-rule hf_upload_dataset:
-    """Opt-in only: run after a human reviews the generated dataset card."""
+rule all_hf_files:
+    """Build reviewed HF artifacts without writing any external state."""
     input:
-        train=f"{RESULTS}/datasets/{{region}}/train.parquet",
-        validation=f"{RESULTS}/datasets/{{region}}/validation.parquet",
-        card=f"{RESULTS}/datasets/{{region}}/README.md",
+        expand(
+            f"{HF_RESULTS}/{{region}}/data/train/{{shard}}.jsonl.zst",
+            region=COHORTS,
+            shard=PUBLICATION_TRAIN_SHARDS,
+        ),
+        expand(
+            f"{HF_RESULTS}/{{region}}/data/validation/{{shard}}.jsonl.zst",
+            region=COHORTS,
+            shard=PUBLICATION_VALIDATION_SHARDS,
+        ),
+        expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
+
+
+rule hf_upload_dataset:
+    """Opt-in only: run after a human approves the generated dataset card."""
+    input:
+        train=lambda wc: [
+            f"{HF_RESULTS}/{wc.region}/data/train/{shard}.jsonl.zst"
+            for shard in PUBLICATION_TRAIN_SHARDS
+        ],
+        validation=lambda wc: [
+            f"{HF_RESULTS}/{wc.region}/data/validation/{shard}.jsonl.zst"
+            for shard in PUBLICATION_VALIDATION_SHARDS
+        ],
+        card=f"{HF_RESULTS}/{{region}}/README.md",
     output:
         f"{RESULTS}/upload.done/{{region}}",
     wildcard_constraints:
@@ -156,10 +254,14 @@ rule hf_upload_dataset:
         hf_uploads=1,
     params:
         repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
-        folder=lambda wc: f"{RESULTS}/datasets/{wc.region}",
+        data_dir=lambda wc: f"{HF_RESULTS}/{wc.region}",
     shell:
-        "HF_XET_HIGH_PERFORMANCE=1 hf upload {params.repo} {params.folder} . --repo-type dataset && "
-        "mkdir -p $(dirname {output}) && touch {output}"
+        """
+        HF_XET_HIGH_PERFORMANCE=1 hf upload-large-folder {params.repo} --repo-type dataset {params.data_dir}
+        HF_XET_HIGH_PERFORMANCE=1 hf upload {params.repo} {input.card} README.md --repo-type dataset
+        mkdir -p $(dirname {output})
+        touch {output}
+        """
 
 
 rule all_hf:

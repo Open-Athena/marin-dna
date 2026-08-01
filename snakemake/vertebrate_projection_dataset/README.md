@@ -214,11 +214,12 @@ workdir sync, so an existing NVMe copy cannot bypass validation.
 
 ## Splits and output datasets
 
-Each configured region cohort gets one directory containing both
-`train.parquet` and `validation.parquet`:
+Each configured region cohort first gets internal `train.parquet` and
+`validation.parquet` files. Parquet is the efficient projection, split, and
+card-count intermediate; it is not the published training format.
 
-- training contains only non-chromosome-18 human source anchors and may include
-  configured reverse-complement augmentation;
+- training contains only non-chromosome-18 human source anchors and includes
+  the configured reverse-complement augmentation;
 - validation candidates are original-orientation rows from chromosome-18 human
   source anchors;
 - the deterministic SHA-256 sampler first represents every eligible species,
@@ -230,7 +231,9 @@ Each configured region cohort gets one directory containing both
 Each cohort also writes `validation_selection.tsv`,
 `validation_species_counts.tsv`, and `split_summary.json`, including the seed,
 stable row IDs, per-species eligible/selected counts, and realized token count.
-At 16,384 rows, validation has exactly 4,194,304 tokens including BOS.
+At 16,384 rows, validation has exactly 4,194,304 tokens including BOS. These QC
+sidecars remain in the pipeline results and are never copied into the Hugging
+Face artifact directory.
 
 The full tier additionally writes `datasets/cds_mammals_only/`, which applies
 the CDS label after the complete shared projection/acceptance pass and then
@@ -240,22 +243,44 @@ retains only `human_reference` and `zoonomia_cactus` rows. The regular
 coordinate, acceptance, split, augmentation, or sampling rule differs between
 them.
 
-Generated dataset cards contain the exact committed pipeline SHA, split row
-counts, schema, and selected species counts. Their `default` Hugging Face config
-loads only `train.parquet` and `validation.parquet`; the TSV/JSON validation QC
-sidecars remain repository artifacts rather than dataset shards. Uploads are
-serialized and use the installed Xet client in high-performance mode on the
-dedicated worker. Review the cards before the explicit
-upload target:
+For Hugging Face, `all_hf_files` follows the established Zoonomia publication
+path: deterministically shuffle each split, write 64 full-tier train shards
+(four in smoke) and one validation shard as JSONL, then zstd-compress them.
+Each isolated `hf/<cohort>/` directory contains only:
+
+```text
+README.md
+data/train/shard_NNNN.jsonl.zst
+data/validation/shard_0000.jsonl.zst
+```
+
+Generated cards contain the exact committed pipeline SHA, split row counts,
+schema, selected species counts, and explicit `data/<split>/*.jsonl.zst`
+loader paths. Build these review artifacts without external writes:
 
 ```bash
 uv run snakemake \
   --snakefile snakemake/vertebrate_projection_dataset/workflow/Snakefile \
-  all_hf
+  all_hf_files
 ```
 
-`all_hf` writes external Hugging Face state and is intentionally not a default
-target. `config/HF_DATASET_CARD_TEMPLATE.md` is the pre-run review draft.
+After explicit human approval, `all_hf` serially uploads only those isolated
+artifact directories with the Xet client. It writes external Hugging Face state
+and is intentionally neither a default target nor part of `all_hf_files`.
+`config/HF_DATASET_CARD_TEMPLATE.md` is the pre-run review draft.
+
+### Intentional differences from the Zoonomia-only publisher
+
+- each repository has both `train` and `validation`, as required by #417;
+- validation is the fixed chromosome-18, original-orientation sample rather
+  than a second repository;
+- rows carry the expanded human-source, taxonomy, backend, and mapping
+  provenance schema; and
+- reverse complements are materialized in the auditable internal train split
+  before the established shuffle/shard step.
+
+The published encoding and layout remain JSONL.zst; internal Parquet and every
+QC TSV/JSON/Parquet stay off Hugging Face.
 
 ## QC and manual review
 

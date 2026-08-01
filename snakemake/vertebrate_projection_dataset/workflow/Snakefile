@@ -16,4 +16,4 @@ rule all:
         f"{RESULTS}/qc/manual_inspection.md",
         expand(f"{RESULTS}/datasets/{{region}}/train.parquet", region=COHORTS),
         expand(f"{RESULTS}/datasets/{{region}}/validation.parquet", region=COHORTS),
-        expand(f"{RESULTS}/datasets/{{region}}/README.md", region=COHORTS),
+        expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
