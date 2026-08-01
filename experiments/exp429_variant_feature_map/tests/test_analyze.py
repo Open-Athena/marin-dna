@@ -8,6 +8,7 @@ from analyze import (
     choose_transform,
     column_stats,
     fit_probe,
+    max_absolute_matrix,
     select_individual_feature,
 )
 
@@ -19,6 +20,17 @@ def test_column_stats_sparse_matches_dense() -> None:
     sparse_stats = column_stats(sparse.csr_matrix(dense), indices)
     for dense_value, sparse_value in zip(dense_stats, sparse_stats, strict=True):
         np.testing.assert_allclose(dense_value, sparse_value, rtol=1e-6, atol=1e-6)
+
+
+def test_max_absolute_matrix_preserves_the_larger_orientation_response() -> None:
+    forward = sparse.csr_matrix(np.array([[0, -3, 2], [4, 0, -1]], dtype=np.float32))
+    reverse = sparse.csr_matrix(np.array([[5, 1, -2], [-2, -6, 0]], dtype=np.float32))
+
+    observed = max_absolute_matrix(forward, reverse).toarray()
+
+    np.testing.assert_array_equal(
+        observed, np.array([[5, 3, 2], [4, 6, 1]], dtype=np.float32)
+    )
 
 
 def test_select_individual_feature_uses_discovery_and_validation() -> None:

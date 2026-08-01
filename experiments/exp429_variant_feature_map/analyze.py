@@ -26,7 +26,7 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-ORIENTATIONS = ("forward", "reverse_complement", "mean")
+ORIENTATIONS = ("forward", "reverse_complement", "mean", "max_absolute")
 SPACES = ("sae",)
 TRANSFORMS = ("signed", "absolute")
 TOP_CANDIDATES = 64
@@ -88,6 +88,27 @@ def transform_matrix(
         output.data = np.abs(output.data)
         return output
     return np.abs(np.asarray(matrix))
+
+
+def max_absolute_matrix(
+    forward: sparse.csr_matrix, reverse_complement: sparse.csr_matrix
+) -> sparse.csr_matrix:
+    """Return rowwise max(|delta FWD|, |delta RC|) without densifying."""
+
+    assert forward.shape == reverse_complement.shape
+    forward_absolute = transform_matrix(forward, "absolute")
+    reverse_absolute = transform_matrix(reverse_complement, "absolute")
+    assert sparse.issparse(forward_absolute)
+    assert sparse.issparse(reverse_absolute)
+    output = forward_absolute.maximum(reverse_absolute).tocsr()
+    output.eliminate_zeros()
+    output.sort_indices()
+    return output
+
+
+def transforms_for_orientation(orientation: str) -> tuple[str, ...]:
+    assert orientation in ORIENTATIONS
+    return ("signed",) if orientation == "max_absolute" else TRANSFORMS
 
 
 def column_stats(
@@ -411,7 +432,8 @@ def plot_summary(
     columns = [
         ("forward", "sae", "FWD SAE"),
         ("reverse_complement", "sae", "RC SAE"),
-        ("mean", "sae", "mean SAE"),
+        ("mean", "sae", "signed mean SAE"),
+        ("max_absolute", "sae", "max absolute SAE"),
     ]
     heatmap = np.full((len(class_order), len(columns)), np.nan)
     for row_index, class_name in enumerate(class_order):
@@ -543,10 +565,13 @@ def analyze(
     mean_sae.eliminate_zeros()
     mean_sae.sort_indices()
     matrices[("mean", "sae")] = mean_sae
+    matrices[("max_absolute", "sae")] = max_absolute_matrix(
+        matrices[("forward", "sae")], matrices[("reverse_complement", "sae")]
+    )
     individual_rows: list[dict[str, Any]] = []
     for orientation in ORIENTATIONS:
         for space in SPACES:
-            for transform in TRANSFORMS:
+            for transform in transforms_for_orientation(orientation):
                 transformed = transform_matrix(
                     matrices[(orientation, space)], transform
                 )
@@ -607,7 +632,7 @@ def analyze(
     confusion_data: list[dict[str, Any]] = []
     for orientation in ORIENTATIONS:
         for space in SPACES:
-            for transform in TRANSFORMS:
+            for transform in transforms_for_orientation(orientation):
                 transformed = transform_matrix(
                     matrices[(orientation, space)], transform
                 )
@@ -680,6 +705,10 @@ def analyze(
             "spaces": list(SPACES),
             "context_radius": CONTEXT_RADIUS,
             "orientation_order": list(ORIENTATIONS),
+            "orientation_aggregates": {
+                "mean": "(delta_forward + delta_reverse_complement) / 2",
+                "max_absolute": "max(abs(delta_forward), abs(delta_reverse_complement))",
+            },
         },
     }
     write_json(output_dir / "results.json", summary)

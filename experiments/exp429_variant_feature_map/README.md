@@ -114,8 +114,9 @@ uv run python analyze.py \
 Feature and transform selection use discovery/validation blocks only. Test AUPRC
 and macro-F1 are read once, with AUPRC intervals bootstrapped over held-out 1 Mb
 blocks. An interval is omitted when a class has positives in fewer than two test
-blocks because spatial uncertainty is not identifiable. The script reports FWD
-and RC separately before the fixed arithmetic-mean view, then writes activating
+blocks because spatial uncertainty is not identifiable. The script reports FWD and RC separately, uses signed same-ID mean as the primary
+aggregate, reports `max(|ΔFWD|, |ΔRC|)` as the declared sensitivity view, then
+writes activating
 reference/alternate contexts for the selected SAE features.
 
 For the SAE-only multiclass check, `sky.analysis.yaml` uses the same warm
