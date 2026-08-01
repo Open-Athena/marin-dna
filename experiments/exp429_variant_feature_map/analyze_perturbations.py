@@ -106,7 +106,9 @@ def codon_context_selectivity(
 ) -> pl.DataFrame:
     """Compute within-context semantic-target versus other-codon responses."""
 
-    coding = responses.filter(pl.col("perturbation_type") == "codon_sweep")
+    coding = responses.filter(
+        pl.col("perturbation_type").is_in(["codon_sweep", "coding_one_edit"])
+    )
     if edit_distance is not None:
         assert edit_distance == 1 or edit_distance == 2 or edit_distance == 3
         coding = coding.filter(pl.col("edit_distance") == edit_distance)
@@ -273,7 +275,9 @@ def build_response_frame(
     primary = pl.concat(primary_frames, how="vertical").sort("perturbation_row")
     assert primary.height == panel.height
 
-    coding = panel.filter(pl.col("perturbation_type") == "codon_sweep")
+    coding = panel.filter(
+        pl.col("perturbation_type").is_in(["codon_sweep", "coding_one_edit"])
+    )
     row_indices = coding["perturbation_row"].to_numpy()
     comparison_index = feature_index[int(COMPARISON_SPEC["feature_id"])]
     forward = (
@@ -358,7 +362,9 @@ def codon_summaries(
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Summarize response by designed consequence and alternate codon identity."""
 
-    coding = responses.filter(pl.col("perturbation_type") == "codon_sweep")
+    coding = responses.filter(
+        pl.col("perturbation_type").is_in(["codon_sweep", "coding_one_edit"])
+    )
     consequence = (
         coding.group_by(
             "analysis_feature_id",

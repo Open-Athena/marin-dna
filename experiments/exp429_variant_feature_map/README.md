@@ -187,6 +187,23 @@ unchanged.
 uv run python launch.py heldout-perturbations --commit "$COMMIT" --execute
 ```
 
+
+After retrieval and hash verification, the held-out analysis applies the same
+fixed feature/reducer specifications. Its splice endpoint is the preregistered
+mean response at acceptor positions {-1, 0} or donor positions {-4, -3} minus
+the remaining saturated positions, bootstrapped over the 64 source contexts.
+Its coding endpoint is the same within-context target-consequence minus other
+one-edit codon response used by the primary causal analysis.
+
+```bash
+export HELDOUT_ANALYSIS_COMMIT="$(git rev-parse HEAD)"
+uv run python analyze_heldout_perturbations.py \
+  --panel ../../scratch/issue429/retrieval/heldout-perturbation-design-r1/perturbation_panel.parquet \
+  --design-manifest ../../scratch/issue429/retrieval/heldout-perturbation-design-r1/manifest.json \
+  --extraction-dir ../../scratch/issue429/retrieval/heldout-perturbation-extraction-r1 \
+  --output-dir ../../scratch/issue429/heldout-perturbation-analysis-r1
+```
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
