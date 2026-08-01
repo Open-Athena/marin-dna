@@ -80,6 +80,28 @@ sky down exp431-cpu -y
 
 Discovery retains 16 feature/view candidates per concept; validation requires the same effect sign and chooses the largest absolute effect; test reports a 2,000-sample equal-context bootstrap interval. FWD/RC component intervals and mutation-position/codon profiles are retained.
 
+### 5. Whole-dictionary synonymous sensitivity
+
+The registered geometry-constrained synonymous candidate failed its held-out test, so the mandatory sensitivity searches all 15,360 features. Discovery and validation are one job that cannot see the test panel; only the frozen selection artifact is retrieved before a separate test job is launched.
+
+~~~bash
+sky launch -c exp431-fresh-lambda sky.synonymous-search.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT \
+  --env DICTIONARY_NAME=rc-balanced-normalized-seed288 -y
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/synonymous-existing/selection/ \
+  ../../scratch/issue431/retrieval/synonymous-existing/selection/
+
+sky launch -c exp431-fresh-lambda sky.synonymous-test.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT \
+  --env DICTIONARY_NAME=rc-balanced-normalized-seed288 -y
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/synonymous-existing/test-analysis/ \
+  ../../scratch/issue431/retrieval/synonymous-existing/test-analysis/
+~~~
+
+The test command mounts only the test panel, the already frozen selection, and the candidate SAE. Full-dictionary activation arrays stay on the remote instance; only manifests, selection tables, and final test artifacts are retrieved.
+
 ## Fresh seed-289 stage
 
 The preregistered fresh arm is reported block 10 at the exact 5,000,550-activation endpoint. `train_seed289.py` narrows the successful #426 path to that one hook and one budget while retaining its optimizer, BatchTopK hyperparameters, 100-batch scalar normalization estimate, pinned data order, exact FWD/RC balance, and export diagnostics. It emits no auxiliary layer or 25M arms. The gLM is bf16, the SAE is fp32, and two LLM batches are prefetched. The tested eager path remains mandatory because #426 found that `torch.compile` dropped the dynamic multi-hook cache.
