@@ -1,0 +1,19 @@
+# Minimal capacity claim for issue #430.
+#
+# This task intentionally does not install dependencies or run a benchmark. It
+# provisions one Lambda GH200, verifies the device, and leaves the SkyPilot
+# cluster UP so the reproducible benchmark environment can be staged without
+# risking loss of scarce capacity.
+
+name: dna-issue430-gh200-claim
+
+resources:
+  accelerators: GH200:1
+  cloud: lambda
+  disk_size: 128
+  labels:
+    project: dna
+
+run: |
+  set -euxo pipefail
+  nvidia-smi
