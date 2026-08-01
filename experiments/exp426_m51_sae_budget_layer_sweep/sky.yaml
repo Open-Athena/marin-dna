@@ -21,6 +21,7 @@ file_mounts:
 envs:
     RUN_ID: dna-exp426-layer-budget-seed288
     EXPERIMENT_COMMIT: ""
+    COMPILE_LLM: "1"
     COMPUTE_PROVIDER: lambda
     COMPUTE_INSTANCE_TYPE: gpu_1x_h100_pcie
     SKYPILOT_CLUSTER_NAME: exp426-lambda
@@ -40,6 +41,11 @@ run: |
     set -euxo pipefail
 
     export PATH="$HOME/.local/bin:$PATH"
+    COMPILE_ARGS=()
+    if [ "$COMPILE_LLM" = "0" ]; then
+        COMPILE_ARGS=(--no-compile)
+    fi
+
     export HF_HUB_DOWNLOAD_TIMEOUT=120
     export UV_LOCK_TIMEOUT=7200
     export EXPERIMENT_COMMIT
@@ -47,7 +53,8 @@ run: |
 
     uv run --no-dev python train.py \
         --run-id "$RUN_ID" \
-        --output-root artifacts
+        --output-root artifacts \
+        "${COMPILE_ARGS[@]}"
 
     uv run --no-dev python extract.py \
         --panel /home/ubuntu/exp426_inputs/panel/panel.parquet \
@@ -55,7 +62,8 @@ run: |
         --fasta /home/ubuntu/exp426_inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
         --models-root "artifacts/$RUN_ID/models" \
         --output-dir "artifacts/$RUN_ID/extraction" \
-        --batch-size 16
+        --batch-size 16 \
+        "${COMPILE_ARGS[@]}"
 
     uv run --no-dev python analyze.py \
         --extraction-dir "artifacts/$RUN_ID/extraction" \
