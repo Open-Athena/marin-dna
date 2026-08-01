@@ -272,6 +272,8 @@ uv run snakemake \
 After explicit human approval, `all_hf` serially uploads only those isolated
 artifact directories with the Xet client. It writes external Hugging Face state
 and is intentionally neither a default target nor part of `all_hf_files`.
+The large-folder client uses one worker per repository to avoid overwhelming
+the Hub LFS batch endpoint; interrupted uploads are resumable.
 `config/HF_DATASET_CARD_TEMPLATE.md` is the pre-run review draft.
 
 ### Intentional differences from the Zoonomia-only publisher

@@ -48,6 +48,7 @@ region_cohorts:
 
 hf_owner: marin-dna
 hf_repo_prefix: vertebrate-v1
+hf_upload_workers: 1
 
 # v4 region labeling from issue #227, pinned independently here.
 region_label_tss_radius: 256

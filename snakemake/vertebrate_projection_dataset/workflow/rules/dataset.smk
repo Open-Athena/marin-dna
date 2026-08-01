@@ -255,9 +255,10 @@ rule hf_upload_dataset:
     params:
         repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
         data_dir=lambda wc: f"{HF_RESULTS}/{wc.region}",
+        workers=int(config["hf_upload_workers"]),
     shell:
         """
-        HF_XET_HIGH_PERFORMANCE=1 hf upload-large-folder {params.repo} --repo-type dataset {params.data_dir}
+        HF_XET_HIGH_PERFORMANCE=1 hf upload-large-folder {params.repo} --repo-type dataset --num-workers {params.workers} {params.data_dir}
         HF_XET_HIGH_PERFORMANCE=1 hf upload {params.repo} {input.card} README.md --repo-type dataset
         mkdir -p $(dirname {output})
         touch {output}
