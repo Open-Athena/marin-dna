@@ -612,6 +612,7 @@ def write_inspection_files(
     rows_per_region: int,
     fragmented_rows: int,
     rejected_rows_per_reason: int,
+    require_zrs: bool = True,
 ) -> None:
     """Write bounded-memory deterministic samples and a pending review report."""
     assert rows_per_region > 0
@@ -633,7 +634,8 @@ def write_inspection_files(
     zrs_rows = sequences.filter(
         pl.col("query_name").str.to_lowercase().str.starts_with("zrs_")
     ).collect(engine="streaming")
-    assert_zrs_broad_recovery(zrs_rows)
+    if require_zrs:
+        assert_zrs_broad_recovery(zrs_rows)
     candidate_query_names.update(zrs_rows["query_name"].unique().to_list())
 
     # Select a small set of candidate anchors with Polars' bounded top-k, then
@@ -727,7 +729,9 @@ def write_inspection_files(
     sample.write_csv(sample_path, separator="\t")
     rejected_sample.write_csv(rejected_sample_path, separator="\t")
     Path(report_path).write_text(
-        render_inspection_report(sample, rejected_sample, seed=seed)
+        render_inspection_report(
+            sample, rejected_sample, seed=seed, require_zrs=require_zrs
+        )
     )
 
 

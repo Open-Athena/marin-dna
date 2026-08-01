@@ -265,12 +265,14 @@ The default DAG writes:
   q75/q90, mean fraction, and fraction of anchors reaching the clade; and
 - `qc/manual_inspection.md` plus accepted/rejected TSV samples.
 
-The inspection sample deterministically includes several CDS and cCRE rows,
-accepted fragmented mappings when present, explicit rejection examples, and
-human plus backend/clade representatives for both ZRS anchors. Automated checks
-fail unless each ZRS anchor recovers at least two non-mammal clades. The report
-remains marked **pending human review** until a reviewer completes its UCSC/raw
-MAF and HAL coordinate spot checks and records any exclusions.
+The full-dataset inspection sample deterministically includes several CDS and
+cCRE rows, accepted fragmented mappings when present, and explicit rejection
+examples. ZRS is QC only: the two named loci are projected in a separate
+sidecar check and are intentionally not appended to the conservation-filtered
+training grid. The smoke/sidecar check fails unless each ZRS anchor recovers at
+least two non-mammal clades. Both reports remain marked **pending human review**
+until a reviewer completes the UCSC/raw MAF and HAL coordinate spot checks and
+records any exclusions.
 
 Compare aggregate CDS breadth with cCRE/enhancer breadth after the real build;
 broader CDS recovery is a biological expectation, not a per-anchor invariant.

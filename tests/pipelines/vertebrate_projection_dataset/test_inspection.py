@@ -211,3 +211,25 @@ def test_streaming_inspection_materializes_only_sample_candidates(
     assert {"zrs_one", "cds_one", "ccre_one"} <= set(sample["query_name"])
     assert pl.read_csv(rejected_sample_path, separator="\t").height == 1
     assert "pending human review" in report_path.read_text()
+
+    full_sequences_path = tmp_path / "full-sequences.parquet"
+    rows.filter(
+        ~pl.col("query_name").str.to_lowercase().str.starts_with("zrs_")
+    ).write_parquet(full_sequences_path)
+    full_report_path = tmp_path / "full-report.md"
+    write_inspection_files(
+        full_sequences_path,
+        [str(rejected_path)],
+        tmp_path / "full-sample.tsv",
+        tmp_path / "full-rejected.tsv",
+        full_report_path,
+        seed=7,
+        rows_per_region=1,
+        fragmented_rows=1,
+        rejected_rows_per_reason=1,
+        require_zrs=False,
+    )
+
+    full_report = full_report_path.read_text()
+    assert "separate sidecar QC" in full_report
+    assert "intentionally absent from the conservation-filtered grid" in full_report

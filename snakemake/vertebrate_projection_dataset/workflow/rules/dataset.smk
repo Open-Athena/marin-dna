@@ -79,6 +79,7 @@ rule projection_inspection_report:
             rejected_rows_per_reason=int(
                 config["inspection_rejected_rows_per_reason"]
             ),
+            require_zrs=TIER == "smoke",
         )
 
 

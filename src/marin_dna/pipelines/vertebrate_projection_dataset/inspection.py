@@ -235,7 +235,11 @@ def assert_zrs_broad_recovery(rows: pl.DataFrame, *, minimum_clades: int = 2) ->
 
 
 def render_inspection_report(
-    sample: pl.DataFrame, rejected_sample: pl.DataFrame, *, seed: int
+    sample: pl.DataFrame,
+    rejected_sample: pl.DataFrame,
+    *,
+    seed: int,
+    require_zrs: bool = True,
 ) -> str:
     """Render a reviewable Markdown checklist without claiming human approval."""
     assert not sample.is_empty()
@@ -244,6 +248,20 @@ def render_inspection_report(
         for name in sample["query_name"].unique().to_list()
         if str(name).lower().startswith("zrs_")
     )
+    if require_zrs:
+        assert zrs_names, "required ZRS controls are absent from inspection sample"
+        zrs_status = f"required ZRS anchors: `{', '.join(zrs_names)}`."
+        zrs_checklist = (
+            "- [ ] Inspect both ZRS anchors across human, mammals, and recovered "
+            "non-mammal clades."
+        )
+    else:
+        assert not zrs_names, "sidecar ZRS controls must not enter the full dataset"
+        zrs_status = (
+            "ZRS positive control: separate sidecar QC; intentionally absent from "
+            "the conservation-filtered grid."
+        )
+        zrs_checklist = "- [ ] Review the separate ZRS sidecar QC before upload."
     table_lines = [
         "| Human interval | Anchor | Species | Backend | Clade recovery | Target | Strand | Coverage | Gaps | Fragments | Reason |",
         "|---|---|---|---|---|---|---:|---:|---:|---:|---|",
@@ -302,12 +320,12 @@ def render_inspection_report(
     return (
         "# Manual projection inspection\n\n"
         f"Status: **pending human review**. Deterministic sample seed: `{seed}`. "
-        f"Rows: `{sample.height}`; required ZRS anchors: `{', '.join(zrs_names)}`.\n\n"
+        f"Rows: `{sample.height}`; {zrs_status}\n\n"
         "Automated prechecks passed for every listed row: 255 bp sequence and target "
         "span, valid IUPAC DNA, non-negative 0-based half-open coordinates, and target "
         "bounds within the source assembly sequence.\n\n"
         "## Human checklist\n\n"
-        "- [ ] Inspect both ZRS anchors across human, mammals, and recovered non-mammal clades.\n"
+        f"{zrs_checklist}\n"
         "- [ ] Confirm reverse-strand rows are oriented to the human anchor.\n"
         "- [ ] Confirm fragmented mappings are biologically plausible and not duplicated.\n"
         "- [ ] Cross-check selected MultiZ rows against the UCSC browser or staged raw MAF.\n"
