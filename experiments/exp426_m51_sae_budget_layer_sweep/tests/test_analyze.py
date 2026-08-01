@@ -7,6 +7,12 @@ from scipy import sparse
 from sklearn.metrics import roc_auc_score
 
 from analyze import bootstrap_mean_ap, make_views, select_feature
+from coding_semantics import (
+    RawCdsSegment,
+    annotate_transcript_hit,
+    build_transcript,
+    parse_gtf_attributes,
+)
 from controls import make_baseline_designs, matched_substitution_auc
 from pairwise import bootstrap_pairwise_metrics, load_selected_activations
 
@@ -123,3 +129,87 @@ def test_matched_substitution_auc_removes_allele_spectrum_signal() -> None:
     scores = np.asarray([0.0] * 4 + [1.0] * 4)
     assert roc_auc_score(positive, scores) > 0.5
     assert matched_substitution_auc(scores, positive, substitutions) == 0.5
+
+
+def test_parse_gtf_attributes_preserves_repeated_tags() -> None:
+    attributes = parse_gtf_attributes(
+        'gene_id "g1"; transcript_id "t1"; tag "basic"; tag "MANE_Select";'
+    )
+    assert attributes == {
+        "gene_id": ["g1"],
+        "transcript_id": ["t1"],
+        "tag": ["basic", "MANE_Select"],
+    }
+
+
+def test_build_transcript_assigns_offsets_across_plus_strand_exons() -> None:
+    transcript = build_transcript(
+        transcript_id="plus",
+        gene_id="gene",
+        gene_name="GENE",
+        strand="+",
+        tags=["MANE_Select"],
+        segments=[
+            RawCdsSegment(start0=10, end0=14, phase=0),
+            RawCdsSegment(start0=20, end0=25, phase=2),
+        ],
+    )
+    assert transcript.phase_consistent
+    assert transcript.coding_offset(10) == 0
+    assert transcript.coding_offset(13) == 3
+    assert transcript.coding_offset(20) == 4
+    assert transcript.genomic_position0(3) == 13
+    assert transcript.genomic_position0(4) == 20
+
+
+def test_build_transcript_assigns_offsets_in_negative_transcript_order() -> None:
+    transcript = build_transcript(
+        transcript_id="minus",
+        gene_id="gene",
+        gene_name="GENE",
+        strand="-",
+        tags=[],
+        segments=[
+            RawCdsSegment(start0=10, end0=15, phase=2),
+            RawCdsSegment(start0=20, end0=24, phase=0),
+        ],
+    )
+    assert transcript.phase_consistent
+    assert transcript.coding_offset(23) == 0
+    assert transcript.coding_offset(20) == 3
+    assert transcript.coding_offset(14) == 4
+    assert transcript.genomic_position0(3) == 20
+    assert transcript.genomic_position0(4) == 14
+
+
+def test_annotate_transcript_hit_reconstructs_exon_spanning_codon() -> None:
+    transcript = build_transcript(
+        transcript_id="plus",
+        gene_id="gene",
+        gene_name="GENE",
+        strand="+",
+        tags=["MANE_Select"],
+        segments=[
+            RawCdsSegment(start0=10, end0=14, phase=0),
+            RawCdsSegment(start0=20, end0=25, phase=2),
+        ],
+    )
+    genome = {10: "A", 11: "T", 12: "G", 13: "G", 20: "A", 21: "A"}
+
+    def fetch_base(position0: int, strand: str) -> str:
+        assert strand == "+"
+        return genome[position0]
+
+    hit = annotate_transcript_hit(
+        transcript,
+        position0=20,
+        ref="A",
+        alt="G",
+        fetch_base=fetch_base,
+    )
+    assert hit is not None
+    assert hit["codon_position"] == 2
+    assert hit["ref_codon"] == "GAA"
+    assert hit["alt_codon"] == "GGA"
+    assert hit["amino_acid_change"] == "E>G"
+    assert hit["predicted_consequence"] == "missense_variant"
