@@ -176,3 +176,73 @@ def test_prepare_shards_preserves_all_columns(tmp_path: Path) -> None:
     line = Path(shard_paths[0]).read_text().splitlines()[0]
     row = json.loads(line)
     assert expected_cols.issubset(set(row.keys()))
+
+
+def test_prepare_shards_streaming_is_balanced_and_reproducible(
+    tmp_path: Path,
+) -> None:
+    src = _make_source_parquet(tmp_path, n_rows=23)
+    out1 = [str(tmp_path / "a" / f"shard_{i:04d}.jsonl") for i in range(4)]
+    out2 = [str(tmp_path / "b" / f"shard_{i:04d}.jsonl") for i in range(4)]
+
+    prepare_shards(
+        src,
+        out1,
+        add_rc=False,
+        shuffle_seed=7,
+        max_in_memory_rows=1,
+    )
+    prepare_shards(
+        src,
+        out2,
+        add_rc=False,
+        shuffle_seed=7,
+        max_in_memory_rows=1,
+    )
+
+    sizes = [len(Path(path).read_text().splitlines()) for path in out1]
+    assert sizes == [6, 6, 6, 5]
+    for path1, path2 in zip(out1, out2):
+        assert Path(path1).read_bytes() == Path(path2).read_bytes()
+
+    rows = [
+        json.loads(line)
+        for path in out1
+        for line in Path(path).read_text().splitlines()
+    ]
+    assert {row["query_name"] for row in rows} == {f"win_1_{i:09d}" for i in range(23)}
+    assert all(not key.startswith("__marin_") for row in rows for key in row)
+
+
+def test_prepare_shards_streaming_seed_changes_order_and_supports_rc(
+    tmp_path: Path,
+) -> None:
+    src = _make_source_parquet(tmp_path, n_rows=10)
+    out1 = [str(tmp_path / "a" / f"shard_{i:04d}.jsonl") for i in range(3)]
+    out2 = [str(tmp_path / "b" / f"shard_{i:04d}.jsonl") for i in range(3)]
+
+    prepare_shards(
+        src,
+        out1,
+        add_rc=True,
+        shuffle_seed=7,
+        max_in_memory_rows=1,
+    )
+    prepare_shards(
+        src,
+        out2,
+        add_rc=True,
+        shuffle_seed=8,
+        max_in_memory_rows=1,
+    )
+
+    rows = [
+        json.loads(line)
+        for path in out1
+        for line in Path(path).read_text().splitlines()
+    ]
+    assert len(rows) == 20
+    assert {row["augmentation"] for row in rows} == {"+", "-"}
+    assert "".join(Path(path).read_text() for path in out1) != "".join(
+        Path(path).read_text() for path in out2
+    )

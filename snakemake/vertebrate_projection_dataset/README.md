@@ -110,6 +110,11 @@ soft-masked case from the 2bit source is preserved. A full-species benchmark
 took 5.7 s at 2.1 GiB peak RSS, so sequence rules reserve 4 GB. Sequence
 combination, non-chromosome-18 training writes, QC aggregation, and inspection
 candidate selection use lazy streaming scans.
+Publication sharding retains the established deterministic eager shuffle for
+inputs of at most 100 million post-augmentation rows. Larger inputs use a
+deterministic hash sort and balanced partitioned NDJSON sink in Polars'
+streaming engine, allowing the sort to spill rather than materializing the
+entire publication cohort in RAM.
 The conservation-filtered anchor BED is compressed through a temporary plain
 file, fully decompressed to verify its row count, and atomically installed only
 after the gzip stream passes its CRC check.
