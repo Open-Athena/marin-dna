@@ -11,19 +11,23 @@ assignees: ''
 
 ## Question
 
-(What we're trying to learn, 2–4 sentences, written for a reader who knows genomics and ML broadly but not this thread.)
+<!-- What are we trying to learn? Write 2–4 sentences for a reader who knows the broad field but not this research thread. -->
 
 ## Current findings
 
-(Living — edited as results settle across experiments. Plots via gist links.)
+<!-- Living synthesis, edited as results settle across experiments. Embed plots via gist links. -->
 
 ## Related experiments & EDAs
 
-(Curated links to the issues bearing on this question, added as they accrue. Many-to-many: an experiment may inform several questions, and this is a plain reference list, not sub-issue metadata.)
+<!-- Curated links to issues bearing on this question. The relationship is many-to-many and uses plain issue references, not sub-issue metadata. -->
+
+## Relevant literature
+
+<!-- Curated, not exhaustive. Include work only when it materially changes the current answer or experiment program. Add each entry below as visible Markdown and briefly record the work's setup, main findings, methodological implications, hypotheses or observables it suggests, and remaining gap. -->
 
 ## Open questions
 
-(Edited, not appended.)
+<!-- Living list, edited rather than appended. -->
 
 ---
 

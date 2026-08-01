@@ -11,17 +11,23 @@ assignees: ''
 
 ## Question
 
-(What we're poking at and why — 2–4 sentences.)
+<!-- What are we poking at and why? Write 2–4 sentences. -->
+
+## Informs research-question(s)
+
+<!-- Plain references to any research-question issues this EDA bears on. Optional and many-to-many; do not use sub-issue metadata. -->
 
 ## Approach
 
-(Data inputs, methods, link to any `snakemake/analysis/<name>/` pipeline.)
+<!-- Record data inputs, methods, and a link to any relevant pipeline. -->
 
 ## Findings
 
-(Living — edited as results settle. Plots via gist links.)
+<!-- Living synthesis, edited as results settle. Embed plots via gist links. -->
 
 ## Open questions / next steps
+
+<!-- Living list, edited rather than appended. -->
 
 ---
 
