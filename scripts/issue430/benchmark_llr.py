@@ -231,9 +231,6 @@ def main() -> None:
         "prefetch_factor": args.prefetch_factor,
         "torch_compile": args.torch_compile,
         "compile_mode": args.compile_mode,
-        "quantization": args.quantization,
-        "quantization_seconds": quantization_seconds,
-        "quantized_linear_count": quantized_linear_count,
         "use_bf16_autocast": True,
     }
     if args.batching == "fused":
@@ -282,6 +279,9 @@ def main() -> None:
         "prefetch_factor": args.prefetch_factor,
         "torch_compile": args.torch_compile,
         "compile_mode": args.compile_mode,
+        "quantization": args.quantization,
+        "quantization_seconds": quantization_seconds,
+        "quantized_linear_count": quantized_linear_count,
         "preprocessing_seconds": preprocessing_seconds,
         "model_load_seconds": model_load_seconds,
         "warmup_seconds": benchmark.warmup_seconds,
