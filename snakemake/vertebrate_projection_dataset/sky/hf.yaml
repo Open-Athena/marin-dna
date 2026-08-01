@@ -13,7 +13,8 @@ resources:
 workdir: .
 
 file_mounts:
-  ~/.cache/huggingface: ~/.cache/huggingface
+  ~/.cache/huggingface/token: ~/.cache/huggingface/token
+  ~/.cache/huggingface/stored_tokens: ~/.cache/huggingface/stored_tokens
 
 envs:
   DATA_SNAPSHOT_SHA: 06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d
