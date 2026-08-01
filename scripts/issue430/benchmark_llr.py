@@ -76,23 +76,57 @@ class _TransformerEngineModelWrapper(nn.Module):
             return self.model(*args, **kwargs)
 
 
+def _replace_qwen3_mlps_with_transformer_engine(model: nn.Module, te: Any) -> int:
+    """Fuse each Qwen3 post-attention RMSNorm and gated MLP."""
+    backbone = getattr(model, "model", None)
+    layers = getattr(backbone, "layers", None)
+    assert layers is not None, "expected Qwen3ForCausalLM.model.layers"
+    assert len(layers) == model.config.num_hidden_layers
+
+    for layer in layers:
+        norm = layer.post_attention_layernorm
+        mlp = layer.mlp
+        assert isinstance(mlp.gate_proj, nn.Linear)
+        assert isinstance(mlp.up_proj, nn.Linear)
+        assert isinstance(mlp.down_proj, nn.Linear)
+        assert mlp.gate_proj.bias is None
+        assert mlp.up_proj.bias is None
+        assert mlp.down_proj.bias is None
+        assert norm.weight.shape == (mlp.gate_proj.in_features,)
+        fused = te.LayerNormMLP(
+            hidden_size=mlp.gate_proj.in_features,
+            ffn_hidden_size=mlp.gate_proj.out_features,
+            eps=norm.variance_epsilon,
+            bias=False,
+            normalization="RMSNorm",
+            activation="swiglu",
+            params_dtype=mlp.gate_proj.weight.dtype,
+            device=mlp.gate_proj.weight.device,
+        )
+        expected_fc1 = torch.cat([mlp.gate_proj.weight, mlp.up_proj.weight], dim=0)
+        assert fused.fc1_weight.shape == expected_fc1.shape
+        assert fused.fc2_weight.shape == mlp.down_proj.weight.shape
+        fused.layer_norm_weight.copy_(norm.weight)
+        fused.fc1_weight.copy_(expected_fc1)
+        fused.fc2_weight.copy_(mlp.down_proj.weight)
+        layer.post_attention_layernorm = nn.Identity()
+        layer.mlp = fused
+
+    return len(layers)
+
+
 def _replace_linears_with_transformer_engine(
     model: nn.Module,
     *,
     fp8_enabled: bool,
     fp8_model_init: bool,
+    fused_mlp: bool,
     amax_history_len: int,
     amax_compute_algo: str,
-) -> tuple[nn.Module, int]:
+) -> tuple[nn.Module, int, int]:
     import transformer_engine.pytorch as te
     from transformer_engine.common import recipe
 
-    selected = [
-        (name, module)
-        for name, module in model.named_modules()
-        if isinstance(module, nn.Linear) and not name.endswith("lm_head")
-    ]
-    assert selected, "no non-LM-head linear modules selected for Transformer Engine"
     assert not fp8_model_init or fp8_enabled
     fp8_recipe = recipe.DelayedScaling(
         margin=0,
@@ -107,6 +141,15 @@ def _replace_linears_with_transformer_engine(
         else nullcontext()
     )
     with torch.no_grad(), init_context:
+        fused_mlp_count = (
+            _replace_qwen3_mlps_with_transformer_engine(model, te) if fused_mlp else 0
+        )
+        selected = [
+            (name, module)
+            for name, module in model.named_modules()
+            if isinstance(module, nn.Linear) and not name.endswith("lm_head")
+        ]
+        assert selected, "no non-LM-head linear modules selected for Transformer Engine"
         for name, module in selected:
             replacement = te.Linear(
                 module.in_features,
@@ -128,6 +171,7 @@ def _replace_linears_with_transformer_engine(
             recipe=fp8_recipe,
         ),
         len(selected),
+        fused_mlp_count,
     )
 
 
@@ -138,20 +182,31 @@ def _quantize_model(
     te_amax_history_len: int,
     te_amax_compute_algo: str,
     te_fp8_model_init: bool,
-) -> tuple[nn.Module, float, int]:
+    te_fused_mlp: bool,
+) -> tuple[nn.Module, float, int, int]:
     if quantization == "none":
-        return model, 0.0, 0
+        return model, 0.0, 0, 0
 
     if quantization in ("te-bf16", "te-fp8-delayed"):
         start = time.perf_counter()
-        model, replaced_linear_count = _replace_linears_with_transformer_engine(
+        (
+            model,
+            replaced_linear_count,
+            fused_mlp_count,
+        ) = _replace_linears_with_transformer_engine(
             model,
             fp8_enabled=quantization == "te-fp8-delayed",
             fp8_model_init=te_fp8_model_init,
+            fused_mlp=te_fused_mlp,
             amax_history_len=te_amax_history_len,
             amax_compute_algo=te_amax_compute_algo,
         )
-        return model, time.perf_counter() - start, replaced_linear_count
+        return (
+            model,
+            time.perf_counter() - start,
+            replaced_linear_count,
+            fused_mlp_count,
+        )
 
     from torchao.quantization import (
         Float8DynamicActivationFloat8WeightConfig,
@@ -185,7 +240,7 @@ def _quantize_model(
         ),
     )
     quantization_seconds = time.perf_counter() - start
-    return model, quantization_seconds, len(selected_names)
+    return model, quantization_seconds, len(selected_names), 0
 
 
 def _parity_check(
@@ -329,6 +384,7 @@ def main() -> None:
         "--te-amax-compute-algo", choices=["max", "most_recent"], default="max"
     )
     parser.add_argument("--te-fp8-model-init", action="store_true")
+    parser.add_argument("--te-fused-mlp", action="store_true")
     parser.add_argument("--parity-variants", type=int, default=32)
     parser.add_argument("--price-per-hour", type=float, default=2.29)
     parser.add_argument("--out-dir", required=True)
@@ -338,6 +394,13 @@ def main() -> None:
     assert args.torch_compile or args.compile_mode is None
     assert args.te_amax_history_len > 0
     assert not args.te_fp8_model_init or args.quantization == "te-fp8-delayed"
+    assert not args.te_fused_mlp or args.quantization in (
+        "te-bf16",
+        "te-fp8-delayed",
+    )
+    assert not (args.te_fused_mlp and args.te_fp8_model_init), (
+        "fused MLP + FP8 model init is a separate, untested combination"
+    )
     if args.dynamo_recompile_limit is not None:
         assert args.torch_compile, "Dynamo recompile limit requires torch_compile=True"
         assert args.dynamo_recompile_limit > 0
@@ -372,13 +435,59 @@ def main() -> None:
     ).cuda()
     model.eval()
     model_load_seconds = time.perf_counter() - model_load_start
-    model, quantization_seconds, quantized_linear_count = _quantize_model(
+    conversion_reference = None
+    conversion_input_ids = None
+    conversion_alt_token_id = None
+    if args.te_fused_mlp:
+        conversion_rows = min(2 * args.parity_variants, len(prepared.metadata))
+        conversion_input_ids = prepared.input_ids[:conversion_rows].cuda()
+        conversion_alt_token_id = prepared.alt_token_id[:conversion_rows].cuda()
+        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+            conversion_reference = compute_variant_llr(
+                model,
+                conversion_input_ids,
+                conversion_alt_token_id,
+                var_pos=prepared.var_pos,
+                nuc_token_ids=prepared.nuc_token_ids.cuda(),
+            ).float()
+        torch.cuda.synchronize()
+
+    (
+        model,
+        quantization_seconds,
+        quantized_linear_count,
+        fused_mlp_count,
+    ) = _quantize_model(
         model,
         args.quantization,
         te_amax_history_len=args.te_amax_history_len,
         te_amax_compute_algo=args.te_amax_compute_algo,
         te_fp8_model_init=args.te_fp8_model_init,
+        te_fused_mlp=args.te_fused_mlp,
     )
+    conversion_parity = None
+    if args.te_fused_mlp:
+        assert conversion_reference is not None
+        assert conversion_input_ids is not None
+        assert conversion_alt_token_id is not None
+        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+            conversion_candidate = compute_variant_llr(
+                model,
+                conversion_input_ids,
+                conversion_alt_token_id,
+                var_pos=prepared.var_pos,
+                nuc_token_ids=prepared.nuc_token_ids.cuda(),
+            ).float()
+        torch.cuda.synchronize()
+        conversion_delta = (conversion_candidate - conversion_reference).abs()
+        assert torch.isfinite(conversion_delta).all()
+        conversion_parity = {
+            "n_rows": int(len(conversion_delta)),
+            "max_abs_llr_delta": float(conversion_delta.max().item()),
+            "mean_abs_llr_delta": float(conversion_delta.mean().item()),
+        }
+        assert conversion_parity["mean_abs_llr_delta"] <= 2.0, conversion_parity
+        assert conversion_parity["max_abs_llr_delta"] <= 20.0, conversion_parity
 
     parity = _parity_check(
         model,
@@ -465,8 +574,11 @@ def main() -> None:
             args.te_amax_compute_algo if args.quantization.startswith("te-") else None
         ),
         "te_fp8_model_init": args.te_fp8_model_init,
+        "te_fused_mlp": args.te_fused_mlp,
+        "fused_mlp_count": fused_mlp_count,
         "quantization_seconds": quantization_seconds,
         "quantized_linear_count": quantized_linear_count,
+        "conversion_parity": conversion_parity,
         "preprocessing_seconds": preprocessing_seconds,
         "model_load_seconds": model_load_seconds,
         "warmup_seconds": benchmark.warmup_seconds,

@@ -34,6 +34,8 @@ The `transformer_engine_modern` environment instead installs PyTorch 2.10 from t
 
 `te-bf16` replaces the same 133 non-LM-head linear layers with Transformer Engine `Linear` modules but disables FP8, providing a same-container/backend control. `te-fp8-delayed` enables E4M3 delayed scaling with a fixed-size amax history. Delayed scaling chooses each activation scale from historical maxima, avoiding the separate current-amax tensor read performed by dynamic scaling. Add `--te-fp8-model-init` to construct the replaced layers with FP8-only parameter storage, Transformer Engine's experimental inference-oriented pre-materialization path. The LM head remains BF16 because the seven-token output dimension is not an FP8 GEMM shape.
 
+Add `--te-fused-mlp` to replace each Qwen3 post-attention RMSNorm plus gate/up/down MLP with one Transformer Engine `LayerNormMLP`. The benchmark records pre/post-conversion LLR parity before timing; this flag is intentionally incompatible with the separate experimental `--te-fp8-model-init` combination.
+
 ```bash
 PYTHONPATH="$PWD/src" scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
   scripts/issue430/benchmark_llr.py \
