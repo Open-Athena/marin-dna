@@ -8,9 +8,23 @@ from design_perturbations import (
     coding_codon_start_index,
     codon_consequence,
     codon_sweep_rows,
+    perturbation_frame,
     select_contexts,
     splice_saturation_rows,
 )
+
+
+def test_perturbation_frame_infers_mixed_columns_beyond_first_rows() -> None:
+    rows = [
+        {"perturbation_type": "splice_saturation", "reference_codon": None}
+        for _ in range(101)
+    ]
+    rows.append({"perturbation_type": "codon_sweep", "reference_codon": "CAG"})
+
+    frame = perturbation_frame(rows)
+
+    assert frame.height == 102
+    assert frame["reference_codon"].tail(1).item() == "CAG"
 
 
 def test_select_contexts_uses_top_and_rank_spaced_controls() -> None:

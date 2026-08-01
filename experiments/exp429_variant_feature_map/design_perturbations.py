@@ -44,6 +44,15 @@ CODING_FEATURES = {"stop_gained": 3312, "synonymous_variant": 6072}
 assert len(CODONS) == 64 and set(CODONS) == set(GENETIC_CODE)
 
 
+def perturbation_frame(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    """Construct a mixed splice/coding frame without prefix-biased inference."""
+
+    assert rows
+    return pl.DataFrame(rows, infer_schema_length=None).with_row_index(
+        "perturbation_row"
+    )
+
+
 def select_contexts(
     frame: pl.DataFrame, *, class_name: str, contexts_per_group: int
 ) -> pl.DataFrame:
@@ -350,7 +359,7 @@ def design_perturbations(
                 )
             )
 
-    panel = pl.DataFrame(rows).with_row_index("perturbation_row")
+    panel = perturbation_frame(rows)
     expected_splice_rows = (
         len(SPLICE_FEATURES) * 2 * contexts_per_group * len(SPLICE_POSITIONS) * 3
     )
