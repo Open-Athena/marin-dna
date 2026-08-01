@@ -1,0 +1,69 @@
+[project]
+name = "exp417-vertebrate-cds"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "marin-core==0.2.57.dev202607240800",
+    "marin-dupekit==0.1.1",
+    "marin-finelog==0.2.12.dev202607230825",
+    "marin-finelog-server==0.2.12.dev202607230825",
+    "marin-fray==0.2.57.dev202607240800",
+    "marin-haliax==0.2.57.dev202607240800",
+    "marin-iris==0.2.57.dev202607240800",
+    "marin-levanter==0.2.57.dev202607240800",
+    "marin-rigging==0.2.57.dev202607240800",
+    "marin-zephyr==0.2.57.dev202607240800",
+    "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@eaac2efffb73d33b87ba75bcf5521809af74fec7",
+]
+
+[project.optional-dependencies]
+tpu = [
+    "marin-core[tpu]==0.2.57.dev202607240800; sys_platform == 'linux'",
+    "torch; sys_platform == 'linux'",
+    "torchvision; sys_platform == 'linux'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "ruff>=0.15",
+]
+
+[tool.uv]
+package = false
+fork-strategy = "fewest"
+prerelease = "allow"
+environments = ["sys_platform == 'linux'"]
+override-dependencies = [
+    "aiofiles>=24.1.0",
+    "anthropic>=0.71.0",
+    "antlr4-python3-runtime==4.11",
+    "cbor2>=6.0.1",
+    "click>=8.3.1",
+    "datasets>=3.1.0,<5.0.0",
+    "equinox>=0.11.10",
+    "omegaconf>=2.4.0.dev4",
+    "pandas>=2.0,<3.0",
+    "python-multipart>=0.0.27",
+    "transformers>=5.5.3,<6.0",
+    "wheel>=0.46.2",
+]
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+resiliparse = { index = "marin-resiliparse" }
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
