@@ -25,6 +25,24 @@ PYTHONPATH="$PWD/src" uv run --project scripts/issue430/environments/hf_torchao 
   --out-dir scratch/issue430/branch-packed-compile
 ```
 
+## Transformer Engine
+
+The `transformer_engine` environment is intentionally separate from the Hugging Face/TorchAO project. It runs inside the pinned NVIDIA PyTorch `25.03-py3` container, which supplies a mutually compatible PyTorch, CUDA 12.8, cuDNN, and Transformer Engine build; its own pyproject installs only the pinned Hugging Face and analysis dependencies into a venv that can see those container packages.
+
+`te-bf16` replaces the same 133 non-LM-head linear layers with Transformer Engine `Linear` modules but disables FP8, providing a same-container/backend control. `te-fp8-delayed` enables E4M3 delayed scaling with a fixed-size amax history. Delayed scaling chooses each activation scale from historical maxima, avoiding the separate current-amax tensor read performed by dynamic scaling. Add `--te-fp8-model-init` to construct the replaced layers with FP8-only parameter storage, Transformer Engine's experimental inference-oriented pre-materialization path. The LM head remains BF16 because the seven-token output dimension is not an FP8 GEMM shape.
+
+```bash
+PYTHONPATH="$PWD/src" scripts/issue430/environments/transformer_engine/.venv/bin/python \
+  scripts/issue430/benchmark_llr.py \
+  --quantization te-fp8-delayed \
+  --te-amax-history-len 1 \
+  --te-amax-compute-algo most_recent \
+  --torch-compile --compile-mode default \
+  --dynamo-recompile-limit 64 \
+  --batching fused \
+  --out-dir scratch/issue430/te-fp8-delayed
+```
+
 ## vLLM
 
 The `vllm` environment is x86_64-only and pins vLLM 0.18.0 with PyTorch 2.10 / CUDA 12.8 compatibility. During the H100 probe, vLLM 0.26.0 selected PyTorch 2.11 / CUDA 13, which was incompatible with the host's CUDA 12.8 driver.

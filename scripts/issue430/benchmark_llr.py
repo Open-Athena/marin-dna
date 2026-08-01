@@ -7,7 +7,9 @@ import importlib.metadata
 import json
 import platform
 import time
+from contextlib import nullcontext
 from pathlib import Path
+from typing import Any
 
 import datasets
 import numpy as np
@@ -46,12 +48,109 @@ QUANTIZATION_CHOICES = [
     "int8-dynamic",
     "int8-weight-only",
     "int4-weight-only",
+    "te-bf16",
+    "te-fp8-delayed",
 ]
 
 
-def _quantize_model(model: nn.Module, quantization: str) -> tuple[float, int]:
+class _TransformerEngineModelWrapper(nn.Module):
+    """Enter Transformer Engine FP8 autocast for every HF model forward."""
+
+    def __init__(self, model: nn.Module, *, enabled: bool, recipe: Any) -> None:
+        super().__init__()
+        self.model = model
+        self.enabled = enabled
+        self.recipe = recipe
+
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
+        import transformer_engine.pytorch as te
+
+        if hasattr(te, "autocast"):
+            context = te.autocast(enabled=self.enabled, recipe=self.recipe)
+        elif self.enabled:
+            context = te.fp8_autocast(enabled=True, fp8_recipe=self.recipe)
+        else:
+            context = nullcontext()
+        with context:
+            return self.model(*args, **kwargs)
+
+
+def _replace_linears_with_transformer_engine(
+    model: nn.Module,
+    *,
+    fp8_enabled: bool,
+    fp8_model_init: bool,
+    amax_history_len: int,
+    amax_compute_algo: str,
+) -> tuple[nn.Module, int]:
+    import transformer_engine.pytorch as te
+    from transformer_engine.common import recipe
+
+    selected = [
+        (name, module)
+        for name, module in model.named_modules()
+        if isinstance(module, nn.Linear) and not name.endswith("lm_head")
+    ]
+    assert selected, "no non-LM-head linear modules selected for Transformer Engine"
+    assert not fp8_model_init or fp8_enabled
+    fp8_recipe = recipe.DelayedScaling(
+        margin=0,
+        fp8_format=recipe.Format.E4M3,
+        amax_history_len=amax_history_len,
+        amax_compute_algo=amax_compute_algo,
+        reduce_amax=False,
+    )
+    init_context = (
+        te.fp8_model_init(enabled=True, recipe=fp8_recipe)
+        if fp8_model_init
+        else nullcontext()
+    )
+    with torch.no_grad(), init_context:
+        for name, module in selected:
+            replacement = te.Linear(
+                module.in_features,
+                module.out_features,
+                bias=module.bias is not None,
+                params_dtype=module.weight.dtype,
+                device=module.weight.device,
+            )
+            replacement.weight.copy_(module.weight)
+            if module.bias is not None:
+                assert replacement.bias is not None
+                replacement.bias.copy_(module.bias)
+            model.set_submodule(name, replacement)
+
+    return (
+        _TransformerEngineModelWrapper(
+            model,
+            enabled=fp8_enabled,
+            recipe=fp8_recipe,
+        ),
+        len(selected),
+    )
+
+
+def _quantize_model(
+    model: nn.Module,
+    quantization: str,
+    *,
+    te_amax_history_len: int,
+    te_amax_compute_algo: str,
+    te_fp8_model_init: bool,
+) -> tuple[nn.Module, float, int]:
     if quantization == "none":
-        return 0.0, 0
+        return model, 0.0, 0
+
+    if quantization in ("te-bf16", "te-fp8-delayed"):
+        start = time.perf_counter()
+        model, replaced_linear_count = _replace_linears_with_transformer_engine(
+            model,
+            fp8_enabled=quantization == "te-fp8-delayed",
+            fp8_model_init=te_fp8_model_init,
+            amax_history_len=te_amax_history_len,
+            amax_compute_algo=te_amax_compute_algo,
+        )
+        return model, time.perf_counter() - start, replaced_linear_count
 
     from torchao.quantization import (
         Float8DynamicActivationFloat8WeightConfig,
@@ -85,7 +184,7 @@ def _quantize_model(model: nn.Module, quantization: str) -> tuple[float, int]:
         ),
     )
     quantization_seconds = time.perf_counter() - start
-    return quantization_seconds, len(selected_names)
+    return model, quantization_seconds, len(selected_names)
 
 
 def _parity_check(
@@ -205,6 +304,12 @@ def main() -> None:
         choices=["default", "reduce-overhead", "max-autotune"],
         default=None,
     )
+    parser.add_argument("--dynamo-recompile-limit", type=int, default=None)
+    parser.add_argument("--te-amax-history-len", type=int, default=16)
+    parser.add_argument(
+        "--te-amax-compute-algo", choices=["max", "most_recent"], default="max"
+    )
+    parser.add_argument("--te-fp8-model-init", action="store_true")
     parser.add_argument("--parity-variants", type=int, default=32)
     parser.add_argument("--price-per-hour", type=float, default=2.29)
     parser.add_argument("--out-dir", required=True)
@@ -212,6 +317,12 @@ def main() -> None:
 
     assert torch.cuda.is_available(), "CUDA GPU required"
     assert args.torch_compile or args.compile_mode is None
+    assert args.te_amax_history_len > 0
+    assert not args.te_fp8_model_init or args.quantization == "te-fp8-delayed"
+    if args.dynamo_recompile_limit is not None:
+        assert args.torch_compile, "Dynamo recompile limit requires torch_compile=True"
+        assert args.dynamo_recompile_limit > 0
+        torch._dynamo.config.recompile_limit = args.dynamo_recompile_limit
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -242,8 +353,12 @@ def main() -> None:
     ).cuda()
     model.eval()
     model_load_seconds = time.perf_counter() - model_load_start
-    quantization_seconds, quantized_linear_count = _quantize_model(
-        model, args.quantization
+    model, quantization_seconds, quantized_linear_count = _quantize_model(
+        model,
+        args.quantization,
+        te_amax_history_len=args.te_amax_history_len,
+        te_amax_compute_algo=args.te_amax_compute_algo,
+        te_fp8_model_init=args.te_fp8_model_init,
     )
 
     parity = _parity_check(
@@ -252,8 +367,13 @@ def main() -> None:
         n_variants=args.parity_variants,
         execution_layout=args.execution_layout,
     )
-    if args.execution_layout == "prefix-cache":
+    if args.execution_layout == "prefix-cache" and not args.quantization.startswith(
+        "te-"
+    ):
         assert parity["max_abs_llr_delta"] <= 1e-6, parity
+    elif args.execution_layout == "prefix-cache":
+        assert parity["mean_abs_llr_delta"] <= 2.0, parity
+        assert parity["max_abs_llr_delta"] <= 20.0, parity
     else:
         assert parity["mean_abs_llr_delta"] <= 0.5, parity
         assert parity["max_abs_llr_delta"] <= 5.0, parity
@@ -316,7 +436,15 @@ def main() -> None:
         "prefetch_factor": args.prefetch_factor,
         "torch_compile": args.torch_compile,
         "compile_mode": args.compile_mode,
+        "dynamo_recompile_limit": args.dynamo_recompile_limit,
         "quantization": args.quantization,
+        "te_amax_history_len": (
+            args.te_amax_history_len if args.quantization.startswith("te-") else None
+        ),
+        "te_amax_compute_algo": (
+            args.te_amax_compute_algo if args.quantization.startswith("te-") else None
+        ),
+        "te_fp8_model_init": args.te_fp8_model_init,
         "quantization_seconds": quantization_seconds,
         "quantized_linear_count": quantized_linear_count,
         "preprocessing_seconds": preprocessing_seconds,
@@ -339,7 +467,12 @@ def main() -> None:
         "torch_cuda": torch.version.cuda,
         "torchao": (
             importlib.metadata.version("torchao")
-            if args.quantization != "none"
+            if args.quantization not in ("none", "te-bf16", "te-fp8-delayed")
+            else None
+        ),
+        "transformer_engine": (
+            importlib.metadata.version("transformer-engine")
+            if args.quantization.startswith("te-")
             else None
         ),
         "transformers": transformers.__version__,
