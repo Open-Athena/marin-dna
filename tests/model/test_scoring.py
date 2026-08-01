@@ -52,6 +52,7 @@ from marin_dna.model.scoring import (
     compute_variant_llr,
     compute_variant_llr_branch_packed,
     compute_variant_llr_full_pair,
+    compute_variant_llr_sequential_branches,
     compute_variant_score_bundle,
     entropy_from_marginal,
     make_variant_branch_packed_layout,
@@ -849,6 +850,13 @@ def test_variant_llr_cache_branch_packed_and_full_pair_agree_on_qwen3():
             var_pos=var_pos,
             nuc_token_ids=nuc_token_ids,
         )
+        sequential = compute_variant_llr_sequential_branches(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=nuc_token_ids,
+        )
         branch_packed = compute_variant_llr_branch_packed(
             model,
             input_ids,
@@ -866,6 +874,7 @@ def test_variant_llr_cache_branch_packed_and_full_pair_agree_on_qwen3():
 
     torch.testing.assert_close(branch_packed, cached, rtol=1e-5, atol=1e-5)
     torch.testing.assert_close(full_pair, cached, rtol=1e-5, atol=1e-5)
+    torch.testing.assert_close(sequential, cached, rtol=1e-5, atol=1e-5)
 
 
 def test_compute_variant_score_bundle_jsd_analytic():

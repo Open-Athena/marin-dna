@@ -24,6 +24,7 @@ from marin_dna.model.scoring import (
     compute_variant_llr,
     compute_variant_llr_branch_packed,
     compute_variant_llr_full_pair,
+    compute_variant_llr_sequential_branches,
     compute_variant_score_bundle,
 )
 from marin_dna.pipelines.evals.inference_benchmark import (
@@ -221,6 +222,14 @@ def _parity_check(
                 var_pos=prepared.var_pos,
                 nuc_token_ids=nuc_token_ids,
             )
+        elif execution_layout == "sequential-branches":
+            llr_only = compute_variant_llr_sequential_branches(
+                model,
+                input_ids,
+                alt_token_id,
+                var_pos=prepared.var_pos,
+                nuc_token_ids=nuc_token_ids,
+            )
         elif execution_layout == "branch-packed":
             llr_only = compute_variant_llr_branch_packed(
                 model,
@@ -290,7 +299,12 @@ def main() -> None:
     parser.add_argument("--batching", choices=["separate", "fused"], default="separate")
     parser.add_argument(
         "--execution-layout",
-        choices=["prefix-cache", "branch-packed", "full-pair"],
+        choices=[
+            "prefix-cache",
+            "sequential-branches",
+            "branch-packed",
+            "full-pair",
+        ],
         default="prefix-cache",
     )
     parser.add_argument("--torch-compile", action="store_true")
@@ -301,7 +315,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--compile-mode",
-        choices=["default", "reduce-overhead", "max-autotune"],
+        choices=[
+            "default",
+            "reduce-overhead",
+            "max-autotune",
+            "max-autotune-no-cudagraphs",
+        ],
         default=None,
     )
     parser.add_argument("--dynamo-recompile-limit", type=int, default=None)
@@ -367,11 +386,12 @@ def main() -> None:
         n_variants=args.parity_variants,
         execution_layout=args.execution_layout,
     )
-    if args.execution_layout == "prefix-cache" and not args.quantization.startswith(
-        "te-"
-    ):
+    if args.execution_layout in (
+        "prefix-cache",
+        "sequential-branches",
+    ) and not args.quantization.startswith("te-"):
         assert parity["max_abs_llr_delta"] <= 1e-6, parity
-    elif args.execution_layout == "prefix-cache":
+    elif args.execution_layout in ("prefix-cache", "sequential-branches"):
         assert parity["mean_abs_llr_delta"] <= 2.0, parity
         assert parity["max_abs_llr_delta"] <= 20.0, parity
     else:

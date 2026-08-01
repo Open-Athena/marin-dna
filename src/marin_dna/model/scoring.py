@@ -212,6 +212,103 @@ def compute_variant_llr(
     return llr
 
 
+class _ReadOnlyPrefixCache(DynamicCache):
+    """Expose cached prefix K/V without mutating it during a suffix forward.
+
+    ``DynamicCache.update`` concatenates the current suffix K/V onto the cache in
+    place. That is useful for autoregressive decoding, but this scoring kernel
+    needs the same prefix twice (once for REF and once for ALT). Returning the
+    concatenation without storing it lets both branches share one physical prefix
+    cache and keeps peak memory proportional to one suffix branch.
+    """
+
+    def update(
+        self,
+        key_states: Tensor,
+        value_states: Tensor,
+        layer_idx: int,
+        cache_kwargs: dict[str, Any] | None = None,
+    ) -> tuple[Tensor, Tensor]:
+        del cache_kwargs
+        layer = self.layers[layer_idx]
+        prefix_keys = layer.keys
+        prefix_values = layer.values
+        assert prefix_keys is not None and prefix_values is not None
+        assert prefix_keys.shape[:2] == key_states.shape[:2]
+        assert prefix_keys.shape[3:] == key_states.shape[3:]
+        assert prefix_values.shape[:2] == value_states.shape[:2]
+        assert prefix_values.shape[3:] == value_states.shape[3:]
+        return (
+            torch.cat([prefix_keys, key_states], dim=-2),
+            torch.cat([prefix_values, value_states], dim=-2),
+        )
+
+
+def _make_read_only_prefix_cache(past_kv: Any) -> _ReadOnlyPrefixCache:
+    """Wrap an HF or legacy cache without copying its prefix K/V tensors."""
+    cache_data = tuple((keys, values) for keys, values in past_kv)
+    assert cache_data, "prefix forward returned an empty K/V cache"
+    cache = _ReadOnlyPrefixCache(ddp_cache_data=cache_data)
+    expected_length = cache_data[0][0].shape[-2]
+    assert cache.get_seq_length() == expected_length
+    assert all(keys.shape[-2] == expected_length for keys, _ in cache_data)
+    return cache
+
+
+def compute_variant_llr_sequential_branches(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    alt_token_id: Int[Tensor, " B"],
+    *,
+    var_pos: int,
+    nuc_token_ids: Int[Tensor, " 4"],
+) -> Float[Tensor, " B"]:
+    """Compute exact SNV LLR with sequential REF/ALT branches.
+
+    Unlike :func:`compute_variant_llr`, this layout does not duplicate the
+    prefix K/V cache across a packed ``2*B`` suffix batch. It evaluates two
+    ``B``-sized suffix batches against one read-only prefix cache. The layout is
+    intended to trade one extra model call for lower peak memory, enabling a
+    larger variant batch without changing the score contract.
+    """
+    B, L = input_ids.shape
+    p = var_pos
+    assert 0 < p < L - 1, (
+        f"variant at token position {p} of length-{L} sequence has no shared "
+        f"prefix or no downstream prediction; expected 0 < var_pos < L-1"
+    )
+
+    prefix = input_ids[:, :p].contiguous()
+    ref_suffix = input_ids[:, p:].contiguous()
+    alt_suffix = torch.cat([alt_token_id.unsqueeze(-1), ref_suffix[:, 1:]], dim=-1)
+
+    prefix_out = model(prefix, use_cache=True, logits_to_keep=1)
+    prefix_last_logits = prefix_out.logits[:, -1]
+    prefix_cache = _make_read_only_prefix_cache(prefix_out.past_key_values)
+    ref_logits = model(ref_suffix, past_key_values=prefix_cache, use_cache=False).logits
+    alt_logits = model(alt_suffix, past_key_values=prefix_cache, use_cache=False).logits
+
+    nuc_ids = nuc_token_ids.to(ref_logits.device)
+    log_p_ref = F.log_softmax(ref_logits[..., nuc_ids].float(), dim=-1)[:, :-1]
+    log_p_alt = F.log_softmax(alt_logits[..., nuc_ids].float(), dim=-1)[:, :-1]
+
+    prefix_log_p = F.log_softmax(prefix_last_logits[..., nuc_ids].float(), dim=-1)
+    ref_var_idx = _token_id_to_nuc_idx(input_ids[:, p], nuc_ids)
+    alt_var_idx = _token_id_to_nuc_idx(alt_token_id, nuc_ids)
+    llr_at_var = prefix_log_p.gather(-1, alt_var_idx.unsqueeze(-1)).squeeze(
+        -1
+    ) - prefix_log_p.gather(-1, ref_var_idx.unsqueeze(-1)).squeeze(-1)
+
+    suffix_targets = input_ids[:, p + 1 :]
+    target_idx = _token_id_to_nuc_idx(suffix_targets, nuc_ids).unsqueeze(-1)
+    log_p_ref_at_targets = log_p_ref.gather(-1, target_idx).squeeze(-1)
+    log_p_alt_at_targets = log_p_alt.gather(-1, target_idx).squeeze(-1)
+    llr_downstream = (log_p_alt_at_targets - log_p_ref_at_targets).sum(dim=-1)
+    llr = llr_at_var + llr_downstream
+    assert llr.shape == (B,), f"LLR shape {llr.shape} != ({B},)"
+    return llr
+
+
 def make_variant_branch_packed_layout(
     *,
     sequence_length: int,

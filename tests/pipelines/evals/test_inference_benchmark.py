@@ -117,7 +117,8 @@ def test_aggregate_harness_llr_fwd_rc_minus_average() -> None:
 
 
 @pytest.mark.parametrize(
-    "execution_layout", ["prefix-cache", "branch-packed", "full-pair"]
+    "execution_layout",
+    ["prefix-cache", "sequential-branches", "branch-packed", "full-pair"],
 )
 def test_benchmark_prepared_llr_cpu_padding_and_repetitions(
     execution_layout: str,

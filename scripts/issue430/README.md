@@ -8,9 +8,10 @@ Each inference stack has an independent minimal uv project under `environments/`
 
 The `hf_torchao` environment covers eager and compiled BF16 plus TorchAO PTQ. `mslk-cuda` is installed only on x86_64, where the INT4 kernel is available.
 
-The LLR benchmark exposes three exact execution layouts:
+The LLR benchmark exposes four exact execution layouts:
 
 - `prefix-cache` forwards the shared prefix once, duplicates its dynamic KV cache, and forwards the REF/ALT suffixes together.
+- `sequential-branches` forwards the shared prefix once, keeps one read-only KV cache, and forwards REF then ALT separately. Its lower peak memory is intended to support roughly twice the variant batch size without changing the score contract.
 - `branch-packed` forwards `prefix + ref_suffix + alt_suffix` once with duplicated suffix position IDs and an isolation mask, removing dynamic-cache allocation while retaining shared-prefix compute.
 - `full-pair` forwards complete REF and ALT sequences together. It recomputes the prefix but is a useful single-call, regular-causal performance control.
 

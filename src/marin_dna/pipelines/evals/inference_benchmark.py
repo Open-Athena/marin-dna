@@ -23,12 +23,15 @@ from marin_dna.model.scoring import (
     compute_variant_llr,
     compute_variant_llr_branch_packed,
     compute_variant_llr_full_pair,
+    compute_variant_llr_sequential_branches,
     make_variant_branch_packed_layout,
 )
 
 
 VARIANT_KEY_COLUMNS = ["chrom", "pos", "ref", "alt"]
-ExecutionLayout = Literal["prefix-cache", "branch-packed", "full-pair"]
+ExecutionLayout = Literal[
+    "prefix-cache", "sequential-branches", "branch-packed", "full-pair"
+]
 HARNESS_REQUIRED_COLUMNS = [
     *VARIANT_KEY_COLUMNS,
     "target",
@@ -257,6 +260,14 @@ class _LlrOnlyModule(nn.Module):
                 var_pos=self.var_pos,
                 nuc_token_ids=self.nuc_token_ids,
             )
+        if self.execution_layout == "sequential-branches":
+            return compute_variant_llr_sequential_branches(
+                self.model,
+                input_ids,
+                alt_token_id,
+                var_pos=self.var_pos,
+                nuc_token_ids=self.nuc_token_ids,
+            )
         if self.execution_layout == "branch-packed":
             assert self.branch_position_ids is not None
             assert self.branch_attention_mask is not None
@@ -291,7 +302,10 @@ def benchmark_prepared_llr(
     prefetch_factor: int = 2,
     persistent_workers: bool = True,
     torch_compile: bool = False,
-    compile_mode: Literal["default", "reduce-overhead", "max-autotune"] | None = None,
+    compile_mode: Literal[
+        "default", "reduce-overhead", "max-autotune", "max-autotune-no-cudagraphs"
+    ]
+    | None = None,
     fullgraph: bool = False,
     use_bf16_autocast: bool = True,
     execution_layout: ExecutionLayout = "prefix-cache",
@@ -312,7 +326,12 @@ def benchmark_prepared_llr(
     assert torch_compile or compile_mode is None, (
         "compile_mode requires torch_compile=True"
     )
-    assert execution_layout in ("prefix-cache", "branch-packed", "full-pair")
+    assert execution_layout in (
+        "prefix-cache",
+        "sequential-branches",
+        "branch-packed",
+        "full-pair",
+    )
 
     n_rows = len(prepared.metadata)
     if row_indices is None:
