@@ -250,6 +250,36 @@ def select_feature(
     )
 
 
+def stratified_block_resample_indices(
+    strata: np.ndarray,
+    blocks: np.ndarray,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Resample genomic blocks independently within each fixed label stratum."""
+    assert strata.shape == blocks.shape and strata.ndim == 1
+    sampled_groups: list[np.ndarray] = []
+    for stratum in np.unique(strata):
+        stratum_rows = np.flatnonzero(strata == stratum)
+        stratum_blocks = np.unique(blocks[stratum_rows])
+        assert len(stratum_blocks) > 0
+        rows_by_block = [
+            stratum_rows[blocks[stratum_rows] == block] for block in stratum_blocks
+        ]
+        sampled_groups.append(
+            np.concatenate(
+                [
+                    rows_by_block[index]
+                    for index in rng.integers(
+                        0, len(rows_by_block), size=len(rows_by_block)
+                    )
+                ]
+            )
+        )
+    indices = np.concatenate(sampled_groups)
+    assert len(indices) > 0
+    return indices
+
+
 def bootstrap_block_ap(
     scores: np.ndarray,
     positive: np.ndarray,
@@ -259,21 +289,18 @@ def bootstrap_block_ap(
     samples: int = BOOTSTRAPS,
 ) -> tuple[float | None, float | None]:
     assert scores.shape == positive.shape == blocks.shape
-    unique_blocks = np.unique(blocks)
     positive_blocks = np.unique(blocks[positive])
-    if len(positive_blocks) < 2:
+    negative_blocks = np.unique(blocks[~positive])
+    if min(len(positive_blocks), len(negative_blocks)) < 2:
         return None, None
-    rows = [np.flatnonzero(blocks == block) for block in unique_blocks]
     rng = np.random.default_rng(seed)
     values: list[float] = []
     for _ in range(samples):
-        indices = np.concatenate(
-            [rows[index] for index in rng.integers(0, len(rows), size=len(rows))]
-        )
+        indices = stratified_block_resample_indices(positive, blocks, rng)
         sampled = positive[indices]
-        if sampled.any() and (~sampled).any():
-            values.append(float(average_precision_score(sampled, scores[indices])))
-    assert len(values) >= samples * 0.9
+        assert sampled.any() and (~sampled).any()
+        values.append(float(average_precision_score(sampled, scores[indices])))
+    assert len(values) == samples
     low, high = np.quantile(values, [0.025, 0.975])
     return float(low), float(high)
 
@@ -285,23 +312,31 @@ def bootstrap_mean_ap(
     seed: int,
     samples: int = BOOTSTRAPS,
 ) -> tuple[float, float]:
-    unique_blocks = np.unique(blocks)
-    rows = [np.flatnonzero(blocks == block) for block in unique_blocks]
+    assert scores_by_class
+    n_rows = len(blocks)
+    assert blocks.shape == (n_rows,)
+    class_labels = np.empty(n_rows, dtype=object)
+    assignment_counts = np.zeros(n_rows, dtype=np.int16)
+    for class_name, (scores, positive) in scores_by_class.items():
+        assert scores.shape == positive.shape == (n_rows,)
+        assert positive.dtype == np.bool_
+        class_labels[positive] = class_name
+        assignment_counts += positive
+    assert np.all(assignment_counts == 1)
+    for class_name in scores_by_class:
+        assert len(np.unique(blocks[class_labels == class_name])) >= 2
     rng = np.random.default_rng(seed)
     values: list[float] = []
     for _ in range(samples):
-        indices = np.concatenate(
-            [rows[index] for index in rng.integers(0, len(rows), size=len(rows))]
-        )
+        indices = stratified_block_resample_indices(class_labels, blocks, rng)
         aps: list[float] = []
         for scores, positive in scores_by_class.values():
             sampled = positive[indices]
-            if not sampled.any() or not (~sampled).any():
-                break
+            assert sampled.any() and (~sampled).any()
             aps.append(float(average_precision_score(sampled, scores[indices])))
-        if len(aps) == len(scores_by_class):
-            values.append(float(np.mean(aps)))
-    assert len(values) >= samples * 0.9
+        assert len(aps) == len(scores_by_class)
+        values.append(float(np.mean(aps)))
+    assert len(values) == samples
     low, high = np.quantile(values, [0.025, 0.975])
     return float(low), float(high)
 
@@ -665,6 +700,7 @@ def analyze(
             "minimum_discovery_support": MIN_DISCOVERY_SUPPORT,
             "minimum_positive_support": MIN_POSITIVE_SUPPORT,
             "block_bootstraps": BOOTSTRAPS,
+            "bootstrap_scheme": "consequence-stratified genomic-block resampling; binary label strata for per-class CIs",
             "random_seed": RANDOM_SEED,
             "feature_selection": "absolute discovery Welch t among eligible features; sign fixed on discovery; validation chooses among top 64; test untouched",
         },
