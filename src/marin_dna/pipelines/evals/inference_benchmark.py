@@ -19,10 +19,16 @@ from marin_dna.data.transforms import (
     _get_nucleotide_token_ids,
     _get_special_token_counts,
 )
-from marin_dna.model.scoring import compute_variant_llr
+from marin_dna.model.scoring import (
+    compute_variant_llr,
+    compute_variant_llr_branch_packed,
+    compute_variant_llr_full_pair,
+    make_variant_branch_packed_layout,
+)
 
 
 VARIANT_KEY_COLUMNS = ["chrom", "pos", "ref", "alt"]
+ExecutionLayout = Literal["prefix-cache", "branch-packed", "full-pair"]
 HARNESS_REQUIRED_COLUMNS = [
     *VARIANT_KEY_COLUMNS,
     "target",
@@ -221,16 +227,50 @@ class _LlrOnlyModule(nn.Module):
         self,
         model: nn.Module,
         *,
+        sequence_length: int,
         var_pos: int,
         nuc_token_ids: Tensor,
+        execution_layout: ExecutionLayout,
     ) -> None:
         super().__init__()
         self.model = model
+        self.sequence_length = sequence_length
         self.var_pos = var_pos
+        self.execution_layout = execution_layout
         self.register_buffer("nuc_token_ids", nuc_token_ids)
+        if execution_layout == "branch-packed":
+            position_ids, attention_mask = make_variant_branch_packed_layout(
+                sequence_length=sequence_length,
+                var_pos=var_pos,
+            )
+        else:
+            position_ids, attention_mask = None, None
+        self.register_buffer("branch_position_ids", position_ids)
+        self.register_buffer("branch_attention_mask", attention_mask)
 
     def forward(self, input_ids: Tensor, alt_token_id: Tensor) -> Tensor:
-        return compute_variant_llr(
+        if self.execution_layout == "prefix-cache":
+            return compute_variant_llr(
+                self.model,
+                input_ids,
+                alt_token_id,
+                var_pos=self.var_pos,
+                nuc_token_ids=self.nuc_token_ids,
+            )
+        if self.execution_layout == "branch-packed":
+            assert self.branch_position_ids is not None
+            assert self.branch_attention_mask is not None
+            return compute_variant_llr_branch_packed(
+                self.model,
+                input_ids,
+                alt_token_id,
+                var_pos=self.var_pos,
+                nuc_token_ids=self.nuc_token_ids,
+                position_ids=self.branch_position_ids,
+                attention_mask=self.branch_attention_mask,
+            )
+        assert self.execution_layout == "full-pair"
+        return compute_variant_llr_full_pair(
             self.model,
             input_ids,
             alt_token_id,
@@ -254,6 +294,7 @@ def benchmark_prepared_llr(
     compile_mode: Literal["default", "reduce-overhead", "max-autotune"] | None = None,
     fullgraph: bool = False,
     use_bf16_autocast: bool = True,
+    execution_layout: ExecutionLayout = "prefix-cache",
 ) -> LlrBenchmarkResult:
     """Run repeated steady-state passes over fixed token tensors.
 
@@ -271,6 +312,7 @@ def benchmark_prepared_llr(
     assert torch_compile or compile_mode is None, (
         "compile_mode requires torch_compile=True"
     )
+    assert execution_layout in ("prefix-cache", "branch-packed", "full-pair")
 
     n_rows = len(prepared.metadata)
     if row_indices is None:
@@ -307,8 +349,10 @@ def benchmark_prepared_llr(
 
     wrapped: nn.Module = _LlrOnlyModule(
         model,
+        sequence_length=prepared.input_ids.shape[1],
         var_pos=prepared.var_pos,
         nuc_token_ids=prepared.nuc_token_ids,
+        execution_layout=execution_layout,
     ).to(resolved_device)
     wrapped.eval()
     if torch_compile:

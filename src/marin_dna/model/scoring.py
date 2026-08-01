@@ -212,6 +212,182 @@ def compute_variant_llr(
     return llr
 
 
+def make_variant_branch_packed_layout(
+    *,
+    sequence_length: int,
+    var_pos: int,
+    device: torch.device | str | None = None,
+) -> tuple[Tensor, Tensor]:
+    """Build positions and an exact tree mask for one shared-prefix REF/ALT pass.
+
+    The packed sequence is prefix + ref_suffix + alt_suffix. Both suffixes
+    receive the original positions [var_pos, sequence_length) and can attend
+    to the shared prefix plus their own causal history, but never to the other
+    allele's branch. The returned tensors have broadcastable batch dimension 1:
+    position IDs [1, P] and a boolean SDPA mask [1, 1, P, P].
+    """
+    L = sequence_length
+    p = var_pos
+    assert 0 < p < L - 1, (
+        f"variant at token position {p} of length-{L} sequence has no shared "
+        f"prefix or no downstream prediction; expected 0 < var_pos < L-1"
+    )
+    suffix_length = L - p
+    packed_length = p + 2 * suffix_length
+
+    prefix_positions = torch.arange(p, device=device)
+    suffix_positions = torch.arange(p, L, device=device)
+    position_ids = torch.cat(
+        [prefix_positions, suffix_positions, suffix_positions], dim=0
+    ).unsqueeze(0)
+
+    indices = torch.arange(packed_length, device=device)
+    query = indices.unsqueeze(-1)
+    key = indices.unsqueeze(0)
+    prefix_query = query < p
+    ref_query = (query >= p) & (query < L)
+    alt_query = query >= L
+    allowed = (
+        (prefix_query & (key <= query))
+        | (ref_query & ((key < p) | ((key >= p) & (key < L) & (key <= query))))
+        | (alt_query & ((key < p) | ((key >= L) & (key <= query))))
+    )
+    attention_mask = allowed.unsqueeze(0).unsqueeze(0)
+
+    assert position_ids.shape == (1, packed_length)
+    assert attention_mask.shape == (1, 1, packed_length, packed_length)
+    assert attention_mask.dtype == torch.bool
+    return position_ids, attention_mask
+
+
+def compute_variant_llr_branch_packed(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    alt_token_id: Int[Tensor, " B"],
+    *,
+    var_pos: int,
+    nuc_token_ids: Int[Tensor, " 4"],
+    position_ids: Tensor | None = None,
+    attention_mask: Tensor | None = None,
+) -> Float[Tensor, " B"]:
+    """Compute the exact SNV LLR in one cache-free, branch-packed forward.
+
+    Compared with compute_variant_llr, this layout performs the same
+    shared-prefix plus two-suffix transformer token work but avoids duplicating
+    and concatenating a dynamic KV cache. It requires an HF-shaped decoder that
+    accepts explicit position_ids and a boolean 4D attention mask.
+    """
+    B, L = input_ids.shape
+    p = var_pos
+    assert 0 < p < L - 1, (
+        f"variant at token position {p} of length-{L} sequence has no shared "
+        f"prefix or no downstream prediction; expected 0 < var_pos < L-1"
+    )
+    prefix = input_ids[:, :p].contiguous()
+    ref_suffix = input_ids[:, p:].contiguous()
+    alt_suffix = torch.cat([alt_token_id.unsqueeze(-1), ref_suffix[:, 1:]], dim=-1)
+    packed = torch.cat([prefix, ref_suffix, alt_suffix], dim=-1).contiguous()
+    packed_length = packed.shape[-1]
+    assert packed_length == 2 * L - p
+
+    if position_ids is None or attention_mask is None:
+        assert position_ids is None and attention_mask is None, (
+            "position_ids and attention_mask must either both be provided or both be omitted"
+        )
+        position_ids, attention_mask = make_variant_branch_packed_layout(
+            sequence_length=L,
+            var_pos=p,
+            device=input_ids.device,
+        )
+    assert position_ids.shape == (1, packed_length)
+    assert attention_mask.shape == (1, 1, packed_length, packed_length)
+    assert position_ids.device == input_ids.device
+    assert attention_mask.device == input_ids.device
+
+    logits = model(
+        packed,
+        attention_mask=attention_mask.expand(B, -1, -1, -1),
+        position_ids=position_ids.expand(B, -1),
+        use_cache=False,
+    ).logits
+    assert logits.shape[:2] == (B, packed_length)
+
+    nuc_ids = nuc_token_ids.to(logits.device)
+    prefix_log_p = F.log_softmax(logits[:, p - 1, nuc_ids].float(), dim=-1)
+    ref_var_idx = _token_id_to_nuc_idx(input_ids[:, p], nuc_ids)
+    alt_var_idx = _token_id_to_nuc_idx(alt_token_id, nuc_ids)
+    llr_at_var = prefix_log_p.gather(-1, alt_var_idx.unsqueeze(-1)).squeeze(
+        -1
+    ) - prefix_log_p.gather(-1, ref_var_idx.unsqueeze(-1)).squeeze(-1)
+
+    suffix_length = L - p
+    ref_logits = logits[:, p : p + suffix_length - 1, :]
+    alt_start = p + suffix_length
+    alt_logits = logits[:, alt_start : alt_start + suffix_length - 1, :]
+    log_p_ref = F.log_softmax(ref_logits[..., nuc_ids].float(), dim=-1)
+    log_p_alt = F.log_softmax(alt_logits[..., nuc_ids].float(), dim=-1)
+    suffix_targets = input_ids[:, p + 1 :]
+    target_idx = _token_id_to_nuc_idx(suffix_targets, nuc_ids).unsqueeze(-1)
+    llr_downstream = (
+        log_p_alt.gather(-1, target_idx).squeeze(-1)
+        - log_p_ref.gather(-1, target_idx).squeeze(-1)
+    ).sum(dim=-1)
+    llr = llr_at_var + llr_downstream
+    assert llr.shape == (B,), f"LLR shape {llr.shape} != ({B},)"
+    return llr
+
+
+def compute_variant_llr_full_pair(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    alt_token_id: Int[Tensor, " B"],
+    *,
+    var_pos: int,
+    nuc_token_ids: Int[Tensor, " 4"],
+) -> Float[Tensor, " B"]:
+    """Compute the exact SNV LLR with one regular full REF/ALT forward.
+
+    This deliberately recomputes the shared prefix for both alleles. It is a
+    useful performance control because its single causal forward avoids all KV
+    cache traffic and exposes larger, regular GEMMs to the compiler.
+    """
+    B, L = input_ids.shape
+    p = var_pos
+    assert 0 < p < L - 1, (
+        f"variant at token position {p} of length-{L} sequence has no shared "
+        f"prefix or no downstream prediction; expected 0 < var_pos < L-1"
+    )
+    alt_input_ids = torch.cat(
+        [input_ids[:, :p], alt_token_id.unsqueeze(-1), input_ids[:, p + 1 :]],
+        dim=-1,
+    )
+    pairs = torch.stack([input_ids, alt_input_ids], dim=1)
+    pairs_flat = rearrange(pairs, "B V L -> (B V) L").contiguous()
+    logits = model(pairs_flat, use_cache=False).logits
+    logits = rearrange(logits, "(B V) L C -> B V L C", B=B)
+
+    nuc_ids = nuc_token_ids.to(logits.device)
+    log_p_nuc = F.log_softmax(logits[..., nuc_ids].float(), dim=-1)
+    prefix_log_p = log_p_nuc[:, 0, p - 1]
+    ref_var_idx = _token_id_to_nuc_idx(input_ids[:, p], nuc_ids)
+    alt_var_idx = _token_id_to_nuc_idx(alt_token_id, nuc_ids)
+    llr_at_var = prefix_log_p.gather(-1, alt_var_idx.unsqueeze(-1)).squeeze(
+        -1
+    ) - prefix_log_p.gather(-1, ref_var_idx.unsqueeze(-1)).squeeze(-1)
+
+    suffix_targets = input_ids[:, p + 1 :]
+    target_idx = _token_id_to_nuc_idx(suffix_targets, nuc_ids).unsqueeze(-1)
+    log_p_ref = log_p_nuc[:, 0, p : L - 1]
+    log_p_alt = log_p_nuc[:, 1, p : L - 1]
+    llr_downstream = (
+        log_p_alt.gather(-1, target_idx).squeeze(-1)
+        - log_p_ref.gather(-1, target_idx).squeeze(-1)
+    ).sum(dim=-1)
+    llr = llr_at_var + llr_downstream
+    assert llr.shape == (B,), f"LLR shape {llr.shape} != ({B},)"
+    return llr
+
+
 def compute_variant_score_bundle(
     model: Any,
     input_ids: Int[Tensor, "B L"],

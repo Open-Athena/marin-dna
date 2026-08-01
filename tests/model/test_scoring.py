@@ -23,7 +23,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    Qwen3Config,
+    Qwen3ForCausalLM,
+)
 
 from marin_dna.data.dna import NUCLEOTIDES
 from marin_dna.data.genome import Genome
@@ -45,8 +50,11 @@ from marin_dna.model.scoring import (
     compute_marginal_clm,
     compute_reflogprob_clm,
     compute_variant_llr,
+    compute_variant_llr_branch_packed,
+    compute_variant_llr_full_pair,
     compute_variant_score_bundle,
     entropy_from_marginal,
+    make_variant_branch_packed_layout,
     rc_average_marginal,
 )
 
@@ -783,6 +791,81 @@ def test_compute_variant_llr_matches_bundle_exactly():
     )
     assert llr_only.shape == (len(input_ids),)
     torch.testing.assert_close(llr_only, bundled[:, 0], rtol=0, atol=0)
+
+
+def test_make_variant_branch_packed_layout_is_two_isolated_causal_branches():
+    position_ids, attention_mask = make_variant_branch_packed_layout(
+        sequence_length=6,
+        var_pos=3,
+    )
+    assert position_ids.tolist() == [[0, 1, 2, 3, 4, 5, 3, 4, 5]]
+    allowed = attention_mask[0, 0]
+    expected_keys = {
+        0: [0],
+        1: [0, 1],
+        2: [0, 1, 2],
+        3: [0, 1, 2, 3],
+        4: [0, 1, 2, 3, 4],
+        5: [0, 1, 2, 3, 4, 5],
+        6: [0, 1, 2, 6],
+        7: [0, 1, 2, 6, 7],
+        8: [0, 1, 2, 6, 7, 8],
+    }
+    for query, keys in expected_keys.items():
+        observed = torch.nonzero(allowed[query], as_tuple=False).flatten().tolist()
+        assert observed == keys
+
+
+def test_variant_llr_cache_branch_packed_and_full_pair_agree_on_qwen3():
+    """All exact execution layouts preserve Qwen3 LLRs up to fp32 noise."""
+    torch.manual_seed(0)
+    config = Qwen3Config(
+        vocab_size=7,
+        hidden_size=32,
+        intermediate_size=64,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        num_key_value_heads=4,
+        head_dim=8,
+        max_position_embeddings=32,
+        attention_dropout=0.0,
+        bos_token_id=2,
+        eos_token_id=None,
+        pad_token_id=None,
+    )
+    model = Qwen3ForCausalLM(config).eval()
+    input_ids = torch.randint(3, 7, (3, 12))
+    input_ids[:, 0] = 2
+    var_pos = 6
+    ref_token_id = input_ids[:, var_pos]
+    alt_token_id = 3 + ((ref_token_id - 3 + 1) % 4)
+    nuc_token_ids = torch.tensor([3, 4, 5, 6])
+
+    with torch.inference_mode():
+        cached = compute_variant_llr(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=nuc_token_ids,
+        )
+        branch_packed = compute_variant_llr_branch_packed(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=nuc_token_ids,
+        )
+        full_pair = compute_variant_llr_full_pair(
+            model,
+            input_ids,
+            alt_token_id,
+            var_pos=var_pos,
+            nuc_token_ids=nuc_token_ids,
+        )
+
+    torch.testing.assert_close(branch_packed, cached, rtol=1e-5, atol=1e-5)
+    torch.testing.assert_close(full_pair, cached, rtol=1e-5, atol=1e-5)
 
 
 def test_compute_variant_score_bundle_jsd_analytic():

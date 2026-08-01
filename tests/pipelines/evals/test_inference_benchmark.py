@@ -116,7 +116,12 @@ def test_aggregate_harness_llr_fwd_rc_minus_average() -> None:
     np.testing.assert_array_equal(output["minus_llr_avg"], [-2.0, -3.0])
 
 
-def test_benchmark_prepared_llr_cpu_padding_and_repetitions() -> None:
+@pytest.mark.parametrize(
+    "execution_layout", ["prefix-cache", "branch-packed", "full-pair"]
+)
+def test_benchmark_prepared_llr_cpu_padding_and_repetitions(
+    execution_layout: str,
+) -> None:
     prepared = prepare_harness_llr(_harness_frame(), _BosDnaTokenizer())
     result = benchmark_prepared_llr(
         _TinyCachedCausalLm(),
@@ -126,6 +131,7 @@ def test_benchmark_prepared_llr_cpu_padding_and_repetitions() -> None:
         repetitions=2,
         num_workers=0,
         use_bf16_autocast=False,
+        execution_layout=execution_layout,
     )
     assert result.row_indices.tolist() == [0, 1, 2, 3]
     assert result.llr.shape == (4,)

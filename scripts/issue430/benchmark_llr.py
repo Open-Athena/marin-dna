@@ -20,10 +20,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from marin_dna.model.scoring import (
     compute_variant_llr,
+    compute_variant_llr_branch_packed,
+    compute_variant_llr_full_pair,
     compute_variant_score_bundle,
 )
 from marin_dna.pipelines.evals.inference_benchmark import (
     VARIANT_KEY_COLUMNS,
+    ExecutionLayout,
     LlrBenchmarkResult,
     PreparedHarnessLlr,
     aggregate_harness_llr,
@@ -39,6 +42,7 @@ BYTES_PER_GIB = 1024**3
 QUANTIZATION_CHOICES = [
     "none",
     "fp8-dynamic",
+    "fp8-rowwise",
     "int8-dynamic",
     "int8-weight-only",
     "int4-weight-only",
@@ -56,9 +60,11 @@ def _quantize_model(model: nn.Module, quantization: str) -> tuple[float, int]:
         Int8WeightOnlyConfig,
         quantize_,
     )
+    from torchao.quantization.granularity import PerRow
 
     configs = {
         "fp8-dynamic": Float8DynamicActivationFloat8WeightConfig(),
+        "fp8-rowwise": Float8DynamicActivationFloat8WeightConfig(granularity=PerRow()),
         "int8-dynamic": Int8DynamicActivationInt8WeightConfig(),
         "int8-weight-only": Int8WeightOnlyConfig(),
         "int4-weight-only": Int4WeightOnlyConfig(group_size=128),
@@ -87,6 +93,7 @@ def _parity_check(
     prepared: PreparedHarnessLlr,
     *,
     n_variants: int,
+    execution_layout: ExecutionLayout,
 ) -> dict[str, float | int]:
     metadata = prepared.metadata
     variant_number = metadata.groupby(
@@ -107,13 +114,31 @@ def _parity_check(
             var_pos=prepared.var_pos,
             nuc_token_ids=nuc_token_ids,
         )
-        llr_only = compute_variant_llr(
-            model,
-            input_ids,
-            alt_token_id,
-            var_pos=prepared.var_pos,
-            nuc_token_ids=nuc_token_ids,
-        )
+        if execution_layout == "prefix-cache":
+            llr_only = compute_variant_llr(
+                model,
+                input_ids,
+                alt_token_id,
+                var_pos=prepared.var_pos,
+                nuc_token_ids=nuc_token_ids,
+            )
+        elif execution_layout == "branch-packed":
+            llr_only = compute_variant_llr_branch_packed(
+                model,
+                input_ids,
+                alt_token_id,
+                var_pos=prepared.var_pos,
+                nuc_token_ids=nuc_token_ids,
+            )
+        else:
+            assert execution_layout == "full-pair"
+            llr_only = compute_variant_llr_full_pair(
+                model,
+                input_ids,
+                alt_token_id,
+                var_pos=prepared.var_pos,
+                nuc_token_ids=nuc_token_ids,
+            )
     torch.cuda.synchronize()
     delta = (llr_only - bundled[:, 0]).abs().float()
     assert torch.isfinite(delta).all()
@@ -164,6 +189,11 @@ def main() -> None:
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--subset", default="missense_variant")
     parser.add_argument("--batching", choices=["separate", "fused"], default="separate")
+    parser.add_argument(
+        "--execution-layout",
+        choices=["prefix-cache", "branch-packed", "full-pair"],
+        default="prefix-cache",
+    )
     parser.add_argument("--torch-compile", action="store_true")
     parser.add_argument(
         "--quantization",
@@ -220,8 +250,13 @@ def main() -> None:
         model,
         prepared,
         n_variants=args.parity_variants,
+        execution_layout=args.execution_layout,
     )
-    assert parity["max_abs_llr_delta"] <= 1e-6, parity
+    if args.execution_layout == "prefix-cache":
+        assert parity["max_abs_llr_delta"] <= 1e-6, parity
+    else:
+        assert parity["mean_abs_llr_delta"] <= 0.5, parity
+        assert parity["max_abs_llr_delta"] <= 5.0, parity
 
     common = {
         "batch_size": args.batch_size,
@@ -232,6 +267,7 @@ def main() -> None:
         "torch_compile": args.torch_compile,
         "compile_mode": args.compile_mode,
         "use_bf16_autocast": True,
+        "execution_layout": args.execution_layout,
     }
     if args.batching == "fused":
         benchmark = benchmark_prepared_llr(model, prepared, **common)
@@ -274,6 +310,7 @@ def main() -> None:
         "n_variants": n_variants,
         "n_strand_rows": len(prepared.metadata),
         "batching": args.batching,
+        "execution_layout": args.execution_layout,
         "batch_size": args.batch_size,
         "num_workers": args.num_workers,
         "prefetch_factor": args.prefetch_factor,
