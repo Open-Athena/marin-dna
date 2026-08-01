@@ -5,7 +5,7 @@
 name: dna-exp426-sae-layer-budget
 
 resources:
-    infra: lambda/europe-central-1
+    infra: lambda/us-west-3
     instance_type: gpu_1x_h100_pcie
     disk_size: 250
     autostop:
