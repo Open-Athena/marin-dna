@@ -1,0 +1,37 @@
+# Stage a Lambda GH200 with PyTorch 2.10/cu128 and Transformer Engine 2.13.
+
+name: dna-issue430-gh200-transformer-engine-modern-stage
+
+resources:
+  accelerators: GH200:1
+  cloud: lambda
+  disk_size: 128
+  image_id: docker:nvcr.io/nvidia/pytorch:25.03-py3
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  CHECKPOINT_HF: marin-dna/marin-dna-exp135-m5.1
+  CHECKPOINT_REVISION: c0676b2012b8b9c526deb26ff517f6b92b6d375d
+
+setup: |
+  set -euxo pipefail
+
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  ISSUE430_TE_PROJECT=scripts/issue430/environments/transformer_engine_modern
+  uv sync --project "$ISSUE430_TE_PROJECT" --locked --no-install-package transformer-engine-torch
+  MAX_JOBS=8 NVTE_BUILD_THREADS_PER_JOB=1 NVTE_CUDA_ARCHS=90 uv pip install --python "$ISSUE430_TE_PROJECT/.venv/bin/python" --no-build-isolation "transformer-engine-torch==2.13.0"
+  "$ISSUE430_TE_PROJECT/.venv/bin/python" -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='$CHECKPOINT_HF', revision='$CHECKPOINT_REVISION', local_dir='$HOME/ckpt')"
+
+run: |
+  set -euxo pipefail
+  export CUDA_VISIBLE_DEVICES=0
+  ISSUE430_TE_PYTHON=scripts/issue430/environments/transformer_engine_modern/.venv/bin/python
+  nvidia-smi
+  "$ISSUE430_TE_PYTHON" -c "import torch, transformer_engine; assert torch.cuda.is_available(); print(torch.__version__, transformer_engine.__version__, torch.cuda.get_device_name(0))"
+  test -f "$HOME/ckpt/config.json"

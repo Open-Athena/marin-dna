@@ -1,0 +1,37 @@
+[project]
+name = "issue430-transformer-engine-modern-runtime"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "cmake==4.2.3",
+    "datasets==3.6.0",
+    "einops==0.8.2",
+    "huggingface-hub==0.36.2",
+    "jaxtyping==0.3.9",
+    "ninja==1.13.0",
+    "numpy==1.26.4",
+    "packaging==26.0",
+    "pandas==2.3.3",
+    "pyarrow==22.0.0",
+    "pybind11==3.0.2",
+    "scikit-learn==1.8.0",
+    "scipy==1.14.1",
+    "setuptools==80.10.2",
+    "torch==2.10.0",
+    "transformer-engine[core-cu12]==2.13.0",
+    "transformer-engine-torch==2.13.0",
+    "transformers==4.57.6",
+    "wheel==0.46.3",
+]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux'"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }

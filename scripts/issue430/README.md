@@ -29,10 +29,12 @@ PYTHONPATH="$PWD/src" uv run --project scripts/issue430/environments/hf_torchao 
 
 The `transformer_engine` environment is intentionally separate from the Hugging Face/TorchAO project. It runs inside the pinned NVIDIA PyTorch `25.03-py3` container, which supplies a mutually compatible PyTorch, CUDA 12.8, cuDNN, and Transformer Engine build; its own pyproject installs only the pinned Hugging Face and analysis dependencies into a venv that can see those container packages.
 
+The `transformer_engine_modern` environment instead installs PyTorch 2.10 from the CUDA 12.8 wheel index and Transformer Engine 2.13, the newest release whose PyTorch integration and aarch64 core wheel both support CUDA 12. The stage installs the wheel-backed core first and then builds only `transformer-engine-torch` without build isolation, as required by NVIDIA's installation guide.
+
 `te-bf16` replaces the same 133 non-LM-head linear layers with Transformer Engine `Linear` modules but disables FP8, providing a same-container/backend control. `te-fp8-delayed` enables E4M3 delayed scaling with a fixed-size amax history. Delayed scaling chooses each activation scale from historical maxima, avoiding the separate current-amax tensor read performed by dynamic scaling. Add `--te-fp8-model-init` to construct the replaced layers with FP8-only parameter storage, Transformer Engine's experimental inference-oriented pre-materialization path. The LM head remains BF16 because the seven-token output dimension is not an FP8 GEMM shape.
 
 ```bash
-PYTHONPATH="$PWD/src" scripts/issue430/environments/transformer_engine/.venv/bin/python \
+PYTHONPATH="$PWD/src" scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
   scripts/issue430/benchmark_llr.py \
   --quantization te-fp8-delayed \
   --te-amax-history-len 1 \
