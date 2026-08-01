@@ -19,7 +19,7 @@ from launch import (
     BETA1,
     BETA2,
     DATASET_REPOS,
-    DATASET_REVISION_ENVS,
+    DATASET_REVISIONS,
     DNA_BASE_SEQ_LEN,
     EPSILON,
     HEAD_DIM,
@@ -61,38 +61,31 @@ from launch import (
     validate_vendored_tokenizer,
 )
 
-FAKE_REVISIONS = {
-    "mammals_only": "1" * 40,
-    "combined_vertebrates": "2" * 40,
-}
-
-
-def _set_revisions(monkeypatch: pytest.MonkeyPatch) -> None:
-    for arm, revision in FAKE_REVISIONS.items():
-        monkeypatch.setenv(DATASET_REVISION_ENVS[arm], revision)
-
 
 def test_source_revisions_and_arm_names_are_explicit() -> None:
     assert MARIN_DNA_REVISION == "eaac2efffb73d33b87ba75bcf5521809af74fec7"
-    assert PROJECTION_PIPELINE_REVISION == "06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d"
+    assert PROJECTION_PIPELINE_REVISION == "d50ba5d6d8bd15e28ff11ad61bdd4a5aef67b733"
     assert TOKENIZER_SOURCE_REVISION == "a73e9d9ee636f722b4c378703c9e2997857809b2"
     assert ARMS == ("mammals_only", "combined_vertebrates")
     assert set(DATASET_REPOS) == set(ARMS)
+    assert DATASET_REPOS == {
+        "mammals_only": "marin-dna/vertebrate-v1-cds_mammals_only",
+        "combined_vertebrates": "marin-dna/vertebrate-v1-cds",
+    }
+    assert DATASET_REVISIONS == {
+        "mammals_only": "d2bea760f6416775772699b821b266d3ae87245e",
+        "combined_vertebrates": "bfab878078c4ee6c0f47b760f1e5e0577549dc9d",
+    }
     assert set(RUN_IDS) == set(ARMS)
     assert all("dna-exp417" in run_id for run_id in RUN_IDS.values())
     assert WANDB_GROUP == "dna-exp417-v1"
 
 
-def test_dataset_revisions_must_be_immutable_commits(monkeypatch: pytest.MonkeyPatch) -> None:
-    env_name = DATASET_REVISION_ENVS["mammals_only"]
-    monkeypatch.delenv(env_name, raising=False)
-    with pytest.raises(AssertionError, match=env_name):
-        dataset_revision("mammals_only")
-    monkeypatch.setenv(env_name, "main")
-    with pytest.raises(AssertionError, match=env_name):
-        dataset_revision("mammals_only")
-    monkeypatch.setenv(env_name, FAKE_REVISIONS["mammals_only"])
-    assert dataset_revision("mammals_only") == FAKE_REVISIONS["mammals_only"]
+def test_dataset_revisions_are_immutable_commits() -> None:
+    for arm in ARMS:
+        revision = dataset_revision(arm)
+        assert revision == DATASET_REVISIONS[arm]
+        assert len(revision) == 40
 
 
 def test_arm_selection_is_ordered_and_strict(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -134,14 +127,11 @@ def test_repeat_mask_weights_are_target_aligned() -> None:
     )
 
 
-def test_tokenize_config_applies_one_repeat_aware_format_to_both_splits(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _set_revisions(monkeypatch)
+def test_tokenize_config_applies_one_repeat_aware_format_to_both_splits() -> None:
     for arm in ARMS:
         config = materialized_config(tokenized_dataset(arm), "gs://example-prefix")
         assert config.id == DATASET_REPOS[arm]
-        assert config.revision == FAKE_REVISIONS[arm]
+        assert config.revision == DATASET_REVISIONS[arm]
         assert config.tokenizer == TOKENIZER_PATH
         assert config.format.text_key == "sequence"
         assert config.format.uppercase_weight == 1.0
@@ -200,7 +190,6 @@ def test_model_and_optimizer_match_exp353_recipe() -> None:
 
 
 def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch) -> None:
-    _set_revisions(monkeypatch)
     monkeypatch.delenv(ARM_ENV, raising=False)
     versions = VersionCodex(default="2026.08.01")
     with build_context(BuildContext(versions=versions)):
@@ -240,11 +229,9 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_runtime_training_config_restores_repeat_aware_format(
-    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     """The generic fingerprint placeholder must not leak into the worker config."""
-    _set_revisions(monkeypatch)
     with build_context(BuildContext(versions=VersionCodex(default="2026.08.01"))):
         arms = build()
 

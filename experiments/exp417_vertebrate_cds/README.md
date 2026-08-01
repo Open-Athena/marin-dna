@@ -45,42 +45,24 @@ The seven-token character+BOS tokenizer is vendored in
 `a73e9d9ee636f722b4c378703c9e2997857809b2`; the launcher verifies SHA-256
 digests before constructing either artifact graph.
 
-## Runtime and approval envelope
+## Runtime and compute allocation
 
 The four completed exp353 runs used this exact 5,000-step, 8,192-sequence
 recipe on `v6e-4` and recorded 31,408–32,847 seconds (8.72–9.12 hours) of
-W&B runtime. Budget 10 TPU hours per arm, or 20 TPU-node hours total.
+W&B runtime. Expect roughly 10 TPU hours per arm, or 20 TPU-node hours total.
+The user authorized both runs on the free Iris/TRC allocation, so they do not
+count against a paid experiment budget. The launcher has no accelerator
+fallback: both arms request exactly one `v6e-4` in `us-east5`.
 
-As of 2026-08-01, [Google's public TPU pricing](https://cloud.google.com/tpu/pricing)
-lists Trillium/v6e in `us-east5` at $2.70 per chip-hour on demand or $1.35
-under DWS Flex. A `v6e-4` has four chips, so the conservative public-list
-envelope for both arms is $216 on demand or $108 under Flex. The launcher has
-no `v5p-8` fallback, preventing an availability retry from silently selecting
-a materially more expensive TPU. Request approval against a rounded **$220
-training ceiling**; Iris/TRC credits may reduce the actual billed amount.
-Tokenization and the separately auto-downing A10G offline evaluation are not
-included in that TPU ceiling.
+## Immutable datasets
 
-## Dataset revision gate
-
-The dataset cards and uploads are reviewed before publication. Until their
-immutable Hugging Face commits exist, the launcher deliberately refuses to
-lower or run. Supply both 40-character revisions:
-
-```bash
-export EXP417_CDS_MAMMALS_REVISION=<hf-commit>
-export EXP417_CDS_COMBINED_REVISION=<hf-commit>
-```
-
-The planned repositories are:
+The reviewed datasets and exact Hugging Face revisions are frozen directly in
+`launch.py`:
 
 ```text
-mammals_only         bolinas-dna/vertebrate-v1-cds_mammals_only
-combined_vertebrates bolinas-dna/vertebrate-v1-cds
+mammals_only         marin-dna/vertebrate-v1-cds_mammals_only @ d2bea760f6416775772699b821b266d3ae87245e
+combined_vertebrates marin-dna/vertebrate-v1-cds              @ bfab878078c4ee6c0f47b760f1e5e0577549dc9d
 ```
-
-After publication, replace the environment gate with the reviewed immutable
-commits in `launch.py` before a paid run.
 
 ## Validate and lower
 
@@ -107,7 +89,7 @@ EXP417_ARMS=combined_vertebrates uv run python launch.py --version 2026.08.01
 ## Launch on Iris
 
 Launch the two arms as independent Iris jobs so tokenization, provisioning, and
-retries are isolated. A paid launch requires explicit approval.
+retries are isolated. Both free Iris/TRC launches were explicitly approved.
 
 ```bash
 uv run iris --cluster=marin job run \
@@ -116,8 +98,6 @@ uv run iris --cluster=marin job run \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e HF_HUB_DOWNLOAD_TIMEOUT 120 -e UV_LOCK_TIMEOUT 7200 \
   -e EXP417_ARMS mammals_only \
-  -e EXP417_CDS_MAMMALS_REVISION "$EXP417_CDS_MAMMALS_REVISION" \
-  -e EXP417_CDS_COMBINED_REVISION "$EXP417_CDS_COMBINED_REVISION" \
   -- python launch.py --version 2026.08.01 --run
 ```
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -30,17 +29,17 @@ from marin.processing.tokenize.tokenize import (
 from marin_dna.levanter.formats import DNALmDatasetFormat
 
 MARIN_DNA_REVISION = "eaac2efffb73d33b87ba75bcf5521809af74fec7"
-PROJECTION_PIPELINE_REVISION = "06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d"
+PROJECTION_PIPELINE_REVISION = "d50ba5d6d8bd15e28ff11ad61bdd4a5aef67b733"
 
 ARMS = ("mammals_only", "combined_vertebrates")
 ARM_ENV = "EXP417_ARMS"
 DATASET_REPOS = {
-    "mammals_only": "bolinas-dna/vertebrate-v1-cds_mammals_only",
-    "combined_vertebrates": "bolinas-dna/vertebrate-v1-cds",
+    "mammals_only": "marin-dna/vertebrate-v1-cds_mammals_only",
+    "combined_vertebrates": "marin-dna/vertebrate-v1-cds",
 }
-DATASET_REVISION_ENVS = {
-    "mammals_only": "EXP417_CDS_MAMMALS_REVISION",
-    "combined_vertebrates": "EXP417_CDS_COMBINED_REVISION",
+DATASET_REVISIONS = {
+    "mammals_only": "d2bea760f6416775772699b821b266d3ae87245e",
+    "combined_vertebrates": "bfab878078c4ee6c0f47b760f1e5e0577549dc9d",
 }
 RUN_IDS = {
     "mammals_only": "dna-exp417-cds-mammals-only-p255m-b2m-5k",
@@ -126,7 +125,6 @@ TRAIN_HOST_RAM = "56g"
 TRAIN_DISK = "100g"
 
 DATASET_ARTIFACT_VERSION = "2026.08.01"
-_SHA40 = re.compile(r"[0-9a-f]{40}")
 
 
 def selected_arms() -> tuple[str, ...]:
@@ -143,14 +141,10 @@ def selected_arms() -> tuple[str, ...]:
 
 
 def dataset_revision(arm: str) -> str:
-    """Read and validate the immutable Hugging Face revision for one arm."""
+    """Return the reviewed immutable Hugging Face revision for one arm."""
     assert arm in ARMS
-    env_name = DATASET_REVISION_ENVS[arm]
-    revision = os.environ.get(env_name, "")
-    assert _SHA40.fullmatch(revision), (
-        f"{env_name} must be the 40-character Hugging Face commit for "
-        f"{DATASET_REPOS[arm]!r}; got {revision!r}"
-    )
+    revision = DATASET_REVISIONS[arm]
+    assert len(revision) == 40 and all(character in "0123456789abcdef" for character in revision)
     return revision
 
 
