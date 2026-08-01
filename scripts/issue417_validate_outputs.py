@@ -140,6 +140,11 @@ def _validate_sequences(results: Path, manifest: pl.DataFrame) -> dict[str, obje
         combined,
         pl.len().alias("rows"),
         pl.col("species").n_unique().alias("species"),
+        pl.col("query_name")
+        .str.to_lowercase()
+        .str.starts_with("zrs_")
+        .sum()
+        .alias("zrs_rows"),
         (pl.col("sequence").str.len_bytes() != TARGET_LENGTH)
         .sum()
         .alias("invalid_sequence_length"),
@@ -150,6 +155,9 @@ def _validate_sequences(results: Path, manifest: pl.DataFrame) -> dict[str, obje
     expected_rows = sum(int(stats["rows"]) for stats in file_stats)
     assert int(combined_stats["rows"]) == expected_rows
     assert int(combined_stats["species"]) == len(file_stats)
+    assert int(combined_stats["zrs_rows"]) == 0, (
+        "ZRS controls must remain outside the conservation-filtered full dataset"
+    )
     assert int(combined_stats["invalid_sequence_length"]) == 0
     assert int(combined_stats["invalid_target_span"]) == 0
 
@@ -204,9 +212,19 @@ def _dataset_stats(path: Path, *, validation: bool) -> dict[str, object]:
         (~pl.col("augmentation").is_in(["+"] if validation else ["+", "-"]))
         .sum()
         .alias("invalid_augmentation"),
+        pl.col("query_name")
+        .str.to_lowercase()
+        .str.starts_with("zrs_")
+        .sum()
+        .alias("zrs_rows"),
         pl.col("species").n_unique().alias("species"),
     )
-    for key in ["invalid_sequence_length", "invalid_chrom", "invalid_augmentation"]:
+    for key in [
+        "invalid_sequence_length",
+        "invalid_chrom",
+        "invalid_augmentation",
+        "zrs_rows",
+    ]:
         assert int(stats[key]) == 0, f"{path}: {key}={stats[key]}"
     if validation:
         assert int(stats["rows"]) <= VALIDATION_MAX_ROWS
@@ -376,22 +394,10 @@ def _validate_qc(results: Path, target_species: int) -> dict[str, object]:
     }
     assert "cds" in breadth_by_region and "ccre_non_promoter" in breadth_by_region
 
-    zrs = (
-        pl.scan_parquet(results / "sequences/all_sources.parquet")
-        .filter(
-            pl.col("query_name").str.to_lowercase().str.starts_with("zrs_")
-            & (pl.col("alignment_source") != "human_reference")
-            & (pl.col("clade") != "mammals")
-        )
-        .group_by("query_name")
-        .agg(pl.col("clade").n_unique().alias("non_mammal_clades"))
-        .collect(engine="streaming")
-    )
-    assert zrs.height >= 2
-    assert (zrs["non_mammal_clades"] >= 2).all()
-
     report = (results / "qc/manual_inspection.md").read_text().lower()
     assert "pending human review" in report
+    assert "zrs positive control: separate sidecar qc" in report
+    assert "intentionally absent from the conservation-filtered grid" in report
     return {
         "anchors": anchor_rows,
         "accepted_target_projections": accepted_total,
@@ -401,10 +407,8 @@ def _validate_qc(results: Path, target_species: int) -> dict[str, object]:
             breadth_by_region["cds"]["mean_total"]
             > breadth_by_region["ccre_non_promoter"]["mean_total"]
         ),
-        "zrs_non_mammal_clades": {
-            str(query_name): int(clades)
-            for query_name, clades in zrs.sort("query_name").iter_rows()
-        },
+        "zrs_rows": 0,
+        "zrs_qc": "validated separately as a sidecar",
     }
 
 
