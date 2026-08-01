@@ -173,6 +173,21 @@ def encode_selected_features(
     return selected
 
 
+def assert_selected_features_match_full(
+    selected: torch.Tensor, expected: torch.Tensor
+) -> None:
+    """Validate subset GEMM output against full SAE encoding.
+
+    Selecting encoder columns changes the GEMM reduction shape, so fp32 outputs
+    can differ by a few ulps. The JumpReLU support must still match exactly;
+    only active-value accumulation drift receives a floating-point tolerance.
+    """
+
+    assert selected.shape == expected.shape
+    assert torch.equal(selected > 0, expected > 0)
+    torch.testing.assert_close(selected, expected, rtol=1e-5, atol=5e-5)
+
+
 def extract_state_batch(
     states: pl.DataFrame,
     indices: Sequence[int],
@@ -225,7 +240,7 @@ def extract_state_batch(
     if validate_subset:
         with torch.inference_mode():
             expected = sae.encode(raw[:1]).index_select(-1, feature_ids)
-        torch.testing.assert_close(selected[:1], expected, rtol=1e-6, atol=1e-5)
+        assert_selected_features_match_full(selected[:1], expected)
     assert selected.shape == (len(indices), 2 * radius + 1, len(feature_ids))
     return selected.cpu().numpy()
 
@@ -289,6 +304,7 @@ def evaluate(
     """Extract a commit-pinned, deduplicated causal perturbation response map."""
 
     from sae_lens.saes.sae import SAE
+
     from spatial import read_sae_provenance
 
     assert torch.cuda.is_available() and torch.cuda.device_count() == 1
