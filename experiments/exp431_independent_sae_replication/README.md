@@ -80,6 +80,28 @@ sky down exp431-cpu -y
 
 Discovery retains 16 feature/view candidates per concept; validation requires the same effect sign and chooses the largest absolute effect; test reports a 2,000-sample equal-context bootstrap interval. FWD/RC component intervals and mutation-position/codon profiles are retained.
 
+## Fresh seed-289 stage
+
+The preregistered fresh primary arm is reported block 10 at the exact 5,000,550-activation checkpoint. To avoid a subtly different one-off trainer, `train_seed289.py` is an exact source copy of the successful #426 four-layer, two-budget trajectory with only the issue number, seed, and default run ID changed. It therefore also emits seven auxiliary layer/budget exports; those are not consulted when selecting or testing the #431 primary arm. The gLM is bf16, the SAEs are fp32, FWD/RC streams are exactly balanced, and two CPU workers prefetch batches. The tested eager path remains mandatory because #426 found that `torch.compile` dropped the dynamic multi-hook cache.
+
+Launch only after the candidate-extraction A10G has been terminated:
+
+```bash
+sky launch --dryrun -c exp431-fresh-lambda sky.train-fresh.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT
+sky launch -c exp431-fresh-lambda sky.train-fresh.yaml \
+  --env EXPERIMENT_COMMIT=COMMIT -y
+```
+
+Retrieve the hash-complete run and terminate the H100:
+
+```bash
+rsync -av --protect-args \
+  exp431-fresh-lambda:/home/ubuntu/exp431-artifacts/dna-exp431-fresh-seed289/ \
+  ../../scratch/issue431/retrieval/fresh-seed289/
+sky down exp431-fresh-lambda -y
+```
+
 ## Validation
 
 Local checks are bounded to two threads under the shared-host lock:
