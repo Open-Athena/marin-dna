@@ -1,0 +1,55 @@
+# Candidate-profile extraction for the existing #426 block-10/5M dictionary.
+
+name: dna-exp431-existing-dictionary
+
+resources:
+    infra: aws/us-east-2
+    instance_type: g5.2xlarge
+    disk_size: 200
+    autostop:
+        idle_minutes: 30
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp431-inputs/panels: ../../scratch/issue431/retrieval/panels
+    /home/ubuntu/exp431-inputs/candidates: ../../scratch/issue431/decoder-existing
+    /home/ubuntu/exp431-inputs/sae: ../../scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-5m
+
+envs:
+    EXPERIMENT_COMMIT: ""
+    DICTIONARY_NAME: rc-balanced-normalized-seed288
+
+setup: |
+    set -euxo pipefail
+    REPO_DIR="$HOME/exp431-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-431-independent-sae-replication
+    git -C "$REPO_DIR" checkout --force --detach "$EXPERIMENT_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$EXPERIMENT_COMMIT"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp431_independent_sae_replication"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    export EXPERIMENT_COMMIT DICTIONARY_NAME HF_HUB_DOWNLOAD_TIMEOUT=120 UV_LOCK_TIMEOUT=7200
+    export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 NUMEXPR_NUM_THREADS=2
+    cd "$HOME/exp431-repo/experiments/exp431_independent_sae_replication"
+    for SPLIT in discovery validation test; do
+        /usr/bin/time -v uv run --no-dev python extract_candidates.py \
+            --panel "/home/ubuntu/exp431-inputs/panels/$SPLIT/perturbation_panel.parquet" \
+            --panel-manifest "/home/ubuntu/exp431-inputs/panels/$SPLIT/manifest.json" \
+            --candidate-dir /home/ubuntu/exp431-inputs/candidates \
+            --sae /home/ubuntu/exp431-inputs/sae \
+            --output-dir "$HOME/exp431-artifacts/existing/$SPLIT" \
+            --dictionary-name "$DICTIONARY_NAME" \
+            --batch-size 32
+    done
