@@ -74,4 +74,5 @@ def test_dry_run_manifest_exposes_normalization_and_performance_contract() -> No
     assert fixed["lm_dtype"] == "bfloat16"
     assert fixed["sae_dtype"] == "float32"
     assert fixed["compile_llm"] is True
+    assert fixed["model_use_cache"] is False
     assert manifest["data"]["orientations"] == ["forward", "reverse_complement"]

@@ -303,6 +303,8 @@ def extract(
 
     checkpoint = Path(snapshot_download(repo_id=MODEL_ID, revision=MODEL_REVISION))
     frozen = load_frozen_m51(checkpoint, device="cuda", dtype=torch.bfloat16)
+    frozen.model.config.use_cache = False
+    assert frozen.model.config.use_cache is False
     model = HookedProxyLM(frozen.model, frozen.tokenizer, hook_names=list(HOOK_NAMES))
     if compile_llm:
         model.run_with_cache = torch.compile(  # type: ignore[method-assign]
@@ -419,6 +421,7 @@ def extract(
             "implementation_block_indices": list(BLOCK_INDICES),
             "hidden_size": M51_HIDDEN_SIZE,
             "dtype": "bfloat16",
+            "use_cache": False,
             "compile_llm": compile_llm,
         },
         "models": provenance,

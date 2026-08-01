@@ -296,8 +296,11 @@ def run_compile_smoke(runner: MultiSAETrainingRunner) -> dict[str, Any]:
     # dropped. This pinned low-level store seam consumes exactly one balanced
     # ten-window group while exercising the same compiled model path.
     batch = runner.activations_store._get_filtered_multi_hook_llm_batch()
-    consumed_sequences = runner.activations_store.n_dataset_processed - before
-    assert consumed_sequences == N_STREAMS
+    counter_delta = runner.activations_store.n_dataset_processed - before
+    # ActivationsStore increments this counter only when its generator resumes
+    # after a yield. The final yielded sequence is therefore consumed but not
+    # yet reflected in the counter until the next request.
+    assert counter_delta == N_STREAMS - 1
     assert set(batch) == set(HOOK_NAMES)
     for hook_name, activations in batch.items():
         assert hook_name in HOOK_NAMES
@@ -306,7 +309,9 @@ def run_compile_smoke(runner: MultiSAETrainingRunner) -> dict[str, Any]:
     torch.cuda.synchronize()
     return {
         "batches": COMPILE_SMOKE_BATCHES,
-        "sequences_consumed": consumed_sequences,
+        "logical_sequences_consumed": N_STREAMS,
+        "activation_store_counter_delta": counter_delta,
+        "activation_store_counter_lags_last_yield": True,
         "nucleotide_activations_per_layer": TRAIN_BATCH_TOKENS,
         "hook_shapes": {name: list(value.shape) for name, value in batch.items()},
         "elapsed_seconds": time.monotonic() - started,
@@ -594,6 +599,7 @@ def dry_run_manifest(run_id: str, *, compile_llm: bool) -> dict[str, Any]:
             "sae_dtype": "float32",
             "autocast_lm": True,
             "compile_llm": compile_llm,
+            "model_use_cache": False,
             "llm_compilation_mode": "reduce-overhead" if compile_llm else None,
             "prefetch_llm_batches": 2,
             "checkpoint_thresholds": thresholds,
@@ -643,6 +649,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     snapshot = Path(snapshot_download(repo_id=MODEL_ID, revision=MODEL_REVISION))
     assert MODEL_REVISION in snapshot.parts
     frozen = load_frozen_m51(snapshot, device="cuda", dtype=torch.bfloat16)
+    # Full-context activation extraction never consumes a generation cache.
+    # Disabling it also removes dynamic cache initialization guards that make
+    # torch.compile repeatedly specialize Qwen's forward graph.
+    frozen.model.config.use_cache = False
+    assert frozen.model.config.use_cache is False
     tokenizer = load_pinned_tokenizer()
     assert tokenizer.get_vocab() == frozen.tokenizer.get_vocab()
     model = HookedProxyLM(frozen.model, tokenizer, hook_names=list(HOOK_NAMES))
