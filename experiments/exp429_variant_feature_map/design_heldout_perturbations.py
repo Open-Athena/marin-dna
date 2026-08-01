@@ -316,12 +316,14 @@ def design_heldout_perturbations(
         coding_input, gtf_path=gtf_path, fasta_path=fasta_path
     )
     coding = coding.filter(
-        pl.col("matching_transcript_count")
-        > 0
-        & pl.col("consensus_strand").is_not_null()
-        & pl.col("consensus_codon_position").is_not_null()
-        & pl.col("consensus_ref_codon").is_not_null()
+        (pl.col("matching_transcript_count") > 0)
+        & (pl.col("consensus_strand").is_not_null())
+        & (pl.col("consensus_codon_position").is_not_null())
+        & (pl.col("consensus_ref_codon").is_not_null())
     )
+    assert not coding.select(
+        "consensus_strand", "consensus_codon_position", "consensus_ref_codon"
+    ).null_count().sum_horizontal().item()
     eligible = pl.concat((splice, coding), how="diagonal_relaxed")
     sources = deterministic_sources(eligible, contexts_per_class=contexts_per_class)
     assert set(sources["split"].unique()) == {SOURCE_SPLIT}
