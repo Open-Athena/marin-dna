@@ -255,6 +255,10 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
 
     text = " ".join(card.read_text().split())
     assert (
+        "configs: - config_name: default data_files: - split: train path: "
+        "train.parquet - split: validation path: validation.parquet" in text
+    )
+    assert (
         "Anchor eligibility uses the pipeline's pinned phyloP conservation filter."
         in text
     )

@@ -241,7 +241,11 @@ coordinate, acceptance, split, augmentation, or sampling rule differs between
 them.
 
 Generated dataset cards contain the exact committed pipeline SHA, split row
-counts, schema, and selected species counts. Review them before the explicit
+counts, schema, and selected species counts. Their `default` Hugging Face config
+loads only `train.parquet` and `validation.parquet`; the TSV/JSON validation QC
+sidecars remain repository artifacts rather than dataset shards. Uploads are
+serialized and use the installed Xet client in high-performance mode on the
+dedicated worker. Review the cards before the explicit
 upload target:
 
 ```bash

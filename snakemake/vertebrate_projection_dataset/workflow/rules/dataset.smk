@@ -152,11 +152,13 @@ rule hf_upload_dataset:
         f"{RESULTS}/upload.done/{{region}}",
     wildcard_constraints:
         region=COHORT_RE,
+    resources:
+        hf_uploads=1,
     params:
         repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
         folder=lambda wc: f"{RESULTS}/datasets/{wc.region}",
     shell:
-        "hf upload {params.repo} {params.folder} . --repo-type dataset && "
+        "HF_XET_HIGH_PERFORMANCE=1 hf upload {params.repo} {params.folder} . --repo-type dataset && "
         "mkdir -p $(dirname {output}) && touch {output}"
 
 

@@ -3,6 +3,13 @@ tags:
 - biology
 - genomics
 - dna
+configs:
+- config_name: default
+  data_files:
+  - split: train
+    path: train.parquet
+  - split: validation
+    path: validation.parquet
 ---
 
 # `bolinas-dna/vertebrate-v1-<region>`
