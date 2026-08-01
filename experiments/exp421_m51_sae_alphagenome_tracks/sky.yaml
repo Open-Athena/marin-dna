@@ -9,15 +9,9 @@ resources:
 workdir: .
 
 file_mounts:
-  /tmp/exp421-input/panel:
-    source: ../../scratch/issue420/input
-    mode: COPY
-  /tmp/exp421-input/extraction:
-    source: ../../scratch/issue420/retrieval/dna-exp420-mendelian-subsets-seed288/extraction
-    mode: COPY
-  /tmp/exp421-input/track_metadata:
-    source: ../../scratch/issue421/track_metadata
-    mode: COPY
+  /home/ubuntu/exp421_inputs/panel: ../../scratch/issue420/input
+  /home/ubuntu/exp421_inputs/extraction: ../../scratch/issue420/retrieval/dna-exp420-mendelian-subsets-seed288/extraction
+  /home/ubuntu/exp421_inputs/track_metadata: ../../scratch/issue421/track_metadata
 
 run: |
   set -euo pipefail
@@ -28,11 +22,11 @@ run: |
   fi
   rm -rf /tmp/dna-exp421-alphagenome-tracks
   /tmp/exp421-cpu/bin/python association.py \
-    --panel /tmp/exp421-input/panel/panel.parquet \
-    --extraction-dir /tmp/exp421-input/extraction \
+    --panel /home/ubuntu/exp421_inputs/panel/panel.parquet \
+    --extraction-dir /home/ubuntu/exp421_inputs/extraction \
     --alphagenome-uri s3://oa-bolinas/snakemake/alphagenome_eval/results/per_track_l2/mendelian_traits.parquet \
-    --track-metadata /tmp/exp421-input/track_metadata/track_metadata.parquet \
-    --track-metadata-manifest /tmp/exp421-input/track_metadata/manifest.json \
+    --track-metadata /home/ubuntu/exp421_inputs/track_metadata/track_metadata.parquet \
+    --track-metadata-manifest /home/ubuntu/exp421_inputs/track_metadata/manifest.json \
     --output-dir /tmp/dna-exp421-alphagenome-tracks \
     --extraction-commit "${EXTRACTION_COMMIT:?set EXTRACTION_COMMIT}" \
     --analysis-commit "${ANALYSIS_COMMIT:?set ANALYSIS_COMMIT}"
