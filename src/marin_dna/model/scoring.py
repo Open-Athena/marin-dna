@@ -149,6 +149,69 @@ def compute_euclidean_distance(
     return F.pairwise_distance(ref_emb, alt_emb)
 
 
+def compute_variant_llr(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    alt_token_id: Int[Tensor, " B"],
+    *,
+    var_pos: int,
+    nuc_token_ids: Int[Tensor, " 4"],
+) -> Float[Tensor, " B"]:
+    """Compute only the SNV log-likelihood ratio using prefix sharing.
+
+    This is the exact LLR portion of :func:`compute_variant_score_bundle`, split
+    into a dedicated kernel for inference benchmarking (issue #430). It keeps the
+    same REF/ALT prefix cache and four-nucleotide-normalized probability contract,
+    but does not compute JSD, register embedding hooks, or widen the returned
+    tensor with embeddings.
+
+    ``var_pos`` is the token-level variant position and ``nuc_token_ids`` follows
+    ``NUCLEOTIDES`` order. The returned value is ``alt_logprob - ref_logprob``
+    summed over the variant token and all downstream targets.
+    """
+    B, L = input_ids.shape
+    p = var_pos
+    assert 0 < p < L - 1, (
+        f"variant at token position {p} of length-{L} sequence has no shared "
+        f"prefix or no downstream prediction; expected 0 < var_pos < L-1"
+    )
+
+    prefix = input_ids[:, :p].contiguous()
+    ref_suffix = input_ids[:, p:].contiguous()
+    alt_suffix = torch.cat([alt_token_id.unsqueeze(-1), ref_suffix[:, 1:]], dim=-1)
+    suffixes = torch.stack([ref_suffix, alt_suffix], dim=1)
+    suffixes_flat = rearrange(suffixes, "B V L -> (B V) L").contiguous()
+
+    prefix_out = model(prefix, use_cache=True, logits_to_keep=1)
+    prefix_last_logits = prefix_out.logits[:, -1]
+    past_kv = _repeat_interleave_kv_cache(prefix_out.past_key_values, 2)
+    suffix_logits = model(
+        suffixes_flat, past_key_values=past_kv, use_cache=False
+    ).logits
+
+    nuc_ids = nuc_token_ids.to(suffix_logits.device)
+    log_p_nuc = F.log_softmax(suffix_logits[..., nuc_ids].float(), dim=-1)
+    log_p_nuc = rearrange(log_p_nuc, "(B V) L C -> B V L C", B=B)
+    log_p_ref = log_p_nuc[:, 0, :-1]
+    log_p_alt = log_p_nuc[:, 1, :-1]
+
+    prefix_log_p = F.log_softmax(prefix_last_logits[..., nuc_ids].float(), dim=-1)
+    ref_var_idx = _token_id_to_nuc_idx(input_ids[:, p], nuc_ids)
+    alt_var_idx = _token_id_to_nuc_idx(alt_token_id, nuc_ids)
+    llr_at_var = prefix_log_p.gather(-1, alt_var_idx.unsqueeze(-1)).squeeze(
+        -1
+    ) - prefix_log_p.gather(-1, ref_var_idx.unsqueeze(-1)).squeeze(-1)
+
+    suffix_targets = input_ids[:, p + 1 :]
+    target_idx = _token_id_to_nuc_idx(suffix_targets, nuc_ids).unsqueeze(-1)
+    log_p_ref_at_targets = log_p_ref.gather(-1, target_idx).squeeze(-1)
+    log_p_alt_at_targets = log_p_alt.gather(-1, target_idx).squeeze(-1)
+    llr_downstream = (log_p_alt_at_targets - log_p_ref_at_targets).sum(dim=-1)
+    llr = llr_at_var + llr_downstream
+    assert llr.shape == (B,), f"LLR shape {llr.shape} != ({B},)"
+    return llr
+
+
 def compute_variant_score_bundle(
     model: Any,
     input_ids: Int[Tensor, "B L"],

@@ -585,6 +585,7 @@ def paired_metric_delta_bootstrap(
     *,
     n_bootstrap: int = 1000,
     rng: np.random.Generator | int | None = 0,
+    threshold: float = 0.0,
 ) -> dict[str, float | int]:
     """Paired cluster-bootstrap of the AUPRC delta ``AP(a) − AP(b)`` on shared rows.
 
@@ -607,22 +608,26 @@ def paired_metric_delta_bootstrap(
             reproducible across re-runs).
 
     Returns:
-        ``{"delta", "se", "ci_low", "ci_high", "p_two_sided", "n_groups",
-        "n_rows"}``. ``delta`` is the point ``AP(a) − AP(b)`` over all rows; ``se``
+        ``{"delta", "se", "ci_low", "ci_high", "p_two_sided",
+        "p_delta_gt_threshold", "n_groups", "n_rows"}``. ``delta`` is the point
+        ``AP(a) − AP(b)`` over all rows; ``se``
         is the std of the bootstrap deltas; ``ci_low``/``ci_high`` the 2.5/97.5
         percentiles; ``p_two_sided = 2·min(frac≤0, frac≥0)`` (ties count on both
         sides), clamped to ``[1/n_bootstrap, 1]``.
+        ``p_delta_gt_threshold`` is the empirical fraction of paired bootstrap
+        deltas strictly greater than ``threshold``.
     """
     assert len(label) == len(score_a) == len(score_b) == len(match_group), (
         f"length mismatch: label={len(label)} a={len(score_a)} "
         f"b={len(score_b)} match_group={len(match_group)}"
     )
+    assert n_bootstrap >= 2, f"n_bootstrap must be >=2, got {n_bootstrap}"
     a = np.asarray(score_a, dtype=float)
     b = np.asarray(score_b, dtype=float)
     y = np.asarray(label).astype(int)
     mg = np.asarray(match_group)
-    assert not np.isnan(a).any() and not np.isnan(b).any(), (
-        "scores contain NaN; fill upstream before scoring"
+    assert np.isfinite(a).all() and np.isfinite(b).all(), (
+        "scores contain non-finite values; fix upstream before scoring"
     )
     n_pos = int(y.sum())
     assert 0 < n_pos < len(y), f"AUPRC undefined: n_pos={n_pos} of n={len(y)}"
@@ -655,6 +660,7 @@ def paired_metric_delta_bootstrap(
             "ci_low": nan,
             "ci_high": nan,
             "p_two_sided": nan,
+            "p_delta_gt_threshold": nan,
             "n_groups": int(n_groups),
             "n_rows": int(len(y)),
         }
@@ -664,15 +670,206 @@ def paired_metric_delta_bootstrap(
     # scores give p≈1 rather than a spurious 0; clamp to [1/n_bootstrap, 1].
     p = min(2.0 * min(float((boot <= 0).mean()), float((boot >= 0).mean())), 1.0)
     p = max(p, 1.0 / n_bootstrap)
+    p_delta_gt_threshold = float((boot > threshold).mean())
     return {
         "delta": point,
         "se": se,
         "ci_low": lo,
         "ci_high": hi,
         "p_two_sided": p,
+        "p_delta_gt_threshold": p_delta_gt_threshold,
         "n_groups": int(n_groups),
         "n_rows": int(len(y)),
     }
+
+
+def _degradation_conclusion(ci_low: float, ci_high: float, threshold: float) -> str:
+    if ci_high < threshold:
+        return "within the guideline"
+    if ci_low > threshold:
+        return "degradation greater than the guideline"
+    return "inconclusive at this sample size"
+
+
+def paired_auprc_degradation_metrics(
+    dataset: pd.DataFrame,
+    baseline_score: pd.Series | np.ndarray,
+    candidate_score: pd.Series | np.ndarray,
+    *,
+    n_bootstrap: int = 10_000,
+    rng: np.random.Generator | int | None = 0,
+    n_min: int = 30,
+    degradation_threshold: float = 0.01,
+) -> pd.DataFrame:
+    """Paired Mendelian AUPRC degradation per subset and as a joint macro.
+
+    Degradation is ``AP(baseline) - AP(candidate)``. Within each consequence
+    subset, every bootstrap iteration resamples complete ``match_group`` clusters
+    once and applies that identical draw to both score columns. Subsets with at
+    least ``n_min`` groups qualify for the macro; each macro iteration independently
+    resamples every qualifying subset and then equal-weights its per-subset AUPRC
+    degradations. This is the promoted-candidate uncertainty contract from issue
+    #430, not an independence approximation over separately estimated SEs.
+    """
+    for col in ("label", "subset", "match_group"):
+        assert col in dataset.columns, f"dataset missing required column {col!r}"
+    assert len(dataset) == len(baseline_score) == len(candidate_score), (
+        f"length mismatch: dataset={len(dataset)} baseline={len(baseline_score)} "
+        f"candidate={len(candidate_score)}"
+    )
+    assert n_bootstrap >= 2, f"n_bootstrap must be >=2, got {n_bootstrap}"
+    assert n_min >= 1, f"n_min must be >=1, got {n_min}"
+    assert degradation_threshold >= 0, (
+        f"degradation_threshold must be non-negative, got {degradation_threshold}"
+    )
+
+    frame = dataset.loc[:, ["label", "subset", "match_group"]].reset_index(drop=True)
+    frame["baseline_score"] = np.asarray(baseline_score, dtype=float)
+    frame["candidate_score"] = np.asarray(candidate_score, dtype=float)
+    assert not frame[["label", "subset", "match_group"]].isna().any().any(), (
+        "dataset contract columns contain missing values"
+    )
+    assert np.isfinite(frame[["baseline_score", "candidate_score"]]).all().all(), (
+        "baseline/candidate scores contain non-finite values"
+    )
+    labels = frame["label"].astype(int)
+    assert set(labels.unique()) <= {0, 1}, "label must be binary"
+    frame["label"] = labels
+
+    subset_per_group = frame.groupby("match_group")["subset"].nunique()
+    bad_subset_groups = subset_per_group[subset_per_group != 1]
+    assert bad_subset_groups.empty, (
+        f"{len(bad_subset_groups)} match_group(s) span subsets; first: "
+        f"{bad_subset_groups.head().to_dict()}"
+    )
+    group_labels = frame.groupby("match_group")["label"].agg(["sum", "count"])
+    bad_matched_groups = group_labels[
+        (group_labels["sum"] != 1) | (group_labels["count"] < 2)
+    ]
+    assert bad_matched_groups.empty, (
+        "expected each Mendelian match_group to contain exactly one positive and "
+        f"at least one negative; got {len(bad_matched_groups)} bad groups; first: "
+        f"{bad_matched_groups.head().to_dict()}"
+    )
+
+    generator = np.random.default_rng(rng)
+    rows: list[dict[str, float | int | str]] = []
+    qualifying: list[tuple[str, pd.DataFrame, dict[str, float | int]]] = []
+    for subset_name, subset_frame in frame.groupby("subset", sort=True):
+        result = paired_metric_delta_bootstrap(
+            subset_frame["label"],
+            subset_frame["baseline_score"],
+            subset_frame["candidate_score"],
+            subset_frame["match_group"],
+            n_bootstrap=n_bootstrap,
+            rng=generator,
+            threshold=degradation_threshold,
+        )
+        baseline_auprc = float(
+            average_precision_score(
+                subset_frame["label"], subset_frame["baseline_score"]
+            )
+        )
+        candidate_auprc = float(
+            average_precision_score(
+                subset_frame["label"], subset_frame["candidate_score"]
+            )
+        )
+        row: dict[str, float | int | str] = {
+            "subset": str(subset_name),
+            "baseline_auprc": baseline_auprc,
+            "candidate_auprc": candidate_auprc,
+            "delta": result["delta"],
+            "se": result["se"],
+            "ci_low": result["ci_low"],
+            "ci_high": result["ci_high"],
+            "p_delta_gt_threshold": result["p_delta_gt_threshold"],
+            "degradation_threshold": degradation_threshold,
+            "conclusion": _degradation_conclusion(
+                float(result["ci_low"]),
+                float(result["ci_high"]),
+                degradation_threshold,
+            ),
+            "n_subsets": 1,
+            "n_groups": result["n_groups"],
+            "n_rows": result["n_rows"],
+        }
+        rows.append(row)
+        if int(result["n_groups"]) >= n_min:
+            qualifying.append((str(subset_name), subset_frame, result))
+
+    assert qualifying, (
+        f"no subsets meet n_min={n_min}; group counts: "
+        f"{ {row['subset']: row['n_groups'] for row in rows} }"
+    )
+    macro_baseline = float(
+        np.mean(
+            [
+                average_precision_score(part["label"], part["baseline_score"])
+                for _, part, _ in qualifying
+            ]
+        )
+    )
+    macro_candidate = float(
+        np.mean(
+            [
+                average_precision_score(part["label"], part["candidate_score"])
+                for _, part, _ in qualifying
+            ]
+        )
+    )
+
+    components: list[tuple[np.ndarray, np.ndarray, np.ndarray, list[np.ndarray]]] = []
+    for _, part, _ in qualifying:
+        y = part["label"].to_numpy(dtype=int)
+        baseline = part["baseline_score"].to_numpy(dtype=float)
+        candidate = part["candidate_score"].to_numpy(dtype=float)
+        match_group = part["match_group"].to_numpy()
+        group_to_rows = list(
+            pd.Series(match_group).groupby(match_group).indices.values()
+        )
+        components.append((y, baseline, candidate, group_to_rows))
+
+    macro_boot = np.empty(n_bootstrap, dtype=float)
+    for iteration in range(n_bootstrap):
+        subset_deltas: list[float] = []
+        for y, baseline, candidate, group_to_rows in components:
+            n_groups = len(group_to_rows)
+            sampled = generator.integers(0, n_groups, size=n_groups)
+            idx = np.concatenate([group_to_rows[group] for group in sampled])
+            subset_deltas.append(
+                float(
+                    average_precision_score(y[idx], baseline[idx])
+                    - average_precision_score(y[idx], candidate[idx])
+                )
+            )
+        macro_boot[iteration] = float(np.mean(subset_deltas))
+
+    macro_delta = macro_baseline - macro_candidate
+    macro_se = float(np.std(macro_boot, ddof=1))
+    macro_ci_low, macro_ci_high = (
+        float(value) for value in np.percentile(macro_boot, [2.5, 97.5])
+    )
+    rows.append(
+        {
+            "subset": MACRO_AVG_SUBSET,
+            "baseline_auprc": macro_baseline,
+            "candidate_auprc": macro_candidate,
+            "delta": macro_delta,
+            "se": macro_se,
+            "ci_low": macro_ci_low,
+            "ci_high": macro_ci_high,
+            "p_delta_gt_threshold": float((macro_boot > degradation_threshold).mean()),
+            "degradation_threshold": degradation_threshold,
+            "conclusion": _degradation_conclusion(
+                macro_ci_low, macro_ci_high, degradation_threshold
+            ),
+            "n_subsets": len(qualifying),
+            "n_groups": sum(int(result["n_groups"]) for _, _, result in qualifying),
+            "n_rows": sum(int(result["n_rows"]) for _, _, result in qualifying),
+        }
+    )
+    return pd.DataFrame(rows)
 
 
 def compute_auprc_metrics(

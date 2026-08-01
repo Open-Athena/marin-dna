@@ -24,6 +24,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_qtl_metrics,
     compute_sge_metrics,
     compute_sge_probe_metrics,
+    paired_auprc_degradation_metrics,
     paired_metric_delta_bootstrap,
     per_chrom_ap_table,
     per_chrom_weighted_ap,
@@ -329,6 +330,66 @@ def test_paired_delta_seed_reproducibility():
     )
     assert a["se"] == b["se"]
     assert a["delta"] == b["delta"]
+
+
+def test_paired_delta_reports_threshold_probability():
+    labels, scores, mg = _matched_pairs(separable=False, seed=2)
+    result = paired_metric_delta_bootstrap(
+        labels,
+        scores,
+        scores,
+        mg,
+        n_bootstrap=100,
+        rng=0,
+        threshold=0.01,
+    )
+    assert result["p_delta_gt_threshold"] == 0.0
+
+
+def test_paired_degradation_joint_macro_identical_scores():
+    dataset, scores = _matched_pairs_with_subsets(
+        subsets=["missense_variant", "splicing"], n_pos_per_subset=35
+    )
+    result = paired_auprc_degradation_metrics(
+        dataset,
+        scores["score"],
+        scores["score"],
+        n_bootstrap=100,
+        rng=0,
+        n_min=30,
+    )
+    assert set(result["subset"]) == {
+        "missense_variant",
+        "splicing",
+        MACRO_AVG_SUBSET,
+    }
+    np.testing.assert_allclose(result["delta"], 0.0, rtol=0, atol=1e-12)
+    assert (result["p_delta_gt_threshold"] == 0.0).all()
+    assert set(result["conclusion"]) == {"within the guideline"}
+    macro = result[result["subset"] == MACRO_AVG_SUBSET].iloc[0]
+    assert macro["n_subsets"] == 2
+    assert macro["baseline_auprc"] == pytest.approx(
+        result[result["subset"] != MACRO_AVG_SUBSET]["baseline_auprc"].mean()
+    )
+
+
+def test_paired_degradation_joint_macro_detects_large_loss():
+    dataset, scores = _matched_pairs_with_subsets(
+        subsets=["missense_variant", "splicing"], n_pos_per_subset=40
+    )
+    baseline = np.where(dataset["label"].to_numpy() == 1, 1.0, 0.0)
+    result = paired_auprc_degradation_metrics(
+        dataset,
+        baseline,
+        scores["score"],
+        n_bootstrap=200,
+        rng=0,
+        n_min=30,
+    )
+    assert (result["delta"] > 0.01).all()
+    assert (result["ci_low"] > 0.01).all()
+    assert (result["p_delta_gt_threshold"] > 0.99).all()
+    assert set(result["conclusion"]) == {"degradation greater than the guideline"}
 
 
 # ---------------------------------------------------------------------------

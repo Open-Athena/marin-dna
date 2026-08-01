@@ -44,6 +44,7 @@ from marin_dna.model.scoring import (
     compute_ll_clm,
     compute_marginal_clm,
     compute_reflogprob_clm,
+    compute_variant_llr,
     compute_variant_score_bundle,
     entropy_from_marginal,
     rc_average_marginal,
@@ -755,6 +756,33 @@ def test_compute_variant_score_bundle_prefix_sharing_correctness():
     # JSD = 0: content-independent logits → identical ref/alt distributions
     # at every position → KL(P||M) = KL(Q||M) = 0.
     np.testing.assert_allclose(out[:, 1].numpy(), 0.0, atol=1e-7)
+
+
+def test_compute_variant_llr_matches_bundle_exactly():
+    """The LLR-only kernel preserves the existing bundle's score contract."""
+    torch.manual_seed(0)
+    model = _DeterministicCausalLM(vocab_size=8)
+    model.eval()
+    input_ids = torch.randint(3, 7, (5, 18))
+    alt_token_id = torch.tensor([3, 4, 5, 6, 3])
+    var_pos = 8
+
+    bundled = compute_variant_score_bundle(
+        model,
+        input_ids,
+        alt_token_id,
+        var_pos=var_pos,
+        nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS,
+    )
+    llr_only = compute_variant_llr(
+        model,
+        input_ids,
+        alt_token_id,
+        var_pos=var_pos,
+        nuc_token_ids=_SONGLAB_NUC_TOKEN_IDS,
+    )
+    assert llr_only.shape == (len(input_ids),)
+    torch.testing.assert_close(llr_only, bundled[:, 0], rtol=0, atol=0)
 
 
 def test_compute_variant_score_bundle_jsd_analytic():
