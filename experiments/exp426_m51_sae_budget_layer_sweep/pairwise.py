@@ -162,7 +162,7 @@ def plot_pairwise(rows: pl.DataFrame, output_dir: Path) -> None:
     grid = sns.relplot(
         data=plot_rows,
         x="reported_block",
-        y="test_average_precision",
+        y="test_auroc",
         hue="view_label",
         hue_order=view_order,
         style="view_label",
@@ -181,9 +181,9 @@ def plot_pairwise(rows: pl.DataFrame, output_dir: Path) -> None:
         facet = plot_rows[plot_rows["budget_label"] == budget_label]
         for view_label in view_order:
             selected = facet[facet["view_label"] == view_label]
-            y = selected["test_average_precision"].to_numpy()
-            low = selected["test_average_precision_ci95_low"].to_numpy()
-            high = selected["test_average_precision_ci95_high"].to_numpy()
+            y = selected["test_auroc"].to_numpy()
+            low = selected["test_auroc_ci95_low"].to_numpy()
+            high = selected["test_auroc_ci95_high"].to_numpy()
             axis.errorbar(
                 selected["reported_block"],
                 y,
@@ -196,8 +196,12 @@ def plot_pairwise(rows: pl.DataFrame, output_dir: Path) -> None:
             )
         axis.axhline(PAIRWISE_CHANCE, color="black", linestyle="--", linewidth=1)
         axis.set_xticks([index + 1 for index in BLOCK_INDICES])
-    grid.set_axis_labels("Reported transformer block", "Held-out missense AUPRC")
+    grid.set_axis_labels(
+        "Reported transformer block", "Held-out missense vs synonymous AUROC"
+    )
     grid.set_titles("{col_name}M activations")
+    if grid.legend is not None:
+        grid.legend.set_title("View")
     grid.figure.suptitle(
         "Direct missense vs synonymous discrimination\n"
         "error bars = genomic-block bootstrap 95% CI",
@@ -311,7 +315,7 @@ def analyze_pairwise(
     best_signed = (
         metrics.filter(pl.col("view") == "signed_mean")
         .sort(
-            ["test_average_precision", "reported_block", "budget"],
+            ["test_auroc", "reported_block", "budget"],
             descending=[True, False, False],
         )
         .row(0, named=True)
@@ -325,6 +329,7 @@ def analyze_pairwise(
         "positive_class": POSITIVE_CLASS,
         "negative_class": NEGATIVE_CLASS,
         "chance": PAIRWISE_CHANCE,
+        "primary_metric": "held-out missense-vs-synonymous AUROC",
         "best_signed_mean_arm": best_signed,
         "protocol": {
             "views": [
