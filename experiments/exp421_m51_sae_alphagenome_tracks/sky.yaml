@@ -13,7 +13,7 @@ file_mounts:
     source: ../../scratch/issue420/input
     mode: COPY
   /tmp/exp421-input/extraction:
-    source: ../../scratch/issue420/retrieval/dna-exp420-sae-mendelian-all-features-seed288
+    source: ../../scratch/issue420/retrieval/dna-exp420-mendelian-subsets-seed288/extraction
     mode: COPY
   /tmp/exp421-input/track_metadata:
     source: ../../scratch/issue421/track_metadata
@@ -28,7 +28,7 @@ run: |
   fi
   rm -rf /tmp/dna-exp421-alphagenome-tracks
   /tmp/exp421-cpu/bin/python association.py \
-    --panel /tmp/exp421-input/panel/mendelian_panel.parquet \
+    --panel /tmp/exp421-input/panel/panel.parquet \
     --extraction-dir /tmp/exp421-input/extraction \
     --alphagenome-uri s3://oa-bolinas/snakemake/alphagenome_eval/results/per_track_l2/mendelian_traits.parquet \
     --track-metadata /tmp/exp421-input/track_metadata/track_metadata.parquet \
