@@ -9,5 +9,6 @@ def test_stage_commands_use_pinned_commit_and_expected_cluster() -> None:
     assert panel[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
     assert extract[:4] == ["sky", "launch", "-c", GPU_CLUSTER]
     assert analyze[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
-    for command in (panel, extract, analyze):
-        assert f"EXPERIMENT_COMMIT={commit}" in command
+    assert f"EXPERIMENT_COMMIT={commit}" in panel
+    assert f"EXPERIMENT_COMMIT={commit}" in extract
+    assert f"ANALYSIS_COMMIT={commit}" in analyze
