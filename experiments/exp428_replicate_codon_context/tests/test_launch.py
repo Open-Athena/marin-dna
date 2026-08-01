@@ -8,6 +8,6 @@ def test_stage_commands_use_pinned_commit_and_expected_cluster() -> None:
     analyze = sky_command("analyze", commit)
     assert panel[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
     assert extract[:4] == ["sky", "launch", "-c", GPU_CLUSTER]
-    assert analyze[:3] == ["sky", "exec", CPU_CLUSTER]
+    assert analyze[:4] == ["sky", "launch", "-c", CPU_CLUSTER]
     for command in (panel, extract, analyze):
         assert f"EXPERIMENT_COMMIT={commit}" in command

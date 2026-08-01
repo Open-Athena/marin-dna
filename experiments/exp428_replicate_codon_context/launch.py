@@ -20,16 +20,13 @@ STAGE_CONFIG = {
 def sky_command(stage: str, commit: str) -> list[str]:
     assert stage in STAGE_CONFIG
     assert len(commit) == 40
-    operation = "exec" if stage == "analyze" else "launch"
     cluster = GPU_CLUSTER if stage == "extract" else CPU_CLUSTER
-    command = ["sky", operation]
-    if operation == "launch":
-        command.extend(["-c", cluster])
-    else:
-        command.append(cluster)
+    # Always use launch, including for a warm cluster: `sky exec` skips the
+    # YAML setup phase, which is responsible for checking out the pinned
+    # experiment commit and installing its environment.
+    command = ["sky", "launch", "-c", cluster]
     command.extend([STAGE_CONFIG[stage], "--env", f"EXPERIMENT_COMMIT={commit}"])
-    if operation == "launch":
-        command.extend(["--yes"])
+    command.extend(["--yes"])
     return command
 
 
