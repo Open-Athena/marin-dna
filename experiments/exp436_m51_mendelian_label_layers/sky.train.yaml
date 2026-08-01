@@ -1,0 +1,51 @@
+# One direct Lambda H100 for the missing block-1 SAE trajectory.
+# The job remains Sky-managed through artifact staging so autodown cannot erase
+# completed weights before retrieval.
+
+name: dna-exp436-block01-train
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 120
+    autostop:
+        idle_minutes: 180
+        down: true
+
+workdir: .
+
+envs:
+    RUN_ID: dna-exp436-block01-seed288-r1
+    EXPERIMENT_COMMIT: ""
+    COMPUTE_PROVIDER: lambda
+    COMPUTE_INSTANCE_TYPE: gpu_1x_h100_pcie
+    SKYPILOT_CLUSTER_NAME: exp436-lambda
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export HF_HUB_DOWNLOAD_TIMEOUT=120
+    export UV_LOCK_TIMEOUT=7200
+    export EXPERIMENT_COMMIT
+
+    uv run --no-dev python train.py \
+        --run-id "$RUN_ID" \
+        --output-root artifacts \
+        --no-compile
+
+    mkdir -p "retrieval/$RUN_ID"
+    cp -a "artifacts/$RUN_ID/models" "retrieval/$RUN_ID/models"
+    cp -a "artifacts/$RUN_ID/results.json" "retrieval/$RUN_ID/results.json"
+    cp -a "artifacts/$RUN_ID/manifest.json" "retrieval/$RUN_ID/manifest.json"
