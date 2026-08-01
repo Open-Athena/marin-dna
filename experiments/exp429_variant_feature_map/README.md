@@ -102,6 +102,17 @@ COMMIT="$(git rev-parse HEAD)"
 uv run python launch.py spatial --commit "$COMMIT" --execute
 ```
 
+`analyze_spatial.py` reverses the RC position axis into genomic coordinates
+before constructing signed-mean or max-absolute FWD/RC views. Feature ID,
+direction, and signed/absolute transform remain frozen from the focal analysis.
+Within each candidate it uses validation blocks only to choose among the focal
+base, the strongest oriented response in the ±15 bp window, and the integrated
+local response; it then uses validation again to choose one orientation-specific
+candidate per class. The untouched test blocks are read once for final AUPRC,
+1,000 genomic-block bootstrap intervals, and class-minus-background position
+profiles. Its CLI takes `--panel`, `--focal-analysis-dir`, `--spatial-dir`,
+`--output-dir`, and optional `--bootstrap-samples`.
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
