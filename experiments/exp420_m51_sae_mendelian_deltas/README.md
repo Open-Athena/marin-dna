@@ -61,3 +61,29 @@ uv run python aggregate.py \
 The aggregator centers scores within each unlabeled match group, scales each
 orientation by its discovery+validation standard deviation, and takes a fixed
 equal-weight mean. No test labels or test-tuned weights enter the aggregate.
+
+## Direct consequence-subset analysis
+
+The remaining issue scope uses a separate all-feature extraction and analysis
+task, leaving the reproduced pathogenic-label workflow unchanged:
+
+```bash
+sky launch -d --dryrun sky.subsets.yaml
+sky launch -d -c dna-exp420-mendelian-subsets \
+  --env EXPERIMENT_COMMIT=<40-character-commit> sky.subsets.yaml
+```
+
+`extract_all_features.py` runs FWD and RC together in one bf16 prediction loop,
+uses four CPU data-loader workers, disables KV caching, and enables
+`torch.compile`. It stores the union of nonzero reference/alternate SAE
+activations as two compressed Parquet files, preserving `ref_activation`,
+`alt_activation`, and signed `delta`, plus a 41-bp context table. Dense feature
+matrices are temporary analysis state and are never transferred.
+
+`subset_analysis.py` ranks signed and absolute candidate features on discovery
+chromosomes, selects only on validation chromosomes, and evaluates chr11/X
+once. Missense-versus-synonymous is reported separately for `label=0` and
+`label=1`, first for FWD/RC and then for their equal-weight pretest-standardized
+score mean. It also reports substitution and focal-excluded GC controls and a
+four-class analysis restricted to subsets with at least 20 match groups in
+every split. All output artifacts are hash-complete.
