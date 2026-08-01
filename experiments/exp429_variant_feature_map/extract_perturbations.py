@@ -150,6 +150,14 @@ def validate_design(
         assert 1 <= observed_distance <= 3
 
 
+def selects_full_dictionary(sae: Any, feature_ids: torch.Tensor) -> bool:
+    """Return whether feature IDs are the complete dictionary in native order."""
+
+    return len(feature_ids) == sae.cfg.d_sae and torch.equal(
+        feature_ids, torch.arange(sae.cfg.d_sae, device=feature_ids.device)
+    )
+
+
 def encode_selected_features(
     sae: Any, raw: torch.Tensor, feature_ids: torch.Tensor
 ) -> torch.Tensor:
@@ -161,10 +169,7 @@ def encode_selected_features(
     assert sae.cfg.normalize_activations == "none"
     assert not sae.hook_z_reshaping_mode
     with torch.inference_mode():
-        full_identity = len(feature_ids) == sae.cfg.d_sae and torch.equal(
-            feature_ids, torch.arange(sae.cfg.d_sae, device=feature_ids.device)
-        )
-        if full_identity:
+        if selects_full_dictionary(sae, feature_ids):
             selected = sae.encode(raw)
         else:
             sae_in = sae.process_sae_in(raw)
@@ -243,7 +248,7 @@ def extract_state_batch(
     position_slice = slice(FOCAL_INDEX - radius, FOCAL_INDEX + radius + 1)
     raw = activation_batch.activations[:, position_slice, :].float()
     selected = encode_selected_features(sae, raw, feature_ids)
-    if validate_subset:
+    if validate_subset and not selects_full_dictionary(sae, feature_ids):
         with torch.inference_mode():
             expected = sae.encode(raw[:1]).index_select(-1, feature_ids)
         assert_selected_features_match_full(selected[:1], expected)
