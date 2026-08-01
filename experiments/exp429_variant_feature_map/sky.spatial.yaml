@@ -51,7 +51,7 @@ run: |
         --fasta /home/ubuntu/exp429-inputs/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz \
         --sae /home/ubuntu/exp429-inputs/sae \
         --analysis-dir /home/ubuntu/exp429-inputs/analysis \
-        --output-dir "$HOME/exp429-artifacts/spatial" \
+        --output-dir "$HOME/exp429-artifacts/spatial-r2" \
         --batch-size 32 \
         --block-index 9 \
         --radius 15

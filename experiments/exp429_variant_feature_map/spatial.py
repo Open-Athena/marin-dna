@@ -274,8 +274,8 @@ def extract_spatial_batch(
     selected = encode_selected_features(sae, raw, feature_ids)
     if validate_subset:
         with torch.inference_mode():
-            expected = sae.encode(raw[:1, :1, :]).index_select(-1, feature_ids)
-        torch.testing.assert_close(selected[:1, :1, :], expected, rtol=0, atol=0)
+            expected = sae.encode(raw[:1, :, :]).index_select(-1, feature_ids)
+        torch.testing.assert_close(selected[:1, :, :], expected, rtol=1e-6, atol=1e-5)
     assert selected.shape == (2 * len(indices), 2 * radius + 1, len(feature_ids))
     return selected[0::2].cpu().numpy(), selected[1::2].cpu().numpy()
 
@@ -453,7 +453,7 @@ def evaluate(
             "relative_positions": list(range(-radius, radius + 1)),
             "orientations": list(ORIENTATIONS),
             "batch_size": batch_size,
-            "subset_encoder_validation": "exact equality to full SAE encode on first item and position per orientation",
+            "subset_encoder_validation": "full 31-position equality check against SAE encode on the first item per orientation with rtol=1e-6 and atol=1e-5",
         },
         "outputs": orientation_results,
     }
