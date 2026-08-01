@@ -148,10 +148,26 @@ Only tear the cluster down after the relay reports success. Resumable shards
 remain local and are not uploaded.
 
 For an unattended run, the watcher preserves the cluster after any job or relay
-failure and tears it down only after a successful relay when `--down` is explicit:
+failure and tears it down only after a successful relay when `--down` is
+explicit:
 
 ```bash
 scripts/issue419_watch_gh200_release.sh \
+  chinchilla-logo-gh200-full JOB_ID COMMIT_SHA --down
+```
+
+An attached watcher ends with its controller shell or task session. Launch it
+as a user service when it must survive controller handoffs:
+
+```bash
+issue419_repo=$(pwd)
+systemd-run --user \
+  --unit=issue419-watch-job17 \
+  --property=Type=exec \
+  --setenv=PATH="$PATH" \
+  --setenv=ISSUE419_POLL_SECONDS=300 \
+  --working-directory="$issue419_repo" \
+  "$issue419_repo/scripts/issue419_watch_gh200_release.sh" \
   chinchilla-logo-gh200-full JOB_ID COMMIT_SHA --down
 ```
 
