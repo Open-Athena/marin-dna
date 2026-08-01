@@ -129,6 +129,25 @@ discovery contexts. It reports annotation coverage, codon phase, transcript-
 oriented substitutions, and unambiguous REF→ALT codon pairs for the top versus
 remaining same-class responses.
 
+`design_perturbations.py` turns the discovery-derived interpretations into a
+bounded causal panel. For each acceptor, donor-fifth-base, stop-gain, and
+synonymous candidate it retains 16 strongest contexts plus 16 deterministic
+rank-spaced same-class controls. Splice contexts receive all three substitutions
+at response-oriented positions -12 through +4. Coding contexts receive every
+other transcript-oriented codon, labeled as synonymous, missense, or stop gain.
+
+`extract_perturbations.py` evaluates the five frozen feature IDs 3312, 4281,
+6072, 11681, and 11698 at positions -15 through +15 in FWD and RC. It
+deduplicates the 14,592 paired sequence states to 7,424 unique model forwards,
+then preserves row-level reference and alternate indices for paired analysis.
+The same validated eager hook path runs in bfloat16 for the base model and
+float32 for the SAE.
+
+```bash
+COMMIT="$(git rev-parse HEAD)"
+uv run python launch.py perturbations --commit "$COMMIT" --execute
+```
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse

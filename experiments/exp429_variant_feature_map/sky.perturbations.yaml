@@ -1,0 +1,54 @@
+# Deduplicated causal perturbation extraction for issue #429.
+
+name: dna-exp429-perturbations
+
+resources:
+    infra: aws/us-east-2
+    instance_type: g5.2xlarge
+    disk_size: 150
+    autostop:
+        idle_minutes: 30
+        down: true
+
+file_mounts:
+    /home/ubuntu/exp429-inputs/perturbations: ../../scratch/issue429/retrieval/perturbation-design-r1
+    /home/ubuntu/exp429-inputs/sae: ../../scratch/issue418/dna-exp418-micro-seed288-e816ec343c30/sae
+
+envs:
+    RUN_ID: dna-exp429-targeted-perturbations-seed288
+    PERTURBATION_EXTRACTION_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    REPO_DIR="$HOME/exp429-repo"
+    if [ ! -d "$REPO_DIR/.git" ]; then
+        git clone --filter=blob:none https://github.com/Open-Athena/marin-dna.git "$REPO_DIR"
+    fi
+    git -C "$REPO_DIR" fetch origin codex/issue-429-variant-feature-map
+    git -C "$REPO_DIR" checkout --force --detach "$PERTURBATION_EXTRACTION_COMMIT"
+    test "$(git -C "$REPO_DIR" rev-parse HEAD)" = "$PERTURBATION_EXTRACTION_COMMIT"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    cd "$REPO_DIR/experiments/exp429_variant_feature_map"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export PERTURBATION_EXTRACTION_COMMIT RUN_ID HF_HUB_DOWNLOAD_TIMEOUT=120 UV_LOCK_TIMEOUT=7200
+    export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 NUMEXPR_NUM_THREADS=2
+    cd "$HOME/exp429-repo/experiments/exp429_variant_feature_map"
+    /usr/bin/time -v uv run --no-dev python extract_perturbations.py \
+        --panel /home/ubuntu/exp429-inputs/perturbations/perturbation_panel.parquet \
+        --panel-manifest /home/ubuntu/exp429-inputs/perturbations/manifest.json \
+        --sae /home/ubuntu/exp429-inputs/sae \
+        --output-dir "$HOME/exp429-artifacts/perturbation-extraction-r1" \
+        --batch-size 32 \
+        --block-index 9 \
+        --radius 15
