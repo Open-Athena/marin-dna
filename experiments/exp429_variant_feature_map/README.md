@@ -113,6 +113,16 @@ candidate per class. The untouched test blocks are read once for final AUPRC,
 profiles. Its CLI takes `--panel`, `--focal-analysis-dir`, `--spatial-dir`,
 `--output-dir`, and optional `--bootstrap-samples`.
 
+After the spatial result is frozen, `inspect_candidates.py` uses validation AP
+only to select strong positive-direction candidates, then inspects sequence
+grammar on discovery variants only. For each variant it orients the 31 bp
+REF/ALT context by the FWD or RC contribution that produced the max-absolute
+score. It compares the top 128 responses with the remaining variants from the
+same consequence class, exporting contexts, base frequencies, substitution
+frequencies, and an enrichment heatmap. This is a hypothesis-generation step;
+held-out test scores are carried through from the prior analysis and are not
+used to select sequences.
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
