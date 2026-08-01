@@ -161,13 +161,19 @@ def encode_selected_features(
     assert sae.cfg.normalize_activations == "none"
     assert not sae.hook_z_reshaping_mode
     with torch.inference_mode():
-        sae_in = sae.process_sae_in(raw)
-        weights = sae.W_enc.index_select(1, feature_ids)
-        bias = sae.b_enc.index_select(0, feature_ids)
-        threshold = sae.threshold.index_select(0, feature_ids)
-        hidden_pre = sae_in @ weights + bias
-        base_acts = sae.activation_fn(hidden_pre)
-        selected = base_acts * (hidden_pre > threshold).to(base_acts.dtype)
+        full_identity = len(feature_ids) == sae.cfg.d_sae and torch.equal(
+            feature_ids, torch.arange(sae.cfg.d_sae, device=feature_ids.device)
+        )
+        if full_identity:
+            selected = sae.encode(raw)
+        else:
+            sae_in = sae.process_sae_in(raw)
+            weights = sae.W_enc.index_select(1, feature_ids)
+            bias = sae.b_enc.index_select(0, feature_ids)
+            threshold = sae.threshold.index_select(0, feature_ids)
+            hidden_pre = sae_in @ weights + bias
+            base_acts = sae.activation_fn(hidden_pre)
+            selected = base_acts * (hidden_pre > threshold).to(base_acts.dtype)
     assert selected.shape == (*raw.shape[:-1], len(feature_ids))
     assert torch.isfinite(selected).all() and torch.all(selected >= 0)
     return selected
