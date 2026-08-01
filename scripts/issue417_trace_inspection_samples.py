@@ -264,7 +264,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("results", type=Path)
     parser.add_argument("multiz_stage", type=Path)
-    parser.add_argument("--rows-per-backend", type=int, default=2)
+    parser.add_argument("--rows-per-backend", type=int, default=1)
     parser.add_argument("--expected-pipeline-commit", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
