@@ -68,7 +68,9 @@ def _fetch_series(run: Any, metric: str) -> list[tuple[int, float]]:
     return sorted(by_step.items())
 
 
-def _nearest(points: Sequence[tuple[int, float]], step: int) -> tuple[int, float] | None:
+def _nearest(
+    points: Sequence[tuple[int, float]], step: int
+) -> tuple[int, float] | None:
     if not points:
         return None
     return min(points, key=lambda point: abs(point[0] - step))
@@ -136,7 +138,12 @@ def _write_markdown(summary: Mapping[str, Any], path: Path) -> None:
         lines.append(
             "| "
             + " | ".join(
-                [label, coverage, *checkpoint_values, _format_value(train["last_100_mean"])]
+                [
+                    label,
+                    coverage,
+                    *checkpoint_values,
+                    _format_value(train["last_100_mean"]),
+                ]
             )
             + " |"
         )
@@ -173,7 +180,9 @@ def compare(output_dir: Path) -> dict[str, Any]:
 
     csv_path = output_dir / "trajectory.csv"
     with csv_path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=("run", "run_id", "metric", "step", "value"))
+        writer = csv.DictWriter(
+            handle, fieldnames=("run", "run_id", "metric", "step", "value")
+        )
         writer.writeheader()
 
         for label, run_id in RUNS.items():
@@ -203,11 +212,17 @@ def compare(output_dir: Path) -> dict[str, Any]:
 
             flat_config = _flatten_config(run.config)
             configs[label] = {
-                key: value for key, value in sorted(flat_config.items()) if CONFIG_KEYWORDS.search(key)
+                key: value
+                for key, value in sorted(flat_config.items())
+                if CONFIG_KEYWORDS.search(key)
             }
 
-    (output_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
-    (output_dir / "configs.json").write_text(json.dumps(configs, indent=2, sort_keys=True) + "\n")
+    (output_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n"
+    )
+    (output_dir / "configs.json").write_text(
+        json.dumps(configs, indent=2, sort_keys=True) + "\n"
+    )
     _write_markdown(summary, output_dir / "summary.md")
     return summary
 
