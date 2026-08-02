@@ -92,3 +92,23 @@ sky launch -d -c exp436-lambda \
 The task writes one complete Parquet per declared hypothesis family plus a
 compact `top_hits.parquet`, results manifest, and hashes. It uses the warm H100
 node's CPUs; no second paid instance is required.
+
+## Summaries and figures
+
+After retrieving and hash-verifying the complete focal association run, produce
+the target, robustness, strand, checkpoint-lineage, and recurrent-feature
+summaries with bounded local threads:
+
+```bash
+flock -n /tmp/marin-dna-local-heavy.lock \
+  env EXPERIMENT_COMMIT=<40-character-commit> \
+  RUN_ID=dna-exp436-mendelian-focal-summary-seed288-r1 \
+  POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2 OMP_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+  uv run --no-dev python summarize_focal.py \
+    --associations-root <verified-association-root> \
+    --output-dir <new-summary-output>
+```
+
+The summarizer emits both SVG and PNG figures. FWD/RC remain separate in every
+inferential family; overlap is summarized only after those results exist.
