@@ -7,14 +7,70 @@ import numpy as np
 import pandas as pd
 from datasets import Dataset
 from transformers import (
+    AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
+    PretrainedConfig,
     PreTrainedTokenizerBase,
     PreTrainedTokenizerFast,
 )
 
 from marin_dna.data.genome import Genome
 from marin_dna_evals.model.runner import run_variant_score_bundle
+
+
+def _load_checkpoint_config(checkpoint_path: Path) -> PretrainedConfig:
+    """Load a checkpoint config, adapting Transformers 5 RoPE serialization.
+
+    Transformers 5 writes Qwen3 rotary settings under ``rope_parameters``.
+    Transformers 4.57 (the pinned eval runtime) preserves that unknown field but
+    silently constructs the model with its defaults: ``rope_theta=10_000`` and
+    no scaling. That changes inference for a model trained with Llama-3 RoPE.
+
+    Translate the new representation into Transformers 4's ``rope_theta`` plus
+    ``rope_scaling`` fields in memory. Native Transformers 4 exports continue
+    through the unchanged path.
+    """
+    config_path = checkpoint_path / "config.json"
+    if not config_path.is_file():
+        return AutoConfig.from_pretrained(checkpoint_path)
+
+    with config_path.open(encoding="utf-8") as config_file:
+        raw_config = json.load(config_file)
+    assert isinstance(raw_config, dict), f"{config_path} must contain a JSON object"
+
+    rope_parameters = raw_config.get("rope_parameters")
+    if rope_parameters is None:
+        return AutoConfig.from_pretrained(checkpoint_path)
+
+    assert isinstance(rope_parameters, dict), (
+        f"{config_path}: rope_parameters must be a JSON object"
+    )
+    assert raw_config.get("rope_scaling") is None, (
+        f"{config_path}: refusing ambiguous rope_parameters + rope_scaling"
+    )
+    assert "rope_theta" in rope_parameters, (
+        f"{config_path}: rope_parameters is missing rope_theta"
+    )
+    rope_theta = rope_parameters["rope_theta"]
+    assert isinstance(rope_theta, (int, float)) and rope_theta > 0, (
+        f"{config_path}: rope_theta must be positive, got {rope_theta!r}"
+    )
+    rope_scaling = {
+        key: value for key, value in rope_parameters.items() if key != "rope_theta"
+    }
+    assert "rope_type" in rope_scaling, (
+        f"{config_path}: rope_parameters is missing rope_type"
+    )
+
+    config = AutoConfig.from_pretrained(
+        checkpoint_path,
+        rope_theta=rope_theta,
+        rope_scaling=rope_scaling,
+    )
+    assert config.rope_theta == rope_theta
+    assert config.rope_scaling == rope_scaling
+    return config
 
 
 def _load_checkpoint_tokenizer(checkpoint_path: Path) -> PreTrainedTokenizerBase:
@@ -146,8 +202,10 @@ def compute_variant_scores(
     # AutoTokenizer / AutoModelForCausalLM satisfy the duck-typed interface
     # marin_dna_evals.model.runner expects — no adapter wrappers needed.
     tokenizer = _load_checkpoint_tokenizer(checkpoint_path)
+    model_config = _load_checkpoint_config(checkpoint_path)
     model = AutoModelForCausalLM.from_pretrained(
         checkpoint_path,
+        config=model_config,
         trust_remote_code=True,
     )
     hf_dataset = Dataset.from_pandas(dataset, preserve_index=False)

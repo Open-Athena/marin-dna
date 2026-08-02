@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from marin_dna_evals.inference import (
+    _load_checkpoint_config,
     _load_checkpoint_tokenizer,
     compute_variant_scores,
     fwd_rc_average_f16,
@@ -76,6 +77,52 @@ def test_load_checkpoint_tokenizer_requires_json_for_transformers5_backend(tmp_p
         _load_checkpoint_tokenizer(tmp_path)
 
 
+def test_load_checkpoint_config_preserves_transformers4_rope(tmp_path):
+    (tmp_path / "config.json").write_text(
+        '{"model_type": "qwen3", "rope_theta": 500000, '
+        '"rope_scaling": {"rope_type": "linear", "factor": 8.0}}',
+        encoding="utf-8",
+    )
+
+    config = _load_checkpoint_config(tmp_path)
+
+    assert config.rope_theta == 500000
+    assert config.rope_scaling == {"rope_type": "linear", "factor": 8.0}
+
+
+def test_load_checkpoint_config_translates_transformers5_rope(tmp_path):
+    (tmp_path / "config.json").write_text(
+        '{"model_type": "qwen3", "rope_parameters": {'
+        '"rope_type": "llama3", "rope_theta": 500000, "factor": 8.0, '
+        '"low_freq_factor": 1.0, "high_freq_factor": 4.0, '
+        '"original_max_position_embeddings": 8192}}',
+        encoding="utf-8",
+    )
+
+    config = _load_checkpoint_config(tmp_path)
+
+    assert config.rope_theta == 500000
+    assert config.rope_scaling == {
+        "rope_type": "llama3",
+        "factor": 8.0,
+        "low_freq_factor": 1.0,
+        "high_freq_factor": 4.0,
+        "original_max_position_embeddings": 8192,
+    }
+
+
+def test_load_checkpoint_config_rejects_ambiguous_rope_fields(tmp_path):
+    (tmp_path / "config.json").write_text(
+        '{"model_type": "qwen3", '
+        '"rope_parameters": {"rope_type": "llama3", "rope_theta": 500000}, '
+        '"rope_scaling": {"rope_type": "llama3"}}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError, match="ambiguous"):
+        _load_checkpoint_config(tmp_path)
+
+
 def _patched_model_load():
     """Patch the heavy model/tokenizer/genome loaders so the test never
     actually downloads a checkpoint or opens a FASTA."""
@@ -89,6 +136,10 @@ def _patched_model_load():
             return_value=object(),
         ),
         patch(
+            "marin_dna_evals.inference._load_checkpoint_config",
+            return_value=object(),
+        ),
+        patch(
             "marin_dna_evals.inference.Genome",
             return_value=object(),
         ),
@@ -99,10 +150,11 @@ def test_compute_variant_scores_rc_false_returns_two_cols():
     ds = _stub_dataset()
     fwd_arr = np.array([[0.1, 0.01], [0.2, 0.02], [0.3, 0.03], [0.4, 0.04]])
 
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    tok_patch, model_patch, config_patch, genome_patch = _patched_model_load()
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -127,10 +179,11 @@ def test_compute_variant_scores_rc_true_returns_four_cols():
     fwd_arr = np.array([[0.1, 0.01], [0.2, 0.02], [0.3, 0.03], [0.4, 0.04]])
     rc_arr = np.array([[-0.1, 0.05], [-0.2, 0.06], [-0.3, 0.07], [-0.4, 0.08]])
 
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    tok_patch, model_patch, config_patch, genome_patch = _patched_model_load()
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -160,10 +213,11 @@ def test_compute_variant_scores_avg_derivable_from_atoms():
     fwd_arr = np.array([[1.0, 0.5], [2.0, 0.6], [3.0, 0.7], [4.0, 0.8]])
     rc_arr = np.array([[-1.0, 0.1], [0.0, 0.2], [1.0, 0.3], [2.0, 0.4]])
 
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    tok_patch, model_patch, config_patch, genome_patch = _patched_model_load()
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -230,6 +284,10 @@ def _patched_model_load_with_hidden(hidden_size: int):
             ),
         ),
         patch(
+            "marin_dna_evals.inference._load_checkpoint_config",
+            return_value=object(),
+        ),
+        patch(
             "marin_dna_evals.inference.Genome",
             return_value=object(),
         ),
@@ -247,10 +305,13 @@ def test_compute_variant_scores_embeddings_columns_and_fp32_average():
     fwd[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
     rc[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
 
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(d)
+    tok_patch, model_patch, config_patch, genome_patch = (
+        _patched_model_load_with_hidden(d)
+    )
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -297,10 +358,13 @@ def test_compute_variant_scores_embeddings_parquet_roundtrip(tmp_path):
     fwd[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
     rc[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
 
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(d)
+    tok_patch, model_patch, config_patch, genome_patch = (
+        _patched_model_load_with_hidden(d)
+    )
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -326,10 +390,13 @@ def test_compute_variant_scores_embeddings_parquet_roundtrip(tmp_path):
 
 def test_compute_variant_scores_return_embeddings_requires_rc():
     ds = _stub_dataset()
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(3)
+    tok_patch, model_patch, config_patch, genome_patch = (
+        _patched_model_load_with_hidden(3)
+    )
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         pytest.raises(AssertionError, match="requires rc=True"),
     ):
@@ -349,10 +416,13 @@ def test_compute_variant_scores_embeddings_width_mismatch_asserts():
     n, d = len(ds), 3
     # Model says hidden_size=d but the array is 2 + 2*(d+1) wide.
     bad = np.zeros((n, 2 + 2 * (d + 1)), dtype=np.float32)
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(d)
+    tok_patch, model_patch, config_patch, genome_patch = (
+        _patched_model_load_with_hidden(d)
+    )
     with (
         tok_patch,
         model_patch,
+        config_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
