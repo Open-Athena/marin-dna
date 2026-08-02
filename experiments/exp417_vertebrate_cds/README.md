@@ -120,7 +120,7 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
 - [mammals host-RAM resume `r3` (512 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r3)
 - [combined 512 GiB attempt `r4`, stopped while unscheduled](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r4)
-- combined host-RAM resume `r5` (384 GiB; submit after this revision is pushed)
+- [combined host-RAM resume `r5` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r5)
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
@@ -199,6 +199,10 @@ available for its 512 GiB request. Combined `r5` instead requests 384 GiB (6.9
 times the failed limit) so both workers fit concurrently. These changes leave
 the TPU, datasets, model, initialization, optimizer, batch order and size, seed,
 objective, loss weights, checkpoint cadence, and terminal evaluation unchanged.
+At the 2026-08-02 04:52 UTC observation, mammals `r3` had restored step 1500,
+completed step 1501, and advanced into the 1500s with loss 1.28. Combined `r5`
+had restored step 1000 and completed step 1001. Both TPU children were running
+concurrently with zero failures and zero preemptions.
 
 ## Frozen offline VEP evaluation
 
