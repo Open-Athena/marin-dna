@@ -120,9 +120,9 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
 - [mammals host-RAM resume `r3` (512 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r3)
 - [mammals guarded recovery `r4` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r4)
-- [guarded combined terminal recovery `r6` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r6)
 - [combined 512 GiB attempt `r4`, stopped while unscheduled](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r4)
 - [combined host-RAM resume `r5` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r5)
+- [guarded combined terminal recovery `r6` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r6)
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
@@ -343,6 +343,16 @@ checkpoint path, and exact terminal target. Its guarded child had zero
 failures and zero preemptions at the 11:50 UTC observation, explicitly
 discovered step 4500 as the latest valid checkpoint, ignored the incomplete
 terminal directory, restored it, and resumed at step 4501.
+
+Guarded mammals `r4` completed its terminal work on 2026-08-02. It committed
+a complete six-object native step-4999 checkpoint at 12:12:59 UTC, completed
+validation with loss 1.307, and finished the exact four-file,
+1,019,426,252-byte (972.2 MiB) Hugging Face export at 12:13:53. The worker
+then hit a teardown SIGSEGV after the durable export and Iris consequently
+reported the child and parent as failed. Because both the complete native
+optimizer-state checkpoint (including `metadata.json`) and reloadable terminal
+HF export were independently verified in GCS, this arm is complete and is not
+relaunched.
 
 ## Frozen offline VEP evaluation
 
