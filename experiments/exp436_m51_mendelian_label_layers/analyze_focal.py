@@ -181,12 +181,12 @@ def load_dense_pair(path: Path, *, rows: int) -> tuple[np.ndarray, np.ndarray, i
     assert path.is_file()
     table = pq.read_table(
         path,
-        columns=(
+        columns=[
             "panel_row",
             "feature_id",
             "ref_activation",
             "alt_activation",
-        ),
+        ],
         memory_map=True,
     )
     panel_rows = table["panel_row"].to_numpy(zero_copy_only=False)

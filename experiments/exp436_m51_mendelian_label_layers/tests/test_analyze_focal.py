@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 import polars as pl
+import pyarrow as pa
+import pyarrow.parquet as pq
 from sklearn.metrics import average_precision_score
 
 from analyze_focal import (
@@ -10,7 +12,9 @@ from analyze_focal import (
     analyze_target,
     average_precision_both_directions,
     bh_adjust,
+    load_dense_pair,
 )
+from extract_focal import SPARSE_SCHEMA
 
 
 def test_bh_adjust_preserves_order_and_nan() -> None:
@@ -74,3 +78,35 @@ def test_analyze_target_excludes_rare_response_and_finds_signal(
     assert signal["mean_difference"] > 1
     assert signal["best_auprc"] > 0.9
     assert signal["best_auprc_direction"] == "higher"
+
+
+def test_load_dense_pair_reads_projected_parquet_columns(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    path = tmp_path / "sparse.parquet"
+    table = pa.Table.from_pylist(
+        [
+            {
+                "panel_row": 0,
+                "feature_id": 1,
+                "ref_activation": 2.0,
+                "alt_activation": 0.0,
+                "delta": -2.0,
+            },
+            {
+                "panel_row": 1,
+                "feature_id": 0,
+                "ref_activation": 0.0,
+                "alt_activation": 3.0,
+                "delta": 3.0,
+            },
+        ],
+        schema=SPARSE_SCHEMA,
+    )
+    pq.write_table(table, path)
+    monkeypatch.setattr("analyze_focal.D_SAE", 4)
+    ref, alt, sparse_rows = load_dense_pair(path, rows=2)
+    assert sparse_rows == 2 and ref.shape == alt.shape == (2, 4)
+    np.testing.assert_array_equal(ref, [[0, 2, 0, 0], [0, 0, 0, 0]])
+    np.testing.assert_array_equal(alt, [[0, 0, 0, 0], [3, 0, 0, 0]])
