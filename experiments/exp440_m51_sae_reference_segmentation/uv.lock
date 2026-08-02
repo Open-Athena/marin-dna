@@ -512,7 +512,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "huggingface-hub" },
-    { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=0ed28e6474a52e109f997999396e1f7fe9bbba2a" },
+    { name = "marin-dna", git = "https://github.com/Open-Athena/marin-dna.git?rev=c4c1c86bbfc0bd58ff76dda3bac1d2acea856a33" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "polars", specifier = ">=1.0" },
     { name = "pyarrow", specifier = ">=17" },
@@ -860,7 +860,7 @@ wheels = [
 [[package]]
 name = "marin-dna"
 version = "0.0.1"
-source = { git = "https://github.com/Open-Athena/marin-dna.git?rev=0ed28e6474a52e109f997999396e1f7fe9bbba2a#0ed28e6474a52e109f997999396e1f7fe9bbba2a" }
+source = { git = "https://github.com/Open-Athena/marin-dna.git?rev=c4c1c86bbfc0bd58ff76dda3bac1d2acea856a33#c4c1c86bbfc0bd58ff76dda3bac1d2acea856a33" }
 dependencies = [
     { name = "bioframe", marker = "sys_platform == 'linux'" },
     { name = "biopython", marker = "sys_platform == 'linux'" },

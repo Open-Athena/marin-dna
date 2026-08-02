@@ -48,9 +48,22 @@ Run the focused tests with:
 uv run pytest
 ```
 
-## Downstream analysis
+## Extract focal SAE activations
 
-The next scripts on this branch will extract center-position activations from
-the frozen block 1, 10, and 19 SAEs for FWD and RC separately and run the
-preregistered one-vs-rest association scan. Experimental results and plots
-belong in issue #440 rather than this runbook.
+The Sky task uses one Lambda H100, captures blocks 1, 10, and 19 in one shared
+bf16 model pass, encodes each frozen SAE in fp32, and writes separate sparse
+FWD/RC focal-activation tables. Launch from the repository root with the
+immutable experiment commit supplied explicitly:
+
+```bash
+sky launch -c dna-exp440-reference-state-focal \
+  experiments/exp440_m51_sae_reference_segmentation/sky.extract.yaml \
+  --env EXPERIMENT_COMMIT=<40-character-commit> -y
+```
+
+The task checks the panel, model revision, and exact SAE artifact digests before
+inference. It uploads all outputs below
+`s3://oa-bolinas/experiments/exp440/retrieval/dna-exp440-reference-state-focal-seed288-r1/`,
+with `manifest.json` uploaded last.
+
+Experimental results and plots belong in issue #440 rather than this runbook.

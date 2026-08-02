@@ -160,6 +160,10 @@ def deterministic_balanced_sample(
     assert sample.height == samples_per_class * len(REFERENCE_CLASSES)
     assert sample["name"].n_unique() == sample.height
     assert sample["selection_hash"].n_unique() == sample.height
+    assert (
+        sample.select(pl.struct("chrom", "start", "end").n_unique()).item()
+        == sample.height
+    )
     assert dict(sample.group_by("reference_class").len().iter_rows()) == {
         reference_class: samples_per_class for reference_class in REFERENCE_CLASSES
     }
