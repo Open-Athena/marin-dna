@@ -84,7 +84,8 @@ run: |
 
   uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/archive_posthoc.py" \
     --root "$RUN_ROOT" \
-    --run-id "$RUN_ID"
+    --run-id "$RUN_ID" \
+    --analysis-status preregistered_untouched_test_transfer
   aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
   aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > /tmp/exp438-transfer-s3-dryrun.txt
   test ! -s /tmp/exp438-transfer-s3-dryrun.txt
