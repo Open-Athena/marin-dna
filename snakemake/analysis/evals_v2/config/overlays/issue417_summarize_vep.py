@@ -82,6 +82,8 @@ def _markdown(
         f"- Generated: {generated_at}",
         f"- Split: {SPLIT}",
         f"- Score: {SCORE_TYPE}",
+        "- Reported scopes: missense, splicing, and synonymous where available; "
+        "no global row",
         "- Delta: combined vertebrates minus mammals only",
         "- Uncertainty: 1,000 paired bootstrap iterations, seed 0",
         "",

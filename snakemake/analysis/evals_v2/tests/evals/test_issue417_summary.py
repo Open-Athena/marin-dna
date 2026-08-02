@@ -19,7 +19,9 @@ from marin_dna_evals.metrics import (
 def _matched_scores() -> dict[str, pd.DataFrame]:
     rng = np.random.default_rng(4)
     rows: list[dict[str, object]] = []
-    for subset_index, subset in enumerate(("missense", "splice")):
+    for subset_index, subset in enumerate(
+        ("missense_variant", "splicing", "synonymous_variant")
+    ):
         for group in range(40):
             for offset, label in enumerate((1, 0, 0)):
                 rows.append(
@@ -130,7 +132,7 @@ def test_paired_sge_identical_scores_have_zero_delta() -> None:
         score,
         sge["mavedb_urn"],
         sge["subset"],
-        scope="both",
+        scope="missense_variant",
         n_bootstrap=50,
         rng=0,
     )
@@ -140,7 +142,7 @@ def test_paired_sge_identical_scores_have_zero_delta() -> None:
     assert result["n_accessions"] == 2
 
 
-def test_build_comparison_reports_frozen_cells_and_positive_deltas() -> None:
+def test_build_comparison_reports_only_cds_scopes_and_positive_deltas() -> None:
     matched = _matched_scores()
     sge = _sge_scores()
     scores = {
@@ -155,10 +157,9 @@ def test_build_comparison_reports_frozen_cells_and_positive_deltas() -> None:
     )
 
     assert set(map(tuple, comparison[["dataset", "scope"]].to_numpy())) == {
-        ("mendelian_traits", "_global_"),
-        ("mendelian_traits", "missense"),
-        ("mendelian_traits", "splice"),
-        ("sge", "both"),
+        ("mendelian_traits", "missense_variant"),
+        ("mendelian_traits", "splicing"),
+        ("mendelian_traits", "synonymous_variant"),
         ("sge", "missense_variant"),
         ("sge", "splicing"),
     }

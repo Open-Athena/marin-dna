@@ -370,10 +370,13 @@ split with the current `evals_v2` zero-shot harness. The experiment-local
 [`evals.yaml`](evals.yaml) restricts the DAG to the two matched checkpoints
 and two coding-relevant benchmarks:
 
-- Mendelian traits: signed FWD/RC-averaged LLR, overall and consequence-level
-  matched-pair AUPRC with cluster-bootstrap uncertainty.
-- SGE: signed FWD/RC-averaged LLR, per-accession and missense/splicing AUPRC
-  with bootstrap uncertainty.
+- Mendelian traits: signed FWD/RC-averaged LLR for missense, splicing, and
+  synonymous variants with matched-pair cluster-bootstrap uncertainty.
+- SGE: signed FWD/RC-averaged LLR for missense and splicing variants with
+  per-accession bootstrap uncertainty. SGE has no synonymous subset.
+
+The paired report intentionally contains no global row or other consequence
+categories because the compared models are trained on CDS windows.
 
 The expected immutable exports are:
 

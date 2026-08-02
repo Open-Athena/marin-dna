@@ -1,8 +1,9 @@
 """Frozen paired VEP comparison for issue #417.
 
 This module compares the mammals-only and combined-vertebrates terminal models
-on the same held-out Mendelian and SGE rows. It intentionally reports only the
-pre-result cells frozen in the issue #417 execution record.
+on the same held-out Mendelian and SGE rows. Because these are CDS-trained
+models, it intentionally reports only missense, splicing, and synonymous
+scopes where the benchmark provides them.
 """
 
 from __future__ import annotations
@@ -21,7 +22,8 @@ ARMS = (MAMMALS_ARM, COMBINED_ARM)
 DATASETS = ("mendelian_traits", "sge")
 SCORE_TYPE = "minus_llr_avg"
 SPLIT = "test"
-SGE_SCOPES = ("both", "missense_variant", "splicing")
+MENDELIAN_SCOPES = ("missense_variant", "splicing", "synonymous_variant")
+SGE_SCOPES = ("missense_variant", "splicing")
 MACRO = "_macro_avg_"
 
 MENDELIAN_IDENTITY_COLUMNS = (
@@ -272,13 +274,13 @@ def build_issue417_comparison(
 
     rows: list[dict[str, float | int | str]] = []
     mendelian = scores[(MAMMALS_ARM, "mendelian_traits")]
-    scopes = ["_global_", *sorted(mendelian["subset"].unique().tolist())]
-    for scope in scopes:
-        mask = (
-            np.ones(len(mendelian), dtype=bool)
-            if scope == "_global_"
-            else mendelian["subset"].to_numpy() == scope
-        )
+    available_mendelian_scopes = set(mendelian["subset"].unique())
+    missing_mendelian_scopes = set(MENDELIAN_SCOPES) - available_mendelian_scopes
+    assert not missing_mendelian_scopes, (
+        f"Mendelian scores missing CDS report scopes: {missing_mendelian_scopes}"
+    )
+    for scope in MENDELIAN_SCOPES:
+        mask = mendelian["subset"].to_numpy() == scope
         mammals_metric = _metric_cell(
             metrics[(MAMMALS_ARM, "mendelian_traits")],
             dataset="mendelian_traits",
