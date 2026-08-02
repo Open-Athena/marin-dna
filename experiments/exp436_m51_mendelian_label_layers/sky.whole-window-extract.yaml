@@ -55,7 +55,7 @@ run: |
   BLOCK01_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-block01-seed288-r1/models"
   EXISTING_S3="s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models"
   test ! -e "$RUN_ROOT"
-  mkdir -p "$PANEL_ROOT" "$FASTA_ROOT" "$BLOCK01_ROOT" "$EXISTING_ROOT" "$RUN_ROOT"
+  mkdir -p "$PANEL_ROOT" "$FASTA_ROOT" "$BLOCK01_ROOT" "$EXISTING_ROOT"
 
   uv run --project "$EXPERIMENT_DIR" python -m pytest -q \
     "$EXPERIMENT_DIR/tests/test_extract_whole_window.py"
