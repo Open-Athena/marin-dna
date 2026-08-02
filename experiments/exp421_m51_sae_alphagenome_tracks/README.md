@@ -21,3 +21,9 @@ uv run --with polars --with pytest pytest -q test_biosample_mapping.py test_bios
 ```
 
 The historical split-based pass is defined in `sky.yaml`. The six-resolution complete-family revisit is defined in `sky.grouped_l2.yaml`; it downloads the frozen panel, 25M SAE activations, high-level taxonomy, and AlphaGenome L2 table directly from S3, then uploads a hash-manifested result archive.
+
+Create compact result tables and both PNG and SVG synthesis figures with:
+
+```bash
+uv run --with polars --with numpy --with pandas --with matplotlib --with seaborn python experiments/exp421_m51_sae_alphagenome_tracks/summarize_grouped_l2.py --result-root <retrieved-result-directory> --output-dir <summary-directory>
+```
