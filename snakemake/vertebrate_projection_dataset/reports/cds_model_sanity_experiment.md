@@ -1,7 +1,9 @@
 # CDS mammals-only vs. combined-vertebrate sanity experiment
 
-Status: **preregistered; not launched**. A full projection/QC pass and explicit
-user approval for paid training are required first.
+Status: **matched training in progress** on the user-approved free Iris/TRC
+allocation. The projection/QC gates and reviewed Hugging Face publication are
+complete; terminal offline VEP evaluation remains pending both step-4999
+exports.
 
 ## Question and directional expectation
 
@@ -36,19 +38,37 @@ both arms so that accidental compute or sampling differences are visible.
 
 ## Required execution record
 
-Fill this before launch:
+Recorded from the immutable launch configuration and published artifacts:
 
 | Field | Mammals only | Combined vertebrates |
 |---|---|---|
-| Pipeline commit | pending | pending |
-| HF dataset + revision | pending | pending |
-| Species manifest commit | pending | pending |
-| Train rows/tokens | pending | pending |
-| Validation rows/tokens | pending | pending |
-| Model config | pending | pending |
-| Random seed(s) | pending | pending |
-| W&B run (`dna-exp417` in name) | pending | pending |
-| VEP harness commit | pending | pending |
+| Pipeline commit | [`d50ba5d`](https://github.com/Open-Athena/marin-dna/tree/d50ba5d6d8bd15e28ff11ad61bdd4a5aef67b733/snakemake/vertebrate_projection_dataset) | same |
+| HF dataset + revision | [`marin-dna/vertebrate-v1-cds_mammals_only@d2bea76`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-cds_mammals_only/tree/d2bea760f6416775772699b821b266d3ae87245e) | [`marin-dna/vertebrate-v1-cds@bfab878`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-cds/tree/bfab878078c4ee6c0f47b760f1e5e0577549dc9d) |
+| Species manifest commit | [`d50ba5d`](https://github.com/Open-Athena/marin-dna/blob/d50ba5d6d8bd15e28ff11ad61bdd4a5aef67b733/snakemake/vertebrate_projection_dataset/config/species_selected.tsv) | same |
+| Train rows / exposure tokens | 56,549,084 / 10,485,760,000 | 66,552,602 / 10,485,760,000 |
+| Validation rows / tokens | 16,384 / 4,194,304 | 16,384 / 4,194,304 |
+| Model config | [Qwen3 255M matched recipe](https://github.com/Open-Athena/marin-dna/blob/796e3734edf5904c5ad65b86476be1ca9702fcc8/experiments/exp417_vertebrate_cds/launch.py) | same |
+| Random seed(s) | 0 | 0 |
+| W&B run (`dna-exp417` in name) | [`dna-exp417-cds-mammals-only-p255m-b2m-5k`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp417-cds-mammals-only-p255m-b2m-5k) | [`dna-exp417-cds-combined-vertebrates-p255m-b2m-5k`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k) |
+| VEP harness commit | [`evals_v2@796e373`](https://github.com/Open-Athena/marin-dna/tree/796e3734edf5904c5ad65b86476be1ca9702fcc8/snakemake/analysis/evals_v2) + [frozen overlay](https://github.com/Open-Athena/marin-dna/blob/796e3734edf5904c5ad65b86476be1ca9702fcc8/experiments/exp417_vertebrate_cds/evals.yaml) | same |
+
+## Execution status
+
+Both arms use one `v6e-4` in `us-east5`, 5,000 steps, 8,192 sequences per
+step, the same optimizer and tokenizer, and a 500-step validation/native-
+checkpoint/Hugging Face export cadence. Only the immutable source corpus
+differs.
+
+- [Mammals-only Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only):
+  passed the complete step-500 checkpoint/eval/HF-export gate and reached step
+  629 by 2026-08-02 01:45 UTC with zero failures or preemptions.
+- [Combined retry `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2):
+  restored step 50 after the original run's checkpoint serialization failure,
+  committed a fresh step-115 temporary checkpoint, passed the original
+  step-159 failure point, and reached step 184 by 2026-08-02 01:45 UTC with
+  zero failures or preemptions. The preceding `r1` submission failed before
+  restore because its coordinator launch omitted the W&B credential; it did
+  not alter model state or the frozen recipe.
 
 ## Required results
 
