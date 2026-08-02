@@ -305,6 +305,17 @@ with zero failures; mammals had zero preemptions and combined retained only its
 one earlier preemption. This supplies matched, complete recovery points for
 both arms with 1,499 training steps remaining.
 
+At the 2026-08-02 10:45 UTC observation, both arms had also crossed a matched
+step-4000 durability boundary. Guarded mammals committed its complete native
+checkpoint by 10:44:20, completed validation with loss 1.299, finished its
+exact four-file, 1,019,426,252-byte (972.2 MiB) Hugging Face export at
+10:43:48, and resumed through about step 4010. Combined committed its complete
+native checkpoint at 10:09:45, completed validation with loss 1.301, finished
+the same exact four-file export at 10:10:38, and advanced through about step
+4390. Both jobs remained running with zero failures; mammals still had zero
+preemptions and combined retained only its one earlier preemption. These
+matched recovery points leave 999 training steps to each terminal export.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
