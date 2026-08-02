@@ -69,10 +69,10 @@ Recorded from the immutable launch configuration and published artifacts:
 | Species manifest commit | [`d50ba5d`](https://github.com/Open-Athena/marin-dna/blob/d50ba5d6d8bd15e28ff11ad61bdd4a5aef67b733/snakemake/vertebrate_projection_dataset/config/species_selected.tsv) | same |
 | Train rows / exposure tokens | 56,549,084 / 10,485,760,000 | 66,552,602 / 10,485,760,000 |
 | Validation rows / tokens | 16,384 / 4,194,304 | 16,384 / 4,194,304 |
-| Model config | [Qwen3 255M matched recipe](https://github.com/Open-Athena/marin-dna/blob/aba2fc4604ceaa75385294841744ec8404624ded/experiments/exp417_vertebrate_cds/launch.py) | same |
+| Model config | [Qwen3 255M matched recipe](https://github.com/Open-Athena/marin-dna/blob/260a7a77655a604ee2f9d7b0bc15776e4b7b9116/experiments/exp417_vertebrate_cds/launch.py) | same |
 | Random seed(s) | 0 | 0 |
 | W&B run (`dna-exp417` in name) | [`dna-exp417-cds-mammals-only-p255m-b2m-5k`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp417-cds-mammals-only-p255m-b2m-5k) | [`dna-exp417-cds-combined-vertebrates-p255m-b2m-5k`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k) |
-| VEP harness commit | [`evals_v2@aba2fc4`](https://github.com/Open-Athena/marin-dna/tree/aba2fc4604ceaa75385294841744ec8404624ded/snakemake/analysis/evals_v2) + [frozen overlay](https://github.com/Open-Athena/marin-dna/blob/aba2fc4604ceaa75385294841744ec8404624ded/experiments/exp417_vertebrate_cds/evals.yaml) | same |
+| VEP harness commit | [`evals_v2@260a7a7`](https://github.com/Open-Athena/marin-dna/tree/260a7a77655a604ee2f9d7b0bc15776e4b7b9116/snakemake/analysis/evals_v2) + [frozen overlay](https://github.com/Open-Athena/marin-dna/blob/260a7a77655a604ee2f9d7b0bc15776e4b7b9116/experiments/exp417_vertebrate_cds/evals.yaml) + [paired report](https://github.com/Open-Athena/marin-dna/blob/260a7a77655a604ee2f9d7b0bc15776e4b7b9116/scripts/issue417_summarize_vep.py) | same |
 
 ## Execution status
 
