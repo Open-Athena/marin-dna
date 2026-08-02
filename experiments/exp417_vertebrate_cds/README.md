@@ -119,6 +119,7 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [safe mammals resume `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r2)
 - [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
 - [mammals host-RAM resume `r3` (512 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r3)
+- [mammals guarded recovery `r4` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r4)
 - [combined 512 GiB attempt `r4`, stopped while unscheduled](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r4)
 - [combined host-RAM resume `r5` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r5)
 
@@ -257,6 +258,17 @@ Marin training entrypoint. It does not alter the dataset, token or batch order,
 model, initialization, optimizer, objective, seed, checkpoint cadence, or
 evaluation; it is a documented execution-only deviation necessitated by two
 failures at native-checkpoint teardown.
+
+Guarded mammals recovery `r4` was submitted at 2026-08-02 08:10 UTC from
+immutable experiment commit
+[`898ba1f`](https://github.com/Open-Athena/marin-dna/tree/898ba1f0a2aa2cc5a5bd487356226afe58bcb196/experiments/exp417_vertebrate_cds).
+The coordinator reproduced artifact fingerprint `4ddff021`, reused the
+successful token cache, and dispatched the guarded `v6e-4` training child with
+384 GiB host RAM. At the 08:13 UTC observation the child was pending solely
+because Iris reported zero free TPU chips; the coordinator and child had zero
+failures and no configuration or import error. It will restore the complete
+step-2500 checkpoint when capacity becomes available, while combined `r5`
+continues independently.
 
 ## Frozen offline VEP evaluation
 
