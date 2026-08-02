@@ -1,0 +1,80 @@
+name: dna-exp435-repeat-variant-panel
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6i.2xlarge
+  disk_size: 80
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+file_mounts:
+  ~/exp435-variant-inputs/panel.parquet: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue420/input/panel.parquet
+  ~/exp435-variant-inputs/panel.manifest.json: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue420/input/panel.manifest.json
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-variant-panel-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=6
+  export RAYON_NUM_THREADS=6
+  export OMP_NUM_THREADS=2
+  export MKL_NUM_THREADS=2
+  export OPENBLAS_NUM_THREADS=2
+  export NUMEXPR_NUM_THREADS=2
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-variant-panel-r1"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-variant-inputs"
+  INVENTORY_ROOT="$INPUT_ROOT/inventory"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  INVENTORY_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-inventory-r1"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$INVENTORY_ROOT" "$RUN_ROOT/inputs"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 cp "$INVENTORY_S3/archive_manifest.json" "$INVENTORY_ROOT/archive_manifest.json"
+  aws s3 cp "$INVENTORY_S3/inventory/manifest.json" "$INVENTORY_ROOT/manifest.json"
+  aws s3 cp "$INVENTORY_S3/inventory/annotations.parquet" "$INVENTORY_ROOT/annotations.parquet"
+  aws s3 cp "$INVENTORY_S3/inventory/category_inventory.parquet" "$INVENTORY_ROOT/category_inventory.parquet"
+  aws s3 cp "$INVENTORY_S3/inventory/chrom_inventory.parquet" "$INVENTORY_ROOT/chrom_inventory.parquet"
+  aws s3 cp "$INVENTORY_S3/inventory/results.json" "$INVENTORY_ROOT/results.json"
+  cp "$INPUT_ROOT/panel.manifest.json" "$RUN_ROOT/inputs/source_panel_manifest.json"
+  cp "$INVENTORY_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/inventory_archive_manifest.json"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/prepare_variant_panel.py" \
+    --panel "$INPUT_ROOT/panel.parquet" \
+    --panel-manifest "$INPUT_ROOT/panel.manifest.json" \
+    --inventory-dir "$INVENTORY_ROOT" \
+    --output-dir "$RUN_ROOT/panel"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status outcome_blind_paired_repeat_variant_panel
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-variant-panel-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive

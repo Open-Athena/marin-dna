@@ -121,3 +121,20 @@ sky launch -y -d --down -c exp435-repeat-reference-sensitivities \
 
 Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-sensitivities-r1/`.
+
+## Stage 5: outcome-blind paired repeat-variant panel
+
+`prepare_variant_panel.py` joins the exact 16,140-row official Mendelian panel
+to the frozen RepeatMasker inventory without retaining `label`. It distinguishes
+focal repeat overlap, nonfocal repeat overlap within the 255 bp window, and a
+fully repeat-free window; preserves the primary annotation and all overlaps;
+and records class/family/subfamily feasibility before any paired activation is
+inspected. This metadata stage does not run the gLM and will allow the existing
+#436 block-1/10/19 25M paired sparse activations to be reused.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-variant-panel --env EXPERIMENT_COMMIT=<40-character-commit> experiments/exp435_repeat_capacity/sky.variant_panel.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-panel-r1/`.
