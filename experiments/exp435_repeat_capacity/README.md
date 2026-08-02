@@ -215,3 +215,27 @@ uv run --project experiments/exp435_repeat_capacity python \
 
 Durable sensitivity output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-saturation-causal-window-r1/`.
+
+## Stage 9: repeat-aware Mendelian label sensitivity
+
+`analyze_repeat_label_sensitivity.py` joins the exact official Mendelian label
+panel to Stage 5 by both row and variant identity. It reruns the complete
+all-feature Welch/Mann–Whitney association families for `abs_delta` and signed
+`delta` within all, repeat-free-window, focal-repeat, and near-repeat strata.
+Blocks 1/10/19 and FWD/RC remain separate. The all-variant families must
+numerically reproduce the archived #436 result before any repeat-stratified
+output is accepted. Only after those families are complete does the script
+measure descriptive overlap with the independently frozen reference-repeat and
+paired repeat-response inventories.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-label-sensitivity \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  experiments/exp435_repeat_capacity/sky.repeat_label.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-label-sensitivity-r1/`.
+The source panel and roughly 320 MiB of 25M paired activation inputs are
+downloaded directly onto the ephemeral CPU instance and are not copied into the
+result archive.

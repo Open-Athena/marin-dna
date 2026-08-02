@@ -1,0 +1,96 @@
+name: dna-exp435-repeat-label-sensitivity
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.8xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-label-sensitivity-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=24
+  export RAYON_NUM_THREADS=24
+  export OMP_NUM_THREADS=8
+  export MKL_NUM_THREADS=8
+  export OPENBLAS_NUM_THREADS=8
+  export NUMEXPR_NUM_THREADS=8
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-label-sensitivity-r1"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-repeat-label-inputs"
+  LABEL_ROOT="$INPUT_ROOT/label-panel"
+  REPEAT_PANEL_ROOT="$INPUT_ROOT/repeat-panel"
+  ACTIVATION_ROOT="$INPUT_ROOT/paired-activations"
+  GLOBAL_ROOT="$INPUT_ROOT/global-associations"
+  REFERENCE_ROOT="$INPUT_ROOT/reference-repeat-associations"
+  PAIRED_ROOT="$INPUT_ROOT/paired-repeat-associations"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  LABEL_URL="https://huggingface.co/datasets/marin-dna/evals_mendelian_traits/resolve/4aed58e50c5dea0b878a665007af2ef9e5108e9f/train.parquet"
+  REPEAT_PANEL_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-panel-r1"
+  ACTIVATION_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1"
+  GLOBAL_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-associations-seed288-r2"
+  REFERENCE_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-associations-r1"
+  PAIRED_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-deltas-r1"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$LABEL_ROOT" "$REPEAT_PANEL_ROOT" "$ACTIVATION_ROOT" "$GLOBAL_ROOT" "$REFERENCE_ROOT" "$PAIRED_ROOT" "$RUN_ROOT/inputs"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  curl -fL --retry 5 --retry-delay 2 "$LABEL_URL" -o "$LABEL_ROOT/train.parquet"
+  aws s3 sync "$REPEAT_PANEL_S3/" "$REPEAT_PANEL_ROOT/" --only-show-errors
+  aws s3 sync "$GLOBAL_S3/" "$GLOBAL_ROOT/" --only-show-errors
+  aws s3 sync "$REFERENCE_S3/" "$REFERENCE_ROOT/" --only-show-errors
+  aws s3 sync "$PAIRED_S3/" "$PAIRED_ROOT/" --only-show-errors
+  aws s3 cp "$ACTIVATION_S3/manifest.json" "$ACTIVATION_ROOT/manifest.json"
+  for ARM in block01-25m block10-25m block19-25m; do
+    mkdir -p "$ACTIVATION_ROOT/$ARM"
+    for ORIENTATION in forward reverse_complement; do
+      aws s3 cp "$ACTIVATION_S3/$ARM/sae_focal_$ORIENTATION.parquet" "$ACTIVATION_ROOT/$ARM/sae_focal_$ORIENTATION.parquet"
+    done
+  done
+  cp "$REPEAT_PANEL_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/repeat_panel_archive_manifest.json"
+  cp "$ACTIVATION_ROOT/manifest.json" "$RUN_ROOT/inputs/paired_activation_manifest.json"
+  cp "$GLOBAL_ROOT/manifest.json" "$RUN_ROOT/inputs/global_association_manifest.json"
+  cp "$REFERENCE_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/reference_association_archive_manifest.json"
+  cp "$PAIRED_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/paired_repeat_archive_manifest.json"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/analyze_repeat_label_sensitivity.py" \
+    --label-panel "$LABEL_ROOT/train.parquet" \
+    --repeat-panel-root "$REPEAT_PANEL_ROOT" \
+    --activation-root "$ACTIVATION_ROOT" \
+    --global-association-root "$GLOBAL_ROOT" \
+    --reference-association-root "$REFERENCE_ROOT" \
+    --paired-repeat-root "$PAIRED_ROOT" \
+    --output-dir "$RUN_ROOT/analysis"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status frozen_repeat_aware_mendelian_label_sensitivity
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-label-sensitivity-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive
