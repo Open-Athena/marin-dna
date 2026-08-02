@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import polars as pl
+import pytest
 
 from analyze_repeat_saturation import (
     build_context_effects,
@@ -13,6 +14,7 @@ from analyze_repeat_saturation import (
     one_sided_p_values,
     plot_response_heatmaps,
 )
+from analyze_repeat_saturation_causal_window import select_causal_window
 from saturation_common import VIEW_KEYS
 
 
@@ -124,3 +126,25 @@ def test_heatmaps_emit_png_and_svg_for_every_feature(tmp_path: Path) -> None:
     paths = plot_response_heatmaps(pl.DataFrame(rows), tmp_path)
     assert len(paths) == len(VIEW_KEYS)
     assert all(path.is_file() and path.stat().st_size > 0 for path in paths)
+
+
+def test_causal_window_requires_exact_downstream_invariance() -> None:
+    frame = pl.DataFrame(
+        {
+            "model_offset": [-1, 0, 1],
+            "abs_delta": [2.0, 1.0, 0.0],
+            "orientation": ["forward"] * 3,
+            "feature_id": [7] * 3,
+            "block": [10] * 3,
+        }
+    )
+    observed = select_causal_window(frame)
+    assert observed["model_offset"].to_list() == [-1, 0]
+    invalid = frame.with_columns(
+        pl.when(pl.col("model_offset") == 1)
+        .then(0.1)
+        .otherwise(pl.col("abs_delta"))
+        .alias("abs_delta")
+    )
+    with pytest.raises(AssertionError):
+        select_causal_window(invalid)

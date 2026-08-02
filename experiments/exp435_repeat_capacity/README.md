@@ -197,3 +197,21 @@ sky launch -y -d --down -c exp435-repeat-saturation \
 
 Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-saturation-r1/`.
+
+The completed run showed exact zero response for every model-downstream edit,
+as required by the causal mask at the focal representation. The separately
+archived post-result sensitivity reuses the full response table but restricts
+inference to `model_offset <= 0`; it does not replace the preregistered
+full-window result.
+
+```bash
+RUN_ID=dna-exp435-repeat-saturation-causal-window-r1 \
+EXPERIMENT_COMMIT=<40-character-commit> \
+uv run --project experiments/exp435_repeat_capacity python \
+  experiments/exp435_repeat_capacity/analyze_repeat_saturation_causal_window.py \
+  --input-root <downloaded-full-window-archive> \
+  --output-dir <new-output-directory>
+```
+
+Durable sensitivity output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-saturation-causal-window-r1/`.
