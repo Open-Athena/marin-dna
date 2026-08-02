@@ -229,7 +229,7 @@ def build_mapping(
             }
         )
 
-    track_mapping = pl.DataFrame(track_records).with_columns(
+    track_mapping = pl.DataFrame(track_records, infer_schema_length=None).with_columns(
         pl.struct("assay", "canonical_biosample_id")
         .map_elements(
             lambda value: assay_unit_count[
@@ -239,10 +239,12 @@ def build_mapping(
         )
         .alias("track_count_in_assay_unit")
     )
-    unit_catalog = pl.DataFrame(unit_records).sort("canonical_biosample_id")
-    assay_unit_catalog = pl.DataFrame(assay_unit_records).sort(
-        "assay", "canonical_biosample_id"
+    unit_catalog = pl.DataFrame(unit_records, infer_schema_length=None).sort(
+        "canonical_biosample_id"
     )
+    assay_unit_catalog = pl.DataFrame(
+        assay_unit_records, infer_schema_length=None
+    ).sort("assay", "canonical_biosample_id")
 
     review_records: list[dict[str, Any]] = []
     for record in unit_records:
@@ -269,7 +271,7 @@ def build_mapping(
                     "review_status": "reviewed_before_outcome_aggregation",
                 }
             )
-    review_queue = pl.DataFrame(review_records).sort(
+    review_queue = pl.DataFrame(review_records, infer_schema_length=None).sort(
         "track_count", "canonical_biosample_id", descending=[True, False]
     )
 
