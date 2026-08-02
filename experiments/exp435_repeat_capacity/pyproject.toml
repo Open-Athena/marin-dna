@@ -8,6 +8,7 @@ dependencies = [
     "polars>=1.0",
     "pyarrow>=17",
     "pysam>=0.22",
+    "safetensors>=0.5",
     "scipy>=1.14",
 ]
 

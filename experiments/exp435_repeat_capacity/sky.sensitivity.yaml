@@ -1,0 +1,85 @@
+name: dna-exp435-repeat-reference-sensitivities
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6i.8xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-reference-sensitivities-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=24
+  export RAYON_NUM_THREADS=24
+  export OMP_NUM_THREADS=16
+  export MKL_NUM_THREADS=16
+  export OPENBLAS_NUM_THREADS=16
+  export NUMEXPR_NUM_THREADS=16
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-reference-sensitivities-r1"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-repeat-sensitivity-inputs"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  EXTRACTION_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-activations-r1"
+  ASSOCIATION_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-associations-r1"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$INPUT_ROOT/extraction" "$INPUT_ROOT/associations"
+  mkdir -p "$INPUT_ROOT/models/block01-25m"
+  mkdir -p "$INPUT_ROOT/models/block10-25m"
+  mkdir -p "$INPUT_ROOT/models/block19-25m"
+  mkdir -p "$RUN_ROOT/inputs/extraction" "$RUN_ROOT/inputs/associations"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 sync "$EXTRACTION_S3/" "$INPUT_ROOT/extraction/" --only-show-errors
+  aws s3 sync "$ASSOCIATION_S3/" "$INPUT_ROOT/associations/" --only-show-errors
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-block01-seed288-r1/models/block01-25m/ \
+    "$INPUT_ROOT/models/block01-25m/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-25m/ \
+    "$INPUT_ROOT/models/block10-25m/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m/ \
+    "$INPUT_ROOT/models/block19-25m/"
+  cp "$INPUT_ROOT/extraction/archive_manifest.json" "$RUN_ROOT/inputs/extraction/"
+  cp "$INPUT_ROOT/associations/archive_manifest.json" "$RUN_ROOT/inputs/associations/"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/analyze_reference_sensitivities.py" \
+    --extraction-archive "$INPUT_ROOT/extraction" \
+    --association-archive "$INPUT_ROOT/associations" \
+    --models-root "$INPUT_ROOT/models" \
+    --output-dir "$RUN_ROOT/sensitivities"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status frozen_reference_repeat_sensitivities
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-reference-sensitivities-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive

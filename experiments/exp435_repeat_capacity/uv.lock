@@ -494,6 +494,7 @@ dependencies = [
     { name = "polars", marker = "sys_platform == 'linux'" },
     { name = "pyarrow", marker = "sys_platform == 'linux'" },
     { name = "pysam", marker = "sys_platform == 'linux'" },
+    { name = "safetensors", marker = "sys_platform == 'linux'" },
     { name = "scipy", marker = "sys_platform == 'linux'" },
 ]
 
@@ -522,6 +523,7 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=17" },
     { name = "pysam", specifier = ">=0.22" },
     { name = "sae-lens", marker = "extra == 'gpu'", git = "https://github.com/decoderesearch/SAELens.git?rev=8be14080485952f729ed58d674bcddf9778e0aa4" },
+    { name = "safetensors", specifier = ">=0.5" },
     { name = "scipy", specifier = ">=1.14" },
     { name = "torch", marker = "extra == 'gpu'", specifier = "==2.11.0", index = "https://download.pytorch.org/whl/cu128" },
     { name = "transformers", marker = "extra == 'gpu'", specifier = ">=4.57,<5" },

@@ -103,3 +103,21 @@ sky launch -y -d --down -c exp435-repeat-reference-associations \
 
 Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-associations-r1/`.
+
+
+## Stage 4: composition and decoder sensitivities
+
+`analyze_reference_sensitivities.py` verifies the exact stage-2 and stage-3
+archives, reruns frozen composition/boundary/overlap subsets, and measures
+decoder-space redundancy for broad-repeat and category-associated feature sets.
+The CPU node downloads the three exact SAE decoder files and validates their
+pinned hashes; large inputs remain on ephemeral instance storage.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-reference-sensitivities \
+  --env EXPERIMENT_COMMIT=$(git rev-parse HEAD) \
+  experiments/exp435_repeat_capacity/sky.sensitivity.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-sensitivities-r1/`.
