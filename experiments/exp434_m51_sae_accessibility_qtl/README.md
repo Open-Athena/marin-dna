@@ -52,6 +52,34 @@ s3://oa-bolinas/experiments/exp434/retrieval/dna-exp434-dsqtl-direction-pilot-ex
 s3://oa-bolinas/experiments/exp434/retrieval/dna-exp434-dsqtl-direction-pilot-associations-r1/
 ```
 
+## Post-hoc feature-1829 interpretation
+
+The pilot's strongest block-19 feature is followed up with a bounded mechanism
+pass on the same 559 positive dsQTLs. `interpret_feature1829.py` selects the 32
+most-active contexts in each orientation using activation alone (one most-active
+allele per variant), saturates the 16 model-input positions ending at the focal
+allele with A/C/G/T, and subtracts the decoded feature-only contribution before
+the frozen final norm and LM head. The QTL effect is carried only for the
+separately reported robustness diagnostics; it is never used to select contexts.
+This is explicitly post-hoc and does not alter the discovery statistics.
+
+```bash
+sky launch -d --dryrun \
+  experiments/exp434_m51_sae_accessibility_qtl/sky.feature1829.yaml
+sky launch -d -c exp434-feature1829 \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  --env AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY \
+  --env AWS_SESSION_TOKEN \
+  experiments/exp434_m51_sae_accessibility_qtl/sky.feature1829.yaml
+```
+
+The hash-complete result is stored at:
+
+```text
+s3://oa-bolinas/experiments/exp434/retrieval/dna-exp434-feature1829-interpretation-r1/
+```
+
 ## Local verification
 
 Use bounded threads on the shared workstation:

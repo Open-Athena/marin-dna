@@ -1,0 +1,87 @@
+# One bounded Lambda H100 pass for post-hoc block-19 feature interpretation.
+
+name: dna-exp434-feature1829-interpretation
+
+resources:
+  infra: lambda/us-west-3
+  instance_type: gpu_1x_h100_pcie
+  disk_size: 100
+  autostop:
+    idle_minutes: 30
+    down: true
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp434-feature1829-interpretation-r1
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_SESSION_TOKEN: ""
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp434_m51_sae_accessibility_qtl --frozen
+  uv run --project experiments/exp434_m51_sae_accessibility_qtl --no-dev python -c \
+    'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export HF_HUB_DOWNLOAD_TIMEOUT=120
+  export TOKENIZERS_PARALLELISM=true
+  export POLARS_MAX_THREADS=6
+  export RAYON_NUM_THREADS=6
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  export WANDB_DISABLED=true
+  export EXPERIMENT_COMMIT RUN_ID
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp434-feature1829-interpretation-r1"
+  nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  EXPERIMENT_DIR="experiments/exp434_m51_sae_accessibility_qtl"
+  INPUT_ROOT="$HOME/exp434-feature1829-inputs"
+  PANEL_ROOT="$INPUT_ROOT/panel"
+  EXTRACTION_ROOT="$INPUT_ROOT/extraction"
+  SAE_ROOT="$INPUT_ROOT/block19-25m"
+  OUTPUT_ROOT="$HOME/$RUN_ID"
+  PANEL_S3="s3://oa-bolinas/experiments/exp434/inputs/dna-exp434-dsqtl-positive-panel-r1"
+  EXTRACTION_S3="s3://oa-bolinas/experiments/exp434/retrieval/dna-exp434-dsqtl-direction-pilot-extraction-r1"
+  SAE_S3="s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m"
+  OUTPUT_S3="s3://oa-bolinas/experiments/exp434/retrieval/$RUN_ID"
+  test ! -e "$OUTPUT_ROOT"
+  mkdir -p "$PANEL_ROOT" "$EXTRACTION_ROOT" "$SAE_ROOT"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 sync "$PANEL_S3/" "$PANEL_ROOT/" --only-show-errors
+  aws s3 sync "$EXTRACTION_S3/" "$EXTRACTION_ROOT/" --only-show-errors
+  aws s3 sync "$SAE_S3/" "$SAE_ROOT/" --only-show-errors
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/interpret_feature1829.py" \
+    --panel "$PANEL_ROOT/panel.parquet" \
+    --panel-manifest "$PANEL_ROOT/manifest.json" \
+    --extraction-root "$EXTRACTION_ROOT" \
+    --sae "$SAE_ROOT" \
+    --output-dir "$OUTPUT_ROOT" \
+    --contexts-per-orientation 32 \
+    --radius 15 \
+    --batch-size 256
+
+  aws s3 sync "$OUTPUT_ROOT/" "$OUTPUT_S3/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$OUTPUT_ROOT/manifest.json" "$OUTPUT_S3/manifest.json"
+  DRYRUN_LOG="/tmp/exp434-feature1829-s3-dryrun.txt"
+  aws s3 sync "$OUTPUT_ROOT/" "$OUTPUT_S3/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
