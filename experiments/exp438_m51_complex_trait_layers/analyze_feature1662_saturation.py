@@ -355,7 +355,7 @@ def plot_profile(
     grid.figure.suptitle(f"{title}\nerror bands = ±1 SE", y=1.08)
     grid.figure.supxlabel("Transcript-oriented offset from variant (bp)", y=0.03)
     grid.figure.supylabel(y_label, x=0.015)
-    grid.figure.subplots_adjust(top=0.78, bottom=0.14, left=0.09)
+    grid.figure.subplots_adjust(top=0.78, bottom=0.20, left=0.09)
     stem = "signed_saturation_profile" if signed else "saturation_profile"
     svg_path = output_dir / f"{stem}.svg"
     png_path = output_dir / f"{stem}.png"
