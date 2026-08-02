@@ -1,0 +1,94 @@
+name: dna-exp421-grouped-l2-high-level
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.4xlarge
+  disk_size: 40
+  autostop:
+    idle_minutes: 30
+    down: true
+
+workdir: .
+
+envs:
+  ANALYSIS_COMMIT: ""
+  AWS_REGION: us-east-2
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp421_422_statistical_revisits --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  test "${#ANALYSIS_COMMIT}" -eq 40
+
+  export POLARS_MAX_THREADS=8
+  export RAYON_NUM_THREADS=8
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  export RUN_ID=dna-exp421-grouped-l2-high-level-r2
+
+  CPU_PROJECT=experiments/exp421_422_statistical_revisits
+  SCRIPT=experiments/exp421_m51_sae_alphagenome_tracks/grouped_l2_association.py
+  INPUT_ROOT=/tmp/exp421-grouped-l2-inputs
+  OUTPUT_ROOT=/tmp/dna-exp421-grouped-l2-high-level-r2
+  test ! -e "${OUTPUT_ROOT}"
+  mkdir -p "${INPUT_ROOT}/panel" "${INPUT_ROOT}/extraction" "${INPUT_ROOT}/taxonomy"
+
+  uv run --project "${CPU_PROJECT}" python -m pytest -q \
+    experiments/exp421_m51_sae_alphagenome_tracks/test_grouped_l2_association.py
+
+  aws s3 cp \
+    s3://oa-bolinas/experiments/exp435/inputs/dna-exp435-mendelian-panel-a1843d90/panel.parquet \
+    "${INPUT_ROOT}/panel/panel.parquet" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1/manifest.json \
+    "${INPUT_ROOT}/extraction/manifest.json" --only-show-errors
+  for block in block01-25m block10-25m block19-25m; do
+    mkdir -p "${INPUT_ROOT}/extraction/${block}"
+    for orientation in forward reverse_complement; do
+      aws s3 cp \
+        "s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1/${block}/sae_focal_${orientation}.parquet" \
+        "${INPUT_ROOT}/extraction/${block}/sae_focal_${orientation}.parquet" \
+        --only-show-errors
+    done
+  done
+  aws s3 cp \
+    s3://oa-bolinas/experiments/exp421/retrieval/dna-exp421-high-level-taxonomy-r2/track_taxonomy.parquet \
+    "${INPUT_ROOT}/taxonomy/track_taxonomy.parquet" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/experiments/exp421/retrieval/dna-exp421-high-level-taxonomy-r2/manifest.json \
+    "${INPUT_ROOT}/taxonomy/manifest.json" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/snakemake/alphagenome_eval/results/per_track_l2/mendelian_traits.parquet \
+    "${INPUT_ROOT}/alphagenome.parquet" --only-show-errors
+
+  /usr/bin/time -v uv run --project "${CPU_PROJECT}" python "${SCRIPT}" \
+    --panel "${INPUT_ROOT}/panel/panel.parquet" \
+    --activation-root "${INPUT_ROOT}/extraction" \
+    --extraction-manifest "${INPUT_ROOT}/extraction/manifest.json" \
+    --alphagenome-uri "${INPUT_ROOT}/alphagenome.parquet" \
+    --track-taxonomy "${INPUT_ROOT}/taxonomy/track_taxonomy.parquet" \
+    --taxonomy-manifest "${INPUT_ROOT}/taxonomy/manifest.json" \
+    --output-dir "${OUTPUT_ROOT}" \
+    --analysis-commit "${ANALYSIS_COMMIT}"
+
+  S3_OUTPUT="s3://oa-bolinas/experiments/exp421/retrieval/${RUN_ID}"
+  aws s3 sync "${OUTPUT_ROOT}/" "${S3_OUTPUT}/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "${OUTPUT_ROOT}/manifest.json" "${S3_OUTPUT}/manifest.json"
+  DRYRUN_LOG=/tmp/exp421-grouped-l2-result-dryrun.txt
+  aws s3 sync "${OUTPUT_ROOT}/" "${S3_OUTPUT}/" --dryrun > "${DRYRUN_LOG}"
+  test ! -s "${DRYRUN_LOG}"
+  aws s3 ls "${S3_OUTPUT}/" --recursive --summarize

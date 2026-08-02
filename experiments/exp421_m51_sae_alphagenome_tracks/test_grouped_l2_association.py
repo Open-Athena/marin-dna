@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import numpy as np
+import grouped_l2_association as grouped
+import polars as pl
+import pytest
 from grouped_l2_association import (
     benjamini_hochberg,
     correlation_pvalues,
@@ -77,3 +80,78 @@ def test_log1p_changes_pearson_but_not_sparse_ranks() -> None:
     log_d, log_ss = positive_sparse_rank_deviations(sparse.csr_matrix(np.log1p(dense)))
     np.testing.assert_array_equal(raw_d.toarray(), log_d.toarray())
     np.testing.assert_array_equal(raw_ss, log_ss)
+
+
+def test_max_groups_uses_six_frozen_resolutions_and_excludes_axis_nulls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(grouped, "EXPECTED_ROWS", 4)
+    monkeypatch.setattr(grouped, "EXPECTED_TRACKS", 5)
+    monkeypatch.setattr(
+        grouped,
+        "EXPECTED_TARGETS",
+        {
+            "overall": 1,
+            "assay": 2,
+            "tissue": 2,
+            "cell_lineage": 2,
+            "assay_tissue": 2,
+            "assay_cell_lineage": 2,
+        },
+    )
+    tracks = np.array(
+        [
+            [1, 2, 3, 4, 5],
+            [5, 4, 3, 2, 1],
+            [0, 1, 2, 3, 4],
+            [4, 3, 2, 1, 0],
+        ],
+        dtype=np.float32,
+    )
+    mapping = pl.DataFrame(
+        {
+            "track_id": ["A_0", "A_1", "B_2", "B_3", "B_4"],
+            "assay": ["A", "A", "B", "B", "B"],
+            "tissue_group": ["liver", "liver", "brain", None, "brain"],
+            "cell_lineage": [
+                "epithelial",
+                "epithelial",
+                "neural",
+                "neural",
+                None,
+            ],
+        }
+    )
+
+    outcomes = {
+        resolution: grouped._max_groups(tracks, mapping, resolution=resolution)
+        for resolution in grouped.EXPECTED_TARGETS
+    }
+
+    assert {
+        resolution: values.shape[1] for resolution, (values, _) in outcomes.items()
+    } == grouped.EXPECTED_TARGETS
+    assert outcomes["overall"][1]["track_count"].sum() == 5
+    assert outcomes["assay"][1]["track_count"].sum() == 5
+    assert outcomes["tissue"][1]["track_count"].sum() == 4
+    assert outcomes["cell_lineage"][1]["track_count"].sum() == 4
+    assert outcomes["assay_tissue"][1]["track_count"].sum() == 4
+    assert outcomes["assay_cell_lineage"][1]["track_count"].sum() == 4
+
+    def values_for(resolution: str, target_id: str) -> np.ndarray:
+        values, catalog = outcomes[resolution]
+        target_index = catalog.filter(pl.col("target_id") == target_id)[
+            "target_index"
+        ].item()
+        return values[:, target_index]
+
+    np.testing.assert_array_equal(
+        values_for("tissue", "tissue|liver"), tracks[:, [0, 1]].max(axis=1)
+    )
+    np.testing.assert_array_equal(
+        values_for("tissue", "tissue|brain"), tracks[:, [2, 4]].max(axis=1)
+    )
+    np.testing.assert_array_equal(
+        values_for("cell_lineage", "cell_lineage|neural"),
+        tracks[:, [2, 3]].max(axis=1),
+    )

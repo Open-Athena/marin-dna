@@ -27,8 +27,10 @@ EXPECTED_TRACKS = 4_430
 EXPECTED_TARGETS = {
     "overall": 1,
     "assay": 7,
-    "biosample": 714,
-    "assay_biosample": 1_411,
+    "tissue": 17,
+    "cell_lineage": 12,
+    "assay_tissue": 105,
+    "assay_cell_lineage": 70,
 }
 ARMS = ("block01-25m", "block10-25m", "block19-25m")
 ORIENTATIONS = ("forward", "reverse_complement")
@@ -203,59 +205,89 @@ def _max_groups(
     resolution: str,
 ) -> tuple[np.ndarray, pl.DataFrame]:
     assert tracks.shape == (EXPECTED_ROWS, EXPECTED_TRACKS)
+    assert mapping.height == EXPECTED_TRACKS
+    assert mapping["track_id"].n_unique() == EXPECTED_TRACKS
+    assert {
+        "track_id",
+        "assay",
+        "tissue_group",
+        "cell_lineage",
+    } <= set(mapping.columns)
     mapping = mapping.with_row_index("track_index")
     if resolution == "overall":
         records = [
             {
                 "target_id": "all_tracks",
                 "target_name": "maximum across all AlphaGenome L2 tracks",
+                "group_axis": "overall",
                 "assay": None,
-                "canonical_biosample_id": None,
-                "canonical_biosample_name": None,
-                "canonical_biosample_type": None,
+                "tissue_group": None,
+                "cell_lineage": None,
                 "track_count": EXPECTED_TRACKS,
             }
         ]
         values = tracks.max(axis=1, keepdims=True)
     else:
-        if resolution == "assay":
-            group_columns = ["assay"]
-        elif resolution == "biosample":
-            group_columns = ["canonical_biosample_id"]
-        else:
-            assert resolution == "assay_biosample"
-            group_columns = ["assay", "canonical_biosample_id"]
-        grouped = mapping.group_by(group_columns, maintain_order=False).agg(
-            pl.col("track_index").sort(),
-            pl.len().alias("track_count"),
-            pl.col("canonical_biosample_name").first(),
-            pl.col("canonical_biosample_type").first(),
+        group_columns = {
+            "assay": ["assay"],
+            "tissue": ["tissue_group"],
+            "cell_lineage": ["cell_lineage"],
+            "assay_tissue": ["assay", "tissue_group"],
+            "assay_cell_lineage": ["assay", "cell_lineage"],
+        }[resolution]
+        eligible_mapping = mapping.filter(
+            pl.all_horizontal(
+                [pl.col(column).is_not_null() for column in group_columns]
+            )
         )
-        grouped = grouped.sort(group_columns)
+        assert eligible_mapping.height > 0
+        grouped = (
+            eligible_mapping.group_by(group_columns, maintain_order=False)
+            .agg(
+                pl.col("track_index").sort(),
+                pl.len().alias("track_count"),
+            )
+            .sort(group_columns)
+        )
         columns: list[np.ndarray] = []
         records = []
         for row in grouped.iter_rows(named=True):
             indices = np.asarray(row["track_index"], dtype=np.int32)
             columns.append(tracks[:, indices].max(axis=1))
             assay = row.get("assay")
-            biosample_id = row.get("canonical_biosample_id")
+            tissue_group = row.get("tissue_group")
+            cell_lineage = row.get("cell_lineage")
+            tissue_name = str(tissue_group).replace("_", " ")
+            lineage_name = str(cell_lineage).replace("_", " ")
             if resolution == "assay":
                 target_id = str(assay)
                 target_name = str(assay)
-            elif resolution == "biosample":
-                target_id = str(biosample_id)
-                target_name = str(row["canonical_biosample_name"])
+                group_axis = "assay"
+            elif resolution == "tissue":
+                target_id = f"tissue|{tissue_group}"
+                target_name = tissue_name
+                group_axis = "tissue"
+            elif resolution == "cell_lineage":
+                target_id = f"cell_lineage|{cell_lineage}"
+                target_name = lineage_name
+                group_axis = "cell_lineage"
+            elif resolution == "assay_tissue":
+                target_id = f"{assay}|tissue|{tissue_group}"
+                target_name = f"{assay} | {tissue_name}"
+                group_axis = "assay_tissue"
             else:
-                target_id = f"{assay}|{biosample_id}"
-                target_name = f"{assay} | {row['canonical_biosample_name']}"
+                assert resolution == "assay_cell_lineage"
+                target_id = f"{assay}|cell_lineage|{cell_lineage}"
+                target_name = f"{assay} | {lineage_name}"
+                group_axis = "assay_cell_lineage"
             records.append(
                 {
                     "target_id": target_id,
                     "target_name": target_name,
+                    "group_axis": group_axis,
                     "assay": assay,
-                    "canonical_biosample_id": biosample_id,
-                    "canonical_biosample_name": row.get("canonical_biosample_name"),
-                    "canonical_biosample_type": row.get("canonical_biosample_type"),
+                    "tissue_group": tissue_group,
+                    "cell_lineage": cell_lineage,
                     "track_count": int(row["track_count"]),
                 }
             )
@@ -265,15 +297,21 @@ def _max_groups(
     )
     assert values.shape == (EXPECTED_ROWS, EXPECTED_TARGETS[resolution])
     assert catalog.height == values.shape[1]
+    assert catalog["target_id"].n_unique() == catalog.height
     assert np.isfinite(values).all() and (values >= 0).all()
-    assert catalog["track_count"].sum() == EXPECTED_TRACKS
+    expected_grouped_tracks = (
+        EXPECTED_TRACKS
+        if resolution in {"overall", "assay"}
+        else eligible_mapping.height
+    )
+    assert catalog["track_count"].sum() == expected_grouped_tracks
     return values.astype(np.float32, copy=False), catalog
 
 
 def load_grouped_outcomes(
     *, panel: pl.DataFrame, alphagenome_uri: str, mapping: pl.DataFrame
 ) -> dict[str, tuple[np.ndarray, pl.DataFrame]]:
-    """Align the score table to the panel and form the four frozen max views."""
+    """Align the score table to the panel and form the six frozen max views."""
 
     assert panel.height == EXPECTED_ROWS
     assert mapping.height == mapping["track_id"].n_unique() == EXPECTED_TRACKS
@@ -389,8 +427,8 @@ def analyze(
     activation_root: Path,
     extraction_manifest_path: Path,
     alphagenome_uri: str,
-    track_mapping_path: Path,
-    mapping_manifest_path: Path,
+    track_taxonomy_path: Path,
+    taxonomy_manifest_path: Path,
     output_dir: Path,
     analysis_commit: str,
 ) -> dict[str, Any]:
@@ -399,25 +437,26 @@ def analyze(
     )
     assert panel_path.is_file() and activation_root.is_dir()
     assert extraction_manifest_path.is_file()
-    assert track_mapping_path.is_file() and mapping_manifest_path.is_file()
+    assert track_taxonomy_path.is_file() and taxonomy_manifest_path.is_file()
     assert not output_dir.exists()
     started = time.monotonic()
 
     extraction_manifest = json.loads(extraction_manifest_path.read_text())
     assert extraction_manifest["panel"]["sha256"] == sha256_file(panel_path)
     assert extraction_manifest["panel"]["rows"] == EXPECTED_ROWS
-    mapping_manifest = json.loads(mapping_manifest_path.read_text())
-    mapping_artifacts = mapping_manifest["artifacts"]
-    mapping_relative = next(
-        name for name in mapping_artifacts if name.endswith("track_mapping.parquet")
-    )
-    assert mapping_artifacts[mapping_relative]["sha256"] == sha256_file(
-        track_mapping_path
+    taxonomy_manifest = json.loads(taxonomy_manifest_path.read_text())
+    taxonomy_artifact = taxonomy_manifest["artifacts"]["track_taxonomy.parquet"]
+    assert taxonomy_artifact["sha256"] == sha256_file(track_taxonomy_path)
+    assert taxonomy_artifact["rows"] == EXPECTED_TRACKS
+    assert taxonomy_manifest["summary"]["tissue_groups"] == EXPECTED_TARGETS["tissue"]
+    assert (
+        taxonomy_manifest["summary"]["cell_lineages"]
+        == EXPECTED_TARGETS["cell_lineage"]
     )
 
     panel = pl.read_parquet(panel_path)
     assert panel.height == EXPECTED_ROWS
-    mapping = pl.read_parquet(track_mapping_path).sort("track_id")
+    mapping = pl.read_parquet(track_taxonomy_path).sort("track_id")
     outcomes = load_grouped_outcomes(
         panel=panel, alphagenome_uri=alphagenome_uri, mapping=mapping
     )
@@ -520,7 +559,7 @@ def analyze(
     result = {
         "created_at": datetime.now(UTC).isoformat(),
         "issue": ISSUE,
-        "run_id": os.environ.get("RUN_ID", ""),
+        "run_id": os.environ.get("RUN_ID", output_dir.name),
         "analysis_commit": analysis_commit,
         "elapsed_seconds": time.monotonic() - started,
         "panel": {
@@ -536,7 +575,8 @@ def analyze(
             "uri": alphagenome_uri,
             "score": "exported L2_DIFF_LOG1P; no second outcome transform",
             "tracks": EXPECTED_TRACKS,
-            "mapping_manifest_sha256": sha256_file(mapping_manifest_path),
+            "taxonomy_manifest_sha256": sha256_file(taxonomy_manifest_path),
+            "taxonomy_experiment_commit": taxonomy_manifest["experiment_commit"],
             "target_counts": EXPECTED_TARGETS,
         },
         "protocol": {
@@ -573,8 +613,8 @@ def main() -> None:
     parser.add_argument("--activation-root", type=Path, required=True)
     parser.add_argument("--extraction-manifest", type=Path, required=True)
     parser.add_argument("--alphagenome-uri", required=True)
-    parser.add_argument("--track-mapping", type=Path, required=True)
-    parser.add_argument("--mapping-manifest", type=Path, required=True)
+    parser.add_argument("--track-taxonomy", type=Path, required=True)
+    parser.add_argument("--taxonomy-manifest", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--analysis-commit", required=True)
     args = parser.parse_args()
@@ -583,8 +623,8 @@ def main() -> None:
         activation_root=args.activation_root,
         extraction_manifest_path=args.extraction_manifest,
         alphagenome_uri=args.alphagenome_uri,
-        track_mapping_path=args.track_mapping,
-        mapping_manifest_path=args.mapping_manifest,
+        track_taxonomy_path=args.track_taxonomy,
+        taxonomy_manifest_path=args.taxonomy_manifest,
         output_dir=args.output_dir,
         analysis_commit=args.analysis_commit,
     )

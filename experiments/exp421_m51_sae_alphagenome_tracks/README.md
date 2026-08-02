@@ -20,4 +20,4 @@ uv run --with numpy --with scipy --with polars --with pytest pytest -q test_grou
 uv run --with polars --with pytest pytest -q test_biosample_mapping.py test_biosample_taxonomy.py
 ```
 
-The remote task is defined in `sky.yaml`. Its output includes the discovery and held-out tables, top test variants, a Markdown summary, an overview figure, and a hash manifest.
+The historical split-based pass is defined in `sky.yaml`. The six-resolution complete-family revisit is defined in `sky.grouped_l2.yaml`; it downloads the frozen panel, 25M SAE activations, high-level taxonomy, and AlphaGenome L2 table directly from S3, then uploads a hash-manifested result archive.
