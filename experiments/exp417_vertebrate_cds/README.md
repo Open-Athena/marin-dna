@@ -112,12 +112,21 @@ Both arms were submitted at 2026-08-01 23:09 UTC from immutable experiment
 commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580496681312d4664af9f7aee699/experiments/exp417_vertebrate_cds). The submitted workspace pins the two dataset revisions listed above.
 
 - [mammals-only Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only)
-- [combined-vertebrate Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates)
+- [original combined-vertebrate Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates)
+- [failed combined retry `r1`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r1)
+- [corrected combined retry `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2)
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
 verification manifests were preserved in S3; the separate HAL staging cluster
 was left untouched.
+
+The original combined arm reached step 159 before a temporary-checkpoint
+serialization failure. Its committed step-50 checkpoint was preserved. Retry
+`r1` reached the TPU worker but failed before checkpoint restoration because
+the resubmission omitted the W&B credential. Retry `r2` was submitted at
+2026-08-02 01:17 UTC with the credential restored, the same immutable recipe,
+and the same checkpoint path. The mammals-only arm was not relaunched.
 
 ## Frozen offline VEP evaluation
 
