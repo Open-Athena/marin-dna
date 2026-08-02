@@ -140,12 +140,10 @@ and zero preemptions at that observation.
 The terminal `step-4999` exports are evaluated once on the held-out `test`
 split with the current `evals_v2` zero-shot harness. The experiment-local
 [`evals.yaml`](evals.yaml) restricts the DAG to the two matched checkpoints
-and three coding-relevant benchmarks:
+and two coding-relevant benchmarks:
 
 - Mendelian traits: signed FWD/RC-averaged LLR, overall and consequence-level
   matched-pair AUPRC with cluster-bootstrap uncertainty.
-- Complex traits: absolute FWD/RC-averaged LLR with the same matched-pair
-  aggregate and consequence-level reporting.
 - SGE: signed FWD/RC-averaged LLR, per-accession and missense/splicing AUPRC
   with bootstrap uncertainty.
 
@@ -159,13 +157,15 @@ gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k
 Dry-run from `snakemake/analysis/evals_v2/` before launching any GPU:
 
 ```bash
-uv run --project ../../.. snakemake --workflow-profile none --dry-run \
-  --configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml -- all
+uv run snakemake -n \
+  --configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml \
+  --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/ \
+  -- all
 ```
 
 That exact command succeeded from this experiment branch on 2026-08-02. The
-resolved DAG contained only two model downloads, six scoring jobs, six metric
-jobs, and the final `all` target (15 jobs total); it did not plan any upstream
+resolved DAG contained only two model downloads, four scoring jobs, four metric
+jobs, and the final `all` target (11 jobs total); it did not plan any upstream
 or unrelated work.
 
 After both exports pass their final checkpoint gates, launch one bounded,
@@ -180,10 +180,25 @@ sky launch -c dna417-cds-vep --down \
     -- all"
 ```
 
-The six metric outputs are isolated under:
+The four metric outputs are isolated under:
 
 ```text
 s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/metrics/
+```
+
+After the four metric parquets finish, run the frozen paired summarizer from
+the same pushed experiment commit:
+
+```bash
+uv run --group genome-s3 python scripts/issue417_summarize_vep.py \
+  --experiment-commit FULL_EXPERIMENT_COMMIT
+```
+
+It writes two durable artifacts alongside the metrics:
+
+```text
+s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.json
+s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.md
 ```
 
 This is intentionally offline: the training graphs have no lm-eval harness,
