@@ -120,6 +120,7 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
 - [mammals host-RAM resume `r3` (512 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r3)
 - [mammals guarded recovery `r4` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r4)
+- [guarded combined terminal recovery `r6` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r6)
 - [combined 512 GiB attempt `r4`, stopped while unscheduled](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r4)
 - [combined host-RAM resume `r5` (384 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r5)
 
@@ -315,6 +316,33 @@ the same exact four-file export at 10:10:38, and advanced through about step
 4390. Both jobs remained running with zero failures; mammals still had zero
 preemptions and combined retained only its one earlier preemption. These
 matched recovery points leave 999 training steps to each terminal export.
+
+At the 2026-08-02 11:29 UTC observation, both arms had crossed a matched
+step-4500 durability boundary. Guarded mammals committed its complete
+five-object native checkpoint at 11:28:42, completed validation with loss
+1.302, finished its exact four-file, 1,019,426,252-byte (972.2 MiB) Hugging
+Face export at 11:28:29, and resumed through about step 4510. Combined
+committed its complete six-object native checkpoint at 10:55:17, completed
+validation with loss 1.294, finished the same exact four-file export at
+10:55:20, and resumed toward the terminal step. Both jobs still reported zero
+failures; mammals had zero preemptions and combined retained only its one
+earlier preemption.
+
+Combined `r5` then trained through step 4999 and started its terminal native
+save at 11:39:32 UTC, but hit the same
+`RuntimeError: Set changed size during iteration` at 11:39:48 while
+`asyncio.runners._cancel_all_tasks` snapshotted asyncio's weak task set. That
+worker predated the guard because its training child had already been
+dispatched when the guard was introduced. GCS contains only three incomplete
+native step-4999 objects (two blobs and a manifest, with no `metadata.json`)
+and no step-4999 Hugging Face directory, so it is not a valid terminal
+artifact. Guarded combined recovery `r6` was submitted at 11:45:57 from
+immutable commit [`ed3b78f`](https://github.com/Open-Athena/marin-dna/tree/ed3b78f15e13d98f1a5afcab076e56e43699502b/experiments/exp417_vertebrate_cds)
+with the same `v6e-4`, 384 GiB host-memory request, frozen scientific recipe,
+checkpoint path, and exact terminal target. Its guarded child had zero
+failures and zero preemptions at the 11:50 UTC observation, explicitly
+discovered step 4500 as the latest valid checkpoint, ignored the incomplete
+terminal directory, restored it, and resumed at step 4501.
 
 ## Frozen offline VEP evaluation
 
