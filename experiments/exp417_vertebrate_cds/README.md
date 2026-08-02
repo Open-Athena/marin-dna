@@ -128,6 +128,13 @@ the resubmission omitted the W&B credential. Retry `r2` was submitted at
 2026-08-02 01:17 UTC with the credential restored, the same immutable recipe,
 and the same checkpoint path. The mammals-only arm was not relaunched.
 
+At 2026-08-02 01:44 UTC, retry `r2` had restored step 50, committed a fresh
+temporary checkpoint at step 115, and advanced through step 163, beyond the
+original failure point. The mammals-only arm had committed its native step-500
+checkpoint, completed validation, finished the 1.02 GB step-500 Hugging Face
+export, and advanced through step 606. Both parent jobs reported zero failures
+and zero preemptions at that observation.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
@@ -155,6 +162,11 @@ Dry-run from `snakemake/analysis/evals_v2/` before launching any GPU:
 uv run --project ../../.. snakemake --workflow-profile none --dry-run \
   --configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml -- all
 ```
+
+That exact command succeeded from this experiment branch on 2026-08-02. The
+resolved DAG contained only two model downloads, six scoring jobs, six metric
+jobs, and the final `all` target (15 jobs total); it did not plan any upstream
+or unrelated work.
 
 After both exports pass their final checkpoint gates, launch one bounded,
 auto-downing A10G worker using the existing project task. A paid launch still
