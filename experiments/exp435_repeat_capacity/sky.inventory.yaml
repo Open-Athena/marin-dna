@@ -1,0 +1,72 @@
+name: dna-exp435-repeat-inventory
+
+resources:
+  infra: aws/us-east-2
+  cpus: 16+
+  memory: 32+
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-inventory-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=12
+  export RAYON_NUM_THREADS=12
+  export OMP_NUM_THREADS=4
+  export MKL_NUM_THREADS=4
+  export OPENBLAS_NUM_THREADS=4
+  export NUMEXPR_NUM_THREADS=4
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-inventory-r1"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$RUN_ROOT/inputs"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  curl -L --fail --retry 5 --retry-delay 2 \
+    -o "$RUN_ROOT/inputs/rmsk.txt.gz" \
+    https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz
+  aws s3 cp \
+    s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.fai \
+    "$RUN_ROOT/inputs/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.fai"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/prepare_repeat_inventory.py" \
+    --rmsk "$RUN_ROOT/inputs/rmsk.txt.gz" \
+    --fai "$RUN_ROOT/inputs/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.fai" \
+    --output-dir "$RUN_ROOT/inventory"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status outcome_blind_annotation_inventory
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-inventory-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive
+

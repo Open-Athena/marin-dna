@@ -1,0 +1,29 @@
+[project]
+name = "exp435-repeat-capacity"
+version = "0.1.0"
+description = "Outcome-blind hg38 RepeatMasker inventory for issue 435"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=2.0",
+    "polars>=1.0",
+    "pyarrow>=17",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.12.11",
+]
+
+[tool.uv]
+package = false
+fork-strategy = "fewest"
+environments = ["sys_platform == 'linux'"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
