@@ -21,7 +21,7 @@ from marin_dna_evals.issue417_handoff import (
     validate_hf_export_listing,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 EVAL_DIR = REPO_ROOT / "snakemake/analysis/evals_v2"
 RESULTS_PREFIX = "s3://oa-bolinas/snakemake/analysis/evals_v2/"
 EXPORTS = {
@@ -188,6 +188,9 @@ def _dry_run() -> None:
             [
                 "uv",
                 "run",
+                "--locked",
+                "--group",
+                "genome-s3",
                 "snakemake",
                 "-n",
                 "--",
@@ -233,10 +236,13 @@ def _summarize(expected_commit: str) -> None:
             [
                 "uv",
                 "run",
+                "--project",
+                str(EVAL_DIR),
+                "--locked",
                 "--group",
                 "genome-s3",
                 "python",
-                "snakemake/analysis/evals_v2/config/overlays/issue417_summarize_vep.py",
+                "scripts/issue417_summarize_vep.py",
                 "--experiment-commit",
                 expected_commit,
             ]

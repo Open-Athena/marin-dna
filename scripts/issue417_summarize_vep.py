@@ -2,7 +2,7 @@
 
 Run after the four evals_v2 score and metric cells have completed:
 
-    uv run --group genome-s3 python scripts/issue417_summarize_vep.py \
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 python scripts/issue417_summarize_vep.py \
         --experiment-commit COMMIT_SHA
 
 Inputs are read directly from the canonical evals_v2 S3 prefix. The JSON and
