@@ -126,8 +126,12 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
-verification manifests were preserved in S3; the separate HAL staging cluster
-was left untouched.
+verification manifests were preserved in S3. At the user's request, the
+separate `vertebrate-project` EC2 cluster was also terminated on 2026-08-02
+after all issue work completed. Its ephemeral NVMe staging copy was discarded;
+the canonical source HAL remains at
+`s3://oa-bolinas/staging/447-mammalian-2022v1.hal`, and the completed projection
+outputs and reports remain in their recorded S3 prefixes.
 
 The original combined arm reached step 159 before a temporary-checkpoint
 serialization failure. Its committed step-50 checkpoint was preserved. Retry
