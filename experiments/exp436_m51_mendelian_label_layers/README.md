@@ -46,6 +46,10 @@ The verified local #426 artifacts are intentionally not committed. Their expecte
 
 Analysis results belong in issue #436; this README remains a reproduction runbook.
 
+All five verified #436 run directories are durably stored under
+`s3://oa-bolinas/experiments/exp436/retrieval/`. Local `scratch/` copies are
+disposable caches and may be restored from that prefix.
+
 ## Paired focal extraction
 
 `extract_focal.py` runs each reference/alternate pair in both forward and
@@ -141,3 +145,26 @@ flock -n /tmp/marin-dna-local-heavy.lock \
 These candidates were selected using Mendelian label results. Context,
 substitution, score-correlation, and heatmap outputs are therefore exploratory
 interpretation rather than independent confirmation.
+
+## Post hoc feature-9086 locus sensitivity
+
+After feature 9086 and four recurrent loci were nominated, run the bounded
+mechanism-generation summary from the verified interpretation table. The input
+panel's 1-based positions are converted once to 0-based, half-open coordinates;
+FTL, FTH1, TERC, and RMRP intervals are fixed from Ensembl GRCh38 coordinates.
+
+```bash
+flock -n /tmp/marin-dna-local-heavy.lock \
+  env EXPERIMENT_COMMIT=<40-character-commit> \
+  RUN_ID=dna-exp436-feature9086-locus-sensitivity-seed288-r1 \
+  POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2 OMP_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+  uv run --no-dev python summarize_interpretation.py \
+    --interpretation-root <verified-interpretation-root> \
+    --output-dir <new-output>
+```
+
+The summary reports raw AUPRC together with AUPRC/prevalence lift because
+excluding disease-heavy loci changes class prevalence. It also tests whether
+feature-score correlations persist within benign and pathogenic label strata.
+These post hoc results cannot independently confirm the original label scan.
