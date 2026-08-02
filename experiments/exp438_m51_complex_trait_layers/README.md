@@ -2,6 +2,10 @@
 
 This permanent, unmerged experiment implements the protocol in [issue #438](https://github.com/Open-Athena/marin-dna/issues/438) and informs [research question #288](https://github.com/Open-Athena/marin-dna/issues/288).
 
+The fixed feature-1662 mechanistic follow-up has its own runbook in
+[`SATURATION.md`](SATURATION.md), including its separate immutable-design and
+final-result S3 prefixes.
+
 ## Scientific design
 
 The experiment asks whether paired reference/alternate SAE responses associate with the official complex-trait causal label, both overall and within each predefined subset. It reports the preregistered first/middle/final panel—m5.1 blocks 1, 10, and 19—separately. The primary response is focal `abs(alt_activation - ref_activation)`; signed delta is a sensitivity analysis. Forward and reverse-complement orientations also remain separate.

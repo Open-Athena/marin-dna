@@ -1,0 +1,94 @@
+name: dna-exp438-feature1662-saturation
+
+resources:
+  infra: aws/us-east-2
+  accelerators: A10G:1
+  cpus: 16+
+  memory: 64+
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp438-feature1662-saturation-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp438_m51_complex_trait_layers --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export TOKENIZERS_PARALLELISM=true
+  export POLARS_MAX_THREADS=8
+  export RAYON_NUM_THREADS=8
+  export OMP_NUM_THREADS=4
+  export MKL_NUM_THREADS=4
+  export OPENBLAS_NUM_THREADS=4
+  export NUMEXPR_NUM_THREADS=4
+  export WANDB_DISABLED=true
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp438-feature1662-saturation-r1"
+  nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  EXPERIMENT_DIR="experiments/exp438_m51_complex_trait_layers"
+  INPUT_ROOT="$HOME/exp438-saturation-inputs"
+  RUN_ROOT="$HOME/exp438-saturation-runs/$RUN_ID"
+  DESIGN_S3="s3://oa-bolinas/experiments/exp438/retrieval/${RUN_ID}-design"
+  S3_ROOT="s3://oa-bolinas/experiments/exp438/retrieval/$RUN_ID"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$INPUT_ROOT/models/block19-25m"
+  mkdir -p "$INPUT_ROOT/reference"
+  mkdir -p "$RUN_ROOT/inputs/design"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q \
+    "$EXPERIMENT_DIR/tests/test_saturation.py" \
+    "$EXPERIMENT_DIR/tests/test_saturation_design.py" \
+    "$EXPERIMENT_DIR/tests/test_saturation_plot.py"
+
+  aws s3 cp --recursive "$DESIGN_S3/" "$RUN_ROOT/inputs/design/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m/ \
+    "$INPUT_ROOT/models/block19-25m/"
+
+  REFERENCE_NAME="Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
+  REFERENCE_S3="s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME" "$INPUT_ROOT/reference/$REFERENCE_NAME"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME.fai" "$INPUT_ROOT/reference/$REFERENCE_NAME.fai"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME.gzi" "$INPUT_ROOT/reference/$REFERENCE_NAME.gzi"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/extract_feature1662_saturation.py" \
+    --design-dir "$RUN_ROOT/inputs/design" \
+    --fasta "$INPUT_ROOT/reference/$REFERENCE_NAME" \
+    --models-root "$INPUT_ROOT/models" \
+    --output-dir "$RUN_ROOT/extraction" \
+    --batch-size 128
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/analyze_feature1662_saturation.py" \
+    --extraction-dir "$RUN_ROOT/extraction" \
+    --output-dir "$RUN_ROOT/analysis"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status post_hoc_mechanistic_perturbation
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp438-feature1662-saturation-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive
