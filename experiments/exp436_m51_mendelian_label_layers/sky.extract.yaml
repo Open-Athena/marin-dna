@@ -1,0 +1,61 @@
+# One direct Lambda H100 for layer-joint Mendelian focal feature extraction.
+# All scientific outputs are staged before the task exits.
+
+name: dna-exp436-mendelian-focal-extract
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 120
+    autostop:
+        idle_minutes: 180
+        down: true
+
+workdir: .
+
+file_mounts:
+    ~/inputs/issue436/panel.parquet: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue420/input/panel.parquet
+    ~/inputs/issue436/panel.manifest.json: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue420/input/panel.manifest.json
+    ~/inputs/issue436/reference.fa.gz: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+    ~/inputs/issue436/reference.fa.gz.fai: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.fai
+    ~/inputs/issue436/reference.fa.gz.gzi: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue418/reference/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz.gzi
+    ~/inputs/issue436/block01_models: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue436/retrieval/dna-exp436-block01-seed288-r1/models
+    ~/inputs/issue436/existing_models/block10-5m: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-5m
+    ~/inputs/issue436/existing_models/block10-25m: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-25m
+    ~/inputs/issue436/existing_models/block19-5m: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-5m
+    ~/inputs/issue436/existing_models/block19-25m: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m
+
+envs:
+    RUN_ID: dna-exp436-mendelian-focal-seed288-r1
+    EXPERIMENT_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+    uv run --no-dev python -c \
+        'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export HF_HUB_DOWNLOAD_TIMEOUT=120
+    export UV_LOCK_TIMEOUT=7200
+    export EXPERIMENT_COMMIT
+
+    uv run --no-dev python extract_focal.py \
+        --panel "$HOME/inputs/issue436/panel.parquet" \
+        --panel-manifest "$HOME/inputs/issue436/panel.manifest.json" \
+        --fasta "$HOME/inputs/issue436/reference.fa.gz" \
+        --block01-models-root "$HOME/inputs/issue436/block01_models" \
+        --existing-models-root "$HOME/inputs/issue436/existing_models" \
+        --output-dir "artifacts/$RUN_ID" \
+        --batch-size 32
+
+    mkdir -p "retrieval/$RUN_ID"
+    cp -a "artifacts/$RUN_ID/." "retrieval/$RUN_ID/"

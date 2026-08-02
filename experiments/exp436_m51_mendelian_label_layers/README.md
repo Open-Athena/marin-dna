@@ -45,3 +45,27 @@ The verified local #426 artifacts are intentionally not committed. Their expecte
 | block19-25m | `e4f10ba59f10be943dbdc33f469f986f598c5e34fcba42577efad27717231533` |
 
 Analysis results belong in issue #436; this README remains a reproduction runbook.
+
+## Paired focal extraction
+
+`extract_focal.py` runs each reference/alternate pair in both forward and
+reverse-complement orientation. It captures the focal hidden state from blocks
+1, 10, and 19 in one model pass, then applies the 5M and 25M SAE for each layer.
+Each arm/orientation is written as a sparse union over features active in either
+allele, preserving `ref_activation`, `alt_activation`, and signed `delta`.
+
+After the block-1 trajectory has been retrieved and independently hash-checked:
+
+```bash
+uv run pytest tests/test_extract_focal.py
+uv run ruff check extract_focal.py tests/test_extract_focal.py
+uv run ruff format --check extract_focal.py tests/test_extract_focal.py
+sky launch -d --dryrun sky.extract.yaml
+sky launch -d -c exp436-lambda \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  sky.extract.yaml
+```
+
+The task stages hash-complete sparse Parquets under
+`retrieval/dna-exp436-mendelian-focal-seed288-r1/`. Retrieve and verify the
+manifest before analysis or cluster termination.
