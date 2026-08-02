@@ -6,6 +6,7 @@ from marin_dna_evals.issue417_handoff import (
     parse_sky_status_json,
     validate_hf_export_listing,
 )
+from scripts.issue417_wait_and_launch_eval import _object_stat_command
 
 
 PREFIX = "gs://bucket/checkpoints/run/hf/step-4999"
@@ -65,3 +66,27 @@ def test_parse_sky_status_json_accepts_existing_cluster() -> None:
     output = 'Enabled Infra: aws\n[{"name": "dna417-cds-vep", "status": "UP"}]\n'
 
     assert parse_sky_status_json(output) == [{"name": "dna417-cds-vep", "status": "UP"}]
+
+
+def test_object_stat_command_routes_cloud_uri_to_its_native_cli() -> None:
+    assert _object_stat_command("gs://bucket/checkpoint/model.safetensors") == [
+        "gsutil",
+        "stat",
+        "gs://bucket/checkpoint/model.safetensors",
+    ]
+    assert _object_stat_command("s3://bucket/results/metrics/model/eval.parquet") == [
+        "aws",
+        "s3api",
+        "head-object",
+        "--bucket",
+        "bucket",
+        "--key",
+        "results/metrics/model/eval.parquet",
+    ]
+
+
+def test_object_stat_command_rejects_unsupported_or_incomplete_uri() -> None:
+    with pytest.raises(AssertionError, match="unsupported"):
+        _object_stat_command("https://bucket/results/file")
+    with pytest.raises(AssertionError, match="no key"):
+        _object_stat_command("s3://bucket")

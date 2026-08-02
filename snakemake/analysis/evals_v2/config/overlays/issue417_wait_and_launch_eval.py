@@ -14,6 +14,7 @@ import subprocess
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from marin_dna_evals.issue417_handoff import (
     parse_sky_status_json,
@@ -149,10 +150,30 @@ def _wait_for_exports(*, poll_seconds: int, once: bool) -> bool:
         time.sleep(poll_seconds)
 
 
+def _object_stat_command(path: str) -> list[str]:
+    parsed = urlsplit(path)
+    assert parsed.netloc, f"object URI has no bucket: {path}"
+    key = parsed.path.removeprefix("/")
+    assert key, f"object URI has no key: {path}"
+    if parsed.scheme == "gs":
+        return ["gsutil", "stat", path]
+    if parsed.scheme == "s3":
+        return [
+            "aws",
+            "s3api",
+            "head-object",
+            "--bucket",
+            parsed.netloc,
+            "--key",
+            key,
+        ]
+    raise AssertionError(f"unsupported object URI scheme: {path}")
+
+
 def _all_objects_exist(paths: tuple[str, ...]) -> bool:
     return all(
         _run(
-            ["gsutil", "stat", path],
+            _object_stat_command(path),
             check=False,
             capture_output=True,
         ).returncode
