@@ -1,0 +1,86 @@
+name: dna-exp435-repeat-variant-deltas
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6i.4xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-variant-deltas-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=12
+  export RAYON_NUM_THREADS=12
+  export OMP_NUM_THREADS=2
+  export MKL_NUM_THREADS=2
+  export OPENBLAS_NUM_THREADS=2
+  export NUMEXPR_NUM_THREADS=2
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-variant-deltas-r1"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-repeat-variant-analysis-inputs"
+  PANEL_ROOT="$INPUT_ROOT/panel"
+  ASSOCIATION_ROOT="$INPUT_ROOT/reference-associations"
+  ACTIVATION_ROOT="$INPUT_ROOT/paired-activations"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  PANEL_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-panel-r1"
+  ASSOCIATION_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-associations-r1"
+  ACTIVATION_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$PANEL_ROOT" "$ASSOCIATION_ROOT" "$ACTIVATION_ROOT" "$RUN_ROOT/inputs"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 sync "$PANEL_S3/" "$PANEL_ROOT/" --only-show-errors
+  aws s3 sync "$ASSOCIATION_S3/" "$ASSOCIATION_ROOT/" --only-show-errors
+  aws s3 cp "$ACTIVATION_S3/manifest.json" "$ACTIVATION_ROOT/manifest.json"
+  for ARM in block01-25m block10-25m block19-25m; do
+    mkdir -p "$ACTIVATION_ROOT/$ARM"
+    for ORIENTATION in forward reverse_complement; do
+      aws s3 cp \
+        "$ACTIVATION_S3/$ARM/sae_focal_$ORIENTATION.parquet" \
+        "$ACTIVATION_ROOT/$ARM/sae_focal_$ORIENTATION.parquet"
+    done
+  done
+  cp "$PANEL_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/variant_panel_archive_manifest.json"
+  cp "$ASSOCIATION_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/reference_association_archive_manifest.json"
+  cp "$ACTIVATION_ROOT/manifest.json" "$RUN_ROOT/inputs/paired_activation_manifest.json"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/analyze_variant_deltas.py" \
+    --panel-archive "$PANEL_ROOT" \
+    --association-archive "$ASSOCIATION_ROOT" \
+    --activation-root "$ACTIVATION_ROOT" \
+    --output-dir "$RUN_ROOT/paired"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status frozen_paired_repeat_variant_delta_associations
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-variant-deltas-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive

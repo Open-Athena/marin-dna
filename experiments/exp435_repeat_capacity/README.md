@@ -138,3 +138,19 @@ sky launch -y -d --down -c exp435-repeat-variant-panel --env EXPERIMENT_COMMIT=<
 
 Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-panel-r1/`.
+
+## Stage 6: paired repeat-variant response
+
+`analyze_variant_deltas.py` reuses #436's existing block-1/10/19 25M paired
+sparse activations and transfers only the reference-positive repeat feature sets
+from Stage 3. It runs the frozen broad, subset, class, family, subfamily,
+unique-overlap, and repeat-interior association families without reading the
+Mendelian label. FWD/RC remain separate and are jointly included in each
+within-layer BH family.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-variant-deltas --env EXPERIMENT_COMMIT=<40-character-commit> experiments/exp435_repeat_capacity/sky.variant_analyze.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-deltas-r1/`.
