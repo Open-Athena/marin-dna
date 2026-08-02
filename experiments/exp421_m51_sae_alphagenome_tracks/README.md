@@ -38,4 +38,4 @@ Run its focused tests with:
 uv run --project experiments/exp421_422_statistical_revisits pytest -q experiments/exp421_m51_sae_alphagenome_tracks/test_characterize_grouped_l2_features.py
 ```
 
-The bounded CPU runner is `sky.characterize_grouped_l2.yaml`. It retrieves the frozen panel, selected 25M SAE activations, high-level taxonomy, AlphaGenome L2 table, audited repeat annotations, and exact indexed GRCh38 FASTA, then uploads a hash-manifested result archive.
+The bounded CPU runner is `sky.characterize_grouped_l2.yaml`. It retrieves the frozen panel, selected 25M SAE activations, high-level taxonomy, AlphaGenome L2 table, and audited repeat annotations; it queries the exact indexed, uncompressed GRCh38 FASTA directly from the same-region S3 mirror and uploads a hash-manifested result archive.

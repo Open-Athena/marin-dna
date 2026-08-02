@@ -4,11 +4,11 @@ version = "0.1.0"
 description = "CPU environment for complete-family AlphaGenome and consequence scans"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "biopython>=1.85,<2",
     "numpy>=2.0,<3",
     "polars>=1.0,<2",
     "pyfaidx>=0.9,<1",
     "pyarrow>=18",
+    "s3fs>=2024",
     "scipy>=1.14,<2",
 ]
 

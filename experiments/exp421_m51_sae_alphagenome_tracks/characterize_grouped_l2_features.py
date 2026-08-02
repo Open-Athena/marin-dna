@@ -17,7 +17,9 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+import fsspec
 import numpy as np
 import polars as pl
 from grouped_l2_association import (
@@ -91,16 +93,24 @@ def _max_homopolymer(sequence: str) -> int:
     return longest
 
 
-def build_contexts(panel: pl.DataFrame, fasta_path: Path) -> pl.DataFrame:
+def _open_fasta(fasta_uri: str | Path) -> Fasta:
+    uri = str(fasta_uri)
+    if urlparse(uri).scheme not in ("", "file"):
+        return Fasta(
+            fsspec.open(uri),
+            as_raw=True,
+            sequence_always_upper=True,
+            rebuild=False,
+            build_index=False,
+        )
+    return Fasta(uri, as_raw=True, sequence_always_upper=True, rebuild=False)
+
+
+def build_contexts(panel: pl.DataFrame, fasta_uri: str | Path) -> pl.DataFrame:
     """Read 63-bp contexts using one 1-based-to-0-based boundary conversion."""
 
     assert panel.height == EXPECTED_ROWS
-    fasta = Fasta(
-        str(fasta_path),
-        as_raw=True,
-        sequence_always_upper=True,
-        rebuild=False,
-    )
+    fasta = _open_fasta(fasta_uri)
     rows: list[dict[str, Any]] = []
     for panel_row, row in enumerate(panel.iter_rows(named=True)):
         pos0 = int(row["pos"]) - 1
@@ -738,7 +748,7 @@ def analyze(
     extraction_manifest_path: Path,
     repeat_panel_path: Path,
     repeat_manifest_path: Path,
-    fasta_path: Path,
+    fasta_uri: str,
     alphagenome_uri: str,
     track_taxonomy_path: Path,
     taxonomy_manifest_path: Path,
@@ -758,7 +768,7 @@ def analyze(
     assert panel.height == EXPECTED_ROWS
     assert panel.select(pl.struct(KEYS).n_unique()).item() == EXPECTED_ROWS
 
-    contexts = build_contexts(panel, fasta_path)
+    contexts = build_contexts(panel, fasta_uri)
     repeats = validate_repeat_panel(
         panel,
         repeat_panel_path,
@@ -843,7 +853,7 @@ def analyze(
             "extraction_manifest_sha256": sha256_file(extraction_manifest_path),
             "repeat_panel_sha256": sha256_file(repeat_panel_path),
             "repeat_manifest_sha256": sha256_file(repeat_manifest_path),
-            "fasta": str(fasta_path),
+            "fasta": fasta_uri,
             "alphagenome_uri": alphagenome_uri,
             "taxonomy_manifest_sha256": sha256_file(taxonomy_manifest_path),
         },
@@ -865,7 +875,7 @@ def main() -> None:
     parser.add_argument("--extraction-manifest", type=Path, required=True)
     parser.add_argument("--repeat-panel", type=Path, required=True)
     parser.add_argument("--repeat-manifest", type=Path, required=True)
-    parser.add_argument("--fasta", type=Path, required=True)
+    parser.add_argument("--fasta", required=True)
     parser.add_argument("--alphagenome-uri", required=True)
     parser.add_argument("--track-taxonomy", type=Path, required=True)
     parser.add_argument("--taxonomy-manifest", type=Path, required=True)
@@ -878,7 +888,7 @@ def main() -> None:
         extraction_manifest_path=args.extraction_manifest,
         repeat_panel_path=args.repeat_panel,
         repeat_manifest_path=args.repeat_manifest,
-        fasta_path=args.fasta,
+        fasta_uri=args.fasta,
         alphagenome_uri=args.alphagenome_uri,
         track_taxonomy_path=args.track_taxonomy,
         taxonomy_manifest_path=args.taxonomy_manifest,

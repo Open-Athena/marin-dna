@@ -44,6 +44,27 @@ def test_sequence_helpers_and_coordinate_boundary(
     assert _max_homopolymer("AACCCGT") == 3
 
 
+def test_remote_fasta_uses_existing_index_without_rebuild(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import characterize_grouped_l2_features as characterize
+
+    sentinel = object()
+    observed: dict[str, object] = {}
+
+    def fake_fasta(handle: object, **kwargs: object) -> str:
+        observed["handle"] = handle
+        observed.update(kwargs)
+        return "opened"
+
+    monkeypatch.setattr(characterize.fsspec, "open", lambda _uri: sentinel)
+    monkeypatch.setattr(characterize, "Fasta", fake_fasta)
+    assert characterize._open_fasta("s3://bucket/reference.fa") == "opened"
+    assert observed["handle"] is sentinel
+    assert observed["rebuild"] is False
+    assert observed["build_index"] is False
+
+
 def test_densify_and_feature_summary_preserve_signed_delta() -> None:
     sparse = pl.DataFrame(
         {
