@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 import seaborn as sns
+from scipy import stats
 
 EXPECTED_LAYERS = (1, 10, 19)
 EXPECTED_ORIENTATIONS = ("forward", "reverse_complement")
@@ -66,6 +67,78 @@ def consequence_order(summary: pl.DataFrame) -> list[str]:
     )
     assert len(order) == EXPECTED_CONSEQUENCES
     return order
+
+
+def strand_concordance(frame: pl.DataFrame) -> pl.DataFrame:
+    """Compare like-for-like feature associations across FWD and RC."""
+
+    rows: list[dict[str, float | int | str]] = []
+    keys = ["feature_id", "consequence"]
+    for layer in EXPECTED_LAYERS:
+        for response in EXPECTED_RESPONSES:
+            subset = frame.filter(
+                (pl.col("report_block") == layer) & (pl.col("response") == response)
+            ).with_columns(
+                (
+                    (pl.col("welch_qvalue") < 0.05)
+                    & (pl.col("mwu_qvalue") < 0.05)
+                ).alias("discovery")
+            )
+            forward = subset.filter(pl.col("orientation") == "forward")
+            reverse = subset.filter(pl.col("orientation") == "reverse_complement")
+            assert forward.select(keys).is_duplicated().sum() == 0
+            assert reverse.select(keys).is_duplicated().sum() == 0
+
+            forward_hits = {
+                (int(row[0]), str(row[1]))
+                for row in forward.filter("discovery").select(keys).iter_rows()
+            }
+            reverse_hits = {
+                (int(row[0]), str(row[1]))
+                for row in reverse.filter("discovery").select(keys).iter_rows()
+            }
+            union = forward_hits | reverse_hits
+            intersection = forward_hits & reverse_hits
+            assert union
+
+            common = forward.select(keys + ["rank_biserial", "discovery"]).join(
+                reverse.select(keys + ["rank_biserial", "discovery"]),
+                on=keys,
+                how="inner",
+                suffix="_rc",
+            )
+            assert common.height > 1
+            forward_effect = common["rank_biserial"].to_numpy()
+            reverse_effect = common["rank_biserial_rc"].to_numpy()
+            pearson = stats.pearsonr(forward_effect, reverse_effect).statistic
+            spearman = stats.spearmanr(forward_effect, reverse_effect).statistic
+            assert np.isfinite(pearson) and np.isfinite(spearman)
+
+            discovered_common = common.filter(
+                pl.col("discovery") & pl.col("discovery_rc")
+            )
+            assert discovered_common.height == len(intersection)
+            sign_agreement = (
+                np.sign(discovered_common["rank_biserial"].to_numpy())
+                == np.sign(discovered_common["rank_biserial_rc"].to_numpy())
+            ).mean()
+            rows.append(
+                {
+                    "report_block": layer,
+                    "response": response,
+                    "common_pairs": common.height,
+                    "forward_discoveries": len(forward_hits),
+                    "reverse_complement_discoveries": len(reverse_hits),
+                    "both_strand_discoveries": len(intersection),
+                    "discovery_jaccard": len(intersection) / len(union),
+                    "effect_pearson": float(pearson),
+                    "effect_spearman": float(spearman),
+                    "both_strand_effect_sign_agreement": float(sign_agreement),
+                }
+            )
+    output = pl.DataFrame(rows, infer_schema_length=None)
+    assert output.height == len(EXPECTED_LAYERS) * len(EXPECTED_RESPONSES)
+    return output
 
 
 def matrix_for(
@@ -181,10 +254,12 @@ def main() -> None:
 
     families = read_complete_families(args.result_root)
     auprc, effects = consequence_summaries(families)
+    concordance = strand_concordance(families)
     order = consequence_order(auprc)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     auprc.write_parquet(args.output_dir / "per_consequence_auprc.parquet")
     effects.write_parquet(args.output_dir / "per_consequence_effect.parquet")
+    concordance.write_parquet(args.output_dir / "strand_concordance.parquet")
 
     draw_heatmaps(
         auprc,
