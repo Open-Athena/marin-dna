@@ -204,6 +204,15 @@ completed step 1501, and advanced into the 1500s with loss 1.28. Combined `r5`
 had restored step 1000 and completed step 1001. Both TPU children were running
 concurrently with zero failures and zero preemptions.
 
+At the 2026-08-02 05:41 UTC observation, the mammals worker had committed its
+native step-2000 checkpoint, completed validation with loss 1.290, and produced
+an exact four-file, 972.2 MiB Hugging Face export before advancing into the
+2060s. The combined worker had likewise committed native step 1500, completed
+validation with loss 1.328, produced the same exact four-file, 972.2 MiB export,
+and advanced into the 1520s. Both child jobs still reported zero failures and
+zero preemptions. This verifies that the raised host-memory limits survive a
+full durable checkpoint, validation, export, and resumed-training cycle.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
