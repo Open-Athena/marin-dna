@@ -160,6 +160,13 @@ be skipped with no embedding columns.) Name targeted targets rather than
 
 ## Setup
 
+The scorer supports terminal checkpoints exported by both Transformers 4 and
+Transformers 5. When a Transformers 5 export identifies its raw tokenizer as
+`TokenizersBackend`, the Transformers 4 evaluation environment loads the same
+`tokenizer.json` through `PreTrainedTokenizerFast`; token IDs, special-token
+post-processing, model weights, and scoring remain unchanged. Other tokenizer
+load failures are not caught or rewritten.
+
 On a GPU node (a small EC2 GPU is sufficient for the approximately 0.6B-parameter models):
 
 ```bash

@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from marin_dna_evals.inference import (
+    _load_checkpoint_tokenizer,
     compute_variant_scores,
     fwd_rc_average_f16,
 )
@@ -29,6 +30,50 @@ def _stub_dataset() -> pd.DataFrame:
             "label": [1, 0, 1, 0],
         }
     )
+
+
+def test_load_checkpoint_tokenizer_uses_auto_for_native_export(tmp_path):
+    tokenizer = object()
+    with (
+        patch(
+            "marin_dna_evals.inference.AutoTokenizer.from_pretrained",
+            return_value=tokenizer,
+        ) as auto_load,
+        patch(
+            "marin_dna_evals.inference.PreTrainedTokenizerFast.from_pretrained"
+        ) as fast_load,
+    ):
+        assert _load_checkpoint_tokenizer(tmp_path) is tokenizer
+    auto_load.assert_called_once_with(tmp_path)
+    fast_load.assert_not_called()
+
+
+def test_load_checkpoint_tokenizer_handles_transformers5_backend(tmp_path):
+    (tmp_path / "tokenizer_config.json").write_text(
+        '{"tokenizer_class": "TokenizersBackend"}', encoding="utf-8"
+    )
+    (tmp_path / "tokenizer.json").write_text("{}", encoding="utf-8")
+    tokenizer = object()
+    with (
+        patch(
+            "marin_dna_evals.inference.AutoTokenizer.from_pretrained"
+        ) as auto_load,
+        patch(
+            "marin_dna_evals.inference.PreTrainedTokenizerFast.from_pretrained",
+            return_value=tokenizer,
+        ) as fast_load,
+    ):
+        assert _load_checkpoint_tokenizer(tmp_path) is tokenizer
+    auto_load.assert_not_called()
+    fast_load.assert_called_once_with(tmp_path)
+
+
+def test_load_checkpoint_tokenizer_requires_json_for_transformers5_backend(tmp_path):
+    (tmp_path / "tokenizer_config.json").write_text(
+        '{"tokenizer_class": "TokenizersBackend"}', encoding="utf-8"
+    )
+    with pytest.raises(AssertionError, match="missing tokenizer.json"):
+        _load_checkpoint_tokenizer(tmp_path)
 
 
 def _patched_model_load():

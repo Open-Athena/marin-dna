@@ -1,14 +1,47 @@
 """Inference utilities for computing variant scores using genomic language models."""
 
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from datasets import Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedTokenizerBase,
+    PreTrainedTokenizerFast,
+)
 
 from marin_dna.data.genome import Genome
 from marin_dna_evals.model.runner import run_variant_score_bundle
+
+
+def _load_checkpoint_tokenizer(checkpoint_path: Path) -> PreTrainedTokenizerBase:
+    """Load native Transformers 4 and Transformers 5 tokenizer exports.
+
+    Transformers 5 serializes a raw ``tokenizers.Tokenizer`` as
+    ``tokenizer_class: TokenizersBackend``. Transformers 4 cannot resolve that
+    class through ``AutoTokenizer``, even though its
+    ``PreTrainedTokenizerFast`` reads the same ``tokenizer.json`` and special
+    token post-processor without changing token IDs or encoding semantics.
+    Keep the fallback exact so unrelated tokenizer errors still fail loudly.
+    """
+    tokenizer_config_path = checkpoint_path / "tokenizer_config.json"
+    if tokenizer_config_path.is_file():
+        with tokenizer_config_path.open(encoding="utf-8") as config_file:
+            tokenizer_config = json.load(config_file)
+        assert isinstance(tokenizer_config, dict), (
+            f"{tokenizer_config_path} must contain a JSON object"
+        )
+        if tokenizer_config.get("tokenizer_class") == "TokenizersBackend":
+            tokenizer_json_path = checkpoint_path / "tokenizer.json"
+            assert tokenizer_json_path.is_file(), (
+                "TokenizersBackend export is missing tokenizer.json: "
+                f"{tokenizer_json_path}"
+            )
+            return PreTrainedTokenizerFast.from_pretrained(checkpoint_path)
+    return AutoTokenizer.from_pretrained(checkpoint_path)
 
 
 def fwd_rc_average_f16(strand_embs: list[np.ndarray]) -> np.ndarray:
@@ -112,7 +145,7 @@ def compute_variant_scores(
     genome = Genome(genome_path)
     # AutoTokenizer / AutoModelForCausalLM satisfy the duck-typed interface
     # marin_dna_evals.model.runner expects — no adapter wrappers needed.
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
+    tokenizer = _load_checkpoint_tokenizer(checkpoint_path)
     model = AutoModelForCausalLM.from_pretrained(
         checkpoint_path,
         trust_remote_code=True,
