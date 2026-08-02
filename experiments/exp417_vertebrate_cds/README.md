@@ -175,9 +175,12 @@ native checkpoint step 1000, completed validation with loss 1.299, finished
 the 1.02 GB step-1000 Hugging Face export, and advanced through about step 1020
 by 03:08 UTC. This crossed the exact checkpoint boundary at which the previous
 worker failed. The combined `r2` job was stopped only after a dry-run confirmed
-the exact target and its step-565 temporary checkpoint was durable; safe resume
-`r3` restored step 565 and advanced through about step 583 by 03:08 UTC. Both
-safe child jobs reported zero failures and zero preemptions at that observation.
+the exact target and its step-565 temporary checkpoint was durable. Safe resume
+`r3` restored step 565, committed native checkpoint step 1000 at 03:46:28 UTC,
+completed validation with loss 1.304, and finished its four-file, 972.2 MiB
+step-1000 Hugging Face export at 03:46:57 UTC before resuming training. Both
+safe child jobs reported zero failures and zero preemptions at the 03:48 UTC
+observation.
 
 ## Frozen offline VEP evaluation
 
