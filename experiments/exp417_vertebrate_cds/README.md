@@ -293,6 +293,18 @@ guarded child remained running with zero failures and zero preemptions. This
 validates the execution-only asyncio snapshot guard at the exact race boundary
 without changing the frozen scientific recipe.
 
+At the 2026-08-02 10:00 UTC observation, both arms had crossed a matched
+step-3500 durability boundary. Guarded mammals committed its complete
+five-object native checkpoint at 09:58:25, completed validation with loss
+1.316, finished its exact four-file, 1,019,426,252-byte (972.2 MiB) Hugging
+Face export at 09:59:10, and resumed through about step 3520. Combined had
+committed its complete five-object native checkpoint at 09:24:25, completed
+validation with loss 1.305, finished the same exact four-file export at
+09:24:41, and advanced through about step 3890. Both jobs remained running
+with zero failures; mammals had zero preemptions and combined retained only its
+one earlier preemption. This supplies matched, complete recovery points for
+both arms with 1,499 training steps remaining.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
