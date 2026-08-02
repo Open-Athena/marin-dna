@@ -60,3 +60,24 @@ Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-panel-r1/`.
 The full FASTA and inventory are downloaded only to the temporary Sky node; the
 archive retains their identities and hashes, not redundant source copies.
+
+
+## Stage 2: three-layer sparse reference activations
+
+`extract_reference_activations.py` consumes the exact stage-1 S3 archive, not a
+resampled panel. Because `contexts.parquet` already contains the validated 255-bp
+sequences, this GPU stage does not download the reference FASTA. One shared bf16
+gLM forward captures blocks 1, 10, and 19; their pinned 25M SAEs are applied to
+the focal token and only nonzero activations are written. FWD and RC remain
+separate.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-reference-activations \
+  --env EXPERIMENT_COMMIT=$(git rev-parse HEAD) \
+  experiments/exp435_repeat_capacity/sky.extract.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-activations-r1/`.
+The AWS GPU reads and writes S3 directly; neither the model checkpoints nor the
+sparse activation tables are staged on the shared Codex node.

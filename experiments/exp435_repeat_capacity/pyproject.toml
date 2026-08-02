@@ -4,10 +4,17 @@ version = "0.1.0"
 description = "Outcome-blind hg38 RepeatMasker inventory for issue 435"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@c4c1c86bbfc0bd58ff76dda3bac1d2acea856a33",
+    "sae-lens @ git+https://github.com/decoderesearch/SAELens.git@8be14080485952f729ed58d674bcddf9778e0aa4",
+    "huggingface-hub",
     "numpy>=2.0",
     "polars>=1.0",
     "pyarrow>=17",
     "pysam>=0.22",
+    "scipy>=1.14",
+    "torch==2.11.0",
+    "transformers>=4.57,<5",
+    "wandb",
 ]
 
 [dependency-groups]
@@ -19,7 +26,31 @@ dev = [
 [tool.uv]
 package = false
 fork-strategy = "fewest"
+prerelease = "allow"
 environments = ["sys_platform == 'linux'"]
+override-dependencies = [
+    "omegaconf>=2.4.0.dev4",
+    "antlr4-python3-runtime==4.11",
+    "python-multipart>=0.0.22",
+    "wheel>=0.46.2",
+    "datasets>=3.1.0,<4.0.0",
+    "equinox>=0.11.10",
+    "pandas>=2.0,<3.0",
+    "transformers>=4.57,<5",
+]
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+resiliparse = { index = "marin-resiliparse" }
+torch = { index = "pytorch-cu128" }
 
 [tool.ruff]
 line-length = 88

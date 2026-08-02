@@ -1,0 +1,83 @@
+name: dna-exp435-repeat-reference-activations
+
+resources:
+  infra: aws/us-east-2
+  instance_type: g5.2xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-reference-activations-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export TOKENIZERS_PARALLELISM=true
+  export POLARS_MAX_THREADS=6
+  export RAYON_NUM_THREADS=6
+  export OMP_NUM_THREADS=2
+  export MKL_NUM_THREADS=2
+  export OPENBLAS_NUM_THREADS=2
+  export NUMEXPR_NUM_THREADS=2
+  export WANDB_DISABLED=true
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-reference-activations-r1"
+  nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-repeat-extraction-inputs"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  PANEL_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-panel-r1"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$INPUT_ROOT/models/block01-25m"
+  mkdir -p "$INPUT_ROOT/models/block10-25m"
+  mkdir -p "$INPUT_ROOT/models/block19-25m"
+  mkdir -p "$RUN_ROOT/inputs/panel"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 sync "$PANEL_S3/" "$RUN_ROOT/inputs/panel/" --only-show-errors
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-block01-seed288-r1/models/block01-25m/ \
+    "$INPUT_ROOT/models/block01-25m/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-25m/ \
+    "$INPUT_ROOT/models/block10-25m/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m/ \
+    "$INPUT_ROOT/models/block19-25m/"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/extract_reference_activations.py" \
+    --panel-root "$RUN_ROOT/inputs/panel" \
+    --models-root "$INPUT_ROOT/models" \
+    --output-dir "$RUN_ROOT/extraction" \
+    --batch-size 128
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status frozen_reference_sae_extraction
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-reference-activations-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive
