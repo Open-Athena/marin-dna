@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import platform
 import time
@@ -19,6 +20,8 @@ from sklearn.metrics import average_precision_score
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from benchmark_llr import _quantize_model
 
 from marin_dna.model.scoring import compute_variant_score_bundle
 from marin_dna.pipelines.evals.inference_benchmark import (
@@ -175,6 +178,16 @@ def main() -> None:
         choices=["default", "reduce-overhead", "max-autotune"],
         default=None,
     )
+    parser.add_argument("--dynamo-recompile-limit", type=int, default=None)
+    parser.add_argument(
+        "--quantization", choices=["none", "te-fp8-delayed"], default="none"
+    )
+    parser.add_argument("--te-amax-history-len", type=int, default=1)
+    parser.add_argument(
+        "--te-amax-compute-algo", choices=["max", "most_recent"], default="most_recent"
+    )
+    parser.add_argument("--te-fused-mlp", action="store_true")
+    parser.add_argument("--te-fused-qkv", action="store_true")
     parser.add_argument("--price-per-hour", type=float, default=2.29)
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
@@ -185,6 +198,13 @@ def main() -> None:
     assert args.prefetch_factor >= 1
     assert args.repetitions >= 1
     assert args.torch_compile or args.compile_mode is None
+    assert not (args.te_fused_mlp or args.te_fused_qkv) or (
+        args.quantization == "te-fp8-delayed"
+    )
+    if args.dynamo_recompile_limit is not None:
+        assert args.torch_compile
+        assert args.dynamo_recompile_limit > 0
+        torch._dynamo.config.recompile_limit = args.dynamo_recompile_limit
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -206,6 +226,21 @@ def main() -> None:
         trust_remote_code=True,
     ).cuda()
     model.eval()
+    (
+        model,
+        quantization_seconds,
+        quantized_linear_count,
+        fused_mlp_count,
+        fused_qkv_count,
+    ) = _quantize_model(
+        model,
+        args.quantization,
+        te_amax_history_len=args.te_amax_history_len,
+        te_amax_compute_algo=args.te_amax_compute_algo,
+        te_fp8_model_init=False,
+        te_fused_mlp=args.te_fused_mlp,
+        te_fused_qkv=args.te_fused_qkv,
+    )
     parity = _parity_check(model, prepared)
     assert parity["max_abs_score_delta"] <= 1e-6, parity
 
@@ -278,6 +313,16 @@ def main() -> None:
         "prefetch_factor": args.prefetch_factor,
         "torch_compile": args.torch_compile,
         "compile_mode": args.compile_mode,
+        "dynamo_recompile_limit": args.dynamo_recompile_limit,
+        "quantization": args.quantization,
+        "te_amax_history_len": args.te_amax_history_len,
+        "te_amax_compute_algo": args.te_amax_compute_algo,
+        "te_fused_mlp": args.te_fused_mlp,
+        "fused_mlp_count": fused_mlp_count,
+        "te_fused_qkv": args.te_fused_qkv,
+        "fused_qkv_count": fused_qkv_count,
+        "quantization_seconds": quantization_seconds,
+        "quantized_linear_count": quantized_linear_count,
         "output_contract": "llr+jsd+ref_embedding+alt_embedding; FWD+RC",
         "per_strand_output_width": int(plus_output.shape[1]),
         "fwd_rc_averaged_embedding_width": int(averaged_embeddings.shape[1]),
@@ -298,6 +343,11 @@ def main() -> None:
         "gpu_total_memory_gib": properties.total_memory / BYTES_PER_GIB,
         "torch": torch.__version__,
         "torch_cuda": torch.version.cuda,
+        "transformer_engine": (
+            importlib.metadata.version("transformer-engine")
+            if args.quantization.startswith("te-")
+            else None
+        ),
         "transformers": transformers.__version__,
         "datasets": datasets.__version__,
         "platform": platform.platform(),

@@ -63,6 +63,11 @@ class _TransformerEngineModelWrapper(nn.Module):
         self.enabled = enabled
         self.recipe = recipe
 
+    @property
+    def base_model(self) -> nn.Module:
+        """Expose the wrapped Hugging Face backbone for scoring hooks."""
+        return self.model.base_model
+
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         import transformer_engine.pytorch as te
 
@@ -74,6 +79,115 @@ class _TransformerEngineModelWrapper(nn.Module):
             context = nullcontext()
         with context:
             return self.model(*args, **kwargs)
+
+
+class _FusedQKVQwen3Attention(nn.Module):
+    """Qwen3 attention with one concatenated QKV projection."""
+
+    def __init__(self, attention: nn.Module, te: Any) -> None:
+        super().__init__()
+        self.config = attention.config
+        self.layer_idx = attention.layer_idx
+        self.head_dim = attention.head_dim
+        self.num_key_value_groups = attention.num_key_value_groups
+        self.scaling = attention.scaling
+        self.attention_dropout = attention.attention_dropout
+        self.is_causal = attention.is_causal
+        self.sliding_window = attention.sliding_window
+        self.q_norm = attention.q_norm
+        self.k_norm = attention.k_norm
+        self.o_proj = attention.o_proj
+
+        projections = (attention.q_proj, attention.k_proj, attention.v_proj)
+        assert all(isinstance(projection, nn.Linear) for projection in projections)
+        assert len({projection.in_features for projection in projections}) == 1
+        assert len({projection.bias is None for projection in projections}) == 1
+        self.projection_sizes = tuple(
+            projection.out_features for projection in projections
+        )
+        self.qkv_proj = te.Linear(
+            projections[0].in_features,
+            sum(self.projection_sizes),
+            bias=projections[0].bias is not None,
+            params_dtype=projections[0].weight.dtype,
+            device=projections[0].weight.device,
+        )
+        self.qkv_proj.weight.copy_(
+            torch.cat([projection.weight for projection in projections], dim=0)
+        )
+        if projections[0].bias is not None:
+            assert self.qkv_proj.bias is not None
+            self.qkv_proj.bias.copy_(
+                torch.cat([projection.bias for projection in projections], dim=0)
+            )
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        position_embeddings: tuple[torch.Tensor, torch.Tensor],
+        attention_mask: torch.Tensor | None,
+        past_key_values: Any = None,
+        cache_position: torch.Tensor | None = None,
+        **kwargs: Any,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        from transformers.models.qwen3.modeling_qwen3 import (
+            ALL_ATTENTION_FUNCTIONS,
+            apply_rotary_pos_emb,
+            eager_attention_forward,
+        )
+
+        input_shape = hidden_states.shape[:-1]
+        hidden_shape = (*input_shape, -1, self.head_dim)
+        query, key, value = self.qkv_proj(hidden_states).split(
+            self.projection_sizes, dim=-1
+        )
+        query_states = self.q_norm(query.reshape(hidden_shape)).transpose(1, 2)
+        key_states = self.k_norm(key.reshape(hidden_shape)).transpose(1, 2)
+        value_states = value.reshape(hidden_shape).transpose(1, 2)
+
+        cos, sin = position_embeddings
+        query_states, key_states = apply_rotary_pos_emb(
+            query_states, key_states, cos, sin
+        )
+        if past_key_values is not None:
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+            key_states, value_states = past_key_values.update(
+                key_states,
+                value_states,
+                self.layer_idx,
+                cache_kwargs,
+            )
+
+        attention_interface = eager_attention_forward
+        if self.config._attn_implementation != "eager":
+            attention_interface = ALL_ATTENTION_FUNCTIONS[
+                self.config._attn_implementation
+            ]
+        attn_output, attn_weights = attention_interface(
+            self,
+            query_states,
+            key_states,
+            value_states,
+            attention_mask,
+            dropout=0.0 if not self.training else self.attention_dropout,
+            scaling=self.scaling,
+            sliding_window=self.sliding_window,
+            **kwargs,
+        )
+        attn_output = attn_output.reshape(*input_shape, -1).contiguous()
+        return self.o_proj(attn_output), attn_weights
+
+
+def _replace_qwen3_qkv_with_transformer_engine(model: nn.Module, te: Any) -> int:
+    """Replace each Qwen3 attention's three projections with one TE projection."""
+    backbone = getattr(model, "model", None)
+    layers = getattr(backbone, "layers", None)
+    assert layers is not None, "expected Qwen3ForCausalLM.model.layers"
+    assert len(layers) == model.config.num_hidden_layers
+
+    for layer in layers:
+        layer.self_attn = _FusedQKVQwen3Attention(layer.self_attn, te)
+    return len(layers)
 
 
 def _replace_qwen3_mlps_with_transformer_engine(model: nn.Module, te: Any) -> int:
@@ -121,9 +235,10 @@ def _replace_linears_with_transformer_engine(
     fp8_enabled: bool,
     fp8_model_init: bool,
     fused_mlp: bool,
+    fused_qkv: bool,
     amax_history_len: int,
     amax_compute_algo: str,
-) -> tuple[nn.Module, int, int]:
+) -> tuple[nn.Module, int, int, int]:
     import transformer_engine.pytorch as te
     from transformer_engine.common import recipe
 
@@ -141,6 +256,9 @@ def _replace_linears_with_transformer_engine(
         else nullcontext()
     )
     with torch.no_grad(), init_context:
+        fused_qkv_count = (
+            _replace_qwen3_qkv_with_transformer_engine(model, te) if fused_qkv else 0
+        )
         fused_mlp_count = (
             _replace_qwen3_mlps_with_transformer_engine(model, te) if fused_mlp else 0
         )
@@ -172,6 +290,7 @@ def _replace_linears_with_transformer_engine(
         ),
         len(selected),
         fused_mlp_count,
+        fused_qkv_count,
     )
 
 
@@ -183,9 +302,10 @@ def _quantize_model(
     te_amax_compute_algo: str,
     te_fp8_model_init: bool,
     te_fused_mlp: bool,
-) -> tuple[nn.Module, float, int, int]:
+    te_fused_qkv: bool,
+) -> tuple[nn.Module, float, int, int, int]:
     if quantization == "none":
-        return model, 0.0, 0, 0
+        return model, 0.0, 0, 0, 0
 
     if quantization in ("te-bf16", "te-fp8-delayed"):
         start = time.perf_counter()
@@ -193,11 +313,13 @@ def _quantize_model(
             model,
             replaced_linear_count,
             fused_mlp_count,
+            fused_qkv_count,
         ) = _replace_linears_with_transformer_engine(
             model,
             fp8_enabled=quantization == "te-fp8-delayed",
             fp8_model_init=te_fp8_model_init,
             fused_mlp=te_fused_mlp,
+            fused_qkv=te_fused_qkv,
             amax_history_len=te_amax_history_len,
             amax_compute_algo=te_amax_compute_algo,
         )
@@ -206,6 +328,7 @@ def _quantize_model(
             time.perf_counter() - start,
             replaced_linear_count,
             fused_mlp_count,
+            fused_qkv_count,
         )
 
     from torchao.quantization import (
@@ -240,7 +363,7 @@ def _quantize_model(
         ),
     )
     quantization_seconds = time.perf_counter() - start
-    return model, quantization_seconds, len(selected_names), 0
+    return model, quantization_seconds, len(selected_names), 0, 0
 
 
 def _parity_check(
@@ -385,6 +508,7 @@ def main() -> None:
     )
     parser.add_argument("--te-fp8-model-init", action="store_true")
     parser.add_argument("--te-fused-mlp", action="store_true")
+    parser.add_argument("--te-fused-qkv", action="store_true")
     parser.add_argument("--parity-variants", type=int, default=32)
     parser.add_argument("--price-per-hour", type=float, default=2.29)
     parser.add_argument("--out-dir", required=True)
@@ -398,8 +522,12 @@ def main() -> None:
         "te-bf16",
         "te-fp8-delayed",
     )
-    assert not (args.te_fused_mlp and args.te_fp8_model_init), (
-        "fused MLP + FP8 model init is a separate, untested combination"
+    assert not args.te_fused_qkv or args.quantization in (
+        "te-bf16",
+        "te-fp8-delayed",
+    )
+    assert not ((args.te_fused_mlp or args.te_fused_qkv) and args.te_fp8_model_init), (
+        "fused TE modules + FP8 model init are a separate, untested combination"
     )
     if args.dynamo_recompile_limit is not None:
         assert args.torch_compile, "Dynamo recompile limit requires torch_compile=True"
@@ -438,7 +566,7 @@ def main() -> None:
     conversion_reference = None
     conversion_input_ids = None
     conversion_alt_token_id = None
-    if args.te_fused_mlp:
+    if args.te_fused_mlp or args.te_fused_qkv:
         conversion_rows = min(2 * args.parity_variants, len(prepared.metadata))
         conversion_input_ids = prepared.input_ids[:conversion_rows].cuda()
         conversion_alt_token_id = prepared.alt_token_id[:conversion_rows].cuda()
@@ -457,6 +585,7 @@ def main() -> None:
         quantization_seconds,
         quantized_linear_count,
         fused_mlp_count,
+        fused_qkv_count,
     ) = _quantize_model(
         model,
         args.quantization,
@@ -464,9 +593,10 @@ def main() -> None:
         te_amax_compute_algo=args.te_amax_compute_algo,
         te_fp8_model_init=args.te_fp8_model_init,
         te_fused_mlp=args.te_fused_mlp,
+        te_fused_qkv=args.te_fused_qkv,
     )
     conversion_parity = None
-    if args.te_fused_mlp:
+    if args.te_fused_mlp or args.te_fused_qkv:
         assert conversion_reference is not None
         assert conversion_input_ids is not None
         assert conversion_alt_token_id is not None
@@ -576,6 +706,8 @@ def main() -> None:
         "te_fp8_model_init": args.te_fp8_model_init,
         "te_fused_mlp": args.te_fused_mlp,
         "fused_mlp_count": fused_mlp_count,
+        "te_fused_qkv": args.te_fused_qkv,
+        "fused_qkv_count": fused_qkv_count,
         "quantization_seconds": quantization_seconds,
         "quantized_linear_count": quantized_linear_count,
         "conversion_parity": conversion_parity,

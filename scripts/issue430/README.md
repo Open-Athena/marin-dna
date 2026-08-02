@@ -34,18 +34,43 @@ The `transformer_engine_modern` environment instead installs PyTorch 2.10 from t
 
 `te-bf16` replaces the same 133 non-LM-head linear layers with Transformer Engine `Linear` modules but disables FP8, providing a same-container/backend control. `te-fp8-delayed` enables E4M3 delayed scaling with a fixed-size amax history. Delayed scaling chooses each activation scale from historical maxima, avoiding the separate current-amax tensor read performed by dynamic scaling. Add `--te-fp8-model-init` to construct the replaced layers with FP8-only parameter storage, Transformer Engine's experimental inference-oriented pre-materialization path. The LM head remains BF16 because the seven-token output dimension is not an FP8 GEMM shape.
 
-Add `--te-fused-mlp` to replace each Qwen3 post-attention RMSNorm plus gate/up/down MLP with one Transformer Engine `LayerNormMLP`. The benchmark records pre/post-conversion LLR parity before timing; this flag is intentionally incompatible with the separate experimental `--te-fp8-model-init` combination.
+Add `--te-fused-mlp` to replace each Qwen3 post-attention RMSNorm plus gate/up/down MLP with one Transformer Engine `LayerNormMLP`. Add `--te-fused-qkv` to concatenate each layer's Q/K/V weights into one Transformer Engine projection while retaining Hugging Face attention, RoPE, and KV-cache behavior. Both flags record pre/post-conversion LLR parity before timing and are intentionally incompatible with the separate experimental `--te-fp8-model-init` combination.
+
+The CUDA wheel libraries must precede the base NVIDIA container's cuDNN and cuBLAS libraries on fresh Lambda shells:
 
 ```bash
-PYTHONPATH="$PWD/src" scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
+ISSUE430_TE_SITE_PACKAGES="$PWD/scripts/issue430/environments/transformer_engine_modern/.venv/lib/python3.12/site-packages"
+export LD_LIBRARY_PATH="$ISSUE430_TE_SITE_PACKAGES/nvidia/cudnn/lib:$ISSUE430_TE_SITE_PACKAGES/nvidia/cublas/lib:$LD_LIBRARY_PATH"
+export PYTHONPATH="$PWD/src"
+```
+
+The promoted LLR-only frontier command is:
+
+```bash
+scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
   scripts/issue430/benchmark_llr.py \
+  --checkpoint "$HOME/ckpt" --subset all \
   --quantization te-fp8-delayed \
-  --te-amax-history-len 1 \
-  --te-amax-compute-algo most_recent \
-  --torch-compile --compile-mode default \
-  --dynamo-recompile-limit 64 \
-  --batching fused \
-  --out-dir scratch/issue430/te-fp8-delayed
+  --te-amax-history-len 1 --te-amax-compute-algo most_recent \
+  --te-fused-mlp --te-fused-qkv \
+  --torch-compile --compile-mode default --dynamo-recompile-limit 64 \
+  --batching fused --execution-layout prefix-cache \
+  --batch-size 512 --num-workers 4 --prefetch-factor 2 --repetitions 3 \
+  --out-dir scratch/issue430/te-fp8-fused-mlp-qkv-b512-full
+```
+
+The terminal embeddings-on confirmation uses the same converted model with a separate output contract:
+
+```bash
+scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
+  scripts/issue430/benchmark_embeddings.py \
+  --checkpoint "$HOME/ckpt" --subset missense_variant \
+  --quantization te-fp8-delayed \
+  --te-amax-history-len 1 --te-amax-compute-algo most_recent \
+  --te-fused-mlp --te-fused-qkv \
+  --torch-compile --compile-mode default --dynamo-recompile-limit 64 \
+  --batch-size 128 --num-workers 4 --prefetch-factor 2 --repetitions 3 \
+  --out-dir scratch/issue430/te-fp8-fused-mlp-qkv-embeddings-b128-r3
 ```
 
 ## vLLM
