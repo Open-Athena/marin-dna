@@ -1,0 +1,78 @@
+# Cheap AWS CPU materialization for the 559-positive dsQTL direction pilot.
+
+name: dna-exp434-dsqtl-direction-pilot-panel
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.2xlarge
+  disk_size: 60
+  use_spot: false
+  labels:
+    project: dna
+  autostop:
+    idle_minutes: 30
+    down: true
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp434-dsqtl-positive-panel-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=6
+  export RAYON_NUM_THREADS=6
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  export PYTHONPATH="$PWD/src:$PWD/experiments/exp434_m51_sae_accessibility_qtl"
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp434-dsqtl-positive-panel-r1"
+  EXPERIMENT_DIR="experiments/exp434_m51_sae_accessibility_qtl"
+  INPUT_ROOT="$HOME/exp434-panel-inputs"
+  RUN_ROOT="$HOME/exp434-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp434/inputs/$RUN_ID"
+  REFERENCE_S3="s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115"
+  REFERENCE_NAME="Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$INPUT_ROOT/reference" "$RUN_ROOT"
+
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME" "$INPUT_ROOT/reference/$REFERENCE_NAME"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME.fai" "$INPUT_ROOT/reference/$REFERENCE_NAME.fai"
+
+  uv run --no-project \
+    --with 'polars>=1.0' \
+    --with huggingface-hub \
+    --with pyfaidx \
+    --with pytest \
+    python -m pytest -q "$EXPERIMENT_DIR/tests/test_build_panel.py"
+  uv run --no-project \
+    --with 'polars>=1.0' \
+    --with huggingface-hub \
+    --with pyfaidx \
+    python "$EXPERIMENT_DIR/build_panel.py" \
+    --fasta "$INPUT_ROOT/reference/$REFERENCE_NAME" \
+    --scope dsqtl-positive-direction-pilot \
+    --output-dir "$RUN_ROOT"
+
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --exclude manifest.json --only-show-errors
+  aws s3 cp "$RUN_ROOT/manifest.json" "$S3_ROOT/manifest.json"
+  DRYRUN_LOG="/tmp/exp434-dsqtl-direction-pilot-panel-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive

@@ -1,0 +1,63 @@
+[project]
+name = "exp434-m51-sae-accessibility-qtl"
+version = "0.1.0"
+description = "Layer-resolved m5.1 accessibility-QTL SAE experiment"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@0ed28e6474a52e109f997999396e1f7fe9bbba2a",
+    "sae-lens @ git+https://github.com/decoderesearch/SAELens.git@8be14080485952f729ed58d674bcddf9778e0aa4",
+    "datasets>=3.1,<4",
+    "huggingface-hub",
+    "matplotlib>=3.9",
+    "numpy>=2.0",
+    "polars>=1.0",
+    "pyarrow>=17",
+    "s3fs>=2024",
+    "scikit-learn>=1.5",
+    "scipy>=1.14",
+    "torch==2.11.0",
+    "transformers>=4.57,<5",
+    "wandb",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.12.11",
+]
+
+[tool.uv]
+package = false
+fork-strategy = "fewest"
+prerelease = "allow"
+environments = ["sys_platform == 'linux'"]
+override-dependencies = [
+    "omegaconf>=2.4.0.dev4",
+    "antlr4-python3-runtime==4.11",
+    "python-multipart>=0.0.22",
+    "wheel>=0.46.2",
+    "datasets>=3.1.0,<4.0.0",
+    "equinox>=0.11.10",
+    "pandas>=2.0,<3.0",
+    "transformers>=4.57,<5",
+]
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+resiliparse = { index = "marin-resiliparse" }
+torch = { index = "pytorch-cu128" }
+
+[tool.ruff]
+line-length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
