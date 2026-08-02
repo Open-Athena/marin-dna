@@ -13,6 +13,12 @@ workdir: .
 envs:
   EXPERIMENT_COMMIT: ""
   RUN_ID: dna-exp436-mendelian-whole-window-seed288-r1
+  # Lambda is outside AWS, so the launch command forwards short-lived
+  # credentials from the controller EC2 instance role. Values are never
+  # stored in this file or in git.
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_SESSION_TOKEN: ""
 
 setup: |
   set -euxo pipefail

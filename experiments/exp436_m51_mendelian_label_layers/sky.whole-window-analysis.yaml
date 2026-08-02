@@ -18,6 +18,11 @@ envs:
   EXTRACTION_RUN_ID: dna-exp436-mendelian-whole-window-seed288-r1
   ASSOCIATION_RUN_ID: dna-exp436-mendelian-whole-window-associations-seed288-r1
   PROBE_RUN_ID: dna-exp436-mendelian-whole-window-probe-seed288-r1
+  # Forwarded at launch from the controller short-lived EC2 instance-role
+  # credentials; values are never stored in this file or in git.
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_SESSION_TOKEN: ""
 
 setup: |
   set -euxo pipefail
