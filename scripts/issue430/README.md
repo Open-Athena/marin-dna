@@ -73,6 +73,28 @@ scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
   --out-dir scratch/issue430/te-fp8-fused-mlp-qkv-embeddings-b128-r3
 ```
 
+For the terminal frozen-probe compatibility gate, export the complete aligned embedding bundle once using the same production f16 storage cast, then apply the canonical BF16 classifiers unchanged to both arms:
+
+```bash
+scripts/issue430/environments/transformer_engine_modern/.venv/bin/python \
+  scripts/issue430/benchmark_embeddings.py \
+  --checkpoint "$HOME/ckpt" --subset all --save-scores \
+  --quantization te-fp8-delayed \
+  --te-amax-history-len 1 --te-amax-compute-algo most_recent \
+  --te-fused-mlp --te-fused-qkv \
+  --torch-compile --compile-mode default --dynamo-recompile-limit 64 \
+  --batch-size 128 --num-workers 4 --prefetch-factor 2 --repetitions 1 \
+  --out-dir scratch/issue430/probe-fp8-embeddings
+
+PYTHONPATH="$PWD/src" uv run python scripts/issue430/evaluate_probe_compatibility.py \
+  --bf16-scores scratch/issue430/probe_compat/bf16_scores.parquet \
+  --fp8-scores scratch/issue430/probe_compat/fp8_scores.parquet \
+  --classifiers scratch/issue430/probe_compat/bf16_classifiers.joblib \
+  --out-dir scratch/issue430/probe_compat/results
+```
+
+The published joblib contains the production all-data classifier for each consequence subset. This is therefore a frozen-classifier perturbation test: absolute AUPRC is in-sample, while the BF16-to-FP8 prediction and AUPRC deltas isolate whether quantized embeddings remain compatible without retraining.
+
 ## vLLM
 
 The `vllm` environment is x86_64-only and pins vLLM 0.18.0 with PyTorch 2.10 / CUDA 12.8 compatibility. During the H100 probe, vLLM 0.26.0 selected PyTorch 2.11 / CUDA 13, which was incompatible with the host's CUDA 12.8 driver.

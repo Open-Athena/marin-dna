@@ -189,6 +189,11 @@ def main() -> None:
     parser.add_argument("--te-fused-mlp", action="store_true")
     parser.add_argument("--te-fused-qkv", action="store_true")
     parser.add_argument("--price-per-hour", type=float, default=2.29)
+    parser.add_argument(
+        "--save-scores",
+        action="store_true",
+        help="Write production-compatible f16 emb_ref/emb_alt columns to scores.parquet",
+    )
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
 
@@ -295,6 +300,15 @@ def main() -> None:
     assert averaged_embeddings.shape[0] == len(scores)
     assert averaged_embeddings.shape[1] % 2 == 0
     embedding_checksum = float(averaged_embeddings.astype(np.float64).sum())
+    if args.save_scores:
+        embedding_width = averaged_embeddings.shape[1] // 2
+        stored_embeddings = averaged_embeddings.astype(np.float16)
+        assert np.isfinite(stored_embeddings).all(), (
+            "non-finite pooled embedding after f16 cast"
+        )
+        scores["emb_ref"] = list(stored_embeddings[:, :embedding_width])
+        scores["emb_alt"] = list(stored_embeddings[:, embedding_width:])
+        scores.to_parquet(out_dir / "scores.parquet", index=False)
 
     n_variants = len(scores)
     variants_per_second = n_variants / median_seconds
@@ -327,6 +341,7 @@ def main() -> None:
         "per_strand_output_width": int(plus_output.shape[1]),
         "fwd_rc_averaged_embedding_width": int(averaged_embeddings.shape[1]),
         "embedding_checksum": embedding_checksum,
+        "scores_saved": args.save_scores,
         "warmup_seconds": plus_warmup + minus_warmup,
         "repeat_seconds": repeat_seconds,
         "median_seconds": median_seconds,
