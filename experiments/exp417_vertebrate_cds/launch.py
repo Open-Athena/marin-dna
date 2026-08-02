@@ -122,7 +122,10 @@ RESUME_WANDB_MODE = "disabled"
 TRAIN_TPU = "v6e-4"
 TRAIN_REGIONS = ("us-east5",)
 TRAIN_HOST_CPU = 16
-TRAIN_HOST_RAM = "56g"
+# Both safe resumes exhausted the original 56 GiB container limit after about
+# 75 minutes. A v6e-4 VM has 720 GB of host RAM; reserve enough of that fixed
+# host for the full run while leaving substantial headroom for the system.
+TRAIN_HOST_RAM = "512g"
 TRAIN_DISK = "100g"
 
 DATASET_ARTIFACT_VERSION = "2026.08.01"

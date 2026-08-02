@@ -31,6 +31,7 @@ lowercases token identities only after the loss-weight array has been derived
 | Hugging Face exports | every 500 steps |
 | Online VEP eval | none; frozen VEP scoring runs offline |
 | Accelerator | one `v6e-4`; no higher-cost fallback |
+| TPU worker host RAM | 512 GiB container limit on the fixed 720 GB `v6e-4` VM |
 | W&B | group `dna-exp417-v1` |
 
 The standard Adam optimizer is the exact exp353 recipe: learning rate
@@ -117,6 +118,8 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [combined retry `r2`, stopped after its last checkpoint to migrate to the safe runtime](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2)
 - [safe mammals resume `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r2)
 - [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
+- mammals host-RAM resume `r3` (submit after this revision is pushed)
+- combined host-RAM resume `r4` (submit after this revision is pushed)
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
@@ -181,6 +184,16 @@ completed validation with loss 1.304, and finished its four-file, 972.2 MiB
 step-1000 Hugging Face export at 03:46:57 UTC before resuming training. Both
 safe child jobs reported zero failures and zero preemptions at the 03:48 UTC
 observation.
+
+Both safe workers subsequently exhausted their 56 GiB container memory limit:
+the mammals arm at about step 1740 and the combined arm at about step 1400.
+Iris reported exit 137 and explicitly identified a container OOM; there were no
+preemptions. The complete native checkpoints and four-file Hugging Face exports
+at mammals step 1500 (validation loss 1.290) and combined step 1000 (validation
+loss 1.304) were independently verified in GCS before recovery. The launcher
+now requests 512 GiB of the same `v6e-4` VM's 720 GB host RAM, leaving the TPU,
+datasets, model, initialization, optimizer, batch order and size, seed,
+objective, loss weights, checkpoint cadence, and terminal evaluation unchanged.
 
 ## Frozen offline VEP evaluation
 

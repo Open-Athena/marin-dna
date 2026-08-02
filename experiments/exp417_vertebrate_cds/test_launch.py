@@ -224,7 +224,7 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
     assert TRAIN_TPU == "v6e-4"
     assert TRAIN_REGIONS == ("us-east5",)
     assert TRAIN_HOST_CPU == 16
-    assert TRAIN_HOST_RAM == "56g"
+    assert TRAIN_HOST_RAM == "512g"
     assert TRAIN_BATCH_SIZE == 8_192
     assert TRAIN_STEPS == 5_000
     assert ACTUAL_TOKENS == 10_485_760_000
