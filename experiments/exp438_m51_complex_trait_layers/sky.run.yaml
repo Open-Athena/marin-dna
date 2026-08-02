@@ -1,0 +1,104 @@
+name: dna-exp438-complex-trait-layers
+
+resources:
+  infra: aws/us-east-2
+  accelerators: A10G:1
+  cpus: 16+
+  memory: 64+
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp438-complex-traits-focal-seed288-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp438_m51_complex_trait_layers --frozen --no-dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export TOKENIZERS_PARALLELISM=true
+  export POLARS_MAX_THREADS=8
+  export RAYON_NUM_THREADS=8
+  export OMP_NUM_THREADS=4
+  export MKL_NUM_THREADS=4
+  export OPENBLAS_NUM_THREADS=4
+  export NUMEXPR_NUM_THREADS=4
+  export WANDB_DISABLED=true
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test -n "$RUN_ID"
+  EXPERIMENT_DIR="experiments/exp438_m51_complex_trait_layers"
+  INPUT_ROOT="$HOME/exp438-inputs"
+  RUN_ROOT="$HOME/exp438-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp438/retrieval/$RUN_ID"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$INPUT_ROOT/models/block01-25m"
+  mkdir -p "$INPUT_ROOT/models/block10-25m"
+  mkdir -p "$INPUT_ROOT/models/block19-25m"
+  mkdir -p "$INPUT_ROOT/reference"
+  mkdir -p "$RUN_ROOT/inputs"
+
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-block01-seed288-r1/models/block01-25m/ \
+    "$INPUT_ROOT/models/block01-25m/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block10-25m/ \
+    "$INPUT_ROOT/models/block10-25m/"
+  aws s3 cp --recursive \
+    s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m/ \
+    "$INPUT_ROOT/models/block19-25m/"
+
+  REFERENCE_NAME="Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
+  REFERENCE_S3="s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME" "$INPUT_ROOT/reference/$REFERENCE_NAME"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME.fai" "$INPUT_ROOT/reference/$REFERENCE_NAME.fai"
+  aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME.gzi" "$INPUT_ROOT/reference/$REFERENCE_NAME.gzi"
+
+  curl --fail --location \
+    "https://huggingface.co/datasets/marin-dna/evals_complex_traits/resolve/22f86a89c65cb8f3007ac3cc2739f40efefa4340/data/train-00000-of-00001.parquet" \
+    --output "$RUN_ROOT/inputs/panel.parquet"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/prepare_panel.py" \
+    --panel "$RUN_ROOT/inputs/panel.parquet" \
+    --output "$RUN_ROOT/inputs/panel.manifest.json"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/extract_focal.py" \
+    --panel "$RUN_ROOT/inputs/panel.parquet" \
+    --panel-manifest "$RUN_ROOT/inputs/panel.manifest.json" \
+    --fasta "$INPUT_ROOT/reference/$REFERENCE_NAME" \
+    --models-root "$INPUT_ROOT/models" \
+    --output-dir "$RUN_ROOT/extraction" \
+    --batch-size 64
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/analyze_focal.py" \
+    --panel "$RUN_ROOT/inputs/panel.parquet" \
+    --panel-manifest "$RUN_ROOT/inputs/panel.manifest.json" \
+    --extraction-root "$RUN_ROOT/extraction" \
+    --output-dir "$RUN_ROOT/associations" \
+    --ap-chunk-size 128
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/summarize_focal.py" \
+    --association-root "$RUN_ROOT/associations" \
+    --output-dir "$RUN_ROOT/summary"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/archive_run.py" \
+    --run-root "$RUN_ROOT"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > /tmp/exp438-s3-dryrun.txt
+  test ! -s /tmp/exp438-s3-dryrun.txt
+  aws s3 ls "$S3_ROOT/" --recursive
