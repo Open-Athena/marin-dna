@@ -1,0 +1,82 @@
+# Run the ELS/PLS focal-coordinate scan on a modest AWS CPU node.
+
+name: dna-exp440-ccre-subtype-associations
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6id.2xlarge
+  disk_size: 100
+  labels:
+    project: dna
+  autostop:
+    idle_minutes: 10
+    down: true
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  EXTRACTION_MANIFEST_SHA256: ""
+  RUN_ID: dna-exp440-ccre-subtype-associations-seed288-r1
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_SESSION_TOKEN: ""
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp440_m51_sae_reference_segmentation --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=6
+  export RAYON_NUM_THREADS=6
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  export EXPERIMENT_COMMIT EXTRACTION_MANIFEST_SHA256 RUN_ID
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "${#EXTRACTION_MANIFEST_SHA256}" -eq 64
+  test "$RUN_ID" = "dna-exp440-ccre-subtype-associations-seed288-r1"
+  EXPERIMENT_DIR="experiments/exp440_m51_sae_reference_segmentation"
+  INPUT_ROOT="$HOME/exp440-ccre-inputs"
+  PANEL_ROOT="$INPUT_ROOT/panel"
+  EXTRACTION_ROOT="$INPUT_ROOT/extraction"
+  CCRE_PATH="$INPUT_ROOT/ccre-v4.parquet"
+  OUTPUT_ROOT="$HOME/exp440-runs/$RUN_ID"
+  PANEL_S3="s3://oa-bolinas/experiments/exp440/inputs/dna-exp440-reference-state-panel-r1"
+  EXTRACTION_S3="s3://oa-bolinas/experiments/exp440/retrieval/dna-exp440-reference-state-focal-seed288-r1"
+  OUTPUT_S3="s3://oa-bolinas/experiments/exp440/retrieval/$RUN_ID"
+  test ! -e "$OUTPUT_ROOT"
+  mkdir -p "$PANEL_ROOT" "$EXTRACTION_ROOT"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 sync "$PANEL_S3/" "$PANEL_ROOT/" --only-show-errors
+  aws s3 sync "$EXTRACTION_S3/" "$EXTRACTION_ROOT/" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/human/intervals/cre/all.parquet \
+    "$CCRE_PATH" --only-show-errors
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/analyze_ccre.py" \
+    --panel "$PANEL_ROOT/panel.parquet" \
+    --panel-manifest "$PANEL_ROOT/manifest.json" \
+    --ccre "$CCRE_PATH" \
+    --extraction-root "$EXTRACTION_ROOT" \
+    --output-dir "$OUTPUT_ROOT"
+
+  aws s3 sync "$OUTPUT_ROOT/" "$OUTPUT_S3/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$OUTPUT_ROOT/manifest.json" "$OUTPUT_S3/manifest.json"
+  DRYRUN_LOG="/tmp/exp440-ccre-subtype-associations-s3-dryrun.txt"
+  aws s3 sync "$OUTPUT_ROOT/" "$OUTPUT_S3/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
