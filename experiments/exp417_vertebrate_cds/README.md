@@ -213,6 +213,17 @@ and advanced into the 1520s. Both child jobs still reported zero failures and
 zero preemptions. This verifies that the raised host-memory limits survive a
 full durable checkpoint, validation, export, and resumed-training cycle.
 
+Preemptible-capacity events interrupted both workers after that validation.
+Mammals first reached the 2380s before its replacement restored native step
+2000 and resumed at step 2001; a second preemption after it re-entered the
+2020s again restored the same checkpoint and resumed at step 2001. Combined
+reached the 1910s before its replacement restored native step 1500 and resumed
+at step 1501. At the 2026-08-02 06:20 UTC observation, the child summaries
+reported two mammals preemptions and one combined preemption, with zero
+failures in either arm. Iris handled all three replacements automatically;
+only work after the latest durable checkpoint was replayed, while the frozen
+scientific recipes and previously validated exports remained unchanged.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
