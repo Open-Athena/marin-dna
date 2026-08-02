@@ -114,7 +114,9 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [mammals-only Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only)
 - [original combined-vertebrate Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates)
 - [failed combined retry `r1`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r1)
-- [corrected combined retry `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2)
+- [combined retry `r2`, stopped after its last checkpoint to migrate to the safe runtime](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2)
+- [safe mammals resume `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r2)
+- [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
@@ -165,6 +167,17 @@ batch order and size, seed, objective, loss weights, and terminal evaluation
 are unchanged. Existing W&B history is retained through the last online
 attempt; later progress remains in Iris logs and the durable training outputs.
 
+Both safe resumes were submitted around 2026-08-02 03:00 UTC from immutable
+experiment commit
+[`aac3f82`](https://github.com/Open-Athena/marin-dna/tree/aac3f82/experiments/exp417_vertebrate_cds).
+The mammals resume restored complete temporary checkpoint step 997, committed
+native checkpoint step 1000, completed validation with loss 1.299, finished
+the 1.02 GB step-1000 Hugging Face export, and advanced through about step 1020
+by 03:08 UTC. This crossed the exact checkpoint boundary at which the previous
+worker failed. The combined `r2` job was stopped only after a dry-run confirmed
+the exact target and its step-565 temporary checkpoint was durable; safe resume
+`r3` restored step 565 and advanced through about step 583 by 03:08 UTC. Both
+safe child jobs reported zero failures and zero preemptions at that observation.
 
 ## Frozen offline VEP evaluation
 
@@ -200,8 +213,8 @@ jobs, and the final `all` target (11 jobs total); it did not plan any upstream
 or unrelated work.
 
 After both exports pass their final checkpoint gates, launch one bounded,
-auto-downing A10G worker using the existing project task. A paid launch still
-requires explicit approval:
+auto-downing A10G worker using the existing project task. The user has
+explicitly authorized EC2/SkyPilot resources for this issue:
 
 ```bash
 sky launch -c dna417-cds-vep --down \
