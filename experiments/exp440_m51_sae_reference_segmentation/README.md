@@ -56,14 +56,42 @@ FWD/RC focal-activation tables. Launch from the repository root with the
 immutable experiment commit supplied explicitly:
 
 ```bash
+eval "$(aws configure export-credentials --format env)"
+
 sky launch -c dna-exp440-reference-state-focal \
   experiments/exp440_m51_sae_reference_segmentation/sky.extract.yaml \
-  --env EXPERIMENT_COMMIT=<40-character-commit> -y
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  --env AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY \
+  --env AWS_SESSION_TOKEN \
+  -y
 ```
 
 The task checks the panel, model revision, and exact SAE artifact digests before
 inference. It uploads all outputs below
 `s3://oa-bolinas/experiments/exp440/retrieval/dna-exp440-reference-state-focal-seed288-r1/`,
 with `manifest.json` uploaded last.
+
+## Run complete-family associations
+
+After independently recording the extraction manifest digest, run the
+zero-aware Welch/Mann–Whitney/AUPRC scan on the same warm cluster. The digest
+is an explicit immutable input:
+
+```bash
+eval "$(aws configure export-credentials --format env)"
+
+sky exec dna-exp440-reference-state-focal \
+  experiments/exp440_m51_sae_reference_segmentation/sky.analyze.yaml \
+  --env EXPERIMENT_COMMIT=<40-character-analysis-commit> \
+  --env EXTRACTION_MANIFEST_SHA256=<64-character-sha256> \
+  --env AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY \
+  --env AWS_SESSION_TOKEN
+```
+
+The analysis writes every tested family, including nulls, below
+`s3://oa-bolinas/experiments/exp440/retrieval/dna-exp440-reference-state-associations-seed288-r1/`
+and uploads `manifest.json` last.
 
 Experimental results and plots belong in issue #440 rather than this runbook.
