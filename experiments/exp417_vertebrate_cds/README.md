@@ -233,6 +233,22 @@ The four metric outputs are isolated under:
 s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/metrics/
 ```
 
+For an unattended but fail-closed handoff, the tracked watcher waits for both
+exact four-file terminal exports, rechecks a clean pinned commit, repeats the
+dry-run under the shared local-heavy lock and thread caps, refuses to duplicate
+an existing Sky cluster, and runs the paired reporter only after all four
+metric parquets exist:
+
+```bash
+uv run python scripts/issue417_wait_and_launch_eval.py \
+  --expected-commit FULL_EXPERIMENT_COMMIT \
+  --launch
+```
+
+Run it under `setsid`/`nohup` when it must survive an idle agent session.
+Its nonblocking lock at `/tmp/marin-dna-issue417-eval-handoff.lock` prevents
+two watchers from launching the same evaluation.
+
 After the four metric parquets finish, run the frozen paired summarizer from
 the same pushed experiment commit:
 
