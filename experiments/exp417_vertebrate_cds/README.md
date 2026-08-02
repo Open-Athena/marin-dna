@@ -354,6 +354,15 @@ optimizer-state checkpoint (including `metadata.json`) and reloadable terminal
 HF export were independently verified in GCS, this arm is complete and is not
 relaunched.
 
+Guarded combined recovery `r6` also completed its terminal work on
+2026-08-02. It committed a complete native step-4999 checkpoint with
+`metadata.json` at 12:40:12 UTC, completed validation with loss 1.295, and
+finished its exact four-file, 1,019,426,252-byte (972.2 MiB) Hugging Face
+export at 12:40:34. Both the guarded child and parent then succeeded with exit
+0, zero failures, and zero preemptions. The previously incomplete `r5` data
+blobs remain unreferenced in the native directory, but the fresh manifest,
+metadata, and reloadable HF export were independently verified in GCS.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
