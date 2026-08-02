@@ -470,8 +470,9 @@ s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/compar
 s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.md
 ```
 
-The reporter completed against commit `dec0c2442681ecc9dd48493fc5b10260fcf0ddb2`
-at 2026-08-02 13:09 UTC and wrote both artifacts above. Scientific findings
+The CDS-only reporter completed against commit
+`bded4079682adbcdaf3311e0026c17c88fbfd8d5` at 2026-08-02 13:54 UTC and
+wrote both artifacts above. Scientific findings
 and the paired comparison table are recorded in issue #417; this README keeps
 the reproducible execution recipe and immutable artifact locations.
 
