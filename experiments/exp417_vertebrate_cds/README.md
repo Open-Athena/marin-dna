@@ -135,6 +135,15 @@ checkpoint, completed validation, finished the 1.02 GB step-500 Hugging Face
 export, and advanced through step 606. Both parent jobs reported zero failures
 and zero preemptions at that observation.
 
+At 2026-08-02 02:27 UTC, the child training summaries exposed subsequent
+preemptible-capacity events hidden by the still-running parent summaries. The
+mammals child reported two preemptions and zero failures; its replacement
+worker restored temporary step 822, advanced through step 890, and began
+committing temporary step 889. The combined child reported one preemption and
+zero failures after reaching step 493; its latest committed temporary checkpoint
+was step 438 and it was pending replacement capacity. No arm was manually
+relaunched: both retained the same checkpoint paths and frozen recipe.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
