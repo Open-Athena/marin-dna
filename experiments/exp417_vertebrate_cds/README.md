@@ -365,11 +365,12 @@ metadata, and reloadable HF export were independently verified in GCS.
 
 ## Frozen offline VEP evaluation
 
-The terminal `step-4999` exports are evaluated on the VEP development `train`
-split with the current `evals_v2` zero-shot harness. Project convention forbids
-using the held-out VEP test split for ordinary experiment iteration. The
-experiment-local [`evals.yaml`](evals.yaml) restricts the DAG to the two matched
-checkpoints and two coding-relevant benchmarks:
+The terminal `step-4999` exports are registered directly in the canonical
+`snakemake/analysis/evals_v2/config/config.yaml` registry. That pipeline's
+default profile fixes the VEP development `train` split and the canonical
+`s3://oa-bolinas/snakemake/analysis/evals_v2/` storage prefix. Project
+convention forbids using the held-out VEP test split for ordinary experiment
+iteration. The two checkpoints are scoped to two coding-relevant benchmarks:
 
 - Mendelian traits: signed FWD/RC-averaged LLR for missense, splicing, and
   synonymous variants with matched-pair cluster-bootstrap uncertainty.
@@ -390,15 +391,16 @@ Dry-run from `snakemake/analysis/evals_v2/` before launching any GPU:
 
 ```bash
 uv run snakemake -n \
-  --configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml \
-  --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/ \
-  -- all
+  -- \
+  results/metrics/exp417-cds-mammals-only-step-4999/mendelian_traits.parquet \
+  results/metrics/exp417-cds-mammals-only-step-4999/sge.parquet \
+  results/metrics/exp417-cds-combined-vertebrates-step-4999/mendelian_traits.parquet \
+  results/metrics/exp417-cds-combined-vertebrates-step-4999/sge.parquet
 ```
 
 That exact command succeeded from this experiment branch on 2026-08-02. The
 resolved DAG contained only two model downloads, four scoring jobs, four metric
-jobs, and the final `all` target (11 jobs total); it did not plan any upstream
-or unrelated work.
+jobs (10 jobs total); it did not plan any upstream or unrelated work.
 
 The first real Sky launch used immutable commit
 [`f4e19d9`](https://github.com/Open-Athena/marin-dna/tree/f4e19d96e37d9107a35d449f5dafcddf1c672b26)
@@ -418,23 +420,26 @@ auto-downing A10G worker using the existing project task. The user has
 explicitly authorized EC2/SkyPilot resources for this issue:
 
 ```bash
-sky launch -c dna417-cds-vep-train --down \
+sky launch -c dna417-cds-vep --down \
   snakemake/analysis/evals_v2/sky/run.yaml \
-  --env SNAKEMAKE_ARGS="--configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml \
-    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/ \
-    -- all"
+  --env SNAKEMAKE_ARGS="-- \
+    results/metrics/exp417-cds-mammals-only-step-4999/mendelian_traits.parquet \
+    results/metrics/exp417-cds-mammals-only-step-4999/sge.parquet \
+    results/metrics/exp417-cds-combined-vertebrates-step-4999/mendelian_traits.parquet \
+    results/metrics/exp417-cds-combined-vertebrates-step-4999/sge.parquet"
 ```
 
 The corrected train-split metric outputs are isolated under:
 
 ```text
-s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/results/metrics/
+s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics/
 ```
 
-A previous run used the prohibited held-out test split. Its objects remain at
-the old `issue417_cds_sanity/2026.08.01` prefix solely to avoid destructive
-cleanup; they are invalid for scientific interpretation and must not be cited
-as issue #417 results.
+A previous noncanonical run used the prohibited held-out test split. Its
+objects remain outside evals_v2 at the old
+`issue417_cds_sanity/2026.08.01` prefix solely to avoid destructive cleanup;
+they are invalid for scientific interpretation and must not be cited as issue
+#417 results.
 
 For an unattended but fail-closed handoff, the tracked watcher waits for both
 exact four-file terminal exports, rechecks a clean pinned commit, repeats the
@@ -463,8 +468,8 @@ uv run --group genome-s3 python scripts/issue417_summarize_vep.py \
 It writes two durable artifacts alongside the metrics:
 
 ```text
-s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/results/comparison/summary.json
-s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/results/comparison/summary.md
+s3://oa-bolinas/snakemake/analysis/evals_v2/results/comparisons/issue417/summary.json
+s3://oa-bolinas/snakemake/analysis/evals_v2/results/comparisons/issue417/summary.md
 ```
 
 The train-split run is pending. Once complete, record its immutable producing

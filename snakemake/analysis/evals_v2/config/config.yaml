@@ -316,6 +316,19 @@ models:
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_cds-v0.1-4224db/hf/step-4999
     window_size: 255
     datasets: [mendelian_traits]
+
+  # exp417 (#417) — matched Zoonomia-mammal vs combined-vertebrate CDS
+  # specialists. Evaluate only the terminal checkpoints on the canonical
+  # train-split Mendelian + SGE cells.
+  - name: exp417-cds-mammals-only-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-mammals-only-p255m-b2m-5k/2026.08.01/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, sge]
+
   - name: exp232-v4_utr3-step-500
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_utr3-v0.1-5a3011/hf/step-500
     window_size: 255

@@ -22,10 +22,7 @@ from marin_dna_evals.issue417_handoff import (
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 EVAL_DIR = REPO_ROOT / "snakemake/analysis/evals_v2"
-CONFIG_REL = "../../../experiments/exp417_vertebrate_cds/evals.yaml"
-RESULTS_PREFIX = (
-    "s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/"
-)
+RESULTS_PREFIX = "s3://oa-bolinas/snakemake/analysis/evals_v2/"
 EXPORTS = {
     "mammals_only": (
         "gs://marin-us-east5/checkpoints/"
@@ -42,18 +39,19 @@ MODEL_NAMES = (
     "exp417-cds-combined-vertebrates-step-4999",
 )
 DATASETS = ("mendelian_traits", "sge")
-METRIC_PATHS = tuple(
-    f"{RESULTS_PREFIX}results/metrics/{model}/{dataset}.parquet"
+EVAL_TARGETS = tuple(
+    f"results/metrics/{model}/{dataset}.parquet"
     for model in MODEL_NAMES
     for dataset in DATASETS
 )
+METRIC_PATHS = tuple(f"{RESULTS_PREFIX}{target}" for target in EVAL_TARGETS)
 SUMMARY_PATHS = (
-    f"{RESULTS_PREFIX}results/comparison/summary.json",
-    f"{RESULTS_PREFIX}results/comparison/summary.md",
+    f"{RESULTS_PREFIX}results/comparisons/issue417/summary.json",
+    f"{RESULTS_PREFIX}results/comparisons/issue417/summary.md",
 )
 HANDOFF_LOCK = Path("/tmp/marin-dna-issue417-eval-handoff.lock")
 SHARED_HEAVY_LOCK = "/tmp/marin-dna-local-heavy.lock"
-SKY_CLUSTER = "dna417-cds-vep-train"
+SKY_CLUSTER = "dna417-cds-vep"
 THREAD_CAPS = (
     "POLARS_MAX_THREADS=2",
     "RAYON_NUM_THREADS=2",
@@ -171,12 +169,8 @@ def _dry_run() -> None:
                 "run",
                 "snakemake",
                 "-n",
-                "--configfile",
-                CONFIG_REL,
-                "--default-storage-prefix",
-                RESULTS_PREFIX,
                 "--",
-                "all",
+                *EVAL_TARGETS,
             ]
         ),
         cwd=EVAL_DIR,
@@ -193,9 +187,7 @@ def _launch_eval() -> None:
     assert not clusters, (
         f"Sky cluster already exists; inspect before relaunch: {clusters}"
     )
-    snakemake_args = (
-        f"--configfile {CONFIG_REL} --default-storage-prefix {RESULTS_PREFIX} -- all"
-    )
+    snakemake_args = f"-- {' '.join(EVAL_TARGETS)}"
     _run(
         [
             "sky",

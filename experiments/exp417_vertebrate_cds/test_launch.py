@@ -325,31 +325,35 @@ def test_runtime_training_config_restores_repeat_aware_format(
         assert config.data.train_weights == {dataset.name: 1.0}
 
 
-def test_offline_eval_overlay_is_frozen_to_terminal_checkpoints() -> None:
-    config = yaml.safe_load(Path(__file__).with_name("evals.yaml").read_text())
+def test_offline_eval_registration_is_frozen_to_terminal_checkpoints() -> None:
+    config_path = (
+        Path(__file__).resolve().parents[2]
+        / "snakemake/analysis/evals_v2/config/config.yaml"
+    )
+    config = yaml.safe_load(config_path.read_text())
     assert isinstance(config, dict)
     assert config["split"] == "train"
-    assert {
-        (dataset["name"], dataset["hf_revision"], dataset["score_protocol"])
-        for dataset in config["datasets"]
-    } == {
-        ("mendelian_traits", "4aed58e50c5dea0b878a665007af2ef9e5108e9f", "minus_llr"),
-        ("sge", "225d3d1ea32a4af547891b13c33b5e92a5aae849", "minus_llr"),
-    }
-    assert [model["name"] for model in config["models"]] == [
+    datasets = {dataset["name"]: dataset for dataset in config["datasets"]}
+    assert datasets["mendelian_traits"]["hf_revision"] == (
+        "4aed58e50c5dea0b878a665007af2ef9e5108e9f"
+    )
+    assert datasets["mendelian_traits"]["score_protocol"] == "minus_llr"
+    assert datasets["sge"]["hf_revision"] == (
+        "225d3d1ea32a4af547891b13c33b5e92a5aae849"
+    )
+    assert datasets["sge"]["score_protocol"] == "minus_llr"
+
+    expected_names = [
         "exp417-cds-mammals-only-step-4999",
         "exp417-cds-combined-vertebrates-step-4999",
     ]
+    models = [model for model in config["models"] if model["name"] in expected_names]
+    assert [model["name"] for model in models] == expected_names
 
-    for model in config["models"]:
+    for model in models:
         assert model["gcs_path"].endswith("/2026.08.01/hf/step-4999")
         assert model["window_size"] == 255
-        assert model["datasets"] == [
-            "mendelian_traits",
-            "sge",
-        ]
-    for section in ("nuc_dep", "umap_embeddings", "ll_gap", "probe"):
-        assert config[section]["models"] == []
+        assert model["datasets"] == ["mendelian_traits", "sge"]
 
 
 def test_tokenizer_digests_are_complete() -> None:

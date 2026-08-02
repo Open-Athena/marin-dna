@@ -5,9 +5,8 @@ Run after the four evals_v2 score and metric cells have completed:
     uv run --group genome-s3 python scripts/issue417_summarize_vep.py \
         --experiment-commit COMMIT_SHA
 
-The default input and output prefix is the immutable issue #417 offline-eval
-location. Inputs are read directly from S3 and the JSON and Markdown report are
-written back to S3.
+Inputs are read directly from the canonical evals_v2 S3 prefix. The JSON and
+Markdown comparison are written beneath its issue-specific comparisons path.
 """
 
 from __future__ import annotations
@@ -31,9 +30,8 @@ from marin_dna_evals.issue417_summary import (
     build_issue417_comparison,
 )
 
-DEFAULT_RESULTS_PREFIX = (
-    "s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02"
-)
+DEFAULT_RESULTS_PREFIX = "s3://oa-bolinas/snakemake/analysis/evals_v2"
+DEFAULT_OUTPUT_PREFIX = f"{DEFAULT_RESULTS_PREFIX}/results/comparisons/issue417"
 MODEL_NAMES = {
     MAMMALS_ARM: "exp417-cds-mammals-only-step-4999",
     COMBINED_ARM: "exp417-cds-combined-vertebrates-step-4999",
@@ -45,7 +43,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--results-prefix", default=DEFAULT_RESULTS_PREFIX)
     parser.add_argument(
         "--output-prefix",
-        default=f"{DEFAULT_RESULTS_PREFIX}/results/comparison",
+        default=DEFAULT_OUTPUT_PREFIX,
     )
     parser.add_argument("--n-bootstrap", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
