@@ -27,3 +27,15 @@ Create compact result tables and both PNG and SVG synthesis figures with:
 ```bash
 uv run --with polars --with numpy --with pandas --with matplotlib --with seaborn python experiments/exp421_m51_sae_alphagenome_tracks/summarize_grouped_l2.py --result-root <retrieved-result-directory> --output-dir <summary-directory>
 ```
+
+## Leading-feature characterization
+
+`characterize_grouped_l2_features.py` is a post-hoc follow-up for the three leading grouped-L2 features. It keeps FWD and RC separate, measures top-1%-trimmed robustness, joins the outcome-blind repeat panel, tests sequence/consequence/repeat annotations, and exports oriented top-response contexts. These analyses characterize already-selected features and are not a second confirmatory screen.
+
+Run its focused tests with:
+
+```bash
+uv run --project experiments/exp421_422_statistical_revisits pytest -q experiments/exp421_m51_sae_alphagenome_tracks/test_characterize_grouped_l2_features.py
+```
+
+The bounded CPU runner is `sky.characterize_grouped_l2.yaml`. It retrieves the frozen panel, selected 25M SAE activations, high-level taxonomy, AlphaGenome L2 table, audited repeat annotations, and exact indexed GRCh38 FASTA, then uploads a hash-manifested result archive.
