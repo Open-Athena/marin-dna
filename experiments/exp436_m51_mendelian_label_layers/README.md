@@ -112,3 +112,31 @@ flock -n /tmp/marin-dna-local-heavy.lock \
 
 The summarizer emits both SVG and PNG figures. FWD/RC remain separate in every
 inferential family; overlap is summarized only after those results exist.
+
+## Outcome-aware candidate interpretation
+
+The first exploratory interpretation pass fixes the recurrent final-layer
+candidate slots in issue #436 before inspecting row-level contexts. It joins
+only byte-identical fixed inputs, densifies missing sparse rows to zero, keeps
+FWD/RC and 5M/25M separate, and reports official-score correlations with
+exploratory within-family BH adjustment.
+
+```bash
+flock -n /tmp/marin-dna-local-heavy.lock \
+  env EXPERIMENT_COMMIT=<40-character-commit> \
+  RUN_ID=dna-exp436-mendelian-focal-interpretation-seed288-r1 \
+  POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2 OMP_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+  uv run --no-dev python interpret_focal.py \
+    --extraction-root <verified-extraction-root> \
+    --associations-root <verified-association-root> \
+    --panel <byte-identical-panel.parquet> \
+    --panel-manifest <panel.manifest.json> \
+    --contexts <aligned-variant-contexts.parquet> \
+    --recurrence <verified-final-layer-recurrence.parquet> \
+    --output-dir <new-interpretation-output>
+```
+
+These candidates were selected using Mendelian label results. Context,
+substitution, score-correlation, and heatmap outputs are therefore exploratory
+interpretation rather than independent confirmation.
