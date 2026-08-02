@@ -1,5 +1,6 @@
 """Focused invariants for the issue #417 matched CDS experiment."""
 
+import asyncio
 import math
 import tempfile
 from pathlib import Path
@@ -16,6 +17,8 @@ from launch import (
     ACTUAL_TOKENS,
     ARM_ENV,
     ARMS,
+    ASYNCIO_TASK_SNAPSHOT_ERROR,
+    ASYNCIO_TASK_SNAPSHOT_RETRIES,
     BETA1,
     BETA2,
     DATASET_REPOS,
@@ -55,6 +58,8 @@ from launch import (
     WANDB_GROUP,
     Z_LOSS_WEIGHT,
     VertebrateCDSTokenizedCache,
+    _retry_asyncio_all_tasks,
+    _train_job_with_asyncio_guard,
     build,
     dataset_revision,
     selected_arms,
@@ -198,6 +203,7 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
 
     assert tuple(arms) == ARMS
     for arm, training in arms.items():
+        assert training.run is _train_job_with_asyncio_guard
         ctx = StepContext.for_fingerprint(training.runtime_args.keys(), training.deps)
         pod_config = training.build_config(ctx)
         config = pod_config.train_config
@@ -229,6 +235,51 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
     assert TRAIN_STEPS == 5_000
     assert ACTUAL_TOKENS == 10_485_760_000
     assert VALIDATION_EVERY == NATIVE_CHECKPOINT_EVERY == HF_SAVE_EVERY == 500
+
+
+def test_asyncio_task_snapshot_guard_retries_only_exact_race(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def transient(
+        loop: asyncio.AbstractEventLoop | None,
+    ) -> set[asyncio.Task[object]]:
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            raise RuntimeError(ASYNCIO_TASK_SNAPSHOT_ERROR)
+        return set()
+
+    monkeypatch.setattr("launch.time.sleep", lambda _: None)
+    assert _retry_asyncio_all_tasks(transient) == set()
+    assert calls == 3
+
+    def unrelated(
+        loop: asyncio.AbstractEventLoop | None,
+    ) -> set[asyncio.Task[object]]:
+        raise RuntimeError("different failure")
+
+    with pytest.raises(RuntimeError, match="different failure"):
+        _retry_asyncio_all_tasks(unrelated)
+
+
+def test_asyncio_task_snapshot_guard_is_bounded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def persistent(
+        loop: asyncio.AbstractEventLoop | None,
+    ) -> set[asyncio.Task[object]]:
+        nonlocal calls
+        calls += 1
+        raise RuntimeError(ASYNCIO_TASK_SNAPSHOT_ERROR)
+
+    monkeypatch.setattr("launch.time.sleep", lambda _: None)
+    with pytest.raises(RuntimeError, match=ASYNCIO_TASK_SNAPSHOT_ERROR):
+        _retry_asyncio_all_tasks(persistent)
+    assert calls == ASYNCIO_TASK_SNAPSHOT_RETRIES
 
 
 def test_runtime_training_config_restores_repeat_aware_format(

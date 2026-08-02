@@ -8,12 +8,17 @@ lowercase targets receive 1% loss weight in both training and validation.
 
 from __future__ import annotations
 
+import asyncio
+import asyncio.tasks
+import functools
 import hashlib
 import os
+import time
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
-from fray.types import ResourceConfig
+from fray.types import GpuConfig, ResourceConfig
 from levanter.layers.rotary import Llama3RotaryEmbeddingsConfig
 from levanter.models.qwen import Qwen3Config
 from levanter.optim.config import AdamConfig
@@ -25,6 +30,11 @@ from marin.processing.tokenize.tokenize import (
     HfTokenizeConfig,
     TokenizedCache,
     tokenize,
+)
+from marin.training.training import (
+    TrainLmOnPodConfig,
+    resolve_training_env,
+    run_levanter_train_lm,
 )
 from marin_dna.levanter.formats import DNALmDatasetFormat
 
@@ -129,6 +139,73 @@ TRAIN_HOST_RAM = "384g"
 TRAIN_DISK = "100g"
 
 DATASET_ARTIFACT_VERSION = "2026.08.01"
+
+ASYNCIO_TASK_SNAPSHOT_ERROR = "Set changed size during iteration"
+ASYNCIO_TASK_SNAPSHOT_RETRIES = 100
+ASYNCIO_TASK_SNAPSHOT_RETRY_DELAY_SECONDS = 0.001
+
+
+def _retry_asyncio_all_tasks(
+    all_tasks: Callable[[asyncio.AbstractEventLoop | None], set[asyncio.Task[object]]],
+    loop: asyncio.AbstractEventLoop | None = None,
+) -> set[asyncio.Task[object]]:
+    """Retry only CPython's transient weak-task-set snapshot race.
+
+    Python 3.12's ``asyncio.tasks.all_tasks`` already retries the unsafe
+    ``WeakSet`` iteration 1,000 times, but those retries do not yield. The
+    issue #417 workers twice exhausted that loop while JAX serialization
+    threads were settling during ``asyncio.run`` teardown. A short bounded
+    yield around the stdlib implementation lets the weak set stabilize while
+    preserving every other exception and failure mode.
+    """
+    for attempt in range(ASYNCIO_TASK_SNAPSHOT_RETRIES):
+        try:
+            return all_tasks(loop)
+        except RuntimeError as error:
+            is_transient_snapshot_race = str(error) == ASYNCIO_TASK_SNAPSHOT_ERROR
+            is_last_attempt = attempt + 1 == ASYNCIO_TASK_SNAPSHOT_RETRIES
+            if not is_transient_snapshot_race or is_last_attempt:
+                raise
+            time.sleep(ASYNCIO_TASK_SNAPSHOT_RETRY_DELAY_SECONDS)
+    raise AssertionError("bounded asyncio task snapshot loop did not return or raise")
+
+
+def _install_asyncio_task_snapshot_guard() -> None:
+    """Install the issue #417 guard once in the remote training worker."""
+    original = asyncio.tasks.all_tasks
+    if getattr(original, "_issue417_task_snapshot_guard", False):
+        return
+
+    @functools.wraps(original)
+    def guarded(
+        loop: asyncio.AbstractEventLoop | None = None,
+    ) -> set[asyncio.Task[object]]:
+        return _retry_asyncio_all_tasks(original, loop)
+
+    guarded._issue417_task_snapshot_guard = True  # type: ignore[attr-defined]
+    asyncio.tasks.all_tasks = guarded
+
+
+def _run_levanter_train_lm_with_asyncio_guard(
+    pod_config: TrainLmOnPodConfig,
+) -> None:
+    """Run the unchanged Marin worker with the teardown-race guard active."""
+    _install_asyncio_task_snapshot_guard()
+    run_levanter_train_lm(pod_config)
+
+
+def _train_job_with_asyncio_guard(pod_config: TrainLmOnPodConfig) -> None:
+    """Mirror Marin's dispatcher, changing only the remote worker callable."""
+    env_vars = (
+        resolve_training_env(pod_config.env_vars, pod_config.resources)
+        if isinstance(pod_config.resources.device, GpuConfig)
+        else {}
+    )
+    remote(
+        _run_levanter_train_lm_with_asyncio_guard,
+        resources=pod_config.resources,
+        env_vars=env_vars,
+    )(pod_config)
 
 
 def selected_arms() -> tuple[str, ...]:
@@ -288,7 +365,11 @@ def build_arm(arm: str) -> ArtifactStep:
             ),
         )
 
-    return replace(training, build_config=build_config_with_persistent_checkpoints)
+    return replace(
+        training,
+        run=_train_job_with_asyncio_guard,
+        build_config=build_config_with_persistent_checkpoints,
+    )
 
 
 def build() -> dict[str, ArtifactStep]:

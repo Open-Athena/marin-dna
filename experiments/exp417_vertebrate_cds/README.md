@@ -163,8 +163,8 @@ step 501, and had advanced through step 545 at 2026-08-02 02:50 UTC with zero
 failures and two preemptions.
 
 Safe resumes from this revision disable the time-based temporary-checkpoint
-policy and set `WANDB_MODE=disabled`, removing both asynchronous runtimes
-implicated in the race. Native optimizer-state checkpoints, validation, and
+policy and set `WANDB_MODE=disabled`, reducing asynchronous activity around
+the first observed race. Native optimizer-state checkpoints, validation, and
 reloadable Hugging Face exports remain aligned every 500 steps. This is an
 execution-only deviation: the datasets, model, initialization, optimizer,
 batch order and size, seed, objective, loss weights, and terminal evaluation
@@ -234,6 +234,29 @@ validation with loss 1.289, and finished the same exact four-file export at
 failures; their preemption counts were unchanged at two for mammals and one for
 combined. This independently verifies automatic checkpoint recovery through a
 subsequent native checkpoint, validation, export, and resumed-training cycle.
+
+At 2026-08-02 07:52 UTC, mammals `r3` reached native step 3000 and JAX reported
+successful serialization-thread completion, but Python then raised the same
+`RuntimeError: Set changed size during iteration` from
+`asyncio.runners._cancel_all_tasks` while snapshotting asyncio's weak task set.
+The worker aborted before Marin recorded `Saved checkpoint` or started an HF
+export. GCS contains only three incomplete native step-3000 objects (two blobs
+and a manifest, with no `metadata.json`) and no step-3000 HF directory, so the
+last valid recovery point remains the independently verified step-2500 native
+checkpoint. Combined `r5` simultaneously saved native step 2500, completed
+validation with loss 1.292, finished its exact four-file HF export, and resumed
+training.
+
+The second occurrence shows that disabling W&B and time-based checkpoints
+reduced but did not eliminate the underlying CPython/JAX teardown race. Future
+workers therefore wrap only `asyncio.tasks.all_tasks`: the exact transient
+`Set changed size during iteration` error gets at most 100 retries with a 1 ms
+yield, while every different error and any persistent recurrence is re-raised.
+This guard is installed inside the TPU worker immediately before the unchanged
+Marin training entrypoint. It does not alter the dataset, token or batch order,
+model, initialization, optimizer, objective, seed, checkpoint cadence, or
+evaluation; it is a documented execution-only deviation necessitated by two
+failures at native-checkpoint teardown.
 
 ## Frozen offline VEP evaluation
 
