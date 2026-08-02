@@ -82,15 +82,19 @@ checkpoint/Hugging Face export cadence. Only the immutable source corpus
 differs.
 
 - [Mammals-only Iris job](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only):
-  passed the complete step-500 checkpoint/eval/HF-export gate and reached step
-  629 by 2026-08-02 01:45 UTC with zero failures or preemptions.
+  passed the complete step-500 checkpoint/eval/HF-export gate and reached at
+  least step 930 before a worker replacement. At 2026-08-02 02:27 UTC, its
+  child summary reported two preemptions and zero failures; the active worker
+  had restored temporary step 822, advanced through step 890, and begun
+  committing temporary step 889.
 - [Combined retry `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2):
-  restored step 50 after the original run's checkpoint serialization failure,
-  committed a fresh step-115 temporary checkpoint, passed the original
-  step-159 failure point, and reached step 184 by 2026-08-02 01:45 UTC with
-  zero failures or preemptions. The preceding `r1` submission failed before
-  restore because its coordinator launch omitted the W&B credential; it did
-  not alter model state or the frozen recipe.
+  restored step 50, passed the original step-159 serialization failure point,
+  and reached step 493 before a preemption. At the same observation its child
+  reported one preemption and zero failures, latest committed temporary step
+  438, and pending replacement capacity. Neither arm was manually relaunched;
+  both retained the frozen recipe and checkpoint path. The preceding `r1`
+  submission failed before restore because its coordinator omitted the W&B
+  credential and did not alter model state.
 
 ## Required results
 
