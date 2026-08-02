@@ -123,9 +123,9 @@ TRAIN_TPU = "v6e-4"
 TRAIN_REGIONS = ("us-east5",)
 TRAIN_HOST_CPU = 16
 # Both safe resumes exhausted the original 56 GiB container limit after about
-# 75 minutes. A v6e-4 VM has 720 GB of host RAM; reserve enough of that fixed
-# host for the full run while leaving substantial headroom for the system.
-TRAIN_HOST_RAM = "512g"
+# 75 minutes. Reserve 384 GiB for future resumes: 6.9x the failed limit and
+# enough to run two v6e-4 workers concurrently in the current Iris pool.
+TRAIN_HOST_RAM = "384g"
 TRAIN_DISK = "100g"
 
 DATASET_ARTIFACT_VERSION = "2026.08.01"

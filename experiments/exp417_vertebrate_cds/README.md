@@ -31,7 +31,7 @@ lowercases token identities only after the loss-weight array has been derived
 | Hugging Face exports | every 500 steps |
 | Online VEP eval | none; frozen VEP scoring runs offline |
 | Accelerator | one `v6e-4`; no higher-cost fallback |
-| TPU worker host RAM | 512 GiB container limit on the fixed 720 GB `v6e-4` VM |
+| TPU worker host RAM | 384–512 GiB container limit on the fixed 720 GB `v6e-4` VM |
 | W&B | group `dna-exp417-v1` |
 
 The standard Adam optimizer is the exact exp353 recipe: learning rate
@@ -118,8 +118,9 @@ commit [`914fcdb`](https://github.com/Open-Athena/marin-dna/tree/914fcdbb0715580
 - [combined retry `r2`, stopped after its last checkpoint to migrate to the safe runtime](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r2)
 - [safe mammals resume `r2`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r2)
 - [safe combined resume `r3`](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r3)
-- mammals host-RAM resume `r3` (submit after this revision is pushed)
-- combined host-RAM resume `r4` (submit after this revision is pushed)
+- [mammals host-RAM resume `r3` (512 GiB)](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-mammals-only-r3)
+- [combined 512 GiB attempt `r4`, stopped while unscheduled](https://iris.oa.dev/#/job/%2Fubuntu%2Fdna-exp417-cds-combined-vertebrates-r4)
+- combined host-RAM resume `r5` (384 GiB; submit after this revision is pushed)
 
 Both jobs use the authorized free Iris/TRC allocation. The upload-only
 `issue417-hf` EC2 cluster was terminated after the publication artifacts and
@@ -190,9 +191,13 @@ the mammals arm at about step 1740 and the combined arm at about step 1400.
 Iris reported exit 137 and explicitly identified a container OOM; there were no
 preemptions. The complete native checkpoints and four-file Hugging Face exports
 at mammals step 1500 (validation loss 1.290) and combined step 1000 (validation
-loss 1.304) were independently verified in GCS before recovery. The launcher
-now requests 512 GiB of the same `v6e-4` VM's 720 GB host RAM, leaving the TPU,
-datasets, model, initialization, optimizer, batch order and size, seed,
+loss 1.304) were independently verified in GCS before recovery. The mammals
+`r3` worker requests 512 GiB of the same `v6e-4` VM's 720 GB host RAM. Its child
+was accepted and restored step 1500. The combined `r4` child was stopped before
+execution because, with mammals running, Iris reported only about 436 GiB
+available for its 512 GiB request. Combined `r5` instead requests 384 GiB (6.9
+times the failed limit) so both workers fit concurrently. These changes leave
+the TPU, datasets, model, initialization, optimizer, batch order and size, seed,
 objective, loss weights, checkpoint cadence, and terminal evaluation unchanged.
 
 ## Frozen offline VEP evaluation
