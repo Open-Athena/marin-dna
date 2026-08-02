@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Layer-resolved m5.1 accessibility-QTL SAE experiment"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@0ed28e6474a52e109f997999396e1f7fe9bbba2a",
+    "marin_dna @ git+https://github.com/Open-Athena/marin-dna.git@c4c1c86bbfc0bd58ff76dda3bac1d2acea856a33",
     "sae-lens @ git+https://github.com/decoderesearch/SAELens.git@8be14080485952f729ed58d674bcddf9778e0aa4",
     "datasets>=3.1,<4",
     "huggingface-hub",
