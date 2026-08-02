@@ -17,6 +17,28 @@ constraint. A null or reversed result triggers a projection, duplication,
 species-balance, and exposure audit; it does not authorize tuning the analysis
 after seeing results.
 
+## Frozen reporting protocol
+
+Report all preregistered cells; do not select a dataset, consequence, strand,
+or score type after seeing the result.
+
+- Mendelian traits uses signed FWD/RC-averaged LLR (`minus_llr_avg`). Report
+  the matched-pair `_global_` overall row and every real consequence subset.
+- SGE uses signed FWD/RC-averaged LLR (`minus_llr_avg`). Report the
+  accession-macro `both` row overall and the accession-macro
+  `missense_variant` and `splicing` consequence rows.
+- Per-arm AUPRC uncertainty is the frozen harness output: 1,000 bootstrap
+  iterations with seed 0. Matched datasets resample `match_group` clusters;
+  SGE resamples rows within each accession before macro-averaging.
+- Every delta is `combined_vertebrates - mammals_only`. For matched datasets,
+  resample each shared `match_group` once per iteration and recompute both
+  scores on that same sample using
+  `paired_metric_delta_bootstrap`. For SGE, resample shared row indices once
+  within each qualifying accession, recompute both AUPRCs, then macro-average
+  over the same qualifying accessions. Use 1,000 iterations and seed 0 for both
+  paired paths, and report the point delta, bootstrap SE, percentile 95% CI,
+  and two-sided bootstrap p-value.
+
 ## Matched arms
 
 1. `mammals_only`: human reference plus Zoonomia mammalian projections.
@@ -47,10 +69,10 @@ Recorded from the immutable launch configuration and published artifacts:
 | Species manifest commit | [`d50ba5d`](https://github.com/Open-Athena/marin-dna/blob/d50ba5d6d8bd15e28ff11ad61bdd4a5aef67b733/snakemake/vertebrate_projection_dataset/config/species_selected.tsv) | same |
 | Train rows / exposure tokens | 56,549,084 / 10,485,760,000 | 66,552,602 / 10,485,760,000 |
 | Validation rows / tokens | 16,384 / 4,194,304 | 16,384 / 4,194,304 |
-| Model config | [Qwen3 255M matched recipe](https://github.com/Open-Athena/marin-dna/blob/796e3734edf5904c5ad65b86476be1ca9702fcc8/experiments/exp417_vertebrate_cds/launch.py) | same |
+| Model config | [Qwen3 255M matched recipe](https://github.com/Open-Athena/marin-dna/blob/aba2fc4604ceaa75385294841744ec8404624ded/experiments/exp417_vertebrate_cds/launch.py) | same |
 | Random seed(s) | 0 | 0 |
 | W&B run (`dna-exp417` in name) | [`dna-exp417-cds-mammals-only-p255m-b2m-5k`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp417-cds-mammals-only-p255m-b2m-5k) | [`dna-exp417-cds-combined-vertebrates-p255m-b2m-5k`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k) |
-| VEP harness commit | [`evals_v2@796e373`](https://github.com/Open-Athena/marin-dna/tree/796e3734edf5904c5ad65b86476be1ca9702fcc8/snakemake/analysis/evals_v2) + [frozen overlay](https://github.com/Open-Athena/marin-dna/blob/796e3734edf5904c5ad65b86476be1ca9702fcc8/experiments/exp417_vertebrate_cds/evals.yaml) | same |
+| VEP harness commit | [`evals_v2@aba2fc4`](https://github.com/Open-Athena/marin-dna/tree/aba2fc4604ceaa75385294841744ec8404624ded/snakemake/analysis/evals_v2) + [frozen overlay](https://github.com/Open-Athena/marin-dna/blob/aba2fc4604ceaa75385294841744ec8404624ded/experiments/exp417_vertebrate_cds/evals.yaml) | same |
 
 ## Execution status
 
