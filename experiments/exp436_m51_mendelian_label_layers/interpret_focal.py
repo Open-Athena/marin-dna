@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 import scipy
+from marin_dna.data.genome import Genome
 from scipy.stats import pearsonr, spearmanr
 
 from analyze_focal import PRIMARY_RESPONSES, RESPONSES, bh_adjust
@@ -34,6 +35,7 @@ from extract_focal import (
     WINDOW_BP,
     sha256_file,
     validate_panel,
+    variant_sequences,
     write_json,
 )
 from train import assert_commit
@@ -80,10 +82,39 @@ def verify_manifest_artifacts(root: Path, manifest: dict[str, Any]) -> None:
         assert sha256_file(path) == expected["sha256"], path
 
 
+def build_model_contexts(panel: pl.DataFrame, fasta_path: Path) -> pl.DataFrame:
+    chroms = set(panel["chrom"].cast(pl.String).unique().to_list())
+    genome = Genome(fasta_path, subset_chroms=chroms)
+    assert set(genome.chroms) == chroms
+    rows: list[dict[str, Any]] = []
+    for row in panel.iter_rows(named=True):
+        pos0 = int(row["pos"]) - 1
+        start = pos0 - FOCAL_INDEX
+        end = start + WINDOW_BP
+        assert start >= 0
+        reference = genome(str(row["chrom"]), start, end, "+").upper()
+        ref_context, alt_context = variant_sequences(
+            reference,
+            str(row["ref"]),
+            str(row["alt"]),
+        )
+        rows.append(
+            {
+                "panel_row": row["panel_row"],
+                "ref_context": ref_context,
+                "alt_context": alt_context,
+            }
+        )
+    contexts = pl.DataFrame(rows)
+    assert contexts.height == panel.height
+    return contexts
+
+
 def read_annotations(
     *,
     panel_path: Path,
     panel_manifest_path: Path,
+    fasta_path: Path,
     contexts_path: Path,
 ) -> pl.DataFrame:
     panel_manifest = json.loads(panel_manifest_path.read_text())
@@ -92,7 +123,7 @@ def read_annotations(
     assert panel.height == EXPECTED_ROWS
     panel = panel.with_row_index("panel_row")
 
-    contexts = pl.read_parquet(contexts_path).rename({"row_index": "panel_row"})
+    historical = pl.read_parquet(contexts_path).rename({"row_index": "panel_row"})
     required = {
         "panel_row",
         "ref_context",
@@ -100,15 +131,46 @@ def read_annotations(
         "flank_gc_count",
         "flank_gc_bin",
     }
-    assert required <= set(contexts.columns)
-    assert contexts.height == panel.height
-    assert contexts["panel_row"].to_list() == panel["panel_row"].to_list()
-    assert contexts.select(
-        pl.col("ref_context").str.len_chars().unique()
-    ).to_series().to_list() == [WINDOW_BP]
-    assert contexts.select(
-        pl.col("alt_context").str.len_chars().unique()
-    ).to_series().to_list() == [WINDOW_BP]
+    assert required <= set(historical.columns)
+    assert historical.height == panel.height
+    assert historical["panel_row"].to_list() == panel["panel_row"].to_list()
+    historical_lengths = (
+        historical.select(pl.col("ref_context").str.len_chars().unique())
+        .to_series()
+        .to_list()
+    )
+    assert (
+        historical_lengths
+        == historical.select(pl.col("alt_context").str.len_chars().unique())
+        .to_series()
+        .to_list()
+    )
+    assert (
+        len(historical_lengths) == 1
+        and historical_lengths[0] % 2 == 1
+        and historical_lengths[0] <= WINDOW_BP
+    )
+    historical_length = historical_lengths[0]
+    historical_start = FOCAL_INDEX - historical_length // 2
+
+    model_contexts = build_model_contexts(panel, fasta_path)
+    assert (
+        historical["ref_context"].to_list()
+        == model_contexts["ref_context"]
+        .str.slice(historical_start, historical_length)
+        .to_list()
+    )
+    assert (
+        historical["alt_context"].to_list()
+        == model_contexts["alt_context"]
+        .str.slice(historical_start, historical_length)
+        .to_list()
+    )
+    contexts = historical.drop("ref_context", "alt_context").join(
+        model_contexts,
+        on="panel_row",
+        how="inner",
+    )
 
     annotations = panel.join(contexts, on="panel_row", how="inner").with_columns(
         pl.concat_str("ref", "alt", separator=">").alias("substitution"),
@@ -581,6 +643,7 @@ def summarize(
     associations_root: Path,
     panel_path: Path,
     panel_manifest_path: Path,
+    fasta_path: Path,
     contexts_path: Path,
     recurrence_path: Path,
     output_dir: Path,
@@ -605,6 +668,7 @@ def summarize(
     annotations = read_annotations(
         panel_path=panel_path,
         panel_manifest_path=panel_manifest_path,
+        fasta_path=fasta_path,
         contexts_path=contexts_path,
     )
     responses = read_candidate_responses(
@@ -652,6 +716,7 @@ def summarize(
         "scipy": scipy.__version__,
         "inputs": {
             "panel_sha256": sha256_file(panel_path),
+            "fasta_sha256": sha256_file(fasta_path),
             "contexts_sha256": sha256_file(contexts_path),
             "extraction_manifest_sha256": sha256_file(
                 extraction_root / "manifest.json"
@@ -703,6 +768,7 @@ def main() -> None:
     parser.add_argument("--associations-root", type=Path, required=True)
     parser.add_argument("--panel", type=Path, required=True)
     parser.add_argument("--panel-manifest", type=Path, required=True)
+    parser.add_argument("--fasta", type=Path, required=True)
     parser.add_argument("--contexts", type=Path, required=True)
     parser.add_argument("--recurrence", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -712,6 +778,7 @@ def main() -> None:
         associations_root=args.associations_root,
         panel_path=args.panel,
         panel_manifest_path=args.panel_manifest,
+        fasta_path=args.fasta,
         contexts_path=args.contexts,
         recurrence_path=args.recurrence,
         output_dir=args.output_dir,

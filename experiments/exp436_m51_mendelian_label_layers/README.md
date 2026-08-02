@@ -132,6 +132,7 @@ flock -n /tmp/marin-dna-local-heavy.lock \
     --associations-root <verified-association-root> \
     --panel <byte-identical-panel.parquet> \
     --panel-manifest <panel.manifest.json> \
+    --fasta <extraction-reference.fa.gz> \
     --contexts <aligned-variant-contexts.parquet> \
     --recurrence <verified-final-layer-recurrence.parquet> \
     --output-dir <new-interpretation-output>
