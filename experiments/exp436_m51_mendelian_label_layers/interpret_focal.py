@@ -574,7 +574,7 @@ def plot_label_effects(
             }
             matrix = np.asarray(
                 [
-                    [lookup[(target, feature)] for feature in CANDIDATE_FEATURES]
+                    [lookup.get((target, feature), np.nan) for feature in CANDIDATE_FEATURES]
                     for target in TARGET_ORDER
                 ]
             )
