@@ -70,7 +70,7 @@ run: |
   aws s3 cp "$REFERENCE_S3/$REFERENCE_NAME.gzi" "$INPUT_ROOT/reference/$REFERENCE_NAME.gzi"
 
   curl --fail --location \
-    "https://huggingface.co/datasets/marin-dna/evals_complex_traits/resolve/22f86a89c65cb8f3007ac3cc2739f40efefa4340/data/train-00000-of-00001.parquet" \
+    "https://huggingface.co/datasets/marin-dna/evals_complex_traits/resolve/22f86a89c65cb8f3007ac3cc2739f40efefa4340/train.parquet" \
     --output "$RUN_ROOT/inputs/panel.parquet"
 
   uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/prepare_panel.py" \
