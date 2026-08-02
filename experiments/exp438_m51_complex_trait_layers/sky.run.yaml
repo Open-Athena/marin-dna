@@ -14,7 +14,7 @@ workdir: .
 
 envs:
   EXPERIMENT_COMMIT: ""
-  RUN_ID: dna-exp438-complex-traits-focal-seed288-r1
+  RUN_ID: dna-exp438-complex-traits-focal-seed288-r2
 
 setup: |
   set -euxo pipefail
