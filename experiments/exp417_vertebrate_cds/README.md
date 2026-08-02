@@ -396,6 +396,19 @@ resolved DAG contained only two model downloads, four scoring jobs, four metric
 jobs, and the final `all` target (11 jobs total); it did not plan any upstream
 or unrelated work.
 
+The first real Sky launch used immutable commit
+[`f4e19d9`](https://github.com/Open-Athena/marin-dna/tree/f4e19d96e37d9107a35d449f5dafcddf1c672b26)
+and failed before scoring its first variant: Transformers 5 had exported
+`tokenizer_class: TokenizersBackend`, which the established Transformers 4.57
+evaluation runtime could not resolve through `AutoTokenizer`. No score or
+metric parquet was produced. Commit
+[`0948cdb`](https://github.com/Open-Athena/marin-dna/tree/0948cdbdedad781877b00af7e3a403e2d10f889c)
+adds an exact compatibility path that loads only that marker through
+`PreTrainedTokenizerFast`. It was validated against the terminal tokenizer's
+seven token IDs and BOS encoding, while the model weights, tokenizer JSON,
+special-token post-processor, input rows, scoring, and metrics remain
+unchanged; unrelated tokenizer failures still raise.
+
 After both exports pass their final checkpoint gates, launch one bounded,
 auto-downing A10G worker using the existing project task. The user has
 explicitly authorized EC2/SkyPilot resources for this issue:
