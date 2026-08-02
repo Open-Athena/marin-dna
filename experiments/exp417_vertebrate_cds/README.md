@@ -274,6 +274,14 @@ successfully, followed by normal progress through about step 2510 with loss
 1.23 at 08:27 UTC. The guarded child still reported zero failures and zero
 preemptions, while combined `r5` continued independently.
 
+Combined `r5` then crossed the same step-3000 boundary without incident. It
+saved a complete four-object native checkpoint at 08:39:05 UTC, completed
+validation with loss 1.290, and finished an exact four-file, 1,019,426,252-byte
+(972.2 MiB) Hugging Face export at 08:39:03 UTC. The worker resumed through
+about step 3010 with training loss 1.24 and still reported zero failures and
+one earlier preemption. This provides a complete durable recovery point for
+the combined arm while guarded mammals `r4` advances toward the same boundary.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
