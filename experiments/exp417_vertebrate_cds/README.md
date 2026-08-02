@@ -421,6 +421,15 @@ sky launch -c dna417-cds-vep --down \
     -- all"
 ```
 
+The corrected bounded launch used immutable commit
+[`dec0c24`](https://github.com/Open-Athena/marin-dna/tree/dec0c2442681ecc9dd48493fc5b10260fcf0ddb2/experiments/exp417_vertebrate_cds).
+It reused the two cached model downloads and resolved exactly four score jobs,
+four metric jobs, and the final `all` target. Sky job 1 on
+`dna417-cds-vep` completed all 9 jobs with exit 0 on 2026-08-02. The score
+outputs contain 9,490 Mendelian test rows and 14,888 SGE test rows per arm;
+the corresponding metric outputs contain 66 matched-pair and 96 SGE metric
+rows per arm.
+
 The four metric outputs are isolated under:
 
 ```text
@@ -457,6 +466,11 @@ It writes two durable artifacts alongside the metrics:
 s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.json
 s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.md
 ```
+
+The reporter completed against commit `dec0c2442681ecc9dd48493fc5b10260fcf0ddb2`
+at 2026-08-02 13:09 UTC and wrote both artifacts above. Scientific findings
+and the paired comparison table are recorded in issue #417; this README keeps
+the reproducible execution recipe and immutable artifact locations.
 
 This is intentionally offline: the training graphs have no lm-eval harness,
 which avoids changing the matched optimizer/training path and lets the current
