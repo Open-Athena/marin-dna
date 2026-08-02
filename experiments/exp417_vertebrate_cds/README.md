@@ -224,6 +224,17 @@ failures in either arm. Iris handled all three replacements automatically;
 only work after the latest durable checkpoint was replayed, while the frozen
 scientific recipes and previously validated exports remained unchanged.
 
+At the 2026-08-02 07:09 UTC observation, both replacement workers had survived
+another complete durable cycle. Mammals saved native step 2500 at 07:06:52,
+completed validation with loss 1.297, and finished an exact four-file,
+1,019,426,252-byte (972.2 MiB) Hugging Face export at 07:07:28 before advancing
+through step 2520. Combined saved native step 2000 at 07:07:50, completed
+validation with loss 1.289, and finished the same exact four-file export at
+07:08:11 before resuming training. Both child jobs remained running with zero
+failures; their preemption counts were unchanged at two for mammals and one for
+combined. This independently verifies automatic checkpoint recovery through a
+subsequent native checkpoint, validation, export, and resumed-training cycle.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
