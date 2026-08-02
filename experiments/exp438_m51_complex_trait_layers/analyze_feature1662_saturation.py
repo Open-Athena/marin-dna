@@ -345,7 +345,7 @@ def plot_profile(
         axis.axvline(0, color="black", linestyle="--", linewidth=1, alpha=0.6)
         if signed:
             axis.axhline(0, color="black", linewidth=1, alpha=0.4)
-    grid.set_axis_labels("Transcript-oriented offset from variant (bp)", y_label)
+    grid.set_axis_labels("", "")
     grid.set_titles("{col_name}")
     title = (
         "Feature 1662 signed saturation profile"
@@ -353,7 +353,9 @@ def plot_profile(
         else "Feature 1662 saturation sensitivity"
     )
     grid.figure.suptitle(f"{title}\nerror bands = ±1 SE", y=1.08)
-    grid.figure.subplots_adjust(top=0.78)
+    grid.figure.supxlabel("Transcript-oriented offset from variant (bp)", y=0.03)
+    grid.figure.supylabel(y_label, x=0.015)
+    grid.figure.subplots_adjust(top=0.78, bottom=0.14, left=0.09)
     stem = "signed_saturation_profile" if signed else "saturation_profile"
     svg_path = output_dir / f"{stem}.svg"
     png_path = output_dir / f"{stem}.png"
