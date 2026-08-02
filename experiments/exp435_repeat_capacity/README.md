@@ -24,7 +24,7 @@ panel-construction stage will sample uniformly from the all-repeat union, assign
 one primary focal label under the issue’s recorded overlap policy, and preserve
 all alternate overlaps.
 
-## Run
+## Stage 0 run
 
 The CPU-only Sky task downloads and archives the exact annotation source, runs
 the tests and inventory, uploads the result, and verifies S3 synchronization:
@@ -38,3 +38,25 @@ sky launch -y -c exp435-repeat-inventory \
 Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-inventory-r1/`.
 Local and Sky disks are staging areas only.
+
+## Stage 1: frozen reference panel
+
+`prepare_reference_panel.py` validates the stage-0 archive and materializes the
+outcome-blind 255-bp sequence panel recorded in issue #435: 32,768 uniformly
+sampled repeat loci paired to full-window repeat-free controls by chromosome and
+repeat-derived GC decile, plus 128 focal loci and 128 other-repeat controls for
+each selected class, family, and subfamily. Primary labels resolve overlaps by
+highest RepeatMasker score, then lower divergence, longer interval, and stable
+annotation ID; all alternate overlaps and sequence-composition covariates are
+retained.
+
+```bash
+sky launch -y -c exp435-repeat-reference-panel \
+  --env EXPERIMENT_COMMIT=$(git rev-parse HEAD) \
+  experiments/exp435_repeat_capacity/sky.panel.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-panel-r1/`.
+The full FASTA and inventory are downloaded only to the temporary Sky node; the
+archive retains their identities and hashes, not redundant source copies.
