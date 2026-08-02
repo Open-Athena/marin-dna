@@ -1,0 +1,102 @@
+name: dna-exp436-mendelian-whole-window-analysis
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.8xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+  autostop:
+    idle_minutes: 120
+    down: true
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  EXTRACTION_RUN_ID: dna-exp436-mendelian-whole-window-seed288-r1
+  ASSOCIATION_RUN_ID: dna-exp436-mendelian-whole-window-associations-seed288-r1
+  PROBE_RUN_ID: dna-exp436-mendelian-whole-window-probe-seed288-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp436_m51_mendelian_label_layers --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=16
+  export RAYON_NUM_THREADS=16
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$EXTRACTION_RUN_ID" = "dna-exp436-mendelian-whole-window-seed288-r1"
+  test "$ASSOCIATION_RUN_ID" = "dna-exp436-mendelian-whole-window-associations-seed288-r1"
+  test "$PROBE_RUN_ID" = "dna-exp436-mendelian-whole-window-probe-seed288-r1"
+
+  EXPERIMENT_DIR="experiments/exp436_m51_mendelian_label_layers"
+  INPUT_ROOT="$HOME/exp436-whole-window-analysis-inputs"
+  PANEL_ROOT="$INPUT_ROOT/panel"
+  EXTRACTION_ROOT="$INPUT_ROOT/extraction"
+  RUN_ROOT="$HOME/exp436-whole-window-analysis-runs"
+  EXTRACTION_S3="s3://oa-bolinas/experiments/exp436/retrieval/$EXTRACTION_RUN_ID"
+  PANEL_S3="s3://oa-bolinas/experiments/exp435/inputs/dna-exp435-mendelian-panel-a1843d90"
+  ASSOCIATION_S3="s3://oa-bolinas/experiments/exp436/retrieval/$ASSOCIATION_RUN_ID"
+  PROBE_S3="s3://oa-bolinas/experiments/exp436/retrieval/$PROBE_RUN_ID"
+  mkdir -p "$PANEL_ROOT" "$EXTRACTION_ROOT" "$RUN_ROOT"
+  test ! -e "$RUN_ROOT/$ASSOCIATION_RUN_ID"
+  test ! -e "$RUN_ROOT/$PROBE_RUN_ID"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q \
+    "$EXPERIMENT_DIR/tests/test_analyze_focal.py" \
+    "$EXPERIMENT_DIR/tests/test_extract_whole_window.py" \
+    "$EXPERIMENT_DIR/tests/test_probe_whole_window.py"
+  aws s3 sync "$PANEL_S3/" "$PANEL_ROOT/" --only-show-errors
+  aws s3 sync "$EXTRACTION_S3/" "$EXTRACTION_ROOT/" --only-show-errors
+
+  export RUN_ID="$ASSOCIATION_RUN_ID"
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/analyze_whole_window.py" \
+    --panel "$PANEL_ROOT/panel.parquet" \
+    --panel-manifest "$PANEL_ROOT/panel.manifest.json" \
+    --extraction-root "$EXTRACTION_ROOT" \
+    --output-dir "$RUN_ROOT/$ASSOCIATION_RUN_ID" \
+    --ap-chunk-size 128
+  aws s3 sync "$RUN_ROOT/$ASSOCIATION_RUN_ID/" "$ASSOCIATION_S3/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$RUN_ROOT/$ASSOCIATION_RUN_ID/manifest.json" \
+    "$ASSOCIATION_S3/manifest.json"
+
+  export RUN_ID="$PROBE_RUN_ID"
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/probe_whole_window.py" \
+    --panel "$PANEL_ROOT/panel.parquet" \
+    --panel-manifest "$PANEL_ROOT/panel.manifest.json" \
+    --extraction-root "$EXTRACTION_ROOT" \
+    --output-dir "$RUN_ROOT/$PROBE_RUN_ID" \
+    --n-jobs 16
+  aws s3 sync "$RUN_ROOT/$PROBE_RUN_ID/" "$PROBE_S3/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$RUN_ROOT/$PROBE_RUN_ID/manifest.json" "$PROBE_S3/manifest.json"
+
+  for SPEC in "$RUN_ROOT/$ASSOCIATION_RUN_ID|$ASSOCIATION_S3|association" \
+              "$RUN_ROOT/$PROBE_RUN_ID|$PROBE_S3|probe"; do
+    LOCAL_ROOT="${SPEC%%|*}"
+    REST="${SPEC#*|}"
+    REMOTE_ROOT="${REST%%|*}"
+    LABEL="${REST##*|}"
+    DRYRUN_LOG="/tmp/exp436-whole-window-$LABEL-s3-dryrun.txt"
+    aws s3 sync "$LOCAL_ROOT/" "$REMOTE_ROOT/" --dryrun > "$DRYRUN_LOG"
+    test ! -s "$DRYRUN_LOG"
+  done

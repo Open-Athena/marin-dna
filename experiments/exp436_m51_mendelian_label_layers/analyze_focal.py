@@ -225,9 +225,11 @@ def analyze_target(
     orientation: str,
     response_name: str,
     ap_chunk_size: int,
+    pooling: str = "focal",
 ) -> pl.DataFrame:
     assert response.shape == (EXPECTED_ROWS, D_SAE)
     assert orientation in ORIENTATIONS and response_name in RESPONSES
+    assert pooling in ("focal", "whole_window_mean")
     matrix = response if target.kind == "overall" else response[target.indices, :]
     labels = target.labels
     assert matrix.shape[0] == labels.size
@@ -289,7 +291,7 @@ def analyze_target(
             "block": np.full(rows, block, dtype=np.uint8),
             "budget": np.full(rows, budget, dtype=np.uint32),
             "orientation": [orientation] * rows,
-            "pooling": ["focal"] * rows,
+            "pooling": [pooling] * rows,
             "response": [response_name] * rows,
             "response_role": [
                 "primary"

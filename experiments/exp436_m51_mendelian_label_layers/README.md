@@ -97,6 +97,48 @@ The task writes one complete Parquet per declared hypothesis family plus a
 compact `top_hits.parquet`, results manifest, and hashes. It uses the warm H100
 node's CPUs; no second paid instance is required.
 
+## Whole-window pooled-code and probe baseline
+
+The preregistered whole-window pass encodes all 255 nucleotide positions after
+excluding BOS, then averages the non-negative SAE code across positions. It
+stores ref and alt separately as exact float32 NPY matrices; response deltas
+are never formed from quantized values. The six layer/budget arms and both
+orientations require about 24 GB, so the GPU task stages directly from and back
+to S3 rather than using workstation inputs or outputs.
+
+```bash
+uv run pytest tests/test_extract_whole_window.py tests/test_probe_whole_window.py
+uv run ruff check extract_whole_window.py analyze_whole_window.py \
+  probe_whole_window.py tests/test_extract_whole_window.py \
+  tests/test_probe_whole_window.py
+sky launch -d -c exp436-whole-window-gpu --dryrun \
+  sky.whole-window-extract.yaml
+sky launch -d -c exp436-whole-window-gpu \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  sky.whole-window-extract.yaml
+```
+
+The CPU task first applies the identical all-feature statistical protocol from
+the focal scan with `pooling=whole_window_mean`. It then runs the official nested
+chromosome-held-out `StandardScaler -> LogisticRegression(L2)` probe on the
+block-19/25M pooled code, separately for FWD and RC. The directional feature is
+`[ref, alt-ref]`; only label-blind constant columns are removed. Per-subset and
+separately trained global predictions are compared with the official raw probe
+and LLR on identical rows using per-chromosome-weighted AUPRC.
+
+```bash
+sky launch -d -c exp436-whole-window-cpu --dryrun \
+  sky.whole-window-analysis.yaml
+sky launch -d -c exp436-whole-window-cpu \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  sky.whole-window-analysis.yaml
+```
+
+Every large matrix, result table, classifier, and manifest is written beneath
+`s3://oa-bolinas/experiments/exp436/retrieval/`. The final-layer residual
+reconstruction/LLR bridge is deliberately a subsequent stage rather than part
+of this pooled-code baseline.
+
 ## Summaries and figures
 
 After retrieving and hash-verifying the complete focal association run, produce
