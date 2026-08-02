@@ -282,6 +282,17 @@ about step 3010 with training loss 1.24 and still reported zero failures and
 one earlier preemption. This provides a complete durable recovery point for
 the combined arm while guarded mammals `r4` advances toward the same boundary.
 
+Guarded mammals `r4` crossed the exact prior failure boundary at 09:13 UTC.
+The native step-3000 commit finished at 09:13:09, validation loss was 1.299,
+and the exact four-file, 1,019,426,252-byte (972.2 MiB) Hugging Face export
+finished at 09:13:37. The native directory contains the two fresh data blobs,
+replacement manifest, and `metadata.json` from this successful commit, plus
+the two retained data blobs from the aborted `r3` write. Training resumed
+normally through about step 3020 with loss 1.19. Both the coordinator and
+guarded child remained running with zero failures and zero preemptions. This
+validates the execution-only asyncio snapshot guard at the exact race boundary
+without changing the frozen scientific recipe.
+
 ## Frozen offline VEP evaluation
 
 The terminal `step-4999` exports are evaluated once on the held-out `test`
