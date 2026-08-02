@@ -275,9 +275,15 @@ def directional_average_precision(
             precision = cumulative_true / cumulative_rows
             return np.sum(ordered_class * precision, axis=0) / class_totals
 
-        descending = np.arange(len(unique_scores) - 1, -1, -1)
+        # A feature can be active for every row. In that case the zero score we
+        # append to represent implicit sparse zeros creates an empty tie group;
+        # including it first would calculate precision as 0 / 0.
+        nonempty = np.flatnonzero(group_sizes > 0)
+        assert group_sizes[nonempty].sum() == matrix.shape[0]
+        assert np.allclose(group_class[nonempty].sum(axis=0), class_totals)
+        descending = nonempty[::-1]
         positive_ap = average_precision(descending)
-        negative_ap = average_precision(descending[::-1])
+        negative_ap = average_precision(nonempty)
         output[column] = np.where(direction[column] >= 0, positive_ap, negative_ap)
     assert np.isfinite(output).all() and ((0 <= output) & (output <= 1)).all()
     return output

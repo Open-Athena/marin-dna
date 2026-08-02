@@ -97,3 +97,19 @@ def test_directional_average_precision_matches_sklearn(monkeypatch) -> None:
                 encoded == target, sign * values[:, feature]
             )
             np.testing.assert_allclose(observed[feature, target], expected, atol=1e-12)
+
+
+def test_directional_average_precision_ignores_empty_implicit_zero_group(
+    monkeypatch,
+) -> None:
+    values = np.array([[1], [2], [3], [4], [5], [6]], dtype=np.float32)
+    encoded = np.array([0, 0, 0, 1, 1, 1], dtype=np.int16)
+    monkeypatch.setattr(module, "EXPECTED_CLASSES", 2)
+    direction = np.array([[1, -1]], dtype=np.float64)
+    observed = directional_average_precision(
+        sparse.csr_matrix(values), encoded, direction
+    )
+    for target in range(2):
+        sign = 1 if direction[0, target] >= 0 else -1
+        expected = average_precision_score(encoded == target, sign * values[:, 0])
+        np.testing.assert_allclose(observed[0, target], expected, atol=1e-12)
