@@ -24,7 +24,7 @@ setup: |
     uv tool install awscli
   fi
   aws sts get-caller-identity
-  uv sync --project experiments/exp435_repeat_capacity --frozen
+  uv sync --project experiments/exp435_repeat_capacity --extra gpu --frozen
 
 run: |
   set -euxo pipefail
@@ -64,7 +64,7 @@ run: |
     s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models/block19-25m/ \
     "$INPUT_ROOT/models/block19-25m/"
 
-  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+  uv run --project "$EXPERIMENT_DIR" --extra gpu --no-dev python \
     "$EXPERIMENT_DIR/extract_reference_activations.py" \
     --panel-root "$RUN_ROOT/inputs/panel" \
     --models-root "$INPUT_ROOT/models" \

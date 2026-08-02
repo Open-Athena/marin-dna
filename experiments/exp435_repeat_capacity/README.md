@@ -81,3 +81,25 @@ Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-activations-r1/`.
 The AWS GPU reads and writes S3 directly; neither the model checkpoints nor the
 sparse activation tables are staged on the shared Codex node.
+
+
+## Stage 3: sparse repeat-capacity associations
+
+`analyze_reference_capacity.py` reads the stage-2 sparse parquets directly from
+S3 and tests the frozen repeat, class, family, and subfamily contrast families.
+Welch statistics use sparse sums and sums of squares. Mann–Whitney U and both
+AUPRC directions are computed exactly from nonzero activations while zero and
+equal-value ties are handled analytically. BH correction remains separate by
+layer, orientation, hierarchy, and statistic.
+
+After recording the stage-2 archive-manifest hash:
+
+```bash
+sky launch -y -d --down -c exp435-repeat-reference-associations \
+  --env EXPERIMENT_COMMIT=$(git rev-parse HEAD) \
+  --env EXTRACTION_ARCHIVE_SHA256=<sha256> \
+  experiments/exp435_repeat_capacity/sky.analyze.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-associations-r1/`.
