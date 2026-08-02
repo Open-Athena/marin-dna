@@ -176,3 +176,24 @@ Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-motif-context-r1/`.
 The roughly 1 GiB of activation inputs remains on the ephemeral CPU instance;
 only compact tables, SVG/PNG heatmaps, manifests, and summaries are uploaded.
+
+
+## Stage 8: post-hoc causal repeat-motif saturation
+
+`extract_repeat_saturation.py` verifies the exact Stage-7 archive, freezes nine
+crisp features and both orientations, and performs every single-base edit in
+the same focal +/-31-bp motif window for the top 64 reference activators per
+view. The bf16 gLM captures blocks 1/10/19 in one eager pass; the fp32 SAEs
+evaluate only the prespecified JumpReLU columns with an equality check against
+full encoding. `analyze_repeat_saturation.py` tests motif-loss and
+substitution-matched motif-specific effects at the context level with
+within-layer BH correction and emits complete response tables and heatmaps.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-saturation \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  experiments/exp435_repeat_capacity/sky.saturation.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-saturation-r1/`.
