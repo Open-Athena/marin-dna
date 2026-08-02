@@ -48,7 +48,7 @@ run: |
   PAIRED_ROOT="$INPUT_ROOT/paired-repeat-associations"
   RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
   S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
-  LABEL_URL="https://huggingface.co/datasets/marin-dna/evals_mendelian_traits/resolve/4aed58e50c5dea0b878a665007af2ef9e5108e9f/train.parquet"
+  LABEL_S3="s3://oa-bolinas/experiments/exp435/inputs/dna-exp435-mendelian-panel-a1843d90"
   REPEAT_PANEL_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-panel-r1"
   ACTIVATION_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1"
   GLOBAL_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-associations-seed288-r2"
@@ -58,7 +58,8 @@ run: |
   mkdir -p "$LABEL_ROOT" "$REPEAT_PANEL_ROOT" "$ACTIVATION_ROOT" "$GLOBAL_ROOT" "$REFERENCE_ROOT" "$PAIRED_ROOT" "$RUN_ROOT/inputs"
 
   uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
-  curl -fL --retry 5 --retry-delay 2 "$LABEL_URL" -o "$LABEL_ROOT/train.parquet"
+  aws s3 cp "$LABEL_S3/panel.parquet" "$LABEL_ROOT/panel.parquet"
+  aws s3 cp "$LABEL_S3/panel.manifest.json" "$RUN_ROOT/inputs/label_panel_manifest.json"
   aws s3 sync "$REPEAT_PANEL_S3/" "$REPEAT_PANEL_ROOT/" --only-show-errors
   aws s3 sync "$GLOBAL_S3/" "$GLOBAL_ROOT/" --only-show-errors
   aws s3 sync "$REFERENCE_S3/" "$REFERENCE_ROOT/" --only-show-errors
@@ -77,7 +78,7 @@ run: |
   cp "$PAIRED_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/paired_repeat_archive_manifest.json"
 
   uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/analyze_repeat_label_sensitivity.py" \
-    --label-panel "$LABEL_ROOT/train.parquet" \
+    --label-panel "$LABEL_ROOT/panel.parquet" \
     --repeat-panel-root "$REPEAT_PANEL_ROOT" \
     --activation-root "$ACTIVATION_ROOT" \
     --global-association-root "$GLOBAL_ROOT" \
