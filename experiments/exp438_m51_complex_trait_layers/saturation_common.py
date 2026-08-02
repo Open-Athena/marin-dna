@@ -7,14 +7,15 @@ from typing import Any
 
 import numpy as np
 
-RUN_ID = "dna-exp438-feature1662-saturation-r1"
+RUN_ID = "dna-exp438-feature1662-saturation-r2"
 DESIGN_RUN_ID = f"{RUN_ID}-design"
+SELECTION_HASH_NAMESPACE = "exp438-feature1662-saturation-r1"
 FEATURE_ID = 1_662
 BLOCK_INDEX = 18
 WINDOW_BP = 255
 FOCAL_INDEX = 127
 SATURATION_RADIUS = 15
-CONTEXTS_PER_CODON_POSITION = 128
+CONTEXTS_PER_CODON_POSITION = 120
 POSITIONS = tuple(range(-SATURATION_RADIUS, SATURATION_RADIUS + 1))
 ORIENTATIONS = ("forward", "reverse_complement")
 NUCLEOTIDES = tuple("ACGT")
@@ -128,7 +129,7 @@ def parse_codon_change(value: str) -> tuple[str, str, int]:
 def selection_hash(row: dict[str, Any]) -> str:
     key = "|".join(
         (
-            RUN_ID,
+            SELECTION_HASH_NAMESPACE,
             str(row["panel_row"]),
             str(row["chrom"]),
             str(row["pos"]),

@@ -14,7 +14,7 @@ workdir: .
 
 envs:
   EXPERIMENT_COMMIT: ""
-  RUN_ID: dna-exp438-feature1662-saturation-r1
+  RUN_ID: dna-exp438-feature1662-saturation-r2
 
 setup: |
   set -euxo pipefail
@@ -41,7 +41,7 @@ run: |
   export WANDB_DISABLED=true
 
   test "${#EXPERIMENT_COMMIT}" -eq 40
-  test "$RUN_ID" = "dna-exp438-feature1662-saturation-r1"
+  test "$RUN_ID" = "dna-exp438-feature1662-saturation-r2"
   nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
   EXPERIMENT_DIR="experiments/exp438_m51_complex_trait_layers"
   INPUT_ROOT="$HOME/exp438-saturation-inputs"
@@ -88,7 +88,7 @@ run: |
     --run-id "$RUN_ID" \
     --analysis-status post_hoc_mechanistic_perturbation
   aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
-  DRYRUN_LOG="/tmp/exp438-feature1662-saturation-s3-dryrun.txt"
+  DRYRUN_LOG="/tmp/exp438-feature1662-saturation-r2-s3-dryrun.txt"
   aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
   test ! -s "$DRYRUN_LOG"
   aws s3 ls "$S3_ROOT/" --recursive

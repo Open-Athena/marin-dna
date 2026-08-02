@@ -13,9 +13,11 @@ extraction.
   `canonical=1`.
 - Keep picked protein-coding, single-codon SNVs with an unambiguous non-stop
   reference codon and verified allele orientation.
-- Select 128 contexts at each focal codon position by the frozen SHA-256 key.
+- Select 120 contexts at each focal codon position by the frozen SHA-256 key.
   Selection cannot read labels, SAE responses, prediction scores, or clinical
-  annotations.
+  annotations. This is the balanced feasibility revision recorded after the
+  original 128-per-position design aborted with only 125 eligible position-3
+  contexts.
 - In each 255-bp reference context, make all three possible substitutions at
   every genomic offset from -15 through +15.
 - Measure the focal-token activation of block-19 SAE feature 1662 separately in
@@ -36,7 +38,7 @@ The design step needs the exact pinned `test.parquet` and a 40-character
 uv run --project experiments/exp438_m51_complex_trait_layers --no-dev python \
   experiments/exp438_m51_complex_trait_layers/prepare_feature1662_saturation.py \
   --panel /path/to/test.parquet \
-  --output-dir /path/to/dna-exp438-feature1662-saturation-r1-design
+  --output-dir /path/to/dna-exp438-feature1662-saturation-r2-design
 ```
 
 After uploading the validated design directory to its S3 prefix, launch
@@ -44,9 +46,9 @@ After uploading the validated design directory to its S3 prefix, launch
 
 ## Durable storage
 
-- Design: `s3://oa-bolinas/experiments/exp438/retrieval/dna-exp438-feature1662-saturation-r1-design/`
+- Design: `s3://oa-bolinas/experiments/exp438/retrieval/dna-exp438-feature1662-saturation-r2-design/`
 - Extraction, analysis, plots, and archive manifest:
-  `s3://oa-bolinas/experiments/exp438/retrieval/dna-exp438-feature1662-saturation-r1/`
+  `s3://oa-bolinas/experiments/exp438/retrieval/dna-exp438-feature1662-saturation-r2/`
 
 Local and Sky disks are staging areas only. Both S3 directories carry
 per-artifact SHA-256 hashes, and the final run additionally carries a recursive

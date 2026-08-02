@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 from prepare_feature1662_saturation import eligibility_metadata, select_contexts
+from saturation_common import CONTEXTS_PER_CODON_POSITION
 
 
 def test_eligibility_metadata_verifies_reverse_strand_alleles() -> None:
@@ -45,9 +46,13 @@ def test_select_contexts_is_balanced_and_rejects_label_column() -> None:
             )
     eligible = pl.DataFrame(rows)
     selected = select_contexts(eligible)
-    assert selected.height == 384
-    assert selected.group_by("focal_codon_position").len().sort("focal_codon_position")[
-        "len"
-    ].to_list() == [128, 128, 128]
+    assert selected.height == 3 * CONTEXTS_PER_CODON_POSITION
+    assert (
+        selected.group_by("focal_codon_position")
+        .len()
+        .sort("focal_codon_position")["len"]
+        .to_list()
+        == [CONTEXTS_PER_CODON_POSITION] * 3
+    )
     with pytest.raises(AssertionError):
         select_contexts(eligible.with_columns(pl.lit(False).alias("label")))

@@ -15,6 +15,7 @@ from saturation_states import (
     enumerate_context_states,
 )
 from saturation_common import (
+    CONTEXTS_PER_CODON_POSITION,
     POSITIONS,
     bh_adjust,
     codon_genomic_offsets,
@@ -138,8 +139,8 @@ def test_generic_focal_test_detects_center_sensitivity() -> None:
 def test_codon_phase_and_consequence_tests_use_frozen_directions() -> None:
     contexts = pl.DataFrame(
         {
-            "context_index": np.arange(384),
-            "focal_codon_position": np.repeat([1, 2, 3], 128),
+            "context_index": np.arange(3 * CONTEXTS_PER_CODON_POSITION),
+            "focal_codon_position": np.repeat([1, 2, 3], CONTEXTS_PER_CODON_POSITION),
         }
     )
     phase_rows = []

@@ -21,6 +21,7 @@ from saturation_common import (
     CONTEXTS_PER_CODON_POSITION,
     DESIGN_RUN_ID,
     NUCLEOTIDES,
+    SELECTION_HASH_NAMESPACE,
     complement,
     parse_codon_change,
     selection_hash,
@@ -321,8 +322,7 @@ def prepare(panel_path: Path, output_dir: Path) -> dict[str, Any]:
             "contexts_per_codon_position": CONTEXTS_PER_CODON_POSITION,
             "selected_rows": selected.height,
             "hash_key": (
-                "exp438-feature1662-saturation-r1|panel_row|chrom|pos|ref|alt|"
-                "transcript_id"
+                f"{SELECTION_HASH_NAMESPACE}|panel_row|chrom|pos|ref|alt|transcript_id"
             ),
             "forbidden_fields": [
                 "label",
