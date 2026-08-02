@@ -1,0 +1,75 @@
+name: dna-exp422-complete-family
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.4xlarge
+  disk_size: 50
+  autostop:
+    idle_minutes: 30
+    down: true
+
+workdir: .
+
+envs:
+  ANALYSIS_COMMIT: ""
+  AWS_REGION: us-east-2
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp421_422_statistical_revisits --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=12
+  export RAYON_NUM_THREADS=12
+  export OMP_NUM_THREADS=8
+  export MKL_NUM_THREADS=8
+  export OPENBLAS_NUM_THREADS=8
+  export NUMEXPR_NUM_THREADS=8
+  export PYTHONPATH="experiments/exp422_m51_sae_variant_consequences"
+  test "${#ANALYSIS_COMMIT}" -eq 40
+
+  CPU_PROJECT="experiments/exp421_422_statistical_revisits"
+  INPUT_ROOT="$HOME/exp422-complete-family-inputs"
+  OUTPUT_ROOT="$HOME/exp422-complete-family-runs"
+  PANEL="$INPUT_ROOT/panel"
+  ACTIVATIONS="$INPUT_ROOT/activations"
+  RUN_ID="dna-exp422-complete-family-25m-r1"
+  OUTPUT="$OUTPUT_ROOT/$RUN_ID"
+  S3_OUTPUT="s3://oa-bolinas/experiments/exp422/retrieval/$RUN_ID"
+  test ! -e "$OUTPUT"
+  mkdir -p "$PANEL" "$ACTIVATIONS" "$OUTPUT_ROOT"
+
+  uv run --project "$CPU_PROJECT" python -m pytest -q \
+    experiments/exp422_m51_sae_variant_consequences/tests/test_complete_family_association.py
+  aws s3 sync \
+    s3://oa-bolinas/experiments/exp422/inputs/dna-exp422-consequence-panel-b08f9cff/ \
+    "$PANEL/" --only-show-errors
+  aws s3 sync \
+    s3://oa-bolinas/experiments/exp422/retrieval/dna-exp422-multilayer-25m-seed288-r1/ \
+    "$ACTIVATIONS/" --only-show-errors
+
+  uv run --project "$CPU_PROJECT" python \
+    experiments/exp422_m51_sae_variant_consequences/complete_family_association.py \
+    --panel "$PANEL/panel.parquet" \
+    --extraction-root "$ACTIVATIONS" \
+    --extraction-manifest "$ACTIVATIONS/manifest.json" \
+    --output-dir "$OUTPUT" \
+    --analysis-commit "$ANALYSIS_COMMIT"
+
+  aws s3 sync "$OUTPUT/" "$S3_OUTPUT/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$OUTPUT/manifest.json" "$S3_OUTPUT/manifest.json"
+  DRYRUN_LOG="/tmp/exp422-result-dryrun.txt"
+  aws s3 sync "$OUTPUT/" "$S3_OUTPUT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_OUTPUT/" --recursive --summarize
