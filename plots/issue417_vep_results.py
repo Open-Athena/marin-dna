@@ -14,6 +14,7 @@ import seaborn as sns
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 
 SUMMARY_URI = (
     "s3://oa-bolinas/snakemake/analysis/evals_v2/"
@@ -123,9 +124,10 @@ def main() -> None:
         aspect=0.95,
     )
     grid.set_axis_labels("", "AUPRC")
-    grid.set_titles("{col_name}")
+    grid.set_titles("")
 
     for facet, axis in grid.axes_dict.items():
+        axis.set_title(facet, pad=12, fontsize=16)
         facet_rows = (
             frame[frame["facet"] == facet].set_index("model").loc[list(MODEL_ORDER)]
         )
@@ -134,17 +136,6 @@ def main() -> None:
         span = observed_top - baseline
         upper = observed_top + max(0.025, 0.22 * span)
         axis.set_ylim(baseline, upper)
-        axis.axhline(baseline, color="0.35", linestyle="--", linewidth=1.2, zorder=3)
-        axis.text(
-            0.98,
-            0.035,
-            f"random baseline = {baseline:.3f}",
-            transform=axis.transAxes,
-            ha="right",
-            va="bottom",
-            fontsize="x-small",
-            color="0.3",
-        )
         for patch, (_, row) in zip(axis.patches, facet_rows.iterrows(), strict=True):
             center = patch.get_x() + patch.get_width() / 2
             axis.errorbar(
@@ -164,12 +155,22 @@ def main() -> None:
                 va="bottom",
                 fontsize="small",
             )
-        axis.tick_params(axis="x", labelrotation=12)
+        axis.set_xticks([])
         sns.despine(ax=axis)
 
     grid.figure.suptitle(
         "Projected vertebrate CDS models at step 4,999",
-        y=1.02,
+        y=0.98,
+    )
+    grid.figure.legend(
+        handles=[
+            Patch(facecolor=MODEL_PALETTE[model], label=model) for model in MODEL_ORDER
+        ],
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.90),
+        ncol=2,
+        frameon=False,
+        fontsize=14,
     )
     grid.figure.text(
         0.5,
@@ -178,7 +179,7 @@ def main() -> None:
         ha="center",
         fontsize="small",
     )
-    grid.figure.subplots_adjust(bottom=0.16, top=0.88, wspace=0.30, hspace=0.52)
+    grid.figure.subplots_adjust(bottom=0.14, top=0.76, wspace=0.30, hspace=0.72)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     grid.figure.savefig(OUTPUT_DIR / "figure.svg", bbox_inches="tight")
