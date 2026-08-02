@@ -154,3 +154,25 @@ sky launch -y -d --down -c exp435-repeat-variant-deltas --env EXPERIMENT_COMMIT=
 
 Durable output:
 `s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-deltas-r1/`.
+
+## Stage 7: post-hoc motif and activating-context description
+
+`analyze_motif_contexts.py` verifies every frozen reference and paired input,
+then interprets the feature-ID panel recorded in #435 before context inspection.
+For every selected feature it reports FWD and RC separately, selects up to 256
+top human-reference activators, constructs deterministic repeat-status / class /
+GC-matched controls, tests focal ±31-bp nucleotide and 3–6-mer enrichment with
+within-view BH correction, and records the 64 largest outcome-blind paired
+variant responses. RC sequence summaries are displayed in model-input
+orientation while original genomic sequences and coordinates are retained.
+
+```bash
+sky launch -y -d --down -c exp435-repeat-motif-context \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  experiments/exp435_repeat_capacity/sky.motif_context.yaml
+```
+
+Durable output:
+`s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-motif-context-r1/`.
+The roughly 1 GiB of activation inputs remains on the ephemeral CPU instance;
+only compact tables, SVG/PNG heatmaps, manifests, and summaries are uploaded.

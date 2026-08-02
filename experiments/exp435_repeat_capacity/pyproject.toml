@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Outcome-blind hg38 RepeatMasker inventory for issue 435"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "matplotlib>=3.9",
     "numpy>=2.0",
     "polars>=1.0",
     "pyarrow>=17",

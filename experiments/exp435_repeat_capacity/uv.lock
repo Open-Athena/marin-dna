@@ -490,6 +490,7 @@ name = "exp435-repeat-capacity"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "matplotlib", marker = "sys_platform == 'linux'" },
     { name = "numpy", marker = "sys_platform == 'linux'" },
     { name = "polars", marker = "sys_platform == 'linux'" },
     { name = "pyarrow", marker = "sys_platform == 'linux'" },
@@ -518,6 +519,7 @@ dev = [
 requires-dist = [
     { name = "huggingface-hub", marker = "extra == 'gpu'" },
     { name = "marin-dna", marker = "extra == 'gpu'", git = "https://github.com/Open-Athena/marin-dna.git?rev=c4c1c86bbfc0bd58ff76dda3bac1d2acea856a33" },
+    { name = "matplotlib", specifier = ">=3.9" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "polars", specifier = ">=1.0" },
     { name = "pyarrow", specifier = ">=17" },

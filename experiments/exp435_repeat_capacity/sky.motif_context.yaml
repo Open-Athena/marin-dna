@@ -1,0 +1,103 @@
+name: dna-exp435-repeat-motif-context
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6i.4xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-motif-context-r1
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp435_repeat_capacity --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export MPLBACKEND=Agg
+  export POLARS_MAX_THREADS=12
+  export RAYON_NUM_THREADS=12
+  export OMP_NUM_THREADS=2
+  export MKL_NUM_THREADS=2
+  export OPENBLAS_NUM_THREADS=2
+  export NUMEXPR_NUM_THREADS=2
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-motif-context-r1"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-repeat-motif-inputs"
+  REFERENCE_ACTIVATION_ROOT="$INPUT_ROOT/reference-activations"
+  REFERENCE_ASSOCIATION_ROOT="$INPUT_ROOT/reference-associations"
+  VARIANT_PANEL_ROOT="$INPUT_ROOT/variant-panel"
+  PAIRED_ACTIVATION_ROOT="$INPUT_ROOT/paired-activations"
+  PAIRED_ANALYSIS_ROOT="$INPUT_ROOT/paired-analysis"
+  RUN_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  REFERENCE_ACTIVATION_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-activations-r1"
+  REFERENCE_ASSOCIATION_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-reference-associations-r1"
+  VARIANT_PANEL_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-panel-r1"
+  PAIRED_ACTIVATION_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1"
+  PAIRED_ANALYSIS_S3="s3://oa-bolinas/experiments/exp435/retrieval/dna-exp435-repeat-variant-deltas-r1"
+  test ! -e "$RUN_ROOT"
+  mkdir -p \
+    "$REFERENCE_ACTIVATION_ROOT" \
+    "$REFERENCE_ASSOCIATION_ROOT" \
+    "$VARIANT_PANEL_ROOT" \
+    "$PAIRED_ACTIVATION_ROOT" \
+    "$PAIRED_ANALYSIS_ROOT" \
+    "$RUN_ROOT/inputs"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 sync "$REFERENCE_ACTIVATION_S3/" "$REFERENCE_ACTIVATION_ROOT/" --only-show-errors
+  aws s3 sync "$REFERENCE_ASSOCIATION_S3/" "$REFERENCE_ASSOCIATION_ROOT/" --only-show-errors
+  aws s3 sync "$VARIANT_PANEL_S3/" "$VARIANT_PANEL_ROOT/" --only-show-errors
+  aws s3 sync "$PAIRED_ANALYSIS_S3/" "$PAIRED_ANALYSIS_ROOT/" --only-show-errors
+  aws s3 cp "$PAIRED_ACTIVATION_S3/manifest.json" "$PAIRED_ACTIVATION_ROOT/manifest.json"
+  for ARM in block01-25m block10-25m block19-25m; do
+    mkdir -p "$PAIRED_ACTIVATION_ROOT/$ARM"
+    for ORIENTATION in forward reverse_complement; do
+      aws s3 cp \
+        "$PAIRED_ACTIVATION_S3/$ARM/sae_focal_$ORIENTATION.parquet" \
+        "$PAIRED_ACTIVATION_ROOT/$ARM/sae_focal_$ORIENTATION.parquet"
+    done
+  done
+  cp "$REFERENCE_ACTIVATION_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/reference_activation_archive_manifest.json"
+  cp "$REFERENCE_ASSOCIATION_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/reference_association_archive_manifest.json"
+  cp "$VARIANT_PANEL_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/variant_panel_archive_manifest.json"
+  cp "$PAIRED_ACTIVATION_ROOT/manifest.json" "$RUN_ROOT/inputs/paired_activation_manifest.json"
+  cp "$PAIRED_ANALYSIS_ROOT/archive_manifest.json" "$RUN_ROOT/inputs/paired_analysis_archive_manifest.json"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/analyze_motif_contexts.py" \
+    --reference-activation-root "$REFERENCE_ACTIVATION_ROOT" \
+    --reference-association-root "$REFERENCE_ASSOCIATION_ROOT" \
+    --variant-panel-root "$VARIANT_PANEL_ROOT" \
+    --paired-activation-root "$PAIRED_ACTIVATION_ROOT" \
+    --paired-analysis-root "$PAIRED_ANALYSIS_ROOT" \
+    --output-dir "$RUN_ROOT/motif_context"
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$RUN_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status posthoc_repeat_motif_and_context_description
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-motif-context-r1-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive
