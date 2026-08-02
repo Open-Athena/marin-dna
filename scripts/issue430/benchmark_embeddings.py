@@ -219,7 +219,8 @@ def main() -> None:
         revision=DATASET_REVISION,
         split="train",
     ).to_pandas()
-    prepared = prepare_harness_llr(harness, tokenizer, subset=args.subset)
+    selected_subset = None if args.subset == "all" else args.subset
+    prepared = prepare_harness_llr(harness, tokenizer, subset=selected_subset)
     model = AutoModelForCausalLM.from_pretrained(
         args.checkpoint,
         revision=(
