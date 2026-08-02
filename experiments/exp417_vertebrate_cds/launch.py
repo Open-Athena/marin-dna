@@ -117,6 +117,7 @@ NATIVE_CHECKPOINT_EVERY = 500
 HF_SAVE_EVERY = 500
 PER_DEVICE_PARALLELISM = 1_024
 WANDB_GROUP = "dna-exp417-v1"
+RESUME_WANDB_MODE = "disabled"
 
 TRAIN_TPU = "v6e-4"
 TRAIN_REGIONS = ("us-east5",)
@@ -248,6 +249,7 @@ def build_arm(arm: str) -> ArtifactStep:
         wandb_project="marin",
         wandb_group=WANDB_GROUP,
         run_id=run_id,
+        env_vars={"WANDB_MODE": RESUME_WANDB_MODE},
         tags=(
             "dna",
             "dna-exp417",
@@ -274,6 +276,7 @@ def build_arm(arm: str) -> ArtifactStep:
                     per_device_parallelism=PER_DEVICE_PARALLELISM,
                     checkpointer=replace(
                         trainer.checkpointer,
+                        save_interval=None,
                         keep=[{"every": NATIVE_CHECKPOINT_EVERY}],
                     ),
                 ),

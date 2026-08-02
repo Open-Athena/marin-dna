@@ -37,6 +37,7 @@ from launch import (
     PER_DEVICE_PARALLELISM,
     PROJECTION_PIPELINE_REVISION,
     REPEAT_MASK_LOSS_WEIGHT,
+    RESUME_WANDB_MODE,
     RUN_IDS,
     SEED,
     SEQ_LEN,
@@ -214,9 +215,11 @@ def test_both_lowered_training_arms_are_matched(monkeypatch: pytest.MonkeyPatch)
         assert trainer.num_train_steps == TRAIN_STEPS
         assert trainer.steps_per_eval == VALIDATION_EVERY
         assert trainer.per_device_parallelism == PER_DEVICE_PARALLELISM
+        assert trainer.checkpointer.save_interval is None
         assert trainer.checkpointer.keep == [{"every": NATIVE_CHECKPOINT_EVERY}]
         assert config.hf_save_steps == HF_SAVE_EVERY
         assert trainer.id == RUN_IDS[arm]
+        assert pod_config.env_vars == {"WANDB_MODE": RESUME_WANDB_MODE}
 
     assert TRAIN_TPU == "v6e-4"
     assert TRAIN_REGIONS == ("us-east5",)
@@ -280,7 +283,6 @@ def test_offline_eval_overlay_is_frozen_to_terminal_checkpoints() -> None:
         for dataset in config["datasets"]
     } == {
         ("mendelian_traits", "4aed58e50c5dea0b878a665007af2ef9e5108e9f", "minus_llr"),
-        ("complex_traits", "22f86a89c65cb8f3007ac3cc2739f40efefa4340", "abs_llr"),
         ("sge", "225d3d1ea32a4af547891b13c33b5e92a5aae849", "minus_llr"),
     }
     assert [model["name"] for model in config["models"]] == [
@@ -293,7 +295,6 @@ def test_offline_eval_overlay_is_frozen_to_terminal_checkpoints() -> None:
         assert model["window_size"] == 255
         assert model["datasets"] == [
             "mendelian_traits",
-            "complex_traits",
             "sge",
         ]
     for section in ("nuc_dep", "umap_embeddings", "ll_gap", "probe"):

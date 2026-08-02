@@ -143,6 +143,28 @@ committing temporary step 889. The combined child reported one preemption and
 zero failures after reaching step 493; its latest committed temporary checkpoint
 was step 438 and it was pending replacement capacity. No arm was manually
 relaunched: both retained the same checkpoint paths and frozen recipe.
+At 2026-08-02 02:36 UTC, the recovered mammals worker committed temporary
+checkpoint step 997 and then failed while starting native checkpoint step 1000.
+The direct exception was `RuntimeError: Set changed size during iteration`
+inside `asyncio.run` during JAX serialization; W&B's background
+`AsyncioManager` then raised the same exception during teardown. The child
+ended with one failure and two preemptions, while the complete step-997
+checkpoint remained available for a three-step replay.
+
+The combined arm was preempted a second time after committing its native
+step-500 checkpoint. Iris restored that checkpoint automatically, resumed from
+step 501, and had advanced through step 545 at 2026-08-02 02:50 UTC with zero
+failures and two preemptions.
+
+Safe resumes from this revision disable the time-based temporary-checkpoint
+policy and set `WANDB_MODE=disabled`, removing both asynchronous runtimes
+implicated in the race. Native optimizer-state checkpoints, validation, and
+reloadable Hugging Face exports remain aligned every 500 steps. This is an
+execution-only deviation: the datasets, model, initialization, optimizer,
+batch order and size, seed, objective, loss weights, and terminal evaluation
+are unchanged. Existing W&B history is retained through the last online
+attempt; later progress remains in Iris logs and the durable training outputs.
+
 
 ## Frozen offline VEP evaluation
 
