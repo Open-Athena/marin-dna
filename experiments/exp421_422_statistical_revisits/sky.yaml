@@ -1,0 +1,119 @@
+name: dna-exp421-422-statistical-revisits
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.8xlarge
+  disk_size: 100
+  autostop:
+    idle_minutes: 60
+    down: true
+
+workdir: .
+
+envs:
+  ANALYSIS_COMMIT: ""
+  AWS_REGION: us-east-2
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp421_422_statistical_revisits --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=24
+  export RAYON_NUM_THREADS=24
+  export OMP_NUM_THREADS=16
+  export MKL_NUM_THREADS=16
+  export OPENBLAS_NUM_THREADS=16
+  export NUMEXPR_NUM_THREADS=16
+  export PYTHONPATH="experiments/exp421_m51_sae_alphagenome_tracks:experiments/exp422_m51_sae_variant_consequences"
+  test "${#ANALYSIS_COMMIT}" -eq 40
+
+  CPU_PROJECT="experiments/exp421_422_statistical_revisits"
+  INPUT_ROOT="$HOME/statistical-revisit-inputs"
+  OUTPUT_ROOT="$HOME/statistical-revisit-runs"
+  PANEL421="$INPUT_ROOT/exp421/panel"
+  ACTIVATIONS421="$INPUT_ROOT/exp421/activations"
+  MAPPING421="$INPUT_ROOT/exp421/mapping"
+  PANEL422="$INPUT_ROOT/exp422/panel"
+  ACTIVATIONS422="$INPUT_ROOT/exp422/activations"
+  RUN421="dna-exp421-grouped-l2-complete-family-r1"
+  RUN422="dna-exp422-complete-family-25m-r1"
+  OUTPUT421="$OUTPUT_ROOT/$RUN421"
+  OUTPUT422="$OUTPUT_ROOT/$RUN422"
+  test ! -e "$OUTPUT421"
+  test ! -e "$OUTPUT422"
+  mkdir -p "$PANEL421" "$ACTIVATIONS421" "$MAPPING421" \
+    "$PANEL422" "$ACTIVATIONS422" "$OUTPUT_ROOT"
+
+  uv run --project "$CPU_PROJECT" python -m pytest -q \
+    experiments/exp421_m51_sae_alphagenome_tracks/test_grouped_l2_association.py \
+    experiments/exp422_m51_sae_variant_consequences/tests/test_complete_family_association.py
+
+  aws s3 sync \
+    s3://oa-bolinas/experiments/exp435/inputs/dna-exp435-mendelian-panel-a1843d90/ \
+    "$PANEL421/" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1/manifest.json \
+    "$ACTIVATIONS421/manifest.json"
+  for ARM in block01-25m block10-25m block19-25m; do
+    aws s3 sync \
+      "s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-mendelian-focal-seed288-r1/$ARM/" \
+      "$ACTIVATIONS421/$ARM/" --only-show-errors
+  done
+  aws s3 sync \
+    s3://oa-bolinas/experiments/exp421/retrieval/dna-exp421-biosample-mapping-r1/ \
+    "$MAPPING421/" --only-show-errors
+
+  uv run --project "$CPU_PROJECT" python \
+    experiments/exp421_m51_sae_alphagenome_tracks/grouped_l2_association.py \
+    --panel "$PANEL421/panel.parquet" \
+    --activation-root "$ACTIVATIONS421" \
+    --extraction-manifest "$ACTIVATIONS421/manifest.json" \
+    --alphagenome-uri s3://oa-bolinas/snakemake/alphagenome_eval/results/per_track_l2/mendelian_traits.parquet \
+    --track-mapping "$MAPPING421/track_mapping.parquet" \
+    --mapping-manifest "$MAPPING421/manifest.json" \
+    --output-dir "$OUTPUT421" \
+    --analysis-commit "$ANALYSIS_COMMIT"
+
+  S3_OUTPUT421="s3://oa-bolinas/experiments/exp421/retrieval/$RUN421"
+  aws s3 sync "$OUTPUT421/" "$S3_OUTPUT421/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$OUTPUT421/manifest.json" "$S3_OUTPUT421/manifest.json"
+  DRYRUN421="/tmp/exp421-result-dryrun.txt"
+  aws s3 sync "$OUTPUT421/" "$S3_OUTPUT421/" --dryrun > "$DRYRUN421"
+  test ! -s "$DRYRUN421"
+
+  aws s3 sync \
+    s3://oa-bolinas/experiments/exp422/inputs/dna-exp422-consequence-panel-b08f9cff/ \
+    "$PANEL422/" --only-show-errors
+  aws s3 sync \
+    s3://oa-bolinas/experiments/exp422/retrieval/dna-exp422-multilayer-25m-seed288-r1/ \
+    "$ACTIVATIONS422/" --only-show-errors
+
+  uv run --project "$CPU_PROJECT" python \
+    experiments/exp422_m51_sae_variant_consequences/complete_family_association.py \
+    --panel "$PANEL422/panel.parquet" \
+    --extraction-root "$ACTIVATIONS422" \
+    --extraction-manifest "$ACTIVATIONS422/manifest.json" \
+    --output-dir "$OUTPUT422" \
+    --analysis-commit "$ANALYSIS_COMMIT"
+
+  S3_OUTPUT422="s3://oa-bolinas/experiments/exp422/retrieval/$RUN422"
+  aws s3 sync "$OUTPUT422/" "$S3_OUTPUT422/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$OUTPUT422/manifest.json" "$S3_OUTPUT422/manifest.json"
+  DRYRUN422="/tmp/exp422-result-dryrun.txt"
+  aws s3 sync "$OUTPUT422/" "$S3_OUTPUT422/" --dryrun > "$DRYRUN422"
+  test ! -s "$DRYRUN422"
+  aws s3 ls "$S3_OUTPUT421/" --recursive --summarize
+  aws s3 ls "$S3_OUTPUT422/" --recursive --summarize

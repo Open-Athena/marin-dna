@@ -1,0 +1,85 @@
+name: dna-exp422-multilayer-extract
+
+resources:
+  infra: lambda/us-west-3
+  instance_type: gpu_1x_h100_pcie
+  disk_size: 100
+  autostop:
+    idle_minutes: 60
+    down: true
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp422-multilayer-25m-seed288-r1
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_SESSION_TOKEN: ""
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp422_m51_sae_variant_consequences --frozen --no-dev
+  uv run --project experiments/exp422_m51_sae_variant_consequences --no-dev python -c \
+    'import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export HF_HUB_DOWNLOAD_TIMEOUT=120
+  export UV_LOCK_TIMEOUT=7200
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp422-multilayer-25m-seed288-r1"
+
+  EXPERIMENT_DIR="experiments/exp422_m51_sae_variant_consequences"
+  INPUT_ROOT="$HOME/exp422-multilayer-inputs"
+  PANEL_ROOT="$INPUT_ROOT/panel"
+  FASTA_ROOT="$INPUT_ROOT/reference"
+  MODEL_ROOT="$INPUT_ROOT/models"
+  RUN_ROOT="$HOME/exp422-multilayer-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp422/retrieval/$RUN_ID"
+  PANEL_S3="s3://oa-bolinas/experiments/exp422/inputs/dna-exp422-consequence-panel-b08f9cff"
+  FASTA_S3="s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115"
+  BLOCK01_S3="s3://oa-bolinas/experiments/exp436/retrieval/dna-exp436-block01-seed288-r1/models/block01-25m"
+  EXISTING_S3="s3://oa-bolinas/experiments/exp426/retrieval/dna-exp426-layer-budget-seed288-r5/models"
+  test ! -e "$RUN_ROOT"
+  mkdir -p "$PANEL_ROOT" "$FASTA_ROOT" "$MODEL_ROOT"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q \
+    "$EXPERIMENT_DIR/tests/test_extract.py" \
+    "$EXPERIMENT_DIR/tests/test_extract_multilayer.py"
+  aws s3 sync "$PANEL_S3/" "$PANEL_ROOT/" --only-show-errors
+  for SUFFIX in "" .fai .gzi; do
+    aws s3 cp "$FASTA_S3/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz$SUFFIX" \
+      "$FASTA_ROOT/reference.fa.gz$SUFFIX"
+  done
+  aws s3 sync "$BLOCK01_S3/" "$MODEL_ROOT/block01-25m/" --only-show-errors
+  for ARM in block10-25m block19-25m; do
+    aws s3 sync "$EXISTING_S3/$ARM/" "$MODEL_ROOT/$ARM/" --only-show-errors
+  done
+
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/extract_multilayer.py" \
+    --panel "$PANEL_ROOT/panel.parquet" \
+    --panel-manifest "$PANEL_ROOT/panel.manifest.json" \
+    --fasta "$FASTA_ROOT/reference.fa.gz" \
+    --block01-sae "$MODEL_ROOT/block01-25m" \
+    --block10-sae "$MODEL_ROOT/block10-25m" \
+    --block19-sae "$MODEL_ROOT/block19-25m" \
+    --output-dir "$RUN_ROOT" \
+    --batch-size 32
+
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --exclude manifest.json --only-show-errors
+  aws s3 cp "$RUN_ROOT/manifest.json" "$S3_ROOT/manifest.json"
+  DRYRUN_LOG="/tmp/exp422-multilayer-s3-dryrun.txt"
+  aws s3 sync "$RUN_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive

@@ -70,6 +70,12 @@ idle minutes, and writes results under
 `artifacts/dna-exp422-variant-consequences-seed288/`. Download that directory
 before the cluster is torn down.
 
+`extract_multilayer.py` is the joint blocks 1/10/19 extractor for the 25M SAE checkpoints. It runs the base model once per ref/alt batch, preserves FWD and RC separately, and archives only the sparse SAE reference/alternate union needed by the statistical revisit. `sky_multilayer.yaml` stages the frozen panel, reference, and three SAE checkpoints from S3 and uploads the manifest last.
+
+## Complete-family statistical revisit
+
+`complete_family_association.py` ignores the historical split labels and tests all globally supported features against all 35 one-vs-rest consequence targets. It reports Welch and Mann–Whitney inference with complete-family BH correction, standardized and rank-biserial effects, direction-aligned descriptive AUPRC, and Welch/Kruskal omnibus views. Layers, orientations, and signed versus absolute paired responses remain separate hypothesis families. Every eligible result is archived; there is no discovery/validation feature selection.
+
 ## Held-out analysis
 
 After retrieving and hash-validating the extraction directory, run the sparse
