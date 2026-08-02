@@ -6,6 +6,10 @@ The analysis uses chromosome-held-out discovery, validation, and test splits. Pe
 
 The current AlphaGenome metadata endpoint is saved with the results. Its assay counts match the historical score export exactly, but the original May 2026 metadata snapshot was not preserved, so named-track interpretation carries that provenance caveat.
 
+## Canonical biosample mapping
+
+Before the grouped-L2 analysis, `biosample_mapping.py` materializes a metadata-only mapping whose canonical key is `biosample_type|ontology_curie`. This merges donors, replicates, and same-ontology label synonyms while keeping tissues, primary cells, in-vitro differentiated cells, organoids, and cell lines distinct. It writes the full track mapping, canonical-unit and assay-by-unit catalogs, an explicit review queue, hashes, and a human-readable audit without reading AlphaGenome scores or SAE outputs.
+
 Run the unit tests from this directory:
 
 ```bash
