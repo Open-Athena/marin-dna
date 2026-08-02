@@ -1,0 +1,60 @@
+name: dna-exp435-repeat-label-sensitivity-audit
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c7i.8xlarge
+  disk_size: 100
+  use_spot: false
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp435-repeat-label-sensitivity-audit-r1
+  RESULT_OUTER_SHA256: c7456c62a2e6f8b201ab0d5be16ba88860fbb6453e65dbc3da6320b589c6b41b
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=24
+  export RAYON_NUM_THREADS=24
+  export OMP_NUM_THREADS=8
+  export MKL_NUM_THREADS=8
+  export OPENBLAS_NUM_THREADS=8
+  export NUMEXPR_NUM_THREADS=8
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp435-repeat-label-sensitivity-audit-r1"
+  test "$RESULT_OUTER_SHA256" = "c7456c62a2e6f8b201ab0d5be16ba88860fbb6453e65dbc3da6320b589c6b41b"
+  EXPERIMENT_DIR="experiments/exp435_repeat_capacity"
+  INPUT_ROOT="$HOME/exp435-repeat-label-inputs"
+  RESULT_ROOT="$HOME/exp435-repeat-runs/dna-exp435-repeat-label-sensitivity-r1"
+  AUDIT_ROOT="$HOME/exp435-repeat-runs/$RUN_ID"
+  S3_ROOT="s3://oa-bolinas/experiments/exp435/retrieval/$RUN_ID"
+  test -f "$RESULT_ROOT/archive_manifest.json"
+  test ! -e "$AUDIT_ROOT"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/audit_repeat_label_sensitivity.py" \
+    --result-root "$RESULT_ROOT" \
+    --expected-outer-sha256 "$RESULT_OUTER_SHA256" \
+    --label-panel "$INPUT_ROOT/label-panel/panel.parquet" \
+    --repeat-panel-root "$INPUT_ROOT/repeat-panel" \
+    --global-association-root "$INPUT_ROOT/global-associations" \
+    --reference-association-root "$INPUT_ROOT/reference-repeat-associations" \
+    --paired-repeat-root "$INPUT_ROOT/paired-repeat-associations" \
+    --output-dir "$AUDIT_ROOT/audit"
+
+  mkdir -p "$AUDIT_ROOT/inputs"
+  cp "$RESULT_ROOT/archive_manifest.json" "$AUDIT_ROOT/inputs/result_archive_manifest.json"
+  uv run --project "$EXPERIMENT_DIR" --no-dev python "$EXPERIMENT_DIR/archive_posthoc.py" \
+    --root "$AUDIT_ROOT" \
+    --run-id "$RUN_ID" \
+    --analysis-status independent_repeat_label_sensitivity_audit
+  aws s3 sync "$AUDIT_ROOT/" "$S3_ROOT/" --only-show-errors
+  DRYRUN_LOG="/tmp/exp435-repeat-label-sensitivity-audit-r1-s3-dryrun.txt"
+  aws s3 sync "$AUDIT_ROOT/" "$S3_ROOT/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
+  aws s3 ls "$S3_ROOT/" --recursive
