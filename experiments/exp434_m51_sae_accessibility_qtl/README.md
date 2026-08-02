@@ -101,6 +101,24 @@ uv run --project experiments/exp434_m51_sae_accessibility_qtl \
   --consequence-root <issue-422-result-root> --output-dir <output-root>
 ```
 
+## Decoder-geometry audit
+
+`audit_direction_decoder_geometry.py` tests whether response-correlated QTL hits
+are copied or split SAE directions. It reads the selected encoder columns and
+decoder rows from the exact block-19/25M checkpoint, compares their cosine
+geometry with complete response-vector correlations, and requires no model
+inference or GPU.
+
+```bash
+aws s3 cp <pinned-block19-25m-safetensors-uri> <weights-path>
+EXPERIMENT_COMMIT=<40-character-commit> \
+RUN_ID=dna-exp434-direction-decoder-geometry-r1 \
+uv run --project experiments/exp434_m51_sae_accessibility_qtl \
+  python experiments/exp434_m51_sae_accessibility_qtl/audit_direction_decoder_geometry.py \
+  --cross-reference-root <cross-reference-result-root> \
+  --weights <weights-path> --output-dir <output-root>
+```
+
 ## Local verification
 
 Use bounded threads on the shared workstation:
