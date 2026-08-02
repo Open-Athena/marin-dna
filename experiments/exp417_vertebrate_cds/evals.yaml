@@ -1,8 +1,10 @@
-# Frozen terminal-checkpoint VEP overlay for issue #417.
+# Frozen terminal-checkpoint VEP development overlay for issue #417.
 # Loaded after snakemake/analysis/evals_v2/config/config.yaml: lists replace the
 # base registries while all other inference defaults remain unchanged.
 
-split: test
+# Project convention: VEP development and experiment comparisons use train.
+# The held-out test split must never be used for ordinary experiment iteration.
+split: train
 
 datasets:
   - name: mendelian_traits

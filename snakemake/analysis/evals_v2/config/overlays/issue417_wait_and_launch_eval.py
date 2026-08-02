@@ -23,7 +23,9 @@ from marin_dna_evals.issue417_handoff import (
 REPO_ROOT = Path(__file__).resolve().parents[5]
 EVAL_DIR = REPO_ROOT / "snakemake/analysis/evals_v2"
 CONFIG_REL = "../../../experiments/exp417_vertebrate_cds/evals.yaml"
-RESULTS_PREFIX = "s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/"
+RESULTS_PREFIX = (
+    "s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/"
+)
 EXPORTS = {
     "mammals_only": (
         "gs://marin-us-east5/checkpoints/"
@@ -51,7 +53,7 @@ SUMMARY_PATHS = (
 )
 HANDOFF_LOCK = Path("/tmp/marin-dna-issue417-eval-handoff.lock")
 SHARED_HEAVY_LOCK = "/tmp/marin-dna-local-heavy.lock"
-SKY_CLUSTER = "dna417-cds-vep"
+SKY_CLUSTER = "dna417-cds-vep-train"
 THREAD_CAPS = (
     "POLARS_MAX_THREADS=2",
     "RAYON_NUM_THREADS=2",

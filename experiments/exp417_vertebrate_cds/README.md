@@ -365,10 +365,11 @@ metadata, and reloadable HF export were independently verified in GCS.
 
 ## Frozen offline VEP evaluation
 
-The terminal `step-4999` exports are evaluated once on the held-out `test`
-split with the current `evals_v2` zero-shot harness. The experiment-local
-[`evals.yaml`](evals.yaml) restricts the DAG to the two matched checkpoints
-and two coding-relevant benchmarks:
+The terminal `step-4999` exports are evaluated on the VEP development `train`
+split with the current `evals_v2` zero-shot harness. Project convention forbids
+using the held-out VEP test split for ordinary experiment iteration. The
+experiment-local [`evals.yaml`](evals.yaml) restricts the DAG to the two matched
+checkpoints and two coding-relevant benchmarks:
 
 - Mendelian traits: signed FWD/RC-averaged LLR for missense, splicing, and
   synonymous variants with matched-pair cluster-bootstrap uncertainty.
@@ -390,7 +391,7 @@ Dry-run from `snakemake/analysis/evals_v2/` before launching any GPU:
 ```bash
 uv run snakemake -n \
   --configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml \
-  --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/ \
+  --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/ \
   -- all
 ```
 
@@ -417,27 +418,23 @@ auto-downing A10G worker using the existing project task. The user has
 explicitly authorized EC2/SkyPilot resources for this issue:
 
 ```bash
-sky launch -c dna417-cds-vep --down \
+sky launch -c dna417-cds-vep-train --down \
   snakemake/analysis/evals_v2/sky/run.yaml \
   --env SNAKEMAKE_ARGS="--configfile ../../../experiments/exp417_vertebrate_cds/evals.yaml \
-    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/ \
+    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/ \
     -- all"
 ```
 
-The corrected bounded launch used immutable commit
-[`dec0c24`](https://github.com/Open-Athena/marin-dna/tree/dec0c2442681ecc9dd48493fc5b10260fcf0ddb2/experiments/exp417_vertebrate_cds).
-It reused the two cached model downloads and resolved exactly four score jobs,
-four metric jobs, and the final `all` target. Sky job 1 on
-`dna417-cds-vep` completed all 9 jobs with exit 0 on 2026-08-02. The score
-outputs contain 9,490 Mendelian test rows and 14,888 SGE test rows per arm;
-the corresponding metric outputs contain 66 matched-pair and 96 SGE metric
-rows per arm.
-
-The four metric outputs are isolated under:
+The corrected train-split metric outputs are isolated under:
 
 ```text
-s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/metrics/
+s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/results/metrics/
 ```
+
+A previous run used the prohibited held-out test split. Its objects remain at
+the old `issue417_cds_sanity/2026.08.01` prefix solely to avoid destructive
+cleanup; they are invalid for scientific interpretation and must not be cited
+as issue #417 results.
 
 For an unattended but fail-closed handoff, the tracked watcher waits for both
 exact four-file terminal exports, rechecks a clean pinned commit, repeats the
@@ -466,15 +463,13 @@ uv run --group genome-s3 python scripts/issue417_summarize_vep.py \
 It writes two durable artifacts alongside the metrics:
 
 ```text
-s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.json
-s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01/results/comparison/summary.md
+s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/results/comparison/summary.json
+s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02/results/comparison/summary.md
 ```
 
-The CDS-only reporter completed against commit
-`bded4079682adbcdaf3311e0026c17c88fbfd8d5` at 2026-08-02 13:54 UTC and
-wrote both artifacts above. Scientific findings
-and the paired comparison table are recorded in issue #417; this README keeps
-the reproducible execution recipe and immutable artifact locations.
+The train-split run is pending. Once complete, record its immutable producing
+commit, execution receipt, and paired comparison here before updating issue
+#417.
 
 This is intentionally offline: the training graphs have no lm-eval harness,
 which avoids changing the matched optimizer/training path and lets the current

@@ -104,7 +104,7 @@ def _metrics(
         )
         matched_metrics["model"] = arm
         matched_metrics["dataset"] = "mendelian_traits"
-        matched_metrics["split"] = "test"
+        matched_metrics["split"] = "train"
         result[(arm, "mendelian_traits")] = matched_metrics
 
         sge_score = pd.DataFrame(
@@ -118,7 +118,7 @@ def _metrics(
         )
         sge_metrics["model"] = arm
         sge_metrics["dataset"] = "sge"
-        sge_metrics["split"] = "test"
+        sge_metrics["split"] = "train"
         result[(arm, "sge")] = sge_metrics
     return result
 

@@ -328,7 +328,7 @@ def test_runtime_training_config_restores_repeat_aware_format(
 def test_offline_eval_overlay_is_frozen_to_terminal_checkpoints() -> None:
     config = yaml.safe_load(Path(__file__).with_name("evals.yaml").read_text())
     assert isinstance(config, dict)
-    assert config["split"] == "test"
+    assert config["split"] == "train"
     assert {
         (dataset["name"], dataset["hf_revision"], dataset["score_protocol"])
         for dataset in config["datasets"]

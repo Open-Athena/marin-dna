@@ -1,9 +1,9 @@
 """Frozen paired VEP comparison for issue #417.
 
 This module compares the mammals-only and combined-vertebrates terminal models
-on the same held-out Mendelian and SGE rows. Because these are CDS-trained
-models, it intentionally reports only missense, splicing, and synonymous
-scopes where the benchmark provides them.
+on the same VEP development rows. Because these are CDS-trained models, it
+intentionally reports only missense, splicing, and synonymous scopes where the
+benchmark provides them.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ COMBINED_ARM = "combined_vertebrates"
 ARMS = (MAMMALS_ARM, COMBINED_ARM)
 DATASETS = ("mendelian_traits", "sge")
 SCORE_TYPE = "minus_llr_avg"
-SPLIT = "test"
+SPLIT = "train"
 MENDELIAN_SCOPES = ("missense_variant", "splicing", "synonymous_variant")
 SGE_SCOPES = ("missense_variant", "splicing")
 MACRO = "_macro_avg_"

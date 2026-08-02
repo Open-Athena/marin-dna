@@ -32,7 +32,7 @@ from marin_dna_evals.issue417_summary import (
 )
 
 DEFAULT_RESULTS_PREFIX = (
-    "s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity/2026.08.01"
+    "s3://oa-bolinas/snakemake/analysis/issue417_cds_sanity_train/2026.08.02"
 )
 MODEL_NAMES = {
     MAMMALS_ARM: "exp417-cds-mammals-only-step-4999",
