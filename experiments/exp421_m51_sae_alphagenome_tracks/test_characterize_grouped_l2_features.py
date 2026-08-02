@@ -30,16 +30,16 @@ def test_sequence_helpers_and_coordinate_boundary(
     panel = pl.DataFrame(
         {
             "chrom": ["1", "1"],
-            "pos": [32, 40],
-            "ref": [sequence[31], sequence[39]],
-            "alt": ["A", "C"],
+            "pos": [40, 32],
+            "ref": [sequence[39], sequence[31]],
+            "alt": ["C", "A"],
         }
     )
     contexts = build_contexts(panel, fasta_path)
     assert contexts.height == 2
     assert contexts["ref_context"].str.len_chars().to_list() == [63, 63]
-    assert contexts["ref_context"][0][31] == sequence[31]
-    assert contexts["alt_context"][1][31] == "C"
+    assert contexts["ref_context"][0][31] == sequence[39]
+    assert contexts["alt_context"][1][31] == "A"
     assert reverse_complement("ACGTN") == "NACGT"
     assert _max_homopolymer("AACCCGT") == 3
 

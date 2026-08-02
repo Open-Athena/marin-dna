@@ -112,7 +112,8 @@ def build_contexts(panel: pl.DataFrame, fasta_uri: str | Path) -> pl.DataFrame:
     assert panel.height == EXPECTED_ROWS
     fasta = _open_fasta(fasta_uri)
     rows: list[dict[str, Any]] = []
-    for panel_row, row in enumerate(panel.iter_rows(named=True)):
+    ordered = panel.with_row_index("panel_row").sort(["chrom", "pos", "ref", "alt"])
+    for row in ordered.iter_rows(named=True):
         pos0 = int(row["pos"]) - 1
         start0 = pos0 - CONTEXT_FLANK
         end0 = pos0 + CONTEXT_FLANK + 1
@@ -134,7 +135,7 @@ def build_contexts(panel: pl.DataFrame, fasta_uri: str | Path) -> pl.DataFrame:
         gc_fraction = sum(base in "GC" for base in ref_context) / len(ref_context)
         rows.append(
             {
-                "panel_row": panel_row,
+                "panel_row": row["panel_row"],
                 "ref_context": ref_context,
                 "alt_context": alt_context,
                 "substitution": f"{row['ref']}>{row['alt']}",
@@ -148,8 +149,9 @@ def build_contexts(panel: pl.DataFrame, fasta_uri: str | Path) -> pl.DataFrame:
             }
         )
     fasta.close()
-    contexts = pl.DataFrame(rows)
+    contexts = pl.DataFrame(rows).sort("panel_row")
     assert contexts.height == EXPECTED_ROWS
+    assert contexts["panel_row"].to_list() == list(range(EXPECTED_ROWS))
     gc = contexts["ref_gc_fraction"].to_numpy()
     cutpoints = np.quantile(gc, (0.2, 0.4, 0.6, 0.8))
     quintile = np.digitize(gc, cutpoints, right=True) + 1
@@ -842,6 +844,7 @@ def analyze(
         "protocol": {
             "sequence_context_bp": 2 * CONTEXT_FLANK + 1,
             "top_contexts_per_feature_orientation": TOP_CONTEXTS,
+            "fasta_access": "uncompressed S3 byte ranges read in chromosome/position order; outputs restored to panel_row order",
             "repeat_annotation": "outcome-blind audited issue #435 panel",
             "category_tests": "one-vs-rest Welch t-test and Mann-Whitney; BH within feature x orientation x annotation dimension",
             "continuous_tests": "Pearson and Spearman; BH within feature x orientation x statistic",
