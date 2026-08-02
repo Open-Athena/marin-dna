@@ -266,9 +266,13 @@ The coordinator reproduced artifact fingerprint `4ddff021`, reused the
 successful token cache, and dispatched the guarded `v6e-4` training child with
 384 GiB host RAM. At the 08:13 UTC observation the child was pending solely
 because Iris reported zero free TPU chips; the coordinator and child had zero
-failures and no configuration or import error. It will restore the complete
-step-2500 checkpoint when capacity becomes available, while combined `r5`
-continues independently.
+failures and no configuration or import error. Capacity became available at
+08:22 UTC. The worker detected the requested `v6e-4`, explicitly discovered
+step 2500 as the latest valid checkpoint (ignoring the incomplete step 3000),
+restored it, and resumed at step 2501. The first recovered train step completed
+successfully, followed by normal progress through about step 2510 with loss
+1.23 at 08:27 UTC. The guarded child still reported zero failures and zero
+preemptions, while combined `r5` continued independently.
 
 ## Frozen offline VEP evaluation
 
