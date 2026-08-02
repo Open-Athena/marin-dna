@@ -35,7 +35,13 @@ uv run --with polars --with numpy --with pandas --with matplotlib --with seaborn
 Run its focused tests with:
 
 ```bash
-uv run --project experiments/exp421_422_statistical_revisits pytest -q experiments/exp421_m51_sae_alphagenome_tracks/test_characterize_grouped_l2_features.py
+uv run --project experiments/exp421_422_statistical_revisits pytest -q experiments/exp421_m51_sae_alphagenome_tracks/test_characterize_grouped_l2_features.py experiments/exp421_m51_sae_alphagenome_tracks/test_summarize_feature_characterization.py
 ```
 
 The bounded CPU runner is `sky.characterize_grouped_l2.yaml`. It retrieves the frozen panel, selected 25M SAE activations, high-level taxonomy, AlphaGenome L2 table, and audited repeat annotations; it queries the exact indexed, uncompressed GRCh38 FASTA directly from the same-region S3 mirror and uploads a hash-manifested result archive.
+
+Create the compact post-hoc tables and PNG/SVG synthesis figures with:
+
+```bash
+uv run python experiments/exp421_m51_sae_alphagenome_tracks/summarize_feature_characterization.py --result-root <retrieved-characterization-directory> --output-dir <summary-directory>
+```
