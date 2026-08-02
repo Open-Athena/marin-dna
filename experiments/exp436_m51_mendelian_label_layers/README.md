@@ -69,3 +69,26 @@ sky launch -d -c exp436-lambda \
 The task stages hash-complete sparse Parquets under
 `retrieval/dna-exp436-mendelian-focal-seed288-r1/`. Retrieve and verify the
 manifest before analysis or cluster termination.
+
+## Focal association inventory
+
+The focal scan tests every response-supported feature against Mendelian
+`label` overall and within every adequately supported predefined subset. The
+primary variant contrasts are `abs(delta)` and signed `delta`; reference-only
+and alternate-only activation scans are contextual controls. Welch and
+Mann–Whitney families receive separate within-family BH correction, while raw
+and sign-reversed AUPRC remain descriptive.
+
+```bash
+uv run pytest tests/test_analyze_focal.py
+uv run ruff check analyze_focal.py tests/test_analyze_focal.py
+uv run ruff format --check analyze_focal.py tests/test_analyze_focal.py
+sky launch -d -c exp436-lambda --dryrun sky.analyze.yaml
+sky launch -d -c exp436-lambda \
+  --env EXPERIMENT_COMMIT=<40-character-commit> \
+  sky.analyze.yaml
+```
+
+The task writes one complete Parquet per declared hypothesis family plus a
+compact `top_hits.parquet`, results manifest, and hashes. It uses the warm H100
+node's CPUs; no second paid instance is required.

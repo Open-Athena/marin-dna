@@ -1,0 +1,52 @@
+# Run the complete focal association inventory on the warm Lambda H100's CPUs.
+
+name: dna-exp436-mendelian-focal-associations
+
+resources:
+    infra: lambda/us-west-3
+    instance_type: gpu_1x_h100_pcie
+    disk_size: 120
+    autostop:
+        idle_minutes: 180
+        down: true
+
+workdir: .
+
+file_mounts:
+    ~/inputs/issue436/panel.parquet: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue420/input/panel.parquet
+    ~/inputs/issue436/panel.manifest.json: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue420/input/panel.manifest.json
+    ~/inputs/issue436/focal: /home/ubuntu/.codex/worktrees/2c63/bolinas-dna/scratch/issue436/retrieval/dna-exp436-mendelian-focal-seed288-r1
+
+envs:
+    RUN_ID: dna-exp436-mendelian-focal-associations-seed288-r1
+    EXPERIMENT_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    uv sync --frozen --no-dev
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export OMP_NUM_THREADS=16
+    export MKL_NUM_THREADS=16
+    export OPENBLAS_NUM_THREADS=16
+    export NUMEXPR_NUM_THREADS=16
+    export POLARS_MAX_THREADS=16
+    export EXPERIMENT_COMMIT
+
+    uv run --no-dev python analyze_focal.py \
+        --panel "$HOME/inputs/issue436/panel.parquet" \
+        --panel-manifest "$HOME/inputs/issue436/panel.manifest.json" \
+        --extraction-root "$HOME/inputs/issue436/focal" \
+        --output-dir "artifacts/$RUN_ID" \
+        --ap-chunk-size 128
+
+    mkdir -p "retrieval/$RUN_ID"
+    cp -a "artifacts/$RUN_ID/." "retrieval/$RUN_ID/"
