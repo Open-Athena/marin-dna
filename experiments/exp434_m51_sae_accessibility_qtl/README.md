@@ -80,6 +80,27 @@ The hash-complete result is stored at:
 s3://oa-bolinas/experiments/exp434/retrieval/dna-exp434-feature1829-interpretation-r1/
 ```
 
+## Post-hoc cross-dataset triage
+
+`cross_reference_direction_hits.py` checks whether the significant block-19
+direction features represent independent response families. It computes pairwise
+Pearson and Spearman correlations between the complete 559-variant signed
+response vectors, forms connected components at declared absolute-Pearson
+thresholds, and joins every QTL hit to the complete #421 AlphaGenome L2 and #422
+broad consequence tables. This is descriptive follow-up: it does not change the
+original QTL testing families or discover new QTL features.
+
+```bash
+EXPERIMENT_COMMIT=<40-character-commit> \
+RUN_ID=dna-exp434-direction-cross-reference-r1 \
+uv run --project experiments/exp434_m51_sae_accessibility_qtl \
+  python experiments/exp434_m51_sae_accessibility_qtl/cross_reference_direction_hits.py \
+  --panel <panel.parquet> --panel-manifest <panel-manifest.json> \
+  --association-root <association-root> --extraction-root <extraction-root> \
+  --alphagenome-root <issue-421-result-root> \
+  --consequence-root <issue-422-result-root> --output-dir <output-root>
+```
+
 ## Local verification
 
 Use bounded threads on the shared workstation:
