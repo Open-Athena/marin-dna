@@ -12,7 +12,7 @@ pinned phyloP conservation filter; that filter never rewrites emitted
 characters or case. Uppercase bases receive loss weight 1.0 and lowercase
 repeat-masked bases receive loss weight 0.01. The same case-aware format is
 applied to the Hugging Face `train` and `validation` splits; the tokenizer
-lowercases token identities only after the loss-weight array has been derived
+lowercases token identities only after the loss-weight array has been derived.
 
 ## Frozen matched recipe
 
@@ -415,6 +415,36 @@ seven token IDs and BOS encoding, while the model weights, tokenizer JSON,
 special-token post-processor, input rows, scoring, and metrics remain
 unchanged; unrelated tokenizer failures still raise.
 
+A second export incompatibility was then exposed by the unexpectedly low
+development results. Transformers 5 writes the Qwen3 rotary configuration
+under `rope_parameters`; Transformers 4.57 preserved that unknown field but
+silently instantiated the model with `rope_theta=10000` and no scaling. Both
+exp417 models were trained with Llama-3 scaling and `rope_theta=500000`, so
+those first inference results did not represent either trained model. Commit
+[`a124f8e`](https://github.com/Open-Athena/marin-dna/tree/a124f8eba63e5b29fcbe7383f9ae6a3e6a7a5a36)
+translates the Transformers 5 representation into the equivalent Transformers
+4 fields in memory and rejects ambiguous configurations. The old exp232
+Transformers 4 export and both exp417 exports now resolve to the same rotary
+semantics in the official evaluation runtime.
+
+The tokenizer was separately ruled out as a cause. The vendored tokenizer,
+the exp232 export, and both exp417 exports have the same seven-token vocabulary
+and encode `ACGT` as `[BOS, a, c, g, t] = [2, 3, 4, 5, 6]`, with exactly one
+BOS and no EOS. The training loader derives case-aware weights before token
+normalization: for `AaCcGgTt`, target-aligned weights alternate
+`1.0, 0.01, 1.0, 0.01, 1.0, 0.01, 1.0, 0.01`, followed by the zero-weight
+terminal target. This contract is identical for training and validation.
+
+The full available W&B trajectory audit also found no training collapse.
+Exp232 retained data through step 4999 and had mean train loss 1.0428 over its
+last 100 logged points. Exp417 W&B coverage stops at step 1000 for mammals and
+648 for combined because W&B was disabled on their guarded resumptions, but
+the native terminal logs finish near 1.03 and 1.09, respectively. Comparing
+the frozen recipes and upstream Marin paths found no change to case-weight
+construction, token identities, causal shifting, or model loss computation.
+The material upstream difference was the Transformers 5 export format and its
+incompatibility with the Transformers 4 evaluation environment.
+
 After both exports pass their final checkpoint gates, launch one bounded,
 auto-downing A10G worker using the existing project task. The user has
 explicitly authorized EC2/SkyPilot resources for this issue:
@@ -472,9 +502,28 @@ s3://oa-bolinas/snakemake/analysis/evals_v2/results/comparisons/issue417/summary
 s3://oa-bolinas/snakemake/analysis/evals_v2/results/comparisons/issue417/summary.md
 ```
 
-The train-split run is pending. Once complete, record its immutable producing
-commit, execution receipt, and paired comparison here before updating issue
-#417.
+The corrected official run completed on 2026-08-02 from immutable commit
+[`a124f8e`](https://github.com/Open-Athena/marin-dna/tree/a124f8eba63e5b29fcbe7383f9ae6a3e6a7a5a36).
+Two bounded A10G workers each ran one model's two score jobs and two metric jobs;
+all eight jobs succeeded, uploaded to the canonical prefix, and both temporary
+clusters auto-downed. The paired report contains exactly the five approved CDS
+rows:
+
+| Dataset | Scope | Mammals AUPRC +/- SE | Combined AUPRC +/- SE | Delta (95% CI) | paired p |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Mendelian | missense | 0.3099 +/- 0.0176 | 0.3443 +/- 0.0185 | +0.0344 (+0.0147, +0.0528) | 0.002 |
+| Mendelian | splicing | 0.3804 +/- 0.0256 | 0.3921 +/- 0.0262 | +0.0117 (-0.0221, +0.0447) | 0.490 |
+| Mendelian | synonymous | 0.3049 +/- 0.0620 | 0.3445 +/- 0.0628 | +0.0396 (-0.0291, +0.0987) | 0.290 |
+| SGE | missense | 0.2527 +/- 0.0076 | 0.2645 +/- 0.0079 | +0.0118 (+0.0030, +0.0211) | 0.014 |
+| SGE | splicing | 0.4476 +/- 0.0222 | 0.4733 +/- 0.0228 | +0.0257 (-0.0052, +0.0547) | 0.132 |
+
+At the terminal checkpoint, adding non-mammalian vertebrates improves
+Mendelian missense and SGE missense with paired 95% intervals excluding zero;
+the other three intervals cross zero. The mammals-only Mendelian missense
+AUPRC (0.3099) essentially reproduces the earlier HAL-projected exp232 value
+(0.3095). Its splicing and synonymous values are also in the same regime
+(0.3804 versus 0.3952, and 0.3049 versus 0.2806), resolving the original
+sanity-check concern.
 
 This is intentionally offline: the training graphs have no lm-eval harness,
 which avoids changing the matched optimizer/training path and lets the current
