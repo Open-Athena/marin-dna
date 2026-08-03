@@ -96,11 +96,12 @@ manifest, missing built CSS/fonts/assets, or any website build failure.
 ## Figure regeneration and layout review
 
 Every SVG figure in the article has a `data-figure-width` on its `<figure>`
-element. This is the outer frame width, including 20px of padding on each side;
-use a compact width for a sparse figure and reserve the 740px maximum for dense
-multi-panel figures. The workspace validator checks that the SVG was normalized
-for the corresponding inner width, so changing a display width requires running
-`normalize-figures` again.
+element. This controls only the centered media frame; captions consistently span
+the full article column. The declared value is the outer frame width, including
+20px of padding on each side; use a compact width for a sparse figure and reserve
+the 740px maximum for dense multi-panel figures. The workspace validator checks
+that the SVG was normalized for the corresponding inner width, so changing a
+display width requires running `normalize-figures` again.
 
 Plot recipes keep SVG text live and inherit Matplotlib's default font, line,
 marker, and automatic tick settings. A single central 1.2× whole-SVG scale is

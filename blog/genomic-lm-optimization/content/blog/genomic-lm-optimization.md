@@ -24,23 +24,23 @@ summary: "How MarinDNA combined data curation, hyperparameter transfer, scaling,
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(31, 30, 27, 0.10);
 }
-/* Each figure declares the narrowest comfortable frame width for its content.
-   Captions inherit that same measure; the SVG typography normalizer uses the
-   corresponding inner width to preserve one rendered 11–16px hierarchy. */
+/* Each figure declares the narrowest comfortable media width for its content.
+   The figure remains full-width so every caption uses the article measure;
+   the SVG normalizer uses the media's inner width for its text hierarchy. */
 .blog-post-content figure {
   display: block;
   width: 100%;
   max-width: 100%;
   margin-inline: auto;
 }
-.blog-post-content figure figcaption {
-  display: block;
-}
 /* The pinned site renderer emits SVGs as external images. The script below
    safely inlines this article's same-origin SVG assets so their live text can
    inherit Open Athena's loaded Lato webfont. */
+.blog-post-content figure img,
 .blog-post-content figure .figure-media {
   width: 100%;
+  max-width: var(--figure-frame-width, 100%);
+  margin-inline: auto;
   overflow-x: auto;
 }
 .blog-post-content figure svg.figure-svg {
@@ -80,7 +80,7 @@ window.addEventListener('DOMContentLoaded', function () {
     var figure = image.closest('figure');
     var figureWidth = Number(figure && figure.dataset.figureWidth);
     if (figure && Number.isFinite(figureWidth)) {
-      figure.style.maxWidth = figureWidth + 'px';
+      figure.style.setProperty('--figure-frame-width', figureWidth + 'px');
     }
     var source = new URL(image.getAttribute('src'), document.baseURI);
     if (source.origin !== window.location.origin || !source.pathname.endsWith('.svg')) return;
@@ -136,9 +136,6 @@ window.addEventListener('DOMContentLoaded', function () {
 
         var frame = document.createElement('div');
         frame.className = 'figure-media';
-        if (Number.isFinite(figureWidth)) {
-          frame.style.setProperty('--figure-frame-width', figureWidth + 'px');
-        }
         if (svg.querySelectorAll('text').length > 8) frame.classList.add('figure-media-dense');
         frame.appendChild(svg);
         image.replaceWith(frame);
