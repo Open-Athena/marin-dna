@@ -153,7 +153,7 @@ This post summarizes how data curation, hyperparameter transfer, scaling laws, a
 <figure id="fig-cost-performance" data-figure-width="242.75">
 <img src="/assets/images/blog/genomic-lm-optimization/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
 <figcaption><strong>Figure 1: Zero-shot VEP performance versus inference throughput.</strong>
-Mendelian VEP macro-average AUPRC (%) across eight subsets versus variants scored per hour.
+Mendelian VEP macro-average AUPRC across eight subsets versus variants scored per hour.
 MarinDNA 1B/m5.1 slightly exceeds Evo 2 40B while scoring variants approximately 2,330× faster.
 Throughput follows the benchmark in <a href="https://github.com/Open-Athena/marin-dna/issues/354">issue #354</a>: one Lambda GH200, forward and reverse-complement passes, pooled REF/ALT embeddings, and each model's native context.
 This is an as-deployed comparison rather than a context-controlled efficiency comparison.</figcaption>
@@ -335,7 +335,7 @@ Overall, however, GPN-Star remained stronger.
 <figure id="fig-upstream-cds-specialists" data-figure-width="477.357">
 <img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
 <figcaption><strong>Figure 5: Region-matched Mendelian VEP performance.</strong>
-AUPRC (%) under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).
+AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).
 Error bars denote SE.</figcaption>
 </figure>
 
@@ -350,7 +350,7 @@ Even the 50/50 mixture may not be optimal: regions can differ both in size and i
 <figure id="fig-upstream-cds-balance" data-figure-width="535.228">
 <img src="/assets/images/blog/genomic-lm-optimization/upstream_cds_balance.svg" alt="Promoter and missense VEP AUPRC (%) trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures" />
 <figcaption><strong>Figure 6: Upstream/CDS training-mixture comparison.</strong>
-Zero-shot results; the right panel is the unweighted mean of the promoter and missense AUPRC (%) values.</figcaption>
+Zero-shot results; the right panel is the unweighted mean of the promoter and missense AUPRC values.</figcaption>
 </figure>
 
 ### Hyperparameter transfer
@@ -488,7 +488,7 @@ This is not a general failure on missense variants—the SGE missense benchmark 
 <img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance across model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 13: VEP performance across model scale.</strong>
 Zero-shot LLR and a frozen-embedding linear probe are compared on identical variants.
-Performance is measured as chromosome-weighted AUPRC (%); facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
+Performance is measured as chromosome-weighted AUPRC; facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 Plotting the same results against matched-region validation log-likelihood gives the same picture.
@@ -500,7 +500,7 @@ Zero-shot Mendelian missense again points in the opposite direction: performance
 <img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg?v=layout-20260803c" alt="VEP performance versus matched-region validation log-likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 14: VEP performance versus validation log-likelihood.</strong>
 Matched-region LL (shown as −loss) across the eight parameter-scaling endpoints.
-Performance is measured as chromosome-weighted AUPRC (%).
+Performance is measured as chromosome-weighted AUPRC.
 Lines are least-squares fits, and <em>r</em> denotes Pearson correlation; facet axes vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
@@ -514,7 +514,7 @@ It also cautions against using zero-shot LLR alone to judge whether scaling has 
 <img src="/assets/images/blog/genomic-lm-optimization/figure6b_marin_evo2_missense.svg?v=auprc-percent" alt="Missense VEP performance across MarinDNA and Evo 2 model scales, comparing zero-shot LLR and frozen-embedding linear probes" />
 <figcaption><strong>Figure 15: Missense readouts across model scale.</strong>
 MarinDNA and Evo 2 are compared using zero-shot LLR and a frozen-embedding linear probe on identical Mendelian variants.
-Performance is measured as chromosome-weighted AUPRC (%); error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
+Performance is measured as chromosome-weighted AUPRC; error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 [^zero-shot-scaling]: Non-monotonic likelihood-based zero-shot variant-effect performance with increasing model scale has previously been observed in other settings.
@@ -566,7 +566,7 @@ m5.1's strong endpoint raises the possibility that exposure order matters: learn
 <figure id="fig-mixture-lineage-trajectories" data-figure-width="567.68">
 <img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_llr_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel zero-shot Mendelian pooled AUPRC (%) trajectories with error bars along each mixture lineage" />
 <figcaption><strong>Figure 17: Zero-shot mixture-lineage trajectories.</strong>
-Mendelian AUPRC (%) versus training tokens for three model-mixture lineages.
+Mendelian AUPRC versus training tokens for three model-mixture lineages.
 Within each subset, this is global (pooled) AUPRC across variants; the macro panel is the unweighted mean across subsets.
 Error bars show ±1 SE from a matched-group cluster bootstrap.</figcaption>
 </figure>
@@ -576,7 +576,7 @@ Error bars show ±1 SE from a matched-group cluster bootstrap.</figcaption>
 <figure id="fig-mixture-lineage-probe" data-figure-width="567.68">
 <img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_probe_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel frozen-embedding linear-probe Mendelian chromosome-weighted AUPRC (%) trajectories with error bars along each mixture lineage" />
 <figcaption><strong>Figure 18: Linear-probe mixture-lineage trajectories.</strong>
-Frozen-embedding Mendelian AUPRC (%) versus training tokens for three model-mixture lineages.
+Frozen-embedding Mendelian AUPRC versus training tokens for three model-mixture lineages.
 Within each subset, this is the sample-size-weighted mean of per-chromosome AUPRCs; the macro panel is the unweighted mean across subsets.
 Error bars show ±1 SE from a chromosome-cluster bootstrap.</figcaption>
 </figure>
@@ -610,7 +610,7 @@ Some of the remaining difference may reflect information that an alignment-free 
 <figure id="fig-mendelian-leaderboard" data-figure-width="668.822">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_llr.svg" alt="Mendelian VEP benchmark zero-shot AUPRC (%) heatmap across six headline models" />
 <figcaption><strong>Figure 19: Zero-shot Mendelian leaderboard.</strong>
-AUPRC (%) across six headline models using each model family's canonical scoring protocol, with the Macro Avg column highlighted.</figcaption>
+AUPRC across six headline models using each model family's canonical scoring protocol, with the Macro Avg column highlighted.</figcaption>
 </figure>
 
 <details>
@@ -618,7 +618,7 @@ AUPRC (%) across six headline models using each model family's canonical scoring
 <figure id="fig-mendelian-leaderboard-probe" data-figure-width="668.67">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_probe.svg" alt="Mendelian VEP benchmark frozen-embedding linear-probe AUPRC (%) heatmap across four overlapping models" />
 <figcaption><strong>Figure 20: Frozen-embedding linear-probe leaderboard.</strong>
-AUPRC (%) for the four models that also appear in the zero-shot leaderboard and have compatible probe metrics.
+AUPRC for the four models that also appear in the zero-shot leaderboard and have compatible probe metrics.
 The two heatmaps are sorted and color-normalized independently, and their subset metrics use different aggregation: <a href="#fig-mendelian-leaderboard">Fig. 19</a> pools variants within each subset before computing AUPRC, whereas <a href="#fig-mendelian-leaderboard-probe">Fig. 20</a> computes a sample-size-weighted mean of per-chromosome AUPRCs; both Macro Avg columns are unweighted means across subsets.
 Compare model names and within-panel values rather than row positions, colors, or absolute values across panels.
 GPN-Star and AlphaGenome are absent because no compatible probe result is available here, not because of their performance.</figcaption>
