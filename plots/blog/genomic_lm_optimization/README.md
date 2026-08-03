@@ -45,7 +45,7 @@ uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm
 
 | Blog figure | Blog asset | Plot recipe or source | Inputs |
 |---:|---|---|---|
-| 1 | `headline_cost_performance.svg` | `src/figures/headline_cost_performance.py` | `model_leaderboard.csv`, `inference_costs.csv` |
+| 1 | `headline_cost_performance.svg` | `src/figures/headline_cost_performance.py` | `model_leaderboard.csv`, `inference_costs.csv` (runtime converted to variants/hour) |
 | 2 | `data_provenance_training_datasets.svg` | Authored SVG; no plot recipe | Values documented in the article |
 | 3 | `eval_datasets.svg` | Authored SVG; no plot recipe | Benchmark metadata |
 | 4 | `eval_apparatus.svg` | Authored SVG; no plot recipe | Evaluation protocol |

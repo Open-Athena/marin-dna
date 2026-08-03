@@ -150,12 +150,12 @@ window.addEventListener('DOMContentLoaded', function () {
 MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling.
 This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
 
-<figure id="fig-cost-performance" data-figure-width="276.92">
-<img src="/assets/images/blog/genomic-lm-optimization/headline_cost_performance.svg?v=cost-performance" alt="Zero-shot Mendelian VEP macro-average AUPRC versus inference cost per million variants for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
-<figcaption><strong>Figure 1: Zero-shot VEP performance versus inference cost.</strong>
-Mendelian VEP macro-average AUPRC (%) across eight subsets versus the cost of scoring one million variants.
-MarinDNA 1B/m5.1 slightly exceeds Evo 2 40B at approximately 1/2,330 of its inference cost.
-Costs follow the benchmark in <a href="https://github.com/Open-Athena/marin-dna/issues/354">issue #354</a>: one Lambda GH200 at $2.29/hour, forward and reverse-complement passes, pooled REF/ALT embeddings, and each model's native context.
+<figure id="fig-cost-performance" data-figure-width="242.75">
+<img src="/assets/images/blog/genomic-lm-optimization/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
+<figcaption><strong>Figure 1: Zero-shot VEP performance versus inference throughput.</strong>
+Mendelian VEP macro-average AUPRC (%) across eight subsets versus variants scored per hour.
+MarinDNA 1B/m5.1 slightly exceeds Evo 2 40B while scoring variants approximately 2,330× faster.
+Throughput follows the benchmark in <a href="https://github.com/Open-Athena/marin-dna/issues/354">issue #354</a>: one Lambda GH200, forward and reverse-complement passes, pooled REF/ALT embeddings, and each model's native context.
 This is an as-deployed comparison rather than a context-controlled efficiency comparison.</figcaption>
 </figure>
 

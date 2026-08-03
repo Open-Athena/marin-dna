@@ -1,10 +1,9 @@
-"""Headline zero-shot VEP performance versus as-deployed inference cost."""
+"""Headline zero-shot VEP performance versus as-deployed throughput."""
 
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.ticker import FuncFormatter
 
 from figures.data import save
 from utils.figure_style import (
@@ -15,8 +14,9 @@ from utils.figure_style import (
     set_square_subplot_height,
 )
 
-SUBPLOT_HEIGHT_PX = 160.0
+SUBPLOT_HEIGHT_PX = 145.0
 MACRO_COLUMN = "Macro Avg (8 subsets)"
+THROUGHPUT_COLUMN = "Throughput (variants / hour)"
 MODEL_NAMES = (
     "exp135-1B-m5.1",
     "Evo 2 (1B base)",
@@ -33,15 +33,6 @@ MARINDNA_COLOR = SCORING_PROTOCOL_COLORS["llr"]
 EVO2_COLOR = "#8a7d69"
 
 
-def _cost_tick(value: float, _position: float) -> str:
-    """Format automatically located log-scale ticks as dollar amounts."""
-    if value >= 1_000:
-        return f"${value / 1_000:g}k"
-    if value >= 1:
-        return f"${value:g}"
-    return f"${value:.1g}"
-
-
 def _headline_data(
     leaderboard: pd.DataFrame,
     inference_costs: pd.DataFrame,
@@ -55,7 +46,11 @@ def _headline_data(
     assert set(selected["Model"]) == set(MODEL_NAMES)
     data = inference_costs.merge(selected, on="Model", validate="one_to_one")
     assert len(data) == len(MODEL_NAMES)
-    assert data["Cost (USD / 1M variants)"].gt(0).all()
+    assert data["Time (s / 1M variants)"].gt(0).all()
+    data[THROUGHPUT_COLUMN] = 1_000_000 * 60 * 60 / data[
+        "Time (s / 1M variants)"
+    ]
+    assert data[THROUGHPUT_COLUMN].gt(0).all()
     assert data[MACRO_COLUMN].between(0, 100).all()
     return data
 
@@ -69,7 +64,7 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH * 0.72, 7.2))
     ax.plot(
-        evo2["Cost (USD / 1M variants)"],
+        evo2[THROUGHPUT_COLUMN],
         evo2[MACRO_COLUMN],
         color=EVO2_COLOR,
         marker=MODEL_FAMILY_MARKERS["evo2"],
@@ -78,7 +73,7 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
         zorder=2,
     )
     ax.plot(
-        marindna["Cost (USD / 1M variants)"],
+        marindna[THROUGHPUT_COLUMN],
         marindna[MACRO_COLUMN],
         color=MARINDNA_COLOR,
         marker=MODEL_FAMILY_MARKERS["marindna"],
@@ -89,10 +84,10 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
     )
 
     label_offsets = {
-        "exp135-1B-m5.1": (8, 7, "left", "bottom"),
-        "Evo 2 (1B base)": (7, -7, "left", "top"),
-        "Evo 2 (7B)": (7, 6, "left", "bottom"),
-        "Evo 2 (40B)": (-8, -7, "right", "top"),
+        "exp135-1B-m5.1": (-8, 0, "right", "center"),
+        "Evo 2 (1B base)": (8, 0, "left", "center"),
+        "Evo 2 (7B)": (8, 0, "left", "center"),
+        "Evo 2 (40B)": (8, 0, "left", "center"),
     }
     for _, row in data.iterrows():
         model = str(row["Model"])
@@ -100,7 +95,7 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
         dx, dy, ha, va = label_offsets[model]
         ax.annotate(
             DISPLAY_NAMES[model],
-            xy=(float(row["Cost (USD / 1M variants)"]), score),
+            xy=(float(row[THROUGHPUT_COLUMN]), score),
             xytext=(dx, dy),
             textcoords="offset points",
             ha=ha,
@@ -110,11 +105,9 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
         )
 
     ax.set_xscale("log")
-    ax.xaxis.set_major_formatter(FuncFormatter(_cost_tick))
-    ax.set_xlabel("Cost per 1M variants (USD)")
+    ax.set_xlabel("Throughput (variants/hour)")
     ax.set_ylabel("VEP AUPRC (%)")
     ax.grid(which="major", color="#d9ccba", linewidth=0.8)
-    ax.margins(x=0.12, y=0.28)
     ax.set_box_aspect(1)
 
     fig.tight_layout()
