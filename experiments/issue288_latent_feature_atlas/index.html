@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive synthesis of what sparse autoencoders reveal about latent biological features in a genomic language model.">
+  <title>Inside a genomic language model — latent feature atlas</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f4f1e9;
+      --muted: #abaea9;
+      --dim: #757a76;
+      --night: #0a0d0c;
+      --panel: #111613;
+      --panel-2: #171d19;
+      --line: #2a322d;
+      --lime: #c8f66b;
+      --mint: #72e6b1;
+      --cyan: #78d9ed;
+      --amber: #ffc66d;
+      --coral: #ff8e7a;
+      --violet: #bda7ff;
+      --max: 1180px;
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 82% 7%, rgba(114,230,177,.08), transparent 24rem),
+        radial-gradient(circle at 12% 20%, rgba(189,167,255,.06), transparent 28rem),
+        var(--night);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      letter-spacing: -.01em;
+    }
+
+    a { color: inherit; }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, a:focus-visible, select:focus-visible {
+      outline: 2px solid var(--lime);
+      outline-offset: 3px;
+    }
+
+    .progress {
+      position: fixed;
+      inset: 0 0 auto;
+      height: 3px;
+      z-index: 30;
+      background: linear-gradient(90deg, var(--lime), var(--mint));
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+
+    .nav-shell {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,13,12,.82);
+      backdrop-filter: blur(18px);
+    }
+    nav {
+      width: min(var(--max), calc(100% - 40px));
+      height: 62px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--lime);
+      border-radius: 50%;
+      color: var(--lime);
+      font: 700 11px/1 ui-monospace, monospace;
+    }
+    .nav-links { display: flex; gap: 6px; }
+    .nav-links a {
+      padding: 7px 10px;
+      color: var(--muted);
+      border-radius: 999px;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .nav-links a:hover { color: var(--ink); background: var(--panel-2); }
+
+    main { overflow: clip; }
+    .wrap { width: min(var(--max), calc(100% - 40px)); margin: auto; }
+    section { padding: 108px 0; scroll-margin-top: 58px; }
+    .hero { min-height: 86vh; padding: 98px 0 72px; display: grid; align-items: center; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 72px; align-items: center; }
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 24px;
+      color: var(--lime);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .kicker::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 880px;
+      margin-bottom: 28px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(3.5rem, 8vw, 7.8rem);
+      font-weight: 400;
+      line-height: .91;
+      letter-spacing: -.065em;
+    }
+    h1 em { color: var(--lime); font-style: italic; }
+    .lede { max-width: 720px; color: #ced1cc; font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.58; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .button.primary { color: #10140d; background: var(--lime); border-color: var(--lime); }
+    .button:hover { transform: translateY(-1px); }
+
+    .hero-orbit {
+      position: relative;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+    }
+    .orbit-ring { position: absolute; border: 1px solid var(--line); border-radius: 50%; }
+    .orbit-ring:nth-child(1) { inset: 5%; animation: spin 28s linear infinite; }
+    .orbit-ring:nth-child(2) { inset: 20%; border-style: dashed; animation: spin 19s linear infinite reverse; }
+    .orbit-ring:nth-child(3) { inset: 34%; border-color: rgba(200,246,107,.5); }
+    .orbit-ring::after {
+      content: "";
+      position: absolute;
+      top: 8%; left: 18%;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 24px var(--lime);
+    }
+    .orbit-core {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      font: 800 clamp(2.2rem, 5vw, 4.5rem)/.9 ui-monospace, monospace;
+      letter-spacing: -.08em;
+    }
+    .orbit-core small { display: block; margin-top: 14px; color: var(--muted); font: 700 10px/1.2 ui-sans-serif, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+    .base { position: absolute; font: 800 13px/1 ui-monospace, monospace; }
+    .base.a { top: 10%; right: 29%; color: var(--mint); }
+    .base.c { right: 7%; bottom: 36%; color: var(--cyan); }
+    .base.g { bottom: 9%; left: 32%; color: var(--amber); }
+    .base.t { left: 6%; top: 35%; color: var(--coral); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hero-stats {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 54px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .stat { padding: 22px 18px 22px 0; }
+    .stat + .stat { padding-left: 22px; border-left: 1px solid var(--line); }
+    .stat strong { display: block; font: 500 clamp(1.6rem, 3vw, 2.5rem)/1 Georgia, serif; }
+    .stat span { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
+
+    .section-head { display: grid; grid-template-columns: .7fr 1.3fr; gap: 56px; margin-bottom: 54px; }
+    .section-num { color: var(--lime); font: 700 12px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+    h2 { margin-bottom: 18px; font: 400 clamp(2.4rem, 5vw, 4.8rem)/1 Georgia, serif; letter-spacing: -.045em; }
+    .section-intro { max-width: 760px; color: var(--muted); font-size: 1.08rem; }
+    .callout {
+      padding: 18px 20px;
+      border-left: 2px solid var(--lime);
+      background: linear-gradient(90deg, rgba(200,246,107,.08), transparent);
+      color: #dce4d5;
+      font-size: 14px;
+    }
+
+    .method-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 24px; }
+    .panel { border: 1px solid var(--line); border-radius: var(--radius); background: rgba(17,22,19,.78); }
+    .method-steps { padding: 26px; }
+    .step-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .step-button {
+      min-height: 138px;
+      padding: 16px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel-2);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .step-button[aria-selected="true"] { border-color: var(--lime); background: rgba(200,246,107,.08); }
+    .step-index { display: block; margin-bottom: 23px; color: var(--dim); font: 700 10px ui-monospace, monospace; }
+    .step-icon { display: block; height: 28px; margin-bottom: 12px; color: var(--lime); font: 800 18px ui-monospace, monospace; }
+    .step-button b { display: block; font-size: 13px; }
+    .step-button small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .method-detail { margin-top: 20px; min-height: 152px; padding: 24px; border-radius: 16px; background: #0c100e; }
+    .method-detail h3 { margin-bottom: 8px; font: 400 1.45rem Georgia, serif; }
+    .method-detail p { color: var(--muted); font-size: 14px; }
+    .formula { display: inline-block; padding: 6px 9px; border-radius: 7px; background: var(--panel-2); color: var(--lime); font: 700 12px ui-monospace, monospace; }
+
+    .jump-card { padding: 28px; }
+    .jump-card h3 { font: 400 1.7rem Georgia, serif; }
+    .jump-card p { color: var(--muted); font-size: 14px; }
+    .jump-viz { display: grid; grid-template-columns: 1fr auto 1.25fr; align-items: center; gap: 13px; margin: 28px 0; }
+    .vector { display: grid; gap: 4px; }
+    .vector i { display: block; height: 7px; border-radius: 99px; background: #34403a; }
+    .vector.sparse i { background: transparent; border: 1px solid #2c352f; }
+    .vector.sparse i.on { background: var(--lime); border-color: var(--lime); }
+    .arrow { color: var(--dim); }
+    .jump-note { padding-top: 18px; border-top: 1px solid var(--line); color: #d9e6cc; font-size: 13px; }
+
+    .theses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .thesis { position: relative; min-height: 280px; padding: 30px; overflow: hidden; }
+    .thesis::after { content: attr(data-n); position: absolute; right: -8px; bottom: -28px; color: rgba(255,255,255,.035); font: 400 9rem Georgia, serif; }
+    .thesis-label { color: var(--lime); font: 800 10px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .thesis h3 { margin: 36px 0 14px; font: 400 2rem/1.05 Georgia, serif; }
+    .thesis p { color: var(--muted); font-size: 14px; }
+
+    .atlas-shell { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+    .layer-controls { padding: 14px; align-self: start; position: sticky; top: 82px; }
+    .layer-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .layer-button[aria-selected="true"] { background: var(--panel-2); }
+    .layer-number { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); color: var(--lime); font: 700 16px ui-monospace, monospace; }
+    .layer-button b { display: block; font-size: 13px; }
+    .layer-button small { color: var(--muted); font-size: 11px; }
+    .atlas-main { padding: 32px; }
+    .atlas-top { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; }
+    .atlas-title h3 { margin-bottom: 8px; font: 400 2.5rem Georgia, serif; }
+    .atlas-title p { max-width: 650px; color: var(--muted); }
+    .big-number { padding: 18px; border: 1px solid var(--line); border-radius: 15px; }
+    .big-number strong { display: block; color: var(--lime); font: 400 3.2rem/1 Georgia, serif; }
+    .big-number span { color: var(--muted); font-size: 12px; }
+    .finding-list { display: grid; gap: 10px; margin-top: 26px; }
+    .finding-row { display: grid; grid-template-columns: 132px 1fr auto; gap: 16px; align-items: center; padding: 15px 0; border-top: 1px solid var(--line); }
+    .finding-row:first-child { border-top: 0; }
+    .finding-row > span:first-child { color: var(--muted); font-size: 12px; }
+    .finding-row b { font-size: 14px; }
+    .finding-row em { color: var(--lime); font: 700 12px ui-monospace, monospace; font-style: normal; }
+
+    .depth-matrix { margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--line); }
+    .matrix-grid { display: grid; grid-template-columns: 1.2fr repeat(3, .7fr); gap: 6px; font-size: 12px; }
+    .matrix-grid > * { min-height: 42px; display: flex; align-items: center; padding: 8px 10px; border-radius: 8px; background: #0e120f; }
+    .matrix-head { color: var(--muted); justify-content: center; font: 700 10px ui-monospace, monospace; text-transform: uppercase; }
+    .heat { justify-content: center; font-weight: 750; }
+    .heat.low { color: var(--dim); background: #101411; }
+    .heat.mid { color: var(--amber); background: rgba(255,198,109,.08); }
+    .heat.high { color: var(--lime); background: rgba(200,246,107,.11); }
+
+    .browser { display: grid; grid-template-columns: 300px 1fr; min-height: 640px; overflow: hidden; }
+    .feature-list { padding: 16px; border-right: 1px solid var(--line); background: #0d110f; }
+    .feature-list-head { padding: 12px 12px 18px; color: var(--muted); font-size: 12px; }
+    .feature-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .feature-button[aria-selected="true"] { background: var(--panel-2); }
+    .feature-glyph { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; color: var(--lime); font: 800 10px ui-monospace, monospace; }
+    .feature-button b { display: block; font-size: 12px; }
+    .feature-button small { display: block; color: var(--muted); font-size: 10px; }
+    .feature-card { padding: 38px; }
+    .feature-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+    .pill { padding: 5px 9px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); font: 700 10px ui-monospace, monospace; text-transform: uppercase; }
+    .pill.good { color: var(--lime); border-color: rgba(200,246,107,.35); }
+    .feature-card h3 { max-width: 700px; margin-bottom: 12px; font: 400 clamp(2.2rem, 4vw, 3.6rem)/1 Georgia, serif; }
+    .feature-claim { max-width: 760px; color: #c6cac4; font-size: 1.03rem; }
+    .metric-banner { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; margin: 28px 0; padding: 18px; border-radius: 14px; background: rgba(200,246,107,.07); }
+    .metric-banner strong { color: var(--lime); font: 400 2.1rem/1 Georgia, serif; white-space: nowrap; }
+    .metric-banner span { color: var(--muted); font-size: 12px; }
+    .sequence-box { margin: 28px 0; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #090c0a; }
+    .sequence-label { display: flex; justify-content: space-between; gap: 18px; margin-bottom: 14px; color: var(--dim); font: 700 10px ui-monospace, monospace; text-transform: uppercase; }
+    .sequence { display: flex; flex-wrap: wrap; gap: 3px; font: 700 clamp(12px, 1.5vw, 16px)/1.8 ui-monospace, monospace; }
+    .sequence span { min-width: 22px; padding: 0 4px; border-radius: 4px; text-align: center; background: rgba(255,255,255,.035); }
+    .sequence span.hot1 { color: #17200c; background: rgba(200,246,107,.48); }
+    .sequence span.hot2 { color: #10140d; background: rgba(200,246,107,.8); }
+    .sequence span.hot3 { color: #070907; background: var(--lime); box-shadow: 0 0 18px rgba(200,246,107,.35); }
+    .sequence span.mut { color: #100c0a; background: var(--coral); }
+    .evidence { margin-top: 28px; }
+    .evidence h4 { margin: 0 0 12px; font-size: 12px; }
+    .evidence-track { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .evidence-rung { padding: 11px 8px; border-radius: 8px; background: #0d110f; color: var(--dim); font-size: 9px; font-weight: 750; text-align: center; text-transform: uppercase; }
+    .evidence-rung.on { color: #12170e; background: var(--lime); }
+    .caveat { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+
+    .paired-layout { display: grid; grid-template-columns: .9fr 1.1fr; gap: 22px; }
+    .variant-lab, .strand-lab { padding: 30px; }
+    .lab-head { display: flex; align-items: start; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
+    .lab-head h3 { margin-bottom: 5px; font: 400 1.8rem Georgia, serif; }
+    .lab-head p { color: var(--muted); font-size: 12px; }
+    .mini-tabs { display: flex; gap: 5px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; }
+    .mini-tab { padding: 6px 10px; border: 0; border-radius: 99px; background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; }
+    .mini-tab[aria-selected="true"] { color: #10140d; background: var(--lime); }
+    .variant-pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+    .allele { padding: 18px; border: 1px solid var(--line); border-radius: 13px; text-align: center; }
+    .allele small { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; }
+    .allele strong { display: block; margin-top: 10px; font: 800 23px ui-monospace, monospace; }
+    .allele.alt strong { color: var(--coral); }
+    .delta-readout { margin-top: 18px; padding: 24px; border-radius: 14px; background: #0b0f0c; }
+    .delta-readout .effect { display: flex; align-items: baseline; gap: 12px; }
+    .delta-readout strong { color: var(--lime); font: 400 3rem/1 Georgia, serif; }
+    .delta-readout span { color: var(--muted); font-size: 12px; }
+    .effect-axis { position: relative; height: 32px; margin-top: 20px; }
+    .effect-axis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #536058; }
+    .effect-bar { position: absolute; top: 8px; height: 16px; border-radius: 99px; background: var(--lime); transition: all .35s ease; }
+    .effect-bar.negative { background: var(--coral); }
+
+    .reducer-chart { display: grid; gap: 17px; }
+    .reducer { display: grid; grid-template-columns: 105px 1fr 50px; gap: 10px; align-items: center; color: var(--muted); font-size: 11px; }
+    .track { height: 9px; border-radius: 99px; background: #242b27; overflow: hidden; }
+    .track i { display: block; height: 100%; border-radius: inherit; background: var(--mint); }
+    .reducer.primary { color: var(--ink); }
+    .reducer.primary .track i { background: var(--lime); }
+    .strand-note { margin-top: 26px; color: var(--muted); font-size: 13px; }
+
+    .results-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+    .result-card { padding: 28px; }
+    .result-card h3 { font: 400 1.75rem Georgia, serif; }
+    .result-card p { color: var(--muted); font-size: 13px; }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .span-8 { grid-column: span 8; }
+    .bar-list { display: grid; gap: 10px; margin-top: 24px; }
+    .hbar { display: grid; grid-template-columns: 112px 1fr 46px; gap: 10px; align-items: center; color: var(--muted); font-size: 11px; }
+    .hbar .track { height: 8px; }
+    .hbar .track i { background: var(--cyan); }
+    .hbar.top .track i { background: var(--lime); }
+    .hbar strong { color: var(--ink); font: 700 11px ui-monospace, monospace; text-align: right; }
+    .chance { margin-top: 14px; color: var(--dim); font-size: 10px; }
+    .ring-chart { width: 148px; aspect-ratio: 1; margin: 18px auto; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--violet) 0 49.51%, #252b28 49.51%); }
+    .ring-inner { width: 106px; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: var(--panel); text-align: center; }
+    .ring-inner strong { display: block; font: 400 1.8rem Georgia, serif; }
+    .ring-inner small { color: var(--muted); font-size: 9px; }
+    .split-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .split-metric { padding: 15px; border: 1px solid var(--line); border-radius: 12px; }
+    .split-metric strong { display: block; color: var(--lime); font: 400 1.7rem Georgia, serif; }
+    .split-metric span { color: var(--muted); font-size: 10px; }
+    .correlation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 22px; }
+    .corr { padding: 14px 10px; border-radius: 11px; background: #0c100e; text-align: center; }
+    .corr strong { display: block; color: var(--lime); font: 400 1.55rem Georgia, serif; }
+    .corr span { color: var(--muted); font-size: 9px; }
+    .toggle-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px; }
+    .toggle-chip { padding: 6px 9px; border: 1px solid var(--line); border-radius: 99px; background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; }
+    .toggle-chip[aria-selected="true"] { color: #10140d; background: var(--lime); border-color: var(--lime); }
+    .count-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+    .count-box { padding: 18px; border-radius: 14px; background: #0c100e; }
+    .count-box strong { display: block; font: 400 2.5rem Georgia, serif; }
+    .count-box.pls strong { color: var(--lime); }
+    .count-box.els strong { color: var(--amber); }
+    .count-box span { color: var(--muted); font-size: 10px; }
+
+    .stats-lab { display: grid; grid-template-columns: 260px 1fr; overflow: hidden; }
+    .stats-menu { padding: 18px; border-right: 1px solid var(--line); }
+    .stats-button { width: 100%; padding: 13px 14px; border: 0; border-radius: 11px; background: transparent; text-align: left; cursor: pointer; }
+    .stats-button[aria-selected="true"] { background: var(--panel-2); }
+    .stats-button b { display: block; font-size: 12px; }
+    .stats-button small { color: var(--muted); font-size: 10px; }
+    .stats-content { padding: 32px; }
+    .stats-content h3 { font: 400 2.1rem Georgia, serif; }
+    .test-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
+    .test-box { padding: 18px; border: 1px solid var(--line); border-radius: 13px; }
+    .test-box b { display: block; color: var(--lime); }
+    .test-box span { color: var(--muted); font-size: 11px; }
+    .family-schematic { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+    .family-schematic span { padding: 6px 8px; border-radius: 7px; background: #0b0e0c; color: var(--dim); font: 700 9px ui-monospace, monospace; }
+    .family-schematic span.mark { color: #10140d; background: var(--lime); }
+
+    .limitations { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .limitation, .next { padding: 30px; }
+    .limitation h3, .next h3 { font: 400 1.9rem Georgia, serif; }
+    .clean-list { margin: 20px 0 0; padding: 0; list-style: none; }
+    .clean-list li { position: relative; padding: 13px 0 13px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .clean-list li::before { content: "↳"; position: absolute; left: 0; color: var(--lime); }
+    .clean-list li:first-child { border-top: 0; }
+
+    .source-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .source { min-height: 135px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; }
+    .source:hover { border-color: #536058; background: var(--panel); }
+    .source b { display: block; font-size: 13px; }
+    .source span { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+    footer { padding: 34px 0 50px; border-top: 1px solid var(--line); color: var(--dim); font-size: 11px; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 30px; }
+
+    @media (max-width: 920px) {
+      .nav-links { display: none; }
+      .hero-grid, .section-head, .method-grid, .paired-layout, .limitations { grid-template-columns: 1fr; }
+      .hero-orbit { max-width: 470px; width: 80%; margin: 0 auto; }
+      .hero-stats { grid-template-columns: repeat(2, 1fr); }
+      .hero-stats .stat:nth-child(3) { border-left: 0; }
+      .theses { grid-template-columns: 1fr; }
+      .atlas-shell { grid-template-columns: 1fr; }
+      .layer-controls { position: static; display: grid; grid-template-columns: repeat(3, 1fr); }
+      .layer-button { grid-template-columns: auto 1fr; padding: 8px; }
+      .browser { grid-template-columns: 1fr; }
+      .feature-list { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .feature-list-head { display: none; }
+      .feature-button { min-width: 180px; }
+      .result-card { grid-column: span 12; }
+      .stats-lab { grid-template-columns: 1fr; }
+      .stats-menu { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .stats-button { min-width: 180px; }
+      .source-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .wrap, nav { width: min(100% - 24px, var(--max)); }
+      section { padding: 76px 0; }
+      .hero { padding-top: 70px; }
+      h1 { font-size: 3.6rem; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .hero-stats { grid-template-columns: 1fr; }
+      .stat + .stat { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+      .step-row { grid-template-columns: 1fr 1fr; }
+      .step-button { min-height: 110px; }
+      .layer-controls { grid-template-columns: 1fr; }
+      .atlas-top, .test-pair { grid-template-columns: 1fr; }
+      .finding-row { grid-template-columns: 90px 1fr; }
+      .finding-row em { grid-column: 2; }
+      .matrix-grid { grid-template-columns: 1.3fr repeat(3, .65fr); font-size: 9px; }
+      .feature-card { padding: 24px; }
+      .evidence-track { grid-template-columns: 1fr; }
+      .evidence-rung { text-align: left; }
+      .variant-pair { grid-template-columns: 1fr; }
+      .variant-pair > span { transform: rotate(90deg); text-align: center; }
+      .source-grid { grid-template-columns: 1fr; }
+      footer .wrap { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"></div>
+  <div class="nav-shell">
+    <nav aria-label="Article navigation">
+      <a class="brand" href="#top"><span class="brand-mark">Δ</span> Latent feature atlas</a>
+      <div class="nav-links">
+        <a href="#method">Method</a>
+        <a href="#layers">Layers</a>
+        <a href="#features">Features</a>
+        <a href="#findings">Findings</a>
+        <a href="#limits">Limits</a>
+      </div>
+    </nav>
+  </div>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="kicker">Research synthesis · issue #288 · August 2026</div>
+          <h1>Inside a genomic <em>language model</em></h1>
+          <p class="lede">We decomposed a 19-block DNA model into sparse latent features, then asked what changes when a single human variant changes. The clearest answer is local biological grammar: splice boundaries, stop codons, regulatory composition, repeats, RNA structure, and context-dependent variant effects.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#features">Explore feature cards ↓</a>
+            <a class="button" href="https://github.com/Open-Athena/marin-dna/issues/288">Living research issue ↗</a>
+          </div>
+        </div>
+        <div class="hero-orbit" aria-label="Schematic of sparse features orbiting a DNA representation">
+          <div class="orbit-ring"></div><div class="orbit-ring"></div><div class="orbit-ring"></div>
+          <div class="orbit-core">15,360<small>sparse features / layer</small></div>
+          <span class="base a">A</span><span class="base c">C</span><span class="base g">G</span><span class="base t">T</span>
+        </div>
+        <div class="hero-stats" aria-label="Study at a glance">
+          <div class="stat"><strong>1 · 10 · 19</strong><span>first, middle, final transformer blocks</span></div>
+          <div class="stat"><strong>35</strong><span>broad variant-consequence classes</span></div>
+          <div class="stat"><strong>20.7M</strong><span>AlphaGenome L2 association hypotheses</span></div>
+          <div class="stat"><strong>FWD + RC</strong><span>orientations retained before aggregation</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="method">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">01 / Method</div>
+          <div><h2>From one changed base to a latent response</h2><p class="section-intro">A sparse autoencoder is the microscope, not the scientific endpoint. The central object is a matched counterfactual: how the feature response changes from the reference allele to the alternate allele.</p></div>
+        </div>
+        <div class="method-grid">
+          <div class="panel method-steps">
+            <div class="step-row" role="tablist" aria-label="Analysis steps">
+              <button class="step-button" role="tab" aria-selected="true" data-step="0"><span class="step-index">01</span><span class="step-icon">AC·GT</span><b>Pair sequences</b><small>Ref and alt differ at the focal edit.</small></button>
+              <button class="step-button" role="tab" aria-selected="false" data-step="1"><span class="step-index">02</span><span class="step-icon">▥▥▥</span><b>Choose depth</b><small>Blocks 1, 10, and 19 are separate views.</small></button>
+              <button class="step-button" role="tab" aria-selected="false" data-step="2"><span class="step-index">03</span><span class="step-icon">⋮•⋮</span><b>Encode sparsely</b><small>JumpReLU selects active SAE features.</small></button>
+              <button class="step-button" role="tab" aria-selected="false" data-step="3"><span class="step-index">04</span><span class="step-icon">→ Δ ←</span><b>Compare</b><small>Signed Δ, |Δ|, FWD, and RC.</small></button>
+              <button class="step-button" role="tab" aria-selected="false" data-step="4"><span class="step-index">05</span><span class="step-icon">q≤.05</span><b>Associate</b><small>Effect sizes plus complete-family BH FDR.</small></button>
+            </div>
+            <div class="method-detail" aria-live="polite">
+              <h3 id="step-title">Matched sequence pair</h3>
+              <p id="step-copy">Extract the same 255-bp genomic context twice, changing only the focal allele. This local counterfactual removes most background-locus variation and aligns directly with variant-effect prediction.</p>
+              <span class="formula" id="step-formula">sequence_ref ↔ sequence_alt</span>
+            </div>
+          </div>
+          <aside class="panel jump-card">
+            <h3>What “JumpReLU” means</h3>
+            <p>Each dense model state is projected into a much larger dictionary. A feature stays exactly zero until its learned pre-activation clears a learned threshold—then it “jumps” on.</p>
+            <div class="jump-viz" aria-label="Dense vector transformed into sparse active features">
+              <div class="vector"><i style="width:78%"></i><i style="width:45%"></i><i style="width:90%"></i><i style="width:63%"></i><i style="width:71%"></i><i style="width:38%"></i></div>
+              <span class="arrow">→</span>
+              <div class="vector sparse"><i></i><i class="on" style="width:84%"></i><i></i><i></i><i class="on" style="width:58%"></i><i></i></div>
+            </div>
+            <div class="jump-note"><b>Important:</b> SAE activations are non-negative. “Signed feature response” here means <span class="formula">Δ = alt − ref</span>, which can be positive or negative.</div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">02 / Synthesis</div>
+          <div><h2>Three ideas survive the details</h2><p class="section-intro">The results do not reduce to “SAEs find motifs.” They reveal where the model’s local grammar is strongest, how depth changes the answer, and where biological signal is entangled with composition.</p></div>
+        </div>
+        <div class="theses">
+          <article class="panel thesis" data-n="1"><span class="thesis-label">Causal foothold</span><h3>Splice and stop grammar are real</h3><p>Acceptor, donor, and stop-creation responses survive untouched-context perturbations, both orientations, multiple dictionaries, and a healthier 25M-activation SAE. These are the strongest mechanistic findings.</p></article>
+          <article class="panel thesis" data-n="2"><span class="thesis-label">Depth matters</span><h3>There is no globally best layer</h3><p>The middle layer is strongest for broad consequence discovery; the final layer dominates pathogenicity, complex-trait labels, signed dsQTL direction, and several structured-RNA responses.</p></article>
+          <article class="panel thesis" data-n="3"><span class="thesis-label">Interpret carefully</span><h3>Composition is signal and confounder</h3><p>Repeats consume substantial response capacity. A prominent AlphaGenome-associated feature tracks GC/CpG-rich promoter sequence. Statistical association names a direction for investigation—it does not finish the interpretation.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="layers">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">03 / Depth atlas</div>
+          <div><h2>Representations reorganize across depth</h2><p class="section-intro">Select a layer to see its strongest current evidence. The three SAEs have separate dictionaries; feature ID 219 in block 19 is not “the same feature” as ID 219 elsewhere.</p></div>
+        </div>
+        <div class="atlas-shell">
+          <div class="panel layer-controls" role="tablist" aria-label="Model layers">
+            <button class="layer-button" role="tab" aria-selected="true" data-layer="1"><span class="layer-number">01</span><span><b>First block</b><small>local primitives</small></span></button>
+            <button class="layer-button" role="tab" aria-selected="false" data-layer="10"><span class="layer-number">10</span><span><b>Middle block</b><small>grammar & consequence</small></span></button>
+            <button class="layer-button" role="tab" aria-selected="false" data-layer="19"><span class="layer-number">19</span><span><b>Final block</b><small>impact & context</small></span></button>
+          </div>
+          <div class="panel atlas-main" aria-live="polite">
+            <div class="atlas-top">
+              <div class="atlas-title"><span class="kicker" id="layer-kicker">Block 1 · early representation</span><h3 id="layer-title">Sequence primitives appear early</h3><p id="layer-copy">The first block already contains nucleotide and local composition structure, but it is largely null for the higher-order variant endpoints tested so far.</p></div>
+              <div class="big-number"><strong id="layer-count">29</strong><span id="layer-count-label">FWD/RC-concordant positive reference-state features</span></div>
+            </div>
+            <div class="finding-list" id="layer-findings"></div>
+            <div class="depth-matrix">
+              <div class="matrix-grid" aria-label="Qualitative evidence strength across layers">
+                <span></span><span class="matrix-head">Block 1</span><span class="matrix-head">Block 10</span><span class="matrix-head">Block 19</span>
+                <span>Broad consequences</span><span class="heat low">weak</span><span class="heat high">strongest</span><span class="heat mid">selective</span>
+                <span>Mendelian label</span><span class="heat low">none</span><span class="heat low">none</span><span class="heat high">AP .231</span>
+                <span>Complex-trait label</span><span class="heat low">none</span><span class="heat low">none</span><span class="heat high">AP .123</span>
+                <span>dsQTL direction</span><span class="heat low">none</span><span class="heat low">none</span><span class="heat high">45 hits</span>
+                <span>Reference states</span><span class="heat low">29</span><span class="heat mid">82</span><span class="heat high">277</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">04 / Feature browser</div>
+          <div><h2>Eight windows into the dictionary</h2><p class="section-intro">A defensible feature interpretation is a stack of evidence, not a catchy name. Explore examples from causal splice grammar to regulatory composition, RNA structure, variant impact, and repeat sequence.</p></div>
+        </div>
+        <div class="panel browser">
+          <div class="feature-list" id="feature-list" role="tablist" aria-label="Example features"><div class="feature-list-head">Select a feature family</div></div>
+          <article class="feature-card" aria-live="polite">
+            <div class="feature-meta" id="feature-meta"></div>
+            <h3 id="feature-name"></h3>
+            <p class="feature-claim" id="feature-claim"></p>
+            <div class="metric-banner"><strong id="feature-metric"></strong><span id="feature-metric-copy"></span></div>
+            <div class="sequence-box">
+              <div class="sequence-label"><span id="sequence-title">Schematic motif view</span><span>brightness ≈ response localization</span></div>
+              <div class="sequence" id="sequence"></div>
+            </div>
+            <div class="evidence"><h4>Evidence ladder</h4><div class="evidence-track" id="evidence-track"></div></div>
+            <p class="caveat" id="feature-caveat"></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">05 / Paired protocol</div>
+          <div><h2>Direction and strand are part of the biology</h2><p class="section-intro">Magnitude-only summaries erase opposing responses; same-ID strand invariance is rare. We retain both orientations and choose any aggregate before looking at the result.</p></div>
+        </div>
+        <div class="paired-layout">
+          <div class="panel variant-lab">
+            <div class="lab-head"><div><h3>Measured mutation contrasts</h3><p>Untouched contexts, prospective panel</p></div><div class="mini-tabs" id="variant-tabs" role="tablist"></div></div>
+            <div class="variant-pair"><div class="allele"><small>reference grammar</small><strong id="ref-grammar">sense</strong></div><span>→</span><div class="allele alt"><small>alternate grammar</small><strong id="alt-grammar">disrupted</strong></div></div>
+            <div class="delta-readout"><div class="effect"><strong id="effect-value">+12.66</strong><span id="effect-label">mean acceptor perturbation contrast</span></div><div class="effect-axis"><i class="effect-bar" id="effect-bar"></i></div></div>
+          </div>
+          <div class="panel strand-lab">
+            <div class="lab-head"><div><h3>Which strand reducer?</h3><p>Frozen 35-class endpoint, held-out mean AP</p></div></div>
+            <div class="reducer-chart">
+              <div class="reducer primary"><span>signed mean</span><div class="track"><i style="width:100%"></i></div><b>.0717</b></div>
+              <div class="reducer"><span>max |Δ|</span><div class="track"><i style="width:88.1%"></i></div><b>.0632</b></div>
+              <div class="reducer"><span>mean |Δ|</span><div class="track"><i style="width:80.3%"></i></div><b>.0576</b></div>
+            </div>
+            <p class="strand-note">Only <b>3.86%</b> of adequately supported features had even weak same-ID FWD/RC correlation (<span class="formula">|r| ≥ .05</span>). Signed averaging can still win because the two strands often provide complementary coverage—not because each feature is reverse-complement invariant.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="findings">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">06 / Biological findings</div>
+          <div><h2>A selective inventory, not a universal decoder</h2><p class="section-intro">Known local grammar is clearest. Regulatory and disease-related signals are present, but often share axes with GC/CpG content, repeat structure, or correlated families of SAE features.</p></div>
+        </div>
+        <div class="results-grid">
+          <article class="panel result-card span-7"><span class="kicker">Broad consequences</span><h3>Splice and stop classes stand out</h3><p>Best direction-aligned AUPRC from the complete 35-class scan. All classes were balanced, so chance is 0.0286.</p><div class="bar-list" id="consequence-bars"></div><div class="chance">chance AUPRC · 0.0286 · 17,920 variants</div></article>
+          <article class="panel result-card span-5"><span class="kicker">Repeats</span><h3>Half the genome; concentrated feature mass</h3><div class="ring-chart"><div class="ring-inner"><div><strong>49.51%</strong><small>primary assembly<br>RepeatMasker</small></div></div></div><div class="split-metrics"><div class="split-metric"><strong>34.8%</strong><span>repeat activation mass, block 19 RC</span></div><div class="split-metric"><strong>43.2%</strong><span>nonzero repeat slots, block 19 RC</span></div></div><p style="margin-top:18px">Yet excluding every repeat-containing window retains most Mendelian discoveries with effect-rank correlation ≥0.982. Repeats are a major nuisance/capacity axis, not the pathogenicity explanation.</p></article>
+          <article class="panel result-card span-5"><span class="kicker">AlphaGenome</span><h3>Regulatory magnitude meets GC/CpG</h3><p>Block-19 feature 219 is reproducibly associated with accessibility/promoter-effect magnitude in both orientations—but also with local composition.</p><div class="toggle-row" id="alpha-tabs" role="tablist"></div><div class="correlation-grid" id="alpha-values"></div><p id="alpha-note" style="margin-top:18px"></p></article>
+          <article class="panel result-card span-7"><span class="kicker">Disease labels</span><h3>The final layer wakes up</h3><div class="bar-list"><div class="hbar"><span>Mendelian b1/10</span><div class="track"><i style="width:52%"></i></div><strong>≤.120</strong></div><div class="hbar top"><span>Mendelian b19</span><div class="track"><i style="width:100%"></i></div><strong>.231</strong></div><div class="hbar"><span>Complex b1/10</span><div class="track"><i style="width:0%"></i></div><strong>none</strong></div><div class="hbar top"><span>Complex b19 RC</span><div class="track"><i style="width:53%"></i></div><strong>.123</strong></div></div><div class="callout" style="margin-top:24px">This overturns the idea of a globally weak final layer. Depth is endpoint-specific: consequence class is easiest in the middle, while pathogenic and complex-trait labels emerge most strongly at the end.</div></article>
+          <article class="panel result-card span-4"><span class="kicker">Reference states</span><h3>PLS is strong; ELS is weak</h3><div class="count-compare"><div class="count-box pls"><strong>128</strong><span>positive, strand-concordant PLS features</span></div><div class="count-box els"><strong>9</strong><span>positive, strand-concordant ELS features</span></div></div><p style="margin-top:18px">Eight of nine ELS positives are also PLS-positive. The sole ELS-only lead is weak. cCRE boundaries are smooth operational annotations; localization plots remain a descriptive follow-up.</p></article>
+          <article class="panel result-card span-4"><span class="kicker">Signed dsQTL</span><h3>45 hits, about two effective dimensions</h3><div class="split-metrics"><div class="split-metric"><strong>−.231</strong><span>f1829 FWD Pearson r</span></div><div class="split-metric"><strong>2.02</strong><span>effective rank of 45 FWD hits</span></div></div><p style="margin-top:18px">A 36-feature correlated component dominates. Similar response profiles track encoder geometry (r=0.832), warning us not to count every significant feature ID as an independent biological concept.</p></article>
+          <article class="panel result-card span-4"><span class="kicker">Complex traits</span><h3>A transferable local-impact feature</h3><div class="split-metrics"><div class="split-metric"><strong>.1648</strong><span>f1662 FWD AP on untouched missense data</span></div><div class="split-metric"><strong>2.7×</strong><span>center versus ±1 edit disruption</span></div></div><p style="margin-top:18px">Nonsynonymous alternatives exceed synonymous ones in both strands, but the stricter “codon position 2” story fails. The supported claim is local coding-impact response.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">07 / Statistical lens</div>
+          <div><h2>One association framework, matched to outcome type</h2><p class="section-intro">We use every eligible variant for discovery. The inferential test changes with the outcome, but the discipline stays fixed: declare the full family, report support and effect sizes, and control FDR within each layer.</p></div>
+        </div>
+        <div class="panel stats-lab">
+          <div class="stats-menu" role="tablist" aria-label="Outcome types">
+            <button class="stats-button" role="tab" aria-selected="true" data-stat="continuous"><b>Continuous outcome</b><small>e.g. AlphaGenome L2</small></button>
+            <button class="stats-button" role="tab" aria-selected="false" data-stat="binary"><b>Binary outcome</b><small>e.g. pathogenic label</small></button>
+            <button class="stats-button" role="tab" aria-selected="false" data-stat="categorical"><b>Categorical outcome</b><small>e.g. consequence subset</small></button>
+          </div>
+          <div class="stats-content" aria-live="polite"><span class="kicker" id="stats-kicker">Continuous association</span><h3 id="stats-title">Linear effect plus monotonic robustness</h3><p id="stats-copy">Pearson asks whether the relationship is linear; Spearman asks whether it is monotonic and less sensitive to scale. They form separate predeclared BH families.</p><div class="test-pair" id="test-pair"></div><div class="callout">AUPRC is a benchmark-aligned descriptive effect measure for binary outcomes—not the inferential test. Its chance reference is class prevalence.</div><div class="family-schematic" aria-label="Multiple testing family"><span class="mark">one layer</span><span>15,360 features</span><span>outcomes</span><span>FWD + RC</span><span>declared reducers</span><span>one statistic</span><span>→ BH q-values</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="limits">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">08 / What remains</div>
+          <div><h2>A feature name is a hypothesis</h2><p class="section-intro">The useful standard is calibrated understanding: what activates a feature, where, on which strand, under which edits, and whether the concept survives a new dictionary.</p></div>
+        </div>
+        <div class="limitations">
+          <article class="panel limitation"><h3>Do not overclaim</h3><ul class="clean-list"><li>Generic synonymous semantics failed to replicate across independent 5M dictionaries.</li><li>Fine AlphaGenome tissue or cell-type specificity is not established.</li><li>The positive-only dsQTL pilot tests effect direction, not QTL causality.</li><li>Correlated feature families can make dozens of IDs represent only a few response dimensions.</li><li>The 255-bp model can learn local regulatory grammar, not long-range enhancer–promoter interactions.</li></ul></article>
+          <article class="panel next"><h3>Next scientific moves</h3><ul class="clean-list"><li>Complete signed/default-scorer AlphaGenome analysis and tissue taxonomy.</li><li>Inspect exact CDS/intron, UTR/CDS, ELS, and PLS boundaries position by position.</li><li>Advance from UTRs and promoters toward the harder enhancer tier.</li><li>Rerun fixed biology panels as SAE budgets, layers, sparsity, and seeds improve.</li><li>Study decoder neighborhoods and co-activation programs—not only single feature IDs.</li><li>Ablate or clamp a small preregistered set in the base model for causal downstream tests.</li></ul></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-num">09 / Trail of evidence</div>
+          <div><h2>Follow the experiments</h2><p class="section-intro">This page is a synthesis of a living research program. The issue bodies contain exact protocols, full null results, plots, artifacts, and commit-pinned reproduction links.</p></div>
+        </div>
+        <div class="source-grid">
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/288"><b>#288 · Research question</b><span>Living synthesis, methodology, literature, and execution plan.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/422"><b>#422 · Broad consequences</b><span>Complete all-feature, three-layer association scan.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/429"><b>#429 · Causal feature map</b><span>Splice, stop, and coding perturbations on untouched contexts.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/421"><b>#421 · AlphaGenome L2</b><span>Hierarchical assay/biosample associations and feature characterization.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/435"><b>#435 · Repeat capacity</b><span>Reference activation, variant response, matching, and causal windows.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/436"><b>#436 · Mendelian labels</b><span>All-feature block 1/10/19 pathogenicity inventory.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/438"><b>#438 · Complex traits</b><span>Layer-resolved label associations and feature transfer.</span></a>
+          <a class="source" href="https://github.com/Open-Athena/marin-dna/issues/440"><b>#440 · Reference segmentation</b><span>Clean genomic states, ELS/PLS overlay, and boundary cases.</span></a>
+          <a class="source" href="https://transformer-circuits.pub/2024/scaling-monosemanticity/"><b>Anthropic · Scaling Monosemanticity</b><span>Communication inspiration: feature cards, examples, and evidence-aware interpretation.</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap"><span>Open Athena · MarinDNA interpretability · standalone research artifact</span><span>Evidence current through 3 August 2026 · not a clinical interpretation tool</span></div></footer>
+
+  <script>
+    const methodSteps = [
+      ["Matched sequence pair", "Extract the same 255-bp genomic context twice, changing only the focal allele. This local counterfactual removes most background-locus variation and aligns directly with variant-effect prediction.", "sequence_ref ↔ sequence_alt"],
+      ["First, middle, and final", "Read the post-block residual stream at blocks 1, 10, and 19. Each depth gets a separately trained SAE and a separately corrected hypothesis family.", "h¹ · h¹⁰ · h¹⁹ ∈ ℝ¹⁹²⁰"],
+      ["Sparse decomposition", "Project the 1,920-dimensional state into a 15,360-feature dictionary. Learned thresholds leave most features exactly inactive on any given position.", "zᵢ = preᵢ · 1[preᵢ > θᵢ]"],
+      ["Paired feature response", "Keep reference, alternate, signed Δ, |Δ|, and activation-state transitions. Analyze FWD and RC separately; any mean or max is a predeclared additional view.", "Δᵢ = zᵢ(alt) − zᵢ(ref)"],
+      ["Association, then interpretation", "Test every activation-supported feature against the predefined outcomes. Report effect size, p-value, support, and BH-adjusted q-value. Promote only coherent leads to spatial and causal follow-up.", "association → localization → mutation"],
+    ];
+
+    const layerData = {
+      1: { kicker: "Block 1 · early representation", title: "Sequence primitives appear early", copy: "The first block already contains nucleotide and local composition structure, but it is largely null for the higher-order variant endpoints tested so far.", count: "29", countLabel: "FWD/RC-concordant positive reference-state features", findings: [["Clear strength", "nucleotide and composition-like features", "early"], ["Mendelian label", "no complete-family discovery", "null"], ["dsQTL direction", "essentially null after BH", "null"]] },
+      10: { kicker: "Block 10 · middle representation", title: "Local biological grammar concentrates here", copy: "The middle layer is the strongest general-purpose starting point for broad consequence discovery and houses the most deeply validated splice and stop features.", count: "82", countLabel: "FWD/RC-concordant positive reference-state features", findings: [["Broad scan", "best mean held-out AP at 5M", ".0849"], ["Causal grammar", "acceptor, donor, stop creation", "replicated"], ["AlphaGenome", "f11137 promoter/accessibility magnitude", "robust"]] },
+      19: { kicker: "Block 19 · final representation", title: "Impact and structured context emerge late", copy: "The last layer is not broadly best, but it becomes decisive for Mendelian and complex-trait labels, signed accessibility effects, RNA/regulatory responses, and the largest reference-state inventory.", count: "277", countLabel: "FWD/RC-concordant positive reference-state features", findings: [["Mendelian label", "best individual-feature overall AP", ".231"], ["Complex traits", "best RC absolute-response AP", ".123"], ["dsQTL direction", "FWD features passing Pearson + Spearman", "45"], ["Regulatory axis", "f219 PLS / AlphaGenome / GC-CpG", "shared"]] },
+    };
+
+    const evidenceLabels = ["association", "strand recurrence", "held-out transfer", "targeted mutation", "new dictionary"];
+    const features = [
+      { glyph:"AG", id:"b10 · f11698", name:"Splice acceptor grammar", status:"causal & replicated", claim:"Recovers the canonical AG acceptor boundary together with upstream pyrimidine-rich grammar. Local spatial pooling is important: the strongest response is not always exactly at the focal token.", metric:"AP .818", metricCopy:"local-max acceptor classification; untouched mutation contrast +12.66 [11.58, 13.82]", seq:"TTTCTCTCCTTTTAGG", hot:[2,3,4,5,7,8,11,12,13,14], peak:[13,14], evidence:5, caveat:"Interpretation has survived targeted perturbation, separate FWD/RC agreement, and independent SAE dictionaries. The sequence display is a schematic grammar, not a cherry-picked genomic record." },
+      { glyph:"D5", id:"b10 · f11681", name:"Donor fifth-base grammar", status:"causal & replicated", claim:"A sharply localized splice-donor response. The fifth-base consequence theme was recovered independently by historical and current dictionaries even though feature IDs changed.", metric:"AP .807", metricCopy:"focal donor classification; untouched boundary contrast +9.09 [8.29, 9.84]", seq:"CAGGTAAGT", hot:[3,4,5,6,7], peak:[6], evidence:5, caveat:"The mechanistic claim is positional donor grammar, not that one SAE ID is stable across dictionaries." },
+      { glyph:"STOP", id:"b10 · f3312 / f4281", name:"Opposing stop-creation pair", status:"causal & replicated", claim:"The same stop-generating edits can drive one feature strongly upward and another downward. This is why signed Δ must remain visible rather than being replaced everywhere by |Δ|.", metric:"+13.69 / −14.86", metricCopy:"prospective untouched-context contrasts for f3312 and f4281", seq:"TGG→TAG", hot:[0,2,4,5,6], peak:[5], mut:[5], evidence:5, caveat:"Two opposing features need not be redundant: they may represent different background states or reconstruction directions around the same edit." },
+      { glyph:"LEU", id:"b10 · f12636 · 25M", name:"A narrow leucine codon-family feature", status:"qualified", claim:"Better SAE training did not recover a generic synonymous feature. It exposed a narrower response concentrated in a handful of leucine codon contexts.", metric:"+11.43", metricCopy:"mean response in 10 leucine contexts; other codons average −0.38", seq:"CTGTTGTTAC", hot:[0,1,2,3,4,5,6,7,8], peak:[0,3,6], evidence:3, caveat:"Five contexts contribute 96.4% of the total. This post-hoc specialization is useful, but it is not evidence for a universal synonymous or amino-acid feature." },
+      { glyph:"RNA", id:"b19 · f9086 · 25M", name:"Structured-RNA / regulatory response", status:"association + recurrence", claim:"The strongest Mendelian-label feature repeatedly highlights ferritin iron-response elements and structured RNAs such as TERC and RMRP.", metric:"AP .231", metricCopy:"best individual-feature overall Mendelian-label AUPRC at 10% prevalence", seq:"GCCTCCTGCGCC", hot:[0,1,3,4,6,8,9,10,11], peak:[8,9], evidence:2, caveat:"Excluding FTL, FTH1, TERC, and RMRP retains a 1.90–2.06× prevalence lift, so these are exemplars rather than the entire explanation. Mechanism remains open." },
+      { glyph:"PLS", id:"b19 · f219 · 25M", name:"Promoter / accessibility / GC axis", status:"robust association", claim:"One feature links three views: AlphaGenome accessibility and promoter-effect magnitude, direct PLS enrichment on the human reference, and local GC/CpG-rich sequence.", metric:"rGC .519 / .516", metricCopy:"Pearson correlation of |Δ| with local GC, FWD / RC; PLS AP .382 / .387", seq:"CGGCGCCGCGGC", hot:[0,1,2,3,4,5,6,7,8,9,10,11], peak:[4,7,9], evidence:2, caveat:"This is a biological axis and a composition warning at once. Fine tissue specificity is not established, and promoter enrichment may partly reflect CpG-rich local sequence." },
+      { glyph:"VEP", id:"b19 · f1662 · 25M", name:"Transferable local coding-impact response", status:"held-out + mutation", claim:"The feature predicts complex-trait label within subsets and transfers to untouched missense variants. Saturation localizes sensitivity to the edited center and to nonsynonymous alternatives.", metric:"AP .1648 / .1463", metricCopy:"untouched missense transfer, FWD / RC", seq:"GACCAGTAC", hot:[2,3,4,5,6], peak:[4], mut:[4], evidence:4, caveat:"The stricter claim that codon position 2 is uniquely special failed. The supported interpretation is a local coding-impact response." },
+      { glyph:"REP", id:"b19 · repeat family", name:"Repeat sequence grammars", status:"causal windows", claim:"A-rich homopolymers, Alu-local sequence, C-rich periodic sequence, and T-rich repeat contexts each have strand-stable causal windows.", metric:"34–43%", metricCopy:"block-19 repeat activation mass / nonzero slots, despite ~1% positive repeat-enriched dictionary IDs", seq:"AAAAAAGAGAAAA", hot:[0,1,2,3,4,5,8,9,10,11,12], peak:[3,4,10], evidence:[true,true,false,true,false], caveat:"Repeat features consume concentrated response capacity, but repeat overlap does not explain the final-layer Mendelian pathogenicity signal." },
+    ];
+
+    const variantCases = [
+      { key:"acceptor", label:"acceptor", ref:"intact AG", alt:"mutated AG", value:12.66, display:"+12.66", copy:"mean acceptor −1/0 contrast" },
+      { key:"donor", label:"donor", ref:"intact donor", alt:"mutated −4/−3", value:9.09, display:"+9.09", copy:"mean donor-boundary contrast" },
+      { key:"stopup", label:"stop +", ref:"sense codon", alt:"stop created", value:13.69, display:"+13.69", copy:"f3312 stop-creation contrast" },
+      { key:"stopdown", label:"stop −", ref:"sense codon", alt:"stop created", value:-14.86, display:"−14.86", copy:"f4281 stop-creation contrast" },
+    ];
+
+    const consequenceData = [["donor fifth",.373],["stop gained",.277],["acceptor",.274],["missense",.130],["mature miRNA",.114],["PLS",.075],["5′ UTR",.072]];
+    const alphaData = {
+      atac: { label:"ATAC", values:[["Pearson",.232],["Spearman",.440],["trimmed r",.342]], note:"FWD values for f219; RC is .230 / .450 / .337. The monotonic relationship is stronger than the linear one." },
+      procap: { label:"PRO-cap", values:[["Pearson",.290],["Spearman",.420],["trimmed r",.360]], note:"Approximate robust effect magnitude for promoter transcription-initiation tracks; both orientations agree." },
+      gc: { label:"GC / CpG", values:[["GC r",.519],["GC ρ",.642],["CpG r",.513]], note:"Local sequence composition is at least as strong as the AlphaGenome track association and must remain in the interpretation." },
+    };
+
+    const statsData = {
+      continuous: { kicker:"Continuous association", title:"Linear effect plus monotonic robustness", copy:"Pearson asks whether the relationship is linear; Spearman asks whether it is monotonic and less sensitive to scale. They form separate predeclared BH families.", tests:[["Pearson r","linear association + p-value"],["Spearman ρ","rank-based robustness + p-value"]] },
+      binary: { kicker:"Binary association", title:"Mean shift plus rank shift", copy:"Welch’s t-test measures a standardized mean difference without assuming equal variances. Mann–Whitney measures rank separation with rank-biserial effect size.", tests:[["Welch t","mean / standardized mean difference"],["Mann–Whitney U","rank-biserial effect size"]] },
+      categorical: { kicker:"Categorical association", title:"Omnibus first, classes second", copy:"Begin with a global parametric or rank-based test. Use corrected, predefined class-specific comparisons only when the scientific question needs them.", tests:[["Omnibus","any class-associated shift"],["Class contrasts","predefined, corrected follow-ups"]] },
+    };
+
+    function setSelected(nodes, active) { nodes.forEach(n => n.setAttribute("aria-selected", String(n === active))); }
+
+    document.querySelectorAll(".step-button").forEach(button => button.addEventListener("click", () => {
+      setSelected(document.querySelectorAll(".step-button"), button);
+      const [title, copy, formula] = methodSteps[Number(button.dataset.step)];
+      document.querySelector("#step-title").textContent = title;
+      document.querySelector("#step-copy").textContent = copy;
+      document.querySelector("#step-formula").textContent = formula;
+    }));
+
+    function renderLayer(layer) {
+      const data = layerData[layer];
+      document.querySelector("#layer-kicker").textContent = data.kicker;
+      document.querySelector("#layer-title").textContent = data.title;
+      document.querySelector("#layer-copy").textContent = data.copy;
+      document.querySelector("#layer-count").textContent = data.count;
+      document.querySelector("#layer-count-label").textContent = data.countLabel;
+      document.querySelector("#layer-findings").innerHTML = data.findings.map(([label, value, metric]) => `<div class="finding-row"><span>${label}</span><b>${value}</b><em>${metric}</em></div>`).join("");
+    }
+    document.querySelectorAll(".layer-button").forEach(button => button.addEventListener("click", () => { setSelected(document.querySelectorAll(".layer-button"), button); renderLayer(button.dataset.layer); }));
+    renderLayer(1);
+
+    const featureList = document.querySelector("#feature-list");
+    features.forEach((feature, index) => {
+      const button = document.createElement("button");
+      button.className = "feature-button";
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(index === 0));
+      button.innerHTML = `<span class="feature-glyph">${feature.glyph}</span><span><b>${feature.name}</b><small>${feature.id}</small></span>`;
+      button.addEventListener("click", () => { setSelected(document.querySelectorAll(".feature-button"), button); renderFeature(index); });
+      featureList.append(button);
+    });
+
+    function renderSequence(feature) {
+      const chars = Array.from(feature.seq);
+      const hot = new Set(feature.hot || []), peak = new Set(feature.peak || []), mut = new Set(feature.mut || []);
+      return chars.map((char, i) => {
+        let cls = "";
+        if (hot.has(i)) cls = "hot1";
+        if (peak.has(i)) cls = "hot3";
+        else if (hot.has(i) && (hot.has(i-1) || hot.has(i+1))) cls = "hot2";
+        if (mut.has(i)) cls += " mut";
+        return `<span class="${cls.trim()}">${char}</span>`;
+      }).join("");
+    }
+    function renderFeature(index) {
+      const f = features[index];
+      document.querySelector("#feature-meta").innerHTML = `<span class="pill good">${f.status}</span><span class="pill">${f.id}</span>`;
+      document.querySelector("#feature-name").textContent = f.name;
+      document.querySelector("#feature-claim").textContent = f.claim;
+      document.querySelector("#feature-metric").textContent = f.metric;
+      document.querySelector("#feature-metric-copy").textContent = f.metricCopy;
+      document.querySelector("#sequence").innerHTML = renderSequence(f);
+      const evidence = Array.isArray(f.evidence) ? f.evidence : evidenceLabels.map((_, i) => i < f.evidence);
+      document.querySelector("#evidence-track").innerHTML = evidenceLabels.map((label, i) => `<span class="evidence-rung ${evidence[i] ? "on" : ""}">${label}</span>`).join("");
+      document.querySelector("#feature-caveat").innerHTML = `<b>Boundary of the claim:</b> ${f.caveat}`;
+    }
+    renderFeature(0);
+
+    const variantTabs = document.querySelector("#variant-tabs");
+    variantCases.forEach((item, index) => {
+      const button = document.createElement("button");
+      button.className = "mini-tab"; button.setAttribute("role","tab"); button.setAttribute("aria-selected", String(index === 0)); button.textContent = item.label;
+      button.addEventListener("click", () => { setSelected(document.querySelectorAll("#variant-tabs button"), button); renderVariant(item); });
+      variantTabs.append(button);
+    });
+    function renderVariant(item) {
+      document.querySelector("#ref-grammar").textContent = item.ref;
+      document.querySelector("#alt-grammar").textContent = item.alt;
+      document.querySelector("#effect-value").textContent = item.display;
+      document.querySelector("#effect-label").textContent = item.copy;
+      const bar = document.querySelector("#effect-bar");
+      const width = Math.min(48, Math.abs(item.value) / 16 * 48);
+      bar.className = `effect-bar ${item.value < 0 ? "negative" : ""}`;
+      bar.style.width = `${width}%`;
+      bar.style.left = item.value < 0 ? `${50-width}%` : "50%";
+    }
+    renderVariant(variantCases[0]);
+
+    document.querySelector("#consequence-bars").innerHTML = consequenceData.map(([label,value], i) => `<div class="hbar ${i === 0 ? "top" : ""}"><span>${label}</span><div class="track"><i style="width:${value/.373*100}%"></i></div><strong>${value.toFixed(3)}</strong></div>`).join("");
+
+    const alphaTabs = document.querySelector("#alpha-tabs");
+    Object.entries(alphaData).forEach(([key,item], index) => {
+      const button = document.createElement("button"); button.className="toggle-chip"; button.setAttribute("role","tab"); button.setAttribute("aria-selected",String(index===0)); button.textContent=item.label;
+      button.addEventListener("click",()=>{ setSelected(document.querySelectorAll("#alpha-tabs button"),button); renderAlpha(key); }); alphaTabs.append(button);
+    });
+    function renderAlpha(key) {
+      const item=alphaData[key]; document.querySelector("#alpha-values").innerHTML=item.values.map(([label,value])=>`<div class="corr"><strong>${value.toFixed(3)}</strong><span>${label}</span></div>`).join(""); document.querySelector("#alpha-note").textContent=item.note;
+    }
+    renderAlpha("atac");
+
+    function renderStats(key) {
+      const item=statsData[key]; document.querySelector("#stats-kicker").textContent=item.kicker; document.querySelector("#stats-title").textContent=item.title; document.querySelector("#stats-copy").textContent=item.copy; document.querySelector("#test-pair").innerHTML=item.tests.map(([name,copy])=>`<div class="test-box"><b>${name}</b><span>${copy}</span></div>`).join("");
+    }
+    document.querySelectorAll(".stats-button").forEach(button=>button.addEventListener("click",()=>{setSelected(document.querySelectorAll(".stats-button"),button);renderStats(button.dataset.stat);}));
+    renderStats("continuous");
+
+    const progress = document.querySelector(".progress");
+    function updateProgress() { const max=document.documentElement.scrollHeight-window.innerHeight; progress.style.transform=`scaleX(${max>0?window.scrollY/max:0})`; }
+    addEventListener("scroll",updateProgress,{passive:true}); updateProgress();
+  </script>
+</body>
+</html>
