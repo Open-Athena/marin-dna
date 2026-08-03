@@ -1,7 +1,7 @@
 """Missense readout scaling across MarinDNA and Evo 2.
 
 Adapts the combined missense result from issue #341 to the blog figure system.
-Both families use the same Mendelian variants, the same frozen-embedding probe,
+Both families use the same Mendelian variants, the same linear probe,
 and the same chromosome-weighted AUPRC implementation. Color and line style
 encode scoring protocol; marker shape encodes model family.
 

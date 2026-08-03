@@ -1,6 +1,6 @@
 """Parameter scaling: chromosome-weighted AUPRC by consequence and readout.
 
-Both zero-shot LLR and the frozen-embedding linear probe are recomputed from
+Both zero-shot LLR and the linear probe are recomputed from
 the same probe-prediction rows with ``per_chrom_ap_table``. This avoids mixing
 the pooled / matched-pair / per-gene AUPRC variants used by older versions of
 the blog figures.

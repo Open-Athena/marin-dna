@@ -1,6 +1,6 @@
 """Parameter scaling: matched-region validation LL versus downstream AUPRC.
 
-Both zero-shot LLR and the frozen-embedding linear probe use the paired,
+Both zero-shot LLR and the linear probe use the paired,
 chromosome-weighted AUPRC table from Figure 5. Validation loss is matched to
 the consequence's training region and negated so better language modeling reads
 left-to-right as higher ``LL (-loss)``.

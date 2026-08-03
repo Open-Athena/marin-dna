@@ -7,7 +7,7 @@ run inference or fit new probes.
 Two nine-panel figures are emitted:
 
 * Mendelian zero-shot LLR
-* Mendelian frozen-embedding linear probe
+* Mendelian linear probe
 
 Raw observations are connected by straight segments and shown with the
 already-computed ±1 SE error bars. No kernel smoother is applied: the sparse,
@@ -93,7 +93,7 @@ WORLD_CONFIG = {
         "probe_metrics",
         "probe_score",
         "chromosome-weighted AUPRC",
-        "frozen-embedding probe",
+        "linear probe",
     ),
 }
 
