@@ -17,6 +17,7 @@ SCALING_HISTORY_PATH = ROOT / "data" / "parameter_scaling_history.csv"
 MIXTURE_RESULTS_PATH = ROOT / "data" / "data_mixture_results.csv"
 MIXTURE_HISTORY_PATH = ROOT / "data" / "data_mixture_history.csv"
 MODEL_LEADERBOARD_PATH = ROOT / "data" / "model_leaderboard.csv"
+INFERENCE_COSTS_PATH = ROOT / "data" / "inference_costs.csv"
 FIGURES_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "genomic_lm_optimization"
 
 # Eval VEP sample sizes per variant type (from docs/outline.md). Embedded in
@@ -77,6 +78,12 @@ def load_leaderboard() -> pd.DataFrame:
     # First line is a provenance comment; the header is on line 2.
     df = pd.read_csv(MODEL_LEADERBOARD_PATH, skiprows=1)
     print(f"Loaded {len(df)} rows from {MODEL_LEADERBOARD_PATH}")
+    return df
+
+
+def load_inference_costs() -> pd.DataFrame:
+    df = pd.read_csv(INFERENCE_COSTS_PATH, comment="#")
+    print(f"Loaded {len(df)} rows from {INFERENCE_COSTS_PATH}")
     return df
 
 

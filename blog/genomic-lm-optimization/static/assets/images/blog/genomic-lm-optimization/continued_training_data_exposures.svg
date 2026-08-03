@@ -10,7 +10,7 @@
     <clipPath id="m33"><rect x="206" y="351" width="700" height="44" rx="7"/></clipPath>
   </defs>
   <rect x="1" y="1" width="958" height="438" rx="16" fill="#f6f0e4" stroke="#ddd3bf"/>
-  <text x="34" y="36" font-size="16.457" font-weight="700" letter-spacing="1" fill="#a89a80">CONTINUED-TRAINING RECIPES · FIGURE 15</text>
+  <text x="34" y="36" font-size="16.457" font-weight="700" letter-spacing="1" fill="#a89a80">CONTINUED-TRAINING RECIPES</text>
   <text x="34" y="64" font-size="21.943" font-weight="750" fill="#1f1e1b">What training data did each recipe see?</text>
   <text x="34" y="86" font-size="18.926" fill="#6f6350">Each lane spans the same 166B-token window; a stage boundary appears only when the data mixture changes.</text>
   <text x="34" y="136" font-size="21.394" font-weight="750" fill="#9c4f2f">m5.1 ★</text>

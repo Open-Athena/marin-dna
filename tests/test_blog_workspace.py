@@ -210,12 +210,14 @@ def test_all_blog_figure_captions_lead_with_a_bold_number_and_title() -> None:
         / "blog"
         / "genomic-lm-optimization.md"
     ).read_text(encoding="utf-8")
-    captions = re.findall(r"<figcaption>(.*?)</figcaption>", article)
+    captions = re.findall(r"<figcaption>(.*?)</figcaption>", article, re.DOTALL)
 
-    assert len(captions) == 19
+    assert len(captions) == 20
     for number, caption in enumerate(captions, start=1):
-        assert re.match(
-            rf"<strong>Figure {number}: [^<]+\.</strong>(?: .+)?$", caption
+        assert re.fullmatch(
+            rf"<strong>Figure {number}: [^<]+\.</strong>(?:\s+.+)?",
+            caption,
+            re.DOTALL,
         ), caption
 
 
@@ -240,13 +242,9 @@ def test_blog_figure_references_use_compact_linked_labels() -> None:
     }
     markdown_references = [
         (figure_id, label)
-        for label, figure_id in re.findall(
-            r"\[([^]]+)\]\(#(fig-[^)]+)\)", article
-        )
+        for label, figure_id in re.findall(r"\[([^]]+)\]\(#(fig-[^)]+)\)", article)
     ]
-    html_references = re.findall(
-        r'<a href="#(fig-[^"]+)">([^<]+)</a>', article
-    )
+    html_references = re.findall(r'<a href="#(fig-[^"]+)">([^<]+)</a>', article)
 
     assert figure_numbers
     for figure_id, label in markdown_references + html_references:
@@ -404,6 +402,17 @@ def test_extract_svg_render_widths_accounts_for_frame_padding() -> None:
     }
 
 
+def test_extract_svg_render_widths_accepts_compact_plot() -> None:
+    markdown = """
+<figure id="compact" data-figure-width="276.92">
+<img src="/assets/images/blog/post/compact.svg" />
+</figure>
+"""
+
+    widths = extract_svg_render_widths(markdown)
+    assert widths == {"/assets/images/blog/post/compact.svg": pytest.approx(236.92)}
+
+
 def test_extract_svg_render_widths_requires_declared_width() -> None:
     markdown = '<figure><img src="/assets/images/blog/post/figure.svg" /></figure>'
 
@@ -416,7 +425,7 @@ def test_edited_workspace_is_valid_and_baseline_manifest_is_readable() -> None:
     referenced_assets = validate_workspace(config)
     manifest = read_baseline_manifest(config)
 
-    assert len(referenced_assets) == 19
+    assert len(referenced_assets) == 20
     assert len(manifest) == 12
 
 

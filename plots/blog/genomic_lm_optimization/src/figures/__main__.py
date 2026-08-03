@@ -31,6 +31,7 @@ from figures.figure9_upstream_mix_auprc import build as figure9  # noqa: E402
 from figures.figure10_lineage_vep_trajectory import build as figure10  # noqa: E402
 from figures.figure11_leaderboard_heatmap import build as figure11  # noqa: E402
 from figures.figure16_offline_lineage_prototype import build as figure16  # noqa: E402
+from figures.headline_cost_performance import build as headline_cost_performance  # noqa: E402
 from utils.figure_style import palette  # noqa: E402
 
 
@@ -41,6 +42,7 @@ def main() -> None:
     mixture_df = data.load_mixture()
     mixture_history_df = data.load_mixture_history()
     leaderboard_df = data.load_leaderboard()
+    inference_costs_df = data.load_inference_costs()
 
     # Per-sweep palettes so each figure's colors span the full viridis range.
     # Sharing a single palette across both compresses the transfer scales (only 3
@@ -65,6 +67,7 @@ def main() -> None:
     figure16("llr", mixture_df)
     figure16("probe", mixture_df)
     figure11(leaderboard_df)
+    headline_cost_performance(leaderboard_df, inference_costs_df)
 
 
 if __name__ == "__main__":

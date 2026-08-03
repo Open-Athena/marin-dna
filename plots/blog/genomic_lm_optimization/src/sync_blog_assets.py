@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ASSET_NAMES = (
+    "headline_cost_performance",
     "figure1_lr_transfer",
     "figure2_beta2_epsilon_transfer",
     "figure3_region_hyper_transfer",
@@ -60,6 +61,7 @@ BLOG_ARTICLE = (
     / "genomic-lm-optimization.md"
 )
 ARTICLE_FIGURE_IDS = {
+    "headline_cost_performance": "fig-cost-performance",
     "figure1_lr_transfer": "fig-learning-rate-transfer",
     "figure2_beta2_epsilon_transfer": "fig-adam-transfer",
     "figure3_region_hyper_transfer": "fig-region-hyperparameter-transfer",

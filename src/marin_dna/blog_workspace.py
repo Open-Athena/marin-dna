@@ -43,6 +43,8 @@ FIGURE_WIDTH_RE = re.compile(
     r"\bdata-figure-width=[\"'](?P<width>[0-9]+(?:\.[0-9]+)?)[\"']",
     re.IGNORECASE,
 )
+MIN_SVG_RENDER_WIDTH_PX = 200.0
+MAX_SVG_RENDER_WIDTH_PX = 700.0
 PLOTLY_RE = re.compile(r"\{\{\s*plotly:\s*([^|}\s]+)", re.IGNORECASE)
 HTML_FILE_ATTRIBUTE_RE = re.compile(
     r"\b(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE
@@ -235,7 +237,7 @@ def extract_svg_render_widths(markdown: str) -> dict[str, float]:
         )
         frame_width = float(width_match.group("width"))
         render_width = frame_width - FIGURE_FRAME_HORIZONTAL_PADDING_PX
-        assert 320.0 <= render_width <= 700.0, (
+        assert MIN_SVG_RENDER_WIDTH_PX <= render_width <= MAX_SVG_RENDER_WIDTH_PX, (
             f"SVG figure {svg_images[0]} has unsupported inner width {render_width:g}px"
         )
         assert svg_images[0] not in widths, f"duplicate SVG figure {svg_images[0]}"
