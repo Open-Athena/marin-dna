@@ -195,7 +195,7 @@ First, 152M-parameter GPN-Promoter, trained only on animal promoters, performed 
 Second, Evo 2 improved substantially with scale overall but still struggled on distal variants.
 Enhancers were the only region type not actively curated into its training data and were sparse among the intergenic regions it saw.
 
-MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include ([research question #394](https://github.com/Open-Athena/marin-dna/issues/394)), which functional regions to sample and how to identify them ([research question #395](https://github.com/Open-Athena/marin-dna/issues/395)), how to weight them, and when during training to introduce them.
+MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include ([research question #394](https://github.com/Open-Athena/marin-dna/issues/394)), which functional regions to sample and how to identify them ([research question #395](https://github.com/Open-Athena/marin-dna/issues/395)), how to weigh them, and when during training to introduce them.
 
 [^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), [Evo 2](https://doi.org/10.1038/s41586-026-10176-5), and [ARSENAL](https://doi.org/10.64898/2026.02.05.703637).
 
