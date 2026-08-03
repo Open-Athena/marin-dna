@@ -2,7 +2,7 @@
 title: "A 1B standard Transformer rivals Evo 2 40B on variant effect prediction"
 slug: "genomic-lm-optimization"
 author: "Gonzalo Benegas & Eric Czech"
-date: 2026-07-28
+date: 2026-08-03
 published: true
 math: false
 toc: true

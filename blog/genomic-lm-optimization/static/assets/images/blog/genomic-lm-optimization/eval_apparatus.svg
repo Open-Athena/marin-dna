@@ -17,8 +17,8 @@
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17.182" fill="#1f1e1b">
     <text x="46" y="132">ACGT</text>
     <rect x="89" y="113" width="23" height="25" rx="4" fill="#e9edf0" stroke="#8394a1"/>
-    <text x="97" y="132" font-weight="700" fill="#465c6e">C</text>
-    <text x="116" y="132">GTCA</text>
+    <text x="100.5" y="132" text-anchor="middle" font-weight="700" fill="#465c6e">C</text>
+    <text x="113" y="132">GTCA</text>
   </g>
 
   <line x1="100.5" y1="144" x2="100.5" y2="165" stroke="#a89a80" stroke-width="1.4" stroke-dasharray="3 3"/>
@@ -27,8 +27,8 @@
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17.182" fill="#1f1e1b">
     <text x="46" y="217">ACGT</text>
     <rect x="89" y="198" width="23" height="25" rx="4" fill="#e9edf0" stroke="#8394a1"/>
-    <text x="97" y="217" font-weight="700" fill="#465c6e">T</text>
-    <text x="116" y="217">GTCA</text>
+    <text x="100.5" y="217" text-anchor="middle" font-weight="700" fill="#465c6e">T</text>
+    <text x="113" y="217">GTCA</text>
   </g>
 
   <text x="46" y="258" font-size="15.75" fill="#7a6f5f">One changed base</text>
