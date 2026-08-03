@@ -150,7 +150,7 @@ window.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling. This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~1,500× faster.
+MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling. This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
 
 > **A note on open development.** MarinDNA is developed in the open. This post turns a branching research process into a linear narrative; the [MarinDNA repository](https://github.com/Open-Athena/marin-dna) preserves the underlying experiments—including unsuccessful and inconclusive directions—through GitHub issues and experiment branches. It should be read as a guide to that evolving record rather than as a conventional paper or final account.
 
@@ -469,7 +469,7 @@ m5.1's strong endpoint raises the possibility that exposure order matters: learn
 
 The result of the previous mixture experiments is m5.1, a 1B GPT-style model evaluated alongside other models on our [live Mendelian VEP leaderboard](https://openathena.ai/marin-dna/leaderboards/mendelian), where we continue to add experimental runs and baselines. In the zero-shot snapshot shown here, m5.1 comes out slightly ahead of Evo 2 40B. Its advantage is considerably larger under frozen-embedding linear probing.
 
-m5.1 was trained on 166B tokens (~1.1e21 FLOPs), compared with 9.3T tokens (~2.25e24 FLOPs) for Evo 2 40B. At their native context lengths on the same GH200, m5.1 scores one million variants in about one hour, compared with roughly 66 days for Evo 2 40B—a roughly 1,500× throughput advantage.[^inference-throughput]
+m5.1 was trained on 166B tokens (~1.1e21 FLOPs), compared with 9.3T tokens (~2.25e24 FLOPs) for Evo 2 40B. At their native context lengths on the same GH200, m5.1 scores one million variants in about 41 minutes, compared with roughly 66 days for Evo 2 40B—a roughly 2,330× throughput advantage.[^inference-throughput]
 
 [^inference-throughput]: This benchmark measures steady-state scoring with forward and reverse-complement passes and embeddings enabled. m5.1 uses a 256-token context, while Evo 2 40B uses an 8,192-token context, so this measures as-deployed throughput rather than same-context or per-token efficiency. See [issue #354](https://github.com/Open-Athena/marin-dna/issues/354) for the full methodology and results.
 
