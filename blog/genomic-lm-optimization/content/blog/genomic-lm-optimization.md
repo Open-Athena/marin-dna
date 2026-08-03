@@ -610,8 +610,6 @@ Some of the remaining difference may reflect information that an alignment-free 
 AUPRC across six headline models using each model family's canonical scoring protocol, with the Macro Avg column highlighted.</figcaption>
 </figure>
 
-<details>
-<summary>Show the frozen-embedding linear-probe leaderboard</summary>
 <figure id="fig-mendelian-leaderboard-probe" data-figure-width="668.67">
 <img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_probe.svg" alt="Mendelian VEP benchmark frozen-embedding linear-probe AUPRC (%) heatmap across four overlapping models" />
 <figcaption><strong>Figure 20: Frozen-embedding linear-probe leaderboard.</strong>
@@ -620,7 +618,6 @@ The two heatmaps are sorted and color-normalized independently, and their subset
 Compare model names and within-panel values rather than row positions, colors, or absolute values across panels.
 GPN-Star and AlphaGenome are absent because no compatible probe result is available here, not because of their performance.</figcaption>
 </figure>
-</details>
 
 ## Conclusion
 
