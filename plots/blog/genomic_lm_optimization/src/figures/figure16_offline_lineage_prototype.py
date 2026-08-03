@@ -30,7 +30,7 @@ from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 from figures import mixture_lineage as ml
 from figures.data import load_mixture, save
 from marin_dna.blog_figure_typography import MATPLOTLIB_NOTE_SIZE
-from utils.figure_style import FIGURE_WIDTH, LEGEND_KW, figsize
+from utils.figure_style import EARTH_QUAL, FIGURE_WIDTH, LEGEND_KW, figsize
 
 TOKENS_PER_STEP = 8192 * 256
 RESULTS_ROOT = "s3://oa-bolinas/snakemake/analysis/evals_v2/results"
@@ -65,12 +65,12 @@ SHORT_NAMES = {
     "exp135-zoonomia-m5.1": "exp135-m5.1",
 }
 
-# A method-neutral, colorblind-safe lineage palette. These colors are deliberately
-# distinct from the earthy genomic-region palette used elsewhere in the post.
+# Use three separated colors from the blog's shared earthy qualitative palette.
+# Lineage changes color only; every series uses Matplotlib's standard circle.
 LINEAGES: tuple[tuple[str, str, str, str], ...] = (
-    ("exp135-zoonomia-m5.1", "m5.1", "#D55E00", "o"),
-    ("exp135-zoonomia-m1.3", "m1.3", "#0072B2", "o"),
-    ("exp135-zoonomia-m3.3", "m3.3", "#CC79A7", "o"),
+    ("exp135-zoonomia-m5.1", "m5.1", EARTH_QUAL[0], "o"),
+    ("exp135-zoonomia-m1.3", "m1.3", EARTH_QUAL[3], "o"),
+    ("exp135-zoonomia-m3.3", "m3.3", EARTH_QUAL[4], "o"),
 )
 
 PANELS: tuple[tuple[str, str], ...] = (
@@ -228,11 +228,8 @@ def _draw_panel(
             yerr=ses * 100.0,
             color=color,
             marker=marker,
-            markerfacecolor=color,
-            markeredgecolor="white",
             ecolor=color,
             capsize=0,
-            alpha=0.9,
             zorder=3,
         )
 
@@ -249,9 +246,6 @@ def _highlight_macro(ax: plt.Axes) -> None:
             zorder=-10,
         )
     )
-    for spine in ax.spines.values():
-        spine.set_color(MACRO_ACCENT)
-        spine.set_linewidth(1.4)
 
 
 def _attach_legend(fig: plt.Figure) -> None:
@@ -261,8 +255,6 @@ def _attach_legend(fig: plt.Figure) -> None:
             [0],
             color=color,
             marker=marker,
-            markerfacecolor=color,
-            markeredgecolor="white",
         )
         for _leaf, _label, color, marker in LINEAGES
     ]
@@ -270,6 +262,7 @@ def _attach_legend(fig: plt.Figure) -> None:
     fig.legend(
         handles,
         labels,
+        title="Mixture lineage",
         ncol=3,
         loc="upper center",
         bbox_to_anchor=(0.5, 0.95),
@@ -316,7 +309,7 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         left=0.115,
         right=0.99,
         bottom=0.07,
-        top=0.88,
+        top=0.84,
         wspace=0.18,
         hspace=0.16,
     )
@@ -334,9 +327,10 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
         ax.yaxis.set_major_locator(MaxNLocator(nbins="auto", integer=True))
         ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.0f}"))
         ax.set_box_aspect(1)
-        for spine in ax.spines.values():
-            spine.set_visible(True)
-            spine.set_linewidth(0.6)
+        for name, spine in ax.spines.items():
+            spine.set_visible(name in {"left", "bottom"})
+            if spine.get_visible():
+                spine.set_linewidth(0.6)
         if is_macro:
             _highlight_macro(ax)
         ax.set_title(
@@ -358,26 +352,14 @@ def build(kind: str, results_df: pd.DataFrame | None = None) -> None:
                 "m5.1 shift\n3→5 regions",
                 xy=(shift_x, 0.02),
                 xycoords=ax.get_xaxis_transform(),
-                xytext=(0.96, 0.02),
-                textcoords=ax.transAxes,
-                ha="right",
+                xytext=(4, 0),
+                textcoords="offset points",
+                ha="left",
                 va="bottom",
                 fontsize=MATPLOTLIB_NOTE_SIZE,
-                color="#59636e",
+                color=MACRO_ACCENT,
                 zorder=4,
                 linespacing=1.35,
-                bbox={
-                    "boxstyle": "square,pad=0.15",
-                    "facecolor": MACRO_FILL,
-                    "edgecolor": "none",
-                },
-                arrowprops={
-                    "arrowstyle": "-",
-                    "color": "#59636e",
-                    "linewidth": 0.8,
-                    "shrinkA": 3,
-                    "shrinkB": 0,
-                },
             )
     axes[-1, 1].set_xlabel("Tokens (B)", labelpad=4)
     for ax in axes[:, 0]:

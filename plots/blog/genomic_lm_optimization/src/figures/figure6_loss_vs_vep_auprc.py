@@ -29,7 +29,9 @@ from marin_dna.blog_figure_typography import (
 from figures.figure5_params_vs_vep_auprc import (
     MENDELIAN_SUBSETS,
     READOUTS,
+    REDUNDANT_LABEL_HEIGHT_FONT_SIZES,
     SGE_SUBSETS,
+    SUBPLOT_HEIGHT_PX,
     load_parameter_scaling_metrics,
 )
 from utils.figure_style import (
@@ -38,7 +40,11 @@ from utils.figure_style import (
     SCORING_PROTOCOL_COLORS,
     SCORING_PROTOCOL_LINESTYLES,
     X_LABEL_PAD,
+    center_axes_block,
     figsize,
+    pack_horizontal_axes,
+    pack_horizontal_axis_columns,
+    set_square_subplot_height,
 )
 
 MATCHED_LOSS_COLUMN = {
@@ -50,6 +56,10 @@ MATCHED_LOSS_COLUMN = {
     "3_prime_UTR_variant": "eval_loss_downstream",
 }
 LOSS_COLUMNS = tuple(sorted(set(MATCHED_LOSS_COLUMN.values())))
+ANNOTATION_HEADROOM_SUBSETS = frozenset(
+    {"synonymous_variant", "3_prime_UTR_variant"}
+)
+ANNOTATION_HEADROOM_FRACTION = 0.3
 
 
 def load_loss_vs_auprc(
@@ -87,6 +97,8 @@ def _plot_panel(
     data: pd.DataFrame,
     *,
     title: str,
+    add_annotation_headroom: bool,
+    show_xlabel: bool,
     show_ylabel: bool,
 ) -> None:
     """Draw paired protocol fits and endpoint AUPRCs for one consequence."""
@@ -131,7 +143,7 @@ def _plot_panel(
         ax.text(
             0.04,
             0.96 - index * 0.16,
-            rf"$r$ = {correlation:.2f}",
+            f"$r$ =\u2009{correlation:.2f}",
             transform=ax.transAxes,
             ha="left",
             va="top",
@@ -140,11 +152,15 @@ def _plot_panel(
         )
 
     ax.set_title(title)
-    ax.set_xlabel("LL (−loss)", labelpad=X_LABEL_PAD)
+    if show_xlabel:
+        ax.set_xlabel("LL (−loss)", labelpad=X_LABEL_PAD)
     if show_ylabel:
         ax.set_ylabel("AUPRC (%)")
     ax.grid(False)
     ax.margins(x=0.08)
+    if add_annotation_headroom:
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(ymin, ymax + (ymax - ymin) * ANNOTATION_HEADROOM_FRACTION)
     ax.set_box_aspect(1)
 
 
@@ -192,6 +208,8 @@ def build(
             axes[axis_name],
             panel,
             title=title,
+            add_annotation_headroom=subset in ANNOTATION_HEADROOM_SUBSETS,
+            show_xlabel=index >= 3,
             show_ylabel=index in (0, 3),
         )
 
@@ -206,7 +224,37 @@ def build(
             axes[axis_name],
             panel,
             title=title,
+            add_annotation_headroom=False,
+            show_xlabel=True,
             show_ylabel=index == 0,
+        )
+
+    set_square_subplot_height(fig, axes.values(), SUBPLOT_HEIGHT_PX)
+    mendelian_rows = (
+        tuple(axes[axis_name] for axis_name, *_ in mendelian_axes[:3]),
+        tuple(axes[axis_name] for axis_name, *_ in mendelian_axes[3:]),
+    )
+    # Loss tick labels are wider than the parameter ticks in Figure 12. Pack
+    # their rendered bounds flush so the square axes themselves keep the same
+    # column spacing in both figures.
+    pack_horizontal_axis_columns(fig, mendelian_rows, gap_font_sizes=0.0)
+    sge_row = tuple(axes[axis_name] for axis_name, *_ in sge_axes)
+    pack_horizontal_axes(fig, sge_row)
+    center_axes_block(fig, sge_row, (axis for row in mendelian_rows for axis in row))
+    freed_label_height = (
+        plt.rcParams["font.size"]
+        * REDUNDANT_LABEL_HEIGHT_FONT_SIZES
+        / (fig.get_figheight() * 72.0)
+    )
+    for axis_name, *_ in (*mendelian_axes[3:], *sge_axes):
+        position = axes[axis_name].get_position()
+        axes[axis_name].set_position(
+            (
+                position.x0,
+                position.y0 + freed_label_height,
+                position.width,
+                position.height,
+            )
         )
 
     handles = [

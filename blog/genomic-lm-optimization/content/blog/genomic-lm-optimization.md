@@ -403,15 +403,15 @@ The final sweep shows a mostly consistent relationship between parameter count a
 Plotting the same results against matched-region validation log-likelihood gives the same picture. Better validation log-likelihood is associated with better downstream performance across the other variant types and scoring protocols. Zero-shot Mendelian missense again points in the opposite direction: performance declines even as validation log-likelihood improves.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py -->
-<figure id="fig-loss-vs-vep" data-figure-width="600.025">
-<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance versus matched-region validation log-likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<figure id="fig-loss-vs-vep" data-figure-width="562.454">
+<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg?v=layout-20260803c" alt="VEP performance versus matched-region validation log-likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 13: VEP performance versus validation log-likelihood.</strong> Matched-region LL (shown as −loss) across the eight parameter-scaling endpoints. Performance is measured as chromosome-weighted AUPRC (%). Lines are least-squares fits, and <em>r</em> denotes Pearson correlation; facet axes vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>
 
 This divergence is not unique to MarinDNA. On the same Mendelian missense benchmark, Evo 2 also shows improving linear-probe performance alongside declining zero-shot LLR performance as model size increases. For now, this should be interpreted as a recurring pattern for Mendelian missense across these two model families—not as evidence that zero-shot readouts generally deteriorate with scale. It also cautions against using zero-shot LLR alone to judge whether scaling has improved the learned representations for this task.
 
 <!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6b_marin_evo2_missense.py -->
-<figure id="fig-missense-readout-scaling" data-figure-width="469.431">
+<figure id="fig-missense-readout-scaling" data-figure-width="417.506">
 <img src="/assets/images/blog/genomic-lm-optimization/figure6b_marin_evo2_missense.svg?v=auprc-percent" alt="Missense VEP performance across MarinDNA and Evo 2 model scales, comparing zero-shot LLR and frozen-embedding linear probes" />
 <figcaption><strong>Figure 14: Missense readouts across model scale.</strong> MarinDNA and Evo 2 are compared using zero-shot LLR and a frozen-embedding linear probe on identical Mendelian variants. Performance is measured as chromosome-weighted AUPRC (%); error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
 </figure>

@@ -39,10 +39,12 @@ from utils.figure_style import (
     SCORING_PROTOCOL_LINESTYLES,
     X_LABEL_PAD,
     figsize,
+    set_square_subplot_height,
 )
 
 DATASET = "mendelian_traits"
 SUBSET = "missense_variant"
+SUBPLOT_HEIGHT_PX = 164.0
 MARIN = "MarinDNA"
 EVO2 = "Evo 2"
 FAMILIES = (MARIN, EVO2)
@@ -120,7 +122,7 @@ def load_missense_comparison(
 def build(marin_metrics: pd.DataFrame | None = None) -> None:
     """Build the combined MarinDNA + Evo 2 missense scaling figure."""
     data = load_missense_comparison(marin_metrics)
-    fig, ax = plt.subplots(figsize=figsize(7.2, 7.2))
+    fig, ax = plt.subplots(figsize=figsize(8.4, 7.2))
 
     for family in FAMILIES:
         family_key = "marindna" if family == MARIN else "evo2"
@@ -160,6 +162,8 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
     ax.grid(False)
     ax.margins(x=0.04)
     ax.set_box_aspect(1)
+    fig.subplots_adjust(left=0.16, right=0.62, top=0.95, bottom=0.16)
+    set_square_subplot_height(fig, (ax,), SUBPLOT_HEIGHT_PX)
 
     protocol_handles = [
         Line2D(
@@ -186,28 +190,32 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
         )
         for family in FAMILIES
     ]
+    axis_position = ax.get_position()
+    legend_x = axis_position.x1 + 0.04
     protocol_legend = fig.legend(
         handles=protocol_handles,
         title="Scoring protocol",
-        ncol=2,
-        loc="upper center",
-        bbox_to_anchor=(0.34, 0.99),
+        ncol=1,
+        loc="upper left",
+        bbox_to_anchor=(legend_x, axis_position.y1),
         frameon=False,
         handlelength=2.4,
-        columnspacing=1.4,
     )
     fig.add_artist(protocol_legend)
+    fig.canvas.draw()
+    protocol_bottom = (
+        protocol_legend.get_window_extent(renderer=fig.canvas.get_renderer()).y0
+        / fig.bbox.height
+    )
     fig.legend(
         handles=family_handles,
         title="Model family",
-        ncol=2,
-        loc="upper center",
-        bbox_to_anchor=(0.76, 0.99),
+        ncol=1,
+        loc="upper left",
+        bbox_to_anchor=(legend_x, protocol_bottom - 0.025),
         frameon=False,
         handletextpad=0.4,
-        columnspacing=1.2,
     )
-    fig.subplots_adjust(top=0.82)
     save(fig, "figure6b_marin_evo2_missense")
 
 
