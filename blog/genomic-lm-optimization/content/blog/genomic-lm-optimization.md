@@ -1,7 +1,7 @@
 ---
-title: "Building efficient and balanced genomic language models"
+title: "A 1B standard Transformer rivals Evo 2 40B on variant effect prediction"
 slug: "genomic-lm-optimization"
-author: "Eric Czech & Gonzalo Benegas"
+author: "Gonzalo Benegas & Eric Czech"
 date: 2026-07-28
 published: true
 math: false
@@ -152,11 +152,8 @@ This post summarizes how data curation, hyperparameter transfer, scaling laws, a
 
 <figure id="fig-cost-performance" data-figure-width="242.75">
 <img src="/assets/images/blog/genomic-lm-optimization/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
-<figcaption><strong>Figure 1: Zero-shot VEP performance versus inference throughput.</strong>
-Mendelian VEP macro-average AUPRC across eight subsets versus variants scored per hour.
-MarinDNA 1B/m5.1 slightly exceeds Evo 2 40B while scoring variants approximately 2,330× faster.
-Throughput follows the benchmark in <a href="https://github.com/Open-Athena/marin-dna/issues/354">issue #354</a>: one Lambda GH200, forward and reverse-complement passes, pooled REF/ALT embeddings, and each model's native context.
-This is an as-deployed comparison rather than a context-controlled efficiency comparison.</figcaption>
+<figcaption><strong>Figure 1: VEP performance versus inference throughput.</strong>
+Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour on a GH200.</figcaption>
 </figure>
 
 > **A note on open development.**
