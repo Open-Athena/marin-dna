@@ -97,3 +97,23 @@ def test_ccre_edge_candidates_alternate_edges_deterministically() -> None:
         assert record["edge_side"] in {"start", "end"}
         assert record["direction"] in {-1, 1}
         assert record["state_before"] == "outside_ccre"
+
+
+def test_mixed_candidate_records_infer_nullable_string_columns() -> None:
+    gene_records = [
+        {
+            "boundary_type": "cds_to_intron",
+            "ccre_subtype": None,
+        }
+        for _ in range(101)
+    ]
+    ccre_records = [
+        {
+            "boundary_type": "els_edge",
+            "ccre_subtype": "pELS",
+        }
+    ]
+
+    frame = pl.DataFrame(gene_records + ccre_records, infer_schema_length=None)
+
+    assert frame.schema["ccre_subtype"] == pl.String

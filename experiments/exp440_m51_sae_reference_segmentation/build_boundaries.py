@@ -336,7 +336,10 @@ def build_boundary_panel(
     ccre = pl.read_parquet(ccre_path)
     ccre_candidates = ccre_edge_candidates(ccre)
     candidate_counts = dict(
-        pl.DataFrame(gene_candidates + ccre_candidates)
+        pl.DataFrame(
+            gene_candidates + ccre_candidates,
+            infer_schema_length=None,
+        )
         .group_by("boundary_type")
         .len()
         .sort("boundary_type")
