@@ -45,7 +45,8 @@ def test_gene_boundary_candidates_handle_both_strands() -> None:
         ("five_prime_utr", 100, 150),
         ("CDS", 150, 250),
         ("CDS", 400, 550),
-        ("three_prime_utr", 550, 600),
+        ("stop_codon", 550, 553),
+        ("three_prime_utr", 553, 600),
     ):
         add("1", feature, start, end, "+", "tx_plus", "g_plus")
     add("2", "transcript", 1_000, 1_450, "-", "tx_minus", "g_minus")
@@ -53,7 +54,8 @@ def test_gene_boundary_candidates_handle_both_strands() -> None:
         ("exon", 1_000, 1_200),
         ("exon", 1_300, 1_450),
         ("three_prime_utr", 1_000, 1_050),
-        ("CDS", 1_050, 1_200),
+        ("stop_codon", 1_050, 1_053),
+        ("CDS", 1_053, 1_200),
         ("CDS", 1_300, 1_400),
         ("five_prime_utr", 1_400, 1_450),
     ):
@@ -71,7 +73,7 @@ def test_gene_boundary_candidates_handle_both_strands() -> None:
         ("tx_plus", "cds_to_intron"): (250, 1),
         ("tx_plus", "intron_to_cds"): (400, 1),
         ("tx_plus", "utr5_to_cds"): (150, 1),
-        ("tx_plus", "cds_to_utr3"): (550, 1),
+        ("tx_plus", "cds_to_utr3"): (553, 1),
         ("tx_minus", "cds_to_intron"): (1_300, -1),
         ("tx_minus", "intron_to_cds"): (1_200, -1),
         ("tx_minus", "utr5_to_cds"): (1_400, -1),

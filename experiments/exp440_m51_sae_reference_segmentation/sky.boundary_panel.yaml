@@ -16,7 +16,7 @@ workdir: .
 
 envs:
   EXPERIMENT_COMMIT: ""
-  RUN_ID: dna-exp440-boundary-panel-r1
+  RUN_ID: dna-exp440-boundary-panel-r2
   AWS_ACCESS_KEY_ID: ""
   AWS_SECRET_ACCESS_KEY: ""
   AWS_SESSION_TOKEN: ""
@@ -45,7 +45,7 @@ run: |
   export EXPERIMENT_COMMIT RUN_ID
 
   test "${#EXPERIMENT_COMMIT}" -eq 40
-  test "$RUN_ID" = "dna-exp440-boundary-panel-r1"
+  test "$RUN_ID" = "dna-exp440-boundary-panel-r2"
   EXPERIMENT_DIR="experiments/exp440_m51_sae_reference_segmentation"
   INPUT_ROOT="$HOME/exp440-boundary-inputs"
   OUTPUT_ROOT="$HOME/exp440-runs/$RUN_ID"

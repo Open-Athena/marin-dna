@@ -23,7 +23,7 @@ from twobitreader import TwoBitFile
 from build_panel import WINDOW_BP, sha256_file, write_json
 from extract_focal import ISSUE, assert_commit
 
-BOUNDARY_PANEL_RUN_ID = "dna-exp440-boundary-panel-r1"
+BOUNDARY_PANEL_RUN_ID = "dna-exp440-boundary-panel-r2"
 GTF_BYTES = 104_395_529
 GTF_SHA256 = "2f8e31578c3aa2f35646927c4a3b3b0dcf0321e57c0ebd3ecc81afcbc836d1a8"
 CCRE_BYTES = 10_361_229
@@ -59,6 +59,16 @@ def _contains(intervals: list[tuple[int, int]], start: int, end: int) -> bool:
     assert start < end
     return any(left <= start and end <= right for left, right in intervals)
 
+def _merge_intervals(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(set(intervals)):
+        assert start < end
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
 
 def _aligned_segments(
     boundary_position0: int, direction: int, flank: int = FLANK_BP
@@ -84,11 +94,13 @@ def gene_boundary_candidates(annotation: pl.DataFrame) -> list[dict[str, Any]]:
     transcript_info: dict[str, dict[str, str]] = {}
     exons: dict[str, list[tuple[int, int]]] = defaultdict(list)
     cds: dict[str, list[tuple[int, int]]] = defaultdict(list)
+    stop_codons: dict[str, list[tuple[int, int]]] = defaultdict(list)
     utr5: dict[str, list[tuple[int, int]]] = defaultdict(list)
     utr3: dict[str, list[tuple[int, int]]] = defaultdict(list)
     feature_map = {
         "exon": exons,
         "CDS": cds,
+        "stop_codon": stop_codons,
         "five_prime_utr": utr5,
         "three_prime_utr": utr3,
     }
@@ -146,7 +158,9 @@ def gene_boundary_candidates(annotation: pl.DataFrame) -> list[dict[str, Any]]:
 
     for transcript_id, info in transcript_info.items():
         transcript_exons = sorted(set(exons.get(transcript_id, [])))
-        transcript_cds = sorted(set(cds.get(transcript_id, [])))
+        transcript_cds = _merge_intervals(
+            cds.get(transcript_id, []) + stop_codons.get(transcript_id, [])
+        )
         transcript_utr5 = sorted(set(utr5.get(transcript_id, [])))
         transcript_utr3 = sorted(set(utr3.get(transcript_id, [])))
         if not transcript_exons or not transcript_cds:
