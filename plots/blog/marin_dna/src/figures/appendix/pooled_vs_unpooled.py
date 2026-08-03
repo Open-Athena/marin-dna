@@ -17,9 +17,9 @@ and overlay the pooled and unpooled traces. At any tokens_R value:
   - if the auprc curves agree -> pooling is downstream-equivalent per region-token
 
 Outputs:
-  plots/output/blog/genomic_lm_optimization/appendix/pooled_vs_unpooled_raw.{png,pdf}      scatter only (no interpolation) —
+  plots/output/blog/marin_dna/appendix/pooled_vs_unpooled_raw.{png,pdf}      scatter only (no interpolation) —
                                                          shows where data was actually measured
-  plots/output/blog/genomic_lm_optimization/appendix/pooled_vs_unpooled_matched.{png,pdf}  PCHIP curves on a common grid restricted
+  plots/output/blog/marin_dna/appendix/pooled_vs_unpooled_matched.{png,pdf}  PCHIP curves on a common grid restricted
                                                          to the data overlap (no extrapolation)
 
 Usage:
@@ -48,7 +48,7 @@ FIGURES_DIR = (
     / "plots"
     / "output"
     / "blog"
-    / "genomic_lm_optimization"
+    / "marin_dna"
     / "appendix"
 )
 

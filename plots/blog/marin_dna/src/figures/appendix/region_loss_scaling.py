@@ -30,7 +30,7 @@ FIGURES_DIR = (
     / "plots"
     / "output"
     / "blog"
-    / "genomic_lm_optimization"
+    / "marin_dna"
     / "appendix"
 )
 

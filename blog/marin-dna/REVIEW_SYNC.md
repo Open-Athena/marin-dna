@@ -123,7 +123,7 @@ uv run python src/marin_dna/blog_review_sync.py prepare \
   --request-id <stable-request-id> \
   --requested-at <YYYY-MM-DDTHH:MM:SSZ> \
   --destination \
-  blog/genomic-lm-optimization/export/review-sync/<stable-request-id>
+  blog/marin-dna/export/review-sync/<stable-request-id>
 ```
 
 The command validates all local assets and footnotes, preserves the 19 figures
@@ -154,8 +154,8 @@ Use the existing Open Athena website PR #59 head branch
 3. Assert that the only changed paths are:
 
    ```text
-   content/blog/genomic-lm-optimization.md
-   static/assets/images/blog/genomic-lm-optimization/**
+   content/blog/marin-dna.md
+   static/assets/images/blog/marin-dna/**
    ```
 
    Preserve every unrelated PR change. Never force-push.
@@ -163,7 +163,7 @@ Use the existing Open Athena website PR #59 head branch
 5. Commit the exact source SHA and request ID in the commit message, then push
    the existing branch normally.
 6. Wait for the Cloudflare preview deployment to finish. Verify that
-   [the stable preview URL](https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/blog/genomic-lm-optimization/)
+   [the stable preview URL](https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/blog/marin-dna/)
    serves the new commit.
 7. Append either a website success or failure event to the private ledger
    immediately, upload it with a Drive file-version conflict guard, and mirror

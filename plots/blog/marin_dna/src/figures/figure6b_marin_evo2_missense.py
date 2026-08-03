@@ -5,13 +5,13 @@ Both families use the same Mendelian variants, the same linear probe,
 and the same chromosome-weighted AUPRC implementation. Color and line style
 encode scoring protocol; marker shape encodes model family.
 
-Run from ``plots/blog/genomic_lm_optimization/src``:
+Run from ``plots/blog/marin_dna/src``:
 
     uv run --project ../../../.. python -m figures.figure6b_marin_evo2_missense
 
 Outputs:
 
-    plots/output/blog/genomic_lm_optimization/
+    plots/output/blog/marin_dna/
         figure6b_marin_evo2_missense.{png,pdf,svg}
 """
 

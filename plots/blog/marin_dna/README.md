@@ -1,6 +1,6 @@
 # Genomic LM optimization blog figures
 
-This directory is the durable source bundle for the charts in `blog/genomic-lm-optimization/`. It preserves the complete plotting project, committed input snapshots, appendix analyses, and the mapping from article figure numbers to recipes and checked-in SVG assets.
+This directory is the durable source bundle for the charts in `blog/marin-dna/`. It preserves the complete plotting project, committed input snapshots, appendix analyses, and the mapping from article figure numbers to recipes and checked-in SVG assets.
 
 The imported project comes from [`eric-czech/marin-dna-post-202606`](https://github.com/eric-czech/marin-dna-post-202606) at commit [`2abef91b37a16fde9c9cdf1cfa0046942442b97f`](https://github.com/eric-czech/marin-dna-post-202606/commit/2abef91b37a16fde9c9cdf1cfa0046942442b97f). The Figure 9–12 typography and Figure 11 label fixes were then applied locally in this branch.
 
@@ -9,7 +9,7 @@ The imported project comes from [`eric-czech/marin-dna-post-202606`](https://git
 Run from the MarinDNA repository root using the repository root project. Figures 13–15 import MarinDNA evaluation code and require its Parquet dependencies, so the complete historical build does not use this directory’s nested lock. The committed CSV snapshots back the transfer, loss-scaling, mixture, and historical leaderboard figures; Figures 13–15 additionally read the paired endpoint predictions used to recompute both readouts with the same chromosome-weighted AUPRC implementation:
 
 ```bash
-uv run --frozen python plots/blog/genomic_lm_optimization/src/figures/__main__.py
+uv run --frozen python plots/blog/marin_dna/src/figures/__main__.py
 ```
 
 Generate the current live-evals leaderboard panels separately:
@@ -18,7 +18,7 @@ Generate the current live-evals leaderboard panels separately:
 uv run python -m plots.blog.figure11_leaderboard_heatmap
 ```
 
-Historical-bundle outputs are written to `plots/output/blog/genomic_lm_optimization/`; the current leaderboard panels are written to `plots/output/blog/`. Both locations contain SVG, PNG, and PDF artifacts. Figure 12 also writes its Kaplan-fit report to the historical output directory, and SVG trailing whitespace is normalized.
+Historical-bundle outputs are written to `plots/output/blog/marin_dna/`; the current leaderboard panels are written to `plots/output/blog/`. Both locations contain SVG, PNG, and PDF artifacts. Figure 12 also writes its Kaplan-fit report to the historical output directory, and SVG trailing whitespace is normalized.
 
 All data plots inherit Matplotlib's default font, line, marker, and automatic
 tick settings. Saving applies the single shared 1.2× whole-SVG render scale from
@@ -30,13 +30,13 @@ silently apply a second, figure-specific scale.
 After inspecting generated SVGs and PNGs, copy only approved assets into the blog with the explicit sync command:
 
 ```bash
-uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/sync_blog_assets.py figure1_lr_transfer figure2_beta2_epsilon_transfer
+uv run --project plots/blog/marin_dna python plots/blog/marin_dna/src/sync_blog_assets.py figure1_lr_transfer figure2_beta2_epsilon_transfer
 ```
 
 Refresh the committed sweep and mixture CSV snapshots from WandB with:
 
 ```bash
-uv run --project plots/blog/genomic_lm_optimization python plots/blog/genomic_lm_optimization/src/data.py
+uv run --project plots/blog/marin_dna python plots/blog/marin_dna/src/data.py
 ```
 
 `model_leaderboard.csv` is a dated extraction whose provenance URL is recorded in its first line.
@@ -86,4 +86,4 @@ Paths beginning with `src/` and CSV names in this table are relative to this dir
 | Pooled vs unpooled matching | `src/figures/appendix/pooled_vs_unpooled.py` | WandB histories |
 | Per-region loss scaling | `src/figures/appendix/region_loss_scaling.py` | WandB summaries |
 
-Appendix outputs land in `plots/output/blog/genomic_lm_optimization/appendix/`. The imported `docs/outline.md` records the source projects, sweep definitions, and constants referenced by recipe comments.
+Appendix outputs land in `plots/output/blog/marin_dna/appendix/`. The imported `docs/outline.md` records the source projects, sweep definitions, and constants referenced by recipe comments.

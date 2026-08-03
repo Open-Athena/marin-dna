@@ -142,7 +142,7 @@ class FakeWebsite:
             commit_sha="c" * 40,
             preview_url=(
                 "https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/"
-                "blog/genomic-lm-optimization/"
+                "blog/marin-dna/"
             ),
             build_status="success",
         )

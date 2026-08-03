@@ -1,4 +1,4 @@
-# Genomic Language Model Optimization editing workspace
+# MarinDNA blog editing workspace
 
 > **Staging only: this branch and every child editing PR are intentionally
 > permanent and unmerged. Do not target or merge this workspace into MarinDNA
@@ -32,13 +32,13 @@ use `uv --frozen`.
 There is exactly one canonical article:
 
 ```text
-blog/genomic-lm-optimization/content/blog/genomic-lm-optimization.md
+blog/marin-dna/content/blog/marin-dna.md
 ```
 
 Its blog-specific assets live at:
 
 ```text
-blog/genomic-lm-optimization/static/assets/images/blog/genomic-lm-optimization/
+blog/marin-dna/static/assets/images/blog/marin-dna/
 ```
 
 Edit that Markdown file directly. Sections may be added, deleted, renamed, or
@@ -54,7 +54,7 @@ uv run --no-project python src/marin_dna/blog_workspace.py preview
 ```
 
 Then open
-[http://127.0.0.1:8765/blog/genomic-lm-optimization/](http://127.0.0.1:8765/blog/genomic-lm-optimization/).
+[http://127.0.0.1:8765/blog/marin-dna/](http://127.0.0.1:8765/blog/marin-dna/).
 The command clones the website at the renderer pin into an isolated temporary
 directory, overlays the canonical article/assets, runs the website's own build,
 writes only the rendered gLM article and its referenced CSS/fonts/assets to the
@@ -119,7 +119,7 @@ local Chromium executable:
 
 ```bash
 CHROME_BIN=/path/to/chromium node scripts/issue361_capture_blog_figures.mjs \
-  http://127.0.0.1:8765/blog/genomic-lm-optimization/ /tmp/blog-figures
+  http://127.0.0.1:8765/blog/marin-dna/ /tmp/blog-figures
 ```
 
 The audit captures all 19 figures and writes `layout-audit.json` with text-text,
@@ -165,7 +165,7 @@ uv run --no-project python src/marin_dna/blog_workspace.py export \
 ```
 
 The export atomically replaces the article and replaces only the exact
-`static/assets/images/blog/genomic-lm-optimization/` directory, removing stale
+`static/assets/images/blog/marin-dna/` directory, removing stale
 blog assets without touching other website files. Run the website repository's
 own tests or build afterward, then commit the exported paths there for the
 final hand-off tracked by

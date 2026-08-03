@@ -44,7 +44,7 @@ SOURCE_REPOSITORY = "https://github.com/Open-Athena/marin-dna"
 SOURCE_BRANCH = "claude/issue-373-blog-staging"
 WEBSITE_PREVIEW_URL = (
     "https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/"
-    "blog/genomic-lm-optimization/"
+    "blog/marin-dna/"
 )
 
 FRONTMATTER_RE = re.compile(r"\A---\r?\n(?P<body>.*?)\r?\n---\r?\n", re.DOTALL)
@@ -129,8 +129,8 @@ class ReviewSnapshot:
         """Return a commit-pinned link to the canonical article."""
         return (
             f"{SOURCE_REPOSITORY}/blob/{self.source_sha}/"
-            "blog/genomic-lm-optimization/content/blog/"
-            "genomic-lm-optimization.md"
+            "blog/marin-dna/content/blog/"
+            "marin-dna.md"
         )
 
     @property

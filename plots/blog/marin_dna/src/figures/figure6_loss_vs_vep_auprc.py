@@ -5,13 +5,13 @@ chromosome-weighted AUPRC table from Figure 5. Validation loss is matched to
 the consequence's training region and negated so better language modeling reads
 left-to-right as higher ``LL (-loss)``.
 
-Run from ``plots/blog/genomic_lm_optimization/src``:
+Run from ``plots/blog/marin_dna/src``:
 
     uv run --project ../../../.. python -m figures.figure6_loss_vs_vep_auprc
 
 Outputs:
 
-    plots/output/blog/genomic_lm_optimization/
+    plots/output/blog/marin_dna/
         figure6_loss_vs_vep_auprc.{png,pdf,svg}
 """
 

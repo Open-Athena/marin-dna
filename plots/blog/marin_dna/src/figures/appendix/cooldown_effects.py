@@ -37,7 +37,7 @@ cooldown — not a pure peak-LR counterfactual — so those rows are flagged
 
 VEP AUPRCs come from the committed `data/data_mixture_history.csv` (same source
 as Figure 10); `eval/loss` is not in that CSV and is fetched live from W&B at the
-same eval steps. Outputs (in `plots/output/blog/genomic_lm_optimization/appendix/`, with the other appendix results):
+same eval steps. Outputs (in `plots/output/blog/marin_dna/appendix/`, with the other appendix results):
   - cooldown_effects.csv  : all 10 metrics x 6 forks (raw + deltas).
   - cooldown_effects.md   : summary for eval/loss and macro_avg.
 
@@ -64,7 +64,7 @@ OUT_DIR = (
     / "plots"
     / "output"
     / "blog"
-    / "genomic_lm_optimization"
+    / "marin_dna"
     / "appendix"
 )
 WANDB_PROJECT = "eric-czech/marin"

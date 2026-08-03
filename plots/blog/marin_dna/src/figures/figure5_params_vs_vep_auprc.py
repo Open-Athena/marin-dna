@@ -5,13 +5,13 @@ the same probe-prediction rows with ``per_chrom_ap_table``. This avoids mixing
 the pooled / matched-pair / per-gene AUPRC variants used by older versions of
 the blog figures.
 
-Run from ``plots/blog/genomic_lm_optimization/src``:
+Run from ``plots/blog/marin_dna/src``:
 
     uv run --project ../../../.. python -m figures.figure5_params_vs_vep_auprc
 
 Outputs:
 
-    plots/output/blog/genomic_lm_optimization/
+    plots/output/blog/marin_dna/
         figure5_params_vs_vep_auprc.{png,pdf,svg}
 """
 

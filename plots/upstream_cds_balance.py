@@ -13,8 +13,8 @@ Run:
 
 Outputs:
     plots/output/upstream_cds_balance/figure.{svg,png}
-    blog/genomic-lm-optimization/static/assets/images/blog/
-        genomic-lm-optimization/upstream_cds_balance.svg
+    blog/marin-dna/static/assets/images/blog/
+        marin-dna/upstream_cds_balance.svg
 """
 
 from __future__ import annotations
@@ -85,21 +85,21 @@ OUTPUT_DIR = REPO_ROOT / "plots" / "output" / Path(__file__).stem
 BLOG_SVG = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "static"
     / "assets"
     / "images"
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "upstream_cds_balance.svg"
 )
 BLOG_ARTICLE = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "content"
     / "blog"
-    / "genomic-lm-optimization.md"
+    / "marin-dna.md"
 )
 FIGURE_ID = "fig-upstream-cds-balance"
 

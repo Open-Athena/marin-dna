@@ -1,9 +1,9 @@
 # Current blog figure recipes
 
 This directory contains the current `evals_v2`-backed plotting recipes for the
-[Genomic Language Model Optimization](../../blog/genomic-lm-optimization/)
+[MarinDNA](../../blog/marin-dna/)
 article. The imported historical plotting bundle remains under
-[`genomic_lm_optimization/`](genomic_lm_optimization/).
+[`marin_dna/`](marin_dna/).
 
 ## Mendelian leaderboard heatmaps
 
@@ -24,8 +24,8 @@ model sets are incomplete, and writes SVG, PNG, and PDF files to
 `plots/output/blog/`. To copy the generated SVGs into the article after review:
 
 ```bash
-uv run --project plots/blog/genomic_lm_optimization \
-  python plots/blog/genomic_lm_optimization/src/sync_blog_assets.py \
+uv run --project plots/blog/marin_dna \
+  python plots/blog/marin_dna/src/sync_blog_assets.py \
   figure11_leaderboard_heatmap__mendelian_llr \
   figure11_leaderboard_heatmap__mendelian_probe
 ```

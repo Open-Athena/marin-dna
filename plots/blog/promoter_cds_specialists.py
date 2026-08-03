@@ -50,20 +50,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BLOG_ARTICLE = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "content"
     / "blog"
-    / "genomic-lm-optimization.md"
+    / "marin-dna.md"
 )
 BLOG_SVG = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "static"
     / "assets"
     / "images"
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / f"{OUTPUT_NAME}.svg"
 )
 FIGURE_ID = "fig-upstream-cds-specialists"

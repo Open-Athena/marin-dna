@@ -1,6 +1,6 @@
 ---
 title: "A 1B standard Transformer rivals Evo 2 40B on variant effect prediction"
-slug: "genomic-lm-optimization"
+slug: "marin-dna"
 author: "Gonzalo Benegas & Eric Czech"
 date: 2026-08-03
 published: true
@@ -152,7 +152,7 @@ MarinDNA applies the tools and open-development approach of [Marin](https://gith
 This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with [Evo 2 40B](https://doi.org/10.1038/s41586-026-10176-5), while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
 
 <figure id="fig-cost-performance" data-figure-width="242.75">
-<img src="/assets/images/blog/genomic-lm-optimization/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
+<img src="/assets/images/blog/marin-dna/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
 <figcaption><strong>Figure 1: VEP performance versus inference throughput.</strong>
 Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour on a GH200.</figcaption>
 </figure>
@@ -209,7 +209,7 @@ Later, we added ncRNA[^training-ncrna] and enhancers[^training-enhancer] built b
 Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
 
 <figure id="fig-training-datasets" data-figure-width="660">
-<img src="/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg?v=compact-bars" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
+<img src="/assets/images/blog/marin-dna/data_provenance_training_datasets.svg?v=compact-bars" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
 <figcaption><strong>Figure 2: Training-dataset provenance and scale.</strong></figcaption>
 </figure>
 
@@ -271,7 +271,7 @@ The Mendelian benchmark compares pathogenic and putatively benign variants acros
 The SGE benchmark uses experimentally measured variant effects from a few genes in MaveDB, currently covering missense and splicing variants.
 
 <figure id="fig-evaluation-datasets" data-figure-width="740">
-<img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
+<img src="/assets/images/blog/marin-dna/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
 <figcaption><strong>Figure 3: Variant effect prediction benchmarks.</strong></figcaption>
 </figure>
 
@@ -280,7 +280,7 @@ The zero-shot score tests whether the model's learned sequence likelihood reflec
 The probe instead asks what variant-relevant information is encoded in the model's learned representation, including information that may not be directly reflected in its sequence likelihoods.
 
 <figure id="fig-evaluation-readouts" data-figure-width="680">
-<img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg?v=standard-snowflake" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
+<img src="/assets/images/blog/marin-dna/eval_apparatus.svg?v=standard-snowflake" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
 <figcaption><strong>Figure 4: Variant effect prediction scoring approaches.</strong></figcaption>
 </figure>
 
@@ -330,7 +330,7 @@ Overall, however, GPN-Star remained stronger.
 
 <!-- Plot recipe: plots/blog/promoter_cds_specialists.py -->
 <figure id="fig-upstream-cds-specialists" data-figure-width="477.357">
-<img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
+<img src="/assets/images/blog/marin-dna/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
 <figcaption><strong>Figure 5: Region-matched zero-shot Mendelian VEP: specialists versus generalists.</strong>
 Error bars denote SE.</figcaption>
 </figure>
@@ -344,7 +344,7 @@ Even the 50/50 mixture may not be optimal: regions can differ both in size and i
 
 <!-- Plot recipe: plots/upstream_cds_balance.py -->
 <figure id="fig-upstream-cds-balance" data-figure-width="535.228">
-<img src="/assets/images/blog/genomic-lm-optimization/upstream_cds_balance.svg" alt="Promoter and missense VEP AUPRC (%) trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures" />
+<img src="/assets/images/blog/marin-dna/upstream_cds_balance.svg" alt="Promoter and missense VEP AUPRC (%) trajectories for upstream-only, balanced, proportional, and CDS-only training mixtures" />
 <figcaption><strong>Figure 6: Upstream/CDS training-mixture comparison.</strong>
 Zero-shot results; the right panel is the unweighted mean of the promoter and missense AUPRC values.</figcaption>
 </figure>
@@ -359,7 +359,7 @@ The annotation-derived DNA pool available at the time contained ~85B tokens.
 [Fig. 7](#fig-annotation-derived-training-pool) shows its proportional CDS, upstream, and downstream composition.
 
 <figure id="fig-annotation-derived-training-pool" data-figure-width="680">
-<img src="/assets/images/blog/genomic-lm-optimization/annotation_derived_training_pool.svg" alt="Approximately 85 billion annotation-derived DNA tokens in a proportional CDS, upstream, and downstream mixture" />
+<img src="/assets/images/blog/marin-dna/annotation_derived_training_pool.svg" alt="Approximately 85 billion annotation-derived DNA tokens in a proportional CDS, upstream, and downstream mixture" />
 <figcaption><strong>Figure 7: Available annotation-derived training pool.</strong></figcaption>
 </figure>
 
@@ -373,7 +373,7 @@ If a proven data-constrained transfer framework existed, we would use it.
 We do not know of one, so we followed the same basic pattern as [Delphi](https://openathena.ai/blog/delphi/), fitting a small reference sweep with the Vizier Bayesian optimization framework and then scaling the result using a Complete(d)-inspired AdamH heuristic.[^completed-framework]
 
 <figure id="fig-hyperparameter-transfer-methodology" data-figure-width="700">
-<img src="/assets/images/blog/genomic-lm-optimization/parameter_transfer_methodology_v1.svg" alt="Reference hyperparameter tuning and target hyperparameter transfer" />
+<img src="/assets/images/blog/marin-dna/parameter_transfer_methodology_v1.svg" alt="Reference hyperparameter tuning and target hyperparameter transfer" />
 <figcaption><strong>Figure 8: Hyperparameter calibration and transfer.</strong></figcaption>
 </figure>
 
@@ -388,18 +388,18 @@ We then validated the transferred hyperparameters across 255M–1B-parameter mod
 The first test was whether the learning-rate prediction survived that regime.
 [Fig. 9](#fig-learning-rate-transfer) shows that the transferred prediction lands exactly on the best observed learning-rate setting at all three validation scales, outperforming both the unchanged reference optimum and every other target-scale sweep setting; the less sensitive optimizer hyperparameters are shown separately in [Fig. 10](#fig-adam-transfer).
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure1_lr_transfer.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure1_lr_transfer.py -->
 <figure id="fig-learning-rate-transfer" data-figure-width="410.702">
-<img src="/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" />
+<img src="/assets/images/blog/marin-dna/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" />
 <figcaption><strong>Figure 9: Learning-rate transfer across model scales.</strong>
 Results across the 255M, 476M, and 1B validation scales.
 The <code>control</code> run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep.
 The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (<code>sweep</code> run type), for all model sizes.</figcaption>
 </figure>
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure2_beta2_epsilon_transfer.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure2_beta2_epsilon_transfer.py -->
 <figure id="fig-adam-transfer" data-figure-width="476.974">
-<img src="/assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg" alt="Adam beta2 and epsilon transfer across model scales" />
+<img src="/assets/images/blog/marin-dna/figure2_beta2_epsilon_transfer.svg" alt="Adam beta2 and epsilon transfer across model scales" />
 <figcaption><strong>Figure 10: Adam β₂ and ε transfer.</strong>
 Results across the same scales as <a href="#fig-learning-rate-transfer">Fig. 9</a>.</figcaption>
 </figure>
@@ -415,9 +415,9 @@ That gives us enough confidence that the following parameter-scaling runs are at
 <details>
 <summary>Fig. 11: Transfer validation by region</summary>
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure3_region_hyper_transfer.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure3_region_hyper_transfer.py -->
 <figure id="fig-region-hyperparameter-transfer" data-figure-width="662.7">
-<img src="/assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" />
+<img src="/assets/images/blog/marin-dna/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" />
 <figcaption><strong>Figure 11: Region-specific hyperparameter transfer.</strong>
 Transfer validated separately for CDS, upstream, and downstream regions.</figcaption>
 </figure>
@@ -446,9 +446,9 @@ Despite this being a simple experiment conceptually, actually getting there took
 The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.
 That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure4_loss_scaling.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure4_loss_scaling.py -->
 <figure id="fig-loss-scaling" data-figure-width="693.082">
-<img src="/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" />
+<img src="/assets/images/blog/marin-dna/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" />
 <figcaption><strong>Figure 12: Loss scaling across model sizes.</strong>
 Eight models from 46M to 4B parameters, with a Kaplan power-law fit.</figcaption>
 </figure>
@@ -477,9 +477,9 @@ When zero-shot LLR and linear probes are evaluated on identical variants, perfor
 The clearest exception is Mendelian missense: zero-shot LLR peaks at 128M parameters and then deteriorates, even as linear-probe performance continues to improve.[^zero-shot-scaling]
 This is not a general failure on missense variants—the SGE missense benchmark improves with scale under both scoring protocols.
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure5_params_vs_vep_auprc.py -->
 <figure id="fig-parameters-vs-vep" data-figure-width="554.969">
-<img src="/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance across model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<img src="/assets/images/blog/marin-dna/figure5_params_vs_vep_auprc.svg?v=auprc-percent" alt="VEP performance across model parameters for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 13: VEP performance across model scale.</strong>
 Zero-shot LLR and a linear probe are compared on identical variants.
 Performance is measured as chromosome-weighted AUPRC; facet y-scales vary independently, and error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
@@ -489,9 +489,9 @@ Plotting the same results against matched-region validation log-likelihood gives
 Better validation log-likelihood is associated with better downstream performance across the other variant types and scoring protocols.
 Zero-shot Mendelian missense again points in the opposite direction: performance declines even as validation log-likelihood improves.
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure6_loss_vs_vep_auprc.py -->
 <figure id="fig-loss-vs-vep" data-figure-width="562.454">
-<img src="/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg?v=layout-20260803c" alt="VEP performance versus matched-region validation log-likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
+<img src="/assets/images/blog/marin-dna/figure6_loss_vs_vep_auprc.svg?v=layout-20260803c" alt="VEP performance versus matched-region validation log-likelihood for Mendelian and SGE consequences, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 14: VEP performance versus validation log-likelihood.</strong>
 Matched-region LL (shown as −loss) across the eight parameter-scaling endpoints.
 Performance is measured as chromosome-weighted AUPRC.
@@ -503,9 +503,9 @@ On the same Mendelian missense benchmark, Evo 2 also shows improving linear-prob
 For now, this should be interpreted as a recurring pattern for Mendelian missense across these two model families—not as evidence that zero-shot readouts generally deteriorate with scale.
 It also cautions against using zero-shot LLR alone to judge whether scaling has improved the learned representations for this task.
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure6b_marin_evo2_missense.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure6b_marin_evo2_missense.py -->
 <figure id="fig-missense-readout-scaling" data-figure-width="417.506">
-<img src="/assets/images/blog/genomic-lm-optimization/figure6b_marin_evo2_missense.svg?v=auprc-percent" alt="Missense VEP performance across MarinDNA and Evo 2 model scales, comparing zero-shot LLR and linear probes" />
+<img src="/assets/images/blog/marin-dna/figure6b_marin_evo2_missense.svg?v=auprc-percent" alt="Missense VEP performance across MarinDNA and Evo 2 model scales, comparing zero-shot LLR and linear probes" />
 <figcaption><strong>Figure 15: Missense readouts across model scale.</strong>
 MarinDNA and Evo 2 are compared using zero-shot LLR and a linear probe on identical Mendelian variants.
 Performance is measured as chromosome-weighted AUPRC; error bars denote ±1 chromosome-cluster bootstrap SE.</figcaption>
@@ -540,7 +540,7 @@ We compare this staged history with two lineages trained on five-region mixtures
     The later linear-probe results change this judgment most: they continued to improve with scale even where zero-shot Mendelian missense did not, making a larger model a more compelling choice in retrospect.
 
 <figure id="fig-five-region-lineage" data-figure-width="740">
-<img src="/assets/images/blog/genomic-lm-optimization/continued_training_data_exposures.svg" alt="Training-data exposure histories for m5.1, m1.3, and m3.3 through a shared 166-billion-token horizon" />
+<img src="/assets/images/blog/marin-dna/continued_training_data_exposures.svg" alt="Training-data exposure histories for m5.1, m1.3, and m3.3 through a shared 166-billion-token horizon" />
 <figcaption><strong>Figure 16: Training-data exposure histories.</strong>
 Three recipes are compared.
 m5.1 trains for approximately 104B tokens on a uniform three-region mixture before adding ncRNA and enhancer data for approximately 62B tokens.
@@ -556,9 +556,9 @@ m5.1's strong endpoint raises the possibility that exposure order matters: learn
     In a [separate 255M analysis on one held-out chromosome](https://github.com/Open-Athena/marin-dna/issues/369#issuecomment-4936655473), training one probe across all subsets improved the AUPRC point estimate on several data-starved subsets, including ncRNA and distal, while hurting stronger or more specialized subsets.
     This makes limited labeled data one plausible contributor to the noise, but that analysis did not directly test the checkpoint-to-checkpoint variability in these 1B lineage curves.
 
-<!-- Plot recipe: plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py -->
+<!-- Plot recipe: plots/blog/marin_dna/src/figures/figure16_offline_lineage_prototype.py -->
 <figure id="fig-mixture-lineage-trajectories" data-figure-width="567.68">
-<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_llr_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel zero-shot Mendelian pooled AUPRC (%) trajectories with error bars along each mixture lineage" />
+<img src="/assets/images/blog/marin-dna/figure16_offline_lineage_llr_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel zero-shot Mendelian pooled AUPRC (%) trajectories with error bars along each mixture lineage" />
 <figcaption><strong>Figure 17: Zero-shot mixture-lineage trajectories.</strong>
 Mendelian AUPRC versus training tokens for three model-mixture lineages.
 Within each subset, this is global (pooled) AUPRC across variants; the macro panel is the unweighted mean across subsets.
@@ -568,7 +568,7 @@ Error bars show ±1 SE from a matched-group cluster bootstrap.</figcaption>
 <details>
 <summary>Show the linear-probe view</summary>
 <figure id="fig-mixture-lineage-probe" data-figure-width="567.68">
-<img src="/assets/images/blog/genomic-lm-optimization/figure16_offline_lineage_probe_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel linear-probe Mendelian chromosome-weighted AUPRC (%) trajectories with error bars along each mixture lineage" />
+<img src="/assets/images/blog/marin-dna/figure16_offline_lineage_probe_prototype.svg?v=offline-nine-panel-v6" alt="Nine-panel linear-probe Mendelian chromosome-weighted AUPRC (%) trajectories with error bars along each mixture lineage" />
 <figcaption><strong>Figure 18: Linear-probe mixture-lineage trajectories.</strong>
 Linear-probe Mendelian AUPRC versus training tokens for three model-mixture lineages.
 Within each subset, this is the sample-size-weighted mean of per-chromosome AUPRCs; the macro panel is the unweighted mean across subsets.
@@ -602,13 +602,13 @@ Some of the remaining difference may reflect information that an alignment-free 
 
 <!-- Plot recipe: plots/blog/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard" data-figure-width="668.822">
-<img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_llr.svg" alt="Mendelian VEP benchmark zero-shot AUPRC (%) heatmap across six headline models" />
+<img src="/assets/images/blog/marin-dna/figure11_leaderboard_heatmap__mendelian_llr.svg" alt="Mendelian VEP benchmark zero-shot AUPRC (%) heatmap across six headline models" />
 <figcaption><strong>Figure 19: Zero-shot Mendelian leaderboard.</strong>
 AUPRC across six headline models using each model family's canonical scoring protocol, with the Macro Avg column highlighted.</figcaption>
 </figure>
 
 <figure id="fig-mendelian-leaderboard-probe" data-figure-width="668.67">
-<img src="/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap__mendelian_probe.svg" alt="Mendelian VEP benchmark linear-probe AUPRC (%) heatmap across four overlapping models" />
+<img src="/assets/images/blog/marin-dna/figure11_leaderboard_heatmap__mendelian_probe.svg" alt="Mendelian VEP benchmark linear-probe AUPRC (%) heatmap across four overlapping models" />
 <figcaption><strong>Figure 20: Linear-probe leaderboard.</strong>
 AUPRC for the four models that also appear in the zero-shot leaderboard and have compatible probe metrics.
 The two heatmaps are sorted and color-normalized independently, and their subset metrics use different aggregation: <a href="#fig-mendelian-leaderboard">Fig. 19</a> pools variants within each subset before computing AUPRC, whereas <a href="#fig-mendelian-leaderboard-probe">Fig. 20</a> computes a sample-size-weighted mean of per-chromosome AUPRCs; both Macro Avg columns are unweighted means across subsets.
@@ -632,7 +632,7 @@ There is plenty of work left to do, but we think these results clearly show the 
 ## Resources
 
 - [🧪 MarinDNA repository](https://github.com/Open-Athena/marin-dna) (source code and experiments tracked through GitHub issues)
-- [🤗 Hugging Face collection](https://huggingface.co/collections/marin-dna/marindna-genomic-language-model-optimization-blog-2026-07) (training datasets, benchmarks, and model)
+- [🤗 Hugging Face collection](https://huggingface.co/collections/marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep) (training datasets, benchmarks, and model)
 - [🏆 MarinDNA leaderboard](https://openathena.ai/marin-dna/)
 - [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
 

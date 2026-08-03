@@ -40,25 +40,25 @@ if str(REPO_SRC) not in sys.path:
 
 from marin_dna.blog_figure_typography import sync_article_figure_width  # noqa: E402
 
-OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog" / "genomic_lm_optimization"
+OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog" / "marin_dna"
 CURRENT_LEADERBOARD_OUTPUT_DIR = REPO_ROOT / "plots" / "output" / "blog"
 BLOG_ASSET_DIR = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "static"
     / "assets"
     / "images"
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
 )
 BLOG_ARTICLE = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "content"
     / "blog"
-    / "genomic-lm-optimization.md"
+    / "marin-dna.md"
 )
 ARTICLE_FIGURE_IDS = {
     "headline_cost_performance": "fig-cost-performance",

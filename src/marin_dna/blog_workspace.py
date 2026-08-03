@@ -30,7 +30,7 @@ from marin_dna.blog_figure_typography import (
 )
 
 
-DEFAULT_WORKSPACE_RELATIVE_PATH = Path("blog/genomic-lm-optimization")
+DEFAULT_WORKSPACE_RELATIVE_PATH = Path("blog/marin-dna")
 MARKDOWN_IMAGE_RE = re.compile(
     r"!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\)"
 )

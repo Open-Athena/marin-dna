@@ -219,5 +219,5 @@ _scratch/
 scratch/
 
 # Issue #373 blog staging workspace outputs
-blog/genomic-lm-optimization/.preview/
-blog/genomic-lm-optimization/export/
+blog/marin-dna/.preview/
+blog/marin-dna/export/

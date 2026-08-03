@@ -1,4 +1,4 @@
-Title: Genomic Language Model Optimization
+Title: MarinDNA
 Description: How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo2 40B with 1,980x fewer FLOPS. Covers hyperparameter transfer, scaling law and training mixture experiments.
 
 ## Introduction

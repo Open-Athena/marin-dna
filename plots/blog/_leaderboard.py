@@ -18,8 +18,8 @@ from marin_dna.blog_figure_typography import (
     normalize_matplotlib_svg_typography_file,
 )
 from marin_dna.pipelines.evals.metrics import MACRO_AVG_SUBSET
-from plots.blog.genomic_lm_optimization.src.utils import figure_theme as _figure_theme  # noqa: F401
-from plots.blog.genomic_lm_optimization.src.utils.figure_style import (
+from plots.blog.marin_dna.src.utils import figure_theme as _figure_theme  # noqa: F401
+from plots.blog.marin_dna.src.utils.figure_style import (
     HEATMAP_CMAP,
     figsize,
 )

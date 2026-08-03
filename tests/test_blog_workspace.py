@@ -45,16 +45,16 @@ ACTIVE_BLOG_PLOT_RECIPES = (
     "plots/blog/promoter_cds_specialists.py",
     "plots/upstream_cds_balance.py",
     "plots/blog/_leaderboard.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure1_lr_transfer.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure2_beta2_epsilon_transfer.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure3_region_hyper_transfer.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure4_loss_scaling.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure5_params_vs_vep_auprc.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure6_loss_vs_vep_auprc.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure6b_marin_evo2_missense.py",
-    "plots/blog/genomic_lm_optimization/src/figures/figure16_offline_lineage_prototype.py",
-    "plots/blog/genomic_lm_optimization/src/utils/figure_style.py",
-    "plots/blog/genomic_lm_optimization/src/utils/sweep_panel.py",
+    "plots/blog/marin_dna/src/figures/figure1_lr_transfer.py",
+    "plots/blog/marin_dna/src/figures/figure2_beta2_epsilon_transfer.py",
+    "plots/blog/marin_dna/src/figures/figure3_region_hyper_transfer.py",
+    "plots/blog/marin_dna/src/figures/figure4_loss_scaling.py",
+    "plots/blog/marin_dna/src/figures/figure5_params_vs_vep_auprc.py",
+    "plots/blog/marin_dna/src/figures/figure6_loss_vs_vep_auprc.py",
+    "plots/blog/marin_dna/src/figures/figure6b_marin_evo2_missense.py",
+    "plots/blog/marin_dna/src/figures/figure16_offline_lineage_prototype.py",
+    "plots/blog/marin_dna/src/utils/figure_style.py",
+    "plots/blog/marin_dna/src/utils/sweep_panel.py",
 )
 
 ACTIVE_DATA_FIGURE_ASSETS = (
@@ -186,12 +186,12 @@ def test_all_active_data_figures_use_the_one_shared_scale() -> None:
     asset_dir = (
         root
         / "blog"
-        / "genomic-lm-optimization"
+        / "marin-dna"
         / "static"
         / "assets"
         / "images"
         / "blog"
-        / "genomic-lm-optimization"
+        / "marin-dna"
     )
     for name in ACTIVE_DATA_FIGURE_ASSETS:
         svg_root = ElementTree.parse(asset_dir / name).getroot()
@@ -205,10 +205,10 @@ def test_all_blog_figure_captions_lead_with_a_bold_number_and_title() -> None:
     article = (
         root
         / "blog"
-        / "genomic-lm-optimization"
+        / "marin-dna"
         / "content"
         / "blog"
-        / "genomic-lm-optimization.md"
+        / "marin-dna.md"
     ).read_text(encoding="utf-8")
     captions = re.findall(r"<figcaption>(.*?)</figcaption>", article, re.DOTALL)
 
@@ -226,10 +226,10 @@ def test_blog_figure_references_use_compact_linked_labels() -> None:
     article = (
         root
         / "blog"
-        / "genomic-lm-optimization"
+        / "marin-dna"
         / "content"
         / "blog"
-        / "genomic-lm-optimization.md"
+        / "marin-dna.md"
     ).read_text(encoding="utf-8")
     figure_numbers = {
         figure_id: int(number)

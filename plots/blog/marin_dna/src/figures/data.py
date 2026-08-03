@@ -18,7 +18,7 @@ MIXTURE_RESULTS_PATH = ROOT / "data" / "data_mixture_results.csv"
 MIXTURE_HISTORY_PATH = ROOT / "data" / "data_mixture_history.csv"
 MODEL_LEADERBOARD_PATH = ROOT / "data" / "model_leaderboard.csv"
 INFERENCE_COSTS_PATH = ROOT / "data" / "inference_costs.csv"
-FIGURES_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "genomic_lm_optimization"
+FIGURES_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "marin_dna"
 
 # Eval VEP sample sizes per variant type (from docs/outline.md). Embedded in
 # Figure 6's panel titles. Figure 5 reuses the same ordering for consistency.
