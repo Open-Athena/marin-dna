@@ -1,0 +1,78 @@
+# Build the compact 32-context boundary panel on AWS CPU.
+
+name: dna-exp440-boundary-panel
+
+resources:
+  infra: aws/us-east-2
+  instance_type: c6id.2xlarge
+  disk_size: 100
+  labels:
+    project: dna
+  autostop:
+    idle_minutes: 10
+    down: true
+
+workdir: .
+
+envs:
+  EXPERIMENT_COMMIT: ""
+  RUN_ID: dna-exp440-boundary-panel-r1
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_SESSION_TOKEN: ""
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v aws >/dev/null 2>&1; then
+    uv tool install awscli
+  fi
+  aws sts get-caller-identity
+  uv sync --project experiments/exp440_m51_sae_reference_segmentation --frozen
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export POLARS_MAX_THREADS=6
+  export RAYON_NUM_THREADS=6
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  export EXPERIMENT_COMMIT RUN_ID
+
+  test "${#EXPERIMENT_COMMIT}" -eq 40
+  test "$RUN_ID" = "dna-exp440-boundary-panel-r1"
+  EXPERIMENT_DIR="experiments/exp440_m51_sae_reference_segmentation"
+  INPUT_ROOT="$HOME/exp440-boundary-inputs"
+  OUTPUT_ROOT="$HOME/exp440-runs/$RUN_ID"
+  OUTPUT_S3="s3://oa-bolinas/experiments/exp440/inputs/$RUN_ID"
+  test ! -e "$OUTPUT_ROOT"
+  mkdir -p "$INPUT_ROOT"
+
+  uv run --project "$EXPERIMENT_DIR" python -m pytest -q "$EXPERIMENT_DIR/tests"
+  aws s3 cp \
+    s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/annotation/Homo_sapiens.GRCh38.115.gtf.gz \
+    "$INPUT_ROOT/annotation.gtf.gz" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/human/intervals/cre/all.parquet \
+    "$INPUT_ROOT/ccre.parquet" --only-show-errors
+  aws s3 cp \
+    s3://oa-bolinas/snakemake/zoonomia_projection_dataset/results/human/genome.2bit \
+    "$INPUT_ROOT/genome.2bit" --only-show-errors
+  uv run --project "$EXPERIMENT_DIR" --no-dev python \
+    "$EXPERIMENT_DIR/build_boundaries.py" \
+    --gtf "$INPUT_ROOT/annotation.gtf.gz" \
+    --ccre "$INPUT_ROOT/ccre.parquet" \
+    --genome "$INPUT_ROOT/genome.2bit" \
+    --output-dir "$OUTPUT_ROOT"
+
+  aws s3 sync "$OUTPUT_ROOT/" "$OUTPUT_S3/" \
+    --exclude manifest.json --only-show-errors
+  aws s3 cp "$OUTPUT_ROOT/manifest.json" "$OUTPUT_S3/manifest.json"
+  DRYRUN_LOG="/tmp/exp440-boundary-panel-s3-dryrun.txt"
+  aws s3 sync "$OUTPUT_ROOT/" "$OUTPUT_S3/" --dryrun > "$DRYRUN_LOG"
+  test ! -s "$DRYRUN_LOG"
