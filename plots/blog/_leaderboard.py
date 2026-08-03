@@ -25,6 +25,7 @@ from plots.blog.marin_dna.src.utils.figure_style import (
 )
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
+HEATMAP_CELL_ASPECT = 0.74
 
 SUBSET_DISPLAY: dict[str, str] = {
     "missense_variant": "Missense",
@@ -102,7 +103,9 @@ def render_heatmap(
     norm = Normalize(float(finite.min()), float(finite.max()))
 
     fig, ax = plt.subplots(figsize=figsize(10.0, max(4.4, 0.30 * n_rows)))
-    ax.imshow(matrix, cmap=HEATMAP_CMAP, norm=norm, aspect="auto")
+    # A fixed cell aspect keeps each model row the same height when paired
+    # leaderboards contain different numbers of models.
+    ax.imshow(matrix, cmap=HEATMAP_CMAP, norm=norm, aspect=HEATMAP_CELL_ASPECT)
 
     ax.set_xticks(np.arange(-0.5, n_columns), minor=True)
     ax.set_yticks(np.arange(-0.5, n_rows), minor=True)
@@ -159,5 +162,15 @@ def render_heatmap(
     colorbar.set_label("AUPRC (%)")
 
     fig.tight_layout()
+    axes_position = ax.get_position()
+    colorbar_position = colorbar.ax.get_position()
+    colorbar.ax.set_position(
+        (
+            colorbar_position.x0,
+            axes_position.y0,
+            colorbar_position.width,
+            axes_position.height,
+        )
+    )
     _save_figure(fig, output_name)
     plt.close(fig)
