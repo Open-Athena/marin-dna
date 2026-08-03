@@ -157,9 +157,7 @@ Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour on a
 </figure>
 
 > **A note on open development.**
-> MarinDNA is developed in the open.
-> This post turns a branching research process into a linear narrative; the [MarinDNA repository](https://github.com/Open-Athena/marin-dna) preserves the underlying experiments—including unsuccessful and inconclusive directions—through GitHub issues and experiment branches.
-> It should be read as a guide to that evolving record rather than as a conventional paper or final account.
+> This post turns a branching research process into a linear narrative; the [MarinDNA repository](https://github.com/Open-Athena/marin-dna) preserves the underlying experiments, including unsuccessful and inconclusive directions.
 
 ## Introduction
 
