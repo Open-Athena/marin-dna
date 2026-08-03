@@ -31,7 +31,7 @@ CCRE_SHA256 = "35c322243a347ddcbcfac478c825ca9bb1af1cdfbbd876b64e788b5105a7afd5"
 GENOME_BYTES = 812_795_740
 GENOME_SHA256 = "c47af4db6aadd72efdafa926ddd0c5e185ba2109c816727b7c52fd956a928e27"
 FLANK_BP = 32
-TRANSCRIPT_CASES_PER_TYPE = 5
+TRANSCRIPT_CASES_PER_TYPE = 3
 CCRE_CASES_PER_SUBTYPE = 3
 PLS_CASES = 6
 BOUNDARY_TYPES = (
@@ -403,7 +403,7 @@ def build_boundary_panel(
         panel.group_by("boundary_type").len().sort("boundary_type").iter_rows()
     )
     assert class_counts == expected_counts
-    assert panel.height == 32 and panel["source_id"].n_unique() == panel.height
+    assert panel.height == 24 and panel["source_id"].n_unique() == panel.height
     assert panel.filter(
         pl.col("window_end") - pl.col("window_start") != WINDOW_BP
     ).is_empty()
