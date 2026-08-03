@@ -148,7 +148,7 @@ window.addEventListener('DOMContentLoaded', function () {
 </script>
 
 MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling.
-This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with Evo 2 40B, while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
+This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with [Evo 2 40B](https://doi.org/10.1038/s41586-026-10176-5), while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
 
 <figure id="fig-cost-performance" data-figure-width="242.75">
 <img src="/assets/images/blog/genomic-lm-optimization/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
@@ -300,12 +300,14 @@ Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired
     We also expanded the benchmark to include missense and splicing variants, incorporated additional sources of pathogenic variants, and created chromosome-disjoint splits for development and final testing.
     See the [pinned dataset card](https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f) for the full construction and matching diagnostics.
 
-Evo 2 40B (published ~Feb. 2025) is still the most formidable relevant baseline among unsupervised, single-sequence DNA models.
-Within that same setting, we are not aware of another method with comparable performance across diverse genomic regions.
+### Why compare with Evo 2 40B?
+
+Evo 2 40B remains the strongest broadly evaluated baseline among single-sequence DNA models.
+Despite substantial subsequent work on gLMs, we are not aware of a model in this setting that has clearly surpassed it across diverse genomic regions; many newer models do not attempt a direct comparison with Evo 2 40B.
 The other reason Evo 2 40B matters is its training budget.
 Its reported 2.25e24 training FLOPs are unrivaled among gLMs, corresponding to roughly $2.5M of H100 time.[^evo2-cost]
 That budget is unusual in biology and comparable to major open-weight LLM training runs from recent model generations,[^evo2-llm-compute] e.g. just above Qwen2.5-14B and below Qwen2.5-32B, and roughly between DeepSeek-V2 and DeepSeek-V3.
-Since the literature has not really moved past this target yet, we believe it is the right baseline for asking whether a much simpler single-sequence gLM can be competitive.
+Evo 2 40B is therefore the right baseline for asking whether a much simpler single-sequence gLM can be competitive.
 
 [^evo2-cost]: This estimate uses the [Evo 2](https://doi.org/10.1101/2025.02.18.638918) reported training compute of 2.25e24 FLOPs, 50% H100 model FLOP utilization following the costing convention in [Beyond Chinchilla](https://arxiv.org/abs/2401.00448), 989 TFLOP/s BF16 peak throughput for an H100 SXM, and $2 per H100-hour from [OLMo 3](https://arxiv.org/abs/2512.13961).
     The resulting accelerator requirement is about 1.26M H100-hours.
