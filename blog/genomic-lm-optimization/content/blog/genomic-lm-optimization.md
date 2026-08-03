@@ -8,6 +8,7 @@ math: false
 toc: true
 tags:
   - Marin
+  - DNA
 summary: "How MarinDNA combined data curation, hyperparameter transfer, scaling, and data-mixture experiments to build an efficient 1B alignment-free genomic language model with balanced performance across genomic regions."
 ---
 
@@ -170,9 +171,11 @@ The experiments below test how far that simpler, standardized recipe can go.
 
 ### Why alignment-free gLMs?
 
-Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species.
+Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619),[^omnii-alignments] or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species.
 Unlabeled DNA sequence, by contrast, is available for a rapidly growing number of species.
 Alignment-free gLMs—also called single-sequence gLMs—can be trained directly on this growing collection of genomes and applied to evolutionary constraint prediction, sequence design, and transfer learning.
+
+[^omnii-alignments]: Exact details are not yet available, but [Omnii](https://www.radicalnumerics.ai/blog/omnii-health-preview) also appears to benefit from alignment-derived information.
 
 For humans and other well-studied species, single-sequence gLMs are still far from replacing alignment-based models or models supervised with functional-genomics data.
 Our near-term goal is to build useful models for species that lack high-quality whole-genome alignments and functional-genomics data.
@@ -207,8 +210,7 @@ Because comparable annotations were not directly available across the target spe
 
 <figure id="fig-training-datasets" data-figure-width="660">
 <img src="/assets/images/blog/genomic-lm-optimization/data_provenance_training_datasets.svg?v=compact-bars" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
-<figcaption><strong>Figure 2: Training-dataset provenance and scale.</strong>
-Token counts for each sequence type.</figcaption>
+<figcaption><strong>Figure 2: Training-dataset provenance and scale.</strong></figcaption>
 </figure>
 
 [^training-downstream]: “Downstream” denotes the 256 bp immediately downstream of each annotated CDS end, rather than annotated 3′ UTR intervals.
@@ -270,8 +272,7 @@ The SGE benchmark uses experimentally measured variant effects from a few genes 
 
 <figure id="fig-evaluation-datasets" data-figure-width="740">
 <img src="/assets/images/blog/genomic-lm-optimization/eval_datasets.svg" alt="Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts." />
-<figcaption><strong>Figure 3: Variant-effect evaluation datasets.</strong>
-The benchmarks use different labels and sampling, so their absolute scores are not directly comparable.</figcaption>
+<figcaption><strong>Figure 3: Variant effect prediction benchmarks.</strong></figcaption>
 </figure>
 
 We evaluate each frozen gLM with two readouts: a zero-shot sequence log-likelihood ratio and a linear probe trained on paired reference/alternate embeddings.
@@ -280,8 +281,7 @@ The probe instead asks what variant-relevant information is encoded in the model
 
 <figure id="fig-evaluation-readouts" data-figure-width="680">
 <img src="/assets/images/blog/genomic-lm-optimization/eval_apparatus.svg?v=standard-snowflake" alt="Reference and alternate sequences scored using likelihoods or frozen-model embeddings." />
-<figcaption><strong>Figure 4: Frozen-model variant scoring.</strong>
-Zero-shot scoring uses REF-to-ALT likelihood changes; linear probing uses paired allele embeddings.</figcaption>
+<figcaption><strong>Figure 4: Variant effect prediction scoring approaches.</strong></figcaption>
 </figure>
 
 [^vep-clinical]: Examples include zero-shot or disease-focused variant interpretation results in [Evo 2](https://doi.org/10.1101/2025.02.18.638918), [GPN-Star](https://doi.org/10.1101/2025.09.21.677619), [Carbon](https://doi.org/10.64898/2026.05.22.727119), and [EnTao-GPM](https://arxiv.org/abs/2507.21706).
@@ -331,8 +331,7 @@ Overall, however, GPN-Star remained stronger.
 <!-- Plot recipe: plots/blog/promoter_cds_specialists.py -->
 <figure id="fig-upstream-cds-specialists" data-figure-width="477.357">
 <img src="/assets/images/blog/genomic-lm-optimization/promoter_cds_specialists.svg" alt="Five independently scaled panels comparing upstream and CDS specialists with Evo 2 40B and GPN-Star on region-matched Mendelian variant classes" />
-<figcaption><strong>Figure 5: Region-matched Mendelian VEP performance.</strong>
-AUPRC under each model family's canonical zero-shot protocol (MarinDNA and Evo 2 LLR; GPN-Star cLLR).
+<figcaption><strong>Figure 5: Region-matched zero-shot Mendelian VEP: specialists versus generalists.</strong>
 Error bars denote SE.</figcaption>
 </figure>
 
@@ -361,8 +360,7 @@ The annotation-derived DNA pool available at the time contained ~85B tokens.
 
 <figure id="fig-annotation-derived-training-pool" data-figure-width="680">
 <img src="/assets/images/blog/genomic-lm-optimization/annotation_derived_training_pool.svg" alt="Approximately 85 billion annotation-derived DNA tokens in a proportional CDS, upstream, and downstream mixture" />
-<figcaption><strong>Figure 7: Available annotation-derived training pool.</strong>
-Approximately 85B DNA tokens in a proportional animal-region mixture.</figcaption>
+<figcaption><strong>Figure 7: Available annotation-derived training pool.</strong></figcaption>
 </figure>
 
 That pool is large by genomics standards but small relative to modern accelerator-era training corpora.
@@ -376,8 +374,7 @@ We do not know of one, so we followed the same basic pattern as [Delphi](https:/
 
 <figure id="fig-hyperparameter-transfer-methodology" data-figure-width="700">
 <img src="/assets/images/blog/genomic-lm-optimization/parameter_transfer_methodology_v1.svg" alt="Reference hyperparameter tuning and target hyperparameter transfer" />
-<figcaption><strong>Figure 8: Hyperparameter calibration and transfer.</strong>
-Reference calibration followed by transfer to a new model and training scale.</figcaption>
+<figcaption><strong>Figure 8: Hyperparameter calibration and transfer.</strong></figcaption>
 </figure>
 
 [Fig. 8](#fig-hyperparameter-transfer-methodology) separates reference calibration from target application.
