@@ -200,7 +200,7 @@ Enhancers were the only region type not actively curated into its training data 
 
 MarinDNA therefore treats dataset construction as a primary modeling lever: which species and evolutionary timescales to include ([research question #394](https://github.com/Open-Athena/marin-dna/issues/394)), which functional regions to sample and how to identify them ([research question #395](https://github.com/Open-Athena/marin-dna/issues/395)), how to weigh them, and when during training to introduce them.
 
-[^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), [Evo 2](https://doi.org/10.1038/s41586-026-10176-5), and [ARSENAL](https://doi.org/10.64898/2026.02.05.703637).
+[^data-curation-evidence]: See [*Genomic language models: opportunities and challenges*](https://doi.org/10.1016/j.tig.2024.11.013), [GPN](https://doi.org/10.1073/pnas.2311219120), [PlantCaduceus](https://doi.org/10.1073/pnas.2421738122), [PlantCAD2](https://doi.org/10.1101/2025.08.27.672609), [GPN-MSA](https://doi.org/10.1038/s41587-024-02511-w), [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x), [nucleotide-dependency analysis](https://doi.org/10.1038/s41588-025-02347-3), [Evo 2](https://doi.org/10.1038/s41586-026-10176-5), and [ARSENAL](https://doi.org/10.64898/2026.02.05.703637).
 
 We began with annotation-derived datasets for coding, upstream, and downstream sequences.[^training-downstream]
 Standard genome annotations make these regions relatively easy to identify and extract consistently across many species.
@@ -447,8 +447,8 @@ The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~
 That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
 <!-- Plot recipe: plots/blog/marin_dna/src/figures/figure4_loss_scaling.py -->
-<figure id="fig-loss-scaling" data-figure-width="693.082">
-<img src="/assets/images/blog/marin-dna/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" />
+<figure id="fig-loss-scaling" data-figure-width="701.543">
+<img src="/assets/images/blog/marin-dna/figure4_loss_scaling.svg?v=math-notation" alt="Loss scaling across model sizes with Kaplan power-law fits" />
 <figcaption><strong>Figure 12: Loss scaling across model sizes.</strong>
 Eight models from 46M to 4B parameters, with a Kaplan power-law fit.</figcaption>
 </figure>
@@ -632,6 +632,7 @@ There is plenty of work left to do, but we think these results clearly show the 
 - [🤗 Hugging Face collection](https://huggingface.co/collections/marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep) (training datasets, benchmarks, and model)
 - [🏆 MarinDNA leaderboard](https://openathena.ai/marin-dna/)
 - [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
+- [💻 Model inference and BRCA1 variant effect prediction notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/5d1925fe0d6569c0ee0c29db06b8f287c2347065/examples/model_inference_and_vep.py)
 
 ## Acknowledgements
 

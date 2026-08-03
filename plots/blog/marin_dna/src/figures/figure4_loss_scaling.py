@@ -144,8 +144,8 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
 
     fig, axes = plt.subplots(1, 2, figsize=figsize(FIGURE_WIDTH, 6.5))
     panels = [
-        (axes[0], "train/loss", "Train Loss"),
-        (axes[1], "eval/loss", "Validation Loss"),
+        (axes[0], "train/loss", "Train loss"),
+        (axes[1], "eval/loss", "Validation loss"),
     ]
     # Eval-loss lines need a high zorder so they draw over the inset on the right panel.
     line_zorder = {axes[0]: 2, axes[1]: 20}
@@ -260,9 +260,9 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     parent_ax.text(
         inset_bounds[0] + inset_bounds[2] + 0.03,
         inset_bounds[1],
-        "L(N) = A · N⁻ᵅ + L∞\n"
-        f"A = {A:.3g}, α = {alpha:.3f}\n"
-        f"L∞ = {L_inf:.3f}, R² = {r2:.3f}",
+        r"$L(N) = A \cdot N^{-\alpha} + L_{\infty}$" "\n"
+        rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$" "\n"
+        rf"$L_{{\infty}} = {L_inf:.3f},\ R^2 = {r2:.3f}$",
         transform=parent_ax.transAxes,
         ha="left",
         va="bottom",
