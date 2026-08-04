@@ -171,7 +171,7 @@ The experiments below test how far that simpler, standardized recipe can go.
 
 ### Why alignment-free gLMs?
 
-Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619),[^omnii-alignments] or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources available for only a small subset of species.
+Many of the strongest genomic sequence models rely on whole-genome alignments, as in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619),[^omnii-alignments] or functional-genomics measurements, as in [AlphaGenome](https://doi.org/10.1038/s41586-025-10014-0)—resources concentrated in a small number of well-studied species because they are costly to produce and difficult to construct comprehensively.
 Unlabeled DNA sequence, by contrast, is available for a rapidly growing number of species.
 Alignment-free gLMs—also called single-sequence gLMs—can be trained directly on this growing collection of genomes and applied to evolutionary constraint prediction, sequence design, and transfer learning.
 
