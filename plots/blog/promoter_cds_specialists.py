@@ -47,14 +47,7 @@ DATASET = "mendelian_traits"
 OUTPUT_DIR = Path("plots/output/blog")
 OUTPUT_NAME = "promoter_cds_specialists"
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BLOG_ARTICLE = (
-    REPO_ROOT
-    / "blog"
-    / "marin-dna"
-    / "content"
-    / "blog"
-    / "marin-dna.md"
-)
+BLOG_ARTICLE = REPO_ROOT / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
 BLOG_SVG = (
     REPO_ROOT
     / "blog"

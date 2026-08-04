@@ -77,12 +77,8 @@ def set_square_subplot_height(fig, axes, displayed_height_px: float) -> None:
     figure_height_points = fig.get_figheight() * 72.0
     right_gutter = figure_width_points - block_x1
     top_gutter = figure_height_points - block_y1
-    new_width_points = (
-        block_x0 + (block_x1 - block_x0) * resize_factor + right_gutter
-    )
-    new_height_points = (
-        block_y0 + (block_y1 - block_y0) * resize_factor + top_gutter
-    )
+    new_width_points = block_x0 + (block_x1 - block_x0) * resize_factor + right_gutter
+    new_height_points = block_y0 + (block_y1 - block_y0) * resize_factor + top_gutter
     fig.set_size_inches(new_width_points / 72.0, new_height_points / 72.0, forward=True)
     for axis, (x, y, width, height) in zip(axes, bounds_points, strict=True):
         resized_x = block_x0 + (x - block_x0) * resize_factor
@@ -142,14 +138,10 @@ def pack_horizontal_axis_columns(fig, axes, gap_font_sizes: float = 1.0) -> None
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     gap_pixels = mpl.rcParams["font.size"] * fig.dpi / 72.0 * gap_font_sizes
-    previous_right = max(
-        row[0].get_tightbbox(renderer=renderer).x1 for row in rows
-    )
+    previous_right = max(row[0].get_tightbbox(renderer=renderer).x1 for row in rows)
     for column_index in range(1, column_count):
         column = tuple(row[column_index] for row in rows)
-        current_left = min(
-            axis.get_tightbbox(renderer=renderer).x0 for axis in column
-        )
+        current_left = min(axis.get_tightbbox(renderer=renderer).x0 for axis in column)
         shift_pixels = previous_right + gap_pixels - current_left
         for axis in column:
             position = axis.get_position()
@@ -180,9 +172,7 @@ def center_axes_block(fig, axes, reference_axes) -> None:
     reference = Bbox.union(
         [axis.get_tightbbox(renderer=renderer) for axis in reference_axes]
     )
-    shift_pixels = (
-        (reference.x0 + reference.x1) / 2.0 - (block.x0 + block.x1) / 2.0
-    )
+    shift_pixels = (reference.x0 + reference.x1) / 2.0 - (block.x0 + block.x1) / 2.0
     for axis in axes:
         position = axis.get_position()
         axis.set_position(

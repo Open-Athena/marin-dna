@@ -29,14 +29,7 @@ from figures.data import load_mixture  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-FIGURES_DIR = (
-    ROOT.parents[2]
-    / "plots"
-    / "output"
-    / "blog"
-    / "marin_dna"
-    / "appendix"
-)
+FIGURES_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "marin_dna" / "appendix"
 
 NODE_W = 0.88  # node width  (x = leaf-index units)
 NODE_H = 0.62  # node height (y = level units)

@@ -180,9 +180,7 @@ def build(marin_metrics: pd.DataFrame | None = None) -> None:
             [0],
             [0],
             color="#4b4b4b",
-            marker=MODEL_FAMILY_MARKERS[
-                "marindna" if family == MARIN else "evo2"
-            ],
+            marker=MODEL_FAMILY_MARKERS["marindna" if family == MARIN else "evo2"],
             markerfacecolor="#b8b0a3",
             markeredgecolor="#1f1e1b",
             linestyle="none",

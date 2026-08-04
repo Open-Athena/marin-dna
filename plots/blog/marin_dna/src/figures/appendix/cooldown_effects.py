@@ -59,14 +59,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from figures import mixture_lineage as ml  # noqa: E402
 
 DATA_DIR = ROOT / "data"
-OUT_DIR = (
-    ROOT.parents[2]
-    / "plots"
-    / "output"
-    / "blog"
-    / "marin_dna"
-    / "appendix"
-)
+OUT_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "marin_dna" / "appendix"
 WANDB_PROJECT = "eric-czech/marin"
 
 # Constant across every v0.9 1B run (train_batch_size x train_seq_len).

@@ -43,8 +43,7 @@ from marin_dna.blog_workspace import (
 SOURCE_REPOSITORY = "https://github.com/Open-Athena/marin-dna"
 SOURCE_BRANCH = "claude/issue-373-blog-staging"
 WEBSITE_PREVIEW_URL = (
-    "https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/"
-    "blog/marin-dna/"
+    "https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/blog/marin-dna/"
 )
 
 FRONTMATTER_RE = re.compile(r"\A---\r?\n(?P<body>.*?)\r?\n---\r?\n", re.DOTALL)

@@ -43,9 +43,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     fig, axes = plt.subplots(3, 3, figsize=figsize(FIGURE_WIDTH, 8.8))
     for r, (region_key, region_label) in enumerate(_REGION_ROWS):
         y_field = f"eval_loss_{region_key}"
-        for c, (axis_role, axis_field, axis_label, log_scale) in enumerate(
-            _HYPER_COLS
-        ):
+        for c, (axis_role, axis_field, axis_label, log_scale) in enumerate(_HYPER_COLS):
             ax = axes[r, c]
             plot_axis(
                 ax,

@@ -47,9 +47,7 @@ def _headline_data(
     data = inference_costs.merge(selected, on="Model", validate="one_to_one")
     assert len(data) == len(MODEL_NAMES)
     assert data["Time (s / 1M variants)"].gt(0).all()
-    data[THROUGHPUT_COLUMN] = 1_000_000 * 60 * 60 / data[
-        "Time (s / 1M variants)"
-    ]
+    data[THROUGHPUT_COLUMN] = 1_000_000 * 60 * 60 / data["Time (s / 1M variants)"]
     assert data[THROUGHPUT_COLUMN].gt(0).all()
     assert data[MACRO_COLUMN].between(0, 100).all()
     return data

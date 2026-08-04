@@ -260,8 +260,10 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     parent_ax.text(
         inset_bounds[0] + inset_bounds[2] + 0.03,
         inset_bounds[1],
-        r"$L(N) = A \cdot N^{-\alpha} + L_{\infty}$" "\n"
-        rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$" "\n"
+        r"$L(N) = A \cdot N^{-\alpha} + L_{\infty}$"
+        "\n"
+        rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$"
+        "\n"
         rf"$L_{{\infty}} = {L_inf:.3f},\ R^2 = {r2:.3f}$",
         transform=parent_ax.transAxes,
         ha="left",

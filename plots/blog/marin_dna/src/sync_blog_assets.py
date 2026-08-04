@@ -52,14 +52,7 @@ BLOG_ASSET_DIR = (
     / "blog"
     / "marin-dna"
 )
-BLOG_ARTICLE = (
-    REPO_ROOT
-    / "blog"
-    / "marin-dna"
-    / "content"
-    / "blog"
-    / "marin-dna.md"
-)
+BLOG_ARTICLE = REPO_ROOT / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
 ARTICLE_FIGURE_IDS = {
     "headline_cost_performance": "fig-cost-performance",
     "figure1_lr_transfer": "fig-learning-rate-transfer",

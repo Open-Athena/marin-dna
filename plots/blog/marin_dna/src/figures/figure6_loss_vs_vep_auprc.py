@@ -56,9 +56,7 @@ MATCHED_LOSS_COLUMN = {
     "3_prime_UTR_variant": "eval_loss_downstream",
 }
 LOSS_COLUMNS = tuple(sorted(set(MATCHED_LOSS_COLUMN.values())))
-ANNOTATION_HEADROOM_SUBSETS = frozenset(
-    {"synonymous_variant", "3_prime_UTR_variant"}
-)
+ANNOTATION_HEADROOM_SUBSETS = frozenset({"synonymous_variant", "3_prime_UTR_variant"})
 ANNOTATION_HEADROOM_FRACTION = 0.3
 
 

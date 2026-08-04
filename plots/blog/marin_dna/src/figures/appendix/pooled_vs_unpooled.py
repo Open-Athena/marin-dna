@@ -43,14 +43,7 @@ from utils.pchip_interp import clean as _clean_xy, interp_on_overlap  # noqa: E4
 from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-FIGURES_DIR = (
-    ROOT.parents[2]
-    / "plots"
-    / "output"
-    / "blog"
-    / "marin_dna"
-    / "appendix"
-)
+FIGURES_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "marin_dna" / "appendix"
 
 WANDB_PROJECT = "eric-czech/marin"
 TRAITGYM_PREFIX = "lm_eval/traitgym_mendelian_v2_255"

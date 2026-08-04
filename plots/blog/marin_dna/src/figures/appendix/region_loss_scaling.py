@@ -25,14 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-FIGURES_DIR = (
-    ROOT.parents[2]
-    / "plots"
-    / "output"
-    / "blog"
-    / "marin_dna"
-    / "appendix"
-)
+FIGURES_DIR = ROOT.parents[2] / "plots" / "output" / "blog" / "marin_dna" / "appendix"
 
 WANDB_PROJECT = "eric-czech/marin"
 RUN_PREFIX = "dna-bolinas-scaling-v0.5-"

@@ -93,14 +93,7 @@ BLOG_SVG = (
     / "marin-dna"
     / "upstream_cds_balance.svg"
 )
-BLOG_ARTICLE = (
-    REPO_ROOT
-    / "blog"
-    / "marin-dna"
-    / "content"
-    / "blog"
-    / "marin-dna.md"
-)
+BLOG_ARTICLE = REPO_ROOT / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
 FIGURE_ID = "fig-upstream-cds-balance"
 
 # The only figure-size control. All three plotting axes are square; the canvas

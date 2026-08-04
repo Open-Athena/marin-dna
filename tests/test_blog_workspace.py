@@ -203,12 +203,7 @@ def test_all_active_data_figures_use_the_one_shared_scale() -> None:
 def test_all_blog_figure_captions_lead_with_a_bold_number_and_title() -> None:
     root = Path(__file__).resolve().parents[1]
     article = (
-        root
-        / "blog"
-        / "marin-dna"
-        / "content"
-        / "blog"
-        / "marin-dna.md"
+        root / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
     ).read_text(encoding="utf-8")
     captions = re.findall(r"<figcaption>(.*?)</figcaption>", article, re.DOTALL)
 
@@ -224,12 +219,7 @@ def test_all_blog_figure_captions_lead_with_a_bold_number_and_title() -> None:
 def test_blog_figure_references_use_compact_linked_labels() -> None:
     root = Path(__file__).resolve().parents[1]
     article = (
-        root
-        / "blog"
-        / "marin-dna"
-        / "content"
-        / "blog"
-        / "marin-dna.md"
+        root / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
     ).read_text(encoding="utf-8")
     figure_numbers = {
         figure_id: int(number)
