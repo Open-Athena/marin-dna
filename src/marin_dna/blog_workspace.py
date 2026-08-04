@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import math
 import os
 import posixpath
 import re
@@ -18,14 +19,32 @@ from dataclasses import dataclass
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 from urllib.parse import unquote, urlsplit
+from xml.etree import ElementTree
+
+from marin_dna.blog_figure_typography import (
+    FIGURE_FRAME_HORIZONTAL_PADDING_PX,
+    normalize_svg_typography_file,
+    validate_svg_typography,
+)
 
 
-DEFAULT_WORKSPACE_RELATIVE_PATH = Path("blog/genomic-lm-optimization")
+DEFAULT_WORKSPACE_RELATIVE_PATH = Path("blog/marin-dna")
 MARKDOWN_IMAGE_RE = re.compile(
     r"!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\)"
 )
 HTML_IMAGE_RE = re.compile(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"']", re.IGNORECASE)
+HTML_FIGURE_RE = re.compile(
+    r"<figure\b(?P<attributes>[^>]*)>(?P<body>.*?)</figure>",
+    re.IGNORECASE | re.DOTALL,
+)
+FIGURE_WIDTH_RE = re.compile(
+    r"\bdata-figure-width=[\"'](?P<width>[0-9]+(?:\.[0-9]+)?)[\"']",
+    re.IGNORECASE,
+)
+MIN_SVG_RENDER_WIDTH_PX = 200.0
+MAX_SVG_RENDER_WIDTH_PX = 700.0
 PLOTLY_RE = re.compile(r"\{\{\s*plotly:\s*([^|}\s]+)", re.IGNORECASE)
 HTML_FILE_ATTRIBUTE_RE = re.compile(
     r"\b(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE
@@ -33,6 +52,7 @@ HTML_FILE_ATTRIBUTE_RE = re.compile(
 CSS_URL_RE = re.compile(r"""\burl\(\s*(?:["']([^"']+)["']|([^\s)'"]+))\s*\)""")
 FOOTNOTE_DEFINITION_RE = re.compile(r"(?m)^[ \t]{0,3}\[\^([^\]\s]+)\]:")
 FOOTNOTE_TOKEN_RE = re.compile(r"\[\^([^\]\s]+)\]")
+SVG_LENGTH_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?|\.[0-9]+)(px|pt|pc|mm|cm|in)?")
 
 LIVE_RELOAD_RELATIVE_PATH = Path("__marin_dna_live_reload__")
 LIVE_RELOAD_SCRIPT = """
@@ -58,12 +78,31 @@ LIVE_RELOAD_SCRIPT = """
 """.strip()
 
 
+class PreviewRequestHandler(SimpleHTTPRequestHandler):
+    """Serve mutable preview files without browser or conditional caching."""
+
+    def send_head(self) -> BinaryIO | None:
+        for header in ("If-Modified-Since", "If-None-Match"):
+            if header in self.headers:
+                del self.headers[header]
+        return super().send_head()
+
+    def end_headers(self) -> None:
+        self.send_header(
+            "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"
+        )
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
+
 @dataclass(frozen=True)
 class WorkspaceConfig:
     """Pinned source, renderer, and path configuration for one blog workspace."""
 
     root: Path
     slug: str
+    legacy_slugs: tuple[str, ...]
     website_repository: str
     website_pr: int
     website_pr_commit: str
@@ -109,6 +148,7 @@ def load_config(path: Path) -> WorkspaceConfig:
 
     required = {
         "slug",
+        "legacy_slugs",
         "website_repository",
         "website_pr",
         "website_pr_commit",
@@ -127,6 +167,17 @@ def load_config(path: Path) -> WorkspaceConfig:
     assert re.fullmatch(r"[0-9a-f]{64}", raw["baseline_page_sha256"]), (
         "invalid baseline_page_sha256"
     )
+    slug_pattern = r"[a-z0-9]+(?:-[a-z0-9]+)*"
+    assert re.fullmatch(slug_pattern, raw["slug"]), f"invalid slug: {raw['slug']}"
+    assert isinstance(raw["legacy_slugs"], list), "legacy_slugs must be a list"
+    assert all(isinstance(value, str) for value in raw["legacy_slugs"])
+    legacy_slugs = tuple(raw["legacy_slugs"])
+    assert len(set(legacy_slugs)) == len(legacy_slugs), "duplicate legacy slug"
+    for legacy_slug in legacy_slugs:
+        assert re.fullmatch(slug_pattern, legacy_slug), (
+            f"invalid legacy slug: {legacy_slug}"
+        )
+        assert legacy_slug != raw["slug"], "current slug listed as legacy"
 
     root = resolved.parent
     article_path = _safe_relative_path(raw["article_path"])
@@ -138,6 +189,7 @@ def load_config(path: Path) -> WorkspaceConfig:
     return WorkspaceConfig(
         root=root,
         slug=raw["slug"],
+        legacy_slugs=legacy_slugs,
         website_repository=raw["website_repository"],
         website_pr=raw["website_pr"],
         website_pr_commit=raw["website_pr_commit"],
@@ -180,6 +232,33 @@ def extract_local_asset_references(markdown: str) -> list[str]:
     return local
 
 
+def extract_svg_render_widths(markdown: str) -> dict[str, float]:
+    """Map each raw-HTML SVG figure URL to its intended inner drawing width."""
+    widths: dict[str, float] = {}
+    for figure_match in HTML_FIGURE_RE.finditer(markdown):
+        images = HTML_IMAGE_RE.findall(figure_match.group("body"))
+        svg_images = [
+            unquote(urlsplit(image).path)
+            for image in images
+            if urlsplit(image).path.lower().endswith(".svg")
+        ]
+        if not svg_images:
+            continue
+        assert len(svg_images) == 1, "each SVG figure must contain exactly one image"
+        width_match = FIGURE_WIDTH_RE.search(figure_match.group("attributes"))
+        assert width_match is not None, (
+            f"SVG figure {svg_images[0]} lacks data-figure-width"
+        )
+        frame_width = float(width_match.group("width"))
+        render_width = frame_width - FIGURE_FRAME_HORIZONTAL_PADDING_PX
+        assert MIN_SVG_RENDER_WIDTH_PX <= render_width <= MAX_SVG_RENDER_WIDTH_PX, (
+            f"SVG figure {svg_images[0]} has unsupported inner width {render_width:g}px"
+        )
+        assert svg_images[0] not in widths, f"duplicate SVG figure {svg_images[0]}"
+        widths[svg_images[0]] = render_width
+    return widths
+
+
 def validate_footnotes(markdown: str) -> None:
     """Reject duplicate definitions and references without definitions."""
     definitions = FOOTNOTE_DEFINITION_RE.findall(markdown)
@@ -215,21 +294,93 @@ def _asset_reference_to_static_path(reference: str, slug: str) -> Path:
     return Path(*relative.parts)
 
 
+def validate_svg_intrinsic_dimensions(path: Path) -> None:
+    """Reject SVG sizing that can collapse or distort a shrink-wrapped figure."""
+    root = ElementTree.parse(path).getroot()
+    assert root.tag.rsplit("}", maxsplit=1)[-1] == "svg", f"not an SVG root: {path}"
+
+    dimensions: dict[str, float] = {}
+    units: dict[str, str | None] = {}
+    for attribute in ("width", "height"):
+        value = root.get(attribute)
+        assert value is not None, (
+            f"referenced SVG lacks intrinsic {attribute} and will render at the "
+            f"browser fallback size: {path}"
+        )
+        match = SVG_LENGTH_RE.fullmatch(value.strip())
+        assert match is not None and float(match.group(1)) > 0, (
+            f"referenced SVG has invalid intrinsic {attribute}={value!r}: {path}"
+        )
+        dimensions[attribute] = float(match.group(1))
+        units[attribute] = match.group(2)
+
+    assert units["width"] == units["height"], (
+        f"referenced SVG width and height use different units: {path}"
+    )
+    view_box = root.get("viewBox")
+    assert view_box is not None, f"referenced SVG lacks viewBox: {path}"
+    raw_view_box = view_box.replace(",", " ").split()
+    assert len(raw_view_box) == 4, f"invalid SVG viewBox={view_box!r}: {path}"
+    _, _, view_box_width, view_box_height = map(float, raw_view_box)
+    assert view_box_width > 0 and view_box_height > 0, (
+        f"non-positive SVG viewBox={view_box!r}: {path}"
+    )
+    assert math.isclose(
+        dimensions["width"] / dimensions["height"],
+        view_box_width / view_box_height,
+        rel_tol=1e-6,
+    ), (
+        f"referenced SVG intrinsic dimensions and viewBox have different aspect "
+        f"ratios: {path}"
+    )
+
+
 def validate_workspace(config: WorkspaceConfig) -> list[Path]:
     """Validate the canonical article, footnotes, and referenced local assets."""
     assert config.article.is_file(), f"missing canonical article: {config.article}"
     assert config.assets.is_dir(), f"missing canonical asset directory: {config.assets}"
     markdown = config.article.read_text()
     validate_footnotes(markdown)
+    svg_render_widths = extract_svg_render_widths(markdown)
 
     referenced_paths: list[Path] = []
     for reference in extract_local_asset_references(markdown):
         relative = _asset_reference_to_static_path(reference, config.slug)
         source = config.static / relative
         assert source.is_file(), f"missing local asset {reference}: expected {source}"
+        if source.suffix.lower() == ".svg":
+            assert reference in svg_render_widths, (
+                f"referenced SVG is not inside a sized figure: {reference}"
+            )
+            validate_svg_intrinsic_dimensions(source)
+            validate_svg_typography(source, svg_render_widths[reference])
         referenced_paths.append(source)
     assert referenced_paths, "article has no local assets"
     return referenced_paths
+
+
+def normalize_workspace_svg_typography(config: WorkspaceConfig) -> list[Path]:
+    """Normalize every SVG referenced by the canonical article."""
+    assert config.article.is_file(), f"missing canonical article: {config.article}"
+    markdown = config.article.read_text()
+    svg_render_widths = extract_svg_render_widths(markdown)
+    normalized: list[Path] = []
+    for reference in extract_local_asset_references(markdown):
+        relative = _asset_reference_to_static_path(reference, config.slug)
+        source = config.static / relative
+        assert source.is_file(), f"missing local asset {reference}: expected {source}"
+        if source.suffix.lower() != ".svg":
+            continue
+        assert reference in svg_render_widths, (
+            f"referenced SVG is not inside a sized figure: {reference}"
+        )
+        validate_svg_intrinsic_dimensions(source)
+        render_width = svg_render_widths[reference]
+        normalize_svg_typography_file(source, render_width)
+        validate_svg_typography(source, render_width)
+        normalized.append(source)
+    assert normalized, "article has no referenced SVG assets"
+    return normalized
 
 
 def read_baseline_manifest(config: WorkspaceConfig) -> dict[Path, str]:
@@ -595,6 +746,25 @@ def export_workspace(config: WorkspaceConfig, destination: Path) -> list[Path]:
     exported.extend(sorted(path for path in assets_target.rglob("*") if path.is_file()))
     source_asset_count = sum(1 for path in config.assets.rglob("*") if path.is_file())
     assert len(exported) == 1 + source_asset_count
+
+    for legacy_slug in config.legacy_slugs:
+        legacy_article = destination / "content" / "blog" / f"{legacy_slug}.md"
+        legacy_assets = (
+            destination / "static" / "assets" / "images" / "blog" / legacy_slug
+        )
+        assert legacy_article.is_relative_to(destination)
+        assert legacy_assets.is_relative_to(destination)
+        assert legacy_article.name == f"{legacy_slug}.md"
+        assert legacy_assets.name == legacy_slug
+        assert not legacy_article.is_symlink(), legacy_article
+        assert not legacy_assets.is_symlink(), legacy_assets
+        if legacy_article.exists():
+            assert legacy_article.is_file(), legacy_article
+            legacy_article.unlink()
+        if legacy_assets.exists():
+            assert legacy_assets.is_dir(), legacy_assets
+            shutil.rmtree(legacy_assets)
+
     return exported
 
 
@@ -607,7 +777,7 @@ def serve_preview(
         output = refresh_live_preview(config, revision=str(time.time_ns()))
     else:
         output = build_preview(config)
-    handler = partial(SimpleHTTPRequestHandler, directory=str(output))
+    handler = partial(PreviewRequestHandler, directory=str(output))
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Preview: http://{host}:{port}/blog/{config.slug}/", flush=True)
     stop = threading.Event()
@@ -638,6 +808,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, default=default_config_path())
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate")
+    subparsers.add_parser("normalize-figures")
     subparsers.add_parser("verify-import")
     subparsers.add_parser("build")
     preview = subparsers.add_parser("preview")
@@ -660,6 +831,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate":
         assets = validate_workspace(config)
         print(f"Validated article and {len(assets)} referenced assets")
+    elif args.command == "normalize-figures":
+        assets = normalize_workspace_svg_typography(config)
+        print(f"Normalized typography in {len(assets)} referenced SVG assets")
     elif args.command == "verify-import":
         page_digest = verify_import(config)
         print(f"Baseline import and render verified; page sha256={page_digest}")

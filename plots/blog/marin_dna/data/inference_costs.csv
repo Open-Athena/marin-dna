@@ -1,0 +1,6 @@
+# Updated headline values from https://github.com/Open-Athena/marin-dna/issues/354 (2026-08-02).
+Model,Family,Parameters (B),Context,Cost (USD / 1M variants),Time (s / 1M variants)
+exp135-1B-m5.1,MarinDNA,1,256,1.56018,2452.69
+Evo 2 (1B base),Evo 2,1,8192,195.73,307692
+Evo 2 (7B),Evo 2,7,8192,738.71,1161290
+Evo 2 (40B),Evo 2,40,8192,3634.92,5714286

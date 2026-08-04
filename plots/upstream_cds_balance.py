@@ -13,8 +13,8 @@ Run:
 
 Outputs:
     plots/output/upstream_cds_balance/figure.{svg,png}
-    blog/genomic-lm-optimization/static/assets/images/blog/
-        genomic-lm-optimization/upstream_cds_balance.svg
+    blog/marin-dna/static/assets/images/blog/
+        marin-dna/upstream_cds_balance.svg
 """
 
 from __future__ import annotations
@@ -29,6 +29,14 @@ import polars as pl
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Wedge
+
+from marin_dna.blog_figure_typography import (
+    FIGURE_GLOBAL_RENDER_SCALE,
+    matplotlib_typography_rcparams,
+    normalize_matplotlib_svg_typography_file,
+    sync_article_figure_width,
+    validate_svg_typography,
+)
 
 
 class Arm(NamedTuple):
@@ -77,14 +85,20 @@ OUTPUT_DIR = REPO_ROOT / "plots" / "output" / Path(__file__).stem
 BLOG_SVG = (
     REPO_ROOT
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "static"
     / "assets"
     / "images"
     / "blog"
-    / "genomic-lm-optimization"
+    / "marin-dna"
     / "upstream_cds_balance.svg"
 )
+BLOG_ARTICLE = REPO_ROOT / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
+FIGURE_ID = "fig-upstream-cds-balance"
+
+# The only figure-size control. All three plotting axes are square; the canvas
+# dimensions follow from this height and the fixed one-row, three-panel layout.
+SUBPLOT_HEIGHT_PX = 120.0
 
 TEXT_COLOR = "#1f1e1b"
 # Canonical issue #370 region palette: Upstream = teal, CDS = rust.
@@ -94,10 +108,6 @@ TITLE_COLORS = {
     "Missense": REGION_COLORS["cds"],
     "Mean of both": TEXT_COLOR,
 }
-POSTER_TITLE_FS = 32
-POSTER_LABEL_FS = 30
-POSTER_TICK_FS = 26
-POSTER_LEGEND_FS = 32
 
 
 def blend_region_colors(upstream_fraction: float) -> tuple[float, float, float]:
@@ -151,7 +161,7 @@ class HandlerLineMarkerWithPie(HandlerBase):
             marker=orig_handle.get_marker(),
             markersize=orig_handle.get_markersize(),
             markeredgecolor=TEXT_COLOR,
-            markeredgewidth=1.0,
+            markeredgewidth=orig_handle.get_markeredgewidth(),
             linestyle="None",
         )
         line.set_transform(trans)
@@ -168,7 +178,6 @@ class HandlerLineMarkerWithPie(HandlerBase):
                 radius,
                 facecolor=REGION_COLORS[region],
                 edgecolor=TEXT_COLOR,
-                linewidth=1.0,
             )
             circle.set_transform(trans)
             artists.append(circle)
@@ -182,7 +191,6 @@ class HandlerLineMarkerWithPie(HandlerBase):
                 theta_top,
                 facecolor=REGION_COLORS["upstream"],
                 edgecolor=TEXT_COLOR,
-                linewidth=1.0,
             )
             cds_wedge = Wedge(
                 (center_x, line_y),
@@ -191,7 +199,6 @@ class HandlerLineMarkerWithPie(HandlerBase):
                 theta_top + (1.0 - upstream_fraction) * 360.0,
                 facecolor=REGION_COLORS["cds"],
                 edgecolor=TEXT_COLOR,
-                linewidth=1.0,
             )
             upstream_wedge.set_transform(trans)
             cds_wedge.set_transform(trans)
@@ -206,24 +213,16 @@ def apply_style() -> None:
             "svg.fonttype": "none",
             "svg.hashsalt": Path(__file__).stem,
             "font.family": "sans-serif",
-            "font.size": 18,
-            "axes.titlesize": 22,
-            "axes.labelsize": 20,
+            **matplotlib_typography_rcparams(),
             "axes.edgecolor": TEXT_COLOR,
             "axes.labelcolor": TEXT_COLOR,
-            "axes.linewidth": 1.8,
             "axes.spines.top": False,
             "axes.spines.right": False,
             "figure.facecolor": "none",
             "axes.facecolor": "none",
             "xtick.color": TEXT_COLOR,
             "ytick.color": TEXT_COLOR,
-            "xtick.labelsize": 16,
-            "ytick.labelsize": 16,
             "legend.frameon": False,
-            "legend.fontsize": 16,
-            "lines.linewidth": 4.5,
-            "lines.markersize": 14,
             "savefig.facecolor": "none",
             "savefig.transparent": True,
         }
@@ -282,7 +281,17 @@ def shared_step_data(trajectories: pl.DataFrame) -> pl.DataFrame:
 def plot(data: pl.DataFrame) -> plt.Figure:
     """Create upstream, missense, and two-subset-mean trajectory panels."""
     apply_style()
-    fig, axes = plt.subplots(1, 3, figsize=(15, 6.5), sharex=True, sharey=False)
+    axes_height_fraction = 0.70 - 0.09
+    figure_height_inches = SUBPLOT_HEIGHT_PX / (
+        72.0 * axes_height_fraction * FIGURE_GLOBAL_RENDER_SCALE
+    )
+    fig, axes = plt.subplots(
+        1,
+        3,
+        figsize=(2.5 * figure_height_inches, figure_height_inches),
+        sharex=True,
+        sharey=False,
+    )
 
     for axis, (title, subset) in zip(axes[:2], SUBSETS.items(), strict=True):
         for arm_key, arm in ARMS.items():
@@ -299,8 +308,6 @@ def plot(data: pl.DataFrame) -> plt.Figure:
         axis.set_title(
             title,
             color=TITLE_COLORS[title],
-            fontweight="bold",
-            fontsize=POSTER_TITLE_FS,
         )
 
     mean_axis = axes[2]
@@ -322,15 +329,13 @@ def plot(data: pl.DataFrame) -> plt.Figure:
     mean_axis.set_title(
         "Mean of both",
         color=TITLE_COLORS["Mean of both"],
-        fontweight="bold",
-        fontsize=POSTER_TITLE_FS,
     )
 
     for axis in axes:
-        axis.set_xlabel("training step", fontsize=POSTER_LABEL_FS)
-        axis.tick_params(axis="both", labelsize=POSTER_TICK_FS)
+        axis.set_xlabel("Training step")
         axis.grid(False)
-    axes[0].set_ylabel("AUPRC (%)", fontsize=POSTER_LABEL_FS)
+        axis.set_box_aspect(1)
+    axes[0].set_ylabel("AUPRC (%)")
 
     handles, labels = axes[0].get_legend_handles_labels()
     # Matplotlib fills a two-column legend column-first. This ordering displays
@@ -343,18 +348,19 @@ def plot(data: pl.DataFrame) -> plt.Figure:
     fig.legend(
         [handles[index] for index in legend_order],
         [labels[index] for index in legend_order],
+        title="Training data mixture",
         handler_map=handler_map,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.0),
+        bbox_to_anchor=(0.5, 1.08),
         ncol=2,
-        fontsize=POSTER_LEGEND_FS,
-        columnspacing=2.0,
+        alignment="center",
+        columnspacing=0.4,
         handlelength=4.0,
         handletextpad=0.4,
-        labelspacing=0.6,
+        labelspacing=0.25,
         borderpad=0.0,
     )
-    fig.subplots_adjust(bottom=0.10, top=0.62, left=0.09, right=0.98, wspace=0.28)
+    fig.subplots_adjust(bottom=0.09, top=0.70, left=0.09, right=0.98, wspace=0.28)
     return fig
 
 
@@ -375,7 +381,10 @@ def main() -> None:
                 "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
                 encoding="utf-8",
             )
+            normalize_matplotlib_svg_typography_file(output)
+            validate_svg_typography(output)
         print(f"wrote {output}")
+    sync_article_figure_width(BLOG_ARTICLE, FIGURE_ID, BLOG_SVG)
     plt.close(figure)
 
 

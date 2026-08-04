@@ -17,7 +17,9 @@ Out: plots/output/blog/promoter_cds_specialists.{svg,png}
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
+import shutil
 from typing import Any
 
 import matplotlib as mpl
@@ -28,6 +30,13 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 
+from marin_dna.blog_figure_typography import (
+    FIGURE_GLOBAL_RENDER_SCALE,
+    matplotlib_typography_rcparams,
+    normalize_matplotlib_svg_typography_file,
+    sync_article_figure_width,
+    validate_svg_typography,
+)
 from marin_dna.pipelines.evals.leaderboard import (
     DEFAULT_PROTOCOL,
     fetch_method_metrics,
@@ -37,6 +46,26 @@ from marin_dna.pipelines.evals.models import models_for_dataset
 DATASET = "mendelian_traits"
 OUTPUT_DIR = Path("plots/output/blog")
 OUTPUT_NAME = "promoter_cds_specialists"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BLOG_ARTICLE = REPO_ROOT / "blog" / "marin-dna" / "content" / "blog" / "marin-dna.md"
+BLOG_SVG = (
+    REPO_ROOT
+    / "blog"
+    / "marin-dna"
+    / "static"
+    / "assets"
+    / "images"
+    / "blog"
+    / "marin-dna"
+    / f"{OUTPUT_NAME}.svg"
+)
+FIGURE_ID = "fig-upstream-cds-specialists"
+
+# The sole display-size control. Each plotting axes is square, so its displayed
+# width follows from this height; the 3x2 grid then determines the SVG and
+# article-frame widths automatically. Typography and tick locators remain
+# independent global/style concerns.
+SUBPLOT_HEIGHT_PX = 100.0
 
 INK = "#1f1e1b"
 AUPRC_BASELINE_PCT = 10.0
@@ -168,56 +197,38 @@ def _draw_panel(ax: Axes, data: pd.DataFrame, subset: str) -> None:
         palette=palette,
         errorbar=None,
         edgecolor=INK,
-        linewidth=0.7,
         saturation=0.9,
         ax=ax,
         legend=False,
         dodge=False,
     )
 
-    panel_top = 0.0
     for x, role in enumerate(ROLE_ORDER):
         row = data.loc[data["role"] == role]
         assert len(row) == 1
         value = float(row["auprc_pct"].iloc[0])
         se = float(row["se_pct"].iloc[0])
-        panel_top = max(panel_top, value + se)
         ax.errorbar(
             x,
             value,
             yerr=se,
             color=INK,
-            linewidth=0.9,
             capsize=0,
             zorder=5,
         )
-        ax.text(
-            x,
-            value + se + 0.9,
-            f"{value:.1f}",
-            ha="center",
-            va="bottom",
-            fontsize=8,
-            color=INK,
-        )
-
     ax.set_axisbelow(True)
     ax.grid(False)
-    top_padding = max(2.0, 0.07 * (panel_top - AUPRC_BASELINE_PCT))
-    y_max = panel_top + top_padding
-    assert y_max > AUPRC_BASELINE_PCT
-    ax.set_ylim(AUPRC_BASELINE_PCT, y_max)
+    ax.set_ylim(bottom=AUPRC_BASELINE_PCT)
     ax.set_xlabel("")
     ax.tick_params(axis="x", bottom=False, labelbottom=False)
-    ax.tick_params(axis="y", labelsize=8)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.set_title(
         SUBSET_DISPLAY[subset],
-        fontsize=10,
         color=REGION_COLORS[region],
         pad=7,
     )
+    ax.set_box_aspect(1)
 
 
 def build_figure(data: pd.DataFrame) -> Figure:
@@ -227,6 +238,7 @@ def build_figure(data: pd.DataFrame) -> Figure:
         {
             "svg.fonttype": "none",
             "svg.hashsalt": OUTPUT_NAME,
+            **matplotlib_typography_rcparams(),
             "axes.spines.top": False,
             "axes.spines.right": False,
             "text.color": INK,
@@ -237,7 +249,14 @@ def build_figure(data: pd.DataFrame) -> Figure:
             "axes.titlecolor": INK,
         }
     )
-    figure, axes = plt.subplots(2, 3, figsize=(5.0, 3.2), sharex=False, sharey=False)
+    layout_scale = SUBPLOT_HEIGHT_PX / 100.0
+    figure, axes = plt.subplots(
+        2,
+        3,
+        figsize=(5.0 * layout_scale, 3.2 * layout_scale),
+        sharex=False,
+        sharey=False,
+    )
     panel_axes = (axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1], axes[1, 2])
     for ax, subset in zip(panel_axes, PANEL_ORDER, strict=True):
         _draw_panel(ax, data.loc[data["subset"] == subset], subset)
@@ -251,13 +270,11 @@ def build_figure(data: pd.DataFrame) -> Figure:
         Patch(
             facecolor=REGION_COLORS["upstream"],
             edgecolor=INK,
-            linewidth=0.7,
             label="Upstream",
         ),
         Patch(
             facecolor=REGION_COLORS["cds"],
             edgecolor=INK,
-            linewidth=0.7,
             label="CDS",
         ),
     ]
@@ -265,13 +282,11 @@ def build_figure(data: pd.DataFrame) -> Figure:
         Patch(
             facecolor=BASELINE_COLORS["Evo 2 (40B)"],
             edgecolor=INK,
-            linewidth=0.7,
             label="Evo 2 (40B)",
         ),
         Patch(
             facecolor=BASELINE_COLORS["GPN-Star (M)"],
             edgecolor=INK,
-            linewidth=0.7,
             label="GPN-Star (M)",
         ),
     ]
@@ -279,11 +294,9 @@ def build_figure(data: pd.DataFrame) -> Figure:
         handles=specialist_handles,
         title="Specialists",
         loc="upper left",
-        bbox_to_anchor=(0.02, 0.98),
+        bbox_to_anchor=(0.02, 1.22),
         ncol=1,
         frameon=False,
-        fontsize=8,
-        title_fontsize=8,
         handlelength=1.0,
         handletextpad=0.4,
         labelspacing=0.3,
@@ -294,11 +307,9 @@ def build_figure(data: pd.DataFrame) -> Figure:
         handles=generalist_handles,
         title="Generalists",
         loc="upper left",
-        bbox_to_anchor=(0.02, 0.58),
+        bbox_to_anchor=(0.02, 0.68),
         ncol=1,
         frameon=False,
-        fontsize=8,
-        title_fontsize=8,
         handlelength=1.0,
         handletextpad=0.4,
         labelspacing=0.3,
@@ -315,9 +326,24 @@ def build_figure(data: pd.DataFrame) -> Figure:
     return figure
 
 
+def _square_panel_height_points(figure: Figure) -> float:
+    """Return a representative square panel height in SVG point units."""
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    panel_axes = [axis for axis in figure.axes if axis.axison]
+    assert len(panel_axes) == len(PANEL_ORDER)
+    panel_sizes = [axis.get_window_extent(renderer=renderer) for axis in panel_axes]
+    for bounds in panel_sizes:
+        assert math.isclose(bounds.width, bounds.height, rel_tol=1e-6), bounds
+    heights = [bounds.height * 72.0 / figure.dpi for bounds in panel_sizes]
+    assert max(heights) - min(heights) < 1e-6, heights
+    return heights[0]
+
+
 def save_figure(figure: Figure) -> None:
     """Save the web SVG and a high-resolution PNG for visual review."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    panel_height_points = _square_panel_height_points(figure)
     for extension, kwargs in (
         ("svg", {"metadata": {"Date": None}}),
         ("png", {"dpi": 300}),
@@ -331,6 +357,22 @@ def save_figure(figure: Figure) -> None:
                 encoding="utf-8",
             )
         print(f"Wrote {path}")
+
+    svg_path = OUTPUT_DIR / f"{OUTPUT_NAME}.svg"
+    displayed_panel_height = panel_height_points * FIGURE_GLOBAL_RENDER_SCALE
+    assert math.isclose(displayed_panel_height, SUBPLOT_HEIGHT_PX, abs_tol=0.2), (
+        displayed_panel_height,
+        SUBPLOT_HEIGHT_PX,
+    )
+    normalize_matplotlib_svg_typography_file(svg_path)
+    validate_svg_typography(svg_path)
+    BLOG_SVG.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(svg_path, BLOG_SVG)
+    frame_width = sync_article_figure_width(BLOG_ARTICLE, FIGURE_ID, BLOG_SVG)
+    print(
+        f"Synced {BLOG_SVG} at {SUBPLOT_HEIGHT_PX:g}px square panels "
+        f"({frame_width:.1f}px frame)"
+    )
 
 
 def build() -> None:

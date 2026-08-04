@@ -79,10 +79,10 @@ def test_docx_has_native_structure_links_and_every_figure(tmp_path: Path) -> Non
         for item in footnotes_root.findall("w:footnote", namespaces)
         if int(item.get(f"{{{word_namespace}}}id")) > 0
     ]
-    assert reference_ids == list(range(1, 28))
+    assert reference_ids == list(range(1, 31))
     assert [
         int(item.get(f"{{{word_namespace}}}id")) for item in native_footnotes
-    ] == list(range(1, 28))
+    ] == list(range(1, 31))
     assert all(
         item.find(".//w:footnoteRef", namespaces) is not None
         for item in native_footnotes
@@ -107,7 +107,7 @@ def test_docx_has_native_structure_links_and_every_figure(tmp_path: Path) -> Non
     captions = [
         paragraph.text
         for paragraph in document.paragraphs
-        if re.match(r"^Figure (?:[1-9]|1[0-9]):", paragraph.text)
+        if re.match(r"^Figure (?:[1-9]|1[0-9]|20):", paragraph.text)
     ]
     hyperlinks = [
         relationship
@@ -120,6 +120,6 @@ def test_docx_has_native_structure_links_and_every_figure(tmp_path: Path) -> Non
     assert ("Heading 2", "Introduction") in headings
     assert ("Heading 2", "Conclusion") in headings
     assert ("Heading 2", "Notes") not in headings
-    assert len(document.inline_shapes) == 19
-    assert len(captions) == 19
+    assert len(document.inline_shapes) == 20
+    assert len(captions) == 20
     assert len(hyperlinks) >= 20

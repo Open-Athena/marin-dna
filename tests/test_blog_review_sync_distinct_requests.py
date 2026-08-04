@@ -18,8 +18,7 @@ from marin_dna.blog_workspace import default_config_path, load_config
 SOURCE_SHA = "d" * 40
 REQUESTED_AT = "2026-07-28T20:00:00Z"
 PREVIEW_URL = (
-    "https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/"
-    "blog/genomic-lm-optimization/"
+    "https://cms-blog-genomic-lm-optimiza.openathena-ai.pages.dev/blog/marin-dna/"
 )
 
 

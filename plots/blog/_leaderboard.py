@@ -13,14 +13,19 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.patches import Rectangle
 
+from marin_dna.blog_figure_typography import (
+    MATPLOTLIB_NOTE_SIZE,
+    normalize_matplotlib_svg_typography_file,
+)
 from marin_dna.pipelines.evals.metrics import MACRO_AVG_SUBSET
-from plots.blog.genomic_lm_optimization.src.utils import figure_theme as _figure_theme  # noqa: F401
-from plots.blog.genomic_lm_optimization.src.utils.figure_style import (
+from plots.blog.marin_dna.src.utils import figure_theme as _figure_theme  # noqa: F401
+from plots.blog.marin_dna.src.utils.figure_style import (
     HEATMAP_CMAP,
     figsize,
 )
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output" / "blog"
+HEATMAP_CELL_ASPECT = 0.74
 
 SUBSET_DISPLAY: dict[str, str] = {
     "missense_variant": "Missense",
@@ -75,6 +80,7 @@ def _save_figure(fig: plt.Figure, name: str) -> None:
             if extension == "svg":
                 lines = path.read_text().splitlines()
                 path.write_text("\n".join(line.rstrip() for line in lines) + "\n")
+                normalize_matplotlib_svg_typography_file(path)
             paths.append(path)
     print("Wrote " + ", ".join(str(path) for path in paths))
 
@@ -82,7 +88,6 @@ def _save_figure(fig: plt.Figure, name: str) -> None:
 def render_heatmap(
     table: pd.DataFrame,
     *,
-    title: str,
     output_name: str,
 ) -> None:
     """Render one independently sorted and color-normalized leaderboard."""
@@ -98,7 +103,9 @@ def render_heatmap(
     norm = Normalize(float(finite.min()), float(finite.max()))
 
     fig, ax = plt.subplots(figsize=figsize(10.0, max(4.4, 0.30 * n_rows)))
-    ax.imshow(matrix, cmap=HEATMAP_CMAP, norm=norm, aspect="auto")
+    # A fixed cell aspect keeps each model row the same height when paired
+    # leaderboards contain different numbers of models.
+    ax.imshow(matrix, cmap=HEATMAP_CMAP, norm=norm, aspect=HEATMAP_CELL_ASPECT)
 
     ax.set_xticks(np.arange(-0.5, n_columns), minor=True)
     ax.set_yticks(np.arange(-0.5, n_rows), minor=True)
@@ -119,7 +126,7 @@ def render_heatmap(
                 f"{value:.1f}",
                 ha="center",
                 va="center",
-                fontsize=8,
+                fontsize=MATPLOTLIB_NOTE_SIZE,
                 color=text_color,
                 fontweight="bold" if column_index == 0 else "normal",
             )
@@ -136,10 +143,10 @@ def render_heatmap(
         )
     )
     ax.set_xticks(range(n_columns))
-    ax.set_xticklabels(column_labels, rotation=30, ha="right", fontsize=9)
+    ax.set_xticklabels(column_labels, rotation=30, ha="right")
     ax.get_xticklabels()[0].set_fontweight("bold")
     ax.set_yticks(range(n_rows))
-    ax.set_yticklabels(display_names, fontsize=9)
+    ax.set_yticklabels(display_names)
     for tick, family in zip(ax.get_yticklabels(), families, strict=True):
         if family == "marin_dna":
             tick.set_fontweight("bold")
@@ -152,10 +159,18 @@ def render_heatmap(
         fraction=0.025,
         pad=0.02,
     )
-    colorbar.set_label("AUPRC (%)", fontsize=9)
-    colorbar.ax.tick_params(labelsize=8)
+    colorbar.set_label("AUPRC (%)")
 
-    ax.set_title(title, fontsize=9.5, pad=10)
     fig.tight_layout()
+    axes_position = ax.get_position()
+    colorbar_position = colorbar.ax.get_position()
+    colorbar.ax.set_position(
+        (
+            colorbar_position.x0,
+            axes_position.y0,
+            colorbar_position.width,
+            axes_position.height,
+        )
+    )
     _save_figure(fig, output_name)
     plt.close(fig)

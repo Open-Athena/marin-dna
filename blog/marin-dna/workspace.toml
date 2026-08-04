@@ -1,0 +1,13 @@
+slug = "marin-dna"
+legacy_slugs = ["genomic-lm-optimization"]
+website_repository = "https://github.com/Open-Athena/open-athena.github.io.git"
+website_pr = 59
+website_pr_commit = "4cd00c970816c0caedaca570252ca390b6f61b67"
+renderer_commit = "4cd00c970816c0caedaca570252ca390b6f61b67"
+blog_source_repository = "https://github.com/eric-czech/marin-dna-post-202606.git"
+blog_source_commit = "2abef91b37a16fde9c9cdf1cfa0046942442b97f"
+article_path = "content/blog/marin-dna.md"
+assets_path = "static/assets/images/blog/marin-dna"
+baseline_manifest = "baseline.sha256"
+renderer_lock = "renderer.uv.lock"
+baseline_page_sha256 = "5ed2356f4726a3fb620cd3ca171c785b2e4066499cb42c503cee93427c455434"

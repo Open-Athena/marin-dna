@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="350" viewBox="0 0 840 350" role="img" aria-labelledby="title desc" font-family="Lato, sans-serif" data-figure-typography="lato-v1" data-figure-render-width="640">
+  <title id="title">Two ways to score a variant with a frozen genomic language model</title>
+  <desc id="desc">Reference and alternate DNA sequences that differ at one base pass through a frozen genomic language model. A zero-shot readout compares their sequence likelihoods, while a linear probe learns a score from their embeddings.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a7d68"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="838" height="348" rx="16" fill="#f6f0e4" stroke="#ddd3bf"/>
+  <text x="28" y="39" font-size="21" font-weight="750" fill="#1f1e1b">Two ways to score a variant with a frozen gLM</text>
+
+  <!-- Reference and alternate sequence -->
+  <rect x="28" y="72" width="210" height="220" rx="13" fill="#fcfaf5" stroke="#d9cbb1"/>
+  <text x="46" y="104" font-size="15.75" font-weight="700" fill="#465c6e">REFERENCE</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17.182" fill="#1f1e1b">
+    <text x="46" y="132">ACGT</text>
+    <rect x="89" y="113" width="23" height="25" rx="4" fill="#e9edf0" stroke="#8394a1"/>
+    <text x="100.5" y="132" text-anchor="middle" font-weight="700" fill="#465c6e">C</text>
+    <text x="113" y="132">GTCA</text>
+  </g>
+
+  <line x1="100.5" y1="144" x2="100.5" y2="165" stroke="#a89a80" stroke-width="1.4" stroke-dasharray="3 3"/>
+
+  <text x="46" y="189" font-size="15.75" font-weight="700" fill="#465c6e">ALTERNATE</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17.182" fill="#1f1e1b">
+    <text x="46" y="217">ACGT</text>
+    <rect x="89" y="198" width="23" height="25" rx="4" fill="#e9edf0" stroke="#8394a1"/>
+    <text x="100.5" y="217" text-anchor="middle" font-weight="700" fill="#465c6e">T</text>
+    <text x="113" y="217">GTCA</text>
+  </g>
+
+  <text x="46" y="258" font-size="15.75" fill="#7a6f5f">One changed base</text>
+  <text x="46" y="275" font-size="15.75" fill="#7a6f5f">In the same DNA context</text>
+
+  <!-- Compact frozen model -->
+  <path d="M 238 182 L 279 182" fill="none" stroke="#8a7d68" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <rect x="282" y="119" width="144" height="126" rx="14" fill="#fcfaf5" stroke="#bdc7cf" stroke-width="1.4"/>
+  <circle cx="354" cy="156" r="30" fill="#e9edf0"/>
+  <text x="354" y="173" text-anchor="middle" data-figure-preserve-typography="true" font-family="Lato, sans-serif" font-size="54" fill="#465c6e">❄︎</text>
+  <text x="354" y="213" font-size="17.182" font-weight="750" text-anchor="middle" fill="#1f1e1b">Frozen gLM</text>
+
+  <!-- Split into two readouts -->
+  <path d="M 426 182 L 452 182 L 452 123 L 475 123" fill="none" stroke="#8a7d68" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <path d="M 452 182 L 452 263 L 475 263" fill="none" stroke="#8a7d68" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <circle cx="452" cy="182" r="4" fill="#8a7d68"/>
+
+  <!-- Zero-shot readout -->
+  <rect x="478" y="65" width="330" height="116" rx="13" fill="#fcfaf5" stroke="#dbc4b5"/>
+  <rect x="478" y="65" width="7" height="116" rx="3.5" fill="#9c4f2f"/>
+  <text x="502" y="91" font-size="15.75" font-weight="700" letter-spacing="0.7" fill="#9c4f2f">ZERO-SHOT</text>
+  <text x="502" y="116" font-size="17.182" font-weight="750" fill="#1f1e1b">Sequence likelihoods</text>
+  <text x="502" y="138" font-size="15.75" fill="#5b3424">ALT likelihood change relative to REF</text>
+  <rect x="502" y="149" width="282" height="22" rx="7" fill="#f4e9e1"/>
+  <text x="643" y="165" font-size="15.75" font-weight="700" text-anchor="middle" fill="#7a4a35">log P(ALT) − log P(REF)</text>
+
+  <!-- Linear-probe readout -->
+  <rect x="478" y="205" width="330" height="116" rx="13" fill="#fcfaf5" stroke="#b9d2ca"/>
+  <rect x="478" y="205" width="7" height="116" rx="3.5" fill="#2f6f63"/>
+  <text x="502" y="231" font-size="15.75" font-weight="700" letter-spacing="0.7" fill="#2f6f63">LINEAR PROBE</text>
+  <text x="502" y="256" font-size="17.182" font-weight="750" fill="#1f1e1b">Allele embeddings</text>
+  <text x="502" y="278" font-size="15.75" fill="#315f56">What variant signal is represented?</text>
+  <rect x="502" y="289" width="282" height="22" rx="7" fill="#e8efec"/>
+  <text x="643" y="305" font-size="15.75" font-weight="700" text-anchor="middle" fill="#2f6f63">REF / ALT embeddings → linear classifier</text>
+
+</svg>
