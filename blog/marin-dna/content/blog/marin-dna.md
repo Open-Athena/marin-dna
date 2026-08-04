@@ -534,10 +534,12 @@ The scaling study had instead sampled these regions in proportion to dataset siz
 Echoing the earlier mixture experiments, that recipe produced good CDS performance but left a large gap on the less abundant upstream tasks.
 We therefore switched to uniform weighting so that each functional region received meaningful exposure.
 
-By then, we had already trained m5.1 for ~104B tokens on the uniform three-region mixture.
+We use the internal labels m5.1, m1.3, and m3.3 for the three model-mixture lineages compared below.
+In this naming scheme, m denotes a mixture lineage, the leading number identifies the mixture strategy, and the suffix identifies a continuation within that lineage.
+m5.1 is the staged lineage: we first trained its 1B model for ~104B tokens on the uniform three-region mixture.
 Alignment projection then made it possible to turn human ncRNA and enhancer annotations into comparable multi-species training datasets.
 Once those data became available, we added them to form a uniform five-region mixture and continued training the same model for another ~62B tokens.
-We compare this staged history with two lineages trained on five-region mixtures from the beginning.
+We compare this staged history with two controls, m1.3 and m3.3, trained on five-region mixtures from the beginning.
 
 [^later-mixture-model-size]: At the time, 1B had reached a good level of zero-shot performance under our then-current evaluation.
     We had not established it as the optimal model size.
