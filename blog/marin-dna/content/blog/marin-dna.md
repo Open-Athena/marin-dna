@@ -157,6 +157,18 @@ This post summarizes how data curation, hyperparameter transfer, scaling laws, a
 Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour on a GH200.</figcaption>
 </figure>
 
+## Summary
+
+- **Balanced data mixtures produce more even VEP performance across coding and non-coding regions.**
+  Uniform weighting prevents the larger CDS dataset from dominating training.
+  Adding ncRNA and enhancer data improves performance on ncRNA and distal variants.
+- **Optimization transfers, and loss scales predictably.**
+  Hyperparameters tuned on ~25M-parameter reference models predicted the optimal learning rate for 255M, 476M, and 1B models; using that recipe, validation loss followed a clean scaling law through 4B parameters.
+- **Zero-shot VEP can regress with scale even as linear-probe VEP improves.**
+  Zero-shot LLR improves for most variant classes, but deteriorates for Mendelian missense as model scale and validation log-likelihood increase.
+- **The resulting 1B model rivals Evo 2 40B on Mendelian VEP.**
+  MarinDNA m5.1 slightly leads Evo 2 40B in zero-shot macro-average AUPRC while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster, although alignment-based and supervised models remain stronger overall.
+
 > **A note on open development.**
 > This post turns a branching research process into a linear narrative; the [MarinDNA repository](https://github.com/Open-Athena/marin-dna) preserves the underlying experiments, including unsuccessful and inconclusive directions.
 
