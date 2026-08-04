@@ -465,8 +465,9 @@ Does lower validation loss actually correlate with better downstream VEP perform
 [^validation-loss]: Here, “validation loss” is best understood as a training-loss-like monitoring statistic computed on a fixed set of human training sequences, rather than a conventional estimate on held-out data.
     We have not yet found a satisfactory way to construct clean held-out genomic splits: genomes are phylogenetically correlated, and identifying orthologous non-coding regions by sequence alignment is difficult.
     See [issue #8](https://github.com/Open-Athena/marin-dna/issues/8) for split experiments and a broader discussion of why raw perplexity may not reliably track VEP performance.
-    It also contains an incidental objective mismatch: during training, lowercase marks repetitive bases, which receive 1% of the standard loss weight; in these validation sets, lowercase instead marks non-conserved bases, so those positions also received 1% weight.
-    That validation weighting was inherited from the training setup rather than chosen deliberately.
+    The meaning of lowercase differs between training and validation: during training it marks repetitive bases, whereas in these validation sets it marks non-conserved bases; in both cases lowercase positions receive 1% of the standard loss weight.
+    In validation, this acts as a heuristic that emphasizes conserved sequence, but we did not independently design or validate it as a model-selection objective.
+    Because this statistic informed the Vizier reference sweep and the choice of the 1B model, those decisions may not be optimal under a different validation objective.
     We therefore use validation loss descriptively for like-for-like comparisons and trend analysis, not as an unbiased estimate of performance on unseen sequence; the biological conclusions rely primarily on downstream VEP evaluation.
 
 [^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
