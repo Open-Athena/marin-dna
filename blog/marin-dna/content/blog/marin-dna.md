@@ -422,7 +422,7 @@ That gives us enough confidence that the following parameter-scaling runs are at
 <figure id="fig-region-hyperparameter-transfer" data-figure-width="662.7">
 <img src="/assets/images/blog/marin-dna/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" />
 <figcaption><strong>Figure 11: Region-specific hyperparameter transfer.</strong>
-Transfer validated separately for CDS, upstream, and downstream regions.</figcaption>
+Validation loss as a function of learning rate, β₂, and ε, evaluated separately for CDS, upstream, and downstream regions.</figcaption>
 </figure>
 
 </details>
@@ -453,7 +453,7 @@ That puts it on par with canonical scaling-law studies in language modeling, e.g
 <figure id="fig-loss-scaling" data-figure-width="701.543">
 <img src="/assets/images/blog/marin-dna/figure4_loss_scaling.svg?v=math-notation" alt="Loss scaling across model sizes with Kaplan power-law fits" />
 <figcaption><strong>Figure 12: Loss scaling across model sizes.</strong>
-Eight models from 46M to 4B parameters, with a Kaplan power-law fit.</figcaption>
+Training and validation loss for eight models from 46M to 4B parameters, each trained on ~84B tokens; the inset shows a Kaplan power-law fit to final validation loss.</figcaption>
 </figure>
 
 The result is about as tidy as we could hope for.
