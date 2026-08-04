@@ -207,6 +207,7 @@ Standard genome annotations make these regions relatively easy to identify and e
 
 Later, we added ncRNA[^training-ncrna] and enhancers[^training-enhancer] built by alignment projection.
 Because comparable annotations were not directly available across the target species, we projected human annotations through whole-genome alignments.
+The broader idea of using whole-genome alignments to expand reference-species enhancer data across species has also appeared recently in chromatin-accessibility prediction and enhancer-generation work.[^alignment-derived-enhancers]
 
 <figure id="fig-training-datasets" data-figure-width="660">
 <img src="/assets/images/blog/marin-dna/data_provenance_training_datasets.svg?v=compact-bars" alt="Token counts for annotation-derived CDS, upstream, and downstream datasets and alignment-projected enhancer and ncRNA datasets" />
@@ -221,6 +222,8 @@ Because comparable annotations were not directly available across the target spe
 
 [^training-enhancer]: “Enhancer” is shorthand for the ENCODE V4 non-promoter cCRE set.
     It includes enhancer-like signatures (dELS and pELS), but also classes such as CA, CA-CTCF, CA-TF, CA-H3K4me3, and TF.
+
+[^alignment-derived-enhancers]: [STEAM](https://www.biorxiv.org/content/10.64898/2026.04.07.717039v2) augments mouse chromatin-accessibility training data with syntenic orthologs from 240 other mammalian genomes, while [EnhancAR](https://www.biorxiv.org/content/10.64898/2026.04.13.718170v1) trains an autoregressive generator on families of human enhancers and their homologs.
 
 ### Why GPT-style architecture?
 
