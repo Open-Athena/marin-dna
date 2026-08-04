@@ -20,6 +20,7 @@ import ast
 import hashlib
 import html
 import json
+import math
 import os
 import re
 import shutil
@@ -385,9 +386,15 @@ def _extract_figures(
 
     def replace(match: re.Match[str]) -> str:
         figure_attributes = _parse_attributes(match.group("figure_attrs"))
-        assert set(figure_attributes) == {"id"}, (
+        assert "id" in figure_attributes
+        assert set(figure_attributes) <= {"id", "data-figure-width"}, (
             f"figure attributes differ: {set(figure_attributes)}"
         )
+        if width_text := figure_attributes.get("data-figure-width"):
+            width = float(width_text)
+            assert math.isfinite(width) and width > 0, (
+                f"invalid data-figure-width: {width_text!r}"
+            )
         image_attributes = _parse_attributes(match.group("img_attrs"))
         assert set(image_attributes) == {"src", "alt"}, (
             f"image attributes differ: {set(image_attributes)}"
@@ -395,7 +402,8 @@ def _extract_figures(
         number = len(figures) + 1
         marker = f"[[MARIN_DNA_FIGURE_{number:03d}]]"
         caption = _caption_to_markdown(match.group("caption"))
-        assert caption.startswith(f"**Figure {number}:**"), (
+        caption_lead = caption.splitlines()[0]
+        assert re.fullmatch(rf"\*\*Figure {number}: .+\.\*\*", caption_lead), (
             f"figure caption numbering differs at figure {number}: {caption}"
         )
         figures.append(
@@ -738,6 +746,12 @@ def _render_blocks(
     for node in nodes:
         node_type = node["type"]
         if node_type == "blank_line":
+            continue
+        if node_type == "block_html":
+            raw = node["raw"].lstrip()
+            assert raw.startswith(("<style", "<script")), (
+                "unsupported semantic block HTML in review document"
+            )
             continue
         if node_type in {"paragraph", "block_text"}:
             children = node["children"]

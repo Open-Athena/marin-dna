@@ -7,7 +7,7 @@ article. The imported historical plotting bundle remains under
 
 ## Mendelian leaderboard heatmaps
 
-Figure 18 (zero-shot) and the collapsed Figure 19 (linear probe) follow the
+Figure 19 (zero-shot) and Figure 20 (linear probe) follow the
 canonical scope in [issue #370](https://github.com/Open-Athena/marin-dna/issues/370):
 
 - zero-shot: the six headline models, each using its canonical protocol;

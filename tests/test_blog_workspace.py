@@ -45,6 +45,7 @@ ACTIVE_BLOG_PLOT_RECIPES = (
     "plots/blog/promoter_cds_specialists.py",
     "plots/upstream_cds_balance.py",
     "plots/blog/_leaderboard.py",
+    "plots/blog/marin_dna/src/figures/headline_cost_performance.py",
     "plots/blog/marin_dna/src/figures/figure1_lr_transfer.py",
     "plots/blog/marin_dna/src/figures/figure2_beta2_epsilon_transfer.py",
     "plots/blog/marin_dna/src/figures/figure3_region_hyper_transfer.py",
@@ -58,6 +59,7 @@ ACTIVE_BLOG_PLOT_RECIPES = (
 )
 
 ACTIVE_DATA_FIGURE_ASSETS = (
+    "headline_cost_performance.svg",
     "promoter_cds_specialists.svg",
     "upstream_cds_balance.svg",
     "figure1_lr_transfer.svg",
@@ -422,6 +424,16 @@ def test_edited_workspace_is_valid_and_baseline_manifest_is_readable() -> None:
 def test_export_uses_exact_website_paths(tmp_path: Path) -> None:
     config = load_config(default_config_path())
     destination = tmp_path / "open-athena.github.io"
+    legacy_slug = config.legacy_slugs[0]
+    legacy_article = destination / "content" / "blog" / f"{legacy_slug}.md"
+    legacy_article.parent.mkdir(parents=True)
+    legacy_article.write_text("legacy article")
+    legacy_assets = destination / "static" / "assets" / "images" / "blog" / legacy_slug
+    legacy_assets.mkdir(parents=True)
+    (legacy_assets / "legacy.svg").write_text("<svg/>")
+    unrelated = destination / "content" / "blog" / "unrelated.md"
+    unrelated.write_text("preserve me")
+
     exported = export_workspace(config, destination)
 
     expected = [destination / config.article_path]
@@ -434,6 +446,9 @@ def test_export_uses_exact_website_paths(tmp_path: Path) -> None:
     for target in exported:
         source = config.root / target.relative_to(destination)
         assert target.read_bytes() == source.read_bytes()
+    assert not legacy_article.exists()
+    assert not legacy_assets.exists()
+    assert unrelated.read_text() == "preserve me"
 
 
 def test_preview_contains_only_article_and_referenced_files(tmp_path: Path) -> None:

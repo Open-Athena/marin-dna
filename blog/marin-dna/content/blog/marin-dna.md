@@ -616,7 +616,7 @@ These are different model families: AlphaGenome learns from functional-genomics 
 Further improvements to the alignment-free recipe may narrow the gap to GPN-Star, but it is not clear that they will eliminate it.
 Some of the remaining difference may reflect information that an alignment-free model cannot recover from unaligned sequence alone ([research question #397](https://github.com/Open-Athena/marin-dna/issues/397)).
 
-[^leaderboard-scores]: Figure 19 uses LLR for MarinDNA and Evo 2, calibrated LLR (cLLR) for GPN-Star, and the maximum L2 REF/ALT prediction score for AlphaGenome.
+[^leaderboard-scores]: [Fig. 19](#fig-mendelian-leaderboard) uses LLR for MarinDNA and Evo 2, calibrated LLR (cLLR) for GPN-Star, and the maximum L2 REF/ALT prediction score for AlphaGenome.
 
 <!-- Plot recipe: plots/blog/figure11_leaderboard_heatmap.py -->
 <figure id="fig-mendelian-leaderboard" data-figure-width="668.41">

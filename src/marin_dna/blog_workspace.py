@@ -102,6 +102,7 @@ class WorkspaceConfig:
 
     root: Path
     slug: str
+    legacy_slugs: tuple[str, ...]
     website_repository: str
     website_pr: int
     website_pr_commit: str
@@ -147,6 +148,7 @@ def load_config(path: Path) -> WorkspaceConfig:
 
     required = {
         "slug",
+        "legacy_slugs",
         "website_repository",
         "website_pr",
         "website_pr_commit",
@@ -165,6 +167,17 @@ def load_config(path: Path) -> WorkspaceConfig:
     assert re.fullmatch(r"[0-9a-f]{64}", raw["baseline_page_sha256"]), (
         "invalid baseline_page_sha256"
     )
+    slug_pattern = r"[a-z0-9]+(?:-[a-z0-9]+)*"
+    assert re.fullmatch(slug_pattern, raw["slug"]), f"invalid slug: {raw['slug']}"
+    assert isinstance(raw["legacy_slugs"], list), "legacy_slugs must be a list"
+    assert all(isinstance(value, str) for value in raw["legacy_slugs"])
+    legacy_slugs = tuple(raw["legacy_slugs"])
+    assert len(set(legacy_slugs)) == len(legacy_slugs), "duplicate legacy slug"
+    for legacy_slug in legacy_slugs:
+        assert re.fullmatch(slug_pattern, legacy_slug), (
+            f"invalid legacy slug: {legacy_slug}"
+        )
+        assert legacy_slug != raw["slug"], "current slug listed as legacy"
 
     root = resolved.parent
     article_path = _safe_relative_path(raw["article_path"])
@@ -176,6 +189,7 @@ def load_config(path: Path) -> WorkspaceConfig:
     return WorkspaceConfig(
         root=root,
         slug=raw["slug"],
+        legacy_slugs=legacy_slugs,
         website_repository=raw["website_repository"],
         website_pr=raw["website_pr"],
         website_pr_commit=raw["website_pr_commit"],
@@ -732,6 +746,25 @@ def export_workspace(config: WorkspaceConfig, destination: Path) -> list[Path]:
     exported.extend(sorted(path for path in assets_target.rglob("*") if path.is_file()))
     source_asset_count = sum(1 for path in config.assets.rglob("*") if path.is_file())
     assert len(exported) == 1 + source_asset_count
+
+    for legacy_slug in config.legacy_slugs:
+        legacy_article = destination / "content" / "blog" / f"{legacy_slug}.md"
+        legacy_assets = (
+            destination / "static" / "assets" / "images" / "blog" / legacy_slug
+        )
+        assert legacy_article.is_relative_to(destination)
+        assert legacy_assets.is_relative_to(destination)
+        assert legacy_article.name == f"{legacy_slug}.md"
+        assert legacy_assets.name == legacy_slug
+        assert not legacy_article.is_symlink(), legacy_article
+        assert not legacy_assets.is_symlink(), legacy_assets
+        if legacy_article.exists():
+            assert legacy_article.is_file(), legacy_article
+            legacy_article.unlink()
+        if legacy_assets.exists():
+            assert legacy_assets.is_dir(), legacy_assets
+            shutil.rmtree(legacy_assets)
+
     return exported
 
 

@@ -44,7 +44,7 @@ The preparer therefore emits both:
 
 - `review.md`, an inspectable normalized Markdown companion; and
 - `review.docx`, a self-contained import transport with native headings,
-  centered title/author/date/summary, hyperlinks, native footnotes, the 19
+  centered title/author/date/summary, hyperlinks, native footnotes, the 20
   figures converted to embedded high-resolution PNGs, captions in article order, and a
   prominent commit-pinned provenance notice.
 
@@ -126,7 +126,7 @@ uv run python src/marin_dna/blog_review_sync.py prepare \
   blog/marin-dna/export/review-sync/<stable-request-id>
 ```
 
-The command validates all local assets and footnotes, preserves the 19 figures
+The command validates all local assets and footnotes, preserves the 20 figures
 in source order, converts SVGs, renders native Word footnotes into the DOCX,
 normalizes prose soft-wraps to spaces, hashes every generated file,
 and writes `manifest.json` atomically. Repeating the command with the same
@@ -151,9 +151,12 @@ Use the existing Open Athena website PR #59 head branch
      --destination /absolute/path/to/open-athena.github.io
    ```
 
-3. Assert that the only changed paths are:
+3. Assert that the only changed paths are the new article and assets plus the
+   guarded removal of the known legacy slug:
 
    ```text
+   content/blog/genomic-lm-optimization.md (deleted)
+   static/assets/images/blog/genomic-lm-optimization/** (deleted)
    content/blog/marin-dna.md
    static/assets/images/blog/marin-dna/**
    ```
@@ -189,8 +192,8 @@ Before recording success, verify:
   request ID, generation time, authoritative staging branch, and review-only
   status of Doc edits;
 - native Google Docs heading structure and paged document mode;
-- all 19 figures in canonical order, each followed by its caption;
-- working article hyperlinks and all 27 Markdown notes as native, hoverable
+- all 20 figures in canonical order, each followed by its caption;
+- working article hyperlinks and all 30 Markdown notes as native, hoverable
   Google Docs footnotes in first-reference order; and
 - the Drive folder, owner, and permissions match the first-sync decision.
 

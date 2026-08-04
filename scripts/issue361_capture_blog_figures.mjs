@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url);
 const WebSocket = require("ws");
 
 const FIGURE_IDS = [
+  "fig-cost-performance",
   "fig-training-datasets",
   "fig-evaluation-datasets",
   "fig-evaluation-readouts",

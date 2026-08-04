@@ -1,4 +1,5 @@
 slug = "marin-dna"
+legacy_slugs = ["genomic-lm-optimization"]
 website_repository = "https://github.com/Open-Athena/open-athena.github.io.git"
 website_pr = 59
 website_pr_commit = "4cd00c970816c0caedaca570252ca390b6f61b67"

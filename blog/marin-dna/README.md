@@ -122,7 +122,7 @@ CHROME_BIN=/path/to/chromium node scripts/issue361_capture_blog_figures.mjs \
   http://127.0.0.1:8765/blog/marin-dna/ /tmp/blog-figures
 ```
 
-The audit captures all 19 figures and writes `layout-audit.json` with text-text,
+The audit captures all 20 figures and writes `layout-audit.json` with text-text,
 pill, SVG-boundary, and caption-frame collision results. Pass `390 844` after the
 output path for the mobile-width review.
 

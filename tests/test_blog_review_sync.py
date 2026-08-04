@@ -34,20 +34,18 @@ def test_snapshot_preserves_article_structure_and_figure_order() -> None:
     )
 
     assert snapshot.metadata.title == (
-        "Building efficient and balanced genomic language models"
+        "A 1B standard Transformer rivals Evo 2 40B on variant effect prediction"
     )
-    assert len(snapshot.figures) == 19
-    assert [figure.number for figure in snapshot.figures] == list(range(1, 20))
-    assert snapshot.figures[0].source_path.name == (
-        "data_provenance_training_datasets.svg"
-    )
+    assert len(snapshot.figures) == 20
+    assert [figure.number for figure in snapshot.figures] == list(range(1, 21))
+    assert snapshot.figures[0].source_path.name == "headline_cost_performance.svg"
     assert snapshot.figures[-1].source_path.name == (
         "figure11_leaderboard_heatmap__mendelian_probe.svg"
     )
-    assert snapshot.body_markdown.count("[[MARIN_DNA_FIGURE_") == 19
-    assert len(snapshot.footnotes) == 27
-    assert [item.number for item in snapshot.footnotes] == list(range(1, 28))
-    assert snapshot.body_markdown.count("MARINDNAFOOTNOTEREF") == 27
+    assert snapshot.body_markdown.count("[[MARIN_DNA_FIGURE_") == 20
+    assert len(snapshot.footnotes) == 30
+    assert [item.number for item in snapshot.footnotes] == list(range(1, 31))
+    assert snapshot.body_markdown.count("MARINDNAFOOTNOTEREF") == 30
     assert "<figure" not in snapshot.body_markdown
     assert "<details" not in snapshot.body_markdown
     assert "## Notes" not in snapshot.body_markdown
@@ -101,7 +99,7 @@ def test_prepare_bundle_is_immutable_and_idempotent(tmp_path: Path) -> None:
 
     assert second.root == first.root
     assert second.manifest_path.read_bytes() == original_manifest
-    assert len(second.figures) == 19
+    assert len(second.figures) == 20
     with pytest.raises(AssertionError, match="source SHA bundle conflict"):
         prepare_review_bundle(
             config,
