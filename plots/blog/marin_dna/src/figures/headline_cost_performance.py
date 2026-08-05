@@ -7,14 +7,11 @@ import pandas as pd
 
 from figures.data import save
 from utils.figure_style import (
-    FIGURE_WIDTH,
     MODEL_FAMILY_MARKERS,
     SCORING_PROTOCOL_COLORS,
     figsize,
-    set_square_subplot_height,
 )
 
-SUBPLOT_HEIGHT_PX = 145.0
 MACRO_COLUMN = "Macro Avg (8 subsets)"
 THROUGHPUT_COLUMN = "Throughput (variants / hour)"
 MODEL_NAMES = (
@@ -60,7 +57,7 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
     assert len(evo2) == 3
     assert len(marindna) == 1
 
-    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH * 0.72, 7.2))
+    fig, ax = plt.subplots(figsize=figsize(7.0, 3.2))
     ax.plot(
         evo2[THROUGHPUT_COLUMN],
         evo2[MACRO_COLUMN],
@@ -106,8 +103,6 @@ def build(leaderboard: pd.DataFrame, inference_costs: pd.DataFrame) -> None:
     ax.set_xlabel("Throughput (variants/hour)")
     ax.set_ylabel("VEP AUPRC (%)")
     ax.grid(which="major", color="#d9ccba", linewidth=0.8)
-    ax.set_box_aspect(1)
 
     fig.tight_layout()
-    set_square_subplot_height(fig, (ax,), SUBPLOT_HEIGHT_PX)
     save(fig, "headline_cost_performance")

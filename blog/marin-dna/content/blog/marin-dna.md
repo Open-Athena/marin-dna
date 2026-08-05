@@ -151,7 +151,7 @@ window.addEventListener('DOMContentLoaded', function () {
 MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling.
 This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with [Evo 2 40B](https://doi.org/10.1038/s41586-026-10176-5), while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
 
-<figure id="fig-cost-performance" data-figure-width="242.75">
+<figure id="fig-cost-performance" data-figure-width="478.472">
 <img src="/assets/images/blog/marin-dna/headline_cost_performance.svg?v=throughput" alt="Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B" />
 <figcaption><strong>Figure 1: VEP performance versus inference throughput.</strong>
 Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour on a GH200.</figcaption>
