@@ -205,7 +205,7 @@ Longer term, sequence-only models may learn from sequence in ways that complemen
 Many early gLMs were trained on the human genome alone, with little to no filtering.
 Subsequent work made it clear that two factors were key drivers of model performance: including multiple species, and enriching for functional regions rather than sampling uniformly from the majority-neutral background of mammalian genomes.[^data-curation-evidence]
 
-In this work, we follow up on two findings from [TraitGym](https://pmc.ncbi.nlm.nih.gov/articles/PMC11844472/).
+In this work, we follow up on two findings from [TraitGym](https://doi.org/10.1101/2025.02.11.637758).
 First, 152M-parameter GPN-Promoter, trained only on animal promoters, performed comparably to Evo 2 40B on human promoter variants.
 Second, Evo 2 improved substantially with scale overall but still struggled on distal variants.
 Enhancers were the only region type not actively curated into its training data and were sparse among the intergenic regions it saw.
@@ -502,7 +502,7 @@ Performance is measured as chromosome-weighted AUPRC; error bars denote SE.</fig
 </figure>
 
 Plotting the same results against matched-region validation log-likelihood gives the same picture.
-Better validation log-likelihood is associated with better downstream performance across the other variant types and scoring protocols.
+For all other combinations of variant type and scoring protocol, better validation log-likelihood is associated with better downstream performance.
 Zero-shot Mendelian missense again points in the opposite direction: performance declines even as validation log-likelihood improves.
 
 <!-- Plot recipe: plots/blog/marin_dna/src/figures/figure6_loss_vs_vep_auprc.py -->
@@ -606,7 +606,7 @@ At their native context lengths on the same GH200, m5.1 scores one million varia
     See [issue #354](https://github.com/Open-Athena/marin-dna/issues/354) for the full methodology and results.
 
 Most notably, m5.1 closes Evo 2's main gap on distal variants, outperforming Evo 2 40B there under both readouts.
-The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on the Promoter subset and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
+The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on promoter and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
 
 The [current leaderboard](https://openathena.ai/marin-dna/leaderboards/mendelian) also suggests there is considerable headroom: although m5.1 leads on Macro Avg among MarinDNA models, another MarinDNA run has a higher point estimate in seven of the eight displayed subsets, with m5.1 leading only on ncRNA.
 Several of these winners are region specialists, suggesting that further mixture refinement could recover more of their complementary strengths.
