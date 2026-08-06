@@ -17,14 +17,14 @@ pytest.importorskip(
     reason="requires the marin runtime (not a core dep); see the marin-experiment skill",
 )
 
-from marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval import (  # noqa: E402
+from marin_dna.pipelines.evals.lm_eval.dna_vep_llr_eval import (
     _MIN_GROUPS_PER_SUBSET,
     LLR_TRANSFORMS,
     METRIC_REGISTRY,
     _AuprcAggregation,
     _collapse_variants,
 )
-from marin_dna.pipelines.evals.metrics import (  # noqa: E402
+from marin_dna.pipelines.evals.metrics import (
     compute_auprc_metrics,
 )
 

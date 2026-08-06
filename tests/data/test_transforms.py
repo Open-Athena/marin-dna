@@ -12,8 +12,8 @@ import torch
 from Bio.Seq import Seq
 from transformers import AutoTokenizer
 
-from marin_dna.data.genome import Genome
 from marin_dna.data.dna import complement_base
+from marin_dna.data.genome import Genome
 from marin_dna.data.transforms import (
     NUCLEOTIDES,
     _get_nucleotide_token_ids,

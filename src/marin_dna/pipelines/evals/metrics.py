@@ -27,13 +27,12 @@ Four metric families live here:
 """
 
 import math
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import average_precision_score, roc_auc_score
-
 
 METRIC_FUNCTIONS: dict[str, Callable[[pd.Series, pd.Series], float]] = {
     "AUPRC": lambda label, score: average_precision_score(label, score),
@@ -223,7 +222,7 @@ def auprc_with_bootstrap_se(
         "value": point,
         "se": se,
         "n_groups": int(n_groups),
-        "n_rows": int(len(label_arr)),
+        "n_rows": len(label_arr),
     }
 
 
@@ -511,7 +510,7 @@ def per_chrom_ap_table(
     qual_counts: dict[str, list[tuple[int, int]]] = {sc: [] for sc in score_columns}
     qual_chroms: dict[str, set] = {sc: set() for sc in score_columns}
     for subset_name, sub in df.groupby(subset_col, sort=False):
-        n = int(len(sub))
+        n = len(sub)
         n_pos = int(np.asarray(sub[label_col]).astype(int).sum())
         sub_chroms = pd.unique(sub[chrom_col])
         n_chrom = int(sub_chroms.size)
@@ -656,7 +655,7 @@ def paired_metric_delta_bootstrap(
             "ci_high": nan,
             "p_two_sided": nan,
             "n_groups": int(n_groups),
-            "n_rows": int(len(y)),
+            "n_rows": len(y),
         }
     se = float(np.std(boot, ddof=1))
     lo, hi = (float(v) for v in np.percentile(boot, [2.5, 97.5]))
@@ -671,7 +670,7 @@ def paired_metric_delta_bootstrap(
         "ci_high": hi,
         "p_two_sided": p,
         "n_groups": int(n_groups),
-        "n_rows": int(len(y)),
+        "n_rows": len(y),
     }
 
 
@@ -928,7 +927,7 @@ def compute_qtl_metrics(
     effect_size = np.asarray(dataset["effect_size"], dtype=float)
     pos_mask = label == 1
     n_pos = int(pos_mask.sum())
-    n_rows = int(len(label))
+    n_rows = len(label)
     assert 0 < n_pos < n_rows, (
         f"AUPRC needs both classes, got n_pos={n_pos} of n={n_rows}"
     )

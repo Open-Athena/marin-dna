@@ -533,9 +533,9 @@ def rc_average_marginal(fwd: np.ndarray, rc: np.ndarray) -> np.ndarray:
 
 
 def _token_id_to_nuc_idx(
-    token_ids: Int[Tensor, "..."],
+    token_ids: Int[Tensor, ...],
     nuc_token_ids: Int[Tensor, " 4"],
-) -> Int[Tensor, "..."]:
+) -> Int[Tensor, ...]:
     """Map a tensor of nucleotide token IDs to indices into ``nuc_token_ids``.
 
     Asserts every token is one of the four nucleotides (raises otherwise —

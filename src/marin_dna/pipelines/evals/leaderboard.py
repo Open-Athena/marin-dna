@@ -160,7 +160,7 @@ def _storage_options() -> dict[str, str] | None:
     return None
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _read_parquet(path: str) -> pl.DataFrame:
     """Cached S3/gist read so families that share a per-dataset parquet
     (conservation, alphagenome, gpn_star) only fetch once per process."""

@@ -12,7 +12,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-
 # Higher rank = better assembly. Missing keys map to 0 in lookups.
 ASSEMBLY_LEVEL_RANK: dict[str, int] = {
     "Complete Genome": 3,

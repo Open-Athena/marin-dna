@@ -14,13 +14,14 @@ pytest.importorskip(
     reason="requires the marin runtime (not a core dep); see the marin-experiment skill",
 )
 
-from levanter.data.text.formats import LmDatasetFormatBase  # noqa: E402
+from levanter.data.text.formats import LmDatasetFormatBase
 
-from marin_dna.levanter import formats as _formats_module  # noqa: E402, F401  side-effect: register "dna"
-from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer  # noqa: E402
-from marin_dna.levanter.defaults import dna_effective_seq_len  # noqa: E402
-from marin_dna.levanter.formats import DNALmDatasetFormat  # noqa: E402
-
+from marin_dna.levanter import (
+    formats as _formats_module,
+)
+from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer
+from marin_dna.levanter.defaults import dna_effective_seq_len
+from marin_dna.levanter.formats import DNALmDatasetFormat
 
 BOS_EOS_TOKENIZER = "bolinas-dna/tokenizer-char"
 NO_BOS_EOS_TOKENIZER = "songlab/tokenizer-dna-clm"
@@ -101,7 +102,7 @@ def test_dataset_for_component_patch_installed_on_import():
     train-time dispatch; ``_install_dataset_for_component_patch`` (run on
     import) adds the branch. Marker attribute confirms it's our wrapper.
     """
-    import levanter.data.text.datasets as datasets
+    from levanter.data.text import datasets
 
     assert getattr(datasets.dataset_for_component, "_marin_dna_patched", False), (
         "dataset_for_component is not the marin_dna-patched wrapper"
@@ -110,7 +111,7 @@ def test_dataset_for_component_patch_installed_on_import():
 
 def test_dataset_for_component_patch_is_idempotent():
     """Re-running the installer must not double-wrap (wraps the *original*)."""
-    import levanter.data.text.datasets as datasets
+    from levanter.data.text import datasets
 
     before = datasets.dataset_for_component
     _formats_module._install_dataset_for_component_patch()
@@ -125,7 +126,7 @@ def test_dataset_for_component_routes_dna_format(monkeypatch):
     Stubs ``TokenSeqDataset`` / ``CausalLmDataset`` so the test asserts the
     dispatch wiring without building a real cache.
     """
-    import levanter.data.text.datasets as datasets
+    from levanter.data.text import datasets
 
     captured: dict = {}
 
@@ -175,7 +176,7 @@ def test_dataset_for_component_passes_through_non_dna(monkeypatch):
     which is exactly the delegation we want to prove — the error comes from
     upstream, not our ``_boom`` stubs.
     """
-    import levanter.data.text.datasets as datasets
+    from levanter.data.text import datasets
 
     def _boom(*a, **k):
         raise AssertionError("non-DNA format wrongly routed through DNA branch")
@@ -208,7 +209,7 @@ def test_patch_canary_does_not_false_fire_on_current_upstream():
     changed (good — drop the patch) or the canary logic regressed."""
     import inspect
 
-    import levanter.data.text.datasets as datasets
+    from levanter.data.text import datasets
 
     # The currently-installed fn is our wrapper; the canary inspects the
     # *original*. Re-running the installer is a no-op (idempotent) and must not

@@ -15,13 +15,12 @@ from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
     build_tss_band_region,
     case_encode_sequences,
     filter_to_canonical_transcripts,
-    get_ensembl_5_prime_utr,
     get_ensembl_3_prime_utr,
+    get_ensembl_5_prime_utr,
     get_ensembl_ncrna_exons,
     subsample_deterministic,
     write_hf_readme,
 )
-
 
 # ----------------------------------------------------------------------------
 # Synthetic GTF helpers (mirror tests/projection/test_tss.py)
@@ -961,7 +960,7 @@ def synthetic_bigwig(tmp_path: Path) -> Path:
     bw.addHeader([("chr1", 100)])
     bw.addEntries(
         ["chr1"] * 30,
-        list(range(0, 30)),
+        list(range(30)),
         ends=list(range(1, 31)),
         values=[2.0] * 30,
     )

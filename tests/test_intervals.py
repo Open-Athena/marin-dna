@@ -628,7 +628,7 @@ def test_genomic_set_equality():
     assert gs1 != gs3
     assert gs3 != gs1
     assert gs1 != "not a GenomicSet"
-    assert gs1 != None  # noqa: E711
+    assert gs1 != None
     assert gs1 != 123
 
 

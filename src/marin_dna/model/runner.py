@@ -23,15 +23,15 @@ CLM-only and rewritten to operate directly on HF objects — no
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 import datasets
 import numpy as np
-import torch.nn as nn
-from transformers import Trainer, TrainingArguments
-
 import torch
+from torch import nn
+from transformers import Trainer, TrainingArguments
 
 from marin_dna.data.dna import NUCLEOTIDES
 from marin_dna.data.genome import Genome

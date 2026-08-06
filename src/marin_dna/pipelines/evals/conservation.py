@@ -42,7 +42,6 @@ from marin_dna.pipelines.evals.metrics import (
     compute_sge_metrics,
 )
 
-
 CONSERVATION_TRACKS: dict[str, str] = {
     # 100-vertebrate UCSC multiz alignment.
     "phyloP_100v": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw",
@@ -253,7 +252,7 @@ def aggregate_conservation_metrics(
             ]
         )
         total_nan = int(df["score"].isna().sum())
-        total_rows = int(len(df))
+        total_rows = len(df)
         qualifying_nan = int(
             df.loc[df["subset"].isin(qualifying), "score"].isna().sum()
         )
@@ -422,7 +421,7 @@ def aggregate_conservation_qtl_metrics(
         )
         m["score_name"] = score_name
         m["n_nan"] = int(df["score"].isna().sum())
-        m["n_total"] = int(len(df))
+        m["n_total"] = len(df)
         all_metrics.append(m)
 
     metrics = pd.concat(all_metrics, ignore_index=True)
@@ -534,7 +533,7 @@ def aggregate_conservation_sge_metrics(
         )
         m["score_name"] = score_name
         m["n_nan"] = int(df["score"].isna().sum())
-        m["n_total"] = int(len(df))
+        m["n_total"] = len(df)
         all_metrics.append(m)
 
     metrics = pd.concat(all_metrics, ignore_index=True)

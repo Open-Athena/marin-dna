@@ -16,7 +16,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 import torch
-import torch.nn as nn
+from torch import nn
 from transformers import AutoModelForCausalLM
 
 from marin_dna.model.interpretation import (

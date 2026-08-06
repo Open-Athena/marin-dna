@@ -22,7 +22,7 @@ def synthetic_bigwig(tmp_path):
     bw.addHeader([("chr1", 100)])
     bw.addEntries(
         ["chr1"] * 30,
-        list(range(0, 30)),
+        list(range(30)),
         ends=list(range(1, 31)),
         values=[2.0] * 30,
     )

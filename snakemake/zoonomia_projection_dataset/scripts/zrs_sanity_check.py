@@ -37,7 +37,6 @@ from pathlib import Path
 
 import polars as pl
 
-
 # (query_name, mm10_chrom, mm10_start, mm10_end). 0-based half-open.
 ZRS_EXPECTATIONS: list[tuple[str, str, int, int]] = [
     ("zrs_EH38E2604086", "chr5", 29315086, 29315432),
