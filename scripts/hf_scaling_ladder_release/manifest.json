@@ -1,6 +1,11 @@
 {
   "schema_version": 1,
   "namespace": "marin-dna",
+  "m51_model": {
+    "repo_id": "marin-dna/marin-dna-exp135-m5.1",
+    "card": "scripts/hf_scaling_ladder_release/model_cards/m5.1.md",
+    "training_script": "https://github.com/marin-community/marin/blob/a41a83fdddfdef85a75e39b56c32949518e3f578/experiments/dna/exp135_bolinas_mix_sweep.py#L514-L657"
+  },
   "checkpoint_step": 215573,
   "training": {
     "version": "v0.5",
@@ -335,8 +340,8 @@
   ],
   "collection": {
     "slug": "marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep-6a627428aa94a4960c855072",
-    "title": "A 1B standard Transformer rivals Evo 2 40B on variant effect prediction",
-    "description": "scripts/hf_scaling_ladder_release/collection_description.md",
+    "title": "A 1B standard Transformer rivals Evo 2 40B on VEP",
+    "description": "m5.1 release; 5 training datasets; 5 validation probes; Mendelian/SGE evaluation only. Blog: https://openathena.ai/blog/marin-dna/",
     "new_model_notes": {
       "46M": "Scaling ladder — 45,895,552 parameters; final step-215573 checkpoint (~84.77B tokens).",
       "76M": "Scaling ladder — 75,523,328 parameters; final step-215573 checkpoint (~84.77B tokens).",

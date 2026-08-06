@@ -1,0 +1,414 @@
+{
+  "collection_updated": true,
+  "m51_model": {
+    "final_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+    "readme": {
+      "sha256": "b350f80a489867e9f56f0b24a481a260ba22e8d3e6a7214396a00d0492f8df78",
+      "size": 4753,
+      "uploaded": true
+    },
+    "repo_id": "marin-dna/marin-dna-exp135-m5.1"
+  },
+  "models": {
+    "128M": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "9cc90475c1d22754d344427ce972260f7e0dee759d9e9a8c64f56d07671e88ab",
+          "size": 2238,
+          "uploaded": true
+        },
+        "model.safetensors": {
+          "sha256": "6c8a55078c9192735de03449d2564e22b9d580afb730c248eff783bf6ae5b28b",
+          "size": 513950312,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "0dfe883338f45589708150a72d74d8d533f5ebca",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "7af4e9254136ee3f1091144759d42b75cdfcd9fa505c7ccb91ca857165867bb2",
+          "size": 4024,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h896-p128M",
+      "uploaded_revision": "0dfe883338f45589708150a72d74d8d533f5ebca"
+    },
+    "1B": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "806cb2c7cc23f7235b437540704b68afd354079400d8305d1958f66d15d86d45",
+          "size": 2403,
+          "uploaded": true
+        },
+        "model.safetensors": {
+          "sha256": "fe8dde0aa0f1a0b3db4e0d557e2726d303e74f2036b2e81e2830b7e162848e4f",
+          "size": 4483112944,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "bb2baf96190765849cb2794e5089791a17e9068b",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "81105ef4db5991976003d7ae27cceac0ad85bdaa7aabfef9c8cc468dc4634a73",
+          "size": 4025,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h1920-p1B",
+      "uploaded_revision": "bb2baf96190765849cb2794e5089791a17e9068b"
+    },
+    "255M": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "aad563ebee8bb73fd2c707d87218514d1e6a999e615ccb2974a6c1db56edeb5b",
+          "size": 2275,
+          "uploaded": true
+        },
+        "model.safetensors": {
+          "sha256": "2ac70b2e2527e1666bcb94b42ea54f1f1be737e93d767bd01f415ba6a52e811c",
+          "size": 1019422904,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "d8806a0c030020613448e07fea557c667f35f5b6",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "039e4b1b9ad37ae306977dcb92d04d7d9de25c6d64355f1279da46044d3c4fcd",
+          "size": 4031,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h1152-p255M",
+      "uploaded_revision": "d8806a0c030020613448e07fea557c667f35f5b6"
+    },
+    "2B": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "02790e668661f8f479cd1cbb09d1582c8c8a60dc7166ed35823ce4de5f22722c",
+          "size": 2493,
+          "uploaded": true
+        },
+        "model-00001-of-00002.safetensors": {
+          "sha256": "2c2134072013c02b17933499774325f7c727396815bc4f1313af188414b5e75f",
+          "size": 4921395944,
+          "uploaded": true
+        },
+        "model-00002-of-00002.safetensors": {
+          "sha256": "02bb1fa0ed36b18558eca83be76d0a5a4dc013a2dbfa9db35eb768cc071d048d",
+          "size": 4164134336,
+          "uploaded": true
+        },
+        "model.safetensors.index.json": {
+          "sha256": "941615c5a21d20c43d3091fc8ce987ef1e2fb1225c94b0b0d27758eaa9ebdd65",
+          "size": 20882,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "25fcfe6f349d672107817cf342e9897bc28e91d1",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "697ef3912cf7429e6047ef63a04115b57fbd1fff35f5dac5ba092123ac946330",
+          "size": 4025,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h2432-p2B",
+      "uploaded_revision": "25fcfe6f349d672107817cf342e9897bc28e91d1"
+    },
+    "46M": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "fd7b148d3848c861089bc1e665be7c17ca1258a0c52ef71154a2d3e89a181142",
+          "size": 2183,
+          "uploaded": true
+        },
+        "model.safetensors": {
+          "sha256": "f8724967f722b704df67c41d24b49b2192ca790d04e3cb222dd8abdaa8ff6226",
+          "size": 183590920,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "060cd05ff374880b474d08d5d6ec545bc79d43a2",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "c337784a5e9357a96c0e858aeb64f9697ee3023efb0cc56d7132e18838a4f2e7",
+          "size": 4026,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h640-p46M",
+      "uploaded_revision": "060cd05ff374880b474d08d5d6ec545bc79d43a2"
+    },
+    "476M": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "cafe31d130a66ab1203b32326f7eda47e06afa515caa3bb38dd0a47338122a9f",
+          "size": 2331,
+          "uploaded": true
+        },
+        "model.safetensors": {
+          "sha256": "8ec239a3eb2f9a53cf81c982c06b5aeb455ef750c191acd71aea130a10ab3420",
+          "size": 1903453152,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "6808e6a5d9fa302f915b5890c79bfbf9cd01fc3a",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "173a709eaf293b9eec9f3aaa5aadf080b022e1fb25526f29155432d02ebe3ed5",
+          "size": 4033,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h1408-p476M",
+      "uploaded_revision": "6808e6a5d9fa302f915b5890c79bfbf9cd01fc3a"
+    },
+    "4B": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "3b4e3e90cb240f016397622844eb6f0a1c558b0dd218644aaf90c35f337b8998",
+          "size": 2584,
+          "uploaded": true
+        },
+        "model-00001-of-00004.safetensors": {
+          "sha256": "713e7bd1eefd5c992d4a89679b448c37c34abe75a4ef23fe627db7c542ba9d0c",
+          "size": 4992679792,
+          "uploaded": true
+        },
+        "model-00002-of-00004.safetensors": {
+          "sha256": "1b23fd30eb7da7b808638b2c09149c3294c6bf9e4ffb1823dde33d2d87b29b93",
+          "size": 4992502888,
+          "uploaded": true
+        },
+        "model-00003-of-00004.safetensors": {
+          "sha256": "8aad70d9283fbb3727f24336ee12d56cd5e81088e0e9858f36ebb5e088813e7c",
+          "size": 4992502840,
+          "uploaded": true
+        },
+        "model-00004-of-00004.safetensors": {
+          "sha256": "ecdf1207522dba1fbc2bd3f06bf8105837fd4f4489406ef5bfdc1b8e2b3950db",
+          "size": 1109445048,
+          "uploaded": true
+        },
+        "model.safetensors.index.json": {
+          "sha256": "935a1e7a27d02145d1bbe436637017ad99bc3d96330a5f73e07279e581c141d9",
+          "size": 25208,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "d42268e43f73f5875776a2e6b13fe29ca763b05f",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "f3072ce249586f9c2188c0c81546449947dc706cce384dbafbdfc83c6c46a327",
+          "size": 4138,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h2944-p4B",
+      "uploaded_revision": "d42268e43f73f5875776a2e6b13fe29ca763b05f"
+    },
+    "76M": {
+      "created": true,
+      "files": {
+        "config.json": {
+          "sha256": "13e9f4e36a33d612ee4b161382d8c09d0ac8415a1bf6e6fc985f0e9575e39996",
+          "size": 2201,
+          "uploaded": true
+        },
+        "model.safetensors": {
+          "sha256": "54190d8c2fd6a1dd872463efd76937a37022cae62232bd64c9a1b3e10ee9a449",
+          "size": 302103264,
+          "uploaded": true
+        },
+        "special_tokens_map.json": {
+          "sha256": "456aaeeb037d00e8502a96c0dacdc53f214f5d10c06663d8c39d082a3dfdb689",
+          "size": 417,
+          "uploaded": true
+        },
+        "tokenizer.json": {
+          "sha256": "4a10866bcbfdbd5637ebd9aed25a686186eef8717a31ec16cdc3291b8f8ae795",
+          "size": 1693,
+          "uploaded": true
+        },
+        "tokenizer_config.json": {
+          "sha256": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+          "size": 782,
+          "uploaded": true
+        }
+      },
+      "final_revision": "bf0793ddb1ed7d01f76f8010e393a4ef727b10a6",
+      "public": true,
+      "release_files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357,
+          "uploaded": true
+        },
+        "README.md": {
+          "sha256": "71b6634541b047c81b36bdc64867aee7f613e3877fed81feb50ed99779405982",
+          "size": 4015,
+          "uploaded": true
+        }
+      },
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h768-p76M",
+      "uploaded_revision": "bf0793ddb1ed7d01f76f8010e393a4ef727b10a6"
+    }
+  },
+  "review_digest": "e40ec82c383d08aa3639016d078251ecd8cdd86a5d3440c53149de137a395920",
+  "schema_version": 1
+}

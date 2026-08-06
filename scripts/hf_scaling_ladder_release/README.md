@@ -4,7 +4,7 @@ This directory contains the tracked release materials for the eight final MarinD
 
 ## Human-review gate
 
-No Hugging Face write may happen until a human approves all eight rendered model cards and `collection_description.md`. The publisher computes a SHA-256 review digest over those nine files and requires that exact digest through `--approved-review-digest`, preventing publication after an unreviewed copy change.
+No Hugging Face write may happen until a human approves all nine rendered model cards (m5.1 plus the eight scaling checkpoints). The publisher computes a SHA-256 review digest over those nine README files and requires that exact digest through `--approved-review-digest`, preventing publication after an unreviewed copy change.
 
 Proposed public repositories:
 
@@ -19,7 +19,7 @@ Proposed public repositories:
 | 2B | `marin-dna/marin-dna-scaling-v0.5-h2432-p2B` |
 | 4B | `marin-dna/marin-dna-scaling-v0.5-h2944-p4B` |
 
-Each repository receives only its final step-215573 checkpoint, the complete three-file tokenizer bundle, the reviewed model card as `README.md`, and the repository-root Apache-2.0 `LICENSE`.
+Each scaling repository receives only its final step-215573 checkpoint, the complete three-file tokenizer bundle, the reviewed model card as `README.md`, and the repository-root Apache-2.0 `LICENSE`. The publisher also updates the existing m5.1 README. It only adds and reorders Collection items; it asserts that the Collection title and description remain unchanged.
 
 ## Sources
 
@@ -49,4 +49,4 @@ The publisher is idempotent: existing matching files are reused, while any sourc
 uv run python scripts/hf_scaling_ladder_release/release.py verify-public
 ```
 
-Public verification checks anonymous access, exact repository inventories and LFS SHA-256 values, card metadata, tokenizer behavior, configuration/parameter invariants, Collection copy and ordering, and a full representative model load. The original evals_v2 runs already loaded and scored all eight source checkpoints; the verifier also checks every sharded index and tensor-byte total.
+Public verification checks anonymous access, exact repository inventories and LFS SHA-256 values, card metadata, tokenizer behavior, configuration/parameter invariants, unchanged Collection metadata and exact item ordering, and a full representative model load. The original evals_v2 runs already loaded and scored all eight source checkpoints; the verifier also checks every sharded index and tensor-byte total.

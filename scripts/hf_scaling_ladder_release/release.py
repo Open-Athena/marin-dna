@@ -91,9 +91,10 @@ def source_files(
 
 
 def review_paths(manifest: dict[str, Any]) -> list[Path]:
-    paths = [REPO_ROOT / model["card"] for model in manifest["models"]]
-    paths.append(REPO_ROOT / manifest["collection"]["description"])
-    return paths
+    return [
+        REPO_ROOT / manifest["m51_model"]["card"],
+        *(REPO_ROOT / model["card"] for model in manifest["models"]),
+    ]
 
 
 def review_digest(manifest: dict[str, Any]) -> str:
@@ -110,11 +111,15 @@ def review_digest(manifest: dict[str, Any]) -> str:
 
 
 def verify_review_materials(manifest: dict[str, Any]) -> None:
-    required_links = [
-        manifest["training"]["training_script"],
-        manifest["training"]["data_definition"],
-        *manifest["provenance"].values(),
-    ]
+    article_link = (
+        "[A 1B standard Transformer rivals Evo 2 40B on variant effect prediction]"
+        f"({manifest['provenance']['blog']})"
+    )
+    forbidden_sections = (
+        "## Intended uses",
+        "## Evaluation and caveats",
+        "## Provenance",
+    )
     for model in manifest["models"]:
         card = (REPO_ROOT / model["card"]).read_text(encoding="utf-8")
         assert model["repo_id"] in card
@@ -123,16 +128,21 @@ def verify_review_materials(manifest: dict[str, Any]) -> None:
         assert model["wandb_url"] in card
         assert f"{model['parameter_count']:,}" in card
         assert "step-215573" in card
+        assert manifest["training"]["training_script"] in card
+        assert manifest["training"]["data_definition"] in card
+        assert article_link in card
+        assert not any(section in card for section in forbidden_sections)
         for tag in manifest["required_tags"]:
             assert f"  - {tag}\n" in card
-        for link in required_links:
-            assert link in card, (model["label"], link)
 
-    description = (REPO_ROOT / manifest["collection"]["description"]).read_text(
-        encoding="utf-8"
-    )
-    assert "eight final v0.5 parameter-scaling checkpoints" in description
-    assert "headline applies to m5.1" in description
+    m51 = manifest["m51_model"]
+    card = (REPO_ROOT / m51["card"]).read_text(encoding="utf-8")
+    assert m51["repo_id"] in card
+    assert m51["training_script"] in card
+    assert article_link in card
+    assert not any(section in card for section in forbidden_sections)
+    for tag in manifest["required_tags"]:
+        assert f"  - {tag}\n" in card
 
 
 def s3_head(uri: str) -> dict[str, Any]:
@@ -366,6 +376,34 @@ def upload_tracked_file(
     return sha256
 
 
+def upload_m51_readme(
+    api: Any, manifest: dict[str, Any], state: dict[str, Any]
+) -> None:
+    model = manifest["m51_model"]
+    local_path = REPO_ROOT / model["card"]
+    expected = {
+        "size": local_path.stat().st_size,
+        "sha256": file_sha256(local_path),
+        "uploaded": True,
+    }
+    model_state = state.get("m51_model")
+    if model_state is None or model_state.get("readme") != expected:
+        info = find_model_info(api, model["repo_id"], token=True)
+        assert info is not None and not info.private, model["repo_id"]
+        sha256 = upload_tracked_file(api, model, local_path, "README.md")
+        assert sha256 == expected["sha256"]
+        state["m51_model"] = {
+            "repo_id": model["repo_id"],
+            "readme": expected,
+        }
+        save_state(state)
+
+    info = api.model_info(model["repo_id"], token=False)
+    assert not info.private and not info.gated
+    state["m51_model"]["final_revision"] = info.sha
+    save_state(state)
+
+
 def upload_model(
     api: Any,
     manifest: dict[str, Any],
@@ -508,6 +546,7 @@ def update_collection(api: Any, manifest: dict[str, Any]) -> None:
     expected = manifest["collection"]
     collection = api.get_collection(expected["slug"])
     assert collection.title == expected["title"]
+    assert (collection.description or "").strip() == expected["description"]
     assert not collection.private
     verify_collection_baseline(manifest, collection)
 
@@ -519,11 +558,6 @@ def update_collection(api: Any, manifest: dict[str, Any]) -> None:
             note=expected["new_model_notes"][model["label"]],
             exists_ok=True,
         )
-
-    description = (
-        (REPO_ROOT / expected["description"]).read_text(encoding="utf-8").strip()
-    )
-    api.update_collection_metadata(expected["slug"], description=description)
 
     desired = desired_collection_items(manifest)
     for position, (_, item_id, note) in enumerate(desired):
@@ -560,10 +594,16 @@ def publish(manifest: dict[str, Any], approved_digest: str) -> None:
             "collection_updated": False,
         }
         save_state(state)
-    assert state["review_digest"] == observed_digest
+    elif state["review_digest"] != observed_digest:
+        state["review_digest"] = observed_digest
+        state["collection_updated"] = False
+        save_state(state)
 
     collection = api.get_collection(manifest["collection"]["slug"])
     verify_collection_baseline(manifest, collection)
+
+    print(f"updating README: {manifest['m51_model']['repo_id']}", flush=True)
+    upload_m51_readme(api, manifest, state)
 
     for model in manifest["models"]:
         print(f"uploading private repository: {model['repo_id']}", flush=True)
@@ -645,15 +685,35 @@ def verify_public_repo(
     assert config.max_position_embeddings == manifest["training"]["sequence_length"]
 
 
+def verify_public_m51_readme(
+    api: Any, manifest: dict[str, Any], state: dict[str, Any]
+) -> None:
+    from huggingface_hub import hf_hub_download
+
+    model = manifest["m51_model"]
+    model_state = state["m51_model"]
+    info = api.model_info(model["repo_id"], token=False)
+    assert not info.private and not info.gated
+    assert info.sha == model_state["final_revision"]
+    with tempfile.TemporaryDirectory(prefix="marindna-hf-public-m51-") as temporary:
+        path = Path(
+            hf_hub_download(
+                repo_id=model["repo_id"],
+                filename="README.md",
+                local_dir=temporary,
+                token=False,
+            )
+        )
+        assert path.stat().st_size == model_state["readme"]["size"]
+        assert file_sha256(path) == model_state["readme"]["sha256"]
+
+
 def verify_public_collection(api: Any, manifest: dict[str, Any]) -> None:
     expected = manifest["collection"]
     collection = api.get_collection(expected["slug"], token=False)
     assert collection.title == expected["title"]
     assert not collection.private
-    description = (
-        (REPO_ROOT / expected["description"]).read_text(encoding="utf-8").strip()
-    )
-    assert (collection.description or "").strip() == description
+    assert (collection.description or "").strip() == expected["description"]
     observed = [
         collection_tuple(item)
         for item in sorted(collection.items, key=lambda item: item.position)
@@ -698,6 +758,8 @@ def verify_public(manifest: dict[str, Any], *, load_smallest: bool) -> None:
     assert state["review_digest"] == review_digest(manifest)
     assert state["collection_updated"] is True
     api = HfApi()
+    print(f"verifying public README: {manifest['m51_model']['repo_id']}", flush=True)
+    verify_public_m51_readme(api, manifest, state)
     for model in manifest["models"]:
         print(f"verifying public repository: {model['repo_id']}", flush=True)
         verify_public_repo(api, manifest, model, state)
