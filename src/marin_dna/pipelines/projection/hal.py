@@ -16,7 +16,6 @@ from pathlib import Path
 
 import polars as pl
 
-
 HALLIFTOVER_BED_COLUMNS: list[str] = [
     "t_chrom",
     "t_start",

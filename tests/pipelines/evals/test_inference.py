@@ -310,12 +310,12 @@ def test_compute_variant_scores_embeddings_width_mismatch_asserts():
             "marin_dna.pipelines.evals.inference.run_variant_score_bundle",
             return_value={"fwd": bad, "rc": bad},
         ),
+        pytest.raises(AssertionError, match="hidden_size"),
     ):
-        with pytest.raises(AssertionError, match="hidden_size"):
-            compute_variant_scores(
-                checkpoint_path="/unused",
-                dataset=ds,
-                genome_path="/unused.fa",
-                rc=True,
-                return_embeddings=True,
-            )
+        compute_variant_scores(
+            checkpoint_path="/unused",
+            dataset=ds,
+            genome_path="/unused.fa",
+            rc=True,
+            return_embeddings=True,
+        )

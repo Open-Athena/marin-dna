@@ -34,7 +34,6 @@ from marin_dna.pipelines.conservation.histogram import (
 )
 from marin_dna.pipelines.evals.conservation import CONSERVATION_TRACKS
 
-
 REFERENCE_TRACK = "phyloP_241m"
 TARGET_TRACK = "phyloP_447m"
 REFERENCE_THRESHOLD = 2.27

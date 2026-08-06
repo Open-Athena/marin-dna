@@ -21,8 +21,8 @@ from marin_dna.pipelines.evals.leaderboard import (
     probe_normalized_rows,
     score_type_for,
 )
-from marin_dna.pipelines.evals.models import Model
 from marin_dna.pipelines.evals.metrics import GLOBAL_SUBSET, MACRO_AVG_SUBSET
+from marin_dna.pipelines.evals.models import Model
 
 
 def _mk_method(

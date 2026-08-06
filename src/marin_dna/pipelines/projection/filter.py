@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import polars as pl
 
-
 _SCHEMA_COLS: list[str] = [
     "query_name",
     "species",

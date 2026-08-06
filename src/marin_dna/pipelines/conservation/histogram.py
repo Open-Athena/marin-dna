@@ -48,7 +48,7 @@ class PhylopHistogram:
 
     @property
     def n_bins(self) -> int:
-        return int(len(self.counts))
+        return len(self.counts)
 
     def total(self) -> int:
         """Total non-NaN bases counted."""

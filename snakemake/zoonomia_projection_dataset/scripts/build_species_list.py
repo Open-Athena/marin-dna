@@ -60,7 +60,6 @@ from marin_dna.pipelines.projection.taxonomy import (
     parse_newick_leaves,
 )
 
-
 CACHE = Path.home() / ".cache" / "marin_dna" / "zoonomia"
 CACHE.mkdir(parents=True, exist_ok=True)
 

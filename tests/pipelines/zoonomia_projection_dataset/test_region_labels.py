@@ -785,10 +785,9 @@ def test_bp_majority_background_below_threshold(synth):
 # ============================================================================
 
 
-from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     write_subset_hf_readme,
 )
-
 
 # Synthetic six-label composition TSV (counts chosen to be distinct so the
 # tests can hand-verify which row each subset's card pulls).
@@ -1065,7 +1064,7 @@ def test_write_subset_hf_readme_requires_complete_composition(
 # ============================================================================
 
 
-from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     _SUBSET_TO_LABEL_V4,
     region_label_composition_table,
     write_subset_hf_readme_v4,
@@ -1227,7 +1226,7 @@ def test_write_subset_hf_readme_v4_rejects_unknown_subset(
 # write_species_subset_hf_readme tests (the third dataset axis, issue #233)
 # ---------------------------------------------------------------------------
 
-from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (  # noqa: E402
+from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
     write_species_subset_hf_readme,
 )
 

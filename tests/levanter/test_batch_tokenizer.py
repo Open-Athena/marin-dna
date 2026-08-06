@@ -18,9 +18,9 @@ import pytest
 # Skip the whole module cleanly when it's not present.
 pytest.importorskip("levanter", reason="install with `uv sync --group marin` to run")
 
-from levanter.tokenizers import load_tokenizer  # noqa: E402
+from levanter.tokenizers import load_tokenizer
 
-from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer  # noqa: E402
+from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer
 
 
 @functools.cache

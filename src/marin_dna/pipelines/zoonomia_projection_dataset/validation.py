@@ -35,7 +35,6 @@ from marin_dna.pipelines.zoonomia_projection_dataset import (
     _GITHUB_REPO,
 )
 
-
 # ============================================================================
 # Canonical transcript filter
 # ============================================================================
