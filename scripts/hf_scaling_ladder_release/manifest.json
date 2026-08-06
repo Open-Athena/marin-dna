@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "namespace": "marin-dna",
+  "checkpoint_step": 215573,
+  "training": {
+    "version": "v0.5",
+    "train_steps": 215574,
+    "checkpoint_step_is_zero_based": true,
+    "sequence_length": 256,
+    "maximum_dna_bases": 255,
+    "batch_size": 1536,
+    "token_exposure": 84767145984,
+    "available_mixture_tokens": 84767420928,
+    "training_script": "https://github.com/marin-community/marin/blob/69c4793e1608775ec66b37d6f3f373598c246ba3/experiments/dna/exp109_bolinas_scaling_sweep.py#L1186-L1349",
+    "data_definition": "https://github.com/marin-community/marin/blob/69c4793e1608775ec66b37d6f3f373598c246ba3/experiments/dna/exp109_bolinas_scaling_sweep.py#L62-L76",
+    "mixture": {
+      "cds": 0.7319,
+      "upstream": 0.2062,
+      "downstream": 0.0619
+    },
+    "lowercase_weight": 0.01,
+    "optimizer": "AdamH with the same transferred hyperparameters at every scale"
+  },
+  "provenance": {
+    "blog": "https://openathena.ai/blog/marin-dna/",
+    "checkpoint_inventory_issue": "https://github.com/Open-Athena/marin-dna/issues/273",
+    "scaling_analysis_issue": "https://github.com/Open-Athena/marin-dna/issues/274",
+    "m51_release_issue": "https://github.com/Open-Athena/marin-dna/issues/389",
+    "evals_v2_config": "https://github.com/Open-Athena/marin-dna/blob/0ed28e6474a52e109f997999396e1f7fe9bbba2a/snakemake/analysis/evals_v2/config/config.yaml#L562-L602"
+  },
+  "license": {
+    "id": "apache-2.0",
+    "source": "LICENSE"
+  },
+  "required_tags": [
+    "biology",
+    "genomics",
+    "dna"
+  ],
+  "datasets": [
+    {
+      "role": "training",
+      "label": "CDS",
+      "repo_id": "marin-dna/genomes-v5-genome_set-animals-intervals-v5_255_128",
+      "revision": "ffe3e78c99868077c65ad6568e1445d80e480794"
+    },
+    {
+      "role": "training",
+      "label": "Upstream",
+      "repo_id": "marin-dna/genomes-v5-genome_set-animals-intervals-v1_255_128",
+      "revision": "d93209847b02a0c9be5c03591a0a5e56ee09c35d"
+    },
+    {
+      "role": "training",
+      "label": "Downstream",
+      "repo_id": "marin-dna/genomes-v5-genome_set-animals-intervals-v15_255_128",
+      "revision": "b009afaab756937d75b8da3b1271ad8f0cec0b4d"
+    },
+    {
+      "role": "validation",
+      "label": "CDS validation",
+      "repo_id": "marin-dna/genomes-v5-validation-intervals-v5_255_255",
+      "revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4"
+    },
+    {
+      "role": "validation",
+      "label": "Upstream validation",
+      "repo_id": "marin-dna/genomes-v5-validation-intervals-v1_255_255",
+      "revision": "a761bc0b663a9827303f3112e4667d53d5326fac"
+    },
+    {
+      "role": "validation",
+      "label": "Downstream validation",
+      "repo_id": "marin-dna/genomes-v5-validation-intervals-v15_255_255",
+      "revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5"
+    },
+    {
+      "role": "evaluation",
+      "label": "Mendelian traits",
+      "repo_id": "marin-dna/evals_mendelian_traits",
+      "revision": "4aed58e50c5dea0b878a665007af2ef9e5108e9f"
+    },
+    {
+      "role": "evaluation",
+      "label": "SGE",
+      "repo_id": "marin-dna/evals_sge",
+      "revision": "225d3d1ea32a4af547891b13c33b5e92a5aae849"
+    }
+  ],
+  "tokenizer": {
+    "class": "PreTrainedTokenizerFast",
+    "source_repo": "marin-dna/tokenizer-char-bos",
+    "vocab_size": 7,
+    "vocab": {
+      "[PAD]": 0,
+      "[UNK]": 1,
+      "[BOS]": 2,
+      "a": 3,
+      "c": 4,
+      "g": 5,
+      "t": 6
+    },
+    "lowercase": true,
+    "prepends_bos": true,
+    "appends_eos": false,
+    "bos_token_id": 2,
+    "pad_token_id": 0,
+    "unk_token_id": 1,
+    "eos_token_id": null,
+    "files": {
+      "special_tokens_map.json": {
+        "size": 417,
+        "etag": "480979465778d6dbdde0b0a61e1e7d13",
+        "crc64nvme_base64": "gIACe2bYR7w="
+      },
+      "tokenizer.json": {
+        "size": 1693,
+        "etag": "028b31d552bf7ce41e8a424179c4daec",
+        "crc64nvme_base64": "v7iQCHdEUFQ="
+      },
+      "tokenizer_config.json": {
+        "size": 782,
+        "etag": "0537f68e86c4601aa9e2ac4c5d61222c",
+        "crc64nvme_base64": "TDfI/MpT8FI="
+      }
+    }
+  },
+  "models": [
+    {
+      "label": "46M",
+      "source_name": "scaling-v0.5-h640-p46M-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h640-p46M-353f3d",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h640-p46M",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/46M.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h640-p46M-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h640-p46M-353f3d",
+      "parameter_count": 45895552,
+      "tensor_count": 80,
+      "tensor_bytes": 183582208,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 640,
+        "intermediate_size": 2560,
+        "num_hidden_layers": 7,
+        "num_attention_heads": 5,
+        "num_key_value_heads": 5
+      },
+      "files": {
+        "config.json": {"size": 2183, "etag": "de507de5250b10157e2f2cc0d2354caa", "crc64nvme_base64": "kkvcwBSXBNc="},
+        "model.safetensors": {"size": 183590920, "etag": "69da648c827335a5b4128234036c227f-22", "crc64nvme_base64": "GIDe0GXT2r0="}
+      }
+    },
+    {
+      "label": "76M",
+      "source_name": "scaling-v0.5-h768-p76M-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h768-p76M-8dbaca",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h768-p76M",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/76M.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h768-p76M-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca",
+      "parameter_count": 75523328,
+      "tensor_count": 91,
+      "tensor_bytes": 302093312,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 768,
+        "intermediate_size": 3072,
+        "num_hidden_layers": 8,
+        "num_attention_heads": 6,
+        "num_key_value_heads": 6
+      },
+      "files": {
+        "config.json": {"size": 2201, "etag": "7bfc2518e93306588f58979c50eec7bd", "crc64nvme_base64": "f+HpapREAzA="},
+        "model.safetensors": {"size": 302103264, "etag": "6a01186314dc14b878a27142264dcb99-37", "crc64nvme_base64": "Oi4Raxk6EF4="}
+      }
+    },
+    {
+      "label": "128M",
+      "source_name": "scaling-v0.5-h896-p128M-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h896-p128M-43ec40",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h896-p128M",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/128M.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h896-p128M-43ec40/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h896-p128M-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h896-p128M-43ec40",
+      "parameter_count": 128484480,
+      "tensor_count": 113,
+      "tensor_bytes": 513937920,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 896,
+        "intermediate_size": 3584,
+        "num_hidden_layers": 10,
+        "num_attention_heads": 7,
+        "num_key_value_heads": 7
+      },
+      "files": {
+        "config.json": {"size": 2238, "etag": "c22a73523ae7c82080687811a3a9114d", "crc64nvme_base64": "jv9uXnA1ki0="},
+        "model.safetensors": {"size": 513950312, "etag": "02280e31ce64c607d17384dfbbd0bb44-62", "crc64nvme_base64": "CTr2MgA0knw="}
+      }
+    },
+    {
+      "label": "255M",
+      "source_name": "scaling-v0.5-h1152-p255M-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h1152-p255M-c72f29",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h1152-p255M",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/255M.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h1152-p255M-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29",
+      "parameter_count": 254851968,
+      "tensor_count": 135,
+      "tensor_bytes": 1019407872,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 1152,
+        "intermediate_size": 4608,
+        "num_hidden_layers": 12,
+        "num_attention_heads": 9,
+        "num_key_value_heads": 9
+      },
+      "files": {
+        "config.json": {"size": 2275, "etag": "a651559a8f4616b52a9f3e79b0e8f4b9", "crc64nvme_base64": "/rsU82jnS88="},
+        "model.safetensors": {"size": 1019422904, "etag": "eb5416a38ab3b7217ec293d004827c46-122", "crc64nvme_base64": "nU201mE8Fbc="}
+      }
+    },
+    {
+      "label": "476M",
+      "source_name": "scaling-v0.5-h1408-p476M-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h1408-p476M-85cce6",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h1408-p476M",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/476M.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h1408-p476M-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6",
+      "parameter_count": 475858560,
+      "tensor_count": 168,
+      "tensor_bytes": 1903434240,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 1408,
+        "intermediate_size": 5632,
+        "num_hidden_layers": 15,
+        "num_attention_heads": 11,
+        "num_key_value_heads": 11
+      },
+      "files": {
+        "config.json": {"size": 2331, "etag": "8e8308a224ec42e9727370c6a7522757", "crc64nvme_base64": "GwKc1JGBYsM="},
+        "model.safetensors": {"size": 1903453152, "etag": "8b748488798cc31cb77f0d2b9b37dec9-227", "crc64nvme_base64": "6UEAWvHTGeI="}
+      }
+    },
+    {
+      "label": "1B",
+      "source_name": "scaling-v0.5-h1920-p1B-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h1920-p1B",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/1B.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h1920-p1B-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4",
+      "parameter_count": 1120772224,
+      "tensor_count": 212,
+      "tensor_bytes": 4483088896,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 1920,
+        "intermediate_size": 7680,
+        "num_hidden_layers": 19,
+        "num_attention_heads": 15,
+        "num_key_value_heads": 15
+      },
+      "files": {
+        "config.json": {"size": 2403, "etag": "fa8fff4adf06bddd3c6feccddd3889b3", "crc64nvme_base64": "Ji/82gVexeA="},
+        "model.safetensors": {"size": 4483112944, "etag": "87f81907e4d477873d9505fe43f79fbc-535", "crc64nvme_base64": "mfnY1e5uvA8="}
+      }
+    },
+    {
+      "label": "2B",
+      "source_name": "scaling-v0.5-h2432-p2B-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h2432-p2B-f5f484",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h2432-p2B",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/2B.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h2432-p2B-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484",
+      "parameter_count": 2271374976,
+      "tensor_count": 267,
+      "tensor_bytes": 9085499904,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 2432,
+        "intermediate_size": 9728,
+        "num_hidden_layers": 24,
+        "num_attention_heads": 19,
+        "num_key_value_heads": 19
+      },
+      "files": {
+        "config.json": {"size": 2493, "etag": "9ff95bde672ee6c58bdc37696d45c2fa", "crc64nvme_base64": "2aEKEHRV5rI="},
+        "model-00001-of-00002.safetensors": {"size": 4921395944, "etag": "e8c236f264a5ec56b5318cc63db09544-587", "crc64nvme_base64": "ubelB0/LnSQ="},
+        "model-00002-of-00002.safetensors": {"size": 4164134336, "etag": "8bb0739e847890eac6aa457528004bbd-497", "crc64nvme_base64": "QymUFtTweF0="},
+        "model.safetensors.index.json": {"size": 20882, "etag": "397145c23d0141073dbf12f50eda8a2b", "crc64nvme_base64": "awmRrKro05c="}
+      }
+    },
+    {
+      "label": "4B",
+      "source_name": "scaling-v0.5-h2944-p4B-step-215573",
+      "run_name": "dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3",
+      "repo_id": "marin-dna/marin-dna-scaling-v0.5-h2944-p4B",
+      "card": "scripts/hf_scaling_ladder_release/model_cards/4B.md",
+      "gcs_uri": "gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573",
+      "s3_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/scaling-v0.5-h2944-p4B-step-215573",
+      "wandb_url": "https://wandb.ai/eric-czech/marin/runs/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3",
+      "parameter_count": 4021773440,
+      "tensor_count": 322,
+      "tensor_bytes": 16087093760,
+      "stored_dtype": "F32",
+      "config": {
+        "hidden_size": 2944,
+        "intermediate_size": 11776,
+        "num_hidden_layers": 29,
+        "num_attention_heads": 23,
+        "num_key_value_heads": 23
+      },
+      "files": {
+        "config.json": {"size": 2584, "etag": "8ab3ff59eecf3307d0d5dd3dc8a5bebb", "crc64nvme_base64": "ainzVWKzwpc="},
+        "model-00001-of-00004.safetensors": {"size": 4992679792, "etag": "2fbb93053e7be397a3365443fa081722-596", "crc64nvme_base64": "6M/bmDIlKAs="},
+        "model-00002-of-00004.safetensors": {"size": 4992502888, "etag": "251aad081459424e69cdb1a613a023a9-596", "crc64nvme_base64": "PzFkL28RKCM="},
+        "model-00003-of-00004.safetensors": {"size": 4992502840, "etag": "b56d1f07e6db80e4b35ea2a545f5b52f-596", "crc64nvme_base64": "lzJT8lFx68A="},
+        "model-00004-of-00004.safetensors": {"size": 1109445048, "etag": "800e08ef1e24ec487d7cc314695dcdcd-133", "crc64nvme_base64": "dfzXteiZSAA="},
+        "model.safetensors.index.json": {"size": 25208, "etag": "3ebf81f7c0b96da7fe112717e754b6b6", "crc64nvme_base64": "+7ZROrzaCgE="}
+      }
+    }
+  ],
+  "collection": {
+    "slug": "marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep-6a627428aa94a4960c855072",
+    "title": "A 1B standard Transformer rivals Evo 2 40B on variant effect prediction",
+    "description": "scripts/hf_scaling_ladder_release/collection_description.md",
+    "new_model_notes": {
+      "46M": "Scaling ladder — 45,895,552 parameters; final step-215573 checkpoint (~84.77B tokens).",
+      "76M": "Scaling ladder — 75,523,328 parameters; final step-215573 checkpoint (~84.77B tokens).",
+      "128M": "Scaling ladder — 128,484,480 parameters; final step-215573 checkpoint (~84.77B tokens).",
+      "255M": "Scaling ladder — 254,851,968 parameters; final step-215573 checkpoint (~84.77B tokens).",
+      "476M": "Scaling ladder — 475,858,560 parameters; final step-215573 checkpoint (~84.77B tokens).",
+      "1B": "Scaling ladder — 1,120,772,224 parameters; final step-215573 checkpoint (~84.77B tokens). The Collection headline refers to m5.1, not this checkpoint.",
+      "2B": "Scaling ladder — 2,271,374,976 parameters; final step-215573 checkpoint (~84.77B tokens).",
+      "4B": "Scaling ladder — 4,021,773,440 parameters; final step-215573 checkpoint (~84.77B tokens)."
+    },
+    "existing_items": [
+      ["model", "marin-dna/marin-dna-exp135-m5.1", "Released with the blog — final m5.1 base checkpoint at step 59158; the five listed training datasets were not used in every phase."],
+      ["dataset", "marin-dna/genomes-v5-genome_set-animals-intervals-v5_255_128", "Training dataset — CDS."],
+      ["dataset", "marin-dna/genomes-v5-genome_set-animals-intervals-v1_255_128", "Training dataset — upstream."],
+      ["dataset", "marin-dna/genomes-v5-genome_set-animals-intervals-v15_255_128", "Training dataset — downstream."],
+      ["dataset", "marin-dna/zoonomia-v1-v3_ccre_non_promoter", "Training dataset — enhancer."],
+      ["dataset", "marin-dna/zoonomia-v1-v3_ncrna_exon", "Training dataset — ncRNA."],
+      ["dataset", "marin-dna/genomes-v5-validation-intervals-v5_255_255", "Training-validation probe — CDS; not training data."],
+      ["dataset", "marin-dna/genomes-v5-validation-intervals-v1_255_255", "Training-validation probe — upstream/promoter; not training data."],
+      ["dataset", "marin-dna/genomes-v5-validation-intervals-v15_255_255", "Training-validation probe — downstream; not training data."],
+      ["dataset", "marin-dna/zoonomia-v1-val_enhancer", "Training-validation probe — enhancer; not training data."],
+      ["dataset", "marin-dna/zoonomia-v1-val_ncrna", "Training-validation probe — ncRNA; not training data."],
+      ["dataset", "marin-dna/evals_mendelian_traits", "Downstream evaluation only — Mendelian; not training data and not level-comparable with SGE."],
+      ["dataset", "marin-dna/evals_sge", "Downstream evaluation only — SGE; not training data and not level-comparable with Mendelian."]
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+m5.1 plus eight final v0.5 parameter-scaling checkpoints (46M–4B); five training datasets; five validation probes; Mendelian/SGE evaluation only. The Collection headline applies to m5.1. Blog: https://openathena.ai/blog/marin-dna/
