@@ -148,7 +148,7 @@ window.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-MarinDNA applies the tools and open-development approach of [Marin](https://github.com/marin-community/marin) to genomic language modeling.
+MarinDNA applies the tools and [open-development approach](https://openathena.ai/blog/open-development-of-frontier-ai/) of [Marin](https://github.com/marin-community/marin) to genomic language modeling.
 This post summarizes how data curation, hyperparameter transfer, scaling laws, and data-mixture experiments produced a 1B GPT-style model competitive with [Evo 2 40B](https://doi.org/10.1038/s41586-026-10176-5), while using ~1,980× fewer training FLOPs and scoring variants ~2,330× faster.
 
 <figure id="fig-cost-performance" data-figure-width="478.472">
