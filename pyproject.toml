@@ -78,7 +78,7 @@ umap = [
 [tool.uv]
 # Keep local and CI dependency resolution on the same uv release. GitHub
 # Actions reads this pin through setup-uv's version-file input.
-required-version = "==0.11.7"
+required-version = "==0.11.31"
 # awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the versions
 # the `genome-s3` group's modern s3fs needs; resolve them in separate
 # "universes" so each group locks against its own compatible set.
