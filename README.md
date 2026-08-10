@@ -126,6 +126,8 @@ uv run pytest
 
 The local hook and GitHub Quality job use the same `.pre-commit-config.yaml`; GitHub reports formatter diffs but never pushes changes to a pull-request branch.
 
+Dependabot opens grouped monthly updates for remote pre-commit hooks, the uv-managed pre-commit and mypy packages, GitHub Actions, and dashboard npm dependencies.
+
 | Check | Local `git commit` | Local full validation | GitHub pull requests and `main` |
 |---|---|---|---|
 | YAML/TOML, merge markers, large files, EOF, whitespace | Staged files | All tracked files | `Quality / pre-commit` |
@@ -135,7 +137,6 @@ The local hook and GitHub Quality job use the same `.pre-commit-config.yaml`; Gi
 | pytest | Not automatic | Full `uv run pytest` | `Test / test` runs `pytest -m "not slow"` |
 | Dashboard | Not automatic | Optional manual build | `Dashboard / build` |
 | Snakemake dry-runs | Not automatic | Required for pipeline behavior changes | Not a permanent CI gate |
-
 
 ## Project Structure
 
