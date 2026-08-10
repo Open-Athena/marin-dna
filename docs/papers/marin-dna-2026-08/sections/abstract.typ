@@ -1,0 +1,1 @@
+MarinDNA combines data curation, hyperparameter transfer, scaling, and data-mixture experiments to build an efficient 1B alignment-free genomic language model with balanced performance across genomic regions.
