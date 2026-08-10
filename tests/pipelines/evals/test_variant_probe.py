@@ -360,7 +360,7 @@ def test_run_subset_probes_no_subset_column_uses_all_group() -> None:
 
 def test_run_subset_probes_reusable_classifier_predicts_other_data() -> None:
     train = _toy_bundle({"a": 80}, seed=0)
-    preds, clfs = run_subset_probes(
+    _preds, clfs = run_subset_probes(
         train,
         feature_combo="concat_ref_delta",
         c_grid=C_GRID_TEST,

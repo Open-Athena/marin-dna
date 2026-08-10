@@ -48,11 +48,9 @@ rule compute_metrics:
         eval_protocol = get_dataset_protocol(wildcards.dataset)
         for col in get_dataset_variant_columns(wildcards.dataset):
             assert col in df.columns, f"scores parquet missing column {col!r}"
-
         if "llr_rc" in df.columns:
             df["llr_avg"] = (df["llr_fwd"] + df["llr_rc"]) / 2
             df["jsd_avg"] = (df["jsd_fwd"] + df["jsd_rc"]) / 2
-
         score_cols: list[str] = []
         for strand in ("fwd", "rc", "avg"):
             llr_col = f"llr_{strand}"
@@ -63,7 +61,6 @@ rule compute_metrics:
             if jsd_col in df.columns:
                 score_cols.append(jsd_col)
         assert score_cols, "no score columns to evaluate — scores parquet schema?"
-
         if eval_protocol == "qtl_global":
             # Global AUPRC + positives-only effect_size correlation. No
             # subset/match_group; metrics frame carries a `metric` column.

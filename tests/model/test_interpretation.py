@@ -116,7 +116,7 @@ def test_categorical_jacobian_batching_invariant():
     model = _PrefixSumCausalLM(vocab_size=8).eval()
     seq = "ACGTACGTAC"  # W = 10
     input_ids = torch.tensor(tok.encode(seq), dtype=torch.long)
-    kw = dict(nuc_token_ids=_nuc_token_ids(tok), n_prefix=1, window_size=len(seq))
+    kw = {"nuc_token_ids": _nuc_token_ids(tok), "n_prefix": 1, "window_size": len(seq)}
     a = categorical_jacobian(model, input_ids, batch_size=4, **kw)
     b = categorical_jacobian(model, input_ids, batch_size=40, **kw)
     torch.testing.assert_close(a, b)

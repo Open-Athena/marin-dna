@@ -27,8 +27,10 @@ Smoke tier prepends two ZRS cCRE rows (issue #120) before head-truncating
 to chr1, and gates on ``zrs_sanity_check``.
 """
 
-
-from marin_dna.pipelines.projection.filter import filter_length, filter_single_chrom_strand
+from marin_dna.pipelines.projection.filter import (
+    filter_length,
+    filter_single_chrom_strand,
+)
 from marin_dna.pipelines.projection.hal import (
     attach_src_size,
     parse_halliftover_bed,
@@ -45,7 +47,6 @@ from marin_dna.pipelines.projection.subset import (
     filter_to_subset,
     load_species,
 )
-
 
 # Two cCREs from SCREEN Registry V4 inside the canonical ZRS limb enhancer
 # (hg38 chr7:156790115-156793672); Mus_musculus orthologs verified at
@@ -177,31 +178,26 @@ rule project_one_species:
         work_dir = out_dir / "_work"
         work_dir.mkdir(parents=True, exist_ok=True)
         raw_bed = work_dir / f"{species}.bed"
-
         run_halliftover(
             HAL_PATH, SOURCE_SPECIES, input.bed, species, raw_bed, no_dupes=True
         )
-
         df = parse_halliftover_bed(raw_bed, species=species)
         df = attach_src_size(df, input.chrom_sizes)
         df = filter_single_chrom_strand(df)
         df = filter_length(df, min_len=PRE_RESIZE_MIN, max_len=PRE_RESIZE_MAX)
         df = df.filter(pl.col("t_src_size") >= TARGET_LEN)
-
         if df.is_empty():
             pl.DataFrame(schema=PER_SPECIES_SCHEMA).write_parquet(output.parquet)
             return
-
         # resize_dataframe vectorises the midpoint-clamp; its own asserts
         # cover the bounds invariants. We add the at-most-one-row-per-query
         # invariant here since filter_single_chrom_strand promises it.
         resized = resize_dataframe(df, target_len=TARGET_LEN).select(
             list(PER_SPECIES_SCHEMA.keys())
         )
-        assert resized["query_name"].n_unique() == resized.height, (
-            "expected at most one row per query_name after filter"
-        )
-
+        assert (
+            resized["query_name"].n_unique() == resized.height
+        ), "expected at most one row per query_name after filter"
         resized.write_parquet(output.parquet)
         raw_bed.unlink(missing_ok=True)
 
@@ -261,11 +257,11 @@ rule fasta_to_2bit:
         local("results/projection/_genomes_fa/{species}.fa"),
     output:
         "results/projection/genomes/{species}.2bit",
+    conda:
+        "../envs/bioinformatics.yaml"
     threads: 1
     resources:
         mem_mb=2000,
-    conda:
-        "../envs/bioinformatics.yaml"
     shell:
         "faToTwoBit {input} {output}"
 
@@ -288,11 +284,11 @@ rule extract_sequences:
         twobit="results/projection/genomes/{species}.2bit",
     output:
         "results/projection/min{min_p}/sequences/{species}.parquet",
+    conda:
+        "../envs/bioinformatics.yaml"
     threads: 1
     resources:
         mem_mb=4000,
-    conda:
-        "../envs/bioinformatics.yaml"
     run:
         out_path = Path(str(output))
         bed_path = out_path.with_suffix(".bed.tmp")

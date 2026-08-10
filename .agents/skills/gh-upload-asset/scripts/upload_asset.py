@@ -24,7 +24,6 @@ from functools import partial
 from pathlib import Path
 from subprocess import (
     DEVNULL,
-    PIPE,
     CalledProcessError,
     check_call,
     check_output,
@@ -53,7 +52,7 @@ err = partial(print, file=sys.stderr)
 
 def _run_quiet(cmd: list[str], **kwargs) -> None:
     """Run a command, suppressing stdout/stderr unless it fails."""
-    result = run(cmd, stdout=PIPE, stderr=PIPE, **kwargs)
+    result = run(cmd, capture_output=True, check=False, **kwargs)
     if result.returncode != 0:
         for stream in (result.stderr, result.stdout):
             text = stream.decode().strip() if stream else ""

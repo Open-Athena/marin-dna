@@ -48,7 +48,6 @@ rule cre_conservation:
     run:
         phylop_cutoff = config["conservation"]["phylop_cutoff"]
         df = pl.read_parquet(input.cre)
-
         bw = pyBigWig.open(input.conservation)
         pct_conserved = df.select(
             pl.struct(["chrom", "start", "end"])
@@ -63,7 +62,6 @@ rule cre_conservation:
             .alias("pct_conserved")
         )
         bw.close()
-
         df.hstack(pct_conserved).write_parquet(output[0])
 
 
@@ -95,7 +93,6 @@ rule cre_conservation_phastcons_43p:
     run:
         cutoff = config["conservation"]["phastcons_43p_cutoff"]
         df = pl.read_parquet(input.cre)
-
         bw = pyBigWig.open(input.conservation)
         pct_conserved = df.select(
             pl.struct(["chrom", "start", "end"])
@@ -110,7 +107,6 @@ rule cre_conservation_phastcons_43p:
             .alias("pct_conserved")
         )
         bw.close()
-
         df.hstack(pct_conserved).write_parquet(output[0])
 
 

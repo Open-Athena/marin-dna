@@ -87,7 +87,7 @@ class GenomicSet:
         return GenomicSet(
             bf.overlap(self._data, other._data, how="inner", return_overlap=True)[
                 ["chrom", "overlap_start", "overlap_end"]
-            ].rename(columns=dict(overlap_start="start", overlap_end="end"))
+            ].rename(columns={"overlap_start": "start", "overlap_end": "end"})
         )
 
     def __sub__(self, other: "GenomicSet") -> "GenomicSet":

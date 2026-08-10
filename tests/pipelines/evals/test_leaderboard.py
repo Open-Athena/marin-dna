@@ -9,6 +9,8 @@ DataFrames keyed by parquet path.
 
 from __future__ import annotations
 
+import math
+
 import polars as pl
 import pytest
 
@@ -594,34 +596,34 @@ def _probe_parquet(
     for score_type, vi in value_idx.items():
         for s in subs:
             rows.append(
-                dict(
-                    score_type=score_type,
-                    subset=s[0],
-                    value=s[vi],
-                    se=0.03,
-                    n=s[1],
-                    n_pos=s[2],
-                    n_chrom=10,
-                    model=model,
-                    dataset="mendelian_traits",
-                    split="train",
-                )
+                {
+                    "score_type": score_type,
+                    "subset": s[0],
+                    "value": s[vi],
+                    "se": 0.03,
+                    "n": s[1],
+                    "n_pos": s[2],
+                    "n_chrom": 10,
+                    "model": model,
+                    "dataset": "mendelian_traits",
+                    "split": "train",
+                }
             )
         if with_macro:
             qual = [s for s in subs if s[vi] is not None and s[2] >= 30]
             rows.append(
-                dict(
-                    score_type=score_type,
-                    subset=MACRO_AVG_SUBSET,
-                    value=sum(s[vi] for s in qual) / len(qual),
-                    se=0.015,
-                    n=sum(s[1] for s in qual),
-                    n_pos=sum(s[2] for s in qual),
-                    n_chrom=12,
-                    model=model,
-                    dataset="mendelian_traits",
-                    split="train",
-                )
+                {
+                    "score_type": score_type,
+                    "subset": MACRO_AVG_SUBSET,
+                    "value": sum(s[vi] for s in qual) / len(qual),
+                    "se": 0.015,
+                    "n": sum(s[1] for s in qual),
+                    "n_pos": sum(s[2] for s in qual),
+                    "n_chrom": 12,
+                    "model": model,
+                    "dataset": "mendelian_traits",
+                    "split": "train",
+                }
             )
     df = pl.DataFrame(rows)
     return df.drop("se") if not with_se else df
@@ -638,6 +640,14 @@ _PROBE_COLS = {
     "n",
     "n_positives",
 }
+
+
+def test_nan_float_accepts_only_supported_numeric_values():
+    assert math.isnan(leaderboard._nan_float(None))
+    assert leaderboard._nan_float(1) == 1.0
+    assert leaderboard._nan_float(1.5) == 1.5
+    with pytest.raises(AssertionError, match="expected a numeric value or None"):
+        leaderboard._nan_float("1")
 
 
 def test_probe_normalized_rows_maps_supervised_schema(monkeypatch: pytest.MonkeyPatch):

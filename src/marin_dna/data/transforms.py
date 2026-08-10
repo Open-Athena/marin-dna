@@ -145,7 +145,7 @@ def transform_llr_clm(
     alt = example["alt"] if strand == "+" else complement_base(example["alt"])
     input_ids = torch.tensor(tokenizer.encode(seq))
     alt_token_id = _get_nucleotide_token_ids(tokenizer)[alt]
-    return dict(input_ids=input_ids, alt_token_id=alt_token_id)
+    return {"input_ids": input_ids, "alt_token_id": alt_token_id}
 
 
 def transform_window_embedding(
@@ -207,7 +207,7 @@ def transform_reflogprob_clm(
     for i, nuc in enumerate(NUCLEOTIDES):
         new_input_ids[i, tokenized_pos] = nuc_ids[nuc]
     ref = NUCLEOTIDES.index(seq[pos])
-    return dict(input_ids=new_input_ids, ref=ref)
+    return {"input_ids": new_input_ids, "ref": ref}
 
 
 def transform_variant_marginal_clm(
@@ -234,7 +234,7 @@ def transform_variant_marginal_clm(
     kernel scores all four alleles).
     """
     seq, _pos = _get_variant_window(example, genome, window_size, strand=strand)
-    return dict(input_ids=torch.tensor(tokenizer.encode(seq)))
+    return {"input_ids": torch.tensor(tokenizer.encode(seq))}
 
 
 def transform_ll_clm(
@@ -282,7 +282,7 @@ def transform_ll_clm(
     )
 
     is_upper = [False] * n_prefix + [c.isupper() for c in seq] + [False] * n_suffix
-    return dict(
-        input_ids=torch.tensor(full_ids, dtype=torch.long),
-        is_upper=torch.tensor(is_upper, dtype=torch.bool),
-    )
+    return {
+        "input_ids": torch.tensor(full_ids, dtype=torch.long),
+        "is_upper": torch.tensor(is_upper, dtype=torch.bool),
+    }

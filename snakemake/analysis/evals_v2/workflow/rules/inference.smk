@@ -13,6 +13,7 @@ rule compute_scores:
     wildcard_constraints:
         model="|".join(MODELS),
         dataset="|".join(DATASETS),
+    threads: config["inference"]["num_workers"]
     params:
         # 255 for BOS-using checkpoints (e.g. exp136), 256 for older runs;
         # the tokenizer baked into each checkpoint handles BOS itself.
@@ -31,7 +32,6 @@ rule compute_scores:
         # Output-affecting (#318): when true, the parquet gains the pooled
         # `emb_ref`/`emb_alt` columns, so it belongs in `params:`. Global toggle.
         return_embeddings=config["inference"]["return_embeddings"],
-    threads: config["inference"]["num_workers"]
     run:
         # batch_size is per-model but execution-only (numerics are batch-
         # size-invariant modulo float-reduction noise), so we read it here
@@ -40,7 +40,6 @@ rule compute_scores:
         # eval_accumulation_steps is execution-only (CPU-offload cadence for the
         # wide embedding predictions; doesn't change the stored values).
         eval_accumulation_steps = config["inference"].get("eval_accumulation_steps")
-
         ds = load_dataset(
             params.hf_path, split=config["split"], revision=params.hf_revision
         ).to_pandas()
@@ -50,7 +49,6 @@ rule compute_scores:
         # so effect_size reaches the scores parquet for the metric step.
         for col in get_dataset_variant_columns(wildcards.dataset):
             assert col in ds.columns, f"dataset missing column {col!r}"
-
         scores = compute_variant_scores(
             checkpoint_path=input.checkpoint,
             dataset=ds,
@@ -60,14 +58,15 @@ rule compute_scores:
             context_size=params.window_size,
             batch_size=batch_size,
             num_workers=config["inference"]["num_workers"],
-            data_transform_on_the_fly=config["inference"]["data_transform_on_the_fly"],
+            data_transform_on_the_fly=config["inference"][
+                "data_transform_on_the_fly"
+            ],
             torch_compile=config["inference"]["torch_compile"],
             rc=params.rc,
             return_embeddings=params.return_embeddings,
             eval_accumulation_steps=eval_accumulation_steps,
         )
         assert len(scores) == len(ds)
-
         # Preserve all variant columns (chrom, pos, ref, alt, label, subset,
         # match_group, …) alongside the score columns.
         out = pd.concat(

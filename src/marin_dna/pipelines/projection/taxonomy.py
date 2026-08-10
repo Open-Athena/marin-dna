@@ -86,7 +86,7 @@ def normalize_zoonomia_leaf(name: str) -> str:
     ``halStats`` / ``halLiftover`` or those will fail with
     ``Genome <name> not found``.
     """
-    if name.endswith("_a") or name.endswith("_b"):
+    if name.endswith(("_a", "_b")):
         return name[:-2]
     return name
 
@@ -157,8 +157,8 @@ def dedup_by_rank(
         candidates = by_group[key]
         forced = [r for r in candidates if r.leaf in force_include]
         if forced:
-            chosen = sorted(forced, key=_rank_key)[0]
+            chosen = min(forced, key=_rank_key)
         else:
-            chosen = sorted(candidates, key=_rank_key)[0]
+            chosen = min(candidates, key=_rank_key)
         winners.append(chosen)
     return winners

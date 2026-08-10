@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "marin_dna"
 version = "0.0.1"
 description = "DNA training dataset creation and genomic interval utilities"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "bioframe",
     "biopython>=1.85",
@@ -47,10 +47,8 @@ dependencies = [
 dev = [
     "mypy>=1.18.0",
     "pre-commit>=4.3.0",
-    "ruff>=0.12.11",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "snakefmt",
 ]
 # `aws` CLI for the complex_traits / ldscore_download snakemake rule (added
 # in #159 — the rule shells out to `aws s3 cp ...`). awscli pins older
@@ -78,6 +76,9 @@ umap = [
 ]
 
 [tool.uv]
+# Keep local and CI dependency resolution on the same uv release. GitHub
+# Actions reads this pin through setup-uv's version-file input.
+required-version = "==0.11.7"
 # awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the versions
 # the `genome-s3` group's modern s3fs needs; resolve them in separate
 # "universes" so each group locks against its own compatible set.
@@ -101,17 +102,6 @@ override-dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
-
-[tool.ruff.lint]
-# jaxtyping uses string annotations like ``Int[Tensor, "B L"]`` that ruff's
-# F722 parser rejects; suppress for the whole project.
-ignore = ["F722"]
-
-[tool.ruff.lint.per-file-ignores]
-# Scratch / one-off audit scripts pin thread-affinity env vars *before*
-# importing polars/numpy, so imports legitimately live below module-top
-# logic. Don't fight it.
-"snakemake/evals/scratch/*.py" = ["E402"]
 
 [tool.mypy]
 # Lax baseline: many transitive deps (datasets, polars-bio, bioframe,

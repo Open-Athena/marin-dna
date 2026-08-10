@@ -76,7 +76,7 @@ class PhylopHistogram:
         bin_lo = self.edges[i]
         bin_hi = self.edges[i + 1]
         frac_above = (bin_hi - threshold) / (bin_hi - bin_lo)
-        partial = int(round(self.counts[i] * frac_above))
+        partial = round(self.counts[i] * frac_above)
         full = int(self.counts[i + 1 :].sum())
         return partial + full
 

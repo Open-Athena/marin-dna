@@ -110,16 +110,16 @@ rule subset_species:
     wildcard_constraints:
         intervals=r"v\d+(?:_\w+)?",
         cohort=r"[a-z0-9]+",
-    params:
-        # Committed local config file — read directly (like common.smk's
-        # species_tsv), NOT a Snakemake input, so the S3 storage provider
-        # doesn't try to resolve it under the bucket prefix.
-        species_tsv=lambda wc: SPECIES_SUBSETS[wc.cohort],
     threads: 1
     resources:
         # Eager read of the intervals-subset Parquet (filter_to_species); same
         # memory profile as subset_dataset_derived. Runs on the upload cluster.
         mem_mb=32000,
+    params:
+        # Committed local config file — read directly (like common.smk's
+        # species_tsv), NOT a Snakemake input, so the S3 storage provider
+        # doesn't try to resolve it under the bucket prefix.
+        species_tsv=lambda wc: SPECIES_SUBSETS[wc.cohort],
     run:
         filter_to_species(input.parquet, params.species_tsv, output[0])
 
@@ -330,10 +330,6 @@ rule hf_upload_dataset:
     output:
         # Explicit `touch` in shell: S3 default-storage doesn't auto-create touch() markers.
         "results/upload.done/zoonomia-{pipeline_version}-{intervals_version}",
-    params:
-        repo=lambda wc: f"{HF_OWNER}/zoonomia-{wc.pipeline_version}-{wc.intervals_version}",
-        data_dir=lambda wc: f"results/dataset/zoonomia-{wc.pipeline_version}-{wc.intervals_version}",
-        has_readme=lambda wc: int(_ships_card(wc.intervals_version)),
     wildcard_constraints:
         pipeline_version=r"v\d+",
         # Optional trailing -{cohort} (scheme B) for species-subset datasets,
@@ -342,6 +338,10 @@ rule hf_upload_dataset:
         # uploads its card; v1/v2 default-species sets stay card-less.
         intervals_version=r"v\d+(?:_\w+)?(?:-[a-z0-9]+)?",
     threads: workflow.cores
+    params:
+        repo=lambda wc: f"{HF_OWNER}/zoonomia-{wc.pipeline_version}-{wc.intervals_version}",
+        data_dir=lambda wc: f"results/dataset/zoonomia-{wc.pipeline_version}-{wc.intervals_version}",
+        has_readme=lambda wc: int(_ships_card(wc.intervals_version)),
     shell:
         """
         hf upload-large-folder {params.repo} --repo-type dataset {params.data_dir}

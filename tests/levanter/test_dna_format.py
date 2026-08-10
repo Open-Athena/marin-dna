@@ -32,7 +32,7 @@ def _tokenizer_available(name: str) -> bool:
 
     try:
         load_tokenizer(name)
-    except Exception:
+    except Exception:  # noqa: BLE001 - any download/load failure means unavailable
         return False
     return True
 

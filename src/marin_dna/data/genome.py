@@ -71,9 +71,11 @@ class Genome:
         if self._chrom_sizes is not None:
             return
         with self._open_fasta() as fa:
+            # Unlike a normal mapping, iterating pyfaidx.Fasta yields FastaRecord objects.
+            fa_keys = fa.keys()
             keys = [
                 k
-                for k in fa.keys()
+                for k in fa_keys
                 if self._subset_chroms is None or k in self._subset_chroms
             ]
             self._chrom_sizes = {k: len(fa[k]) for k in keys}

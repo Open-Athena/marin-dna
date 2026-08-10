@@ -68,9 +68,9 @@ PHYLOP_447M_THRESHOLD = float(config["phyloP_447m_threshold"])
 STANDARD_CHROMS = list(config["standard_chroms"])
 
 # Sanity-check: track must be in the registry.
-assert "phyloP_447m" in CONSERVATION_TRACKS, (
-    "phyloP_447m must be present in marin_dna.pipelines.evals.conservation.CONSERVATION_TRACKS"
-)
+assert (
+    "phyloP_447m" in CONSERVATION_TRACKS
+), "phyloP_447m must be present in marin_dna.pipelines.evals.conservation.CONSERVATION_TRACKS"
 
 
 # ===== Cross-mammal projection knobs (rule all_projected) =====

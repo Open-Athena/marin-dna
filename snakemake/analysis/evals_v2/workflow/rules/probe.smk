@@ -33,6 +33,7 @@ rule compute_probe:
     wildcard_constraints:
         model="|".join(MODELS),
         dataset="|".join(DATASETS),
+    threads: config["probe"]["n_jobs"]
     params:
         # Output-affecting → tracked by snakemake's `params` rerun trigger. The
         # feature combo is dataset-derived (directional vs swap-invariant); the rest
@@ -43,17 +44,14 @@ rule compute_probe:
         min_chroms=config["probe"]["min_chroms"],
         c_grid=config["probe"]["c_grid"],
         inner_splits=config["probe"]["inner_splits"],
-    threads: config["probe"]["n_jobs"]
     run:
         lo, hi, num = params.c_grid
         c_grid = np.logspace(lo, hi, num)
-
         df = pd.read_parquet(input[0])
         assert "emb_ref" in df.columns and "emb_alt" in df.columns, (
             f"{input[0]} lacks emb_ref/emb_alt — re-score {wildcards.model}/"
             f"{wildcards.dataset} with inference.return_embeddings=true (#318 overlay)"
         )
-
         predictions, classifiers = run_subset_probes(
             df,
             feature_combo=params.feature,
@@ -135,14 +133,13 @@ rule compute_probe_metrics:
                 f"{input[0]} missing column {col!r} — expected a compute_probe "
                 f"predictions parquet"
             )
-
         if eval_protocol == "matched_pair":
             # Per-subset per-chromosome-weighted AUPRC + chromosome-cluster bootstrap SE +
             # `_macro_avg_` row (TraitGym / #331 / #347). Zero-shot baseline on the identical
             # rows = the dataset's score protocol applied to the FWD/RC-averaged raw LLR.
-            assert "chrom" in df.columns, (
-                f"{input[0]} missing 'chrom' — matched_pair per-chrom AUPRC needs it"
-            )
+            assert (
+                "chrom" in df.columns
+            ), f"{input[0]} missing 'chrom' — matched_pair per-chrom AUPRC needs it"
             transform = SCORE_PROTOCOLS[params.score_protocol]
             baseline_col = f"{params.score_protocol}_avg"
             df[baseline_col] = transform((df["llr_fwd"] + df["llr_rc"]) / 2)

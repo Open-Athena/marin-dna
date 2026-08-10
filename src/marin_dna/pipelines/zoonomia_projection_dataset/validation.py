@@ -548,7 +548,7 @@ def write_hf_readme(
     # in a window must score `phyloP_447m >= threshold`. Computed once so the
     # f-string body keeps to one source of truth.
     window_size = 255
-    min_pass_bp = int(round(min_proportion_conserved * window_size))
+    min_pass_bp = round(min_proportion_conserved * window_size)
 
     body = f"""---
 tags:

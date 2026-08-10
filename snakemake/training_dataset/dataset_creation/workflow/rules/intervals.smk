@@ -61,9 +61,9 @@ rule make_windows:
     shell:
         """
         mkdir -p $(dirname {output})
-        bedtools makewindows -b {input[0]} -w {wildcards.w} -s {wildcards.s} | \
-        awk '$3-$2 == {wildcards.w}' | \
-        gzip > {output}
+        bedtools makewindows -b {input[0]} -w {wildcards.w} -s {wildcards.s} \
+            | awk '$3-$2 == {wildcards.w}' \
+            | gzip >{output}
         """
 
 
@@ -78,7 +78,6 @@ rule intervals_recipe_v1:
     run:
         promoter_n_upstream = 256
         promoter_n_downstream = 256
-
         ann = load_annotation(input[0])
         defined = GenomicSet.read_bed(input[1])
         promoters = get_promoters(
@@ -100,7 +99,6 @@ rule intervals_recipe_v4:
     run:
         promoter_n_upstream = 256
         promoter_n_downstream = 256
-
         ann = load_annotation(input[0])
         defined = GenomicSet.read_bed(input[1])
         promoters = get_promoters(
@@ -122,7 +120,6 @@ rule intervals_recipe_v3:
         "results/intervals/recipe/v3/{g}.bed.gz",
     run:
         min_size = 512
-
         ann = load_annotation(input[0])
         cds = get_cds(ann)
         defined = GenomicSet(read_bed_to_pandas(input[1]))
@@ -252,7 +249,6 @@ rule intervals_recipe_v5:
         min_size, max_size = 20, 10_000
         add_flank = 20  # splice region
         expand_min_size = 256
-
         intervals = GenomicSet.read_parquet(input[0])
         defined = GenomicSet.read_bed(input[1])
         intervals = intervals.filter_size(min_size, max_size)
@@ -274,7 +270,6 @@ rule intervals_recipe_v6:
         min_size, max_size = 20, 10_000
         add_flank = 20  # splice region
         expand_min_size = 256
-
         intervals = GenomicSet.read_parquet(input[0])
         defined = GenomicSet.read_bed(input[1])
         subtract_regions = [
@@ -302,7 +297,6 @@ rule intervals_recipe_v7:
         min_size, max_size = 20, 10_000
         add_flank = 20  # splice region
         expand_min_size = 256
-
         intervals = GenomicSet.read_parquet(input[0])
         defined = GenomicSet.read_bed(input[1])
         subtract_regions = [
@@ -332,7 +326,6 @@ rule intervals_recipe_v8:
         min_size, max_size = 20, 10_000
         add_flank = 20  # splice region
         expand_min_size = 256
-
         intervals = GenomicSet.read_parquet(input[0])
         defined = GenomicSet.read_bed(input[1])
         subtract_regions = [
@@ -424,7 +417,6 @@ rule intervals_recipe_v12:
         min_size, max_size = 20, 10_000
         add_flank = 20  # splice region
         expand_min_size = 256
-
         intervals = GenomicSet.read_parquet(input[0])
         defined = GenomicSet.read_bed(input[1])
         intervals = intervals.filter_size(min_size, max_size)
@@ -503,7 +495,6 @@ rule intervals_recipe_v17:
         simple_to_refseq = dict(
             zip(chrom_map["ucsc"].str.replace("chr", ""), chrom_map["refseq"])
         )
-
         df = pl.read_parquet(input.cre).with_columns(
             pl.col("chrom").replace_strict(simple_to_refseq)
         )
@@ -527,7 +518,6 @@ rule intervals_recipe_v18:
         simple_to_refseq = dict(
             zip(chrom_map["ucsc"].str.replace("chr", ""), chrom_map["refseq"])
         )
-
         df = pl.read_parquet(input.cre).with_columns(
             pl.col("chrom").replace_strict(simple_to_refseq)
         )

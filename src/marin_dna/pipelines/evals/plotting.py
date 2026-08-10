@@ -40,7 +40,7 @@ def plot_metrics_vs_step(
     n_cols = min(3, n_plots)
     n_rows = (n_plots + n_cols - 1) // n_cols
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, squeeze=False)
+    _fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, squeeze=False)
     axes = axes.flatten()
 
     for idx, (_, row) in enumerate(combinations.iterrows()):

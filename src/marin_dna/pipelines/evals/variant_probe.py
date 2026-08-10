@@ -382,7 +382,7 @@ def run_subset_probes(
                 inner_splits=inner_splits,
                 n_jobs=n_jobs,
             )
-        except Exception as e:  # keep an unattended multi-subset run alive
+        except Exception as e:  # noqa: BLE001 - keep an unattended multi-subset run alive
             print(f"[probe] SKIP {s!r}: {type(e).__name__}: {e}")
             continue
         oof[mask] = oof_s

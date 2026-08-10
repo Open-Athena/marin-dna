@@ -37,11 +37,11 @@ rule download_genome_list:
     shell:
         """
         datasets summary genome taxon {config[taxon]} \
-        --as-json-lines --reference --annotated --exclude-atypical --assembly-source RefSeq | \
-        dataformat tsv genome \
-        --fields \
-        accession,assminfo-name,organism-name,organism-tax-id,assminfo-level,assmstats-total-sequence-len \
-        > {output}
+            --as-json-lines --reference --annotated --exclude-atypical --assembly-source RefSeq \
+            | dataformat tsv genome \
+                --fields \
+                accession,assminfo-name,organism-name,organism-tax-id,assminfo-level,assmstats-total-sequence-len \
+                >{output}
         """
 
 
@@ -89,7 +89,6 @@ rule add_taxonomy_to_genomes:
         genomes = genomes.merge(taxonomy, on="Organism Taxonomic ID", how="left")
         print(genomes)
 
-
         def get_rank(x, rank):
             try:
                 return x[rank]["name"]
@@ -97,9 +96,10 @@ rule add_taxonomy_to_genomes:
                 print(f"Missing rank {x} {rank}")
                 return None
 
-
         for rank in TAXONOMIC_RANKS:
-            genomes[rank] = genomes.classification.apply(lambda x: get_rank(x, rank))
+            genomes[rank] = genomes.classification.apply(
+                lambda x: get_rank(x, rank)
+            )
         genomes = genomes.drop(columns=["classification"])
         genomes.to_parquet(output[0], index=False)
 
@@ -122,11 +122,13 @@ rule filter_genomes:
         )
         genomes = genomes[genomes["Assembly Level"] <= config["min_assembly_level"]]
         genomes = genomes[
-            genomes["Assembly Stats Total Sequence Length"] < config["max_genome_size"]
+            genomes["Assembly Stats Total Sequence Length"]
+            < config["max_genome_size"]
         ]
         genomes.loc[:, "Priority"] = "1_Low"
         genomes.loc[
-            genomes["Assembly Accession"].isin(config["priority_genomes"]), "Priority"
+            genomes["Assembly Accession"].isin(config["priority_genomes"]),
+            "Priority",
         ] = "0_High"
         genomes = (
             genomes.sort_values(

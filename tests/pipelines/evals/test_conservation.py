@@ -434,7 +434,7 @@ def test_aggregate_conservation_metrics_no_global_or_mean_row(tmp_path):
     _, md = aggregate_conservation_metrics({"score1": p}, n_min=1, n_bootstrap=50)
 
     # Split markdown into the two tables.
-    auprc_section, nan_section = md.split("### NaN counts")
+    auprc_section, _nan_section = md.split("### NaN counts")
     assert "AUPRC" in auprc_section
 
     auprc_rows = [

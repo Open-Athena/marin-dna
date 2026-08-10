@@ -331,12 +331,12 @@ def test_run_ll_clm_end_to_end():
         tokenizer,
         dataset,
         data_transform_on_the_fly=True,
-        inference_kwargs=dict(
-            per_device_eval_batch_size=2,
-            dataloader_num_workers=0,
-            remove_unused_columns=False,
-            report_to="none",
-        ),
+        inference_kwargs={
+            "per_device_eval_batch_size": 2,
+            "dataloader_num_workers": 0,
+            "remove_unused_columns": False,
+            "report_to": "none",
+        },
     )
 
     assert pred.shape == (len(seqs), 4)
@@ -375,12 +375,12 @@ def _make_variant_dataset():
     )
 
 
-_INFERENCE_KWARGS = dict(
-    per_device_eval_batch_size=2,
-    dataloader_num_workers=0,
-    remove_unused_columns=False,
-    report_to="none",
-)
+_INFERENCE_KWARGS = {
+    "per_device_eval_batch_size": 2,
+    "dataloader_num_workers": 0,
+    "remove_unused_columns": False,
+    "report_to": "none",
+}
 
 
 def test_run_reflogprob_clm_fwd_and_rc_differ():
@@ -1391,7 +1391,7 @@ def test_variant_score_bundle_embeddings_hook_removed_and_off_path_clean():
     model.eval()
     input_ids = torch.randint(0, 4, (2, 10))
     alt_token_id = torch.randint(0, 4, (2,))
-    kw = dict(var_pos=4, nuc_token_ids=_IDENTITY_NUC_IDS)
+    kw = {"var_pos": 4, "nuc_token_ids": _IDENTITY_NUC_IDS}
 
     compute_variant_score_bundle(
         model,

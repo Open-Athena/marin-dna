@@ -16,12 +16,9 @@ threshold / cCRE-flank semantics.
 
 from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import REGION_LABELS
 
-
 REGION_LABEL_TSS_RADIUS = int(config["region_label_tss_radius"])
 REGION_LABEL_CCRE_FLANK = int(config["region_label_ccre_flank"])
-REGION_LABEL_FUNCTIONAL_THRESHOLD = float(
-    config["region_label_functional_threshold"]
-)
+REGION_LABEL_FUNCTIONAL_THRESHOLD = float(config["region_label_functional_threshold"])
 REGION_LABEL_PRIORITY = list(config["region_label_priority"])
 REGION_LABEL_SUBSETS = list(config["region_label_subsets"])
 
@@ -49,15 +46,15 @@ rule build_region_labels:
         defined="results/human/intervals/defined.bed",
     output:
         labels="results/human/intervals/region_labels/min{min_p}.parquet",
+    resources:
+        # GTF parse + 5 region BEDs + bf.coverage over 22.9M anchors ×
+        # multiple region sets. Peaks around the union build; budget headroom.
+        mem_mb=24000,
     params:
         tss_radius=REGION_LABEL_TSS_RADIUS,
         ccre_flank=REGION_LABEL_CCRE_FLANK,
         functional_threshold=REGION_LABEL_FUNCTIONAL_THRESHOLD,
         priority=REGION_LABEL_PRIORITY,
-    resources:
-        # GTF parse + 5 region BEDs + bf.coverage over 22.9M anchors ×
-        # multiple region sets. Peaks around the union build; budget headroom.
-        mem_mb=24000,
     run:
         from marin_dna.data.intervals import GenomicSet
         from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
@@ -81,9 +78,9 @@ rule build_region_labels:
         )
         # Partition invariant: every input window receives exactly one label.
         n_in = sum(1 for _ in gzip.open(input.anchors, "rt"))
-        assert len(df) == n_in, (
-            f"label_windows lost rows: input={n_in}, output={len(df)}"
-        )
+        assert (
+            len(df) == n_in
+        ), f"label_windows lost rows: input={n_in}, output={len(df)}"
         valid_labels = set(REGION_LABELS) | {"background"}
         assert set(df["label"].unique().to_list()) <= valid_labels, (
             f"unexpected labels: "
@@ -101,7 +98,6 @@ rule region_label_composition:
     run:
         df = pl.read_parquet(input.labels)
         n_total = len(df)
-
         # Per-label counts and total bases.
         by_label = (
             df.group_by("label")
@@ -117,7 +113,6 @@ rule region_label_composition:
             )
             .sort("label")
         )
-
         # Background subsplit: intronic (gene_body but not exon) vs intergenic.
         bg = df.filter(pl.col("label") == "background")
         n_bg = len(bg)
@@ -141,7 +136,6 @@ rule region_label_composition:
                 ],
             }
         )
-
         out = pl.concat([by_label, bg_split], how="diagonal_relaxed")
         out.write_csv(output.tsv, separator="\t")
 
@@ -180,10 +174,7 @@ rule all_region_labels:
     input:
         expand(
             "results/human/intervals/region_labels/min{min_p}.composition.tsv",
-            min_p=[
-                f"{f['min_proportion_conserved']:.2f}"
-                for f in config["filters"]
-            ],
+            min_p=[f"{f['min_proportion_conserved']:.2f}" for f in config["filters"]],
         ),
         expand(
             "results/projection/min{min_p}/subsets_def/{subset}.query_names.txt",
@@ -230,14 +221,14 @@ rule build_region_labels_v4:
         defined="results/human/intervals/defined.bed",
     output:
         labels="results/human/intervals/region_labels/v4/min{min_p}.parquet",
+    resources:
+        mem_mb=24000,
     params:
         tss_radius=REGION_LABEL_TSS_RADIUS,
         ccre_flank=REGION_LABEL_CCRE_FLANK_V4,
         tss_pc_only=REGION_LABEL_TSS_PC_ONLY_V4,
         functional_threshold=REGION_LABEL_FUNCTIONAL_THRESHOLD,
         priority=REGION_LABEL_PRIORITY_V4,
-    resources:
-        mem_mb=24000,
     run:
         from marin_dna.data.intervals import GenomicSet
         from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
@@ -262,9 +253,9 @@ rule build_region_labels_v4:
         )
         # Partition invariant: every input window receives exactly one label.
         n_in = sum(1 for _ in gzip.open(input.anchors, "rt"))
-        assert len(df) == n_in, (
-            f"label_windows_bp_majority lost rows: input={n_in}, output={len(df)}"
-        )
+        assert (
+            len(df) == n_in
+        ), f"label_windows_bp_majority lost rows: input={n_in}, output={len(df)}"
         valid_labels = set(REGION_LABELS) | {"background"}
         assert set(df["label"].unique().to_list()) <= valid_labels, (
             f"unexpected labels: "
@@ -322,10 +313,7 @@ rule all_region_labels_v4:
     input:
         expand(
             "results/human/intervals/region_labels/v4/min{min_p}.composition.tsv",
-            min_p=[
-                f"{f['min_proportion_conserved']:.2f}"
-                for f in config["filters"]
-            ],
+            min_p=[f"{f['min_proportion_conserved']:.2f}" for f in config["filters"]],
         ),
         expand(
             "results/projection/min{min_p}/subsets_def/{subset}.query_names.txt",
