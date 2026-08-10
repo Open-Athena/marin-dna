@@ -40,7 +40,7 @@ def calibrate_to_match_proportion(
 
     target_total = target_hist.total()
     assert target_total > 0, "target histogram has no non-NaN bases"
-    target_count_target = int(round(ref_proportion * target_total))
+    target_count_target = round(ref_proportion * target_total)
 
     target_threshold = target_hist.threshold_for_count(target_count_target)
     target_count = target_hist.count_ge(target_threshold)

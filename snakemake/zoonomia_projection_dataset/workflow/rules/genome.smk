@@ -47,9 +47,9 @@ rule chrom_sizes_filtered:
     run:
         df = pd.read_csv(input[0], sep="\t", header=None, names=["chrom", "size"])
         df = df[df["chrom"].isin(STANDARD_CHROMS)]
-        assert len(df) == len(STANDARD_CHROMS), (
-            f"missing chroms in 2bit: {set(STANDARD_CHROMS) - set(df['chrom'])}"
-        )
+        assert len(df) == len(
+            STANDARD_CHROMS
+        ), f"missing chroms in 2bit: {set(STANDARD_CHROMS) - set(df['chrom'])}"
         df.to_csv(output[0], sep="\t", header=False, index=False)
 
 

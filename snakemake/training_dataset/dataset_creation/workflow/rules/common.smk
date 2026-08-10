@@ -117,9 +117,9 @@ def load_genome_sets(
         if "accessions" in genome_set:
             accessions = list(genome_set["accessions"])
             unknown = [a for a in accessions if a not in genomes.index]
-            assert not unknown, (
-                f"genome_set {name!r} references unknown accessions: {unknown}"
-            )
+            assert (
+                not unknown
+            ), f"genome_set {name!r} references unknown accessions: {unknown}"
             genome_sets[name] = accessions
         else:
             rank_key = genome_set["rank_key"]

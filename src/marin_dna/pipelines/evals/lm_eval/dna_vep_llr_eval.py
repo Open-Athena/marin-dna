@@ -244,7 +244,7 @@ class _AuprcAggregation:
         }
         try:
             levanter.tracker.log(payload, step=None)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - tracker failures must not fail evaluation
             # NoopTracker / no current tracker / serialization issue: log at
             # debug so silent dashboard failures are still discoverable.
             _logger.debug("levanter.tracker.log failed: %s", exc)

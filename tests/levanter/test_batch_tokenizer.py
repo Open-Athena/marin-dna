@@ -27,7 +27,7 @@ from marin_dna.levanter.batch_tokenizer import DNABatchTokenizer
 def _tokenizer_available(tokenizer_name: str) -> bool:
     try:
         load_tokenizer(tokenizer_name)
-    except Exception:
+    except Exception:  # noqa: BLE001 - any download/load failure means unavailable
         return False
     return True
 

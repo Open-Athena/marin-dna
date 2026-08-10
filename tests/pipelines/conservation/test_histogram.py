@@ -1,5 +1,7 @@
 """Tests for ``marin_dna.pipelines.conservation.histogram``."""
 
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
@@ -65,7 +67,7 @@ def test_threshold_for_count_monotone(
     hist = _hist_from_values(synthetic_values, edges)
     targets = [100, 1_000, 10_000, 50_000]
     thresholds = [hist.threshold_for_count(t) for t in targets]
-    for a, b in zip(thresholds, thresholds[1:]):
+    for a, b in pairwise(thresholds):
         assert a >= b, f"non-monotone: targets {targets}, thresholds {thresholds}"
 
 

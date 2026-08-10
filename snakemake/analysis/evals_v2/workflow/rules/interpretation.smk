@@ -21,6 +21,7 @@ rule compute_nuc_dep:
         combine="|".join(NUC_DEP_COMBINES),
         model="|".join(NUC_DEP_MODELS),
         locus="|".join(NUC_DEP_LOCI),
+    threads: config["inference"]["num_workers"]
     params:
         # Output-affecting fields only (tracked by snakemake's `params` rerun
         # trigger). batch_size is execution-only and read inside `run:`.
@@ -30,7 +31,6 @@ rule compute_nuc_dep:
         strand=lambda wc: config["nuc_dep"]["loci"][wc.locus]["strand"],
         window_size=lambda wc: get_nuc_dep_window(wc.model),
         norm_ord=get_nuc_dep_ord(),
-    threads: config["inference"]["num_workers"]
     run:
         from marin_dna.pipelines.evals.interpretation import compute_dependency_map
 
@@ -50,7 +50,9 @@ rule compute_nuc_dep:
         n = int(params.end) - int(params.start)
         assert df.shape == (n, n), f"expected {n}x{n} map, got {df.shape}"
         df.to_parquet(output[0])
-        print(f"[nuc_dep] {wildcards.model} {wildcards.locus}: {df.shape[0]}x{df.shape[1]}")
+        print(
+            f"[nuc_dep] {wildcards.model} {wildcards.locus}: {df.shape[0]}x{df.shape[1]}"
+        )
 
 
 rule plot_nuc_dep:

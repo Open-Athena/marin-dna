@@ -508,7 +508,7 @@ def _make_batch_transform(
         # Convert back to batch format
         return {
             key: [ex[key] for ex in transformed_examples]
-            for key in transformed_examples[0].keys()
+            for key in transformed_examples[0]
         }
 
     return batch_transform_fn

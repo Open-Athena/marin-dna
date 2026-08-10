@@ -268,11 +268,15 @@ def build_training_readme(
 
     genome_word = "genome" if n_genomes == 1 else "genomes"
     steps = [
-        "Download genome assemblies (soft-masked 2bit) + GTF annotations from "
-        f"NCBI RefSeq for every genome in `{genome_set}` ({n_genomes} {genome_word}).",
+        (
+            "Download genome assemblies (soft-masked 2bit) + GTF annotations from "
+            f"NCBI RefSeq for every genome in `{genome_set}` ({n_genomes} {genome_word})."
+        ),
         f"Build the `{recipe}` interval set per genome — see *Region recipe* above.",
-        f"Tile into {window} bp / {stride} bp windows; drop windows overlapping "
-        "undefined (`N`) sequence.",
+        (
+            f"Tile into {window} bp / {stride} bp windows; drop windows overlapping "
+            "undefined (`N`) sequence."
+        ),
         "Extract sequence with `twoBitToFa` (soft-masking preserved).",
     ]
     if add_rc:

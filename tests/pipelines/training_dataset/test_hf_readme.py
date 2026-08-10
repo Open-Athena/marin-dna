@@ -25,32 +25,32 @@ PREFIX = "bolinas-dna/genomes-v5"
 
 
 def _training(**overrides: object) -> str:
-    kwargs: dict[str, object] = dict(
-        genome_set="animals",
-        recipe="v5",
-        window=255,
-        stride=128,
-        hf_prefix=PREFIX,
-        commit_sha=SHA,
-        n_genomes=499,
-        n_samples=12_345_678,
-    )
+    kwargs: dict[str, object] = {
+        "genome_set": "animals",
+        "recipe": "v5",
+        "window": 255,
+        "stride": 128,
+        "hf_prefix": PREFIX,
+        "commit_sha": SHA,
+        "n_genomes": 499,
+        "n_samples": 12_345_678,
+    }
     kwargs.update(overrides)
     return build_training_readme(**kwargs)  # type: ignore[arg-type]
 
 
 def _validation(**overrides: object) -> str:
-    kwargs: dict[str, object] = dict(
-        recipe="v1",
-        window=255,
-        stride=255,
-        hf_prefix=PREFIX,
-        commit_sha=SHA,
-        n_samples=15_000,
-        phylop_threshold=2.27,
-        max_samples=16384,
-        seed=42,
-    )
+    kwargs: dict[str, object] = {
+        "recipe": "v1",
+        "window": 255,
+        "stride": 255,
+        "hf_prefix": PREFIX,
+        "commit_sha": SHA,
+        "n_samples": 15_000,
+        "phylop_threshold": 2.27,
+        "max_samples": 16384,
+        "seed": 42,
+    }
     kwargs.update(overrides)
     return build_validation_readme(**kwargs)  # type: ignore[arg-type]
 

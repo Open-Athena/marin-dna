@@ -11,10 +11,10 @@ rule derive_subset_v2_tss_mrna:
     output:
         band="results/projection/min{min_p}/subsets_def/v2_band.bed",
         names="results/projection/min{min_p}/subsets_def/v2.query_names.txt",
-    params:
-        flank=TSS_FLANK,
     conda:
         "../envs/bioinformatics.yaml"
+    params:
+        flank=TSS_FLANK,
     run:
         from marin_dna.pipelines.projection.tss import write_mrna_tss_band_bed
 

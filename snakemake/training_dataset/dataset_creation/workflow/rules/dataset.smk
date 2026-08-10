@@ -13,9 +13,9 @@ rule prepare_intervals_for_window_seq:
     shell:
         """
         mkdir -p $(dirname {output})
-        zcat {input} |
-        awk 'BEGIN {{OFS="\\t"}} {{print $1, $2, $3, "."}}' |
-        gzip > {output}
+        zcat {input} \
+            | awk 'BEGIN {{OFS="\\t"}} {{print $1, $2, $3, "."}}' \
+            | gzip >{output}
         """
 
 
@@ -69,10 +69,10 @@ rule create_functional_validation:
     run:
         val_config = config["validation"]
         threshold = val_config["phylop_threshold"]
-
         # Load chrom name mapping (RefSeq -> UCSC)
-        chrom_map = dict(pl.read_csv(input.chrom_mapping, separator="\t").iter_rows())
-
+        chrom_map = dict(
+            pl.read_csv(input.chrom_mapping, separator="\t").iter_rows()
+        )
         # Load and subsample sequences
         series = load_fasta(input.fasta)
         df = series.to_frame().reset_index(names="id")
@@ -81,20 +81,15 @@ rule create_functional_validation:
                 {"id": [], "seq": []}, schema={"id": pl.String, "seq": pl.String}
             ).write_parquet(output[0])
             return
-
         df.id = df.id.astype(str)
         max_samples = val_config["max_samples"]
-
         # Filter to sequences on mapped chromosomes before subsampling
         df["chrom"] = df["id"].apply(lambda x: x.rsplit(":", 1)[0])
         df = df[df["chrom"].isin(chrom_map)]
         df = df.drop(columns=["chrom"])
-
         if len(df) > max_samples:
             df = df.sample(n=max_samples, random_state=val_config["seed"])
-
         bw = pyBigWig.open(input.bigwig)
-
 
         def encode_case(row):
             """Encode conservation as case: uppercase iff phyloP >= threshold."""
@@ -108,15 +103,14 @@ rule create_functional_validation:
                 for b, s in zip(row["seq"], scores)
             )
 
-
         df["seq"] = df.apply(encode_case, axis=1)
         bw.close()
-
         pl.from_pandas(df[["id", "seq"]]).write_parquet(output[0])
 
 
 rule merge_datasets:
     """Merge per-genome training parquets, shuffle, and shard into JSONL."""
+
     # Use explicit {recipe}/{w}/{s} wildcards (each bounded by '/' in the
     # path template) instead of a single {intervals} wildcard whose slashes
     # would race with the genome_set wildcard for greedy matching, producing
@@ -130,12 +124,14 @@ rule merge_datasets:
             g=genome_sets[wildcards.genome_set],
         ),
     output:
-        temp(local(
-            expand(
-                "results/dataset/{{genome_set}}/{{recipe}}/{{w}}/{{s}}/data/train/{shard}.jsonl",
-                shard=SHARDS,
+        temp(
+            local(
+                expand(
+                    "results/dataset/{{genome_set}}/{{recipe}}/{{w}}/{{s}}/data/train/{shard}.jsonl",
+                    shard=SHARDS,
+                )
             )
-        )),
+        ),
     threads: workflow.cores
     run:
         df = pl.concat(
@@ -162,26 +158,30 @@ rule compress_shard:
 rule hf_upload_training:
     """Upload training dataset shards to HuggingFace."""
     input:
-        local(expand(
-            "results/dataset/{{genome_set}}/{{recipe}}/{{w}}/{{s}}/data/train/{shard}.jsonl.zst",
-            shard=SHARDS,
-        )),
+        local(
+            expand(
+                "results/dataset/{{genome_set}}/{{recipe}}/{{w}}/{{s}}/data/train/{shard}.jsonl.zst",
+                shard=SHARDS,
+            )
+        ),
     output:
         # Explicit `touch {output}` in shell instead of snakemake's `touch()`
         # wrapper -- with default-storage-provider=s3 the wrapper doesn't
         # auto-create the marker, leaving snakemake to declare the output
         # missing even though the upload succeeded.
         "results/upload.done/training/{genome_set}/{recipe}/{w}/{s}",
+    threads: workflow.cores
     params:
         name=lambda wildcards: (
             config["output_hf_prefix"]
-            + "-genome_set-" + wildcards.genome_set
-            + "-intervals-" + f"{wildcards.recipe}_{wildcards.w}_{wildcards.s}"
+            + "-genome_set-"
+            + wildcards.genome_set
+            + "-intervals-"
+            + f"{wildcards.recipe}_{wildcards.w}_{wildcards.s}"
         ),
         data_dir=lambda wildcards: (
             f"results/dataset/{wildcards.genome_set}/{wildcards.recipe}/{wildcards.w}/{wildcards.s}"
         ),
-    threads: workflow.cores
     shell:
         """
         hf upload-large-folder {params.name} --repo-type dataset {params.data_dir}
@@ -200,7 +200,8 @@ rule hf_upload_validation:
         name=lambda wildcards: (
             config["output_hf_prefix"]
             + "-validation"
-            + "-intervals-" + wildcards.intervals.replace("/", "_")
+            + "-intervals-"
+            + wildcards.intervals.replace("/", "_")
         ),
     shell:
         "hf upload {params.name} {input} validation.parquet --repo-type dataset"
@@ -234,9 +235,7 @@ rule training_hf_readme:
     consideration.
     """
     input:
-        uploaded=ancient(
-            "results/upload.done/training/{genome_set}/{recipe}/{w}/{s}"
-        ),
+        uploaded=ancient("results/upload.done/training/{genome_set}/{recipe}/{w}/{s}"),
     output:
         "results/readme/training/{genome_set}/{recipe}/{w}/{s}/README.md",
     params:
@@ -263,7 +262,6 @@ rule training_hf_readme:
             for g in genome_sets[wildcards.genome_set]
         ]
         n_samples = count_parquet_rows(parquet_uris)
-
         write_training_readme(
             output[0],
             genome_set=wildcards.genome_set,
@@ -295,8 +293,10 @@ rule hf_upload_training_readme:
     params:
         name=lambda wildcards: (
             config["output_hf_prefix"]
-            + "-genome_set-" + wildcards.genome_set
-            + "-intervals-" + f"{wildcards.recipe}_{wildcards.w}_{wildcards.s}"
+            + "-genome_set-"
+            + wildcards.genome_set
+            + "-intervals-"
+            + f"{wildcards.recipe}_{wildcards.w}_{wildcards.s}"
         ),
     shell:
         """
@@ -339,7 +339,6 @@ rule validation_hf_readme:
         )
 
         n_samples = count_parquet_rows([input.parquet])
-
         write_validation_readme(
             output[0],
             recipe=wildcards.recipe,
@@ -372,7 +371,8 @@ rule hf_upload_validation_readme:
         name=lambda wildcards: (
             config["output_hf_prefix"]
             + "-validation"
-            + "-intervals-" + f"{wildcards.recipe}_{wildcards.w}_{wildcards.s}"
+            + "-intervals-"
+            + f"{wildcards.recipe}_{wildcards.w}_{wildcards.s}"
         ),
     shell:
         """

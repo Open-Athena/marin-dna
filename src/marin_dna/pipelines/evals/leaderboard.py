@@ -316,17 +316,19 @@ def normalized_rows(dataset: str) -> pl.DataFrame:
 # Explicit schema so an empty result (no probe-capable model has a probe parquet yet) still
 # concatenates cleanly with `normalized_rows` in the dashboard loader. Mirrors the column
 # order and dtypes `normalized_rows` produces.
-_PROBE_ROW_SCHEMA: dict[str, pl.DataType] = {
-    "method_id": pl.String,
-    "method_display": pl.String,
-    "family": pl.String,
-    "protocol": pl.String,
-    "subset": pl.String,
-    "value": pl.Float64,
-    "se": pl.Float64,
-    "n": pl.Int64,
-    "n_positives": pl.Int64,
-}
+_PROBE_ROW_SCHEMA = pl.Schema(
+    {
+        "method_id": pl.String,
+        "method_display": pl.String,
+        "family": pl.String,
+        "protocol": pl.String,
+        "subset": pl.String,
+        "value": pl.Float64,
+        "se": pl.Float64,
+        "n": pl.Int64,
+        "n_positives": pl.Int64,
+    }
+)
 
 # Families whose per-allele embeddings we probe. `marin_dna` metrics come from the evals_v2
 # pipeline on S3; `evo2` runs off-pipeline (Vortex backend, no HF KV-cache) and is published to
@@ -465,7 +467,12 @@ def _nan_float(x: object) -> float:
     round-trips as a *null*, so Spearman rows (``n_pos`` = NaN, by design) and
     any degenerate-bootstrap ``se`` come back as ``None``; keep them as NaN
     rather than crashing on ``float(None)``."""
-    return float("nan") if x is None else float(x)
+    if x is None:
+        return float("nan")
+    assert isinstance(x, int | float), (
+        f"expected a numeric value or None, got {type(x)!r}"
+    )
+    return float(x)
 
 
 def sge_normalized_rows(dataset: str = "sge") -> pl.DataFrame:

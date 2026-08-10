@@ -91,7 +91,7 @@ if __name__ == "__main__":
 ## Installation
 
 ```bash
-uv sync
+uv sync --locked
 ```
 
 <details>
@@ -99,7 +99,7 @@ uv sync
 
 | Selector | Purpose |
 |---|---|
-| `--group dev` | Pre-commit, ruff, pytest, snakefmt. |
+| `--group dev` | Pre-commit, mypy, and pytest. Ruff and snakefmt run in isolated pre-commit environments. |
 | `--group aws-cli` | `awscli` for snakemake rules that shell out to `aws s3 cp` (e.g. `evals/ldscore_download`). |
 | `--group genome-s3` | Modern `s3fs` for `Genome(s3://…)` FASTA reads (e.g. evals_v2). Mutually exclusive with `aws-cli` (which pins older fsspec/s3fs). |
 
@@ -113,16 +113,30 @@ from here — each experiment is a self-contained directory with its own
 ## Development
 
 ```bash
-# Install dev dependencies and pre-commit hooks
-uv sync --group dev
+# Install the locked dev environment and local commit hooks
+uv sync --locked --group dev
 uv run pre-commit install
 
-# Run quality checks
-uv run pre-commit run
+# Run the same quality checks as CI
+uv run pre-commit run --all-files --show-diff-on-failure
 
 # Run tests
 uv run pytest
 ```
+
+The local hook and GitHub Quality job use the same `.pre-commit-config.yaml`; GitHub reports formatter diffs but never pushes changes to a pull-request branch.
+
+Dependabot opens grouped monthly updates for remote pre-commit hooks, the uv-managed pre-commit and mypy packages, GitHub Actions, and dashboard npm dependencies.
+
+| Check | Local `git commit` | Local full validation | GitHub pull requests and `main` |
+|---|---|---|---|
+| YAML/TOML, merge markers, large files, EOF, whitespace | Staged files | All tracked files | `Quality / pre-commit` |
+| Ruff lint and formatting | Changed Python files | All Python files | `Quality / pre-commit` |
+| snakefmt | Changed Snakemake files | All Snakemake files | `Quality / pre-commit` |
+| mypy | Whole library when a library file is staged | Whole `src/marin_dna` tree | `Quality / pre-commit` |
+| pytest | Not automatic | Full `uv run pytest` | `Test / test` runs `pytest -m "not slow"` |
+| Dashboard | Not automatic | Optional manual build | `Dashboard / build` |
+| Snakemake dry-runs | Not automatic | Required for pipeline behavior changes | Not a permanent CI gate |
 
 ## Project Structure
 

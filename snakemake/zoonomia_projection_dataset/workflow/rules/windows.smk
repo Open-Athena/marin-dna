@@ -25,10 +25,10 @@ rule make_windows:
         r"""
         TMPSIZES=$(mktemp)
         trap "rm -f $TMPSIZES" EXIT
-        awk -v c={wildcards.chrom} '$1 == c' {input.sizes} > $TMPSIZES
+        awk -v c={wildcards.chrom} '$1 == c' {input.sizes} >$TMPSIZES
         bedtools makewindows -g $TMPSIZES -w {params.w} -s {params.s} \
-          | awk -v w={params.w} -v c={wildcards.chrom} 'BEGIN {{OFS="\t"}}
+            | awk -v w={params.w} -v c={wildcards.chrom} 'BEGIN {{OFS="\t"}}
               $3 - $2 == w {{ printf "%s\t%d\t%d\twin_%s_%09d\n", $1, $2, $3, c, NR }}' \
-          | bedtools intersect -a stdin -b {input.undefined} -v \
-          | gzip > {output}
+            | bedtools intersect -a stdin -b {input.undefined} -v \
+            | gzip >{output}
         """

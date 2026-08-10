@@ -88,9 +88,9 @@ for _d in config["datasets"]:
 # The pooled embedding (#318) is the FWD+RC average, so it needs both strands —
 # fail at config load rather than store a silently fwd-only vector mislabeled as
 # the average.
-assert not config["inference"].get("return_embeddings", False) or config[
-    "inference"
-]["rc"], "inference.return_embeddings=true requires inference.rc=true"
+assert (
+    not config["inference"].get("return_embeddings", False) or config["inference"]["rc"]
+), "inference.return_embeddings=true requires inference.rc=true"
 
 
 # Wildcard alternations used across rules.
@@ -158,12 +158,13 @@ for _c in NUC_DEP_COMBINES:
 for _m in NUC_DEP_MODELS:
     assert _m in MODELS, f"nuc_dep model {_m!r} not found in `models`"
 for _loc, _c in NUC_DEP_CFG.get("loci", {}).items():
-    assert _c["end"] > _c["start"], (
-        f"nuc_dep locus {_loc!r}: end {_c['end']} must exceed start {_c['start']}"
-    )
-    assert _c["strand"] in ("+", "-"), (
-        f"nuc_dep locus {_loc!r}: strand must be '+' or '-', got {_c['strand']!r}"
-    )
+    assert (
+        _c["end"] > _c["start"]
+    ), f"nuc_dep locus {_loc!r}: end {_c['end']} must exceed start {_c['start']}"
+    assert _c["strand"] in (
+        "+",
+        "-",
+    ), f"nuc_dep locus {_loc!r}: strand must be '+' or '-', got {_c['strand']!r}"
     for _m in NUC_DEP_MODELS:
         _ws = get_nuc_dep_window(_m)
         assert _c["end"] - _c["start"] <= _ws, (
@@ -184,9 +185,9 @@ for _m in UMAP_MODELS:
     assert _m in MODELS, f"umap_embeddings model {_m!r} not found in `models`"
     _ws = get_model_config(_m)["window_size"]
     _nc = UMAP_CFG.get("n_center_bp", 100)
-    assert _ws >= _nc, (
-        f"umap_embeddings model {_m!r} window_size {_ws} < n_center_bp {_nc}"
-    )
+    assert (
+        _ws >= _nc
+    ), f"umap_embeddings model {_m!r} window_size {_ws} < n_center_bp {_nc}"
 
 
 # --- LL gap (functional vs non-functional log-likelihood, issue #274) --------
@@ -211,9 +212,9 @@ def get_ll_gap_dataset_config(name):
 for _m in LL_GAP_MODELS:
     assert _m in MODELS, f"ll_gap model {_m!r} not found in `models`"
 for _d in LL_GAP_CFG.get("datasets", []):
-    assert "hf_repo" in _d and "hf_revision" in _d, (
-        f"ll_gap dataset {_d.get('name')!r} needs `hf_repo` + `hf_revision`"
-    )
+    assert (
+        "hf_repo" in _d and "hf_revision" in _d
+    ), f"ll_gap dataset {_d.get('name')!r} needs `hf_repo` + `hf_revision`"
 
 
 # --- Linear probe (frozen-embedding VEP, issue #320) ------------------------

@@ -27,7 +27,6 @@ from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
     CRE_RECIPES,
 )
 
-
 VALIDATION_RECIPES = list(config["validation_recipes"])
 VALIDATION_MIN_P = float(config["validation_min_proportion_conserved"])
 VALIDATION_MAX_SAMPLES = int(config["validation_max_samples"])
@@ -64,7 +63,7 @@ rule defined_regions:
     shell:
         r"""
         awk 'BEGIN {{OFS="\t"}} {{print $1, 0, $2}}' {input.sizes} \
-          | bedtools subtract -a stdin -b {input.undefined} > {output}
+            | bedtools subtract -a stdin -b {input.undefined} >{output}
         """
 
 
@@ -152,10 +151,6 @@ rule validation_region_annotation:
         "results/human/intervals/validation/region/{recipe}.bed.gz",
     wildcard_constraints:
         recipe=ANNOTATION_RECIPES_RE,
-    params:
-        ncrna_biotypes=VALIDATION_NCRNA_BIOTYPES,
-        canonical_tag=VALIDATION_CANONICAL_TAG,
-        tss_flank=VALIDATION_TSS_FLANK,
     resources:
         # GTF-loading rules peak ~7-10 GB each (polars `with_columns` filter
         # transiently doubles the ~3 GB parsed Ensembl r115 frame). On a
@@ -163,6 +158,10 @@ rule validation_region_annotation:
         # attempts at lower mem_mb let Snakemake schedule concurrent loads
         # that OOMed.
         mem_mb=16000,
+    params:
+        ncrna_biotypes=VALIDATION_NCRNA_BIOTYPES,
+        canonical_tag=VALIDATION_CANONICAL_TAG,
+        tss_flank=VALIDATION_TSS_FLANK,
     run:
         from marin_dna.data.intervals import GenomicSet
         from marin_dna.data.utils import load_annotation
@@ -174,9 +173,7 @@ rule validation_region_annotation:
 
         ann = load_annotation(input.gtf)
         canonical = filter_to_canonical_transcripts(ann, tag=params.canonical_tag)
-        n_canonical = (
-            canonical.filter(pl.col("feature") == "transcript").height
-        )
+        n_canonical = canonical.filter(pl.col("feature") == "transcript").height
         assert n_canonical > 10_000, (
             f"too few transcripts tagged {params.canonical_tag!r}: "
             f"{n_canonical} (expected >10k for human r115)"
@@ -193,9 +190,9 @@ rule validation_region_annotation:
                 defined,
                 ncrna_biotypes=params.ncrna_biotypes,
             )
-        assert intervals.n_intervals() > 0, (
-            f"empty region BED for {wildcards.recipe}"
-        )
+        assert (
+            intervals.n_intervals() > 0
+        ), f"empty region BED for {wildcards.recipe}"
         intervals.write_bed(output[0])
 
 
@@ -220,7 +217,9 @@ rule validation_region_cre:
         recipe=CRE_RECIPES_RE,
     run:
         from marin_dna.data.intervals import GenomicSet
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import build_cre_region
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+            build_cre_region,
+        )
 
         defined = GenomicSet.read_bed(input.defined)
         if wildcards.recipe == "val_enhancer":
@@ -230,9 +229,9 @@ rule validation_region_cre:
         intervals = build_cre_region(
             wildcards.recipe, input.cre, defined, subtract=subtract
         )
-        assert intervals.n_intervals() > 0, (
-            f"empty cCRE region BED for {wildcards.recipe}"
-        )
+        assert (
+            intervals.n_intervals() > 0
+        ), f"empty cCRE region BED for {wildcards.recipe}"
         intervals.write_bed(output[0])
 
 
@@ -261,9 +260,9 @@ rule validation_tile:
     shell:
         r"""
         bedtools makewindows -b {input} -w {params.w} -s {params.w} \
-          | awk -v w={params.w} 'BEGIN {{OFS="\t"}} \
+            | awk -v w={params.w} 'BEGIN {{OFS="\t"}} \
               $3 - $2 == w {{ print $1, $2, $3, "." }}' \
-          | gzip > {output}
+            | gzip >{output}
         """
 
 
@@ -276,10 +275,10 @@ rule validation_score:
         "results/human/intervals/validation/scored/{recipe}.parquet",
     wildcard_constraints:
         recipe=RECIPE_RE,
-    params:
-        threshold=PHYLOP_447M_THRESHOLD,
     resources:
         mem_mb=2000,
+    params:
+        threshold=PHYLOP_447M_THRESHOLD,
     run:
         windows_df = pl.read_csv(
             input.windows,
@@ -379,7 +378,7 @@ rule validation_extract_seq:
         r"""
         TMP=$(mktemp)
         trap "rm -f $TMP" EXIT
-        zcat {input.bed} > $TMP
+        zcat {input.bed} >$TMP
         twoBitToFa {input.twobit} {output} -bed=$TMP -bedPos
         """
 
@@ -398,11 +397,11 @@ rule validation_dataset:
         "results/human/intervals/validation/dataset/{recipe}.parquet",
     wildcard_constraints:
         recipe=RECIPE_RE,
+    resources:
+        mem_mb=2000,
     params:
         threshold=PHYLOP_447M_THRESHOLD,
         window_size=WINDOW_SIZE,
-    resources:
-        mem_mb=2000,
     run:
         from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
             case_encode_sequences,
@@ -419,9 +418,9 @@ rule validation_dataset:
         # Allowed alphabet: ACGT both cases + N both cases (genome may contain
         # N at masked positions; case encodes conservation orthogonally).
         bad = df["seq"].str.contains(r"[^ACGTacgtNn]")
-        assert not bad.any(), (
-            f"unexpected character in {wildcards.recipe} seq column"
-        )
+        assert (
+            not bad.any()
+        ), f"unexpected character in {wildcards.recipe} seq column"
         df.write_parquet(output[0])
 
 
@@ -451,7 +450,9 @@ rule validation_hf_readme:
         ncrna_biotypes=VALIDATION_NCRNA_BIOTYPES,
         canonical_tag=VALIDATION_CANONICAL_TAG,
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import write_hf_readme
+        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+            write_hf_readme,
+        )
 
         write_hf_readme(
             wildcards.recipe,
@@ -478,9 +479,9 @@ rule hf_upload_validation:
         "results/upload.done/validation/{recipe}",
     wildcard_constraints:
         recipe=RECIPE_RE,
+    threads: 4
     params:
         repo=lambda wc: f"{HF_OWNER}/zoonomia-{PIPELINE_VERSION}-{wc.recipe}",
-    threads: 4
     shell:
         """
         hf upload {params.repo} {input.parquet} {wildcards.recipe}.parquet --repo-type dataset

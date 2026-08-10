@@ -31,9 +31,12 @@ rule download_model:
     run:
         out = output[0]
         if params.gcs_path:
-            shell(f"mkdir -p {out} && gcloud storage cp -r '{params.gcs_path}/*' {out}/")
+            shell(
+                f"mkdir -p {out} && gcloud storage cp -r '{params.gcs_path}/*' {out}/"
+            )
         elif params.hf_repo:
             from huggingface_hub import snapshot_download
+
             snapshot_download(repo_id=params.hf_repo, local_dir=out)
         else:
             raise ValueError(

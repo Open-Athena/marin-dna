@@ -141,14 +141,16 @@ def test_compute_dependency_map_rejects_n_window():
     window_size = 10
     stub = np.zeros((6, 6))
     n_seq = "N" + "A" * (window_size - 1)  # length OK, but contains N
-    with _mocked_compute(window_size, stub, genome_seq=n_seq):
-        with pytest.raises(AssertionError, match="contains N"):
-            compute_dependency_map(
-                checkpoint_path="/ckpt",
-                genome_path="/g.fa",
-                chrom="1",
-                start=1000,
-                end=1006,
-                strand="+",
-                window_size=window_size,
-            )
+    with (
+        _mocked_compute(window_size, stub, genome_seq=n_seq),
+        pytest.raises(AssertionError, match="contains N"),
+    ):
+        compute_dependency_map(
+            checkpoint_path="/ckpt",
+            genome_path="/g.fa",
+            chrom="1",
+            start=1000,
+            end=1006,
+            strand="+",
+            window_size=window_size,
+        )

@@ -18,8 +18,6 @@ rule score_windows_chrom:
         bw="results/bigwig/phyloP_447m.bw",
     output:
         "results/human/intervals/scored/per_chrom/phyloP_447m_{chrom}.parquet",
-    params:
-        threshold=PHYLOP_447M_THRESHOLD,
     wildcard_constraints:
         chrom="|".join(STANDARD_CHROMS),
     resources:
@@ -27,6 +25,8 @@ rule score_windows_chrom:
         # at 1.5 GB so Snakemake's scheduler caps concurrency below the
         # 16 GB ceiling of c6id.2xlarge (an earlier run OOMed at 8x).
         mem_mb=1500,
+    params:
+        threshold=PHYLOP_447M_THRESHOLD,
     run:
         windows_df = pl.read_csv(
             input.windows,
@@ -41,13 +41,11 @@ rule score_windows_chrom:
             },
         )
         assert len(windows_df) > 0, f"no windows in {input.windows}"
-        assert (windows_df["chrom"] == wildcards.chrom).all(), (
-            f"per-chrom BED has rows on other chroms: {windows_df['chrom'].unique()}"
-        )
+        assert (
+            windows_df["chrom"] == wildcards.chrom
+        ).all(), f"per-chrom BED has rows on other chroms: {windows_df['chrom'].unique()}"
         assert (windows_df["end"] - windows_df["start"] == WINDOW_SIZE).all()
-
         scored = _score_windows(input.bw, windows_df, params.threshold)
-
         assert len(scored) == len(windows_df)
         assert (scored["conserved_bases"] >= 0).all()
         assert (

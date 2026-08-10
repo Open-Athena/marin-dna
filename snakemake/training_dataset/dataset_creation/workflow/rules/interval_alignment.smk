@@ -16,6 +16,7 @@ frontier for hg38↔mm10 cCRE orthologs (~70% R@1 at ~97% P@1 on the
 phyloP_241m-conserved subset, vs. minimap2's ~40% R@1).
 """
 
+
 rule genome_fa:
     """Whole-genome FASTA; required as the mmseqs2 target input."""
     input:
@@ -44,9 +45,10 @@ rule intervals_source_unified:
     run:
         cfg = MAPPINGS[wildcards.name]
         style = cfg.get("source_chrom_style")
-        assert style in (None, "ucsc_stripped"), (
-            f"unsupported source_chrom_style {style!r}; expected None or 'ucsc_stripped'"
-        )
+        assert style in (
+            None,
+            "ucsc_stripped",
+        ), f"unsupported source_chrom_style {style!r}; expected None or 'ucsc_stripped'"
         df = pl.read_parquet(input.source_parquet)
         if style == "ucsc_stripped":
             chrom_map = pl.read_csv(input.chrom_mapping, separator="\t")
@@ -147,22 +149,22 @@ rule align_intervals_mmseqs2:
         target="results/genome/{g}.fa",
     output:
         tsv=temp("results/interval_alignment/{name}/{g}.hits.tsv"),
+    conda:
+        "../envs/mmseqs2.yaml"
+    threads: workflow.cores
+    resources:
+        mem_mb=lambda w: MAPPINGS[w.name].get("mem_mb", 14000),
     params:
         sensitivity=lambda w: MAPPINGS[w.name].get("sensitivity", 7.5),
         max_accept=lambda w: MAPPINGS[w.name].get("max_accept", 1),
         split_memory_limit=lambda w: MAPPINGS[w.name].get("split_memory_limit", "12G"),
-    threads: workflow.cores
-    resources:
-        mem_mb=lambda w: MAPPINGS[w.name].get("mem_mb", 14000),
-    conda:
-        "../envs/mmseqs2.yaml"
     shell:
         """
         TMP=$(mktemp -d -t mmseqs2_{wildcards.name}_{wildcards.g}_XXXX)
         trap 'rm -rf "$TMP"' EXIT
 
         mmseqs createdb {input.target} $TMP/targetDB --mask-lower-case 1
-        mmseqs createdb {input.query}  $TMP/queryDB  --mask-lower-case 1
+        mmseqs createdb {input.query} $TMP/queryDB --mask-lower-case 1
 
         mmseqs search \
             $TMP/queryDB $TMP/targetDB $TMP/resultDB $TMP/search_tmp \

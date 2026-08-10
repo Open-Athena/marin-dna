@@ -63,7 +63,7 @@ class DNABatchTokenizer(BatchProcessor[dict, dict]):
     def __call__(self, batch: Sequence[dict]) -> list[dict]:
         texts = [example[self.text_field] for example in batch]
 
-        assert len(set(len(t) for t in texts)) == 1, (
+        assert len({len(t) for t in texts}) == 1, (
             "All sequences must have the same length"
         )
 

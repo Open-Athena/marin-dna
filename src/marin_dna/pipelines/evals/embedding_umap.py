@@ -238,12 +238,14 @@ def plot_umap(
         hue: Any = umap_df["label"].map(REGION_DISPLAY)
         unmapped = sorted(set(umap_df["label"]) - set(REGION_DISPLAY))
         assert not unmapped, f"unmapped region labels: {unmapped}"
-        hue_kwargs: dict[str, Any] = dict(
-            hue=hue, hue_order=REGION_ORDER, palette=REGION_PALETTE
-        )
+        hue_kwargs: dict[str, Any] = {
+            "hue": hue,
+            "hue_order": REGION_ORDER,
+            "palette": REGION_PALETTE,
+        }
         legend_title = "Region"
     elif color_by == "conservation":
-        hue_kwargs = dict(hue=umap_df["cons"])
+        hue_kwargs = {"hue": umap_df["cons"]}
         legend_title = "Conservation"
     else:
         raise ValueError(

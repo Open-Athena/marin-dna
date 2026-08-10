@@ -283,15 +283,19 @@ def test_compute_variant_scores_embeddings_parquet_roundtrip(tmp_path):
 def test_compute_variant_scores_return_embeddings_requires_rc():
     ds = _stub_dataset()
     tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(3)
-    with tok_patch, model_patch, genome_patch:
-        with pytest.raises(AssertionError, match="requires rc=True"):
-            compute_variant_scores(
-                checkpoint_path="/unused",
-                dataset=ds,
-                genome_path="/unused.fa",
-                rc=False,
-                return_embeddings=True,
-            )
+    with (
+        tok_patch,
+        model_patch,
+        genome_patch,
+        pytest.raises(AssertionError, match="requires rc=True"),
+    ):
+        compute_variant_scores(
+            checkpoint_path="/unused",
+            dataset=ds,
+            genome_path="/unused.fa",
+            rc=False,
+            return_embeddings=True,
+        )
 
 
 def test_compute_variant_scores_embeddings_width_mismatch_asserts():

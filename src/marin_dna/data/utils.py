@@ -1,3 +1,5 @@
+from itertools import pairwise
+
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -54,7 +56,7 @@ def get_array_split_pairs(L: int, n_shards: int) -> list[tuple[int, int]]:
 
     # Create and return the (start, end) pairs
     # e.g., [(0, 5), (5, 10), (10, 15), (15, 19), (19, 23)]
-    return list(zip(indices[:-1], indices[1:]))
+    return list(pairwise(indices))
 
 
 def load_annotation(path: str) -> pl.DataFrame:

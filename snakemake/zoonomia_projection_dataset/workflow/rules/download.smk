@@ -8,10 +8,10 @@ single source of truth for conservation-track URLs.
 rule download_bigwig:
     output:
         "results/bigwig/{track}.bw",
-    params:
-        url=lambda wc: CONSERVATION_TRACKS[wc.track],
     wildcard_constraints:
         track="|".join(CONSERVATION_TRACKS),
+    params:
+        url=lambda wc: CONSERVATION_TRACKS[wc.track],
     shell:
         "wget -q {params.url} -O {output}"
 

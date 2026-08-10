@@ -1077,18 +1077,18 @@ def test_case_encode_window_size_mismatch_assertion(
 
 
 def _readme_kwargs(**overrides):
-    base = dict(
-        commit_sha="abcdef0123456789" * 2 + "abcd",  # 40-char fake SHA
-        hf_owner="bolinas-dna",
-        pipeline_version="v1",
-        ensembl_release=115,
-        threshold=2.2162,
-        min_proportion_conserved=0.20,
-        max_samples=16384,
-        seed=42,
-        ncrna_biotypes=["lncRNA", "miRNA", "snoRNA"],
-        canonical_tag="Ensembl_canonical",
-    )
+    base = {
+        "commit_sha": "abcdef0123456789" * 2 + "abcd",  # 40-char fake SHA
+        "hf_owner": "bolinas-dna",
+        "pipeline_version": "v1",
+        "ensembl_release": 115,
+        "threshold": 2.2162,
+        "min_proportion_conserved": 0.20,
+        "max_samples": 16384,
+        "seed": 42,
+        "ncrna_biotypes": ["lncRNA", "miRNA", "snoRNA"],
+        "canonical_tag": "Ensembl_canonical",
+    }
     base.update(overrides)
     return base
 

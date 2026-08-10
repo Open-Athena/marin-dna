@@ -55,8 +55,8 @@ rule compute_ll_gap:
 
 rule ll_gap:
     """Aggregate every (model, region) score-atom parquet into one summary
-(token-weighted LL_upper / LL_lower / gap per cell). Off `rule all` —
-build with `snakemake ll_gap`."""
+    (token-weighted LL_upper / LL_lower / gap per cell). Off `rule all` —
+    build with `snakemake ll_gap`."""
     input:
         [
             f"results/ll_gap/scores/{model}/{region}.parquet"

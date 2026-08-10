@@ -21,15 +21,15 @@ validation_intervals = config["intervals"]["validation"]
 # there (replace, not extend) — keeps specialised sets like
 # mammals_seg20 from also pulling in the default v5/v1/v15.
 for gs in training_per_genome_set:
-    assert gs in genome_sets, (
-        f"training_per_genome_set references unknown genome_set {gs!r}"
-    )
+    assert (
+        gs in genome_sets
+    ), f"training_per_genome_set references unknown genome_set {gs!r}"
 
 interval_mappings = config.get("interval_mappings", [])
 mapping_names = [m["name"] for m in interval_mappings]
-assert len(mapping_names) == len(set(mapping_names)), (
-    f"duplicate names in interval_mappings: {mapping_names}"
-)
+assert len(mapping_names) == len(
+    set(mapping_names)
+), f"duplicate names in interval_mappings: {mapping_names}"
 MAPPINGS = {m["name"]: m for m in interval_mappings}
 
 

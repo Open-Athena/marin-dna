@@ -142,7 +142,7 @@ def test_genome_forwards_storage_options_to_fsspec(monkeypatch):
     assert captured == {}
 
     with pytest.raises(_Sentinel):
-        g.chroms  # triggers _ensure_probed → _open_fasta → fsspec.open
+        _ = g.chroms  # triggers _ensure_probed → _open_fasta → fsspec.open
 
     assert captured["path"] == "s3://fake-bucket/x.fa"
     assert captured["kwargs"] == {"anon": True, "endpoint_url": "https://example"}

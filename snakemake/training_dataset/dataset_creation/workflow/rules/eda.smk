@@ -90,7 +90,6 @@ rule eda_download_dataset:
             filename=params.filename,
             repo_type="dataset",
         )
-
         # Copy to output location
         os.makedirs(os.path.dirname(output[0]), exist_ok=True)
         shutil.copy(downloaded_path, output[0])
@@ -126,7 +125,6 @@ rule eda_extract_ncrna_annotations_all:
         from marin_dna.data.utils import DEFAULT_NCRNA_BIOTYPES
 
         ann = load_annotation(input.annotation)
-
         # Get ALL exons with biotype info (not filtered to specific biotypes)
         all_exons = ann.filter(pl.col("feature") == "exon").with_columns(
             pl.col("attribute")
@@ -139,7 +137,6 @@ rule eda_extract_ncrna_annotations_all:
             pl.col("attribute").str.extract(r'gene_id "(.*?)"').alias("gene_id"),
             pl.col("attribute").str.extract(r'gene "(.*?)"').alias("gene_name"),
         )
-
         # Determine biotype (prefer transcript_biotype, fallback to gbkey)
         all_exons = all_exons.with_columns(
             pl.when(pl.col("transcript_biotype").is_not_null())
@@ -147,7 +144,6 @@ rule eda_extract_ncrna_annotations_all:
             .otherwise(pl.col("gbkey"))
             .alias("biotype")
         )
-
         # Filter to non-mRNA transcripts (exclude protein-coding)
         # Keep anything that's not mRNA and has a biotype
         ncrna_exons = all_exons.filter(
@@ -155,12 +151,12 @@ rule eda_extract_ncrna_annotations_all:
             & (pl.col("transcript_biotype").fill_null("") != "mRNA")
             & (pl.col("gbkey").fill_null("") != "mRNA")
         )
-
         # Mark if biotype is in our default list
         ncrna_exons = ncrna_exons.with_columns(
-            pl.col("biotype").is_in(DEFAULT_NCRNA_BIOTYPES).alias("in_default_biotypes")
+            pl.col("biotype")
+            .is_in(DEFAULT_NCRNA_BIOTYPES)
+            .alias("in_default_biotypes")
         )
-
         # Select final columns
         result = ncrna_exons.select(
             [
@@ -175,7 +171,6 @@ rule eda_extract_ncrna_annotations_all:
                 "in_default_biotypes",
             ]
         )
-
         result.write_parquet(output[0])
 
 
@@ -230,15 +225,13 @@ rule eda_filter_3_prime_utr_variants:
         # Load chromosome mapping (UCSC -> RefSeq)
         chrom_map = pl.read_csv(input.chrom_mapping, separator="\t")
         ucsc_to_refseq = dict(zip(chrom_map["ucsc"], chrom_map["refseq"]))
-
         # Load and filter variants
         variants = pl.read_parquet(input.variants)
-
         # Filter to 3' UTR variants only AND causal variants (label=True)
         variants = variants.filter(
-            (pl.col("consequence") == "3_prime_UTR_variant") & (pl.col("label") == True)
+            (pl.col("consequence") == "3_prime_UTR_variant")
+            & (pl.col("label") == True)
         )
-
         # Convert chromosome names to RefSeq
         # TraitGym uses plain numbers (1, 2, ..., X, Y)
         variants = variants.with_columns(
@@ -246,16 +239,13 @@ rule eda_filter_3_prime_utr_variants:
             .replace_strict(ucsc_to_refseq, default=None)
             .alias("chrom_refseq")
         ).filter(pl.col("chrom_refseq").is_not_null())
-
         # Create variant intervals (VCF 1-based -> BED 0-based)
         variants = variants.with_columns(
             (pl.col("pos") - 1).alias("start"),
             pl.col("pos").alias("end"),
         )
-
         # Load 3' UTR annotations
         utr = pl.read_parquet(input.utr_annotations)
-
         # Convert to pandas for bioframe
         variants_df = variants.select(
             [
@@ -269,7 +259,6 @@ rule eda_filter_3_prime_utr_variants:
                 "consequence",
             ]
         ).to_pandas()
-
         utr_df = utr.select(
             [
                 "chrom",
@@ -283,15 +272,12 @@ rule eda_filter_3_prime_utr_variants:
                 "gene_name",
             ]
         ).to_pandas()
-
         # Perform overlap
         overlaps_df = bf.overlap(
             variants_df, utr_df, how="inner", suffixes=("", "_utr")
         )
-
         # Convert back to polars
         overlaps = pl.from_pandas(overlaps_df)
-
         # Rename columns
         overlaps = overlaps.rename(
             {
@@ -303,7 +289,6 @@ rule eda_filter_3_prime_utr_variants:
                 "gene_name_utr": "gene_name",
             }
         )
-
         # Compute distance to CDS
         overlaps = overlaps.with_columns(
             pl.when(pl.col("strand") == "+")
@@ -311,7 +296,6 @@ rule eda_filter_3_prime_utr_variants:
             .otherwise(pl.col("cds_start") - pl.col("start") - 1)
             .alias("distance_to_cds")
         )
-
         overlaps.write_parquet(output[0])
 
 
@@ -337,32 +321,26 @@ rule eda_filter_ncrna_variants:
         # Load chromosome mapping (UCSC -> RefSeq)
         chrom_map = pl.read_csv(input.chrom_mapping, separator="\t")
         ucsc_to_refseq = dict(zip(chrom_map["ucsc"], chrom_map["refseq"]))
-
         # Load and filter variants
         variants = pl.read_parquet(input.variants)
-
         # Filter to non-coding transcript exon variants AND causal (label=True)
         variants = variants.filter(
             (pl.col("consequence") == "non_coding_transcript_exon_variant")
             & (pl.col("label") == True)
         )
-
         # Convert chromosome names to RefSeq
         variants = variants.with_columns(
             ("chr" + pl.col("chrom"))
             .replace_strict(ucsc_to_refseq, default=None)
             .alias("chrom_refseq")
         ).filter(pl.col("chrom_refseq").is_not_null())
-
         # Create variant intervals (VCF 1-based -> BED 0-based)
         variants = variants.with_columns(
             (pl.col("pos") - 1).alias("start"),
             pl.col("pos").alias("end"),
         )
-
         # Load ncRNA annotations
         ncrna = pl.read_parquet(input.ncrna_annotations)
-
         # Convert to pandas for bioframe
         variants_df = variants.select(
             [
@@ -376,7 +354,6 @@ rule eda_filter_ncrna_variants:
                 "consequence",
             ]
         ).to_pandas()
-
         ncrna_df = ncrna.select(
             [
                 "chrom",
@@ -390,15 +367,12 @@ rule eda_filter_ncrna_variants:
                 "in_default_biotypes",
             ]
         ).to_pandas()
-
         # Perform overlap
         overlaps_df = bf.overlap(
             variants_df, ncrna_df, how="inner", suffixes=("", "_ncrna")
         )
-
         # Convert back to polars
         overlaps = pl.from_pandas(overlaps_df)
-
         # Rename columns
         overlaps = overlaps.rename(
             {
@@ -410,7 +384,6 @@ rule eda_filter_ncrna_variants:
                 "in_default_biotypes_ncrna": "in_default_biotypes",
             }
         )
-
         overlaps.write_parquet(output[0])
 
 
@@ -426,11 +399,9 @@ rule eda_analyze_3_prime_utr_distance:
         "results/eda/{dataset}/analysis/3_prime_utr_distance.parquet",
     run:
         df = pl.read_parquet(input[0])
-
         # Deduplicate by position: use minimum distance to CDS
         # (collapses multi-allelic sites and multi-transcript overlaps)
         df = df.group_by(["chrom", "pos"]).agg(pl.col("distance_to_cds").min())
-
         # Save raw distances for histogram plotting
         df.write_parquet(output[0])
 
@@ -451,7 +422,6 @@ rule eda_analyze_3_prime_utr_mrna_distance:
 
         variants = pl.read_parquet(input.variants)
         utr_ann = pl.read_parquet(input.utr_annotations)
-
         result_df = compute_mrna_distances_for_variants(variants, utr_ann)
         result_df.write_parquet(output[0])
 
@@ -466,7 +436,6 @@ rule eda_analyze_ncrna_types:
         "results/eda/{dataset}/analysis/ncrna_types.parquet",
     run:
         df = pl.read_parquet(input[0])
-
         # Count unique variants per biotype (deduplicate by chrom, pos)
         # Also track if biotype is in default list
         type_stats = (
@@ -474,13 +443,11 @@ rule eda_analyze_ncrna_types:
             .agg(pl.struct("chrom", "pos").n_unique().alias("n_variants"))
             .sort("n_variants", descending=True)
         )
-
         # Add percentage
         total = type_stats["n_variants"].sum()
         type_stats = type_stats.with_columns(
             (pl.col("n_variants") / total * 100).alias("pct_variants")
         )
-
         type_stats.write_parquet(output[0])
 
 
@@ -496,14 +463,12 @@ rule eda_analyze_ncrna_sizes:
     run:
         variants = pl.read_parquet(input.variants)
         annotations = pl.read_parquet(input.annotations)
-
         # Calculate transcript size (sum of exon lengths per transcript)
         tx_sizes = annotations.group_by("transcript_id").agg(
             (pl.col("end") - pl.col("start")).sum().alias("transcript_size"),
             pl.col("biotype").first(),
             pl.col("in_default_biotypes").first(),
         )
-
         # Join variants with transcript sizes
         variants_with_size = variants.join(
             tx_sizes,
@@ -511,12 +476,10 @@ rule eda_analyze_ncrna_sizes:
             how="left",
             suffix="_tx",
         )
-
         # Deduplicate: use minimum transcript size per variant
         variants_with_size = variants_with_size.group_by(["chrom", "pos"]).agg(
             pl.col("transcript_size").min()
         )
-
         # Save raw sizes for histogram plotting
         variants_with_size.write_parquet(output[0])
 
@@ -540,23 +503,19 @@ rule eda_analyze_ncrna_distance_to_coding:
         variants = pl.read_parquet(input.variants)
         cds = pl.read_parquet(input.cds)
         mrna = pl.read_parquet(input.mrna)
-
         # Deduplicate variants by position
         variants_unique = variants.select(["chrom", "pos"]).unique()
         variants_unique = variants_unique.with_columns(
             (pl.col("pos") - 1).alias("start"),
             pl.col("pos").alias("end"),
         )
-
         # Convert to pandas for bioframe
         var_df = variants_unique.to_pandas()
         cds_df = cds.select(["chrom", "start", "end"]).unique().to_pandas()
         mrna_df = mrna.select(["chrom", "start", "end"]).unique().to_pandas()
-
         # Find nearest CDS for each variant
         nearest_cds = bf.closest(var_df, cds_df, suffixes=("", "_cds"))
         nearest_cds = pl.from_pandas(nearest_cds)
-
         # Compute distance to CDS (0 if overlapping)
         nearest_cds = nearest_cds.with_columns(
             pl.max_horizontal(
@@ -567,11 +526,9 @@ rule eda_analyze_ncrna_distance_to_coding:
                 ),
             ).alias("distance_to_cds")
         )
-
         # Find nearest mRNA exon for each variant
         nearest_mrna = bf.closest(var_df, mrna_df, suffixes=("", "_mrna"))
         nearest_mrna = pl.from_pandas(nearest_mrna)
-
         # Compute distance to mRNA (0 if overlapping)
         nearest_mrna = nearest_mrna.with_columns(
             pl.max_horizontal(
@@ -582,13 +539,11 @@ rule eda_analyze_ncrna_distance_to_coding:
                 ),
             ).alias("distance_to_mrna")
         )
-
         # Combine results
         result = nearest_cds.select(["chrom", "pos", "distance_to_cds"]).join(
             nearest_mrna.select(["chrom", "pos", "distance_to_mrna"]),
             on=["chrom", "pos"],
         )
-
         result.write_parquet(output[0])
 
 
@@ -611,7 +566,6 @@ rule eda_plot_3_prime_utr_distance:
         mrna_max_log="results/plots/eda/{dataset}/3_prime_utr/mrna_distance_max_log.svg",
     run:
         df = pl.read_parquet(input[0])
-
         # Define the three distance types to plot
         distance_configs = [
             (
@@ -636,10 +590,8 @@ rule eda_plot_3_prime_utr_distance:
                 output.mrna_max_log,
             ),
         ]
-
         for col, label, color, out_linear, out_log in distance_configs:
             distances = df[col].to_numpy()
-
             # Linear scale histogram
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.hist(distances, bins=50, color=color, alpha=0.8, edgecolor="black")
@@ -652,7 +604,6 @@ rule eda_plot_3_prime_utr_distance:
             plt.tight_layout()
             plt.savefig(out_linear, format="svg", bbox_inches="tight")
             plt.close()
-
             # Log scale histogram
             fig, ax = plt.subplots(figsize=(10, 6))
             positive = distances[distances > 0]
@@ -660,7 +611,9 @@ rule eda_plot_3_prime_utr_distance:
                 bins = np.logspace(
                     np.log10(max(1, positive.min())), np.log10(positive.max()), 30
                 )
-                ax.hist(positive, bins=bins, color=color, alpha=0.8, edgecolor="black")
+                ax.hist(
+                    positive, bins=bins, color=color, alpha=0.8, edgecolor="black"
+                )
                 ax.set_xscale("log")
             ax.set_xlabel(f"{label} (bp, log scale)")
             ax.set_ylabel("Number of Causal Variants")
@@ -685,20 +638,15 @@ rule eda_plot_ncrna_types:
         from marin_dna.data.utils import DEFAULT_NCRNA_BIOTYPES
 
         df = pl.read_parquet(input[0]).to_pandas()
-
         fig, ax = plt.subplots(figsize=(12, max(6, len(df) * 0.4)))
-
         y = np.arange(len(df))
         height = 0.6
-
         # Color by whether biotype is in default list
         colors = [
             "#2ecc71" if in_default else "#95a5a6"
             for in_default in df["in_default_biotypes"]
         ]
-
         bars = ax.barh(y, df["n_variants"], height, color=colors, alpha=0.8)
-
         # Add count labels
         max_val = df["n_variants"].max()
         for bar, count, pct in zip(bars, df["n_variants"], df["pct_variants"]):
@@ -709,23 +657,22 @@ rule eda_plot_ncrna_types:
                 va="center",
                 fontsize=9,
             )
-
             # Add legend for colors
         from matplotlib.patches import Patch
 
         legend_elements = [
-            Patch(facecolor="#2ecc71", alpha=0.8, label="In DEFAULT_NCRNA_BIOTYPES"),
+            Patch(
+                facecolor="#2ecc71", alpha=0.8, label="In DEFAULT_NCRNA_BIOTYPES"
+            ),
             Patch(facecolor="#95a5a6", alpha=0.8, label="Not in defaults"),
         ]
         ax.legend(handles=legend_elements, loc="lower right")
-
         ax.set_yticks(y)
         ax.set_yticklabels(df["biotype"])
         ax.set_xlabel("Number of Causal Variants")
         ax.set_title(f"ncRNA Causal Variants by Biotype ({wildcards.dataset})")
         ax.grid(axis="x", alpha=0.3)
         ax.invert_yaxis()
-
         plt.tight_layout()
         plt.savefig(output[0], format="svg", bbox_inches="tight")
         plt.close()
@@ -743,7 +690,6 @@ rule eda_plot_ncrna_sizes:
     run:
         df = pl.read_parquet(input[0])
         sizes = df["transcript_size"].drop_nulls().to_numpy()
-
         # Linear scale histogram
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.hist(sizes, bins=50, color="#9b59b6", alpha=0.8, edgecolor="black")
@@ -756,7 +702,6 @@ rule eda_plot_ncrna_sizes:
         plt.tight_layout()
         plt.savefig(output.linear, format="svg", bbox_inches="tight")
         plt.close()
-
         # Log scale histogram (x-axis)
         fig, ax = plt.subplots(figsize=(10, 6))
         positive_sizes = sizes[sizes > 0]
@@ -767,7 +712,11 @@ rule eda_plot_ncrna_sizes:
                 30,
             )
             ax.hist(
-                positive_sizes, bins=bins, color="#9b59b6", alpha=0.8, edgecolor="black"
+                positive_sizes,
+                bins=bins,
+                color="#9b59b6",
+                alpha=0.8,
+                edgecolor="black",
             )
             ax.set_xscale("log")
         ax.set_xlabel("Transcript Size (bp, log scale)")
@@ -794,7 +743,6 @@ rule eda_plot_ncrna_distance_to_coding:
         mrna_log="results/plots/eda/{dataset}/ncrna/distance_to_mrna_log.svg",
     run:
         df = pl.read_parquet(input[0])
-
         # Define distance types to plot
         distance_configs = [
             (
@@ -812,10 +760,8 @@ rule eda_plot_ncrna_distance_to_coding:
                 output.mrna_log,
             ),
         ]
-
         for col, label, color, out_linear, out_log in distance_configs:
             distances = df[col].to_numpy()
-
             # Linear scale histogram
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.hist(distances, bins=50, color=color, alpha=0.8, edgecolor="black")
@@ -828,7 +774,6 @@ rule eda_plot_ncrna_distance_to_coding:
             plt.tight_layout()
             plt.savefig(out_linear, format="svg", bbox_inches="tight")
             plt.close()
-
             # Log scale histogram
             fig, ax = plt.subplots(figsize=(10, 6))
             positive = distances[distances > 0]
@@ -836,7 +781,9 @@ rule eda_plot_ncrna_distance_to_coding:
                 bins = np.logspace(
                     np.log10(max(1, positive.min())), np.log10(positive.max()), 30
                 )
-                ax.hist(positive, bins=bins, color=color, alpha=0.8, edgecolor="black")
+                ax.hist(
+                    positive, bins=bins, color=color, alpha=0.8, edgecolor="black"
+                )
                 ax.set_xscale("log")
             zero_count = (distances == 0).sum()
             if zero_count > 0:
@@ -871,14 +818,12 @@ rule eda_extract_transcript_cds_boundaries:
         "results/eda/annotation/transcript_cds_boundaries.parquet",
     run:
         ann = load_annotation(input.annotation)
-
         # Get CDS features with transcript IDs
         cds = ann.filter(pl.col("feature") == "CDS").with_columns(
             pl.col("attribute")
             .str.extract(r'transcript_id "(.*?)"')
             .alias("transcript_id"),
         )
-
         # Group by transcript to get min start and max end
         cds_bounds = cds.group_by("transcript_id").agg(
             pl.col("chrom").first(),
@@ -886,7 +831,6 @@ rule eda_extract_transcript_cds_boundaries:
             pl.col("start").min().alias("cds_start"),
             pl.col("end").max().alias("cds_end"),
         )
-
         cds_bounds.write_parquet(output[0])
 
 
@@ -906,43 +850,33 @@ rule eda_compute_cds_flanking_conservation:
     run:
         # Load config for conservation threshold
         phylop_cutoff = config["conservation"]["phylop_cutoff"]
-
         # Load chromosome mapping (RefSeq -> UCSC)
         chrom_map = pl.read_csv(input.chrom_mapping, separator="\t")
         refseq_to_ucsc = dict(zip(chrom_map["refseq"], chrom_map["ucsc"]))
-
         # Load CDS boundaries and filter to chr1 (NC_000001.11)
         cds_bounds = pl.read_parquet(input.cds_bounds)
         cds_bounds = cds_bounds.filter(pl.col("chrom") == "NC_000001.11")
-
         # Map chromosome to UCSC
         chrom_ucsc = refseq_to_ucsc.get("NC_000001.11")
-
         # Create relative positions array
         positions = list(range(-2000, 0)) + list(range(1, 2001))
-
         # Open phyloP bigWig and get chromosome length
         bw = pyBigWig.open(input.phylop)
         chrom_len = bw.chroms().get(chrom_ucsc, 0)
-
         # Initialize counts for each position
         counts = {pos: {"n_total": 0, "n_conserved": 0} for pos in positions}
-
         # Process transcripts in batches to avoid memory issues
         print(f"Processing {len(cds_bounds)} transcripts...")
         batch_size = 100
         cds_list = cds_bounds.to_dicts()
-
         for batch_start in tqdm(range(0, len(cds_list), batch_size)):
             batch = cds_list[batch_start : batch_start + batch_size]
-
             # Collect all genomic positions for this batch
             batch_queries = []  # (rel_pos, genomic_pos)
             for row in batch:
                 strand = row["strand"]
                 cds_start = row["cds_start"]
                 cds_end = row["cds_end"]
-
                 for rel_pos in positions:
                     if rel_pos < 0:
                         # Upstream (5' of CDS)
@@ -956,28 +890,24 @@ rule eda_compute_cds_flanking_conservation:
                             genomic_pos = cds_end + rel_pos - 1
                         else:
                             genomic_pos = cds_start - rel_pos
-
                             # Check bounds
                     if 0 <= genomic_pos < chrom_len:
                         batch_queries.append((rel_pos, genomic_pos))
-
                         # Get unique genomic positions for this batch
             unique_genomic = sorted(set(gp for _, gp in batch_queries))
-
             # Query phyloP values for unique positions
             phylop_cache = {}
             for gp in unique_genomic:
                 vals = bw.values(chrom_ucsc, gp, gp + 1)
-                phylop_cache[gp] = vals[0] if (vals and vals[0] is not None) else 0.0
-
+                phylop_cache[gp] = (
+                    vals[0] if (vals and vals[0] is not None) else 0.0
+                )
                 # Accumulate counts
             for rel_pos, genomic_pos in batch_queries:
                 counts[rel_pos]["n_total"] += 1
                 if phylop_cache[genomic_pos] >= phylop_cutoff:
                     counts[rel_pos]["n_conserved"] += 1
-
         bw.close()
-
         # Build result dataframe
         result = pl.DataFrame(
             {
@@ -988,7 +918,6 @@ rule eda_compute_cds_flanking_conservation:
         ).with_columns(
             (pl.col("n_conserved") / pl.col("n_total") * 100).alias("pct_conserved")
         )
-
         result.write_parquet(output[0])
 
 
@@ -1002,9 +931,7 @@ rule eda_plot_cds_flanking_conservation:
         "results/plots/eda/cds_flanking_conservation.svg",
     run:
         df = pl.read_parquet(input[0]).to_pandas()
-
         fig, ax = plt.subplots(figsize=(12, 6))
-
         # Plot the conservation profile
         ax.plot(
             df["position"],
@@ -1013,10 +940,8 @@ rule eda_plot_cds_flanking_conservation:
             linewidth=0.8,
             alpha=0.9,
         )
-
         # Add vertical line at x=0 (CDS boundary)
         ax.axvline(x=0, color="red", linestyle="--", linewidth=1.5, alpha=0.8)
-
         # Add region labels
         ax.text(
             -1000,
@@ -1036,7 +961,6 @@ rule eda_plot_cds_flanking_conservation:
             fontsize=11,
             color="#2c3e50",
         )
-
         # Formatting
         ax.set_xlabel("Position Relative to CDS Boundary (bp)", fontsize=12)
         ax.set_ylabel("Proportion Conserved (%)", fontsize=12)
@@ -1047,7 +971,6 @@ rule eda_plot_cds_flanking_conservation:
         )
         ax.set_xlim(-2000, 2000)
         ax.grid(axis="both", alpha=0.3)
-
         plt.tight_layout()
         plt.savefig(output[0], format="svg", bbox_inches="tight")
         plt.close()

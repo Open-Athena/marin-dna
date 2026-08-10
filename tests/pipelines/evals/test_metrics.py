@@ -337,7 +337,7 @@ def test_paired_delta_seed_reproducibility():
 
 
 def _matched_pairs_with_subsets(
-    subsets: list[str] = ["A", "B"],
+    subsets: list[str] | None = None,
     n_pos_per_subset: int = 40,
     k: int = 9,
     seed: int = 0,
@@ -345,6 +345,8 @@ def _matched_pairs_with_subsets(
     """Synthesize a matched-pair dataset with multiple subsets. Each subset
     gets its own block of match_groups; no group spans subsets."""
     rng = np.random.default_rng(seed)
+    if subsets is None:
+        subsets = ["A", "B"]
     parts_ds = []
     parts_score = []
     base_group = 0
