@@ -56,9 +56,7 @@ def test_load_checkpoint_tokenizer_handles_transformers5_backend(tmp_path):
     (tmp_path / "tokenizer.json").write_text("{}", encoding="utf-8")
     tokenizer = object()
     with (
-        patch(
-            "marin_dna_evals.inference.AutoTokenizer.from_pretrained"
-        ) as auto_load,
+        patch("marin_dna_evals.inference.AutoTokenizer.from_pretrained") as auto_load,
         patch(
             "marin_dna_evals.inference.PreTrainedTokenizerFast.from_pretrained",
             return_value=tokenizer,

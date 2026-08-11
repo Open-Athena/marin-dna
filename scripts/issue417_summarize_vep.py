@@ -19,7 +19,6 @@ from pathlib import Path
 import fsspec
 import pandas as pd
 import polars as pl
-
 from marin_dna_evals.issue417_summary import (
     ARMS,
     COMBINED_ARM,
@@ -80,13 +79,17 @@ def _markdown(
         f"- Generated: {generated_at}",
         f"- Split: {SPLIT}",
         f"- Score: {SCORE_TYPE}",
-        "- Reported scopes: missense, splicing, and synonymous where available; "
-        "no global row",
+        (
+            "- Reported scopes: missense, splicing, and synonymous where available; "
+            "no global row"
+        ),
         "- Delta: combined vertebrates minus mammals only",
         "- Uncertainty: 1,000 paired bootstrap iterations, seed 0",
         "",
-        "| Dataset | Scope | Mammals AUPRC +/- SE | Combined AUPRC +/- SE | "
-        "Delta (95% CI) | paired p | Units / rows |",
+        (
+            "| Dataset | Scope | Mammals AUPRC +/- SE | Combined AUPRC +/- SE | "
+            "Delta (95% CI) | paired p | Units / rows |"
+        ),
         "|---|---|---:|---:|---:|---:|---:|",
     ]
     for row in rows:
@@ -99,10 +102,12 @@ def _markdown(
     lines.extend(
         [
             "",
-            "Mendelian units are matched match_group clusters. SGE units are "
-            "qualifying MaveDB accessions; its bootstrap resamples shared rows "
-            "within each accession before macro-averaging over the fixed "
-            "qualifying accession set.",
+            (
+                "Mendelian units are matched match_group clusters. SGE units are "
+                "qualifying MaveDB accessions; its bootstrap resamples shared rows "
+                "within each accession before macro-averaging over the fixed "
+                "qualifying accession set."
+            ),
             "",
         ]
     )

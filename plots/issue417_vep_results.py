@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Plot the corrected issue #417 Mendelian and SGE terminal results."""
 
 from __future__ import annotations
@@ -13,8 +12,8 @@ import polars as pl
 import seaborn as sns
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Patch  # noqa: E402
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 SUMMARY_URI = (
     "s3://oa-bolinas/snakemake/analysis/evals_v2/"

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Plot both issue #417 validation-loss trajectories recovered from Iris logs."""
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ import pandas as pd
 import seaborn as sns
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 OUTPUT_DIR = Path("plots/output/issue417_validation_loss")
 EXPERIMENT_DIR = (

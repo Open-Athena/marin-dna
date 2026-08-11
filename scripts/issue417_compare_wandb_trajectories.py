@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Compare the full available W&B trajectories for issue #417 and exp232 CDS.
 
 The exp417 resumes intentionally disabled W&B after checkpoint-teardown races,

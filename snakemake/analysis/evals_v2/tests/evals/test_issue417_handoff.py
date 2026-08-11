@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import pytest
-
 from marin_dna_evals.issue417_handoff import (
     parse_sky_status_json,
     validate_hf_export_listing,
 )
-from scripts.issue417_wait_and_launch_eval import _object_stat_command
 
+from scripts.issue417_wait_and_launch_eval import _object_stat_command
 
 PREFIX = "gs://bucket/checkpoints/run/hf/step-4999"
 

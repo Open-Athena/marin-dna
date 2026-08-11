@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-
 from marin_dna_evals.issue417_summary import (
     COMBINED_ARM,
     MAMMALS_ARM,
