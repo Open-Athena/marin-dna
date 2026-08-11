@@ -27,7 +27,8 @@ dependencies = [
     "seaborn",
     "snakemake",
     "snakemake-storage-plugin-s3>=0.3.6",
-    "torch",
+    "torch==2.5.1; sys_platform == 'linux'",
+    "torch==2.13.0; sys_platform == 'darwin'",
     "transformers[torch]<5",
     "zstandard",
 ]
@@ -55,9 +56,17 @@ environments = [
     "sys_platform == 'linux'",
 ]
 
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
 [tool.uv.sources]
 marin-dna = { path = "../../../", editable = true }
 marin-dna-rag-glm = { path = "../../rag_glm", editable = true }
+torch = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux'" },
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna_evals"]
