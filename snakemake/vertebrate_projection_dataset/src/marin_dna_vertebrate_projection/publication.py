@@ -110,6 +110,7 @@ def validate_artifacts(
     *,
     config_path: str | Path,
     pipeline_commit: str,
+    config_sha256: str,
     tier: str | None = None,
     workers: int,
 ) -> dict[str, object]:
@@ -117,6 +118,7 @@ def validate_artifacts(
     artifact_root = Path(artifact_dir)
     source_root = Path(source_datasets_dir)
     assert len(pipeline_commit) == 40 and workers > 0
+    assert len(config_sha256) == 64
     config = yaml.safe_load(Path(config_path).read_text())
     assert tier in {None, "smoke", "full"}
     cohorts = (
@@ -244,6 +246,7 @@ def validate_artifacts(
         }
     manifest: dict[str, object] = {
         "pipeline_commit": pipeline_commit,
+        "config_sha256": config_sha256,
         "artifact_format": "JSONL.zst",
         "validation_chrom": validation_chrom,
         "target_length": target_length,

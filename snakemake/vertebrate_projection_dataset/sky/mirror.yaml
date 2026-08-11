@@ -3,7 +3,8 @@ name: vertebrate-multiz-mirror
 # One-off, resumable bootstrap of the 74.7 GB pinned UCSC MultiZ source set.
 # Launch only when the versioned S3 prefix is missing objects:
 #   sky launch -c vertebrate-multiz-mirror \
-#     snakemake/vertebrate_projection_dataset/sky/mirror.yaml
+#     snakemake/vertebrate_projection_dataset/sky/mirror.yaml \
+#     --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 
 resources:
   infra: aws/us-east-2
@@ -13,6 +14,9 @@ resources:
     project: dna
 
 workdir: .
+
+envs:
+  PIPELINE_COMMIT_SHA: ""
 
 setup: |
   set -euxo pipefail
@@ -35,6 +39,7 @@ run: |
   set -euxo pipefail
   export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   command -v aws
+  test -n "$PIPELINE_COMMIT_SHA"
 
   cd snakemake/vertebrate_projection_dataset
 

@@ -12,7 +12,9 @@ from marin_dna_vertebrate_projection.mirror import (
     validate_multiz_mirror_contents,
 )
 from marin_dna_vertebrate_projection.provenance import (
+    hash_pipeline_config,
     resolve_pipeline_commit,
+    write_producer_manifest,
 )
 from marin_dna_vertebrate_projection.sequence_sources import (
     read_twobit_manifest,
@@ -22,7 +24,12 @@ from marin_dna_vertebrate_projection.sequence_sources import (
 PIPELINE_VERSION = str(config["pipeline_version"])
 TIER = str(config["tier"])
 assert TIER in {"smoke", "full"}
-RESULTS = f"results/{PIPELINE_VERSION}/{TIER}"
+PIPELINE_COMMIT = resolve_pipeline_commit()
+PIPELINE_CONFIG_SHA256 = hash_pipeline_config(config)
+RESULTS = (
+    f"results/{PIPELINE_VERSION}/{PIPELINE_COMMIT}/{PIPELINE_CONFIG_SHA256}/{TIER}"
+)
+PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
 
 WINDOW_SIZE = int(config["window_size"])
 TARGET_LENGTH = int(config["target_length"])
@@ -104,6 +111,19 @@ HF_MANIFEST = f"{RESULTS}/hf_validation/hf_publication_manifest.json"
 
 HUMAN_SEQUENCES = f"{RESULTS}/sequences/human_reference.parquet"
 COMBINED_SEQUENCES = f"{RESULTS}/sequences/all_sources.parquet"
+
+
+rule producer_manifest:
+    output:
+        PRODUCER_MANIFEST,
+    run:
+        write_producer_manifest(
+            output[0],
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=PIPELINE_CONFIG_SHA256,
+            pipeline_version=PIPELINE_VERSION,
+            tier=TIER,
+        )
 
 
 rule active_species_manifest:

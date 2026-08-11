@@ -17,7 +17,7 @@ file_mounts:
   ~/.cache/huggingface/stored_tokens: ~/.cache/huggingface/stored_tokens
 
 envs:
-  PIPELINE_COMMIT_SHA: abaaf885a7d621fcbfab7e4d64901f600f87ccfd
+  PIPELINE_COMMIT_SHA: ""
   TARGET: all_hf_files
   DRY_RUN: "1"
   ALLOW_HF_UPLOAD: "0"
@@ -43,6 +43,7 @@ run: |
   set -euxo pipefail
   export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  test -n "$PIPELINE_COMMIT_SHA"
 
   test "$TARGET" = "all_hf_files" -o "$TARGET" = "all_hf"
   test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"

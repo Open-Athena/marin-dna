@@ -25,8 +25,29 @@ def test_hf_worker_uses_snakemake_storage_instead_of_snapshot_copy() -> None:
     ]:
         assert obsolete not in worker
     assert "--profile workflow/profiles/default" in worker
+    assert 'PIPELINE_COMMIT_SHA: ""' in worker
+    assert 'test -n "$PIPELINE_COMMIT_SHA"' in worker
 
 
 def test_ci_dry_run_explicitly_disables_remote_storage() -> None:
     workflow = (REPOSITORY_ROOT / ".github/workflows/test.yml").read_text()
     assert "snakemake -n --quiet all --default-storage-provider none" in workflow
+
+
+def test_results_are_producer_keyed_and_verification_receipts_are_local() -> None:
+    common = (PROJECT_ROOT / "workflow/rules/common.smk").read_text()
+    staging = (PROJECT_ROOT / "workflow/rules/staging.smk").read_text()
+    projection = (PROJECT_ROOT / "workflow/rules/projection.smk").read_text()
+    dataset = (PROJECT_ROOT / "workflow/rules/dataset.smk").read_text()
+
+    assert "PIPELINE_COMMIT = resolve_pipeline_commit()" in common
+    assert "PIPELINE_CONFIG_SHA256 = hash_pipeline_config(config)" in common
+    assert (
+        'f"results/{PIPELINE_VERSION}/{PIPELINE_COMMIT}/'
+        '{PIPELINE_CONFIG_SHA256}/{TIER}"' in common
+    )
+    assert "multiz_mirror.done" not in staging
+    assert "local(HAL_VALIDATION)" in staging
+    assert projection.count("validation=local(HAL_VALIDATION)") == 3
+    assert 'temp(local(f"{RESULTS}/upload.done/{{region}}"))' in dataset
+    assert 'local(expand(f"{RESULTS}/upload.done/{{region}}"' in dataset

@@ -6,6 +6,9 @@ from marin_dna_vertebrate_projection.pipeline_io import (
     write_inspection_files,
     write_qc_files,
 )
+from marin_dna_vertebrate_projection.provenance import (
+    validate_producer_manifest,
+)
 from marin_dna_vertebrate_projection.publication import (
     upload_validated_dataset,
     validate_artifacts,
@@ -229,6 +232,7 @@ rule dataset_card:
 rule hf_artifact_manifest:
     """Reject missing, stale, malformed, or split-inconsistent publication files."""
     input:
+        producer=PRODUCER_MANIFEST,
         train_source=expand(
             f"{RESULTS}/datasets/{{region}}/train.parquet", region=COHORTS
         ),
@@ -257,12 +261,20 @@ rule hf_artifact_manifest:
         mem_mb=8000,
         final_large_scan=1,
     run:
+        validate_producer_manifest(
+            input.producer,
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=PIPELINE_CONFIG_SHA256,
+            pipeline_version=PIPELINE_VERSION,
+            tier=TIER,
+        )
         validate_artifacts(
             HF_RESULTS,
             f"{RESULTS}/datasets",
             output[0],
             config_path="config/config.yaml",
-            pipeline_commit=resolve_pipeline_commit(),
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=PIPELINE_CONFIG_SHA256,
             tier=TIER,
             workers=threads,
         )
@@ -303,7 +315,7 @@ rule hf_upload_dataset:
         ],
         card=f"{HF_RESULTS}/{{region}}/README.md",
     output:
-        f"{RESULTS}/upload.done/{{region}}",
+        temp(local(f"{RESULTS}/upload.done/{{region}}")),
     wildcard_constraints:
         region=COHORT_RE,
     resources:
@@ -324,4 +336,4 @@ rule hf_upload_dataset:
 
 rule all_hf:
     input:
-        expand(f"{RESULTS}/upload.done/{{region}}", region=COHORTS),
+        local(expand(f"{RESULTS}/upload.done/{{region}}", region=COHORTS)),

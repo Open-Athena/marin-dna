@@ -11,7 +11,7 @@ examples from three sources:
 
 It does not read from or write to
 `snakemake/zoonomia_projection_dataset/results`. Its versioned output namespace
-is `results/<pipeline_version>/<tier>/` relative to this project.
+is `results/<pipeline_version>/<producer_commit>/<config_sha256>/<tier>/` relative to this project. The producer-keyed namespace prevents a clean worker from reusing outputs created by different code or resolved configuration.
 
 Run commands from `snakemake/vertebrate_projection_dataset` so this project uses its own pinned environment and lockfile. Install it with:
 
@@ -118,7 +118,7 @@ after the gzip stream passes its CRC check.
 
 ## Runbook
 
-The checked-in profile caps local work at two cores and makes `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/` the default storage prefix. Every output not explicitly marked `local()` is uploaded by Snakemake and can be restored automatically on another worker; `local()` is reserved for large or regenerable NVMe-only staging files. Always dry-run before real execution:
+The checked-in profile caps local work at two cores and makes `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/` the default storage prefix. Every output not explicitly marked `local()` is uploaded by Snakemake and can be restored automatically on another worker; `local()` is reserved for large or regenerable NVMe-only staging files and verification receipts. Durable paths include the producing commit and a SHA-256 of the fully resolved Snakemake config, and every namespace stores a matching `metadata/producer.json`. Always commit the complete recipe before execution and dry-run before a real run:
 
 ```bash
 uv run --locked snakemake -n \
@@ -127,7 +127,7 @@ uv run --locked snakemake -n \
 
 That dry-run consults the durable S3 state. For a credential-free graph check only, use `--default-storage-provider none`; CI uses that override, but real pipeline executions must retain the profile default.
 
-The historical issue #417 staging snapshot remains a provenance artifact only; it is not an implicit pipeline input or fallback. A fresh v1 execution populates the canonical storage prefix.
+The historical issue #417 staging snapshot remains a provenance artifact only; it is not an implicit pipeline input or fallback. A fresh v1 execution populates a producer-keyed namespace under the canonical storage prefix.
 
 The default `smoke` tier uses two mammals, five non-mammals spanning birds,
 reptiles, amphibians, ray-finned fish, and jawless vertebrates, chromosomes 7
@@ -182,7 +182,8 @@ only when both byte size and MD5 metadata match.
 
 ```bash
 sky launch -c vertebrate-multiz-mirror \
-  snakemake/vertebrate_projection_dataset/sky/mirror.yaml
+  snakemake/vertebrate_projection_dataset/sky/mirror.yaml \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 
 sky launch -c vertebrate-project \
   snakemake/vertebrate_projection_dataset/sky/project.yaml \
@@ -202,10 +203,7 @@ with the same `sky exec` command and `--env DRY_RUN=0`; terminate it with
 
 HAL staging downloads to a temporary filename and atomically renames it only after the S3 object size matches and `halStats --genomes` succeeds. The staged HAL and other explicitly `local()` intermediates live only on instance-store NVMe and do not survive termination. Normal results use NVMe as their local working copy and are uploaded automatically to `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/`; a later worker restores them through Snakemake rather than an ad hoc copy step. Do not terminate a worker while rules are still running or before any needed `local()` artifact has been consumed.
 
-Every HAL projection/extraction path also depends on the tier-specific
-`metadata/hal_stage_validated.txt` record. This rechecks exact S3/local byte
-size and HAL readability even when a complete staged HAL predates the current
-workdir sync, so an existing NVMe copy cannot bypass validation.
+Every HAL projection/extraction path also depends on the tier-specific local `metadata/hal_stage_validated.txt` record. Because both the HAL and its receipt are `local()`, a clean worker cannot reuse a durable receipt independently of the NVMe file it certifies; a newly staged or changed HAL is revalidated before use.
 
 ## Splits and output datasets
 
@@ -235,7 +233,7 @@ the CDS label after the complete shared projection/acceptance pass and then
 retains only `human_reference` and `zoonomia_cactus` rows. The regular
 `datasets/cds/` cohort retains those identical training rows plus `ucsc_multiz100way`. Projection, acceptance, augmentation, and sampling algorithms are identical, and the mammals-only training rows are an exact subset of the combined arm. Validation is sampled independently within each cohort because their eligible species sets differ, so the realized validation rows, and therefore validation-loss levels, must not be compared between arms.
 
-For Hugging Face, `all_hf_files` follows the established Zoonomia publication path: deterministically shuffle each split, write 64 full-tier train shards (four in smoke) and one validation shard as JSONL, then zstd-compress them. On a dedicated HF worker, the source split Parquets and active-species manifest are restored through the same default Snakemake S3 storage; local JSONL.zst artifacts are rebuilt on that worker and are never recovered through a separate issue-specific snapshot path.
+For Hugging Face, `all_hf_files` follows the established Zoonomia publication path: deterministically shuffle each split, write 64 full-tier train shards (four in smoke) and one validation shard as JSONL, then zstd-compress them. On a dedicated HF worker, an explicitly supplied `PIPELINE_COMMIT_SHA` selects the matching producer/config namespace; the worker restores its producer manifest, source split Parquets, and active-species manifest through default Snakemake S3 storage. Local JSONL.zst artifacts are rebuilt on that worker and are never recovered through a separate issue-specific snapshot path.
 Each isolated `hf/<cohort>/` directory contains only:
 
 ```text
@@ -244,7 +242,7 @@ data/train/shard_NNNN.jsonl.zst
 data/validation/shard_0000.jsonl.zst
 ```
 
-Generated cards contain the exact committed pipeline SHA, split row counts, schema, selected species counts, and explicit `data/<split>/*.jsonl.zst` loader paths. `all_hf_files` then rejects any missing or unexpected file, validates zstd integrity and each shard’s boundary-record schema and split invariants, reconciles every shard row count to its source Parquet, and writes a content-hash manifest outside the upload tree. Build these review artifacts without external writes:
+Generated cards contain the exact committed pipeline SHA, split row counts, schema, selected species counts, and explicit `data/<split>/*.jsonl.zst` loader paths. The validation manifest also records the resolved-config SHA-256 and refuses a producer manifest that does not match the restored namespace. `all_hf_files` then rejects any missing or unexpected file, validates zstd integrity and each shard’s boundary-record schema and split invariants, reconciles every shard row count to its source Parquet, and writes a content-hash manifest outside the upload tree. Build these review artifacts without external writes:
 
 ```bash
 uv run --locked snakemake \
@@ -252,7 +250,7 @@ uv run --locked snakemake \
   all_hf_files
 ```
 
-After explicit human approval, `all_hf` serially uploads only those isolated artifact directories with the Xet client. Before each upload it rejects unexpected existing Hub paths; after upload it requires the exact remote tree, LFS sizes and SHA-256 hashes, and a byte-identical card at the resulting revision. It writes external Hugging Face state and is intentionally neither a default target nor part of `all_hf_files`. The large-folder client uses one worker per repository to avoid overwhelming the Hub LFS batch endpoint; interrupted uploads are resumable.
+After explicit human approval, `all_hf` serially uploads only those isolated artifact directories with the Xet client. Before each upload it rejects unexpected existing Hub paths; after upload it requires the exact remote tree, LFS sizes and SHA-256 hashes, and a byte-identical card at the resulting revision. It writes external Hugging Face state and is intentionally neither a default target nor part of `all_hf_files`. Upload completion markers are temporary and local, so a clean invocation always rechecks mutable Hub state instead of trusting a durable receipt. The large-folder client uses one worker per repository to avoid overwhelming the Hub LFS batch endpoint; interrupted uploads are resumable.
 `config/HF_DATASET_CARD_TEMPLATE.md` is the pre-run review draft.
 
 ### Intentional differences from the Zoonomia-only publisher

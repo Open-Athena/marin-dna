@@ -13,15 +13,11 @@ from marin_dna_vertebrate_projection.mirror import (
 rule mirror_multiz_bootstrap:
     input:
         MIRROR_MANIFEST_INPUT,
-    output:
-        f"{RESULTS}/bootstrap/multiz_mirror.done",
     run:
-        # Explicit bootstrap only. No normal projection target depends on this
-        # rule, so workers can never silently fall back to UCSC.
+        # With no output sentinel, every explicit invocation verifies and
+        # repairs the mutable mirror rather than trusting an old receipt.
         for expected in read_mirror_manifest(input[0]):
             mirror_source_object(expected)
-        Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
-        Path(output[0]).write_text("verified and mirrored\n")
 
 
 rule stage_hal:
@@ -39,7 +35,7 @@ rule validate_staged_hal:
     input:
         local(HAL_PATH),
     output:
-        HAL_VALIDATION,
+        local(HAL_VALIDATION),
     resources:
         mem_mb=1000,
     params:

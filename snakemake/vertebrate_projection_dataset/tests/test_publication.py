@@ -10,6 +10,7 @@ import zstandard as zstd
 from marin_dna_vertebrate_projection import publication
 
 PIPELINE_COMMIT = "a" * 40
+CONFIG_SHA256 = "b" * 64
 
 
 def _frame(source_chrom: str, rows: int) -> pl.DataFrame:
@@ -76,9 +77,11 @@ def test_validate_artifacts_reconciles_rows_and_rejects_sidecars(
         output,
         config_path=config_path,
         pipeline_commit=PIPELINE_COMMIT,
+        config_sha256=CONFIG_SHA256,
         workers=1,
     )
     assert json.loads(output.read_text()) == manifest
+    assert manifest["config_sha256"] == CONFIG_SHA256
     assert manifest["cohorts"]["all"]["splits"]["train"]["rows"] == 5
     (artifact_dir / "all/validation_selection.tsv").write_text("row_id\n")
     with pytest.raises(AssertionError, match="unexpected"):
@@ -88,6 +91,7 @@ def test_validate_artifacts_reconciles_rows_and_rejects_sidecars(
             output,
             config_path=config_path,
             pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=CONFIG_SHA256,
             workers=1,
         )
 
@@ -103,6 +107,7 @@ def test_upload_rejects_unexpected_remote_file_before_subprocess(
         manifest_path,
         config_path=config_path,
         pipeline_commit=PIPELINE_COMMIT,
+        config_sha256=CONFIG_SHA256,
         workers=1,
     )
 

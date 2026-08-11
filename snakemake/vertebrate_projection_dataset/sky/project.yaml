@@ -21,6 +21,7 @@ resources:
 workdir: .
 
 envs:
+  PIPELINE_COMMIT_SHA: ""
   TIER: smoke
   TARGET: all
   DRY_RUN: "0"
@@ -59,6 +60,7 @@ run: |
   command -v aws
   command -v halLiftover
   command -v halStats
+  test -n "$PIPELINE_COMMIT_SHA"
 
   if ! mountpoint -q /mnt/nvme; then
     sudo apt-get update
@@ -90,8 +92,8 @@ run: |
     --query ContentLength \
     --output text
 
-  RESULTS_LINK="snakemake/vertebrate_projection_dataset/results/v1/${TIER}"
-  RESULTS_NVME="/mnt/nvme/vertebrate_projection/results/v1/${TIER}"
+  RESULTS_LINK="snakemake/vertebrate_projection_dataset/results"
+  RESULTS_NVME="/mnt/nvme/vertebrate_projection/results"
   mkdir -p "$RESULTS_NVME" "$(dirname "$RESULTS_LINK")"
   if [ -e "$RESULTS_LINK" ] && [ ! -L "$RESULTS_LINK" ]; then
     echo "ERROR: refusing to replace non-symlink results path $RESULTS_LINK"

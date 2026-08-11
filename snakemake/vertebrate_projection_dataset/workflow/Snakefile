@@ -10,6 +10,7 @@ include: "rules/dataset.smk"
 
 rule all:
     input:
+        PRODUCER_MANIFEST,
         COMBINED_SEQUENCES,
         f"{RESULTS}/qc/per_anchor.parquet",
         f"{RESULTS}/qc/aggregates.parquet",
