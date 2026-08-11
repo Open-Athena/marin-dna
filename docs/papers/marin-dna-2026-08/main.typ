@@ -1,17 +1,19 @@
 #import "template.typ": paper
 
 #show: paper.with(
-  title: [A 1B standard Transformer rivals Evo 2 40B on variant effect prediction],
+  title: [Data curation and hyperparameter transfer enable competitive variant-effect prediction with a 1B genomic language model],
   authors: [TODO],
   author-metadata: ("TODO",),
   date: [August 2026],
   abstract: [#include "sections/abstract.typ"],
 )
 
-#include "sections/summary.typ"
 #include "sections/introduction.typ"
 #include "sections/results.typ"
-#include "sections/conclusion.typ"
-#include "sections/resources.typ"
+#include "sections/discussion.typ"
+#include "sections/methods.typ"
+#include "sections/availability.typ"
+#include "sections/provenance.typ"
 #include "sections/acknowledgements.typ"
+#include "sections/statements.typ"
 #include "sections/supplement.typ"

@@ -1,7 +1,0 @@
-= Conclusion
-<conclusion>
-These experiments show how far a simple and standardized genomic modeling recipe can go. By keeping the architecture within the GPT family and iterating on data curation, training hyperparameters, model scale, and data mixtures, MarinDNA produced an alignment-free 1B model that is competitive with Evo 2 40B on Mendelian variant effect prediction while requiring far less training compute and offering much faster inference. In terms of capabilities, we next want to improve our performance on complex-trait variant effect prediction (#link("https://github.com/Open-Athena/marin-dna/issues/391")[research question \#391]).
-
-On the training side, neither scaling nor optimization appears exhausted. Performance continued to improve through the largest model we tested, with no clear sign of saturation, making further scaling a natural next step. Regularization also remains a largely unexplored part of the training recipe and may be especially valuable in the awkward regime between data- and compute-constrained training. The narrowed recipe and #link("https://openathena.ai/blog/cluster-scheduling-with-iris/")[better infrastructure] for using the Google TPU Research Cloud compute donated for this work should make both larger-scale runs and more systematic optimization easier to pursue.
-
-There is plenty of work left to do, but we think these results clearly show the potential value of a general-purpose training platform like Marin for accelerating scientific foundation model development.

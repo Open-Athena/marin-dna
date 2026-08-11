@@ -21,7 +21,7 @@ This is the working editorial record for issue #449. It is not part of the rende
 | Figure assets | The 20 SVGs committed under figures/ at the mechanical baseline | Frozen input set. Redrawn or composed figures must preserve source-data and recipe provenance. |
 | Final MarinDNA model | Dashboard ID mix-v0.9-p1B-i24-exp135-m5.1-step-59158; W&B run dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e; GCS checkpoint gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158 | Exact internal checkpoint is identified. Record an immutable public Hugging Face model revision before preprint release. |
 | Mendelian evaluation dataset | Hugging Face revision 4aed58e50c5dea0b878a665007af2ef9e5108e9f of bolinas-dna/evals_mendelian_traits | Already cited in the converted manuscript. Verify that every frozen Mendelian panel used this exact revision. |
-| SGE evaluation dataset | Not yet recorded in the manuscript | Resolve the exact repository and immutable revision before the Methods rewrite is considered complete. |
+| SGE evaluation dataset | Hugging Face revision 225d3d1ea32a4af547891b13c33b5e92a5aae849 of bolinas-dna/evals_sge | Frozen v3 label build used by the evaluation pipeline; verify that every frozen SGE panel used this exact revision. |
 | Frozen result tables | Encoded in the committed SVGs and baseline PDF, but source parquet paths and revisions are not yet recorded here | Resolve exact metric parquet paths, plot recipes, model lists, and aggregation settings for every retained quantitative panel. |
 | Training and evaluation code | The converted draft contains several commit-pinned Marin links, but no single complete code snapshot is declared | Identify the commit(s) that reproduce training, dataset construction, evaluation, and throughput measurement. Use commit-pinned links in the provenance table. |
 | Live resources | MarinDNA leaderboard and interactive tools | Keep discoverable in the availability section and label explicitly as evolving resources that are not the frozen manuscript result. |
@@ -73,7 +73,7 @@ The mechanical baseline contains 30 footnotes and 107 direct external links in t
 
 - [ ] Confirm authorship and order.
 - [ ] Confirm the exact statistical statement supporting “competitive with Evo 2 40B,” including the test, estimate, uncertainty, and frozen values.
-- [ ] Record immutable public revisions for m5.1, SGE, retained baselines, and every figure input.
+- [ ] Record immutable public revisions for m5.1, retained baselines, and every figure input.
 - [ ] Approve the proposed main-versus-supplement dispositions in figure-inventory.md before redrawing or composing panels.
 - [ ] Decide whether the title should foreground the final comparison or use a recipe-centered formulation; either title must respect the statistical result.
 - [ ] Decide whether the early objective comparison is sufficiently consequential to retain in the main Introduction or belongs only in provenance/supplementary material.

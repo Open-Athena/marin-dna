@@ -130,6 +130,13 @@ The result of the previous mixture experiments is m5.1, a 1B GPT-style model eva
 
 m5.1 was trained on 166B tokens (\~1.1e21 FLOPs), compared with 9.3T tokens (\~2.25e24 FLOPs) for Evo 2 40B. At their native context lengths on the same GH200, m5.1 scores one million variants in about 41 minutes, compared with roughly 66 days for Evo 2 40B---a roughly 2,330× throughput advantage.#footnote[This benchmark measures steady-state scoring with forward and reverse-complement passes and embeddings enabled. m5.1 uses a 256-token context, while Evo 2 40B uses an 8,192-token context, so this measures as-deployed throughput rather than same-context or per-token efficiency. See #link("https://github.com/Open-Athena/marin-dna/issues/354")[issue \#354] for the full methodology and results.]
 
+#paper-figure(
+  "figures/headline_cost_performance.svg",
+  id: "fig-cost-performance",
+  alt: "Zero-shot Mendelian VEP macro-average AUPRC versus variants scored per hour for MarinDNA 1B and Evo 2 1B, 7B, and 40B",
+  caption: [*Variant-effect performance versus as-deployed inference throughput.* Zero-shot Mendelian macro-average AUPRC versus variants scored per hour on one GH200. Each model is evaluated at its native context length; throughput includes forward- and reverse-complement scoring and embedding output.],
+)
+
 Most notably, m5.1 closes Evo 2's main gap on distal variants, outperforming Evo 2 40B there under both readouts. The improvement is not uniform, however: Evo 2 40B remains ahead on splicing under both readouts, as well as on promoter and synonymous variants in the zero-shot evaluation and missense variants under linear probing.
 
 The #link("https://openathena.ai/marin-dna/leaderboards/mendelian")[current leaderboard] also suggests there is considerable headroom: although m5.1 leads on Macro Avg among MarinDNA models, another MarinDNA run has a higher point estimate in seven of the eight displayed subsets, with m5.1 leading only on ncRNA. Several of these winners are region specialists, suggesting that further mixture refinement could recover more of their complementary strengths.
