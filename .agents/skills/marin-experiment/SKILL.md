@@ -140,7 +140,7 @@ Two things the `launch.py` must declare on **every** `remote(...)` call (workers
 
 ## Emit the experiment record (`.experiment.json`)
 
-Every experiment writes an experiment-level provenance record on success — the `dna-exp<N>` counterpart of marin's per-step `.artifact.json` ([marin#7967](https://github.com/marin-community/marin/issues/7967)): one `.experiment.json` tying the experiment's identity (name + tracking issue), pinned inputs, arms/wandb run ids, and checkpoint output paths together, so the experiment is catalogable and reproducible from storage alone rather than only via wandb + the issue thread.
+Every experiment writes an experiment-level provenance record on success — the `dna-exp<N>` counterpart of marin's per-step `.artifact.json` ([`ArtifactRecord`](https://github.com/marin-community/marin/blob/0554ce869c6dee2a3a7c00bc9caa9e2994ac435d/lib/marin/src/marin/execution/artifact.py#L149)): one `.experiment.json` tying the experiment's identity (name + tracking issue), pinned inputs, arms/wandb run ids, and checkpoint output paths together, so the experiment is catalogable and reproducible from storage alone rather than only via wandb + the issue thread.
 
 The writer lives in the library — `marin_dna.experiment_record` (`ExperimentRecord`, `ExperimentDep`, `ExperimentRun`, `write_experiment_record`) — and validates the conventions loudly at construction: `name` must be `dna-exp<N>` with `<N>` equal to the tracking-issue number, every dep revision a full 40-hex sha (branch names are not pins), and every `run_id` must carry `dna-exp<N>` (the wandb filter convention).
 
