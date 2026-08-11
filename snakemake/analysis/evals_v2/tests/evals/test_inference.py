@@ -13,7 +13,6 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
-
 from marin_dna_evals.inference import (
     compute_variant_scores,
     fwd_rc_average_f16,

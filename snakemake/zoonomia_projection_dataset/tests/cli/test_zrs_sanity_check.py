@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 
 import polars as pl
-
 from marin_dna_zoonomia_projection.cli.zrs_sanity_check import (
     ZRS_EXPECTATIONS,
     _overlap,

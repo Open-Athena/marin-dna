@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from marin_dna_training_dataset.hf_readme import (
     GENOME_SET_BLURBS,
     GENOME_SET_TITLES,
@@ -15,9 +14,7 @@ from marin_dna_training_dataset.hf_readme import (
     count_parquet_rows,
 )
 
-_CONFIG = (
-    Path(__file__).resolve().parents[2] / "config/config.yaml"
-)
+_CONFIG = Path(__file__).resolve().parents[2] / "config/config.yaml"
 
 SHA = "0123456789abcdef0123456789abcdef01234567"  # 40 chars
 PREFIX = "bolinas-dna/genomes-v5"

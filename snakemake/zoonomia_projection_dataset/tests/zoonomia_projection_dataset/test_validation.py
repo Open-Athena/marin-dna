@@ -6,9 +6,6 @@ import pandas as pd
 import polars as pl
 import pyBigWig
 import pytest
-
-from marin_dna.data.intervals import GenomicSet
-from marin_dna.data.utils import load_annotation
 from marin_dna_zoonomia_projection.validation import (
     build_annotation_region,
     build_cre_region,
@@ -21,6 +18,9 @@ from marin_dna_zoonomia_projection.validation import (
     subsample_deterministic,
     write_hf_readme,
 )
+
+from marin_dna.data.intervals import GenomicSet
+from marin_dna.data.utils import load_annotation
 
 # ----------------------------------------------------------------------------
 # Synthetic GTF helpers (mirror tests/projection/test_tss.py)

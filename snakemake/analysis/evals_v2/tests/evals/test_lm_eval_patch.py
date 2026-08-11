@@ -20,9 +20,8 @@ pytest.importorskip(
 @pytest.fixture
 def patched_task_manager():
     """Re-import the package fresh in case sentinels need re-firing."""
-    from lm_eval.tasks import TaskManager
-
     import marin_dna_evals.lm_eval  # noqa: F401  triggers _install_task_manager_patch
+    from lm_eval.tasks import TaskManager
 
     return TaskManager
 
@@ -76,10 +75,9 @@ def test_levanter_rename_patch_handles_plain_task():
     `ConfigurableTask` + dict and otherwise raises ``ValueError: Unknown task type``.
     Our package's `_install_levanter_rename_patch()` adds a Task-passthrough.
     """
+    import marin_dna_evals.lm_eval  # noqa: F401  triggers both patches
     from levanter.eval_harness import LmEvalHarnessConfig
     from levanter.eval_harness import TaskConfig as LevanterTaskConfig
-
-    import marin_dna_evals.lm_eval  # noqa: F401  triggers both patches
 
     spec = [
         LevanterTaskConfig(
@@ -96,9 +94,8 @@ def test_levanter_rename_patch_handles_plain_task():
 
 
 def test_levanter_rename_patch_marker_set():
-    from levanter.eval_harness import LmEvalHarnessConfig
-
     import marin_dna_evals.lm_eval  # noqa: F401
+    from levanter.eval_harness import LmEvalHarnessConfig
 
     assert getattr(LmEvalHarnessConfig, "_marin_dna_rename_patched", False) is True
 
@@ -123,18 +120,16 @@ def test_prepend_bos(ids, bos, expected):
 
 
 def test_bos_patch_marker_set():
-    from levanter import eval_harness
-
     import marin_dna_evals.lm_eval  # noqa: F401
+    from levanter import eval_harness
 
     assert getattr(eval_harness, "_marin_dna_bos_patched", False) is True
 
 
 def test_bos_patch_is_idempotent():
     """Re-running the installer must not double-wrap ``_encode_batch``."""
-    from levanter import eval_harness
-
     import marin_dna_evals.lm_eval as pkg
+    from levanter import eval_harness
 
     before = eval_harness._encode_batch
     pkg._install_bos_fix()
@@ -145,9 +140,8 @@ def test_bos_patch_is_idempotent():
 def test_bos_patch_prepends_through_encode_batch():
     """The patched ``_encode_batch`` prepends the tokenizer's BOS id; a tokenizer
     without a BOS is left untouched (datasets stay tokenizer-agnostic)."""
-    from levanter import eval_harness
-
     import marin_dna_evals.lm_eval  # noqa: F401  triggers the patch
+    from levanter import eval_harness
 
     class _FakeTok:
         def __init__(self, bos):
@@ -164,9 +158,8 @@ def test_bos_patch_prepends_through_encode_batch():
 
 
 def test_levanter_rename_patch_is_idempotent():
-    from levanter.eval_harness import LmEvalHarnessConfig
-
     import marin_dna_evals.lm_eval  # noqa: F401
+    from levanter.eval_harness import LmEvalHarnessConfig
     from marin_dna_evals.lm_eval import _install_levanter_rename_patch
 
     rename_before = LmEvalHarnessConfig._rename_tasks_for_eval_harness

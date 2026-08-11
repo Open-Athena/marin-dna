@@ -13,7 +13,6 @@ import math
 
 import polars as pl
 import pytest
-
 from marin_dna_evals import leaderboard
 from marin_dna_evals.leaderboard import (
     DEFAULT_PROTOCOL,

@@ -142,22 +142,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bioframe"
-version = "0.8.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "pyyaml" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3a/0e/69fe99dc5d8084eb6717e0c69dbd2dc095373053ec47415a105638cb1127/bioframe-0.8.0.tar.gz", hash = "sha256:ea87d7c3f26235bf35396d41bbdcddd21fe7434f7406f8182a67aad241b96fa2", size = 965612, upload-time = "2025-04-08T17:43:48.806Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/66/41b2bce9de683b3bcac510b6e97682946f403e0553ae5cf8dfc267bb26b8/bioframe-0.8.0-py3-none-any.whl", hash = "sha256:5db243f74cd2deafbf3b664e0cfd6e9d5e736e01143747aa52d99409c8315574", size = 153335, upload-time = "2025-04-08T17:43:45.675Z" },
-]
-
-[[package]]
 name = "biopython"
 version = "1.88"
 source = { registry = "https://pypi.org/simple" }
@@ -761,7 +745,6 @@ name = "marin-dna"
 version = "0.0.1"
 source = { editable = "../../../" }
 dependencies = [
-    { name = "bioframe" },
     { name = "biopython" },
     { name = "numpy" },
     { name = "pandas" },
@@ -773,7 +756,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bioframe" },
     { name = "biopython", specifier = ">=1.85" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.0,<3.0" },

@@ -11,7 +11,6 @@ import math
 
 import polars as pl
 import pytest
-
 from marin_dna_evals.qtl_scoring import (
     QTL_BENCHMARK_MODELS,
     assemble_benchmark_rows,

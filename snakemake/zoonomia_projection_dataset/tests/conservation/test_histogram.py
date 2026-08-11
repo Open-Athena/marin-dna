@@ -4,7 +4,6 @@ from itertools import pairwise
 
 import numpy as np
 import pytest
-
 from marin_dna_zoonomia_projection.conservation.histogram import PhylopHistogram
 
 

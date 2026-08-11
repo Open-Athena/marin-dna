@@ -4,7 +4,6 @@ import math
 
 import pandas as pd
 import pytest
-
 from marin_dna_evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,

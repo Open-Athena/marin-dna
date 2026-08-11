@@ -6,7 +6,6 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from marin_dna_zoonomia_projection.projection.sequence import (
     attach_sequences_to_parquet,
     parquet_to_bed6,

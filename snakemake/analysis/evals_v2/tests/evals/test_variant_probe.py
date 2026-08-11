@@ -10,8 +10,6 @@ classifier).
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.metrics import average_precision_score
-
 from marin_dna_evals.variant_probe import (
     SYMMETRIC_COMBOS,
     fit_full_classifier,
@@ -21,6 +19,7 @@ from marin_dna_evals.variant_probe import (
     summarize_selected_c,
     traitgym_nested_oof,
 )
+from sklearn.metrics import average_precision_score
 
 # Small grid / fold count keep the nested-CV tests fast.
 C_GRID_TEST = np.logspace(-2, 2, 5)  # [0.01, 0.1, 1, 10, 100]

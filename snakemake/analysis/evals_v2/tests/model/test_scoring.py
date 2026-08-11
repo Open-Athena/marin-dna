@@ -21,16 +21,6 @@ from types import SimpleNamespace
 import datasets
 import numpy as np
 import torch
-from torch import Tensor, nn
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-from marin_dna.data.dna import NUCLEOTIDES
-from marin_dna.data.genome import Genome
-from marin_dna_evals.transforms import (
-    _get_nucleotide_token_ids,
-    transform_llr_clm,
-    transform_reflogprob_clm,
-)
 from marin_dna_evals.model.runner import (
     run_inference,
     run_ll_clm,
@@ -47,6 +37,16 @@ from marin_dna_evals.model.scoring import (
     entropy_from_marginal,
     rc_average_marginal,
 )
+from marin_dna_evals.transforms import (
+    _get_nucleotide_token_ids,
+    transform_llr_clm,
+    transform_reflogprob_clm,
+)
+from torch import Tensor, nn
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from marin_dna.data.dna import NUCLEOTIDES
+from marin_dna.data.genome import Genome
 
 TINY_CLM = "hf-internal-testing/tiny-random-GPTNeoXForCausalLM"
 

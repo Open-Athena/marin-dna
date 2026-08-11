@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from marin_dna_evals.models import (
     ALL_DATASETS,
     ALL_FAMILIES,

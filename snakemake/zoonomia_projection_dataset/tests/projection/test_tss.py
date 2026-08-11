@@ -4,12 +4,12 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
-from marin_dna.data.utils import load_annotation
 from marin_dna_zoonomia_projection.projection.tss import (
     get_ensembl_protein_coding_exons,
     write_mrna_tss_band_bed,
 )
+
+from marin_dna.data.utils import load_annotation
 
 
 def _write_gtf(path: Path, rows: list[str]) -> None:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import polars as pl
-
 from marin_dna_training_dataset.alignment.mmseqs2 import (
     MMSEQS2_HITS_SCHEMA,
     PROJECTED_SCHEMA,

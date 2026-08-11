@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from marin_dna_zoonomia_projection.cli.build_species_list import (
     _to_query,
     default_species_output,

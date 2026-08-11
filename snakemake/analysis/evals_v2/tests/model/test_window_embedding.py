@@ -10,11 +10,11 @@ pipeline smoke run; these are the fast CPU unit tests of the two new kernels.
 from types import SimpleNamespace
 
 import torch
-from torch import nn
-
-from marin_dna_evals.transforms import transform_window_embedding
 from marin_dna_evals.model.runner import _center_token_bounds
 from marin_dna_evals.model.scoring import compute_window_embedding
+from marin_dna_evals.transforms import transform_window_embedding
+from torch import nn
+
 from tests.doubles import DnaTokenizerStub
 
 

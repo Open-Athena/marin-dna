@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import polars as pl
-
 from marin_dna_zoonomia_projection.projection.filter import (
     filter_length,
     filter_single_chrom_strand,

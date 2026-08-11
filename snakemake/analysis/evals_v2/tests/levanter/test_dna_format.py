@@ -15,7 +15,6 @@ pytest.importorskip(
 )
 
 from levanter.data.text.formats import LmDatasetFormatBase
-
 from marin_dna_evals.levanter import (
     formats as _formats_module,
 )

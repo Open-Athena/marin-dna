@@ -9,8 +9,6 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
-from marin_dna.data.intervals import GenomicSet
 from marin_dna_zoonomia_projection.region_labels import (
     BACKGROUND_LABEL,
     REGION_LABELS,
@@ -18,6 +16,8 @@ from marin_dna_zoonomia_projection.region_labels import (
     label_windows,
     label_windows_bp_majority,
 )
+
+from marin_dna.data.intervals import GenomicSet
 
 # v4 priority (issue #227): tss_region_and_utr5 promoted above ncrna_exon.
 V4_PRIORITY = [

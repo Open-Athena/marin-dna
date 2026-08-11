@@ -37,10 +37,12 @@ from marin_dna.data.utils import (
     get_promoters_from_exons,
     load_annotation,
 )
-from marin_dna_zoonomia_projection.projection.tss import get_ensembl_protein_coding_exons
 from marin_dna_zoonomia_projection import (
     _GITHUB_PIPELINE_PATH,
     _GITHUB_REPO,
+)
+from marin_dna_zoonomia_projection.projection.tss import (
+    get_ensembl_protein_coding_exons,
 )
 from marin_dna_zoonomia_projection.validation import (
     get_ensembl_3_prime_utr,

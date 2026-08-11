@@ -101,9 +101,7 @@ def filter_genomes(
     assert min_assembly_level in ASSEMBLY_LEVELS
     assert max_genome_size > 0
 
-    result = genomes.loc[
-        ~genomes["Assembly Accession"].isin(exclude_genomes)
-    ].copy()
+    result = genomes.loc[~genomes["Assembly Accession"].isin(exclude_genomes)].copy()
     result = result.dropna(subset=[deduplicate_taxonomic_rank])
     result["Assembly Level"] = pd.Categorical(
         result["Assembly Level"], ASSEMBLY_LEVELS, ordered=True
@@ -113,9 +111,9 @@ def filter_genomes(
         result["Assembly Stats Total Sequence Length"] < max_genome_size
     ]
     result["Priority"] = "1_Low"
-    result.loc[
-        result["Assembly Accession"].isin(priority_genomes), "Priority"
-    ] = "0_High"
+    result.loc[result["Assembly Accession"].isin(priority_genomes), "Priority"] = (
+        "0_High"
+    )
     result = (
         result.sort_values(
             [

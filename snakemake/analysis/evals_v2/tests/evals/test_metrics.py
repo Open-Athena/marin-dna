@@ -10,8 +10,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.metrics import average_precision_score
-
 from marin_dna_evals.metrics import (
     GLOBAL_SUBSET,
     MACRO_AVG_SUBSET,
@@ -28,6 +26,7 @@ from marin_dna_evals.metrics import (
     per_chrom_ap_table,
     per_chrom_weighted_ap,
 )
+from sklearn.metrics import average_precision_score
 
 
 def test_metric_functions_auprc():

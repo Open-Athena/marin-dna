@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from marin_dna_evals.interpretation_catalog import (
     display_region,
     load_nuc_dep_block,

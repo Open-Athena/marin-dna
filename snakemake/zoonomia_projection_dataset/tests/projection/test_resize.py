@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import polars as pl
 import pytest
-
-from marin_dna_zoonomia_projection.projection.resize import resize_dataframe, resize_to_length
+from marin_dna_zoonomia_projection.projection.resize import (
+    resize_dataframe,
+    resize_to_length,
+)
 
 
 def test_already_target_length_no_change() -> None:

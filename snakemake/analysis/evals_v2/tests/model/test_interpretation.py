@@ -16,15 +16,15 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 import torch
-from torch import nn
-from transformers import AutoModelForCausalLM
-
 from marin_dna_evals.model.interpretation import (
     _stitch_and_symmetrize,
     categorical_jacobian,
     dependency_matrix,
     nucleotide_dependency_map,
 )
+from torch import nn
+from transformers import AutoModelForCausalLM
+
 from tests.doubles import DnaTokenizerStub
 
 TINY_CLM = "hf-internal-testing/tiny-random-GPTNeoXForCausalLM"
@@ -50,8 +50,9 @@ class _PrefixSumCausalLM(nn.Module):
 
 
 def _nuc_token_ids(tokenizer):
-    from marin_dna.data.dna import NUCLEOTIDES
     from marin_dna_evals.transforms import _get_nucleotide_token_ids
+
+    from marin_dna.data.dna import NUCLEOTIDES
 
     ids = _get_nucleotide_token_ids(tokenizer)
     return torch.tensor([ids[n] for n in NUCLEOTIDES], dtype=torch.long)

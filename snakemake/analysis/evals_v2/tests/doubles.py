@@ -1,10 +1,12 @@
 """Small protocol doubles shared by eval model tests."""
 
+from typing import ClassVar
+
 
 class DnaTokenizerStub:
     """Identity-hashable tokenizer double for one-token DNA bases."""
 
-    _BASE_IDS = {"A": 4, "C": 5, "G": 6, "T": 7}
+    _BASE_IDS: ClassVar[dict[str, int]] = {"A": 4, "C": 5, "G": 6, "T": 7}
 
     def __init__(self, *, bos: bool, eos: bool) -> None:
         self.bos_token_id = 2 if bos else None

@@ -1,5 +1,4 @@
 import pandas as pd
-
 from marin_dna_genome_selection.selection import add_taxonomy, filter_genomes
 
 

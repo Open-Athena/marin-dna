@@ -35,6 +35,12 @@ from transformers import Trainer, TrainingArguments
 
 from marin_dna.data.dna import NUCLEOTIDES
 from marin_dna.data.genome import Genome
+from marin_dna_evals.model.scoring import (
+    compute_ll_clm,
+    compute_marginal_clm,
+    compute_variant_score_bundle,
+    compute_window_embedding,
+)
 from marin_dna_evals.transforms import (
     _get_nucleotide_token_ids,
     _get_special_token_counts,
@@ -43,12 +49,6 @@ from marin_dna_evals.transforms import (
     transform_llr_clm,
     transform_variant_marginal_clm,
     transform_window_embedding,
-)
-from marin_dna_evals.model.scoring import (
-    compute_ll_clm,
-    compute_marginal_clm,
-    compute_variant_score_bundle,
-    compute_window_embedding,
 )
 
 

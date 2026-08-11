@@ -11,7 +11,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-
 from marin_dna_evals import embedding_umap as eu
 from marin_dna_evals.embedding_umap import (
     REGION_DISPLAY,

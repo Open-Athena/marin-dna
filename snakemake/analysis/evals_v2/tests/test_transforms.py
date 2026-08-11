@@ -10,10 +10,6 @@ abstract base no longer exists; transforms duck-type their tokenizer arg.
 import pytest
 import torch
 from Bio.Seq import Seq
-from transformers import AutoTokenizer
-
-from marin_dna.data.dna import complement_base
-from marin_dna.data.genome import Genome
 from marin_dna_evals.transforms import (
     NUCLEOTIDES,
     _get_nucleotide_token_ids,
@@ -23,6 +19,10 @@ from marin_dna_evals.transforms import (
     transform_reflogprob_clm,
     transform_variant_marginal_clm,
 )
+from transformers import AutoTokenizer
+
+from marin_dna.data.dna import complement_base
+from marin_dna.data.genome import Genome
 
 
 class _SpecialTokensTokenizer:

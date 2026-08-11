@@ -6,7 +6,6 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from marin_dna_zoonomia_projection.projection.hal import (
     HALLIFTOVER_BED_SCHEMA,
     attach_src_size,

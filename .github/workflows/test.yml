@@ -40,6 +40,30 @@ jobs:
             grep -Eq "uv run --locked( --group [^ ]+)* snakemake -n" "$project/README.md"
           done < <(find snakemake scaffolds/snakemake-pipeline -path "*/workflow/Snakefile" -print | sort)
 
+      - name: Validate core dependency boundary
+        run: |
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          packages = {
+              package["name"]
+              for package in tomllib.loads(Path("uv.lock").read_text())["package"]
+          }
+          forbidden = {
+              "altair",
+              "matplotlib",
+              "plotly",
+              "seaborn",
+              "snakemake",
+              "torch",
+              "transformers",
+              "wandb",
+          }
+          unexpected = sorted(packages & forbidden)
+          assert not unexpected, f"Root lock contains non-core dependencies: {unexpected}"
+          PY
+
       - name: Select affected projects
         id: projects
         env:
@@ -73,8 +97,11 @@ jobs:
               core_changed = any(
                   path == "pyproject.toml"
                   or path == "uv.lock"
+                  or path == ".python-version"
+                  or path == ".pre-commit-config.yaml"
                   or path == "AGENTS.md"
                   or path == ".github/workflows/test.yml"
+                  or path == ".github/workflows/quality.yml"
                   or path.startswith("src/marin_dna/")
                   or path.startswith("tests/")
                   for path in changed

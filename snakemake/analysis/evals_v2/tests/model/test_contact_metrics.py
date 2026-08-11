@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-
 from marin_dna_evals.model.contact_metrics import (
     base_pairs_to_contact_matrix,
     contact_prediction_metrics,

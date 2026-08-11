@@ -6,7 +6,6 @@ import numpy as np
 import polars as pl
 import pyBigWig
 import pytest
-
 from marin_dna_zoonomia_projection.conservation.scoring import score_windows
 
 

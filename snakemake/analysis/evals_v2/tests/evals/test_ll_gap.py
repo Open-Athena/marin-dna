@@ -14,7 +14,6 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
-
 from marin_dna_evals.ll_gap import aggregate_ll_gap, compute_hf_ll_gap
 
 

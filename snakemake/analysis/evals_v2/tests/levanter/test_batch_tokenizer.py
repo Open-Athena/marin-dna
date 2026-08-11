@@ -19,7 +19,6 @@ import pytest
 pytest.importorskip("levanter", reason="install with `uv sync --group marin` to run")
 
 from levanter.tokenizers import load_tokenizer
-
 from marin_dna_evals.levanter.batch_tokenizer import DNABatchTokenizer
 
 

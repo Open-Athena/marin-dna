@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pyBigWig
 import pytest
-
 from marin_dna_evals.conservation import (
     CONSERVATION_TRACKS,
     aggregate_conservation_metrics,

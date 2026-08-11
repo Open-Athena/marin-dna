@@ -689,6 +689,40 @@ def test_genomic_set_zero_length_interval():
     assert result_df.iloc[0]["end"] == 50
 
 
+def test_genomic_set_zero_length_interval_operations():
+    """A zero-length interval follows the established point-overlap behavior."""
+    point = GenomicSet(pd.DataFrame({"chrom": ["chr1"], "start": [50], "end": [50]}))
+    containing = GenomicSet(
+        pd.DataFrame({"chrom": ["chr1"], "start": [40], "end": [60]})
+    )
+
+    assert point & containing == point
+    assert point - containing == GenomicSet(
+        pd.DataFrame({"chrom": [], "start": [], "end": []})
+    )
+
+
+def test_genomic_set_touching_intervals_do_not_intersect():
+    """Half-open intervals in separate sets do not overlap at a shared boundary."""
+    left = GenomicSet(pd.DataFrame({"chrom": ["chr1"], "start": [0], "end": [50]}))
+    right = GenomicSet(pd.DataFrame({"chrom": ["chr1"], "start": [50], "end": [100]}))
+
+    assert left & right == GenomicSet(
+        pd.DataFrame({"chrom": [], "start": [], "end": []})
+    )
+    assert left.filter_not_overlapping(right) == left
+
+
+def test_genomic_set_subtraction_clips_negative_coordinates():
+    """Subtraction preserves the former operation's zero-bound clipping."""
+    left = GenomicSet(pd.DataFrame({"chrom": ["chr1"], "start": [-2], "end": [8]}))
+    disjoint = GenomicSet(pd.DataFrame({"chrom": ["chr1"], "start": [20], "end": [22]}))
+
+    assert left - disjoint == GenomicSet(
+        pd.DataFrame({"chrom": ["chr1"], "start": [0], "end": [8]})
+    )
+
+
 def test_genomic_set_invalid_start_greater_than_end():
     """Test that GenomicSet rejects intervals where start > end.
 

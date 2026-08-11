@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from marin_dna_zoonomia_projection.projection.taxonomy import (
     LeafMeta,
     dedup_by_rank,
