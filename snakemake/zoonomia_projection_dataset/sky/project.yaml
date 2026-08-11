@@ -67,7 +67,7 @@ setup: |
         echo "export LD_LIBRARY_PATH=\"$CACTUS_DIR/lib:\${LD_LIBRARY_PATH:-}\"" >> "$HOME/.bashrc"
     fi
 
-    uv sync
+    uv sync --project snakemake/zoonomia_projection_dataset --locked
 
 run: |
     set -euxo pipefail
@@ -162,7 +162,7 @@ run: |
 
     # ----- Run Snakemake: project_one_species ║×48 + merge -----
     cd snakemake/zoonomia_projection_dataset
-    uv run --project ../.. snakemake "$TARGET" \
+    uv run --locked snakemake "$TARGET" \
         --profile workflow/profiles/default \
         --use-conda \
         --cores 48 \

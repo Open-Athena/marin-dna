@@ -141,7 +141,7 @@ rule prepare_training_shards:
     resources:
         mem_mb=120000,
     run:
-        from marin_dna.pipelines.projection.dataset import prepare_shards
+        from marin_dna_zoonomia_projection.projection.dataset import prepare_shards
 
         prepare_shards(
             parquet_path=str(input[0]),
@@ -191,7 +191,7 @@ rule dataset_hf_readme_v3:
         priority=list(config["region_label_priority"]),
         add_rc=ADD_RC,
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+        from marin_dna_zoonomia_projection.region_labels import (
             write_subset_hf_readme,
         )
 
@@ -238,7 +238,7 @@ rule dataset_hf_readme_v4:
         priority=list(config["region_label_priority_v4"]),
         add_rc=ADD_RC,
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+        from marin_dna_zoonomia_projection.region_labels import (
             write_subset_hf_readme_v4,
         )
 
@@ -285,7 +285,7 @@ rule dataset_hf_readme_species_subset:
         # which the S3 provider would resolve under the bucket prefix).
         species_tsv=lambda wc: SPECIES_SUBSETS[wc.intervals_version.rsplit("-", 1)[1]],
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.region_labels import (
+        from marin_dna_zoonomia_projection.region_labels import (
             write_species_subset_hf_readme,
         )
 

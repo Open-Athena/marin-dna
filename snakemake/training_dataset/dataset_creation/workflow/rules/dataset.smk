@@ -246,7 +246,7 @@ rule training_hf_readme:
         seed=config["shuffle_seed"],
         add_rc=config["add_rc"],
     run:
-        from marin_dna.pipelines.training_dataset.hf_readme import (
+        from marin_dna_training_dataset.hf_readme import (
             count_parquet_rows,
             write_training_readme,
         )
@@ -333,7 +333,7 @@ rule validation_hf_readme:
         seed=config["validation"]["seed"],
         validation_genome=config["validation"]["genome"],
     run:
-        from marin_dna.pipelines.training_dataset.hf_readme import (
+        from marin_dna_training_dataset.hf_readme import (
             count_parquet_rows,
             write_validation_readme,
         )

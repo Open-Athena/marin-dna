@@ -17,7 +17,7 @@ step_size: 128
 # phyloP_447m threshold calibrated to match phyloP_241m's *proportion* of
 # non-NaN bases passing at threshold 2.27 (chr1: both tracks pass 4.0656%
 # of their non-NaN bases — controls for different coverage on the two
-# tracks). Computed by sky/calibrate.yaml -> scripts/calibrate_447m_threshold.py
+# tracks). Computed by sky/calibrate.yaml -> the marin-dna-calibrate-447m CLI
 # on hg38 chr1 only — single-chrom calibration gives well below 1% relative
 # error and ~10x faster wall than all 24 chroms.
 phyloP_447m_threshold: 2.2162
@@ -35,7 +35,7 @@ filters:
 hal_path: "/mnt/nvme/zoonomia/447-mammalian-2022v1.hal"
 
 # Family-deduped 447 mammal species set (108 rows). Generated once by
-# scripts/build_species_list.py; committed to the repo.
+# the marin-dna-build-species-list CLI; committed to the repo.
 species_tsv: "config/species_zoonomia_447_family_dedup.tsv"
 
 # Which conservation cutoff BED to project (suffix of `results/bed/min{p}.bed.gz`).

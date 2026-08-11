@@ -32,7 +32,7 @@ See [dataset_creation/README.md](dataset_creation/README.md) for detailed config
 
 ## Prerequisites
 
-- Python dependencies: Managed by the main project (`uv sync` from repository root)
+- Python dependencies: Each runnable pipeline owns a project-local `pyproject.toml` and committed `uv.lock`
 - Conda: Required for bioinformatics CLI tools (bedtools, twoBitToFa, etc.)
 
 ## Typical Workflow
@@ -41,7 +41,9 @@ See [dataset_creation/README.md](dataset_creation/README.md) for detailed config
    ```bash
    cd genome_selection
    # Edit config/config.yaml
-   uv run snakemake
+   uv sync --locked --group dev
+   uv run --locked snakemake -n
+   uv run --locked snakemake
    ```
 
 2. Use the output (`genome_selection/results/genomes/filtered.parquet`) as input for dataset creation:
@@ -49,5 +51,7 @@ See [dataset_creation/README.md](dataset_creation/README.md) for detailed config
    cd dataset_creation
    # Copy or symlink genome list to config/genomes.parquet
    # Edit config/config.yaml
-   uv run snakemake
+   uv sync --locked --group dev
+   uv run --locked snakemake -n
+   uv run --locked snakemake
    ```

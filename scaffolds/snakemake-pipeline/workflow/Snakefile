@@ -1,0 +1,13 @@
+from marin_dna_pipeline import write_example
+
+
+rule all:
+    input:
+        "results/example.txt",
+
+
+rule example:
+    output:
+        "results/example.txt",
+    run:
+        write_example(output[0])

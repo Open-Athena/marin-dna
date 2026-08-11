@@ -32,7 +32,7 @@ rule compute_nuc_dep:
         window_size=lambda wc: get_nuc_dep_window(wc.model),
         norm_ord=get_nuc_dep_ord(),
     run:
-        from marin_dna.pipelines.evals.interpretation import compute_dependency_map
+        from marin_dna_evals.interpretation import compute_dependency_map
 
         df = compute_dependency_map(
             checkpoint_path=input.checkpoint,
@@ -61,7 +61,7 @@ rule plot_nuc_dep:
     output:
         "results/plots/nuc_dep/{combine}/{locus}/{model}.svg",
     run:
-        from marin_dna.pipelines.evals.interpretation import plot_dependency_map
+        from marin_dna_evals.interpretation import plot_dependency_map
 
         df = pd.read_parquet(input[0])
         # parquet stringifies column names; restore int genomic coordinates.

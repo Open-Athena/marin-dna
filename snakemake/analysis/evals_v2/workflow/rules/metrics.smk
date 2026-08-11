@@ -19,7 +19,7 @@ prior in-runner averaging behavior).
 
 Output parquet (matched_pair datasets) has one row per (subset × score_type)
 plus aggregate rows `_global_` and `_macro_avg_` per score_type — see
-`marin_dna.pipelines.evals.metrics.compute_auprc_metrics`.
+`marin_dna_evals.metrics.compute_auprc_metrics`.
 
 For `eval_protocol: qtl_global` datasets (caqtl/dsqtl) the unmatched path
 runs instead: `compute_qtl_metrics` emits one row per (metric × score_type)

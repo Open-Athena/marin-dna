@@ -29,8 +29,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
 from botocore.exceptions import ClientError
-
-from marin_dna.pipelines.evals.interpretation_catalog import (
+from marin_dna_evals.interpretation_catalog import (
     NUC_DEP_PLOT_PREFIX,
     S3_BUCKET,
     load_nuc_dep_block,

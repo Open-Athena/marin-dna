@@ -1,29 +1,12 @@
 name: Test
 
-# CPU pytest gate. Runs the library test suite on every PR and on push to
-# main, so it acts as a required status check before merge.
-#
-# Runs on ubuntu-latest only: the suite is CPU-only (no `cuda`/`gpu`-marked
-# tests), and the repo's actual GPU/TPU training and large evals run on
-# SkyPilot/SLURM, not in CI. Linting and formatting run in the Quality workflow.
-#
-# Install scope — base + `dev` (pytest):
-#   * The base deps (incl. `py2bit`, used by the training-data pipeline's
-#     `.2bit` reads) plus the `dev` group (pytest) are all the suite needs.
-#   * The heavy `marin` / `tpu` extras are intentionally excluded — the suite
-#     doesn't need JAX/Levanter. On Linux this install resolves transformers
-#     4.57.6 (the same version the `marin` extra pins), so model/scoring tests
-#     that depend on the pre-5.x cache API behave as the maintainers expect.
-#
-# `slow`-marked tests (currently the hg19->hg38 liftover, which downloads a
-# UCSC chain file over the network) are deselected to keep the gate hermetic
-# and fast; run them on demand with `uv run pytest -m slow`.
-
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -33,27 +16,177 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  select:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    outputs:
+      matrix: ${{ steps.projects.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Validate pipeline project layout
+        run: |
+          set -euo pipefail
+          while IFS= read -r snakefile; do
+            project="${snakefile%/workflow/Snakefile}"
+            test -f "$project/pyproject.toml"
+            test -f "$project/uv.lock"
+            test -d "$project/src"
+            test -d "$project/tests"
+            test -f "$project/README.md"
+            grep -q "uv sync --locked" "$project/README.md"
+            grep -Eq "uv run --locked( --group [^ ]+)* pytest" "$project/README.md"
+            grep -Eq "uv run --locked( --group [^ ]+)* snakemake -n" "$project/README.md"
+          done < <(find snakemake scaffolds/snakemake-pipeline -path "*/workflow/Snakefile" -print | sort)
+
+      - name: Validate core dependency boundary
+        run: |
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          packages = {
+              package["name"]
+              for package in tomllib.loads(Path("uv.lock").read_text())["package"]
+          }
+          forbidden = {
+              "altair",
+              "matplotlib",
+              "plotly",
+              "seaborn",
+              "snakemake",
+              "torch",
+              "transformers",
+              "wandb",
+          }
+          unexpected = sorted(packages & forbidden)
+          assert not unexpected, f"Root lock contains non-core dependencies: {unexpected}"
+          PY
+
+      - name: Select affected projects
+        id: projects
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          python3 - <<PY
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          projects = [
+              {"name": "core", "directory": ".", "dry_run": False},
+              {"name": "evals-v2", "directory": "snakemake/analysis/evals_v2", "dry_run": True},
+              {"name": "zoonomia-projection", "directory": "snakemake/zoonomia_projection_dataset", "dry_run": True},
+              {"name": "genome-selection", "directory": "snakemake/training_dataset/genome_selection", "dry_run": True},
+              {"name": "training-dataset", "directory": "snakemake/training_dataset/dataset_creation", "dry_run": True},
+              {"name": "pipeline-scaffold", "directory": "scaffolds/snakemake-pipeline", "dry_run": True},
+          ]
+          event = os.environ["EVENT_NAME"]
+          base = os.environ["PR_BASE_SHA"] if event == "pull_request" else os.environ["BEFORE_SHA"]
+          if event in {"schedule", "workflow_dispatch"} or not base or set(base) == {"0"}:
+              selected = projects
+          else:
+              changed = subprocess.check_output(
+                  ["git", "diff", "--name-only", base, os.environ["GITHUB_SHA"]],
+                  text=True,
+              ).splitlines()
+              core_changed = any(
+                  path == "pyproject.toml"
+                  or path == "uv.lock"
+                  or path == ".python-version"
+                  or path == ".pre-commit-config.yaml"
+                  or path == "AGENTS.md"
+                  or path == ".github/workflows/test.yml"
+                  or path == ".github/workflows/quality.yml"
+                  or path.startswith("src/marin_dna/")
+                  or path.startswith("tests/")
+                  for path in changed
+              )
+              if core_changed:
+                  selected = projects
+              else:
+                  selected = [
+                      project
+                      for project in projects[1:]
+                      if any(path.startswith(project["directory"] + "/") for path in changed)
+                  ]
+          if not selected:
+              selected = [{"name": "no-python-changes", "directory": ".", "dry_run": False, "skip": True}]
+          matrix = json.dumps({"include": selected}, separators=(",", ":"))
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write(f"matrix={matrix}\n")
+          PY
+
+  test:
+    needs: select
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    name: test (${{ matrix.name }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up uv
+        if: ${{ !matrix.skip }}
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          version-file: pyproject.toml
+          version-file: ${{ matrix.directory }}/pyproject.toml
 
       - name: Set up Python
+        if: ${{ !matrix.skip }}
         run: uv python install 3.13
 
-      - name: Install dependencies
+      - name: Install locked project
+        if: ${{ !matrix.skip }}
+        working-directory: ${{ matrix.directory }}
         run: uv sync --locked --group dev
 
       - name: Run tests
+        if: ${{ !matrix.skip }}
+        working-directory: ${{ matrix.directory }}
         env:
-          # Tests pull public songlab/* tokenizers from the HF Hub; the token
-          # (if the secret is set) just avoids anonymous rate limits. An empty
-          # value is fine — the models are public.
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: uv run pytest -m "not slow"
+        run: uv run --locked pytest -m "not slow"
+
+      - name: Dry-run pipeline with local storage
+        if: ${{ !matrix.skip && matrix.dry_run }}
+        working-directory: ${{ matrix.directory }}
+        shell: bash
+        run: |
+          log_path="$RUNNER_TEMP/snakemake-dry-run.log"
+          set +e
+          timeout 60s uv run --locked snakemake -n --quiet all --default-storage-provider none --cores 1 >"$log_path" 2>&1
+          status=$?
+          set -e
+          tail -n 80 "$log_path"
+          if [[ "$status" -eq 124 ]]; then
+            echo "::warning::Pipeline dry-run exceeded the 60-second validation budget."
+          elif [[ "$status" -ne 0 ]]; then
+            exit "$status"
+          fi
+
+      - name: No Python project changed
+        if: ${{ matrix.skip }}
+        run: echo "No Python project requires testing."
+
+  required-test:
+    if: ${{ always() }}
+    needs: test
+    runs-on: ubuntu-latest
+    name: test
+    steps:
+      - name: Verify project test matrix
+        env:
+          MATRIX_RESULT: ${{ needs.test.result }}
+        run: |
+          if [[ "$MATRIX_RESULT" != "success" ]]; then
+            echo "Project test matrix result: $MATRIX_RESULT"
+            exit 1
+          fi

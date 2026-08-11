@@ -5,42 +5,16 @@ build-backend = "hatchling.build"
 [project]
 name = "marin_dna"
 version = "0.0.1"
-description = "DNA training dataset creation and genomic interval utilities"
+description = "Lightweight genomic primitives for MarinDNA projects"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "bioframe",
     "biopython>=1.85",
-    "datasets",
-    "einops",
-    "huggingface_hub",
-    "jaxtyping",
-    "liftover",
-    "matplotlib",
     "numpy",
-    "openpyxl",
-    "pandas",
+    "pandas>=2.0,<3.0",
     "polars",
-    "polars-bio",
     "pyarrow>=21.0.0",
-    "pyBigWig",
-    "py2bit",
     "pyfaidx>=0.8.0",
-    "scikit-learn",
     "scipy",
-    "seaborn",
-    "snakemake",
-    "torch",
-    "tqdm",
-    "tokenizers",
-    # Pin <5: model/scoring/interpretation tests depend on the pre-5.x
-    # transformers cache API (see .github/workflows/test.yml). Until the marin
-    # extra was removed this was pinned implicitly (marin-levanter pins 4.57.6
-    # and `fork-strategy = "fewest"` shared it into the base resolve); now it's
-    # explicit.
-    "transformers[torch]<5",
-    "zstandard",
-    "snakemake-storage-plugin-s3>=0.3.6",
-    "wandb",
 ]
 
 [dependency-groups]
@@ -50,64 +24,19 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
 ]
-# `aws` CLI for the complex_traits / ldscore_download snakemake rule (added
-# in #159 — the rule shells out to `aws s3 cp ...`). awscli pins older
-# fsspec/s3fs that conflict with the modern s3fs the `genome-s3` group needs;
-# gate it as an opt-in group via `[tool.uv.conflicts]` below so each locks
-# independently. Pipeline users running ldscore_download install with `--group aws-cli`.
-aws-cli = [
-    "awscli>=1.45.2",
-]
-# Modern s3fs for `Genome(s3://...)` (pyfaidx + fsspec direct reads from
-# S3). Conflicts with the `aws-cli` group's older awscli/aiobotocore pins,
-# so it's gated as its own group and listed in `[tool.uv.conflicts]`
-# below. Pipelines that read genome FASTA from S3 (e.g. evals_v2) install
-# with `--group genome-s3`.
-genome-s3 = [
-    "s3fs>=2024",
-]
-# `umap-learn` for the embedding-UMAP interpretation (evals_v2, issue #246).
-# Pulls numba + a ~56 MB llvmlite (LLVM) wheel for one analysis, so it's an
-# opt-in group, not a core dep; `embedding_umap.fit_umap` lazy-imports it.
-# Pipelines that fit UMAP install with `--group umap` (alongside
-# `--group genome-s3` for the S3 genome read).
-umap = [
-    "umap-learn>=0.5",
-]
 
 [tool.uv]
-# Keep local and CI dependency resolution on the same uv release. GitHub
-# Actions reads this pin through setup-uv's version-file input.
 required-version = "==0.11.31"
-# awscli (in the `aws-cli` group) pins fsspec/s3fs strictly below the versions
-# the `genome-s3` group's modern s3fs needs; resolve them in separate
-# "universes" so each group locks against its own compatible set.
-conflicts = [
-    [
-        { group = "genome-s3" },
-        { group = "aws-cli" },
-    ],
-]
 fork-strategy = "fewest"
 environments = [
     "sys_platform == 'darwin'",
     "sys_platform == 'linux'",
-]
-override-dependencies = [
-    "datasets>=3.1.0,<4.0.0",
-    # Pin pandas to 2.x — pandas 3.0 changes parquet round-trip dtypes from
-    # `object` to `StringDtype`, which breaks tests/test_intervals.py.
-    "pandas>=2.0,<3.0",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
 
 [tool.mypy]
-# Lax baseline: many transitive deps (datasets, polars-bio, bioframe,
-# etc.) have no stubs. Don't gate the project
-# on missing stubs. `strict_optional` off matches the existing code's
-# implicit-None tolerance — tighten incrementally.
 files = "src/marin_dna"
 ignore_missing_imports = true
 strict_optional = false
@@ -115,8 +44,5 @@ strict_optional = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    # Slow and/or network-dependent tests (e.g. the hg19→hg38 liftover test,
-    # which downloads a UCSC chain file). The default CI gate deselects these
-    # with `-m 'not slow'`; run them explicitly with `uv run pytest -m slow`.
     "slow: slow and/or network-dependent; deselected in the default CI gate",
 ]

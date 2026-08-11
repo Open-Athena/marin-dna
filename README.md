@@ -90,57 +90,51 @@ if __name__ == "__main__":
 
 ## Installation
 
+The repository root is the lightweight `marin_dna` core project:
+
 ```bash
-uv sync --locked
+uv sync --locked --group dev
+uv run --locked pytest
 ```
 
-<details>
-<summary>Optional installs (all opt-in)</summary>
+Each runnable Snakemake pipeline is an independent Python project with its own manifest, lockfile, source package, tests, and `.venv`:
 
-| Selector | Purpose |
+| Project | Package |
 |---|---|
-| `--group dev` | Pre-commit, mypy, and pytest. Ruff and snakefmt run in isolated pre-commit environments. |
-| `--group aws-cli` | `awscli` for snakemake rules that shell out to `aws s3 cp` (e.g. `evals/ldscore_download`). |
-| `--group genome-s3` | Modern `s3fs` for `Genome(s3://…)` FASTA reads (e.g. evals_v2). Mutually exclusive with `aws-cli` (which pins older fsspec/s3fs). |
+| `snakemake/analysis/evals_v2/` | `marin_dna_evals` |
+| `snakemake/zoonomia_projection_dataset/` | `marin_dna_zoonomia_projection` |
+| `snakemake/training_dataset/genome_selection/` | `marin_dna_genome_selection` |
+| `snakemake/training_dataset/dataset_creation/` | `marin_dna_training_dataset` |
 
-**Marin-launched experiments** (`marin`/`levanter`/`iris`/jax) are *not* installed
-from here — each experiment is a self-contained directory with its own
-`pyproject.toml` (marin in base deps). See the
-[`marin-experiment` skill](.agents/skills/marin-experiment/SKILL.md).
+Run a pipeline from its own directory:
 
-</details>
+```bash
+cd snakemake/analysis/evals_v2
+uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n
+```
+
+External bioinformatics programs remain in each rule's Conda environment. Marin-launched experiments and the tutorial under `examples/train_tiny_dna/` remain self-contained projects with their own lockfiles.
+
+New pipelines should start from [`scaffolds/snakemake-pipeline/`](scaffolds/snakemake-pipeline/), which includes the same manifest, lockfile, package, test, workflow, and profile layout.
 
 ## Development
 
+Install repository-level quality tooling from the core project:
+
 ```bash
-# Install the locked dev environment and local commit hooks
 uv sync --locked --group dev
-uv run pre-commit install
-
-# Run the same quality checks as CI
-uv run pre-commit run --all-files --show-diff-on-failure
-
-# Run tests
-uv run pytest
+uv run --locked pre-commit install
+uv run --locked pre-commit run --all-files --show-diff-on-failure
+uv run --locked pytest
 ```
 
-The local hook and GitHub Quality job use the same `.pre-commit-config.yaml`; GitHub reports formatter diffs but never pushes changes to a pull-request branch.
-
-Dependabot opens grouped monthly updates for remote pre-commit hooks, the uv-managed pre-commit and mypy packages, GitHub Actions, and dashboard npm dependencies.
-
-| Check | Local `git commit` | Local full validation | GitHub pull requests and `main` |
-|---|---|---|---|
-| YAML/TOML, merge markers, large files, EOF, whitespace | Staged files | All tracked files | `Quality / pre-commit` |
-| Ruff lint and formatting | Changed Python files | All Python files | `Quality / pre-commit` |
-| snakefmt | Changed Snakemake files | All Snakemake files | `Quality / pre-commit` |
-| mypy | Whole library when a library file is staged | Whole `src/marin_dna` tree | `Quality / pre-commit` |
-| pytest | Not automatic | Full `uv run pytest` | `Test / test` runs `pytest -m "not slow"` |
-| Dashboard | Not automatic | Optional manual build | `Dashboard / build` |
-| Snakemake dry-runs | Not automatic | Required for pipeline behavior changes | Not a permanent CI gate |
+A root change runs core plus every dependent pipeline in CI. A pipeline-only change runs that project's locked tests and dry-run. The scheduled CI check validates every project and lockfile.
 
 ## Project Structure
 
-See [AGENTS.md](AGENTS.md#code-structure).
+The repository is the coordination boundary; each independently runnable workflow is its own dependency and execution boundary. Reusable genomic primitives live in `src/marin_dna/`; pipeline-specific Python lives beside its workflow under that pipeline's `src/`; and experiments remain isolated by branch/worktree. See [AGENTS.md](AGENTS.md#code-structure).
 
 ## Community
 

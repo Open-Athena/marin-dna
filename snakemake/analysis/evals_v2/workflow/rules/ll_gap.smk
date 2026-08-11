@@ -32,7 +32,7 @@ rule compute_ll_gap:
         hf_revision=lambda wc: get_ll_gap_dataset_config(wc.region)["hf_revision"],
         split=LL_GAP_CFG.get("split", "validation"),
     run:
-        from marin_dna.pipelines.evals.ll_gap import compute_hf_ll_gap
+        from marin_dna_evals.ll_gap import compute_hf_ll_gap
 
         batch_size = get_model_batch_size(wildcards.model)
         seqs = load_dataset(
@@ -66,7 +66,7 @@ rule ll_gap:
     output:
         "results/ll_gap/summary.parquet",
     run:
-        from marin_dna.pipelines.evals.ll_gap import aggregate_ll_gap
+        from marin_dna_evals.ll_gap import aggregate_ll_gap
 
         rows = []
         for path in input:

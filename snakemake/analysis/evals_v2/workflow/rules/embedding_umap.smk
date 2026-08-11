@@ -30,7 +30,7 @@ rule compute_region_embeddings:
         layer_index=UMAP_CFG.get("layer_index", -1),
         n_center_bp=UMAP_CFG.get("n_center_bp", 100),
     run:
-        from marin_dna.pipelines.evals.embedding_umap import (
+        from marin_dna_evals.embedding_umap import (
             compute_region_embeddings,
             load_umap_regions,
         )
@@ -63,7 +63,7 @@ rule fit_umap:
     output:
         "results/interpretation/umap/{model}/umap_coords.parquet",
     run:
-        from marin_dna.pipelines.evals.embedding_umap import fit_umap
+        from marin_dna_evals.embedding_umap import fit_umap
 
         emb = pd.read_parquet(input[0])
         coords = fit_umap(emb, random_state=UMAP_CFG.get("random_state", 42))
@@ -79,7 +79,7 @@ rule plot_umap:
     wildcard_constraints:
         color_by="region|conservation",
     run:
-        from marin_dna.pipelines.evals.embedding_umap import plot_umap
+        from marin_dna_evals.embedding_umap import plot_umap
 
         coords = pd.read_parquet(input[0])
         plot_umap(

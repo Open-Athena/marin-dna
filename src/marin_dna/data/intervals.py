@@ -1,9 +1,166 @@
-import bioframe as bf
+from bisect import bisect_left, bisect_right
+
 import numpy as np
 import pandas as pd
 import polars as pl
+from pandas.api.types import is_integer_dtype, is_object_dtype, is_string_dtype
 
 INTERVAL_COORDS = ["chrom", "start", "end"]
+
+
+def _validate_intervals(data: pd.DataFrame) -> None:
+    """Validate the three BED-like columns used by the core interval types."""
+    chrom_dtype = data["chrom"].dtype
+    if not (
+        is_object_dtype(chrom_dtype)
+        or is_string_dtype(chrom_dtype)
+        or isinstance(chrom_dtype, pd.CategoricalDtype)
+    ):
+        raise TypeError(
+            "Invalid bedFrame: chrom must have a string or categorical dtype"
+        )
+    if not is_integer_dtype(data["start"].dtype) or not is_integer_dtype(
+        data["end"].dtype
+    ):
+        raise TypeError("Invalid bedFrame: start and end must have integer dtypes")
+    if data[INTERVAL_COORDS].isna().any().any():
+        raise ValueError(
+            "Invalid bedFrame: interval coordinates must not contain nulls"
+        )
+    if (data["start"] > data["end"]).any():
+        raise ValueError("Invalid bedFrame: starts exceed ends")
+
+
+def _merge_intervals(data: pd.DataFrame) -> pd.DataFrame:
+    """Merge overlapping or adjacent intervals in a validated DataFrame."""
+    ordered = data.sort_values(INTERVAL_COORDS)
+    merged: list[tuple[object, int, int]] = []
+    for chrom, start, end in ordered.itertuples(index=False, name=None):
+        start = int(start)
+        end = int(end)
+        if merged and merged[-1][0] == chrom and start <= merged[-1][2]:
+            previous_chrom, previous_start, previous_end = merged[-1]
+            merged[-1] = (previous_chrom, previous_start, max(previous_end, end))
+        else:
+            merged.append((chrom, start, end))
+    return pd.DataFrame(merged, columns=INTERVAL_COORDS).astype(
+        {"chrom": str, "start": int, "end": int}
+    )
+
+
+def _group_intervals(data: pd.DataFrame) -> dict[str, list[tuple[int, int]]]:
+    """Group sorted interval coordinates by chromosome."""
+    return {
+        str(chrom): [
+            (int(start), int(end))
+            for start, end in group[["start", "end"]].itertuples(index=False, name=None)
+        ]
+        for chrom, group in data.groupby("chrom", sort=False, observed=True)
+    }
+
+
+def _intersections(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
+    """Return strict half-open intersections between two merged interval sets."""
+    intersections: list[tuple[str, int, int]] = []
+    right_by_chrom = _group_intervals(right)
+    for chrom, left_group in left.groupby("chrom", sort=False, observed=True):
+        right_intervals = right_by_chrom.get(str(chrom), [])
+        left_intervals = _group_intervals(left_group)[str(chrom)]
+        left_index = right_index = 0
+        while left_index < len(left_intervals) and right_index < len(right_intervals):
+            left_start, left_end = left_intervals[left_index]
+            right_start, right_end = right_intervals[right_index]
+            left_effective_end = max(left_end, left_start + 1)
+            right_effective_end = max(right_end, right_start + 1)
+            start = max(left_start, right_start)
+            end = min(left_end, right_end)
+            if start < min(left_effective_end, right_effective_end):
+                intersections.append((str(chrom), start, end))
+            if left_effective_end <= right_effective_end:
+                left_index += 1
+            else:
+                right_index += 1
+    return pd.DataFrame(intersections, columns=INTERVAL_COORDS)
+
+
+def _subtract_intervals(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
+    """Subtract a merged interval set from another using half-open semantics."""
+    result: list[tuple[str, int, int]] = []
+    right_by_chrom = _group_intervals(right)
+    for chrom, left_group in left.groupby("chrom", sort=False, observed=True):
+        right_intervals = right_by_chrom.get(str(chrom), [])
+        right_index = 0
+        for start, end in _group_intervals(left_group)[str(chrom)]:
+            while (
+                right_index < len(right_intervals)
+                and right_intervals[right_index][1] <= start
+            ):
+                right_index += 1
+            if start == end:
+                is_removed = any(
+                    other_start <= start < other_end
+                    for other_start, other_end in right_intervals[right_index:]
+                    if other_start <= start
+                )
+                if start >= 0 and not is_removed:
+                    result.append((str(chrom), start, end))
+                continue
+            cursor = start
+            for other_start, other_end in right_intervals[right_index:]:
+                if other_start >= end:
+                    break
+                if cursor < other_start:
+                    fragment_start = max(0, cursor)
+                    fragment_end = min(other_start, end)
+                    if fragment_start < fragment_end:
+                        result.append((str(chrom), fragment_start, fragment_end))
+                cursor = max(cursor, other_end)
+                if cursor >= end:
+                    break
+            fragment_start = max(0, cursor)
+            if fragment_start < end:
+                result.append((str(chrom), fragment_start, end))
+    return pd.DataFrame(result, columns=INTERVAL_COORDS)
+
+
+def _overlap_counts(data: pd.DataFrame, regions: pd.DataFrame) -> pd.Series:
+    """Count strict half-open overlaps for each input interval."""
+    coordinates_by_chrom = {
+        chrom: (
+            [start for start, _ in intervals],
+            [max(end, start + 1) for start, end in intervals],
+        )
+        for chrom, intervals in _group_intervals(regions).items()
+    }
+    counts = []
+    for chrom, start, end in data.itertuples(index=False, name=None):
+        start = int(start)
+        end = int(end)
+        region_starts, region_ends = coordinates_by_chrom.get(str(chrom), ([], []))
+        effective_end = max(end, start + 1)
+        counts.append(
+            bisect_left(region_starts, effective_end) - bisect_right(region_ends, start)
+        )
+    return pd.Series(counts, index=data.index, dtype=int)
+
+
+def _coverage(data: pd.DataFrame, regions: pd.DataFrame) -> pd.Series:
+    """Return covered bases for each input interval against merged regions."""
+    regions_by_chrom = _group_intervals(regions)
+    covered = []
+    for chrom, start, end in data.itertuples(index=False, name=None):
+        start = int(start)
+        end = int(end)
+        chrom_regions = regions_by_chrom.get(str(chrom), [])
+        first = bisect_right([region[1] for region in chrom_regions], start)
+        covered.append(
+            sum(
+                max(0, min(end, region_end) - max(start, region_start))
+                for region_start, region_end in chrom_regions[first:]
+                if region_start < end
+            )
+        )
+    return pd.Series(covered, index=data.index, dtype=int)
 
 
 def _resize_df(data: pd.DataFrame, target_size: int) -> pd.DataFrame:
@@ -52,8 +209,8 @@ class GenomicSet:
             )
         else:
             _data = data[INTERVAL_COORDS]
-            assert bf.is_bedframe(_data, raise_errors=True)
-            self._data = bf.merge(_data)[INTERVAL_COORDS].sort_values(INTERVAL_COORDS)
+            _validate_intervals(_data)
+            self._data = _merge_intervals(_data)
 
     def __repr__(self) -> str:
         return f"GenomicSet\n{self._data}"
@@ -84,11 +241,7 @@ class GenomicSet:
         Returns:
             A new GenomicSet containing the intersecting intervals.
         """
-        return GenomicSet(
-            bf.overlap(self._data, other._data, how="inner", return_overlap=True)[
-                ["chrom", "overlap_start", "overlap_end"]
-            ].rename(columns={"overlap_start": "start", "overlap_end": "end"})
-        )
+        return GenomicSet(_intersections(self._data, other._data))
 
     def __sub__(self, other: "GenomicSet") -> "GenomicSet":
         """Subtraction of two GenomicSets.
@@ -106,7 +259,7 @@ class GenomicSet:
             return GenomicSet(self._data.copy())
         if len(other._data) == 0:
             return GenomicSet(self._data.copy())
-        return GenomicSet(bf.subtract(self._data, other._data))
+        return GenomicSet(_subtract_intervals(self._data, other._data))
 
     def filter_not_overlapping(self, other: "GenomicSet") -> "GenomicSet":
         """Remove intervals that overlap any interval in the other set.
@@ -123,8 +276,8 @@ class GenomicSet:
         """
         if len(self._data) == 0 or len(other._data) == 0:
             return GenomicSet(self._data.copy())
-        result = bf.count_overlaps(self._data, other._data)
-        return GenomicSet(result.loc[result["count"] == 0, INTERVAL_COORDS])
+        counts = _overlap_counts(self._data, other._data)
+        return GenomicSet(self._data.loc[counts == 0, INTERVAL_COORDS])
 
     def __eq__(self, other: object) -> bool:
         """Equality comparison based on underlying DataFrame equality.
@@ -380,8 +533,8 @@ class GenomicList:
         """Drop intervals that overlap any region in *regions*."""
         if len(self._data) == 0 or len(regions._data) == 0:
             return GenomicList(self._data.copy())
-        counts = bf.count_overlaps(self._data, regions._data)
-        return GenomicList(self._data.loc[counts["count"] == 0])
+        counts = _overlap_counts(self._data, regions._data)
+        return GenomicList(self._data.loc[counts == 0])
 
     def filter_within(self, regions: GenomicSet) -> "GenomicList":
         """Keep only intervals fully contained within *regions*.
@@ -392,9 +545,9 @@ class GenomicList:
             return GenomicList(self._data.copy())
         if len(regions._data) == 0:
             return GenomicList(self._data.iloc[:0].copy())
-        cov = bf.coverage(self._data, regions._data, return_input=False)
+        coverage = _coverage(self._data, regions._data)
         size = self._data["end"] - self._data["start"]
-        return GenomicList(self._data.loc[cov["coverage"] >= size])
+        return GenomicList(self._data.loc[coverage >= size])
 
     # -- conversions --
 

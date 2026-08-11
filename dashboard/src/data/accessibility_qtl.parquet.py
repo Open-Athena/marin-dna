@@ -4,7 +4,7 @@ Reads the per-model metric frames written by the #311 benchmark
 (``s3://oa-bolinas/qtl_benchmark/metrics/{model}/{caqtl,dsqtl}.parquet``), keeps the
 ``train`` (odd-chroms) dev split — even-chrom ``test`` is held out for final eval, matching
 the other leaderboards — and assembles the tidy long-form rows (adding the macro-across-
-assays scope) via ``marin_dna.pipelines.evals.qtl_scoring.assemble_benchmark_rows``. Feeds
+assays scope) via ``marin_dna_evals.qtl_scoring.assemble_benchmark_rows``. Feeds
 the Accessibility QTL page (issue #312).
 
 Models come from the ``QTL_BENCHMARK_MODELS`` registry, **not** S3 enumeration: the
@@ -26,8 +26,7 @@ import polars as pl
 from botocore import UNSIGNED
 from botocore.config import Config
 from botocore.exceptions import ClientError
-
-from marin_dna.pipelines.evals.qtl_scoring import (
+from marin_dna_evals.qtl_scoring import (
     QTL_BENCHMARK_DATASETS,
     QTL_BENCHMARK_MODELS,
     assemble_benchmark_rows,

@@ -9,7 +9,7 @@ repos:
         # lm-evaluation-harness task configs use the framework's custom
         # ``!function`` tag — valid for it but not for PyYAML's default
         # SafeLoader. Skip them; structure is checked when lm-eval parses.
-        exclude: ^src/marin_dna/pipelines/evals/lm_eval/.*\.yaml$
+        exclude: ^snakemake/analysis/evals_v2/src/marin_dna_evals/lm_eval/.*\.yaml$
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files

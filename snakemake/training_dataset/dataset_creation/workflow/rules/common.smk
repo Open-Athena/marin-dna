@@ -46,7 +46,7 @@ def _git_commit_sha() -> str:
     where ``git rev-parse`` would fail), then ``git rev-parse HEAD`` from the
     workflow dir, then the literal ``"main"`` fallback so the permalink still
     resolves. Embedded in the per-repo HF dataset cards (see
-    ``marin_dna.pipelines.training_dataset.hf_readme``); resolved once at
+    ``marin_dna_training_dataset.hf_readme``); resolved once at
     Snakefile-load time so all cards in a run share one SHA.
     """
     override = config.get("commit_sha") or os.environ.get("COMMIT_SHA")

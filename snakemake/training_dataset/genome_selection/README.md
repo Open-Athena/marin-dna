@@ -57,10 +57,11 @@ Edit `config/config.yaml` to customize the pipeline:
 ## Usage
 
 ```bash
-# Edit configuration file: config/config.yaml
-
-# Run pipeline
-uv run snakemake
+cd snakemake/training_dataset/genome_selection
+uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n
+uv run --locked snakemake
 ```
 
 ## Output

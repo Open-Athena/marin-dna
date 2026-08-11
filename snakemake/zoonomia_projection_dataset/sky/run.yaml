@@ -34,7 +34,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
-    uv sync
+    uv sync --project snakemake/zoonomia_projection_dataset --locked
 
 run: |
     set -euxo pipefail
@@ -45,7 +45,7 @@ run: |
 
     cd snakemake/zoonomia_projection_dataset
 
-    uv run --project ../.. snakemake \
+    uv run --locked snakemake \
         --profile workflow/profiles/default \
         --use-conda \
         --printshellcmds \
