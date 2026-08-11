@@ -175,3 +175,18 @@ jobs:
       - name: No Python project changed
         if: ${{ matrix.skip }}
         run: echo "No Python project requires testing."
+
+  required-test:
+    if: ${{ always() }}
+    needs: test
+    runs-on: ubuntu-latest
+    name: test
+    steps:
+      - name: Verify project test matrix
+        env:
+          MATRIX_RESULT: ${{ needs.test.result }}
+        run: |
+          if [[ "$MATRIX_RESULT" != "success" ]]; then
+            echo "Project test matrix result: $MATRIX_RESULT"
+            exit 1
+          fi
