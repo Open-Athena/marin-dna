@@ -57,6 +57,48 @@ Watch the first minutes of a new script, dependency set, or compute configuratio
 
 Use event-driven status tools or coarse polling that respects shared-node safety. Do not rely on submission success as evidence that the coordinator or workers started.
 
+## Emit the experiment record (`.experiment.json`)
+
+Every experiment writes an experiment-level provenance record on success — the `dna-exp<N>` counterpart of marin's per-step `.artifact.json` ([marin#7967](https://github.com/marin-community/marin/issues/7967)): one `.experiment.json` tying the experiment's identity (name + tracking issue), pinned inputs, arms/wandb run ids, and checkpoint output paths together, so the experiment is catalogable and reproducible from storage alone rather than only via wandb + the issue thread.
+
+The writer lives in the library — `marin_dna.experiment_record` (`ExperimentRecord`, `ExperimentDep`, `ExperimentRun`, `write_experiment_record`) — and validates the conventions loudly at construction: `name` must be `dna-exp<N>` with `<N>` equal to the tracking-issue number, every dep revision a full 40-hex sha (branch names are not pins), and every `run_id` must carry `dna-exp<N>` (the wandb filter convention).
+
+In `launch.py`, after the runner returns (it raises on failure, so this only runs on success):
+
+```python
+from rigging.filesystem import marin_prefix, prefix_join
+from marin_dna.experiment_record import (
+    ExperimentDep, ExperimentRecord, ExperimentRun,
+    utc_now_iso, write_experiment_record,
+)
+
+def main() -> None:
+    steps = {arm: build_arm(arm) for arm in selected_arms()}
+    StepRunner().run([lower(step) for step in steps.values()])  # or experiment_main(...)
+    record = ExperimentRecord(
+        name=NAME,  # "dna-exp<N>"
+        issue=f"https://github.com/Open-Athena/marin-dna/issues/{N}",
+        created_at=utc_now_iso(),
+        config=CONFIG,  # the launch's pinned constants: model geometry, optimizer, batch, steps, seed
+        deps=[
+            # one per pinned input, per arm where they differ
+            ExperimentDep("hf-dataset", DATASET_REPOS[arm], DATASET_REVISIONS[arm]),
+            ExperimentDep("git", "https://github.com/Open-Athena/marin-dna", MARIN_DNA_REVISION),
+        ],
+        runs=[
+            ExperimentRun(run_id=RUN_IDS[arm], output_path=step.path(), arm=arm)
+            for arm, step in steps.items()
+        ],
+        provenance={"marin_pin": MARIN_PIN, "launched_by": os.environ.get("USER", "")},
+    )
+    write_experiment_record(record, prefix_join(marin_prefix(), "experiments", NAME))
+```
+
+- **Record prefix convention:** `<marin_prefix>/experiments/dna-exp<N>/.experiment.json` — one record per experiment, beside (not inside) the run dirs, so it never collides with marin's own `.artifact.json` at step output paths.
+- `step.path()` resolves the same output path the run wrote (new-API `ArtifactStep`; same idiom as `scripts/canary/validate_canary_metrics.py`, which passes `prefix="mirror://"` for region-agnostic reads). **Unverified on a live launch:** confirm `marin_prefix()`/`.path()` defaults agree with where your runs actually wrote the first time you use this.
+- `gs://` writes need `gcsfs` where `launch.py` runs — present in the experiment env via marin.
+- The weekly canary deliberately has **no `marin_dna` dep** (transformers conflict — see its docstring), so it does not emit a record; real experiments depend on `marin_dna` anyway (e.g. `DNALmDatasetFormat`) and must.
+
 ## Diagnose By Symptom
 
 | Symptom | Check and action |
