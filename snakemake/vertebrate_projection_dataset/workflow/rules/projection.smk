@@ -23,7 +23,7 @@ from marin_dna_vertebrate_projection.sequence_sources import stage_twobit
 
 rule download_human_twobit:
     input:
-        TWOBIT_MANIFEST,
+        TWOBIT_MANIFEST_INPUT,
     output:
         f"{RESULTS}/reference/hg38.2bit",
     resources:
@@ -45,7 +45,7 @@ rule human_chrom_sizes:
 
 rule human_reference_sequences:
     input:
-        anchors=ANCHOR_CATALOG,
+        anchors=ANCHOR_CATALOG_INPUT,
         twobit=f"{RESULTS}/reference/hg38.2bit",
         sizes=f"{RESULTS}/reference/hg38.chrom.sizes",
     output:
@@ -62,7 +62,7 @@ rule human_reference_sequences:
 
 rule prepare_hal_bed:
     input:
-        ANCHOR_CATALOG,
+        ANCHOR_CATALOG_INPUT,
     output:
         f"{RESULTS}/hal/input.bed",
     run:
@@ -71,7 +71,7 @@ rule prepare_hal_bed:
 
 rule hal_chrom_sizes:
     input:
-        hal=HAL_PATH,
+        hal=local(HAL_PATH),
         validation=HAL_VALIDATION,
     output:
         f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
@@ -85,7 +85,7 @@ rule hal_chrom_sizes:
 
 rule hal_liftover:
     input:
-        hal=HAL_PATH,
+        hal=local(HAL_PATH),
         bed=f"{RESULTS}/hal/input.bed",
         validation=HAL_VALIDATION,
     output:
@@ -111,7 +111,7 @@ rule hal_fragments:
     input:
         raw=f"{RESULTS}/hal/raw/{{species}}.bed",
         sizes=f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
-        anchors=ANCHOR_CATALOG,
+        anchors=ANCHOR_CATALOG_INPUT,
         manifest=ACTIVE_MANIFEST,
     output:
         f"{RESULTS}/hal/fragments/{{species}}.parquet",
@@ -149,7 +149,7 @@ rule hal_contract:
 
 rule hal_to_fasta:
     input:
-        hal=HAL_PATH,
+        hal=local(HAL_PATH),
         validation=HAL_VALIDATION,
     output:
         local(f"{RESULTS}/hal/genomes/{{species}}.fa"),
@@ -164,7 +164,7 @@ rule hal_to_fasta:
 
 rule hal_fasta_to_twobit:
     input:
-        f"{RESULTS}/hal/genomes/{{species}}.fa",
+        local(f"{RESULTS}/hal/genomes/{{species}}.fa"),
     output:
         f"{RESULTS}/hal/genomes/{{species}}.2bit",
     wildcard_constraints:
@@ -199,8 +199,8 @@ rule hal_sequences:
 
 rule multiz_candidates:
     input:
-        maf=f"{MULTIZ_STAGE_DIR}/maf/{{chrom}}.maf.gz",
-        anchors=ANCHOR_CATALOG,
+        maf=local(f"{MULTIZ_STAGE_DIR}/maf/{{chrom}}.maf.gz"),
+        anchors=ANCHOR_CATALOG_INPUT,
         manifest=ACTIVE_MANIFEST,
     output:
         f"{RESULTS}/multiz/fragments/{{chrom}}.parquet",
@@ -272,7 +272,7 @@ rule merge_multiz_rejected:
 
 rule download_multiz_twobit:
     input:
-        TWOBIT_MANIFEST,
+        TWOBIT_MANIFEST_INPUT,
     output:
         f"{RESULTS}/multiz/genomes/{{species}}.2bit",
     wildcard_constraints:

@@ -118,13 +118,16 @@ after the gzip stream passes its CRC check.
 
 ## Runbook
 
-The checked-in profile caps local work at two cores and carries pipeline-wide
-defaults. Always dry-run before real execution:
+The checked-in profile caps local work at two cores and makes `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/` the default storage prefix. Every output not explicitly marked `local()` is uploaded by Snakemake and can be restored automatically on another worker; `local()` is reserved for large or regenerable NVMe-only staging files. Always dry-run before real execution:
 
 ```bash
 uv run --locked snakemake -n \
   --profile workflow/profiles/default
 ```
+
+That dry-run consults the durable S3 state. For a credential-free graph check only, use `--default-storage-provider none`; CI uses that override, but real pipeline executions must retain the profile default.
+
+The historical issue #417 staging snapshot remains a provenance artifact only; it is not an implicit pipeline input or fallback. A fresh v1 execution populates the canonical storage prefix.
 
 The default `smoke` tier uses two mammals, five non-mammals spanning birds,
 reptiles, amphibians, ray-finned fish, and jawless vertebrates, chromosomes 7
@@ -161,8 +164,7 @@ exceeds 3 during its first minute.
 The 1.26 TB HAL cannot run on a normal root volume. `sky/project.yaml` owns the
 EC2 launch setup: `c6id.12xlarge` in `us-east-2`, both 1,425 GB instance-store
 NVMes combined as RAID0, explicit free-space checks, Cactus binaries, and
-symlinks that keep Snakemake state and all generated results off the 100 GB root
-volume.
+symlinks that keep Snakemake state and the local working copies of generated results off the 100 GB root volume. Snakemake uploads every non-`local()` result to the profile's canonical S3 prefix as rules complete.
 
 `halLiftover` is single-threaded. Its rule declares one thread and 2 GB of
 memory so the 48-core worker can project species concurrently without reserving
@@ -198,12 +200,7 @@ progress, and ZRS/QC outputs. Reuse the same node for a later approved full run
 with the same `sky exec` command and `--env DRY_RUN=0`; terminate it with
 `sky down vertebrate-project` when inspection is complete.
 
-HAL staging downloads to a temporary filename and atomically renames it only
-after the S3 object size matches and `halStats --genomes` succeeds. The staged
-HAL and generated results live on instance-store NVMe: they survive `sky exec`
-jobs but not instance termination. Keep the cluster running until required
-results have been copied to durable storage or uploaded through the reviewed
-dataset targets.
+HAL staging downloads to a temporary filename and atomically renames it only after the S3 object size matches and `halStats --genomes` succeeds. The staged HAL and other explicitly `local()` intermediates live only on instance-store NVMe and do not survive termination. Normal results use NVMe as their local working copy and are uploaded automatically to `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/`; a later worker restores them through Snakemake rather than an ad hoc copy step. Do not terminate a worker while rules are still running or before any needed `local()` artifact has been consumed.
 
 Every HAL projection/extraction path also depends on the tier-specific
 `metadata/hal_stage_validated.txt` record. This rechecks exact S3/local byte
@@ -238,9 +235,7 @@ the CDS label after the complete shared projection/acceptance pass and then
 retains only `human_reference` and `zoonomia_cactus` rows. The regular
 `datasets/cds/` cohort retains those identical training rows plus `ucsc_multiz100way`. Projection, acceptance, augmentation, and sampling algorithms are identical, and the mammals-only training rows are an exact subset of the combined arm. Validation is sampled independently within each cohort because their eligible species sets differ, so the realized validation rows, and therefore validation-loss levels, must not be compared between arms.
 
-For Hugging Face, `all_hf_files` follows the established Zoonomia publication
-path: deterministically shuffle each split, write 64 full-tier train shards
-(four in smoke) and one validation shard as JSONL, then zstd-compress them.
+For Hugging Face, `all_hf_files` follows the established Zoonomia publication path: deterministically shuffle each split, write 64 full-tier train shards (four in smoke) and one validation shard as JSONL, then zstd-compress them. On a dedicated HF worker, the source split Parquets and active-species manifest are restored through the same default Snakemake S3 storage; local JSONL.zst artifacts are rebuilt on that worker and are never recovered through a separate issue-specific snapshot path.
 Each isolated `hf/<cohort>/` directory contains only:
 
 ```text

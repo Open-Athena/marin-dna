@@ -12,7 +12,7 @@ from marin_dna_vertebrate_projection.mirror import (
 
 rule mirror_multiz_bootstrap:
     input:
-        MIRROR_MANIFEST,
+        MIRROR_MANIFEST_INPUT,
     output:
         f"{RESULTS}/bootstrap/multiz_mirror.done",
     run:
@@ -37,7 +37,7 @@ rule stage_hal:
 
 rule validate_staged_hal:
     input:
-        HAL_PATH,
+        local(HAL_PATH),
     output:
         HAL_VALIDATION,
     resources:
@@ -56,7 +56,7 @@ rule validate_staged_hal:
 
 rule stage_multiz_maf:
     input:
-        MIRROR_MANIFEST,
+        MIRROR_MANIFEST_INPUT,
     output:
         local(f"{MULTIZ_STAGE_DIR}/maf/{{chrom}}.maf.gz"),
     wildcard_constraints:

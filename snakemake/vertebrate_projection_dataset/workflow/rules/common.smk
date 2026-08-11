@@ -62,6 +62,11 @@ else:
     ANCHOR_CATALOG = f"{RESULTS}/anchors/catalog.parquet"
     COHORTS = list(config["region_cohorts"])
 
+SPECIES_SELECTED_INPUT = local(SPECIES_SELECTED)
+MIRROR_MANIFEST_INPUT = local(MIRROR_MANIFEST)
+TWOBIT_MANIFEST_INPUT = local(TWOBIT_MANIFEST)
+ANCHOR_CATALOG_INPUT = local(ANCHOR_CATALOG) if TIER == "smoke" else ANCHOR_CATALOG
+
 assert set(MAMMALS) <= set(all_mammals)
 assert set(NON_MAMMALS) <= set(all_non_mammals)
 assert set(CHROMS) <= set(config["standard_chroms"])
@@ -103,7 +108,7 @@ COMBINED_SEQUENCES = f"{RESULTS}/sequences/all_sources.parquet"
 
 rule active_species_manifest:
     input:
-        SPECIES_SELECTED,
+        SPECIES_SELECTED_INPUT,
     output:
         ACTIVE_MANIFEST,
     run:

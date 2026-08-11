@@ -1,3 +1,5 @@
+default-storage-provider: s3
+default-storage-prefix: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/
 cores: 2
 use-conda: true
 resources:

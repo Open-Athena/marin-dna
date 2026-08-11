@@ -33,7 +33,7 @@ def dataset_species_scope(cohort):
 
 rule projection_qc:
     input:
-        anchors=ANCHOR_CATALOG,
+        anchors=ANCHOR_CATALOG_INPUT,
         accepted=COMBINED_SEQUENCES,
         manifest=ACTIVE_MANIFEST,
         rejected=ALL_REJECTIONS,
@@ -235,15 +235,19 @@ rule hf_artifact_manifest:
         validation_source=expand(
             f"{RESULTS}/datasets/{{region}}/validation.parquet", region=COHORTS
         ),
-        train=expand(
-            f"{HF_RESULTS}/{{region}}/data/train/{{shard}}.jsonl.zst",
-            region=COHORTS,
-            shard=PUBLICATION_TRAIN_SHARDS,
+        train=local(
+            expand(
+                f"{HF_RESULTS}/{{region}}/data/train/{{shard}}.jsonl.zst",
+                region=COHORTS,
+                shard=PUBLICATION_TRAIN_SHARDS,
+            )
         ),
-        validation=expand(
-            f"{HF_RESULTS}/{{region}}/data/validation/{{shard}}.jsonl.zst",
-            region=COHORTS,
-            shard=PUBLICATION_VALIDATION_SHARDS,
+        validation=local(
+            expand(
+                f"{HF_RESULTS}/{{region}}/data/validation/{{shard}}.jsonl.zst",
+                region=COHORTS,
+                shard=PUBLICATION_VALIDATION_SHARDS,
+            )
         ),
         cards=expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
     output:
@@ -268,6 +272,21 @@ rule all_hf_files:
     """Build and validate reviewed HF artifacts without external writes."""
     input:
         HF_MANIFEST,
+        local(
+            expand(
+                f"{HF_RESULTS}/{{region}}/data/train/{{shard}}.jsonl.zst",
+                region=COHORTS,
+                shard=PUBLICATION_TRAIN_SHARDS,
+            )
+        ),
+        local(
+            expand(
+                f"{HF_RESULTS}/{{region}}/data/validation/{{shard}}.jsonl.zst",
+                region=COHORTS,
+                shard=PUBLICATION_VALIDATION_SHARDS,
+            )
+        ),
+        expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
 
 
 rule hf_upload_dataset:
@@ -275,11 +294,11 @@ rule hf_upload_dataset:
     input:
         manifest=HF_MANIFEST,
         train=lambda wc: [
-            f"{HF_RESULTS}/{wc.region}/data/train/{shard}.jsonl.zst"
+            local(f"{HF_RESULTS}/{wc.region}/data/train/{shard}.jsonl.zst")
             for shard in PUBLICATION_TRAIN_SHARDS
         ],
         validation=lambda wc: [
-            f"{HF_RESULTS}/{wc.region}/data/validation/{shard}.jsonl.zst"
+            local(f"{HF_RESULTS}/{wc.region}/data/validation/{shard}.jsonl.zst")
             for shard in PUBLICATION_VALIDATION_SHARDS
         ],
         card=f"{HF_RESULTS}/{{region}}/README.md",

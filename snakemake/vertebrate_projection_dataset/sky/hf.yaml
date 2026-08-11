@@ -1,8 +1,8 @@
 name: vertebrate-projection-hf-build
 
 # High-memory assembly of the reviewed JSONL.zst Hugging Face artifacts.
-# The projection/split Parquets are staged from the immutable issue #417 S3
-# snapshot; projection, extraction, and QC rules are deliberately disallowed.
+# Projection/split Parquets are restored through Snakemake's canonical S3
+# storage provider; projection, extraction, and QC rules are disallowed.
 resources:
   infra: aws/us-east-2
   instance_type: r6i.8xlarge
@@ -17,12 +17,10 @@ file_mounts:
   ~/.cache/huggingface/stored_tokens: ~/.cache/huggingface/stored_tokens
 
 envs:
-  DATA_SNAPSHOT_SHA: 06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d
   PIPELINE_COMMIT_SHA: abaaf885a7d621fcbfab7e4d64901f600f87ccfd
   TARGET: all_hf_files
   DRY_RUN: "1"
   ALLOW_HF_UPLOAD: "0"
-  ARTIFACT_S3_PREFIX: ""
 
 setup: |
   set -euxo pipefail
@@ -50,21 +48,6 @@ run: |
   test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
   if [ "$TARGET" = "all_hf" ]; then
     test "$ALLOW_HF_UPLOAD" = "1"
-  fi
-
-  RESULTS="$PWD/snakemake/vertebrate_projection_dataset/results/v1/full"
-  SNAPSHOT="s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/$DATA_SNAPSHOT_SHA/full"
-  mkdir -p "$RESULTS/datasets" "$RESULTS/metadata"
-  aws s3 cp "$SNAPSHOT/datasets/" "$RESULTS/datasets/" \
-    --recursive --only-show-errors \
-    --exclude "*" --include "*/train.parquet" --include "*/validation.parquet"
-  aws s3 cp "$SNAPSHOT/metadata/species_active.tsv" \
-    "$RESULTS/metadata/species_active.tsv" --only-show-errors
-
-  if [ -n "$ARTIFACT_S3_PREFIX" ] && \
-      aws s3 ls "$ARTIFACT_S3_PREFIX/" >/dev/null 2>&1; then
-    aws s3 cp "$ARTIFACT_S3_PREFIX/" "$RESULTS/hf/" \
-      --recursive --only-show-errors
   fi
 
   ALLOWED_RULES=(
@@ -95,8 +78,3 @@ run: |
     --forcerun dataset_card \
     --rerun-incomplete \
     --printshellcmds
-
-  if [ "$DRY_RUN" = "0" ] && [ "$TARGET" = "all_hf_files" ] && \
-      [ -n "$ARTIFACT_S3_PREFIX" ]; then
-    aws s3 sync "$RESULTS/hf/" "$ARTIFACT_S3_PREFIX/" --only-show-errors
-  fi
