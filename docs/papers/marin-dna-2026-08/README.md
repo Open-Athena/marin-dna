@@ -4,6 +4,13 @@ This directory contains the raw-Typst manuscript converted from the published [M
 
 The Typst files are the manuscript's source of truth. Pandoc was used only for the initial mechanical conversion and is not a build dependency. There is intentionally no CI workflow for this paper.
 
+Issue [#449](https://github.com/Open-Athena/marin-dna/issues/449) tracks the editorial conversion into a bioRxiv-ready preprint. Before changing the scientific narrative or redrawing figures, consult:
+
+- [editorial-plan.md](editorial-plan.md) for the locked brief, frozen-snapshot ledger, headline claim–evidence map, and unresolved verification work.
+- [figure-inventory.md](figure-inventory.md) for the complete frozen asset inventory and the proposed main-versus-supplement dispositions.
+
+The issue body remains the authoritative work plan. These files are checked-in working records that make editorial and provenance decisions reviewable alongside the manuscript.
+
 ## Compile
 
 Install [Typst 0.15.1](https://github.com/typst/typst/releases/tag/v0.15.1), the version used to verify this manuscript, and confirm it is available:
