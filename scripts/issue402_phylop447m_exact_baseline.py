@@ -9,8 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 import polars as pl
-
-from marin_dna.pipelines.evals.conservation import (
+from marin_dna_evals.conservation import (
     REQUIRED_VARIANT_COLUMNS,
     SGE_VARIANT_COLUMNS,
     aggregate_conservation_metrics,

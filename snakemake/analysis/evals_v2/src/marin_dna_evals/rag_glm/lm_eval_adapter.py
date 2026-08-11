@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-from marin_dna.pipelines.rag_glm.hf_scoring import (
+from marin_dna_evals.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
     RAG_PREFIX_TOKENS,
 )
@@ -146,9 +146,9 @@ def install_levanter_rag_loglikelihood() -> None:
     if getattr(LevanterHarnessLM, "_marin_dna_rag_patched", False):
         return
 
-    from marin_dna.pipelines.rag_glm.levanter_scoring import (
-        score_rag_batch_naive_levanter,
+    from marin_dna_evals.rag_glm.levanter_scoring import (
         score_rag_batch_levanter,
+        score_rag_batch_naive_levanter,
     )
 
     def rag_loglikelihood(

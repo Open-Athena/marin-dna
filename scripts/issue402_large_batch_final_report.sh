@@ -81,7 +81,7 @@ fi
 cd "$repo_root"
 for model in 46m 104m; do
     for step in "${steps[@]}"; do
-        run uv run python scripts/issue402_audit_large_batch_eval_bundle.py \
+        run uv run --project snakemake/analysis/evals_v2 --locked python scripts/issue402_audit_large_batch_eval_bundle.py \
             --model "$model" \
             --step "$step"
     done
@@ -89,20 +89,20 @@ done
 # Revalidate the one accepted paid sanity bundle and prove that its intact
 # scoring branch is byte-for-byte identical to the scheduled step-5k scorer.
 # These audits only read existing artifacts; they do not launch model inference.
-run uv run python scripts/issue402_audit_large_batch_sanity.py
-run uv run python scripts/issue402_audit_step5_sanity_parity.py
-run uv run python plots/issue402_rag_large_batch_validation_loss.py
-run uv run python plots/issue402_rag_batch_size_validation_loss.py
-run uv run python scripts/issue402_audit_training_dynamics.py
-run uv run python plots/issue402_rag_large_batch_auprc.py \
+run uv run --project snakemake/analysis/evals_v2 --locked python scripts/issue402_audit_large_batch_sanity.py
+run uv run --project snakemake/analysis/evals_v2 --locked python scripts/issue402_audit_step5_sanity_parity.py
+run uv run --project snakemake/analysis/evals_v2 --locked python plots/issue402_rag_large_batch_validation_loss.py
+run uv run --project snakemake/analysis/evals_v2 --locked python plots/issue402_rag_batch_size_validation_loss.py
+run uv run --project snakemake/analysis/evals_v2 --locked python scripts/issue402_audit_training_dynamics.py
+run uv run --project snakemake/analysis/evals_v2 --locked python plots/issue402_rag_large_batch_auprc.py \
     --input-46m "$eval_46m" \
     --input-104m "$eval_104m" \
     --phylop-root "$phylop_root"
-run uv run python plots/issue402_rag_subset_auprc.py \
+run uv run --project snakemake/analysis/evals_v2 --locked python plots/issue402_rag_subset_auprc.py \
     --input-46m "$final_46m" \
     --input-104m "$final_104m" \
     --output-dir "$output_root/issue402_rag_large_batch_subset_auprc"
-run uv run python plots/issue402_rag_vs_phylop_subset_auprc.py \
+run uv run --project snakemake/analysis/evals_v2 --locked python plots/issue402_rag_vs_phylop_subset_auprc.py \
     --input-46m "$final_46m" \
     --input-104m "$final_104m" \
     --phylop-root "$phylop_root" \
@@ -110,7 +110,7 @@ run uv run python plots/issue402_rag_vs_phylop_subset_auprc.py \
 # Full behavioral/attention sanity was already accepted on the frozen path at
 # 46M step 5k. Per the updated scope, final large-batch checkpoints do not
 # repeat those paid diagnostics.
-run uv run python scripts/issue402_audit_final_rc.py \
+run uv run --project snakemake/analysis/evals_v2 --locked python scripts/issue402_audit_final_rc.py \
     --input-46m "$final_46m" \
     --input-104m "$final_104m" \
     --output "$output_root/issue402_rag_large_batch_rc_audit/metrics.parquet"

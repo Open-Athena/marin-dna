@@ -13,19 +13,19 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import polars as pl
-
-from marin_dna.data.dna import reverse_complement
-from marin_dna.pipelines.projection.filter import (
+from marin_dna_zoonomia_projection.projection.filter import (
     filter_length,
     filter_single_chrom_strand,
 )
-from marin_dna.pipelines.projection.hal import (
+from marin_dna_zoonomia_projection.projection.hal import (
     attach_src_size,
     parse_halliftover_bed,
     run_halliftover,
 )
-from marin_dna.pipelines.projection.resize import resize_dataframe
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_zoonomia_projection.projection.resize import resize_dataframe
+
+from marin_dna.data.dna import reverse_complement
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     DOCUMENT_TOKENS,
     HUMAN_VARIANT_TOKEN_INDEX,
@@ -377,7 +377,7 @@ def _materialize_split(
     assert rows.filter(pl.col("alt_completion").str.len_chars() != 128).is_empty()
     assert rows.select(pl.col("document_id").n_unique()).item() == rows.height
 
-    from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+    from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
 
     tokenizer = create_rag_char_tokenizer()
     sample = rows.head(16)

@@ -32,7 +32,7 @@ setup: |
     curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
     bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
   fi
-  uv sync --frozen --no-dev
+  uv sync --project snakemake/analysis/evals_v2 --locked --no-dev
 
 run: |
   set -euxo pipefail
@@ -59,7 +59,7 @@ run: |
     else
       MODEL_SOURCE="$CHECKPOINT_104M_URI"
     fi
-    uv run --no-dev python scripts/issue402_indel_attention.py \
+    uv run --project snakemake/analysis/evals_v2 --locked --no-dev python scripts/issue402_indel_attention.py \
       --model "$CHECKPOINTS_DIR/$MODEL_LABEL" \
       --model-source "$MODEL_SOURCE" \
       --model-label "$MODEL_LABEL" \

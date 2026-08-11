@@ -9,7 +9,7 @@ import datasets
 from lm_eval.api.instance import Instance
 
 from marin_dna_evals.lm_eval.dna_vep_llr_eval import DnaVepLlrEvalTask
-from marin_dna.pipelines.rag_glm.lm_eval_adapter import (
+from marin_dna_evals.rag_glm.lm_eval_adapter import (
     install_levanter_rag_loglikelihood,
 )
 

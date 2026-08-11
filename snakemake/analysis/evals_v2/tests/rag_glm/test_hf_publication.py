@@ -5,14 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from transformers import AutoConfig, AutoTokenizer
-
-from marin_dna.pipelines.rag_glm.hf_publication import (
+from marin_dna_evals.rag_glm.hf_publication import (
     RAG_ROPE_PARAMETERS,
     normalize_rag_hf_export_metadata,
 )
-from marin_dna.pipelines.rag_glm.offline_eval import load_rag_model_config_hf
-from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+from marin_dna_evals.rag_glm.offline_eval import load_rag_model_config_hf
+from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
+from transformers import AutoConfig, AutoTokenizer
 
 
 def _write_transformers_5_export(tmp_path: Path) -> None:

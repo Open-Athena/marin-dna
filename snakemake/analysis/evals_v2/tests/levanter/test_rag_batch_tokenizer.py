@@ -7,18 +7,17 @@ import pytest
 
 pytest.importorskip("levanter", reason="install with the marin group to run")
 
-from levanter.tokenizers import load_tokenizer  # noqa: E402
-
-from marin_dna_evals.levanter.rag_batch_tokenizer import (  # noqa: E402
+from levanter.tokenizers import load_tokenizer
+from marin_dna_evals.levanter.rag_batch_tokenizer import (
     RAGDNABatchTokenizer,
 )
-from marin_dna.pipelines.rag_glm.dataset import (  # noqa: E402
+from marin_dna_rag_glm.dataset import (
     DOCUMENT_TOKENS,
     HUMAN_SEGMENT_START,
     MISSING_SEQUENCE,
     assemble_document,
 )
-from marin_dna.pipelines.rag_glm.tokenizer import (  # noqa: E402
+from marin_dna_rag_glm.tokenizer import (
     create_rag_char_tokenizer,
 )
 

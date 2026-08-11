@@ -15,7 +15,7 @@ from pathlib import Path
 import polars as pl
 
 from marin_dna.data.dna import reverse_complement
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     DOCUMENT_TOKENS,
     HUMAN_VARIANT_TOKEN_INDEX,
@@ -25,7 +25,7 @@ from marin_dna.pipelines.rag_glm.dataset import (
     SPECIES_ORDER_VERSION,
     validate_species_order,
 )
-from marin_dna.pipelines.rag_glm.mendelian_harness import PROJECTION_VERSION
+from marin_dna_rag_glm.mendelian_harness import PROJECTION_VERSION
 
 VARIANT_KEY_COLUMNS = ["chrom", "pos", "ref", "alt"]
 SUPPORTED_BENCHMARKS = {"complex_traits", "sge"}
@@ -309,7 +309,7 @@ def materialize_benchmark_split(
         (pl.col("n_rows") != 2) | (pl.col("n_strands") != 2)
     ).is_empty()
 
-    from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+    from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
 
     tokenizer = create_rag_char_tokenizer()
     sample = rows.head(16)

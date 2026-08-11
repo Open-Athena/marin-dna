@@ -3,13 +3,12 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     MISSING_SEQUENCE,
     PROVISIONAL_SPECIES_ORDER,
 )
-from marin_dna.pipelines.rag_glm.mendelian_harness import (
+from marin_dna_rag_glm.mendelian_harness import (
     PROJECTION_VERSION,
     build_mendelian_variant_windows,
     extract_ortholog_sequences_from_twobit,
@@ -132,7 +131,7 @@ def test_project_mendelian_variant_windows_reuses_canonical_quality_gate(
         return 0.01
 
     monkeypatch.setattr(
-        "marin_dna.pipelines.rag_glm.mendelian_harness.run_halliftover",
+        "marin_dna_rag_glm.mendelian_harness.run_halliftover",
         fake_halliftover,
     )
     assert (

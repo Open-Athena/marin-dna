@@ -6,15 +6,14 @@ from types import SimpleNamespace
 
 import torch
 import torch.nn.functional as F
-from transformers import Qwen3Config, Qwen3ForCausalLM
-
-from marin_dna.pipelines.rag_glm.hf_scoring import (
+from marin_dna_evals.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
     RAG_HUMAN_POOL_START,
     RAG_PREFIX_TOKENS,
     score_rag_completions_hf,
     score_rag_completions_naive_hf,
 )
+from transformers import Qwen3Config, Qwen3ForCausalLM
 
 
 class _FakeCache:

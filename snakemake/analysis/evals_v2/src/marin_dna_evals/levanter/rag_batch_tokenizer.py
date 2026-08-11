@@ -5,15 +5,15 @@ from typing import Any
 
 import numpy as np
 from levanter.tokenizers import MarinTokenizer
-
-from marin_dna_evals.levanter.batch_tokenizer import DNABatchTokenizer
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     DOCUMENT_TOKENS,
     DOCUMENT_TOKENS_WITHOUT_CLS,
     N_NON_HUMAN_SLOTS,
     SEQUENCE_BOUNDARY,
 )
+
+from marin_dna_evals.levanter.batch_tokenizer import DNABatchTokenizer
 
 
 class RAGDNABatchTokenizer(DNABatchTokenizer):

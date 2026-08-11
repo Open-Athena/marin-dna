@@ -1,12 +1,11 @@
 """Tests for the issue #402 species audit."""
 
 import polars as pl
-
-from marin_dna.pipelines.rag_glm.audit import (
+from marin_dna_rag_glm.audit import (
     pairwise_identity_table,
     projection_audit_table,
 )
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     PROVISIONAL_SPECIES_ORDER,
 )

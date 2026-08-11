@@ -14,9 +14,7 @@ import polars as pl
 import torch
 import torch.nn.functional as F
 from Bio.Align import PairwiseAligner
-from torch import Tensor
-
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     DOCUMENT_TOKENS,
     HUMAN_SEGMENT_START,
@@ -25,6 +23,7 @@ from marin_dna.pipelines.rag_glm.dataset import (
     PROVISIONAL_SPECIES_ORDER,
     SEQUENCE_BOUNDARY,
 )
+from torch import Tensor
 
 RAG_BOUNDARY_POSITIONS: tuple[int, ...] = tuple(
     (slot + 1) * (BASES_PER_SLOT + 1) for slot in range(N_NON_HUMAN_SLOTS)

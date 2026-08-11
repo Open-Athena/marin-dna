@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from marin_dna.pipelines.rag_glm.hf_scoring import (
+from marin_dna_evals.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
     RAG_PREFIX_TOKENS,
 )

@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 RAG_VOCAB = {
     "[PAD]": 0,
     "[UNK]": 1,

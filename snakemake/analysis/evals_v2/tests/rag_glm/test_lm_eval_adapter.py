@@ -5,13 +5,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-
-from marin_dna.pipelines.rag_glm.lm_eval_adapter import (
+from marin_dna_evals.rag_glm.lm_eval_adapter import (
     encode_rag_request,
     padded_rag_batches,
     rag_parity_diagnostic_records,
 )
-from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
 
 
 def _context() -> str:

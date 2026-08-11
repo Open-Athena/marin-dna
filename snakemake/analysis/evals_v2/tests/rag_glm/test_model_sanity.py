@@ -5,14 +5,7 @@ from __future__ import annotations
 import polars as pl
 import pytest
 import torch
-
-from marin_dna.pipelines.rag_glm.dataset import (
-    DOCUMENT_TOKENS,
-    HUMAN_SEGMENT_START,
-    MISSING_SEQUENCE,
-    assemble_document,
-)
-from marin_dna.pipelines.rag_glm.model_sanity import (
+from marin_dna_evals.rag_glm.model_sanity import (
     RAG_BOUNDARY_POSITIONS,
     ablate_rag_context,
     ablate_rag_rows,
@@ -27,7 +20,13 @@ from marin_dna.pipelines.rag_glm.model_sanity import (
     pairwise_alignment_rows,
     rag_target_position_metadata,
 )
-from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+from marin_dna_rag_glm.dataset import (
+    DOCUMENT_TOKENS,
+    HUMAN_SEGMENT_START,
+    MISSING_SEQUENCE,
+    assemble_document,
+)
+from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
 
 
 def _full_ids() -> tuple[object, torch.Tensor]:

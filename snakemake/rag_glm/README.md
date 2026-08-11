@@ -5,7 +5,15 @@ genomic-language-model documents. It consumes the completed Zoonomia projection
 as an immutable upstream artifact; it never runs `halLiftover` or overwrites
 outputs from `snakemake/zoonomia_projection_dataset/`.
 
-All genomic coordinates are 0-based, half-open.
+All genomic coordinates are 0-based, half-open. This directory is an independent locked Python project: pipeline code lives in `src/marin_dna_rag_glm/`, tests live in `tests/`, and `uv.lock` fixes its runtime separately from the repository root.
+
+Set up the project before running any target:
+
+```bash
+uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n
+```
 
 ## Inputs
 
@@ -42,10 +50,10 @@ results/audit/summary.json
 Run from this directory. Always dry-run first:
 
 ```bash
-uv run snakemake --profile workflow/profiles/default -n \
+uv run --locked snakemake --profile workflow/profiles/default -n \
   results/audit/summary.json
 
-uv run snakemake --profile workflow/profiles/default \
+uv run --locked snakemake --profile workflow/profiles/default \
   results/audit/summary.json
 ```
 
@@ -147,7 +155,7 @@ full-slot missing values are asserted during assembly.
 Dry-run the two cards (32 additive jobs) before execution:
 
 ```bash
-uv run snakemake --profile workflow/profiles/default \
+uv run --locked snakemake --profile workflow/profiles/default \
   --config commit_sha="$COMMIT_SHA" hal_path="$HAL_PATH" \
   --allowed-rules build_benchmark_variant_windows \
     project_benchmark_variant_windows extract_benchmark_orthologs \

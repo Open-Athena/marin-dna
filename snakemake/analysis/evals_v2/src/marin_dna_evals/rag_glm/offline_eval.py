@@ -18,26 +18,25 @@ import polars as pl
 import torch
 from huggingface_hub import hf_hub_download
 from torch import Tensor
-from transformers import PreTrainedTokenizerFast
-from transformers import AutoConfig
+from transformers import AutoConfig, PreTrainedTokenizerFast
 
-from marin_dna.pipelines.evals.metrics import (
+from marin_dna_evals.metrics import (
     compute_auprc_metrics,
     compute_sge_metrics,
     per_chrom_ap_table,
 )
-from marin_dna.pipelines.evals.variant_probe import (
-    DEFAULT_C_GRID,
-    run_subset_probes,
-)
-from marin_dna.pipelines.rag_glm.hf_scoring import (
+from marin_dna_evals.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
     RAG_HUMAN_POOL_START,
     RAG_HUMAN_POOL_TOKENS,
     RAG_PREFIX_TOKENS,
     score_rag_completions_hf,
 )
-from marin_dna.pipelines.rag_glm.model_sanity import assert_rag_token_geometry
+from marin_dna_evals.rag_glm.model_sanity import assert_rag_token_geometry
+from marin_dna_evals.variant_probe import (
+    DEFAULT_C_GRID,
+    run_subset_probes,
+)
 
 RAGBenchmark = Literal["mendelian_traits", "complex_traits", "sge"]
 RAG_BENCHMARK_DATASETS: dict[RAGBenchmark, tuple[str, str]] = {

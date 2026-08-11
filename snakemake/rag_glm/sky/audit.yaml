@@ -16,25 +16,25 @@ setup: |
       curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
   export PATH="$HOME/.local/bin:$PATH"
-  uv sync
+  uv sync --project snakemake/rag_glm --locked
 
 run: |
   set -euxo pipefail
   export PATH="$HOME/.local/bin:$PATH"
   cd snakemake/rag_glm
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --allowed-rules species_audit \
       --printshellcmds \
       -n results/audit/summary.json
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --allowed-rules species_audit \
       --printshellcmds \
       --rerun-incomplete \
       results/audit/summary.json
 
-  uv run python -c "
+  uv run --locked python -c "
   import boto3
   import sys
 

@@ -9,11 +9,13 @@ description = "Locked runtime and Python package for the MarinDNA evals_v2 pipel
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "marin-dna",
+    "marin-dna-rag-glm",
     "datasets>=3.1.0,<4.0.0",
     "einops",
     "huggingface-hub",
     "jaxtyping",
     "joblib",
+    "lm-eval @ git+https://github.com/stanford-crfm/lm-evaluation-harness.git@d5e3391f22cde186c827674d5c3ec7c5f4fe0cab",
     "matplotlib",
     "numpy",
     "pandas>=2.0,<3.0",
@@ -56,6 +58,10 @@ environments = [
 
 [tool.uv.sources]
 marin-dna = { path = "../../../", editable = true }
+marin-dna-rag-glm = { path = "../../rag_glm", editable = true }
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna_evals"]

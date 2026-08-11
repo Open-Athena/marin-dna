@@ -40,7 +40,7 @@ setup: |
     curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
     bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
   fi
-  uv sync --frozen --no-dev
+  uv sync --project snakemake/analysis/evals_v2 --locked --no-dev
 
 run: |
   set -euxo pipefail
@@ -66,7 +66,7 @@ run: |
   test -s "$CHECKPOINT_DIR/model.safetensors"
   test -s "$CHECKPOINT_DIR/tokenizer.json"
 
-  uv run --no-dev python scripts/issue402_model_sanity.py \
+  uv run --project snakemake/analysis/evals_v2 --locked --no-dev python scripts/issue402_model_sanity.py \
     --model "$CHECKPOINT_DIR" \
     --model-source "$CHECKPOINT_URI" \
     --model-label "$MODEL_LABEL" \

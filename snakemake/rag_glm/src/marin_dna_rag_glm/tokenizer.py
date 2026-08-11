@@ -2,7 +2,7 @@
 
 from transformers import PreTrainedTokenizerFast
 
-from marin_dna.tokenizer.char import (
+from marin_dna_rag_glm.char_tokenizer import (
     SEQUENCE_BOUNDARY_TOKEN,
     create_char_tokenizer,
 )

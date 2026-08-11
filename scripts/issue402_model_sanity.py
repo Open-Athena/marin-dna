@@ -17,17 +17,11 @@ from typing import Any
 import numpy as np
 import polars as pl
 import torch
-from transformers import AutoModelForCausalLM
-
-from marin_dna.pipelines.rag_glm.dataset import (
-    DOCUMENT_TOKENS,
-    HUMAN_SEGMENT_START,
-)
-from marin_dna.pipelines.rag_glm.hf_scoring import (
+from marin_dna_evals.rag_glm.hf_scoring import (
     RAG_COMPLETION_TOKENS,
     score_rag_completions_hf,
 )
-from marin_dna.pipelines.rag_glm.model_sanity import (
+from marin_dna_evals.rag_glm.model_sanity import (
     RAG_HUMAN_ONLY_PREFIX_TOKENS,
     RAG_VEP_PREFIX_TOKENS,
     ablate_rag_rows,
@@ -40,7 +34,7 @@ from marin_dna.pipelines.rag_glm.model_sanity import (
     paired_special_token_llr_diagnostics,
     rag_target_position_metadata,
 )
-from marin_dna.pipelines.rag_glm.offline_eval import (
+from marin_dna_evals.rag_glm.offline_eval import (
     DOCUMENT_SCORE_COLUMNS,
     RAG_BENCHMARK_DATASETS,
     RAGBenchmark,
@@ -51,6 +45,11 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     load_rag_tokenizer_hf,
     nucleotide_token_ids,
 )
+from marin_dna_rag_glm.dataset import (
+    DOCUMENT_TOKENS,
+    HUMAN_SEGMENT_START,
+)
+from transformers import AutoModelForCausalLM
 
 TRAIN_DATASET_REPO = "bolinas-dna/zoonomia-rag-v1-v1"
 TRAIN_DATASET_REVISION = "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"

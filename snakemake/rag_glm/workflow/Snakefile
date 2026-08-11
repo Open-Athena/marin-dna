@@ -44,7 +44,7 @@ rule species_audit:
         sample_seed=int(config["audit_sample_seed"]),
         panel=tuple(config["species_order"]),
     run:
-        from marin_dna.pipelines.rag_glm.audit import run_species_audit
+        from marin_dna_rag_glm.audit import run_species_audit
 
         run_species_audit(
             source_parquet=params.source_parquet,
@@ -82,7 +82,7 @@ rule build_training_dataset:
         commit_sha=COMMIT_SHA,
         hf_repo=config["hf_training_repo"],
     run:
-        from marin_dna.pipelines.rag_glm.dataset import materialize_training_dataset
+        from marin_dna_rag_glm.dataset import materialize_training_dataset
 
         materialize_training_dataset(
             source_parquet=params.source_parquet,
@@ -131,7 +131,7 @@ rule build_mendelian_variant_windows:
     params:
         source_harness_urls=tuple(config["source_mendelian_harness"].values()),
     run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+        from marin_dna_rag_glm.mendelian_harness import (
             build_mendelian_variant_windows,
         )
 
@@ -157,7 +157,7 @@ rule project_mendelian_variant_windows:
     params:
         hal_path=config["hal_path"],
     run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+        from marin_dna_rag_glm.mendelian_harness import (
             project_mendelian_variant_windows,
         )
 
@@ -185,7 +185,7 @@ rule extract_mendelian_orthologs:
     resources:
         mem_mb=2000,
     run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+        from marin_dna_rag_glm.mendelian_harness import (
             extract_ortholog_sequences_from_twobit,
         )
 
@@ -215,7 +215,7 @@ rule build_mendelian_rag_harness:
         hf_repo=config["hf_mendelian_repo"],
         species_order=tuple(config["species_order"]),
     run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+        from marin_dna_rag_glm.mendelian_harness import (
             materialize_mendelian_rag_harness,
         )
 
@@ -275,7 +275,7 @@ rule build_benchmark_variant_windows:
     params:
         source_urls=lambda wc: dict(BENCHMARK_HARNESSES[wc.benchmark]["source_urls"]),
     run:
-        from marin_dna.pipelines.rag_glm.benchmark_harness import (
+        from marin_dna_rag_glm.benchmark_harness import (
             build_benchmark_variant_windows,
         )
 
@@ -306,7 +306,7 @@ rule project_benchmark_variant_windows:
     params:
         hal_path=config["hal_path"],
     run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+        from marin_dna_rag_glm.mendelian_harness import (
             project_mendelian_variant_windows,
         )
 
@@ -337,7 +337,7 @@ rule extract_benchmark_orthologs:
     resources:
         mem_mb=4000,
     run:
-        from marin_dna.pipelines.rag_glm.mendelian_harness import (
+        from marin_dna_rag_glm.mendelian_harness import (
             extract_ortholog_sequences_from_twobit,
         )
 
@@ -373,7 +373,7 @@ rule build_benchmark_rag_harness:
         leaderboard_url=lambda wc: BENCHMARK_HARNESSES[wc.benchmark]["leaderboard_url"],
         species_order=tuple(config["species_order"]),
     run:
-        from marin_dna.pipelines.rag_glm.benchmark_harness import (
+        from marin_dna_rag_glm.benchmark_harness import (
             materialize_benchmark_rag_harness,
         )
 

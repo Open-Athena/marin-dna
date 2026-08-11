@@ -23,7 +23,7 @@ setup: |
       curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
   export PATH="$HOME/.local/bin:$PATH"
-  uv sync
+  uv sync --project snakemake/rag_glm --locked
 
 run: |
   set -euxo pipefail
@@ -32,20 +32,20 @@ run: |
 
   test -n "$COMMIT_SHA"
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" \
       --allowed-rules build_training_dataset upload_training_dataset \
       --printshellcmds \
       -n "$SNAKEMAKE_TARGET"
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" \
       --allowed-rules build_training_dataset upload_training_dataset \
       --printshellcmds \
       --rerun-incomplete \
       "$SNAKEMAKE_TARGET"
 
-  uv run python -c "
+  uv run --locked python -c "
   import boto3
   import sys
 

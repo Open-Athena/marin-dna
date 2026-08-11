@@ -33,7 +33,7 @@ setup: |
       rm /tmp/cactus.tar.gz
   fi
 
-  uv sync --project "$HOME/sky_workdir"
+  uv sync --project "$HOME/sky_workdir/snakemake/rag_glm" --locked
 
 run: |
   set -euxo pipefail
@@ -77,20 +77,20 @@ run: |
   cd snakemake/rag_glm
   ALLOWED_RULES="build_mendelian_variant_windows project_mendelian_variant_windows extract_mendelian_orthologs build_mendelian_rag_harness upload_mendelian_rag_harness"
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
       --allowed-rules $ALLOWED_RULES \
       --printshellcmds \
       -n "$SNAKEMAKE_TARGET"
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
       --allowed-rules $ALLOWED_RULES \
       --printshellcmds \
       --rerun-incomplete \
       "$SNAKEMAKE_TARGET"
 
-  uv run python -c "
+  uv run --locked python -c "
   import boto3
   import sys
 

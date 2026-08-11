@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from marin_dna.pipelines.rag_glm.levanter_scoring import (
+from marin_dna_evals.rag_glm.levanter_scoring import (
     build_rag_cache_execution_plan,
 )
 
@@ -27,8 +26,7 @@ def test_online_cached_scores_match_naive_full_forward() -> None:
     jnp = pytest.importorskip("jax.numpy")
     from levanter.layers.attention import AttentionMask
     from levanter.models.qwen import Qwen3Config
-
-    from marin_dna.pipelines.rag_glm.levanter_scoring import (
+    from marin_dna_evals.rag_glm.levanter_scoring import (
         score_rag_completions_levanter,
         score_rag_completions_naive_levanter,
     )
@@ -99,7 +97,7 @@ def test_online_cached_scores_match_naive_full_forward() -> None:
     assert float(cached[1]) == pytest.approx(float(naive_alt), abs=2e-5)
     assert float(cached[2]) == pytest.approx(float(naive_alt - naive_ref), abs=2e-5)
 
-    from marin_dna.pipelines.rag_glm.levanter_scoring import score_rag_batch_levanter
+    from marin_dna_evals.rag_glm.levanter_scoring import score_rag_batch_levanter
 
     batched = score_rag_batch_levanter(
         model,

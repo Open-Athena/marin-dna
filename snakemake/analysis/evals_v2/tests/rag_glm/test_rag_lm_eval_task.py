@@ -6,7 +6,7 @@ import pytest
 
 pytest.importorskip("lm_eval")
 
-from marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval import (  # noqa: E402
+from marin_dna_evals.lm_eval.rag_dna_vep_llr_eval import (
     RagDnaVepLlrEvalTask,
 )
 

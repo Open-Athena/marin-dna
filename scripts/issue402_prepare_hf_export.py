@@ -6,8 +6,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from marin_dna.pipelines.rag_glm.hf_publication import normalize_rag_hf_export_metadata
-from marin_dna.pipelines.rag_glm.offline_eval import (
+from marin_dna_evals.rag_glm.hf_publication import normalize_rag_hf_export_metadata
+from marin_dna_evals.rag_glm.offline_eval import (
     load_rag_model_config_hf,
     load_rag_tokenizer_hf,
 )

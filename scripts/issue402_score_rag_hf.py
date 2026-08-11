@@ -8,16 +8,18 @@ import json
 from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM
-
-from marin_dna.pipelines.rag_glm.offline_eval import (
+from marin_dna_evals.rag_glm.hf_scoring import (
+    score_rag_completions_hf,
+    score_rag_completions_naive_hf,
+)
+from marin_dna_evals.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
     compute_rag_benchmark_metrics,
+    encode_rag_batch,
     load_rag_eval_split,
     load_rag_model_config_hf,
     load_rag_tokenizer_hf,
-    encode_rag_batch,
     nucleotide_token_ids,
     run_rag_mendelian_probe,
     score_rag_rows_hf,
@@ -25,10 +27,7 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     write_rag_evaluation_outputs,
     write_rag_probe_outputs,
 )
-from marin_dna.pipelines.rag_glm.hf_scoring import (
-    score_rag_completions_hf,
-    score_rag_completions_naive_hf,
-)
+from transformers import AutoModelForCausalLM
 
 
 def parse_args() -> argparse.Namespace:

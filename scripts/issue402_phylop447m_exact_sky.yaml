@@ -35,7 +35,7 @@ setup: |
     curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
     bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
   fi
-  uv sync --frozen --no-dev
+  uv sync --project snakemake/analysis/evals_v2 --locked --no-dev
 
 run: |
   set -euxo pipefail
@@ -56,7 +56,7 @@ run: |
       "$VARIANTS_URI/$BENCHMARK/variants.parquet" \
       "$VARIANTS_DIR/$BENCHMARK/variants.parquet"
   done
-  BIGWIG="$BIGWIG" uv run --no-dev python -c '
+  BIGWIG="$BIGWIG" uv run --project snakemake/analysis/evals_v2 --locked --no-dev python -c '
   import os
   import boto3
   boto3.client("s3", region_name="us-east-2").download_file(
@@ -67,7 +67,7 @@ run: |
   '
   test "$(stat -c %s "$BIGWIG")" -eq 10022801463
 
-  uv run --no-dev python scripts/issue402_phylop447m_exact_baseline.py \
+  uv run --project snakemake/analysis/evals_v2 --locked --no-dev python scripts/issue402_phylop447m_exact_baseline.py \
     --variants-root "$VARIANTS_DIR" \
     --bigwig "$BIGWIG" \
     --output-dir "$RESULTS_DIR" \

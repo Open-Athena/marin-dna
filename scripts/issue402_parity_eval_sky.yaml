@@ -45,7 +45,7 @@ setup: |
     bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
   fi
 
-  uv sync --frozen --no-dev
+  uv sync --project snakemake/analysis/evals_v2 --locked --no-dev
 
 run: |
   set -euxo pipefail
@@ -69,7 +69,7 @@ run: |
   test -s "$CHECKPOINT_DIR/model.safetensors"
   test -s "$CHECKPOINT_DIR/tokenizer.json"
 
-  uv run --no-dev python scripts/issue402_score_rag_hf.py \
+  uv run --project snakemake/analysis/evals_v2 --locked --no-dev python scripts/issue402_score_rag_hf.py \
     --benchmark mendelian_traits \
     --split train \
     --max-rows "$MAX_ROWS" \

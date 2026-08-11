@@ -11,23 +11,22 @@ from typing import Any
 
 import polars as pl
 import torch
-from transformers import AutoModelForCausalLM
-
-from marin_dna.pipelines.rag_glm.dataset import (
-    BASES_PER_SLOT,
-    DOCUMENT_TOKENS,
-    PROVISIONAL_SPECIES_ORDER,
-)
-from marin_dna.pipelines.rag_glm.model_sanity import (
+from marin_dna_evals.rag_glm.model_sanity import (
     assert_rag_token_geometry,
     indel_mapped_attention_rows,
     pairwise_alignment_rows,
 )
-from marin_dna.pipelines.rag_glm.offline_eval import (
+from marin_dna_evals.rag_glm.offline_eval import (
     load_rag_model_config_hf,
     load_rag_tokenizer_hf,
     nucleotide_token_ids,
 )
+from marin_dna_rag_glm.dataset import (
+    BASES_PER_SLOT,
+    DOCUMENT_TOKENS,
+    PROVISIONAL_SPECIES_ORDER,
+)
+from transformers import AutoModelForCausalLM
 
 TRAIN_DATASET_REPO = "bolinas-dna/zoonomia-rag-v1-v1"
 TRAIN_DATASET_REVISION = "5e6b30cf878b61c99e6432ad8ab7865b18cbe0e7"

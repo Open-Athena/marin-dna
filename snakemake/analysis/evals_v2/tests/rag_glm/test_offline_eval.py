@@ -7,11 +7,10 @@ import json
 import polars as pl
 import pytest
 import torch
-
-from marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval import (
+from marin_dna_evals.lm_eval.rag_dna_vep_llr_eval import (
     RagDnaVepLlrEvalTask,
 )
-from marin_dna.pipelines.rag_glm.offline_eval import (
+from marin_dna_evals.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
     compute_rag_benchmark_metrics,
@@ -25,7 +24,7 @@ from marin_dna.pipelines.rag_glm.offline_eval import (
     write_rag_evaluation_outputs,
     write_rag_probe_outputs,
 )
-from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
 
 
 def _context() -> str:
@@ -137,7 +136,7 @@ def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
         return {"train": [], "test": []}
 
     monkeypatch.setattr(
-        "marin_dna.pipelines.evals.lm_eval.rag_dna_vep_llr_eval.datasets.load_dataset",
+        "marin_dna_evals.lm_eval.rag_dna_vep_llr_eval.datasets.load_dataset",
         fake_load_dataset,
     )
     task = object.__new__(RagDnaVepLlrEvalTask)
@@ -329,7 +328,7 @@ def test_mendelian_probe_scores_identical_rows(monkeypatch) -> None:
         return predictions, {"coding": {"C": 1.0}}
 
     monkeypatch.setattr(
-        "marin_dna.pipelines.rag_glm.offline_eval.run_subset_probes",
+        "marin_dna_evals.rag_glm.offline_eval.run_subset_probes",
         fake_run_subset_probes,
     )
     predictions, metrics, classifiers = run_rag_mendelian_probe(

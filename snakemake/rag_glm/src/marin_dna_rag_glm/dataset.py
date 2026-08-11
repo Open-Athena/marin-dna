@@ -12,9 +12,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import polars as pl
+from marin_dna_zoonomia_projection.projection.dataset import reverse_complement_col
 
 from marin_dna.data.utils import get_array_split_pairs
-from marin_dna.pipelines.projection.dataset import reverse_complement_col
 
 BASES_PER_SLOT = 255
 N_SEQUENCE_SLOTS = 8
@@ -476,7 +476,7 @@ def materialize_training_dataset(
     assert training.filter(pl.col("chrom") == "18").is_empty()
     assert training.select(pl.col("anchor_id").n_unique()).item() * 2 == training.height
 
-    from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+    from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
 
     tokenizer = create_rag_char_tokenizer()
     validation_sample = validation["seq"].head(32).to_list()

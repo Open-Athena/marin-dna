@@ -7,9 +7,7 @@ import json
 import subprocess
 
 import polars as pl
-
-from marin_dna.pipelines.rag_glm.model_sanity import rag_target_position_metadata
-
+from marin_dna_evals.rag_glm.model_sanity import rag_target_position_metadata
 
 ROOT = (
     "gs://marin-us-east5/evals/dna-exp402-rag-h640-p46m-b2m-30k/"

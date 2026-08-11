@@ -17,7 +17,7 @@ setup: |
   export PATH="$HOME/.local/bin:$PATH"
   command -v uv >/dev/null
   test -d "$HOME/cactus-bin-v3.1.4"
-  uv sync --project "$HOME/sky_workdir"
+  uv sync --project "$HOME/sky_workdir/snakemake/rag_glm" --locked
 
 run: |
   set -euxo pipefail
@@ -35,13 +35,13 @@ run: |
   ALLOWED_RULES="build_benchmark_variant_windows project_benchmark_variant_windows extract_benchmark_orthologs build_benchmark_rag_harness"
   TARGETS="results/complex_traits/dataset/evals_complex_traits_rag_harness_255_v1/README.md results/sge/dataset/evals_sge_rag_harness_255_v1/README.md"
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
       --allowed-rules $ALLOWED_RULES \
       --printshellcmds \
       -n $TARGETS
 
-  uv run snakemake --profile workflow/profiles/default \
+  uv run --locked snakemake --profile workflow/profiles/default \
       --config "commit_sha=$COMMIT_SHA" "hal_path=$HAL_PATH" \
       --allowed-rules $ALLOWED_RULES \
       --printshellcmds \

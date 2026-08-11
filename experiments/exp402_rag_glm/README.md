@@ -107,7 +107,7 @@ The exports use Transformers 5's Qwen3 config schema: Llama-3 scaling and
 `rope_theta=500000` are stored under `rope_parameters`. The repository-wide
 offline environment intentionally remains on Transformers 4.57, so all offline
 loads must go through `load_rag_model_config_hf` in
-`src/marin_dna/pipelines/rag_glm/offline_eval.py`; it translates those values to
+`snakemake/analysis/evals_v2/src/marin_dna_evals/rag_glm/offline_eval.py`; it translates those values to
 Transformers 4's `rope_scaling` and top-level `rope_theta` before model
 construction. Calling `AutoModelForCausalLM.from_pretrained` directly in that
 environment silently falls back to unscaled RoPE with theta 10,000 and produces

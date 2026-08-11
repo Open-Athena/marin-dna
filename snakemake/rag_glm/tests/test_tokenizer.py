@@ -2,16 +2,15 @@
 
 import tempfile
 
-from transformers import AutoTokenizer
-
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     DOCUMENT_TOKENS,
     HUMAN_SEGMENT_START,
     HUMAN_VARIANT_TOKEN_INDEX,
     MISSING_SEQUENCE,
     assemble_document,
 )
-from marin_dna.pipelines.rag_glm.tokenizer import create_rag_char_tokenizer
+from marin_dna_rag_glm.tokenizer import create_rag_char_tokenizer
+from transformers import AutoTokenizer
 
 
 def _document() -> str:

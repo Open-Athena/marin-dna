@@ -25,9 +25,9 @@ RAG_HUMAN_POOL_TOKENS = 255
 
 
 def _token_id_to_nucleotide_index(
-    token_ids: Int[Tensor, "..."],
+    token_ids: Int[Tensor, ...],
     nucleotide_token_ids: Int[Tensor, " 4"],
-) -> Int[Tensor, "..."]:
+) -> Int[Tensor, ...]:
     matches = token_ids.unsqueeze(-1) == nucleotide_token_ids
     assert bool(matches.any(dim=-1).all()), "all scored targets must be A/C/G/T tokens"
     assert bool((matches.sum(dim=-1) == 1).all()), "nucleotide token IDs must be unique"

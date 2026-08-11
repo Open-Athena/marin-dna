@@ -4,8 +4,7 @@ import json
 
 import polars as pl
 import pytest
-
-from marin_dna.pipelines.rag_glm.dataset import (
+from marin_dna_rag_glm.dataset import (
     BASES_PER_SLOT,
     DOCUMENT_TOKENS,
     DOCUMENT_TOKENS_WITHOUT_CLS,
@@ -138,7 +137,7 @@ def test_split_is_chromosome_disjoint_and_deterministic() -> None:
     train_a, validation_a = split_training_validation(
         documents, validation_size=3, validation_seed=42
     )
-    train_b, validation_b = split_training_validation(
+    _train_b, validation_b = split_training_validation(
         documents, validation_size=3, validation_seed=42
     )
     assert set(train_a["chrom"]) == {"1", "2"}

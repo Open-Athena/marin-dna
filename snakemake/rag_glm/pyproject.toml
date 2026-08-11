@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marin-dna-rag-glm"
+version = "0.0.1"
+description = "Locked runtime and Python package for the issue 402 ortholog-RAG data pipeline"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "boto3",
+    "huggingface-hub",
+    "marin-dna",
+    "marin-dna-zoonomia-projection",
+    "numpy",
+    "polars",
+    "py2bit",
+    "snakemake",
+    "snakemake-storage-plugin-s3>=0.3.6",
+    "tokenizers",
+    "transformers<5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.uv]
+required-version = "==0.11.31"
+fork-strategy = "fewest"
+environments = [
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
+]
+
+[tool.uv.sources]
+marin-dna = { path = "../..", editable = true }
+marin-dna-zoonomia-projection = { path = "../zoonomia_projection_dataset", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marin_dna_rag_glm"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
