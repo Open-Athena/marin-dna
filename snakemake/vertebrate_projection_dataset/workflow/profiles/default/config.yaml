@@ -1,0 +1,9 @@
+cores: 2
+use-conda: true
+resources:
+  mem_mb: 30000
+  ucsc_downloads: 4
+  final_large_scan: 1
+  hf_uploads: 1
+printshellcmds: true
+rerun-triggers: mtime
