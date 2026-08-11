@@ -23,7 +23,7 @@ from marin_dna_evals.metrics import (
     per_chrom_ap_table,
 )
 from marin_dna_evals.rag_glm.offline_eval import (
-    assert_rag_mendelian_variant_parity,
+    assert_rag_variant_parity,
     load_rag_eval_split,
     score_rag_checkpoint_hf,
 )
@@ -75,10 +75,21 @@ MODEL_SCORERS = ("standard", "rag_glm")
 def get_model_scorer(name):
     """Scoring backend for a model (ordinary sequence window or RAG document)."""
     scorer = get_model_config(name).get("scorer", "standard")
-    assert scorer in MODEL_SCORERS, (
-        f"model {name!r} scorer must be one of {MODEL_SCORERS}, got {scorer!r}"
-    )
+    assert (
+        scorer in MODEL_SCORERS
+    ), f"model {name!r} scorer must be one of {MODEL_SCORERS}, got {scorer!r}"
     return scorer
+
+
+def get_rag_dataset_source(model_name, dataset_name):
+    """Pinned projected harness for one RAG model × official eval dataset."""
+    model = get_model_config(model_name)
+    assert get_model_scorer(model_name) == "rag_glm"
+    sources = model.get("rag_datasets", {})
+    assert (
+        dataset_name in sources
+    ), f"RAG model {model_name!r} has no projected harness for {dataset_name!r}"
+    return sources[dataset_name]
 
 
 # Each model entry must declare exactly one source — fail loud here so a
@@ -91,16 +102,22 @@ for _m in config["models"]:
     ), f"model {_m['name']!r} must have exactly one of `gcs_path` or `hf_repo`"
 
     _scorer = _m.get("scorer", "standard")
-    assert _scorer in MODEL_SCORERS, (
-        f"model {_m['name']!r} scorer must be one of {MODEL_SCORERS}, got {_scorer!r}"
-    )
+    assert (
+        _scorer in MODEL_SCORERS
+    ), f"model {_m['name']!r} scorer must be one of {MODEL_SCORERS}, got {_scorer!r}"
     if _scorer == "rag_glm":
-        assert _m.get("datasets") == ["mendelian_traits"], (
-            f"RAG model {_m['name']!r} is currently frozen to mendelian_traits"
-        )
         assert _m.get("window_size") == 2048
-        assert _m.get("rag_dataset_repo")
-        assert len(_m.get("rag_dataset_revision", "")) == 40
+        _rag_datasets = _m.get("rag_datasets")
+        assert isinstance(_rag_datasets, dict) and set(_rag_datasets) == set(
+            _m.get("datasets", [])
+        ), (
+            f"RAG model {_m['name']!r} must pin exactly one harness for every "
+            "declared dataset"
+        )
+        for _dataset, _source in _rag_datasets.items():
+            assert _dataset in [d["name"] for d in config["datasets"]]
+            assert _source.get("repo")
+            assert len(_source.get("revision", "")) == 40
 
 # Same fail-fast for per-dataset score_protocol — a typo would surface
 # late as a KeyError inside the metrics rule's `SCORE_PROTOCOLS[protocol]`.

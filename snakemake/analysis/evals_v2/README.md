@@ -35,11 +35,12 @@ For each `model` × `dataset` in the config:
 A model entry may set `scorer: rag_glm` for the fixed 2,048-token ortholog
 document layout (seven 255-bp HAL-projected ortholog windows, `[SEQ]`
 boundaries, then a 255-bp human window split into a 127-base prefix and paired 128-base completion).
-This backend is currently restricted to `mendelian_traits`. It reads the
-commit-pinned two-strand RAG harness named by `rag_dataset_repo` and
-`rag_dataset_revision`, then fails before model loading unless its collapsed
-variants equal the official `train` split exactly on
-`chrom,pos,ref,alt,label,subset,match_group`.
+Each enabled benchmark names a commit-pinned two-strand harness under the model's
+`rag_datasets` mapping. Before model loading, the backend collapses the strand
+pairs and requires exact equality with the official `train` split on every field
+that controls metric membership: coordinates/alleles/label plus
+`subset,match_group` for Mendelian/Complex Traits or
+`subset,gene,mavedb_urn` for SGE.
 
 The output uses the same standard S3 score path and raw `llr_fwd` /
 `llr_rc` schema as every other model, so the ordinary `compute_metrics`,

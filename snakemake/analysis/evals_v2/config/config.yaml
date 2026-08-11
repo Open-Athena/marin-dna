@@ -561,56 +561,81 @@ models:
 
   # issue #402 ortholog-RAG training trajectory. The scorer consumes the
   # immutable HAL-projected two-strand harness and asserts exact equality with
-  # the official Mendelian train rows before loading the checkpoint. 10k/20k
-  # are zero-shot trajectory points; 30k is also registered for probing.
+  # each official train cohort before loading the checkpoint. 10k/20k are
+  # Mendelian zero-shot trajectory points; the two 30k checkpoints also run
+  # official zero-shot + frozen-probe evaluation on Complex Traits and SGE.
   - name: exp402-rag-h640-p46m-b2m-step-10000
     scorer: rag_glm
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/2026.07.26.5/hf/step-10000
     window_size: 2048
     datasets: [mendelian_traits]
     batch_size: 16
-    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
-    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+    rag_datasets:
+      mendelian_traits:
+        repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+        revision: 9acedb683463477f34745af30a63a289873008a4
   - name: exp402-rag-h640-p46m-b2m-step-20000
     scorer: rag_glm
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/2026.07.26.5/hf/step-20000
     window_size: 2048
     datasets: [mendelian_traits]
     batch_size: 16
-    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
-    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+    rag_datasets:
+      mendelian_traits:
+        repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+        revision: 9acedb683463477f34745af30a63a289873008a4
   - name: exp402-rag-h640-p46m-b2m-step-29999
     scorer: rag_glm
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/2026.07.26.5/hf/step-29999
     window_size: 2048
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, complex_traits, sge]
     batch_size: 16
-    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
-    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+    rag_datasets:
+      mendelian_traits:
+        repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+        revision: 9acedb683463477f34745af30a63a289873008a4
+      complex_traits:
+        repo: marin-dna/evals_complex_traits_rag_harness_255_v1
+        revision: 0252a883f650819a8e1fa22062027daafe956540
+      sge:
+        repo: marin-dna/evals_sge_rag_harness_255_v1
+        revision: c20cc58fceb9bc053a55152a89d160f1b070f75d
   - name: exp402-rag-h768-p104m-b2m-step-10000
     scorer: rag_glm
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5/hf/step-10000
     window_size: 2048
     datasets: [mendelian_traits]
     batch_size: 16
-    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
-    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+    rag_datasets:
+      mendelian_traits:
+        repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+        revision: 9acedb683463477f34745af30a63a289873008a4
   - name: exp402-rag-h768-p104m-b2m-step-20000
     scorer: rag_glm
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5/hf/step-20000
     window_size: 2048
     datasets: [mendelian_traits]
     batch_size: 16
-    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
-    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+    rag_datasets:
+      mendelian_traits:
+        repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+        revision: 9acedb683463477f34745af30a63a289873008a4
   - name: exp402-rag-h768-p104m-b2m-step-29999
     scorer: rag_glm
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5/hf/step-29999
     window_size: 2048
-    datasets: [mendelian_traits]
+    datasets: [mendelian_traits, complex_traits, sge]
     batch_size: 16
-    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
-    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+    rag_datasets:
+      mendelian_traits:
+        repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+        revision: 9acedb683463477f34745af30a63a289873008a4
+      complex_traits:
+        repo: marin-dna/evals_complex_traits_rag_harness_255_v1
+        revision: 0252a883f650819a8e1fa22062027daafe956540
+      sge:
+        repo: marin-dna/evals_sge_rag_harness_255_v1
+        revision: c20cc58fceb9bc053a55152a89d160f1b070f75d
 
   # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
   # (~84.77B tokens; batch 1536 x seq 256; identical optimizer hparams). The
@@ -1281,9 +1306,9 @@ probe:
       datasets: [mendelian_traits]
 
     - name: exp402-rag-h640-p46m-b2m-step-29999
-      datasets: [mendelian_traits]
+      datasets: [mendelian_traits, complex_traits, sge]
     - name: exp402-rag-h768-p104m-b2m-step-29999
-      datasets: [mendelian_traits]
+      datasets: [mendelian_traits, complex_traits, sge]
 
 # ---------------------------------------------------------------------------
 # Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.

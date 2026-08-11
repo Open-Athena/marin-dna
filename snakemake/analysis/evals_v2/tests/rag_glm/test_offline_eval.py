@@ -11,6 +11,7 @@ from marin_dna_evals.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
     assert_rag_mendelian_variant_parity,
+    assert_rag_variant_parity,
     compute_rag_benchmark_metrics,
     encode_rag_batch,
     load_rag_eval_split,
@@ -172,6 +173,82 @@ def test_rag_mendelian_parity_rejects_metric_membership_difference() -> None:
 
     with pytest.raises(AssertionError, match="differ on variant/metric fields"):
         assert_rag_mendelian_variant_parity(_rag_parity_rows(), official)
+
+
+@pytest.mark.parametrize("benchmark", ["complex_traits", "sge"])
+def test_rag_parity_accepts_exact_non_mendelian_rows(benchmark: str) -> None:
+    shared = {
+        "chrom": ["1", "1", "3", "3"],
+        "pos": [10, 10, 20, 20],
+        "ref": ["A", "A", "C", "C"],
+        "alt": ["G", "G", "T", "T"],
+        "label": [True, True, False, False],
+        "strand": ["+", "-", "+", "-"],
+    }
+    if benchmark == "complex_traits":
+        metadata = {
+            "subset": ["coding", "coding", "distal", "distal"],
+            "match_group": [1, 1, 2, 2],
+        }
+        official_metadata = {
+            "subset": ["distal", "coding"],
+            "match_group": [2, 1],
+        }
+    else:
+        metadata = {
+            "subset": ["missense_variant"] * 2 + ["splicing"] * 2,
+            "gene": ["GENE1"] * 2 + ["GENE2"] * 2,
+            "mavedb_urn": ["urn:mavedb:1"] * 2 + ["urn:mavedb:2"] * 2,
+        }
+        official_metadata = {
+            "subset": ["splicing", "missense_variant"],
+            "gene": ["GENE2", "GENE1"],
+            "mavedb_urn": ["urn:mavedb:2", "urn:mavedb:1"],
+        }
+    rag = pl.DataFrame({**shared, **metadata})
+    official = pl.DataFrame(
+        {
+            "chrom": ["3", "1"],
+            "pos": [20, 10],
+            "ref": ["C", "A"],
+            "alt": ["T", "G"],
+            "label": [False, True],
+            **official_metadata,
+        }
+    )
+
+    assert_rag_variant_parity(rag, official, benchmark)  # type: ignore[arg-type]
+
+
+def test_rag_sge_parity_rejects_accession_difference() -> None:
+    rag = pl.DataFrame(
+        {
+            "chrom": ["1", "1"],
+            "pos": [10, 10],
+            "ref": ["A", "A"],
+            "alt": ["G", "G"],
+            "label": [True, True],
+            "subset": ["missense_variant"] * 2,
+            "gene": ["GENE1"] * 2,
+            "mavedb_urn": ["urn:mavedb:1"] * 2,
+            "strand": ["+", "-"],
+        }
+    )
+    official = pl.DataFrame(
+        {
+            "chrom": ["1"],
+            "pos": [10],
+            "ref": ["A"],
+            "alt": ["G"],
+            "label": [True],
+            "subset": ["missense_variant"],
+            "gene": ["GENE1"],
+            "mavedb_urn": ["urn:mavedb:other"],
+        }
+    )
+
+    with pytest.raises(AssertionError, match="differ on variant/metric fields"):
+        assert_rag_variant_parity(rag, official, "sge")
 
 
 def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:

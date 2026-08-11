@@ -23,11 +23,15 @@ rule compute_scores:
         # tuning them doesn't force a re-run of finished work.
         window_size=lambda wc: get_model_config(wc.model)["window_size"],
         scorer=lambda wc: get_model_scorer(wc.model),
-        rag_dataset_repo=lambda wc: get_model_config(wc.model).get(
-            "rag_dataset_repo", ""
+        rag_dataset_repo=lambda wc: (
+            get_rag_dataset_source(wc.model, wc.dataset)["repo"]
+            if get_model_scorer(wc.model) == "rag_glm"
+            else ""
         ),
-        rag_dataset_revision=lambda wc: get_model_config(wc.model).get(
-            "rag_dataset_revision", ""
+        rag_dataset_revision=lambda wc: (
+            get_rag_dataset_source(wc.model, wc.dataset)["revision"]
+            if get_model_scorer(wc.model) == "rag_glm"
+            else ""
         ),
         hf_path=lambda wc: f"{config['input_hf_prefix']}_{wc.dataset}",
         # Pin the HF dataset commit. Bumping it triggers rerun via the
@@ -52,23 +56,23 @@ rule compute_scores:
         ).to_pandas()
         for col in get_dataset_variant_columns(wildcards.dataset):
             assert col in ds.columns, f"dataset missing column {col!r}"
-
         if params.scorer == "rag_glm":
-            assert wildcards.dataset == "mendelian_traits"
             rag_rows = load_rag_eval_split(
-                "mendelian_traits",
+                wildcards.dataset,
                 config["split"],
                 repo=params.rag_dataset_repo,
                 revision=params.rag_dataset_revision,
             )
             # Exact-row contract: coordinates/alleles alone are insufficient;
-            # labels, subsets, and match groups must also match the official
-            # train dataset before a standard score artifact can be written.
-            assert_rag_mendelian_variant_parity(rag_rows, pl.from_pandas(ds))
+            # all metric-membership metadata must also match the official train
+            # dataset before a standard score artifact can be written.
+            assert_rag_variant_parity(
+                rag_rows, pl.from_pandas(ds), wildcards.dataset
+            )
             out = score_rag_checkpoint_hf(
                 input.checkpoint,
                 rag_rows,
-                benchmark="mendelian_traits",
+                benchmark=wildcards.dataset,
                 batch_size=batch_size,
                 device="cuda",
                 return_embeddings=params.return_embeddings,
@@ -101,7 +105,6 @@ rule compute_scores:
             out = pd.concat(
                 [ds.reset_index(drop=True), scores.reset_index(drop=True)], axis=1
             )
-
         assert len(out) == len(ds)
         out.to_parquet(output[0], index=False)
         print(

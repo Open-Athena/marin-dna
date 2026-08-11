@@ -228,9 +228,10 @@ def load_rag_model_config_hf(
     return config
 
 
-def assert_rag_mendelian_variant_parity(
+def assert_rag_variant_parity(
     rag_rows: pl.DataFrame,
     official_rows: pl.DataFrame,
+    benchmark: RAGBenchmark,
 ) -> None:
     """Require the materialized RAG harness to equal the official variant set.
 
@@ -240,17 +241,18 @@ def assert_rag_mendelian_variant_parity(
     membership. This check deliberately runs before model loading so a stale
     projection cannot consume GPU time or emit a misleading standard artifact.
     """
-    comparison_columns = [
-        *VARIANT_KEY_COLUMNS,
-        "label",
-        "subset",
-        "match_group",
-    ]
+    assert benchmark in RAG_BENCHMARK_DATASETS
+    harness_label = "target" if benchmark == "mendelian_traits" else "label"
+    extra_metadata = (
+        ["subset", "match_group"]
+        if benchmark != "sge"
+        else ["subset", "gene", "mavedb_urn"]
+    )
+    comparison_columns = [*VARIANT_KEY_COLUMNS, "label", *extra_metadata]
     rag_required = {
         *VARIANT_KEY_COLUMNS,
-        "target",
-        "subset",
-        "match_group",
+        harness_label,
+        *extra_metadata,
         "strand",
     }
     assert rag_required <= set(rag_rows.columns)
@@ -259,27 +261,27 @@ def assert_rag_mendelian_variant_parity(
     rag_variants = rag_rows.group_by(VARIANT_KEY_COLUMNS).agg(
         pl.len().alias("n_rows"),
         pl.col("strand").sort().alias("strands"),
-        pl.col("target").n_unique().alias("n_label"),
-        pl.col("subset").n_unique().alias("n_subset"),
-        pl.col("match_group").n_unique().alias("n_match_group"),
-        pl.col("target").first().alias("label"),
-        pl.col("subset").first(),
-        pl.col("match_group").first(),
+        pl.col(harness_label).n_unique().alias("n_label"),
+        *[pl.col(column).n_unique().alias(f"n_{column}") for column in extra_metadata],
+        pl.col(harness_label).first().alias("label"),
+        *[pl.col(column).first() for column in extra_metadata],
     )
-    malformed = rag_variants.filter(
+    malformed_condition = (
         (pl.col("n_rows") != 2)
         | (pl.col("strands").list.join("") != "+-")
         | (pl.col("n_label") != 1)
-        | (pl.col("n_subset") != 1)
-        | (pl.col("n_match_group") != 1)
     )
+    for column in extra_metadata:
+        malformed_condition |= pl.col(f"n_{column}") != 1
+    malformed = rag_variants.filter(malformed_condition)
     assert malformed.is_empty(), (
-        "RAG Mendelian harness must have one consistent +/- document pair per variant"
+        f"RAG {benchmark} harness must have one consistent +/- document pair "
+        "per variant"
     )
     rag_variants = rag_variants.select(comparison_columns)
     official_variants = official_rows.select(comparison_columns)
     assert official_variants.unique().height == official_variants.height, (
-        "official Mendelian eval rows contain duplicate comparison keys"
+        f"official {benchmark} eval rows contain duplicate comparison keys"
     )
 
     casts = {
@@ -289,15 +291,15 @@ def assert_rag_mendelian_variant_parity(
         "alt": pl.String,
         "label": pl.Boolean,
         "subset": pl.String,
-        "match_group": pl.Int64,
     }
+    if benchmark == "sge":
+        casts |= {"gene": pl.String, "mavedb_urn": pl.String}
+    else:
+        casts["match_group"] = pl.Int64
     rag_variants = rag_variants.cast(casts)
     official_variants = official_variants.cast(casts)
     assert (
-        rag_variants.select(comparison_columns)
-        .null_count()
-        .sum_horizontal()
-        .item()
+        rag_variants.select(comparison_columns).null_count().sum_horizontal().item()
         == 0
     )
     assert (
@@ -308,7 +310,7 @@ def assert_rag_mendelian_variant_parity(
         == 0
     )
     assert rag_variants.height == official_variants.height, (
-        f"RAG/official Mendelian row-count mismatch: "
+        f"RAG/official {benchmark} row-count mismatch: "
         f"{rag_variants.height} != {official_variants.height}"
     )
     only_rag = rag_variants.join(
@@ -322,9 +324,17 @@ def assert_rag_mendelian_variant_parity(
         how="anti",
     )
     assert only_rag.is_empty() and only_official.is_empty(), (
-        "RAG harness and official Mendelian eval differ on variant/metric fields: "
+        f"RAG harness and official {benchmark} eval differ on variant/metric fields: "
         f"only_rag={only_rag.height}, only_official={only_official.height}"
     )
+
+
+def assert_rag_mendelian_variant_parity(
+    rag_rows: pl.DataFrame,
+    official_rows: pl.DataFrame,
+) -> None:
+    """Backward-compatible wrapper for the original Mendelian-only contract."""
+    assert_rag_variant_parity(rag_rows, official_rows, "mendelian_traits")
 
 
 def encode_rag_batch(
