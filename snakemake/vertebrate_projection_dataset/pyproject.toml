@@ -13,6 +13,8 @@ dependencies = [
     "huggingface-hub",
     "polars",
     "pyarrow>=21.0.0",
+    "pyyaml",
+    "zstandard",
     "snakemake",
     "snakemake-storage-plugin-s3>=0.3.6",
 ]
@@ -20,6 +22,7 @@ dependencies = [
 [project.scripts]
 marin-dna-build-vertebrate-species-manifest = "marin_dna_vertebrate_projection.cli.build_species_manifest:main"
 marin-dna-build-multiz-mirror-manifest = "marin_dna_vertebrate_projection.cli.build_multiz_mirror_manifest:main"
+marin-dna-build-twobit-manifest = "marin_dna_vertebrate_projection.cli.build_twobit_manifest:main"
 
 [dependency-groups]
 dev = [

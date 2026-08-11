@@ -6,6 +6,10 @@ from marin_dna_vertebrate_projection.pipeline_io import (
     write_inspection_files,
     write_qc_files,
 )
+from marin_dna_vertebrate_projection.publication import (
+    upload_validated_dataset,
+    validate_artifacts,
+)
 
 HAL_REJECTIONS = expand(
     f"{RESULTS}/hal/rejected/{{species}}.parquet", species=MAMMALS
@@ -222,25 +226,54 @@ rule dataset_card:
         )
 
 
-rule all_hf_files:
-    """Build reviewed HF artifacts without writing any external state."""
+rule hf_artifact_manifest:
+    """Reject missing, stale, malformed, or split-inconsistent publication files."""
     input:
-        expand(
+        train_source=expand(
+            f"{RESULTS}/datasets/{{region}}/train.parquet", region=COHORTS
+        ),
+        validation_source=expand(
+            f"{RESULTS}/datasets/{{region}}/validation.parquet", region=COHORTS
+        ),
+        train=expand(
             f"{HF_RESULTS}/{{region}}/data/train/{{shard}}.jsonl.zst",
             region=COHORTS,
             shard=PUBLICATION_TRAIN_SHARDS,
         ),
-        expand(
+        validation=expand(
             f"{HF_RESULTS}/{{region}}/data/validation/{{shard}}.jsonl.zst",
             region=COHORTS,
             shard=PUBLICATION_VALIDATION_SHARDS,
         ),
-        expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
+        cards=expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
+    output:
+        HF_MANIFEST,
+    threads: 8
+    resources:
+        mem_mb=8000,
+        final_large_scan=1,
+    run:
+        validate_artifacts(
+            HF_RESULTS,
+            f"{RESULTS}/datasets",
+            output[0],
+            config_path="config/config.yaml",
+            pipeline_commit=resolve_pipeline_commit(),
+            tier=TIER,
+            workers=threads,
+        )
+
+
+rule all_hf_files:
+    """Build and validate reviewed HF artifacts without external writes."""
+    input:
+        HF_MANIFEST,
 
 
 rule hf_upload_dataset:
-    """Opt-in only: run after a human approves the generated dataset card."""
+    """Opt-in: reject stale local/remote trees and verify the uploaded revision."""
     input:
+        manifest=HF_MANIFEST,
         train=lambda wc: [
             f"{HF_RESULTS}/{wc.region}/data/train/{shard}.jsonl.zst"
             for shard in PUBLICATION_TRAIN_SHARDS
@@ -258,15 +291,16 @@ rule hf_upload_dataset:
         hf_uploads=1,
     params:
         repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
-        data_dir=lambda wc: f"{HF_RESULTS}/{wc.region}",
         workers=int(config["hf_upload_workers"]),
-    shell:
-        """
-        HF_XET_HIGH_PERFORMANCE=1 hf upload-large-folder {params.repo} --repo-type dataset --num-workers {params.workers} {params.data_dir}
-        HF_XET_HIGH_PERFORMANCE=1 hf upload {params.repo} {input.card} README.md --repo-type dataset
-        mkdir -p $(dirname {output})
-        touch {output}
-        """
+    run:
+        upload_validated_dataset(
+            HF_RESULTS,
+            input.manifest,
+            output[0],
+            cohort=wildcards.region,
+            repo_id=params.repo,
+            workers=params.workers,
+        )
 
 
 rule all_hf:

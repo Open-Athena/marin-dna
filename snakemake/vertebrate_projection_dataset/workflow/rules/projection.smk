@@ -15,18 +15,21 @@ from marin_dna_vertebrate_projection.pipeline_io import (
     write_hal_fragments,
     write_maf_candidates,
 )
+from marin_dna_vertebrate_projection.sequence_compatibility import (
+    validate_projected_twobit_sizes,
+)
+from marin_dna_vertebrate_projection.sequence_sources import stage_twobit
 
 
 rule download_human_twobit:
+    input:
+        TWOBIT_MANIFEST,
     output:
         f"{RESULTS}/reference/hg38.2bit",
     resources:
         ucsc_downloads=1,
-    params:
-        url=str(config["human_twobit_url"]),
-    shell:
-        "wget -q --retry-connrefused --waitretry=5 --timeout=60 --tries=20 "
-        "-O {output} {params.url}"
+    run:
+        stage_twobit(twobit_objects["hg38"], output[0])
 
 
 rule human_chrom_sizes:
@@ -268,27 +271,48 @@ rule merge_multiz_rejected:
 
 
 rule download_multiz_twobit:
+    input:
+        TWOBIT_MANIFEST,
     output:
         f"{RESULTS}/multiz/genomes/{{species}}.2bit",
     wildcard_constraints:
         species=NON_MAMMAL_RE,
     resources:
         ucsc_downloads=1,
-    params:
-        # gbdb is the stable UCSC endpoint across both current and legacy
-        # assemblies in the 2015 hg38 MultiZ release.
-        url=lambda wc: (
-            f"https://hgdownload.soe.ucsc.edu/gbdb/{wc.species}/{wc.species}.2bit"
-        ),
+    run:
+        stage_twobit(twobit_objects[wildcards.species], output[0])
+
+
+rule multiz_twobit_chrom_sizes:
+    input:
+        f"{RESULTS}/multiz/genomes/{{species}}.2bit",
+    output:
+        f"{RESULTS}/multiz/genomes/{{species}}.chrom.sizes",
+    wildcard_constraints:
+        species=NON_MAMMAL_RE,
+    conda:
+        "../envs/bioinformatics.yaml"
     shell:
-        "wget -q --retry-connrefused --waitretry=5 --timeout=60 --tries=20 "
-        "-O {output} {params.url}"
+        "twoBitInfo {input} {output}"
+
+
+rule validate_multiz_twobit_compatibility:
+    input:
+        accepted=f"{RESULTS}/multiz/accepted/{{species}}.parquet",
+        sizes=f"{RESULTS}/multiz/genomes/{{species}}.chrom.sizes",
+    output:
+        f"{RESULTS}/multiz/genomes/{{species}}.compatibility.json",
+    wildcard_constraints:
+        species=NON_MAMMAL_RE,
+    run:
+        validate_projected_twobit_sizes(input.accepted, input.sizes, output[0])
 
 
 rule multiz_sequences:
     input:
         accepted=f"{RESULTS}/multiz/accepted/{{species}}.parquet",
         twobit=f"{RESULTS}/multiz/genomes/{{species}}.2bit",
+        compatibility=f"{RESULTS}/multiz/genomes/{{species}}.compatibility.json",
     output:
         sequences=f"{RESULTS}/sequences/multiz/{{species}}.parquet",
         rejected=f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",

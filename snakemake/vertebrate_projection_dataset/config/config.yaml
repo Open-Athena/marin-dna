@@ -10,7 +10,6 @@ pre_resize_min_length: 128
 pre_resize_max_length: 512
 
 ensembl_release: 115
-human_twobit_url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.2bit
 ccre_url: https://downloads.wenglab.org/Registry-V4/GRCh38-cCREs.bed
 standard_chroms:
   [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10,
@@ -20,6 +19,7 @@ standard_chroms:
 species_candidates: config/species_candidates.tsv
 species_selected: config/species_selected.tsv
 multiz_mirror_manifest: config/multiz_mirror.tsv
+twobit_manifest: config/twobit_manifest.tsv
 smoke_anchors: config/smoke_anchors.tsv
 
 hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal

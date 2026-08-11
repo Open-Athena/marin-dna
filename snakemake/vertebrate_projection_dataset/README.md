@@ -48,11 +48,10 @@ The source manifests can be regenerated with:
 ```bash
 uv run --locked marin-dna-build-vertebrate-species-manifest
 uv run --locked marin-dna-build-multiz-mirror-manifest --output config/multiz_mirror.tsv
+uv run --locked marin-dna-build-twobit-manifest --output config/twobit_manifest.tsv
 ```
 
-The species script queries pinned NCBI taxonomy/assembly metadata, so review its
-diff before accepting a regeneration. The committed files are the pipeline
-inputs; runtime species selection never relies on name matching.
+The species script queries pinned NCBI taxonomy/assembly metadata, and the 2bit script queries UCSC's published checksum indexes plus its public S3 mirror metadata, so review either diff before accepting a regeneration. The committed files are the pipeline inputs; runtime species selection never relies on name matching. `config/twobit_manifest.tsv` pins the exact v1 human and 28 MultiZ-target archives by byte size and either UCSC-published MD5 or a locally reproducible S3 multipart ETag.
 
 ## MultiZ mirror and local staging
 
@@ -70,14 +69,9 @@ uv run --locked snakemake \
   mirror_multiz_bootstrap
 ```
 
-Normal projection rules stage only configured chromosomes from S3 to local
-NVMe and verify size and MD5 before use. They fail on a missing/mismatched S3
-object and never fall back to UCSC. The Zoonomia HAL follows the same S3-to-NVMe
-staging pattern. Target-genome sequence extraction uses UCSC's `gbdb` 2bit
-endpoint, which is available for all 28 selected current and legacy assemblies;
-this does not substitute for or bypass the mirrored MAF projection input. UCSC
-downloads are capped at four concurrent transfers and retry refused/transient
-connections so a full-worker startup cannot overload the shared endpoint.
+Normal projection rules stage only configured chromosomes from S3 to local NVMe and verify size and MD5 before use. They fail on a missing/mismatched S3 object and never fall back to UCSC. The Zoonomia HAL follows the same S3-to-NVMe staging pattern. All HAL and MAF staging writes to a sibling partial file, validates it, and atomically installs it.
+
+Target-genome sequence extraction retains the v1 UCSC human and `gbdb` 2bit sources. Each download must match `config/twobit_manifest.tsv`; before MultiZ extraction, every chromosome size used by an accepted MAF mapping must exactly match `twoBitInfo` for that archive. UCSC downloads are capped at four concurrent transfers and retry refused/transient connections so a full-worker startup cannot overload the shared endpoint.
 
 ## Projection contract
 
@@ -242,10 +236,7 @@ Face artifact directory.
 The full tier additionally writes `datasets/cds_mammals_only/`, which applies
 the CDS label after the complete shared projection/acceptance pass and then
 retains only `human_reference` and `zoonomia_cactus` rows. The regular
-`datasets/cds/` cohort retains those identical rows plus
-`ucsc_multiz100way`. These are the two preregistered matched model arms; no
-coordinate, acceptance, split, augmentation, or sampling rule differs between
-them.
+`datasets/cds/` cohort retains those identical training rows plus `ucsc_multiz100way`. Projection, acceptance, augmentation, and sampling algorithms are identical, and the mammals-only training rows are an exact subset of the combined arm. Validation is sampled independently within each cohort because their eligible species sets differ, so the realized validation rows, and therefore validation-loss levels, must not be compared between arms.
 
 For Hugging Face, `all_hf_files` follows the established Zoonomia publication
 path: deterministically shuffle each split, write 64 full-tier train shards
@@ -258,9 +249,7 @@ data/train/shard_NNNN.jsonl.zst
 data/validation/shard_0000.jsonl.zst
 ```
 
-Generated cards contain the exact committed pipeline SHA, split row counts,
-schema, selected species counts, and explicit `data/<split>/*.jsonl.zst`
-loader paths. Build these review artifacts without external writes:
+Generated cards contain the exact committed pipeline SHA, split row counts, schema, selected species counts, and explicit `data/<split>/*.jsonl.zst` loader paths. `all_hf_files` then rejects any missing or unexpected file, validates zstd integrity and each shard’s boundary-record schema and split invariants, reconciles every shard row count to its source Parquet, and writes a content-hash manifest outside the upload tree. Build these review artifacts without external writes:
 
 ```bash
 uv run --locked snakemake \
@@ -268,11 +257,7 @@ uv run --locked snakemake \
   all_hf_files
 ```
 
-After explicit human approval, `all_hf` serially uploads only those isolated
-artifact directories with the Xet client. It writes external Hugging Face state
-and is intentionally neither a default target nor part of `all_hf_files`.
-The large-folder client uses one worker per repository to avoid overwhelming
-the Hub LFS batch endpoint; interrupted uploads are resumable.
+After explicit human approval, `all_hf` serially uploads only those isolated artifact directories with the Xet client. Before each upload it rejects unexpected existing Hub paths; after upload it requires the exact remote tree, LFS sizes and SHA-256 hashes, and a byte-identical card at the resulting revision. It writes external Hugging Face state and is intentionally neither a default target nor part of `all_hf_files`. The large-folder client uses one worker per repository to avoid overwhelming the Hub LFS batch endpoint; interrupted uploads are resumable.
 `config/HF_DATASET_CARD_TEMPLATE.md` is the pre-run review draft.
 
 ### Intentional differences from the Zoonomia-only publisher

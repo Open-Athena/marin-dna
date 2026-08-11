@@ -156,22 +156,35 @@ def verify_hal_object(
 
 
 def stage_hal_object(source_uri: str, destination: str | Path) -> None:
-    """Copy a HAL from S3, then verify its byte size and readable genome index."""
+    """Copy, verify, and atomically install a HAL from S3."""
     expected_size = s3_object_size(source_uri)
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        [
-            "aws",
-            "s3",
-            "cp",
-            source_uri,
-            str(destination_path),
-            "--no-progress",
-        ],
-        check=True,
-    )
-    verify_hal_object(destination_path, expected_size=expected_size)
+    if destination_path.exists():
+        try:
+            verify_hal_object(destination_path, expected_size=expected_size)
+            return
+        except (AssertionError, subprocess.CalledProcessError):
+            destination_path.unlink()
+
+    partial = destination_path.with_name(f".{destination_path.name}.partial")
+    partial.unlink(missing_ok=True)
+    try:
+        subprocess.run(
+            [
+                "aws",
+                "s3",
+                "cp",
+                source_uri,
+                str(partial),
+                "--no-progress",
+            ],
+            check=True,
+        )
+        verify_hal_object(partial, expected_size=expected_size)
+        partial.replace(destination_path)
+    finally:
+        partial.unlink(missing_ok=True)
 
 
 def s3_object_matches(expected: MirrorObject) -> bool:
@@ -204,21 +217,34 @@ def s3_object_matches(expected: MirrorObject) -> bool:
 
 
 def stage_s3_object(expected: MirrorObject, destination: str | Path) -> None:
-    """Copy one mirrored object from S3 and verify it before use."""
+    """Copy, verify, and atomically install one mirrored S3 object."""
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        [
-            "aws",
-            "s3",
-            "cp",
-            expected.s3_uri,
-            str(destination_path),
-            "--no-progress",
-        ],
-        check=True,
-    )
-    verify_local_object(destination_path, expected)
+    if destination_path.exists():
+        try:
+            verify_local_object(destination_path, expected)
+            return
+        except AssertionError:
+            destination_path.unlink()
+
+    partial = destination_path.with_name(f".{destination_path.name}.partial")
+    partial.unlink(missing_ok=True)
+    try:
+        subprocess.run(
+            [
+                "aws",
+                "s3",
+                "cp",
+                expected.s3_uri,
+                str(partial),
+                "--no-progress",
+            ],
+            check=True,
+        )
+        verify_local_object(partial, expected)
+        partial.replace(destination_path)
+    finally:
+        partial.unlink(missing_ok=True)
 
 
 def mirror_source_object(expected: MirrorObject) -> None:

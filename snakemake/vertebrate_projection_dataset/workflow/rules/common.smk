@@ -14,6 +14,10 @@ from marin_dna_vertebrate_projection.mirror import (
 from marin_dna_vertebrate_projection.provenance import (
     resolve_pipeline_commit,
 )
+from marin_dna_vertebrate_projection.sequence_sources import (
+    read_twobit_manifest,
+    validate_twobit_manifest,
+)
 
 PIPELINE_VERSION = str(config["pipeline_version"])
 TIER = str(config["tier"])
@@ -30,6 +34,7 @@ assert 0 < PRE_RESIZE_MIN <= TARGET_LENGTH <= PRE_RESIZE_MAX
 SPECIES_CANDIDATES = str(config["species_candidates"])
 SPECIES_SELECTED = str(config["species_selected"])
 MIRROR_MANIFEST = str(config["multiz_mirror_manifest"])
+TWOBIT_MANIFEST = str(config["twobit_manifest"])
 mirror_objects = read_mirror_manifest(MIRROR_MANIFEST)
 validate_multiz_mirror_contents(mirror_objects, list(config["standard_chroms"]))
 candidate_manifest = read_species_manifest(SPECIES_CANDIDATES)
@@ -42,6 +47,8 @@ all_mammals = selected_manifest.filter(pl.col("backend") == "zoonomia_cactus")[
 all_non_mammals = selected_manifest.filter(pl.col("backend") == "ucsc_multiz100way")[
     "alignment_name"
 ].to_list()
+twobit_objects = read_twobit_manifest(TWOBIT_MANIFEST)
+validate_twobit_manifest(twobit_objects, ["hg38", *all_non_mammals])
 if TIER == "smoke":
     MAMMALS = list(config["smoke_mammals"])
     NON_MAMMALS = list(config["smoke_non_mammals"])
@@ -88,6 +95,7 @@ PUBLICATION_VALIDATION_SHARDS = [
     f"shard_{i:04d}" for i in range(PUBLICATION_VALIDATION_SHARD_COUNT)
 ]
 HF_RESULTS = f"{RESULTS}/hf"
+HF_MANIFEST = f"{RESULTS}/hf_validation/hf_publication_manifest.json"
 
 HUMAN_SEQUENCES = f"{RESULTS}/sequences/human_reference.parquet"
 COMBINED_SEQUENCES = f"{RESULTS}/sequences/all_sources.parquet"
