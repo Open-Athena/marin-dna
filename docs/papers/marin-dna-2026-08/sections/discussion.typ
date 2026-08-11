@@ -17,8 +17,10 @@ Point estimates differ by consequence class and readout: MarinDNA closes much of
 GPN-Star and AlphaGenome remain stronger in the broader zero-shot comparison, but they use alignment-derived information and functional-genomics supervision, respectively, and therefore bound rather than directly match the alignment-free setting studied here.
 
 The compute and throughput comparisons require similar care.
-The training-FLOP ratio uses reported total training compute, whereas the throughput measurement compares steady-state scoring on the same GH200 at each model's native context length and includes forward- and reverse-complement passes plus embedding output.
+The training-FLOP ratio uses MarinDNA's recorded lineage compute and Evo 2's published estimate, whose methodology explicitly omits mixed-precision and context-length adjustments.
+The throughput measurement compares steady-state scoring on the same GH200 at each model's native context length and includes forward- and reverse-complement passes plus embedding output; MarinDNA uses an optimized delayed-FP8 implementation, while the Evo 2 denominator is rounded at source.
 It therefore measures the cost of deploying the evaluated models for this workload, not architecture-only efficiency at matched context length or matched tokens processed.
+The FP8 configuration passed the zero-shot quality gate but was inconclusive as a drop-in source of embeddings for the existing BF16-trained probes, so the throughput result should not be generalized to probe compatibility.
 
 Several limitations constrain the biological interpretation.
 The models use a short 255-base context chosen for functional-element evaluation, so these experiments do not test long-range regulatory interactions or genome-scale sequence generation.

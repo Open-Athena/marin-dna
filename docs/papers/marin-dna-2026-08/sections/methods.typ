@@ -25,10 +25,10 @@ Training-data revisions and per-region token counts for every retained experimen
 <methods-model>
 MarinDNA uses the Qwen3 decoder-only Transformer architecture with a causal next-token objective and nucleotide-level DNA tokenization.
 The architecture is intentionally conventional: the experiments vary training data, optimization, and parameter scale without introducing a genomics-specific sequence operator.
-The final m5.1 model has approximately 1B parameters and a 255-base context.
+The final m5.1 model has 1,120,772,224 parameters and a 255-base context.
 It was first trained for approximately 104B tokens on a uniform mixture of CDS, upstream, and downstream data, then continued for approximately 62B tokens after ncRNA and enhancer data were added to form a uniform five-region mixture.
 The frozen internal checkpoint is mix-v0.9-p1B-i24-exp135-m5.1-step-59158 at GCS path gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158.
-An immutable public model revision will be recorded in @availability before preprint release.
+The immutable public release is recorded in @availability.
 
 == Hyperparameter calibration and transfer
 <methods-hyperparameter-transfer>
@@ -56,8 +56,8 @@ It is not interpreted as an unbiased estimate on a phylogenetically independent 
 <methods-evaluation-data>
 The Mendelian benchmark compares pathogenic variants with non-rare gnomAD controls matched within consequence class.
 Relative to the TraitGym design, the minimum control allele frequency is 0.1%, the consequence set includes missense and splicing variants, and matching includes potential confounders such as transcription-start-site distance and exon distance where applicable.
-The frozen benchmark revision is #link("https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f")[4aed58e50c5dea0b878a665007af2ef9e5108e9f].
-The saturation-genome-editing benchmark is the v3 labeled build at #link("https://huggingface.co/datasets/bolinas-dna/evals_sge/tree/225d3d1ea32a4af547891b13c33b5e92a5aae849")[225d3d1ea32a4af547891b13c33b5e92a5aae849].
+The frozen benchmark revision is #link("https://huggingface.co/datasets/marin-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f")[4aed58e50c5dea0b878a665007af2ef9e5108e9f].
+The saturation-genome-editing benchmark is the v3 labeled build at #link("https://huggingface.co/datasets/marin-dna/evals_sge/tree/225d3d1ea32a4af547891b13c33b5e92a5aae849")[225d3d1ea32a4af547891b13c33b5e92a5aae849].
 It retains variants labeled abnormal or normal by ClinGen/ExCALIBR-calibrated assay thresholds and groups them into missense and splicing subsets.
 Variant contexts are extracted from the Ensembl release 115 GRCh38 soft-masked primary assembly.
 The evaluation pipeline uses the development split for model iteration; the chromosome-disjoint test split remains reserved for the final locked evaluation.
@@ -112,8 +112,18 @@ Comparative language in the title, abstract, Results, and Discussion follows thi
 
 == Training compute and inference throughput
 <methods-efficiency>
-Training compute is reported as model-training FLOPs for the complete runs.
-The final m5.1 model used approximately 1.1e21 FLOPs over 166B tokens, whereas Evo 2 40B reports approximately 2.25e24 FLOPs over 9.3T tokens.
-Inference throughput was measured on one NVIDIA GH200 for steady-state scoring with forward- and reverse-complement passes and embedding output enabled.
-The workload scores one million variants at each model's native context length: 256 tokens for m5.1 and 8,192 tokens for Evo 2 40B.
-The resulting comparison is an as-deployed workload measurement rather than a same-context, same-batch, or per-token architecture benchmark.
+MarinDNA training compute is reconstructed from the recorded W&B `throughput/total_gflops` fields at the boundaries of all three segments inherited by m5.1.
+The lineage contains 166,010,552,320 tokens and 1.13498e21 FLOPs.
+Evo 2 40B reports 9.3T tokens and an estimated 2.25e24 FLOPs; #link("https://www.biorxiv.org/content/10.1101/2025.02.18.638918v1.full#T1")[the source table] states that the estimate does not account for mixed precision or pretraining context length @brixi2026evo2.
+The ratio of the reported values is 1,982, rounded to approximately 1,980-fold.
+
+Inference throughput was measured on one 96-GB NVIDIA GH200 at USD 2.29 per hour with forward- and reverse-complement passes and pooled reference/alternate embedding output enabled.
+The optimized m5.1 measurement used PyTorch 2.10.0+cu128, Transformer Engine 2.13 delayed E4M3 FP8, fused MLP and QKV projections, `torch.compile` in default mode, batch size 128, four data-loader workers, and three synchronized repetitions on 5,800 pre-materialized variants.
+It achieved 1,467,776 variants per hour, equivalent to 2,452.69 seconds per million variants.
+The plotted m5.1 AUPRC remains the frozen BF16 result, whereas its throughput coordinate uses this optimized FP8 configuration.
+The promoted FP8 model passed a separate 10,000-draw paired zero-shot quality gate: BF16 minus FP8 macro AUPRC was 0.000355 (95% interval −0.004271 to 0.005190).
+A frozen-BF16-probe compatibility check was inconclusive, so the optimized rate supports zero-shot scoring and the stated embedding-output contract but not an unconditional drop-in claim for existing BF16-trained probe classifiers.
+The Evo 2 40B measurement used the NVIDIA PyTorch 25.04 container plus the Evo 2 inference package, batch size 1, and a late converged batch rate after model loading, warm-up, and tokenization; its archived rate is rounded to 630 variants per hour.
+Both measurements are steady-state and exclude sequence materialization.
+The resulting ratio is approximately 2,330-fold, but its precision is limited by the rounded Evo 2 rate.
+The models use their native context lengths, 256 tokens for m5.1 and 8,192 tokens for Evo 2 40B, so this is an as-deployed workload measurement rather than a same-context, same-batch, or per-token architecture benchmark.
