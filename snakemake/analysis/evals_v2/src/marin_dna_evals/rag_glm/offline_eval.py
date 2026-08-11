@@ -18,7 +18,7 @@ import polars as pl
 import torch
 from huggingface_hub import hf_hub_download
 from torch import Tensor
-from transformers import AutoConfig, PreTrainedTokenizerFast
+from transformers import AutoConfig, AutoModelForCausalLM, PreTrainedTokenizerFast
 
 from marin_dna_evals.metrics import (
     compute_auprc_metrics,
@@ -228,6 +228,105 @@ def load_rag_model_config_hf(
     return config
 
 
+def assert_rag_mendelian_variant_parity(
+    rag_rows: pl.DataFrame,
+    official_rows: pl.DataFrame,
+) -> None:
+    """Require the materialized RAG harness to equal the official variant set.
+
+    The RAG harness has two documents per variant (forward and reverse
+    complement), while the official eval dataset has one row. Normalize that
+    representation difference and compare every field that determines metric
+    membership. This check deliberately runs before model loading so a stale
+    projection cannot consume GPU time or emit a misleading standard artifact.
+    """
+    comparison_columns = [
+        *VARIANT_KEY_COLUMNS,
+        "label",
+        "subset",
+        "match_group",
+    ]
+    rag_required = {
+        *VARIANT_KEY_COLUMNS,
+        "target",
+        "subset",
+        "match_group",
+        "strand",
+    }
+    assert rag_required <= set(rag_rows.columns)
+    assert set(comparison_columns) <= set(official_rows.columns)
+
+    rag_variants = rag_rows.group_by(VARIANT_KEY_COLUMNS).agg(
+        pl.len().alias("n_rows"),
+        pl.col("strand").sort().alias("strands"),
+        pl.col("target").n_unique().alias("n_label"),
+        pl.col("subset").n_unique().alias("n_subset"),
+        pl.col("match_group").n_unique().alias("n_match_group"),
+        pl.col("target").first().alias("label"),
+        pl.col("subset").first(),
+        pl.col("match_group").first(),
+    )
+    malformed = rag_variants.filter(
+        (pl.col("n_rows") != 2)
+        | (pl.col("strands").list.join("") != "+-")
+        | (pl.col("n_label") != 1)
+        | (pl.col("n_subset") != 1)
+        | (pl.col("n_match_group") != 1)
+    )
+    assert malformed.is_empty(), (
+        "RAG Mendelian harness must have one consistent +/- document pair per variant"
+    )
+    rag_variants = rag_variants.select(comparison_columns)
+    official_variants = official_rows.select(comparison_columns)
+    assert official_variants.unique().height == official_variants.height, (
+        "official Mendelian eval rows contain duplicate comparison keys"
+    )
+
+    casts = {
+        "chrom": pl.String,
+        "pos": pl.Int64,
+        "ref": pl.String,
+        "alt": pl.String,
+        "label": pl.Boolean,
+        "subset": pl.String,
+        "match_group": pl.Int64,
+    }
+    rag_variants = rag_variants.cast(casts)
+    official_variants = official_variants.cast(casts)
+    assert (
+        rag_variants.select(comparison_columns)
+        .null_count()
+        .sum_horizontal()
+        .item()
+        == 0
+    )
+    assert (
+        official_variants.select(comparison_columns)
+        .null_count()
+        .sum_horizontal()
+        .item()
+        == 0
+    )
+    assert rag_variants.height == official_variants.height, (
+        f"RAG/official Mendelian row-count mismatch: "
+        f"{rag_variants.height} != {official_variants.height}"
+    )
+    only_rag = rag_variants.join(
+        official_variants,
+        on=comparison_columns,
+        how="anti",
+    )
+    only_official = official_variants.join(
+        rag_variants,
+        on=comparison_columns,
+        how="anti",
+    )
+    assert only_rag.is_empty() and only_official.is_empty(), (
+        "RAG harness and official Mendelian eval differ on variant/metric fields: "
+        f"only_rag={only_rag.height}, only_official={only_official.height}"
+    )
+
+
 def encode_rag_batch(
     tokenizer: Any, rows: pl.DataFrame
 ) -> tuple[Tensor, Tensor, Tensor]:
@@ -349,6 +448,45 @@ def score_rag_rows_hf(
             dtype=pl.Array(pl.Float32, hidden_size),
         ),
     )
+
+
+def score_rag_checkpoint_hf(
+    checkpoint_path: str | Path,
+    rows: pl.DataFrame,
+    *,
+    benchmark: RAGBenchmark,
+    batch_size: int,
+    device: str | torch.device = "cuda",
+    return_embeddings: bool = False,
+) -> pl.DataFrame:
+    """Load one exported RAG checkpoint and return standard variant-level atoms."""
+    resolved_device = torch.device(device)
+    assert resolved_device.type != "cuda" or torch.cuda.is_available(), (
+        "RAG checkpoint scoring requested CUDA but no CUDA device is available"
+    )
+    tokenizer = load_rag_tokenizer_hf(checkpoint_path)
+    model_config = load_rag_model_config_hf(checkpoint_path)
+    model_kwargs: dict[str, Any] = {
+        "config": model_config,
+        "trust_remote_code": True,
+    }
+    if resolved_device.type == "cuda":
+        model_kwargs["torch_dtype"] = torch.bfloat16
+    model = AutoModelForCausalLM.from_pretrained(checkpoint_path, **model_kwargs)
+    model.to(resolved_device)
+    documents = score_rag_rows_hf(
+        model,
+        tokenizer,
+        rows,
+        batch_size=batch_size,
+        device=resolved_device,
+        return_embeddings=return_embeddings,
+    )
+    variants = aggregate_rag_variant_scores(documents, benchmark)
+    del model
+    if resolved_device.type == "cuda":
+        torch.cuda.empty_cache()
+    return variants
 
 
 def aggregate_rag_variant_scores(

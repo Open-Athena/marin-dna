@@ -559,6 +559,59 @@ models:
     window_size: 255
     datasets: [mendelian_traits, sge]
 
+  # issue #402 ortholog-RAG training trajectory. The scorer consumes the
+  # immutable HAL-projected two-strand harness and asserts exact equality with
+  # the official Mendelian train rows before loading the checkpoint. 10k/20k
+  # are zero-shot trajectory points; 30k is also registered for probing.
+  - name: exp402-rag-h640-p46m-b2m-step-10000
+    scorer: rag_glm
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/2026.07.26.5/hf/step-10000
+    window_size: 2048
+    datasets: [mendelian_traits]
+    batch_size: 16
+    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+  - name: exp402-rag-h640-p46m-b2m-step-20000
+    scorer: rag_glm
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/2026.07.26.5/hf/step-20000
+    window_size: 2048
+    datasets: [mendelian_traits]
+    batch_size: 16
+    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+  - name: exp402-rag-h640-p46m-b2m-step-29999
+    scorer: rag_glm
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h640-p46m-b2m-30k/2026.07.26.5/hf/step-29999
+    window_size: 2048
+    datasets: [mendelian_traits]
+    batch_size: 16
+    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+  - name: exp402-rag-h768-p104m-b2m-step-10000
+    scorer: rag_glm
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5/hf/step-10000
+    window_size: 2048
+    datasets: [mendelian_traits]
+    batch_size: 16
+    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+  - name: exp402-rag-h768-p104m-b2m-step-20000
+    scorer: rag_glm
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5/hf/step-20000
+    window_size: 2048
+    datasets: [mendelian_traits]
+    batch_size: 16
+    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+  - name: exp402-rag-h768-p104m-b2m-step-29999
+    scorer: rag_glm
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp402-rag-h768-p104m-b2m-30k/2026.07.26.5/hf/step-29999
+    window_size: 2048
+    datasets: [mendelian_traits]
+    batch_size: 16
+    rag_dataset_repo: marin-dna/evals_mendelian_traits_rag_harness_255_v1
+    rag_dataset_revision: 9acedb683463477f34745af30a63a289873008a4
+
   # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
   # (~84.77B tokens; batch 1536 x seq 256; identical optimizer hparams). The
   # Mendelian VEP scored here is the y-axis for the LL-gap-vs-loss analysis; the
@@ -1181,7 +1234,6 @@ inference:
                         # this triggers metric re-execution via
                         # snakemake's `params:` hash.
 
-
 # ---------------------------------------------------------------------------
 # Frozen-embedding linear-probe VEP training (issue #320). Off `rule all`; build
 # with `snakemake probe` (or a single results/probe/<model>/<dataset>.parquet
@@ -1228,6 +1280,10 @@ probe:
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
       datasets: [mendelian_traits]
 
+    - name: exp402-rag-h640-p46m-b2m-step-29999
+      datasets: [mendelian_traits]
+    - name: exp402-rag-h768-p104m-b2m-step-29999
+      datasets: [mendelian_traits]
 
 # ---------------------------------------------------------------------------
 # Nucleotide dependency maps (categorical Jacobian) — interpretation, #237.

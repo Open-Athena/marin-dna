@@ -30,6 +30,25 @@ For each `model` × `dataset` in the config:
    `abs_llr` for complex); each is evaluated on FWD, RC, and AVG, as
    is JSD.
 
+### Ortholog-RAG scorer (issue #402)
+
+A model entry may set `scorer: rag_glm` for the fixed 2,048-token ortholog
+document layout (seven 255-bp HAL-projected ortholog windows, `[SEQ]`
+boundaries, then a 255-bp human window split into a 127-base prefix and paired 128-base completion).
+This backend is currently restricted to `mendelian_traits`. It reads the
+commit-pinned two-strand RAG harness named by `rag_dataset_repo` and
+`rag_dataset_revision`, then fails before model loading unless its collapsed
+variants equal the official `train` split exactly on
+`chrom,pos,ref,alt,label,subset,match_group`.
+
+The output uses the same standard S3 score path and raw `llr_fwd` /
+`llr_rc` schema as every other model, so the ordinary `compute_metrics`,
+`compute_probe`, and `compute_probe_metrics` rules remain authoritative.
+RAG scoring does not produce JSD atoms. With `return_embeddings: true`, its
+`emb_ref` / `emb_alt` vectors are the float32 FWD+RC average of the
+last-layer mean over the 255 human tokens only; special and ortholog tokens are
+excluded.
+
 Outputs land in S3 at `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`:
 
 ```

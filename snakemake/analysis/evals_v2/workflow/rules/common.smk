@@ -5,6 +5,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import polars as pl
 from datasets import load_dataset
 
 from marin_dna_evals.conservation import (
@@ -20,6 +21,11 @@ from marin_dna_evals.metrics import (
     compute_sge_metrics,
     compute_sge_probe_metrics,
     per_chrom_ap_table,
+)
+from marin_dna_evals.rag_glm.offline_eval import (
+    assert_rag_mendelian_variant_parity,
+    load_rag_eval_split,
+    score_rag_checkpoint_hf,
 )
 from marin_dna_evals.variant_probe import PAIR_COMBOS, run_subset_probes
 
@@ -63,6 +69,18 @@ def get_model_config(name):
     raise ValueError(f"model {name!r} not found in config")
 
 
+MODEL_SCORERS = ("standard", "rag_glm")
+
+
+def get_model_scorer(name):
+    """Scoring backend for a model (ordinary sequence window or RAG document)."""
+    scorer = get_model_config(name).get("scorer", "standard")
+    assert scorer in MODEL_SCORERS, (
+        f"model {name!r} scorer must be one of {MODEL_SCORERS}, got {scorer!r}"
+    )
+    return scorer
+
+
 # Each model entry must declare exactly one source — fail loud here so a
 # typo in config doesn't surface as a confusing rule error later.
 for _m in config["models"]:
@@ -71,6 +89,18 @@ for _m in config["models"]:
     assert (
         _has_gcs ^ _has_hf
     ), f"model {_m['name']!r} must have exactly one of `gcs_path` or `hf_repo`"
+
+    _scorer = _m.get("scorer", "standard")
+    assert _scorer in MODEL_SCORERS, (
+        f"model {_m['name']!r} scorer must be one of {MODEL_SCORERS}, got {_scorer!r}"
+    )
+    if _scorer == "rag_glm":
+        assert _m.get("datasets") == ["mendelian_traits"], (
+            f"RAG model {_m['name']!r} is currently frozen to mendelian_traits"
+        )
+        assert _m.get("window_size") == 2048
+        assert _m.get("rag_dataset_repo")
+        assert len(_m.get("rag_dataset_revision", "")) == 40
 
 # Same fail-fast for per-dataset score_protocol — a typo would surface
 # late as a KeyError inside the metrics rule's `SCORE_PROTOCOLS[protocol]`.

@@ -50,6 +50,11 @@ rule compute_metrics:
             assert col in df.columns, f"scores parquet missing column {col!r}"
         if "llr_rc" in df.columns:
             df["llr_avg"] = (df["llr_fwd"] + df["llr_rc"]) / 2
+        has_jsd = {"jsd_fwd", "jsd_rc"} <= set(df.columns)
+        assert has_jsd or not ({"jsd_fwd", "jsd_rc"} & set(df.columns)), (
+            "scores parquet must carry both jsd_fwd and jsd_rc or neither"
+        )
+        if has_jsd:
             df["jsd_avg"] = (df["jsd_fwd"] + df["jsd_rc"]) / 2
         score_cols: list[str] = []
         for strand in ("fwd", "rc", "avg"):

@@ -10,6 +10,7 @@ import torch
 from marin_dna_evals.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
+    assert_rag_mendelian_variant_parity,
     compute_rag_benchmark_metrics,
     encode_rag_batch,
     load_rag_eval_split,
@@ -123,6 +124,54 @@ def test_select_paired_rag_rows_rejects_partial_pair() -> None:
 
     with pytest.raises(AssertionError):
         select_paired_rag_rows(rows, 2)
+
+
+def _rag_parity_rows() -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "chrom": ["1", "1", "3", "3"],
+            "pos": [10, 10, 20, 20],
+            "ref": ["A", "A", "C", "C"],
+            "alt": ["G", "G", "T", "T"],
+            "target": [True, True, False, False],
+            "subset": ["coding", "coding", "distal", "distal"],
+            "match_group": [1, 1, 2, 2],
+            "strand": ["+", "-", "+", "-"],
+        }
+    )
+
+
+def test_rag_mendelian_parity_accepts_exact_official_rows() -> None:
+    official = pl.DataFrame(
+        {
+            "chrom": ["3", "1"],
+            "pos": [20, 10],
+            "ref": ["C", "A"],
+            "alt": ["T", "G"],
+            "label": [False, True],
+            "subset": ["distal", "coding"],
+            "match_group": [2, 1],
+        }
+    )
+
+    assert_rag_mendelian_variant_parity(_rag_parity_rows(), official)
+
+
+def test_rag_mendelian_parity_rejects_metric_membership_difference() -> None:
+    official = pl.DataFrame(
+        {
+            "chrom": ["1", "3"],
+            "pos": [10, 20],
+            "ref": ["A", "C"],
+            "alt": ["G", "T"],
+            "label": [True, False],
+            "subset": ["coding", "distal"],
+            "match_group": [1, 999],
+        }
+    )
+
+    with pytest.raises(AssertionError, match="differ on variant/metric fields"):
+        assert_rag_mendelian_variant_parity(_rag_parity_rows(), official)
 
 
 def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
