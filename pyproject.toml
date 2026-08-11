@@ -12,6 +12,7 @@ dependencies = [
     "biopython>=1.85",
     "datasets",
     "einops",
+    "fsspec",
     "huggingface_hub",
     "jaxtyping",
     "liftover",
