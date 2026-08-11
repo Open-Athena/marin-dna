@@ -45,7 +45,7 @@ setup: |
     # `--group genome-s3` matches run.yaml (s3fs + the snakemake S3 storage
     # deps). The probe reads its scores parquet via the snakemake S3 storage
     # plugin (boto3, staged to a local path), so it never inits s3fs itself.
-    uv sync --frozen --group genome-s3
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
 
 run: |
     set -euxo pipefail
@@ -57,7 +57,7 @@ run: |
     cd snakemake/analysis/evals_v2
 
     # $SNAKEMAKE_ARGS goes last so its trailing `-- <target>` stays positional.
-    uv run --project ../../.. --group genome-s3 snakemake \
+    uv run --locked --group genome-s3 snakemake \
         --profile workflow/profiles/default \
         --printshellcmds \
         --rerun-incomplete \

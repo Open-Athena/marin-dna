@@ -13,7 +13,7 @@
 
 This is research code. Prioritize **reproducibility** and **correctness** over architectural elegance.
 
-- **Put Python logic in `src/marin_dna/` so pytest can reach it.** Even pipeline-specific functions belong in the library — the goal is testability, not a polished shared API. Inline Python in Snakemake rules (`run:` blocks in `Snakefile`/`.smk` files) should be thin glue calling into `src/marin_dna/`. Don't add `.py` script files under `snakemake/` (no `workflow/scripts/`) — all Python logic goes in the library.
+- **Put Python logic in the owning project package so pytest can reach it.** Reusable genomic primitives belong in the root `src/marin_dna/`; pipeline-specific functions belong in that pipeline's local `src/` package. Inline Python in Snakemake `run:` blocks should be thin glue calling tested functions. Maintained pipeline CLIs are package entry points, not loose files under a `scripts/` directory.
 - **Duplication beats premature abstraction *within* the library.** The "testable home" rule governs *entry* into `src/marin_dna/` — move logic in freely, even if similar code already exists elsewhere. A separate, weaker rule governs *deduplication*: only merge two similar functions into one shared helper when the shape has stabilized and they're genuinely doing the same thing. Until then, two near-copies in two pipeline modules is better than a premature abstraction coupling unrelated experiments.
 - **Modularity is a means, not a goal.** Don't refactor for reuse that may never come. Straight-line code that reads top-to-bottom is often preferable to layered abstractions.
 - **Test aggressively.** Every non-trivial function in `src/marin_dna/` should have tests — that's the whole reason logic lives there. For pipelines, add sanity checks on outputs (row counts, value ranges, coordinate invariants) rather than trusting that "it ran".
@@ -26,13 +26,13 @@ This is research code. Prioritize **reproducibility** and **correctness** over a
 
 The codebase has five main components:
 
-1. **Python Library** (`src/marin_dna/`) - Python logic for all pipelines lives here, including pipeline-specific modules. See **Research Code Values** above for why, and for how Snakemake rules should relate to it.
+1. **Python core** (`src/marin_dna/`) - lightweight reusable genomic primitives shared by independent projects. Core must not depend on Torch, Transformers, Snakemake, WandB, plotting libraries, or pipeline-specific upload clients.
 
 2. **Pipelines** (`snakemake/`) - Data processing workflows implemented in Snakemake
    - Read the pipeline's README before working on it — each `snakemake/<pipeline>/` has its own. If you change pipeline behaviour, update the README in the same PR so the next human or agent can onboard from it.
    - Always dry-run first (`-n` / `--dry-run`) before any real invocation.
    - Stop before reruns of steps the changes you made for this task did not intentionally touch. If the dry-run shows Snakemake planning to rerun an upstream or unrelated step — retriggered by a timestamp change, an unrelated code edit, `--rerun-triggers` defaults, etc. — stop and ask before running. Default assumption: such reruns are unintended and potentially expensive (training, genome downloads, large bedtools jobs).
-   - Invoke as `uv run snakemake …` from the repo root, not bare `snakemake`.
+   - Enter the pipeline project, sync its committed lockfile with `uv sync --locked --group dev`, and invoke as `uv run --locked snakemake …`.
    - Put pipeline-wide defaults (`cores`, `use-conda`, `default-storage-provider`, etc.) in the pipeline's `workflow/profiles/default/config.yaml`, not on the CLI. Snakemake auto-loads that profile, so every invocation picks them up.
 
 3. **Experiments** - Marin-launched training/eval scripts. Each experiment is a **self-contained directory on its own branch** (its own `pyproject.toml` with marin in *base* deps + a `launch.py`), **not merged to `main`** (see "What gets merged to `main`" above) — cite it from its tracking issue via commit-pinned permalinks. Full setup, launch flow, and hard-won lessons live in the **`marin-experiment` skill** (`.agents/skills/marin-experiment/`).
@@ -45,20 +45,20 @@ The codebase has five main components:
    - **Error bars for standard error get no caps.** Draw ±1 SE (or any dispersion indicator) capless — `matplotlib.errorbar(..., capsize=0)`, which is the default. Caps read as a *bounded interval* with defined endpoints (a CI or range) and misrepresent an SE bar, so reserve them for genuine CIs/ranges. Keep the SE meaning explicit in the label (e.g. `"error bars = ±1 SE (bootstrap)"`).
    - **Two non-level-comparable metrics go on independent twin y-axes.** When two series aren't level-comparable by construction (different scale / matching / aggregation — e.g. two benchmarks, or matched-pair vs unmatched AUPRC), give each its own `ax.twinx()` autoscaled to its own range, color-code each axis to its line, and footnote that the axes are independent. A shared y-axis implies a level comparison we don't intend — the reader should compare shapes/trends, never the vertical gap between the lines.
 
-5. **Scripts** (`scripts/`) - One-off, investigation, and reproduction scripts (analysis, ad-hoc evals, uploads, debugging). **Tracked**, so they can be committed and **permalinked** from issues/PRs. Put any one-off script you might re-run, reference, or cite for reproduction here — *not* in gitignored `scratch/`. Group by issue when it helps (`scripts/issue<N>_*.py` or `scripts/issue<N>/`). Reserve `scratch/` (gitignored) for ephemeral data/artifacts only — checkpoint downloads, intermediate parquets, dumps — never for code you'll point at. This still applies to library logic: anything reusable or worth a test belongs in `src/marin_dna/` (see **Research Code Values**); `scripts/` is for the genuinely one-off.
+5. **One-offs** - There is no top-level `scripts/` directory on `main`. Reusable code belongs to core or the owning pipeline project. One-off analysis and experiment code is committed on its permanent branch and cited with a commit-pinned permalink. `scratch/` contains only disposable local artifacts.
 
 ### What gets merged to `main`
 
 `main` is the **reusable-core framework**: the library kernel, training-data construction, our-model evaluation (`evals_v2`), and `dashboard`/`docs`. Open a PR to `main` only for that core.
 
-- **Assume non-core work never merges.** Experiments, one-off analyses, competitor baselines, and dead-ends stay on their own branches — the aim isn't to prune them out of `main` later, it's to never entangle them in the first place. Keep them self-contained (`experiments/`, `scripts/`), not woven into the library. Lifecycle complement to **Stay in scope** and **No premature generalizations** above.
+- **Assume non-core work never merges.** Experiments, one-off analyses, competitor baselines, and dead-ends stay on their own branches — the aim isn't to prune them out of `main` later, it's to never entangle them in the first place. Keep them self-contained on their permanent branches, not woven into a merge-bound project. Lifecycle complement to **Stay in scope** and **No premature generalizations** above.
 - **A branch is a permanent reference — merging isn't.** Commit and push freely: a commit-pinned permalink to an unmerged branch is all you need to cite a result or reproduce an experiment from its tracking issue. Nothing has to land on `main` to stay reachable.
 
 ## Development Practices
 
 - **Package management**: Use `uv` for Python dependencies
 - **Bioinformatics tools**: Use Conda for external CLI tools (bedtools, twoBitToFa, etc.)
-- **Testing**: Run `uv run pytest` before committing
+- **Testing**: Run `uv run --locked pytest` in every changed Python project before committing
 - **Code quality**: Pre-commit hooks enforce ruff formatting and linting
 - **Documentation**: Before merging a PR, make sure all the relevant READMEs are updated. READMEs describe how to run or use a thing, not what was found — experimental results (tables, leaderboards, key findings, per-genome stats, etc.) belong in the GitHub issue tracking that work, not in any README. Results drift; READMEs shouldn't.
 - **Markdown source formatting**: Do not hard-wrap prose to a fixed column width. Keep each paragraph or list item on one source line and let editors/renderers wrap it visually; use manual line breaks only when Markdown structure requires them.
@@ -67,7 +67,7 @@ The codebase has five main components:
 - **Parallel sky sweeps.** When evaluating a grid of independent snakemake targets (e.g. every training-step checkpoint of one model arm), prefer launching one sky cluster per target over running the whole DAG on a single big cluster. Each cluster `--down`s on idle, parallelism scales with AWS capacity, and a failure in one target doesn't block the others. The canonical helper is `snakemake/analysis/evals_v2/sky/parallel_sweep.sh` — it takes snakemake target paths as args, derives one cluster per target, and waits for all to finish. The pattern relies on `run.yaml` exposing `$SNAKEMAKE_ARGS` so each cluster runs `snakemake -- <target>` and produces exactly that one parquet. Heads up: bursting >~24 `g5.xlarge` into `us-east-2` typically saturates AZs — sky reports `ResourcesUnavailableError` on the late arrivals. Re-running the helper with just the failed targets after the earlier clusters `--down` is usually enough; sky has no cross-region fallback for AWS-pinned tasks.
 
 ### Type Annotations
-- Type-annotate all function parameters and return values in `src/marin_dna/`.
+- Type-annotate all function parameters and return values in every project's `src/` package.
 - Use Python 3.11+ syntax (`list[str]`, `X | None`); reach for `typing` only for constructs that still require it.
 
 ## Autonomy Boundaries
@@ -80,7 +80,7 @@ The codebase has five main components:
 - When an agent creates a PR or issue, add the `agent-generated` label.
 - Agent comments on PRs/issues must begin with `🤖`.
 - **Use visual communication when it materially speeds up understanding.** Prefer Mermaid diagrams for pipeline stages, dependencies, experiment designs, and comparisons because GitHub renders them natively in issues and PRs; use tables or plots when they communicate the result better. Keep visuals concise, accurate, and labeled, and ensure the surrounding text still states the key takeaway. Do not add decorative or redundant visuals.
-- **Always reference code with commit-pinned permalinks.** Whenever an issue, PR, or comment points at code — a function that backs a claim, a script that reproduces a result, the line a reader should run — link it as a commit-pinned GitHub permalink (`blob/<sha>/path#Lx-Ly`), never a bare path or branch link (branches move; the reference rots). If the code isn't committed yet (e.g. a one-off you wrote in `scratch/`), move it to tracked `scripts/`, commit + push, *then* link it. This is the default for **all** GH posts, not just `agent-research`.
+- **Always reference code with commit-pinned permalinks.** Whenever an issue, PR, or comment points at code — a function that backs a claim, a script that reproduces a result, the line a reader should run — link it as a commit-pinned GitHub permalink (`blob/<sha>/path#Lx-Ly`), never a bare path or branch link (branches move; the reference rots). If the code is a one-off, commit it on its permanent branch before linking it. This is the default for **all** GH posts, not just `agent-research`.
 - For iterative investigations the user wants tracked in their own issue, use the `agent-research` skill — issue body is the living doc, comments are the append-only log with commit-pinned permalinks to code.
 - **Branch names.** Worktree harnesses may auto-prefix branches with an agent name and a random slug (e.g. `claude/happy-bose-180d63`). Before opening a PR, rename the branch with `git branch -m` so the branch list is scannable. Use a stable, lowercase `<agent-name>` that identifies the agent (e.g. `codex` or `claude`):
   - With an existing issue: `<agent-name>/issue-<issue-number>-<short-kebab-summary>` (e.g. `codex/issue-187-readme-revamp`).

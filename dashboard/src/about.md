@@ -12,7 +12,7 @@ The benchmark tables replace the hand-curated ones on [#161](https://github.com/
 
 **AUPRC** (area under the precision–recall curve) on the full ranked list of variants within a subset. Each positive is matched 1:9 against nearest-neighbor negatives sharing consequence + chromosome + (continuous) TSS/exon-distance features, so the positive rate is **10%** by design — a random ranker scores 0.10, a perfect ranker scores 1.00.
 
-**SE** is the cluster bootstrap over `match_group`s (1000 resamples). Bootstrapping at the group level preserves the matched-pair clustering that gives the metric meaning. Implemented in [`src/marin_dna/pipelines/evals/metrics.py`](https://github.com/Open-Athena/marin-dna/blob/main/src/marin_dna/pipelines/evals/metrics.py).
+**SE** is the cluster bootstrap over `match_group`s (1000 resamples). Bootstrapping at the group level preserves the matched-pair clustering that gives the metric meaning. Implemented in [`snakemake/analysis/evals_v2/src/marin_dna_evals/metrics.py`](https://github.com/Open-Athena/marin-dna/blob/main/snakemake/analysis/evals_v2/src/marin_dna_evals/metrics.py).
 
 Each method × dataset emits two aggregate rows alongside the per-subset cells:
 
@@ -55,6 +55,6 @@ The schema is documented at the top of models.yaml.
 The Interpretation pillar is a convention, not a framework — each analysis is one nav entry + one page + one data loader:
 
 1. Produce the artifacts in a pipeline (e.g. evals_v2) and sync them to S3.
-2. Add a data loader under [`dashboard/src/data/`](https://github.com/Open-Athena/marin-dna/tree/main/dashboard/src/data) that fetches them — derive keys from config rather than enumerating S3 (the CI role has `GetObject`, not `ListBucket`), and skip not-yet-materialized artifacts. Put any non-trivial Python in `src/marin_dna/` so it's testable (e.g. [`interpretation_catalog.py`](https://github.com/Open-Athena/marin-dna/blob/main/src/marin_dna/pipelines/evals/interpretation_catalog.py)).
+2. Add a data loader under [`dashboard/src/data/`](https://github.com/Open-Athena/marin-dna/tree/main/dashboard/src/data) that fetches them — derive keys from config rather than enumerating S3 (the CI role has `GetObject`, not `ListBucket`), and skip not-yet-materialized artifacts. Put non-trivial Python in the owning project package so it is testable (e.g. [`interpretation_catalog.py`](https://github.com/Open-Athena/marin-dna/blob/main/snakemake/analysis/evals_v2/src/marin_dna_evals/interpretation_catalog.py)).
 3. Add a page under `dashboard/src/interpretation/` and a nav entry under the **Interpretation** section in [`observablehq.config.js`](https://github.com/Open-Athena/marin-dna/blob/main/dashboard/observablehq.config.js).
 4. Open a PR; CI rebuilds the site.

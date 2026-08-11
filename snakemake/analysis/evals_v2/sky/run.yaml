@@ -71,7 +71,7 @@ setup: |
     # `--group genome-s3` pulls in s3fs so pyfaidx can read the GRCh38
     # reference directly from S3 (see config/config.yaml `genome_path`).
     # $EXTRA_UV_GROUPS adds per-target groups (e.g. `--group umap` for #246).
-    uv sync --frozen --group genome-s3 $EXTRA_UV_GROUPS
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3 $EXTRA_UV_GROUPS
 
     # Smoke-test GCS access so a bad ADC fails fast in setup, not in a rule.
     gcloud storage ls gs://marin-us-central1/checkpoints/ | head -3 >/dev/null
@@ -94,7 +94,7 @@ run: |
     # if `--profile` etc. follow `$SNAKEMAKE_ARGS` they'd be treated as
     # target paths and the rule lookup fails with
     # `AttributeError: 'AnnotatedString' object has no attribute 'is_storage'`).
-    uv run --project ../../.. --group genome-s3 $EXTRA_UV_GROUPS snakemake \
+    uv run --locked --group genome-s3 $EXTRA_UV_GROUPS snakemake \
         --profile workflow/profiles/default \
         --printshellcmds \
         --rerun-incomplete \

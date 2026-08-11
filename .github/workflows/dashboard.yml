@@ -48,10 +48,10 @@ on:
     branches: [main]
     paths:
       - dashboard/**
-      - src/marin_dna/pipelines/evals/leaderboard.py
-      - src/marin_dna/pipelines/evals/models.py
-      - src/marin_dna/pipelines/evals/metrics.py
-      - src/marin_dna/pipelines/evals/interpretation_catalog.py
+      - snakemake/analysis/evals_v2/src/marin_dna_evals/leaderboard.py
+      - snakemake/analysis/evals_v2/src/marin_dna_evals/models.py
+      - snakemake/analysis/evals_v2/src/marin_dna_evals/metrics.py
+      - snakemake/analysis/evals_v2/src/marin_dna_evals/interpretation_catalog.py
       - snakemake/analysis/evals_v2/config/config.yaml  # nuc_dep loci/models the loader reads (#240)
       - .github/workflows/dashboard.yml
   pull_request:
@@ -79,13 +79,13 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          version-file: pyproject.toml
+          version-file: snakemake/analysis/evals_v2/pyproject.toml
 
       - name: Set up Python
         run: uv python install 3.13
 
       - name: Install Python deps
-        run: uv sync --locked
+        run: uv sync --project snakemake/analysis/evals_v2 --locked --group dashboard
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

@@ -27,7 +27,7 @@ export const SUPERVISION_LABEL = {
 };
 
 // Leaderboard-visible protocol options per family. This is the subset of
-// `PROTOCOLS` (in src/marin_dna/pipelines/evals/leaderboard.py) that the
+// `PROTOCOLS` (in snakemake/analysis/evals_v2/src/marin_dna_evals/leaderboard.py) that the
 // leaderboards' `FamilyProtocolToggle` exposes — additional protocols can live in
 // `PROTOCOLS` (e.g. `LLR-FWD`, `JSD-FWD` for the AVG-vs-FWD exploration on
 // the Protocols pages) without showing up as leaderboard toggles. Defaults
@@ -47,7 +47,7 @@ export const PROTOCOL_DEFAULTS = {
 
 // Protocol *display* labels — render layer only. Internal protocol keys
 // (the parquet `protocol` column / `PROTOCOLS` in
-// src/marin_dna/pipelines/evals/leaderboard.py) are unchanged; this maps a
+// snakemake/analysis/evals_v2/src/marin_dna_evals/leaderboard.py) are unchanged; this maps a
 // key to how it reads in the UI. JSD is surfaced as "NucDep" (nucleotide
 // dependency). Unlisted keys fall back to themselves.
 export const PROTOCOL_LABEL = {

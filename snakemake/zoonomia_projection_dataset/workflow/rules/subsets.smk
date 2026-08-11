@@ -16,7 +16,9 @@ rule derive_subset_v2_tss_mrna:
     params:
         flank=TSS_FLANK,
     run:
-        from marin_dna.pipelines.projection.tss import write_mrna_tss_band_bed
+        from marin_dna_zoonomia_projection.projection.tss import (
+            write_mrna_tss_band_bed,
+        )
 
         n_band = write_mrna_tss_band_bed(input.gtf, params.flank, output.band)
         assert n_band > 30_000, f"unexpectedly few mRNA TSS bands: {n_band}"

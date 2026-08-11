@@ -42,7 +42,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync
+    uv sync --project snakemake/training_dataset/dataset_creation --locked
 
 run: |
     set -euxo pipefail
@@ -57,7 +57,7 @@ run: |
     # touches the v30 DAG slice -- the historical v5/v1/v15 datasets
     # (cartesian over mammals/primates/etc.) remain in `rule all` but
     # aren't requested here.
-    uv run --project ../../.. snakemake \
+    uv run --locked snakemake \
         --cores 32 \
         --use-conda \
         --resources mem_mb=220000 \

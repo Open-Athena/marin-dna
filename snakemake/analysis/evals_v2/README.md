@@ -42,7 +42,7 @@ results/
 The metrics parquet has columns
 `[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]`,
 with aggregate rows `_global_` and `_macro_avg_` per `score_type` —
-see `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` for details.
+see `marin_dna_evals.metrics.compute_auprc_metrics` for details.
 
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
@@ -52,7 +52,7 @@ separate global path selected by `eval_protocol: qtl_global` on the dataset
 entry. Scoring is identical (they still set `score_protocol: abs_llr`, so the
 score columns are `abs_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}` — abs-LLR and
 JSD), but the metric step calls
-`marin_dna.pipelines.evals.metrics.compute_qtl_metrics` instead, emitting **one
+`marin_dna_evals.metrics.compute_qtl_metrics` instead, emitting **one
 row per (metric × score_type)** with a `metric` column ∈ `{AUPRC, pearson,
 spearman}`:
 
@@ -75,7 +75,7 @@ abnormal) and a consequence-group `subset` ∈ {`missense_variant`, `splicing`}.
 The v3 build keeps only labeled variants (abnormal/normal); the continuous
 `function_score_aligned` + `calibrated_class` columns stay for provenance.
 `eval_protocol: sge` selects
-`marin_dna.pipelines.evals.metrics.compute_sge_metrics`. Scoring uses
+`marin_dna_evals.metrics.compute_sge_metrics`. Scoring uses
 `score_protocol: minus_llr` (signed — the assayed ALT is the
 deleterious-*candidate*, so its sign is informative; not `abs`), giving score
 columns `minus_llr_{fwd,rc,avg}` + `jsd_{fwd,rc,avg}`.
@@ -125,10 +125,10 @@ load).
 
 Run embedding extractions **eager** (`torch_compile: false`): compiling the
 hooked forward is unvalidated, and a small run doesn't need it. The ready-made overlay
-[`scripts/issue318_embed_overlay.yaml`](../../../scripts/issue318_embed_overlay.yaml)
+[`config/overlays/return_embeddings.yaml`](config/overlays/return_embeddings.yaml)
 deep-merges `return_embeddings: true` + `batch_size: 32` + `torch_compile: false`
 over the config (preserving `rc` etc.), e.g.
-`snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun
+`snakemake --configfile config/overlays/return_embeddings.yaml --forcerun
 compute_scores -- results/scores/<model>/<dataset>.parquet`. Eager makes the
 stored `llr_*` differ from the compiled default by float-reduction noise that
 accumulates in the LLR **sum** (JSD, a mean, is unaffected); the difference is
@@ -138,7 +138,7 @@ correctness issue (the measured parity numbers live in #318 / the PR, not here).
 **Operational note.** `return_embeddings` is output-affecting (it lives in the
 rule's `params:`). To extract embeddings into a cell whose scores parquet already
 exists, **force that specific target**:
-`snakemake --configfile scripts/issue318_embed_overlay.yaml --forcerun
+`snakemake --configfile config/overlays/return_embeddings.yaml --forcerun
 compute_scores -- results/scores/<model>/<dataset>.parquet`. (A bare
 `--rerun-triggers mtime` does *not* help here — it drops the `params` trigger that
 detects the `return_embeddings` flip, so a cell whose output already exists would
@@ -160,31 +160,24 @@ be skipped with no embedding columns.) Name targeted targets rather than
 
 ## Setup
 
-GPU node (a small EC2 GPU is fine — these are ~0.6B-param models). On the
-node:
+On a GPU node (a small EC2 GPU is sufficient for the approximately 0.6B-parameter models):
 
 ```bash
-# Auth for GCS checkpoint pulls.
+cd snakemake/analysis/evals_v2
 gcloud auth application-default login
-
-# Verify gcloud is on PATH and AWS creds reach S3.
 gcloud storage ls gs://marin-us-central1/checkpoints/ | head
 aws s3 ls s3://oa-bolinas/snakemake/analysis/evals_v2/ 2>&1 | head
 
-# Install the genome-s3 group so pyfaidx can read the reference from S3.
-uv sync --frozen --group genome-s3
+uv sync --locked --group dev --group genome-s3
+uv run --locked --group genome-s3 pytest
 ```
 
 ## Usage
 
 ```bash
 cd snakemake/analysis/evals_v2
-
-# Dry-run to inspect the DAG.
-uv run snakemake -n
-
-# Run.
-uv run snakemake
+uv run --locked --group genome-s3 snakemake -n
+uv run --locked --group genome-s3 snakemake
 ```
 
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
@@ -204,8 +197,8 @@ name:
   alongside `--group genome-s3`:
 
   ```bash
-  uv sync --frozen --group genome-s3 --group umap
-  uv run --group genome-s3 --group umap snakemake umap
+  uv sync --locked --group genome-s3 --group umap
+  uv run --locked --group genome-s3 --group umap snakemake umap
   ```
 
   On a sky cluster, pass `EXTRA_UV_GROUPS` (threaded into both `uv sync` and
@@ -237,7 +230,7 @@ dataset)` — the productionized form of #314's settled protocol — also kept *
 #318 columns), so the cell's scores parquet **must** have been produced with
 `inference.return_embeddings: true` (the rule fails fast otherwise). CPU-only — no
 GPU; the probe logic lives in
-`marin_dna.pipelines.evals.variant_probe.run_subset_probes`.
+`marin_dna_evals.variant_probe.run_subset_probes`.
 
 The protocol is **one** approach, no sweeps:
 
@@ -288,7 +281,7 @@ snakemake probe --rerun-triggers mtime                              # all config
 snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime   # one cell
 
 # A cell whose scores parquet predates the embeddings must be re-scored first:
-snakemake --configfile ../../../scripts/issue318_embed_overlay.yaml --forcerun \
+snakemake --configfile config/overlays/return_embeddings.yaml --forcerun \
   compute_scores -- results/scores/<model>/<dataset>.parquet
 ```
 
@@ -300,7 +293,7 @@ rule reads a `results/probe/{model}/{dataset}.parquet` — which carries **both*
 `probe_score` **and** the raw `llr_fwd`/`llr_rc` atoms (only `emb_ref`/`emb_alt` are
 dropped) — so the probe and its baseline are scored on **identical rows** under one
 metric. It emits, per consequence `subset`, the **per-chromosome-weighted AUPRC** (the
-TraitGym / #314 headline; `marin_dna.pipelines.evals.metrics.per_chrom_ap_table` →
+TraitGym / #314 headline; `marin_dna_evals.metrics.per_chrom_ap_table` →
 `per_chrom_weighted_ap`) for two score types: `probe_score` and the dataset's
 zero-shot baseline (its `score_protocol` applied to the FWD/RC-averaged LLR, e.g.
 `minus_llr_avg` for mendelian). Routed by `eval_protocol`: **`matched_pair`** (mendelian /
@@ -375,18 +368,18 @@ Two unavoidable AWS-side failure modes worth knowing about:
 
 Pipeline rules are thin glue around:
 
-- `marin_dna.pipelines.evals.inference.compute_variant_scores` — model + genome
+- `marin_dna_evals.inference.compute_variant_scores` — model + genome
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
-- `marin_dna.pipelines.evals.metrics.compute_auprc_metrics` — score columns
+- `marin_dna_evals.metrics.compute_auprc_metrics` — score columns
   → AUPRC ± cluster-bootstrap SE per subset (cluster = `match_group`).
-- `marin_dna.pipelines.evals.metrics.compute_qtl_metrics` — score columns
+- `marin_dna_evals.metrics.compute_qtl_metrics` — score columns
   → global AUPRC + positives-only Pearson/Spearman vs `effect_size`
   (the `eval_protocol: qtl_global` path for caqtl/dsqtl).
-- `marin_dna.pipelines.evals.ll_gap.compute_hf_ll_gap` — HF checkpoint +
+- `marin_dna_evals.ll_gap.compute_hf_ll_gap` — HF checkpoint +
   mixed-case `seq` dataset → per-sequence functional/non-functional LL atoms
   (`ll_sum_upper`, `ll_sum_lower`, `n_upper`, `n_lower`); `aggregate_ll_gap`
   collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
 
-These are tested at `tests/pipelines/evals/test_metrics.py`,
-`tests/pipelines/evals/test_inference.py`,
-`tests/pipelines/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
+These are tested at `tests/evals/test_metrics.py`,
+`tests/evals/test_inference.py`,
+`tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.

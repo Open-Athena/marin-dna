@@ -16,12 +16,14 @@ pELS+dELS) are transcript-independent. val_enhancer subtracts every annotated
 exon (``get_exons``, no biotype filter — stricter than training_dataset v30
 because this is a *validation* probe, not a training scan).
 
-Library code lives in ``marin_dna.pipelines.zoonomia_projection_dataset.validation``;
+Library code lives in ``marin_dna_zoonomia_projection.validation``;
 ``run:`` blocks here are thin glue + pipeline-level assertions.
 """
 
-from marin_dna.pipelines.conservation.scoring import score_windows as _score_windows
-from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+from marin_dna_zoonomia_projection.conservation.scoring import (
+    score_windows as _score_windows,
+)
+from marin_dna_zoonomia_projection.validation import (
     ANNOTATION_RECIPES,
     ALL_RECIPES,
     CRE_RECIPES,
@@ -165,7 +167,7 @@ rule validation_region_annotation:
     run:
         from marin_dna.data.intervals import GenomicSet
         from marin_dna.data.utils import load_annotation
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna_zoonomia_projection.validation import (
             build_annotation_region,
             build_tss_band_region,
             filter_to_canonical_transcripts,
@@ -217,7 +219,7 @@ rule validation_region_cre:
         recipe=CRE_RECIPES_RE,
     run:
         from marin_dna.data.intervals import GenomicSet
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna_zoonomia_projection.validation import (
             build_cre_region,
         )
 
@@ -336,7 +338,7 @@ rule validation_subsample:
         max_samples=VALIDATION_MAX_SAMPLES,
         seed=VALIDATION_SEED,
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna_zoonomia_projection.validation import (
             subsample_deterministic,
         )
 
@@ -403,7 +405,7 @@ rule validation_dataset:
         threshold=PHYLOP_447M_THRESHOLD,
         window_size=WINDOW_SIZE,
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna_zoonomia_projection.validation import (
             case_encode_sequences,
         )
 
@@ -450,7 +452,7 @@ rule validation_hf_readme:
         ncrna_biotypes=VALIDATION_NCRNA_BIOTYPES,
         canonical_tag=VALIDATION_CANONICAL_TAG,
     run:
-        from marin_dna.pipelines.zoonomia_projection_dataset.validation import (
+        from marin_dna_zoonomia_projection.validation import (
             write_hf_readme,
         )
 

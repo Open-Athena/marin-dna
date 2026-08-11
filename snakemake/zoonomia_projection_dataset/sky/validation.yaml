@@ -48,7 +48,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
-    uv sync
+    uv sync --project snakemake/zoonomia_projection_dataset --locked
 
 run: |
     set -euxo pipefail
@@ -61,19 +61,19 @@ run: |
 
     # Clear any stale snakemake lockfile from a prior crash. Safe no-op on a
     # clean working dir (just prints "Unlocked working directory").
-    uv run snakemake --profile workflow/profiles/default --unlock || true
+    uv run --locked snakemake --profile workflow/profiles/default --unlock || true
 
     # Dry-run gate first — verify only the new validation/cre/mask jobs are
     # scheduled (genome chain + bigwig + GTF should be S3-resolved no-ops).
     # --rerun-incomplete lets the gate plan around any half-written outputs
     # left by a previous OOM / SIGKILL.
-    uv run snakemake --profile workflow/profiles/default \
+    uv run --locked snakemake --profile workflow/profiles/default \
         --printshellcmds \
         --rerun-incomplete \
         -n all_validation
 
     # Real run.
-    uv run snakemake --profile workflow/profiles/default \
+    uv run --locked snakemake --profile workflow/profiles/default \
         --use-conda \
         --printshellcmds \
         --rerun-incomplete \

@@ -1,7 +1,7 @@
 """Observable Framework data loader: S3 metrics → one tidy parquet.
 
 Pulls per-(method, dataset, subset) metric rows from S3 via
-``marin_dna.pipelines.evals.leaderboard.normalized_rows`` (zero-shot likelihood metrics)
+``marin_dna_evals.leaderboard.normalized_rows`` (zero-shot likelihood metrics)
 and ``probe_normalized_rows`` (the frozen-embedding linear probe, #347/#348), tags each
 with a ``dataset`` and a ``supervision`` column (``unsupervised`` / ``supervised``),
 concatenates, and writes the resulting DataFrame as a parquet blob on stdout for the
@@ -22,8 +22,7 @@ from __future__ import annotations
 import sys
 
 import polars as pl
-
-from marin_dna.pipelines.evals.leaderboard import (
+from marin_dna_evals.leaderboard import (
     normalized_rows,
     probe_normalized_rows,
 )

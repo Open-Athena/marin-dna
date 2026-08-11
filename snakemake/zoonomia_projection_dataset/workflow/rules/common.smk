@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
-from marin_dna.pipelines.evals.conservation import CONSERVATION_TRACKS
+from marin_dna_zoonomia_projection.tracks import CONSERVATION_TRACKS
 
 
 def _git_commit_sha() -> str:
@@ -70,7 +70,7 @@ STANDARD_CHROMS = list(config["standard_chroms"])
 # Sanity-check: track must be in the registry.
 assert (
     "phyloP_447m" in CONSERVATION_TRACKS
-), "phyloP_447m must be present in marin_dna.pipelines.evals.conservation.CONSERVATION_TRACKS"
+), "phyloP_447m must be present in marin_dna_zoonomia_projection.tracks.CONSERVATION_TRACKS"
 
 
 # ===== Cross-mammal projection knobs (rule all_projected) =====

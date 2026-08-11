@@ -55,7 +55,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/.local/bin:$PATH"
-    uv sync
+    uv sync --project snakemake/zoonomia_projection_dataset --locked
 
 run: |
     set -euxo pipefail
@@ -71,7 +71,7 @@ run: |
     # combos (zoonomia-{pv}-{iv}-{cohort}). v1/v2 are already pushed and their
     # upload.done markers in S3 satisfy `rule all_hf` separately; we don't need
     # (or want) to walk those branches.
-    UPLOAD_TARGETS=$(UPLOAD_VERSION="$UPLOAD_VERSION" UPLOAD_MODE="$UPLOAD_MODE" uv run python -c "
+    UPLOAD_TARGETS=$(UPLOAD_VERSION="$UPLOAD_VERSION" UPLOAD_MODE="$UPLOAD_MODE" uv run --locked python -c "
     import yaml, os
     cfg = yaml.safe_load(open('config/config.yaml'))
     pv = cfg['pipeline_version']
@@ -126,7 +126,7 @@ run: |
     # subsequent flags bound it.
 
     # Dry-run gate first — verify only HF-related rules are scheduled.
-    uv run snakemake --profile workflow/profiles/default \
+    uv run --locked snakemake --profile workflow/profiles/default \
         "${SNAKEMAKE_EXTRA[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \
@@ -134,7 +134,7 @@ run: |
         -n $UPLOAD_TARGETS
 
     # Real run.
-    uv run snakemake --profile workflow/profiles/default \
+    uv run --locked snakemake --profile workflow/profiles/default \
         "${SNAKEMAKE_EXTRA[@]}" \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --rerun-triggers mtime \

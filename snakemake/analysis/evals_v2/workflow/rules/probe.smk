@@ -5,7 +5,7 @@ probe on the in-bundle pooled embeddings (`emb_ref`/`emb_alt`, #318) and emit tw
 artifacts — the **LOOC predictions** for every variant (`probe_score`, consumed by the
 downstream metrics step) and the **fitted per-subset classifiers** (serialized for
 reuse on other datasets). The protocol (feature rule, nested-C tuning, C-edge guard)
-lives in `marin_dna.pipelines.evals.variant_probe.run_subset_probes`; this rule is thin
+lives in `marin_dna_evals.variant_probe.run_subset_probes`; this rule is thin
 glue.
 
 CPU-only (sklearn on cached embeddings — no GPU). Requires the input scores parquet to
@@ -105,7 +105,7 @@ rule compute_probe_metrics:
     `score_protocol` applied to the FWD/RC-averaged LLR (`minus_llr_avg` for mendelian /
     sge), matching `compute_metrics`'s `_avg` semantics.
 
-    Thin glue over `marin_dna.pipelines.evals.metrics.{per_chrom_ap_table,
+    Thin glue over `marin_dna_evals.metrics.{per_chrom_ap_table,
     compute_sge_metrics}`. CPU-only; off `rule all`. Reads a probe parquet, so the same
     `--rerun-triggers mtime` note as `compute_probe` applies (its upstream scores parquet
     was built with the #318 overlay)."""

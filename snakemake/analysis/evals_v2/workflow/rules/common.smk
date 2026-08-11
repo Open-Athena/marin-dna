@@ -7,13 +7,13 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset
 
-from marin_dna.pipelines.evals.conservation import (
+from marin_dna_evals.conservation import (
     QTL_VARIANT_COLUMNS,
     REQUIRED_VARIANT_COLUMNS,
     SGE_VARIANT_COLUMNS,
 )
-from marin_dna.pipelines.evals.inference import compute_variant_scores
-from marin_dna.pipelines.evals.metrics import (
+from marin_dna_evals.inference import compute_variant_scores
+from marin_dna_evals.metrics import (
     SCORE_PROTOCOLS,
     compute_auprc_metrics,
     compute_qtl_metrics,
@@ -21,7 +21,7 @@ from marin_dna.pipelines.evals.metrics import (
     compute_sge_probe_metrics,
     per_chrom_ap_table,
 )
-from marin_dna.pipelines.evals.variant_probe import PAIR_COMBOS, run_subset_probes
+from marin_dna_evals.variant_probe import PAIR_COMBOS, run_subset_probes
 
 # Per-dataset eval protocol. `matched_pair` (default) → per-subset AUPRC +
 # cluster bootstrap over `match_group` (mendelian/complex). `qtl_global` →

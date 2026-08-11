@@ -1,7 +1,7 @@
 # Source of truth for every method on the leaderboard.
 #
 # Consumed by:
-#   - `src/marin_dna/pipelines/evals/leaderboard.py` — aggregates S3 metrics into
+#   - `snakemake/analysis/evals_v2/src/marin_dna_evals/leaderboard.py` — aggregates S3 metrics into
 #     the long-form parquet the dashboard data loader writes.
 #   - `dashboard/src/data/models.json.py` — emits a JSON build artifact for
 #     the Observable Framework site.

@@ -53,7 +53,7 @@ setup: |
         echo 'export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 
     export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
-    uv sync
+    uv sync --project snakemake/zoonomia_projection_dataset --locked
 
 run: |
     set -euxo pipefail
@@ -66,14 +66,14 @@ run: |
 
     # Clear any stale snakemake lockfile from a prior crash. Safe no-op on a
     # clean working dir.
-    uv run snakemake --profile workflow/profiles/default --unlock || true
+    uv run --locked snakemake --profile workflow/profiles/default --unlock || true
 
     # Dry-run gate (fails closed): capture the plan and HARD-ABORT if it
     # would run anything beyond the region-label rules — e.g. the multi-hour
     # halLiftover projection or a genome/scoring rebuild. The labeling step
     # only needs anchors + GTF + cCRE (already on S3); the projection must NOT
     # be re-derived here.
-    DRYLOG=$(uv run snakemake --profile workflow/profiles/default \
+    DRYLOG=$(uv run --locked snakemake --profile workflow/profiles/default \
         --rerun-incomplete -n "$SNAKEMAKE_TARGET" 2>&1) || true
     echo "$DRYLOG"
 
@@ -111,7 +111,7 @@ run: |
     echo "Dry-run gate PASSED — only region-label rules scheduled: $SCHEDULED"
 
     # Real run (gated above).
-    uv run snakemake --profile workflow/profiles/default \
+    uv run --locked snakemake --profile workflow/profiles/default \
         --use-conda \
         --printshellcmds \
         --rerun-incomplete \

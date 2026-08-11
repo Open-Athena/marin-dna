@@ -54,7 +54,7 @@ sky down  zoonomia-calibration
 Or locally, if you have kentUtils on PATH and the bigWigs reachable:
 
 ```bash
-uv run python scripts/calibrate_447m_threshold.py \
+uv run --locked marin-dna-calibrate-447m \
     --output results/calibration/calibration.json
 ```
 
@@ -210,7 +210,7 @@ different partitions of the same v1 anchors** — see "v4 region labels" below.
 
 **Species axis (third axis — issue #233).** A *species cohort* filters an existing dataset to a subset of the projection's species — a row-filter on the `species` column, orthogonal to `intervals_version` (a row-filter on `query_name`); the two compose. The default 108-family cohort is **implicit** (no label), so every `zoonomia-v1-*` repo above is unchanged. Non-default cohorts get a trailing repo suffix (scheme B): `zoonomia-{pipeline_version}-{intervals_version}-{cohort}`.
 
-A cohort must be a **subset** of the projection's species, so the v1 projection is reused as-is (no re-halLiftover) — `marin_dna.pipelines.projection.subset.filter_to_species` asserts the subset relationship. Cohorts are declared in `species_subsets` (label → species TSV); the `{intervals, species}` combos to build are listed in `species_subset_datasets`. `rule subset_species` writes `results/projection/min{p}/subsets_species/{intervals}-{cohort}.parquet`, which feeds the same `prepare_training_shards → compress_shard → hf_upload_dataset` chain; each cohort dataset ships its own card (`write_species_subset_hf_readme`).
+A cohort must be a **subset** of the projection's species, so the v1 projection is reused as-is (no re-halLiftover) — `marin_dna_zoonomia_projection.projection.subset.filter_to_species` asserts the subset relationship. Cohorts are declared in `species_subsets` (label → species TSV); the `{intervals, species}` combos to build are listed in `species_subset_datasets`. `rule subset_species` writes `results/projection/min{p}/subsets_species/{intervals}-{cohort}.parquet`, which feeds the same `prepare_training_shards → compress_shard → hf_upload_dataset` chain; each cohort dataset ships its own card (`write_species_subset_hf_readme`).
 
 The pipeline ships one cohort dataset:
 
@@ -223,7 +223,7 @@ The `order` cohort (`config/species_zoonomia_447_order_dedup.tsv`, 19 leaves) is
 Build it on the projection/upload cluster, where the v1 projection outputs + metadata are intact (a fresh local checkout otherwise re-plans the projection — `local()` FASTA intermediates are absent and S3 mtimes read as updated, exactly as for the v3/v4 subsets):
 
 ```bash
-uv run snakemake --profile workflow/profiles/default \
+uv run --locked snakemake --profile workflow/profiles/default \
     results/upload.done/zoonomia-v1-v4_cds-order
 ```
 
@@ -231,7 +231,7 @@ uv run snakemake --profile workflow/profiles/default \
 
 ```bash
 # Local (dry-run only — actual upload needs the HF token cluster mount):
-uv run snakemake --profile workflow/profiles/default -n all_hf
+uv run --locked snakemake --profile workflow/profiles/default -n all_hf
 
 # Cloud (mounts ~/.cache/huggingface, ~30 min wall):
 sky launch -c zoonomia-upload sky/upload.yaml
@@ -241,7 +241,7 @@ sky down   zoonomia-upload          # at end of session
 
 Scoring uses **pyBigWig directly** in a Snakemake `run:` block — no kentUtils binary chain. We tried `bigWigToBedGraph | awk threshold | bedGraphToBigWig` and `bigWigAverageOverBed`, but the bioconda kentUtils binaries refuse to read from stdin pipes (they need a regular file because they seek). Materialising the per-base bedGraph would cost ~30 GB temp disk for marginal speed.
 
-For each 255 bp window, `marin_dna.conservation.scoring.score_windows`:
+For each 255 bp window, `marin_dna_zoonomia_projection.conservation.scoring.score_windows`:
 
 - fetches per-base values via `pyBigWig.values(...)` (returns NaN at gaps),
 - counts finite values → `n_valid_bases`,
@@ -301,11 +301,11 @@ biologically meaningful for genes with very short 5' UTRs).
 
 ```bash
 # Local parquet only (no HF push needed):
-uv run snakemake --profile workflow/profiles/default \
+uv run --locked snakemake --profile workflow/profiles/default \
     results/human/intervals/validation/dataset/val_utr5.parquet
 
 # Full validation set (seven parquets + HF upload):
-uv run snakemake --profile workflow/profiles/default all_validation
+uv run --locked snakemake --profile workflow/profiles/default all_validation
 ```
 
 ## Region-type annotation (`rule all_region_labels`)
@@ -355,65 +355,16 @@ defined.bed (genome − N regions)                       ↓
 ### Run
 
 ```bash
-# Just the labels parquet (cheap if the GTF + cCRE are already on disk):
-uv run snakemake --profile workflow/profiles/default \
-    results/human/intervals/region_labels/min0.20.parquet
-
-# Everything (labels + composition TSV + per-label query_names lists):
-uv run snakemake --profile workflow/profiles/default all_region_labels
-```
-
-### Tuning
-
-Per-region fractions (`*_frac` columns) are emitted regardless of priority and threshold, so you can re-derive labels downstream by sweeping `region_label_functional_threshold` or `region_label_priority` without re-running the bedtools-style overlap pass.
-
-## v4 region labels (`rule all_region_labels_v4`) — issue #227
-
-The v3 labeler above assigns each window the highest-**priority** region with *any* (≥1 bp) overlap. [Issue #221](https://github.com/Open-Athena/marin-dna/issues/221) showed this over-claims (a window grazing a coding exon becomes `cds`); v4 re-derives the partition with the scheme resolved there. **v3 and v4 are independent partitions of the same v1 anchors — v3 is frozen (existing checkpoints train on it); use v4 for new work.** Three coupled changes:
-
-1. **bp-priority + window-majority** (`label_windows_bp_majority`). Two stages: (a) *base-pair priority* — every base is assigned to exactly one region by subtracting higher-priority region sets from lower ones (a base in both CDS and a cCRE is `cds`), yielding five **disjoint** sets that sum to the functional union; (b) *window majority* — the window takes the disjoint region covering the most bases (≥ `region_label_functional_threshold` functional to escape `background`). This fixes both the v3 CDS over-claim and the naive-argmax failure where a coding exon nested in a cCRE would be labelled `ccre`.
-2. **PC-only TSS region** (`region_label_tss_pc_only_v4: true`). `tss_region_and_utr5` = (TSS region) ∪ (5′ UTR), one class. The 5′ UTR half is already protein-coding-only; v4 builds the **TSS-region half** from protein-coding transcripts too (v3 used every transcript), so the whole class is PC-derived and a standalone ncRNA's own TSS no longer collides with its exon.
-3. **`ccre_flank` 500 → 0** (`region_label_ccre_flank_v4: 0`). The ±500 bp flank was ~79% of the cCRE footprint; dropping it makes `v4_ccre_non_promoter` mean "actually cCRE-covered" and grows `background`.
-
-The **priority order flips `tss_region_and_utr5` above `ncrna_exon`** (`region_label_priority_v4`): after the PC-only change the residual ncRNA↔TSS overlap is divergent/antisense lncRNAs inside protein-coding promoters, whose pathogenic variants are promoter/5′ UTR (PC-TSS-centric in the eval), so the promoter arm should own them. `region_label_tss_radius` (256) and `region_label_functional_threshold` (0.20) are shared with v3.
-
-### Outputs
-
-- `results/human/intervals/region_labels/v4/min{min_p}.parquet` — same schema as v3, but the per-label `*_frac` columns are the **disjoint** (priority-resolved) coverages, so they sum to `functional_frac` rather than to the larger overlapping coverages.
-- `results/human/intervals/region_labels/v4/min{min_p}.composition.tsv` — per-label counts (via `region_label_composition_table`).
-- `results/projection/min{min_p}/subsets_def/v4_<label>.query_names.txt` → fed through the same `subset_dataset_derived` → shard → upload chain as v3 (six `bolinas-dna/zoonomia-v1-v4_<label>` repos, each with a v4 dataset card).
-
-### Run
-
-```bash
-# v4 labels + composition + per-label query_names lists (no projection needed):
-uv run snakemake --profile workflow/profiles/default all_region_labels_v4
-
-# A single v4 labels parquet:
-uv run snakemake --profile workflow/profiles/default \
-    results/human/intervals/region_labels/v4/min0.20.parquet
-```
-
-The v4 subset → shard → HF-upload step reuses the existing cross-mammal projection (`all_species_with_sequence.parquet`); it does **not** re-run halLiftover. On a fresh checkout where the projection's `local()` intermediates are absent, Snakemake may still *plan* to re-derive the projection for any new subset — run the subset/upload step where the projection outputs + metadata are intact (e.g. the projection cluster), as the v3 subsets were built.
-
-## Run
-
-```bash
-# From repo root:
-git checkout -b feat/zoonomia-projection-dataset origin/main
 cd snakemake/zoonomia_projection_dataset
+uv sync --locked --group dev
+uv run --locked pytest
 
-# (Optional but recommended: run the calibration first; paste threshold into config.)
-uv run python scripts/calibrate_447m_threshold.py
+# Optional calibration.
+uv run --locked marin-dna-calibrate-447m
 
-# Dry-run (CLAUDE.md mandate before any real run)
-uv run snakemake --profile workflow/profiles/default -n
-
-# Full pipeline
-uv run snakemake --profile workflow/profiles/default
-
-# Tests for the library code
-uv run pytest tests/conservation/ tests/projection/ tests/zoonomia_projection_dataset/
+# Always inspect the DAG before a real run.
+uv run --locked snakemake -n
+uv run --locked snakemake
 ```
 
 ## SkyPilot
@@ -437,7 +388,7 @@ sky down   zoonomia-project    # at end of session
 
 ## Rank-deduplicated species lists
 
-The projection step reads a static, committed species TSV chosen by `species_tsv:` in `config/config.yaml`. Two are shipped, both produced by the same one-off `scripts/build_species_list.py` via `dedup_by_rank` — one leaf per taxonomic group, ranked `quality_source → assembly_level → contig_n50 → name`, with `Homo_sapiens`, `Mus_musculus`, `Bos_taurus` force-included:
+The projection step reads a static, committed species TSV chosen by `species_tsv:` in `config/config.yaml`. Two are shipped, both produced by the same one-off `the marin-dna-build-species-list CLI` via `dedup_by_rank` — one leaf per taxonomic group, ranked `quality_source → assembly_level → contig_n50 → name`, with `Homo_sapiens`, `Mus_musculus`, `Bos_taurus` force-included:
 
 - **`config/species_zoonomia_447_family_dedup.tsv`** (108 rows) — one leaf per NCBI **family**. The default `species_tsv` and the `v1` pipeline snapshot.
 - **`config/species_zoonomia_447_order_dedup.tsv`** (19 rows) — one leaf per NCBI **order**: a sparser, more deeply-diverged set (every pair separated by ~tens of My). The 108 families span 19 orders.
@@ -449,17 +400,17 @@ The order set is a strict **subset** of the family set — the top-ranked leaf i
 To regenerate (only when the alignment changes):
 
 ```bash
-uv run --with openpyxl python scripts/build_species_list.py               # family (default)
-uv run --with openpyxl python scripts/build_species_list.py --rank order  # order
+uv run --locked marin-dna-build-species-list               # family (default)
+uv run --locked marin-dna-build-species-list --rank order  # order
 ```
 
-The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent (~2 min cold, < 5 s warm). Logic lives in `src/marin_dna/pipelines/projection/taxonomy.py` (testable; the script is thin orchestration).
+The reproducer caches all HTTP responses under `~/.cache/marin_dna/zoonomia/` so re-runs are idempotent. The maintained CLI and its tested taxonomy logic live in this pipeline project.
 
 ## NaN semantics
 
 `phyloP_447m` has NaN at positions with no alignment. We want NaN counted as **non-conserved** (0).
 
-Implemented in `marin_dna.conservation.scoring.score_windows`:
+Implemented in `marin_dna_zoonomia_projection.conservation.scoring.score_windows`:
 
 ```python
 values = bw.values(chrom, start, end, numpy=True)        # NaN at gaps
@@ -472,34 +423,20 @@ Sanity-checked in `tests/conservation/test_scoring.py::test_score_windows_nan_co
 
 ## Layout
 
-```
+```text
+pyproject.toml
+uv.lock
+src/marin_dna_zoonomia_projection/
+  conservation/
+  projection/
+  cli/
+  region_labels.py
+  tracks.py
+  validation.py
+tests/
 config/
-  config.yaml                                  # all knobs (anchor windows + projection)
-  species_zoonomia_447_family_dedup.tsv        # 108 rows; one leaf per family (default species_tsv)
-  species_zoonomia_447_order_dedup.tsv         # 19 rows; one leaf per order (sparser; see issue #230)
-workflow/Snakefile                             # rule orchestration
-workflow/profiles/default/                     # cores, S3 storage, conda
-workflow/envs/bioinformatics.yaml              # bedtools, kentUtils (faToTwoBit, twoBitInfo)
-workflow/rules/
-  common.smk                                   # imports + sanity checks
-  genome.smk                                   # download_genome → 2bit → chrom_sizes → N-regions
-  download.smk                                 # phyloP bigWig + Ensembl GTF
-  windows.smk                                  # tile + N-filter (one rule)
-  score.smk                                    # binarize + score
-  filter.smk                                   # filtered BED per cutoff
-  project.smk                                  # cross-mammal halLiftover + filter + resize + sequence + subset
-  subsets.smk                                  # derive query_names lists for v2 subset; subset_dataset_derived override
-  dataset.smk                                  # RC augment + shuffle + shard + hf upload; species-subset axis (subset_species, #233)
-  validation.smk                               # seven per-recipe validation parquets + HF upload (rule all_validation)
-scripts/
-  calibrate_447m_threshold.py                  # one-off; uses src/marin_dna/conservation/
-  build_species_list.py                        # one-off; --rank {family,order}; uses pipelines/projection/taxonomy
-  zrs_sanity_check.py                          # smoke-tier ZRS cCRE assertion
+workflow/
 sky/
-  run.yaml                                     # c6id.2xlarge — anchor windows
-  calibrate.yaml                               # c6id.2xlarge — phyloP_447m calibration (one-off)
-  project.yaml                                 # c6id.12xlarge — cross-mammal projection
-  upload.yaml                                  # r6i.8xlarge — HF dataset assembly + push (rule all_hf)
 ```
 
-Library code lives in `src/marin_dna/conservation/` (anchor pipeline), `src/marin_dna/projection/` (projection + tss + dataset modules), and `src/marin_dna/zoonomia_projection_dataset/validation.py` (seven per-recipe validation builders + case-encoding) — all testable; reused by their respective rules and one-off scripts. Tests in `tests/conservation/`, `tests/projection/`, and `tests/zoonomia_projection_dataset/`.
+The project-local package owns all maintained projection, conservation, validation, and CLI logic. Its tests run only in this locked environment.

@@ -1,6 +1,6 @@
 """Download phyloP_447m bigWig.
 
-URL comes from ``marin_dna.pipelines.evals.conservation.CONSERVATION_TRACKS`` — the
+URL comes from ``marin_dna_zoonomia_projection.tracks.CONSERVATION_TRACKS`` — the
 single source of truth for conservation-track URLs.
 """
 

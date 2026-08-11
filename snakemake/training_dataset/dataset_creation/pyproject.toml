@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marin-dna-training-dataset"
+version = "0.0.1"
+description = "Locked runtime and Python package for MarinDNA training-dataset creation"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "marin-dna",
+    "bioframe",
+    "huggingface-hub",
+    "matplotlib",
+    "numpy",
+    "pandas>=2.0,<3.0",
+    "polars",
+    "py2bit",
+    "pyarrow>=21.0.0",
+    "pybigwig",
+    "snakemake",
+    "snakemake-storage-plugin-s3>=0.3.6",
+    "tqdm",
+    "zstandard",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.uv]
+required-version = "==0.11.31"
+fork-strategy = "fewest"
+environments = [
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
+]
+
+[tool.uv.sources]
+marin-dna = { path = "../../..", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marin_dna_training_dataset"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

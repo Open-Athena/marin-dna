@@ -1,27 +1,11 @@
-import pandas as pd
+from marin_dna_genome_selection.selection import (
+    add_taxonomy_to_genomes,
+    extract_tax_ids,
+    filter_genomes_file,
+)
 
 
 configfile: "config/config.yaml"
-
-
-TAXONOMIC_RANKS = [
-    "species",
-    "genus",
-    "family",
-    "order",
-    "class",
-    "phylum",
-    "kingdom",
-    "domain",
-]
-
-# from most complete to least complete, expresses our preference when deduplicating
-ASSEMBLY_LEVELS = [
-    "Complete Genome",
-    "Chromosome",
-    "Scaffold",
-    "Contig",
-]
 
 
 rule all:
@@ -51,11 +35,7 @@ rule extract_tax_ids:
     output:
         "results/tax_ids.txt",
     run:
-        (
-            pd.read_csv(input[0], sep="\t", usecols=["Organism Taxonomic ID"])
-            .drop_duplicates()
-            .to_csv(output[0], index=False, header=False)
-        )
+        extract_tax_ids(input[0], output[0])
 
 
 # takes half an hour to run for metazoa
@@ -77,31 +57,7 @@ rule add_taxonomy_to_genomes:
     output:
         "results/genomes/all.parquet",
     run:
-        genomes = pd.read_csv(input[0], sep="\t")
-        taxonomy = pd.read_json(input[1], lines=True)[["taxonomy"]]
-        taxonomy["Organism Taxonomic ID"] = taxonomy.taxonomy.apply(
-            lambda x: x["tax_id"]
-        )
-        taxonomy["classification"] = taxonomy.taxonomy.apply(
-            lambda x: x["classification"]
-        )
-        taxonomy = taxonomy.drop(columns=["taxonomy"])
-        genomes = genomes.merge(taxonomy, on="Organism Taxonomic ID", how="left")
-        print(genomes)
-
-        def get_rank(x, rank):
-            try:
-                return x[rank]["name"]
-            except:
-                print(f"Missing rank {x} {rank}")
-                return None
-
-        for rank in TAXONOMIC_RANKS:
-            genomes[rank] = genomes.classification.apply(
-                lambda x: get_rank(x, rank)
-            )
-        genomes = genomes.drop(columns=["classification"])
-        genomes.to_parquet(output[0], index=False)
+        add_taxonomy_to_genomes(input[0], input[1], output[0])
 
 
 rule filter_genomes:
@@ -110,38 +66,12 @@ rule filter_genomes:
     output:
         "results/genomes/filtered.parquet",
     run:
-        genomes = pd.read_parquet(input[0])
-        genomes = genomes[
-            ~genomes["Assembly Accession"].isin(config["exclude_genomes"])
-        ]
-        genomes = genomes.dropna(subset=[config["deduplicate_taxonomic_rank"]])
-        genomes["Assembly Level"] = pd.Categorical(
-            genomes["Assembly Level"],
-            ASSEMBLY_LEVELS,
-            ordered=True,
+        filter_genomes_file(
+            input[0],
+            output[0],
+            exclude_genomes=config["exclude_genomes"],
+            deduplicate_taxonomic_rank=config["deduplicate_taxonomic_rank"],
+            min_assembly_level=config["min_assembly_level"],
+            max_genome_size=config["max_genome_size"],
+            priority_genomes=config["priority_genomes"],
         )
-        genomes = genomes[genomes["Assembly Level"] <= config["min_assembly_level"]]
-        genomes = genomes[
-            genomes["Assembly Stats Total Sequence Length"]
-            < config["max_genome_size"]
-        ]
-        genomes.loc[:, "Priority"] = "1_Low"
-        genomes.loc[
-            genomes["Assembly Accession"].isin(config["priority_genomes"]),
-            "Priority",
-        ] = "0_High"
-        genomes = (
-            genomes.sort_values(
-                [
-                    "Priority",
-                    "Assembly Level",
-                    # smaller genomes are both easier to work with and might have
-                    # a higher signal to noise ratio
-                    "Assembly Stats Total Sequence Length",
-                    "Organism Name",  # to break ties
-                ]
-            )
-            .drop(columns=["Priority"])
-            .drop_duplicates(config["deduplicate_taxonomic_rank"])
-        )
-        genomes.to_parquet(output[0], index=False)

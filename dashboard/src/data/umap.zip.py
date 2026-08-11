@@ -27,8 +27,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
 from botocore.exceptions import ClientError
-
-from marin_dna.pipelines.evals.interpretation_catalog import (
+from marin_dna_evals.interpretation_catalog import (
     S3_BUCKET,
     UMAP_PLOT_PREFIX,
     load_umap_block,

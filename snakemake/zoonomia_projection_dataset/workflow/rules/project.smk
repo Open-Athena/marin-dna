@@ -27,22 +27,22 @@ Smoke tier prepends two ZRS cCRE rows (issue #120) before head-truncating
 to chr1, and gates on ``zrs_sanity_check``.
 """
 
-from marin_dna.pipelines.projection.filter import (
+from marin_dna_zoonomia_projection.projection.filter import (
     filter_length,
     filter_single_chrom_strand,
 )
-from marin_dna.pipelines.projection.hal import (
+from marin_dna_zoonomia_projection.projection.hal import (
     attach_src_size,
     parse_halliftover_bed,
     run_halliftover,
 )
-from marin_dna.pipelines.projection.resize import resize_dataframe
-from marin_dna.pipelines.projection.sequence import (
+from marin_dna_zoonomia_projection.projection.resize import resize_dataframe
+from marin_dna_zoonomia_projection.projection.sequence import (
     attach_sequences_to_parquet,
     parquet_to_bed6,
     parse_bedtools_getfasta_output,
 )
-from marin_dna.pipelines.projection.subset import (
+from marin_dna_zoonomia_projection.projection.subset import (
     filter_to_species,
     filter_to_subset,
     load_species,
@@ -220,18 +220,13 @@ rule merge_projected:
 
 
 rule zrs_sanity_check:
-    """Smoke-tier-only sanity gate: ZRS cCREs lift human→mouse correctly.
-
-    Not part of the full-tier DAG; ``rule all_projected`` only depends on
-    this when ``TIER == "smoke"``. See ``scripts/zrs_sanity_check.py``.
-    """
+    """Smoke-tier-only sanity gate: ZRS cCREs lift human to mouse correctly."""
     input:
         mus="results/projection/min{min_p}/per_species/Mus_musculus.parquet",
-        script=workflow.source_path("../../scripts/zrs_sanity_check.py"),
     output:
         "results/projection/min{min_p}/zrs_sanity.txt",
     shell:
-        "python {input.script} --mus-parquet {input.mus} --output {output}"
+        "marin-dna-zrs-check --mus-parquet {input.mus} --output {output}"
 
 
 rule hal_to_fasta:

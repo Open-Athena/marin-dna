@@ -58,10 +58,18 @@ export default {
     },
   ],
 
-  // Python data loaders run via `uv run python` so they pick up the project
-  // venv (polars + boto3 + the local `marin_dna` package).
+  // Python data loaders run in the independently locked eval environment.
   interpreters: {
-    ".py": ["uv", "run", "python"],
+    ".py": [
+      "uv",
+      "--project",
+      "../snakemake/analysis/evals_v2",
+      "run",
+      "--locked",
+      "--group",
+      "dashboard",
+      "python",
+    ],
   },
 
   // Suppress Observable's automatic header (we render the page title in

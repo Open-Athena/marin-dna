@@ -42,7 +42,7 @@ setup: |
     # Install once into the base conda env.
     mamba install -y -c bioconda ucsc-fatotwobit ucsc-twobitinfo
 
-    uv sync
+    uv sync --project snakemake/zoonomia_projection_dataset --locked
 
 run: |
     set -euxo pipefail
@@ -66,7 +66,7 @@ run: |
     # ~7M passing bases) gives well below 1% relative error in the
     # calibrated threshold. Iterating all 24 chroms is overkill for
     # statistical precision and would add ~30 min wall.
-    uv run python snakemake/zoonomia_projection_dataset/scripts/calibrate_447m_threshold.py \
+    uv run --project snakemake/zoonomia_projection_dataset --locked marin-dna-calibrate-447m \
         --output snakemake/zoonomia_projection_dataset/results/calibration/calibration.json \
         --bigwig-dir "$WORK/bigwig" \
         --genome-2bit "$WORK/genome.2bit" \
