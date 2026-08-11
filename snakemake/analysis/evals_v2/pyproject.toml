@@ -27,7 +27,10 @@ dependencies = [
     "seaborn",
     "snakemake",
     "snakemake-storage-plugin-s3>=0.3.6",
-    "torch==2.5.1; sys_platform == 'linux'",
+    # Sky's A10G image currently carries a CUDA-12.2-capable driver. Use the
+    # CUDA 12.4 wheel: CUDA 13 fails to initialize, while torch >=2.6 is
+    # required for safe loading of the pipeline's legacy PyTorch fixtures.
+    "torch==2.6.0; sys_platform == 'linux'",
     "torch==2.13.0; sys_platform == 'darwin'",
     "transformers[torch]<5",
     "zstandard",
@@ -57,15 +60,15 @@ environments = [
 ]
 
 [[tool.uv.index]]
-name = "pytorch-cu121"
-url = "https://download.pytorch.org/whl/cu121"
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 [tool.uv.sources]
 marin-dna = { path = "../../../", editable = true }
 marin-dna-rag-glm = { path = "../../rag_glm", editable = true }
 torch = [
-    { index = "pytorch-cu121", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
 ]
 
 [tool.hatch.build.targets.wheel]
