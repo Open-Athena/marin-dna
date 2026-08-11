@@ -53,6 +53,9 @@ setup: |
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
+    # The project pins uv exactly; base images may carry a newer incompatible
+    # release, so enforce the pinned version even when uv already exists.
+    uv self update 0.11.31
 
     # gcloud CLI for the pipeline's `download_model` shell rule.
     if ! command -v gcloud >/dev/null 2>&1; then
