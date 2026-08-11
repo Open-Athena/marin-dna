@@ -7,9 +7,6 @@ import json
 import polars as pl
 import pytest
 import torch
-from marin_dna_evals.lm_eval.rag_dna_vep_llr_eval import (
-    RagDnaVepLlrEvalTask,
-)
 from marin_dna_evals.rag_glm.offline_eval import (
     RAG_BENCHMARK_DATASETS,
     aggregate_rag_variant_scores,
@@ -129,6 +126,9 @@ def test_select_paired_rag_rows_rejects_partial_pair() -> None:
 
 
 def test_rag_lm_eval_download_uses_commit_pinned_parquets(monkeypatch) -> None:
+    pytest.importorskip("lm_eval")
+    from marin_dna_evals.lm_eval.rag_dna_vep_llr_eval import RagDnaVepLlrEvalTask
+
     observed = {}
 
     def fake_load_dataset(**kwargs):
