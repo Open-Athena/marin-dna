@@ -172,7 +172,8 @@ def main() -> None:
         ],
         provenance={"marin_pin": MARIN_PIN, "launched_by": os.environ.get("USER", "")},
     )
-    write_experiment_record(record, prefix_join(marin_prefix(), "experiments", NAME))
+    # prefix_join takes exactly (prefix, relative) — pass the subpath as ONE argument.
+    write_experiment_record(record, prefix_join(marin_prefix(), f"experiments/{NAME}"))
 ```
 
 - **Record prefix convention:** `<marin_prefix>/experiments/dna-exp<N>/.experiment.json` — one record per experiment, beside (not inside) the run dirs, so it never collides with marin's own `.artifact.json` at step output paths.
