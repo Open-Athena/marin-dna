@@ -1,3 +1,5 @@
+#import "../template.typ": paper-figure
+
 = Methods
 <methods>
 
@@ -60,6 +62,14 @@ It retains variants labeled abnormal or normal by ClinGen/ExCALIBR-calibrated as
 Variant contexts are extracted from the Ensembl release 115 GRCh38 soft-masked primary assembly.
 The evaluation pipeline uses the development split for model iteration; the chromosome-disjoint test split remains reserved for the final locked evaluation.
 
+#paper-figure(
+  "figures/eval_datasets.svg",
+  id: "fig-evaluation-datasets",
+  alt: "Clinical Mendelian and experimental SGE benchmarks, including labels and subset counts.",
+  caption: [*Variant-effect prediction benchmarks.* Counts denote the frozen analysis snapshot described in the text.],
+)
+The two benchmarks and their analysis subsets are summarized in @fig-evaluation-datasets.
+
 == Zero-shot likelihood scoring
 <methods-zero-shot>
 For each allele, the causal model scores the variant-centered sequence on the forward strand and its reverse complement.
@@ -76,6 +86,14 @@ For directional Mendelian and SGE labels, the probe feature concatenates the ref
 A separate StandardScaler plus L2-regularized logistic-regression pipeline is fit within each consequence subset.
 Predictions use leave-one-chromosome-out cross-validation, with the regularization strength retuned inside each outer fold by chromosome-grouped cross-validation over a fixed 17-point grid from 1e-12 to 1e4.
 Probe and zero-shot metrics are calculated on identical variant rows.
+
+#paper-figure(
+  "figures/eval_apparatus.svg",
+  id: "fig-evaluation-readouts",
+  alt: "Reference and alternate sequences scored using likelihoods or frozen-model embeddings.",
+  caption: [*Variant-effect prediction scoring approaches.* The zero-shot likelihood score and frozen-embedding linear probe use the same reference and alternate sequence inputs.],
+)
+@fig-evaluation-readouts contrasts the two readouts applied to every frozen checkpoint.
 
 == Metrics and uncertainty
 <methods-statistics>

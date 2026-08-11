@@ -16,4 +16,6 @@
 #include "sections/provenance.typ"
 #include "sections/acknowledgements.typ"
 #include "sections/statements.typ"
+
+#bibliography("references.bib", title: "References", style: "apa")
 #include "sections/supplement.typ"
