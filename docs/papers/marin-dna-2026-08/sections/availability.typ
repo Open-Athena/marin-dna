@@ -6,6 +6,7 @@ The final preprint revision will identify commit-pinned training, dataset-constr
 
 The frozen Mendelian benchmark is #link("https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/tree/4aed58e50c5dea0b878a665007af2ef9e5108e9f")[bolinas-dna/evals_mendelian_traits at revision 4aed58e].
 The frozen saturation-genome-editing benchmark is #link("https://huggingface.co/datasets/bolinas-dna/evals_sge/tree/225d3d1ea32a4af547891b13c33b5e92a5aae849")[bolinas-dna/evals_sge at revision 225d3d1].
+The row-aligned MarinDNA–Evo 2 headline comparison is reproduced by a #link("https://github.com/Open-Athena/marin-dna/blob/21343bc729013ef8811da6048fbcbce21bd3aad9/scripts/issue449_audit_headline.py")[commit-pinned audit script], which names both frozen score artifacts and asserts their variant, label, subset, and match-group identity before bootstrapping.
 Training datasets, evaluation datasets, and the released model are grouped in the #link("https://huggingface.co/collections/marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep")[MarinDNA Hugging Face collection].
 The exact public model and training-dataset revisions will be pinned here before the preprint is released.
 

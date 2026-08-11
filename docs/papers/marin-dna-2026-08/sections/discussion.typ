@@ -12,7 +12,7 @@ The hyperparameter experiments provide complementary evidence that optimization 
 The transferred learning rate was the best observed tested value at each of three target scales, and the resulting parameter ladder trained stably through 4B parameters.
 The transfer rule nevertheless inherits assumptions from a text-model recipe, including its token-horizon exponent and model-geometry heuristic, and the present experiments do not establish that those choices are globally optimal for DNA.
 
-On the frozen Mendelian evaluation, the final MarinDNA model is statistically competitive with Evo 2 40B rather than demonstrably superior to it.
+On the frozen Mendelian evaluation, the final MarinDNA model is statistically competitive with Evo 2 40B rather than demonstrably superior to it: its macro-AUPRC point estimate is 1.25 percentage points higher, but the paired 95% bootstrap confidence interval spans −1.93 to 4.46 percentage points.
 Point estimates differ by consequence class and readout: MarinDNA closes much of the distal-variant gap, while Evo 2 retains advantages on several coding and splicing subsets.
 GPN-Star and AlphaGenome remain stronger in the broader zero-shot comparison, but they use alignment-derived information and functional-genomics supervision, respectively, and therefore bound rather than directly match the alignment-free setting studied here.
 

@@ -10,6 +10,7 @@ Key result families retain the following development records, which will be expa
 - Manual scaling failure and the need for transfer: #link("https://github.com/Open-Athena/marin-dna/issues/57")[\#57].
 - Validation-loss design and interpretation: #link("https://github.com/Open-Athena/marin-dna/issues/8")[\#8].
 - Frozen-embedding probe development: #link("https://github.com/Open-Athena/marin-dna/issues/369")[\#369] and the evaluation-pipeline records it references.
+- Frozen MarinDNA–Evo 2 comparison: the #link("https://github.com/Open-Athena/marin-dna/issues/131#issuecomment-4498438127")[refreshed Evo 2 score record] and the #link("https://github.com/Open-Athena/marin-dna/blob/21343bc729013ef8811da6048fbcbce21bd3aad9/scripts/issue449_audit_headline.py")[commit-pinned paired analysis].
 - Throughput measurement: #link("https://github.com/Open-Athena/marin-dna/issues/354")[\#354].
 
 Issue links are provided to make the branching research history inspectable; scholarly claims about prior work use bibliographic citations, and claims about MarinDNA are supported by the manuscript's figures, Methods, and frozen artifacts.

@@ -134,7 +134,12 @@ The corresponding linear-probe trajectories appear in #supplementary-figure-ref(
 )
 == Leaderboard scores
 <leaderboard-scores>
-The result of the previous mixture experiments is m5.1, a 1B GPT-style model evaluated alongside other models on our #link("https://openathena.ai/marin-dna/leaderboards/mendelian")[live Mendelian VEP leaderboard], where we continue to add experimental runs and baselines. In the zero-shot snapshot shown here, m5.1 comes out slightly ahead of Evo 2 40B. Its advantage is considerably larger under linear probing.
+The result of the previous mixture experiments is m5.1, a 1B GPT-style model evaluated alongside other models on our #link("https://openathena.ai/marin-dna/leaderboards/mendelian")[live Mendelian VEP leaderboard], where we continue to add experimental runs and baselines.
+In the frozen zero-shot snapshot shown here, the unweighted mean across the eight consequence subsets meeting the project-wide 30-positive minimum is 39.49% AUPRC for m5.1 and 38.24% for Evo 2 40B.
+The paired difference is 1.25 percentage points (bootstrap SE 1.63; 95% CI −1.93 to 4.46; two-sided bootstrap p = 0.440).
+This analysis contains 16,100 variants in 1,610 1:9 matched groups; the mature-miRNA subset, with four groups, is excluded from the macro-average by the same minimum applied throughout the evaluation pipeline.
+We therefore describe m5.1 as statistically competitive with Evo 2 40B, not superior to it.
+Its point-estimate advantage is considerably larger under linear probing, for which this paired zero-shot comparison does not apply.
 
 m5.1 was trained on 166B tokens (\~1.1e21 FLOPs), compared with 9.3T tokens (\~2.25e24 FLOPs) for Evo 2 40B. At their native context lengths on the same GH200, m5.1 scores one million variants in about 41 minutes, compared with roughly 66 days for Evo 2 40B---a roughly 2,330× throughput advantage.#footnote[This benchmark measures steady-state scoring with forward and reverse-complement passes and embeddings enabled. m5.1 uses a 256-token context, while Evo 2 40B uses an 8,192-token context, so this measures as-deployed throughput rather than same-context or per-token efficiency. See #link("https://github.com/Open-Athena/marin-dna/issues/354")[issue \#354] for the full methodology and results.]
 

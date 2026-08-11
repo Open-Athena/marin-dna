@@ -102,8 +102,12 @@ For matched Mendelian zero-shot analyses, AUPRC is computed within consequence s
 For probe analyses, AUPRC is first calculated per chromosome and then weighted by the number of contributing variants; uncertainty is estimated by a chromosome-cluster bootstrap.
 SGE AUPRC is computed separately within each MaveDB accession and consequence subset before macro-averaging because scores are not comparable across studies.
 Unless a caption states otherwise, error bars denote ±1 bootstrap standard error.
-Paired model comparisons on matched variants resample matched groups once per iteration and recompute both AUPRC values on the same resample.
-The comparison reports the observed AUPRC difference, its bootstrap standard error, the 2.5th and 97.5th percentiles of the paired difference distribution, and a two-sided bootstrap p-value.
+The headline comparison uses the eight consequence subsets with at least 30 positive matched groups, the project-wide minimum for inclusion in the Mendelian macro-average.
+It contains 16,100 variants in 1,610 groups, each comprising one positive and nine matched controls; the ninth subset, mature miRNA, has four groups and is excluded from the macro-average.
+The MarinDNA and Evo 2 score artifacts contain the same 16,140 uniquely keyed variants and agree exactly on label, subset, and match-group assignment.
+For the paired comparison, 10,000 bootstrap iterations are generated with random seed 0.
+Within each consequence subset, matched groups are sampled with replacement; the same sampled rows are used for both models, AUPRC is recomputed for each, and the eight within-subset differences are averaged with equal weight.
+The comparison reports the observed macro-AUPRC difference, its bootstrap standard error, the 2.5th and 97.5th percentiles of the paired difference distribution, and a two-sided bootstrap p-value calculated as twice the smaller empirical probability that the paired difference is at or below zero or at or above zero.
 Comparative language in the title, abstract, Results, and Discussion follows this paired uncertainty rather than the ordering of point estimates alone.
 
 == Training compute and inference throughput
