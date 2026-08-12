@@ -1,0 +1,76 @@
+# SkyPilot task: extract focused per-document segment losses for issue #402.
+
+name: dna-exp402-segment-loss
+
+resources:
+  infra: aws/us-east-2
+  accelerators: A10G:1
+  disk_size: 100
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .
+
+envs:
+  CHECKPOINT_URI: ""
+  OUTPUT_URI: ""
+  MODEL_LABEL: ""
+  CODE_REVISION: ""
+  BATCH_SIZE: "8"
+  VALIDATION_ROWS: "2048"
+
+file_mounts:
+  ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  uv self update 0.11.31
+  if ! command -v gcloud >/dev/null 2>&1; then
+    curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+    bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+  fi
+  uv sync --project snakemake/analysis/evals_v2 --locked --no-dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+  export WANDB_DISABLED=true
+  test -n "$CHECKPOINT_URI"
+  test -n "$OUTPUT_URI"
+  test "$MODEL_LABEL" = "46M" -o "$MODEL_LABEL" = "104M"
+  test "${#CODE_REVISION}" -eq 40
+  test "$BATCH_SIZE" -gt 0
+  test "$VALIDATION_ROWS" -eq 2048
+  nvidia-smi
+
+  CHECKPOINT_DIR="$HOME/issue402-checkpoint"
+  RESULTS_DIR="$HOME/issue402-segment-loss"
+  mkdir -p "$CHECKPOINT_DIR" "$RESULTS_DIR"
+  gcloud storage rsync "$CHECKPOINT_URI" "$CHECKPOINT_DIR" --recursive
+  test -s "$CHECKPOINT_DIR/config.json"
+  test -s "$CHECKPOINT_DIR/model.safetensors"
+  test -s "$CHECKPOINT_DIR/tokenizer.json"
+
+  uv run --project snakemake/analysis/evals_v2 --locked --no-dev \
+    python scripts/issue402_segment_loss.py \
+    --model "$CHECKPOINT_DIR" \
+    --model-source "$CHECKPOINT_URI" \
+    --model-label "$MODEL_LABEL" \
+    --code-revision "$CODE_REVISION" \
+    --output-dir "$RESULTS_DIR" \
+    --batch-size "$BATCH_SIZE" \
+    --validation-rows "$VALIDATION_ROWS" \
+    --device cuda
+  test -s "$RESULTS_DIR/manifest.json"
+  test -s "$RESULTS_DIR/validation_position_loss.parquet"
+  test -s "$RESULTS_DIR/validation_document_segment_loss.parquet"
+  aws s3 sync "$RESULTS_DIR/" "$OUTPUT_URI/" --only-show-errors
+  aws s3 ls "$OUTPUT_URI/manifest.json"
