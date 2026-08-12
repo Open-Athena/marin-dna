@@ -319,17 +319,22 @@ def plot_explanation(
     colors = sns.color_palette("colorblind", n_colors=3)
     markers = {"46M": "o", "104M": "s"}
     linestyles = {"46M": "--", "104M": "-"}
+    x_offsets = {"46M": -0.045, "104M": 0.045}
     figure, axes = plt.subplots(1, 2, figsize=(17.0, 6.4))
 
     loss_axis = axes[0]
     for model, color in zip(MODEL_ORDER, colors[:2], strict=True):
         frame = segments.filter(pl.col("model") == model).sort("segment_index")
         loss_axis.plot(
-            frame["segment_index"],
+            frame["segment_index"].to_numpy() + x_offsets[model],
             frame["available_mean_loss"],
             marker=markers[model],
             linestyle=linestyles[model],
             color=color,
+            markerfacecolor="white" if model == "46M" else color,
+            markeredgecolor=color,
+            markeredgewidth=1.6,
+            markersize=7,
             label=f"{model} NLL",
         )
     loss_axis.set_ylabel("Mean token NLL (available windows)")
@@ -376,12 +381,16 @@ def plot_explanation(
     for model, color in zip(MODEL_ORDER, colors[:2], strict=True):
         frame = deciles.filter(pl.col("model") == model).sort("identity_decile")
         decile_axis.errorbar(
-            frame["identity_decile"],
+            frame["identity_decile"].to_numpy() + x_offsets[model],
             frame["centered_loss"],
             yerr=frame["se_centered_loss"],
             marker=markers[model],
             linestyle=linestyles[model],
             color=color,
+            markerfacecolor="white" if model == "46M" else color,
+            markeredgecolor=color,
+            markeredgewidth=1.6,
+            markersize=7,
             capsize=0,
             label=model,
         )
@@ -411,7 +420,8 @@ def plot_explanation(
         0.5,
         0.005,
         "Available projected windows only. Left panel has independent y-axes; "
-        "compare trends, not levels. Right error bars are ±1 SE (capless).",
+        "compare trends, not levels. Model x positions are offset by ±0.045 "
+        "for visibility only; right error bars are ±1 SE (capless).",
         ha="center",
         fontsize=10,
     )
