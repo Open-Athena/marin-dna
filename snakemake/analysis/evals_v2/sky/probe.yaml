@@ -40,6 +40,10 @@ setup: |
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
+    # Keep fresh CPU probe workers on the repository-pinned uv release, just
+    # like the GPU inference launcher. Base images may carry a newer version
+    # that refuses this project's exact required-version constraint.
+    uv self update 0.11.31
     export PATH="$HOME/.local/bin:$PATH"
 
     # `--group genome-s3` matches run.yaml (s3fs + the snakemake S3 storage
