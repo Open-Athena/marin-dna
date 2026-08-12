@@ -11,7 +11,7 @@
 
 ## Research
 
-Tracked as GitHub issues under a two-axis label taxonomy: **Kind** selects the issue structure and lifecycle; **Topic** describes the affected system or research area. See [AGENTS.md](AGENTS.md#issue-taxonomy) for the definitions.
+Tracked as GitHub issues under a two-axis label taxonomy: **Kind** selects the issue structure and lifecycle; **Topic** describes the affected system or research area. See [the GitHub communication skill](.agents/skills/communicate-on-github/SKILL.md#classify-issues) for the definitions.
 
 **By kind** — [research questions](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aresearch-question) (durable, human-declared syntheses) · [experiments](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment) (bounded research with a hypothesis or goal) · [tasks](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Atask) · [bugs](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Abug)
 

@@ -1,12 +1,12 @@
 ---
 name: file-issue
-description: File a MarinDNA GitHub issue for a bug, task, or bounded experiment. Route durable human-declared research questions to maintain-research-question.
+description: File a GitHub issue for a bug or improvement found this session.
 ---
 
 # Skill: File GitHub Issue
 
-Create a GitHub issue in `Open-Athena/marin-dna` from bugs, regressions,
-improvements, or bounded experiments identified in the current conversation.
+Create a GitHub issue in `Open-Athena/marin-dna` from bugs, regressions, or
+improvements identified in the current conversation.
 
 ## Background
 
@@ -28,7 +28,7 @@ issue templates — these structures live here.
 | Kind | When to use | Labels |
 |---|---|---|
 | **bug** | A bug or regression was found | `bug`, `agent-generated` |
-| **task** | An improvement, refactor, feature request, or build | `task`, `agent-generated` + priority if known |
+| **task** | An improvement, refactor, or feature request | `agent-generated` + priority if known |
 | **experiment** | An experiment needs tracking | `experiment`, `agent-generated` |
 
 ### Bug body
@@ -59,7 +59,7 @@ Done when:
 ```markdown
 ## TL;DR
 
-<One-paragraph current summary. Use plain text without links. Leave blank only when the work is just being kicked off.>
+<One-paragraph current summary. Leave blank only when the work is just being kicked off.>
 
 ## Description
 
@@ -75,7 +75,6 @@ Done when:
 
 ## Links
 
-* Research questions:
 * Logbook:
 * W&B Report:
 * Important updates:
@@ -101,15 +100,7 @@ If it's ambiguous what to file, ask the user before proceeding.
 
 ### 2. Classify the Issue
 
-Pick the kind (bug, task, or experiment). A bounded exploratory analysis is an
-experiment with a goal; do not create an `eda` kind or mode field.
-
-A durable question that will synthesize evidence across multiple experiments is
-a `research-question`, not an experiment. Route it to
-`maintain-research-question`. An agent may propose the question, but may not
-file it until a human explicitly declares or approves its exact scope.
-
-If unsure, ask the user.
+Pick the kind (bug, task, or experiment). If unsure, ask the user.
 
 ### 3. Duplicate Check
 
@@ -134,18 +125,12 @@ prefix.
 **Rules for the body:**
 
 - No filler ("I noticed...", "During our conversation...").
-- For bug and task issues, avoid decorative images and prose tables. Experiment
-  issues may use a plot, data table, or concise diagram when it materially
-  improves evaluation of the result.
-- Reference code with commit-pinned GitHub permalinks, not bare paths, branch links, or inline dumps.
+- No markdown images or tables.
+- Reference code with `file:line` links, not inline dumps.
 - Keep every fact needed to understand and act on the issue. Remove history,
   repetition, and implementation narration that does not define the problem or
   completion criteria; experiment issues may retain more tracking context.
 - Do not repeat the title in a `Description` section.
-- For experiments, list every research question the experiment informs under
-  `Links` -> `Research questions`. Use plain `#N` references. After filing,
-  use `maintain-research-question` to add the experiment to each question body
-  and verify both sides.
 - Do not inventory files, functions, or proposed implementation steps that are
   not required to define the problem or completion criteria.
 - Include error messages or stack traces in code blocks, trimmed to the
@@ -156,7 +141,8 @@ prefix.
 ### 5. Compress and Inspect the Payload
 
 Apply the writing-style final compression pass to the exact title and body that
-will be sent to GitHub. Verify the title is at most 80 characters. Every remaining sentence must add
+will be sent to GitHub. For a bug or task, verify the title is at most 80
+characters. Every remaining sentence must add
 a symptom, impact, reproduction step, observation, expected behavior, or
 completion criterion.
 
@@ -187,16 +173,13 @@ EOF
 
 issue_url="$(gh issue create --repo Open-Athena/marin-dna \
   --title "<title>" \
-  --label "<kind>" \
   --label "agent-generated" \
   --body-file "$body_file")"
 ```
 
-Add exactly one kind label (`bug`, `task`, or `experiment`) and the smallest
-applicable topic-label set from `AGENTS.md`. Always add `agent-generated`. If
-a relevant label does not exist, report the missing label instead of silently
-publishing an unclassified issue. For task issues, add a priority label (`p1`,
-`p2`, `p3`) if the user specifies one or severity is clear.
+Add kind-appropriate labels (`bug`, `experiment`). If a relevant label does not
+exist, skip it rather than creating new labels. For task issues, add a priority
+label (`p1`, `p2`, `p3`) if the user specifies one or severity is clear.
 
 Before creating the issue, re-open the body file and verify it contains no
 unrelated shell output (pre-commit logs, pytest session headers, prompt
@@ -225,7 +208,6 @@ annotate code links, don't narrate them.
 - [ ] Compress and inspect the exact title and body
 - [ ] Show draft to user for confirmation when required
 - [ ] File issue with `gh issue create`
-- [ ] Synchronize research-question links for experiments
 - [ ] Report issue URL to user
 
 ## Rules
@@ -233,9 +215,8 @@ annotate code links, don't narrate them.
 0. Never credit yourself in the issue.
 1. Always add the `agent-generated` label.
 2. Confirm with the user before filing only when the agent surfaced the issue
-   (not when the user explicitly asked to file). Experiments inside already
-   authorized research may be filed without per-experiment confirmation.
-3. If the conversation does not contain a clear bug, actionable task, or
-   bounded experiment, say so and ask the user what they want to file.
+   (not when the user explicitly asked to file).
+3. If the conversation does not contain a clear bug or actionable improvement,
+   say so and ask the user what they want to file.
 4. Use the smallest matching body structure. Omit optional context and headings
    that add no information.

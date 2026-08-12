@@ -1,0 +1,47 @@
+{
+  "upstream_repo": "marin-community/marin",
+  "commit": "836eab32a78a9c6421300573a4571f2dc2682de4",
+  "vendored_on": "2026-08-12",
+  "unchanged": [
+    "writing-style",
+    "background-research",
+    "update-docs",
+    "wandb-reporting"
+  ],
+  "adapted": [
+    {
+      "name": "file-issue",
+      "deviations": [
+        "Replace the hard-coded upstream repository target with Open-Athena/marin-dna.",
+        "Replace the unavailable fix-issue style reference with writing-style."
+      ]
+    },
+    {
+      "name": "run-research",
+      "deviations": [
+        "Use marin-experiment for MarinDNA long-running training jobs.",
+        "Replace unavailable optional See Also entries with MarinDNA research skills."
+      ]
+    },
+    {
+      "name": "task-logbook",
+      "deviations": [
+        "Require the robot prefix on every agent-authored GitHub comment.",
+        "Replace the unavailable commit-skill reference with AGENTS.md production commit rules."
+      ]
+    },
+    {
+      "name": "task-snapshot",
+      "deviations": [
+        "Use Open-Athena/marin-dna in the pinned-logbook permalink example."
+      ]
+    }
+  ],
+  "local": [
+    "communicate-on-github",
+    "maintain-research-question",
+    "maintain-vendored-skills",
+    "gh-upload-asset",
+    "marin-experiment"
+  ]
+}

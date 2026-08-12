@@ -9,7 +9,7 @@ Use a `research-question` issue for a durable question that outlives any single 
 
 ## Read First
 
-- `AGENTS.md`
+- `.agents/skills/communicate-on-github/SKILL.md`
 - `.agents/skills/writing-style/SKILL.md`
 - `.agents/skills/writing-style/issues.md`
 - `.agents/skills/writing-style/ai-writing-donts.md`
@@ -86,10 +86,11 @@ The relationship between research questions and experiments is many-to-many. Use
 
 When adding a relationship:
 
-1. Add the experiment as a plain `#N` reference under the question's `Related experiments` section.
-2. Add the research question as a plain `#N` reference under the experiment's `Links` -> `Research questions` entry. If the experiment predates that structure, add the smallest compatible `Links` section without rewriting its history.
-3. Preserve all other question and experiment links.
-4. Re-fetch both bodies and verify that each side references the other.
+1. Verify that each referenced issue exists and has the expected `research-question` or `experiment` Kind label. Do not infer an issue from a bare number that resolves to a pull request.
+2. Add the experiment as a plain `#N` reference under the question's `Related experiments` section.
+3. Add the research question as a plain `#N` reference under the experiment's `Links` -> `Research questions` entry. If the experiment predates that structure, add the smallest compatible `Links` section without rewriting its history.
+4. Preserve all other question and experiment links.
+5. Re-fetch both bodies and verify that each side references the other.
 
 Treat removing a relationship as a scope change. Explain the proposed removal and wait for explicit human approval before changing either body.
 
@@ -98,7 +99,7 @@ Treat removing a relationship as a scope change. Explain the proposed removal an
 - Use commit-pinned GitHub permalinks for code.
 - Link primary sources and stable artifacts.
 - Distinguish direct evidence, interpretation, and untested hypotheses.
-- Put large logs, tables, or code dumps in the appropriate artifact or a collapsed `<details>` block, following `AGENTS.md`.
+- Put large logs, tables, or code dumps in the appropriate artifact or a collapsed `<details>` block, following `communicate-on-github`.
 - Never credit the agent in the issue body.
 
 ## Finish

@@ -77,8 +77,8 @@ commit hash in the entry.
 Lightweight reproducibility commits are for research or WIP branches, not
 production extraction branches. Stage only the files needed to reproduce the
 entry, and leave unrelated local changes untouched. These commits are snapshots
-for traceability; they do not need to satisfy the full production-commit or
-pre-PR checklist in `AGENTS.md` until the work is promoted into a production PR.
+for traceability; they do not need to satisfy the production commit and
+pre-PR rules in `AGENTS.md` until the work is promoted into a production PR.
 
 For research series, add a short experiment ID prefix such as `MOE-HC` and use
 IDs like `MOE-HC-001` in logbook entries, W&B run names, and issue comments.

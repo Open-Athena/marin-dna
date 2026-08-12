@@ -36,12 +36,11 @@ Layer domain skills on top for task-specific constraints.
 2. A logbook at `.agents/logbooks/<topic>.md`.
 3. A living hypothesis queue in the logbook, derived from append-only entries
    and updated as hypotheses are proposed, blocked, falsified, or promoted.
-4. A long-lived branch named according to `AGENTS.md`, with the logbook,
-   research code, configs, small artifacts, and test harnesses needed to
-   reproduce results.
+4. A long-lived branch, for example `research/<topic>` or
+   `research/<user>/<issue>-<topic>`, with the logbook, research code, configs,
+   small artifacts, and test harnesses needed to reproduce results.
 5. One or more commit or tag snapshots for meaningful milestones.
-6. When the result belongs in MarinDNA's reusable core, a clean production
-   branch that gets PR'd and merged.
+6. Often a "production" branch that gets PR'd and merged.
 
 ## Research Logbook
 
@@ -50,31 +49,25 @@ formatting and issue-update rules.
 
 ## Branches
 
-Use the permanent research or experiment branch required by `AGENTS.md` for
-the logbook, one-off scripts, harnesses, and small artifacts. Extract a clean
-production branch only when the final code/docs shape is clear and the result
-belongs on `main`.
+Use a research branch for the logbook, one-off scripts, harnesses, and small
+artifacts. Extract a clean production branch only when the final code/docs shape
+is clear.
 
 ## Standard Workflow
 
 ### 1. Prologue
 
-1. Create or switch to a long-lived research branch. You may already be on one, or the user may have requested a specific branch name. Otherwise, follow the permanent-branch naming rules in `AGENTS.md`.
+1. Create or switch to a long-lived research branch. You may already be on one, or the user may have requested a specific branch name. Otherwise, pick a descriptive name like `research/<topic>` or `research/<user>/<issue>-<topic>`.
 2. Create an experiment issue with `file-issue` unless scope or visibility needs
-   human confirmation. If the user provides one, use it. Agents may create
-   additional bounded experiment issues without per-issue confirmation when
-   they stay within the research scope the human already authorized.
-3. If the experiment informs existing research questions, list every question
-   under `Links` -> `Research questions` and use
-   `maintain-research-question` to add the experiment to each question body.
-4. Start the logbook and link both ways: logbook to issue URL, issue body to logbook path. See the skill.
-5. Pick a short experiment ID prefix for the series, for example `MOE-HC-001`, and
+   human confirmation. If the user provides one, use it.
+3. Start the logbook and link both ways: logbook to issue URL, issue body to logbook path. See the skill.
+4. Pick a short experiment ID prefix for the series, for example `MOE-HC-001`, and
    use IDs like `MOE-HC-001` in logbook entries, run names, and issue comments.
-6. Pick a set of tags to use for all experiments, to be used with W&B, etc.
+5. Pick a set of tags to use for all experiments, to be used with W&B, etc.
    Typically this is the ID prefix (without the number), the issue number, and
    anything else reasonable. Try to keep to 2-4 shared tags. You may use more
    tags to distinguish runs within a project as useful.
-7. Record, as applicable: motivation, problem statement, context, success
+6. Record, as applicable: motivation, problem statement, context, success
    metrics, the initial hypothesis queue, first experiment matrix, relevant
    code paths, references, stop criteria, and the fixed baseline case for
    repeated comparison.
@@ -90,10 +83,7 @@ belongs on `main`.
    funnel.
 6. **Seal:** snapshot durable results or extract production work.
 
-Every cycle should leave the durable record better than it found it. When new
-evidence materially changes the answer, confidence, limitations, or next steps
-of a linked research question, use `maintain-research-question` to update its
-living synthesis.
+Every cycle should leave the durable record better than it found it.
 
 ### 2.1 Forage: Background Research
 
@@ -116,7 +106,7 @@ and copy/paste are acceptable there. Production-facing code keeps the usual
 For each non-trivial experiment:
 
 1. Do the dev work needed for the experiment.
-2. Run the benchmark or experiment. Use `babysit-job` for long-lived runs.
+2. Run the benchmark or experiment. Use `marin-experiment` for long-lived DNA training runs.
 3. Append exact commands, config, key outputs, interpretation, and next decision
    to the logbook. Follow `task-logbook` for issue updates.
 4. Push dense scalar series, plots, or raw artifacts to W&B or another store
@@ -136,7 +126,7 @@ Sealing should ordinarily only happen if the user requests it or the research ha
 
 If the research produced useful production changes, extract them into a clean
 branch that can link to the logbook but does not include it. Follow standard
-MarinDNA development practices on that branch.
+Marin development practices on that branch.
 
 Before closing the issue:
 
