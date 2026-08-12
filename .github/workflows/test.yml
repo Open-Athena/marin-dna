@@ -81,6 +81,7 @@ jobs:
               {"name": "core", "directory": ".", "dry_run": False},
               {"name": "evals-v2", "directory": "snakemake/analysis/evals_v2", "dry_run": True},
               {"name": "zoonomia-projection", "directory": "snakemake/zoonomia_projection_dataset", "dry_run": True},
+              {"name": "vertebrate-projection", "directory": "snakemake/vertebrate_projection_dataset", "dry_run": True},
               {"name": "genome-selection", "directory": "snakemake/training_dataset/genome_selection", "dry_run": True},
               {"name": "training-dataset", "directory": "snakemake/training_dataset/dataset_creation", "dry_run": True},
               {"name": "pipeline-scaffold", "directory": "scaffolds/snakemake-pipeline", "dry_run": True},
