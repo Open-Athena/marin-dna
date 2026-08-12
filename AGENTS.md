@@ -79,6 +79,16 @@ The codebase has five main components:
 
 ## GitHub Communication
 
+### Writing style and vendored skills
+
+Use `.agents/skills/writing-style/` for non-trivial MarinDNA-authored prose, including commit messages and GitHub PR, issue, and comment text. For MarinDNA, assume readers understand genomics and ML broadly but were not present for the work or investigation.
+
+For issues, MarinDNA's GitHub rules, issue templates, and `agent-research` skill take precedence over the vendored `issues.md`. Ignore its references to the unavailable `file-issue` and `run-research` skills and its requirements for research logbooks, W&B links, experiment identifiers, and snapshot tags unless another MarinDNA instruction or the user explicitly requires them.
+
+`.agents/skills/writing-style/` is vendored unchanged from [`marin-community/marin`](https://github.com/marin-community/marin/tree/34464a43b1dd8309914d0243810fd3dce065ef01/.agents/skills/writing-style) at commit `34464a43b1dd8309914d0243810fd3dce065ef01`; last checked against upstream on `2026-08-12`. Treat vendored skill files as read-only and put MarinDNA-specific guidance in `AGENTS.md` or separate local skills.
+
+When the last-checked date is more than 30 days old, first check for an existing vendored-skills update PR. If none exists, compare the vendored directory with the current upstream `main`; if it changed, replace the local copy unchanged, validate it, update the commit and date here, and open a PR. If it did not change, update only the last-checked date in a PR. Do not vendor additional skills as part of that refresh.
+
 - When an agent creates a PR or issue, add the `agent-generated` label.
 - Agent comments on PRs/issues must begin with `🤖`.
 - **Use visual communication when it materially speeds up understanding.** Prefer Mermaid diagrams for pipeline stages, dependencies, experiment designs, and comparisons because GitHub renders them natively in issues and PRs; use tables or plots when they communicate the result better. Keep visuals concise, accurate, and labeled, and ensure the surrounding text still states the key takeaway. Do not add decorative or redundant visuals.
