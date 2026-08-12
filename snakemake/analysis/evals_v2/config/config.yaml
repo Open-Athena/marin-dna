@@ -553,11 +553,14 @@ models:
   # animal-only uniform mix (~110B tokens), then a 5-way mix adding the new
   # distal data (mammal ncRNA + mammal ccRE/enhancer). Final HF checkpoint
   # step-59158; same 1B Qwen3 / 255 bp + BOS as the other mix-v0.9 runs.
-  # Scoped to mendelian_traits to match the other mix-v0.9 entries.
+  # Mendelian is the original headline cell. SGE and Complex Traits are also
+  # registered for issue #402's exact-cohort comparison against the final
+  # ortholog-RAG checkpoints; their frozen probes use the same standard
+  # embedding/probe path as the Mendelian comparison.
   - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
     window_size: 255
-    datasets: [mendelian_traits, sge]
+    datasets: [mendelian_traits, complex_traits, sge]
 
   # issue #402 ortholog-RAG training trajectory. The scorer consumes the
   # immutable HAL-projected two-strand harness and asserts exact equality with
@@ -1303,7 +1306,7 @@ probe:
     # headline generalist whose mendelian cell already has embeddings on S3; add
     # entries here as more cells are re-scored with inference.return_embeddings.
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
-      datasets: [mendelian_traits]
+      datasets: [mendelian_traits, complex_traits, sge]
 
     - name: exp402-rag-h640-p46m-b2m-step-29999
       datasets: [mendelian_traits, complex_traits, sge]
