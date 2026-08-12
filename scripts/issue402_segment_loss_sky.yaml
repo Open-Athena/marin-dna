@@ -72,5 +72,7 @@ run: |
   test -s "$RESULTS_DIR/manifest.json"
   test -s "$RESULTS_DIR/validation_position_loss.parquet"
   test -s "$RESULTS_DIR/validation_document_segment_loss.parquet"
-  aws s3 sync "$RESULTS_DIR/" "$OUTPUT_URI/" --only-show-errors
-  aws s3 ls "$OUTPUT_URI/manifest.json"
+  uv run --project snakemake/analysis/evals_v2 --locked --no-dev \
+    python scripts/issue402_upload_segment_loss.py \
+    --input-dir "$RESULTS_DIR" \
+    --output-uri "$OUTPUT_URI"

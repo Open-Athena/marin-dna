@@ -10,24 +10,31 @@ import matplotlib.pyplot as plt
 import polars as pl
 import seaborn as sns
 
-SANITY_ROOTS = {
-    "46M": (
-        "gs://marin-us-east5/evals/"
-        "dna-exp402-rag-h640-p46m-30k/2026.07.26/sanity-ac7016"
-    ),
+LOSS_ROOTS = {
+    "46M": ("s3://oa-bolinas/snakemake/analysis/issue402_segment_loss/46m-step-29999"),
     "104M": (
-        "gs://marin-us-east5/evals/"
-        "dna-exp402-rag-h768-p104m-30k/2026.07.26/sanity-ac7016"
+        "s3://oa-bolinas/snakemake/analysis/issue402_segment_loss/104m-step-29999"
     ),
 }
+SPECIES_DISPLAY = {
+    0: "M. talazaci",
+    1: "L. africana",
+    2: "T. matacus",
+    3: "B. taurus",
+    4: "E. caballus",
+    5: "M. musculus",
+    6: "M. murinus",
+    7: "H. sapiens",
+}
+S3_OPTIONS = {"aws_region": "us-east-2"}
 MODEL_ORDER = ["46M", "104M"]
 BASE_TOKEN_TYPES = ["ortholog_base", "human_base"]
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input-46m", default=SANITY_ROOTS["46M"])
-    parser.add_argument("--input-104m", default=SANITY_ROOTS["104M"])
+    parser.add_argument("--input-46m", default=LOSS_ROOTS["46M"])
+    parser.add_argument("--input-104m", default=LOSS_ROOTS["104M"])
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -36,11 +43,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_position_loss(roots: dict[str, str] = SANITY_ROOTS) -> pl.DataFrame:
+def load_position_loss(roots: dict[str, str] = LOSS_ROOTS) -> pl.DataFrame:
     """Load and smooth the frozen per-position validation summaries."""
     assert set(roots) == set(MODEL_ORDER)
     frames = [
-        pl.read_parquet(f"{root}/validation_position_loss.parquet")
+        pl.read_parquet(
+            f"{root}/validation_position_loss.parquet",
+            storage_options=S3_OPTIONS,
+        )
         for root in roots.values()
     ]
     data = pl.concat(frames).sort("model", "segment_index", "within_segment_offset")
@@ -52,7 +62,12 @@ def load_position_loss(roots: dict[str, str] = SANITY_ROOTS) -> pl.DataFrame:
             pl.col("mean_loss")
             .rolling_mean(window_size=15, center=True, min_samples=1)
             .over("model", "segment_index")
-            .alias("smoothed_loss")
+            .alias("smoothed_loss"),
+            pl.col("segment_index")
+            .replace_strict(
+                {index: f"{index} · {name}" for index, name in SPECIES_DISPLAY.items()}
+            )
+            .alias("segment_label"),
         )
         .sort("model", "segment_index", "within_segment_offset")
     )
@@ -67,13 +82,16 @@ def plot_position_loss(data: pl.DataFrame, output_dir: Path) -> None:
     data.write_parquet(output_dir / "metrics.parquet", compression="zstd")
     frame = data.to_pandas()
     sns.set_theme(style="whitegrid", context="talk")
+    labels = [f"{index} · {name}" for index, name in SPECIES_DISPLAY.items()]
+    colors = sns.color_palette("viridis", n_colors=8)
+    palette = dict(zip(labels, colors, strict=True))
     grid = sns.relplot(
         data=frame,
         x="within_segment_offset",
         y="smoothed_loss",
-        hue="segment_index",
-        palette="viridis",
-        hue_norm=(0, 7),
+        hue="segment_label",
+        hue_order=labels,
+        palette=palette,
         col="model",
         col_order=MODEL_ORDER,
         kind="line",
@@ -86,10 +104,8 @@ def plot_position_loss(data: pl.DataFrame, output_dir: Path) -> None:
     grid.set_titles("{col_name}")
     grid.set(xlim=(0, 254))
     if grid.legend is not None:
-        grid.legend.set_title("Segment index")
-    grid.figure.suptitle(
-        "Next-token validation loss falls within aligned sequence segments"
-    )
+        grid.legend.set_title("Segment index · species")
+    grid.figure.suptitle("All eight segment-index validation-loss profiles")
     grid.figure.supxlabel("Left-to-right offset within 255-base segment", y=0.075)
     grid.figure.text(
         0.5,
