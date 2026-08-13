@@ -14,9 +14,14 @@ from marin_dna_evals.soft_vep_analysis import (
     earliest_persistent_specialist_wins,
     exp232_manifest,
     permute_labels_within_groups,
+    plot_exp232_specialist_auprc_vs_brier,
     validate_aligned_bundles,
 )
-from marin_dna_evals.soft_vep_metrics import AUPRC, MEAN_GAP_GLOBAL
+from marin_dna_evals.soft_vep_metrics import (
+    AUPRC,
+    CALIBRATED_BRIER,
+    MEAN_GAP_GLOBAL,
+)
 
 
 def test_exp232_manifest_is_exact_inventory():
@@ -148,3 +153,37 @@ def test_confidence_filter_drops_unresolved_pairs():
     )
     assert result.loc[0, "n_informative_pairs"] == 0
     assert pd.isna(result.loc[0, "agreement_fraction"])
+
+
+def test_specialist_comparison_plot_writes_svg_and_png(tmp_path):
+    rows = []
+    for subset in NON_DISTAL_SUBSETS:
+        specialist = SPECIALIST_ARM[subset]
+        for step in (500, 1000):
+            for metric, value in (
+                (AUPRC, 0.2 + step / 10_000),
+                (CALIBRATED_BRIER, 0.1 - step / 100_000),
+            ):
+                rows.append(
+                    {
+                        "arm": specialist,
+                        "step": step,
+                        "subset": subset,
+                        "metric": metric,
+                        "value": value,
+                        "ci_low": value - 0.01,
+                        "ci_high": value + 0.01,
+                    }
+                )
+
+    outputs = plot_exp232_specialist_auprc_vs_brier(
+        pd.DataFrame(rows),
+        tmp_path,
+    )
+
+    assert set(outputs) == {
+        "plot_specialist_auprc_vs_brier_svg",
+        "plot_specialist_auprc_vs_brier_png",
+    }
+    assert outputs["plot_specialist_auprc_vs_brier_svg"].stat().st_size > 0
+    assert outputs["plot_specialist_auprc_vs_brier_png"].stat().st_size > 0

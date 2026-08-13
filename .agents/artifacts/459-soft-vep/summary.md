@@ -96,6 +96,8 @@ AUPRC.
 - `exp232/supported_specialist_wins.parquet`: persistent, interval-supported
   specialist timing.
 - `exp232/plots/*.svg`: eight full-cross-arm trajectory panels.
+- `exp232/plots/specialist_auprc_vs_brier.{svg,png}`: mapped-specialist AUPRC
+  and `1 - calibrated Brier` trajectories on independent higher-is-better axes.
 - `exp232/distributions/*.svg`: final-step POS/NEG and matched-group-difference
   ECDFs for all seven subsets.
 - `leaderboard/`: 22-model ranking, controls, pairwise confidence comparisons,

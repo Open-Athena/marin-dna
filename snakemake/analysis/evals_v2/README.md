@@ -268,6 +268,9 @@ Outputs include:
   Ribbons are 95% joint cluster-bootstrap intervals. Proper-score intervals are
   conditional on the fixed out-of-fold calibration fits; bootstrap draws
   resample their held-out row losses without refitting the calibrator.
+- `plots/specialist_auprc_vs_brier.{svg,png}`: the mapped specialist arm for
+  each subset, with AUPRC and `1 - calibrated Brier` on independent axes so
+  higher is better for both. The PNG is intended for inline GitHub display.
 - `distributions/*.svg`: final-step POS/NEG score ECDFs and matched-group
   positive-minus-mean-negative difference ECDFs for every non-distal subset.
   Each arm keeps its raw score scale so tail separation and scale drift remain

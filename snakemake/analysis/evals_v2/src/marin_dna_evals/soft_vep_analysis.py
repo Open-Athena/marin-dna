@@ -19,6 +19,7 @@ from scipy.stats import kendalltau, spearmanr
 
 from marin_dna_evals.soft_vep_metrics import (
     AUPRC,
+    CALIBRATED_BRIER,
     HIGHER_IS_BETTER,
     MEAN_GAP_GLOBAL,
     MEAN_GAP_GROUP,
@@ -718,6 +719,144 @@ def plot_exp232_trajectories(
     return outputs
 
 
+def plot_exp232_specialist_auprc_vs_brier(
+    point_metrics: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Compare each mapped specialist's AUPRC and 1 - calibrated Brier."""
+    required_columns = {
+        "arm",
+        "step",
+        "subset",
+        "metric",
+        "value",
+        "ci_low",
+        "ci_high",
+    }
+    missing = required_columns - set(point_metrics.columns)
+    assert not missing, f"point metrics are missing columns: {sorted(missing)}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    auprc_color = "#0072B2"
+    brier_skill_color = "#D55E00"
+    fig, axes = plt.subplots(4, 2, figsize=(13, 15), sharex=True, squeeze=False)
+    flat_axes = axes.flatten()
+    for axis, subset in zip(flat_axes, NON_DISTAL_SUBSETS):
+        specialist = SPECIALIST_ARM[subset]
+        specialist_data = point_metrics[
+            (point_metrics["subset"] == subset) & (point_metrics["arm"] == specialist)
+        ]
+        auprc = specialist_data[specialist_data["metric"] == AUPRC].sort_values("step")
+        brier = specialist_data[
+            specialist_data["metric"] == CALIBRATED_BRIER
+        ].sort_values("step")
+        assert not auprc.empty, f"no specialist AUPRC trajectory for {subset!r}"
+        assert not brier.empty, f"no specialist Brier trajectory for {subset!r}"
+        assert auprc["step"].tolist() == brier["step"].tolist(), (
+            f"AUPRC and Brier steps differ for {subset!r}"
+        )
+
+        axis.plot(
+            auprc["step"],
+            auprc["value"],
+            color=auprc_color,
+            marker="o",
+            markersize=4,
+            linewidth=2.2,
+        )
+        axis.fill_between(
+            auprc["step"],
+            auprc["ci_low"],
+            auprc["ci_high"],
+            color=auprc_color,
+            alpha=0.14,
+            linewidth=0,
+        )
+        axis.set_ylabel("AUPRC ↑", color=auprc_color)
+        axis.tick_params(axis="y", colors=auprc_color)
+        axis.spines["left"].set_color(auprc_color)
+        axis.grid(alpha=0.25, linewidth=0.7)
+
+        brier_skill = 1.0 - brier["value"]
+        brier_skill_low = 1.0 - brier["ci_high"]
+        brier_skill_high = 1.0 - brier["ci_low"]
+        skill_axis = axis.twinx()
+        skill_axis.plot(
+            brier["step"],
+            brier_skill,
+            color=brier_skill_color,
+            linestyle="--",
+            marker="s",
+            markersize=3.8,
+            linewidth=2.2,
+        )
+        skill_axis.fill_between(
+            brier["step"],
+            brier_skill_low,
+            brier_skill_high,
+            color=brier_skill_color,
+            alpha=0.12,
+            linewidth=0,
+        )
+        skill_axis.set_ylabel("1 − calibrated Brier ↑", color=brier_skill_color)
+        skill_axis.tick_params(axis="y", colors=brier_skill_color)
+        skill_axis.spines["right"].set_color(brier_skill_color)
+
+        axis.set_title(f"{subset}\nspecialist: {specialist}", fontsize=10)
+        axis.set_xlabel("Training step")
+
+    flat_axes[-1].axis("off")
+    legend_handles = [
+        plt.Line2D(
+            [0],
+            [0],
+            color=auprc_color,
+            marker="o",
+            linewidth=2.2,
+            label="AUPRC ↑",
+        ),
+        plt.Line2D(
+            [0],
+            [0],
+            color=brier_skill_color,
+            linestyle="--",
+            marker="s",
+            linewidth=2.2,
+            label="1 − grouped-CV calibrated Brier ↑",
+        ),
+    ]
+    flat_axes[-1].legend(
+        handles=legend_handles,
+        title="Metric (higher is better)",
+        loc="center",
+        frameon=False,
+    )
+    fig.suptitle(
+        "exp232 mapped-specialist trajectories\n"
+        "development split; ribbons are 95% joint match-group bootstrap intervals",
+        fontsize=13,
+        y=0.995,
+    )
+    fig.text(
+        0.5,
+        0.008,
+        "Axes use independent scales; compare direction over steps, not metric magnitudes. "
+        "Brier intervals condition on fixed OOF calibration fits.",
+        ha="center",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0.025, 1, 0.965))
+    svg_path = output_dir / "specialist_auprc_vs_brier.svg"
+    png_path = output_dir / "specialist_auprc_vs_brier.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+    return {
+        "plot_specialist_auprc_vs_brier_svg": svg_path,
+        "plot_specialist_auprc_vs_brier_png": png_path,
+    }
+
+
 def _ecdf(values: pd.Series | np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     ordered = np.sort(np.asarray(values, dtype=float))
     return ordered, np.arange(1, len(ordered) + 1) / len(ordered)
@@ -950,6 +1089,12 @@ def run_exp232_analysis(
     controls.to_parquet(outputs["controls"], index=False)
     control_summary.to_parquet(outputs["control_summary"], index=False)
     outputs.update(plot_exp232_trajectories(point_metrics, output_dir / "plots"))
+    outputs.update(
+        plot_exp232_specialist_auprc_vs_brier(
+            point_metrics,
+            output_dir / "plots",
+        )
+    )
     outputs.update(
         plot_exp232_distribution_diagnostics(
             final_bundles, output_dir / "distributions"

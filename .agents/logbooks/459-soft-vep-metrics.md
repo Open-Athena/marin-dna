@@ -287,3 +287,18 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   formatted implementation, focused tests, and updated reproduction command.
 - Next action: use this hash for the issue's implementation, summary, and figure
   permalinks.
+
+### 2026-08-13 23:00 UTC - `VEP-SOFT-009` specialist comparison figure
+
+- Commit Hash: plot snapshot pending.
+- Result: added a seven-panel mapped-specialist trajectory figure comparing
+  AUPRC with `1 - grouped-CV calibrated Brier` over every stored exp232 step.
+  Both axes are higher-is-better; their independent scales and conditional
+  Brier uncertainty are labeled directly on the figure.
+- Artifact:
+  `.agents/artifacts/459-soft-vep/exp232/plots/specialist_auprc_vs_brier.{svg,png}`.
+  The PNG is the GitHub-inline rendering and the SVG is the reviewable source.
+- Verification: the focused analysis test module passes (8 tests), the PNG was
+  visually reviewed at full content scale, and `git diff --check` passes.
+- Next action: snapshot and push the figure, then shorten the issue body and
+  collapse the completed design record beneath the visible result.
