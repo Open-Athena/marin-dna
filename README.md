@@ -87,6 +87,17 @@ uv sync --locked --group dev
 uv run --locked pytest
 ```
 
+### Core interval API
+
+marin_dna.data.intervals.GenomicSet accepts a Polars DataFrame and exposes
+normalized coordinates through to_polars(). The core package has no pandas
+compatibility layer. Interval union, intersection, subtraction, overlap
+filtering, and merging delegate to polars-bio.
+
+Coordinates are 0-based and half-open, and stored intervals must have positive
+length. Transformations may temporarily produce negative coordinates; intersect
+with chromosome bounds before extracting sequence.
+
 Each runnable Snakemake pipeline is an independent Python project with its own manifest, lockfile, source package, tests, and `.venv`:
 
 | Project | Package |

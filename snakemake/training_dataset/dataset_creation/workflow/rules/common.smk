@@ -31,8 +31,6 @@ from marin_dna.data.utils import (
     get_upstream_of_CDS,
     load_annotation,
     load_fasta,
-    read_bed_to_pandas,
-    write_pandas_to_bed,
 )
 
 tqdm.pandas()

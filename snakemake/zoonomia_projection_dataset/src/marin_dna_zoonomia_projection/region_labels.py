@@ -25,10 +25,9 @@ against an accidental RefSeq GTF.
 
 from pathlib import Path
 
-import bioframe as bf
 import numpy as np
-import pandas as pd
 import polars as pl
+import polars_bio as pb
 
 from marin_dna.data.intervals import GenomicSet
 from marin_dna.data.utils import (
@@ -219,36 +218,21 @@ def build_region_beds(
 # ============================================================================
 
 
-def _coverage_bp(windows: pd.DataFrame, region: pd.DataFrame) -> np.ndarray:
-    """Per-window basepair coverage by ``region``, computed chrom-by-chrom.
+def _coverage_bp(windows: pl.DataFrame, region: pl.DataFrame) -> np.ndarray:
+    """Return per-window covered bases in the original Polars row order."""
+    if windows.is_empty() or region.is_empty():
+        return np.zeros(windows.height, dtype=np.int64)
 
-    Returns an array aligned to ``windows.index`` (caller must reset index
-    before passing in). Empty ``region`` yields all zeros.
-
-    Caveat: ``bf.coverage`` resets its input DataFrame's index in place to
-    ``[0, 1, ...]`` (it sorts internally for the overlap join). We pass a
-    ``.copy()`` and capture ``sub.index`` *before* the call so each chrom
-    iteration writes coverage to the correct rows of ``out``. Without this,
-    the second-and-later chroms in the groupby loop silently corrupt
-    earlier chroms' values — the bug surfaces only on multi-chrom inputs.
-    """
-    assert windows.index.is_monotonic_increasing and windows.index[0] == 0, (
-        "_coverage_bp requires reset_index() windows DataFrame"
+    windows.config_meta.set(coordinate_system_zero_based=True)
+    region.config_meta.set(coordinate_system_zero_based=True)
+    result = pb.coverage(windows, region, output_type="polars.DataFrame")
+    assert isinstance(result, pl.DataFrame), (
+        f"polars-bio coverage returned {type(result).__name__}"
     )
-    out = np.zeros(len(windows), dtype=np.int64)
-    if len(region) == 0:
-        return out
-    region_by_chrom = {chrom: sub for chrom, sub in region.groupby("chrom", sort=False)}
-    for chrom, sub in windows.groupby("chrom", sort=False):
-        chrom_region = region_by_chrom.get(chrom)
-        if chrom_region is None or len(chrom_region) == 0:
-            continue
-        orig_idx = sub.index.to_numpy()  # Capture BEFORE bf.coverage mutates sub.index.
-        cov = bf.coverage(sub.copy(), chrom_region, return_input=False)[
-            "coverage"
-        ].to_numpy()
-        out[orig_idx] = cov
-    return out
+    assert result.select(["chrom", "start", "end"]).equals(windows), (
+        "polars-bio coverage changed window order or coordinates"
+    )
+    return result.get_column("coverage").to_numpy()
 
 
 def label_windows(
@@ -263,7 +247,7 @@ def label_windows(
     Args:
         windows_bed: BED4 (chrom, start, end, name) of human anchors, e.g.
             ``results/human/intervals/filtered/min0.20.bed.gz``. .gz auto-
-            detected by pandas.
+            detected by Polars.
         beds: dict from :func:`build_region_beds` containing the 5
             functional regions + ``gene_body`` + ``all_exons``.
         functional_threshold: window's union-of-functional fraction must
@@ -288,33 +272,38 @@ def label_windows(
     for diag in ("gene_body", "all_exons"):
         assert diag in beds, f"beds missing diagnostic key: {diag!r}"
 
-    windows = pd.read_csv(
-        str(windows_bed),
-        sep="\t",
-        header=None,
-        names=["chrom", "start", "end", "name"],
-        dtype={"chrom": str},
-    ).reset_index(drop=True)
-    sizes = (windows["end"] - windows["start"]).to_numpy()
+    windows = pl.read_csv(
+        windows_bed,
+        separator="\t",
+        has_header=False,
+        new_columns=["chrom", "start", "end", "name"],
+        schema_overrides={
+            "chrom": pl.String,
+            "start": pl.Int64,
+            "end": pl.Int64,
+            "name": pl.String,
+        },
+    )
+    sizes = (windows.get_column("end") - windows.get_column("start")).to_numpy()
     assert (sizes > 0).all(), "non-positive window sizes"
 
-    coords = windows[["chrom", "start", "end"]]
+    coords = windows.select(["chrom", "start", "end"])
 
     # Per-region overlap fractions for the 5 functional labels.
     frac: dict[str, np.ndarray] = {}
     for label in REGION_LABELS:
-        cov_bp = _coverage_bp(coords, beds[label].to_pandas())
+        cov_bp = _coverage_bp(coords, beds[label].to_polars())
         frac[label] = cov_bp / sizes
 
     # Union of all 5 functional regions — basis for the threshold.
     functional_union = beds[REGION_LABELS[0]]
     for label in REGION_LABELS[1:]:
         functional_union = functional_union | beds[label]
-    functional_frac = _coverage_bp(coords, functional_union.to_pandas()) / sizes
+    functional_frac = _coverage_bp(coords, functional_union.to_polars()) / sizes
 
     # Diagnostic: gene body, intron, intergenic.
-    gene_body_frac = _coverage_bp(coords, beds["gene_body"].to_pandas()) / sizes
-    exon_frac = _coverage_bp(coords, beds["all_exons"].to_pandas()) / sizes
+    gene_body_frac = _coverage_bp(coords, beds["gene_body"].to_polars()) / sizes
+    exon_frac = _coverage_bp(coords, beds["all_exons"].to_polars()) / sizes
     intron_frac = np.clip(gene_body_frac - exon_frac, a_min=0.0, a_max=None)
     intergenic_frac = np.clip(1.0 - gene_body_frac, a_min=0.0, a_max=None)
 
@@ -338,10 +327,10 @@ def label_windows(
 
     return pl.DataFrame(
         {
-            "name": windows["name"].to_numpy(),
-            "chrom": windows["chrom"].to_numpy(),
-            "start": windows["start"].to_numpy(),
-            "end": windows["end"].to_numpy(),
+            "name": windows.get_column("name"),
+            "chrom": windows.get_column("chrom"),
+            "start": windows.get_column("start"),
+            "end": windows.get_column("end"),
             "label": label_arr.astype(str),
             "functional_frac": functional_frac,
             **{f"{label}_frac": frac[label] for label in REGION_LABELS},
@@ -389,7 +378,7 @@ def label_windows_bp_majority(
 
     Args:
         windows_bed: BED4 (chrom, start, end, name) of human anchors. .gz
-            auto-detected by pandas.
+            auto-detected by Polars.
         beds: dict from :func:`build_region_beds` (5 functional + ``gene_body``
             + ``all_exons``). For v4 build it with ``tss_pc_only=True``.
         functional_threshold: window's union-of-functional fraction must be ≥
@@ -414,16 +403,21 @@ def label_windows_bp_majority(
     for diag in ("gene_body", "all_exons"):
         assert diag in beds, f"beds missing diagnostic key: {diag!r}"
 
-    windows = pd.read_csv(
-        str(windows_bed),
-        sep="\t",
-        header=None,
-        names=["chrom", "start", "end", "name"],
-        dtype={"chrom": str},
-    ).reset_index(drop=True)
-    sizes = (windows["end"] - windows["start"]).to_numpy()
+    windows = pl.read_csv(
+        windows_bed,
+        separator="\t",
+        has_header=False,
+        new_columns=["chrom", "start", "end", "name"],
+        schema_overrides={
+            "chrom": pl.String,
+            "start": pl.Int64,
+            "end": pl.Int64,
+            "name": pl.String,
+        },
+    )
+    sizes = (windows.get_column("end") - windows.get_column("start")).to_numpy()
     assert (sizes > 0).all(), "non-positive window sizes"
-    coords = windows[["chrom", "start", "end"]]
+    coords = windows.select(["chrom", "start", "end"])
 
     # Stage 1: disjoint region sets in priority order.
     # disjoint[label] = beds[label] − union(strictly-higher-priority beds).
@@ -437,7 +431,7 @@ def label_windows_bp_majority(
     assert higher is not None
 
     disjoint_bp = {
-        label: _coverage_bp(coords, disjoint[label].to_pandas()) for label in priority
+        label: _coverage_bp(coords, disjoint[label].to_polars()) for label in priority
     }
     disjoint_frac = {label: disjoint_bp[label] / sizes for label in priority}
 
@@ -448,7 +442,7 @@ def label_windows_bp_majority(
     functional_bp = np.sum(
         np.stack([disjoint_bp[label] for label in priority], axis=0), axis=0
     )
-    union_bp = _coverage_bp(coords, higher.to_pandas())
+    union_bp = _coverage_bp(coords, higher.to_polars())
     assert np.array_equal(functional_bp, union_bp), (
         "disjoint partition does not sum to the functional union — "
         "bp-priority subtraction bug"
@@ -456,8 +450,8 @@ def label_windows_bp_majority(
     functional_frac = functional_bp / sizes
 
     # Diagnostic columns (identical definitions to label_windows).
-    gene_body_frac = _coverage_bp(coords, beds["gene_body"].to_pandas()) / sizes
-    exon_frac = _coverage_bp(coords, beds["all_exons"].to_pandas()) / sizes
+    gene_body_frac = _coverage_bp(coords, beds["gene_body"].to_polars()) / sizes
+    exon_frac = _coverage_bp(coords, beds["all_exons"].to_polars()) / sizes
     intron_frac = np.clip(gene_body_frac - exon_frac, a_min=0.0, a_max=None)
     intergenic_frac = np.clip(1.0 - gene_body_frac, a_min=0.0, a_max=None)
 
@@ -475,10 +469,10 @@ def label_windows_bp_majority(
 
     return pl.DataFrame(
         {
-            "name": windows["name"].to_numpy(),
-            "chrom": windows["chrom"].to_numpy(),
-            "start": windows["start"].to_numpy(),
-            "end": windows["end"].to_numpy(),
+            "name": windows.get_column("name"),
+            "chrom": windows.get_column("chrom"),
+            "start": windows.get_column("start"),
+            "end": windows.get_column("end"),
             "label": label_arr.astype(str),
             "functional_frac": functional_frac,
             **{f"{label}_frac": disjoint_frac[label] for label in REGION_LABELS},

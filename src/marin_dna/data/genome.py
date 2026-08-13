@@ -5,8 +5,6 @@ to drop the GenomicSet class and transform helpers — those live in
 marin-dna's own ``intervals.py`` and ``transforms.py`` respectively.
 """
 
-from __future__ import annotations
-
 import os
 from pathlib import Path
 from typing import Any, Literal

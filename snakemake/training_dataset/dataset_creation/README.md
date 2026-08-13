@@ -31,6 +31,11 @@ The pipeline uses functions from `marin_dna.data.utils` to extract genomic regio
 | `get_ncrna_exons(ann, biotypes)` | Functional ncRNA exons | GenomicSet |
 | `get_mrna_exons(ann)` | mRNA exons with transcript_id | pl.DataFrame |
 
+The shared interval and sequence helpers are Polars-only. Construct
+GenomicSet from a Polars DataFrame and use to_polars() when a normalized frame
+is needed. Its interval algebra uses polars-bio with 0-based, half-open
+coordinates.
+
 ### ncRNA Filtering Criteria
 
 The `get_ncrna_exons` function includes functional ncRNAs while excluding non-functional annotations.

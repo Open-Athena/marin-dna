@@ -9,7 +9,7 @@ description = "Locked runtime and Python package for the Zoonomia projection dat
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "marin-dna",
-    "bioframe",
+    "polars-bio>=0.33.0,<0.34.0",
     "huggingface-hub",
     "numpy",
     "openpyxl",

@@ -331,6 +331,13 @@ cds  >  utr3  >  ncrna_exon  >  tss_region_and_utr5  >  ccre_non_promoter  >  ba
 
 All region extractors read **Ensembl** biotype vocabulary (`protein_coding`, `lncRNA`, `miRNA`, …). RefSeq-flavored helpers in `marin_dna.data.utils` (`get_mrna_exons`, `get_5_prime_utr`, `get_3_prime_utr`, `get_ncrna_exons`, `get_promoters`) are **not** used and `build_region_beds` asserts the GTF carries `transcript_biotype "protein_coding"` to guard against silent vocabulary mismatch.
 
+### Implementation
+
+The labeler reads BED4 anchors with Polars and computes per-window coverage with
+polars-bio, explicitly marking both inputs as 0-based. Coverage output is checked
+against the original coordinates so duplicate anchors and input row order remain
+aligned with their names.
+
 ### Pipeline
 
 ```

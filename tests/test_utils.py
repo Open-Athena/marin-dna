@@ -1,6 +1,6 @@
 import numpy as np
-import pandas as pd
 import polars as pl
+import pytest
 from Bio.Seq import Seq
 
 from marin_dna.data.intervals import GenomicSet
@@ -21,8 +21,6 @@ from marin_dna.data.utils import (
     get_upstream_of_CDS,
     load_annotation,
     load_fasta,
-    read_bed_to_pandas,
-    write_pandas_to_bed,
 )
 
 
@@ -398,7 +396,7 @@ def test_get_promoters_from_exons_positive_strand():
     # Promoter is [1000-100, 1000+50] = [900, 1050]
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [900]
     assert df["end"].to_list() == [1050]
 
@@ -425,7 +423,7 @@ def test_get_promoters_from_exons_negative_strand():
     # Promoter is [1700-50, 1700+100] = [1650, 1800]
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [1650]
     assert df["end"].to_list() == [1800]
 
@@ -535,7 +533,7 @@ def test_get_cds_filters_non_cds():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [200]
     assert df["end"].to_list() == [250]
 
@@ -568,7 +566,7 @@ def test_get_cds_merges_overlapping():
     assert isinstance(result, GenomicSet)
     # Overlapping [100-150] and [120-170] should merge to [100-170]
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [100]
     assert df["end"].to_list() == [170]
 
@@ -629,244 +627,93 @@ def test_get_cds_gbkey_fallback():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [100]
     assert df["end"].to_list() == [200]
 
 
-# read_bed_to_pandas and write_pandas_to_bed tests
-def test_read_bed_to_pandas(tmp_path):
-    """Test read_bed_to_pandas with basic BED file.
-
-    Input: BED file with 3 intervals
-    Output: DataFrame with columns [chrom, start, end]
-    """
-    bed_file = tmp_path / "test.bed"
-    bed_content = """chr1\t100\t200
-chr2\t300\t400
-chr3\t500\t600
-"""
-    bed_file.write_text(bed_content)
-
-    result = read_bed_to_pandas(str(bed_file))
-
-    assert len(result) == 3
-    assert list(result.columns) == ["chrom", "start", "end"]
-    assert result["chrom"].tolist() == ["chr1", "chr2", "chr3"]
-    assert result["start"].tolist() == [100, 300, 500]
-    assert result["end"].tolist() == [200, 400, 600]
-
-
-def test_write_pandas_to_bed(tmp_path):
-    """Test write_pandas_to_bed writes correct BED format.
-
-    Input: DataFrame with intervals
-    Output: BED file with tab-separated values, no header, no index
-    """
-    bed_file = tmp_path / "output.bed"
-    df = pd.DataFrame(
-        {
-            "chrom": ["chr1", "chr2"],
-            "start": [100, 300],
-            "end": [200, 400],
-        }
-    )
-
-    write_pandas_to_bed(df, str(bed_file))
-
-    # Read back and verify
-    content = bed_file.read_text()
-    lines = content.strip().split("\n")
-    assert len(lines) == 2
-    assert lines[0] == "chr1\t100\t200"
-    assert lines[1] == "chr2\t300\t400"
-
-
-def test_read_write_bed_roundtrip(tmp_path):
-    """Test that reading and writing BED files preserves data.
-
-    Input: DataFrame -> write to BED -> read back
-    Output: Original DataFrame matches read DataFrame
-    """
-    bed_file = tmp_path / "roundtrip.bed"
-    original = pd.DataFrame(
-        {
-            "chrom": ["chr1", "chr2", "chr3"],
-            "start": [100, 300, 500],
-            "end": [200, 400, 600],
-        }
-    )
-
-    write_pandas_to_bed(original, str(bed_file))
-    result = read_bed_to_pandas(str(bed_file))
-
-    pd.testing.assert_frame_equal(result, original)
-
-
 # load_fasta tests
 def test_load_fasta_basic(tmp_path):
-    """Test load_fasta with basic FASTA file.
-
-    Input: FASTA file with 2 sequences
-    Output: Series with sequence IDs as index
-    """
     fasta_file = tmp_path / "test.fasta"
-    fasta_content = """>seq1
-ATGCATGC
->seq2
-GCTAGCTA
-"""
-    fasta_file.write_text(fasta_content)
+    fasta_file.write_text(">seq1\nATGCATGC\n>seq2\nGCTAGCTA\n")
 
     result = load_fasta(str(fasta_file))
 
-    assert len(result) == 2
-    assert result.name == "seq"
-    assert result.index.tolist() == ["seq1", "seq2"]
-    assert result["seq1"] == "ATGCATGC"
-    assert result["seq2"] == "GCTAGCTA"
+    assert result.schema == {"id": pl.String, "seq": pl.String}
+    assert result.to_dicts() == [
+        {"id": "seq1", "seq": "ATGCATGC"},
+        {"id": "seq2", "seq": "GCTAGCTA"},
+    ]
 
 
 def test_load_fasta_multiline_sequences(tmp_path):
-    """Test load_fasta with multi-line sequences.
-
-    Input: FASTA file with sequences split across multiple lines
-    Output: Series with concatenated sequences
-    """
     fasta_file = tmp_path / "test.fasta"
-    fasta_content = """>seq1
-ATGC
-ATGC
->seq2
-GCTA
-GCTA
-"""
-    fasta_file.write_text(fasta_content)
+    fasta_file.write_text(">seq1\nATGC\nATGC\n>seq2\nGCTA\nGCTA\n")
 
     result = load_fasta(str(fasta_file))
 
-    assert result["seq1"] == "ATGCATGC"
-    assert result["seq2"] == "GCTAGCTA"
+    assert result.get_column("seq").to_list() == ["ATGCATGC", "GCTAGCTA"]
 
 
 def test_load_fasta_empty(tmp_path):
-    """Test load_fasta with empty FASTA file.
-
-    Input: Empty FASTA file
-    Output: Empty Series
-    """
     fasta_file = tmp_path / "empty.fasta"
     fasta_file.write_text("")
 
     result = load_fasta(str(fasta_file))
 
-    assert len(result) == 0
-    assert result.name == "seq"
+    assert result.is_empty()
+    assert result.schema == {"id": pl.String, "seq": pl.String}
 
 
 # add_rc tests
 def test_add_rc_basic():
-    """Test add_rc with basic DNA sequences.
+    data = pl.DataFrame({"id": ["seq1"], "seq": ["ATGC"]})
 
-    Input: DataFrame with 1 sequence
-    Output: DataFrame with 2 rows (forward and reverse complement)
-    """
-    df = pd.DataFrame(
-        {
-            "id": ["seq1"],
-            "seq": ["ATGC"],
-        }
-    )
+    result = add_rc(data)
 
-    result = add_rc(df)
-
-    assert len(result) == 2
-    assert result["id"].tolist() == ["seq1_+", "seq1_-"]
-    assert result["seq"].tolist() == ["ATGC", "GCAT"]
+    assert result.to_dicts() == [
+        {"id": "seq1_+", "seq": "ATGC"},
+        {"id": "seq1_-", "seq": "GCAT"},
+    ]
 
 
-def test_add_rc_multiple_sequences():
-    """Test add_rc with multiple sequences.
-
-    Input: DataFrame with 2 sequences
-    Output: DataFrame with 4 rows (2 forward + 2 reverse complement)
-    """
-    df = pd.DataFrame(
+def test_add_rc_multiple_sequences_and_extra_columns():
+    data = pl.DataFrame(
         {
             "id": ["seq1", "seq2"],
             "seq": ["ATGC", "GGCC"],
+            "quality": [30, 40],
         }
     )
 
-    result = add_rc(df)
+    result = add_rc(data)
 
-    assert len(result) == 4
-    assert result["id"].tolist() == ["seq1_+", "seq2_+", "seq1_-", "seq2_-"]
-    assert result["seq"].tolist() == ["ATGC", "GGCC", "GCAT", "GGCC"]
-
-
-def test_add_rc_preserves_other_columns():
-    """Test that add_rc preserves other columns in DataFrame.
-
-    Input: DataFrame with additional columns
-    Output: All columns preserved in both forward and RC
-    """
-    df = pd.DataFrame(
-        {
-            "id": ["seq1"],
-            "seq": ["ATGC"],
-            "quality": [30],
-        }
-    )
-
-    result = add_rc(df)
-
-    assert len(result) == 2
-    assert "quality" in result.columns
-    assert result["quality"].tolist() == [30, 30]
+    assert result.get_column("id").to_list() == [
+        "seq1_+",
+        "seq2_+",
+        "seq1_-",
+        "seq2_-",
+    ]
+    assert result.get_column("seq").to_list() == ["ATGC", "GGCC", "GCAT", "GGCC"]
+    assert result.get_column("quality").to_list() == [30, 40, 30, 40]
 
 
-def test_add_rc_complex_sequence():
-    """Test add_rc with a longer, more complex sequence.
+def test_add_rc_complex_sequence_and_original_unchanged():
+    data = pl.DataFrame({"id": ["seq1"], "seq": ["ATGCTAGCTAGCTA"]})
+    original = data.clone()
 
-    Input: Longer DNA sequence
-    Output: Correct reverse complement
-    """
-    df = pd.DataFrame(
-        {
-            "id": ["seq1"],
-            "seq": ["ATGCTAGCTAGCTA"],
-        }
-    )
+    result = add_rc(data)
 
-    result = add_rc(df)
-
-    # Expected reverse complement
     expected_rc = str(Seq("ATGCTAGCTAGCTA").reverse_complement())
-    assert result[result["id"] == "seq1_-"]["seq"].iloc[0] == expected_rc
+    assert result.filter(pl.col("id") == "seq1_-").item(0, "seq") == expected_rc
+    assert data.equals(original)
 
 
-def test_add_rc_original_unchanged():
-    """Test that add_rc does not modify the original DataFrame.
-
-    Input: Original DataFrame
-    Output: Original DataFrame unchanged after add_rc
-    """
-    df = pd.DataFrame(
-        {
-            "id": ["seq1"],
-            "seq": ["ATGC"],
-        }
-    )
-
-    original_len = len(df)
-    original_id = df["id"].tolist()
-
-    add_rc(df)
-
-    # Original should be unchanged
-    assert len(df) == original_len
-    assert df["id"].tolist() == original_id
+def test_add_rc_validates_schema():
+    with pytest.raises(ValueError, match="missing columns"):
+        add_rc(pl.DataFrame({"id": ["seq1"]}))
+    with pytest.raises(TypeError, match="String dtypes"):
+        add_rc(pl.DataFrame({"id": [1], "seq": ["ATGC"]}))
 
 
 # get_5_prime_utr tests
@@ -897,7 +744,7 @@ def test_get_5_prime_utr_positive_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [100]
     assert df["end"].to_list() == [200]
 
@@ -929,7 +776,7 @@ def test_get_5_prime_utr_negative_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     # For '-' strand, 5' UTR is genomically after CDS end
     assert df["start"].to_list() == [250]
     assert df["end"].to_list() == [300]
@@ -963,7 +810,7 @@ def test_get_5_prime_utr_multi_exon():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 2
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [100, 300]
     assert df["end"].to_list() == [200, 350]
 
@@ -1051,7 +898,7 @@ def test_get_3_prime_utr_positive_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [200]
     assert df["end"].to_list() == [300]
 
@@ -1083,7 +930,7 @@ def test_get_3_prime_utr_negative_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     # For '-' strand, 3' UTR is genomically before CDS start
     assert df["start"].to_list() == [100]
     assert df["end"].to_list() == [150]
@@ -1446,7 +1293,7 @@ def test_get_promoters_mrna_only_true():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     # mRNA promoter at TSS=100: [100-50, 100+25] = [50, 125]
     assert df["chrom"].to_list() == ["chr1"]
     assert df["start"].to_list() == [50]
@@ -1721,7 +1568,7 @@ def test_get_upstream_of_CDS_positive_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [100]
     assert df["end"].to_list() == [200]
 
@@ -1753,7 +1600,7 @@ def test_get_upstream_of_CDS_negative_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [300]
     assert df["end"].to_list() == [400]
 
@@ -1787,7 +1634,7 @@ def test_get_upstream_of_CDS_with_bounds():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [50]
     assert df["end"].to_list() == [150]
 
@@ -1846,7 +1693,7 @@ def test_get_downstream_of_CDS_positive_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [300]
     assert df["end"].to_list() == [400]
 
@@ -1878,7 +1725,7 @@ def test_get_downstream_of_CDS_negative_strand():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [100]
     assert df["end"].to_list() == [200]
 
@@ -1912,7 +1759,7 @@ def test_get_downstream_of_CDS_with_bounds():
 
     assert isinstance(result, GenomicSet)
     assert result.n_intervals() == 1
-    df = result.to_pandas()
+    df = result.to_polars()
     assert df["start"].to_list() == [350]
     assert df["end"].to_list() == [450]
 

@@ -47,7 +47,7 @@ rule build_region_labels:
     output:
         labels="results/human/intervals/region_labels/min{min_p}.parquet",
     resources:
-        # GTF parse + 5 region BEDs + bf.coverage over 22.9M anchors ×
+        # GTF parse + 5 region BEDs + polars-bio coverage over 22.9M anchors ×
         # multiple region sets. Peaks around the union build; budget headroom.
         mem_mb=24000,
     params:
