@@ -5,10 +5,9 @@
 
 == Study design and frozen analysis snapshot
 <methods-study-design>
-This manuscript reports the model, evaluation, and figure snapshot used for the published MarinDNA article rather than a continuously updated leaderboard.
-The mechanical manuscript baseline and its 20 SVG assets were fixed at MarinDNA commit #link("https://github.com/Open-Athena/marin-dna/tree/3b608d39b41c2330636ec647dbb25d26b0895187/docs/papers/marin-dna-2026-08")[3b608d39b41c2330636ec647dbb25d26b0895187], whose content and figures were converted from project commit d8c4803cbbbffafb24890cd0c75134d78368d55c.
-No new training run or evaluation dataset was introduced for the editorial conversion.
-The live leaderboard is treated as a separate, evolving resource.
+This study analyzes a frozen set of training runs, evaluation artifacts, and figures.
+All reported comparisons use fixed checkpoints and dataset revisions; the live leaderboard is a separate, evolving resource.
+The exact manuscript baseline and artifact revisions are recorded in @availability and @provenance.
 
 == Training data
 <methods-training-data>
@@ -35,11 +34,16 @@ The immutable public release is recorded in @availability.
 A Bayesian reference sweep using Vizier trained approximately 25M-parameter models for 2.5B tokens with a 16k-token batch.
 The sweep tuned initialization scale, AdamH and Adam peak learning rates, β₁, β₂, ε, gradient clipping, and z-loss against the weighted validation-loss statistic described below.
 A fixed geometry rule maps hidden width to the number of layers, MLP width, attention heads, and key-value heads.
+For hidden width D, it sets `layers = round(D/(55 + 4·log₂D))`, `MLP width = 4D`, and both attention-head and key-value-head counts to `D/128`; sweep widths are selected manually.
+The rule is inherited from Marin's text-model scaling heuristic and was not fit on DNA; see the #link("https://github.com/marin-community/marin/blob/a638849fa837f924aaac66ff3d0c1f581dfdd49e/experiments/scaling_law_sweeps/completed_adamh.py#L133-L140")[commit-pinned geometry rule] and #link("https://github.com/marin-community/marin/blob/a638849fa837f924aaac66ff3d0c1f581dfdd49e/experiments/scaling_law_sweeps/completed_adamh.py#L211-L244")[model builder].
 A second fixed rule transfers the reference optimizer settings to a target batch size and token horizon.
 Relative to reference batch size B₀ and horizon T₀, the AdamH learning rate is multiplied by √(B/B₀)(T₀/T)^0.3.
 The Adam learning rate is multiplied by √(r/r₀), ε by √(r₀/r), and β₂ is exponentiated by B/B₀ subject to configured bounds, where r/r₀ = (B T₀)/(B₀ T).
+The 0.3 token-horizon exponent is inherited from Marin's text recipe and was not fit on the DNA sweep.
+#link("https://arxiv.org/abs/2512.22382")[Complete(d)] proposes 0.5, while a later #link("https://github.com/marin-community/marin/issues/4225")[Marin text sweep] estimated \~0.28; see the #link("https://github.com/marin-community/marin/blob/a638849fa837f924aaac66ff3d0c1f581dfdd49e/experiments/scaling_law_sweeps/completed_adamh.py#L162-L209")[commit-pinned implementation].
 Initialization scale, β₁, gradient clipping, and z-loss are reused without transformation.
 Both learning rates use linear warmup over the first 10% of steps, remain at their peak through 80% of training, and decay linearly to zero over the final 20%.
+See the #link("https://github.com/marin-community/marin/blob/a638849fa837f924aaac66ff3d0c1f581dfdd49e/experiments/dna/exp109_bolinas_scaling_sweep.py#L269-L290")[experiment configuration] and #link("https://github.com/marin-community/marin/blob/a638849fa837f924aaac66ff3d0c1f581dfdd49e/lib/levanter/src/levanter/optim/config.py#L283-L376")[scheduler implementation].
 Target-scale validation used 255M-, 476M-, and 1B-parameter models with four times the token horizon and one quarter of the reference batch size.
 “Best observed” refers to the lowest final validation loss among the tested target-scale settings and does not imply a global optimum.
 
@@ -48,9 +52,13 @@ Target-scale validation used 255M-, 476M-, and 1B-parameter models with four tim
 The parameter ladder contains models of approximately 46M, 76M, 128M, 255M, 476M, 1B, 2B, and 4B parameters.
 Each model was trained for approximately 84.77B tokens with the transferred optimization recipe.
 The final validation losses were fit with a Kaplan-style power law as a function of parameter count.
-Training and validation losses weight soft-masked or non-conserved lowercase bases at 1% of the standard token weight.
+During training, lowercase marks repetitive bases; in validation, it marks non-conserved bases.
+Both receive 1% of the standard token weight.
 The validation statistic is computed on fixed human sequences related to the training distribution and is used for controlled comparisons and model selection.
 It is not interpreted as an unbiased estimate on a phylogenetically independent held-out genome set.
+We did not independently validate the lowercase weighting as a model-selection objective.
+Because the statistic informed the reference sweep and the choice of the 1B model, another validation objective could select different settings.
+The biological conclusions rely on downstream VEP evaluation.
 
 == Variant-effect datasets
 <methods-evaluation-data>
@@ -108,7 +116,6 @@ The MarinDNA and Evo 2 score artifacts contain the same 16,140 uniquely keyed va
 For the paired comparison, 10,000 bootstrap iterations are generated with random seed 0.
 Within each consequence subset, matched groups are sampled with replacement; the same sampled rows are used for both models, AUPRC is recomputed for each, and the eight within-subset differences are averaged with equal weight.
 The comparison reports the observed macro-AUPRC difference, its bootstrap standard error, the 2.5th and 97.5th percentiles of the paired difference distribution, and a two-sided bootstrap p-value calculated as twice the smaller empirical probability that the paired difference is at or below zero or at or above zero.
-Comparative language in the title, abstract, Results, and Discussion follows this paired uncertainty rather than the ordering of point estimates alone.
 
 == Training compute and inference throughput
 <methods-efficiency>
@@ -127,3 +134,4 @@ The Evo 2 40B measurement used the NVIDIA PyTorch 25.04 container plus the Evo 2
 Both measurements are steady-state and exclude sequence materialization.
 The resulting ratio is approximately 2,330-fold, but its precision is limited by the rounded Evo 2 rate.
 The models use their native context lengths, 256 tokens for m5.1 and 8,192 tokens for Evo 2 40B, so this is an as-deployed workload measurement rather than a same-context, same-batch, or per-token architecture benchmark.
+The full benchmark record is available in #link("https://github.com/Open-Athena/marin-dna/issues/354")[issue \#354].

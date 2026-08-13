@@ -1,7 +1,7 @@
 Genomic language models can learn functional constraints directly from DNA sequence, but strong performance has often depended on specialized architectures, very large training budgets, or information derived from alignments and functional genomics.
-We developed MarinDNA to test how far a standard decoder-only Transformer can be taken through functional-region data curation, explicit mixture design, and systematic hyperparameter transfer.
-Hyperparameters calibrated on approximately 25M-parameter reference models identified the best observed learning rate at 255M, 476M, and 1B parameters, and the transferred recipe produced predictable loss scaling across eight models from 46M to 4B parameters.
-Continued training on a five-region mixture yielded a 1B model trained on 166B tokens.
-On the frozen Mendelian variant-effect benchmark, this model reached 39.49% macro AUPRC compared with 38.24% for Evo 2 40B, a paired difference of 1.25 percentage points (95% cluster-bootstrap CI −1.93 to 4.46; two-sided bootstrap p = 0.440).
-Relative to Evo 2 40B, this statistically competitive model used approximately 1,980-fold fewer reported training FLOPs and achieved approximately 2,330-fold higher as-deployed scoring throughput at each model's native context length, although alignment-based and functionally supervised models remained stronger overall.
-These results show that careful data and optimization choices can make a conventional, short-context genomic language model competitive at substantially lower training and deployment cost.
+We use MarinDNA, a standard decoder-only Transformer, to study functional-region mixtures, hyperparameter transfer, and parameter scaling.
+Hyperparameters calibrated on approximately 25M-parameter reference models identified the best observed learning rate at 255M, 476M, and 1B parameters, and eight models from 46M to 4B parameters showed monotonic loss reduction with a Kaplan power-law fit (R² = 0.999).
+Continued training on a five-region mixture yielded the 1B m5.1 model after 166B tokens.
+On the frozen Mendelian variant-effect benchmark, m5.1 reached 39.49% macro AUPRC compared with 38.24% for Evo 2 40B, a paired difference of 1.25 percentage points (95% cluster-bootstrap CI −1.93 to 4.46; two-sided bootstrap p = 0.440).
+m5.1 used approximately 1,980-fold fewer reported training FLOPs and achieved approximately 2,330-fold higher as-deployed scoring throughput than Evo 2 40B at each model's native context length; alignment-based and functionally supervised models remained stronger overall.
+These comparisons cover human variant-effect prediction with a 255-base model context and do not establish long-range or cross-species performance.

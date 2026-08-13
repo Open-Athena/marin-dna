@@ -1,7 +1,7 @@
 #import "template.typ": paper
 
 #show: paper.with(
-  title: [Data curation and hyperparameter transfer enable competitive variant-effect prediction with a 1B genomic language model],
+  title: [Competitive variant-effect prediction with a 1B genomic language model trained using functional-region mixtures and transferred hyperparameters],
   authors: [TODO],
   author-metadata: ("TODO",),
   date: [August 2026],

@@ -11,7 +11,7 @@
 = Supplementary Information
 <supplementary-information>
 
-The figures below were hidden behind disclosure controls in the published blog presentation and are included here as supplementary figures.
+The supplementary figures report region-stratified hyperparameter-transfer results and the linear-probe trajectories corresponding to the zero-shot mixture analysis in Results.
 
 #paper-figure(
   "figures/figure3_region_hyper_transfer.svg",
