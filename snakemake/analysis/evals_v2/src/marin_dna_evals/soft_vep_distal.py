@@ -23,8 +23,7 @@ EXP232_CCRE_STEPS = (500, 1000, 1500, 2000, 2500, 3000, 4000, 4500, 4999)
 WANDB_RUNS = {
     "exp326 A: no exon overlap": (
         "exp326",
-        "gonzalobenegas/marin/"
-        "dna-exp326-zoonomia-v1-0p25b-v4_ccre_noexon-v0.1-332e6d",
+        "gonzalobenegas/marin/dna-exp326-zoonomia-v1-0p25b-v4_ccre_noexon-v0.1-332e6d",
     ),
     "exp326 B: no exon overlap, enhancer-only": (
         "exp326",
@@ -33,13 +32,11 @@ WANDB_RUNS = {
     ),
     "exp351 tiled": (
         "exp351",
-        "gonzalobenegas/marin/"
-        "dna-exp351-zoonomia-v1-0p25b-tiled-v0.1-812cad",
+        "gonzalobenegas/marin/dna-exp351-zoonomia-v1-0p25b-tiled-v0.1-812cad",
     ),
     "exp351 centered": (
         "exp351",
-        "gonzalobenegas/marin/"
-        "dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec",
+        "gonzalobenegas/marin/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec",
     ),
 }
 EXPECTED_FINAL = {
@@ -62,8 +59,7 @@ def exp232_ccre_metric_uri(step: int) -> str:
     """Stored exp232 cCRE metric parquet for one real checkpoint."""
     assert step in EXP232_CCRE_STEPS
     score_uri = (
-        f"{S3_SCORE_ROOT}/exp232-v4_ccre_non_promoter-step-{step}/"
-        f"{DATASET}.parquet"
+        f"{S3_SCORE_ROOT}/exp232-v4_ccre_non_promoter-step-{step}/{DATASET}.parquet"
     )
     return score_uri.replace("/results/scores/", "/results/metrics/")
 
@@ -158,7 +154,78 @@ def plot_distal_aggregate(trajectory: pd.DataFrame, output_path: Path) -> None:
     plt.close(fig)
 
 
-def run_distal_patch(output_dir: Path) -> dict[str, Path]:
+def patched_panel_summary(
+    trajectory: pd.DataFrame,
+    specialist_wins: pd.DataFrame,
+) -> pd.DataFrame:
+    """Point-estimate readiness for the two composite eight-subset panels."""
+    non_distal = specialist_wins[specialist_wins["metric"] == "auprc"]
+    assert len(non_distal) == 7
+    assert non_distal["earliest_persistent_step"].notna().all()
+    non_distal_ready = int(non_distal["earliest_persistent_step"].max())
+
+    deduplicated = trajectory.copy()
+    deduplicated["evaluation_step"] = (
+        (deduplicated["step"] / 500).round() * 500
+    ).astype(int)
+    deduplicated = deduplicated.sort_values("history_index").drop_duplicates(
+        ["arm", "evaluation_step"], keep="last"
+    )
+
+    panels = {
+        "supported_exp326_curation": {
+            "experiment": "exp326",
+            "specialist": "exp326 A: no exon overlap",
+            "comparators": [
+                "exp326 B: no exon overlap, enhancer-only",
+                "exp232 cCRE baseline",
+            ],
+        },
+        "best_observed_exp351_centered": {
+            "experiment": "exp351",
+            "specialist": "exp351 centered",
+            "comparators": ["exp351 tiled"],
+        },
+    }
+    rows = []
+    for panel, definition in panels.items():
+        arms = [definition["specialist"], *definition["comparators"]]
+        wide = (
+            deduplicated[deduplicated["arm"].isin(arms)]
+            .pivot(index="evaluation_step", columns="arm", values="auprc")
+            .dropna()
+        )
+        wins = wide[definition["specialist"]].gt(
+            wide[definition["comparators"]].max(axis=1)
+        )
+        first_two: int | None = None
+        for (step_a, win_a), (_, win_b) in zip(wins.items(), list(wins.items())[1:]):
+            if win_a and win_b:
+                first_two = int(step_a)
+                break
+        assert first_two is not None, f"{panel} never has two consecutive wins"
+        rows.append(
+            {
+                "panel": panel,
+                "non_distal_ready_step": non_distal_ready,
+                "distal_first_two_win_step": first_two,
+                "composite_ready_step": max(non_distal_ready, first_two),
+                "distal_soft_metrics_available": False,
+                "all_subsets_bootstrap_supported": False,
+                "limitation": (
+                    "point-estimate AUPRC only: distal lacks per-variant scores; "
+                    "synonymous has no persistent bootstrap-supported specialist win"
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def run_distal_patch(
+    output_dir: Path,
+    *,
+    exp232_results_dir: Path,
+) -> dict[str, Path]:
     """Pull exact aggregate histories and write the explicitly limited patch."""
     import wandb
 
@@ -178,9 +245,11 @@ def run_distal_patch(output_dir: Path) -> dict[str, Path]:
         )
     trajectory = pd.concat(parts, ignore_index=True)
     for arm, expected in EXPECTED_FINAL.items():
-        observed = trajectory[trajectory["arm"] == arm].sort_values(
-            ["step", "history_index"]
-        )["auprc"].iloc[-1]
+        observed = (
+            trajectory[trajectory["arm"] == arm]
+            .sort_values(["step", "history_index"])["auprc"]
+            .iloc[-1]
+        )
         assert abs(observed - expected) < 0.01, (
             f"{arm} final AUPRC {observed:.4f} no longer matches the research record"
         )
@@ -188,7 +257,13 @@ def run_distal_patch(output_dir: Path) -> dict[str, Path]:
     parquet_path = output_dir / "distal_aggregate_trajectories.parquet"
     plot_path = output_dir / "distal_aggregate_trajectories.svg"
     metadata_path = output_dir / "metadata.json"
+    panel_path = output_dir / "patched_panel_summary.parquet"
     trajectory.to_parquet(parquet_path, index=False)
+    panel_summary = patched_panel_summary(
+        trajectory,
+        pd.read_parquet(exp232_results_dir / "specialist_wins.parquet"),
+    )
+    panel_summary.to_parquet(panel_path, index=False)
     plot_distal_aggregate(trajectory, plot_path)
     metadata_path.write_text(
         json.dumps(
@@ -205,14 +280,23 @@ def run_distal_patch(output_dir: Path) -> dict[str, Path]:
         )
         + "\n"
     )
-    return {"trajectory": parquet_path, "plot": plot_path, "metadata": metadata_path}
+    return {
+        "trajectory": parquet_path,
+        "patched_panels": panel_path,
+        "plot": plot_path,
+        "metadata": metadata_path,
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--exp232-results-dir", type=Path, required=True)
     args = parser.parse_args()
-    for name, path in run_distal_patch(args.output_dir).items():
+    for name, path in run_distal_patch(
+        args.output_dir,
+        exp232_results_dir=args.exp232_results_dir,
+    ).items():
         print(f"{name}: {path}")
 
 

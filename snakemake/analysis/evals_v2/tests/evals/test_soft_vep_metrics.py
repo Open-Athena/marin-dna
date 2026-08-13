@@ -23,7 +23,9 @@ from marin_dna_evals.soft_vep_metrics import (
 from sklearn.metrics import average_precision_score
 
 
-def _matched_data(k: int = 3, n_groups: int = 12) -> tuple[pd.Series, pd.Series, pd.Series]:
+def _matched_data(
+    k: int = 3, n_groups: int = 12
+) -> tuple[pd.Series, pd.Series, pd.Series]:
     labels: list[int] = []
     scores: list[float] = []
     groups: list[int] = []
@@ -109,14 +111,26 @@ def test_sign_reversal_reverses_directional_soft_metrics():
         score,
         match_group,
         tau=0.5,
-        metrics=[MEAN_GAP_GLOBAL, MEAN_GAP_GROUP, GROUP_SMD, GROUP_MEDIAN_MAD, SOFT_WIN],
+        metrics=[
+            MEAN_GAP_GLOBAL,
+            MEAN_GAP_GROUP,
+            GROUP_SMD,
+            GROUP_MEDIAN_MAD,
+            SOFT_WIN,
+        ],
     )
     reverse = compute_mendelian_soft_metrics(
         label,
         -score,
         match_group,
         tau=0.5,
-        metrics=[MEAN_GAP_GLOBAL, MEAN_GAP_GROUP, GROUP_SMD, GROUP_MEDIAN_MAD, SOFT_WIN],
+        metrics=[
+            MEAN_GAP_GLOBAL,
+            MEAN_GAP_GROUP,
+            GROUP_SMD,
+            GROUP_MEDIAN_MAD,
+            SOFT_WIN,
+        ],
     )
     for metric in [MEAN_GAP_GLOBAL, MEAN_GAP_GROUP, GROUP_SMD, GROUP_MEDIAN_MAD]:
         assert reverse[metric] == pytest.approx(-forward[metric])
@@ -152,8 +166,10 @@ def test_joint_bootstrap_uses_identical_draws_for_identical_scores():
     )
     a = samples[samples["score_type"] == "a"].sort_values(["draw", "metric"])
     b = samples[samples["score_type"] == "b"].sort_values(["draw", "metric"])
-    assert a[["draw", "metric"]].reset_index(drop=True).equals(
-        b[["draw", "metric"]].reset_index(drop=True)
+    assert (
+        a[["draw", "metric"]]
+        .reset_index(drop=True)
+        .equals(b[["draw", "metric"]].reset_index(drop=True))
     )
     assert a["value"].to_numpy() == pytest.approx(b["value"].to_numpy())
 
@@ -193,9 +209,7 @@ def test_weighted_joint_bootstrap_auprc_matches_explicit_duplication():
         rng=seed,
     )
 
-    group_rows = list(
-        match_group.groupby(match_group, sort=False).indices.values()
-    )
+    group_rows = list(match_group.groupby(match_group, sort=False).indices.values())
     generator = np.random.default_rng(seed)
     expected = []
     for _ in range(n_bootstrap):
@@ -226,6 +240,8 @@ def test_metric_table_records_direction_and_counts():
     assert table["n_groups"].eq(8).all()
     assert table["n_rows"].eq(24).all()
     assert table["n_pos"].eq(8).all()
-    assert table.loc[table["metric"] == CALIBRATED_LOG_LOSS, "higher_is_better"].eq(
-        False
-    ).all()
+    assert (
+        table.loc[table["metric"] == CALIBRATED_LOG_LOSS, "higher_is_better"]
+        .eq(False)
+        .all()
+    )

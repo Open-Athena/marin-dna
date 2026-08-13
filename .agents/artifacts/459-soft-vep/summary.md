@@ -83,6 +83,12 @@ finite logged point, including duplicate resume records:
 The distal figure separates exp326 and exp351 comparisons and explicitly labels
 the offline/online protocol difference.
 
+Both composite eight-subset AUPRC panels first satisfy the two-recorded-evaluation
+point-estimate rule at step **3000**. This is not a confidence-supported
+all-subset result: distal has no per-variant bootstrap and synonymous has no
+persistent bootstrap-supported specialist win under any metric, including
+AUPRC.
+
 ## Artifact index
 
 - `exp232/point_metrics.parquet`: 48 cells × seven subsets × eight metrics.
@@ -95,4 +101,4 @@ the offline/online protocol difference.
 - `leaderboard/`: 22-model ranking, controls, pairwise confidence comparisons,
   AUPRC parity, and leave-one-experiment-out projections.
 - `distal/`: exact aggregate trajectories, point-count metadata, and the
-  explicitly limited distal SVG.
+  explicitly limited distal SVG and composite-panel timing table.

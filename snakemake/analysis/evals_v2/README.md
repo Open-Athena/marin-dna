@@ -283,12 +283,15 @@ difference:
 
 ```bash
 uv run --locked --group wandb soft-vep-distal-patch \
-  --output-dir results/soft_vep/distal
+  --output-dir results/soft_vep/distal \
+  --exp232-results-dir results/soft_vep/exp232
 ```
 
-It writes `distal_aggregate_trajectories.parquet`, an SVG with experiment-local
-comparisons, and metadata with exact point counts and the W&B client version. It
-intentionally emits no soft metric or uncertainty interval.
+It writes `distal_aggregate_trajectories.parquet`, `patched_panel_summary.parquet`,
+an SVG with experiment-local comparisons, and metadata with exact point counts
+and the W&B client version. The panel summary records the issue's two-evaluation
+point-estimate rule and marks the unavailable distal soft/bootstrap cells. It
+intentionally emits no distal soft metric or uncertainty interval.
 
 The companion current-leaderboard pass selects every `family: marin_dna` model
 with Mendelian coverage from `dashboard/models.yaml`, computes the same metric

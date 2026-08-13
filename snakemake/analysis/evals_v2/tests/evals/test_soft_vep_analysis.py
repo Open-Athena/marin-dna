@@ -107,8 +107,7 @@ def test_rank_agreement_exact_match_has_no_reversals():
     assert np.allclose(matched["kendall"], 1.0)
     assert matched["pairwise_reversals"].eq(0).all()
     matched_pairs = pairs[
-        (pairs["metric"] == MEAN_GAP_GLOBAL)
-        & (pairs["reference"] == "same_step_auprc")
+        (pairs["metric"] == MEAN_GAP_GLOBAL) & (pairs["reference"] == "same_step_auprc")
     ]
     assert not matched_pairs["reversal"].any()
 

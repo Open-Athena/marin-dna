@@ -259,3 +259,23 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   Subsequent prose-only issue updates should pin links to this hash.
 - Next action: publish the result summary without closing the issue or promoting
   Brier into the production metric path.
+
+### 2026-08-13 22:25 UTC - `VEP-SOFT-007` composite panel completion
+
+- Commit Hash: completion snapshot pending.
+- Result: both eight-subset AUPRC composites first meet the issue's
+  two-recorded-evaluation point-estimate rule at step 3000. For the supported
+  exp326 panel, the distal arm first beats both recorded comparators twice at
+  steps 3000 and 4000 (the next step shared with the exp232 baseline). For the
+  exp351 panel, centered first beats tiled twice at steps 2500 and 3000; the
+  seven non-distal exp232 slots are not all ready until step 3000.
+- Limitation: this is not an all-subset confidence result. Distal has no
+  per-variant scores, and synonymous has no persistent bootstrap-supported
+  specialist win under AUPRC or any candidate metric.
+- Artifact: `distal/patched_panel_summary.parquet` records both point-estimate
+  timings and the unavailable soft/bootstrap coverage explicitly.
+- Verification: 23 focused issue tests passed after the addition and all eight
+  new Python files pass `ruff format --check`. The full 370-test project suite
+  was not repeated because its measured memory exceeds the shared-node local
+  planning bound; it passed before this focused, independently tested addition.
+- Next action: snapshot and post the issue update.

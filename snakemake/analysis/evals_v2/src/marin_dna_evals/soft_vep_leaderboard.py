@@ -80,10 +80,10 @@ def read_model_stored_auprc(model: str) -> pd.DataFrame:
         model_metric_uri(model),
         columns=["score_type", "subset", "value", "split"],
         storage_options={"aws_region": "us-east-2"},
-    ).filter(
-        (pl.col("score_type") == "minus_llr_avg") & (pl.col("split") == SPLIT)
-    )
-    result = metrics.select(["subset", pl.col("value").alias("stored_value")]).to_pandas()
+    ).filter((pl.col("score_type") == "minus_llr_avg") & (pl.col("split") == SPLIT))
+    result = metrics.select(
+        ["subset", pl.col("value").alias("stored_value")]
+    ).to_pandas()
     result["model"] = model
     return result
 
@@ -199,9 +199,7 @@ def leave_one_experiment_out_projection(
                     "model": model,
                     "auprc": float(test.loc[model, "auprc"]),
                     "predicted_auprc": float(prediction),
-                    "absolute_error": float(
-                        abs(prediction - test.loc[model, "auprc"])
-                    ),
+                    "absolute_error": float(abs(prediction - test.loc[model, "auprc"])),
                 }
                 for model, prediction in zip(test.index, predictions)
             )
@@ -282,8 +280,7 @@ def _compute_controls(
         (controls["control"] == "baseline_avg") & (controls["metric"] == AUPRC)
     ].set_index(["subset", "model"])["value"]
     rescaled_auprc = controls[
-        (controls["control"] == "positive_rescaling")
-        & (controls["metric"] == AUPRC)
+        (controls["control"] == "positive_rescaling") & (controls["metric"] == AUPRC)
     ].set_index(["subset", "model"])["value"]
     assert np.allclose(baseline_auprc.sort_index(), rescaled_auprc.sort_index())
     return controls

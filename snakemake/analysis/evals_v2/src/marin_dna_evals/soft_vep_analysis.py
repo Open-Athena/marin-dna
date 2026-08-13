@@ -52,7 +52,9 @@ EXP232_STEPS: dict[str, tuple[int, ...]] = {
     ),
 }
 ARMS = tuple(EXP232_STEPS)
-SYNCHRONIZED_STEPS = tuple(sorted(set.intersection(*(set(v) for v in EXP232_STEPS.values()))))
+SYNCHRONIZED_STEPS = tuple(
+    sorted(set.intersection(*(set(v) for v in EXP232_STEPS.values())))
+)
 
 NON_DISTAL_SUBSETS = (
     "missense_variant",
@@ -150,7 +152,9 @@ def exp232_manifest() -> pd.DataFrame:
         for step in steps
     ]
     manifest = pd.DataFrame(rows).sort_values(["step", "arm"]).reset_index(drop=True)
-    assert len(manifest) == 48, f"exp232 manifest drifted: expected 48, got {len(manifest)}"
+    assert len(manifest) == 48, (
+        f"exp232 manifest drifted: expected 48, got {len(manifest)}"
+    )
     return manifest
 
 
@@ -169,10 +173,10 @@ def read_stored_auprc(arm: str, step: int) -> pd.DataFrame:
         exp232_metric_uri(arm, step),
         columns=["score_type", "subset", "value", "split"],
         storage_options={"aws_region": "us-east-2"},
-    ).filter(
-        (pl.col("score_type") == "minus_llr_avg") & (pl.col("split") == SPLIT)
-    )
-    result = metrics.select(["subset", pl.col("value").alias("stored_value")]).to_pandas()
+    ).filter((pl.col("score_type") == "minus_llr_avg") & (pl.col("split") == SPLIT))
+    result = metrics.select(
+        ["subset", pl.col("value").alias("stored_value")]
+    ).to_pandas()
     result["arm"] = arm
     result["step"] = step
     return result
@@ -186,9 +190,7 @@ def add_llr_scores(frame: pd.DataFrame) -> pd.DataFrame:
     # Match workflow/rules/metrics.smk exactly: the persisted atoms are float32,
     # and pandas performs this addition/division in float32. Upcasting before
     # averaging can break score ties differently and therefore change AUPRC.
-    result["minus_llr_avg"] = -(
-        (result["llr_fwd"] + result["llr_rc"]) / 2
-    )
+    result["minus_llr_avg"] = -((result["llr_fwd"] + result["llr_rc"]) / 2)
     result["minus_llr_fwd"] = -result["llr_fwd"]
     return result
 
@@ -209,14 +211,18 @@ def validate_aligned_bundles(bundles: dict[str, pd.DataFrame]) -> None:
 
 
 def _strict_order(values: pd.Series) -> str:
-    return ">".join(values.sort_values(ascending=False, kind="stable").index.astype(str))
+    return ">".join(
+        values.sort_values(ascending=False, kind="stable").index.astype(str)
+    )
 
 
 def _top_k(values: pd.Series, k: int = 3) -> set[str]:
     return set(values.nlargest(min(k, len(values))).index.astype(str))
 
 
-def compute_rank_agreement(point_metrics: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def compute_rank_agreement(
+    point_metrics: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Compare every metric ordering with same-step and final-step AUPRC."""
     required = {"arm", "step", "subset", "metric", "value"}
     assert required.issubset(point_metrics.columns), (
@@ -237,7 +243,9 @@ def compute_rank_agreement(point_metrics: pd.DataFrame) -> tuple[pd.DataFrame, p
             "final_step_auprc": final_auprc.loc[subset].reindex(metric_values.index),
         }
         for metric in metric_values.columns:
-            oriented = metric_values[metric] * (1.0 if HIGHER_IS_BETTER[metric] else -1.0)
+            oriented = metric_values[metric] * (
+                1.0 if HIGHER_IS_BETTER[metric] else -1.0
+            )
             for reference_name, reference in references.items():
                 paired = pd.concat(
                     [oriented.rename("metric"), reference.rename("reference")], axis=1
@@ -248,7 +256,9 @@ def compute_rank_agreement(point_metrics: pd.DataFrame) -> tuple[pd.DataFrame, p
                 tau = float(kendalltau(paired["metric"], paired["reference"]).statistic)
                 reversals = 0
                 for arm_a, arm_b in combinations(paired.index.astype(str), 2):
-                    metric_delta = float(paired.loc[arm_a, "metric"] - paired.loc[arm_b, "metric"])
+                    metric_delta = float(
+                        paired.loc[arm_a, "metric"] - paired.loc[arm_b, "metric"]
+                    )
                     reference_delta = float(
                         paired.loc[arm_a, "reference"] - paired.loc[arm_b, "reference"]
                     )
@@ -275,7 +285,9 @@ def compute_rank_agreement(point_metrics: pd.DataFrame) -> tuple[pd.DataFrame, p
                         "reference": reference_name,
                         "spearman": rho,
                         "kendall": tau,
-                        "top3_overlap": len(_top_k(paired["metric"]) & _top_k(paired["reference"])),
+                        "top3_overlap": len(
+                            _top_k(paired["metric"]) & _top_k(paired["reference"])
+                        ),
                         "pairwise_reversals": reversals,
                         "n_arms": len(paired),
                         "metric_order": _strict_order(paired["metric"]),
@@ -326,7 +338,9 @@ def pairwise_bootstrap_summary(
     point_wide = point.pivot(index="score_type", columns="metric", values="value")
     rows: list[dict[str, str | float]] = []
     for metric, metric_samples in bootstrap_samples.groupby("metric", sort=False):
-        sample_wide = metric_samples.pivot(index="draw", columns="score_type", values="value")
+        sample_wide = metric_samples.pivot(
+            index="draw", columns="score_type", values="value"
+        )
         sign = 1.0 if HIGHER_IS_BETTER[metric] else -1.0
         for arm_a, arm_b in combinations(sample_wide.columns.astype(str), 2):
             delta = sign * (sample_wide[arm_a] - sample_wide[arm_b])
@@ -336,7 +350,11 @@ def pairwise_bootstrap_summary(
                     "arm_a": arm_a,
                     "arm_b": arm_b,
                     "delta_oriented": float(
-                        sign * (point_wide.loc[arm_a, metric] - point_wide.loc[arm_b, metric])
+                        sign
+                        * (
+                            point_wide.loc[arm_a, metric]
+                            - point_wide.loc[arm_b, metric]
+                        )
                     ),
                     "se": float(np.nanstd(delta, ddof=1)),
                     "ci_low": float(np.nanpercentile(delta, 2.5)),
@@ -422,9 +440,7 @@ def bootstrap_supported_specialist_wins(
 ) -> pd.DataFrame:
     """Persistent specialist wins whose paired 95% intervals clear every arm."""
     rows: list[dict[str, str | int | bool | None]] = []
-    synchronized = pairwise_deltas[
-        pairwise_deltas["step"].isin(SYNCHRONIZED_STEPS)
-    ]
+    synchronized = pairwise_deltas[pairwise_deltas["step"].isin(SYNCHRONIZED_STEPS)]
     for subset, specialist in SPECIALIST_ARM.items():
         subset_frame = synchronized[synchronized["subset"] == subset]
         for metric, metric_frame in subset_frame.groupby("metric", sort=False):
@@ -516,9 +532,7 @@ def compute_final_controls(
                 ),
             ),
             "within_group_label_permutation": (
-                permute_labels_within_groups(
-                    subset_meta["match_group"], rng=seed
-                ),
+                permute_labels_within_groups(subset_meta["match_group"], rng=seed),
                 average,
             ),
         }
@@ -537,16 +551,18 @@ def compute_final_controls(
     controls = pd.concat(parts, ignore_index=True)
     baseline = controls[controls["control"] == "baseline_avg"]
     summary_rows: list[dict[str, str | float | int]] = []
-    baseline_auprc = baseline[baseline["metric"] == AUPRC].set_index(
-        ["subset", "arm"]
-    )["value"]
+    baseline_auprc = baseline[baseline["metric"] == AUPRC].set_index(["subset", "arm"])[
+        "value"
+    ]
     for (control, subset, metric), cell in controls.groupby(
         ["control", "subset", "metric"], sort=True
     ):
         values = cell.set_index("arm")["value"]
-        baseline_metric = baseline[
-            (baseline["subset"] == subset) & (baseline["metric"] == metric)
-        ].set_index("arm")["value"].reindex(values.index)
+        baseline_metric = (
+            baseline[(baseline["subset"] == subset) & (baseline["metric"] == metric)]
+            .set_index("arm")["value"]
+            .reindex(values.index)
+        )
         reference_auprc = baseline_auprc.loc[subset].reindex(values.index)
         sign = 1.0 if HIGHER_IS_BETTER[metric] else -1.0
         summary_rows.append(
@@ -569,22 +585,25 @@ def compute_final_controls(
         )
 
     rescaled = controls[controls["control"] == "positive_rescaling"]
-    rescaled_auprc = rescaled[rescaled["metric"] == AUPRC].set_index(
-        ["subset", "arm"]
-    )["value"]
+    rescaled_auprc = rescaled[rescaled["metric"] == AUPRC].set_index(["subset", "arm"])[
+        "value"
+    ]
     assert np.allclose(rescaled_auprc.sort_index(), baseline_auprc.sort_index()), (
         "positive score rescaling changed AUPRC"
     )
     for metric in (MEAN_GAP_GLOBAL, MEAN_GAP_GROUP):
-        base_gap = baseline[baseline["metric"] == metric].set_index(
-            ["subset", "arm"]
-        )["value"]
+        base_gap = baseline[baseline["metric"] == metric].set_index(["subset", "arm"])[
+            "value"
+        ]
         scaled_gap = rescaled[rescaled["metric"] == metric].set_index(
             ["subset", "arm"]
         )["value"]
-        expected = base_gap * pd.Series(RESCALING_CONSTANTS).reindex(
-            base_gap.index.get_level_values("arm")
-        ).to_numpy()
+        expected = (
+            base_gap
+            * pd.Series(RESCALING_CONSTANTS)
+            .reindex(base_gap.index.get_level_values("arm"))
+            .to_numpy()
+        )
         assert np.allclose(scaled_gap.sort_index(), expected.sort_index()), (
             f"{metric} did not scale linearly under the positive-rescaling control"
         )
@@ -604,9 +623,7 @@ def compute_final_controls(
     reversed_soft_win = reversed_metrics[
         reversed_metrics["metric"] == SOFT_WIN
     ].set_index(["subset", "arm"])["value"]
-    assert np.allclose(
-        reversed_soft_win.sort_index(), 1.0 - base_soft_win.sort_index()
-    )
+    assert np.allclose(reversed_soft_win.sort_index(), 1.0 - base_soft_win.sort_index())
     return controls, pd.DataFrame(summary_rows)
 
 
@@ -814,9 +831,7 @@ def run_exp232_analysis(
             arm: add_llr_scores(read_score_bundle(exp232_score_uri(arm, step)))
             for arm in active_arms
         }
-        stored_auprc_parts.extend(
-            read_stored_auprc(arm, step) for arm in active_arms
-        )
+        stored_auprc_parts.extend(read_stored_auprc(arm, step) for arm in active_arms)
         validate_aligned_bundles(bundles)
         if step == 4999:
             final_bundles = bundles
@@ -896,9 +911,7 @@ def run_exp232_analysis(
         entity_columns=("arm_a", "arm_b"),
     )
     specialist_wins = earliest_persistent_specialist_wins(point_metrics)
-    supported_specialist_wins = bootstrap_supported_specialist_wins(
-        pairwise_deltas
-    )
+    supported_specialist_wins = bootstrap_supported_specialist_wins(pairwise_deltas)
     assert final_bundles is not None
     controls, control_summary = compute_final_controls(
         final_bundles,
@@ -917,8 +930,7 @@ def run_exp232_analysis(
         "rank_reversals": output_dir / "rank_reversals.parquet",
         "confident_rank_reversals": output_dir / "confident_rank_reversals.parquet",
         "specialist_wins": output_dir / "specialist_wins.parquet",
-        "supported_specialist_wins": output_dir
-        / "supported_specialist_wins.parquet",
+        "supported_specialist_wins": output_dir / "supported_specialist_wins.parquet",
         "controls": output_dir / "controls.parquet",
         "control_summary": output_dir / "control_summary.parquet",
     }

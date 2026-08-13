@@ -124,9 +124,7 @@ def within_group_pairwise_margins(
     """Return every positive-minus-negative margin within its match group."""
     frame = _validated_matched_frame(label, score, match_group)
     positive_by_group = (
-        frame.loc[frame["label"] == 1]
-        .set_index("match_group")["score"]
-        .to_dict()
+        frame.loc[frame["label"] == 1].set_index("match_group")["score"].to_dict()
     )
     negative_rows = frame.loc[frame["label"] == 0, ["match_group", "score"]]
     positive_scores = negative_rows["match_group"].map(positive_by_group).to_numpy()
@@ -332,9 +330,7 @@ def _weighted_bootstrap_average_precision(
     for start in range(0, len(group_multiplicity), batch_size):
         stop = min(start + batch_size, len(group_multiplicity))
         weights = group_multiplicity[start:stop, sorted_group].astype(float)
-        true_positives = np.cumsum(weights * sorted_label, axis=1)[
-            :, threshold_ends
-        ]
+        true_positives = np.cumsum(weights * sorted_label, axis=1)[:, threshold_ends]
         predicted = np.cumsum(weights, axis=1)[:, threshold_ends]
         precision = np.divide(
             true_positives,
@@ -437,9 +433,7 @@ def joint_cluster_bootstrap_soft_metrics(
                 np.finfo(float).eps,
                 1.0 - np.finfo(float).eps,
             )
-            row_log_loss = -(
-                y * np.log(clipped) + (1 - y) * np.log1p(-clipped)
-            )
+            row_log_loss = -(y * np.log(clipped) + (1 - y) * np.log1p(-clipped))
             row_brier = np.square(probabilities - y)
         for group_index, group_rows in enumerate(group_to_rows):
             group_labels = y[group_rows]
@@ -457,9 +451,7 @@ def joint_cluster_bootstrap_soft_metrics(
                 calibration_log_loss_sums[group_index] = float(
                     row_log_loss[group_rows].sum()
                 )
-                calibration_brier_sums[group_index] = float(
-                    row_brier[group_rows].sum()
-                )
+                calibration_brier_sums[group_index] = float(row_brier[group_rows].sum())
                 calibration_counts[group_index] = len(group_rows)
         group_atoms[column] = {
             "difference": differences,
@@ -501,9 +493,7 @@ def joint_cluster_bootstrap_soft_metrics(
                 group_multiplicity,
             )
         if MEAN_GAP_GLOBAL in requested:
-            positive_mean = (
-                group_multiplicity @ atoms["positive_score"] / n_groups
-            )
+            positive_mean = group_multiplicity @ atoms["positive_score"] / n_groups
             negative_mean = np.divide(
                 group_multiplicity @ atoms["negative_sum"],
                 group_multiplicity @ atoms["negative_count"],
@@ -516,8 +506,7 @@ def joint_cluster_bootstrap_soft_metrics(
             if GROUP_SMD in requested:
                 sum_squares = group_multiplicity @ np.square(atoms["difference"])
                 variance = np.maximum(
-                    (sum_squares - n_groups * np.square(group_mean))
-                    / (n_groups - 1),
+                    (sum_squares - n_groups * np.square(group_mean)) / (n_groups - 1),
                     0.0,
                 )
                 sd = np.sqrt(variance)
