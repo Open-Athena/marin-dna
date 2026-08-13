@@ -75,32 +75,6 @@ The codebase has five main components:
 ## Autonomy Boundaries
 
 - Never push to `main` without explicit user approval.
-- Never close or merge PRs/issues without explicit user approval.
-
-## GitHub Communication
-
-- When an agent creates a PR or issue, add the `agent-generated` label.
-- Agent comments on PRs/issues must begin with `🤖`.
-- **Use visual communication when it materially speeds up understanding.** Prefer Mermaid diagrams for pipeline stages, dependencies, experiment designs, and comparisons because GitHub renders them natively in issues and PRs; use tables or plots when they communicate the result better. Keep visuals concise, accurate, and labeled, and ensure the surrounding text still states the key takeaway. Do not add decorative or redundant visuals.
-- **Always reference code with commit-pinned permalinks.** Whenever an issue, PR, or comment points at code — a function that backs a claim, a script that reproduces a result, the line a reader should run — link it as a commit-pinned GitHub permalink (`blob/<sha>/path#Lx-Ly`), never a bare path or branch link (branches move; the reference rots). If the code is a one-off, commit it on its permanent branch before linking it. This is the default for **all** GH posts, not just `agent-research`.
-- For iterative investigations the user wants tracked in their own issue, use the `agent-research` skill — issue body is the living doc, comments are the append-only log with commit-pinned permalinks to code.
-- **Branch names.** Worktree harnesses may auto-prefix branches with an agent name and a random slug (e.g. `claude/happy-bose-180d63`). Before opening a PR, rename the branch with `git branch -m` so the branch list is scannable. Use a stable, lowercase `<agent-name>` that identifies the agent (e.g. `codex` or `claude`):
-  - With an existing issue: `<agent-name>/issue-<issue-number>-<short-kebab-summary>` (e.g. `codex/issue-187-readme-revamp`).
-  - Otherwise: `<agent-name>/<short-kebab-summary>` (e.g. `codex/readme-resources`).
-- **Sub-issues.** Use GitHub's native sub-issue metadata for parent/child relationships — `gh api -X POST repos/{owner}/{repo}/issues/{parent}/sub_issues -f sub_issue_id={child_id}` — not free-text references in the issue body. The metadata renders in the UI and is queryable; body references drift.
-- **Don't put `fixes #N` in PR titles.** Issue-closing keywords (`fixes #131`, `closes #131`, `resolves #131`) belong in the PR *body* — that's where GitHub's auto-close picks them up just the same. Titles should describe the change itself, not the metadata.
-- **HuggingFace uploads.** When uploading anything to HuggingFace under `marin-dna/*` (datasets *or* models), include a README that contains: (a) a commit-pinned permalink to the snakemake pipeline (for datasets) or training script (for models) that produced it, (b) a 1–2 sentence description of contents/provenance, (c) the minimal tag set `biology, genomics, dna`. Draft the README content for user review *before* pushing to HF.
-- **Collapse large content.** When posting issues, comments, or PRs that include logs (>40 lines), large tables, or code dumps, wrap the content in `<details><summary>…</summary>…</details>`. Easier for humans to scan; agents still read the full body.
-- **Verify rendering.** After posting any issue, comment, or PR with non-trivial markdown (tables, lists, code blocks, multi-paragraph bodies), re-fetch the body (`gh issue view`, `gh pr view`, or `gh api`) and check for broken line breaks, dropped indentation, missing blank lines around lists/code blocks, or other rendering glitches. HEREDOC-passed bodies through `gh` can introduce stray whitespace; if so, fix with `gh issue edit` / `gh pr edit`.
-
-### Issue labels
-
-Every issue gets **exactly one Type** label + **any number of Area** labels, plus meta labels. Type = what *kind* of work; Area = what *part* of the project. The two axes are orthogonal and compose. Keep it minimal — one Type, usually one Area (sometimes none, occasionally two); don't stack every plausible Area. Agents always add `agent-generated`.
-
-- **Type (pick exactly one).** `research-question` — a durable, revisitable question pursued across many experiments over time (a north-star; rare). `experiment` — one preregistered, scoped run with the hypothesis/goal fixed *before* running. `eda` — a bounded exploratory analysis of data/results with no preregistered hypothesis (where most `agent-research` investigations land). `infrastructure` — tooling, pipelines, CI, migrations, compute plumbing; this includes **builds** — a new eval dataset or a training-data pipeline is `infrastructure` + an Area, *not* an `experiment`. `bug` — something is broken.
-- **Area (zero or more).** `evals` — work on the evaluation **apparatus itself**: a new eval dataset, scoring protocol, or metric. It is **not** applied just because a model was measured — a training run reporting VEP AUPRC is `experiment` + `modeling`/`data`, not `evals`; and eval datasets (incl. neutral-site/cLLR scoring support) are `evals`, never `data`. `data` — **training-data** construction (genome projection, region labeling, filtering). `modeling` — core gLM recipe (architecture, objective, tokenization, loss weighting, context). `hyperparameter-optimization` — optimizer/schedule/weight-decay/LR sweeps, and **scaling** — model size / compute (training a bigger model is HPO, not `modeling`). `baselines` — reference models (Evo2, GPN-Star, AlphaGenome, conservation, ChromBPNet). `interpretation` — UMAP, nucleotide-dependency maps, SAEs, TF-MoDISco.
-- **Meta (zero or more).** `agent-generated` — created by an agent (agents always add this). `marin` — the change really belongs upstream in marin/levanter.
-- **Picking a Type.** Preregistered hypothesis + a defined run → `experiment`; durable question that outlives any single run → `research-question`; looking at data/results with no hypothesis yet → `eda`; building or fixing plumbing (incl. dataset/eval builds) → `infrastructure`/`bug`.
-- **`research-question` ↔ `experiment` is many-to-many, NOT parent/child.** An experiment *references* the question(s) it informs with a plain `#N` in its body; a research-question's body *curates links* to the experiments as they accrue. One experiment may touch several questions. Reserve GitHub sub-issue metadata for decomposing a single work item into parts (e.g. a 4-part pipeline build), never for research-question → experiment.
-- **`epic` is for engineering decomposition only** — a build split into parts. Don't use it to organize research; that's what Area labels + `research-question` hubs are for.
-- **`agent-research` is a working method, not a label.** It produces an `eda` (usually) or `research-question` issue plus the relevant Area label(s); don't invent a workflow label.
+- Never close or merge a PR without explicit user approval.
+- Agents may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and its body and final comment reflect the outcome.
+- Never close a `research-question` issue without explicit user approval.

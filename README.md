@@ -11,18 +11,11 @@
 
 ## Research
 
-Tracked as GitHub issues under a two-axis label taxonomy — **Type** (the kind of work) × **Area** (the part of the project). See [AGENTS.md](AGENTS.md#issue-labels) for what each label means.
+Tracked as GitHub issues under a two-axis label taxonomy: **Kind** selects the issue structure and lifecycle; **Topic** describes the affected system or research area. See [the GitHub communication skill](.agents/skills/communicate-on-github/SKILL.md#classify-issues) for the definitions.
 
-**By type** — [research questions](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aresearch-question) (durable north-stars) ·
-[experiments](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment) (preregistered runs) ·
-[exploratory analyses](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aeda)
+**By kind** — [research questions](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aresearch-question) (durable, human-declared syntheses) · [experiments](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment) (bounded research with a hypothesis or goal)
 
-**By area** — [evals](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aevals) ·
-[data](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Adata) ·
-[modeling](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Amodeling) ·
-[baselines](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Abaselines) ·
-[hyperparameter-optimization](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ahyperparameter-optimization) ·
-[interpretation](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ainterpretation)
+**By topic** — [evals](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aevals) · [data](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Adata) · [modeling](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Amodeling) · [hyperparameter optimization](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ahyperparameter-optimization) · [interpretation](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ainterpretation)
 
 ## Resources
 
