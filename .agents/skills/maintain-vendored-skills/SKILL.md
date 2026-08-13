@@ -7,6 +7,13 @@ description: Compare, refresh, and audit Marin-derived skills in MarinDNA. Use w
 
 Keep vendor maintenance out of normal task context. Load [references/manifest.json](references/manifest.json) only when comparing or updating Marin-derived skills.
 
+## Preserve The Vendor Boundary
+
+- Treat every skill listed under `unchanged` or `adapted` in the manifest as vendor-owned. Do not edit those skill directories in ordinary feature, documentation, or repository-guidance work.
+- Change vendored content only in a dedicated vendor-maintenance task that explicitly owns the upstream comparison and provenance update.
+- Put MarinDNA-specific behavior in a local skill that composes with the vendored skill. The local skill may route to the vendor, add repository-specific constraints, or coordinate it with other skills.
+- Register composing skills under `local` in the manifest. If composition cannot express a required change, report the limitation and propose a vendor adaptation instead of modifying the vendor implicitly.
+
 ## Show Exact Modifications
 
 1. Obtain a Git checkout of the manifest's pinned Marin commit when possible. For a non-Git archive, retain the commit URL used to fetch it and pass its SHA with `--upstream-commit`; the report marks archive provenance as not independently verified.

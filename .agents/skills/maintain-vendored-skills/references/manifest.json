@@ -38,10 +38,13 @@
     }
   ],
   "local": [
+    "access-reference-genomes",
     "communicate-on-github",
+    "develop-snakemake-pipelines",
     "maintain-research-question",
     "maintain-vendored-skills",
     "gh-upload-asset",
-    "marin-experiment"
+    "marin-experiment",
+    "plot-research-results"
   ]
 }

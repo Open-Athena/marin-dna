@@ -1,6 +1,6 @@
 ---
 name: communicate-on-github
-description: Draft, post, and maintain readable MarinDNA GitHub issues, pull requests, and comments. Use for any GitHub communication, including issue classification, experiment summaries, PR descriptions, progress comments, code or artifact links, visuals, and closing completed work.
+description: Draft, post, and maintain readable MarinDNA GitHub issues, pull requests, and comments. Use for any GitHub communication, including issue classification, experiment summaries, PR descriptions, progress comments, code or artifact links, visuals, closing completed work, and maintaining current issue or PR bodies.
 ---
 
 # Communicate On GitHub
@@ -13,9 +13,9 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 - Use `file-issue` for the mechanics and base body structures of bugs, tasks, and experiments. This skill supplies MarinDNA's repository-specific policy when the upstream skill differs.
 - Use `maintain-research-question` for creating or changing a research question and for every research-question to experiment relationship.
 - Use `task-logbook` and `run-research` for multi-session research records.
-- When `background-research` is part of a GitHub research thread, search the current issue, PRs, permanent experiment branches, logbooks, MarinDNA code and pipeline docs, W&B, and external literature. Skip upstream-only paths that do not exist here.
+- When `background-research` is part of a GitHub research thread, search the current issue, PRs, permanent experiment branches, logbooks, MarinDNA code and pipeline docs, W&B, and external literature.
 - Use `gh-upload-asset` for an uncommitted plot or artifact that must render on GitHub.
-- Follow the autonomy boundaries in `AGENTS.md`.
+- Follow the approval boundaries in `AGENTS.md`.
 
 ## Maintain A Living Body
 
@@ -60,6 +60,12 @@ Treat `infrastructure` as a topic. A cluster-tooling improvement is `task` + `in
 Treat bounded exploratory analysis as `experiment`. Use `Hypothesis or Goal`; do not add an `eda` kind or mode field. Record a fixed hypothesis, design, primary metric, and stop criteria before execution when preregistration matters, then record deviations. Preregistration is a practice, not a label.
 
 Route every research-question creation, scope change, closure, or experiment-link change to `maintain-research-question`. Do not reproduce that skill's relationship rules here.
+
+## Close Completed Work
+
+- An agent may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and the body and final comment record the outcome.
+- Do not close a research-question issue without explicit user approval.
+- Do not close or merge a pull request without explicit user approval.
 
 ## Preserve Repository Conventions
 
