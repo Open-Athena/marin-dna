@@ -19,7 +19,8 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
 - Add tests for non-trivial maintained behavior in the owning project. For data pipelines, assert contracts such as schemas, row counts, value ranges, sequence lengths, coordinate bounds, and build or strand consistency.
 - Run `uv run --locked pytest` from every changed Python project's root. Use `uv` for Python dependencies.
 - Type-annotate parameters and return values in every project's `src/` package using current built-in generic and union syntax.
-- Update the owning README when behavior, configuration, or operating procedure changes. Keep experimental findings in the tracking issue or research record.
+- Treat the root README as a human-facing landing page. Keep it focused on the project's purpose, research outputs, runnable entry points, installation, and navigation. Do not put internal APIs, schemas, backend choices, or compatibility notes there.
+- Update a workflow README when its user-visible behavior, configuration, outputs, or operating procedure changes. Put package API contracts and implementation details in scoped reference documentation or docstrings. Keep experimental findings in the tracking issue or research record.
 
 ## Repository Lifecycle
 
