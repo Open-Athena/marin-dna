@@ -18,7 +18,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import polars as pl
 import pyBigWig
 
@@ -115,7 +114,11 @@ def _utr_from_exons_and_cds(ann: pl.DataFrame, *, side: str) -> GenomicSet:
         .select(["chrom", "start", "end", "strand", "transcript_id"])
     )
     if len(cds) == 0 or len(exons) == 0:
-        return GenomicSet(pd.DataFrame({"chrom": [], "start": [], "end": []}))
+        return GenomicSet(
+            pl.DataFrame(
+                schema={"chrom": pl.String, "start": pl.Int64, "end": pl.Int64}
+            )
+        )
     cds_bounds = cds.group_by("transcript_id").agg(
         pl.col("start").min().alias("cds_start"),
         pl.col("end").max().alias("cds_end"),
@@ -390,9 +393,9 @@ def case_encode_sequences(
     Asserts every sequence is exactly ``window_size`` bp; the
     bigWig-vs-sequence length match is also asserted per row.
     """
-    series = load_fasta(str(fasta_path))
-    ids: list[str] = [str(i) for i in series.index]
-    seqs: list[str] = list(series.values)
+    sequences = load_fasta(str(fasta_path))
+    ids = sequences.get_column("id").to_list()
+    seqs = sequences.get_column("seq").to_list()
 
     encoded: list[str] = []
     bw = pyBigWig.open(str(bw_path))

@@ -1,7 +1,6 @@
 from itertools import pairwise
 
 import numpy as np
-import pandas as pd
 import polars as pl
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -624,64 +623,47 @@ def get_ncrna_exons(ann: pl.DataFrame) -> GenomicSet:
     return GenomicSet(_filter_ncrna_exons(ann))
 
 
-def read_bed_to_pandas(path: str) -> pd.DataFrame:
-    """
-    Read a BED file into a pandas DataFrame.
+def load_fasta(path: str) -> pl.DataFrame:
+    """Load FASTA records into a Polars DataFrame.
 
     Args:
-        path (str): Path to the BED file.
+        path: Path to the FASTA file.
 
     Returns:
-        pd.DataFrame: DataFrame with columns [chrom, start, end].
-    """
-    return pd.read_csv(path, sep="\t", header=None, names=["chrom", "start", "end"])
-
-
-def write_pandas_to_bed(intervals: pd.DataFrame, path: str) -> None:
-    """
-    Write a pandas DataFrame to a BED file.
-
-    Args:
-        intervals (pd.DataFrame): DataFrame with columns [chrom, start, end].
-        path (str): Path to write the BED file.
-    """
-    intervals.to_csv(path, sep="\t", header=False, index=False)
-
-
-def load_fasta(path: str) -> pd.Series:
-    """
-    Load a FASTA file into a pandas Series.
-
-    Args:
-        path (str): Path to the FASTA file.
-
-    Returns:
-        pd.Series: Series with sequence IDs as index and sequences as values.
-                  Series name is 'seq'.
+        DataFrame with String columns id and seq.
     """
     with open(path) as handle:
-        return pd.Series(
-            {rec.id: str(rec.seq) for rec in SeqIO.parse(handle, "fasta")},
-            name="seq",
+        return pl.DataFrame(
+            [(record.id, str(record.seq)) for record in SeqIO.parse(handle, "fasta")],
+            schema={"id": pl.String, "seq": pl.String},
+            orient="row",
         )
 
 
-def add_rc(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add reverse complement sequences to a DataFrame.
+def add_rc(data: pl.DataFrame) -> pl.DataFrame:
+    """Append reverse-complement rows to a sequence DataFrame.
 
     Args:
-        df (pd.DataFrame): DataFrame with columns ['id', 'seq'] where 'seq'
-                          contains DNA sequences.
+        data: Polars DataFrame with String columns id and seq.
 
     Returns:
-        pd.DataFrame: DataFrame with twice the rows. Original sequences have
-                     '_+' appended to their IDs, reverse complements have '_-'
-                     appended to their IDs.
+        Original sequences with a _+ ID suffix followed by reverse complements
+        with a _- suffix.
     """
-    df_pos = df.copy()
-    df_neg = df.copy()
-    df_pos["id"] = df_pos["id"] + "_+"
-    df_neg["id"] = df_neg["id"] + "_-"
-    df_neg["seq"] = df_neg["seq"].apply(lambda x: str(Seq(x).reverse_complement()))
-    return pd.concat([df_pos, df_neg], ignore_index=True)
+    missing = {"id", "seq"} - set(data.columns)
+    if missing:
+        raise ValueError(f"sequence DataFrame is missing columns: {sorted(missing)}")
+    if data.schema["id"] != pl.String or data.schema["seq"] != pl.String:
+        raise TypeError("id and seq must have String dtypes")
+
+    forward = data.with_columns((pl.col("id") + "_+").alias("id"))
+    reverse = data.with_columns(
+        (pl.col("id") + "_-").alias("id"),
+        pl.col("seq")
+        .map_elements(
+            lambda sequence: str(Seq(sequence).reverse_complement()),
+            return_dtype=pl.String,
+        )
+        .alias("seq"),
+    )
+    return pl.concat([forward, reverse])

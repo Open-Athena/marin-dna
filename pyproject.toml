@@ -10,11 +10,10 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "biopython>=1.85",
     "numpy",
-    "pandas>=2.0,<3.0",
     "polars",
+    "polars-bio>=0.33.0,<0.34.0",
     "pyarrow>=21.0.0",
     "pyfaidx>=0.8.0",
-    "scipy",
 ]
 
 [dependency-groups]

@@ -122,10 +122,10 @@ rule intervals_recipe_v3:
         min_size = 512
         ann = load_annotation(input[0])
         cds = get_cds(ann)
-        defined = GenomicSet(read_bed_to_pandas(input[1]))
+        defined = GenomicSet.read_bed(input[1])
         intervals = cds.expand_min_size(min_size)
         intervals = intervals & defined
-        write_pandas_to_bed(intervals.to_pandas(), output[0])
+        intervals.write_bed(output[0])
 
 
 rule extract_cds:

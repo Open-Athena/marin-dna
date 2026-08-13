@@ -42,16 +42,10 @@ rule make_parquet:
     output:
         "results/dataset_genome/{intervals}/{g}.parquet",
     run:
-        df = load_fasta(input[0]).to_frame().reset_index(names="id")
-        if len(df) == 0:
-            pl.DataFrame(
-                {"id": [], "seq": []}, schema={"id": pl.String, "seq": pl.String}
-            ).write_parquet(output[0])
-        else:
-            df.id = df.id.astype(str)
-            if config["add_rc"]:
-                df = add_rc(df)
-            pl.from_pandas(df[["id", "seq"]]).write_parquet(output[0])
+        df = load_fasta(input[0])
+        if config["add_rc"]:
+            df = add_rc(df)
+        df.select(["id", "seq"]).write_parquet(output[0])
 
 
 rule create_functional_validation:
@@ -74,38 +68,50 @@ rule create_functional_validation:
             pl.read_csv(input.chrom_mapping, separator="\t").iter_rows()
         )
         # Load and subsample sequences
-        series = load_fasta(input.fasta)
-        df = series.to_frame().reset_index(names="id")
+        df = load_fasta(input.fasta)
         if len(df) == 0:
-            pl.DataFrame(
-                {"id": [], "seq": []}, schema={"id": pl.String, "seq": pl.String}
-            ).write_parquet(output[0])
+            df.write_parquet(output[0])
             return
-        df.id = df.id.astype(str)
         max_samples = val_config["max_samples"]
         # Filter to sequences on mapped chromosomes before subsampling
-        df["chrom"] = df["id"].apply(lambda x: x.rsplit(":", 1)[0])
-        df = df[df["chrom"].isin(chrom_map)]
-        df = df.drop(columns=["chrom"])
+        df = (
+            df.with_columns(
+                pl.col("id").str.extract(r"^(.*):[^:]+$", 1).alias("chrom")
+            )
+            .filter(pl.col("chrom").is_in(list(chrom_map)))
+            .drop("chrom")
+        )
         if len(df) > max_samples:
-            df = df.sample(n=max_samples, random_state=val_config["seed"])
+            df = df.sample(
+                n=max_samples,
+                seed=val_config["seed"],
+                with_replacement=False,
+                shuffle=True,
+            )
         bw = pyBigWig.open(input.bigwig)
 
-        def encode_case(row):
+        def encode_case(fasta_id, sequence):
             """Encode conservation as case: uppercase iff phyloP >= threshold."""
-            chrom_refseq, coords = row["id"].rsplit(":", 1)
+            chrom_refseq, coords = fasta_id.rsplit(":", 1)
             start, end = (int(x) for x in coords.split("-"))
             chrom_ucsc = chrom_map[chrom_refseq]
             scores = bw.values(chrom_ucsc, start, end)
             # NaN (missing data) compares False, so NaN -> lowercase
             return "".join(
                 b.upper() if s >= threshold else b.lower()
-                for b, s in zip(row["seq"], scores)
+                for b, s in zip(sequence, scores)
             )
 
-        df["seq"] = df.apply(encode_case, axis=1)
-        bw.close()
-        pl.from_pandas(df[["id", "seq"]]).write_parquet(output[0])
+        try:
+            encoded = [
+                encode_case(fasta_id, sequence)
+                for fasta_id, sequence in df.iter_rows()
+            ]
+        finally:
+            bw.close()
+        df.with_columns(pl.Series("seq", encoded, dtype=pl.String)).write_parquet(
+            output[0]
+        )
 
 
 rule merge_datasets:

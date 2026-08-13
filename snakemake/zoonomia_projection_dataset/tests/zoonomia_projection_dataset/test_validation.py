@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pandas as pd
 import polars as pl
 import pyBigWig
 import pytest
@@ -202,11 +201,11 @@ def test_get_ensembl_5_prime_utr_protein_coding_plus_strand(tmp_path: Path) -> N
     _write_gtf(gtf, rows)
     ann = load_annotation(str(gtf))
     utr = get_ensembl_5_prime_utr(ann)
-    df = utr.to_pandas()
+    df = utr.to_polars()
     assert len(df) == 1
     # 0-based: exon = [1000, 2000), CDS = [1100, 1900). 5' UTR = [1000, 1100).
-    assert df.iloc[0]["start"] == 1000
-    assert df.iloc[0]["end"] == 1100
+    assert df.item(0, "start") == 1000
+    assert df.item(0, "end") == 1100
 
 
 def test_get_ensembl_5_prime_utr_handles_minus_strand(tmp_path: Path) -> None:
@@ -224,12 +223,12 @@ def test_get_ensembl_5_prime_utr_handles_minus_strand(tmp_path: Path) -> None:
     _write_gtf(gtf, rows)
     ann = load_annotation(str(gtf))
     utr = get_ensembl_5_prime_utr(ann)
-    df = utr.to_pandas()
+    df = utr.to_polars()
     assert len(df) == 1
     # - strand: 5' UTR is genomically-rightmost exon segment past CDS end.
     # 0-based: exon = [1000, 2000), CDS = [1100, 1900). 5' UTR = [1900, 2000).
-    assert df.iloc[0]["start"] == 1900
-    assert df.iloc[0]["end"] == 2000
+    assert df.item(0, "start") == 1900
+    assert df.item(0, "end") == 2000
 
 
 def test_get_ensembl_3_prime_utr_plus_strand(tmp_path: Path) -> None:
@@ -247,11 +246,11 @@ def test_get_ensembl_3_prime_utr_plus_strand(tmp_path: Path) -> None:
     _write_gtf(gtf, rows)
     ann = load_annotation(str(gtf))
     utr = get_ensembl_3_prime_utr(ann)
-    df = utr.to_pandas()
+    df = utr.to_polars()
     assert len(df) == 1
     # 0-based: 3' UTR on + = [1900, 2000).
-    assert df.iloc[0]["start"] == 1900
-    assert df.iloc[0]["end"] == 2000
+    assert df.item(0, "start") == 1900
+    assert df.item(0, "end") == 2000
 
 
 def test_get_ensembl_5_prime_utr_lncrna_excluded(tmp_path: Path) -> None:
@@ -283,7 +282,7 @@ def test_get_ensembl_5_prime_utr_lncrna_excluded(tmp_path: Path) -> None:
     )
     ann = load_annotation(str(gtf))
     utr = get_ensembl_5_prime_utr(ann)
-    df = utr.to_pandas()
+    df = utr.to_polars()
     # Only the protein_coding transcript on chrom 2 contributes
     assert set(df["chrom"]) == {"2"}
 
@@ -320,9 +319,9 @@ def test_get_ensembl_ncrna_exons_keeps_lncrna(tmp_path: Path) -> None:
     )
     ann = load_annotation(str(gtf))
     nc = get_ensembl_ncrna_exons(ann, biotypes=["lncRNA", "miRNA"])
-    df = nc.to_pandas()
+    df = nc.to_polars()
     assert len(df) == 1
-    assert df.iloc[0]["start"] == 1000
+    assert df.item(0, "start") == 1000
 
 
 def test_get_ensembl_ncrna_exons_excludes_pseudogene(tmp_path: Path) -> None:
@@ -352,9 +351,9 @@ def test_get_ensembl_ncrna_exons_excludes_pseudogene(tmp_path: Path) -> None:
     )
     ann = load_annotation(str(gtf))
     nc = get_ensembl_ncrna_exons(ann, biotypes=["lncRNA"])
-    df = nc.to_pandas()
+    df = nc.to_polars()
     assert len(df) == 1
-    assert df.iloc[0]["start"] == 1000
+    assert df.item(0, "start") == 1000
 
 
 def test_get_ensembl_ncrna_exons_biotype_vocabulary_ensembl_only(
@@ -387,10 +386,10 @@ def test_get_ensembl_ncrna_exons_biotype_vocabulary_ensembl_only(
     )
     ann = load_annotation(str(gtf))
     nc = get_ensembl_ncrna_exons(ann, biotypes=["lncRNA"])
-    df = nc.to_pandas()
+    df = nc.to_polars()
     assert len(df) == 1
     # Only the Ensembl-style row survived
-    assert df.iloc[0]["start"] == 2000
+    assert df.item(0, "start") == 2000
 
 
 # ----------------------------------------------------------------------------
@@ -442,7 +441,7 @@ def test_build_annotation_region_no_cross_recipe_subtraction(tmp_path: Path) -> 
     canonical = filter_to_canonical_transcripts(ann)
 
     # Defined region covers the whole locus: [0, 4000)
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [4000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [4000]}))
 
     cds_region = build_annotation_region(
         "val_cds",
@@ -465,25 +464,25 @@ def test_build_annotation_region_no_cross_recipe_subtraction(tmp_path: Path) -> 
         expand_min=255,
     )
 
-    cds_df = cds_region.to_pandas()
-    utr5_df = utr5_region.to_pandas()
+    cds_df = cds_region.to_polars()
+    utr5_df = utr5_region.to_polars()
     assert len(cds_df) == 1
     assert len(utr5_df) == 1
 
     # CDS in 0-based: [1500, 2500). After add_flank(20): [1480, 2520).
     # CDS extends INTO the 5' UTR region [1000, 1500) by 20 bp [1480, 1500).
-    assert cds_df.iloc[0]["start"] == 1480
-    assert cds_df.iloc[0]["end"] == 2520
+    assert cds_df.item(0, "start") == 1480
+    assert cds_df.item(0, "end") == 2520
 
     # 5' UTR in 0-based (+ strand): [1000, 1500). After add_flank(20): [980, 1520).
     # 5' UTR extends INTO the CDS region [1500, 2500) by 20 bp [1500, 1520).
-    assert utr5_df.iloc[0]["start"] == 980
-    assert utr5_df.iloc[0]["end"] == 1520
+    assert utr5_df.item(0, "start") == 980
+    assert utr5_df.item(0, "end") == 1520
 
     # Verify the shared 20 bp [1480, 1500) and [1500, 1520) — i.e. both
     # regions overlap each other in [1480, 1520).
-    assert cds_df.iloc[0]["start"] < utr5_df.iloc[0]["end"]
-    assert utr5_df.iloc[0]["start"] < cds_df.iloc[0]["end"]
+    assert cds_df.item(0, "start") < utr5_df.item(0, "end")
+    assert utr5_df.item(0, "start") < cds_df.item(0, "end")
 
 
 def test_build_annotation_region_val_cds_drops_noncanonical(
@@ -555,7 +554,7 @@ def test_build_annotation_region_val_cds_drops_noncanonical(
     )
     ann = load_annotation(str(gtf))
     canonical = filter_to_canonical_transcripts(ann)
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [25_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [25_000]}))
     cds_region = build_annotation_region(
         "val_cds",
         canonical,
@@ -566,12 +565,12 @@ def test_build_annotation_region_val_cds_drops_noncanonical(
         max_size=10_000,
         expand_min=255,
     )
-    df = cds_region.to_pandas()
+    df = cds_region.to_polars()
     assert len(df) == 1
     # Only the canonical CDS [1099, 1899) → +20 flank → [1079, 1919) is in output.
     # The non-canonical CDS [11000, 19000) must NOT contribute.
-    assert df.iloc[0]["start"] < 5000
-    assert df.iloc[0]["end"] < 5000
+    assert df.item(0, "start") < 5000
+    assert df.item(0, "end") < 5000
     # Defensive: nothing in the T2 region.
     assert not ((df["start"] > 5000) | (df["end"] > 5000)).any()
 
@@ -602,14 +601,14 @@ def test_build_tss_band_region_plus_strand(tmp_path: Path) -> None:
     )
     ann = load_annotation(str(gtf))
     canonical = filter_to_canonical_transcripts(ann)
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
     band = build_tss_band_region(canonical, defined, flank=255)
-    df = band.to_pandas()
+    df = band.to_polars()
     assert len(df) == 1
     # 0-based: tx start = 5000 → band = [5000 - 255, 5000 + 255) = [4745, 5255)
-    assert df.iloc[0]["start"] == 4745
-    assert df.iloc[0]["end"] == 5255
-    assert df.iloc[0]["end"] - df.iloc[0]["start"] == 510
+    assert df.item(0, "start") == 4745
+    assert df.item(0, "end") == 5255
+    assert df.item(0, "end") - df.item(0, "start") == 510
 
 
 def test_build_tss_band_region_minus_strand(tmp_path: Path) -> None:
@@ -638,14 +637,14 @@ def test_build_tss_band_region_minus_strand(tmp_path: Path) -> None:
     )
     ann = load_annotation(str(gtf))
     canonical = filter_to_canonical_transcripts(ann)
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
     band = build_tss_band_region(canonical, defined, flank=255)
-    df = band.to_pandas()
+    df = band.to_polars()
     assert len(df) == 1
     # 0-based: tx_end = 4000 (1-based [3001, 4000] → 0-based [3000, 4000)).
     # -strand TSS = 4000; band = [4000-255, 4000+255) = [3745, 4255).
-    assert df.iloc[0]["start"] == 3745
-    assert df.iloc[0]["end"] == 4255
+    assert df.item(0, "start") == 3745
+    assert df.item(0, "end") == 4255
 
 
 def test_build_tss_band_region_excludes_lncrna(tmp_path: Path) -> None:
@@ -692,12 +691,12 @@ def test_build_tss_band_region_excludes_lncrna(tmp_path: Path) -> None:
     ann = load_annotation(str(gtf))
     canonical = filter_to_canonical_transcripts(ann)
     defined = GenomicSet(
-        pd.DataFrame({"chrom": ["1", "2"], "start": [0, 0], "end": [10_000, 10_000]})
+        pl.DataFrame({"chrom": ["1", "2"], "start": [0, 0], "end": [10_000, 10_000]})
     )
     band = build_tss_band_region(canonical, defined, flank=255)
-    df = band.to_pandas()
+    df = band.to_polars()
     assert len(df) == 1
-    assert df.iloc[0]["chrom"] == "1"  # protein_coding chrom only
+    assert df.item(0, "chrom") == "1"  # protein_coding chrom only
 
 
 def test_build_annotation_region_unknown_recipe_raises(tmp_path: Path) -> None:
@@ -726,7 +725,7 @@ def test_build_annotation_region_unknown_recipe_raises(tmp_path: Path) -> None:
     )
     ann = load_annotation(str(gtf))
     canonical = filter_to_canonical_transcripts(ann)
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [4000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [4000]}))
     with pytest.raises(ValueError, match="unknown filter\\+flank\\+expand recipe"):
         build_annotation_region(
             "val_promoter",  # cre recipe, not annotation
@@ -768,12 +767,12 @@ def test_build_cre_region_promoter_keeps_pls_only(tmp_path: Path) -> None:
             ("1", 5000, 5200, "DNase-H3K4me3"),
         ],
     )
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
     region = build_cre_region("val_promoter", cre, defined)
-    df = region.to_pandas()
+    df = region.to_polars()
     # Single PLS, resized to 255 bp → midpoint 1100, [1100-127, 1100+128) = [973, 1228).
     assert len(df) == 1
-    assert df.iloc[0]["end"] - df.iloc[0]["start"] == 255
+    assert df.item(0, "end") - df.item(0, "start") == 255
 
 
 def test_build_cre_region_enhancer_keeps_pels_dels(tmp_path: Path) -> None:
@@ -787,9 +786,9 @@ def test_build_cre_region_enhancer_keeps_pels_dels(tmp_path: Path) -> None:
             ("1", 4000, 4200, "CA-CTCF"),
         ],
     )
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
     region = build_cre_region("val_enhancer", cre, defined)
-    df = region.to_pandas()
+    df = region.to_polars()
     # 2 ELS regions, each resized to 255 bp.
     assert len(df) == 2
     assert (df["end"] - df["start"] == 255).all()
@@ -806,19 +805,19 @@ def test_build_cre_region_enhancer_subtracts_exons(tmp_path: Path) -> None:
             ("1", 9000, 9200, "dELS"),
         ],
     )
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [20_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [20_000]}))
     # Exon mask: [4500, 5300) — overlaps the pELS, not the dELS
     exon_mask = GenomicSet(
-        pd.DataFrame({"chrom": ["1"], "start": [4500], "end": [5300]})
+        pl.DataFrame({"chrom": ["1"], "start": [4500], "end": [5300]})
     )
     region = build_cre_region("val_enhancer", cre, defined, subtract=exon_mask)
-    df = region.to_pandas()
+    df = region.to_polars()
     # Only the dELS survives. The pELS resize [4973, 5228) was wholly inside
     # exon mask [4500, 5300) and gets fully subtracted.
     assert len(df) == 1
     # The surviving region is the (full or partial) dELS resize [8973, 9228).
-    assert df.iloc[0]["start"] == 8973
-    assert df.iloc[0]["end"] == 9228
+    assert df.item(0, "start") == 8973
+    assert df.item(0, "end") == 9228
 
 
 def test_build_cre_region_promoter_no_subtract_keeps_all(tmp_path: Path) -> None:
@@ -834,9 +833,9 @@ def test_build_cre_region_promoter_no_subtract_keeps_all(tmp_path: Path) -> None
             ("1", 5000, 5200, "PLS"),
         ],
     )
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [20_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [20_000]}))
     region = build_cre_region("val_promoter", cre, defined)
-    df = region.to_pandas()
+    df = region.to_polars()
     assert len(df) == 1
 
 
@@ -856,22 +855,22 @@ def test_build_cre_region_promoter_subtracts_cds_when_given(tmp_path: Path) -> N
             ("1", 9000, 9200, "PLS"),
         ],
     )
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [20_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [20_000]}))
     cds_mask = GenomicSet(
-        pd.DataFrame({"chrom": ["1"], "start": [4500], "end": [5300]})
+        pl.DataFrame({"chrom": ["1"], "start": [4500], "end": [5300]})
     )
     region = build_cre_region("val_promoter", cre, defined, subtract=cds_mask)
-    df = region.to_pandas()
+    df = region.to_polars()
     # Only the second PLS (9000-9200) survives; the first was wholly inside
     # the CDS mask.
     assert len(df) == 1
-    assert df.iloc[0]["start"] == 8973
-    assert df.iloc[0]["end"] == 9228
+    assert df.item(0, "start") == 8973
+    assert df.item(0, "end") == 9228
 
 
 def test_build_cre_region_unknown_recipe_raises(tmp_path: Path) -> None:
     cre = _make_cre_parquet(tmp_path, [("1", 1000, 1200, "PLS")])
-    defined = GenomicSet(pd.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
+    defined = GenomicSet(pl.DataFrame({"chrom": ["1"], "start": [0], "end": [10_000]}))
     with pytest.raises(ValueError, match="unknown cCRE-derived recipe"):
         build_cre_region("val_cds", cre, defined)
 
