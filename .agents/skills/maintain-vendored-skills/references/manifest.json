@@ -3,12 +3,16 @@
   "commit": "836eab32a78a9c6421300573a4571f2dc2682de4",
   "vendored_on": "2026-08-12",
   "unchanged": [
-    "writing-style",
-    "background-research",
-    "update-docs",
-    "wandb-reporting"
+    "update-docs"
   ],
   "adapted": [
+    {
+      "name": "background-research",
+      "deviations": [
+        "Replace Marin-only repository paths and design-document conventions with MarinDNA issues, pipeline documentation, permanent experiment branches, and parent-selected research records.",
+        "Keep orchestration decisions outside the skill while preserving effort levels, source handling, contradiction searches, and ranked experiment hypotheses."
+      ]
+    },
     {
       "name": "file-issue",
       "deviations": [
@@ -35,13 +39,28 @@
       "deviations": [
         "Use Open-Athena/marin-dna in the pinned-logbook permalink example."
       ]
+    },
+    {
+      "name": "wandb-reporting",
+      "deviations": [
+        "Require dna-exp<N> run names and stable versioned groups for MarinDNA experiment issues."
+      ]
+    },
+    {
+      "name": "writing-style",
+      "deviations": [
+        "Add the MarinDNA no-hard-wrap Markdown source convention and streamline the common house-style guidance without changing its intent."
+      ]
     }
   ],
   "local": [
+    "access-reference-genomes",
     "communicate-on-github",
+    "develop-snakemake-pipelines",
     "maintain-research-question",
     "maintain-vendored-skills",
     "gh-upload-asset",
-    "marin-experiment"
+    "marin-experiment",
+    "plot-research-results"
   ]
 }

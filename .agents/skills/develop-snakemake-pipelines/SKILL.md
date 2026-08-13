@@ -34,7 +34,7 @@ Use the targets intended for the task. Put pipeline-wide defaults such as cores,
 2. Dry-run before every real Snakemake invocation.
 3. Inspect the planned jobs, inputs, outputs, resources, and rerun reasons.
 4. Stop and ask before executing if the plan includes an unintended upstream, unrelated, expensive, or destructive job. Timestamp changes and default rerun triggers do not establish intent.
-5. Follow inherited compute-safety and cost-approval rules before local heavy work or remote execution.
+5. Follow inherited compute-safety rules before local heavy work. Obtain explicit user approval before launching paid remote compute, including SkyPilot resources.
 6. Monitor a new script, configuration, or compute combination during its first minutes. Check progress rate, expected devices, mounts, authentication, and early failures.
 
 ## Create A Pipeline
