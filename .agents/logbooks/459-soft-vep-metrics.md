@@ -279,3 +279,11 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   was not repeated because its measured memory exceeds the shared-node local
   planning bound; it passed before this focused, independently tested addition.
 - Next action: snapshot and post the issue update.
+
+### 2026-08-13 22:26 UTC - `VEP-SOFT-008` completion snapshot
+
+- Commit Hash: `afd94fecdb45c1b294584cc6691ef3c0c8638d31`
+- Result: stable snapshot now includes the explicit two-panel timing table,
+  formatted implementation, focused tests, and updated reproduction command.
+- Next action: use this hash for the issue's implementation, summary, and figure
+  permalinks.
