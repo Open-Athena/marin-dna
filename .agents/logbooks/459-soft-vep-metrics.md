@@ -244,3 +244,18 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Artifact: `.agents/artifacts/459-soft-vep/summary.md` contains the full decision,
   numeric evidence, limitations, and artifact index.
 - Next action: create a stable task snapshot and post a concise issue update.
+
+### 2026-08-13 22:20 UTC - `VEP-SOFT-006` stable task snapshot
+
+- Commit Hash: `dacdf895a5ab765e86bc99676d5b891e39873c71`
+- Snapshot scope: metric and bootstrap primitives, exp232/leaderboard/distal
+  analysis commands, 22 focused tests, full README instructions, compact Parquet
+  tables, reviewed SVG figures, decision summary, and this logbook.
+- Reproduction commands: the three `soft-vep-*` commands in the owning README,
+  all with locked dependencies and seed 459; `uv run --locked pytest` is the
+  project verification command but should run in remote CI after the observed
+  local 1.13 GiB peak.
+- Interpretation: this commit is the stable evidence snapshot for issue #459.
+  Subsequent prose-only issue updates should pin links to this hash.
+- Next action: publish the result summary without closing the issue or promoting
+  Brier into the production metric path.
