@@ -38,7 +38,7 @@ jobs:
             grep -q "uv sync --locked" "$project/README.md"
             grep -Eq "uv run --locked( --group [^ ]+)* pytest" "$project/README.md"
             grep -Eq "uv run --locked( --group [^ ]+)* snakemake -n" "$project/README.md"
-          done < <(find snakemake scaffolds/snakemake-pipeline -path "*/workflow/Snakefile" -print | sort)
+          done < <(find snakemake -path "*/workflow/Snakefile" -print | sort)
 
       - name: Validate core dependency boundary
         run: |
@@ -84,7 +84,6 @@ jobs:
               {"name": "vertebrate-projection", "directory": "snakemake/vertebrate_projection_dataset", "dry_run": True},
               {"name": "genome-selection", "directory": "snakemake/training_dataset/genome_selection", "dry_run": True},
               {"name": "training-dataset", "directory": "snakemake/training_dataset/dataset_creation", "dry_run": True},
-              {"name": "pipeline-scaffold", "directory": "scaffolds/snakemake-pipeline", "dry_run": True},
           ]
           event = os.environ["EVENT_NAME"]
           base = os.environ["PR_BASE_SHA"] if event == "pull_request" else os.environ["BEFORE_SHA"]

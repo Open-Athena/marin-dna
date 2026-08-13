@@ -5,7 +5,7 @@ description: Marin house writing style. Use when drafting or revising Marin-auth
 
 # Marin House Style
 
-Start here for any non-trivial Marin-authored text. This file is the common layer; then read the medium-specific file that matches the deliverable.
+Start here for any non-trivial Marin-authored text. Then read the medium-specific file that matches the deliverable.
 
 ## Read The Right File
 
@@ -33,53 +33,51 @@ Start here for any non-trivial Marin-authored text. This file is the common laye
 - Stay practical and hands-on.
 - Aim to be helpful and respectful.
 - Assume a baseline familiarity with ML systems.
-- Don’t dilute discussions to accommodate every level of experience. (Different media will be intended for different levels of experience.)
-- Don’t be overly formal; write like a technical peer, not an academic paper or a product blog.
+- Do not dilute discussions to accommodate every level of experience. Different media serve different audiences.
+- Write like a technical peer, not an academic paper or product blog.
 - Use technical language where it helps, but keep the tone natural and direct.
 
-## On Voice
+## Preserve Human Voice
 
-The above defines the default voice; we allow some flexibility by author. These rules are stricter for agent-written text than for human-written text.
+Researchers need not suppress their own voice. Some personality is appropriate, especially in retrospectives, blog posts, and narrative writeups, while the prose remains concrete, honest, and technically disciplined.
 
-Researchers need not suppress their own voice. Some personality is fine, especially in retrospectives, blog posts, and narrative writeups, as long as the writing stays concrete, honest, and technically disciplined.
-
-Agents should err toward more discipline. When reviewing human prose, allow deviations and flourishes that do not conflict with core Marin values.
+Apply stricter discipline to agent-written text. When reviewing human prose, preserve flourishes that do not conflict with Marin's core values.
 
 ## Enforce Hard Rules
 
 - Remove hype, marketing copy, and launch-tweet energy.
-- Use emoji very sparingly: for communication, not flair.
+- Use emoji sparingly and only for communication.
 - Remove grand claims that outrun the evidence.
 - Avoid AGI rhetoric and speculation.
 - Avoid adjectives that try to do the work of numbers.
-- If a sentence sounds like a product announcement, rewrite it.
+- Rewrite sentences that sound like product announcements.
 
 ## Follow The Writing Principles
 
 - Show results instead of claiming them. Prefer concrete numbers, examples, and observed behavior.
-- Prefer the simplest framing that is still correct.
-- State uncertainty plainly. Use phrases like `we think`, `preliminary results suggest`, or `this seems to break down when...` when warranted.
-- Treat the reader as a capable collaborator. Do not condescend or over-explain basics.
-- Default to transparency. Include what worked, what failed, what surprised you, and what you would try next.
-- Cite the relevant prior work and artifacts. This includes Marin experiments, reports, issues, PRs, papers, and other external work when they materially inform the piece.
+- Prefer the simplest framing that remains correct.
+- State uncertainty plainly with language such as `we think`, `preliminary results suggest`, or `this seems to break down when...` when warranted.
+- Treat the reader as a capable collaborator. Do not condescend or explain basics without a reason.
+- Include what worked, what failed, what surprised you, and what you would try next when those facts matter.
+- Cite relevant experiments, reports, issues, pull requests, papers, and other source artifacts.
 
-## Add Structure For Longer-Form Writing
+## Structure Longer Prose
 
-- For longer-form writing, include an easy-to-scan doc-level TL;DR near the top.
-- For longer-form writing, add section-level takeaway lines or short TL;DRs where they help readers navigate.
+- Include an easy-to-scan document-level TL;DR near the top of longer work.
+- Add section-level takeaway lines when they help readers navigate.
+- Do not force these patterns into short-form writing.
 
-- Do not force these patterns into short-form media that do not benefit from them.
-
-## Set Audience By Default
+## Set The Audience
 
 - Assume the reader works in ML or LLMs unless the medium says otherwise.
 - Do not assume deep specialization by default.
 - Introduce non-standard terms before using them heavily.
-- Add detail only when it helps the reader reproduce, evaluate, or act.
+- Add detail when it helps the reader reproduce, evaluate, or act.
 
 ## Use Sentence-Level Defaults
 
 - Prefer short, direct sentences.
+- Do not hard-wrap Markdown prose to a fixed width. Keep each paragraph or list item on one source line and let the renderer wrap it.
 - Lead with the result or takeaway.
 - Follow with method or explanation.
 - End with caveats, limits, or open questions when needed.
@@ -88,7 +86,7 @@ Agents should err toward more discipline. When reviewing human prose, allow devi
 
 ## Review For AI-Writing Tells
 
-Do one editing pass that looks only for generic, over-smoothed, LLM-sounding prose. Then apply [ai-writing-donts.md](ai-writing-donts.md) as the detailed checklist for what to remove or rewrite.
+Do one editing pass that looks only for generic, over-smoothed, LLM-sounding prose. Then apply [ai-writing-donts.md](ai-writing-donts.md) as the detailed checklist.
 
 ## Run A Quick Self-Check
 
@@ -97,7 +95,5 @@ Do one editing pass that looks only for generic, over-smoothed, LLM-sounding pro
 - Would this sound normal spoken aloud to a colleague?
 - Did you overstate certainty or scope?
 - Did you remove generic AI-writing templates and filler?
-
-## Keep The One-Line Summary
 
 Write clearly, honestly, and with enough evidence for the work to stand on its own.

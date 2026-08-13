@@ -7,7 +7,7 @@
 ## News
 
 - **2026-08-03** — *Blog post* — [A 1B standard Transformer rivals Evo 2 40B on variant effect prediction](https://openathena.ai/blog/marin-dna/).
-- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
+- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](https://github.com/Open-Athena/marin-dna/blob/190999b89b573b07026eff58c2c0a8cc8fa74458/docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
 
 ## Research
 
@@ -26,10 +26,7 @@ Tracked as GitHub issues under a two-axis label taxonomy: **Kind** selects the i
 
 ## Example
 
-This example tokenizes 64 enhancer sequences and trains a tiny
-Qwen3 model from scratch for 10 steps on CPU.
-See the standalone [`examples/train_tiny_dna/`](examples/train_tiny_dna/)
-directory for the runnable script, locked environment, and run instructions.
+This example tokenizes 64 enhancer sequences and trains a tiny Qwen3 model from scratch for 10 steps on CPU. See the standalone [`examples/train_tiny_dna/`](examples/train_tiny_dna/) directory for the runnable script, locked environment, and run instructions.
 
 ```python
 from fray.types import ResourceConfig
@@ -110,8 +107,6 @@ uv run --locked snakemake -n
 
 External bioinformatics programs remain in each rule's Conda environment. Marin-launched experiments and the tutorial under `examples/train_tiny_dna/` remain self-contained projects with their own lockfiles.
 
-New pipelines should start from [`scaffolds/snakemake-pipeline/`](scaffolds/snakemake-pipeline/), which includes the same manifest, lockfile, package, test, workflow, and profile layout.
-
 ## Development
 
 Install repository-level quality tooling from the core project:
@@ -127,7 +122,7 @@ A root change runs core plus every dependent pipeline in CI. A pipeline-only cha
 
 ## Project Structure
 
-The repository is the coordination boundary; each independently runnable workflow is its own dependency and execution boundary. Reusable genomic primitives live in `src/marin_dna/`; pipeline-specific Python lives beside its workflow under that pipeline's `src/`; and experiments remain isolated by branch/worktree. See [AGENTS.md](AGENTS.md#code-structure).
+The repository is the coordination boundary; each independently runnable workflow is its own dependency and execution boundary. Reusable genomic primitives live in `src/marin_dna/`; pipeline-specific Python lives beside its workflow under that pipeline's `src/`; and experiments remain isolated by branch/worktree. See [AGENTS.md](AGENTS.md#project-boundaries).
 
 ## Community
 
