@@ -20,6 +20,9 @@ from scipy.stats import kendalltau, spearmanr
 from marin_dna_evals.soft_vep_metrics import (
     AUPRC,
     CALIBRATED_BRIER,
+    CALIBRATED_LOG_LOSS,
+    GROUP_MEDIAN_MAD,
+    GROUP_SMD,
     HIGHER_IS_BETTER,
     MEAN_GAP_GLOBAL,
     MEAN_GAP_GROUP,
@@ -121,6 +124,30 @@ METRIC_AXIS_LABELS = {
     "soft_win": "SoftWin",
     "calibrated_log_loss": "Calibrated log loss (lower is better)",
     "calibrated_brier": "Calibrated Brier score (lower is better)",
+}
+DETECTABILITY_METRICS = (
+    AUPRC,
+    MEAN_GAP_GLOBAL,
+    MEAN_GAP_GROUP,
+    GROUP_SMD,
+    GROUP_MEDIAN_MAD,
+    SOFT_WIN,
+    CALIBRATED_LOG_LOSS,
+    CALIBRATED_BRIER,
+)
+DETECTABILITY_LABELS = {
+    AUPRC: "AUPRC",
+    MEAN_GAP_GLOBAL: "Raw mean gap",
+    MEAN_GAP_GROUP: "Group mean gap",
+    GROUP_SMD: "Group SMD",
+    GROUP_MEDIAN_MAD: "Median / MAD",
+    SOFT_WIN: "SoftWin",
+    CALIBRATED_LOG_LOSS: "− calibrated log loss",
+    CALIBRATED_BRIER: "1 − calibrated Brier",
+}
+DETECTABILITY_COLORS = {
+    AUPRC: "#0072B2",
+    CALIBRATED_BRIER: "#D55E00",
 }
 
 
@@ -363,6 +390,125 @@ def pairwise_bootstrap_summary(
                     "probability_a_better": float(np.nanmean(delta > 0)),
                 }
             )
+    return pd.DataFrame(rows)
+
+
+def specialist_detectability_summary(
+    point: pd.DataFrame,
+    bootstrap_samples: pd.DataFrame,
+    *,
+    subset: str,
+    metrics: tuple[str, ...] = DETECTABILITY_METRICS,
+) -> pd.DataFrame:
+    """Home-arm rank, margin, and rank-first frequency for one subset/step."""
+    assert subset in SPECIALIST_ARM, f"unknown specialist subset {subset!r}"
+    required_point = {"score_type", "metric", "value"}
+    required_samples = {"draw", "score_type", "metric", "value"}
+    assert required_point.issubset(point.columns), (
+        f"point table missing columns: {sorted(required_point - set(point.columns))}"
+    )
+    assert required_samples.issubset(bootstrap_samples.columns), (
+        "bootstrap table missing columns: "
+        f"{sorted(required_samples - set(bootstrap_samples.columns))}"
+    )
+    home_arm = SPECIALIST_ARM[subset]
+    rows: list[dict[str, str | float | int | bool]] = []
+    for metric in metrics:
+        metric_point = point[point["metric"] == metric].set_index("score_type")["value"]
+        assert set(metric_point.index.astype(str)) == set(ARMS), (
+            f"detectability requires all arms for {subset!r}/{metric!r}"
+        )
+        sign = 1.0 if HIGHER_IS_BETTER[metric] else -1.0
+        oriented_point = metric_point * sign
+        non_home_point = oriented_point.drop(home_arm)
+        strongest_competitor = str(non_home_point.idxmax())
+        home_margin = float(oriented_point.loc[home_arm] - non_home_point.max())
+        home_rank = int(1 + (non_home_point > oriented_point.loc[home_arm]).sum())
+
+        metric_samples = bootstrap_samples[bootstrap_samples["metric"] == metric].pivot(
+            index="draw", columns="score_type", values="value"
+        )
+        assert set(metric_samples.columns.astype(str)) == set(ARMS), (
+            f"bootstrap detectability requires all arms for {subset!r}/{metric!r}"
+        )
+        oriented_samples = metric_samples * sign
+        draw_margins = oriented_samples[home_arm] - oriented_samples[
+            list(set(ARMS) - {home_arm})
+        ].max(axis=1)
+        finite_margins = draw_margins[np.isfinite(draw_margins)]
+        assert not finite_margins.empty, (
+            f"no finite detectability draws for {subset!r}/{metric!r}"
+        )
+        margin_ci_low, margin_ci_high = np.nanpercentile(
+            finite_margins,
+            [2.5, 97.5],
+        )
+        rows.append(
+            {
+                "subset": subset,
+                "home_arm": home_arm,
+                "metric": metric,
+                "higher_is_better": bool(HIGHER_IS_BETTER[metric]),
+                "home_rank": home_rank,
+                "strongest_competitor": strongest_competitor,
+                "home_value": float(metric_point.loc[home_arm]),
+                "best_nonhome_value": float(metric_point.loc[strongest_competitor]),
+                "home_minus_best_oriented": home_margin,
+                "margin_se": float(np.nanstd(finite_margins, ddof=1)),
+                "margin_ci_low": float(margin_ci_low),
+                "margin_ci_high": float(margin_ci_high),
+                "bootstrap_home_rank1_frequency": float(np.nanmean(finite_margins > 0)),
+                "confidence_supported": bool(margin_ci_low > 0),
+                "n_bootstrap": int(len(finite_margins)),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def persistent_specialist_detectability(
+    detectability: pd.DataFrame,
+) -> pd.DataFrame:
+    """First of two consecutive confidence-supported synchronized steps."""
+    required = {
+        "subset",
+        "home_arm",
+        "metric",
+        "step",
+        "confidence_supported",
+        "bootstrap_home_rank1_frequency",
+    }
+    assert required.issubset(detectability.columns), (
+        f"detectability table missing columns: "
+        f"{sorted(required - set(detectability.columns))}"
+    )
+    rows: list[dict[str, str | float | int | bool | None]] = []
+    synchronized = detectability[detectability["step"].isin(SYNCHRONIZED_STEPS)]
+    for (subset, metric), frame in synchronized.groupby(
+        ["subset", "metric"],
+        sort=False,
+    ):
+        ordered = frame.sort_values("step")
+        steps = ordered["step"].astype(int).tolist()
+        supported = ordered["confidence_supported"].astype(bool).tolist()
+        earliest: int | None = None
+        for index in range(len(steps) - 1):
+            if supported[index] and supported[index + 1]:
+                earliest = steps[index]
+                break
+        final = ordered[ordered["step"] == 4999]
+        assert len(final) == 1
+        rows.append(
+            {
+                "subset": str(subset),
+                "home_arm": str(ordered.iloc[0]["home_arm"]),
+                "metric": str(metric),
+                "earliest_persistent_detected_step": earliest,
+                "final_step_supported": bool(final.iloc[0]["confidence_supported"]),
+                "final_step_rank1_frequency": float(
+                    final.iloc[0]["bootstrap_home_rank1_frequency"]
+                ),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -723,7 +869,7 @@ def plot_exp232_specialist_auprc_vs_brier(
     point_metrics: pd.DataFrame,
     output_dir: Path,
 ) -> dict[str, Path]:
-    """Compare each mapped specialist's AUPRC and 1 - calibrated Brier."""
+    """Compare all arms under AUPRC and 1 - Brier, emphasizing the home arm."""
     required_columns = {
         "arm",
         "step",
@@ -737,111 +883,129 @@ def plot_exp232_specialist_auprc_vs_brier(
     assert not missing, f"point metrics are missing columns: {sorted(missing)}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    auprc_color = "#0072B2"
-    brier_skill_color = "#D55E00"
-    fig, axes = plt.subplots(4, 2, figsize=(13, 15), sharex=True, squeeze=False)
+    fig, axes = plt.subplots(3, 3, figsize=(15, 11), sharex=True, squeeze=False)
     flat_axes = axes.flatten()
     for axis, subset in zip(flat_axes, NON_DISTAL_SUBSETS):
-        specialist = SPECIALIST_ARM[subset]
-        specialist_data = point_metrics[
-            (point_metrics["subset"] == subset) & (point_metrics["arm"] == specialist)
-        ]
-        auprc = specialist_data[specialist_data["metric"] == AUPRC].sort_values("step")
-        brier = specialist_data[
-            specialist_data["metric"] == CALIBRATED_BRIER
-        ].sort_values("step")
-        assert not auprc.empty, f"no specialist AUPRC trajectory for {subset!r}"
-        assert not brier.empty, f"no specialist Brier trajectory for {subset!r}"
-        assert auprc["step"].tolist() == brier["step"].tolist(), (
-            f"AUPRC and Brier steps differ for {subset!r}"
-        )
-
-        axis.plot(
-            auprc["step"],
-            auprc["value"],
-            color=auprc_color,
-            marker="o",
-            markersize=4,
-            linewidth=2.2,
-        )
-        axis.fill_between(
-            auprc["step"],
-            auprc["ci_low"],
-            auprc["ci_high"],
-            color=auprc_color,
-            alpha=0.14,
-            linewidth=0,
-        )
-        axis.set_ylabel("AUPRC ↑", color=auprc_color)
-        axis.tick_params(axis="y", colors=auprc_color)
-        axis.spines["left"].set_color(auprc_color)
-        axis.grid(alpha=0.25, linewidth=0.7)
-
-        brier_skill = 1.0 - brier["value"]
-        brier_skill_low = 1.0 - brier["ci_high"]
-        brier_skill_high = 1.0 - brier["ci_low"]
         skill_axis = axis.twinx()
-        skill_axis.plot(
-            brier["step"],
-            brier_skill,
-            color=brier_skill_color,
-            linestyle="--",
-            marker="s",
-            markersize=3.8,
-            linewidth=2.2,
-        )
-        skill_axis.fill_between(
-            brier["step"],
-            brier_skill_low,
-            brier_skill_high,
-            color=brier_skill_color,
-            alpha=0.12,
-            linewidth=0,
-        )
-        skill_axis.set_ylabel("1 − calibrated Brier ↑", color=brier_skill_color)
-        skill_axis.tick_params(axis="y", colors=brier_skill_color)
-        skill_axis.spines["right"].set_color(brier_skill_color)
+        home_arm = SPECIALIST_ARM[subset]
+        subset_data = point_metrics[point_metrics["subset"] == subset]
+        for arm in ARMS:
+            arm_data = subset_data[subset_data["arm"] == arm]
+            auprc = arm_data[arm_data["metric"] == AUPRC].sort_values("step")
+            brier = arm_data[arm_data["metric"] == CALIBRATED_BRIER].sort_values("step")
+            assert not auprc.empty, f"no AUPRC trajectory for {subset!r}/{arm!r}"
+            assert not brier.empty, f"no Brier trajectory for {subset!r}/{arm!r}"
+            assert auprc["step"].tolist() == brier["step"].tolist(), (
+                f"AUPRC and Brier steps differ for {subset!r}/{arm!r}"
+            )
+            is_home = arm == home_arm
+            alpha = 1.0 if is_home else 0.42
+            linewidth = 2.8 if is_home else 1.15
+            zorder = 4 if is_home else 2
+            axis.plot(
+                auprc["step"],
+                auprc["value"],
+                color=ARM_COLORS[arm],
+                alpha=alpha,
+                marker="o" if is_home else None,
+                markersize=3.8,
+                linewidth=linewidth,
+                zorder=zorder,
+            )
+            brier_skill = 1.0 - brier["value"]
+            skill_axis.plot(
+                brier["step"],
+                brier_skill,
+                color=ARM_COLORS[arm],
+                alpha=alpha,
+                linestyle="--",
+                marker="s" if is_home else None,
+                markersize=3.6,
+                linewidth=linewidth,
+                zorder=zorder,
+            )
+            if is_home:
+                axis.fill_between(
+                    auprc["step"],
+                    auprc["ci_low"],
+                    auprc["ci_high"],
+                    color=ARM_COLORS[arm],
+                    alpha=0.12,
+                    linewidth=0,
+                    zorder=1,
+                )
+                skill_axis.fill_between(
+                    brier["step"],
+                    1.0 - brier["ci_high"],
+                    1.0 - brier["ci_low"],
+                    color=ARM_COLORS[arm],
+                    alpha=0.09,
+                    linewidth=0,
+                    zorder=1,
+                )
 
-        axis.set_title(f"{subset}\nspecialist: {specialist}", fontsize=10)
+        axis.set_ylabel("AUPRC ↑")
+        skill_axis.set_ylabel("1 − calibrated Brier ↑")
+        axis.grid(alpha=0.25, linewidth=0.7)
+        axis.set_title(f"{subset}\nhome arm: {home_arm}", fontsize=10)
         axis.set_xlabel("Training step")
+        axis.tick_params(axis="x", labelbottom=True)
 
-    flat_axes[-1].axis("off")
-    legend_handles = [
+    for axis in flat_axes[len(NON_DISTAL_SUBSETS) :]:
+        axis.axis("off")
+    arm_handles = [
         plt.Line2D(
             [0],
             [0],
-            color=auprc_color,
+            color=ARM_COLORS[arm],
+            linewidth=2,
+            label=arm,
+        )
+        for arm in ARMS
+    ]
+    flat_axes[len(NON_DISTAL_SUBSETS)].legend(
+        handles=arm_handles,
+        title="Training arm\n(thick = panel's home arm)",
+        loc="center",
+        frameon=False,
+    )
+    metric_handles = [
+        plt.Line2D(
+            [0],
+            [0],
+            color="#222222",
             marker="o",
             linewidth=2.2,
-            label="AUPRC ↑",
+            label="AUPRC ↑ (left axis)",
         ),
         plt.Line2D(
             [0],
             [0],
-            color=brier_skill_color,
+            color="#222222",
             linestyle="--",
             marker="s",
             linewidth=2.2,
-            label="1 − grouped-CV calibrated Brier ↑",
+            label="1 − calibrated Brier ↑ (right axis)",
         ),
     ]
-    flat_axes[-1].legend(
-        handles=legend_handles,
+    flat_axes[len(NON_DISTAL_SUBSETS) + 1].legend(
+        handles=metric_handles,
         title="Metric (higher is better)",
         loc="center",
         frameon=False,
     )
     fig.suptitle(
-        "exp232 mapped-specialist trajectories\n"
-        "development split; ribbons are 95% joint match-group bootstrap intervals",
+        "exp232 all-arm trajectories — home arm highlighted in each panel\n"
+        "development split; solid = AUPRC, dashed = 1 − calibrated Brier",
         fontsize=13,
         y=0.995,
     )
     fig.text(
         0.5,
         0.008,
-        "Axes use independent scales; compare direction over steps, not metric magnitudes. "
-        "Brier intervals condition on fixed OOF calibration fits.",
+        "Axes use independent scales; compare directions, not metric magnitudes. "
+        "Ribbons are home-arm 95% joint match-group bootstrap intervals; "
+        "Brier intervals condition on fixed OOF fits.",
         ha="center",
         fontsize=9,
     )
@@ -849,11 +1013,455 @@ def plot_exp232_specialist_auprc_vs_brier(
     svg_path = output_dir / "specialist_auprc_vs_brier.svg"
     png_path = output_dir / "specialist_auprc_vs_brier.png"
     fig.savefig(svg_path, format="svg", bbox_inches="tight")
-    fig.savefig(png_path, format="png", dpi=160, bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=90)
     plt.close(fig)
     return {
         "plot_specialist_auprc_vs_brier_svg": svg_path,
         "plot_specialist_auprc_vs_brier_png": png_path,
+    }
+
+
+def _formatted_detection_step(value: float) -> str:
+    if pd.isna(value):
+        return "not detected"
+    return str(int(value))
+
+
+def _detection_timing_counts(timing: pd.DataFrame) -> dict[str, int]:
+    wide = timing.pivot(
+        index="subset",
+        columns="metric",
+        values="earliest_persistent_detected_step",
+    ).reindex(NON_DISTAL_SUBSETS)
+    counts = {
+        "brier_earlier": 0,
+        "auprc_earlier": 0,
+        "same": 0,
+        "neither": 0,
+    }
+    for _, row in wide.iterrows():
+        auprc = row[AUPRC]
+        brier = row[CALIBRATED_BRIER]
+        if pd.isna(auprc) and pd.isna(brier):
+            counts["neither"] += 1
+        elif pd.isna(auprc):
+            counts["brier_earlier"] += 1
+        elif pd.isna(brier):
+            counts["auprc_earlier"] += 1
+        elif brier < auprc:
+            counts["brier_earlier"] += 1
+        elif auprc < brier:
+            counts["auprc_earlier"] += 1
+        else:
+            counts["same"] += 1
+    return counts
+
+
+def compare_metric_detection_timing(timing: pd.DataFrame) -> pd.DataFrame:
+    """Count earlier, tied, later, and jointly absent detections versus AUPRC."""
+    wide = timing.pivot(
+        index="subset",
+        columns="metric",
+        values="earliest_persistent_detected_step",
+    ).reindex(NON_DISTAL_SUBSETS)
+    assert set(DETECTABILITY_METRICS).issubset(wide.columns)
+    rows: list[dict[str, str | int]] = []
+    for metric in DETECTABILITY_METRICS:
+        if metric == AUPRC:
+            continue
+        counts = {
+            "candidate_earlier": 0,
+            "same_step": 0,
+            "auprc_earlier": 0,
+            "neither_detected": 0,
+        }
+        for _, row in wide.iterrows():
+            auprc = row[AUPRC]
+            candidate = row[metric]
+            if pd.isna(auprc) and pd.isna(candidate):
+                counts["neither_detected"] += 1
+            elif pd.isna(auprc):
+                counts["candidate_earlier"] += 1
+            elif pd.isna(candidate):
+                counts["auprc_earlier"] += 1
+            elif candidate < auprc:
+                counts["candidate_earlier"] += 1
+            elif auprc < candidate:
+                counts["auprc_earlier"] += 1
+            else:
+                counts["same_step"] += 1
+        rows.append({"metric": metric, **counts})
+    return pd.DataFrame(rows)
+
+
+def plot_metric_detectability_summary(
+    timing: pd.DataFrame,
+    comparison: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Summarize earliest supported separation for every candidate metric."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    display_subsets = {
+        "missense_variant": "missense",
+        "synonymous_variant": "synonymous",
+        "splicing": "splicing",
+        "3_prime_UTR_variant": "3′ UTR",
+        "non_coding_transcript_exon_variant": "noncoding exon",
+        "5_prime_UTR_variant": "5′ UTR",
+        "tss_proximal": "TSS proximal",
+    }
+    timing_wide = (
+        timing.pivot(
+            index="metric",
+            columns="subset",
+            values="earliest_persistent_detected_step",
+        )
+        .reindex(index=DETECTABILITY_METRICS, columns=NON_DISTAL_SUBSETS)
+        .astype(float)
+    )
+    fig, (heat_axis, count_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(16, 9),
+        gridspec_kw={"width_ratios": (1.65, 1.0)},
+    )
+    cmap = plt.get_cmap("viridis_r").with_extremes(bad="#E2E2E2")
+    image = heat_axis.imshow(
+        timing_wide.to_numpy(),
+        aspect="auto",
+        cmap=cmap,
+        vmin=500,
+        vmax=4999,
+    )
+    heat_axis.set_xticks(
+        np.arange(len(NON_DISTAL_SUBSETS)),
+        [display_subsets[subset] for subset in NON_DISTAL_SUBSETS],
+        rotation=30,
+        ha="right",
+    )
+    heat_axis.set_yticks(
+        np.arange(len(DETECTABILITY_METRICS)),
+        [DETECTABILITY_LABELS[metric] for metric in DETECTABILITY_METRICS],
+    )
+    heat_axis.set_title("First persistent separation step")
+    heat_axis.set_xticks(
+        np.arange(-0.5, len(NON_DISTAL_SUBSETS), 1),
+        minor=True,
+    )
+    heat_axis.set_yticks(
+        np.arange(-0.5, len(DETECTABILITY_METRICS), 1),
+        minor=True,
+    )
+    heat_axis.grid(which="minor", color="white", linewidth=1.5)
+    heat_axis.tick_params(which="minor", bottom=False, left=False)
+    for row_index, metric in enumerate(DETECTABILITY_METRICS):
+        for column_index, subset in enumerate(NON_DISTAL_SUBSETS):
+            value = timing_wide.loc[metric, subset]
+            if pd.isna(value):
+                label = "ND"
+                color = "#333333"
+            else:
+                label = str(int(value))
+                color = "white" if value < 3000 else "#111111"
+            heat_axis.text(
+                column_index,
+                row_index,
+                label,
+                ha="center",
+                va="center",
+                color=color,
+                fontsize=9,
+            )
+    colorbar = fig.colorbar(image, ax=heat_axis, fraction=0.046, pad=0.04)
+    colorbar.set_label("Training step (earlier is better)")
+
+    comparison_indexed = comparison.set_index("metric").reindex(
+        DETECTABILITY_METRICS[1:]
+    )
+    categories = (
+        ("candidate_earlier", "Candidate earlier", "#009E73"),
+        ("same_step", "Same step", "#9E9E9E"),
+        ("auprc_earlier", "AUPRC earlier", "#D55E00"),
+        ("neither_detected", "Neither detected", "#4D4D4D"),
+    )
+    y_positions = np.arange(len(comparison_indexed), dtype=float)
+    left = np.zeros(len(comparison_indexed), dtype=float)
+    for column, label, color in categories:
+        widths = comparison_indexed[column].to_numpy(dtype=float)
+        count_axis.barh(
+            y_positions,
+            widths,
+            left=left,
+            color=color,
+            label=label,
+        )
+        for index, width in enumerate(widths):
+            if width:
+                count_axis.text(
+                    left[index] + width / 2,
+                    y_positions[index],
+                    str(int(width)),
+                    ha="center",
+                    va="center",
+                    color="white" if color != "#9E9E9E" else "#222222",
+                    fontsize=9,
+                    fontweight="bold",
+                )
+        left += widths
+    count_axis.set_yticks(
+        y_positions,
+        [DETECTABILITY_LABELS[metric] for metric in comparison_indexed.index],
+    )
+    count_axis.set_xlim(0, len(NON_DISTAL_SUBSETS))
+    count_axis.set_xticks(range(len(NON_DISTAL_SUBSETS) + 1))
+    count_axis.invert_yaxis()
+    count_axis.set_xlabel("Number of consequence subsets")
+    count_axis.set_title("Timing relative to AUPRC")
+    count_axis.grid(axis="x", alpha=0.2, linewidth=0.7)
+    count_axis.legend(
+        frameon=False,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.26),
+        ncol=2,
+    )
+    fig.suptitle(
+        "Do any candidate metrics distinguish the home arm earlier than AUPRC?",
+        fontsize=14,
+        y=0.99,
+    )
+    fig.text(
+        0.5,
+        0.015,
+        "Detection = first of two consecutive synchronized steps with the "
+        "joint home-minus-best-non-home 95% interval above zero. "
+        "ND = not detected. Raw gaps and fixed-temperature SoftWin remain "
+        "score-scale sensitive.",
+        ha="center",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0.06, 1, 0.955))
+    svg_path = output_dir / "specialist_metric_detectability_summary.svg"
+    png_path = output_dir / "specialist_metric_detectability_summary.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=100)
+    plt.close(fig)
+    return {
+        "plot_specialist_metric_detectability_summary_svg": svg_path,
+        "plot_specialist_metric_detectability_summary_png": png_path,
+    }
+
+
+def plot_specialist_detectability(
+    detectability: pd.DataFrame,
+    timing: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Plot home-rank-first frequency and earliest persistent separation."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    bootstrap_counts = detectability["n_bootstrap"].dropna().unique()
+    assert len(bootstrap_counts) == 1
+    n_bootstrap = int(bootstrap_counts[0])
+    fig, axes = plt.subplots(3, 3, figsize=(15, 11), sharex=True, sharey=True)
+    flat_axes = axes.flatten()
+    for axis, subset in zip(flat_axes, NON_DISTAL_SUBSETS):
+        subset_data = detectability[detectability["subset"] == subset]
+        subset_timing = timing[timing["subset"] == subset].set_index("metric")
+        for metric, marker in ((AUPRC, "o"), (CALIBRATED_BRIER, "s")):
+            metric_data = subset_data[subset_data["metric"] == metric].sort_values(
+                "step"
+            )
+            assert len(metric_data) == len(SYNCHRONIZED_STEPS)
+            axis.plot(
+                metric_data["step"],
+                metric_data["bootstrap_home_rank1_frequency"],
+                color=DETECTABILITY_COLORS[metric],
+                marker=marker,
+                markersize=4.5,
+                linewidth=2,
+                label=DETECTABILITY_LABELS[metric],
+            )
+            supported = metric_data[metric_data["confidence_supported"]]
+            axis.scatter(
+                supported["step"],
+                supported["bootstrap_home_rank1_frequency"],
+                color=DETECTABILITY_COLORS[metric],
+                marker="*",
+                s=75,
+                edgecolor="white",
+                linewidth=0.5,
+                zorder=5,
+            )
+        auprc_step = subset_timing.loc[AUPRC, "earliest_persistent_detected_step"]
+        brier_step = subset_timing.loc[
+            CALIBRATED_BRIER,
+            "earliest_persistent_detected_step",
+        ]
+        axis.text(
+            0.02,
+            0.04,
+            f"persistent: AUPRC {_formatted_detection_step(auprc_step)}; "
+            f"1−Brier {_formatted_detection_step(brier_step)}",
+            transform=axis.transAxes,
+            fontsize=8,
+        )
+        axis.axhline(0.95, color="#555555", linestyle=":", linewidth=1)
+        axis.set_title(f"{subset}\nhome arm: {SPECIALIST_ARM[subset]}", fontsize=10)
+        axis.set_xlabel("Training step")
+        axis.set_ylabel("Bootstrap frequency home ranks first")
+        axis.set_ylim(-0.02, 1.03)
+        axis.tick_params(axis="x", labelbottom=True)
+        axis.grid(alpha=0.22, linewidth=0.7)
+
+    for axis in flat_axes[len(NON_DISTAL_SUBSETS) :]:
+        axis.axis("off")
+    legend_handles = [
+        plt.Line2D(
+            [0],
+            [0],
+            color=DETECTABILITY_COLORS[metric],
+            marker=marker,
+            linewidth=2,
+            label=DETECTABILITY_LABELS[metric],
+        )
+        for metric, marker in ((AUPRC, "o"), (CALIBRATED_BRIER, "s"))
+    ]
+    legend_handles.extend(
+        [
+            plt.Line2D(
+                [0],
+                [0],
+                color="#555555",
+                linestyle=":",
+                label="0.95 reference",
+            ),
+            plt.Line2D(
+                [0],
+                [0],
+                color="#555555",
+                marker="*",
+                linestyle="none",
+                markersize=10,
+                label="95% home-vs-best margin CI > 0",
+            ),
+        ]
+    )
+    flat_axes[len(NON_DISTAL_SUBSETS)].legend(
+        handles=legend_handles,
+        title="Detectability",
+        loc="center",
+        frameon=False,
+    )
+    counts = _detection_timing_counts(timing)
+    flat_axes[len(NON_DISTAL_SUBSETS) + 1].text(
+        0.5,
+        0.58,
+        "First persistent separation\n\n"
+        f"1−Brier earlier: {counts['brier_earlier']}/7\n"
+        f"AUPRC earlier: {counts['auprc_earlier']}/7\n"
+        f"Same step: {counts['same']}/7\n"
+        f"Neither detected: {counts['neither']}/7",
+        ha="center",
+        va="center",
+        fontsize=11,
+    )
+    fig.suptitle(
+        "Can the new metric distinguish the home arm earlier than AUPRC?\n"
+        f"development split; {n_bootstrap:,} joint match-group bootstrap draws",
+        fontsize=13,
+        y=0.995,
+    )
+    fig.text(
+        0.5,
+        0.008,
+        "A persistent separation requires the home-minus-best-non-home 95% "
+        "pointwise CI > 0 at two consecutive stored steps. "
+        "Bootstrap frequency is not a p-value or posterior probability; "
+        "Brier uncertainty conditions on fixed OOF fits.",
+        ha="center",
+        fontsize=8.5,
+    )
+    fig.tight_layout(rect=(0, 0.035, 1, 0.96))
+    frequency_svg = output_dir / "specialist_detectability.svg"
+    frequency_png = output_dir / "specialist_detectability.png"
+    fig.savefig(frequency_svg, format="svg", bbox_inches="tight")
+    fig.savefig(frequency_png, format="png", dpi=90)
+    plt.close(fig)
+
+    display_labels = {
+        "missense_variant": "missense",
+        "synonymous_variant": "synonymous",
+        "splicing": "splicing",
+        "3_prime_UTR_variant": "3′ UTR",
+        "non_coding_transcript_exon_variant": "noncoding exon",
+        "5_prime_UTR_variant": "5′ UTR",
+        "tss_proximal": "TSS proximal",
+    }
+    timing_wide = timing.pivot(
+        index="subset",
+        columns="metric",
+        values="earliest_persistent_detected_step",
+    ).reindex(NON_DISTAL_SUBSETS)
+    not_detected_x = 5500
+    fig, axis = plt.subplots(figsize=(12, 6.8))
+    y_positions = np.arange(len(NON_DISTAL_SUBSETS), dtype=float)
+    for row_index, subset in enumerate(NON_DISTAL_SUBSETS):
+        auprc = timing_wide.loc[subset, AUPRC]
+        brier = timing_wide.loc[subset, CALIBRATED_BRIER]
+        if pd.notna(auprc) and pd.notna(brier):
+            axis.plot(
+                [auprc, brier],
+                [row_index, row_index],
+                color="#BBBBBB",
+                linewidth=1.5,
+                zorder=1,
+            )
+    for metric, marker, offset in (
+        (AUPRC, "o", -0.11),
+        (CALIBRATED_BRIER, "s", 0.11),
+    ):
+        values = timing_wide[metric].fillna(not_detected_x)
+        axis.scatter(
+            values,
+            y_positions + offset,
+            color=DETECTABILITY_COLORS[metric],
+            marker=marker,
+            s=65,
+            label=DETECTABILITY_LABELS[metric],
+            zorder=3,
+        )
+    axis.set_yticks(
+        y_positions,
+        [display_labels[subset] for subset in NON_DISTAL_SUBSETS],
+    )
+    axis.set_xticks(
+        [500, 1500, 2500, 3500, 4500, 5500],
+        ["500", "1500", "2500", "3500", "4500", "not detected"],
+    )
+    axis.set_xlim(300, 5700)
+    axis.invert_yaxis()
+    axis.set_xlabel(
+        "First of two consecutive steps with home-minus-best-non-home "
+        "95% CI > 0  (earlier is better)"
+    )
+    axis.set_title(
+        "Earliest confidence-supported home-arm separation\n"
+        f"1−Brier earlier {counts['brier_earlier']}/7; "
+        f"AUPRC earlier {counts['auprc_earlier']}/7; "
+        f"same {counts['same']}/7; neither {counts['neither']}/7"
+    )
+    axis.grid(axis="x", alpha=0.25, linewidth=0.7)
+    axis.legend(frameon=False, loc="lower right")
+    fig.tight_layout()
+    timing_svg = output_dir / "specialist_detection_timing.svg"
+    timing_png = output_dir / "specialist_detection_timing.png"
+    fig.savefig(timing_svg, format="svg", bbox_inches="tight")
+    fig.savefig(timing_png, format="png", dpi=100)
+    plt.close(fig)
+    return {
+        "plot_specialist_detectability_svg": frequency_svg,
+        "plot_specialist_detectability_png": frequency_png,
+        "plot_specialist_detection_timing_svg": timing_svg,
+        "plot_specialist_detection_timing_png": timing_png,
     }
 
 
@@ -961,6 +1569,7 @@ def run_exp232_analysis(
     point_parts: list[pd.DataFrame] = []
     fwd_parts: list[pd.DataFrame] = []
     pairwise_parts: list[pd.DataFrame] = []
+    detectability_parts: list[pd.DataFrame] = []
     stored_auprc_parts: list[pd.DataFrame] = []
     final_bundles: dict[str, pd.DataFrame] | None = None
     all_steps = sorted({step for steps in EXP232_STEPS.values() for step in steps})
@@ -1005,6 +1614,15 @@ def run_exp232_analysis(
             pairwise["subset"] = subset
             pairwise_parts.append(pairwise)
 
+            if set(active_arms) == set(ARMS):
+                detectability = specialist_detectability_summary(
+                    point,
+                    samples,
+                    subset=subset,
+                )
+                detectability["step"] = step
+                detectability_parts.append(detectability)
+
             fwd_scores = pd.DataFrame(
                 {
                     arm: frame.loc[keep, "minus_llr_fwd"].reset_index(drop=True)
@@ -1025,6 +1643,13 @@ def run_exp232_analysis(
     point_metrics = pd.concat(point_parts, ignore_index=True)
     fwd_metrics = pd.concat(fwd_parts, ignore_index=True)
     pairwise_deltas = pd.concat(pairwise_parts, ignore_index=True)
+    specialist_detectability = pd.concat(detectability_parts, ignore_index=True)
+    specialist_detection_timing = persistent_specialist_detectability(
+        specialist_detectability
+    )
+    metric_detection_comparison = compare_metric_detection_timing(
+        specialist_detection_timing
+    )
     stored_auprc = pd.concat(stored_auprc_parts, ignore_index=True)
     reproduced_auprc = point_metrics[point_metrics["metric"] == AUPRC][
         ["arm", "step", "subset", "value"]
@@ -1064,6 +1689,13 @@ def run_exp232_analysis(
         "point_metrics": output_dir / "point_metrics.parquet",
         "fwd_metrics": output_dir / "fwd_metrics.parquet",
         "pairwise_deltas": output_dir / "pairwise_deltas.parquet",
+        "specialist_detectability": output_dir / "specialist_detectability.parquet",
+        "specialist_detection_timing": (
+            output_dir / "specialist_detection_timing.parquet"
+        ),
+        "metric_detection_comparison": (
+            output_dir / "metric_detection_comparison.parquet"
+        ),
         "auprc_reproduction": output_dir / "auprc_reproduction.parquet",
         "rank_agreement": output_dir / "rank_agreement.parquet",
         "rank_reversals": output_dir / "rank_reversals.parquet",
@@ -1076,6 +1708,18 @@ def run_exp232_analysis(
     point_metrics.to_parquet(outputs["point_metrics"], index=False)
     fwd_metrics.to_parquet(outputs["fwd_metrics"], index=False)
     pairwise_deltas.to_parquet(outputs["pairwise_deltas"], index=False)
+    specialist_detectability.to_parquet(
+        outputs["specialist_detectability"],
+        index=False,
+    )
+    specialist_detection_timing.to_parquet(
+        outputs["specialist_detection_timing"],
+        index=False,
+    )
+    metric_detection_comparison.to_parquet(
+        outputs["metric_detection_comparison"],
+        index=False,
+    )
     reproduced_auprc.to_parquet(outputs["auprc_reproduction"], index=False)
     rank_agreement.to_parquet(outputs["rank_agreement"], index=False)
     rank_reversals.to_parquet(outputs["rank_reversals"], index=False)
@@ -1092,6 +1736,20 @@ def run_exp232_analysis(
     outputs.update(
         plot_exp232_specialist_auprc_vs_brier(
             point_metrics,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_specialist_detectability(
+            specialist_detectability,
+            specialist_detection_timing,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_metric_detectability_summary(
+            specialist_detection_timing,
+            metric_detection_comparison,
             output_dir / "plots",
         )
     )

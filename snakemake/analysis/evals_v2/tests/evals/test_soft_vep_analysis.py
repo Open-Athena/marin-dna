@@ -5,16 +5,22 @@ import pandas as pd
 import pytest
 from marin_dna_evals.soft_vep_analysis import (
     ARMS,
+    DETECTABILITY_METRICS,
     NON_DISTAL_SUBSETS,
     SPECIALIST_ARM,
     SYNCHRONIZED_STEPS,
     add_llr_scores,
+    compare_metric_detection_timing,
     compute_rank_agreement,
     confidence_filtered_rank_reversals,
     earliest_persistent_specialist_wins,
     exp232_manifest,
+    persistent_specialist_detectability,
     permute_labels_within_groups,
     plot_exp232_specialist_auprc_vs_brier,
+    plot_metric_detectability_summary,
+    plot_specialist_detectability,
+    specialist_detectability_summary,
     validate_aligned_bundles,
 )
 from marin_dna_evals.soft_vep_metrics import (
@@ -158,23 +164,23 @@ def test_confidence_filter_drops_unresolved_pairs():
 def test_specialist_comparison_plot_writes_svg_and_png(tmp_path):
     rows = []
     for subset in NON_DISTAL_SUBSETS:
-        specialist = SPECIALIST_ARM[subset]
-        for step in (500, 1000):
-            for metric, value in (
-                (AUPRC, 0.2 + step / 10_000),
-                (CALIBRATED_BRIER, 0.1 - step / 100_000),
-            ):
-                rows.append(
-                    {
-                        "arm": specialist,
-                        "step": step,
-                        "subset": subset,
-                        "metric": metric,
-                        "value": value,
-                        "ci_low": value - 0.01,
-                        "ci_high": value + 0.01,
-                    }
-                )
+        for arm_index, arm in enumerate(ARMS):
+            for step in (500, 1000):
+                for metric, value in (
+                    (AUPRC, 0.2 + arm_index / 100 + step / 10_000),
+                    (CALIBRATED_BRIER, 0.1 - arm_index / 1000 - step / 100_000),
+                ):
+                    rows.append(
+                        {
+                            "arm": arm,
+                            "step": step,
+                            "subset": subset,
+                            "metric": metric,
+                            "value": value,
+                            "ci_low": value - 0.01,
+                            "ci_high": value + 0.01,
+                        }
+                    )
 
     outputs = plot_exp232_specialist_auprc_vs_brier(
         pd.DataFrame(rows),
@@ -187,3 +193,150 @@ def test_specialist_comparison_plot_writes_svg_and_png(tmp_path):
     }
     assert outputs["plot_specialist_auprc_vs_brier_svg"].stat().st_size > 0
     assert outputs["plot_specialist_auprc_vs_brier_png"].stat().st_size > 0
+
+
+def test_specialist_detectability_uses_joint_rank_and_brier_orientation():
+    point_values = {
+        AUPRC: {
+            "bg": 0.70,
+            "cds": 0.80,
+            "utr3": 0.60,
+            "ncrna_exon": 0.50,
+            "tss_region_and_utr5": 0.40,
+        },
+        CALIBRATED_BRIER: {
+            "bg": 0.20,
+            "cds": 0.10,
+            "utr3": 0.30,
+            "ncrna_exon": 0.40,
+            "tss_region_and_utr5": 0.50,
+        },
+    }
+    point = pd.DataFrame(
+        [
+            {"score_type": arm, "metric": metric, "value": value}
+            for metric, arm_values in point_values.items()
+            for arm, value in arm_values.items()
+        ]
+    )
+    samples = []
+    for draw in range(3):
+        for metric, arm_values in point_values.items():
+            for arm, value in arm_values.items():
+                if arm == "cds" and metric == AUPRC:
+                    value = (0.80, 0.65, 0.75)[draw]
+                if arm == "cds" and metric == CALIBRATED_BRIER:
+                    value = (0.10, 0.12, 0.15)[draw]
+                samples.append(
+                    {
+                        "draw": draw,
+                        "score_type": arm,
+                        "metric": metric,
+                        "value": value,
+                    }
+                )
+
+    result = specialist_detectability_summary(
+        point,
+        pd.DataFrame(samples),
+        subset="missense_variant",
+        metrics=(AUPRC, CALIBRATED_BRIER),
+    ).set_index("metric")
+
+    assert result.loc[AUPRC, "home_arm"] == "cds"
+    assert result.loc[AUPRC, "strongest_competitor"] == "bg"
+    assert result.loc[AUPRC, "home_rank"] == 1
+    assert result.loc[AUPRC, "home_minus_best_oriented"] == pytest.approx(0.1)
+    assert result.loc[AUPRC, "bootstrap_home_rank1_frequency"] == pytest.approx(2 / 3)
+    assert not result.loc[AUPRC, "confidence_supported"]
+    assert result.loc[CALIBRATED_BRIER, "home_minus_best_oriented"] == pytest.approx(
+        0.1
+    )
+    assert result.loc[
+        CALIBRATED_BRIER, "bootstrap_home_rank1_frequency"
+    ] == pytest.approx(1.0)
+    assert result.loc[CALIBRATED_BRIER, "confidence_supported"]
+
+
+def _synthetic_detectability() -> pd.DataFrame:
+    rows = []
+    for subset in NON_DISTAL_SUBSETS:
+        for metric in (AUPRC, CALIBRATED_BRIER):
+            threshold = 1000 if metric == AUPRC else 2000
+            for step in SYNCHRONIZED_STEPS:
+                supported = step >= threshold
+                rows.append(
+                    {
+                        "subset": subset,
+                        "home_arm": SPECIALIST_ARM[subset],
+                        "metric": metric,
+                        "step": step,
+                        "confidence_supported": supported,
+                        "bootstrap_home_rank1_frequency": (0.99 if supported else 0.55),
+                        "n_bootstrap": 1000,
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def test_persistent_detectability_and_plots(tmp_path):
+    detectability = _synthetic_detectability()
+    timing = persistent_specialist_detectability(detectability)
+    timing_wide = timing.pivot(
+        index="subset",
+        columns="metric",
+        values="earliest_persistent_detected_step",
+    )
+    assert timing_wide[AUPRC].eq(1000).all()
+    assert timing_wide[CALIBRATED_BRIER].eq(2000).all()
+
+    outputs = plot_specialist_detectability(detectability, timing, tmp_path)
+
+    assert set(outputs) == {
+        "plot_specialist_detectability_svg",
+        "plot_specialist_detectability_png",
+        "plot_specialist_detection_timing_svg",
+        "plot_specialist_detection_timing_png",
+    }
+    assert all(path.stat().st_size > 0 for path in outputs.values())
+
+
+def test_all_metric_detection_comparison_and_plot(tmp_path):
+    rows = []
+    for subset in NON_DISTAL_SUBSETS:
+        for metric in DETECTABILITY_METRICS:
+            if metric == AUPRC:
+                step = 2000
+            elif metric == MEAN_GAP_GLOBAL:
+                step = 1000
+            elif metric == "calibrated_log_loss":
+                step = 2000
+            elif metric == CALIBRATED_BRIER:
+                step = 3000
+            else:
+                step = np.nan
+            rows.append(
+                {
+                    "subset": subset,
+                    "home_arm": SPECIALIST_ARM[subset],
+                    "metric": metric,
+                    "earliest_persistent_detected_step": step,
+                }
+            )
+    timing = pd.DataFrame(rows)
+    comparison = compare_metric_detection_timing(timing).set_index("metric")
+
+    assert comparison.loc[MEAN_GAP_GLOBAL, "candidate_earlier"] == 7
+    assert comparison.loc["calibrated_log_loss", "same_step"] == 7
+    assert comparison.loc[CALIBRATED_BRIER, "auprc_earlier"] == 7
+
+    outputs = plot_metric_detectability_summary(
+        timing,
+        comparison.reset_index(),
+        tmp_path,
+    )
+    assert set(outputs) == {
+        "plot_specialist_metric_detectability_summary_svg",
+        "plot_specialist_metric_detectability_summary_png",
+    }
+    assert all(path.stat().st_size > 0 for path in outputs.values())

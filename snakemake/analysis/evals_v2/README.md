@@ -251,6 +251,14 @@ Outputs include:
 - `point_metrics.parquet`: all 48 arm/checkpoint cells × seven subsets × eight
   metrics, with 95% intervals from joint `match_group` bootstrap draws.
 - `pairwise_deltas.parquet`: paired arm differences from the same draws.
+- `specialist_detectability.parquet`: for AUPRC and all seven candidate
+  metrics at each synchronized checkpoint, the home arm's point rank, oriented
+  margin to the best non-home arm, percentile interval on that joint margin,
+  and fraction of bootstrap draws where the home arm ranks first.
+  `specialist_detection_timing.parquet` records the first of two consecutive
+  checkpoints whose home-minus-best-non-home 95% interval is above zero.
+  `metric_detection_comparison.parquet` counts earlier, tied, AUPRC-earlier,
+  and jointly undetected subsets for each candidate.
 - `rank_agreement.parquet`, `rank_reversals.parquet`, and
   `confident_rank_reversals.parquet`: same-step and final-step AUPRC rank
   comparisons, including a view restricted to pairs whose joint-bootstrap
@@ -268,9 +276,17 @@ Outputs include:
   Ribbons are 95% joint cluster-bootstrap intervals. Proper-score intervals are
   conditional on the fixed out-of-fold calibration fits; bootstrap draws
   resample their held-out row losses without refitting the calibrator.
-- `plots/specialist_auprc_vs_brier.{svg,png}`: the mapped specialist arm for
-  each subset, with AUPRC and `1 - calibrated Brier` on independent axes so
-  higher is better for both. The PNG is intended for inline GitHub display.
+- `plots/specialist_auprc_vs_brier.{svg,png}`: all five arms for each subset,
+  with the mapped home arm highlighted. AUPRC and `1 - calibrated Brier` use
+  independent axes so higher is better for both; home-arm ribbons show 95%
+  intervals. The PNG is intended for inline GitHub display.
+- `plots/specialist_detectability.{svg,png}`: the bootstrap frequency that the
+  home arm ranks first under AUPRC and calibrated Brier at every synchronized
+  step. `plots/specialist_detection_timing.{svg,png}` compares their earliest
+  persistent confidence-supported separation directly.
+- `plots/specialist_metric_detectability_summary.{svg,png}`: all eight
+  metrics' earliest persistent steps and each candidate's timing counts relative
+  to AUPRC.
 - `distributions/*.svg`: final-step POS/NEG score ECDFs and matched-group
   positive-minus-mean-negative difference ECDFs for every non-distal subset.
   Each arm keeps its raw score scale so tail separation and scale drift remain

@@ -12,6 +12,59 @@ is not ready to replace AUPRC or to drive stopping decisions: its apparent
 earlier point-estimate wins usually disappear after requiring paired-bootstrap
 support, and its intervals are conditional on fixed out-of-fold calibrators.
 
+## Primary question: does Brier distinguish the home arm earlier?
+
+No. Define detection at a stored checkpoint by the joint-bootstrap distribution
+of
+
+`home metric - best non-home metric`,
+
+after orienting both AUPRC and Brier so higher is better. A step is supported
+when that margin's pointwise 95% interval is above zero; the reported detection
+time is the first of two consecutive supported synchronized checkpoints.
+
+| Consequence subset | Home arm | AUPRC | `1 - calibrated Brier` |
+| --- | --- | ---: | ---: |
+| missense | `cds` | 1500 | 1500 |
+| synonymous | `cds` | not detected | not detected |
+| splicing | `cds` | 1000 | 1000 |
+| 3′ UTR | `utr3` | 3500 | not detected |
+| noncoding exon | `ncrna_exon` | 3500 | 4500 |
+| 5′ UTR | `tss_region_and_utr5` | 1500 | 2000 |
+| TSS proximal | `tss_region_and_utr5` | 1000 | 3000 |
+
+Brier is earlier on **0/7** subsets. AUPRC is earlier on **4/7**, the metrics tie
+on **2/7**, and neither detects synonymous. The bootstrap rank-first frequency
+provides the per-step strength curve; it is not a p-value or posterior
+probability. Brier uncertainty remains conditional on fixed out-of-fold
+calibration fits.
+
+## Alternatives under the same detectability test
+
+No candidate robustly dominates AUPRC across the seven consequence subsets.
+
+| Candidate | Earlier than AUPRC | Same step | AUPRC earlier | Neither |
+| --- | ---: | ---: | ---: | ---: |
+| Global mean gap | 2 | 2 | 2 | 1 |
+| Group mean gap | 2 | 2 | 2 | 1 |
+| Group SMD | 2 | 3 | 1 | 1 |
+| Median / MAD | 0 | 1 | 5 | 1 |
+| SoftWin | 3 | 2 | 1 | 1 |
+| Calibrated log loss | 1 | 3 | 2 | 1 |
+| Calibrated Brier | 0 | 2 | 4 | 1 |
+
+SoftWin has the strongest apparent timing, detecting splicing at step 500,
+3′ UTR at 1000, and noncoding exon at 3000 before AUPRC. The raw mean gaps also
+lead on splicing and 3′ UTR. These candidates remain disqualified as standard
+cross-model metrics because positive score rescaling changes their rankings.
+
+Group SMD is the most interesting scale-invariant alternative for this narrow
+home-arm question: it leads AUPRC by one recorded checkpoint on splicing
+(500 versus 1000) and noncoding exon (3000 versus 3500), ties on three subsets,
+loses on 3′ UTR, and detects neither synonymous. Calibrated log loss leads only
+on 3′ UTR (2000 versus 3500), then ties on three and loses on two. This is not
+enough consistency to replace AUPRC or establish a generally earlier proxy.
+
 ## Evidence
 
 - Scope was development split only: 48 existing exp232 score parquets, seven
@@ -41,13 +94,10 @@ support, and its intervals are conditional on fixed out-of-fold calibrators.
   gap rises from 5.45 to 8.06. Those magnitude statistics hide the known late
   reversal.
 - Point estimates sometimes identify a specialist earlier, but the robust
-  version is less compelling. For missense, AUPRC, Brier, log loss, raw gaps,
-  group SMD, and SoftWin all first sustain a bootstrap-supported specialist win
-  at step 1500. For 3′UTR, raw gaps and SoftWin lead AUPRC (1000 versus 2000),
-  but the raw metrics fail the cross-model robustness controls and Brier never
-  sustains a supported two-checkpoint win. No metric, including AUPRC, sustains
-  a supported synonymous specialist win. The requested evidence for an earlier
-  *usable* specialist signal is therefore not established.
+  joint home-versus-best-other result does not support the new metric. Brier is
+  never earlier than AUPRC, and no metric sustains a supported synonymous home
+  win. The requested evidence for an earlier *usable* specialist signal is
+  therefore not established.
 
 ## Controls and limits
 
@@ -93,11 +143,22 @@ AUPRC.
 
 - `exp232/point_metrics.parquet`: 48 cells × seven subsets × eight metrics.
 - `exp232/pairwise_deltas.parquet`: joint arm bootstrap comparisons.
+- `exp232/specialist_detectability.parquet`: per-step joint rank-first
+  frequency and home-versus-best-non-home margin.
+- `exp232/specialist_detection_timing.parquet`: first persistent supported
+  separation under AUPRC and all seven candidate metrics.
+- `exp232/metric_detection_comparison.parquet`: per-candidate earlier/tied/later
+  counts relative to AUPRC.
 - `exp232/supported_specialist_wins.parquet`: persistent, interval-supported
   specialist timing.
 - `exp232/plots/*.svg`: eight full-cross-arm trajectory panels.
-- `exp232/plots/specialist_auprc_vs_brier.{svg,png}`: mapped-specialist AUPRC
-  and `1 - calibrated Brier` trajectories on independent higher-is-better axes.
+- `exp232/plots/specialist_auprc_vs_brier.{svg,png}`: all-arm AUPRC and
+  `1 - calibrated Brier` trajectories with the mapped home arm highlighted.
+- `exp232/plots/specialist_detectability.{svg,png}` and
+  `specialist_detection_timing.{svg,png}`: per-step evidence and direct
+  earliest-detection comparison.
+- `exp232/plots/specialist_metric_detectability_summary.{svg,png}`: all-metric
+  timing heatmap and comparison counts.
 - `exp232/distributions/*.svg`: final-step POS/NEG and matched-group-difference
   ECDFs for all seven subsets.
 - `leaderboard/`: 22-model ranking, controls, pairwise confidence comparisons,

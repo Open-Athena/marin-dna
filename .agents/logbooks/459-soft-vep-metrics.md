@@ -302,3 +302,97 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   visually reviewed at full content scale, and `git diff --check` passes.
 - Next action: snapshot and push the figure, then shorten the issue body and
   collapse the completed design record beneath the visible result.
+
+### 2026-08-13 23:02 UTC - `VEP-SOFT-010` figure snapshot
+
+- Commit Hash: `cf1cebec07a24a2e6599be517aaf77705d5d46fe`.
+- Result: stable snapshot includes the reviewed SVG and GitHub-inline PNG,
+  plotting implementation, focused regression test, and artifact documentation.
+- Next action: pin the issue's inline figure and artifact links to this hash.
+
+### 2026-08-13 23:12 UTC - `VEP-SOFT-011` all-arm comparison correction
+
+- Commit Hash: correction snapshot pending.
+- Correction: the first comparison figure showed only each subset's mapped
+  specialist and used a portrait canvas. The requested question is home versus
+  non-home, so the replacement shows all five arms in every panel on a compact
+  3-by-3 canvas.
+- Encoding: arm is color; AUPRC is solid; `1 - calibrated Brier` is dashed;
+  the panel's mapped home arm is thick, marked, and carries both 95% ribbons.
+  Non-home arms remain visible but muted. Both metric axes are higher-is-better.
+- Verification: 8 focused tests pass, the replacement PNG is 2381 by 1773
+  pixels, all seven panels and both legends were visually reviewed, and no
+  exp232 data or bootstrap was recomputed.
+- Next action: snapshot, push, and embed this replacement in the shortened issue
+  body.
+
+### 2026-08-13 23:17 UTC - `VEP-SOFT-012` fixed GitHub canvas
+
+- Correction: the 2381-by-1773 tight export was complete on disk but cropped in
+  the app preview. The GitHub PNG now uses a fixed 1350-by-990 canvas with all
+  seven panels and both legends inside the image bounds.
+- Verification: the fixed-size export was rendered directly from the existing
+  point metrics; no analysis values changed.
+
+### 2026-08-13 23:19 UTC - `VEP-SOFT-013` home-arm detectability
+
+- Hypothesis: grouped-CV calibrated Brier distinguishes the mapped home arm
+  from all four non-home arms at an earlier stored checkpoint than AUPRC.
+- Commit Hash: local review snapshot pending.
+- Statistic: for each subset, synchronized step, and metric, calculate the
+  home-minus-best-non-home margin within every joint `match_group` bootstrap
+  draw. Record the home rank, margin interval, and frequency that the home arm
+  ranks first. Detection is the first of two consecutive steps whose pointwise
+  95% margin interval is above zero.
+- Command: under nonblocking `/tmp/marin-dna-local-heavy.lock`, thread caps,
+  `nice -n 10`, and `ionice -c 2 -n 7`,
+  `uv run --locked soft-vep-analysis --output-dir
+  ../../../.agents/artifacts/459-soft-vep/exp232 --n-bootstrap 1000 --seed 459`.
+- Result: hypothesis falsified. Brier is earlier on 0/7 subsets; AUPRC is
+  earlier on 4/7; they tie on missense and splicing; neither detects
+  synonymous. AUPRC/Brier first persistent steps are missense 1500/1500,
+  splicing 1000/1000, 3′ UTR 3500/not detected, noncoding exon 3500/4500, 5′ UTR
+  1500/2000, and TSS proximal 1000/3000.
+- Artifacts: `exp232/specialist_detectability.parquet`,
+  `exp232/specialist_detection_timing.parquet`,
+  `exp232/plots/specialist_detectability.{svg,png}`, and
+  `exp232/plots/specialist_detection_timing.{svg,png}`.
+- Verification: 10 focused tests passed. Both fixed-canvas PNGs were visually
+  reviewed; all seven subsets, the 0.95 reference, confidence markers, legends,
+  and `not detected` encoding are visible.
+- Resource record: the first wrapper attempt stopped before analysis because
+  `awk` reserves the variable name `load`. The corrected run started with
+  11.1 GiB available and load 1.17, completed in 86.53 seconds with status 0,
+  and peaked at 438,272 KiB RSS. First-minute memory remained above 10.8 GiB
+  and load remained below the 3.0 stop threshold.
+- Publication status: held locally for human plot review; no GitHub issue or
+  branch update.
+
+### 2026-08-13 23:28 UTC - `VEP-SOFT-014` all-candidate detectability
+
+- Hypothesis: one of the previously explored soft metrics yields a broadly
+  earlier confidence-supported home-arm signal than AUPRC under the same joint
+  home-versus-best-non-home assessment.
+- Commit Hash: local review snapshot pending.
+- Command: repeated the locked `soft-vep-analysis` command from
+  `VEP-SOFT-013` with 1,000 draws and seed 459 after generalizing the
+  detectability summary to all eight metrics.
+- Result: no candidate dominates. Relative to AUPRC across seven subsets:
+  SoftWin is earlier/same/later/neither on 3/2/1/1; group SMD on 2/3/1/1; each
+  raw mean gap on 2/2/2/1; calibrated log loss on 1/3/2/1; calibrated Brier on
+  0/2/4/1; median/MAD on 0/1/5/1.
+- Interpretation: SoftWin and raw gaps show the most early detections but fail
+  the existing score-rescaling control. Group SMD is the strongest
+  scale-invariant alternative for this narrow question, leading by one stored
+  checkpoint on splicing and noncoding exon, but it does not detect 3′ UTR and
+  does not establish a generally earlier proxy. Calibrated log loss leads only
+  on 3′ UTR.
+- Artifacts: `exp232/metric_detection_comparison.parquet` and
+  `exp232/plots/specialist_metric_detectability_summary.{svg,png}`.
+- Verification: all 27 focused issue tests pass, both changed Python files pass
+  `ruff format --check`, and the 1600-by-900 summary PNG was visually reviewed.
+- Resource record: status 0 in 88.73 seconds, peak RSS 438,628 KiB; start
+  capacity was 11.1 GiB available at load 1.59, and first-minute load stayed
+  below the 3.0 stop threshold.
+- Publication status: held locally for human review; no GitHub issue or branch
+  update.
