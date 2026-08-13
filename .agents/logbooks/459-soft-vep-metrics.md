@@ -396,3 +396,12 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   below the 3.0 stop threshold.
 - Publication status: held locally for human review; no GitHub issue or branch
   update.
+
+### 2026-08-13 23:33 UTC - `VEP-SOFT-015` local review snapshot
+
+- Commit Hash: `18c91a7f3ca39be78eb2fe3521a5bf6fb1ce6ce5`.
+- Snapshot scope: all-arm comparison, joint rank-first detectability for eight
+  metrics, timing and comparison tables, three fixed-canvas visual summaries,
+  focused tests, README, decision summary, and logbook.
+- Publication status: local commit only. The branch was not pushed and issue
+  #459 was not modified, per human instruction.
