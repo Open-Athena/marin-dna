@@ -1,0 +1,9 @@
+{
+  "bootstrap_seed": 459,
+  "dataset": "mendelian_traits",
+  "n_bootstrap": 1000,
+  "soft_win_tau": 0.645501509308815,
+  "split": "train",
+  "tau_reference_model": "exp232-v4_bg-step-500",
+  "tau_reference_scope": "seven pooled non-distal consequence subsets"
+}

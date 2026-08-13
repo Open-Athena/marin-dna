@@ -222,6 +222,96 @@ name:
   the per-cell `results/ll_gap/scores/{model}/{region}.parquet` targets, then
   gather with `snakemake ll_gap`.
 
+### Soft Mendelian VEP metrics (issue #459)
+
+`soft-vep-analysis` is a CPU-only, inference-free analysis of the 48 existing
+exp232 development-split Mendelian score parquets. It reads only `label`,
+`subset`, `match_group`, `llr_fwd`, and `llr_rc`, loads one checkpoint step at
+a time, and excludes the exp232 cCRE arm, `distal`, and the underpowered
+`mature_miRNA_variant` subset.
+
+```bash
+cd snakemake/analysis/evals_v2
+uv run --locked soft-vep-analysis \
+  --output-dir results/soft_vep/exp232 \
+  --n-bootstrap 1000 \
+  --seed 459
+```
+
+The analysis reproduces the stored `minus_llr_avg` AUPRC before computing the
+global and group-balanced mean gaps, group-standardized and median/MAD
+separation, fixed-temperature soft pairwise win rate, and grouped-CV calibrated
+log loss and Brier score. `SoftWin` uses one temperature: the median absolute
+within-group pairwise margin from `exp232-v4_bg-step-500`, pooled over the seven
+non-distal subsets. That scalar is recorded in `metadata.json` and reused for
+every arm, step, and subset.
+
+Outputs include:
+
+- `point_metrics.parquet`: all 48 arm/checkpoint cells × seven subsets × eight
+  metrics, with 95% intervals from joint `match_group` bootstrap draws.
+- `pairwise_deltas.parquet`: paired arm differences from the same draws.
+- `rank_agreement.parquet`, `rank_reversals.parquet`, and
+  `confident_rank_reversals.parquet`: same-step and final-step AUPRC rank
+  comparisons, including a view restricted to pairs whose joint-bootstrap
+  intervals exclude zero for both metrics.
+- `specialist_wins.parquet`: the earliest synchronized checkpoint where the
+  mapped specialist ranks first for two consecutive stored checkpoints.
+  `supported_specialist_wins.parquet` applies the same persistence rule only
+  when the specialist's paired 95% interval clears every competing arm.
+- `auprc_reproduction.parquet`: computed-versus-stored AUPRC parity.
+- `controls.parquet` and `control_summary.parquet`: positive score rescaling,
+  sign reversal, within-group label permutation, and FWD-only diagnostics at
+  step 4999. `fwd_metrics.parquet` contains the FWD-only trajectory at every
+  stored checkpoint.
+- `plots/*.svg`: one seven-subset, full-cross-arm trajectory figure per metric.
+  Ribbons are 95% joint cluster-bootstrap intervals. Proper-score intervals are
+  conditional on the fixed out-of-fold calibration fits; bootstrap draws
+  resample their held-out row losses without refitting the calibrator.
+- `distributions/*.svg`: final-step POS/NEG score ECDFs and matched-group
+  positive-minus-mean-negative difference ECDFs for every non-distal subset.
+  Each arm keeps its raw score scale so tail separation and scale drift remain
+  visible.
+
+The command never reads held-out test artifacts, interpolates a missing
+checkpoint, or writes an exp326/exp351 soft metric. Distal aggregate trajectories
+must be patched into the final issue summary separately because no compatible
+per-variant score bundle is currently available. The separate aggregate-only
+patch preserves every finite W&B history record, including duplicate resumed-run
+log records, and labels the exp232 offline-vs-online exp326/351 protocol
+difference:
+
+```bash
+uv run --locked --group wandb soft-vep-distal-patch \
+  --output-dir results/soft_vep/distal
+```
+
+It writes `distal_aggregate_trajectories.parquet`, an SVG with experiment-local
+comparisons, and metadata with exact point counts and the W&B client version. It
+intentionally emits no soft metric or uncertainty interval.
+
+The companion current-leaderboard pass selects every `family: marin_dna` model
+with Mendelian coverage from `dashboard/models.yaml`, computes the same metric
+panel and joint model bootstrap, and cross-fits an isotonic soft-to-AUPRC map by
+holding out whole experiment groups:
+
+```bash
+uv run --locked soft-vep-leaderboard-analysis \
+  --models-yaml ../../../dashboard/models.yaml \
+  --output-dir results/soft_vep/leaderboard \
+  --n-bootstrap 1000 \
+  --seed 459
+```
+
+Its `auprc_reproduction.parquet` is a required artifact rather than an implicit
+assumption: score-bundle/stored-metric mismatches are retained with
+`reproduces=false` and summarized in `metadata.json`. `projection.parquet`
+contains every leave-one-experiment-out prediction; `projection_summary.parquet`
+reports held-out MAE and rank agreement, so correlated models from one experiment
+are never split across fit and evaluation. `confident_rank_reversals.parquet`
+restricts model-pair disagreements to comparisons resolved by the joint
+bootstrap for both the candidate metric and AUPRC.
+
 ### Linear probe (frozen-embedding VEP, #320)
 
 `snakemake probe` trains a **frozen-embedding linear probe** per `(model,

@@ -1,0 +1,14 @@
+{
+  "aggregate_only": true,
+  "metric": "lm_eval/mendelian_traits_255/distal/avg/auprc",
+  "n_points_by_arm": {
+    "exp232 cCRE baseline": 9,
+    "exp326 A: no exon overlap": 14,
+    "exp326 B: no exon overlap, enhancer-only": 14,
+    "exp351 centered": 11,
+    "exp351 tiled": 14
+  },
+  "pulled_at": "2026-08-13T22:10:28.362522+00:00",
+  "soft_metrics_available": false,
+  "wandb_version": "0.22.3"
+}

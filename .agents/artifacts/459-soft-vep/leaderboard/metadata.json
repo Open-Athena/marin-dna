@@ -1,0 +1,14 @@
+{
+  "bootstrap_seed": 459,
+  "dataset": "mendelian_traits",
+  "max_abs_auprc_mismatch": 0.002643292071490083,
+  "mismatched_models": [
+    "scaling-v0.5-h2944-p4B-step-215573"
+  ],
+  "n_auprc_mismatches": 7,
+  "n_bootstrap": 1000,
+  "n_models": 22,
+  "soft_win_tau": 0.645501509308815,
+  "split": "train",
+  "tau_reference_model": "exp232-v4_bg-step-500"
+}

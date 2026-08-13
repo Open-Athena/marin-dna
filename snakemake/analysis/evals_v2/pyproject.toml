@@ -31,6 +31,11 @@ dependencies = [
     "zstandard",
 ]
 
+[project.scripts]
+soft-vep-analysis = "marin_dna_evals.soft_vep_analysis:main"
+soft-vep-distal-patch = "marin_dna_evals.soft_vep_distal:main"
+soft-vep-leaderboard-analysis = "marin_dna_evals.soft_vep_leaderboard:main"
+
 [dependency-groups]
 dev = [
     "pytest>=7.0.0",
@@ -41,6 +46,9 @@ genome-s3 = [
 ]
 umap = [
     "umap-learn>=0.5",
+]
+wandb = [
+    "wandb>=0.22,<0.23",
 ]
 dashboard = [
     "boto3",
