@@ -39,13 +39,19 @@ Keep the body in this order:
 
 <Living synthesis of the answer, supporting and contradictory evidence, confidence, and limitations.>
 
-## Related work
+<details>
+<summary>Related work</summary>
 
 <Curated external literature and internal reports, datasets, methods, or neighboring questions. For each item, record the setup, finding, methodological implication, hypotheses or observables it suggests, and the remaining gap.>
 
-## Related experiments
+</details>
+
+<details>
+<summary>Related experiments</summary>
 
 <Exhaustive list of every experiment issue that informs this question. Use plain #N references and summarize each experiment's current contribution.>
+
+</details>
 
 ## Open questions
 

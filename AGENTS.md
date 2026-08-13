@@ -78,7 +78,3 @@ The codebase has five main components:
 - Never close or merge a PR without explicit user approval.
 - Agents may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and its body and final comment reflect the outcome.
 - Never close a `research-question` issue without explicit user approval.
-
-## GitHub Communication
-
-Use `.agents/skills/communicate-on-github/` for every GitHub issue, pull request, or comment. It composes the writing, issue-filing, research-question, and logbook skills with MarinDNA's taxonomy and communication rules.
