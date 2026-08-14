@@ -859,3 +859,26 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   every panel, checkpoint, axis, ribbon, legend, annotation, and footnote is
   present with no clipping.
 - Publication status: complete; issue remains open for human review.
+
+### 2026-08-14 17:50 UTC - `VEP-SOFT-036` closure and implementation handoff
+
+- Commit Hash: `c517f5fdad21e2e5fb3fa57b00e99f9601494d03`.
+- Conclusion: keep AUPRC primary and report Group SMD as the editorial secondary
+  for evaluations with compatible matched groups. Confidence is high for the
+  eight development specialist subsets and ten checkpoints analyzed here; the
+  result has not been validated on SGE or other group structures.
+- Positive result: under the persistent 95% home-rank probability rule, Group
+  SMD is earlier/same/later/neither than AUPRC on `4/3/0/1` subsets.
+- Negative result: calibrated Brier, calibrated log loss, robust median/MAD,
+  and the no-group alternatives did not provide a stronger simple universal
+  recommendation. Group SMD is unavailable without multiple meaningful groups.
+- Handoff: #464 tracks maintained grouped VEP integration beside AUPRC,
+  aligned joint-bootstrap uncertainty, explicit incompatible-input behavior,
+  documentation of the group contract, and tests. It has exactly the `task`,
+  `evals`, and `agent-generated` labels.
+- PR decision: file the implementation task before opening a PR because the
+  maintained output location and unavailable-result behavior still require an
+  implementation and review boundary.
+- Closure: #459's body links #464, its final comment records the result and
+  limitation, and GitHub marks the experiment closed as completed.
+- Publication status: complete.
