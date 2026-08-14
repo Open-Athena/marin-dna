@@ -629,3 +629,88 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Publication status: no paid job launched and issue #459 not yet updated for
   this extension. Next action is to push a logbook snapshot, launch the one
   exact remote task, and monitor export-schema and target-selection gates.
+
+### 2026-08-14 15:54 UTC - `VEP-SOFT-025` missing checkpoint export and evaluation
+
+- Remote execution: one on-demand AWS A10G exported exp351-centered step 1000
+  and exp232 ncRNA-exon step 2500, then evaluated those cells together with the
+  already exported exp351-centered step 2500 and exp232 TSS/5-prime-UTR step
+  2500. The exact remote DAG contained four score and four metric jobs.
+- RoPE gate: both new exports use Transformers 4.57.6, preserve
+  `rope_theta=500000` and the complete Llama-3 `rope_scaling` dictionary, omit
+  `rope_parameters`, and contain `model.safetensors`. This confirms the added
+  cells are not affected by #439.
+- Durable exports:
+  `gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-1000/`
+  and
+  `gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-2500/`.
+- CUDA finding: the unconstrained lock selected PyTorch 2.13.0+cu130, which is
+  incompatible with the image's NVIDIA 535.216.01 driver. Pinning
+  `torch==2.8.0` restored the intended CUDA 12.8 environment; an A10G bf16
+  matmul smoke test and all eight workflow jobs passed. Issue #462 tracks the
+  longer-term image/driver modernization.
+- Validation: each of the four score files contains 16,140 Mendelian
+  development variants; each metric file contains 66 rows. All forward and
+  reverse-complement LLR/JSD values and all numeric metric values are finite.
+- Commit Hash: exporter dependency snapshot `39d954e9`; reproducible eval
+  environment snapshot `1516c906`. Final result snapshot pending.
+
+### 2026-08-14 15:54 UTC - `VEP-SOFT-026` complete ten-step comparison
+
+- Command: both the original exp232 and augmented exp232+exp351 analyses ran
+  under the nonblocking shared-node lock, resource start gate, thread caps,
+  `nice -n 10`, and `ionice -c 2 -n 7`, with 1,000 resamples and seed 459.
+- Grid: all six arms now use the synchronized steps
+  `500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 4999`.
+- Primary result: plain pooled within-class Cohen's d is earlier than AUPRC for
+  3-prime UTR (step 2000 versus 4500), AUPRC is earlier for distal (3000 versus
+  3500), five subsets tie, and neither metric persistently detects the
+  synonymous specialist. The aggregate earlier/same/later/neither count for
+  Cohen's d versus AUPRC is therefore 1/5/1/1.
+- Decision: there is no general evidence that Cohen's d detects home-arm wins
+  earlier than AUPRC. Report it alongside AUPRC because it is simple,
+  scale-normalized, applicable without match groups, and adds a large early win
+  for one subset without broadly shifting detection timing. For SGE, report the
+  unweighted mean of per-gene Cohen's d values with the agreed closed-form SE.
+- Reproduction check: the refreshed artifacts retain exact stored-versus-
+  recomputed AUPRC parity. Only the Mendelian development split was accessed.
+- Resource record: original analysis status 0 in 2:02.46 at 471,116 KiB peak
+  RSS; augmented analysis status 0 in 1:56.29 at 494,952 KiB peak RSS. Both
+  stayed above 10.6 GiB available memory and below load 2 during monitoring.
+- Publication status: plot inspection, result snapshot, and issue #459 update
+  pending.
+
+### 2026-08-14 16:08 UTC - `VEP-SOFT-027` win-definition sensitivity
+
+- Motivation: separate point rank from uncertainty and persistence so the metric
+  conclusion does not depend on one arbitrary definition of a specialist win.
+- Definitions: point rank 1; joint rank-1 probability thresholds of 50%, 80%,
+  and 95%; and the existing 95% home-minus-best-non-home margin interval. Each
+  is evaluated at the first qualifying checkpoint and at the first of two
+  consecutive qualifying checkpoints.
+- Uncertainty: AUPRC rank-1 probability is the fraction of joint
+  class-stratified variant-bootstrap draws in which the home arm beats all five
+  competitors. Cohen's d uses independent normal arm estimates with the agreed
+  closed-form SEs; deterministic 64-node Gauss-Hermite quadrature integrates the
+  probability that the home arm exceeds all five competitors.
+- Primary sensitivity result: persistent point rank 1 is earlier/same/later/
+  neither for Cohen's d versus AUPRC on 1/6/1/0 subsets. Persistent 95% rank-1
+  probability is 0/7/0/1: all detected subsets tie, while synonymous is detected
+  by neither. The stricter persistent 95% margin-interval rule is 1/5/1/1.
+- Lower rank-probability thresholds tend to favor AUPRC, while the strictest
+  margin rule gives one early win to each metric. No examined definition supports
+  a general claim that Cohen's d detects specialist wins earlier.
+- Recommendation: report plain Cohen d beside AUPRC; show point rank 1 as a
+  descriptive result and use two consecutive checkpoints with at least 95%
+  rank-1 probability as the primary uncertainty-aware detection rule. Retain the
+  95% margin-interval rule as a conservative sensitivity analysis.
+- Artifacts: `cohen_d_closed_form_rank1_probabilities.parquet`,
+  `win_definition_{timing,comparison}.parquet`, and
+  `plots/augmented_win_definition_sensitivity.{svg,png}`. The augmented runner
+  now also regenerates the closed-form pairwise win-percentage plot.
+- Verification: 31 focused soft-VEP tests pass in 10.60 seconds at 342,064 KiB
+  peak RSS. The regenerated analysis completed in 2:06.43 at 443,996 KiB peak
+  RSS; monitored memory stayed above 10.6 GiB and load stayed below the 3.0 stop
+  threshold.
+- Commit Hash: result snapshot pending.
+- Publication status: branch push and issue #459 update pending.

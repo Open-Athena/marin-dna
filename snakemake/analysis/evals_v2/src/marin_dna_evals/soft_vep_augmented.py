@@ -81,6 +81,13 @@ AUGMENTED_SUBSET_LABELS = {
     "tss_proximal": "TSS proximal",
     "distal": "Distal",
 }
+WIN_DEFINITION_LABELS = {
+    "point_rank1": "Point rank 1",
+    "rank1_probability_50": "P(rank 1) ≥ 50%",
+    "rank1_probability_80": "P(rank 1) ≥ 80%",
+    "rank1_probability_95": "P(rank 1) ≥ 95%",
+    "margin_ci_95": "95% margin CI > 0",
+}
 
 
 def augmented_model_name(arm: str, step: int) -> str:
@@ -413,6 +420,65 @@ def compute_closed_form_cohen_d_win_table(
     return result
 
 
+def compute_closed_form_cohen_d_rank1_probabilities(
+    cohen_d_metrics: pd.DataFrame,
+    *,
+    quadrature_nodes: int = 64,
+) -> pd.DataFrame:
+    """Home-rank-first probability under independent normal d estimates.
+
+    The one-dimensional integral conditions on the home-arm estimate and uses
+    Gauss-Hermite quadrature, so this remains deterministic and uses only the
+    conventional closed-form Cohen's d standard errors.
+    """
+    required = {"subset", "step", "arm", "value", "se"}
+    assert required.issubset(cohen_d_metrics.columns), (
+        f"Cohen's d table missing columns: "
+        f"{sorted(required - set(cohen_d_metrics.columns))}"
+    )
+    assert quadrature_nodes >= 16
+    nodes, weights = np.polynomial.hermite.hermgauss(quadrature_nodes)
+    rows: list[dict[str, str | float | int]] = []
+    for subset in AUGMENTED_SUBSETS:
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for step in AUGMENTED_STEPS:
+            cell = cohen_d_metrics[
+                (cohen_d_metrics["subset"] == subset)
+                & (cohen_d_metrics["step"] == step)
+            ].set_index("arm")
+            assert set(cell.index) == set(AUGMENTED_ARMS)
+            assert (cell["se"] > 0).all()
+            home_mean = float(cell.loc[home_arm, "value"])
+            home_se = float(cell.loc[home_arm, "se"])
+            home_draws = home_mean + np.sqrt(2) * home_se * nodes
+            conditional_probability = np.ones_like(home_draws)
+            for competitor_arm in AUGMENTED_ARMS:
+                if competitor_arm == home_arm:
+                    continue
+                competitor = cell.loc[competitor_arm]
+                conditional_probability *= ndtr(
+                    (home_draws - float(competitor["value"]))
+                    / float(competitor["se"])
+                )
+            rank1_probability = float(
+                np.dot(weights, conditional_probability) / np.sqrt(np.pi)
+            )
+            rows.append(
+                {
+                    "subset": subset,
+                    "step": step,
+                    "home_arm": home_arm,
+                    "metric": VARIANT_POOLED_SMD,
+                    "rank1_probability": rank1_probability,
+                    "uncertainty_method": "independent_normal_gauss_hermite",
+                }
+            )
+    result = pd.DataFrame(rows)
+    assert len(result) == len(AUGMENTED_SUBSETS) * len(AUGMENTED_STEPS)
+    assert result["rank1_probability"].between(0, 1).all()
+    return result
+
+
 def plot_augmented_specialist_closed_form_win_percentage(
     win_probabilities: pd.DataFrame,
     output_dir: Path,
@@ -530,6 +596,169 @@ def plot_augmented_specialist_closed_form_win_percentage(
     return {
         "plot_augmented_specialist_closed_form_win_percentage_svg": svg_path,
         "plot_augmented_specialist_closed_form_win_percentage_png": png_path,
+    }
+
+
+def compute_win_definition_sensitivity(
+    auprc_detectability: pd.DataFrame,
+    cohen_d_detectability: pd.DataFrame,
+    cohen_d_rank1_probabilities: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Compare earliest wins under rank-only and uncertainty-aware rules."""
+    auprc = auprc_detectability.copy()
+    auprc["rank1_probability"] = auprc["bootstrap_home_rank1_frequency"]
+    cohen_d = cohen_d_detectability.merge(
+        cohen_d_rank1_probabilities[
+            ["subset", "step", "metric", "rank1_probability"]
+        ],
+        on=["subset", "step", "metric"],
+        how="left",
+        validate="one_to_one",
+    )
+    combined = pd.concat([auprc, cohen_d], ignore_index=True)
+    assert combined["rank1_probability"].notna().all()
+    assert set(combined["metric"]) == {AUPRC, VARIANT_POOLED_SMD}
+
+    definition_flags = {
+        "point_rank1": combined["home_rank"].eq(1),
+        "rank1_probability_50": combined["rank1_probability"].ge(0.50),
+        "rank1_probability_80": combined["rank1_probability"].ge(0.80),
+        "rank1_probability_95": combined["rank1_probability"].ge(0.95),
+        "margin_ci_95": combined["confidence_supported"].astype(bool),
+    }
+    timing_rows: list[dict[str, str | float | int | bool | None]] = []
+    for definition, flags in definition_flags.items():
+        flagged = combined.assign(win=flags)
+        for persistence in (1, 2):
+            for (subset, metric), frame in flagged.groupby(
+                ["subset", "metric"], sort=False
+            ):
+                ordered = frame.sort_values("step")
+                steps = ordered["step"].astype(int).tolist()
+                wins = ordered["win"].astype(bool).tolist()
+                earliest: int | None = None
+                for index in range(len(steps) - persistence + 1):
+                    if all(wins[index : index + persistence]):
+                        earliest = steps[index]
+                        break
+                final = ordered[ordered["step"] == 4999]
+                assert len(final) == 1
+                timing_rows.append(
+                    {
+                        "definition": definition,
+                        "definition_label": WIN_DEFINITION_LABELS[definition],
+                        "persistence": persistence,
+                        "subset": str(subset),
+                        "home_arm": str(ordered.iloc[0]["home_arm"]),
+                        "metric": str(metric),
+                        "earliest_step": earliest,
+                        "final_step_win": bool(final.iloc[0]["win"]),
+                    }
+                )
+    timing = pd.DataFrame(timing_rows)
+
+    comparison_parts: list[pd.DataFrame] = []
+    for (definition, persistence), frame in timing.groupby(
+        ["definition", "persistence"], sort=False
+    ):
+        comparable = frame.rename(
+            columns={"earliest_step": "earliest_persistent_detected_step"}
+        )
+        comparison = compare_metric_detection_timing(
+            comparable,
+            metrics=(AUPRC, VARIANT_POOLED_SMD),
+            subsets=AUGMENTED_SUBSETS,
+        )
+        comparison["definition"] = definition
+        comparison["definition_label"] = WIN_DEFINITION_LABELS[definition]
+        comparison["persistence"] = persistence
+        comparison_parts.append(comparison)
+    comparisons = pd.concat(comparison_parts, ignore_index=True)
+    assert len(comparisons) == len(WIN_DEFINITION_LABELS) * 2
+    count_columns = [
+        "candidate_earlier",
+        "same_step",
+        "auprc_earlier",
+        "neither_detected",
+    ]
+    assert comparisons[count_columns].sum(axis=1).eq(len(AUGMENTED_SUBSETS)).all()
+    return timing, comparisons
+
+
+def plot_augmented_win_definition_sensitivity(
+    comparisons: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Plot how the metric comparison changes with the definition of a win."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    count_columns = [
+        "candidate_earlier",
+        "same_step",
+        "auprc_earlier",
+        "neither_detected",
+    ]
+    colors = ["#2A9D8F", "#B8B8B8", "#E76F51", "#F1E6D2"]
+    labels = ["Cohen's d earlier", "Same step", "AUPRC earlier", "Neither"]
+    fig, axes = plt.subplots(1, 2, figsize=(14.5, 6.2), sharey=True)
+    for axis, persistence in zip(axes, (1, 2)):
+        panel = (
+            comparisons[comparisons["persistence"] == persistence]
+            .set_index("definition")
+            .reindex(WIN_DEFINITION_LABELS)
+        )
+        x = np.arange(len(panel))
+        bottom = np.zeros(len(panel))
+        for column, color, label in zip(count_columns, colors, labels):
+            values = panel[column].to_numpy(dtype=int)
+            axis.bar(x, values, bottom=bottom, color=color, label=label)
+            for x_value, value, base in zip(x, values, bottom):
+                if value:
+                    axis.text(
+                        x_value,
+                        base + value / 2,
+                        str(value),
+                        ha="center",
+                        va="center",
+                        fontsize=9,
+                    )
+            bottom += values
+        axis.set_xticks(x, panel["definition_label"], rotation=24, ha="right")
+        axis.set_ylim(0, len(AUGMENTED_SUBSETS))
+        axis.set_ylabel("Specialist subsets")
+        axis.set_title(
+            "First qualifying checkpoint"
+            if persistence == 1
+            else "First of two consecutive qualifying checkpoints"
+        )
+        axis.grid(axis="y", alpha=0.22, linewidth=0.7)
+    handles, legend_labels = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        legend_labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.02),
+        ncol=4,
+        frameon=False,
+    )
+    fig.suptitle("Does the conclusion depend on what counts as a specialist win?")
+    fig.text(
+        0.5,
+        0.005,
+        "AUPRC probabilities use joint class-stratified variant bootstrap draws; "
+        "Cohen's d probabilities use independent normals with closed-form SEs. "
+        "Each bar totals eight mapped specialist subsets.",
+        ha="center",
+        fontsize=8.5,
+    )
+    fig.tight_layout(rect=(0, 0.15, 1, 0.94), w_pad=2.0)
+    svg_path = output_dir / "augmented_win_definition_sensitivity.svg"
+    png_path = output_dir / "augmented_win_definition_sensitivity.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return {
+        "plot_augmented_win_definition_sensitivity_svg": svg_path,
+        "plot_augmented_win_definition_sensitivity_png": png_path,
     }
 
 
@@ -752,6 +981,9 @@ def run_augmented_analysis(
     cohen_d_win_probabilities = compute_closed_form_cohen_d_win_table(
         cohen_d_metrics
     )
+    cohen_d_rank1_probabilities = (
+        compute_closed_form_cohen_d_rank1_probabilities(cohen_d_metrics)
+    )
     cohen_d_closed_form_detectability = (
         compute_closed_form_cohen_d_specialist_detectability(cohen_d_metrics)
     )
@@ -797,6 +1029,13 @@ def run_augmented_analysis(
         metrics=(AUPRC, VARIANT_POOLED_SMD),
         subsets=AUGMENTED_SUBSETS,
     )
+    win_definition_timing, win_definition_comparison = (
+        compute_win_definition_sensitivity(
+            auprc_bootstrap_detectability,
+            cohen_d_closed_form_detectability,
+            cohen_d_rank1_probabilities,
+        )
+    )
 
     stored_auprc = pd.concat(stored_auprc_parts, ignore_index=True)
     reproduced_auprc = point_metrics[point_metrics["metric"] == AUPRC][
@@ -841,6 +1080,11 @@ def run_augmented_analysis(
                 "ungrouped_point_metrics": ungrouped_point_metrics,
                 "cohen_d_closed_form": cohen_d_metrics,
                 "cohen_d_closed_form_win_probabilities": cohen_d_win_probabilities,
+                "cohen_d_closed_form_rank1_probabilities": (
+                    cohen_d_rank1_probabilities
+                ),
+                "win_definition_timing": win_definition_timing,
+                "win_definition_comparison": win_definition_comparison,
                 "auprc_bootstrap_cohen_d_closed_form_detectability": (
                     hybrid_detectability
                 ),
@@ -883,6 +1127,18 @@ def run_augmented_analysis(
         plot_augmented_specialist_trajectories(
             ungrouped_point_metrics,
             cohen_d_metrics,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_augmented_specialist_closed_form_win_percentage(
+            cohen_d_win_probabilities,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_augmented_win_definition_sensitivity(
+            win_definition_comparison,
             output_dir / "plots",
         )
     )

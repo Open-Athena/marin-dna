@@ -15,11 +15,14 @@ from marin_dna_evals.soft_vep_augmented import (
     AUGMENTED_SUBSETS,
     DISTAL_ARM,
     augmented_manifest,
+    compute_closed_form_cohen_d_rank1_probabilities,
     compute_closed_form_cohen_d_specialist_detectability,
     compute_closed_form_cohen_d_win_table,
+    compute_win_definition_sensitivity,
     plot_augmented_distal_trajectories,
     plot_augmented_specialist_closed_form_win_percentage,
     plot_augmented_specialist_trajectories,
+    plot_augmented_win_definition_sensitivity,
 )
 from marin_dna_evals.soft_vep_metrics import AUPRC, GROUP_SMD, VARIANT_POOLED_SMD
 
@@ -197,6 +200,15 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
     point_metrics = pd.DataFrame(point_rows)
     cohen_d_metrics = pd.DataFrame(cohen_d_rows)
     win_probabilities = compute_closed_form_cohen_d_win_table(cohen_d_metrics)
+    rank1_probabilities = compute_closed_form_cohen_d_rank1_probabilities(
+        cohen_d_metrics
+    )
+
+    assert len(rank1_probabilities) == len(AUGMENTED_SUBSETS) * len(AUGMENTED_STEPS)
+    assert rank1_probabilities["rank1_probability"].between(0, 1).all()
+    assert rank1_probabilities["uncertainty_method"].eq(
+        "independent_normal_gauss_hermite"
+    ).all()
 
     assert len(win_probabilities) == (
         len(AUGMENTED_SUBSETS)
@@ -223,6 +235,22 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         "independent_normal_closed_form_cohen_d"
     ).all()
 
+    auprc_detectability = detectability.assign(
+        metric=AUPRC,
+        bootstrap_home_rank1_frequency=0.99,
+        confidence_supported=True,
+    )
+    sensitivity_timing, sensitivity_comparison = (
+        compute_win_definition_sensitivity(
+            auprc_detectability,
+            detectability,
+            rank1_probabilities,
+        )
+    )
+    assert len(sensitivity_timing) == 160
+    assert len(sensitivity_comparison) == 10
+    assert set(sensitivity_timing["persistence"]) == {1, 2}
+
     trajectory_outputs = plot_augmented_specialist_trajectories(
         point_metrics,
         cohen_d_metrics,
@@ -230,6 +258,10 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
     )
     win_outputs = plot_augmented_specialist_closed_form_win_percentage(
         win_probabilities,
+        tmp_path,
+    )
+    sensitivity_outputs = plot_augmented_win_definition_sensitivity(
+        sensitivity_comparison,
         tmp_path,
     )
 
@@ -241,7 +273,15 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         "plot_augmented_specialist_closed_form_win_percentage_svg",
         "plot_augmented_specialist_closed_form_win_percentage_png",
     }
+    assert set(sensitivity_outputs) == {
+        "plot_augmented_win_definition_sensitivity_svg",
+        "plot_augmented_win_definition_sensitivity_png",
+    }
     assert all(
         path.stat().st_size > 0
-        for path in (*trajectory_outputs.values(), *win_outputs.values())
+        for path in (
+            *trajectory_outputs.values(),
+            *win_outputs.values(),
+            *sensitivity_outputs.values(),
+        )
     )
