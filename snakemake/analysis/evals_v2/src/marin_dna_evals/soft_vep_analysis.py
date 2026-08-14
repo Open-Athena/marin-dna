@@ -27,9 +27,14 @@ from marin_dna_evals.soft_vep_metrics import (
     MEAN_GAP_GLOBAL,
     MEAN_GAP_GROUP,
     SOFT_WIN,
+    STUDENT_T,
+    VARIANT_POOLED_SMD,
+    VARIANT_TOTAL_SD_GAP,
+    WELCH_T,
     compute_mendelian_soft_metric_table,
     group_differences,
     joint_cluster_bootstrap_soft_metrics,
+    joint_stratified_row_bootstrap_ungrouped_metrics,
     reference_soft_win_temperature,
     summarize_joint_bootstrap,
 )
@@ -114,6 +119,10 @@ METRIC_LABELS = {
     "soft_win": "Fixed-temperature soft pairwise win rate",
     "calibrated_log_loss": "Grouped-CV calibrated log loss (lower is better)",
     "calibrated_brier": "Grouped-CV calibrated Brier score (lower is better)",
+    VARIANT_POOLED_SMD: "Variant pooled within-class SMD (Cohen's d)",
+    VARIANT_TOTAL_SD_GAP: "Mean gap / all-variant SD",
+    STUDENT_T: "Student pooled-variance t statistic",
+    WELCH_T: "Welch unequal-variance t statistic",
 }
 METRIC_AXIS_LABELS = {
     "auprc": "AUPRC",
@@ -124,6 +133,10 @@ METRIC_AXIS_LABELS = {
     "soft_win": "SoftWin",
     "calibrated_log_loss": "Calibrated log loss (lower is better)",
     "calibrated_brier": "Calibrated Brier score (lower is better)",
+    VARIANT_POOLED_SMD: "Variant pooled SMD",
+    VARIANT_TOTAL_SD_GAP: "Mean gap / all-variant SD",
+    STUDENT_T: "Student t",
+    WELCH_T: "Welch t",
 }
 DETECTABILITY_METRICS = (
     AUPRC,
@@ -135,6 +148,13 @@ DETECTABILITY_METRICS = (
     CALIBRATED_LOG_LOSS,
     CALIBRATED_BRIER,
 )
+UNGROUPED_DETECTABILITY_METRICS = (
+    AUPRC,
+    VARIANT_POOLED_SMD,
+    VARIANT_TOTAL_SD_GAP,
+    STUDENT_T,
+    WELCH_T,
+)
 DETECTABILITY_LABELS = {
     AUPRC: "AUPRC",
     MEAN_GAP_GLOBAL: "Raw mean gap",
@@ -144,6 +164,10 @@ DETECTABILITY_LABELS = {
     SOFT_WIN: "SoftWin",
     CALIBRATED_LOG_LOSS: "− calibrated log loss",
     CALIBRATED_BRIER: "1 − calibrated Brier",
+    VARIANT_POOLED_SMD: "Variant pooled SMD",
+    VARIANT_TOTAL_SD_GAP: "Gap / all-variant SD",
+    STUDENT_T: "Student t",
+    WELCH_T: "Welch t",
 }
 DETECTABILITY_COLORS = {
     AUPRC: "#0072B2",
@@ -778,8 +802,10 @@ def plot_exp232_metric_trajectories(
     point_metrics: pd.DataFrame,
     metric: str,
     output_path: Path,
+    *,
+    bootstrap_unit: str = "match-group",
 ) -> None:
-    """Seven-panel cross-arm trajectory with 95% cluster-bootstrap intervals."""
+    """Seven-panel cross-arm trajectory with labeled bootstrap intervals."""
     data = point_metrics[point_metrics["metric"] == metric]
     assert not data.empty, f"no point metrics found for {metric!r}"
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -843,7 +869,7 @@ def plot_exp232_metric_trajectories(
         qualifier = "; calibration uncertainty is conditional on fixed OOF fits"
     fig.suptitle(
         f"exp232 non-distal trajectories — {METRIC_LABELS[metric]}\n"
-        f"development split; ribbons are 95% joint match-group bootstrap intervals{qualifier}",
+        f"development split; ribbons are 95% joint {bootstrap_unit} bootstrap intervals{qualifier}",
         fontsize=13,
         y=0.995,
     )
@@ -855,12 +881,21 @@ def plot_exp232_metric_trajectories(
 def plot_exp232_trajectories(
     point_metrics: pd.DataFrame,
     output_dir: Path,
+    *,
+    metrics: tuple[str, ...] | None = None,
+    bootstrap_unit: str = "match-group",
 ) -> dict[str, Path]:
     """Render one comparable-scale faceted SVG per metric."""
     outputs: dict[str, Path] = {}
-    for metric in METRIC_LABELS:
+    selected_metrics = DETECTABILITY_METRICS if metrics is None else metrics
+    for metric in selected_metrics:
         path = output_dir / f"{metric}.svg"
-        plot_exp232_metric_trajectories(point_metrics, metric, path)
+        plot_exp232_metric_trajectories(
+            point_metrics,
+            metric,
+            path,
+            bootstrap_unit=bootstrap_unit,
+        )
         outputs[f"plot_{metric}"] = path
     return outputs
 
@@ -1057,16 +1092,21 @@ def _detection_timing_counts(timing: pd.DataFrame) -> dict[str, int]:
     return counts
 
 
-def compare_metric_detection_timing(timing: pd.DataFrame) -> pd.DataFrame:
+def compare_metric_detection_timing(
+    timing: pd.DataFrame,
+    *,
+    metrics: tuple[str, ...] = DETECTABILITY_METRICS,
+) -> pd.DataFrame:
     """Count earlier, tied, later, and jointly absent detections versus AUPRC."""
+    assert metrics[0] == AUPRC, "AUPRC must be the timing reference"
     wide = timing.pivot(
         index="subset",
         columns="metric",
         values="earliest_persistent_detected_step",
     ).reindex(NON_DISTAL_SUBSETS)
-    assert set(DETECTABILITY_METRICS).issubset(wide.columns)
+    assert set(metrics).issubset(wide.columns)
     rows: list[dict[str, str | int]] = []
-    for metric in DETECTABILITY_METRICS:
+    for metric in metrics:
         if metric == AUPRC:
             continue
         counts = {
@@ -1098,8 +1138,19 @@ def plot_metric_detectability_summary(
     timing: pd.DataFrame,
     comparison: pd.DataFrame,
     output_dir: Path,
+    *,
+    metrics: tuple[str, ...] = DETECTABILITY_METRICS,
+    stem: str = "specialist_metric_detectability_summary",
+    bootstrap_unit: str = "match-group",
+    metric_note: str = (
+        "Raw gaps and fixed-temperature SoftWin remain score-scale sensitive."
+    ),
+    title: str = (
+        "Do any candidate metrics distinguish the home arm earlier than AUPRC?"
+    ),
 ) -> dict[str, Path]:
     """Summarize earliest supported separation for every candidate metric."""
+    assert metrics[0] == AUPRC, "AUPRC must be the timing reference"
     output_dir.mkdir(parents=True, exist_ok=True)
     display_subsets = {
         "missense_variant": "missense",
@@ -1116,13 +1167,13 @@ def plot_metric_detectability_summary(
             columns="subset",
             values="earliest_persistent_detected_step",
         )
-        .reindex(index=DETECTABILITY_METRICS, columns=NON_DISTAL_SUBSETS)
+        .reindex(index=metrics, columns=NON_DISTAL_SUBSETS)
         .astype(float)
     )
     fig, (heat_axis, count_axis) = plt.subplots(
         1,
         2,
-        figsize=(16, 9),
+        figsize=(16, max(6.5, 0.65 * len(metrics) + 3.5)),
         gridspec_kw={"width_ratios": (1.65, 1.0)},
     )
     cmap = plt.get_cmap("viridis_r").with_extremes(bad="#E2E2E2")
@@ -1140,8 +1191,8 @@ def plot_metric_detectability_summary(
         ha="right",
     )
     heat_axis.set_yticks(
-        np.arange(len(DETECTABILITY_METRICS)),
-        [DETECTABILITY_LABELS[metric] for metric in DETECTABILITY_METRICS],
+        np.arange(len(metrics)),
+        [DETECTABILITY_LABELS[metric] for metric in metrics],
     )
     heat_axis.set_title("First persistent separation step")
     heat_axis.set_xticks(
@@ -1149,12 +1200,12 @@ def plot_metric_detectability_summary(
         minor=True,
     )
     heat_axis.set_yticks(
-        np.arange(-0.5, len(DETECTABILITY_METRICS), 1),
+        np.arange(-0.5, len(metrics), 1),
         minor=True,
     )
     heat_axis.grid(which="minor", color="white", linewidth=1.5)
     heat_axis.tick_params(which="minor", bottom=False, left=False)
-    for row_index, metric in enumerate(DETECTABILITY_METRICS):
+    for row_index, metric in enumerate(metrics):
         for column_index, subset in enumerate(NON_DISTAL_SUBSETS):
             value = timing_wide.loc[metric, subset]
             if pd.isna(value):
@@ -1176,7 +1227,7 @@ def plot_metric_detectability_summary(
     colorbar.set_label("Training step (earlier is better)")
 
     comparison_indexed = comparison.set_index("metric").reindex(
-        DETECTABILITY_METRICS[1:]
+        metrics[1:]
     )
     categories = (
         ("candidate_earlier", "Candidate earlier", "#009E73"),
@@ -1225,7 +1276,7 @@ def plot_metric_detectability_summary(
         ncol=2,
     )
     fig.suptitle(
-        "Do any candidate metrics distinguish the home arm earlier than AUPRC?",
+        title,
         fontsize=14,
         y=0.99,
     )
@@ -1233,21 +1284,20 @@ def plot_metric_detectability_summary(
         0.5,
         0.015,
         "Detection = first of two consecutive synchronized steps with the "
-        "joint home-minus-best-non-home 95% interval above zero. "
-        "ND = not detected. Raw gaps and fixed-temperature SoftWin remain "
-        "score-scale sensitive.",
+        f"joint home-minus-best-non-home 95% {bootstrap_unit} bootstrap interval "
+        f"above zero. ND = not detected. {metric_note}",
         ha="center",
         fontsize=9,
     )
     fig.tight_layout(rect=(0, 0.06, 1, 0.955))
-    svg_path = output_dir / "specialist_metric_detectability_summary.svg"
-    png_path = output_dir / "specialist_metric_detectability_summary.png"
+    svg_path = output_dir / f"{stem}.svg"
+    png_path = output_dir / f"{stem}.png"
     fig.savefig(svg_path, format="svg", bbox_inches="tight")
     fig.savefig(png_path, format="png", dpi=100)
     plt.close(fig)
     return {
-        "plot_specialist_metric_detectability_summary_svg": svg_path,
-        "plot_specialist_metric_detectability_summary_png": png_path,
+        f"plot_{stem}_svg": svg_path,
+        f"plot_{stem}_png": png_path,
     }
 
 
@@ -1570,6 +1620,9 @@ def run_exp232_analysis(
     fwd_parts: list[pd.DataFrame] = []
     pairwise_parts: list[pd.DataFrame] = []
     detectability_parts: list[pd.DataFrame] = []
+    ungrouped_point_parts: list[pd.DataFrame] = []
+    ungrouped_pairwise_parts: list[pd.DataFrame] = []
+    ungrouped_detectability_parts: list[pd.DataFrame] = []
     stored_auprc_parts: list[pd.DataFrame] = []
     final_bundles: dict[str, pd.DataFrame] | None = None
     all_steps = sorted({step for steps in EXP232_STEPS.values() for step in steps})
@@ -1623,6 +1676,42 @@ def run_exp232_analysis(
                 detectability["step"] = step
                 detectability_parts.append(detectability)
 
+            ungrouped_point, ungrouped_samples = (
+                joint_stratified_row_bootstrap_ungrouped_metrics(
+                    subset_meta["label"],
+                    average_scores,
+                    n_bootstrap=n_bootstrap,
+                    rng=seed,
+                )
+            )
+            ungrouped_summary = summarize_joint_bootstrap(
+                ungrouped_point,
+                ungrouped_samples,
+            ).rename(columns={"score_type": "arm"})
+            ungrouped_summary["step"] = step
+            ungrouped_summary["subset"] = subset
+            ungrouped_summary["score_protocol"] = "minus_llr_avg"
+            ungrouped_summary["bootstrap_unit"] = "class_stratified_variant"
+            ungrouped_point_parts.append(ungrouped_summary)
+
+            ungrouped_pairwise = pairwise_bootstrap_summary(
+                ungrouped_point,
+                ungrouped_samples,
+            )
+            ungrouped_pairwise["step"] = step
+            ungrouped_pairwise["subset"] = subset
+            ungrouped_pairwise_parts.append(ungrouped_pairwise)
+
+            if set(active_arms) == set(ARMS):
+                ungrouped_detectability = specialist_detectability_summary(
+                    ungrouped_point,
+                    ungrouped_samples,
+                    subset=subset,
+                    metrics=UNGROUPED_DETECTABILITY_METRICS,
+                )
+                ungrouped_detectability["step"] = step
+                ungrouped_detectability_parts.append(ungrouped_detectability)
+
             fwd_scores = pd.DataFrame(
                 {
                     arm: frame.loc[keep, "minus_llr_fwd"].reset_index(drop=True)
@@ -1643,12 +1732,36 @@ def run_exp232_analysis(
     point_metrics = pd.concat(point_parts, ignore_index=True)
     fwd_metrics = pd.concat(fwd_parts, ignore_index=True)
     pairwise_deltas = pd.concat(pairwise_parts, ignore_index=True)
+    ungrouped_point_metrics = pd.concat(ungrouped_point_parts, ignore_index=True)
+    ungrouped_pairwise_deltas = pd.concat(
+        ungrouped_pairwise_parts,
+        ignore_index=True,
+    )
     specialist_detectability = pd.concat(detectability_parts, ignore_index=True)
     specialist_detection_timing = persistent_specialist_detectability(
         specialist_detectability
     )
     metric_detection_comparison = compare_metric_detection_timing(
         specialist_detection_timing
+    )
+    ungrouped_specialist_detectability = pd.concat(
+        ungrouped_detectability_parts,
+        ignore_index=True,
+    )
+    ungrouped_specialist_detection_timing = persistent_specialist_detectability(
+        ungrouped_specialist_detectability
+    )
+    ungrouped_metric_detection_comparison = compare_metric_detection_timing(
+        ungrouped_specialist_detection_timing,
+        metrics=UNGROUPED_DETECTABILITY_METRICS,
+    )
+    ungrouped_rank_agreement, ungrouped_rank_reversals = compute_rank_agreement(
+        ungrouped_point_metrics
+    )
+    ungrouped_confident_rank_reversals = confidence_filtered_rank_reversals(
+        ungrouped_pairwise_deltas,
+        group_columns=["step", "subset"],
+        entity_columns=("arm_a", "arm_b"),
     )
     stored_auprc = pd.concat(stored_auprc_parts, ignore_index=True)
     reproduced_auprc = point_metrics[point_metrics["metric"] == AUPRC][
@@ -1696,6 +1809,22 @@ def run_exp232_analysis(
         "metric_detection_comparison": (
             output_dir / "metric_detection_comparison.parquet"
         ),
+        "ungrouped_point_metrics": output_dir / "ungrouped_point_metrics.parquet",
+        "ungrouped_pairwise_deltas": output_dir / "ungrouped_pairwise_deltas.parquet",
+        "ungrouped_specialist_detectability": (
+            output_dir / "ungrouped_specialist_detectability.parquet"
+        ),
+        "ungrouped_specialist_detection_timing": (
+            output_dir / "ungrouped_specialist_detection_timing.parquet"
+        ),
+        "ungrouped_metric_detection_comparison": (
+            output_dir / "ungrouped_metric_detection_comparison.parquet"
+        ),
+        "ungrouped_rank_agreement": output_dir / "ungrouped_rank_agreement.parquet",
+        "ungrouped_rank_reversals": output_dir / "ungrouped_rank_reversals.parquet",
+        "ungrouped_confident_rank_reversals": (
+            output_dir / "ungrouped_confident_rank_reversals.parquet"
+        ),
         "auprc_reproduction": output_dir / "auprc_reproduction.parquet",
         "rank_agreement": output_dir / "rank_agreement.parquet",
         "rank_reversals": output_dir / "rank_reversals.parquet",
@@ -1720,6 +1849,28 @@ def run_exp232_analysis(
         outputs["metric_detection_comparison"],
         index=False,
     )
+    ungrouped_point_metrics.to_parquet(outputs["ungrouped_point_metrics"], index=False)
+    ungrouped_pairwise_deltas.to_parquet(
+        outputs["ungrouped_pairwise_deltas"],
+        index=False,
+    )
+    ungrouped_specialist_detectability.to_parquet(
+        outputs["ungrouped_specialist_detectability"],
+        index=False,
+    )
+    ungrouped_specialist_detection_timing.to_parquet(
+        outputs["ungrouped_specialist_detection_timing"],
+        index=False,
+    )
+    ungrouped_metric_detection_comparison.to_parquet(
+        outputs["ungrouped_metric_detection_comparison"],
+        index=False,
+    )
+    ungrouped_rank_agreement.to_parquet(outputs["ungrouped_rank_agreement"], index=False)
+    ungrouped_rank_reversals.to_parquet(outputs["ungrouped_rank_reversals"], index=False)
+    ungrouped_confident_rank_reversals.to_parquet(
+        outputs["ungrouped_confident_rank_reversals"], index=False
+    )
     reproduced_auprc.to_parquet(outputs["auprc_reproduction"], index=False)
     rank_agreement.to_parquet(outputs["rank_agreement"], index=False)
     rank_reversals.to_parquet(outputs["rank_reversals"], index=False)
@@ -1733,6 +1884,14 @@ def run_exp232_analysis(
     controls.to_parquet(outputs["controls"], index=False)
     control_summary.to_parquet(outputs["control_summary"], index=False)
     outputs.update(plot_exp232_trajectories(point_metrics, output_dir / "plots"))
+    outputs.update(
+        plot_exp232_trajectories(
+            ungrouped_point_metrics,
+            output_dir / "plots",
+            metrics=UNGROUPED_DETECTABILITY_METRICS[1:],
+            bootstrap_unit="class-stratified variant",
+        )
+    )
     outputs.update(
         plot_exp232_specialist_auprc_vs_brier(
             point_metrics,
@@ -1751,6 +1910,22 @@ def run_exp232_analysis(
             specialist_detection_timing,
             metric_detection_comparison,
             output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_metric_detectability_summary(
+            ungrouped_specialist_detection_timing,
+            ungrouped_metric_detection_comparison,
+            output_dir / "plots",
+            metrics=UNGROUPED_DETECTABILITY_METRICS,
+            stem="specialist_ungrouped_metric_detectability_summary",
+            bootstrap_unit="class-stratified variant",
+            metric_note=(
+                "Student t is a fixed rescaling of pooled SMD within each subset."
+            ),
+            title=(
+                "Assuming no match groups: do t-like metrics detect the home arm earlier?"
+            ),
         )
     )
     outputs.update(

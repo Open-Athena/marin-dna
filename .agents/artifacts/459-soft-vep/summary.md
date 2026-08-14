@@ -2,15 +2,20 @@
 
 ## Decision
 
-Keep AUPRC as the official endpoint. Do not promote the raw global/group mean
-gaps, group SMD, median/MAD separation, or fixed-temperature SoftWin into the
-standard evaluation path.
+Keep AUPRC as the primary endpoint. For matched Mendelian evaluations, report
+**group SMD alongside AUPRC as an exploratory readout**. For an evaluation with
+no match groups, such as a single-gene SGE assay, report **variant pooled SMD
+(Cohen's `d`)** instead. Both are dimensionless and invariant to positive score
+rescaling; neither should drive stopping or replace subset-level AUPRC.
 
-Carry **grouped-CV calibrated Brier score** forward as the only candidate for a
-second validation pass or an explicitly optional early-training diagnostic. It
-is not ready to replace AUPRC or to drive stopping decisions: its apparent
-earlier point-estimate wins usually disappear after requiring paired-bootstrap
-support, and its intervals are conditional on fixed out-of-fold calibrators.
+Under the explicit no-group sensitivity analysis, variant pooled SMD detected
+the home specialist earlier than row-bootstrap AUPRC on two of seven subsets,
+at the same step on three, later on one, and neither detected synonymous. It
+also followed the late missense reversal. The all-variant-SD gap and Student's
+`t` produced identical arm rankings and detection times, so they add no signal.
+Welch's unequal-variance `t` changed which subsets were early but not the
+aggregate 2/3/1/1 count, and it continued rising through the missense AUPRC
+decline.
 
 ## Primary question: does Brier distinguish the home arm earlier?
 
@@ -64,6 +69,43 @@ home-arm question: it leads AUPRC by one recorded checkpoint on splicing
 loses on 3′ UTR, and detects neither synonymous. Calibrated log loss leads only
 on 3′ UTR (2000 versus 3500), then ties on three and loses on two. This is not
 enough consistency to replace AUPRC or establish a generally earlier proxy.
+
+## No-match-group sensitivity
+
+This sensitivity analysis discards `match_group`, resamples positive and
+negative variants separately, and recomputes AUPRC from the same joint row
+draws. The AUPRC timing can therefore differ from the primary cluster-bootstrap
+analysis; most visibly, 3′ UTR moves from step 3500 to 4500.
+
+| Consequence subset | Row-bootstrap AUPRC | Pooled SMD | Gap / all-variant SD | Student `t` | Welch `t` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| missense | 1500 | 1500 | 1500 | 1500 | 1500 |
+| synonymous | not detected | not detected | not detected | not detected | not detected |
+| splicing | 1000 | 500 | 500 | 500 | 500 |
+| 3′ UTR | 4500 | 1500 | 1500 | 1500 | not detected |
+| noncoding exon | 3500 | 4500 | 4500 | 4500 | 3000 |
+| 5′ UTR | 1500 | 1500 | 1500 | 1500 | 1500 |
+| TSS proximal | 1500 | 1500 | 1500 | 1500 | 1500 |
+
+All four candidates are earlier/same/later/neither on **2/3/1/1** subsets.
+That aggregate hides two useful distinctions:
+
+- Pooled SMD, the all-variant-SD gap, and Student's `t` have identical arm
+  rankings at all 63 synchronized subset/checkpoint cells and identical
+  detection times. Student's `t` is pooled SMD multiplied by a fixed
+  sample-size factor within each subset. The all-variant-SD gap is a monotone
+  prevalence-dependent transform in this fixed-label comparison.
+- Welch's `t` detects noncoding exon at step 3000 but never detects 3′ UTR. It
+  also rises from 17.90 to 19.12 while missense AUPRC falls from 0.3280 to
+  0.3095 between steps 4000 and 4999. Pooled SMD declines from 1.2126 to 1.1866
+  over the same interval and therefore preserves this adversarial reversal.
+
+Pooled SMD is the simplest useful no-group statistic. It measures effect size
+without turning sample size into signal. A Welch `t` p-value instead measures
+evidence against equal class means under variant independence. For a genuinely
+ungrouped SGE assay, report pooled SMD with a joint variant or biological-block
+bootstrap; use blocks such as residues or assay tiles when individual variants
+are correlated.
 
 ## Evidence
 
@@ -149,6 +191,14 @@ AUPRC.
   separation under AUPRC and all seven candidate metrics.
 - `exp232/metric_detection_comparison.parquet`: per-candidate earlier/tied/later
   counts relative to AUPRC.
+- `exp232/ungrouped_point_metrics.parquet` and
+  `ungrouped_pairwise_deltas.parquet`: AUPRC plus four no-group statistics with
+  class-stratified variant-bootstrap intervals.
+- `exp232/ungrouped_specialist_detectability.parquet`,
+  `ungrouped_specialist_detection_timing.parquet`, and
+  `ungrouped_metric_detection_comparison.parquet`: no-group home-arm evidence,
+  first persistent detection, and timing counts relative to row-bootstrap
+  AUPRC.
 - `exp232/supported_specialist_wins.parquet`: persistent, interval-supported
   specialist timing.
 - `exp232/plots/*.svg`: eight full-cross-arm trajectory panels.
@@ -159,6 +209,9 @@ AUPRC.
   earliest-detection comparison.
 - `exp232/plots/specialist_metric_detectability_summary.{svg,png}`: all-metric
   timing heatmap and comparison counts.
+- `exp232/plots/{variant_pooled_smd,variant_total_sd_gap,student_t,welch_t}.svg`
+  and `specialist_ungrouped_metric_detectability_summary.{svg,png}`: no-group
+  full-arm trajectories and timing comparison.
 - `exp232/distributions/*.svg`: final-step POS/NEG and matched-group-difference
   ECDFs for all seven subsets.
 - `leaderboard/`: 22-model ranking, controls, pairwise confidence comparisons,

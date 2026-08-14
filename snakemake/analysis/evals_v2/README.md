@@ -246,6 +246,19 @@ within-group pairwise margin from `exp232-v4_bg-step-500`, pooled over the seven
 non-distal subsets. That scalar is recorded in `metadata.json` and reused for
 every arm, step, and subset.
 
+The same command also runs a separate no-match-group sensitivity analysis. It
+computes pooled within-class variant SMD (Cohen's `d`), the mean gap divided by
+the SD of all variants, Student's pooled-variance `t`, and Welch's
+unequal-variance `t`. Positive and negative variants are sampled separately
+with replacement, and the same row multiplicities are applied to all five arms.
+AUPRC is recomputed from those exact class-stratified variant-bootstrap draws;
+the resulting intervals must not be confused with the primary `match_group`
+bootstrap. Student's `t` is a fixed rescaling of pooled SMD when class counts
+are fixed. Dividing the gap by the grand-mean standard error
+`sd(all variants) / sqrt(n)` is omitted because it is a fixed rescaling of the
+all-variant-SD gap within each subset and is not the standard error of a
+difference in class means.
+
 Outputs include:
 
 - `point_metrics.parquet`: all 48 arm/checkpoint cells × seven subsets × eight
@@ -263,6 +276,15 @@ Outputs include:
   `confident_rank_reversals.parquet`: same-step and final-step AUPRC rank
   comparisons, including a view restricted to pairs whose joint-bootstrap
   intervals exclude zero for both metrics.
+- `ungrouped_point_metrics.parquet`, `ungrouped_pairwise_deltas.parquet`, and
+  `ungrouped_specialist_detectability.parquet`: the no-match-group point,
+  interval, and home-versus-best-non-home results under a class-stratified
+  variant bootstrap. `ungrouped_specialist_detection_timing.parquet` and
+  `ungrouped_metric_detection_comparison.parquet` apply the same two-consecutive
+  checkpoint rule against the row-bootstrap AUPRC baseline.
+- `ungrouped_rank_agreement.parquet`, `ungrouped_rank_reversals.parquet`, and
+  `ungrouped_confident_rank_reversals.parquet`: same-step and final-step AUPRC
+  rank comparisons for the four no-group candidates.
 - `specialist_wins.parquet`: the earliest synchronized checkpoint where the
   mapped specialist ranks first for two consecutive stored checkpoints.
   `supported_specialist_wins.parquet` applies the same persistence rule only
@@ -287,6 +309,10 @@ Outputs include:
 - `plots/specialist_metric_detectability_summary.{svg,png}`: all eight
   metrics' earliest persistent steps and each candidate's timing counts relative
   to AUPRC.
+- `plots/{variant_pooled_smd,variant_total_sd_gap,student_t,welch_t}.svg` and
+  `plots/specialist_ungrouped_metric_detectability_summary.{svg,png}`: all-arm
+  trajectories and earliest-detection comparison under the explicit no-group
+  assumption.
 - `distributions/*.svg`: final-step POS/NEG score ECDFs and matched-group
   positive-minus-mean-negative difference ECDFs for every non-distal subset.
   Each arm keeps its raw score scale so tail separation and scale drift remain

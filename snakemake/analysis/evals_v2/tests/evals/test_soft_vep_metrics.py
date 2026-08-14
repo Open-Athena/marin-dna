@@ -12,14 +12,21 @@ from marin_dna_evals.soft_vep_metrics import (
     MEAN_GAP_GLOBAL,
     MEAN_GAP_GROUP,
     SOFT_WIN,
+    STUDENT_T,
+    VARIANT_POOLED_SMD,
+    VARIANT_TOTAL_SD_GAP,
+    WELCH_T,
     compute_mendelian_soft_metric_table,
     compute_mendelian_soft_metrics,
+    compute_ungrouped_metric_table,
     group_differences,
     grouped_calibration_scores,
     joint_cluster_bootstrap_soft_metrics,
+    joint_stratified_row_bootstrap_ungrouped_metrics,
     reference_soft_win_temperature,
     summarize_joint_bootstrap,
 )
+from scipy.stats import ttest_ind
 from sklearn.metrics import average_precision_score
 
 
@@ -217,6 +224,100 @@ def test_weighted_joint_bootstrap_auprc_matches_explicit_duplication():
         idx = np.concatenate([group_rows[group] for group in sampled])
         expected.append(average_precision_score(label.iloc[idx], score.iloc[idx]))
     assert samples.sort_values("draw")["value"].to_numpy() == pytest.approx(expected)
+
+
+def test_ungrouped_metrics_match_standardized_gap_and_t_definitions():
+    label = pd.Series([1, 1, 1, 0, 0, 0, 0])
+    score = pd.Series([4.0, 5.0, 8.0, 0.0, 1.0, 2.0, 4.0])
+    table = compute_ungrouped_metric_table(
+        label,
+        pd.DataFrame({"score": score}),
+    ).set_index("metric")
+    positive = score[label == 1].to_numpy()
+    negative = score[label == 0].to_numpy()
+    gap = positive.mean() - negative.mean()
+    pooled_variance = (
+        (len(positive) - 1) * positive.var(ddof=1)
+        + (len(negative) - 1) * negative.var(ddof=1)
+    ) / (len(score) - 2)
+
+    assert table.loc[VARIANT_POOLED_SMD, "value"] == pytest.approx(
+        gap / np.sqrt(pooled_variance)
+    )
+    assert table.loc[VARIANT_TOTAL_SD_GAP, "value"] == pytest.approx(
+        gap / score.std(ddof=1)
+    )
+    assert table.loc[STUDENT_T, "value"] == pytest.approx(
+        ttest_ind(positive, negative, equal_var=True).statistic
+    )
+    assert table.loc[WELCH_T, "value"] == pytest.approx(
+        ttest_ind(positive, negative, equal_var=False).statistic
+    )
+
+
+def test_ungrouped_metrics_are_positive_affine_invariant_and_directional():
+    label, score, _ = _matched_data(k=3, n_groups=8)
+    base = compute_ungrouped_metric_table(
+        label,
+        pd.DataFrame({"score": score}),
+    ).set_index("metric")["value"]
+    transformed = compute_ungrouped_metric_table(
+        label,
+        pd.DataFrame({"score": 7.0 * score + 11.0}),
+    ).set_index("metric")["value"]
+    reversed_values = compute_ungrouped_metric_table(
+        label,
+        pd.DataFrame({"score": -score}),
+    ).set_index("metric")["value"]
+
+    assert transformed.to_dict() == pytest.approx(base.to_dict())
+    assert reversed_values[AUPRC] != pytest.approx(base[AUPRC])
+    for metric in [VARIANT_POOLED_SMD, VARIANT_TOTAL_SD_GAP, STUDENT_T, WELCH_T]:
+        assert reversed_values[metric] == pytest.approx(-base[metric])
+
+
+def test_stratified_row_bootstrap_is_joint_and_matches_explicit_auprc():
+    label, score, _ = _matched_data(k=2, n_groups=5)
+    scores = pd.DataFrame({"a": score, "b": score.copy()})
+    n_bootstrap = 12
+    seed = 31
+    point, samples = joint_stratified_row_bootstrap_ungrouped_metrics(
+        label,
+        scores,
+        n_bootstrap=n_bootstrap,
+        rng=seed,
+    )
+    assert set(point["metric"]) == {
+        AUPRC,
+        VARIANT_POOLED_SMD,
+        VARIANT_TOTAL_SD_GAP,
+        STUDENT_T,
+        WELCH_T,
+    }
+    a = samples[samples["score_type"] == "a"].sort_values(["draw", "metric"])
+    b = samples[samples["score_type"] == "b"].sort_values(["draw", "metric"])
+    assert a["value"].to_numpy() == pytest.approx(b["value"].to_numpy())
+
+    positive_rows = np.flatnonzero(label.to_numpy() == 1)
+    negative_rows = np.flatnonzero(label.to_numpy() == 0)
+    generator = np.random.default_rng(seed)
+    sampled_positive = positive_rows[
+        generator.integers(0, len(positive_rows), size=(n_bootstrap, len(positive_rows)))
+    ]
+    sampled_negative = negative_rows[
+        generator.integers(0, len(negative_rows), size=(n_bootstrap, len(negative_rows)))
+    ]
+    expected = [
+        average_precision_score(
+            label.iloc[np.r_[sampled_positive[draw], sampled_negative[draw]]],
+            score.iloc[np.r_[sampled_positive[draw], sampled_negative[draw]]],
+        )
+        for draw in range(n_bootstrap)
+    ]
+    observed = samples[
+        (samples["score_type"] == "a") & (samples["metric"] == AUPRC)
+    ].sort_values("draw")["value"]
+    assert observed.to_numpy() == pytest.approx(expected)
 
 
 def test_metric_table_records_direction_and_counts():

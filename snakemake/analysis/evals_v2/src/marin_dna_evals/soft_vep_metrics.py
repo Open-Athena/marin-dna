@@ -31,6 +31,10 @@ GROUP_MEDIAN_MAD = "group_median_mad"
 SOFT_WIN = "soft_win"
 CALIBRATED_LOG_LOSS = "calibrated_log_loss"
 CALIBRATED_BRIER = "calibrated_brier"
+VARIANT_POOLED_SMD = "variant_pooled_smd"
+VARIANT_TOTAL_SD_GAP = "variant_total_sd_gap"
+STUDENT_T = "student_t"
+WELCH_T = "welch_t"
 
 CALIBRATED_METRICS = frozenset({CALIBRATED_LOG_LOSS, CALIBRATED_BRIER})
 DEFAULT_METRICS = (
@@ -43,6 +47,13 @@ DEFAULT_METRICS = (
     CALIBRATED_LOG_LOSS,
     CALIBRATED_BRIER,
 )
+UNGROUPED_METRICS = (
+    AUPRC,
+    VARIANT_POOLED_SMD,
+    VARIANT_TOTAL_SD_GAP,
+    STUDENT_T,
+    WELCH_T,
+)
 HIGHER_IS_BETTER = {
     AUPRC: True,
     MEAN_GAP_GLOBAL: True,
@@ -52,6 +63,10 @@ HIGHER_IS_BETTER = {
     SOFT_WIN: True,
     CALIBRATED_LOG_LOSS: False,
     CALIBRATED_BRIER: False,
+    VARIANT_POOLED_SMD: True,
+    VARIANT_TOTAL_SD_GAP: True,
+    STUDENT_T: True,
+    WELCH_T: True,
 }
 
 
@@ -299,6 +314,249 @@ def compute_mendelian_soft_metric_table(
             for metric, value in values.items()
         )
     return pd.DataFrame(rows)
+
+
+def _validated_binary_frame(
+    label: pd.Series | np.ndarray,
+    score: pd.Series | np.ndarray,
+) -> pd.DataFrame:
+    """Return finite binary rows without requiring a match-group column."""
+    assert len(label) == len(score), (
+        f"length mismatch: label={len(label)} score={len(score)}"
+    )
+    frame = pd.DataFrame(
+        {
+            "label": np.asarray(label).astype(int),
+            "score": np.asarray(score, dtype=float),
+        }
+    )
+    assert len(frame) > 0, "ungrouped VEP metrics require at least one row"
+    assert np.isfinite(frame["score"]).all(), "score contains non-finite values"
+    label_values = set(frame["label"].unique())
+    assert label_values == {0, 1}, (
+        f"ungrouped VEP metrics require both binary classes, got {sorted(label_values)}"
+    )
+    counts = frame["label"].value_counts()
+    assert (counts >= 2).all(), (
+        "ungrouped variance metrics require at least two rows in each class"
+    )
+    return frame
+
+
+def _ungrouped_metric_values(
+    label: np.ndarray,
+    score: np.ndarray,
+    metrics: Collection[str],
+) -> dict[str, float]:
+    """Compute no-match-group statistics from two variant-level score samples."""
+    requested = tuple(metrics)
+    positive = score[label == 1]
+    negative = score[label == 0]
+    n_positive = len(positive)
+    n_negative = len(negative)
+    positive_variance = float(positive.var(ddof=1))
+    negative_variance = float(negative.var(ddof=1))
+    gap = float(positive.mean() - negative.mean())
+    pooled_variance = (
+        (n_positive - 1) * positive_variance
+        + (n_negative - 1) * negative_variance
+    ) / (n_positive + n_negative - 2)
+    total_sd = float(score.std(ddof=1))
+    pooled_se = float(
+        np.sqrt(pooled_variance * (1.0 / n_positive + 1.0 / n_negative))
+    )
+    welch_se = float(
+        np.sqrt(positive_variance / n_positive + negative_variance / n_negative)
+    )
+
+    values: dict[str, float] = {}
+    if AUPRC in requested:
+        values[AUPRC] = float(average_precision_score(label, score))
+    if VARIANT_POOLED_SMD in requested:
+        pooled_sd = float(np.sqrt(pooled_variance))
+        values[VARIANT_POOLED_SMD] = gap / pooled_sd if pooled_sd > 0 else float("nan")
+    if VARIANT_TOTAL_SD_GAP in requested:
+        values[VARIANT_TOTAL_SD_GAP] = gap / total_sd if total_sd > 0 else float("nan")
+    if STUDENT_T in requested:
+        values[STUDENT_T] = gap / pooled_se if pooled_se > 0 else float("nan")
+    if WELCH_T in requested:
+        values[WELCH_T] = gap / welch_se if welch_se > 0 else float("nan")
+    return {metric: values[metric] for metric in requested}
+
+
+def compute_ungrouped_metric_table(
+    label: pd.Series | np.ndarray,
+    scores: pd.DataFrame,
+    *,
+    score_columns: list[str] | None = None,
+    metrics: Collection[str] = UNGROUPED_METRICS,
+) -> pd.DataFrame:
+    """Long-form no-match-group point metrics for row-aligned score columns."""
+    requested = tuple(metrics)
+    unknown = set(requested) - set(UNGROUPED_METRICS)
+    assert not unknown, f"unknown ungrouped VEP metrics: {sorted(unknown)}"
+    columns = list(scores.columns) if score_columns is None else score_columns
+    assert columns, "at least one score column is required"
+    missing = set(columns) - set(scores.columns)
+    assert not missing, f"score columns missing from frame: {sorted(missing)}"
+
+    first = _validated_binary_frame(label, scores[columns[0]])
+    y = first["label"].to_numpy()
+    rows: list[dict[str, str | bool | float | int]] = []
+    for column in columns:
+        frame = _validated_binary_frame(label, scores[column])
+        values = _ungrouped_metric_values(
+            y,
+            frame["score"].to_numpy(),
+            requested,
+        )
+        rows.extend(
+            {
+                "score_type": column,
+                "metric": metric,
+                "value": value,
+                "higher_is_better": HIGHER_IS_BETTER[metric],
+                "n_rows": len(frame),
+                "n_pos": int(y.sum()),
+            }
+            for metric, value in values.items()
+        )
+    return pd.DataFrame(rows)
+
+
+def joint_stratified_row_bootstrap_ungrouped_metrics(
+    label: pd.Series | np.ndarray,
+    scores: pd.DataFrame,
+    *,
+    score_columns: list[str] | None = None,
+    metrics: Collection[str] = UNGROUPED_METRICS,
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | int | None = 0,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Point estimates and joint class-stratified variant bootstrap samples.
+
+    Positive and negative variants are sampled separately with replacement, so
+    every draw preserves the observed class counts. The same row multiplicities
+    are applied to every score column. No match-group information is accepted or
+    used.
+    """
+    assert n_bootstrap >= 0, f"n_bootstrap must be non-negative, got {n_bootstrap}"
+    requested = tuple(metrics)
+    columns = list(scores.columns) if score_columns is None else score_columns
+    point = compute_ungrouped_metric_table(
+        label,
+        scores,
+        score_columns=columns,
+        metrics=requested,
+    )
+    if n_bootstrap == 0:
+        return point, pd.DataFrame(columns=["draw", "score_type", "metric", "value"])
+
+    first = _validated_binary_frame(label, scores[columns[0]])
+    y = first["label"].to_numpy()
+    score_arrays = {
+        column: _validated_binary_frame(label, scores[column])["score"].to_numpy()
+        for column in columns
+    }
+    positive_rows = np.flatnonzero(y == 1)
+    negative_rows = np.flatnonzero(y == 0)
+    n_positive = len(positive_rows)
+    n_negative = len(negative_rows)
+    n_rows = len(y)
+
+    generator = np.random.default_rng(rng)
+    row_multiplicity = np.zeros((n_bootstrap, n_rows), dtype=np.int32)
+    sampled_positive = positive_rows[
+        generator.integers(0, n_positive, size=(n_bootstrap, n_positive))
+    ]
+    np.add.at(
+        row_multiplicity,
+        (np.repeat(np.arange(n_bootstrap), n_positive), sampled_positive.ravel()),
+        1,
+    )
+    del sampled_positive
+    sampled_negative = negative_rows[
+        generator.integers(0, n_negative, size=(n_bootstrap, n_negative))
+    ]
+    np.add.at(
+        row_multiplicity,
+        (np.repeat(np.arange(n_bootstrap), n_negative), sampled_negative.ravel()),
+        1,
+    )
+    del sampled_negative
+
+    rows: list[dict[str, str | float | int]] = []
+    positive_indicator = (y == 1).astype(float)
+    negative_indicator = (y == 0).astype(float)
+    for column in columns:
+        score = score_arrays[column]
+        positive_sum = row_multiplicity @ (score * positive_indicator)
+        negative_sum = row_multiplicity @ (score * negative_indicator)
+        positive_squares = row_multiplicity @ (np.square(score) * positive_indicator)
+        negative_squares = row_multiplicity @ (np.square(score) * negative_indicator)
+        positive_mean = positive_sum / n_positive
+        negative_mean = negative_sum / n_negative
+        gap = positive_mean - negative_mean
+        positive_variance = np.maximum(
+            (positive_squares - np.square(positive_sum) / n_positive)
+            / (n_positive - 1),
+            0.0,
+        )
+        negative_variance = np.maximum(
+            (negative_squares - np.square(negative_sum) / n_negative)
+            / (n_negative - 1),
+            0.0,
+        )
+        pooled_variance = (
+            (n_positive - 1) * positive_variance
+            + (n_negative - 1) * negative_variance
+        ) / (n_rows - 2)
+        total_sum = positive_sum + negative_sum
+        total_squares = positive_squares + negative_squares
+        total_variance = np.maximum(
+            (total_squares - np.square(total_sum) / n_rows) / (n_rows - 1),
+            0.0,
+        )
+        pooled_se = np.sqrt(
+            pooled_variance * (1.0 / n_positive + 1.0 / n_negative)
+        )
+        welch_se = np.sqrt(
+            positive_variance / n_positive + negative_variance / n_negative
+        )
+
+        values: dict[str, np.ndarray] = {}
+        if AUPRC in requested:
+            values[AUPRC] = _weighted_bootstrap_average_precision(
+                y,
+                score,
+                np.arange(n_rows),
+                row_multiplicity,
+            )
+        denominators = {
+            VARIANT_POOLED_SMD: np.sqrt(pooled_variance),
+            VARIANT_TOTAL_SD_GAP: np.sqrt(total_variance),
+            STUDENT_T: pooled_se,
+            WELCH_T: welch_se,
+        }
+        for metric, denominator in denominators.items():
+            if metric in requested:
+                values[metric] = np.divide(
+                    gap,
+                    denominator,
+                    out=np.full(n_bootstrap, np.nan),
+                    where=denominator > 0,
+                )
+        rows.extend(
+            {
+                "draw": draw,
+                "score_type": column,
+                "metric": metric,
+                "value": float(values[metric][draw]),
+            }
+            for metric in requested
+            for draw in range(n_bootstrap)
+        )
+    return point, pd.DataFrame(rows)
 
 
 def _weighted_bootstrap_average_precision(

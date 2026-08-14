@@ -9,6 +9,7 @@ from marin_dna_evals.soft_vep_analysis import (
     NON_DISTAL_SUBSETS,
     SPECIALIST_ARM,
     SYNCHRONIZED_STEPS,
+    UNGROUPED_DETECTABILITY_METRICS,
     add_llr_scores,
     compare_metric_detection_timing,
     compute_rank_agreement,
@@ -27,6 +28,10 @@ from marin_dna_evals.soft_vep_metrics import (
     AUPRC,
     CALIBRATED_BRIER,
     MEAN_GAP_GLOBAL,
+    STUDENT_T,
+    VARIANT_POOLED_SMD,
+    VARIANT_TOTAL_SD_GAP,
+    WELCH_T,
 )
 
 
@@ -338,5 +343,50 @@ def test_all_metric_detection_comparison_and_plot(tmp_path):
     assert set(outputs) == {
         "plot_specialist_metric_detectability_summary_svg",
         "plot_specialist_metric_detectability_summary_png",
+    }
+    assert all(path.stat().st_size > 0 for path in outputs.values())
+
+
+def test_ungrouped_metric_detection_comparison_and_plot(tmp_path):
+    detection_steps = {
+        AUPRC: 2000,
+        VARIANT_POOLED_SMD: 1000,
+        VARIANT_TOTAL_SD_GAP: 1500,
+        STUDENT_T: 1000,
+        WELCH_T: 3000,
+    }
+    timing = pd.DataFrame(
+        [
+            {
+                "subset": subset,
+                "home_arm": SPECIALIST_ARM[subset],
+                "metric": metric,
+                "earliest_persistent_detected_step": step,
+            }
+            for subset in NON_DISTAL_SUBSETS
+            for metric, step in detection_steps.items()
+        ]
+    )
+    comparison = compare_metric_detection_timing(
+        timing,
+        metrics=UNGROUPED_DETECTABILITY_METRICS,
+    ).set_index("metric")
+    assert comparison.loc[VARIANT_POOLED_SMD, "candidate_earlier"] == 7
+    assert comparison.loc[VARIANT_TOTAL_SD_GAP, "candidate_earlier"] == 7
+    assert comparison.loc[STUDENT_T, "candidate_earlier"] == 7
+    assert comparison.loc[WELCH_T, "auprc_earlier"] == 7
+
+    outputs = plot_metric_detectability_summary(
+        timing,
+        comparison.reset_index(),
+        tmp_path,
+        metrics=UNGROUPED_DETECTABILITY_METRICS,
+        stem="ungrouped",
+        bootstrap_unit="class-stratified variant",
+        metric_note="No match groups used.",
+    )
+    assert set(outputs) == {
+        "plot_ungrouped_svg",
+        "plot_ungrouped_png",
     }
     assert all(path.stat().st_size > 0 for path in outputs.values())

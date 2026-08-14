@@ -9,9 +9,9 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- `VEP-SOFT-001` is implementing the CPU-only Mendelian first pass from issue #459.
-- AUPRC remains the endpoint. The candidate metrics are early proxies and diagnostics.
-- Development data only: the `train` split (odd autosomes and chromosome X). No held-out labels, predictions, or aggregates are in scope.
+- The CPU-only Mendelian analysis is complete: five arms, seven subsets, nine checkpoints, and 1,000 joint bootstrap draws.
+- Keep AUPRC primary. Report Group SMD when matched groups exist; report variant pooled SMD when they do not.
+- Neither calibrated Brier nor Welch's t statistic detects the home arm earlier overall. No held-out labels, predictions, or aggregates were accessed.
 
 ## Scope
 
@@ -405,3 +405,52 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   focused tests, README, decision summary, and logbook.
 - Publication status: local commit only. The branch was not pushed and issue
   #459 was not modified, per human instruction.
+
+### 2026-08-14 00:18 UTC - `VEP-SOFT-016` no-match-group t-like metrics
+
+- Hypothesis: when no match groups exist, a class-gap statistic normalized by
+  variant-level dispersion or standard error distinguishes the home arm earlier
+  than AUPRC and preserves the late missense reversal.
+- Commit Hash: snapshot pending.
+- Metrics: pooled within-class SMD (Cohen's `d`), mean gap divided by the SD of
+  all variants, Student's pooled-variance `t`, and Welch's unequal-variance
+  `t`. The grand-mean-SE statistic `gap / (sd(all) / sqrt(n))` was not emitted:
+  it is a fixed rescaling of `gap / sd(all)` within a subset and is not the
+  standard error of a difference in class means.
+- Bootstrap: ignore `match_group`; sample positive and negative variants
+  separately with replacement; apply each draw jointly to all five arms; and
+  recompute AUPRC from those same row multiplicities. Detection retains the
+  first-of-two-consecutive-checkpoints rule for the 95% home-minus-best-non-home
+  interval.
+- Command: under nonblocking `/tmp/marin-dna-local-heavy.lock`, an in-lock
+  6-GiB/2.0-load start gate, thread caps, `nice -n 10`, and
+  `ionice -c 2 -n 7`, `uv run --locked soft-vep-analysis --output-dir
+  ../../../.agents/artifacts/459-soft-vep/exp232 --n-bootstrap 1000 --seed 459`.
+- Result: every candidate is earlier/same/later/neither than row-bootstrap
+  AUPRC on 2/3/1/1 subsets. Pooled SMD, all-variant-SD gap, and Student's `t`
+  have identical arm rankings at all 63 synchronized cells and identical
+  timing: splicing 500 versus AUPRC 1000; 3′ UTR 1500 versus 4500; noncoding
+  exon 4500 versus 3500; ties on missense, 5′ UTR, and TSS proximal; neither
+  detects synonymous. Welch `t` instead detects noncoding exon at 3000, never
+  detects 3′ UTR, and otherwise has the same aggregate count.
+- Adversarial check: CDS/missense AUPRC falls 0.3280 to 0.3095 from steps 4000
+  to 4999. Pooled SMD also falls 1.2126 to 1.1866; all-variant-SD gap and
+  Student's `t` follow it. Welch `t` rises 17.90 to 19.12 and hides the
+  reversal.
+- Interpretation: variant pooled SMD is the useful no-group candidate. Student
+  `t` adds sample-size scaling without changing the result. The all-variant-SD
+  denominator includes the between-class gap and prevalence. Welch `t` changes
+  the biological tradeoff but does not improve aggregate timing and fails the
+  missense control. Keep Group SMD for matched data; use variant pooled SMD for
+  a genuinely ungrouped assay, with biological-block bootstrap when variants
+  are dependent.
+- Artifacts: `exp232/ungrouped_*.parquet`,
+  `exp232/plots/{variant_pooled_smd,variant_total_sd_gap,student_t,welch_t}.svg`,
+  and `exp232/plots/specialist_ungrouped_metric_detectability_summary.{svg,png}`.
+- Verification: 26 focused tests pass. The 1600-by-675 summary PNG was visually
+  reviewed; all cells, legends, title, and footnote are within the canvas.
+- Resource record: the first wrapper was interrupted after its capacity-check
+  quoting failed. The guarded run completed with status 0 in 125.49 seconds and
+  peaked at 466,492 KiB RSS. Start capacity was 11.0 GiB available at load 1.78;
+  first-minute memory stayed above 10.6 GiB and load stayed at 1.83.
+- Publication status: pending snapshot and issue update.
