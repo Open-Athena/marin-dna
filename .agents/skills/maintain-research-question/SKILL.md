@@ -1,113 +1,95 @@
 ---
 name: maintain-research-question
-description: Maintain MarinDNA research-question issues as human-declared, living syntheses across related experiments. Use when a human explicitly asks to create a research question, when an existing question needs its answer or evidence updated, or when experiment links must be synchronized in both directions.
+description: Maintain MarinDNA's active research-question Markdown documents and root README index. Use when a human declares a question, new evidence may change an answer, an experiment must be related to a question, a question may leave the active set, or priorities change.
 ---
 
-# Maintain Research Question
+# Maintain Research Questions
 
-Use a `research-question` issue for a durable question that outlives any single experiment. The issue body is the current synthesis. Comments preserve material changes over time. Related experiment issues provide the bounded research record.
+Keep active research synthesis in `docs/research/questions/`. Treat a document on `main` as the accepted answer. Use experiment issues, logbooks, research branches, and source ledgers for the detailed research record.
 
-## Read First
+## Respect Human Decisions
 
-- `.agents/skills/communicate-on-github/SKILL.md`
-- `.agents/skills/writing-style/SKILL.md`
-- `.agents/skills/writing-style/issues.md`
-- `.agents/skills/writing-style/ai-writing-donts.md`
-- `.agents/skills/file-issue/SKILL.md`
+- Obtain explicit human approval before creating a question or changing its scope.
+- Ask before removing a question from the active set.
+- Change `Current priorities` only when a human directs the change. Agents do not assign, infer, promote, demote, or rank priorities.
+- Treat importance to MarinDNA's current thinking as the inclusion criterion. A question may remain active while its experiments are paused.
 
-## Enforce The Human Gate
+## Write The Document
 
-- Create a `research-question` issue only when a human explicitly declares the question or approves its exact scope.
-- If an agent identifies a candidate question, draft or propose it and wait for approval before filing it.
-- Do not broaden, narrow, split, supersede, or close a declared question without explicit human approval.
-- Agents may create bounded `experiment` issues within research the human has already authorized. Use `file-issue` for those issues.
+Use a short topic filename such as `evolutionary-timescale.md`. Do not add IDs, status, confidence, dates, predecessor metadata, or history sections.
 
-## Use The Canonical Body
-
-Keep the body in this order:
+Keep this structure:
 
 ```markdown
+# <Question title>
+
 ## TL;DR
 
-<One plain-text paragraph with the current answer, confidence, and main gap. Do not put links here.>
+<Short current answer.>
 
 ## Question
 
-<The human-declared question and enough context for a reader who knows genomics and ML but not this thread.>
+<Precise question and scope.>
 
 ## Current answer
 
-<Living synthesis of the answer, supporting and contradictory evidence, confidence, and limitations.>
+<Current synthesis, uncertainty, and caveats.>
 
 <details>
 <summary>Related work</summary>
 
-<Curated external literature and internal reports, datasets, methods, or neighboring questions. For each item, record the setup, finding, methodological implication, hypotheses or observables it suggests, and the remaining gap.>
+<Curated external work that materially informs the current answer.>
 
 </details>
 
 <details>
 <summary>Related experiments</summary>
 
-<Exhaustive list of every experiment issue that informs this question. Use plain #N references and summarize each experiment's current contribution.>
+<Exhaustive linked experiments and what each contributes.>
 
 </details>
 
-## Open questions
+## Possible directions
 
-<Living list of unresolved points and useful next experiments.>
+<Curated promising ways to reduce the important uncertainty.>
 ```
 
-Keep `Related work` curated. Keep `Related experiments` exhaustive.
+Keep `Related work` curated. Include counterevidence when it materially affects the answer. Keep `Related experiments` exhaustive: include experiments created for the question and experiments later found to materially inform it. Use explicit clickable MarinDNA issue links.
 
-## Create A Question
+Treat `Possible directions` as suggestions, not commitments or a chronological backlog.
 
-1. Confirm that the human has declared or approved the exact question and scope.
-2. Search open and closed research-question issues for duplicates or overlapping scope.
-3. Draft the canonical body. Leave unknown sections explicit instead of inventing an answer.
-4. Add the `research-question` and `agent-generated` labels plus the smallest applicable topic-label set.
-5. File the issue in `Open-Athena/marin-dna` with a unique temporary body file.
-6. Add the new issue to every already-related experiment body's `Links` -> `Research questions` entry.
-7. Re-fetch every changed body and verify the published Markdown and bidirectional links.
+## Create Or Revise A Question
 
-If the requested question substantially overlaps an existing one, show the overlap and ask whether to update the existing issue or create a distinct question.
+1. Confirm the human-approved question and exclusions.
+2. Search the active documents and Git history for overlapping scope.
+3. Read the accepted document, open synthesis pull requests, linked experiments and comments, relevant logbooks and branches, source ledgers, and material external work.
+4. Preserve the existing format and human-authored content unless the evidence requires a change.
+5. Update the TL;DR, current answer, related work, related experiments, and possible directions together when needed.
+6. Update the root README and open a pull request.
 
-## Maintain The Synthesis
+Agents may independently open a synthesis pull request when evidence materially changes the answer, an important caveat, or the most promising directions. Keep routine progress, dense results, and failures in experiment issues and logbooks.
 
-Update the question when a linked experiment materially changes the answer, confidence, limitations, or next experiment. Do not update it for routine run progress.
+## Maintain The Root Index
 
-For a material change:
+Use the root `README.md` as the sole active-question index. List every active question once under either `Current priorities` or `Other active questions`. Keep each entry to one linked line and keep both lists alphabetical.
 
-1. Read the current question body and the relevant experiment bodies and updates.
-2. Post an append-only comment beginning with `🤖` that states the new evidence, the synthesis change, confidence, and next implication.
-3. Update the living body so a cold reader does not need the comment history to understand the current state.
-4. Keep the TL;DR link-free and consistent with `Current answer`.
-5. Re-fetch the issue and verify Markdown rendering.
+## Relate Experiments
 
-Historical details stay in experiment comments and logbooks. Do not paste raw logs, dense tables, or a chronological transcript into the question body.
+Treat question-to-experiment relationships as many-to-many.
 
-## Keep Experiment Links Bidirectional
+1. Verify that each target is an issue with the `experiment` Kind label.
+2. Add every materially informative experiment to the document's collapsed `Related experiments` section.
+3. After the document change merges, add a link to the canonical document on `main` to the experiment issue.
+4. Remove a relationship through the document's normal pull-request workflow, then update the issue after merge.
 
-The relationship between research questions and experiments is many-to-many. Use ordinary issue references, never GitHub sub-issue metadata.
+## Remove A Question
 
-When adding a relationship:
+Ask the human before removal. Remove the document and its root README entry through a pull request. Use Git history as the record of past synthesis; do not keep inactive question documents solely as an archive.
 
-1. Verify that each referenced issue exists and has the expected `research-question` or `experiment` Kind label. Do not infer an issue from a bare number that resolves to a pull request.
-2. Add the experiment as a plain `#N` reference under the question's `Related experiments` section.
-3. Add the research question as a plain `#N` reference under the experiment's `Links` -> `Research questions` entry. If the experiment predates that structure, add the smallest compatible `Links` section without rewriting its history.
-4. Preserve all other question and experiment links.
-5. Re-fetch both bodies and verify that each side references the other.
+## Compose Existing Skills
 
-Treat removing a relationship as a scope change. Explain the proposed removal and wait for explicit human approval before changing either body.
-
-## Reference Evidence
-
-- Use commit-pinned GitHub permalinks for code.
-- Link primary sources and stable artifacts.
-- Distinguish direct evidence, interpretation, and untested hypotheses.
-- Put large logs, tables, or code dumps in the appropriate artifact or a collapsed `<details>` block, following `communicate-on-github`.
-- Never credit the agent in the issue body.
-
-## Finish
-
-Propose closure when the question is answered, abandoned, or superseded. Update the final TL;DR and current answer, post the conclusion in a `🤖` comment, and wait for explicit human approval before closing the issue.
+- Use `background-research` for prior work, contradictions, negative searches, and source ledgers.
+- Use `run-research` and `task-logbook` for bounded research records.
+- Use `update-docs` for durable guidance.
+- Use `communicate-on-github` for experiment links, migration comments, and pull-request communication.
+- Apply `writing-style` to prose and GitHub communication.
