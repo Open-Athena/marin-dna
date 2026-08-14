@@ -1154,6 +1154,7 @@ def plot_metric_detectability_summary(
         "Do any candidate metrics distinguish the home arm earlier than AUPRC?"
     ),
     subsets: tuple[str, ...] = NON_DISTAL_SUBSETS,
+    detection_note: str | None = None,
 ) -> dict[str, Path]:
     """Summarize earliest supported separation for every candidate metric."""
     assert metrics[0] == AUPRC, "AUPRC must be the timing reference"
@@ -1287,20 +1288,24 @@ def plot_metric_detectability_summary(
         fontsize=14,
         y=0.99,
     )
+    if detection_note is None:
+        detection_note = (
+            "Detection = first of two consecutive synchronized steps with the "
+            f"joint home-minus-best-non-home 95% {bootstrap_unit} bootstrap "
+            "interval above zero."
+        )
     fig.text(
         0.5,
         0.015,
-        "Detection = first of two consecutive synchronized steps with the "
-        f"joint home-minus-best-non-home 95% {bootstrap_unit} bootstrap interval "
-        f"above zero. ND = not detected. {metric_note}",
+        f"{detection_note}\nND = not detected. {metric_note}",
         ha="center",
         fontsize=9,
     )
-    fig.tight_layout(rect=(0, 0.06, 1, 0.955))
+    fig.tight_layout(rect=(0, 0.11, 1, 0.955))
     svg_path = output_dir / f"{stem}.svg"
     png_path = output_dir / f"{stem}.png"
     fig.savefig(svg_path, format="svg", bbox_inches="tight")
-    fig.savefig(png_path, format="png", dpi=100)
+    fig.savefig(png_path, format="png", dpi=100, bbox_inches="tight")
     plt.close(fig)
     return {
         f"plot_{stem}_svg": svg_path,

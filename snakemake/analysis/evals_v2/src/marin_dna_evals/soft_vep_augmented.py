@@ -42,6 +42,7 @@ from marin_dna_evals.soft_vep_analysis import (
 )
 from marin_dna_evals.soft_vep_metrics import (
     AUPRC,
+    NORMAL_95_Z,
     VARIANT_POOLED_SMD,
     cohen_d_closed_form_table,
     joint_cluster_bootstrap_soft_metrics,
@@ -143,14 +144,14 @@ def read_stored_auprc(arm: str, step: int) -> pd.DataFrame:
 
 
 def plot_augmented_distal_trajectories(
-    point_metrics: pd.DataFrame,
+    auprc_metrics: pd.DataFrame,
     cohen_d_metrics: pd.DataFrame,
     output_dir: Path,
 ) -> dict[str, Path]:
     """Show the replacement distal home arm against all five exp232 arms."""
     output_dir.mkdir(parents=True, exist_ok=True)
     panels = (
-        (point_metrics, AUPRC, "AUPRC", False),
+        (auprc_metrics, AUPRC, "AUPRC", True),
         (cohen_d_metrics, VARIANT_POOLED_SMD, "Cohen's d", True),
     )
     fig, axes = plt.subplots(1, 2, figsize=(12.5, 5.8), sharex=True)
@@ -208,9 +209,9 @@ def plot_augmented_distal_trajectories(
     fig.text(
         0.5,
         0.012,
-        "Development split. Black diamonds are the replacement home arm; "
-        "the Cohen's d ribbon is its conventional IID 95% interval. "
-        "AUPRC is shown without uncertainty. Higher is better.",
+        "Development split. Black diamonds are the replacement home arm. "
+        "AUPRC ribbon: class-stratified variant-bootstrap 95% interval; Cohen's "
+        "d ribbon: conventional IID closed-form 95% interval. Higher is better.",
         ha="center",
         fontsize=9,
     )
@@ -227,14 +228,14 @@ def plot_augmented_distal_trajectories(
 
 
 def plot_augmented_specialist_trajectories(
-    point_metrics: pd.DataFrame,
+    auprc_metrics: pd.DataFrame,
     cohen_d_metrics: pd.DataFrame,
     output_dir: Path,
 ) -> dict[str, Path]:
     """Plot every mapped home arm against all non-home arms for both metrics."""
     output_dir.mkdir(parents=True, exist_ok=True)
     panels = (
-        (point_metrics, AUPRC, "AUPRC", False),
+        (auprc_metrics, AUPRC, "AUPRC", True),
         (cohen_d_metrics, VARIANT_POOLED_SMD, "Cohen's d", True),
     )
     fig, axes = plt.subplots(
@@ -340,8 +341,9 @@ def plot_augmented_specialist_trajectories(
         0.5,
         0.008,
         "Development split. Each row maps its specialist to the black diamond "
-        "line. The Cohen's d ribbon is the mapped home arm's conventional IID "
-        "95% interval; AUPRC is shown without uncertainty. Higher is better.",
+        "line. AUPRC ribbon: class-stratified variant-bootstrap 95% interval; "
+        "Cohen's d ribbon: conventional IID closed-form 95% interval. Higher is "
+        "better.",
         ha="center",
         fontsize=8.5,
     )
@@ -531,6 +533,65 @@ def plot_augmented_specialist_closed_form_win_percentage(
     }
 
 
+def compute_closed_form_cohen_d_specialist_detectability(
+    cohen_d_metrics: pd.DataFrame,
+) -> pd.DataFrame:
+    """Test whether home-arm d exceeds the strongest non-home d."""
+    required = {"subset", "step", "arm", "value", "se"}
+    assert required.issubset(cohen_d_metrics.columns), (
+        "Cohen's d table missing columns: "
+        f"{sorted(required - set(cohen_d_metrics.columns))}"
+    )
+    rows: list[dict[str, str | float | int | bool]] = []
+    for subset in AUGMENTED_SUBSETS:
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for step in AUGMENTED_STEPS:
+            cell = cohen_d_metrics[
+                (cohen_d_metrics["subset"] == subset)
+                & (cohen_d_metrics["step"] == step)
+            ]
+            assert set(cell["arm"]) == set(AUGMENTED_ARMS)
+            indexed = cell.set_index("arm")
+            home = indexed.loc[home_arm]
+            nonhome = (
+                cell[cell["arm"] != home_arm]
+                .sort_values(["value", "arm"], ascending=[False, True])
+                .iloc[0]
+            )
+            home_value = float(home["value"])
+            competitor_value = float(nonhome["value"])
+            margin = home_value - competitor_value
+            margin_se = float(np.hypot(home["se"], nonhome["se"]))
+            margin_ci_low = margin - NORMAL_95_Z * margin_se
+            margin_ci_high = margin + NORMAL_95_Z * margin_se
+            rows.append(
+                {
+                    "subset": subset,
+                    "step": step,
+                    "home_arm": home_arm,
+                    "metric": VARIANT_POOLED_SMD,
+                    "higher_is_better": True,
+                    "home_rank": 1 + int((cell["value"] > home_value).sum()),
+                    "strongest_competitor": str(nonhome["arm"]),
+                    "home_value": home_value,
+                    "best_nonhome_value": competitor_value,
+                    "home_minus_best_oriented": margin,
+                    "margin_se": margin_se,
+                    "margin_ci_low": margin_ci_low,
+                    "margin_ci_high": margin_ci_high,
+                    "bootstrap_home_rank1_frequency": float("nan"),
+                    "confidence_supported": bool(margin_ci_low > 0),
+                    "uncertainty_method": (
+                        "independent_normal_closed_form_cohen_d"
+                    ),
+                }
+            )
+    result = pd.DataFrame(rows)
+    expected_rows = len(AUGMENTED_SUBSETS) * len(AUGMENTED_STEPS)
+    assert len(result) == expected_rows
+    return result
+
+
 def _write_table_parts(
     output_dir: Path,
     tables: dict[str, pd.DataFrame],
@@ -691,12 +752,22 @@ def run_augmented_analysis(
     cohen_d_win_probabilities = compute_closed_form_cohen_d_win_table(
         cohen_d_metrics
     )
+    cohen_d_closed_form_detectability = (
+        compute_closed_form_cohen_d_specialist_detectability(cohen_d_metrics)
+    )
     ungrouped_pairwise_deltas = pd.concat(
         ungrouped_pairwise_parts,
         ignore_index=True,
     )
     ungrouped_specialist_detectability = pd.concat(
         ungrouped_detectability_parts,
+        ignore_index=True,
+    )
+    auprc_bootstrap_detectability = ungrouped_specialist_detectability[
+        ungrouped_specialist_detectability["metric"] == AUPRC
+    ].copy()
+    hybrid_detectability = pd.concat(
+        [auprc_bootstrap_detectability, cohen_d_closed_form_detectability],
         ignore_index=True,
     )
 
@@ -715,6 +786,15 @@ def run_augmented_analysis(
     ungrouped_metric_detection_comparison = compare_metric_detection_timing(
         ungrouped_specialist_detection_timing,
         metrics=UNGROUPED_DETECTABILITY_METRICS,
+        subsets=AUGMENTED_SUBSETS,
+    )
+    hybrid_detection_timing = persistent_specialist_detectability(
+        hybrid_detectability,
+        synchronized_steps=AUGMENTED_STEPS,
+    )
+    hybrid_detection_comparison = compare_metric_detection_timing(
+        hybrid_detection_timing,
+        metrics=(AUPRC, VARIANT_POOLED_SMD),
         subsets=AUGMENTED_SUBSETS,
     )
 
@@ -761,6 +841,15 @@ def run_augmented_analysis(
                 "ungrouped_point_metrics": ungrouped_point_metrics,
                 "cohen_d_closed_form": cohen_d_metrics,
                 "cohen_d_closed_form_win_probabilities": cohen_d_win_probabilities,
+                "auprc_bootstrap_cohen_d_closed_form_detectability": (
+                    hybrid_detectability
+                ),
+                "auprc_bootstrap_cohen_d_closed_form_detection_timing": (
+                    hybrid_detection_timing
+                ),
+                "auprc_bootstrap_cohen_d_closed_form_detection_comparison": (
+                    hybrid_detection_comparison
+                ),
                 "ungrouped_pairwise_deltas": ungrouped_pairwise_deltas,
                 "ungrouped_specialist_detectability": (
                     ungrouped_specialist_detectability
@@ -785,22 +874,35 @@ def run_augmented_analysis(
     )
     outputs.update(
         plot_augmented_distal_trajectories(
-            point_metrics,
+            ungrouped_point_metrics,
             cohen_d_metrics,
             output_dir / "plots",
         )
     )
     outputs.update(
         plot_augmented_specialist_trajectories(
-            point_metrics,
+            ungrouped_point_metrics,
             cohen_d_metrics,
             output_dir / "plots",
         )
     )
     outputs.update(
-        plot_augmented_specialist_closed_form_win_percentage(
-            cohen_d_win_probabilities,
+        plot_metric_detectability_summary(
+            hybrid_detection_timing,
+            hybrid_detection_comparison,
             output_dir / "plots",
+            metrics=(AUPRC, VARIANT_POOLED_SMD),
+            stem="augmented_auprc_vs_cohen_d_detection_summary",
+            metric_note="Counts compare the eight mapped specialist subsets.",
+            detection_note=(
+                "Detection = first of two consecutive synchronized steps whose "
+                "home-minus-best-non-home 95% interval is above zero.\n"
+                "AUPRC "
+                "uses a class-stratified variant bootstrap; Cohen's d uses the "
+                "independent closed-form normal approximation."
+            ),
+            title="When does the mapped home arm separate?",
+            subsets=AUGMENTED_SUBSETS,
         )
     )
     outputs.update(

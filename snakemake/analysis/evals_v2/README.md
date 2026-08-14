@@ -371,19 +371,20 @@ IID standard error
 and a normal-approximation 95% interval. The calculation intentionally ignores
 correlation between variants.
 `plots/augmented_distal_metric_trajectories.{svg,png}` shows distal AUPRC and
-Cohen's `d` for all six arms; AUPRC has no uncertainty ribbon and the home-arm
-Cohen's `d` ribbon uses that closed-form interval.
+Cohen's `d` for all six arms.
 `plots/augmented_specialist_auprc_vs_cohen_d.{svg,png}` expands the comparison
 to all eight specialist subsets, highlighting the mapped home arm against all
-five non-home arms in each row.
-`cohen_d_closed_form_win_probabilities.parquet` and
-`plots/augmented_specialist_closed_form_win_percentage.{svg,png}` report
-`Phi((d_home - d_other) / sqrt(SE_home^2 + SE_other^2))` for every pair, plus
-the mean across the five non-home arms. This uses the same independent-normal
-closed-form approximation as the reported Cohen's `d` uncertainty; no
-bootstrap is used. The two augmented detectability summary figures add
-`distal` to the original seven consequence subsets. Only the development split
-is read.
+five non-home arms in each row. In both plots, the mapped home AUPRC ribbon is
+the class-stratified variant-bootstrap 95% interval and the Cohen's `d` ribbon
+is the closed-form 95% interval.
+`auprc_bootstrap_cohen_d_closed_form_detectability.parquet`, the corresponding
+timing and comparison tables, and
+`plots/augmented_auprc_vs_cohen_d_detection_summary.{svg,png}` report the first
+of two consecutive steps whose home-minus-best-non-home 95% interval is above
+zero, plus counts of Cohen's `d` earlier, tied, AUPRC earlier, and neither.
+AUPRC uses the class-stratified variant bootstrap; Cohen's `d` uses the
+independent closed-form normal approximation. Only the development split is
+read.
 
 The companion current-leaderboard pass selects every `family: marin_dna` model
 with Mendelian coverage from `dashboard/models.yaml`, computes the same metric

@@ -15,6 +15,7 @@ from marin_dna_evals.soft_vep_augmented import (
     AUGMENTED_SUBSETS,
     DISTAL_ARM,
     augmented_manifest,
+    compute_closed_form_cohen_d_specialist_detectability,
     compute_closed_form_cohen_d_win_table,
     plot_augmented_distal_trajectories,
     plot_augmented_specialist_closed_form_win_percentage,
@@ -119,6 +120,8 @@ def test_augmented_timing_and_distal_plot(tmp_path):
                     "subset": "distal",
                     "metric": AUPRC,
                     "value": value,
+                    "ci_low": value - 0.01,
+                    "ci_high": value + 0.01,
                 }
             )
             value = 0.7 + arm_index / 100 + step / 100_000
@@ -161,6 +164,8 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
                         "subset": subset,
                         "metric": AUPRC,
                         "value": 0.2 + arm_index / 100 + step / 100_000,
+                        "ci_low": 0.18 + arm_index / 100 + step / 100_000,
+                        "ci_high": 0.22 + arm_index / 100 + step / 100_000,
                     }
                 )
                 value = 1.0 if arm == home_arm else 0.0
@@ -190,6 +195,19 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         0.8413447460685429
     )
     assert win_probabilities["uncertainty_method"].eq(
+        "independent_normal_closed_form_cohen_d"
+    ).all()
+    detectability = compute_closed_form_cohen_d_specialist_detectability(
+        cohen_d_metrics
+    )
+    assert len(detectability) == len(AUGMENTED_SUBSETS) * len(AUGMENTED_STEPS)
+    assert detectability["home_minus_best_oriented"].to_numpy() == pytest.approx(1)
+    assert detectability["margin_se"].to_numpy() == pytest.approx(1)
+    assert detectability["margin_ci_low"].to_numpy() == pytest.approx(
+        1 - 1.959963984540054
+    )
+    assert not detectability["confidence_supported"].any()
+    assert detectability["uncertainty_method"].eq(
         "independent_normal_closed_form_cohen_d"
     ).all()
 
