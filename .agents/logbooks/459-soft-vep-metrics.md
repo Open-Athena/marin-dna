@@ -842,3 +842,20 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   exact joint-bootstrap pairwise win probabilities, rendered figures,
   reproducible runner changes, focused tests, and execution record.
 - Publication status: branch push and issue #459 replacement pending.
+
+### 2026-08-14 17:02 UTC - `VEP-SOFT-035` Group SMD publication
+
+- Publication: issue #459 now keeps AUPRC primary and makes Group SMD the
+  editorial secondary wherever meaningful matched groups exist.
+- Visible replacements: the specialist trajectories compare AUPRC with Group
+  SMD for all six arms, and the pairwise plot shows exact joint-bootstrap Group
+  SMD home-win frequencies against all five non-home arms. The former visible
+  Cohen d trajectory and pairwise-probability plots were removed from the issue.
+- Definition: the issue now states the implemented group-gap standardization
+  and explicitly distinguishes it from per-gene macro Cohen d. It also records
+  the multiple-group requirement and marks an SGE gene-gap version as a future,
+  untested extension.
+- Visual review: both commit-pinned GitHub PNGs were fetched at high resolution;
+  every panel, checkpoint, axis, ribbon, legend, annotation, and footnote is
+  present with no clipping.
+- Publication status: complete; issue remains open for human review.
