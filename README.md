@@ -7,7 +7,7 @@
 ## News
 
 - **2026-08-03** — *Blog post* — [A 1B standard Transformer rivals Evo 2 40B on variant effect prediction](https://openathena.ai/blog/marin-dna/).
-- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](https://github.com/Open-Athena/marin-dna/blob/190999b89b573b07026eff58c2c0a8cc8fa74458/docs/posters/cshl26/poster.pdf)
+- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](https://github.com/Open-Athena/marin-dna/blob/190999b89b573b07026eff58c2c0a8cc8fa74458/docs/posters/cshl26/poster.pdf).
 
 ## Research questions
 
