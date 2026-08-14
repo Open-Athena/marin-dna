@@ -26,7 +26,7 @@ dependencies = [
     "seaborn",
     "snakemake",
     "snakemake-storage-plugin-s3>=0.3.6",
-    "torch",
+    "torch==2.8.0",
     "transformers[torch]<5",
     "zstandard",
 ]
