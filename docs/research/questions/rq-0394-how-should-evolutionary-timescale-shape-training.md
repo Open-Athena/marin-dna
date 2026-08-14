@@ -7,7 +7,7 @@
 | Question ID | `RQ-0394` |
 | Status | `active` |
 | Overall confidence | `medium` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#394](https://github.com/Open-Athena/marin-dna/issues/394) |
 
 ## Question and scope
@@ -34,7 +34,7 @@ Confidence is moderate that timescale should be chosen by region and objective a
 
 ## Operational consequence
 
-There is no universal best evolutionary timescale in the current evidence. Promoter, CDS, UTR, ncRNA, enhancer, and different evaluation endpoints respond differently to phylogenetic breadth. Broader data can improve diversity and expose conserved rules; closer species spend more tokens on lineage-relevant grammar; and each genomic feature evolves on a different timescale.
+Choose evolutionary breadth by genomic region and objective rather than adopting one global clade depth. Compare broad-only, target-only, and broad-then-target adaptation at matched compute before standardizing a static species mixture.
 
 ## Supporting evidence
 

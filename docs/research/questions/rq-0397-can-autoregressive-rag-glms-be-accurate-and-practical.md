@@ -7,7 +7,7 @@
 | Question ID | `RQ-0397` |
 | Status | `active` |
 | Overall confidence | `unknown` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#397](https://github.com/Open-Athena/marin-dna/issues/397) |
 
 ## Question and scope
@@ -34,7 +34,7 @@ Confidence is moderate that a reader can exploit curated ortholog context and lo
 
 ## Operational consequence
 
-Autoregressive retrieval-augmented genomic modeling is feasible, but neither its causal accuracy benefit nor its serving practicality is established. The only MarinDNA experiment used a fixed prefix of seven precomputed mammalian ortholog windows. Its 104M model produced promising zero-shot and frozen-probe point estimates and behaved as if it used ortholog context, but it lacked a matched human-only arm, online retrieval, species-order controls, and indel evaluation.
+Defer online retrieval and index infrastructure until a matched human-only versus fixed-ortholog comparison survives shuffled and wrong-species controls. If it does, test indels and measure retrieval latency, memory, and corpus-build cost before scaling.
 
 ## Supporting evidence
 

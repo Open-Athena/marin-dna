@@ -7,7 +7,7 @@
 | Question ID | `RQ-0437` |
 | Status | `active` |
 | Overall confidence | `unknown` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#437](https://github.com/Open-Athena/marin-dna/issues/437) |
 
 ## Question and scope
@@ -38,7 +38,7 @@ Confidence is high in the documented behavior of the baseline and low in its opt
 
 ## Operational consequence
 
-The full-window projection baseline is operational and well specified, but its optimality is unknown. It starts from conservation-filtered 255 bp human anchors, projects the full interval, requires all compatible fragments to map to one target chromosome and strand without overlap, takes their outer span, accepts spans from 128 to 512 bp, and resizes around the span midpoint to 255 bp. The final target window can therefore contain unaligned flanking sequence.
+Keep the full-window projection contract as the documented baseline. Change it only after a matched policy comparison measures mapping ambiguity, aligned coverage, unaligned flank, per-region recovery, and downstream performance; projection yield alone is not sufficient.
 
 ## Supporting evidence
 

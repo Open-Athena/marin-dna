@@ -7,7 +7,7 @@
 | Question ID | `RQ-0456` |
 | Status | `active` |
 | Overall confidence | `medium` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#456](https://github.com/Open-Athena/marin-dna/issues/456) |
 
 ## Question and scope

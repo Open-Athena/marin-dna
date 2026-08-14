@@ -39,8 +39,19 @@ PLACEHOLDER_PATTERN = re.compile(
     r"<[^>\n]*\s+[^>\n]*>|\b(?:TODO|TBD|YYYY-MM-DD)\b", re.IGNORECASE
 )
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-EXPERIMENT_ISSUE_PATTERN = re.compile(
+EXPERIMENT_ISSUE_LINK_PATTERN = re.compile(
+    r"\[[^\]\n]+\]\(https://github\.com/Open-Athena/marin-dna/issues/\d+\)"
+)
+EXPERIMENT_ISSUE_TARGET_PATTERN = re.compile(
     r"https://github\.com/Open-Athena/marin-dna/issues/\d+"
+)
+INDEX_ROW_PATTERN = re.compile(
+    r"^\|\s*`(?P<question_id>RQ-\d{4})`\s*\|\s*"
+    r"\[(?P<title>[^\]]+)\]\((?:\./)?"
+    r"(?P<filename>rq-\d{4}-[a-z0-9-]+\.md)\)\s*\|\s*"
+    r"`(?P<status>[^`]+)`\s*\|\s*"
+    r"`(?P<confidence>[^`]+)`\s*\|\s*"
+    r"(?P<evidence_date>\d{4}-\d{2}-\d{2})\s*\|\s*$"
 )
 
 
@@ -157,9 +168,20 @@ def parse_question_document(path: Path) -> tuple[QuestionDocument, list[str]]:
     for bullet in bullets:
         if re.match(r"^\s*-\s+None(?:\.|\s|$)", bullet, flags=re.IGNORECASE):
             continue
-        if not EXPERIMENT_ISSUE_PATTERN.search(bullet):
+        targets = MARKDOWN_LINK_PATTERN.findall(bullet)
+        if not any(
+            EXPERIMENT_ISSUE_TARGET_PATTERN.fullmatch(target) for target in targets
+        ):
             errors.append(
-                "each Related experiments bullet must link an Open-Athena/marin-dna issue"
+                "each Related experiments bullet must contain an exact Markdown link "
+                "to an Open-Athena/marin-dna issue"
+            )
+            continue
+        contribution = EXPERIMENT_ISSUE_LINK_PATTERN.sub("", bullet)
+        contribution = re.sub(r"^\s*-\s*", "", contribution).strip(" \t—–-:.;")
+        if not contribution:
+            errors.append(
+                "each Related experiments bullet must state the experiment's contribution"
             )
 
     return QuestionDocument(
@@ -196,6 +218,14 @@ def _validate_index(
     linked_names = re.findall(
         r"\]\((?:\./)?(rq-\d{4}-[a-z0-9-]+\.md)(?:#[^)]+)?\)", text
     )
+    rows = [
+        match.groupdict()
+        for line in text.splitlines()
+        if (match := INDEX_ROW_PATTERN.fullmatch(line))
+    ]
+    rows_by_name: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        rows_by_name.setdefault(row["filename"], []).append(row)
     errors: list[str] = []
     expected_names = {document.path.name for document in documents}
     linked_set = set(linked_names)
@@ -207,6 +237,28 @@ def _validate_index(
         count = linked_names.count(name)
         if count != 1:
             errors.append(f"index must link {name} exactly once, found {count}")
+    for document in documents:
+        name = document.path.name
+        matching_rows = rows_by_name.get(name, [])
+        if len(matching_rows) != 1:
+            errors.append(
+                f"index entry for {name} must be one canonical metadata table row"
+            )
+            continue
+        row = matching_rows[0]
+        expected = {
+            "question_id": document.metadata.get("Question ID", ""),
+            "title": document.title,
+            "status": document.metadata.get("Status", ""),
+            "confidence": document.metadata.get("Overall confidence", ""),
+            "evidence_date": document.metadata.get("Evidence considered through", ""),
+        }
+        for field, expected_value in expected.items():
+            if row[field] != expected_value:
+                errors.append(
+                    f"index {field.replace('_', ' ')} for {name} is {row[field]!r}; "
+                    f"document has {expected_value!r}"
+                )
     return errors
 
 

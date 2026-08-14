@@ -7,7 +7,7 @@
 | Question ID | `RQ-0287` |
 | Status | `active` |
 | Overall confidence | `low` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#287](https://github.com/Open-Athena/marin-dna/issues/287) |
 
 ## Question and scope
@@ -34,7 +34,7 @@ The evidence supports a conditional hypothesis with low confidence. Taxon labels
 
 ## Operational consequence
 
-No MarinDNA experiment has compared identical examples with and without an explicit taxon input. The current model-facing path retains sequence but does not expose species identity, so every multispecies model must infer organismal context from the DNA window.
+Keep the production input sequence-only for now. Before matched retraining, compare frozen Carbon VEP with correct, absent, shuffled, and wrong taxon tags; add conditioning only if downstream gains survive those controls.
 
 ## Supporting evidence
 

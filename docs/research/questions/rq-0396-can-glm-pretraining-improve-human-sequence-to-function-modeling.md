@@ -7,7 +7,7 @@
 | Question ID | `RQ-0396` |
 | Status | `active` |
 | Overall confidence | `low` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#396](https://github.com/Open-Athena/marin-dna/issues/396) |
 
 ## Question and scope
@@ -36,7 +36,7 @@ Confidence is low that generic causal pretraining will help without adaptation a
 
 ## Operational consequence
 
-Self-supervised gLM pretraining has not shown a consistent, controlled advantage for human sequence-to-function modeling. Strong scratch-trained supervised models remain the main baseline, and the decisive MarinDNA frozen-versus-fine-tuned experiment has not been completed.
+Keep strong one-hot and randomly initialized supervised models as required baselines. Do not claim a pretraining benefit until a matched accessibility study compares frozen, fine-tuned, scratch, and bidirectional encoders across accuracy, label efficiency, transfer, and variant effects.
 
 ## Supporting evidence
 

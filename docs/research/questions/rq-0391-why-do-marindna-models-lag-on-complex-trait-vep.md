@@ -7,7 +7,7 @@
 | Question ID | `RQ-0391` |
 | Status | `active` |
 | Overall confidence | `unknown` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#391](https://github.com/Open-Athena/marin-dna/issues/391) |
 
 ## Question and scope
@@ -36,7 +36,7 @@ Confidence is moderate that conservation-focused coverage is one contributor and
 
 ## Operational consequence
 
-MarinDNA’s complex-trait VEP deficit is clearest in matched regulatory comparisons. The enhancer specialist is within 0.057 AUPRC of the strongest GPN-Star arm on Mendelian distal variants but 0.084 behind on complex-trait distal variants. A whole-genome 1B model also trails GPN-Star-M by 0.039 global and 0.097 macro AUPRC on complex traits.
+Prioritize a fixed-compute training-footprint coverage ablation before timescale or retrieval work. Keep richer scores and ensembling as baselines, but do not treat them as a substitute for testing the undercoverage hypothesis.
 
 ## Supporting evidence
 

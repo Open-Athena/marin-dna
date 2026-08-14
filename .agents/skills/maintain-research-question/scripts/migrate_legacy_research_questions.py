@@ -12,7 +12,7 @@ import json
 import re
 import subprocess
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 
@@ -22,7 +22,6 @@ class LegacyIssue:
     title: str
     body: str
     state: str
-    updated_at: str
 
 
 def fetch_issue(repo: str, number: int) -> LegacyIssue:
@@ -35,7 +34,7 @@ def fetch_issue(repo: str, number: int) -> LegacyIssue:
             "--repo",
             repo,
             "--json",
-            "number,title,body,state,updatedAt",
+            "number,title,body,state",
         ],
         check=True,
         capture_output=True,
@@ -47,7 +46,6 @@ def fetch_issue(repo: str, number: int) -> LegacyIssue:
         title=payload["title"],
         body=payload["body"] or "",
         state=payload["state"],
-        updated_at=payload["updatedAt"],
     )
 
 
@@ -120,15 +118,11 @@ def confidence_and_limitations(tldr: str, current_answer: str, confidence: str) 
     )
 
 
-def operational_consequence(current_answer: str) -> str:
-    paragraphs = [
-        paragraph.strip()
-        for paragraph in re.split(r"\n\s*\n", current_answer)
-        if paragraph.strip()
-    ]
-    if paragraphs:
-        return paragraphs[0]
-    return "No operational change was recorded in the predecessor issue."
+def operational_consequence() -> str:
+    return (
+        "TODO: Review the predecessor answer and state a concrete continue, change, "
+        "or defer decision before merging."
+    )
 
 
 def contradictory_evidence(current_answer: str, related_work: str) -> str:
@@ -145,7 +139,10 @@ def slugify(value: str) -> str:
 
 
 def render_document(
-    issue: LegacyIssue, repo: str, migration_date: str
+    issue: LegacyIssue,
+    repo: str,
+    migration_date: str,
+    evidence_reviewed_through: str,
 ) -> tuple[str, str]:
     question_id = f"RQ-{issue.number:04d}"
     filename = f"{question_id.lower()}-{slugify(issue.title)}.md"
@@ -187,7 +184,7 @@ def render_document(
 | Question ID | `{question_id}` |
 | Status | `{status}` |
 | Overall confidence | `{confidence}` |
-| Evidence considered through | `{issue.updated_at[:10]}` |
+| Evidence considered through | `{evidence_reviewed_through}` |
 | Predecessor issues | [#{issue.number}]({issue_url}) |
 
 ## Question and scope
@@ -204,7 +201,7 @@ def render_document(
 
 ## Operational consequence
 
-{operational_consequence(current_answer)}
+{operational_consequence()}
 
 ## Supporting evidence
 
@@ -271,32 +268,104 @@ def render_index(documents: list[tuple[str, str]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def write_documents(
+    output: Path,
+    documents: list[tuple[str, str]],
+    *,
+    overwrite: bool = False,
+) -> int:
+    filenames = [filename for filename, _ in documents]
+    duplicate_names = sorted(
+        filename for filename in set(filenames) if filenames.count(filename) > 1
+    )
+    if duplicate_names:
+        raise ValueError(
+            "duplicate generated document names: " + ", ".join(duplicate_names)
+        )
+
+    existing_targets = sorted(
+        output / filename for filename in filenames if (output / filename).exists()
+    )
+    if existing_targets and not overwrite:
+        raise FileExistsError(
+            "refusing to overwrite existing research synthesis: "
+            + ", ".join(str(path) for path in existing_targets)
+        )
+
+    output.mkdir(parents=True, exist_ok=True)
+    for filename, text in documents:
+        (output / filename).write_text(text, encoding="utf-8")
+
+    all_documents = [
+        (path.name, path.read_text(encoding="utf-8"))
+        for path in sorted(output.glob("rq-*.md"))
+        if path.is_file()
+    ]
+    (output / "index.md").write_text(render_index(all_documents), encoding="utf-8")
+    return len(all_documents)
+
+
+def iso_date(value: str) -> str:
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("expected an ISO date (YYYY-MM-DD)") from error
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default="Open-Athena/marin-dna")
     parser.add_argument("--issue", type=int, action="append", required=True)
     parser.add_argument("--output", type=Path, default=Path("docs/research/questions"))
     parser.add_argument(
-        "--migration-date", default=datetime.now(tz=UTC).date().isoformat()
+        "--migration-date",
+        type=iso_date,
+        default=datetime.now(tz=UTC).date().isoformat(),
+    )
+    parser.add_argument(
+        "--evidence-reviewed-through",
+        type=iso_date,
+        required=True,
+        help="explicit cutoff through which source evidence was reviewed",
     )
     parser.add_argument("--write", action="store_true")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace generated target documents; never required to rebuild the index",
+    )
     args = parser.parse_args()
 
+    if args.overwrite and not args.write:
+        parser.error("--overwrite requires --write")
+
     documents = [
-        render_document(fetch_issue(args.repo, number), args.repo, args.migration_date)
+        render_document(
+            fetch_issue(args.repo, number),
+            args.repo,
+            args.migration_date,
+            args.evidence_reviewed_through,
+        )
         for number in args.issue
     ]
     if not args.write:
         for filename, _ in documents:
             print(args.output / filename)
-        print("Dry run only; pass --write to create documents and replace index.md.")
+        print("Dry run only; pass --write to create documents and rebuild index.md.")
         return 0
 
-    args.output.mkdir(parents=True, exist_ok=True)
-    for filename, text in documents:
-        (args.output / filename).write_text(text, encoding="utf-8")
-    (args.output / "index.md").write_text(render_index(documents), encoding="utf-8")
-    print(f"Wrote {len(documents)} documents and {args.output / 'index.md'}")
+    try:
+        indexed_count = write_documents(
+            args.output,
+            documents,
+            overwrite=args.overwrite,
+        )
+    except (FileExistsError, ValueError) as error:
+        parser.error(str(error))
+    print(
+        f"Wrote {len(documents)} documents and rebuilt {args.output / 'index.md'} "
+        f"with {indexed_count} entries"
+    )
     return 0
 
 

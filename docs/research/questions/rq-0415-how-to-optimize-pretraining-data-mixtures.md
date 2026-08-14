@@ -7,7 +7,7 @@
 | Question ID | `RQ-0415` |
 | Status | `active` |
 | Overall confidence | `low` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#415](https://github.com/Open-Athena/marin-dna/issues/415) |
 
 ## Question and scope
@@ -36,7 +36,7 @@ Confidence is low. The next useful work is a bounded proxy-noise study with fixe
 
 ## Operational consequence
 
-No validated method for optimizing genomic pretraining mixtures exists yet. The current evidence shows that mixture components matter: region specialists differ sharply by downstream class, and mammalian species density affects some regions but not others. It does not show how to select a joint mixture.
+Do not launch a broad or paid mixture swarm yet. First run a bounded proxy-noise study with fixed anchor mixtures, repeated seeds, held-out-mixture prediction, explicit repetition limits, and frozen leakage rules.
 
 ## Supporting evidence
 

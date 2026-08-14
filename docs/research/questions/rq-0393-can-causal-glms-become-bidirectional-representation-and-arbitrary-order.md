@@ -7,7 +7,7 @@
 | Question ID | `RQ-0393` |
 | Status | `active` |
 | Overall confidence | `low` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#393](https://github.com/Open-Athena/marin-dna/issues/393) |
 
 ## Question and scope
@@ -32,7 +32,7 @@ The current hypothesis is feasible but low confidence. Language and biological-s
 
 ## Operational consequence
 
-No MarinDNA checkpoint-conversion experiment has been run. The shortest test of the representation hypothesis is to remove the causal mask, continue training with a masked or masked-next-token objective, and compare against causal continued pretraining at matched data and compute.
+Start with a matched checkpoint-conversion ablation that measures representation quality, VEP, generation retention, and compute. Defer a unified arbitrary-order model until that smaller test shows a useful bidirectional gain without unacceptable autoregressive regression.
 
 ## Supporting evidence
 

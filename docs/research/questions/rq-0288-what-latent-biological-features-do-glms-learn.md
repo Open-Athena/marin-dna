@@ -7,7 +7,7 @@
 | Question ID | `RQ-0288` |
 | Status | `active` |
 | Overall confidence | `unknown` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#288](https://github.com/Open-Athena/marin-dna/issues/288) |
 
 ## Question and scope
@@ -42,7 +42,7 @@ The paired-variant protocol is part of the current answer: retain reference, alt
 
 ## Operational consequence
 
-The program is paused indefinitely as of 2026-08-10, and all scoped experiment issues are closed. The strongest result is that m5.1 contains sparse features with reproducible local biological responses, but the inventory is selective and strongly dependent on layer, dictionary, orientation, and response definition.
+Keep the SAE program paused. If it resumes, use the paired-variant and separate-orientation protocol, require perturbation and replication before assigning semantics, and prioritize the unfinished annotation-boundary and broader-variant tiers.
 
 ## Supporting evidence
 

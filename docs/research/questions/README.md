@@ -41,6 +41,8 @@ Use commit-pinned repository links where reproducibility matters. Separate repor
 
 `Related experiments` is exhaustive. Each item links an `experiment` issue and states its current contribution. Each experiment issue links back to the canonical document on `main`. Add or remove a relationship through the document's normal pull-request workflow; do not use GitHub sub-issue metadata.
 
+The offline validator requires an exact MarinDNA issue link and nonempty contribution text for every relationship. Pull-request review confirms that each target exists and retains the `experiment` label; this first version does not add authenticated GitHub checks to CI.
+
 ## Lifecycle
 
 ### Create
@@ -64,7 +66,11 @@ Leave the accepted document unchanged while evidence is pending. Record the evid
 
 ## Legacy issue migration
 
-Legacy issues remain historical records. Migrate each current body into a document and preserve the predecessor link. After the document merges:
+Legacy issues remain historical records. Migrate each current body into a document and preserve the predecessor link.
+
+The migration helper requires an explicit evidence-review cutoff, refuses to overwrite existing question documents unless `--overwrite` is passed, and rebuilds the index from every question document already on disk. Its generated operational consequence is a `TODO` that must be replaced with a concrete decision before validation and merge.
+
+After the document merges:
 
 1. Prepend an archival notice linking the canonical document and migration pull request. Preserve the previous body below it.
 2. Post one final `🤖` comment linking the document and pull request.

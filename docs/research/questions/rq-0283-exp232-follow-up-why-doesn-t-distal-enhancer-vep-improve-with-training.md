@@ -7,7 +7,7 @@
 | Question ID | `RQ-0283` |
 | Status | `closed` |
 | Overall confidence | `unknown` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#283](https://github.com/Open-Athena/marin-dna/issues/283) |
 
 ## Question and scope
@@ -34,7 +34,7 @@ Enhancer-centered windows later reached distal AUPRC 0.366 versus 0.308 for clea
 
 ## Operational consequence
 
-The original enhancer specialist learned a rising enhancer-versus-background likelihood gap while distal Mendelian AUPRC stayed near 0.10–0.13. Its off-domain splicing AUPRC reached 0.238, which suggested that the training population contained coding sequence and mixed regulatory classes.
+Use exon-excluded, non-promoter cCRE curation for enhancer-specialist training. Treat centered windows as unproven until matched-exposure replicates resolve convergence and uncertainty on the small distal benchmark.
 
 ## Supporting evidence
 

@@ -66,13 +66,22 @@ Run the validator in CI.
 """
 
 
+def index_text() -> str:
+    return """# Research questions
+
+| ID | Question | Status | Confidence | Evidence considered through |
+|---|---|---|---|---|
+| `RQ-0001` | [Does the test question work?](rq-0001-test-question.md) | `active` | `medium` | 2026-08-13 |
+"""
+
+
 def write_repository(root: Path) -> Path:
     directory = root / "docs/research/questions"
     directory.mkdir(parents=True)
     path = directory / "rq-0001-test-question.md"
     path.write_text(question_text(), encoding="utf-8")
     (directory / "index.md").write_text(
-        "# Research questions\n\n[Does the test question work?](rq-0001-test-question.md)\n",
+        index_text(),
         encoding="utf-8",
     )
     (directory / "README.md").write_text("# Schema\n", encoding="utf-8")
@@ -111,3 +120,59 @@ def test_broken_internal_link_is_rejected(tmp_path: Path) -> None:
     errors = VALIDATOR.validate_repository(tmp_path)
 
     assert any("broken internal link: missing-evidence.md" in error for error in errors)
+
+
+def test_bare_index_link_is_rejected(tmp_path: Path) -> None:
+    path = write_repository(tmp_path)
+    (path.parent / "index.md").write_text(
+        "# Research questions\n\n"
+        "[Does the test question work?](rq-0001-test-question.md)\n",
+        encoding="utf-8",
+    )
+
+    errors = VALIDATOR.validate_repository(tmp_path)
+
+    assert any("must be one canonical metadata table row" in error for error in errors)
+
+
+def test_stale_index_metadata_is_rejected(tmp_path: Path) -> None:
+    path = write_repository(tmp_path)
+    index_path = path.parent / "index.md"
+    index_path.write_text(
+        index_path.read_text(encoding="utf-8").replace("`medium`", "`low`"),
+        encoding="utf-8",
+    )
+
+    errors = VALIDATOR.validate_repository(tmp_path)
+
+    assert any(
+        "index confidence" in error and "document has 'medium'" in error
+        for error in errors
+    )
+
+
+def test_malformed_experiment_issue_link_is_rejected(tmp_path: Path) -> None:
+    path = write_repository(tmp_path)
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "https://github.com/Open-Athena/marin-dna/issues/123",
+            "https://github.com/Open-Athena/marin-dna/pull/123",
+        ),
+        encoding="utf-8",
+    )
+
+    errors = VALIDATOR.validate_repository(tmp_path)
+
+    assert any("exact Markdown link" in error for error in errors)
+
+
+def test_experiment_contribution_is_required(tmp_path: Path) -> None:
+    path = write_repository(tmp_path)
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(" — Exercises the schema.", ""),
+        encoding="utf-8",
+    )
+
+    errors = VALIDATOR.validate_repository(tmp_path)
+
+    assert any("must state the experiment's contribution" in error for error in errors)

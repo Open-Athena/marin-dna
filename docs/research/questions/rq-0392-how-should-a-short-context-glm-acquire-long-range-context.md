@@ -7,7 +7,7 @@
 | Question ID | `RQ-0392` |
 | Status | `active` |
 | Overall confidence | `low` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#392](https://github.com/Open-Athena/marin-dna/issues/392) |
 
 ## Question and scope
@@ -34,7 +34,7 @@ Confidence is low on a universal winner. Direct downstream extension should be t
 
 ## Operational consequence
 
-No MarinDNA experiment directly compares ways to add genuinely long-range context to a short-window model. A 256-versus-512 bp pretraining comparison found no clear VEP difference, so it does not decide behavior at tens or hundreds of kilobases.
+Use direct downstream context extension as the minimum-complexity baseline and test local-to-global transfer next for nucleotide-resolution tasks. Defer continued long-context language modeling unless matched results show gains that transfer across several long-range tasks.
 
 ## Supporting evidence
 

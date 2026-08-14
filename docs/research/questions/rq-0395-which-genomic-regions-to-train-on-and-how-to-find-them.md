@@ -7,7 +7,7 @@
 | Question ID | `RQ-0395` |
 | Status | `active` |
 | Overall confidence | `medium` |
-| Evidence considered through | `2026-08-13` |
+| Evidence considered through | `2026-08-14` |
 | Predecessor issues | [#395](https://github.com/Open-Athena/marin-dna/issues/395) |
 
 ## Question and scope
@@ -34,7 +34,7 @@ The leading hypothesis is that increasing the density of constrained or correctl
 
 ## Operational consequence
 
-No experiment identifies one universally optimal genomic training footprint. Current MarinDNA results and external ablations support task-aware enrichment at modest scale: region specialists beat mismatched specialists, clean enhancer curation fixes a large VEP failure, and the conservation-filtered footprint covers Mendelian positives much better than complex-trait positives.
+Keep task-aware, contamination-controlled enrichment at current model scales. Before changing the default footprint, cross footprint choice with scale at matched tokens and retain a background arm to measure losses on neutral, repeat, and regional-context outcomes.
 
 ## Supporting evidence
 

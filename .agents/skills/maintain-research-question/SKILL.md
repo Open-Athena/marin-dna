@@ -78,16 +78,17 @@ python3 .agents/skills/maintain-research-question/scripts/validate_research_ques
 Migration is the only research-question issue mutation this skill performs.
 
 1. Inventory open and closed issues carrying the historical `research-question` label.
-2. Generate drafts with `scripts/migrate_legacy_research_questions.py`, then compare every draft with the complete predecessor body. Preserve conclusions, evidence, experiment links, open questions, and the predecessor URL.
-3. Open a migration pull request and wait for review and merge.
-4. After merge, prepend this notice without changing the previous body below it:
+2. Generate drafts with `scripts/migrate_legacy_research_questions.py`, supplying the explicit `--evidence-reviewed-through` cutoff. The helper refuses to overwrite existing documents by default and rebuilds the index from all question files.
+3. Compare every draft with the complete predecessor body. Preserve conclusions, evidence, experiment links, open questions, and the predecessor URL. Replace the generated operational-consequence `TODO` with a concrete decision.
+4. Open a migration pull request and wait for review and merge.
+5. After merge, prepend this notice without changing the previous body below it:
 
    ```markdown
    > [!IMPORTANT]
    > This research question is archived. The synthesis is [RQ-NNNN: <title>](<canonical-main-url>). See <migration-pr-url> for the migration review. The original issue body and comments remain below as historical evidence.
    ```
 
-5. Post one final comment beginning with `🤖` that links the document and migration pull request.
-6. Close formerly open legacy issues. Add the notice to already closed issues without reopening them. Retain the historical label if useful for discovery.
+6. Post one final comment beginning with `🤖` that links the document and migration pull request.
+7. Close formerly open legacy issues. Add the notice to already closed issues without reopening them. Retain the historical label if useful for discovery.
 
 Do not edit legacy issues before the document merges. Do not create a replacement tracker issue or rewrite predecessor comments.
