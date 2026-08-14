@@ -575,3 +575,12 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   375,908 KiB, 10.7 GiB remained available, and load was 1.86.
 - Commit Hash: result snapshot pending.
 - Publication status: result snapshot and issue #459 synthesis pending.
+
+### 2026-08-14 02:38 UTC - `VEP-SOFT-022` replacement-distal result snapshot
+
+- Commit Hash: `9034bb643778577466632125d35b52e2e926003c`.
+- Snapshot scope: sixteen validated exp351-centered S3 outputs summarized into
+  the six-arm by eight-checkpoint augmented manifest; matched-group and no-group
+  joint-bootstrap results; exact AUPRC parity; three visually reviewed SVG/PNG
+  summaries; updated decision record; and the execution/result logbook.
+- Publication status: pushed branch and issue #459 update pending.
