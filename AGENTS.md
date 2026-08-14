@@ -51,4 +51,4 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 ## Repository Lifecycle
 
 - Merge only reusable, maintained framework code and documentation to `main`. Experiments, one-off analyses, competitor baselines, and dead ends remain on permanent branches and are cited with commit-pinned links.
-- Never push directly to `main` or merge or close a pull request without explicit user approval. Archive and close a legacy research-question issue only after its canonical document merges.
+- Never push directly to `main` or merge or close a pull request without explicit user approval.
