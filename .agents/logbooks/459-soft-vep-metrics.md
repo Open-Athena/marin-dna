@@ -834,3 +834,11 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   486,008 KiB peak RSS; first-minute available memory stayed above 9.8 GiB and
   load stayed below the 3.0 stop threshold.
 - Publication status: result snapshot and issue #459 replacement pending.
+
+### 2026-08-14 17:00 UTC - `VEP-SOFT-034` Group SMD result snapshot
+
+- Commit Hash: `6d49fba4595bd09bafa73697263cc07cbf15891b`.
+- Snapshot scope: Group SMD editorial decision, all-arm specialist trajectories,
+  exact joint-bootstrap pairwise win probabilities, rendered figures,
+  reproducible runner changes, focused tests, and execution record.
+- Publication status: branch push and issue #459 replacement pending.
