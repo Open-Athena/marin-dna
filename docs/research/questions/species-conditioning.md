@@ -2,26 +2,43 @@
 
 ## TL;DR
 
-No matched MarinDNA ablation has tested taxon conditioning. Carbon directly ablates species and gene-type tags: overall sequence recovery is unchanged, while a correct species tag helps low-resource eukaryote groups; it does not report the conditioning effect on VEP. Other published gains remain small or task-specific. Confidence is low, and the cheapest next test is a frozen-Carbon tagged, untagged, and wrong-tag VEP comparison before matched retraining.
+No matched MarinDNA ablation has tested taxon conditioning.
+Carbon directly ablates species and gene-type tags: overall sequence recovery is unchanged, while a correct species tag helps low-resource eukaryote groups; it does not report the conditioning effect on VEP.
+Other published gains remain small or task-specific.
+Confidence is low, and the cheapest next test is a frozen-Carbon tagged, untagged, and wrong-tag VEP comparison before matched retraining.
 
 ## Question
 
-Does explicitly conditioning a multi-species genomic language model on the source species or clade improve what it learns, relative to an otherwise identical sequence-only model that must infer taxonomic context from the DNA window? The taxon is known for our reference-genome training and evaluation data; the question is whether exposing it improves conditional language modeling, zero-shot variant-effect prediction, or learned representations—not merely whether the model can classify species. If conditioning helps, what taxonomic granularity and representation share information across related organisms while still generalizing to unseen species? Can taxon-tag dropout preserve a useful unconditional mode?
+Does explicitly conditioning a multi-species genomic language model on the source species or clade improve what it learns, relative to an otherwise identical sequence-only model that must infer taxonomic context from the DNA window?
+The taxon is known for our reference-genome training and evaluation data; the question is whether exposing it improves conditional language modeling, zero-shot variant-effect prediction, or learned representations—not merely whether the model can classify species.
+If conditioning helps, what taxonomic granularity and representation share information across related organisms while still generalizing to unseen species?
+Can taxon-tag dropout preserve a useful unconditional mode?
 
 ## Current answer
 
-No MarinDNA experiment has compared identical examples with and without an explicit taxon input. The current model-facing path retains sequence but does not expose species identity, so every multispecies model must infer organismal context from the DNA window.
+No MarinDNA experiment has compared identical examples with and without an explicit taxon input.
+The current model-facing path retains sequence but does not expose species identity, so every multispecies model must infer organismal context from the DNA window.
 
-[Carbon](https://www.biorxiv.org/content/10.64898/2026.05.22.727119v1) supplies the most direct published evidence so far. Its released 3B and 8B autoregressive models see species- and gene-type-tagged prompts on 50% of pretraining examples. The reported tag ablation leaves overall sequence recovery essentially unchanged, while a correct species tag improves recovery for fungi, protozoa, and invertebrates and leaves high-resource groups unchanged. Carbon evaluates ClinVar, BRCA2, and TraitGym VEP separately, but does not report how those results change with conditioning. The released checkpoints support both conditional and unconditional prompts, enabling a same-checkpoint VEP intervention now; this measures inference-time use of metadata, not the causal effect of metadata-conditioned pretraining.
+[Carbon](https://www.biorxiv.org/content/10.64898/2026.05.22.727119v1) supplies the most direct published evidence so far.
+Its released 3B and 8B autoregressive models see species- and gene-type-tagged prompts on 50% of pretraining examples.
+The reported tag ablation leaves overall sequence recovery essentially unchanged, while a correct species tag improves recovery for fungi, protozoa, and invertebrates and leaves high-resource groups unchanged.
+Carbon evaluates ClinVar, BRCA2, and TraitGym VEP separately, but does not report how those results change with conditioning.
+The released checkpoints support both conditional and unconditional prompts, enabling a same-checkpoint VEP intervention now; this measures inference-time use of metadata, not the causal effect of metadata-conditioned pretraining.
 
-The evidence supports a conditional hypothesis with low confidence. Taxon labels are most likely to help when the sequence window is too short to identify the relevant organismal regime and when the target feature varies across clades. The benefit may shrink with longer context or larger models, and a label may expose compositional shortcuts instead of functional biology.
+The evidence supports a conditional hypothesis with low confidence.
+Taxon labels are most likely to help when the sequence window is too short to identify the relevant organismal regime and when the target feature varies across clades.
+The benefit may shrink with longer context or larger models, and a label may expose compositional shortcuts instead of functional biology.
 
-A leaf-species token is the simplest ablation, but a hierarchy could share information across related organisms and remain usable for unseen species. Any positive result must survive shuffled-label controls, wrong-tag sensitivity, fixed data and compute, and downstream evaluation. Validation-loss improvement alone would not show that conditioning learned useful biology.
+A leaf-species token is the simplest ablation, but a hierarchy could share information across related organisms and remain usable for unseen species.
+Any positive result must survive shuffled-label controls, wrong-tag sensitivity, fixed data and compute, and downstream evaluation.
+Validation-loss improvement alone would not show that conditioning learned useful biology.
 
 <details>
 <summary>Related work</summary>
 
-- The [current MarinDNA preprocessor](https://github.com/Open-Athena/marin-dna/blob/cbb127b53b3d52421fae65cebedf2194c4ec84a3/src/marin_dna/levanter/batch_tokenizer.py#L63-L76) reads the sequence field and emits nucleotide IDs and loss weights without a taxon input. This establishes the sequence-only baseline. It does not determine whether a taxon input would improve representations or VEP.
+- The [current MarinDNA preprocessor](https://github.com/Open-Athena/marin-dna/blob/cbb127b53b3d52421fae65cebedf2194c4ec84a3/src/marin_dna/levanter/batch_tokenizer.py#L63-L76) reads the sequence field and emits nucleotide IDs and loss weights without a taxon input.
+  This establishes the sequence-only baseline.
+  It does not determine whether a taxon input would improve representations or VEP.
 
 | Work | Setup and finding | Implication and remaining gap |
 |---|---|---|
@@ -39,21 +56,47 @@ A leaf-species token is the simplest ablation, but a hierarchy could share infor
 <details>
 <summary>Related experiments</summary>
 
-- [#55](https://github.com/Open-Athena/marin-dna/issues/55) compared promoter training across human, primate, mammal, vertebrate, and animal corpora. Mammalian data learned human Mendelian VEP faster, but phylogenetic breadth, unique-data quantity, and epoch count changed together; the experiment motivates conditioning without testing it.
-- [#58](https://github.com/Open-Athena/marin-dna/issues/58) repeated the timescale comparison for CDS and found a different trajectory: shallower arms led early, while the animal arm later became stronger for missense VEP. This suggests that useful taxonomic context depends on feature class and training stage.
-- [#255](https://github.com/Open-Athena/marin-dna/issues/255) reduced the mammalian cohort from 108 family representatives to 19 order representatives at matched compute. Coding, 3′ UTR, and enhancer VEP were similar, while ncRNA and 5′ UTR/TSS VEP worsened, showing region-dependent value from species diversity.
-- [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared animal- and vertebrate-scale CDS corpora constructed by native annotation and human-anchored projection. The preferred breadth depended on evaluation and construction method, and nucleotide projection recovered little invertebrate sequence; nominal taxonomy and effective training context can differ.
+- [#55](https://github.com/Open-Athena/marin-dna/issues/55) compared promoter training across human, primate, mammal, vertebrate, and animal corpora.
+  Mammalian data learned human Mendelian VEP faster, but phylogenetic breadth, unique-data quantity, and epoch count changed together; the experiment motivates conditioning without testing it.
+- [#58](https://github.com/Open-Athena/marin-dna/issues/58) repeated the timescale comparison for CDS and found a different trajectory: shallower arms led early, while the animal arm later became stronger for missense VEP.
+  This suggests that useful taxonomic context depends on feature class and training stage.
+- [#255](https://github.com/Open-Athena/marin-dna/issues/255) reduced the mammalian cohort from 108 family representatives to 19 order representatives at matched compute.
+  Coding, 3′ UTR, and enhancer VEP were similar, while ncRNA and 5′ UTR/TSS VEP worsened, showing region-dependent value from species diversity.
+- [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared animal- and vertebrate-scale CDS corpora constructed by native annotation and human-anchored projection.
+  The preferred breadth depended on evaluation and construction method, and nucleotide projection recovered little invertebrate sequence; nominal taxonomy and effective training context can differ.
 
 </details>
 
 ## Possible directions
 
-- **Does it help at fixed compute and data?** Compare models trained on the same examples, order, optimizer, seed, and token budget. The primary contrast should be sequence-only versus correctly conditioned; a shuffled-label control can test whether any extra token/parameters alone explain the result.
-- **Can the released Carbon checkpoints test inference-time VEP sensitivity now?** Start with Carbon-500M, then replicate any signal on 3B and 8B. Score the same development-safe human variants from odd-numbered autosomes and X under `<dna>` (untagged), `<vertebrate_mammalian><dna>` (correct), and equal-length wrong or shuffled taxon tags; optionally cross gene-type tags. Keep the checkpoint, window, strand handling, and scorer fixed. Compare paired per-variant score changes and consequence-stratified or macro AUPRC. Correct-versus-wrong tags control the semantics of the prefix more cleanly than correct-versus-untagged alone. This tests whether a trained Carbon model's VEP scores use metadata, not whether metadata-conditioned pretraining caused better VEP.
-- **Species, clade, or hierarchy?** Compare a leaf-species token with hierarchical rank tokens (for example class/order/family/genus/species) or a shared phylogenetic embedding. A hierarchy may capture both universal and lineage-specific rules more efficiently than unrelated leaf embeddings.
-- **How should unseen species work?** Candidate policies include an explicit unknown-taxon token, the nearest known clade, only the known prefix of the taxonomy path, or an embedding derived from phylogenetic distance. SpeciesLM's proxy-token workaround should not be assumed to generalize.
-- **How redundant is the tag with sequence context?** Measure the conditioning gain across context lengths and genomic regions. Correct, null, and deliberately wrong tags at evaluation time would quantify how much the model actually uses the metadata.
-- **Can one model remain unconditional?** Replace taxon tokens with fixed-position null tokens with probability $q$ during training, following the control-tag dropout idea used by LOL-EVE. Sweep $q$; evaluate both correct-tag and null-tag inference. Keeping fixed slots avoids conflating dropout with a positional shift.
-- **Is the model learning useful biology or a shortcut?** Stratify language-modeling gains by coding/regulatory/background regions and by GC/repeat content. Test whether conditioning improves conserved-versus-background likelihood gaps and human VEP after controlling for simple composition.
-- **Which outcomes decide the question?** At minimum: held-out language-model loss on seen and unseen taxa, region-relevant LL gaps, zero-shot Mendelian/complex-trait VEP AUPRC, and frozen-embedding probes. Correct-versus-wrong-tag sensitivity is a diagnostic, not the primary success metric.
-- **Where should the first experiment live?** A short-window specialist with a known multi-species cohort is the cleanest first test; it avoids changing the data distribution and targets the regime in which taxon cannot always be inferred from long genomic context.
+- **Does it help at fixed compute and data?**
+  Compare models trained on the same examples, order, optimizer, seed, and token budget.
+  The primary contrast should be sequence-only versus correctly conditioned; a shuffled-label control can test whether any extra token/parameters alone explain the result.
+- **Can the released Carbon checkpoints test inference-time VEP sensitivity now?**
+  Start with Carbon-500M, then replicate any signal on 3B and 8B.
+  Score the same development-safe human variants from odd-numbered autosomes and X under `<dna>` (untagged), `<vertebrate_mammalian><dna>` (correct), and equal-length wrong or shuffled taxon tags; optionally cross gene-type tags.
+  Keep the checkpoint, window, strand handling, and scorer fixed.
+  Compare paired per-variant score changes and consequence-stratified or macro AUPRC.
+  Correct-versus-wrong tags control the semantics of the prefix more cleanly than correct-versus-untagged alone.
+  This tests whether a trained Carbon model's VEP scores use metadata, not whether metadata-conditioned pretraining caused better VEP.
+- **Species, clade, or hierarchy?**
+  Compare a leaf-species token with hierarchical rank tokens (for example class/order/family/genus/species) or a shared phylogenetic embedding.
+  A hierarchy may capture both universal and lineage-specific rules more efficiently than unrelated leaf embeddings.
+- **How should unseen species work?**
+  Candidate policies include an explicit unknown-taxon token, the nearest known clade, only the known prefix of the taxonomy path, or an embedding derived from phylogenetic distance.
+  SpeciesLM's proxy-token workaround should not be assumed to generalize.
+- **How redundant is the tag with sequence context?**
+  Measure the conditioning gain across context lengths and genomic regions.
+  Correct, null, and deliberately wrong tags at evaluation time would quantify how much the model actually uses the metadata.
+- **Can one model remain unconditional?**
+  Replace taxon tokens with fixed-position null tokens with probability $q$ during training, following the control-tag dropout idea used by LOL-EVE.
+  Sweep $q$; evaluate both correct-tag and null-tag inference.
+  Keeping fixed slots avoids conflating dropout with a positional shift.
+- **Is the model learning useful biology or a shortcut?**
+  Stratify language-modeling gains by coding/regulatory/background regions and by GC/repeat content.
+  Test whether conditioning improves conserved-versus-background likelihood gaps and human VEP after controlling for simple composition.
+- **Which outcomes decide the question?**
+  At minimum: held-out language-model loss on seen and unseen taxa, region-relevant LL gaps, zero-shot Mendelian/complex-trait VEP AUPRC, and frozen-embedding probes.
+  Correct-versus-wrong-tag sensitivity is a diagnostic, not the primary success metric.
+- **Where should the first experiment live?**
+  A short-window specialist with a known multi-species cohort is the cleanest first test; it avoids changing the data distribution and targets the regime in which taxon cannot always be inferred from long genomic context.
