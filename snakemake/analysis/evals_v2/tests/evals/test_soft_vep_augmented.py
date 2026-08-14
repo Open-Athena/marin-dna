@@ -4,6 +4,8 @@ import pandas as pd
 import pytest
 
 from marin_dna_evals.soft_vep_analysis import (
+    DETECTABILITY_METRICS,
+    UNGROUPED_DETECTABILITY_METRICS,
     compare_metric_detection_timing,
     persistent_specialist_detectability,
     specialist_detectability_summary,
@@ -15,10 +17,13 @@ from marin_dna_evals.soft_vep_augmented import (
     AUGMENTED_SUBSETS,
     DISTAL_ARM,
     augmented_manifest,
+    combine_all_metric_win_definition_comparisons,
+    compute_bootstrap_metric_win_definition_sensitivity,
     compute_closed_form_cohen_d_rank1_probabilities,
     compute_closed_form_cohen_d_specialist_detectability,
     compute_closed_form_cohen_d_win_table,
     compute_win_definition_sensitivity,
+    plot_augmented_all_metric_win_sensitivity,
     plot_augmented_distal_trajectories,
     plot_augmented_specialist_closed_form_win_percentage,
     plot_augmented_specialist_trajectories,
@@ -251,6 +256,33 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
     assert len(sensitivity_comparison) == 10
     assert set(sensitivity_timing["persistence"]) == {1, 2}
 
+    matched_detectability = pd.concat(
+        [
+            auprc_detectability.assign(metric=metric)
+            for metric in DETECTABILITY_METRICS
+        ],
+        ignore_index=True,
+    )
+    ungrouped_detectability = pd.concat(
+        [
+            auprc_detectability.assign(metric=metric)
+            for metric in UNGROUPED_DETECTABILITY_METRICS
+        ],
+        ignore_index=True,
+    )
+    _, matched_comparison = compute_bootstrap_metric_win_definition_sensitivity(
+        matched_detectability,
+        metrics=DETECTABILITY_METRICS,
+    )
+    _, ungrouped_comparison = compute_bootstrap_metric_win_definition_sensitivity(
+        ungrouped_detectability,
+        metrics=UNGROUPED_DETECTABILITY_METRICS,
+    )
+    all_metric_comparison = combine_all_metric_win_definition_comparisons(
+        matched_comparison, ungrouped_comparison, sensitivity_comparison
+    )
+    assert len(all_metric_comparison) == 120
+
     trajectory_outputs = plot_augmented_specialist_trajectories(
         point_metrics,
         cohen_d_metrics,
@@ -262,6 +294,10 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
     )
     sensitivity_outputs = plot_augmented_win_definition_sensitivity(
         sensitivity_comparison,
+        tmp_path,
+    )
+    all_metric_outputs = plot_augmented_all_metric_win_sensitivity(
+        all_metric_comparison,
         tmp_path,
     )
 
@@ -277,11 +313,16 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         "plot_augmented_win_definition_sensitivity_svg",
         "plot_augmented_win_definition_sensitivity_png",
     }
+    assert set(all_metric_outputs) == {
+        "plot_augmented_all_metric_win_sensitivity_svg",
+        "plot_augmented_all_metric_win_sensitivity_png",
+    }
     assert all(
         path.stat().st_size > 0
         for path in (
             *trajectory_outputs.values(),
             *win_outputs.values(),
             *sensitivity_outputs.values(),
+            *all_metric_outputs.values(),
         )
     )

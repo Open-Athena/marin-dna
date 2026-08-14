@@ -746,3 +746,36 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Related tracking: #462 covers GPU image/driver modernization; #463 covers the
   file-issue task-label rule.
 - Publication status: complete; issue remains open for human review.
+
+### 2026-08-14 16:32 UTC - `VEP-SOFT-030` complete-grid metric reranking
+
+- Motivation: reevaluate the Cohen d recommendation after adding the missing
+  step-1000 and step-2500 checkpoints, using point rank and uncertainty-aware
+  win definitions consistently across every previously examined metric.
+- Main rule: the first of two consecutive checkpoints with joint
+  `P(home ranks first) >= 95%`. Counts below are candidate earlier / same step /
+  AUPRC earlier / neither across the eight mapped specialist subsets.
+- Matched-group result: Group SMD and SoftWin lead at `4/3/0/1`. Global and
+  group mean gaps are `3/3/1/1`; median/MAD is `0/2/5/1`; calibrated log loss
+  is `0/4/3/1`; and calibrated Brier is `0/3/4/1`.
+- No-group result: bootstrap Cohen d, mean gap divided by the all-variant SD,
+  Student t, and Welch t all give `2/4/1/1`. Closed-form Cohen d gives
+  `0/7/0/1`. The no-group alternatives therefore do not show a robust timing
+  improvement over AUPRC, and the apparent result depends on uncertainty
+  treatment.
+- Sensitivity: under persistent point rank, Group SMD and SoftWin are both
+  `2/5/1/0`. Under the persistent 95% margin rule, SoftWin is `4/3/0/1`, Group
+  SMD is `2/4/1/1`, and closed-form Cohen d is `1/5/1/1`.
+- Revised recommendation: keep AUPRC as the only universal required metric. Do
+  not recommend Cohen d as a required secondary metric on early-detection
+  grounds; retain it only as an optional interpretable effect size. Where a
+  meaningful group exists, Group SMD is the simplest promising secondary;
+  SoftWin is the strongest examined detector but carries more machinery.
+- Artifacts: `all_metric_win_definition_comparison.parquet`, matched and
+  ungrouped timing/comparison tables, and
+  `plots/augmented_all_metric_win_sensitivity.{svg,png}`.
+- Verification: 31 focused tests passed in 13.03 seconds at 362,388 KiB peak
+  RSS. The 1,000-resample regeneration completed with status 0 in 2:13.38 at
+  486,020 KiB peak RSS; first-minute available memory stayed above 9.4 GiB and
+  load stayed below the 3.0 stop threshold.
+- Publication status: result snapshot and issue #459 correction pending.

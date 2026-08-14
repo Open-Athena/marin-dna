@@ -88,6 +88,33 @@ WIN_DEFINITION_LABELS = {
     "rank1_probability_95": "P(rank 1) ≥ 95%",
     "margin_ci_95": "95% margin CI > 0",
 }
+ALL_METRIC_COMPARISON_ROWS = (
+    ("matched_groups", "mean_gap_global", "Matched · Global mean gap"),
+    ("matched_groups", "mean_gap_group", "Matched · Group mean gap"),
+    ("matched_groups", "group_smd", "Matched · Group SMD"),
+    ("matched_groups", "group_median_mad", "Matched · Median / MAD"),
+    ("matched_groups", "soft_win", "Matched · SoftWin"),
+    ("matched_groups", "calibrated_log_loss", "Matched · Calibrated log loss"),
+    ("matched_groups", "calibrated_brier", "Matched · Calibrated Brier"),
+    (
+        "no_groups_bootstrap",
+        VARIANT_POOLED_SMD,
+        "No group · Cohen's d (bootstrap)",
+    ),
+    (
+        "no_groups_bootstrap",
+        "variant_total_sd_gap",
+        "No group · Mean gap / all-variant SD",
+    ),
+    ("no_groups_bootstrap", "student_t", "No group · Student t (bootstrap)"),
+    ("no_groups_bootstrap", "welch_t", "No group · Welch t (bootstrap)"),
+    (
+        "no_groups_closed_form",
+        VARIANT_POOLED_SMD,
+        "No group · Cohen's d (closed form)",
+    ),
+)
+PRIMARY_WIN_DEFINITIONS = ("point_rank1", "rank1_probability_95", "margin_ci_95")
 
 
 def augmented_model_name(arm: str, step: int) -> str:
@@ -685,6 +712,220 @@ def compute_win_definition_sensitivity(
     return timing, comparisons
 
 
+def compute_bootstrap_metric_win_definition_sensitivity(
+    detectability: pd.DataFrame,
+    *,
+    metrics: tuple[str, ...],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Compare bootstrap metric timing under rank and uncertainty rules."""
+    assert metrics[0] == AUPRC
+    required = {
+        "subset",
+        "home_arm",
+        "metric",
+        "step",
+        "home_rank",
+        "bootstrap_home_rank1_frequency",
+        "confidence_supported",
+    }
+    assert required.issubset(detectability.columns), (
+        f"detectability table missing columns: "
+        f"{sorted(required - set(detectability.columns))}"
+    )
+    selected = detectability[detectability["metric"].isin(metrics)].copy()
+    assert set(selected["metric"]) == set(metrics)
+    assert selected["bootstrap_home_rank1_frequency"].notna().all()
+    definition_flags = {
+        "point_rank1": selected["home_rank"].eq(1),
+        "rank1_probability_50": selected[
+            "bootstrap_home_rank1_frequency"
+        ].ge(0.50),
+        "rank1_probability_80": selected[
+            "bootstrap_home_rank1_frequency"
+        ].ge(0.80),
+        "rank1_probability_95": selected[
+            "bootstrap_home_rank1_frequency"
+        ].ge(0.95),
+        "margin_ci_95": selected["confidence_supported"].astype(bool),
+    }
+    timing_rows: list[dict[str, str | float | int | bool | None]] = []
+    for definition, flags in definition_flags.items():
+        flagged = selected.assign(win=flags)
+        for persistence in (1, 2):
+            for (subset, metric), frame in flagged.groupby(
+                ["subset", "metric"], sort=False
+            ):
+                ordered = frame.sort_values("step")
+                steps = ordered["step"].astype(int).tolist()
+                wins = ordered["win"].astype(bool).tolist()
+                earliest: int | None = None
+                for index in range(len(steps) - persistence + 1):
+                    if all(wins[index : index + persistence]):
+                        earliest = steps[index]
+                        break
+                final = ordered[ordered["step"] == 4999]
+                assert len(final) == 1
+                timing_rows.append(
+                    {
+                        "definition": definition,
+                        "definition_label": WIN_DEFINITION_LABELS[definition],
+                        "persistence": persistence,
+                        "subset": str(subset),
+                        "home_arm": str(ordered.iloc[0]["home_arm"]),
+                        "metric": str(metric),
+                        "earliest_step": earliest,
+                        "final_step_win": bool(final.iloc[0]["win"]),
+                    }
+                )
+    timing = pd.DataFrame(timing_rows)
+
+    comparison_parts: list[pd.DataFrame] = []
+    for (definition, persistence), frame in timing.groupby(
+        ["definition", "persistence"], sort=False
+    ):
+        comparable = frame.rename(
+            columns={"earliest_step": "earliest_persistent_detected_step"}
+        )
+        comparison = compare_metric_detection_timing(
+            comparable,
+            metrics=metrics,
+            subsets=AUGMENTED_SUBSETS,
+        )
+        comparison["definition"] = definition
+        comparison["definition_label"] = WIN_DEFINITION_LABELS[definition]
+        comparison["persistence"] = persistence
+        comparison_parts.append(comparison)
+    comparisons = pd.concat(comparison_parts, ignore_index=True)
+    assert len(comparisons) == (len(metrics) - 1) * len(WIN_DEFINITION_LABELS) * 2
+    count_columns = [
+        "candidate_earlier",
+        "same_step",
+        "auprc_earlier",
+        "neither_detected",
+    ]
+    assert comparisons[count_columns].sum(axis=1).eq(len(AUGMENTED_SUBSETS)).all()
+    return timing, comparisons
+
+
+def combine_all_metric_win_definition_comparisons(
+    matched_comparisons: pd.DataFrame,
+    ungrouped_comparisons: pd.DataFrame,
+    closed_form_comparisons: pd.DataFrame,
+) -> pd.DataFrame:
+    """Create one labeled table for the complete alternative-metric reranking."""
+    matched = matched_comparisons.assign(evaluation="matched_groups")
+    ungrouped = ungrouped_comparisons.assign(evaluation="no_groups_bootstrap")
+    closed_form = closed_form_comparisons.assign(
+        evaluation="no_groups_closed_form"
+    )
+    combined = pd.concat([matched, ungrouped, closed_form], ignore_index=True)
+    label_by_row = {
+        (evaluation, metric): label
+        for evaluation, metric, label in ALL_METRIC_COMPARISON_ROWS
+    }
+    order_by_row = {
+        (evaluation, metric): index
+        for index, (evaluation, metric, _) in enumerate(ALL_METRIC_COMPARISON_ROWS)
+    }
+    row_keys = list(zip(combined["evaluation"], combined["metric"]))
+    assert set(row_keys) == set(label_by_row)
+    combined["display_label"] = [label_by_row[key] for key in row_keys]
+    combined["row_order"] = [order_by_row[key] for key in row_keys]
+    expected_rows = len(ALL_METRIC_COMPARISON_ROWS) * len(WIN_DEFINITION_LABELS) * 2
+    assert len(combined) == expected_rows
+    return combined.sort_values(
+        ["persistence", "row_order", "definition"]
+    ).reset_index(drop=True)
+
+
+def plot_augmented_all_metric_win_sensitivity(
+    comparisons: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Plot every alternative's timing advantage relative to AUPRC."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    panel = comparisons[
+        (comparisons["persistence"] == 2)
+        & comparisons["definition"].isin(PRIMARY_WIN_DEFINITIONS)
+    ]
+    row_labels = [label for _, _, label in ALL_METRIC_COMPARISON_ROWS]
+    definition_labels = [
+        WIN_DEFINITION_LABELS[definition] for definition in PRIMARY_WIN_DEFINITIONS
+    ]
+    advantage = np.zeros(
+        (len(ALL_METRIC_COMPARISON_ROWS), len(PRIMARY_WIN_DEFINITIONS))
+    )
+    annotations: list[list[str]] = [
+        ["" for _ in PRIMARY_WIN_DEFINITIONS]
+        for _ in ALL_METRIC_COMPARISON_ROWS
+    ]
+    for row_index, (evaluation, metric, _) in enumerate(ALL_METRIC_COMPARISON_ROWS):
+        for column_index, definition in enumerate(PRIMARY_WIN_DEFINITIONS):
+            cell = panel[
+                (panel["evaluation"] == evaluation)
+                & (panel["metric"] == metric)
+                & (panel["definition"] == definition)
+            ]
+            assert len(cell) == 1
+            record = cell.iloc[0]
+            advantage[row_index, column_index] = (
+                record["candidate_earlier"] - record["auprc_earlier"]
+            ) / len(AUGMENTED_SUBSETS)
+            annotations[row_index][column_index] = (
+                f"{record['candidate_earlier']} / {record['same_step']} / "
+                f"{record['auprc_earlier']} / {record['neither_detected']}"
+            )
+
+    fig, axis = plt.subplots(figsize=(12.8, 8.6))
+    image = axis.imshow(
+        advantage,
+        cmap="RdYlGn",
+        vmin=-0.75,
+        vmax=0.75,
+        aspect="auto",
+    )
+    axis.set_xticks(np.arange(len(definition_labels)), definition_labels)
+    axis.set_yticks(np.arange(len(row_labels)), row_labels)
+    axis.tick_params(axis="x", labelrotation=18)
+    for row_index, row in enumerate(annotations):
+        for column_index, annotation in enumerate(row):
+            axis.text(
+                column_index,
+                row_index,
+                annotation,
+                ha="center",
+                va="center",
+                fontsize=9,
+            )
+    axis.axhline(6.5, color="#222222", linewidth=1.5)
+    axis.axhline(10.5, color="#222222", linewidth=1.5)
+    axis.set_title(
+        "Which alternatives identify the mapped home arm earlier than AUPRC?"
+    )
+    colorbar = fig.colorbar(image, ax=axis, fraction=0.035, pad=0.025)
+    colorbar.set_label("(alternative earlier − AUPRC earlier) / 8")
+    fig.text(
+        0.5,
+        0.015,
+        "Cells are alternative earlier / same step / AUPRC earlier / neither. "
+        "Every rule requires two consecutive qualifying checkpoints. "
+        "Bootstrap rows use joint resamples; the final Cohen's d row uses "
+        "independent normals and closed-form SEs.",
+        ha="center",
+        fontsize=8.5,
+    )
+    fig.tight_layout(rect=(0, 0.06, 1, 0.96))
+    svg_path = output_dir / "augmented_all_metric_win_sensitivity.svg"
+    png_path = output_dir / "augmented_all_metric_win_sensitivity.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    return {
+        "plot_augmented_all_metric_win_sensitivity_svg": svg_path,
+        "plot_augmented_all_metric_win_sensitivity_png": png_path,
+    }
+
+
 def plot_augmented_win_definition_sensitivity(
     comparisons: pd.DataFrame,
     output_dir: Path,
@@ -1036,6 +1277,27 @@ def run_augmented_analysis(
             cohen_d_rank1_probabilities,
         )
     )
+    matched_metric_win_definition_timing, matched_metric_win_definition_comparison = (
+        compute_bootstrap_metric_win_definition_sensitivity(
+            specialist_detectability,
+            metrics=DETECTABILITY_METRICS,
+        )
+    )
+    (
+        ungrouped_metric_win_definition_timing,
+        ungrouped_metric_win_definition_comparison,
+    ) = compute_bootstrap_metric_win_definition_sensitivity(
+        ungrouped_specialist_detectability,
+        metrics=UNGROUPED_DETECTABILITY_METRICS,
+    )
+    all_metric_win_definition_comparison = (
+        combine_all_metric_win_definition_comparisons(
+            matched_metric_win_definition_comparison,
+            ungrouped_metric_win_definition_comparison,
+            win_definition_comparison,
+        )
+    )
+
 
     stored_auprc = pd.concat(stored_auprc_parts, ignore_index=True)
     reproduced_auprc = point_metrics[point_metrics["metric"] == AUPRC][
@@ -1087,6 +1349,21 @@ def run_augmented_analysis(
                 "win_definition_comparison": win_definition_comparison,
                 "auprc_bootstrap_cohen_d_closed_form_detectability": (
                     hybrid_detectability
+                ),
+                "matched_metric_win_definition_timing": (
+                    matched_metric_win_definition_timing
+                ),
+                "matched_metric_win_definition_comparison": (
+                    matched_metric_win_definition_comparison
+                ),
+                "ungrouped_metric_win_definition_timing": (
+                    ungrouped_metric_win_definition_timing
+                ),
+                "ungrouped_metric_win_definition_comparison": (
+                    ungrouped_metric_win_definition_comparison
+                ),
+                "all_metric_win_definition_comparison": (
+                    all_metric_win_definition_comparison
                 ),
                 "auprc_bootstrap_cohen_d_closed_form_detection_timing": (
                     hybrid_detection_timing
@@ -1159,6 +1436,12 @@ def run_augmented_analysis(
             ),
             title="When does the mapped home arm separate?",
             subsets=AUGMENTED_SUBSETS,
+        )
+    )
+    outputs.update(
+        plot_augmented_all_metric_win_sensitivity(
+            all_metric_win_definition_comparison,
+            output_dir / "plots",
         )
     )
     outputs.update(
