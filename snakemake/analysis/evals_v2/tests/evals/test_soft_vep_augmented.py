@@ -105,24 +105,21 @@ def test_augmented_timing_and_distal_plot(tmp_path):
     assert comparison.loc[GROUP_SMD, "candidate_earlier"] == 8
 
     point_rows = []
-    ungrouped_rows = []
+    cohen_d_rows = []
     for step in AUGMENTED_STEPS:
         for arm_index, arm in enumerate(AUGMENTED_ARMS):
-            for metric, base in ((AUPRC, 0.2), (GROUP_SMD, 0.8)):
-                value = base + arm_index / 100 + step / 100_000
-                point_rows.append(
-                    {
-                        "arm": arm,
-                        "step": step,
-                        "subset": "distal",
-                        "metric": metric,
-                        "value": value,
-                        "ci_low": value - 0.01,
-                        "ci_high": value + 0.01,
-                    }
-                )
+            value = 0.2 + arm_index / 100 + step / 100_000
+            point_rows.append(
+                {
+                    "arm": arm,
+                    "step": step,
+                    "subset": "distal",
+                    "metric": AUPRC,
+                    "value": value,
+                }
+            )
             value = 0.7 + arm_index / 100 + step / 100_000
-            ungrouped_rows.append(
+            cohen_d_rows.append(
                 {
                     "arm": arm,
                     "step": step,
@@ -136,7 +133,7 @@ def test_augmented_timing_and_distal_plot(tmp_path):
 
     outputs = plot_augmented_distal_trajectories(
         pd.DataFrame(point_rows),
-        pd.DataFrame(ungrouped_rows),
+        pd.DataFrame(cohen_d_rows),
         tmp_path,
     )
 

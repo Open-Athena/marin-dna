@@ -69,6 +69,8 @@ HIGHER_IS_BETTER = {
     WELCH_T: True,
 }
 
+NORMAL_95_Z = 1.959963984540054
+
 
 def _validated_matched_frame(
     label: pd.Series | np.ndarray,
@@ -422,6 +424,49 @@ def compute_ungrouped_metric_table(
             for metric, value in values.items()
         )
     return pd.DataFrame(rows)
+
+
+def cohen_d_closed_form_se(
+    cohen_d: float,
+    n_positive: int,
+    n_negative: int,
+) -> float:
+    """Conventional IID standard error for unpaired pooled-variance Cohen's d."""
+    assert n_positive >= 2, f"n_positive must be at least 2, got {n_positive}"
+    assert n_negative >= 2, f"n_negative must be at least 2, got {n_negative}"
+    assert np.isfinite(cohen_d), f"cohen_d must be finite, got {cohen_d}"
+    degrees_of_freedom = n_positive + n_negative - 2
+    variance = (
+        (n_positive + n_negative) / (n_positive * n_negative)
+        + np.square(cohen_d) / (2 * degrees_of_freedom)
+    )
+    return float(np.sqrt(variance))
+
+
+def cohen_d_closed_form_table(point_metrics: pd.DataFrame) -> pd.DataFrame:
+    """Return Cohen's d rows with conventional IID normal-approximation CIs."""
+    required = {"metric", "value", "n_rows", "n_pos"}
+    assert required.issubset(point_metrics.columns), (
+        f"point table missing columns: {sorted(required - set(point_metrics.columns))}"
+    )
+    result = point_metrics[
+        point_metrics["metric"] == VARIANT_POOLED_SMD
+    ].copy()
+    assert not result.empty, "point table contains no Cohen's d rows"
+    result["n_neg"] = result["n_rows"] - result["n_pos"]
+    result["se"] = [
+        cohen_d_closed_form_se(value, n_positive, n_negative)
+        for value, n_positive, n_negative in zip(
+            result["value"],
+            result["n_pos"],
+            result["n_neg"],
+            strict=True,
+        )
+    ]
+    result["ci_low"] = result["value"] - NORMAL_95_Z * result["se"]
+    result["ci_high"] = result["value"] + NORMAL_95_Z * result["se"]
+    result["uncertainty_method"] = "conventional_iid_closed_form"
+    return result
 
 
 def joint_stratified_row_bootstrap_ungrouped_metrics(

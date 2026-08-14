@@ -2,11 +2,21 @@
 
 ## Decision
 
-Keep AUPRC as the primary endpoint. For matched Mendelian evaluations, report
-**group SMD alongside AUPRC as an exploratory readout**. For an evaluation with
-no match groups, such as a single-gene SGE assay, report **variant pooled SMD
-(Cohen's `d`)** instead. Both are dimensionless and invariant to positive score
-rescaling; neither should drive stopping or replace subset-level AUPRC.
+Keep AUPRC as the primary endpoint and report **plain unpaired Cohen's `d`**
+beside it. For Mendelian and complex-trait evaluations, compute one `d` from
+all positive and negative variants; ignore match groups. For SGE, compute
+Cohen's `d` separately within each gene and report the unweighted gene macro
+average, `mean(d_g)`.
+
+Use conventional closed-form uncertainty only:
+
+- `SE(d) = sqrt((n_pos + n_neg) / (n_pos * n_neg) + d^2 / (2 * (n_pos + n_neg - 2)))`;
+- `SE(mean(d_g)) = sd(d_g) / sqrt(G)` across SGE genes, with a
+  `t_(G - 1)` interval.
+
+This deliberately treats variants as independent and does not use a bootstrap.
+Cohen's `d` is dimensionless and invariant to positive score rescaling. It is
+an exploratory effect-size companion, not a replacement for AUPRC.
 
 Under the explicit no-group sensitivity analysis, variant pooled SMD detected
 the home specialist earlier than row-bootstrap AUPRC on two of seven subsets,
@@ -19,9 +29,10 @@ decline.
 
 Replacing exp232's contaminated cCRE arm with the independently trained
 exp351-centered distal arm does not change the recommendation. On distal,
-AUPRC and Group SMD both first achieve persistent, bootstrap-supported
-home-arm separation at step 3000. Across the resulting eight specialist
-subsets, Group SMD is earlier/same/later/neither on 3/3/1/1.
+AUPRC and plain Cohen's `d` both first achieve persistent,
+row-bootstrap-supported home-arm separation at step 3000 in the historical
+detectability analysis. Across the resulting eight specialist subsets,
+Cohen's `d` is earlier/same/later/neither on 2/4/1/1.
 
 ## Primary question: does Brier distinguish the home arm earlier?
 
@@ -106,12 +117,13 @@ That aggregate hides two useful distinctions:
   0.3095 between steps 4000 and 4999. Pooled SMD declines from 1.2126 to 1.1866
   over the same interval and therefore preserves this adversarial reversal.
 
-Pooled SMD is the simplest useful no-group statistic. It measures effect size
+Plain Cohen's `d` is the simplest useful statistic. It measures effect size
 without turning sample size into signal. A Welch `t` p-value instead measures
-evidence against equal class means under variant independence. For a genuinely
-ungrouped SGE assay, report pooled SMD with a joint variant or biological-block
-bootstrap; use blocks such as residues or assay tiles when individual variants
-are correlated.
+evidence against equal class means and makes sample size part of the result.
+For SGE, calculate `d` independently within each gene, then take the unweighted
+mean across genes so large genes do not dominate. Use the conventional IID
+closed-form `SE(d)` for a single gene and `sd(d_g) / sqrt(G)` for the
+multi-gene macro average.
 
 ## Evidence
 
@@ -179,19 +191,17 @@ was interpolated.
 | Metric | First persistent distal separation |
 | --- | ---: |
 | AUPRC | 3000 |
-| Group SMD | 3000 |
-| Variant pooled SMD, no-group sensitivity | 3000 |
+| Cohen's `d` | 3000 |
 
-At step 3000, the home-minus-best-non-home AUPRC margin is 0.1041 (95% joint
-bootstrap interval 0.0226 to 0.1843). The Group-SMD margin is larger at 0.2243
-(0.0438 to 0.4001), but it does not cross the detection rule at an earlier
-stored checkpoint. Both remain supported through the final checkpoint.
+At step 3000, the distal home arm has Cohen's `d = 0.524` (conventional IID
+95% interval 0.251 to 0.796), versus `d = 0.163` (-0.109 to 0.434) for the
+strongest non-home arm. The historical row-bootstrap detectability rule does
+not place Cohen's `d` earlier than AUPRC on distal.
 
-Across all eight specialist subsets, Group SMD is earlier than AUPRC for
-missense, splicing, and noncoding exon; tied for 5-prime UTR, TSS proximal, and
-distal; later for 3-prime UTR; and neither detects synonymous. The conclusion
-is therefore to report Group SMD beside AUPRC as a scale-invariant effect-size
-diagnostic, not to replace AUPRC or claim a uniformly earlier signal.
+Across all eight specialist subsets, plain Cohen's `d` is earlier/same/later/
+neither than row-bootstrap AUPRC on 2/4/1/1. The conclusion is to report
+Cohen's `d` beside AUPRC as the single scale-invariant effect-size diagnostic,
+not to replace AUPRC or claim a uniformly earlier signal.
 
 The result is still not a controlled training comparison: issue #351 reports
 about 9.7 epochs for exp351-centered versus about 3.7 for its tiled counterpart.
@@ -233,7 +243,8 @@ Checkpoint step aligns optimizer progress, not distinct sequence exposure.
 - `leaderboard/`: 22-model ranking, controls, pairwise confidence comparisons,
   AUPRC parity, and leave-one-experiment-out projections.
 - `augmented-exp232-exp351/`: the six-arm replacement-distal manifest, matched
-  and no-group joint-bootstrap tables, exact AUPRC parity check, and three
-  complete SVG/PNG summaries.
+  and no-group joint-bootstrap tables, exact AUPRC parity check,
+  `cohen_d_closed_form.parquet`, and complete SVG/PNG summaries. The primary
+  distal plot shows AUPRC and Cohen's `d` for all six arms.
 - `distal/`: exact aggregate trajectories, point-count metadata, and the
   earlier aggregate-only distal SVG and composite-panel timing table.

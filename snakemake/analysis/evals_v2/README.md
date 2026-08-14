@@ -247,7 +247,8 @@ non-distal subsets. That scalar is recorded in `metadata.json` and reused for
 every arm, step, and subset.
 
 The same command also runs a separate no-match-group sensitivity analysis. It
-computes pooled within-class variant SMD (Cohen's `d`), the mean gap divided by
+computes plain Cohen's `d` (the mean class gap divided by the pooled within-class
+SD), the mean gap divided by
 the SD of all variants, Student's pooled-variance `t`, and Welch's
 unequal-variance `t`. Positive and negative variants are sampled separately
 with replacement, and the same row multiplicities are applied to all five arms.
@@ -364,8 +365,14 @@ uv run --locked soft-vep-augmented-analysis \
 
 This emits the same matched-group and no-group detectability tables as the
 original exp232 assessment, with six-arm home-versus-best-non-home margins.
-`plots/augmented_distal_metric_trajectories.{svg,png}` shows distal AUPRC, Group
-SMD, and variant pooled SMD for all six arms. The two augmented detectability
+`cohen_d_closed_form.parquet` records plain Cohen's `d` with the conventional
+IID standard error
+`sqrt((n_pos + n_neg) / (n_pos * n_neg) + d^2 / (2 * (n_pos + n_neg - 2)))`
+and a normal-approximation 95% interval. The calculation intentionally ignores
+correlation between variants.
+`plots/augmented_distal_metric_trajectories.{svg,png}` shows distal AUPRC and
+Cohen's `d` for all six arms; AUPRC has no uncertainty ribbon and the home-arm
+Cohen's `d` ribbon uses that closed-form interval. The two augmented detectability
 summary figures add `distal` to the original seven consequence subsets. Only the
 development split is read.
 

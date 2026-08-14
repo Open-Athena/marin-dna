@@ -40,8 +40,8 @@ from marin_dna_evals.soft_vep_analysis import (
 )
 from marin_dna_evals.soft_vep_metrics import (
     AUPRC,
-    GROUP_SMD,
     VARIANT_POOLED_SMD,
+    cohen_d_closed_form_table,
     joint_cluster_bootstrap_soft_metrics,
     joint_stratified_row_bootstrap_ungrouped_metrics,
     reference_soft_win_temperature,
@@ -131,18 +131,17 @@ def read_stored_auprc(arm: str, step: int) -> pd.DataFrame:
 
 def plot_augmented_distal_trajectories(
     point_metrics: pd.DataFrame,
-    ungrouped_point_metrics: pd.DataFrame,
+    cohen_d_metrics: pd.DataFrame,
     output_dir: Path,
 ) -> dict[str, Path]:
     """Show the replacement distal home arm against all five exp232 arms."""
     output_dir.mkdir(parents=True, exist_ok=True)
     panels = (
-        (point_metrics, AUPRC, "AUPRC"),
-        (point_metrics, GROUP_SMD, "Group SMD"),
-        (ungrouped_point_metrics, VARIANT_POOLED_SMD, "Variant pooled SMD"),
+        (point_metrics, AUPRC, "AUPRC", False),
+        (cohen_d_metrics, VARIANT_POOLED_SMD, "Cohen's d", True),
     )
-    fig, axes = plt.subplots(1, 3, figsize=(17, 5.8), sharex=True)
-    for axis, (table, metric, title) in zip(axes, panels):
+    fig, axes = plt.subplots(1, 2, figsize=(12.5, 5.8), sharex=True)
+    for axis, (table, metric, title, show_interval) in zip(axes, panels):
         metric_data = table[
             (table["subset"] == "distal") & (table["metric"] == metric)
         ]
@@ -162,7 +161,7 @@ def plot_augmented_distal_trajectories(
                 label=AUGMENTED_ARM_LABELS[arm],
                 zorder=4 if is_home else 2,
             )
-            if is_home:
+            if is_home and show_interval:
                 axis.fill_between(
                     arm_data["step"],
                     arm_data["ci_low"],
@@ -197,7 +196,8 @@ def plot_augmented_distal_trajectories(
         0.5,
         0.012,
         "Development split. Black diamonds are the replacement home arm; "
-        "the ribbon is its 95% joint bootstrap interval. Higher is better.",
+        "the Cohen's d ribbon is its conventional IID 95% interval. "
+        "AUPRC is shown without uncertainty. Higher is better.",
         ha="center",
         fontsize=9,
     )
@@ -369,6 +369,7 @@ def run_augmented_analysis(
     pairwise_deltas = pd.concat(pairwise_parts, ignore_index=True)
     specialist_detectability = pd.concat(detectability_parts, ignore_index=True)
     ungrouped_point_metrics = pd.concat(ungrouped_point_parts, ignore_index=True)
+    cohen_d_metrics = cohen_d_closed_form_table(ungrouped_point_metrics)
     ungrouped_pairwise_deltas = pd.concat(
         ungrouped_pairwise_parts,
         ignore_index=True,
@@ -437,6 +438,7 @@ def run_augmented_analysis(
                 "specialist_detection_timing": specialist_detection_timing,
                 "metric_detection_comparison": metric_detection_comparison,
                 "ungrouped_point_metrics": ungrouped_point_metrics,
+                "cohen_d_closed_form": cohen_d_metrics,
                 "ungrouped_pairwise_deltas": ungrouped_pairwise_deltas,
                 "ungrouped_specialist_detectability": (
                     ungrouped_specialist_detectability
@@ -462,7 +464,7 @@ def run_augmented_analysis(
     outputs.update(
         plot_augmented_distal_trajectories(
             point_metrics,
-            ungrouped_point_metrics,
+            cohen_d_metrics,
             output_dir / "plots",
         )
     )

@@ -16,6 +16,8 @@ from marin_dna_evals.soft_vep_metrics import (
     VARIANT_POOLED_SMD,
     VARIANT_TOTAL_SD_GAP,
     WELCH_T,
+    cohen_d_closed_form_se,
+    cohen_d_closed_form_table,
     compute_mendelian_soft_metric_table,
     compute_mendelian_soft_metrics,
     compute_ungrouped_metric_table,
@@ -253,6 +255,29 @@ def test_ungrouped_metrics_match_standardized_gap_and_t_definitions():
     assert table.loc[WELCH_T, "value"] == pytest.approx(
         ttest_ind(positive, negative, equal_var=False).statistic
     )
+
+
+def test_cohen_d_closed_form_uncertainty_uses_class_counts():
+    point = pd.DataFrame(
+        {
+            "score_type": ["model", "model"],
+            "metric": [AUPRC, VARIANT_POOLED_SMD],
+            "value": [0.8, 0.6],
+            "n_rows": [50, 50],
+            "n_pos": [20, 20],
+        }
+    )
+
+    result = cohen_d_closed_form_table(point).iloc[0]
+    expected_se = np.sqrt(50 / (20 * 30) + 0.6**2 / (2 * 48))
+
+    assert result["metric"] == VARIANT_POOLED_SMD
+    assert result["n_neg"] == 30
+    assert result["se"] == pytest.approx(expected_se)
+    assert result["ci_low"] == pytest.approx(0.6 - 1.959963984540054 * expected_se)
+    assert result["ci_high"] == pytest.approx(0.6 + 1.959963984540054 * expected_se)
+    assert result["uncertainty_method"] == "conventional_iid_closed_form"
+    assert cohen_d_closed_form_se(0.6, 20, 30) == pytest.approx(expected_se)
 
 
 def test_ungrouped_metrics_are_positive_affine_invariant_and_directional():
