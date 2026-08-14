@@ -723,3 +723,26 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   win-definition sensitivity; refreshed trajectory, pairwise win-percentage, and
   detection plots; focused tests; and execution/result logbook.
 - Publication status: branch push and issue #459 update pending.
+
+### 2026-08-14 16:14 UTC - `VEP-SOFT-029` publication and cleanup
+
+- Publication: issue #459 now shows the complete ten-step specialist trajectories,
+  win-definition sensitivity, conservative earliest-step summary, and pairwise
+  closed-form win-probability plot. The visible TL;DR recommends AUPRC primary,
+  plain Cohen d secondary, point rank as descriptive, and the first of two
+  consecutive checkpoints with at least 95% home-rank-first probability as the
+  main uncertainty-aware win rule.
+- Visual review: all four commit-pinned PNGs were fetched from GitHub at original
+  resolution. Titles, all eight subset panels, ten checkpoints, axes, legends,
+  annotations, and footnotes are visible; no plot is clipped.
+- Reporting correction: the SGE macro-average propagates per-gene closed-form
+  standard errors as `sqrt(sum_g(SE_g^2)) / G`, consistent with the requested
+  fixed-gene, independence approximation.
+- Cleanup: permanently removed the exact short-lived remote OAuth token file
+  `/home/ubuntu/.issue459-access-token`; it is intentionally unrecoverable and
+  was not a long-lived credential. `sky down issue459-grid --yes` terminated the
+  completed A10G. Sky no longer lists the cluster and AWS reports instance
+  `i-01f638cb3a4ffc929` as shutting down.
+- Related tracking: #462 covers GPU image/driver modernization; #463 covers the
+  file-issue task-label rule.
+- Publication status: complete; issue remains open for human review.
