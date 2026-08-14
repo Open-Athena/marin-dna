@@ -2,40 +2,61 @@
 
 ## TL;DR
 
-No validated genomic mixture-optimization method exists yet. Proxy-swarm regression is promising but depends on small-to-large-scale rank transfer, objective signal, finite-data repetition, and leakage controls; confidence is low, and the next gap is a bounded proxy study before any broad or paid sweep.
+No validated genomic mixture-optimization method exists yet.
+Proxy-swarm regression is promising but depends on small-to-large-scale rank transfer, objective signal, finite-data repetition, and leakage controls; confidence is low, and the next gap is a bounded proxy study before any broad or paid sweep.
 
 ## Question
 
-How should we optimize genomic pretraining data mixtures to improve downstream genomic performance at target scale? This includes deciding how to partition the data, what objective to optimize, and which optimization strategies are reliable and compute-efficient.
+How should we optimize genomic pretraining data mixtures to improve downstream genomic performance at target scale?
+This includes deciding how to partition the data, what objective to optimize, and which optimization strategies are reliable and compute-efficient.
 
-This issue tracks evidence across multiple possible approaches; swarm-based regression with small proxy models is one especially promising candidate, but it is not the definition of the research question. The intended outcome is a reproducible way to choose mixtures, not only a single set of weights.
+This issue tracks evidence across multiple possible approaches; swarm-based regression with small proxy models is one especially promising candidate, but it is not the definition of the research question.
+The intended outcome is a reproducible way to choose mixtures, not only a single set of weights.
 
 ## Current answer
 
-No validated method for optimizing genomic pretraining mixtures exists yet. The current evidence shows that mixture components matter: region specialists differ sharply by downstream class, and mammalian species density affects some regions but not others. It does not show how to select a joint mixture.
+No validated method for optimizing genomic pretraining mixtures exists yet.
+The current evidence shows that mixture components matter: region specialists differ sharply by downstream class, and mammalian species density affects some regions but not others.
+It does not show how to select a joint mixture.
 
-Proxy-swarm regression is a plausible candidate, not the answer. Its usefulness depends on four unverified conditions: the downstream objective must have measurable signal in small models; mixture rankings must transfer to target scale; finite high-value components must tolerate the repetitions implied by target weights; and the component manifest, overlap policy, and leakage rules must remain fixed.
+Proxy-swarm regression is a plausible candidate, not the answer.
+Its usefulness depends on four unverified conditions: the downstream objective must have measurable signal in small models; mixture rankings must transfer to target scale; finite high-value components must tolerate the repetitions implied by target weights; and the component manifest, overlap policy, and leakage rules must remain fixed.
 
-The optimization target is also unresolved. Macro-average VEP, minimax performance, zero-shot scores, global probes, per-subset probes, and later regulatory tasks can favor different recipes. Selecting whichever readout looks best after the swarm would invalidate the optimization claim.
+The optimization target is also unresolved.
+Macro-average VEP, minimax performance, zero-shot scores, global probes, per-subset probes, and later regulatory tasks can favor different recipes.
+Selecting whichever readout looks best after the swarm would invalidate the optimization claim.
 
-Confidence is low. The next useful work is a bounded proxy-noise study with fixed anchor mixtures and repeated seeds, followed by held-out-mixture prediction. A broad swarm or target-scale launch is not justified until rank stability, repetition feasibility, and leakage controls pass those gates.
+Confidence is low.
+The next useful work is a bounded proxy-noise study with fixed anchor mixtures and repeated seeds, followed by held-out-mixture prediction.
+A broad swarm or target-scale launch is not justified until rank stability, repetition feasibility, and leakage controls pass those gates.
 
 <details>
 <summary>Related work</summary>
 
-- The [Open Athena pretraining data community meeting slides](https://www.figma.com/deck/LcfkIgrKJUHV1DrJ40XbXb/Open-Athena-Pretraining-Data-Community-Meeting) define a source → normalize → deduplicate/decontaminate → bucket → optimize → train/evaluate pipeline and treat a mixture as a sampling policy over fixed buckets. The implication is that component definitions and overlap policy are part of the optimization contract. The remaining gap is a versioned MarinDNA manifest with unique-token budgets and leakage audits.
-- [RegMix](https://arxiv.org/abs/2407.01492) samples mixtures, trains small proxy models, fits a surrogate, and optimizes predicted performance. [Olmix](https://arxiv.org/abs/2602.12237) studies this family more systematically. These methods motivate offline proxy swarms and held-out-mixture validation. Their proxy sizes, swarm sizes, and rank-transfer behavior cannot be assumed to carry over to genomic objectives.
-- [Scaling Data-Constrained Language Models](https://arxiv.org/abs/2305.16264) shows diminishing returns from repeated data. This makes target-scale epoching part of mixture feasibility: a component that is barely repeated in a proxy may be heavily repeated in the final run. The missing observable is performance as a function of realized repetition for each genomic component.
-- Candidate surrogate families include linear/log-linear models, regularized interactions, tree models, and rank or pairwise objectives. Flexible models require held-out mixtures or nested validation; in-swarm fit alone does not support mixture selection.
-- Candidate outputs should include intended and realized weights, unique tokens and repetitions per component, per-subset downstream scores, uncertainty, held-out ranking, and target-scale regret. Without those fields, a selected weight vector is not a reproducible optimization result.
+- The [Open Athena pretraining data community meeting slides](https://www.figma.com/deck/LcfkIgrKJUHV1DrJ40XbXb/Open-Athena-Pretraining-Data-Community-Meeting) define a source → normalize → deduplicate/decontaminate → bucket → optimize → train/evaluate pipeline and treat a mixture as a sampling policy over fixed buckets.
+  The implication is that component definitions and overlap policy are part of the optimization contract.
+  The remaining gap is a versioned MarinDNA manifest with unique-token budgets and leakage audits.
+- [RegMix](https://arxiv.org/abs/2407.01492) samples mixtures, trains small proxy models, fits a surrogate, and optimizes predicted performance.
+  [Olmix](https://arxiv.org/abs/2602.12237) studies this family more systematically.
+  These methods motivate offline proxy swarms and held-out-mixture validation.
+  Their proxy sizes, swarm sizes, and rank-transfer behavior cannot be assumed to carry over to genomic objectives.
+- [Scaling Data-Constrained Language Models](https://arxiv.org/abs/2305.16264) shows diminishing returns from repeated data.
+  This makes target-scale epoching part of mixture feasibility: a component that is barely repeated in a proxy may be heavily repeated in the final run.
+  The missing observable is performance as a function of realized repetition for each genomic component.
+- Candidate surrogate families include linear/log-linear models, regularized interactions, tree models, and rank or pairwise objectives.
+  Flexible models require held-out mixtures or nested validation; in-swarm fit alone does not support mixture selection.
+- Candidate outputs should include intended and realized weights, unique tokens and repetitions per component, per-subset downstream scores, uncertainty, held-out ranking, and target-scale regret.
+  Without those fields, a selected weight vector is not a reproducible optimization result.
 
 </details>
 
 <details>
 <summary>Related experiments</summary>
 
-- [#232](https://github.com/Open-Athena/marin-dna/issues/232) trained six region specialists and a background arm. Home-region specialists won their matched Mendelian classes, showing that biological-domain mixture components can have distinct downstream utility; it did not optimize a combined mixture.
-- [#255](https://github.com/Open-Athena/marin-dna/issues/255) compared 108-family and 19-order mammalian cohorts at matched compute across five regions. Species density was neutral for some regions and harmful for others, showing interaction between taxonomic mixture and biological domain; one seed and different epoch counts limit surrogate use.
+- [#232](https://github.com/Open-Athena/marin-dna/issues/232) trained six region specialists and a background arm.
+  Home-region specialists won their matched Mendelian classes, showing that biological-domain mixture components can have distinct downstream utility; it did not optimize a combined mixture.
+- [#255](https://github.com/Open-Athena/marin-dna/issues/255) compared 108-family and 19-order mammalian cohorts at matched compute across five regions.
+  Species density was neutral for some regions and harmful for others, showing interaction between taxonomic mixture and biological domain; one seed and different epoch counts limit surrogate use.
 
 </details>
 
@@ -55,15 +76,18 @@ Confidence is low. The next useful work is a bounded proxy-noise study with fixe
 
 ### Candidate optimization approaches
 
-The research question does not presuppose one optimization method. Candidate approaches include, but are not limited to:
+The research question does not presuppose one optimization method.
+Candidate approaches include, but are not limited to:
 
 1. **Expert-designed mixtures and controlled ablations:** useful as baselines and for testing a small number of strong biological hypotheses.
 2. **Direct search:** random, structured, Bayesian, or evolutionary search over mixture weights when the number of components and training cost permit.
 3. **Offline proxy-swarm regression:** train small models on sampled mixtures, fit a surrogate, and optimize its predicted downstream utility, as in RegMix and Olmix.
 4. **Online or adaptive reweighting:** update mixture weights during training using learning dynamics, validation signals, or estimated domain utility.
-5. **Scaling-law, analytical, or hybrid methods:** model how data quantity, repetition, model scale, and domain interactions affect utility, possibly combined with proxy or online measurements. Structured saturation and overexposure models such as the Domain Saturation-Penalty (DSP) form highlighted in the community slides are concrete candidates alongside black-box regressors.
+5. **Scaling-law, analytical, or hybrid methods:** model how data quantity, repetition, model scale, and domain interactions affect utility, possibly combined with proxy or online measurements.
+   Structured saturation and overexposure models such as the Domain Saturation-Penalty (DSP) form highlighted in the community slides are concrete candidates alongside black-box regressors.
 
-Comparisons should account for the compute spent selecting the mixture, not only the compute of the final training run. Different approaches may also be appropriate at different stages or scales.
+Comparisons should account for the compute spent selecting the mixture, not only the compute of the final training run.
+Different approaches may also be appropriate at different stages or scales.
 
 ### Candidate mixture axes
 
@@ -79,13 +103,16 @@ Use the five v4 specialist partitions from the latest per-region experiment ([ex
 - ncRNA exon (`v4_ncrna_exon`); and
 - TSS region plus 5′ UTR (`v4_tss_region_and_utr5`).
 
-These are the five specialist v4 partitions; `v4_bg` is the separate background partition. Retain background as an optional mixture component or control rather than calling it a sixth functional region.
+These are the five specialist v4 partitions; `v4_bg` is the separate background partition.
+Retain background as an optional mixture component or control rather than calling it a sixth functional region.
 
 #### Axis 2: putative data quality
 
-Partition each biological domain into pinned conservation tiers, such as high, medium, and low conservation, rather than assuming only a binary conserved/unconserved split. The exact conservation statistic, species panel, thresholds, and missing-value policy remain part of this research question.
+Partition each biological domain into pinned conservation tiers, such as high, medium, and low conservation, rather than assuming only a binary conserved/unconserved split.
+The exact conservation statistic, species panel, thresholds, and missing-value policy remain part of this research question.
 
-Conservation should initially be described as a *putative quality proxy*, not as ground-truth data quality. The experiment should be able to discover that less-conserved data are useful, either in general or for particular downstream tasks.
+Conservation should initially be described as a *putative quality proxy*, not as ground-truth data quality.
+The experiment should be able to discover that less-conserved data are useful, either in general or for particular downstream tasks.
 
 The resulting components are cells such as:
 
@@ -100,20 +127,29 @@ TSS region + 5′ UTR × low conservation
 
 #### Axis 3 (optional): evolutionary scale
 
-A third axis could control the evolutionary distances represented in training: for example, how much data should come from primates, mammals, vertebrates, plants, or other clades. This is scientifically important but substantially expands the search space, so it can remain an optional follow-up direction.
+A third axis could control the evolutionary distances represented in training: for example, how much data should come from primates, mammals, vertebrates, plants, or other clades.
+This is scientifically important but substantially expands the search space, so it can remain an optional follow-up direction.
 
-The example taxonomic groups are nested: primates are mammals, and mammals are vertebrates. Do not assign independent mixture weights to overlapping groups. Use one of two explicit formulations:
+The example taxonomic groups are nested: primates are mammals, and mammals are vertebrates.
+Do not assign independent mixture weights to overlapping groups.
+Use one of two explicit formulations:
 
 1. **Disjoint clade buckets:** for example, primates, non-primate mammals, non-mammalian vertebrates, plants, and any additional non-overlapping groups supported by the data.
 2. **Hierarchical allocation:** first allocate weight among broad clades, then allocate each clade's weight across its descendant groups and the biological-domain-by-conservation cells.
 
-This axis is also confounded by the number of available species and their phylogenetic redundancy. Raw sequence counts should not make a densely sampled clade dominate by construction. Compare species-sampling policies such as all available species, one species per family, and one species per order, and record both token exposure and phylogenetic coverage.
+This axis is also confounded by the number of available species and their phylogenetic redundancy.
+Raw sequence counts should not make a densely sampled clade dominate by construction.
+Compare species-sampling policies such as all available species, one species per family, and one species per order, and record both token exposure and phylogenetic coverage.
 
-Avoid beginning with the full domain-by-conservation-by-clade Cartesian product. It may create too many small or weakly identifiable cells. Start with a factorized or hierarchical parameterization and add cross-axis interactions only when proxy data support estimating them.
+Avoid beginning with the full domain-by-conservation-by-clade Cartesian product.
+It may create too many small or weakly identifiable cells.
+Start with a factorized or hierarchical parameterization and add cross-axis interactions only when proxy data support estimating them.
 
 ### Static versus phase-specific mixtures
 
-The community slides distinguish a broad-coverage Phase 0 from a cooldown or midtraining Phase 1, using the same buckets with different weights and fitting those weights for a particular model size and token budget. This is a schedule decision, not another biological component axis. A phase-aware formulation would optimize vectors `p^(0)` and `p^(1)` together with pinned phase budgets `R^(0)` and `R^(1)`.
+The community slides distinguish a broad-coverage Phase 0 from a cooldown or midtraining Phase 1, using the same buckets with different weights and fitting those weights for a particular model size and token budget.
+This is a schedule decision, not another biological component axis.
+A phase-aware formulation would optimize vectors `p^(0)` and `p^(1)` together with pinned phase budgets `R^(0)` and `R^(1)`.
 
 For component `j` with `N_j` unique tokens, total target-scale exposure becomes
 
@@ -127,12 +163,16 @@ For components with nonzero total exposure, the late-phase share can also be rec
 r_j = \frac{R^{(1)}p_j^{(1)}}{R^{(0)}p_j^{(0)} + R^{(1)}p_j^{(1)}}.
 ```
 
-Start with a stationary mixture as the identifiable baseline. Add a phase-specific arm only if proxy or intermediate-scale evidence can distinguish schedule effects, and compare schedules at matched total per-component exposure so that a cooldown effect is not confused with simply seeing more copies of a scarce component.
+Start with a stationary mixture as the identifiable baseline.
+Add a phase-specific arm only if proxy or intermediate-scale evidence can distinguish schedule effects, and compare schedules at matched total per-component exposure so that a cooldown effect is not confused with simply seeing more copies of a scarce component.
 ### What should the mixture optimize?
 
-A plausible initial follow-up issue could focus on the project's current Mendelian-trait variant-effect-prediction (VEP) evaluation and treat [DART-Eval](https://arxiv.org/abs/2412.05430) as a separate target. DART-Eval covers regulatory DNA in zero-shot, probing, and fine-tuning settings, and may favor a different data mixture from Mendelian VEP. That difference is scientifically useful and should not be hidden by immediately collapsing every evaluation into one score.
+A plausible initial follow-up issue could focus on the project's current Mendelian-trait variant-effect-prediction (VEP) evaluation and treat [DART-Eval](https://arxiv.org/abs/2412.05430) as a separate target.
+DART-Eval covers regulatory DNA in zero-shot, probing, and fine-tuning settings, and may favor a different data mixture from Mendelian VEP.
+That difference is scientifically useful and should not be hidden by immediately collapsing every evaluation into one score.
 
-Let `s_t(p)` be AUPRC for trait or evaluation subset `t` after training on mixture `p`. Candidate objectives include:
+Let `s_t(p)` be AUPRC for trait or evaluation subset `t` after training on mixture `p`.
+Candidate objectives include:
 
 1. **Macro average:** `U_mean(p) = (1/T) sum_t s_t(p)`
 
@@ -148,7 +188,8 @@ Let `s_t(p)` be AUPRC for trait or evaluation subset `t` after training on mixtu
 
 4. **Baseline-relative constrained improvement**
 
-   Let `p_0` be a pinned baseline or expert proposal. Optimize a predeclared primary utility while requiring every guardrail subset to remain within a tolerance of its baseline score:
+   Let `p_0` be a pinned baseline or expert proposal.
+   Optimize a predeclared primary utility while requiring every guardrail subset to remain within a tolerance of its baseline score:
 
    ```math
    \max_p U_{\mathrm{primary}}(p) - \eta D(p,p_0)
@@ -156,22 +197,27 @@ Let `s_t(p)` be AUPRC for trait or evaluation subset `t` after training on mixtu
    s_t(p) \geq s_t(p_0) - \epsilon_t \;\; \text{for all guardrail subsets } t.
    ```
 
-   This adapts the A2B pattern in the community slides: guard all tasks, improve selected targets, and stay local to the proposal. It may be easier to interpret than collapsing primary and guardrail tasks into one scalar, but the tolerances, distance, and primary target must be preregistered.
+   This adapts the A2B pattern in the community slides: guard all tasks, improve selected targets, and stay local to the proposal.
+   It may be easier to interpret than collapsing primary and guardrail tasks into one scalar, but the tolerances, distance, and primary target must be preregistered.
 #### Which evaluation readout defines the objective?
 
-The optimization metric must also specify how model performance is read out. Candidate definitions are:
+The optimization metric must also specify how model performance is read out.
+Candidate definitions are:
 
 - zero-shot variant scores;
 - one global linear probe shared across applicable subsets; and
 - separate per-subset linear probes.
 
-Avoid defining the objective as the post hoc "best of zero-shot and probe." That gives every mixture multiple chances to win and makes the selected objective depend on evaluation noise. Better options are to:
+Avoid defining the objective as the post hoc "best of zero-shot and probe."
+That gives every mixture multiple chances to win and makes the selected objective depend on evaluation noise.
+Better options are to:
 
 - preregister one readout as primary and report the others as secondary;
 - define a fixed composite of normalized zero-shot and probe scores; or
 - treat the readouts as a multi-objective problem and report a Pareto frontier.
 
-Probe training data, hyperparameter searches, and random seeds must be identical across mixtures. The test split used to report the final comparison must not be used to fit mixture weights.
+Probe training data, hyperparameter searches, and random seeds must be identical across mixtures.
+The test split used to report the final comparison must not be used to fit mixture weights.
 
 ### Can proxy models provide signal at small scale?
 
@@ -186,9 +232,12 @@ For each proxy scale and evaluation readout, estimate:
 - stability over training checkpoints; and
 - Spearman/Kendall rank agreement across proxy sizes and token budgets.
 
-The mixture signal must be distinguishable from run and evaluation noise. If a metric is effectively random at proxy scale, it should not be used as a regression target merely because it is meaningful at large scale. Options are to increase proxy size or duration, use a lower-variance intermediate metric, or stop and record that the proposed optimization is not currently cost-effective.
+The mixture signal must be distinguishable from run and evaluation noise.
+If a metric is effectively random at proxy scale, it should not be used as a regression target merely because it is meaningful at large scale.
+Options are to increase proxy size or duration, use a lower-variance intermediate metric, or stop and record that the proposed optimization is not currently cost-effective.
 
-The community slides sharpen the intermediate-metric option into a concrete open problem: build low-cost, smooth evaluations that emerge at swarm scale and correlate with the intended target-scale objective, because many hard benchmarks show no signal in small proxies. A smooth proxy metric may be used for screening only after its cross-mixture correlation and rank transfer are evaluated on held-out mixtures at one or more larger scales; smoothness alone is not evidence of relevance.
+The community slides sharpen the intermediate-metric option into a concrete open problem: build low-cost, smooth evaluations that emerge at swarm scale and correlate with the intended target-scale objective, because many hard benchmarks show no signal in small proxies.
+A smooth proxy metric may be used for screening only after its cross-mixture correlation and rank transfer are evaluated on held-out mixtures at one or more larger scales; smoothness alone is not evidence of relevance.
 
 ### Proxy-swarm targets: absolute versus relative performance
 
@@ -198,7 +247,9 @@ Possible surrogate targets include:
 2. **Centered or ranked performance:** predict a mixture's rank or its score after centering within a common swarm/evaluation batch.
 3. **Pairwise preference:** predict which of two mixtures performs better, preferably using matched evaluation and training seeds where possible.
 
-Relative targets may suppress shared run-level noise and align directly with the goal of selecting the best mixture. They also discard effect-size information and can become incomparable across independently trained swarms. Include the same anchor mixtures in every swarm batch so batches can be calibrated, and evaluate all target formulations on held-out mixtures.
+Relative targets may suppress shared run-level noise and align directly with the goal of selecting the best mixture.
+They also discard effect-size information and can become incomparable across independently trained swarms.
+Include the same anchor mixtures in every swarm batch so batches can be calibrated, and evaluate all target formulations on held-out mixtures.
 
 Surrogate quality should be judged by selection behavior, not training fit:
 
@@ -215,7 +266,8 @@ For target training budget `R` tokens, component `j` with `N_j` unique tokens an
 ```math
 e_j(p) = \frac{R p_j}{N_j}.
 ```
-This exposes a mismatch between a short proxy run and a long target run. Possible treatments include:
+This exposes a mismatch between a short proxy run and a long target run.
+Possible treatments include:
 
 1. **Hard repetition constraints:** `p_j <= e_j^max N_j / R`
 
@@ -223,19 +275,25 @@ This exposes a mismatch between a short proxy run and a long target run. Possibl
 
 2. **Repetition-aware utility**
 
-   Penalize or discount weights whose implied target-scale epochs enter a diminishing-return regime. The penalty must be fixed from an independent repetition study or estimated in a nested training split, not tuned on the final evaluation.
+   Penalize or discount weights whose implied target-scale epochs enter a diminishing-return regime.
+   The penalty must be fixed from an independent repetition study or estimated in a nested training split, not tuned on the final evaluation.
 
 3. **Simulated target exposure in proxy training**
 
    Construct proxy sampling schedules that reproduce the target run's component-level epoch counts or repetition pattern at reduced compute, then test whether this improves rank transfer.
 
-The first approach follows Olmix's practical recommendation to enforce finite-data feasibility during mixture optimization. The third most directly captures the "simulated epoching" hypothesis. A follow-up experiment could compare them rather than assuming that scarce high-conservation cells must simply be downweighted in the regression itself.
+The first approach follows Olmix's practical recommendation to enforce finite-data feasibility during mixture optimization.
+The third most directly captures the "simulated epoching" hypothesis.
+A follow-up experiment could compare them rather than assuming that scarce high-conservation cells must simply be downweighted in the regression itself.
 
-Report the unconstrained optimum as a diagnostic. A large gap between the unconstrained and feasible optima is evidence that data availability, not only estimated utility, is determining the final recipe.
+Report the unconstrained optimum as a diagnostic.
+A large gap between the unconstrained and feasible optima is evidence that data availability, not only estimated utility, is determining the final recipe.
 
 ### Implementation ideas for follow-up issues
 
-The following are a menu of possible implementation and analysis directions, not a prescribed study or ordered roadmap. The proxy-swarm path is currently the most developed because it appears especially promising, not because this issue has selected it over the alternatives. Each item could become a separate EDA or experiment issue.
+The following are a menu of possible implementation and analysis directions, not a prescribed study or ordered roadmap.
+The proxy-swarm path is currently the most developed because it appears especially promising, not because this issue has selected it over the alternatives.
+Each item could become a separate EDA or experiment issue.
 
 #### Possible comparison: Benchmark optimization approaches
 
@@ -268,7 +326,8 @@ The following are a menu of possible implementation and analysis directions, not
 - Record both sampled weights and realized token counts; assert that sampling noise does not materially change the intended mixtures.
 - Choose swarm size from a documented power/sample-complexity analysis rather than copying a fixed run count from NLP.
 
-Dense versus sparse Dirichlet swarms should be treated as a design choice to validate. With a grid of correlated genomic cells, sparse mixtures may expose cell effects more clearly, while dense mixtures may better resemble feasible target recipes.
+Dense versus sparse Dirichlet swarms should be treated as a design choice to validate.
+With a grid of correlated genomic cells, sparse mixtures may expose cell effects more clearly, while dense mixtures may better resemble feasible target recipes.
 
 #### Possible analysis: Fit and validate surrogates
 
@@ -279,7 +338,8 @@ Compare simple baselines before more flexible regressors:
 - a tree-based model such as LightGBM when the swarm is large enough; and
 - rank or pairwise models for the relative-performance hypothesis.
 
-Use held-out mixtures or nested cross-validation for all model and hyperparameter selection. A flexible regressor with excellent in-swarm fit but poor held-out ranking is not useful.
+Use held-out mixtures or nested cross-validation for all model and hyperparameter selection.
+A flexible regressor with excellent in-swarm fit but poor held-out ranking is not useful.
 
 When optimizing the surrogate:
 
@@ -298,9 +358,11 @@ A confirmatory comparison could train matched models on:
 4. the proxy-predicted robust/minimax mixture; and
 5. a deliberately different or randomly selected held-out mixture.
 
-One risk-reducing option is to validate at an intermediate scale not used to fit the surrogate before comparing the best-supported candidates at the intended target scale. Architecture, tokenizer, optimizer, total training tokens, evaluation protocol, and number of seeds should be matched wherever feasible.
+One risk-reducing option is to validate at an intermediate scale not used to fit the surrogate before comparing the best-supported candidates at the intended target scale.
+Architecture, tokenizer, optimizer, total training tokens, evaluation protocol, and number of seeds should be matched wherever feasible.
 
-This research-question issue does not authorize paid large-scale training or a broad swarm. Any follow-up experiment proposing such a launch must obtain explicit approval.
+This research-question issue does not authorize paid large-scale training or a broad swarm.
+Any follow-up experiment proposing such a launch must obtain explicit approval.
 
 #### Possible follow-up: Test objective specificity with DART-Eval
 
@@ -344,7 +406,8 @@ Depending on which follow-up issues are pursued, useful outputs could include:
 
 ### Evidence that would advance the question
 
-This research question can accumulate evidence across several independent issues. Meaningful progress would include one or more of:
+This research question can accumulate evidence across several independent issues.
+Meaningful progress would include one or more of:
 
 - defining interpretable, versioned mixture components;
 - identifying an evaluation objective with measurable proxy-scale signal;
@@ -372,8 +435,11 @@ This draft makes the following non-blocking interpretations of the transcription
 
 1. "Mendelian traits barne effect prediction" means the current **Mendelian-trait variant-effect-prediction** evaluation, summarized by AUPRC across trait subsets.
 2. "OlmoMix" refers to **Olmix**, the data-mixing framework developed in the OLMo ecosystem, rather than OLMoE or a dataset named OLMo-mix.
-3. "Simulated epoching" means accounting for the number and pattern of times each finite data component would be repeated at the target training budget. If it refers to a specific named method, add that citation and align the experimental arm with its definition.
-4. The initial biological-domain axis is the five v4 specialist partitions used by exp255: CDS, non-promoter cCRE, 3′ UTR, ncRNA exon, and TSS region plus 5′ UTR. Background remains a separate candidate component/control.
+3. "Simulated epoching" means accounting for the number and pattern of times each finite data component would be repeated at the target training budget.
+   If it refers to a specific named method, add that citation and align the experimental arm with its definition.
+4. The initial biological-domain axis is the five v4 specialist partitions used by exp255: CDS, non-promoter cCRE, 3′ UTR, ncRNA exon, and TSS region plus 5′ UTR.
+   Background remains a separate candidate component/control.
 5. DART-Eval is a separate possible follow-up target rather than necessarily part of the same scalar objective as Mendelian VEP.
-6. Evolutionary scale is an optional follow-up axis. If included, nested taxonomic groups must be converted to disjoint buckets or modeled hierarchically so the same data are not counted under multiple weights.
+6. Evolutionary scale is an optional follow-up axis.
+   If included, nested taxonomic groups must be converted to disjoint buckets or modeled hierarchically so the same data are not counted under multiple weights.
 7. Phase-specific mixing means separate weight vectors over the same semantic cells for broad pretraining and cooldown or midtraining; phase is not an additional biological bucket axis.
