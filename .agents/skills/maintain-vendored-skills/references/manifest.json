@@ -20,7 +20,7 @@
       "name": "run-research",
       "deviations": [
         "Use marin-experiment for MarinDNA long-running training jobs.",
-        "Replace unavailable optional See Also entries with MarinDNA research skills."
+        "Replace unavailable optional See Also entries with the MarinDNA experiment launcher."
       ]
     },
     {

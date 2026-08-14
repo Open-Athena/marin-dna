@@ -11,9 +11,9 @@
 
 ## Research
 
-Tracked as GitHub issues under a two-axis label taxonomy: **Kind** selects the issue structure and lifecycle; **Topic** describes the affected system or research area. See [the GitHub communication skill](.agents/skills/communicate-on-github/SKILL.md#classify-issues) for the definitions.
+Research questions are maintained as [reviewed Markdown synthesis](docs/research/questions/index.md). Bounded experiments remain GitHub issues under a two-axis label taxonomy: **Kind** selects the issue structure and lifecycle; **Topic** describes the affected system or research area. See [the GitHub communication skill](.agents/skills/communicate-on-github/SKILL.md#classify-issues) for the definitions.
 
-**By kind** — [research questions](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aresearch-question) (durable, human-declared syntheses) · [experiments](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment) (bounded research with a hypothesis or goal)
+**By kind** — [research questions](docs/research/questions/index.md) (accepted synthesis) · [experiments](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment) (bounded research with a hypothesis or goal)
 
 **By topic** — [evals](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aevals) · [data](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Adata) · [modeling](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Amodeling) · [hyperparameter optimization](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ahyperparameter-optimization) · [interpretation](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Ainterpretation)
 

@@ -146,7 +146,6 @@ Before closing the issue:
 
 ## See Also
 
-- `.agents/skills/maintain-research-question/SKILL.md`
 - `.agents/skills/marin-experiment/SKILL.md`
 - `.agents/skills/task-logbook/SKILL.md`
 - `.agents/skills/update-docs/SKILL.md`

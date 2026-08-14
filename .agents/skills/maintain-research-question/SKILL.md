@@ -1,113 +1,93 @@
 ---
 name: maintain-research-question
-description: Maintain MarinDNA research-question issues as human-declared, living syntheses across related experiments. Use when a human explicitly asks to create a research question, when an existing question needs its answer or evidence updated, or when experiment links must be synchronized in both directions.
+description: Maintain MarinDNA research-question Markdown documents as reviewed synthesis. Use when a human declares a research question, evidence or confidence may change its answer, experiments must be related to a question, a question is superseded or closed, or a legacy research-question issue must be migrated.
 ---
 
 # Maintain Research Question
 
-Use a `research-question` issue for a durable question that outlives any single experiment. The issue body is the current synthesis. Comments preserve material changes over time. Related experiment issues provide the bounded research record.
+Maintain canonical research synthesis under `docs/research/questions/`. A document on `main` is the accepted answer. Experiment issues, logbooks, research branches, source ledgers, and open pull requests may contain newer evidence.
 
-## Read First
+Do not create or maintain active research-question issues. Use GitHub issues for bounded experiments.
 
-- `.agents/skills/communicate-on-github/SKILL.md`
-- `.agents/skills/writing-style/SKILL.md`
-- `.agents/skills/writing-style/issues.md`
-- `.agents/skills/writing-style/ai-writing-donts.md`
-- `.agents/skills/file-issue/SKILL.md`
+## Compose Existing Skills
 
-## Enforce The Human Gate
+- Read `docs/research/questions/README.md`, `index.md`, and `_template.md` for the schema and lifecycle.
+- Use `background-research` for prior work, contradictions, negative search results, and source ledgers.
+- Use `run-research` for bounded experiments and `task-logbook` for append-only records and issue updates.
+- Use `update-docs` when accepted findings change durable guidance.
+- Use `communicate-on-github` for experiment links, migration comments, and pull-request communication.
+- Apply `writing-style`, `reference-docs.md`, `pull-requests.md`, and `ai-writing-donts.md`.
+- Follow `AGENTS.md`, including protected evaluation splits and approval boundaries.
 
-- Create a `research-question` issue only when a human explicitly declares the question or approves its exact scope.
-- If an agent identifies a candidate question, draft or propose it and wait for approval before filing it.
-- Do not broaden, narrow, split, supersede, or close a declared question without explicit human approval.
-- Agents may create bounded `experiment` issues within research the human has already authorized. Use `file-issue` for those issues.
+Do not copy those skills' literature, experiment, logbook, documentation, GitHub, or prose rules here.
 
-## Use The Canonical Body
+## Promote Material Evidence
 
-Keep the body in this order:
+Open or revise a synthesis pull request when evidence changes the answer, a material claim, confidence, an important limitation, the operational consequence, scope, relationships, status, or successor. Keep routine progress, dense results, failures, and one-off analysis in experiment issues, logbooks, permanent branches, W&B, or another artifact store.
 
-```markdown
-## TL;DR
-
-<One plain-text paragraph with the current answer, confidence, and main gap. Do not put links here.>
-
-## Question
-
-<The human-declared question and enough context for a reader who knows genomics and ML but not this thread.>
-
-## Current answer
-
-<Living synthesis of the answer, supporting and contradictory evidence, confidence, and limitations.>
-
-<details>
-<summary>Related work</summary>
-
-<Curated external literature and internal reports, datasets, methods, or neighboring questions. For each item, record the setup, finding, methodological implication, hypotheses or observables it suggests, and the remaining gap.>
-
-</details>
-
-<details>
-<summary>Related experiments</summary>
-
-<Exhaustive list of every experiment issue that informs this question. Use plain #N references and summarize each experiment's current contribution.>
-
-</details>
-
-## Open questions
-
-<Living list of unresolved points and useful next experiments.>
-```
-
-Keep `Related work` curated. Keep `Related experiments` exhaustive.
+Humans approve new question scope and decide when a synthesis pull request may merge. Follow the repository's normal pull-request process and the explicit approval boundary in `AGENTS.md`.
 
 ## Create A Question
 
-1. Confirm that the human has declared or approved the exact question and scope.
-2. Search open and closed research-question issues for duplicates or overlapping scope.
-3. Draft the canonical body. Leave unknown sections explicit instead of inventing an answer.
-4. Add the `research-question` and `agent-generated` labels plus the smallest applicable topic-label set.
-5. File the issue in `Open-Athena/marin-dna` with a unique temporary body file.
-6. Add the new issue to every already-related experiment body's `Links` -> `Research questions` entry.
-7. Re-fetch every changed body and verify the published Markdown and bidirectional links.
+1. Confirm the human-approved question and exclusions.
+2. Search active, superseded, and closed documents for overlapping scope.
+3. Allocate the next unused `RQ-NNNN` identity. Never reuse or renumber an ID.
+4. Copy `_template.md` to `rq-NNNN-short-slug.md` and fill every field and section.
+5. Add the document to `index.md`.
+6. Open a pull request and wait for human review before merge.
 
-If the requested question substantially overlaps an existing one, show the overlap and ask whether to update the existing issue or create a distinct question.
+If the scope overlaps an existing question, show the overlap and ask whether to revise, supersede, or create a distinct document.
 
-## Maintain The Synthesis
+## Revise The Synthesis
 
-Update the question when a linked experiment materially changes the answer, confidence, limitations, or next experiment. Do not update it for routine run progress.
+1. Read the accepted document, open synthesis pull requests, linked experiments and comments, logbooks, permanent branches, source ledgers, and cited literature.
+2. Record the evidence cutoff. Do not imply that `main` includes later evidence.
+3. Separate supporting evidence, contradictory evidence, MarinDNA interpretation, and untested hypotheses.
+4. Update the answer, confidence and limitations, operational consequence, open questions, metadata, and history together.
+5. Preserve commit-pinned evidence and predecessor issue links. Link detailed results instead of copying them.
+6. Update `index.md` when its displayed fields change.
+7. Run the validator and open or update the pull request.
 
-For a material change:
+The branch and pull request hold the proposed answer until merge.
 
-1. Read the current question body and the relevant experiment bodies and updates.
-2. Post an append-only comment beginning with `🤖` that states the new evidence, the synthesis change, confidence, and next implication.
-3. Update the living body so a cold reader does not need the comment history to understand the current state.
-4. Keep the TL;DR link-free and consistent with `Current answer`.
-5. Re-fetch the issue and verify Markdown rendering.
+## Relate Experiments
 
-Historical details stay in experiment comments and logbooks. Do not paste raw logs, dense tables, or a chronological transcript into the question body.
+Relationships are many-to-many links between documents and experiment issues.
 
-## Keep Experiment Links Bidirectional
+1. Verify that each target is an issue with the `experiment` Kind label.
+2. Keep the document's `Related experiments` list exhaustive and state each issue's contribution.
+3. After the document merges, link the experiment issue to the canonical document on `main`.
+4. Propose removals through a pull request, then update the issue after merge.
 
-The relationship between research questions and experiments is many-to-many. Use ordinary issue references, never GitHub sub-issue metadata.
+Never use GitHub sub-issue metadata for question-to-experiment relationships.
 
-When adding a relationship:
+## Supersede Or Close
 
-1. Verify that each referenced issue exists and has the expected `research-question` or `experiment` Kind label. Do not infer an issue from a bare number that resolves to a pull request.
-2. Add the experiment as a plain `#N` reference under the question's `Related experiments` section.
-3. Add the research question as a plain `#N` reference under the experiment's `Links` -> `Research questions` entry. If the experiment predates that structure, add the smallest compatible `Links` section without rewriting its history.
-4. Preserve all other question and experiment links.
-5. Re-fetch both bodies and verify that each side references the other.
+Set `Status` to `superseded` when a successor absorbs the useful scope, and link both documents in `History`. Set it to `closed` when the question is answered, abandoned, or no longer actionable. Retain the final synthesis, evidence, caveats, and stable ID.
 
-Treat removing a relationship as a scope change. Explain the proposed removal and wait for explicit human approval before changing either body.
+## Validate
 
-## Reference Evidence
+Run:
 
-- Use commit-pinned GitHub permalinks for code.
-- Link primary sources and stable artifacts.
-- Distinguish direct evidence, interpretation, and untested hypotheses.
-- Put large logs, tables, or code dumps in the appropriate artifact or a collapsed `<details>` block, following `communicate-on-github`.
-- Never credit the agent in the issue body.
+```bash
+python3 .agents/skills/maintain-research-question/scripts/validate_research_questions.py --root .
+```
 
-## Finish
+## Migrate Legacy Issues
 
-Propose closure when the question is answered, abandoned, or superseded. Update the final TL;DR and current answer, post the conclusion in a `🤖` comment, and wait for explicit human approval before closing the issue.
+Migration is the only research-question issue mutation this skill performs.
+
+1. Inventory open and closed issues carrying the historical `research-question` label.
+2. Generate drafts with `scripts/migrate_legacy_research_questions.py`, then compare every draft with the complete predecessor body. Preserve conclusions, evidence, experiment links, open questions, and the predecessor URL.
+3. Open a migration pull request and wait for review and merge.
+4. After merge, prepend this notice without changing the previous body below it:
+
+   ```markdown
+   > [!IMPORTANT]
+   > This research question is archived. The synthesis is [RQ-NNNN: <title>](<canonical-main-url>). See <migration-pr-url> for the migration review. The original issue body and comments remain below as historical evidence.
+   ```
+
+5. Post one final comment beginning with `🤖` that links the document and migration pull request.
+6. Close formerly open legacy issues. Add the notice to already closed issues without reopening them. Retain the historical label if useful for discovery.
+
+Do not edit legacy issues before the document merges. Do not create a replacement tracker issue or rewrite predecessor comments.

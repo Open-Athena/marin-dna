@@ -25,4 +25,4 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
 ## Repository Lifecycle
 
 - Merge only reusable, maintained framework code and documentation to `main`. Experiments, one-off analyses, competitor baselines, and dead ends remain on permanent branches and are cited with commit-pinned links.
-- Never push directly to `main`, merge or close a pull request, or close a research-question issue without explicit user approval.
+- Never push directly to `main` or merge or close a pull request without explicit user approval. Archive and close a legacy research-question issue only after its canonical document merges.

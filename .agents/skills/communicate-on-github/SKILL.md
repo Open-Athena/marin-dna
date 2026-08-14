@@ -11,7 +11,7 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 
 - Read `writing-style` plus its issue or pull-request guidance before drafting non-trivial prose.
 - Use `file-issue` for the mechanics and base body structures of bugs, tasks, and experiments. This skill supplies MarinDNA's repository-specific policy when the upstream skill differs.
-- Use `maintain-research-question` for creating or changing a research question and for every research-question to experiment relationship.
+- Use `maintain-research-question` for canonical research-question documents and every question-to-experiment relationship. Do not create active research-question issues.
 - Use `task-logbook` and `run-research` for multi-session research records.
 - When `background-research` is part of a GitHub research thread, search the current issue, PRs, permanent experiment branches, logbooks, MarinDNA code and pipeline docs, W&B, and external literature.
 - Use `gh-upload-asset` for an uncommitted plot or artifact that must render on GitHub.
@@ -21,7 +21,7 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 
 - Keep an issue or PR body current when its scope, result, decision, status, or important links change.
 - Keep detailed chronology in append-only comments. Do not make readers reconstruct the current state from the thread.
-- Start long-running experiment and research-question issues with a short, link-free `TL;DR`.
+- Start long-running experiment issues with a short, link-free `TL;DR`.
 - Start a non-trivial PR with a current summary paragraph. Do not require a separate summary heading.
 - Keep citations and artifact links below the opening summary.
 
@@ -30,7 +30,7 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 - Begin every agent-authored issue or PR comment with `🤖`.
 - Add a new comment for a material update. Edit a comment only to fix formatting or a factual error.
 - State what changed, the result, confidence or caveat, and the next action.
-- Update the body as well when the comment changes the current synthesis.
+- Update the body as well when the comment changes the current issue summary.
 
 ## Use Visuals And Collapsed Detail
 
@@ -50,7 +50,7 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 
 Give every issue exactly one Kind label, zero or more Topic labels, and applicable metadata labels. Keep the label set minimal.
 
-- Kinds: `bug` for broken behavior; `task` for a concrete improvement, feature, refactor, build, or documentation change; `experiment` for one bounded unit of research with a hypothesis or goal; `research-question` for a durable human-declared synthesis across experiments.
+- Kinds: `bug` for broken behavior; `task` for a concrete improvement, feature, refactor, build, or documentation change; `experiment` for one bounded unit of research with a hypothesis or goal.
 - Topics: `infrastructure`, `evals`, `data`, `modeling`, `hyperparameter-optimization`, `baselines`, `interpretation`, `communication`, and `documentation`.
 - Metadata: `agent-generated`, `marin`, priority labels, and `epic`. Use `epic` only for engineering decomposition.
 - Add `agent-generated` whenever an agent creates an issue or PR.
@@ -59,17 +59,16 @@ Treat `infrastructure` as a topic. A cluster-tooling improvement is `task` + `in
 
 Treat bounded exploratory analysis as `experiment`. Use `Hypothesis or Goal`; do not add an `eda` kind or mode field. Record a fixed hypothesis, design, primary metric, and stop criteria before execution when preregistration matters, then record deviations. Preregistration is a practice, not a label.
 
-Route every research-question creation, scope change, closure, or experiment-link change to `maintain-research-question`. Do not reproduce that skill's relationship rules here.
+Route every research-question creation, scope change, status change, or experiment-link change to the version-controlled document workflow in `maintain-research-question`. Do not reproduce that skill's relationship rules here.
 
 ## Close Completed Work
 
 - An agent may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and the body and final comment record the outcome.
-- Do not close a research-question issue without explicit user approval.
 - Do not close or merge a pull request without explicit user approval.
 
 ## Preserve Repository Conventions
 
 - Use a stable lowercase branch name: `<agent>/issue-<number>-<summary>` when an issue exists, otherwise `<agent>/<summary>`.
 - Put issue-closing keywords in the PR body, not the title.
-- Use GitHub sub-issue metadata only to decompose one engineering work item. Do not use it for research-question to experiment relationships.
+- Use GitHub sub-issue metadata only to decompose one engineering work item. Do not use it for question-to-experiment relationships.
 - For Hugging Face uploads under `marin-dna/*`, draft the README for human review before uploading. Include a commit-pinned producing pipeline or training-script link, a short provenance description, and `biology, genomics, dna` tags.
