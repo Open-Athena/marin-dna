@@ -2,17 +2,19 @@
 
 ## TL;DR
 
-Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. No experiment establishes a universal region-selection rule across scale and tasks; confidence is moderate that task-aware enrichment helps current models, with unresolved tradeoffs around neutral sequence, repeats, and learned selection.
+Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. No experiment establishes a universal region-selection rule across scale and tasks; confidence is moderate that task-aware enrichment helps current models. We do not know whether repeat downweighting improves performance or how its effect changes with scale.
 
 ## Question
 
-Which regions of a genome should a gLM use for pretraining, and how should we obtain those regions when high-quality annotations or whole-genome alignments are unavailable? For functional tasks such as variant-effect prediction, does enriching for constrained or annotated functional sequence outperform whole-genome training, or does that advantage disappear at sufficient model/data scale or with a different loss weighting or training objective? Can cheap local alignments or a learned single-sequence predictor recover useful functional sequence without a full multiple-genome alignment, and how should repetitive elements be treated? The answer may be task-dependent: sequence evolving approximately neutrally may be low-value for functional-constraint prediction but central to phylogenetic or mutation-process questions.
+Which regions of a genome should a gLM use for pretraining, and how should we obtain those regions when high-quality annotations or whole-genome alignments are unavailable? For functional tasks such as variant-effect prediction, does enriching for constrained or annotated functional sequence outperform whole-genome training, or does that advantage disappear at sufficient model/data scale or with a different loss weighting or training objective? Can cheap local alignments or a learned single-sequence predictor recover useful functional sequence without a full multiple-genome alignment? Does repeat downweighting help, and how does its value change with model and data scale? The answer may be task-dependent: sequence evolving approximately neutrally may be low-value for functional-constraint prediction but central to phylogenetic or mutation-process questions.
 
 ## Current answer
 
 No experiment identifies one universally optimal genomic training footprint. Current MarinDNA results and external ablations support task-aware enrichment at modest scale: region specialists beat mismatched specialists, clean enhancer curation fixes a large VEP failure, and the conservation-filtered footprint covers Mendelian positives much better than complex-trait positives.
 
 The design has three separable controls. Locus selection decides which sequence is present; sampling decides exposure frequency; per-base loss weights decide which observations shape the fitted distribution. A hard filter, importance sampling, and loss weighting should not be treated as interchangeable because they change coverage, repetition, and likelihood semantics differently.
+
+The current 100-fold repeat downweighting has not been ablated across scales. We do not know whether it improves language modeling or downstream performance, or whether any benefit shrinks or grows with scale. Uniform loss is the simpler prior. If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them. This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute. Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks. Confidence is moderate for functional enrichment at current scales and low on how the optimum moves with model size and task.
 
@@ -75,6 +77,8 @@ The next decisive comparison should cross footprint choice with scale while matc
 
 ### How should repetitive elements be handled?
 
+- At several matched FLOP budgets, compare uniform loss with the current 100-fold repeat downweighting while holding footprint and sampling fixed. This should measure whether repeat downweighting helps and how its effect changes with scale.
+- If uniform loss preserves language-modeling and downstream performance, remove repeat-specific loss weights.
 - Compare exclusion, deduplication, soft masking, family/age-aware sampling, and per-base loss downweighting rather than treating “repeat filtering” as one intervention.
 - Which repeat classes mostly create redundant or ambiguous alignment signal, and which carry regulatory, structural, or lineage-specific information?
 - Do repeats help species/phylogeny tasks while hurting functional VEP, and does that tradeoff change with scale?
@@ -94,7 +98,7 @@ The next decisive comparison should cross footprint choice with scale while matc
 
 3. **Task-stratified readout.** Evaluate Mendelian and complex-trait VEP by consequence and conservation stratum, region-matched likelihood gaps, frozen-embedding probes, and at least one outcome expected to benefit from neutral/background sequence.
 
-4. **Scale and objective interaction.** Repeat the most informative contrast at a larger model/token budget and, if justified, under a second objective or weighting scheme. [#87](https://github.com/Open-Athena/marin-dna/issues/87) is the natural home for the repeat/loss-weighting × FLOPs slice.
+4. **Scale and repeat-weighting interaction.** Compare uniform loss with the current repeat downweighting at several model/token budgets while holding footprint, sampling, and objective fixed. If uniform loss preserves likelihood and downstream performance, remove repeat-specific weighting. [#87](https://github.com/Open-Athena/marin-dna/issues/87) first scoped this ablation.
 
 5. **Acquisition-method comparison.** Once the target training distribution is clearer, compare WGA/conservation selection against direct annotation, `mmseqs2`-derived local evolutionary statistics, and a learned single-sequence selector on the same genomes and matched window budget.
 
