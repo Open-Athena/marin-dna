@@ -1,0 +1,26 @@
+{
+  "arms": [
+    "bg",
+    "cds",
+    "utr3",
+    "ncrna_exon",
+    "tss_region_and_utr5",
+    "distal_centered"
+  ],
+  "bootstrap_seed": 459,
+  "dataset": "mendelian_traits",
+  "distal_replacement": "exp351 centered (issue #351)",
+  "n_bootstrap": 1000,
+  "soft_win_tau": 0.645501509308815,
+  "split": "train",
+  "steps": [
+    500,
+    1500,
+    2000,
+    3000,
+    3500,
+    4000,
+    4500,
+    4999
+  ]
+}

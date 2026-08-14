@@ -17,6 +17,12 @@ Welch's unequal-variance `t` changed which subsets were early but not the
 aggregate 2/3/1/1 count, and it continued rising through the missense AUPRC
 decline.
 
+Replacing exp232's contaminated cCRE arm with the independently trained
+exp351-centered distal arm does not change the recommendation. On distal,
+AUPRC and Group SMD both first achieve persistent, bootstrap-supported
+home-arm separation at step 3000. Across the resulting eight specialist
+subsets, Group SMD is earlier/same/later/neither on 3/3/1/1.
+
 ## Primary question: does Brier distinguish the home arm earlier?
 
 No. Define detection at a stored checkpoint by the joint-bootstrap distribution
@@ -109,9 +115,12 @@ are correlated.
 
 ## Evidence
 
-- Scope was development split only: 48 existing exp232 score parquets, seven
-  non-distal consequence subsets, five arms, and 1,000 joint `match_group`
-  bootstrap draws. No inference or held-out evaluation was run.
+- The original scope was development split only: 48 existing exp232 score
+  parquets, seven non-distal consequence subsets, five arms, and 1,000 joint
+  `match_group` bootstrap draws. The replacement-distal extension added eight
+  full offline exp351-centered predictions, then assessed six arms across the
+  seven established specialist subsets plus distal. No held-out labels or
+  metrics were accessed.
 - All 336 exp232 AUPRC cells exactly reproduce the stored `minus_llr_avg`
   values.
 - On the current 22-model `family: marin_dna` leaderboard macro-average,
@@ -159,27 +168,34 @@ are correlated.
   seven subsets (largest absolute difference 0.002643 on 3′UTR). The analysis
   retains and flags those rows rather than silently treating them as parity.
 
-## Distal patch
+## Replacement distal assessment
 
-No compatible exp326/exp351 per-variant score bundle exists, so no distal soft
-metric or interval was fabricated. The aggregate-only patch preserves every
-finite logged point, including duplicate resume records:
+The exp351-centered arm now has full offline Mendelian predictions at steps
+500, 1500, 2000, 3000, 3500, 4000, 4500, and 4999. The augmented assessment
+treats it as the distal home arm and compares it with all five uncontaminated
+exp232 arms. Step 1000 is absent because no durable HF export existed; nothing
+was interpolated.
 
-- exp232 cCRE baseline: 9 offline `evals_v2` points, final AUPRC 0.1268.
-- exp326 no-exon and enhancer-only arms: 14 online `lm_eval` points each, final
-  AUPRC 0.2990 and 0.2719.
-- exp351 tiled and centered arms: 14 and 11 online points, final AUPRC 0.3082
-  and 0.3663. The centered result remains confounded by 9.7 versus 3.7 epochs
-  and both curves are still rising at step 4999.
+| Metric | First persistent distal separation |
+| --- | ---: |
+| AUPRC | 3000 |
+| Group SMD | 3000 |
+| Variant pooled SMD, no-group sensitivity | 3000 |
 
-The distal figure separates exp326 and exp351 comparisons and explicitly labels
-the offline/online protocol difference.
+At step 3000, the home-minus-best-non-home AUPRC margin is 0.1041 (95% joint
+bootstrap interval 0.0226 to 0.1843). The Group-SMD margin is larger at 0.2243
+(0.0438 to 0.4001), but it does not cross the detection rule at an earlier
+stored checkpoint. Both remain supported through the final checkpoint.
 
-Both composite eight-subset AUPRC panels first satisfy the two-recorded-evaluation
-point-estimate rule at step **3000**. This is not a confidence-supported
-all-subset result: distal has no per-variant bootstrap and synonymous has no
-persistent bootstrap-supported specialist win under any metric, including
-AUPRC.
+Across all eight specialist subsets, Group SMD is earlier than AUPRC for
+missense, splicing, and noncoding exon; tied for 5-prime UTR, TSS proximal, and
+distal; later for 3-prime UTR; and neither detects synonymous. The conclusion
+is therefore to report Group SMD beside AUPRC as a scale-invariant effect-size
+diagnostic, not to replace AUPRC or claim a uniformly earlier signal.
+
+The result is still not a controlled training comparison: issue #351 reports
+about 9.7 epochs for exp351-centered versus about 3.7 for its tiled counterpart.
+Checkpoint step aligns optimizer progress, not distinct sequence exposure.
 
 ## Artifact index
 
@@ -216,5 +232,8 @@ AUPRC.
   ECDFs for all seven subsets.
 - `leaderboard/`: 22-model ranking, controls, pairwise confidence comparisons,
   AUPRC parity, and leave-one-experiment-out projections.
+- `augmented-exp232-exp351/`: the six-arm replacement-distal manifest, matched
+  and no-group joint-bootstrap tables, exact AUPRC parity check, and three
+  complete SVG/PNG summaries.
 - `distal/`: exact aggregate trajectories, point-count metadata, and the
-  explicitly limited distal SVG and composite-panel timing table.
+  earlier aggregate-only distal SVG and composite-panel timing table.

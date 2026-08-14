@@ -507,3 +507,71 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   missing and scheduled; no unrelated target appears.
 - Next action: push this stable snapshot, launch the eight approved Sky A10G
   evaluations, and monitor allocation, target selection, and S3 publication.
+
+### 2026-08-14 02:33 UTC - `VEP-SOFT-020` exp351-centered offline evaluation
+
+- Commit Hash: launch wrapper snapshot
+  `f3337e2052c11476662844757156094a07c4aa44`; result snapshot pending.
+- Checkpoints: evaluated the eight durable exp351-centered exports at steps
+  `500, 1500, 2000, 3000, 3500, 4000, 4500, 4999`. Step 1000 remained omitted;
+  no HF export or interpolation was created.
+- Infrastructure: the Sky 0.12.0 runtime setup failed before science work on
+  four initially allocated A10Gs because its runtime rsync lost its working
+  directory. All four failed clusters were terminated. The successful fallback
+  used one spot AWS A10G serially, exact repository commit `f3337e2`, locked
+  `uv` 0.11.31, PyTorch 2.13.0+cu130, and NVIDIA driver 580.178.04. Preflight
+  confirmed CUDA and an NVIDIA A10G with 23,028 MiB VRAM.
+- Checkpoint staging: streamed each authenticated GCS export into the normal S3
+  checkpoint cache without copying credentials to the remote node. Every staged
+  checkpoint contained six objects totaling 1,019,428,071 bytes, including the
+  Snakemake timestamp.
+- Command: the existing `evals_v2` Snakemake profile targeted exactly eight
+  `results/metrics/exp351-centered-step-*/mendelian_traits.parquet` outputs with
+  `--rerun-incomplete`. The post-staging dry-run contained eight score and eight
+  metric jobs and no download or unrelated jobs.
+- Result: all eight GPU score files contain 16,140 development rows and all
+  eight metric files contain 66 rows. Independent downloaded-parquet validation
+  confirmed the required score columns, non-null binary labels and match groups,
+  finite forward/reverse-complement LLRs, all nine raw Mendelian categories,
+  finite metric values, `minus_llr_avg`, and train-only metric metadata.
+- Operational result: each scoring pass held about 2.0 batches/second at full
+  GPU utilization. The existing RoPE-configuration and `WANDB_DISABLED`
+  deprecation warnings recurred without device or numerical failures. All
+  outputs were verified in S3 before the A10G was terminated; final `sky status`
+  showed no live services or in-progress managed jobs.
+
+### 2026-08-14 02:35 UTC - `VEP-SOFT-021` augmented replacement-distal result
+
+- Hypothesis: Group SMD distinguishes the exp351-centered distal home arm from
+  all five non-home exp232 arms earlier than AUPRC.
+- Command: under nonblocking `/tmp/marin-dna-local-heavy.lock`, an in-lock
+  6-GiB/2.0-load start gate, thread caps, `nice -n 10`, and
+  `ionice -c 2 -n 7`, `uv run --locked soft-vep-augmented-analysis
+  --output-dir ../../../.agents/artifacts/459-soft-vep/augmented-exp232-exp351
+  --n-bootstrap 1000 --seed 459`.
+- Primary result: no. On distal, AUPRC and Group SMD both first achieve two
+  consecutive confidence-supported checkpoints at step 3000. At that step the
+  home-minus-best-non-home AUPRC margin is 0.1041 (95% joint-bootstrap interval
+  0.0226 to 0.1843), while the Group-SMD margin is 0.2243 (0.0438 to 0.4001).
+  Group SMD gives a larger standardized separation but not an earlier stored
+  checkpoint detection.
+- Across all eight specialist subsets, Group SMD is earlier/same/later/neither
+  than AUPRC on 3/3/1/1: earlier for missense, splicing, and noncoding exon;
+  tied for 5-prime UTR, TSS proximal, and distal; later for 3-prime UTR; neither
+  detects synonymous. This strengthens the case for reporting Group SMD beside
+  AUPRC as a scale-invariant effect-size diagnostic, not as a replacement.
+- No-group sensitivity: variant pooled SMD, the all-variant-SD gap, and Student
+  `t` are earlier/same/later/neither on 2/4/1/1; Welch `t` is 3/3/1/1. Every
+  ungrouped candidate ties AUPRC at step 3000 on distal.
+- Reproduction check: all 384 recomputed AUPRC cells exactly match the stored
+  metric values; maximum absolute difference is zero.
+- Artifacts: all augmented `*.parquet` tables and
+  `plots/augmented_{distal_metric_trajectories,specialist_metric_detectability_summary,ungrouped_metric_detectability_summary}.{svg,png}`.
+  The three PNGs were visually reviewed at 1859x642, 1600x870, and 1600x675;
+  titles, axes, legends, annotations, and footnotes are complete. A pixel-bound
+  check leaves at least seven pixels of white margin on every edge.
+- Resource record: status 0 in 100.02 seconds, peak RSS 465,876 KiB. Start
+  capacity was 10.9 GiB available at load 1.55; after the first minute RSS was
+  375,908 KiB, 10.7 GiB remained available, and load was 1.86.
+- Commit Hash: result snapshot pending.
+- Publication status: result snapshot and issue #459 synthesis pending.
