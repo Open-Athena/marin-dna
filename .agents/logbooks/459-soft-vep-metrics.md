@@ -714,3 +714,12 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   threshold.
 - Commit Hash: result snapshot pending.
 - Publication status: branch push and issue #459 update pending.
+
+### 2026-08-14 16:10 UTC - `VEP-SOFT-028` complete-grid result snapshot
+
+- Commit Hash: `fe25585a4d4f2961fd00985440dc64766778fa9d`.
+- Snapshot scope: complete ten-step six-arm artifacts; deterministic Cohen d
+  rank-first probability; rank-only, probability-threshold, and margin-interval
+  win-definition sensitivity; refreshed trajectory, pairwise win-percentage, and
+  detection plots; focused tests; and execution/result logbook.
+- Publication status: branch push and issue #459 update pending.
