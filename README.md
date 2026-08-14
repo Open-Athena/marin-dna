@@ -7,11 +7,11 @@
 ## News
 
 - **2026-08-03** — *Blog post* — [A 1B standard Transformer rivals Evo 2 40B on variant effect prediction](https://openathena.ai/blog/marin-dna/).
-- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](https://github.com/Open-Athena/marin-dna/blob/190999b89b573b07026eff58c2c0a8cc8fa74458/docs/posters/cshl26/poster.pdf) at the [CSHL 90th Symposium "AI in Biology"](https://meetings.cshl.edu/meetings.aspx?meet=SYMP&year=26).
+- **2026-05-26** — *Poster* — [Data curation strategies for genomic language models](https://github.com/Open-Athena/marin-dna/blob/190999b89b573b07026eff58c2c0a8cc8fa74458/docs/posters/cshl26/poster.pdf)
 
 ## Research questions
 
-These documents synthesize MarinDNA's current answers and help organize future experiments. Current priorities are an unordered, human-set subset.
+These documents synthesize MarinDNA's current answers and help organize future experiments.
 
 ### Current priorities
 
@@ -30,8 +30,6 @@ These documents synthesize MarinDNA's current answers and help organize future e
 - [Tokenization](docs/research/questions/tokenization.md)
 - [What latent biological features do gLMs learn?](docs/research/questions/latent-features.md)
 - [Which genomic regions to train on, and how to find them?](docs/research/questions/training-regions.md)
-
-Bounded experiments remain [GitHub issues](https://github.com/Open-Athena/marin-dna/issues?q=is%3Aissue+label%3Aexperiment).
 
 ## Resources
 
