@@ -802,3 +802,35 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Cleanup: the AWS waiter confirmed replacement-evaluation instance
   `i-01f638cb3a4ffc929` is terminated. No remote experiment resource remains.
 - Publication status: complete; issue remains open for human review.
+
+### 2026-08-14 16:58 UTC - `VEP-SOFT-033` Group SMD editorial recommendation
+
+- Decision: use Group SMD as the editorial secondary metric wherever meaningful
+  matched groups exist. Keep AUPRC primary. SoftWin remains a stronger but more
+  complex sensitivity analysis; plain Cohen d remains an optional ungrouped
+  effect-size diagnostic rather than the visible recommendation.
+- Definition correction: implemented Group SMD first computes each matched-set
+  gap `gap_g = positive_g - mean(negatives_g)`, then reports
+  `mean(gap_g) / SD(gap_g)`. This is a one-sample standardized distribution of
+  group gaps, not the previously discussed unweighted average of within-gene
+  Cohen d values. Multiple groups are required.
+- Trajectory artifact:
+  `plots/augmented_specialist_auprc_vs_group_smd.{svg,png}` shows every mapped
+  home arm and all five non-home arms for AUPRC and Group SMD, with the home
+  Group SMD match-group-bootstrap interval.
+- Pairwise artifact:
+  `plots/augmented_specialist_group_smd_win_percentage.{svg,png}` shows, for
+  each non-home arm, the fraction of joint group-bootstrap draws where home
+  Group SMD is larger. Black diamonds are the unweighted mean over the five
+  pairwise probabilities.
+- Table: `group_smd_bootstrap_win_probabilities.parquet` contains 400 rows:
+  eight subsets by ten steps by five competitors, with separate home-win,
+  competitor-win, and exact-tie probabilities. Each row sums to one and no
+  exact ties occurred in the 1,000 draws.
+- Visual review: both full figures include all panels, checkpoints, axes,
+  legends, annotations, and footnotes with no clipping.
+- Verification: 31 focused tests passed in 17.04 seconds at 396,328 KiB peak
+  RSS. The 1,000-resample regeneration completed with status 0 in 2:12.42 at
+  486,008 KiB peak RSS; first-minute available memory stayed above 9.8 GiB and
+  load stayed below the 3.0 stop threshold.
+- Publication status: result snapshot and issue #459 replacement pending.

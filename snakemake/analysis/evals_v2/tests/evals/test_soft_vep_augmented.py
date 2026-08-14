@@ -22,10 +22,12 @@ from marin_dna_evals.soft_vep_augmented import (
     compute_closed_form_cohen_d_rank1_probabilities,
     compute_closed_form_cohen_d_specialist_detectability,
     compute_closed_form_cohen_d_win_table,
+    compute_group_smd_bootstrap_win_table,
     compute_win_definition_sensitivity,
     plot_augmented_all_metric_win_sensitivity,
     plot_augmented_distal_trajectories,
     plot_augmented_specialist_closed_form_win_percentage,
+    plot_augmented_specialist_group_smd_win_percentage,
     plot_augmented_specialist_trajectories,
     plot_augmented_win_definition_sensitivity,
 )
@@ -204,6 +206,7 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
 
     point_metrics = pd.DataFrame(point_rows)
     cohen_d_metrics = pd.DataFrame(cohen_d_rows)
+    group_smd_metrics = cohen_d_metrics.assign(metric=GROUP_SMD)
     win_probabilities = compute_closed_form_cohen_d_win_table(cohen_d_metrics)
     rank1_probabilities = compute_closed_form_cohen_d_rank1_probabilities(
         cohen_d_metrics
@@ -226,6 +229,36 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
     assert win_probabilities["uncertainty_method"].eq(
         "independent_normal_closed_form_cohen_d"
     ).all()
+    group_smd_win_probabilities = pd.concat(
+        [
+            compute_group_smd_bootstrap_win_table(
+                pd.DataFrame(
+                    [
+                        {
+                            "draw": draw,
+                            "score_type": arm,
+                            "metric": GROUP_SMD,
+                            "value": (
+                                1.0
+                                if arm == AUGMENTED_SPECIALIST_ARM[subset]
+                                else 0.0
+                            ),
+                        }
+                        for draw in range(3)
+                        for arm in AUGMENTED_ARMS
+                    ]
+                ),
+                subset=subset,
+                step=step,
+            )
+            for subset in AUGMENTED_SUBSETS
+            for step in AUGMENTED_STEPS
+        ],
+        ignore_index=True,
+    )
+    assert len(group_smd_win_probabilities) == 400
+    assert group_smd_win_probabilities["probability_home_better"].eq(1).all()
+    assert group_smd_win_probabilities["probability_tied"].eq(0).all()
     detectability = compute_closed_form_cohen_d_specialist_detectability(
         cohen_d_metrics
     )
@@ -288,8 +321,23 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         cohen_d_metrics,
         tmp_path,
     )
+    group_smd_trajectory_outputs = plot_augmented_specialist_trajectories(
+        point_metrics,
+        group_smd_metrics,
+        tmp_path,
+        secondary_metric=GROUP_SMD,
+        secondary_title="Group SMD",
+        secondary_interval_note=(
+            "Group SMD ribbon: joint match-group bootstrap 95% interval."
+        ),
+        stem="augmented_specialist_auprc_vs_group_smd",
+    )
     win_outputs = plot_augmented_specialist_closed_form_win_percentage(
         win_probabilities,
+        tmp_path,
+    )
+    group_smd_win_outputs = plot_augmented_specialist_group_smd_win_percentage(
+        group_smd_win_probabilities,
         tmp_path,
     )
     sensitivity_outputs = plot_augmented_win_definition_sensitivity(
@@ -305,9 +353,17 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         "plot_augmented_specialist_auprc_vs_cohen_d_svg",
         "plot_augmented_specialist_auprc_vs_cohen_d_png",
     }
+    assert set(group_smd_trajectory_outputs) == {
+        "plot_augmented_specialist_auprc_vs_group_smd_svg",
+        "plot_augmented_specialist_auprc_vs_group_smd_png",
+    }
     assert set(win_outputs) == {
         "plot_augmented_specialist_closed_form_win_percentage_svg",
         "plot_augmented_specialist_closed_form_win_percentage_png",
+    }
+    assert set(group_smd_win_outputs) == {
+        "plot_augmented_specialist_group_smd_win_percentage_svg",
+        "plot_augmented_specialist_group_smd_win_percentage_png",
     }
     assert set(sensitivity_outputs) == {
         "plot_augmented_win_definition_sensitivity_svg",
@@ -321,7 +377,9 @@ def test_full_specialist_and_closed_form_win_plots(tmp_path):
         path.stat().st_size > 0
         for path in (
             *trajectory_outputs.values(),
+            *group_smd_trajectory_outputs.values(),
             *win_outputs.values(),
+            *group_smd_win_outputs.values(),
             *sensitivity_outputs.values(),
             *all_metric_outputs.values(),
         )

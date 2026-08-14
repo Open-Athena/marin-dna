@@ -42,6 +42,7 @@ from marin_dna_evals.soft_vep_analysis import (
 )
 from marin_dna_evals.soft_vep_metrics import (
     AUPRC,
+    GROUP_SMD,
     NORMAL_95_Z,
     VARIANT_POOLED_SMD,
     cohen_d_closed_form_table,
@@ -263,14 +264,21 @@ def plot_augmented_distal_trajectories(
 
 def plot_augmented_specialist_trajectories(
     auprc_metrics: pd.DataFrame,
-    cohen_d_metrics: pd.DataFrame,
+    secondary_metrics: pd.DataFrame,
     output_dir: Path,
+    *,
+    secondary_metric: str = VARIANT_POOLED_SMD,
+    secondary_title: str = "Cohen's d",
+    secondary_interval_note: str = (
+        "Cohen's d ribbon: conventional IID closed-form 95% interval."
+    ),
+    stem: str = "augmented_specialist_auprc_vs_cohen_d",
 ) -> dict[str, Path]:
     """Plot every mapped home arm against all non-home arms for both metrics."""
     output_dir.mkdir(parents=True, exist_ok=True)
     panels = (
         (auprc_metrics, AUPRC, "AUPRC", True),
-        (cohen_d_metrics, VARIANT_POOLED_SMD, "Cohen's d", True),
+        (secondary_metrics, secondary_metric, secondary_title, True),
     )
     fig, axes = plt.subplots(
         len(AUGMENTED_SUBSETS),
@@ -317,7 +325,7 @@ def plot_augmented_specialist_trajectories(
             axis.set_ylabel(METRIC_AXIS_LABELS[metric])
             axis.set_xticks(AUGMENTED_STEPS)
             axis.grid(alpha=0.22, linewidth=0.7)
-            if metric == VARIANT_POOLED_SMD:
+            if metric in {GROUP_SMD, VARIANT_POOLED_SMD}:
                 axis.axhline(0, color="#666666", linewidth=0.7, alpha=0.5)
             if row_index == len(AUGMENTED_SUBSETS) - 1:
                 axis.set_xlabel("Training step")
@@ -376,19 +384,181 @@ def plot_augmented_specialist_trajectories(
         0.008,
         "Development split. Each row maps its specialist to the black diamond "
         "line. AUPRC ribbon: class-stratified variant-bootstrap 95% interval; "
-        "Cohen's d ribbon: conventional IID closed-form 95% interval. Higher is "
-        "better.",
+        f"{secondary_interval_note} Higher is better.",
         ha="center",
         fontsize=8.5,
     )
-    svg_path = output_dir / "augmented_specialist_auprc_vs_cohen_d.svg"
-    png_path = output_dir / "augmented_specialist_auprc_vs_cohen_d.png"
+    svg_path = output_dir / f"{stem}.svg"
+    png_path = output_dir / f"{stem}.png"
     fig.savefig(svg_path, format="svg", bbox_inches="tight")
     fig.savefig(png_path, format="png", dpi=110, bbox_inches="tight")
     plt.close(fig)
     return {
-        "plot_augmented_specialist_auprc_vs_cohen_d_svg": svg_path,
-        "plot_augmented_specialist_auprc_vs_cohen_d_png": png_path,
+        f"plot_{stem}_svg": svg_path,
+        f"plot_{stem}_png": png_path,
+    }
+
+
+def compute_group_smd_bootstrap_win_table(
+    bootstrap_samples: pd.DataFrame,
+    *,
+    subset: str,
+    step: int,
+) -> pd.DataFrame:
+    """Pairwise home-arm Group SMD wins from joint match-group draws."""
+    required = {"draw", "score_type", "metric", "value"}
+    assert required.issubset(bootstrap_samples.columns), (
+        f"bootstrap table missing columns: "
+        f"{sorted(required - set(bootstrap_samples.columns))}"
+    )
+    assert subset in AUGMENTED_SPECIALIST_ARM
+    assert step in AUGMENTED_STEPS
+    selected = bootstrap_samples[bootstrap_samples["metric"] == GROUP_SMD]
+    wide = selected.pivot(index="draw", columns="score_type", values="value")
+    assert set(wide.columns) == set(AUGMENTED_ARMS)
+    home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+    rows: list[dict[str, str | float | int]] = []
+    for competitor_arm in AUGMENTED_ARMS:
+        if competitor_arm == home_arm:
+            continue
+        delta = (wide[home_arm] - wide[competitor_arm]).to_numpy(dtype=float)
+        delta = delta[np.isfinite(delta)]
+        assert len(delta) > 0
+        rows.append(
+            {
+                "subset": subset,
+                "step": step,
+                "home_arm": home_arm,
+                "competitor_arm": competitor_arm,
+                "n_bootstrap": len(delta),
+                "probability_home_better": float(np.mean(delta > 0)),
+                "probability_tied": float(np.mean(delta == 0)),
+                "probability_competitor_better": float(np.mean(delta < 0)),
+                "uncertainty_method": "joint_match_group_bootstrap",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def plot_augmented_specialist_group_smd_win_percentage(
+    win_probabilities: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Plot bootstrap Group SMD home-win probability against every other arm."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    fig, axes = plt.subplots(2, 4, figsize=(17, 8), sharex=True, sharey=True)
+    for axis, subset in zip(axes.flat, AUGMENTED_SUBSETS):
+        subset_data = win_probabilities[win_probabilities["subset"] == subset]
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for competitor_arm in AUGMENTED_ARMS:
+            if competitor_arm == home_arm:
+                continue
+            competitor_data = subset_data[
+                subset_data["competitor_arm"] == competitor_arm
+            ].sort_values("step")
+            assert competitor_data["step"].tolist() == list(AUGMENTED_STEPS)
+            axis.plot(
+                competitor_data["step"],
+                100 * competitor_data["probability_home_better"],
+                color=AUGMENTED_NON_HOME_COLORS[competitor_arm],
+                linestyle=AUGMENTED_ARM_LINESTYLES[competitor_arm],
+                marker="o",
+                markersize=3.5,
+                linewidth=1.3,
+                alpha=0.78,
+            )
+        mean_probability = (
+            subset_data.groupby("step", sort=False)["probability_home_better"]
+            .mean()
+            .reindex(AUGMENTED_STEPS)
+        )
+        assert mean_probability.notna().all()
+        axis.plot(
+            AUGMENTED_STEPS,
+            100 * mean_probability,
+            color="#000000",
+            marker="D",
+            markersize=5,
+            linewidth=2.8,
+            zorder=5,
+        )
+        axis.axhline(50, color="#555555", linestyle=":", linewidth=1)
+        axis.set_title(
+            f"{AUGMENTED_SUBSET_LABELS[subset]}\n"
+            f"home: {AUGMENTED_ARM_LABELS[home_arm]}",
+            fontsize=10,
+        )
+        axis.set_xlabel("Training step")
+        axis.set_ylabel("Bootstrap P(home Group SMD > other) (%)")
+        axis.set_xticks(AUGMENTED_STEPS)
+        axis.tick_params(axis="x", labelrotation=45, labelbottom=True)
+        axis.set_ylim(-2, 103)
+        axis.grid(alpha=0.22, linewidth=0.7)
+
+    legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color="#000000",
+            marker="D",
+            linewidth=2.8,
+            label="mean over non-home arms",
+        )
+    ]
+    legend_handles.extend(
+        Line2D(
+            [0],
+            [0],
+            color=AUGMENTED_NON_HOME_COLORS[arm],
+            linestyle=AUGMENTED_ARM_LINESTYLES[arm],
+            marker="o",
+            linewidth=1.3,
+            label=AUGMENTED_ARM_LABELS[arm],
+        )
+        for arm in AUGMENTED_ARMS
+    )
+    legend_handles.append(
+        Line2D(
+            [0],
+            [0],
+            color="#555555",
+            linestyle=":",
+            label="50% reference",
+        )
+    )
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.045),
+        frameon=False,
+        ncol=4,
+        fontsize=8.5,
+    )
+    fig.suptitle(
+        "How strongly does Group SMD favor the mapped home arm?",
+        fontsize=14,
+        y=0.99,
+    )
+    fig.text(
+        0.5,
+        0.008,
+        "Colored lines are the fraction of joint match-group bootstrap draws "
+        "where home Group SMD exceeds each competitor; black diamonds average "
+        "the five comparisons. Exact ties count as neither and are retained in "
+        "the table.",
+        ha="center",
+        fontsize=8.5,
+    )
+    fig.tight_layout(rect=(0, 0.09, 1, 0.95), h_pad=1.3, w_pad=1.1)
+    stem = "augmented_specialist_group_smd_win_percentage"
+    svg_path = output_dir / f"{stem}.svg"
+    png_path = output_dir / f"{stem}.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return {
+        f"plot_{stem}_svg": svg_path,
+        f"plot_{stem}_png": png_path,
     }
 
 
@@ -1116,6 +1286,7 @@ def run_augmented_analysis(
 
     point_parts: list[pd.DataFrame] = []
     pairwise_parts: list[pd.DataFrame] = []
+    group_smd_win_parts: list[pd.DataFrame] = []
     detectability_parts: list[pd.DataFrame] = []
     ungrouped_point_parts: list[pd.DataFrame] = []
     ungrouped_pairwise_parts: list[pd.DataFrame] = []
@@ -1166,6 +1337,13 @@ def run_augmented_analysis(
             pairwise["step"] = step
             pairwise["subset"] = subset
             pairwise_parts.append(pairwise)
+            group_smd_win_parts.append(
+                compute_group_smd_bootstrap_win_table(
+                    samples,
+                    subset=subset,
+                    step=step,
+                )
+            )
 
             detectability = specialist_detectability_summary(
                 point,
@@ -1216,6 +1394,10 @@ def run_augmented_analysis(
 
     point_metrics = pd.concat(point_parts, ignore_index=True)
     pairwise_deltas = pd.concat(pairwise_parts, ignore_index=True)
+    group_smd_win_probabilities = pd.concat(
+        group_smd_win_parts,
+        ignore_index=True,
+    )
     specialist_detectability = pd.concat(detectability_parts, ignore_index=True)
     ungrouped_point_metrics = pd.concat(ungrouped_point_parts, ignore_index=True)
     cohen_d_metrics = cohen_d_closed_form_table(ungrouped_point_metrics)
@@ -1336,6 +1518,9 @@ def run_augmented_analysis(
             {
                 "point_metrics": point_metrics,
                 "pairwise_deltas": pairwise_deltas,
+                "group_smd_bootstrap_win_probabilities": (
+                    group_smd_win_probabilities
+                ),
                 "specialist_detectability": specialist_detectability,
                 "specialist_detection_timing": specialist_detection_timing,
                 "metric_detection_comparison": metric_detection_comparison,
@@ -1408,8 +1593,27 @@ def run_augmented_analysis(
         )
     )
     outputs.update(
+        plot_augmented_specialist_trajectories(
+            point_metrics,
+            point_metrics,
+            output_dir / "plots",
+            secondary_metric=GROUP_SMD,
+            secondary_title="Group SMD",
+            secondary_interval_note=(
+                "Group SMD ribbon: joint match-group bootstrap 95% interval."
+            ),
+            stem="augmented_specialist_auprc_vs_group_smd",
+        )
+    )
+    outputs.update(
         plot_augmented_specialist_closed_form_win_percentage(
             cohen_d_win_probabilities,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_augmented_specialist_group_smd_win_percentage(
+            group_smd_win_probabilities,
             output_dir / "plots",
         )
     )
