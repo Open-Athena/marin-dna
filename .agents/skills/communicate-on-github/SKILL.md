@@ -11,7 +11,6 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 
 - Read `writing-style` plus its issue or pull-request guidance before drafting non-trivial prose.
 - Use `file-issue` for the mechanics and base body structures of bugs, tasks, and experiments. This skill supplies MarinDNA's repository-specific policy when the upstream skill differs.
-- Use `maintain-research-question` for canonical research-question documents and every question-to-experiment relationship. Do not create active research-question issues.
 - Use `task-logbook` and `run-research` for multi-session research records.
 - When `background-research` is part of a GitHub research thread, search the current issue, PRs, permanent experiment branches, logbooks, MarinDNA code and pipeline docs, W&B, and external literature.
 - Use `gh-upload-asset` for an uncommitted plot or artifact that must render on GitHub.
@@ -59,8 +58,6 @@ Treat `infrastructure` as a topic. A cluster-tooling improvement is `task` + `in
 
 Treat bounded exploratory analysis as `experiment`. Use `Hypothesis or Goal`; do not add an `eda` kind or mode field. Record a fixed hypothesis, design, primary metric, and stop criteria before execution when preregistration matters, then record deviations. Preregistration is a practice, not a label.
 
-Route every research-question creation, scope change, status change, or experiment-link change to the version-controlled document workflow in `maintain-research-question`. Do not reproduce that skill's relationship rules here.
-
 ## Close Completed Work
 
 - An agent may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and the body and final comment record the outcome.
@@ -70,5 +67,5 @@ Route every research-question creation, scope change, status change, or experime
 
 - Use a stable lowercase branch name: `<agent>/issue-<number>-<summary>` when an issue exists, otherwise `<agent>/<summary>`.
 - Put issue-closing keywords in the PR body, not the title.
-- Use GitHub sub-issue metadata only to decompose one engineering work item. Do not use it for question-to-experiment relationships.
+- Use GitHub sub-issue metadata only to decompose one engineering work item.
 - For Hugging Face uploads under `marin-dna/*`, draft the README for human review before uploading. Include a commit-pinned producing pipeline or training-script link, a short provenance description, and `biology, genomics, dna` tags.
