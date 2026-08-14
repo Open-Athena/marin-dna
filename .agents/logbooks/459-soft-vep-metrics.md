@@ -787,3 +787,18 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   comparison plot, reproducible implementation, focused tests, and the
   evidence-based correction to the Cohen d recommendation.
 - Publication status: branch push and issue #459 correction pending.
+
+### 2026-08-14 16:38 UTC - `VEP-SOFT-032` reranking publication
+
+- Publication: issue #459 now keeps AUPRC as the only universal required metric,
+  makes Group SMD an optional grouped analysis, describes SoftWin as the
+  strongest but more complex examined detector, and demotes Cohen d to an
+  optional interpretable effect size.
+- Figure: the visible complete-grid heatmap compares all previously examined
+  metrics under persistent point-rank, 95% joint rank-probability, and 95%
+  margin-interval rules. The commit-pinned PNG was fetched from GitHub and
+  visually checked at full resolution; every row, column, annotation, legend,
+  and footnote is present with no clipping.
+- Cleanup: the AWS waiter confirmed replacement-evaluation instance
+  `i-01f638cb3a4ffc929` is terminated. No remote experiment resource remains.
+- Publication status: complete; issue remains open for human review.
