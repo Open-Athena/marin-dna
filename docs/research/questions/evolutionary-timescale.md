@@ -21,8 +21,8 @@ The leading strategy is broad pretraining followed by target-clade adaptation or
 <details>
 <summary>Related work</summary>
 
-- [#287](https://github.com/Open-Athena/marin-dna/issues/287) asks whether explicit species or clade conditioning can expose taxonomic context that sequence-only training must infer. Conditioning could reduce the need to choose one static timescale, but no matched MarinDNA conditioning ablation exists.
-- [#391](https://github.com/Open-Athena/marin-dna/issues/391) asks whether shallower evolutionary context helps complex-trait VEP. GPN-Star’s mammal and primate models lead different complex-trait endpoints, so the relevant comparison is endpoint-specific rather than a generic “closer is better” claim.
+- [Does conditioning on species/clade help?](species-conditioning.md) asks whether explicit species or clade conditioning can expose taxonomic context that sequence-only training must infer. Conditioning could reduce the need to choose one static timescale, but no matched MarinDNA conditioning ablation exists.
+- [Why do MarinDNA models lag on complex-trait VEP?](complex-trait-vep.md) asks whether shallower evolutionary context helps complex-trait VEP. GPN-Star’s mammal and primate models lead different complex-trait endpoints, so the relevant comparison is endpoint-specific rather than a generic “closer is better” claim.
 - The distinction between nominal and effective breadth is methodological: annotation, whole-genome alignment, and human-anchored nucleotide projection admit different distant species even under the same taxonomic label. Future comparisons should report realized per-species tokens and locus coverage, not only the requested clade.
 
 </details>
