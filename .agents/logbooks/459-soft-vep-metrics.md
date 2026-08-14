@@ -594,3 +594,38 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Verification: the primary commit-pinned raw PNG returns HTTP 200 with
   `image/png`. All seven stale issue-body links and the completion-comment links
   were replaced with the exact SHA.
+
+### 2026-08-14 15:02 UTC - `VEP-SOFT-024` complete checkpoint-grid launch prep
+
+- Human direction: fill both missing synchronized points, steps 1000 and 2500.
+  This supersedes the earlier instruction not to create the exp351 step-1000 HF
+  export. No interpolation or held-out evaluation is permitted.
+- Inventory: all six arms have native checkpoints at the complete grid
+  `500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 4999`. Two HF exports
+  are missing: exp351-centered step 1000 and exp232 ncRNA-exon step 2500. Four
+  offline Mendelian development cells are missing: those two plus exp351-centered
+  step 2500 and exp232 TSS/5-prime-UTR step 2500.
+- Issue #439 audit: sampled exp351-centered, exp232 ncRNA-exon, and exp232 TSS
+  exports all report producer Transformers 4.57.6, top-level
+  `rope_theta=500000`, the complete Llama-3 `rope_scaling` dictionary, and no
+  `rope_parameters`. The consumer is also locked to Transformers 4.57.6, so the
+  known Transformers-5-producer/Transformers-4-consumer corruption does not
+  affect this grid. The new exporter fails closed on these exact fields.
+- Export boundary: pinned Marin-Levanter
+  `0.2.31.dev202606291014`, JAX/JAXlib 0.10.0, and Transformers 4.57.6 in a
+  one-off locked project. The two native checkpoints are about 3.06 GB each;
+  export and inference run remotely on one on-demand AWS A10G.
+- Verification: 36 focused soft-VEP tests pass in 11.00 seconds at 331,224 KiB
+  peak RSS; exporter AST, Sky YAML structure, lock consistency, and
+  `git diff --check` pass. The exact four-target Snakemake dry-run contains four
+  `download_model`, four `compute_scores`, and four `compute_metrics` jobs and
+  no unrelated targets.
+- Resource exception: the local Snakemake dry-run unexpectedly peaked at
+  1,061,744 KiB despite doing no model work, above this node's 500 MiB workload
+  ceiling. It completed in 6.39 seconds before intervention was possible. Do not
+  repeat Snakemake planning locally; the launch task repeats the dry-run remotely.
+- Commit Hash: implementation snapshot
+  `f8d909d4b819836863e8d90cacb1b6c7da4005bc`.
+- Publication status: no paid job launched and issue #459 not yet updated for
+  this extension. Next action is to push a logbook snapshot, launch the one
+  exact remote task, and monitor export-schema and target-selection gates.
