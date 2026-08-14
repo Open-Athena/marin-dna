@@ -462,5 +462,6 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   variant bootstrap, AUPRC timing benchmark, adversarial missense check, eight
   result tables, six figures, focused tests, README, decision summary, and
   logbook.
-- Publication status: committed on `codex/issue-459-soft-vep-metrics`; branch
-  push and issue #459 update pending.
+- Publication status: snapshot pushed on `codex/issue-459-soft-vep-metrics`;
+  issue #459 body updated and result summarized in
+  [comment 5287958607](https://github.com/Open-Athena/marin-dna/issues/459#issuecomment-5287958607).
