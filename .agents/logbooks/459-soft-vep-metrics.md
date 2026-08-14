@@ -492,3 +492,18 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Commit Hash: launch snapshot pending.
 - Publication status: implementation and tests in progress; no paid job launched
   and no issue update posted yet.
+
+### 2026-08-14 01:35 UTC - `VEP-SOFT-019` launch snapshot
+
+- Commit Hash: `02a9610f912061d609a06c81947f96735c576c72`.
+- Snapshot scope: eight exp351-centered model registry entries, the explicit
+  six-arm by eight-checkpoint manifest, matched and no-group bootstrap analyses,
+  three SVG/PNG visual summaries, regression tests, and operating documentation.
+- Verification: 29 focused issue tests pass; the suite peaked at 319,768 KiB RSS.
+  Python compilation and `git diff --check` pass. Ruff is not installed in the
+  locked project environment, so no Ruff result is claimed.
+- Exact Snakemake dry-run: 24 jobs, comprising eight `download_model`, eight
+  `compute_scores`, and eight `compute_metrics` jobs. Every expected output is
+  missing and scheduled; no unrelated target appears.
+- Next action: push this stable snapshot, launch the eight approved Sky A10G
+  evaluations, and monitor allocation, target selection, and S3 publication.
