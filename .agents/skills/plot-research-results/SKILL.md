@@ -25,4 +25,4 @@ Build the figure around the scientific comparison it must support.
 
 - Emit SVG by default for a static figure. Add PNG, PDF, or another format only when a downstream consumer requires it.
 - Inspect the rendered artifact before publishing it. Check labels, clipping, legend order, facet consistency, numeric scales, and whether the visual supports the stated takeaway.
-- Use `gh-upload-asset` when an uncommitted figure must render in a GitHub issue, pull request, or Markdown document.
+- Store figures under `.agents/artifacts/<topic>/` and commit them to the permanent task or research branch. Use a raw commit-pinned URL when a figure must render in a GitHub issue, pull request, or Markdown document.

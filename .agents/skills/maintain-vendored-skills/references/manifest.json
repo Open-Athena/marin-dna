@@ -43,7 +43,6 @@
     "develop-snakemake-pipelines",
     "maintain-research-question",
     "maintain-vendored-skills",
-    "gh-upload-asset",
     "marin-experiment",
     "plot-research-results"
   ]
