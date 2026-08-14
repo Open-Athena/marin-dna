@@ -33,6 +33,7 @@ dependencies = [
 
 [project.scripts]
 soft-vep-analysis = "marin_dna_evals.soft_vep_analysis:main"
+soft-vep-augmented-analysis = "marin_dna_evals.soft_vep_augmented:main"
 soft-vep-distal-patch = "marin_dna_evals.soft_vep_distal:main"
 soft-vep-leaderboard-analysis = "marin_dna_evals.soft_vep_leaderboard:main"
 

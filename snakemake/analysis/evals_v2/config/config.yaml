@@ -505,6 +505,43 @@ models:
     window_size: 255
     datasets: [mendelian_traits]
 
+  # exp351 centered-enhancer arm (issue #351), used in issue #459 as the
+  # replacement for exp232's contaminated cCRE/distal arm. Step 1000 has no HF
+  # export, so the augmented offline assessment uses the eight checkpoints that
+  # intersect the existing exp232 score grid. 255 bp + BOS; Qwen3-0.25B.
+  - name: exp351-centered-step-500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # exp255 — order-deduplicated per-region 0.25B (issue #255). The 19-species
   # one-per-order cohort counterpart to exp232's 108-species family arms, for the
   # two largest v4 slices (cds, ccre_non_promoter). Final step-4999 checkpoints —

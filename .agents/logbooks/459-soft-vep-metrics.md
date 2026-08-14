@@ -465,3 +465,30 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
 - Publication status: snapshot pushed on `codex/issue-459-soft-vep-metrics`;
   issue #459 body updated and result summarized in
   [comment 5287958607](https://github.com/Open-Athena/marin-dna/issues/459#issuecomment-5287958607).
+
+### 2026-08-14 01:30 UTC - `VEP-SOFT-018` exp351-centered replacement design
+
+- Hypothesis: replacing exp232's contaminated cCRE arm with the independently
+  trained exp351-centered enhancer arm changes whether Group SMD or variant
+  pooled SMD distinguishes the distal home arm earlier than AUPRC.
+- Design: retain the five uncontaminated exp232 arms, add exp351-centered as the
+  sixth arm, and evaluate all six on the same Mendelian development rows. The
+  augmented assessment covers the original seven consequence subsets plus
+  `distal`; exp351-centered is the distal home arm and a non-home competitor in
+  the other seven subsets.
+- Checkpoints: `500, 1500, 2000, 3000, 3500, 4000, 4500, 4999`. Step 1000 has a
+  native Levanter checkpoint but no durable HF export. Per human direction, do
+  not create that export and do not interpolate it.
+- Planned inference: eight full offline Mendelian train-split score and metric
+  targets, one per available exp351-centered checkpoint, through the existing
+  `evals_v2` A10G Sky workflow. Paid remote evaluation was explicitly approved.
+- Primary analysis: the same joint `match_group` bootstrap and
+  home-minus-best-non-home detectability rule used for exp232, with Group SMD
+  benchmarked against AUPRC. The no-group sensitivity repeats the
+  class-stratified variant bootstrap with variant pooled SMD.
+- Known limitation: issue #351 reports that exp351-centered saw about 9.7
+  epochs versus about 3.7 for its tiled counterpart; checkpoint step aligns
+  optimizer progress, not distinct sequence exposure.
+- Commit Hash: launch snapshot pending.
+- Publication status: implementation and tests in progress; no paid job launched
+  and no issue update posted yet.

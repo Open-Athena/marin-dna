@@ -423,9 +423,11 @@ def specialist_detectability_summary(
     *,
     subset: str,
     metrics: tuple[str, ...] = DETECTABILITY_METRICS,
+    arms: tuple[str, ...] = ARMS,
+    specialist_by_subset: dict[str, str] = SPECIALIST_ARM,
 ) -> pd.DataFrame:
     """Home-arm rank, margin, and rank-first frequency for one subset/step."""
-    assert subset in SPECIALIST_ARM, f"unknown specialist subset {subset!r}"
+    assert subset in specialist_by_subset, f"unknown specialist subset {subset!r}"
     required_point = {"score_type", "metric", "value"}
     required_samples = {"draw", "score_type", "metric", "value"}
     assert required_point.issubset(point.columns), (
@@ -435,11 +437,11 @@ def specialist_detectability_summary(
         "bootstrap table missing columns: "
         f"{sorted(required_samples - set(bootstrap_samples.columns))}"
     )
-    home_arm = SPECIALIST_ARM[subset]
+    home_arm = specialist_by_subset[subset]
     rows: list[dict[str, str | float | int | bool]] = []
     for metric in metrics:
         metric_point = point[point["metric"] == metric].set_index("score_type")["value"]
-        assert set(metric_point.index.astype(str)) == set(ARMS), (
+        assert set(metric_point.index.astype(str)) == set(arms), (
             f"detectability requires all arms for {subset!r}/{metric!r}"
         )
         sign = 1.0 if HIGHER_IS_BETTER[metric] else -1.0
@@ -452,12 +454,12 @@ def specialist_detectability_summary(
         metric_samples = bootstrap_samples[bootstrap_samples["metric"] == metric].pivot(
             index="draw", columns="score_type", values="value"
         )
-        assert set(metric_samples.columns.astype(str)) == set(ARMS), (
+        assert set(metric_samples.columns.astype(str)) == set(arms), (
             f"bootstrap detectability requires all arms for {subset!r}/{metric!r}"
         )
         oriented_samples = metric_samples * sign
         draw_margins = oriented_samples[home_arm] - oriented_samples[
-            list(set(ARMS) - {home_arm})
+            [arm for arm in arms if arm != home_arm]
         ].max(axis=1)
         finite_margins = draw_margins[np.isfinite(draw_margins)]
         assert not finite_margins.empty, (
@@ -491,6 +493,8 @@ def specialist_detectability_summary(
 
 def persistent_specialist_detectability(
     detectability: pd.DataFrame,
+    *,
+    synchronized_steps: tuple[int, ...] = SYNCHRONIZED_STEPS,
 ) -> pd.DataFrame:
     """First of two consecutive confidence-supported synchronized steps."""
     required = {
@@ -506,7 +510,7 @@ def persistent_specialist_detectability(
         f"{sorted(required - set(detectability.columns))}"
     )
     rows: list[dict[str, str | float | int | bool | None]] = []
-    synchronized = detectability[detectability["step"].isin(SYNCHRONIZED_STEPS)]
+    synchronized = detectability[detectability["step"].isin(synchronized_steps)]
     for (subset, metric), frame in synchronized.groupby(
         ["subset", "metric"],
         sort=False,
@@ -1096,6 +1100,7 @@ def compare_metric_detection_timing(
     timing: pd.DataFrame,
     *,
     metrics: tuple[str, ...] = DETECTABILITY_METRICS,
+    subsets: tuple[str, ...] = NON_DISTAL_SUBSETS,
 ) -> pd.DataFrame:
     """Count earlier, tied, later, and jointly absent detections versus AUPRC."""
     assert metrics[0] == AUPRC, "AUPRC must be the timing reference"
@@ -1103,7 +1108,7 @@ def compare_metric_detection_timing(
         index="subset",
         columns="metric",
         values="earliest_persistent_detected_step",
-    ).reindex(NON_DISTAL_SUBSETS)
+    ).reindex(subsets)
     assert set(metrics).issubset(wide.columns)
     rows: list[dict[str, str | int]] = []
     for metric in metrics:
@@ -1148,6 +1153,7 @@ def plot_metric_detectability_summary(
     title: str = (
         "Do any candidate metrics distinguish the home arm earlier than AUPRC?"
     ),
+    subsets: tuple[str, ...] = NON_DISTAL_SUBSETS,
 ) -> dict[str, Path]:
     """Summarize earliest supported separation for every candidate metric."""
     assert metrics[0] == AUPRC, "AUPRC must be the timing reference"
@@ -1160,6 +1166,7 @@ def plot_metric_detectability_summary(
         "non_coding_transcript_exon_variant": "noncoding exon",
         "5_prime_UTR_variant": "5′ UTR",
         "tss_proximal": "TSS proximal",
+        "distal": "distal",
     }
     timing_wide = (
         timing.pivot(
@@ -1167,7 +1174,7 @@ def plot_metric_detectability_summary(
             columns="subset",
             values="earliest_persistent_detected_step",
         )
-        .reindex(index=metrics, columns=NON_DISTAL_SUBSETS)
+        .reindex(index=metrics, columns=subsets)
         .astype(float)
     )
     fig, (heat_axis, count_axis) = plt.subplots(
@@ -1185,8 +1192,8 @@ def plot_metric_detectability_summary(
         vmax=4999,
     )
     heat_axis.set_xticks(
-        np.arange(len(NON_DISTAL_SUBSETS)),
-        [display_subsets[subset] for subset in NON_DISTAL_SUBSETS],
+        np.arange(len(subsets)),
+        [display_subsets[subset] for subset in subsets],
         rotation=30,
         ha="right",
     )
@@ -1196,7 +1203,7 @@ def plot_metric_detectability_summary(
     )
     heat_axis.set_title("First persistent separation step")
     heat_axis.set_xticks(
-        np.arange(-0.5, len(NON_DISTAL_SUBSETS), 1),
+        np.arange(-0.5, len(subsets), 1),
         minor=True,
     )
     heat_axis.set_yticks(
@@ -1206,7 +1213,7 @@ def plot_metric_detectability_summary(
     heat_axis.grid(which="minor", color="white", linewidth=1.5)
     heat_axis.tick_params(which="minor", bottom=False, left=False)
     for row_index, metric in enumerate(metrics):
-        for column_index, subset in enumerate(NON_DISTAL_SUBSETS):
+        for column_index, subset in enumerate(subsets):
             value = timing_wide.loc[metric, subset]
             if pd.isna(value):
                 label = "ND"
@@ -1263,8 +1270,8 @@ def plot_metric_detectability_summary(
         y_positions,
         [DETECTABILITY_LABELS[metric] for metric in comparison_indexed.index],
     )
-    count_axis.set_xlim(0, len(NON_DISTAL_SUBSETS))
-    count_axis.set_xticks(range(len(NON_DISTAL_SUBSETS) + 1))
+    count_axis.set_xlim(0, len(subsets))
+    count_axis.set_xticks(range(len(subsets) + 1))
     count_axis.invert_yaxis()
     count_axis.set_xlabel("Number of consequence subsets")
     count_axis.set_title("Timing relative to AUPRC")

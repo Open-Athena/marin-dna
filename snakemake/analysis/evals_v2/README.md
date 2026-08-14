@@ -338,6 +338,37 @@ and the W&B client version. The panel summary records the issue's two-evaluation
 point-estimate rule and marks the unavailable distal soft/bootstrap cells. It
 intentionally emits no distal soft metric or uncertainty interval.
 
+#### exp351-centered replacement assessment
+
+For the issue #459 sensitivity assessment, `soft-vep-augmented-analysis` treats
+the exp351-centered enhancer arm from issue #351 as the replacement for exp232's
+contaminated cCRE/distal arm. It keeps the five uncontaminated exp232 arms and
+adds exp351-centered as the sixth arm. The comparison therefore covers all eight
+Mendelian consequence subsets: exp351-centered is the mapped home arm for
+`distal` and a non-home competitor for the original seven subsets.
+
+The synchronized checkpoint grid is `500, 1500, 2000, 3000, 3500, 4000, 4500,
+4999`. Step 1000 is deliberately absent because exp351-centered has a native
+checkpoint but no durable HF export; this assessment does not export or
+interpolate it.
+
+After the eight exp351-centered offline Mendelian score bundles have been
+produced, run:
+
+```bash
+uv run --locked soft-vep-augmented-analysis \
+  --output-dir ../../../.agents/artifacts/459-soft-vep/augmented-exp232-exp351 \
+  --n-bootstrap 1000 \
+  --seed 459
+```
+
+This emits the same matched-group and no-group detectability tables as the
+original exp232 assessment, with six-arm home-versus-best-non-home margins.
+`plots/augmented_distal_metric_trajectories.{svg,png}` shows distal AUPRC, Group
+SMD, and variant pooled SMD for all six arms. The two augmented detectability
+summary figures add `distal` to the original seven consequence subsets. Only the
+development split is read.
+
 The companion current-leaderboard pass selects every `family: marin_dna` model
 with Mendelian coverage from `dashboard/models.yaml`, computes the same metric
 panel and joint model bootstrap, and cross-fits an isotonic soft-to-AUPRC map by
