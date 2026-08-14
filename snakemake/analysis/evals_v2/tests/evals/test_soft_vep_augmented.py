@@ -15,7 +15,10 @@ from marin_dna_evals.soft_vep_augmented import (
     AUGMENTED_SUBSETS,
     DISTAL_ARM,
     augmented_manifest,
+    compute_closed_form_cohen_d_win_table,
     plot_augmented_distal_trajectories,
+    plot_augmented_specialist_closed_form_win_percentage,
+    plot_augmented_specialist_trajectories,
 )
 from marin_dna_evals.soft_vep_metrics import AUPRC, GROUP_SMD, VARIANT_POOLED_SMD
 
@@ -142,3 +145,73 @@ def test_augmented_timing_and_distal_plot(tmp_path):
         "plot_augmented_distal_metric_trajectories_png",
     }
     assert all(path.stat().st_size > 0 for path in outputs.values())
+
+
+def test_full_specialist_and_closed_form_win_plots(tmp_path):
+    point_rows = []
+    cohen_d_rows = []
+    for subset in AUGMENTED_SUBSETS:
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for step in AUGMENTED_STEPS:
+            for arm_index, arm in enumerate(AUGMENTED_ARMS):
+                point_rows.append(
+                    {
+                        "arm": arm,
+                        "step": step,
+                        "subset": subset,
+                        "metric": AUPRC,
+                        "value": 0.2 + arm_index / 100 + step / 100_000,
+                    }
+                )
+                value = 1.0 if arm == home_arm else 0.0
+                cohen_d_rows.append(
+                    {
+                        "arm": arm,
+                        "step": step,
+                        "subset": subset,
+                        "metric": VARIANT_POOLED_SMD,
+                        "value": value,
+                        "se": 2**-0.5,
+                        "ci_low": value - 0.1,
+                        "ci_high": value + 0.1,
+                    }
+                )
+
+    point_metrics = pd.DataFrame(point_rows)
+    cohen_d_metrics = pd.DataFrame(cohen_d_rows)
+    win_probabilities = compute_closed_form_cohen_d_win_table(cohen_d_metrics)
+
+    assert len(win_probabilities) == (
+        len(AUGMENTED_SUBSETS)
+        * len(AUGMENTED_STEPS)
+        * (len(AUGMENTED_ARMS) - 1)
+    )
+    assert win_probabilities["win_probability"].to_numpy() == pytest.approx(
+        0.8413447460685429
+    )
+    assert win_probabilities["uncertainty_method"].eq(
+        "independent_normal_closed_form_cohen_d"
+    ).all()
+
+    trajectory_outputs = plot_augmented_specialist_trajectories(
+        point_metrics,
+        cohen_d_metrics,
+        tmp_path,
+    )
+    win_outputs = plot_augmented_specialist_closed_form_win_percentage(
+        win_probabilities,
+        tmp_path,
+    )
+
+    assert set(trajectory_outputs) == {
+        "plot_augmented_specialist_auprc_vs_cohen_d_svg",
+        "plot_augmented_specialist_auprc_vs_cohen_d_png",
+    }
+    assert set(win_outputs) == {
+        "plot_augmented_specialist_closed_form_win_percentage_svg",
+        "plot_augmented_specialist_closed_form_win_percentage_png",
+    }
+    assert all(
+        path.stat().st_size > 0
+        for path in (*trajectory_outputs.values(), *win_outputs.values())
+    )

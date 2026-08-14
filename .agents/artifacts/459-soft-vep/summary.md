@@ -244,7 +244,11 @@ Checkpoint step aligns optimizer progress, not distinct sequence exposure.
   AUPRC parity, and leave-one-experiment-out projections.
 - `augmented-exp232-exp351/`: the six-arm replacement-distal manifest, matched
   and no-group joint-bootstrap tables, exact AUPRC parity check,
-  `cohen_d_closed_form.parquet`, and complete SVG/PNG summaries. The primary
-  distal plot shows AUPRC and Cohen's `d` for all six arms.
+  `cohen_d_closed_form.parquet`,
+  `cohen_d_closed_form_win_probabilities.parquet`, and complete SVG/PNG
+  summaries. The primary specialist plot shows AUPRC and Cohen's `d` for all
+  six arms across all eight subsets. The companion win-percentage plot uses the
+  independent-normal closed form for every home-versus-non-home Cohen's `d`
+  comparison.
 - `distal/`: exact aggregate trajectories, point-count metadata, and the
   earlier aggregate-only distal SVG and composite-panel timing table.

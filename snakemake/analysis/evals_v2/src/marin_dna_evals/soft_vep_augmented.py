@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import polars as pl
+from matplotlib.lines import Line2D
+from scipy.special import ndtr
 
 from marin_dna_evals.soft_vep_analysis import (
     ARMS,
@@ -66,6 +68,17 @@ AUGMENTED_ARM_LABELS = {
     "ncrna_exon": "exp232 ncRNA exon",
     "tss_region_and_utr5": "exp232 TSS/5′ UTR",
     DISTAL_ARM: "exp351 centered distal",
+}
+AUGMENTED_NON_HOME_COLORS = {**AUGMENTED_ARM_COLORS, DISTAL_ARM: "#9467BD"}
+AUGMENTED_SUBSET_LABELS = {
+    "missense_variant": "Missense",
+    "synonymous_variant": "Synonymous",
+    "splicing": "Splicing",
+    "3_prime_UTR_variant": "3′ UTR",
+    "non_coding_transcript_exon_variant": "Noncoding exon",
+    "5_prime_UTR_variant": "5′ UTR",
+    "tss_proximal": "TSS proximal",
+    "distal": "Distal",
 }
 
 
@@ -210,6 +223,311 @@ def plot_augmented_distal_trajectories(
     return {
         "plot_augmented_distal_metric_trajectories_svg": svg_path,
         "plot_augmented_distal_metric_trajectories_png": png_path,
+    }
+
+
+def plot_augmented_specialist_trajectories(
+    point_metrics: pd.DataFrame,
+    cohen_d_metrics: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Plot every mapped home arm against all non-home arms for both metrics."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    panels = (
+        (point_metrics, AUPRC, "AUPRC", False),
+        (cohen_d_metrics, VARIANT_POOLED_SMD, "Cohen's d", True),
+    )
+    fig, axes = plt.subplots(
+        len(AUGMENTED_SUBSETS),
+        len(panels),
+        figsize=(14.5, 22),
+        sharex=True,
+        squeeze=False,
+    )
+    for row_index, subset in enumerate(AUGMENTED_SUBSETS):
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for column_index, (table, metric, title, show_interval) in enumerate(panels):
+            axis = axes[row_index, column_index]
+            metric_data = table[
+                (table["subset"] == subset) & (table["metric"] == metric)
+            ]
+            for arm in AUGMENTED_ARMS:
+                arm_data = metric_data[metric_data["arm"] == arm].sort_values("step")
+                assert arm_data["step"].tolist() == list(AUGMENTED_STEPS)
+                is_home = arm == home_arm
+                color = "#000000" if is_home else AUGMENTED_NON_HOME_COLORS[arm]
+                axis.plot(
+                    arm_data["step"],
+                    arm_data["value"],
+                    color=color,
+                    linestyle="-" if is_home else AUGMENTED_ARM_LINESTYLES[arm],
+                    marker="D" if is_home else "o",
+                    markersize=5.0 if is_home else 3.0,
+                    linewidth=2.8 if is_home else 1.2,
+                    alpha=1.0 if is_home else 0.72,
+                    zorder=4 if is_home else 2,
+                )
+                if is_home and show_interval:
+                    axis.fill_between(
+                        arm_data["step"],
+                        arm_data["ci_low"],
+                        arm_data["ci_high"],
+                        color="#000000",
+                        alpha=0.11,
+                        linewidth=0,
+                        zorder=1,
+                    )
+            if row_index == 0:
+                axis.set_title(title, fontsize=12, fontweight="bold")
+            axis.set_ylabel(METRIC_AXIS_LABELS[metric])
+            axis.set_xticks(AUGMENTED_STEPS)
+            axis.grid(alpha=0.22, linewidth=0.7)
+            if metric == VARIANT_POOLED_SMD:
+                axis.axhline(0, color="#666666", linewidth=0.7, alpha=0.5)
+            if row_index == len(AUGMENTED_SUBSETS) - 1:
+                axis.set_xlabel("Training step")
+                axis.tick_params(axis="x", labelrotation=45, labelbottom=True)
+
+    fig.suptitle(
+        "Specialist trajectories: mapped home arm versus all non-home arms",
+        fontsize=15,
+        y=0.995,
+    )
+    fig.tight_layout(rect=(0.18, 0.09, 1, 0.97), h_pad=1.25, w_pad=2.0)
+    for row_index, subset in enumerate(AUGMENTED_SUBSETS):
+        position = axes[row_index, 0].get_position()
+        fig.text(
+            0.012,
+            (position.y0 + position.y1) / 2,
+            f"{AUGMENTED_SUBSET_LABELS[subset]}\n"
+            f"home: {AUGMENTED_ARM_LABELS[AUGMENTED_SPECIALIST_ARM[subset]]}",
+            ha="left",
+            va="center",
+            fontsize=9.5,
+            fontweight="bold",
+        )
+    legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color="#000000",
+            marker="D",
+            linewidth=2.8,
+            label="mapped home arm",
+        )
+    ]
+    legend_handles.extend(
+        Line2D(
+            [0],
+            [0],
+            color=AUGMENTED_NON_HOME_COLORS[arm],
+            linestyle=AUGMENTED_ARM_LINESTYLES[arm],
+            marker="o",
+            linewidth=1.3,
+            label=f"non-home: {AUGMENTED_ARM_LABELS[arm]}",
+        )
+        for arm in AUGMENTED_ARMS
+    )
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.035),
+        frameon=False,
+        ncol=4,
+        fontsize=8.5,
+    )
+    fig.text(
+        0.5,
+        0.008,
+        "Development split. Each row maps its specialist to the black diamond "
+        "line. The Cohen's d ribbon is the mapped home arm's conventional IID "
+        "95% interval; AUPRC is shown without uncertainty. Higher is better.",
+        ha="center",
+        fontsize=8.5,
+    )
+    svg_path = output_dir / "augmented_specialist_auprc_vs_cohen_d.svg"
+    png_path = output_dir / "augmented_specialist_auprc_vs_cohen_d.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return {
+        "plot_augmented_specialist_auprc_vs_cohen_d_svg": svg_path,
+        "plot_augmented_specialist_auprc_vs_cohen_d_png": png_path,
+    }
+
+
+def compute_closed_form_cohen_d_win_table(
+    cohen_d_metrics: pd.DataFrame,
+) -> pd.DataFrame:
+    """Pairwise home-win probabilities under independent normal d estimates."""
+    required = {"subset", "step", "arm", "value", "se"}
+    assert required.issubset(cohen_d_metrics.columns), (
+        f"Cohen's d table missing columns: "
+        f"{sorted(required - set(cohen_d_metrics.columns))}"
+    )
+    rows: list[dict[str, str | float | int]] = []
+    for subset in AUGMENTED_SUBSETS:
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for step in AUGMENTED_STEPS:
+            cell = cohen_d_metrics[
+                (cohen_d_metrics["subset"] == subset)
+                & (cohen_d_metrics["step"] == step)
+            ]
+            assert set(cell["arm"]) == set(AUGMENTED_ARMS)
+            home = cell[cell["arm"] == home_arm]
+            assert len(home) == 1
+            home_value = float(home.iloc[0]["value"])
+            home_se = float(home.iloc[0]["se"])
+            for competitor_arm in AUGMENTED_ARMS:
+                if competitor_arm == home_arm:
+                    continue
+                competitor = cell[cell["arm"] == competitor_arm]
+                assert len(competitor) == 1
+                competitor_value = float(competitor.iloc[0]["value"])
+                competitor_se = float(competitor.iloc[0]["se"])
+                difference_se = float(np.hypot(home_se, competitor_se))
+                z_score = (home_value - competitor_value) / difference_se
+                rows.append(
+                    {
+                        "subset": subset,
+                        "step": step,
+                        "home_arm": home_arm,
+                        "competitor_arm": competitor_arm,
+                        "home_d": home_value,
+                        "competitor_d": competitor_value,
+                        "difference_se": difference_se,
+                        "z_score": z_score,
+                        "win_probability": float(ndtr(z_score)),
+                        "uncertainty_method": (
+                            "independent_normal_closed_form_cohen_d"
+                        ),
+                    }
+                )
+    result = pd.DataFrame(rows)
+    expected_rows = (
+        len(AUGMENTED_SUBSETS) * len(AUGMENTED_STEPS) * (len(AUGMENTED_ARMS) - 1)
+    )
+    assert len(result) == expected_rows
+    return result
+
+
+def plot_augmented_specialist_closed_form_win_percentage(
+    win_probabilities: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Plot closed-form Cohen's d home-win probability against every other arm."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    fig, axes = plt.subplots(2, 4, figsize=(17, 8), sharex=True, sharey=True)
+    for axis, subset in zip(axes.flat, AUGMENTED_SUBSETS):
+        subset_data = win_probabilities[win_probabilities["subset"] == subset]
+        home_arm = AUGMENTED_SPECIALIST_ARM[subset]
+        for competitor_arm in AUGMENTED_ARMS:
+            if competitor_arm == home_arm:
+                continue
+            competitor_data = subset_data[
+                subset_data["competitor_arm"] == competitor_arm
+            ].sort_values("step")
+            assert competitor_data["step"].tolist() == list(AUGMENTED_STEPS)
+            axis.plot(
+                competitor_data["step"],
+                100 * competitor_data["win_probability"],
+                color=AUGMENTED_NON_HOME_COLORS[competitor_arm],
+                linestyle=AUGMENTED_ARM_LINESTYLES[competitor_arm],
+                marker="o",
+                markersize=3.5,
+                linewidth=1.3,
+                alpha=0.78,
+            )
+        mean_probability = (
+            subset_data.groupby("step", sort=False)["win_probability"]
+            .mean()
+            .reindex(AUGMENTED_STEPS)
+        )
+        assert mean_probability.notna().all()
+        axis.plot(
+            AUGMENTED_STEPS,
+            100 * mean_probability,
+            color="#000000",
+            marker="D",
+            markersize=5,
+            linewidth=2.8,
+            zorder=5,
+        )
+        axis.axhline(50, color="#555555", linestyle=":", linewidth=1)
+        axis.set_title(
+            f"{AUGMENTED_SUBSET_LABELS[subset]}\n"
+            f"home: {AUGMENTED_ARM_LABELS[home_arm]}",
+            fontsize=10,
+        )
+        axis.set_xlabel("Training step")
+        axis.set_ylabel("Closed-form home win probability (%)")
+        axis.set_xticks(AUGMENTED_STEPS)
+        axis.tick_params(axis="x", labelrotation=45, labelbottom=True)
+        axis.set_ylim(-2, 103)
+        axis.grid(alpha=0.22, linewidth=0.7)
+
+    legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color="#000000",
+            marker="D",
+            linewidth=2.8,
+            label="mean over non-home arms",
+        )
+    ]
+    legend_handles.extend(
+        Line2D(
+            [0],
+            [0],
+            color=AUGMENTED_NON_HOME_COLORS[arm],
+            linestyle=AUGMENTED_ARM_LINESTYLES[arm],
+            marker="o",
+            linewidth=1.3,
+            label=AUGMENTED_ARM_LABELS[arm],
+        )
+        for arm in AUGMENTED_ARMS
+    )
+    legend_handles.append(
+        Line2D(
+            [0],
+            [0],
+            color="#555555",
+            linestyle=":",
+            label="50% reference",
+        )
+    )
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.045),
+        frameon=False,
+        ncol=4,
+        fontsize=8.5,
+    )
+    fig.suptitle(
+        "How strongly does Cohen's d favor the mapped home arm?",
+        fontsize=14,
+        y=0.99,
+    )
+    fig.text(
+        0.5,
+        0.008,
+        "Each colored line is Phi((d_home - d_other) / "
+        "sqrt(SE_home^2 + SE_other^2)); black diamonds average the five "
+        "non-home comparisons. Independent normal approximation.",
+        ha="center",
+        fontsize=8.5,
+    )
+    fig.tight_layout(rect=(0, 0.09, 1, 0.95), h_pad=1.3, w_pad=1.1)
+    svg_path = output_dir / "augmented_specialist_closed_form_win_percentage.svg"
+    png_path = output_dir / "augmented_specialist_closed_form_win_percentage.png"
+    fig.savefig(svg_path, format="svg", bbox_inches="tight")
+    fig.savefig(png_path, format="png", dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return {
+        "plot_augmented_specialist_closed_form_win_percentage_svg": svg_path,
+        "plot_augmented_specialist_closed_form_win_percentage_png": png_path,
     }
 
 
@@ -370,6 +688,9 @@ def run_augmented_analysis(
     specialist_detectability = pd.concat(detectability_parts, ignore_index=True)
     ungrouped_point_metrics = pd.concat(ungrouped_point_parts, ignore_index=True)
     cohen_d_metrics = cohen_d_closed_form_table(ungrouped_point_metrics)
+    cohen_d_win_probabilities = compute_closed_form_cohen_d_win_table(
+        cohen_d_metrics
+    )
     ungrouped_pairwise_deltas = pd.concat(
         ungrouped_pairwise_parts,
         ignore_index=True,
@@ -439,6 +760,7 @@ def run_augmented_analysis(
                 "metric_detection_comparison": metric_detection_comparison,
                 "ungrouped_point_metrics": ungrouped_point_metrics,
                 "cohen_d_closed_form": cohen_d_metrics,
+                "cohen_d_closed_form_win_probabilities": cohen_d_win_probabilities,
                 "ungrouped_pairwise_deltas": ungrouped_pairwise_deltas,
                 "ungrouped_specialist_detectability": (
                     ungrouped_specialist_detectability
@@ -465,6 +787,19 @@ def run_augmented_analysis(
         plot_augmented_distal_trajectories(
             point_metrics,
             cohen_d_metrics,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_augmented_specialist_trajectories(
+            point_metrics,
+            cohen_d_metrics,
+            output_dir / "plots",
+        )
+    )
+    outputs.update(
+        plot_augmented_specialist_closed_form_win_percentage(
+            cohen_d_win_probabilities,
             output_dir / "plots",
         )
     )
