@@ -584,3 +584,13 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   joint-bootstrap results; exact AUPRC parity; three visually reviewed SVG/PNG
   summaries; updated decision record; and the execution/result logbook.
 - Publication status: pushed branch and issue #459 update pending.
+
+### 2026-08-14 02:47 UTC - `VEP-SOFT-023` snapshot-SHA correction
+
+- Correction: the exact result snapshot hash referenced by `VEP-SOFT-022` is
+  `9034bb647bfa67cf91265111596dc03e730fdbe9`. The previously written 40-character
+  value was an invalid expansion of the correct `9034bb64` abbreviation, not a
+  repository object.
+- Verification: the primary commit-pinned raw PNG returns HTTP 200 with
+  `image/png`. All seven stale issue-body links and the completion-comment links
+  were replaced with the exact SHA.
