@@ -779,3 +779,11 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   486,020 KiB peak RSS; first-minute available memory stayed above 9.4 GiB and
   load stayed below the 3.0 stop threshold.
 - Publication status: result snapshot and issue #459 correction pending.
+
+### 2026-08-14 16:34 UTC - `VEP-SOFT-031` reranking result snapshot
+
+- Commit Hash: `4c8f253afccd20d0edd57edaf7d7723f344a2777`.
+- Snapshot scope: complete-grid metric win-definition tables, consolidated
+  comparison plot, reproducible implementation, focused tests, and the
+  evidence-based correction to the Cohen d recommendation.
+- Publication status: branch push and issue #459 correction pending.
