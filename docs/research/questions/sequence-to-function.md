@@ -1,22 +1,14 @@
 # Can gLM pretraining improve human sequence-to-function modeling?
 
-## Metadata
+## TL;DR
 
-| Field | Value |
-|---|---|
-| Question ID | `RQ-0396` |
-| Status | `active` |
-| Overall confidence | `low` |
-| Evidence considered through | `2026-08-14` |
-| Predecessor issues | [#396](https://github.com/Open-Athena/marin-dna/issues/396) |
+Self-supervised gLM pretraining has not shown a consistent advantage for human sequence-to-function modeling under matched architectures and evaluation. Positive results in other organisms and model families suggest the effect is regime-dependent; confidence is low, and the decisive gap is a scratch-versus-pretrained accessibility experiment with matched capacity and variant evaluation.
 
-## Question and scope
+## Question
 
 Can self-supervised genomic language model (gLM) pretraining improve human sequence-to-function models over the same downstream architecture trained from random initialization? In which regimes—chromatin accessibility first, then gene expression—and through which transfer strategy (frozen features, partial fine-tuning, or full fine-tuning) does pretraining improve functional-track prediction and downstream variant-effect prediction? All current positive precedents use bidirectional models; is bidirectionality important, and can it be obtained from existing causal MarinDNA checkpoints without retraining from scratch? How do directionality and movement from one human reference genome to homologous functional sequence across wider evolutionary timescales affect whether gLM initialization improves full-data accuracy, sample efficiency, optimization, or generalization to unseen cell types, loci, and variant distributions?
 
 ## Current answer
-
-Self-supervised gLM pretraining has not shown a consistent advantage for human sequence-to-function modeling under matched architectures and evaluation. Positive results in other organisms and model families suggest the effect is regime-dependent; confidence is low, and the decisive gap is a scratch-versus-pretrained accessibility experiment with matched capacity and variant evaluation.
 
 Self-supervised gLM pretraining has not shown a consistent, controlled advantage for human sequence-to-function modeling. Strong scratch-trained supervised models remain the main baseline, and the decisive MarinDNA frozen-versus-fine-tuned experiment has not been completed.
 
@@ -26,19 +18,8 @@ Every positive precedent uses bidirectional representations. MarinDNA’s causal
 
 Confidence is low that generic causal pretraining will help without adaptation and moderate that a task-matched bidirectional or two-view representation can improve some accessibility settings. The first decision gate is a matched accessibility experiment with identical downstream capacity, chromosome splits, labels, and optimization: random encoder, frozen pretrained encoder, end-to-end fine-tuning, one-hot baseline, and a bidirectional reference. It should report full-data accuracy, label efficiency, unseen-cell/locus transfer, and caQTL/dsQTL effects separately. Gene expression is a later long-context question.
 
-## Confidence and limitations
-
-Self-supervised gLM pretraining has not shown a consistent advantage for human sequence-to-function modeling under matched architectures and evaluation. Positive results in other organisms and model families suggest the effect is regime-dependent; confidence is low, and the decisive gap is a scratch-versus-pretrained accessibility experiment with matched capacity and variant evaluation.
-
-Every positive precedent uses bidirectional representations. MarinDNA’s causal checkpoints provide separate forward and reverse-complement views, but the two states do not interact inside the backbone. Directionality, objective, training corpus, and downstream architecture are therefore confounded.
-
-Confidence is low that generic causal pretraining will help without adaptation and moderate that a task-matched bidirectional or two-view representation can improve some accessibility settings. The first decision gate is a matched accessibility experiment with identical downstream capacity, chromosome splits, labels, and optimization: random encoder, frozen pretrained encoder, end-to-end fine-tuning, one-hot baseline, and a bidirectional reference. It should report full-data accuracy, label efficiency, unseen-cell/locus transfer, and caQTL/dsQTL effects separately. Gene expression is a later long-context question.
-
-## Operational consequence
-
-Keep strong one-hot and randomly initialized supervised models as required baselines. Do not claim a pretraining benefit until a matched accessibility study compares frozen, fine-tuned, scratch, and bidirectional encoders across accuracy, label efficiency, transfer, and variant effects.
-
-## Supporting evidence
+<details>
+<summary>Related work</summary>
 
 - [DART-Eval](https://proceedings.neurips.cc/paper_files/paper/2024/hash/71998bfc3217ffe1cca1ee084dfadadd-Abstract-Datasets_and_Benchmarks_Track.html) compares human DNALMs on regulatory tasks and finds inconsistent gains over strong supervised baselines. It establishes the need for matched ab-initio controls. It does not test the exact MarinDNA architecture or every end-to-end fine-tuning regime.
 - [AlphaGenome](https://www.nature.com/articles/s41586-025-10014-0) learns thousands of human and mouse functional tracks from 1 Mb sequence and performs strongly across track and variant tasks without reported self-supervised gLM initialization. It defines a high supervised baseline and a long-context architecture precedent. It does not isolate whether self-supervised initialization would improve the same model.
@@ -49,16 +30,17 @@ Keep strong one-hot and randomly initialized supervised models as required basel
 - [#236](https://github.com/Open-Athena/marin-dna/issues/236) defines the ChromBPNet-on-gLM-embeddings evaluation harness. It is infrastructure rather than a completed experiment.
 - [#392](https://github.com/Open-Athena/marin-dna/issues/392) covers connecting a short local encoder to longer sequence-to-function models; [#393](https://github.com/Open-Athena/marin-dna/issues/393) covers causal-to-bidirectional conversion; [#395](https://github.com/Open-Athena/marin-dna/issues/395) covers the pretraining footprint. These are coupled design axes that must be controlled rather than attributed to pretraining as one bundle.
 
-## Contradictory evidence
+</details>
 
-The predecessor issue did not maintain a separate contradictory-evidence section. Its caveats and negative results are preserved in Current answer and Supporting evidence.
-
-## Related experiments
+<details>
+<summary>Related experiments</summary>
 
 - [#243](https://github.com/Open-Athena/marin-dna/issues/243) scopes the direct ChromBPNet-on-MarinDNA comparison with frozen and fine-tuned encoders. Its body does not record a completed controlled result, so the main human transfer question remains open.
 - [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluated frozen gLM embeddings for VEP across representation designs. Accessibility-QTL signal was weak, with best dsQTL AUPRC around 0.063; this argues against a shallow probe on generic frozen causal embeddings but does not test spatial heads, end-to-end fine-tuning, or bidirectional conversion.
 
-## Open questions
+</details>
+
+## Possible directions
 
 ### What is the decisive accessibility experiment?
 
@@ -117,7 +99,3 @@ On identical chromosome splits and GM12878 functional data, compare at minimum:
 - Does accessibility pretraining provide an intermediate supervised stage between self-supervised gLM training and expression prediction, and if so, how do we distinguish the value of gLM initialization from ordinary supervised multitask transfer?
 - Does one gLM initialization improve accessibility, histone marks, TF binding, and expression together, or are task-specific pretrained models more effective?
 - For expression, should the primary readout be track correlation, gene-level expression, eQTL direction/causality, or perturbation response? Improvements in average coverage prediction may not translate to better variant effects.
-
-## History
-
-- 2026-08-14 — Migrated from the predecessor research-question issue [#396](https://github.com/Open-Athena/marin-dna/issues/396). The issue remains the historical source for its original body and comments.

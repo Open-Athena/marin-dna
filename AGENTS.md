@@ -19,8 +19,34 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
 - Add tests for non-trivial maintained behavior in the owning project. For data pipelines, assert contracts such as schemas, row counts, value ranges, sequence lengths, coordinate bounds, and build or strand consistency.
 - Run `uv run --locked pytest` from every changed Python project's root. Use `uv` for Python dependencies.
 - Type-annotate parameters and return values in every project's `src/` package using current built-in generic and union syntax.
-- Treat the root README as a human-facing landing page. Keep it focused on the project's purpose, research outputs, runnable entry points, installation, and navigation. Do not put internal APIs, schemas, backend choices, or compatibility notes there.
+- Treat the root README as a human-facing landing page. Keep it focused on the project's purpose, research questions, resources, community, and citation. Put setup and internal workflow guidance in this file or scoped documentation.
 - Update a workflow README when its user-visible behavior, configuration, outputs, or operating procedure changes. Put package API contracts and implementation details in scoped reference documentation or docstrings. Keep experimental findings in the tracking issue or research record.
+
+## Development Setup
+
+Use `uv` for Python dependencies. Set up and test the lightweight root project with:
+
+```bash
+uv sync --locked --group dev
+uv run --locked pytest
+```
+
+Install and run repository-level quality checks with:
+
+```bash
+uv run --locked pre-commit install
+uv run --locked pre-commit run --all-files --show-diff-on-failure
+```
+
+Each runnable Snakemake workflow is an independent project. From every changed workflow directory, run:
+
+```bash
+uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n
+```
+
+External bioinformatics programs remain in each rule's Conda environment. A root change runs the core project and dependent pipelines in CI; scheduled CI validates every project and lockfile.
 
 ## Repository Lifecycle
 

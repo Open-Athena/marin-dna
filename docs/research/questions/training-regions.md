@@ -1,22 +1,14 @@
 # Which genomic regions to train on, and how to find them?
 
-## Metadata
+## TL;DR
 
-| Field | Value |
-|---|---|
-| Question ID | `RQ-0395` |
-| Status | `active` |
-| Overall confidence | `medium` |
-| Evidence considered through | `2026-08-14` |
-| Predecessor issues | [#395](https://github.com/Open-Athena/marin-dna/issues/395) |
+Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. No experiment establishes a universal region-selection rule across scale and tasks; confidence is moderate that task-aware enrichment helps current models, with unresolved tradeoffs around neutral sequence, repeats, and learned selection.
 
-## Question and scope
+## Question
 
 Which regions of a genome should a gLM use for pretraining, and how should we obtain those regions when high-quality annotations or whole-genome alignments are unavailable? For functional tasks such as variant-effect prediction, does enriching for constrained or annotated functional sequence outperform whole-genome training, or does that advantage disappear at sufficient model/data scale or with a different loss weighting or training objective? Can cheap local alignments or a learned single-sequence predictor recover useful functional sequence without a full multiple-genome alignment, and how should repetitive elements be treated? The answer may be task-dependent: sequence evolving approximately neutrally may be low-value for functional-constraint prediction but central to phylogenetic or mutation-process questions.
 
 ## Current answer
-
-Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. No experiment establishes a universal region-selection rule across scale and tasks; confidence is moderate that task-aware enrichment helps current models, with unresolved tradeoffs around neutral sequence, repeats, and learned selection.
 
 No experiment identifies one universally optimal genomic training footprint. Current MarinDNA results and external ablations support task-aware enrichment at modest scale: region specialists beat mismatched specialists, clean enhancer curation fixes a large VEP failure, and the conservation-filtered footprint covers Mendelian positives much better than complex-trait positives.
 
@@ -26,28 +18,18 @@ The leading hypothesis is that increasing the density of constrained or correctl
 
 The next decisive comparison should cross footprint choice with scale while matching training tokens and reporting unique loci, realized repetitions, contamination, and leakage. It should retain a background arm so gains on functional VEP can be weighed against losses on outcomes that need neutral or repetitive sequence.
 
-## Confidence and limitations
-
-Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. No experiment establishes a universal region-selection rule across scale and tasks; confidence is moderate that task-aware enrichment helps current models, with unresolved tradeoffs around neutral sequence, repeats, and learned selection.
-
-The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute. Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks. Confidence is moderate for functional enrichment at current scales and low on how the optimum moves with model size and task.
-
-## Operational consequence
-
-Keep task-aware, contamination-controlled enrichment at current model scales. Before changing the default footprint, cross footprint choice with scale at matched tokens and retain a background arm to measure losses on neutral, repeat, and regional-context outcomes.
-
-## Supporting evidence
+<details>
+<summary>Related work</summary>
 
 - [GPN-MSA](https://pmc.ncbi.nlm.nih.gov/articles/PMC10592768/) selected the top 5% of 128 bp windows by conservation, retained a small random background sample, upweighted conserved positions, and downweighted repeats. Its matched ablation favored conserved-region training for VEP. This supports functional enrichment at that model size and objective. It does not prove that neutral sequence is useless or determine how the result changes with scale.
 - Conservation is a proxy for purifying constraint rather than a complete definition of function. It misses lineage-specific and hard-to-align elements, while annotations miss unknown constrained sequence. A useful observable is the joint coverage of evaluation loci, annotated classes, conservation tiers, and repeats under each proposed footprint.
 - [#391](https://github.com/Open-Athena/marin-dna/issues/391) synthesizes evidence that the current conservation-filtered footprint undercovers complex-trait positives, especially distal variants. This motivates weakly conserved/background arms but does not show that adding them improves VEP.
 - [#392](https://github.com/Open-Athena/marin-dna/issues/392) identifies a long-context version of the same problem: uniformly weighted long windows contain much more background sequence than focal functional sequence. Any long-context pretraining study should report whether selection or weighting changes the distant-context result.
 
-## Contradictory evidence
+</details>
 
-The predecessor issue did not maintain a separate contradictory-evidence section. Its caveats and negative results are preserved in Current answer and Supporting evidence.
-
-## Related experiments
+<details>
+<summary>Related experiments</summary>
 
 - [#8](https://github.com/Open-Athena/marin-dna/issues/8) established functional-versus-background likelihood gaps as a training diagnostic. It provides a readout for footprint experiments but also shows that likelihood gaps need not track VEP under contamination.
 - [#87](https://github.com/Open-Athena/marin-dna/issues/87) scopes repeat and loss-weighting ablations across FLOP budgets. It is the direct scale-dependent weighting experiment, but no completed result is recorded.
@@ -59,7 +41,9 @@ The predecessor issue did not maintain a separate contradictory-evidence section
 - [#351](https://github.com/Open-Athena/marin-dna/issues/351) compared enhancer-centered and clean tiled windows. Centering was suggestively better for distal VEP, but unequal epoch counts and non-converged curves confounded functional-base density, placement, and repetition.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored CDS projection with native per-species annotation across vertebrate and animal scopes. Projection produced useful conserved-CDS data but lost distant species and did not dominate annotation on every endpoint.
 
-## Open questions
+</details>
+
+## Possible directions
 
 ### What outcome are we optimizing?
 
@@ -115,7 +99,3 @@ The predecessor issue did not maintain a separate contradictory-evidence section
 5. **Acquisition-method comparison.** Once the target training distribution is clearer, compare WGA/conservation selection against direct annotation, `mmseqs2`-derived local evolutionary statistics, and a learned single-sequence selector on the same genomes and matched window budget.
 
 6. **Mixture frontier.** Sweep the fraction of constrained/annotated, weakly conserved, neutral/background, and repetitive sequence rather than comparing only the endpoints. The useful output is a task-by-scale Pareto frontier and a reproducible default mixture, not a universal declaration that one class of sequence “matters.”
-
-## History
-
-- 2026-08-14 — Migrated from the predecessor research-question issue [#395](https://github.com/Open-Athena/marin-dna/issues/395). The issue remains the historical source for its original body and comments.

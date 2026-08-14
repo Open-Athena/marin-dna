@@ -1,22 +1,14 @@
 # How should a short-context gLM acquire long-range context?
 
-## Metadata
+## TL;DR
 
-| Field | Value |
-|---|---|
-| Question ID | `RQ-0392` |
-| Status | `active` |
-| Overall confidence | `low` |
-| Evidence considered through | `2026-08-14` |
-| Predecessor issues | [#392](https://github.com/Open-Athena/marin-dna/issues/392) |
+No MarinDNA experiment directly compares long-context strategies. Existing work favors reusing short-context representations through staged, hierarchical, or downstream adaptation, but the best choice depends on required output resolution and compute; confidence is low, and a matched comparison is the main gap.
 
-## Question and scope
+## Question
 
 How should we turn a genomic language model pretrained on short windows—typically sized to model a single functional element—into a model that can use long-range genomic context while retaining nucleotide-level resolution? At fixed compute and data, how do second-stage long-context language modeling, direct long-context downstream fine-tuning, and a hierarchical local-to-global architecture compare? Which strategy best preserves what the short-context model learned while adding useful dependencies across tens to hundreds of kilobases?
 
 ## Current answer
-
-No MarinDNA experiment directly compares long-context strategies. Existing work favors reusing short-context representations through staged, hierarchical, or downstream adaptation, but the best choice depends on required output resolution and compute; confidence is low, and a matched comparison is the main gap.
 
 No MarinDNA experiment directly compares ways to add genuinely long-range context to a short-window model. A 256-versus-512 bp pretraining comparison found no clear VEP difference, so it does not decide behavior at tens or hundreds of kilobases.
 
@@ -26,32 +18,24 @@ A short local encoder has improved a 2,114 bp supervised accessibility model in 
 
 Confidence is low on a universal winner. Direct downstream extension should be the baseline; local-to-global modeling is the leading scalable option for nucleotide-resolution tasks; continued language modeling is justified only if gains transfer across several long-range tasks. Any comparison must match parameters, training tokens, and compute and must verify dependence on distant sequence.
 
-## Confidence and limitations
-
-No MarinDNA experiment directly compares long-context strategies. Existing work favors reusing short-context representations through staged, hierarchical, or downstream adaptation, but the best choice depends on required output resolution and compute; confidence is low, and a matched comparison is the main gap.
-
-Confidence is low on a universal winner. Direct downstream extension should be the baseline; local-to-global modeling is the leading scalable option for nucleotide-resolution tasks; continued language modeling is justified only if gains transfer across several long-range tasks. Any comparison must match parameters, training tokens, and compute and must verify dependence on distant sequence.
-
-## Operational consequence
-
-Use direct downstream context extension as the minimum-complexity baseline and test local-to-global transfer next for nucleotide-resolution tasks. Defer continued long-context language modeling unless matched results show gains that transfer across several long-range tasks.
-
-## Supporting evidence
+<details>
+<summary>Related work</summary>
 
 - [ARSENAL](https://www.biorxiv.org/content/10.64898/2026.02.05.703637v3) pretrains a 350 bp masked DNA model on ENCODE cCREs, tiles frozen per-base embeddings across a 2,114 bp input, and feeds them to a ChromBPNet-style dilated CNN. Across five cell lines it improves accessibility count prediction and caQTL/dsQTL scoring over a matched one-hot model. The [implementation](https://github.com/amanpatel101/arsenal-chrombpnet/blob/dcfa42b1786713e131bb113f4c6d20acc046185d/chrombpnet/chrombpnet.py#L188-L223) freezes the encoder by default, and its [center-out chunking](https://github.com/amanpatel101/arsenal-chrombpnet/blob/dcfa42b1786713e131bb113f4c6d20acc046185d/chrombpnet/chrombpnet.py#L391-L456) retains one embedding per base. This is direct evidence for full-resolution local-to-global transfer. It does not test long-context pretraining, cross-chunk attention in the gLM, pooling, or contexts beyond 2,114 bp.
 - [AlphaGenome](https://www.nature.com/articles/s41586-025-10014-0) predicts thousands of functional tracks from 1 Mb sequence using a multiscale supervised architecture. It demonstrates that long context and nucleotide-scale outputs can coexist through hierarchical computation. It does not test initialization from a short-context self-supervised gLM, so it is an architecture precedent rather than evidence for transfer.
 - [#396](https://github.com/Open-Athena/marin-dna/issues/396) asks whether gLM pretraining improves sequence-to-function models. Its controlled scratch-versus-pretrained benchmark is a natural first consumer of any local-to-global design, but accessibility context is much shorter than the full long-range question.
 - [#395](https://github.com/Open-Athena/marin-dna/issues/395) asks how long-window background sequence should be selected, sampled, or weighted. This matters because uniformly weighted language modeling on long mammalian windows may devote most gradient mass to sequence outside the functional element of interest.
 
-## Contradictory evidence
+</details>
 
-The predecessor issue did not maintain a separate contradictory-evidence section. Its caveats and negative results are preserved in Current answer and Supporting evidence.
-
-## Related experiments
+<details>
+<summary>Related experiments</summary>
 
 - [#37](https://github.com/Open-Athena/marin-dna/issues/37) compared 256 bp and 512 bp pretraining contexts and found no clear VEP difference. It supports short windows as a workable local baseline and proposed downstream extension or hierarchy, but the tested lengths are too short to distinguish the three long-context strategies.
 
-## Open questions
+</details>
+
+## Possible directions
 
 - **What long-range capability do we want first?** Candidate tests should require distant context by construction—for example enhancer–promoter interactions, gene-level expression, long-range splicing regulation, or another task where masking distant sequence should measurably hurt.
 - **What context lengths define the useful regime?** Compare a small ladder spanning the current local context through the expected biological scale, rather than testing only one large endpoint.
@@ -66,7 +50,3 @@ The predecessor issue did not maintain a separate contradictory-evidence section
 - **Is the model using distant context?** Evaluate with distance-stratified ablations: crop the input, mask or shuffle distal sequence, perturb the candidate interacting element, and measure performance as a function of distance.
 - **How should leakage controls change?** Longer overlapping windows increase the chance that homologous or shifted sequence crosses train/test boundaries; update the similarity and locus-holdout rules before interpreting small gains.
 - **What is the smallest decisive first experiment?** One option is a downstream task with known long-range dependence and five matched arms: short-context baseline, direct full-resolution extension, frozen ARSENAL-style per-base tiling, frozen-local pooled hierarchy, and jointly trained pooled hierarchy. A second-stage LM arm should follow once that comparison establishes that the task and evaluation can detect useful long-range context.
-
-## History
-
-- 2026-08-14 — Migrated from the predecessor research-question issue [#392](https://github.com/Open-Athena/marin-dna/issues/392). The issue remains the historical source for its original body and comments.

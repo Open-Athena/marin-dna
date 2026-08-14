@@ -1,16 +1,10 @@
 # What latent biological features do gLMs learn?
 
-## Metadata
+## TL;DR
 
-| Field | Value |
-|---|---|
-| Question ID | `RQ-0288` |
-| Status | `active` |
-| Overall confidence | `unknown` |
-| Evidence considered through | `2026-08-14` |
-| Predecessor issues | [#288](https://github.com/Open-Athena/marin-dna/issues/288) |
+Sparse-autoencoder analyses identify reproducible splice, stop-codon, accessibility, and coding-context feature responses across layers and dictionaries, while several broader semantic claims failed to replicate. The program is paused indefinitely; confidence is moderate for the local causal features and low for a complete biological inventory, with reference-annotation and broader variant tiers still unfinished.
 
-## Question and scope
+## Question
 
 What biologically meaningful latent features do genomic language models learn, how are those features organized across layers, orientations, training stages, and model families, and what genomic computations do they support?
 
@@ -19,8 +13,6 @@ MarinDNA m5.1 is the first experimental system for this question, not its scope.
 **Primary discovery principle:** prioritize how features change between matched reference and alternate sequences at real or designed variants. Paired Δ features are less studied than single-sequence annotation features, align directly with variant effect prediction, and provide a local counterfactual that removes much background-locus variation. Absolute reference/alternate activations, human-reference inventories, and sequence logos remain essential supporting views for interpreting a response, but they are not the main endpoint.
 
 ## Current answer
-
-Sparse-autoencoder analyses identify reproducible splice, stop-codon, accessibility, and coding-context feature responses across layers and dictionaries, while several broader semantic claims failed to replicate. The program is paused indefinitely; confidence is moderate for the local causal features and low for a complete biological inventory, with reference-annotation and broader variant tiers still unfinished.
 
 The program is paused indefinitely as of 2026-08-10, and all scoped experiment issues are closed. The strongest result is that m5.1 contains sparse features with reproducible local biological responses, but the inventory is selective and strongly dependent on layer, dictionary, orientation, and response definition.
 
@@ -32,19 +24,8 @@ The paired-variant protocol is part of the current answer: retain reference, alt
 
 Reference-sequence analyses show substantial repeat and annotation-state capacity. Final-layer repeat information remains after strict composition matching, while promoter-like sequence is easier to identify than enhancer-like sequence. Composition/repeat qualification and exact boundary localization are still needed before claiming genomic segmentation. The next useful biological tiers are UTR, promoter/TSS-proximal, and annotated ncRNA variants, followed later by enhancer/cCRE variants.
 
-## Confidence and limitations
-
-Sparse-autoencoder analyses identify reproducible splice, stop-codon, accessibility, and coding-context feature responses across layers and dictionaries, while several broader semantic claims failed to replicate. The program is paused indefinitely; confidence is moderate for the local causal features and low for a complete biological inventory, with reference-annotation and broader variant tiers still unfinished.
-
-Splice-acceptor, splice-donor, and stop-creation responses survive targeted perturbation, untouched-context replication, and transfer across independently trained dictionaries. A broad synonymous/codon-degeneracy interpretation did not replicate. A better-trained dictionary instead exposed a narrow leucine-codon-family response. These results support local causal sequence grammars with moderate confidence and argue against assigning semantics from decoder similarity or a single association.
-
-The paired-variant protocol is part of the current answer: retain reference, alternate, signed change, and magnitude; report forward and reverse-complement orientations separately; predeclare any aggregate; test all eligible features with complete-family correction; and distinguish association, interpretation, and intervention. Unsigned AlphaGenome associations currently identify broad GC/CpG-conditioned accessibility or promoter-effect magnitude rather than tissue-specific semantics. Accessibility-direction discoveries are highly redundant and overlap broad consequence response, so accessibility causality remains untested.
-
-## Operational consequence
-
-Keep the SAE program paused. If it resumes, use the paired-variant and separate-orientation protocol, require perturbation and replication before assigning semantics, and prioritize the unfinished annotation-boundary and broader-variant tiers.
-
-## Supporting evidence
+<details>
+<summary>Related work</summary>
 
 - [Inside a genomic language model](https://marindna-latent-feature-atlas.gsbenegas.chatgpt.site) is the current visual synthesis of the project’s methods, layer organization, positive findings, negative results, and claim boundaries. The [commit-pinned source](https://github.com/Open-Athena/marin-dna/blob/234f3073121d8de1f51a5e16e8637ac1986152e2/experiments/issue288_latent_feature_atlas/index.html) preserves the reviewed version. It is a summary artifact, not independent evidence.
 - [Korsakova and Kelley, Learning monosemantic features in multitask DNA regulatory sequence models via sparse autoencoder decomposition](https://openreview.net/forum?id=AlLZnZX01x) trained TopK SAEs on early Borzoi layers and annotated features with repeats, motifs, and regulatory elements. Motifs specialized by depth, orientation, and flanking context, and larger dictionaries split concepts. This motivates layer panels, normalized activations, FWD/RC inspection, and context-aware interpretation. The remaining gap is transfer from a supervised regulatory model to paired variant effects in a causal gLM.
@@ -52,11 +33,10 @@ Keep the SAE program paused. If it resumes, use the paired-variant and separate-
 - [Language Modeling Materializes a World Model of Protein Biology](https://www.biorxiv.org/content/10.1101/2024.12.18.629098v1) reports concept splitting, decoder neighborhoods, and feature combinations in protein models. It motivates analyzing feature families and co-activation systems alongside individual IDs. The open question is whether the same organizational principles hold for genomic sequence and across reverse-complement views.
 - The fixed methodology treats biological labels and automated descriptions as discovery aids. A strong interpretation requires corrected association evidence, sequence localization, paired or designed perturbations, orientation analysis, and independent contexts when the claim warrants it. Causal intervention on the base model remains a higher bar than activation response alone.
 
-## Contradictory evidence
+</details>
 
-The predecessor issue did not maintain a separate contradictory-evidence section. Its caveats and negative results are preserved in Current answer and Supporting evidence.
-
-## Related experiments
+<details>
+<summary>Related experiments</summary>
 
 - [#418](https://github.com/Open-Athena/marin-dna/issues/418) trained and validated the first production-shaped m5.1 block-10 BatchTopK SAE. It established workable reconstruction and sparsity and produced initial splice and nucleotide features, but did not by itself validate biological semantics.
 - [#420](https://github.com/Open-Athena/marin-dna/issues/420) tested the first fixed feature panel on Mendelian variants. Pathogenic label was null overall and within subsets, while seven-way consequence/region prediction reached macro-AUPRC 0.2409 versus 0.1429 chance, showing encoded region information without pathogenicity separation.
@@ -74,7 +54,9 @@ The predecessor issue did not maintain a separate contradictory-evidence section
 - [#438](https://github.com/Open-Athena/marin-dna/issues/438) mapped complex-trait label signal across layers. Block 19 dominated the fixed panel, magnitude was more useful than signed change, and recurrent feature 1662 transferred to held-out data but currently supports local coding-impact/codon-context sensitivity rather than a broad causal mechanism.
 - [#440](https://github.com/Open-Athena/marin-dna/issues/440) tested reference annotation states. The first pass found layer-specific gene-state inventories and strong promoter-like signals but little enhancer-specific signal; composition/repeat controls and transcript-boundary case studies remain unfinished.
 
-## Open questions
+</details>
+
+## Possible directions
 
 ### 1. Paired-variant protocol: current answer and extensions
 
@@ -154,8 +136,4 @@ Applied follow-ups:
 
 The authoritative forward-looking queue is maintained in **Current execution plan** above.
 
-Session compute ledger: approximately **$35.2 / $50** for the autonomous work authorized in this session, including $1.17 for the shared [#420](https://github.com/Open-Athena/marin-dna/issues/420)/#421 c7i.8xlarge CPU run, approximately $4.45 for [#436](https://github.com/Open-Athena/marin-dna/issues/436) block-1 training, paired extraction, and the focal statistical scan, and approximately $0.81 for [#438](https://github.com/Open-Athena/marin-dna/issues/438)'s feature-1662 saturation extraction and analysis, plus approximately $2.9 for [#435](https://github.com/Open-Athena/marin-dna/issues/435)'s repeat inventory, reference and variant panels, A10G extraction, sparse CPU associations, sensitivity passes, paired-delta analysis, motif/context pass, causal single-base saturation, and repeat-aware Mendelian-label analysis, under $1 for [#422](https://github.com/Open-Athena/marin-dna/issues/422)'s three-layer H100 extraction plus complete-family CPU analysis and audit, under $1 for [#434](https://github.com/Open-Athena/marin-dna/issues/434)'s positive-panel materialization plus H100 direction extraction and scan, and $0.53 for [#434](https://github.com/Open-Athena/marin-dna/issues/434)'s f1829 mutagenesis/intervention pass. This session may use at most one paid CPU instance and one paid GPU instance concurrently; the limit is per session, not global across other Codex sessions. No paid [#288](https://github.com/Open-Athena/marin-dna/issues/288) CPU or GPU instance is currently running in this session. This is not a lifetime budget for [#288](https://github.com/Open-Athena/marin-dna/issues/288); future sessions and experiments may receive separate compute authorizations.
-
-## History
-
-- 2026-08-14 — Migrated from the predecessor research-question issue [#288](https://github.com/Open-Athena/marin-dna/issues/288). The issue remains the historical source for its original body and comments.
+Session compute ledger: approximately **$35.2 / $50** for the autonomous work authorized in this session, including $1.17 for the shared [#420](https://github.com/Open-Athena/marin-dna/issues/420)/[#421](https://github.com/Open-Athena/marin-dna/issues/421) c7i.8xlarge CPU run, approximately $4.45 for [#436](https://github.com/Open-Athena/marin-dna/issues/436) block-1 training, paired extraction, and the focal statistical scan, and approximately $0.81 for [#438](https://github.com/Open-Athena/marin-dna/issues/438)'s feature-1662 saturation extraction and analysis, plus approximately $2.9 for [#435](https://github.com/Open-Athena/marin-dna/issues/435)'s repeat inventory, reference and variant panels, A10G extraction, sparse CPU associations, sensitivity passes, paired-delta analysis, motif/context pass, causal single-base saturation, and repeat-aware Mendelian-label analysis, under $1 for [#422](https://github.com/Open-Athena/marin-dna/issues/422)'s three-layer H100 extraction plus complete-family CPU analysis and audit, under $1 for [#434](https://github.com/Open-Athena/marin-dna/issues/434)'s positive-panel materialization plus H100 direction extraction and scan, and $0.53 for [#434](https://github.com/Open-Athena/marin-dna/issues/434)'s f1829 mutagenesis/intervention pass. This session may use at most one paid CPU instance and one paid GPU instance concurrently; the limit is per session, not global across other Codex sessions. No paid [#288](https://github.com/Open-Athena/marin-dna/issues/288) CPU or GPU instance is currently running in this session. This is not a lifetime budget for [#288](https://github.com/Open-Athena/marin-dna/issues/288); future sessions and experiments may receive separate compute authorizations.

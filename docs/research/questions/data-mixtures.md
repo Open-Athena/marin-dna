@@ -1,24 +1,16 @@
 # How to optimize pretraining data mixtures?
 
-## Metadata
+## TL;DR
 
-| Field | Value |
-|---|---|
-| Question ID | `RQ-0415` |
-| Status | `active` |
-| Overall confidence | `low` |
-| Evidence considered through | `2026-08-14` |
-| Predecessor issues | [#415](https://github.com/Open-Athena/marin-dna/issues/415) |
+No validated genomic mixture-optimization method exists yet. Proxy-swarm regression is promising but depends on small-to-large-scale rank transfer, objective signal, finite-data repetition, and leakage controls; confidence is low, and the next gap is a bounded proxy study before any broad or paid sweep.
 
-## Question and scope
+## Question
 
 How should we optimize genomic pretraining data mixtures to improve downstream genomic performance at target scale? This includes deciding how to partition the data, what objective to optimize, and which optimization strategies are reliable and compute-efficient.
 
 This issue tracks evidence across multiple possible approaches; swarm-based regression with small proxy models is one especially promising candidate, but it is not the definition of the research question. The intended outcome is a reproducible way to choose mixtures, not only a single set of weights.
 
 ## Current answer
-
-No validated genomic mixture-optimization method exists yet. Proxy-swarm regression is promising but depends on small-to-large-scale rank transfer, objective signal, finite-data repetition, and leakage controls; confidence is low, and the next gap is a bounded proxy study before any broad or paid sweep.
 
 No validated method for optimizing genomic pretraining mixtures exists yet. The current evidence shows that mixture components matter: region specialists differ sharply by downstream class, and mammalian species density affects some regions but not others. It does not show how to select a joint mixture.
 
@@ -28,17 +20,8 @@ The optimization target is also unresolved. Macro-average VEP, minimax performan
 
 Confidence is low. The next useful work is a bounded proxy-noise study with fixed anchor mixtures and repeated seeds, followed by held-out-mixture prediction. A broad swarm or target-scale launch is not justified until rank stability, repetition feasibility, and leakage controls pass those gates.
 
-## Confidence and limitations
-
-No validated genomic mixture-optimization method exists yet. Proxy-swarm regression is promising but depends on small-to-large-scale rank transfer, objective signal, finite-data repetition, and leakage controls; confidence is low, and the next gap is a bounded proxy study before any broad or paid sweep.
-
-Confidence is low. The next useful work is a bounded proxy-noise study with fixed anchor mixtures and repeated seeds, followed by held-out-mixture prediction. A broad swarm or target-scale launch is not justified until rank stability, repetition feasibility, and leakage controls pass those gates.
-
-## Operational consequence
-
-Do not launch a broad or paid mixture swarm yet. First run a bounded proxy-noise study with fixed anchor mixtures, repeated seeds, held-out-mixture prediction, explicit repetition limits, and frozen leakage rules.
-
-## Supporting evidence
+<details>
+<summary>Related work</summary>
 
 - The [Open Athena pretraining data community meeting slides](https://www.figma.com/deck/LcfkIgrKJUHV1DrJ40XbXb/Open-Athena-Pretraining-Data-Community-Meeting) define a source → normalize → deduplicate/decontaminate → bucket → optimize → train/evaluate pipeline and treat a mixture as a sampling policy over fixed buckets. The implication is that component definitions and overlap policy are part of the optimization contract. The remaining gap is a versioned MarinDNA manifest with unique-token budgets and leakage audits.
 - [RegMix](https://arxiv.org/abs/2407.01492) samples mixtures, trains small proxy models, fits a surrogate, and optimizes predicted performance. [Olmix](https://arxiv.org/abs/2602.12237) studies this family more systematically. These methods motivate offline proxy swarms and held-out-mixture validation. Their proxy sizes, swarm sizes, and rank-transfer behavior cannot be assumed to carry over to genomic objectives.
@@ -46,16 +29,17 @@ Do not launch a broad or paid mixture swarm yet. First run a bounded proxy-noise
 - Candidate surrogate families include linear/log-linear models, regularized interactions, tree models, and rank or pairwise objectives. Flexible models require held-out mixtures or nested validation; in-swarm fit alone does not support mixture selection.
 - Candidate outputs should include intended and realized weights, unique tokens and repetitions per component, per-subset downstream scores, uncertainty, held-out ranking, and target-scale regret. Without those fields, a selected weight vector is not a reproducible optimization result.
 
-## Contradictory evidence
+</details>
 
-The predecessor issue did not maintain a separate contradictory-evidence section. Its caveats and negative results are preserved in Current answer and Supporting evidence.
-
-## Related experiments
+<details>
+<summary>Related experiments</summary>
 
 - [#232](https://github.com/Open-Athena/marin-dna/issues/232) trained six region specialists and a background arm. Home-region specialists won their matched Mendelian classes, showing that biological-domain mixture components can have distinct downstream utility; it did not optimize a combined mixture.
 - [#255](https://github.com/Open-Athena/marin-dna/issues/255) compared 108-family and 19-order mammalian cohorts at matched compute across five regions. Species density was neutral for some regions and harmful for others, showing interaction between taxonomic mixture and biological domain; one seed and different epoch counts limit surrogate use.
 
-## Open questions
+</details>
+
+## Possible directions
 
 ### Core questions
 
@@ -316,7 +300,7 @@ A confirmatory comparison could train matched models on:
 
 One risk-reducing option is to validate at an intermediate scale not used to fit the surrogate before comparing the best-supported candidates at the intended target scale. Architecture, tokenizer, optimizer, total training tokens, evaluation protocol, and number of seeds should be matched wherever feasible.
 
-This question document does not authorize paid large-scale training or a broad swarm. Any follow-up experiment proposing such a launch must obtain explicit approval.
+This research-question issue does not authorize paid large-scale training or a broad swarm. Any follow-up experiment proposing such a launch must obtain explicit approval.
 
 #### Possible follow-up: Test objective specificity with DART-Eval
 
@@ -393,7 +377,3 @@ This draft makes the following non-blocking interpretations of the transcription
 5. DART-Eval is a separate possible follow-up target rather than necessarily part of the same scalar objective as Mendelian VEP.
 6. Evolutionary scale is an optional follow-up axis. If included, nested taxonomic groups must be converted to disjoint buckets or modeled hierarchically so the same data are not counted under multiple weights.
 7. Phase-specific mixing means separate weight vectors over the same semantic cells for broad pretraining and cooldown or midtraining; phase is not an additional biological bucket axis.
-
-## History
-
-- 2026-08-14 — Migrated from the predecessor research-question issue [#415](https://github.com/Open-Athena/marin-dna/issues/415). The issue remains the historical source for its original body and comments.
