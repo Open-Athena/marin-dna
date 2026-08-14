@@ -454,3 +454,13 @@ Can score-magnitude summaries of per-variant Mendelian LLR provide a stable, ear
   peaked at 466,492 KiB RSS. Start capacity was 11.0 GiB available at load 1.78;
   first-minute memory stayed above 10.6 GiB and load stayed at 1.83.
 - Publication status: pending snapshot and issue update.
+
+### 2026-08-14 00:42 UTC - `VEP-SOFT-017` no-group analysis snapshot
+
+- Commit Hash: `5be22866ad0534379163a6a9a82262d968e01caf`.
+- Snapshot scope: four ungrouped separation metrics, joint class-stratified
+  variant bootstrap, AUPRC timing benchmark, adversarial missense check, eight
+  result tables, six figures, focused tests, README, decision summary, and
+  logbook.
+- Publication status: committed on `codex/issue-459-soft-vep-metrics`; branch
+  push and issue #459 update pending.
