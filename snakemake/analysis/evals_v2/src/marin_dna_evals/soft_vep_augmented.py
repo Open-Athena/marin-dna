@@ -55,7 +55,7 @@ DATASET = "mendelian_traits"
 SPLIT = "train"
 DISTAL_ARM = "distal_centered"
 EXP351_MODEL_PREFIX = "exp351-centered-step"
-AUGMENTED_STEPS = (500, 1500, 2000, 3000, 3500, 4000, 4500, 4999)
+AUGMENTED_STEPS = (500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 4999)
 AUGMENTED_ARMS = (*ARMS, DISTAL_ARM)
 AUGMENTED_SUBSETS = (*NON_DISTAL_SUBSETS, "distal")
 AUGMENTED_SPECIALIST_ARM = {**SPECIALIST_ARM, "distal": DISTAL_ARM}
@@ -108,7 +108,7 @@ def augmented_metric_uri(arm: str, step: int) -> str:
 
 
 def augmented_manifest() -> pd.DataFrame:
-    """Explicit six-arm by eight-checkpoint inventory."""
+    """Explicit six-arm by ten-checkpoint inventory."""
     rows = [
         {
             "arm": arm,

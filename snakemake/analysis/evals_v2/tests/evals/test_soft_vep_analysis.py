@@ -37,9 +37,20 @@ from marin_dna_evals.soft_vep_metrics import (
 
 def test_exp232_manifest_is_exact_inventory():
     manifest = exp232_manifest()
-    assert len(manifest) == 48
-    assert SYNCHRONIZED_STEPS == (500, 1000, 1500, 2000, 3000, 3500, 4000, 4500, 4999)
-    assert manifest[manifest["step"] == 2500]["arm"].tolist() == ["bg", "cds", "utr3"]
+    assert len(manifest) == 50
+    assert SYNCHRONIZED_STEPS == (
+        500,
+        1000,
+        1500,
+        2000,
+        2500,
+        3000,
+        3500,
+        4000,
+        4500,
+        4999,
+    )
+    assert manifest[manifest["step"] == 2500]["arm"].tolist() == sorted(ARMS)
     assert manifest["uri"].is_unique
     assert manifest["split"].eq("train").all()
 

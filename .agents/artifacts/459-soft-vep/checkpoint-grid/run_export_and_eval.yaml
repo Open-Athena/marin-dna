@@ -1,0 +1,76 @@
+# Issue #459: fill the 1,000/2,500 synchronized checkpoint grid, then evaluate
+# exactly the four missing Mendelian development-split cells.
+
+name: issue-459-checkpoint-grid
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1
+    disk_size: 200
+    use_spot: false
+    labels:
+        project: dna
+
+workdir: .
+
+file_mounts:
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+    set -euxo pipefail
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+
+    uv sync \
+        --project .agents/artifacts/459-soft-vep/checkpoint-grid \
+        --locked
+    uv sync \
+        --project snakemake/analysis/evals_v2 \
+        --locked \
+        --group genome-s3
+
+    gcloud storage ls gs://marin-us-east5/checkpoints/ | head -3 >/dev/null
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export JAX_PLATFORMS=cpu
+    export WANDB_DISABLED=true
+
+    uv run \
+        --project .agents/artifacts/459-soft-vep/checkpoint-grid \
+        --locked \
+        python .agents/artifacts/459-soft-vep/checkpoint-grid/export_missing_hf.py
+
+    cd snakemake/analysis/evals_v2
+    issue459_targets=(
+        results/metrics/exp351-centered-step-1000/mendelian_traits.parquet
+        results/metrics/exp351-centered-step-2500/mendelian_traits.parquet
+        results/metrics/exp232-v4_tss_region_and_utr5-step-2500/mendelian_traits.parquet
+        results/metrics/exp232-v4_ncrna_exon-step-2500/mendelian_traits.parquet
+    )
+
+    uv run --locked --group genome-s3 snakemake \
+        --profile workflow/profiles/default \
+        --printshellcmds \
+        --rerun-incomplete \
+        --dry-run \
+        -- "${issue459_targets[@]}"
+
+    uv run --locked --group genome-s3 snakemake \
+        --profile workflow/profiles/default \
+        --printshellcmds \
+        --rerun-incomplete \
+        -- "${issue459_targets[@]}"

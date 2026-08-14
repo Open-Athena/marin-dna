@@ -372,6 +372,10 @@ models:
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-2000
     window_size: 255
     datasets: [mendelian_traits]
+  - name: exp232-v4_ncrna_exon-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits]
   - name: exp232-v4_ncrna_exon-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_ncrna_exon-v0.1-c3ab58/hf/step-3000
     window_size: 255
@@ -406,6 +410,10 @@ models:
     datasets: [mendelian_traits]
   - name: exp232-v4_tss_region_and_utr5-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp232-v4_tss_region_and_utr5-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-2500
     window_size: 255
     datasets: [mendelian_traits]
   - name: exp232-v4_tss_region_and_utr5-step-3000
@@ -506,11 +514,15 @@ models:
     datasets: [mendelian_traits]
 
   # exp351 centered-enhancer arm (issue #351), used in issue #459 as the
-  # replacement for exp232's contaminated cCRE/distal arm. Step 1000 has no HF
-  # export, so the augmented offline assessment uses the eight checkpoints that
-  # intersect the existing exp232 score grid. 255 bp + BOS; Qwen3-0.25B.
+  # replacement for exp232's contaminated cCRE/distal arm. The augmented
+  # assessment fills the missing step-1000 HF export and scores the full
+  # synchronized 500-step grid. 255 bp + BOS; Qwen3-0.25B.
   - name: exp351-centered-step-500
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-500
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-1000
     window_size: 255
     datasets: [mendelian_traits]
   - name: exp351-centered-step-1500
@@ -519,6 +531,10 @@ models:
     datasets: [mendelian_traits]
   - name: exp351-centered-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: exp351-centered-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-2500
     window_size: 255
     datasets: [mendelian_traits]
   - name: exp351-centered-step-3000

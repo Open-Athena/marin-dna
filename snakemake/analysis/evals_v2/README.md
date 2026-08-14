@@ -224,10 +224,10 @@ name:
 
 ### Soft Mendelian VEP metrics (issue #459)
 
-`soft-vep-analysis` is a CPU-only, inference-free analysis of the 48 existing
-exp232 development-split Mendelian score parquets. It reads only `label`,
-`subset`, `match_group`, `llr_fwd`, and `llr_rc`, loads one checkpoint step at
-a time, and excludes the exp232 cCRE arm, `distal`, and the underpowered
+`soft-vep-analysis` is a CPU-only, inference-free analysis of the 50 exp232
+development-split Mendelian score parquets. It reads only `label`, `subset`,
+`match_group`, `llr_fwd`, and `llr_rc`, loads one checkpoint step at a time, and
+excludes the exp232 cCRE arm, `distal`, and the underpowered
 `mature_miRNA_variant` subset.
 
 ```bash
@@ -262,7 +262,7 @@ difference in class means.
 
 Outputs include:
 
-- `point_metrics.parquet`: all 48 arm/checkpoint cells × seven subsets × eight
+- `point_metrics.parquet`: all 50 arm/checkpoint cells × seven subsets × eight
   metrics, with 95% intervals from joint `match_group` bootstrap draws.
 - `pairwise_deltas.parquet`: paired arm differences from the same draws.
 - `specialist_detectability.parquet`: for AUPRC and all seven candidate
@@ -348,12 +348,12 @@ adds exp351-centered as the sixth arm. The comparison therefore covers all eight
 Mendelian consequence subsets: exp351-centered is the mapped home arm for
 `distal` and a non-home competitor for the original seven subsets.
 
-The synchronized checkpoint grid is `500, 1500, 2000, 3000, 3500, 4000, 4500,
-4999`. Step 1000 is deliberately absent because exp351-centered has a native
-checkpoint but no durable HF export; this assessment does not export or
-interpolate it.
+The synchronized checkpoint grid is `500, 1000, 1500, 2000, 2500, 3000, 3500,
+4000, 4500, 4999`. The step-1000 exp351-centered and step-2500 exp232 ncRNA
+native checkpoints are exported to HF format to fill the two previously missing
+model artifacts; no checkpoint is interpolated.
 
-After the eight exp351-centered offline Mendelian score bundles have been
+After the ten exp351-centered offline Mendelian score bundles have been
 produced, run:
 
 ```bash

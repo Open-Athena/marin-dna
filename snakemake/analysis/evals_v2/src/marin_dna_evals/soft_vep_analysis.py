@@ -1,6 +1,6 @@
 """Bounded CPU analysis for issue #459's exp232 specialist trajectories.
 
-This module consumes the 48 existing development-split Mendelian score
+This module consumes the 50 development-split Mendelian score
 parquets. It does not run model inference and does not infer missing
 checkpoints. Each step is loaded and released independently so the working set
 stays bounded well below the shared-node 500 MiB limit.
@@ -47,12 +47,24 @@ EXP232_STEPS: dict[str, tuple[int, ...]] = {
     "bg": (500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 4999),
     "cds": (500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 4999),
     "utr3": (500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 4999),
-    "ncrna_exon": (500, 1000, 1500, 2000, 3000, 3500, 4000, 4500, 4999),
+    "ncrna_exon": (
+        500,
+        1000,
+        1500,
+        2000,
+        2500,
+        3000,
+        3500,
+        4000,
+        4500,
+        4999,
+    ),
     "tss_region_and_utr5": (
         500,
         1000,
         1500,
         2000,
+        2500,
         3000,
         3500,
         4000,
@@ -189,7 +201,7 @@ def exp232_metric_uri(arm: str, step: int) -> str:
 
 
 def exp232_manifest() -> pd.DataFrame:
-    """The explicit 48-object inventory; missing steps are never interpolated."""
+    """The explicit 50-object inventory; missing steps are never interpolated."""
     rows = [
         {
             "arm": arm,
@@ -204,8 +216,8 @@ def exp232_manifest() -> pd.DataFrame:
         for step in steps
     ]
     manifest = pd.DataFrame(rows).sort_values(["step", "arm"]).reset_index(drop=True)
-    assert len(manifest) == 48, (
-        f"exp232 manifest drifted: expected 48, got {len(manifest)}"
+    assert len(manifest) == 50, (
+        f"exp232 manifest drifted: expected 50, got {len(manifest)}"
     )
     return manifest
 
@@ -1601,7 +1613,7 @@ def run_exp232_analysis(
     n_bootstrap: int = 1000,
     seed: int = 459,
 ) -> dict[str, Path]:
-    """Run the 48-file exp232 first pass and write compact local artifacts."""
+    """Run the 50-file exp232 first pass and write compact local artifacts."""
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = exp232_manifest()
     manifest_path = output_dir / "manifest.parquet"

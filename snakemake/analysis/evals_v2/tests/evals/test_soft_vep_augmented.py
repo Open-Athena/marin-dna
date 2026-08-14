@@ -24,18 +24,30 @@ from marin_dna_evals.soft_vep_augmented import (
 from marin_dna_evals.soft_vep_metrics import AUPRC, GROUP_SMD, VARIANT_POOLED_SMD
 
 
-def test_augmented_manifest_is_six_by_eight():
+def test_augmented_manifest_is_six_by_ten():
     manifest = augmented_manifest()
 
-    assert len(manifest) == 48
-    assert AUGMENTED_STEPS == (500, 1500, 2000, 3000, 3500, 4000, 4500, 4999)
+    assert len(manifest) == 60
+    assert AUGMENTED_STEPS == (
+        500,
+        1000,
+        1500,
+        2000,
+        2500,
+        3000,
+        3500,
+        4000,
+        4500,
+        4999,
+    )
     assert set(manifest["arm"]) == set(AUGMENTED_ARMS)
     assert set(manifest["step"]) == set(AUGMENTED_STEPS)
     assert manifest["uri"].is_unique
     distal = manifest[manifest["arm"] == DISTAL_ARM]
     assert distal["role"].eq("replacement_home").all()
     assert distal["model"].str.startswith("exp351-centered-step-").all()
-    assert not distal["model"].str.endswith("-1000").any()
+    assert distal["model"].str.endswith("-1000").any()
+    assert distal["model"].str.endswith("-2500").any()
 
 
 def test_augmented_specialist_detectability_uses_all_six_arms():
