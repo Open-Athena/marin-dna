@@ -1,13 +1,11 @@
 ---
 name: maintain-research-question
-description: Maintain MarinDNA's active research-question Markdown documents and root README index. Use when a human declares a question, new evidence may change an answer, an experiment must be related to a question, a question may leave the active set, priorities change, or legacy research-question issues must be migrated.
+description: Maintain MarinDNA's active research-question Markdown documents and root README index. Use when a human declares a question, new evidence may change an answer, an experiment must be related to a question, a question may leave the active set, or priorities change.
 ---
 
 # Maintain Research Questions
 
 Keep active research synthesis in `docs/research/questions/`. Treat a document on `main` as the accepted answer. Use experiment issues, logbooks, research branches, and source ledgers for the detailed research record.
-
-Use GitHub issues for bounded experiments. Do not create active research-question issues.
 
 ## Respect Human Decisions
 
@@ -15,7 +13,6 @@ Use GitHub issues for bounded experiments. Do not create active research-questio
 - Ask before removing a question from the active set.
 - Change `Current priorities` only when a human directs the change. Agents do not assign, infer, promote, demote, or rank priorities.
 - Treat importance to MarinDNA's current thinking as the inclusion criterion. A question may remain active while its experiments are paused.
-- Follow `AGENTS.md` for merge, evaluation-split, and repository boundaries.
 
 ## Write The Document
 
@@ -76,8 +73,6 @@ Agents may independently open a synthesis pull request when evidence materially 
 
 Use the root `README.md` as the sole active-question index. List every active question once under either `Current priorities` or `Other active questions`. Keep each entry to one linked line and keep both lists alphabetical.
 
-Do not maintain a second index under `docs/research/questions/`.
-
 ## Relate Experiments
 
 Treat question-to-experiment relationships as many-to-many.
@@ -87,22 +82,9 @@ Treat question-to-experiment relationships as many-to-many.
 3. After the document change merges, add a link to the canonical document on `main` to the experiment issue.
 4. Remove a relationship through the document's normal pull-request workflow, then update the issue after merge.
 
-Do not use GitHub sub-issue metadata for these relationships.
-
 ## Remove A Question
 
 Ask the human before removal. Remove the document and its root README entry through a pull request. Use Git history as the record of past synthesis; do not keep inactive question documents solely as an archive.
-
-## Migrate Legacy Issues
-
-Migrate only open legacy issues selected for the active question set. Leave closed issues without an active document untouched.
-
-1. Add the issue title as the document's H1.
-2. Preserve the body. Rename `Open questions` to `Possible directions` and convert bare issue references such as `#55` to explicit Markdown links.
-3. Add the document to the root README and review the complete diff.
-4. Do not edit the issue before the migration pull request merges.
-5. After merge, prepend one line linking the canonical document without changing the prior body below it.
-6. Post one final comment beginning with `🤖` that links the canonical document, then close the legacy issue.
 
 ## Compose Existing Skills
 
