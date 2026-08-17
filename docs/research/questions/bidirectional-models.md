@@ -1,41 +1,55 @@
-# Can causal gLMs become bidirectional representation and arbitrary-order generation models?
+# Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?
 
 ## TL;DR
 
-Causal checkpoints can plausibly gain bidirectional representations through mixed objectives or lightweight adaptation, but no MarinDNA experiment has shown that this improves representation quality or VEP while preserving autoregressive generation.
-Confidence is low; the main gap is a matched conversion ablation with explicit generation-retention tests.
+Probably, but this has not been tested in MarinDNA.
+The intended route is to keep the large-scale Marin run entirely causal, preserve that autoregressive checkpoint, and make a separate bidirectional fork with a small amount of post-training outside Marin.
+[Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) is the closest biological precedent for sequential CLM-to-MLM transfer, but its transfer run spent only 20% of its tokens on CLM and 80% on MLM, so it does not show that a mature causal checkpoint needs only a small adaptation budget.
+[LLM2Vec](https://arxiv.org/abs/2404.05961) suggests that masked next-token prediction (MNTP), rather than ordinary same-position MLM, is a natural first objective when adapting a causal decoder.
+Confidence is moderate that the conversion is feasible and low that a cheap conversion will improve genomic representations or variant-effect prediction.
 
 ## Question
 
-Can we adapt existing MarinDNA causal/autoregressive checkpoints into models that use both left and right sequence context, without retraining from scratch or sacrificing their useful autoregressive capabilities?
-The primary goal is better position- and sequence-level embeddings for downstream genomic tasks; secondary goals are stronger variant-effect prediction and flexible sequence generation, including fill-in-the-middle (FIM), inpainting/infilling, and arbitrary-order generation.
+Can the bulk of genomic pretraining remain causal/autoregressive in Marin, where it can be run at scale, followed by a relatively cheap sidecar adaptation that produces a useful bidirectional representation model?
+
+The target is a separate encoder fork for position- and sequence-level embeddings and, secondarily, variant-effect prediction.
+The original causal checkpoint remains the generation model.
+Training the best possible MLM from scratch, preserving autoregressive generation in the adapted fork, and building a unified arbitrary-order generation model are outside the scope of this question.
 
 ## Current answer
 
 No MarinDNA checkpoint-conversion experiment has been run.
-The shortest test of the representation hypothesis is to remove the causal mask, continue training with a masked or masked-next-token objective, and compare against causal continued pretraining at matched data and compute.
+[Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) provides the closest biological evidence that the proposed sequence can work.
+The study first trained a causal protein Transformer, then initialized the same architecture from that checkpoint, reset the optimizer, removed the causal attention restriction, and continued with bidirectional 15%-mask MLM; the transfer phase used a fresh learning-rate schedule with 5% warmup.
+Its 470M transfer run used 21B causal tokens followed by 85B masked tokens.
+At the same reported pretraining FLOPs, a comparison model used ordinary MLM for all 106B tokens.
+After LoRA fine-tuning, the transfer model improved contact-prediction P@L/5 from 0.78 to 0.80 and fold-classification accuracy from 0.65 to 0.66, while fluorescence performance remained 0.67.
+Simultaneously mixing causal and masked training increased target validation loss, although the comparison may be confounded by a lower effective batch size per objective.
 
-Three end states should be kept separate.
-A converted bidirectional encoder may improve token and pooled representations while losing ordinary generation.
-A mixed-mode decoder could preserve left-to-right generation while adding bidirectional representation and infilling, but objective interference is a risk.
-Masked diffusion offers bidirectional states and arbitrary-order generation through one interface, with different likelihood semantics and iterative sampling cost.
-Fill-in-the-middle is a useful generation-preserving control but does not create jointly bidirectional per-position states.
+This result supports sequential transfer and shows that causal pretraining need not prevent later bidirectional learning.
+It does **not** directly answer the MarinDNA question: most of the transfer run's compute was masked training, the objective switch happened early, and the study did not test DNA or a mature causal checkpoint whose pretraining compute was already sunk.
+The scratch-MLM arm is evidence about the protein paper's transfer result, not the baseline MarinDNA needs to optimize against.
 
-The current hypothesis is feasible but low confidence.
-Language and biological-sequence precedents show each component separately; none demonstrates that a causal MarinDNA checkpoint can gain better VEP representations while retaining its strongest autoregressive behavior.
-The first decision gate should measure representation quality, zero-shot and probed VEP, ordinary generation retention, and compute cost before attempting a unified arbitrary-order model.
+There is also a meaningful choice between ordinary MLM and masked next-token prediction.
+With ordinary MLM, the representation at masked position $i$ predicts the original token $x_i$.
+With [LLM2Vec](https://arxiv.org/abs/2404.05961)'s MNTP, position $i$ is masked but $x_i$ is predicted from the output at position $i-1$, while attention is bidirectional.
+That one-token shift preserves the next-token alignment learned by a causal decoder and is therefore the stronger first hypothesis for a cheap adaptation.
+LLM2Vec obtained useful text embeddings with a 1,000-step LoRA MNTP phase before contrastive training, showing that such conversion can be lightweight in another domain.
+It did not establish that MNTP is better than matched ordinary MLM for genomic models, so same-position MLM remains a useful small-budget objective ablation rather than a from-scratch baseline.
+
+The current hypothesis is therefore:
+
+> A predominantly causal MarinDNA checkpoint can be forked and cheaply adapted with full attention plus MNTP into a better bidirectional representation model, while the original checkpoint remains unchanged for autoregressive use.
 
 <details>
 <summary>Related work</summary>
 
 | Route | Setup and finding | Implication and remaining gap |
 |---|---|---|
-| Causal decoder to bidirectional encoder | [LLM2Vec](https://arxiv.org/abs/2404.05961) enables full attention and masked next-token/contrastive adaptation; [NV-Embed](https://arxiv.org/abs/2405.17428) removes the causal mask during embedding training and adds learned pooling. | A trained decoder can be converted with limited continued training. DNA transfer and retention of autoregressive generation remain untested. |
-| Mixed causal and bidirectional decoder | [MAGNET](https://aclanthology.org/2025.acl-long.1325/) combines representation learning, infilling, and retained generation; [UniMAE](https://aclanthology.org/2025.acl-short.57/) is a lighter representation-focused variant. | One checkpoint may support several modes. Objective cooperation and genomic scaling remain open. |
-| Causal infilling | [FIM](https://arxiv.org/abs/2207.14255), [GLM blank infilling](https://arxiv.org/abs/2103.10360), and [ProtFIM](https://arxiv.org/abs/2303.16452) autoregressively reconstruct missing spans. | This is a cheap control that preserves generation. It does not yield jointly bidirectional hidden states or arbitrary-order denoising. |
-| Masked diffusion | [Masked Diffusion Language Models](https://arxiv.org/abs/2406.07524), DNA model [D3LM](https://arxiv.org/abs/2603.01780), track-conditioned [Nona](https://doi.org/10.1101/2025.11.06.687036), and protein model [DPLM](https://proceedings.mlr.press/v235/wang24ct.html) use iterative masked denoising. | The interface supports bidirectional representation, inpainting, and generation. Sampling cost and VEP likelihood semantics differ from a causal LM. |
-| Block diffusion | [Fast-dLLM v2](https://arxiv.org/abs/2509.26328), [Efficient-DLM](https://arxiv.org/abs/2512.14067), and [Block Diffusion](https://arxiv.org/abs/2503.09573) preserve causality across blocks and denoise within a block. | Conversion may be smoother and generation faster, but only the active block is bidirectional. |
-| Internal representation reports | [#246](https://github.com/Open-Athena/marin-dna/issues/246) maps functional-region embeddings from causal models and [#11](https://github.com/Open-Athena/marin-dna/issues/11) tracks masked-language-model support. | They define evaluation and infrastructure context. Neither is a conversion experiment or evidence that bidirectionality improves MarinDNA. |
+| Masked next-token adaptation | [LLM2Vec](https://arxiv.org/abs/2404.05961) removes the causal attention mask and uses MNTP, supervising a masked token from the preceding output position. Its unsupervised conversion used 1,000 LoRA steps before contrastive training. | The shifted objective matches a causal decoder's pretrained output alignment and can be a small sidecar phase. The evidence is from text models and does not isolate MNTP from ordinary MLM for DNA. |
+| Protein CLM-to-MLM transfer | [Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) sequentially continued causal protein Transformers with bidirectional 15%-mask MLM. A 470M run used 21B CLM plus 85B MLM tokens and modestly improved two of three downstream results relative to MLM from scratch at the same reported compute. | This is the closest biological precedent and favors sequential rather than simultaneous training. Its adaptation phase was most of the total compute, so it does not demonstrate cheap post-training of a mature causal checkpoint. |
+| Decoder-to-embedding adaptation | [NV-Embed](https://arxiv.org/abs/2405.17428) removes the causal mask during embedding training and adds learned latent-attention pooling. | Bidirectional attention and the adaptation objective are not the only choices; pooling can materially affect sequence embeddings. DNA transfer remains untested. |
+| Internal representation reports | [#246](https://github.com/Open-Athena/marin-dna/issues/246) maps functional-region embeddings from causal models, [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluates causal embeddings for VEP, and [#11](https://github.com/Open-Athena/marin-dna/issues/11) tracks MLM support. | These define the evaluation and infrastructure context. None is a causal-to-bidirectional conversion experiment. |
 
 </details>
 
@@ -43,64 +57,56 @@ The first decision gate should measure representation quality, zero-shot and pro
 <summary>Related experiments</summary>
 
 - [#3](https://github.com/Open-Athena/marin-dna/issues/3) compared causal language modeling, masked language modeling, and masked diffusion during early promoter training.
-  Causal modeling led at the earliest steps and the issue proposed a causal-to-masked curriculum; it did not convert a mature checkpoint or test representation retention.
-- [#110](https://github.com/Open-Athena/marin-dna/issues/110) explored mixed next-token, fill-in-the-middle, and autoregressive blank-infilling objectives.
-  It motivates generation-preserving controls but contains no completed conversion result.
+  Causal modeling led at the earliest steps and the issue proposed a causal-to-masked curriculum; it did not convert a mature checkpoint or constrain the masked phase to a small compute budget.
 - [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluated frozen causal gLM embeddings across VEP datasets and representation choices.
-  It provides a baseline for any converted model, including the limits of two-pass FWD/RC representations, but does not test jointly bidirectional states.
+  It provides the main baseline for a converted model, including the limitations of two-pass forward/reverse-complement representations, but does not test jointly bidirectional states.
 
 </details>
 
 ## Possible directions
 
-### What exactly should be converted?
+### How much sidecar adaptation is enough?
 
-- Is the first target a separate bidirectional encoder fork of a MarinDNA checkpoint, or one checkpoint that can switch between causal, bidirectional, FIM, and/or diffusion modes?
-- How much adaptation is needed after removing the causal mask: no training, parameter-efficient training, or full continued pretraining?
-  Which layers change most?
-- Should the first recipe use fixed-rate MLM, LLM2Vec-style masked next-token prediction, a variable-mask diffusion objective, or a mixture with the original next-token loss?
-- Does the answer differ for attention-based Transformers versus causal convolution/SSM architectures?
-  Removing an attention mask is straightforward for the former; models such as Hyena/Mamba need an explicit forward/backward construction rather than an attention-mask change.
+- Start from a completed MarinDNA causal checkpoint rather than switching objectives during the main training run.
+- Measure adaptation cost as a fraction of the sunk causal pretraining FLOPs and tokens.
+  The central unknown is whether useful bidirectionality appears after a genuinely small phase, not whether long MLM training can eventually win.
+- Use sequential MNTP as the first hypothesis because it retains the causal decoder's one-token output alignment.
+  Compare ordinary same-position MLM only at the same small adaptation budget.
+- Compare parameter-efficient and full-parameter adaptation.
+  LLM2Vec supports LoRA as a cheap starting point, while the protein transfer result used continued pretraining of the model rather than a parameter-efficient conversion.
+- Keep the sidecar operationally independent of Marin unless the result later justifies first-class training support.
 
 ### Do the representations actually improve?
 
-- At equal checkpoint, data, and adaptation compute, do bidirectional embeddings improve:
-  - functional-region separation in [#246](https://github.com/Open-Athena/marin-dna/issues/246);
-  - frozen-embedding VEP probes from [#314](https://github.com/Open-Athena/marin-dna/issues/314);
-  - token-level tasks where downstream context should matter, such as splice-site or exon annotation?
-- Which layer and pooling rule work best?
-  Mean pooling is a baseline, but NV-Embed suggests learned pooling may matter.
-- Do improvements come from bidirectionality, the masked objective, extra training, or contrastive learning?
-  Each needs a matched ablation.
+- At the same starting checkpoint, data, and extra compute, compare:
+  - the original causal checkpoint;
+  - the checkpoint with full attention enabled but no adaptation;
+  - matched short causal continuation;
+  - MNTP adaptation;
+  - optionally, ordinary MLM adaptation as an objective ablation.
+- Evaluate functional-region separation in [#246](https://github.com/Open-Athena/marin-dna/issues/246), frozen-embedding VEP probes from [#314](https://github.com/Open-Athena/marin-dna/issues/314), and token-level tasks where right context should matter, such as splice-site or exon annotation.
+- Test layer and pooling choices separately from the adaptation objective.
+  Mean pooling is the baseline, while NV-Embed suggests learned pooling may add an independent gain.
+- Attribute any improvement to full attention, masked adaptation, extra optimization, or pooling rather than treating conversion as one indivisible change.
 
 ### Does variant-effect prediction improve?
 
 SNV scoring is fixed per orientation: mask the variant position, read the reference- and alternate-allele probabilities from the same output distribution, and compute their log-likelihood ratio in one forward pass.
-This is the standard zero-shot scoring protocol for masked protein and genomic language models.
-For a fair comparison with the existing MarinDNA protocol, score both the forward and reverse-complement orientations and average them identically across models; this is a matched evaluation control, not a consequence or test of bidirectionality.
+For a fair comparison with the existing MarinDNA protocol, score both forward and reverse-complement orientations and average them identically across models; this is a matched evaluation control, not a consequence or test of bidirectionality.
 
-- Does a converted model's strand-averaged masked-site SNV LLR beat the equivalently strand-averaged causal score and frozen-embedding probe at matched context and parameter count?
-- How do we define a comparable score for indels and other multi-base variants without giving one model extra context or an easier normalization?
-
-### Which generation capability do we actually need?
-
-- Is FIM/blank infilling sufficient for near-term applications, or do we need true arbitrary-order iterative generation?
-- For masked diffusion, should sampling unmask single bases, spans, or blocks?
-  Can known sequence outside a target interval remain exactly fixed during inpainting?
-- Can one model retain high-quality left-to-right generation while gaining infilling and refinement, or is a dedicated bidirectional/diffusion fork cleaner?
-- What biological generation tests should gate progress: held-out infill recovery, motif preservation, k-mer/GC distributions, sequence novelty, predicted regulatory activity, or task-specific design constraints?
+- Does a converted model's strand-averaged masked-site SNV score beat the equivalently strand-averaged causal score and frozen-embedding probe at matched context and parameter count?
+- How should indels and other multi-base variants be scored without giving one objective extra context or easier normalization?
 
 ### Candidate experiment ladder
 
-1. **Checkpoint-conversion smoke test.**
-   Start from one small/medium MarinDNA Qwen3 checkpoint.
-   Compare matched-budget causal continued pretraining against bidirectional masked adaptation.
-   Measure held-out causal loss, masked-token accuracy, [#246](https://github.com/Open-Athena/marin-dna/issues/246) embeddings, and [#314](https://github.com/Open-Athena/marin-dna/issues/314) probes.
-2. **Objective ablation.**
-   Compare fixed-rate MLM or masked next-token prediction, mixed NTP + masked training, and a lightweight contrastive term.
-   Keep data, steps, and parameter updates matched.
-3. **Infilling control.**
-   Train a causal FIM/blank-infilling arm at the same budget.
-   This tests whether practical infilling can be obtained without changing the model into an encoder or diffusion model.
-4. **Masked-diffusion arm.**
-   Only after the cheaper conversions are understood, adapt the same checkpoint with a variable mask-rate objective and test full-sequence inpainting/arbitrary-order generation.
+1. **Sidecar conversion smoke test.**
+   Fork one small or medium completed MarinDNA checkpoint, leave the causal source checkpoint untouched, and run a tightly capped MNTP adaptation outside Marin.
+   Measure masked-token validation loss and a small set of representation probes over the adaptation trajectory.
+2. **Matched controls.**
+   Compare the original checkpoint, full attention without training, and causal continuation at the same extra compute.
+   Add ordinary MLM only as a matched adaptation-objective ablation; do not train an MLM from scratch.
+3. **Budget and update ablation.**
+   Sweep a small number of adaptation budgets and compare LoRA with full-parameter updates.
+   Report the incremental FLOPs and tokens relative to the original CLM run.
+4. **Representation gate.**
+   Run the broader [#246](https://github.com/Open-Athena/marin-dna/issues/246) and [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluations only if the smoke test shows a useful gain at an acceptably small budget.

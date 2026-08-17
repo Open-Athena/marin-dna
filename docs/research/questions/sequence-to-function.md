@@ -50,7 +50,7 @@ Gene expression is a later long-context question.
   These broaden the positive precedent but do not isolate the architecture, objective, or data property that enables transfer.
 - [#236](https://github.com/Open-Athena/marin-dna/issues/236) defines the ChromBPNet-on-gLM-embeddings evaluation harness.
   It is infrastructure rather than a completed experiment.
-- [How should a short-context gLM acquire long-range context?](long-context.md) covers connecting a short local encoder to longer sequence-to-function models; [Can causal gLMs become bidirectional representation and arbitrary-order generation models?](bidirectional-models.md) covers causal-to-bidirectional conversion; [Which genomic regions to train on, and how to find them?](training-regions.md) covers the pretraining footprint.
+- [How should a short-context gLM acquire long-range context?](long-context.md) covers connecting a short local encoder to longer sequence-to-function models; [Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?](bidirectional-models.md) covers causal-to-bidirectional conversion; [Which genomic regions to train on, and how to find them?](training-regions.md) covers the pretraining footprint.
   These are coupled design axes that must be controlled rather than attributed to pretraining as one bundle.
 
 </details>
@@ -97,14 +97,14 @@ On identical chromosome splits and GM12878 functional data, compare at minimum:
 - Within the ChromBPNet experiment, compare causal-only embeddings, FWD+RC concatenation, and a genuinely bidirectional conversion of the same MarinDNA checkpoint.
   Keep the downstream head, functional labels, adaptation data, and compute matched.
 - Is FWD+RC concatenation sufficient because the ChromBPNet head can learn cross-flank interactions, or does integration within every gLM layer provide additional signal?
-- Can a causal checkpoint be converted by removing its attention mask and continuing with masked-token training, as proposed in [Can causal gLMs become bidirectional representation and arbitrary-order generation models?](bidirectional-models.md), or is bidirectional training from random initialization ultimately better?
+- Can a completed causal checkpoint be cheaply adapted with full attention and masked next-token training, as proposed in [Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?](bidirectional-models.md), or does representation transfer require a larger masked phase?
 - How much masked adaptation is required before the converted model behaves bidirectionally?
-  Compare no adaptation, parameter-efficient adaptation, and full continued pretraining.
+  Compare no adaptation, parameter-efficient adaptation, and short full-parameter adaptation at the same sidecar budget.
 - Separate bidirectional information flow from the masked objective and from extra optimization.
   Include a causal continued-pretraining arm and, if possible, a matched bidirectional architecture trained under alternative objectives.
 - Does bidirectionality help accessibility-track prediction, caQTL/dsQTL effects, gene-expression prediction, and representation probes equally, or only tasks where a position's interpretation strongly depends on both flanks?
-- What is lost during conversion?
-  Measure causal likelihood and left-to-right generation alongside downstream transfer; decide whether one dual-mode checkpoint or separate causal and bidirectional forks is preferable.
+- Treat the source causal checkpoint and adapted bidirectional fork as separate artifacts.
+  Autoregressive generation in the adapted fork is not a decision gate.
 - Test directionality and evolutionary breadth factorially.
   A human-only bidirectional model versus a multispecies causal model cannot reveal which ingredient caused a gain.
 
