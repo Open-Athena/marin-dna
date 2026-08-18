@@ -1,9 +1,7 @@
 # Why do MarinDNA models lag on complex-trait VEP?
 
-## TL;DR
-
-MarinDNA's complex-trait VEP gap is real but has not been causally attributed.
-Training-footprint undercoverage has direct supporting evidence, while shallower evolutionary timescales and retrieval remain plausible; confidence is moderate on undercoverage as one contributor and low on which intervention will close the gap.
+> [!NOTE]
+> **TL;DR:** MarinDNA's complex-trait VEP gap is real but has not been causally attributed; training-footprint undercoverage is the best-supported hypothesis, while shallower evolutionary timescales and retrieval remain plausible, and confidence is low on which intervention will close the gap.
 
 ## Question
 
@@ -68,7 +66,8 @@ The decisive next evidence is a fixed-compute footprint ablation, followed by ma
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 1. **Does training-footprint coverage explain the gap?**
    Stratify current predictions by [#213](https://github.com/Open-Athena/marin-dna/issues/213)'s variant-centered conserved fraction, kept-window membership, and consequence group.
@@ -95,3 +94,5 @@ The decisive next evidence is a fixed-compute footprint ablation, followed by ma
    - Improvement from a controlled mammal/primate arm, without merely adding tokens or loci, supports hypothesis 2.
    - Improvement from retrieval, largest on weakly conserved variants, supports hypothesis 3.
    - If none helps, benchmark noise or missing tissue/cell-state information becomes the leading explanation.
+
+</details>

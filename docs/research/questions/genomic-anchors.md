@@ -1,9 +1,7 @@
 # How should genomic anchors be selected and projected across species?
 
-## TL;DR
-
-The current full-window projection contract is operational and has supported viable training datasets, but its anchor criterion, fragment semantics, and homology-versus-yield tradeoff remain unsettled.
-Confidence is high in the documented baseline behavior and low in its optimality; the main gap is a matched projection-policy comparison tied to downstream performance.
+> [!NOTE]
+> **TL;DR:** The current full-window projection contract supports viable training datasets, but its anchor criterion, fragment semantics, and homology-versus-yield tradeoff remain unsettled; confidence is high in the baseline behavior and low in its optimality, with a matched downstream comparison still needed.
 
 ## Question
 
@@ -83,7 +81,8 @@ Projection yield alone is insufficient.
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 - Which projection semantics best balance species recovery with confidence that the extracted target window is homologous to the human anchor: full-window projection, center-seeded projection, multiple projected landmarks, or fragment/locus-based alternatives?
 - Within full-window projection, should tiny fragments be removed before locus checks, should one fragment be selected as canonical, or should all compatible fragments define the target span?
@@ -93,3 +92,5 @@ Projection yield alone is insufficient.
   CDS-centered and cCRE-enhancer-centered windows are useful contrasting initial probes, rather than the scope of the research question itself.
 - Which projection diagnostics are needed beyond overall yield, including unique versus multiple mappings, aligned coverage around center-seeded windows, and per-species, per-clade, and per-region recovery?
 - How should controlled training comparisons separate sequence quality and evolutionary breadth from dataset quantity, and which independent coding, regulatory, and genome-wide evaluations should determine success?
+
+</details>

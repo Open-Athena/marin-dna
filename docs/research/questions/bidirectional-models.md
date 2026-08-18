@@ -1,12 +1,7 @@
 # Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?
 
-## TL;DR
-
-Probably, but this has not been tested in MarinDNA.
-The intended route is to keep the large-scale Marin run entirely causal, preserve that autoregressive checkpoint, and make a separate bidirectional fork with a small amount of post-training outside Marin.
-[Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) is the closest biological precedent for sequential CLM-to-MLM transfer, but its transfer run spent only 20% of its tokens on CLM and 80% on MLM, so it does not show that a mature causal checkpoint needs only a small adaptation budget.
-[LLM2Vec](https://arxiv.org/abs/2404.05961) suggests that masked next-token prediction (MNTP), rather than ordinary same-position MLM, is a natural first objective when adapting a causal decoder.
-Confidence is moderate that the conversion is feasible and low that a cheap conversion will improve genomic representations or variant-effect prediction.
+> [!NOTE]
+> **TL;DR:** Sequential causal-to-masked-objective transfer is feasible in protein models, while full-attention masked next-token prediction is the leading untested hypothesis for cheap MarinDNA adaptation; confidence is moderate that conversion is feasible and low that a small adaptation budget will improve representations or variant-effect prediction.
 
 ## Question
 
@@ -63,7 +58,8 @@ The current hypothesis is therefore:
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 ### How much sidecar adaptation is enough?
 
@@ -110,3 +106,5 @@ For a fair comparison with the existing MarinDNA protocol, score both forward an
    Report the incremental FLOPs and tokens relative to the original CLM run.
 4. **Representation gate.**
    Run the broader [#246](https://github.com/Open-Athena/marin-dna/issues/246) and [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluations only if the smoke test shows a useful gain at an acceptably small budget.
+
+</details>

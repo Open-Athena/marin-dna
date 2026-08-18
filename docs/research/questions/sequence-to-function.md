@@ -1,9 +1,7 @@
 # Can gLM pretraining improve human sequence-to-function modeling?
 
-## TL;DR
-
-Self-supervised gLM pretraining has not shown a consistent advantage for human sequence-to-function modeling under matched architectures and evaluation.
-Positive results in other organisms and model families suggest the effect is regime-dependent; confidence is low, and the decisive gap is a scratch-versus-pretrained accessibility experiment with matched capacity and variant evaluation.
+> [!NOTE]
+> **TL;DR:** Self-supervised gLM pretraining has not shown a consistent advantage for human sequence-to-function modeling under matched architectures and evaluation; positive results elsewhere suggest the effect is regime-dependent, so confidence is low pending a scratch-versus-pretrained accessibility experiment with matched capacity and variant evaluation.
 
 ## Question
 
@@ -65,7 +63,8 @@ Gene expression is a later long-context question.
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 ### What is the decisive accessibility experiment?
 
@@ -141,3 +140,5 @@ On identical chromosome splits and GM12878 functional data, compare at minimum:
 - Does one gLM initialization improve accessibility, histone marks, TF binding, and expression together, or are task-specific pretrained models more effective?
 - For expression, should the primary readout be track correlation, gene-level expression, eQTL direction/causality, or perturbation response?
   Improvements in average coverage prediction may not translate to better variant effects.
+
+</details>

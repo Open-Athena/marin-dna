@@ -1,9 +1,7 @@
 # What latent biological features do gLMs learn?
 
-## TL;DR
-
-Sparse-autoencoder analyses identify reproducible splice, stop-codon, accessibility, and coding-context feature responses across layers and dictionaries, while several broader semantic claims failed to replicate.
-The program is paused indefinitely; confidence is moderate for the local causal features and low for a complete biological inventory, with reference-annotation and broader variant tiers still unfinished.
+> [!NOTE]
+> **TL;DR:** Sparse-autoencoder analyses identify reproducible splice, stop-codon, accessibility, and coding-context responses, while several broader semantic claims failed to replicate; the program is paused indefinitely, with moderate confidence in local causal features and low confidence in a complete biological inventory.
 
 ## Question
 
@@ -99,7 +97,8 @@ The next useful biological tiers are UTR, promoter/TSS-proximal, and annotated n
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 ### 1. Paired-variant protocol: current answer and extensions
 
@@ -206,3 +205,5 @@ Applied follow-ups:
 - **Curriculum and generalization:** Which features appeared or sharpened during the three-way to five-way continuation, and do they generalize across held-out human loci and homologous mammalian loci?
 - **Causality:** For a small preregistered set of robust features, do in-distribution ablation or clamping change downstream predictions in the biologically expected direction?
 - **Efficiency:** What is the cheapest correctness-equivalent extraction and SAE training recipe that preserves the scientific conclusions?
+
+</details>

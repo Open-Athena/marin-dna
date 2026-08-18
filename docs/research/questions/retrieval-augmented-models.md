@@ -1,9 +1,7 @@
 # Can autoregressive RAG gLMs be accurate and practical?
 
-## TL;DR
-
-A fixed-context mammalian-ortholog prototype produced promising VEP and representation results, but it lacks matched no-retrieval controls, online retrieval, and indel evaluation.
-Confidence is moderate that the model can use ortholog context and low that retrieval itself caused the gain or can be deployed efficiently.
+> [!NOTE]
+> **TL;DR:** A fixed-context mammalian-ortholog prototype produced promising VEP and representation results, but without matched no-retrieval controls, online retrieval, or indel evaluation; confidence is moderate that the model uses ortholog context and low that retrieval caused the gain or can be deployed efficiently.
 
 ## Question
 
@@ -65,7 +63,8 @@ Online retrieval and index-cost work should wait until the causal model benefit 
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 - **Target and architecture.**
   Should the model directly generate a sequence of unaligned homologous sequences, as in PoET and EnhancAR, encode retrieved homologs separately and condition an autoregressive reader, or retrofit a strong pretrained single-sequence model with cross-attention, as in RAG-ESM?
@@ -107,3 +106,5 @@ Online retrieval and index-cost work should wait until the causal model benefit 
 - **Evaluation hygiene.**
   How should genomes, loci, homolog families, and retrieval corpora be split to prevent near-duplicate or allele leakage?
   All comparisons need a no-retrieval ablation, matched reader capacity, fixed corpus versions, retrieval traces, and performance stratified by alignment depth, genomic region, repeat content, evolutionary distance, and indel length.
+
+</details>

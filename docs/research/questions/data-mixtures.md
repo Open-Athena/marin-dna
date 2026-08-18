@@ -1,9 +1,7 @@
 # How to optimize pretraining data mixtures?
 
-## TL;DR
-
-No validated genomic mixture-optimization method exists yet.
-Proxy-swarm regression is promising but depends on small-to-large-scale rank transfer, objective signal, finite-data repetition, and leakage controls; confidence is low, and the next gap is a bounded proxy study before any broad or paid sweep.
+> [!NOTE]
+> **TL;DR:** No validated genomic mixture-optimization method exists yet; proxy-swarm regression is promising but depends on rank transfer, objective signal, finite-data repetition, and leakage controls, so confidence is low and the next step is a bounded proxy study.
 
 ## Question
 
@@ -60,7 +58,8 @@ A broad swarm or target-scale launch is not justified until rank stability, repe
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 ### Core questions
 
@@ -443,3 +442,5 @@ This draft makes the following non-blocking interpretations of the transcription
 6. Evolutionary scale is an optional follow-up axis.
    If included, nested taxonomic groups must be converted to disjoint buckets or modeled hierarchically so the same data are not counted under multiple weights.
 7. Phase-specific mixing means separate weight vectors over the same semantic cells for broad pretraining and cooldown or midtraining; phase is not an additional biological bucket axis.
+
+</details>
