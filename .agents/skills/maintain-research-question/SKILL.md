@@ -23,9 +23,8 @@ Keep this structure:
 ```markdown
 # <Question title>
 
-## TL;DR
-
-<Short current answer.>
+> [!NOTE]
+> **TL;DR:** <Concise current answer on exactly one source line.>
 
 ## Question
 
@@ -49,14 +48,19 @@ Keep this structure:
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 <Curated promising ways to reduce the important uncertainty.>
+
+</details>
 ```
+
+Write the TL;DR as exactly one source line after the callout marker. Keep the answer concise enough to scan as a summary; do not move evidence or extended caveats into the callout.
 
 Keep `Related work` curated. Include counterevidence when it materially affects the answer. Keep `Related experiments` exhaustive: include experiments created for the question and experiments later found to materially inform it. Use explicit clickable MarinDNA issue links.
 
-Treat `Possible directions` as suggestions, not commitments or a chronological backlog.
+Keep `Related work`, `Related experiments`, and `Possible directions` collapsed. Treat `Possible directions` as suggestions, not commitments or a chronological backlog.
 
 ## Create Or Revise A Question
 
@@ -64,7 +68,7 @@ Treat `Possible directions` as suggestions, not commitments or a chronological b
 2. Search the active documents and Git history for overlapping scope.
 3. Read the accepted document, open synthesis pull requests, linked experiments and comments, relevant logbooks and branches, source ledgers, and material external work.
 4. Preserve the existing format and human-authored content unless the evidence requires a change.
-5. Update the TL;DR, current answer, related work, related experiments, and possible directions together when needed.
+5. Update the one-line TL;DR, current answer, related work, related experiments, and possible directions together when needed.
 6. Update the root README and open a pull request.
 
 Agents may independently open a synthesis pull request when evidence materially changes the answer, an important caveat, or the most promising directions. Keep routine progress, dense results, and failures in experiment issues and logbooks.

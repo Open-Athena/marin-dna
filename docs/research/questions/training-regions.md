@@ -1,10 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
-## TL;DR
-
-Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales.
-No experiment establishes a universal region-selection rule across scale and tasks; confidence is moderate that task-aware enrichment helps current models.
-We do not know whether repeat downweighting improves performance or how its effect changes with scale.
+> [!NOTE]
+> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales; confidence is moderate that task-aware enrichment helps, while no universal selection rule or repeat-downweighting benefit has been established.
 
 ## Question
 
@@ -77,7 +74,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 ### What outcome are we optimizing?
 
@@ -157,3 +155,5 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 6. **Mixture frontier.**
    Sweep the fraction of constrained/annotated, weakly conserved, neutral/background, and repetitive sequence rather than comparing only the endpoints.
    The useful output is a task-by-scale Pareto frontier and a reproducible default mixture, not a universal declaration that one class of sequence “matters.”
+
+</details>

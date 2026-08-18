@@ -1,12 +1,7 @@
 # Tokenization
 
-## TL;DR
-
-Single-nucleotide tokenization remains the MarinDNA default and current recommendation.
-It preserves base-level prediction and evaluation, and our only internal comparison found worse Mendelian VEP as fixed k-mer size increased, although that experiment had a repeat-weighting confound.
-Confidence is moderate: we have enough evidence to require a strong case for moving away from single bases, but not enough to claim they are optimal.
-The main gap is a matched comparison of single-base, fixed-block, and learned semantic tokenizers under ordinary causal next-token prediction.
-The most interesting alternative is a learned discrete tokenizer that spends fewer model steps on weakly constrained or noisy sequence while preserving useful biological signal.
+> [!NOTE]
+> **TL;DR:** Single-nucleotide tokenization remains the MarinDNA default because it preserves base-level prediction and the only internal comparison worsened Mendelian VEP as fixed k-mer size increased, although repeat weighting was confounded; confidence is moderate pending a matched causal-next-token comparison with fixed-block and learned semantic tokenizers.
 
 ## Question
 
@@ -82,7 +77,8 @@ We have no internal learned-tokenizer result and no evidence that a semantic cod
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 ### Evidence required to leave the baseline
 
@@ -129,3 +125,5 @@ We have no internal learned-tokenizer result and no evidence that a semantic cod
    Advance only if the tokenizer improves a preregistered downstream or efficiency target without a material loss in base-sensitive scoring.
 
 The learned-tokenizer direction should stop if codes mainly reproduce simple composition or repeat labels, if reconstruction failures concentrate in constrained bases, if codebooks are unstable, or if gains disappear against fixed-block controls at matched compute.
+
+</details>

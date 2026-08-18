@@ -1,9 +1,7 @@
 # How should evolutionary timescale shape training?
 
-## TL;DR
-
-Existing MarinDNA experiments show that useful evolutionary breadth depends on genomic region: promoter and CDS specialists prefer different timescales, and reducing mammalian species diversity hurts some regions more than others.
-Confidence is moderate that there is no universal best clade depth; the main gap is a matched factorial test of breadth, quantity, and downstream task.
+> [!NOTE]
+> **TL;DR:** Useful evolutionary breadth depends on genomic region: promoter and CDS specialists prefer different timescales, and reducing mammalian species diversity hurts some regions more than others; confidence is moderate that there is no universal best clade depth, with a matched factorial test of breadth, quantity, and downstream task still needed.
 
 ## Question
 
@@ -61,7 +59,8 @@ This would separate early sample efficiency from final endpoint quality and test
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 1. **What exactly should “evolutionary timescale” mean experimentally?**
    Phylogenetic breadth (primates versus mammals versus vertebrates versus animals), species density within a clade, total unique bases, and distance from the target organism are separate axes and should not be collapsed into one variable.
@@ -90,3 +89,5 @@ This would separate early sample efficiency from final endpoint quality and test
    - Target-clade-only winning would support evolutionary relevance and efficient use of the token budget.
    - Broad-to-narrow beating both endpoints and the static mixture would support a curriculum in which general biological features transfer before lineage-specific adaptation.
    - Strong region-by-timescale interactions would support region-specific mixtures or curricula rather than one universal phylogenetic scope.
+
+</details>

@@ -1,11 +1,7 @@
 # Does conditioning on species/clade help?
 
-## TL;DR
-
-No matched MarinDNA ablation has tested taxon conditioning.
-Carbon directly ablates species and gene-type tags: overall sequence recovery is unchanged, while a correct species tag helps low-resource eukaryote groups; it does not report the conditioning effect on VEP.
-Other published gains remain small or task-specific.
-Confidence is low, and the cheapest next test is a frozen-Carbon tagged, untagged, and wrong-tag VEP comparison before matched retraining.
+> [!NOTE]
+> **TL;DR:** No matched MarinDNA ablation has tested taxon conditioning; Carbon finds unchanged overall sequence recovery and gains only for low-resource eukaryote groups, without VEP evidence, so confidence is low and the cheapest next test is a frozen-Carbon tagged, untagged, and wrong-tag VEP comparison.
 
 ## Question
 
@@ -67,7 +63,8 @@ Validation-loss improvement alone would not show that conditioning learned usefu
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 - **Does it help at fixed compute and data?**
   Compare models trained on the same examples, order, optimizer, seed, and token budget.
@@ -100,3 +97,5 @@ Validation-loss improvement alone would not show that conditioning learned usefu
   Correct-versus-wrong-tag sensitivity is a diagnostic, not the primary success metric.
 - **Where should the first experiment live?**
   A short-window specialist with a known multi-species cohort is the cleanest first test; it avoids changing the data distribution and targets the regime in which taxon cannot always be inferred from long genomic context.
+
+</details>

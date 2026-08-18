@@ -1,9 +1,7 @@
 # How should a short-context gLM acquire long-range context?
 
-## TL;DR
-
-No MarinDNA experiment directly compares long-context strategies.
-Existing work favors reusing short-context representations through staged, hierarchical, or downstream adaptation, but the best choice depends on required output resolution and compute; confidence is low, and a matched comparison is the main gap.
+> [!NOTE]
+> **TL;DR:** No MarinDNA experiment directly compares long-context strategies; existing work favors reusing short-context representations through staged, hierarchical, or downstream adaptation, but the best choice depends on output resolution and compute, so confidence is low pending a matched comparison.
 
 ## Question
 
@@ -54,7 +52,8 @@ Any comparison must match parameters, training tokens, and compute and must veri
 
 </details>
 
-## Possible directions
+<details>
+<summary>Possible directions</summary>
 
 - **What long-range capability do we want first?**
   Candidate tests should require distant context by construction—for example enhancer–promoter interactions, gene-level expression, long-range splicing regulation, or another task where masking distant sequence should measurably hurt.
@@ -88,3 +87,5 @@ Any comparison must match parameters, training tokens, and compute and must veri
 - **What is the smallest decisive first experiment?**
   One option is a downstream task with known long-range dependence and five matched arms: short-context baseline, direct full-resolution extension, frozen ARSENAL-style per-base tiling, frozen-local pooled hierarchy, and jointly trained pooled hierarchy.
   A second-stage LM arm should follow once that comparison establishes that the task and evaluation can detect useful long-range context.
+
+</details>
