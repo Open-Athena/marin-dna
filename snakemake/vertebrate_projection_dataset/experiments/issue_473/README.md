@@ -49,6 +49,24 @@ uv run --locked snakemake -n \
 ```
 
 Do not execute the full sample, projection, or any paid remote job without
-explicit approval. This milestone only prepares and validates request
-artifacts; policy-specific HAL and MAF projection rules remain a later additive
-step.
+explicit approval.
+
+## Projection smoke plan
+
+The additive `issue_473_projection_smoke` target projects every policy through
+the existing HAL and MultiZ inputs, extracts 255 bp sequences, writes the
+standard per-policy QC artifacts, and compares policy recovery against
+`full_window`. Its outputs remain isolated under
+`results/.../smoke/experiments/473/projection/`.
+
+Resolve the complete smoke DAG without consulting S3 or executing jobs with:
+
+```bash
+uv run --locked snakemake -n \
+  --profile workflow/profiles/default \
+  --default-storage-provider none \
+  issue_473_projection_smoke
+```
+
+This plan stages the shared HAL and smoke-cohort MAF inputs when executed.
+Do not run it locally or launch remote compute without explicit approval.

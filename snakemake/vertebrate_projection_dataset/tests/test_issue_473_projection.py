@@ -13,7 +13,9 @@ from marin_dna_vertebrate_projection.issue_473.policy import (
 from marin_dna_vertebrate_projection.issue_473.projection import (
     project_requests_from_maf,
     read_projection_requests,
+    write_contract_outputs_for_alignment,
     write_hal_request_bed6,
+    write_maf_request_candidates,
 )
 
 from .helpers import species_manifest
@@ -83,3 +85,51 @@ def test_center_one_maf_projection_retains_anchor_and_resizes_target(
     ).all()
     assert (result.accepted["t_end"] - result.accepted["t_start"] == 255).all()
     assert result.rejected.is_empty()
+
+
+def test_streaming_maf_and_contract_writers_use_policy_landmark(
+    tmp_path: Path,
+) -> None:
+    maf = tmp_path / "center.maf"
+    maf.write_text(
+        "##maf version=1\n\n"
+        "a score=1\n"
+        "s hg38.chr1 227 1 + 1000 A\n"
+        "s galGal4.chr2 300 1 + 1000 C\n"
+        "s xenTro7.scaf 100 1 - 1000 G\n"
+    )
+    requests_path = tmp_path / "requests.parquet"
+    build_projection_requests(_anchor(), centered_landmark_policy(1)).write_parquet(
+        requests_path
+    )
+    manifest_path = tmp_path / "species.tsv"
+    species_manifest().write_csv(manifest_path, separator="\t")
+    fragments_path = tmp_path / "fragments.parquet"
+
+    write_maf_request_candidates(
+        maf,
+        requests_path,
+        manifest_path,
+        fragments_path,
+        rows_per_batch=1,
+    )
+
+    fragments = pl.read_parquet(fragments_path)
+    assert fragments["alignment_name"].to_list() == ["galGal4", "xenTro7"]
+    assert set(
+        fragments.select("source_fragment_start", "source_fragment_end").iter_rows()
+    ) == {(227, 228)}
+
+    accepted_path = tmp_path / "accepted.parquet"
+    rejected_path = tmp_path / "rejected.parquet"
+    write_contract_outputs_for_alignment(
+        fragments_path,
+        "galGal4",
+        accepted_path,
+        rejected_path,
+        target_length=255,
+        pre_resize_min_length=1,
+        pre_resize_max_length=2,
+    )
+    assert pl.read_parquet(accepted_path).height == 1
+    assert pl.read_parquet(rejected_path).is_empty()
