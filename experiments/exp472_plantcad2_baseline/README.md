@@ -1,0 +1,47 @@
+# exp472 PlantCAD2 baseline
+
+Baseline Qwen3 language-model training on
+[`plantcad/Angiosperm_65_genomes_8192bp`](https://huggingface.co/datasets/plantcad/Angiosperm_65_genomes_8192bp)
+with the `kuleshov-group/PlantCAD2-Small-l24-d0768` tokenizer. Every example is
+exactly 8,192 tokens. Training uses the train split, validation uses the
+validation split, and test remains held out.
+
+## Dataset size
+
+| Split | Examples | Tokens |
+| --- | ---: | ---: |
+| Train | 2,638,656 | 21,615,869,952 |
+| Validation | 329,832 | 2,701,983,744 |
+| Test | 329,832 | 2,701,983,744 |
+| **Total** | **3,298,320** | **27,019,837,440** |
+
+## Token frequencies
+
+These counts were computed directly from every `input_ids` value in the
+completed CoreWeave cache.
+
+| ID | Token | Train | Validation | Test | Total | Frequency |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 0 | `[PAD]` | 0 | 0 | 0 | 0 | 0.000000% |
+| 1 | `[MASK]` | 0 | 0 | 0 | 0 | 0.000000% |
+| 2 | `[UNK]` | 35,133,353 | 4,390,651 | 4,335,504 | 43,859,508 | 0.162323% |
+| 3 | `a` | 6,524,411,566 | 815,618,836 | 815,612,853 | 8,155,643,255 | 30.183909% |
+| 4 | `c` | 4,022,660,407 | 502,676,023 | 502,911,954 | 5,028,248,384 | 18.609469% |
+| 5 | `g` | 4,148,055,652 | 518,501,778 | 518,449,933 | 5,185,007,363 | 19.189632% |
+| 6 | `t` | 6,885,608,974 | 860,796,456 | 860,673,500 | 8,607,078,930 | 31.854666% |
+
+## Storage
+
+CoreWeave:
+
+- Token cache: `s3://marin-us-east-02a/MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp`
+- Checkpoints: `s3://marin-us-east-02a/MarinDNA/exp472_plantcad2_baseline/checkpoints/<run>/`
+
+TRC uses a separate in-region copy in every TPU region:
+
+- Token cache: `gs://<regional-marin-bucket>/MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp`
+- Checkpoints: `gs://<regional-marin-bucket>/MarinDNA/exp472_plantcad2_baseline/checkpoints/<run>/`
+
+For example, `us-east5` uses `gs://marin-us-east5`, while `europe-west4` uses
+`gs://marin-eu-west4`. GPU and TPU runs share the same path structure; device
+type is not part of the checkpoint path.
