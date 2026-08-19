@@ -1,11 +1,16 @@
 ---
 name: maintain-research-question
-description: Maintain MarinDNA's active research-question Markdown documents and root README index. Use when a human declares a question, new evidence may change an answer, an experiment must be related to a question, a question may leave the active set, or priorities change.
+description: Maintain MarinDNA's research knowledge base in docs/research/questions and docs/research/experiments, plus the root README question index. Use when a human declares a question, an experiment has an accepted interpretation, new evidence may change an answer or experiment interpretation, an experiment must be related to a question, a question may leave the active set, or priorities change.
 ---
 
-# Maintain Research Questions
+# Maintain The Research Knowledge Base
 
-Keep active research synthesis in `docs/research/questions/`. Treat a document on `main` as the accepted answer. Use experiment issues, logbooks, research branches, and source ledgers for the detailed research record.
+Treat research documents on `main` as MarinDNA's current accepted knowledge:
+
+- `docs/research/questions/` synthesizes the current answer across internal experiments and external work.
+- `docs/research/experiments/` records the accepted interpretation of a stable empirical investigation.
+
+Keep chronology, progress, commands, superseded paths, and dense results in experiment issues, comments, logbooks, research branches, W&B, and source ledgers. Rewrite knowledge-base pages when understanding changes; Git history preserves earlier accepted versions.
 
 ## Respect Human Decisions
 
@@ -58,15 +63,65 @@ Keep this structure:
 
 Write the TL;DR as exactly one source line after the callout marker. Keep the answer concise enough to scan as a summary; do not move evidence or extended caveats into the callout.
 
-Keep `Related work` curated. Include counterevidence when it materially affects the answer. Keep `Related experiments` exhaustive: include experiments created for the question and experiments later found to materially inform it. Use explicit clickable MarinDNA issue links.
+Keep `Related work` curated. Include counterevidence when it materially affects the answer. Keep `Related experiments` exhaustive over accepted experiment pages that materially inform the question and ongoing experiment issues created for it. Use explicit clickable MarinDNA links.
 
 Keep `Related work`, `Related experiments`, and `Possible directions` collapsed. Treat `Possible directions` as suggestions, not commitments or a chronological backlog.
+
+## Write An Experiment Page
+
+Create `docs/research/experiments/<issue>-<short-slug>.md` when a completed experiment produces valid scientific evidence, including a well-designed null or negative result. Use the originating experiment issue number as the stable identifier. An experiment may be a training comparison, dataset analysis, evaluation, probing study, robustness study, or another bounded empirical investigation.
+
+Keep one page while the empirical object, primary question, and interpretation boundary remain stable. Update it through later pull requests when new evaluations add evidence to the same investigation. Create a new experiment when the intervention, estimand, or primary claim changes. Do not create one page per training run, checkpoint, metric, or evaluation episode.
+
+Use this structure:
+
+```markdown
+# <Experiment title>
+
+> [!NOTE]
+> **TL;DR:** <Current accepted interpretation on exactly one source line.>
+
+![<Accessible description of the lead figure>](<immutable raw SVG URL>)
+
+_<One-line caption stating what the figure shows and its inferential boundary.>_
+
+## Findings
+
+<Accepted claims and their scope.>
+
+## Evidence
+
+<The design, controls, datasets, metrics, and results needed to evaluate the claims.>
+
+## Limitations
+
+<Confounders, uncertainty, missing controls, and unsupported claims.>
+
+## Research record
+
+<Canonical experiment issue.>
+```
+
+Write the page as current knowledge, not as a chronology or an exhaustive report. Do not add the original question, status, progress, iteration history, decision logs, operational failures, or next-action sections. Include enough quantitative evidence and setup to review the findings. Treat inferential scope as part of the findings and limitations.
+
+Include one reviewed lead figure immediately after the TL;DR. Use the decisive result plot for a simple experiment and a multi-panel graphical abstract when the conclusion depends on several forms of evidence. A graphical abstract should communicate the setup, decisive evidence, finding, and main boundary. Prefer storing the canonical SVG on the permanent experiment branch. A revision-pinned gist is also acceptable, especially when the artifact already exists there. Embed an immutable raw URL; do not use a mutable branch-head or unpinned gist URL. Add a PNG only for a downstream sharing surface that needs one. Keep supplementary or generated figures in the issue or experiment branch. Check that the figure agrees with the prose, labels units and uncertainty, uses accessible colors, has useful alt text, and remains legible in rendered Markdown.
+
+Distinguish direct measurements, synthesized comparisons across prior work, and attributed expert judgment. Human judgment may support the accepted interpretation when the page names the researcher and basis. Do not present an attributed assessment as a controlled measurement.
+
+Under `Research record`, link only the canonical experiment issue by default. The issue owns the complete provenance chain to code, data, runs, artifacts, and discussion. List multiple source issues only when independent records jointly support the page and no single coordinating issue owns the provenance.
+
+Use these disposition rules:
+
+- Promote valid positive and valid null or negative results.
+- Keep a routine invalid design in the issue and logbook. State why it supports no scientific conclusion and obtain human approval for that disposition before closure.
+- Promote a reusable lesson from an invalid design to the nearest methodology, experiment, or question document without promoting the invalid result.
+- If accepted evidence is later invalidated, replace the existing page with a concise warning that states why no inference is valid, update every affected question, and preserve the page path for existing links.
 
 ## Create Or Revise A Question
 
 1. Confirm the human-approved question and exclusions.
 2. Search the active documents and Git history for overlapping scope.
-3. Read the accepted document, open synthesis pull requests, linked experiments and comments, relevant logbooks and branches, source ledgers, and material external work.
+3. Read the accepted document, accepted experiment pages, open synthesis pull requests, linked experiment issues and comments, relevant logbooks and branches, source ledgers, and material external work.
 4. Preserve the existing format and human-authored content unless the evidence requires a change.
 5. Update the one-line TL;DR, current answer, related work, related experiments, and possible directions together when needed.
 6. Update the root README and open a pull request.
@@ -82,9 +137,11 @@ Use the root `README.md` as the sole active-question index. List every active qu
 Treat question-to-experiment relationships as many-to-many.
 
 1. Verify that each target is an issue with the `experiment` Kind label.
-2. Add every materially informative experiment to the document's collapsed `Related experiments` section.
-3. After the document change merges, add a link to the canonical document on `main` to the experiment issue.
-4. Remove a relationship through the document's normal pull-request workflow, then update the issue after merge.
+2. Link the accepted experiment page when one exists. Link the issue only while an informative experiment is ongoing or awaiting interpretation review.
+3. Keep each entry self-contained with one or two sentences stating what the experiment contributes and its decisive limitation. Do not replace the synthesis with a bare list of links.
+4. Keep `Related experiments` exhaustive over experiments that materially inform the current answer. Omit routine invalid attempts; include an invalidated design only when its methodological lesson affects the answer or future design.
+5. After the knowledge-base change merges, add the canonical experiment-page and question-page links to the experiment issue.
+6. Remove or revise a relationship through the normal pull-request workflow, then update the issue after merge.
 
 ## Remove A Question
 

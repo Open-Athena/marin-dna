@@ -41,6 +41,8 @@ Layer domain skills on top for task-specific constraints.
    small artifacts, and test harnesses needed to reproduce results.
 5. One or more commit or tag snapshots for meaningful milestones.
 6. Often a "production" branch that gets PR'd and merged.
+7. For valid scientific evidence, an accepted interpretation page under
+   `docs/research/experiments/` and updated related research-question pages.
 
 ## Research Logbook
 
@@ -79,8 +81,8 @@ is clear.
 3. **Run:** implement the smallest useful experiment and collect evidence.
 4. **Interpret:** compare against baseline, decide confidence, and update the
    logbook.
-5. **Promote:** move only interesting, decision-relevant claims up the issue
-   funnel.
+5. **Promote:** move decision-relevant claims up the issue funnel, then propose
+   accepted interpretations for the `main` knowledge base through a pull request.
 6. **Seal:** snapshot durable results or extract production work.
 
 Every cycle should leave the durable record better than it found it.
@@ -119,10 +121,22 @@ Sealing should ordinarily only happen if the user requests it or the research ha
 1. Update the issue body with the final TL;DR, conclusion, decision log, and negative-results index. Again, follow the `task-logbook` skill.
 2. Add a final issue comment covering what worked, what did not, confidence
    level, limitations, and ordered next steps.
-3. Use `update-docs` when behavior, operational practice, reusable guidance, or
-   durable research findings changed.
-4. Ensure the final logbook entry and snapshot links are present.
-5. Close the issue when the research thread is complete.
+3. Decide and record the knowledge-base disposition:
+   - valid positive or valid null/negative evidence: create or update the
+     experiment page and every materially affected research-question page;
+   - invalid design with no reusable lesson: state why no inference is valid and
+     keep it in the chronological record;
+   - invalid design with a reusable lesson: update the nearest durable
+     methodology or research document without promoting the invalid result.
+4. Follow `maintain-research-question` for experiment-page structure, stable
+   investigation boundaries, invalidation handling, and cross-links. Open a
+   pull request for knowledge-base changes so humans review the interpretation.
+5. Use `update-docs` when behavior, operational practice, or reusable guidance
+   changed.
+6. Ensure the final logbook entry and snapshot links are present.
+7. Close the issue when the research thread is complete and either the
+   interpretation pull request has merged or a human has approved a no-promotion
+   disposition.
 
 If the research produced useful production changes, extract them into a clean
 branch that can link to the logbook but does not include it. Follow standard
@@ -134,6 +148,8 @@ Before closing the issue:
 - Issue body includes a clear `Conclusion`.
 - Next steps are listed.
 - Final snapshot is linked.
+- Knowledge-base disposition is explicit.
+- Valid scientific evidence has an interpretation pull request linked.
 - If there's a final production PR, link to it from the issue summary.
 
 ## Practical Rules

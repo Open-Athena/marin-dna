@@ -25,4 +25,4 @@ Build the figure around the scientific comparison it must support.
 
 - Emit SVG by default for a static figure. Add PNG, PDF, or another format only when a downstream consumer requires it.
 - Inspect the rendered artifact before publishing it. Check labels, clipping, legend order, facet consistency, numeric scales, and whether the visual supports the stated takeaway.
-- Store figures under `.agents/artifacts/<topic>/` and commit them to the permanent task or research branch. Use a raw commit-pinned URL when a figure must render in a GitHub issue, pull request, or Markdown document.
+- Prefer storing figures under `.agents/artifacts/<topic>/` on the permanent task or research branch. A revision-pinned gist is also acceptable, especially for an existing artifact. Use an immutable raw URL when a figure must render in a GitHub issue, pull request, or Markdown document; do not use a mutable branch-head or unpinned gist URL.

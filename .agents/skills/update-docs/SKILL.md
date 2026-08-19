@@ -15,8 +15,7 @@ thread.
 - Operational docs when commands, service setup, dashboards, alerts, or recovery
   procedures change.
 - Skill docs when an agent workflow becomes reusable.
-- Experiment reports or indexes when the work produces durable research
-  findings.
+- Research-question and experiment pages when accepted knowledge changes.
 
 Prefer editing the nearest existing doc over adding a new one. Add a new doc
 only when the topic lacks a natural home or would make an existing page
@@ -28,6 +27,10 @@ unfocused.
 - Include exact commands and paths for operational procedures.
 - Remove or correct stale instructions rather than adding caveats around them.
 - Keep broad docs concise; put detailed run notes in logbooks or issue comments.
+- Treat `docs/research/` as a knowledge base, not a chronological research
+  record. Keep current accepted interpretation there. Link the canonical
+  experiment issue as the research record; the issue owns the full provenance
+  chain to logbooks, pinned code, data, runs, and artifacts.
 
 ## Done Criteria
 

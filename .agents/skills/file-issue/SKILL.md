@@ -78,11 +78,22 @@ Done when:
 * Logbook:
 * W&B Report:
 * Important updates:
+* Knowledge-base page: <pending until interpretation review>
 
 ## Decision Log
 
 ## Conclusion
+
+## Knowledge-base disposition
+
+<Pending; interpretation page proposed or merged; reusable lesson promoted elsewhere; or no promotion because the design supports no scientific inference.>
 ```
+
+Treat a valid null or negative result as scientific evidence. Use a no-promotion
+disposition only when a design flaw prevents the intended inference, and obtain
+human approval before closing an experiment that way. Follow
+`maintain-research-question` when promoting accepted evidence or a reusable
+methodological lesson.
 
 ## Workflow
 

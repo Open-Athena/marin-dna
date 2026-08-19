@@ -1,7 +1,7 @@
 # Can autoregressive RAG gLMs be accurate and practical?
 
 > [!NOTE]
-> **TL;DR:** A fixed-context mammalian-ortholog prototype produced promising VEP and representation results, but without matched no-retrieval controls, online retrieval, or indel evaluation; confidence is moderate that the model uses ortholog context and low that retrieval caused the gain or can be deployed efficiently.
+> **TL;DR:** Fixed mammalian-ortholog retrieval let 46M- and 104M-parameter models reach VEP performance not seen in comparable single-sequence models, with perturbations confirming use of the retrieved context; online retrieval, indel accuracy, and serving practicality remain untested.
 
 ## Question
 
@@ -10,9 +10,9 @@ Can it do so with a retrieval and inference system that is practical to deploy a
 
 ## Current answer
 
-Autoregressive retrieval-augmented genomic modeling is feasible, but neither its causal accuracy benefit nor its serving practicality is established.
+Autoregressive retrieval-augmented genomic modeling is feasible, and fixed ortholog retrieval can improve the accuracy of small readers. Its serving practicality is not established.
 The only MarinDNA experiment used a fixed prefix of seven precomputed mammalian ortholog windows.
-Its 104M model produced promising zero-shot and frozen-probe point estimates and behaved as if it used ortholog context, but it lacked a matched human-only arm, online retrieval, species-order controls, and indel evaluation.
+Its 104M model exceeded the 1B single-sequence m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes. Context perturbations worsened validation loss and changed model outputs. Gonzalo Benegas reports that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's experiments, his prior work, or the broader work known to him has achieved comparable VEP performance. This supports retrieval as the source of the unusually high performance, although no matched arm quantified the gain.
 
 External results make the hypothesis plausible.
 Alignment-based genomic models show that ortholog context is highly informative; autoregressive protein models improve substitutions and indels with unaligned homologs; a DNA enhancer model generates conditioned on homolog sets; and learned protein retrievers can serve approximate-neighbor context quickly.
@@ -23,9 +23,8 @@ More parameters, more training families, longer retrieved context, more homologs
 Protein results show gains from some of these axes and saturation from others.
 A DNA model may benefit from a few informative orthologs while degrading when low-quality, repetitive, or redundant hits consume context.
 
-Confidence is moderate that a reader can exploit curated ortholog context and low that retrieval itself caused the current MarinDNA gain or can be served economically genome-wide.
-The next decision gate is a matched human-only versus fixed-ortholog comparison with identical tokens and compute, followed by shuffled/wrong-species controls and indel scoring.
-Online retrieval and index-cost work should wait until the causal model benefit survives that gate.
+Confidence is high that a reader can exploit curated ortholog context and that it drove a material part of the current small-model gain. The size and generality of that gain remain uncertain because the experiment used one context construction, one species order, and one seed per model size.
+The next accuracy questions are which species and ordering matter, whether the result transfers to indels, and how benefit changes with model size and retrieved context. Online retrieval and index-cost work must then establish whether the approach is practical beyond fixed reference-genome lookups.
 
 <details>
 <summary>Related work</summary>
@@ -58,8 +57,8 @@ Online retrieval and index-cost work should wait until the causal model benefit 
 <details>
 <summary>Related experiments</summary>
 
-- [#402](https://github.com/Open-Athena/marin-dna/issues/402) trained 46M and 104M causal models on seven fixed HAL-projected mammalian windows followed by the human window.
-  The 104M arm produced promising official train-cohort zero-shot and frozen-probe point estimates and showed ortholog-context use, but no matched human-only arm, online retrieval, order ablation, convergence study, or indel evaluation was included.
+- [#402: Fixed-ortholog retrieval prototype](../experiments/402-fixed-ortholog-rag.md) trained 46M and 104M causal models on seven fixed HAL-projected mammalian windows followed by the human window.
+  The 104M arm exceeded the 1B m5.1 reference on all three zero-shot development-cohort point estimates and two of three frozen probes, while perturbations confirmed ortholog-context use. A matched arm did not quantify the gain, and online retrieval, order ablation, convergence, and indel evaluation remain untested.
 
 </details>
 
@@ -105,6 +104,6 @@ Online retrieval and index-cost work should wait until the causal model benefit 
 
 - **Evaluation hygiene.**
   How should genomes, loci, homolog families, and retrieval corpora be split to prevent near-duplicate or allele leakage?
-  All comparisons need a no-retrieval ablation, matched reader capacity, fixed corpus versions, retrieval traces, and performance stratified by alignment depth, genomic region, repeat content, evolutionary distance, and indel length.
+  Comparisons intended to estimate the incremental retrieval effect should include a no-retrieval ablation, matched reader capacity, fixed corpus versions, retrieval traces, and performance stratified by alignment depth, genomic region, repeat content, evolutionary distance, and indel length.
 
 </details>
