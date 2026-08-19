@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import polars as pl
+from marin_dna_vertebrate_projection.issue_473.contract import (
+    apply_projection_contract,
+)
+from marin_dna_vertebrate_projection.issue_473.policy import (
+    build_projection_requests,
+    centered_landmark_policy,
+)
+from marin_dna_vertebrate_projection.issue_473.projection import (
+    project_requests_from_maf,
+    read_projection_requests,
+    write_hal_request_bed6,
+)
+
+from .helpers import species_manifest
+
+
+def _anchor() -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "query_name": ["anchor-1"],
+            "source_chrom": ["chr1"],
+            "source_start": [100],
+            "source_end": [355],
+            "region_label": ["cds"],
+        }
+    )
+
+
+def test_hal_bed_uses_landmark_while_request_keeps_source_anchor(
+    tmp_path: Path,
+) -> None:
+    request_path = tmp_path / "center-1.parquet"
+    bed_path = tmp_path / "center-1.bed"
+    build_projection_requests(_anchor(), centered_landmark_policy(1)).write_parquet(
+        request_path
+    )
+
+    request = read_projection_requests(request_path).row(0, named=True)
+    assert (request["source_start"], request["source_end"]) == (100, 355)
+    assert (request["projection_start"], request["projection_end"]) == (227, 228)
+
+    write_hal_request_bed6(request_path, bed_path)
+    assert bed_path.read_text() == "chr1\t227\t228\tanchor-1\t0\t+\n"
+
+
+def test_center_one_maf_projection_retains_anchor_and_resizes_target(
+    tmp_path: Path,
+) -> None:
+    maf = tmp_path / "center.maf"
+    maf.write_text(
+        "##maf version=1\n\n"
+        "a score=1\n"
+        "s hg38.chr1 227 1 + 1000 A\n"
+        "s galGal4.chr2 300 1 + 1000 C\n"
+        "s xenTro7.scaf 100 1 - 1000 G\n"
+    )
+    requests = build_projection_requests(_anchor(), centered_landmark_policy(1))
+    fragments = project_requests_from_maf(maf, requests, species_manifest())
+
+    assert fragments.height == 2
+    assert set(fragments.select("source_start", "source_end").iter_rows()) == {
+        (100, 355)
+    }
+    assert set(
+        fragments.select("source_fragment_start", "source_fragment_end").iter_rows()
+    ) == {(227, 228)}
+    assert set(fragments["t_strand"].to_list()) == {"+", "-"}
+
+    result = apply_projection_contract(
+        fragments,
+        target_length=255,
+        pre_resize_min_length=1,
+        pre_resize_max_length=2,
+    )
+    assert result.accepted.height == 2
+    assert (
+        result.accepted["pre_resize_t_end"] - result.accepted["pre_resize_t_start"] == 1
+    ).all()
+    assert (result.accepted["t_end"] - result.accepted["t_start"] == 255).all()
+    assert result.rejected.is_empty()
