@@ -157,7 +157,7 @@ def _apply_fragmented_projection_contract(
     assert group_sizes.is_empty() or (group_sizes > 1).all(), (
         "fragmented contract received a single-fragment group"
     )
-    assert 0 < pre_resize_min_length <= pre_resize_max_length
+    assert 0 < pre_resize_min_length <= target_length <= pre_resize_max_length
 
     if fragments.is_empty():
         return ProjectionContractResult(
@@ -491,7 +491,7 @@ def _apply_projection_contract_reference(
     missing = set(FRAGMENT_SCHEMA) - set(fragments.columns)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
     assert target_length > 0
-    assert 0 < pre_resize_min_length <= pre_resize_max_length
+    assert 0 < pre_resize_min_length <= target_length <= pre_resize_max_length
     if fragments.is_empty():
         return ProjectionContractResult(
             accepted=pl.DataFrame(schema=ACCEPTED_SCHEMA),
@@ -537,7 +537,7 @@ def apply_projection_contract(
     missing = set(FRAGMENT_SCHEMA) - set(fragments.columns)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
     assert target_length > 0
-    assert 0 < pre_resize_min_length <= pre_resize_max_length
+    assert 0 < pre_resize_min_length <= target_length <= pre_resize_max_length
     if fragments.is_empty():
         return ProjectionContractResult(
             accepted=pl.DataFrame(schema=ACCEPTED_SCHEMA),
