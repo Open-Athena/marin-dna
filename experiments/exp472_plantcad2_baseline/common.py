@@ -15,7 +15,7 @@ from marin.experiment.train import train_lm
 from marin.processing.tokenize.tokenize import TokenizedCache
 from marin.training.training import LevanterCheckpoint
 
-TOKENIZER = "timodonnell/contacts-v1-tokenizer@5d68a24a899f"
+TOKENIZER = "eczech/contacts-v1-tokenizer-5d68a24a899f"
 VOCAB_SIZE = 2_845
 SEQ_LEN = 8_192
 
