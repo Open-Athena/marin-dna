@@ -1,13 +1,12 @@
 """Run the exp472 AFDB smoke test on whole eight-H100 nodes."""
 
 import click
+from common import build_smoke_run, env_int, existing_afdb_cache
 from fray.types import ResourceConfig
 from levanter.layers.attention import AttentionBackend
 from marin.execution.lazy import ArtifactStep
 from marin.experiment.cli import build_options
 from marin.training.training import LevanterCheckpoint
-
-from common import build_smoke_run, env_int, existing_afdb_cache
 
 AFDB_CACHE = (
     "s3://marin-us-east-02a/MarinFold/exp154_qwen_contacts_v1/"

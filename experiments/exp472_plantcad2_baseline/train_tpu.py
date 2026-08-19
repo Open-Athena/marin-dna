@@ -3,12 +3,11 @@
 import os
 
 import click
+from common import build_smoke_run, existing_afdb_cache
 from fray.types import ResourceConfig
 from marin.execution.lazy import ArtifactStep
 from marin.experiment.cli import build_options
 from marin.training.training import LevanterCheckpoint
-
-from common import build_smoke_run, existing_afdb_cache
 
 TPU_TYPE = "v6e-4"
 REGION = "us-east5"
