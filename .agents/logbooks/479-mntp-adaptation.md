@@ -140,9 +140,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 ### 2026-08-19 22:33 - Protocol and source audit
 
 - Hypothesis: The registered pilot can be implemented without changing the released model definition or source sequence-orientation distribution.
-- Commit hash: pending first reproducibility snapshot.
+- Commit hash: `c9d330e43c6624d5134cd60570462e36f6794761`.
 - Command: GitHub/Hugging Face source inspection recorded in the source ledger; no training command run.
 - Config: `MNTP-479-001`, local CPU preflight planned; remote device fixed to one Lambda GH200.
 - Result: The released config is untied and the source datasets already contain the intended orientations. The sidecar will initialize two `[MASK]` rows and will not add runtime RC augmentation.
 - Interpretation: These are protocol clarifications required for causal parity and matched data, not optional implementation details.
 - Next action: Implement the self-contained Lightning project and tiny-model tests.
+
+### 2026-08-19 22:54 - Local preflight snapshot
+
+- Hypothesis: The registered corruption, loss, attention, optimizer, schedule, and resume contracts can be made deterministic before loading the 1B checkpoint.
+- Commit hash: `c9d330e43c6624d5134cd60570462e36f6794761`.
+- Command: `uv sync --locked --group dev`; `uv run --locked pytest -q`; `uv run --locked ruff check .`; `uv run --locked ruff format --check .` from `experiments/exp479_mntp_adaptation/`.
+- Config: Transformers 5.15.1, Torch 2.11.0+cu128, Lightning 2.6.5, TorchData 0.11.0; tiny Qwen3 causal/full-attention tests on CPU.
+- Result: 22 tests passed in 3.21 seconds; Ruff check and format check passed. Peak local pytest RSS was 840,612 KiB. Interrupted training resumed from step 2 and matched the uninterrupted step-4 model state exactly. The causal readout was invariant to a changed right flank with zero position-specific gradient; full attention changed the readout and produced a nonzero right-flank gradient.
+- Interpretation: The local contracts are ready for the actual-checkpoint GH200 gate. No 1B checkpoint, cloud resource, or labeled evaluation has run.
+- Next action: Push the snapshot, dry-run the commit-pinned Sky plan, update issue #479, then obtain explicit paid-launch approval.
