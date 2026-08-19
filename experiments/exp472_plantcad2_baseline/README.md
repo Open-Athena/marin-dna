@@ -7,6 +7,13 @@ exactly 8,192 tokens. Training uses the train split, validation uses the
 validation split, and test remains held out. The default training target is
 206,145 steps, or 10 epochs at global batch size 128.
 
+Each training occurrence is independently reverse-complemented with 50%
+probability. The deterministic choice is keyed by its absolute training-stream
+offset, so repeated epochs receive fresh choices while checkpoint resume and
+retries reproduce the same stream. Complements map `a` to `t`, `c` to `g`, and
+vice versa; `[PAD]`, `[MASK]`, and `[UNK]` map to themselves. Validation and
+test are not augmented.
+
 Learning rate follows a linear warmup-stable-decay schedule: 10% warmup, 70%
 at the trial's peak learning rate, and 20% linear decay to zero.
 

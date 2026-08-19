@@ -2,17 +2,24 @@
 
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from typing import Self
 
+import jax
+import numpy as np
 from fray.types import ResourceConfig
+from haliax import Axis
+from jaxtyping import PRNGKeyArray
 from levanter.callbacks.watch import WatchConfig
-from levanter.data.text.datasets import BlockShuffleConfig
+from levanter.data.dataset import AsyncDataset
+from levanter.data.text.datasets import BlockShuffleConfig, LmDataConfig
 from levanter.data.text.formats import TextLmDatasetFormat
 from levanter.layers.attention import AttentionBackend
 from levanter.layers.rotary import Llama3RotaryEmbeddingsConfig
+from levanter.models.lm_model import LmExample
 from levanter.models.qwen import Qwen3Config
 from levanter.optim.config import AdamConfig
+from levanter.schedule import BatchSchedule
 from marin.execution.lazy import ArtifactStep
 from marin.experiment.train import train_lm
 from marin.processing.tokenize.tokenize import TokenizedCache
@@ -29,6 +36,10 @@ TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_81
 EXPERIMENT_RELATIVE = "MarinDNA/exp472_plantcad2_baseline"
 TRAIN_CACHE_NAME = "inputs/plantcad-angiosperm-train-path-only"
 VALIDATION_CACHE_NAME = "inputs/plantcad-angiosperm-validation-path-only"
+REVERSE_COMPLEMENT_PROBABILITY = 0.5
+REVERSE_COMPLEMENT_SEED = 472
+# [PAD], [MASK], and [UNK] are self-complementary; a<->t and c<->g.
+REVERSE_COMPLEMENT_TOKEN_IDS = (0, 1, 2, 6, 5, 4, 3)
 
 LEARNING_RATES = (3e-4, 1e-3, 3e-3)
 WEIGHT_DECAYS = (0.1, 0.2, 0.8)
@@ -55,6 +66,140 @@ SHUFFLE = BlockShuffleConfig(
     perm_type="feistel",
 )
 DISABLED_WANDB_WATCH = WatchConfig(watch_targets=[], interval=0)
+
+
+def reverse_complement_token_ids(token_ids: np.ndarray) -> np.ndarray:
+    """Reverse-complement one PlantCAD2 token sequence."""
+    if token_ids.ndim != 1:
+        raise ValueError(f"expected one token sequence, got shape {token_ids.shape}")
+    if not np.issubdtype(token_ids.dtype, np.integer):
+        raise ValueError(f"expected integer token IDs, got dtype {token_ids.dtype}")
+    if token_ids.size and (token_ids.min() < 0 or token_ids.max() >= VOCAB_SIZE):
+        raise ValueError("token sequence contains an out-of-range PlantCAD2 token ID")
+
+    complement = np.asarray(REVERSE_COMPLEMENT_TOKEN_IDS, dtype=token_ids.dtype)
+    return complement[token_ids[::-1]]
+
+
+def _augmentation_rng(seed: int, index: int) -> np.random.Generator:
+    if index < 0:
+        raise ValueError(f"dataset index must be nonnegative, got {index}")
+    return np.random.default_rng(
+        np.random.SeedSequence([seed, index & 0xFFFFFFFF, index >> 32])
+    )
+
+
+def reverse_complement_selected(*, seed: int, index: int, probability: float) -> bool:
+    """Make a reproducible Bernoulli choice for one training-stream occurrence."""
+    if index < 0:
+        raise ValueError(f"dataset index must be nonnegative, got {index}")
+    if not 0.0 <= probability <= 1.0:
+        raise ValueError(
+            f"augmentation probability must be in [0, 1], got {probability}"
+        )
+    return probability >= 1.0 or (
+        probability > 0.0 and _augmentation_rng(seed, index).random() < probability
+    )
+
+
+def _reverse_complement_lm_example(
+    example: LmExample,
+    *,
+    seed: int,
+    index: int,
+    probability: float,
+) -> LmExample:
+    if not reverse_complement_selected(
+        seed=seed,
+        index=index,
+        probability=probability,
+    ):
+        return example
+
+    original = np.asarray(jax.device_get(example.tokens.array))
+    augmented = reverse_complement_token_ids(original)
+    token_array = jax.device_put(augmented, example.tokens.array.sharding)
+    return replace(example, tokens=replace(example.tokens, array=token_array))
+
+
+class ReverseComplementAugmentedDataset(AsyncDataset[LmExample]):
+    """Apply reverse complements using the absolute training-stream index."""
+
+    def __init__(
+        self,
+        dataset: AsyncDataset[LmExample],
+        *,
+        seed: int,
+        probability: float,
+    ):
+        if not 0.0 <= probability <= 1.0:
+            raise ValueError(
+                f"augmentation probability must be in [0, 1], got {probability}"
+            )
+        self.dataset = dataset
+        self.seed = seed
+        self.probability = probability
+
+    async def async_len(self) -> int:
+        return await self.dataset.async_len()
+
+    def is_finite(self) -> bool:
+        return self.dataset.is_finite()
+
+    async def get_batch(self, indices: Sequence[int]) -> Sequence[LmExample]:
+        examples = await self.dataset.get_batch(indices)
+        return [
+            _reverse_complement_lm_example(
+                example,
+                seed=self.seed,
+                index=index,
+                probability=self.probability,
+            )
+            for index, example in zip(indices, examples, strict=True)
+        ]
+
+
+def _validate_plantcad_tokenizer(data: LmDataConfig) -> None:
+    tokenizer = data.the_tokenizer
+    tokens = ("[PAD]", "[MASK]", "[UNK]", "a", "c", "g", "t")
+    observed = tuple(tokenizer.convert_tokens_to_ids(list(tokens)))
+    if (
+        observed != tuple(range(VOCAB_SIZE))
+        or len(tokenizer) != VOCAB_SIZE
+        or tokenizer.bos_token_id is not None
+        or tokenizer.eos_token_id is not None
+    ):
+        raise ValueError(
+            "PlantCAD2 tokenizer contract changed: "
+            f"{observed=}, vocab_size={len(tokenizer)}, "
+            f"bos={tokenizer.bos_token_id}, eos={tokenizer.eos_token_id}"
+        )
+
+
+@dataclass(frozen=True)
+class ReverseComplementDataConfig(LmDataConfig):
+    augmentation_seed: int = REVERSE_COMPLEMENT_SEED
+    augmentation_probability: float = REVERSE_COMPLEMENT_PROBABILITY
+
+    def train_set(
+        self,
+        Pos: Axis,
+        batch_schedule: BatchSchedule,
+        *,
+        key: PRNGKeyArray,
+    ) -> AsyncDataset[LmExample]:
+        _validate_plantcad_tokenizer(self)
+        dataset = super().train_set(Pos, batch_schedule, key=key)
+        return ReverseComplementAugmentedDataset(
+            dataset,
+            seed=self.augmentation_seed,
+            probability=self.augmentation_probability,
+        )
+
+
+def augment_reverse_complements(data: LmDataConfig) -> LmDataConfig:
+    values = {field.name: getattr(data, field.name) for field in fields(LmDataConfig)}
+    return ReverseComplementDataConfig(**values)
 
 
 @dataclass(frozen=True)
@@ -223,6 +368,7 @@ def build_sweep_run(
             "exp472",
             "plantcad2-baseline",
             "angiosperm-65-genomes",
+            "augmentation=reverse-complement-p0.5",
             f"lr={point.learning_rate:g}",
             f"wd={point.weight_decay:g}",
             f"batch={batch_size}",
@@ -267,6 +413,7 @@ def build_sweep_run(
             },
             block_cross_document_attention=True,
         )
+        data = augment_reverse_complements(data)
         train_config = replace(
             pod.train_config,
             trainer=trainer,
