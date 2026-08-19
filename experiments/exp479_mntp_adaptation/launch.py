@@ -3,13 +3,36 @@
 from __future__ import annotations
 
 import argparse
+import netrc
+import os
 import subprocess
 import time
 from pathlib import Path
 
 REPOSITORY_URL = "https://github.com/Open-Athena/marin-dna.git"
 CLUSTER_NAME = "dna-exp479-gh200"
-STAGE_CONFIGS = {"preflight": "sky/preflight.yaml"}
+STAGE_CONFIGS = {"preflight": "sky/preflight.yaml", "pilot": "sky/pilot.yaml"}
+HF_REPO_ID = "marin-dna/marin-dna-exp479-mntp-m5.1"
+
+
+def execution_environment(stage: str) -> dict[str, str]:
+    """Load existing local credentials into memory for Sky secret forwarding."""
+
+    environment = dict(os.environ)
+    if stage != "pilot":
+        return environment
+    if not environment.get("HF_TOKEN"):
+        token_path = Path.home() / ".cache" / "huggingface" / "token"
+        if token_path.exists():
+            environment["HF_TOKEN"] = token_path.read_text(encoding="utf-8").strip()
+    if not environment.get("WANDB_API_KEY"):
+        authentication = netrc.netrc().authenticators("api.wandb.ai")
+        if authentication is not None:
+            environment["WANDB_API_KEY"] = authentication[2]
+    missing = [name for name in ("HF_TOKEN", "WANDB_API_KEY") if not environment.get(name)]
+    if missing:
+        raise RuntimeError(f"paid pilot lacks required local credentials: {missing}")
+    return environment
 
 
 def assert_current_clean_commit(commit: str) -> None:
@@ -38,10 +61,16 @@ def assert_current_clean_commit(commit: str) -> None:
         raise RuntimeError("commit-pinned launch requires a clean checkout")
 
 
-def launch_command(stage: str, commit: str, instance_start_unix: int) -> list[str]:
+def launch_command(
+    stage: str,
+    commit: str,
+    instance_start_unix: int,
+    hf_repo_id: str = HF_REPO_ID,
+    dry_run: bool = False,
+) -> list[str]:
     """Build the self-terminating Lambda GH200 launch command."""
 
-    return [
+    command = [
         "sky",
         "launch",
         "-c",
@@ -55,9 +84,22 @@ def launch_command(stage: str, commit: str, instance_start_unix: int) -> list[st
         f"EXPERIMENT_COMMIT={commit}",
         "--env",
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
-        "--down",
-        "--yes",
     ]
+    if stage == "pilot":
+        command.extend(
+            [
+                "--env",
+                f"HF_REPO_ID={hf_repo_id}",
+                "--secret",
+                "HF_TOKEN",
+                "--secret",
+                "WANDB_API_KEY",
+            ]
+        )
+    command.extend(["--down", "--yes"])
+    if dry_run:
+        command.append("--dryrun")
+    return command
 
 
 def main() -> None:
@@ -65,12 +107,28 @@ def main() -> None:
     parser.add_argument("stage", choices=tuple(STAGE_CONFIGS))
     parser.add_argument("--commit", required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--hf-repo-id", default=HF_REPO_ID)
+    parser.add_argument("--model-card-reviewed", action="store_true")
     args = parser.parse_args()
     assert_current_clean_commit(args.commit)
-    command = launch_command(args.stage, args.commit, int(time.time()))
+    if args.stage == "pilot" and args.execute and not args.dry_run and not args.model_card_reviewed:
+        raise RuntimeError("paid pilot requires explicit human model-card review")
+    command = launch_command(
+        args.stage,
+        args.commit,
+        int(time.time()),
+        hf_repo_id=args.hf_repo_id,
+        dry_run=args.dry_run,
+    )
     print(" ".join(command), flush=True)
     if args.execute:
-        subprocess.run(command, check=True, cwd=Path(__file__).parent)
+        subprocess.run(
+            command,
+            check=True,
+            cwd=Path(__file__).parent,
+            env=execution_environment(args.stage),
+        )
 
 
 if __name__ == "__main__":

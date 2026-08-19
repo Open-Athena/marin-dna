@@ -22,6 +22,8 @@ from exp479_mntp.config import (
 from exp479_mntp.datamodule import ExperimentDataModule
 from exp479_mntp.modeling import load_model_bundle
 from exp479_mntp.module import AdaptationModule, Arm
+from exp479_mntp.probes import ContextProbeCallback
+from exp479_mntp.publishing import CheckpointUploadCallback, upload_final_arm
 
 
 def _instance_start_unix() -> float | None:
@@ -42,6 +44,7 @@ def train_arm(
     offline_wandb: bool,
     accelerator: str,
     precision: str,
+    hf_repo_id: str | None = None,
 ) -> None:
     """Run one 1,000-step arm and export its cooled Hugging Face model."""
 
@@ -101,6 +104,22 @@ def train_arm(
         RuntimeMetricsCallback(output_dir / "runtime.json", batch_size),
         BudgetGuardCallback(instance_start_unix=_instance_start_unix()),
     ]
+    callbacks.append(
+        ContextProbeCallback(
+            validation_plan=validation_plan,
+            tokenizer=bundle.tokenizer,
+            mask_token_id=bundle.mask_token_id,
+            canonical_ids=bundle.canonical_token_ids,
+        )
+    )
+    if hf_repo_id is not None:
+        callbacks.append(
+            CheckpointUploadCallback(
+                checkpoint_dir=output_dir / "checkpoints",
+                repo_id=hf_repo_id,
+                arm=arm,
+            )
+        )
     trainer = L.Trainer(
         accelerator=accelerator,
         devices=1,
@@ -145,3 +164,5 @@ def train_arm(
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
+    if hf_repo_id is not None:
+        upload_final_arm(output_dir=output_dir, repo_id=hf_repo_id, arm=arm)
