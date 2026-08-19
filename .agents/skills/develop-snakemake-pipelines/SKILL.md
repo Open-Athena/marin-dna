@@ -28,6 +28,13 @@ Use the targets intended for the task. Put pipeline-wide defaults such as cores,
 - Expose maintained command-line tools through package entry points.
 - Add tests for Python behavior and assert output contracts where silent corruption is possible.
 
+## Extend Existing S3-Backed Pipelines Additively
+
+- Treat existing rules and the shared Python code paths they invoke as immutable when their artifacts share underlying data or storage on S3.
+- Add task-specific rules, modules, tests, configuration, targets, and output namespaces instead of editing an existing path. Copy code when that is the clearest way to keep the new execution path isolated.
+- Preserve existing rule names, inputs, outputs, parameters, and transitive behavior. Do not rely on producer-keyed paths alone to make an in-place change safe.
+- If the requested outcome cannot be implemented additively, stop and obtain explicit user approval before modifying a legacy rule or shared execution path.
+
 ## Inspect Before Executing
 
 1. Run the owning project's tests.
