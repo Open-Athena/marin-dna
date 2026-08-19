@@ -40,9 +40,10 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   Its matched ablation favored conserved-region training for VEP.
   This supports functional enrichment at that model size and objective.
   It does not prove that neutral sequence is useless or determine how the result changes with scale.
-- [Rho-1](https://arxiv.org/abs/2404.07965) prioritizes tokens by reducible loss: the current model's token loss minus a smaller reference model's loss on a target distribution.
-  It also reports a simpler same-corpus variant based on frozen reference-model loss and entropy.
-  This supports testing likelihood-derived token selection, but the score is relative to the reference distribution rather than a direct measure of biological function.
+- [Rho-1](https://arxiv.org/abs/2404.07965) prioritizes tokens by reducible loss: the online model's token loss minus the loss of a reference model trained on the target or high-quality distribution.
+  The reference model may be smaller for efficiency, but its target-distribution training, not its size, defines the score.
+  It also reports same-corpus self-reference selection using low frozen-reference loss and entropy.
+  A loss difference between two same-corpus model sizes instead measures scale-dependent learnability and may rank tokens differently from Rho-1 reducible loss.
   In genomic data, repeats, local composition, and phylogenetic redundancy may all produce high predictability without functional constraint.
 - Conservation is a proxy for purifying constraint rather than a complete definition of function.
   It misses lineage-specific and hard-to-align elements, while annotations miss unknown constrained sequence.
@@ -100,8 +101,10 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   How should paralogs, synteny loss, fragmented hits, and repeats be handled?
 - **Learned single-sequence selection:** once a strong model exists, can a classifier or probe trained on annotations and/or evolutionary labels identify functional windows in a new genome from sequence alone?
   What orthogonal evaluation prevents the selector from merely reproducing conservation or annotation bias?
-- **Frozen likelihood-derived selection:** can per-base loss or entropy from a small frozen model, or loss reduction between two frozen model sizes, identify useful training tokens without annotations?
-  Absolute predictability and improvement with model scale should be evaluated separately.
+- **Frozen likelihood-derived selection:** can per-base loss or entropy from a small frozen model identify useful training tokens without annotations?
+  When a target or high-quality reference corpus exists, can a Rho-1-style reference model trained on that distribution provide a useful reducible-loss score?
+  Separately, can loss reduction between two same-corpus frozen model sizes identify tokens with high scale-dependent learnability?
+  Treat absolute predictability, target-distribution reducible loss, and same-corpus improvement with model scale as distinct signals.
   Repeat status, GC content, local k-mer predictability, taxon, and homology density are necessary controls because each can create predictable sequence without implying functional constraint.
 - Should these sources be used as a union, an intersection, separate sampling strata, or continuous weights?
 
@@ -120,7 +123,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - On the existing 46M–4B parameter ladder, measure per-base likelihood on fixed human CDS, upstream/promoter, and downstream/3′ UTR windows, stratified jointly by phyloP conservation and RepeatMasker status.
   Report absolute loss at each size and per-base loss reduction across sizes, with genomic-block uncertainty and matched composition controls.
   CDS codon position can serve as a positive control for whether the score distinguishes known differences within one functional region.
-- If loss reduction with scale remains associated with conservation after repeat, composition, and homology controls, test a fixed offline loss weight derived from two frozen reference checkpoints.
+- If same-corpus loss reduction with scale remains associated with conservation after repeat, composition, and homology controls, test a fixed offline scale-differential weight derived from two frozen checkpoints.
+  Treat this as a learnability heuristic rather than a direct Rho-1 analogue.
   Compare it against uniform loss, the current repeat weighting, and simpler small-model loss or entropy weights at matched training compute.
 - When a filtered corpus is smaller, are gains caused by better loci or simply by seeing the same loci for more epochs?
   Both compute-matched and exposure/epoch-matched comparisons are needed.
