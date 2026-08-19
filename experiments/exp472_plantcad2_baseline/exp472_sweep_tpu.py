@@ -1,7 +1,11 @@
-"""Run one exp472 PlantCAD2 LR/WD sweep trial on a region-local TPU."""
+"""Run one exp472 PlantCAD2 LR/WD sweep trial on a region-local TPU.
+
+``TRIAL`` selects the logical configuration. ``REGION`` selects the regional
+W&B run and regional data/checkpoint root; ``TPU`` is resliceable placement
+within that region and does not enter either identity.
+"""
 
 import math
-import os
 from dataclasses import dataclass
 
 import click
@@ -35,7 +39,6 @@ from marin.training.training import LevanterCheckpoint
 from rigging.filesystem.cluster_config import StoreType, data_config
 from rigging.filesystem.storage_path import StoragePath, prefix_join
 
-DEFAULT_TPU = "v6e-4"
 EXPECTED_SPLIT_ROWS = {"train": 2_638_656, "validation": 329_832}
 CORRECTION_FACTORS = {"v5e": 0.5, "v6e": 0.3, "v5p": 0.45}
 
@@ -139,7 +142,7 @@ def validate_regional_cache(cache_path: str) -> None:
 @click.command(help=__doc__)
 @build_options
 def main() -> ArtifactStep[LevanterCheckpoint]:
-    tpu = os.environ.get("TPU", DEFAULT_TPU).strip().lower()
+    tpu = required_env("TPU").strip().lower()
     region = required_env("REGION").strip().lower()
     get_tpu_topology(tpu)
     root = regional_root(region)
@@ -169,12 +172,13 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
         per_device_parallelism=batch.per_device_parallelism,
         runtime_tags=(
             f"region={region}",
-            f"accelerator={tpu}",
+            f"tpu={tpu}",
             f"data_parallelism={batch.data_parallelism}",
             f"tensor_parallelism={batch.tensor_parallelism}",
             f"per_device_parallelism={batch.per_device_parallelism}",
             f"gradient_accumulation={batch.gradient_accumulation}",
         ),
+        wandb_run_suffix=region,
         expected_output_prefix=experiment_prefix,
     )
 

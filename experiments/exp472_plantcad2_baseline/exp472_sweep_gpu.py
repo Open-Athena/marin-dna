@@ -1,5 +1,12 @@
-"""Run one exp472 PlantCAD2 LR/WD sweep trial on whole eight-H100 nodes."""
+"""Run one exp472 PlantCAD2 LR/WD sweep trial on whole eight-H100 nodes.
 
+``TRIAL`` selects the logical configuration. ``CLUSTER`` selects either
+``cw-us-east-02a`` or ``cw-rno2a``, and ``NODES`` selects a supported whole-node
+gang size. Cluster and node count are placement only: reslicing preserves the
+trial's W&B ID and checkpoint path.
+"""
+
+import os
 from dataclasses import dataclass
 
 import click
@@ -10,7 +17,6 @@ from common import (
     TRAIN_CACHE_NAME,
     VALIDATION_CACHE_NAME,
     build_sweep_run,
-    env_int,
     existing_plantcad_cache,
     global_batch_size,
     parse_sweep_point,
@@ -26,8 +32,35 @@ from rigging.filesystem.storage_path import prefix_join
 COREWEAVE_ROOT = "s3://marin-us-east-02a"
 TOKENIZED_CACHE = prefix_join(COREWEAVE_ROOT, TOKENIZED_CACHE_RELATIVE)
 EXPERIMENT_PREFIX = prefix_join(COREWEAVE_ROOT, EXPERIMENT_RELATIVE)
-GPUS_PER_NODE = 8
 MAX_SEQUENCES_PER_DEVICE = 8
+ALLOWED_NODES = (1, 2, 4, 8, 16)
+
+
+@dataclass(frozen=True)
+class ClusterSpec:
+    gpu_variant: str
+    gpus_per_node: int
+    cpu: int
+    ram: str
+    disk: str
+
+
+CLUSTERS = {
+    "cw-us-east-02a": ClusterSpec(
+        gpu_variant="H100",
+        gpus_per_node=8,
+        cpu=32,
+        ram="256g",
+        disk="256g",
+    ),
+    "cw-rno2a": ClusterSpec(
+        gpu_variant="H100",
+        gpus_per_node=8,
+        cpu=32,
+        ram="256g",
+        disk="256g",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -38,11 +71,11 @@ class GpuBatchConfig:
     gradient_accumulation: int
 
 
-def gpu_batch_fit(nodes: int, batch_size: int) -> GpuBatchConfig:
-    devices = GPUS_PER_NODE * nodes
+def gpu_batch_fit(spec: ClusterSpec, nodes: int, batch_size: int) -> GpuBatchConfig:
+    devices = spec.gpus_per_node * nodes
     if batch_size % devices:
         raise ValueError(
-            f"global batch {batch_size} is not divisible by {devices} H100s"
+            f"global batch {batch_size} is not divisible by {devices} GPUs"
         )
     full_per_device_batch = batch_size // devices
     per_device_parallelism = min(full_per_device_batch, MAX_SEQUENCES_PER_DEVICE)
@@ -56,13 +89,33 @@ def gpu_batch_fit(nodes: int, batch_size: int) -> GpuBatchConfig:
     )
 
 
+def parse_cluster() -> tuple[str, ClusterSpec]:
+    cluster = os.environ.get("CLUSTER", "").strip().lower()
+    try:
+        return cluster, CLUSTERS[cluster]
+    except KeyError as exc:
+        raise SystemExit(f"CLUSTER must be one of: {', '.join(CLUSTERS)}") from exc
+
+
+def parse_nodes() -> int:
+    raw = os.environ.get("NODES")
+    if raw is None:
+        raise SystemExit("missing required environment variable NODES")
+    nodes = int(raw)
+    if nodes not in ALLOWED_NODES:
+        choices = ", ".join(str(value) for value in ALLOWED_NODES)
+        raise SystemExit(f"NODES must be one of: {choices}")
+    return nodes
+
+
 @click.command(help=__doc__)
 @build_options
 def main() -> ArtifactStep[LevanterCheckpoint]:
     require_marin_prefix(EXPERIMENT_PREFIX)
-    nodes = env_int("EXP472_GPU_NODES", 1)
+    cluster, spec = parse_cluster()
+    nodes = parse_nodes()
     batch_size = global_batch_size()
-    batch = gpu_batch_fit(nodes, batch_size)
+    batch = gpu_batch_fit(spec, nodes, batch_size)
     return build_sweep_run(
         point=parse_sweep_point(),
         train_cache=existing_plantcad_cache(
@@ -76,25 +129,27 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
             source=TOKENIZED_CACHE,
         ),
         resources=ResourceConfig.with_gpu(
-            "H100",
-            count=8,
+            spec.gpu_variant,
+            count=spec.gpus_per_node,
             replicas=nodes,
-            cpu=32,
-            ram="256g",
-            disk="256g",
+            cpu=spec.cpu,
+            ram=spec.ram,
+            disk=spec.disk,
         ),
         attention_backend=AttentionBackend.JAX_FLASH,
         batch_size=batch_size,
         tensor_parallelism=batch.tensor_parallelism,
         per_device_parallelism=batch.per_device_parallelism,
         runtime_tags=(
-            "accelerator=H100",
+            f"cluster={cluster}",
+            f"gpu={spec.gpu_variant}",
             f"nodes={nodes}",
             f"data_parallelism={batch.data_parallelism}",
             f"tensor_parallelism={batch.tensor_parallelism}",
             f"per_device_parallelism={batch.per_device_parallelism}",
             f"gradient_accumulation={batch.gradient_accumulation}",
         ),
+        wandb_run_suffix=None,
         expected_output_prefix=EXPERIMENT_PREFIX,
     )
 

@@ -169,13 +169,17 @@ def build_sweep_run(
     tensor_parallelism: int,
     per_device_parallelism: int,
     runtime_tags: Sequence[str],
+    wandb_run_suffix: str | None,
     expected_output_prefix: str,
 ) -> ArtifactStep[LevanterCheckpoint]:
     steps = env_int("EXP472_STEPS", 2)
     suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
-    run_id = f"exp472-plantcad2-angiosperm-{point.key}"
+    checkpoint_id = f"exp472-plantcad2-angiosperm-{point.key}"
     if suffix:
-        run_id = f"{run_id}-{suffix}"
+        checkpoint_id = f"{checkpoint_id}-{suffix}"
+    run_id = checkpoint_id
+    if wandb_run_suffix:
+        run_id = f"{run_id}-{wandb_run_suffix}"
 
     wandb_entity = required_env("WANDB_ENTITY")
     wandb_project = required_env("WANDB_PROJECT")
@@ -186,8 +190,10 @@ def build_sweep_run(
         "WANDB_ENTITY": wandb_entity,
         "WANDB_PROJECT": wandb_project,
     }
+    if mode := os.environ.get("WANDB_MODE"):
+        env_vars["WANDB_MODE"] = mode
     step = train_lm(
-        name=f"checkpoints/{run_id}",
+        name=f"checkpoints/{checkpoint_id}",
         run_id=run_id,
         model=replace(MODEL_CONFIG, attn_backend=attention_backend),
         optimizer=AdamConfig(
