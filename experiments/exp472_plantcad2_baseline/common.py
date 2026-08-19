@@ -1,6 +1,7 @@
-"""Shared one-billion-parameter Qwen3 AFDB smoke-training recipe."""
+"""Shared one-billion-parameter Qwen3 PlantCAD2 smoke-training recipe."""
 
 import os
+from collections.abc import Mapping
 from dataclasses import replace
 from typing import Self
 
@@ -17,8 +18,8 @@ from marin.experiment.train import train_lm
 from marin.processing.tokenize.tokenize import TokenizedCache
 from marin.training.training import LevanterCheckpoint
 
-TOKENIZER = "eczech/contacts-v1-tokenizer-5d68a24a899f"
-VOCAB_SIZE = 2_845
+TOKENIZER = "kuleshov-group/PlantCAD2-Small-l24-d0768"
+VOCAB_SIZE = 7
 SEQ_LEN = 8_192
 
 MODEL_CONFIG = Qwen3Config(
@@ -45,8 +46,8 @@ SHUFFLE = BlockShuffleConfig(
 DISABLED_WANDB_WATCH = WatchConfig(watch_targets=[], interval=0)
 
 
-class ExistingAfdbCache(TokenizedCache):
-    """Path-only view that ignores historical metadata embedded in AFDB caches."""
+class ExistingPlantCadCache(TokenizedCache):
+    """Path-only view of the PlantCAD cache produced outside Marin's step graph."""
 
     @classmethod
     def raw_load(cls, source: str) -> Self:
@@ -62,11 +63,11 @@ class ExistingAfdbCache(TokenizedCache):
 
     @property
     def format(self) -> TextLmDatasetFormat:
-        return TextLmDatasetFormat(text_key="document")
+        return TextLmDatasetFormat(text_key="seq")
 
     @property
     def tags(self) -> list[str]:
-        return ["protein", "contacts-v1", "afdb", "pretokenized"]
+        return ["dna", "plantcad", "angiosperm", "pretokenized"]
 
 
 def env_int(name: str, default: int) -> int:
@@ -83,7 +84,7 @@ def required_env(name: str) -> str:
     return value
 
 
-def existing_afdb_cache(
+def existing_plantcad_cache(
     *,
     name: str,
     version: str,
@@ -93,11 +94,11 @@ def existing_afdb_cache(
         name,
         version,
         source,
-        kind=ExistingAfdbCache,
+        kind=ExistingPlantCadCache,
         config={
             "tokenizer": TOKENIZER,
-            "format": {"text_key": "document"},
-            "tags": ["protein", "contacts-v1", "afdb", "pretokenized"],
+            "format": {"text_key": "seq"},
+            "tags": ["dna", "plantcad", "angiosperm", "pretokenized"],
         },
     )
 
@@ -109,11 +110,12 @@ def build_smoke_run(
     validation_cache: ArtifactStep[TokenizedCache],
     resources: ResourceConfig,
     attention_backend: AttentionBackend | None,
+    extra_env_vars: Mapping[str, str] | None = None,
 ) -> ArtifactStep[LevanterCheckpoint]:
     steps = env_int("EXP472_STEPS", 2)
     batch_size = env_int("EXP472_BATCH_SIZE", 8)
     suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
-    run_id = f"exp472-plantcad2-afdb-{platform}-smoke"
+    run_id = f"exp472-plantcad2-angiosperm-{platform}-smoke"
     if suffix:
         run_id = f"{run_id}-{suffix}"
 
@@ -126,6 +128,8 @@ def build_smoke_run(
         "WANDB_ENTITY": wandb_entity,
         "WANDB_PROJECT": wandb_project,
     }
+    if extra_env_vars:
+        env_vars.update(extra_env_vars)
 
     step = train_lm(
         name=f"checkpoints/{run_id}",
@@ -151,10 +155,10 @@ def build_smoke_run(
         wandb_project=wandb_project,
         wandb_group="exp472-plantcad2-baseline-smoke",
         tags=[
-            "marin-dna",
+            "MarinDNA",
             "exp472",
             "plantcad2-baseline",
-            "afdb",
+            "angiosperm-65-genomes",
             "smoke",
             platform,
             f"params={MODEL_PARAMS}",
