@@ -1,0 +1,17 @@
+name: dna-exp479-preflight
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 512
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  cd experiments/exp479_mntp_adaptation
+  mkdir -p "$HOME/exp479-artifacts"
+  uv run --locked exp479 preflight --output "$HOME/exp479-artifacts/preflight.json"
+
