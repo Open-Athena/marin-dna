@@ -10,7 +10,14 @@ import os
 from dataclasses import dataclass
 
 import click
-from common import (
+from fray.types import ResourceConfig
+from levanter.layers.attention import AttentionBackend
+from marin.execution.lazy import ArtifactStep
+from marin.experiment.cli import build_options
+from marin.training.training import LevanterCheckpoint
+from rigging.filesystem.storage_path import prefix_join
+
+from experiments.exp472_plantcad2_baseline.common import (
     CACHE_VERSION,
     EXPERIMENT_RELATIVE,
     TOKENIZED_CACHE_RELATIVE,
@@ -22,12 +29,6 @@ from common import (
     parse_sweep_point,
     require_marin_prefix,
 )
-from fray.types import ResourceConfig
-from levanter.layers.attention import AttentionBackend
-from marin.execution.lazy import ArtifactStep
-from marin.experiment.cli import build_options
-from marin.training.training import LevanterCheckpoint
-from rigging.filesystem.storage_path import prefix_join
 
 COREWEAVE_ROOT = "s3://marin-us-east-02a"
 TOKENIZED_CACHE = prefix_join(COREWEAVE_ROOT, TOKENIZED_CACHE_RELATIVE)

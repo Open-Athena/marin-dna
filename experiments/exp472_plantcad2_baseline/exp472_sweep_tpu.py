@@ -10,7 +10,21 @@ import os
 from dataclasses import dataclass
 
 import click
-from common import (
+from fray.types import (
+    ResourceConfig,
+    get_tpu_topology,
+    tpu_family,
+    tpu_hbm_capacity_bytes,
+)
+from levanter.store.cache import ShardedCacheLayout
+from marin.execution.lazy import ArtifactStep
+from marin.experiment.cli import build_options
+from marin.processing.tokenize.cache_stats import read_tokenized_cache_stats
+from marin.training.training import LevanterCheckpoint
+from rigging.filesystem.cluster_config import StoreType, data_config
+from rigging.filesystem.storage_path import StoragePath, prefix_join
+
+from experiments.exp472_plantcad2_baseline.common import (
     CACHE_VERSION,
     DEFAULT_TRAIN_STEPS,
     EXPERIMENT_RELATIVE,
@@ -28,19 +42,6 @@ from common import (
     require_marin_prefix,
     required_env,
 )
-from fray.types import (
-    ResourceConfig,
-    get_tpu_topology,
-    tpu_family,
-    tpu_hbm_capacity_bytes,
-)
-from levanter.store.cache import ShardedCacheLayout
-from marin.execution.lazy import ArtifactStep
-from marin.experiment.cli import build_options
-from marin.processing.tokenize.cache_stats import read_tokenized_cache_stats
-from marin.training.training import LevanterCheckpoint
-from rigging.filesystem.cluster_config import StoreType, data_config
-from rigging.filesystem.storage_path import StoragePath, prefix_join
 
 EXPECTED_SPLIT_ROWS = {"train": 2_638_656, "validation": 329_832}
 CORRECTION_FACTORS = {"v5e": 0.5, "v6e": 0.3, "v5p": 0.45}
