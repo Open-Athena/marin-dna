@@ -14,8 +14,9 @@ source anchor from the smaller interval submitted to HAL or MAF. It defines
 tested full-window and centered 1, 17, 33, 65, and 129 bp request semantics,
 policy-specific target-span gates, and a deterministic pilot sampler covering
 source chromosome by conservation-score quantile strata. New opt-in Snakemake
-rules prepare reviewable policy requests without changing existing rules or
-shared execution paths.
+rules now resolve the end-to-end smoke projection, per-policy QC, and
+cross-policy comparison without changing existing rules or shared execution
+paths.
 
 No alignment, publication, training, S3-write, or remote-compute job has run
 for #473.
@@ -342,3 +343,31 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: add policy-specific HAL and MAF projection rules under the same
   experiment namespace, then dry-run and review their smoke DAG before seeking
   compute approval.
+
+### 2026-08-19 21:55 UTC - CSP-003 additive projection smoke DAG
+
+- Hypothesis: all six projection policies can share immutable alignment inputs
+  through new experiment-scoped rules while preserving established rules,
+  outputs, and full-window behavior.
+- Commit Hash: `7eb8109e6830bd6bd19b8e252f42c682dd751560`
+- Additive boundary: new rules consume established staging and reference
+  artifacts as inputs, but every policy-derived artifact is written beneath
+  producer-keyed `experiments/473/projection/` paths.
+- Commands:
+  - `uv run --locked pre-commit run --files <issue #473 projection files>`
+  - `uv run --locked pytest`
+  - `uv run --locked snakemake -n --profile workflow/profiles/default --default-storage-provider none issue_473_projection_smoke`
+- Result: all 102 project tests and file-scoped pre-commit hooks passed. The
+  credential-free smoke DAG resolved 292 jobs across six policies, two HAL
+  species, five MultiZ species, and two smoke chromosomes, followed by six
+  combined sequence tables, six standard QC aggregations, and one cross-policy
+  recovery and mapping-evidence comparison. No workflow job ran.
+- Execution boundary: running the target would stage the shared 1.26 TB HAL,
+  staged smoke-cohort MAF inputs, and reference genomes. Local execution and
+  remote compute remain unapproved.
+- Interpretation: the additive projection implementation is ready for code
+  review and an explicitly approved remote smoke run. This is not a scientific
+  result and does not select a policy.
+- Next action: obtain explicit remote-compute and data-staging permission, run
+  the smoke target, inspect coordinate, accounting, and recovery outputs, and
+  publish the reproducible result to issue #473.
