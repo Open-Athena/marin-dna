@@ -9,13 +9,16 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The first code milestone separates each fixed 255 bp human source anchor from
-the smaller interval submitted to HAL or MAF. The existing `full_window`
-coordinates and 128--512 bp target-span gate remain unchanged. Centered
-landmarks of 1, 17, 33, 65, and 129 bp now have tested 0-based, half-open
-request semantics and width-specific 0.5--2.0 target-span gates.
+An additive `issue_473` namespace now separates each fixed 255 bp human
+source anchor from the smaller interval submitted to HAL or MAF. It defines
+tested full-window and centered 1, 17, 33, 65, and 129 bp request semantics,
+policy-specific target-span gates, and a deterministic pilot sampler covering
+source chromosome by conservation-score quantile strata. New opt-in Snakemake
+rules prepare reviewable policy requests without changing existing rules or
+shared execution paths.
 
-No alignment, publication, or training job has run for #473.
+No alignment, publication, training, S3-write, or remote-compute job has run
+for #473.
 
 ## Scope
 
@@ -86,6 +89,9 @@ No alignment, publication, or training job has run for #473.
   landmarks use integer gates `ceil(width / 2)` through `2 * width`.
 - 2026-08-19: Do not launch alignment, publication, or training compute before
   the policy DAG and smoke tests are reviewed.
+- 2026-08-19: Treat the existing S3-backed pipeline as immutable. Implement
+  #473 with new rule, module, test, documentation, target, and output paths;
+  copy code when policy assumptions cannot be isolated by composition.
 
 ## Negative Results Index
 
@@ -295,3 +301,44 @@ cohort, assemblies, and downstream training recipe fixed.
   is not yet represented in Snakemake output paths or QC tables.
 - Next action: add producer-keyed policy request artifacts and the deterministic
   landmark sample, then wire policy-specific HAL/MAF smoke targets.
+
+### 2026-08-19 21:40 UTC - CSP-001A additive correction and CSP-002 request preparation
+
+- Hypothesis: #473 can prepare exact, reviewable policy requests and a
+  representative wider pilot without changing any established #417 rule or
+  shared execution path.
+- Commit Hash: `db3ecae258dfef4f963a67308fa2f1bceba4608d`
+- Superseded implementation: commit `ef8d069ec8e22069191772fe12a6ea8e7caa2399`
+  changed shared helpers and is reverted by `dcf4af97`. Its coordinate
+  conclusions remain covered by the isolated implementation, but it must not
+  be used as the experiment recipe.
+- Additive boundary:
+  - implementation: `src/marin_dna_vertebrate_projection/issue_473/`
+  - rules: `workflow/rules/issue_473.smk`
+  - runbook: `experiments/issue_473/README.md`
+  - outputs: producer-keyed `results/.../<tier>/experiments/473/`
+  - legacy workflow change: one include line only; no established rule,
+    helper, configuration key, default target, or output contract changed.
+- Sampler: up to 10,000 anchors per canonical functional region; five
+  equal-count region-level conservation quantiles; coverage-first water
+  filling across every observed source-chromosome by quantile stratum; SHA-256
+  ordering with seed 473 within strata.
+- Commands:
+  - `uv run --locked pytest tests/test_issue_473_policy.py tests/test_issue_473_projection.py tests/test_issue_473_pilot.py -q`
+  - `uv run --locked pytest`
+  - `uv run --locked pre-commit run --files <issue #473 files>`
+  - `uv run --locked snakemake -n --profile workflow/profiles/default --default-storage-provider none issue_473_request_artifacts`
+  - `uv run --locked snakemake -n --profile workflow/profiles/default --default-storage-provider none issue_473_request_artifacts --config tier=full`
+- Result: 17 focused tests and all 100 project tests passed; file-scoped
+  pre-commit hooks passed. The smoke graph contains 14 new
+  request-preparation jobs only. The credential-free full graph contains 75
+  jobs: the existing anchor-production chain plus the new scored catalog,
+  sampled manifest, six policy request tables, and six HAL BEDs. No job ran.
+- Skill follow-up: the reusable additive-S3 invariant is isolated in draft PR
+  [#474](https://github.com/Open-Athena/marin-dna/pull/474), not in the #473
+  branch diff.
+- Interpretation: the request and sampling contracts are ready for review.
+  Actual HAL and MAF projection, QC comparison, and training remain unlaunched.
+- Next action: add policy-specific HAL and MAF projection rules under the same
+  experiment namespace, then dry-run and review their smoke DAG before seeking
+  compute approval.
