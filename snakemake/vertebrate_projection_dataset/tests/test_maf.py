@@ -15,10 +15,6 @@ from marin_dna_vertebrate_projection.pipeline_io import (
     write_contract_outputs_for_alignment,
     write_maf_candidates,
 )
-from marin_dna_vertebrate_projection.policy import (
-    build_projection_requests,
-    centered_landmark_policy,
-)
 
 from .helpers import species_manifest
 
@@ -95,56 +91,6 @@ def test_anchor_split_across_maf_blocks_is_accepted(tmp_path: Path) -> None:
     )
     assert result.accepted.height == 1
     assert result.accepted.select("t_start", "t_end").row(0) == (200, 210)
-
-
-def test_center_1_maf_projection_preserves_full_anchor_and_centers_both_strands(
-    tmp_path: Path,
-) -> None:
-    source = "A" * 255
-    maf = tmp_path / "center.maf"
-    maf.write_text(
-        "##maf version=1\n\n"
-        "a score=1\n"
-        f"s hg38.chr1 100 255 + 2000 {source}\n"
-        f"s galGal4.chr2 400 255 + 2000 {source}\n"
-        f"s xenTro7.scaf 600 255 - 2000 {source}\n"
-    )
-    requests = build_projection_requests(
-        pl.DataFrame(
-            {
-                "query_name": ["anchor1"],
-                "source_chrom": ["chr1"],
-                "source_start": [100],
-                "source_end": [355],
-                "region_label": ["cds"],
-            }
-        ),
-        centered_landmark_policy(1),
-    )
-    fragments = project_anchors_from_maf(maf, requests, species_manifest())
-
-    assert fragments.select("source_start", "source_end").unique().row(0) == (
-        100,
-        355,
-    )
-    assert fragments["source_fragment_start"].to_list() == [227, 227]
-    assert fragments["source_fragment_end"].to_list() == [228, 228]
-    result = apply_projection_contract(
-        fragments,
-        target_length=255,
-        pre_resize_min_length=1,
-        pre_resize_max_length=2,
-    )
-    assert result.rejected.is_empty()
-    assert result.accepted.height == 2
-    for row in result.accepted.iter_rows(named=True):
-        mapped_start = int(row["pre_resize_t_start"])
-        assert int(row["pre_resize_t_end"]) == mapped_start + 1
-        if row["t_strand"] == "+":
-            human_oriented_index = mapped_start - int(row["t_start"])
-        else:
-            human_oriented_index = int(row["t_end"]) - 1 - mapped_start
-        assert human_oriented_index == 127
 
 
 def test_streaming_maf_writer_clusters_species_for_contract(

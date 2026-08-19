@@ -21,9 +21,6 @@ import polars as pl
 from marin_dna_vertebrate_projection.manifest import (
     validate_species_manifest,
 )
-from marin_dna_vertebrate_projection.policy import (
-    PROJECTION_REQUEST_COLUMNS,
-)
 
 FRAGMENT_SCHEMA = pl.Schema(
     {
@@ -265,30 +262,6 @@ def iter_projected_anchor_fragments(
     assert anchors["query_name"].n_unique() == anchors.height
     assert (anchors["source_start"] >= 0).all()
     assert (anchors["source_end"] > anchors["source_start"]).all()
-    projection_columns = {
-        "projection_policy",
-        "landmark_width",
-        "projection_start",
-        "projection_end",
-    }
-    present_projection_columns = projection_columns & set(anchors.columns)
-    assert (
-        not present_projection_columns
-        or present_projection_columns == projection_columns
-    ), "projection request columns must be supplied together"
-    if present_projection_columns:
-        assert set(PROJECTION_REQUEST_COLUMNS) <= set(anchors.columns)
-        assert (anchors["projection_start"] >= anchors["source_start"]).all()
-        assert (anchors["projection_end"] <= anchors["source_end"]).all()
-        assert (
-            anchors["projection_end"] - anchors["projection_start"]
-            == anchors["landmark_width"]
-        ).all()
-        interval_start_column = "projection_start"
-        interval_end_column = "projection_end"
-    else:
-        interval_start_column = "source_start"
-        interval_end_column = "source_end"
 
     validate_species_manifest(species_manifest)
     targets = species_manifest.filter(
@@ -306,13 +279,12 @@ def iter_projected_anchor_fragments(
         "source_chrom", as_dict=True, maintain_order=True
     ).items():
         chrom_name = str(chrom[0] if isinstance(chrom, tuple) else chrom)
-        sorted_anchors = anchor_frame.sort(interval_start_column, interval_end_column)
+        sorted_anchors = anchor_frame.sort("source_start", "source_end")
         rows = sorted_anchors.to_dicts()
         anchors_by_chrom[chrom_name] = rows
-        starts_by_chrom[chrom_name] = [int(row[interval_start_column]) for row in rows]
+        starts_by_chrom[chrom_name] = [int(row["source_start"]) for row in rows]
         max_length_by_chrom[chrom_name] = max(
-            int(row[interval_end_column]) - int(row[interval_start_column])
-            for row in rows
+            int(row["source_end"]) - int(row["source_start"]) for row in rows
         )
 
     for block in iter_maf_blocks(maf_path):
@@ -338,8 +310,8 @@ def iter_projected_anchor_fragments(
         overlapping_anchors = [
             anchor
             for anchor in chrom_anchor_rows[first:last]
-            if _as_int(anchor[interval_end_column]) > block_start
-            and _as_int(anchor[interval_start_column]) < block_end
+            if _as_int(anchor["source_end"]) > block_start
+            and _as_int(anchor["source_start"]) < block_end
         ]
         if not overlapping_anchors:
             continue
@@ -358,11 +330,9 @@ def iter_projected_anchor_fragments(
             metadata = target_metadata[alignment_name]
             target_strand = "+" if source.strand == target.strand else "-"
             for anchor in overlapping_anchors:
-                source_start = _as_int(anchor["source_start"])
-                source_end = _as_int(anchor["source_end"])
-                projection_start = _as_int(anchor[interval_start_column])
-                projection_end = _as_int(anchor[interval_end_column])
-                runs = _fragment_runs(source, target, projection_start, projection_end)
+                anchor_start = _as_int(anchor["source_start"])
+                anchor_end = _as_int(anchor["source_end"])
+                runs = _fragment_runs(source, target, anchor_start, anchor_end)
                 mapping_id = f"maf:{block.block_id}:{target.src}"
                 for run_number, run in enumerate(runs):
                     source_coordinates = [pair[0] for pair in run]
@@ -370,8 +340,8 @@ def iter_projected_anchor_fragments(
                     yield {
                         "query_name": str(anchor["query_name"]),
                         "source_chrom": str(anchor["source_chrom"]),
-                        "source_start": source_start,
-                        "source_end": source_end,
+                        "source_start": anchor_start,
+                        "source_end": anchor_end,
                         "region_label": str(anchor["region_label"]),
                         "source_fragment_start": min(source_coordinates),
                         "source_fragment_end": max(source_coordinates) + 1,
