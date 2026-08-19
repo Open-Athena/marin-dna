@@ -25,12 +25,12 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
     return build_smoke_run(
         platform="gpu",
         train_cache=existing_afdb_cache(
-            name="inputs/afdb-train-gpu",
+            name="inputs/contacts-v1-afdb-train-gpu",
             version="2026.07.25",
             source=AFDB_CACHE,
         ),
         validation_cache=existing_afdb_cache(
-            name="inputs/afdb-validation-gpu",
+            name="inputs/contacts-v1-afdb-validation-gpu",
             version="2026.07.25",
             source=VALIDATION_CACHE,
         ),
