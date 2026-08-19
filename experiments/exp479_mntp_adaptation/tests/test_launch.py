@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from launch import launch_command
+from launch import execution_environment, launch_command
 
 
 def test_preflight_launch_is_commit_pinned_lambda_gh200_and_self_terminating() -> None:
@@ -11,3 +11,27 @@ def test_preflight_launch_is_commit_pinned_lambda_gh200_and_self_terminating() -
     assert "EXP479_INSTANCE_START_UNIX=1234" in command
     assert "--down" in command
     assert "--yes" in command
+
+
+def test_pilot_launch_forwards_private_publication_secrets() -> None:
+    command = launch_command("pilot", "a" * 40, 1234)
+    assert command[4] == "sky/pilot.yaml"
+    assert "HF_REPO_ID=marin-dna/marin-dna-exp479-mntp-m5.1" in command
+    assert command.count("--secret") == 2
+    assert "HF_TOKEN" in command
+    assert "WANDB_API_KEY" in command
+
+
+def test_pilot_dry_run_is_explicitly_forwarded_to_sky() -> None:
+    command = launch_command("pilot", "a" * 40, 1234, dry_run=True)
+    assert command[-1] == "--dryrun"
+
+
+def test_non_pilot_execution_environment_does_not_require_secrets(
+    monkeypatch: object,
+) -> None:
+    monkeypatch.delenv("HF_TOKEN", raising=False)  # type: ignore[attr-defined]
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)  # type: ignore[attr-defined]
+    environment = execution_environment("preflight")
+    assert "HF_TOKEN" not in environment
+    assert "WANDB_API_KEY" not in environment

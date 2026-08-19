@@ -8,6 +8,7 @@ from pathlib import Path
 
 from exp479_mntp.config import DATA_COMPONENTS, TRAIN_STEPS
 from exp479_mntp.data import build_sequence_plan
+from exp479_mntp.pilot import run_pilot
 from exp479_mntp.preflight import run_preflight
 from exp479_mntp.train import train_arm
 
@@ -43,6 +44,42 @@ def _parser() -> argparse.ArgumentParser:
     train.add_argument("--offline-wandb", action="store_true")
     train.add_argument("--accelerator", choices=("cpu", "gpu"), default="gpu")
     train.add_argument("--precision", default="bf16-mixed")
+
+    pilot = subparsers.add_parser(
+        "pilot", help="run every trained arm after a passing GH200 preflight"
+    )
+    pilot.add_argument("--preflight", type=Path, required=True)
+    pilot.add_argument("--artifact-dir", type=Path, required=True)
+    pilot.add_argument("--hf-repo-id", required=True)
+    pilot.add_argument("--model-card", type=Path, required=True)
+    pilot.add_argument("--experiment-commit", required=True)
+    pilot.add_argument("--seed", type=int, default=0)
+    pilot.add_argument("--num-workers", type=int, default=4)
+    pilot.add_argument("--offline-wandb", action="store_true")
+    pilot.add_argument(
+        "--model-card-reviewed",
+        action="store_true",
+        help="assert that a human reviewed the private staging model card",
+    )
+
+    evaluate = subparsers.add_parser("evaluate", help="run odd/X VEP diagnostics")
+    evaluate.add_argument("--artifact-dir", type=Path, required=True)
+    evaluate.add_argument("--output-dir", type=Path, required=True)
+    evaluate.add_argument("--hf-repo-id", required=True)
+    evaluate.add_argument("--batch-size", type=int, required=True)
+    evaluate.add_argument("--n-bootstrap", type=int, default=1_000)
+
+    nuc_dep = subparsers.add_parser(
+        "nuc-dep", help="run the fixed transferred-MNTP dependency-map panel"
+    )
+    nuc_dep.add_argument("--artifact-dir", type=Path, required=True)
+    nuc_dep.add_argument("--output-dir", type=Path, required=True)
+    nuc_dep.add_argument("--hf-repo-id", required=True)
+    nuc_dep.add_argument("--batch-size", type=int, default=1_024)
+
+    finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
+    finalize.add_argument("--artifact-dir", type=Path, required=True)
+    finalize.add_argument("--hf-repo-id", required=True)
     return parser
 
 
@@ -75,6 +112,50 @@ def main() -> None:
         print(json.dumps(result, indent=2))
         return
 
+    if args.command == "pilot":
+        if not args.model_card_reviewed:
+            raise RuntimeError("pilot publication requires human model-card review")
+        run_pilot(
+            preflight_path=args.preflight,
+            artifact_dir=args.artifact_dir,
+            hf_repo_id=args.hf_repo_id,
+            model_card=args.model_card,
+            experiment_commit=args.experiment_commit,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            offline_wandb=args.offline_wandb,
+        )
+        return
+
+    if args.command == "evaluate":
+        from exp479_mntp.vep import run_vep_evaluation
+
+        run_vep_evaluation(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+
+    if args.command == "nuc-dep":
+        from exp479_mntp.nucleotide_dependency import run_dependency_panel
+
+        run_dependency_panel(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
+        )
+        return
+
+    if args.command == "finalize":
+        from exp479_mntp.publishing import publish_cost_estimate
+
+        publish_cost_estimate(artifact_dir=args.artifact_dir, repo_id=args.hf_repo_id)
+        return
+
     train_arm(
         arm=args.arm,
         batch_size=args.batch_size,
@@ -87,6 +168,7 @@ def main() -> None:
         offline_wandb=args.offline_wandb,
         accelerator=args.accelerator,
         precision=args.precision,
+        hf_repo_id=None,
     )
 
 
