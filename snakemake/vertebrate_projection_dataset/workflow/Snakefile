@@ -8,6 +8,7 @@ include: "rules/projection.smk"
 include: "rules/dataset.smk"
 include: "rules/issue_473.smk"
 include: "rules/issue_473_fixed.smk"
+include: "rules/issue_473_trace.smk"
 
 
 rule all:
