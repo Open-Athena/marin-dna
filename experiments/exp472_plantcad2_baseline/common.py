@@ -1,7 +1,8 @@
-"""Shared one-billion-parameter Qwen3 PlantCAD2 smoke-training recipe."""
+"""Shared one-billion-parameter Qwen3 PlantCAD2 sweep recipe."""
 
 import os
-from dataclasses import replace
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from typing import Self
 
 from fray.types import ResourceConfig
@@ -20,6 +21,16 @@ from marin.training.training import LevanterCheckpoint
 TOKENIZER = "kuleshov-group/PlantCAD2-Small-l24-d0768"
 VOCAB_SIZE = 7
 SEQ_LEN = 8_192
+DEFAULT_GLOBAL_BATCH_SIZE = 128
+DATASET_REVISION = "4a444fff5520b992aa978d92a5af509a81977098"
+CACHE_VERSION = "2026.08.19"
+TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp"
+EXPERIMENT_RELATIVE = "MarinDNA/exp472_plantcad2_baseline"
+TRAIN_CACHE_NAME = "inputs/plantcad-angiosperm-train-path-only"
+VALIDATION_CACHE_NAME = "inputs/plantcad-angiosperm-validation-path-only"
+
+LEARNING_RATES = (3e-4, 1e-3, 3e-3)
+WEIGHT_DECAYS = (0.1, 0.2, 0.8)
 
 MODEL_CONFIG = Qwen3Config(
     max_seq_len=SEQ_LEN,
@@ -43,6 +54,29 @@ SHUFFLE = BlockShuffleConfig(
     perm_type="feistel",
 )
 DISABLED_WANDB_WATCH = WatchConfig(watch_targets=[], interval=0)
+
+
+@dataclass(frozen=True)
+class SweepPoint:
+    key: str
+    learning_rate: float
+    weight_decay: float
+
+
+def _value_slug(value: float) -> str:
+    return f"{value:g}".replace(".", "p").replace("-", "m")
+
+
+SWEEP_POINTS = tuple(
+    SweepPoint(
+        key=f"lr{_value_slug(learning_rate)}-wd{_value_slug(weight_decay)}",
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+    )
+    for learning_rate in LEARNING_RATES
+    for weight_decay in WEIGHT_DECAYS
+)
+SWEEP_POINTS_BY_KEY = {point.key: point for point in SWEEP_POINTS}
 
 
 class ExistingPlantCadCache(TokenizedCache):
@@ -76,6 +110,10 @@ def env_int(name: str, default: int) -> int:
     return value
 
 
+def global_batch_size() -> int:
+    return env_int("EXP472_GLOBAL_BATCH_SIZE", DEFAULT_GLOBAL_BATCH_SIZE)
+
+
 def required_env(name: str) -> str:
     value = os.environ.get(name)
     if not value:
@@ -90,6 +128,15 @@ def require_marin_prefix(expected: str) -> str:
             f"MARIN_PREFIX must be exactly {expected!r}, got {configured!r}"
         )
     return configured
+
+
+def parse_sweep_point() -> SweepPoint:
+    key = required_env("TRIAL").strip().lower()
+    try:
+        return SWEEP_POINTS_BY_KEY[key]
+    except KeyError as exc:
+        choices = ", ".join(SWEEP_POINTS_BY_KEY)
+        raise SystemExit(f"TRIAL must be one of: {choices}") from exc
 
 
 def existing_plantcad_cache(
@@ -111,19 +158,22 @@ def existing_plantcad_cache(
     )
 
 
-def build_smoke_run(
+def build_sweep_run(
     *,
-    platform: str,
+    point: SweepPoint,
     train_cache: ArtifactStep[TokenizedCache],
     validation_cache: ArtifactStep[TokenizedCache],
     resources: ResourceConfig,
     attention_backend: AttentionBackend | None,
+    batch_size: int,
+    tensor_parallelism: int,
+    per_device_parallelism: int,
+    runtime_tags: Sequence[str],
     expected_output_prefix: str,
 ) -> ArtifactStep[LevanterCheckpoint]:
     steps = env_int("EXP472_STEPS", 2)
-    batch_size = env_int("EXP472_BATCH_SIZE", 8)
     suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
-    run_id = f"exp472-plantcad2-angiosperm-{platform}-smoke"
+    run_id = f"exp472-plantcad2-angiosperm-{point.key}"
     if suffix:
         run_id = f"{run_id}-{suffix}"
 
@@ -141,8 +191,8 @@ def build_smoke_run(
         run_id=run_id,
         model=replace(MODEL_CONFIG, attn_backend=attention_backend),
         optimizer=AdamConfig(
-            learning_rate=1e-3,
-            weight_decay=0.2,
+            learning_rate=point.learning_rate,
+            weight_decay=point.weight_decay,
             warmup=0.1,
             decay=0.2,
             lr_schedule="linear",
@@ -156,16 +206,19 @@ def build_smoke_run(
         z_loss_weight=None,
         evals=None,
         resources=resources,
+        tensor_parallel_size=tensor_parallelism,
         steps_per_eval=steps,
         wandb_project=wandb_project,
-        wandb_group="exp472-plantcad2-baseline-smoke",
+        wandb_group="exp472-plantcad2-baseline-sweep",
         tags=[
             "MarinDNA",
             "exp472",
             "plantcad2-baseline",
             "angiosperm-65-genomes",
-            "smoke",
-            platform,
+            f"lr={point.learning_rate:g}",
+            f"wd={point.weight_decay:g}",
+            f"batch={batch_size}",
+            f"steps={steps}",
             f"params={MODEL_PARAMS}",
         ],
         env_vars=env_vars,
@@ -184,10 +237,18 @@ def build_smoke_run(
         trainer = replace(
             pod.train_config.trainer,
             max_eval_batches=1,
-            per_device_parallelism=1,
-            per_device_eval_parallelism=1,
             watch=DISABLED_WANDB_WATCH,
         )
+        if not ctx.is_fingerprint:
+            trainer = replace(
+                trainer,
+                per_device_parallelism=per_device_parallelism,
+                per_device_eval_parallelism=per_device_parallelism,
+                tracker=replace(
+                    trainer.tracker,
+                    tags=[*trainer.tracker.tags, *runtime_tags],
+                ),
+            )
         data = replace(
             pod.train_config.data,
             auto_build_caches=False,
