@@ -1,0 +1,49 @@
+[project]
+name = "exp479-mntp-adaptation"
+version = "0.1.0"
+description = "Full-attention MNTP adaptation pilot for the MarinDNA m5.1 checkpoint"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "datasets==5.0.1",
+    "lightning==2.6.5",
+    "safetensors>=0.8.0,<0.9",
+    "torch==2.11.0",
+    "torchdata==0.11.0",
+    "transformers==5.15.1",
+    "wandb>=0.24.0,<0.25",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4,<9",
+    "ruff>=0.12.11",
+]
+
+[project.scripts]
+exp479 = "exp479_mntp.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exp479_mntp"]
+
+[tool.uv]
+environments = ["sys_platform == 'linux'"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
