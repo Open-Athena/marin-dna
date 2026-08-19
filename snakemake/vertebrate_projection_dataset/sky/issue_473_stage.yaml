@@ -1,0 +1,41 @@
+name: issue-473-immutable-prestage
+
+# Additive operational pre-stage for source objects that have exact pinned or
+# inventoried sizes but no checksum fields in live S3 HEAD responses.
+resources:
+  infra: aws/us-east-2
+  instance_type: c6id.12xlarge
+  disk_size: 100
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  PIPELINE_COMMIT_SHA: ""
+
+setup: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  if [ "$(uv --version 2>/dev/null | awk '{print $2}' || true)" != "0.11.31" ]; then
+    curl -LsSf https://astral.sh/uv/0.11.31/install.sh | sh
+  fi
+  test "$(uv --version | awk '{print $2}')" = "0.11.31"
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/.local/bin:$PATH"
+  test -n "$PIPELINE_COMMIT_SHA"
+  test "$(git rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
+  command -v aws
+
+  mountpoint -q /mnt/nvme
+  TOTAL_BYTES=$(df --output=size -B1 /mnt/nvme | tail -n 1)
+  test "$TOTAL_BYTES" -ge 2500000000000
+  df -h /mnt/nvme
+
+  cd snakemake/vertebrate_projection_dataset
+  uv run --with awscrt python -m \
+    marin_dna_vertebrate_projection.issue_473.prestage \
+    --project-root . \
+    --stage-root /mnt/nvme/vertebrate_projection/issue_473_immutable_sources
