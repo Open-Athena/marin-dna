@@ -395,3 +395,37 @@ cohort, assemblies, and downstream training recipe fixed.
   was actively staging to local NVMe. No scientific result is claimed yet.
 - Next action: monitor at coarse intervals, validate exact durable artifacts
   and paired QC after completion, then terminate the staging worker.
+
+### 2026-08-19 23:12 UTC - CSP-005 smoke receipt and full launch
+
+- Smoke result: Iris job 4 completed all 292 jobs successfully. Atomic HAL
+  staging finished at approximately 23:09 UTC, about 49 minutes after the
+  transfer began.
+- Durable smoke evidence:
+  - `policy_summary.parquet`: 3,914 bytes, full-object CRC64NVME
+    `YNFn/FuDWf4=`.
+  - `full_window_pairwise.parquet`: 2,913 bytes, full-object CRC64NVME
+    `X9AnswgT3FM=`.
+  - Both objects were restored from S3 and parsed successfully.
+- Accounting: every policy closed the 35-pair request grid exactly. Full
+  window and centered widths 1, 17, 33, and 65 each accepted 12 pairs;
+  `center_129` accepted 11 and explicitly rejected one. `center_1` and
+  `full_window` had identical accepted sets in this small smoke.
+- Fixed implementation commit:
+  `eb69d1d3174599bfa0a54372a3b7cf774abc04ab`. The exact catalog contains
+  518,764 #417 standard-region anchors plus 116,162 exp351 enhancer-centered
+  anchors. Immutable direct inputs are pinned by S3 path, byte size, and
+  full-object checksum.
+- Validation: all 111 project tests and changed-file hooks passed. The
+  committed full target resolved 10,658 jobs in a credential-free dry-run.
+- Full execution: Iris job 5 launched at 2026-08-19 23:12:53 UTC on the
+  existing `vertebrate-project` worker with target
+  `issue_473_fixed_projection_experiment`, `tier=full`, and producer commit
+  `eb69d1d3174599bfa0a54372a3b7cf774abc04ab`.
+- Published update:
+  https://github.com/Open-Athena/marin-dna/issues/473#issuecomment-5349129178
+- Interpretation: the smoke validates execution and accounting but is too small
+  to select a policy. Pilot and full paired QC remain the decision evidence.
+- Next action: monitor job 5, validate durable outputs and manual samples,
+  complete sampled raw-alignment traces, then prepare reviewed dataset
+  artifacts and four matched training runs.
