@@ -429,3 +429,34 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: monitor job 5, validate durable outputs and manual samples,
   complete sampled raw-alignment traces, then prepare reviewed dataset
   artifacts and four matched training runs.
+
+### 2026-08-19 23:45 UTC - CSP-006 immutable restore diagnosis and trace target
+
+- Full-run status: Iris job 5 stopped at 29 of 10,655 steps, before any
+  projection. Ten direct immutable restores all failed the same fail-fast
+  assertion; the HAL, NVMe worker, and completed S3 outputs remain intact.
+- Root cause: the source objects return exact byte sizes but no
+  `ChecksumType` or `ChecksumCRC64NVME` fields from S3 `HEAD` or
+  checksum-enabled `GET`. The direct manifest's pinned CRC values are valid:
+  a restored 21,683-byte species manifest recomputed to `YPwbCiNeodY=`,
+  exactly matching the committed value.
+- Recovery boundary: do not weaken or edit the existing restore rules. New
+  additive pre-stage code restores only the ten direct objects, 24 scored
+  chromosome tables, and 270 rejection-evidence objects consumed by #473;
+  it verifies live size, computes CRC64NVME and SHA-256 locally, writes the
+  existing receipt paths atomically, and records timing and throughput.
+- Trace implementation commit:
+  `69371d56264ba69d34e1ea17540e89499aa10be2`. A separate Snakemake target,
+  `issue_473_fixed_hal_alignment_trace`, maps a stable accepted-row sample
+  from emitted species windows back to the original human anchors with
+  `halLiftover --outPSLWithName`. It reports exact emitted-window and
+  emitted-to-anchor base coverage while leaving genome-wide quantities
+  explicitly unavailable.
+- Validation: all 115 locked project tests passed; file-scoped pre-commit
+  hooks passed; workflow parsing registered the new target. Synthetic PSL
+  tests cover clipping, split blocks, empty/species partitioning, and negative
+  query coordinates.
+- Interpretation: job 5 produced no scientific evidence and is not a partial
+  result. The pre-stage is a provenance-preserving operational recovery for
+  absent S3 checksum metadata, not a change to projection semantics.
+- Next action: run the pre-stage on the existing worker, verify all exact
