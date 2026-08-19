@@ -371,3 +371,27 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: obtain explicit remote-compute and data-staging permission, run
   the smoke target, inspect coordinate, accounting, and recovery outputs, and
   publish the reproducible result to issue #473.
+
+### 2026-08-19 22:20 UTC - CSP-004 authorized remote smoke launch
+
+- Authorization: the user explicitly approved the #473 data work and model
+  training on Iris, while the repository's development-only chromosome split
+  and no-merge boundary remain in force.
+- Commit Hash: `59fa33caa9a410563099c72715ff69b50ad50887`
+- Worker: Sky cluster `vertebrate-project`, AWS `c6id.12xlarge`, Iris job 4;
+  launched at 2026-08-19 22:19:59 UTC.
+- Commands:
+  - `sky launch -c vertebrate-project sky/issue_473.yaml --env TIER=smoke --env TARGET=issue_473_projection_smoke --env DRY_RUN=1 --env PIPELINE_COMMIT_SHA=59fa33caa9a410563099c72715ff69b50ad50887`
+  - `sky exec vertebrate-project sky/issue_473.yaml --env TIER=smoke --env TARGET=issue_473_projection_smoke --env DRY_RUN=0 --env PIPELINE_COMMIT_SHA=59fa33caa9a410563099c72715ff69b50ad50887`
+- Setup validation: uv 0.11.31, Cactus 3.1.4, a 2.6 TB RAID0
+  workspace with 2.5 TB available, and the exact 1,262,706,573,453-byte HAL
+  S3 object were verified. The S3-aware remote dry-run resolved 292 jobs with
+  config SHA `4fe838e3eaf48321393f4efd7c658abfa5d4424f5f1d0c2ef5475ecfa29de324`.
+- Launcher correction: the established launcher rejected uv's architecture
+  suffix. A new issue-scoped launcher parses the version token without editing
+  that shared launcher or any established rule.
+- Progress at 22:22 UTC: job 4 was `RUNNING`; at least 30 of 292 steps had
+  completed, including reference and MultiZ staging artifacts. The 1.26 TB HAL
+  was actively staging to local NVMe. No scientific result is claimed yet.
+- Next action: monitor at coarse intervals, validate exact durable artifacts
+  and paired QC after completion, then terminate the staging worker.
