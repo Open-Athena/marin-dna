@@ -1,7 +1,7 @@
 # Can autoregressive RAG gLMs be accurate and practical?
 
 > [!NOTE]
-> **TL;DR:** Fixed mammalian-ortholog retrieval let 46M- and 104M-parameter models reach VEP performance not seen in comparable single-sequence models, with perturbations confirming use of the retrieved context; online retrieval, indel accuracy, and serving practicality remain untested.
+> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models, and perturbations confirmed use of the context; Gonzalo Benegas attributes the unusually strong performance to retrieval, while the causal gain, online retrieval, indel accuracy, and serving practicality remain unquantified or untested.
 
 ## Question
 
@@ -10,9 +10,9 @@ Can it do so with a retrieval and inference system that is practical to deploy a
 
 ## Current answer
 
-Autoregressive retrieval-augmented genomic modeling is feasible, and fixed ortholog retrieval can improve the accuracy of small readers. Its serving practicality is not established.
+Autoregressive retrieval-augmented genomic modeling is feasible. Gonzalo Benegas's assessment, based on MarinDNA's experiments and his prior work, is that fixed ortholog retrieval materially improves the accuracy of small readers. The experiment did not quantify the gain under matched training conditions, and serving practicality is not established.
 The only MarinDNA experiment used a fixed prefix of seven precomputed mammalian ortholog windows.
-Its 104M model exceeded the 1B single-sequence m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes. Context perturbations worsened validation loss and changed model outputs. Gonzalo Benegas reports that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's experiments, his prior work, or the broader work known to him has achieved comparable VEP performance. This supports retrieval as the source of the unusually high performance, although no matched arm quantified the gain.
+Its 104M model exceeded the 1B single-sequence m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes. Context perturbations worsened validation loss and changed model outputs. Gonzalo reports that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's experiments, his prior work, or the broader work known to him has achieved comparable VEP performance. These measurements and the historical comparison are the basis for his assessment.
 
 External results make the hypothesis plausible.
 Alignment-based genomic models show that ortholog context is highly informative; autoregressive protein models improve substitutions and indels with unaligned homologs; a DNA enhancer model generates conditioned on homolog sets; and learned protein retrievers can serve approximate-neighbor context quickly.
@@ -23,7 +23,7 @@ More parameters, more training families, longer retrieved context, more homologs
 Protein results show gains from some of these axes and saturation from others.
 A DNA model may benefit from a few informative orthologs while degrading when low-quality, repetitive, or redundant hits consume context.
 
-Confidence is high that a reader can exploit curated ortholog context and that it drove a material part of the current small-model gain. The size and generality of that gain remain uncertain because the experiment used one context construction, one species order, and one seed per model size.
+Confidence is high that a reader can exploit curated ortholog context. Gonzalo assesses that retrieval drove a material part of the current small-model performance. The size and generality of that contribution remain uncertain because the experiment used one context construction, one species order, and one seed per model size.
 The next accuracy questions are which species and ordering matter, whether the result transfers to indels, and how benefit changes with model size and retrieved context. Online retrieval and index-cost work must then establish whether the approach is practical beyond fixed reference-genome lookups.
 
 <details>

@@ -121,12 +121,14 @@ Sealing should ordinarily only happen if the user requests it or the research ha
 1. Update the issue body with the final TL;DR, conclusion, decision log, and negative-results index. Again, follow the `task-logbook` skill.
 2. Add a final issue comment covering what worked, what did not, confidence
    level, limitations, and ordered next steps.
-3. Decide and record the knowledge-base disposition:
-   - valid positive or valid null/negative evidence: create or update the
-     experiment page and every materially affected research-question page;
-   - invalid design with no reusable lesson: state why no inference is valid and
-     keep it in the chronological record;
-   - invalid design with a reusable lesson: update the nearest durable
+3. Decide and record the knowledge-base disposition per claim:
+   - valid positive, null, or negative claims, including valid secondary
+     findings from a partially informative design: create or update the experiment
+     page and every materially affected research-question page, and state
+     unsupported intended inferences under limitations;
+   - no scientifically valid claim and no reusable lesson: state why no
+     inference is valid and keep it in the chronological record;
+   - no scientifically valid claim but a reusable lesson: update the nearest durable
      methodology or research document without promoting the invalid result.
 4. Follow `maintain-research-question` for experiment-page structure, stable
    investigation boundaries, invalidation handling, and cross-links. Open a

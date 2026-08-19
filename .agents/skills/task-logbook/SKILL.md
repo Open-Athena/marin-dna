@@ -241,12 +241,14 @@ When updating the issue body with a new summary, use a suitable variant.
 
 ## Finish
 
-Close the issue when what the logbook was tracking is complete.
+Close the issue when what the logbook was tracking is complete. For research
+issues, follow the interpretation-merge or human-approved no-promotion gate in
+`run-research`.
 
 Before closing the coordinating issue, ensure the final logbook entry and issue
 summary agree. The final issue comment should say what worked, what did not,
 confidence level and limitations, ordered next steps, and an explicit conclusion
 explaining the outcome. Record one knowledge-base disposition: interpretation
-page proposed or merged; reusable lesson promoted elsewhere; or no promotion
-because the design supports no scientific inference. Require human approval for
-the last disposition so a valid negative result is not misclassified as invalid.
+PR open (temporary while the issue remains open); interpretation page merged;
+reusable lesson merged elsewhere; or no promotion because no scientifically
+valid claim remains. Require human approval for the last disposition so a valid

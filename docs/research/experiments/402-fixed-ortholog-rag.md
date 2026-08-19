@@ -1,17 +1,17 @@
 # Fixed-ortholog retrieval prototype
 
 > [!NOTE]
-> **TL;DR:** Fixed ortholog retrieval enabled 46M- and 104M-parameter causal models to reach VEP performance not seen in comparable single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; the 104M model exceeded MarinDNA 1B m5.1 on all three zero-shot development point estimates and two of three frozen probes.
+> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; Gonzalo attributes the unusually strong performance to retrieval, while the experiment does not quantify the gain against a matched single-sequence arm.
 
 ![Graphical abstract showing seven mammalian ortholog windows conditioning a 104M causal model and its development-cohort VEP comparisons](https://gist.githubusercontent.com/gonzalobenegas/3649e68fb63ca1f3443e4486078eb4d8/raw/1f6f074c1dc6c05033d0ea0ecc06a9b1adc0b180/marindna-rag-visual-abstract.svg)
 
-_The fixed offline retrieval method and official development/`train` macro-AUPRC comparisons; error bars are ±1 SE and dataset facets use independent axes._
+_The fixed offline retrieval method and official development/`train` macro-AUPRC comparisons; error bars are ±1 SE and dataset facets use independent axes. The figure has no matched no-retrieval training arm, so it does not quantify the retrieval gain._
 
 ## Findings
 
 The fixed-ortholog models used the aligned mammalian context, and the 104M model reached unusually strong VEP performance for its size. Removing, shifting, or replacing the ortholog context worsened human-token validation loss. The 104M model also exceeded the 1B single-sequence MarinDNA m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes.
 
-Gonzalo Benegas's assessment is that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's prior experiments, his earlier work, or the broader work known to him has achieved comparable VEP performance. Taken together with the context perturbations, this supports fixed ortholog retrieval as the source of the unusually high performance. The experiment does not quantify the gain over an otherwise-matched single-sequence model.
+Gonzalo Benegas's assessment is that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's prior experiments, his earlier work, or the broader work known to him has achieved comparable VEP performance. Together with the context perturbations, he interprets fixed ortholog retrieval as the source of the unusually high performance. The experiment does not quantify the gain over an otherwise-matched single-sequence model.
 
 The finding applies to an offline, alignment-derived context scheme. It does not establish the accuracy or practicality of online retrieval, arbitrary unaligned queries, or indel-effect prediction.
 

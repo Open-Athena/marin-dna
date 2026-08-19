@@ -112,8 +112,12 @@ Under `Research record`, link only the canonical experiment issue by default. Th
 
 Use these disposition rules:
 
-- Promote valid positive and valid null or negative results.
-- Keep a routine invalid design in the issue and logbook. State why it supports no scientific conclusion and obtain human approval for that disposition before closure.
+- Assess validity per claim. A design may support measurements or secondary
+  findings while failing to support its intended primary inference.
+- Promote each valid positive, null, or negative claim. For a partially
+  informative design, state unsupported intended inferences under limitations.
+- Use no promotion only when no scientifically valid claim remains. State why
+  and obtain human approval for that disposition before closure.
 - Promote a reusable lesson from an invalid design to the nearest methodology, experiment, or question document without promoting the invalid result.
 - If accepted evidence is later invalidated, replace the existing page with a concise warning that states why no inference is valid, update every affected question, and preserve the page path for existing links.
 

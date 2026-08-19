@@ -61,6 +61,8 @@ Treat bounded exploratory analysis as `experiment`. Use `Hypothesis or Goal`; do
 ## Close Completed Work
 
 - An agent may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and the body and final comment record the outcome.
+- Keep a research experiment with valid scientific claims open until its
+  interpretation pull request merges. No-promotion closure requires explicit human approval.
 - Do not close or merge a pull request without explicit user approval.
 
 ## Preserve Repository Conventions
