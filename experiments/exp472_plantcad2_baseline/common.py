@@ -202,6 +202,7 @@ def build_sweep_run(
             weight_decay=point.weight_decay,
             warmup=0.1,
             decay=0.2,
+            min_lr_ratio=0.0,
             lr_schedule="linear",
         ),
         datasets={train_cache: 1.0},

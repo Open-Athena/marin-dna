@@ -7,6 +7,9 @@ exactly 8,192 tokens. Training uses the train split, validation uses the
 validation split, and test remains held out. The default training target is
 206,145 steps, or 10 epochs at global batch size 128.
 
+Learning rate follows a linear warmup-stable-decay schedule: 10% warmup, 70%
+at the trial's peak learning rate, and 20% linear decay to zero.
+
 ## Dataset size
 
 | Split | Examples | Tokens |
