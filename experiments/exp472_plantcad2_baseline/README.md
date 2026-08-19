@@ -4,7 +4,8 @@ Baseline Qwen3 language-model training on
 [`plantcad/Angiosperm_65_genomes_8192bp`](https://huggingface.co/datasets/plantcad/Angiosperm_65_genomes_8192bp)
 with the `kuleshov-group/PlantCAD2-Small-l24-d0768` tokenizer. Every example is
 exactly 8,192 tokens. Training uses the train split, validation uses the
-validation split, and test remains held out.
+validation split, and test remains held out. The default training target is
+206,145 steps, or 10 epochs at global batch size 128.
 
 ## Dataset size
 

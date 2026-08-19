@@ -22,6 +22,7 @@ TOKENIZER = "kuleshov-group/PlantCAD2-Small-l24-d0768"
 VOCAB_SIZE = 7
 SEQ_LEN = 8_192
 DEFAULT_GLOBAL_BATCH_SIZE = 128
+DEFAULT_TRAIN_STEPS = 206_145  # 10 epochs: 2,638,656 examples * 10 / 128
 DATASET_REVISION = "4a444fff5520b992aa978d92a5af509a81977098"
 CACHE_VERSION = "2026.08.19"
 TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp"
@@ -172,7 +173,7 @@ def build_sweep_run(
     wandb_run_suffix: str | None,
     expected_output_prefix: str,
 ) -> ArtifactStep[LevanterCheckpoint]:
-    steps = env_int("EXP472_STEPS", 2)
+    steps = env_int("EXP472_STEPS", DEFAULT_TRAIN_STEPS)
     suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
     checkpoint_id = f"exp472-plantcad2-angiosperm-{point.key}"
     if suffix:
