@@ -252,3 +252,4 @@ explaining the outcome. Record one knowledge-base disposition: interpretation
 PR open (temporary while the issue remains open); interpretation page merged;
 reusable lesson merged elsewhere; or no promotion because no scientifically
 valid claim remains. Require human approval for the last disposition so a valid
+negative result is not misclassified as an invalid design.
