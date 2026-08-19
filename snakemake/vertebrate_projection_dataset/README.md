@@ -129,6 +129,42 @@ That dry-run consults the durable S3 state. For a credential-free graph check on
 
 The historical issue #417 staging snapshot remains a provenance artifact only; it is not an implicit pipeline input or fallback. A fresh v1 execution populates a producer-keyed namespace under the canonical storage prefix.
 
+### Issue #473 center-seeded projection experiment
+
+Issue #473 is implemented as the separate additive rule module
+`workflow/rules/issue_473_fixed.smk`; established projection rules and outputs
+remain unchanged. The committed
+`config/issue_473_immutable_sources.tsv` pins every direct #417 and exp351
+input by S3 URI, byte size, and full-object CRC64NVME checksum. Per-file #417
+anchor and rejection restores must also appear in the pinned #417 artifact
+inventory and receive a local checksum receipt before use.
+
+The fixed catalog contains CDS, 3-prime UTR, noncoding-RNA exon, 5-prime
+UTR/TSS, and the exact 116,162 exon-free exp351 enhancer-centered anchors. The
+landmark pilot evaluates full-window and center-seeded widths 1, 17, 33, 65,
+and 129 on the same deterministic anchor sample:
+
+```bash
+uv run --locked snakemake -n issue_473_fixed_landmark_pilot \
+  --profile workflow/profiles/default \
+  --config tier=full
+```
+
+After pilot review, the complete approved projection target is:
+
+```bash
+uv run --locked snakemake -n issue_473_fixed_projection_experiment \
+  --profile workflow/profiles/default \
+  --config tier=full
+```
+
+The complete target restores the immutable #417 standard-region full-window
+sequences and QC instead of recomputing them. It adds only the missing
+enhancer-centered full-window projection and the fixed-catalog center-width-1
+projection, then produces paired diagnostics, anchor-level uncertainty,
+manual-inspection samples, matched chromosome-18 validation views, and the
+three newly required dataset artifacts. The existing immutable full-window CDS
+dataset remains the fourth matched training input.
 The default `smoke` tier uses two mammals, five non-mammals spanning birds,
 reptiles, amphibians, ray-finned fish, and jawless vertebrates, chromosomes 7
 and 18, two ZRS positive-control anchors, and small CDS/cCRE/background anchors.

@@ -70,3 +70,30 @@ uv run --locked snakemake -n \
 
 This plan stages the shared HAL and smoke-cohort MAF inputs when executed.
 Do not run it locally or launch remote compute without explicit approval.
+
+## 2026-08-19 — fixed catalog and additive execution graph
+
+The fixed execution graph is `workflow/rules/issue_473_fixed.smk`. It corrects
+the pilot sentinel to the exact exp351 exon-free enhancer-centered population
+and leaves the earlier review/smoke rules untouched. The catalog combines
+518,764 #417 anchors from CDS, 3-prime UTR, noncoding-RNA exon, and 5-prime
+UTR/TSS with 116,162 exp351 anchors. The exp351 BED and score table, #417
+catalog/sequence/QC inputs, and #417 artifact inventory are pinned in
+`config/issue_473_immutable_sources.tsv` by exact S3 path, byte size, and
+full-object CRC64NVME checksum.
+
+The full target restores the unchanged #417 full-window standard-region
+sequence and QC artifacts. New projection work is restricted to the exp351
+full-window arm and fixed-catalog center-width-1 arm; the six-policy landmark
+pilot is isolated in the same new namespace. The credential-free full-tier
+dry-run resolved 10,658 jobs, including 270 rejection-file restores and 24
+scored-anchor restores, and exited successfully. The project suite passed 111
+tests, the changed-file pre-commit hooks passed, and the dry-run peaked at
+501,548 KiB RSS under the shared-node lock.
+
+The authorized Iris smoke job started from commit
+`59fa33caa9a410563099c72715ff69b50ad50887` at 2026-08-19 22:19:59 UTC on
+`vertebrate-project` (AWS `c6id.12xlarge`). It verified the 1,262,706,573,453
+byte HAL object and began atomic NVMe staging; at 22:55 UTC, 856 GiB had
+transferred and Sky job 4 remained `RUNNING`. No full fixed-catalog run has
+been launched from uncommitted code.
