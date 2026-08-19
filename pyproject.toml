@@ -6,14 +6,30 @@ build-backend = "hatchling.build"
 name = "marin_dna"
 version = "0.0.1"
 description = "Lightweight genomic primitives for MarinDNA projects"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "biopython>=1.85",
+    "marin-core==0.2.86.dev32222909699",
+    "marin-dupekit==0.1.6.dev31131847556",
+    "marin-finelog==0.2.30.dev32169503727",
+    "marin-iris[controller]==0.2.86.dev32222909699",
     "numpy",
     "polars",
     "polars-bio>=0.33.0,<0.34.0",
     "pyarrow>=21.0.0",
     "pyfaidx>=0.8.0",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "marin-core[gpu]==0.2.86.dev32222909699; sys_platform == 'linux'",
+    "torch==2.11.0; sys_platform == 'linux'",
+    "torchvision==0.26.0; sys_platform == 'linux'",
+]
+tpu = [
+    "marin-core[tpu]==0.2.86.dev32222909699; sys_platform == 'linux'",
+    "torch==2.11.0; sys_platform == 'linux'",
+    "torchvision==0.26.0+cpu; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 [dependency-groups]
@@ -27,10 +43,38 @@ dev = [
 [tool.uv]
 required-version = "==0.11.31"
 fork-strategy = "fewest"
+prerelease = "allow"
 environments = [
     "sys_platform == 'darwin'",
     "sys_platform == 'linux'",
 ]
+conflicts = [
+    [
+        { extra = "gpu" },
+        { extra = "tpu" },
+    ],
+]
+override-dependencies = [
+    "nvidia-cublas==13.2.0.9",
+    "nvidia-nccl-cu13==2.30.7",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", extra = "tpu" }]
+torchvision = [{ index = "pytorch-cpu", extra = "tpu" }]
+nvidia-cutlass-dsl = { index = "nvidia" }
+nvidia-cutlass-dsl-libs-base = { index = "nvidia" }
+nvidia-cutlass-dsl-libs-cu13 = { index = "nvidia" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna"]
