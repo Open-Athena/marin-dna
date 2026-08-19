@@ -801,6 +801,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "polars" },
+    { name = "py2bit" },
     { name = "pyarrow" },
     { name = "pybigwig" },
     { name = "pyyaml" },
@@ -841,6 +842,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.0,<3.0" },
     { name = "polars" },
+    { name = "py2bit", specifier = "==1.0.1" },
     { name = "pyarrow", specifier = ">=21.0.0" },
     { name = "pybigwig" },
     { name = "pyyaml" },
@@ -1377,6 +1379,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/4e/70/69be07a67621ad804d6cf347965eb4e0d7786a97330d99c31d735aaa6c5a/pulp-3.3.2.tar.gz", hash = "sha256:d0904700c207ac11e25e3b1213b70eae1d6fb25faa719d75f3f15054901258c0", size = 16305346, upload-time = "2026-05-25T09:41:26.207Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dd/6e/d674f1dde91c71e2ac19e5e5cf1ee6d5845e3aefecd9c39ed9c4b0c9a696/pulp-3.3.2-py3-none-any.whl", hash = "sha256:631b166f72086971a9597f7a0233ababa99bb8d50a01cd543f7758be5a9f86c0", size = 16391742, upload-time = "2026-05-25T09:41:22.2Z" },
+]
+
+[[package]]
+name = "py2bit"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz", hash = "sha256:4972f85eb3844cdfba43eb54ab3c8349a0536e03dfd7db07ca8d3447285ad20c", size = 18765, upload-time = "2026-04-21T08:07:49.709Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cf81b59b5be9b8e35b06c49025c30b906cc2451923b48b1e7fa7302494e7f320", size = 50711, upload-time = "2026-04-21T08:07:54.006Z" },
 ]
 
 [[package]]

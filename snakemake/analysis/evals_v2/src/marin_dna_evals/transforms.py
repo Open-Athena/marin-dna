@@ -240,6 +240,7 @@ def transform_variant_marginal_clm(
 def transform_ll_clm(
     example: dict[str, Any],
     tokenizer: Any,
+    strand: Literal["+", "-"] = "+",
 ) -> dict[str, Any]:
     """Prepare an example for CLM sequence-level log-likelihood scoring.
 
@@ -270,7 +271,11 @@ def transform_ll_clm(
         is_upper:  [L] bool tensor — True iff ``input_ids[i]`` came from an
                    uppercase character of ``example["seq"]``.
     """
-    seq = example["seq"]
+    seq = str(example["seq"])
+    if strand == "-":
+        # reverse_complement preserves case, keeping the conservation mask
+        # attached to its genomic base.
+        seq = reverse_complement(seq)
     full_ids = tokenizer.encode(seq.upper())
 
     n_prefix, n_suffix = _get_special_token_counts(tokenizer)

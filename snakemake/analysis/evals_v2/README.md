@@ -222,6 +222,46 @@ name:
   the per-cell `results/ll_gap/scores/{model}/{region}.parquet` targets, then
   gather with `snakemake ll_gap`.
 
+- **Conservation × repeat predictability** (#478) —
+  `snakemake predictability_478_pilot`, then `snakemake predictability_478`
+  only after the pilot's three regression JSONs pass. The pilot scores the
+  first configured checkpoint (46M) on CDS/upstream/downstream, retaining FWD
+  and RC per-base NLL plus 4-nucleotide predictive entropy as separate
+  fixed-length arrays. RC arrays are reversed back to forward genomic
+  coordinates before storage.
+
+  The joined artifacts use the validation-matched RefSeq
+  `GCF_000001405.40` soft mask and fail if its uppercased sequence differs
+  from the pinned HF window. Conservation case and repeat case remain
+  independent fields. Controls include window GC, target position, and a
+  strand-averaged order-6 Markov (7-mer) NLL whose counts leave out the
+  target chromosome. The primary span is positions `[32, 223)` (32–222);
+  all 255 positions are a sensitivity analysis. Ambiguous bases are counted
+  and excluded. Codon position and canonical two-base donor/acceptor status
+  are **secondary CDS-only** diagnostics; overlapping-transcript
+  disagreements are marked ambiguous.
+
+  ```bash
+  # Mandatory small-model gate.
+  uv run --locked snakemake -n predictability_478_pilot
+  uv run --locked snakemake predictability_478_pilot
+
+  # Inspect all three v1/regression/<46M>/<region>.json reports first.
+  uv run --locked snakemake -n predictability_478
+  uv run --locked snakemake predictability_478
+  ```
+
+  Outputs are versioned under `results/predictability_478/v1/`:
+  `joined/{region}.{parquet,manifest.json}`,
+  `atoms/{model}/{region}.{fwd,rc}.parquet`,
+  `regression/{model}/{region}.json`,
+  `analysis/{summary,controlled}.parquet`,
+  `analysis/manifest.json`, and `figure/predictability.png`. The summary
+  reports absolute NLL at every rung, 46M entropy, endpoint and adjacent-rung
+  NLL reductions, fraction positive, distributions, and 10-Mb genomic-block
+  bootstrap intervals. The controlled table fits the preregistered
+  conservation × repeat model with GC, 7-mer NLL, and target-position terms.
+
 ### Linear probe (frozen-embedding VEP, #320)
 
 `snakemake probe` trains a **frozen-embedding linear probe** per `(model,
@@ -363,6 +403,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 | `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
+| `predictability_478` | Optional, versioned scaling experiment (#478, off `rule all`). Pins RefSeq 2bit/GTF, three mixed-case HF revisions, the ordered ladder, per-model batch sizes, `[32,223)` primary span, 10-Mb block bootstrap, and training-mixture provenance. Run `predictability_478_pilot` before `predictability_478`. |
 
 ## Library
 
@@ -379,7 +420,15 @@ Pipeline rules are thin glue around:
   mixed-case `seq` dataset → per-sequence functional/non-functional LL atoms
   (`ll_sum_upper`, `ll_sum_lower`, `n_upper`, `n_lower`); `aggregate_ll_gap`
   collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
+- `marin_dna_evals.per_base.compute_hf_per_base_stats` — mixed-case sequence
+  windows → forward-coordinate FWD/RC NLL and 4-nucleotide entropy arrays;
+  `compare_ll_gap_cache` gates them against #274.
+- `marin_dna_evals.joined_478.build_joined_windows` — exact RefSeq repeat
+  mask + conservation + controls + CDS-only secondary annotation.
+- `marin_dna_evals.analysis_478.analyze_predictability_478` — primary and
+  secondary summaries plus genomic-block bootstrap and controlled contrasts.
 
 These are tested at `tests/evals/test_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
+Issue #478 adds `tests/test_{joined,cds_annotations,analysis}_478.py` and `tests/model/test_per_base.py`.

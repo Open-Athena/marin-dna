@@ -1324,3 +1324,54 @@ ll_gap:
     - scaling-v0.5-h1920-p1B-step-215573
     - scaling-v0.5-h2432-p2B-step-215573
     - scaling-v0.5-h2944-p4B-step-215573
+
+# Conservation × repeat predictability across the parameter-scaling ladder
+# (issue #478). Additive and off `rule all`; outputs live under the versioned
+# results/predictability_478/v1 namespace. The 46M pilot is the mandatory first
+# execution gate before any larger checkpoint is launched.
+predictability_478:
+  artifact_version: v1
+  split: validation
+  window_size: 255
+  primary_start: 32
+  primary_end_exclusive: 223
+  repeat_twobit: s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_000001405.40.2bit
+  cds_gtf: s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/annotation/GCF_000001405.40.gtf.gz
+  assembly: GCF_000001405.40
+  bootstrap_seed: 478
+  bootstrap_replicates: 1000
+  bootstrap_block_bp: 10000000
+  training_mixture:
+    cds: 0.7319
+    upstream: 0.2062
+    downstream: 0.0619
+    uppercase_weight: 1.0
+    lowercase_weight: 0.01
+  datasets:
+    - name: cds
+      hf_repo: bolinas-dna/genomes-v5-validation-intervals-v5_255_255
+      hf_revision: daff592f213aaa1cab1711d477a79ff6b1bc4ef4
+    - name: upstream
+      hf_repo: bolinas-dna/genomes-v5-validation-intervals-v1_255_255
+      hf_revision: a761bc0b663a9827303f3112e4667d53d5326fac
+    - name: downstream
+      hf_repo: bolinas-dna/genomes-v5-validation-intervals-v15_255_255
+      hf_revision: d7b27eecd68453934ebb3e7e6e78d5401789faa5
+  models:
+    - scaling-v0.5-h640-p46M-step-215573
+    - scaling-v0.5-h768-p76M-step-215573
+    - scaling-v0.5-h896-p128M-step-215573
+    - scaling-v0.5-h1152-p255M-step-215573
+    - scaling-v0.5-h1408-p476M-step-215573
+    - scaling-v0.5-h1920-p1B-step-215573
+    - scaling-v0.5-h2432-p2B-step-215573
+    - scaling-v0.5-h2944-p4B-step-215573
+  batch_sizes:
+    scaling-v0.5-h640-p46M-step-215573: 128
+    scaling-v0.5-h768-p76M-step-215573: 128
+    scaling-v0.5-h896-p128M-step-215573: 128
+    scaling-v0.5-h1152-p255M-step-215573: 128
+    scaling-v0.5-h1408-p476M-step-215573: 96
+    scaling-v0.5-h1920-p1B-step-215573: 64
+    scaling-v0.5-h2432-p2B-step-215573: 32
+    scaling-v0.5-h2944-p4B-step-215573: 16

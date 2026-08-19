@@ -19,9 +19,11 @@ dependencies = [
     "pandas>=2.0,<3.0",
     "polars",
     "pyarrow>=21.0.0",
+    "py2bit==1.0.1",
     "pybigwig",
     "pyyaml",
     "scikit-learn",
+
     "scipy",
     "seaborn",
     "snakemake",

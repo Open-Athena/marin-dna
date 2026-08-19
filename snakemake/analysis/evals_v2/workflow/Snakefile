@@ -22,3 +22,6 @@ rule all:
             for m in config["models"]
             for d in get_model_datasets(m["name"])
         ],
+
+
+include: "rules/predictability_478.smk"

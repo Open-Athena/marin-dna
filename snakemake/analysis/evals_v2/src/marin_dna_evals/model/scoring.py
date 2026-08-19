@@ -128,6 +128,31 @@ def compute_ll_clm(
     return torch.stack([ll_sum_upper, ll_sum_lower, n_upper, n_lower], dim=-1)
 
 
+def compute_per_base_stats_clm(
+    model: Any,
+    input_ids: Int[Tensor, "B L"],
+    *,
+    nuc_token_ids: Int[Tensor, " 4"],
+) -> Float[Tensor, "B L-1 2"]:
+    """Return true-base NLL and 4-nucleotide predictive entropy per target.
+
+    Full-vocabulary NLL reuses :func:`_logits_to_logprobs`, so atom sums
+    reproduce issue-274. Entropy renormalizes over A/C/G/T, avoiding
+    tokenizer-specific probability assigned to special tokens.
+
+    With one prepended BOS and no suffix, the targets map one-to-one to every
+    DNA base. Callers assert that layout before assigning coordinates.
+    """
+    logits = model(input_ids).logits
+    logp_true = _logits_to_logprobs(logits, input_ids).float()
+    nuc_ids = nuc_token_ids.to(device=logits.device)
+    nuc_logits = logits[:, :-1].float().index_select(-1, nuc_ids)
+    nuc_logp = torch.log_softmax(nuc_logits, dim=-1)
+    entropy = -(nuc_logp.exp() * nuc_logp).sum(dim=-1)
+    assert entropy.shape == logp_true.shape
+    return torch.stack([-logp_true, entropy], dim=-1)
+
+
 def compute_euclidean_distance(
     model: Any,
     input_ids: Int[Tensor, "B 2 L"],

@@ -38,6 +38,7 @@ from marin_dna.data.genome import Genome
 from marin_dna_evals.model.scoring import (
     compute_ll_clm,
     compute_marginal_clm,
+    compute_per_base_stats_clm,
     compute_variant_score_bundle,
     compute_window_embedding,
 )
@@ -118,6 +119,33 @@ run_ll_clm = partial(
     compute_fn=compute_ll_clm,
     data_transform_fn=transform_ll_clm,
 )
+
+
+def run_per_base_stats_clm(
+    model: nn.Module,
+    tokenizer: Any,
+    dataset: datasets.Dataset,
+    *,
+    strand: Literal["+", "-"] = "+",
+    **kwargs: Any,
+) -> Any:
+    """Run per-base NLL plus 4-nucleotide entropy on one orientation.
+
+    RC output is in model-reading order and must be reversed by the caller
+    before it is assigned forward genomic coordinates.
+    """
+    nuc_ids = _get_nucleotide_token_ids(tokenizer)
+    nuc_token_ids = torch.tensor(
+        [nuc_ids[nuc] for nuc in NUCLEOTIDES], dtype=torch.long
+    )
+    return run_inference(
+        model,
+        tokenizer,
+        dataset,
+        compute_fn=partial(compute_per_base_stats_clm, nuc_token_ids=nuc_token_ids),
+        data_transform_fn=partial(transform_ll_clm, strand=strand),
+        **kwargs,
+    )
 
 
 def run_variant_score_bundle(

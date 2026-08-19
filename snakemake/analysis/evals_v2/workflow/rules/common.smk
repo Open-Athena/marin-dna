@@ -215,6 +215,56 @@ for _d in LL_GAP_CFG.get("datasets", []):
     assert (
         "hf_repo" in _d and "hf_revision" in _d
     ), f"ll_gap dataset {_d.get('name')!r} needs `hf_repo` + `hf_revision`"
+# --- Conservation × repeat predictability (issue #478) ----------------------
+PREDICTABILITY_478_CFG = config.get("predictability_478", {})
+PREDICTABILITY_478_MODELS = PREDICTABILITY_478_CFG.get("models", [])
+PREDICTABILITY_478_DATASETS = [
+    dataset["name"] for dataset in PREDICTABILITY_478_CFG.get("datasets", [])
+]
+PREDICTABILITY_478_VERSION = PREDICTABILITY_478_CFG.get("artifact_version", "v1")
+PREDICTABILITY_478_PILOT_MODEL = (
+    PREDICTABILITY_478_MODELS[0] if PREDICTABILITY_478_MODELS else None
+)
+
+
+def get_predictability_478_dataset_config(name):
+    for dataset in PREDICTABILITY_478_CFG.get("datasets", []):
+        if dataset["name"] == name:
+            return dataset
+    raise ValueError(f"predictability_478 dataset {name!r} not found")
+
+
+def get_predictability_478_batch_size(model):
+    batch_sizes = PREDICTABILITY_478_CFG.get("batch_sizes", {})
+    value = batch_sizes.get(model, get_model_batch_size(model))
+    assert (
+        isinstance(value, int) and value > 0
+    ), f"predictability_478 batch size for {model!r} must be positive"
+    return value
+
+
+if PREDICTABILITY_478_CFG:
+    assert PREDICTABILITY_478_VERSION == "v1", (
+        "unknown predictability_478 artifact schema version "
+        f"{PREDICTABILITY_478_VERSION!r}"
+    )
+    assert PREDICTABILITY_478_DATASETS == ["cds", "upstream", "downstream"]
+    assert PREDICTABILITY_478_CFG["window_size"] == 255
+    assert (
+        PREDICTABILITY_478_CFG["primary_start"],
+        PREDICTABILITY_478_CFG["primary_end_exclusive"],
+    ) == (32, 223)
+    assert PREDICTABILITY_478_CFG["assembly"] == "GCF_000001405.40"
+    assert PREDICTABILITY_478_CFG["repeat_twobit"].endswith("/GCF_000001405.40.2bit")
+    assert PREDICTABILITY_478_CFG["cds_gtf"].endswith("/GCF_000001405.40.gtf.gz")
+    for _model in PREDICTABILITY_478_MODELS:
+        assert (
+            _model in MODELS
+        ), f"predictability_478 model {_model!r} not found in `models`"
+        assert get_model_config(_model)["window_size"] == 255
+        get_predictability_478_batch_size(_model)
+    for _dataset in PREDICTABILITY_478_CFG["datasets"]:
+        assert {"name", "hf_repo", "hf_revision"} <= set(_dataset)
 
 
 # --- Linear probe (frozen-embedding VEP, issue #320) ------------------------
