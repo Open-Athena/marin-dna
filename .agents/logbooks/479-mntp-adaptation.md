@@ -156,3 +156,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Result: 22 tests passed in 3.21 seconds; Ruff check and format check passed. Peak local pytest RSS was 840,612 KiB. Interrupted training resumed from step 2 and matched the uninterrupted step-4 model state exactly. The causal readout was invariant to a changed right flank with zero position-specific gradient; full attention changed the readout and produced a nonzero right-flank gradient.
 - Interpretation: The local contracts are ready for the actual-checkpoint GH200 gate. No 1B checkpoint, cloud resource, or labeled evaluation has run.
 - Next action: Push the snapshot, dry-run the commit-pinned Sky plan, update issue #479, then obtain explicit paid-launch approval.
+
+### 2026-08-19 23:49 - Restart-safe pilot and diagnostics snapshot
+
+- Hypothesis: The complete three-arm pilot, odd/X VEP suite, context probes, and fixed nucleotide-dependency panel can run as one restart-safe, self-terminating Lambda task without Marin or Iris.
+- Commit hash: `5b3634c8c5e6f9dfc77a62e7965642977b38d708`.
+- Command: Resource-guarded `uv run --locked ruff check .`, `ruff format --check .`, `python -m compileall`, and `pytest`; then `uv run --locked python launch.py pilot --commit 5b3634c8c5e6f9dfc77a62e7965642977b38d708 --execute --dry-run`.
+- Config: One Lambda `gpu_1x_gh200` in `us-east-1`, 96 GB GH200, 512 GB disk, listed at $2.29/hour; Sky `--down`; $50 hard cap; private `marin-dna/marin-dna-exp479-mntp-m5.1` checkpoint staging.
+- Result: All 37 tests passed in 5.23 seconds; Ruff, format, compile, and whitespace checks passed. Peak local pytest RSS was 1,051,008 KiB. The no-provisioning Sky dry run selected the registered single GH200 and validated the exact pushed commit, secrets interface, repository access, and teardown configuration.
+- Interpretation: The code path is ready for the actual-checkpoint smoke tests and capped pilot. Full Lightning checkpoints are uploaded every 100 steps; a fresh instance resumes the newest private checkpoint; all trained arms log fixed flank probes; evaluation emits explicit FWD and FWD+RC runtime rows and paired odd/X summaries.
+- Data boundary: Only one streamed row from each pinned public odd/X `train` split was used to validate schemas. No even-autosome/Y labels, predictions, effects, or aggregate metrics were accessed. No cloud resource was provisioned and no charge was incurred.
+- Next action: Obtain explicit approval for the $50 Lambda cap and the private-staging model-card draft, then launch the exact reviewed commit and monitor through self-termination.
