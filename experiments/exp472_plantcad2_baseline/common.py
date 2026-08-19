@@ -2,10 +2,12 @@
 
 import os
 from dataclasses import replace
+from typing import Self
 
 from fray.types import ResourceConfig
 from levanter.callbacks.watch import WatchConfig
 from levanter.data.text.datasets import BlockShuffleConfig
+from levanter.data.text.formats import TextLmDatasetFormat
 from levanter.layers.attention import AttentionBackend
 from levanter.layers.rotary import Llama3RotaryEmbeddingsConfig
 from levanter.models.qwen import Qwen3Config
@@ -43,6 +45,30 @@ SHUFFLE = BlockShuffleConfig(
 DISABLED_WANDB_WATCH = WatchConfig(watch_targets=[], interval=0)
 
 
+class ExistingAfdbCache(TokenizedCache):
+    """Path-only view that ignores historical metadata embedded in AFDB caches."""
+
+    @classmethod
+    def raw_load(cls, source: str) -> Self:
+        return cls(path=source)
+
+    @property
+    def cache_dir(self) -> str:
+        return self.path
+
+    @property
+    def tokenizer(self) -> str:
+        return TOKENIZER
+
+    @property
+    def format(self) -> TextLmDatasetFormat:
+        return TextLmDatasetFormat(text_key="document")
+
+    @property
+    def tags(self) -> list[str]:
+        return ["protein", "contacts-v1", "afdb", "pretokenized"]
+
+
 def env_int(name: str, default: int) -> int:
     value = int(os.environ.get(name, str(default)))
     if value < 1:
@@ -67,7 +93,7 @@ def existing_afdb_cache(
         name,
         version,
         source,
-        kind=TokenizedCache,
+        kind=ExistingAfdbCache,
         config={
             "tokenizer": TOKENIZER,
             "format": {"text_key": "document"},
