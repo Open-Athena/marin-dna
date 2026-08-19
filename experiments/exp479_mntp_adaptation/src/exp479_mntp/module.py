@@ -130,6 +130,14 @@ class AdaptationModule(L.LightningModule):
                 batch_size=int(in_component.sum()),
                 add_dataloader_idx=False,
             )
+            self.log(
+                f"val/{slice_name}/component/{component}/accuracy",
+                component_metrics.accuracy,
+                on_step=False,
+                on_epoch=True,
+                batch_size=int(in_component.sum()),
+                add_dataloader_idx=False,
+            )
 
         if dataloader_idx == 0 and self.arm != "clm_continuation":
             probabilities = batch["mask_probabilities"]
@@ -148,6 +156,13 @@ class AdaptationModule(L.LightningModule):
                     self.log(
                         f"val/diffusion/mask_bin_{bin_index}/loss",
                         bin_metrics.loss,
+                        on_step=False,
+                        on_epoch=True,
+                        batch_size=int(in_bin.sum()),
+                    )
+                    self.log(
+                        f"val/diffusion/mask_bin_{bin_index}/accuracy",
+                        bin_metrics.accuracy,
                         on_step=False,
                         on_epoch=True,
                         batch_size=int(in_bin.sum()),

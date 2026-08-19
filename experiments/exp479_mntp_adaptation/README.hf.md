@@ -9,9 +9,9 @@ tags:
 base_model: marin-dna/marin-dna-exp135-m5.1
 ---
 
-# MarinDNA m5.1 MNTP adaptation pilot
+# MarinDNA m5.1 MNTP adaptation pilot — private staging
 
-This is the human-review draft for the eventual `marin-dna/marin-dna-exp479-mntp-m5.1` release. Do not upload it until the producing commit, run links, result table, and limitations below are finalized.
+This is the human-review draft for the private `marin-dna/marin-dna-exp479-mntp-m5.1` staging repository. The pilot may upload this reviewed draft privately so a self-terminating Lambda job can preserve resumable checkpoints. Do not make the repository public until the producing commit, run links, result table, and limitations below are finalized and reviewed again.
 
 ## Model
 
@@ -31,5 +31,4 @@ The pilot uniformly samples five public m5.1 components: CDS, upstream, downstre
 
 ## Intended use and limitations
 
-This checkpoint is an experimental bidirectional DNA representation model. It is not the autoregressive m5.1 generation checkpoint. The pilot uses one seed and 1,000 adaptation steps. Labeled development and diagnostics exclude even-numbered autosomes and chromosome Y. A negative pilot result does not determine whether longer adaptation or supervised chromatin-accessibility training would help.
-
+This checkpoint is an experimental bidirectional DNA representation model. It is not the autoregressive m5.1 generation checkpoint. The pilot uses one seed and 1,000 adaptation steps. The staging repository is incomplete while the run is active and must not be used as a released model. Labeled development and diagnostics exclude even-numbered autosomes and chromosome Y. A negative pilot result does not determine whether longer adaptation or supervised chromatin-accessibility training would help.

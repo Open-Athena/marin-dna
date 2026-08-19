@@ -1,0 +1,44 @@
+name: dna-exp479-pilot
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 512
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${HF_REPO_ID:-}"
+  test -n "${HF_TOKEN:-}"
+  test -n "${WANDB_API_KEY:-}"
+  mkdir -p "$HOME/exp479-artifacts"
+  uv run --locked exp479 preflight \
+    --output "$HOME/exp479-artifacts/preflight.json"
+  uv run --locked exp479 pilot \
+    --preflight "$HOME/exp479-artifacts/preflight.json" \
+    --artifact-dir "$HOME/exp479-artifacts" \
+    --hf-repo-id "$HF_REPO_ID" \
+    --model-card README.hf.md \
+    --experiment-commit "$EXPERIMENT_COMMIT" \
+    --model-card-reviewed
+  SELECTED_BATCH=$(uv run --locked python -c \
+    'import json, pathlib; print(json.loads(pathlib.Path.home().joinpath("exp479-artifacts/preflight.json").read_text())["memory_and_throughput"]["selected"]["batch_size"])')
+  uv run --locked exp479 evaluate \
+    --artifact-dir "$HOME/exp479-artifacts" \
+    --output-dir "$HOME/exp479-artifacts/evaluation/vep" \
+    --hf-repo-id "$HF_REPO_ID" \
+    --batch-size "$SELECTED_BATCH"
+  uv run --locked exp479 nuc-dep \
+    --artifact-dir "$HOME/exp479-artifacts" \
+    --output-dir "$HOME/exp479-artifacts/evaluation/nucleotide-dependency" \
+    --hf-repo-id "$HF_REPO_ID" \
+    --batch-size 1024
+  uv run --locked exp479 finalize \
+    --artifact-dir "$HOME/exp479-artifacts" \
+    --hf-repo-id "$HF_REPO_ID"

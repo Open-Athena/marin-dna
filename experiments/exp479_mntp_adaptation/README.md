@@ -2,7 +2,7 @@
 
 This permanent experiment project implements [issue #479](https://github.com/Open-Athena/marin-dna/issues/479): three matched 1,000-step training arms and two no-training controls for converting the released 1B m5.1 causal checkpoint into a full-attention masked-next-token-prediction model.
 
-The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris are not dependencies of this experiment.
+The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris are not dependencies of this experiment. A reviewed private Hugging Face staging repository preserves every numbered checkpoint before Sky tears the instance down.
 
 ## Registered behavior
 
@@ -50,7 +50,25 @@ The launch helper prints commands unless `--execute` is set. It requires a clean
 uv run --locked python launch.py preflight --commit "$(git rev-parse HEAD)"
 ```
 
+Validate the exact pilot request without provisioning or requiring model-card approval:
+
+```bash
+uv run --locked python launch.py pilot \
+  --commit "$(git rev-parse HEAD)" \
+  --execute --dry-run
+```
+
 Paid execution requires explicit approval from the user coordinating issue #479. The preflight task uses `sky launch --down`, so the Lambda instance is terminated when the task finishes. Provisioning or setup failure must still be checked in `sky status`; Sky documents that `--down` cannot tear down an instance it failed to configure.
+
+After explicit approval of both the $50 cap and `README.hf.md`, the `pilot` stage runs preflight, all three trained arms, odd/X-only VEP, and the fixed nucleotide-dependency panel in one self-terminating task:
+
+```bash
+uv run --locked python launch.py pilot \
+  --commit "$(git rev-parse HEAD)" \
+  --model-card-reviewed
+```
+
+Add `--execute` only for the approved paid run. `HF_TOKEN` and `WANDB_API_KEY` are forwarded as Sky secrets; the launcher can read the existing Hugging Face token file and W&B netrc entry into the Sky subprocess environment without printing either value. The Hugging Face repository is created private and is not made public by this workflow.
 
 ## Data plans
 
@@ -90,7 +108,8 @@ Each trained arm writes:
 
 Dense scalar series live in W&B. GitHub issue #479 and [the logbook](../../.agents/logbooks/479-mntp-adaptation.md) remain the narrative record.
 
+The private staging repository also receives the actual-checkpoint preflight, sequence-plan hashes, final safetensors exports, odd/X VEP scores and natural-unit bootstrap summaries, inference runtime, numeric dependency maps, and matched-scale SVG comparisons. The VEP loader requests only each pinned public `train` split and rejects any chromosome outside odd autosomes/X before scoring. The dependency-map panel uses unlabeled reference sequence and may include its preregistered even-autosome locus.
+
 ## Held-out evaluation boundary
 
 Development, probes, VEP selection, and continuation decisions may use labeled data only from odd-numbered autosomes and chromosome X. Do not read labels, predictions, effect measurements, or aggregate metrics for even-numbered autosomes or chromosome Y without explicit permission for final evaluation.
-
