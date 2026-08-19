@@ -6,6 +6,7 @@ include: "rules/anchors.smk"
 include: "rules/staging.smk"
 include: "rules/projection.smk"
 include: "rules/dataset.smk"
+include: "rules/issue_473.smk"
 
 
 rule all:
