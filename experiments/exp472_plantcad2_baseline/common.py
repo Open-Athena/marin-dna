@@ -1,7 +1,6 @@
 """Shared one-billion-parameter Qwen3 PlantCAD2 smoke-training recipe."""
 
 import os
-from collections.abc import Mapping
 from dataclasses import replace
 from typing import Self
 
@@ -84,6 +83,15 @@ def required_env(name: str) -> str:
     return value
 
 
+def require_marin_prefix(expected: str) -> str:
+    configured = required_env("MARIN_PREFIX").rstrip("/")
+    if configured != expected.rstrip("/"):
+        raise ValueError(
+            f"MARIN_PREFIX must be exactly {expected!r}, got {configured!r}"
+        )
+    return configured
+
+
 def existing_plantcad_cache(
     *,
     name: str,
@@ -110,7 +118,7 @@ def build_smoke_run(
     validation_cache: ArtifactStep[TokenizedCache],
     resources: ResourceConfig,
     attention_backend: AttentionBackend | None,
-    extra_env_vars: Mapping[str, str] | None = None,
+    expected_output_prefix: str,
 ) -> ArtifactStep[LevanterCheckpoint]:
     steps = env_int("EXP472_STEPS", 2)
     batch_size = env_int("EXP472_BATCH_SIZE", 8)
@@ -128,9 +136,6 @@ def build_smoke_run(
         "WANDB_ENTITY": wandb_entity,
         "WANDB_PROJECT": wandb_project,
     }
-    if extra_env_vars:
-        env_vars.update(extra_env_vars)
-
     step = train_lm(
         name=f"checkpoints/{run_id}",
         run_id=run_id,
@@ -168,6 +173,13 @@ def build_smoke_run(
     base_build_config = step.build_config
 
     def build_config(ctx):
+        if not ctx.is_fingerprint and ctx.prefix.rstrip(
+            "/"
+        ) != expected_output_prefix.rstrip("/"):
+            raise ValueError(
+                f"execution prefix {ctx.prefix!r} must be exactly "
+                f"{expected_output_prefix!r}"
+            )
         pod = base_build_config(ctx)
         trainer = replace(
             pod.train_config.trainer,

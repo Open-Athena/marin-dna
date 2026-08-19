@@ -1,9 +1,13 @@
-"""Prepare and tokenize PlantCAD's 8,192-base angiosperm corpus on CoreWeave.
+"""Prepare and tokenize PlantCAD's 8,192-base angiosperm corpus.
 
 The pinned Hugging Face release contains Arrow IPC shards, which Marin cannot
 tokenize directly. The prepare phase streams each split to compact,
-sequence-only Parquet files on CoreWeave S3. Tokenizer workers then read only
-that S3 copy and build a Levanter cache at ``TOKENIZED_PREFIX``.
+sequence-only Parquet files in the destination cloud. Tokenizer workers then
+read only that cloud-local copy and build a Levanter cache alongside it.
+
+With ``REGION`` unset, output goes to CoreWeave S3. Setting ``REGION`` selects
+the GCS bucket configured by Marin for that TPU region. Run tokenization once
+per TPU region so training never reads data across regions or clouds.
 
 All three upstream splits remain distinct. The training entrypoints consume
 only train and validation; the separately tokenized test split stays held out.
@@ -39,6 +43,7 @@ from marin.processing.tokenize.store_builder import (
     write_stats_json,
 )
 from pyarrow import ipc
+from rigging.filesystem.cluster_config import StoreType, data_config
 from rigging.filesystem.s3_compat import configure_coreweave_s3
 from rigging.filesystem.storage_path import StoragePath, prefix_join
 from zephyr.dataset import Dataset, FileEntry
@@ -55,13 +60,8 @@ TEXT_KEY = "seq"
 SEQ_LEN = 8_192
 VOCAB_SIZE = 7
 
-MARINDNA_PREFIX = "s3://marin-us-east-02a/MarinDNA"
-PREPARED_PREFIX = f"{MARINDNA_PREFIX}/data/plantcad/{DATASET_REPO.rsplit('/', 1)[1]}"
-TOKENIZED_PREFIX = (
-    f"{MARINDNA_PREFIX}/tokenized/plantcad/{DATASET_REPO.rsplit('/', 1)[1]}"
-)
-MANIFEST_PATH = f"{PREPARED_PREFIX}/manifest.json"
-SMOKE_PREFIX = f"{MARINDNA_PREFIX}/tmp/exp472/tokenization-smoke"
+COREWEAVE_MARINDNA_PREFIX = "s3://marin-us-east-02a/MarinDNA"
+CORPUS_NAME = DATASET_REPO.rsplit("/", 1)[1]
 
 COPY_RETRIES = 5
 EXPECTED_TOKEN_IDS = {
@@ -80,6 +80,43 @@ EXPECTED_SPLITS = {
 }
 WORKER_RESOURCES = ResourceConfig(cpu=1, ram="8g", disk="8g", preemptible=False)
 COORDINATOR_RESOURCES = ResourceConfig(cpu=1, ram="6g", disk="16g", preemptible=False)
+
+
+@dataclass(frozen=True)
+class StorageLayout:
+    marindna_prefix: str
+    prepared_prefix: str
+    tokenized_prefix: str
+    manifest_path: str
+    smoke_prefix: str
+
+
+def storage_layout() -> StorageLayout:
+    region = os.environ.get("REGION", "").strip().lower()
+    if region:
+        spec = data_config().region_buckets.get(region)
+        if spec is None:
+            raise ValueError(
+                f"no Marin data bucket is configured for region {region!r}"
+            )
+        if spec.store is not StoreType.GCS:
+            raise ValueError(
+                f"TPU region {region!r} resolved to non-GCS store {spec.store!r}"
+            )
+        marindna_prefix = prefix_join(f"gs://{spec.name}", "MarinDNA")
+    else:
+        marindna_prefix = COREWEAVE_MARINDNA_PREFIX
+
+    prepared_prefix = prefix_join(marindna_prefix, f"data/plantcad/{CORPUS_NAME}")
+    return StorageLayout(
+        marindna_prefix=marindna_prefix,
+        prepared_prefix=prepared_prefix,
+        tokenized_prefix=prefix_join(
+            marindna_prefix, f"tokenized/plantcad/{CORPUS_NAME}"
+        ),
+        manifest_path=prefix_join(prepared_prefix, "manifest.json"),
+        smoke_prefix=prefix_join(marindna_prefix, "tmp/exp472/tokenization-smoke"),
+    )
 
 
 @dataclass(frozen=True)
@@ -104,8 +141,8 @@ class PreparedShard:
     rows: int
 
 
-def _s3_path(url: str) -> str:
-    return url.removeprefix("s3://")
+def _storage_path(url: str) -> str:
+    return fsspec.core.strip_protocol(url)
 
 
 def _source_catalog(hf_fs: HfFileSystem) -> dict[str, list[SourceShard]]:
@@ -148,15 +185,15 @@ def _parquet_metadata(source: SourceShard) -> dict[bytes, bytes]:
 
 
 def _prepared_shard(
-    s3_fs: fsspec.AbstractFileSystem,
+    storage_fs: fsspec.AbstractFileSystem,
     source: SourceShard,
     destination_url: str,
 ) -> PreparedShard | None:
-    destination_path = _s3_path(destination_url)
-    if not s3_fs.exists(destination_path):
+    destination_path = _storage_path(destination_url)
+    if not storage_fs.exists(destination_path):
         return None
     try:
-        with s3_fs.open(destination_path, "rb") as stream:
+        with storage_fs.open(destination_path, "rb") as stream:
             parquet = pq.ParquetFile(stream)
             schema = parquet.schema_arrow
             if schema.names != [TEXT_KEY] or schema.field(TEXT_KEY).type != pa.string():
@@ -175,7 +212,7 @@ def _prepared_shard(
             source_path=source.path,
             source_size=source.size,
             destination_path=destination_url,
-            destination_size=int(s3_fs.info(destination_path).get("size") or 0),
+            destination_size=int(storage_fs.info(destination_path).get("size") or 0),
             rows=rows,
         )
     except (OSError, ValueError, pa.ArrowException):
@@ -196,7 +233,7 @@ def _validate_sequences(batch: pa.RecordBatch, source_path: str) -> pa.RecordBat
 
 def _convert_one(
     hf_fs: HfFileSystem,
-    s3_fs: fsspec.AbstractFileSystem,
+    storage_fs: fsspec.AbstractFileSystem,
     source: SourceShard,
     destination_prefix: str,
     max_rows: int | None,
@@ -205,7 +242,7 @@ def _convert_one(
         f"{destination_prefix.rstrip('/')}/{source.split}/"
         f"{source.filename.removesuffix('.arrow')}.parquet"
     )
-    existing = _prepared_shard(s3_fs, source, destination_url)
+    existing = _prepared_shard(storage_fs, source, destination_url)
     expected_rows = max_rows if max_rows is not None else None
     if existing is not None and (
         expected_rows is None or existing.rows == expected_rows
@@ -220,7 +257,9 @@ def _convert_one(
             rows = 0
             with (
                 hf_fs.open(source.path, "rb") as source_stream,
-                s3_fs.open(_s3_path(destination_url), "wb") as destination_stream,
+                storage_fs.open(
+                    _storage_path(destination_url), "wb"
+                ) as destination_stream,
             ):
                 reader = ipc.open_stream(source_stream)
                 if TEXT_KEY not in reader.schema.names:
@@ -242,7 +281,7 @@ def _convert_one(
                         rows += sequence_batch.num_rows
             if rows <= 0 or (max_rows is not None and rows != max_rows):
                 raise ValueError(f"{source.path} produced {rows} rows")
-            prepared = _prepared_shard(s3_fs, source, destination_url)
+            prepared = _prepared_shard(storage_fs, source, destination_url)
             if prepared is None or prepared.rows != rows:
                 raise ValueError(f"failed to validate prepared shard {destination_url}")
             return prepared
@@ -277,17 +316,22 @@ def _write_manifest(path: str, prepared: dict[str, list[PreparedShard]]) -> None
 
 
 def prepare_sources(
+    layout: StorageLayout,
     conversion_workers: int,
     *,
     smoke_test: bool,
     smoke_records: int,
 ) -> tuple[str, str, dict[str, int]]:
     hf_fs = HfFileSystem(token=os.environ.get("HF_TOKEN") or False)
-    s3_fs = fsspec.filesystem("s3")
+    storage_fs, _ = fsspec.core.url_to_fs(layout.marindna_prefix)
     catalogs = _source_catalog(hf_fs)
-    smoke_run_prefix = f"{SMOKE_PREFIX}/{smoke_records}-rows"
-    destination_prefix = f"{smoke_run_prefix}/source" if smoke_test else PREPARED_PREFIX
-    manifest_path = f"{smoke_run_prefix}/manifest.json" if smoke_test else MANIFEST_PATH
+    smoke_run_prefix = f"{layout.smoke_prefix}/{smoke_records}-rows"
+    destination_prefix = (
+        f"{smoke_run_prefix}/source" if smoke_test else layout.prepared_prefix
+    )
+    manifest_path = (
+        f"{smoke_run_prefix}/manifest.json" if smoke_test else layout.manifest_path
+    )
     selected = {
         split: shards[:1] if smoke_test else shards
         for split, shards in catalogs.items()
@@ -303,7 +347,7 @@ def prepare_sources(
                 future = pool.submit(
                     _convert_one,
                     hf_fs,
-                    s3_fs,
+                    storage_fs,
                     source,
                     destination_prefix,
                     max_rows,
@@ -326,18 +370,22 @@ def prepare_sources(
             )
     _write_manifest(manifest_path, prepared)
     logger.info("source preparation complete: %s", manifest_path)
-    cache_path = f"{smoke_run_prefix}/tokenized" if smoke_test else TOKENIZED_PREFIX
+    cache_path = (
+        f"{smoke_run_prefix}/tokenized" if smoke_test else layout.tokenized_prefix
+    )
     return destination_prefix, cache_path, expected_rows
 
 
 def validate_prepared_sources(
-    *, smoke_test: bool, smoke_records: int
+    layout: StorageLayout, *, smoke_test: bool, smoke_records: int
 ) -> tuple[str, str, dict[str, int]]:
     hf_fs = HfFileSystem(token=os.environ.get("HF_TOKEN") or False)
-    s3_fs = fsspec.filesystem("s3")
+    storage_fs, _ = fsspec.core.url_to_fs(layout.marindna_prefix)
     catalogs = _source_catalog(hf_fs)
-    smoke_run_prefix = f"{SMOKE_PREFIX}/{smoke_records}-rows"
-    destination_prefix = f"{smoke_run_prefix}/source" if smoke_test else PREPARED_PREFIX
+    smoke_run_prefix = f"{layout.smoke_prefix}/{smoke_records}-rows"
+    destination_prefix = (
+        f"{smoke_run_prefix}/source" if smoke_test else layout.prepared_prefix
+    )
     selected = {
         split: shards[:1] if smoke_test else shards
         for split, shards in catalogs.items()
@@ -353,7 +401,7 @@ def validate_prepared_sources(
                 f"{destination_prefix}/{split}/"
                 f"{source.filename.removesuffix('.arrow')}.parquet"
             )
-            prepared = _prepared_shard(s3_fs, source, destination_url)
+            prepared = _prepared_shard(storage_fs, source, destination_url)
             if prepared is None:
                 raise ValueError(f"missing or invalid prepared shard {destination_url}")
             rows += prepared.rows
@@ -361,7 +409,9 @@ def validate_prepared_sources(
             raise ValueError(
                 f"prepared {split} has {rows} rows; expected {expected_rows[split]}"
             )
-    cache_path = f"{smoke_run_prefix}/tokenized" if smoke_test else TOKENIZED_PREFIX
+    cache_path = (
+        f"{smoke_run_prefix}/tokenized" if smoke_test else layout.tokenized_prefix
+    )
     return destination_prefix, cache_path, expected_rows
 
 
@@ -430,6 +480,7 @@ def _file_groups(pattern: str) -> list[list[str]]:
 
 def tokenize_split(
     *,
+    layout: StorageLayout,
     split: str,
     prepared_prefix: str,
     cache_path: str,
@@ -451,12 +502,16 @@ def tokenize_split(
         levanter_batch_size=None,
     )
     tokenized_dataset = tokenized_dataset.map(_validate_tokenized_record)
-    chunk_scope = cache_path.removeprefix(MARINDNA_PREFIX).strip("/").replace("/", "-")
+    chunk_scope = (
+        cache_path.removeprefix(layout.marindna_prefix).strip("/").replace("/", "-")
+    )
     context = ZephyrContext(
         resources=WORKER_RESOURCES,
         coordinator_resources=COORDINATOR_RESOURCES,
         max_workers=min(max_workers, len(groups)),
-        chunk_storage_prefix=f"{MARINDNA_PREFIX}/tmp/exp472/zephyr/{chunk_scope}/{split}",
+        chunk_storage_prefix=(
+            f"{layout.marindna_prefix}/tmp/exp472/zephyr/{chunk_scope}/{split}"
+        ),
         name=f"exp472-plantcad-tokenize-{split}",
     )
     context.put("tokenizer_name", TOKENIZER)
@@ -513,15 +568,20 @@ def main(
     smoke_records: int,
 ) -> None:
     logging.basicConfig(level=logging.INFO)
-    configure_coreweave_s3()
+    layout = storage_layout()
+    if layout.marindna_prefix.startswith("s3://"):
+        configure_coreweave_s3()
+    logger.info("using cloud-local MarinDNA storage: %s", layout.marindna_prefix)
     if phase in {"all", "prepare"}:
         prepared_prefix, cache_path, expected_rows = prepare_sources(
+            layout,
             conversion_workers,
             smoke_test=smoke_test,
             smoke_records=smoke_records,
         )
     else:
         prepared_prefix, cache_path, expected_rows = validate_prepared_sources(
+            layout,
             smoke_test=smoke_test,
             smoke_records=smoke_records,
         )
@@ -529,6 +589,7 @@ def main(
         _load_validated_tokenizer()
         for split in EXPECTED_SPLITS:
             tokenize_split(
+                layout=layout,
                 split=split,
                 prepared_prefix=prepared_prefix,
                 cache_path=cache_path,
