@@ -17,6 +17,10 @@ test are not augmented.
 Learning rate follows a linear warmup-stable-decay schedule: 10% warmup, 70%
 at the trial's peak learning rate, and 20% linear decay to zero.
 
+Temporary recovery checkpoints are saved every 15 minutes. Production runs
+retain ten permanent checkpoints: nine approximately evenly spaced checkpoints
+plus the forced final checkpoint. Short smoke runs retain each completed step.
+
 The sweep contains 14 trials over learning rates `1e-4`, `2e-4`, `5e-4`, and
 `1e-3`, and weight decays `0.1`, `0.2`, `0.8`, and `1.6`. It omits the
 low-LR/low-WD corner (`1e-4`, `0.1`) and high-LR/high-WD corner (`1e-3`,

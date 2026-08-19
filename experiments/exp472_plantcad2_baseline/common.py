@@ -3,6 +3,7 @@
 import os
 from collections.abc import Sequence
 from dataclasses import dataclass, fields, replace
+from datetime import timedelta
 from typing import Self
 
 import jax
@@ -30,6 +31,8 @@ VOCAB_SIZE = 7
 SEQ_LEN = 8_192
 DEFAULT_GLOBAL_BATCH_SIZE = 128
 DEFAULT_TRAIN_STEPS = 206_145  # 10 epochs: 2,638,656 examples * 10 / 128
+TEMPORARY_CHECKPOINT_INTERVAL = timedelta(minutes=15)
+PERMANENT_CHECKPOINT_COUNT = 10
 DATASET_REVISION = "4a444fff5520b992aa978d92a5af509a81977098"
 CACHE_VERSION = "2026.08.19"
 TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp"
@@ -322,6 +325,10 @@ def build_sweep_run(
     expected_output_prefix: str,
 ) -> ArtifactStep[LevanterCheckpoint]:
     steps = env_int("EXP472_STEPS", DEFAULT_TRAIN_STEPS)
+    permanent_checkpoint_every = max(
+        1,
+        (steps + PERMANENT_CHECKPOINT_COUNT - 1) // PERMANENT_CHECKPOINT_COUNT,
+    )
     suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
     checkpoint_id = f"exp472-plantcad2-angiosperm-{point.key}"
     if suffix:
@@ -400,6 +407,11 @@ def build_sweep_run(
             tracker=replace(
                 pod.train_config.trainer.tracker,
                 entity=wandb_entity,
+            ),
+            checkpointer=replace(
+                pod.train_config.trainer.checkpointer,
+                save_interval=TEMPORARY_CHECKPOINT_INTERVAL,
+                keep=[{"every": permanent_checkpoint_every}],
             ),
             watch=DISABLED_WANDB_WATCH,
         )
