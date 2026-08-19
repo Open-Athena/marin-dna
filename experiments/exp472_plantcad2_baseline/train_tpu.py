@@ -28,12 +28,12 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
     return build_smoke_run(
         platform="tpu",
         train_cache=existing_afdb_cache(
-            name="inputs/contacts-v1-afdb-train-tpu",
+            name="inputs/contacts-v1-afdb-train-tpu-path-only",
             version="2026.07.13.1",
             source=AFDB_CACHE,
         ),
         validation_cache=existing_afdb_cache(
-            name="inputs/contacts-v1-afdb-validation-tpu",
+            name="inputs/contacts-v1-afdb-validation-tpu-path-only",
             version="2026.07.13.1",
             source=VALIDATION_CACHE,
         ),
