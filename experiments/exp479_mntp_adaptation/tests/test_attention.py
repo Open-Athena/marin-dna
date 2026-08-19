@@ -4,6 +4,7 @@ import torch
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
 from exp479_mntp.modeling import model_logits
+from exp479_mntp.probes import context_dependence
 
 
 def _model() -> Qwen3ForCausalLM:
@@ -55,3 +56,33 @@ def test_behavioral_attention_mode_and_right_flank_gradient() -> None:
         logits[0, readout_position, 3].backward()
         right_gradient = embeddings.grad[0, 5]
         assert bool(torch.linalg.vector_norm(right_gradient) > 0) is expect_nonzero
+
+
+def test_fixed_context_probe_separates_causal_and_full_right_context() -> None:
+    model = _model()
+    input_ids = torch.tensor([[2, 3, 4, 5, 7, 6, 3, 4, 5]])
+    attention_mask = torch.ones_like(input_ids)
+    causal = context_dependence(
+        model,
+        input_ids,
+        attention_mask,
+        target_input_position=4,
+        mask_token_id=None,
+        canonical_ids=(3, 4, 5, 6),
+        attention_mode="causal",
+        flank_offset=2,
+    )
+    full = context_dependence(
+        model,
+        input_ids,
+        attention_mask,
+        target_input_position=4,
+        mask_token_id=7,
+        canonical_ids=(3, 4, 5, 6),
+        attention_mode="full",
+        flank_offset=2,
+    )
+    assert causal["left_l1"] > 0
+    assert causal["right_l1"] == 0
+    assert full["left_l1"] > 0
+    assert full["right_l1"] > 0
