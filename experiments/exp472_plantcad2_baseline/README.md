@@ -17,6 +17,11 @@ test are not augmented.
 Learning rate follows a linear warmup-stable-decay schedule: 10% warmup, 70%
 at the trial's peak learning rate, and 20% linear decay to zero.
 
+The sweep contains 14 trials over learning rates `1e-4`, `2e-4`, `5e-4`, and
+`1e-3`, and weight decays `0.1`, `0.2`, `0.8`, and `1.6`. It omits the
+low-LR/low-WD corner (`1e-4`, `0.1`) and high-LR/high-WD corner (`1e-3`,
+`1.6`).
+
 ## Dataset size
 
 | Split | Examples | Tokens |
@@ -52,6 +57,11 @@ TRC uses a separate in-region copy in every TPU region:
 
 - Token cache: `gs://<regional-marin-bucket>/MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp`
 - Checkpoints: `gs://<regional-marin-bucket>/MarinDNA/exp472_plantcad2_baseline/checkpoints/<run>/`
+
+TRC sweep placement is restricted to v5e, v5p, and v6e slices with 32–512
+physical chips according to Marin's `TPU_TOPOLOGIES` table. v5p labels encode
+twice their physical chip count, so the allowed v5p labels are `v5p-64` through
+`v5p-1024`.
 
 For example, `us-east5` uses `gs://marin-us-east5`, while `europe-west4` uses
 `gs://marin-eu-west4`. GPU and TPU runs share the same path structure; device

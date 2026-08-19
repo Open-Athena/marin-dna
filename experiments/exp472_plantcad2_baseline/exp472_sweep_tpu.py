@@ -41,6 +41,8 @@ from rigging.filesystem.storage_path import StoragePath, prefix_join
 
 EXPECTED_SPLIT_ROWS = {"train": 2_638_656, "validation": 329_832}
 CORRECTION_FACTORS = {"v5e": 0.5, "v6e": 0.3, "v5p": 0.45}
+MIN_TPU_CHIPS = 32
+MAX_TPU_CHIPS = 512
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,11 @@ def tpu_batch_fit(tpu: str, batch_size: int) -> TpuBatchConfig:
         raise ValueError(f"unsupported TPU family {family!r}") from exc
 
     chips = get_tpu_topology(tpu).chip_count
+    if not MIN_TPU_CHIPS <= chips <= MAX_TPU_CHIPS:
+        raise ValueError(
+            f"{tpu} has {chips} physical chips; exp472 requires "
+            f"{MIN_TPU_CHIPS}–{MAX_TPU_CHIPS}"
+        )
     data_parallelism = math.gcd(batch_size, chips)
     tensor_parallelism = chips // data_parallelism
     batch_bytes = _batch_memory_bytes(batch_size, correction_factor)

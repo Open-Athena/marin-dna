@@ -41,8 +41,9 @@ REVERSE_COMPLEMENT_SEED = 472
 # [PAD], [MASK], and [UNK] are self-complementary; a<->t and c<->g.
 REVERSE_COMPLEMENT_TOKEN_IDS = (0, 1, 2, 6, 5, 4, 3)
 
-LEARNING_RATES = (3e-4, 1e-3, 3e-3)
-WEIGHT_DECAYS = (0.1, 0.2, 0.8)
+LEARNING_RATES = (1e-4, 2e-4, 5e-4, 1e-3)
+WEIGHT_DECAYS = (0.1, 0.2, 0.8, 1.6)
+SKIPPED_SWEEP_POINTS = frozenset({(1e-4, 0.1), (1e-3, 1.6)})
 
 MODEL_CONFIG = Qwen3Config(
     max_seq_len=SEQ_LEN,
@@ -221,7 +222,9 @@ SWEEP_POINTS = tuple(
     )
     for learning_rate in LEARNING_RATES
     for weight_decay in WEIGHT_DECAYS
+    if (learning_rate, weight_decay) not in SKIPPED_SWEEP_POINTS
 )
+assert len(SWEEP_POINTS) == 14
 SWEEP_POINTS_BY_KEY = {point.key: point for point in SWEEP_POINTS}
 
 
@@ -329,10 +332,13 @@ def build_sweep_run(
 
     wandb_entity = required_env("WANDB_ENTITY")
     wandb_project = required_env("WANDB_PROJECT")
+    # TPU workers inherit these credentials from the Iris task environment.
+    # Validate their presence without embedding either value in Marin's
+    # fingerprinted artifact config.
+    required_env("HF_TOKEN")
+    required_env("WANDB_API_KEY")
     env_vars = {
-        "HF_TOKEN": required_env("HF_TOKEN"),
         "MARIN_PREFIX": required_env("MARIN_PREFIX"),
-        "WANDB_API_KEY": required_env("WANDB_API_KEY"),
         "WANDB_ENTITY": wandb_entity,
         "WANDB_PROJECT": wandb_project,
     }
@@ -391,6 +397,10 @@ def build_sweep_run(
         trainer = replace(
             pod.train_config.trainer,
             max_eval_batches=1,
+            tracker=replace(
+                pod.train_config.trainer.tracker,
+                entity=wandb_entity,
+            ),
             watch=DISABLED_WANDB_WATCH,
         )
         if not ctx.is_fingerprint:
