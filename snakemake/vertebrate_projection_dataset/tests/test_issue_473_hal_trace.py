@@ -113,6 +113,27 @@ def test_named_psl_metrics_clip_to_emitted_window_and_human_anchor(
 
 
 def test_negative_query_psl_coordinates_are_normalized(tmp_path: Path) -> None:
+    sample = pl.DataFrame(
+        {
+            "trace_id": ["trace_negative"],
+            "projection_policy": ["center_1"],
+            "query_name": ["anchor"],
+            "source_chrom": ["chr7"],
+            "source_start": [1000],
+            "source_end": [1255],
+            "region_label": ["cds"],
+            "species": ["Mus musculus"],
+            "alignment_name": ["Mus_musculus"],
+            "clade": ["mammals"],
+            "t_chrom": ["chr5"],
+            "t_start": [100],
+            "t_end": [355],
+            "t_strand": ["-"],
+            "fragment_count": [1],
+        }
+    )
+    sample_path = tmp_path / "sample.tsv"
+    sample.write_csv(sample_path, separator="\t")
     psl = tmp_path / "negative.psl"
     psl.write_text(
         "trace_negative\t100\t0\t0\t0\t0\t0\t0\t0\t-+\t"
@@ -122,3 +143,16 @@ def test_negative_query_psl_coordinates_are_normalized(tmp_path: Path) -> None:
     record = parse_named_psl(psl)[0]
     assert record.strand == "-+"
     assert record.blocks == ((790, 1000, 100),)
+
+    output = tmp_path / "negative.parquet"
+    write_hal_trace_metrics(
+        sample_path,
+        psl,
+        output,
+        policy="center_1",
+        alignment_name="Mus_musculus",
+    )
+    metric = pl.read_parquet(output).row(0, named=True)
+    assert metric["emitted_window_aligned_bases"] == 100
+    assert metric["emitted_window_to_anchor_aligned_bases"] == 100
+    assert metric["measurement_status"] == "measured_exact_named_psl"
