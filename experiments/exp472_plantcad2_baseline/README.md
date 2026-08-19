@@ -61,7 +61,9 @@ TRC uses a separate in-region copy in every TPU region:
 TRC sweep placement is restricted to v5e, v5p, and v6e slices with 32–512
 physical chips according to Marin's `TPU_TOPOLOGIES` table. v5p labels encode
 twice their physical chip count, so the allowed v5p labels are `v5p-64` through
-`v5p-1024`.
+`v5p-1024`. Short smoke tests may opt into a smaller slice with
+`EXP472_ALLOW_SMALL_TPU_SMOKE=1`; the entry point requires both shortened
+`EXP472_STEPS` and a `smoke-` run suffix before honoring that exception.
 
 For example, `us-east5` uses `gs://marin-us-east5`, while `europe-west4` uses
 `gs://marin-eu-west4`. GPU and TPU runs share the same path structure; device

@@ -6,11 +6,13 @@ within that region and does not enter either identity.
 """
 
 import math
+import os
 from dataclasses import dataclass
 
 import click
 from common import (
     CACHE_VERSION,
+    DEFAULT_TRAIN_STEPS,
     EXPERIMENT_RELATIVE,
     MODEL_CONFIG,
     MODEL_PARAMS,
@@ -19,6 +21,7 @@ from common import (
     TRAIN_CACHE_NAME,
     VALIDATION_CACHE_NAME,
     build_sweep_run,
+    env_int,
     existing_plantcad_cache,
     global_batch_size,
     parse_sweep_point,
@@ -66,7 +69,12 @@ def _batch_memory_bytes(batch_size: int, correction_factor: float) -> int:
     )
 
 
-def tpu_batch_fit(tpu: str, batch_size: int) -> TpuBatchConfig:
+def tpu_batch_fit(
+    tpu: str,
+    batch_size: int,
+    *,
+    allow_small_smoke: bool = False,
+) -> TpuBatchConfig:
     family = tpu_family(tpu)
     try:
         correction_factor = CORRECTION_FACTORS[family]
@@ -74,10 +82,10 @@ def tpu_batch_fit(tpu: str, batch_size: int) -> TpuBatchConfig:
         raise ValueError(f"unsupported TPU family {family!r}") from exc
 
     chips = get_tpu_topology(tpu).chip_count
-    if not MIN_TPU_CHIPS <= chips <= MAX_TPU_CHIPS:
+    if chips > MAX_TPU_CHIPS or (chips < MIN_TPU_CHIPS and not allow_small_smoke):
         raise ValueError(
             f"{tpu} has {chips} physical chips; exp472 requires "
-            f"{MIN_TPU_CHIPS}–{MAX_TPU_CHIPS}"
+            f"{MIN_TPU_CHIPS}–{MAX_TPU_CHIPS} except for explicit smoke tests"
         )
     data_parallelism = math.gcd(batch_size, chips)
     tensor_parallelism = chips // data_parallelism
@@ -119,6 +127,23 @@ def regional_root(region: str) -> str:
     return f"gs://{spec.name}"
 
 
+def allow_small_tpu_smoke() -> bool:
+    value = os.environ.get("EXP472_ALLOW_SMALL_TPU_SMOKE", "0")
+    if value not in {"0", "1"}:
+        raise ValueError("EXP472_ALLOW_SMALL_TPU_SMOKE must be 0 or 1")
+    if value == "0":
+        return False
+
+    steps = env_int("EXP472_STEPS", DEFAULT_TRAIN_STEPS)
+    suffix = os.environ.get("EXP472_RUN_SUFFIX", "").strip()
+    if steps >= DEFAULT_TRAIN_STEPS or not suffix.startswith("smoke-"):
+        raise ValueError(
+            "small TPU placement requires a shortened EXP472_STEPS and an "
+            "EXP472_RUN_SUFFIX beginning with 'smoke-'"
+        )
+    return True
+
+
 def validate_regional_cache(cache_path: str) -> None:
     for split, expected_rows in EXPECTED_SPLIT_ROWS.items():
         split_path = prefix_join(cache_path, split)
@@ -158,7 +183,11 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
     require_marin_prefix(experiment_prefix)
     validate_regional_cache(cache_path)
     batch_size = global_batch_size()
-    batch = tpu_batch_fit(tpu, batch_size)
+    batch = tpu_batch_fit(
+        tpu,
+        batch_size,
+        allow_small_smoke=allow_small_tpu_smoke(),
+    )
 
     return build_sweep_run(
         point=parse_sweep_point(),
