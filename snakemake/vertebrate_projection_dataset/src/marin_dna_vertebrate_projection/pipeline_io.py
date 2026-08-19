@@ -34,6 +34,10 @@ from marin_dna_vertebrate_projection.maf import (
 from marin_dna_vertebrate_projection.manifest import (
     read_species_manifest,
 )
+from marin_dna_vertebrate_projection.policy import (
+    ANCHOR_COLUMNS,
+    PROJECTION_REQUEST_COLUMNS,
+)
 from marin_dna_vertebrate_projection.projection.dataset import reverse_complement_col
 from marin_dna_vertebrate_projection.projection.sequence import (
     attach_sequences_to_parquet,
@@ -101,30 +105,52 @@ def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.Dat
         if anchor_path.suffix == ".parquet"
         else pl.read_csv(anchor_path, separator="\t")
     )
-    required = {
-        "query_name",
-        "source_chrom",
-        "source_start",
-        "source_end",
-        "region_label",
-    }
+    required = set(ANCHOR_COLUMNS)
     missing = required - set(frame.columns)
     assert not missing, f"anchor catalog missing columns: {sorted(missing)}"
     assert frame["query_name"].n_unique() == frame.height
     assert frame["source_chrom"].str.starts_with("chr").all()
     assert (frame["source_start"] >= 0).all()
     assert (frame["source_end"] - frame["source_start"] == target_length).all()
-    return frame.select(sorted(required)).sort(
+    projection_columns = set(PROJECTION_REQUEST_COLUMNS) - required
+    present_projection_columns = projection_columns & set(frame.columns)
+    assert (
+        not present_projection_columns
+        or present_projection_columns == projection_columns
+    ), "projection request columns must be supplied together"
+    selected_columns = [*ANCHOR_COLUMNS]
+    if present_projection_columns:
+        assert frame["projection_policy"].n_unique() == 1
+        assert (frame["landmark_width"] > 0).all()
+        assert (frame["landmark_width"] % 2 == 1).all()
+        assert (frame["projection_start"] >= frame["source_start"]).all()
+        assert (frame["projection_end"] <= frame["source_end"]).all()
+        assert (
+            frame["projection_end"] - frame["projection_start"]
+            == frame["landmark_width"]
+        ).all()
+        selected_columns.extend(
+            column
+            for column in PROJECTION_REQUEST_COLUMNS
+            if column not in ANCHOR_COLUMNS
+        )
+    return frame.select(selected_columns).sort(
         "source_chrom", "source_start", "query_name"
     )
 
 
 def write_hal_bed6(anchors_path: str | Path, output_path: str | Path) -> None:
     anchors = read_anchor_catalog(anchors_path)
+    start_column = (
+        "projection_start" if "projection_start" in anchors.columns else "source_start"
+    )
+    end_column = (
+        "projection_end" if "projection_end" in anchors.columns else "source_end"
+    )
     anchors.select(
         pl.col("source_chrom"),
-        pl.col("source_start"),
-        pl.col("source_end"),
+        pl.col(start_column),
+        pl.col(end_column),
         pl.col("query_name"),
         pl.lit(0).alias("score"),
         pl.lit("+").alias("strand"),

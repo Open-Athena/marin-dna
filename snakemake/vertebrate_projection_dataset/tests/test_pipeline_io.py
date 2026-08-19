@@ -7,10 +7,16 @@ import pytest
 from marin_dna_vertebrate_projection.contract import ACCEPTED_SCHEMA
 from marin_dna_vertebrate_projection.pipeline_io import (
     combine_sequence_parquets,
+    read_anchor_catalog,
     write_dataset_card,
     write_filtered_anchor_bed,
+    write_hal_bed6,
     write_human_reference_sequences,
     write_twobit_sequences,
+)
+from marin_dna_vertebrate_projection.policy import (
+    build_projection_requests,
+    centered_landmark_policy,
 )
 
 from .helpers import species_manifest
@@ -52,6 +58,30 @@ def test_write_filtered_anchor_bed_is_valid_deterministic_gzip(
         {"chrom": 1, "start": 0, "end": 255, "name": "chr1-keep"},
         {"chrom": 2, "start": 1_000, "end": 1_255, "name": "chr2-keep"},
     ]
+
+
+def test_projection_request_catalog_preserves_anchor_but_hal_uses_landmark(
+    tmp_path: Path,
+) -> None:
+    request_path = tmp_path / "center-1.parquet"
+    bed_path = tmp_path / "center-1.bed"
+    anchors = pl.DataFrame(
+        {
+            "query_name": ["anchor-1"],
+            "source_chrom": ["chr1"],
+            "source_start": [100],
+            "source_end": [355],
+            "region_label": ["cds"],
+        }
+    )
+    build_projection_requests(anchors, centered_landmark_policy(1)).write_parquet(
+        request_path
+    )
+
+    read = read_anchor_catalog(request_path)
+    assert read.select("source_start", "source_end").row(0) == (100, 355)
+    write_hal_bed6(request_path, bed_path)
+    assert bed_path.read_text() == "chr1\t227\t228\tanchor-1\t0\t+\n"
 
 
 def test_write_twobit_sequences_batches_bed6_and_preserves_tool_output(
