@@ -18,6 +18,7 @@ run: |
   test -n "${HF_TOKEN:-}"
   test -n "${WANDB_API_KEY:-}"
   mkdir -p "$HOME/exp479-artifacts"
+  uv run --locked pytest
   uv run --locked exp479 preflight \
     --output "$HOME/exp479-artifacts/preflight.json"
   uv run --locked exp479 pilot \
