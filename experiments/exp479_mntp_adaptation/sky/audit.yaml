@@ -35,6 +35,7 @@ run: |
     --logged-loss-csv "../../.agents/artifacts/479-mntp-adaptation/training-validation.csv" \
     --hf-repo-id "$HF_REPO_ID" \
     --batch-size 64 \
+    --vep-batch-size 1024 \
     --dependency-batch-size 1024 \
     --n-bootstrap 200 \
     --num-workers 4
