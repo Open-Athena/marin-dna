@@ -16,6 +16,7 @@ author: gonzalobenegas
 - The full two-arm follow-up retained all 16,140 development/train variants and 1,614 complete match groups.
 - Correct conditioning produced macro AUPRC 0.3552 versus 0.3582 untagged, with paired delta -0.0030 and 95% match-group bootstrap interval [-0.0183, 0.0088].
 - The full Lambda GH200 cluster is terminated; SkyPilot estimates $2.28 cost against the approved $3.00 cap.
+- `CARBON-SC-003` will add one far-wrong fungal arm on the same 16,140 development rows and compare it with the retained untagged scores without recomputing either prior arm.
 - Compact metric, runtime, checksum, and summary artifacts are retained locally; raw score parquets and the reproducible staged input remain local and were not uploaded to S3.
 
 ## Scope
@@ -37,6 +38,8 @@ author: gonzalobenegas
 
 - `CARBON-SC-001`: One released metadata grammar produces higher continuation accuracy with correct low-resource species tags than without tags.
   Next test: Run the fixed sequence-recovery preflight on fungi, protozoa, and invertebrate rows.
+- `CARBON-SC-003`: A maximally wrong fungal tag changes Carbon-3B macro AUPRC relative to the untagged prompt on the complete development split.
+  Next test: Score the frozen `<species>fungi<dna>` arm once and compute a paired far-wrong-minus-untagged match-group bootstrap interval.
 
 ### Blocked
 
@@ -64,6 +67,7 @@ author: gonzalobenegas
 - 2026-08-20: Prefer Lambda GH200 for the promoter pilot if capacity is available; stage inputs through Sky instead of forwarding AWS credentials.
 - 2026-08-20: Keep a one-variant inference batch on GH200 because the measured eight-variant batch reduced throughput and raised peak allocation to 44.76 GiB.
 - 2026-08-20: Retain only the untagged-versus-correct comparison for the full development split and stop after it because neither the promoter nor full-development paired result supports an improvement.
+- 2026-08-20: Reuse the retained untagged scores for one user-requested far-wrong fungal arm, target only the new score and absolute metric on Lambda, and finalize the paired comparison locally.
 
 ## Negative Results Index
 
@@ -295,3 +299,21 @@ author: gonzalobenegas
   The isolated missense interval is exploratory and uncorrected for the nine subset comparisons, so it does not change the primary conclusion.
   Do not launch the broader four-condition matrix without a new hypothesis.
 - Next action: Preserve the compact metrics, runtimes, summary, exclusions, and checksum manifest in an annotated local snapshot, and request human review before any GitHub publication or durable raw-score upload.
+
+### 2026-08-20 21:57 UTC - Far-wrong full-development arm prepared
+
+- Hypothesis: A maximally wrong fungal species tag changes Carbon-3B macro AUPRC relative to the untagged prompt across the complete development-only Mendelian variant set.
+- Commit Hash: `016528e3`.
+- Command:
+  Run the focused configuration and report tests, dry-run the exact `far_wrong` absolute-metric target, dry-run the explicit paired and report finalization targets, verify the staged preflight and development-window checksums, and dry-run `sky/run-gh200-far-wrong.yaml` without creating a resource.
+- Config: Corpus-card prompt `<species>fungi<dna>` with frozen prefix IDs `[27, 42490, 29, 78606, 72, 151669]`; retained Carbon-3B, dataset, reference, scorer, bf16, one-variant batch, FWD/RC averaging, and 1,000 seeded match-group bootstrap contracts; 16,140 development rows; one new inference arm; one Lambda GH200; 40-minute task timeout; two-minute autodown.
+- Result:
+  Both focused tests passed at 119,876 KiB peak RSS.
+  The exact paid-target dry-run contains one `compute_scores` job for `far_wrong` and one `absolute_metrics` job, with no untagged or correct inference job.
+  The explicit finalization dry-run contains those two new jobs plus one far-wrong-minus-untagged paired-delta job and one combined report job.
+  The staged window checksum remains `80bfef5f7f1f1074023956d607e117bd8e22358fe9763c04243ee322fb90d1b8`, matching the retained full-development bundle.
+  Lambda's official page and SkyPilot's dry-run both report $2.29 per GH200 hour and select `gpu_1x_gh200` in `us-east-1`.
+  The intended 40-minute task timeout plus two-minute autodown corresponds to approximately $1.60 before tax, excluding any short provisioning interval.
+  No paid resource was created during preparation.
+- Interpretation: The remote execution adds exactly one score arm, while the retained untagged scores provide the paired baseline locally.
+- Next action: Launch `carbon-conditioning-vep-gh200-far-wrong`, verify all remote tests and initial throughput, retrieve the score, metric, and runtime immediately, terminate the instance, and compute the paired result locally.
