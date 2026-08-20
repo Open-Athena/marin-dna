@@ -46,10 +46,10 @@ Before the first data-bearing launch, verify that the vendored tokenizer is
 available not only to the coordinator but also to a real Iris child worker:
 
 ```bash
-MARIN_PREFIX=gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
 uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   --no-wait --job-name exp473-tokenizer-worker-preflight \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
+  -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
   -- python -m exp473_center_seeded_projection.tokenizer_preflight \
   --version 2026.08.20 --run
 ```
