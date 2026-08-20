@@ -89,12 +89,10 @@ Done when:
 <Pending; interpretation PR open; interpretation page merged; reusable lesson promoted elsewhere; or no promotion because no scientifically valid claim remains.>
 ```
 
-Assess validity per claim. Treat a valid null or negative result as scientific
-evidence, and promote valid secondary findings even when the design does not
-support its intended primary inference. Use a no-promotion disposition only
-when no scientifically valid claim remains, and obtain human approval before
-closing an experiment that way. Follow `maintain-research-question` when
-promoting accepted evidence or a reusable methodological lesson.
+Assess validity per claim.
+Treat a valid null or negative result as scientific evidence, and promote valid secondary findings even when the design does not support its intended primary inference.
+Use a no-promotion disposition only when no scientifically valid claim remains, and obtain human approval before closing an experiment that way.
+Follow `maintain-knowledge-base` when promoting accepted evidence or a reusable methodological lesson.
 
 ## Workflow
 

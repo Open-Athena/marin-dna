@@ -3,23 +3,32 @@
 > [!NOTE]
 > **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; Gonzalo attributes the unusually strong performance to retrieval, while the experiment does not quantify the gain against a matched single-sequence arm.
 
-![Graphical abstract showing seven mammalian ortholog windows conditioning a 104M causal model and its development-cohort VEP comparisons](https://gist.githubusercontent.com/gonzalobenegas/3649e68fb63ca1f3443e4486078eb4d8/raw/1f6f074c1dc6c05033d0ea0ecc06a9b1adc0b180/marindna-rag-visual-abstract.svg)
+![Graphical abstract showing seven mammalian ortholog windows conditioning a 104M causal model and its development-cohort VEP comparisons](figures/402/marindna-rag-visual-abstract.svg)
 
-_The fixed offline retrieval method and official development/`train` macro-AUPRC comparisons; error bars are ±1 SE and dataset facets use independent axes. The figure has no matched no-retrieval training arm, so it does not quantify the retrieval gain._
+_The fixed offline retrieval method and official development/`train` macro-AUPRC comparisons; error bars are ±1 SE and dataset facets use independent axes._
+_The figure has no matched no-retrieval training arm, so it does not quantify the retrieval gain._
 
 ## Findings
 
-The fixed-ortholog models used the aligned mammalian context, and the 104M model reached unusually strong VEP performance for its size. Removing, shifting, or replacing the ortholog context worsened human-token validation loss. The 104M model also exceeded the 1B single-sequence MarinDNA m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes.
+The fixed-ortholog models used the aligned mammalian context, and the 104M model reached unusually strong VEP performance for its size.
+Removing, shifting, or replacing the ortholog context worsened human-token validation loss.
+The 104M model also exceeded the 1B single-sequence MarinDNA m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes.
 
-Gonzalo Benegas's assessment is that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's prior experiments, his earlier work, or the broader work known to him has achieved comparable VEP performance. Together with the context perturbations, he interprets fixed ortholog retrieval as the source of the unusually high performance. The experiment does not quantify the gain over an otherwise-matched single-sequence model.
+Gonzalo Benegas's assessment is that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's prior experiments, his earlier work, or the broader work known to him has achieved comparable VEP performance.
+Together with the context perturbations, he interprets fixed ortholog retrieval as the source of the unusually high performance.
+The experiment does not quantify the gain over an otherwise-matched single-sequence model.
 
-The finding applies to an offline, alignment-derived context scheme. It does not establish the accuracy or practicality of online retrieval, arbitrary unaligned queries, or indel-effect prediction.
+The finding applies to an offline, alignment-derived context scheme.
+It does not establish the accuracy or practicality of online retrieval, arbitrary unaligned queries, or indel-effect prediction.
 
 ## Evidence
 
-Each training document contained seven fixed 255-base mammalian windows projected through the Zoonomia alignment, followed by the homologous 255-base human window. The 46M- and 104M-parameter causal models each trained from scratch for 30,000 optimizer updates and 62.9 billion token presentations. Each size had one seed, and both validation losses were finite and still falling at the final checkpoint.
+Each training document contained seven fixed 255-base mammalian windows projected through the Zoonomia alignment, followed by the homologous 255-base human window.
+The 46M- and 104M-parameter causal models each trained from scratch for 30,000 optimizer updates and 62.9 billion token presentations.
+Each size had one seed, and both validation losses were finite and still falling at the final checkpoint.
 
-On the official development/`train` cohorts, the 104M model had the following macro-AUPRC point estimates, reported as percentages. Error terms are ±1 SE.
+On the official development/`train` cohorts, the 104M model had the following macro-AUPRC point estimates, reported as percentages.
+Error terms are ±1 SE.
 
 | Dataset | Protocol | Fixed-ortholog 104M | MarinDNA 1B m5.1 | GPN-Star M | phyloP 447m |
 |---|---|---:|---:|---:|---:|
@@ -30,18 +39,25 @@ On the official development/`train` cohorts, the 104M model had the following ma
 | SGE | Zero-shot | 48.20 ± 1.14 | 35.83 ± 1.11 | 51.57 ± 1.15 | 33.69 ± 1.01 |
 | SGE | Frozen probe | 47.54 ± 1.00 | 38.31 ± 1.15 | N/A | N/A |
 
-These are point-estimate comparisons, not significance claims. GPN-Star M led all three zero-shot comparisons. The fixed-ortholog model led the learned frozen-probe comparison on Complex Traits and SGE, while m5.1 led Mendelian.
+These are point-estimate comparisons, not significance claims.
+GPN-Star M led all three zero-shot comparisons.
+The fixed-ortholog model led the learned frozen-probe comparison on Complex Traits and SGE, while m5.1 led Mendelian.
 
-Behavioral checks showed that the model used the prefixed context. Removing, rolling, or replacing ortholog windows worsened human-token validation loss; changing the sequence-boundary tokens also changed outputs. Available projected bases received more attention than missing-`N` controls, with attention concentrated near the expected aligned causal offset. Across segment slots, loss decreased as identity to the best earlier available segment increased; the within-slot Spearman correlation was -0.471 for the 46M model and -0.470 for the 104M model across 13,169 available windows.
+Behavioral checks showed that the model used the prefixed context.
+Removing, rolling, or replacing ortholog windows worsened human-token validation loss; changing the sequence-boundary tokens also changed outputs.
+Available projected bases received more attention than missing-`N` controls, with attention concentrated near the expected aligned causal offset.
+Across segment slots, loss decreased as identity to the best earlier available segment increased; the within-slot Spearman correlation was -0.471 for the 46M model and -0.470 for the 104M model across 13,169 available windows.
 
 ## Limitations
 
-- No matched human-only training arm quantifies the retrieval gain under identical training conditions. The qualitative comparison with small single-sequence models relies on Gonzalo Benegas's knowledge of MarinDNA's experiment history and prior work rather than a catalogued baseline table.
+- No matched human-only training arm quantifies the retrieval gain under identical training conditions.
+  The qualitative comparison with small single-sequence models relies on Gonzalo Benegas's knowledge of MarinDNA's experiment history and prior work rather than a catalogued baseline table.
 - No wrong-species training arm identifies how much of the benefit requires genuine orthology.
 - One seed per model size does not support a general scaling claim.
 - Both models were still improving at 30,000 updates.
 - Species, phylogenetic group, fixed slot, and accumulated earlier context were confounded by one hard-coded order.
-- Evaluation covered SNVs on development cohorts. No held-out labeled results or indel-effect evaluation were included.
+- Evaluation covered SNVs on development cohorts.
+  No held-out labeled results or indel-effect evaluation were included.
 - Retrieval was precomputed from a whole-genome alignment; online retrieval quality, latency, index size, and serving cost remain unmeasured.
 
 ## Research record

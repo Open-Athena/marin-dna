@@ -41,8 +41,7 @@ Layer domain skills on top for task-specific constraints.
    small artifacts, and test harnesses needed to reproduce results.
 5. One or more commit or tag snapshots for meaningful milestones.
 6. Often a "production" branch that gets PR'd and merged.
-7. For valid scientific evidence, an accepted interpretation page under
-   `docs/research/experiments/` and updated related research-question pages.
+7. For valid scientific evidence, an accepted interpretation page under `docs/research/experiments/` and updated related research-question pages.
 
 ## Research Logbook
 
@@ -81,8 +80,7 @@ is clear.
 3. **Run:** implement the smallest useful experiment and collect evidence.
 4. **Interpret:** compare against baseline, decide confidence, and update the
    logbook.
-5. **Promote:** move decision-relevant claims up the issue funnel, then propose
-   accepted interpretations for the `main` knowledge base through a pull request.
+5. **Promote:** move decision-relevant claims up the issue funnel, then propose accepted interpretations for the `main` knowledge base through a pull request.
 6. **Seal:** snapshot durable results or extract production work.
 
 Every cycle should leave the durable record better than it found it.
@@ -122,23 +120,14 @@ Sealing should ordinarily only happen if the user requests it or the research ha
 2. Add a final issue comment covering what worked, what did not, confidence
    level, limitations, and ordered next steps.
 3. Decide and record the knowledge-base disposition per claim:
-   - valid positive, null, or negative claims, including valid secondary
-     findings from a partially informative design: create or update the experiment
-     page and every materially affected research-question page, and state
-     unsupported intended inferences under limitations;
-   - no scientifically valid claim and no reusable lesson: state why no
-     inference is valid and keep it in the chronological record;
-   - no scientifically valid claim but a reusable lesson: update the nearest durable
-     methodology or research document without promoting the invalid result.
-4. Follow `maintain-research-question` for experiment-page structure, stable
-   investigation boundaries, invalidation handling, and cross-links. Open a
-   pull request for knowledge-base changes so humans review the interpretation.
-5. Use `update-docs` when behavior, operational practice, or reusable guidance
-   changed.
+   - valid positive, null, or negative claims, including valid secondary findings from a partially informative design: create or update the experiment page and every materially affected research-question page, and state unsupported intended inferences under limitations;
+   - no scientifically valid claim and no reusable lesson: state why no inference is valid and keep it in the chronological record;
+   - no scientifically valid claim but a reusable lesson: update the nearest durable methodology or research document without promoting the invalid result.
+4. Follow `maintain-knowledge-base` for experiment-page structure, stable investigation boundaries, invalidation handling, and cross-links.
+   Open a pull request for knowledge-base changes so humans review the interpretation.
+5. Use `update-docs` when behavior, operational practice, or reusable guidance changed.
 6. Ensure the final logbook entry and snapshot links are present.
-7. Close the issue when the research thread is complete and either the
-   interpretation pull request has merged or a human has approved a no-promotion
-   disposition.
+7. Close the issue when the research thread is complete and either the interpretation pull request has merged or a human has approved a no-promotion disposition.
 
 If the research produced useful production changes, extract them into a clean
 branch that can link to the logbook but does not include it. Follow standard
@@ -164,7 +153,7 @@ Before closing the issue:
 
 ## See Also
 
-- `.agents/skills/maintain-research-question/SKILL.md`
+- `.agents/skills/maintain-knowledge-base/SKILL.md`
 - `.agents/skills/marin-experiment/SKILL.md`
 - `.agents/skills/task-logbook/SKILL.md`
 - `.agents/skills/update-docs/SKILL.md`

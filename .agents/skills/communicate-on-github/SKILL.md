@@ -13,7 +13,7 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 - Use `file-issue` for the mechanics and base body structures of bugs, tasks, and experiments. This skill supplies MarinDNA's repository-specific policy when the upstream skill differs.
 - Use `task-logbook` and `run-research` for multi-session research records.
 - When `background-research` is part of a GitHub research thread, search the current issue, PRs, permanent experiment branches, logbooks, MarinDNA code and pipeline docs, W&B, and external literature.
-- Prefer committing plots and other small artifacts under `.agents/artifacts/<topic>/` on the permanent task or research branch. A revision-pinned gist is also acceptable, especially for an existing figure.
+- Commit plots and other small artifacts under `.agents/artifacts/<topic>/` on the permanent task or research branch before linking them from GitHub.
 - Follow the approval boundaries in `AGENTS.md`.
 
 ## Maintain A Living Body
@@ -40,7 +40,8 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 
 ## Link Durable Evidence
 
-- Reference code and artifacts with immutable URLs, never bare paths or moving branch links. Use `blob/<sha>/path#Lx-Ly` for code and raw commit-pinned repository or revision-pinned gist URLs for rendered images.
+- Reference code and artifacts with immutable repository URLs, never bare paths or moving branch links.
+  Use `blob/<sha>/path#Lx-Ly` for code and raw commit-pinned repository URLs for rendered images.
 - Prefer committing one-off code and artifacts on the permanent task or research branch before citing them.
 - Prefer stable primary sources and artifacts.
 - After publishing non-trivial Markdown, re-fetch it and check lists, indentation, code blocks, links, and details blocks. Correct rendering errors.
@@ -61,8 +62,8 @@ Treat bounded exploratory analysis as `experiment`. Use `Hypothesis or Goal`; do
 ## Close Completed Work
 
 - An agent may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and the body and final comment record the outcome.
-- Keep a research experiment with valid scientific claims open until its
-  interpretation pull request merges. No-promotion closure requires explicit human approval.
+- Keep a research experiment with valid scientific claims open until its interpretation pull request merges.
+  No-promotion closure requires explicit human approval.
 - Do not close or merge a pull request without explicit user approval.
 
 ## Preserve Repository Conventions
