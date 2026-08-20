@@ -1,5 +1,8 @@
 """Issue #473 development-only evaluation contracts."""
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,6 +16,19 @@ from exp473_center_seeded_projection.eval_config import (
     CHECKPOINT_STEPS,
     build_eval_config,
     model_name,
+)
+from exp473_center_seeded_projection.intersection_loss import (
+    SCORED_COLUMNS,
+    SPLIT,
+    analyze_loss_scores,
+    case_weighted_atoms,
+    paired_loss_bootstrap,
+    validate_intersection_frame,
+)
+from exp473_center_seeded_projection.intersection_loss_config import (
+    PRODUCER_COMMIT,
+    PRODUCER_CONFIG_SHA256,
+    build_intersection_loss_config,
 )
 from exp473_center_seeded_projection.paired_metrics import (
     AUPRC,
@@ -42,6 +58,39 @@ def _matched() -> tuple[pd.Series, pd.DataFrame, pd.Series]:
         pd.DataFrame({"full_window": full, "center_1": center}),
         pd.Series(groups),
     )
+
+
+def _intersection_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "row_id": ["row-a", "row-b", "row-c", "row-d"],
+            "query_name": ["anchor-a", "anchor-a", "anchor-b", "anchor-b"],
+            "species": ["species-1", "species-2", "species-1", "species-2"],
+            "source_chrom": ["chr18"] * 4,
+            "source_start": [0, 0, 10, 10],
+            "source_end": [255, 255, 265, 265],
+            "region_label": ["cds"] * 4,
+            "sequence": ["A" * 255, "a" * 255, "AC" * 127 + "A", "T" * 255],
+        }
+    )
+
+
+def _intersection_scores(
+    policy: str, loss: float, *, region: str = "cds", step: int = 500
+) -> pd.DataFrame:
+    source = _intersection_frame()
+    arm = f"{region}_{policy}"
+    frame = source[["row_id", "query_name", "species", "source_chrom"]].copy()
+    frame["region"] = region
+    frame["policy"] = policy
+    frame["arm"] = arm
+    frame["step"] = step
+    frame["split"] = SPLIT
+    frame["nll_numerator"] = loss * 10.0
+    frame["effective_tokens"] = 10.0
+    frame["case_weighted_nll"] = loss
+    assert tuple(frame.columns) == SCORED_COLUMNS
+    return frame
 
 
 def test_eval_config_is_development_only_and_complete():
@@ -157,3 +206,121 @@ def test_seed_trigger_is_record_only():
     assert bool(trigger["two_consecutive_same_direction"])
     assert bool(trigger["endpoint_interval_excludes_zero"])
     assert bool(trigger["additional_seed_trigger"])
+
+
+def test_intersection_loss_config_is_pinned_complete_and_unlabeled():
+    config = build_intersection_loss_config(_roots(), experiment_commit="c" * 40)
+    assert config["producer_commit"] == PRODUCER_COMMIT
+    assert config["producer_config_sha256"] == PRODUCER_CONFIG_SHA256
+    assert config["split"] == SPLIT
+    assert config["vep_held_out_access"] is False
+    assert len(config["models"]) == 4 * len(CHECKPOINT_STEPS)
+    assert len(config["sources"]) == 4
+    assert {
+        (source["region"], source["policy"]) for source in config["sources"].values()
+    } == {
+        (region, policy)
+        for region in ("cds", "enhancer")
+        for policy in ("full_window", "center_1")
+    }
+    assert all(
+        source["uri"].startswith(
+            "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/v1/"
+            f"{PRODUCER_COMMIT}/{PRODUCER_CONFIG_SHA256}/full/"
+        )
+        for source in config["sources"].values()
+    )
+
+
+def test_intersection_frame_contract_and_case_weighted_loss():
+    frame = _intersection_frame()
+    validated = validate_intersection_frame(frame, region="cds")
+    assert validated["row_id"].tolist() == sorted(frame["row_id"])
+
+    wrong_chrom = frame.copy()
+    wrong_chrom.loc[0, "source_chrom"] = "chr17"
+    with pytest.raises(AssertionError):
+        validate_intersection_frame(wrong_chrom, region="cds")
+    wrong_length = frame.copy()
+    wrong_length.loc[0, "sequence"] = "A" * 254
+    with pytest.raises(AssertionError, match="255 bp"):
+        validate_intersection_frame(wrong_length, region="cds")
+
+    weighted = case_weighted_atoms(
+        pd.DataFrame(
+            {
+                "ll_sum_upper": [-4.0],
+                "ll_sum_lower": [-10.0],
+                "n_upper": [2],
+                "n_lower": [10],
+            }
+        )
+    )
+    assert weighted.loc[0, "nll_numerator"] == pytest.approx(4.1)
+    assert weighted.loc[0, "effective_tokens"] == pytest.approx(2.1)
+    assert weighted.loc[0, "case_weighted_nll"] == pytest.approx(4.1 / 2.1)
+
+
+def test_intersection_bootstrap_is_paired_and_negative_favors_center():
+    full = _intersection_scores("full_window", 1.0)
+    center = _intersection_scores("center_1", 0.8)
+    points, samples, delta = paired_loss_bootstrap(
+        full, center, n_bootstrap=40, seed=473
+    )
+    assert set(points["policy"]) == {"full_window", "center_1"}
+    assert len(samples) == 80
+    assert delta.loc[0, "delta_center_minus_full"] == pytest.approx(-0.2)
+    assert delta.loc[0, "ci_low"] == pytest.approx(-0.2)
+    assert delta.loc[0, "ci_high"] == pytest.approx(-0.2)
+    assert delta.loc[0, "probability_center_better"] == 1.0
+    assert delta.loc[0, "direction"] == "negative_favors_center_1"
+
+    mismatched = center.copy()
+    mismatched.loc[0, "row_id"] = "different"
+    with pytest.raises(AssertionError, match="exactly paired"):
+        paired_loss_bootstrap(full, mismatched, n_bootstrap=20, seed=473)
+
+
+def test_intersection_workflow_is_additive_and_rule_isolated():
+    root = Path(__file__).parents[1]
+    snakefile = (root / "workflow" / "IntersectionLoss.smk").read_text()
+    launcher = (root / "sky" / "intersection_loss.yaml").read_text()
+    assert "vep_held_out_access" in snakefile
+    assert "issue_473_intersection_loss" in launcher
+    assert "--allowed-rules" in launcher
+    assert "compute_scores" not in launcher
+    assert "include:" not in snakefile
+
+
+def test_intersection_analysis_requires_and_writes_complete_matrix(tmp_path: Path):
+    score_paths: list[str] = []
+    scores = tmp_path / "scores"
+    scores.mkdir()
+    for region in ("cds", "enhancer"):
+        for policy, loss in (("full_window", 1.0), ("center_1", 0.8)):
+            for step in CHECKPOINT_STEPS:
+                path = scores / f"{region}-{policy}-{step}.parquet"
+                _intersection_scores(policy, loss, region=region, step=step).to_parquet(
+                    path, index=False
+                )
+                score_paths.append(str(path))
+
+    output = tmp_path / "analysis"
+    analyze_loss_scores(score_paths, output, n_bootstrap=10, seed=473)
+    points = pd.read_parquet(output / "paired_loss_metrics.parquet")
+    samples = pd.read_parquet(output / "paired_loss_bootstrap_samples.parquet")
+    deltas = pd.read_parquet(output / "paired_loss_deltas.parquet")
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert len(points) == 40
+    assert len(samples) == 400
+    assert len(deltas) == 20
+    assert set(deltas["region"]) == {"cds", "enhancer"}
+    assert deltas["delta_center_minus_full"].to_numpy() == pytest.approx(-0.2)
+    assert manifest["vep_held_out_access"] is False
+    assert manifest["source_kind"] == (
+        "unlabeled chromosome-18 projection intersection"
+    )
+    assert (
+        "Negative `center_1 - full_window` deltas favor `center_1`."
+        in (output / "summary.md").read_text()
+    )

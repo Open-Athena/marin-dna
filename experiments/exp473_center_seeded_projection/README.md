@@ -83,6 +83,38 @@ coordinators share immutable token-cache identities but use independent
 checkpoint and W&B run names. Do not launch additional landmark widths or
 seeds from this branch without a new recorded decision and compute approval.
 
+### Paired projection loss
+
+A separate additive workflow evaluates policy-matched checkpoints on the
+producer-pinned chromosome-18 intersection views. These inputs are unlabeled
+projection sequences; the workflow does not read VEP labels, predictions,
+effect measurements, or metrics. It imports the unchanged official causal-LM
+scorer from `evals_v2`, reconstructs the training objective with uppercase
+weight 1.0 and lowercase weight 0.01, and requires exact row identity before
+computing `center_1 - full_window` NLL deltas. Negative deltas favor
+`center_1`. Uncertainty uses aligned bootstrap draws over human anchors.
+
+Run this after all four checkpoint roots are final:
+
+```bash
+sky launch \
+  experiments/exp473_center_seeded_projection/sky/intersection_loss.yaml \
+  -c exp473-intersection-loss \
+  --env EXP473_EXPERIMENT_COMMIT="$EXP473_EXPERIMENT_COMMIT" \
+  --env EXP473_CDS_FULL_WINDOW_CHECKPOINT_ROOT="$CDS_FULL_ROOT" \
+  --env EXP473_CDS_CENTER_1_CHECKPOINT_ROOT="$CDS_CENTER_ROOT" \
+  --env EXP473_ENHANCER_FULL_WINDOW_CHECKPOINT_ROOT="$ENHANCER_FULL_ROOT" \
+  --env EXP473_ENHANCER_CENTER_1_CHECKPOINT_ROOT="$ENHANCER_CENTER_ROOT"
+```
+
+The isolated `IntersectionLoss.smk` exposes only four new
+`issue_473_intersection_*` rules. Its 40 score cells cover two regions, both
+policies, and checkpoints 500 through 5,000. Outputs are written under
+`s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473/<experiment-commit>/intersection_loss/`
+and include per-policy point estimates, aligned bootstrap samples, paired
+deltas, a Markdown summary, and a SHA-256 manifest. Set `DRY_RUN=1` for a
+non-executing graph check.
+
 ## Evaluation boundary
 
 Offline checkpoint evaluation uses `snakemake/analysis/evals_v2` development

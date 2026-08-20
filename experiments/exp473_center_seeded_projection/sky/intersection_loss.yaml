@@ -1,0 +1,87 @@
+# Separate additive chromosome-18 projection-loss evaluation for issue #473.
+# It imports only the unchanged official causal-LM scorer from evals_v2 and
+# never loads VEP labels, predictions, effect measurements, or metrics.
+
+name: exp473-intersection-loss
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1
+    disk_size: 300
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    EXP473_CDS_FULL_WINDOW_CHECKPOINT_ROOT: ""
+    EXP473_CDS_CENTER_1_CHECKPOINT_ROOT: ""
+    EXP473_ENHANCER_FULL_WINDOW_CHECKPOINT_ROOT: ""
+    EXP473_ENHANCER_CENTER_1_CHECKPOINT_ROOT: ""
+    EXP473_EXPERIMENT_COMMIT: ""
+    DRY_RUN: "0"
+    SNAKEMAKE_ARGS: ""
+
+file_mounts:
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    uv self update 0.11.31
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    grep -q 'google-cloud-sdk/bin' "$HOME/.bashrc" || \
+        echo 'export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    gcloud storage ls gs://marin-us-east5/checkpoints/ | head -3 >/dev/null
+    aws sts get-caller-identity >/dev/null
+
+run: |
+    set -euxo pipefail
+    test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
+    test -n "$EXP473_EXPERIMENT_COMMIT"
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export WANDB_DISABLED=true
+    REPO_ROOT="$PWD"
+    export PYTHONPATH="$REPO_ROOT/experiments/exp473_center_seeded_projection/src"
+    CONFIG_PATH=/tmp/issue_473_intersection_loss.yaml
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        python -m exp473_center_seeded_projection.intersection_loss_config \
+        --output "$CONFIG_PATH" \
+        --experiment-commit "$EXP473_EXPERIMENT_COMMIT"
+
+    SNAKEMAKE_MODE=()
+    if [ "$DRY_RUN" = "1" ]; then
+        SNAKEMAKE_MODE+=(--dry-run)
+    fi
+    ALLOWED_RULES=(
+        issue_473_intersection_download_model
+        issue_473_intersection_score
+        issue_473_intersection_analyze
+        issue_473_intersection_loss
+    )
+
+    cd snakemake/analysis/evals_v2
+    uv run --locked --group genome-s3 snakemake \
+        issue_473_intersection_loss \
+        "${SNAKEMAKE_MODE[@]}" \
+        --snakefile "$REPO_ROOT/experiments/exp473_center_seeded_projection/workflow/IntersectionLoss.smk" \
+        --profile workflow/profiles/default \
+        --configfile "$CONFIG_PATH" \
+        --cores 4 \
+        --resources gpu=1 mem_mb=28000 \
+        --allowed-rules "${ALLOWED_RULES[@]}" \
+        --printshellcmds \
+        --rerun-incomplete \
+        $SNAKEMAKE_ARGS
