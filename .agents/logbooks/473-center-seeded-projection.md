@@ -1333,3 +1333,36 @@ cohort, assemblies, and downstream training recipe fixed.
   All 24 locked tests passed, and all three non-mutating Marin plans resolved
   distinct required run IDs at version `2026.08.20`. The next action is to
   snapshot this commit and launch only those three new arms on Iris.
+
+### 2026-08-20 16:05 UTC - CSP-035 three public-data training arms launched
+
+- Exact snapshot: permanent experiment branch
+  `codex/exp473-center-seeded-projection-training` is pushed through commit
+  `cb4249188dc6add8c6b2587ac0a2185f24450930`. The source hard-pins all
+  three public, ungated Hugging Face dataset revisions from CSP-034; no
+  dataset revision can be supplied at launch time.
+- Fail-closed attempts: initial coordinators
+  `/ubuntu/exp473-cds-center-1`,
+  `/ubuntu/exp473-enhancer-full-window`, and
+  `/ubuntu/exp473-enhancer-center-1` failed before artifact-graph creation
+  because the remote shell expanded a missing `WANDB_API_KEY`. They launched
+  no tokenizer, data, accelerator, checkpoint, or model-training child.
+- Corrected launches: coordinators
+  `/ubuntu/exp473-cds-center-1-v2`,
+  `/ubuntu/exp473-enhancer-full-window-v2`, and
+  `/ubuntu/exp473-enhancer-center-1-v2` are running with distinct registered
+  run IDs. The key was forwarded from the existing local netrc without being
+  printed or written to the experiment branch.
+- Public-data proof: all three tokenizer coordinators reported unauthenticated
+  Hugging Face Hub requests while resolving the exact source-pinned public
+  revisions. At 16:05 UTC, each arm had 64 active training-tokenization
+  workers; enhancer full-window had completed 33/64 shards, enhancer center-1
+  30/64, and the larger CDS center-1 corpus had all 64 shards running. Iris
+  reported zero failures and zero preemptions for these corrected launches.
+- Duplicate boundary: the obsolete `cds_full_window` namespace is not running
+  and will not be resumed. The exact #417 checkpoint root remains the fourth
+  evaluation arm. No wider policy, pilot, or additional seed is active.
+- Safety: held-out even-autosome/Y VEP labels, predictions, effect
+  measurements, and aggregate metrics remain untouched. The next terminal
+  gate is successful training through step 4,999 for all three new arms,
+  followed by paired projection loss and official development-only evaluation.
