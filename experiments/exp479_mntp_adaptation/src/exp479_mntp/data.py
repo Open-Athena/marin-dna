@@ -147,12 +147,13 @@ def _stream_component(
     repo: str,
     revision: str,
     text_key: str,
+    split: Literal["train", "validation"],
     seed: int,
     shuffle_buffer_size: int,
 ) -> Iterator[str]:
     from datasets import load_dataset
 
-    dataset = load_dataset(repo, split="train", revision=revision, streaming=True)
+    dataset = load_dataset(repo, split=split, revision=revision, streaming=True)
     dataset = dataset.shuffle(seed=seed, buffer_size=shuffle_buffer_size)
     for row in dataset:
         sequence = str(row[text_key])
@@ -185,6 +186,7 @@ def build_sequence_plan(
                 text_key=(
                     component.validation_text_key if validation else component.train_text_key
                 ),
+                split="validation" if validation else "train",
                 seed=seed + index,
                 shuffle_buffer_size=shuffle_buffer_size,
             )
