@@ -1631,3 +1631,24 @@ cohort, assemblies, and downstream training recipe fixed.
   reused rather than retrained. Evaluation remains development-only at steps
   1,000 through 4,500 and 4,999, with even-autosome/Y labeled VEP data held
   back.
+
+### 2026-08-20 18:56 UTC - CSP-047 first durable CDS checkpoint
+
+- CDS center-1 reached step 500 on Iris attempt 0. The trainer committed the
+  native 2.85 GiB optimizer-state checkpoint under
+  `gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection/checkpoints/dna-exp473-0p25b-cds_center_1-v1/2026.08.20/checkpoints/step-500`
+  and resumed training at step 502.
+- The matching Hugging Face-format export completed under the same immutable
+  root at `hf/step-500`. An independent object-name check found `config.json`,
+  the 1.02 GB `model.safetensors`, `tokenizer.json`, and
+  `tokenizer_config.json`; the native path contains its manifest and metadata.
+- Step-500 normal validation loss was 1.320. The preceding W&B training sample
+  at global step 499 reported loss 1.314, mean MFU 48.1%, and 1,048,576,000
+  cumulative tokens. This ordinary per-arm validation metric is an operating
+  check, not a cross-policy comparison because policy validation rows differ.
+- Runtime provenance in the validation log retains region `cds`, policy
+  `center_1`, public dataset revision
+  `4d9a04ab6c4a6e445345fe35fbe2be41b43e7938`, and pinned tokenizer revision
+  `a73e9d9ee636f722b4c378703c9e2997857809b2`. The first official development
+  evaluation point remains step 1,000. Both enhancer arms remain queued for
+  the same `us-central1` `v5p-8` resource with zero failures or preemptions.
