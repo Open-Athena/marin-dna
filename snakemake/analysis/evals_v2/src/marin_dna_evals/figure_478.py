@@ -83,7 +83,8 @@ def plot_nonrepeat_conservation_loss_478(
     grid.set_titles("{col_name}")
     for axis in grid.axes.flat:
         axis.set_box_aspect(1)
-    grid.figure.subplots_adjust(top=0.8, wspace=0.12)
+    grid.figure.subplots_adjust(top=0.8, wspace=0.05)
+    grid.figure.set_size_inches(8.5, 3)
     grid.figure.suptitle("Non-repeat loss by conservation")
 
     output_path = Path(output_path)

@@ -9,7 +9,8 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: complete. All 8 checkpoints x 3 regions x 2 orientations passed inference and regression gates; controlled analysis and the compact figure are durable under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/`.
+- Status: follow-up in progress. The original 8-checkpoint analysis is complete; a new non-repeat conservation-classification analysis is testing pooled global and per-region AUPRC.
+- The classifier compares negative loss and entropy at every model size with all 28 smaller-to-larger loss deltas, starting with the 46M-to-76M pilot.
 - The primary central-span analysis covers 3,129,344 bases per region after excluding 32 bases from each window edge, with 1,000 10-Mb block-bootstrap replicates and zero ambiguous bases.
 - Adjusted 46M-to-4B loss reduction for conserved nonrepeat sequence was 0.364 nats/base in CDS (95% CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
 - Repeat interactions were negative in every region: repeats improved less with scale, but conservation remained positively associated with improvement within repeats. The broad claim that repeats are intrinsically easier was not supported after composition controls.
@@ -45,7 +46,7 @@ author: gonzalobenegas
 
 ### Active
 
-- None.
+- CRP-005: among non-repeat positions, loss, entropy, or loss deltas rank conserved positions above their prevalence baseline globally and within CDS, upstream, and downstream regions. Minimum test: 46M loss, 76M loss, their entropies, and the 46M-to-76M loss delta.
 
 ### Blocked
 
@@ -181,3 +182,30 @@ author: gonzalobenegas
 - Interpretation: valid observational claims should be promoted. The page scopes the result to same-corpus scale-dependent learnability and explicitly excludes causal training benefit, Rho-1 equivalence, and a conclusion about repeat downweighting.
 - Disposition: `pending` until a clean interpretation pull request is opened and reviewed; the research issue must remain open until that disposition is final.
 - Next action: verify the rebased code and SVG render paths, snapshot the interpretation update, then extract or open the required interpretation pull request after GitHub-write authorization.
+
+### 2026-08-20 19:02 UTC - CRP-005 conservation-classification pilot design
+
+- Hypothesis: model uncertainty or scale-dependent loss reduction can classify conserved versus non-conserved positions without using conservation as an input score.
+- Commit Hash: e175657b.
+- Population: central positions [32, 223), excluding RefSeq repeats and ambiguous bases; positive class is conserved.
+- Scores: negative FWD/RC-mean NLL and negative four-nucleotide entropy at every available model size; smaller-model NLL minus larger-model NLL for every ordered model pair.
+- Metric: exact pooled average precision, reported as AUPRC with the conserved prevalence baseline, globally and separately for CDS, upstream, and downstream.
+- Variation diagnostic: within-10-Mb-block AUPRC is stored separately; it describes genomic variation and is not a confidence interval for pooled AUPRC.
+- Pilot: 46M and 76M only, including their practical loss delta, before reading the other six checkpoints.
+- Command: uv run --locked snakemake -n predictability_478_classification_pilot.
+- Validation: 6 focused classifier/figure tests pass; scoped pre-commit hooks pass; the dry-run plans one CPU analysis job over three joined artifacts and 12 existing atom files with no inference.
+- Result: the revised non-repeat loss plot uses 3-inch square facets, automatic logarithmic ticks, and compact horizontal spacing. The 2-by-2 composition panels put conserved before non-conserved and report exact central-span percentages globally and by region.
+- Next action: launch the CPU-only pilot, verify exact eligible-position counts and finite metrics, and inspect global plus per-region AUPRC before the full 28-pair sweep.
+
+#### Background research brief
+
+- Effort: low. The stop rule was that additional sources no longer changed the user-specified score set or pilot.
+- Current Marin context: issue #478 already found that lower loss, lower entropy, and larger 46M-to-4B loss reduction track conserved non-repeat sequence in mean and controlled analyses.
+- Internal prior work: the existing issue #478 atom contract preserves per-base FWD and genomically realigned RC NLL and entropy for all eight model sizes; issue #175 and the orientation follow-up support FWD/RC averaging as the primary score.
+- External prior art: scikit-learn defines average precision as the recall-increment-weighted mean of precision over the ranking and accepts non-thresholded decision scores: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html.
+- External prior art: GPN-MSA uses evolutionary conservation during training and demonstrates that genomic model scores can carry functional information beyond a single conservation column: https://pmc.ncbi.nlm.nih.gov/articles/PMC10592768/.
+- Negative lead: mean separation does not guarantee useful per-position ranking. Exact training exposure and homology density remain unavailable, so AUPRC cannot establish that a score is a causal or out-of-distribution functional proxy.
+- Contradiction check: region-specific prevalence can make raw AUPRC incomparable across regions. Every result therefore carries its own prevalence and AUPRC-minus-prevalence value.
+- Falsifier: the candidate is not useful for this proxy task if pooled AUPRC is at or below prevalence, or if any apparent global lift is absent within the three region-specific analyses.
+- Cost and risk: the pilot reuses existing atoms on one CPU instance and performs no model inference. The full sweep is conditional on pilot correctness and signal.
+- Source ledger: issue #478 and its permanent logbook (direct Marin evidence); scikit-learn average-precision documentation (metric definition); GPN-MSA (external genomic-model precedent).
