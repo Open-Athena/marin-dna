@@ -8,6 +8,8 @@ import pandas as pd
 import pytest
 from exp473_center_seeded_projection.analyze_evals import (
     MENDELIAN_SUBSETS,
+    read_development_metric,
+    score_uri,
     seed_trigger_table,
     validate_policy_pair,
 )
@@ -16,6 +18,7 @@ from exp473_center_seeded_projection.eval_config import (
     CHECKPOINT_STEPS,
     build_eval_config,
     model_name,
+    validate_experiment_commit,
 )
 from exp473_center_seeded_projection.intersection_loss import (
     SCORED_COLUMNS,
@@ -110,8 +113,9 @@ def test_eval_config_is_development_only_and_complete():
     model = next(
         entry
         for entry in config["models"]
-        if entry["name"] == model_name("cds_center_1", 500)
+        if entry["name"] == model_name("cds_center_1", 500, experiment_commit="a" * 40)
     )
+    assert model["name"].startswith(f"exp473-{'a' * 40}-")
     assert model["gcs_path"].endswith("/cds_center_1-abc123/hf/step-500")
     assert model["datasets"] == ["mendelian_traits", "sge"]
 
@@ -124,6 +128,44 @@ def test_eval_config_rejects_non_gcs_and_partial_roots():
     with pytest.raises(ValueError, match="exactly"):
         build_eval_config(
             {"cds_full_window": "gs://test/checkpoint"}, experiment_commit="b" * 40
+        )
+
+    for invalid in ("b" * 39, "B" * 40, "g" * 40):
+        with pytest.raises(ValueError, match="lowercase hexadecimal SHA"):
+            validate_experiment_commit(invalid)
+
+
+def test_eval_artifacts_are_commit_keyed_and_require_development_provenance():
+    commit = "d" * 40
+    uri = score_uri(
+        "s3://test/results",
+        "cds_full_window",
+        500,
+        "mendelian_traits",
+        experiment_commit=commit,
+    )
+    assert f"/exp473-{commit}-cds-full-window-step-500/" in uri
+    assert uri != score_uri(
+        "s3://test/results",
+        "cds_full_window",
+        500,
+        "mendelian_traits",
+        experiment_commit="e" * 40,
+    )
+
+    development = read_development_metric(
+        "train.parquet",
+        reader=lambda _: pd.DataFrame({"split": ["train"]}),
+    )
+    assert development["split"].tolist() == ["train"]
+    with pytest.raises(AssertionError, match="non-development"):
+        read_development_metric(
+            "held-out.parquet",
+            reader=lambda _: pd.DataFrame({"split": ["test"]}),
+        )
+    with pytest.raises(AssertionError, match="no split provenance"):
+        read_development_metric(
+            "unknown.parquet", reader=lambda _: pd.DataFrame({"auprc": [0.5]})
         )
 
 
@@ -285,11 +327,13 @@ def test_intersection_workflow_is_additive_and_rule_isolated():
     root = Path(__file__).parents[1]
     snakefile = (root / "workflow" / "IntersectionLoss.smk").read_text()
     launcher = (root / "sky" / "intersection_loss.yaml").read_text()
+    analysis_launcher = (root / "sky" / "analyze.yaml").read_text()
     assert "vep_held_out_access" in snakefile
     assert "issue_473_intersection_loss" in launcher
     assert "--allowed-rules" in launcher
     assert "compute_scores" not in launcher
     assert "include:" not in snakefile
+    assert '--experiment-commit "$EXP473_EXPERIMENT_COMMIT"' in analysis_launcher
 
 
 def test_intersection_analysis_requires_and_writes_complete_matrix(tmp_path: Path):

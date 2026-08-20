@@ -14,6 +14,7 @@ from exp473_center_seeded_projection.eval_config import (
     checkpoint_roots_from_env,
     model_name,
     validate_checkpoint_root,
+    validate_experiment_commit,
 )
 from exp473_center_seeded_projection.intersection_loss import (
     ARM_CONTEXT,
@@ -50,10 +51,7 @@ def build_intersection_loss_config(
             f"checkpoint roots must be exactly {sorted(ARM_DATASETS)}, "
             f"got {sorted(checkpoint_roots)}"
         )
-    if len(experiment_commit) != 40 or any(
-        character not in "0123456789abcdef" for character in experiment_commit
-    ):
-        raise ValueError("experiment_commit must be a full lowercase hexadecimal SHA")
+    experiment_commit = validate_experiment_commit(experiment_commit)
     models: list[dict[str, Any]] = []
     for arm in ARM_DATASETS:
         root = validate_checkpoint_root(checkpoint_roots[arm])
@@ -61,7 +59,7 @@ def build_intersection_loss_config(
         for step in CHECKPOINT_STEPS:
             models.append(
                 {
-                    "name": model_name(arm, step),
+                    "name": model_name(arm, step, experiment_commit=experiment_commit),
                     "arm": arm,
                     "region": context["region"],
                     "policy": context["policy"],

@@ -48,11 +48,21 @@ ARM_DATASETS = {
 ARM_ROOT_ENV = {arm: f"EXP473_{arm.upper()}_CHECKPOINT_ROOT" for arm in ARM_DATASETS}
 
 
-def model_name(arm: str, step: int) -> str:
-    """Stable evaluator key for one issue #473 checkpoint."""
+def validate_experiment_commit(experiment_commit: str) -> str:
+    """Require the exact lowercase commit that owns evaluation outputs."""
+    if len(experiment_commit) != 40 or any(
+        character not in "0123456789abcdef" for character in experiment_commit
+    ):
+        raise ValueError("experiment_commit must be a full lowercase hexadecimal SHA")
+    return experiment_commit
+
+
+def model_name(arm: str, step: int, *, experiment_commit: str) -> str:
+    """Commit-keyed evaluator name for one issue #473 checkpoint."""
     assert arm in ARM_DATASETS
     assert step in CHECKPOINT_STEPS
-    return f"exp473-{arm.replace('_', '-')}-step-{step}"
+    commit = validate_experiment_commit(experiment_commit)
+    return f"exp473-{commit}-{arm.replace('_', '-')}-step-{step}"
 
 
 def validate_checkpoint_root(root: str) -> str:
@@ -87,8 +97,7 @@ def build_eval_config(
             f"checkpoint roots must be exactly {sorted(ARM_DATASETS)}, "
             f"got {sorted(checkpoint_roots)}"
         )
-    if len(experiment_commit) != 40:
-        raise ValueError("experiment_commit must be a full 40-character Git SHA")
+    experiment_commit = validate_experiment_commit(experiment_commit)
 
     models: list[dict[str, Any]] = []
     for arm, datasets in ARM_DATASETS.items():
@@ -96,7 +105,7 @@ def build_eval_config(
         for step in CHECKPOINT_STEPS:
             models.append(
                 {
-                    "name": model_name(arm, step),
+                    "name": model_name(arm, step, experiment_commit=experiment_commit),
                     "gcs_path": f"{root}/hf/step-{step}",
                     "window_size": 255,
                     "datasets": list(datasets),

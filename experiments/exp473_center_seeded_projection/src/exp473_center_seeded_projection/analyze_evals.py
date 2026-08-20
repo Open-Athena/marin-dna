@@ -22,6 +22,7 @@ from exp473_center_seeded_projection.eval_config import (
     ARM_DATASETS,
     CHECKPOINT_STEPS,
     model_name,
+    validate_experiment_commit,
 )
 from exp473_center_seeded_projection.paired_metrics import paired_policy_bootstrap
 
@@ -61,16 +62,28 @@ ROW_IDENTITY_COLUMNS = (
 ParquetReader = Callable[[str], pd.DataFrame]
 
 
-def score_uri(results_root: str, arm: str, step: int, dataset: str) -> str:
-    return (
-        f"{results_root.rstrip('/')}/scores/{model_name(arm, step)}/{dataset}.parquet"
-    )
+def score_uri(
+    results_root: str,
+    arm: str,
+    step: int,
+    dataset: str,
+    *,
+    experiment_commit: str,
+) -> str:
+    name = model_name(arm, step, experiment_commit=experiment_commit)
+    return f"{results_root.rstrip('/')}/scores/{name}/{dataset}.parquet"
 
 
-def metric_uri(results_root: str, arm: str, step: int, dataset: str) -> str:
-    return (
-        f"{results_root.rstrip('/')}/metrics/{model_name(arm, step)}/{dataset}.parquet"
-    )
+def metric_uri(
+    results_root: str,
+    arm: str,
+    step: int,
+    dataset: str,
+    *,
+    experiment_commit: str,
+) -> str:
+    name = model_name(arm, step, experiment_commit=experiment_commit)
+    return f"{results_root.rstrip('/')}/metrics/{name}/{dataset}.parquet"
 
 
 def read_parquet(uri: str) -> pd.DataFrame:
@@ -109,25 +122,64 @@ def validate_policy_pair(full: pd.DataFrame, center: pd.DataFrame) -> None:
     )
 
 
+def read_development_metric(uri: str, *, reader: ParquetReader) -> pd.DataFrame:
+    """Refuse a score bundle unless its matching metric records ``train``."""
+    frame = reader(uri)
+    assert "split" in frame, f"metric bundle has no split provenance: {uri}"
+    assert set(frame["split"].astype(str)) == {DEVELOPMENT_SPLIT}, (
+        f"refusing non-development metrics from {uri}"
+    )
+    return frame
+
+
 def load_policy_pair(
     results_root: str,
     region: str,
     step: int,
     *,
+    experiment_commit: str,
     reader: ParquetReader = read_parquet,
-) -> tuple[pd.DataFrame, pd.DataFrame, tuple[str, str]]:
+) -> tuple[pd.DataFrame, pd.DataFrame, tuple[str, str], tuple[str, str]]:
     arms = REGION_ARMS[region]
-    full_uri = score_uri(results_root, arms["full_window"], step, "mendelian_traits")
-    center_uri = score_uri(results_root, arms["center_1"], step, "mendelian_traits")
+    full_uri = score_uri(
+        results_root,
+        arms["full_window"],
+        step,
+        "mendelian_traits",
+        experiment_commit=experiment_commit,
+    )
+    center_uri = score_uri(
+        results_root,
+        arms["center_1"],
+        step,
+        "mendelian_traits",
+        experiment_commit=experiment_commit,
+    )
     full = reader(full_uri)
     center = reader(center_uri)
+    full_metric_uri = metric_uri(
+        results_root,
+        arms["full_window"],
+        step,
+        "mendelian_traits",
+        experiment_commit=experiment_commit,
+    )
+    center_metric_uri = metric_uri(
+        results_root,
+        arms["center_1"],
+        step,
+        "mendelian_traits",
+        experiment_commit=experiment_commit,
+    )
+    read_development_metric(full_metric_uri, reader=reader)
+    read_development_metric(center_metric_uri, reader=reader)
     validate_policy_pair(full, center)
     observed = tuple(sorted(full["subset"].astype(str).unique()))
     assert observed == tuple(sorted(MENDELIAN_SUBSETS)), (
         f"Mendelian subset contract changed: expected {sorted(MENDELIAN_SUBSETS)}, "
         f"got {list(observed)}"
     )
-    return full, center, (full_uri, center_uri)
+    return full, center, (full_uri, center_uri), (full_metric_uri, center_metric_uri)
 
 
 def analyze_mendelian(
@@ -135,19 +187,27 @@ def analyze_mendelian(
     *,
     n_bootstrap: int = 1_000,
     seed: int = 473,
+    experiment_commit: str,
     reader: ParquetReader = read_parquet,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str]]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], list[str]]:
     """Analyze all 2 regions × 10 steps × 8 Mendelian subsets."""
+    experiment_commit = validate_experiment_commit(experiment_commit)
     point_parts: list[pd.DataFrame] = []
     sample_parts: list[pd.DataFrame] = []
     delta_parts: list[pd.DataFrame] = []
     inputs: list[str] = []
+    metric_inputs: list[str] = []
     for region in REGION_ARMS:
         for step in CHECKPOINT_STEPS:
-            full, center, uris = load_policy_pair(
-                results_root, region, step, reader=reader
+            full, center, uris, metric_uris = load_policy_pair(
+                results_root,
+                region,
+                step,
+                experiment_commit=experiment_commit,
+                reader=reader,
             )
             inputs.extend(uris)
+            metric_inputs.extend(metric_uris)
             for subset_index, subset in enumerate(MENDELIAN_SUBSETS):
                 selected = full["subset"].astype(str) == subset
                 full_subset = full.loc[selected].reset_index(drop=True)
@@ -181,13 +241,17 @@ def analyze_mendelian(
     deltas = pd.concat(delta_parts, ignore_index=True)
     assert set(points["split"]) == {DEVELOPMENT_SPLIT}
     assert set(deltas["split"]) == {DEVELOPMENT_SPLIT}
-    return points, samples, deltas, inputs
+    return points, samples, deltas, inputs, metric_inputs
 
 
 def collect_official_endpoints(
-    results_root: str, *, reader: ParquetReader = read_parquet
+    results_root: str,
+    *,
+    experiment_commit: str,
+    reader: ParquetReader = read_parquet,
 ) -> tuple[pd.DataFrame, list[str]]:
     """Collect official Complex (enhancer) and SGE (CDS) metric trajectories."""
+    experiment_commit = validate_experiment_commit(experiment_commit)
     rows: list[pd.DataFrame] = []
     inputs: list[str] = []
     for region, arms in REGION_ARMS.items():
@@ -195,12 +259,14 @@ def collect_official_endpoints(
         for policy, arm in arms.items():
             assert dataset in ARM_DATASETS[arm]
             for step in CHECKPOINT_STEPS:
-                uri = metric_uri(results_root, arm, step, dataset)
-                frame = reader(uri)
-                assert "split" in frame
-                assert set(frame["split"].astype(str)) == {DEVELOPMENT_SPLIT}, (
-                    f"refusing non-development metrics from {uri}"
+                uri = metric_uri(
+                    results_root,
+                    arm,
+                    step,
+                    dataset,
+                    experiment_commit=experiment_commit,
                 )
+                frame = read_development_metric(uri, reader=reader)
                 rows.append(
                     frame.assign(
                         region=region,
@@ -362,12 +428,19 @@ def run_analysis(
     *,
     n_bootstrap: int,
     seed: int,
+    experiment_commit: str,
 ) -> None:
+    experiment_commit = validate_experiment_commit(experiment_commit)
     output_dir.mkdir(parents=True, exist_ok=True)
-    points, samples, deltas, score_inputs = analyze_mendelian(
-        results_root, n_bootstrap=n_bootstrap, seed=seed
+    points, samples, deltas, score_inputs, mendelian_metric_inputs = analyze_mendelian(
+        results_root,
+        n_bootstrap=n_bootstrap,
+        seed=seed,
+        experiment_commit=experiment_commit,
     )
-    endpoints, metric_inputs = collect_official_endpoints(results_root)
+    endpoints, endpoint_metric_inputs = collect_official_endpoints(
+        results_root, experiment_commit=experiment_commit
+    )
     triggers = seed_trigger_table(deltas)
 
     outputs = {
@@ -388,13 +461,14 @@ def run_analysis(
     output_paths.append(summary_path)
 
     manifest = {
+        "experiment_commit": experiment_commit,
         "split": DEVELOPMENT_SPLIT,
         "held_out_access": False,
         "n_bootstrap": n_bootstrap,
         "seed": seed,
         "checkpoint_steps": list(CHECKPOINT_STEPS),
         "score_inputs": sorted(set(score_inputs)),
-        "metric_inputs": sorted(set(metric_inputs)),
+        "metric_inputs": sorted(set(mendelian_metric_inputs + endpoint_metric_inputs)),
         "outputs": {
             str(path.relative_to(output_dir)): {
                 "bytes": path.stat().st_size,
@@ -419,12 +493,14 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--n-bootstrap", type=int, default=1_000)
     parser.add_argument("--seed", type=int, default=473)
+    parser.add_argument("--experiment-commit", required=True)
     args = parser.parse_args()
     run_analysis(
         args.results_root,
         args.output_dir,
         n_bootstrap=args.n_bootstrap,
         seed=args.seed,
+        experiment_commit=args.experiment_commit,
     )
 
 

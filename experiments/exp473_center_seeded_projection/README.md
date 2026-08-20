@@ -127,7 +127,10 @@ paired units.
 Evaluation is additive. The launch in `sky/evaluate.yaml` calls the unchanged
 official `snakemake/analysis/evals_v2` Snakefile with an experiment-generated
 config. That config hard-codes `split: train`, pins the three evaluation-dataset
-revisions, and names only issue #473 checkpoints. CDS checkpoints run Mendelian
+revisions, and gives every issue #473 checkpoint a commit-keyed evaluator name.
+The analysis refuses a score bundle unless its matching official metric parquet
+records only `train`, preventing a stale shared-path result from silently
+crossing the development boundary. CDS checkpoints run Mendelian
 + SGE; enhancer checkpoints run Mendelian + Complex. Every family is scored at
 steps 500 through 5,000 in increments of 500.
 
