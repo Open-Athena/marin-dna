@@ -35,12 +35,6 @@ def _set_required_env(monkeypatch) -> None:
         "MARIN_PREFIX",
         "gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection",
     )
-    for name in [
-        "EXP473_CENTER1_CDS_REVISION",
-        "EXP473_FULLWINDOW_ENHANCER_REVISION",
-        "EXP473_CENTER1_ENHANCER_REVISION",
-    ]:
-        monkeypatch.setenv(name, "e" * 40)
 
 
 def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None:
@@ -97,6 +91,11 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
 
 def test_tokenized_handles_pin_hf_revisions(monkeypatch) -> None:
     _set_required_env(monkeypatch)
+    assert {key: arm.revision for key, arm in ARMS.items()} == {
+        "cds_center_1": "4d9a04ab6c4a6e445345fe35fbe2be41b43e7938",
+        "enhancer_full_window": "ffb9c63fae72311fb457640af9c8365b84f0edf8",
+        "enhancer_center_1": "23d1531f63998b5716e7895a74437e0568186bd1",
+    }
     for arm in ARMS.values():
         step = build_training(arm)
         (cache,) = step.deps

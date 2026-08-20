@@ -32,14 +32,13 @@ export points to that same local tokenizer.
 The established full-window CDS arm is not relaunched. Evaluation pins its
 existing checkpoint root to
 `gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01`.
-The three new dataset revisions are mandatory 40-character environment
-variables:
+The three new public, ungated datasets are pinned in source to exact revisions:
 
-- `EXP473_CENTER1_CDS_REVISION`
-- `EXP473_FULLWINDOW_ENHANCER_REVISION`
-- `EXP473_CENTER1_ENHANCER_REVISION`
+- `cds_center_1`: [`marin-dna/vertebrate-v1-issue473-center1-cds`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-issue473-center1-cds/tree/4d9a04ab6c4a6e445345fe35fbe2be41b43e7938) at `4d9a04ab6c4a6e445345fe35fbe2be41b43e7938`
+- `enhancer_full_window`: [`marin-dna/vertebrate-v1-issue473-fullwindow-ccre-enhancer-centered`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-issue473-fullwindow-ccre-enhancer-centered/tree/ffb9c63fae72311fb457640af9c8365b84f0edf8) at `ffb9c63fae72311fb457640af9c8365b84f0edf8`
+- `enhancer_center_1`: [`marin-dna/vertebrate-v1-issue473-center1-ccre-enhancer-centered`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-issue473-center1-ccre-enhancer-centered/tree/23d1531f63998b5716e7895a74437e0568186bd1) at `23d1531f63998b5716e7895a74437e0568186bd1`
 
-The launcher fails before creating a graph if any selected dataset lacks an
+The launcher fails before creating a graph if a selected dataset lacks an
 immutable revision. The three new arms retain each dataset's ordinary
 chromosome-18 validation split. Native validation losses across different policy datasets
 are not a policy comparison; issue #473 uses its paired intersection views for
@@ -78,8 +77,8 @@ uv run --python /usr/bin/python3.12 --locked \
 
 ## Iris launch
 
-Launch one isolated coordinator per arm. Supply the exact new dataset revisions
-returned by the fail-closed Hugging Face publication step.
+Launch one isolated coordinator per arm. Dataset repositories and revisions are
+source-pinned to the public outputs of the fail-closed publication step.
 
 ```bash
 uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
@@ -91,9 +90,6 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   -e WANDB_PROJECT marin \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
   -e EXP473_ARM cds_center_1 \
-  -e EXP473_CENTER1_CDS_REVISION "$EXP473_CENTER1_CDS_REVISION" \
-  -e EXP473_FULLWINDOW_ENHANCER_REVISION "$EXP473_FULLWINDOW_ENHANCER_REVISION" \
-  -e EXP473_CENTER1_ENHANCER_REVISION "$EXP473_CENTER1_ENHANCER_REVISION" \
   -- python -m exp473_center_seeded_projection.experiment \
   --version 2026.08.20 --run
 ```

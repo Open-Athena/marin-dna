@@ -81,20 +81,14 @@ class Arm:
     region: str
     policy: str
     hf_repo: str
-    revision: str | None = None
-    revision_env: str | None = None
+    revision: str
 
     def resolved_revision(self) -> str:
-        if self.revision is not None:
-            assert len(self.revision) == 40
-            return self.revision
-        assert self.revision_env is not None
-        revision = required_env(self.revision_env)
-        if len(revision) != 40:
+        if len(self.revision) != 40:
             raise ValueError(
-                f"{self.revision_env} must be an immutable 40-character HF revision"
+                f"{self.key} must pin an immutable 40-character HF revision"
             )
-        return revision
+        return self.revision
 
 
 ARMS = {
@@ -105,7 +99,7 @@ ARMS = {
             region="cds",
             policy="center_1",
             hf_repo="marin-dna/vertebrate-v1-issue473-center1-cds",
-            revision_env="EXP473_CENTER1_CDS_REVISION",
+            revision="4d9a04ab6c4a6e445345fe35fbe2be41b43e7938",
         ),
         Arm(
             key="enhancer_full_window",
@@ -114,14 +108,14 @@ ARMS = {
             hf_repo=(
                 "marin-dna/vertebrate-v1-issue473-fullwindow-ccre-enhancer-centered"
             ),
-            revision_env="EXP473_FULLWINDOW_ENHANCER_REVISION",
+            revision="ffb9c63fae72311fb457640af9c8365b84f0edf8",
         ),
         Arm(
             key="enhancer_center_1",
             region="ccre_enhancer_centered",
             policy="center_1",
             hf_repo=("marin-dna/vertebrate-v1-issue473-center1-ccre-enhancer-centered"),
-            revision_env="EXP473_CENTER1_ENHANCER_REVISION",
+            revision="23d1531f63998b5716e7895a74437e0568186bd1",
         ),
     )
 }

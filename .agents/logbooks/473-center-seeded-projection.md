@@ -1303,3 +1303,33 @@ cohort, assemblies, and downstream training recipe fixed.
   one build target; Hugging Face upload rules are excluded. Only
   `cds_center_1`, `enhancer_full_window`, and `enhancer_center_1` will train;
   the #417 CDS full-window checkpoints remain the fourth evaluation arm.
+
+### 2026-08-20 15:54 UTC - CSP-034 public publication complete and training gate cleared
+
+- Public-only correction: “private payloads” in CSP-033 referred to the
+  retained local/S3 build tree, not private Hugging Face repositories. No
+  private Hugging Face upload occurred. The additive upload boundary creates
+  repositories with `private=False`, refuses an existing private repository,
+  and rechecks public visibility after its exact manifest verification.
+- Validated build: additive publication v3 completed all 218 steps on the
+  retained worker. The archived manifest is
+  `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/v1/f05f2acf085fb9f841c629d2236faa407a909ec0/921884ff6099a0fde06a2f333dc8f8967b5ca2e4d4218e8d8083e9f499000a92/issue_473_publication_v3/validation/hf_publication_manifest.archived.json`.
+  The isolated publication project passed all 130 tests, and its public-only
+  four-job dry-run succeeded before upload.
+- Exact public revisions: `cds_center_1` is
+  `marin-dna/vertebrate-v1-issue473-center1-cds@4d9a04ab6c4a6e445345fe35fbe2be41b43e7938`;
+  `enhancer_full_window` is
+  `marin-dna/vertebrate-v1-issue473-fullwindow-ccre-enhancer-centered@ffb9c63fae72311fb457640af9c8365b84f0edf8`;
+  and `enhancer_center_1` is
+  `marin-dna/vertebrate-v1-issue473-center1-ccre-enhancer-centered@23d1531f63998b5716e7895a74437e0568186bd1`.
+  Unauthenticated exact-revision API reads returned `private=false` and
+  `gated=false` for all three.
+- Duplicate-run audit: Iris history contains only the stopped/failed
+  `exp473-cds-full-window` attempts and preflights, with no center-1 or
+  enhancer training job. GCS likewise contains only the obsolete
+  `dna-exp473-0p25b-cds_full_window-v1` checkpoint namespace. That duplicate
+  remains excluded; the fourth arm is the exact #417 checkpoint root.
+- Training handoff: the experiment now source-pins the three public revisions.
+  All 24 locked tests passed, and all three non-mutating Marin plans resolved
+  distinct required run IDs at version `2026.08.20`. The next action is to
+  snapshot this commit and launch only those three new arms on Iris.
