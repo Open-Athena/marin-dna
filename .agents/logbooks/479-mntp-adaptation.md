@@ -192,3 +192,15 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Verification: The locked local suite passes 41 tests in 6.83 seconds; Ruff, format, and whitespace checks pass. Peak pytest RSS was 1,051,312 KiB.
 - Cost boundary: The second instance ran from about 00:12 to 00:26 UTC, at most about $0.54 at the listed price. Together with the first attempt, failed-launch listed exposure remains below about $0.75; final provider billing still requires reconciliation.
 - Next action: Snapshot and relaunch at batch 256, confirm the first optimizer step and step-100 private checkpoint, then continue through all registered evaluations and teardown.
+
+### 2026-08-20 00:50 - Deterministic-backend preflight mismatch
+
+- Hypothesis: Halving the full-trainer batch from 512 to 256 will provide adequate memory headroom under the otherwise unchanged run configuration.
+- Launch commit: `36a09c18743b3acd9ed1bc1a4ab37b0f2f36fd32`.
+- Result: The data manifest confirms batch 256 and 256,000 training rows, but the first full-trainer step again OOMed. It had 93.22 GiB allocated before requesting another 480 MiB in rotary-position attention. No optimizer step completed and no checkpoint was produced.
+- Diagnosis: The actual trainer sets `deterministic=True`, which makes Lightning call `torch.use_deterministic_algorithms(True)`, disables cuDNN benchmarking, and sets `CUBLAS_WORKSPACE_CONFIG`. The batch-selection preflight did not set those flags, so it measured a different CUDA-kernel regime. This explains why its apparent 53.18% headroom did not reproduce and why treating the second failure as ordinary activation scaling was incorrect.
+- Fix: Make the actual-checkpoint preflight set the same deterministic backend flags before any CUDA work, record the flag in its result, and again use its dynamic selected batch for both training and VEP. Retain the explicit maximum-batch-size option as a tested emergency cap, but do not impose an unmeasured hardcoded batch.
+- Verification: The locked local suite passes 42 tests in 5.25 seconds; Ruff, format, and whitespace checks pass. Peak pytest RSS was 1,051,184 KiB.
+- Cost boundary: This attempt ran from about 00:27 to 00:36 UTC, at most about $0.35 at the listed price. All failed-launch listed exposure remains below about $1.10; final provider billing still requires reconciliation.
+- Data boundary: No training step, checkpoint, aggregate labeled evaluation, even-autosome label, or Y label was produced or accessed.
+- Next action: Relaunch the corrected preflight, require it to reject the memory-heavy batches under the real deterministic backend, and proceed only with a selection retaining at least 10% measured headroom.

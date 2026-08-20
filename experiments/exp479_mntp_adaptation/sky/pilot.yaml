@@ -27,13 +27,14 @@ run: |
     --hf-repo-id "$HF_REPO_ID" \
     --model-card README.hf.md \
     --experiment-commit "$EXPERIMENT_COMMIT" \
-    --maximum-batch-size 256 \
     --model-card-reviewed
+  SELECTED_BATCH=$(uv run --locked python -c \
+    'import json, pathlib; print(json.loads(pathlib.Path.home().joinpath("exp479-artifacts/preflight.json").read_text())["memory_and_throughput"]["selected"]["batch_size"])')
   uv run --locked exp479 evaluate \
     --artifact-dir "$HOME/exp479-artifacts" \
     --output-dir "$HOME/exp479-artifacts/evaluation/vep" \
     --hf-repo-id "$HF_REPO_ID" \
-    --batch-size 256
+    --batch-size "$SELECTED_BATCH"
   uv run --locked exp479 nuc-dep \
     --artifact-dir "$HOME/exp479-artifacts" \
     --output-dir "$HOME/exp479-artifacts/evaluation/nucleotide-dependency" \
