@@ -116,6 +116,10 @@ _<One-line caption stating what the figure shows and its inferential boundary.>_
 
 <Confounders, uncertainty, missing controls, and unsupported claims.>
 
+## Related questions
+
+<Current research-question pages that this experiment materially informs; omit this section when there are none.>
+
 ## Research record
 
 <Canonical experiment issue.>
@@ -126,6 +130,8 @@ Do not add the original question, status, progress, iteration history, decision 
 Include enough quantitative evidence and setup to review the findings.
 Treat inferential scope as part of the findings and limitations.
 Use `Promising directions` only for extensions supported by the accepted findings, not as a task list or commitment.
+Keep `Related questions` exhaustive over current question pages that include the experiment.
+Use bare question-page links for navigation and do not repeat the question synthesis on the experiment page.
 
 Include one reviewed lead figure immediately after the TL;DR.
 Use the decisive result plot for a simple experiment and a multi-panel graphical abstract when the conclusion depends on several forms of evidence.
@@ -187,13 +193,16 @@ Treat question-to-experiment relationships as many-to-many.
    Do not replace the synthesis with a bare list of links.
 4. Keep `Related experiments` exhaustive over accepted experiment pages that materially inform the current answer, plus legacy experiment issues that have no page.
    Omit routine invalid attempts.
-5. After the knowledge-base change merges, add the canonical experiment-page and question-page links to the experiment issue.
-6. Remove or revise a relationship through the normal pull-request workflow, then update the issue after merge.
+5. For each accepted experiment page, add every question page as a bare backlink under `Related questions`.
+   Treat the question-page entry as the authoritative explanation of the relationship and the experiment-page backlink as navigation.
+6. Update both sides of the relationship in the same pull request.
+7. After the knowledge-base change merges, add the canonical experiment-page and question-page links to the experiment issue.
+8. Remove or revise a relationship through the normal pull-request workflow, then update the issue after merge.
 
 ## Remove A Question
 
 Ask the human before removal.
-Remove the document and its root README entry through a pull request.
+Remove the document, its root README entry, and its experiment-page backlinks through one pull request.
 Use Git history as the record of past synthesis; do not keep inactive question documents solely as an archive.
 
 ## Compose Existing Skills

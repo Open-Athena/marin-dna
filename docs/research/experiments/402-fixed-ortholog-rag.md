@@ -65,6 +65,10 @@ One seed per size does not establish a scaling law, so the gain from model scale
   No held-out labeled results or indel-effect evaluation were included.
 - Retrieval was precomputed from a whole-genome alignment; online retrieval quality, latency, index size, and serving cost remain unmeasured.
 
+## Related questions
+
+- [Can autoregressive RAG gLMs be accurate and practical?](../questions/retrieval-augmented-models.md)
+
 ## Research record
 
 - [Experiment issue #402](https://github.com/Open-Athena/marin-dna/issues/402)
