@@ -70,6 +70,18 @@ uv run --locked python launch.py pilot \
 
 Add `--execute` only for the approved paid run. `HF_TOKEN` and `WANDB_API_KEY` are forwarded as Sky secrets; the launcher can read the existing Hugging Face token file and W&B netrc entry into the Sky subprocess environment without printing either value. The Hugging Face repository is created private and is not made public by this workflow.
 
+The evaluation-only `diagnostics` stage loads the final transferred checkpoint, does not repeat training, and runs the registered context-ablation and window-shift diagnostics on the same odd/X-only VEP frames. It masks an entire left or right flank with the tokenizer's unknown-base token and moves the 255-base reference window 64 bases upstream or downstream while tracking the variant's exact 0-based position. The exact perturbation sizes were fixed after the primary evaluation and are therefore recorded as post-hoc diagnostics, not model-selection gates.
+
+```bash
+uv run --locked python launch.py diagnostics \
+  --commit "$(git rev-parse HEAD)" \
+  --hf-repo-id <private-final-repository> \
+  --prior-cost-usd <conservative-cumulative-cost> \
+  --execute
+```
+
+This stage forwards only `HF_TOKEN`, applies the same $50 cost guard, uploads its compact tables under `evaluation/context-window`, and uses `sky launch --down`.
+
 ## Data plans
 
 After preflight selects the batch size, materialize the shared plans on the GH200:
@@ -108,7 +120,7 @@ Each trained arm writes:
 
 Dense scalar series live in W&B. GitHub issue #479 and [the logbook](../../.agents/logbooks/479-mntp-adaptation.md) remain the narrative record.
 
-The private staging repository also receives the actual-checkpoint preflight, sequence-plan hashes, final safetensors exports, odd/X VEP scores and natural-unit bootstrap summaries, inference runtime, numeric dependency maps, and matched-scale SVG comparisons. The VEP loader requests only each pinned public `train` split and rejects any chromosome outside odd autosomes/X before scoring. The dependency-map panel uses unlabeled reference sequence and may include its preregistered even-autosome locus.
+The private staging repository also receives the actual-checkpoint preflight, sequence-plan hashes, final safetensors exports, odd/X VEP scores and natural-unit bootstrap summaries, inference runtime, context-ablation/window-shift metrics and stability tables, numeric dependency maps, and matched-scale SVG comparisons. The VEP loader requests only each pinned public `train` split and rejects any chromosome outside odd autosomes/X before scoring. The dependency-map panel uses unlabeled reference sequence and may include its preregistered even-autosome locus.
 
 Checkpoint publication defaults to every numbered checkpoint. A recovery launch may set
 `--checkpoint-upload-steps` and a separate `--resume-hf-repo-id` when the original private
