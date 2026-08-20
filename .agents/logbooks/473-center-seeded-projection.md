@@ -945,3 +945,25 @@ cohort, assemblies, and downstream training recipe fixed.
 - Safety: the arm continued on the authorized unlabeled full-window CDS data.
   No held-out VEP label, prediction, effect measurement, or aggregate metric
   was accessed.
+
+### 2026-08-20 08:07 UTC - CSP-022 sampled trace handoff armed
+
+- Automatic handoff: Sky job 14,
+  `issue-473-fixed-hal-alignment-trace-after-producer`, is running beside the
+  immutable producer on cluster `vertebrate-project`. It checks the exact
+  producer target every ten minutes with a no-lock, target-only dry-run and
+  sleeps while any required artifact is absent. Its first gate check failed
+  closed as expected and entered the wait state at 08:05:46 UTC.
+- Execution boundary: only after all inputs of
+  `issue_473_fixed_projection_experiment` exist does the handoff stage the
+  exact full-window and `center_1` source tables, record byte sizes and
+  SHA-256 values, and invoke the six allow-listed sampled-HAL trace rules.
+  It cannot publish datasets or launch model training.
+- Reproducibility: the handoff task SHA-256 is
+  `fca9d0354ac737c168be65de9535e60d50e9fd30ef83c1b3a84827a9a50bca77`.
+  It asserts producer commit `f764b7f1...` plus exact hashes for the trace
+  Snakefile, implementation module, and common rules before waiting.
+- Producer state: job 11 remained healthy at 1,824/10,329 durable steps when
+  the handoff was armed. It remains the sole writer to the producer namespace.
+- Next action: monitor only terminal producer, trace-gate, checkpoint, and error
+  events; review the complete QC/manual and trace artifacts before publication.
