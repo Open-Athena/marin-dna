@@ -1208,3 +1208,32 @@ cohort, assemblies, and downstream training recipe fixed.
   downstream QC, review the sampled trace/report, pin publication to the
   resulting producer, then publish privately and launch only the three new
   training arms.
+
+### 2026-08-20 11:54 UTC - CSP-031 corrected handoffs and issue contract
+
+- Batched progress: Sky job 7 reached 35/135 prefill steps at 11:50 UTC with
+  no observed error. Each completed HAL job uploaded the two namespaced policy
+  outputs and one per-species receipt from a single combined request call.
+- Trace handoff: draft PR #477 commit
+  `c30c533e55f4626eb6f8e9c0d4b20ec004ca24a7` adds a durable launcher that
+  pins producer commit `d0e5380a46cd66d4c42d763b3c42da1150c92073`,
+  verifies the unchanged trace implementation hashes, and waits only for the
+  pilot-free core-completion target. Sky job 8 is armed and currently waiting
+  fail-closed for that target.
+- Report handoff: experiment commit
+  `f6f8c4d087b4d240282dcc61850e6783fa90c7d9` defines the corresponding
+  producer-pinned report launcher. Its remote submission was not performed:
+  the execution safety gate requires destination-specific authorization for
+  reading the private producer outputs and uploading the derived QC report.
+  No alternate route was attempted, and this does not block producer or trace
+  progress.
+- Research record: issue #473 now states the active contract directly: the
+  wider-landmark pilot is deferred; batching is one HAL call per species and
+  one MAF scan per chromosome; the four-arm comparison reuses the exact #417
+  CDS full-window checkpoints and trains only three new arms at nine common
+  checkpoints.
+- Safety: no dataset was published, no training is running, and no held-out
+  VEP label, prediction, effect measurement, or aggregate metric was accessed.
+- Next action: continue the batched producer through its completion manifest,
+  review full projection QC and sampled trace, and resolve the report-upload
+  authorization only when the exact source and destination are ready to name.
