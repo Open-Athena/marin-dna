@@ -302,3 +302,17 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Interpretation: The objective conversion works behaviorally and transfers a small early optimization advantage, but this 1,000-step checkpoint is not a useful source-relative VEP model. Dependency similarity and window stability are scoped mechanisms, not evidence for extending training.
 - Decision: pilot technically valid; no 10,000-step extension; no single-orientation VEP support; keep negative result and private checkpoints durable.
 - Next action: update the active research question, final model card, coordinating issue body/comment, and seal an annotated result tag.
+
+### 2026-08-20 08:15 - Checkpoint-integrity follow-up prepared
+
+- Trigger: The continued-CLM VEP decline is surprising enough that the final endpoints alone do not distinguish progressive forgetting from serialization, resume, coordinate, tokenization, or readout bugs.
+- Zero-update control: Load the pinned source checkpoint, save it in the Hugging Face format used by evaluation, reload it, and compare token-level contracts plus every odd/X per-variant score with direct source loading.
+- Early replay: Rebuild the exact batch-64 train and validation plans, require their original hashes, and replay CLM steps 1, 5, 10, 25, 50, 100, 200, and 400 under the original 1,000-step schedule. Compare replayed step 400 row-for-row with the original full Lightning checkpoint.
+- Alignment gates: Check PAD/UNK/BOS/EOS/MASK IDs, vocabulary sizes, 256-token length, attention masks, and the input-position-to-output-position shift at nucleotide indices 0, 63, 127, 191, and 254 in FWD and RC. Compare training-collator logits with inference LLRs and require invariance to the true nucleotide hidden under MASK.
+- Coordinate gates: Independently reconstruct 0-based half-open windows at three positions per odd/X dataset and at variant indices 63, 127, and 191.
+- Trajectories: Recompute fixed-plan loss from source, replayed early checkpoints, every retained Lightning checkpoint, and final exports. Score both orientations on all three primary odd/X endpoints and plot AUPRC versus optimizer steps.
+- Dependency control: Plot the raw directed forward and aligned RC matrices for all five loci. Recompute tRNA-Arg-TCT under full attention and under a forced-causal negative control; the forbidden causal triangle must remain zero.
+- Publication: Keep per-variant scores and numeric maps private. Publish compact tables and figures to W&B and GitHub. Upload failing parity diagnostics before exiting nonzero.
+- Compute boundary: Use one self-terminating Lambda GH200 at $2.29/hour, carry forward the conservative $10.2326 prior cost, and retain the original $50 hard cap. No Iris or Marin runtime dependency is introduced.
+- Verification before launch: the locked experiment suite passes 61 tests; Ruff, formatting, and whitespace checks pass. Peak pytest RSS was 1,074,164 KiB.
+- Next action: snapshot the exact audit commit, dry-run Sky provisioning, launch, monitor through upload and teardown, inspect every rendered figure, and publish the evidence to issue #479.
