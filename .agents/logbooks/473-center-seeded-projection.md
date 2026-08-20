@@ -887,3 +887,41 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: continue the CDS arm through step 5,000 and the producer through
   its exact aggregate target; launch the trace immediately after producer
   success.
+
+### 2026-08-20 07:43 UTC - CSP-020 checkpoint-race recovery hardened
+
+- Failure diagnosis: the first training child
+  `/ubuntu/exp473-cds-full-window-v2/run_levanter_train_lm-622836a3`
+  reached step 842, then failed while writing a rolling recovery checkpoint
+  with `RuntimeError: Set changed size during iteration` in Python 3.12's
+  `asyncio.runners._cancel_all_tasks -> tasks.all_tasks`. This is the
+  cross-thread weak-set iteration race tracked by CPython issue 80788, not a
+  model, data, tokenizer, or accelerator failure. The retained step-500 native
+  checkpoint and Hugging Face export remained complete and validated.
+- Recovery: a valid temporary step-724 checkpoint was present under the same
+  immutable checkpoint root. Retry coordinator
+  `/ubuntu/exp473-cds-full-window-v3` reused the realized cache and W&B run,
+  found that recovery state, and resumed training at step 725 rather than
+  replaying completed work. This already-running retry carries the earlier
+  source bundle; it was not interrupted merely to install the hardening.
+- Hardening: commit `de03d0e854864870f3d648999ab3c46f893c5173`
+  adds a project-local Python-3.12-only compatibility guard that snapshots the
+  weak-reference registry atomically under the GIL, preserves asyncio's exact
+  loop and completion filtering, patches both public aliases idempotently, and
+  skips unknown interpreter or registry layouts. Future retries and the other
+  three arms inherit the guard.
+- Verification: all 23 project tests passed in bounded processes (3 asyncio
+  compatibility, 3 DNA-format, 12 evaluation, and 5 experiment tests); the
+  largest peak RSS was 487,964 KiB. Changed-file pre-commit hooks passed. A
+  real Python 3.12 Iris preflight
+  `/ubuntu/exp473-asyncio-guard-preflight-v2` then succeeded in 12.72 seconds
+  with exit 0, zero failures, and zero preemptions, printing
+  `exp473 asyncio guard active` after verifying the installed aliases and an
+  `asyncio.run` shutdown.
+- Safety: recovery reused only the authorized unlabeled CDS training cache and
+  checkpoint namespace. No held-out VEP label, prediction, effect measurement,
+  or aggregate metric was accessed.
+- Next action: allow v3 to continue from step 725. If the same race recurs in
+  its pre-hardening bundle, launch the next retry from this guarded commit and
+  the newest valid checkpoint; otherwise retain the guard for the remaining
+  three arms.
