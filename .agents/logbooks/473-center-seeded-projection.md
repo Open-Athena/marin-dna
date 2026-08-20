@@ -559,3 +559,32 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: push the launcher fix, continue monitoring projection job 11,
   and do not start scoring until training has produced all exact checkpoint
   roots.
+
+### 2026-08-20 01:43 UTC - CSP-010 acceptance and exposure-accounting audit
+
+- Live execution: projection job 11 remained healthy at 769/10,329 steps.
+  A read-only worker inspection found 43 concurrent `halLiftover` processes on
+  48 CPUs with one-minute load 43.19, confirming that the apparent two-job
+  scheduler log message was a refill batch rather than a concurrency cap.
+- Acceptance audit: the issue body was checked against the committed producer,
+  trace, publisher, training, and evaluation surfaces. All five functional
+  regions, six sampled landmark policies, full-scale `full_window` and
+  `center_1` comparisons, paired anchor uncertainty, sampled exact HAL
+  coverage, three new datasets, four matched model arms, and development-only
+  evaluation are represented. Scientific completion remains unclaimed until
+  their runtime artifacts pass their respective gates.
+- Training-exposure semantics: each published `train_rows` count includes one
+  `+` and one reverse-complement `-` row per biological anchor-species pair.
+  Every arm presents 40,960,000 sequences and 10,485,760,000 tokens. The final
+  report will record both published-row effective epochs
+  (`40,960,000 / train_rows`) and biological-pair presentations
+  (`40,960,000 / (train_rows / 2)`), alongside tokens per published row
+  (`10,485,760,000 / train_rows`), so augmentation cannot be mistaken for
+  independent projection yield.
+- Invariants: the active projection and every prepared downstream surface are
+  additive; no established S3-backed rule or shared output path was edited.
+  Held-out even-autosome and chromosome-Y labels, predictions, measurements,
+  and aggregate metrics remain untouched.
+- Next action: leave the saturated projection worker undisturbed, validate its
+  full QC/manual artifacts at target success, then run the sampled HAL trace
+  before any dataset upload or model launch.
