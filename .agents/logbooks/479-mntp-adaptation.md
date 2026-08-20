@@ -243,3 +243,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Implementation: Add separate resume/publication repositories, selectable checkpoint upload steps, cumulative prior-cost accounting, and exception preservation. Existing private artifacts remain untouched.
 - Data boundary: Only unlabeled validation metrics were produced. No aggregate VEP evaluation, even-autosome label, or Y label was accessed.
 - Next action: Verify the recovery snapshot, create private personal spillover staging, resume from step 700, and complete the remaining arms and registered diagnostics under the same $50 cap.
+
+### 2026-08-20 02:30 - Transferred completion and sequential W&B isolation
+
+- Recovery launch commit: `44b117549c371f98a56a97ac165cbc4a5d5b66ca`.
+- Transferred result: The arm resumed read-only from original-private step 700, published a full step-800 restart checkpoint to private spillover, completed step 1,000, and published its cooled Hugging Face export, manifest, and runtime record. Original-private artifacts remain unchanged.
+- Logging defect: After transferred publication, Lightning's pinned `WandbLogger.finalize()` left the process-global W&B run open. Scratch therefore reused transferred recovery run [oddka8kk](https://wandb.ai/gonzalobenegas/marin/runs/oddka8kk) instead of creating its registered distinct run.
+- Containment: Cancelled the task around scratch step 170, before its first selected restart upload at step 400, and explicitly tore down the Lambda cluster. No scratch checkpoint or export was published; the completed transferred arm remains durable and will be skipped on relaunch.
+- Fix: Explicitly finish each successful arm's W&B run after final private publication and regression-test that boundary. This permits the next arm in the same process to initialize a distinct run and preserves one history per comparison arm.
+- Budget: This recovery instance ran for about 12 minutes, at most about $0.46 at the listed price. Conservative cumulative prior cost for the next hard guard is $3.25.
+- Data boundary: Only unlabeled training and validation data were used. No labeled VEP evaluation, even-autosome label, or Y label was accessed.
+- Next action: Verify and snapshot the isolation fix, dry-run the exact commit, relaunch on Lambda with completed transferred publication skipped, and require distinct scratch and CLM W&B runs before accepting their histories.
