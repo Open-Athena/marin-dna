@@ -89,8 +89,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 <details>
 <summary>Possible directions</summary>
 
-- Audit token-loss dynamics across m5.2 checkpoints on its five validation arms.
-  On fixed nonrepeat tokens, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
+- Audit token-loss dynamics across checkpoints of m1.3, the de novo 1B model trained on a uniform five-region mixture.
+  On fixed nonrepeat validation tokens from CDS, upstream, downstream, ncRNA, and enhancer, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
   This tests when functional ranking emerges and whether an online selection mask remains stable through training.
 
 ### What outcome are we optimizing?
