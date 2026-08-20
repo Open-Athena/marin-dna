@@ -33,7 +33,7 @@ class CharacterTokenizer:
         assert return_tensors == "pt"
         if isinstance(sequences, str):
             sequences = [sequences]
-        lookup = {"A": 3, "C": 4, "G": 5, "T": 6}
+        lookup = {"N": 1, "A": 3, "C": 4, "G": 5, "T": 6}
         input_ids = torch.tensor([[2, *(lookup[base] for base in seq)] for seq in sequences])
         return {"input_ids": input_ids, "attention_mask": torch.ones_like(input_ids)}
 
@@ -103,3 +103,52 @@ def test_attach_reference_windows_reads_bgzf_fasta(tmp_path: Path) -> None:
     )
     result = attach_reference_windows(frame, fasta_path)
     assert result.loc[0, "sequence"] == "A" * 255
+
+
+def test_mntp_score_masks_a_shifted_variant_position() -> None:
+    variant_index = 63
+    first = "A" * 255
+    second = first[:variant_index] + "G" + first[variant_index + 1 :]
+    frame = pd.DataFrame(
+        {
+            "sequence": [first, second],
+            "ref": ["A", "A"],
+            "alt": ["C", "C"],
+        }
+    )
+    for strand in ("fwd", "rc"):
+        scores = score_strand(
+            _arm(),
+            frame,
+            objective="mntp",
+            strand=strand,
+            batch_size=2,
+            variant_index=variant_index,
+        )
+        assert scores[0] == scores[1]
+
+
+def test_attach_reference_windows_places_variant_at_requested_index(tmp_path: Path) -> None:
+    fasta_path = tmp_path / "shifted.fa.bgz"
+    with bgzf.BgzfWriter(str(fasta_path), "wb") as writer:
+        writer.write(b">1\n" + b"A" * 383 + b"\n")
+    with Fasta(fasta_path, as_raw=True, rebuild=True):
+        pass
+
+    frame = pd.DataFrame(
+        {
+            "chrom": ["1"],
+            "pos": [192],
+            "ref": ["A"],
+            "alt": ["C"],
+            "label": [1],
+        }
+    )
+    for variant_index in (63, 127, 191):
+        result = attach_reference_windows(
+            frame,
+            fasta_path,
+            variant_index=variant_index,
+        )
+        assert len(result.loc[0, "sequence"]) == 255
+        assert result.loc[0, "sequence"][variant_index] == "A"

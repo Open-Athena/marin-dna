@@ -167,10 +167,24 @@ def load_variant_frame(spec: DatasetSpec) -> pd.DataFrame:
     return frame
 
 
-def attach_reference_windows(frame: pd.DataFrame, fasta_path: Path) -> pd.DataFrame:
-    """Attach 255-bp uppercase reference windows using 0-based half-open slices."""
+def attach_reference_windows(
+    frame: pd.DataFrame,
+    fasta_path: Path,
+    *,
+    variant_index: int | None = None,
+) -> pd.DataFrame:
+    """Attach 255-bp uppercase windows with the variant at ``variant_index``.
+
+    ``variant_index`` is 0-based within the returned nucleotide string. The
+    default centers the variant. All reference access remains 0-based and
+    half-open at this boundary.
+    """
 
     center = NUCLEOTIDE_LENGTH // 2
+    if variant_index is None:
+        variant_index = center
+    if not 0 <= variant_index < NUCLEOTIDE_LENGTH:
+        raise ValueError(f"variant_index must be in [0, {NUCLEOTIDE_LENGTH})")
     sequences: list[str] = []
     with Fasta(fasta_path, as_raw=True, rebuild=False) as genome:
         sequence_names = genome.keys()
@@ -178,17 +192,17 @@ def attach_reference_windows(frame: pd.DataFrame, fasta_path: Path) -> pd.DataFr
         for row in frame.itertuples(index=False):
             chrom = str(row.chrom)
             center_zero_based = int(row.pos) - 1
-            start = center_zero_based - center
+            start = center_zero_based - variant_index
             end = start + NUCLEOTIDE_LENGTH
             if chrom not in chrom_sizes or start < 0 or end > chrom_sizes[chrom]:
                 raise ValueError(f"variant window outside {chrom}:0-{chrom_sizes.get(chrom)}")
             sequence = str(genome[chrom][start:end]).upper()
             if len(sequence) != NUCLEOTIDE_LENGTH:
                 raise ValueError(f"short reference window at {chrom}:{start}-{end}")
-            if sequence[center] != row.ref:
+            if sequence[variant_index] != row.ref:
                 raise ValueError(
                     f"GRCh38 reference mismatch at {chrom}:{row.pos}: "
-                    f"dataset={row.ref}, fasta={sequence[center]}"
+                    f"dataset={row.ref}, fasta={sequence[variant_index]}"
                 )
             sequences.append(sequence)
     result = frame.copy()
@@ -196,9 +210,8 @@ def attach_reference_windows(frame: pd.DataFrame, fasta_path: Path) -> pd.DataFr
     return result
 
 
-def _replace_center(sequence: str, allele: str) -> str:
-    center = NUCLEOTIDE_LENGTH // 2
-    return sequence[:center] + allele + sequence[center + 1 :]
+def _replace_base(sequence: str, allele: str, position: int) -> str:
+    return sequence[:position] + allele + sequence[position + 1 :]
 
 
 def _alleles(frame: pd.DataFrame, strand: Literal["fwd", "rc"]) -> tuple[list[str], list[str]]:
@@ -231,6 +244,7 @@ def score_strand(
     objective: Literal["mntp", "clm"],
     strand: Literal["fwd", "rc"],
     batch_size: int,
+    variant_index: int | None = None,
 ) -> np.ndarray:
     """Score one orientation with central-mask MNTP or full-sequence CLM LLR."""
 
@@ -241,7 +255,14 @@ def score_strand(
     sequences = _strand_sequences(frame, strand)
     ref_alleles, alt_alleles = _alleles(frame, strand)
     scores = np.empty(len(frame), dtype=np.float32)
-    center_token = 1 + NUCLEOTIDE_LENGTH // 2
+    if variant_index is None:
+        variant_index = NUCLEOTIDE_LENGTH // 2
+    if not 0 <= variant_index < NUCLEOTIDE_LENGTH:
+        raise ValueError(f"variant_index must be in [0, {NUCLEOTIDE_LENGTH})")
+    strand_variant_index = (
+        variant_index if strand == "fwd" else NUCLEOTIDE_LENGTH - 1 - variant_index
+    )
+    target_token = 1 + strand_variant_index
     nucleotide_lookup = {
         base: token_id for base, token_id in zip("ACGT", arm.canonical_ids, strict=True)
     }
@@ -265,14 +286,14 @@ def score_strand(
             attention_mask = encoded["attention_mask"].to(device)
             if input_ids.shape[1] != NUCLEOTIDE_LENGTH + 1:
                 raise ValueError(f"unexpected MNTP tokenized length {input_ids.shape[1]}")
-            input_ids[:, center_token] = arm.mask_token_id
+            input_ids[:, target_token] = arm.mask_token_id
             with _autocast(device):
                 logits = model_logits(
                     model,
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     attention_mode="full",
-                )[:, center_token - 1, list(arm.canonical_ids)]
+                )[:, target_token - 1, list(arm.canonical_ids)]
             log_probabilities = torch.log_softmax(logits.float(), dim=-1)
             canonical_index = {token_id: index for index, token_id in enumerate(arm.canonical_ids)}
             ref_index = torch.tensor(
@@ -285,7 +306,7 @@ def score_strand(
             values = log_probabilities[rows, alt_index] - log_probabilities[rows, ref_index]
         else:
             alt_sequences = [
-                _replace_center(sequence, allele)
+                _replace_base(sequence, allele, strand_variant_index)
                 for sequence, allele in zip(batch_sequences, batch_alt, strict=True)
             ]
             encoded = arm.tokenizer(
