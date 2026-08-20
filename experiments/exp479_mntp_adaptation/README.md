@@ -131,6 +131,7 @@ uv run --locked python launch.py stability \
   --commit "$(git rev-parse HEAD)" \
   --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover \
   --prior-cost-usd <conservative-cumulative-cost> \
+  --retry-until-up \
   --execute
 ```
 
