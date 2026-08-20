@@ -1,6 +1,6 @@
 # Issue 479 MNTP adaptation result bundle
 
-This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479). Dense training series and compact raw evaluation tables are also published in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ) and [analysis run](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3).
+This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479). The committed figures and tables are the durable record. W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn) runs for dense interactive views.
 
 ## Outcome
 
@@ -25,9 +25,19 @@ Single-orientation transferred MNTP stayed within one AUPRC point of its own FWD
 
 Transferred MNTP used both flanks. In the matched VEP probe set its left/right L1 responses were 0.02007/0.01988, compared with 0.02581/0.01280 for full attention without adaptation and 0.16545/0 for source CLM. Complete-flank ablation reduced score-rank correlations to 0.72–0.75, while ±64-base window shifts retained correlations of 0.991–0.993. These are mechanistic findings, not downstream gains.
 
-The five single-orientation dependency maps were visually complete in both triangles and agreed strongly with FWD+RC maps: off-diagonal Spearman ρ ranged from 0.9649 to 0.9738 (mean 0.9692).
+## Integrity audit
 
-The final conservative listed-price estimate is $10.2326 against the $50 cap. It includes all failed, recovery, training, primary evaluation, and follow-up diagnostic attempts. The final Lambda cluster was confirmed terminated. Provider billing may differ from this pre-autodown list-price estimate.
+No bug was found in checkpoint serialization, replay, coordinates, tokenizer contracts, training/inference alignment, or the shared loss path. Direct source scoring and zero-update save/reload were bit-exact for both strands across all 51,623 odd/X variants. Replayed CLM step 400 was bit-exact to the original Lightning checkpoint, and every replayed per-step loss matched W&B for all three training arms. Recomputed validation losses matched the original values within 0.000319.
+
+The sequence contract is one BOS plus 255 nucleotides, with no EOS. PAD/UNK/BOS are 0/1/2; canonical bases are 3–6; MNTP adds MASK 7. Both training and inference supervise nucleotide `i` from model output `i - 1`; the audit checked indices 0, 63, 127, 191, and 254 in both orientations with zero score error. Twenty-seven independently reconstructed 0-based, half-open coordinate anchors passed. The same five validation sources—CDS, downstream, enhancer, ncRNA, and upstream—supply 128 fixed sequences each. Lowercase soft-masked repeat bases have loss weight 0.01 versus 1.0 for uppercase bases in both training and validation.
+
+Continued-CLM degradation is progressive, not an immediate load/save failure. Fixed-plan validation loss was 0.23138 at steps 0 and 1, 0.23131 at 10, 0.24005 at 50, 0.27310 at 100, 0.30652 at 200, 0.33297 at 400, 0.35965 at 800, and 0.35010 at 1,000. Mendelian FWD+RC AUPRC similarly moved from 0.39553 at source to 0.39555 at step 1, 0.39289 at 10, 0.38241 at 100, 0.32686 at 400, 0.26384 at 800, then partially recovered to 0.30681 after cooldown. The CLM gradient norm was mild (median 0.791, maximum 1.263) with no post-warmup loss spikes. Both MNTP arms had large but rapidly decaying clipped early transients rather than sustained instability.
+
+One bug was found in the original dependency diagnostic, not in model training or inference: it compared a batch-one wild-type baseline with batch-1,020 substitutions, allowing BF16 batch-shape numerics to masquerade as dependency. The corrected analysis evaluates each baseline and its substitutions in the same model call. At the three step-1,000 checkpoints, transferred MNTP had past/future mean dependency 0.05314/0.05334, scratch MNTP 0.03056/0.02917, and continued CLM 0.12510/0 exactly. The CLM map's entire forbidden future triangle is exactly zero, while both MNTP maps are nonzero for every past and future position pair.
+
+Independent full-attention final-checkpoint rechecks reproduced all raw VEP scores exactly. Causal source/continued-CLM rechecks were exact except for sparse Mendelian BF16 outliers: mean absolute error was 9.0e-6–1.7e-5 despite maxima of 0.031–0.097, and aggregate AUPRC remained consistent. This is numerical nondeterminism in a separate run, not evidence of a coordinate, tokenizer, or serialization shift.
+
+The final conservative listed-price estimate is $24.7340 against the $50 cap. It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, and focused final-checkpoint attempts. The final Lambda cluster was confirmed terminated. Provider billing may differ from this pre-autodown list-price estimate.
 
 ## Contents
 
@@ -40,12 +50,13 @@ The final conservative listed-price estimate is $10.2326 against the $50 cap. It
 - `vep/`: compact metrics, natural-unit paired uncertainty, context probes, runtime, and manifest. Per-variant scores remain in private staging and W&B.
 - `context-window/`: compact post-hoc ablation/window metrics, stability, runtime, and manifest. Per-variant scores remain private.
 - `nucleotide-dependency/`: five reviewed SVG maps and their numeric summary. The HBA1 chromosome-16 reference sequence is unlabeled; no held-out label or effect measurement was used.
+- `audit/`: checkpoint loss/AUPRC trajectories, alignment and coordinate contracts, three-arm gradient stability, exact/near-exact parity tables, and the corrected three-final-checkpoint dependency figure. The older five-locus dependency maps are retained as historical artifacts but must not be used quantitatively because their baseline batch shape was mismatched.
 - `runs/`: arm runtime/manifests, data/preflight records, budget projection, and final cost estimate.
 - `figures/`: decision-oriented SVG figures generated by `plot_results.py`.
 
 ## Provenance and boundary
 
-- Experiment/diagnostics code: `97a6e3c50080005ad4f93f2206c4155b8f5cb7b9`.
+- Experiment/diagnostics code: `97a6e3c50080005ad4f93f2206c4155b8f5cb7b9`; integrity-audit code: `issue-479-mntp-pilot-audited-result`.
 - Source model: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.
 - Final model/checkpoint staging: private `gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover`; earlier transferred checkpoints remain in private `marin-dna/marin-dna-exp479-mntp-m5.1`.
 - Hardware: one Lambda GH200 96 GB at a checked list price of $2.29/hour.
