@@ -1143,3 +1143,25 @@ cohort, assemblies, and downstream training recipe fixed.
   available, with load 23.69 on 48 vCPUs. No producer error was observed.
 - Next action: continue event-driven monitoring. Job 5 may stage or analyze
   data only after job 2 has produced the exact sampled-trace report.
+
+### 2026-08-20 10:09 UTC - CSP-029 fast HAL staging complete
+
+- Exact stage receipt: the additive producer atomically completed the local
+  HAL at 10:02 UTC with the expected size of 1,262,706,573,453 bytes. The
+  temporary partial path disappeared and the final
+  `/mnt/nvme/vertebrate_projection/447-mammalian-2022v1.hal` path became
+  available to the workflow. No persistent EBS cache was created.
+- Projection transition: the scheduler immediately entered the parallel HAL
+  liftover phase and reached 907/10,354 durable steps by 10:09 UTC. A live
+  process audit found 23 `halLiftover` processes alongside MultiZ work, with
+  78,381,740 KiB memory available and no error, traceback, kill, or OOM marker
+  in the producer log.
+- Independent training: the CDS full-window retry remained healthy on Iris
+  with zero failures and zero preemptions. It reached step 2,442/5,000 with
+  loss about 1.26 and completed a new rolling recovery checkpoint after the
+  previously validated durable step-2,000 native and Hugging Face exports.
+- Downstream gates: both exact sampled-trace handoffs and the post-trace
+  report handoff remain fail-closed. Dataset build and upload remain gated on
+  completed producer QC, manual examples, sampled trace, and report review.
+- Safety: no held-out VEP label, prediction, effect measurement, or aggregate
+  metric was accessed.
