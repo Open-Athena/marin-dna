@@ -208,6 +208,7 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
         tensor_parallelism=batch.tensor_parallelism,
         per_device_parallelism=batch.per_device_parallelism,
         runtime_tags=(
+            "platform=trc",
             f"region={region}",
             f"tpu={tpu}",
             f"data_parallelism={batch.data_parallelism}",

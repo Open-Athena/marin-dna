@@ -142,6 +142,7 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
         tensor_parallelism=batch.tensor_parallelism,
         per_device_parallelism=batch.per_device_parallelism,
         runtime_tags=(
+            "platform=coreweave",
             f"cluster={cluster}",
             f"gpu={spec.gpu_variant}",
             f"nodes={nodes}",
