@@ -588,3 +588,28 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: leave the saturated projection worker undisturbed, validate its
   full QC/manual artifacts at target success, then run the sampled HAL trace
   before any dataset upload or model launch.
+
+### 2026-08-20 02:06 UTC - CSP-011 publication mutation preflight
+
+- Repository state: authenticated Hugging Face inspection found all three
+  reserved issue #473 dataset repositories absent. The established full-window
+  CDS dataset is private, so implicit repository visibility was not accepted
+  for the new uploads.
+- Privacy guard: additive publisher commit
+  `406b6feb06525b0631d818dac6017830eced0b38` creates an absent issue #473
+  dataset repository explicitly as private, refuses to upload to a
+  pre-existing public repository, and reasserts private visibility after the
+  validated upload. The shared uploader and every established publication rule
+  remain unchanged.
+- Revision retention: the same PR retains each local
+  `publication/upload.done/<dataset>` receipt instead of marking it temporary.
+  Each receipt contains the repository ID and verified 40-character immutable
+  Hub revision; the runbook requires capturing all three before terminating
+  the worker and pinning them in the training recipe.
+- Validation: 120 locked projection-project tests passed in 11.26s with
+  300,348 KiB peak RSS under the shared-node guard. Changed-file hooks passed.
+  Unit tests cover private repository creation and fail-closed rejection of an
+  existing public repository.
+- Next action: launch publication only from `406b6feb...` after full projection
+  QC and sampled HAL trace pass. Build and inspect the draft artifacts before
+  invoking the separately gated upload target.
