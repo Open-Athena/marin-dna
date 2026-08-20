@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 import pytest
 import torch
+from Bio import bgzf
+from pyfaidx import Fasta
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
-from exp479_mntp.vep import LoadedArm, assert_development_split, reverse_complement, score_strand
+from exp479_mntp.vep import (
+    LoadedArm,
+    assert_development_split,
+    attach_reference_windows,
+    reverse_complement,
+    score_strand,
+)
 
 
 class CharacterTokenizer:
@@ -74,3 +83,23 @@ def test_mntp_score_cannot_see_true_base_under_mask() -> None:
     )
     scores = score_strand(_arm(), frame, objective="mntp", strand="fwd", batch_size=2)
     assert scores[0] == scores[1]
+
+
+def test_attach_reference_windows_reads_bgzf_fasta(tmp_path: Path) -> None:
+    fasta_path = tmp_path / "tiny.fa.bgz"
+    with bgzf.BgzfWriter(str(fasta_path), "wb") as writer:
+        writer.write(b">1\n" + b"A" * 255 + b"\n")
+    with Fasta(fasta_path, as_raw=True, rebuild=True):
+        pass
+
+    frame = pd.DataFrame(
+        {
+            "chrom": ["1"],
+            "pos": [128],
+            "ref": ["A"],
+            "alt": ["C"],
+            "label": [1],
+        }
+    )
+    result = attach_reference_windows(frame, fasta_path)
+    assert result.loc[0, "sequence"] == "A" * 255
