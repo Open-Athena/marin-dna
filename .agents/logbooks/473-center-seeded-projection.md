@@ -1237,3 +1237,69 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: continue the batched producer through its completion manifest,
   review full projection QC and sampled trace, and resolve the report-upload
   authorization only when the exact source and destination are ready to name.
+
+### 2026-08-20 14:05 UTC - CSP-032 batched producer recovered and verified
+
+- Batched execution: exact producer job 7 completed the 135-job prefill and
+  2,603 of 2,610 unchanged downstream steps. It scheduled one HAL liftover per
+  mammal and one MAF candidate scan per chromosome; no duplicate liftover or
+  candidate-scan rules appeared in the downstream DAG.
+- Failure and durable boundary: Ray killed only the final
+  `issue_473_fixed_full_diagnostics` process after it reached about 85 GiB RSS
+  on a 92.77 GiB worker. All projection, sequence, intersection, and earlier
+  QC outputs were already durable. A target-pinned dry-run proved exactly five
+  remaining jobs: two enhancer dataset writes, full diagnostics, manual
+  inspection, and the core completion target.
+- Dry-run correction: an initial read-only check accidentally synced the
+  experiment branch to the fast producer and failed immediately with
+  `MissingRule`; it ran no data job and mutated no S3 output. The PR worktree
+  was restored immediately, and the corrected dry-run returned the exact
+  five-job boundary above.
+- Additive recovery: draft PR #477 commit
+  `82918df3b7b11bf643548511e7f2ef155de59190` added a QC-only launcher whose
+  allowed-rule list could not schedule projection or preprocessing. Iris job 1
+  on a 256 GB worker completed the five jobs, peaked at 80,657,216 KiB RSS,
+  and passed a terminal target-only dry-run reporting that all requested files
+  were present and current.
+- Safety: producer identity remains exact commit
+  `d0e5380a46cd66d4c42d763b3c42da1150c92073` and config SHA-256
+  `bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039`.
+  No held-out VEP label, prediction, effect measurement, or aggregate metric
+  was accessed.
+
+### 2026-08-20 14:46 UTC - CSP-033 sampled trace reviewed and publication build started
+
+- Trace recovery: the original trace waiter was a 0.13 GB collateral victim
+  of the producer worker's final-diagnostic OOM. Relaunched job 11 passed the
+  completed-producer gate immediately and finished all 645 trace steps. The
+  staged full-window and center-1 sequence tables were respectively
+  5,888,108,590 and 6,092,534,094 bytes with SHA-256 values
+  `d45a71aded8ad4aca2939aa0e62194297e85b259617e128b7f27f9d0496f32c0`
+  and `2e0113bf685809d02438636b4a3ff4487b3a025be92eb2d9f2cf35b555b56e04`.
+- Trace evidence: the deterministic sample contains 5,328 rows from 4,288
+  anchors. Exact named-PSL measurement succeeded for 725 of 742 center-1 rows
+  and 4,518 of 4,586 full-window rows; the rest are explicitly classified as
+  no reverse mapping or off-expected-locus. Every source and emitted interval
+  is exactly 255 bp. Anchor-clustered paired center-minus-full exact-coverage
+  intervals include zero in all five regions.
+- Manual review: chromosome and strand agreement are 1.0 across the
+  74,524,203-row accepted union, target-locus overlap is effectively 1.0, and
+  median emitted-center displacement is 3 bp. Raw named PSL rows for the
+  reverse-strand and plus-strand ZRS examples reproduce the expected human
+  anchor; the paired Aplodontia full/center rows are byte-identical. Direct
+  `hal2fasta` spot extraction was abandoned because the 1.26 TB HAL performs
+  a near-global scan for a 255 bp slice; its temporary processes were stopped
+  and memory fully recovered without modifying pipeline or S3 artifacts.
+- Publication gate: draft PR #477 commit
+  `d7c6a93cf65571ddce48775b839b1d1a6591f8b2` changes only the publication
+  config from obsolete producer `d43f059c` to reviewed producer `d0e5380a`.
+  All 123 locked project tests and changed-file hooks passed. Commit
+  `770b4b498b89d43b0a8337dbc4ba03f918cae1fe` then corrected only the new
+  launcher's pinned `uv` version parsing after build job 1 failed safely in
+  setup before reading data.
+- Current build: non-upload Iris job 2 is building and validating exactly the
+  three new private payloads. Its DAG contains three train shuffles, three
+  validation shuffles, 195 compression jobs, three cards, one manifest, and
+  one build target; Hugging Face upload rules are excluded. Only
+  `cds_center_1`, `enhancer_full_window`, and `enhancer_center_1` will train;
+  the #417 CDS full-window checkpoints remain the fourth evaluation arm.
