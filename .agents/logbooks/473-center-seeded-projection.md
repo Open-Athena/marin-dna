@@ -1409,3 +1409,16 @@ cohort, assemblies, and downstream training recipe fixed.
   All 25 locked experiment tests passed in 4.72 seconds with 494,680 KiB peak
   RSS while holding the shared heavy-work lock; changed-file hooks passed.
 - Next action: snapshot this correction and rerun only the additive report.
+
+### 2026-08-20 16:29 UTC - CSP-038 report argument-array correction
+
+- Fail-closed rerun: Sky job 13 passed the corrected 942-file gates for both
+  new arms, then stopped before analysis because the shell arrays contain two
+  elements per file: the repeated option and its path. The observed
+  full-window array length was therefore 2,424, not 1,212. No output was
+  written.
+- Correction to CSP-037 wording: 1,212 and 942 are the full-window and
+  center-1 file counts, respectively. The exact argument-array lengths are
+  2,424 and 1,884. The launcher and regression test now assert those values.
+- Scope: only the additive report launcher's fail-closed accounting changed.
+  No data, projection, shared rule, training job, or evaluation result changed.

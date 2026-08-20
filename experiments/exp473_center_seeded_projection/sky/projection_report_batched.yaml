@@ -95,8 +95,8 @@ run: |
   done < <(
     find "$SOURCE_ROOT/rejections/center" -type f -name '*.parquet' -print | sort
   )
-  test "${#FULL_REJECTIONS[@]}" -eq 1212
-  test "${#CENTER_REJECTIONS[@]}" -eq 942
+  test "${#FULL_REJECTIONS[@]}" -eq 2424
+  test "${#CENTER_REJECTIONS[@]}" -eq 1884
 
   export POLARS_MAX_THREADS=16
   export RAYON_NUM_THREADS=16

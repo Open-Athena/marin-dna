@@ -389,8 +389,8 @@ def test_batched_projection_report_pins_final_producer_and_rejection_counts():
     assert (
         "rejections/center\" -type f -name '*.parquet' | wc -l)\" -eq 942" in launcher
     )
-    assert 'test "${#FULL_REJECTIONS[@]}" -eq 1212' in launcher
-    assert 'test "${#CENTER_REJECTIONS[@]}" -eq 942' in launcher
+    assert 'test "${#FULL_REJECTIONS[@]}" -eq 2424' in launcher
+    assert 'test "${#CENTER_REJECTIONS[@]}" -eq 1884' in launcher
 
 
 def test_intersection_analysis_requires_and_writes_complete_matrix(tmp_path: Path):
