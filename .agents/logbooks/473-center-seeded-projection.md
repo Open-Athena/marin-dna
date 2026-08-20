@@ -815,3 +815,35 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: let job 11 finish its exact QC/manual target, then stage its two
   completed source tables and launch the strict sampled HAL trace before
   reviewing or publishing any dataset.
+
+### 2026-08-20 06:00 UTC - CSP-018 first authorized training arm launched
+
+- Independent arm: the established full-window CDS dataset is already pinned
+  to `marin-dna/vertebrate-v1-cds@bfab878078c4ee6c0f47b760f1e5e0577549dc9d`,
+  so this arm does not depend on the three issue #473 publications. Exact
+  experiment snapshot `e674aab050cf170d4433f724881adeb041c4f131` launched on
+  Iris as `/ubuntu/exp473-cds-full-window-v2` with the preregistered seed-0,
+  0.25B, 5,000-step recipe and commit-pinned Marin environment.
+- Fail-closed retry: the first coordinator
+  `/ubuntu/exp473-cds-full-window` failed before graph construction because a
+  shell-scoped W&B variable expanded before assignment. It created no child
+  task, dataset cache, TPU request, checkpoint, or training state. The v2
+  launch forwards the existing credential correctly; the secret value was not
+  printed or recorded here.
+- Runtime proof: v2 expanded cleanly through artifact `tokenize-bcd6d6c5` and
+  coordinator `zephyr-tokenize-train-f88d1ec8-coordinator-d032874d`. Its 64
+  CPU tokenization workers were all running with zero failures and zero
+  preemptions, writing the exact cache root
+  `gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection/inputs/cds_full_window-char-bos/2026.08.20/`.
+  Sample worker logs record 256 tokens per document, matching the registered
+  sequence length.
+- Producer: immutable Sky job 11 remains healthy and was not interrupted. It
+  reached 1,613/10,329 durable steps (16%) at 05:52 UTC. A read-only resource
+  audit confirmed conservative rule reservations are the throughput limit;
+  the stable producer remains the authoritative S3 writer.
+- Safety: no new-dataset training arm was launched, and no VEP label,
+  prediction, effect measurement, or aggregate metric was accessed. The
+  even-autosome/Y held-out boundary remains intact.
+- Next action: monitor tokenization into the v5p-8 training child while the
+  producer continues, then execute trace, reviewed private publication, and
+  the other three arms when their immutable revisions exist.
