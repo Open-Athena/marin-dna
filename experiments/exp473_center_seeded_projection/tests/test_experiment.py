@@ -19,6 +19,10 @@ from exp473_center_seeded_projection.experiment import (
     build_training,
     validate_vendored_tokenizer,
 )
+from exp473_center_seeded_projection.tokenizer_preflight import (
+    TokenizerWorkerPreflightConfig,
+    verify_tokenizer_on_worker,
+)
 from marin.execution.artifact import ArtifactRecord, write_record
 from marin.execution.lazy import StepContext
 
@@ -169,3 +173,30 @@ def test_realized_cache_reloads_exact_case_aware_format(tmp_path) -> None:
         bad_cache = DnaTokenizedCache.raw_load(str(bad_path))
         with pytest.raises(ValueError, match="tokenized cache format"):
             _ = bad_cache.format
+
+
+def test_tokenizer_worker_preflight_exercises_exact_character_contract(
+    monkeypatch,
+) -> None:
+    class StubHfTokenizer:
+        def __call__(self, text, **_kwargs):
+            assert text == "ACGTacgt"
+            return {"input_ids": [2, 3, 4, 5, 6, 3, 4, 5, 6]}
+
+    class StubTokenizer:
+        vocab_size = 7
+        bos_token_id = 2
+        pad_token_id = 0
+        unk_token_id = 1
+        eos_token_id = None
+
+        def as_hf_tokenizer(self):
+            return StubHfTokenizer()
+
+    monkeypatch.setattr(
+        "exp473_center_seeded_projection.tokenizer_preflight.load_tokenizer",
+        lambda _: StubTokenizer(),
+    )
+    verify_tokenizer_on_worker(
+        TokenizerWorkerPreflightConfig(TOKENIZER_PATH, dict(TOKENIZER_SHA256))
+    )
