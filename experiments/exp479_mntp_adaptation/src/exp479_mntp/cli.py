@@ -112,6 +112,7 @@ def _parser() -> argparse.ArgumentParser:
     audit.add_argument("--logged-loss-csv", type=Path, required=True)
     audit.add_argument("--hf-repo-id", required=True)
     audit.add_argument("--batch-size", type=int, default=64)
+    audit.add_argument("--vep-batch-size", type=int, default=1_024)
     audit.add_argument("--dependency-batch-size", type=int, default=1_024)
     audit.add_argument("--n-bootstrap", type=int, default=200)
     audit.add_argument("--num-workers", type=int, default=4)
@@ -127,6 +128,17 @@ def _parser() -> argparse.ArgumentParser:
     stability.add_argument("--hf-repo-id", required=True)
     stability.add_argument("--batch-size", type=int, default=64)
     stability.add_argument("--num-workers", type=int, default=4)
+
+    recheck = subparsers.add_parser(
+        "inference-recheck",
+        help="recheck exact-batch VEP parity and paired-baseline dependencies",
+    )
+    recheck.add_argument("--artifact-dir", type=Path, required=True)
+    recheck.add_argument("--output-dir", type=Path, required=True)
+    recheck.add_argument("--hf-repo-id", required=True)
+    recheck.add_argument("--vep-batch-size", type=int, default=1_024)
+    recheck.add_argument("--dependency-batch-size", type=int, default=1_024)
+    recheck.add_argument("--n-bootstrap", type=int, default=200)
 
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
@@ -240,6 +252,7 @@ def main() -> None:
             logged_loss_csv=args.logged_loss_csv,
             hf_repo_id=args.hf_repo_id,
             batch_size=args.batch_size,
+            vep_batch_size=args.vep_batch_size,
             dependency_batch_size=args.dependency_batch_size,
             n_bootstrap=args.n_bootstrap,
             num_workers=args.num_workers,
@@ -257,6 +270,19 @@ def main() -> None:
             hf_repo_id=args.hf_repo_id,
             batch_size=args.batch_size,
             num_workers=args.num_workers,
+        )
+        return
+
+    if args.command == "inference-recheck":
+        from exp479_mntp.inference_recheck import run_inference_recheck
+
+        run_inference_recheck(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            hf_repo_id=args.hf_repo_id,
+            vep_batch_size=args.vep_batch_size,
+            dependency_batch_size=args.dependency_batch_size,
+            n_bootstrap=args.n_bootstrap,
         )
         return
 

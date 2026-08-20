@@ -29,7 +29,11 @@ from exp479_mntp.loss import IGNORE_INDEX, per_sequence_weighted_loss
 from exp479_mntp.masking import sample_seed
 from exp479_mntp.modeling import canonical_token_ids, load_model_bundle, model_logits
 from exp479_mntp.module import AdaptationModule
-from exp479_mntp.nucleotide_dependency import LOCI, locus_window, orientation_dependency
+from exp479_mntp.nucleotide_dependency import (
+    LOCI,
+    locus_window,
+    orientation_dependency,
+)
 from exp479_mntp.publishing import assert_budget_reserve
 from exp479_mntp.vep import (
     DATASETS,
@@ -1756,6 +1760,7 @@ def run_checkpoint_audit(
     logged_loss_csv: Path,
     hf_repo_id: str,
     batch_size: int,
+    vep_batch_size: int,
     dependency_batch_size: int,
     n_bootstrap: int,
     num_workers: int,
@@ -1810,7 +1815,7 @@ def run_checkpoint_audit(
                 arm,
                 frames,
                 output_dir,
-                batch_size=batch_size,
+                batch_size=vep_batch_size,
                 n_bootstrap=n_bootstrap,
             )
         )
