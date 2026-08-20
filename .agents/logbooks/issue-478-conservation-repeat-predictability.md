@@ -235,3 +235,17 @@ author: gonzalobenegas
 - Limitations: validation casing combines below-threshold with missing or unaligned positions; the result is in-corpus, cannot separate exposure or homology, and does not demonstrate out-of-distribution functional discovery or causal training benefit.
 - Decision: promote CRP-005. Retain FWD/RC averaging for the highest-quality per-base weight, but use one deterministic orientation for half-compute pilots without claiming biological directionality.
 - Next action: finish human plot iteration, then update issue #478 and interpretation PR #482 with the accepted classification result and durable links. CDS-only codon/splice classification remains optional secondary analysis.
+
+### 2026-08-20 20:23 UTC - CRP-005 plot revision and compute comparison
+
+- Feedback: rename the non-repeat loss figure, keep its legend outside the facets, shorten the loss-delta annotations, and use a symmetric zero-centered palette when lift is negative.
+- Commit Hash: `d2b062ba`.
+- Heatmap result: loss-delta AUPRC-minus-prevalence is displayed as integer percentage-point lift with a symmetric diverging scale; the categorical model labels remain legible without changing font sizes.
+- Compute proxy: sum model parameter counts across the model and orientation passes required to score the same fixed 255-base window, normalized so one 46M single-orientation pass equals 1.
+- Compute inputs: loss and entropy each require one model pass, loss delta requires both model passes, and FWD/RC averaging doubles the corresponding single-orientation cost.
+- Scope: the comparison uses global AUPRC and shows every loss, entropy, and loss-delta candidate for one deterministic orientation and the FWD/RC mean.
+- Limitation: relative parameter-passes are an estimated scoring-compute proxy, not measured FLOPs, runtime, or windows per hour.
+- Durable output: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/classification/compute_efficiency_auprc.svg`.
+- Validation: 8 focused tests pass, scoped pre-commit checks pass, the Snakemake dry-run schedules only the render rule, the render-only target uploaded all six SVGs, and the revised PNGs were visually inspected.
+- Interpretation: absolute loss and entropy dominate the loss-delta cloud at comparable compute in the global plot; the cheap frontier begins with one-orientation small-model scores.
+- Next action: obtain human feedback on the three revised figures before integrating the accepted plot order and classification interpretation into PR #482.
