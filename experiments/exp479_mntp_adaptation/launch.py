@@ -17,6 +17,7 @@ STAGE_CONFIGS = {
     "diagnostics": "sky/diagnostics.yaml",
     "audit": "sky/audit.yaml",
     "stability": "sky/stability.yaml",
+    "dependency": "sky/dependency.yaml",
 }
 HF_REPO_ID = "marin-dna/marin-dna-exp479-mntp-m5.1"
 
@@ -25,18 +26,22 @@ def execution_environment(stage: str) -> dict[str, str]:
     """Load existing local credentials into memory for Sky secret forwarding."""
 
     environment = dict(os.environ)
-    if stage not in {"pilot", "diagnostics", "audit", "stability"}:
+    if stage not in {"pilot", "diagnostics", "audit", "stability", "dependency"}:
         return environment
     if not environment.get("HF_TOKEN"):
         token_path = Path.home() / ".cache" / "huggingface" / "token"
         if token_path.exists():
             environment["HF_TOKEN"] = token_path.read_text(encoding="utf-8").strip()
-    if stage in {"pilot", "audit", "stability"} and not environment.get("WANDB_API_KEY"):
+    if stage in {"pilot", "audit", "stability", "dependency"} and not environment.get(
+        "WANDB_API_KEY"
+    ):
         authentication = netrc.netrc().authenticators("api.wandb.ai")
         if authentication is not None:
             environment["WANDB_API_KEY"] = authentication[2]
     required = (
-        ("HF_TOKEN", "WANDB_API_KEY") if stage in {"pilot", "audit", "stability"} else ("HF_TOKEN",)
+        ("HF_TOKEN", "WANDB_API_KEY")
+        if stage in {"pilot", "audit", "stability", "dependency"}
+        else ("HF_TOKEN",)
     )
     missing = [name for name in required if not environment.get(name)]
     if missing:
@@ -97,7 +102,7 @@ def launch_command(
         "--env",
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
-    if stage in {"pilot", "diagnostics", "audit", "stability"}:
+    if stage in {"pilot", "diagnostics", "audit", "stability", "dependency"}:
         command.extend(
             [
                 "--env",
@@ -106,7 +111,7 @@ def launch_command(
                 "HF_TOKEN",
             ]
         )
-        if stage in {"pilot", "audit", "stability"}:
+        if stage in {"pilot", "audit", "stability", "dependency"}:
             command.extend(["--secret", "WANDB_API_KEY"])
         if resume_hf_repo_id is not None:
             command.extend(["--env", f"RESUME_HF_REPO_ID={resume_hf_repo_id}"])

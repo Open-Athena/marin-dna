@@ -1,0 +1,163 @@
+point_id,arm,plot_series,kind,step,objective,dataset,endpoint,orientation,auprc,se,n_rows
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.37542441798495857,0.01564377313635056,16100
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.39552499236160693,0.015695510354547717,16100
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,complex_traits,_global_,protocol_fwd,0.1291014903562792,0.00433895127813665,11630
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,complex_traits,_global_,protocol_fwd_rc,0.13408314051741907,0.004996553421133972,11630
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,sge,accession_consequence_macro,protocol_fwd,0.3441458668504084,0.010558400677630317,8
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.35762290978049627,0.01107148733997156,8
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.37542441798495857,0.01564377313635056,16100
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.39552499236160693,0.015695510354547717,16100
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,complex_traits,_global_,protocol_fwd,0.1291014903562792,0.00433895127813665,11630
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,complex_traits,_global_,protocol_fwd_rc,0.13408314051741907,0.004996553421133972,11630
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,sge,accession_consequence_macro,protocol_fwd,0.3441458668504084,0.010558400677630317,8
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.35762290978049627,0.01107148733997156,8
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.37393931503261857,0.015477491295406329,16100
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.39554602255137167,0.015635323044312033,16100
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,complex_traits,_global_,protocol_fwd,0.1290424107807153,0.004353889963369395,11630
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,complex_traits,_global_,protocol_fwd_rc,0.13390790873979716,0.004985199568488531,11630
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,sge,accession_consequence_macro,protocol_fwd,0.34415043864480505,0.01057330364695774,8
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.35757043425265456,0.011082162874579676,8
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3741499216853018,0.015557954004687354,16100
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.3947533395095876,0.01564887063773555,16100
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,complex_traits,_global_,protocol_fwd,0.12911663499768847,0.004368165532838784,11630
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,complex_traits,_global_,protocol_fwd_rc,0.13447583854398293,0.005015043784644337,11630
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,sge,accession_consequence_macro,protocol_fwd,0.3454619631731142,0.010582801894837133,8
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.36178264915698877,0.011140718078870453,8
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3741245866477405,0.015373926890024278,16100
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.3928933459089105,0.015539524437425603,16100
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,complex_traits,_global_,protocol_fwd,0.12923906505819452,0.004425481945798616,11630
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,complex_traits,_global_,protocol_fwd_rc,0.1344460185131935,0.005125930215030656,11630
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,sge,accession_consequence_macro,protocol_fwd,0.34687653347156816,0.010534220121976747,8
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.36140597876786645,0.01109162686986109,8
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3757161063837704,0.015713680120631318,16100
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.3914134389802504,0.015528528053851576,16100
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,complex_traits,_global_,protocol_fwd,0.1299574695913062,0.004559072310187446,11630
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,complex_traits,_global_,protocol_fwd_rc,0.13525610967193308,0.005296459559237357,11630
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,sge,accession_consequence_macro,protocol_fwd,0.340390580912854,0.010466070584812744,8
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.3515595443153695,0.010876105563484128,8
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3691812327890083,0.01618735803987699,16100
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.39038544215656823,0.015988222740062386,16100
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,complex_traits,_global_,protocol_fwd,0.1295974925811696,0.004383321269120354,11630
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,complex_traits,_global_,protocol_fwd_rc,0.13618019135480933,0.0052114277186534694,11630
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,sge,accession_consequence_macro,protocol_fwd,0.32466519357885393,0.01053440235166171,8
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.35628258539922425,0.010839046544022284,8
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3573495659825831,0.015739040820628974,16100
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.382406521842998,0.015585106651660465,16100
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,complex_traits,_global_,protocol_fwd,0.12147946021748804,0.003807623407053829,11630
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,complex_traits,_global_,protocol_fwd_rc,0.13111395351703345,0.00501223944913205,11630
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,sge,accession_consequence_macro,protocol_fwd,0.2988355596276049,0.010135514267418445,8
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.31560837657651375,0.01028516463310357,8
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3210798299400941,0.013699408400254017,16100
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.3465105150845184,0.014391830023603416,16100
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,complex_traits,_global_,protocol_fwd,0.1194312160112192,0.0038487996575329096,11630
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,complex_traits,_global_,protocol_fwd_rc,0.12622186663930784,0.004919551905966931,11630
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,sge,accession_consequence_macro,protocol_fwd,0.27154528921073723,0.009577965394304128,8
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.3180631720919245,0.010435780787396834,8
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3114226644544693,0.013688489866734094,16100
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.32686013178053336,0.012887330284589344,16100
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,complex_traits,_global_,protocol_fwd,0.11104821902667639,0.0033670068115044553,11630
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,complex_traits,_global_,protocol_fwd_rc,0.12090170332446233,0.004253087353618983,11630
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,sge,accession_consequence_macro,protocol_fwd,0.28068389896758533,0.00994018781808063,8
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.308557014840234,0.010573896184564493,8
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.3114226644544693,0.013688489866734094,16100
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.32686013178053336,0.012887330284589344,16100
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,complex_traits,_global_,protocol_fwd,0.11104821902667639,0.0033670068115044553,11630
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,complex_traits,_global_,protocol_fwd_rc,0.12090170332446233,0.004253087353618983,11630
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,sge,accession_consequence_macro,protocol_fwd,0.28068389896758533,0.00994018781808063,8
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.308557014840234,0.010573896184564493,8
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.24520409077461391,0.010847680535261297,16100
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.26383533285888283,0.010815486799321051,16100
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,complex_traits,_global_,protocol_fwd,0.11088943263160606,0.0036445622287042683,11630
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,complex_traits,_global_,protocol_fwd_rc,0.1128860634306703,0.003917200819245849,11630
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,sge,accession_consequence_macro,protocol_fwd,0.27076562541853494,0.009367822473909106,8
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.28477603076478725,0.009915593699379012,8
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.2730830624594819,0.013078224444663222,16100
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.306810839075092,0.01296143825237739,16100
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,complex_traits,_global_,protocol_fwd,0.11275325088561575,0.003732113506820021,11630
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,complex_traits,_global_,protocol_fwd_rc,0.1188432964325267,0.0047909665235236955,11630
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,sge,accession_consequence_macro,protocol_fwd,0.28825187746555364,0.009928111031562858,8
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.3048194585625585,0.010217883652114452,8
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.10283778389690855,0.004582654493455439,16100
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.10133509528979794,0.004237080763007926,16100
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,complex_traits,_global_,protocol_fwd,0.10078525793318183,0.0029934563614121344,11630
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,complex_traits,_global_,protocol_fwd_rc,0.10009316996388035,0.0027678908677752564,11630
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,sge,accession_consequence_macro,protocol_fwd,0.14084290306709035,0.004606154291010552,8
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14239917393168947,0.0048739185105647195,8
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.10581766164834792,0.004852940019901369,16100
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.10788224225245154,0.004328618903282966,16100
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,complex_traits,_global_,protocol_fwd,0.10167105704608144,0.0027069139822991682,11630
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,complex_traits,_global_,protocol_fwd_rc,0.10172552875397287,0.002795650063116828,11630
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,sge,accession_consequence_macro,protocol_fwd,0.14688040931282365,0.004560754555578588,8
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14957460667741407,0.005059221197872429,8
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11720612066165194,0.0060428066481477884,16100
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11390968038658236,0.005158324615921432,16100
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,complex_traits,_global_,protocol_fwd,0.10351040411312035,0.003065444916458664,11630
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,complex_traits,_global_,protocol_fwd_rc,0.10088588999303003,0.0029001024773638064,11630
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,sge,accession_consequence_macro,protocol_fwd,0.14834053893882468,0.005024657936989875,8
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14677703618820778,0.004678632347799657,8
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11728454197713786,0.006121781111145944,16100
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11518667177892164,0.006094613548703709,16100
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,complex_traits,_global_,protocol_fwd,0.10079952951462198,0.002970232993056237,11630
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,complex_traits,_global_,protocol_fwd_rc,0.0999481544289723,0.0028452199611525503,11630
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,sge,accession_consequence_macro,protocol_fwd,0.147918712267834,0.004764912583882805,8
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.1483739209560024,0.0048651763097295195,8
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11133230857175722,0.0059210486312907444,16100
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11401790481063916,0.006622779972360159,16100
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,complex_traits,_global_,protocol_fwd,0.101699217409278,0.003255768771635625,11630
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,complex_traits,_global_,protocol_fwd_rc,0.10160476466638929,0.0031256370789244006,11630
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,sge,accession_consequence_macro,protocol_fwd,0.1399659935713431,0.004310401676812516,8
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.1407161370018031,0.004451355901228933,8
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11472557047066949,0.006606634128726677,16100
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11454684221652829,0.00609841876308831,16100
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,complex_traits,_global_,protocol_fwd,0.10035711971654873,0.003137216968425837,11630
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,complex_traits,_global_,protocol_fwd_rc,0.10044100772482559,0.002988793966421555,11630
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,sge,accession_consequence_macro,protocol_fwd,0.14256046926141605,0.004416401713366129,8
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.1417962053969068,0.004498007745526228,8
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.111642519379323,0.0057109098342251145,16100
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11231902206160932,0.006072752992561921,16100
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,complex_traits,_global_,protocol_fwd,0.10174762812391476,0.0031597242754915307,11630
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,complex_traits,_global_,protocol_fwd_rc,0.10086596413865513,0.0028363253561011145,11630
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,sge,accession_consequence_macro,protocol_fwd,0.1483423112158966,0.0049324034274814185,8
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.1460550004326358,0.004780659889118805,8
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11446151812365987,0.00646103969469388,16100
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11400494000796206,0.006497858784180142,16100
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,complex_traits,_global_,protocol_fwd,0.1002789243036186,0.002883166393984227,11630
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,complex_traits,_global_,protocol_fwd_rc,0.10074642022425913,0.002952585979604422,11630
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,sge,accession_consequence_macro,protocol_fwd,0.14141733447677704,0.004527496008836808,8
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14341257100409951,0.004878364046169678,8
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.10954167678302403,0.005364264448020498,16100
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11112970163813733,0.005677857957053727,16100
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,complex_traits,_global_,protocol_fwd,0.10144227472484593,0.0030200915414625947,11630
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,complex_traits,_global_,protocol_fwd_rc,0.10123844851383355,0.003044060722783855,11630
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,sge,accession_consequence_macro,protocol_fwd,0.1385084045925356,0.004536182390568062,8
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.13871138339708255,0.004361819419098708,8
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11513350125562463,0.006761061886891509,16100
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11507941519568278,0.0068990187493974875,16100
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd,0.10025886274312892,0.003142438485243088,11630
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd_rc,0.09960257479140702,0.0029440886871883653,11630
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd,0.1426953799656366,0.004671533662781739,8
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.1429311308626103,0.004672565100984993,8
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.10831795695837787,0.004447885993800812,16100
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11228611370245248,0.004795442487264082,16100
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,complex_traits,_global_,protocol_fwd,0.09688183663215033,0.00257287021616028,11630
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,complex_traits,_global_,protocol_fwd_rc,0.0961410504935664,0.0029085996748090316,11630
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,sge,accession_consequence_macro,protocol_fwd,0.14834260038740027,0.004584792995312283,8
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14617043555946682,0.00457151299576293,8
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.10970575443200803,0.005205149822886152,16100
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11140031995109967,0.0060936937638861105,16100
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,complex_traits,_global_,protocol_fwd,0.10223671920685112,0.0032454379859159386,11630
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,complex_traits,_global_,protocol_fwd_rc,0.10143182302920994,0.003025093052666996,11630
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,sge,accession_consequence_macro,protocol_fwd,0.13760948891288477,0.004262175105949653,8
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.13554760120986442,0.0039963054897500325,8
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11067196526546166,0.004897107163213137,16100
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11129446244153487,0.005322452481533949,16100
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,complex_traits,_global_,protocol_fwd,0.10163912274855305,0.0031211984631380244,11630
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,complex_traits,_global_,protocol_fwd_rc,0.10046867067350809,0.003019759354086415,11630
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,sge,accession_consequence_macro,protocol_fwd,0.13320342112818875,0.003720860945082745,8
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.1335494604524291,0.0037335803126123837,8
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11130963845827846,0.005703637083512984,16100
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.11051600439520673,0.005494027844471764,16100
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd,0.10177047520015636,0.003213837242804161,11630
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd_rc,0.10060862054465139,0.0031232995048830693,11630
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd,0.13777898765423616,0.004057471019064479,8
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.13927816613771082,0.004213597535790027,8

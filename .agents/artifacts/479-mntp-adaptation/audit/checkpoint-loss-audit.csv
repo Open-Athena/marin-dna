@@ -1,0 +1,42 @@
+point_id,arm,plot_series,kind,step,objective,validation_mode,loss,accuracy,n_rows,logged_loss,logged_abs_error,logged_parity_passed
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,causal,0.23138026297092437,0.520036768913269,640,,,True
+clm-replay-step0000,clm_continuation,Source CLM save/reload,replay,0,clm,causal,0.23138026297092437,0.520036768913269,640,,,True
+clm-replay-step0001,clm_continuation,Continued CLM replay,replay,1,clm,causal,0.2313825473189354,0.519834566116333,640,,,True
+clm-replay-step0005,clm_continuation,Continued CLM replay,replay,5,clm,causal,0.23137764930725097,0.519908094406128,640,,,True
+clm-replay-step0010,clm_continuation,Continued CLM replay,replay,10,clm,causal,0.23131186366081238,0.5191053926944733,640,,,True
+clm-replay-step0025,clm_continuation,Continued CLM replay,replay,25,clm,causal,0.2331239625811577,0.5171078324317933,640,,,True
+clm-replay-step0050,clm_continuation,Continued CLM replay,replay,50,clm,causal,0.24005358964204787,0.5103982895612716,640,,,True
+clm-replay-step0100,clm_continuation,Continued CLM replay,replay,100,clm,causal,0.2731037884950638,0.484289214015007,640,,,True
+clm-replay-step0200,clm_continuation,Continued CLM replay,replay,200,clm,causal,0.3065231055021286,0.45680147111415864,640,,,True
+clm-replay-step0400,clm_continuation,Continued CLM replay,replay,400,clm,causal,0.3329690009355545,0.4323284298181534,640,,,True
+clm-original-step0400,clm_continuation,Continued CLM original,lightning,400,clm,causal,0.3329690009355545,0.4323284298181534,640,0.332873672246933,9.532868862149879e-05,True
+clm-original-step0800,clm_continuation,Continued CLM original,lightning,800,clm,causal,0.35964833199977875,0.4051164239645004,640,0.3596110939979553,3.723800182342529e-05,True
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,causal,0.35009852051734924,0.41661151945590974,640,0.3500315546989441,6.696581840515137e-05,True
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,diffusion,0.49474939703941345,0.2763264238834381,640,,,True
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,single,0.40136826038360596,0.2765625,640,,,True
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,diffusion,0.4158159106969833,0.2912728935480118,640,0.4158123135566711,3.597140312228131e-06,True
+transferred-step0100,transferred_mntp,Transferred MNTP,lightning,100,mntp,single,0.3372824713587761,0.321875,640,0.3372707366943359,1.173466444021054e-05,True
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,diffusion,0.4047320455312729,0.31954532861709595,640,0.4048232138156891,9.116828441618763e-05,True
+transferred-step0200,transferred_mntp,Transferred MNTP,lightning,200,mntp,single,0.3272113621234894,0.3515625,640,0.3274611830711365,0.0002498209476470836,True
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,diffusion,0.4070769131183624,0.31933864057064054,640,0.4070413112640381,3.560185432432972e-05,True
+transferred-step0300,transferred_mntp,Transferred MNTP,lightning,300,mntp,single,0.3255985125899315,0.371875,640,0.3256168961524963,1.838356256478324e-05,True
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,diffusion,0.40065496861934663,0.31792312264442446,640,0.4006226062774658,3.236234188080944e-05,True
+transferred-step0400,transferred_mntp,Transferred MNTP,lightning,400,mntp,single,0.3152504563331604,0.3640625,640,0.3152280449867248,2.2411346435602386e-05,True
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,diffusion,0.40049719214439394,0.32827101051807406,640,0.4004814624786377,1.572966575624779e-05,True
+transferred-step0500,transferred_mntp,Transferred MNTP,lightning,500,mntp,single,0.31568357050418855,0.3859375,640,0.3157811760902405,9.760558605192982e-05,True
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,diffusion,0.4005125880241394,0.33294919431209563,640,0.4004898071289062,2.278089523322091e-05,True
+transferred-step0600,transferred_mntp,Transferred MNTP,lightning,600,mntp,single,0.318086764216423,0.3796875,640,0.3182757794857025,0.00018901526927950218,True
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,diffusion,0.39664930701255796,0.3323429703712463,640,0.396644115447998,5.19156455996983e-06,True
+transferred-step0700,transferred_mntp,Transferred MNTP,lightning,700,mntp,single,0.31210590302944186,0.390625,640,0.3120631277561188,4.2775273323081286e-05,True
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,diffusion,0.39796567261219024,0.33210963010787964,640,0.397973895072937,8.222460746776239e-06,True
+transferred-step0800,transferred_mntp,Transferred MNTP,lightning,800,mntp,single,0.316711762547493,0.4078125,640,0.31696817278862,0.00025641024112699196,True
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,diffusion,0.3972582846879959,0.3344797194004059,640,0.3972704708576202,1.2186169624284204e-05,True
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,single,0.30975790321826935,0.4203125,640,0.3100770711898803,0.00031916797161096744,True
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,diffusion,0.629141902923584,0.2509919986128807,640,,,True
+scratch-step0000,scratch_mntp,Scratch MNTP,scratch_initial,0,mntp,single,0.5022465229034424,0.20625,640,,,True
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,diffusion,0.40280710756778715,0.30744898319244385,640,0.4028118252754211,4.717707633938861e-06,True
+scratch-step0400,scratch_mntp,Scratch MNTP,lightning,400,mntp,single,0.31512817144393923,0.3671875,640,0.3150337934494018,9.437799453743123e-05,True
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,diffusion,0.39917547404766085,0.32881770431995394,640,0.3991797566413879,4.282593727034101e-06,True
+scratch-step0800,scratch_mntp,Scratch MNTP,lightning,800,mntp,single,0.3179119795560837,0.384375,640,0.318011462688446,9.948313236229911e-05,True
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,diffusion,0.399562680721283,0.3336621880531311,640,0.39954274892807,1.993179321296834e-05,True
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,single,0.3130840390920639,0.3953125,640,0.3131521344184875,6.809532642360061e-05,True

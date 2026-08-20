@@ -140,6 +140,15 @@ def _parser() -> argparse.ArgumentParser:
     recheck.add_argument("--dependency-batch-size", type=int, default=1_024)
     recheck.add_argument("--n-bootstrap", type=int, default=200)
 
+    final_dependency = subparsers.add_parser(
+        "final-dependency",
+        help="compare tRNA dependency at each trained arm's final checkpoint",
+    )
+    final_dependency.add_argument("--artifact-dir", type=Path, required=True)
+    final_dependency.add_argument("--output-dir", type=Path, required=True)
+    final_dependency.add_argument("--hf-repo-id", required=True)
+    final_dependency.add_argument("--batch-size", type=int, default=1_024)
+
     validation_report = subparsers.add_parser(
         "validation-report",
         help="plot component validation loss for all original training arms",
@@ -289,6 +298,17 @@ def main() -> None:
             vep_batch_size=args.vep_batch_size,
             dependency_batch_size=args.dependency_batch_size,
             n_bootstrap=args.n_bootstrap,
+        )
+        return
+
+    if args.command == "final-dependency":
+        from exp479_mntp.final_dependency import run_final_checkpoint_dependency
+
+        run_final_checkpoint_dependency(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
         )
         return
 
