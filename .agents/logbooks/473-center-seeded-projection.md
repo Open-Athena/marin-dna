@@ -645,3 +645,32 @@ cohort, assemblies, and downstream training recipe fixed.
   aggregate metrics remain untouched.
 - Next action: continue the projection gate; use this evaluator only after the
   four authorized arms produce immutable checkpoint roots.
+
+### 2026-08-20 02:40 UTC - CSP-013 downstream launch gate preflight
+
+- Producer state: Sky job 11 remained healthy at 1,279/10,329 steps (12%)
+  from exact producer `f764b7f1...`; durable uploads continued. The issue body
+  status and evidence links were refreshed without changing its scientific
+  scope or decision log.
+- Trace gate: a strict no-workdir-sync Sky task now verifies the exact trace
+  rule, implementation, and common-rule file hashes; sets the explicit
+  producer commit because synchronized Sky worktrees have a local-only `.git`
+  indirection; dry-runs the full producer target with only its aggregate rule
+  allowed; and stops before staging unless every final producer leaf exists.
+- Fail-closed evidence: trace preflight job 13 stopped at that aggregate check
+  because the producer is still incomplete. It did not stage source tables,
+  run `halLiftover`, or write trace artifacts. Producer job 11 remained
+  running. Job 12 was an earlier shell-quoting-only preflight failure and also
+  wrote no scientific artifact. The corrected task will be resubmitted only
+  after job 11 succeeds.
+- Iris state: the pinned experiment environment reached the healthy controller
+  at `iris.oa.dev`; 614/614 workers were healthy. In the selected
+  `tpu_v5p-preemptible_8-us-east5-a` group, two slices were ready, none were
+  booting, initializing, or failed, and demand was zero. This is a capacity
+  preflight, not a reservation; Iris may need to autoscale when all four arms
+  are submitted.
+- Launch boundary: no `exp473` job appeared among the 100 most recent Iris
+  jobs. Dataset revisions remain unset, so the four fail-closed training
+  graphs cannot launch before publication.
+- Next action: continue job 11 to its full QC/manual target, validate those
+  durable artifacts, then resubmit the strict sampled-trace task.
