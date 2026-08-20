@@ -326,7 +326,8 @@ name:
   The pooled metrics parquet contains prevalence baselines and AUPRC for every score.
   The block metrics parquet reports within-10-Mb-block variation and is not a confidence interval for pooled AUPRC.
   The orientation metrics and block metrics repeat the same exact calculation for FWD-only and genomically realigned RC-only scores.
-  The SVG outputs show pooled loss and entropy AUPRC across model size, all-pairs loss-delta lift over prevalence, and the single-orientation comparisons.
+  The SVG outputs show pooled loss and entropy AUPRC across model size, all-pairs loss-delta lift over prevalence, single-orientation comparisons, and global AUPRC versus approximate relative scoring compute.
+  The compute proxy sums model parameters across required model passes and orientations for a fixed 255-base window, normalized so one 46M orientation pass equals 1; it is not measured throughput.
   These classification outputs are derived summaries; the reusable token-level NLL and entropy vectors remain under the versioned `atoms/` prefix above.
 
 ### Linear probe (frozen-embedding VEP, #320)

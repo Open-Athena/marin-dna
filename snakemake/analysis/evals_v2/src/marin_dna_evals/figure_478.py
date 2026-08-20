@@ -85,8 +85,7 @@ def plot_nonrepeat_conservation_loss_478(
     for axis in grid.axes.flat:
         axis.set_box_aspect(1)
     grid.figure.subplots_adjust(top=0.8, wspace=0.05)
-    grid.figure.set_size_inches(8.5, 3)
-    grid.figure.suptitle("Non-repeat loss by conservation")
+    grid.figure.suptitle("Loss by conservation (repeats excluded)")
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -427,41 +426,48 @@ def plot_loss_delta_classification_478(
         matrix.columns = [_model_label(model) for model in matrix.columns]
         matrices.append((title, matrix))
 
+    matrices = [(title, 100 * matrix) for title, matrix in matrices]
     finite_values = np.concatenate(
         [matrix.to_numpy(dtype=float).ravel() for _, matrix in matrices]
     )
-    scale_min = min(0, float(np.nanmin(finite_values)))
-    scale_max = float(np.nanmax(finite_values))
+    scale_limit = float(np.nanmax(np.abs(finite_values)))
     sns.set_theme()
     figure, axes = plt.subplots(
         nrows=2,
         ncols=2,
-        figsize=(12, 10),
+        figsize=(9, 8),
         layout="constrained",
     )
     for index, (axis, (title, matrix)) in enumerate(
         zip(axes.flat, matrices, strict=True)
     ):
+        annotation = matrix.map(lambda value: f"{value:.0f}")
+        annotation = annotation.mask(annotation == "-0", "0")
         sns.heatmap(
             matrix,
-            annot=True,
-            fmt=".3f",
+            annot=annotation,
+            fmt="",
             mask=matrix.isna(),
             cbar=False,
+            cmap="vlag",
+            center=0,
             square=True,
-            vmin=scale_min,
-            vmax=scale_max,
+            vmin=-scale_limit,
+            vmax=scale_limit,
             ax=axis,
         )
         axis.set_title(title)
         row, column = divmod(index, 2)
         axis.set_xlabel("Smaller model" if row == 1 else "")
         axis.set_ylabel("Larger model" if column == 0 else "")
-        axis.tick_params(axis="both", labelrotation=0)
+        axis.tick_params(axis="x", labelrotation=45)
+        axis.tick_params(axis="y", labelrotation=0)
+        for label in axis.get_xticklabels():
+            label.set_horizontalalignment("right")
     figure.colorbar(
         axes.flat[0].collections[0],
         ax=axes,
-        label="AUPRC − prevalence",
+        label="AUPRC lift (%)",
     )
     figure.suptitle("Loss-delta conservation classification")
 
@@ -469,6 +475,80 @@ def plot_loss_delta_classification_478(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path, dpi=180, bbox_inches="tight")
     plt.close(figure)
+
+
+def plot_compute_efficiency_478(
+    averaged_metrics_path: str | Path,
+    orientation_metrics_path: str | Path,
+    output_path: str | Path,
+) -> None:
+    """Compare global conservation AUPRC against approximate scoring compute."""
+    metrics = pd.concat(
+        [
+            pd.read_parquet(averaged_metrics_path),
+            pd.read_parquet(orientation_metrics_path),
+        ],
+        ignore_index=True,
+    )
+    data = metrics[
+        (metrics["scope"] == "global")
+        & metrics["orientation"].isin(["fwd", "fwd_rc_mean"])
+    ].copy()
+    model_order = sorted(
+        set(data["model_from"]) | set(data["model_to"]),
+        key=_model_parameters,
+    )
+    scores_per_orientation = 2 * len(model_order) + len(
+        list(combinations(model_order, 2))
+    )
+    expected_rows = 2 * scores_per_orientation
+    assert len(data) == expected_rows, (
+        f"expected {expected_rows} global compute-comparison rows, found {len(data)}"
+    )
+
+    parameter_passes = data["model_from"].map(_model_parameters).astype(float)
+    is_delta = data["statistic"] == "loss_delta"
+    parameter_passes.loc[is_delta] += data.loc[is_delta, "model_to"].map(
+        _model_parameters
+    )
+    orientation_passes = data["orientation"].map({"fwd": 1, "fwd_rc_mean": 2})
+    data["Relative scoring compute"] = (
+        parameter_passes * orientation_passes / 46_000_000
+    )
+    data["AUPRC (%)"] = 100 * data["auprc"]
+    data["Approach"] = data["statistic"].map(
+        {"loss": "Loss", "entropy": "Entropy", "loss_delta": "Loss delta"}
+    )
+    data["Scoring"] = data["orientation"].map(
+        {"fwd": "One orientation", "fwd_rc_mean": "FWD/RC mean"}
+    )
+
+    sns.set_theme()
+    grid = sns.relplot(
+        data=data,
+        x="Relative scoring compute",
+        y="AUPRC (%)",
+        hue="Approach",
+        hue_order=["Loss", "Entropy", "Loss delta"],
+        style="Scoring",
+        style_order=["One orientation", "FWD/RC mean"],
+        kind="scatter",
+        height=6,
+        aspect=1,
+    )
+    grid.set(xscale="log")
+    grid.set_axis_labels("Relative scoring compute", "AUPRC (%)")
+    prevalence = data["prevalence"].unique()
+    assert len(prevalence) == 1
+    grid.ax.axhline(100 * prevalence[0], color="0.5", linestyle="--")
+    grid.ax.set_box_aspect(1)
+    grid.figure.subplots_adjust(top=0.9)
+    grid.figure.suptitle("Global AUPRC by relative scoring compute")
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    grid.figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    plt.close(grid.figure)
 
 
 def _errorbar(ax, x, row: pd.Series, *, color: str) -> None:

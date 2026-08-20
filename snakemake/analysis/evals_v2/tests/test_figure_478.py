@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from marin_dna_evals.figure_478 import (
     plot_classification_orientation_478,
+    plot_compute_efficiency_478,
     plot_conservation_classification_478,
     plot_loss_delta_classification_478,
     plot_nonrepeat_conservation_loss_478,
@@ -255,6 +256,7 @@ def test_plot_conservation_classification_smoke(
     delta_path = tmp_path / f"delta.{suffix}"
     orientation_plot_path = tmp_path / f"orientation.{suffix}"
     practical_delta_path = tmp_path / f"practical_delta.{suffix}"
+    compute_path = tmp_path / f"compute.{suffix}"
     plot_conservation_classification_478(metrics_path, absolute_path)
     plot_loss_delta_classification_478(metrics_path, delta_path)
     plot_classification_orientation_478(
@@ -268,7 +270,13 @@ def test_plot_conservation_classification_smoke(
         orientation_path,
         practical_delta_path,
     )
+    plot_compute_efficiency_478(
+        metrics_path,
+        orientation_path,
+        compute_path,
+    )
     assert absolute_path.stat().st_size > 5_000
     assert delta_path.stat().st_size > 5_000
     assert orientation_plot_path.stat().st_size > 5_000
     assert practical_delta_path.stat().st_size > 5_000
+    assert compute_path.stat().st_size > 5_000

@@ -500,11 +500,13 @@ rule plot_predictability_478_classification:
         orientation_loss=P478_ROOT + "/classification/orientation_loss_auprc.svg",
         orientation_entropy=P478_ROOT + "/classification/orientation_entropy_auprc.svg",
         practical_delta=P478_ROOT + "/classification/orientation_46m_76m_auprc.svg",
+        compute_efficiency=P478_ROOT + "/classification/compute_efficiency_auprc.svg",
     threads: 1
     run:
         from marin_dna_evals.figure_478 import (
             plot_classification_orientation_478,
             plot_conservation_classification_478,
+            plot_compute_efficiency_478,
             plot_loss_delta_classification_478,
             plot_practical_delta_orientation_478,
         )
@@ -528,6 +530,11 @@ rule plot_predictability_478_classification:
             input.orientation_metrics,
             output.practical_delta,
         )
+        plot_compute_efficiency_478(
+            input.metrics,
+            input.orientation_metrics,
+            output.compute_efficiency,
+        )
 
 
 rule predictability_478_classification:
@@ -539,3 +546,4 @@ rule predictability_478_classification:
         P478_ROOT + "/classification/orientation_loss_auprc.svg",
         P478_ROOT + "/classification/orientation_entropy_auprc.svg",
         P478_ROOT + "/classification/orientation_46m_76m_auprc.svg",
+        P478_ROOT + "/classification/compute_efficiency_auprc.svg",
