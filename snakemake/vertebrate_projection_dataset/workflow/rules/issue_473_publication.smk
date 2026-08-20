@@ -4,6 +4,7 @@ import re
 
 from marin_dna_vertebrate_projection.issue_473.publication import (
     parse_publication_datasets,
+    upload_private_validated_dataset,
     validate_artifacts,
     write_dataset_card,
 )
@@ -12,7 +13,6 @@ from marin_dna_vertebrate_projection.provenance import (
     resolve_pipeline_commit,
     validate_producer_manifest,
 )
-from marin_dna_vertebrate_projection.publication import upload_validated_dataset
 
 ISSUE_473_PUBLICATION_DATASETS = parse_publication_datasets(
     config["publication_datasets"]
@@ -293,7 +293,7 @@ rule issue_473_hf_upload_dataset:
         repo=lambda wc: ISSUE_473_PUBLICATION_BY_KEY[wc.dataset].hf_repo,
         workers=int(config["hf_upload_workers"]),
     run:
-        upload_validated_dataset(
+        upload_private_validated_dataset(
             ISSUE_473_HF_RESULTS,
             input.manifest,
             output[0],

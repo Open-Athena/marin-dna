@@ -48,7 +48,9 @@ sky exec -d -c issue-473-hf \
 
 Each repository is checked before upload for unexpected paths and checked
 after upload for its exact file tree, LFS sizes and SHA-256 hashes, and a
-byte-identical card at the resulting immutable revision.
+byte-identical card at the resulting immutable revision. An absent repository
+is created as private; a pre-existing public repository fails before any data
+upload, and private visibility is asserted again afterward.
 The retained local `publication/upload.done/<dataset>` receipts record each
 repository ID and exact 40-character Hub revision. Capture those three
 revisions from the retained worker before termination and pin them in the four-

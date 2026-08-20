@@ -6,6 +6,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 import zstandard as zstd
+from marin_dna_vertebrate_projection.issue_473 import publication as publication_module
 from marin_dna_vertebrate_projection.issue_473.publication import (
     PublicationDataset,
     parse_publication_datasets,
@@ -168,4 +169,92 @@ def test_issue_473_card_and_manifest_reconcile_exact_artifacts(tmp_path: Path) -
             validation_chrom="chr18",
             target_length=255,
             workers=1,
+        )
+
+
+def test_issue_473_upload_creates_and_rechecks_private_repo(
+    monkeypatch, tmp_path: Path
+) -> None:
+    class PrivateInfo:
+        private = True
+
+    class FakeApi:
+        def __init__(self) -> None:
+            self.created: list[tuple[str, str, bool, bool]] = []
+            self.info_calls = 0
+
+        def repo_exists(self, repo_id: str, *, repo_type: str) -> bool:
+            assert repo_id == "marin-dna/test-private"
+            assert repo_type == "dataset"
+            return False
+
+        def create_repo(
+            self,
+            repo_id: str,
+            *,
+            repo_type: str,
+            private: bool,
+            exist_ok: bool,
+        ) -> None:
+            self.created.append((repo_id, repo_type, private, exist_ok))
+
+        def dataset_info(self, repo_id: str) -> PrivateInfo:
+            assert repo_id == "marin-dna/test-private"
+            self.info_calls += 1
+            return PrivateInfo()
+
+    api = FakeApi()
+    uploads: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    monkeypatch.setattr(publication_module, "HfApi", lambda: api)
+    monkeypatch.setattr(
+        publication_module,
+        "upload_validated_dataset",
+        lambda *args, **kwargs: uploads.append((args, kwargs)),
+    )
+
+    publication_module.upload_private_validated_dataset(
+        tmp_path / "artifacts",
+        tmp_path / "manifest.json",
+        tmp_path / "upload.done",
+        cohort="center1_cds",
+        repo_id="marin-dna/test-private",
+        workers=4,
+    )
+
+    assert api.created == [("marin-dna/test-private", "dataset", True, False)]
+    assert api.info_calls == 2
+    assert len(uploads) == 1
+    assert uploads[0][1] == {
+        "cohort": "center1_cds",
+        "repo_id": "marin-dna/test-private",
+        "workers": 4,
+    }
+
+
+def test_issue_473_upload_rejects_preexisting_public_repo(monkeypatch) -> None:
+    class PublicInfo:
+        private = False
+
+    class FakeApi:
+        def repo_exists(self, repo_id: str, *, repo_type: str) -> bool:
+            return True
+
+        def dataset_info(self, repo_id: str) -> PublicInfo:
+            return PublicInfo()
+
+    monkeypatch.setattr(publication_module, "HfApi", FakeApi)
+    monkeypatch.setattr(
+        publication_module,
+        "upload_validated_dataset",
+        lambda *args, **kwargs: pytest.fail("public repository must not upload"),
+    )
+
+    with pytest.raises(AssertionError, match="refusing to upload.*publicly"):
+        publication_module.upload_private_validated_dataset(
+            "artifacts",
+            "manifest.json",
+            "upload.done",
+            cohort="center1_cds",
+            repo_id="marin-dna/public",
+            workers=4,
         )

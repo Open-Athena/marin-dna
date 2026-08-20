@@ -10,8 +10,10 @@ from pathlib import Path
 
 import polars as pl
 import zstandard as zstd
+from huggingface_hub import HfApi
 
 from marin_dna_vertebrate_projection.manifest import read_species_manifest
+from marin_dna_vertebrate_projection.publication import upload_validated_dataset
 
 
 @dataclass(frozen=True)
@@ -473,3 +475,37 @@ def validate_artifacts(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return manifest
+
+
+def upload_private_validated_dataset(
+    artifact_dir: str | Path,
+    manifest_path: str | Path,
+    output_path: str | Path,
+    *,
+    cohort: str,
+    repo_id: str,
+    workers: int,
+) -> None:
+    """Create or verify a private #473 repo, upload, then recheck privacy."""
+    api = HfApi()
+    if not api.repo_exists(repo_id, repo_type="dataset"):
+        api.create_repo(
+            repo_id,
+            repo_type="dataset",
+            private=True,
+            exist_ok=False,
+        )
+    before = api.dataset_info(repo_id)
+    assert before.private is True, f"refusing to upload #473 data publicly: {repo_id}"
+
+    upload_validated_dataset(
+        artifact_dir,
+        manifest_path,
+        output_path,
+        cohort=cohort,
+        repo_id=repo_id,
+        workers=workers,
+    )
+
+    after = api.dataset_info(repo_id)
+    assert after.private is True, f"#473 dataset became public: {repo_id}"
