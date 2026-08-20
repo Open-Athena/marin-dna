@@ -161,6 +161,8 @@ def _stream_component(
             raise ValueError(
                 f"{repo}@{revision} yielded {len(sequence)} bases; expected {NUCLEOTIDE_LENGTH}"
             )
+        if not any(base in "ACGTacgt" for base in sequence):
+            continue
         yield sequence
 
 
