@@ -205,12 +205,116 @@ def plot_nucleotide_dependency() -> None:
     save(fig, "nucleotide-dependency-correlation.svg")
 
 
+def plot_knowledge_summary() -> None:
+    """Render the accepted issue-479 interpretation as a compact lead figure."""
+
+    palette = plt.get_cmap("tab10").colors
+
+    validation_rows = pd.read_csv(ROOT / "training-validation.csv").query(
+        "step == 1000"
+    )
+    if len(validation_rows) != 1:
+        raise ValueError(
+            f"expected one step-1,000 validation row, found {len(validation_rows)}"
+        )
+    validation = validation_rows.iloc[0]
+    loss_modes = ("Diffusion mask", "Single mask")
+    loss_advantage = np.array(
+        [
+            validation["scratch_diffusion_loss"]
+            - validation["transferred_diffusion_loss"],
+            validation["scratch_single_mask_loss"]
+            - validation["transferred_single_mask_loss"],
+        ]
+    )
+
+    dependency = pd.read_csv(ROOT / "audit" / "final-checkpoint-dependency-summary.csv")
+    dependency_labels = {
+        "transferred_mntp": "Transferred MNTP",
+        "scratch_mntp": "Scratch MNTP",
+        "clm_continuation": "Continued CLM",
+    }
+    dependency_colors = {
+        "transferred_mntp": palette[0],
+        "scratch_mntp": palette[1],
+        "clm_continuation": palette[2],
+    }
+
+    endpoints = pd.read_csv(ROOT / "primary-endpoints.csv")
+    endpoint_order = ("mendelian_traits", "complex_traits", "sge")
+    endpoint_labels = ("Mendelian", "Complex traits", "SGE")
+    score_labels = {
+        "source_clm_avg": "Source CLM",
+        "transferred_mntp_fwd": "Transferred MNTP FWD",
+    }
+
+    figure, axes = plt.subplots(1, 3, figsize=(13.5, 4.5), constrained_layout=True)
+
+    axes[0].bar(loss_modes, loss_advantage, color=palette[0])
+    axes[0].axhline(0, color="black", linewidth=0.8)
+    axes[0].set_ylabel("Scratch − transferred cross-entropy")
+    axes[0].set_title("Transferred validation advantage")
+    axes[0].grid(axis="y", alpha=0.25)
+
+    context_order = ("past_context", "future_context")
+    context_labels = ("Past context", "Future context")
+    x = np.arange(len(context_order))
+    width = 0.24
+    for index, arm in enumerate(dependency_labels):
+        cell = dependency[dependency["arm"] == arm].set_index("region")
+        axes[1].bar(
+            x + (index - 1) * width,
+            cell.loc[list(context_order), "mean_dependency"],
+            width,
+            color=dependency_colors[arm],
+            label=dependency_labels[arm],
+        )
+    axes[1].set_xticks(x, context_labels)
+    axes[1].set_ylabel("Mean L∞ log-probability change")
+    axes[1].set_title("Final dependency by direction")
+    axes[1].grid(axis="y", alpha=0.25)
+    axes[1].legend(title="Checkpoint", frameon=False)
+
+    x = np.arange(len(endpoint_order))
+    offsets = (-0.08, 0.08)
+    for offset, (score_type, label), color in zip(
+        offsets,
+        score_labels.items(),
+        (palette[2], palette[0]),
+        strict=True,
+    ):
+        cell = endpoints[endpoints["score_type"] == score_type].set_index("dataset")
+        cell = cell.loc[list(endpoint_order)]
+        axes[2].errorbar(
+            x + offset,
+            cell["auprc"],
+            yerr=cell["se"],
+            color=color,
+            fmt="o",
+            capsize=3,
+            label=label,
+        )
+    axes[2].set_xticks(x, endpoint_labels)
+    axes[2].set_ylabel("AUPRC (±1 SE)")
+    axes[2].set_title("Source-relative VEP")
+    axes[2].grid(axis="y", alpha=0.25)
+    axes[2].legend(title="Checkpoint", frameon=False)
+
+    for axis in axes:
+        axis.set_box_aspect(1)
+    figure.suptitle(
+        "1,000-step MNTP conversion: transfer signal, bilateral context, lower VEP"
+    )
+    save(figure, "issue-479-lead.svg")
+
+
 def main() -> None:
     plot_validation()
     plot_primary_vep()
     plot_context()
     plot_context_window()
     plot_nucleotide_dependency()
+    plot_knowledge_summary()
 
 
 if __name__ == "__main__":
