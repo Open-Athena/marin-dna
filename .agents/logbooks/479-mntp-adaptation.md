@@ -180,3 +180,15 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Fix: Added the zstd dependency, explicit split routing, the observed validation field names, and four regression tests. One real record from each of the five train and five validation sources now has length 255; the locked suite passes 41 tests.
 - Cost/data boundary: Sky terminated the first instance after about five minutes; the listed-price estimate is below $0.21 and must be reconciled with the provider bill. No training step or aggregate labeled evaluation ran.
 - Next action: Push and dry-run the fix commit, then relaunch the standalone pilot.
+
+### 2026-08-20 00:26 - Full-trainer batch fallback
+
+- Hypothesis: The preflight-selected batch of 512 will fit the complete Lightning training path, including its full optimizer and callback state.
+- Launch commit: `b2b5b7cf90d8271e83578a526e3e10b5c828b1a2`.
+- Command: `uv run --locked python launch.py pilot --commit b2b5b7cf90d8271e83578a526e3e10b5c828b1a2 --model-card-reviewed --execute`.
+- Result: The corrected remote suite passed 41 tests, all ten data sources materialized, and the actual-checkpoint preflight repeated successfully. The preflight measured 31,475 model tokens/s at batch 512, 53.18% memory headroom, and an $18.98 projection including the $10 evaluation reserve. The first full Lightning training step then OOMed with 1.70 GiB free while requesting 1.88 GiB. No optimizer step completed and no checkpoint was produced.
+- Interpretation: Lightning's complete resident state uses materially more memory than the isolated preflight loop. This is exactly the registered condition for reducing the no-accumulation batch after the first optimizer step OOMs.
+- Fix: Add an explicit, validated maximum-batch-size pilot option and cap training and VEP batches at 256. This preserves the preflight gate, five-component balance, 1,000 optimizer steps, no gradient accumulation, and matched exposure across all three trained arms.
+- Verification: The locked local suite passes 41 tests in 6.83 seconds; Ruff, format, and whitespace checks pass. Peak pytest RSS was 1,051,312 KiB.
+- Cost boundary: The second instance ran from about 00:12 to 00:26 UTC, at most about $0.54 at the listed price. Together with the first attempt, failed-launch listed exposure remains below about $0.75; final provider billing still requires reconciliation.
+- Next action: Snapshot and relaunch at batch 256, confirm the first optimizer step and step-100 private checkpoint, then continue through all registered evaluations and teardown.
