@@ -1118,3 +1118,28 @@ cohort, assemblies, and downstream training recipe fixed.
   `e330d7acdd0c8eb1424a03c6aac7337b69e362d347737e33592c1b635b41549b`.
 - Next action: snapshot and arm the report handoff behind the existing sampled
   trace gate, then continue monitoring producer and training milestones.
+
+### 2026-08-20 09:58 UTC - CSP-028 report handoff corrected and armed
+
+- Fail-closed attempts: Sky job 3 exited immediately because `sky exec`
+  retained the producer's original workdir snapshot and the newly committed
+  report module was absent. The exact module was then staged as one additive
+  file and verified at its pinned SHA-256. Job 4 passed that code gate but
+  exposed that the exec shell had not inherited Sky's AWS CLI path; it entered
+  its sleep branch without reading or writing data.
+- Correction: commit `39c005487930ff7f8fac622e3068e96dec036c47`
+  exports the established Sky/miniforge/local runtime path explicitly. Only
+  the broken report waiter job 4 was cancelled. Neither producer, either
+  sampled-trace handoff, nor model training was interrupted or modified.
+- Armed handoff: Sky job 5,
+  `issue-473-post-projection-report-after-trace`, passed the exact module hash
+  and environment gates, called S3 successfully, received the expected 404
+  for the still-absent exact trace report, and entered the ten-minute
+  fail-closed wait at 09:57:08 UTC. Its output namespace is
+  `s3://oa-bolinas/snakemake/analysis/issue473/results/39c005487930ff7f8fac622e3068e96dec036c47/d43f059c7b0cb8efd5e2396a2bd9e085623a1731/bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039/projection_report/`.
+- Producer milestone: the fast producer reached 500/10,354 steps at 09:57
+  UTC. Its atomic HAL stage had reached 1,130,853,826,560 of
+  1,262,706,573,453 bytes; 75.1 GiB memory and 1.4 TiB NVMe remained
+  available, with load 23.69 on 48 vCPUs. No producer error was observed.
+- Next action: continue event-driven monitoring. Job 5 may stage or analyze
+  data only after job 2 has produced the exact sampled-trace report.
