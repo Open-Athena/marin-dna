@@ -249,3 +249,13 @@ author: gonzalobenegas
 - Validation: 8 focused tests pass, scoped pre-commit checks pass, the Snakemake dry-run schedules only the render rule, the render-only target uploaded all six SVGs, and the revised PNGs were visually inspected.
 - Interpretation: absolute loss and entropy dominate the loss-delta cloud at comparable compute in the global plot; the cheap frontier begins with one-orientation small-model scores.
 - Next action: obtain human feedback on the three revised figures before integrating the accepted plot order and classification interpretation into PR #482.
+
+### 2026-08-20 20:28 UTC - CRP-005 FWD-only efficiency frontier
+
+- Decision: use FWD-only scores for the throughput-versus-performance comparison because FWD and RC have nearly identical classification AUPRC and averaging doubles scoring cost.
+- Commit Hash: `dc860b2b`.
+- Result: the global scatter now contains the 44 FWD loss, entropy, and loss-delta candidates without the redundant FWD/RC-mean points or orientation legend.
+- Compute proxy: one 46M FWD pass equals 1, each absolute score costs its model parameter count, and each loss delta costs the sum of its two model parameter counts.
+- Durable output: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/classification/compute_efficiency_auprc.svg` was replaced with the FWD-only render.
+- Validation: 8 focused tests and scoped pre-commit checks pass; the dry-run schedules only the render rule, the render completed, and the PNG was visually inspected.
+- Interpretation: loss and entropy remain the practical frontier, while no loss-delta candidate improves AUPRC at comparable estimated scoring compute.
