@@ -140,6 +140,12 @@ def _parser() -> argparse.ArgumentParser:
     recheck.add_argument("--dependency-batch-size", type=int, default=1_024)
     recheck.add_argument("--n-bootstrap", type=int, default=200)
 
+    validation_report = subparsers.add_parser(
+        "validation-report",
+        help="plot component validation loss for all original training arms",
+    )
+    validation_report.add_argument("--output-dir", type=Path, required=True)
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
@@ -284,6 +290,12 @@ def main() -> None:
             dependency_batch_size=args.dependency_batch_size,
             n_bootstrap=args.n_bootstrap,
         )
+        return
+
+    if args.command == "validation-report":
+        from exp479_mntp.validation_report import run_validation_report
+
+        run_validation_report(args.output_dir)
         return
 
     if args.command == "finalize":
