@@ -34,6 +34,10 @@ DEFAULT_TRAIN_STEPS = 206_145  # 10 epochs: 2,638,656 examples * 10 / 128
 TEMPORARY_CHECKPOINT_INTERVAL = timedelta(minutes=15)
 PERMANENT_CHECKPOINT_COUNT = 10
 EVALUATION_COUNT = 2 * PERMANENT_CHECKPOINT_COUNT
+# Evaluate on a fixed 512-batch slice of validation rather than all 2,577
+# batches. A full pass measured 28 minutes on four nodes and 51 on two, which
+# is too costly to repeat twenty times per trial.
+MAX_EVAL_BATCHES = 512
 DATASET_REVISION = "4a444fff5520b992aa978d92a5af509a81977098"
 CACHE_VERSION = "2026.08.19"
 TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp"
@@ -411,7 +415,7 @@ def build_sweep_run(
         pod = base_build_config(ctx)
         trainer = replace(
             pod.train_config.trainer,
-            max_eval_batches=None,
+            max_eval_batches=MAX_EVAL_BATCHES,
             tracker=replace(
                 pod.train_config.trainer.tracker,
                 entity=wandb_entity,
