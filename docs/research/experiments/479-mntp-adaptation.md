@@ -5,8 +5,7 @@
 
 ![Three-panel summary of transferred validation advantage, directional nucleotide dependency, and source-relative VEP](figures/479/mntp-conversion.svg)
 
-_At step 1,000, positive validation deltas favor transferred MNTP; final dependency is the mean L∞ change in A/C/G/T log probability across 32,385 off-diagonal position pairs at tRNA-Arg-TCT; VEP compares source CLM with the registered transferred-MNTP forward-orientation endpoint._
-_Validation and dependency are deterministic one-seed summaries without error bars. VEP error bars are ±1 SE from 1,000 matched-group or within-SGE-cell bootstrap resamples, combined across subsets for macro endpoints._
+_At step 1,000, positive validation deltas favor transferred MNTP; dependency is the mean L∞ change in A/C/G/T log probability across 32,385 off-diagonal position pairs at tRNA-Arg-TCT; MNTP uses masked readouts and CLM uses causal next-token readouts, so absolute magnitudes are not directly comparable; VEP compares source CLM FWD+RC with transferred MNTP FWD. Validation and dependency are deterministic one-seed summaries without error bars; VEP error bars are ±1 SE from 1,000 matched-group or within-SGE-cell bootstrap resamples, combined across subsets for macro endpoints._
 
 ## Findings
 
@@ -45,11 +44,14 @@ Mendelian AUPRC is a macro average over qualifying consequence subsets on 16,100
 
 Source save/reload and replayed continued CLM at step 400 were bit-exact across 51,623 odd-autosome/X variants in both orientations.
 All three 400-step training replays reproduced the original per-step losses exactly.
-No replay had a post-warmup loss spike, and pre-clipping gradient norms remained mild.
+No replay had a post-warmup loss spike.
+Continued CLM had mild pre-clipping gradient norms (median/p95/max 0.791/1.002/1.263).
+Transferred and scratch MNTP instead had large, rapidly decaying clipped transients: p95/max 11.11/60.52 and 28.26/85.00, with clipping on 68.75% and 74.0% of their first 400 steps.
 
 Continued-CLM degradation was progressive.
 Fixed-plan validation cross-entropy was 0.23138 at step 0 and step 1, 0.23131 at step 10, 0.27310 at step 100, 0.33297 at step 400, and 0.35965 at step 800 before recovering to 0.35010 after cooldown at step 1,000.
-The fresh optimizer and registered peak learning rate are the supported explanation for this arm's damage; load/save and inference parity checks were exact.
+The trajectory is consistent with destructive optimization under the fresh-optimizer/high-learning-rate configuration, while exact load/save and inference parity rule out those mismatch classes.
+Preserved-optimizer and lower-learning-rate causal controls were not run, so the audit does not isolate the cause.
 
 The completed pilot, recovery work, cancelled diagnostics, and final integrity audit cost an estimated $24.73 at cloud list price.
 

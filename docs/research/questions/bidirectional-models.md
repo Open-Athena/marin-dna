@@ -30,12 +30,14 @@ A targeted integrity audit found no checkpoint serialization, deterministic repl
 Source save/reload and replayed CLM step 400 were bit-exact across 51,623 odd/X variants and both strands, and all three 400-step training replays matched their original per-step losses exactly.
 Continued-CLM degradation was progressive rather than immediate: fixed-plan validation loss stayed at 0.23138 through step 1, was 0.23131 at step 10, then rose to 0.27310 at 100, 0.33297 at 400, and 0.35965 at 800 before partially recovering to 0.35010 after cooldown.
 Its gradient norms were mild, with no post-warmup spikes.
-This supports destructive optimization from the fresh optimizer and high registered peak learning rates rather than a load/save or inference mismatch.
+The trajectory is consistent with destructive optimization under the fresh-optimizer/high-learning-rate configuration, while exact load/save and inference parity rule out those mismatch classes.
+Preserved-optimizer and lower-learning-rate causal controls were not run, so the audit does not isolate the cause.
 
 The audit did find one bug in the original dependency diagnostic: it compared a batch-one wild-type baseline with batch-1,020 substitutions, so BF16 batch-shape numerics contaminated the maps.
 Corrected same-call maps at the three step-1,000 checkpoints supersede that analysis.
 Transferred MNTP had past/future mean dependency 0.05314/0.05334, scratch MNTP 0.03056/0.02917, and continued CLM 0.12510/0 exactly.
 Both MNTP arms use context on both sides; the continued-CLM map's entire forbidden future triangle is exactly zero.
+MNTP maps use masked readouts and the continued-CLM map uses causal next-token readouts, so absolute dependency magnitudes are not directly comparable across objectives; the supported cross-objective contrast is bilateral versus right-blind behavior.
 
 The result is evidence that cheap behavioral conversion works, not that the resulting checkpoint is a useful representation model.
 It argues against automatically extending this exact one-seed MNTP recipe to 10,000 steps.
