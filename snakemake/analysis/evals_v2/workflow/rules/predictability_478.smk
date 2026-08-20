@@ -531,7 +531,6 @@ rule plot_predictability_478_classification:
             output.practical_delta,
         )
         plot_compute_efficiency_478(
-            input.metrics,
             input.orientation_metrics,
             output.compute_efficiency,
         )

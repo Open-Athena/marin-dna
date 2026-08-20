@@ -271,7 +271,6 @@ def test_plot_conservation_classification_smoke(
         practical_delta_path,
     )
     plot_compute_efficiency_478(
-        metrics_path,
         orientation_path,
         compute_path,
     )

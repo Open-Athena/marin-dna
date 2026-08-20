@@ -478,21 +478,13 @@ def plot_loss_delta_classification_478(
 
 
 def plot_compute_efficiency_478(
-    averaged_metrics_path: str | Path,
     orientation_metrics_path: str | Path,
     output_path: str | Path,
 ) -> None:
     """Compare global conservation AUPRC against approximate scoring compute."""
-    metrics = pd.concat(
-        [
-            pd.read_parquet(averaged_metrics_path),
-            pd.read_parquet(orientation_metrics_path),
-        ],
-        ignore_index=True,
-    )
+    metrics = pd.read_parquet(orientation_metrics_path)
     data = metrics[
-        (metrics["scope"] == "global")
-        & metrics["orientation"].isin(["fwd", "fwd_rc_mean"])
+        (metrics["scope"] == "global") & (metrics["orientation"] == "fwd")
     ].copy()
     model_order = sorted(
         set(data["model_from"]) | set(data["model_to"]),
@@ -501,7 +493,7 @@ def plot_compute_efficiency_478(
     scores_per_orientation = 2 * len(model_order) + len(
         list(combinations(model_order, 2))
     )
-    expected_rows = 2 * scores_per_orientation
+    expected_rows = scores_per_orientation
     assert len(data) == expected_rows, (
         f"expected {expected_rows} global compute-comparison rows, found {len(data)}"
     )
@@ -511,16 +503,10 @@ def plot_compute_efficiency_478(
     parameter_passes.loc[is_delta] += data.loc[is_delta, "model_to"].map(
         _model_parameters
     )
-    orientation_passes = data["orientation"].map({"fwd": 1, "fwd_rc_mean": 2})
-    data["Relative scoring compute"] = (
-        parameter_passes * orientation_passes / 46_000_000
-    )
+    data["Relative scoring compute"] = parameter_passes / 46_000_000
     data["AUPRC (%)"] = 100 * data["auprc"]
     data["Approach"] = data["statistic"].map(
         {"loss": "Loss", "entropy": "Entropy", "loss_delta": "Loss delta"}
-    )
-    data["Scoring"] = data["orientation"].map(
-        {"fwd": "One orientation", "fwd_rc_mean": "FWD/RC mean"}
     )
 
     sns.set_theme()
@@ -530,8 +516,6 @@ def plot_compute_efficiency_478(
         y="AUPRC (%)",
         hue="Approach",
         hue_order=["Loss", "Entropy", "Loss delta"],
-        style="Scoring",
-        style_order=["One orientation", "FWD/RC mean"],
         kind="scatter",
         height=6,
         aspect=1,
@@ -543,7 +527,7 @@ def plot_compute_efficiency_478(
     grid.ax.axhline(100 * prevalence[0], color="0.5", linestyle="--")
     grid.ax.set_box_aspect(1)
     grid.figure.subplots_adjust(top=0.9)
-    grid.figure.suptitle("Global AUPRC by relative scoring compute")
+    grid.figure.suptitle("Global AUPRC by relative FWD scoring compute")
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
