@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. A frozen-model audit supports one-orientation loss or entropy as a practical conservation proxy and controlled scale-differential loss as a candidate weighting arm; no universal selection rule or repeat-downweighting benefit has been established.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while frozen-model loss or entropy is a practical conservation proxy; no universal selection rule, causal benefit from likelihood-derived weighting, or repeat-downweighting benefit has been established.
 
 ## Question
 
@@ -26,18 +26,10 @@ Uniform loss is the simpler prior.
 If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them.
 This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
 
-The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) adds an in-corpus, inference-only result across the fixed-token 46M–4B model ladder.
-After adjustment for repeat status, GC content, local 7-mer predictability, and position, the 4B-minus-46M loss reduction for conserved nonrepeat sequence was 0.364 nats per base in CDS (95% block-bootstrap CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
-Repeat interactions were negative in every region, so repeats gained less with scale, but the conserved effect remained positive within repeats.
-Exact pooled AUPRC showed that absolute loss and predictive entropy ranked conserved nonrepeat positions increasingly well from 46M to 4B parameters.
-At 4B, loss and entropy AUPRC reached 0.723 and 0.731 globally, 0.857 and 0.867 in CDS, 0.522 and 0.533 upstream, and 0.428 and 0.434 downstream.
-The practical 46M-to-76M loss delta was above prevalence in every scope but weaker than either absolute small-model score.
-Every FWD loss-delta candidate was dominated by a loss or entropy score with at least as high AUPRC and no greater estimated scoring compute.
-Deterministic one-orientation loss or entropy is the practical first proxy, while the controlled scale-differential effect remains a distinct candidate for causal weighting.
-The audit rejects the broad claim that repeats are intrinsically easier after composition controls; it did not ablate the current repeat loss weight.
-FWD-only and RC-only classification AUPRC differed by at most 0.0053, and the conservation-by-repeat conclusions were unchanged when the orientations were analyzed separately.
-A single orientation cut inference compute in half and remained fairly close to the FWD/RC-averaged endpoint score (Spearman 0.69–0.81 in a fixed 100,000-base sample per comparison and full-span top-decile overlap 0.58–0.72 across regions), but it did not preserve the exact per-base ranking.
-Direct FWD-versus-RC endpoint agreement was much lower (sampled Spearman 0.09–0.37 and full-span top-decile overlap 0.25–0.45), even though their controlled group effects and closeness-to-mean metrics were nearly symmetric; neither orientation had empirical priority at the aggregate level.
+The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) found that, among nonrepeat human CDS, upstream, and downstream positions, absolute loss and entropy ranked conservation increasingly well with model scale and dominated same-corpus loss deltas at comparable FWD scoring compute.
+Controlled scale-dependent loss reduction remained associated with conservation, but it is distinct from target-distribution reducible loss.
+One orientation preserved the aggregate classification result at half the inference compute without preserving the exact per-base ranking.
+The inference-only audit did not test whether any score improves training and could not separate training exposure or homology effects.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -63,10 +55,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Conservation is a proxy for purifying constraint rather than a complete definition of function.
   It misses lineage-specific and hard-to-align elements, while annotations miss unknown constrained sequence.
   A useful observable is the joint coverage of evaluation loci, annotated classes, conservation tiers, and repeats under each proposed footprint.
-- [Why do MarinDNA models lag on complex-trait VEP?](complex-trait-vep.md) synthesizes evidence that the current conservation-filtered footprint undercovers complex-trait positives, especially distal variants.
-  This motivates weakly conserved/background arms but does not show that adding them improves VEP.
-- [How should a short-context gLM acquire long-range context?](long-context.md) identifies a long-context version of the same problem: uniformly weighted long windows contain much more background sequence than focal functional sequence.
-  Any long-context pretraining study should report whether selection or weighting changes the distant-context result.
 
 </details>
 
@@ -100,6 +88,10 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 
 <details>
 <summary>Possible directions</summary>
+
+- Audit token-loss dynamics across m5.2 checkpoints on its five validation arms.
+  On fixed nonrepeat tokens, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
+  This tests when functional ranking emerges and whether an online selection mask remains stable through training.
 
 ### What outcome are we optimizing?
 
@@ -141,11 +133,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### How do scale and data quantity change the answer?
 
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- The [46M–4B frozen-model audit](../experiments/478-conservation-repeat-predictability.md) is complete: controlled scale-differential loss remained associated with conservation, while absolute loss and entropy provided the best compute-adjusted conservation rankings.
-  Exact training-corpus exposure and homology density were unavailable, so neither mechanism has been excluded.
-- Audit token-loss dynamics across checkpoints of one model, starting with m5.2 across its five validation arms.
-  On fixed nonrepeat tokens, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
-  This tests when functional ranking emerges and whether an online selection mask remains stable through training.
 - Run a small fixed-compute causal experiment comparing uniform nonrepeat loss, frozen FWD loss or entropy as a soft weight, excess loss against a frozen target-distribution reference, a scale-differential weight from frozen checkpoints, and the student's lowest-current-loss mask as a diagnostic control.
   Add direct conservation weighting on human sequence as an oracle positive control.
   Keep repeat downweighting identical in every arm.
