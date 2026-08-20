@@ -22,6 +22,22 @@ def test_pilot_launch_forwards_private_publication_secrets() -> None:
     assert "WANDB_API_KEY" in command
 
 
+def test_pilot_launch_can_resume_into_private_spillover() -> None:
+    command = launch_command(
+        "pilot",
+        "a" * 40,
+        1234,
+        hf_repo_id="person/spillover",
+        resume_hf_repo_id="org/original",
+        checkpoint_upload_steps=(400, 800),
+        prior_cost_usd=2.7,
+    )
+    assert "HF_REPO_ID=person/spillover" in command
+    assert "RESUME_HF_REPO_ID=org/original" in command
+    assert "CHECKPOINT_UPLOAD_STEPS=400 800" in command
+    assert "EXP479_PRIOR_COST_USD=2.7" in command
+
+
 def test_pilot_dry_run_is_explicitly_forwarded_to_sky() -> None:
     command = launch_command("pilot", "a" * 40, 1234, dry_run=True)
     assert command[-1] == "--dryrun"

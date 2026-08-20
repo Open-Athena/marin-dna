@@ -22,29 +22,36 @@ class RuntimeMetricsCallback(L.Callback):
         self.batch_size = batch_size
         self.started_at: float | None = None
         self.started_at_utc: str | None = None
+        self.starting_global_step: int | None = None
 
     def on_train_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
-        del trainer, pl_module
+        del pl_module
         self.started_at = time.monotonic()
         self.started_at_utc = datetime.now(UTC).isoformat()
+        self.starting_global_step = int(trainer.global_step)
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
 
     def on_train_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         del pl_module
-        if self.started_at is None:
+        if self.started_at is None or self.starting_global_step is None:
             return
         elapsed = time.monotonic() - self.started_at
-        steps = int(trainer.global_step)
+        global_step = int(trainer.global_step)
+        executed_steps = global_step - self.starting_global_step
         payload = {
             "started_at_utc": self.started_at_utc,
             "finished_at_utc": datetime.now(UTC).isoformat(),
             "elapsed_seconds": elapsed,
-            "global_step": steps,
+            "starting_global_step": self.starting_global_step,
+            "global_step": global_step,
+            "executed_steps": executed_steps,
             "batch_size": self.batch_size,
-            "model_tokens": steps * self.batch_size * SEQUENCE_LENGTH,
+            "model_tokens": executed_steps * self.batch_size * SEQUENCE_LENGTH,
             "model_tokens_per_second": (
-                steps * self.batch_size * SEQUENCE_LENGTH / elapsed if elapsed > 0 else None
+                executed_steps * self.batch_size * SEQUENCE_LENGTH / elapsed
+                if elapsed > 0
+                else None
             ),
             "peak_cuda_allocated_bytes": (
                 int(torch.cuda.max_memory_allocated()) if torch.cuda.is_available() else None
@@ -67,11 +74,13 @@ class BudgetGuardCallback(L.Callback):
         budget_usd: float = BUDGET_USD,
         price_per_hour_usd: float = LAMBDA_GH200_PRICE_PER_HOUR_USD,
         reserve_usd: float = 2.0,
+        prior_cost_usd: float = 0.0,
     ) -> None:
         self.instance_start_unix = instance_start_unix
         self.budget_usd = budget_usd
         self.price_per_hour_usd = price_per_hour_usd
         self.reserve_usd = reserve_usd
+        self.prior_cost_usd = prior_cost_usd
 
     def on_train_batch_end(
         self,
@@ -85,7 +94,7 @@ class BudgetGuardCallback(L.Callback):
         if self.instance_start_unix is None:
             return
         elapsed_hours = (time.time() - self.instance_start_unix) / 3600
-        accrued = elapsed_hours * self.price_per_hour_usd
+        accrued = self.prior_cost_usd + elapsed_hours * self.price_per_hour_usd
         if accrued >= self.budget_usd - self.reserve_usd:
             trainer.should_stop = True
             raise RuntimeError(

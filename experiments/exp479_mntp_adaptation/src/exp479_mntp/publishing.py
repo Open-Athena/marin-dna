@@ -19,9 +19,10 @@ def assert_budget_reserve(reserve_usd: float = 2.0) -> None:
     """Reject a new upload when instance charges have reached the budget reserve."""
 
     raw_start = os.getenv("EXP479_INSTANCE_START_UNIX")
+    prior = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
     if raw_start is None:
         return
-    accrued = (time.time() - float(raw_start)) / 3600 * LAMBDA_GH200_PRICE_PER_HOUR_USD
+    accrued = prior + (time.time() - float(raw_start)) / 3600 * LAMBDA_GH200_PRICE_PER_HOUR_USD
     if accrued >= BUDGET_USD - reserve_usd:
         raise RuntimeError(
             f"refusing exp479 upload at accrued charge ${accrued:.2f}; "
@@ -61,16 +62,28 @@ def initialize_model_repo(
 class CheckpointUploadCallback(L.Callback):
     """Upload each newly completed full Lightning checkpoint once."""
 
-    def __init__(self, *, checkpoint_dir: Path, repo_id: str, arm: str) -> None:
+    def __init__(
+        self,
+        *,
+        checkpoint_dir: Path,
+        repo_id: str,
+        arm: str,
+        upload_steps: tuple[int, ...] | None = None,
+    ) -> None:
         self.checkpoint_dir = checkpoint_dir
         self.repo_id = repo_id
         self.arm = arm
+        self.upload_steps = None if upload_steps is None else frozenset(upload_steps)
         self.uploaded_names: set[str] = set()
 
     def _upload_new(self) -> None:
         api = HfApi()
         for checkpoint in sorted(self.checkpoint_dir.glob("step-*.ckpt")):
             if checkpoint.name in self.uploaded_names:
+                continue
+            step = int(checkpoint.stem.rsplit("-", maxsplit=1)[1])
+            if self.upload_steps is not None and step not in self.upload_steps:
+                self.uploaded_names.add(checkpoint.name)
                 continue
             path_in_repo = f"lightning/{self.arm}/{checkpoint.name}"
             if api.file_exists(
@@ -179,12 +192,16 @@ def publish_cost_estimate(*, artifact_dir: Path, repo_id: str) -> Path:
     start_unix = float(os.environ["EXP479_INSTANCE_START_UNIX"])
     finish_unix = time.time()
     elapsed_hours = (finish_unix - start_unix) / 3600
+    prior_cost = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
+    current_cost = elapsed_hours * LAMBDA_GH200_PRICE_PER_HOUR_USD
     payload = {
         "instance_start_utc": datetime.fromtimestamp(start_unix, UTC).isoformat(),
         "recorded_before_autodown_utc": datetime.fromtimestamp(finish_unix, UTC).isoformat(),
         "elapsed_hours": elapsed_hours,
         "listed_price_per_hour_usd": LAMBDA_GH200_PRICE_PER_HOUR_USD,
-        "estimated_list_cost_usd": elapsed_hours * LAMBDA_GH200_PRICE_PER_HOUR_USD,
+        "prior_estimated_list_cost_usd": prior_cost,
+        "current_estimated_list_cost_usd": current_cost,
+        "estimated_list_cost_usd": prior_cost + current_cost,
         "budget_cap_usd": BUDGET_USD,
         "note": "Pre-autodown listed-price estimate; reconcile against the provider bill.",
     }
