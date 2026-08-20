@@ -11,6 +11,7 @@ setup: |
 
 run: |
   set -euo pipefail
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   cd experiments/exp479_mntp_adaptation
   test -n "${EXPERIMENT_COMMIT:-}"
   test -n "${EXP479_INSTANCE_START_UNIX:-}"
@@ -21,20 +22,29 @@ run: |
   uv run --locked pytest
   uv run --locked exp479 preflight \
     --output "$HOME/exp479-artifacts/preflight.json"
+  TRAIN_BATCH=""
+  for CANDIDATE in 128 64 32 16 8 4 2 1; do
+    if uv run --locked exp479 trainer-preflight \
+      --batch-size "$CANDIDATE" \
+      --output "$HOME/exp479-artifacts/lightning-preflight.json"; then
+      TRAIN_BATCH="$CANDIDATE"
+      break
+    fi
+  done
+  test -n "$TRAIN_BATCH"
   uv run --locked exp479 pilot \
     --preflight "$HOME/exp479-artifacts/preflight.json" \
+    --trainer-preflight "$HOME/exp479-artifacts/lightning-preflight.json" \
     --artifact-dir "$HOME/exp479-artifacts" \
     --hf-repo-id "$HF_REPO_ID" \
     --model-card README.hf.md \
     --experiment-commit "$EXPERIMENT_COMMIT" \
     --model-card-reviewed
-  SELECTED_BATCH=$(uv run --locked python -c \
-    'import json, pathlib; print(json.loads(pathlib.Path.home().joinpath("exp479-artifacts/preflight.json").read_text())["memory_and_throughput"]["selected"]["batch_size"])')
   uv run --locked exp479 evaluate \
     --artifact-dir "$HOME/exp479-artifacts" \
     --output-dir "$HOME/exp479-artifacts/evaluation/vep" \
     --hf-repo-id "$HF_REPO_ID" \
-    --batch-size "$SELECTED_BATCH"
+    --batch-size "$TRAIN_BATCH"
   uv run --locked exp479 nuc-dep \
     --artifact-dir "$HOME/exp479-artifacts" \
     --output-dir "$HOME/exp479-artifacts/evaluation/nucleotide-dependency" \

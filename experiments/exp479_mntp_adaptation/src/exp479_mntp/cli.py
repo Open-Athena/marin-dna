@@ -11,6 +11,7 @@ from exp479_mntp.data import build_sequence_plan
 from exp479_mntp.pilot import run_pilot
 from exp479_mntp.preflight import run_preflight
 from exp479_mntp.train import train_arm
+from exp479_mntp.trainer_preflight import run_trainer_preflight
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -27,6 +28,11 @@ def _parser() -> argparse.ArgumentParser:
 
     preflight = subparsers.add_parser("preflight", help="run actual-checkpoint GH200 gates")
     preflight.add_argument("--output", type=Path, required=True)
+    trainer_preflight = subparsers.add_parser(
+        "trainer-preflight", help="measure one exact Lightning optimizer step"
+    )
+    trainer_preflight.add_argument("--batch-size", type=int, required=True)
+    trainer_preflight.add_argument("--output", type=Path, required=True)
 
     train = subparsers.add_parser("train", help="train one registered arm")
     train.add_argument(
@@ -61,6 +67,7 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         help="cap a passing preflight selection after a full-trainer first-step OOM",
     )
+    pilot.add_argument("--trainer-preflight", type=Path)
     pilot.add_argument(
         "--model-card-reviewed",
         action="store_true",
@@ -116,6 +123,12 @@ def main() -> None:
         result = run_preflight(args.output)
         print(json.dumps(result, indent=2))
         return
+    if args.command == "trainer-preflight":
+        result = run_trainer_preflight(batch_size=args.batch_size, output_path=args.output)
+        print(json.dumps(result, indent=2))
+        if result["status"] != "passed":
+            raise SystemExit(1)
+        return
 
     if args.command == "pilot":
         if not args.model_card_reviewed:
@@ -130,6 +143,7 @@ def main() -> None:
             num_workers=args.num_workers,
             offline_wandb=args.offline_wandb,
             maximum_batch_size=args.maximum_batch_size,
+            trainer_preflight_path=args.trainer_preflight,
         )
         return
 

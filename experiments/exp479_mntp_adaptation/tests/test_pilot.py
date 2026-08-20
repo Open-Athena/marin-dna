@@ -10,6 +10,7 @@ from exp479_mntp.pilot import (
     assert_observed_budget_projection,
     latest_local_checkpoint,
     selected_batch_size,
+    trainer_preflight_batch_size,
 )
 
 
@@ -60,3 +61,24 @@ def test_observed_budget_projection_uses_completed_arm_runtime(
     assert projection["completed_arms"] == 1
     assert projection["remaining_arms"] == 2
     assert projection["projected_total_usd"] < 50
+
+
+def test_trainer_preflight_batch_requires_passing_headroom(tmp_path: Path) -> None:
+    path = tmp_path / "trainer-preflight.json"
+    payload = {
+        "status": "passed",
+        "batch_size": 128,
+        "memory_and_throughput": {"headroom_fraction": 0.25},
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    assert trainer_preflight_batch_size(path) == 128
+
+    payload["memory_and_throughput"]["headroom_fraction"] = 0.09
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="below 10%"):
+        trainer_preflight_batch_size(path)
+
+    payload["status"] = "oom"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="did not pass"):
+        trainer_preflight_batch_size(path)

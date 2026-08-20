@@ -204,3 +204,16 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost boundary: This attempt ran from about 00:27 to 00:36 UTC, at most about $0.35 at the listed price. All failed-launch listed exposure remains below about $1.10; final provider billing still requires reconciliation.
 - Data boundary: No training step, checkpoint, aggregate labeled evaluation, even-autosome label, or Y label was produced or accessed.
 - Next action: Relaunch the corrected preflight, require it to reject the memory-heavy batches under the real deterministic backend, and proceed only with a selection retaining at least 10% measured headroom.
+
+### 2026-08-20 01:05 - Replace approximate memory gate with exact Lightning step
+
+- Hypothesis: Matching Lightning's deterministic backend flags in the hand-written optimizer preflight will reproduce full-trainer memory and reject batch 512.
+- Diagnostic launch commit: `06adaea8604e9a8e060cce78428a2b03e66d7c47`.
+- Result: The corrected preflight still measured exactly 47,510,808,576 allocated bytes and 53.18% headroom at batch 512. The deterministic-backend hypothesis was falsified. The job was cancelled immediately after the preflight result, before data-plan materialization or any training step, rather than knowingly repeating the OOM.
+- Interpretation: The approximation itself is insufficient: it does not exercise the complete Lightning Trainer, precision-plugin closure, module logging, gradient clipping, scheduler, and hook lifecycle. Inferring another batch from it would not satisfy the registered memory gate.
+- Fix: Add an isolated one-step `trainer-preflight` command using the production `AdaptationModule`, `ExperimentDataModule`, bf16-mixed precision, deterministic Trainer, gradient checkpointing, AdamH, clipping, and scheduler. It records resident memory before the closure, complete-step peak allocation/reservation, elapsed time, and status. Candidate processes start at batch 128 because 512 and 256 are empirical failures; each failed process exits before the next candidate so CUDA allocations cannot leak. Training and VEP consume only the first result with at least 10% headroom, and the result is uploaded to private staging.
+- Allocator: Set expandable CUDA segments for both the exact probe and production run to avoid treating allocator fragmentation as model memory.
+- Verification: The locked local suite passes 43 tests in 5.23 seconds; Ruff, format, whitespace, compilation, and both changed CLI help surfaces pass. Peak pytest RSS was 1,051,204 KiB.
+- Cost boundary: The cancelled diagnostic ran from about 00:52 to 00:58 UTC, at most about $0.23 at the listed price. Cumulative failed/diagnostic list-price exposure remains below about $1.33; final provider billing still requires reconciliation.
+- Data boundary: No optimizer step from a registered arm, checkpoint, or aggregate labeled evaluation was produced or accessed.
+- Next action: Run the exact Lightning gate, use its measured batch and headroom, and require the first registered arm to reach the step-100 restart checkpoint before treating training as established.
