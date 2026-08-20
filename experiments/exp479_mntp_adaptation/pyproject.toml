@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Full-attention MNTP adaptation pilot for the MarinDNA m5.1 checkpoint"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "biopython>=1.85,<2",
     "datasets==5.0.1",
     "fsspec[http]==2026.6.0",
     "huggingface-hub==1.28.0",

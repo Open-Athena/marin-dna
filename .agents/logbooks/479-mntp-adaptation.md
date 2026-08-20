@@ -254,3 +254,15 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Budget: This recovery instance ran for about 12 minutes, at most about $0.46 at the listed price. Conservative cumulative prior cost for the next hard guard is $3.25.
 - Data boundary: Only unlabeled training and validation data were used. No labeled VEP evaluation, even-autosome label, or Y label was accessed.
 - Next action: Verify and snapshot the isolation fix, dry-run the exact commit, relaunch on Lambda with completed transferred publication skipped, and require distinct scratch and CLM W&B runs before accepting their histories.
+
+### 2026-08-20 03:14 - Three arms durable; BGZF evaluation dependency
+
+- Launch commit: `6f4d8d69d0d79d409d327c327b24d951d400f050`; Lambda GH200 `us-east-3` at $2.29/hour after `us-east-1` lacked capacity.
+- Training: Private spillover state skipped the completed transferred arm. Scratch MNTP completed 1,000 steps in 14:54 at [W&B 4nstge1d](https://wandb.ai/gonzalobenegas/marin/runs/4nstge1d); CLM continuation completed 1,000 steps in 13:35 at [W&B yod8l3mb](https://wandb.ai/gonzalobenegas/marin/runs/yod8l3mb).
+- Durable records: Both new arms have independently verified private full checkpoints at steps 400 and 800 plus final step-1,000 Hugging Face exports and manifests. The transferred final export remains independently verified in spillover.
+- Isolation result: Scratch and CLM each created and finished distinct W&B runs. Scratch ended with nonzero left/right context probes (0.01149/0.01423); CLM ended with nonzero left and exactly zero right context influence (0.15719/0), matching the registered attention controls.
+- Evaluation failure: Before scoring any variants, `pyfaidx` rejected the BGZF GRCh38 reference because its optional Biopython runtime dependency was absent. The Lambda task failed and the cluster was explicitly torn down.
+- Fix: Declare and lock Biopython, and exercise the production reference-window path against an actual temporary BGZF FASTA in the locked test suite.
+- Budget: This instance ran for about 39 minutes, at most about $1.50 at the listed price. Conservative cumulative prior cost for the next hard guard is $4.80.
+- Data boundary: The public odd/X train-split files were materialized, but no variant was scored and no aggregate labeled metric was computed. No even-autosome or Y labels, predictions, effects, or aggregates were accessed.
+- Next action: Verify and snapshot the BGZF dependency fix, then relaunch on Lambda with all three trained arms skipped and run the registered evaluations and final publication.
