@@ -1,0 +1,52 @@
+{
+  "source_model": "marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "checkpoint": "transferred_mntp/step-1000",
+  "reference": "marin-dna/human-genome@11b9433582981bb929af333bc6422f10a8fd71b4/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz",
+  "split": "train",
+  "allowed_chromosomes": [
+    "1",
+    "11",
+    "13",
+    "15",
+    "17",
+    "19",
+    "21",
+    "3",
+    "5",
+    "7",
+    "9",
+    "X"
+  ],
+  "conditions": [
+    {
+      "name": "centered_full",
+      "variant_index": 127,
+      "ablated_flank": null
+    },
+    {
+      "name": "left_context_ablated",
+      "variant_index": 127,
+      "ablated_flank": "left"
+    },
+    {
+      "name": "right_context_ablated",
+      "variant_index": 127,
+      "ablated_flank": "right"
+    },
+    {
+      "name": "window_shift_upstream_64",
+      "variant_index": 191,
+      "ablated_flank": null
+    },
+    {
+      "name": "window_shift_downstream_64",
+      "variant_index": 63,
+      "ablated_flank": null
+    }
+  ],
+  "window_shift_bases": 64,
+  "context_ablation_token": "[UNK] via nucleotide N",
+  "parameterization": "Registered diagnostic with post-hoc fixed parameterization; not a model-selection gate.",
+  "batch_size": 512,
+  "n_bootstrap": 1000
+}

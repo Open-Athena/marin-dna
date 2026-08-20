@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "batch_size": 64,
+  "started_at_utc": "2026-08-20T03:28:36.837250+00:00",
+  "finished_at_utc": "2026-08-20T03:28:46.510065+00:00",
+  "deterministic_algorithms": true,
+  "memory_and_throughput": {
+    "allocated_before_step_bytes": 4483565056,
+    "reserved_before_step_bytes": 4490002432,
+    "peak_allocated_bytes": 54238396416,
+    "peak_reserved_bytes": 54444163072,
+    "total_memory_bytes": 101468602368,
+    "headroom_fraction": 0.46546621171254965,
+    "seconds_per_step": 6.879762831999983
+  }
+}

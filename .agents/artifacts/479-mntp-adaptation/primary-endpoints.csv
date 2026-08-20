@@ -1,0 +1,16 @@
+dataset,endpoint,score_type,auprc,se,n_rows
+mendelian_traits,_macro_avg_,source_clm_avg,0.39509877475347566,0.01553004173994284,16100
+mendelian_traits,_macro_avg_,transferred_mntp_fwd,0.11513526533532459,0.006655999645767721,16100
+mendelian_traits,_macro_avg_,transferred_mntp_avg,0.115237088592146,0.006807552883821028,16100
+mendelian_traits,_macro_avg_,scratch_mntp_fwd,0.11123291695670998,0.005949016032764756,16100
+mendelian_traits,_macro_avg_,clm_continuation_avg,0.30638792205173476,0.013193540732551924,16100
+complex_traits,_global_,source_clm_avg,0.1342031163265465,0.005231548309223138,11630
+complex_traits,_global_,transferred_mntp_fwd,0.10030348382178172,0.0030867397060861507,11630
+complex_traits,_global_,transferred_mntp_avg,0.09959397836731329,0.0028894052421690177,11630
+complex_traits,_global_,scratch_mntp_fwd,0.10178015337197754,0.0031487318658254783,11630
+complex_traits,_global_,clm_continuation_avg,0.1188211621656077,0.00481296167026162,11630
+sge,accession_consequence_macro,source_clm_avg,0.3577038098689789,0.01097240945974943,23853
+sge,accession_consequence_macro,transferred_mntp_fwd,0.14266476601746939,0.004763964731724357,23853
+sge,accession_consequence_macro,transferred_mntp_avg,0.14290296998505989,0.004754610270395058,23853
+sge,accession_consequence_macro,scratch_mntp_fwd,0.1377930952939076,0.004117065881530764,23853
+sge,accession_consequence_macro,clm_continuation_avg,0.3052282154887929,0.010332722096592754,23853
