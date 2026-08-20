@@ -6,6 +6,9 @@ import pytest
 from marin_dna_evals.grouped_vep_metrics import (
     AUPRC,
     GROUP_SMD,
+    GROUPED_VEP_BOOTSTRAP_PATTERN,
+    GROUPED_VEP_SCORE_PATTERN,
+    GROUPED_VEP_SUMMARY_PATTERN,
     compute_grouped_vep_metrics,
     group_smd,
     matched_group_gaps,
@@ -42,6 +45,19 @@ def _grouped_data(
     return pd.DataFrame(dataset_rows), pd.DataFrame(
         {"score": score, "identical_score": score.copy()}
     )
+
+
+def test_grouped_vep_artifact_paths_are_split_scoped():
+    patterns = (
+        GROUPED_VEP_SCORE_PATTERN,
+        GROUPED_VEP_SUMMARY_PATTERN,
+        GROUPED_VEP_BOOTSTRAP_PATTERN,
+    )
+    for pattern in patterns:
+        assert "{split}" in pattern
+        train = pattern.format(split="train", model="model", dataset="dataset")
+        test = pattern.format(split="test", model="model", dataset="dataset")
+        assert train != test
 
 
 def test_group_smd_matches_positive_minus_mean_negative_formula():

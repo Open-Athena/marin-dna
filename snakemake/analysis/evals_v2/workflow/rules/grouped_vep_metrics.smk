@@ -6,13 +6,20 @@ unchanged. Each cell writes a summary report and the aligned match-group
 bootstrap draws used for Group SMD intervals and paired comparisons.
 """
 
-from marin_dna_evals.grouped_vep_metrics import compute_grouped_vep_metrics
+from marin_dna_evals.grouped_vep_metrics import (
+    GROUPED_VEP_BOOTSTRAP_PATTERN,
+    GROUPED_VEP_SCORE_PATTERN,
+    GROUPED_VEP_SUMMARY_PATTERN,
+    compute_grouped_vep_metrics,
+)
 
 GROUPED_VEP_DATASETS = [
     dataset for dataset in DATASETS if get_dataset_protocol(dataset) == "matched_pair"
 ]
 GROUPED_VEP_TARGETS = [
-    f"results/grouped_vep_metrics/{model['name']}/{dataset}.parquet"
+    GROUPED_VEP_SUMMARY_PATTERN.format(
+        split=config["split"], model=model["name"], dataset=dataset
+    )
     for model in config["models"]
     for dataset in get_model_datasets(model["name"])
     if dataset in GROUPED_VEP_DATASETS
@@ -24,17 +31,76 @@ rule grouped_vep_metrics:
         GROUPED_VEP_TARGETS,
 
 
+rule compute_grouped_vep_scores:
+    """Score one grouped VEP cell in a split-scoped additive namespace."""
+    input:
+        checkpoint="results/checkpoints/{model}",
+    output:
+        GROUPED_VEP_SCORE_PATTERN,
+    wildcard_constraints:
+        split=config["split"],
+        model="|".join(MODELS),
+        dataset="|".join(GROUPED_VEP_DATASETS),
+    threads: config["inference"]["num_workers"]
+    params:
+        split=lambda wc: wc.split,
+        window_size=lambda wc: get_model_config(wc.model)["window_size"],
+        hf_path=lambda wc: f"{config['input_hf_prefix']}_{wc.dataset}",
+        hf_revision=lambda wc: get_dataset_config(wc.dataset)["hf_revision"],
+        genome_path=config["genome_path"],
+        rc=config["inference"]["rc"],
+        torch_compile=config["inference"]["torch_compile"],
+    run:
+        assert wildcards.dataset in get_model_datasets(wildcards.model), (
+            f"model {wildcards.model!r} is not configured for dataset "
+            f"{wildcards.dataset!r}"
+        )
+        batch_size = get_model_batch_size(wildcards.model)
+        eval_accumulation_steps = config["inference"].get("eval_accumulation_steps")
+        ds = load_dataset(
+            params.hf_path, split=params.split, revision=params.hf_revision
+        ).to_pandas()
+        for column in REQUIRED_VARIANT_COLUMNS:
+            assert column in ds.columns, f"dataset missing column {column!r}"
+        scores = compute_variant_scores(
+            checkpoint_path=input.checkpoint,
+            dataset=ds,
+            genome_path=params.genome_path,
+            context_size=params.window_size,
+            batch_size=batch_size,
+            num_workers=config["inference"]["num_workers"],
+            data_transform_on_the_fly=config["inference"][
+                "data_transform_on_the_fly"
+            ],
+            torch_compile=params.torch_compile,
+            rc=params.rc,
+            return_embeddings=False,
+            eval_accumulation_steps=eval_accumulation_steps,
+        )
+        assert len(scores) == len(ds)
+        out = pd.concat(
+            [ds.reset_index(drop=True), scores.reset_index(drop=True)], axis=1
+        )
+        out.to_parquet(output[0], index=False)
+        print(
+            f"[evals_v2] grouped VEP scores {wildcards.model} "
+            f"{wildcards.dataset} ({params.split}): n={len(out)}"
+        )
+
+
 rule compute_grouped_vep_report:
     """Report AUPRC beside Group SMD for one grouped VEP model/dataset cell."""
     input:
-        "results/scores/{model}/{dataset}.parquet",
+        GROUPED_VEP_SCORE_PATTERN,
     output:
-        summary="results/grouped_vep_metrics/{model}/{dataset}.parquet",
-        bootstrap="results/grouped_vep_bootstrap/{model}/{dataset}.parquet",
+        summary=GROUPED_VEP_SUMMARY_PATTERN,
+        bootstrap=GROUPED_VEP_BOOTSTRAP_PATTERN,
     wildcard_constraints:
+        split=config["split"],
         model="|".join(MODELS),
         dataset="|".join(GROUPED_VEP_DATASETS),
     params:
+        split=lambda wc: wc.split,
         n_bootstrap=config["inference"]["n_bootstrap"],
         bootstrap_seed=config["inference"]["bootstrap_seed"],
         score_protocol=lambda wc: get_dataset_config(wc.dataset)["score_protocol"],
@@ -73,7 +139,7 @@ rule compute_grouped_vep_report:
         for table in (summary, bootstrap):
             table["model"] = wildcards.model
             table["dataset"] = wildcards.dataset
-            table["split"] = config["split"]
+            table["split"] = params.split
             table["bootstrap_seed"] = params.bootstrap_seed
         summary.to_parquet(output.summary, index=False)
         bootstrap.to_parquet(output.bootstrap, index=False)

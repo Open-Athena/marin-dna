@@ -74,9 +74,13 @@ The named target is off `rule all` so existing `results/metrics/` artifacts keep
 Each cell writes:
 
 ```text
-results/grouped_vep_metrics/{model}/{dataset}.parquet
-results/grouped_vep_bootstrap/{model}/{dataset}.parquet
+results/grouped_vep_scores/{split}/{model}/{dataset}.parquet
+results/grouped_vep_metrics/{split}/{model}/{dataset}.parquet
+results/grouped_vep_bootstrap/{split}/{model}/{dataset}.parquet
 ```
+
+The grouped report uses its own split-scoped score bundle rather than the legacy `results/scores/` artifact.
+Changing `config.split` therefore selects a different score, summary, and bootstrap identity instead of reusing or overwriting artifacts from another split.
 
 The summary schema is `[metric, higher_is_better, score_type, subset, value, se, ci_low, ci_high, confidence_level, n_groups, n_rows, available, unavailable_reason, uncertainty_method, n_bootstrap, n_bootstrap_valid, model, dataset, split, bootstrap_seed]`.
 Filtering summary rows to `metric == "AUPRC"` preserves the existing `[score_type, subset, value, se, n_groups, n_rows]` output from `compute_auprc_metrics`.

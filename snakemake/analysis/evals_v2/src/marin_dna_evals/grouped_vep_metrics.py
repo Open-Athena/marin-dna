@@ -18,6 +18,19 @@ AUPRC = "AUPRC"
 GROUP_SMD = "group_smd"
 HIGHER_IS_BETTER = {AUPRC: True, GROUP_SMD: True}
 
+# Keep the dataset split in every additive grouped-report artifact identity.
+# These patterns are shared with the Snakefile and tested here because the
+# legacy results/scores namespace intentionally remains unchanged.
+GROUPED_VEP_SCORE_PATTERN = (
+    "results/grouped_vep_scores/{split}/{model}/{dataset}.parquet"
+)
+GROUPED_VEP_SUMMARY_PATTERN = (
+    "results/grouped_vep_metrics/{split}/{model}/{dataset}.parquet"
+)
+GROUPED_VEP_BOOTSTRAP_PATTERN = (
+    "results/grouped_vep_bootstrap/{split}/{model}/{dataset}.parquet"
+)
+
 SUMMARY_COLUMNS = [
     "metric",
     "higher_is_better",
