@@ -45,6 +45,10 @@ PER_DEVICE_PARALLELISM = 1_024
 DATA_VERSION = "2026.08.20"
 DEFAULT_TPU_REGION = "us-east5"
 ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
+ARTIFACT_BUCKET_BY_TPU_REGION = {
+    "us-east5": "marin-us-east5",
+    "us-central1": "marin-us-central1",
+}
 
 MODEL = Qwen3Config(
     max_seq_len=SEQUENCE_LENGTH,
@@ -165,6 +169,19 @@ def selected_tpu_region() -> str:
     return region
 
 
+def validated_marin_prefix(tpu_region: str) -> str:
+    """Require the experiment artifact bucket to be local to its TPU region."""
+    prefix = required_env("MARIN_PREFIX").rstrip("/")
+    expected_bucket = ARTIFACT_BUCKET_BY_TPU_REGION[tpu_region]
+    expected_prefix = f"gs://{expected_bucket}"
+    if prefix != expected_prefix and not prefix.startswith(f"{expected_prefix}/"):
+        raise ValueError(
+            f"MARIN_PREFIX must use {expected_bucket!r} for TPU region "
+            f"{tpu_region!r}, got {prefix!r}"
+        )
+    return prefix
+
+
 def selected_arm() -> Arm:
     key = required_env("EXP473_ARM")
     try:
@@ -235,11 +252,12 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
     cache = tokenized_dataset(arm)
     run_id = f"dna-exp473-0p25b-{arm.key}-v1"
     tpu_region = selected_tpu_region()
+    marin_prefix = validated_marin_prefix(tpu_region)
     forwarded_env = {
         "WANDB_API_KEY": required_env("WANDB_API_KEY"),
         "WANDB_ENTITY": required_env("WANDB_ENTITY"),
         "WANDB_PROJECT": required_env("WANDB_PROJECT"),
-        "MARIN_PREFIX": required_env("MARIN_PREFIX"),
+        "MARIN_PREFIX": marin_prefix,
         "EXP473_TPU_REGION": tpu_region,
         "HF_HUB_DOWNLOAD_TIMEOUT": "120",
         "UV_LOCK_TIMEOUT": "7200",

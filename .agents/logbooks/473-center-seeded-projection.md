@@ -1581,3 +1581,30 @@ cohort, assemblies, and downstream training recipe fixed.
   complete locked suite then passed 28/28 tests in 5.95 seconds with peak RSS
   494,660 KiB under the shared-node lock, 9.54 GiB available memory, and 0.47
   one-minute load at start.
+
+### 2026-08-20 17:42 UTC - CSP-045 central1 data-locality boundary
+
+- Fail-closed evidence: all three v4 child configs correctly pinned
+  `us-central1`. CDS center-1 then exited before step 0 because its realized
+  cache remained in `marin-us-east5`; Marin rejects a cache and TPU in
+  different regions. Enhancer full-window was stopped during setup and
+  enhancer center-1 while pending, so neither trained. A prefix dry-run
+  selected exactly those remaining coordinator and child jobs before stop.
+- Size and location audit: the standard buckets are `marin-us-east5` in
+  `US-EAST5` and `marin-us-central1` in `US-CENTRAL1`. Exact east5 caches are
+  11.41 GiB for CDS center-1, 4.18 GiB for enhancer full-window, and 4.13 GiB
+  for enhancer center-1. The issue-specific central1 prefix is empty.
+- Artifact receipts embed their realized output and cache paths, so blindly
+  copying an east5 cache tree would not make it a valid central1 artifact. The
+  clean route is to rebuild the same source-pinned caches from the exact
+  public, ungated Hugging Face revisions under an additive central1 prefix;
+  this preserves the original east5 artifacts unchanged.
+- The launcher now fails before graph creation unless `MARIN_PREFIX` uses the
+  artifact bucket matching `EXP473_TPU_REGION`. This prevents another
+  accelerator-side locality failure and makes the central1 rebuild/checkpoint
+  namespace explicit.
+- Verification: all 28 locked experiment tests passed in 6.25 seconds with
+  peak RSS 494,408 KiB under the shared-node lock; changed-file hooks and
+  `git diff --check` passed. The next launch will use
+  `gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection` for both
+  rebuilt caches and new checkpoints.

@@ -95,6 +95,10 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
 def test_tpu_child_region_override_is_explicit_and_bounded(monkeypatch) -> None:
     _set_required_env(monkeypatch)
     monkeypatch.setenv("EXP473_TPU_REGION", "us-central1")
+    monkeypatch.setenv(
+        "MARIN_PREFIX",
+        "gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection/",
+    )
     step = build_training(ARMS["cds_center_1"])
     pod = step.build_config(
         StepContext.for_fingerprint(
@@ -104,6 +108,16 @@ def test_tpu_child_region_override_is_explicit_and_bounded(monkeypatch) -> None:
     )
     assert step.runtime_args["train_resources"].regions == ["us-central1"]
     assert pod.env_vars["EXP473_TPU_REGION"] == "us-central1"
+    assert pod.env_vars["MARIN_PREFIX"] == (
+        "gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection"
+    )
+
+    monkeypatch.setenv(
+        "MARIN_PREFIX",
+        "gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection",
+    )
+    with pytest.raises(ValueError, match="MARIN_PREFIX"):
+        build_training(ARMS["cds_center_1"])
 
     monkeypatch.setenv("EXP473_TPU_REGION", "anywhere")
     with pytest.raises(ValueError, match="EXP473_TPU_REGION"):

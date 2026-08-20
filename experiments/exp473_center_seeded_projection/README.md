@@ -104,8 +104,13 @@ compute approval.
 The coordinator's `--region` controls only its CPU task. Set
 `EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
 allowed values are `us-east5` and `us-central1`, with `us-east5` retained as
-the default. A region migration must terminate the old coordinator and child
-before launching a replacement with the same run and checkpoint identities.
+the default. `MARIN_PREFIX` must use the matching `marin-us-east5` or
+`marin-us-central1` bucket; the launcher fails before graph creation when the
+bucket and child region differ. A region migration must terminate the old
+coordinator and child before launching a replacement with the same run and
+checkpoint identities. A new region uses an additive artifact namespace and
+rebuilds the source-pinned cache there rather than rewriting a receipt from a
+different region.
 
 ### Paired projection loss
 
