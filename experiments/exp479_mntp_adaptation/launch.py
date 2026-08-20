@@ -11,7 +11,11 @@ from pathlib import Path
 
 REPOSITORY_URL = "https://github.com/Open-Athena/marin-dna.git"
 CLUSTER_NAME = "dna-exp479-gh200"
-STAGE_CONFIGS = {"preflight": "sky/preflight.yaml", "pilot": "sky/pilot.yaml"}
+STAGE_CONFIGS = {
+    "preflight": "sky/preflight.yaml",
+    "pilot": "sky/pilot.yaml",
+    "diagnostics": "sky/diagnostics.yaml",
+}
 HF_REPO_ID = "marin-dna/marin-dna-exp479-mntp-m5.1"
 
 
@@ -19,17 +23,18 @@ def execution_environment(stage: str) -> dict[str, str]:
     """Load existing local credentials into memory for Sky secret forwarding."""
 
     environment = dict(os.environ)
-    if stage != "pilot":
+    if stage not in {"pilot", "diagnostics"}:
         return environment
     if not environment.get("HF_TOKEN"):
         token_path = Path.home() / ".cache" / "huggingface" / "token"
         if token_path.exists():
             environment["HF_TOKEN"] = token_path.read_text(encoding="utf-8").strip()
-    if not environment.get("WANDB_API_KEY"):
+    if stage == "pilot" and not environment.get("WANDB_API_KEY"):
         authentication = netrc.netrc().authenticators("api.wandb.ai")
         if authentication is not None:
             environment["WANDB_API_KEY"] = authentication[2]
-    missing = [name for name in ("HF_TOKEN", "WANDB_API_KEY") if not environment.get(name)]
+    required = ("HF_TOKEN", "WANDB_API_KEY") if stage == "pilot" else ("HF_TOKEN",)
+    missing = [name for name in required if not environment.get(name)]
     if missing:
         raise RuntimeError(f"paid pilot lacks required local credentials: {missing}")
     return environment
@@ -88,24 +93,24 @@ def launch_command(
         "--env",
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
-    if stage == "pilot":
+    if stage in {"pilot", "diagnostics"}:
         command.extend(
             [
                 "--env",
                 f"HF_REPO_ID={hf_repo_id}",
                 "--secret",
                 "HF_TOKEN",
-                "--secret",
-                "WANDB_API_KEY",
             ]
         )
+        if stage == "pilot":
+            command.extend(["--secret", "WANDB_API_KEY"])
         if resume_hf_repo_id is not None:
             command.extend(["--env", f"RESUME_HF_REPO_ID={resume_hf_repo_id}"])
         if checkpoint_upload_steps:
             steps = " ".join(map(str, checkpoint_upload_steps))
             command.extend(["--env", f"CHECKPOINT_UPLOAD_STEPS={steps}"])
-        if prior_cost_usd:
-            command.extend(["--env", f"EXP479_PRIOR_COST_USD={prior_cost_usd}"])
+    if prior_cost_usd:
+        command.extend(["--env", f"EXP479_PRIOR_COST_USD={prior_cost_usd}"])
     command.extend(["--down", "--yes"])
     if dry_run:
         command.append("--dryrun")

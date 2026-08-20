@@ -83,6 +83,16 @@ def _parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--batch-size", type=int, required=True)
     evaluate.add_argument("--n-bootstrap", type=int, default=1_000)
 
+    diagnostics = subparsers.add_parser(
+        "context-window",
+        help="run transferred-MNTP context-ablation and window-shift diagnostics",
+    )
+    diagnostics.add_argument("--artifact-dir", type=Path, required=True)
+    diagnostics.add_argument("--output-dir", type=Path, required=True)
+    diagnostics.add_argument("--hf-repo-id", required=True)
+    diagnostics.add_argument("--batch-size", type=int, default=512)
+    diagnostics.add_argument("--n-bootstrap", type=int, default=1_000)
+
     nuc_dep = subparsers.add_parser(
         "nuc-dep", help="run the fixed transferred-MNTP dependency-map panel"
     )
@@ -159,6 +169,20 @@ def main() -> None:
         from exp479_mntp.vep import run_vep_evaluation
 
         run_vep_evaluation(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+
+    if args.command == "context-window":
+        from exp479_mntp.context_window_diagnostics import (
+            run_context_window_diagnostics,
+        )
+
+        run_context_window_diagnostics(
             artifact_dir=args.artifact_dir,
             output_dir=args.output_dir,
             hf_repo_id=args.hf_repo_id,
