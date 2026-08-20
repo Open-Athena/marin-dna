@@ -50,7 +50,6 @@ REVERSE_COMPLEMENT_TOKEN_IDS = (0, 1, 2, 6, 5, 4, 3)
 
 LEARNING_RATES = (1e-4, 2e-4, 5e-4, 1e-3)
 WEIGHT_DECAYS = (0.1, 0.2, 0.8, 1.6)
-SKIPPED_SWEEP_POINTS = frozenset({(1e-4, 1.6), (1e-3, 0.1)})
 
 MODEL_CONFIG = Qwen3Config(
     max_seq_len=SEQ_LEN,
@@ -229,9 +228,8 @@ SWEEP_POINTS = tuple(
     )
     for learning_rate in LEARNING_RATES
     for weight_decay in WEIGHT_DECAYS
-    if (learning_rate, weight_decay) not in SKIPPED_SWEEP_POINTS
 )
-assert len(SWEEP_POINTS) == 14
+assert len(SWEEP_POINTS) == 16
 SWEEP_POINTS_BY_KEY = {point.key: point for point in SWEEP_POINTS}
 
 
