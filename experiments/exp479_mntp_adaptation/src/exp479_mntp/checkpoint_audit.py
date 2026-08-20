@@ -1326,16 +1326,20 @@ def plot_dependency_panel(
 ) -> None:
     """Plot raw forward, raw registered RC, and registered FWD+RC maps."""
 
-    figure, axes = plt.subplots(len(maps), 3, figsize=(12, 3.4 * len(maps)))
+    column_titles = (
+        "Raw reference-directed",
+        "Raw RC-directed, aligned",
+        "Registered FWD+RC",
+    )
+    figure, axes = plt.subplots(
+        len(maps),
+        3,
+        figsize=(12, 3.1 * len(maps)),
+        constrained_layout=True,
+    )
     for row, (name, forward, reverse, combined) in enumerate(maps):
         maximum = float(max(forward.max(), reverse.max(), combined.max()))
-        for column, (matrix, title) in enumerate(
-            (
-                (forward, "Raw reference-directed"),
-                (reverse, "Raw RC-directed, aligned"),
-                (combined, "Registered FWD+RC"),
-            )
-        ):
+        for column, matrix in enumerate((forward, reverse, combined)):
             image = axes[row, column].imshow(
                 matrix,
                 origin="lower",
@@ -1345,9 +1349,12 @@ def plot_dependency_panel(
                 interpolation="nearest",
                 rasterized=True,
             )
-            axes[row, column].set_title(f"{name}: {title}")
-            axes[row, column].set_xlabel("Readout position")
-            axes[row, column].set_ylabel("Substitution position")
+            if row == 0:
+                axes[row, column].set_title(column_titles[column])
+            if row == len(maps) - 1:
+                axes[row, column].set_xlabel("Readout position")
+            if column == 0:
+                axes[row, column].set_ylabel(f"{name}\nSubstitution position")
         figure.colorbar(image, ax=axes[row, :], fraction=0.015, pad=0.01)
     figure.suptitle("Nucleotide dependency before and after orientation registration")
     figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
