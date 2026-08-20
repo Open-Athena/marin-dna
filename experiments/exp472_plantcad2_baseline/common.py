@@ -334,7 +334,7 @@ def build_sweep_run(
         1,
         (steps + EVALUATION_COUNT - 1) // EVALUATION_COUNT,
     )
-    suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
+    suffix = os.environ.get("EXP472_RUN_SUFFIX", "v2").strip()
     checkpoint_id = f"exp472-plantcad2-angiosperm-{point.key}"
     if suffix:
         checkpoint_id = f"{checkpoint_id}-{suffix}"

@@ -23,7 +23,9 @@ retain ten permanent checkpoints: nine approximately evenly spaced checkpoints
 plus the forced final checkpoint. Validation runs twenty times per production
 trial (twice the permanent-checkpoint count) and covers the full validation split
 each time. At the default 206,145 steps, evaluation runs every 10,308 steps plus
-the forced final evaluation. Short smoke runs retain each completed step.
+the forced final evaluation. Corrected production runs use the default `v2`
+run/checkpoint suffix; the short-lived pre-correction `v1` runs are not resumed.
+Short smoke runs retain each completed step.
 
 The sweep contains 14 trials over learning rates `1e-4`, `2e-4`, `5e-4`, and
 `1e-3`, and weight decays `0.1`, `0.2`, `0.8`, and `1.6`. It omits the
