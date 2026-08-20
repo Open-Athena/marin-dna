@@ -1,0 +1,7 @@
+point_id,arm,objective,step,region,mean_dependency,p95_dependency,maximum_dependency,nonzero_fraction,n_position_pairs
+transferred-step1000,transferred_mntp,mntp,1000,past_context,0.05314086750149727,0.15440353751182556,1.5595285892486572,1.0,32385
+transferred-step1000,transferred_mntp,mntp,1000,future_context,0.05333659052848816,0.16701392829418182,1.6097370386123657,1.0,32385
+scratch-step1000,scratch_mntp,mntp,1000,past_context,0.030559703707695007,0.07426111400127411,1.419626235961914,1.0,32385
+scratch-step1000,scratch_mntp,mntp,1000,future_context,0.029167676344513893,0.06822927296161652,1.4136927127838135,1.0,32385
+clm-original-step1000,clm_continuation,clm,1000,past_context,0.12509867548942566,0.45527949929237366,2.9234137535095215,1.0,32385
+clm-original-step1000,clm_continuation,clm,1000,future_context,0.0,0.0,0.0,0.0,32385
