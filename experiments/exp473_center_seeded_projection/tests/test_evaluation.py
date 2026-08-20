@@ -378,6 +378,21 @@ def test_intersection_workflow_is_additive_and_rule_isolated():
     assert '--experiment-commit "$EXP473_EXPERIMENT_COMMIT"' in analysis_launcher
 
 
+def test_batched_projection_report_pins_final_producer_and_rejection_counts():
+    root = Path(__file__).parents[1]
+    launcher = (root / "sky" / "projection_report_batched.yaml").read_text()
+    assert "PRODUCER_COMMIT=d0e5380a46cd66d4c42d763b3c42da1150c92073" in launcher
+    assert (
+        "rejections/full_enhancer\" -type f -name '*.parquet' | wc -l)\" -eq 942"
+        in launcher
+    )
+    assert (
+        "rejections/center\" -type f -name '*.parquet' | wc -l)\" -eq 942" in launcher
+    )
+    assert 'test "${#FULL_REJECTIONS[@]}" -eq 1212' in launcher
+    assert 'test "${#CENTER_REJECTIONS[@]}" -eq 942' in launcher
+
+
 def test_intersection_analysis_requires_and_writes_complete_matrix(tmp_path: Path):
     score_paths: list[str] = []
     scores = tmp_path / "scores"

@@ -1389,3 +1389,23 @@ cohort, assemblies, and downstream training recipe fixed.
 - Safety: this check used only unlabeled chromosome-18 projection sequences.
   Held-out VEP labels, predictions, effect measurements, and aggregate
   metrics remain untouched.
+
+### 2026-08-20 16:25 UTC - CSP-037 batched projection-report gate corrected
+
+- Fail-closed run: authorized Sky job 12 on retained cluster
+  `issue-473-fast-producer` verified the exact report-module hash, final
+  producer identity, completed sampled-trace gate, and staged both accepted
+  tables. It then stopped before analysis because the launcher expected 270
+  new-arm rejection files but found 942. It wrote no analysis output.
+- Diagnosis: read-only S3 listings show the final batched layout has 107 HAL
+  rejection files, 107 HAL sequence-rejection files, 700 MultiZ rejection
+  files (one per chromosome/species), and 28 MultiZ sequence-rejection files
+  for each new arm, totaling 942. The reused #417 baseline has 270 files.
+- Additive correction: the experiment-local launcher now requires exactly 942
+  files for each new arm, 1,212 full-window rejection arguments after adding
+  the 270-file baseline, and 942 center-1 arguments. No producer, shared rule,
+  or S3 artifact changed.
+- Verification: a new test pins the final producer and all four count gates.
+  All 25 locked experiment tests passed in 4.72 seconds with 494,680 KiB peak
+  RSS while holding the shared heavy-work lock; changed-file hooks passed.
+- Next action: snapshot this correction and rerun only the additive report.
