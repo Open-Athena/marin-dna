@@ -1,4 +1,4 @@
-"""Launch one matched 0.25B projection-policy arm for issue #473."""
+"""Launch one new matched 0.25B projection-policy arm for issue #473."""
 
 from __future__ import annotations
 
@@ -43,7 +43,6 @@ HF_SAVE_STEPS = 500
 NATIVE_CHECKPOINT_STEPS = 500
 PER_DEVICE_PARALLELISM = 1_024
 DATA_VERSION = "2026.08.20"
-FULL_CDS_REVISION = "bfab878078c4ee6c0f47b760f1e5e0577549dc9d"
 
 MODEL = Qwen3Config(
     max_seq_len=SEQUENCE_LENGTH,
@@ -101,13 +100,6 @@ class Arm:
 ARMS = {
     arm.key: arm
     for arm in (
-        Arm(
-            key="cds_full_window",
-            region="cds",
-            policy="full_window",
-            hf_repo="marin-dna/vertebrate-v1-cds",
-            revision=FULL_CDS_REVISION,
-        ),
         Arm(
             key="cds_center_1",
             region="cds",
@@ -312,7 +304,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
 @click.command(help=__doc__)
 @build_options
 def main() -> ArtifactStep[LevanterCheckpoint]:
-    """Return the one arm selected by EXP473_ARM."""
+    """Return the one new arm selected by EXP473_ARM."""
     return build_training(selected_arm())
 
 

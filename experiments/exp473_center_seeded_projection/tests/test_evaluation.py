@@ -15,8 +15,12 @@ from exp473_center_seeded_projection.analyze_evals import (
 )
 from exp473_center_seeded_projection.eval_config import (
     ARM_DATASETS,
+    ARM_ROOT_ENV,
+    CDS_FULL_WINDOW_CHECKPOINT_ROOT,
     CHECKPOINT_STEPS,
+    REUSED_CHECKPOINT_ROOTS,
     build_eval_config,
+    checkpoint_roots_from_env,
     model_name,
     validate_experiment_commit,
 )
@@ -43,7 +47,9 @@ from exp473_center_seeded_projection.paired_metrics import (
 
 
 def _roots() -> dict[str, str]:
-    return {arm: f"gs://test/immutable/{arm}-abc123" for arm in ARM_DATASETS}
+    roots = {arm: f"gs://test/immutable/{arm}-abc123" for arm in ARM_DATASETS}
+    roots["cds_full_window"] = CDS_FULL_WINDOW_CHECKPOINT_ROOT
+    return roots
 
 
 def _matched() -> tuple[pd.Series, pd.DataFrame, pd.Series]:
@@ -98,8 +104,20 @@ def _intersection_scores(
 
 def test_eval_config_is_development_only_and_complete():
     config = build_eval_config(_roots(), experiment_commit="a" * 40)
+    assert CHECKPOINT_STEPS == (
+        1_000,
+        1_500,
+        2_000,
+        2_500,
+        3_000,
+        3_500,
+        4_000,
+        4_500,
+        4_999,
+    )
     assert config["split"] == "train"
     assert config["issue_473"]["held_out_access"] is False
+    assert config["issue_473"]["reused_checkpoint_roots"] == REUSED_CHECKPOINT_ROOTS
     assert len(config["models"]) == 4 * len(CHECKPOINT_STEPS)
     assert {dataset["name"] for dataset in config["datasets"]} == {
         "mendelian_traits",
@@ -113,17 +131,40 @@ def test_eval_config_is_development_only_and_complete():
     model = next(
         entry
         for entry in config["models"]
-        if entry["name"] == model_name("cds_center_1", 500, experiment_commit="a" * 40)
+        if entry["name"]
+        == model_name(
+            "cds_center_1",
+            1_000,
+            experiment_commit="a" * 40,
+        )
     )
     assert model["name"].startswith(f"exp473-{'a' * 40}-")
-    assert model["gcs_path"].endswith("/cds_center_1-abc123/hf/step-500")
+    assert model["gcs_path"].endswith("/cds_center_1-abc123/hf/step-1000")
     assert model["datasets"] == ["mendelian_traits", "sge"]
+
+
+def test_checkpoint_roots_reuse_issue_417_without_an_environment_input(monkeypatch):
+    assert ARM_ROOT_ENV == {
+        "cds_center_1": "EXP473_CDS_CENTER_1_CHECKPOINT_ROOT",
+        "enhancer_full_window": "EXP473_ENHANCER_FULL_WINDOW_CHECKPOINT_ROOT",
+        "enhancer_center_1": "EXP473_ENHANCER_CENTER_1_CHECKPOINT_ROOT",
+    }
+    monkeypatch.delenv("EXP473_CDS_FULL_WINDOW_CHECKPOINT_ROOT", raising=False)
+    for variable in ARM_ROOT_ENV.values():
+        monkeypatch.setenv(variable, f"gs://test/{variable.lower()}")
+    roots = checkpoint_roots_from_env()
+    assert roots["cds_full_window"] == CDS_FULL_WINDOW_CHECKPOINT_ROOT
+    assert set(roots) == set(ARM_DATASETS)
 
 
 def test_eval_config_rejects_non_gcs_and_partial_roots():
     roots = _roots()
     roots["cds_full_window"] = "s3://wrong/checkpoint"
     with pytest.raises(ValueError, match="gs://"):
+        build_eval_config(roots, experiment_commit="b" * 40)
+    roots = _roots()
+    roots["cds_full_window"] = "gs://wrong/checkpoint"
+    with pytest.raises(ValueError, match="exact #417 checkpoint root"):
         build_eval_config(roots, experiment_commit="b" * 40)
     with pytest.raises(ValueError, match="exactly"):
         build_eval_config(
@@ -140,15 +181,15 @@ def test_eval_artifacts_are_commit_keyed_and_require_development_provenance():
     uri = score_uri(
         "s3://test/results",
         "cds_full_window",
-        500,
+        1_000,
         "mendelian_traits",
         experiment_commit=commit,
     )
-    assert f"/exp473-{commit}-cds-full-window-step-500/" in uri
+    assert f"/exp473-{commit}-cds-full-window-step-1000/" in uri
     assert uri != score_uri(
         "s3://test/results",
         "cds_full_window",
-        500,
+        1_000,
         "mendelian_traits",
         experiment_commit="e" * 40,
     )
@@ -355,9 +396,9 @@ def test_intersection_analysis_requires_and_writes_complete_matrix(tmp_path: Pat
     samples = pd.read_parquet(output / "paired_loss_bootstrap_samples.parquet")
     deltas = pd.read_parquet(output / "paired_loss_deltas.parquet")
     manifest = json.loads((output / "manifest.json").read_text())
-    assert len(points) == 40
-    assert len(samples) == 400
-    assert len(deltas) == 20
+    assert len(points) == 36
+    assert len(samples) == 360
+    assert len(deltas) == 18
     assert set(deltas["region"]) == {"cds", "enhancer"}
     assert deltas["delta_center_minus_full"].to_numpy() == pytest.approx(-0.2)
     assert manifest["vep_held_out_access"] is False

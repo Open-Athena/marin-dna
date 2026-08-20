@@ -1,9 +1,9 @@
 """Generate the additive official-evals_v2 config for issue #473.
 
-The generated config contains only the four preregistered model families and
-uses the official evaluator's development split.  It is intentionally emitted
-at run time because Marin appends an immutable identity to each checkpoint
-artifact root.
+The generated config contains the reused #417 CDS full-window baseline plus
+the three new issue #473 model families and uses the official evaluator's
+development split. It is intentionally emitted at run time because Marin
+appends an immutable identity to each new checkpoint artifact root.
 """
 
 from __future__ import annotations
@@ -15,7 +15,11 @@ from typing import Any
 
 import yaml
 
-CHECKPOINT_STEPS = tuple(range(500, 5_001, 500))
+CHECKPOINT_STEPS = (*range(1_000, 5_000, 500), 4_999)
+CDS_FULL_WINDOW_CHECKPOINT_ROOT = (
+    "gs://marin-us-east5/checkpoints/"
+    "dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01"
+)
 GENOME_PATH = (
     "s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/"
     "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz"
@@ -45,7 +49,14 @@ ARM_DATASETS = {
     "enhancer_full_window": ("mendelian_traits", "complex_traits"),
     "enhancer_center_1": ("mendelian_traits", "complex_traits"),
 }
-ARM_ROOT_ENV = {arm: f"EXP473_{arm.upper()}_CHECKPOINT_ROOT" for arm in ARM_DATASETS}
+REUSED_CHECKPOINT_ROOTS = {
+    "cds_full_window": CDS_FULL_WINDOW_CHECKPOINT_ROOT,
+}
+ARM_ROOT_ENV = {
+    arm: f"EXP473_{arm.upper()}_CHECKPOINT_ROOT"
+    for arm in ARM_DATASETS
+    if arm not in REUSED_CHECKPOINT_ROOTS
+}
 
 
 def validate_experiment_commit(experiment_commit: str) -> str:
@@ -78,8 +89,8 @@ def validate_checkpoint_root(root: str) -> str:
 
 
 def checkpoint_roots_from_env() -> dict[str, str]:
-    """Read all four exact Marin artifact roots from the environment."""
-    roots: dict[str, str] = {}
+    """Combine the pinned #417 baseline with three new artifact roots."""
+    roots = dict(REUSED_CHECKPOINT_ROOTS)
     for arm, variable in ARM_ROOT_ENV.items():
         value = os.environ.get(variable, "")
         if not value.strip():
@@ -96,6 +107,12 @@ def build_eval_config(
         raise ValueError(
             f"checkpoint roots must be exactly {sorted(ARM_DATASETS)}, "
             f"got {sorted(checkpoint_roots)}"
+        )
+    baseline_root = validate_checkpoint_root(checkpoint_roots["cds_full_window"])
+    if baseline_root != CDS_FULL_WINDOW_CHECKPOINT_ROOT:
+        raise ValueError(
+            "cds_full_window must reuse the exact #417 checkpoint root "
+            f"{CDS_FULL_WINDOW_CHECKPOINT_ROOT}, got {baseline_root}"
         )
     experiment_commit = validate_experiment_commit(experiment_commit)
 
@@ -151,6 +168,7 @@ def build_eval_config(
             "checkpoint_steps": list(CHECKPOINT_STEPS),
             "held_out_access": False,
             "policy_comparison": "center_1_minus_full_window",
+            "reused_checkpoint_roots": dict(REUSED_CHECKPOINT_ROOTS),
         },
     }
 

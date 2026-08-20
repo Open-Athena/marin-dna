@@ -10,6 +10,7 @@ import yaml
 
 from exp473_center_seeded_projection.eval_config import (
     ARM_DATASETS,
+    CDS_FULL_WINDOW_CHECKPOINT_ROOT,
     CHECKPOINT_STEPS,
     checkpoint_roots_from_env,
     model_name,
@@ -50,6 +51,12 @@ def build_intersection_loss_config(
         raise ValueError(
             f"checkpoint roots must be exactly {sorted(ARM_DATASETS)}, "
             f"got {sorted(checkpoint_roots)}"
+        )
+    baseline_root = validate_checkpoint_root(checkpoint_roots["cds_full_window"])
+    if baseline_root != CDS_FULL_WINDOW_CHECKPOINT_ROOT:
+        raise ValueError(
+            "cds_full_window must reuse the exact #417 checkpoint root "
+            f"{CDS_FULL_WINDOW_CHECKPOINT_ROOT}, got {baseline_root}"
         )
     experiment_commit = validate_experiment_commit(experiment_commit)
     models: list[dict[str, Any]] = []

@@ -43,8 +43,13 @@ def _set_required_env(monkeypatch) -> None:
         monkeypatch.setenv(name, "e" * 40)
 
 
-def test_all_four_arms_materialize_the_matched_recipe(monkeypatch) -> None:
+def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None:
     _set_required_env(monkeypatch)
+    assert set(ARMS) == {
+        "cds_center_1",
+        "enhancer_full_window",
+        "enhancer_center_1",
+    }
     assert MODEL.max_seq_len == SEQUENCE_LENGTH
     assert MODEL.hidden_dim == 1_152
     assert MODEL.intermediate_dim == 4_608

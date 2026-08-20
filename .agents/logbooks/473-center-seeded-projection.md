@@ -1165,3 +1165,46 @@ cohort, assemblies, and downstream training recipe fixed.
   completed producer QC, manual examples, sampled trace, and report review.
 - Safety: no held-out VEP label, prediction, effect measurement, or aggregate
   metric was accessed.
+
+### 2026-08-20 11:33 UTC - CSP-030 core projection batched and #417 baseline reused
+
+- Scope decision: the decision-relevant full-scale comparison is only
+  `full_window` versus `center_1`; the 17, 33, 65, and 129 bp policies and the
+  pilot are deferred. The two required request sets are now namespaced into
+  one HAL input per species and one combined request table per MAF chromosome.
+  Existing producer rules and their shared S3 outputs remain unchanged.
+- Real-data equivalence: 100 exact center-1 requests and 100 exact enhancer
+  full-window requests were projected both separately and together against
+  the staged 1,262,706,573,453-byte HAL for `Mus_musculus`. Splitting the
+  combined output reproduced both independent outputs byte for byte. The
+  center pair shared SHA-256
+  `b5fc2b76ba789a48fa9da4b54724676765802a72b09c0c6cf5db818f81c7f9af`;
+  the enhancer pair shared
+  `8ee5cb276a1bb368848c844ba2310c9d11f85b65f823952b1c95ba3d40ff2d94`.
+- Additive implementation: draft PR #477 commit
+  `d0e5380a46cd66d4c42d763b3c42da1150c92073` contains the standalone
+  batched prefill workflow and hardened NVMe Sky launcher. Its remote
+  preflight built the exact 634,926-anchor requests and resolved a 135-job
+  prefill DAG: 107 HAL species, 24 MAF chromosomes, one combined request BED,
+  and one fail-closed completion manifest.
+- Producer transition: obsolete duplicate-call fast producer job 1 was
+  cancelled only after synthetic tests, real HAL equivalence, request
+  construction, and remote DAG preflight passed. The original producer was
+  left running as backup. Batched producer job 7 is running on exact commit
+  `d0e5380a`; job 6 failed in setup before data work because of an overly
+  strict `uv --version` string comparison, which commit `d0e5380a` corrected.
+- Training correction: the exp473 `cds_full_window` run duplicated the exact
+  #417 dataset revision and matched recipe, so it was stopped around step
+  2,900 and will not be used. Evaluation now pins the existing #417 root
+  `gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01`.
+  Its verified Hugging Face trajectory is steps 1,000 through 4,500 at
+  500-step intervals plus terminal step 4,999. Only `cds_center_1`,
+  `enhancer_full_window`, and `enhancer_center_1` remain trainable.
+- Verification: all 24 independently locked experiment tests passed in 4.78
+  seconds; peak RSS was 503,216 KiB. Changed-file YAML, whitespace, Ruff, and
+  formatting hooks passed after their mechanical rewrite. No held-out VEP
+  label, prediction, effect measurement, or aggregate metric was accessed.
+- Next action: monitor batched projection through its manifest and unchanged
+  downstream QC, review the sampled trace/report, pin publication to the
+  resulting producer, then publish privately and launch only the three new
+  training arms.
