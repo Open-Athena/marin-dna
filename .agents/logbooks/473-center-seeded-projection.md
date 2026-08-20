@@ -1001,3 +1001,30 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: validate the 10,329-job DAG, HAL staging, actual concurrency,
   memory headroom, and early durable uploads. Whichever exact producer finishes
   first must still pass the same QC/manual and sampled-trace review gates.
+
+### 2026-08-20 09:21 UTC - CSP-024 fast-producer DAG correction and live validation
+
+- Append-only correction: CSP-023's expected 10,329-job DAG applies after all
+  large immutable inputs are already local. This fresh worker correctly built
+  a 10,354-job DAG: the same 10,329 producer jobs plus 25 local
+  `stage_multiz_maf` jobs needed to restore the chromosome MAFs on the new
+  node. This changes staging work only, not any scientific rule or output.
+- Namespace verification: live Snakemake child commands use default S3 storage
+  rooted at `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/`; their
+  resolved paths in the job log contain exact producer commit
+  `d43f059c7b0cb8efd5e2396a2bd9e085623a1731` and config SHA-256
+  `bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039`.
+- Live validation: at 09:21 UTC the producer had reached 174/10,354 steps with
+  concurrent MultiZ candidate work active across the pilot and full runs.
+  Load was 25.21 on 48 vCPUs, available memory was 76.5 GiB, and the 2.6 TiB
+  NVMe array had 2.2 TiB free. The largest observed candidate processes were
+  about 1.1 GiB RSS, well inside both the 4 GB reservations and node headroom.
+  No error or terminal event was observed.
+- Isolation and safety: the original `f764b7f1` producer and its trace handoff
+  remain running and unmodified. The fast trace handoff remains fail-closed on
+  the incomplete `d43f059c` target. Neither path can publish data or launch
+  training before artifact review.
+- Next action: continue event-driven monitoring of both exact producers, the
+  matching trace gates, and durable training checkpoints. Review the first
+  complete producer's QC, manual examples, and sampled alignment trace before
+  private dataset publication.
