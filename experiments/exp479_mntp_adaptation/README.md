@@ -137,13 +137,29 @@ uv run --locked python launch.py stability \
 The task requests one Lambda GH200, enforces the same cumulative $50 guard,
 uploads its compact evidence before exit, and uses `sky launch --down`.
 
-The same stage then runs `inference-recheck`. It re-scores the five published
-VEP anchors at the original batch size of 1,024 before requiring row-level
-parity with the private pilot files. It also recomputes every nucleotide-
-dependency map against a same-shape wild-type baseline, checks the tRNA map at
-two batch sizes, and requires the forced-causal map to have zero dependency on
-right-context substitutions. This paired baseline prevents BF16 batch-shape
-numerics from being misreported as biological dependency.
+## Final-checkpoint nucleotide dependency
+
+The focused `dependency` stage computes one directed 255-by-255 map for the
+step-1,000 checkpoint of each trained arm: transferred MNTP, scratch MNTP, and
+continued CLM. It uses the reference orientation of the preregistered
+`tRNA_Arg_TCT` locus. Each readout's wild-type baseline and all substitutions
+are evaluated in the same model call, preventing BF16 batch-shape numerics from
+being misreported as nucleotide dependency. MNTP readouts are masked and use
+full attention; CLM uses its ordinary causal next-token readout. The causal map
+must have exactly zero right-context dependency, while both MNTP maps must use
+context on both sides.
+
+```bash
+uv run --locked python launch.py dependency \
+  --commit "$(git rev-parse HEAD)" \
+  --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover \
+  --prior-cost-usd <conservative-cumulative-cost> \
+  --execute
+```
+
+The stage requests one Lambda GH200 with a 64 GB disk, publishes only compact
+tables and figures to W&B, keeps the raw numeric maps in private Hugging Face
+staging, and uses `sky launch --down`.
 
 ## Data plans
 

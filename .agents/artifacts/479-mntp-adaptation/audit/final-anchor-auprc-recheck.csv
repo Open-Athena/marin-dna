@@ -1,0 +1,31 @@
+point_id,arm,plot_series,kind,step,objective,dataset,endpoint,orientation,auprc,se,n_rows
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.374296882500441,0.015529444985953308,16100
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.39509877475347566,0.01566779016047844,16100
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,complex_traits,_global_,protocol_fwd,0.12925298899035645,0.004318549048253226,11630
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,complex_traits,_global_,protocol_fwd_rc,0.13420311994724227,0.0050312689746575085,11630
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,sge,accession_consequence_macro,protocol_fwd,0.34384183877668,0.01057624555731772,8
+source-clm-direct-step0000,source_clm,Source CLM direct,source,0,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.3577038098689789,0.01108101662542388,8
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.10285992973821777,0.0045896545174002445,16100
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.10176943825224655,0.0044502997599314064,16100
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,complex_traits,_global_,protocol_fwd,0.10080670723530083,0.0029994949867228724,11630
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,complex_traits,_global_,protocol_fwd_rc,0.10010755232644196,0.00276665900977458,11630
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,sge,accession_consequence_macro,protocol_fwd,0.14092402496236411,0.004607073198868153,8
+transferred-step0000,full_attention_no_adaptation,Transferred MNTP,no_adaptation,0,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14234478382814494,0.004870205122784683,8
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11513526533532459,0.006761807605612083,16100
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.115237088592146,0.006908051022050643,16100
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd,0.10030348382178172,0.003146507396880613,11630
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd_rc,0.09959397836731329,0.0029480583555731373,11630
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd,0.14266476601746939,0.004668022992377847,8
+transferred-step1000,transferred_mntp,Transferred MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.14290296998505989,0.0046692768828391,8
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd,0.11123291695670998,0.005688751478719693,16100
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.1104482411745807,0.005469199037637952,16100
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd,0.10178015337197754,0.003215053807322185,11630
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,complex_traits,_global_,protocol_fwd_rc,0.1006102509344025,0.0031272598700524444,11630
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd,0.1377930952939076,0.004063627901907548,8
+scratch-step1000,scratch_mntp,Scratch MNTP,hf,1000,mntp,sge,accession_consequence_macro,protocol_fwd_rc,0.13927997308524198,0.00421154026213658,8
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,mendelian_traits,_macro_avg_,protocol_fwd,0.27283601201953506,0.012999926087264487,16100
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,mendelian_traits,_macro_avg_,protocol_fwd_rc,0.30638786166852444,0.012968270837497603,16100
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,complex_traits,_global_,protocol_fwd,0.1126764713057384,0.0037363600282351713,11630
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,complex_traits,_global_,protocol_fwd_rc,0.11882118916240803,0.004759012898007365,11630
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,sge,accession_consequence_macro,protocol_fwd,0.28906533470137596,0.009985321865250292,8
+clm-original-step1000,clm_continuation,Continued CLM original,hf,1000,clm,sge,accession_consequence_macro,protocol_fwd_rc,0.3052282154887929,0.010225906812929076,8
