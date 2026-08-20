@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from itertools import combinations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -162,6 +163,159 @@ def plot_token_composition_478(
         axis.tick_params(axis="both", labelrotation=0)
     figure.colorbar(axes.flat[0].collections[0], ax=axes, label="Tokens (%)")
     figure.suptitle("Conservation and repeat composition")
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    plt.close(figure)
+
+
+def plot_conservation_classification_478(
+    metrics_path: str | Path,
+    output_path: str | Path,
+    *,
+    orientation: str = "fwd_rc_mean",
+) -> None:
+    """Plot pooled AUPRC for absolute loss and entropy across model sizes."""
+    metrics = pd.read_parquet(metrics_path)
+    data = metrics[
+        (metrics["orientation"] == orientation)
+        & metrics["statistic"].isin(["loss", "entropy"])
+        & (metrics["model_from"] == metrics["model_to"])
+    ].copy()
+    model_order = sorted(data["model_from"].unique(), key=_model_parameters)
+    scopes = {
+        "global": "Global",
+        "cds": "CDS",
+        "upstream": "Upstream",
+        "downstream": "Downstream",
+    }
+    expected_rows = len(model_order) * 2 * len(scopes)
+    assert len(data) == expected_rows, (
+        f"expected {expected_rows} absolute-score rows, found {len(data)}"
+    )
+    assert data[["auprc", "prevalence"]].notna().all().all()
+
+    data["Parameters"] = data["model_from"].map(_model_parameters)
+    data["AUPRC"] = data["auprc"]
+    data["Statistic"] = data["statistic"].map({"loss": "Loss", "entropy": "Entropy"})
+    data["Scope"] = data["scope"].map(scopes)
+    data["Scope"] = pd.Categorical(
+        data["Scope"],
+        categories=list(scopes.values()),
+        ordered=True,
+    )
+
+    sns.set_theme()
+    grid = sns.relplot(
+        data=data,
+        x="Parameters",
+        y="AUPRC",
+        hue="Statistic",
+        hue_order=["Loss", "Entropy"],
+        col="Scope",
+        col_order=list(scopes.values()),
+        col_wrap=2,
+        kind="line",
+        estimator=None,
+        errorbar=None,
+        marker="o",
+        height=3,
+        aspect=1,
+        facet_kws={"sharey": False},
+    )
+    grid.set(xscale="log")
+    grid.set_axis_labels("Parameters", "AUPRC")
+    grid.set_titles("{col_name}")
+    for scope, axis in zip(scopes, grid.axes.flat, strict=True):
+        prevalence = data.loc[data["scope"] == scope, "prevalence"].unique()
+        assert len(prevalence) == 1
+        axis.axhline(prevalence[0], color="0.5", linestyle="--")
+        axis.set_box_aspect(1)
+    grid.figure.subplots_adjust(top=0.9, hspace=0.25, wspace=0.08)
+    grid.figure.suptitle("Non-repeat conservation classification")
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    grid.figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    plt.close(grid.figure)
+
+
+def plot_loss_delta_classification_478(
+    metrics_path: str | Path,
+    output_path: str | Path,
+    *,
+    orientation: str = "fwd_rc_mean",
+) -> None:
+    """Plot AUPRC lift over prevalence for every smaller-to-larger loss delta."""
+    metrics = pd.read_parquet(metrics_path)
+    data = metrics[
+        (metrics["orientation"] == orientation) & (metrics["statistic"] == "loss_delta")
+    ].copy()
+    scopes = {
+        "global": "Global",
+        "cds": "CDS",
+        "upstream": "Upstream",
+        "downstream": "Downstream",
+    }
+    model_order = sorted(
+        set(data["model_from"]) | set(data["model_to"]),
+        key=_model_parameters,
+    )
+    expected_rows = len(scopes) * len(list(combinations(model_order, 2)))
+    assert len(data) == expected_rows, (
+        f"expected {expected_rows} loss-delta rows, found {len(data)}"
+    )
+
+    matrices: list[tuple[str, pd.DataFrame]] = []
+    for scope, title in scopes.items():
+        panel = data[data["scope"] == scope]
+        matrix = panel.pivot(
+            index="model_to",
+            columns="model_from",
+            values="auprc_minus_prevalence",
+        ).reindex(index=model_order[::-1], columns=model_order)
+        matrix.index = [_model_label(model) for model in matrix.index]
+        matrix.columns = [_model_label(model) for model in matrix.columns]
+        matrices.append((title, matrix))
+
+    finite_values = np.concatenate(
+        [matrix.to_numpy(dtype=float).ravel() for _, matrix in matrices]
+    )
+    scale_min = min(0, float(np.nanmin(finite_values)))
+    scale_max = float(np.nanmax(finite_values))
+    sns.set_theme()
+    figure, axes = plt.subplots(
+        nrows=2,
+        ncols=2,
+        figsize=(12, 10),
+        layout="constrained",
+    )
+    for index, (axis, (title, matrix)) in enumerate(
+        zip(axes.flat, matrices, strict=True)
+    ):
+        sns.heatmap(
+            matrix,
+            annot=True,
+            fmt=".3f",
+            mask=matrix.isna(),
+            cbar=False,
+            square=True,
+            vmin=scale_min,
+            vmax=scale_max,
+            ax=axis,
+        )
+        axis.set_title(title)
+        row, column = divmod(index, 2)
+        axis.set_xlabel("Smaller model" if row == 1 else "")
+        axis.set_ylabel("Larger model" if column == 0 else "")
+        axis.tick_params(axis="both", labelrotation=0)
+    figure.colorbar(
+        axes.flat[0].collections[0],
+        ax=axes,
+        label="AUPRC − prevalence",
+    )
+    figure.suptitle("Loss-delta conservation classification")
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)

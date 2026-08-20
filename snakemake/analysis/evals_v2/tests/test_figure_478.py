@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from itertools import combinations
 from pathlib import Path
 
 import pandas as pd
 import pytest
 from marin_dna_evals.figure_478 import (
+    plot_conservation_classification_478,
+    plot_loss_delta_classification_478,
     plot_nonrepeat_conservation_loss_478,
     plot_predictability_478,
     plot_token_composition_478,
@@ -175,3 +178,66 @@ def test_plot_nonrepeat_and_composition_smoke(
     plot_token_composition_478(summary_path, composition_path)
     assert loss_path.stat().st_size > 5_000
     assert composition_path.stat().st_size > 5_000
+
+
+@pytest.mark.parametrize("suffix", ["png", "svg"])
+def test_plot_conservation_classification_smoke(
+    tmp_path: Path,
+    suffix: str,
+) -> None:
+    models = [
+        "scaling-v0.5-h640-p46M-step-215573",
+        "scaling-v0.5-h768-p76M-step-215573",
+        "scaling-v0.5-h896-p128M-step-215573",
+        "scaling-v0.5-h1152-p255M-step-215573",
+        "scaling-v0.5-h1408-p476M-step-215573",
+        "scaling-v0.5-h1920-p1B-step-215573",
+        "scaling-v0.5-h2432-p2B-step-215573",
+        "scaling-v0.5-h2944-p4B-step-215573",
+    ]
+    prevalence = {
+        "global": 0.28,
+        "cds": 0.45,
+        "upstream": 0.20,
+        "downstream": 0.17,
+    }
+    rows: list[dict[str, object]] = []
+    for scope, baseline in prevalence.items():
+        for statistic_index, statistic in enumerate(("loss", "entropy")):
+            for model_index, model in enumerate(models):
+                rows.append(
+                    {
+                        "scope": scope,
+                        "statistic": statistic,
+                        "model_from": model,
+                        "model_to": model,
+                        "orientation": "fwd_rc_mean",
+                        "auprc": baseline + 0.03 * model_index + 0.01 * statistic_index,
+                        "prevalence": baseline,
+                        "auprc_minus_prevalence": (
+                            0.03 * model_index + 0.01 * statistic_index
+                        ),
+                    }
+                )
+        for pair_index, (smaller, larger) in enumerate(combinations(models, 2)):
+            lift = 0.02 + 0.003 * pair_index
+            rows.append(
+                {
+                    "scope": scope,
+                    "statistic": "loss_delta",
+                    "model_from": smaller,
+                    "model_to": larger,
+                    "orientation": "fwd_rc_mean",
+                    "auprc": baseline + lift,
+                    "prevalence": baseline,
+                    "auprc_minus_prevalence": lift,
+                }
+            )
+    metrics_path = tmp_path / "metrics.parquet"
+    pd.DataFrame(rows).to_parquet(metrics_path, index=False)
+    absolute_path = tmp_path / f"absolute.{suffix}"
+    delta_path = tmp_path / f"delta.{suffix}"
+    plot_conservation_classification_478(metrics_path, absolute_path)
+    plot_loss_delta_classification_478(metrics_path, delta_path)
+    assert absolute_path.stat().st_size > 5_000
+    assert delta_path.stat().st_size > 5_000

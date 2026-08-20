@@ -46,6 +46,20 @@ def _matrix(frame: pd.DataFrame, column: str, width: int) -> np.ndarray:
     return values
 
 
+def _load_orientation_atoms(
+    path: str | Path,
+    window_ids: pd.Series,
+    *,
+    width: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    frame = pd.read_parquet(path)
+    assert frame["window_id"].tolist() == window_ids.tolist()
+    nll = _matrix(frame, "nll", width)
+    entropy = _matrix(frame, "entropy_4nuc", width)
+    assert np.isfinite(nll).all() and np.isfinite(entropy).all()
+    return nll, entropy
+
+
 def _chromosome_code(accession: str) -> int:
     match = re.fullmatch(r"NC_(\d+)\.\d+", accession)
     assert match is not None, f"unexpected RefSeq accession {accession!r}"
@@ -81,6 +95,7 @@ def _load_region_scores(
     *,
     region: str,
     model_order: list[str],
+    orientation: str,
     window_size: int,
     primary_start: int,
     primary_end_exclusive: int,
@@ -88,6 +103,7 @@ def _load_region_scores(
 ) -> RegionScores:
     joined = pd.read_parquet(joined_path)
     assert len(joined) > 0
+    assert orientation in {"fwd_rc_mean", "fwd", "rc"}
     assert primary_start >= 0
     assert primary_start < primary_end_exclusive <= window_size
     expected_ids = joined["window_id"]
@@ -122,12 +138,19 @@ def _load_region_scores(
     nll_by_model: dict[str, np.ndarray] = {}
     entropy_by_model: dict[str, np.ndarray] = {}
     for model in model_order:
-        nll, entropy = load_rc_averaged_atoms(
-            atom_paths[(model, "fwd")],
-            atom_paths[(model, "rc")],
-            expected_ids,
-            width=window_size,
-        )
+        if orientation == "fwd_rc_mean":
+            nll, entropy = load_rc_averaged_atoms(
+                atom_paths[(model, "fwd")],
+                atom_paths[(model, "rc")],
+                expected_ids,
+                width=window_size,
+            )
+        else:
+            nll, entropy = _load_orientation_atoms(
+                atom_paths[(model, orientation)],
+                expected_ids,
+                width=window_size,
+            )
         nll_values = nll[:, span][eligible].astype(np.float32, copy=False)
         entropy_values = entropy[:, span][eligible].astype(np.float32, copy=False)
         assert np.isfinite(nll_values).all()
@@ -159,6 +182,7 @@ def _evaluate_scope(
     *,
     scope: str,
     specs: list[ScoreSpec],
+    orientation: str,
     block_bp: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     labels = (
@@ -199,7 +223,7 @@ def _evaluate_scope(
                 "statistic": spec.statistic,
                 "model_from": spec.model_from,
                 "model_to": spec.model_to,
-                "orientation": "fwd_rc_mean",
+                "orientation": orientation,
                 "auprc": auprc,
                 "prevalence": prevalence,
                 "auprc_minus_prevalence": auprc - prevalence,
@@ -227,7 +251,7 @@ def _evaluate_scope(
                     "statistic": spec.statistic,
                     "model_from": spec.model_from,
                     "model_to": spec.model_to,
-                    "orientation": "fwd_rc_mean",
+                    "orientation": orientation,
                     "chrom": chrom_by_code[chrom_code],
                     "block_start": block_number * block_bp,
                     "block_end": (block_number + 1) * block_bp,
@@ -250,42 +274,50 @@ def analyze_conservation_classification_478(
     primary_start: int,
     primary_end_exclusive: int,
     block_bp: int,
+    orientations: tuple[str, ...] = ("fwd_rc_mean",),
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
     """Evaluate model uncertainty and loss deltas as conservation classifiers."""
     assert model_order
     assert block_bp > 0
+    assert orientations
+    assert set(orientations) <= {"fwd_rc_mean", "fwd", "rc"}
     regions = list(joined_paths)
-    region_data = {
-        region: _load_region_scores(
-            joined_paths[region],
-            {
-                (model, orientation): atom_paths[(model, region, orientation)]
-                for model in model_order
-                for orientation in ("fwd", "rc")
-            },
-            region=region,
-            model_order=model_order,
-            window_size=window_size,
-            primary_start=primary_start,
-            primary_end_exclusive=primary_end_exclusive,
-            block_bp=block_bp,
-        )
-        for region in regions
-    }
     specs = _score_specs(model_order)
     metric_rows: list[dict[str, Any]] = []
     block_rows: list[dict[str, Any]] = []
-    scopes = [("global", list(region_data.values()))]
-    scopes.extend((region, [region_data[region]]) for region in regions)
-    for scope, data in scopes:
-        scope_metrics, scope_blocks = _evaluate_scope(
-            data,
-            scope=scope,
-            specs=specs,
-            block_bp=block_bp,
-        )
-        metric_rows.extend(scope_metrics)
-        block_rows.extend(scope_blocks)
+    for orientation in orientations:
+        region_data = {
+            region: _load_region_scores(
+                joined_paths[region],
+                {
+                    (model, atom_orientation): atom_paths[
+                        (model, region, atom_orientation)
+                    ]
+                    for model in model_order
+                    for atom_orientation in ("fwd", "rc")
+                },
+                region=region,
+                model_order=model_order,
+                orientation=orientation,
+                window_size=window_size,
+                primary_start=primary_start,
+                primary_end_exclusive=primary_end_exclusive,
+                block_bp=block_bp,
+            )
+            for region in regions
+        }
+        scopes = [("global", list(region_data.values()))]
+        scopes.extend((region, [region_data[region]]) for region in regions)
+        for scope, data in scopes:
+            scope_metrics, scope_blocks = _evaluate_scope(
+                data,
+                scope=scope,
+                specs=specs,
+                orientation=orientation,
+                block_bp=block_bp,
+            )
+            metric_rows.extend(scope_metrics)
+            block_rows.extend(scope_blocks)
 
     metrics = pd.DataFrame(metric_rows)
     block_metrics = pd.DataFrame(block_rows)
@@ -295,9 +327,23 @@ def analyze_conservation_classification_478(
         "eligible_positions": "central span, non-repeat, non-ambiguous",
         "span": [primary_start, primary_end_exclusive],
         "coordinate_system": "0-based half-open",
-        "orientation": "mean of FWD and genomically realigned RC",
+        "orientations": list(orientations),
+        "orientation_definitions": {
+            "fwd_rc_mean": "mean of FWD and genomically realigned RC",
+            "fwd": "FWD only",
+            "rc": "genomically realigned RC only",
+        },
         "metric": "sklearn.metrics.average_precision_score",
         "prevalence_baseline": True,
+        "source_cache": {
+            "base_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/",
+            "token_statistics": "atoms/{model}/{region}.{fwd,rc}.parquet",
+            "token_statistics_schema": (
+                "window_id plus full per-token nll and entropy_4nuc vectors"
+            ),
+            "labels": "joined/{region}.parquet",
+            "summary_only": False,
+        },
         "score_directions": {
             "loss": "negative NLL; lower loss ranks as more conserved",
             "entropy": "negative 4-nucleotide entropy; lower entropy ranks as more conserved",
@@ -318,6 +364,7 @@ def analyze_conservation_classification_478(
             for row in metrics[
                 (metrics["statistic"] == "loss")
                 & (metrics["model_from"] == model_order[0])
+                & (metrics["orientation"] == orientations[0])
             ].to_dict("records")
         },
     }

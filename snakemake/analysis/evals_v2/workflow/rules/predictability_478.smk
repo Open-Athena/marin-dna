@@ -438,6 +438,78 @@ rule analyze_predictability_478_classification:
         )
 
 
+rule analyze_predictability_478_classification_orientations:
+    input:
+        joined=expand(
+            P478_ROOT + "/joined/{region}.parquet",
+            region=PREDICTABILITY_478_DATASETS,
+        ),
+        atoms=expand(
+            P478_ROOT + "/atoms/{model}/{region}.{orientation}.parquet",
+            model=PREDICTABILITY_478_MODELS,
+            region=PREDICTABILITY_478_DATASETS,
+            orientation=["fwd", "rc"],
+        ),
+    output:
+        metrics=P478_ROOT + "/classification/orientation_metrics.parquet",
+        block_metrics=P478_ROOT + "/classification/orientation_block_metrics.parquet",
+        manifest=P478_ROOT + "/classification/orientation_manifest.json",
+    threads: 8
+    resources:
+        mem_mb=28000,
+    run:
+        import json
+        from marin_dna_evals.classification_478 import (
+            analyze_conservation_classification_478,
+        )
+
+        joined_paths = dict(
+            zip(PREDICTABILITY_478_DATASETS, input.joined, strict=True)
+        )
+        atom_keys = [
+            (model, region, orientation)
+            for model in PREDICTABILITY_478_MODELS
+            for region in PREDICTABILITY_478_DATASETS
+            for orientation in ("fwd", "rc")
+        ]
+        atom_paths = dict(zip(atom_keys, input.atoms, strict=True))
+        metrics, block_metrics, manifest = analyze_conservation_classification_478(
+            joined_paths,
+            atom_paths,
+            model_order=PREDICTABILITY_478_MODELS,
+            window_size=PREDICTABILITY_478_CFG["window_size"],
+            primary_start=PREDICTABILITY_478_CFG["primary_start"],
+            primary_end_exclusive=PREDICTABILITY_478_CFG["primary_end_exclusive"],
+            block_bp=PREDICTABILITY_478_CFG["bootstrap_block_bp"],
+            orientations=("fwd", "rc"),
+        )
+        metrics.to_parquet(output.metrics, index=False)
+        block_metrics.to_parquet(output.block_metrics, index=False)
+        Path(output.manifest).write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+
+
+rule plot_predictability_478_classification:
+    input:
+        metrics=P478_ROOT + "/classification/metrics.parquet",
+    output:
+        absolute=P478_ROOT + "/classification/auprc_by_size.svg",
+        deltas=P478_ROOT + "/classification/loss_delta_auprc.svg",
+    threads: 1
+    run:
+        from marin_dna_evals.figure_478 import (
+            plot_conservation_classification_478,
+            plot_loss_delta_classification_478,
+        )
+
+        plot_conservation_classification_478(input.metrics, output.absolute)
+        plot_loss_delta_classification_478(input.metrics, output.deltas)
+
+
 rule predictability_478_classification:
     input:
         P478_ROOT + "/classification/manifest.json",
+        P478_ROOT + "/classification/orientation_manifest.json",
+        P478_ROOT + "/classification/auprc_by_size.svg",
+        P478_ROOT + "/classification/loss_delta_auprc.svg",

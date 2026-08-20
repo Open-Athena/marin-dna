@@ -123,14 +123,18 @@ def test_analysis_filters_repeats_and_reports_global_and_region(tmp_path: Path) 
         primary_start=0,
         primary_end_exclusive=4,
         block_bp=10,
+        orientations=("fwd_rc_mean", "fwd", "rc"),
     )
     assert set(metrics["scope"]) == {"global", "cds"}
-    assert len(metrics) == 10
+    assert len(metrics) == 30
+    assert set(metrics["orientation"]) == {"fwd_rc_mean", "fwd", "rc"}
     assert set(block_metrics["scope"]) == {"global", "cds"}
     assert manifest["counts"]["cds"]["n_positions"] == 6
     assert manifest["counts"]["cds"]["n_conserved"] == 2
     delta = metrics[
-        (metrics["scope"] == "cds") & (metrics["statistic"] == "loss_delta")
+        (metrics["scope"] == "cds")
+        & (metrics["statistic"] == "loss_delta")
+        & (metrics["orientation"] == "fwd")
     ].iloc[0]
     assert delta["model_from"] == "46M"
     assert delta["model_to"] == "76M"

@@ -302,7 +302,10 @@ name:
   bootstrap intervals. The controlled table fits the preregistered
   conservation × repeat model with GC, 7-mer NLL, and target-position terms.
 
-  The optional conservation-classification follow-up reuses the per-base atoms.
+  The optional conservation-classification follow-up reuses the durable per-token cache at
+  `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/`.
+  Loss inputs are `atoms/{model}/{region}.{fwd,rc}.parquet`: each row is keyed by `window_id` and retains the full per-token `nll` and `entropy_4nuc` vectors, not summary statistics.
+  Labels and genomic metadata remain normalized in `joined/{region}.parquet`, so later analyses can combine them without rerunning inference or duplicating a wide token table.
   It excludes repeats and ambiguous bases, treats conservation as the positive class, and reports pooled global AUPRC plus separate CDS, upstream, and downstream AUPRC.
   Scores include negative loss, negative four-nucleotide entropy, and every smaller-to-larger model loss delta.
   Run the two-smallest-model pilot before the full 28-pair sweep:
