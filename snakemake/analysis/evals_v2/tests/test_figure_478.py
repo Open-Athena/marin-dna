@@ -6,9 +6,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from marin_dna_evals.figure_478 import (
+    plot_classification_orientation_478,
     plot_conservation_classification_478,
     plot_loss_delta_classification_478,
     plot_nonrepeat_conservation_loss_478,
+    plot_practical_delta_orientation_478,
     plot_predictability_478,
     plot_token_composition_478,
 )
@@ -235,9 +237,38 @@ def test_plot_conservation_classification_smoke(
             )
     metrics_path = tmp_path / "metrics.parquet"
     pd.DataFrame(rows).to_parquet(metrics_path, index=False)
+    averaged = pd.DataFrame(rows)
+    single_orientations = pd.concat(
+        [
+            averaged.assign(
+                orientation=orientation,
+                auprc=averaged["auprc"] - offset,
+                auprc_minus_prevalence=(averaged["auprc_minus_prevalence"] - offset),
+            )
+            for orientation, offset in (("fwd", 0.01), ("rc", 0.015))
+        ],
+        ignore_index=True,
+    )
+    orientation_path = tmp_path / "orientation_metrics.parquet"
+    single_orientations.to_parquet(orientation_path, index=False)
     absolute_path = tmp_path / f"absolute.{suffix}"
     delta_path = tmp_path / f"delta.{suffix}"
+    orientation_plot_path = tmp_path / f"orientation.{suffix}"
+    practical_delta_path = tmp_path / f"practical_delta.{suffix}"
     plot_conservation_classification_478(metrics_path, absolute_path)
     plot_loss_delta_classification_478(metrics_path, delta_path)
+    plot_classification_orientation_478(
+        metrics_path,
+        orientation_path,
+        orientation_plot_path,
+        statistic="loss",
+    )
+    plot_practical_delta_orientation_478(
+        metrics_path,
+        orientation_path,
+        practical_delta_path,
+    )
     assert absolute_path.stat().st_size > 5_000
     assert delta_path.stat().st_size > 5_000
+    assert orientation_plot_path.stat().st_size > 5_000
+    assert practical_delta_path.stat().st_size > 5_000

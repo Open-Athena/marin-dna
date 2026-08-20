@@ -493,18 +493,41 @@ rule analyze_predictability_478_classification_orientations:
 rule plot_predictability_478_classification:
     input:
         metrics=P478_ROOT + "/classification/metrics.parquet",
+        orientation_metrics=P478_ROOT + "/classification/orientation_metrics.parquet",
     output:
         absolute=P478_ROOT + "/classification/auprc_by_size.svg",
         deltas=P478_ROOT + "/classification/loss_delta_auprc.svg",
+        orientation_loss=P478_ROOT + "/classification/orientation_loss_auprc.svg",
+        orientation_entropy=P478_ROOT + "/classification/orientation_entropy_auprc.svg",
+        practical_delta=P478_ROOT + "/classification/orientation_46m_76m_auprc.svg",
     threads: 1
     run:
         from marin_dna_evals.figure_478 import (
+            plot_classification_orientation_478,
             plot_conservation_classification_478,
             plot_loss_delta_classification_478,
+            plot_practical_delta_orientation_478,
         )
 
         plot_conservation_classification_478(input.metrics, output.absolute)
         plot_loss_delta_classification_478(input.metrics, output.deltas)
+        plot_classification_orientation_478(
+            input.metrics,
+            input.orientation_metrics,
+            output.orientation_loss,
+            statistic="loss",
+        )
+        plot_classification_orientation_478(
+            input.metrics,
+            input.orientation_metrics,
+            output.orientation_entropy,
+            statistic="entropy",
+        )
+        plot_practical_delta_orientation_478(
+            input.metrics,
+            input.orientation_metrics,
+            output.practical_delta,
+        )
 
 
 rule predictability_478_classification:
@@ -513,3 +536,6 @@ rule predictability_478_classification:
         P478_ROOT + "/classification/orientation_manifest.json",
         P478_ROOT + "/classification/auprc_by_size.svg",
         P478_ROOT + "/classification/loss_delta_auprc.svg",
+        P478_ROOT + "/classification/orientation_loss_auprc.svg",
+        P478_ROOT + "/classification/orientation_entropy_auprc.svg",
+        P478_ROOT + "/classification/orientation_46m_76m_auprc.svg",

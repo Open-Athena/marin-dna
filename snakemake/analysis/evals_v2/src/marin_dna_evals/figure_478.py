@@ -241,6 +241,154 @@ def plot_conservation_classification_478(
     plt.close(grid.figure)
 
 
+def plot_classification_orientation_478(
+    averaged_metrics_path: str | Path,
+    orientation_metrics_path: str | Path,
+    output_path: str | Path,
+    *,
+    statistic: str,
+) -> None:
+    """Compare pooled absolute-score AUPRC with one or two orientations."""
+    assert statistic in {"loss", "entropy"}
+    metrics = pd.concat(
+        [
+            pd.read_parquet(averaged_metrics_path),
+            pd.read_parquet(orientation_metrics_path),
+        ],
+        ignore_index=True,
+    )
+    data = metrics[
+        (metrics["statistic"] == statistic)
+        & (metrics["model_from"] == metrics["model_to"])
+    ].copy()
+    model_order = sorted(data["model_from"].unique(), key=_model_parameters)
+    scopes = {
+        "global": "Global",
+        "cds": "CDS",
+        "upstream": "Upstream",
+        "downstream": "Downstream",
+    }
+    orientations = {
+        "fwd_rc_mean": "FWD/RC mean",
+        "fwd": "FWD",
+        "rc": "RC",
+    }
+    expected_rows = len(model_order) * len(scopes) * len(orientations)
+    assert len(data) == expected_rows, (
+        f"expected {expected_rows} orientation rows, found {len(data)}"
+    )
+
+    data["Parameters"] = data["model_from"].map(_model_parameters)
+    data["AUPRC"] = data["auprc"]
+    data["Scope"] = data["scope"].map(scopes)
+    data["Scope"] = pd.Categorical(
+        data["Scope"],
+        categories=list(scopes.values()),
+        ordered=True,
+    )
+    data["Orientation"] = data["orientation"].map(orientations)
+
+    sns.set_theme()
+    grid = sns.relplot(
+        data=data,
+        x="Parameters",
+        y="AUPRC",
+        hue="Orientation",
+        hue_order=list(orientations.values()),
+        col="Scope",
+        col_order=list(scopes.values()),
+        col_wrap=2,
+        kind="line",
+        estimator=None,
+        errorbar=None,
+        marker="o",
+        height=3,
+        aspect=1,
+        facet_kws={"sharey": False},
+    )
+    grid.set(xscale="log")
+    grid.set_axis_labels("Parameters", "AUPRC")
+    grid.set_titles("{col_name}")
+    for scope, axis in zip(scopes, grid.axes.flat, strict=True):
+        prevalence = data.loc[data["scope"] == scope, "prevalence"].unique()
+        assert len(prevalence) == 1
+        axis.axhline(prevalence[0], color="0.5", linestyle="--")
+        axis.set_box_aspect(1)
+    grid.figure.subplots_adjust(top=0.9, hspace=0.25, wspace=0.08)
+    grid.figure.suptitle(f"Non-repeat {statistic} classification by orientation")
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    grid.figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    plt.close(grid.figure)
+
+
+def plot_practical_delta_orientation_478(
+    averaged_metrics_path: str | Path,
+    orientation_metrics_path: str | Path,
+    output_path: str | Path,
+) -> None:
+    """Compare 46M-to-76M loss-delta AUPRC lift by orientation."""
+    metrics = pd.concat(
+        [
+            pd.read_parquet(averaged_metrics_path),
+            pd.read_parquet(orientation_metrics_path),
+        ],
+        ignore_index=True,
+    )
+    data = metrics[
+        (metrics["statistic"] == "loss_delta")
+        & (metrics["model_from"].map(_model_label) == "46M")
+        & (metrics["model_to"].map(_model_label) == "76M")
+    ].copy()
+    scopes = {
+        "global": "Global",
+        "cds": "CDS",
+        "upstream": "Upstream",
+        "downstream": "Downstream",
+    }
+    orientations = {
+        "fwd_rc_mean": "FWD/RC mean",
+        "fwd": "FWD",
+        "rc": "RC",
+    }
+    expected_rows = len(scopes) * len(orientations)
+    assert len(data) == expected_rows, (
+        f"expected {expected_rows} practical-delta rows, found {len(data)}"
+    )
+    data["Scope"] = data["scope"].map(scopes)
+    data["Scope"] = pd.Categorical(
+        data["Scope"],
+        categories=list(scopes.values()),
+        ordered=True,
+    )
+    data["Orientation"] = data["orientation"].map(orientations)
+    data["AUPRC − prevalence"] = data["auprc_minus_prevalence"]
+
+    sns.set_theme()
+    grid = sns.catplot(
+        data=data,
+        x="Scope",
+        y="AUPRC − prevalence",
+        hue="Orientation",
+        hue_order=list(orientations.values()),
+        kind="bar",
+        errorbar=None,
+        height=6,
+        aspect=1.25,
+    )
+    grid.set_axis_labels("Region", "AUPRC − prevalence")
+    grid.ax.axhline(0, color="0.5", linestyle="--")
+    grid.ax.set_box_aspect(1)
+    grid.figure.subplots_adjust(top=0.88)
+    grid.figure.suptitle("46M→76M loss-delta classification by orientation")
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    grid.figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    plt.close(grid.figure)
+
+
 def plot_loss_delta_classification_478(
     metrics_path: str | Path,
     output_path: str | Path,
