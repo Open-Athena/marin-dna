@@ -1,6 +1,6 @@
 # Issue 479 MNTP adaptation result bundle
 
-This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479). Dense training series and compact raw evaluation tables are also published in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==) and [analysis run](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3).
+This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479). Dense training series and compact raw evaluation tables are also published in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ) and [analysis run](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3).
 
 ## Outcome
 
