@@ -37,7 +37,6 @@ Build the figure around the scientific comparison it must support.
 - Show uncertainty by default when it can be estimated. Name the quantity, such as standard error, confidence interval, standard deviation, or range. Omit it only when uncertainty is not meaningful for the statistic or explicit human direction calls for another presentation.
 - Share an axis only when the common scale supports the intended comparison without obscuring variation. Otherwise use clearly labeled independent axes, especially for panels that are not comparable by construction or have materially different useful ranges.
 - Preserve negative results and relevant variation. Do not tune axis limits, smoothing, filtering, or color scales to exaggerate an effect.
-- Use accessible colors. Add a redundant visual channel only when the output context requires it.
 
 ## Produce And Inspect The Artifact
 
