@@ -101,6 +101,21 @@ def _parser() -> argparse.ArgumentParser:
     nuc_dep.add_argument("--hf-repo-id", required=True)
     nuc_dep.add_argument("--batch-size", type=int, default=1_024)
 
+    audit = subparsers.add_parser(
+        "checkpoint-audit",
+        help="replay early CLM and audit checkpoint trajectories and alignment",
+    )
+    audit.add_argument("--artifact-dir", type=Path, required=True)
+    audit.add_argument("--output-dir", type=Path, required=True)
+    audit.add_argument("--train-plan", type=Path, required=True)
+    audit.add_argument("--validation-plan", type=Path, required=True)
+    audit.add_argument("--logged-loss-csv", type=Path, required=True)
+    audit.add_argument("--hf-repo-id", required=True)
+    audit.add_argument("--batch-size", type=int, default=64)
+    audit.add_argument("--dependency-batch-size", type=int, default=1_024)
+    audit.add_argument("--n-bootstrap", type=int, default=200)
+    audit.add_argument("--num-workers", type=int, default=4)
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
@@ -199,6 +214,23 @@ def main() -> None:
             output_dir=args.output_dir,
             hf_repo_id=args.hf_repo_id,
             batch_size=args.batch_size,
+        )
+        return
+
+    if args.command == "checkpoint-audit":
+        from exp479_mntp.checkpoint_audit import run_checkpoint_audit
+
+        run_checkpoint_audit(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            logged_loss_csv=args.logged_loss_csv,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
+            dependency_batch_size=args.dependency_batch_size,
+            n_bootstrap=args.n_bootstrap,
+            num_workers=args.num_workers,
         )
         return
 
