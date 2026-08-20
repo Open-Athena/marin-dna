@@ -1,0 +1,77 @@
+name: issue-473-batched-hal-alignment-trace-after-producer
+
+# Additive handoff for the pilot-free batched producer. It waits on the new
+# core completion target, then runs the established sampled trace rules in the
+# exact producer namespace. No existing producer or trace rule is changed.
+resources:
+  cpus: 48
+  memory: 90
+
+envs:
+  PIPELINE_COMMIT_SHA: d0e5380a46cd66d4c42d763b3c42da1150c92073
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.1.4/bin:$PATH"
+  export LD_LIBRARY_PATH="$HOME/cactus-bin-v3.1.4/lib:${LD_LIBRARY_PATH:-}"
+  export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  test "$PIPELINE_COMMIT_SHA" = d0e5380a46cd66d4c42d763b3c42da1150c92073
+  test -L snakemake/vertebrate_projection_dataset/results
+  test -L snakemake/vertebrate_projection_dataset/.snakemake
+  test "$(sha256sum snakemake/vertebrate_projection_dataset/workflow/rules/issue_473_trace.smk | cut -d' ' -f1)" = 3caffa14eaeca9478193b2023bc6fd570df88bc4ec122cf5e718631e1e5abb9b
+  test "$(sha256sum snakemake/vertebrate_projection_dataset/src/marin_dna_vertebrate_projection/issue_473/hal_trace.py | cut -d' ' -f1)" = 4bccd39257612c6f3d3b2465a4d7f276b2c03fd20ad6d48fcdad19970b016593
+  test "$(sha256sum snakemake/vertebrate_projection_dataset/workflow/rules/common.smk | cut -d' ' -f1)" = 9a07e12b190e10137e495043ecaf6ef25a34bc749ee5d111853ca727e2843509
+
+  cd snakemake/vertebrate_projection_dataset
+  date -u +trace_gate_start=%Y-%m-%dT%H:%M:%SZ
+  until uv run --locked snakemake issue_473_fixed_core_projection_experiment \
+    --dry-run \
+    --nolock \
+    --profile workflow/profiles/default \
+    --config tier=full add_reverse_complement=true max_validation_rows=16384 split_seed=42 \
+    --cores 48 \
+    --resources mem_mb=90000 ucsc_downloads=4 final_large_scan=1 hf_uploads=1 \
+    --allowed-rules issue_473_fixed_core_projection_experiment \
+    --rerun-incomplete
+  do
+    date -u +trace_gate_waiting=%Y-%m-%dT%H:%M:%SZ
+    sleep 600
+  done
+  date -u +trace_gate_passed=%Y-%m-%dT%H:%M:%SZ
+
+  TRACE_LOCAL_ROOT=/mnt/nvme/vertebrate_projection/issue473_trace_source_d0e5380a
+  PRODUCER_S3_ROOT=s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/v1/d0e5380a46cd66d4c42d763b3c42da1150c92073/bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039/full/experiments/473/fixed
+  mkdir -p "$TRACE_LOCAL_ROOT/full_scale/full_window/sequences"
+  mkdir -p "$TRACE_LOCAL_ROOT/runs/full_center_1/sequences"
+  date -u +trace_stage_start=%Y-%m-%dT%H:%M:%SZ
+  aws s3 cp --only-show-errors \
+    "$PRODUCER_S3_ROOT/full_scale/full_window/sequences/all_sources.parquet" \
+    "$TRACE_LOCAL_ROOT/full_scale/full_window/sequences/all_sources.parquet"
+  aws s3 cp --only-show-errors \
+    "$PRODUCER_S3_ROOT/runs/full_center_1/sequences/all_sources.parquet" \
+    "$TRACE_LOCAL_ROOT/runs/full_center_1/sequences/all_sources.parquet"
+  stat --printf="%n %s bytes\n" \
+    "$TRACE_LOCAL_ROOT/full_scale/full_window/sequences/all_sources.parquet" \
+    "$TRACE_LOCAL_ROOT/runs/full_center_1/sequences/all_sources.parquet"
+  sha256sum \
+    "$TRACE_LOCAL_ROOT/full_scale/full_window/sequences/all_sources.parquet" \
+    "$TRACE_LOCAL_ROOT/runs/full_center_1/sequences/all_sources.parquet"
+  date -u +trace_stage_end=%Y-%m-%dT%H:%M:%SZ
+
+  ISSUE_473_TRACE_SOURCE_ROOT="$TRACE_LOCAL_ROOT" \
+    uv run --locked snakemake issue_473_fixed_hal_alignment_trace \
+    --profile workflow/profiles/default \
+    --config tier=full add_reverse_complement=true max_validation_rows=16384 split_seed=42 \
+    --cores 48 \
+    --resources mem_mb=90000 final_large_scan=1 \
+    --allowed-rules \
+      issue_473_hal_trace_sample \
+      issue_473_hal_trace_bed \
+      issue_473_hal_trace_liftover \
+      issue_473_hal_trace_metrics \
+      issue_473_hal_trace_summary \
+      issue_473_fixed_hal_alignment_trace \
+    --rerun-incomplete \
+    --printshellcmds
+  date -u +trace_complete=%Y-%m-%dT%H:%M:%SZ
+  aws s3 ls "$PRODUCER_S3_ROOT/hal_trace/" --recursive --summarize
