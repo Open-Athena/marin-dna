@@ -674,3 +674,40 @@ cohort, assemblies, and downstream training recipe fixed.
   graphs cannot launch before publication.
 - Next action: continue job 11 to its full QC/manual target, validate those
   durable artifacts, then resubmit the strict sampled-trace task.
+
+### 2026-08-20 02:52 UTC - CSP-014 evaluation provenance hardening
+
+- Snapshot: additive experiment commit
+  `3fde057197849273456f1118199b2fcf06e79937` gives every official evaluator
+  model a full experiment-commit-keyed name. The same names now isolate the
+  separate chromosome-18 intersection-loss cells. Maintained `evals_v2`
+  rules and established model outputs remain unchanged.
+- Trigger: the official score parquet does not itself include `split`, and
+  the shared `compute_scores` output path is keyed only by model and dataset.
+  Stable issue-only model names could therefore have allowed stale score
+  reuse without independently visible split provenance.
+- Guard: score, metric, and downloaded-checkpoint paths are now unique to the
+  exact 40-character experiment commit. Paired Mendelian analysis additionally
+  requires each score bundle's matching official metric parquet to exist and
+  record only `split=train`; Complex and SGE metrics retain the same check.
+  The analysis launcher passes the exact commit, and the output manifest
+  records it together with all verified metric inputs.
+- Validation: all 17 locked experiment-project tests passed in 4.96 seconds
+  with 505,924 KiB peak RSS. Changed-file hooks passed. Focused tests cover
+  commit isolation, malformed commit rejection, development provenance,
+  held-out rejection, missing provenance rejection, and launcher propagation.
+- Graph: an official dry-run with dummy immutable checkpoint roots retained
+  the exact 201-job matrix: 40 downloads, 80 scores, 80 metrics, and one
+  aggregate target. Every generated key contained the full commit and every
+  output was missing, demonstrating namespace isolation; dry-run wrote no
+  scientific artifact. This local Snakemake process unexpectedly reached
+  1,058,844 KiB peak RSS (02:51:09--02:51:20 UTC), so it is now known to
+  exceed the shared node's 500 MiB local-workload limit and will not be
+  repeated locally; subsequent full graph checks use the prepared remote
+  launcher.
+- Safety: all VEP config remains hard-coded to `train`; no even-autosome or
+  chromosome-Y VEP label, prediction, effect measurement, or aggregate metric
+  was accessed.
+- Next action: continue the projection gate, then trace, review, private
+  publication, four authorized Iris arms, intersection loss, and official
+  development analysis in that order.
