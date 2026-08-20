@@ -1,0 +1,7 @@
+{
+  "batch_size": 64,
+  "train_rows": 64000,
+  "validation_rows": 640,
+  "train_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "validation_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba"
+}

@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "started_at_utc": "2026-08-20T03:27:06.091817+00:00",
+  "finished_at_utc": "2026-08-20T03:28:12.706787+00:00",
+  "causal_logit_parity_max_abs_delta": 0.0,
+  "input_output_tied": false,
+  "mask_token_id": 7,
+  "attention": {
+    "causal_right_flank_logit_delta": 0.0,
+    "full_right_flank_logit_delta": 2.2641544342041016,
+    "causal_right_flank_gradient_norm": 0.0,
+    "full_right_flank_gradient_norm": 0.11037248373031616
+  },
+  "memory_and_throughput": {
+    "selected": {
+      "batch_size": 1024,
+      "status": "ok",
+      "loss": 1.3786115646362305,
+      "peak_allocated_bytes": 90322626560,
+      "total_memory_bytes": 101468602368,
+      "headroom_fraction": 0.1098465490593481,
+      "adamh_norm_relative_error": 0.0,
+      "seconds_per_step": 10.103711522333336,
+      "model_tokens_per_second": 25945.317165930017,
+      "projected_training_hours": 8.419759601944447,
+      "accrued_hours": 0.11769618425104353,
+      "evaluation_reserve_usd": 10.0,
+      "projected_total_cost_usd": 31.478898699232957
+    },
+    "attempts": [
+      {
+        "batch_size": 1024,
+        "status": "ok",
+        "loss": 1.3786115646362305,
+        "peak_allocated_bytes": 90322626560,
+        "total_memory_bytes": 101468602368,
+        "headroom_fraction": 0.1098465490593481,
+        "adamh_norm_relative_error": 0.0,
+        "seconds_per_step": 10.103711522333336,
+        "model_tokens_per_second": 25945.317165930017,
+        "projected_training_hours": 8.419759601944447,
+        "accrued_hours": 0.11769618425104353,
+        "evaluation_reserve_usd": 10.0,
+        "projected_total_cost_usd": 31.478898699232957
+      }
+    ]
+  },
+  "deterministic_algorithms": true
+}

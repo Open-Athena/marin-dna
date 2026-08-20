@@ -1,0 +1,52 @@
+[
+  {
+    "locus": "LDLR",
+    "chrom": "19",
+    "start": 11089299,
+    "end": 11089425,
+    "strand": "+",
+    "context_start": 11089235,
+    "context_end": 11089490,
+    "off_diagonal_spearman": 0.9681055309652
+  },
+  {
+    "locus": "TH",
+    "chrom": "11",
+    "start": 2171682,
+    "end": 2171868,
+    "strand": "-",
+    "context_start": 2171648,
+    "context_end": 2171903,
+    "off_diagonal_spearman": 0.9737680629503257
+  },
+  {
+    "locus": "GRIA4",
+    "chrom": "11",
+    "start": 105609444,
+    "end": 105609472,
+    "strand": "+",
+    "context_start": 105609331,
+    "context_end": 105609586,
+    "off_diagonal_spearman": 0.9736628197941443
+  },
+  {
+    "locus": "HBA1",
+    "chrom": "16",
+    "start": 176699,
+    "end": 176954,
+    "strand": "+",
+    "context_start": 176699,
+    "context_end": 176954,
+    "off_diagonal_spearman": 0.9657451324925327
+  },
+  {
+    "locus": "tRNA_Arg_TCT",
+    "chrom": "1",
+    "start": 159141610,
+    "end": 159141684,
+    "strand": "-",
+    "context_start": 159141520,
+    "context_end": 159141775,
+    "off_diagonal_spearman": 0.9649224930720771
+  }
+]
