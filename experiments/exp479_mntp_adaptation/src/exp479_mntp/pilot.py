@@ -90,20 +90,28 @@ def assert_observed_budget_projection(artifact_dir: Path) -> dict[str, float | i
         runtime_path = artifact_dir / arm / "runtime.json"
         if runtime_path.exists():
             runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
-            durations.append(float(runtime["elapsed_seconds"]))
+            executed_steps = int(runtime.get("executed_steps", TRAIN_STEPS))
+            if executed_steps <= 0:
+                raise ValueError(f"{arm} runtime has invalid executed_steps={executed_steps}")
+            full_arm_seconds = float(runtime["elapsed_seconds"]) * TRAIN_STEPS / executed_steps
+            durations.append(full_arm_seconds)
         else:
             remaining_arms += 1
     if not durations:
         return None
     start = float(os.environ["EXP479_INSTANCE_START_UNIX"])
+    prior_cost_usd = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
     accrued_hours = max(0.0, (time.time() - start) / 3600)
     projected_remaining_hours = 1.10 * (sum(durations) / len(durations)) * remaining_arms / 3600
     projected_total_usd = (
-        accrued_hours + projected_remaining_hours
-    ) * LAMBDA_GH200_PRICE_PER_HOUR_USD + EVALUATION_RESERVE_USD
+        prior_cost_usd
+        + (accrued_hours + projected_remaining_hours) * LAMBDA_GH200_PRICE_PER_HOUR_USD
+        + EVALUATION_RESERVE_USD
+    )
     result: dict[str, float | int] = {
         "completed_arms": len(durations),
         "remaining_arms": remaining_arms,
+        "prior_cost_usd": prior_cost_usd,
         "accrued_hours": accrued_hours,
         "projected_remaining_training_hours": projected_remaining_hours,
         "evaluation_reserve_usd": EVALUATION_RESERVE_USD,
@@ -130,6 +138,8 @@ def run_pilot(
     offline_wandb: bool,
     maximum_batch_size: int | None = None,
     trainer_preflight_path: Path | None = None,
+    resume_hf_repo_id: str | None = None,
+    checkpoint_upload_steps: tuple[int, ...] | None = None,
 ) -> None:
     """Prepare matched plans, train each arm, and publish resumable artifacts."""
 
@@ -151,6 +161,8 @@ def run_pilot(
         private=True,
     )
     published_files = remote_files(hf_repo_id)
+    resume_repo_id = resume_hf_repo_id or hf_repo_id
+    resume_files = published_files if resume_repo_id == hf_repo_id else remote_files(resume_repo_id)
 
     data_dir = artifact_dir / "data"
     train_plan = data_dir / "train.jsonl"
@@ -221,6 +233,13 @@ def run_pilot(
                 destination_dir=artifact_dir / "downloaded-checkpoints",
                 files=published_files,
             )
+        if resume_from is None and resume_repo_id != hf_repo_id:
+            resume_from = download_latest_remote_checkpoint(
+                repo_id=resume_repo_id,
+                arm=arm,
+                destination_dir=artifact_dir / "downloaded-resume-checkpoints",
+                files=resume_files,
+            )
         train_arm(
             arm=arm,
             batch_size=batch_size,
@@ -234,6 +253,7 @@ def run_pilot(
             accelerator="gpu",
             precision="bf16-mixed",
             hf_repo_id=hf_repo_id,
+            checkpoint_upload_steps=checkpoint_upload_steps,
         )
         gc.collect()
         torch.cuda.empty_cache()

@@ -32,6 +32,15 @@ run: |
     fi
   done
   test -n "$TRAIN_BATCH"
+  PILOT_EXTRA_ARGS=()
+  if [[ -n "${RESUME_HF_REPO_ID:-}" ]]; then
+    PILOT_EXTRA_ARGS+=(--resume-hf-repo-id "$RESUME_HF_REPO_ID")
+  fi
+  if [[ -n "${CHECKPOINT_UPLOAD_STEPS:-}" ]]; then
+    read -r -a UPLOAD_STEPS <<< "$CHECKPOINT_UPLOAD_STEPS"
+    PILOT_EXTRA_ARGS+=(--checkpoint-upload-steps "${UPLOAD_STEPS[@]}")
+  fi
+
   uv run --locked exp479 pilot \
     --preflight "$HOME/exp479-artifacts/preflight.json" \
     --trainer-preflight "$HOME/exp479-artifacts/lightning-preflight.json" \
@@ -39,7 +48,8 @@ run: |
     --hf-repo-id "$HF_REPO_ID" \
     --model-card README.hf.md \
     --experiment-commit "$EXPERIMENT_COMMIT" \
-    --model-card-reviewed
+    --model-card-reviewed \
+    "${PILOT_EXTRA_ARGS[@]}"
   uv run --locked exp479 evaluate \
     --artifact-dir "$HOME/exp479-artifacts" \
     --output-dir "$HOME/exp479-artifacts/evaluation/vep" \
