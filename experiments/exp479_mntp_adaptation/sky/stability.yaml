@@ -35,3 +35,12 @@ run: |
     --hf-repo-id "$HF_REPO_ID" \
     --batch-size 64 \
     --num-workers 4
+  recheck_output="$artifact_root/evaluation/inference-recheck"
+  mkdir -p "$recheck_output"
+  uv run --locked exp479 inference-recheck \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$recheck_output" \
+    --hf-repo-id "$HF_REPO_ID" \
+    --vep-batch-size 1024 \
+    --dependency-batch-size 1024 \
+    --n-bootstrap 200
