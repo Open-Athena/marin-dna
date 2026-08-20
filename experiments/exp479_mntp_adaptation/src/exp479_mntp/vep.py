@@ -173,7 +173,8 @@ def attach_reference_windows(frame: pd.DataFrame, fasta_path: Path) -> pd.DataFr
     center = NUCLEOTIDE_LENGTH // 2
     sequences: list[str] = []
     with Fasta(fasta_path, as_raw=True, rebuild=False) as genome:
-        chrom_sizes = {name: len(genome[name]) for name in genome}
+        sequence_names = genome.keys()
+        chrom_sizes = {name: len(genome[name]) for name in sequence_names}
         for row in frame.itertuples(index=False):
             chrom = str(row.chrom)
             center_zero_based = int(row.pos) - 1
