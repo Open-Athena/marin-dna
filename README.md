@@ -33,10 +33,10 @@ These documents synthesize MarinDNA's current answers and help organize future e
 
 ## Resources
 
-- [🤗 Models and datasets on Hugging Face](https://huggingface.co/marin-dna)
-- [🏆 Variant effect prediction leaderboard](https://openathena.ai/marin-dna/)
-- [🧬 Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
-- [💻 Model inference and BRCA1 variant effect prediction notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/5d1925fe0d6569c0ee0c29db06b8f287c2347065/examples/model_inference_and_vep.py)
+- [Models and datasets on Hugging Face](https://huggingface.co/marin-dna)
+- [Variant effect prediction leaderboard](https://openathena.ai/marin-dna/)
+- [Interactive sequence explorer](https://molab.marimo.io/notebooks/nb_MrPpr5xYcN3HGt5tLY86bk/app)
+- [Model inference and BRCA1 variant effect prediction notebook](https://molab.marimo.io/github/Open-Athena/marin-dna/blob/5d1925fe0d6569c0ee0c29db06b8f287c2347065/examples/model_inference_and_vep.py)
 
 ## Community
 
