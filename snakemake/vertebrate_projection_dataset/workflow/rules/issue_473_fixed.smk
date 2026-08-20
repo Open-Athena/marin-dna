@@ -67,6 +67,7 @@ ISSUE_473_FIXED_FULL_WINDOW = (
 ISSUE_473_FIXED_CENTER_1 = (
     f"{ISSUE_473_FIXED_RUN_ROOT}/full_center_1/sequences/all_sources.parquet"
 )
+ISSUE_473_BATCHED_CORE_MANIFEST = f"{ISSUE_473_FIXED_ROOT}/batched_core/manifest.json"
 ISSUE_473_FIXED_QC_TABLES = {
     "per_anchor": "issue417_per_anchor_qc",
     "per_anchor_scope": "issue417_per_scope_qc",
@@ -962,6 +963,70 @@ rule issue_473_fixed_landmark_pilot:
     """Run the six-policy fixed five-region pilot at full cohort scale."""
     input:
         issue_473_fixed_pilot_outputs,
+
+
+def issue_473_fixed_core_outputs(_wildcards):
+    """Required full-scale comparison outputs, excluding the deferred pilot."""
+    assert TIER == "full", "issue_473_fixed_core requires tier=full"
+    dataset_pairs = [
+        ("center_1", "cds"),
+        ("center_1", ENHANCER_REGION),
+        ("full_window", ENHANCER_REGION),
+    ]
+    return (
+        [
+            ISSUE_473_BATCHED_CORE_MANIFEST,
+            PRODUCER_MANIFEST,
+            f"{ISSUE_473_FIXED_ROOT}/anchors/summary.json",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/baseline_compatibility.json",
+            ISSUE_473_FIXED_FULL_WINDOW,
+            ISSUE_473_FIXED_CENTER_1,
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/full_window/qc/per_anchor.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/"
+            "full_window/qc/per_anchor_scope.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/"
+            "full_window/qc/rejection_counts.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/full_window/qc/aggregates.parquet",
+            f"{ISSUE_473_FIXED_RUN_ROOT}/full_center_1/qc/aggregates.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/qc/paired_union.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/qc/paired_scopes.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/qc/anchor_uncertainty.parquet",
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/qc/manual_inspection.md",
+        ]
+        + [
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/datasets/"
+            f"{policy}/{region}/{filename}"
+            for policy, region in dataset_pairs
+            for filename in [
+                "train.parquet",
+                "validation.parquet",
+                "split_summary.json",
+            ]
+        ]
+        + [
+            f"{ISSUE_473_FIXED_ROOT}/full_scale/intersection/{region}/{filename}"
+            for region in ["cds", ENHANCER_REGION]
+            for filename in [
+                "full_window_validation.parquet",
+                "center_1_validation.parquet",
+                "selection.tsv",
+                "summary.json",
+            ]
+        ]
+    )
+
+
+rule issue_473_fixed_core_requests:
+    """Build only the two request tables consumed by the batched prefill."""
+    input:
+        f"{ISSUE_473_FIXED_RUN_ROOT}/full_center_1/requests.parquet",
+        f"{ISSUE_473_FIXED_RUN_ROOT}/full_enhancer_full_window/requests.parquet",
+
+
+rule issue_473_fixed_core_projection_experiment:
+    """Execute the required full-scale comparison without optional pilots."""
+    input:
+        issue_473_fixed_core_outputs,
 
 
 def issue_473_fixed_experiment_outputs(_wildcards):

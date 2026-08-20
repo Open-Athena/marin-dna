@@ -86,6 +86,18 @@ The full target restores the unchanged #417 full-window standard-region
 sequence and QC artifacts. New projection work is restricted to the exp351
 full-window arm and fixed-catalog center-width-1 arm; the six-policy landmark
 pilot is isolated in the same new namespace. The credential-free full-tier
+
+On 2026-08-20, the immediate execution scope was narrowed to the core
+`full_window` versus `center_1` comparison; the wider 17, 33, 65, and 129 bp
+pilot policies were deferred. The additive batched entry point
+`workflow/Issue473BatchedCore.smk` combines the two required new request sets
+and runs one HAL projection per target species and one MAF scan per source
+chromosome before restoring the established per-run raw schemas. The
+`issue_473_fixed_core_projection_experiment` target consumes those receipts
+and omits every pilot dependency. The original pilot rules and complete target
+remain unchanged for a later explicit follow-up.
+
+The earlier full target's credential-free
 dry-run resolved 10,658 jobs, including 270 rejection-file restores and 24
 scored-anchor restores, and exited successfully. The project suite passed 111
 tests, the changed-file pre-commit hooks passed, and the dry-run peaked at

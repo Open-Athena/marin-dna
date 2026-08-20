@@ -158,6 +158,27 @@ uv run --locked snakemake -n issue_473_fixed_projection_experiment \
   --config tier=full
 ```
 
+For the decision-relevant comparison without the optional wider-landmark
+pilot, use the additive batched launcher:
+
+```bash
+sky launch -c issue-473-batched-core \
+  sky/issue_473_batched_core.yaml \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)" \
+  --env DRY_RUN=0
+```
+
+This launcher first builds only the `full_center_1` and
+`full_enhancer_full_window` request tables. The standalone
+`workflow/Issue473BatchedCore.smk` then namespaces and concatenates those
+requests, invokes `halLiftover` once per target species, scans each MultiZ MAF
+chromosome once, and splits the backend-native rows back into the exact
+per-run raw paths. A receipt manifest gates the final phase, which invokes the
+unchanged fragment, contract, sequence, QC, inspection, intersection, and
+dataset rules through `issue_473_fixed_core_projection_experiment`. The
+existing complete target and all six pilot policies remain available and are
+not edited or overwritten.
+
 The complete target restores the immutable #417 standard-region full-window
 sequences and QC instead of recomputing them. It adds only the missing
 enhancer-centered full-window projection and the fixed-catalog center-width-1
