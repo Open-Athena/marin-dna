@@ -53,11 +53,12 @@ def test_observed_budget_projection_uses_completed_arm_runtime(
 ) -> None:
     runtime = tmp_path / "transferred_mntp" / "runtime.json"
     runtime.parent.mkdir()
-    runtime.write_text('{"elapsed_seconds": 3600}\n', encoding="utf-8")
+    runtime.write_text('{"elapsed_seconds": 1080, "executed_steps": 300}\n', encoding="utf-8")
     monkeypatch.setenv("EXP479_INSTANCE_START_UNIX", "0")
     monkeypatch.setattr("exp479_mntp.pilot.time.time", lambda: 3600.0)
     projection = assert_observed_budget_projection(tmp_path)
     assert projection is not None
+    assert projection["projected_remaining_training_hours"] == 2.2
     assert projection["completed_arms"] == 1
     assert projection["remaining_arms"] == 2
     assert projection["projected_total_usd"] < 50

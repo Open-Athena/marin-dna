@@ -2,7 +2,7 @@
 
 This permanent experiment project implements [issue #479](https://github.com/Open-Athena/marin-dna/issues/479): three matched 1,000-step training arms and two no-training controls for converting the released 1B m5.1 causal checkpoint into a full-attention masked-next-token-prediction model.
 
-The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris are not dependencies of this experiment. A reviewed private Hugging Face staging repository preserves every numbered checkpoint before Sky tears the instance down.
+The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris are not dependencies of this experiment. Every numbered checkpoint is saved on the task disk and every validation boundary is logged to W&B; selected restart milestones are copied to reviewed private Hugging Face staging before Sky tears the instance down.
 
 ## Registered behavior
 
@@ -109,6 +109,11 @@ Each trained arm writes:
 Dense scalar series live in W&B. GitHub issue #479 and [the logbook](../../.agents/logbooks/479-mntp-adaptation.md) remain the narrative record.
 
 The private staging repository also receives the actual-checkpoint preflight, sequence-plan hashes, final safetensors exports, odd/X VEP scores and natural-unit bootstrap summaries, inference runtime, numeric dependency maps, and matched-scale SVG comparisons. The VEP loader requests only each pinned public `train` split and rejects any chromosome outside odd autosomes/X before scoring. The dependency-map panel uses unlabeled reference sequence and may include its preregistered even-autosome locus.
+
+Checkpoint publication defaults to every numbered checkpoint. A recovery launch may set
+`--checkpoint-upload-steps` and a separate `--resume-hf-repo-id` when the original private
+owner reaches its storage quota. This leaves existing checkpoints untouched while preserving
+the specified restart milestones in a second private repository.
 
 ## Held-out evaluation boundary
 

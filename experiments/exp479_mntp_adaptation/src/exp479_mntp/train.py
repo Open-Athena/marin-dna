@@ -31,6 +31,10 @@ def _instance_start_unix() -> float | None:
     return None if raw is None else float(raw)
 
 
+def _prior_cost_usd() -> float:
+    return float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
+
+
 def train_arm(
     *,
     arm: Arm,
@@ -45,6 +49,7 @@ def train_arm(
     accelerator: str,
     precision: str,
     hf_repo_id: str | None = None,
+    checkpoint_upload_steps: tuple[int, ...] | None = None,
 ) -> None:
     """Run one 1,000-step arm and export its cooled Hugging Face model."""
 
@@ -102,7 +107,10 @@ def train_arm(
     callbacks = [
         checkpoint_callback,
         RuntimeMetricsCallback(output_dir / "runtime.json", batch_size),
-        BudgetGuardCallback(instance_start_unix=_instance_start_unix()),
+        BudgetGuardCallback(
+            instance_start_unix=_instance_start_unix(),
+            prior_cost_usd=_prior_cost_usd(),
+        ),
     ]
     callbacks.append(
         ContextProbeCallback(
@@ -118,6 +126,7 @@ def train_arm(
                 checkpoint_dir=output_dir / "checkpoints",
                 repo_id=hf_repo_id,
                 arm=arm,
+                upload_steps=checkpoint_upload_steps,
             )
         )
     trainer = L.Trainer(
