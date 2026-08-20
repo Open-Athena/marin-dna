@@ -1,7 +1,7 @@
 # Carbon species conditioning on Mendelian VEP
 
 This isolated Snakemake project implements [issue #486](https://github.com/Open-Athena/marin-dna/issues/486).
-It measures whether frozen Carbon-3B changes human development-set variant rankings when its inference prompt is untagged or correctly tagged as mammalian.
+It measures whether frozen Carbon-3B changes human development-set variant rankings when its inference prompt is untagged, correctly tagged as mammalian, or incorrectly tagged as fungal.
 
 The analysis is exploratory.
 It reports every condition and paired comparison without a winner gate or testing hierarchy.
@@ -18,7 +18,7 @@ It reports every condition and paired comparison without a winner gate or testin
 - Score: bf16 masked mean causal token log likelihood on REF and ALT for FWD and reverse-complement strands.
 - Inference batch: one variant, or four allele-strand prompts, validated on both an NVIDIA A10G and a Lambda GH200.
 - Derived score: `llr = ((LL_alt_fwd - LL_ref_fwd) + (LL_alt_rc - LL_ref_rc)) / 2`, then `score = -llr`.
-- Metric: per-consequence-subset and eligible-subset macro AUPRC for the untagged and correct conditions.
+- Metric: per-consequence-subset and eligible-subset macro AUPRC for the untagged, correct, and far-wrong fungal conditions.
 - Uncertainty: 1,000 seeded paired match-group bootstrap draws.
 
 The project does not import `marin_dna_evals`, modify `evals_v2`, write into the `evals_v2` artifact prefix, or register Carbon in the dashboard.
@@ -73,10 +73,10 @@ results/
 │   └── summary.md
 └── full_development/
     ├── windows/{mendelian,exclusions}.parquet
-    ├── scores/Carbon-3B/{untagged,correct}.parquet
-    ├── metrics/Carbon-3B/{untagged,correct}.parquet
-    ├── paired/Carbon-3B/correct_minus_untagged.parquet
-    ├── runtime/Carbon-3B/{untagged,correct}.json
+    ├── scores/Carbon-3B/{untagged,correct,far_wrong}.parquet
+    ├── metrics/Carbon-3B/{untagged,correct,far_wrong}.parquet
+    ├── paired/Carbon-3B/{correct,far_wrong}_minus_untagged.parquet
+    ├── runtime/Carbon-3B/{untagged,correct,far_wrong}.json
     └── summary.md
 ```
 
@@ -105,9 +105,10 @@ The smoke's maximum allocated GPU memory was 11.26 GiB.
 A subsequent Lambda GH200 benchmark scored the same eight label-blind rows in 1.55 seconds with batch size one.
 Batch size eight was slower per row and raised peak allocation to 44.76 GiB, so the pilot keeps batch size one.
 The retained promoter execution scored both conditions in 7.6 inference minutes.
-At the 2026-08-20 catalog price of $2.29 per hour, the two-condition full-development run is expected to keep the instance up for 63–67 minutes and cost $2.40–$2.60.
+The retained two-condition full-development run kept the Lambda GH200 instance up for 59 minutes 49 seconds and cost an estimated $2.28 at $2.29 per hour.
 
-The full-development GH200 task has a 70-minute command timeout and two-minute autodown, giving an approval ceiling of $3.00 after ordinary sync overhead.
+The two-arm full-development GH200 task has a 70-minute command timeout and two-minute autodown, giving an approval ceiling of $3.00 after ordinary sync overhead.
+The additive far-wrong task targets only the fungal arm, reuses the retained untagged score locally, and has a 40-minute command timeout plus two-minute autodown for an approximately $1.60 ceiling at $2.29 per hour.
 Check the current [Lambda instance price](https://lambda.ai/instances) immediately before launch.
 
 Stage the already-validated development-only artifacts on the coordinator before launch.
@@ -133,4 +134,34 @@ rsync -a \
   carbon-conditioning-vep-gh200-full:sky_workdir/snakemake/analysis/carbon_conditioning_vep/results/full_development/ \
   snakemake/analysis/carbon_conditioning_vep/results/full_development/
 sky down carbon-conditioning-vep-gh200-full -y
+```
+
+The far-wrong task computes only the new score and absolute metric on Lambda.
+After retrieval, the local DAG adds the paired far-wrong-minus-untagged metric and renders the combined report from the retained baseline artifacts.
+
+```bash
+sky launch snakemake/analysis/carbon_conditioning_vep/sky/run-gh200-far-wrong.yaml \
+  -c carbon-conditioning-vep-gh200-far-wrong
+rsync -a \
+  -e 'ssh -F /home/ubuntu/.sky/generated/ssh/carbon-conditioning-vep-gh200-far-wrong' \
+  carbon-conditioning-vep-gh200-far-wrong:sky_workdir/snakemake/analysis/carbon_conditioning_vep/results/full_development/ \
+  snakemake/analysis/carbon_conditioning_vep/results/full_development/
+sky down carbon-conditioning-vep-gh200-far-wrong -y
+```
+
+Finalize the paired comparison and combined report locally after verifying that the new score was retrieved.
+
+```bash
+cd snakemake/analysis/carbon_conditioning_vep
+uv run --locked snakemake \
+  results/full_development/paired/Carbon-3B/far_wrong_minus_untagged.parquet \
+  results/full_development/summary.md \
+  --forcerun render_summary \
+  --configfile config/full_development.yaml \
+  --workflow-profile none \
+  --default-storage-provider none \
+  --cores all \
+  --resources gpu=0 \
+  --printshellcmds \
+  --rerun-incomplete
 ```

@@ -1,0 +1,48 @@
+# Paid Lambda GH200 task for the single far-wrong fungal arm in issue #486.
+# Reuse inputs staged by sky/stage-gh200-full.sh.
+# Launch only after explicit approval of the current price and approximately $1.60 ceiling.
+
+name: carbon-conditioning-vep-gh200-far-wrong
+
+resources:
+  infra: lambda
+  accelerators: GH200:1
+  disk_size: 200
+  autostop:
+    idle_minutes: 2
+    down: true
+    wait_for: jobs
+
+workdir: .
+
+file_mounts:
+  ~/carbon-conditioning-full-inputs: snakemake/analysis/carbon_conditioning_vep/results/gh200-full-inputs
+
+run: |
+  set -euxo pipefail
+  timeout --signal=TERM --kill-after=30s 2400s bash -lc '
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true
+    uv self update 0.11.31
+    uv sync \
+      --project snakemake/analysis/carbon_conditioning_vep \
+      --locked
+    cd snakemake/analysis/carbon_conditioning_vep
+    uv run --locked pytest
+    mkdir -p results/preflight results/full_development/windows
+    cp "$HOME/carbon-conditioning-full-inputs/preflight/"* results/preflight/
+    cp "$HOME/carbon-conditioning-full-inputs/windows/"* results/full_development/windows/
+    uv run --locked snakemake \
+      results/full_development/metrics/Carbon-3B/far_wrong.parquet \
+      --configfile config/full_development.yaml \
+      --workflow-profile none \
+      --default-storage-provider none \
+      --cores all \
+      --resources gpu=1 \
+      --printshellcmds \
+      --rerun-incomplete
+  '

@@ -1,4 +1,4 @@
-experiment_id: CARBON-SC-002-FULL
+experiment_id: CARBON-SC-003-FULL
 issue: https://github.com/Open-Athena/marin-dna/issues/486
 config_path: config/full_development.yaml
 
@@ -31,7 +31,7 @@ conditions:
   far_wrong: fungi
 
 analysis:
-  conditions: [untagged, correct]
+  conditions: [untagged, correct, far_wrong]
   subset: null
   subset_label: all_development
   expected_rows: 16140
@@ -89,3 +89,4 @@ metrics:
   min_groups_for_macro: 30
   comparisons:
     correct_minus_untagged: [correct, untagged]
+    far_wrong_minus_untagged: [far_wrong, untagged]
