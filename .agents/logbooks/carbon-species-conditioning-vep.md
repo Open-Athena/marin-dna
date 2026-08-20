@@ -13,6 +13,7 @@ author: gonzalobenegas
 - The corrected label-blind four-condition A10G smoke passed.
 - The retained labeled pilot compares untagged versus correct conditioning on 2,050 development-set promoter rows.
 - Correct conditioning produced AUPRC 0.1738 versus 0.1775 untagged, with paired delta -0.0037 and 95% match-group bootstrap interval [-0.0269, 0.0204].
+- A two-arm follow-up on all 16,140 development/train variants is approved with a $3.00 cap and prepared at `d42215f5`.
 - Both Lambda GH200 clusters are terminated; SkyPilot estimates $1.08 total cost, $0.08 above the approved cap because the first successful run's retrieval failed and required one rerun.
 - Compact score, metric, runtime, and summary artifacts are retained in the experiment snapshot; the reproducible 13 MiB staged input is not committed or uploaded to S3.
 
@@ -246,3 +247,22 @@ author: gonzalobenegas
   The confidence interval includes zero, so the result does not demonstrate equivalence or a detrimental effect either.
   The planned broader four-condition matrix should not be launched on the basis of this result.
 - Next action: Preserve the compact result artifacts in an annotated experiment snapshot and request human review before any GitHub publication, S3 upload, or additional compute.
+
+### 2026-08-20 20:37 UTC - Full-development run prepared
+
+- Hypothesis: The promoter-only result may not represent Carbon-3B's conditioning effect across all Mendelian consequence subsets, so compare the same untagged and correct prompts on the complete development split.
+- Commit Hash: `d42215f5`.
+- Command:
+  Stage the canonical validated train-window artifact with `sky/stage-gh200-full.sh` under the shared-node guard.
+  Run `uv run --locked pytest tests/test_pipeline.py tests/test_report.py`, the exact local-storage Snakemake dry-run with `config/full_development.yaml`, the SkyPilot dry-run, and the repository pre-commit suite.
+- Config: 16,140 train rows; 1,614 positives; 1,614 complete ten-row match groups; all observed consequence subsets; untagged and `vertebrate_mammalian` corpus-card prompts; Carbon-3B `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; bf16; one variant per inference batch; 1,000 seeded match-group bootstrap draws; Lambda GH200 at $2.29 per hour; 70-minute command timeout; two-minute autodown; $3.00 approved cap.
+- Result:
+  Bounded staging validated the exact row, positive, group, prompt, dataset, split, reference, and assembly contracts and peaked at 294,684 KiB RSS.
+  The first focused test run exposed a legacy fixture with only one positive across two synthetic match groups after the stronger staging check was added.
+  Correcting the fixture to the real one-positive-per-group invariant produced 8 passing focused tests.
+  The exact Snakemake dry-run contains two score jobs, two absolute-metric jobs, one paired-delta job, one report job, and the aggregate target, with no upstream window or preflight jobs.
+  The SkyPilot dry-run selected one Lambda `gpu_1x_gh200` in `us-east-1` at $2.29 per hour.
+  The full pre-commit suite passed after its formatter changed one Python file.
+  No paid resource was created during preparation.
+- Interpretation: The follow-up is isolated under `results/full_development`, preserves the promoter snapshot, and can run on Lambda without AWS credentials.
+- Next action: Launch `carbon-conditioning-vep-gh200-full`, verify all 29 remote tests and initial throughput, retrieve the result bundle immediately, and terminate the instance.
