@@ -1,0 +1,41 @@
+# The standard evals_v2 Sky GPU runtime selected for issue #462.
+runtime:
+  image_id: ami-0324f0ad73bdcd087
+  image_name: Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 24.04) 20260721
+  operating_system: Ubuntu 24.04.4 LTS
+  driver_version: "595.71.05"
+  pytorch_version: "2.13.0"
+  compiled_cuda_version: "13.0"
+  device_name: NVIDIA A10G
+
+# Full development-split parity against an output written after the issue-459
+# PyTorch 2.8.0 pin. The checksum prevents a later S3 overwrite from silently
+# changing the baseline used by this gate.
+parity:
+  baseline:
+    scores_uri: s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp351-centered-step-1000/mendelian_traits.parquet
+    sha256: 7f5ccf50a48aa50494c208a454abbb1ff3fb69e27fb8daf6d57d0af3d503222f
+    pytorch_version: "2.8.0"
+    compiled_cuda_version: "12.8"
+    driver_version: "535.216.01"
+  checkpoint:
+    name: exp351-centered-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp351-zoonomia-v1-0p25b-centered-v0.1-8adcec/hf/step-1000
+    context_size: 255
+  dataset:
+    repo: bolinas-dna/evals_mendelian_traits
+    revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+    filename: train.parquet
+    split: train
+  inference:
+    batch_size: 128
+    num_workers: 4
+    data_transform_on_the_fly: true
+    torch_compile: true
+    rc: true
+  identity_columns: [chrom, pos, ref, alt]
+  tolerances:
+    llr_fwd: {rtol: 0.0001, atol: 0.15}
+    llr_rc: {rtol: 0.0001, atol: 0.15}
+    jsd_fwd: {rtol: 0.001, atol: 0.0001}
+    jsd_rc: {rtol: 0.001, atol: 0.0001}

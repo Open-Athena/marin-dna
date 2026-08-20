@@ -19,6 +19,9 @@ name: evals-v2
 
 resources:
     infra: aws/us-east-2
+    # AWS DLAMI 20260721: Ubuntu 24.04.4, NVIDIA driver 595.71.05.
+    # Pinned for the PyTorch 2.13.0 / CUDA 13.0 runtime in issue #462.
+    image_id: ami-0324f0ad73bdcd087
     accelerators: A10G:1        # 24 GB Ampere — bf16-capable. L4 (g6.xlarge) is
                                 # ~$0.21/hr cheaper and would also work; keeping A10G
                                 # because that's what we benchmarked batch_size=64 on.
@@ -37,6 +40,7 @@ workdir: .
 
 envs:
     SNAKEMAKE_ARGS: ""           # extra snakemake args (e.g. --forcerun compute_scores)
+    GPU_RUNTIME_PARITY: "false"  # true runs the issue-462 fixed-cell parity gate only.
     EXTRA_UV_GROUPS: ""          # extra `uv` groups for this run, e.g. "--group umap"
                                  # for the embedding-UMAP target (#246). Default
                                  # empty so metrics/nuc_dep runs stay lean (the
@@ -52,6 +56,9 @@ setup: |
 
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    if [[ "$(uv --version)" != "uv 0.11.31" ]]; then
+        uv self update 0.11.31
     fi
 
     # gcloud CLI for the pipeline's `download_model` shell rule.
@@ -73,6 +80,13 @@ setup: |
     # $EXTRA_UV_GROUPS adds per-target groups (e.g. `--group umap` for #246).
     uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3 $EXTRA_UV_GROUPS
 
+    # Fail setup before scoring if the image, driver, torch, compiled CUDA,
+    # A10G, CUDA availability, or bf16 execution differs from the pinned tuple.
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        $EXTRA_UV_GROUPS evals-gpu-runtime-check \
+        --config snakemake/analysis/evals_v2/config/gpu_runtime_validation.yaml \
+        smoke
+
     # Smoke-test GCS access so a bad ADC fails fast in setup, not in a rule.
     gcloud storage ls gs://marin-us-central1/checkpoints/ | head -3 >/dev/null
 
@@ -88,6 +102,18 @@ run: |
     export WANDB_DISABLED=true
 
     cd snakemake/analysis/evals_v2
+
+    if [[ "$GPU_RUNTIME_PARITY" == "true" ]]; then
+        # Re-score the fixed train-split cell in memory and compare it with the
+        # checksummed PyTorch 2.8 baseline. This writes no pipeline artifacts.
+        uv run --locked --group genome-s3 $EXTRA_UV_GROUPS \
+            pytest tests/evals/test_gpu_runtime_validation.py
+        uv run --locked --group genome-s3 $EXTRA_UV_GROUPS \
+            evals-gpu-runtime-check \
+            --config config/gpu_runtime_validation.yaml \
+            parity
+        exit 0
+    fi
 
     # $SNAKEMAKE_ARGS goes last so it can include `-- target1 target2 ...`
     # without breaking the parser (everything after `--` is positional, so

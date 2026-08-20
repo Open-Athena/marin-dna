@@ -26,10 +26,13 @@ dependencies = [
     "seaborn",
     "snakemake",
     "snakemake-storage-plugin-s3>=0.3.6",
-    "torch",
+    "torch==2.13.0",
     "transformers[torch]<5",
     "zstandard",
 ]
+
+[project.scripts]
+evals-gpu-runtime-check = "marin_dna_evals.gpu_runtime_validation:main"
 
 [dependency-groups]
 dev = [
