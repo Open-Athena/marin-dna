@@ -11,8 +11,10 @@ author: gonzalobenegas
 
 - `CARBON-SC-001` selected the corpus-card grammar on an AWS A10G.
 - The corrected label-blind four-condition A10G smoke passed.
-- The first labeled pilot is limited to untagged versus correct conditioning on 2,050 development-set promoter rows.
-- No Mendelian metric computation has run.
+- The retained labeled pilot compares untagged versus correct conditioning on 2,050 development-set promoter rows.
+- Correct conditioning produced AUPRC 0.1738 versus 0.1775 untagged, with paired delta -0.0037 and 95% match-group bootstrap interval [-0.0269, 0.0204].
+- Both Lambda GH200 clusters are terminated; SkyPilot estimates $1.08 total cost, $0.08 above the approved cap because the first successful run's retrieval failed and required one rerun.
+- Compact score, metric, runtime, and summary artifacts are retained in the experiment snapshot; the reproducible 13 MiB staged input is not committed or uploaded to S3.
 
 ## Scope
 
@@ -33,8 +35,6 @@ author: gonzalobenegas
 
 - `CARBON-SC-001`: One released metadata grammar produces higher continuation accuracy with correct low-resource species tags than without tags.
   Next test: Run the fixed sequence-recovery preflight on fungi, protozoa, and invertebrate rows.
-- `CARBON-SC-002`: Correct mammalian conditioning changes promoter-variant ranking relative to no conditioning.
-  Next test: Run untagged and correct prompts on the 2,050-row `tss_proximal` development subset.
 
 ### Blocked
 
@@ -42,7 +42,9 @@ author: gonzalobenegas
 
 ### Falsified / Dead End
 
-- None.
+- `CARBON-SC-002` improvement form: The scoped promoter pilot did not support an AUPRC benefit from correct mammalian conditioning.
+  The paired interval crosses zero, so it also does not establish equivalence or harm.
+  Do not expand conditioning comparisons without a new rationale or substantially more power.
 
 ### Promoted
 
@@ -61,7 +63,7 @@ author: gonzalobenegas
 
 ## Negative Results Index
 
-- None.
+- `CARBON-SC-002`: Correct mammalian conditioning did not improve AUPRC on 2,050 development-only promoter variants; paired delta -0.0037, 95% CI [-0.0269, 0.0204].
 
 ## Entry Log
 
@@ -222,3 +224,25 @@ author: gonzalobenegas
   The experimental computation passed, but the run is not usable without its score and metric artifacts.
   A rerun should keep the combined cost below the approved $1.00 cap because each inference pass was about half the projected duration.
 - Next action: Pass the generated per-cluster SSH configuration explicitly to rsync, use a two-minute autodown, dry-run, snapshot the correction, and rerun once.
+
+### 2026-08-20 19:58 UTC - Retained promoter pilot result
+
+- Hypothesis: Correct mammalian conditioning improves Carbon-3B AUPRC over an untagged prompt on the development-only `tss_proximal` Mendelian subset.
+- Commit Hash: `2de69ae1`.
+- Command: Launch `sky/run-gh200-pilot.yaml` as `carbon-conditioning-vep-gh200-pilot`, run all locked tests and the seven-job promoter DAG on one Lambda GH200, retrieve `results/promoter_pilot` with SkyPilot's generated SSH configuration, validate every score and metric contract locally, and explicitly terminate the cluster.
+- Config: Carbon-3B `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; corpus-card prompts `<dna>` and `<species>vertebrate_mammalian<dna>`; Mendelian development `train` rows only; subset `tss_proximal`; 2,050 rows; 205 positives; 205 complete ten-row match groups; 8,190 scored DNA bases per strand; bf16; batch size one; FWD/RC average; 1,000 seeded paired match-group bootstrap draws.
+- Result:
+  All 27 locked tests passed in 9.71 seconds before scoring.
+  Untagged AUPRC was 0.177510 with absolute 95% bootstrap interval [0.138739, 0.227481].
+  Correct-conditioned AUPRC was 0.173788 with absolute 95% bootstrap interval [0.137731, 0.221405].
+  The paired correct-minus-untagged delta was -0.003722 with 95% interval [-0.026868, 0.020443].
+  Both conditions contained the same 2,050 unique variants and identical labels, subsets, and match groups; every likelihood atom was finite and satisfied the score identities; no window rows were excluded.
+  Correct scoring took 243.6 seconds with 11.29 GiB peak allocated GPU memory and 4.81 GiB peak RSS; untagged scoring took 213.0 seconds with 11.26 GiB peak allocated GPU memory and 4.26 GiB peak RSS on an NVIDIA GH200 480GB.
+  The corrected SSH transfer succeeded, and explicit teardown left no cluster named `carbon-conditioning-vep-gh200-pilot`.
+  SkyPilot's local cost report estimates each 14-minute cluster at $0.54, or $1.08 combined; this exceeded the approved $1.00 cap by $0.08 because the first successful run's artifacts were lost to the original retrieval bug.
+  Local artifact validation exited zero in 1.08 seconds at 207,848 KiB peak RSS.
+- Interpretation:
+  This scoped pilot provides no evidence that correct mammalian conditioning improves promoter-variant ranking over no conditioning.
+  The confidence interval includes zero, so the result does not demonstrate equivalence or a detrimental effect either.
+  The planned broader four-condition matrix should not be launched on the basis of this result.
+- Next action: Preserve the compact result artifacts in an annotated experiment snapshot and request human review before any GitHub publication, S3 upload, or additional compute.
