@@ -14,7 +14,7 @@ Build the figure around the scientific comparison it must support.
 ## Compose The Figure
 
 - Present one scientific comparison at a time. Start with the primary contrast, then add modifiers or interactions only when they answer the next question.
-- Use one single-line overall figure title. Give each subplot or facet one single-line title that identifies only its panel distinction. Do not stack subtitles, narrative blocks, or sample counts into the figure header.
+- Keep the overall figure title, each subplot or facet title, and each axis label on one line within its allotted area. Shorten them or move detail to the caption before they wrap, clip, or overflow.
 
 ## Choose The Highest-Level Suitable Interface
 
@@ -33,9 +33,8 @@ Build the figure around the scientific comparison it must support.
 
 ## Preserve The Meaning
 
-- Label metrics, units, aggregation, sample definition, transformations, and any displayed uncertainty explicitly in the caption or surrounding prose when they do not fit cleanly in the figure.
-- Keep sample counts out of the plotting area by default. Include `n` only when it is needed to interpret the statistic, and state exactly what it counts.
-- Do not add bootstrap intervals or another uncertainty overlay by habit. If uncertainty is negligible at the intended display scale, omit the overlay; when uncertainty is shown, name the quantity, such as standard error, confidence interval, standard deviation, or range.
+- Label metrics, units, aggregation, sample definition, and transformations explicitly in the caption or surrounding prose when they do not fit cleanly in the figure.
+- Show uncertainty by default when it can be estimated. Name the quantity, such as standard error, confidence interval, standard deviation, or range. Omit it only when uncertainty is not meaningful for the statistic or explicit human direction calls for another presentation.
 - Share an axis only when the common scale supports the intended comparison without obscuring variation. Otherwise use clearly labeled independent axes, especially for panels that are not comparable by construction or have materially different useful ranges.
 - Preserve negative results and relevant variation. Do not tune axis limits, smoothing, filtering, or color scales to exaggerate an effect.
 - Use accessible colors. Add a redundant visual channel only when the output context requires it.
