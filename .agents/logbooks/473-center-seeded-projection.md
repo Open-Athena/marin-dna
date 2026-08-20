@@ -925,3 +925,23 @@ cohort, assemblies, and downstream training recipe fixed.
   its pre-hardening bundle, launch the next retry from this guarded commit and
   the newest valid checkpoint; otherwise retain the guard for the remaining
   three arms.
+
+### 2026-08-20 08:01 UTC - CSP-021 recovered CDS arm reaches step 1,000
+
+- Durable milestone: retry coordinator
+  `/ubuntu/exp473-cds-full-window-v3` passed the original step-842 failure
+  point and completed both the retained optimizer-state checkpoint at
+  `checkpoints/step-1000` and the Hugging Face export at `hf/step-1000` under
+  the registered GCS root. Training resumed beyond step 1,000.
+- Recovery evidence: v3 started from temporary step 724, saved a replacement
+  temporary checkpoint at step 811, atomically deleted the older step-724
+  recovery state, saved another temporary checkpoint at step 924, and then
+  completed the step-1,000 native and Hugging Face writes. Iris still reports
+  zero failures and zero preemptions for v3.
+- Interpretation: this validates the checkpoint namespace and restart path
+  after the v2 asyncio shutdown race. The Python 3.12 guard remains necessary
+  for future retries and the remaining arms because v3 was packaged before
+  commit `de03d0e8` and the underlying race is nondeterministic.
+- Safety: the arm continued on the authorized unlabeled full-window CDS data.
+  No held-out VEP label, prediction, effect measurement, or aggregate metric
+  was accessed.
