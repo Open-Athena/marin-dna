@@ -1495,3 +1495,42 @@ cohort, assemblies, and downstream training recipe fixed.
   enhancer full-window and enhancer center-1 remain pending for accelerator
   capacity. Iris reports no task error for any of the three. All inputs remain
   exact revision-pinned, public, and ungated Hugging Face datasets.
+
+### 2026-08-20 17:03 UTC - CSP-042 matched exposure and evaluation-input audit
+
+- Fixed training budget: every arm presents 40,960,000 sequences and
+  10,485,760,000 tokens. The #473 row counts come from the restored archived
+  publication manifest at SHA-256
+  `0e066e4bbfb7be101d1f1e440f0880e2abe7c64d5978cae687503fdb0af59ab3`;
+  the reused CDS full-window count is the public #417 receipt.
+
+| Arm | Train rows | Biological pairs | Published-row epochs | Pair presentations | Tokens/published row |
+|---|---:|---:|---:|---:|---:|
+| `cds_full_window` | 66,552,602 | 33,276,301 | 0.615453 | 1.230906 | 157.555974 |
+| `cds_center_1` | 68,657,166 | 34,328,583 | 0.596587 | 1.193175 | 152.726374 |
+| `enhancer_full_window` | 24,889,396 | 12,444,698 | 1.645681 | 3.291362 | 421.294273 |
+| `enhancer_center_1` | 24,616,580 | 12,308,290 | 1.663919 | 3.327838 | 425.963314 |
+
+  Published rows include one forward and one reverse-complement row for each
+  biological pair; the table keeps those two exposure interpretations
+  separate.
+- Public-only evaluation inputs: unauthenticated exact-revision API reads
+  confirmed `marin-dna/evals_mendelian_traits@4aed58e5`,
+  `marin-dna/evals_complex_traits@22f86a89`, and
+  `marin-dna/evals_sge@225d3d1e` are each `private=false` and `gated=false`.
+  The configured historical `bolinas-dna` aliases redirect to those same
+  public `marin-dna` repositories and exact SHAs.
+- Downstream gate audit: generated evaluation remains hard-coded to the
+  official `train` split and nine steps 1,000 through 4,500 plus 4,999. Paired
+  Mendelian AUPRC/Group SMD requires row identity and aligned match-group
+  resamples; CDS SGE and enhancer Complex are collected as official
+  development endpoints. The separate paired-loss workflow reads only
+  producer-pinned unlabeled chromosome-18 intersection sequences and resamples
+  human anchors.
+- Runtime evidence: the first CDS center-1 TPU attempt compiled, loaded the
+  exact realized cache, completed step 0, then lost its worker to an Iris
+  reconciliation-threshold preemption. Iris records zero failures, one
+  preemption, a pending retry with allowance 100, and no completed checkpoint.
+  W&B run
+  [`dna-exp473-0p25b-cds_center_1-v1`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp473-0p25b-cds_center_1-v1)
+  exists with no metric summary yet. No duplicate coordinator was launched.
