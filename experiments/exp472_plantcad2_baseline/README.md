@@ -15,7 +15,8 @@ vice versa; `[PAD]`, `[MASK]`, and `[UNK]` map to themselves. Validation and
 test are not augmented.
 
 Learning rate follows a linear warmup-stable-decay schedule: 10% warmup, 70%
-at the trial's peak learning rate, and 20% linear decay to zero.
+at the trial's peak learning rate, and 20% linear decay to zero. AdamW uses
+Levanter's default bad-step skipping (128-step history and six-sigma threshold).
 
 Temporary recovery checkpoints are saved every 15 minutes. Production runs
 retain ten permanent checkpoints: nine approximately evenly spaced checkpoints

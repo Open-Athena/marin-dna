@@ -367,6 +367,7 @@ def build_sweep_run(
             decay=0.2,
             min_lr_ratio=0.0,
             lr_schedule="linear",
+            skip_bad_steps=True,
         ),
         datasets={train_cache: 1.0},
         validation=[validation_cache],
