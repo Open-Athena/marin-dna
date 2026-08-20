@@ -18,7 +18,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The one-seed pilot is complete and technically valid. All three trained arms finished 1,000 finite steps on a standalone Lambda GH200 path with no Marin or Iris dependency. Transferred MNTP narrowly beat scratch on pooled and single-mask validation loss and acquired bilateral context use, but it did not improve any primary VEP endpoint over source CLM and did not exceed the no-adaptation control on both flank probes. Do not propose the 10,000-step extension. The compact result bundle is at [`cb0d37ff`](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation), and the dense record is in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==).
+The one-seed pilot is complete and technically valid. All three trained arms finished 1,000 finite steps on a standalone Lambda GH200 path with no Marin or Iris dependency. Transferred MNTP narrowly beat scratch on pooled and single-mask validation loss and acquired bilateral context use, but it did not improve any primary VEP endpoint over source CLM and did not exceed the no-adaptation control on both flank probes. Do not propose the 10,000-step extension. The compact result bundle is at [`cb0d37ff`](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation), and the dense record is in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
 
 ## Current baseline
 
@@ -41,7 +41,7 @@ The one-seed pilot is complete and technically valid. All three trained arms fin
 ### Falsified / dead end
 
 - `MNTP-479-H2` (strict control criterion): transferred MNTP used both flanks, but its left response did not exceed the full-attention/no-adaptation control. Evidence: [result bundle](../artifacts/479-mntp-adaptation/README.md).
-- `MNTP-479-H3` (downstream gate): no primary VEP endpoint improved over source CLM FWD+RC. Single-pass dependency structure remained similar to FWD+RC, but that scoped mechanism did not rescue the registered VEP/extension gate. Evidence: [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==).
+- `MNTP-479-H3` (downstream gate): no primary VEP endpoint improved over source CLM FWD+RC. Single-pass dependency structure remained similar to FWD+RC, but that scoped mechanism did not rescue the registered VEP/extension gate. Evidence: [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
 
 ### Promoted
 
@@ -298,7 +298,7 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Runtime: transferred MNTP processed all 51,623 variants at 520.0 variants/s FWD and 259.8 variants/s FWD+RC with 3.28 GB peak CUDA allocation. Source CLM processed 265.1/133.0 variants/s with 4.29 GB peak.
 - Cost: final conservative list-price estimate $10.2326 of the $50 cap, including failures, recovery, training, primary evaluation, and follow-up diagnostics. Provider billing still requires external reconciliation.
 - Boundaries: no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed. HBA1 chromosome-16 use was limited to unlabeled reference sequence for its preregistered dependency map.
-- Artifacts: [compact bundle](../artifacts/479-mntp-adaptation/README.md), [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==), [clean analysis run](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), and private W&B evaluation artifact `dna-exp479-evaluation`.
+- Artifacts: [compact bundle](../artifacts/479-mntp-adaptation/README.md), [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ), [clean analysis run](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), and private W&B evaluation artifact `dna-exp479-evaluation`.
 - Interpretation: The objective conversion works behaviorally and transfers a small early optimization advantage, but this 1,000-step checkpoint is not a useful source-relative VEP model. Dependency similarity and window stability are scoped mechanisms, not evidence for extending training.
 - Decision: pilot technically valid; no 10,000-step extension; no single-orientation VEP support; keep negative result and private checkpoints durable.
 - Next action: update the active research question, final model card, coordinating issue body/comment, and seal an annotated result tag.
