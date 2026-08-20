@@ -67,12 +67,16 @@ def orientation_dependency(
 ) -> np.ndarray:
     """Compute one orientation's directed L-infinity categorical Jacobian.
 
-    Each substituted batch is compared with a same-shape baseline batch so
-    BF16 kernel selection cannot masquerade as a nucleotide dependency.
+    The baseline is the first row of the same model call as its substitutions,
+    so BF16 kernel selection cannot masquerade as a nucleotide dependency.
+    MNTP arms mask the readout; a causal arm uses its ordinary next-token
+    readout, which cannot see the target token or any later nucleotide.
     """
 
-    if arm.mask_token_id is None:
-        raise RuntimeError("MNTP dependency maps require a mask token")
+    if batch_size <= 1:
+        raise ValueError("dependency-map batch size must leave room for a baseline")
+    if arm.mask_token_id is None and attention_mode != "causal":
+        raise RuntimeError("full-attention dependency maps require a mask token")
     if len(sequence) != NUCLEOTIDE_LENGTH:
         raise ValueError("dependency-map sequence has the wrong context length")
     device = next(arm.model.parameters()).device
@@ -88,7 +92,8 @@ def orientation_dependency(
         assert_budget_reserve()
         target_token = prefix + readout
         base = wildtype.clone()
-        base[target_token] = arm.mask_token_id
+        if arm.mask_token_id is not None:
+            base[target_token] = arm.mask_token_id
 
         substitutions = base.view(1, -1).repeat(NUCLEOTIDE_LENGTH * 4, 1)
         for position in range(NUCLEOTIDE_LENGTH):
@@ -98,20 +103,18 @@ def orientation_dependency(
             substitutions[rows, prefix + position] = canonical
 
         max_change = torch.zeros(NUCLEOTIDE_LENGTH, dtype=torch.float32, device=device)
-        for start in range(0, len(substitutions), batch_size):
-            stop = min(len(substitutions), start + batch_size)
+        candidate_batch_size = batch_size - 1
+        for start in range(0, len(substitutions), candidate_batch_size):
+            stop = min(len(substitutions), start + candidate_batch_size)
             candidates = substitutions[start:stop]
-            baseline = base.unsqueeze(0).expand(len(candidates), -1)
-            baseline_logits = model_logits(
+            paired = torch.cat((base.unsqueeze(0), candidates), dim=0)
+            paired_logits = model_logits(
                 arm.model,
-                input_ids=baseline,
+                input_ids=paired,
                 attention_mode=attention_mode,
             )[:, target_token - 1, canonical]
-            candidate_logits = model_logits(
-                arm.model,
-                input_ids=candidates,
-                attention_mode=attention_mode,
-            )[:, target_token - 1, canonical]
+            baseline_logits = paired_logits[0]
+            candidate_logits = paired_logits[1:]
             delta = torch.log_softmax(candidate_logits.float(), dim=-1) - torch.log_softmax(
                 baseline_logits.float(), dim=-1
             )
