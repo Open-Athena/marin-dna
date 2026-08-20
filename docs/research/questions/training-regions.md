@@ -94,8 +94,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   This tests when functional ranking emerges and whether an online selection mask remains stable through training.
 - Test whether annotation-free pretraining can recover functional sequence from likelihood.
   Train 46M, 76M, and 128M models for matched token budgets on the complete nonrepeat sequence of about 20 animal genomes sampled broadly across orders, with no annotation-based locus filtering.
-  Use annotations and conservation only for held-out evaluation, measuring one-orientation loss and entropy AUPRC globally and for CDS, upstream, downstream, ncRNA, and enhancer against matched nonrepeat background.
-  Held-out genomes and composition controls are needed to distinguish functional ranking from memorization and local sequence predictability.
+  Use annotations and conservation only after training to label evaluation positions, measuring functional-versus-matched-background loss gaps and AUPRC from one-orientation loss and entropy, globally and for CDS, upstream, downstream, ncRNA, and enhancer.
+  Composition and local-predictability controls are needed to interpret the loss gaps.
 
 ### What outcome are we optimizing?
 
