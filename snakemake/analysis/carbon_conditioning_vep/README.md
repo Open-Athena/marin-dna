@@ -85,6 +85,32 @@ Each full score parquet contains variant keys, labels, subsets, match groups, fo
 The retained three-arm bundle is stored at `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/`.
 It contains one score row per variant for all three conditions, the complete checksum manifest, derived metrics, paired tables, runtimes, report, exclusions, and staged development windows.
 
+## Per-variant score-shift analysis
+
+The compact follow-up analysis compares each conditioned score with the same variant's untagged score.
+For each condition and consequence subset, it reports the mean and standard deviation of these deltas separately for pathogenic positives and matched negatives.
+It also reports a matched label-separation shift: the positive delta minus the mean delta of that positive's nine matched negatives.
+Positive values mean that conditioning moves positives upward relative to their matched negatives.
+
+The variability statistic is the standard deviation of positive deltas divided by the standard deviation of negative deltas and is plotted on a base-two logarithmic scale.
+Both statistics use 1,000 seeded match-group bootstrap draws for 95% intervals.
+The mature-miRNA row has only four groups and is displayed as a low-sample diagnostic rather than an inferential result.
+All subset findings are exploratory and have no multiplicity correction or testing hierarchy.
+
+Run the analysis from this project root after retrieving all three per-variant score parquets.
+
+```bash
+uv run --locked python \
+  ../../../.agents/artifacts/carbon-species-conditioning-vep/analyze_score_shifts.py
+```
+
+The script writes these compact, branch-retained artifacts under `.agents/artifacts/carbon-species-conditioning-vep/`:
+
+- `score_shift_by_subset_label.{parquet,tsv}`: descriptive score shifts by condition, subset, and label.
+- `score_shift_matched_bootstrap.{parquet,tsv}`: matched label-separation and variability estimates with bootstrap intervals.
+- `score_shift_summary.md`: overall estimates.
+- `score_shift_by_subset.{svg,png}`: the rendered subset comparison.
+
 ## Local validation
 
 Run from this project root.

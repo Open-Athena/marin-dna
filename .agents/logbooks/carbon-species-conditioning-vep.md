@@ -18,12 +18,15 @@ author: gonzalobenegas
 - The full Lambda GH200 cluster is terminated; SkyPilot estimates $2.28 cost against the approved $3.00 cap.
 - The far-wrong fungal arm produced macro AUPRC 0.3587 versus 0.3582 untagged, with paired delta +0.0005 and 95% interval [-0.0137, 0.0124].
 - The far-wrong Lambda GH200 cluster is terminated; SkyPilot estimates $1.29 cost against the approximately $1.60 intended ceiling.
+- Correct conditioning lowered positive scores by 0.000570 nats/token more than their matched negatives, with 95% interval [-0.000814, -0.000327]; the far-wrong differential was -0.000344 [-0.000492, -0.000182].
+- Positive score shifts were 2.19 times as variable as negative shifts under correct conditioning and 1.51 times as variable under far-wrong conditioning.
+- Splicing and missense variants showed the clearest consistent label-dependent shifts, while the fungal promoter/TSS AUPRC decline was not accompanied by a broad mean label-separation shift.
 - The complete 104,313,903-byte three-arm bundle, including every per-variant score row, is retained at `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/` with a verified checksum manifest.
 
 ## Scope
 
 - Goal: Compare frozen Carbon-3B Mendelian VEP rankings under untagged, correct mammalian, near-wrong vertebrate, and far-wrong fungal prompts.
-- Primary metrics: Per-subset and macro AUPRC under every condition; paired AUPRC differences with 95% match-group bootstrap intervals.
+- Primary metrics: Per-subset and macro AUPRC, paired AUPRC differences, per-variant conditioned-minus-untagged score shifts by label, and matched label-separation and variability contrasts with 95% match-group bootstrap intervals.
 - Constraints: Mendelian `train` split only; Carbon-3B revision `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; 8,192 bp windows; token-level full-sequence likelihood; FWD/RC average; no held-out labels.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/486
 
@@ -39,6 +42,9 @@ author: gonzalobenegas
 
 - `CARBON-SC-001`: One released metadata grammar produces higher continuation accuracy with correct low-resource species tags than without tags.
   Next test: Run the fixed sequence-recovery preflight on fungi, protozoa, and invertebrate rows.
+- `CARBON-SC-004`: Conditioning changes positive and negative variant scores differently across consequence subsets even when macro AUPRC is stable.
+  The retained development scores support this exploratory form most clearly for splicing and missense variants.
+  Next test: Pre-register a small subset family and replicate on another development-safe benchmark or model; do not inspect held-out labels without explicit approval.
 
 ### Blocked
 
@@ -70,6 +76,7 @@ author: gonzalobenegas
 - 2026-08-20: Retain only the untagged-versus-correct comparison for the full development split and stop after it because neither the promoter nor full-development paired result supports an improvement.
 - 2026-08-20: Reuse the retained untagged scores for one user-requested far-wrong fungal arm, target only the new score and absolute metric on Lambda, and finalize the paired comparison locally.
 - 2026-08-20: Stop after the requested fungal arm because neither the correct nor far-wrong tag changed macro AUPRC detectably; retain the opposing subset movements as exploratory observations.
+- 2026-08-20: Analyze matched per-variant score shifts from the retained three-arm bundle before considering any additional compute.
 
 ## Negative Results Index
 
@@ -360,3 +367,29 @@ author: gonzalobenegas
   The remote checksum manifest matches the locally verified manifest, and the no-write sync dry-run reported no missing or size-different file.
 - Interpretation: The dense per-variant evidence now has a durable artifact location and is no longer dependent on the local worktree or terminated Lambda instance.
 - Next action: Commit and annotate the compact local snapshot, then request human review before publishing the branch, tag, and S3 artifact link to issue #486.
+
+### 2026-08-20 23:01 UTC - Per-variant score shifts analyzed
+
+- Hypothesis: Species conditioning changes positive and negative Carbon-3B variant scores differently across consequence subsets even when macro AUPRC remains stable.
+- Commit Hash: `f4aa4c3f` (verified three-arm input snapshot); score-shift snapshot tag `carbon-conditioning-vep-score-shifts-20260820`.
+- Command:
+  Join the correct and far-wrong score parquets to the untagged parquet by variant identity, compute conditioned-minus-untagged deltas, summarize deltas by label and subset, run 1,000 seeded match-group bootstrap draws, render the two-panel SVG and PNG, and run the focused score-shift, full-development configuration, and report tests.
+- Config: All 16,140 development rows and 1,614 complete match groups; correct mammalian and far-wrong fungal conditions; nine consequence subsets plus an all-development summary; positive delta minus the mean delta of nine matched negatives; positive-to-negative delta standard-deviation ratio; mature-miRNA displayed as a four-group low-sample diagnostic.
+- Result:
+  Correct conditioning changed positive scores by -0.000609 nats/token on average versus -0.000038 for negatives, giving a matched label-separation shift of -0.000570 with 95% interval [-0.000814, -0.000327].
+  Far-wrong conditioning changed positive scores by -0.000346 on average versus -0.000002 for negatives, giving a matched shift of -0.000344 with interval [-0.000492, -0.000182].
+  Positive deltas were 2.189 times as variable as negative deltas for correct conditioning, with bootstrap ratio interval [1.764, 2.663], and 1.514 times as variable for far-wrong conditioning, with interval [1.231, 1.864].
+  Splicing showed negative label-separation shifts under correct conditioning, -0.001789 [-0.002732, -0.000832], and far-wrong conditioning, -0.000905 [-0.001471, -0.000372].
+  Missense showed the same direction under correct conditioning, -0.000730 [-0.001040, -0.000418], and far-wrong conditioning, -0.000384 [-0.000618, -0.000153].
+  The far-wrong promoter/TSS mean label-separation shift was -0.000197 [-0.000476, 0.000109], and its positive-to-negative variability ratio was approximately one.
+  The far-wrong 3-prime UTR mean label-separation shift was +0.000428 [-0.000008, 0.000879].
+  Four focused tests passed in 0.30 seconds at 121,392 KiB peak RSS.
+  The complete development-safe analysis ran in 3.41 seconds at 260,604 KiB peak RSS and required no additional GPU compute.
+- Interpretation:
+  Conditioning effects are heterogeneous across labels and biological consequence subsets even though neither tag changed macro AUPRC detectably.
+  Both tags lower positive scores more than matched negative scores on average, and positive responses are substantially more variable; correct mammalian conditioning produces the larger effect.
+  Splicing and missense variants provide the clearest consistent subset evidence for this label-dependent movement.
+  The fungal promoter/TSS AUPRC decline and 3-prime UTR improvement are not explained by broad mean separation shifts, so they are more consistent with nonlinear or top-rank reordering.
+  These subset contrasts are exploratory, use the same development data that motivated the question, and have no multiplicity correction or testing hierarchy.
+  No held-out labels or predictions were accessed.
+- Next action: Preserve the compact tables, source, figure, and documentation in an annotated branch snapshot; require a pre-registered replication before treating any subset pattern as accepted biology.
