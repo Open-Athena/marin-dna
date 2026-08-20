@@ -1513,6 +1513,7 @@ def plot_auprc_trajectories(metrics: pd.DataFrame, output_path: Path) -> None:
     """Plot primary AUPRC trajectories with uncertainty."""
 
     datasets = ("mendelian_traits", "complex_traits", "sge")
+    titles = ("Mendelian traits", "Complex traits", "SGE")
     figure, axes = plt.subplots(1, 3, figsize=(15, 4.5), constrained_layout=True)
     selected = metrics[metrics["orientation"] == "protocol_fwd_rc"]
     styles = {
@@ -1523,7 +1524,7 @@ def plot_auprc_trajectories(metrics: pd.DataFrame, output_path: Path) -> None:
         "Source CLM direct": ("#222222", "D", "None"),
         "Source CLM save/reload": ("#888888", "x", "None"),
     }
-    for axis, dataset in zip(axes, datasets, strict=True):
+    for axis, dataset, title in zip(axes, datasets, titles, strict=True):
         cell = selected[selected["dataset"] == dataset]
         for series, group in cell.groupby("plot_series", sort=False):
             color, marker, linestyle = styles.get(series, ("#999999", "o", "-"))
@@ -1543,10 +1544,10 @@ def plot_auprc_trajectories(metrics: pd.DataFrame, output_path: Path) -> None:
         axis.set_xscale("symlog", linthresh=10)
         axis.set_xlabel("Optimizer steps (symlog; linear through 10)")
         axis.set_ylabel("AUPRC")
-        axis.set_title(dataset.replace("_", " ").title())
+        axis.set_title(title)
         axis.grid(alpha=0.25)
     handles, labels = axes[0].get_legend_handles_labels()
-    figure.legend(handles, labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.08))
+    figure.legend(handles, labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.2))
     figure.suptitle("Issue 479 primary odd-autosome/X VEP trajectories")
     figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
     figure.savefig(output_path.with_suffix(".png"), dpi=180, bbox_inches="tight")
