@@ -9,7 +9,7 @@ resources:
   accelerators: GH200:1
   disk_size: 200
   autostop:
-    idle_minutes: 3
+    idle_minutes: 2
     down: true
     wait_for: jobs
 

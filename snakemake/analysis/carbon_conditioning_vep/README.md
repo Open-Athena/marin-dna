@@ -96,7 +96,7 @@ A subsequent Lambda GH200 benchmark scored the same eight label-blind rows in 1.
 Batch size eight was slower per row and raised peak allocation to 44.76 GiB, so the pilot keeps batch size one.
 At the 2026-08-20 catalog price of $2.29 per hour, the two-condition promoter pilot is expected to use about 13–15 GPU-minutes and cost about $0.50–$0.60.
 
-The GH200 task has a 20-minute command timeout and three-minute autodown, giving a conservative approval ceiling of $1.00 after ordinary sync overhead.
+The GH200 task has a 20-minute command timeout and two-minute autodown, giving a conservative approval ceiling of $1.00 after ordinary sync overhead.
 Check the current [Lambda instance price](https://lambda.ai/instances) immediately before launch.
 
 Stage the already-validated development-only artifacts on the coordinator before launch.
@@ -113,10 +113,12 @@ sky launch snakemake/analysis/carbon_conditioning_vep/sky/run-gh200-pilot.yaml \
   -c carbon-conditioning-vep-gh200-pilot
 ```
 
-Retrieve the results immediately after the job succeeds and before the three-minute autodown.
+Retrieve the results immediately after the job succeeds and before the two-minute autodown.
+SkyPilot stores each cluster's SSH configuration separately from `~/.ssh/config`, so pass that generated configuration to rsync explicitly.
 
 ```bash
 rsync -a \
+  -e 'ssh -F /home/ubuntu/.sky/generated/ssh/carbon-conditioning-vep-gh200-pilot' \
   carbon-conditioning-vep-gh200-pilot:sky_workdir/snakemake/analysis/carbon_conditioning_vep/results/promoter_pilot/ \
   snakemake/analysis/carbon_conditioning_vep/results/promoter_pilot/
 sky down carbon-conditioning-vep-gh200-pilot -y

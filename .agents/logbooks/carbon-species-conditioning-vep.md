@@ -207,3 +207,18 @@ author: gonzalobenegas
   The paid VM needs only the 13 MiB promoter window parquet and small preflight files; it does not need AWS credentials or the genomic reference.
   The expected charge remains $0.50–$0.60, with explicit approval requested up to $1.00 for the 20-minute command timeout, three-minute autodown, and transfer overhead.
 - Next action: Obtain explicit approval for up to $1.00, launch the two-condition promoter pilot, retrieve and validate the result bundle, terminate the cluster, and publish the evidence upward.
+
+### 2026-08-20 19:40 UTC - First promoter run succeeded but transfer failed
+
+- Hypothesis: The committed Lambda task at `8f8afb58f33c42440fb1babe777d04ef92893eee` completes both promoter conditions within the $1.00 approval cap and leaves enough autodown time to retrieve results through the documented SSH alias.
+- Command: Launch `sky/run-gh200-pilot.yaml` as `carbon-conditioning-vep-gh200-pilot`, follow job 1, rsync `results/promoter_pilot`, and down the cluster.
+- Result:
+  Lambda `us-east-1` lacked capacity; Sky acquired the same $2.29/hour GH200 shape in `us-east-3`.
+  All 27 tests passed.
+  Correct scoring completed 2,050 rows in 3 minutes 30 seconds, untagged scoring completed them in 3 minutes 27 seconds, and all seven DAG steps succeeded.
+  Plain `rsync` could not resolve the cluster name because SkyPilot 0.12 keeps generated cluster hosts in per-cluster files under `~/.sky/generated/ssh/` instead of the default SSH configuration.
+  The three-minute autodown terminated the VM before the corrected transfer command was constructed, so the ephemeral result files were lost.
+- Interpretation:
+  The experimental computation passed, but the run is not usable without its score and metric artifacts.
+  A rerun should keep the combined cost below the approved $1.00 cap because each inference pass was about half the projected duration.
+- Next action: Pass the generated per-cluster SSH configuration explicitly to rsync, use a two-minute autodown, dry-run, snapshot the correction, and rerun once.
