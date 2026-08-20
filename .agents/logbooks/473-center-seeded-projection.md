@@ -1608,3 +1608,26 @@ cohort, assemblies, and downstream training recipe fixed.
   `git diff --check` passed. The next launch will use
   `gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection` for both
   rebuilt caches and new checkpoints.
+
+### 2026-08-20 18:10 UTC - CSP-046 central1 cache rebuilds and training launch
+
+- Three exact v5 coordinators rebuild the existing arm definitions beneath
+  the additive, region-local prefix
+  `gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection`. Each reads
+  its exact pinned public, ungated Hugging Face dataset without authentication;
+  no private or gated repository and no Hugging Face token is used.
+- CDS center-1 and enhancer full-window tokenization completed. CDS training
+  child `/ubuntu/exp473-cds-center-1-v5/run_levanter_train_lm-dfbe430e` is
+  running, while enhancer full-window child
+  `/ubuntu/exp473-enhancer-full-window-v5/run_levanter_train_lm-a815366a` is
+  queued. Enhancer center-1 tokenization remains in progress.
+- Selected non-secret child configuration confirms both created training jobs
+  request four TPU cores on `v5p-8` in `us-central1`, with 100 preemption
+  retries. CDS startup reports the expected central1 cache, compilation-cache,
+  and checkpoint paths and is compiling from scratch. The run retains W&B ID
+  [`dna-exp473-0p25b-cds_center_1-v1`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp473-0p25b-cds_center_1-v1).
+- Scope is unchanged: the three new arms are CDS `center_1`, enhancer
+  `full_window`, and enhancer `center_1`; the exact #417 CDS full-window arm is
+  reused rather than retrained. Evaluation remains development-only at steps
+  1,000 through 4,500 and 4,999, with even-autosome/Y labeled VEP data held
+  back.
