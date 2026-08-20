@@ -1051,3 +1051,37 @@ cohort, assemblies, and downstream training recipe fixed.
   after upload.
 - Next action: wait for the exact `d43f059c` producer and its sampled trace,
   review the QC/manual/trace artifacts, then launch the build-only target.
+
+### 2026-08-20 09:40 UTC - CSP-026 early immutable producer receipts pass
+
+- Identity: the restored producer receipt exactly records pipeline commit
+  `d43f059c7b0cb8efd5e2396a2bd9e085623a1731`, config SHA-256
+  `bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039`,
+  pipeline version `v1`, and tier `full`. Its downloaded file SHA-256 is
+  `852d7c1826296dc1d4abb2ee71880e3d9f48be858cfa518aab09d5bef29a3377`.
+- Fixed catalog: the completed summary reports 634,926 unique 255 bp anchors
+  in 0-based half-open coordinates: 295,561 CDS, 67,155 3-prime UTR, 98,630
+  ncRNA exon, 57,418 TSS/5-prime UTR, and the exact 116,162 exon-free
+  enhancer-centered cCRE sentinels. The conservation threshold is 0.2.
+- Baseline gate: the independently restored compatibility receipt proves exact
+  dataframe equality to #417 for all 518,764 standard-region anchor identities
+  and all 135 active target-species identities. Its SHA-256 is
+  `89b2ab2909ffd4c76b9a87817e61b5eb87f863fecc6111cf2b6a27c979df04b9`.
+- Pilot stratification: each of the five regions has exactly 10,000 sampled
+  anchors, every anchor is 255 bp, every region covers all 24 source
+  chromosomes, every row carries seed 473, and no stratum is overdrawn.
+  Conservation-quantile totals are approximately balanced while preserving
+  chromosome representation. The active manifest contains 107 HAL mammals
+  and 28 MultiZ species across mammals, birds, reptiles, amphibians,
+  ray-finned fish, lobe-finned fish, and jawless vertebrates.
+- Request-boundary audit: all six request tables contain the same 50,000
+  anchor identities. Their submitted widths are exactly 255, 1, 17, 33, 65,
+  and 129 bp. Every interval is centered by the declared 0-based half-open
+  formula; the 1 bp interval is `[s + 127, s + 128)`. The expected span gates
+  are 128--512 for full-window and respectively 1--2, 9--34, 17--66,
+  33--130, and 65--258 for the five centered policies. The bounded audit
+  peaked at 93,272 KiB RSS and exited zero.
+- Scope: these are producer identity, catalog, stratification, and request
+  construction gates only. They do not establish projection recovery,
+  sequence correctness, alignment coverage, or a preferred policy; those
+  remain gated on the complete QC, manual sample, and sampled HAL trace.
