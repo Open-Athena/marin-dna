@@ -54,6 +54,8 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 ## Repository Lifecycle
 
 - Merge only reusable, maintained framework code and documentation to `main`. Experiments, one-off analyses, competitor baselines, and dead ends remain on permanent branches and are cited with commit-pinned links.
+- If work on an experiment or another branch that will not merge to `main` uncovers a bug, missing capability, or generally reusable improvement, use `file-issue` to create a separate GitHub issue for the mainline change.
+  Do not rely on the incidental fix being recovered from the experiment branch later.
 - Use a stable lowercase branch name: `<agent>/issue-<number>-<summary>` when an issue exists, otherwise `<agent>/<summary>`.
 - Add `agent-generated` to every issue or pull request created by an agent.
 - Close an issue only after its completion criteria are met and its body and final comment record the outcome.
