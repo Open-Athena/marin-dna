@@ -18,8 +18,10 @@ Absolute 46M loss and predictive entropy also tracked conserved nonrepeat sequen
 The experiment did not train with these weights, so it does not establish that any candidate improves language modeling or downstream prediction.
 
 FWD-only and reverse-complement-only analyses preserved the group-level conservation and repeat effects.
-One orientation recovered 58–72% of the averaged endpoint score's top decile across regions and did not reproduce the exact per-base ranking.
-FWD and reverse complement were effectively tied, so neither direction has empirical priority.
+In a fixed 100,000-base sample per comparison, one-orientation endpoint scores had 0.69–0.81 Spearman agreement with the averaged score.
+One orientation recovered 58–72% of the averaged endpoint score's full-span top decile across regions and did not reproduce the exact per-base ranking.
+Direct FWD-versus-reverse-complement agreement was substantially lower: sampled endpoint Spearman was 0.09–0.37 and full-span top-decile overlap was 0.25–0.45 across regions.
+The orientations produced nearly symmetric controlled group estimates and closeness-to-mean metrics, so neither direction had empirical priority at the aggregate level; their per-base scores were not equivalent.
 
 The CDS-only codon-position diagnostic passed on both feature strands: positions 1 and 2 gained about 0.66–0.68 nats/base, compared with about 0.52–0.53 at position 3.
 Splice donor and acceptor results remain descriptive secondary evidence.
@@ -55,9 +57,9 @@ The only negative adjacent-rung means were 46M-to-76M changes of -0.00064 upstre
 
 ![Four-panel sensitivity showing separate FWD-only and reverse-complement-only scaling curves, adjusted effects against the averaged analysis, and per-base one-orientation agreement with the mean](figures/478/orientation-sensitivity.svg)
 
-_Single-orientation scoring preserved adjusted group effects and halved inference compute, while endpoint rank and top-decile agreement quantify its loss relative to FWD/RC averaging._
+_Single-orientation scoring preserved adjusted group effects and halved inference compute. Spearman used a fixed 100,000-base sample per comparison; top-decile overlap and gain-sign agreement used the full central span._
 
-| Region | Single-vs-mean Spearman | Top-decile overlap | Gain-sign agreement |
+| Region | Sampled Spearman (n = 100,000) | Full-span top-decile overlap | Full-span gain-sign agreement |
 |---|---:|---:|---:|
 | CDS | 0.811 | 0.583–0.586 | 0.858–0.861 |
 | Upstream | 0.709–0.710 | 0.724 | 0.768–0.769 |

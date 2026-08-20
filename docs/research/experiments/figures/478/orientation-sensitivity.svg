@@ -2,6 +2,8 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1008pt" height="648pt" viewBox="0 0 1008 648" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <title>Single-orientation sensitivity for conservation and repeat predictability</title>
+ <desc>Panels compare FWD-only and reverse-complement-only results with their mean. Panel D Spearman values use a fixed 100,000-base sample per comparison; top-decile overlap and sign agreement use the full central span.</desc>
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -4397,6 +4399,9 @@ z
     <use xlink:href="#DejaVuSans-48" transform="translate(3167.0625 0)"/>
     <use xlink:href="#DejaVuSans-56" transform="translate(3228.59375 0)"/>
    </g>
+  </g>
+  <g id="sampling_note">
+   <text x="550.13375" y="643" style="font-size: 8px; font-family: 'DejaVu Sans', sans-serif; fill: #333333">Panel D Spearman: fixed n = 100,000 bases per comparison</text>
   </g>
  </g>
  <defs>

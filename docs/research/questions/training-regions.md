@@ -33,7 +33,8 @@ This supports same-corpus scale-differential loss as the primary candidate for a
 Small-model absolute loss and predictive entropy also tracked conserved nonrepeat sequence after the same controls and are cheaper baseline weighting candidates.
 The audit rejects the broad claim that repeats are intrinsically easier after composition controls; it did not ablate the current repeat loss weight.
 The conservation-by-repeat conclusions were unchanged when FWD and RC were analyzed separately.
-A single orientation cut inference compute in half and remained fairly close to the FWD/RC-averaged endpoint score (Spearman 0.69–0.81 and top-decile overlap 0.58–0.72 across regions), but it did not preserve the exact per-base ranking; FWD and RC were effectively tied.
+A single orientation cut inference compute in half and remained fairly close to the FWD/RC-averaged endpoint score (Spearman 0.69–0.81 in a fixed 100,000-base sample per comparison and full-span top-decile overlap 0.58–0.72 across regions), but it did not preserve the exact per-base ranking.
+Direct FWD-versus-RC endpoint agreement was much lower (sampled Spearman 0.09–0.37 and full-span top-decile overlap 0.25–0.45), even though their controlled group effects and closeness-to-mean metrics were nearly symmetric; neither orientation had empirical priority at the aggregate level.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
