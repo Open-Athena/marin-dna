@@ -10,7 +10,7 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 - Context: one BOS plus 255 nucleotide bases.
 - MNTP: sample one `Uniform(0, 1)` probability per sequence, select eligible A/C/G/T positions independently, resample zero-target rows, replace every target with `[MASK]`, and supervise target `i` from output `i - 1`.
 - Loss: average weighted cross-entropy within each sequence, then average sequences. Uppercase bases have weight 1 and lowercase bases have weight 0.01; the denominator is the selected-target count.
-- Data: sample the five pinned m5.1 components uniformly. One materialized plan fixes the underlying sequence and component order for every arm. Corruption is a stateless function of the plan sample ID.
+- Data: sample the five pinned m5.1 components uniformly. Deterministically skip any source row with no A/C/G/T base and draw the next row from that same component. One materialized plan fixes the underlying sequence and component order for every arm. Corruption is a stateless function of the plan sample ID.
 - Optimizer: the pinned m5.1 DNA scaling heuristic supplies separate AdamH and Adam learning rates, betas, epsilon, and clipping. Linear weights use AdamH; embeddings, normalization weights, and biases use Adam. An actually tied embedding/head matrix would remain in the Adam group.
 - Schedule: linear warmup through step 100, stable through step 800, and linear cooldown to zero at step 1,000.
 - Checkpoints: full Lightning state every 100 steps. Step 800 is the only permitted source for a separately approved 10,000-step continuation.

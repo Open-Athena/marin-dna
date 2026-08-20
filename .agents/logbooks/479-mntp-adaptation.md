@@ -217,3 +217,17 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost boundary: The cancelled diagnostic ran from about 00:52 to 00:58 UTC, at most about $0.23 at the listed price. Cumulative failed/diagnostic list-price exposure remains below about $1.33; final provider billing still requires reconciliation.
 - Data boundary: No optimizer step from a registered arm, checkpoint, or aggregate labeled evaluation was produced or accessed.
 - Next action: Run the exact Lightning gate, use its measured batch and headroom, and require the first registered arm to reach the step-100 restart checkpoint before treating training as established.
+
+### 2026-08-20 01:18 - Exact batch selection and all-N source row
+
+- Hypothesis: The exact Lightning gate will identify a safe production batch and allow transferred MNTP to reach its first restart checkpoint.
+- Launch commit: `ae8fa63c25cc187bb82b5cbce1b75cb9ba53fab3`.
+- Batch result: The exact Trainer step OOMed at batch 128. Batch 64 passed with 4,483,565,056 bytes allocated before the step, 54,238,396,416 peak allocated bytes of 101,468,602,368, 46.55% headroom, and 6.94 seconds for the complete first optimizer step. Batch 64 is therefore the largest production-path candidate not already falsified by 512, 256, or 128.
+- Training result: Transferred MNTP then ran at about 1.87 steps/s and logged through `trainer/global_step=31` at [W&B run rtdk8zn1](https://wandb.ai/gonzalobenegas/marin/runs/rtdk8zn1). The latest logged train loss was 1.20538 and accuracy was 0.27121. No step-100 checkpoint was reached.
+- Failure: DataLoader worker 0 rejected batch row 51 while fetching the next batch because it had no eligible A/C/G/T target. The corresponding deterministic plan position is sample 2,099, ncRNA component output index 419.
+- Reproduction: The pinned unlabeled ncRNA stream at seed 4 and shuffle buffer 10,000 yields a 255-character sequence whose alphabet is exactly `N` at source output index 419. This is a source-data contract edge case, not stochastic masking failure.
+- Fix: Skip source rows containing no uppercase or lowercase A/C/G/T and draw the next row from the same component. This preserves uniform component counts, total exposure, deterministic output sample IDs, and the requirement that every sequence contribute a defined loss. The corrected real ncRNA output index 419 is 255 bases and contains an eligible target.
+- Verification: The locked suite passes 44 tests in 5.19 seconds; Ruff, format, and whitespace checks pass. Peak pytest RSS was 1,051,424 KiB. The workflow README now states the filter.
+- Cost boundary: The instance ran from 01:06:41 to about 01:17 UTC, at most about $0.40 at the listed price. Cumulative failed/diagnostic list-price exposure remains below about $1.73; final provider billing still requires reconciliation.
+- Data boundary: Only pinned unlabeled training sequence was inspected for reproduction. No aggregate labeled evaluation, even-autosome label, or Y label was accessed.
+- Next action: Snapshot and relaunch. Require the transferred arm to publish step 100 before considering restart safety exercised remotely.
