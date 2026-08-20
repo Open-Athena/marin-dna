@@ -32,14 +32,71 @@ setup: |
   fi
   test "$(uv --version)" = "uv 0.11.31"
   export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  conda config --set channel_priority strict
+
+  CACTUS_VERSION=3.1.4
+  CACTUS_DIR="$HOME/cactus-bin-v${CACTUS_VERSION}"
+  if [ ! -d "$CACTUS_DIR" ]; then
+    curl -fsSL -o /tmp/cactus.tar.gz \
+      "https://github.com/ComparativeGenomicsToolkit/cactus/releases/download/v${CACTUS_VERSION}/cactus-bin-v${CACTUS_VERSION}.tar.gz"
+    tar -xzf /tmp/cactus.tar.gz -C "$HOME"
+    rm /tmp/cactus.tar.gz
+  fi
   uv sync --project snakemake/vertebrate_projection_dataset --locked
 
 run: |
   set -euxo pipefail
-  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.1.4/bin:$PATH"
+  export LD_LIBRARY_PATH="$HOME/cactus-bin-v3.1.4/lib:${LD_LIBRARY_PATH:-}"
   export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  command -v aws
+  command -v halLiftover
+  command -v halStats
   test -n "$PIPELINE_COMMIT_SHA"
   test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
+
+  if ! mountpoint -q /mnt/nvme; then
+    sudo apt-get update
+    sudo apt-get install -y mdadm
+    NVMES=$(lsblk -dn -o NAME,TYPE,MOUNTPOINT | awk '$2=="disk" && $3=="" && $1 ~ /^nvme[1-9]/ {print "/dev/"$1}')
+    N_NVME=$(echo "$NVMES" | wc -w)
+    if [ "$N_NVME" -ge 2 ]; then
+      sudo mdadm --create /dev/md0 --level=0 --raid-devices="$N_NVME" $NVMES --force --run
+      DEV=/dev/md0
+    elif [ "$N_NVME" -eq 1 ]; then
+      DEV=$NVMES
+    else
+      echo "ERROR: c6id instance-store NVMe devices were not found"
+      exit 1
+    fi
+    sudo mkfs.ext4 -F -E nodiscard "$DEV"
+    sudo mkdir -p /mnt/nvme
+    sudo mount -o noatime "$DEV" /mnt/nvme
+    sudo chown ubuntu:ubuntu /mnt/nvme
+  fi
+
+  TOTAL_BYTES=$(df --output=size -B1 /mnt/nvme | tail -n 1)
+  test "$TOTAL_BYTES" -ge 2500000000000
+  df -h /mnt/nvme
+
+  RESULTS_LINK="snakemake/vertebrate_projection_dataset/results"
+  RESULTS_NVME="/mnt/nvme/vertebrate_projection/results"
+  mkdir -p "$RESULTS_NVME" "$(dirname "$RESULTS_LINK")"
+  if [ -e "$RESULTS_LINK" ] && [ ! -L "$RESULTS_LINK" ]; then
+    echo "ERROR: refusing to replace non-symlink results path $RESULTS_LINK"
+    exit 1
+  fi
+  ln -sfn "$RESULTS_NVME" "$RESULTS_LINK"
+
+  SNAKEMAKE_LINK="snakemake/vertebrate_projection_dataset/.snakemake"
+  SNAKEMAKE_NVME=/mnt/nvme/vertebrate_projection/_snakemake
+  mkdir -p "$SNAKEMAKE_NVME"
+  if [ -e "$SNAKEMAKE_LINK" ] && [ ! -L "$SNAKEMAKE_LINK" ]; then
+    echo "ERROR: refusing to replace non-symlink state path $SNAKEMAKE_LINK"
+    exit 1
+  fi
+  ln -sfn "$SNAKEMAKE_NVME" "$SNAKEMAKE_LINK"
+
   cd snakemake/vertebrate_projection_dataset
 
   MODE=()
