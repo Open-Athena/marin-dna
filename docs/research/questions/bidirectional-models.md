@@ -1,7 +1,7 @@
 # Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?
 
 > [!NOTE]
-> **TL;DR:** Sequential causal-to-masked-objective transfer is feasible in protein models, while full-attention masked next-token prediction is the leading untested hypothesis for cheap MarinDNA adaptation; confidence is moderate that conversion is feasible and low that a small adaptation budget will improve representations or variant-effect prediction.
+> **TL;DR:** A one-seed 1B MarinDNA pilot shows that 1,000 full-parameter MNTP steps can cheaply create bilateral context use and a small validation-loss transfer advantage, but the converted checkpoint regressed sharply on all tested VEP endpoints, so conversion is technically feasible while downstream usefulness and any case for longer adaptation remain unestablished.
 
 ## Question
 
@@ -13,7 +13,26 @@ Training the best possible MLM from scratch, preserving autoregressive generatio
 
 ## Current answer
 
-No MarinDNA checkpoint-conversion experiment has been run.
+[#479](https://github.com/Open-Athena/marin-dna/issues/479) ran the first MarinDNA checkpoint-conversion experiment.
+The standalone pilot continued the released 1B m5.1 checkpoint for 1,000 full-parameter masked-next-token-prediction steps on one Lambda GH200, with matched scratch MNTP and causal-continuation arms plus source and full-attention/no-adaptation controls.
+It was technically valid and cost an estimated $10.23 at list price, including failed and recovery attempts.
+
+Transferred MNTP reached slightly lower pooled validation loss than scratch (0.39727 versus 0.39954) and lower single-mask loss (0.31008 versus 0.31315).
+It acquired dependence on both flanks, while the causal controls remained right-blind.
+The strict control criterion was only partially met: transferred MNTP exceeded full attention without adaptation on the right-flank probe but not the left.
+
+These behavioral gains did not transfer to variant-effect prediction.
+Transferred single-orientation MNTP scored 0.1151 Mendelian macro AUPRC, 0.1003 complex-trait global AUPRC, and 0.1427 SGE accession/consequence macro AUPRC, compared with 0.3951, 0.1342, and 0.3577 for source CLM with forward/reverse-complement averaging.
+Single-orientation transferred scores stayed within one AUPRC point of their own FWD+RC scores, but no task passed the required source-improvement gate.
+Complete-flank ablations confirmed that both flanks affected individual scores, and ±64-base window shifts were stable, yet neither diagnostic rescued downstream performance.
+Five nucleotide-dependency maps retained both triangles and agreed with FWD+RC maps at mean off-diagonal Spearman 0.9692.
+
+The result is evidence that cheap behavioral conversion works, not that the resulting checkpoint is a useful representation model.
+It argues against automatically extending this exact one-seed MNTP recipe to 10,000 steps.
+It does not answer whether ordinary MLM, a different update budget or parameterization, layer/pooling choices, or supervised sequence-to-function training can exploit the bilateral states.
+See the [compact result snapshot](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation) and [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==).
+
+Before this direct evidence,
 [Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) provides the closest biological evidence that the proposed sequence can work.
 The study first trained a causal protein Transformer, then initialized the same architecture from that checkpoint, reset the optimizer, removed the causal attention restriction, and continued with bidirectional 15%-mask MLM; the transfer phase used a fresh learning-rate schedule with 5% warmup.
 Its 470M transfer run used 21B causal tokens followed by 85B masked tokens.
@@ -32,9 +51,9 @@ That one-token shift preserves the next-token alignment learned by a causal deco
 LLM2Vec obtained useful text embeddings with a 1,000-step LoRA MNTP phase before contrastive training, showing that such conversion can be lightweight in another domain.
 It did not establish that MNTP is better than matched ordinary MLM for genomic models, so same-position MLM remains a useful small-budget objective ablation rather than a from-scratch baseline.
 
-The current hypothesis is therefore:
+The current hypothesis is therefore narrower:
 
-> A predominantly causal MarinDNA checkpoint can be forked and cheaply adapted with full attention plus MNTP into a better bidirectional representation model, while the original checkpoint remains unchanged for autoregressive use.
+> A predominantly causal MarinDNA checkpoint can be cheaply adapted into a behaviorally bidirectional model, but usefulness must be demonstrated on representation or supervised sequence-to-function tasks before spending on longer adaptation; 1,000-step MNTP VEP performance is negative evidence, not a continuation signal.
 
 <details>
 <summary>Related work</summary>
@@ -51,6 +70,8 @@ The current hypothesis is therefore:
 <details>
 <summary>Related experiments</summary>
 
+- [#479](https://github.com/Open-Athena/marin-dna/issues/479) completed the first mature-checkpoint MNTP conversion pilot.
+  It established technical feasibility, a small transferred-versus-scratch validation advantage, bilateral context use, stable single-pass dependency maps, and negative source-relative VEP at 1,000 steps.
 - [#3](https://github.com/Open-Athena/marin-dna/issues/3) compared causal language modeling, masked language modeling, and masked diffusion during early promoter training.
   Causal modeling led at the earliest steps and the issue proposed a causal-to-masked curriculum; it did not convert a mature checkpoint or constrain the masked phase to a small compute budget.
 - [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluated frozen causal gLM embeddings across VEP datasets and representation choices.
@@ -63,11 +84,11 @@ The current hypothesis is therefore:
 
 ### How much sidecar adaptation is enough?
 
-- Start from a completed MarinDNA causal checkpoint rather than switching objectives during the main training run.
+- Use the released 1B m5.1 source, controls, and compact metrics from #479 as the fixed baseline for any follow-up rather than repeating the completed smoke test.
 - Measure adaptation cost as a fraction of the sunk causal pretraining FLOPs and tokens.
   The central unknown is whether useful bidirectionality appears after a genuinely small phase, not whether long MLM training can eventually win.
-- Use sequential MNTP as the first hypothesis because it retains the causal decoder's one-token output alignment.
-  Compare ordinary same-position MLM only at the same small adaptation budget.
+- Treat #479's sequential MNTP result as the fixed objective baseline rather than the default continuation path.
+  Compare ordinary same-position MLM at the same small adaptation budget before considering more MNTP steps.
 - Compare parameter-efficient and full-parameter adaptation.
   LLM2Vec supports LoRA as a cheap starting point, while the protein transfer result used continued pretraining of the model rather than a parameter-efficient conversion.
 - Keep the sidecar operationally independent of Marin unless the result later justifies first-class training support.
@@ -90,21 +111,23 @@ The current hypothesis is therefore:
 SNV scoring is fixed per orientation: mask the variant position, read the reference- and alternate-allele probabilities from the same output distribution, and compute their log-likelihood ratio in one forward pass.
 For a fair comparison with the existing MarinDNA protocol, score both forward and reverse-complement orientations and average them identically across models; this is a matched evaluation control, not a consequence or test of bidirectionality.
 
-- Does a converted model's strand-averaged masked-site SNV score beat the equivalently strand-averaged causal score and frozen-embedding probe at matched context and parameter count?
+#479 answers the first 1,000-step MNTP comparison negatively for direct masked-site SNV scoring: the converted checkpoint did not beat source CLM on Mendelian, complex-trait, or SGE endpoints.
+
+- Does ordinary same-position MLM, a materially different adaptation budget, or a representation-level probe avoid the VEP regression?
 - How should indels and other multi-base variants be scored without giving one objective extra context or easier normalization?
 
 ### Candidate experiment ladder
 
-1. **Sidecar conversion smoke test.**
-   Fork one small or medium completed MarinDNA checkpoint, leave the causal source checkpoint untouched, and run a tightly capped MNTP adaptation outside Marin.
-   Measure masked-token validation loss and a small set of representation probes over the adaptation trajectory.
-2. **Matched controls.**
-   Compare the original checkpoint, full attention without training, and causal continuation at the same extra compute.
-   Add ordinary MLM only as a matched adaptation-objective ablation; do not train an MLM from scratch.
-3. **Budget and update ablation.**
-   Sweep a small number of adaptation budgets and compare LoRA with full-parameter updates.
-   Report the incremental FLOPs and tokens relative to the original CLM run.
-4. **Representation gate.**
-   Run the broader [#246](https://github.com/Open-Athena/marin-dna/issues/246) and [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluations only if the smoke test shows a useful gain at an acceptably small budget.
+1. **Objective attribution.**
+   At the same small sidecar budget and source checkpoint, compare transferred MNTP with transferred ordinary same-position MLM.
+   Keep the existing source, no-adaptation, and causal-continuation controls; a second from-scratch masked model is lower priority than isolating the objective.
+2. **Representation gate.**
+   Test layer and pooling choices on frozen functional-region or token-level probes where right context has a clear mechanism.
+   Direct masked-site VEP should remain a diagnostic rather than the sole gate.
+3. **Supervised sequence-to-function test.**
+   Compare the source and converted checkpoints in a matched accessibility or other per-base prediction setup without treating the negative VEP result as proof that representations cannot help.
+4. **Budget and update ablation.**
+   Consider longer adaptation, LoRA, or additional seeds only after an objective or representation test shows a source-relative gain.
+   Report incremental tokens, FLOPs, and cloud cost against the #479 baseline.
 
 </details>
