@@ -5,7 +5,8 @@
 
 ![Three-panel summary of transferred validation advantage, directional nucleotide dependency, and source-relative VEP](figures/479/mntp-conversion.svg)
 
-_At step 1,000, positive validation deltas favor transferred MNTP; dependency is the mean L∞ change in A/C/G/T log probability across 32,385 off-diagonal position pairs at tRNA-Arg-TCT; MNTP uses masked readouts and CLM uses causal next-token readouts, so absolute magnitudes are not directly comparable; VEP compares source CLM FWD+RC with transferred MNTP FWD. Validation and dependency are deterministic one-seed summaries without error bars; VEP error bars are ±1 SE from 1,000 matched-group or within-SGE-cell bootstrap resamples, combined across subsets for macro endpoints._
+_At step 1,000, positive validation deltas favor transferred MNTP; dependency is the mean L∞ change in A/C/G/T log probability across 32,385 off-diagonal position pairs at tRNA-Arg-TCT; MNTP uses masked readouts and CLM uses causal next-token readouts, so absolute magnitudes are not directly comparable; VEP compares source CLM FWD+RC with transferred MNTP FWD._
+_Validation and dependency are deterministic one-seed summaries without error bars; VEP error bars are ±1 SE from 1,000 matched-group or within-SGE-cell bootstrap resamples, combined across subsets for macro endpoints._
 
 ## Findings
 
