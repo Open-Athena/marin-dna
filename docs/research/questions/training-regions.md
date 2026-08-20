@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales; confidence is moderate that task-aware enrichment helps, while no universal selection rule or repeat-downweighting benefit has been established.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while frozen-model loss or entropy is a practical conservation proxy; no universal selection rule, causal benefit from likelihood-derived weighting, or repeat-downweighting benefit has been established.
 
 ## Question
 
@@ -26,6 +26,11 @@ Uniform loss is the simpler prior.
 If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them.
 This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
 
+The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) found that, among nonrepeat human CDS, upstream, and downstream positions, absolute loss and entropy ranked conservation increasingly well with model scale and dominated same-corpus loss deltas at comparable FWD scoring compute.
+Controlled scale-dependent loss reduction remained associated with conservation, but it is distinct from target-distribution reducible loss.
+One orientation preserved the aggregate classification result at half the inference compute without preserving the exact per-base ranking.
+The inference-only audit did not test whether any score improves training and could not separate training exposure or homology effects.
+
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
 Confidence is moderate for functional enrichment at current scales and low on how the optimum moves with model size and task.
@@ -45,13 +50,11 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   It also reports same-corpus self-reference selection using low frozen-reference loss and entropy.
   A loss difference between two same-corpus model sizes instead measures scale-dependent learnability and may rank tokens differently from Rho-1 reducible loss.
   In genomic data, repeats, local composition, and phylogenetic redundancy may all produce high predictability without functional constraint.
+- [Self-paced learning](https://papers.nips.cc/paper_files/paper/2010/hash/e57c6b956a6521b28495f2886ca0977a-Abstract.html) introduces current small-loss examples first and anneals toward the full dataset, while [Selective Backprop](https://arxiv.org/abs/1910.00762) prioritizes current high-loss examples because low-loss gradients tend to be small.
+  A permanent hard mask on the student's lowest-loss tokens changes the target distribution and can reinforce already-learned tokens; it is distinct from self-distillation and reducible-loss selection.
 - Conservation is a proxy for purifying constraint rather than a complete definition of function.
   It misses lineage-specific and hard-to-align elements, while annotations miss unknown constrained sequence.
   A useful observable is the joint coverage of evaluation loci, annotated classes, conservation tiers, and repeats under each proposed footprint.
-- [Why do MarinDNA models lag on complex-trait VEP?](complex-trait-vep.md) synthesizes evidence that the current conservation-filtered footprint undercovers complex-trait positives, especially distal variants.
-  This motivates weakly conserved/background arms but does not show that adding them improves VEP.
-- [How should a short-context gLM acquire long-range context?](long-context.md) identifies a long-context version of the same problem: uniformly weighted long windows contain much more background sequence than focal functional sequence.
-  Any long-context pretraining study should report whether selection or weighting changes the distant-context result.
 
 </details>
 
@@ -76,11 +79,23 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   Centering was suggestively better for distal VEP, but unequal epoch counts and non-converged curves confounded functional-base density, placement, and repetition.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored CDS projection with native per-species annotation across vertebrate and animal scopes.
   Projection produced useful conserved-CDS data but lost distant species and did not dominate annotation on every endpoint.
+- [Conservation and repeat predictability across model scale](../experiments/478-conservation-repeat-predictability.md) measured per-base loss and entropy across the fixed-token 46M–4B ladder in CDS, upstream, and downstream sequence.
+  Conserved nonrepeat bases had positive composition-adjusted scale gains in all three regions, qualifying same-corpus scale-differential loss for a causal weighting test while leaving repeat downweighting unresolved.
+  Absolute loss and entropy classified conservation increasingly well with scale and dominated every FWD loss delta at comparable estimated scoring compute.
+  FWD-only and RC-only classification AUPRC was nearly identical, while their imperfect endpoint per-base agreement limits a single pass as an exact replacement for averaged weights.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
+
+- Audit token-loss dynamics across checkpoints of m1.3, the de novo 1B model trained on a uniform five-region mixture.
+  On fixed nonrepeat validation tokens from CDS, upstream, downstream, ncRNA, and enhancer, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
+  This tests when functional ranking emerges and whether an online selection mask remains stable through training.
+- Test whether annotation-free pretraining can recover functional sequence from likelihood.
+  Train 46M, 76M, and 128M models for matched token budgets on the complete nonrepeat sequence of about 20 animal genomes sampled broadly across orders, with no annotation-based locus filtering.
+  Use annotations and conservation only after training to label evaluation positions, measuring functional-versus-matched-background loss gaps and AUPRC from one-orientation loss and entropy, globally and for CDS, upstream, downstream, ncRNA, and enhancer.
+  Composition and local-predictability controls are needed to interpret the loss gaps.
 
 ### What outcome are we optimizing?
 
@@ -111,6 +126,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### Filter, sample, or weight?
 
 - At equal training FLOPs, how do hard filtering, score-proportional sampling, per-base loss weighting, and a curriculum from enriched to whole-genome data compare?
+- For likelihood-derived selection experiments, keep repeat downweighting fixed across every arm and compute selection thresholds only among nonrepeat tokens.
+  This comparison tests how gradient mass is allocated within nonrepeat sequence, leaving repeat handling outside its scope.
 - Can the whole genome remain in the corpus while constrained/annotated bases receive most of the gradient?
   Does this retain rare functional classes and useful neutral context without letting background dominate?
 - Should a window be selected because it contains some functional sequence, while the loss is applied only or preferentially to the functional bases?
@@ -120,12 +137,16 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### How do scale and data quantity change the answer?
 
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- On the existing 46M–4B parameter ladder, measure per-base likelihood on fixed human CDS, upstream/promoter, and downstream/3′ UTR windows, stratified jointly by phyloP conservation and RepeatMasker status.
-  Report absolute loss at each size and per-base loss reduction across sizes, with genomic-block uncertainty and matched composition controls.
-  CDS codon position can serve as a positive control for whether the score distinguishes known differences within one functional region.
-- If same-corpus loss reduction with scale remains associated with conservation after repeat, composition, and homology controls, test a fixed offline scale-differential weight derived from two frozen checkpoints.
-  Treat this as a learnability heuristic rather than a direct Rho-1 analogue.
-  Compare it against uniform loss, the current repeat weighting, and simpler small-model loss or entropy weights at matched training compute.
+- Run a small fixed-compute causal experiment comparing uniform nonrepeat loss, frozen FWD loss or entropy as a soft weight, excess loss against a frozen target-distribution reference, a scale-differential weight from frozen checkpoints, and the student's lowest-current-loss mask as a diagnostic control.
+  Add direct conservation weighting on human sequence as an oracle positive control.
+  Keep repeat downweighting identical in every arm.
+  Match training compute and record the offline scoring cost separately.
+  Treat same-corpus improvement as a learnability heuristic rather than a direct Rho-1 analogue.
+  Treat lowest-current-loss selection as a self-paced objective that may reinforce already-learned, small-gradient tokens; use a uniform warm-up and a nonzero background floor if it advances beyond the diagnostic arm.
+  Teacher nucleotide probabilities would define a separate self-distillation objective and should not be conflated with loss-based token selection.
+  Use deterministic FWD scoring first and add an averaged-score sensitivity only if downstream outcomes justify the second inference pass.
+- Add compatible training-corpus exposure and homology-density covariates when they become available.
+  Test whether either explains the apparent association between likelihood-derived scores and conservation.
 - When a filtered corpus is smaller, are gains caused by better loci or simply by seeing the same loci for more epochs?
   Both compute-matched and exposure/epoch-matched comparisons are needed.
 - Is there a curriculum in which constrained sequence is best early, but adding progressively broader genome sequence later improves generalization or prevents overfitting?
