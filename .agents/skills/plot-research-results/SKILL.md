@@ -5,14 +5,16 @@ description: Create or revise MarinDNA plots and figures for experiment analysis
 
 # Plot Research Results
 
+Apply the guidance in this skill before first presenting a figure to a human. Explicit human direction and an established figure-family or publication style override it.
+
+Prefer plotting-library defaults, including Seaborn's default color palette, when they express the intended comparison cleanly. Customize only for a specific semantic, legibility, accessibility, or publication constraint.
+
 Build the figure around the scientific comparison it must support.
 
-## Apply The First-Review Defaults
+## Compose The Figure
 
-- Apply the defaults in this skill before first presenting a figure to a human. Explicit human direction and an established figure-family or publication style override them.
 - Present one scientific comparison at a time. Start with the primary contrast, then add modifiers or interactions only when they answer the next question.
 - Use one single-line overall figure title. Give each subplot or facet one single-line title that identifies only its panel distinction. Do not stack subtitles, narrative blocks, or sample counts into the figure header.
-- Use the [published MarinDNA blog](https://openathena.ai/blog/marin-dna/) and its [merged figure assets](https://github.com/Open-Athena/open-athena.github.io/tree/d61d7c68f073ce2e923e1132a29dcccc7556b0e4/static/assets/images/blog/marin-dna) as the visual reference for these defaults.
 
 ## Choose The Highest-Level Suitable Interface
 
