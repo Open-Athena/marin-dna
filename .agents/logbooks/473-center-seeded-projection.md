@@ -613,3 +613,35 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: launch publication only from `406b6feb...` after full projection
   QC and sampled HAL trace pass. Build and inspect the draft artifacts before
   invoking the separately gated upload target.
+
+### 2026-08-20 02:28 UTC - CSP-012 paired intersection-loss evaluator
+
+- Snapshot: additive experiment commit
+  `8da6343b58e6bb0c0921c4f1e1b651568f8fc2bb` was pushed to the permanent
+  `codex/exp473-center-seeded-projection-training` branch.
+- Scope: a separate `IntersectionLoss.smk` imports the unchanged official
+  `evals_v2` causal-LM scorer and exposes only four new
+  `issue_473_intersection_*` rules. It reads the producer-pinned, unlabeled
+  chromosome-18 full-window/center-1 intersection views directly from their
+  immutable S3 namespace; no maintained evaluation rule or established output
+  path changed.
+- Statistic: the scorer reconstructs the training objective from per-row
+  uppercase/lowercase log-likelihood atoms using weights 1.0/0.01, asserts
+  exact paired biological row identity, and reports token-weighted
+  `center_1 - full_window` NLL with an aligned human-anchor bootstrap.
+  Negative deltas favor center-1.
+- Graph validation: a locked local Snakemake dry-run under the `evals_v2`
+  S3-default profile succeeded with exactly 82 jobs: 40 local checkpoint
+  downloads, 40 S3-backed score cells, one analysis, and one target. The first
+  dry-run exposed a local-checkpoint storage-identity mismatch; the committed
+  workflow annotates both producer and consumer paths as local.
+- Tests: all 16 experiment-project tests passed in three bounded processes;
+  evaluation contracts include the exact 40-cell config, producer revision,
+  chromosome/length and row-pair guards, case-weight formula, delta direction,
+  complete synthetic matrix, manifest, and rule isolation. Changed-file hooks
+  passed. Peak RSS was 489,348 KiB.
+- Safety: the evaluator records `vep_held_out_access: false` and contains no VEP
+  dataset route. Even-autosome/Y VEP labels, predictions, measurements, and
+  aggregate metrics remain untouched.
+- Next action: continue the projection gate; use this evaluator only after the
+  four authorized arms produce immutable checkpoint roots.
