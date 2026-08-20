@@ -18,7 +18,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-Implementation is in progress. The execution target is a self-contained Hugging Face/PyTorch Lightning project on one Lambda GH200; Marin/Iris is not involved. Two source facts refine the issue text: the released checkpoint declares untied input and output matrices, and the pinned training datasets already encode the source orientation policy.
+The one-seed pilot is complete and technically valid. All three trained arms finished 1,000 finite steps on a standalone Lambda GH200 path with no Marin or Iris dependency. Transferred MNTP narrowly beat scratch on pooled and single-mask validation loss and acquired bilateral context use, but it did not improve any primary VEP endpoint over source CLM and did not exceed the no-adaptation control on both flank probes. Do not propose the 10,000-step extension. The compact result bundle is at [`cb0d37ff`](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation), and the dense record is in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==).
 
 ## Current baseline
 
@@ -26,15 +26,13 @@ Implementation is in progress. The execution target is a self-contained Hugging 
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- No adaptation, behavioral smoke test, or labeled evaluation has run.
+- Completed pilot list-price estimate: $10.2326 of the $50 cap; final cluster confirmed terminated. Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
 
 ### Active
 
-- `MNTP-479-H1`: Transferred MNTP reaches lower pooled and single-mask validation loss than scratch MNTP within 1,000 steps. Next test: matched transferred and scratch arms.
-- `MNTP-479-H2`: Full-attention MNTP creates measurable dependence on both flanks beyond the causal and no-adaptation controls. Next test: behavioral preflight followed by fixed perturbation probes every 100 steps.
-- `MNTP-479-H3`: The cooled transferred checkpoint improves at least one odd-autosome/X VEP endpoint or a scoped mechanistic diagnostic over source CLM FWD+RC. Next test: run the registered VEP and nucleotide-dependency panels after training.
+- None.
 
 ### Blocked
 
@@ -42,21 +40,30 @@ Implementation is in progress. The execution target is a self-contained Hugging 
 
 ### Falsified / dead end
 
-- None.
+- `MNTP-479-H2` (strict control criterion): transferred MNTP used both flanks, but its left response did not exceed the full-attention/no-adaptation control. Evidence: [result bundle](../artifacts/479-mntp-adaptation/README.md).
+- `MNTP-479-H3` (downstream gate): no primary VEP endpoint improved over source CLM FWD+RC. Single-pass dependency structure remained similar to FWD+RC, but that scoped mechanism did not rescue the registered VEP/extension gate. Evidence: [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==).
 
 ### Promoted
 
-- None.
+- `MNTP-479-H1` (exploratory, one seed): transferred MNTP reached lower step-1,000 pooled loss (0.397270 versus 0.399543) and single-mask loss (0.310077 versus 0.313152) than scratch. Evidence: [validation figure](../artifacts/479-mntp-adaptation/figures/validation-loss.svg).
 
 ## Decision log
 
 - 2026-08-19: Use a Lambda GH200 sidecar. Do not introduce Marin/Iris launch dependencies.
 - 2026-08-19: Preserve the released checkpoint's untied input embedding and LM head. Initialize the new `[MASK]` input row and output row separately from their respective A/C/G/T means. Tying the matrices would alter the source model before adaptation and invalidate causal-logit parity.
 - 2026-08-19: Do not add runtime reverse-complement augmentation. The three genomes-v5 datasets state that reverse complements are included, and the two pinned Zoonomia partitions inherit the m5.1 source construction. The experiment samples the pinned stored examples directly.
+- 2026-08-20: Call the pilot technically valid: all registered smoke tests passed and every trained arm completed with finite loss, gradients, and optimizer state.
+- 2026-08-20: Do not propose the 10,000-step extension. The strict bilateral-control and source-VEP criteria were not met.
+- 2026-08-20: Do not claim single-orientation VEP support for any task. FWD stayed within one AUPRC point of transferred FWD+RC, but failed the required source-improvement gate.
+- 2026-08-20: Keep final checkpoints and per-variant scores private; publish compact metrics, uncertainty, runtime, figures, and provenance on the permanent branch and W&B.
+- 2026-08-20: Treat complete-flank ablation and ±64-base window shifts as post-hoc, non-gating diagnostics because their exact parameterization was fixed after primary evaluation.
 
 ## Negative results index
 
-- No experiment results yet.
+- The strict bilateral-context criterion failed: transferred exceeded the no-adaptation control on the right but not the left.
+- Transferred MNTP did not improve Mendelian macro, complex-trait global, or SGE accession/consequence macro AUPRC over source CLM FWD+RC.
+- No VEP task passed the single-orientation gate because transferred FWD did not exceed source CLM FWD+RC.
+- A 10,000-step extension is not proposed from this one-seed pilot.
 
 ## Background research brief
 
@@ -266,3 +273,32 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Budget: This instance ran for about 39 minutes, at most about $1.50 at the listed price. Conservative cumulative prior cost for the next hard guard is $4.80.
 - Data boundary: The public odd/X train-split files were materialized, but no variant was scored and no aggregate labeled metric was computed. No even-autosome or Y labels, predictions, effects, or aggregates were accessed.
 - Next action: Verify and snapshot the BGZF dependency fix, then relaunch on Lambda with all three trained arms skipped and run the registered evaluations and final publication.
+
+### 2026-08-20 06:15 - Pilot complete; negative VEP and no extension
+
+- Hypotheses: `MNTP-479-H1` predicts an early transfer advantage over scratch; `MNTP-479-H2` requires bilateral context beyond both controls; `MNTP-479-H3` requires source-relative VEP or a scoped mechanistic gain sufficient for continuation.
+- Code/result snapshots: primary evaluation code `e10b3e772d90d7c126769765b90ba49f2e8588d2`; diagnostics code `97a6e3c50080005ad4f93f2206c4155b8f5cb7b9`; compact artifacts `cb0d37ffa97361947fc01c434f670c747ca94af4`.
+- Commands: final primary evaluation ran the commit-pinned `sky/pilot.yaml` path with all completed arms skipped; follow-up diagnostics ran `uv run --locked python launch.py diagnostics --commit 97a6e3c50080005ad4f93f2206c4155b8f5cb7b9 --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover --prior-cost-usd 9.5601726286 --execute`. Both used `sky launch --down`; the final cluster was confirmed absent with `sky status -r dna-exp479-gh200`.
+- Config: one Lambda GH200 96 GB at $2.29/hour; batch 64; one seed; 1,000 steps per trained arm; 16,384,000 model tokens and 16,320,000 bases per arm; odd-autosome/X labeled development data only. Context/window follow-up used complete left/right `N`/`[UNK]` flank ablation and fixed ±64-base window shifts.
+- Technical validity: all remote and local checks passed; the final suite has 55 tests. Transferred, scratch, and causal continuation all completed with finite state. Transferred ran 300 recovery steps in 250.3 seconds; scratch ran 1,000 steps in 922.1 seconds; causal continuation ran 1,000 steps in 841.2 seconds.
+- Validation result: step-1,000 transferred versus scratch pooled loss was 0.397270 versus 0.399543; single-mask loss was 0.310077 versus 0.313152. Pooled accuracy was 0.334408 versus 0.333749; single-mask accuracy was 0.418750 versus 0.396875. `H1` is supported exploratorily, with small one-seed margins.
+- Context result: matched VEP probe left/right L1 was source CLM 0.16545/0, no adaptation 0.02581/0.01280, transferred MNTP 0.02007/0.01988, scratch MNTP 0.01216/0.01381, and continued CLM 0.13638/0. Transferred uses both flanks but exceeds no adaptation only on the right, so strict `H2` fails.
+- VEP result:
+
+  | Primary endpoint | Source CLM FWD+RC | Transferred FWD | Scratch FWD | Continued CLM FWD+RC | Transferred FWD+RC |
+  |---|---:|---:|---:|---:|---:|
+  | Mendelian macro AUPRC | 0.3951 | 0.1151 | 0.1112 | 0.3064 | 0.1152 |
+  | Complex-trait global AUPRC | 0.1342 | 0.1003 | 0.1018 | 0.1188 | 0.0996 |
+  | SGE accession/consequence macro AUPRC | 0.3577 | 0.1427 | 0.1378 | 0.3052 | 0.1429 |
+
+- Paired uncertainty: transferred FWD minus source FWD+RC was -0.2982 (95% CI -0.3213 to -0.2759) for the Mendelian global endpoint and -0.0339 (-0.0460 to -0.0221) for complex traits. Transferred minus scratch was +0.0021 (-0.0008 to +0.0052) and -0.0015 (-0.0049 to +0.0021), respectively. No downstream source-relative gain was observed.
+- Single-orientation decision: transferred FWD stayed within one AUPRC point of its own FWD+RC on all three tasks, but failed the required source-improvement gate on all three. No task is supported.
+- Post-hoc context/window result: ablating either complete flank reduced transferred raw-score Spearman correlation with centered scoring to 0.717–0.747 across datasets. ±64-base window shifts retained 0.991–0.993. Primary AUPRC changes remained small and did not become positive relative to source.
+- Dependency-map result: the visually reviewed LDLR, TH, GRIA4, HBA1, and tRNA-Arg-TCT maps retained structure in both triangles. Single-orientation versus FWD+RC off-diagonal Spearman was 0.9649–0.9738, mean 0.9692.
+- Runtime: transferred MNTP processed all 51,623 variants at 520.0 variants/s FWD and 259.8 variants/s FWD+RC with 3.28 GB peak CUDA allocation. Source CLM processed 265.1/133.0 variants/s with 4.29 GB peak.
+- Cost: final conservative list-price estimate $10.2326 of the $50 cap, including failures, recovery, training, primary evaluation, and follow-up diagnostics. Provider billing still requires external reconciliation.
+- Boundaries: no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed. HBA1 chromosome-16 use was limited to unlabeled reference sequence for its preregistered dependency map.
+- Artifacts: [compact bundle](../artifacts/479-mntp-adaptation/README.md), [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==), [clean analysis run](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), and private W&B evaluation artifact `dna-exp479-evaluation`.
+- Interpretation: The objective conversion works behaviorally and transfers a small early optimization advantage, but this 1,000-step checkpoint is not a useful source-relative VEP model. Dependency similarity and window stability are scoped mechanisms, not evidence for extending training.
+- Decision: pilot technically valid; no 10,000-step extension; no single-orientation VEP support; keep negative result and private checkpoints durable.
+- Next action: update the active research question, final model card, coordinating issue body/comment, and seal an annotated result tag.
