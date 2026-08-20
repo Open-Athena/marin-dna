@@ -1,0 +1,24 @@
+{
+  "arm": "transferred_mntp",
+  "run_name": "dna-exp479-transferred_mntp-seed0",
+  "seed": 0,
+  "batch_size": 64,
+  "global_step": 1000,
+  "attention_mode": "full",
+  "input_output_tied": false,
+  "optimizer": {
+    "adamh_learning_rate": 0.004396588845822712,
+    "adam_learning_rate": 0.02308025763094388,
+    "beta1": 0.6675603345321236,
+    "beta2": 0.9996175970423852,
+    "epsilon": 1.2952689296049683e-15,
+    "max_grad_norm": 0.9951880136348765,
+    "initializer_range": 0.02,
+    "model_tokens": 16384000,
+    "nucleotide_bases": 16320000
+  },
+  "train_plan": "/home/ubuntu/exp479-artifacts/data/train.jsonl",
+  "validation_plan": "/home/ubuntu/exp479-artifacts/data/validation.jsonl",
+  "final_lightning_checkpoint": "/home/ubuntu/exp479-artifacts/transferred_mntp/checkpoints/last.ckpt",
+  "hf_export": "/home/ubuntu/exp479-artifacts/transferred_mntp/hf/step-1000"
+}
