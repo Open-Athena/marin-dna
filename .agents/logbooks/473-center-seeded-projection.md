@@ -1085,3 +1085,36 @@ cohort, assemblies, and downstream training recipe fixed.
   construction gates only. They do not establish projection recovery,
   sequence correctness, alignment coverage, or a preferred policy; those
   remain gated on the complete QC, manual sample, and sampled HAL trace.
+
+### 2026-08-20 09:53 UTC - CSP-027 additive post-projection report prepared
+
+- Reporting gap: the producer preserves raw accepted and rejection evidence,
+  but its compact outputs do not directly report every requested
+  fragment/span/sequence distribution or complete species-level
+  accepted/rejected/no-mapping accounting. No producing rule or existing S3
+  output was changed to close this gap.
+- Additive analysis: commit
+  `67f53f57e1b5c3b069f624d2dd7f0c8faa17d86e` adds a standalone streaming
+  module that summarizes fragment count, landmark-aligned bases, pre-resize
+  span and width ratio, target interval/strand validity, sequence length,
+  ambiguity, repeat masking, and GC by policy, region, backend, species, and
+  clade. It derives exact no-mapping counts from grouped accepted and explicit
+  rejection counts without materializing the 85-million-cell requested grid.
+- Interpretation guard: the module labels aligned fraction as applying only to
+  the submitted source landmark. It never substitutes span geometry for
+  emitted-window coverage; the latter remains exclusive to the sampled HAL
+  trace.
+- Trace-gated handoff: commit
+  `3ae98937bbab737c1a2164a6e03a4b6cf45cc15b` adds a separate Sky launcher
+  that waits for the exact `d43f059c` trace report, stages both accepted
+  tables and all 810 new/immutable rejection files on the retained worker,
+  runs the bounded-memory analysis, and uploads only to an
+  analysis-commit-keyed S3 namespace. It does not alter or invoke a producer,
+  publisher, training arm, or evaluator.
+- Verification: both focused report tests passed; the complete changed
+  vertebrate-projection project passed all 119 tests in 7.80 seconds with
+  292,252 KiB peak RSS. Changed-file hooks passed for both Python files and
+  the YAML launcher. The module SHA-256 pinned by the launcher is
+  `e330d7acdd0c8eb1424a03c6aac7337b69e362d347737e33592c1b635b41549b`.
+- Next action: snapshot and arm the report handoff behind the existing sampled
+  trace gate, then continue monitoring producer and training milestones.
