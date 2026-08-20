@@ -1652,3 +1652,23 @@ cohort, assemblies, and downstream training recipe fixed.
   `a73e9d9ee636f722b4c378703c9e2997857809b2`. The first official development
   evaluation point remains step 1,000. Both enhancer arms remain queued for
   the same `us-central1` `v5p-8` resource with zero failures or preemptions.
+
+### 2026-08-20 19:41 UTC - CSP-048 first official CDS checkpoint
+
+- CDS center-1 reached and passed official evaluation step 1,000 on Iris
+  attempt 0. The native optimizer-state checkpoint committed at
+  `checkpoints/step-1000`, and the matching 1.02 GB Hugging Face-format export
+  completed at `hf/step-1000` beneath the immutable central1 checkpoint root.
+- Independent object-name checks found the native manifest and metadata plus
+  the HF `config.json`, `model.safetensors`, `tokenizer.json`, and
+  `tokenizer_config.json`. The trainer continued through at least W&B global
+  step 1,007 after both saves.
+- Step-1,000 normal validation loss was 1.3050305843. W&B at step 1,007
+  reported training loss 1.2969002724, mean MFU 48.2%, and 2,113,929,216
+  cumulative tokens. These per-arm losses remain operational checks only; the
+  paired chromosome-18 intersection workflow is the registered cross-policy
+  loss comparison.
+- This is the first of nine official development-only checkpoint steps. No
+  downstream evaluation is launched yet because all four model trajectories
+  must expose the complete common step set. Both enhancer training children
+  remain queued with zero failures or preemptions.
