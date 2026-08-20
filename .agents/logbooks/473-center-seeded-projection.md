@@ -711,3 +711,39 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: continue the projection gate, then trace, review, private
   publication, four authorized Iris arms, intersection loss, and official
   development analysis in that order.
+
+### 2026-08-20 03:08 UTC - CSP-015 training recipe parity audit
+
+- Snapshot: additive experiment commit
+  `7cb733e22661c967b18e9e3fe0cb04f90094ce18` restores exact #417 training
+  invariants before any issue #473 arm launches.
+- Trigger: a field-by-field comparison against the pinned #417 recipe at
+  `0c83058b` found that the new tokenization config named an unversioned Hub
+  tokenizer while the model config had no tokenizer path. The latter would
+  allow Hugging Face exports to inherit the Qwen reference tokenizer rather
+  than the seven-token DNA character+BOS tokenizer. The README's claim that
+  the tokenizer was copied locally was therefore not yet true.
+- Fix: the isolated project now vendors the exact three tokenizer files from
+  `marin-dna/tokenizer-char-bos@a73e9d9e...`, verifies their SHA-256 digests
+  before constructing any graph, uses the local path for tokenization, and
+  sets the same path on `Qwen3Config` for every Hugging Face export. Observed
+  digests exactly match #417: `02b7b977...` for the special-token map,
+  `d066e668...` for `tokenizer.json`, and `4e814edc...` for the tokenizer
+  config.
+- Recipe parity: seed 0 is now explicit on both trainer and data order;
+  per-device parallelism is 1,024; optimizer-state checkpoints are retained
+  every 500 steps in addition to Marin's ten-minute rolling recovery; host
+  resources match #417's 16 CPU, 56 GiB RAM, and 100 GiB disk request. Model
+  geometry, 8,192-sequence global batch, 5,000 steps, exact Adam parameters,
+  case-aware 1.0/0.01 loss, and 500-step Hugging Face cadence are asserted.
+- Validation: all 18 locked project tests passed as three bounded processes:
+  3 format tests (471,752 KiB peak RSS), 12 evaluation tests (148,056 KiB),
+  and 3 materialized-recipe tests (489,312 KiB). Changed-file hooks passed.
+  Tests construct all four artifact plans and verify tokenizer digests and
+  provenance tags, model and optimizer fields, trainer/data seeds,
+  microbatching, retained checkpoints, dataset revisions, and loss format.
+- Launch gate: no issue #473 model has launched. The three new immutable
+  dataset revisions remain mandatory, so publication review still precedes
+  all four authorized arms. Held-out VEP data remains untouched.
+- Next action: continue producer job 11 through exact QC/manual artifacts,
+  then sampled HAL trace, publication review, and private upload.
