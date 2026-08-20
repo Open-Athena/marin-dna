@@ -93,7 +93,7 @@ def plot_predictability_478(
                     alpha=0.04,
                 )
     ax_scale.set_xticks(x, [_model_label(model) for model in model_order])
-    ax_scale.set_ylabel("RC-averaged NLL (nats/base)")
+    ax_scale.set_ylabel("FWD/RC-averaged NLL (nats/base)")
     ax_scale.set_title("A  Absolute predictability by primary stratum")
     ax_scale.legend(fontsize=6, ncol=3, frameon=False)
 

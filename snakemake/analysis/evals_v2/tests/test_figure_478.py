@@ -3,10 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import pytest
 from marin_dna_evals.figure_478 import plot_predictability_478
 
 
-def test_plot_predictability_478_smoke(tmp_path: Path) -> None:
+@pytest.mark.parametrize("suffix", ["png", "svg"])
+def test_plot_predictability_478_smoke(tmp_path: Path, suffix: str) -> None:
     models = [
         "scaling-v0.5-h640-p46M-step-215573",
         "scaling-v0.5-h2944-p4B-step-215573",
@@ -106,7 +108,7 @@ def test_plot_predictability_478_smoke(tmp_path: Path) -> None:
             )
     summary_path = tmp_path / "summary.parquet"
     controlled_path = tmp_path / "controlled.parquet"
-    output_path = tmp_path / "figure.png"
+    output_path = tmp_path / f"figure.{suffix}"
     pd.DataFrame(rows).to_parquet(summary_path, index=False)
     pd.DataFrame(controlled).to_parquet(controlled_path, index=False)
     plot_predictability_478(summary_path, controlled_path, output_path)

@@ -139,7 +139,8 @@ def test_analyze_orientation_sensitivity_contract(tmp_path: Path) -> None:
     assert endpoint["sign_agreement"] == pytest.approx(1.0)
 
 
-def test_plot_orientation_sensitivity_smoke(tmp_path: Path) -> None:
+@pytest.mark.parametrize("suffix", ["png", "svg"])
+def test_plot_orientation_sensitivity_smoke(tmp_path: Path, suffix: str) -> None:
     models = ["scaling-p46M-step", "scaling-p4B-step"]
     summary_rows: list[dict[str, object]] = []
     controlled_rows: list[dict[str, object]] = []
@@ -220,7 +221,7 @@ def test_plot_orientation_sensitivity_smoke(tmp_path: Path) -> None:
         "controlled": tmp_path / "orientation_controlled.parquet",
         "agreement": tmp_path / "orientation_agreement.parquet",
         "averaged": tmp_path / "controlled.parquet",
-        "figure": tmp_path / "orientation.png",
+        "figure": tmp_path / f"orientation.{suffix}",
     }
     pd.DataFrame(summary_rows).to_parquet(paths["summary"], index=False)
     pd.DataFrame(controlled_rows).to_parquet(paths["controlled"], index=False)

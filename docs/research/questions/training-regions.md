@@ -26,7 +26,7 @@ Uniform loss is the simpler prior.
 If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them.
 This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
 
-Issue [#478](https://github.com/Open-Athena/marin-dna/issues/478) adds an in-corpus, inference-only result across the fixed-token 46M–4B model ladder.
+The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) adds an in-corpus, inference-only result across the fixed-token 46M–4B model ladder.
 After adjustment for repeat status, GC content, local 7-mer predictability, and position, the 4B-minus-46M loss reduction for conserved nonrepeat sequence was 0.364 nats per base in CDS (95% block-bootstrap CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
 Repeat interactions were negative in every region, so repeats gained less with scale, but the conserved effect remained positive within repeats.
 This supports same-corpus scale-differential loss as the primary candidate for a fixed-compute causal weighting experiment.
@@ -85,7 +85,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   Centering was suggestively better for distal VEP, but unequal epoch counts and non-converged curves confounded functional-base density, placement, and repetition.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored CDS projection with native per-species annotation across vertebrate and animal scopes.
   Projection produced useful conserved-CDS data but lost distant species and did not dominate annotation on every endpoint.
-- [#478](https://github.com/Open-Athena/marin-dna/issues/478) measured per-base loss and entropy across the fixed-token 46M–4B ladder in CDS, upstream, and downstream sequence.
+- [Conservation and repeat predictability across model scale](../experiments/478-conservation-repeat-predictability.md) measured per-base loss and entropy across the fixed-token 46M–4B ladder in CDS, upstream, and downstream sequence.
   Conserved nonrepeat bases showed robust, composition-adjusted scale gains in all three regions, qualifying same-corpus scale-differential loss for a causal weighting test while leaving repeat downweighting itself unresolved.
   FWD-only and RC-only results preserved the aggregate conclusion, but their imperfect per-base agreement motivates an explicit one-pass-versus-averaged compute ablation.
 
@@ -132,7 +132,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### How do scale and data quantity change the answer?
 
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- The 46M–4B frozen-model audit in [#478](https://github.com/Open-Athena/marin-dna/issues/478) is complete: scale-differential loss remained associated with conservation after repeat, GC, local 7-mer, and position controls, and the CDS codon-position positive control passed on both strands.
+- The [46M–4B frozen-model audit](../experiments/478-conservation-repeat-predictability.md) is complete: scale-differential loss remained associated with conservation after repeat, GC, local 7-mer, and position controls, and the CDS codon-position positive control passed on both strands.
   Exact training-corpus exposure and homology density were unavailable, so neither mechanism has been excluded.
 - Run a fixed-compute causal experiment with an offline scale-differential weight derived from frozen checkpoints.
   Compare it against uniform loss, the current repeat weighting, and simpler 46M absolute-loss and entropy weights at matched training compute.

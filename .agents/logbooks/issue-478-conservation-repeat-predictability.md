@@ -18,6 +18,7 @@ author: gonzalobenegas
 - CDS-only codon position passed as a positive control on both strands; splice donor/acceptor results remain descriptive secondary evidence.
 - FWD-only and RC-only analyses preserved the group-level result. Relative to the FWD/RC mean, one-orientation endpoint scores had 0.69–0.81 Spearman correlation, 0.58–0.72 top-decile overlap, and 0.76–0.86 gain-sign agreement across regions; neither orientation was consistently better.
 - GPU spend was approximately $4.18 and the CPU-only orientation sensitivity added about $0.03, below the $20 cap. Exact corpus exposure and homology density were unavailable and remain limitations.
+- The research branch is rebased on `origin/main` at `d40a56ac`, and a knowledge-base experiment page with reviewed SVG figures is ready for the required interpretation pull request.
 
 ## Scope
 
@@ -168,3 +169,15 @@ author: gonzalobenegas
 - Cost: four short CPU spot lifetimes, including one unavailable-instance attempt and one forced-rerun iteration, were approximately $0.03 total; no inference or GPU was used. Combined issue spend is approximately $4.21.
 - Interpretation: one-orientation scoring is adequate for aggregate discovery and a cheap pilot, cutting inference compute in half. It is not an exact replacement for the averaged per-base weight: the top-decile membership and endpoint sign losses are large enough that the causal training experiment should either retain the average or include single-orientation scoring as an explicit compute-quality ablation. If only one pass is affordable, choose orientation deterministically without claiming FWD or RC is biologically preferred.
 - Next action: carry both averaged and half-compute single-orientation score construction into the matched-compute weighting experiment; decide whether the downstream performance difference justifies the second pass.
+
+### 2026-08-20 12:18 UTC - Rebase and interpretation reporting
+
+- Hypothesis: the completed issue #478 evidence has a valid bounded interpretation that should be promoted under the experiment-page guidance introduced by #476.
+- Commit Hash: `5b7b1298` after rebasing the two issue #478 commits onto `origin/main` at `d40a56ac`.
+- Command: `git fetch origin main`; `git rebase origin/main`; regenerate the primary and orientation figures as SVG from the durable compact Parquet outputs.
+- Config: the accepted page uses the same primary central span, controlled coefficients, block-bootstrap intervals, orientation sensitivity, and limitations as the final logbook entries.
+- Result: the rebase completed without conflicts. `docs/research/experiments/478-conservation-repeat-predictability.md` records the accepted findings, evidence, directions, limitations, question backlink, and canonical issue. Two reviewed SVG figures are under `docs/research/experiments/figures/478/`, and the training-regions question now links the experiment page.
+- Validation: the rebased `evals_v2` suite passed with 379 tests and 5 skips; scoped pre-commit hooks and `snakemake -n predictability_478` passed. The full suite peaked at 1,226,072 kB RSS, above the pre-run sub-500-MiB estimate, so it must not be repeated on the shared node; use focused local checks or appropriately sized remote compute.
+- Interpretation: valid observational claims should be promoted. The page scopes the result to same-corpus scale-dependent learnability and explicitly excludes causal training benefit, Rho-1 equivalence, and a conclusion about repeat downweighting.
+- Disposition: `pending` until a clean interpretation pull request is opened and reviewed; the research issue must remain open until that disposition is final.
+- Next action: verify the rebased code and SVG render paths, snapshot the interpretation update, then extract or open the required interpretation pull request after GitHub-write authorization.
