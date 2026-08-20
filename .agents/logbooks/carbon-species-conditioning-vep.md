@@ -19,16 +19,17 @@ author: gonzalobenegas
 - The far-wrong fungal arm produced macro AUPRC 0.3587 versus 0.3582 untagged, with paired delta +0.0005 and 95% interval [-0.0137, 0.0124].
 - The far-wrong Lambda GH200 cluster is terminated; SkyPilot estimates $1.29 cost against the approximately $1.60 intended ceiling.
 - The non-miRNA comparison contains 16,100 variants and 1,610 complete match groups under untagged, correct mammalian, and far-wrong fungal prompts.
-- Correct conditioning lowered positive scores by 0.000575 nats/token more than matched negatives, with 95% interval [-0.000819, -0.000335]; the far-wrong differential was -0.000348 [-0.000500, -0.000190].
+- After correcting each arm to a common 1,365 DNA-target-token denominator, correct conditioning lowered positive scores by 0.000499 nats/token more than matched negatives, with 95% interval [-0.000742, -0.000259]; the far-wrong differential was -0.000300 [-0.000449, -0.000144].
 - Overall Pearson correlations were 0.9701–0.9805, but promoter/TSS correlations were 0.6586–0.6692 and promoter/TSS negative-only correlations were 0.5160–0.5348.
-- Splicing and missense variants showed the clearest consistent label-dependent shifts; high pooled correlation masks subset- and label-specific score movement.
+- Splicing and missense variants showed the clearest consistent label-dependent shifts; pooled correlation masks lower subset- and label-specific linear agreement.
+- Independent review caught the raw prompt-length scale confound, an overclaim about reranking, and unsafe mutable/expanded historical GH200 rerun paths before final handoff.
 - The complete 104,313,903-byte three-arm bundle, including every per-variant score row, is retained at `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/` with a verified checksum manifest.
 
 ## Scope
 
 - Goal: Compare frozen Carbon-3B Mendelian VEP scores under the three computed full-development approaches: untagged, correct mammalian, and far-wrong fungal.
 - Primary metrics: Per-subset and macro AUPRC, paired AUPRC differences, per-variant conditioned-minus-untagged score shifts, matched label-separation and variability contrasts, and Pearson score correlations by subset and label.
-- Constraints: Mendelian `train` split only; Carbon-3B revision `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; 8,192 bp windows; token-level full-sequence likelihood; FWD/RC average; no held-out labels.
+- Constraints: Mendelian `train` split only for scoring and analysis; Carbon-3B revision `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; 8,192 bp windows; token-level full-sequence likelihood; FWD/RC average; the remediated pre-inference held-out cache incident is disclosed below.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/486
 
 ## Baseline
@@ -423,3 +424,32 @@ author: gonzalobenegas
   These development-set subset analyses are exploratory and have no multiplicity correction or testing hierarchy.
   No held-out labels or predictions were accessed, and no new paid compute was launched.
 - Next action: Rebase the complete snapshot onto `origin/main`, publish a draft PR with the interpretation and immutable artifacts, and launch an independent review.
+
+### 2026-08-20 23:47 UTC - Independent review corrected score scale and rerun safety
+
+- Hypothesis: Raw conditioned-minus-untagged Carbon scores are comparable across prompt conditions after holding the DNA sequence length fixed.
+- Commit Hash: `5c363ae7` (independently reviewed draft-PR head; remediation pending).
+- Snapshot: planned final tag `carbon-conditioning-vep-reviewed-normalized-20260820`.
+- Command:
+  Independently audit PR #491 and the retained score parquets, reproduce the score identities, compare prompt token counts with the frozen issue contract, recompute shifts on a common denominator, and inspect the documented GH200 relaunch path.
+- Config: Three full-development arms; 1,365 DNA target tokens from 8,190 bp at Carbon's 6-mer boundary; prefixes of 1 token untagged, 9 tokens correct mammalian, and 6 tokens far-wrong fungal; raw scorer denominators of 1,365, 1,373, and 1,370 target tokens; 16,100 non-miRNA variants in 1,610 complete groups.
+- Result:
+  Independent review found that subtracting the raw prompt-mean LLR scores violated the issue's fixed instruction not to compare magnitudes across different prefix lengths.
+  The analysis now multiplies each arm by its raw target-token denominator divided by 1,365 before subtraction, with regression tests for the normalization.
+  Correct conditioning's matched label-separation shift is -0.000499 nats per DNA target token with 95% interval [-0.000742, -0.000259], rather than the raw-scale -0.000575.
+  Far-wrong conditioning's corrected shift is -0.000300 [-0.000449, -0.000144], rather than -0.000348.
+  Correct splicing and missense shifts remain negative at -0.001641 [-0.002533, -0.000729] and -0.000624 [-0.000937, -0.000329].
+  Far-wrong splicing and missense shifts remain negative at -0.000810 [-0.001354, -0.000305] and -0.000316 [-0.000555, -0.000107].
+  Positive-to-negative shift variability ratios remain 2.179 for correct conditioning and 1.507 for far-wrong conditioning.
+  Macro AUPRC and Pearson correlations are invariant to each arm's positive constant rescaling and did not change.
+  The PR interpretation now describes lower subset-level linear agreement rather than inferring local reranking from Pearson alone.
+  The historical two-arm GH200 launcher now targets only untagged and correct score, metric, and paired-delta artifacts instead of the expanded three-arm `all` DAG.
+  Its staging script now reads windows from the immutable snapshot, pins and verifies the manifest digest and both window checksums, and pins both canonical preflight-file checksums.
+  The same independent review corrected the PR's categorical held-out statement to disclose the early 9,490-row ephemeral cache materialization, cancellation before model inference, VM termination, S3 intermediate cleanup, and exact `train.parquet` loader remediation.
+  The corrected bounded analysis completed in 7.44 seconds at 301,860 KiB peak RSS with no GPU compute.
+- Interpretation:
+  The qualitative splicing and missense signs survive common-denominator normalization, but the corrected estimates are smaller and supersede every raw-scale score-shift claim above.
+  Pearson documents linear score agreement only; direct rank statistics would be required to claim reranking.
+  The full-development AUPRC conclusion is unchanged because within-arm ranking is invariant to the correction.
+  No held-out rows were scored or analyzed during any retained inference or this remediation.
+- Next action: Run focused tests and all repository checks, publish a remediation commit, update the draft PR and issue record, and request independent re-review of the corrected head.

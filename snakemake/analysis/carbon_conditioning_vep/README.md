@@ -18,6 +18,7 @@ It reports every condition and paired comparison without a winner gate or testin
 - Score: bf16 masked mean causal token log likelihood on REF and ALT for FWD and reverse-complement strands.
 - Inference batch: one variant, or four allele-strand prompts, validated on both an NVIDIA A10G and a Lambda GH200.
 - Derived score: `llr = ((LL_alt_fwd - LL_ref_fwd) + (LL_alt_rc - LL_ref_rc)) / 2`, then `score = -llr`.
+- Cross-condition score magnitudes: rescale raw prompt-mean scores to the common 1,365 DNA-target-token denominator before subtraction; this removes the deterministic prefix-length scale difference.
 - Metric: per-consequence-subset and eligible-subset macro AUPRC for the untagged, correct, and far-wrong fungal conditions.
 - Uncertainty: 1,000 seeded paired match-group bootstrap draws.
 
@@ -87,6 +88,10 @@ It contains one score row per variant for all three conditions, the complete che
 
 ## Per-variant score-shift analysis
 
+Carbon's official scorer averages over all post-first prompt tokens.
+Because the retained prefixes contain 1, 9, and 6 tokens, the raw untagged, correct, and fungal scores have denominators of 1,365, 1,373, and 1,370 target tokens.
+The score-shift analysis multiplies each arm by its raw denominator divided by 1,365 before any cross-condition subtraction.
+
 The compact follow-up analysis compares each conditioned score with the same variant's untagged score.
 For each condition and consequence subset, it reports the mean and standard deviation of these deltas separately for pathogenic positives and matched negatives.
 It also reports a matched label-separation shift: the positive delta minus the mean delta of that positive's nine matched negatives.
@@ -96,7 +101,7 @@ The variability statistic is the standard deviation of positive deltas divided b
 Both statistics use 1,000 seeded match-group bootstrap draws for 95% intervals.
 The per-variant follow-up excludes all 40 mature-miRNA rows, leaving 16,100 variants and 1,610 complete match groups across eight consequence subsets.
 Three pairwise scatter figures compare untagged, correct mammalian, and far-wrong fungal scores for the complete analyzed population and every retained subset; each panel reports Pearson correlation overall and by label.
-All subset findings are exploratory and have no multiplicity correction or testing hierarchy.
+Lower Pearson values indicate lower linear score agreement, not necessarily rank changes; all subset findings are exploratory and have no multiplicity correction or testing hierarchy.
 
 Run the analysis from this project root after retrieving all three per-variant score parquets.
 
@@ -115,6 +120,7 @@ The script writes these compact, branch-retained artifacts under `.agents/artifa
 - `score_shift_by_subset.{svg,png}`: the rendered subset comparison.
 - `score_scatter_untagged_vs_correct.{svg,png}`: all retained subsets for untagged versus correct mammalian scores.
 - `score_scatter_untagged_vs_far_wrong.{svg,png}`: all retained subsets for untagged versus far-wrong fungal scores.
+- `score_scatter_correct_vs_far_wrong.{svg,png}`: all retained subsets for correct mammalian versus far-wrong fungal scores.
 
 ## Local validation
 
@@ -147,8 +153,12 @@ The retained far-wrong run kept the instance up for 33 minutes 53 seconds and co
 Its 16,140-row scoring command took 1,698.9 seconds.
 Check the current [Lambda instance price](https://lambda.ai/instances) immediately before launch.
 
+The historical full-development launcher is intentionally frozen to the exact untagged and correct score, metric, and paired-delta targets.
+It does not invoke the now-three-arm `all` target, so its 70-minute timeout cannot silently expand to the fungal arm.
+
 Stage the already-validated development-only artifacts on the coordinator before launch.
-This reads the canonical S3 artifacts locally, streams the configured scope with provenance checks, and does not forward AWS credentials to Lambda.
+This reads windows from the checksummed three-arm snapshot, pins the snapshot manifest digest, verifies the downloaded window checksums, validates the configured scope, and does not forward AWS credentials to Lambda.
+The two small preflight files still come from the canonical result prefix, but their exact SHA-256 digests are pinned and verified before staging.
 
 ```bash
 bash snakemake/analysis/carbon_conditioning_vep/sky/stage-gh200-full.sh

@@ -36,7 +36,12 @@ run: |
     mkdir -p results/preflight results/full_development/windows
     cp "$HOME/carbon-conditioning-full-inputs/preflight/"* results/preflight/
     cp "$HOME/carbon-conditioning-full-inputs/windows/"* results/full_development/windows/
-    uv run --locked snakemake all \
+    uv run --locked snakemake \
+      results/full_development/scores/Carbon-3B/untagged.parquet \
+      results/full_development/metrics/Carbon-3B/untagged.parquet \
+      results/full_development/scores/Carbon-3B/correct.parquet \
+      results/full_development/metrics/Carbon-3B/correct.parquet \
+      results/full_development/paired/Carbon-3B/correct_minus_untagged.parquet \
       --configfile config/full_development.yaml \
       --workflow-profile none \
       --default-storage-provider none \

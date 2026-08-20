@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from marin_dna_carbon_conditioning_vep.score_shifts import (
     assemble_score_shifts,
     bootstrap_matched_score_shifts,
+    normalize_prompt_mean_scores,
     summarize_score_shifts,
 )
 from matplotlib.figure import Figure
@@ -23,6 +24,8 @@ METRIC_ROOT = PROJECT_ROOT / "results/full_development/metrics/Carbon-3B"
 OUTPUT_ROOT = Path(__file__).resolve().parent
 
 APPROACHES = ("untagged", "correct", "far_wrong")
+DNA_TARGET_TOKENS = 8_190 // 6
+PREFIX_TOKEN_COUNTS = {"untagged": 1, "correct": 9, "far_wrong": 6}
 CONDITIONS = ("correct", "far_wrong")
 APPROACH_LABELS = {
     "untagged": "Untagged",
@@ -102,6 +105,14 @@ def _summarize_approaches(score_matrix: pd.DataFrame) -> pd.DataFrame:
                 "approach": approach,
                 "n_variants": len(score_matrix),
                 "n_groups": score_matrix["match_group"].nunique(),
+                "prefix_tokens": PREFIX_TOKEN_COUNTS[approach],
+                "raw_target_tokens": DNA_TARGET_TOKENS
+                + PREFIX_TOKEN_COUNTS[approach]
+                - 1,
+                "score_scale_to_dna_mean": (
+                    DNA_TARGET_TOKENS + PREFIX_TOKEN_COUNTS[approach] - 1
+                )
+                / DNA_TARGET_TOKENS,
                 "macro_auprc": float(macro["auprc"]),
                 "macro_ci_low": float(macro["ci_low"]),
                 "macro_ci_high": float(macro["ci_high"]),
@@ -154,6 +165,10 @@ def _write_summary(
         "",
         "All summaries exclude the 40 mature-miRNA variants and use 16,100 variants in 1,610 complete match groups.",
         "",
+        "Score-level summaries rescale each raw prompt-mean LLR to a common 1,365 DNA-target-token denominator.",
+        "The multipliers are 1365/1365 for untagged, 1373/1365 for correct mammalian, and 1370/1365 for far-wrong fungal.",
+        "This removes the deterministic prompt-length scale difference; within-arm AUPRC and pairwise Pearson correlations are unchanged.",
+        "",
         "## Three retained approaches",
         "",
         "Macro AUPRC averages the eight retained consequence subsets.",
@@ -174,7 +189,7 @@ def _write_summary(
             "",
             "## Conditioned-minus-untagged score shifts",
             "",
-            "`delta_score` is the conditioned score minus the same variant's untagged score.",
+            "`delta_score` is the DNA-token-normalized conditioned score minus the same variant's normalized untagged score.",
             "The label-separation shift is the mean positive delta minus the mean delta across the nine matched negatives.",
             "Positive label-separation shifts move pathogenic positives upward relative to their matched negatives.",
             "Spread ratios compare the standard deviation of positive deltas with negative deltas.",
@@ -257,7 +272,9 @@ def _render_figure(matched: pd.DataFrame, output_root: Path) -> None:
         [y_positions[subset] for subset in SUBSETS],
         [SUBSET_LABELS[subset] for subset in SUBSETS],
     )
-    axes[0].set_xlabel("Positive shift − matched-negative shift\n(×10⁻³ nats/token)")
+    axes[0].set_xlabel(
+        "Positive shift − matched-negative shift\n(×10⁻³ nats/DNA target token)"
+    )
     axes[0].set_title("Change in label separation")
     axes[1].set_xlabel("log₂(SD positive shift / SD negative shift)")
     axes[1].set_title("Relative variability of score shifts")
@@ -278,7 +295,7 @@ def _render_figure(matched: pd.DataFrame, output_root: Path) -> None:
     figure.text(
         0.5,
         0.015,
-        "Untagged is the zero baseline; points are observed estimates and bars are 95% match-group bootstrap intervals. Mature-miRNA is excluded.",
+        "Scores use a common DNA-token denominator; points are observed estimates and bars are 95% match-group bootstrap intervals. Mature-miRNA is excluded.",
         ha="center",
         fontsize=9,
     )
@@ -370,7 +387,7 @@ def _render_pairwise_scatter(
         figure.text(
             0.5,
             0.01,
-            "Each non-miRNA variant is one point; dashed lines mark equal scores. Pearson r is reported overall and by label.",
+            "Each non-miRNA variant is one point after DNA-token normalization; dashed lines mark equal scores. Pearson r is reported overall and by label.",
             ha="center",
             fontsize=9,
         )
@@ -383,11 +400,16 @@ def _render_pairwise_scatter(
 
 
 def main() -> None:
-    untagged = pd.read_parquet(SCORE_ROOT / "untagged.parquet")
-    tagged = {
-        condition: pd.read_parquet(SCORE_ROOT / f"{condition}.parquet")
-        for condition in CONDITIONS
+    scores = {
+        approach: normalize_prompt_mean_scores(
+            pd.read_parquet(SCORE_ROOT / f"{approach}.parquet"),
+            dna_target_tokens=DNA_TARGET_TOKENS,
+            prefix_tokens=PREFIX_TOKEN_COUNTS[approach],
+        )
+        for approach in APPROACHES
     }
+    untagged = scores["untagged"]
+    tagged = {condition: scores[condition] for condition in CONDITIONS}
     all_shifts = assemble_score_shifts(untagged, tagged)
     shifts = all_shifts.loc[~all_shifts["subset"].isin(EXCLUDED_SUBSETS)].reset_index(
         drop=True

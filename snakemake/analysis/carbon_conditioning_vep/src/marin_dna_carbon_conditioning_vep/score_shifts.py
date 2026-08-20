@@ -15,6 +15,31 @@ ALIGNMENT_COLUMNS = (
 )
 
 
+def normalize_prompt_mean_scores(
+    scores: pd.DataFrame,
+    *,
+    dna_target_tokens: int,
+    prefix_tokens: int,
+) -> pd.DataFrame:
+    """Rescale prompt-mean REF/ALT scores to a common DNA-token denominator.
+
+    Carbon averages causal log likelihood over every target token in the prompt.
+    Prefix likelihood terms cancel in the within-condition REF-minus-ALT sum, but
+    tagged prompts retain more target tokens in the denominator than ``<dna>``.
+    Multiplying by total target tokens and dividing by the fixed DNA target-token
+    count removes that deterministic condition-specific scale factor.
+    """
+    assert "score" in scores.columns, "scores must contain a score column"
+    assert dna_target_tokens > 0, "DNA target-token count must be positive"
+    assert prefix_tokens >= 1, "prefix must contain at least the <dna> token"
+    prompt_target_tokens = dna_target_tokens + prefix_tokens - 1
+    scale = prompt_target_tokens / dna_target_tokens
+    normalized = scores.copy()
+    normalized["score"] = normalized["score"].astype(float) * scale
+    assert np.isfinite(normalized["score"]).all(), "normalized scores must be finite"
+    return normalized
+
+
 def assemble_score_shifts(
     untagged: pd.DataFrame,
     tagged: Mapping[str, pd.DataFrame],
