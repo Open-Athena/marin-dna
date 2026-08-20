@@ -1028,3 +1028,26 @@ cohort, assemblies, and downstream training recipe fixed.
   matching trace gates, and durable training checkpoints. Review the first
   complete producer's QC, manual examples, and sampled alignment trace before
   private dataset publication.
+
+### 2026-08-20 09:34 UTC - CSP-025 private publisher pinned to fast producer
+
+- Isolated PR update: draft PR #477 now pins its standalone publication
+  config to exact producer commit
+  `d43f059c7b0cb8efd5e2396a2bd9e085623a1731`; the producer config SHA-256
+  remains `bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039`.
+  No projection rule, shared output, or established publication path changed.
+- Publication identity: the tested publisher commit is
+  `53c765a06ca4e8489e30556145eda8083890e2fd` and its resolved config
+  SHA-256 is
+  `84fde31ad856677460c0c4849faa642fabff5a5e59fc410a688a0a29e633b738`.
+  The resulting build namespace is disjoint from both producer namespaces.
+- Verification: all 120 tests in the independently locked vertebrate
+  projection project passed in 11.77 seconds. The bounded run peaked at
+  300,516 KiB RSS and exited zero. PR CI was triggered by the push; the
+  data-bearing build remains gated on complete producer QC and trace review.
+- Privacy boundary: the reviewed uploader creates absent issue-specific
+  repositories as private, refuses any pre-existing public repository,
+  validates the exact remote file tree and LFS hashes, and rechecks privacy
+  after upload.
+- Next action: wait for the exact `d43f059c` producer and its sampled trace,
+  review the QC/manual/trace artifacts, then launch the build-only target.
