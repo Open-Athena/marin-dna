@@ -25,6 +25,11 @@ def test_selected_batch_size_requires_passing_preflight(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert selected_batch_size(path) == 128
+    assert selected_batch_size(path, maximum=64) == 64
+    assert selected_batch_size(path, maximum=256) == 128
+    with pytest.raises(ValueError, match="maximum batch size"):
+        selected_batch_size(path, maximum=0)
+
     path.write_text(json.dumps({"status": "failed"}), encoding="utf-8")
     with pytest.raises(RuntimeError, match="did not pass"):
         selected_batch_size(path)

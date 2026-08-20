@@ -33,8 +33,8 @@ ARMS: tuple[Arm, ...] = ("transferred_mntp", "scratch_mntp", "clm_continuation")
 EVALUATION_RESERVE_USD = 10.0
 
 
-def selected_batch_size(preflight_path: Path) -> int:
-    """Read the batch selected by a passing actual-checkpoint preflight."""
+def selected_batch_size(preflight_path: Path, maximum: int | None = None) -> int:
+    """Read the passing preflight batch, optionally applying a post-OOM cap."""
 
     payload: dict[str, Any] = json.loads(preflight_path.read_text(encoding="utf-8"))
     if payload.get("status") != "passed":
@@ -42,6 +42,10 @@ def selected_batch_size(preflight_path: Path) -> int:
     batch_size = int(payload["memory_and_throughput"]["selected"]["batch_size"])
     if batch_size <= 0:
         raise ValueError(f"preflight selected invalid batch size {batch_size}")
+    if maximum is not None:
+        if maximum <= 0:
+            raise ValueError(f"maximum batch size must be positive, got {maximum}")
+        batch_size = min(batch_size, maximum)
     return batch_size
 
 
@@ -109,11 +113,12 @@ def run_pilot(
     seed: int,
     num_workers: int,
     offline_wandb: bool,
+    maximum_batch_size: int | None = None,
 ) -> None:
     """Prepare matched plans, train each arm, and publish resumable artifacts."""
 
     assert_budget_reserve()
-    batch_size = selected_batch_size(preflight_path)
+    batch_size = selected_batch_size(preflight_path, maximum_batch_size)
     initialize_model_repo(
         repo_id=hf_repo_id,
         card_template=model_card,
