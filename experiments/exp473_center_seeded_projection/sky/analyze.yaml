@@ -16,18 +16,19 @@ workdir: .
 envs:
     EVAL_RESULTS_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results
     OUTPUT_S3_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473
+    EXP473_EXPERIMENT_COMMIT: ""
 
 setup: |
     set -euxo pipefail
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
+    uv self update 0.11.31
     uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
     aws sts get-caller-identity >/dev/null
 
 run: |
     set -euxo pipefail
-    EXPERIMENT_COMMIT="$(git rev-parse HEAD)"
     OUTPUT_DIR="/tmp/issue_473_analysis"
     export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
     uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
@@ -36,6 +37,6 @@ run: |
         --output-dir "$OUTPUT_DIR" \
         --n-bootstrap 1000 \
         --seed 473
-    aws s3 sync "$OUTPUT_DIR" "${OUTPUT_S3_ROOT%/}/$EXPERIMENT_COMMIT/" \
+    aws s3 sync "$OUTPUT_DIR" "${OUTPUT_S3_ROOT%/}/$EXP473_EXPERIMENT_COMMIT/" \
         --only-show-errors
-    aws s3 ls "${OUTPUT_S3_ROOT%/}/$EXPERIMENT_COMMIT/manifest.json"
+    aws s3 ls "${OUTPUT_S3_ROOT%/}/$EXP473_EXPERIMENT_COMMIT/manifest.json"

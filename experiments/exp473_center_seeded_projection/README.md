@@ -108,6 +108,7 @@ sky launch \
   experiments/exp473_center_seeded_projection/sky/evaluate.yaml \
   -c exp473-evaluate \
   --env EXP473_CDS_FULL_WINDOW_CHECKPOINT_ROOT="$CDS_FULL_ROOT" \
+  --env EXP473_EXPERIMENT_COMMIT="$EXP473_EXPERIMENT_COMMIT" \
   --env EXP473_CDS_CENTER_1_CHECKPOINT_ROOT="$CDS_CENTER_ROOT" \
   --env EXP473_ENHANCER_FULL_WINDOW_CHECKPOINT_ROOT="$ENHANCER_FULL_ROOT" \
   --env EXP473_ENHANCER_CENTER_1_CHECKPOINT_ROOT="$ENHANCER_CENTER_ROOT"
@@ -127,7 +128,8 @@ After every official evaluation cell succeeds:
 ```bash
 sky launch \
   experiments/exp473_center_seeded_projection/sky/analyze.yaml \
-  -c exp473-analyze
+  -c exp473-analyze \
+  --env EXP473_EXPERIMENT_COMMIT="$EXP473_EXPERIMENT_COMMIT"
 ```
 
 The analysis writes point metrics, aligned bootstrap samples, policy deltas,

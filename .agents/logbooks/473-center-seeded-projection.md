@@ -536,3 +536,26 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: commit and push this scaffold, remotely dry-run the corrected
   overlay, continue monitoring projection job 11, then use the evaluator only
   after the four authorized training runs produce immutable checkpoint roots.
+
+### 2026-08-20 01:33 UTC - CSP-009 remote evaluator graph validation
+
+- Snapshot: the additive training/evaluation branch was pushed at
+  `863f9367d0ad75b776618394c8c4ffeb770bf4a4`.
+- Remote dry-run: Sky cluster `exp473-eval-dryrun`, job 3, succeeded on one
+  on-demand `c6i.xlarge` in `aws/us-east-2`. The temporary worker was
+  terminated immediately after success.
+- Exact graph: 201 jobs total: 40 `download_model`, 80 `compute_scores`, 80
+  `compute_metrics`, and one `all`. The matrix is four arms by ten checkpoints;
+  every checkpoint has Mendelian plus its region-meaningful secondary endpoint
+  (SGE for CDS, Complex for enhancer). No unrelated interpretation, probe,
+  LL-gap, or base-model job entered the graph.
+- Safety: Snakemake reported `split=train`; the command used `-n`, so no model,
+  score, metric, or other scientific output was written.
+- Operational fixes: Sky's image carried uv 0.12.5 while the evaluator locks uv
+  0.11.31, and synchronized worktrees retain a local-only `.git` indirection.
+  The permanent launchers now pin uv 0.11.31 and require the full pushed
+  `EXP473_EXPERIMENT_COMMIT` as an explicit environment input instead of
+  calling `git rev-parse` remotely. Both launcher YAML files parse.
+- Next action: push the launcher fix, continue monitoring projection job 11,
+  and do not start scoring until training has produced all exact checkpoint
+  roots.
