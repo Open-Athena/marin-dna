@@ -75,12 +75,15 @@ results/
     ├── windows/{mendelian,exclusions}.parquet
     ├── scores/Carbon-3B/{untagged,correct,far_wrong}.parquet
     ├── metrics/Carbon-3B/{untagged,correct,far_wrong}.parquet
-    ├── paired/Carbon-3B/{correct,far_wrong}_minus_untagged.parquet
+    ├── paired/Carbon-3B/{correct_minus_untagged,far_wrong_minus_untagged,far_wrong_minus_correct}.parquet
     ├── runtime/Carbon-3B/{untagged,correct,far_wrong}.json
     └── summary.md
 ```
 
 Each full score parquet contains variant keys, labels, subsets, match groups, four per-allele/per-strand log likelihoods, per-strand LLRs, the FWD/RC average LLR, and `score = -llr`.
+
+The retained three-arm bundle is stored at `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/`.
+It contains one score row per variant for all three conditions, the complete checksum manifest, derived metrics, paired tables, runtimes, report, exclusions, and staged development windows.
 
 ## Local validation
 
@@ -109,6 +112,8 @@ The retained two-condition full-development run kept the Lambda GH200 instance u
 
 The two-arm full-development GH200 task has a 70-minute command timeout and two-minute autodown, giving an approval ceiling of $3.00 after ordinary sync overhead.
 The additive far-wrong task targets only the fungal arm, reuses the retained untagged score locally, and has a 40-minute command timeout plus two-minute autodown for an approximately $1.60 ceiling at $2.29 per hour.
+The retained far-wrong run kept the instance up for 33 minutes 53 seconds and cost an estimated $1.29.
+Its 16,140-row scoring command took 1,698.9 seconds.
 Check the current [Lambda instance price](https://lambda.ai/instances) immediately before launch.
 
 Stage the already-validated development-only artifacts on the coordinator before launch.
@@ -137,7 +142,7 @@ sky down carbon-conditioning-vep-gh200-full -y
 ```
 
 The far-wrong task computes only the new score and absolute metric on Lambda.
-After retrieval, the local DAG adds the paired far-wrong-minus-untagged metric and renders the combined report from the retained baseline artifacts.
+After retrieval, direct metric commands add the paired far-wrong contrasts and render the combined report from the retained baseline artifacts.
 
 ```bash
 sky launch snakemake/analysis/carbon_conditioning_vep/sky/run-gh200-far-wrong.yaml \
@@ -149,19 +154,38 @@ rsync -a \
 sky down carbon-conditioning-vep-gh200-far-wrong -y
 ```
 
-Finalize the paired comparison and combined report locally after verifying that the new score was retrieved.
+Finalize the paired comparisons and combined report locally after verifying that the new score was retrieved.
+These direct commands cannot invoke a scoring rule.
 
 ```bash
 cd snakemake/analysis/carbon_conditioning_vep
-uv run --locked snakemake \
-  results/full_development/paired/Carbon-3B/far_wrong_minus_untagged.parquet \
-  results/full_development/summary.md \
-  --forcerun render_summary \
-  --configfile config/full_development.yaml \
-  --workflow-profile none \
-  --default-storage-provider none \
-  --cores all \
-  --resources gpu=0 \
-  --printshellcmds \
-  --rerun-incomplete
+uv run --locked carbon-conditioning-vep paired-deltas \
+  --config config/full_development.yaml \
+  --comparison far_wrong_minus_untagged \
+  --score-a results/full_development/scores/Carbon-3B/far_wrong.parquet \
+  --score-b results/full_development/scores/Carbon-3B/untagged.parquet \
+  --output results/full_development/paired/Carbon-3B/far_wrong_minus_untagged.parquet
+uv run --locked carbon-conditioning-vep paired-deltas \
+  --config config/full_development.yaml \
+  --comparison far_wrong_minus_correct \
+  --score-a results/full_development/scores/Carbon-3B/far_wrong.parquet \
+  --score-b results/full_development/scores/Carbon-3B/correct.parquet \
+  --output results/full_development/paired/Carbon-3B/far_wrong_minus_correct.parquet
+uv run --locked carbon-conditioning-vep report \
+  --config config/full_development.yaml \
+  --preflight results/preflight/prompt_grammar.json \
+  --absolute-metrics \
+    results/full_development/metrics/Carbon-3B/untagged.parquet \
+    results/full_development/metrics/Carbon-3B/correct.parquet \
+    results/full_development/metrics/Carbon-3B/far_wrong.parquet \
+  --paired-deltas \
+    results/full_development/paired/Carbon-3B/correct_minus_untagged.parquet \
+    results/full_development/paired/Carbon-3B/far_wrong_minus_untagged.parquet \
+    results/full_development/paired/Carbon-3B/far_wrong_minus_correct.parquet \
+  --exclusions results/full_development/windows/exclusions.parquet \
+  --runtimes \
+    results/full_development/runtime/Carbon-3B/untagged.json \
+    results/full_development/runtime/Carbon-3B/correct.json \
+    results/full_development/runtime/Carbon-3B/far_wrong.json \
+  --output results/full_development/summary.md
 ```

@@ -20,6 +20,10 @@ def test_far_wrong_task_adds_only_the_fungal_scoring_arm() -> None:
         "far_wrong",
         "untagged",
     ]
+    assert config["metrics"]["comparisons"]["far_wrong_minus_correct"] == [
+        "far_wrong",
+        "correct",
+    ]
     assert config["analysis"]["output_namespace"] == "full_development"
     assert "results/full_development/metrics/Carbon-3B/far_wrong.parquet" in task
     assert "snakemake all" not in task

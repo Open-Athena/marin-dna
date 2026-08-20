@@ -16,8 +16,9 @@ author: gonzalobenegas
 - The full two-arm follow-up retained all 16,140 development/train variants and 1,614 complete match groups.
 - Correct conditioning produced macro AUPRC 0.3552 versus 0.3582 untagged, with paired delta -0.0030 and 95% match-group bootstrap interval [-0.0183, 0.0088].
 - The full Lambda GH200 cluster is terminated; SkyPilot estimates $2.28 cost against the approved $3.00 cap.
-- `CARBON-SC-003` will add one far-wrong fungal arm on the same 16,140 development rows and compare it with the retained untagged scores without recomputing either prior arm.
-- Compact metric, runtime, checksum, and summary artifacts are retained locally; raw score parquets and the reproducible staged input remain local and were not uploaded to S3.
+- The far-wrong fungal arm produced macro AUPRC 0.3587 versus 0.3582 untagged, with paired delta +0.0005 and 95% interval [-0.0137, 0.0124].
+- The far-wrong Lambda GH200 cluster is terminated; SkyPilot estimates $1.29 cost against the approximately $1.60 intended ceiling.
+- The complete 104,313,903-byte three-arm bundle, including every per-variant score row, is retained at `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/` with a verified checksum manifest.
 
 ## Scope
 
@@ -38,8 +39,6 @@ author: gonzalobenegas
 
 - `CARBON-SC-001`: One released metadata grammar produces higher continuation accuracy with correct low-resource species tags than without tags.
   Next test: Run the fixed sequence-recovery preflight on fungi, protozoa, and invertebrate rows.
-- `CARBON-SC-003`: A maximally wrong fungal tag changes Carbon-3B macro AUPRC relative to the untagged prompt on the complete development split.
-  Next test: Score the frozen `<species>fungi<dna>` arm once and compute a paired far-wrong-minus-untagged match-group bootstrap interval.
 
 ### Blocked
 
@@ -51,6 +50,8 @@ author: gonzalobenegas
   The full-development follow-up also did not support a macro AUPRC benefit, with paired delta -0.0030 and 95% interval [-0.0183, 0.0088].
   Both paired intervals cross zero, so they also do not establish equivalence or overall harm.
   Do not expand conditioning comparisons without a new rationale or substantially more power.
+- `CARBON-SC-003` overall-change form: The far-wrong fungal tag did not produce a detectable macro AUPRC change relative to untagged, with paired delta +0.0005 and 95% interval [-0.0137, 0.0124].
+  Opposite exploratory changes in 3-prime UTR and promoter/TSS subsets require correction or replication before interpretation.
 
 ### Promoted
 
@@ -68,11 +69,13 @@ author: gonzalobenegas
 - 2026-08-20: Keep a one-variant inference batch on GH200 because the measured eight-variant batch reduced throughput and raised peak allocation to 44.76 GiB.
 - 2026-08-20: Retain only the untagged-versus-correct comparison for the full development split and stop after it because neither the promoter nor full-development paired result supports an improvement.
 - 2026-08-20: Reuse the retained untagged scores for one user-requested far-wrong fungal arm, target only the new score and absolute metric on Lambda, and finalize the paired comparison locally.
+- 2026-08-20: Stop after the requested fungal arm because neither the correct nor far-wrong tag changed macro AUPRC detectably; retain the opposing subset movements as exploratory observations.
 
 ## Negative Results Index
 
 - `CARBON-SC-002`: Correct mammalian conditioning did not improve AUPRC on 2,050 development-only promoter variants; paired delta -0.0037, 95% CI [-0.0269, 0.0204].
 - `CARBON-SC-002`: Correct mammalian conditioning did not improve macro AUPRC across 16,140 development-only variants; paired delta -0.0030, 95% CI [-0.0183, 0.0088].
+- `CARBON-SC-003`: Far-wrong fungal conditioning did not change macro AUPRC detectably across 16,140 development-only variants; paired delta +0.0005, 95% CI [-0.0137, 0.0124].
 
 ## Entry Log
 
@@ -317,3 +320,43 @@ author: gonzalobenegas
   No paid resource was created during preparation.
 - Interpretation: The remote execution adds exactly one score arm, while the retained untagged scores provide the paired baseline locally.
 - Next action: Launch `carbon-conditioning-vep-gh200-far-wrong`, verify all remote tests and initial throughput, retrieve the score, metric, and runtime immediately, terminate the instance, and compute the paired result locally.
+
+### 2026-08-20 22:39 UTC - Far-wrong full-development result retained
+
+- Hypothesis: A maximally wrong fungal species tag changes Carbon-3B macro AUPRC relative to the untagged prompt across the complete development-only Mendelian variant set.
+- Commit Hash: `016528e3` (run implementation); `9343ae90` (launch record).
+- Command:
+  Launch `sky/run-gh200-far-wrong.yaml` as `carbon-conditioning-vep-gh200-far-wrong`, fall back from unavailable Lambda `us-east-1` capacity to `us-east-3`, run all locked tests and the exact two-job paid DAG, retrieve `results/full_development` with SkyPilot's generated SSH configuration, explicitly terminate the cluster, compute the far-wrong paired contrasts with direct metric commands, render the combined report, and independently validate the artifact contracts and metric tables.
+- Config: Carbon-3B `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; corpus-card fungal prompt `<species>fungi<dna>` with frozen prefix IDs `[27, 42490, 29, 78606, 72, 151669]`; exact pinned Mendelian development `train.parquet`; all 16,140 development rows; 1,614 positives; 1,614 complete ten-row match groups; nine observed consequence subsets; 8,190 scored DNA bases per strand; bf16; batch size one; FWD/RC average; 1,000 seeded match-group bootstrap draws; one Lambda GH200 at $2.29 per hour.
+- Result:
+  All 30 locked tests passed in 9.69 seconds before scoring, and both paid Snakemake jobs succeeded.
+  Far-wrong macro AUPRC was 0.358748 with absolute 95% bootstrap interval [0.337214, 0.388132].
+  The paired far-wrong-minus-untagged macro delta was +0.000548 with 95% interval [-0.013662, 0.012424] across 1,610 eligible match groups.
+  The secondary far-wrong-minus-correct macro delta was +0.003566 with 95% interval [-0.008720, 0.015177].
+  The exploratory far-wrong-minus-untagged intervals excluded zero in opposite directions for 3-prime UTR variants, delta +0.064401 with interval [0.021934, 0.109547], and promoter/TSS variants, delta -0.025084 with interval [-0.052319, -0.002774].
+  Neither corresponding far-wrong-minus-correct subset interval excluded zero, and no multiplicity correction or testing hierarchy was assigned.
+  Far-wrong and untagged scores had overall Spearman correlation 0.7790; the 3-prime UTR and promoter/TSS correlations were 0.5909 and 0.4447, respectively.
+  Both conditions contained the same 16,140 unique variants and identical labels, subsets, and match groups; all likelihood atoms were finite and satisfied the score identities; no window rows were excluded.
+  Far-wrong scoring took 1,698.93 seconds with 11.28 GiB peak allocated GPU memory and 4.36 GiB peak RSS on an NVIDIA GH200 480GB.
+  Independent local recomputation reproduced the absolute and both paired metric tables within 1e-13; the full provenance and score-contract validation peaked at 265,552 KiB RSS and exited zero.
+  The corrected SSH transfer succeeded, explicit teardown left no cluster named `carbon-conditioning-vep-gh200-far-wrong`, and SkyPilot's local cost report estimates 33 minutes 53 seconds and $1.29.
+  A post-retrieval dry-run caught refreshed window mtimes that would have rerun both retained GPU arms; no local scorer ran, and the direct metric/report commands avoid that timestamp hazard.
+  No held-out labels or predictions were accessed, and no result was uploaded to S3 or published to GitHub.
+- Interpretation:
+  The far-wrong fungal tag substantially reorders scores but does not produce a detectable overall AUPRC change relative to either untagged or correct conditioning.
+  The opposing 3-prime UTR and promoter/TSS movements are exploratory subset observations and do not change the primary macro conclusion.
+- Next action: Preserve the compact metrics, runtimes, report, exclusions, and checksum manifest in an annotated local snapshot, and request human review before any GitHub publication or durable raw-score upload.
+
+### 2026-08-20 22:43 UTC - Per-variant scores retained in S3
+
+- Hypothesis: Uploading the complete checksummed result directory to an empty experiment-specific S3 prefix preserves every per-variant score and its reproducibility inputs without overwriting another artifact.
+- Commit Hash: `9343ae90` (latest committed launch record; result snapshot pending).
+- Command:
+  Confirm that the destination prefix is empty, run `aws s3 sync` without `--delete` from `results/full_development`, list the remote prefix recursively with totals, read back `SHA256SUMS`, and run a no-write sync dry-run.
+- Config: Destination `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/`; three per-variant score parquets; all derived metrics, paired tables, runtimes, report, exclusions, staged development windows, and checksum manifest.
+- Result:
+  S3 contains 16 objects totaling 104,313,903 bytes.
+  The untagged, correct, and far-wrong per-variant score parquets are 2,322,946, 2,323,214, and 2,322,729 bytes, respectively.
+  The remote checksum manifest matches the locally verified manifest, and the no-write sync dry-run reported no missing or size-different file.
+- Interpretation: The dense per-variant evidence now has a durable artifact location and is no longer dependent on the local worktree or terminated Lambda instance.
+- Next action: Commit and annotate the compact local snapshot, then request human review before publishing the branch, tag, and S3 artifact link to issue #486.

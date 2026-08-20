@@ -90,3 +90,4 @@ metrics:
   comparisons:
     correct_minus_untagged: [correct, untagged]
     far_wrong_minus_untagged: [far_wrong, untagged]
+    far_wrong_minus_correct: [far_wrong, correct]
