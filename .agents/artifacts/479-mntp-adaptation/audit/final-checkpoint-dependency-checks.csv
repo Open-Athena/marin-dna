@@ -1,0 +1,6 @@
+point_id,check,observed,threshold,passed
+transferred-step1000,mntp_past_context_nonzero,1.5595285892486572,0.0,True
+transferred-step1000,mntp_future_context_nonzero,1.6097370386123657,0.0,True
+scratch-step1000,mntp_past_context_nonzero,1.419626235961914,0.0,True
+scratch-step1000,mntp_future_context_nonzero,1.4136927127838135,0.0,True
+clm-original-step1000,causal_future_context_zero,0.0,1e-06,True
