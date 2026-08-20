@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from exp473_center_seeded_projection.experiment import (
     ARMS,
     BATCH_SIZE,
@@ -14,9 +15,11 @@ from exp473_center_seeded_projection.experiment import (
     TOKENIZER_SHA256,
     TOKENIZER_SOURCE_REVISION,
     TRAIN_STEPS,
+    DnaTokenizedCache,
     build_training,
     validate_vendored_tokenizer,
 )
+from marin.execution.artifact import ArtifactRecord, write_record
 from marin.execution.lazy import StepContext
 
 
@@ -116,3 +119,53 @@ def test_vendored_tokenizer_matches_issue_417() -> None:
         "tokenizer_config.json",
     }
     validate_vendored_tokenizer()
+
+
+def test_realized_cache_reloads_exact_case_aware_format(tmp_path) -> None:
+    write_record(
+        ArtifactRecord(
+            output_path=str(tmp_path),
+            config={
+                "tokenizer": TOKENIZER_PATH,
+                "format": {
+                    "text_key": "sequence",
+                    "uppercase_weight": 1.0,
+                    "lowercase_weight": 0.01,
+                },
+                "tags": ["exp473", "case-aware"],
+            },
+        )
+    )
+    cache = DnaTokenizedCache.raw_load(str(tmp_path))
+    component = cache.as_component()
+    assert cache.tokenizer == TOKENIZER_PATH
+    assert cache.tags == ["exp473", "case-aware"]
+    assert component.format.text_key == "sequence"
+    assert component.format.uppercase_weight == 1.0
+    assert component.format.lowercase_weight == 0.01
+
+    for wrong_format in (
+        {
+            "text_key": "text",
+            "uppercase_weight": 1.0,
+            "lowercase_weight": 0.01,
+        },
+        {
+            "text_key": "sequence",
+            "uppercase_weight": 1.0,
+            "lowercase_weight": 1.0,
+        },
+    ):
+        bad_path = (
+            tmp_path / wrong_format["text_key"] / str(wrong_format["lowercase_weight"])
+        )
+        bad_path.mkdir(parents=True)
+        write_record(
+            ArtifactRecord(
+                output_path=str(bad_path),
+                config={"tokenizer": TOKENIZER_PATH, "format": wrong_format},
+            )
+        )
+        bad_cache = DnaTokenizedCache.raw_load(str(bad_path))
+        with pytest.raises(ValueError, match="tokenized cache format"):
+            _ = bad_cache.format

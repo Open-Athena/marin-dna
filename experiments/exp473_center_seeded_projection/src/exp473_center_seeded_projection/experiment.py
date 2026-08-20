@@ -147,11 +147,16 @@ class DnaTokenizedCache(TokenizedCache):
         raw = self._config.get("format")
         if not isinstance(raw, dict):
             raise TypeError(f"{self.path}: tokenized cache record has no DNA format")
-        return DNALmDatasetFormat(
+        result = DNALmDatasetFormat(
             text_key=str(raw.get("text_key", "sequence")),
             uppercase_weight=float(raw.get("uppercase_weight", 1.0)),
             lowercase_weight=float(raw.get("lowercase_weight", 1.0)),
         )
+        if result != TRAIN_FORMAT:
+            raise ValueError(
+                f"{self.path}: tokenized cache format {result} != {TRAIN_FORMAT}"
+            )
+        return result
 
 
 def required_env(name: str) -> str:
