@@ -18,15 +18,16 @@ author: gonzalobenegas
 - The full Lambda GH200 cluster is terminated; SkyPilot estimates $2.28 cost against the approved $3.00 cap.
 - The far-wrong fungal arm produced macro AUPRC 0.3587 versus 0.3582 untagged, with paired delta +0.0005 and 95% interval [-0.0137, 0.0124].
 - The far-wrong Lambda GH200 cluster is terminated; SkyPilot estimates $1.29 cost against the approximately $1.60 intended ceiling.
-- Correct conditioning lowered positive scores by 0.000570 nats/token more than their matched negatives, with 95% interval [-0.000814, -0.000327]; the far-wrong differential was -0.000344 [-0.000492, -0.000182].
-- Positive score shifts were 2.19 times as variable as negative shifts under correct conditioning and 1.51 times as variable under far-wrong conditioning.
-- Splicing and missense variants showed the clearest consistent label-dependent shifts, while the fungal promoter/TSS AUPRC decline was not accompanied by a broad mean label-separation shift.
+- The non-miRNA comparison contains 16,100 variants and 1,610 complete match groups under untagged, correct mammalian, and far-wrong fungal prompts.
+- Correct conditioning lowered positive scores by 0.000575 nats/token more than matched negatives, with 95% interval [-0.000819, -0.000335]; the far-wrong differential was -0.000348 [-0.000500, -0.000190].
+- Overall Pearson correlations were 0.9701–0.9805, but promoter/TSS correlations were 0.6586–0.6692 and promoter/TSS negative-only correlations were 0.5160–0.5348.
+- Splicing and missense variants showed the clearest consistent label-dependent shifts; high pooled correlation masks subset- and label-specific score movement.
 - The complete 104,313,903-byte three-arm bundle, including every per-variant score row, is retained at `s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/snapshots/carbon-conditioning-vep-full-three-arm-20260820/` with a verified checksum manifest.
 
 ## Scope
 
-- Goal: Compare frozen Carbon-3B Mendelian VEP rankings under untagged, correct mammalian, near-wrong vertebrate, and far-wrong fungal prompts.
-- Primary metrics: Per-subset and macro AUPRC, paired AUPRC differences, per-variant conditioned-minus-untagged score shifts by label, and matched label-separation and variability contrasts with 95% match-group bootstrap intervals.
+- Goal: Compare frozen Carbon-3B Mendelian VEP scores under the three computed full-development approaches: untagged, correct mammalian, and far-wrong fungal.
+- Primary metrics: Per-subset and macro AUPRC, paired AUPRC differences, per-variant conditioned-minus-untagged score shifts, matched label-separation and variability contrasts, and Pearson score correlations by subset and label.
 - Constraints: Mendelian `train` split only; Carbon-3B revision `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; 8,192 bp windows; token-level full-sequence likelihood; FWD/RC average; no held-out labels.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/486
 
@@ -77,6 +78,8 @@ author: gonzalobenegas
 - 2026-08-20: Reuse the retained untagged scores for one user-requested far-wrong fungal arm, target only the new score and absolute metric on Lambda, and finalize the paired comparison locally.
 - 2026-08-20: Stop after the requested fungal arm because neither the correct nor far-wrong tag changed macro AUPRC detectably; retain the opposing subset movements as exploratory observations.
 - 2026-08-20: Analyze matched per-variant score shifts from the retained three-arm bundle before considering any additional compute.
+- 2026-08-20: Exclude mature-miRNA from the per-variant comparison, leaving 16,100 variants and 1,610 complete match groups.
+- 2026-08-20: Compare only the three computed full-development approaches; do not infer `near_wrong` from the label-blind smoke or launch another score arm.
 
 ## Negative Results Index
 
@@ -393,3 +396,30 @@ author: gonzalobenegas
   These subset contrasts are exploratory, use the same development data that motivated the question, and have no multiplicity correction or testing hierarchy.
   No held-out labels or predictions were accessed.
 - Next action: Preserve the compact tables, source, figure, and documentation in an annotated branch snapshot; require a pre-registered replication before treating any subset pattern as accepted biology.
+
+### 2026-08-20 23:27 UTC - Three computed approaches compared without mature-miRNA
+
+- Hypothesis: Pooled agreement among untagged, correct mammalian, and far-wrong fungal scores masks consequence- and label-specific score reordering.
+- Commit Hash: `17c93b7b` (rebased three-arm input snapshot); final snapshot tag `carbon-conditioning-vep-non-mirna-three-way-20260820`.
+- Command:
+  Exclude `mature_miRNA_variant`, rebuild the score-shift summaries, align the three retained score files by variant ID, calculate Pearson correlations overall and by label for every retained consequence subset, render three pairwise 3-by-3 scatter figures, and rerun the focused score-shift, full-development configuration, and report tests.
+- Config: Untagged, correct mammalian, and far-wrong fungal full-development scores; 16,100 development-only variants; 1,610 complete match groups; eight consequence subsets; three approach pairs; one point per variant; mature-miRNA excluded completely; no `near_wrong` full-development score inferred or computed.
+- Result:
+  Macro AUPRC remained 0.358200 for untagged, 0.355182 for correct mammalian, and 0.358748 for far-wrong fungal because the existing macro already excluded the four-group mature-miRNA subset.
+  Correct conditioning changed positive scores by -0.000612 nats/token on average versus -0.000037 for negatives, giving a matched label-separation shift of -0.000575 with 95% interval [-0.000819, -0.000335].
+  Far-wrong conditioning changed positive scores by -0.000350 on average versus -0.000002 for negatives, giving a matched shift of -0.000348 with interval [-0.000500, -0.000190].
+  Positive deltas were 2.191 times as variable as negative deltas for correct conditioning and 1.516 times as variable for far-wrong conditioning.
+  Overall Pearson correlation was 0.9701 for untagged versus correct, 0.9805 for untagged versus far-wrong, and 0.9741 for correct versus far-wrong.
+  Promoter/TSS Pearson correlation was 0.6692, 0.6586, and 0.6610 for those pairs; positive-only correlations were 0.8872, 0.9057, and 0.8893, while negative-only correlations were 0.5348, 0.5160, and 0.5298.
+  Distal-regulatory Pearson correlation was 0.6720, 0.7155, and 0.6594.
+  Splicing and missense correlations remained above 0.97 overall for all three pairs.
+  Four focused tests passed in 0.30 seconds at 122,052 KiB peak RSS.
+  The expanded analysis and twelve rendered figure files completed in 7.47 seconds at 295,292 KiB peak RSS without GPU compute.
+- Interpretation:
+  The three approaches agree strongly when all non-miRNA variants are pooled, while agreement is substantially lower within promoter/TSS and distal-regulatory variants.
+  Promoter/TSS negatives account for much of the lower within-subset Pearson correlation; positives remain more linearly correlated across prompts.
+  High pooled Pearson correlation therefore does not rule out biologically structured score movement or local rank changes.
+  The matched shift analysis still identifies splicing and missense as the clearest consistent label-dependent movements.
+  These development-set subset analyses are exploratory and have no multiplicity correction or testing hierarchy.
+  No held-out labels or predictions were accessed, and no new paid compute was launched.
+- Next action: Rebase the complete snapshot onto `origin/main`, publish a draft PR with the interpretation and immutable artifacts, and launch an independent review.

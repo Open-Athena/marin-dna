@@ -14,21 +14,35 @@ from marin_dna_carbon_conditioning_vep.score_shifts import (
     bootstrap_matched_score_shifts,
     summarize_score_shifts,
 )
+from matplotlib.figure import Figure
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PROJECT_ROOT = REPO_ROOT / "snakemake/analysis/carbon_conditioning_vep"
 SCORE_ROOT = PROJECT_ROOT / "results/full_development/scores/Carbon-3B"
+METRIC_ROOT = PROJECT_ROOT / "results/full_development/metrics/Carbon-3B"
 OUTPUT_ROOT = Path(__file__).resolve().parent
 
+APPROACHES = ("untagged", "correct", "far_wrong")
 CONDITIONS = ("correct", "far_wrong")
-CONDITION_LABELS = {
+APPROACH_LABELS = {
+    "untagged": "Untagged",
     "correct": "Correct mammalian",
     "far_wrong": "Far-wrong fungal",
 }
+CONDITION_LABELS = {
+    "correct": "Correct mammalian − untagged",
+    "far_wrong": "Far-wrong fungal − untagged",
+}
 CONDITION_COLORS = {"correct": "#0072B2", "far_wrong": "#D55E00"}
 CONDITION_MARKERS = {"correct": "o", "far_wrong": "s"}
+PAIRWISE_COMPARISONS = (
+    ("untagged", "correct"),
+    ("untagged", "far_wrong"),
+    ("correct", "far_wrong"),
+)
+EXCLUDED_SUBSETS = frozenset({"mature_miRNA_variant"})
 SUBSETS = (
-    "_all_development_",
+    "_all_analyzed_",
     "tss_proximal",
     "distal",
     "3_prime_UTR_variant",
@@ -37,10 +51,9 @@ SUBSETS = (
     "splicing",
     "missense_variant",
     "synonymous_variant",
-    "mature_miRNA_variant",
 )
 SUBSET_LABELS = {
-    "_all_development_": "All development",
+    "_all_analyzed_": "All analyzed",
     "tss_proximal": "Promoter / TSS",
     "distal": "Distal regulatory",
     "3_prime_UTR_variant": "3′ UTR",
@@ -49,26 +62,128 @@ SUBSET_LABELS = {
     "splicing": "Splicing",
     "missense_variant": "Missense",
     "synonymous_variant": "Synonymous",
-    "mature_miRNA_variant": "Mature miRNA",
 }
 
 
-def _write_summary(matched: pd.DataFrame, output: Path) -> None:
-    overall = matched.loc[matched["subset"].eq("_all_development_")]
+def _assemble_score_matrix(
+    untagged: pd.DataFrame, shifts: pd.DataFrame
+) -> pd.DataFrame:
+    """Build an aligned three-approach score matrix without mature-miRNA rows."""
+    columns = ["variant_id", "subset", "match_group", "label", "score"]
+    matrix = untagged.loc[:, columns].rename(columns={"score": "untagged"})
+    matrix = matrix.loc[~matrix["subset"].isin(EXCLUDED_SUBSETS)].reset_index(drop=True)
+    assert len(matrix) == 16_100, "expected 16,100 non-miRNA variants"
+    assert matrix["match_group"].nunique() == 1_610, (
+        "expected 1,610 non-miRNA match groups"
+    )
+    for condition in CONDITIONS:
+        condition_shifts = shifts.loc[shifts["condition"].eq(condition)].reset_index(
+            drop=True
+        )
+        pd.testing.assert_series_equal(
+            condition_shifts["variant_id"],
+            matrix["variant_id"],
+            check_names=False,
+        )
+        matrix[condition] = matrix["untagged"] + condition_shifts["delta_score"]
+    return matrix
+
+
+def _summarize_approaches(score_matrix: pd.DataFrame) -> pd.DataFrame:
+    """Summarize all three retained approaches on the non-miRNA population."""
+    rows: list[dict[str, object]] = []
+    for approach in APPROACHES:
+        metrics = pd.read_parquet(METRIC_ROOT / f"{approach}.parquet")
+        macro = metrics.loc[metrics["subset"].eq("_macro_avg_")].iloc[0]
+        positive = score_matrix.loc[score_matrix["label"], approach]
+        negative = score_matrix.loc[~score_matrix["label"], approach]
+        rows.append(
+            {
+                "approach": approach,
+                "n_variants": len(score_matrix),
+                "n_groups": score_matrix["match_group"].nunique(),
+                "macro_auprc": float(macro["auprc"]),
+                "macro_ci_low": float(macro["ci_low"]),
+                "macro_ci_high": float(macro["ci_high"]),
+                "mean_score_positive": float(positive.mean()),
+                "mean_score_negative": float(negative.mean()),
+                "mean_score_separation": float(positive.mean() - negative.mean()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _pairwise_correlations(score_matrix: pd.DataFrame) -> pd.DataFrame:
+    """Compute Pearson correlations for every retained subset and label."""
+    rows: list[dict[str, object]] = []
+    label_groups = (("all", None), ("positive", True), ("negative", False))
+    for x_approach, y_approach in PAIRWISE_COMPARISONS:
+        for subset in SUBSETS:
+            subset_rows = (
+                score_matrix
+                if subset == "_all_analyzed_"
+                else score_matrix.loc[score_matrix["subset"].eq(subset)]
+            )
+            for label_group, label in label_groups:
+                frame = (
+                    subset_rows
+                    if label is None
+                    else subset_rows.loc[subset_rows["label"].eq(label)]
+                )
+                pearson_r = float(frame[x_approach].corr(frame[y_approach]))
+                assert pd.notna(pearson_r), "Pearson correlation must be finite"
+                rows.append(
+                    {
+                        "x_approach": x_approach,
+                        "y_approach": y_approach,
+                        "subset": subset,
+                        "label_group": label_group,
+                        "n_variants": len(frame),
+                        "pearson_r": pearson_r,
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def _write_summary(
+    approaches: pd.DataFrame, matched: pd.DataFrame, output: Path
+) -> None:
+    overall = matched.loc[matched["subset"].eq("_all_analyzed_")]
     lines = [
-        "# Carbon prompt-conditioning score shifts",
+        "# Carbon prompt-conditioning comparison",
         "",
-        "`delta_score` is the conditioned score minus the same variant's untagged score.",
-        "The label-separation shift is the mean positive delta minus the mean delta across the nine matched negatives.",
-        "Positive label-separation shifts move pathogenic positives upward relative to their matched negatives.",
-        "Spread ratios compare the standard deviation of positive deltas with negative deltas.",
-        "Intervals are 95% match-group bootstrap intervals from 1,000 seeded draws.",
+        "All summaries exclude the 40 mature-miRNA variants and use 16,100 variants in 1,610 complete match groups.",
         "",
-        "## All development variants",
+        "## Three retained approaches",
         "",
-        "| condition | positive mean delta | negative mean delta | label-separation shift | 95% CI | positive SD / negative SD | 95% CI (log2 ratio) |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "Macro AUPRC averages the eight retained consequence subsets.",
+        "",
+        "| approach | macro AUPRC | 95% CI | positive mean score | negative mean score | positive − negative |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
+    for approach in APPROACHES:
+        row = approaches.loc[approaches["approach"].eq(approach)].iloc[0]
+        lines.append(
+            f"| {APPROACH_LABELS[approach]} | {row.macro_auprc:.6f} | "
+            f"[{row.macro_ci_low:.6f}, {row.macro_ci_high:.6f}] | "
+            f"{row.mean_score_positive:.6f} | {row.mean_score_negative:.6f} | "
+            f"{row.mean_score_separation:.6f} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Conditioned-minus-untagged score shifts",
+            "",
+            "`delta_score` is the conditioned score minus the same variant's untagged score.",
+            "The label-separation shift is the mean positive delta minus the mean delta across the nine matched negatives.",
+            "Positive label-separation shifts move pathogenic positives upward relative to their matched negatives.",
+            "Spread ratios compare the standard deviation of positive deltas with negative deltas.",
+            "Intervals are 95% match-group bootstrap intervals from 1,000 seeded draws.",
+            "",
+            "| comparison | positive mean delta | negative mean delta | label-separation shift | 95% CI | positive SD / negative SD | 95% CI (log2 ratio) |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
     for condition in CONDITIONS:
         row = overall.loc[overall["condition"].eq(condition)].iloc[0]
         lines.append(
@@ -81,14 +196,21 @@ def _write_summary(matched: pd.DataFrame, output: Path) -> None:
     output.write_text("\n".join(lines) + "\n")
 
 
+def _save_figure(figure: Figure, output_root: Path, stem: str) -> None:
+    svg_output = output_root / f"{stem}.svg"
+    figure.savefig(svg_output)
+    svg_lines = (line.rstrip() for line in svg_output.read_text().splitlines())
+    svg_output.write_text("\n".join(svg_lines) + "\n")
+    figure.savefig(output_root / f"{stem}.png", dpi=160)
+    plt.close(figure)
+
+
 def _render_figure(matched: pd.DataFrame, output_root: Path) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(13.2, 7.4), sharey=True)
     y_positions = {subset: index for index, subset in enumerate(reversed(SUBSETS))}
     offsets = {"correct": -0.12, "far_wrong": 0.12}
 
     for axis in axes:
-        low_sample_y = y_positions["mature_miRNA_variant"]
-        axis.axhspan(low_sample_y - 0.42, low_sample_y + 0.42, color="#eeeeee")
         axis.axvline(0.0, color="#666666", linewidth=1.0, linestyle="--")
         axis.grid(axis="x", color="#dddddd", linewidth=0.7)
         axis.set_axisbelow(True)
@@ -140,7 +262,7 @@ def _render_figure(matched: pd.DataFrame, output_root: Path) -> None:
     axes[1].set_xlabel("log₂(SD positive shift / SD negative shift)")
     axes[1].set_title("Relative variability of score shifts")
     figure.suptitle(
-        "Carbon prompt tags alter variant scores unevenly across consequence subsets",
+        "Conditioned-minus-untagged score shifts vary across consequence subsets",
         fontsize=14,
         y=0.985,
     )
@@ -156,17 +278,108 @@ def _render_figure(matched: pd.DataFrame, output_root: Path) -> None:
     figure.text(
         0.5,
         0.015,
-        "Conditioned minus untagged score; points are observed estimates and bars are 95% match-group bootstrap intervals. Gray row has 4 groups.",
+        "Untagged is the zero baseline; points are observed estimates and bars are 95% match-group bootstrap intervals. Mature-miRNA is excluded.",
         ha="center",
         fontsize=9,
     )
     figure.tight_layout(rect=(0, 0.045, 1, 0.88))
-    svg_output = output_root / "score_shift_by_subset.svg"
-    figure.savefig(svg_output)
-    svg_lines = (line.rstrip() for line in svg_output.read_text().splitlines())
-    svg_output.write_text("\n".join(svg_lines) + "\n")
-    figure.savefig(output_root / "score_shift_by_subset.png", dpi=180)
-    plt.close(figure)
+    _save_figure(figure, output_root, "score_shift_by_subset")
+
+
+def _render_pairwise_scatter(
+    score_matrix: pd.DataFrame,
+    correlations: pd.DataFrame,
+    output_root: Path,
+) -> None:
+    """Render one point per variant for every approach pair and subset."""
+    for x_approach, y_approach in PAIRWISE_COMPARISONS:
+        figure, axes = plt.subplots(3, 3, figsize=(13.2, 12.6))
+        for axis, subset in zip(axes.flat, SUBSETS, strict=True):
+            frame = (
+                score_matrix
+                if subset == "_all_analyzed_"
+                else score_matrix.loc[score_matrix["subset"].eq(subset)]
+            )
+            negative = frame.loc[~frame["label"]]
+            positive = frame.loc[frame["label"]]
+            axis.scatter(
+                negative[x_approach],
+                negative[y_approach],
+                s=4,
+                alpha=0.14,
+                color="#777777",
+                edgecolors="none",
+                rasterized=True,
+                label="Negative",
+            )
+            axis.scatter(
+                positive[x_approach],
+                positive[y_approach],
+                s=7,
+                alpha=0.38,
+                color="#CC3311",
+                edgecolors="none",
+                rasterized=True,
+                label="Positive",
+            )
+            lower = float(frame[[x_approach, y_approach]].min().min())
+            upper = float(frame[[x_approach, y_approach]].max().max())
+            padding = (upper - lower) * 0.04 or 1.0e-6
+            bounds = (lower - padding, upper + padding)
+            axis.plot(bounds, bounds, color="#555555", linestyle="--", linewidth=0.8)
+            axis.set_xlim(bounds)
+            axis.set_ylim(bounds)
+            axis.set_aspect("equal", adjustable="box")
+            axis.grid(color="#e6e6e6", linewidth=0.6)
+            axis.set_axisbelow(True)
+            stats = correlations.loc[
+                correlations["x_approach"].eq(x_approach)
+                & correlations["y_approach"].eq(y_approach)
+                & correlations["subset"].eq(subset)
+            ].set_index("label_group")
+            axis.text(
+                0.04,
+                0.96,
+                f"Pearson r\nall {stats.loc['all', 'pearson_r']:.3f}\n"
+                f"positive {stats.loc['positive', 'pearson_r']:.3f}\n"
+                f"negative {stats.loc['negative', 'pearson_r']:.3f}",
+                transform=axis.transAxes,
+                va="top",
+                fontsize=8.5,
+                bbox={"facecolor": "white", "alpha": 0.82, "edgecolor": "none"},
+            )
+            axis.set_title(f"{SUBSET_LABELS[subset]} (n={len(frame):,})", fontsize=10.5)
+            axis.set_xlabel(APPROACH_LABELS[x_approach], fontsize=9)
+            axis.set_ylabel(APPROACH_LABELS[y_approach], fontsize=9)
+            axis.tick_params(labelsize=8)
+
+        handles, labels = axes.flat[0].get_legend_handles_labels()
+        figure.legend(
+            handles,
+            labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.955),
+            ncol=2,
+            frameon=False,
+        )
+        figure.suptitle(
+            f"{APPROACH_LABELS[y_approach]} versus {APPROACH_LABELS[x_approach]} scores",
+            fontsize=14,
+            y=0.992,
+        )
+        figure.text(
+            0.5,
+            0.01,
+            "Each non-miRNA variant is one point; dashed lines mark equal scores. Pearson r is reported overall and by label.",
+            ha="center",
+            fontsize=9,
+        )
+        figure.tight_layout(rect=(0, 0.035, 1, 0.93))
+        _save_figure(
+            figure,
+            output_root,
+            f"score_scatter_{x_approach}_vs_{y_approach}",
+        )
 
 
 def main() -> None:
@@ -175,7 +388,13 @@ def main() -> None:
         condition: pd.read_parquet(SCORE_ROOT / f"{condition}.parquet")
         for condition in CONDITIONS
     }
-    shifts = assemble_score_shifts(untagged, tagged)
+    all_shifts = assemble_score_shifts(untagged, tagged)
+    shifts = all_shifts.loc[~all_shifts["subset"].isin(EXCLUDED_SUBSETS)].reset_index(
+        drop=True
+    )
+    score_matrix = _assemble_score_matrix(untagged, shifts)
+    approaches = _summarize_approaches(score_matrix)
+    correlations = _pairwise_correlations(score_matrix)
     by_label = summarize_score_shifts(shifts)
     matched = bootstrap_matched_score_shifts(
         shifts,
@@ -185,6 +404,14 @@ def main() -> None:
     )
 
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+    approaches.to_parquet(OUTPUT_ROOT / "three_approach_summary.parquet", index=False)
+    approaches.to_csv(OUTPUT_ROOT / "three_approach_summary.tsv", sep="\t", index=False)
+    correlations.to_parquet(
+        OUTPUT_ROOT / "score_pairwise_correlations.parquet", index=False
+    )
+    correlations.to_csv(
+        OUTPUT_ROOT / "score_pairwise_correlations.tsv", sep="\t", index=False
+    )
     by_label.to_parquet(
         OUTPUT_ROOT / "score_shift_by_subset_label.parquet", index=False
     )
@@ -197,8 +424,9 @@ def main() -> None:
     matched.to_csv(
         OUTPUT_ROOT / "score_shift_matched_bootstrap.tsv", sep="\t", index=False
     )
-    _write_summary(matched, OUTPUT_ROOT / "score_shift_summary.md")
+    _write_summary(approaches, matched, OUTPUT_ROOT / "score_shift_summary.md")
     _render_figure(matched, OUTPUT_ROOT)
+    _render_pairwise_scatter(score_matrix, correlations, OUTPUT_ROOT)
 
 
 if __name__ == "__main__":

@@ -112,11 +112,11 @@ def bootstrap_matched_score_shifts(
 
     for condition in sorted(shifts["condition"].unique()):
         condition_rows = shifts.loc[shifts["condition"].eq(condition)]
-        subsets = ["_all_development_", *sorted(condition_rows["subset"].unique())]
+        subsets = ["_all_analyzed_", *sorted(condition_rows["subset"].unique())]
         for subset in subsets:
             frame = (
                 condition_rows
-                if subset == "_all_development_"
+                if subset == "_all_analyzed_"
                 else condition_rows.loc[condition_rows["subset"].eq(subset)]
             )
             positive_values: list[float] = []

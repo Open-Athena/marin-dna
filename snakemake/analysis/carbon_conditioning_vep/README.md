@@ -94,7 +94,8 @@ Positive values mean that conditioning moves positives upward relative to their 
 
 The variability statistic is the standard deviation of positive deltas divided by the standard deviation of negative deltas and is plotted on a base-two logarithmic scale.
 Both statistics use 1,000 seeded match-group bootstrap draws for 95% intervals.
-The mature-miRNA row has only four groups and is displayed as a low-sample diagnostic rather than an inferential result.
+The per-variant follow-up excludes all 40 mature-miRNA rows, leaving 16,100 variants and 1,610 complete match groups across eight consequence subsets.
+Three pairwise scatter figures compare untagged, correct mammalian, and far-wrong fungal scores for the complete analyzed population and every retained subset; each panel reports Pearson correlation overall and by label.
 All subset findings are exploratory and have no multiplicity correction or testing hierarchy.
 
 Run the analysis from this project root after retrieving all three per-variant score parquets.
@@ -106,10 +107,14 @@ uv run --locked python \
 
 The script writes these compact, branch-retained artifacts under `.agents/artifacts/carbon-species-conditioning-vep/`:
 
+- `three_approach_summary.{parquet,tsv}`: macro AUPRC and positive/negative score summaries for all three retained approaches.
+- `score_pairwise_correlations.{parquet,tsv}`: Pearson correlations for every approach pair, retained subset, and label stratum.
 - `score_shift_by_subset_label.{parquet,tsv}`: descriptive score shifts by condition, subset, and label.
 - `score_shift_matched_bootstrap.{parquet,tsv}`: matched label-separation and variability estimates with bootstrap intervals.
-- `score_shift_summary.md`: overall estimates.
+- `score_shift_summary.md`: the three-approach comparison and overall shift estimates.
 - `score_shift_by_subset.{svg,png}`: the rendered subset comparison.
+- `score_scatter_untagged_vs_correct.{svg,png}`: all retained subsets for untagged versus correct mammalian scores.
+- `score_scatter_untagged_vs_far_wrong.{svg,png}`: all retained subsets for untagged versus far-wrong fungal scores.
 
 ## Local validation
 

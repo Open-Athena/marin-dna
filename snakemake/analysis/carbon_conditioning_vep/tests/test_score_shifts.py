@@ -38,6 +38,7 @@ def test_score_shift_summaries_preserve_alignment_and_matching() -> None:
         False: 4,
         True: 2,
     }
+    assert set(matched["subset"]) == {"_all_analyzed_", "subset_a"}
     subset = matched.loc[matched["subset"].eq("subset_a")].iloc[0]
     assert subset["n_groups"] == 2
     assert subset["n_negative"] == 4
