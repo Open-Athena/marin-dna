@@ -88,6 +88,32 @@ uv run --locked python launch.py diagnostics \
 
 This stage forwards only `HF_TOKEN`, applies the same $50 cost guard, uploads its compact tables under `evaluation/context-window`, and uses `sky launch --down`.
 
+## Checkpoint and alignment audit
+
+The `audit` stage rebuilds the original batch-64 plans and requires their SHA-256 hashes before loading a model. It then:
+
+- saves and reloads the source CLM checkpoint without an optimizer update;
+- replays CLM steps 1, 5, 10, 25, 50, 100, 200, and 400 with the original 1,000-step optimizer schedule;
+- compares replayed step 400 with the original full Lightning checkpoint;
+- recomputes fixed-plan validation loss at every available checkpoint and compares original points with their W&B values;
+- computes odd-autosome/X AUPRC in both reference and reverse-complement orientations;
+- checks coordinate slicing and training-label/inference-readout alignment at nucleotide indices 0, 63, 127, 191, and 254;
+- checks PAD, UNK, BOS, EOS, MASK, vocabulary, attention-mask, and true-base-under-MASK contracts;
+- renders raw forward, registered reverse-complement, and FWD+RC nucleotide-dependency maps; and
+- recomputes the tRNA-Arg-TCT map with full attention and a forced-causal negative control.
+
+Per-variant scores and numeric dependency arrays are uploaded only to private Hugging Face staging. Compact tables and figures are logged to W&B. The task uploads parity failures before exiting nonzero and always runs the pre-autodown cost recorder.
+
+```bash
+uv run --locked python launch.py audit \
+  --commit "$(git rev-parse HEAD)" \
+  --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover \
+  --prior-cost-usd 10.232556777459978 \
+  --execute
+```
+
+The task requests one Lambda GH200 with a 256 GB disk and uses `sky launch --down`.
+
 ## Data plans
 
 After preflight selects the batch size, materialize the shared plans on the GH200:

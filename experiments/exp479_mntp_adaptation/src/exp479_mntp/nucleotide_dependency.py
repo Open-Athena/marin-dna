@@ -63,6 +63,7 @@ def orientation_dependency(
     sequence: str,
     *,
     batch_size: int,
+    attention_mode: str = "full",
 ) -> np.ndarray:
     """Compute one orientation's directed L-infinity categorical Jacobian."""
 
@@ -87,7 +88,7 @@ def orientation_dependency(
         base_logits = model_logits(
             arm.model,
             input_ids=base.unsqueeze(0),
-            attention_mode="full",
+            attention_mode=attention_mode,
         )[0, target_token - 1, canonical]
         base_log_probability = torch.log_softmax(base_logits.float(), dim=-1)
 
@@ -104,7 +105,7 @@ def orientation_dependency(
             logits = model_logits(
                 arm.model,
                 input_ids=substitutions[start:stop],
-                attention_mode="full",
+                attention_mode=attention_mode,
             )[:, target_token - 1, canonical]
             delta = torch.log_softmax(logits.float(), dim=-1) - base_log_probability
             collapsed = delta.abs().amax(dim=-1)
