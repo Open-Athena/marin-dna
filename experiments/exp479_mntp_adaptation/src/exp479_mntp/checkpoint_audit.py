@@ -167,6 +167,7 @@ def replay_early_clm(
         model=bundle.model,
         arm="clm_continuation",
         batch_size=batch_size,
+        record_gradient_norms=True,
     )
     data = ExperimentDataModule(
         train_plan=train_plan,
@@ -215,6 +216,37 @@ def replay_early_clm(
     missing = set(REPLAY_STEPS) - ({0} | export.saved)
     if missing:
         raise RuntimeError(f"early CLM replay omitted exports at steps {sorted(missing)}")
+    trace = pd.DataFrame(module.gradient_norm_trace)
+    expected_steps = np.arange(400)
+    if len(trace) != 400 or not np.array_equal(trace["step"].to_numpy(), expected_steps):
+        raise RuntimeError("early CLM gradient trace does not contain steps 0 through 399")
+    numeric_columns = (
+        "train_loss",
+        "pre_clip_gradient_norm",
+        "adamh_learning_rate",
+        "adam_learning_rate",
+    )
+    if not np.isfinite(trace[list(numeric_columns)].to_numpy()).all():
+        raise RuntimeError("early CLM gradient trace contains non-finite values")
+    trace.to_csv(output_dir / "gradient-norm-trace.csv", index=False)
+    norms = trace["pre_clip_gradient_norm"].to_numpy()
+    losses = trace["train_loss"].to_numpy()
+    post_warmup = losses[100:]
+    post_median = float(np.median(post_warmup))
+    post_mad = float(np.median(np.abs(post_warmup - post_median)))
+    spike_threshold = post_median + 6 * 1.4826 * post_mad
+    stability = {
+        "n_steps": len(trace),
+        "maximum_pre_clip_gradient_norm": float(norms.max()),
+        "median_pre_clip_gradient_norm": float(np.median(norms)),
+        "p95_pre_clip_gradient_norm": float(np.quantile(norms, 0.95)),
+        "clipped_steps": int(trace["clipped"].sum()),
+        "clip_fraction": float(trace["clipped"].mean()),
+        "maximum_train_loss": float(losses.max()),
+        "largest_positive_loss_delta": float(np.diff(losses).max()),
+        "post_warmup_spike_threshold": spike_threshold,
+        "post_warmup_spike_count": int((post_warmup > spike_threshold).sum()),
+    }
     payload: dict[str, object] = {
         "global_step": int(trainer.global_step),
         "elapsed_seconds": elapsed,
@@ -222,6 +254,7 @@ def replay_early_clm(
         "train_plan_sha256": plan_sha256(train_plan),
         "validation_plan_sha256": plan_sha256(validation_plan),
         "optimizer": module.optimizer_values.to_dict(),
+        "stability": stability,
     }
     (output_dir / "replay-runtime.json").write_text(
         json.dumps(payload, indent=2) + "\n", encoding="utf-8"
@@ -230,6 +263,373 @@ def replay_early_clm(
     gc.collect()
     torch.cuda.empty_cache()
     return payload
+
+
+def plot_training_stability(
+    trace: pd.DataFrame,
+    output_path: Path,
+    *,
+    clip_threshold: float,
+) -> None:
+    """Plot exact replay loss and pre-clipping global gradient norms."""
+
+    figure, axes = plt.subplots(2, 1, figsize=(9, 6.5), sharex=True)
+    axes[0].plot(
+        trace["step"],
+        trace["train_loss"],
+        color="#4C78A8",
+        alpha=0.45,
+        linewidth=0.8,
+        label="Per-step loss",
+    )
+    axes[0].plot(
+        trace["step"],
+        trace["train_loss"].rolling(20, min_periods=1).mean(),
+        color="#1F4E79",
+        linewidth=1.6,
+        label="20-step mean",
+    )
+    axes[0].set_ylabel("Training cross-entropy")
+    axes[0].set_title("Exact continued-CLM replay")
+    axes[0].grid(alpha=0.25)
+    axes[0].legend()
+
+    axes[1].plot(
+        trace["step"],
+        trace["pre_clip_gradient_norm"],
+        color="#F58518",
+        linewidth=1,
+        label="Pre-clip global L2 norm",
+    )
+    axes[1].axhline(
+        clip_threshold,
+        color="#B22222",
+        linestyle="--",
+        linewidth=1,
+        label=f"Clip threshold ({clip_threshold:.4f})",
+    )
+    axes[1].set_xlabel("Optimizer step")
+    axes[1].set_ylabel("Gradient norm")
+    axes[1].grid(alpha=0.25)
+    axes[1].legend()
+    figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
+    figure.savefig(output_path.with_suffix(".png"), dpi=180, bbox_inches="tight")
+    plt.close(figure)
+
+
+TRAIN_STABILITY_RUN_IDS = {
+    "transferred_mntp": "6iqcmdm7",
+    "scratch_mntp": "4nstge1d",
+    "clm_continuation": "yod8l3mb",
+}
+TRAIN_STABILITY_ARMS = (
+    "transferred_mntp",
+    "scratch_mntp",
+    "clm_continuation",
+)
+
+
+def _original_training_loss(arm: str) -> pd.DataFrame:
+    run_id = TRAIN_STABILITY_RUN_IDS[arm]
+    run = wandb.Api().run(f"gonzalobenegas/marin/{run_id}")
+    history = pd.DataFrame(
+        run.scan_history(
+            keys=["trainer/global_step", "train/loss"],
+            page_size=1_000,
+        )
+    ).dropna()
+    return history.rename(
+        columns={
+            "trainer/global_step": "step",
+            "train/loss": "logged_train_loss",
+        }
+    )
+
+
+def replay_training_stability_arm(
+    *,
+    arm: Literal["transferred_mntp", "scratch_mntp", "clm_continuation"],
+    train_plan: Path,
+    validation_plan: Path,
+    root_dir: Path,
+    batch_size: int,
+    num_workers: int,
+) -> tuple[pd.DataFrame, dict[str, object]]:
+    """Replay one arm for 400 steps and record pre-clip norms."""
+
+    assert_plan_contract(train_plan, validation_plan)
+    L.seed_everything(0, workers=True)
+    torch.set_float32_matmul_precision("high")
+    objective = "clm" if arm == "clm_continuation" else "mntp"
+    bundle = load_model_bundle(
+        initialization="scratch" if arm == "scratch_mntp" else "transferred",
+        add_mask=objective == "mntp",
+        attention_implementation="sdpa",
+    )
+    bundle.model.gradient_checkpointing_enable(
+        gradient_checkpointing_kwargs={"use_reentrant": False}
+    )
+    bundle.model.config.use_cache = False
+    module = AdaptationModule(
+        model=bundle.model,
+        arm=arm,
+        batch_size=batch_size,
+        record_gradient_norms=True,
+    )
+    data = ExperimentDataModule(
+        train_plan=train_plan,
+        validation_plan=validation_plan,
+        tokenizer=bundle.tokenizer,
+        objective=objective,
+        canonical_token_ids=bundle.canonical_token_ids,
+        mask_token_id=bundle.mask_token_id if objective == "mntp" else None,
+        batch_size=batch_size,
+        seed=0,
+        num_workers=num_workers,
+    )
+    started = time.perf_counter()
+    trainer = L.Trainer(
+        accelerator="gpu",
+        devices=1,
+        precision="bf16-mixed",
+        max_steps=400,
+        max_epochs=-1,
+        accumulate_grad_batches=1,
+        val_check_interval=100,
+        check_val_every_n_epoch=None,
+        num_sanity_val_steps=0,
+        log_every_n_steps=1,
+        deterministic=True,
+        default_root_dir=str(root_dir / arm),
+        logger=False,
+        callbacks=[
+            BudgetGuardCallback(
+                instance_start_unix=(
+                    None
+                    if os.getenv("EXP479_INSTANCE_START_UNIX") is None
+                    else float(os.environ["EXP479_INSTANCE_START_UNIX"])
+                ),
+                prior_cost_usd=float(os.getenv("EXP479_PRIOR_COST_USD", "0")),
+            )
+        ],
+        enable_checkpointing=False,
+    )
+    trainer.fit(module, datamodule=data)
+    elapsed = time.perf_counter() - started
+    if trainer.global_step != 400:
+        raise RuntimeError(f"{arm} stability replay stopped at {trainer.global_step}")
+    trace = pd.DataFrame(module.gradient_norm_trace)
+    expected_steps = np.arange(400)
+    if len(trace) != 400 or not np.array_equal(trace["step"].to_numpy(), expected_steps):
+        raise RuntimeError(f"{arm} gradient trace does not contain steps 0 through 399")
+    numeric = trace[
+        [
+            "train_loss",
+            "pre_clip_gradient_norm",
+            "adamh_learning_rate",
+            "adam_learning_rate",
+        ]
+    ].to_numpy()
+    if not np.isfinite(numeric).all():
+        raise RuntimeError(f"{arm} gradient trace contains non-finite values")
+    trace.insert(0, "arm", arm)
+
+    logged = _original_training_loss(arm)
+    logged["step"] = logged["step"].astype(int)
+    trace = trace.merge(logged, on="step", how="left", validate="one_to_one")
+    if trace["logged_train_loss"].isna().any():
+        raise RuntimeError(f"{arm} W&B history omits replayed training steps")
+    trace["logged_abs_error"] = (trace["train_loss"] - trace["logged_train_loss"]).abs()
+    maximum_loss_error = float(trace["logged_abs_error"].max())
+    if maximum_loss_error > LOSS_PARITY_TOLERANCE:
+        raise RuntimeError(f"{arm} replay loss differs from W&B by {maximum_loss_error}")
+
+    norms = trace["pre_clip_gradient_norm"].to_numpy()
+    losses = trace["train_loss"].to_numpy()
+    post_warmup = losses[100:]
+    post_median = float(np.median(post_warmup))
+    post_mad = float(np.median(np.abs(post_warmup - post_median)))
+    spike_threshold = post_median + 6 * 1.4826 * post_mad
+    summary: dict[str, object] = {
+        "arm": arm,
+        "wandb_run_id": TRAIN_STABILITY_RUN_IDS[arm],
+        "n_steps": len(trace),
+        "elapsed_seconds": elapsed,
+        "maximum_pre_clip_gradient_norm": float(norms.max()),
+        "median_pre_clip_gradient_norm": float(np.median(norms)),
+        "p95_pre_clip_gradient_norm": float(np.quantile(norms, 0.95)),
+        "clipped_steps": int(trace["clipped"].sum()),
+        "clip_fraction": float(trace["clipped"].mean()),
+        "maximum_train_loss": float(losses.max()),
+        "largest_positive_loss_delta": float(np.diff(losses).max()),
+        "post_warmup_spike_threshold": spike_threshold,
+        "post_warmup_spike_count": int((post_warmup > spike_threshold).sum()),
+        "maximum_wandb_loss_abs_error": maximum_loss_error,
+        "optimizer": module.optimizer_values.to_dict(),
+    }
+    del trainer, data, module, bundle
+    gc.collect()
+    torch.cuda.empty_cache()
+    return trace, summary
+
+
+def plot_training_stability_panel(
+    trace: pd.DataFrame,
+    output_path: Path,
+    *,
+    clip_threshold: float,
+) -> None:
+    """Plot loss and gradient norm for all three deterministic replays."""
+
+    labels = {
+        "transferred_mntp": "Transferred MNTP",
+        "scratch_mntp": "Scratch MNTP",
+        "clm_continuation": "Continued CLM",
+    }
+    figure, axes = plt.subplots(3, 2, figsize=(12, 9), sharex=True)
+    for row, arm in enumerate(TRAIN_STABILITY_ARMS):
+        cell = trace[trace["arm"] == arm].sort_values("step")
+        loss_axis = axes[row, 0]
+        loss_axis.plot(
+            cell["step"],
+            cell["train_loss"],
+            color="#4C78A8",
+            alpha=0.4,
+            linewidth=0.7,
+            label="Per-step loss",
+        )
+        loss_axis.plot(
+            cell["step"],
+            cell["train_loss"].rolling(20, min_periods=1).mean(),
+            color="#1F4E79",
+            linewidth=1.5,
+            label="20-step mean",
+        )
+        loss_axis.set_title(f"{labels[arm]} loss")
+        loss_axis.set_ylabel("Cross-entropy")
+        loss_axis.grid(alpha=0.25)
+        loss_axis.legend(fontsize=7)
+
+        gradient_axis = axes[row, 1]
+        gradient_axis.plot(
+            cell["step"],
+            cell["pre_clip_gradient_norm"],
+            color="#F58518",
+            linewidth=0.9,
+            label="Pre-clip global L2 norm",
+        )
+        gradient_axis.axhline(
+            clip_threshold,
+            color="#B22222",
+            linestyle="--",
+            linewidth=1,
+            label=f"Clip threshold ({clip_threshold:.4f})",
+        )
+        gradient_axis.set_title(f"{labels[arm]} gradient norm")
+        gradient_axis.set_ylabel("Global L2 norm")
+        gradient_axis.grid(alpha=0.25)
+        gradient_axis.legend(fontsize=7)
+    axes[-1, 0].set_xlabel("Optimizer step")
+    axes[-1, 1].set_xlabel("Optimizer step")
+    figure.suptitle("Exact 400-step training-stability replays")
+    figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
+    figure.savefig(output_path.with_suffix(".png"), dpi=180, bbox_inches="tight")
+    plt.close(figure)
+
+
+def run_training_stability_audit(
+    *,
+    artifact_dir: Path,
+    output_dir: Path,
+    train_plan: Path,
+    validation_plan: Path,
+    hf_repo_id: str,
+    batch_size: int,
+    num_workers: int,
+) -> None:
+    """Replay all three arms and publish compact gradient/loss stability evidence."""
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("training stability audit requires the Lambda GH200")
+    if hf_repo_id not in CHECKPOINT_REPOS:
+        raise ValueError(f"unexpected publication repository {hf_repo_id}")
+    assert_plan_contract(train_plan, validation_plan)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    traces: list[pd.DataFrame] = []
+    summaries: list[dict[str, object]] = []
+    for arm in TRAIN_STABILITY_ARMS:
+        trace, summary = replay_training_stability_arm(
+            arm=arm,
+            train_plan=train_plan,
+            validation_plan=validation_plan,
+            root_dir=artifact_dir / "training-stability-replay",
+            batch_size=batch_size,
+            num_workers=num_workers,
+        )
+        traces.append(trace)
+        summaries.append(summary)
+    combined = pd.concat(traces, ignore_index=True)
+    combined.to_csv(output_dir / "gradient-norm-trace.csv", index=False)
+    summary_frame = pd.DataFrame(
+        [{key: value for key, value in row.items() if key != "optimizer"} for row in summaries]
+    )
+    summary_frame.to_csv(output_dir / "stability-summary.csv", index=False)
+    figures = output_dir / "figures"
+    figures.mkdir(parents=True, exist_ok=True)
+    clip_threshold = float(summaries[0]["optimizer"]["max_grad_norm"])  # type: ignore[index]
+    plot_training_stability_panel(
+        combined,
+        figures / "training-stability",
+        clip_threshold=clip_threshold,
+    )
+
+    wandb_url = None
+    if os.getenv("WANDB_API_KEY"):
+        run = wandb.init(
+            project="marin",
+            group="dna-exp479",
+            name="dna-exp479-training-stability-audit",
+            tags=["MNTP-479", "issue-479", "stability-audit", "gradient-norm"],
+            config={
+                "development_data": "unlabeled exact training and validation plans",
+                "replay_steps_per_arm": 400,
+                "clip_threshold": clip_threshold,
+            },
+        )
+        run.log(
+            {
+                "gradient_norm_trace": wandb.Table(dataframe=combined),
+                "stability_summary": wandb.Table(dataframe=summary_frame),
+                "training_stability": wandb.Image(str(figures / "training-stability.png")),
+            }
+        )
+        for summary in summaries:
+            arm = str(summary["arm"])
+            for key, value in summary.items():
+                if key not in {"arm", "optimizer"}:
+                    run.summary[f"{arm}/{key}"] = value
+        wandb_url = run.get_url()
+        run.finish(exit_code=0)
+
+    manifest = {
+        "train_plan_sha256": plan_sha256(train_plan),
+        "validation_plan_sha256": plan_sha256(validation_plan),
+        "arms": summaries,
+        "wandb_url": wandb_url,
+        "publication_path": "evaluation/training-stability-audit",
+    }
+    (output_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    assert_budget_reserve()
+    HfApi().upload_folder(
+        folder_path=output_dir,
+        path_in_repo="evaluation/training-stability-audit",
+        repo_id=hf_repo_id,
+        repo_type="model",
+        commit_message="Upload exp479 three-arm training stability audit",
+    )
 
 
 def _repo_files() -> dict[str, set[str]]:

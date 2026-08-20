@@ -11,6 +11,7 @@ from exp479_mntp.checkpoint_audit import (
     REPLAY_STEPS,
     _find_sample_id_for_position,
     attach_logged_loss_parity,
+    plot_training_stability,
     trajectory_points,
     triangle_summary,
 )
@@ -82,3 +83,21 @@ def test_logged_loss_parity_only_gates_original_checkpoints(tmp_path: Path) -> N
     result = attach_logged_loss_parity(losses, path)
     assert bool(result.loc[0, "logged_parity_passed"])
     assert np.isnan(result.loc[1, "logged_loss"])
+
+
+def test_training_stability_plot_writes_svg_and_png(tmp_path: Path) -> None:
+    trace = pd.DataFrame(
+        {
+            "step": [0, 1, 2],
+            "train_loss": [1.0, 0.9, 0.8],
+            "pre_clip_gradient_norm": [1.2, 0.8, 0.6],
+        }
+    )
+    output = tmp_path / "training-stability"
+    plot_training_stability(
+        trace,
+        output,
+        clip_threshold=0.995,
+    )
+    assert output.with_suffix(".svg").is_file()
+    assert output.with_suffix(".png").is_file()
