@@ -13,6 +13,7 @@ envs:
 run: |
   set -euxo pipefail
   test -n "$EXP473_ANALYSIS_COMMIT"
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   test "$(sha256sum snakemake/vertebrate_projection_dataset/src/marin_dna_vertebrate_projection/issue_473/report.py | cut -d' ' -f1)" = e330d7acdd0c8eb1424a03c6aac7337b69e362d347737e33592c1b635b41549b
   test -x snakemake/vertebrate_projection_dataset/.venv/bin/python
 
