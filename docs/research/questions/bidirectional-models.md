@@ -30,7 +30,7 @@ Five nucleotide-dependency maps retained both triangles and agreed with FWD+RC m
 The result is evidence that cheap behavioral conversion works, not that the resulting checkpoint is a useful representation model.
 It argues against automatically extending this exact one-seed MNTP recipe to 10,000 steps.
 It does not answer whether ordinary MLM, a different update budget or parameterization, layer/pooling choices, or supervised sequence-to-function training can exploit the bilateral states.
-See the [compact result snapshot](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation) and [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==).
+See the [compact result snapshot](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation) and [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
 
 Before this direct evidence,
 [Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) provides the closest biological evidence that the proposed sequence can work.
