@@ -52,6 +52,7 @@ def test_dependency_launch_forwards_hf_and_wandb_and_self_terminates() -> None:
         3456,
         hf_repo_id="gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover",
         prior_cost_usd=23.0,
+        retry_until_up=True,
     )
     assert command[4] == "sky/dependency.yaml"
     assert "HF_REPO_ID=gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover" in command
@@ -59,6 +60,7 @@ def test_dependency_launch_forwards_hf_and_wandb_and_self_terminates() -> None:
     assert command.count("--secret") == 2
     assert "HF_TOKEN" in command
     assert "WANDB_API_KEY" in command
+    assert "--retry-until-up" in command
     assert "--down" in command
 
 

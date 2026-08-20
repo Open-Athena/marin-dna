@@ -84,6 +84,7 @@ def launch_command(
     resume_hf_repo_id: str | None = None,
     checkpoint_upload_steps: tuple[int, ...] = (),
     prior_cost_usd: float = 0.0,
+    retry_until_up: bool = False,
 ) -> list[str]:
     """Build the self-terminating Lambda GH200 launch command."""
 
@@ -120,6 +121,8 @@ def launch_command(
             command.extend(["--env", f"CHECKPOINT_UPLOAD_STEPS={steps}"])
     if prior_cost_usd:
         command.extend(["--env", f"EXP479_PRIOR_COST_USD={prior_cost_usd}"])
+    if retry_until_up:
+        command.append("--retry-until-up")
     command.extend(["--down", "--yes"])
     if dry_run:
         command.append("--dryrun")
@@ -136,6 +139,7 @@ def main() -> None:
     parser.add_argument("--resume-hf-repo-id")
     parser.add_argument("--checkpoint-upload-steps", type=int, nargs="*", default=())
     parser.add_argument("--prior-cost-usd", type=float, default=0.0)
+    parser.add_argument("--retry-until-up", action="store_true")
     parser.add_argument("--model-card-reviewed", action="store_true")
     args = parser.parse_args()
     assert_current_clean_commit(args.commit)
@@ -150,6 +154,7 @@ def main() -> None:
         resume_hf_repo_id=args.resume_hf_repo_id,
         checkpoint_upload_steps=tuple(args.checkpoint_upload_steps),
         prior_cost_usd=args.prior_cost_usd,
+        retry_until_up=args.retry_until_up,
     )
     print(" ".join(command), flush=True)
     if args.execute:
