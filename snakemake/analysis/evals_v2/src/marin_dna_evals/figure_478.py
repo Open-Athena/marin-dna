@@ -442,6 +442,7 @@ def plot_loss_delta_classification_478(
         zip(axes.flat, matrices, strict=True)
     ):
         annotation = matrix.map(lambda value: f"{value:.0f}")
+        axis.set_facecolor("white")
         annotation = annotation.mask(annotation == "-0", "0")
         sns.heatmap(
             matrix,
