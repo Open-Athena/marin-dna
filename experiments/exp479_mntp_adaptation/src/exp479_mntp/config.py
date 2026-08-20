@@ -72,7 +72,7 @@ DATA_COMPONENTS = (
         train_text_key="sequence",
         validation_repo="marin-dna/zoonomia-v1-val_enhancer",
         validation_revision="d40d1e067b2a56ac812af122de029eb79cab1106",
-        validation_text_key="sequence",
+        validation_text_key="seq",
     ),
     DataComponent(
         name="ncrna",
@@ -81,7 +81,7 @@ DATA_COMPONENTS = (
         train_text_key="sequence",
         validation_repo="marin-dna/zoonomia-v1-val_ncrna",
         validation_revision="76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
-        validation_text_key="sequence",
+        validation_text_key="seq",
     ),
 )
 
