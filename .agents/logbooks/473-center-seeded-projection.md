@@ -847,3 +847,43 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: monitor tokenization into the v5p-8 training child while the
   producer continues, then execute trace, reviewed private publication, and
   the other three arms when their immutable revisions exist.
+
+### 2026-08-20 07:02 UTC - CSP-019 CDS step-500 checkpoint validated
+
+- Checkpoint milestone: the v5p-8 task
+  `/ubuntu/exp473-cds-full-window-v2/run_levanter_train_lm-622836a3`
+  completed both the retained native checkpoint and Hugging Face export at
+  step 500. The immutable roots are
+  `gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection/checkpoints/dna-exp473-0p25b-cds_full_window-v1/2026.08.20/checkpoints/step-500`
+  and the corresponding `hf/step-500` directory.
+- Export contract: the Hugging Face directory contains `config.json`,
+  `model.safetensors`, `tokenizer.json`, and `tokenizer_config.json`. The
+  config records Qwen3, vocabulary 7, BOS 2, PAD 0, no EOS, 256 positions,
+  hidden width 1,152, intermediate width 4,608, 12 layers, and 9 attention
+  and KV heads, matching the registered recipe.
+- Tokenizer proof: Hugging Face reserialization changed raw JSON bytes, but
+  canonicalized `tokenizer.json` exactly matches the vendored source at SHA-256
+  `962ed016c5654513548b7365c60f3cf657435717cb2cf0bf07270ff6a9ee7bd3`.
+  A bounded local-only `AutoTokenizer` round trip loaded the exported files
+  with vocabulary 7, BOS 2, PAD 0, UNK 1, no EOS, and encoded `ACGTacgt` as
+  `[2,3,4,5,6,3,4,5,6]`. The check ran under the shared-node lock and caps in
+  1.19 seconds with 75,432 KiB peak RSS.
+- Rotary metadata: Transformers warns because the inherited exact #417
+  `Llama3RotaryEmbeddingsConfig` retains an 8,192-token original scale while
+  this model's maximum is 256. The export nevertheless loads successfully,
+  and direct comparison confirms the issue #473 recipe is identical to the
+  pinned #417 model construction on this field; this is not a policy-arm
+  difference.
+- Training health: W&B run
+  `dna-exp473-0p25b-cds_full_window-v1` remained running at step 544 with loss
+  1.31469, 632,902 tokens/s, 3.31 seconds/step, and 54.18% instantaneous MFU.
+  There were zero Iris failures and zero preemptions.
+- Producer: Sky job 11 remained healthy and reached 1,723/10,329 durable
+  steps (17%). Its exact QC/inspection target and all three new dataset
+  publications remain incomplete, so trace and the other arms stay gated.
+- Safety: checkpoint validation read only the unlabeled model/tokenizer
+  artifacts. No held-out VEP label, prediction, effect measurement, or
+  aggregate metric was accessed.
+- Next action: continue the CDS arm through step 5,000 and the producer through
+  its exact aggregate target; launch the trace immediately after producer
+  success.
