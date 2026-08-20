@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. A frozen-model audit now supports same-corpus scale-differential loss as a candidate for a causal weighting experiment; confidence remains moderate that task-aware enrichment helps, while no universal selection rule or repeat-downweighting benefit has been established.
+> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. A frozen-model audit supports one-orientation loss or entropy as a practical conservation proxy and controlled scale-differential loss as a candidate weighting arm; no universal selection rule or repeat-downweighting benefit has been established.
 
 ## Question
 
@@ -29,10 +29,13 @@ This would eliminate a special-case training heuristic and make likelihoods easi
 The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) adds an in-corpus, inference-only result across the fixed-token 46M–4B model ladder.
 After adjustment for repeat status, GC content, local 7-mer predictability, and position, the 4B-minus-46M loss reduction for conserved nonrepeat sequence was 0.364 nats per base in CDS (95% block-bootstrap CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
 Repeat interactions were negative in every region, so repeats gained less with scale, but the conserved effect remained positive within repeats.
-This supports same-corpus scale-differential loss as the primary candidate for a fixed-compute causal weighting experiment.
-Small-model absolute loss and predictive entropy also tracked conserved nonrepeat sequence after the same controls and are cheaper baseline weighting candidates.
+Exact pooled AUPRC showed that absolute loss and predictive entropy ranked conserved nonrepeat positions increasingly well from 46M to 4B parameters.
+At 4B, loss and entropy AUPRC reached 0.723 and 0.731 globally, 0.857 and 0.867 in CDS, 0.522 and 0.533 upstream, and 0.428 and 0.434 downstream.
+The practical 46M-to-76M loss delta was above prevalence in every scope but weaker than either absolute small-model score.
+Every FWD loss-delta candidate was dominated by a loss or entropy score with at least as high AUPRC and no greater estimated scoring compute.
+Deterministic one-orientation loss or entropy is the practical first proxy, while the controlled scale-differential effect remains a distinct candidate for causal weighting.
 The audit rejects the broad claim that repeats are intrinsically easier after composition controls; it did not ablate the current repeat loss weight.
-The conservation-by-repeat conclusions were unchanged when FWD and RC were analyzed separately.
+FWD-only and RC-only classification AUPRC differed by at most 0.0053, and the conservation-by-repeat conclusions were unchanged when the orientations were analyzed separately.
 A single orientation cut inference compute in half and remained fairly close to the FWD/RC-averaged endpoint score (Spearman 0.69–0.81 in a fixed 100,000-base sample per comparison and full-span top-decile overlap 0.58–0.72 across regions), but it did not preserve the exact per-base ranking.
 Direct FWD-versus-RC endpoint agreement was much lower (sampled Spearman 0.09–0.37 and full-span top-decile overlap 0.25–0.45), even though their controlled group effects and closeness-to-mean metrics were nearly symmetric; neither orientation had empirical priority at the aggregate level.
 
@@ -87,8 +90,9 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored CDS projection with native per-species annotation across vertebrate and animal scopes.
   Projection produced useful conserved-CDS data but lost distant species and did not dominate annotation on every endpoint.
 - [Conservation and repeat predictability across model scale](../experiments/478-conservation-repeat-predictability.md) measured per-base loss and entropy across the fixed-token 46M–4B ladder in CDS, upstream, and downstream sequence.
-  Conserved nonrepeat bases showed robust, composition-adjusted scale gains in all three regions, qualifying same-corpus scale-differential loss for a causal weighting test while leaving repeat downweighting itself unresolved.
-  FWD-only and RC-only results preserved the aggregate conclusion, but their imperfect per-base agreement motivates an explicit one-pass-versus-averaged compute ablation.
+  Conserved nonrepeat bases had positive composition-adjusted scale gains in all three regions, qualifying same-corpus scale-differential loss for a causal weighting test while leaving repeat downweighting unresolved.
+  Absolute loss and entropy classified conservation increasingly well with scale and dominated every FWD loss delta at comparable estimated scoring compute.
+  FWD-only and RC-only classification AUPRC was nearly identical, while their imperfect endpoint per-base agreement limits a single pass as an exact replacement for averaged weights.
 
 </details>
 
@@ -133,12 +137,12 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### How do scale and data quantity change the answer?
 
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- The [46M–4B frozen-model audit](../experiments/478-conservation-repeat-predictability.md) is complete: scale-differential loss remained associated with conservation after repeat, GC, local 7-mer, and position controls, and the CDS codon-position positive control passed on both strands.
+- The [46M–4B frozen-model audit](../experiments/478-conservation-repeat-predictability.md) is complete: controlled scale-differential loss remained associated with conservation, while absolute loss and entropy provided the best compute-adjusted conservation rankings.
   Exact training-corpus exposure and homology density were unavailable, so neither mechanism has been excluded.
-- Run a fixed-compute causal experiment with an offline scale-differential weight derived from frozen checkpoints.
-  Compare it against uniform loss, the current repeat weighting, and simpler 46M absolute-loss and entropy weights at matched training compute.
+- Run a fixed-compute causal experiment comparing uniform loss, the current repeat weighting, FWD 46M absolute-loss and entropy weights, and a scale-differential weight derived from frozen checkpoints.
+  Match training compute and record the offline scoring cost separately.
   Treat same-corpus improvement as a learnability heuristic rather than a direct Rho-1 analogue.
-  Include averaged and deterministic single-orientation score construction as a compute-quality ablation: one pass is adequate for a cheap pilot, while the second pass should be retained only if its improved per-base rank stability pays off downstream.
+  Use deterministic FWD scoring first and add an averaged-score sensitivity only if downstream outcomes justify the second inference pass.
 - When a filtered corpus is smaller, are gains caused by better loci or simply by seeing the same loci for more epochs?
   Both compute-matched and exposure/epoch-matched comparisons are needed.
 - Is there a curriculum in which constrained sequence is best early, but adding progressively broader genome sequence later improves generalization or prevents overfitting?
