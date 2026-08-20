@@ -51,3 +51,30 @@ def test_non_pilot_execution_environment_does_not_require_secrets(
     environment = execution_environment("preflight")
     assert "HF_TOKEN" not in environment
     assert "WANDB_API_KEY" not in environment
+
+
+def test_diagnostics_launch_only_forwards_hugging_face_secret() -> None:
+    command = launch_command(
+        "diagnostics",
+        "a" * 40,
+        1234,
+        hf_repo_id="person/spillover",
+        prior_cost_usd=9.56,
+    )
+    assert command[4] == "sky/diagnostics.yaml"
+    assert "HF_REPO_ID=person/spillover" in command
+    assert "EXP479_PRIOR_COST_USD=9.56" in command
+    assert command.count("--secret") == 1
+    assert "HF_TOKEN" in command
+    assert "WANDB_API_KEY" not in command
+    assert "--down" in command
+
+
+def test_diagnostics_environment_only_requires_hugging_face(
+    monkeypatch: object,
+) -> None:
+    monkeypatch.setenv("HF_TOKEN", "test-token")  # type: ignore[attr-defined]
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)  # type: ignore[attr-defined]
+    environment = execution_environment("diagnostics")
+    assert environment["HF_TOKEN"] == "test-token"
+    assert "WANDB_API_KEY" not in environment

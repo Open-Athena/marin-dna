@@ -1,0 +1,29 @@
+name: dna-exp479-context-window
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 128
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${HF_REPO_ID:-}"
+  test -n "${HF_TOKEN:-}"
+  mkdir -p "$HOME/exp479-artifacts/evaluation/context-window"
+  uv run --locked pytest
+  uv run --locked exp479 context-window \
+    --artifact-dir "$HOME/exp479-artifacts" \
+    --output-dir "$HOME/exp479-artifacts/evaluation/context-window" \
+    --hf-repo-id "$HF_REPO_ID" \
+    --batch-size 512
+  uv run --locked exp479 finalize \
+    --artifact-dir "$HOME/exp479-artifacts" \
+    --hf-repo-id "$HF_REPO_ID"
