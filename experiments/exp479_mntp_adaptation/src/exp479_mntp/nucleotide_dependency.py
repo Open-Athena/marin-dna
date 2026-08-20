@@ -86,6 +86,9 @@ def orientation_dependency(
     if prefix != 1:
         raise ValueError(f"expected one BOS token, observed prefix length {prefix}")
     canonical = torch.tensor(arm.canonical_ids, dtype=torch.long, device=device)
+    substitution_rows = torch.arange(NUCLEOTIDE_LENGTH * 4, device=device)
+    substitution_positions = torch.arange(device=device, end=NUCLEOTIDE_LENGTH).repeat_interleave(4)
+    substitution_tokens = canonical.repeat(NUCLEOTIDE_LENGTH)
     matrix = np.zeros((NUCLEOTIDE_LENGTH, NUCLEOTIDE_LENGTH), dtype=np.float32)
 
     for readout in range(NUCLEOTIDE_LENGTH):
@@ -96,11 +99,12 @@ def orientation_dependency(
             base[target_token] = arm.mask_token_id
 
         substitutions = base.view(1, -1).repeat(NUCLEOTIDE_LENGTH * 4, 1)
-        for position in range(NUCLEOTIDE_LENGTH):
-            if position == readout:
-                continue
-            rows = slice(position * 4, (position + 1) * 4)
-            substitutions[rows, prefix + position] = canonical
+        substitutions[
+            substitution_rows,
+            prefix + substitution_positions,
+        ] = substitution_tokens
+        readout_rows = slice(readout * 4, (readout + 1) * 4)
+        substitutions[readout_rows] = base
 
         max_change = torch.zeros(NUCLEOTIDE_LENGTH, dtype=torch.float32, device=device)
         candidate_batch_size = batch_size - 1

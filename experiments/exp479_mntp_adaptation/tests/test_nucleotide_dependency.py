@@ -105,6 +105,7 @@ def test_paired_baseline_causal_map_has_no_right_context_leakage(
     assert float(np.tril(full, k=-1).max()) > 0.0
     assert observed_batch_sizes
     assert min(observed_batch_sizes) >= 2
+    assert max(observed_batch_sizes) <= 20
 
 
 def test_causal_dependency_does_not_require_a_mask_token(monkeypatch: object) -> None:
