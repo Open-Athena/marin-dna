@@ -42,6 +42,7 @@ SEED = 0
 HF_SAVE_STEPS = 500
 NATIVE_CHECKPOINT_STEPS = 500
 PER_DEVICE_PARALLELISM = 1_024
+WANDB_MAX_TAG_LENGTH = 64
 DATA_VERSION = "2026.08.20"
 DEFAULT_TPU_REGION = "us-east5"
 ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
@@ -182,6 +183,39 @@ def validated_marin_prefix(tpu_region: str) -> str:
     return prefix
 
 
+def bounded_wandb_tag(name: str, value: str) -> str:
+    """Retain a recognizable, collision-resistant tag within W&B's limit."""
+    tag = f"{name}={value}"
+    if len(tag) <= WANDB_MAX_TAG_LENGTH:
+        return tag
+    digest = hashlib.sha256(value.encode()).hexdigest()[:8]
+    value_length = WANDB_MAX_TAG_LENGTH - len(name) - len(digest) - 2
+    if value_length < 1:
+        raise ValueError(f"W&B tag name is too long: {name!r}")
+    return f"{name}={value[:value_length]}~{digest}"
+
+
+def training_tags(arm: Arm) -> list[str]:
+    """Return bounded W&B tags; full source provenance stays in the cache config."""
+    tags = [
+        "dna",
+        "marin-dna",
+        "exp473",
+        "projection-policy",
+        f"region={arm.region}",
+        f"policy={arm.policy}",
+        bounded_wandb_tag("hf_repo", arm.hf_repo),
+        f"hf_revision={arm.resolved_revision()}",
+        f"marin_commit={MARIN_COMMIT}",
+        "seed=0",
+        "batch=8192",
+        "steps=5000",
+    ]
+    if any(not 1 <= len(tag) <= WANDB_MAX_TAG_LENGTH for tag in tags):
+        raise ValueError(f"invalid W&B tags for {arm.key}: {tags}")
+    return tags
+
+
 def selected_arm() -> Arm:
     key = required_env("EXP473_ARM")
     try:
@@ -287,20 +321,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
         steps_per_eval=HF_SAVE_STEPS,
         wandb_project=forwarded_env["WANDB_PROJECT"],
         wandb_group="dna-exp473-center-seeded-projection",
-        tags=[
-            "dna",
-            "marin-dna",
-            "exp473",
-            "projection-policy",
-            f"region={arm.region}",
-            f"policy={arm.policy}",
-            f"hf_repo={arm.hf_repo}",
-            f"hf_revision={arm.resolved_revision()}",
-            f"marin_commit={MARIN_COMMIT}",
-            "seed=0",
-            "batch=8192",
-            "steps=5000",
-        ],
+        tags=training_tags(arm),
         env_vars=forwarded_env,
     )
     base_build_config = step.build_config

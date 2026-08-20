@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 from exp473_center_seeded_projection.experiment import (
     ARMS,
@@ -16,8 +18,11 @@ from exp473_center_seeded_projection.experiment import (
     TOKENIZER_SHA256,
     TOKENIZER_SOURCE_REVISION,
     TRAIN_STEPS,
+    WANDB_MAX_TAG_LENGTH,
     DnaTokenizedCache,
+    bounded_wandb_tag,
     build_training,
+    training_tags,
     validate_vendored_tokenizer,
 )
 from exp473_center_seeded_projection.tokenizer_preflight import (
@@ -90,6 +95,25 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
         assert pod.env_vars["EXP473_TPU_REGION"] == DEFAULT_TPU_REGION
         assert len(step.deps) == 1
         assert key in step.name
+
+
+def test_training_tags_fit_wandb_limit_and_preserve_source_identity() -> None:
+    for arm in ARMS.values():
+        tags = training_tags(arm)
+        assert tags == training_tags(arm)
+        assert all(1 <= len(tag) <= WANDB_MAX_TAG_LENGTH for tag in tags)
+        assert f"hf_revision={arm.resolved_revision()}" in tags
+        repo_tag = next(tag for tag in tags if tag.startswith("hf_repo="))
+        if len(f"hf_repo={arm.hf_repo}") <= WANDB_MAX_TAG_LENGTH:
+            assert repo_tag == f"hf_repo={arm.hf_repo}"
+        else:
+            digest = hashlib.sha256(arm.hf_repo.encode()).hexdigest()[:8]
+            assert len(repo_tag) == WANDB_MAX_TAG_LENGTH
+            assert repo_tag.endswith(f"~{digest}")
+
+    assert bounded_wandb_tag("x", "y") == "x=y"
+    with pytest.raises(ValueError, match="tag name is too long"):
+        bounded_wandb_tag("x" * WANDB_MAX_TAG_LENGTH, "value")
 
 
 def test_tpu_child_region_override_is_explicit_and_bounded(monkeypatch) -> None:

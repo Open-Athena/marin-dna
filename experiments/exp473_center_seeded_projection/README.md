@@ -101,6 +101,11 @@ comparison arm is the pinned #417 checkpoint above. Do not launch additional
 landmark widths or seeds from this branch without a new recorded decision and
 compute approval.
 
+W&B tags fail closed at the service's 64-character limit. Overlong values,
+including the two enhancer Hugging Face repository names, retain a readable
+prefix plus an eight-character SHA-256 suffix. The cache artifact config keeps
+the complete public repository name and exact revision for provenance.
+
 The coordinator's `--region` controls only its CPU task. Set
 `EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
 allowed values are `us-east5` and `us-central1`, with `us-east5` retained as
