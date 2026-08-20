@@ -293,6 +293,7 @@ def test_seed_trigger_is_record_only():
 
 def test_intersection_loss_config_is_pinned_complete_and_unlabeled():
     config = build_intersection_loss_config(_roots(), experiment_commit="c" * 40)
+    assert PRODUCER_COMMIT == "d0e5380a46cd66d4c42d763b3c42da1150c92073"
     assert config["producer_commit"] == PRODUCER_COMMIT
     assert config["producer_config_sha256"] == PRODUCER_CONFIG_SHA256
     assert config["split"] == SPLIT

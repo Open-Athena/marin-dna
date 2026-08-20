@@ -1366,3 +1366,26 @@ cohort, assemblies, and downstream training recipe fixed.
   measurements, and aggregate metrics remain untouched. The next terminal
   gate is successful training through step 4,999 for all three new arms,
   followed by paired projection loss and official development-only evaluation.
+
+### 2026-08-20 16:17 UTC - CSP-036 paired-loss producer pin corrected
+
+- Pre-evaluation audit: the issue-specific paired intersection-loss config
+  still named the earlier `f764b7f1` producer snapshot. Read-only S3 `HEAD`
+  requests returned 404 for all four expected chromosome-18 intersection
+  views in that namespace, so the workflow would have failed before scoring.
+  No intersection-loss or VEP evaluation job had launched.
+- Correct provenance: all four inputs exist under final batched producer
+  `d0e5380a46cd66d4c42d763b3c42da1150c92073` and config SHA-256
+  `bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039`.
+  S3 reports full-object CRC64NVME checksums and byte sizes for each CDS and
+  enhancer-centered full-window/center-1 validation view.
+- Additive correction: only the new experiment-local producer constant and
+  its explicit identity assertion changed. No established Snakemake rule,
+  shared output path, producer artifact, dataset, checkpoint, or active
+  training job changed.
+- Verification: all 24 locked experiment tests passed in 4.78 seconds with
+  peak RSS 494,540 KiB while holding the shared heavy-work lock; changed-file
+  pre-commit hooks and `git diff --check` passed.
+- Safety: this check used only unlabeled chromosome-18 projection sequences.
+  Held-out VEP labels, predictions, effect measurements, and aggregate
+  metrics remain untouched.

@@ -23,7 +23,7 @@ from exp473_center_seeded_projection.intersection_loss import (
     SPLIT,
 )
 
-PRODUCER_COMMIT = "f764b7f1fa34ea730842117239dd179a7e3be572"
+PRODUCER_COMMIT = "d0e5380a46cd66d4c42d763b3c42da1150c92073"
 PRODUCER_CONFIG_SHA256 = (
     "bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039"
 )
