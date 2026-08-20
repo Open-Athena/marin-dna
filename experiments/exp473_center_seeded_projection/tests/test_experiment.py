@@ -71,3 +71,7 @@ def test_tokenized_handles_pin_hf_revisions(monkeypatch) -> None:
         assert len(config.revision) == 40
         assert config.format.text_key == "sequence"
         assert config.format.lowercase_weight == 0.01
+        assert cache.run.env_vars == {
+            "HF_HUB_DOWNLOAD_TIMEOUT": "120",
+            "UV_LOCK_TIMEOUT": "7200",
+        }
