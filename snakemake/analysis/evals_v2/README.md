@@ -80,13 +80,15 @@ results/grouped_vep_bootstrap/{model}/{dataset}.parquet
 
 The summary schema is `[metric, higher_is_better, score_type, subset, value, se, ci_low, ci_high, confidence_level, n_groups, n_rows, available, unavailable_reason, uncertainty_method, n_bootstrap, n_bootstrap_valid, model, dataset, split, bootstrap_seed]`.
 Filtering summary rows to `metric == "AUPRC"` preserves the existing `[score_type, subset, value, se, n_groups, n_rows]` output from `compute_auprc_metrics`.
-AUPRC retains its existing match-group bootstrap SE, and its interval values are null in this report.
+Direct subset and `_global_` AUPRC rows retain their existing match-group bootstrap SE.
+The `_macro_avg_` AUPRC row retains the existing independent-subset SE-of-mean and reports `n_bootstrap_valid = 0` because it has no stored macro draws.
+All AUPRC interval values are null in this report.
 Group SMD uses a joint match-group bootstrap and reports the 2.5th and 97.5th percentiles as a 95% interval.
 
 The bootstrap schema is `[draw, metric, score_type, subset, value, n_groups, model, dataset, split, bootstrap_seed]`.
 One match-group multiplicity vector is reused across both metrics and every score column within a scope.
 Outputs from different models are aligned by `draw` when they use the same dataset revision, row order, `n_bootstrap`, and integer `bootstrap_seed`.
-The bootstrap artifact omits `_macro_avg_` because Group SMD has no macro definition.
+The bootstrap artifact omits `_macro_avg_` for both metrics because Group SMD has no macro definition and AUPRC uses the composed legacy macro SE without stored draws.
 
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 

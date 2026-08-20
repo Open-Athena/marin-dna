@@ -138,6 +138,41 @@ def test_single_group_scope_reports_group_smd_unavailable():
     assert np.isnan(row["ci_low"])
 
 
+def test_standalone_single_group_input_raises_explicit_macro_validation():
+    dataset, scores = _grouped_data(n_groups_per_subset=1)
+    with pytest.raises(ValueError, match="no subsets meet n_min=30"):
+        compute_grouped_vep_metrics(
+            dataset,
+            scores,
+            score_columns=["score"],
+            n_bootstrap=5,
+        )
+
+
+def test_zero_group_gap_sd_reports_group_smd_unavailable():
+    dataset = pd.DataFrame(
+        {
+            "label": [1, 0, 1, 0, 1, 0],
+            "subset": ["coding"] * 6,
+            "match_group": [0, 0, 1, 1, 2, 2],
+        }
+    )
+    scores = pd.DataFrame({"score": [1.0, 0.0, 2.0, 1.0, 3.0, 2.0]})
+    summary, _ = compute_grouped_vep_metrics(
+        dataset,
+        scores,
+        n_bootstrap=10,
+        rng=7,
+        n_min=1,
+    )
+    row = summary.loc[
+        (summary["metric"] == GROUP_SMD) & (summary["subset"] == "coding")
+    ].iloc[0]
+    assert not row["available"]
+    assert row["unavailable_reason"] == "zero_or_non_finite_group_gap_sd"
+    assert row["n_bootstrap_valid"] == 0
+
+
 def test_joint_bootstrap_aligns_scores_and_metrics_on_one_group_draw():
     dataset, scores = _grouped_data(n_groups_per_subset=5)
     n_bootstrap = 12
@@ -244,6 +279,15 @@ def test_grouped_report_preserves_existing_auprc_output():
     )
     observed = summary.loc[summary["metric"] == AUPRC, legacy.columns]
     pd.testing.assert_frame_equal(observed.reset_index(drop=True), legacy)
+    macro_auprc = summary.loc[
+        (summary["metric"] == AUPRC) & (summary["subset"] == MACRO_AVG_SUBSET)
+    ]
+    assert macro_auprc["n_bootstrap_valid"].eq(0).all()
+    assert (
+        macro_auprc["uncertainty_method"]
+        .eq("independent_subset_bootstrap_se_of_mean")
+        .all()
+    )
 
     macro_smd = summary.loc[
         (summary["metric"] == GROUP_SMD) & (summary["subset"] == MACRO_AVG_SUBSET)

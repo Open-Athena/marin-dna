@@ -388,6 +388,13 @@ def compute_grouped_vep_metrics(
             f"{bad_groups.head().to_dict()}"
         )
 
+    groups_per_subset = base.groupby("subset", sort=False)["match_group"].nunique()
+    if not groups_per_subset.ge(n_min).any():
+        raise ValueError(
+            f"no subsets meet n_min={n_min} for the AUPRC macro average; "
+            f"per-subset match-group counts: {groups_per_subset.to_dict()}"
+        )
+
     legacy_auprc = compute_auprc_metrics(
         dataset=base[["label", "subset", "match_group"]],
         scores=base[columns],
@@ -431,6 +438,12 @@ def compute_grouped_vep_metrics(
     for auprc_row in legacy_auprc.to_dict("records"):
         score_column = str(auprc_row["score_type"])
         subset = str(auprc_row["subset"])
+        if subset == MACRO_AVG_SUBSET:
+            auprc_uncertainty_method = "independent_subset_bootstrap_se_of_mean"
+            auprc_n_bootstrap_valid = 0
+        else:
+            auprc_uncertainty_method = "match_group_bootstrap_standard_error"
+            auprc_n_bootstrap_valid = max(n_bootstrap, 0)
         summary_rows.append(
             {
                 "metric": AUPRC,
@@ -441,9 +454,9 @@ def compute_grouped_vep_metrics(
                 "confidence_level": float("nan"),
                 "available": True,
                 "unavailable_reason": None,
-                "uncertainty_method": "match_group_bootstrap_standard_error",
+                "uncertainty_method": auprc_uncertainty_method,
                 "n_bootstrap": n_bootstrap,
-                "n_bootstrap_valid": max(n_bootstrap, 0),
+                "n_bootstrap_valid": auprc_n_bootstrap_valid,
             }
         )
         if subset == MACRO_AVG_SUBSET:
