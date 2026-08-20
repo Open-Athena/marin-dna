@@ -52,7 +52,6 @@ Build the figure around the scientific comparison it must support.
 
 - Label metrics, units, aggregation, sample definition, and transformations explicitly in the caption or surrounding prose when they do not fit cleanly in the figure.
 - Choose the estimator, aggregation, unit of independence, uncertainty method, confidence level when applicable, and resampling unit explicitly.
-  Account for dependence among repeated observations or nearby genomic positions.
 - Show uncertainty by default when it can be estimated.
   Name the quantity, such as standard error, confidence interval, standard deviation, or range.
   Omit it only when uncertainty is not meaningful for the statistic or explicit human direction calls for another presentation.
