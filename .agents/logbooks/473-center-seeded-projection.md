@@ -460,3 +460,43 @@ cohort, assemblies, and downstream training recipe fixed.
   result. The pre-stage is a provenance-preserving operational recovery for
   absent S3 checksum metadata, not a change to projection semantics.
 - Next action: run the pre-stage on the existing worker, verify all exact
+  objects, then resume the exact producer graph without weakening its checks.
+
+### 2026-08-20 00:46 UTC - CSP-007 verified pre-stage and corrected full run
+
+- Pre-stage result: Iris job 7 restored and independently verified all 304
+  immutable objects consumed by #473: 10 direct inputs, 24 scored chromosome
+  tables, and 270 rejection-evidence objects. The verified total was
+  10,196,517,248 bytes. Every atomic receipt records expected and observed
+  size, full-object CRC64NVME, and SHA-256; job duration was 6m44s.
+- Producer correction: commit
+  `f764b7f1fa34ea730842117239dd179a7e3be572` adds a new full-run launcher
+  supplying the three #473-only configuration values. No established rule,
+  shared config, or S3 output path was edited.
+- Dry-run result: Iris job 10 completed in 9m27s and resolved exactly 10,329
+  jobs from config SHA-256
+  `bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039`.
+  The graph contained no immutable restore job and no regeneration of #417
+  scored/rejection artifacts.
+- Full execution: Iris job 11 launched at 2026-08-20 00:32:49 UTC on the
+  retained `vertebrate-project` worker. The live graph entered execution after
+  resolving the same 10,329 jobs and exact producer/config namespace. At
+  00:42 UTC it had completed 58 steps, including HAL validation, fixed anchor
+  catalog construction, producer/species receipts, request tables, and the
+  first reference artifacts. Outputs were uploading to canonical S3 storage
+  as each rule completed.
+- Publication implementation: commit
+  `ebf9a6d8ed64c90fea55344222334dea281d5ba5` adds a standalone publisher for
+  the three new datasets. It reads only the exact producer namespace and
+  defines only new card, shard, validation, and opt-in upload rules. The
+  established publication workflow is unchanged.
+- Validation: all 117 locked project tests passed under the shared-node lock
+  in 8.26s with 292,400 KiB peak RSS. Changed-file hooks passed. The
+  standalone publisher resolves only its eight issue-specific rules.
+- Interpretation: pre-staging repaired an operational S3 metadata gap while
+  retaining stronger local full-object verification. Job 11 has begun valid
+  work but no full-scale scientific result is claimed before target success
+  and durable artifact inspection.
+- Next action: monitor job 11 to completion, validate full paired QC and
+  manual samples, run the sampled bidirectional HAL trace, then build and
+  review the exact publication artifacts before the four matched Iris runs.
