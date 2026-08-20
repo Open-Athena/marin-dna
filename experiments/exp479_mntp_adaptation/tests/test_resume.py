@@ -109,3 +109,30 @@ def test_interrupted_resume_matches_uninterrupted_training(tmp_path: Path) -> No
 
     for name, expected in _state(uninterrupted).items():
         torch.testing.assert_close(_state(resumed)[name], expected, rtol=0, atol=0)
+
+
+def test_gradient_trace_records_every_preclip_norm(tmp_path: Path) -> None:
+    torch.manual_seed(479)
+    module = AdaptationModule(
+        model=_model(),
+        arm="scratch_mntp",
+        batch_size=2,
+        train_steps=2,
+        warmup_steps=1,
+        cooldown_start_step=1,
+        record_gradient_norms=True,
+    )
+    loader = StatefulDataLoader(BatchDataset(), batch_size=2, shuffle=False)
+    _trainer(tmp_path / "gradient-trace", max_steps=2).fit(
+        module,
+        train_dataloaders=loader,
+    )
+
+    assert [row["step"] for row in module.gradient_norm_trace] == [0, 1]
+    for row in module.gradient_norm_trace:
+        assert torch.isfinite(torch.tensor(row["train_loss"]))
+        assert torch.isfinite(torch.tensor(row["pre_clip_gradient_norm"]))
+        assert row["pre_clip_gradient_norm"] > 0
+        assert row["clipped"] in {0, 1}
+        assert row["adamh_learning_rate"] >= 0
+        assert row["adam_learning_rate"] >= 0
