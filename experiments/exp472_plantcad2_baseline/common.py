@@ -43,7 +43,6 @@ CACHE_VERSION = "2026.08.19"
 TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp"
 EXPERIMENT_RELATIVE = "MarinDNA/exp472_plantcad2_baseline"
 TRAIN_CACHE_NAME = "inputs/plantcad-angiosperm-train-path-only"
-VALIDATION_CACHE_NAME = "inputs/plantcad-angiosperm-validation-path-only"
 REVERSE_COMPLEMENT_PROBABILITY = 0.5
 REVERSE_COMPLEMENT_SEED = 472
 # [PAD], [MASK], and [UNK] are self-complementary; a<->t and c<->g.
@@ -319,7 +318,6 @@ def build_sweep_run(
     *,
     point: SweepPoint,
     train_cache: ArtifactStep[TokenizedCache],
-    validation_cache: ArtifactStep[TokenizedCache],
     resources: ResourceConfig,
     attention_backend: AttentionBackend | None,
     batch_size: int,
@@ -374,7 +372,9 @@ def build_sweep_run(
             skip_bad_steps=True,
         ),
         datasets={train_cache: 1.0},
-        validation=[validation_cache],
+        # The cache root contains both train and validation splits. Levanter
+        # automatically evaluates the validation split of every data component.
+        validation=(),
         init_from=None,
         batch_size=batch_size,
         seq_len=SEQ_LEN,

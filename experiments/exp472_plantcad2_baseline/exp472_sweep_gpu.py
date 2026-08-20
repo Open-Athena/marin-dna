@@ -22,7 +22,6 @@ from experiments.exp472_plantcad2_baseline.common import (
     EXPERIMENT_RELATIVE,
     TOKENIZED_CACHE_RELATIVE,
     TRAIN_CACHE_NAME,
-    VALIDATION_CACHE_NAME,
     build_sweep_run,
     existing_plantcad_cache,
     global_batch_size,
@@ -121,11 +120,6 @@ def main() -> ArtifactStep[LevanterCheckpoint]:
         point=parse_sweep_point(),
         train_cache=existing_plantcad_cache(
             name=TRAIN_CACHE_NAME,
-            version=CACHE_VERSION,
-            source=TOKENIZED_CACHE,
-        ),
-        validation_cache=existing_plantcad_cache(
-            name=VALIDATION_CACHE_NAME,
             version=CACHE_VERSION,
             source=TOKENIZED_CACHE,
         ),
