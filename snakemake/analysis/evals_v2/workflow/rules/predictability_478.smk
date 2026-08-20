@@ -328,3 +328,116 @@ rule plot_predictability_478_orientations:
             input.averaged_controlled,
             output[0],
         )
+
+
+rule analyze_predictability_478_classification_pilot:
+    input:
+        joined=expand(
+            P478_ROOT + "/joined/{region}.parquet",
+            region=PREDICTABILITY_478_DATASETS,
+        ),
+        atoms=expand(
+            P478_ROOT + "/atoms/{model}/{region}.{orientation}.parquet",
+            model=PREDICTABILITY_478_MODELS[:2],
+            region=PREDICTABILITY_478_DATASETS,
+            orientation=["fwd", "rc"],
+        ),
+    output:
+        metrics=P478_ROOT + "/classification/pilot_metrics.parquet",
+        block_metrics=P478_ROOT + "/classification/pilot_block_metrics.parquet",
+        manifest=P478_ROOT + "/classification/pilot_manifest.json",
+    threads: 8
+    resources:
+        mem_mb=28000,
+    run:
+        import json
+        from marin_dna_evals.classification_478 import (
+            analyze_conservation_classification_478,
+        )
+
+        pilot_models = PREDICTABILITY_478_MODELS[:2]
+        joined_paths = dict(
+            zip(PREDICTABILITY_478_DATASETS, input.joined, strict=True)
+        )
+        atom_keys = [
+            (model, region, orientation)
+            for model in pilot_models
+            for region in PREDICTABILITY_478_DATASETS
+            for orientation in ("fwd", "rc")
+        ]
+        atom_paths = dict(zip(atom_keys, input.atoms, strict=True))
+        metrics, block_metrics, manifest = analyze_conservation_classification_478(
+            joined_paths,
+            atom_paths,
+            model_order=pilot_models,
+            window_size=PREDICTABILITY_478_CFG["window_size"],
+            primary_start=PREDICTABILITY_478_CFG["primary_start"],
+            primary_end_exclusive=PREDICTABILITY_478_CFG["primary_end_exclusive"],
+            block_bp=PREDICTABILITY_478_CFG["bootstrap_block_bp"],
+        )
+        metrics.to_parquet(output.metrics, index=False)
+        block_metrics.to_parquet(output.block_metrics, index=False)
+        Path(output.manifest).write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+
+
+rule predictability_478_classification_pilot:
+    input:
+        P478_ROOT + "/classification/pilot_manifest.json",
+
+
+rule analyze_predictability_478_classification:
+    input:
+        joined=expand(
+            P478_ROOT + "/joined/{region}.parquet",
+            region=PREDICTABILITY_478_DATASETS,
+        ),
+        atoms=expand(
+            P478_ROOT + "/atoms/{model}/{region}.{orientation}.parquet",
+            model=PREDICTABILITY_478_MODELS,
+            region=PREDICTABILITY_478_DATASETS,
+            orientation=["fwd", "rc"],
+        ),
+    output:
+        metrics=P478_ROOT + "/classification/metrics.parquet",
+        block_metrics=P478_ROOT + "/classification/block_metrics.parquet",
+        manifest=P478_ROOT + "/classification/manifest.json",
+    threads: 8
+    resources:
+        mem_mb=28000,
+    run:
+        import json
+        from marin_dna_evals.classification_478 import (
+            analyze_conservation_classification_478,
+        )
+
+        joined_paths = dict(
+            zip(PREDICTABILITY_478_DATASETS, input.joined, strict=True)
+        )
+        atom_keys = [
+            (model, region, orientation)
+            for model in PREDICTABILITY_478_MODELS
+            for region in PREDICTABILITY_478_DATASETS
+            for orientation in ("fwd", "rc")
+        ]
+        atom_paths = dict(zip(atom_keys, input.atoms, strict=True))
+        metrics, block_metrics, manifest = analyze_conservation_classification_478(
+            joined_paths,
+            atom_paths,
+            model_order=PREDICTABILITY_478_MODELS,
+            window_size=PREDICTABILITY_478_CFG["window_size"],
+            primary_start=PREDICTABILITY_478_CFG["primary_start"],
+            primary_end_exclusive=PREDICTABILITY_478_CFG["primary_end_exclusive"],
+            block_bp=PREDICTABILITY_478_CFG["bootstrap_block_bp"],
+        )
+        metrics.to_parquet(output.metrics, index=False)
+        block_metrics.to_parquet(output.block_metrics, index=False)
+        Path(output.manifest).write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+
+
+rule predictability_478_classification:
+    input:
+        P478_ROOT + "/classification/manifest.json",

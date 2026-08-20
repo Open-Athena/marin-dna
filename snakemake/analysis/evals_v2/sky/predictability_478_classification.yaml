@@ -1,0 +1,53 @@
+# CPU-only task for the issue-478 per-position conservation classifier.
+#
+# Launch the two-smallest-model pilot from the repository root:
+#   sky launch snakemake/analysis/evals_v2/sky/predictability_478_classification.yaml \
+#     -c evals-v2-478-classification \
+#     --env SNAKEMAKE_ARGS="--cores 8 -- predictability_478_classification_pilot"
+#
+# Reuse the cluster for the full ladder after inspecting the pilot:
+#   sky exec evals-v2-478-classification \
+#     snakemake/analysis/evals_v2/sky/predictability_478_classification.yaml \
+#     --env SNAKEMAKE_ARGS="--cores 8 -- predictability_478_classification"
+
+name: evals-v2-predictability-478-classification
+
+resources:
+    infra: aws/us-east-2
+    instance_type: m7i.2xlarge
+    disk_size: 100
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    SNAKEMAKE_ARGS: "--cores 8 -- predictability_478_classification_pilot"
+
+setup: |
+    set -euxo pipefail
+
+    if [ "$(uv --version 2>/dev/null | cut -d" " -f2 || true)" != "0.11.31" ]; then
+        curl -LsSf https://astral.sh/uv/0.11.31/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    test "$(uv --version | cut -d" " -f2)" = "0.11.31"
+
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true
+    cd snakemake/analysis/evals_v2
+    export PYTHONPATH="$PWD/src"
+
+    uv run --locked --group genome-s3 snakemake \
+        --profile workflow/profiles/default \
+        --printshellcmds \
+        --rerun-incomplete \
+        $SNAKEMAKE_ARGS

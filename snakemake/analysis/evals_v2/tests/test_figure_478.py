@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from marin_dna_evals.figure_478 import plot_predictability_478
+from marin_dna_evals.figure_478 import (
+    plot_nonrepeat_conservation_loss_478,
+    plot_predictability_478,
+    plot_token_composition_478,
+)
 
 
 @pytest.mark.parametrize("suffix", ["png", "svg"])
@@ -114,3 +118,60 @@ def test_plot_predictability_478_smoke(tmp_path: Path, suffix: str) -> None:
     plot_predictability_478(summary_path, controlled_path, output_path)
     assert output_path.exists()
     assert output_path.stat().st_size > 10_000
+
+
+@pytest.mark.parametrize("suffix", ["png", "svg"])
+def test_plot_nonrepeat_and_composition_smoke(
+    tmp_path: Path,
+    suffix: str,
+) -> None:
+    models = [
+        "scaling-v0.5-h640-p46M-step-215573",
+        "scaling-v0.5-h768-p76M-step-215573",
+        "scaling-v0.5-h896-p128M-step-215573",
+        "scaling-v0.5-h1152-p255M-step-215573",
+        "scaling-v0.5-h1408-p476M-step-215573",
+        "scaling-v0.5-h1920-p1B-step-215573",
+        "scaling-v0.5-h2432-p2B-step-215573",
+        "scaling-v0.5-h2944-p4B-step-215573",
+    ]
+    counts = {
+        ("cds", False, False): 150,
+        ("cds", True, False): 120,
+        ("cds", False, True): 20,
+        ("cds", True, True): 10,
+        ("upstream", False, False): 210,
+        ("upstream", True, False): 50,
+        ("upstream", False, True): 35,
+        ("upstream", True, True): 5,
+        ("downstream", False, False): 215,
+        ("downstream", True, False): 40,
+        ("downstream", False, True): 40,
+        ("downstream", True, True): 5,
+    }
+    rows = []
+    for region in ("cds", "upstream", "downstream"):
+        for conserved in (False, True):
+            for repeat in (False, True):
+                for model_index, model in enumerate(models):
+                    rows.append(
+                        {
+                            "analysis_family": "primary",
+                            "span": "central_32_222",
+                            "region": region,
+                            "conserved": conserved,
+                            "repeat": repeat,
+                            "score_kind": "absolute_nll",
+                            "model_from": model,
+                            "mean": 1.4 - 0.05 * model_index - 0.2 * conserved,
+                            "n_positions": counts[(region, conserved, repeat)],
+                        }
+                    )
+    summary_path = tmp_path / "summary.parquet"
+    pd.DataFrame(rows).to_parquet(summary_path, index=False)
+    loss_path = tmp_path / f"loss.{suffix}"
+    composition_path = tmp_path / f"composition.{suffix}"
+    plot_nonrepeat_conservation_loss_478(summary_path, loss_path)
+    plot_token_composition_478(summary_path, composition_path)
+    assert loss_path.stat().st_size > 5_000
+    assert composition_path.stat().st_size > 5_000

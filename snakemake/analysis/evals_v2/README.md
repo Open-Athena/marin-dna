@@ -302,6 +302,27 @@ name:
   bootstrap intervals. The controlled table fits the preregistered
   conservation × repeat model with GC, 7-mer NLL, and target-position terms.
 
+  The optional conservation-classification follow-up reuses the per-base atoms.
+  It excludes repeats and ambiguous bases, treats conservation as the positive class, and reports pooled global AUPRC plus separate CDS, upstream, and downstream AUPRC.
+  Scores include negative loss, negative four-nucleotide entropy, and every smaller-to-larger model loss delta.
+  Run the two-smallest-model pilot before the full 28-pair sweep:
+
+      uv run --locked snakemake -n predictability_478_classification_pilot
+      uv run --locked snakemake predictability_478_classification_pilot
+
+      uv run --locked snakemake -n predictability_478_classification
+      uv run --locked snakemake predictability_478_classification
+
+  The CPU-only Sky task starts on an m7i.2xlarge and reuses the existing S3 artifacts:
+
+      sky launch snakemake/analysis/evals_v2/sky/predictability_478_classification.yaml \
+        -c evals-v2-478-classification \
+        --env "SNAKEMAKE_ARGS=--cores 8 -- predictability_478_classification_pilot"
+
+  Outputs land under results/predictability_478/v1/classification/.
+  The pooled metrics parquet contains prevalence baselines and AUPRC for every score.
+  The block metrics parquet reports within-10-Mb-block variation and is not a confidence interval for pooled AUPRC.
+
 ### Linear probe (frozen-embedding VEP, #320)
 
 `snakemake probe` trains a **frozen-embedding linear probe** per `(model,
