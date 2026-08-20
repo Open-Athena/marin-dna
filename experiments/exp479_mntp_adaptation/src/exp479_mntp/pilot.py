@@ -49,6 +49,21 @@ def selected_batch_size(preflight_path: Path, maximum: int | None = None) -> int
     return batch_size
 
 
+def trainer_preflight_batch_size(path: Path) -> int:
+    """Validate the exact Lightning first-step gate and return its batch."""
+
+    payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("status") != "passed":
+        raise RuntimeError(f"Lightning preflight did not pass: {payload.get('status')!r}")
+    batch_size = int(payload["batch_size"])
+    headroom = float(payload["memory_and_throughput"]["headroom_fraction"])
+    if batch_size <= 0:
+        raise ValueError(f"Lightning preflight batch must be positive, got {batch_size}")
+    if headroom < 0.10:
+        raise RuntimeError(f"Lightning preflight headroom {headroom:.3%} is below 10%")
+    return batch_size
+
+
 def latest_local_checkpoint(output_dir: Path) -> Path | None:
     """Return the newest numbered full checkpoint, if this arm was interrupted."""
 
@@ -114,11 +129,21 @@ def run_pilot(
     num_workers: int,
     offline_wandb: bool,
     maximum_batch_size: int | None = None,
+    trainer_preflight_path: Path | None = None,
 ) -> None:
     """Prepare matched plans, train each arm, and publish resumable artifacts."""
 
     assert_budget_reserve()
     batch_size = selected_batch_size(preflight_path, maximum_batch_size)
+    if trainer_preflight_path is not None:
+        trainer_batch = trainer_preflight_batch_size(trainer_preflight_path)
+        if maximum_batch_size is not None:
+            trainer_batch = min(trainer_batch, maximum_batch_size)
+        batch_size = selected_batch_size(preflight_path, trainer_batch)
+        if batch_size != trainer_batch:
+            raise RuntimeError(
+                "Lightning preflight batch exceeds the synthetic preflight selection"
+            )
     initialize_model_repo(
         repo_id=hf_repo_id,
         card_template=model_card,
@@ -168,6 +193,13 @@ def run_pilot(
         repo_id=hf_repo_id,
         commit_message="Upload exp479 GH200 preflight",
     )
+    if trainer_preflight_path is not None:
+        upload_run_file(
+            local_path=trainer_preflight_path,
+            path_in_repo="runs/lightning-preflight.json",
+            repo_id=hf_repo_id,
+            commit_message="Upload exp479 Lightning memory preflight",
+        )
     upload_run_file(
         local_path=data_manifest,
         path_in_repo="runs/data-manifest.json",
