@@ -15,7 +15,7 @@ Training the best possible MLM from scratch, preserving autoregressive generatio
 
 [#479](https://github.com/Open-Athena/marin-dna/issues/479) ran the first MarinDNA checkpoint-conversion experiment.
 The standalone pilot continued the released 1B m5.1 checkpoint for 1,000 full-parameter masked-next-token-prediction steps on one Lambda GH200, with matched scratch MNTP and causal-continuation arms plus source and full-attention/no-adaptation controls.
-It was technically valid and cost an estimated $10.23 at list price, including failed and recovery attempts.
+It was technically valid. The completed pilot plus checkpoint, stability, alignment, and dependency audits cost an estimated $24.73 at list price, including failed, recovery, and cancelled diagnostic attempts.
 
 Transferred MNTP reached slightly lower pooled validation loss than scratch (0.39727 versus 0.39954) and lower single-mask loss (0.31008 versus 0.31315).
 It acquired dependence on both flanks, while the causal controls remained right-blind.
@@ -25,12 +25,22 @@ These behavioral gains did not transfer to variant-effect prediction.
 Transferred single-orientation MNTP scored 0.1151 Mendelian macro AUPRC, 0.1003 complex-trait global AUPRC, and 0.1427 SGE accession/consequence macro AUPRC, compared with 0.3951, 0.1342, and 0.3577 for source CLM with forward/reverse-complement averaging.
 Single-orientation transferred scores stayed within one AUPRC point of their own FWD+RC scores, but no task passed the required source-improvement gate.
 Complete-flank ablations confirmed that both flanks affected individual scores, and ±64-base window shifts were stable, yet neither diagnostic rescued downstream performance.
-Five nucleotide-dependency maps retained both triangles and agreed with FWD+RC maps at mean off-diagonal Spearman 0.9692.
+
+A targeted integrity audit found no checkpoint serialization, deterministic replay, coordinate, tokenizer, shifted-readout, shared-loss-path, or optimization-instability bug.
+Source save/reload and replayed CLM step 400 were bit-exact across 51,623 odd/X variants and both strands, and all three 400-step training replays matched their original per-step losses exactly.
+Continued-CLM degradation was progressive rather than immediate: fixed-plan validation loss stayed at 0.23138 through step 1, was 0.23131 at step 10, then rose to 0.27310 at 100, 0.33297 at 400, and 0.35965 at 800 before partially recovering to 0.35010 after cooldown.
+Its gradient norms were mild, with no post-warmup spikes.
+This supports destructive optimization from the fresh optimizer and high registered peak learning rates rather than a load/save or inference mismatch.
+
+The audit did find one bug in the original dependency diagnostic: it compared a batch-one wild-type baseline with batch-1,020 substitutions, so BF16 batch-shape numerics contaminated the maps.
+Corrected same-call maps at the three step-1,000 checkpoints supersede that analysis.
+Transferred MNTP had past/future mean dependency 0.05314/0.05334, scratch MNTP 0.03056/0.02917, and continued CLM 0.12510/0 exactly.
+Both MNTP arms use context on both sides; the continued-CLM map's entire forbidden future triangle is exactly zero.
 
 The result is evidence that cheap behavioral conversion works, not that the resulting checkpoint is a useful representation model.
 It argues against automatically extending this exact one-seed MNTP recipe to 10,000 steps.
 It does not answer whether ordinary MLM, a different update budget or parameterization, layer/pooling choices, or supervised sequence-to-function training can exploit the bilateral states.
-See the [compact result snapshot](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation) and [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
+See the [audited compact result snapshot](https://github.com/Open-Athena/marin-dna/tree/issue-479-mntp-pilot-audited-result/.agents/artifacts/479-mntp-adaptation), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn) runs.
 
 Before this direct evidence,
 [Training Compute-Optimal Protein Language Models](https://arxiv.org/abs/2411.02142) provides the closest biological evidence that the proposed sequence can work.
@@ -71,7 +81,7 @@ The current hypothesis is therefore narrower:
 <summary>Related experiments</summary>
 
 - [#479](https://github.com/Open-Athena/marin-dna/issues/479) completed the first mature-checkpoint MNTP conversion pilot.
-  It established technical feasibility, a small transferred-versus-scratch validation advantage, bilateral context use, stable single-pass dependency maps, and negative source-relative VEP at 1,000 steps.
+  It established technical feasibility, a small transferred-versus-scratch validation advantage, corrected bilateral final-checkpoint context use, and negative source-relative VEP at 1,000 steps. Its integrity audit found no training/inference bug and superseded the original batch-shape-contaminated dependency maps.
 - [#3](https://github.com/Open-Athena/marin-dna/issues/3) compared causal language modeling, masked language modeling, and masked diffusion during early promoter training.
   Causal modeling led at the earliest steps and the issue proposed a causal-to-masked curriculum; it did not convert a mature checkpoint or constrain the masked phase to a small compute budget.
 - [#314](https://github.com/Open-Athena/marin-dna/issues/314) evaluated frozen causal gLM embeddings across VEP datasets and representation choices.
@@ -92,6 +102,7 @@ The current hypothesis is therefore narrower:
 - Compare parameter-efficient and full-parameter adaptation.
   LLM2Vec supports LoRA as a cheap starting point, while the protein transfer result used continued pretraining of the model rather than a parameter-efficient conversion.
 - Keep the sidecar operationally independent of Marin unless the result later justifies first-class training support.
+- If causal continuation is used as a control again, preserve or retune optimizer state and peak learning rates; #479's fresh high-learning-rate continuation progressively damaged validation loss and VEP despite stable gradients.
 
 ### Do the representations actually improve?
 
