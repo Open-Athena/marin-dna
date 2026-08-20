@@ -1,0 +1,282 @@
+{
+  "train_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "development_split": "odd autosomes and X only",
+  "points": [
+    {
+      "point_id": "source-clm-direct-step0000",
+      "arm": "source_clm",
+      "step": 0,
+      "objective": "clm",
+      "kind": "source",
+      "plot_series": "Source CLM direct",
+      "path": null
+    },
+    {
+      "point_id": "clm-replay-step0000",
+      "arm": "clm_continuation",
+      "step": 0,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Source CLM save/reload",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0000"
+    },
+    {
+      "point_id": "clm-replay-step0001",
+      "arm": "clm_continuation",
+      "step": 1,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0001"
+    },
+    {
+      "point_id": "clm-replay-step0005",
+      "arm": "clm_continuation",
+      "step": 5,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0005"
+    },
+    {
+      "point_id": "clm-replay-step0010",
+      "arm": "clm_continuation",
+      "step": 10,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0010"
+    },
+    {
+      "point_id": "clm-replay-step0025",
+      "arm": "clm_continuation",
+      "step": 25,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0025"
+    },
+    {
+      "point_id": "clm-replay-step0050",
+      "arm": "clm_continuation",
+      "step": 50,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0050"
+    },
+    {
+      "point_id": "clm-replay-step0100",
+      "arm": "clm_continuation",
+      "step": 100,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0100"
+    },
+    {
+      "point_id": "clm-replay-step0200",
+      "arm": "clm_continuation",
+      "step": 200,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0200"
+    },
+    {
+      "point_id": "clm-replay-step0400",
+      "arm": "clm_continuation",
+      "step": 400,
+      "objective": "clm",
+      "kind": "replay",
+      "plot_series": "Continued CLM replay",
+      "path": "/home/ubuntu/exp479-artifacts/clm-replay/step-0400"
+    },
+    {
+      "point_id": "clm-original-step0400",
+      "arm": "clm_continuation",
+      "step": 400,
+      "objective": "clm",
+      "kind": "lightning",
+      "plot_series": "Continued CLM original",
+      "path": null
+    },
+    {
+      "point_id": "clm-original-step0800",
+      "arm": "clm_continuation",
+      "step": 800,
+      "objective": "clm",
+      "kind": "lightning",
+      "plot_series": "Continued CLM original",
+      "path": null
+    },
+    {
+      "point_id": "clm-original-step1000",
+      "arm": "clm_continuation",
+      "step": 1000,
+      "objective": "clm",
+      "kind": "hf",
+      "plot_series": "Continued CLM original",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0000",
+      "arm": "full_attention_no_adaptation",
+      "step": 0,
+      "objective": "mntp",
+      "kind": "no_adaptation",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0100",
+      "arm": "transferred_mntp",
+      "step": 100,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0200",
+      "arm": "transferred_mntp",
+      "step": 200,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0300",
+      "arm": "transferred_mntp",
+      "step": 300,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0400",
+      "arm": "transferred_mntp",
+      "step": 400,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0500",
+      "arm": "transferred_mntp",
+      "step": 500,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0600",
+      "arm": "transferred_mntp",
+      "step": 600,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0700",
+      "arm": "transferred_mntp",
+      "step": 700,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step0800",
+      "arm": "transferred_mntp",
+      "step": 800,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "transferred-step1000",
+      "arm": "transferred_mntp",
+      "step": 1000,
+      "objective": "mntp",
+      "kind": "hf",
+      "plot_series": "Transferred MNTP",
+      "path": null
+    },
+    {
+      "point_id": "scratch-step0000",
+      "arm": "scratch_mntp",
+      "step": 0,
+      "objective": "mntp",
+      "kind": "scratch_initial",
+      "plot_series": "Scratch MNTP",
+      "path": null
+    },
+    {
+      "point_id": "scratch-step0400",
+      "arm": "scratch_mntp",
+      "step": 400,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Scratch MNTP",
+      "path": null
+    },
+    {
+      "point_id": "scratch-step0800",
+      "arm": "scratch_mntp",
+      "step": 800,
+      "objective": "mntp",
+      "kind": "lightning",
+      "plot_series": "Scratch MNTP",
+      "path": null
+    },
+    {
+      "point_id": "scratch-step1000",
+      "arm": "scratch_mntp",
+      "step": 1000,
+      "objective": "mntp",
+      "kind": "hf",
+      "plot_series": "Scratch MNTP",
+      "path": null
+    }
+  ],
+  "replay": {
+    "global_step": 400,
+    "elapsed_seconds": 219.578015612,
+    "export_steps": [
+      0,
+      1,
+      5,
+      10,
+      25,
+      50,
+      100,
+      200,
+      400
+    ],
+    "train_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+    "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+    "optimizer": {
+      "adamh_learning_rate": 0.004396588845822712,
+      "adam_learning_rate": 0.02308025763094388,
+      "beta1": 0.6675603345321236,
+      "beta2": 0.9996175970423852,
+      "epsilon": 1.2952689296049683e-15,
+      "max_grad_norm": 0.9951880136348765,
+      "initializer_range": 0.02,
+      "model_tokens": 16384000,
+      "nucleotide_bases": 16320000
+    }
+  },
+  "score_parity_tolerance": 0.002,
+  "loss_parity_tolerance": 0.002,
+  "all_contract_checks_passed": false,
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf"
+}

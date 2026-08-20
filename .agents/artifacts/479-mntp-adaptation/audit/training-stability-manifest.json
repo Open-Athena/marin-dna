@@ -1,0 +1,89 @@
+{
+  "train_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "arms": [
+    {
+      "arm": "transferred_mntp",
+      "wandb_run_id": "6iqcmdm7",
+      "n_steps": 400,
+      "elapsed_seconds": 218.962015914,
+      "maximum_pre_clip_gradient_norm": 60.517154693603516,
+      "median_pre_clip_gradient_norm": 1.2587124109268188,
+      "p95_pre_clip_gradient_norm": 11.114987134933472,
+      "clipped_steps": 275,
+      "clip_fraction": 0.6875,
+      "maximum_train_loss": 1.4768234491348267,
+      "largest_positive_loss_delta": 0.17020201683044434,
+      "post_warmup_spike_threshold": 1.362143278670311,
+      "post_warmup_spike_count": 0,
+      "maximum_wandb_loss_abs_error": 0.0,
+      "optimizer": {
+        "adamh_learning_rate": 0.004396588845822712,
+        "adam_learning_rate": 0.02308025763094388,
+        "beta1": 0.6675603345321236,
+        "beta2": 0.9996175970423852,
+        "epsilon": 1.2952689296049683e-15,
+        "max_grad_norm": 0.9951880136348765,
+        "initializer_range": 0.02,
+        "model_tokens": 16384000,
+        "nucleotide_bases": 16320000
+      }
+    },
+    {
+      "arm": "scratch_mntp",
+      "wandb_run_id": "4nstge1d",
+      "n_steps": 400,
+      "elapsed_seconds": 260.78548615500006,
+      "maximum_pre_clip_gradient_norm": 84.9994125366211,
+      "median_pre_clip_gradient_norm": 2.1175161600112915,
+      "p95_pre_clip_gradient_norm": 28.263150978088284,
+      "clipped_steps": 296,
+      "clip_fraction": 0.74,
+      "maximum_train_loss": 3.552542209625244,
+      "largest_positive_loss_delta": 0.761996865272522,
+      "post_warmup_spike_threshold": 1.4114124860525132,
+      "post_warmup_spike_count": 0,
+      "maximum_wandb_loss_abs_error": 0.0,
+      "optimizer": {
+        "adamh_learning_rate": 0.004396588845822712,
+        "adam_learning_rate": 0.02308025763094388,
+        "beta1": 0.6675603345321236,
+        "beta2": 0.9996175970423852,
+        "epsilon": 1.2952689296049683e-15,
+        "max_grad_norm": 0.9951880136348765,
+        "initializer_range": 0.02,
+        "model_tokens": 16384000,
+        "nucleotide_bases": 16320000
+      }
+    },
+    {
+      "arm": "clm_continuation",
+      "wandb_run_id": "yod8l3mb",
+      "n_steps": 400,
+      "elapsed_seconds": 215.162494885,
+      "maximum_pre_clip_gradient_norm": 1.2633329629898071,
+      "median_pre_clip_gradient_norm": 0.7906598448753357,
+      "p95_pre_clip_gradient_norm": 1.0021544814109802,
+      "clipped_steps": 23,
+      "clip_fraction": 0.0575,
+      "maximum_train_loss": 1.0985913276672363,
+      "largest_positive_loss_delta": 0.17233169078826904,
+      "post_warmup_spike_threshold": 1.2623446944713592,
+      "post_warmup_spike_count": 0,
+      "maximum_wandb_loss_abs_error": 0.0,
+      "optimizer": {
+        "adamh_learning_rate": 0.004396588845822712,
+        "adam_learning_rate": 0.02308025763094388,
+        "beta1": 0.6675603345321236,
+        "beta2": 0.9996175970423852,
+        "epsilon": 1.2952689296049683e-15,
+        "max_grad_norm": 0.9951880136348765,
+        "initializer_range": 0.02,
+        "model_tokens": 16384000,
+        "nucleotide_bases": 16320000
+      }
+    }
+  ],
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4",
+  "publication_path": "evaluation/training-stability-audit"
+}

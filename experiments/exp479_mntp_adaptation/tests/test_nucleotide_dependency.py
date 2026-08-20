@@ -79,6 +79,16 @@ def test_paired_baseline_causal_map_has_no_right_context_leakage(
         canonical_ids=(3, 4, 5, 6),
         mask_token_id=7,
     )
+    original_model_logits = dependency.model_logits
+    observed_batch_sizes: list[int] = []
+
+    def traced_model_logits(*args: object, **kwargs: object) -> torch.Tensor:
+        input_ids = kwargs["input_ids"]
+        assert isinstance(input_ids, torch.Tensor)
+        observed_batch_sizes.append(len(input_ids))
+        return original_model_logits(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(dependency, "model_logits", traced_model_logits)  # type: ignore[attr-defined]
     causal = orientation_dependency(
         arm,
         "ACGTA",
@@ -93,3 +103,41 @@ def test_paired_baseline_causal_map_has_no_right_context_leakage(
     )
     assert float(np.tril(causal, k=-1).max()) == 0.0
     assert float(np.tril(full, k=-1).max()) > 0.0
+    assert observed_batch_sizes
+    assert min(observed_batch_sizes) >= 2
+
+
+def test_causal_dependency_does_not_require_a_mask_token(monkeypatch: object) -> None:
+    monkeypatch.setattr(dependency, "NUCLEOTIDE_LENGTH", 5)  # type: ignore[attr-defined]
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        dependency,
+        "assert_budget_reserve",
+        lambda: None,
+    )
+    torch.manual_seed(479)
+    config = Qwen3Config(
+        vocab_size=7,
+        hidden_size=32,
+        intermediate_size=64,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        num_key_value_heads=4,
+        head_dim=8,
+        max_position_embeddings=16,
+        use_cache=False,
+    )
+    config._attn_implementation = "eager"
+    arm = LoadedArm(
+        model=Qwen3ForCausalLM(config).eval(),
+        tokenizer=_Tokenizer(),
+        canonical_ids=(3, 4, 5, 6),
+        mask_token_id=None,
+    )
+    causal = orientation_dependency(
+        arm,
+        "ACGTA",
+        batch_size=21,
+        attention_mode="causal",
+    )
+    assert np.isfinite(causal).all()
+    assert float(np.tril(causal, k=-1).max()) == 0.0
