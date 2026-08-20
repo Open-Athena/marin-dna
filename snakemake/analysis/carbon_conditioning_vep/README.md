@@ -1,7 +1,7 @@
 # Carbon species conditioning on Mendelian VEP
 
 This isolated Snakemake project implements [issue #486](https://github.com/Open-Athena/marin-dna/issues/486).
-It measures whether frozen Carbon-3B changes human promoter-variant rankings when its inference prompt is untagged or correctly tagged as mammalian.
+It measures whether frozen Carbon-3B changes human development-set variant rankings when its inference prompt is untagged or correctly tagged as mammalian.
 
 The analysis is exploratory.
 It reports every condition and paired comparison without a winner gate or testing hierarchy.
@@ -9,7 +9,8 @@ It reports every condition and paired comparison without a winner gate or testin
 ## Fixed contract
 
 - Model: `HuggingFaceBio/Carbon-3B` at revision `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`.
-- Data: the 2,050-row `tss_proximal` promoter subset from the `marin-dna/evals_mendelian_traits` train split at revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`.
+- Data: the 16,140-row development-only `marin-dna/evals_mendelian_traits` train split at revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`.
+- Analysis scopes: the retained `config/config.yaml` promoter pilot contains 2,050 `tss_proximal` rows, while `config/full_development.yaml` contains all 16,140 development rows.
 - Reference: Ensembl release 115 GRCh38 soft-masked primary assembly with Ensembl sequence names.
 - Coordinates: source `pos` is converted from 1-based to 0-based at window extraction; materialized windows use 0-based half-open bounds.
 - Context: 8,192 bp centered on each SNV.
@@ -17,7 +18,7 @@ It reports every condition and paired comparison without a winner gate or testin
 - Score: bf16 masked mean causal token log likelihood on REF and ALT for FWD and reverse-complement strands.
 - Inference batch: one variant, or four allele-strand prompts, validated on both an NVIDIA A10G and a Lambda GH200.
 - Derived score: `llr = ((LL_alt_fwd - LL_ref_fwd) + (LL_alt_rc - LL_ref_rc)) / 2`, then `score = -llr`.
-- Metric: promoter AUPRC for the untagged and correct conditions.
+- Metric: per-consequence-subset and eligible-subset macro AUPRC for the untagged and correct conditions.
 - Uncertainty: 1,000 seeded paired match-group bootstrap draws.
 
 The project does not import `marin_dna_evals`, modify `evals_v2`, write into the `evals_v2` artifact prefix, or register Carbon in the dashboard.
@@ -39,12 +40,13 @@ No Mendelian labels are loaded before a grammar is selected.
 The Mendelian loader downloads exactly `train.parquet` from the pinned dataset revision before parsing it.
 It rejects every other split or filename so a repository-backed dataset builder cannot discover or materialize held-out labels.
 The dataset loader asserts the exact row, positive, group, chromosome, SNV, unique-key, and 1:9 group contracts of the pinned development split.
-It then selects `tss_proximal` and asserts 2,050 rows, 205 positives, 205 match groups, and ten rows per group.
+The promoter configuration selects `tss_proximal` and asserts 2,050 rows, 205 positives, 205 match groups, and ten rows per group.
+The full-development configuration selects every train row and asserts 16,140 rows, 1,614 positives, 1,614 match groups, and ten rows per group.
 The reference loader asserts exact GRCh38 lengths for every development chromosome.
 
 Window extraction rejects out-of-bound coordinates, missing contigs, noncanonical sequence, length mismatches, and reference-allele mismatches.
 Any row failure excludes its complete `match_group`.
-Every failed row and group is written to `results/promoter_pilot/windows/exclusions.parquet`.
+Every failed row and group is written under the selected output namespace's `windows/exclusions.parquet`.
 
 The smoke sample is selected by a stable hash of `variant_id`.
 Labels, subsets, match groups, and consequence columns are removed before the smoke scorer sees the rows.
@@ -56,14 +58,21 @@ results/
 ├── preflight/
 │   ├── prompt_grammar.json
 │   └── prompt_grammar.parquet
-└── promoter_pilot/
-    ├── windows/
-    │   ├── mendelian.parquet
-    │   └── exclusions.parquet
-    ├── smoke/
-    │   ├── windows.parquet
-    │   ├── scores/{untagged,correct}.parquet
-    │   └── runtime/{untagged,correct}.json
+├── promoter_pilot/
+│   ├── windows/
+│   │   ├── mendelian.parquet
+│   │   └── exclusions.parquet
+│   ├── smoke/
+│   │   ├── windows.parquet
+│   │   ├── scores/{untagged,correct}.parquet
+│   │   └── runtime/{untagged,correct}.json
+│   ├── scores/Carbon-3B/{untagged,correct}.parquet
+│   ├── metrics/Carbon-3B/{untagged,correct}.parquet
+│   ├── paired/Carbon-3B/correct_minus_untagged.parquet
+│   ├── runtime/Carbon-3B/{untagged,correct}.json
+│   └── summary.md
+└── full_development/
+    ├── windows/{mendelian,exclusions}.parquet
     ├── scores/Carbon-3B/{untagged,correct}.parquet
     ├── metrics/Carbon-3B/{untagged,correct}.parquet
     ├── paired/Carbon-3B/correct_minus_untagged.parquet
@@ -81,6 +90,7 @@ Run from this project root.
 uv sync --locked --group dev
 uv run --locked pytest
 uv run --locked snakemake -n --profile workflow/profiles/default
+uv run --locked snakemake -n --configfile config/full_development.yaml --profile workflow/profiles/default
 ```
 
 The dry-run performs no remote inference.
@@ -94,23 +104,24 @@ The smoke's maximum allocated GPU memory was 11.26 GiB.
 
 A subsequent Lambda GH200 benchmark scored the same eight label-blind rows in 1.55 seconds with batch size one.
 Batch size eight was slower per row and raised peak allocation to 44.76 GiB, so the pilot keeps batch size one.
-At the 2026-08-20 catalog price of $2.29 per hour, the two-condition promoter pilot is expected to use about 13–15 GPU-minutes and cost about $0.50–$0.60.
+The retained promoter execution scored both conditions in 7.6 inference minutes.
+At the 2026-08-20 catalog price of $2.29 per hour, the two-condition full-development run is expected to keep the instance up for 63–67 minutes and cost $2.40–$2.60.
 
-The GH200 task has a 20-minute command timeout and two-minute autodown, giving a conservative approval ceiling of $1.00 after ordinary sync overhead.
+The full-development GH200 task has a 70-minute command timeout and two-minute autodown, giving an approval ceiling of $3.00 after ordinary sync overhead.
 Check the current [Lambda instance price](https://lambda.ai/instances) immediately before launch.
 
 Stage the already-validated development-only artifacts on the coordinator before launch.
-This reads the canonical S3 artifacts locally, filters the window parquet to the 2,050 promoter rows with provenance checks, and does not forward AWS credentials to Lambda.
+This reads the canonical S3 artifacts locally, streams the configured scope with provenance checks, and does not forward AWS credentials to Lambda.
 
 ```bash
-bash snakemake/analysis/carbon_conditioning_vep/sky/stage-gh200-pilot.sh
+bash snakemake/analysis/carbon_conditioning_vep/sky/stage-gh200-full.sh
 ```
 
 Launch from the repository root only after explicit approval of the current price and cap.
 
 ```bash
-sky launch snakemake/analysis/carbon_conditioning_vep/sky/run-gh200-pilot.yaml \
-  -c carbon-conditioning-vep-gh200-pilot
+sky launch snakemake/analysis/carbon_conditioning_vep/sky/run-gh200-full.yaml \
+  -c carbon-conditioning-vep-gh200-full
 ```
 
 Retrieve the results immediately after the job succeeds and before the two-minute autodown.
@@ -118,8 +129,8 @@ SkyPilot stores each cluster's SSH configuration separately from `~/.ssh/config`
 
 ```bash
 rsync -a \
-  -e 'ssh -F /home/ubuntu/.sky/generated/ssh/carbon-conditioning-vep-gh200-pilot' \
-  carbon-conditioning-vep-gh200-pilot:sky_workdir/snakemake/analysis/carbon_conditioning_vep/results/promoter_pilot/ \
-  snakemake/analysis/carbon_conditioning_vep/results/promoter_pilot/
-sky down carbon-conditioning-vep-gh200-pilot -y
+  -e 'ssh -F /home/ubuntu/.sky/generated/ssh/carbon-conditioning-vep-gh200-full' \
+  carbon-conditioning-vep-gh200-full:sky_workdir/snakemake/analysis/carbon_conditioning_vep/results/full_development/ \
+  snakemake/analysis/carbon_conditioning_vep/results/full_development/
+sky down carbon-conditioning-vep-gh200-full -y
 ```

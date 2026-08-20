@@ -47,44 +47,44 @@ def select_analysis_subset(
     analysis_config: dict[str, Any],
 ) -> pd.DataFrame:
     """Select and validate the fixed match-group-complete analysis subset."""
-    subset = str(analysis_config["subset"])
-    selected = dataset.loc[dataset["subset"].astype(str) == subset].copy()
+    subset_value = analysis_config.get("subset")
+    subset = None if subset_value is None else str(subset_value)
+    scope = subset or str(analysis_config["subset_label"])
+    selected = (
+        dataset.copy()
+        if subset is None
+        else dataset.loc[dataset["subset"].astype(str) == subset].copy()
+    )
     assert len(selected) == int(analysis_config["expected_rows"]), (
-        f"{subset} row count changed: {len(selected)}"
+        f"{scope} row count changed: {len(selected)}"
     )
     assert int(selected["label"].astype(int).sum()) == int(
         analysis_config["expected_positives"]
-    ), f"{subset} positive count changed"
+    ), f"{scope} positive count changed"
     assert selected["match_group"].nunique() == int(
         analysis_config["expected_groups"]
-    ), f"{subset} match-group count changed"
+    ), f"{scope} match-group count changed"
     group_sizes = selected.groupby("match_group").size()
     assert group_sizes.eq(int(analysis_config["expected_group_size"])).all(), (
-        f"{subset} contains incomplete match groups"
+        f"{scope} contains incomplete match groups"
     )
-    assert selected["subset"].astype(str).eq(subset).all()
+    positives_per_group = (
+        selected["label"].astype(int).groupby(selected["match_group"]).sum()
+    )
+    assert positives_per_group.eq(1).all(), (
+        f"{scope} contains a match group without exactly one positive"
+    )
+    if subset is not None:
+        assert selected["subset"].astype(str).eq(subset).all()
     return selected.reset_index(drop=True)
 
 
-def stage_analysis_windows(
-    source_path: str | Path,
+def _validate_window_provenance(
+    selected: pd.DataFrame,
     *,
     dataset_config: dict[str, Any],
     reference_config: dict[str, Any],
-    analysis_config: dict[str, Any],
-) -> pd.DataFrame:
-    """Filter a validated development-window artifact to the fixed pilot subset."""
-    subset = str(analysis_config["subset"])
-    selected_batches: list[pa.Table] = []
-    source_file = pq.ParquetFile(source_path)
-    for batch in source_file.iter_batches(batch_size=256):
-        table = pa.Table.from_batches([batch])
-        selected_batch = table.filter(pc.equal(table["subset"], subset))
-        if selected_batch.num_rows:
-            selected_batches.append(selected_batch)
-    assert selected_batches, f"validated window artifact lacks subset {subset!r}"
-    source = pa.concat_tables(selected_batches).to_pandas()
-    selected = select_analysis_subset(source, analysis_config)
+) -> None:
     expected_provenance = {
         "dataset_repo": str(dataset_config["repo"]),
         "dataset_revision": str(dataset_config["revision"]),
@@ -100,8 +100,120 @@ def stage_analysis_windows(
         assert observed == [expected], (
             f"validated window provenance changed for {column}: {observed!r}"
         )
-    selected["analysis_subset"] = subset
+
+
+def stage_analysis_windows(
+    source_path: str | Path,
+    *,
+    dataset_config: dict[str, Any],
+    reference_config: dict[str, Any],
+    analysis_config: dict[str, Any],
+) -> pd.DataFrame:
+    """Filter a validated development-window artifact to one analysis scope."""
+    subset_value = analysis_config.get("subset")
+    subset = None if subset_value is None else str(subset_value)
+    selected_batches: list[pa.Table] = []
+    source_file = pq.ParquetFile(source_path)
+    for batch in source_file.iter_batches(batch_size=256):
+        table = pa.Table.from_batches([batch])
+        selected_batch = (
+            table if subset is None else table.filter(pc.equal(table["subset"], subset))
+        )
+        if selected_batch.num_rows:
+            selected_batches.append(selected_batch)
+    scope = subset or str(analysis_config["subset_label"])
+    assert selected_batches, f"validated window artifact lacks scope {scope!r}"
+    source = pa.concat_tables(selected_batches).to_pandas()
+    selected = select_analysis_subset(source, analysis_config)
+    _validate_window_provenance(
+        selected,
+        dataset_config=dataset_config,
+        reference_config=reference_config,
+    )
+    selected["analysis_subset"] = scope
     return selected
+
+
+def stage_analysis_windows_file(
+    source_path: str | Path,
+    output_path: str | Path,
+    *,
+    dataset_config: dict[str, Any],
+    reference_config: dict[str, Any],
+    analysis_config: dict[str, Any],
+) -> None:
+    """Stream a provenance-checked analysis scope into a staged parquet file."""
+    subset_value = analysis_config.get("subset")
+    subset = None if subset_value is None else str(subset_value)
+    scope = subset or str(analysis_config["subset_label"])
+    provenance_columns = [
+        "dataset_repo",
+        "dataset_revision",
+        "dataset_split",
+        "reference_path",
+        "reference_assembly",
+        "reference_ensembl_release",
+        "reference_masking",
+    ]
+    metadata_columns = [
+        "variant_id",
+        "label",
+        "subset",
+        "match_group",
+        *provenance_columns,
+    ]
+    required_columns = set(metadata_columns + ["ref_sequence", "alt_sequence"])
+    source_file = pq.ParquetFile(source_path)
+    missing = sorted(required_columns - set(source_file.schema_arrow.names))
+    assert not missing, f"validated window artifact lacks columns: {missing}"
+
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = destination.with_name(f".{destination.name}.staging")
+    staging.unlink(missing_ok=True)
+    writer: pq.ParquetWriter | None = None
+    metadata_batches: list[pa.Table] = []
+    try:
+        for batch in source_file.iter_batches(batch_size=256):
+            table = pa.Table.from_batches([batch])
+            selected = (
+                table
+                if subset is None
+                else table.filter(pc.equal(table["subset"], subset))
+            )
+            if not selected.num_rows:
+                continue
+            scope_values = pa.array([scope] * selected.num_rows, type=pa.string())
+            if "analysis_subset" in selected.column_names:
+                index = selected.column_names.index("analysis_subset")
+                selected = selected.set_column(index, "analysis_subset", scope_values)
+            else:
+                selected = selected.append_column("analysis_subset", scope_values)
+            if writer is None:
+                writer = pq.ParquetWriter(
+                    staging, selected.schema, compression="snappy"
+                )
+            writer.write_table(selected)
+            metadata_batches.append(selected.select(metadata_columns))
+        assert writer is not None and metadata_batches, (
+            f"validated window artifact lacks scope {scope!r}"
+        )
+        writer.close()
+        writer = None
+        metadata = pa.concat_tables(metadata_batches).to_pandas()
+        validated = select_analysis_subset(metadata, analysis_config)
+        assert validated["variant_id"].is_unique, "variant_id must remain unique"
+        _validate_window_provenance(
+            validated,
+            dataset_config=dataset_config,
+            reference_config=reference_config,
+        )
+        staging.replace(destination)
+    except BaseException:
+        if writer is not None:
+            writer.close()
+        staging.unlink(missing_ok=True)
+        raise
 
 
 def build_validated_windows(
@@ -145,7 +257,9 @@ def build_validated_windows(
     windows["dataset_repo"] = str(dataset_config["repo"])
     windows["dataset_revision"] = str(dataset_config["revision"])
     windows["dataset_split"] = split
-    windows["analysis_subset"] = str(analysis_config["subset"])
+    windows["analysis_subset"] = str(
+        analysis_config.get("subset") or analysis_config["subset_label"]
+    )
     windows["reference_path"] = str(reference_config["path"])
     windows["reference_assembly"] = str(reference_config["assembly"])
     windows["reference_ensembl_release"] = int(reference_config["ensembl_release"])

@@ -4,6 +4,7 @@ from marin_dna_carbon_conditioning_vep.report import render_summary
 
 def test_summary_renders_only_selected_analysis_conditions() -> None:
     config = {
+        "config_path": "config/config.yaml",
         "analysis": {
             "conditions": ["untagged", "correct"],
             "subset": "tss_proximal",

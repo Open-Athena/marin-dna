@@ -44,6 +44,8 @@ def render_summary(
 ) -> str:
     """Render all required result and provenance fields without a winner gate."""
     conditions = [str(value) for value in config["analysis"]["conditions"]]
+    scope = config["analysis"].get("subset") or config["analysis"]["subset_label"]
+    config_path = str(config["config_path"])
     metric_subsets = [
         subset
         for subset in absolute_metrics["subset"].drop_duplicates()
@@ -78,7 +80,7 @@ def render_summary(
         "",
         "## TL;DR",
         "",
-        f"This exploratory pilot reports {len(conditions)} prompt conditions on the {_code(config['analysis']['subset'])} subset.",
+        f"This exploratory pilot reports {len(conditions)} prompt conditions on the {_code(scope)} scope.",
         "No pass/fail outcome or testing hierarchy is assigned.",
         "",
         "## Fixed contract",
@@ -159,9 +161,9 @@ def render_summary(
             "",
             TICK * 3 + "bash",
             "cd snakemake/analysis/carbon_conditioning_vep",
-            "uv run --locked --group genome-s3 snakemake --profile workflow/profiles/default smoke",
-            "uv run --locked --group genome-s3 snakemake -n --profile workflow/profiles/default",
-            "uv run --locked --group genome-s3 snakemake --profile workflow/profiles/default",
+            f"uv run --locked --group genome-s3 snakemake --configfile {config_path} --profile workflow/profiles/default smoke",
+            f"uv run --locked --group genome-s3 snakemake -n --configfile {config_path} --profile workflow/profiles/default",
+            f"uv run --locked --group genome-s3 snakemake --configfile {config_path} --profile workflow/profiles/default",
             TICK * 3,
             "",
         ]

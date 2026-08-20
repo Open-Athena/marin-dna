@@ -1,6 +1,6 @@
-experiment_id: CARBON-SC-001
+experiment_id: CARBON-SC-002-FULL
 issue: https://github.com/Open-Athena/marin-dna/issues/486
-config_path: config/config.yaml
+config_path: config/full_development.yaml
 
 model:
   name: Carbon-3B
@@ -32,13 +32,13 @@ conditions:
 
 analysis:
   conditions: [untagged, correct]
-  subset: tss_proximal
-  subset_label: promoter
-  expected_rows: 2050
-  expected_positives: 205
-  expected_groups: 205
+  subset: null
+  subset_label: all_development
+  expected_rows: 16140
+  expected_positives: 1614
+  expected_groups: 1614
   expected_group_size: 10
-  output_namespace: promoter_pilot
+  output_namespace: full_development
 
 dataset:
   repo: marin-dna/evals_mendelian_traits

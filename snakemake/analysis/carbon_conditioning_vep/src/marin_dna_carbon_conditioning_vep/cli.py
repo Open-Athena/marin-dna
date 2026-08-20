@@ -13,7 +13,7 @@ import yaml
 from marin_dna_carbon_conditioning_vep.pipeline import (
     build_validated_windows,
     label_blind_smoke_sample,
-    stage_analysis_windows,
+    stage_analysis_windows_file,
 )
 
 
@@ -97,15 +97,13 @@ def _build_smoke_sample(args: argparse.Namespace) -> None:
 
 def _stage_windows(args: argparse.Namespace) -> None:
     config = _load_yaml(args.config)
-    windows = stage_analysis_windows(
+    stage_analysis_windows_file(
         args.source,
+        args.output,
         dataset_config=config["dataset"],
         reference_config=config["reference"],
         analysis_config=config["analysis"],
     )
-    destination = Path(args.output)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    windows.to_parquet(destination, index=False)
 
 
 def _score(args: argparse.Namespace) -> None:

@@ -6,6 +6,7 @@ import json
 configfile: "config/config.yaml"
 
 
+CONFIG_PATH = str(config["config_path"])
 CONDITIONS = list(config["analysis"]["conditions"])
 COMPARISONS = list(config["metrics"]["comparisons"])
 MODEL_NAME = config["model"]["name"]
@@ -37,7 +38,7 @@ rule prompt_preflight:
     shell:
         """
         carbon-conditioning-vep preflight \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --output-json {output.summary:q} \
             --output-parquet {output.evidence:q}
         """
@@ -56,7 +57,7 @@ rule build_windows:
     shell:
         """
         carbon-conditioning-vep build-windows \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --preflight {input.preflight:q} \
             --output-windows {output.windows:q} \
             --output-exclusions {output.exclusions:q}
@@ -73,7 +74,7 @@ rule label_blind_smoke_sample:
     shell:
         """
         carbon-conditioning-vep smoke-sample \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --windows {input:q} \
             --output {output:q}
         """
@@ -97,7 +98,7 @@ rule compute_smoke_scores:
     shell:
         """
         carbon-conditioning-vep score \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --preflight {input.preflight:q} \
             --windows {input.windows:q} \
             --condition {wildcards.condition:q} \
@@ -124,7 +125,7 @@ rule compute_scores:
     shell:
         """
         carbon-conditioning-vep score \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --preflight {input.preflight:q} \
             --windows {input.windows:q} \
             --condition {wildcards.condition:q} \
@@ -145,7 +146,7 @@ rule absolute_metrics:
     shell:
         """
         carbon-conditioning-vep absolute-metrics \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --scores {input:q} \
             --condition {wildcards.condition:q} \
             --output {output:q}
@@ -170,7 +171,7 @@ rule paired_deltas:
     shell:
         """
         carbon-conditioning-vep paired-deltas \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --comparison {wildcards.comparison:q} \
             --score-a {input.score_a:q} \
             --score-b {input.score_b:q} \
@@ -201,7 +202,7 @@ rule render_summary:
     shell:
         """
         carbon-conditioning-vep report \
-            --config config/config.yaml \
+            --config {CONFIG_PATH:q} \
             --preflight {input.preflight:q} \
             --absolute-metrics {input.absolute:q} \
             --paired-deltas {input.paired:q} \

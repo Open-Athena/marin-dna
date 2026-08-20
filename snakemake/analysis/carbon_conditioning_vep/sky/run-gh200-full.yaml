@@ -1,0 +1,47 @@
+# Paid Lambda GH200 task for the two-condition full-development run in issue #486.
+# Stage inputs first with sky/stage-gh200-full.sh.
+# Launch only after explicit approval of the current price and $3.00 cap.
+
+name: carbon-conditioning-vep-gh200-full
+
+resources:
+  infra: lambda
+  accelerators: GH200:1
+  disk_size: 200
+  autostop:
+    idle_minutes: 2
+    down: true
+    wait_for: jobs
+
+workdir: .
+
+file_mounts:
+  ~/carbon-conditioning-full-inputs: snakemake/analysis/carbon_conditioning_vep/results/gh200-full-inputs
+
+run: |
+  set -euxo pipefail
+  timeout --signal=TERM --kill-after=30s 4200s bash -lc '
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true
+    uv self update 0.11.31
+    uv sync \
+      --project snakemake/analysis/carbon_conditioning_vep \
+      --locked
+    cd snakemake/analysis/carbon_conditioning_vep
+    uv run --locked pytest
+    mkdir -p results/preflight results/full_development/windows
+    cp "$HOME/carbon-conditioning-full-inputs/preflight/"* results/preflight/
+    cp "$HOME/carbon-conditioning-full-inputs/windows/"* results/full_development/windows/
+    uv run --locked snakemake all \
+      --configfile config/full_development.yaml \
+      --workflow-profile none \
+      --default-storage-provider none \
+      --cores all \
+      --resources gpu=1 \
+      --printshellcmds \
+      --rerun-incomplete
+  '
