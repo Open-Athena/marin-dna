@@ -11,6 +11,7 @@ from exp479_mntp.checkpoint_audit import (
     REPLAY_STEPS,
     _find_sample_id_for_position,
     attach_logged_loss_parity,
+    plot_dependency_panel,
     plot_training_stability,
     trajectory_points,
     triangle_summary,
@@ -101,3 +102,18 @@ def test_training_stability_plot_writes_svg_and_png(tmp_path: Path) -> None:
     )
     assert output.with_suffix(".svg").is_file()
     assert output.with_suffix(".png").is_file()
+
+
+def test_dependency_panel_writes_one_column_header_and_each_locus(tmp_path: Path) -> None:
+    matrix = np.eye(8, dtype=np.float32)
+    maps = [(f"locus_{index}", matrix, matrix * 0.8, matrix * 0.9) for index in range(5)]
+    output = tmp_path / "nucleotide-dependency-panel"
+    plot_dependency_panel(maps, output)
+
+    svg = output.with_suffix(".svg")
+    assert svg.is_file()
+    assert output.with_suffix(".png").is_file()
+    rendered = svg.read_text(encoding="utf-8")
+    assert rendered.count("Raw reference-directed") == 1
+    for name, *_ in maps:
+        assert name in rendered
