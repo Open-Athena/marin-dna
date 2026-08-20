@@ -11,7 +11,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
-
 from marin_dna_evals import gpu_runtime_validation
 from marin_dna_evals.gpu_runtime_validation import (
     RuntimeSpec,
@@ -48,6 +47,12 @@ def test_runtime_contract_matches_project_and_sky_configuration() -> None:
     assert sky["resources"]["image_id"] == spec.runtime.image_id
     setup = sky["setup"].replace("\\\n", " ")
     run = sky["run"].replace("\\\n", " ")
+    path_export = setup.index(
+        'export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"'
+    )
+    uv_install = setup.index("if ! command -v uv")
+    uv_version = setup.index('if [[ "$(uv --version)"')
+    assert path_export < uv_install < uv_version
     assert re.search(r"\bevals-gpu-runtime-check\b[^\n]*\bsmoke\b", setup)
     assert re.search(r"\bevals-gpu-runtime-check\b[^\n]*\bparity\b", run)
     assert spec.parity.split == "train"

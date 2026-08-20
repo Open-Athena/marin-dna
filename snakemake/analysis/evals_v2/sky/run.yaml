@@ -54,6 +54,8 @@ file_mounts:
 setup: |
     set -euxo pipefail
 
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
@@ -69,8 +71,6 @@ setup: |
 
     grep -q 'google-cloud-sdk/bin' "$HOME/.bashrc" || \
         echo 'export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-
-    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
 
     # Pin to the ADC we mounted; gcloud picks this up automatically.
     export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
