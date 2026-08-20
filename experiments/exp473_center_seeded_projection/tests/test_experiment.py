@@ -5,10 +5,17 @@ from exp473_center_seeded_projection.experiment import (
     BATCH_SIZE,
     HF_SAVE_STEPS,
     MODEL,
+    NATIVE_CHECKPOINT_STEPS,
+    OPTIMIZER,
+    PER_DEVICE_PARALLELISM,
     SEED,
     SEQUENCE_LENGTH,
+    TOKENIZER_PATH,
+    TOKENIZER_SHA256,
+    TOKENIZER_SOURCE_REVISION,
     TRAIN_STEPS,
     build_training,
+    validate_vendored_tokenizer,
 )
 from marin.execution.lazy import StepContext
 
@@ -33,8 +40,25 @@ def test_all_four_arms_materialize_the_matched_recipe(monkeypatch) -> None:
     _set_required_env(monkeypatch)
     assert MODEL.max_seq_len == SEQUENCE_LENGTH
     assert MODEL.hidden_dim == 1_152
+    assert MODEL.intermediate_dim == 4_608
     assert MODEL.num_layers == 12
-    assert MODEL.num_heads == 9
+    assert MODEL.num_heads == MODEL.num_kv_heads == 9
+    assert MODEL.head_dim == 128
+    assert MODEL.use_sliding_window is False
+    assert MODEL.tie_word_embeddings is False
+    assert MODEL.tokenizer == TOKENIZER_PATH
+    assert MODEL.initializer_range == 0.02
+    assert 250_000_000 < MODEL.total_trainable_params(7) < 260_000_000
+    assert OPTIMIZER.learning_rate == 0.00430097
+    assert OPTIMIZER.weight_decay == 0.1
+    assert OPTIMIZER.beta1 == 0.66756
+    assert OPTIMIZER.beta2 == 0.952222
+    assert OPTIMIZER.epsilon == 6.77142e-15
+    assert OPTIMIZER.max_grad_norm == 0.995188
+    assert OPTIMIZER.warmup == 0.1
+    assert OPTIMIZER.decay == 0.2
+    assert OPTIMIZER.lr_schedule == "linear"
+    assert OPTIMIZER.min_lr_ratio == 0.0
 
     for key, arm in ARMS.items():
         step = build_training(arm)
@@ -47,7 +71,10 @@ def test_all_four_arms_materialize_the_matched_recipe(monkeypatch) -> None:
         train = pod.train_config
         assert train.trainer.train_batch_size == BATCH_SIZE
         assert train.trainer.num_train_steps == TRAIN_STEPS
+        assert train.trainer.seed == SEED
         assert train.trainer.steps_per_eval == HF_SAVE_STEPS
+        assert train.trainer.per_device_parallelism == PER_DEVICE_PARALLELISM
+        assert train.trainer.checkpointer.keep == [{"every": NATIVE_CHECKPOINT_STEPS}]
         assert train.train_seq_len == SEQUENCE_LENGTH
         assert train.data_seed == SEED
         assert train.hf_save_steps == HF_SAVE_STEPS
@@ -69,9 +96,23 @@ def test_tokenized_handles_pin_hf_revisions(monkeypatch) -> None:
         assert config.id == arm.hf_repo
         assert config.revision == arm.resolved_revision()
         assert len(config.revision) == 40
+        assert config.tokenizer == TOKENIZER_PATH
         assert config.format.text_key == "sequence"
+        assert config.format.uppercase_weight == 1.0
         assert config.format.lowercase_weight == 0.01
+        assert f"tokenizer_revision={TOKENIZER_SOURCE_REVISION}" in config.tags
+        for name, digest in TOKENIZER_SHA256.items():
+            assert f"{name}_sha256={digest}" in config.tags
         assert cache.run.env_vars == {
             "HF_HUB_DOWNLOAD_TIMEOUT": "120",
             "UV_LOCK_TIMEOUT": "7200",
         }
+
+
+def test_vendored_tokenizer_matches_issue_417() -> None:
+    assert set(TOKENIZER_SHA256) == {
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+    }
+    validate_vendored_tokenizer()

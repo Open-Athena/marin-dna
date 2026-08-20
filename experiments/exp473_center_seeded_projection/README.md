@@ -11,16 +11,21 @@ specialists from issue #473:
 | `enhancer_center_1` | enhancer-centered cCRE | center 1 bp | new issue #473 dataset |
 
 Every arm uses the same Qwen3-like 0.25B geometry, character-plus-BOS
-tokenizer, case-aware loss, optimizer, seed 0, and 5,000-step schedule. The
-global batch is 8,192 sequences of 256 tokens, so each arm sees
-10,485,760,000 token presentations. Hugging Face checkpoints are written every
-500 steps. Rolling recovery checkpoints retain Marin's standard ten-minute
-cadence.
+tokenizer, case-aware loss, optimizer, seed 0, 1,024-sequence per-device
+microbatch, and 5,000-step schedule from #417. The global batch is 8,192
+sequences of 256 tokens, so each arm sees 10,485,760,000 token presentations.
+Hugging Face checkpoints are written every 500 steps. Rolling recovery
+checkpoints retain Marin's standard ten-minute cadence, with a native
+optimizer-state checkpoint retained every 500 steps.
 
 The project is independently locked to Python 3.12 and Marin source commit
 `6bb4d74694fa185cabf20d037f414235e6a12eed`. Its DNA tokenizer and Levanter
 format adapter are copied into this project so no root package or evaluation
-workflow is a runtime dependency.
+workflow is a runtime dependency. The vendored tokenizer is byte-identical to
+`marin-dna/tokenizer-char-bos` revision
+`a73e9d9ee636f722b4c378703c9e2997857809b2`; all three file digests are
+verified before constructing an artifact graph, and the model's Hugging Face
+export points to that same local tokenizer.
 
 ## Dataset revisions
 

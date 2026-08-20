@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Self
 
 import click
@@ -25,12 +27,21 @@ from marin.training.training import LevanterCheckpoint
 from exp473_center_seeded_projection.formats import DNALmDatasetFormat
 
 MARIN_COMMIT = "6bb4d74694fa185cabf20d037f414235e6a12eed"
-TOKENIZER = "bolinas-dna/tokenizer-char-bos"
+TOKENIZER_PATH = "tokenizer"
+TOKENIZER_SOURCE = "marin-dna/tokenizer-char-bos"
+TOKENIZER_SOURCE_REVISION = "a73e9d9ee636f722b4c378703c9e2997857809b2"
+TOKENIZER_SHA256 = {
+    "special_tokens_map.json": "02b7b977703736f58dd672a20b0e6159fa10bfc41c9ca721eba0402552e35f2d",
+    "tokenizer.json": "d066e668d7ba6ed48640b7a0ad45b5ae05d5dbd612b2d7f91fae1e2473fc93e9",
+    "tokenizer_config.json": "4e814edcdb1cb8f408a2cdf951e9be4093bbcd3d12e58883f56aa06eb39fc8c7",
+}
 SEQUENCE_LENGTH = 256
 BATCH_SIZE = 8_192
 TRAIN_STEPS = 5_000
 SEED = 0
 HF_SAVE_STEPS = 500
+NATIVE_CHECKPOINT_STEPS = 500
+PER_DEVICE_PARALLELISM = 1_024
 DATA_VERSION = "2026.08.20"
 FULL_CDS_REVISION = "bfab878078c4ee6c0f47b760f1e5e0577549dc9d"
 
@@ -43,7 +54,9 @@ MODEL = Qwen3Config(
     num_kv_heads=9,
     head_dim=128,
     rope=Llama3RotaryEmbeddingsConfig(),
-    use_qk_norm=True,
+    use_sliding_window=False,
+    tie_word_embeddings=False,
+    tokenizer=TOKENIZER_PATH,
     initializer_range=0.02,
 )
 OPTIMIZER = AdamConfig(
@@ -158,7 +171,18 @@ def selected_arm() -> Arm:
         ) from exc
 
 
+def validate_vendored_tokenizer() -> None:
+    """Fail if any byte of the exact #417 tokenizer has changed."""
+    for filename, expected in TOKENIZER_SHA256.items():
+        path = Path(TOKENIZER_PATH, filename)
+        if not path.is_file():
+            raise FileNotFoundError(f"missing vendored tokenizer file {path}")
+        observed = hashlib.sha256(path.read_bytes()).hexdigest()
+        assert observed == expected, f"{path} sha256 changed: {observed} != {expected}"
+
+
 def tokenized_dataset(arm: Arm) -> ArtifactStep[DnaTokenizedCache]:
+    validate_vendored_tokenizer()
     revision = arm.resolved_revision()
 
     def build_config(ctx: StepContext) -> HfTokenizeConfig:
@@ -166,7 +190,7 @@ def tokenized_dataset(arm: Arm) -> ArtifactStep[DnaTokenizedCache]:
             id=arm.hf_repo,
             revision=revision,
             cache_path=ctx.output_path,
-            tokenizer=TOKENIZER,
+            tokenizer=TOKENIZER_PATH,
             format=TRAIN_FORMAT,
             tags=[
                 "dna",
@@ -175,6 +199,12 @@ def tokenized_dataset(arm: Arm) -> ArtifactStep[DnaTokenizedCache]:
                 f"region={arm.region}",
                 f"policy={arm.policy}",
                 f"hf_revision={revision}",
+                f"tokenizer_source={TOKENIZER_SOURCE}",
+                f"tokenizer_revision={TOKENIZER_SOURCE_REVISION}",
+                *[
+                    f"{name}_sha256={digest}"
+                    for name, digest in sorted(TOKENIZER_SHA256.items())
+                ],
             ],
             max_workers=128,
             num_shards=64,
@@ -222,7 +252,13 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
         num_train_steps=TRAIN_STEPS,
         z_loss_weight=4.312883184368223e-06,
         evals=None,
-        resources=ResourceConfig.with_tpu("v5p-8", regions=["us-east5"]),
+        resources=ResourceConfig.with_tpu(
+            "v5p-8",
+            cpu=16,
+            ram="56g",
+            disk="100g",
+            regions=["us-east5"],
+        ),
         tensor_parallel_size=1,
         steps_per_eval=HF_SAVE_STEPS,
         wandb_project=forwarded_env["WANDB_PROJECT"],
@@ -251,6 +287,15 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
             pod,
             train_config=replace(
                 pod.train_config,
+                trainer=replace(
+                    pod.train_config.trainer,
+                    seed=SEED,
+                    per_device_parallelism=PER_DEVICE_PARALLELISM,
+                    checkpointer=replace(
+                        pod.train_config.trainer.checkpointer,
+                        keep=[{"every": NATIVE_CHECKPOINT_STEPS}],
+                    ),
+                ),
                 data_seed=SEED,
                 hf_save_steps=HF_SAVE_STEPS,
             ),
