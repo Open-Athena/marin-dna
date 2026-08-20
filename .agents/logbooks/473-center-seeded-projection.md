@@ -1422,3 +1422,28 @@ cohort, assemblies, and downstream training recipe fixed.
   2,424 and 1,884. The launcher and regression test now assert those values.
 - Scope: only the additive report launcher's fail-closed accounting changed.
   No data, projection, shared rule, training job, or evaluation result changed.
+
+### 2026-08-20 16:39 UTC - CSP-039 fixed-catalog report boundary added
+
+- Full-analysis diagnosis: Sky job 14 completed staging and projection
+  accounting, then stopped while formatting Markdown because the reused #417
+  full-window rejection inventory contains 4,222,019 rejected pairs from
+  anchors outside issue #473's fixed catalog. Those rows intentionally have no
+  #473 region label; the ten in-scope policy-by-region rows had complete
+  requested, accepted, and rejected accounting.
+- Additive correction: a new `fixed_catalog_report` entry point and separate
+  `projection_report_batched_v2.yaml` launcher leave the existing report
+  module, producer, rules, rejection artifacts, and prior output namespaces
+  unchanged. The wrapper asserts that every unlabeled row is rejected-only
+  `full_window` evidence from the immutable superset, removes only those rows,
+  and requires complete fixed-catalog labels and requested counts before
+  writing `projection_report_v2`.
+- Verification: the workflow project passed all 120 locked tests, including a
+  regression for the out-of-scope rejection case, in 8.12 seconds with
+  291,740 KiB peak RSS. Its 78-job default Snakemake dry-run succeeded. The
+  experiment project passed all 26 locked tests in 4.74 seconds with 494,532
+  KiB peak RSS, and changed-file pre-commit hooks passed. All local checks held
+  the shared-node heavy-work lock and respected bounded thread settings.
+- Next action: snapshot and launch only the additive v2 report against final
+  producer `d0e5380a46cd66d4c42d763b3c42da1150c92073`, then verify its immutable
+  S3 receipts before releasing the retained report worker.
