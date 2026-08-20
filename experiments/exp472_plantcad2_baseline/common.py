@@ -33,6 +33,7 @@ DEFAULT_GLOBAL_BATCH_SIZE = 128
 DEFAULT_TRAIN_STEPS = 206_145  # 10 epochs: 2,638,656 examples * 10 / 128
 TEMPORARY_CHECKPOINT_INTERVAL = timedelta(minutes=15)
 PERMANENT_CHECKPOINT_COUNT = 10
+EVALUATION_COUNT = 2 * PERMANENT_CHECKPOINT_COUNT
 DATASET_REVISION = "4a444fff5520b992aa978d92a5af509a81977098"
 CACHE_VERSION = "2026.08.19"
 TOKENIZED_CACHE_RELATIVE = "MarinDNA/tokenized/plantcad/Angiosperm_65_genomes_8192bp"
@@ -329,6 +330,10 @@ def build_sweep_run(
         1,
         (steps + PERMANENT_CHECKPOINT_COUNT - 1) // PERMANENT_CHECKPOINT_COUNT,
     )
+    evaluation_every = max(
+        1,
+        (steps + EVALUATION_COUNT - 1) // EVALUATION_COUNT,
+    )
     suffix = os.environ.get("EXP472_RUN_SUFFIX", "v1").strip()
     checkpoint_id = f"exp472-plantcad2-angiosperm-{point.key}"
     if suffix:
@@ -373,7 +378,7 @@ def build_sweep_run(
         evals=None,
         resources=resources,
         tensor_parallel_size=tensor_parallelism,
-        steps_per_eval=steps,
+        steps_per_eval=evaluation_every,
         wandb_project=wandb_project,
         wandb_group="exp472-plantcad2-baseline-sweep",
         tags=[
@@ -386,6 +391,8 @@ def build_sweep_run(
             f"wd={point.weight_decay:g}",
             f"batch={batch_size}",
             f"steps={steps}",
+            f"eval_every={evaluation_every}",
+            f"eval_target_count={EVALUATION_COUNT}",
             f"params={MODEL_PARAMS}",
         ],
         env_vars=env_vars,
@@ -403,7 +410,7 @@ def build_sweep_run(
         pod = base_build_config(ctx)
         trainer = replace(
             pod.train_config.trainer,
-            max_eval_batches=1,
+            max_eval_batches=None,
             tracker=replace(
                 pod.train_config.trainer.tracker,
                 entity=wandb_entity,
