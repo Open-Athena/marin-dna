@@ -65,7 +65,11 @@ def orientation_dependency(
     batch_size: int,
     attention_mode: str = "full",
 ) -> np.ndarray:
-    """Compute one orientation's directed L-infinity categorical Jacobian."""
+    """Compute one orientation's directed L-infinity categorical Jacobian.
+
+    Each substituted batch is compared with a same-shape baseline batch so
+    BF16 kernel selection cannot masquerade as a nucleotide dependency.
+    """
 
     if arm.mask_token_id is None:
         raise RuntimeError("MNTP dependency maps require a mask token")
@@ -85,12 +89,6 @@ def orientation_dependency(
         target_token = prefix + readout
         base = wildtype.clone()
         base[target_token] = arm.mask_token_id
-        base_logits = model_logits(
-            arm.model,
-            input_ids=base.unsqueeze(0),
-            attention_mode=attention_mode,
-        )[0, target_token - 1, canonical]
-        base_log_probability = torch.log_softmax(base_logits.float(), dim=-1)
 
         substitutions = base.view(1, -1).repeat(NUCLEOTIDE_LENGTH * 4, 1)
         for position in range(NUCLEOTIDE_LENGTH):
@@ -102,12 +100,21 @@ def orientation_dependency(
         max_change = torch.zeros(NUCLEOTIDE_LENGTH, dtype=torch.float32, device=device)
         for start in range(0, len(substitutions), batch_size):
             stop = min(len(substitutions), start + batch_size)
-            logits = model_logits(
+            candidates = substitutions[start:stop]
+            baseline = base.unsqueeze(0).expand(len(candidates), -1)
+            baseline_logits = model_logits(
                 arm.model,
-                input_ids=substitutions[start:stop],
+                input_ids=baseline,
                 attention_mode=attention_mode,
             )[:, target_token - 1, canonical]
-            delta = torch.log_softmax(logits.float(), dim=-1) - base_log_probability
+            candidate_logits = model_logits(
+                arm.model,
+                input_ids=candidates,
+                attention_mode=attention_mode,
+            )[:, target_token - 1, canonical]
+            delta = torch.log_softmax(candidate_logits.float(), dim=-1) - torch.log_softmax(
+                baseline_logits.float(), dim=-1
+            )
             collapsed = delta.abs().amax(dim=-1)
             positions = torch.arange(start, stop, device=device) // 4
             max_change.scatter_reduce_(0, positions, collapsed, reduce="amax", include_self=True)

@@ -137,6 +137,14 @@ uv run --locked python launch.py stability \
 The task requests one Lambda GH200, enforces the same cumulative $50 guard,
 uploads its compact evidence before exit, and uses `sky launch --down`.
 
+The same stage then runs `inference-recheck`. It re-scores the five published
+VEP anchors at the original batch size of 1,024 before requiring row-level
+parity with the private pilot files. It also recomputes every nucleotide-
+dependency map against a same-shape wild-type baseline, checks the tRNA map at
+two batch sizes, and requires the forced-causal map to have zero dependency on
+right-context substitutions. This paired baseline prevents BF16 batch-shape
+numerics from being misreported as biological dependency.
+
 ## Data plans
 
 After preflight selects the batch size, materialize the shared plans on the GH200:
