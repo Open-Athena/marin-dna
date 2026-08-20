@@ -1,0 +1,124 @@
+name: issue-473-batched-fixed-catalog-report-v3
+
+# Additive successor to projection_report_batched_v2.yaml. Sky workdir sync is
+# explicit so retained workers receive the exact snapshot named at launch.
+resources:
+  cpus: 48
+  memory: 90
+
+workdir: .
+
+envs:
+  EXP473_ANALYSIS_COMMIT: ""
+
+run: |
+  set -euo pipefail
+  test -n "$EXP473_ANALYSIS_COMMIT"
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  test "$(sha256sum snakemake/vertebrate_projection_dataset/src/marin_dna_vertebrate_projection/issue_473/report.py | cut -d' ' -f1)" = e330d7acdd0c8eb1424a03c6aac7337b69e362d347737e33592c1b635b41549b
+  test "$(sha256sum snakemake/vertebrate_projection_dataset/src/marin_dna_vertebrate_projection/issue_473/fixed_catalog_report.py | cut -d' ' -f1)" = 86fb238e02611fdc257f2f0f9d34917ef7fac745719f6afaecaaa64cfaeb4186
+  test -x snakemake/vertebrate_projection_dataset/.venv/bin/python
+
+  PRODUCER_COMMIT=d0e5380a46cd66d4c42d763b3c42da1150c92073
+  PRODUCER_CONFIG=bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039
+  S3_ROOT=s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/v1/$PRODUCER_COMMIT/$PRODUCER_CONFIG/full
+  S3_KEY_ROOT=snakemake/vertebrate_projection_dataset/results/v1/$PRODUCER_COMMIT/$PRODUCER_CONFIG/full
+  TRACE_REPORT_KEY=$S3_KEY_ROOT/experiments/473/fixed/hal_trace/report.md
+  LOCAL_ROOT=/mnt/nvme/vertebrate_projection/issue473_fixed_catalog_report_v3
+  SOURCE_ROOT=$LOCAL_ROOT/source
+  OUTPUT_ROOT=$LOCAL_ROOT/output/$EXP473_ANALYSIS_COMMIT
+  S3_OUTPUT=s3://oa-bolinas/snakemake/analysis/issue473/results/$EXP473_ANALYSIS_COMMIT/$PRODUCER_COMMIT/$PRODUCER_CONFIG/projection_report_v3
+
+  date -u +report_gate_start=%Y-%m-%dT%H:%M:%SZ
+  aws s3api head-object --bucket oa-bolinas --key "$TRACE_REPORT_KEY" >/dev/null
+  date -u +report_gate_passed=%Y-%m-%dT%H:%M:%SZ
+
+  mkdir -p "$SOURCE_ROOT/accepted" "$SOURCE_ROOT/rejections/full_enhancer"
+  mkdir -p "$SOURCE_ROOT/rejections/center" "$SOURCE_ROOT/metadata"
+  mkdir -p "$OUTPUT_ROOT"
+
+  stage_object() {
+    source_uri=$1
+    destination=$2
+    mkdir -p "$(dirname "$destination")"
+    partial="$destination.partial"
+    aws s3 cp --only-show-errors "$source_uri" "$partial"
+    test -s "$partial"
+    mv "$partial" "$destination"
+    stat --printf='%n %s bytes\n' "$destination"
+  }
+
+  date -u +report_stage_start=%Y-%m-%dT%H:%M:%SZ
+  stage_object \
+    "$S3_ROOT/experiments/473/fixed/full_scale/full_window/sequences/all_sources.parquet" \
+    "$SOURCE_ROOT/accepted/full_window.parquet"
+  stage_object \
+    "$S3_ROOT/experiments/473/fixed/runs/full_center_1/sequences/all_sources.parquet" \
+    "$SOURCE_ROOT/accepted/center_1.parquet"
+  stage_object \
+    "$S3_ROOT/experiments/473/fixed/anchors/fixed_scored.parquet" \
+    "$SOURCE_ROOT/metadata/fixed_scored.parquet"
+  stage_object \
+    "$S3_ROOT/metadata/species_active.tsv" \
+    "$SOURCE_ROOT/metadata/species_active.tsv"
+
+  for kind in hal/rejected hal/sequence_rejected multiz/rejected multiz/sequence_rejected
+  do
+    aws s3 sync --only-show-errors \
+      "$S3_ROOT/experiments/473/fixed/runs/full_enhancer_full_window/$kind/" \
+      "$SOURCE_ROOT/rejections/full_enhancer/$kind/"
+    aws s3 sync --only-show-errors \
+      "$S3_ROOT/experiments/473/fixed/runs/full_center_1/$kind/" \
+      "$SOURCE_ROOT/rejections/center/$kind/"
+  done
+  date -u +report_stage_end=%Y-%m-%dT%H:%M:%SZ
+
+  BASELINE_REJECTIONS=/mnt/nvme/vertebrate_projection/issue_473_immutable_sources/issue417/rejections
+  test "$(find "$BASELINE_REJECTIONS" -type f -name '*.parquet' | wc -l)" -eq 270
+  test "$(find "$SOURCE_ROOT/rejections/full_enhancer" -type f -name '*.parquet' | wc -l)" -eq 942
+  test "$(find "$SOURCE_ROOT/rejections/center" -type f -name '*.parquet' | wc -l)" -eq 942
+
+  FULL_REJECTIONS=()
+  while IFS= read -r path
+  do
+    FULL_REJECTIONS+=(--full-rejection "$path")
+  done < <(
+    find "$BASELINE_REJECTIONS" "$SOURCE_ROOT/rejections/full_enhancer" \
+      -type f -name '*.parquet' -print | sort
+  )
+  CENTER_REJECTIONS=()
+  while IFS= read -r path
+  do
+    CENTER_REJECTIONS+=(--center-rejection "$path")
+  done < <(
+    find "$SOURCE_ROOT/rejections/center" -type f -name '*.parquet' -print | sort
+  )
+  test "${#FULL_REJECTIONS[@]}" -eq 2424
+  test "${#CENTER_REJECTIONS[@]}" -eq 1884
+
+  export POLARS_MAX_THREADS=16
+  export RAYON_NUM_THREADS=16
+  export OMP_NUM_THREADS=1
+  export MKL_NUM_THREADS=1
+  export OPENBLAS_NUM_THREADS=1
+  export NUMEXPR_NUM_THREADS=1
+  date -u +report_analysis_start=%Y-%m-%dT%H:%M:%SZ
+  uv run --project snakemake/vertebrate_projection_dataset --locked --no-sync \
+    python -m marin_dna_vertebrate_projection.issue_473.fixed_catalog_report \
+    --anchors "$SOURCE_ROOT/metadata/fixed_scored.parquet" \
+    --species-manifest "$SOURCE_ROOT/metadata/species_active.tsv" \
+    --full-accepted "$SOURCE_ROOT/accepted/full_window.parquet" \
+    --center-accepted "$SOURCE_ROOT/accepted/center_1.parquet" \
+    "${FULL_REJECTIONS[@]}" \
+    "${CENTER_REJECTIONS[@]}" \
+    --output-dir "$OUTPUT_ROOT" \
+    --producer-commit "$PRODUCER_COMMIT" \
+    --producer-config-sha256 "$PRODUCER_CONFIG"
+  date -u +report_analysis_end=%Y-%m-%dT%H:%M:%SZ
+
+  test -s "$OUTPUT_ROOT/manifest.json"
+  test -s "$OUTPUT_ROOT/report.md"
+  sha256sum "$OUTPUT_ROOT"/*
+  aws s3 sync --only-show-errors "$OUTPUT_ROOT/" "$S3_OUTPUT/"
+  aws s3 ls "$S3_OUTPUT/" --recursive --summarize
+  date -u +report_complete=%Y-%m-%dT%H:%M:%SZ

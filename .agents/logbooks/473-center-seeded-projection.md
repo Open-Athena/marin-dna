@@ -1447,3 +1447,20 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: snapshot and launch only the additive v2 report against final
   producer `d0e5380a46cd66d4c42d763b3c42da1150c92073`, then verify its immutable
   S3 receipts before releasing the retained report worker.
+
+### 2026-08-20 16:43 UTC - CSP-040 retained-worker code sync made explicit
+
+- Fail-closed launch: Sky job 15 stopped at its first module-hash check because
+  the retained worker still had the earlier workdir snapshot and therefore did
+  not contain `fixed_catalog_report.py`. It performed no S3 staging, analysis,
+  or publication.
+- Additive correction: new successor launcher
+  `projection_report_batched_v3.yaml` declares `workdir: .`, matching the
+  issue's evaluation and analysis launchers, so Sky transfers the exact local
+  snapshot before running. The failed v2 launcher and its output namespace
+  remain unchanged; v3 uses a separate local root and `projection_report_v3`
+  S3 namespace.
+- Verification: all 27 locked experiment tests passed in 4.75 seconds with
+  494,780 KiB peak RSS under the shared-node lock, and changed-file hooks
+  passed. The v3 regression pins explicit workdir sync, final producer
+  identity, fixed-catalog module use, and exact rejection-array counts.
