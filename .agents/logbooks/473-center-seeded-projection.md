@@ -967,3 +967,37 @@ cohort, assemblies, and downstream training recipe fixed.
   the handoff was armed. It remains the sole writer to the producer namespace.
 - Next action: monitor only terminal producer, trace-gate, checkpoint, and error
   events; review the complete QC/manual and trace artifacts before publication.
+
+### 2026-08-20 09:02 UTC - CSP-023 disjoint additive fast producer launched
+
+- Scheduling decision: producer job 11's exact rule-completion audit showed
+  conservative memory and thread reservations leaving most of its 48 CPUs
+  idle during the 5,376 MultiZ contract and 3,424 HAL fan-out jobs. The stable
+  writer was not interrupted, cancelled, or modified. Instead, a second
+  producer was launched in a distinct commit-keyed result namespace from
+  exact snapshot `d43f059c7b0cb8efd5e2396a2bd9e085623a1731`.
+- Scientific identity: the projection implementation is unchanged from
+  `f764b7f1`; the only files added between the snapshots under the producer
+  project are the standalone publication workflow and its tests. The new task
+  retains the same full config and expected config SHA-256 `bf8367c...`.
+  Runtime overrides change scheduling reservations only: MultiZ candidate
+  threads are one, candidate/contract memory is 4 GB, HAL fragment/contract
+  memory is 6 GB, and HAL sequence memory is 4 GB. All existing rules and
+  outputs remain untouched.
+- Remote execution: Sky cluster `issue-473-fast-producer`, job 1, uses one AWS
+  `c6id.12xlarge` in `us-east-2` at the displayed $2.42/hour rate. It mounted
+  2.6 TB RAID-0 NVMe, verified exact source/module/lockfile hashes, and restored
+  all 304 immutable inputs from 08:53:14 through 09:00:33 UTC before starting
+  the exact full producer target. First-minute checks showed 92 GB available
+  memory, load 1.10, and 2.5 TB free.
+- Isolation proof: the result path includes commit `d43f059c...`, so it shares
+  neither S3 outputs nor local Snakemake state with job 11. The exact producer
+  task SHA-256 is
+  `0f84157ab3ba3bdd8270e37611c73fd7cab083212a92801683729cc576a9c9dc`.
+- Trace handoff: job 2 on the same cluster failed closed on the incomplete
+  exact target and waits at ten-minute intervals before invoking only the six
+  sampled-HAL trace rules. Its task SHA-256 is
+  `d00d47142b7075cf84db08b63bd8fb6493456f1b25a739f370facc8f08ac5c6e`.
+- Next action: validate the 10,329-job DAG, HAL staging, actual concurrency,
+  memory headroom, and early durable uploads. Whichever exact producer finishes
+  first must still pass the same QC/manual and sampled-trace review gates.
