@@ -58,6 +58,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   It also reports same-corpus self-reference selection using low frozen-reference loss and entropy.
   A loss difference between two same-corpus model sizes instead measures scale-dependent learnability and may rank tokens differently from Rho-1 reducible loss.
   In genomic data, repeats, local composition, and phylogenetic redundancy may all produce high predictability without functional constraint.
+- [Self-paced learning](https://papers.nips.cc/paper_files/paper/2010/hash/e57c6b956a6521b28495f2886ca0977a-Abstract.html) introduces current small-loss examples first and anneals toward the full dataset, while [Selective Backprop](https://arxiv.org/abs/1910.00762) prioritizes current high-loss examples because low-loss gradients tend to be small.
+  A permanent hard mask on the student's lowest-loss tokens changes the target distribution and can reinforce already-learned tokens; it is distinct from self-distillation and reducible-loss selection.
 - Conservation is a proxy for purifying constraint rather than a complete definition of function.
   It misses lineage-specific and hard-to-align elements, while annotations miss unknown constrained sequence.
   A useful observable is the joint coverage of evaluation loci, annotated classes, conservation tiers, and repeats under each proposed footprint.
@@ -128,6 +130,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### Filter, sample, or weight?
 
 - At equal training FLOPs, how do hard filtering, score-proportional sampling, per-base loss weighting, and a curriculum from enriched to whole-genome data compare?
+- For likelihood-derived selection experiments, keep repeat downweighting fixed across every arm and compute selection thresholds only among nonrepeat tokens.
+  This comparison tests how gradient mass is allocated within nonrepeat sequence, leaving repeat handling outside its scope.
 - Can the whole genome remain in the corpus while constrained/annotated bases receive most of the gradient?
   Does this retain rare functional classes and useful neutral context without letting background dominate?
 - Should a window be selected because it contains some functional sequence, while the loss is applied only or preferentially to the functional bases?
@@ -139,10 +143,19 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
 - The [46M–4B frozen-model audit](../experiments/478-conservation-repeat-predictability.md) is complete: controlled scale-differential loss remained associated with conservation, while absolute loss and entropy provided the best compute-adjusted conservation rankings.
   Exact training-corpus exposure and homology density were unavailable, so neither mechanism has been excluded.
-- Run a fixed-compute causal experiment comparing uniform loss, the current repeat weighting, FWD 46M absolute-loss and entropy weights, and a scale-differential weight derived from frozen checkpoints.
+- Audit token-loss dynamics across checkpoints of one model, starting with m5.2 across its five validation arms.
+  On fixed nonrepeat tokens, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
+  This tests when functional ranking emerges and whether an online selection mask remains stable through training.
+- Run a small fixed-compute causal experiment comparing uniform nonrepeat loss, frozen FWD loss or entropy as a soft weight, excess loss against a frozen target-distribution reference, a scale-differential weight from frozen checkpoints, and the student's lowest-current-loss mask as a diagnostic control.
+  Add direct conservation weighting on human sequence as an oracle positive control.
+  Keep repeat downweighting identical in every arm.
   Match training compute and record the offline scoring cost separately.
   Treat same-corpus improvement as a learnability heuristic rather than a direct Rho-1 analogue.
+  Treat lowest-current-loss selection as a self-paced objective that may reinforce already-learned, small-gradient tokens; use a uniform warm-up and a nonzero background floor if it advances beyond the diagnostic arm.
+  Teacher nucleotide probabilities would define a separate self-distillation objective and should not be conflated with loss-based token selection.
   Use deterministic FWD scoring first and add an averaged-score sensitivity only if downstream outcomes justify the second inference pass.
+- Add compatible training-corpus exposure and homology-density covariates when they become available.
+  Test whether either explains the apparent association between likelihood-derived scores and conservation.
 - When a filtered corpus is smaller, are gains caused by better loci or simply by seeing the same loci for more epochs?
   Both compute-matched and exposure/epoch-matched comparisons are needed.
 - Is there a curriculum in which constrained sequence is best early, but adding progressively broader genome sequence later improves generalization or prevents overfitting?

@@ -3,23 +3,29 @@
 > [!NOTE]
 > **TL;DR:** Among nonrepeat human CDS, upstream, and downstream bases, lower loss and entropy ranked case-encoded conservation increasingly well from 46M to 4B parameters; one FWD pass gives the best cheap proxy, while controlled scale-dependent loss reduction remains a candidate training weight whose causal benefit is untested.
 
-![Four two-by-two heatmaps showing percentages of conserved and non-conserved positions crossed with repeat status globally and in CDS, upstream, and downstream regions](figures/478/token-composition.svg)
+## Findings
+
+<p align="center">
+  <img src="figures/478/token-composition.svg" alt="Four two-by-two heatmaps showing percentages of conserved and non-conserved positions crossed with repeat status globally and in CDS, upstream, and downstream regions" />
+</p>
 
 _Case-encoded conservation × RefSeq repeat composition in the central span; percentages sum to 100 within each scope._
-
-## Findings
 
 Across 9,388,032 central-span positions, 62.3% were nonrepeat and nonconserved, 24.0% were nonrepeat and conserved, 11.7% were repeat and nonconserved, and 2.0% were repeat and conserved.
 Conserved nonrepeat sequence was more common in CDS at 41.1% of positions than upstream at 16.9% or downstream at 14.0%.
 
-![Three square panels showing mean loss for conserved and non-conserved nonrepeat positions across model parameters in CDS, upstream, and downstream regions](figures/478/nonrepeat-conservation-loss.svg)
+<p align="center">
+  <img src="figures/478/nonrepeat-conservation-loss.svg" alt="Three square panels showing mean loss for conserved and non-conserved nonrepeat positions across model parameters in CDS, upstream, and downstream regions" />
+</p>
 
 _FWD/RC-averaged loss at nonrepeat central positions; each point is the exact pooled mean for one model and class._
 
 After repeats were excluded, conserved bases had lower loss than nonconserved bases at every model size in all three regions.
 Loss decreased more with scale for conserved sequence, with the largest separation in CDS.
 
-![Four square panels showing exact pooled conservation-classification AUPRC for loss and entropy across model size globally and in three regions](figures/478/conservation-classification-auprc.svg)
+<p align="center">
+  <img src="figures/478/conservation-classification-auprc.svg" alt="Four square panels showing exact pooled conservation-classification AUPRC for loss and entropy across model size globally and in three regions" />
+</p>
 
 _Exact pooled AUPRC among nonrepeat positions; dashed lines are the conserved prevalence in each scope, and the y-axis range is specific to each panel._
 
@@ -27,7 +33,9 @@ Loss AUPRC increased monotonically from 0.486 at 46M to 0.723 at 4B globally.
 Entropy AUPRC increased from 0.508 to 0.731 over the same ladder.
 At 4B, loss AUPRC was 0.857 in CDS, 0.522 upstream, and 0.428 downstream; entropy AUPRC was 0.867, 0.533, and 0.434.
 
-![Four triangular heatmaps showing percentage-point AUPRC lift over prevalence for every smaller-to-larger model loss delta](figures/478/loss-delta-classification-auprc.svg)
+<p align="center">
+  <img src="figures/478/loss-delta-classification-auprc.svg" alt="Four triangular heatmaps showing percentage-point AUPRC lift over prevalence for every smaller-to-larger model loss delta" />
+</p>
 
 _FWD/RC-averaged loss-delta AUPRC lift over prevalence; the color range is symmetric around zero, and white cells are model pairs that do not exist._
 
@@ -35,7 +43,9 @@ The 46M-to-76M loss delta classified conservation above prevalence in every scop
 Its AUPRC was 0.429 globally, 0.603 in CDS, 0.260 upstream, and 0.214 downstream.
 The best delta used 46M-to-1B globally at 0.569, 46M-to-255M in CDS at 0.702, and 46M-to-4B upstream and downstream at 0.436 and 0.400.
 
-![Scatter plot comparing global FWD conservation-classification AUPRC against relative scoring compute for loss, entropy, and all loss deltas](figures/478/compute-efficiency-auprc.svg)
+<p align="center">
+  <img src="figures/478/compute-efficiency-auprc.svg" alt="Scatter plot comparing global FWD conservation-classification AUPRC against relative scoring compute for loss, entropy, and all loss deltas" />
+</p>
 
 _Global FWD AUPRC against a parameter-pass compute proxy; one 46M FWD pass equals 1, and the dashed line is conserved prevalence._
 
@@ -46,25 +56,19 @@ The compute proxy sums model parameter counts across the passes required for the
 The controlled 46M-to-4B loss reduction for conserved nonrepeat bases was 0.364 nats/base in CDS, 0.292 upstream, and 0.242 downstream after adjustment for repeat status, GC content, local 7-mer predictability, and target position.
 Repeat interactions were negative in all three regions, so repeats gained less with scale while the conserved effect remained positive within repeats.
 
-![Four-panel result showing loss across the 46M-to-4B ladder, endpoint gains by conservation and repeat status, adjusted effects with 95% block-bootstrap intervals, and CDS codon and splice diagnostics](figures/478/conservation-repeat-scaling.svg)
-
-_FWD/RC-averaged loss across the fixed-token ladder; bands and error bars in panels A–C are 95% genomic-block bootstrap CIs, panel D is CDS-only descriptive evidence, and the experiment does not measure causal training benefit._
-
 The controlled result supports same-corpus scale-dependent loss reduction as a candidate offline training weight.
 The classification and compute comparison make one-orientation absolute loss or entropy the practical first proxy when scoring cost matters.
 No likelihood-derived candidate has been tested as a training weight.
 
-![Four square panels comparing exact pooled loss AUPRC for the FWD/RC mean, FWD, and reverse-complement orientations across model size](figures/478/classification-orientation-loss.svg)
+<p align="center">
+  <img src="figures/478/classification-orientation-loss.svg" alt="Four square panels comparing exact pooled loss AUPRC for the FWD/RC mean, FWD, and reverse-complement orientations across model size" />
+</p>
 
 _Loss-based conservation classification by orientation; dashed lines are scope-specific prevalence._
 
 FWD-only and reverse-complement-only AUPRC differed by at most 0.0053 across every scope and score.
 One orientation retained 86–92% of the averaged 46M-loss lift over prevalence, 92–101% of the 4B-loss lift, and 71–75% of the 46M-to-76M delta lift.
 Neither orientation had empirical priority, so FWD is a deterministic convention for the compute comparison rather than a biologically preferred direction.
-
-![Four-panel sensitivity showing separate FWD-only and reverse-complement-only scaling curves, adjusted effects against the averaged analysis, and per-base one-orientation agreement with the mean](figures/478/orientation-sensitivity.svg)
-
-_Single-orientation scoring preserved adjusted group effects and halved inference compute; Spearman used a fixed 100,000-base sample per comparison, while top-decile overlap and gain-sign agreement used the full central span._
 
 One-orientation endpoint scores had 0.69–0.81 sampled Spearman agreement with the averaged score and recovered 58–72% of its full-span top decile across regions.
 Direct FWD-versus-reverse-complement agreement was lower: sampled endpoint Spearman was 0.09–0.37 and full-span top-decile overlap was 0.25–0.45.
@@ -128,12 +132,6 @@ The worst uppercase/lowercase correlation was 0.99999520/0.99999924, and the wor
 The all-255-position sensitivity preserved the primary ordering and direction.
 All endpoint cell means were positive.
 The only negative adjacent-rung means were 46M-to-76M changes of -0.00064 upstream and -0.00056 downstream for nonconserved repeats; every later adjacent mean in those cells was positive.
-
-## Promising directions
-
-Train a fixed-compute causal ablation comparing uniform loss, the current repeat weighting, 46M absolute-loss weighting, 46M entropy weighting, and scale-differential weighting.
-Use deterministic FWD scoring for the first comparison and add an averaged-score sensitivity only if downstream outcomes justify the second inference pass.
-Add compatible training-corpus exposure and homology-density covariates if they become available.
 
 ## Limitations
 
