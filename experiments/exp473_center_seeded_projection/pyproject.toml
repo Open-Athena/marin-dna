@@ -12,6 +12,9 @@ dependencies = [
     "marin-dupekit @ git+https://github.com/marin-community/marin.git@6bb4d74694fa185cabf20d037f414235e6a12eed#subdirectory=lib/dupekit",
     "marin-iris[controller] @ git+https://github.com/marin-community/marin.git@6bb4d74694fa185cabf20d037f414235e6a12eed#subdirectory=lib/iris",
     "numpy",
+    "pandas>=2.0,<3.0",
+    "pyarrow>=21.0.0",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]

@@ -91,3 +91,46 @@ metrics remain held out. AUPRC is primary; Group SMD is secondary only where
 the registered match-group contract applies. Policy deltas are paired across
 the eight Mendelian specialist subsets and reported with uncertainty over the
 paired units.
+
+Evaluation is additive. The launch in `sky/evaluate.yaml` calls the unchanged
+official `snakemake/analysis/evals_v2` Snakefile with an experiment-generated
+config. That config hard-codes `split: train`, pins the three evaluation-dataset
+revisions, and names only issue #473 checkpoints. CDS checkpoints run Mendelian
++ SGE; enhancer checkpoints run Mendelian + Complex. Every family is scored at
+steps 500 through 5,000 in increments of 500.
+
+After training, copy the four exact immutable checkpoint artifact roots from
+the successful Iris jobs. Each root must stop before `/hf`; the config generator
+appends `/hf/step-{step}` and fails on checkpoint-like inputs.
+
+```bash
+sky launch \
+  experiments/exp473_center_seeded_projection/sky/evaluate.yaml \
+  -c exp473-evaluate \
+  --env EXP473_CDS_FULL_WINDOW_CHECKPOINT_ROOT="$CDS_FULL_ROOT" \
+  --env EXP473_CDS_CENTER_1_CHECKPOINT_ROOT="$CDS_CENTER_ROOT" \
+  --env EXP473_ENHANCER_FULL_WINDOW_CHECKPOINT_ROOT="$ENHANCER_FULL_ROOT" \
+  --env EXP473_ENHANCER_CENTER_1_CHECKPOINT_ROOT="$ENHANCER_CENTER_ROOT"
+```
+
+The experiment-local analysis in `analyze_evals.py` asserts exact evaluation-row
+identity between policies before computing `center_1 - full_window`. It applies
+the same match-group bootstrap draws to both policies and reuses the subset seed
+across all checkpoints, producing paired AUPRC and Group SMD trajectory
+intervals for all eight registered Mendelian specialist subsets. Group SMD is
+the #459 statistic: one positive-minus-mean-negative gap per match group, with
+the mean gap divided by the across-group sample SD. Inputs with an incompatible
+group contract fail rather than falling back to an ungrouped statistic.
+
+After every official evaluation cell succeeds:
+
+```bash
+sky launch \
+  experiments/exp473_center_seeded_projection/sky/analyze.yaml \
+  -c exp473-analyze
+```
+
+The analysis writes point metrics, aligned bootstrap samples, policy deltas,
+the official Complex/SGE tables, plots, a Markdown summary, and a SHA-256
+manifest under a commit-keyed S3 prefix. Its additional-seed table only records
+the preregistered evidence trigger; it does not launch an unapproved arm.

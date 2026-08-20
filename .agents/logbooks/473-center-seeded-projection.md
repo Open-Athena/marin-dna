@@ -500,3 +500,39 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: monitor job 11 to completion, validate full paired QC and
   manual samples, run the sampled bidirectional HAL trace, then build and
   review the exact publication artifacts before the four matched Iris runs.
+
+### 2026-08-20 01:26 UTC - CSP-008 additive development-evaluation scaffold
+
+- Evaluation boundary: added experiment-local config generation, paired
+  metrics, result analysis, tests, and Sky launchers on the permanent training
+  branch. No maintained `evals_v2` rule, config, profile, or shared output was
+  edited.
+- Official scorer matrix: 40 checkpoints across the four preregistered arms,
+  steps 500 through 5,000 every 500 steps. The generated config hard-codes the
+  `train` split and pinned Mendelian, Complex, and SGE revisions. CDS arms run
+  Mendelian + SGE; enhancer arms run Mendelian + Complex.
+- Paired analysis: exact evaluation-row identity is asserted before comparing
+  policies. AUPRC and #459 Group SMD use one aligned match-group bootstrap;
+  the same subset seed is reused across all checkpoints so trajectory and
+  within-checkpoint `center_1 - full_window` uncertainty are paired. All eight
+  registered Mendelian specialist subsets are mandatory.
+- Additional-seed boundary: the analysis only records whether two consecutive
+  checkpoint deltas share a direction or the endpoint interval excludes zero.
+  It cannot launch another arm; issue #473's separate decision and compute-
+  approval gate remains in force.
+- Validation: the six new evaluation tests and the five existing training/
+  format tests pass in bounded separate processes. Peak RSS was 492,684 KiB;
+  changed-file pre-commit hooks pass.
+- Dry-run finding: a local parse exposed that command-line Snakemake config is
+  recursively combined with the workflow's built-in config. The generator now
+  explicitly empties every unrelated optional model registry (`nuc_dep`, UMAP,
+  LL-gap, and probe) to prevent base-model leakage. Creating the Python 3.13
+  evaluator environment and parsing the workflow reached 1,087,856 KiB, above
+  this shared node's 500 MiB limit, so the corrected graph will be dry-run on
+  remote compute and no further local evaluator parse will be attempted.
+- Outputs: the analysis launcher writes point tables, aligned bootstrap draws,
+  paired deltas, official Complex/SGE tables, trajectory plots, summary, and
+  SHA-256 manifest to an evaluation-commit-keyed S3 prefix.
+- Next action: commit and push this scaffold, remotely dry-run the corrected
+  overlay, continue monitoring projection job 11, then use the evaluator only
+  after the four authorized training runs produce immutable checkpoint roots.

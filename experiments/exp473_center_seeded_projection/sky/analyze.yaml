@@ -1,0 +1,41 @@
+# Bounded-memory CPU analysis for issue #473 after all official score cells pass.
+
+name: exp473-analyze
+
+resources:
+    infra: aws/us-east-2
+    cpus: 8+
+    memory: 32+
+    disk_size: 100
+    labels:
+        project: dna
+    use_spot: false
+
+workdir: .
+
+envs:
+    EVAL_RESULTS_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results
+    OUTPUT_S3_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    aws sts get-caller-identity >/dev/null
+
+run: |
+    set -euxo pipefail
+    EXPERIMENT_COMMIT="$(git rev-parse HEAD)"
+    OUTPUT_DIR="/tmp/issue_473_analysis"
+    export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        python -m exp473_center_seeded_projection.analyze_evals \
+        --results-root "$EVAL_RESULTS_ROOT" \
+        --output-dir "$OUTPUT_DIR" \
+        --n-bootstrap 1000 \
+        --seed 473
+    aws s3 sync "$OUTPUT_DIR" "${OUTPUT_S3_ROOT%/}/$EXPERIMENT_COMMIT/" \
+        --only-show-errors
+    aws s3 ls "${OUTPUT_S3_ROOT%/}/$EXPERIMENT_COMMIT/manifest.json"

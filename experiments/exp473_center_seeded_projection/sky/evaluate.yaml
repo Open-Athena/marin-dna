@@ -1,0 +1,62 @@
+# Additive issue #473 evaluator launch. The maintained evals_v2 rules are used
+# unchanged with a generated experiment-only config and development split.
+
+name: exp473-evaluate
+
+resources:
+    infra: aws/us-east-2
+    accelerators: A10G:1
+    disk_size: 300
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    EXP473_CDS_FULL_WINDOW_CHECKPOINT_ROOT: ""
+    EXP473_CDS_CENTER_1_CHECKPOINT_ROOT: ""
+    EXP473_ENHANCER_FULL_WINDOW_CHECKPOINT_ROOT: ""
+    EXP473_ENHANCER_CENTER_1_CHECKPOINT_ROOT: ""
+    SNAKEMAKE_ARGS: ""
+
+file_mounts:
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    grep -q 'google-cloud-sdk/bin' "$HOME/.bashrc" || \
+        echo 'export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    gcloud storage ls gs://marin-us-east5/checkpoints/ | head -3 >/dev/null
+
+run: |
+    set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export WANDB_DISABLED=true
+    EXPERIMENT_COMMIT="$(git rev-parse HEAD)"
+    export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        python -m exp473_center_seeded_projection.eval_config \
+        --output /tmp/issue_473_evals.yaml \
+        --experiment-commit "$EXPERIMENT_COMMIT"
+    cd snakemake/analysis/evals_v2
+    uv run --locked --group genome-s3 snakemake \
+        --profile workflow/profiles/default \
+        --configfile /tmp/issue_473_evals.yaml \
+        --cores 4 \
+        --printshellcmds \
+        --rerun-incomplete \
+        $SNAKEMAKE_ARGS
