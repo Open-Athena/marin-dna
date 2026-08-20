@@ -1,0 +1,51 @@
+# Paid remote task for issue #486.
+# Default launch stops after prompt preflight, validated windows, and the
+# label-blind four-condition smoke matrix.
+#
+# Launch only after explicit approval:
+#   sky launch snakemake/analysis/carbon_conditioning_vep/sky/run.yaml \
+#     -c carbon-conditioning-vep-smoke
+#
+# After inspecting smoke artifacts, run the full matrix with separate approval:
+#   sky exec carbon-conditioning-vep-smoke \
+#     --env SNAKEMAKE_TARGET=all \
+#     snakemake/analysis/carbon_conditioning_vep/sky/run.yaml
+
+name: carbon-conditioning-vep
+
+resources:
+  infra: aws/us-east-2
+  instance_type: g5.2xlarge
+  disk_size: 200
+  use_spot: false
+  autostop:
+    idle_minutes: 5
+    down: true
+    wait_for: jobs
+
+workdir: .
+
+envs:
+  SNAKEMAKE_TARGET: smoke
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  uv self update 0.11.31
+  uv sync \
+    --project snakemake/analysis/carbon_conditioning_vep \
+    --locked \
+    --group genome-s3
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  export WANDB_DISABLED=true
+  cd snakemake/analysis/carbon_conditioning_vep
+  uv run --locked pytest
+  uv run --locked --group genome-s3 snakemake \
+    --profile workflow/profiles/default \
+    "$SNAKEMAKE_TARGET"

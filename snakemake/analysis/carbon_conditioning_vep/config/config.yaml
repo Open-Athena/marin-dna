@@ -1,0 +1,90 @@
+experiment_id: CARBON-SC-001
+issue: https://github.com/Open-Athena/marin-dna/issues/486
+
+model:
+  name: Carbon-3B
+  repo: HuggingFaceBio/Carbon-3B
+  revision: 95c3c68fc77fdf70b1582031bacf9d7753f72cf2
+  scorer_source: https://github.com/huggingface/carbon/blob/10bbc4b35f6e26d2a8767342576ff65108028bf5/evaluation/vep_eval.py
+  scorer_commit: 10bbc4b35f6e26d2a8767342576ff65108028bf5
+
+prompt_preflight:
+  dataset_repo: GenerTeam/sequence-recovery
+  dataset_revision: 3ac1de1be0e4c55dd180c719c1f3805a2cdb9be9
+  dataset_config: eukaryote
+  split: test
+  target_species: [fungi, protozoa, invertebrate]
+  rows_per_species: 8
+  max_sequence_bp: 6144
+  generated_tokens: 5
+  batch_size: 8
+  selection_tolerance: 1.0e-12
+  grammars:
+    model_card: "<{species}><dna>"
+    corpus_card: "<species>{species}<dna>"
+
+conditions:
+  untagged: null
+  correct: vertebrate_mammalian
+  near_wrong: vertebrate_other
+  far_wrong: fungi
+
+analysis:
+  conditions: [untagged, correct]
+  subset: tss_proximal
+  subset_label: promoter
+  expected_rows: 2050
+  expected_positives: 205
+  expected_groups: 205
+  expected_group_size: 10
+  output_namespace: promoter_pilot
+
+dataset:
+  repo: marin-dna/evals_mendelian_traits
+  revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+  split: train
+  filename: train.parquet
+  expected_rows: 16140
+  expected_positives: 1614
+  expected_groups: 1614
+  expected_group_size: 10
+  expected_chroms: ["1", "3", "5", "7", "9", "11", "13", "15", "17", "19", "21", "X"]
+
+reference:
+  path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+  assembly: GRCh38
+  ensembl_release: 115
+  masking: soft-masked
+  sequence_names: ensembl
+  required_contig_lengths:
+    "1": 248956422
+    "3": 198295559
+    "5": 181538259
+    "7": 159345973
+    "9": 138394717
+    "11": 135086622
+    "13": 114364328
+    "15": 101991189
+    "17": 83257441
+    "19": 58617616
+    "21": 46709983
+    X: 156040895
+
+inference:
+  window_size_bp: 8192
+  kmer_size: 6
+  batch_size: 1
+  dtype: bfloat16
+  num_workers: 0
+
+smoke:
+  rows: 8
+  seed: 486
+
+metrics:
+  score_column: score
+  n_bootstrap: 1000
+  bootstrap_seed: 486
+  min_groups_for_macro: 30
+  comparisons:
+    correct_minus_untagged: [correct, untagged]

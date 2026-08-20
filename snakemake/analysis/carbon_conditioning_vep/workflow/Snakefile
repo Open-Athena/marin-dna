@@ -1,0 +1,211 @@
+"""Frozen Carbon-3B species-conditioning experiment on Mendelian VEP."""
+
+import json
+
+
+configfile: "config/config.yaml"
+
+
+CONDITIONS = list(config["analysis"]["conditions"])
+COMPARISONS = list(config["metrics"]["comparisons"])
+MODEL_NAME = config["model"]["name"]
+RESULT_ROOT = f"results/{config['analysis']['output_namespace']}"
+CONFIG_HASH = json.dumps(config, sort_keys=True)
+
+
+rule all:
+    input:
+        f"{RESULT_ROOT}/summary.md",
+
+
+rule smoke:
+    input:
+        expand(
+            f"{RESULT_ROOT}/smoke/scores/{{condition}}.parquet", condition=CONDITIONS
+        ),
+        expand(f"{RESULT_ROOT}/smoke/runtime/{{condition}}.json", condition=CONDITIONS),
+
+
+rule prompt_preflight:
+    output:
+        summary="results/preflight/prompt_grammar.json",
+        evidence="results/preflight/prompt_grammar.parquet",
+    resources:
+        gpu=1,
+    params:
+        config_hash=lambda wildcards: CONFIG_HASH,
+    shell:
+        """
+        carbon-conditioning-vep preflight \
+            --config config/config.yaml \
+            --output-json {output.summary:q} \
+            --output-parquet {output.evidence:q}
+        """
+
+
+rule build_windows:
+    input:
+        preflight="results/preflight/prompt_grammar.json",
+    output:
+        windows=f"{RESULT_ROOT}/windows/mendelian.parquet",
+        exclusions=f"{RESULT_ROOT}/windows/exclusions.parquet",
+    params:
+        dataset=config["dataset"],
+        reference=config["reference"],
+        window_size=config["inference"]["window_size_bp"],
+    shell:
+        """
+        carbon-conditioning-vep build-windows \
+            --config config/config.yaml \
+            --preflight {input.preflight:q} \
+            --output-windows {output.windows:q} \
+            --output-exclusions {output.exclusions:q}
+        """
+
+
+rule label_blind_smoke_sample:
+    input:
+        f"{RESULT_ROOT}/windows/mendelian.parquet",
+    output:
+        f"{RESULT_ROOT}/smoke/windows.parquet",
+    params:
+        smoke=config["smoke"],
+    shell:
+        """
+        carbon-conditioning-vep smoke-sample \
+            --config config/config.yaml \
+            --windows {input:q} \
+            --output {output:q}
+        """
+
+
+rule compute_smoke_scores:
+    input:
+        preflight="results/preflight/prompt_grammar.json",
+        windows=f"{RESULT_ROOT}/smoke/windows.parquet",
+    output:
+        scores=f"{RESULT_ROOT}/smoke/scores/{{condition}}.parquet",
+        runtime=f"{RESULT_ROOT}/smoke/runtime/{{condition}}.json",
+    wildcard_constraints:
+        condition="|".join(CONDITIONS),
+    resources:
+        gpu=1,
+    params:
+        model=config["model"],
+        condition=lambda wildcards: config["conditions"][wildcards.condition],
+        inference=config["inference"],
+    shell:
+        """
+        carbon-conditioning-vep score \
+            --config config/config.yaml \
+            --preflight {input.preflight:q} \
+            --windows {input.windows:q} \
+            --condition {wildcards.condition:q} \
+            --output {output.scores:q} \
+            --runtime {output.runtime:q}
+        """
+
+
+rule compute_scores:
+    input:
+        preflight="results/preflight/prompt_grammar.json",
+        windows=f"{RESULT_ROOT}/windows/mendelian.parquet",
+    output:
+        scores=f"{RESULT_ROOT}/scores/{MODEL_NAME}/{{condition}}.parquet",
+        runtime=f"{RESULT_ROOT}/runtime/{MODEL_NAME}/{{condition}}.json",
+    wildcard_constraints:
+        condition="|".join(CONDITIONS),
+    resources:
+        gpu=1,
+    params:
+        model=config["model"],
+        condition=lambda wildcards: config["conditions"][wildcards.condition],
+        inference=config["inference"],
+    shell:
+        """
+        carbon-conditioning-vep score \
+            --config config/config.yaml \
+            --preflight {input.preflight:q} \
+            --windows {input.windows:q} \
+            --condition {wildcards.condition:q} \
+            --output {output.scores:q} \
+            --runtime {output.runtime:q}
+        """
+
+
+rule absolute_metrics:
+    input:
+        f"{RESULT_ROOT}/scores/{MODEL_NAME}/{{condition}}.parquet",
+    output:
+        f"{RESULT_ROOT}/metrics/{MODEL_NAME}/{{condition}}.parquet",
+    wildcard_constraints:
+        condition="|".join(CONDITIONS),
+    params:
+        metrics=config["metrics"],
+    shell:
+        """
+        carbon-conditioning-vep absolute-metrics \
+            --config config/config.yaml \
+            --scores {input:q} \
+            --condition {wildcards.condition:q} \
+            --output {output:q}
+        """
+
+
+def comparison_score_path(wildcards, index):
+    condition = config["metrics"]["comparisons"][wildcards.comparison][index]
+    return f"{RESULT_ROOT}/scores/{MODEL_NAME}/{condition}.parquet"
+
+
+rule paired_deltas:
+    input:
+        score_a=lambda wildcards: comparison_score_path(wildcards, 0),
+        score_b=lambda wildcards: comparison_score_path(wildcards, 1),
+    output:
+        f"{RESULT_ROOT}/paired/{MODEL_NAME}/{{comparison}}.parquet",
+    wildcard_constraints:
+        comparison="|".join(COMPARISONS),
+    params:
+        metrics=config["metrics"],
+    shell:
+        """
+        carbon-conditioning-vep paired-deltas \
+            --config config/config.yaml \
+            --comparison {wildcards.comparison:q} \
+            --score-a {input.score_a:q} \
+            --score-b {input.score_b:q} \
+            --output {output:q}
+        """
+
+
+rule render_summary:
+    input:
+        preflight="results/preflight/prompt_grammar.json",
+        exclusions=f"{RESULT_ROOT}/windows/exclusions.parquet",
+        absolute=expand(
+            f"{RESULT_ROOT}/metrics/{MODEL_NAME}/{{condition}}.parquet",
+            condition=CONDITIONS,
+        ),
+        paired=expand(
+            f"{RESULT_ROOT}/paired/{MODEL_NAME}/{{comparison}}.parquet",
+            comparison=COMPARISONS,
+        ),
+        runtimes=expand(
+            f"{RESULT_ROOT}/runtime/{MODEL_NAME}/{{condition}}.json",
+            condition=CONDITIONS,
+        ),
+    output:
+        f"{RESULT_ROOT}/summary.md",
+    params:
+        config_hash=lambda wildcards: CONFIG_HASH,
+    shell:
+        """
+        carbon-conditioning-vep report \
+            --config config/config.yaml \
+            --preflight {input.preflight:q} \
+            --absolute-metrics {input.absolute:q} \
+            --paired-deltas {input.paired:q} \
+            --exclusions {input.exclusions:q} \
+            --runtimes {input.runtimes:q} \
+            --output {output:q}
+        """

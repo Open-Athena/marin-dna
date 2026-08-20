@@ -1,0 +1,7 @@
+default-storage-provider: s3
+default-storage-prefix: s3://oa-bolinas/snakemake/analysis/carbon_conditioning_vep/
+cores: all
+resources:
+  gpu: 1
+rerun-incomplete: true
+printshellcmds: true

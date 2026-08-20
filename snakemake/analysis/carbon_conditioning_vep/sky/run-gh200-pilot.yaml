@@ -1,0 +1,46 @@
+# Paid Lambda GH200 task for the two-condition promoter pilot in issue #486.
+# Stage inputs first with sky/stage-gh200-pilot.sh.
+# Launch only after explicit approval of the current price and $1.00 cap.
+
+name: carbon-conditioning-vep-gh200-pilot
+
+resources:
+  infra: lambda
+  accelerators: GH200:1
+  disk_size: 200
+  autostop:
+    idle_minutes: 3
+    down: true
+    wait_for: jobs
+
+workdir: .
+
+file_mounts:
+  ~/carbon-conditioning-pilot-inputs: snakemake/analysis/carbon_conditioning_vep/results/gh200-pilot-inputs
+
+run: |
+  set -euxo pipefail
+  timeout --signal=TERM --kill-after=30s 1200s bash -lc '
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true
+    uv self update 0.11.31
+    uv sync \
+      --project snakemake/analysis/carbon_conditioning_vep \
+      --locked
+    cd snakemake/analysis/carbon_conditioning_vep
+    uv run --locked pytest
+    mkdir -p results/preflight results/promoter_pilot/windows
+    cp "$HOME/carbon-conditioning-pilot-inputs/preflight/"* results/preflight/
+    cp "$HOME/carbon-conditioning-pilot-inputs/windows/"* results/promoter_pilot/windows/
+    uv run --locked snakemake all \
+      --workflow-profile none \
+      --default-storage-provider none \
+      --cores all \
+      --resources gpu=1 \
+      --printshellcmds \
+      --rerun-incomplete
+  '

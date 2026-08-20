@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marin-dna-carbon-conditioning-vep"
+version = "0.0.1"
+description = "Locked runtime for the Carbon species-conditioning Mendelian VEP experiment"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "datasets>=3.1.0,<4.0.0",
+    "huggingface-hub",
+    "numpy",
+    "pandas>=2.0,<3.0",
+    "pyarrow>=21.0.0",
+    "pyyaml",
+    "scikit-learn",
+    "snakemake",
+    "snakemake-storage-plugin-s3>=0.3.6",
+    "torch==2.12.1",
+    "tqdm",
+    "transformers[torch]<5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+genome-s3 = [
+    "marin-dna",
+    "s3fs>=2024",
+]
+
+[project.scripts]
+carbon-conditioning-vep = "marin_dna_carbon_conditioning_vep.cli:main"
+
+[tool.uv]
+required-version = "==0.11.31"
+fork-strategy = "fewest"
+environments = [
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
+]
+
+[tool.uv.sources]
+marin-dna = { path = "../../../", editable = true }
+torch = [
+    { index = "pytorch-cu126", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marin_dna_carbon_conditioning_vep"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "network: requires pinned Hugging Face tokenizer files",
+]
