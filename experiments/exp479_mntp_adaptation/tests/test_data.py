@@ -21,6 +21,11 @@ class FakeDataset:
         return iter([{"seq": "A" * 255}])
 
 
+class TargetlessThenValidDataset(FakeDataset):
+    def __iter__(self) -> Iterator[dict[str, str]]:
+        return iter([{"seq": "N" * 255}, {"seq": "A" * 255}])
+
+
 def test_stream_component_forwards_the_registered_split(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -59,6 +64,33 @@ def test_stream_component_forwards_the_registered_split(
         "revision": "abc",
         "streaming": True,
     }
+
+
+def test_stream_component_skips_sequences_without_eligible_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_load_dataset(
+        repo: str,
+        *,
+        split: str,
+        revision: str,
+        streaming: bool,
+    ) -> TargetlessThenValidDataset:
+        del repo, split, revision, streaming
+        return TargetlessThenValidDataset()
+
+    monkeypatch.setattr(datasets, "load_dataset", fake_load_dataset)
+    sequence = next(
+        _stream_component(
+            repo="org/repo",
+            revision="abc",
+            text_key="seq",
+            split="validation",
+            seed=7,
+            shuffle_buffer_size=11,
+        )
+    )
+    assert sequence == "A" * 255
 
 
 @pytest.mark.parametrize(("validation", "expected_split"), [(False, "train"), (True, "validation")])
