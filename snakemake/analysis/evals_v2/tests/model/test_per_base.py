@@ -37,7 +37,10 @@ def test_per_base_kernel_nll_and_four_nucleotide_entropy() -> None:
     input_ids = torch.tensor([[4, 2, 1]])
     model = _FixedModel(logits)
     out = compute_per_base_stats_clm(
-        model, input_ids, nuc_token_ids=torch.tensor([0, 1, 2, 3])
+        model,
+        input_ids,
+        is_upper=torch.tensor([[False, True, False]]),
+        nuc_token_ids=torch.tensor([0, 1, 2, 3]),
     )
     expected_nll = -_logits_to_logprobs(logits, input_ids)
     assert out.shape == (1, 2, 2)
@@ -116,6 +119,78 @@ def test_cache_regression_gate_rejects_count_mismatch() -> None:
     bad.loc[0, "n_upper"] += 1
     with pytest.raises(AssertionError, match="n_upper mismatch"):
         compare_ll_gap_cache(reconstructed, bad)
+
+
+def test_cache_regression_gate_accepts_bounded_runtime_drift() -> None:
+    n_windows = 1_000
+    phase = np.arange(n_windows)
+    drift = 0.4 * np.sin(phase)
+    reconstructed = pd.DataFrame(
+        {
+            "id": [f"window-{index}" for index in range(n_windows)],
+            "ll_sum_upper": np.linspace(-300.0, -1.0, n_windows),
+            "ll_sum_lower": np.linspace(-500.0, -2.0, n_windows),
+            "n_upper": np.full(n_windows, 230),
+            "n_lower": np.full(n_windows, 155),
+        }
+    )
+    cached = reconstructed.copy()
+    cached["ll_sum_upper"] += drift
+    cached.loc[0, "ll_sum_upper"] += 2.5
+    cached["ll_sum_lower"] -= drift
+
+    report = compare_ll_gap_cache(reconstructed, cached)
+
+    assert report["passed"] is True
+    assert report["gate_schema_version"] == 2
+    assert report["per_window_mean_atol"] == 0.25
+    assert report["ll_upper_max_abs"] > 2.0
+    assert report["ll_upper_max_abs_per_base"] < 0.02
+    assert report["ll_upper_q99_abs"] < 0.41
+    assert report["ll_lower_correlation"] > 0.99999
+
+
+def test_cache_regression_gate_rejects_extreme_sparse_window_drift() -> None:
+    n_windows = 1_000
+    reconstructed = pd.DataFrame(
+        {
+            "id": [f"window-{index}" for index in range(n_windows)],
+            "ll_sum_upper": np.linspace(-300.0, -1.0, n_windows),
+            "ll_sum_lower": np.linspace(-500.0, -2.0, n_windows),
+            "n_upper": np.concatenate([np.array([1]), np.full(n_windows - 1, 10_000)]),
+            "n_lower": np.full(n_windows, 155),
+        }
+    )
+    cached = reconstructed.copy()
+    cached.loc[0, "ll_sum_upper"] += 0.3
+
+    with pytest.raises(AssertionError, match="max abs diff/base"):
+        compare_ll_gap_cache(reconstructed, cached)
+
+
+def test_cache_regression_gate_rejects_scrambled_window_scores() -> None:
+    n_windows = 1_000
+    reconstructed = pd.DataFrame(
+        {
+            "id": [f"window-{index}" for index in range(n_windows)],
+            "ll_sum_upper": np.linspace(-1.0, 1.0, n_windows),
+            "ll_sum_lower": np.linspace(-0.5, 0.5, n_windows),
+            "n_upper": np.full(n_windows, 100),
+            "n_lower": np.full(n_windows, 155),
+        }
+    )
+    cached = reconstructed.copy()
+    cached["ll_sum_upper"] = cached["ll_sum_upper"].to_numpy()[::-1]
+    cached["ll_sum_lower"] = cached["ll_sum_lower"].to_numpy()[::-1]
+
+    with pytest.raises(AssertionError, match="window correlation"):
+        compare_ll_gap_cache(
+            reconstructed,
+            cached,
+            per_window_mean_atol=3.0,
+            per_window_q99_atol=3.0,
+            aggregate_mean_atol=1.0,
+        )
 
 
 class _CharTokenizer:

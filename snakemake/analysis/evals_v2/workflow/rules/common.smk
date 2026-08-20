@@ -71,6 +71,8 @@ for _m in config["models"]:
     assert (
         _has_gcs ^ _has_hf
     ), f"model {_m['name']!r} must have exactly one of `gcs_path` or `hf_repo`"
+    if _has_hf:
+        assert _m.get("hf_revision"), f"HF model {_m['name']!r} must pin `hf_revision`"
 
 # Same fail-fast for per-dataset score_protocol — a typo would surface
 # late as a KeyError inside the metrics rule's `SCORE_PROTOCOLS[protocol]`.

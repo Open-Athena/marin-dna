@@ -59,40 +59,43 @@ def plot_predictability_478(
     fig, axes = plt.subplots(2, 2, figsize=(13, 9), constrained_layout=True)
     ax_scale, ax_endpoint, ax_control, ax_secondary = axes.flat
 
-    # A: scale curves on the cleaner nonrepeat partition; conserved status stays
-    # explicit and region remains the dataset-level primary stratum.
-    scale = primary[(primary["score_kind"] == "absolute_nll") & ~primary["repeat"]]
+    # A: all primary 2x2 strata across scale. Region is color, conservation is
+    # line style, and repeat status is marker shape.
+    scale = primary[primary["score_kind"] == "absolute_nll"]
     x = np.arange(len(model_order))
     for region in ("cds", "upstream", "downstream"):
         for conserved, linestyle in ((False, "--"), (True, "-")):
-            subset = scale[
-                (scale["region"] == region) & (scale["conserved"] == conserved)
-            ].set_index("model_from")
-            if not set(model_order) <= set(subset.index):
-                continue
-            subset = subset.loc[model_order]
-            label = f"{region}; {'conserved' if conserved else 'other'}"
-            ax_scale.plot(
-                x,
-                subset["mean"],
-                marker="o",
-                markersize=3,
-                linewidth=1.6,
-                linestyle=linestyle,
-                color=REGION_COLORS[region],
-                label=label,
-            )
-            ax_scale.fill_between(
-                x,
-                subset["ci_low"].to_numpy(dtype=float),
-                subset["ci_high"].to_numpy(dtype=float),
-                color=REGION_COLORS[region],
-                alpha=0.08,
-            )
+            for repeat, marker in ((False, "o"), (True, "s")):
+                subset = scale[
+                    (scale["region"] == region)
+                    & (scale["conserved"] == conserved)
+                    & (scale["repeat"] == repeat)
+                ].set_index("model_from")
+                if not set(model_order) <= set(subset.index):
+                    continue
+                subset = subset.loc[model_order]
+                label = f"{region}; C{int(conserved)} R{int(repeat)}"
+                ax_scale.plot(
+                    x,
+                    subset["mean"],
+                    marker=marker,
+                    markersize=3,
+                    linewidth=1.4,
+                    linestyle=linestyle,
+                    color=REGION_COLORS[region],
+                    label=label,
+                )
+                ax_scale.fill_between(
+                    x,
+                    subset["ci_low"].to_numpy(dtype=float),
+                    subset["ci_high"].to_numpy(dtype=float),
+                    color=REGION_COLORS[region],
+                    alpha=0.04,
+                )
     ax_scale.set_xticks(x, [_model_label(model) for model in model_order])
     ax_scale.set_ylabel("RC-averaged NLL (nats/base)")
-    ax_scale.set_title("A  Absolute predictability (nonrepeat)")
-    ax_scale.legend(fontsize=7, ncol=2, frameon=False)
+    ax_scale.set_title("A  Absolute predictability by primary stratum")
+    ax_scale.legend(fontsize=6, ncol=3, frameon=False)
 
     # B: unadjusted endpoint improvement in all primary 2×2 strata.
     endpoint = primary[primary["score_kind"] == "endpoint_delta"].copy()

@@ -9,12 +9,15 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: implementation and local gates complete; no new inference has run.
-- Issue #296 already validated a per-token loss kernel and cached FWD loss for the eight scaling checkpoints on a CDS-centric Ensembl dataset. Issue #478 will port that kernel into an additive `evals_v2` workflow and add the validation-matched RefSeq repeat mask, reverse-complement averaging, three region families, controls, block uncertainty, and versioned artifacts.
-- Cloud and data access are available for the pinned Hugging Face datasets, GCS checkpoints, cached issue #274 scores, and `GCF_000001405.40.2bit` on S3.
-- Paid GPU runs are capped at $20. The 46M checkpoint is the first execution gate.
+- Status: complete. All 8 checkpoints x 3 regions x 2 orientations passed inference and regression gates; controlled analysis and the compact figure are durable under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/`.
+- The primary central-span analysis covers 3,129,344 bases per region after excluding 32 bases from each window edge, with 1,000 10-Mb block-bootstrap replicates and zero ambiguous bases.
+- Adjusted 46M-to-4B loss reduction for conserved nonrepeat sequence was 0.364 nats/base in CDS (95% CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
+- Repeat interactions were negative in every region: repeats improved less with scale, but conservation remained positively associated with improvement within repeats. The broad claim that repeats are intrinsically easier was not supported after composition controls.
+- 46M absolute NLL and predictive entropy also tracked conserved nonrepeat sequence and advance as cheaper baseline weighting candidates; scale-differential loss is the primary causal-test candidate.
 - All eight checkpoints use the same mixture: CDS 0.7319, upstream 0.2062, downstream 0.0619; uppercase weight 1.0 and lowercase weight 0.01.
-- Codon position and canonical two-base splice donor/acceptor status are preregistered secondary diagnostics for the CDS dataset only.
+- CDS-only codon position passed as a positive control on both strands; splice donor/acceptor results remain descriptive secondary evidence.
+- FWD-only and RC-only analyses preserved the group-level result. Relative to the FWD/RC mean, one-orientation endpoint scores had 0.69–0.81 Spearman correlation, 0.58–0.72 top-decile overlap, and 0.76–0.86 gain-sign agreement across regions; neither orientation was consistently better.
+- GPU spend was approximately $4.18 and the CPU-only orientation sensitivity added about $0.03, below the $20 cap. Exact corpus exposure and homology density were unavailable and remain limitations.
 
 ## Scope
 
@@ -41,10 +44,7 @@ author: gonzalobenegas
 
 ### Active
 
-- `CRP-001`: repeat bases have lower 46M NLL and smaller improvement with scale than nonrepeat bases. Next test: 46M joined-artifact and scoring pilot, followed by the endpoint comparison if all gates pass.
-- `CRP-002`: among nonrepeat bases, validation-case conserved bases have larger 46M-to-4B loss reduction after the prespecified controls. Next test: full-ladder scoring after the 46M pilot.
-- `CRP-003`: CDS first and second codon positions are more predictable than third positions when an unambiguous reading frame is available. Next test: reuse the issue #296 phase-aware annotation logic on the joined CDS artifact.
-- `CRP-004`: canonical 2-bp CDS-flank donor/acceptor sites show strand/context-specific predictability. Next test: CDS-only pilot annotation counts, then endpoint comparison.
+- None.
 
 ### Blocked
 
@@ -52,11 +52,15 @@ author: gonzalobenegas
 
 ### Falsified / Dead End
 
-- None.
+- `CRP-001`, lower-small-model-loss clause: repeats had lower raw 46M NLL in several cells, but this did not survive the prespecified composition controls as a broad repeat effect.
+- A fixed raw per-window maximum was unsuitable as a cross-runtime issue #274 regression gate because drift scales with the number of labeled bases; it was replaced by exact identities/counts plus correlation, q99, aggregate-drift, and per-base maximum gates.
 
 ### Promoted
 
-- None.
+- `CRP-001`, smaller-scale-gain clause: supported in all regions, including negative repeat interactions in the controlled endpoint models.
+- `CRP-002`: supported in all three regions; advance scale-differential loss to a fixed-compute causal weighting test.
+- `CRP-003`: supported on both strands; codon positions 1 and 2 improved more with scale than position 3.
+- `CRP-004`: strand/context-specific donor and acceptor differences were observed, but remain secondary and do not change the training recommendation.
 
 ## Decision Log
 
@@ -68,6 +72,10 @@ author: gonzalobenegas
 - 2026-08-19: keep total paid GPU spend at or below $20.
 - 2026-08-19: keep codon and splice feature strata secondary and CDS-only; do not apply them to upstream or downstream windows.
 - 2026-08-19: use full-vocabulary true-base NLL for #274 parity and nucleotide-renormalized entropy for the 46M predictability diagnostic.
+- 2026-08-20: accept same-corpus scale-differential loss as the primary fixed-compute weighting candidate; accept 46M absolute NLL and entropy as cheaper baseline candidates, not as causal proxies.
+- 2026-08-20: reject a broad repeat-intrinsically-easier interpretation after composition controls. Keep issue #87 as the direct test of the current repeat downweighting because this inference-only audit did not ablate it.
+- 2026-08-20: interpret the result as scale-dependent learnability, not Rho-1 reducible loss or proof of functional discovery; exact corpus exposure and homology density were unavailable.
+- 2026-08-20: accept one-orientation scoring as a half-inference-compute screen because all group-level conclusions are stable. Retain FWD/RC averaging for a finalized per-base weighting function unless a downstream fixed-compute ablation shows that the observed rank and tail-set disagreement is harmless; FWD and RC are tied, so there is no empirical reason to privilege either direction.
 
 ## Background Research Brief
 
@@ -79,7 +87,10 @@ author: gonzalobenegas
 
 ## Negative Results Index
 
-- None.
+- No compatible exact training-corpus exposure or homology-density metadata was available for the pinned validation windows.
+- Repeat sequence was not broadly lower-loss after the prespecified GC, 7-mer, position, conservation, and interaction controls.
+- Two conserved-negative repeat strata had tiny negative 46M-to-76M mean changes (upstream -0.00064 and downstream -0.00056 nats/base); later adjacent rungs and all endpoint changes were positive.
+- FWD and RC agreed only modestly with each other at individual bases. A single orientation was much closer to their mean but still did not reproduce the exact endpoint ranking or top-decile set.
 
 ## Entry Log
 
@@ -102,3 +113,58 @@ author: gonzalobenegas
 - Result: 21 focused tests pass. Both the 46M pilot and full-ladder DAGs resolve through the S3 storage provider. No model inference has run.
 - Interpretation: local schema, BOS, RC reversal, annotation ambiguity, exact-sequence, 7-mer, regression-comparison, score-direction, bootstrap, and control-model gates are ready for the remote pilot.
 - Next action: run the full evals_v2 test gate and launch only `predictability_478_pilot`.
+
+### 2026-08-20 00:18 UTC - CRP-001 pilot passed
+
+- Hypothesis: the 46M per-base implementation preserves window identity, genomic alignment, and issue #274 FWD case aggregation before any larger checkpoint is scored.
+- Commit Hash: working tree atop `14cfc93316d72593c3b0bc271e969ab190e2ca56`.
+- Command: credential-free `sky launch snakemake/analysis/evals_v2/sky/predictability_478.yaml -c evals-v2-478-pilot-dlami --env "SNAKEMAKE_ARGS=--resources gpu=1 -- predictability_478_pilot"`.
+- Config: AWS `g5.xlarge` A10G; official DLAMI `ami-0a15d33a6697fe677`; driver 595.91.07; PyTorch 2.13 CUDA 13; exact `uv==0.11.31`; 16,384 windows per region.
+- Result: all three regression reports passed with exact IDs and uppercase/lowercase counts. Worst observed upper-case metrics were CDS correlation 0.99999743, q99 absolute per-window drift 0.48036 nats, max 1.44257 nats, and aggregate drift -1.4344e-05 nats/token. Worst lower-case q99 was 0.24040 nats, while every lower correlation exceeded 0.99999948. A same-runtime control comparing the old and new kernels on 2,048 upstream windows differed by at most 4.57e-05 nats/window with token-weighted drift below 5e-10.
+- Result: the joined artifacts contain 4,177,920 positions per region, no ambiguous sequence bases, and 1,048,576 edge positions excluded from the primary span. CDS labels include 798,522/798,094/798,568 bases at codon positions 1/2/3, 25,703 donor bases, and 26,600 acceptor bases; these fields are CDS-only.
+- Interpretation: the new kernel and coordinate mapping are correct. The legacy cache was created under a different PyTorch/CUDA runtime, so a single 5e-4 per-window maximum was not a valid cross-runtime gate. The replacement retains exact identities/counts and adds correlation, raw-sum q99, per-base-normalized maximum, and aggregate-drift bounds.
+- Operational finding: issue #462 is the same Sky default-image CUDA incompatibility encountered here, with upstream SkyPilot issue #9406. Pin the current official DLAMI; do not file a duplicate MarinDNA issue.
+- Operational finding: all eight final ladder checkpoints now have public, byte-identical Hugging Face mirrors. Pinning those immutable revisions enables a credential-free Sky task and avoids mounting local GCP application-default credentials on AWS.
+- Next action: run the remaining 76M-4B cells, all regression gates, controlled analysis, and compact figure within the $20 cap.
+
+### 2026-08-20 01:52 UTC - CRP-001 full-ladder execution guardrails
+
+- Hypothesis: the larger-rung regression failures should distinguish a mapping error from bounded cross-runtime accumulation before relaxing any gate.
+- Commit Hash: working tree atop `14cfc93316d72593c3b0bc271e969ab190e2ca56`.
+- Command: resumable `sky exec`; completed-report audit; exact remote import-path and function-signature checks.
+- Result: 255M upstream produced one 2.55787-nat upper-case window-sum outlier across 230 labeled bases, or 0.01112 nats/base. Its upper-case correlation is 0.99999957, q99 drift is 0.21149 nats, and aggregate drift is -7.43e-06 nats/token. The next-largest window drift is 1.0129 nats. The fixed raw-sum maximum therefore scaled with labeled-base count rather than an alignment defect.
+- Result: an exact follow-up audit found the 255M upstream maximum was 0.05999 nats/base, while 4B upstream reached 0.10202 nats/base. The associated correlations were 0.99999957 and 0.99999954, q99 drifts were 0.21149 and 0.17508 nats, and aggregate drifts were -7.43e-06 and -7.08e-06 nats/token. Lower-case maxima were 0.00448 and 0.00862 nats/base. In both cases the maximum came from a sparse window rather than a distributed mapping error.
+- Decision: use a 0.25-nat/base supplemental maximum while retaining exact IDs/counts, q99 <= 0.55 nats, correlation >= 0.99999, and aggregate drift <= 2e-05 nats/token. This leaves 2.45x headroom over the observed sparse-window maximum; a focused regression test verifies that a 0.3-nat drift on a one-base window is still rejected. Regenerate all reports under one self-describing schema after scoring.
+- Operational finding: a reused Sky workdir retained a stale root-level `src/marin_dna_evals` tree, which preceded the synced project-local `src` on `sys.path`. Workdir sync alone did not update that shadow copy. Both Sky tasks now prepend the owning project's `src` through `PYTHONPATH`; the remote signature check resolves the synced normalized gate.
+- Result: inference outputs completed before each failed CPU gate were uploaded and reused, including 2B CDS. Estimated task-cluster cost was $1.79 at the last audit.
+- Next action: finish the ten remaining model-region cells, regenerate all 24 validation reports, run the controlled analysis, and inspect the decision figure.
+
+### 2026-08-20 03:54 UTC - CRP full ladder complete
+
+- Hypothesis: same-corpus 46M-to-4B loss reduction remains positively associated with conservation after repeat, GC, local 7-mer predictability, and position controls, making it a candidate training weight.
+- Commit Hash: working tree atop `14cfc93316d72593c3b0bc271e969ab190e2ca56`.
+- Command: resumable full `predictability_478` Snakemake target on AWS `g5.xlarge`; schema audit of all regression JSON; controlled-summary inspection; rendered-figure review.
+- Config: eight fixed-token checkpoints from 46M through 4B; three pinned RefSeq datasets; FWD/RC per-base average; primary positions `[32, 223)`; all-255 sensitivity; 10-Mb blocks; 1,000 bootstrap replicates; seed 478; controls `conserved * repeat + GC quadratic + 7-mer quadratic + position cubic`.
+- Validation: all 24 issue #274 regression reports passed under schema 2. Worst upper/lower correlation was 0.99999520/0.99999924, q99 drift 0.48036/0.28254 nats per window, aggregate drift 1.4564e-05/1.2148e-05 nats per token, and maximum 0.10202/0.02294 nats per labeled base.
+- Result: primary endpoint mean loss reductions for conserved nonrepeat sequence were 0.727 CDS, 0.351 upstream, and 0.267 downstream nats/base, versus 0.328, 0.056, and 0.025 for nonconserved nonrepeat sequence. Adjusted conserved-nonrepeat coefficients were 0.364 (95% CI 0.356–0.372), 0.292 (0.283–0.302), and 0.242 (0.232–0.252), respectively.
+- Result: adjusted repeat coefficients were -0.196 CDS, -0.006 upstream, and -0.004 downstream; conservation-by-repeat interactions were -0.018, -0.206, and -0.177. Repeats therefore improved less with scale, while conservation remained positively associated with scale gain inside repeat strata.
+- Result: 46M absolute NLL and predictive entropy both tracked conserved nonrepeat sequence after controls. They advance as cheaper baseline weighting candidates, while scale-differential loss advances as the primary candidate. Raw repeat NLL was sometimes lower, but the broad intrinsically-easier interpretation did not survive controls.
+- Sensitivity: all-255 endpoints preserved the primary ordering and direction. All-rung mean curves were monotone except tiny 46M-to-76M decreases for nonconserved repeats upstream (-0.00064) and downstream (-0.00056 nats/base); every later adjacent mean and every endpoint gain was positive.
+- CDS-only secondary result: codon positions 1 and 2 had endpoint gains of about 0.66–0.68 nats/base on both strands versus about 0.52–0.53 at position 3, passing the positive control. Donor/acceptor strand differences replicated descriptively and remain secondary.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/` contains 48 per-base score atoms, 24 regression reports, `analysis/summary.parquet` (528 rows), `analysis/controlled.parquet` (132 rows), `analysis/manifest.json`, and `figure/predictability.png`.
+- Cost: approximately $4.08 for the successful DLAMI cluster plus $0.10 for the earlier spot attempt, or $4.18 total. The cluster auto-stopped and was terminated.
+- Interpretation: accept same-corpus scale-differential loss for a causal weighting test and carry absolute NLL/entropy as baselines. This audit does not establish out-of-distribution functional discovery, causal training benefit, Rho-1 reducible loss, or the value of the current repeat downweighting; exact exposure and homology density remain alternative explanations.
+- Next action: at matched training compute, compare a frozen scale-differential weight with uniform loss, current repeat weighting, 46M absolute-NLL weighting, and 46M entropy weighting.
+
+### 2026-08-20 12:00 UTC - CRP orientation and half-compute sensitivity
+
+- Hypothesis: omitting the FWD/RC average preserves both the conservation-by-repeat scaling pattern and enough of the per-base candidate ranking to support a half-inference-compute alternative.
+- Commit Hash: working tree atop `14cfc93316d72593c3b0bc271e969ab190e2ca56`.
+- Command: CPU-only forced rerun of `analyze_predictability_478_orientations` and `plot_predictability_478_orientations` on AWS `m7i.2xlarge` Spot, reusing all 48 existing score atoms; focused tests and rendered-figure review.
+- Config: FWD-only and genomically realigned RC-only sensitivities; the same central `[32, 223)` span, all-255 check, strata, controls, 1,000 block-bootstrap replicates, and CDS-only secondary features as the primary analysis; 100,000-base sampled Spearman and 10% tail overlap for absolute 46M NLL, 46M entropy, and 46M-to-4B endpoint gain.
+- Result: the group-level conclusions were unchanged. All endpoint cell means were positive in both orientations. Every adjacent-rung cell mean was positive except the same tiny first-rung decreases for nonconserved repeats upstream and downstream. Adjusted endpoint conservation coefficients were FWD/RC 0.365/0.364 CDS, 0.292/0.293 upstream, and 0.244/0.241 downstream, nearly identical to the averaged 0.364/0.292/0.242.
+- Result: FWD and RC themselves had modest per-base endpoint agreement (Pearson 0.35–0.39; sampled Spearman 0.09 downstream, 0.15 upstream, and 0.37 CDS). Each single orientation was substantially closer to the FWD/RC mean: endpoint Pearson 0.82–0.83, sampled Spearman 0.69–0.81, top-decile overlap 0.58–0.72, and gain-sign agreement 0.76–0.86. Absolute-NLL single-versus-mean Spearman was 0.77–0.82 with 0.56–0.64 top-decile overlap; entropy was 0.70–0.77 with 0.42–0.45 overlap. Conservation-by-repeat cell minima remained 0.66 Spearman and 0.55 top-decile overlap for endpoint gain.
+- Result: FWD and RC substitution metrics were nearly symmetric and neither direction was consistently superior. The revised durable outputs contain 1,056 orientation summary rows, 264 controlled rows, 135 agreement rows, a self-describing manifest, and `figure/orientation_sensitivity.png` under the existing `v1` prefix.
+- Cost: four short CPU spot lifetimes, including one unavailable-instance attempt and one forced-rerun iteration, were approximately $0.03 total; no inference or GPU was used. Combined issue spend is approximately $4.21.
+- Interpretation: one-orientation scoring is adequate for aggregate discovery and a cheap pilot, cutting inference compute in half. It is not an exact replacement for the averaged per-base weight: the top-decile membership and endpoint sign losses are large enough that the causal training experiment should either retain the average or include single-orientation scoring as an explicit compute-quality ablation. If only one pass is affordable, choose orientation deterministically without claiming FWD or RC is biologically preferred.
+- Next action: carry both averaged and half-compute single-orientation score construction into the matched-compute weighting experiment; decide whether the downstream performance difference justifies the second pass.

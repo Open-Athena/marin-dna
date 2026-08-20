@@ -15,7 +15,8 @@ rule download_model:
         nests src under dst, but the inference rule expects HF model
         files directly under {output}.
       - `hf_repo`: HuggingFace Hub repo ID; pulled with
-        `huggingface_hub.snapshot_download` (mirrors the entire repo).
+        `huggingface_hub.snapshot_download` at the required immutable
+        `hf_revision` (mirrors the entire repo).
     """
     output:
         directory("results/checkpoints/{model}"),
@@ -28,6 +29,7 @@ rule download_model:
         # a re-download when tuned.
         gcs_path=lambda wc: get_model_config(wc.model).get("gcs_path", ""),
         hf_repo=lambda wc: get_model_config(wc.model).get("hf_repo", ""),
+        hf_revision=lambda wc: get_model_config(wc.model).get("hf_revision", ""),
     run:
         out = output[0]
         if params.gcs_path:
@@ -37,7 +39,11 @@ rule download_model:
         elif params.hf_repo:
             from huggingface_hub import snapshot_download
 
-            snapshot_download(repo_id=params.hf_repo, local_dir=out)
+            snapshot_download(
+                repo_id=params.hf_repo,
+                revision=params.hf_revision,
+                local_dir=out,
+            )
         else:
             raise ValueError(
                 f"model {wildcards.model!r} needs `gcs_path` or `hf_repo`"

@@ -131,6 +131,7 @@ def compute_ll_clm(
 def compute_per_base_stats_clm(
     model: Any,
     input_ids: Int[Tensor, "B L"],
+    is_upper: Bool[Tensor, "B L"] | None = None,
     *,
     nuc_token_ids: Int[Tensor, " 4"],
 ) -> Float[Tensor, "B L-1 2"]:
@@ -142,7 +143,11 @@ def compute_per_base_stats_clm(
 
     With one prepended BOS and no suffix, the targets map one-to-one to every
     DNA base. Callers assert that layout before assigning coordinates.
+    ``is_upper`` is accepted because the shared CLM transform emits that mask;
+    per-base case aggregation consumes it downstream rather than in this kernel.
     """
+    if is_upper is not None:
+        assert is_upper.shape == input_ids.shape
     logits = model(input_ids).logits
     logp_true = _logits_to_logprobs(logits, input_ids).float()
     nuc_ids = nuc_token_ids.to(device=logits.device)

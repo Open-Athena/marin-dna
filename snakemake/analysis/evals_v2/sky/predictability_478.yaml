@@ -1,0 +1,60 @@
+# Credential-free SkyPilot task for the public issue-478 scaling ladder.
+#
+# Launch from the repository root:
+#   sky launch snakemake/analysis/evals_v2/sky/predictability_478.yaml \
+#     -c evals-v2-478 --env SNAKEMAKE_ARGS="--resources gpu=1 -- predictability_478_pilot"
+#
+# After the pilot regression reports pass, sync and reuse the cluster with:
+#   sky exec evals-v2-478 snakemake/analysis/evals_v2/sky/predictability_478.yaml \
+#     --env SNAKEMAKE_ARGS="--resources gpu=1 -- predictability_478"
+#
+# The eight model revisions and all datasets are public and pinned. No GCP
+# credential is mounted; AWS access to the project S3 result cache comes from
+# the instance role.
+
+name: evals-v2-predictability-478
+
+resources:
+    infra: aws/us-east-2
+    # The Sky default image currently exposes driver 535, which cannot load the
+    # CUDA 13 wheel selected by the locked environment.
+    image_id: ami-0a15d33a6697fe677
+    accelerators: A10G:1
+    disk_size: 200
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    SNAKEMAKE_ARGS: "--resources gpu=1 -- predictability_478_pilot"
+
+setup: |
+    set -euxo pipefail
+
+    if [ "$(uv --version 2>/dev/null | cut -d" " -f2 || true)" != "0.11.31" ]; then
+        curl -LsSf https://astral.sh/uv/0.11.31/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    test "$(uv --version | cut -d" " -f2)" = "0.11.31"
+
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export WANDB_DISABLED=true
+    cd snakemake/analysis/evals_v2
+    # A reused Sky workdir can retain a stale root-level src/ tree. Put this
+    # project's source first so iterative syncs cannot import that shadow copy.
+    export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+
+    uv run --locked --group genome-s3 snakemake \
+        --profile workflow/profiles/default \
+        --printshellcmds \
+        --rerun-incomplete \
+        $SNAKEMAKE_ARGS

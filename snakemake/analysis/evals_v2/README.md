@@ -241,6 +241,27 @@ name:
   are **secondary CDS-only** diagnostics; overlapping-transcript
   disagreements are marked ambiguous.
 
+  The preregistered primary result averages FWD and genomically realigned RC
+  losses. Because the atoms remain separate, the full target also repeats the
+  all-rung summaries and controlled contrasts for FWD-only and RC-only scores.
+  This is a half-inference-compute sensitivity, not a replacement primary
+  analysis. Per-base agreement compares FWD with RC and each single
+  orientation with the FWD/RC mean. It reports Pearson correlation, Spearman
+  correlation on a fixed 100,000-base sample, top- and bottom-decile overlap,
+  mean absolute difference, and endpoint-gain sign agreement for the central
+  span, overall and within every conservation × repeat cell. The direct
+  single-versus-mean rows quantify the quality cost of halving inference.
+
+  The issue-274 regression gate requires exact window IDs and uppercase/
+  lowercase counts. To admit bounded PyTorch/CUDA cross-runtime drift while
+  retaining alignment sensitivity, it also requires per-case window
+  correlation at least `0.99999`, raw window-sum drift q99 at most `0.55`
+  nats, aggregate drift at most `2e-5` nats/base, and a supplemental maximum
+  drift at most `0.25` nats per labeled base in any window. The last check is
+  normalized because sparse uppercase windows made a raw maximum scale with
+  their labeled-base count. Each JSON report records its gate schema and
+  thresholds.
+
   ```bash
   # Mandatory small-model gate.
   uv run --locked snakemake -n predictability_478_pilot
@@ -251,12 +272,31 @@ name:
   uv run --locked snakemake predictability_478
   ```
 
+  For a remote GPU run, use the issue-specific Sky task. Its ladder models are
+  public, commit-pinned Hugging Face mirrors, so it does not mount a local GCP
+  credential. Launch it from the repository root:
+
+  ```bash
+  sky launch snakemake/analysis/evals_v2/sky/predictability_478.yaml \
+    -c evals-v2-478 --env "SNAKEMAKE_ARGS=--resources gpu=1 -- predictability_478_pilot"
+
+  # After all three pilot regression reports pass, sync the current working
+  # tree while reusing the existing cluster:
+  sky exec evals-v2-478 snakemake/analysis/evals_v2/sky/predictability_478.yaml \
+    --env "SNAKEMAKE_ARGS=--resources gpu=1 -- predictability_478"
+  ```
+
+  Use `sky exec` for subsequent code iterations so the workdir is resynced.
+
   Outputs are versioned under `results/predictability_478/v1/`:
   `joined/{region}.{parquet,manifest.json}`,
   `atoms/{model}/{region}.{fwd,rc}.parquet`,
   `regression/{model}/{region}.json`,
   `analysis/{summary,controlled}.parquet`,
-  `analysis/manifest.json`, and `figure/predictability.png`. The summary
+  `analysis/manifest.json`, `figure/predictability.png`,
+  `analysis/orientation_{summary,controlled,agreement}.parquet`,
+  `analysis/orientation_manifest.json`, and
+  `figure/orientation_sensitivity.png`. The summary
   reports absolute NLL at every rung, 46M entropy, endpoint and adjacent-rung
   NLL reductions, fraction positive, distributions, and 10-Mb genomic-block
   bootstrap intervals. The controlled table fits the preregistered
@@ -431,4 +471,5 @@ Pipeline rules are thin glue around:
 These are tested at `tests/evals/test_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
-Issue #478 adds `tests/test_{joined,cds_annotations,analysis}_478.py` and `tests/model/test_per_base.py`.
+Issue #478 adds focused joined-data, CDS-annotation, per-base scoring,
+analysis, figure, and orientation tests.

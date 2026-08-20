@@ -444,6 +444,12 @@ def analyze_predictability_478(
                 and score.model_from in {model_order[0], model_order[-1]}
             )
         ]
+        secondary_scores = [
+            score
+            for score in scores
+            if score.kind in {"predictive_entropy_46m", "endpoint_delta"}
+            or (score.kind == "absolute_nll" and score.model_from == model_order[0])
+        ]
         for score in controlled_scores:
             for row in _controlled_fit(
                 score.values.reshape(-1)[central],
@@ -465,12 +471,6 @@ def analyze_predictability_478(
                         **row,
                     }
                 )
-            secondary_scores = [
-                score
-                for score in scores
-                if score.kind in {"predictive_entropy_46m", "endpoint_delta"}
-                or (score.kind == "absolute_nll" and score.model_from == model_order[0])
-            ]
 
         if region == "cds":
             summary_rows.extend(

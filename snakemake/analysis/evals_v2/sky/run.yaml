@@ -19,6 +19,11 @@ name: evals-v2
 
 resources:
     infra: aws/us-east-2
+    # Pin a current official AWS GPU base image: the Sky default has driver 535,
+    # which cannot load the CUDA 13 wheel selected by the locked environment.
+    # MarinDNA #462; upstream SkyPilot #9406.
+    # This 2026-08-18 image supports G5/A10G and is immutable within us-east-2.
+    image_id: ami-0a15d33a6697fe677
     accelerators: A10G:1        # 24 GB Ampere — bf16-capable. L4 (g6.xlarge) is
                                 # ~$0.21/hr cheaper and would also work; keeping A10G
                                 # because that's what we benchmarked batch_size=64 on.
@@ -50,9 +55,11 @@ file_mounts:
 setup: |
     set -euxo pipefail
 
-    if ! command -v uv >/dev/null 2>&1; then
-        curl -LsSf https://astral.sh/uv/install.sh | sh
+    if [ "$(uv --version 2>/dev/null | cut -d" " -f2 || true)" != "0.11.31" ]; then
+        curl -LsSf https://astral.sh/uv/0.11.31/install.sh | sh
     fi
+    export PATH="$HOME/.local/bin:$PATH"
+    test "$(uv --version | cut -d" " -f2)" = "0.11.31"
 
     # gcloud CLI for the pipeline's `download_model` shell rule.
     if ! command -v gcloud >/dev/null 2>&1; then
@@ -88,6 +95,10 @@ run: |
     export WANDB_DISABLED=true
 
     cd snakemake/analysis/evals_v2
+    # A reused Sky workdir can retain a stale root-level src/ tree. Put this
+    # project's source first so iterative syncs cannot import that shadow copy.
+    export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+
 
     # $SNAKEMAKE_ARGS goes last so it can include `-- target1 target2 ...`
     # without breaking the parser (everything after `--` is positional, so

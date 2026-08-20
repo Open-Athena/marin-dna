@@ -55,7 +55,8 @@ datasets:
 # Model checkpoints. Each entry must have exactly one of:
 #   - `gcs_path`: full GCS URI to the checkpoint directory (includes /hf/step-{N});
 #                  pulled with `gcloud storage cp -r`.
-#   - `hf_repo`:  HuggingFace Hub repo ID; pulled with `huggingface_hub.snapshot_download`.
+#   - `hf_repo` + `hf_revision`: Hugging Face Hub repo and immutable commit;
+#                 pulled with `huggingface_hub.snapshot_download`.
 # The result lands in results/checkpoints/{name}/.
 #
 # `window_size` is the number of DNA bases extracted per variant context.
@@ -569,35 +570,43 @@ models:
   # ladder on SGE and complex traits (missense + splicing) to compare AUPRC vs
   # model size against Mendelian.
   - name: scaling-v0.5-h640-p46M-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h640-p46M-353f3d/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h640-p46M
+    hf_revision: 060cd05ff374880b474d08d5d6ec545bc79d43a2
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h768-p76M-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h768-p76M-8dbaca/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h768-p76M
+    hf_revision: bf0793ddb1ed7d01f76f8010e393a4ef727b10a6
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h896-p128M-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h896-p128M-43ec40/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h896-p128M
+    hf_revision: 0dfe883338f45589708150a72d74d8d533f5ebca
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h1152-p255M-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1152-p255M-c72f29/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h1152-p255M
+    hf_revision: d8806a0c030020613448e07fea557c667f35f5b6
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h1408-p476M-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1408-p476M-85cce6/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h1408-p476M
+    hf_revision: 6808e6a5d9fa302f915b5890c79bfbf9cd01fc3a
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h1920-p1B-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h1920-p1B
+    hf_revision: bb2baf96190765849cb2794e5089791a17e9068b
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h2432-p2B-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h2432-p2B
+    hf_revision: 25fcfe6f349d672107817cf342e9897bc28e91d1
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h2944-p4B-step-215573
-    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573
+    hf_repo: marin-dna/marin-dna-scaling-v0.5-h2944-p4B
+    hf_revision: d42268e43f73f5875776a2e6b13fe29ca763b05f
     window_size: 255
     datasets: [mendelian_traits, complex_traits, sge]
 
@@ -1341,6 +1350,9 @@ predictability_478:
   bootstrap_seed: 478
   bootstrap_replicates: 1000
   bootstrap_block_bp: 10000000
+  orientation_bootstrap_seed: 1478
+  orientation_top_fraction: 0.1
+  orientation_rank_sample_size: 100000
   training_mixture:
     cds: 0.7319
     upstream: 0.2062

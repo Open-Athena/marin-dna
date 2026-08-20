@@ -14,25 +14,32 @@ def test_plot_predictability_478_smoke(tmp_path: Path) -> None:
     rows: list[dict[str, object]] = []
     for region_index, region in enumerate(("cds", "upstream", "downstream")):
         for conserved in (False, True):
-            for model_index, model in enumerate(models):
-                mean = 1.5 - 0.2 * model_index - 0.1 * conserved + 0.05 * region_index
-                rows.append(
-                    {
-                        "analysis_family": "primary",
-                        "span": "central_32_222",
-                        "region": region,
-                        "feature": "all",
-                        "conserved": conserved,
-                        "repeat": False,
-                        "score_kind": "absolute_nll",
-                        "model_from": model,
-                        "model_to": model,
-                        "mean": mean,
-                        "ci_low": mean - 0.02,
-                        "ci_high": mean + 0.02,
-                        "n_positions": 100,
-                    }
-                )
+            for repeat in (False, True):
+                for model_index, model in enumerate(models):
+                    mean = (
+                        1.5
+                        - 0.2 * model_index
+                        - 0.1 * conserved
+                        + 0.03 * repeat
+                        + 0.05 * region_index
+                    )
+                    rows.append(
+                        {
+                            "analysis_family": "primary",
+                            "span": "central_32_222",
+                            "region": region,
+                            "feature": "all",
+                            "conserved": conserved,
+                            "repeat": repeat,
+                            "score_kind": "absolute_nll",
+                            "model_from": model,
+                            "model_to": model,
+                            "mean": mean,
+                            "ci_low": mean - 0.02,
+                            "ci_high": mean + 0.02,
+                            "n_positions": 100,
+                        }
+                    )
         for conserved in (False, True):
             for repeat in (False, True):
                 mean = 0.2 + 0.05 * conserved - 0.03 * repeat

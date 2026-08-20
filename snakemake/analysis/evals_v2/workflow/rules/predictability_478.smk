@@ -73,6 +73,8 @@ rule compute_predictability_478_atoms:
         model="|".join(PREDICTABILITY_478_MODELS),
         region="|".join(PREDICTABILITY_478_DATASETS),
     threads: config["inference"]["num_workers"]
+    resources:
+        gpu=1,
     params:
         hf_repo=lambda wc: get_predictability_478_dataset_config(wc.region)["hf_repo"],
         hf_revision=lambda wc: get_predictability_478_dataset_config(wc.region)[
@@ -172,18 +174,16 @@ rule analyze_predictability_478:
         import json
         from marin_dna_evals.analysis_478 import analyze_predictability_478
 
-        joined_paths = {
-            region: P478_ROOT + f"/joined/{region}.parquet"
-            for region in PREDICTABILITY_478_DATASETS
-        }
-        atom_paths = {
-            (model, region, orientation): (
-                P478_ROOT + f"/atoms/{model}/{region}.{orientation}.parquet"
-            )
+        joined_paths = dict(
+            zip(PREDICTABILITY_478_DATASETS, input.joined, strict=True)
+        )
+        atom_keys = [
+            (model, region, orientation)
             for model in PREDICTABILITY_478_MODELS
             for region in PREDICTABILITY_478_DATASETS
             for orientation in ("fwd", "rc")
-        }
+        ]
+        atom_paths = dict(zip(atom_keys, input.atoms, strict=True))
         summary, controlled, manifest = analyze_predictability_478(
             joined_paths,
             atom_paths,
@@ -197,6 +197,72 @@ rule analyze_predictability_478:
         )
         summary.to_parquet(output.summary, index=False)
         controlled.to_parquet(output.controlled, index=False)
+        Path(output.manifest).write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+
+
+rule analyze_predictability_478_orientations:
+    input:
+        joined=expand(
+            P478_ROOT + "/joined/{region}.parquet",
+            region=PREDICTABILITY_478_DATASETS,
+        ),
+        atoms=expand(
+            P478_ROOT + "/atoms/{model}/{region}.{orientation}.parquet",
+            model=PREDICTABILITY_478_MODELS,
+            region=PREDICTABILITY_478_DATASETS,
+            orientation=["fwd", "rc"],
+        ),
+        regression=expand(
+            P478_ROOT + "/regression/{model}/{region}.json",
+            model=PREDICTABILITY_478_MODELS,
+            region=PREDICTABILITY_478_DATASETS,
+        ),
+    output:
+        summary=P478_ROOT + "/analysis/orientation_summary.parquet",
+        controlled=P478_ROOT + "/analysis/orientation_controlled.parquet",
+        agreement=P478_ROOT + "/analysis/orientation_agreement.parquet",
+        manifest=P478_ROOT + "/analysis/orientation_manifest.json",
+    threads: 2
+    run:
+        import json
+        from marin_dna_evals.orientation_478 import (
+            analyze_orientation_sensitivity_478,
+        )
+
+        joined_paths = dict(
+            zip(PREDICTABILITY_478_DATASETS, input.joined, strict=True)
+        )
+        atom_keys = [
+            (model, region, orientation)
+            for model in PREDICTABILITY_478_MODELS
+            for region in PREDICTABILITY_478_DATASETS
+            for orientation in ("fwd", "rc")
+        ]
+        atom_paths = dict(zip(atom_keys, input.atoms, strict=True))
+        summary, controlled, agreement, manifest = (
+            analyze_orientation_sensitivity_478(
+                joined_paths,
+                atom_paths,
+                model_order=PREDICTABILITY_478_MODELS,
+                window_size=PREDICTABILITY_478_CFG["window_size"],
+                primary_start=PREDICTABILITY_478_CFG["primary_start"],
+                primary_end_exclusive=PREDICTABILITY_478_CFG[
+                    "primary_end_exclusive"
+                ],
+                block_bp=PREDICTABILITY_478_CFG["bootstrap_block_bp"],
+                bootstrap_replicates=PREDICTABILITY_478_CFG["bootstrap_replicates"],
+                seed=PREDICTABILITY_478_CFG["orientation_bootstrap_seed"],
+                top_fraction=PREDICTABILITY_478_CFG["orientation_top_fraction"],
+                rank_sample_size=PREDICTABILITY_478_CFG[
+                    "orientation_rank_sample_size"
+                ],
+            )
+        )
+        summary.to_parquet(output.summary, index=False)
+        controlled.to_parquet(output.controlled, index=False)
+        agreement.to_parquet(output.agreement, index=False)
         Path(output.manifest).write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n"
         )
@@ -224,6 +290,8 @@ rule predictability_478:
         ),
         P478_ROOT + "/analysis/manifest.json",
         P478_ROOT + "/figure/predictability.png",
+        P478_ROOT + "/analysis/orientation_manifest.json",
+        P478_ROOT + "/figure/orientation_sensitivity.png",
 
 
 rule plot_predictability_478:
@@ -237,3 +305,26 @@ rule plot_predictability_478:
         from marin_dna_evals.figure_478 import plot_predictability_478
 
         plot_predictability_478(input.summary, input.controlled, output[0])
+
+
+rule plot_predictability_478_orientations:
+    input:
+        summary=P478_ROOT + "/analysis/orientation_summary.parquet",
+        controlled=P478_ROOT + "/analysis/orientation_controlled.parquet",
+        agreement=P478_ROOT + "/analysis/orientation_agreement.parquet",
+        averaged_controlled=P478_ROOT + "/analysis/controlled.parquet",
+    output:
+        P478_ROOT + "/figure/orientation_sensitivity.png",
+    threads: 1
+    run:
+        from marin_dna_evals.figure_orientation_478 import (
+            plot_orientation_sensitivity_478,
+        )
+
+        plot_orientation_sensitivity_478(
+            input.summary,
+            input.controlled,
+            input.agreement,
+            input.averaged_controlled,
+            output[0],
+        )
