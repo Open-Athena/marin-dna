@@ -1,5 +1,5 @@
 pipeline_version: v1
-producer_commit: f764b7f1fa34ea730842117239dd179a7e3be572
+producer_commit: d43f059c7b0cb8efd5e2396a2bd9e085623a1731
 producer_config_sha256: bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039
 producer_tier: full
 
