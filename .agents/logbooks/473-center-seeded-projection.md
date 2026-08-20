@@ -1464,3 +1464,34 @@ cohort, assemblies, and downstream training recipe fixed.
   494,780 KiB peak RSS under the shared-node lock, and changed-file hooks
   passed. The v3 regression pins explicit workdir sync, final producer
   identity, fixed-catalog module use, and exact rejection-array counts.
+
+### 2026-08-20 16:53 UTC - CSP-041 fixed-catalog report complete; data workers released
+
+- Successful report: Sky job 16 ran exact snapshot
+  `ff8aaa8a8479e074751264c880d7034167a1654d`, passed both module hashes and
+  the final trace gate, staged the 5.89 GB full-window and 6.09 GB center-1
+  accepted tables, and completed in 2 minutes 17 seconds. The analysis process
+  reached 11,654,236 KiB observed RSS while the 92 GiB worker retained 78 GiB
+  available memory.
+- Immutable receipt: five outputs were independently restored from
+  `s3://oa-bolinas/snakemake/analysis/issue473/results/ff8aaa8a8479e074751264c880d7034167a1654d/d0e5380a46cd66d4c42d763b3c42da1150c92073/bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039/projection_report_v3/`.
+  Their restored SHA-256 values exactly match the manifest, which records
+  0-based half-open coordinates, `fixed_catalog_scope=true`, policy widths 1
+  and 255, and 942 center-1 versus 1,212 full-window rejection inputs.
+- Projection result: center-1 recovered more accepted fixed-grid pairs for CDS
+  (+1,068,933; 86.78% versus 84.10%), ncRNA exon (+1,359,264; 77.85% versus
+  67.64%), and UTR3 (+250,768; 79.76% versus 76.99%). Full-window recovered
+  more for enhancer-centered (+139,960; 80.72% versus 79.83%) and TSS/UTR5
+  (+242,992; 77.80% versus 74.66%). Center-1 is therefore not a universal
+  recovery improvement; it wins three of five declared regions and loses two.
+- Cleanup: after S3 receipt verification, completed clusters
+  `issue-473-fast-producer`, `issue-473-hf`, and `issue-473-qc-resume` were
+  terminated. On `vertebrate-project`, exact jobs 11 and 14 were still
+  producing or waiting on the superseded `f764b7f1` unbatched namespace and
+  included excluded pilot policies. They were cancelled explicitly, then the
+  cluster was terminated. No final `d0e5380a` artifact was removed.
+- Training state at 16:52 UTC: CDS center-1 task
+  `/ubuntu/exp473-cds-center-1-v2/run_levanter_train_lm-25c8f771` is running;
+  enhancer full-window and enhancer center-1 remain pending for accelerator
+  capacity. Iris reports no task error for any of the three. All inputs remain
+  exact revision-pinned, public, and ungated Hugging Face datasets.
