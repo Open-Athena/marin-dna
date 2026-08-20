@@ -1,0 +1,20 @@
+{
+  "locus": "tRNA_Arg_TCT",
+  "chrom": "1",
+  "locus_start_zero_based": 159141610,
+  "locus_end_zero_based_exclusive": 159141684,
+  "context_start_zero_based": 159141520,
+  "context_end_zero_based_exclusive": 159141775,
+  "sequence_length": 255,
+  "orientation": "reference",
+  "checkpoints": [
+    "transferred-step1000",
+    "scratch-step1000",
+    "clm-original-step1000"
+  ],
+  "paired_baseline_same_model_call": true,
+  "batch_size_including_baseline": 1024,
+  "all_checks_passed": true,
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn",
+  "publication_path": "evaluation/final-checkpoint-dependency"
+}

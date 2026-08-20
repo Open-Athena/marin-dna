@@ -128,11 +128,17 @@ def plot_context() -> None:
     x = np.arange(len(order))
     width = 0.36
     fig, axis = plt.subplots(figsize=(9, 4.5))
-    axis.bar(x - width / 2, frame["left_l1"], width, label="Left flank", color="#0072B2")
-    axis.bar(x + width / 2, frame["right_l1"], width, label="Right flank", color="#E69F00")
+    axis.bar(
+        x - width / 2, frame["left_l1"], width, label="Left flank", color="#0072B2"
+    )
+    axis.bar(
+        x + width / 2, frame["right_l1"], width, label="Right flank", color="#E69F00"
+    )
     axis.set_xticks(x, labels)
     axis.set_ylabel("Mean L1 change in target distribution")
-    axis.set_title("MNTP acquires bilateral context use; causal controls remain right-blind")
+    axis.set_title(
+        "MNTP acquires bilateral context use; causal controls remain right-blind"
+    )
     axis.grid(axis="y", alpha=0.25)
     axis.legend(frameon=False)
     save(fig, "context-probes.svg")
@@ -147,7 +153,9 @@ def plot_context_window() -> None:
     offsets = np.linspace(-0.25, 0.25, len(DATASETS))
     for offset, (dataset, label) in zip(offsets, DATASETS.items(), strict=True):
         cell = (
-            stability[stability["dataset"] == dataset].set_index("condition").loc[condition_order]
+            stability[stability["dataset"] == dataset]
+            .set_index("condition")
+            .loc[condition_order]
         )
         axes[0].plot(
             x + offset,
