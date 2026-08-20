@@ -21,7 +21,7 @@ Producing code: [`97a6e3c5`](https://github.com/Open-Athena/marin-dna/tree/97a6e
 
 Compact result snapshot: [`cb0d37ff`](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation)
 
-W&B report: [Issue #479 — 1k-step MNTP adaptation pilot](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==)
+W&B report: [Issue #479 — 1k-step MNTP adaptation pilot](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ)
 
 ## Training data and objective
 
