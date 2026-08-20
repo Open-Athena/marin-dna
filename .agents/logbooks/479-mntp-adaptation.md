@@ -167,3 +167,16 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Interpretation: The code path is ready for the actual-checkpoint smoke tests and capped pilot. Full Lightning checkpoints are uploaded every 100 steps; a fresh instance resumes the newest private checkpoint; all trained arms log fixed flank probes; evaluation emits explicit FWD and FWD+RC runtime rows and paired odd/X summaries.
 - Data boundary: Only one streamed row from each pinned public odd/X `train` split was used to validate schemas. No even-autosome/Y labels, predictions, effects, or aggregate metrics were accessed. No cloud resource was provisioned and no charge was incurred.
 - Next action: Obtain explicit approval for the $50 Lambda cap and the private-staging model-card draft, then launch the exact reviewed commit and monitor through self-termination.
+
+
+### 2026-08-20 00:05 - Actual-checkpoint preflight and dataset-stream fix
+
+- Hypothesis: The remote smoke suite and actual 1B checkpoint will pass before the three training arms start.
+- Launch commit: `8a01ea37cfbbe32b7bec7c0c6e1391096b4b7b72`; fix commit: `0c63a8b552ab057ff522eefb6b6e6db69da1a46a`.
+- Command: `uv run --locked python launch.py pilot --commit 8a01ea37cfbbe32b7bec7c0c6e1391096b4b7b72 --model-card-reviewed --execute`.
+- Config: One Lambda GH200 in `us-east-3` at $2.29/hour after `us-east-1` reported insufficient capacity. The user confirmed the registered $50 cap and private staging card through the standing instruction to continue to the goal.
+- Result: The remote locked suite passed 37 tests. The actual m5.1 preflight passed with batch 512, 47,510,808,576 peak allocated bytes of 101,468,602,368, 53.18% headroom, 31,633 model tokens/s, exact causal parity, zero causal right-flank effect, nonzero full-attention effect, and an $18.90 total-cost projection.
+- Failure: Data-plan materialization stopped before training step 1 because the environment lacked the zstd decoder. A local real-source check then found that validation repositories require split `validation`, and the enhancer/ncRNA validation rows use field `seq`.
+- Fix: Added the zstd dependency, explicit split routing, the observed validation field names, and four regression tests. One real record from each of the five train and five validation sources now has length 255; the locked suite passes 41 tests.
+- Cost/data boundary: Sky terminated the first instance after about five minutes; the listed-price estimate is below $0.21 and must be reconciled with the provider bill. No training step or aggregate labeled evaluation ran.
+- Next action: Push and dry-run the fix commit, then relaunch the standalone pilot.
