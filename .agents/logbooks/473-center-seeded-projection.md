@@ -747,3 +747,38 @@ cohort, assemblies, and downstream training recipe fixed.
   all four authorized arms. Held-out VEP data remains untouched.
 - Next action: continue producer job 11 through exact QC/manual artifacts,
   then sampled HAL trace, publication review, and private upload.
+
+### 2026-08-20 03:15 UTC - CSP-016 remote training-plan preflight
+
+- Remote proof: Iris job `/ubuntu/exp473-recipe-preflight` succeeded as one
+  CPU-only task in 1 minute 23 seconds. It used a 0.1 MB workspace bundle,
+  built the independently locked project from `/app`, installed exact Marin
+  commit `6bb4d746...`, and lowered the `enhancer_center_1` arm without
+  `--run`. It launched no tokenize task, TPU worker, model, or scientific
+  artifact.
+- Packaging: remote graph construction verified all three vendored tokenizer
+  files before emitting the plan. The token-cache fingerprint records
+  `tokenizer: tokenizer`, exact source revision `a73e9d9e...`, all three file
+  digests, the immutable dataset revision input, and the DNA format with
+  `text_key=sequence`, uppercase weight 1.0, and lowercase weight 0.01.
+- Materialized recipe: the remote checkpoint plan records the DNA tokenizer
+  on `Qwen3Config`, 0.25B geometry, exact Adam parameters, seed 0,
+  8,192-sequence batch, 1,024 per-device parallelism, 5,000 steps, ten-minute
+  rolling recovery, retained native checkpoints every 500 steps, and Hugging
+  Face exports every 500 steps.
+- Fingerprint boundary: Marin deliberately represents an unrealized cache as
+  a constant ordinary-text placeholder while lowering; the pinned runtime
+  path reloads tokenizer, format, and tags from the completed cache's
+  `.artifact.json`. Commit `cd7657c1549c78619dd3b7218fc32cc7c7773106`
+  makes that runtime boundary fail closed: a realized issue #473 cache is
+  rejected unless its record exactly matches the case-aware DNA format.
+- Validation: the current 19-test project suite is covered in bounded
+  processes (3 format, 12 evaluation, 4 materialized recipe/cache tests).
+  The new realized-record test reconstructs a successful DNA cache and rejects
+  both an ordinary-text record and a 1.0/1.0 non-case-aware record. Its focused
+  run passed with 489,688 KiB peak RSS; changed-file hooks passed.
+- Safety: dummy hexadecimal dataset revisions and a literal test W&B key were
+  used only to lower the non-executing plan. No dataset was read, no real
+  credential was transmitted, and held-out VEP data remained untouched.
+- Next action: keep the four paid arms gated on producer QC, sampled trace,
+  and reviewed private publication; continue monitoring producer job 11.
