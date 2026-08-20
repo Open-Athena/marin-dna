@@ -13,7 +13,7 @@ Training the best possible MLM from scratch, preserving autoregressive generatio
 
 ## Current answer
 
-[#479](https://github.com/Open-Athena/marin-dna/issues/479) ran the first MarinDNA checkpoint-conversion experiment.
+The [full-attention MNTP adaptation experiment](../experiments/479-mntp-adaptation.md) ran the first MarinDNA checkpoint conversion.
 The standalone pilot continued the released 1B m5.1 checkpoint for 1,000 full-parameter masked-next-token-prediction steps on one Lambda GH200, with matched scratch MNTP and causal-continuation arms plus source and full-attention/no-adaptation controls.
 It was technically valid. The completed pilot plus checkpoint, stability, alignment, and dependency audits cost an estimated $24.73 at list price, including failed, recovery, and cancelled diagnostic attempts.
 
@@ -80,7 +80,7 @@ The current hypothesis is therefore narrower:
 <details>
 <summary>Related experiments</summary>
 
-- [#479](https://github.com/Open-Athena/marin-dna/issues/479) completed the first mature-checkpoint MNTP conversion pilot.
+- The [full-attention MNTP adaptation experiment](../experiments/479-mntp-adaptation.md) completed the first mature-checkpoint MNTP conversion pilot.
   It established technical feasibility, a small transferred-versus-scratch validation advantage, corrected bilateral final-checkpoint context use, and negative source-relative VEP at 1,000 steps. Its integrity audit found no training/inference bug and superseded the original batch-shape-contaminated dependency maps.
 - [#3](https://github.com/Open-Athena/marin-dna/issues/3) compared causal language modeling, masked language modeling, and masked diffusion during early promoter training.
   Causal modeling led at the earliest steps and the issue proposed a causal-to-masked curriculum; it did not convert a mature checkpoint or constrain the masked phase to a small compute budget.
