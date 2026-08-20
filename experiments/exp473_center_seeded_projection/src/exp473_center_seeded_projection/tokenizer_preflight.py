@@ -38,12 +38,13 @@ def verify_tokenizer_on_worker(config: TokenizerWorkerPreflightConfig) -> None:
         assert observed == expected, f"remote tokenizer drift: {path}"
 
     tokenizer = load_tokenizer(config.tokenizer_path)
-    assert tokenizer.vocab_size == 7
-    assert tokenizer.bos_token_id == 2
-    assert tokenizer.pad_token_id == 0
-    assert tokenizer.unk_token_id == 1
-    assert tokenizer.eos_token_id is None
-    encoded = tokenizer.as_hf_tokenizer()(
+    hf_tokenizer = tokenizer.as_hf_tokenizer()
+    assert hf_tokenizer.vocab_size == 7
+    assert hf_tokenizer.bos_token_id == 2
+    assert hf_tokenizer.pad_token_id == 0
+    assert hf_tokenizer.unk_token_id == 1
+    assert hf_tokenizer.eos_token_id is None
+    encoded = hf_tokenizer(
         "ACGTacgt",
         add_special_tokens=True,
         return_attention_mask=False,
