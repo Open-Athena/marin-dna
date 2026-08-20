@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales; confidence is moderate that task-aware enrichment helps, while no universal selection rule or repeat-downweighting benefit has been established.
+> **TL;DR:** Training-footprint choice materially affects functional prediction, and targeted or conservation-selected corpora often beat naive whole-genome sampling at current scales. A frozen-model audit now supports same-corpus scale-differential loss as a candidate for a causal weighting experiment; confidence remains moderate that task-aware enrichment helps, while no universal selection rule or repeat-downweighting benefit has been established.
 
 ## Question
 
@@ -25,6 +25,15 @@ We do not know whether it improves language modeling or downstream performance, 
 Uniform loss is the simpler prior.
 If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them.
 This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
+
+The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) adds an in-corpus, inference-only result across the fixed-token 46M–4B model ladder.
+After adjustment for repeat status, GC content, local 7-mer predictability, and position, the 4B-minus-46M loss reduction for conserved nonrepeat sequence was 0.364 nats per base in CDS (95% block-bootstrap CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
+Repeat interactions were negative in every region, so repeats gained less with scale, but the conserved effect remained positive within repeats.
+This supports same-corpus scale-differential loss as the primary candidate for a fixed-compute causal weighting experiment.
+Small-model absolute loss and predictive entropy also tracked conserved nonrepeat sequence after the same controls and are cheaper baseline weighting candidates.
+The audit rejects the broad claim that repeats are intrinsically easier after composition controls; it did not ablate the current repeat loss weight.
+The conservation-by-repeat conclusions were unchanged when FWD and RC were analyzed separately.
+A single orientation cut inference compute in half and remained fairly close to the FWD/RC-averaged endpoint score (Spearman 0.69–0.81 and top-decile overlap 0.58–0.72 across regions), but it did not preserve the exact per-base ranking; FWD and RC were effectively tied.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -76,6 +85,9 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   Centering was suggestively better for distal VEP, but unequal epoch counts and non-converged curves confounded functional-base density, placement, and repetition.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored CDS projection with native per-species annotation across vertebrate and animal scopes.
   Projection produced useful conserved-CDS data but lost distant species and did not dominate annotation on every endpoint.
+- [Conservation and repeat predictability across model scale](../experiments/478-conservation-repeat-predictability.md) measured per-base loss and entropy across the fixed-token 46M–4B ladder in CDS, upstream, and downstream sequence.
+  Conserved nonrepeat bases showed robust, composition-adjusted scale gains in all three regions, qualifying same-corpus scale-differential loss for a causal weighting test while leaving repeat downweighting itself unresolved.
+  FWD-only and RC-only results preserved the aggregate conclusion, but their imperfect per-base agreement motivates an explicit one-pass-versus-averaged compute ablation.
 
 </details>
 
@@ -120,12 +132,12 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### How do scale and data quantity change the answer?
 
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- On the existing 46M–4B parameter ladder, measure per-base likelihood on fixed human CDS, upstream/promoter, and downstream/3′ UTR windows, stratified jointly by phyloP conservation and RepeatMasker status.
-  Report absolute loss at each size and per-base loss reduction across sizes, with genomic-block uncertainty and matched composition controls.
-  CDS codon position can serve as a positive control for whether the score distinguishes known differences within one functional region.
-- If same-corpus loss reduction with scale remains associated with conservation after repeat, composition, and homology controls, test a fixed offline scale-differential weight derived from two frozen checkpoints.
-  Treat this as a learnability heuristic rather than a direct Rho-1 analogue.
-  Compare it against uniform loss, the current repeat weighting, and simpler small-model loss or entropy weights at matched training compute.
+- The [46M–4B frozen-model audit](../experiments/478-conservation-repeat-predictability.md) is complete: scale-differential loss remained associated with conservation after repeat, GC, local 7-mer, and position controls, and the CDS codon-position positive control passed on both strands.
+  Exact training-corpus exposure and homology density were unavailable, so neither mechanism has been excluded.
+- Run a fixed-compute causal experiment with an offline scale-differential weight derived from frozen checkpoints.
+  Compare it against uniform loss, the current repeat weighting, and simpler 46M absolute-loss and entropy weights at matched training compute.
+  Treat same-corpus improvement as a learnability heuristic rather than a direct Rho-1 analogue.
+  Include averaged and deterministic single-orientation score construction as a compute-quality ablation: one pass is adequate for a cheap pilot, while the second pass should be retained only if its improved per-base rank stability pays off downstream.
 - When a filtered corpus is smaller, are gains caused by better loci or simply by seeing the same loci for more epochs?
   Both compute-matched and exposure/epoch-matched comparisons are needed.
 - Is there a curriculum in which constrained sequence is best early, but adding progressively broader genome sequence later improves generalization or prevents overfitting?
