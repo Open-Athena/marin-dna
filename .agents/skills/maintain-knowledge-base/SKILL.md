@@ -70,7 +70,8 @@ Keep the answer concise enough to scan as a summary; do not move evidence or ext
 
 Keep `Related work` curated.
 Include counterevidence when it materially affects the answer.
-Keep `Related experiments` exhaustive over accepted experiment pages that materially inform the question and ongoing experiment issues created for it.
+Keep `Related experiments` exhaustive over accepted experiment pages that materially inform the question.
+Link the canonical issue only for a legacy experiment that has no experiment page.
 Use explicit clickable MarinDNA links.
 
 Keep `Related work`, `Related experiments`, and `Possible directions` collapsed.
@@ -107,6 +108,10 @@ _<One-line caption stating what the figure shows and its inferential boundary.>_
 
 <The design, controls, datasets, metrics, and results needed to evaluate the claims.>
 
+## Promising directions
+
+<Specific extensions supported by the findings; omit this section when there are none.>
+
 ## Limitations
 
 <Confounders, uncertainty, missing controls, and unsupported claims.>
@@ -117,9 +122,10 @@ _<One-line caption stating what the figure shows and its inferential boundary.>_
 ```
 
 Write the page as current knowledge, not as a chronology or an exhaustive report.
-Do not add the original question, status, progress, iteration history, decision logs, operational failures, or next-action sections.
+Do not add the original question, status, progress, iteration history, decision logs, operational failures, or a chronological next-action list.
 Include enough quantitative evidence and setup to review the findings.
 Treat inferential scope as part of the findings and limitations.
+Use `Promising directions` only for extensions supported by the accepted findings, not as a task list or commitment.
 
 Include one reviewed lead figure immediately after the TL;DR.
 Use the decisive result plot for a simple experiment and a multi-panel graphical abstract when the conclusion depends on several forms of evidence.
@@ -127,7 +133,6 @@ A graphical abstract should communicate the setup, decisive evidence, finding, a
 Include additional figures when they materially support the accepted findings.
 Commit every referenced figure as SVG under `docs/research/experiments/figures/<issue>/` on `main`, and use relative links from the experiment page.
 Keep unused, superseded, exploratory, and dense diagnostic figures in the issue or experiment branch.
-Add a PNG only for a downstream sharing surface that needs one.
 Check that each figure agrees with the prose, labels units and uncertainty, uses accessible colors, has useful alt text, and remains legible in rendered Markdown.
 
 Distinguish direct measurements, synthesized comparisons across prior work, and attributed expert judgment.
@@ -140,6 +145,9 @@ List multiple source issues only when independent records jointly support the pa
 
 Use these disposition rules:
 
+Record one of these dispositions in the experiment issue: `pending`; `interpretation PR open`; `interpretation page merged`; `reusable lesson merged elsewhere`; or `no promotion because no scientifically valid claim remains`.
+Treat `interpretation PR open` as temporary until the pull request merges.
+
 - Assess validity per claim.
   A design may support measurements or secondary findings while failing to support its intended primary inference.
 - Promote each valid positive, null, or negative claim.
@@ -147,7 +155,8 @@ Use these disposition rules:
 - Use no promotion only when no scientifically valid claim remains.
   State why and obtain human approval for that disposition before closure.
 - Promote a reusable lesson from an invalid design to the nearest methodology, experiment, or question document without promoting the invalid result.
-- If accepted evidence is later invalidated, replace the existing page with a concise warning that states why no inference is valid, update every affected question, and preserve the page path for existing links.
+- If later evidence invalidates one accepted claim, rewrite the experiment page and every affected question.
+  If no valid claim remains, remove the experiment page, update or remove every link to it, and rely on Git history for the earlier interpretation.
 
 ## Create Or Revise A Question
 
@@ -173,11 +182,11 @@ Treat question-to-experiment relationships as many-to-many.
 
 1. Verify that each target is an issue with the `experiment` Kind label.
 2. Link the accepted experiment page when one exists.
-   Link the issue only while an informative experiment is ongoing or awaiting interpretation review.
+   Link the issue only for a legacy experiment that has no experiment page.
 3. Keep each entry self-contained with one or two sentences stating what the experiment contributes and its decisive limitation.
    Do not replace the synthesis with a bare list of links.
-4. Keep `Related experiments` exhaustive over experiments that materially inform the current answer.
-   Omit routine invalid attempts; include an invalidated design only when its methodological lesson affects the answer or future design.
+4. Keep `Related experiments` exhaustive over accepted experiment pages that materially inform the current answer, plus legacy experiment issues that have no page.
+   Omit routine invalid attempts.
 5. After the knowledge-base change merges, add the canonical experiment-page and question-page links to the experiment issue.
 6. Remove or revise a relationship through the normal pull-request workflow, then update the issue after merge.
 

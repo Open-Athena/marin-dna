@@ -36,12 +36,10 @@ Layer domain skills on top for task-specific constraints.
 2. A logbook at `.agents/logbooks/<topic>.md`.
 3. A living hypothesis queue in the logbook, derived from append-only entries
    and updated as hypotheses are proposed, blocked, falsified, or promoted.
-4. A long-lived branch, for example `research/<topic>` or
-   `research/<user>/<issue>-<topic>`, with the logbook, research code, configs,
-   small artifacts, and test harnesses needed to reproduce results.
+4. A long-lived branch following the naming guidance in `AGENTS.md`, with the logbook, research code, configs, small artifacts, and test harnesses needed to reproduce results.
 5. One or more commit or tag snapshots for meaningful milestones.
 6. Often a "production" branch that gets PR'd and merged.
-7. For valid scientific evidence, an accepted interpretation page under `docs/research/experiments/` and updated related research-question pages.
+7. Knowledge-base changes selected and structured according to `maintain-knowledge-base`.
 
 ## Research Logbook
 
@@ -58,7 +56,7 @@ is clear.
 
 ### 1. Prologue
 
-1. Create or switch to a long-lived research branch. You may already be on one, or the user may have requested a specific branch name. Otherwise, pick a descriptive name like `research/<topic>` or `research/<user>/<issue>-<topic>`.
+1. Create or switch to a long-lived research branch. Use a name requested by the user or follow the naming guidance in `AGENTS.md`.
 2. Create an experiment issue with `file-issue` unless scope or visibility needs
    human confirmation. If the user provides one, use it.
 3. Start the logbook and link both ways: logbook to issue URL, issue body to logbook path. See the skill.
@@ -119,15 +117,13 @@ Sealing should ordinarily only happen if the user requests it or the research ha
 1. Update the issue body with the final TL;DR, conclusion, decision log, and negative-results index. Again, follow the `task-logbook` skill.
 2. Add a final issue comment covering what worked, what did not, confidence
    level, limitations, and ordered next steps.
-3. Decide and record the knowledge-base disposition per claim:
-   - valid positive, null, or negative claims, including valid secondary findings from a partially informative design: create or update the experiment page and every materially affected research-question page, and state unsupported intended inferences under limitations;
-   - no scientifically valid claim and no reusable lesson: state why no inference is valid and keep it in the chronological record;
-   - no scientifically valid claim but a reusable lesson: update the nearest durable methodology or research document without promoting the invalid result.
-4. Follow `maintain-knowledge-base` for experiment-page structure, stable investigation boundaries, invalidation handling, and cross-links.
+3. Decide and record the disposition defined by `maintain-knowledge-base`.
+4. Follow that skill for inclusion, experiment-page structure, stable investigation boundaries, invalidation handling, and cross-links.
    Open a pull request for knowledge-base changes so humans review the interpretation.
 5. Use `update-docs` when behavior, operational practice, or reusable guidance changed.
 6. Ensure the final logbook entry and snapshot links are present.
-7. Close the issue when the research thread is complete and either the interpretation pull request has merged or a human has approved a no-promotion disposition.
+7. Close the issue when the research thread is complete and its knowledge-base disposition is final under `maintain-knowledge-base`.
+   An open interpretation pull request is temporary and must merge before closure.
 
 If the research produced useful production changes, extract them into a clean
 branch that can link to the logbook but does not include it. Follow standard
@@ -139,8 +135,8 @@ Before closing the issue:
 - Issue body includes a clear `Conclusion`.
 - Next steps are listed.
 - Final snapshot is linked.
-- Knowledge-base disposition is explicit.
-- Valid scientific evidence has an interpretation pull request linked.
+- Knowledge-base disposition is final under `maintain-knowledge-base`.
+- Any required interpretation pull request has merged.
 - If there's a final production PR, link to it from the issue summary.
 
 ## Practical Rules

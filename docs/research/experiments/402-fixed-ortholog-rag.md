@@ -1,7 +1,7 @@
 # Fixed-ortholog retrieval prototype
 
 > [!NOTE]
-> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; Gonzalo attributes the unusually strong performance to retrieval, while the experiment does not quantify the gain against a matched single-sequence arm.
+> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; Gonzalo attributes the unusually strong performance to retrieval, while the experiment does not quantify the gain against a matched single-sequence arm; broader species coverage, longer training, and larger readers are the clearest next scale axes.
 
 ![Graphical abstract showing seven mammalian ortholog windows conditioning a 104M causal model and its development-cohort VEP comparisons](figures/402/marindna-rag-visual-abstract.svg)
 
@@ -48,13 +48,18 @@ Removing, rolling, or replacing ortholog windows worsened human-token validation
 Available projected bases received more attention than missing-`N` controls, with attention concentrated near the expected aligned causal offset.
 Across segment slots, loss decreased as identity to the best earlier available segment increased; the within-slot Spearman correlation was -0.471 for the 46M model and -0.470 for the 104M model across 13,169 available windows.
 
+## Promising directions
+
+The strongest near-term scale opportunity is broader species coverage because the current context covers only seven mammalian species and no non-mammalian vertebrates.
+Longer optimization is another direct axis because both validation losses were still falling at 30,000 updates.
+Larger readers are also promising because only 46M- and 104M-parameter models were tested and the 104M result was unusually strong.
+One seed per size does not establish a scaling law, so the gain from model scale remains to be measured.
+
 ## Limitations
 
 - No matched human-only training arm quantifies the retrieval gain under identical training conditions.
   The qualitative comparison with small single-sequence models relies on Gonzalo Benegas's knowledge of MarinDNA's experiment history and prior work rather than a catalogued baseline table.
 - No wrong-species training arm identifies how much of the benefit requires genuine orthology.
-- One seed per model size does not support a general scaling claim.
-- Both models were still improving at 30,000 updates.
 - Species, phylogenetic group, fixed slot, and accumulated earlier context were confounded by one hard-coded order.
 - Evaluation covered SNVs on development cohorts.
   No held-out labeled results or indel-effect evaluation were included.

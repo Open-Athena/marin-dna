@@ -27,11 +27,7 @@ unfocused.
 - Include exact commands and paths for operational procedures.
 - Remove or correct stale instructions rather than adding caveats around them.
 - Keep broad docs concise; put detailed run notes in logbooks or issue comments.
-- Treat `docs/research/` as a knowledge base, not a chronological research record.
-  Keep current accepted interpretation there.
-  Link the canonical experiment issue as the research record.
-  The issue owns the full provenance chain to logbooks, pinned code, data, runs, and artifacts.
-- Commit every SVG referenced by a knowledge-base experiment page under `docs/research/experiments/figures/<issue>/` on `main` and use relative links.
+- Follow `maintain-knowledge-base` for research-question pages, experiment-interpretation pages, provenance, figures, and disposition rules.
 
 ## Done Criteria
 

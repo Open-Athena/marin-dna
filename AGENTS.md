@@ -54,4 +54,10 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 ## Repository Lifecycle
 
 - Merge only reusable, maintained framework code and documentation to `main`. Experiments, one-off analyses, competitor baselines, and dead ends remain on permanent branches and are cited with commit-pinned links.
+- Use a stable lowercase branch name: `<agent>/issue-<number>-<summary>` when an issue exists, otherwise `<agent>/<summary>`.
+- Add `agent-generated` to every issue or pull request created by an agent.
+- Close an issue only after its completion criteria are met and its body and final comment record the outcome.
+  For research issues, follow the disposition and interpretation-merge gate in `run-research` and `maintain-knowledge-base`.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.
+- For Hugging Face uploads under `marin-dna/*`, draft the README for human review before uploading.
+  Include a commit-pinned producing pipeline or training-script link, a short provenance description, and the `biology`, `genomics`, and `dna` tags.
