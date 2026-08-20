@@ -333,6 +333,39 @@ TRAIN_STABILITY_ARMS = (
 )
 
 
+def _normalize_original_training_loss(
+    history: pd.DataFrame,
+    *,
+    n_steps: int,
+) -> pd.DataFrame:
+    """Select an exact replay window and reject inconsistent duplicate rows."""
+
+    required = {"step", "logged_train_loss"}
+    if not required.issubset(history.columns):
+        raise ValueError(f"training history lacks {sorted(required - set(history.columns))}")
+    selected = history[["step", "logged_train_loss"]].dropna().copy()
+    selected["step"] = selected["step"].astype(int)
+    selected = selected[(selected["step"] >= 0) & (selected["step"] < n_steps)]
+    statistics = (
+        selected.groupby("step")["logged_train_loss"]
+        .agg(["min", "max", "mean"])
+        .reset_index()
+        .sort_values("step")
+    )
+    observed = tuple(statistics["step"].astype(int))
+    expected = tuple(range(n_steps))
+    if observed != expected:
+        missing = sorted(set(expected) - set(observed))
+        raise RuntimeError(f"W&B training history omits replay steps {missing}")
+    maximum_duplicate_spread = float((statistics["max"] - statistics["min"]).max())
+    if maximum_duplicate_spread > LOSS_PARITY_TOLERANCE:
+        raise RuntimeError(
+            "duplicate W&B training losses disagree by "
+            f"{maximum_duplicate_spread}, above {LOSS_PARITY_TOLERANCE}"
+        )
+    return statistics[["step", "mean"]].rename(columns={"mean": "logged_train_loss"})
+
+
 def _original_training_loss(arm: str) -> pd.DataFrame:
     run_id = TRAIN_STABILITY_RUN_IDS[arm]
     run = wandb.Api().run(f"gonzalobenegas/marin/{run_id}")
@@ -341,13 +374,13 @@ def _original_training_loss(arm: str) -> pd.DataFrame:
             keys=["trainer/global_step", "train/loss"],
             page_size=1_000,
         )
-    ).dropna()
-    return history.rename(
+    ).rename(
         columns={
             "trainer/global_step": "step",
             "train/loss": "logged_train_loss",
         }
     )
+    return _normalize_original_training_loss(history, n_steps=400)
 
 
 def replay_training_stability_arm(

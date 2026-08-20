@@ -4,12 +4,14 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from exp479_mntp.checkpoint_audit import (
     LOSS_PARITY_TOLERANCE,
     REPLAY_STEPS,
     _find_sample_id_for_position,
+    _normalize_original_training_loss,
     attach_logged_loss_parity,
     plot_dependency_panel,
     plot_training_stability,
@@ -117,3 +119,27 @@ def test_dependency_panel_writes_one_column_header_and_each_locus(tmp_path: Path
     assert rendered.count("Raw reference-directed") == 1
     for name, *_ in maps:
         assert name in rendered
+
+
+def test_training_loss_history_gates_only_the_exact_replay_window() -> None:
+    history = pd.DataFrame(
+        {
+            "step": [0, 1, 2, 982, 982],
+            "logged_train_loss": [1.0, 0.9, 0.8, 0.1, 9.0],
+        }
+    )
+    normalized = _normalize_original_training_loss(history, n_steps=3)
+    assert normalized["step"].tolist() == [0, 1, 2]
+    assert normalized["logged_train_loss"].tolist() == [1.0, 0.9, 0.8]
+
+    inconsistent = pd.DataFrame(
+        {
+            "step": [0, 1, 1, 2],
+            "logged_train_loss": [1.0, 0.9, 1.0, 0.8],
+        }
+    )
+    with pytest.raises(RuntimeError, match="duplicate W&B training losses disagree"):
+        _normalize_original_training_loss(inconsistent, n_steps=3)
+
+    with pytest.raises(RuntimeError, match="omits replay steps"):
+        _normalize_original_training_loss(history[history["step"] != 1], n_steps=3)
