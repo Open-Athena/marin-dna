@@ -114,6 +114,29 @@ uv run --locked python launch.py audit \
 
 The task requests one Lambda GH200 with a 256 GB disk and uses `sky launch --down`.
 
+## Training-stability audit
+
+The original runs log every per-step loss but do not log gradient norms. The
+`stability` stage deterministically replays the first 400 optimizer steps of all
+three arms—transferred MNTP, scratch MNTP, and continued CLM—with the original
+batch plan, corruption, objective, optimizer, and 1,000-step WSD schedule. It
+requires each replayed loss to match the corresponding original W&B history,
+then records the global gradient norm before clipping, the clipping decision,
+and both parameter-group learning rates. It publishes one compact three-arm
+table and a matched-scale loss/gradient figure; it does not publish model
+weights or per-example scores.
+
+```bash
+uv run --locked python launch.py stability \
+  --commit "$(git rev-parse HEAD)" \
+  --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover \
+  --prior-cost-usd <conservative-cumulative-cost> \
+  --execute
+```
+
+The task requests one Lambda GH200, enforces the same cumulative $50 guard,
+uploads its compact evidence before exit, and uses `sky launch --down`.
+
 ## Data plans
 
 After preflight selects the batch size, materialize the shared plans on the GH200:

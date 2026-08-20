@@ -116,6 +116,18 @@ def _parser() -> argparse.ArgumentParser:
     audit.add_argument("--n-bootstrap", type=int, default=200)
     audit.add_argument("--num-workers", type=int, default=4)
 
+    stability = subparsers.add_parser(
+        "stability-audit",
+        help="replay all three arms with pre-clipping gradient-norm tracing",
+    )
+    stability.add_argument("--artifact-dir", type=Path, required=True)
+    stability.add_argument("--output-dir", type=Path, required=True)
+    stability.add_argument("--train-plan", type=Path, required=True)
+    stability.add_argument("--validation-plan", type=Path, required=True)
+    stability.add_argument("--hf-repo-id", required=True)
+    stability.add_argument("--batch-size", type=int, default=64)
+    stability.add_argument("--num-workers", type=int, default=4)
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
@@ -230,6 +242,20 @@ def main() -> None:
             batch_size=args.batch_size,
             dependency_batch_size=args.dependency_batch_size,
             n_bootstrap=args.n_bootstrap,
+            num_workers=args.num_workers,
+        )
+        return
+
+    if args.command == "stability-audit":
+        from exp479_mntp.checkpoint_audit import run_training_stability_audit
+
+        run_training_stability_audit(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
             num_workers=args.num_workers,
         )
         return

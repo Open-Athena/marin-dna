@@ -34,6 +34,7 @@ class AdaptationModule(L.LightningModule):
         train_steps: int = TRAIN_STEPS,
         warmup_steps: int = WARMUP_STEPS,
         cooldown_start_step: int = COOLDOWN_START_STEP,
+        record_gradient_norms: bool = False,
     ) -> None:
         super().__init__()
         self.model = model
@@ -42,7 +43,10 @@ class AdaptationModule(L.LightningModule):
         self.train_steps = train_steps
         self.warmup_steps = warmup_steps
         self.cooldown_start_step = cooldown_start_step
+        self.record_gradient_norms = record_gradient_norms
         self.optimizer_values = optimizer_hyperparameters(batch_size, train_steps)
+        self.gradient_norm_trace: list[dict[str, float | int]] = []
+        self._latest_train_loss: float | None = None
         self.save_hyperparameters(ignore=["model"])
 
     @property
@@ -66,6 +70,8 @@ class AdaptationModule(L.LightningModule):
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
         metrics = self._metrics(batch)
+        if self.record_gradient_norms:
+            self._latest_train_loss = float(metrics.loss.detach())
         self.log(
             "train/loss", metrics.loss, on_step=True, on_epoch=False, batch_size=self.batch_size
         )
@@ -188,7 +194,28 @@ class AdaptationModule(L.LightningModule):
         gradient_clip_algorithm: str | None = None,
     ) -> None:
         del gradient_clip_val, gradient_clip_algorithm
-        nn.utils.clip_grad_norm_(self.model.parameters(), self.optimizer_values.max_grad_norm)
+        total_norm = nn.utils.clip_grad_norm_(
+            self.model.parameters(),
+            self.optimizer_values.max_grad_norm,
+            error_if_nonfinite=self.record_gradient_norms,
+        )
+        if self.record_gradient_norms:
+            if self._latest_train_loss is None:
+                raise RuntimeError("gradient trace lacks the corresponding training loss")
+            learning_rates = [float(group["lr"]) for group in optimizer.param_groups]
+            if len(learning_rates) != 2:
+                raise RuntimeError(f"expected two optimizer groups, found {len(learning_rates)}")
+            norm = float(total_norm)
+            self.gradient_norm_trace.append(
+                {
+                    "step": int(self.global_step),
+                    "train_loss": self._latest_train_loss,
+                    "pre_clip_gradient_norm": norm,
+                    "clipped": int(norm > self.optimizer_values.max_grad_norm),
+                    "adamh_learning_rate": learning_rates[0],
+                    "adam_learning_rate": learning_rates[1],
+                }
+            )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         checkpoint["exp479"] = {
