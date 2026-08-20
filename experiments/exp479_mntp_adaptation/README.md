@@ -8,7 +8,7 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 
 The one-seed pilot completed and is technically valid. Transferred MNTP narrowly beat scratch on step-1,000 pooled loss (0.397270 versus 0.399543) and single-mask loss (0.310077 versus 0.313152), and it acquired bilateral context use. It did not improve Mendelian, complex-trait, or SGE VEP over source CLM FWD+RC, so the 10,000-step extension and single-orientation VEP inference are not supported. The final conservative list-price estimate was $10.2326 of the $50 cap, and the cluster was confirmed terminated.
 
-See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md) and [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-#479-%E2%80%94-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ==). Final weights and per-variant scores remain private.
+See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md) and [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ). Final weights and per-variant scores remain private.
 
 ## Registered behavior
 
