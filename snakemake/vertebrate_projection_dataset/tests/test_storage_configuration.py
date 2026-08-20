@@ -51,3 +51,13 @@ def test_results_are_producer_keyed_and_verification_receipts_are_local() -> Non
     assert projection.count("validation=local(HAL_VALIDATION)") == 3
     assert 'temp(local(f"{RESULTS}/upload.done/{{region}}"))' in dataset
     assert 'local(expand(f"{RESULTS}/upload.done/{{region}}"' in dataset
+
+
+def test_issue_473_upload_revision_receipts_are_retained() -> None:
+    publication = (
+        PROJECT_ROOT / "workflow/rules/issue_473_publication.smk"
+    ).read_text()
+    receipt = 'local(f"{ISSUE_473_PUBLICATION_ROOT}/upload.done/{{dataset}}")'
+
+    assert receipt in publication
+    assert f"temp({receipt})" not in publication

@@ -284,7 +284,7 @@ rule issue_473_hf_upload_dataset:
         ],
         card=f"{ISSUE_473_HF_RESULTS}/{{dataset}}/README.md",
     output:
-        temp(local(f"{ISSUE_473_PUBLICATION_ROOT}/upload.done/{{dataset}}")),
+        local(f"{ISSUE_473_PUBLICATION_ROOT}/upload.done/{{dataset}}"),
     wildcard_constraints:
         dataset=ISSUE_473_PUBLICATION_KEY_RE,
     resources:

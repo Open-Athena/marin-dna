@@ -49,3 +49,7 @@ sky exec -d -c issue-473-hf \
 Each repository is checked before upload for unexpected paths and checked
 after upload for its exact file tree, LFS sizes and SHA-256 hashes, and a
 byte-identical card at the resulting immutable revision.
+The retained local `publication/upload.done/<dataset>` receipts record each
+repository ID and exact 40-character Hub revision. Capture those three
+revisions from the retained worker before termination and pin them in the four-
+arm training recipe.
