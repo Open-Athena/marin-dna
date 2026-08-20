@@ -849,7 +849,7 @@ requires-dist = [
     { name = "seaborn" },
     { name = "snakemake" },
     { name = "snakemake-storage-plugin-s3", specifier = ">=0.3.6" },
-    { name = "torch" },
+    { name = "torch", specifier = "==2.13.0" },
     { name = "transformers", extras = ["torch"], specifier = "<5" },
     { name = "zstandard" },
 ]
