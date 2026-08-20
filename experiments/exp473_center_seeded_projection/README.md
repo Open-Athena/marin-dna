@@ -89,6 +89,7 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   -e WANDB_ENTITY "$WANDB_ENTITY" \
   -e WANDB_PROJECT marin \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
+  -e EXP473_TPU_REGION us-east5 \
   -e EXP473_ARM cds_center_1 \
   -- python -m exp473_center_seeded_projection.experiment \
   --version 2026.08.20 --run
@@ -99,6 +100,12 @@ coordinators use independent checkpoint and W&B run names. The fourth
 comparison arm is the pinned #417 checkpoint above. Do not launch additional
 landmark widths or seeds from this branch without a new recorded decision and
 compute approval.
+
+The coordinator's `--region` controls only its CPU task. Set
+`EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
+allowed values are `us-east5` and `us-central1`, with `us-east5` retained as
+the default. A region migration must terminate the old coordinator and child
+before launching a replacement with the same run and checkpoint identities.
 
 ### Paired projection loss
 

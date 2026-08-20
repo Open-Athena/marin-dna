@@ -1534,3 +1534,50 @@ cohort, assemblies, and downstream training recipe fixed.
   W&B run
   [`dna-exp473-0p25b-cds_center_1-v1`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp473-0p25b-cds_center_1-v1)
   exists with no metric summary yet. No duplicate coordinator was launched.
+
+### 2026-08-20 17:26 UTC - CSP-043 stalled training migrated to central1
+
+- Capacity diagnosis: after the first CDS preemption, all three exact training
+  children remained pending in `us-east5`. Iris repeatedly replaced a booting
+  preemptible v5p-8 slice before it reached ready state. In contrast,
+  `us-central1` had a ready v5p-8 slice with no task assignment.
+- No-duplicate migration: a prefix dry-run selected exactly the three v2
+  coordinators and their three training children. Those six jobs were then
+  terminated, and their coordinator and training-child task records were
+  confirmed terminal before any replacement was submitted.
+- Exact replacement coordinators are
+  `/ubuntu/exp473-cds-center-1-v3`,
+  `/ubuntu/exp473-enhancer-full-window-v3`, and
+  `/ubuntu/exp473-enhancer-center-1-v3`, each constrained to `us-central1`.
+  They preserve version `2026.08.20`, all source-pinned public dataset
+  revisions, the same three arm keys, run IDs, W&B identities, checkpoint
+  roots, model/optimizer/seed settings, and 5,000-step budgets.
+- Scope remains exactly CDS `center_1`, enhancer `full_window`, and enhancer
+  `center_1`; the exact #417 CDS full-window checkpoint remains reused. No
+  wider projection policy, pilot, additional seed, private or gated Hugging
+  Face repository, or held-out even-autosome/Y VEP datum was introduced.
+
+### 2026-08-20 17:31 UTC - CSP-044 child-region inheritance corrected
+
+- Correction to CSP-043: the three v3 *coordinators* were constrained to
+  `us-central1`, but inspection of selected non-secret `job_config` fields
+  showed that their training children retained the experiment's explicit
+  `us-east5` resource constraint. A coordinator's region does not override an
+  explicitly pinned child resource. All three children were still pending and
+  had consumed no TPU time.
+- A second prefix dry-run again selected exactly three v3 coordinators and
+  three training children. Those six jobs were terminated before modifying or
+  relaunching the experiment, preserving the no-duplicate boundary.
+- The experiment-local launcher now accepts a bounded
+  `EXP473_TPU_REGION` override, defaults to the established `us-east5`, and
+  permits only `us-east5` or `us-central1`. The selected value controls the
+  training child's resource constraint and is forwarded into its environment
+  for provenance. A regression test covers the default, central1 override,
+  and fail-closed invalid value; the README records that coordinator and child
+  placement are distinct.
+- Verification: the first test run exposed that Marin represents resources in
+  the realized pod config with a fingerprint placeholder; the assertions were
+  corrected to inspect the actual `train_resources` runtime argument. The
+  complete locked suite then passed 28/28 tests in 5.95 seconds with peak RSS
+  494,660 KiB under the shared-node lock, 9.54 GiB available memory, and 0.47
+  one-minute load at start.

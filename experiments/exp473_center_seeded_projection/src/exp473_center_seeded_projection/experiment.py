@@ -43,6 +43,8 @@ HF_SAVE_STEPS = 500
 NATIVE_CHECKPOINT_STEPS = 500
 PER_DEVICE_PARALLELISM = 1_024
 DATA_VERSION = "2026.08.20"
+DEFAULT_TPU_REGION = "us-east5"
+ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
 
 MODEL = Qwen3Config(
     max_seq_len=SEQUENCE_LENGTH,
@@ -152,6 +154,17 @@ def required_env(name: str) -> str:
     return value
 
 
+def selected_tpu_region() -> str:
+    """Return the explicit TPU child region, retaining east5 by default."""
+    region = os.environ.get("EXP473_TPU_REGION", DEFAULT_TPU_REGION).strip()
+    if region not in ALLOWED_TPU_REGIONS:
+        raise ValueError(
+            "EXP473_TPU_REGION must be one of "
+            f"{sorted(ALLOWED_TPU_REGIONS)}, got {region!r}"
+        )
+    return region
+
+
 def selected_arm() -> Arm:
     key = required_env("EXP473_ARM")
     try:
@@ -221,11 +234,13 @@ def tokenized_dataset(arm: Arm) -> ArtifactStep[DnaTokenizedCache]:
 def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
     cache = tokenized_dataset(arm)
     run_id = f"dna-exp473-0p25b-{arm.key}-v1"
+    tpu_region = selected_tpu_region()
     forwarded_env = {
         "WANDB_API_KEY": required_env("WANDB_API_KEY"),
         "WANDB_ENTITY": required_env("WANDB_ENTITY"),
         "WANDB_PROJECT": required_env("WANDB_PROJECT"),
         "MARIN_PREFIX": required_env("MARIN_PREFIX"),
+        "EXP473_TPU_REGION": tpu_region,
         "HF_HUB_DOWNLOAD_TIMEOUT": "120",
         "UV_LOCK_TIMEOUT": "7200",
     }
@@ -248,7 +263,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
             cpu=16,
             ram="56g",
             disk="100g",
-            regions=["us-east5"],
+            regions=[tpu_region],
         ),
         tensor_parallel_size=1,
         steps_per_eval=HF_SAVE_STEPS,

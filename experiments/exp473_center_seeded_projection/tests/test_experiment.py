@@ -4,6 +4,7 @@ import pytest
 from exp473_center_seeded_projection.experiment import (
     ARMS,
     BATCH_SIZE,
+    DEFAULT_TPU_REGION,
     HF_SAVE_STEPS,
     MODEL,
     NATIVE_CHECKPOINT_STEPS,
@@ -85,8 +86,28 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
         assert train.data_seed == SEED
         assert train.hf_save_steps == HF_SAVE_STEPS
         assert train.z_loss_weight == 4.312883184368223e-06
+        assert step.runtime_args["train_resources"].regions == [DEFAULT_TPU_REGION]
+        assert pod.env_vars["EXP473_TPU_REGION"] == DEFAULT_TPU_REGION
         assert len(step.deps) == 1
         assert key in step.name
+
+
+def test_tpu_child_region_override_is_explicit_and_bounded(monkeypatch) -> None:
+    _set_required_env(monkeypatch)
+    monkeypatch.setenv("EXP473_TPU_REGION", "us-central1")
+    step = build_training(ARMS["cds_center_1"])
+    pod = step.build_config(
+        StepContext.for_fingerprint(
+            runtime_arg_keys=step.runtime_args,
+            deps=step.deps,
+        )
+    )
+    assert step.runtime_args["train_resources"].regions == ["us-central1"]
+    assert pod.env_vars["EXP473_TPU_REGION"] == "us-central1"
+
+    monkeypatch.setenv("EXP473_TPU_REGION", "anywhere")
+    with pytest.raises(ValueError, match="EXP473_TPU_REGION"):
+        build_training(ARMS["cds_center_1"])
 
 
 def test_tokenized_handles_pin_hf_revisions(monkeypatch) -> None:
