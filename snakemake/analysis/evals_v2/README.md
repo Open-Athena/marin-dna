@@ -160,6 +160,55 @@ be skipped with no embedding columns.) Name targeted targets rather than
 
 ## Setup
 
+### Supported Sky GPU runtime
+
+The standard AWS GPU task pins the complete runtime instead of inheriting SkyPilot's changing default image.
+
+| Component | Standard runtime | PyTorch 2.8 baseline |
+| --- | --- | --- |
+| Sky image | AWS `ami-0324f0ad73bdcd087`, Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 24.04) 20260721 | SkyPilot default GPU image used by issue #459 |
+| OS | Ubuntu 24.04.4 LTS | Ubuntu 22.04 |
+| NVIDIA driver | 595.71.05 | 535.216.01 |
+| PyTorch | 2.13.0 | 2.8.0 |
+| Compiled CUDA | 13.0 | 12.8 |
+| Accelerator | NVIDIA A10G | NVIDIA A10G |
+
+The AWS image is immutable and its release notes list A10G support, driver 595.71.05, and CUDA 13.0 in the installed stack.
+CUDA 13.x requires an R580-or-newer driver, so the R595 image satisfies the major-version compatibility boundary.
+The exact contract and the fixed parity cell live in [`config/gpu_runtime_validation.yaml`](config/gpu_runtime_validation.yaml).
+The locked environment pins `torch==2.13.0`, whose Linux wheel reports `torch.version.cuda == "13.0"`.
+
+Every `sky/run.yaml` setup executes `evals-gpu-runtime-check smoke` after the locked environment is installed.
+The smoke gate requires `torch.cuda.is_available()`, the exact image runtime metadata, A10G bf16 support, and a finite bf16 CUDA matrix multiplication.
+
+The numerical gate re-scores the full 16,140-row `exp351-centered-step-1000` × `mendelian_traits@4aed58e` train cell without writing pipeline outputs.
+It checks the four raw score atoms against the checksummed PyTorch 2.8 parquet, using `rtol=1e-4, atol=0.15` for LLR and `rtol=1e-3, atol=1e-4` for mean JSD.
+The LLR tolerance covers the accumulated bf16 kernel differences observed when moving the fixed cell to the new driver, CUDA, and PyTorch stack.
+Run the gate on a fresh one-GPU cluster with:
+
+```bash
+sky launch snakemake/analysis/evals_v2/sky/run.yaml \
+  -c evals-v2-gpu-runtime-462 \
+  --env GPU_RUNTIME_PARITY=true \
+  --down
+```
+
+The gate passed on 2026-08-20 on a fresh AWS `g5.xlarge` spot instance.
+The focused runtime-validation suite available for the live run passed, the runtime metadata matched exactly, and the scorer read only the pinned `train.parquet` file.
+Two failure-path regression tests were added after the live run and will be exercised by CI.
+All 16,140 rows passed for both strands:
+
+| Score atom | Mean absolute difference | 95th percentile | Maximum | Outside tolerance |
+| --- | ---: | ---: | ---: | ---: |
+| `llr_fwd` | 0.0179263 | 0.0450959 | 0.130265 | 0 |
+| `llr_rc` | 0.0176735 | 0.0443012 | 0.100058 | 0 |
+| `mean_jsd_fwd` | 1.23838e-6 | 3.62520e-6 | 1.92486e-5 | 0 |
+| `mean_jsd_rc` | 1.21606e-6 | 3.61578e-6 | 1.49733e-5 | 0 |
+
+The validation writes no persistent score outputs and does not access held-out labels.
+
+The pinned image is documented by the [AWS DLAMI release index](https://docs.aws.amazon.com/dlami/latest/devguide/aws-deep-learning-x86-base-gpu-ami-ubuntu-24-04.html), and the driver boundary comes from the [NVIDIA CUDA compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html).
+
 On a GPU node (a small EC2 GPU is sufficient for the approximately 0.6B-parameter models):
 
 ```bash
