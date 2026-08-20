@@ -46,7 +46,7 @@ def source_uri(region: str, policy: str) -> str:
 def build_intersection_loss_config(
     checkpoint_roots: dict[str, str], *, experiment_commit: str
 ) -> dict[str, Any]:
-    """Build the complete config for the isolated 40-cell loss workflow."""
+    """Build the complete config for the isolated 36-cell loss workflow."""
     if set(checkpoint_roots) != set(ARM_DATASETS):
         raise ValueError(
             f"checkpoint roots must be exactly {sorted(ARM_DATASETS)}, "
