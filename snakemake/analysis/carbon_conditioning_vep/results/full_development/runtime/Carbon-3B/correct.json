@@ -1,0 +1,26 @@
+{
+  "condition": "correct",
+  "devices": [
+    "NVIDIA GH200 480GB"
+  ],
+  "dtype": "bfloat16",
+  "elapsed_seconds": 1683.8452669810001,
+  "gpu_count": 1,
+  "model": "HuggingFaceBio/Carbon-3B",
+  "model_revision": "95c3c68fc77fdf70b1582031bacf9d7753f72cf2",
+  "peak_gpu_memory_bytes": 12118581248,
+  "peak_rss_bytes": 5013307392,
+  "prompt_grammar": "corpus_card",
+  "prompt_prefix": "<species>vertebrate_mammalian<dna>",
+  "rows": 16140,
+  "shards": [
+    {
+      "device": "NVIDIA GH200 480GB",
+      "elapsed_seconds": 1683.7832103570001,
+      "peak_gpu_memory_bytes": 12118581248,
+      "peak_rss_bytes": 5013307392,
+      "rows": 16140,
+      "shard_id": 0
+    }
+  ]
+}

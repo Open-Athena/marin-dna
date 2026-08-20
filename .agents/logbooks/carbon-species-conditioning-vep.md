@@ -13,9 +13,10 @@ author: gonzalobenegas
 - The corrected label-blind four-condition A10G smoke passed.
 - The retained labeled pilot compares untagged versus correct conditioning on 2,050 development-set promoter rows.
 - Correct conditioning produced AUPRC 0.1738 versus 0.1775 untagged, with paired delta -0.0037 and 95% match-group bootstrap interval [-0.0269, 0.0204].
-- A two-arm follow-up on all 16,140 development/train variants is approved with a $3.00 cap and prepared at `d42215f5`.
-- Both Lambda GH200 clusters are terminated; SkyPilot estimates $1.08 total cost, $0.08 above the approved cap because the first successful run's retrieval failed and required one rerun.
-- Compact score, metric, runtime, and summary artifacts are retained in the experiment snapshot; the reproducible 13 MiB staged input is not committed or uploaded to S3.
+- The full two-arm follow-up retained all 16,140 development/train variants and 1,614 complete match groups.
+- Correct conditioning produced macro AUPRC 0.3552 versus 0.3582 untagged, with paired delta -0.0030 and 95% match-group bootstrap interval [-0.0183, 0.0088].
+- The full Lambda GH200 cluster is terminated; SkyPilot estimates $2.28 cost against the approved $3.00 cap.
+- Compact metric, runtime, checksum, and summary artifacts are retained locally; raw score parquets and the reproducible staged input remain local and were not uploaded to S3.
 
 ## Scope
 
@@ -44,7 +45,8 @@ author: gonzalobenegas
 ### Falsified / Dead End
 
 - `CARBON-SC-002` improvement form: The scoped promoter pilot did not support an AUPRC benefit from correct mammalian conditioning.
-  The paired interval crosses zero, so it also does not establish equivalence or harm.
+  The full-development follow-up also did not support a macro AUPRC benefit, with paired delta -0.0030 and 95% interval [-0.0183, 0.0088].
+  Both paired intervals cross zero, so they also do not establish equivalence or overall harm.
   Do not expand conditioning comparisons without a new rationale or substantially more power.
 
 ### Promoted
@@ -61,10 +63,12 @@ author: gonzalobenegas
 - 2026-08-20: Limit the first labeled pilot to `tss_proximal` promoter variants and the untagged-versus-correct comparison.
 - 2026-08-20: Prefer Lambda GH200 for the promoter pilot if capacity is available; stage inputs through Sky instead of forwarding AWS credentials.
 - 2026-08-20: Keep a one-variant inference batch on GH200 because the measured eight-variant batch reduced throughput and raised peak allocation to 44.76 GiB.
+- 2026-08-20: Retain only the untagged-versus-correct comparison for the full development split and stop after it because neither the promoter nor full-development paired result supports an improvement.
 
 ## Negative Results Index
 
 - `CARBON-SC-002`: Correct mammalian conditioning did not improve AUPRC on 2,050 development-only promoter variants; paired delta -0.0037, 95% CI [-0.0269, 0.0204].
+- `CARBON-SC-002`: Correct mammalian conditioning did not improve macro AUPRC across 16,140 development-only variants; paired delta -0.0030, 95% CI [-0.0183, 0.0088].
 
 ## Entry Log
 
@@ -266,3 +270,28 @@ author: gonzalobenegas
   No paid resource was created during preparation.
 - Interpretation: The follow-up is isolated under `results/full_development`, preserves the promoter snapshot, and can run on Lambda without AWS credentials.
 - Next action: Launch `carbon-conditioning-vep-gh200-full`, verify all 29 remote tests and initial throughput, retrieve the result bundle immediately, and terminate the instance.
+
+### 2026-08-20 21:43 UTC - Full-development result retained
+
+- Hypothesis: Correct mammalian conditioning improves Carbon-3B macro AUPRC over an untagged prompt across the complete development-only Mendelian variant set.
+- Commit Hash: `d42215f5` (run implementation); `47610800` (launch record).
+- Command:
+  Launch `sky/run-gh200-full.yaml` as `carbon-conditioning-vep-gh200-full`, fall back from unavailable Lambda `us-east-1` capacity to `us-east-3`, run all locked tests and the exact seven-job DAG, retrieve `results/full_development` with SkyPilot's generated SSH configuration, validate the result bundle independently, and explicitly terminate the cluster.
+- Config: Carbon-3B `95c3c68fc77fdf70b1582031bacf9d7753f72cf2`; corpus-card prompts `<dna>` and `<species>vertebrate_mammalian<dna>`; exact pinned Mendelian development `train.parquet`; all 16,140 development rows; 1,614 positives; 1,614 complete ten-row match groups; nine observed consequence subsets; 8,190 scored DNA bases per strand; bf16; batch size one; FWD/RC average; 1,000 seeded match-group bootstrap draws; one Lambda GH200 at $2.29 per hour.
+- Result:
+  All 29 locked tests passed in 9.93 seconds before scoring, and all seven Snakemake jobs succeeded.
+  Untagged macro AUPRC was 0.358200 with absolute 95% bootstrap interval [0.338822, 0.387681].
+  Correct-conditioned macro AUPRC was 0.355182 with absolute 95% bootstrap interval [0.333180, 0.385529].
+  The paired correct-minus-untagged macro delta was -0.003018 with 95% interval [-0.018293, 0.008793] across 1,610 eligible match groups; the four-group mature-miRNA subset was excluded from the macro by the prespecified minimum-group rule.
+  The exploratory missense subset was the only unadjusted subset interval excluding zero, favoring untagged conditioning with delta -0.008599 and 95% interval [-0.016770, -0.000791].
+  Both conditions contained the same 16,140 unique variants and identical labels, subsets, and match groups; every likelihood atom was finite and satisfied the score identities; no window rows were excluded.
+  Correct scoring took 1,683.85 seconds with 11.29 GiB peak allocated GPU memory and 4.67 GiB peak RSS; untagged scoring took 1,617.17 seconds with 11.26 GiB peak allocated GPU memory and 4.88 GiB peak RSS on an NVIDIA GH200 480GB.
+  Independent local recomputation reproduced both absolute metric tables and the paired bootstrap table within 1e-13 and exited zero in 34.69 seconds at 274,808 KiB peak RSS.
+  The corrected SSH transfer succeeded, explicit teardown left no cluster named `carbon-conditioning-vep-gh200-full`, and SkyPilot's local cost report estimates 59 minutes 49 seconds and $2.28 against the approved $3.00 cap.
+  No held-out labels or predictions were accessed, and no result was uploaded to S3 or published to GitHub.
+- Interpretation:
+  The complete development set provides no evidence that correct mammalian conditioning improves overall Carbon-3B ranking over no conditioning.
+  The macro interval includes zero, so the experiment does not establish equivalence or an overall detrimental effect.
+  The isolated missense interval is exploratory and uncorrected for the nine subset comparisons, so it does not change the primary conclusion.
+  Do not launch the broader four-condition matrix without a new hypothesis.
+- Next action: Preserve the compact metrics, runtimes, summary, exclusions, and checksum manifest in an annotated local snapshot, and request human review before any GitHub publication or durable raw-score upload.
