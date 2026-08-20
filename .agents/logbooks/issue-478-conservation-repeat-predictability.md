@@ -9,8 +9,10 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: follow-up in progress. The original 8-checkpoint analysis is complete; a new non-repeat conservation-classification analysis is testing pooled global and per-region AUPRC.
-- The classifier compares negative loss and entropy at every model size with all 28 smaller-to-larger loss deltas, starting with the 46M-to-76M pilot.
+- Status: complete. The original 8-checkpoint audit and the non-repeat conservation-classification follow-up are durable and validated.
+- Absolute loss and entropy classify conserved non-repeat positions above prevalence globally and in CDS, upstream, and downstream; AUPRC increases monotonically with model size.
+- The practical 46M-to-76M loss delta is above prevalence in every scope but weaker than either absolute small-model score.
+- FWD-only and RC-only AUPRC are nearly identical; one orientation preserves most absolute-loss ranking lift at half the inference compute, while loss-delta ranking degrades more.
 - The primary central-span analysis covers 3,129,344 bases per region after excluding 32 bases from each window edge, with 1,000 10-Mb block-bootstrap replicates and zero ambiguous bases.
 - Adjusted 46M-to-4B loss reduction for conserved nonrepeat sequence was 0.364 nats/base in CDS (95% CI 0.356–0.372), 0.292 upstream (0.283–0.302), and 0.242 downstream (0.232–0.252).
 - Repeat interactions were negative in every region: repeats improved less with scale, but conservation remained positively associated with improvement within repeats. The broad claim that repeats are intrinsically easier was not supported after composition controls.
@@ -18,8 +20,8 @@ author: gonzalobenegas
 - All eight checkpoints use the same mixture: CDS 0.7319, upstream 0.2062, downstream 0.0619; uppercase weight 1.0 and lowercase weight 0.01.
 - CDS-only codon position passed as a positive control on both strands; splice donor/acceptor results remain descriptive secondary evidence.
 - FWD-only and RC-only analyses preserved the group-level result. Relative to the FWD/RC mean, one-orientation endpoint scores had 0.69–0.81 Spearman correlation, 0.58–0.72 top-decile overlap, and 0.76–0.86 gain-sign agreement across regions; neither orientation was consistently better.
-- GPU spend was approximately $4.18 and the CPU-only orientation sensitivity added about $0.03, below the $20 cap. Exact corpus exposure and homology density were unavailable and remain limitations.
-- The research branch is rebased on `origin/main` at `d40a56ac`, and a knowledge-base experiment page with reviewed SVG figures is ready for the required interpretation pull request.
+- GPU spend was approximately $4.18; CPU analyses added about $0.31, below the $20 cap. Exact corpus exposure and homology density were unavailable and remain limitations.
+- The permanent research branch contains the full token cache contract, classification metrics, and reviewed plots; interpretation PR #482 should be updated after the human plot iteration.
 
 ## Scope
 
@@ -46,7 +48,7 @@ author: gonzalobenegas
 
 ### Active
 
-- CRP-005: among non-repeat positions, loss, entropy, or loss deltas rank conserved positions above their prevalence baseline globally and within CDS, upstream, and downstream regions. Minimum test: 46M loss, 76M loss, their entropies, and the 46M-to-76M loss delta.
+- None.
 
 ### Blocked
 
@@ -64,6 +66,7 @@ author: gonzalobenegas
 - `CRP-003`: supported on both strands; codon positions 1 and 2 improved more with scale than position 3.
 - `CRP-004`: strand/context-specific donor and acceptor differences were observed, but remain secondary and do not change the training recommendation.
 
+- `CRP-005`: supported globally and within all three regions; absolute loss, entropy, and the practical 46M-to-76M loss delta all exceeded conserved prevalence among non-repeat positions.
 ## Decision Log
 
 - 2026-08-19: use the three pinned validation datasets and revisions from issue #478 and `evals_v2/config/config.yaml`.
@@ -209,3 +212,26 @@ author: gonzalobenegas
 - Falsifier: the candidate is not useful for this proxy task if pooled AUPRC is at or below prevalence, or if any apparent global lift is absent within the three region-specific analyses.
 - Cost and risk: the pilot reuses existing atoms on one CPU instance and performs no model inference. The full sweep is conditional on pilot correctness and signal.
 - Source ledger: issue #478 and its permanent logbook (direct Marin evidence); scikit-learn average-precision documentation (metric definition); GPN-MSA (external genomic-model precedent).
+
+### 2026-08-20 19:50 UTC - CRP-005 conservation classification complete
+
+- Hypothesis: among non-repeat positions, model loss, predictive entropy, and model-to-model loss deltas can rank case-encoded conserved positions without using conservation as a score input.
+- Commit Hashes: `92f06090` for the full averaged sweep and figures; `700e3c50` for the single-orientation comparisons.
+- Commands: CPU-only SkyPilot execution of `predictability_478_classification_pilot` followed by `predictability_478_classification`; no model inference or GPU was used.
+- Population: central positions `[32, 223)`, excluding RefSeq repeats and ambiguous bases; global 8,104,672 positions with 2,252,035 conserved, plus CDS 2,830,380/1,286,562, upstream 2,694,225/528,812, and downstream 2,580,067/436,661.
+- Baselines: conserved prevalence was 0.277869 global, 0.454555 CDS, 0.196276 upstream, and 0.169244 downstream.
+- Pilot result: 76M loss AUPRC was 0.535 global, 0.710 CDS, 0.336 upstream, and 0.240 downstream; the 46M-to-76M delta was above prevalence in every scope.
+- Full absolute-loss result: AUPRC increased monotonically from 46M to 4B in every scope, reaching 0.723 global, 0.857 CDS, 0.522 upstream, and 0.428 downstream at 4B.
+- Full entropy result: 4B AUPRC was 0.731 global, 0.867 CDS, 0.533 upstream, and 0.434 downstream; entropy was slightly better than loss except at the smallest downstream sizes.
+- Full loss-delta result: the best pair was 46M-to-1B globally at 0.569, 46M-to-255M in CDS at 0.702, and 46M-to-4B upstream/downstream at 0.436/0.400. The practical 46M-to-76M AUPRC was 0.429/0.603/0.260/0.214 global/CDS/upstream/downstream and was weaker than either absolute small-model score.
+- Orientation result: all 352 FWD-only and RC-only metrics were finite; FWD-versus-RC AUPRC differed by at most 0.0053 across scopes and scores, so neither direction has empirical priority.
+- Half-compute result: the better single orientation retained 86–92% of the averaged 46M-loss lift over prevalence, 92–101% at 4B, and 71–75% for the 46M-to-76M delta.
+- Genomic variation: 46M loss beat within-block prevalence in 99.7% of evaluable global/CDS 10-Mb blocks, 99.0% upstream, and 86.2% downstream; the 46M-to-76M delta did so in 100%, 100%, 98.1%, and 91.3%. These fractions describe variation and are not confidence intervals for pooled AUPRC.
+- Durable token cache: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/predictability_478/v1/atoms/{model}/{region}.{fwd,rc}.parquet` retains `window_id` plus the full per-token `nll` and `entropy_4nuc` vectors; `joined/{region}.parquet` retains the normalized labels and genomic metadata.
+- Durable derived outputs: `classification/metrics.parquet` has 176 averaged rows, `orientation_metrics.parquet` has 352 single-orientation rows, separate block-metric Parquets preserve 10-Mb variation, manifests record the cache contract, and five SVGs are stored under `classification/`.
+- Validation: 8 focused classifier/figure tests pass; scoped pre-commit hooks pass; the final dry-run schedules only the expected render rule; all figures were visually inspected.
+- Cost: the on-demand `m7i.2xlarge` ran for about 42 minutes after Spot was unavailable, approximately $0.28. Combined issue cost is approximately $4.49 and remains below the $20 cap.
+- Interpretation: loss and entropy are useful same-corpus conservation proxies among non-repeat positions, and larger models provide progressively stronger rankings. For a practical cheap proxy, one-orientation 46M loss or entropy is preferable to the two-model 46M-to-76M delta.
+- Limitations: validation casing combines below-threshold with missing or unaligned positions; the result is in-corpus, cannot separate exposure or homology, and does not demonstrate out-of-distribution functional discovery or causal training benefit.
+- Decision: promote CRP-005. Retain FWD/RC averaging for the highest-quality per-base weight, but use one deterministic orientation for half-compute pilots without claiming biological directionality.
+- Next action: finish human plot iteration, then update issue #478 and interpretation PR #482 with the accepted classification result and durable links. CDS-only codon/splice classification remains optional secondary analysis.
