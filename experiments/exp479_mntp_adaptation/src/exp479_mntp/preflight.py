@@ -29,6 +29,15 @@ from exp479_mntp.modeling import (
 )
 from exp479_mntp.optimizer import build_optimizer, build_wsd_scheduler
 
+
+def enable_training_determinism() -> None:
+    """Match the CUDA backend flags set by ``Trainer(deterministic=True)``."""
+
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)
+
+
 BATCH_CANDIDATES = (1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1)
 
 
@@ -300,6 +309,7 @@ def run_preflight(output_path: Path) -> dict[str, Any]:
     """Run all actual-checkpoint checks that must precede paid training arms."""
 
     started = time.time()
+    enable_training_determinism()
     bundle = load_model_bundle(initialization="transferred", add_mask=False)
     if not torch.cuda.is_available():
         raise RuntimeError("actual-checkpoint preflight requires the Lambda GH200 CUDA device")
@@ -318,6 +328,7 @@ def run_preflight(output_path: Path) -> dict[str, Any]:
         "mask_token_id": mask_token_id,
         "attention": attention,
         "memory_and_throughput": memory,
+        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
