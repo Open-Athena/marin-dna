@@ -35,6 +35,12 @@ def _prior_cost_usd() -> float:
     return float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
 
 
+def finish_wandb_run(logger: WandbLogger) -> None:
+    """Close the process-global W&B run before starting another arm."""
+
+    logger.experiment.finish(exit_code=0)
+
+
 def train_arm(
     *,
     arm: Arm,
@@ -175,3 +181,4 @@ def train_arm(
     )
     if hf_repo_id is not None:
         upload_final_arm(output_dir=output_dir, repo_id=hf_repo_id, arm=arm)
+    finish_wandb_run(logger)
