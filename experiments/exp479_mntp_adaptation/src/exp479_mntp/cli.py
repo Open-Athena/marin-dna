@@ -68,6 +68,8 @@ def _parser() -> argparse.ArgumentParser:
         help="cap a passing preflight selection after a full-trainer first-step OOM",
     )
     pilot.add_argument("--trainer-preflight", type=Path)
+    pilot.add_argument("--resume-hf-repo-id")
+    pilot.add_argument("--checkpoint-upload-steps", type=int, nargs="*")
     pilot.add_argument(
         "--model-card-reviewed",
         action="store_true",
@@ -144,6 +146,12 @@ def main() -> None:
             offline_wandb=args.offline_wandb,
             maximum_batch_size=args.maximum_batch_size,
             trainer_preflight_path=args.trainer_preflight,
+            resume_hf_repo_id=args.resume_hf_repo_id,
+            checkpoint_upload_steps=(
+                None
+                if args.checkpoint_upload_steps is None
+                else tuple(args.checkpoint_upload_steps)
+            ),
         )
         return
 

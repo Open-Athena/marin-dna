@@ -48,3 +48,25 @@ def test_remote_completion_requires_manifest_and_export() -> None:
     assert not remote_arm_is_complete(
         files - {"runs/transferred_mntp/manifest.json"}, "transferred_mntp"
     )
+
+
+def test_checkpoint_upload_can_keep_only_registered_restart_steps(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    api = FakeApi()
+    monkeypatch.setattr(publishing, "HfApi", lambda: api)
+    checkpoint_dir = tmp_path / "checkpoints"
+    checkpoint_dir.mkdir()
+    for step in (100, 400, 800, 1000):
+        (checkpoint_dir / f"step-{step:04d}.ckpt").touch()
+    callback = publishing.CheckpointUploadCallback(
+        checkpoint_dir=checkpoint_dir,
+        repo_id="org/repo",
+        arm="transferred_mntp",
+        upload_steps=(400, 800),
+    )
+    callback._upload_new()
+    assert api.uploads == [
+        "lightning/transferred_mntp/step-0400.ckpt",
+        "lightning/transferred_mntp/step-0800.ckpt",
+    ]

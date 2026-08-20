@@ -231,3 +231,15 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost boundary: The instance ran from 01:06:41 to about 01:17 UTC, at most about $0.40 at the listed price. Cumulative failed/diagnostic list-price exposure remains below about $1.73; final provider billing still requires reconciliation.
 - Data boundary: Only pinned unlabeled training sequence was inspected for reproduction. No aggregate labeled evaluation, even-autosome label, or Y label was accessed.
 - Next action: Snapshot and relaunch. Require the transferred arm to publish step 100 before considering restart safety exercised remotely.
+
+### 2026-08-20 01:50 - Learning established; private checkpoint quota recovery
+
+- Launch commit: `379ceca120f434ba535140c4ef71bdd911138147`.
+- Training result: Transferred MNTP completed validation boundaries through step 800 with finite state. Step-800 pre-cooldown metrics were diffusion loss 0.39797, single-mask loss 0.31697, diffusion accuracy 0.33200, single-mask accuracy 0.40781, left-flank L1 0.01498, and right-flank L1 0.01215. The context probes grew from 0.00226/0.00123 at step 100, so bidirectional context use is established during adaptation.
+- Durable records: Full step-100 through step-700 Lightning checkpoints are present in the original private staging repository. W&B run [6iqcmdm7](https://wandb.ai/gonzalobenegas/marin/runs/6iqcmdm7) retains every completed validation boundary through step 800.
+- Failure: The step-800 upload transferred its 13.4 GB payload, then the Hugging Face commit endpoint rejected it because the private owner storage limit had been reached. Training did not fail numerically; publication stopped the job at the registered pre-cooldown boundary before the checkpoint commit.
+- Recovery decision: Do not delete or rewrite the seven existing private checkpoints. Resume read-only from durable step 700 into a second private repository owned by the authenticated user. Continue saving every 100-step checkpoint on the Lambda task disk, but copy only steps 400 and 800 for later arms and the required transferred step 800 to spillover staging. Final exports and evaluations also go to spillover.
+- Budget: This run lasted about 24 minutes, at most about $0.92 at the listed price. Conservative cumulative prior cost for the next hard guard is $2.70, covering all failed, diagnostic, and current attempts.
+- Implementation: Add separate resume/publication repositories, selectable checkpoint upload steps, cumulative prior-cost accounting, and exception preservation. Existing private artifacts remain untouched.
+- Data boundary: Only unlabeled validation metrics were produced. No aggregate VEP evaluation, even-autosome label, or Y label was accessed.
+- Next action: Verify the recovery snapshot, create private personal spillover staging, resume from step 700, and complete the remaining arms and registered diagnostics under the same $50 cap.
