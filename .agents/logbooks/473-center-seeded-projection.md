@@ -782,3 +782,36 @@ cohort, assemblies, and downstream training recipe fixed.
   credential was transmitted, and held-out VEP data remained untouched.
 - Next action: keep the four paid arms gated on producer QC, sampled trace,
   and reviewed private publication; continue monitoring producer job 11.
+
+### 2026-08-20 03:29 UTC - CSP-017 real child-worker tokenizer preflight
+
+- Remote proof: CPU-only Iris job
+  `/ubuntu/exp473-tokenizer-worker-preflight-v3` succeeded with no failures or
+  preemptions in 1 minute 3.5 seconds. Its nested child task
+  `verify_tokenizer_on_worker-b15c15b5/0` loaded the tokenizer from the 0.1 MB
+  packaged workspace, verified all three vendored file hashes, and encoded
+  `ACGTacgt` as `[2,3,4,5,6,3,4,5,6]` with vocabulary 7, BOS 2, PAD 0,
+  UNK 1, and no EOS. No TPU or scientific dataset was requested or read.
+- Fail-then-fix evidence: the first true child-worker run correctly found the
+  packaged files but exposed that pinned `HfMarinTokenizer` does not itself
+  expose `unk_token_id`; its Hugging Face adapter does. Commit
+  `0eeacd69bb1b16b0c2c9a7c976028864b1f23f58` moves all special-token
+  assertions to that runtime adapter and tightens the unit stub to match the
+  real API. The focused five-test file passed in 4.82 seconds with 492,276 KiB
+  peak RSS under the shared-node lock and resource caps.
+- Namespace proof: a second successful run revealed that a shell-prefixed
+  `MARIN_PREFIX` is not forwarded by `iris job run`. The real four-arm launch
+  block already used Iris `-e` correctly; commit
+  `69f4514d0ebd4767db0a8add7287ccf63ee1080d` corrects the preflight example.
+  The final run explicitly forwarded the variable and retained an artifact
+  record at
+  `gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection/preflights/exp473-tokenizer-worker/2026.08.20/.artifact.json`.
+  That record is clean, identifies base commit `69f4514d`, fingerprint
+  `c71de7c2`, the exact Git remote and branch, the exact Iris command, and all
+  three tokenizer SHA-256 values.
+- Producer state: Sky job 11 remains healthy and running at exact producer
+  commit `f764b7f1...`; its durable S3 uploads reached 1,368/10,329 steps
+  (13%) at 03:25 UTC. It was not interrupted or duplicated.
+- Next action: let job 11 finish its exact QC/manual target, then stage its two
+  completed source tables and launch the strict sampled HAL trace before
+  reviewing or publishing any dataset.
