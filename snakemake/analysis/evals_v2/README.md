@@ -44,6 +44,50 @@ The metrics parquet has columns
 with aggregate rows `_global_` and `_macro_avg_` per `score_type` —
 see `marin_dna_evals.metrics.compute_auprc_metrics` for details.
 
+### Grouped VEP report (AUPRC + Group SMD, #464)
+
+AUPRC remains the primary endpoint for matched-pair datasets.
+The [#459 analysis](https://github.com/Open-Athena/marin-dna/issues/459) selected Group SMD as the secondary endpoint when meaningful matched groups exist.
+Both metrics are higher-is-better.
+
+For each match group `g`, the report computes `gap_g = positive_g - mean(negatives_g)`.
+Group SMD is `mean(gap_g) / sample_sd(gap_g)` across match groups.
+It is invariant to a positive affine transformation of the score.
+It is a one-sample standardized distribution of matched-group gaps.
+It is not a macro average of per-gene Cohen's d values, which would standardize separate positive and negative score samples within genes before averaging effects.
+
+The input contract requires `label`, `subset`, and `match_group`.
+Each match group must contain exactly one positive and at least one negative.
+Each match group must belong to one subset.
+Missing grouping columns, null grouping values, incompatible groups, and groups that span subsets raise a validation error.
+A direct scope with one match group or zero SD across group gaps emits an unavailable Group SMD row with a machine-readable `unavailable_reason`.
+The `_macro_avg_` Group SMD row is explicitly unavailable because averaging subset effects would define a different statistic.
+The implementation never creates a synthetic global match group.
+
+Build all configured matched-pair cells with:
+
+```bash
+snakemake grouped_vep_metrics
+```
+
+The named target is off `rule all` so existing `results/metrics/` artifacts keep their current producer and schema.
+Each cell writes:
+
+```text
+results/grouped_vep_metrics/{model}/{dataset}.parquet
+results/grouped_vep_bootstrap/{model}/{dataset}.parquet
+```
+
+The summary schema is `[metric, higher_is_better, score_type, subset, value, se, ci_low, ci_high, confidence_level, n_groups, n_rows, available, unavailable_reason, uncertainty_method, n_bootstrap, n_bootstrap_valid, model, dataset, split, bootstrap_seed]`.
+Filtering summary rows to `metric == "AUPRC"` preserves the existing `[score_type, subset, value, se, n_groups, n_rows]` output from `compute_auprc_metrics`.
+AUPRC retains its existing match-group bootstrap SE, and its interval values are null in this report.
+Group SMD uses a joint match-group bootstrap and reports the 2.5th and 97.5th percentiles as a 95% interval.
+
+The bootstrap schema is `[draw, metric, score_type, subset, value, n_groups, model, dataset, split, bootstrap_seed]`.
+One match-group multiplicity vector is reused across both metrics and every score column within a scope.
+Outputs from different models are aligned by `draw` when they use the same dataset revision, row order, `n_bootstrap`, and integer `bootstrap_seed`.
+The bootstrap artifact omits `_macro_avg_` because Group SMD has no macro definition.
+
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
 The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
@@ -359,7 +403,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `split` | `train` (or `test` once held-out eval is unlocked). |
 | `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global, sge}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets; `sge` selects the per-accession × consequence-subset AUPRC-on-`label` path for `evals_sge` (see the SGE section above). |
 | `models` | List of `{name, window_size, ...}`. Each entry has exactly one of `gcs_path` (full GCS URI incl. `/hf/step-{N}`) or `hf_repo` (HuggingFace Hub repo ID), plus two optional fields: `datasets: [...]` to restrict which `datasets` this checkpoint evaluates on (defaults to all), and `batch_size: N` to override the global `inference.batch_size` for this checkpoint (useful when context size differs from the global default's tuning). |
-| `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (AUPRC bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility seed; bumping triggers metrics re-execution). |
+| `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (metric bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility and cross-model draw-alignment seed; bumping it triggers metric re-execution). |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 | `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
@@ -372,6 +416,8 @@ Pipeline rules are thin glue around:
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
 - `marin_dna_evals.metrics.compute_auprc_metrics` — score columns
   → AUPRC ± cluster-bootstrap SE per subset (cluster = `match_group`).
+- `marin_dna_evals.grouped_vep_metrics.compute_grouped_vep_metrics` — unchanged AUPRC rows plus Group SMD, explicit unavailable states, 95% intervals, and aligned match-group bootstrap draws.
+- `marin_dna_evals.grouped_vep_metrics.group_smd` — mean matched-group gap divided by the sample SD of matched-group gaps.
 - `marin_dna_evals.metrics.compute_qtl_metrics` — score columns
   → global AUPRC + positives-only Pearson/Spearman vs `effect_size`
   (the `eval_protocol: qtl_global` path for caqtl/dsqtl).
@@ -380,6 +426,7 @@ Pipeline rules are thin glue around:
   (`ll_sum_upper`, `ll_sum_lower`, `n_upper`, `n_lower`); `aggregate_ll_gap`
   collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
 
-These are tested at `tests/evals/test_metrics.py`,
+These are tested at `tests/evals/test_grouped_vep_metrics.py`,
+`tests/evals/test_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
