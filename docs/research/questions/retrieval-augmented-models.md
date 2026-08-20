@@ -1,7 +1,7 @@
 # Can autoregressive RAG gLMs be accurate and practical?
 
 > [!NOTE]
-> **TL;DR:** A fixed-context mammalian-ortholog prototype produced promising VEP and representation results, but without matched no-retrieval controls, online retrieval, or indel evaluation; confidence is moderate that the model uses ortholog context and low that retrieval caused the gain or can be deployed efficiently.
+> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models, and perturbations confirmed use of the context; Gonzalo Benegas attributes the unusually strong performance to retrieval; broader species coverage, longer training, and larger readers are the clearest next accuracy axes; the causal gain and serving practicality remain unquantified, while online retrieval and indel accuracy remain untested.
 
 ## Question
 
@@ -10,9 +10,21 @@ Can it do so with a retrieval and inference system that is practical to deploy a
 
 ## Current answer
 
-Autoregressive retrieval-augmented genomic modeling is feasible, but neither its causal accuracy benefit nor its serving practicality is established.
+Autoregressive retrieval-augmented genomic modeling is feasible.
+Gonzalo Benegas's assessment, based on MarinDNA's experiments and his prior work, is that fixed ortholog retrieval materially improves the accuracy of small readers.
+The experiment did not quantify the gain under matched training conditions, and serving practicality is not established.
 The only MarinDNA experiment used a fixed prefix of seven precomputed mammalian ortholog windows.
-Its 104M model produced promising zero-shot and frozen-probe point estimates and behaved as if it used ortholog context, but it lacked a matched human-only arm, online retrieval, species-order controls, and indel evaluation.
+Its 104M model exceeded the 1B single-sequence m5.1 reference on all three zero-shot development-cohort point estimates and on the Complex Traits and SGE frozen probes.
+Context perturbations worsened validation loss and changed model outputs.
+Gonzalo reports that no single-sequence model in the 45M- to 104M-parameter range across MarinDNA's experiments, his prior work, or the broader work known to him has achieved comparable VEP performance.
+These measurements and the historical comparison are the basis for his assessment.
+
+The current result identifies three direct scale opportunities.
+The strongest near-term axis is expansion beyond the current seven-species mammalian subset to more mammals and non-mammalian vertebrates.
+Longer optimization is promising because both validation losses were still falling at the final 30,000-update checkpoint.
+Larger readers are a third axis because only models up to 104M parameters were tested.
+These extensions build directly on the demonstrated recipe.
+Their gains have not yet been measured.
 
 External results make the hypothesis plausible.
 Alignment-based genomic models show that ortholog context is highly informative; autoregressive protein models improve substitutions and indels with unaligned homologs; a DNA enhancer model generates conditioned on homolog sets; and learned protein retrievers can serve approximate-neighbor context quickly.
@@ -23,9 +35,11 @@ More parameters, more training families, longer retrieved context, more homologs
 Protein results show gains from some of these axes and saturation from others.
 A DNA model may benefit from a few informative orthologs while degrading when low-quality, repetitive, or redundant hits consume context.
 
-Confidence is moderate that a reader can exploit curated ortholog context and low that retrieval itself caused the current MarinDNA gain or can be served economically genome-wide.
-The next decision gate is a matched human-only versus fixed-ortholog comparison with identical tokens and compute, followed by shuffled/wrong-species controls and indel scoring.
-Online retrieval and index-cost work should wait until the causal model benefit survives that gate.
+Confidence is high that a reader can exploit curated ortholog context.
+Gonzalo assesses that retrieval drove a material part of the current small-model performance.
+The size and generality of that contribution remain uncertain because the experiment used one context construction, one species order, and one seed per model size.
+Beyond the three direct scale opportunities, the next accuracy questions are which species and ordering matter, whether the result transfers to indels, and how benefit changes with retrieved context.
+Online retrieval and index-cost work must then establish whether the approach is practical beyond fixed reference-genome lookups.
 
 <details>
 <summary>Related work</summary>
@@ -58,13 +72,20 @@ Online retrieval and index-cost work should wait until the causal model benefit 
 <details>
 <summary>Related experiments</summary>
 
-- [#402](https://github.com/Open-Athena/marin-dna/issues/402) trained 46M and 104M causal models on seven fixed HAL-projected mammalian windows followed by the human window.
-  The 104M arm produced promising official train-cohort zero-shot and frozen-probe point estimates and showed ortholog-context use, but no matched human-only arm, online retrieval, order ablation, convergence study, or indel evaluation was included.
+- [#402: Fixed-ortholog retrieval prototype](../experiments/402-fixed-ortholog-rag.md) trained 46M and 104M causal models on seven fixed HAL-projected mammalian windows followed by the human window.
+  The 104M arm exceeded the 1B m5.1 reference on all three zero-shot development-cohort point estimates and two of three frozen probes, while perturbations confirmed ortholog-context use.
+  A matched arm did not quantify the gain.
+  Broader species coverage, longer training, and larger readers are promising extensions; online retrieval, order ablation, and indel evaluation remain untested.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
+
+- **Scale the demonstrated recipe.**
+  The highest-priority axis is expanding the context beyond the current seven-species mammalian subset to more mammals and non-mammalian vertebrates.
+  Longer optimization and readers larger than 104M parameters are separate candidate axes because the current validation losses were still falling and the tested readers were small.
+  Measure each axis separately because one seed at each current size does not establish a scaling law.
 
 - **Target and architecture.**
   Should the model directly generate a sequence of unaligned homologous sequences, as in PoET and EnhancAR, encode retrieved homologs separately and condition an autoregressive reader, or retrofit a strong pretrained single-sequence model with cross-attention, as in RAG-ESM?
@@ -90,11 +111,6 @@ Online retrieval and index-cost work should wait until the causal model benefit 
   Do retrieval-conditioned embeddings improve functional-element separation, frozen-embedding linear probes, and other sequence-function tasks, as the protein results from E1, RAG-ESM, and PoET-2 suggest, or does retrieval mainly improve likelihood-based VEP in DNA?
   Which representation should be exported when the query is conditioned on a variable set of homologs, and is a causal objective sufficient or is a masked/dual objective needed?
 
-- **Scaling.**
-  Holding the retriever and data fixed, how does performance scale with model size?
-  Holding the model fixed, how does it scale with training-family diversity, retrieval-corpus size, number and diversity of retrieved sequences, and total retrieved tokens?
-  Where do these axes saturate, and which buys the most performance per unit of training and serving compute?
-
 - **Deployment unit.**
   Is retrieval performed online per query window, amortized and cached per locus, or entirely offline for a fixed reference genome?
   The practical answer may differ for genome-wide precomputed VEP scores, interactive annotation of variants on a known reference, and scoring or generating arbitrary sequences.
@@ -105,6 +121,6 @@ Online retrieval and index-cost work should wait until the causal model benefit 
 
 - **Evaluation hygiene.**
   How should genomes, loci, homolog families, and retrieval corpora be split to prevent near-duplicate or allele leakage?
-  All comparisons need a no-retrieval ablation, matched reader capacity, fixed corpus versions, retrieval traces, and performance stratified by alignment depth, genomic region, repeat content, evolutionary distance, and indel length.
+  Comparisons intended to estimate the incremental retrieval effect should include a no-retrieval ablation, matched reader capacity, fixed corpus versions, retrieval traces, and performance stratified by alignment depth, genomic region, repeat content, evolutionary distance, and indel length.
 
 </details>

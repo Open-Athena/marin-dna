@@ -36,11 +36,10 @@ Layer domain skills on top for task-specific constraints.
 2. A logbook at `.agents/logbooks/<topic>.md`.
 3. A living hypothesis queue in the logbook, derived from append-only entries
    and updated as hypotheses are proposed, blocked, falsified, or promoted.
-4. A long-lived branch, for example `research/<topic>` or
-   `research/<user>/<issue>-<topic>`, with the logbook, research code, configs,
-   small artifacts, and test harnesses needed to reproduce results.
+4. A long-lived branch following the naming guidance in `AGENTS.md`, with the logbook, research code, configs, small artifacts, and test harnesses needed to reproduce results.
 5. One or more commit or tag snapshots for meaningful milestones.
 6. Often a "production" branch that gets PR'd and merged.
+7. Knowledge-base changes selected and structured according to `maintain-knowledge-base`.
 
 ## Research Logbook
 
@@ -57,7 +56,7 @@ is clear.
 
 ### 1. Prologue
 
-1. Create or switch to a long-lived research branch. You may already be on one, or the user may have requested a specific branch name. Otherwise, pick a descriptive name like `research/<topic>` or `research/<user>/<issue>-<topic>`.
+1. Create or switch to a long-lived research branch. Use a name requested by the user or follow the naming guidance in `AGENTS.md`.
 2. Create an experiment issue with `file-issue` unless scope or visibility needs
    human confirmation. If the user provides one, use it.
 3. Start the logbook and link both ways: logbook to issue URL, issue body to logbook path. See the skill.
@@ -79,8 +78,7 @@ is clear.
 3. **Run:** implement the smallest useful experiment and collect evidence.
 4. **Interpret:** compare against baseline, decide confidence, and update the
    logbook.
-5. **Promote:** move only interesting, decision-relevant claims up the issue
-   funnel.
+5. **Promote:** move decision-relevant claims up the issue funnel, then propose accepted interpretations for the `main` knowledge base through a pull request.
 6. **Seal:** snapshot durable results or extract production work.
 
 Every cycle should leave the durable record better than it found it.
@@ -119,10 +117,13 @@ Sealing should ordinarily only happen if the user requests it or the research ha
 1. Update the issue body with the final TL;DR, conclusion, decision log, and negative-results index. Again, follow the `task-logbook` skill.
 2. Add a final issue comment covering what worked, what did not, confidence
    level, limitations, and ordered next steps.
-3. Use `update-docs` when behavior, operational practice, reusable guidance, or
-   durable research findings changed.
-4. Ensure the final logbook entry and snapshot links are present.
-5. Close the issue when the research thread is complete.
+3. Decide and record the disposition defined by `maintain-knowledge-base`.
+4. Follow that skill for inclusion, experiment-page structure, stable investigation boundaries, invalidation handling, and cross-links.
+   Open a pull request for knowledge-base changes so humans review the interpretation.
+5. Use `update-docs` when behavior, operational practice, or reusable guidance changed.
+6. Ensure the final logbook entry and snapshot links are present.
+7. Close the issue when the research thread is complete and its knowledge-base disposition is final under `maintain-knowledge-base`.
+   An open interpretation pull request is temporary and must merge before closure.
 
 If the research produced useful production changes, extract them into a clean
 branch that can link to the logbook but does not include it. Follow standard
@@ -134,6 +135,8 @@ Before closing the issue:
 - Issue body includes a clear `Conclusion`.
 - Next steps are listed.
 - Final snapshot is linked.
+- Knowledge-base disposition is final under `maintain-knowledge-base`.
+- Any required interpretation pull request has merged.
 - If there's a final production PR, link to it from the issue summary.
 
 ## Practical Rules
@@ -146,7 +149,7 @@ Before closing the issue:
 
 ## See Also
 
-- `.agents/skills/maintain-research-question/SKILL.md`
+- `.agents/skills/maintain-knowledge-base/SKILL.md`
 - `.agents/skills/marin-experiment/SKILL.md`
 - `.agents/skills/task-logbook/SKILL.md`
 - `.agents/skills/update-docs/SKILL.md`

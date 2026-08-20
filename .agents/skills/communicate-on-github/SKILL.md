@@ -1,6 +1,6 @@
 ---
 name: communicate-on-github
-description: Draft, post, and maintain readable MarinDNA GitHub issues, pull requests, and comments. Use for any GitHub communication, including issue classification, experiment summaries, PR descriptions, progress comments, code or artifact links, visuals, closing completed work, and maintaining current issue or PR bodies.
+description: Draft, post, and maintain readable MarinDNA GitHub issues, pull requests, and comments. Use for experiment summaries, PR descriptions, progress comments, code or artifact links, visuals, and maintaining current issue or PR bodies.
 ---
 
 # Communicate On GitHub
@@ -40,32 +40,8 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 
 ## Link Durable Evidence
 
-- Reference code and artifacts with commit-pinned GitHub URLs, never bare paths or moving branch links. Use `blob/<sha>/path#Lx-Ly` for code and raw commit-pinned URLs for rendered images.
+- Reference code and artifacts with immutable repository URLs, never bare paths or moving branch links.
+  Use `blob/<sha>/path#Lx-Ly` for code and raw commit-pinned repository URLs for rendered images.
 - Commit one-off code and artifacts on the permanent task or research branch before citing them.
 - Prefer stable primary sources and artifacts.
 - After publishing non-trivial Markdown, re-fetch it and check lists, indentation, code blocks, links, and details blocks. Correct rendering errors.
-
-## Classify Issues
-
-Give every issue exactly one Kind label, zero or more Topic labels, and applicable metadata labels. Keep the label set minimal.
-
-- Kinds: `bug` for broken behavior; `task` for a concrete improvement, feature, refactor, build, or documentation change; `experiment` for one bounded unit of research with a hypothesis or goal.
-- Topics: `infrastructure`, `evals`, `data`, `modeling`, `hyperparameter-optimization`, `baselines`, `interpretation`, `communication`, and `documentation`.
-- Metadata: `agent-generated`, `marin`, priority labels, and `epic`. Use `epic` only for engineering decomposition.
-- Add `agent-generated` whenever an agent creates an issue or PR.
-
-Treat `infrastructure` as a topic. A cluster-tooling improvement is `task` + `infrastructure`; broken cluster tooling is `bug` + `infrastructure`. Building a training dataset or evaluation harness is `task` + `infrastructure` plus `data` or `evals`.
-
-Treat bounded exploratory analysis as `experiment`. Use `Hypothesis or Goal`; do not add an `eda` kind or mode field. Record a fixed hypothesis, design, primary metric, and stop criteria before execution when preregistration matters, then record deviations. Preregistration is a practice, not a label.
-
-## Close Completed Work
-
-- An agent may close a `bug`, `task`, or `experiment` issue after its completion criteria are met and the body and final comment record the outcome.
-- Do not close or merge a pull request without explicit user approval.
-
-## Preserve Repository Conventions
-
-- Use a stable lowercase branch name: `<agent>/issue-<number>-<summary>` when an issue exists, otherwise `<agent>/<summary>`.
-- Put issue-closing keywords in the PR body, not the title.
-- Use GitHub sub-issue metadata only to decompose one engineering work item.
-- For Hugging Face uploads under `marin-dna/*`, draft the README for human review before uploading. Include a commit-pinned producing pipeline or training-script link, a short provenance description, and `biology, genomics, dna` tags.

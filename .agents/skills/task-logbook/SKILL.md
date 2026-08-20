@@ -21,9 +21,10 @@ The core model is a funnel of interestingness:
 1. The logbook is maximally informative and append-only.
 2. Significant or interesting updates are posted to the coordinating GitHub issue or PR.
 3. The most important findings are promoted into the summary at the top of the issue.
+4. Accepted interpretations are promoted through pull-request review into the research knowledge base on `main`.
 
-Keep the detailed record in the logbook. Keep the issue useful to someone who
-did not follow the live session.
+Keep the detailed chronological record in the logbook and issue.
+Keep current accepted knowledge in `docs/research/experiments/` and `docs/research/questions/`; do not copy chronology into those pages.
 
 ## Location and Naming
 
@@ -167,6 +168,7 @@ Use this funnel after each meaningful logbook entry:
   changes, surprising observations, decisions, and periodic long-running research heartbeats.
 - **Issue summary/body:** durable conclusions, current TL;DR or major status, stable baseline,
   decision log entries, negative-results index, and final outcome.
+- **Knowledge base:** accepted experiment interpretations and research-question synthesis selected under `maintain-knowledge-base`.
 
 Consider all updates since the last issue comment; several small logbook entries
 may add up to a useful issue update.
@@ -235,8 +237,9 @@ When updating the issue body with a new summary, use a suitable variant.
 ## Finish
 
 Close the issue when what the logbook was tracking is complete.
+For research issues, follow the closure gate in `run-research`.
 
-Before closing the coordinating issue, ensure the final logbook entry and issue
-summary agree. The final issue comment should say what worked, what did not,
-confidence level and limitations, ordered next steps, and an explicit conclusion
-explaining the outcome.
+Before closing the coordinating issue, ensure the final logbook entry and issue summary agree.
+The final issue comment should say what worked, what did not, confidence level and limitations, ordered next steps, and an explicit conclusion explaining the outcome.
+Record the knowledge-base disposition defined by `maintain-knowledge-base`.
+An open interpretation pull request is temporary while the issue remains open.

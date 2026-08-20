@@ -28,7 +28,7 @@ issue templates — these structures live here.
 | Kind | When to use | Labels |
 |---|---|---|
 | **bug** | A bug or regression was found | `bug`, `agent-generated` |
-| **task** | An improvement, refactor, or feature request | `agent-generated` + priority if known |
+| **task** | An improvement, refactor, or feature request | `task`, `agent-generated` + priority if known |
 | **experiment** | An experiment needs tracking | `experiment`, `agent-generated` |
 
 ### Bug body
@@ -78,11 +78,19 @@ Done when:
 * Logbook:
 * W&B Report:
 * Important updates:
+* Knowledge-base page: <pending until interpretation review>
 
 ## Decision Log
 
 ## Conclusion
+
+## Knowledge-base disposition
+
+<Pending; update with the disposition defined by `maintain-knowledge-base`.>
 ```
+
+Follow `maintain-knowledge-base` when selecting or updating an experiment's knowledge-base disposition.
+Follow `run-research` for the research-issue closure gate.
 
 ## Workflow
 
@@ -101,6 +109,24 @@ If it's ambiguous what to file, ask the user before proceeding.
 ### 2. Classify the Issue
 
 Pick the kind (bug, task, or experiment). If unsure, ask the user.
+
+Give every issue exactly one Kind label, zero or more Topic labels, and applicable metadata labels.
+Keep the label set minimal.
+
+- Kinds: `bug` for broken behavior; `task` for a concrete improvement, feature, refactor, build, or documentation change; `experiment` for one bounded unit of research with a hypothesis or goal.
+- Topics: `infrastructure`, `evals`, `data`, `modeling`, `hyperparameter-optimization`, `baselines`, `interpretation`, `communication`, and `documentation`.
+- Metadata: `agent-generated`, `marin`, priority labels, and `epic`.
+  Use `epic` only for engineering decomposition, and add `agent-generated` whenever an agent creates an issue.
+
+Treat `infrastructure` as a topic.
+A cluster-tooling improvement is `task` + `infrastructure`; broken cluster tooling is `bug` + `infrastructure`.
+Building a training dataset or evaluation harness is `task` + `infrastructure` plus `data` or `evals`.
+
+Treat bounded exploratory analysis as `experiment`.
+Use `Hypothesis or Goal`; do not add an `eda` kind or mode field.
+Record a fixed hypothesis, design, primary metric, and stop criteria before execution when preregistration matters, then record deviations.
+Preregistration is a practice, not a label.
+Use GitHub sub-issue metadata only to decompose one engineering work item.
 
 ### 3. Duplicate Check
 
@@ -173,13 +199,14 @@ EOF
 
 issue_url="$(gh issue create --repo Open-Athena/marin-dna \
   --title "<title>" \
+  --label "<bug|task|experiment>" \
   --label "agent-generated" \
   --body-file "$body_file")"
 ```
 
-Add kind-appropriate labels (`bug`, `experiment`). If a relevant label does not
-exist, skip it rather than creating new labels. For task issues, add a priority
-label (`p1`, `p2`, `p3`) if the user specifies one or severity is clear.
+Replace `<bug|task|experiment>` with the selected Kind label.
+If the relevant label does not exist, skip it rather than creating a new label.
+For task issues, add a priority label (`p1`, `p2`, `p3`) if the user specifies one or severity is clear.
 
 Before creating the issue, re-open the body file and verify it contains no
 unrelated shell output (pre-commit logs, pytest session headers, prompt
