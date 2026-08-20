@@ -199,13 +199,14 @@ EOF
 
 issue_url="$(gh issue create --repo Open-Athena/marin-dna \
   --title "<title>" \
+  --label "<bug|task|experiment>" \
   --label "agent-generated" \
   --body-file "$body_file")"
 ```
 
-Add kind-appropriate labels (`bug`, `task`, `experiment`). If a relevant label does not
-exist, skip it rather than creating new labels. For task issues, add a priority
-label (`p1`, `p2`, `p3`) if the user specifies one or severity is clear.
+Replace `<bug|task|experiment>` with the selected Kind label.
+If the relevant label does not exist, skip it rather than creating a new label.
+For task issues, add a priority label (`p1`, `p2`, `p3`) if the user specifies one or severity is clear.
 
 Before creating the issue, re-open the body file and verify it contains no
 unrelated shell output (pre-commit logs, pytest session headers, prompt
