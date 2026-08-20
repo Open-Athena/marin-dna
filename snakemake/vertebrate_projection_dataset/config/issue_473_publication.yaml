@@ -1,0 +1,25 @@
+pipeline_version: v1
+producer_commit: f764b7f1fa34ea730842117239dd179a7e3be572
+producer_config_sha256: bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039
+producer_tier: full
+
+validation_chrom: chr18
+target_length: 255
+publication_train_shards: 64
+publication_validation_shards: 1
+publication_shuffle_seed: 42
+hf_upload_workers: 1
+
+publication_datasets:
+  center1_cds:
+    projection_policy: center_1
+    region_label: cds
+    hf_repo: marin-dna/vertebrate-v1-issue473-center1-cds
+  center1_ccre_enhancer_centered:
+    projection_policy: center_1
+    region_label: ccre_enhancer_centered
+    hf_repo: marin-dna/vertebrate-v1-issue473-center1-ccre-enhancer-centered
+  fullwindow_ccre_enhancer_centered:
+    projection_policy: full_window
+    region_label: ccre_enhancer_centered
+    hf_repo: marin-dna/vertebrate-v1-issue473-fullwindow-ccre-enhancer-centered
