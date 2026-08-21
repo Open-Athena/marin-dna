@@ -49,6 +49,7 @@ def compute_variant_scores(
     rc: bool = False,
     return_embeddings: bool = False,
     eval_accumulation_steps: int | None = None,
+    bf16: bool = True,
 ) -> pd.DataFrame:
     """Compute variant scores from a CLM: per-strand LLR + next-token JSD.
 
@@ -82,6 +83,7 @@ def compute_variant_scores(
             Execution-only — the heavier ``[N, 2 + 2D]`` predictions of an
             embedding run can otherwise accumulate on-GPU and OOM. ``None``
             (default) leaves behaviour unchanged.
+        bf16: Whether to run evaluation forwards in bfloat16.
 
     Returns:
         DataFrame with per-strand score atoms. Rows align with input
@@ -122,7 +124,7 @@ def compute_variant_scores(
     inference_kwargs: dict[str, object] = {
         "per_device_eval_batch_size": batch_size,
         "torch_compile": torch_compile,
-        "bf16_full_eval": True,
+        "bf16_full_eval": bf16,
         "dataloader_num_workers": num_workers,
         "remove_unused_columns": False,
     }

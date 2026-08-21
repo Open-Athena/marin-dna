@@ -17,9 +17,8 @@ Score-type fan-out:
 transform (so `abs_llr_avg = |(llr_fwd + llr_rc)/2|`, matching the
 prior in-runner averaging behavior).
 
-Output parquet (matched_pair datasets) has one row per (subset × score_type)
-plus aggregate rows `_global_` and `_macro_avg_` per score_type — see
-`marin_dna_evals.metrics.compute_auprc_metrics`.
+Output parquet (matched_pair datasets) has one row per (subset × score_type) plus `_global_` and `_macro_avg_` rows.
+The existing AUPRC columns are enriched with wide `group_smd_*` columns.
 
 For `eval_protocol: qtl_global` datasets (caqtl/dsqtl) the unmatched path
 runs instead: `compute_qtl_metrics` emits one row per (metric × score_type)
@@ -84,7 +83,11 @@ rule compute_metrics:
                 rng=params.bootstrap_seed,
             )
         else:
-            metrics = compute_auprc_metrics(
+            from marin_dna_evals.grouped_vep_metrics import (
+                compute_grouped_vep_metrics,
+            )
+
+            metrics = compute_grouped_vep_metrics(
                 dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
                 scores=df[score_cols],
                 score_columns=score_cols,

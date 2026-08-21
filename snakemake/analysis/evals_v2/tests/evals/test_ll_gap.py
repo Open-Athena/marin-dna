@@ -66,6 +66,29 @@ def test_compute_hf_ll_gap_returns_atoms_with_id():
     assert out["n_upper"].dtype == np.int64
 
 
+def test_compute_hf_ll_gap_threads_compile_and_bf16():
+    seqs = _seqs(n=2, length=8)
+    pred = np.zeros((2, 4), dtype=float)
+    tok, model = _patched_load()
+    with (
+        tok,
+        model,
+        patch("marin_dna_evals.ll_gap.run_ll_clm", return_value=pred) as runner,
+    ):
+        compute_hf_ll_gap(
+            "/unused",
+            seqs,
+            window_size=8,
+            batch_size=2,
+            torch_compile=True,
+            bf16=False,
+        )
+
+    kwargs = runner.call_args.kwargs["inference_kwargs"]
+    assert kwargs["torch_compile"] is True
+    assert kwargs["bf16_full_eval"] is False
+
+
 def test_compute_hf_ll_gap_reshapes_flat_array():
     """A flat ``[N*4]`` return (seen on some Trainer/device combos) is row-major
     reshaped back to ``[N, 4]`` preserving row order."""

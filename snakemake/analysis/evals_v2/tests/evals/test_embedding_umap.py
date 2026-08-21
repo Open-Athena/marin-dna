@@ -116,15 +116,29 @@ def test_compute_region_embeddings_embeds_all_windows(monkeypatch):
         }
     )
     emb_block = np.arange(n * 2, dtype=np.float32).reshape(n, 2)
+    captured: dict[str, object] = {}
+
+    def fake_embeddings(*args, **kwargs):
+        captured.update(kwargs["inference_kwargs"])
+        return emb_block
+
     monkeypatch.setattr(eu.AutoTokenizer, "from_pretrained", lambda *a, **k: object())
     monkeypatch.setattr(eu.AutoModel, "from_pretrained", lambda *a, **k: object())
     monkeypatch.setattr(eu, "Genome", lambda *a, **k: object())
-    monkeypatch.setattr(eu, "run_window_embeddings", lambda *a, **k: emb_block)
+    monkeypatch.setattr(eu, "run_window_embeddings", fake_embeddings)
 
     out = compute_region_embeddings(
-        "/ckpt", "/genome.fa", regions, window_size=20, n_center_bp=10
+        "/ckpt",
+        "/genome.fa",
+        regions,
+        window_size=20,
+        n_center_bp=10,
+        torch_compile=True,
+        bf16=False,
     )
 
+    assert captured["torch_compile"] is True
+    assert captured["bf16_full_eval"] is False
     assert len(out) == n  # nothing dropped — full point set kept
     assert set(out["start"]) == set(starts)
     assert list(out.columns) == [

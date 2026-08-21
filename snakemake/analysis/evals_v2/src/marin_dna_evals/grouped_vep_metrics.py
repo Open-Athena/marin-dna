@@ -1,9 +1,4 @@
-"""Maintained AUPRC and Group SMD reporting for grouped VEP datasets.
-
-Group SMD standardizes one positive-minus-mean-negative gap per matched group.
-The grouped report keeps the existing AUPRC point estimates and bootstrap
-standard errors, then adds Group SMD with a joint match-group bootstrap.
-"""
+"""Add Group SMD columns to the matched-pair AUPRC table."""
 
 import numpy as np
 import pandas as pd
@@ -14,48 +9,17 @@ from marin_dna_evals.metrics import (
     compute_auprc_metrics,
 )
 
-AUPRC = "AUPRC"
-GROUP_SMD = "group_smd"
-HIGHER_IS_BETTER = {AUPRC: True, GROUP_SMD: True}
-
-# Keep the dataset split in every additive grouped-report artifact identity.
-# These patterns are shared with the Snakefile and tested here because the
-# legacy results/scores namespace intentionally remains unchanged.
-GROUPED_VEP_SCORE_PATTERN = (
-    "results/grouped_vep_scores/{split}/{model}/{dataset}.parquet"
-)
-GROUPED_VEP_SUMMARY_PATTERN = (
-    "results/grouped_vep_metrics/{split}/{model}/{dataset}.parquet"
-)
-GROUPED_VEP_BOOTSTRAP_PATTERN = (
-    "results/grouped_vep_bootstrap/{split}/{model}/{dataset}.parquet"
-)
-
-SUMMARY_COLUMNS = [
-    "metric",
-    "higher_is_better",
-    "score_type",
-    "subset",
-    "value",
-    "se",
-    "ci_low",
-    "ci_high",
-    "confidence_level",
-    "n_groups",
-    "n_rows",
-    "available",
-    "unavailable_reason",
-    "uncertainty_method",
-    "n_bootstrap",
-    "n_bootstrap_valid",
-]
-BOOTSTRAP_COLUMNS = [
-    "draw",
-    "metric",
-    "score_type",
-    "subset",
-    "value",
-    "n_groups",
+GROUP_SMD_COLUMNS = [
+    "group_smd_value",
+    "group_smd_se",
+    "group_smd_ci_low",
+    "group_smd_ci_high",
+    "group_smd_confidence_level",
+    "group_smd_available",
+    "group_smd_unavailable_reason",
+    "group_smd_uncertainty_method",
+    "group_smd_n_bootstrap",
+    "group_smd_n_bootstrap_valid",
 ]
 
 
@@ -136,7 +100,7 @@ def group_smd(
     score: pd.Series | np.ndarray,
     match_group: pd.Series | np.ndarray,
 ) -> float:
-    """Mean matched-group gap divided by the sample SD of group gaps."""
+    """Return the mean matched-group gap divided by its sample standard deviation."""
     gaps = matched_group_gaps(label, score, match_group)
     if len(gaps) < 2:
         raise ValueError("Group SMD requires at least two match groups")
@@ -146,72 +110,23 @@ def group_smd(
     return float(gaps.mean() / sd)
 
 
-def _weighted_bootstrap_average_precision(
-    label: np.ndarray,
-    score: np.ndarray,
-    row_group_index: np.ndarray,
-    group_multiplicity: np.ndarray,
-    *,
-    batch_size: int = 100,
-) -> np.ndarray:
-    """Compute sklearn-compatible AP for cluster-weight bootstrap draws."""
-    order = np.argsort(-score, kind="mergesort")
-    sorted_score = score[order]
-    sorted_label = label[order].astype(float)
-    sorted_group = row_group_index[order]
-    threshold_ends = np.r_[
-        np.flatnonzero(sorted_score[:-1] != sorted_score[1:]),
-        len(sorted_score) - 1,
-    ]
-
-    result = np.empty(len(group_multiplicity), dtype=float)
-    for start in range(0, len(group_multiplicity), batch_size):
-        stop = min(start + batch_size, len(group_multiplicity))
-        weights = group_multiplicity[start:stop, sorted_group].astype(float)
-        true_positives = np.cumsum(weights * sorted_label, axis=1)[:, threshold_ends]
-        predicted = np.cumsum(weights, axis=1)[:, threshold_ends]
-        precision = np.divide(
-            true_positives,
-            predicted,
-            out=np.ones_like(true_positives),
-            where=predicted > 0,
-        )
-        total_positives = true_positives[:, -1:]
-        recall = true_positives / total_positives
-        recall_increment = np.diff(
-            np.concatenate([np.zeros((len(recall), 1)), recall], axis=1),
-            axis=1,
-        )
-        result[start:stop] = np.sum(recall_increment * precision, axis=1)
-    return result
-
-
-def _joint_scope_bootstrap(
+def _joint_group_smd_bootstrap(
     frame: pd.DataFrame,
     score_columns: list[str],
     *,
-    subset: str,
     n_bootstrap: int,
     generator: np.random.Generator,
-) -> pd.DataFrame:
-    """Bootstrap all scores and both metrics with one match-group draw matrix."""
+) -> dict[str, np.ndarray]:
+    """Use one match-group draw matrix for every score column in one scope."""
     if n_bootstrap == 0:
-        return pd.DataFrame(columns=BOOTSTRAP_COLUMNS)
+        return {column: np.empty(0, dtype=float) for column in score_columns}
 
-    labels = frame["label"].to_numpy(dtype=int)
-    groups = frame["match_group"].to_numpy()
-    group_indices = pd.Series(groups).groupby(groups, sort=True).indices
-    group_ids = list(group_indices)
-    group_to_rows = list(group_indices.values())
-    n_groups = len(group_to_rows)
-    row_group_index = np.empty(len(frame), dtype=int)
-    for group_index, rows in enumerate(group_to_rows):
-        row_group_index[rows] = group_index
-
+    group_ids = list(frame.groupby("match_group", sort=True).indices)
+    n_groups = len(group_ids)
     sampled_groups = generator.integers(0, n_groups, size=(n_bootstrap, n_groups))
-    group_multiplicity = np.zeros((n_bootstrap, n_groups), dtype=np.int32)
+    multiplicity = np.zeros((n_bootstrap, n_groups), dtype=np.int32)
     np.add.at(
-        group_multiplicity,
+        multiplicity,
         (
             np.repeat(np.arange(n_bootstrap), n_groups),
             sampled_groups.ravel(),
@@ -219,64 +134,46 @@ def _joint_scope_bootstrap(
         1,
     )
 
-    rows: list[dict[str, str | float | int]] = []
+    samples: dict[str, np.ndarray] = {}
     for score_column in score_columns:
-        scores = frame[score_column].to_numpy(dtype=float)
-        auprc_samples = _weighted_bootstrap_average_precision(
-            labels,
-            scores,
-            row_group_index,
-            group_multiplicity,
-        )
-        gaps = matched_group_gaps(labels, scores, groups).reindex(group_ids).to_numpy()
+        gaps = matched_group_gaps(
+            frame["label"], frame[score_column], frame["match_group"]
+        ).reindex(group_ids)
+        if gaps.isna().any():
+            raise ValueError("match-group gaps do not align with bootstrap groups")
         if n_groups < 2:
-            smd_samples = np.full(n_bootstrap, np.nan)
-        else:
-            gap_mean = group_multiplicity @ gaps / n_groups
-            gap_squares = group_multiplicity @ np.square(gaps)
-            gap_variance = np.maximum(
-                (gap_squares - n_groups * np.square(gap_mean)) / (n_groups - 1),
-                0.0,
-            )
-            gap_sd = np.sqrt(gap_variance)
-            smd_samples = np.divide(
-                gap_mean,
-                gap_sd,
-                out=np.full(n_bootstrap, np.nan),
-                where=gap_sd > 0,
-            )
-
-        for metric, values in ((AUPRC, auprc_samples), (GROUP_SMD, smd_samples)):
-            rows.extend(
-                {
-                    "draw": draw,
-                    "metric": metric,
-                    "score_type": score_column,
-                    "subset": subset,
-                    "value": float(values[draw]),
-                    "n_groups": n_groups,
-                }
-                for draw in range(n_bootstrap)
-            )
-    return pd.DataFrame(rows, columns=BOOTSTRAP_COLUMNS)
+            samples[score_column] = np.full(n_bootstrap, np.nan)
+            continue
+        values = gaps.to_numpy(dtype=float)
+        gap_mean = multiplicity @ values / n_groups
+        gap_squares = multiplicity @ np.square(values)
+        gap_variance = np.maximum(
+            (gap_squares - n_groups * np.square(gap_mean)) / (n_groups - 1),
+            0.0,
+        )
+        gap_sd = np.sqrt(gap_variance)
+        samples[score_column] = np.divide(
+            gap_mean,
+            gap_sd,
+            out=np.full(n_bootstrap, np.nan),
+            where=gap_sd > 0,
+        )
+    return samples
 
 
 def _group_smd_summary(
     frame: pd.DataFrame,
     score_column: str,
-    samples: pd.DataFrame,
+    samples: np.ndarray,
 ) -> dict[str, float | int | bool | str | None]:
-    """Summarize one direct Group SMD scope, including explicit unavailability."""
+    """Summarize Group SMD for one direct subset or global scope."""
     gaps = matched_group_gaps(frame["label"], frame[score_column], frame["match_group"])
-    n_groups = len(gaps)
-    if n_groups < 2:
+    if len(gaps) < 2:
         return {
             "value": float("nan"),
             "se": float("nan"),
             "ci_low": float("nan"),
             "ci_high": float("nan"),
-            "n_groups": n_groups,
-            "n_rows": len(frame),
             "available": False,
             "unavailable_reason": "requires_at_least_two_match_groups",
             "n_bootstrap_valid": 0,
@@ -289,23 +186,17 @@ def _group_smd_summary(
             "se": float("nan"),
             "ci_low": float("nan"),
             "ci_high": float("nan"),
-            "n_groups": n_groups,
-            "n_rows": len(frame),
             "available": False,
             "unavailable_reason": "zero_or_non_finite_group_gap_sd",
             "n_bootstrap_valid": 0,
         }
 
-    bootstrap_values = samples.loc[
-        (samples["metric"] == GROUP_SMD) & (samples["score_type"] == score_column),
-        "value",
-    ].to_numpy(dtype=float)
-    finite_bootstrap = bootstrap_values[np.isfinite(bootstrap_values)]
-    n_valid = len(finite_bootstrap)
-    se = float(np.std(finite_bootstrap, ddof=1)) if n_valid >= 2 else float("nan")
+    finite_samples = samples[np.isfinite(samples)]
+    n_valid = len(finite_samples)
+    se = float(np.std(finite_samples, ddof=1)) if n_valid >= 2 else float("nan")
     if n_valid:
         ci_low, ci_high = (
-            float(value) for value in np.percentile(finite_bootstrap, [2.5, 97.5])
+            float(value) for value in np.percentile(finite_samples, [2.5, 97.5])
         )
     else:
         ci_low = ci_high = float("nan")
@@ -314,8 +205,6 @@ def _group_smd_summary(
         "se": se,
         "ci_low": ci_low,
         "ci_high": ci_high,
-        "n_groups": n_groups,
-        "n_rows": len(frame),
         "available": True,
         "unavailable_reason": None,
         "n_bootstrap_valid": n_valid,
@@ -328,23 +217,17 @@ def compute_grouped_vep_metrics(
     score_columns: list[str] | None = None,
     *,
     n_bootstrap: int = 1000,
-    rng: int | None = 0,
+    rng: np.random.Generator | int | None = 0,
     n_min: int = 30,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Report unchanged AUPRC rows beside Group SMD and aligned bootstrap draws.
+) -> pd.DataFrame:
+    """Return the existing AUPRC rows with additive Group SMD columns.
 
-    ``dataset`` must contain ``label``, ``subset``, and ``match_group``.
-    Every match group must contain exactly one positive and at least one
-    negative, and a group may belong to only one subset. Missing or incompatible
-    grouping raises ``ValueError``. Direct scopes with one group, or with zero
-    variance across group gaps, retain an explicit unavailable Group SMD row.
-
-    The bootstrap resamples match groups once per scope and applies each draw to
-    all score columns and both metrics. Integer seeds therefore align ``draw``
-    across model outputs built from the same dataset revision and row order.
-    Group SMD uses the 2.5th and 97.5th bootstrap percentiles for its interval.
-    The returned AUPRC ``value``, ``se``, ``n_groups``, and ``n_rows`` are copied
-    from ``compute_auprc_metrics`` without recomputation.
+    Direct subset and ``_global_`` rows receive Group SMD estimates and
+    match-group bootstrap uncertainty.
+    The same bootstrap group draws are reused for every score column within a
+    scope and are discarded after the summary columns are computed.
+    ``_macro_avg_`` rows mark Group SMD unavailable because averaging
+    subset-standardized effects defines a different statistic.
     """
     required = {"label", "subset", "match_group"}
     missing = required - set(dataset.columns)
@@ -408,7 +291,7 @@ def compute_grouped_vep_metrics(
             f"per-subset match-group counts: {groups_per_subset.to_dict()}"
         )
 
-    legacy_auprc = compute_auprc_metrics(
+    result = compute_auprc_metrics(
         dataset=base[["label", "subset", "match_group"]],
         scores=base[columns],
         score_columns=columns,
@@ -417,93 +300,63 @@ def compute_grouped_vep_metrics(
         n_min=n_min,
     )
 
+    result["group_smd_value"] = np.nan
+    result["group_smd_se"] = np.nan
+    result["group_smd_ci_low"] = np.nan
+    result["group_smd_ci_high"] = np.nan
+    result["group_smd_confidence_level"] = np.nan
+    result["group_smd_available"] = False
+    result["group_smd_unavailable_reason"] = pd.Series(
+        [None] * len(result), dtype="object"
+    )
+    result["group_smd_uncertainty_method"] = pd.Series(
+        [None] * len(result), dtype="object"
+    )
+    result["group_smd_n_bootstrap"] = n_bootstrap
+    result["group_smd_n_bootstrap_valid"] = 0
+
     generator = np.random.default_rng(rng)
     scope_frames: dict[str, pd.DataFrame] = {
         str(subset): frame.reset_index(drop=True)
         for subset, frame in base.groupby("subset", sort=False)
     }
     scope_frames[GLOBAL_SUBSET] = base
-    sample_tables = [
-        _joint_scope_bootstrap(
+    summaries: dict[tuple[str, str], dict[str, object]] = {}
+    for subset, frame in scope_frames.items():
+        samples = _joint_group_smd_bootstrap(
             frame,
             columns,
-            subset=subset,
             n_bootstrap=n_bootstrap,
             generator=generator,
         )
-        for subset, frame in scope_frames.items()
-    ]
-    bootstrap_samples = (
-        pd.concat(sample_tables, ignore_index=True)
-        if sample_tables
-        else pd.DataFrame(columns=BOOTSTRAP_COLUMNS)
-    )
-
-    smd_summaries: dict[tuple[str, str], dict[str, object]] = {}
-    for subset, frame in scope_frames.items():
-        subset_samples = bootstrap_samples.loc[bootstrap_samples["subset"] == subset]
         for score_column in columns:
-            smd_summaries[(score_column, subset)] = _group_smd_summary(
-                frame, score_column, subset_samples
+            summaries[(score_column, subset)] = _group_smd_summary(
+                frame, score_column, samples[score_column]
             )
 
-    summary_rows: list[dict[str, object]] = []
-    for auprc_row in legacy_auprc.to_dict("records"):
-        score_column = str(auprc_row["score_type"])
-        subset = str(auprc_row["subset"])
+    for index, row in result.iterrows():
+        score_column = str(row["score_type"])
+        subset = str(row["subset"])
         if subset == MACRO_AVG_SUBSET:
-            auprc_uncertainty_method = "independent_subset_bootstrap_se_of_mean"
-            auprc_n_bootstrap_valid = 0
-        else:
-            auprc_uncertainty_method = "match_group_bootstrap_standard_error"
-            auprc_n_bootstrap_valid = max(n_bootstrap, 0)
-        summary_rows.append(
-            {
-                "metric": AUPRC,
-                "higher_is_better": HIGHER_IS_BETTER[AUPRC],
-                **auprc_row,
-                "ci_low": float("nan"),
-                "ci_high": float("nan"),
-                "confidence_level": float("nan"),
-                "available": True,
-                "unavailable_reason": None,
-                "uncertainty_method": auprc_uncertainty_method,
-                "n_bootstrap": n_bootstrap,
-                "n_bootstrap_valid": auprc_n_bootstrap_valid,
-            }
-        )
-        if subset == MACRO_AVG_SUBSET:
-            smd = {
-                "value": float("nan"),
-                "se": float("nan"),
-                "ci_low": float("nan"),
-                "ci_high": float("nan"),
-                "n_groups": 0,
-                "n_rows": 0,
-                "available": False,
-                "unavailable_reason": "group_smd_not_defined_for_macro_average",
-                "n_bootstrap_valid": 0,
-            }
-            uncertainty_method = None
-            confidence_level = float("nan")
-        else:
-            smd = smd_summaries[(score_column, subset)]
-            uncertainty_method = "joint_match_group_bootstrap_percentile"
-            confidence_level = 0.95
-        summary_rows.append(
-            {
-                "metric": GROUP_SMD,
-                "higher_is_better": HIGHER_IS_BETTER[GROUP_SMD],
-                "score_type": score_column,
-                "subset": subset,
-                **smd,
-                "confidence_level": confidence_level,
-                "uncertainty_method": uncertainty_method,
-                "n_bootstrap": n_bootstrap,
-            }
+            result.at[index, "group_smd_unavailable_reason"] = (
+                "group_smd_not_defined_for_macro_average"
+            )
+            continue
+
+        summary = summaries[(score_column, subset)]
+        for field in (
+            "value",
+            "se",
+            "ci_low",
+            "ci_high",
+            "available",
+            "unavailable_reason",
+            "n_bootstrap_valid",
+        ):
+            result.at[index, f"group_smd_{field}"] = summary[field]
+        result.at[index, "group_smd_confidence_level"] = 0.95
+        result.at[index, "group_smd_uncertainty_method"] = (
+            "joint_match_group_bootstrap_percentile"
         )
 
-    return (
-        pd.DataFrame(summary_rows, columns=SUMMARY_COLUMNS),
-        bootstrap_samples,
-    )
+    return result

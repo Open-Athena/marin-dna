@@ -1,26 +1,16 @@
 """Frozen-embedding linear-probe training (issue #320).
 
-Per (model, dataset): train a per-subset, leave-one-chromosome-out (LOOC) L2-logistic
-probe on the in-bundle pooled embeddings (`emb_ref`/`emb_alt`, #318) and emit two
-artifacts — the **LOOC predictions** for every variant (`probe_score`, consumed by the
-downstream metrics step) and the **fitted per-subset classifiers** (serialized for
-reuse on other datasets). The protocol (feature rule, nested-C tuning, C-edge guard)
-lives in `marin_dna_evals.variant_probe.run_subset_probes`; this rule is thin
-glue.
+Per (model, dataset), train per-subset leave-one-chromosome-out logistic probes
+on the pooled `emb_ref` and `emb_alt` columns from the canonical score bundle.
+The rule is CPU-only and remains off `rule all`.
+New score outputs include embeddings by default.
+A legacy score parquet without embedding columns fails fast and must be explicitly
+re-scored before it can be probed.
 
-CPU-only (sklearn on cached embeddings — no GPU). Requires the input scores parquet to
-carry `emb_ref`/`emb_alt`, i.e. it must have been produced with
-`inference.return_embeddings: true` (the #318 overlay); the rule fails fast otherwise.
+Build by name:
 
-Kept OFF `rule all` (a few-models analysis, like `umap` / `ll_gap`). Pass
-`--rerun-triggers mtime` on every invocation: the input scores parquet was built with
-the #318 overlay (`return_embeddings: true`), which differs from the committed default
-(`false`), so snakemake's default `params` trigger would otherwise try to rebuild it —
-and a rebuild on this CPU node (no GPU/gcloud) would drop the very `emb_ref`/`emb_alt`
-the rule asserts on. Build by name:
-
-    snakemake probe --rerun-triggers mtime                              # every configured probe cell
-    snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime
+    snakemake probe
+    snakemake results/probe/<model>/<dataset>.parquet
 """
 
 
@@ -50,7 +40,7 @@ rule compute_probe:
         df = pd.read_parquet(input[0])
         assert "emb_ref" in df.columns and "emb_alt" in df.columns, (
             f"{input[0]} lacks emb_ref/emb_alt — re-score {wildcards.model}/"
-            f"{wildcards.dataset} with inference.return_embeddings=true (#318 overlay)"
+            f"{wildcards.dataset}; explicitly rerun its compute_scores target first"
         )
         predictions, classifiers = run_subset_probes(
             df,
@@ -106,9 +96,7 @@ rule compute_probe_metrics:
     sge), matching `compute_metrics`'s `_avg` semantics.
 
     Thin glue over `marin_dna_evals.metrics.{per_chrom_ap_table,
-    compute_sge_metrics}`. CPU-only; off `rule all`. Reads a probe parquet, so the same
-    `--rerun-triggers mtime` note as `compute_probe` applies (its upstream scores parquet
-    was built with the #318 overlay)."""
+    compute_sge_metrics}`. CPU-only and off `rule all`."""
     input:
         "results/probe/{model}/{dataset}.parquet",
     output:

@@ -45,6 +45,7 @@ rule compute_ll_gap:
             batch_size=batch_size,
             num_workers=config["inference"]["num_workers"],
             torch_compile=config["inference"].get("torch_compile", False),
+            bf16=config["inference"]["bf16"],
         )
         out.to_parquet(output[0], index=False)
         print(
