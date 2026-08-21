@@ -97,7 +97,7 @@ def test_validation_plot_writes_reviewable_svg_and_png(tmp_path: Path) -> None:
     assert output.with_suffix(".png").is_file()
     rendered = svg.read_text(encoding="utf-8")
     assert "Pooled fixed-plan validation" in rendered
-    assert "Five validation components" in rendered
+    assert "Per-component change from step 0" in rendered
     assert "AdamW 1e-6 causal fine-tuning sanity check" in rendered
 
 
