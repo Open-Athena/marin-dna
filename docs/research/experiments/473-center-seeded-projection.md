@@ -3,10 +3,6 @@
 > [!NOTE]
 > **TL;DR:** In one matched-token seed evaluated on development data, center-1 produced higher CDS Mendelian AUPRC and lower shared-row loss than full-window projection, while full-window produced higher distal enhancer Mendelian AUPRC. These exploratory results support center-1 for CDS and full-window for enhancer-centered cCREs for this training recipe.
 
-![Four panels showing center-1 minus full-window paired Mendelian AUPRC trajectories for CDS missense, splicing, and synonymous variants and enhancer distal variants](figures/473/auprc_paired_delta_trajectories.svg)
-
-_Center-1 minus full-window AUPRC trajectories from one training seed on the development split; bands are paired 95% match-group bootstrap intervals._
-
 ## Findings
 
 Center-seeded projection does not create a universal recovery advantage.
@@ -35,10 +31,16 @@ Other regions require matched downstream comparisons, and this evidence does not
 
 ## Evidence
 
+### Projection QC
+
 The producer completed all 135 projection partitions and the deterministic sample trace completed all 645 trace jobs.
 The accepted union contains 74,524,203 species-anchor rows.
 All emitted intervals are 255 bp, all coordinates are in bounds, and chromosome/strand agreement is exact.
 The median projected-center displacement is 3 bp.
+
+![Grouped bars comparing full-window and center-1 recovery and sampled aligned coverage for enhancer, CDS, ncRNA, TSS and 5-prime UTR, and 3-prime UTR projections](figures/473/projection_qc.svg)
+
+_Projection QC by region. Left: exact recovery over all requested species–anchor pairs. Right: the policy-specific mean emitted-window-to-anchor aligned fraction in the exact sampled HAL traces; error bars are normal 95% confidence intervals over human anchors. Paired policy differences and anchor-bootstrap intervals are tabulated below._
 
 | Region | Full window | Center 1 | Difference |
 |---|---:|---:|---:|
@@ -81,14 +83,27 @@ The other three arms were trained through step 4,999.
 | Enhancer | Full window | 24,889,396 | 1.646 | New |
 | Enhancer | Center 1 | 24,616,580 | 1.664 | New |
 
-The final validation losses for the three new arms were 1.303 for CDS center-1, 1.3404 for enhancer full window, and 1.344 for enhancer center-1.
 The public W&B runs are linked below.
+
+### Shared-row validation loss
+
+![Full-window and center-1 case-weighted negative log-likelihood trajectories on identical chromosome-18 rows for CDS and enhancer models](figures/473/shared_validation_loss.svg)
+
+_Actual case-weighted NLL on identical chromosome-18 projected rows; bands are 95% human-anchor bootstrap intervals. Lower is better. This uses unlabeled projection sequence as a fit diagnostic, not held-out variant-effect labels._
+
+At step 4,999, center-1 minus full-window case-weighted NLL was -0.04323 [-0.04614, -0.04038] for CDS.
+The difference favored center-1 at every checkpoint.
+For enhancers it was +0.002955 [0.002476, 0.003452], but the trajectory changed sign across checkpoints.
 
 ### Development evaluation
 
 Every arm was evaluated at steps 1,000 through 4,500 in 500-step increments and at step 4,999.
 The complete matrix contains 90 score artifacts and 90 official metric artifacts.
 Only region-relevant subsets are presented here: missense, splicing, and synonymous for CDS; distal for enhancers.
+
+![Full-window and center-1 Mendelian AUPRC and Group SMD trajectories for CDS missense, splicing, and synonymous variants and enhancer distal variants](figures/473/mendelian_vep_trajectories.svg)
+
+_Actual Mendelian development metrics from one training seed. Rows show AUPRC and Group SMD; columns show the four region-relevant subsets. Bands are paired 95% match-group bootstrap intervals._
 
 | Region | Subset | Metric | Full window | Center 1 | Difference | Paired 95% interval |
 |---|---|---|---:|---:|---:|---:|
@@ -103,17 +118,17 @@ Only region-relevant subsets are presented here: missense, splicing, and synonym
 
 _Terminal Mendelian development metrics. Positive differences favor center-1; uncertainty uses 1,000 aligned match-group bootstrap draws._
 
-<p align="center">
-  <img src="figures/473/cds_group_smd_paired_delta_trajectories.svg" alt="Three panels showing center-1 minus full-window paired Mendelian Group SMD trajectories for CDS missense, splicing, and synonymous variants" />
-</p>
-
-<p align="center">
-  <img src="figures/473/enhancer_group_smd_paired_delta_trajectories.svg" alt="One panel showing the center-1 minus full-window paired Mendelian Group SMD trajectory for distal enhancer variants" />
-</p>
-
 Complex uses the official `abs_llr_avg` AUPRC.
-SGE uses official assay-macro `minus_llr_avg` AUPRC.
-These official endpoints provide point estimates and bootstrap SEs rather than a paired policy-difference interval.
+
+![Full-window and center-1 Complex-trait AUPRC trajectories for CDS missense, splicing, and synonymous variants and enhancer distal variants](figures/473/complex_auprc_trajectories.svg)
+
+_Actual Complex-trait development AUPRC using the official `abs_llr_avg` score. Bands show ±1 official bootstrap SE; a paired policy-difference interval was not available._
+
+SGE uses official assay-macro `minus_llr_avg` AUPRC and has relevant endpoints for CDS missense and splicing variants.
+
+![Full-window and center-1 SGE assay-macro AUPRC trajectories for CDS missense and splicing variants](figures/473/sge_auprc_trajectories.svg)
+
+_Actual SGE development assay-macro AUPRC using the official `minus_llr_avg` score. Bands show ±1 official bootstrap SE; a paired policy-difference interval was not available. Enhancer checkpoints were not submitted because this benchmark has no region-relevant enhancer endpoint._
 
 | Region | Dataset | Subset | Full window | Center 1 | Difference |
 |---|---|---|---:|---:|---:|
@@ -123,11 +138,6 @@ These official endpoints provide point estimates and bootstrap SEs rather than a
 | CDS | SGE | Missense | 0.1627 ± 0.0049 | 0.2757 ± 0.0086 | +0.1131 |
 | CDS | SGE | Splicing | 0.1971 ± 0.0155 | 0.4308 ± 0.0234 | +0.2337 |
 | Enhancer | Complex | Distal | 0.1205 ± 0.0084 | 0.1220 ± 0.0086 | +0.0015 |
-
-On the exact shared chromosome-18 projection rows, terminal center-1 minus full-window case-weighted NLL was -0.04323 [-0.04614, -0.04038] for CDS.
-The difference favored center-1 at every checkpoint.
-For enhancers it was +0.002955 [0.002476, 0.003452] at step 4,999, but the trajectory changed sign across checkpoints.
-This intersection analysis uses unlabeled projection sequence and is a fit diagnostic, not a held-out VEP result.
 
 ### Reproducibility
 
