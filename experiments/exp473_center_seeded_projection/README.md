@@ -44,6 +44,34 @@ chromosome-18 validation split. Native validation losses across different policy
 are not a policy comparison; issue #473 uses its paired intersection views for
 that diagnostic.
 
+## Random-validation diagnostic control
+
+The isolated `random_validation_control.py` launcher trains one additional CDS
+full-window arm to test whether the native validation-loss behavior depends on
+the chromosome-held-out split. Its public dataset is
+[`marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val/tree/7ef0bc9fcff17efc5792af92d8da34176617dd13)
+at `7ef0bc9fcff17efc5792af92d8da34176617dd13`.
+
+The split samples exactly 16,384 original-orientation CDS rows uniformly with
+seed 42 before reverse-complement augmentation. Those rows are removed from
+training and remain original-orientation validation examples. The remaining
+33,835,893 originals yield 67,671,786 forward-plus-reverse-complement training
+records. Training otherwise matches the #417 CDS full-window arm: seed 0,
+batch 8,192, sequence length 256, and 5,000 steps. Native validation runs every
+500 steps. This diagnostic does not launch VEP evaluation.
+
+The launcher rejects non-preemptible TPU capacity. Print its non-mutating plan
+with:
+
+```bash
+WANDB_API_KEY=test WANDB_ENTITY=test WANDB_PROJECT=marin \
+MARIN_PREFIX=gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
+EXP473_TPU_PREEMPTIBLE=true \
+uv run --python /usr/bin/python3.12 --locked \
+  python -m exp473_center_seeded_projection.random_validation_control \
+  --version 2026.08.21
+```
+
 Before the first data-bearing launch, verify that the vendored tokenizer is
 available not only to the coordinator but also to a real Iris child worker:
 
