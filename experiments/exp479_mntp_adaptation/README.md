@@ -31,7 +31,7 @@ The stage fixes:
 - the original batch-64 tokenizer, first 200 training batches, orientation policy, lowercase repeat weight, and 640-row five-component validation plan; and
 - post-hoc validation at steps 0, 1, 10, 25, 50, 100, and 200.
 
-The arm passes only when step-200 pooled and component losses are no higher than their step-0 values and each component trajectory has a non-positive fitted slope.
+The arm passes only when step-200 macro and component losses are no higher than their step-0 values and each component trajectory has a non-positive fitted slope.
 This stage does not run VEP or any other learning rate.
 It uploads the final checkpoint and compact validation evidence to private staging, records dense trajectories in W&B, and terminates through `sky launch --down`.
 
@@ -45,22 +45,24 @@ uv run --locked python launch.py calibration \
 
 ## Selected 1,000-step causal trajectory
 
-The follow-up `longrun` stage tests the human-selected peak learning rate of `1e-5` for 1,000 causal optimizer steps.
-It uses the same full-parameter AdamW constants, batch-64 training plan, tokenizer, orientation policy, lowercase repeat weighting, and fixed validation panel as the 200-step calibration.
+The `longrun` stage is the corrected replacement for the superseded 1,000-step AdamW run at the human-selected peak learning rate of `1e-5`.
+It starts from the released source checkpoint and reuses the batch-64 training plan, tokenizer, orientation policy, and lowercase repeat weights.
+Training applies each repeat weight once, divides by effective-weight sum, and includes the pinned source z-loss weight.
+The full-parameter AdamW constants remain betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, and global gradient clipping at `1.0`.
 The schedule warms linearly from zero through step 100, remains at `1e-5` through step 800, and decays linearly to zero at the step-1,000 boundary.
 
-Only the pooled 640-sequence validation loss is reported for this stage.
-Because the five components contribute 128 sequences each, this pooled value is also the equally weighted component macro.
+Validation reports only the equally weighted macro of the five fixed component losses.
+Each component loss is a global effective-weight mean of pure cross-entropy with one repeat-weight application and no training-only z penalty.
 The trajectory is evaluated at steps 0, 25, 50, 100, every 100 steps through 800, 900, and 1,000.
 
-Every post-update Hugging Face-format trajectory export is retained immediately as a W&B model artifact.
+Every post-update Hugging Face-format trajectory export is retained immediately in the distinct W&B namespace `dna-exp479-causal-longrun-corrected-*`.
 After training, the complete step-1,000 Lightning checkpoint containing model, optimizer, scheduler, and loop state is retained as a separate W&B model artifact before validation begins.
 The Lambda task does not upload any output to Hugging Face and does not delete a retained checkpoint.
 
 ```bash
 uv run --locked python launch.py longrun \
   --commit "$(git rev-parse HEAD)" \
-  --prior-cost-usd 25.26241970350875 \
+  --prior-cost-usd 27.033784759 \
   --retry-until-up \
   --execute
 ```

@@ -1,4 +1,4 @@
-name: dna-exp479-causal-longrun-lr1e-5
+name: dna-exp479-causal-longrun-lr1e-5-corrected
 
 resources:
   cloud: lambda
@@ -18,7 +18,7 @@ run: |
   test -n "${EXP479_PRIOR_COST_USD:-}"
   test -n "${WANDB_API_KEY:-}"
   artifact_root="$HOME/exp479-causal-longrun-artifacts"
-  output_dir="$artifact_root/evaluation/causal-longrun-lr1e-5"
+  output_dir="$artifact_root/evaluation/causal-longrun-lr1e-5-corrected"
   mkdir -p "$output_dir"
   trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-causal-longrun-artifacts" || true' EXIT
   uv run --locked pytest
