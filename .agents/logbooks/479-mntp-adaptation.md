@@ -372,3 +372,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Budget: Carry forward $24.7340 of the $50 cap and project this single arm before provisioning.
 - Public record: [issue comment](https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5371856205).
 - Next action: implement and test the single-arm run config, snapshot it, project cost, and launch the self-terminating Lambda task.
+
+### 2026-08-21 16:10 - AdamW 1e-6 causal-continuation sanity result
+
+- Launch snapshot: `3b1fd1747c9d9e9ff35e8e19ea997247b3027dce`.
+- Command: `uv run --locked python launch.py calibration --commit 3b1fd1747c9d9e9ff35e8e19ea997247b3027dce --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover --prior-cost-usd 24.7340 --retry-until-up --execute`.
+- Config: One full-parameter causal arm, AdamW at `1e-6`, betas `(0.9, 0.95)`, epsilon `1e-8`, no weight decay, 10-step linear warmup from `1e-7`, batch 64, 200 steps, and gradient clipping at `1.0`.
+- Validation: The exact fixed 640-row panel contains 128 rows from each of CDS, downstream, enhancer, ncRNA, and upstream, with lowercase repeat weight `0.01` in the shared causal loss path.
+- Pooled result: Fixed-plan causal loss changed from `0.231380263` at step 0 to `0.231159212` at step 200, a decrease of `0.000221051`; the fitted slope was `-1.2567e-6` per step.
+- Component result: CDS, enhancer, and ncRNA passed both strict checks. Upstream ended `0.000014797` below baseline but had a fitted slope of `+8.64e-8` per step. Downstream ended `0.000006404` above baseline with a fitted slope of `+2.37e-8` per step.
+- Gate: The preregistered all-component gate is `false` because upstream and downstream missed a zero-tolerance sign check, even though the pooled and three other component trajectories improved and neither miss shows broad degradation.
+- Stability: The 200-step training-loss trace was finite. Pre-clipping gradient norm ranged from `0.5176` to `0.8916`, averaged `0.6477`, and never reached the `1.0` clip threshold. No clipped step or gradient spike occurred.
+- Runtime: Training processed 3,276,800 model tokens in 105.55 seconds at 31,044 tokens/s, with 67,360,480,768 peak allocated CUDA bytes.
+- Publication: The compact W&B evidence completed at [run q09fcejx](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx). The final 2.2 GB BF16 checkpoint upload failed after evaluation because the Hugging Face account had reached its private-storage limit. No result metric depends on that failed publication.
+- Compute: The Lambda instance ran from 15:52:01 to the 16:05:51 pre-autodown cost record. This arm cost an estimated `$0.5284`, bringing the conservative listed-price total to `$25.2624 / $50`; the cluster then self-terminated and was confirmed absent.
+- Decision: Do not run AUPRC, another learning rate, or a longer causal arm automatically. First review the visually near-flat component misses and choose whether the next gate should use a lower learning rate, a parameter-efficient update, a larger fixed validation panel, or a tolerance justified before another run.
+- Artifacts: [compact calibration bundle](../artifacts/479-mntp-adaptation/causal-calibration-lr1e-6/).
