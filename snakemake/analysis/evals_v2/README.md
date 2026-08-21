@@ -208,6 +208,19 @@ be skipped with no embedding columns.) Name targeted targets rather than
     Pair with a per-model `batch_size:` override to fit on an A10G; the
     global default of 128 is tuned for 256-context.
 
+### m5.1 inference-context aliases (issue #485)
+
+The model registry includes 127, 63, and 31 bp aliases of `mix-v0.9-p1B-i24-exp135-m5.1-step-59158` for the fixed-checkpoint inference-context ablation in issue #485.
+It also includes separate 511 and 1023 bp inference-extension aliases that evaluate the longer DNA windows plus BOS without model retraining.
+The checkpoint declares a 256-token training context but uses rotary positions rather than a learned positional-embedding table, so the longer windows are executable while remaining explicitly out of distribution.
+All aliases point to the native model's checkpoint and are restricted to `mendelian_traits`.
+Their distinct model IDs deliberately create distinct artifact namespaces, and they are not registered in `dashboard/models.yaml` or a public leaderboard.
+The 511 and 1023 bp aliases use conservative per-model batch sizes of 24 and 6 and are registered for the same frozen linear-probe protocol after their embedding-bearing score artifacts are produced.
+
+Use `config/overlays/return_embeddings.yaml` for each 31–1023 bp score target before building its probe, exactly as described under pooled embeddings above.
+Because the checkpoint cache is keyed by model ID, the aliases may each materialize a duplicate copy of the same checkpoint.
+Run named issue targets and inspect a dry-run before execution instead of relying on `rule all`.
+
 ## Setup
 
 ### Supported Sky GPU runtime

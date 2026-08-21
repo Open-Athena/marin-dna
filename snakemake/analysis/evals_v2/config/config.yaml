@@ -559,6 +559,34 @@ models:
     window_size: 255
     datasets: [mendelian_traits, sge]
 
+  # Issue #485 — inference-time context experiment for the fixed m5.1 checkpoint.
+  # Keep distinct model IDs so scores and metrics cannot overwrite the native
+  # 255 bp artifacts. These aliases are experiment-only and are intentionally
+  # absent from dashboard/models.yaml and the public leaderboards. The 511 and
+  # 1023 bp aliases are inference-extension arms beyond the 31–255 bp ablation.
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx1023
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 1023
+    batch_size: 6
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx511
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 511
+    batch_size: 24
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx127
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 127
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx63
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 63
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx31
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
+    window_size: 31
+    datasets: [mendelian_traits]
+
   # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
   # (~84.77B tokens; batch 1536 x seq 256; identical optimizer hparams). The
   # Mendelian VEP scored here is the y-axis for the LL-gap-vs-loss analysis; the
@@ -1226,6 +1254,16 @@ probe:
     # headline generalist whose mendelian cell already has embeddings on S3; add
     # entries here as more cells are re-scored with inference.return_embeddings.
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
+      datasets: [mendelian_traits]
+    - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx1023
+      datasets: [mendelian_traits]
+    - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx511
+      datasets: [mendelian_traits]
+    - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx127
+      datasets: [mendelian_traits]
+    - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx63
+      datasets: [mendelian_traits]
+    - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158-ctx31
       datasets: [mendelian_traits]
 
 
