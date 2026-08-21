@@ -9,7 +9,7 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 The one-seed pilot and follow-up causal runs completed, but their absolute loss values used an incorrect repeat-weight denominator.
 The reducer divided weighted loss by selected-token count instead of effective-weight sum, shrinking the loss according to lowercase-repeat content.
 The original source validation suite also contains three datasets, while the exp479 five-way panel added enhancer and ncRNA probes.
-The corrected 128-row-per-dataset audit reproduces the invalid source value of `0.231380263`, reports `0.764665566` with Marin's reducer on the three original datasets, and preserves a small worsening through step 1,000.
+The corrected 128-row-per-dataset audit reproduces the invalid source value of `0.231380263`, reports validation CE of `0.764633691` with Marin's reducer on the three original datasets, and preserves a small worsening through step 1,000.
 An all-16,384-row reproduction of each original validation dataset is the remaining source-parity gate.
 The VEP, attention, coordinate, serialization, and final dependency evidence is unchanged by this discovery, but interpretation remains paused.
 The current conservative list-price estimate is $26.4687 of the $50 cap, and every Lambda cluster was confirmed terminated.
@@ -88,20 +88,22 @@ This is a factual experiment record; research knowledge-base interpretation rema
 
 The `loss-normalization` stage evaluates the released source plus every retained causal checkpoint with both the invalid count denominator and the corrected Marin reducer.
 It uses the immutable 128-row-per-dataset panel, limits the source-comparable macro to CDS, upstream, and downstream, and uploads only compact tables and plots to W&B.
-The completed audit reports corrected source-three loss of `0.764665566` at step 0, `0.763741364` at step 100, and `0.767604491` at step 1,000.
+The completed audit reports corrected source-three validation CE of `0.764633691` at step 0, `0.763708129` at step 100, and `0.767572101` at step 1,000.
 No checkpoint was deleted, modified, or uploaded elsewhere.
 Direct evidence is at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 The `source-validation` stage evaluates all 16,384 rows in each of the three original source validation datasets.
-One model forward supplies each dataset's repeat-weighted, uppercase-only, and lowercase-only loss.
-The stage compares those nine values and their macro directly with the original W&B run at an absolute tolerance of `0.002`.
-This is a hard gate for the source checkpoint's tokenization, next-token shift, special-token handling, repeat weights, z-loss, and global reduction.
+One model forward supplies each dataset's repeat-weighted, uppercase-only, and lowercase-only CE.
+The pinned tagged evaluator applied repeat weights inside the loss function and again in its accumulator, squaring them in the numerator but not the denominator.
+The uppercase-only and lowercase-only metrics are unaffected because their weights are binary.
+The stage compares the exact historical double-weight outputs with W&B at an absolute tolerance of `0.002` and separately reports corrected single-weight CE.
+This is a hard gate for the source checkpoint's tokenization, next-token shift, special-token handling, repeat weights, and global reduction.
 It uses public Hugging Face inputs, forwards only the W&B secret, uploads no checkpoint, and self-terminates.
 
 ```bash
 uv run --locked python launch.py source-validation \
   --commit "$(git rev-parse HEAD)" \
-  --prior-cost-usd 26.468723089202907 \
+  --prior-cost-usd 26.744105814380116 \
   --retry-until-up \
   --execute
 ```
@@ -111,7 +113,10 @@ uv run --locked python launch.py source-validation \
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.
 - Context: one BOS plus 255 nucleotide bases.
 - MNTP: sample one `Uniform(0, 1)` probability per sequence, select eligible A/C/G/T positions independently, resample zero-target rows, replace every target with `[MASK]`, and supervise target `i` from output `i - 1`.
-- Loss: normalize weighted cross-entropy by effective-weight sum. MNTP first normalizes within each sequence and then averages sequences; continued CLM uses Marin's global token-weighted mean. Uppercase bases have weight 1 and lowercase bases have weight 0.01. Include the pinned source z-loss weight `4.312883184368223e-6`.
+- Training loss: normalize weighted cross-entropy by effective-weight sum; MNTP first normalizes within each sequence and then averages sequences, while continued CLM uses Marin's global token-weighted mean.
+- Repeat weights: uppercase bases have weight 1 and lowercase bases have weight 0.01.
+- Training regularization: include the pinned source z-loss weight `4.312883184368223e-6`.
+- Validation loss: report pure CE without the training-only z penalty.
 - Data: sample the five pinned m5.1 components uniformly. Deterministically skip any source row with no A/C/G/T base and draw the next row from that same component. One materialized plan fixes the underlying sequence and component order for every arm. Corruption is a stateless function of the plan sample ID.
 - Optimizer: the pinned m5.1 DNA scaling heuristic supplies separate AdamH and Adam learning rates, betas, epsilon, and clipping. Linear weights use AdamH; embeddings, normalization weights, and biases use Adam. An actually tied embedding/head matrix would remain in the Adam group.
 - Schedule: linear warmup through step 100, stable through step 800, and linear cooldown to zero at step 1,000.

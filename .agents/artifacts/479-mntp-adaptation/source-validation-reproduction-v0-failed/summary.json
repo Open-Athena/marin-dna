@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "tolerance": 0.002,
+  "reproduced_macro": 0.8756897348413143,
+  "original_wandb_macro": 0.8613447546958923,
+  "macro_delta": 0.01434498014542196,
+  "maximum_slice_absolute_delta": 0.057035601917178935,
+  "n_metrics": 9,
+  "total_model_rows_evaluated": 49152
+}
