@@ -443,7 +443,7 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
                 axis.set_title(SUBSET_LABELS[subset])
                 axis.set_box_aspect(1)
                 axis.grid(alpha=0.2, linewidth=0.6)
-            fig.supxlabel("Training step")
+            fig.supxlabel("Training step", y=0.11)
             fig.supylabel(f"Center 1 − full window {labels[metric]}")
             fig.suptitle(
                 f"{region_labels[region]} paired {labels[metric]} trajectories",
@@ -451,11 +451,10 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
             fig.text(
                 0.5,
                 0.025,
-                "Development split; shading shows paired 95% percentile "
-                "intervals from aligned match-group bootstrap draws.",
+                "Development split; paired 95% bootstrap intervals by match group.",
                 ha="center",
             )
-            fig.tight_layout(rect=(0.03, 0.08, 1, 0.93))
+            fig.tight_layout(rect=(0.03, 0.17, 1, 0.93))
             stem = f"{region}_{metric}_paired_delta_trajectories"
             path = plot_dir / f"{stem}.svg"
             fig.savefig(path, bbox_inches="tight")
