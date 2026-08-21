@@ -2131,3 +2131,19 @@ cohort, assemblies, and downstream training recipe fixed.
   file, prediction, measurement, or metric was requested or read.
 - Enhancer center-1 continued through about step 4,840 with displayed loss
   1.13. Enhancer full-window continued independently beyond step 3,000.
+
+### 2026-08-21 07:56 UTC - CSP-066 enhancer center-1 completed
+
+- Enhancer center-1 completed all 5,000 scheduled updates through terminal step
+  4,999. Its final validation loss was 1.344, the public W&B run finalized
+  successfully, and the four-object terminal Hugging Face export is exactly
+  1,019,426,427 bytes. Every requested enhancer center-1 export from step 1,000
+  through 4,500 in 500-step increments plus step 4,999 is durable in the
+  additive us-east5 checkpoint namespace.
+- The isolated enhancer center-1 step-4,999 development graph completed all
+  five jobs successfully on the warm A10G. It scored exactly 16,140 Mendelian
+  and 11,630 Complex rows from the pinned public `train.parquet` files and
+  produced 66 and 60 official metric rows, respectively. No held-out labeled
+  file, prediction, measurement, or metric was requested or read.
+- Enhancer full-window remained active independently at about step 3,380 with
+  displayed loss 1.26. Its next exact export boundary is step 3,500.
