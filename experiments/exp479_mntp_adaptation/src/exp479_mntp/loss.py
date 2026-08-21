@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn.functional as F
 
+from exp479_mntp.config import SOURCE_Z_LOSS_WEIGHT
 from exp479_mntp.masking import IGNORE_INDEX
 
 
@@ -18,23 +19,29 @@ class LossMetrics:
     pooled_loss: torch.Tensor
     accuracy: torch.Tensor
     selected_tokens: torch.Tensor
+    loss_weight_sum: torch.Tensor
+    weighted_loss_sum: torch.Tensor
 
 
 def per_sequence_weighted_loss(
     logits: torch.Tensor,
     labels: torch.Tensor,
     loss_weights: torch.Tensor,
+    z_loss_weight: float = SOURCE_Z_LOSS_WEIGHT,
 ) -> LossMetrics:
-    """Average weighted CE within each sequence, then average sequences.
+    """Reduce weighted CE with sequence-balanced and token-weighted means.
 
-    The per-sequence denominator is the selected-token count, not the sum of
-    soft-mask weights, matching the registered issue #479 objective.
+    ``loss`` gives every sequence equal weight after normalizing by that
+    sequence's effective loss-weight sum. ``pooled_loss`` matches Marin's
+    weighted mean across all selected tokens in the batch.
     """
 
     if logits.ndim != 3:
         raise ValueError(f"logits must be rank 3, got shape {tuple(logits.shape)}")
     if labels.shape != logits.shape[:2] or loss_weights.shape != labels.shape:
         raise ValueError("labels and loss_weights must match the first two logits dimensions")
+    if z_loss_weight < 0:
+        raise ValueError("z_loss_weight must be non-negative")
 
     selected = labels != IGNORE_INDEX
     counts = selected.sum(dim=1)
@@ -48,9 +55,21 @@ def per_sequence_weighted_loss(
         ignore_index=IGNORE_INDEX,
         reduction="none",
     ).reshape_as(labels)
-    weighted_loss = flat_loss * loss_weights
-    sequence_losses = weighted_loss.sum(dim=1) / counts
-    pooled_loss = weighted_loss.sum() / counts.sum()
+    if z_loss_weight:
+        flat_loss = flat_loss + torch.logsumexp(logits.float(), dim=-1).square() * z_loss_weight
+    if torch.any(loss_weights < 0):
+        raise ValueError("loss_weights must be non-negative")
+    effective_weights = torch.where(selected, loss_weights, 0.0)
+    weight_sums = effective_weights.sum(dim=1)
+    if torch.any(weight_sums <= 0):
+        bad = (weight_sums <= 0).nonzero(as_tuple=False).flatten().tolist()
+        raise ValueError(f"every sequence must have positive loss weight; zero rows: {bad}")
+
+    weighted_loss = flat_loss * effective_weights
+    weighted_loss_sum = weighted_loss.sum()
+    loss_weight_sum = weight_sums.sum()
+    sequence_losses = weighted_loss.sum(dim=1) / weight_sums
+    pooled_loss = weighted_loss_sum / loss_weight_sum
 
     predictions = logits.argmax(dim=-1)
     correct = (predictions == labels) & selected
@@ -60,6 +79,8 @@ def per_sequence_weighted_loss(
         pooled_loss=pooled_loss,
         accuracy=accuracy,
         selected_tokens=counts.sum(),
+        loss_weight_sum=loss_weight_sum,
+        weighted_loss_sum=weighted_loss_sum,
     )
 
 

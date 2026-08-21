@@ -182,6 +182,16 @@ def _parser() -> argparse.ArgumentParser:
     longrun.add_argument("--num-workers", type=int, default=4)
     longrun.add_argument("--offline-wandb", action="store_true")
 
+    normalization = subparsers.add_parser(
+        "loss-normalization-audit",
+        help="re-evaluate retained causal checkpoints with Marin-compatible loss",
+    )
+    normalization.add_argument("--artifact-dir", type=Path, required=True)
+    normalization.add_argument("--output-dir", type=Path, required=True)
+    normalization.add_argument("--train-plan", type=Path, required=True)
+    normalization.add_argument("--validation-plan", type=Path, required=True)
+    normalization.add_argument("--batch-size", type=int, default=64)
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
@@ -377,6 +387,17 @@ def main() -> None:
             seed=args.seed,
             num_workers=args.num_workers,
             offline_wandb=args.offline_wandb,
+        )
+        return
+    if args.command == "loss-normalization-audit":
+        from exp479_mntp.loss_normalization_audit import run_loss_normalization_audit
+
+        run_loss_normalization_audit(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
         )
         return
     if args.command == "finalize":

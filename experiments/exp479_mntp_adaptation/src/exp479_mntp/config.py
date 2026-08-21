@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 MODEL_ID = "marin-dna/marin-dna-exp135-m5.1"
 MODEL_REVISION = "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a"
 MASK_TOKEN = "[MASK]"
+SOURCE_Z_LOSS_WEIGHT = 4.312883184368223e-6
 
 SEQUENCE_LENGTH = 256
 NUCLEOTIDE_LENGTH = 255

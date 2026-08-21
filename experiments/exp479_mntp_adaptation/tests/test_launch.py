@@ -78,3 +78,19 @@ def test_diagnostics_environment_only_requires_hugging_face(
     environment = execution_environment("diagnostics")
     assert environment["HF_TOKEN"] == "test-token"
     assert "WANDB_API_KEY" not in environment
+
+
+def test_loss_normalization_launch_uses_only_wandb_and_retained_artifacts() -> None:
+    command = launch_command(
+        "loss-normalization",
+        "a" * 40,
+        1234,
+        prior_cost_usd=26.1237,
+    )
+    assert command[4] == "sky/loss-normalization.yaml"
+    assert "EXP479_PRIOR_COST_USD=26.1237" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "HF_REPO_ID=marin-dna/marin-dna-exp479-mntp-m5.1" not in command
+    assert "--down" in command
