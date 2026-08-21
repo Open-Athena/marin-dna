@@ -6,16 +6,18 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 
 ## Current experiment status
 
-The one-seed pilot and follow-up causal runs completed, but their absolute loss values used an incorrect repeat-weight denominator.
+The one-seed pilot and initial follow-up causal runs used an incorrect repeat-weight denominator.
 The reducer divided weighted loss by selected-token count instead of effective-weight sum, shrinking the loss according to lowercase-repeat content.
 The original source validation suite also contains three datasets, while the exp479 five-way panel added enhancer and ncRNA probes.
 The corrected 128-row-per-dataset audit reproduces the invalid source value of `0.231380263`, reports validation CE of `0.764633691` on the three original datasets, and preserves a small worsening through step 1,000.
 The full 49,152-row source audit also found that the original tagged evaluator applied repeat weights twice for its mixed-case slices.
 It reproduced the original nine-metric W&B macro as `0.861413936` versus `0.861344755`, with maximum metric error `0.000168145`, while the corrected single-weight macro is `0.875662646`.
+A source-compatible 1,000-step AdamW replacement is complete.
+Its five-component macro validation CE improved from `0.769008732` to `0.767801766` by step 100, then rose to `0.773670488` at step 1,000 with finite loss and gradients.
 The VEP, attention, coordinate, serialization, and final dependency evidence is unchanged by this discovery, but interpretation remains paused.
-The current conservative list-price estimate is $27.0338 of the $50 cap, and every Lambda cluster was confirmed terminated.
+The current conservative list-price estimate is $28.3080 of the $50 cap, and every Lambda cluster was confirmed terminated.
 
-See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [full source-validation reproduction](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn).
+See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [corrected causal run](https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4), [full source-validation reproduction](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn).
 Final weights and per-variant scores remain private.
 
 ## Causal fine-tuning sanity gate
@@ -66,6 +68,31 @@ uv run --locked python launch.py longrun \
   --retry-until-up \
   --execute
 ```
+
+### Corrected result
+
+The corrected run completed from snapshot `42fc993e3245a0f6a1c1d77813b0665ef56e68e5` at [W&B f77ypos4](https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4).
+All 104 locked tests passed remotely before model loading, and the regenerated train and validation plan hashes matched the preregistered inputs.
+
+Five-component macro validation CE was `0.769008732` at source, reached its minimum of `0.767801766` at step 100, crossed above source between steps 200 and 300, peaked at `0.774135425` at step 900, and ended at `0.773670488`.
+The final increase was `+0.004661756`, and the fitted slope was `+6.1692e-6` per optimizer step.
+Step 900 to 1,000 recovered `0.000464937` without returning to source.
+The step-0 value differs by only `6.4e-6` from the earlier independent evaluator, and the corrected trajectory differs from the same metric on the superseded checkpoints by at most `0.000136974` across all 13 points.
+
+All 1,000 training-loss, learning-rate, and pre-clipping gradient rows are present and finite.
+Successive 100-step mean training losses stayed within `1.0216–1.0308`.
+Pre-clipping gradient norm had median/p95/maximum `0.7674/0.8845/1.3722`, with six clipped steps: 238, 265, 646, 682, 738, and 867.
+
+The run retained 12 Hugging Face-format trajectory exports and the full step-1,000 Lightning checkpoint as 13 committed W&B model artifacts totaling 67.25 GB.
+The full checkpoint includes model, optimizer, scheduler, and loop state at `gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-1000-full:v0`.
+No checkpoint was uploaded to Hugging Face or deleted.
+
+The 1,000 training steps took `1,306.77` seconds including synchronous artifact retention and processed 16,384,000 model tokens at 12,537.74 tokens/s.
+The complete Lambda task cost an estimated `$1.274169`, bringing the conservative listed-price total to `$28.307954 / $50`.
+The cluster self-terminated and is confirmed absent.
+
+Exact CSV, JSON, SVG, and PNG outputs are in `causal-longrun-lr1e-5-corrected/` under the compact branch artifact bundle.
+This is a factual experiment record, and research knowledge-base interpretation remains paused.
 
 ### Superseded count-normalized result
 

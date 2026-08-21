@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "criterion": "step-1000 five-component macro CE <= step-0 macro CE",
+  "step_0_loss": 0.7690087316192298,
+  "step_1000_loss": 0.7736704879175462,
+  "delta": 0.004661756298316444,
+  "linear_slope_per_step": 6.169216198893472e-06,
+  "n_rows": 640
+}
