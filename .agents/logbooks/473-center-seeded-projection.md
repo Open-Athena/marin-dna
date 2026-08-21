@@ -1672,3 +1672,62 @@ cohort, assemblies, and downstream training recipe fixed.
   downstream evaluation is launched yet because all four model trajectories
   must expose the complete common step set. Both enhancer training children
   remain queued with zero failures or preemptions.
+
+### 2026-08-21 00:16 UTC - CSP-049 enhancer capacity fallback entered training
+
+- The two enhancer v5 children eventually received central1 `v5p-8` capacity
+  but exited before step 0 because W&B rejected an over-64-character source
+  tag. Commit `d8ec668c7877a6a58184636c118828a7dfafd5c6` bounds long tags while
+  retaining a readable prefix and SHA-256 suffix. Subsequent v6 and v8
+  coordinators failed before graph creation because their launch environment
+  did not forward the required W&B credential; neither created a child, used a
+  TPU, nor wrote a checkpoint. The v7 launch forwarded the credential but its
+  east5 `v5p-8` children remained queued for capacity. Each superseded job and
+  child was confirmed terminal before its replacement was submitted.
+- The exact v9 children use available east5 `v6e-4` resources without changing
+  model, optimizer, seed, batch size, step budget, public dataset revision,
+  cache, run identity, or checkpoint identity. Enhancer full-window child
+  `/ubuntu/exp473-enhancer-full-window-v9-v6e/run_levanter_train_lm-0382cac7`
+  and enhancer center-1 child
+  `/ubuntu/exp473-enhancer-center-1-v9-v6e/run_levanter_train_lm-57cf5f85`
+  each run on four TPU chips. At 00:15 UTC they had reached steps 431 and 346,
+  respectively, with recent training losses between 1.33 and 1.34.
+- Both enhancer runs reuse their complete east5 caches and read the same exact
+  public, ungated Hugging Face revisions without a Hugging Face token. Their
+  W&B runs are
+  [`enhancer_full_window`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp473-0p25b-enhancer_full_window-v1)
+  and
+  [`enhancer_center_1`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp473-0p25b-enhancer_center_1-v1).
+- CDS center-1 remained on central1 `v5p-8`, reached step 3,853, and has
+  independently verified native and Hugging Face checkpoint directories at
+  steps 1,000, 1,500, 2,000, 2,500, 3,000, and 3,500. Exact normal-validation
+  losses through step 3,000 are 1.3050305843, 1.2961095572, 1.2911146879,
+  1.2921013832, and 1.2987722158. These remain per-arm operating checks; no
+  policy comparison or held-out labeled VEP datum was read.
+
+### 2026-08-21 00:16 UTC - CSP-050 evaluation-source snapshot
+
+- Snapshot commit
+  `84819ddbc8b9ba9bcf511e94ca2cd8e9cd94d673` is pushed to
+  `codex/exp473-center-seeded-projection-training`. It records the bounded
+  east5 accelerator choice (`v5p-8` or `v6e-4`, with `v5p-8` still the
+  default), while central1 remains `v5p-8` only. The successful v9 accelerator
+  selection is now reproducible without the launch-time resource substitution.
+- Paired development-evaluation plots now share their y-axis within each
+  region/metric figure, use sentence-case labels and square panels, and emit
+  SVG only. Matplotlib is a base dependency because analysis workers install
+  the base locked project. The first 30-test run exposed the missing dependency;
+  after `uv lock`, `uv run --locked pytest` passed 30/30 tests in 8.01 seconds.
+  The guarded run started with 8.68 GiB available memory and load 0.27; peak
+  RSS was 543,844 KiB.
+- The plotting regression rendered all four expected SVGs and no PNGs. Direct
+  SVG inspection found a 607.86 × 1,131.94 point canvas, all titles, axis
+  labels, subset labels, and the paired-95%-interval caption embedded, plus
+  eight in-canvas 219.56 × 219.56 point clipping rectangles per figure. The
+  image-view helper could not open the files because its nested Bubblewrap
+  loopback setup failed before file access, so geometry and embedded-label
+  inspection were used for this synthetic render gate.
+- Remaining official evaluation and paired chromosome-18 outputs will use
+  `84819ddbc8b9ba9bcf511e94ca2cd8e9cd94d673` as their immutable experiment
+  commit. Evaluation remains blocked on all three new trajectories exposing
+  the common nine-step checkpoint set through step 4,999.
