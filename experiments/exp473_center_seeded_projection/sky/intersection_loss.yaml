@@ -1,11 +1,14 @@
 # Separate additive chromosome-18 projection-loss evaluation for issue #473.
-# It imports only the unchanged official causal-LM scorer from evals_v2 and
-# never loads VEP labels, predictions, effect measurements, or metrics.
+# It calls the unchanged official causal-LM kernel through the issue-specific
+# tokenizer adapter and never loads VEP labels, predictions, measurements, or
+# metrics.
 
 name: exp473-intersection-loss
 
 resources:
     infra: aws/us-east-2
+    # Validated issue-462 runtime: Ubuntu 24.04.4, driver 595.71.05.
+    image_id: ami-0324f0ad73bdcd087
     accelerators: A10G:1
     disk_size: 300
     labels:
@@ -29,10 +32,13 @@ file_mounts:
 
 setup: |
     set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
-    uv self update 0.11.31
+    if [[ "$(uv --version)" != "uv 0.11.31" ]]; then
+        uv self update 0.11.31
+    fi
     if ! command -v gcloud >/dev/null 2>&1; then
         curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
         bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
@@ -42,6 +48,7 @@ setup: |
     export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
     export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
     uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 evals-gpu-runtime-check --config snakemake/analysis/evals_v2/config/gpu_runtime_validation.yaml smoke
     gcloud storage ls gs://marin-us-east5/checkpoints/ | head -3 >/dev/null
     aws sts get-caller-identity >/dev/null
 
@@ -79,7 +86,7 @@ run: |
         --profile workflow/profiles/default \
         --configfile "$CONFIG_PATH" \
         --cores 4 \
-        --resources gpu=1 mem_mb=28000 \
+        --resources gpu=1 mem_mb=12000 \
         --allowed-rules "${ALLOWED_RULES[@]}" \
         --printshellcmds \
         --rerun-incomplete \

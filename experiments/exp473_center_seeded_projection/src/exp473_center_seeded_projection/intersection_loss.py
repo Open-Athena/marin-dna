@@ -19,6 +19,9 @@ import numpy as np
 import pandas as pd
 
 from exp473_center_seeded_projection.analyze_evals import REGION_ARMS
+from exp473_center_seeded_projection.development_eval import (
+    compute_issue473_ll_atoms,
+)
 from exp473_center_seeded_projection.eval_config import CHECKPOINT_STEPS
 
 LOWERCASE_WEIGHT = 0.01
@@ -132,11 +135,7 @@ def score_intersection(
             "seq": source["sequence"].astype(str),
         }
     )
-    # Runtime-owned import: the Sky rule executes in the pinned official
-    # evals_v2 environment, while this experiment's light tests remain CPU-only.
-    from marin_dna_evals.ll_gap import compute_hf_ll_gap
-
-    atoms = compute_hf_ll_gap(
+    atoms = compute_issue473_ll_atoms(
         checkpoint_path=checkpoint_path,
         sequences=scoring_input,
         window_size=255,

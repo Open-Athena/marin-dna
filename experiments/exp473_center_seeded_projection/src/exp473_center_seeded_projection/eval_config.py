@@ -1,4 +1,4 @@
-"""Generate the additive official-evals_v2 config for issue #473.
+"""Generate the additive isolated-evals_v2 config for issue #473.
 
 The generated config contains the reused #417 CDS full-window baseline plus
 the three new issue #473 model families and uses the official evaluator's
@@ -167,6 +167,10 @@ def build_eval_config(
             "experiment_commit": experiment_commit,
             "checkpoint_steps": list(CHECKPOINT_STEPS),
             "held_out_access": False,
+            "dataset_file": "train.parquet",
+            "results_root": (
+                f"results/issue473/{experiment_commit}/development_eval"
+            ),
             "policy_comparison": "center_1_minus_full_window",
             "reused_checkpoint_roots": dict(REUSED_CHECKPOINT_ROOTS),
         },

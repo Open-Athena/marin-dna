@@ -14,7 +14,7 @@ resources:
 workdir: .
 
 envs:
-    EVAL_RESULTS_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results
+    EVAL_RESULTS_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473
     OUTPUT_S3_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473
     EXP473_EXPERIMENT_COMMIT: ""
 
@@ -34,7 +34,7 @@ run: |
     export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
     uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
         python -m exp473_center_seeded_projection.analyze_evals \
-        --results-root "$EVAL_RESULTS_ROOT" \
+        --results-root "${EVAL_RESULTS_ROOT%/}/$EXP473_EXPERIMENT_COMMIT/development_eval" \
         --output-dir "$OUTPUT_DIR" \
         --n-bootstrap 1000 \
         --seed 473 \

@@ -14,6 +14,11 @@ from exp473_center_seeded_projection.analyze_evals import (
     seed_trigger_table,
     validate_policy_pair,
 )
+from exp473_center_seeded_projection.development_eval import (
+    assert_development_chromosomes,
+    load_development_dataset,
+    load_issue473_tokenizer,
+)
 from exp473_center_seeded_projection.eval_config import (
     ARM_DATASETS,
     ARM_ROOT_ENV,
@@ -118,6 +123,10 @@ def test_eval_config_is_development_only_and_complete():
     )
     assert config["split"] == "train"
     assert config["issue_473"]["held_out_access"] is False
+    assert config["issue_473"]["dataset_file"] == "train.parquet"
+    assert config["issue_473"]["results_root"] == (
+        f"results/issue473/{'a' * 40}/development_eval"
+    )
     assert config["issue_473"]["reused_checkpoint_roots"] == REUSED_CHECKPOINT_ROOTS
     assert len(config["models"]) == 4 * len(CHECKPOINT_STEPS)
     assert {dataset["name"] for dataset in config["datasets"]} == {
@@ -142,6 +151,100 @@ def test_eval_config_is_development_only_and_complete():
     assert model["name"].startswith(f"exp473-{'a' * 40}-")
     assert model["gcs_path"].endswith("/cds_center_1-abc123/hf/step-1000")
     assert model["datasets"] == ["mendelian_traits", "sge"]
+
+
+def test_development_loader_opens_only_the_pinned_train_file():
+    calls: list[tuple[str, object]] = []
+    expected = pd.DataFrame(
+        {
+            "chrom": ["1", "chr3", "X"],
+            "pos": [1, 2, 3],
+        }
+    )
+
+    class DatasetStub:
+        def to_pandas(self) -> pd.DataFrame:
+            return expected
+
+    def hub_download(**kwargs: object) -> str:
+        calls.append(("hub", kwargs))
+        return "/cache/train.parquet"
+
+    def parquet_loader(*args: object, **kwargs: object) -> DatasetStub:
+        calls.append(("loader", (args, kwargs)))
+        return DatasetStub()
+
+    actual = load_development_dataset(
+        "bolinas-dna/evals_mendelian_traits",
+        revision="a" * 40,
+        filename="train.parquet",
+        split="train",
+        hub_download=hub_download,
+        parquet_loader=parquet_loader,
+    )
+    assert actual.equals(expected)
+    assert calls == [
+        (
+            "hub",
+            {
+                "repo_id": "bolinas-dna/evals_mendelian_traits",
+                "filename": "train.parquet",
+                "repo_type": "dataset",
+                "revision": "a" * 40,
+            },
+        ),
+        (
+            "loader",
+            (
+                ("parquet",),
+                {
+                    "data_files": {"train": "/cache/train.parquet"},
+                    "split": "train",
+                },
+            ),
+        ),
+    ]
+
+
+def test_development_loader_rejects_held_out_chromosomes():
+    assert_development_chromosomes(pd.DataFrame({"chrom": ["1", "X"]}))
+    for chromosome in ("2", "chr22", "Y", "chrM"):
+        with pytest.raises(AssertionError, match="held-out or unknown"):
+            assert_development_chromosomes(pd.DataFrame({"chrom": [chromosome]}))
+    with pytest.raises(AssertionError, match="development-only"):
+        load_development_dataset(
+            "unused",
+            revision="a" * 40,
+            filename="test.parquet",
+            split="test",
+            hub_download=lambda **_: "unused",
+            parquet_loader=lambda *_args, **_kwargs: None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("tokenizer_class", "backend"),
+    (("PreTrainedTokenizerFast", None), ("TokenizersBackend", "tokenizers")),
+)
+def test_exp473_tokenizer_loader_preserves_exact_bos_contract(
+    tmp_path: Path, tokenizer_class: str, backend: str | None
+):
+    source = Path(__file__).parents[1] / "tokenizer"
+    (tmp_path / "tokenizer.json").write_bytes((source / "tokenizer.json").read_bytes())
+    config = json.loads((source / "tokenizer_config.json").read_text())
+    config["tokenizer_class"] = tokenizer_class
+    if backend is None:
+        config.pop("backend", None)
+    else:
+        config["backend"] = backend
+    (tmp_path / "tokenizer_config.json").write_text(json.dumps(config))
+
+    tokenizer = load_issue473_tokenizer(tmp_path)
+    assert tokenizer.encode("acgt") == [2, 3, 4, 5, 6]
+    assert tokenizer.encode("acgt", add_special_tokens=False) == [3, 4, 5, 6]
+    assert tokenizer.bos_token_id == 2
+    assert tokenizer.pad_token_id == 0
+    assert tokenizer.unk_token_id == 1
 
 
 def test_policy_plots_emit_svg_only(tmp_path: Path):
@@ -401,7 +504,24 @@ def test_intersection_workflow_is_additive_and_rule_isolated():
     assert "--allowed-rules" in launcher
     assert "compute_scores" not in launcher
     assert "include:" not in snakefile
+    assert "image_id: ami-0324f0ad73bdcd087" in launcher
+    assert "evals-gpu-runtime-check" in launcher
     assert '--experiment-commit "$EXP473_EXPERIMENT_COMMIT"' in analysis_launcher
+
+
+def test_development_workflow_is_additive_direct_file_and_rule_isolated():
+    root = Path(__file__).parents[1]
+    snakefile = (root / "workflow" / "Evaluation.smk").read_text()
+    launcher = (root / "sky" / "evaluate.yaml").read_text()
+    assert "issue_473_development_evaluation" in snakefile
+    assert "load_development_dataset" in snakefile
+    assert "train.parquet" in snakefile
+    assert "include:" not in snakefile
+    assert "workflow/Snakefile" not in launcher
+    assert "Evaluation.smk" in launcher
+    assert "--allowed-rules" in launcher
+    assert "image_id: ami-0324f0ad73bdcd087" in launcher
+    assert "evals-gpu-runtime-check" in launcher
 
 
 def test_batched_projection_report_pins_final_producer_and_rejection_counts():

@@ -126,11 +126,12 @@ different region.
 A separate additive workflow evaluates policy-matched checkpoints on the
 producer-pinned chromosome-18 intersection views. These inputs are unlabeled
 projection sequences; the workflow does not read VEP labels, predictions,
-effect measurements, or metrics. It imports the unchanged official causal-LM
-scorer from `evals_v2`, reconstructs the training objective with uppercase
+effect measurements, or metrics. It calls the official evals_v2 causal-LM
+kernel through the same experiment-local tokenizer compatibility adapter as
+the development evaluator, reconstructs the training objective with uppercase
 weight 1.0 and lowercase weight 0.01, and requires exact row identity before
-computing `center_1 - full_window` NLL deltas. Negative deltas favor
-`center_1`. Uncertainty uses aligned bootstrap draws over human anchors.
+computing center_1 - full_window NLL deltas. Negative deltas favor center_1.
+Uncertainty uses aligned bootstrap draws over human anchors.
 
 Run this after the three new checkpoint roots are final:
 
@@ -162,17 +163,26 @@ the registered match-group contract applies. Policy deltas are paired across
 the eight Mendelian specialist subsets and reported with uncertainty over the
 paired units.
 
-Evaluation is additive. The launch in `sky/evaluate.yaml` calls the unchanged
-official `snakemake/analysis/evals_v2` Snakefile with an experiment-generated
-config. That config hard-codes `split: train`, pins the three evaluation-dataset
-revisions, and gives every issue #473 checkpoint a commit-keyed evaluator name.
-The analysis refuses a score bundle unless its matching official metric parquet
-records only `train`, preventing a stale shared-path result from silently
-crossing the development boundary. CDS checkpoints run Mendelian
-+ SGE; enhancer checkpoints run Mendelian + Complex. Every family is scored at
-the nine common checkpoints: steps 1,000 through 4,500 in increments of 500,
-plus terminal step 4,999. The #417 root and these available directories were
-verified directly before launch.
+Evaluation is additive. The launch in sky/evaluate.yaml uses the isolated
+workflow/Evaluation.smk graph and never modifies or includes the maintained
+evals_v2 rules. Its experiment-local score rules call the unchanged official
+model runner and metric functions. The generated config hard-codes split=train,
+pins the three evaluation-dataset revisions, gives every issue #473 checkpoint
+a commit-keyed evaluator name, and writes beneath the new
+results/issue473/<experiment-commit>/development_eval namespace.
+
+The loader resolves only train.parquet through the Hugging Face file API and
+then constructs a one-file parquet dataset. This prevents a repository dataset
+builder from materializing the held-out split before selecting train. It also
+rejects any row outside odd autosomes and chromosome X. The analysis refuses a
+score bundle unless its matching official metric parquet records only train.
+Both GPU launchers pin the validated issue-462 Ubuntu 24.04/R595 AMI and run
+the existing evals GPU runtime smoke gate before constructing a score DAG.
+
+CDS checkpoints run Mendelian + SGE; enhancer checkpoints run Mendelian +
+Complex. Every family is scored at the nine common checkpoints: steps 1,000
+through 4,500 in increments of 500, plus terminal step 4,999. The #417 root and
+available directories are verified directly before launch.
 
 After training, copy the three exact immutable checkpoint artifact roots from
 the successful Iris jobs. Each root must stop before `/hf`; the config generator

@@ -75,7 +75,7 @@ rule issue_473_intersection_score:
     threads: 4
     resources:
         gpu=1,
-        mem_mb=28000,
+        mem_mb=12000,
     params:
         arm=lambda wc: model_config(wc.model)["arm"],
         step=lambda wc: int(model_config(wc.model)["step"]),
@@ -99,7 +99,7 @@ rule issue_473_intersection_analyze:
         **ANALYSIS_OUTPUTS,
     threads: 4
     resources:
-        mem_mb=28000,
+        mem_mb=12000,
     run:
         output_dir = Path(output.points).parent
         analyze_loss_scores(
