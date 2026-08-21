@@ -1,7 +1,7 @@
 # Does conditioning on species/clade help?
 
 > [!NOTE]
-> **TL;DR:** No matched MarinDNA ablation has tested taxon conditioning; Carbon finds unchanged overall sequence recovery and gains only for low-resource eukaryote groups, without VEP evidence, so confidence is low and the cheapest next test is a frozen-Carbon tagged, untagged, and wrong-tag VEP comparison.
+> **TL;DR:** Carbon-3B used species prefixes during human Mendelian variant scoring, but correct mammalian and far-wrong fungal prompts did not establish a macro-AUPRC difference from no tagging; whether tag-conditioned pretraining helps remains untested, so confidence is low.
 
 ## Question
 
@@ -12,16 +12,23 @@ Can taxon-tag dropout preserve a useful unconditional mode?
 
 ## Current answer
 
-No MarinDNA experiment has compared identical examples with and without an explicit taxon input.
-The current model-facing path retains sequence but does not expose species identity, so every multispecies model must infer organismal context from the DNA window.
+MarinDNA has tested whether a metadata-trained checkpoint uses taxon prompts at inference.
+[Experiment #486](../experiments/486-carbon-species-conditioning.md) held Carbon-3B, 8-kb human sequences, and development-set Mendelian variants fixed while comparing no tag, the correct mammalian tag, and a far-wrong fungal tag.
+Correct conditioning changed macro AUPRC by -0.0030 [-0.0183, 0.0088] relative to no tagging, while fungal conditioning changed it by +0.0005 [-0.0137, 0.0124].
+Neither prompt established an aggregate ranking difference.
+
+Carbon-3B did use the prompt prefix.
+Tagged-versus-no-tag score agreement varied by consequence subset and was lowest where no-tag LLR-derived scores had limited near-neutral dynamic range.
+This establishes inference-time prompt sensitivity in one human setting without showing that the changes are useful.
+It does not identify the causal value of metadata-conditioned pretraining, which requires otherwise-matched models trained with and without tags.
 
 [Carbon](https://www.biorxiv.org/content/10.64898/2026.05.22.727119v1) supplies the most direct published evidence so far.
 Its released 3B and 8B autoregressive models see species- and gene-type-tagged prompts on 50% of pretraining examples.
 The reported tag ablation leaves overall sequence recovery essentially unchanged, while a correct species tag improves recovery for fungi, protozoa, and invertebrates and leaves high-resource groups unchanged.
 Carbon evaluates ClinVar, BRCA2, and TraitGym VEP separately, but does not report how those results change with conditioning.
-The released checkpoints support both conditional and unconditional prompts, enabling a same-checkpoint VEP intervention now; this measures inference-time use of metadata, not the causal effect of metadata-conditioned pretraining.
+The released checkpoints support both conditional and unconditional prompts, which enabled the same-checkpoint intervention in experiment #486.
 
-The evidence supports a conditional hypothesis with low confidence.
+The combined evidence supports a conditional hypothesis with low confidence.
 Taxon labels are most likely to help when the sequence window is too short to identify the relevant organismal regime and when the target feature varies across clades.
 The benefit may shrink with longer context or larger models, and a label may expose compositional shortcuts instead of functional biology.
 
@@ -40,7 +47,7 @@ Validation-loss improvement alone would not show that conditioning learned usefu
 |---|---|---|
 | [Species-aware DNA language models](https://doi.org/10.1186/s13059-024-03221-x) | A learned species token was prepended to short fungal regulatory sequences from 806 species. Species-aware models modestly improved motif reconstruction and several representation tasks. | Explicit taxon context can help short regulatory models. Held-out species required a hand-chosen proxy token, so unseen-species behavior remains unresolved. |
 | [LOL-EVE](https://openreview.net/pdf?id=WxHbIY90IS) | A causal promoter model conditions on clade, species, and proximal-gene embeddings and randomly drops control tags. It reports strong promoter-variant performance. | This supplies a practical hierarchy and dropout design. No matched ablation isolates the taxon tags from gene conditioning, data, and architecture. |
-| [Carbon](https://www.biorxiv.org/content/10.64898/2026.05.22.727119v1) | Released 3B and 8B autoregressive models mix species and gene-type tags into 50% of pretraining prompts. Tags leave overall sequence recovery essentially unchanged; a correct species tag improves recovery for low-resource eukaryote groups. Its VEP suite includes ClinVar, BRCA2, and TraitGym Mendelian, but does not cross VEP with conditioning. | This is direct conditioning evidence and provides frozen checkpoints for a cheap tagged-versus-untagged VEP test. That test isolates inference-time dependence on the supplied tag; a tag-trained versus never-tag-trained model comparison is still needed to isolate the pretraining effect. |
+| [Carbon](https://www.biorxiv.org/content/10.64898/2026.05.22.727119v1) | Released 3B and 8B autoregressive models mix species and gene-type tags into 50% of pretraining prompts. Tags leave overall sequence recovery essentially unchanged; a correct species tag improves recovery for low-resource eukaryote groups. Its VEP suite includes ClinVar, BRCA2, and TraitGym Mendelian, but does not cross VEP with conditioning. [Experiment #486](../experiments/486-carbon-species-conditioning.md) supplied that frozen-checkpoint comparison for Carbon-3B and found prompt-sensitive scores without an established macro-AUPRC difference. | Carbon and experiment #486 show that the checkpoint uses species context in some settings. An otherwise-matched tag-trained versus never-tag-trained model comparison is still needed to isolate the pretraining effect. |
 | [Evo 2](https://doi.org/10.1038/s41586-026-10176-5) | A large sequence-only model uses long DNA prompts to recover alternative genetic codes and species-shaped completion statistics. | Long context can make explicit tags redundant. The result does not show that a short-window model can infer taxon efficiently. |
 | [SynCodonLM](https://academic.oup.com/nar/article/54/5/gkag166/8496864) | Species-group embeddings produced similar average benchmark scores in small ablations, but the no-taxon model was less robust to synonymous perturbations and full-scale taxon IDs gave a small gain. | Taxon context may add coding priors while average gains remain small. The setup is restricted to CDS, codon tokens, and masked modeling. |
 | [CodonTransformer](https://doi.org/10.1038/s41467-025-58588-7) | Organism embeddings enable host-specific codon optimization across 164 organisms. | Taxon conditioning supports controllable generation when host identity is part of the task. It does not isolate benefits for a general genomic LM. |
@@ -52,6 +59,8 @@ Validation-loss improvement alone would not show that conditioning learned usefu
 <details>
 <summary>Related experiments</summary>
 
+- [Experiment #486](../experiments/486-carbon-species-conditioning.md) compared no tag, a correct mammalian tag, and a far-wrong fungal tag for one frozen Carbon-3B checkpoint on development-set human Mendelian variants.
+  The tags changed per-variant scores but did not establish a macro-AUPRC difference; the intervention isolates inference-time prompt sensitivity rather than the effect of tagged pretraining.
 - [#55](https://github.com/Open-Athena/marin-dna/issues/55) compared promoter training across human, primate, mammal, vertebrate, and animal corpora.
   Mammalian data learned human Mendelian VEP faster, but phylogenetic breadth, unique-data quantity, and epoch count changed together; the experiment motivates conditioning without testing it.
 - [#58](https://github.com/Open-Athena/marin-dna/issues/58) repeated the timescale comparison for CDS and found a different trajectory: shallower arms led early, while the animal arm later became stronger for missense VEP.
@@ -69,13 +78,6 @@ Validation-loss improvement alone would not show that conditioning learned usefu
 - **Does it help at fixed compute and data?**
   Compare models trained on the same examples, order, optimizer, seed, and token budget.
   The primary contrast should be sequence-only versus correctly conditioned; a shuffled-label control can test whether any extra token/parameters alone explain the result.
-- **Can the released Carbon checkpoints test inference-time VEP sensitivity now?**
-  Start with Carbon-500M, then replicate any signal on 3B and 8B.
-  Score the same development-safe human variants from odd-numbered autosomes and X under `<dna>` (untagged), `<vertebrate_mammalian><dna>` (correct), and equal-length wrong or shuffled taxon tags; optionally cross gene-type tags.
-  Keep the checkpoint, window, strand handling, and scorer fixed.
-  Compare paired per-variant score changes and consequence-stratified or macro AUPRC.
-  Correct-versus-wrong tags control the semantics of the prefix more cleanly than correct-versus-untagged alone.
-  This tests whether a trained Carbon model's VEP scores use metadata, not whether metadata-conditioned pretraining caused better VEP.
 - **Species, clade, or hierarchy?**
   Compare a leaf-species token with hierarchical rank tokens (for example class/order/family/genus/species) or a shared phylogenetic embedding.
   A hierarchy may capture both universal and lineage-specific rules more efficiently than unrelated leaf embeddings.
