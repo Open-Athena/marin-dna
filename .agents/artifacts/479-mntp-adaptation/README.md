@@ -1,6 +1,8 @@
 # Issue 479 MNTP adaptation result bundle
 
-This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479). The committed figures and tables are the durable record. W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn) runs for dense interactive views.
+This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479).
+The committed figures and tables are the durable record.
+W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), and [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx) runs for dense interactive views.
 
 ## Outcome
 
@@ -37,7 +39,25 @@ One bug was found in the original dependency diagnostic, not in model training o
 
 Independent full-attention final-checkpoint rechecks reproduced all raw VEP scores exactly. Causal source/continued-CLM rechecks were exact except for sparse Mendelian BF16 outliers: mean absolute error was 9.0e-6–1.7e-5 despite maxima of 0.031–0.097, and aggregate AUPRC remained consistent. This is numerical nondeterminism in a separate run, not evidence of a coordinate, tokenizer, or serialization shift.
 
-The final conservative listed-price estimate is $24.7340 against the $50 cap. It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, and focused final-checkpoint attempts. The final Lambda cluster was confirmed terminated. Provider billing may differ from this pre-autodown list-price estimate.
+## Conservative causal-continuation calibration
+
+A follow-up tested whether a mature source checkpoint can continue causal training without the severe validation-loss increase seen under the original high-learning-rate AdamH schedule.
+One full-parameter AdamW arm ran for 200 steps at `1e-6` on the exact original training batches and fixed five-component validation panel.
+
+Pooled causal validation loss decreased from `0.231380263` at step 0 to `0.231159212` at step 200.
+CDS, enhancer, and ncRNA passed the zero-tolerance end-point and slope checks.
+Upstream ended `1.48e-5` below baseline but had a fitted slope of `+8.64e-8` per step, while downstream ended `6.40e-6` above baseline with a slope of `+2.37e-8` per step.
+The preregistered all-component gate is therefore false, but the plot shows near-flat component tradeoffs rather than the broad progressive degradation observed in the original causal continuation.
+
+All 200 pre-clipping gradient norms stayed below `1.0`, with a range of `0.518–0.892` and no clipped steps.
+The compact evidence is in `causal-calibration-lr1e-6/` and at [W&B run q09fcejx](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx).
+The final checkpoint upload failed only because the private Hugging Face storage limit was reached after evaluation completed.
+No AUPRC evaluation or additional learning-rate arm was launched because the strict validation gate did not pass.
+
+The final conservative listed-price estimate is $25.2624 against the $50 cap.
+It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, focused final-checkpoint, and AdamW calibration attempts.
+The final Lambda cluster was confirmed terminated.
+Provider billing may differ from this pre-autodown list-price estimate.
 
 ## Contents
 
@@ -51,6 +71,7 @@ The final conservative listed-price estimate is $24.7340 against the $50 cap. It
 - `context-window/`: compact post-hoc ablation/window metrics, stability, runtime, and manifest. Per-variant scores remain private.
 - `nucleotide-dependency/`: five reviewed SVG maps and their numeric summary. The HBA1 chromosome-16 reference sequence is unlabeled; no held-out label or effect measurement was used.
 - `audit/`: checkpoint loss/AUPRC trajectories, alignment and coordinate contracts, three-arm gradient stability, exact/near-exact parity tables, and the corrected three-final-checkpoint dependency figure. The older five-locus dependency maps are retained as historical artifacts but must not be used quantitatively because their baseline batch shape was mismatched.
+- `causal-calibration-lr1e-6/`: fixed-plan causal validation trajectory, per-component gate table, 200-step training loss and gradient trace, runtime, and cost evidence for the conservative AdamW arm.
 - `runs/`: arm runtime/manifests, data/preflight records, budget projection, and final cost estimate.
 - `figures/`: decision-oriented SVG figures generated by `plot_results.py`.
 

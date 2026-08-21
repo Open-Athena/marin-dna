@@ -1,0 +1,60 @@
+{
+  "passed": false,
+  "criterion": "step-200 loss <= step-0 loss and linear trajectory slope <= 0",
+  "checks": [
+    {
+      "component": "pooled",
+      "step_0_loss": 0.23138026297092437,
+      "step_200_loss": 0.23115921169519424,
+      "delta": -0.00022105127573013306,
+      "linear_slope_per_step": -1.2566682617780537e-06,
+      "n_rows": 640,
+      "passed": true
+    },
+    {
+      "component": "cds",
+      "step_0_loss": 0.24469722586218268,
+      "step_200_loss": 0.24440566380508244,
+      "delta": -0.0002915620571002364,
+      "linear_slope_per_step": -1.507695576502153e-06,
+      "n_rows": 128,
+      "passed": true
+    },
+    {
+      "component": "upstream",
+      "step_0_loss": 0.16236992372432724,
+      "step_200_loss": 0.1623551269294694,
+      "delta": -1.479679485782981e-05,
+      "linear_slope_per_step": 8.63566702765068e-08,
+      "n_rows": 128,
+      "passed": false
+    },
+    {
+      "component": "downstream",
+      "step_0_loss": 0.12000934942625463,
+      "step_200_loss": 0.12001575296744704,
+      "delta": 6.403541192412376e-06,
+      "linear_slope_per_step": 2.3675051903964283e-08,
+      "n_rows": 128,
+      "passed": false
+    },
+    {
+      "component": "enhancer",
+      "step_0_loss": 0.37410658807493746,
+      "step_200_loss": 0.3736034531611949,
+      "delta": -0.0005031349137425423,
+      "linear_slope_per_step": -2.953800791467046e-06,
+      "n_rows": 128,
+      "passed": true
+    },
+    {
+      "component": "ncrna",
+      "step_0_loss": 0.25571828661486506,
+      "step_200_loss": 0.25541613320820034,
+      "delta": -0.0003021534066647291,
+      "linear_slope_per_step": -1.93172800558777e-06,
+      "n_rows": 128,
+      "passed": true
+    }
+  ]
+}

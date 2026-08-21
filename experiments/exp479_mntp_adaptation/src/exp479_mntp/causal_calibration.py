@@ -315,10 +315,18 @@ def plot_validation_trajectories(losses: pd.DataFrame, output_path: Path) -> Non
     component_rows = losses[losses["component"] != "pooled"]
     for component, rows in component_rows.groupby("component", sort=True):
         ordered = rows.sort_values("step")
-        axes[1].plot(ordered["step"], ordered["loss"], marker="o", label=component)
-    axes[1].set_title("Five validation components")
+        change_from_start = ordered["loss"] - float(ordered.iloc[0]["loss"])
+        axes[1].plot(
+            ordered["step"],
+            change_from_start,
+            marker="o",
+            label=component,
+        )
+    axes[1].axhline(0.0, color="0.4", linestyle="--", linewidth=1)
+    axes[1].set_title("Per-component change from step 0")
     axes[1].set_xlabel("Optimizer step")
-    axes[1].set_ylabel("Causal cross-entropy")
+    axes[1].set_ylabel("Δ causal cross-entropy")
+    axes[1].ticklabel_format(axis="y", style="sci", scilimits=(-3, 3))
     axes[1].legend(title="Component", fontsize="small")
     for axis in axes:
         axis.grid(alpha=0.25)
