@@ -19,7 +19,8 @@ Use `manage-research-storage` first when the producing artifact does not already
 
 ## Prepare The Repository
 
-1. Select the correct repository type and a stable name under the `marin-dna` organization.
+1. Select the correct repository type and a stable name under the `marin-dna` organization for a new MarinDNA publication.
+   Update an existing public legacy repository such as `bolinas-dna/*` in place unless a separately approved migration changes its namespace.
 2. Identify the authoritative producing artifact, commit, configuration, license, and intended consumers.
    Retain the exact publishable files under that owner, or retain a deterministic transformation and a reviewed release manifest with every file's size and SHA-256 checksum.
 3. Draft the README, model card, or dataset card for human review before the first upload or a material metadata change.

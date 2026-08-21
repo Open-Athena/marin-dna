@@ -32,7 +32,8 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
   If a custom loop is necessary, record the capability the established loop could not provide.
 - Batch accelerator inference and use bfloat16 (`bf16`), model compilation, multiple data-loader workers, pinned memory, and prefetching when the model, hardware, and framework support them.
   Record why any applicable optimization is disabled.
-- Before a long run, define output-specific comparison fields and tolerances and compare a small sample against an uncompiled reference path.
+- Before a long run, define output-specific comparison fields and tolerances and compare a small sample against an eager, uncompiled fp32 or documented higher-precision reference path.
+  Validate reduced precision and compilation separately so a discrepancy can be attributed to one change.
 - Measure steady-state throughput after warmup, state its unit, and record whether data loading and preprocessing are included.
 
 ## Development Setup

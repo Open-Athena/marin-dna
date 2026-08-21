@@ -16,6 +16,7 @@ Treat public distribution as a separate decision from storage ownership.
 | Output of a maintained Snakemake workflow | The workflow's storage profile under `s3://oa-bolinas/snakemake/<pipeline>/...` |
 | Durable output of an issue-scoped analysis outside Snakemake | The coordinating issue under `s3://oa-bolinas/issues/<issue-number>/<artifact>/...` |
 | Dense metrics and run comparisons | W&B, following `wandb-reporting` |
+| SVG referenced by a knowledge-base experiment page | `docs/research/experiments/figures/<issue>/` on `main`, following `maintain-knowledge-base` and `plot-research-results` |
 | Static code, tables, or figures small enough for normal Git review and cloning | The permanent task or research branch, linked at an immutable commit |
 
 Do not copy a Snakemake-owned output into an issue prefix merely because an issue consumes it.

@@ -78,7 +78,7 @@ Center every plot embedded in Markdown with this exact wrapper:
 
 ```html
 <p align="center">
-  <img src="figures/<issue>/<figure>.svg" alt="<accessible description>" />
+  <img src="<relative-path-or-commit-pinned-URL>" alt="<accessible description>" />
 </p>
 ```
 

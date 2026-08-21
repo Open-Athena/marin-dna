@@ -10,17 +10,22 @@ Apply these rules before computing aggregates or choosing tables and plots.
 ## Prepare The Evaluation Frame
 
 1. Enforce the labeled variant-effect split in `AGENTS.md` before reading held-out labels, predictions, effect measurements, or aggregate metrics.
-2. Remove every mature-miRNA record from every evaluation dataset before computing any metric, aggregate, macro average, global score, table, or plot.
-   Match the dataset's canonical annotation for mature miRNA, including `mature_miRNA_variant` and normalized equivalents, and assert that no matched record remains.
+2. Remove mature miRNA before computing any metric, aggregate, macro average, global score, table, or plot.
+   For Mendelian and complex-trait matched data, exclude the complete `match_group` when its canonical `subset` is `mature_miRNA_variant`.
+   If the source has multi-valued consequence annotations, canonicalize them first and exclude the complete group when any annotation maps to `mature_miRNA_variant`.
+   For an ungrouped evaluation, exclude the complete record under the same predicate.
+   Assert that no excluded record or group remains in any analysis frame.
 3. Determine the model's training-region scope from its data manifest or training configuration.
    Do not infer scope from the evaluation results.
 4. Restrict each benchmark to biologically appropriate subsets for that scope.
    State explicitly when a requested subset is unavailable or inappropriate rather than substituting another subset.
 
-## Select And Order Mendelian And Complex-Trait Results
+## Select And Order Standalone Mendelian And Complex-Trait Reports
 
-Use this mapping for both Mendelian and complex-trait evaluations:
-The broad-model order matches the blog and dashboard subset order: macro average first, then subsets in descending positive-sample count.
+Use this mapping for standalone narrative reports of Mendelian and complex-trait evaluations.
+It does not control dashboard rendering.
+For Mendelian reports, the broad-model order follows the blog: macro average first, then the consequence subsets in the positive-sample-count order adopted there.
+Use the same consequence order in standalone complex-trait reports so region-matched comparisons stay aligned.
 
 | Training-region scope | Present these subsets, in this order |
 | --- | --- |
@@ -31,12 +36,16 @@ The broad-model order matches the blog and dashboard subset order: macro average
 | ncRNA | ncRNA |
 | Enhancer or cCRE | Distal |
 
-- Preserve the relative order above after removing subsets absent from the benchmark or invalid for the evaluated sample.
-- Compute `Macro Avg` only for a broad or mixed model and only over the displayed, sample-valid subsets.
+- Preserve the relative order above after removing subsets absent from the benchmark or invalid under its producing metric's current sample-support contract.
+  Use the producing pipeline's contract rather than reimplementing the gate.
+  The current contracts require at least 30 positive match groups for unsupervised Mendelian and complex-trait subsets; supervised probes also apply their pipeline-defined chromosome-support gate.
+- Compute `Macro Avg` only for a broad or mixed model and only over qualifying displayed subsets.
   Do not add a macro average to a specialist-model report.
 - Do not show `Global` for a specialist model because it pools regions outside that model's training scope.
 - Omit `Global` by default for a broad or mixed model because it weights results by subset prevalence.
   Include it only for a stated scientific reason, label that weighting explicitly, and place it after `Macro Avg` and before the consequence subsets.
+- When creating or changing a dashboard view, follow its benchmark metadata and component ordering instead of this standalone-report order.
+  The current dashboard leads Mendelian with `Macro Avg`, leads complex traits with `Global`, and orders consequence subsets dynamically by positive-sample count.
 
 ## Select And Order SGE Results
 
@@ -48,7 +57,9 @@ Use this mapping for saturation genome-editing evaluations:
 | CDS | Missense, Splicing |
 | Any other specialist region | Do not present SGE results unless the assay and region have a specific biological justification |
 
-Compute `Macro` only for a broad or mixed model and only over the displayed, sample-valid SGE subsets.
+Use the producing pipeline's SGE validity contract, currently at least 30 examples in each label class per accession and base-subset cell.
+Compute `Macro` only for a broad or mixed model as the equal-weight mean over qualifying base subsets.
+Exclude the pooled `Both` result from `Macro`.
 Do not add `Macro`, `Both`, or another aggregate to a CDS report.
 SGE has no `Global` row.
 Do not replace an unavailable subset with `Both` or another aggregate.
