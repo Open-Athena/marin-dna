@@ -15,19 +15,28 @@ import pyarrow.parquet as pq
 import seaborn as sns
 
 
+ARTIFACT_ROOT = Path(__file__).resolve().parent
 S3_ROOT = (
     "oa-bolinas/snakemake/analysis/evals_v2/results/"
     "m13_likelihood_dynamics_489/v1/scoring/full/atoms"
 )
-CHECKPOINTS = (
-    "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
-    "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
-    "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
-    "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
-    "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
-)
-TOKENS = np.array((20_971_520_000, 62_914_560_000, 104_857_600_000,
-                   146_800_640_000, 173_691_518_976), dtype=np.int64)
+
+
+def checkpoint_metadata() -> tuple[tuple[str, ...], np.ndarray]:
+    """Read checkpoint names and cumulative-token coordinates from the manifest."""
+    manifest = json.loads((ARTIFACT_ROOT / "manifest.json").read_text())
+    checkpoints = sorted(manifest["checkpoints"], key=lambda row: row["order"])
+    names = tuple(str(row["name"]) for row in checkpoints)
+    tokens = np.array(
+        [int(row["cumulative_tokens"]) for row in checkpoints],
+        dtype=np.int64,
+    )
+    assert len(names) == 5
+    assert np.all(np.diff(tokens) > 0)
+    return names, tokens
+
+
+CHECKPOINTS, TOKENS = checkpoint_metadata()
 REGIONS = ("cds", "upstream", "downstream", "ncrna", "enhancer")
 PRIMARY_START = 32
 PRIMARY_END = 223
@@ -35,7 +44,7 @@ BLOCK_BP = 10_000_000
 N_BLOCK_KEYS = 50_000
 BOOTSTRAP_REPLICATES = 2_000
 SEED = 489
-OUTPUT_ROOT = Path("/tmp/ld489-preview.MRb9Kt")
+OUTPUT_ROOT = Path("/tmp/marin-dna-ld489-global-trajectories")
 GROUP_ORDER = ("high_to_high", "low_to_high", "high_to_low", "low_to_low")
 GROUP_NAMES = {
     "high_to_high": "H\N{RIGHTWARDS ARROW}H",
@@ -264,6 +273,7 @@ def plot(
 
 
 def main() -> None:
+    OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     s3 = pafs.S3FileSystem(region="us-east-2")
     early_mean, terminal_mean, checkpoint_means, population = global_fitted_thresholds(s3)
     sums, counts, block_sums, block_counts = stream_summaries(

@@ -6,6 +6,7 @@ It uses the same 14,002,032-position primary population: target positions `[32, 
 ## Group definition
 
 For each position, ordinary least squares fits NLL against cumulative training tokens across all five checkpoints.
+Checkpoint names and cumulative-token coordinates are read from the pinned parent [manifest](../manifest.json).
 The fitted loss at the first and terminal checkpoint is compared with the corresponding global fitted mean, 1.1529 and 0.9695 nats/base.
 These two comparisons define H-to-H, L-to-H, H-to-L, and L-to-L.
 This is a scale-adaptive Rho-1-inspired grouping, not Rho-1's absolute `0.2`-NLL-change rule.
@@ -94,6 +95,8 @@ Several upstream and downstream samples overlap RefSeq transcripts, so these val
 - [`biological_characterization_489.py`](../biological_characterization_489.py) performs the bounded atom reduction.
 - [`inspect_trajectory_samples_489.py`](../inspect_trajectory_samples_489.py) performs the sampled context inspection.
 - [`plot_biological_characterization_489.py`](../plot_biological_characterization_489.py) renders the figures.
+- [`preview_global_threshold_489.py`](../preview_global_threshold_489.py) derives the global group thresholds and mean loss trajectories from manifest coordinates.
+- [`plot_global_trajectory_conservation_489.py`](../plot_global_trajectory_conservation_489.py) renders the compact pooled-conservation figure.
 
 Run the reducers from `snakemake/analysis/evals_v2` with its locked environment.
 The full characterization streams one Parquet row group at a time and completed locally in 60 seconds at 454,676 KiB peak RSS.

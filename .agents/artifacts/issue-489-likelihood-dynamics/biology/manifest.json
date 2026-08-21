@@ -2,8 +2,8 @@
   "population": "target_pos [32, 223), scorable, nonambiguous, nonrepeat",
   "n_positions": 14002032,
   "group_definition": "OLS fitted first and terminal NLL, thresholded by the corresponding global fitted mean over cumulative training tokens",
-  "early_global_fitted_mean_nll": 1.1529161923168465,
-  "terminal_global_fitted_mean_nll": 0.9694999591248752,
+  "early_global_fitted_mean_nll": 1.1529160583236173,
+  "terminal_global_fitted_mean_nll": 0.9694994046417359,
   "global_checkpoint_mean_nll": [
     1.1641315105915075,
     1.0809862044510286,

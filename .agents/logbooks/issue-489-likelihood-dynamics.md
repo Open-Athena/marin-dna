@@ -362,3 +362,20 @@ The original m1.3 training definition names five training sources but only three
   It uses five model evaluations and remains coupled to starting loss and regression to the mean.
 - Result: The reviewed comparison figure places prevalence, first-checkpoint loss, terminal loss, and loss slope on the same AUPRC scale globally and by validation region.
 - Next action: Promote the negative result to issue #489 and the interpretation pull request with immutable snapshot links.
+
+### 2026-08-21 22:36 UTC - `LD489-012` correct the terminal trajectory coordinate
+
+- Hypothesis: The exploratory trajectory grouping is insensitive at reported precision to replacing the preview's terminal coordinate with the exact manifest value.
+- Commit Hash: Pending.
+- Cause: `preview_global_threshold_489.py` used 173,691,518,976 terminal tokens instead of the manifest's 173,692,420,096, a difference of 901,120 tokens.
+- Fix: Read checkpoint names and cumulative-token coordinates from the pinned analysis manifest and regenerate the global trajectory, biological summaries, balanced sample, and sampled UCSC annotations.
+- Global trajectory command: Run `preview_global_threshold_489.py` under the nonblocking shared-node lock with the project-locked environment, two data threads, one numerical thread, `nice -n 10`, and `ionice -c 2 -n 7`.
+- Biological command: Run `biological_characterization_489.py` under the same limits, then rerun the biological plots and `inspect_trajectory_samples_489.py`.
+- Result: Corrected group counts are 5,917,305 H-to-H, 2,053,734 L-to-H, 1,396,193 H-to-L, and 4,634,800 L-to-L.
+- Result: The four net count changes are -3, +3, -1, and +1 positions, so every displayed frequency, conservation prevalence, and region-composition percentage is unchanged at one decimal place.
+- Result: The fitted global thresholds change from 1.1529161923 and 0.9694999591 to 1.1529160583 and 0.9694994046 nats/base.
+- Result: The corrected compact conservation prevalences remain 21.8%, 24.9%, 50.3%, and 49.4% for H-to-H, L-to-H, H-to-L, and L-to-L.
+- Validation: The trajectory producer and biology manifest both record the exact terminal coordinate 173,692,420,096, and the page now documents the actual 2,000-replicate trajectory bootstrap.
+- Runtime: The global trajectory reduction completed in 53.76 seconds at 368,944 KiB peak RSS; the biological reduction completed in 56.46 seconds at 454,692 KiB; the sampled inspection completed in 22.44 seconds at 227,720 KiB.
+- Interpretation: The independent-review finding affects exact provenance and produces only single-digit net group-count changes, not the reported scientific interpretation.
+- Next action: Push the corrected permanent artifacts and refresh the commit-pinned knowledge-base links.

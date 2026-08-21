@@ -8,7 +8,8 @@ Five checkpoints on the fixed 1B m1 to m1.3 lineage were scored at 21.0B, 62.9B,
 Each checkpoint was evaluated on the complete 16,384-window CDS, upstream, downstream, ncRNA, and enhancer validation probes from the MarinDNA blog Hugging Face collection.
 The durable unfiltered cache contains 104,448,000 token rows across 25 checkpoint-region cells.
 The primary population contains 14,002,032 scorable, nonambiguous, nonrepeat positions in target positions `[32, 223)`, including 4,792,703 case-encoded conserved positions.
-All confidence intervals are 500-replicate bootstraps over region-specific 10 Mb genomic blocks.
+The prespecified confidence intervals use 500 bootstrap replicates over region-specific 10 Mb genomic blocks.
+The exploratory global-trajectory and biological-characterization extensions use 2,000 replicates.
 The controlled contrasts regress negative loss or negative entropy on conservation, GC and GC squared, held-out 7-mer NLL and its square, and a cubic target-position basis.
 
 ## Findings
@@ -45,6 +46,15 @@ The negative ordinary-least-squares loss slope across all five checkpoints does 
 
 CDS is the only region where slope beats first-checkpoint loss, but terminal loss remains better.
 The slope uses all five model evaluations and remains coupled to starting loss and regression to the mean.
+
+### Global fitted trajectories
+
+The global trajectory extension fits each position's five losses against the exact cumulative-token coordinates read from [manifest.json](manifest.json).
+Fitted first and terminal losses are classified above or below the corresponding fitted global means.
+The manifest-corrected group counts are 5,917,305 high-to-high, 2,053,734 low-to-high, 1,396,193 high-to-low, and 4,634,800 low-to-low.
+These remain 42.3%, 14.7%, 10.0%, and 33.1% at the reported precision.
+The coordinate correction changes the four net group counts by -3, +3, -1, and +1 positions relative to the earlier preview, without changing any displayed one-decimal percentage.
+Trajectory curve intervals use 2,000 genomic-block bootstrap replicates with seed 489.
 
 ### Lowest-score set stability
 
@@ -95,7 +105,7 @@ This experiment is observational and does not test whether frozen likelihood wei
 - Reviewed figure implementation: `fb0ffda0`.
 - S3 root: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/m13_likelihood_dynamics_489/v1/`.
 - Analysis manifest: [manifest.json](manifest.json).
-- Exact tables: the seven Parquet files and two loss-slope CSV files in this directory.
-- Reviewed plots: the original six SVG files and the loss-level-versus-slope comparison under [figures](figures), plus the trajectory-group figures under [biology](biology).
+- Exact tables: the original seven Parquet files, the loss-slope CSVs, the global-trajectory JSON and CSV, and the biological-characterization tables in this directory.
+- Reviewed plots: the original six SVG files, the loss-level-versus-slope comparison, and the two compact global-trajectory figures under [figures](figures), plus the trajectory-group figures under [biology](biology).
 - Full reducer: 3m34s wall time and 5,723,164 KiB maximum RSS on an AWS r7i.2xlarge.
 - Estimated SkyPilot cost: $1.79 total, comprising $1.58 for the pilot and full GPU scoring and $0.21 for CPU analysis and figure generation.
