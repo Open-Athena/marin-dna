@@ -1731,3 +1731,28 @@ cohort, assemblies, and downstream training recipe fixed.
   `84819ddbc8b9ba9bcf511e94ca2cd8e9cd94d673` as their immutable experiment
   commit. Evaluation remains blocked on all three new trajectories exposing
   the common nine-step checkpoint set through step 4,999.
+
+### 2026-08-21 00:31 UTC - CSP-051 first durable enhancer checkpoints
+
+- Enhancer full-window reached step 500 on v9 attempt 0. Native optimizer state
+  committed beneath `checkpoints/step-500`, and the matching Hugging
+  Face-format export completed beneath `hf/step-500` at the exact east5 root
+  recorded in CSP-049. The trainer resumed through step 504.
+- Enhancer center-1 reached the same milestone on v9 attempt 0. Its native and
+  Hugging Face-format step-500 checkpoints committed at the corresponding
+  east5 root, and the trainer resumed through step 502. Both jobs emitted the
+  expected warning that their Hugging Face reads were unauthenticated, matching
+  the public-only dataset contract.
+- Independent object listings for each enhancer arm found native
+  `manifest.json`, `manifest.ocdbt`, `metadata.json`, and `d/`, plus HF
+  `config.json`, `model.safetensors`, `tokenizer.json`, and
+  `tokenizer_config.json`. Each HF export contains four objects totaling
+  1,019,426,427 bytes (972.20 MiB). Step-500 normal validation losses were
+  1.331 for full-window and 1.336 for center-1; these are operating checks on
+  policy-specific validation rows, not a paired policy comparison.
+- CDS center-1 also reached and completed step 4,000 on its central1 v5 run.
+  The same native and HF object contract was independently verified, including
+  a 1,019,422,904-byte `model.safetensors` file. Step-4,000 normal validation
+  loss was 1.317. The CDS trajectory now has seven of nine official checkpoint
+  steps; both enhancer trajectories still need all nine official steps from
+  1,000 through 4,999 before either downstream workflow launches.
