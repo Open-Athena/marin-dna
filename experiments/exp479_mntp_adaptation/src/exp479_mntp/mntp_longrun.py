@@ -67,7 +67,7 @@ MNTP_RUN_NAME = "dna-exp479-transferred-mntp-adamw-1e-5-corrected-wsd1000-seed0"
 MNTP_MODEL_ARTIFACT_PREFIX = "dna-exp479-mntp-longrun-corrected"
 MNTP_EVALUATION_ARTIFACT = "dna-exp479-mntp-longrun-corrected-lr1e-5"
 MNTP_AUPRC_STEPS = (0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000)
-MNTP_DEPENDENCY_LOCUS = "tRNA_Arg_TCT"
+MNTP_DEPENDENCY_LOCUS = "LDLR"
 
 
 class MntpLongRunModule(CausalLongRunModule):
@@ -362,7 +362,7 @@ def plot_mntp_dependency(matrix: np.ndarray, output_path: Path) -> None:
     axis.plot((0, matrix.shape[0] - 1), (0, matrix.shape[0] - 1), color="white", lw=0.5)
     axis.set_xlabel("Readout position")
     axis.set_ylabel("Substitution position")
-    axis.set_title("tRNA-Arg-TCT directed dependency")
+    axis.set_title("LDLR promoter directed dependency")
     figure.colorbar(image, ax=axis, label="L∞ change in A/C/G/T log probability")
     figure.suptitle("Corrected transferred MNTP at step 1,000")
     output_path.parent.mkdir(parents=True, exist_ok=True)
