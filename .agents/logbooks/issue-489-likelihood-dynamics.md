@@ -288,3 +288,14 @@ The original m1.3 training definition names five training sources but only three
 - Interpretation: Low absolute loss predicts conservation but not remaining optimization opportunity, and it must not be called Rho-1 reducible loss.
 - Next action: Publish the accepted interpretation through the knowledge-base pull-request gate and update issue #489 with immutable code, data, figure, and cost links.
 - Next action: The paid `evals-v2-ld489-analysis` cluster was terminated after the final SVGs were secured.
+### 2026-08-21 19:07 UTC - `LD489-009` publish the research record
+
+- Hypothesis: The completed evidence can be promoted without carrying one-off analysis code onto main or claiming an untested causal benefit.
+- Commit Hash: Result snapshot `a054166224afa8dfad868a8d45b621773012d5df`; interpretation commit `6eab0b208679559a51541775d62d0160eb315ef7`.
+- Result: The permanent research branch and annotated `issue-489-likelihood-dynamics-20260821` tag were pushed.
+- Result: Issue #489 now contains the current TL;DR, conclusion, immutable code and artifact links, $1.79 cost, and `interpretation PR open` disposition.
+- Result: The final issue comment is https://github.com/Open-Athena/marin-dna/issues/489#issuecomment-5374117410.
+- Result: Interpretation-only PR https://github.com/Open-Athena/marin-dna/pull/497 adds the accepted experiment page, four reviewed figures, and the training-regions synthesis update.
+- Result: PR #497 has the required `agent-generated` label and every build, pre-commit, selection, and test check passes.
+- Interpretation: The scientific result is complete; only human review and merge of the knowledge-base promotion remain.
+- Next action: After PR #497 merges, update issue #489 to canonical main links, set the disposition to `interpretation page merged`, and close the issue.
