@@ -33,7 +33,7 @@ Absolute low loss is not Rho-1 reducible loss because no target-distribution ref
 
 ![Six panels showing conservation-classification AUPRC from loss and entropy across five cumulative-token checkpoints globally and for each genomic region](figures/489/conservation-auprc.svg)
 
-_Exact pooled AUPRC among nonrepeat central positions; dashed lines are scope-specific conserved prevalence, and the earliest checkpoint is already above prevalence in every region._
+_Exact pooled AUPRC among nonrepeat central positions; the global panel combines the two conservation-label definitions documented below, dashed lines are scope-specific prevalence, and the earliest checkpoint is already above prevalence in every region._
 
 ![Six panels showing the current-to-terminal NLL change score by current-loss decile across four current checkpoints globally and for each genomic region](figures/489/future-loss-deciles.svg)
 
@@ -58,16 +58,17 @@ The experiment followed one 1B causal lineage through five on-path checkpoints.
 Each checkpoint scored one forward orientation for all scorable tokens in complete 16,384-window CDS, upstream, downstream, ncRNA, and enhancer probes from the MarinDNA blog Hugging Face collection.
 The probe revisions and references were:
 
-| Region | Hugging Face dataset revision | Reference assembly | Sequence names |
-| --- | --- | --- | --- |
-| CDS | [`genomes-v5-validation-intervals-v5_255_255@daff592`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v5_255_255/tree/daff592f213aaa1cab1711d477a79ff6b1bc4ef4) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` |
-| Upstream | [`genomes-v5-validation-intervals-v1_255_255@a761bc0`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v1_255_255/tree/a761bc0b663a9827303f3112e4667d53d5326fac) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` |
-| Downstream | [`genomes-v5-validation-intervals-v15_255_255@d7b27ee`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v15_255_255/tree/d7b27eecd68453934ebb3e7e6e78d5401789faa5) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` |
-| ncRNA | [`zoonomia-v1-val_ncrna@76a18c1`](https://huggingface.co/datasets/marin-dna/zoonomia-v1-val_ncrna/tree/76a18c1bbf07ac9bd064722431bbdab894b9e6c6) | Ensembl release 115 GRCh38 soft-masked primary assembly | Ensembl names such as `1`, `X`, and `MT` |
-| Enhancer | [`zoonomia-v1-val_enhancer@d40d1e0`](https://huggingface.co/datasets/marin-dna/zoonomia-v1-val_enhancer/tree/d40d1e067b2a56ac812af122de029eb79cab1106) | Ensembl release 115 GRCh38 soft-masked primary assembly | Ensembl names such as `1`, `X`, and `MT` |
+| Region | Hugging Face dataset revision | Reference assembly | Sequence names | Case-encoded conservation label |
+| --- | --- | --- | --- | --- |
+| CDS | [`genomes-v5-validation-intervals-v5_255_255@daff592`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v5_255_255/tree/daff592f213aaa1cab1711d477a79ff6b1bc4ef4) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` | 241-way phyloP >= 2.27 |
+| Upstream | [`genomes-v5-validation-intervals-v1_255_255@a761bc0`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v1_255_255/tree/a761bc0b663a9827303f3112e4667d53d5326fac) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` | 241-way phyloP >= 2.27 |
+| Downstream | [`genomes-v5-validation-intervals-v15_255_255@d7b27ee`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v15_255_255/tree/d7b27eecd68453934ebb3e7e6e78d5401789faa5) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` | 241-way phyloP >= 2.27 |
+| ncRNA | [`zoonomia-v1-val_ncrna@76a18c1`](https://huggingface.co/datasets/marin-dna/zoonomia-v1-val_ncrna/tree/76a18c1bbf07ac9bd064722431bbdab894b9e6c6) | Ensembl release 115 GRCh38 soft-masked primary assembly | Ensembl names such as `1`, `X`, and `MT` | Zoonomia 447-mammal phyloP >= 2.2162 |
+| Enhancer | [`zoonomia-v1-val_enhancer@d40d1e0`](https://huggingface.co/datasets/marin-dna/zoonomia-v1-val_enhancer/tree/d40d1e067b2a56ac812af122de029eb79cab1106) | Ensembl release 115 GRCh38 soft-masked primary assembly | Ensembl names such as `1`, `X`, and `MT` | Zoonomia 447-mammal phyloP >= 2.2162 |
 
 The CDS, upstream, and downstream probes therefore use a noncanonical project reference: RefSeq `GCF_000001405.40` is not interchangeable with the canonical Ensembl release 115 GRCh38 primary assembly.
 Repeat labels were queried from the matching soft-masked reference for each probe, and the workflow required uppercase sequence equality for every 255-base window before joining repeat status.
+Global prevalence and AUPRC pool the 241-way and 447-mammal definitions as a mixed-definition aggregate; region-specific values use one definition each.
 The durable cache contains 104,448,000 token rows across 25 checkpoint-region cells.
 The primary analysis retained target positions `[32, 223)` in 0-based half-open coordinates and excluded repeats, ambiguous targets, and unscorable targets.
 
@@ -123,6 +124,8 @@ The complete reducer ran in 3m34s with 5.46 GiB maximum resident memory on an AW
   Seed variation and alternative mixtures are unobserved.
 - Validation casing defines the conservation label and is an incomplete proxy for function.
   Lineage-specific, weakly conserved, or unaligned functional sequence can be labeled negative.
+- Global conservation prevalence and AUPRC pool the 241-way phyloP >= 2.27 and Zoonomia 447-mammal phyloP >= 2.2162 definitions.
+  The global values are mixed-definition aggregates, so region-specific values are the appropriate basis for comparisons that depend on a consistent target.
 - GC, local 7-mer predictability, and target position were controlled, but exact training-corpus exposure and homology density were unavailable.
   Memorization or phylogenetic redundancy may explain part of the association.
 - ncRNA and enhancer use the blog's clean Zoonomia validation recipes on the canonical Ensembl release 115 GRCh38 reference, while CDS, upstream, and downstream use validation-matched RefSeq `GCF_000001405.40` probes.

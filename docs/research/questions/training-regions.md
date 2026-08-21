@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while frozen-model loss or entropy is a practical conservation proxy and a safer candidate than a changing student-derived low-loss mask; no causal weighting or repeat-downweighting benefit has been established.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while frozen-model loss or entropy is a practical conservation proxy and a safer candidate than a changing student-derived low-loss mask; no causal benefit from likelihood-derived weighting or repeat downweighting has been established.
 
 ## Question
 
@@ -91,11 +91,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   Absolute loss and entropy classified conservation increasingly well with scale and dominated every FWD loss delta at comparable estimated scoring compute.
   FWD-only and RC-only classification AUPRC was nearly identical, while their imperfect endpoint per-base agreement limits a single pass as an exact replacement for averaged weights.
 - [Likelihood-derived token rankings through m1.3 training](../experiments/489-likelihood-dynamics.md) measured one 1B lineage at five cumulative-token checkpoints across five genomic regions.
-  Loss and entropy ranked conservation by the earliest checkpoint, but lowest-decile membership remained time- and region-dependent.
-  High-current-loss deciles had larger observed NLL change scores, but the shared current-NLL term couples selection to the outcome and permits regression to the mean.
-  The result does not establish greater remaining optimization opportunity.
-  Low absolute loss remains a conservation proxy within the measured panels.
-  The inference-only result favors a frozen teacher for the primary causal selector but does not show that likelihood-derived weighting improves training.
+  Loss and entropy ranked conservation by the earliest checkpoint, but lowest-decile membership remained time- and region-dependent, and the shared current-NLL term makes the decile change score vulnerable to regression to the mean; the inference-only result favors a frozen teacher for the primary causal selector without establishing optimization opportunity or a training benefit.
 
 </details>
 
