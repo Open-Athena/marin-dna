@@ -22,7 +22,8 @@ The reported exp479 training and validation losses used an incorrect denominator
 They multiplied token losses by the lowercase-repeat weights but divided by raw selected-token count; the pinned Marin source reducer divides by the sum of effective weights and also includes a small z-loss term.
 On the fixed panel, the raw weight-sum/token-count ratio is 0.305 across all five probes and 0.239 across the three source validation datasets, explaining why the reported source loss was only 0.231.
 The original m5.1 W&B run ended at 0.634, 0.621, and 0.782 on CDS, downstream, and upstream; its 0.861 macro also includes uppercase-only and lowercase-only slices that exp479 did not reproduce.
-All absolute-loss claims and the prior statement that no loss-path bug was found are superseded pending a corrected evaluation of the source and 12 retained causal checkpoints.
+The corrected 128-row-per-dataset causal audit reproduces the invalid 0.23138 value, reports 0.76467 under the source-compatible three-dataset macro, and retains the small worsening direction through step 1,000.
+An exact all-16,384-row reproduction of each original validation dataset is still pending before the source W&B comparison is closed.
 Every checkpoint remains retained in W&B, and knowledge-base interpretation remains paused.
 
 ## Current baseline
@@ -78,7 +79,7 @@ Every checkpoint remains retained in W&B, and knowledge-base interpretation rema
 - No VEP task passed the single-orientation gate because transferred FWD did not exceed source CLM FWD+RC.
 - A 10,000-step extension is not proposed from this one-seed pilot.
 - The registered continued-CLM recipe progressively increased fixed-plan loss from 0.23138 at step 0 to 0.35965 at step 800 before partial cooldown recovery to 0.35010 at step 1,000.
-- No low-learning-rate causal fine-tuning control has run yet.
+- The completed AdamW `1e-6` and `1e-5` controls optimized the invalid count-normalized objective and are not faithful causal-continuation controls.
 - All prior exp479 absolute losses are invalid for comparison with the source W&B run; their denominator lowers the scale in proportion to each panel's uppercase/lowercase composition.
 
 ## Background research brief
@@ -438,4 +439,22 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Training impact: All completed exp479 arms optimized the count-normalized objective and omitted the source z-loss term. Corrected evaluation cannot make those checkpoints faithful continuations retroactively.
 - Fix: Normalize sequence-balanced MNTP loss by each sequence's weight sum; use the global token-weighted mean for continued CLM; restore the pinned source z-loss term; retain the legacy reducer only in the audit output for diagnosis.
 - Verification: Ruff lint and format pass. Local PyTorch tests are intentionally deferred because their measured working set exceeds the shared-node 500 MiB limit; the locked suite runs on the Lambda audit worker before evaluation.
-- Next action: Snapshot the fix, warn issue #479, run the source plus all 12 retained checkpoints on one self-terminating Lambda GH200, and publish corrected three-source and five-probe macro trajectories without deleting checkpoints.
+- Next action: Snapshot the fix, warn issue #479, run the source plus all 12 retained causal checkpoints on one self-terminating Lambda GH200, and publish corrected three-source and five-probe macro trajectories without deleting checkpoints.
+
+### 2026-08-21 18:12 - Retained causal trajectory re-evaluated
+
+- Launch snapshot: `2605278a7760ee3eb474f678bfb3db2b10850de2`.
+- Command: `uv run --locked python launch.py loss-normalization --commit 2605278a7760ee3eb474f678bfb3db2b10850de2 --prior-cost-usd 26.1237 --retry-until-up --execute`.
+- Placement: One Lambda GH200 in `us-east-3` at `$2.29/hour` after `us-east-1` reported insufficient capacity.
+- Verification: All 98 locked tests passed. The regenerated training and validation hashes matched `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91` and `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Legacy reproduction: The new evaluator reproduced the prior five-probe source value as `0.231380263`, confirming that the low scale comes from the registered count denominator rather than a changed checkpoint.
+- Corrected source-three macro: Marin-weighted loss was `0.764665566` at step 0, reached `0.763741364` at step 100, and ended `0.767604491` at step 1,000, a final change of `+0.002938926`.
+- Corrected five-probe macro: Loss was `0.769045854` at step 0, reached `0.767755466` at step 100, and ended `0.773838651` at step 1,000, a final change of `+0.004792797`.
+- Direction: The small initial improvement and subsequent worsening survive corrected normalization and the three-source-dataset scope.
+- Scale: The corrected fixed-panel source-three macro is above the original run's three default-region mean of `0.678945959`.
+- Sampling diagnosis: Each original source validation dataset contains 16,384 rows and the original W&B config used all rows. The exp479 fixed panel uses only 128 shuffled rows per dataset, or 0.78%, so it cannot establish exact source-metric parity.
+- Z-loss: The pinned source z-loss contributes only about `3e-5`; it does not explain either the original 3–4× scale error or the small-panel/full-validation gap.
+- Retention: The source and all 12 numbered causal checkpoints were evaluated from the released source or version-pinned W&B artifacts. No checkpoint was deleted or modified.
+- Evidence: [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3) and compact artifact directory `loss-normalization-audit/`.
+- Compute: The audit cost an estimated `$0.3450`, bringing the conservative listed-price total to `$26.4687 / $50`. The cluster self-terminated and is confirmed absent.
+- Next action: Evaluate all 16,384 rows from each original CDS, upstream, and downstream validation dataset once, derive the default/uppercase-only/lowercase-only metrics from the same logits, and compare the nine slices plus macro directly with the original W&B run.

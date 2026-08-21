@@ -3,14 +3,18 @@
 This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479).
 The committed figures and tables are the durable record.
 W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx), and [AdamW 1e-5 long run](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) for dense interactive views.
+The corrected loss audit is at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 ## Outcome
 
-The pilot is technically valid: every preflight gate passed and transferred MNTP, scratch MNTP, and causal continuation each completed 1,000 finite optimizer steps on one Lambda GH200. The standalone experiment did not use Marin or Iris.
+Every preflight gate passed, and transferred MNTP, scratch MNTP, and causal continuation each completed 1,000 finite optimizer steps on one Lambda GH200.
+The standalone experiment did not use Marin or Iris.
+All three arms nevertheless optimized an incorrectly count-normalized loss that also omitted the source z-loss term.
 
-Do not propose the 10,000-step extension from this one-seed pilot. Transferred MNTP narrowly reached lower pooled and single-mask validation loss than scratch and acquired bilateral context use, but it did not beat source CLM on any primary VEP endpoint and did not exceed the no-adaptation control on both flank probes.
+No 10,000-step extension decision should be made while loss-path validation is open.
+The AUPRC, context-use, coordinate, and serialization measurements are numerically unchanged, but research interpretation remains paused.
 
-| Step-1,000 metric | Transferred MNTP | Scratch MNTP |
+| Superseded count-normalized step-1,000 metric | Transferred MNTP | Scratch MNTP |
 |---|---:|---:|
 | Pooled MNTP loss | 0.397270 | 0.399543 |
 | Single-mask MNTP loss | 0.310077 | 0.313152 |
@@ -29,11 +33,20 @@ Transferred MNTP used both flanks. In the matched VEP probe set its left/right L
 
 ## Integrity audit
 
-No bug was found in checkpoint serialization, replay, coordinates, tokenizer contracts, training/inference alignment, or the shared loss path. Direct source scoring and zero-update save/reload were bit-exact for both strands across all 51,623 odd/X variants. Replayed CLM step 400 was bit-exact to the original Lightning checkpoint, and every replayed per-step loss matched W&B for all three training arms. Recomputed validation losses matched the original values within 0.000319.
+A loss-path bug was found after comparison with the original Marin reducer.
+Repeat-downweighted token losses were divided by raw selected-token count instead of effective-weight sum, and the source z-loss term was omitted.
+Direct source scoring and zero-update save/reload were bit-exact for both strands across all 51,623 odd/X variants, so serialization did not cause the discrepancy.
+Replayed CLM step 400 was bit-exact to the original Lightning checkpoint, and every replayed per-step loss matched W&B because both paths reproduced the same invalid reducer.
 
-The sequence contract is one BOS plus 255 nucleotides, with no EOS. PAD/UNK/BOS are 0/1/2; canonical bases are 3–6; MNTP adds MASK 7. Both training and inference supervise nucleotide `i` from model output `i - 1`; the audit checked indices 0, 63, 127, 191, and 254 in both orientations with zero score error. Twenty-seven independently reconstructed 0-based, half-open coordinate anchors passed. The same five validation sources—CDS, downstream, enhancer, ncRNA, and upstream—supply 128 fixed sequences each. Lowercase soft-masked repeat bases have loss weight 0.01 versus 1.0 for uppercase bases in both training and validation.
+The sequence contract is one BOS plus 255 nucleotides, with no EOS; PAD/UNK/BOS are 0/1/2, canonical bases are 3–6, and MNTP adds MASK 7.
+Both training and inference supervise nucleotide `i` from model output `i - 1`; the audit checked indices 0, 63, 127, 191, and 254 in both orientations with zero score error.
+Twenty-seven independently reconstructed 0-based, half-open coordinate anchors passed.
+The exp479 diagnostic panel uses 128 fixed rows from each of five probes, whereas the original source run evaluates all 16,384 rows from each of CDS, upstream, and downstream.
 
-Continued-CLM degradation is progressive, not an immediate load/save failure. Fixed-plan validation loss was 0.23138 at steps 0 and 1, 0.23131 at 10, 0.24005 at 50, 0.27310 at 100, 0.30652 at 200, 0.33297 at 400, 0.35965 at 800, and 0.35010 at 1,000. Mendelian FWD+RC AUPRC similarly moved from 0.39553 at source to 0.39555 at step 1, 0.39289 at 10, 0.38241 at 100, 0.32686 at 400, 0.26384 at 800, then partially recovered to 0.30681 after cooldown. The CLM gradient norm was mild (median 0.791, maximum 1.263) with no post-warmup loss spikes. Both MNTP arms had large but rapidly decaying clipped early transients rather than sustained instability.
+The high-learning-rate continued-CLM degradation was progressive rather than an immediate load/save failure.
+Its registered fixed-panel values reproduce the invalid count-normalized reducer and therefore are not source-comparable absolute losses.
+Mendelian FWD+RC AUPRC moved from 0.39553 at source to 0.39555 at step 1, 0.39289 at 10, 0.38241 at 100, 0.32686 at 400, 0.26384 at 800, then partially recovered to 0.30681 after cooldown.
+The CLM gradient norm was mild with median 0.791 and maximum 1.263, while both MNTP arms had large but rapidly decaying clipped early transients rather than sustained instability.
 
 One bug was found in the original dependency diagnostic, not in model training or inference: it compared a batch-one wild-type baseline with batch-1,020 substitutions, allowing BF16 batch-shape numerics to masquerade as dependency. The corrected analysis evaluates each baseline and its substitutions in the same model call. At the three step-1,000 checkpoints, transferred MNTP had past/future mean dependency 0.05314/0.05334, scratch MNTP 0.03056/0.02917, and continued CLM 0.12510/0 exactly. The CLM map's entire forbidden future triangle is exactly zero, while both MNTP maps are nonzero for every past and future position pair.
 
@@ -41,44 +54,41 @@ Independent full-attention final-checkpoint rechecks reproduced all raw VEP scor
 
 ## Conservative causal-continuation calibration
 
-A follow-up tested whether a mature source checkpoint can continue causal training without the severe validation-loss increase seen under the original high-learning-rate AdamH schedule.
-One full-parameter AdamW arm ran for 200 steps at `1e-6` on the exact original training batches and fixed five-component validation panel.
+A follow-up ran one full-parameter AdamW arm for 200 steps at `1e-6` on the exact original training batches and fixed five-component validation panel.
+It optimized and evaluated the invalid count-normalized objective, so its absolute losses and preregistered loss gate are superseded.
 
-Pooled causal validation loss decreased from `0.231380263` at step 0 to `0.231159212` at step 200.
-CDS, enhancer, and ncRNA passed the zero-tolerance end-point and slope checks.
-Upstream ended `1.48e-5` below baseline but had a fitted slope of `+8.64e-8` per step, while downstream ended `6.40e-6` above baseline with a slope of `+2.37e-8` per step.
-The preregistered all-component gate is therefore false, but the plot shows near-flat component tradeoffs rather than the broad progressive degradation observed in the original causal continuation.
-
+The originally reported value changed only from `0.231380263` to `0.231159212`, but that scale is not Marin-compatible.
 All 200 pre-clipping gradient norms stayed below `1.0`, with a range of `0.518–0.892` and no clipped steps.
-The compact evidence is in `causal-calibration-lr1e-6/` and at [W&B run q09fcejx](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx).
+The compact historical evidence is in `causal-calibration-lr1e-6/` and at [W&B run q09fcejx](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx).
 The final checkpoint upload failed only because the private Hugging Face storage limit was reached after evaluation completed.
-No AUPRC evaluation or additional learning-rate arm was launched because the strict validation gate did not pass.
+No AUPRC evaluation or additional learning-rate arm was launched.
 
-## One-thousand-step AdamW causal trajectory
+## Corrected audit of the one-thousand-step AdamW trajectory
 
 The selected follow-up ran one full-parameter AdamW causal arm for 1,000 steps at peak learning rate `1e-5`.
 It used 100 steps of linear warmup from zero, a constant peak through step 800, and linear decay to zero at the step-1,000 boundary.
-Only pooled loss on the exact fixed 640-sequence validation panel was evaluated.
+The corrected audit evaluates the source plus all 12 retained checkpoints on the immutable 128-row panel and reports the macro over the three original source datasets.
+Full 16,384-row-per-dataset source parity remains pending.
 
-| Step | Pooled causal validation loss |
+| Step | Corrected source-three causal loss |
 |---:|---:|
-| 0 | 0.231380263 |
-| 25 | 0.231215115 |
-| 50 | 0.231117290 |
-| 100 | 0.230961750 |
-| 200 | 0.231275874 |
-| 300 | 0.231912117 |
-| 400 | 0.232075906 |
-| 500 | 0.232739045 |
-| 600 | 0.232293802 |
-| 700 | 0.232297623 |
-| 800 | 0.232962976 |
-| 900 | 0.233230022 |
-| 1,000 | 0.233014855 |
+| 0 | 0.764665566 |
+| 25 | 0.764000013 |
+| 50 | 0.763882051 |
+| 100 | 0.763741364 |
+| 200 | 0.765399687 |
+| 300 | 0.765613951 |
+| 400 | 0.766948651 |
+| 500 | 0.767365825 |
+| 600 | 0.768102964 |
+| 700 | 0.765386971 |
+| 800 | 0.767594669 |
+| 900 | 0.767040177 |
+| 1,000 | 0.767604491 |
 
-The trajectory reached its minimum at the end of warmup, crossed above the source baseline between steps 200 and 300, and finished `0.001634592` above baseline.
-The pooled gate therefore failed.
-Cooldown produced only a small step-900-to-1,000 recovery.
+The corrected trajectory improves slightly during warmup and then worsens, ending `0.002938926` above the source.
+The changing direction survives the denominator correction, although the 128-row panel is too small for exact source-run parity.
+Direct evidence is in `loss-normalization-audit/` and at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 All 1,000 recorded training and gradient values were finite.
 Pre-clipping gradient norm had median/p95/maximum `0.6599/0.7577/1.3261`, with only two clipped steps.
@@ -89,12 +99,12 @@ Twelve trajectory exports and the full step-1,000 optimizer-bearing Lightning ch
 The complete artifact identifiers are in `causal-longrun-lr1e-5/retention-manifest.json`.
 No retained checkpoint was deleted and no output was uploaded to Hugging Face.
 
-This run cost an estimated `$0.8613`, bringing the conservative listed-price total to `$26.1237 / $50`.
+This run cost an estimated `$0.8613`; the subsequent corrected audit brings the conservative listed-price total to `$26.4687 / $50`.
 The Lambda cluster self-terminated and was confirmed absent.
 The compact evidence is in `causal-longrun-lr1e-5/` and at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6).
 Research knowledge-base interpretation remains paused.
 
-The current conservative listed-price estimate is $26.1237 against the $50 cap.
+The current conservative listed-price estimate is $26.4687 against the $50 cap.
 It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, focused final-checkpoint, AdamW calibration, and 1,000-step AdamW attempts.
 The final Lambda cluster was confirmed terminated.
 Provider billing may differ from this pre-autodown list-price estimate.
@@ -113,6 +123,7 @@ Provider billing may differ from this pre-autodown list-price estimate.
 - `audit/`: checkpoint loss/AUPRC trajectories, alignment and coordinate contracts, three-arm gradient stability, exact/near-exact parity tables, and the corrected three-final-checkpoint dependency figure. The older five-locus dependency maps are retained as historical artifacts but must not be used quantitatively because their baseline batch shape was mismatched.
 - `causal-calibration-lr1e-6/`: fixed-plan causal validation trajectory, per-component gate table, 200-step training loss and gradient trace, runtime, and cost evidence for the conservative AdamW arm.
 - `causal-longrun-lr1e-5/`: pooled 1,000-step causal validation trajectory, dense training/gradient trace, retained-checkpoint manifest, runtime, cost, and reviewed SVG/PNG figures for the selected AdamW arm.
+- `loss-normalization-audit/`: corrected three-source and five-probe trajectories, source-reducer scale comparison, component table, and manifest for all retained AdamW checkpoints.
 - `runs/`: arm runtime/manifests, data/preflight records, budget projection, and final cost estimate.
 - `figures/`: decision-oriented SVG figures generated by `plot_results.py`.
 
