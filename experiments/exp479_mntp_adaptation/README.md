@@ -9,12 +9,14 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 The one-seed pilot and follow-up causal runs completed, but their absolute loss values used an incorrect repeat-weight denominator.
 The reducer divided weighted loss by selected-token count instead of effective-weight sum, shrinking the loss according to lowercase-repeat content.
 The original source validation suite also contains three datasets, while the exp479 five-way panel added enhancer and ncRNA probes.
-The corrected 128-row-per-dataset audit reproduces the invalid source value of `0.231380263`, reports validation CE of `0.764633691` with Marin's reducer on the three original datasets, and preserves a small worsening through step 1,000.
-An all-16,384-row reproduction of each original validation dataset is the remaining source-parity gate.
+The corrected 128-row-per-dataset audit reproduces the invalid source value of `0.231380263`, reports validation CE of `0.764633691` on the three original datasets, and preserves a small worsening through step 1,000.
+The full 49,152-row source audit also found that the original tagged evaluator applied repeat weights twice for its mixed-case slices.
+It reproduced the original nine-metric W&B macro as `0.861413936` versus `0.861344755`, with maximum metric error `0.000168145`, while the corrected single-weight macro is `0.875662646`.
 The VEP, attention, coordinate, serialization, and final dependency evidence is unchanged by this discovery, but interpretation remains paused.
-The current conservative list-price estimate is $26.4687 of the $50 cap, and every Lambda cluster was confirmed terminated.
+The current conservative list-price estimate is $27.0338 of the $50 cap, and every Lambda cluster was confirmed terminated.
 
-See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn). Final weights and per-variant scores remain private.
+See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [full source-validation reproduction](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn).
+Final weights and per-variant scores remain private.
 
 ## Causal fine-tuning sanity gate
 
@@ -99,6 +101,10 @@ The uppercase-only and lowercase-only metrics are unaffected because their weigh
 The stage compares the exact historical double-weight outputs with W&B at an absolute tolerance of `0.002` and separately reports corrected single-weight CE.
 This is a hard gate for the source checkpoint's tokenization, next-token shift, special-token handling, repeat weights, and global reduction.
 It uses public Hugging Face inputs, forwards only the W&B secret, uploads no checkpoint, and self-terminates.
+The completed gate passed all nine metrics over 49,152 rows.
+Its reproduced historical macro is `0.861413936` versus `0.861344755` in W&B, and its largest metric delta is `0.000168145`.
+The corrected single-weight macro is `0.875662646`, so the historical evaluator biased the nine-metric macro downward by `0.014248710`.
+Direct evidence is at [W&B run hfuhn3ta](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta) and in `source-validation-reproduction/` within the compact result bundle.
 
 ```bash
 uv run --locked python launch.py source-validation \

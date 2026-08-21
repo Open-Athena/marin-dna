@@ -18,12 +18,12 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The reported exp479 training and validation losses used an incorrect denominator.
-They multiplied token losses by the lowercase-repeat weights but divided by raw selected-token count; the pinned Marin source reducer divides by the sum of effective weights and also includes a small z-loss term.
+The reported exp479 training and validation losses used an incorrect denominator and omitted the source training z-loss.
+They multiplied token losses by the lowercase-repeat weights but divided by raw selected-token count; the pinned Marin source training reducer divides by the sum of effective weights and includes the small z-loss term.
 On the fixed panel, the raw weight-sum/token-count ratio is 0.305 across all five probes and 0.239 across the three source validation datasets, explaining why the reported source loss was only 0.231.
-The original m5.1 W&B run ended at 0.634, 0.621, and 0.782 on CDS, downstream, and upstream; its 0.861 macro also includes uppercase-only and lowercase-only slices that exp479 did not reproduce.
-The corrected 128-row-per-dataset causal audit reproduces the invalid 0.23138 value, reports 0.76467 under the source-compatible three-dataset macro, and retains the small worsening direction through step 1,000.
-An exact all-16,384-row reproduction of each original validation dataset is still pending before the source W&B comparison is closed.
+The original tagged validation callback had a separate bug that multiplied repeat weights twice for mixed-case slices and omitted z-loss.
+The corrected 128-row-per-dataset causal audit reproduces the invalid 0.23138 value, reports 0.76463 pure validation CE under the source-compatible three-dataset macro, and retains the small worsening direction through step 1,000.
+The full 49,152-row audit reproduces the original nine-metric W&B macro as 0.861413936 versus 0.861344755, with maximum metric error 0.000168145, and reports a corrected single-weight macro of 0.875662646.
 Every checkpoint remains retained in W&B, and knowledge-base interpretation remains paused.
 
 ## Current baseline
@@ -32,15 +32,14 @@ Every checkpoint remains retained in W&B, and knowledge-base interpretation rema
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- Completed experiment list-price estimate: $26.1237 of the $50 cap; final cluster confirmed terminated.
+- Completed experiment list-price estimate: $27.0338 of the $50 cap; final cluster confirmed terminated.
 - Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
 
 ### Active
 
-- `MNTP-479-H5`: the retained causal-checkpoint direction is stable after correcting repeat normalization and matching the source validation scope.
-  Next test: evaluate the source and all 12 retained checkpoints with the Marin weighted mean, source z-loss, a three-source-dataset macro, and a separate five-probe macro.
+- No further arm is selected while the completed experiment is being audited and presented.
 
 ### Blocked
 
@@ -54,6 +53,8 @@ Every checkpoint remains retained in W&B, and knowledge-base interpretation rema
 ### Promoted
 
 - `MNTP-479-H1` (exploratory, one seed): transferred MNTP reached lower step-1,000 pooled loss (0.397270 versus 0.399543) and single-mask loss (0.310077 versus 0.313152) than scratch. Evidence: [validation figure](../artifacts/479-mntp-adaptation/figures/validation-loss.svg).
+
+- `MNTP-479-H5` (diagnostic): the retained causal-checkpoint trajectory still improves slightly during warmup and then worsens after repeat-weight normalization is corrected and the macro is limited to the three source validation datasets. Evidence: [corrected loss audit](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 ## Decision log
 
@@ -473,3 +474,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Retention: The compact failed-gate CSV, JSON, SVG, and W&B run are retained; no checkpoint was deleted, modified, or uploaded.
 - Teardown: Sky armed one-minute `down` autodown after the failed job; final absence confirmation is pending.
 - Next action: Encode both historical double-weight reproduction and corrected single-weight validation CE, rerun the hard gate, and publish the correction without loosening tolerance.
+
+### 2026-08-21 19:21 - Full source-validation gate passed
+
+- Launch snapshot: `7801a14e5b5abb46cb8ca1aca7c289a99d8d3016`.
+- Run: [W&B hfuhn3ta](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta) on one Lambda GH200 in `us-east-3`.
+- Verification: All 103 locked tests passed before 49,152 source validation rows were evaluated.
+- Full parity: The reproduced pinned-evaluator macro is `0.861413936` versus original W&B `0.861344755`, a delta of `0.000069181`.
+- Metric gate: The maximum absolute delta among all nine component/slice metrics is `0.000168145`, inside the unchanged `0.002` tolerance.
+- Corrected scale: Applying repeat weights once gives a nine-metric validation CE macro of `0.875662646`.
+- Historical bias: The pinned tagged evaluator's second repeat-weight multiplication biased the macro downward by `0.014248710`.
+- Integrity readout: Exact historical reproduction across the three full datasets and all three slice definitions is strong evidence against an off-by-one shift, tokenizer special-token mismatch, or different source checkpoint in this evaluation.
+- Evidence: The passing CSV, JSON, SVG, PNG, and manifest are in `source-validation-reproduction/`; the first failed localization run remains in `source-validation-reproduction-v0-failed/`.
+- Retention: No checkpoint was deleted, modified, or uploaded.
+- Compute: This attempt cost an estimated `$0.289679`, bringing the conservative listed-price total to `$27.033785 / $50`.
+- Teardown: The managed job succeeded, and `sky status -r` confirms no in-progress job or live service.
+- Next action: Commit and snapshot the exact evidence, then update issue #479's body and add a concise correction comment while keeping research knowledge-base interpretation paused.
