@@ -200,7 +200,9 @@ rule issue_473_random_validation_manifest:
                 shard=ISSUE_473_RANDOM_VALIDATION_SHARDS,
             )
         ),
-        card=f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md",
+        card=local(
+            f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md"
+        ),
     output:
         ISSUE_473_RANDOM_MANIFEST,
     threads: 8
@@ -242,7 +244,9 @@ rule issue_473_random_validation_all_hf_files:
                 shard=ISSUE_473_RANDOM_VALIDATION_SHARDS,
             )
         ),
-        f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md",
+        local(
+            f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md"
+        ),
 
 
 rule issue_473_random_validation_upload:
@@ -262,7 +266,9 @@ rule issue_473_random_validation_upload:
                 shard=ISSUE_473_RANDOM_VALIDATION_SHARDS,
             )
         ),
-        card=f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md",
+        card=local(
+            f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md"
+        ),
     output:
         temp(local(f"{ISSUE_473_RANDOM_ROOT}/upload.done")),
     resources:

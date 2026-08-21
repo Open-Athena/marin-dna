@@ -150,3 +150,12 @@ def test_random_validation_uses_only_its_standalone_entrypoint() -> None:
         "rule issue_473_random_validation_manifest:", 1
     )[0]
     assert "output:\n        local(" in card_rule
+    assert rules.count("README.md") == 4
+    assert (
+        rules.count(
+            "local(\n"
+            "            f\"{ISSUE_473_RANDOM_HF_ROOT}/"
+            "{ISSUE_473_RANDOM_COHORT}/README.md\""
+        )
+        == 4
+    )
