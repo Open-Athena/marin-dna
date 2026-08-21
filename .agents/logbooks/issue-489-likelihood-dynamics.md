@@ -18,18 +18,18 @@ author: Codex
 
 ## Current TL;DR
 
-- The MarinDNA blog Hugging Face collection identifies the five intended training-validation probes.
-- The manifest is the three issue #478 probes plus the Zoonomia enhancer and ncRNA probes.
-- The first three probes use RefSeq `GCF_000001405.40` coordinates.
-- The two Zoonomia probes use bare Ensembl release 115 GRCh38 sequence names and 0-based half-open coordinates.
-- The scoring workflow must keep these reference joins separate and assert sequence identity before deriving repeat labels.
-- The versioned metadata, forward atom cache, and earliest-versus-terminal pilot are implemented.
-- Nine focused tests and the ten-cell pilot pass.
-- Direct `.fai`-derived S3 byte-range queries provide repeat-mask case for the Ensembl probes without downloading or indexing the whole genome.
-- Full five-checkpoint by five-probe scoring completed successfully on 2026-08-21.
-- The full cache contains 25 parquets and 25 manifests totaling 104,448,000 unfiltered token rows and 2,412,324,903 bytes of score artifacts.
-- Manifest and parquet-footer audits pass for every cell.
-- Statistical summaries, plots, and hypothesis interpretation remain pending.
+- The five-panel blog collection manifest and all dataset revisions are pinned.
+- The complete cache contains 104,448,000 unfiltered token rows across five checkpoints and five regions, and every manifest and parquet-footer audit passes.
+- The primary population contains 14,002,032 scorable nonrepeat central-span positions, including 4,792,703 case-encoded conserved positions.
+- Global loss AUPRC for conservation rises from 0.502 at 21.0B tokens to 0.601 at 173.7B tokens; entropy rises from 0.492 to 0.599.
+- Ranking is already above prevalence in every region at 21.0B tokens, so emergence before that checkpoint remains unresolved.
+- ncRNA is the exception to continued improvement: its loss AUPRC peaks at 0.651 at 146.8B tokens and ends at 0.642.
+- The global lowest-loss-decile Jaccard rises from 0.425 for the first adjacent pair to 0.604 for the final adjacent pair, but endpoint Jaccard is only 0.299.
+- Enhancer has the most mask churn, with loss Jaccard 0.266 early, 0.484 late, and 0.225 end to end.
+- The highest current-loss decile improves by 0.521 nats/base from 21.0B to terminal, compared with 0.047 for the lowest decile.
+- Conservation remains positively associated with negative loss and entropy in every region and checkpoint after GC, 7-mer, and target-position controls.
+- Use a frozen sufficiently trained teacher for the primary causal selector; require warm-up, smoothing, and a background floor for any online student-derived diagnostic arm.
+- The reviewed tables and figures are under `.agents/artifacts/issue-489-likelihood-dynamics/`; estimated total SkyPilot cost is $1.79.
 
 ## Baseline
 
@@ -48,10 +48,7 @@ author: Codex
 
 ### Active
 
-- `LD489-H1`: Conservation AUPRC increases along the m1 to m1.3 path, with the largest gains in the ncRNA and enhancer probes after the five-region mixture is learned.
-- `LD489-H2`: A stable low-loss core emerges during training, so lowest-loss 10% Jaccard is higher for adjacent late checkpoints than early checkpoints and remains nontrivial from the first to terminal checkpoint.
-- `LD489-H3`: Tokens in high current-loss deciles receive larger loss reductions at the next and terminal checkpoints than tokens already in low-loss deciles.
-- `LD489-H4`: The checkpoint trend remains after stratifying by region, repeat status, GC, target position, and chromosome-held-out 7-mer NLL.
+- None.
 
 ### Blocked
 
@@ -61,10 +58,14 @@ author: Codex
 
 - The five validation datasets are not the five `zoonomia-v1-val_*` recipes considered initially.
 - The blog collection uses three `genomes-v5-validation-*` probes and only two `zoonomia-v1-val_*` probes.
+- The `LD489-H1` prediction that ncRNA and enhancer would have the largest training-time AUPRC gains is false; ncRNA is nearly flat and CDS has the largest gain.
 
 ### Promoted
 
-- None.
+- `LD489-H1`: Conservation ranking is already present at 21.0B tokens and strengthens globally through 173.7B tokens, with ncRNA as the nonmonotonic exception.
+- `LD489-H2`: Adjacent lowest-decile stability increases late in training, but 0.299 global endpoint loss Jaccard is not a fixed online mask.
+- `LD489-H3`: High-current-loss positions receive substantially more next and terminal loss reduction than low-current-loss positions.
+- `LD489-H4`: The conservation contrast survives the prespecified GC, held-out 7-mer, and target-position controls in every region and checkpoint.
 
 ## Background Research Brief
 
@@ -261,3 +262,29 @@ The original m1.3 training definition names five training sources but only three
 - Interpretation: The complete unfiltered atom cache is valid and ready for bounded-memory statistical summarization.
 - Next action: Implement and run the primary-span nonrepeat summaries, conservation AUPRC, lowest-loss 10% Jaccard, loss-reduction deciles, covariate controls, and research plots.
 - Next action: The paid `evals-v2-ld489-full` cluster was terminated after the inventory and manifest/footer audits passed.
+### 2026-08-21 18:51 UTC - `LD489-008` complete the prespecified analysis
+
+- Hypothesis: Conservation ranking strengthens during fixed-architecture training, the lowest-score decile becomes increasingly stable, and high-current-loss positions have more remaining loss reduction than low-current-loss positions.
+- Commit Hash: Analysis `b71867b6b35d49286c75f1bd9fa44c74b44b56ef`; reviewed figure code `fb0ffda0`.
+- Test command: `sky exec evals-v2-ld489-analysis snakemake/analysis/evals_v2/sky/analysis_489.yaml --env ANALYSIS_MODE=test`.
+- Analysis command: `sky exec evals-v2-ld489-analysis snakemake/analysis/evals_v2/sky/analysis_489.yaml --env ANALYSIS_MODE=analysis`.
+- Plot refresh command: `sky exec evals-v2-ld489-analysis snakemake/analysis/evals_v2/sky/analysis_489.yaml --env ANALYSIS_MODE=plot`.
+- Config: Primary target positions `[32, 223)`; scorable, nonambiguous, nonrepeat positions; exact pooled AUPRC; region-specific lowest-score 10%; ten equal-count current-loss bins; 500 genomic-block bootstrap replicates at 10 Mb with seed 489; GC, GC-squared, held-out 7-mer NLL, 7-mer-NLL-squared, and cubic target-position controls.
+- Result: The remote dry-run contained exactly the reducer, figure rule, and named-target wrapper.
+- Result: Three focused tests passed in 4.08 seconds with 286,856 KiB maximum RSS.
+- Result: The reducer and six-figure build completed in 3m34s with 5,723,164 KiB maximum RSS and no swaps.
+- Result: The primary population contains 14,002,032 positions, of which 4,792,703 are conserved.
+- Result: Global loss AUPRC rises from 0.502 at 21.0B tokens to 0.601 at 173.7B tokens, while entropy AUPRC rises from 0.492 to 0.599.
+- Result: Loss AUPRC changes from first to terminal by +0.151 in CDS, +0.129 upstream, +0.141 downstream, +0.001 in ncRNA, and +0.114 in enhancer.
+- Result: Global lowest-loss 10% Jaccard is 0.425, 0.549, 0.560, and 0.604 across adjacent pairs and 0.299 end to end.
+- Result: Global lowest-entropy 10% Jaccard is 0.435, 0.550, 0.560, and 0.603 across adjacent pairs and 0.307 end to end.
+- Result: The earliest-to-terminal global mean loss reduction is 0.047 nats/base for the lowest current-loss decile and 0.521 nats/base for the highest.
+- Result: The conserved coefficient for negative loss and entropy is positive with a block-bootstrap interval above zero in every region and checkpoint after the prespecified controls.
+- Result: All seven Parquet tables, the manifest, and six SVGs are under `.agents/artifacts/issue-489-likelihood-dynamics/` and the versioned S3 root.
+- Result: Visual review found and corrected shared-title/legend overlap and crowded labels; all six final renderings pass visual inspection.
+- Result: SkyPilot estimates $0.51 for the pilot GPU cluster, $1.07 for full GPU scoring, and $0.21 for CPU analysis, or $1.79 total.
+- Interpretation: Ranking is already present by the earliest observed checkpoint and strengthens in four of five regions, but the online lowest-loss mask remains materially time- and region-dependent.
+- Interpretation: A frozen sufficiently trained teacher should define the primary likelihood-derived selector; an online student-derived diagnostic arm requires warm-up, temporal smoothing, and a nonzero background floor.
+- Interpretation: Low absolute loss predicts conservation but not remaining optimization opportunity, and it must not be called Rho-1 reducible loss.
+- Next action: Publish the accepted interpretation through the knowledge-base pull-request gate and update issue #489 with immutable code, data, figure, and cost links.
+- Next action: The paid `evals-v2-ld489-analysis` cluster was terminated after the final SVGs were secured.

@@ -1,0 +1,451 @@
+{
+  "artifact_schema_version": "v1",
+  "auprc": "exact average precision from negative loss or negative entropy",
+  "bootstrap_replicates": 500,
+  "bootstrap_seed": 489,
+  "bootstrap_unit": "region-specific genomic 10000000-bp block",
+  "checkpoints": [
+    {
+      "cumulative_tokens": 20971520000,
+      "name": "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
+      "order": 0
+    },
+    {
+      "cumulative_tokens": 62914560000,
+      "name": "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
+      "order": 1
+    },
+    {
+      "cumulative_tokens": 104857600000,
+      "name": "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
+      "order": 2
+    },
+    {
+      "cumulative_tokens": 146800640000,
+      "name": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
+      "order": 3
+    },
+    {
+      "cumulative_tokens": 173692420096,
+      "name": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
+      "order": 4
+    }
+  ],
+  "control_formula": "negative score ~ conserved + window_gc + window_gc^2 + kmer7_nll + kmer7_nll^2 + position + position^2 + position^3",
+  "input_cells": [
+    {
+      "checkpoint": "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
+      "checkpoint_order": 0,
+      "cumulative_tokens": 20971520000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v5_255_255",
+      "hf_revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4",
+      "n_positions": 4177920,
+      "region": "cds",
+      "sha256": "4ac76297ae39364810dea108de6a5f0b66b318e17bd92c46bd01724803b8516e"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
+      "checkpoint_order": 1,
+      "cumulative_tokens": 62914560000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v5_255_255",
+      "hf_revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4",
+      "n_positions": 4177920,
+      "region": "cds",
+      "sha256": "2dae9a334d498d146fd85fb7dc6a95d4426c21b516f26473740f6822fa1b2777"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
+      "checkpoint_order": 2,
+      "cumulative_tokens": 104857600000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v5_255_255",
+      "hf_revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4",
+      "n_positions": 4177920,
+      "region": "cds",
+      "sha256": "48d4eebfbe0038678fffebc39002b4d0eda939ac6f343173ea412a72bee9b1a1"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
+      "checkpoint_order": 3,
+      "cumulative_tokens": 146800640000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v5_255_255",
+      "hf_revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4",
+      "n_positions": 4177920,
+      "region": "cds",
+      "sha256": "a5f38b10e1f18a42d6390ca52dabf0842fdf625c875231921c5d7d250ef0f928"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
+      "checkpoint_order": 4,
+      "cumulative_tokens": 173692420096,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v5_255_255",
+      "hf_revision": "daff592f213aaa1cab1711d477a79ff6b1bc4ef4",
+      "n_positions": 4177920,
+      "region": "cds",
+      "sha256": "0e0d4e9f8af6d8fc31c7ccacdb07b3c30d0113f9068e97f589aa0299790ae0ef"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
+      "checkpoint_order": 0,
+      "cumulative_tokens": 20971520000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v1_255_255",
+      "hf_revision": "a761bc0b663a9827303f3112e4667d53d5326fac",
+      "n_positions": 4177920,
+      "region": "upstream",
+      "sha256": "adb5d3134af6188062c20413a75cb99033e75cac9d4c9eacdce7d3e55ae68880"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
+      "checkpoint_order": 1,
+      "cumulative_tokens": 62914560000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v1_255_255",
+      "hf_revision": "a761bc0b663a9827303f3112e4667d53d5326fac",
+      "n_positions": 4177920,
+      "region": "upstream",
+      "sha256": "3a2d2a122ba619d990b935cd91a71fad1de0b1c089953895942ab977262d8be0"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
+      "checkpoint_order": 2,
+      "cumulative_tokens": 104857600000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v1_255_255",
+      "hf_revision": "a761bc0b663a9827303f3112e4667d53d5326fac",
+      "n_positions": 4177920,
+      "region": "upstream",
+      "sha256": "39b71f07dfb345dd981431b8a4e769e21b79e113d359087b4099cc7e6b0984e2"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
+      "checkpoint_order": 3,
+      "cumulative_tokens": 146800640000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v1_255_255",
+      "hf_revision": "a761bc0b663a9827303f3112e4667d53d5326fac",
+      "n_positions": 4177920,
+      "region": "upstream",
+      "sha256": "e1e8817adf17a43f63a497ef06ee8a7556dbd4f314c8868246ab9cf423613ddf"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
+      "checkpoint_order": 4,
+      "cumulative_tokens": 173692420096,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v1_255_255",
+      "hf_revision": "a761bc0b663a9827303f3112e4667d53d5326fac",
+      "n_positions": 4177920,
+      "region": "upstream",
+      "sha256": "0b8328aa06c24a24ee6ed00eb57cdb10110ec3c0e2c5e83fbaeda1a41ab10497"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
+      "checkpoint_order": 0,
+      "cumulative_tokens": 20971520000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v15_255_255",
+      "hf_revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5",
+      "n_positions": 4177920,
+      "region": "downstream",
+      "sha256": "87bc5c924d214a95ddc63af287e44c8e6ed7983a74a720854e3900442a2474e5"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
+      "checkpoint_order": 1,
+      "cumulative_tokens": 62914560000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v15_255_255",
+      "hf_revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5",
+      "n_positions": 4177920,
+      "region": "downstream",
+      "sha256": "cdfd6384448ed00d979dbb0cb4d9ded7ab1c0d6215193994256bf6761680fe42"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
+      "checkpoint_order": 2,
+      "cumulative_tokens": 104857600000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v15_255_255",
+      "hf_revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5",
+      "n_positions": 4177920,
+      "region": "downstream",
+      "sha256": "7e096e29005c1ea110887cdf7674f705629cb839b552a6c573bd440f0956d9ce"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
+      "checkpoint_order": 3,
+      "cumulative_tokens": 146800640000,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v15_255_255",
+      "hf_revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5",
+      "n_positions": 4177920,
+      "region": "downstream",
+      "sha256": "994573131040e723c3235fc6ee0729f27a35ae88e54a6ef863a76f5ab8f4b27b"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
+      "checkpoint_order": 4,
+      "cumulative_tokens": 173692420096,
+      "hf_repo": "marin-dna/genomes-v5-validation-intervals-v15_255_255",
+      "hf_revision": "d7b27eecd68453934ebb3e7e6e78d5401789faa5",
+      "n_positions": 4177920,
+      "region": "downstream",
+      "sha256": "3b1a648bb3d344c08c24c5dec30cf6e213a26af217cfc5e6dace3ea94c8f2030"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
+      "checkpoint_order": 0,
+      "cumulative_tokens": 20971520000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_ncrna",
+      "hf_revision": "76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
+      "n_positions": 4177920,
+      "region": "ncrna",
+      "sha256": "556bdd550cf2a79e9119b36050d6f898558d146e9d9c7710b557bc9469d8d948"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
+      "checkpoint_order": 1,
+      "cumulative_tokens": 62914560000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_ncrna",
+      "hf_revision": "76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
+      "n_positions": 4177920,
+      "region": "ncrna",
+      "sha256": "0028de8dee1aaae852c39dc23e1c87a7795765193c1367c4783066087b5fb58d"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
+      "checkpoint_order": 2,
+      "cumulative_tokens": 104857600000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_ncrna",
+      "hf_revision": "76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
+      "n_positions": 4177920,
+      "region": "ncrna",
+      "sha256": "b507a171d70ddaf6f0e8d897e3366ad0da5e1a23a2d079a6aae9989a570cabcc"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
+      "checkpoint_order": 3,
+      "cumulative_tokens": 146800640000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_ncrna",
+      "hf_revision": "76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
+      "n_positions": 4177920,
+      "region": "ncrna",
+      "sha256": "04a6a7e7ab7ba4b165ae71e7c5ce35dbacac0e9d40a321f26afb18077bbedde7"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
+      "checkpoint_order": 4,
+      "cumulative_tokens": 173692420096,
+      "hf_repo": "marin-dna/zoonomia-v1-val_ncrna",
+      "hf_revision": "76a18c1bbf07ac9bd064722431bbdab894b9e6c6",
+      "n_positions": 4177920,
+      "region": "ncrna",
+      "sha256": "6073aa8a9cd7e8a33385ce55a2b10d27b8fdd15abcf650a65f7a9214cbceda60"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000",
+      "checkpoint_order": 0,
+      "cumulative_tokens": 20971520000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_enhancer",
+      "hf_revision": "d40d1e067b2a56ac812af122de029eb79cab1106",
+      "n_positions": 4177920,
+      "region": "enhancer",
+      "sha256": "88c8a0226218daba4fa5da7c209b9b188f45d3b0888d5e0ad044b1d2acb99b53"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000",
+      "checkpoint_order": 1,
+      "cumulative_tokens": 62914560000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_enhancer",
+      "hf_revision": "d40d1e067b2a56ac812af122de029eb79cab1106",
+      "n_positions": 4177920,
+      "region": "enhancer",
+      "sha256": "9bed4d9afeba2d65638274efec27c1e5c3742fd210ae8467a98961cc24ddaa11"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000",
+      "checkpoint_order": 2,
+      "cumulative_tokens": 104857600000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_enhancer",
+      "hf_revision": "d40d1e067b2a56ac812af122de029eb79cab1106",
+      "n_positions": 4177920,
+      "region": "enhancer",
+      "sha256": "bdbf27028b8cf780c32d6e5d6924963546da9c44a792f6afc891404bceddf7a7"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000",
+      "checkpoint_order": 3,
+      "cumulative_tokens": 146800640000,
+      "hf_repo": "marin-dna/zoonomia-v1-val_enhancer",
+      "hf_revision": "d40d1e067b2a56ac812af122de029eb79cab1106",
+      "n_positions": 4177920,
+      "region": "enhancer",
+      "sha256": "f0eeb03a4fd5fb3f1cf199bc4ec3b9dbefb7bdfbeed8f69910cd21a5237516d2"
+    },
+    {
+      "checkpoint": "mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823",
+      "checkpoint_order": 4,
+      "cumulative_tokens": 173692420096,
+      "hf_repo": "marin-dna/zoonomia-v1-val_enhancer",
+      "hf_revision": "d40d1e067b2a56ac812af122de029eb79cab1106",
+      "n_positions": 4177920,
+      "region": "enhancer",
+      "sha256": "d2815012f8a11f2286dac869d15a3f5e1e79f1072d29f8a2a2c3506b29008822"
+    }
+  ],
+  "issue": 489,
+  "loss_bin_definition": "10 equal-count rank bins within each region; 1 is lowest current loss",
+  "outputs": {
+    "conservation_auprc": {
+      "columns": [
+        "scope",
+        "statistic",
+        "checkpoint",
+        "checkpoint_order",
+        "cumulative_tokens",
+        "auprc",
+        "prevalence",
+        "auprc_minus_prevalence",
+        "n_positions",
+        "n_conserved"
+      ],
+      "n_rows": 60
+    },
+    "controlled_contrasts": {
+      "columns": [
+        "scope",
+        "statistic",
+        "score_direction",
+        "checkpoint",
+        "checkpoint_order",
+        "cumulative_tokens",
+        "term",
+        "estimate",
+        "ci_low",
+        "ci_high",
+        "n_positions",
+        "n_blocks"
+      ],
+      "n_rows": 450
+    },
+    "distributions": {
+      "columns": [
+        "scope",
+        "statistic",
+        "conserved",
+        "checkpoint",
+        "checkpoint_order",
+        "cumulative_tokens",
+        "n_positions",
+        "n_blocks",
+        "mean",
+        "sd",
+        "q10",
+        "q25",
+        "median",
+        "q75",
+        "q90",
+        "ci_low",
+        "ci_high"
+      ],
+      "n_rows": 120
+    },
+    "future_loss_deciles": {
+      "columns": [
+        "scope",
+        "horizon",
+        "current_checkpoint",
+        "future_checkpoint",
+        "current_checkpoint_order",
+        "future_checkpoint_order",
+        "current_cumulative_tokens",
+        "future_cumulative_tokens",
+        "current_loss_bin",
+        "n_bins",
+        "mean_current_nll",
+        "mean_future_nll",
+        "fraction_positive_reduction",
+        "n_positions",
+        "n_blocks",
+        "mean",
+        "sd",
+        "q10",
+        "q25",
+        "median",
+        "q75",
+        "q90",
+        "ci_low",
+        "ci_high"
+      ],
+      "n_rows": 480
+    },
+    "population": {
+      "columns": [
+        "region",
+        "n_windows",
+        "n_positions_cached",
+        "n_primary_span",
+        "n_repeat_excluded",
+        "n_ambiguous_or_unscorable_excluded",
+        "n_primary_nonrepeat_scorable",
+        "n_conserved",
+        "prevalence",
+        "n_blocks"
+      ],
+      "n_rows": 5
+    },
+    "selection_jaccard": {
+      "columns": [
+        "scope",
+        "statistic",
+        "comparison",
+        "checkpoint_from",
+        "checkpoint_to",
+        "checkpoint_order_from",
+        "checkpoint_order_to",
+        "cumulative_tokens_from",
+        "cumulative_tokens_to",
+        "n_positions",
+        "n_selected_from",
+        "n_selected_to",
+        "intersection",
+        "union",
+        "jaccard"
+      ],
+      "n_rows": 60
+    },
+    "trajectory_groups": {
+      "columns": [
+        "scope",
+        "group",
+        "checkpoint",
+        "checkpoint_order",
+        "cumulative_tokens",
+        "frequency",
+        "conservation_prevalence",
+        "early_region_mean_nll",
+        "terminal_region_mean_nll",
+        "n_positions",
+        "n_blocks",
+        "mean",
+        "sd",
+        "q10",
+        "q25",
+        "median",
+        "q75",
+        "q90",
+        "ci_low",
+        "ci_high"
+      ],
+      "n_rows": 120
+    }
+  },
+  "primary_population": "target_pos in [32, 223), scorable, nonambiguous, nonrepeat",
+  "regions": [
+    "cds",
+    "upstream",
+    "downstream",
+    "ncrna",
+    "enhancer"
+  ],
+  "selection_tie_break": "ascending token_index",
+  "top_fraction": 0.1,
+  "trajectory_threshold": "region mean NLL at the earliest and terminal checkpoints",
+  "validation": {
+    "n_input_cells": 25,
+    "n_primary_positions": 14002032,
+    "n_scopes": 6,
+    "passed": true
+  }
+}
