@@ -2034,3 +2034,18 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: verify the first post-resume full-window train step, monitor the
   step-2,500 native checkpoint and export, and continue scheduled development
   evaluation for newly exported enhancer-center checkpoints.
+
+### 2026-08-21 06:07 UTC - CSP-061 both enhancer arms actively training
+
+- The us-east1 full-window child completed restored train step 2,166 in 43.7
+  seconds including first-step compilation, then entered the normal training
+  loop with displayed loss 1.31. This verifies the copied temporary checkpoint,
+  data loader, optimizer state, and four-chip v6e-4 execution together.
+- W&B retained metrics through step 2,227 from the earlier preemption attempt
+  and therefore suppresses replayed logging from the step-2,165 recovery point
+  through that boundary. The fixed data seed and step-indexed resume reproduce
+  the lost checkpoint interval; the training state and final 5,000-step
+  exposure contract are unchanged.
+- Enhancer center-1 remains active independently. Both enhancer policy arms
+  are therefore training concurrently; the next full-window durability gate is
+  native step 2,500, followed by the host-memory-sensitive Hugging Face export.
