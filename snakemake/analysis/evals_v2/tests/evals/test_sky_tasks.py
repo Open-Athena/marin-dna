@@ -27,7 +27,12 @@ def test_locked_sky_tasks_pin_project_uv_version() -> None:
 
         checked.append(task_path.name)
         pin = f"uv self update {uv_version}"
-        assert pin in setup, f"{task_path.name} does not pin {pin!r}"
+        guarded_pin = (
+            f'''if [[ "$(uv --version | awk '{{print $2}}')" != "{uv_version}" ]]; then\n'''
+            f"    {pin}\n"
+            "fi"
+        )
+        assert guarded_pin in setup, f"{task_path.name} does not guard {pin!r}"
         assert setup.index(pin) < setup.index("uv sync"), (
             f"{task_path.name} pins uv after the locked sync"
         )
