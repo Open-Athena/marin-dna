@@ -422,6 +422,33 @@ Two unavoidable AWS-side failure modes worth knowing about:
   under the vCPU limit. Single-target retry usually succeeds on the
   next AZ rotation.
 
+## Likelihood dynamics analysis (#489)
+
+The likelihood_dynamics_489_analysis named target consumes the immutable full forward-token cache under results/m13_likelihood_dynamics_489/v1/.
+It does not rescore checkpoints.
+
+Run it after likelihood_dynamics_489_atoms:
+
+~~~bash
+snakemake likelihood_dynamics_489_analysis
+~~~
+
+The primary population is target positions [32, 223) after excluding repeats, ambiguous bases, and unscorable tokens.
+All conservation labels retain the source dataset's case-derived missingness limitation.
+The analysis writes:
+
+- exact conservation AUPRC from negative loss and negative entropy, globally and by region;
+- earliest-versus-terminal mean-loss trajectory groups;
+- exact Jaccard overlap for the lowest-score 10% selected independently within each region;
+- next-checkpoint and terminal loss reduction by region-specific current-loss decile;
+- loss and entropy distribution summaries by conservation label;
+- controlled negative-score contrasts using GC content, local 7-mer NLL, and target-position polynomials;
+- a validation manifest and six SVG research figures.
+
+Mean summaries and controlled contrasts use 500 resamples of region-specific 10 Mb genomic blocks for 95% intervals.
+Exact AUPRC and Jaccard values describe the complete fixed validation population and are not resampled.
+The complete output namespace is results/m13_likelihood_dynamics_489/v1/analysis/.
+
 ## Configuration (`config/config.yaml`)
 
 | Key | Purpose |

@@ -1476,6 +1476,9 @@ likelihood_dynamics_489:
   tokens_per_step: 2097152
   top_fraction: 0.10
   deciles: 10
+  bootstrap_block_bp: 10000000
+  bootstrap_replicates: 500
+  analysis_seed: 489
   blog_collection: https://huggingface.co/collections/marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep
   datasets:
     - name: cds
