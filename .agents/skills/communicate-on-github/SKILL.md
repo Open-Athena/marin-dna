@@ -24,6 +24,16 @@ Keep GitHub useful to a reader who was not present for the work. Treat bodies as
 - Start a non-trivial PR with a current summary paragraph. Do not require a separate summary heading.
 - Keep citations and artifact links below the opening summary.
 
+## Deliver A Pull Request
+
+1. Commit completed feature-branch work and push the branch without asking for a separate permission step.
+2. Open or update a draft pull request and keep its body current.
+3. Launch a context-isolated, read-only review of the published diff.
+4. Address valid review findings in new commits and push them.
+5. Mark the pull request ready for review when human feedback is wanted.
+
+Follow the repository approval boundaries in `AGENTS.md` throughout this workflow.
+
 ## Write Comments
 
 - Begin every agent-authored issue or PR comment with `🤖`.

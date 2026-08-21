@@ -55,6 +55,8 @@ Build the figure around the scientific comparison it must support.
 - Show uncertainty by default when it can be estimated.
   Name the quantity, such as standard error, confidence interval, standard deviation, or range.
   Omit it only when uncertainty is not meaningful for the statistic or explicit human direction calls for another presentation.
+- Draw standard-error error bars without terminal caps.
+  Set `capsize=0` or the equivalent explicitly when the plotting interface exposes that setting.
 - Share an axis only when the common scale supports the intended comparison without obscuring variation.
   Otherwise use clearly labeled independent axes, especially for panels that are not comparable by construction or have materially different useful ranges.
 - Preserve negative results and relevant variation.
@@ -69,3 +71,21 @@ Build the figure around the scientific comparison it must support.
 - Commit every SVG referenced by a knowledge-base experiment page under `docs/research/experiments/figures/<issue>/` on `main`.
 - Store other small figures under `.agents/artifacts/<topic>/` on the permanent task or research branch.
 - Use a raw commit-pinned repository URL when a branch figure must render on GitHub.
+
+## Embed Figures In Markdown
+
+Center every plot embedded in Markdown with this exact wrapper:
+
+```html
+<p align="center">
+  <img src="figures/<issue>/<figure>.svg" alt="<accessible description>" />
+</p>
+```
+
+Put the caption in Markdown prose after the closing `</p>`:
+
+```markdown
+_<Caption in Markdown prose.>_
+```
+
+Do not bake captions or figure numbers into the SVG, PNG, or other plot artifact.

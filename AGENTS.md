@@ -25,6 +25,16 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
   Keep chronological experiment records in tracking issues and branches, and keep accepted interpretations in `docs/research/`.
 - In Markdown prose, put each sentence on its own source line and do not hard-wrap at a fixed column.
 
+## Inference Workloads
+
+- Treat one-off and experimental inference loops as production inference workloads.
+  Prefer an established automatic evaluation loop, such as Hugging Face `Trainer.predict`, when it can express the required outputs.
+  If a custom loop is necessary, record the capability the established loop could not provide.
+- Batch accelerator inference and use bfloat16 (`bf16`), model compilation, multiple data-loader workers, pinned memory, and prefetching when the model, hardware, and framework support them.
+  Record why any applicable optimization is disabled.
+- Before a long run, define output-specific comparison fields and tolerances and compare a small sample against an uncompiled reference path.
+- Measure steady-state throughput after warmup, state its unit, and record whether data loading and preprocessing are included.
+
 ## Development Setup
 
 Use `uv` for Python dependencies. Set up and test the lightweight root project with:
@@ -60,6 +70,5 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 - Add `agent-generated` to every issue or pull request created by an agent.
 - Close an issue only after its completion criteria are met and its body and final comment record the outcome.
   For research issues, follow the disposition and interpretation-merge gate in `run-research` and `maintain-knowledge-base`.
+- For completed feature-branch work, commit and push the branch, open or update a draft pull request, run an independent review over the published diff, address its findings, and mark the pull request ready when human feedback is wanted.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.
-- For Hugging Face uploads under `marin-dna/*`, draft the README for human review before uploading.
-  Include a commit-pinned producing pipeline or training-script link, a short provenance description, and the `biology`, `genomics`, and `dna` tags.
