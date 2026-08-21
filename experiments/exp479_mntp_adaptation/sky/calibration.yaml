@@ -1,0 +1,39 @@
+name: dna-exp479-causal-calibration-lr1e-6
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 128
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${HF_REPO_ID:-}"
+  test -n "${HF_TOKEN:-}"
+  test -n "${WANDB_API_KEY:-}"
+  artifact_root="$HOME/exp479-calibration-artifacts"
+  output_dir="$artifact_root/evaluation/causal-calibration-lr1e-6"
+  mkdir -p "$output_dir"
+  trap 'uv run --locked exp479 finalize --artifact-dir "$HOME/exp479-calibration-artifacts" --hf-repo-id "$HF_REPO_ID" || true' EXIT
+  uv run --locked pytest
+  uv run --locked exp479 prepare-data \
+    --output-dir "$artifact_root/data" \
+    --batch-size 64 \
+    --seed 0
+  uv run --locked exp479 causal-calibration \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --train-plan "$artifact_root/data/train.jsonl" \
+    --validation-plan "$artifact_root/data/validation.jsonl" \
+    --hf-repo-id "$HF_REPO_ID" \
+    --batch-size 64 \
+    --seed 0 \
+    --num-workers 4

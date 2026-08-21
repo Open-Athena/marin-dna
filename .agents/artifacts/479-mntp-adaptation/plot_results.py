@@ -47,6 +47,14 @@ def save(fig: plt.Figure, name: str) -> None:
     plt.close(fig)
 
 
+def save_evidence(fig: plt.Figure, stem: str) -> None:
+    """Save an evidence figure for documentation and local review."""
+
+    fig.savefig(FIGURES / f"{stem}.svg", format="svg", bbox_inches="tight")
+    fig.savefig(FIGURES / f"{stem}.png", dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+
 def plot_validation() -> None:
     frame = pd.read_csv(ROOT / "training-validation.csv")
     fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
@@ -205,6 +213,221 @@ def plot_nucleotide_dependency() -> None:
     save(fig, "nucleotide-dependency-correlation.svg")
 
 
+def plot_validation_trajectories() -> None:
+    """Plot archived validation histories with independent checkpoint recomputation."""
+
+    logged = pd.read_csv(ROOT / "training-validation.csv")
+    audit = pd.read_csv(ROOT / "audit" / "checkpoint-loss-audit.csv")
+    colors = {
+        "transferred_mntp": "#E45756",
+        "scratch_mntp": "#54A24B",
+        "clm_continuation": "#4C78A8",
+    }
+    labels = {
+        "transferred_mntp": "Transferred MNTP",
+        "scratch_mntp": "Scratch MNTP",
+        "clm_continuation": "Continued CLM",
+    }
+    panels = (
+        (
+            "Diffusion-mask MNTP",
+            "diffusion",
+            (
+                (
+                    "transferred_mntp",
+                    "full_attention_no_adaptation",
+                    "transferred_diffusion_loss",
+                ),
+                ("scratch_mntp", "scratch_mntp", "scratch_diffusion_loss"),
+            ),
+        ),
+        (
+            "Single-mask MNTP",
+            "single",
+            (
+                (
+                    "transferred_mntp",
+                    "full_attention_no_adaptation",
+                    "transferred_single_mask_loss",
+                ),
+                ("scratch_mntp", "scratch_mntp", "scratch_single_mask_loss"),
+            ),
+        ),
+    )
+
+    figure, axes = plt.subplots(1, 3, figsize=(14.5, 4.8))
+    for axis, (title, mode, series) in zip(axes[:2], panels, strict=True):
+        for arm, initial_arm, column in series:
+            initial = audit[
+                (audit["arm"] == initial_arm)
+                & (audit["validation_mode"] == mode)
+                & (audit["step"] == 0)
+            ]
+            if len(initial) != 1:
+                raise ValueError(
+                    f"expected one {initial_arm} {mode} step-zero row, found {len(initial)}"
+                )
+            x = np.concatenate(([0], logged["step"].to_numpy()))
+            y = np.concatenate(([initial.iloc[0]["loss"]], logged[column].to_numpy()))
+            axis.plot(
+                x,
+                y,
+                color=colors[arm],
+                linewidth=1.8,
+                label=labels[arm],
+            )
+            recomputed = audit[
+                (audit["arm"].isin((initial_arm, arm)))
+                & (audit["validation_mode"] == mode)
+            ].sort_values("step")
+            axis.scatter(
+                recomputed["step"],
+                recomputed["loss"],
+                facecolors="white",
+                edgecolors=colors[arm],
+                linewidths=1.2,
+                s=32,
+                zorder=3,
+            )
+        axis.set_title(title)
+        axis.legend(title="Arm", frameon=False)
+
+    causal = axes[2]
+    causal_color = colors["clm_continuation"]
+    clm_initial = audit[
+        (audit["arm"] == "clm_continuation")
+        & (audit["validation_mode"] == "causal")
+        & (audit["step"] == 0)
+        & (audit["kind"] == "replay")
+    ]
+    if len(clm_initial) != 1:
+        raise ValueError(f"expected one CLM save/reload row, found {len(clm_initial)}")
+    causal.plot(
+        np.concatenate(([0], logged["step"].to_numpy())),
+        np.concatenate(
+            ([clm_initial.iloc[0]["loss"]], logged["clm_diffusion_loss"].to_numpy())
+        ),
+        color=causal_color,
+        linewidth=1.8,
+        label=labels["clm_continuation"],
+    )
+    recomputed_clm = audit[
+        (audit["arm"] == "clm_continuation")
+        & (audit["validation_mode"] == "causal")
+        & ~((audit["step"] == 400) & (audit["kind"] == "lightning"))
+    ].sort_values("step")
+    causal.scatter(
+        recomputed_clm["step"],
+        recomputed_clm["loss"],
+        facecolors="white",
+        edgecolors=causal_color,
+        linewidths=1.2,
+        s=32,
+        zorder=3,
+    )
+    source_direct = audit[
+        (audit["arm"] == "source_clm")
+        & (audit["validation_mode"] == "causal")
+        & (audit["step"] == 0)
+    ]
+    if len(source_direct) != 1:
+        raise ValueError(f"expected one direct source row, found {len(source_direct)}")
+    causal.scatter(
+        [0],
+        source_direct["loss"],
+        marker="o",
+        facecolors="none",
+        edgecolors="#888888",
+        linewidths=1.8,
+        s=90,
+        zorder=4,
+        label="Source save/reload",
+    )
+    causal.scatter(
+        [0],
+        source_direct["loss"],
+        marker="D",
+        color="#222222",
+        s=25,
+        zorder=5,
+        label="Source direct",
+    )
+    causal.set_title("Causal CLM")
+    causal.legend(title="Arm or control", frameon=False)
+
+    for axis in axes:
+        axis.set_xscale("symlog", linthresh=10)
+        axis.set_xlabel("Optimizer step")
+        axis.set_ylabel("Weighted cross-entropy")
+        axis.grid(alpha=0.25)
+        axis.set_box_aspect(1)
+    figure.suptitle("Validation trajectories reproduce at independent checkpoints")
+    figure.subplots_adjust(top=0.82, bottom=0.15, wspace=0.3)
+    save_evidence(figure, "validation-trajectories")
+
+
+def plot_auprc_evidence() -> None:
+    """Plot primary odd-autosome/X AUPRC trajectories with uncertainty."""
+
+    metrics = pd.read_csv(ROOT / "audit" / "checkpoint-auprc.csv")
+    selected = metrics[metrics["orientation"] == "protocol_fwd_rc"]
+    datasets = ("mendelian_traits", "complex_traits", "sge")
+    titles = ("Mendelian traits", "Complex traits", "SGE")
+    styles = {
+        "Continued CLM replay": ("#4C78A8", "o", "-"),
+        "Continued CLM original": ("#4C78A8", "s", "--"),
+        "Transferred MNTP": ("#E45756", "o", "-"),
+        "Scratch MNTP": ("#54A24B", "^", "-"),
+        "Source CLM direct": ("#222222", "D", "None"),
+        "Source CLM save/reload": ("#888888", "x", "None"),
+    }
+    display_labels = {
+        "Continued CLM replay": "Continued CLM replay",
+        "Continued CLM original": "Continued CLM archived",
+        "Transferred MNTP": "Transferred MNTP",
+        "Scratch MNTP": "Scratch MNTP",
+        "Source CLM direct": "Source CLM direct",
+        "Source CLM save/reload": "Source CLM save/reload",
+    }
+    figure, axes = plt.subplots(1, 3, figsize=(14.5, 5.0))
+    for axis, dataset, title in zip(axes, datasets, titles, strict=True):
+        cell = selected[selected["dataset"] == dataset]
+        for series, group in cell.groupby("plot_series", sort=False):
+            color, marker, linestyle = styles[series]
+            group = group.sort_values("step")
+            axis.errorbar(
+                group["step"],
+                group["auprc"],
+                yerr=group["se"],
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=1.5,
+                markersize=4,
+                capsize=2,
+                label=display_labels[series],
+            )
+        axis.set_xscale("symlog", linthresh=10)
+        axis.set_xlabel("Optimizer step")
+        axis.set_ylabel("AUPRC")
+        axis.set_title(title)
+        axis.grid(alpha=0.25)
+        axis.set_box_aspect(1)
+    handles, legend_labels = axes[0].get_legend_handles_labels()
+    figure.legend(
+        handles,
+        legend_labels,
+        title="Checkpoint series",
+        frameon=False,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.89),
+        ncol=3,
+    )
+    figure.suptitle("Primary odd-autosome/X VEP trajectories")
+    figure.subplots_adjust(top=0.7, bottom=0.13, wspace=0.3)
+    save_evidence(figure, "auprc-trajectories-audited")
+
+
 def plot_knowledge_summary() -> None:
     """Render the accepted issue-479 interpretation as a compact lead figure."""
 
@@ -314,6 +537,8 @@ def main() -> None:
     plot_context()
     plot_context_window()
     plot_nucleotide_dependency()
+    plot_validation_trajectories()
+    plot_auprc_evidence()
     plot_knowledge_summary()
 
 

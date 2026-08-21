@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from launch import execution_environment, launch_command
 
 
@@ -70,3 +72,36 @@ def test_dependency_environment_requires_both_credentials(monkeypatch: object) -
     environment = execution_environment("dependency")
     assert environment["HF_TOKEN"] == "test-hf"
     assert environment["WANDB_API_KEY"] == "test-wandb"
+
+
+def test_calibration_launch_is_single_arm_secret_forwarding_and_self_terminating() -> None:
+    command = launch_command(
+        "calibration",
+        "d" * 40,
+        4567,
+        hf_repo_id="gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover",
+        prior_cost_usd=24.7340,
+    )
+    assert command[4] == "sky/calibration.yaml"
+    assert "HF_REPO_ID=gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover" in command
+    assert "EXP479_PRIOR_COST_USD=24.734" in command
+    assert command.count("--secret") == 2
+    assert "HF_TOKEN" in command
+    assert "WANDB_API_KEY" in command
+    assert "--down" in command
+
+
+def test_calibration_environment_requires_both_credentials(monkeypatch: object) -> None:
+    monkeypatch.setenv("HF_TOKEN", "test-hf")  # type: ignore[attr-defined]
+    monkeypatch.setenv("WANDB_API_KEY", "test-wandb")  # type: ignore[attr-defined]
+    environment = execution_environment("calibration")
+    assert environment["HF_TOKEN"] == "test-hf"
+    assert environment["WANDB_API_KEY"] == "test-wandb"
+
+
+def test_calibration_sky_stage_has_no_learning_rate_sweep() -> None:
+    stage = Path("sky/calibration.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 causal-calibration") == 1
+    assert "3e-6" not in stage
+    assert "1e-5" not in stage
+    assert "3e-5" not in stage
