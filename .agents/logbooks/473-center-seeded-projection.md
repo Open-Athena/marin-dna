@@ -1929,3 +1929,32 @@ cohort, assemblies, and downstream training recipe fixed.
   continue from the same run and checkpoint identities toward step 4,999.
 - The on-demand development evaluator advanced to 24 of 68 jobs and continues
   to log only the pinned direct development `train.parquet` row counts.
+
+### 2026-08-21 03:47 UTC - CSP-058 all training arms active and enhancer step-2,000 QC
+
+- Both enhancer recoveries and the CDS center-1 recovery are now actively
+  training. At 03:39 UTC enhancer center-1 had reached about step 2,300 and CDS
+  center-1 about step 4,320. The CDS recovery restored the step-4,112 temporary
+  checkpoint and has not repeated any durable checkpoint work.
+- Enhancer full-window was preempted once after reaching step 2,180. Iris
+  rescheduled attempt 1 on another 96 GiB east5 v5p-8, discovered temporary
+  checkpoint step 2,093, passed the TensorStore integrity check, and explicitly
+  resumed at step 2,094. No durable checkpoint was lost or rewritten.
+- The isolated on-demand enhancer step-2,000 development graph completed all
+  10 requested jobs: two checkpoint downloads, four score cells, and four
+  official metric cells. Every cell used the direct pinned `train.parquet`
+  path. The temporary A10G cluster was terminated immediately after success;
+  its S3 outputs remain in the immutable `ae90f6d.../development_eval`
+  namespace.
+- The two Mendelian score bundles were exactly row-identical across policies:
+  16,140 odd-autosome/X development rows. A preregistered 1,000-draw paired
+  match-group bootstrap found that all eight step-2,000 AUPRC center-minus-full
+  95% intervals include zero. The secondary splicing Group-SMD delta was
+  positive (0.0382, 95% interval 0.0024 to 0.0738); the other seven Group-SMD
+  intervals include zero. These are interim QC results, not the final
+  trajectory interpretation.
+- The four metric parquets totaled 28.9 KiB and the four score parquets 5.6
+  MiB. Guarded local download and analysis used the nonblocking shared-node
+  lock; the paired bootstrap peaked at 225,260 KiB RSS and completed in 1.28
+  seconds. No held-out labeled file, prediction, measurement, or metric was
+  requested or read.
