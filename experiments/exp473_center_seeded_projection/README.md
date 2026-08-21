@@ -213,8 +213,11 @@ score bundle unless its matching official metric parquet records only train.
 Both GPU launchers pin the validated issue-462 Ubuntu 24.04/R595 AMI and run
 the existing evals GPU runtime smoke gate before constructing a score DAG.
 
-CDS checkpoints run Mendelian + SGE; enhancer checkpoints run Mendelian +
-Complex. Every family is scored at the nine common checkpoints: steps 1,000
+CDS checkpoints run Mendelian + Complex + SGE; enhancer checkpoints run
+Mendelian + Complex. Complex is relevant to both regions: the presented CDS
+slices are missense, splicing, and synonymous, while the presented enhancer
+slice is distal. Complete metric artifacts retain every registered subset for
+audit. Every family is scored at the nine common checkpoints: steps 1,000
 through 4,500 in increments of 500, plus terminal step 4,999. The #417 root and
 available directories are verified directly before launch.
 

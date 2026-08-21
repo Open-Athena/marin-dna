@@ -30,7 +30,7 @@ MODEL_DATASET_PAIRS = [
     for model in MODELS
     for dataset in model["datasets"]
 ]
-assert len(MODEL_DATASET_PAIRS) == 72
+assert len(MODEL_DATASET_PAIRS) == 90
 METRIC_OUTPUTS = [
     f"{RESULTS_ROOT}/metrics/{model}/{dataset}.parquet"
     for model, dataset in MODEL_DATASET_PAIRS

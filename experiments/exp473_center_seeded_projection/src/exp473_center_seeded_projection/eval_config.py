@@ -44,8 +44,8 @@ DATASETS: tuple[dict[str, Any], ...] = (
 )
 
 ARM_DATASETS = {
-    "cds_full_window": ("mendelian_traits", "sge"),
-    "cds_center_1": ("mendelian_traits", "sge"),
+    "cds_full_window": ("mendelian_traits", "complex_traits", "sge"),
+    "cds_center_1": ("mendelian_traits", "complex_traits", "sge"),
     "enhancer_full_window": ("mendelian_traits", "complex_traits"),
     "enhancer_center_1": ("mendelian_traits", "complex_traits"),
 }

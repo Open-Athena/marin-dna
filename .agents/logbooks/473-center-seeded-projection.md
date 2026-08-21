@@ -2228,3 +2228,51 @@ cohort, assemblies, and downstream training recipe fixed.
   of 72 cells; only the two datasets for terminal enhancer full-window step
   4,999 remain. No held-out labeled file, prediction, measurement, or metric
   was requested or read.
+
+### 2026-08-21 10:56 UTC - CSP-072 four-arm training and registered evaluation completed
+
+- Enhancer full-window completed all 5,000 scheduled updates through terminal
+  step 4,999. Its final validation loss was 1.3404, its public W&B run
+  finalized successfully, and its four-object terminal Hugging Face export is
+  exactly 1,019,426,427 bytes. All nine requested exports are durable in the
+  additive us-east1 checkpoint namespace.
+- The terminal enhancer full-window development graph scored exactly 16,140
+  Mendelian and 11,630 Complex rows from the pinned public `train.parquet`
+  files and produced 66 and 60 official metric rows. The then-registered
+  72-cell matrix was complete, and a clean aggregate target reported no
+  remaining work.
+- All four arms are therefore available at the same nine steps: the exact
+  reused issue-417 CDS full-window baseline plus the new CDS center-1,
+  enhancer full-window, and enhancer center-1 arms. Enhancer checkpoints were
+  never submitted to SGE. No held-out labeled file, prediction, measurement,
+  or aggregate metric was requested or read.
+
+### 2026-08-21 11:07 UTC - CSP-073 intersection-loss graph repaired and launched
+
+- The initial real intersection-loss graph failed before model staging or
+  data access because Snakemake prefixed an absolute producer S3 input with
+  the default evaluation storage root. The new issue-scoped workflow now
+  declares a second explicit read-only S3 storage provider for producer
+  inputs; no maintained or shared rule was edited.
+- A first dry-run exposed and corrected the provider's input-function access
+  syntax. The final remote dry-run succeeded with exactly 74 jobs: 36 model
+  downloads, 36 score cells, one paired analysis, and one aggregate target.
+  All four projection sources and all 36 checkpoint paths resolved to their
+  intended immutable roots.
+- The isolated test file passed remotely under the pinned Python 3.12 runtime:
+  21 tests passed in 6.95 seconds. The real 36-cell chromosome-18 unlabeled
+  intersection analysis was submitted as job 7 on the existing A10G cluster.
+
+### 2026-08-21 11:07 UTC - CSP-074 CDS Complex evaluation added
+
+- Inspection of an existing development-only Complex metric artifact
+  confirmed explicit missense, splicing, synonymous, and distal strata. The
+  evaluation matrix was extended additively so Complex is run for both CDS
+  policies as well as both enhancer policies; SGE remains CDS-only.
+- The complete registered matrix is now 90 cells. Its 18 new cells are
+  exactly two CDS policies by nine checkpoints by Complex. Reporting remains
+  restricted to missense, splicing, and synonymous for CDS and distal for
+  enhancer, while complete artifacts retain all registered subsets for audit.
+- The 18 missing CDS Complex cells were submitted as job 13 on the existing
+  warm evaluator. The direct-file loader remains pinned to public
+  `train.parquet`, and the odd-autosome/X development boundary is unchanged.

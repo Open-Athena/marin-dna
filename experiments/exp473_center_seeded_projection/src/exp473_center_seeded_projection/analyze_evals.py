@@ -49,6 +49,14 @@ MENDELIAN_SUBSETS = (
     "tss_proximal",
     "distal",
 )
+PRESENTATION_SUBSETS = {
+    "cds": ("missense_variant", "splicing", "synonymous_variant"),
+    "enhancer": ("distal",),
+}
+OFFICIAL_ENDPOINT_DATASETS = {
+    "cds": ("complex_traits", "sge"),
+    "enhancer": ("complex_traits",),
+}
 SUBSET_LABELS = {
     "missense_variant": "Missense variant",
     "synonymous_variant": "Synonymous variant",
@@ -260,32 +268,32 @@ def collect_official_endpoints(
     experiment_commit: str,
     reader: ParquetReader = read_parquet,
 ) -> tuple[pd.DataFrame, list[str]]:
-    """Collect official Complex (enhancer) and SGE (CDS) metric trajectories."""
+    """Collect official Complex (both regions) and SGE (CDS) trajectories."""
     experiment_commit = validate_experiment_commit(experiment_commit)
     rows: list[pd.DataFrame] = []
     inputs: list[str] = []
     for region, arms in REGION_ARMS.items():
-        dataset = "sge" if region == "cds" else "complex_traits"
-        for policy, arm in arms.items():
-            assert dataset in ARM_DATASETS[arm]
-            for step in CHECKPOINT_STEPS:
-                uri = metric_uri(
-                    results_root,
-                    arm,
-                    step,
-                    dataset,
-                    experiment_commit=experiment_commit,
-                )
-                frame = read_development_metric(uri, reader=reader)
-                rows.append(
-                    frame.assign(
-                        region=region,
-                        policy=policy,
-                        step=step,
-                        source_uri=uri,
+        for dataset in OFFICIAL_ENDPOINT_DATASETS[region]:
+            for policy, arm in arms.items():
+                assert dataset in ARM_DATASETS[arm]
+                for step in CHECKPOINT_STEPS:
+                    uri = metric_uri(
+                        results_root,
+                        arm,
+                        step,
+                        dataset,
+                        experiment_commit=experiment_commit,
                     )
-                )
-                inputs.append(uri)
+                    frame = read_development_metric(uri, reader=reader)
+                    rows.append(
+                        frame.assign(
+                            region=region,
+                            policy=policy,
+                            step=step,
+                            source_uri=uri,
+                        )
+                    )
+                    inputs.append(uri)
     return pd.concat(rows, ignore_index=True), inputs
 
 
@@ -312,8 +320,21 @@ def seed_trigger_table(deltas: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def select_presentation_subsets(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return only region-relevant subsets for figures and written results."""
+    required = {"region", "subset"}
+    missing = required - set(frame.columns)
+    assert not missing, f"presentation frame missing columns {sorted(missing)}"
+    selected = pd.Series(False, index=frame.index)
+    for region, subsets in PRESENTATION_SUBSETS.items():
+        selected |= (frame["region"] == region) & frame["subset"].isin(subsets)
+    result = frame.loc[selected].copy()
+    assert not result.empty, "no region-relevant presentation rows"
+    return result
+
+
 def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
-    """Render one compact eight-subset trajectory figure per region/metric."""
+    """Render region-relevant trajectory subsets for each region and metric."""
     import matplotlib.pyplot as plt
 
     paths: list[Path] = []
@@ -325,15 +346,17 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
     }
     region_labels = {"cds": "CDS", "enhancer": "Enhancer"}
     for region in REGION_ARMS:
+        subsets = PRESENTATION_SUBSETS[region]
         for metric in ("auprc", "group_smd"):
             fig, axes = plt.subplots(
-                4,
-                2,
-                figsize=(9, 16),
+                1,
+                len(subsets),
+                figsize=(4.2 * len(subsets), 5),
+                squeeze=False,
                 sharex=True,
                 sharey=True,
             )
-            for axis, subset in zip(axes.flat, MENDELIAN_SUBSETS, strict=True):
+            for axis, subset in zip(axes.flat, subsets, strict=True):
                 cell = deltas[
                     (deltas["region"] == region)
                     & (deltas["metric"] == metric)
@@ -367,12 +390,12 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
             )
             fig.text(
                 0.5,
-                0.012,
+                0.025,
                 "Development split; shading shows paired 95% percentile "
                 "intervals from aligned match-group bootstrap draws.",
                 ha="center",
             )
-            fig.tight_layout(rect=(0.03, 0.04, 1, 0.97))
+            fig.tight_layout(rect=(0.03, 0.08, 1, 0.93))
             stem = f"{region}_{metric}_paired_delta_trajectories"
             path = plot_dir / f"{stem}.svg"
             fig.savefig(path, bbox_inches="tight")
@@ -386,7 +409,11 @@ def write_summary(
     triggers: pd.DataFrame,
     output: Path,
 ) -> None:
-    final = deltas[deltas["step"] == max(CHECKPOINT_STEPS)].copy()
+    presented_deltas = select_presentation_subsets(deltas)
+    presented_triggers = select_presentation_subsets(triggers)
+    final = presented_deltas[
+        presented_deltas["step"] == max(CHECKPOINT_STEPS)
+    ].copy()
     lines = [
         "# Issue #473 development evaluation",
         "",
@@ -396,7 +423,13 @@ def write_summary(
             "is read. Positive deltas favor `center_1`."
         ),
         "",
-        "## Final-checkpoint paired Mendelian deltas",
+        (
+            "Only region-relevant subsets are presented: missense, splicing, "
+            "and synonymous for CDS; distal for enhancer. The complete audit "
+            "artifacts retain all eight registered subsets."
+        ),
+        "",
+        "## Final-checkpoint relevant paired Mendelian deltas",
         "",
         "| Region | Subset | Metric | Delta | 95% interval | P(center better) |",
         "|---|---|---:|---:|---:|---:|",
@@ -420,8 +453,9 @@ def write_summary(
             ),
             "",
             (
-                f"Triggered cells: {int(triggers['additional_seed_trigger'].sum())} / "
-                f"{len(triggers)}."
+                "Triggered relevant cells: "
+                f"{int(presented_triggers['additional_seed_trigger'].sum())} / "
+                f"{len(presented_triggers)}."
             ),
             "",
         ]

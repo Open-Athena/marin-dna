@@ -8,9 +8,12 @@ import pandas as pd
 import pytest
 from exp473_center_seeded_projection.analyze_evals import (
     MENDELIAN_SUBSETS,
+    OFFICIAL_ENDPOINT_DATASETS,
+    PRESENTATION_SUBSETS,
     plot_deltas,
     read_development_metric,
     score_uri,
+    select_presentation_subsets,
     seed_trigger_table,
     validate_policy_pair,
 )
@@ -150,7 +153,12 @@ def test_eval_config_is_development_only_and_complete():
     )
     assert model["name"].startswith(f"exp473-{'a' * 40}-")
     assert model["gcs_path"].endswith("/cds_center_1-abc123/hf/step-1000")
-    assert model["datasets"] == ["mendelian_traits", "sge"]
+    assert model["datasets"] == ["mendelian_traits", "complex_traits", "sge"]
+    assert sum(len(model["datasets"]) for model in config["models"]) == 90
+    assert OFFICIAL_ENDPOINT_DATASETS == {
+        "cds": ("complex_traits", "sge"),
+        "enhancer": ("complex_traits",),
+    }
 
 
 def test_development_loader_opens_only_the_pinned_train_file():
@@ -270,6 +278,22 @@ def test_policy_plots_emit_svg_only(tmp_path: Path):
     assert len(paths) == 4
     assert all(path.suffix == ".svg" and path.stat().st_size > 0 for path in paths)
     assert not list((tmp_path / "plots").glob("*.png"))
+
+
+def test_written_results_select_only_region_relevant_subsets():
+    frame = pd.DataFrame(
+        [
+            {"region": region, "subset": subset}
+            for region in ("cds", "enhancer")
+            for subset in MENDELIAN_SUBSETS
+        ]
+    )
+    selected = select_presentation_subsets(frame)
+    assert set(map(tuple, selected[["region", "subset"]].to_numpy())) == {
+        (region, subset)
+        for region, subsets in PRESENTATION_SUBSETS.items()
+        for subset in subsets
+    }
 
 
 def test_checkpoint_roots_reuse_issue_417_without_an_environment_input(monkeypatch):
@@ -502,6 +526,8 @@ def test_intersection_workflow_is_additive_and_rule_isolated():
     assert "vep_held_out_access" in snakefile
     assert "issue_473_intersection_loss" in launcher
     assert "--allowed-rules" in launcher
+    assert "storage producer_s3:" in snakefile
+    assert "storage.producer_s3(uri)" in snakefile
     assert "compute_scores" not in launcher
     assert "include:" not in snakefile
     assert "image_id: ami-0324f0ad73bdcd087" in launcher

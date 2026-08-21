@@ -13,6 +13,9 @@ from exp473_center_seeded_projection.intersection_loss import (
     score_intersection,
 )
 
+storage producer_s3:
+    provider="s3"
+
 MODELS = [dict(model) for model in config["models"]]
 MODEL_BY_NAME = {model["name"]: model for model in MODELS}
 assert MODELS and len(MODEL_BY_NAME) == len(MODELS)
@@ -35,7 +38,7 @@ def source_for_model(wildcards):
     assert source["region"] == model["region"]
     assert source["policy"] == model["policy"]
     uri = source["uri"]
-    return uri if uri.startswith("s3://") else local(uri)
+    return storage.producer_s3(uri) if uri.startswith("s3://") else local(uri)
 
 
 SCORE_OUTPUTS = expand(
