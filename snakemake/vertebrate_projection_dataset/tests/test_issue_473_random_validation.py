@@ -135,6 +135,7 @@ def test_random_validation_uses_only_its_standalone_entrypoint() -> None:
     root = Path(__file__).parents[1]
     shared = (root / "workflow/Snakefile").read_text()
     entrypoint = (root / "workflow/Issue473RandomValidation.smk").read_text()
+    rules = (root / "workflow/rules/issue_473_random_validation.smk").read_text()
     module = "rules/issue_473_random_validation.smk"
     assert module not in shared
     assert f'include: "{module}"' in entrypoint
@@ -144,3 +145,8 @@ def test_random_validation_uses_only_its_standalone_entrypoint() -> None:
     assert "issue_473_random_validation_all_hf_files" in launcher
     assert "issue_473_random_validation_all_hf" in launcher
     assert "ALLOW_HF_UPLOAD" in launcher
+
+    card_rule = rules.split("rule issue_473_random_validation_card:", 1)[1].split(
+        "rule issue_473_random_validation_manifest:", 1
+    )[0]
+    assert "output:\n        local(" in card_rule

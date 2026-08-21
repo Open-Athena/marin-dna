@@ -167,7 +167,9 @@ rule issue_473_random_validation_card:
     input:
         ISSUE_473_RANDOM_SUMMARY,
     output:
-        f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md",
+        local(
+            f"{ISSUE_473_RANDOM_HF_ROOT}/{ISSUE_473_RANDOM_COHORT}/README.md"
+        ),
     resources:
         mem_mb=1000,
     run:
