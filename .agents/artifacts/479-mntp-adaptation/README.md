@@ -2,7 +2,7 @@
 
 This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479).
 The committed figures and tables are the durable record.
-W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), and [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx) runs for dense interactive views.
+W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx), and [AdamW 1e-5 long run](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) for dense interactive views.
 
 ## Outcome
 
@@ -54,8 +54,48 @@ The compact evidence is in `causal-calibration-lr1e-6/` and at [W&B run q09fcejx
 The final checkpoint upload failed only because the private Hugging Face storage limit was reached after evaluation completed.
 No AUPRC evaluation or additional learning-rate arm was launched because the strict validation gate did not pass.
 
-The final conservative listed-price estimate is $25.2624 against the $50 cap.
-It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, focused final-checkpoint, and AdamW calibration attempts.
+## One-thousand-step AdamW causal trajectory
+
+The selected follow-up ran one full-parameter AdamW causal arm for 1,000 steps at peak learning rate `1e-5`.
+It used 100 steps of linear warmup from zero, a constant peak through step 800, and linear decay to zero at the step-1,000 boundary.
+Only pooled loss on the exact fixed 640-sequence validation panel was evaluated.
+
+| Step | Pooled causal validation loss |
+|---:|---:|
+| 0 | 0.231380263 |
+| 25 | 0.231215115 |
+| 50 | 0.231117290 |
+| 100 | 0.230961750 |
+| 200 | 0.231275874 |
+| 300 | 0.231912117 |
+| 400 | 0.232075906 |
+| 500 | 0.232739045 |
+| 600 | 0.232293802 |
+| 700 | 0.232297623 |
+| 800 | 0.232962976 |
+| 900 | 0.233230022 |
+| 1,000 | 0.233014855 |
+
+The trajectory reached its minimum at the end of warmup, crossed above the source baseline between steps 200 and 300, and finished `0.001634592` above baseline.
+The pooled gate therefore failed.
+Cooldown produced only a small step-900-to-1,000 recovery.
+
+All 1,000 recorded training and gradient values were finite.
+Pre-clipping gradient norm had median/p95/maximum `0.6599/0.7577/1.3261`, with only two clipped steps.
+Neither clipped step coincided with a loss spike, and 100-step training-loss means stayed within `0.8696–0.8827`.
+The validation degradation is therefore smooth and mild rather than an optimization instability.
+
+Twelve trajectory exports and the full step-1,000 optimizer-bearing Lightning checkpoint are retained as 13 W&B model artifacts totaling 67.25 GB.
+The complete artifact identifiers are in `causal-longrun-lr1e-5/retention-manifest.json`.
+No retained checkpoint was deleted and no output was uploaded to Hugging Face.
+
+This run cost an estimated `$0.8613`, bringing the conservative listed-price total to `$26.1237 / $50`.
+The Lambda cluster self-terminated and was confirmed absent.
+The compact evidence is in `causal-longrun-lr1e-5/` and at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6).
+Research knowledge-base interpretation remains paused.
+
+The current conservative listed-price estimate is $26.1237 against the $50 cap.
+It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, focused final-checkpoint, AdamW calibration, and 1,000-step AdamW attempts.
 The final Lambda cluster was confirmed terminated.
 Provider billing may differ from this pre-autodown list-price estimate.
 
@@ -66,12 +106,13 @@ Provider billing may differ from this pre-autodown list-price estimate.
 - `single-orientation-decision.csv`: task-level single-orientation gates.
 - `strand-consistency.csv`: transferred FWD-versus-RC score correlations.
 - `context-window-primary.csv`: post-hoc fixed context/window primary endpoints.
-- `cost-summary.csv`: final conservative list-price accounting.
+- `cost-summary.csv`: current conservative list-price accounting.
 - `vep/`: compact metrics, natural-unit paired uncertainty, context probes, runtime, and manifest. Per-variant scores remain in private staging and W&B.
 - `context-window/`: compact post-hoc ablation/window metrics, stability, runtime, and manifest. Per-variant scores remain private.
 - `nucleotide-dependency/`: five reviewed SVG maps and their numeric summary. The HBA1 chromosome-16 reference sequence is unlabeled; no held-out label or effect measurement was used.
 - `audit/`: checkpoint loss/AUPRC trajectories, alignment and coordinate contracts, three-arm gradient stability, exact/near-exact parity tables, and the corrected three-final-checkpoint dependency figure. The older five-locus dependency maps are retained as historical artifacts but must not be used quantitatively because their baseline batch shape was mismatched.
 - `causal-calibration-lr1e-6/`: fixed-plan causal validation trajectory, per-component gate table, 200-step training loss and gradient trace, runtime, and cost evidence for the conservative AdamW arm.
+- `causal-longrun-lr1e-5/`: pooled 1,000-step causal validation trajectory, dense training/gradient trace, retained-checkpoint manifest, runtime, cost, and reviewed SVG/PNG figures for the selected AdamW arm.
 - `runs/`: arm runtime/manifests, data/preflight records, budget projection, and final cost estimate.
 - `figures/`: decision-oriented SVG figures generated by `plot_results.py`.
 

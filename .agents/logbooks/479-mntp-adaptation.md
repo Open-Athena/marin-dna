@@ -401,3 +401,23 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Budget: Carry forward `$25.26241970350875`; a conservative two-hour Lambda GH200 reservation projects `$29.84241970350875 / $50`.
 - Interpretation boundary: Remain in experiment mode and publish factual trajectories and stability checks without updating the research knowledge base.
 - Next action: Implement and verify the locked long-run stage, snapshot the exact commit, update issue #479, launch one self-terminating Lambda GH200, and monitor through durable checkpoint retention and pooled validation.
+
+### 2026-08-21 17:26 - AdamW 1e-5 causal trajectory completed
+
+- Launch snapshot: `9fed5963d454167f9d1fbc74f91e87f1ecc6944b`.
+- Command: `uv run --locked python launch.py longrun --commit 9fed5963d454167f9d1fbc74f91e87f1ecc6944b --prior-cost-usd 25.26241970350875 --retry-until-up --execute`.
+- Placement: One Lambda GH200 in `us-east-3` at `$2.29/hour` after `us-east-1` reported insufficient capacity.
+- Verification: The remote locked suite passed 93 tests, and the regenerated training/validation plan hashes exactly matched `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91` and `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Config: Full-parameter AdamW at peak learning rate `1e-5`, betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, clipping at `1.0`, batch 64, seed 0, 100-step warmup, stable through step 800, and linear decay to zero at step 1,000.
+- Pooled validation: Loss was `0.231380263` at step 0, reached a minimum of `0.230961750` at step 100, crossed above baseline between steps 200 and 300, peaked at `0.233230022` at step 900, and ended at `0.233014855` at step 1,000.
+- Gate: The step-1,000 versus step-0 delta was `+0.001634592`, and the fitted slope was `+2.1429e-6` per step, so the pooled validation gate is false.
+- Stability: All 1,000 numeric trace rows were finite. Pre-clipping gradient norm minimum/median/p95/maximum was `0.5173/0.6599/0.7577/1.3261`; only steps 265 and 738 clipped, and neither coincided with a training-loss spike. Successive 100-step mean training losses stayed within `0.8696–0.8827`.
+- Retention: Twelve trajectory exports and one full step-1,000 Lightning checkpoint containing optimizer, scheduler, and loop state were committed as 13 W&B model artifacts totaling 67.25 GB. The full artifact is `gonzalobenegas/marin/dna-exp479-causal-longrun-step-1000-full:v0`.
+- Publication boundary: No output was uploaded to Hugging Face and no retained checkpoint was deleted.
+- Runtime: Training executed 1,000 steps in 783.78 seconds, processed 16,384,000 model tokens at 20,904 tokens/s including synchronous artifact retention pauses, and peaked at 67,360,480,768 allocated CUDA bytes.
+- Cost: The instance ran from 17:00:46 to the 17:23:19 pre-autodown record. This attempt cost an estimated `$0.8613`, bringing the conservative listed-price total to `$26.1237 / $50`.
+- Teardown: The job succeeded and `sky status -r dna-exp479-gh200` confirmed the cluster absent.
+- Direct record: [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6).
+- Factual readout: The selected recipe improves pooled validation during warmup, then causes a small progressive degradation at constant peak learning rate with only partial cooldown recovery. The trace does not show numerical instability.
+- Interpretation boundary: Do not run AUPRC or update the research knowledge base from this result until the experiment presentation is reviewed.
+- Next action: Commit and tag the compact result bundle, update issue #479 body/comment with the validation and stability figures, and keep the W&B checkpoints retained.
