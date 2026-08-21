@@ -185,6 +185,37 @@ Do not launch the full projection or any paid/cloud job without explicit user
 approval. If the dry-run plans to recompute an upstream or unrelated artifact,
 stop before running it.
 
+### Issue #473 random-validation control
+
+The CDS full-window random-validation control is a separate additive workflow.
+It reads the immutable original-orientation accepted-sequence table from #417
+and does not include or modify an established rule. It uniformly samples
+16,384 CDS rows without replacement using seed 42, removes those rows from
+training, and only then adds reverse complements to the remaining training
+rows. Validation contains the sampled original-orientation rows only.
+
+Inspect the complete public-dataset graph with:
+
+```bash
+uv run --locked snakemake -n \
+  issue_473_random_validation_all_hf_files \
+  --snakefile workflow/Issue473RandomValidation.smk \
+  --profile workflow/profiles/default
+```
+
+The public repository is
+[`marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val`](https://huggingface.co/datasets/marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val).
+The dedicated Sky launcher builds and validates files before upload. Set
+`TARGET=issue_473_random_validation_all_hf_files`, `DRY_RUN=0`, and
+`ALLOW_HF_UPLOAD=0` for the non-uploading build. After reviewing its generated
+card and manifest, set `TARGET=issue_473_random_validation_all_hf`,
+`DRY_RUN=0`, and `ALLOW_HF_UPLOAD=1` to publish. The uploader explicitly sets
+and verifies public repository visibility.
+
+The workflow writes no projection QC or split-composition report. Its persisted
+split summary records only the fixed seed and row counts needed to reproduce
+the dataset.
+
 ### Shared local-node safety
 
 Run data-scale validation, tracing, global sorts/group-bys, and working sets

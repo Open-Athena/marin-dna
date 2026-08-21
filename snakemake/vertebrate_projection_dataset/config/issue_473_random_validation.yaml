@@ -1,0 +1,16 @@
+pipeline_version: v1
+source_manifest: config/issue_473_immutable_sources.tsv
+source_name: issue417_all_sequences
+source_local_path: local/issue_473_random_validation/issue417_all_sequences.parquet
+
+region_label: cds
+validation_rows: 16384
+split_seed: 42
+target_length: 255
+
+publication_train_shards: 64
+publication_validation_shards: 1
+publication_shuffle_seed: 42
+hf_upload_workers: 1
+cohort: fullwindow_cds_random_validation
+hf_repo: marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val

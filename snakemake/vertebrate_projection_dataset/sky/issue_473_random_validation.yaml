@@ -1,0 +1,83 @@
+name: issue-473-random-validation-dataset
+
+resources:
+  infra: aws/us-east-2
+  image_id: ami-0324f0ad73bdcd087
+  instance_type: r6i.8xlarge
+  disk_size: 1000
+  labels:
+    project: dna
+
+workdir: .
+
+file_mounts:
+  ~/.cache/huggingface/token: ~/.cache/huggingface/token
+  ~/.cache/huggingface/stored_tokens: ~/.cache/huggingface/stored_tokens
+
+envs:
+  PIPELINE_COMMIT_SHA: ""
+  TARGET: issue_473_random_validation_all_hf_files
+  DRY_RUN: "1"
+  ALLOW_HF_UPLOAD: "0"
+
+setup: |
+  set -euxo pipefail
+  if [ ! -d "$HOME/miniforge3" ]; then
+    curl -fsSL -o /tmp/miniforge.sh \
+      https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
+    rm /tmp/miniforge.sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if [ "$(uv --version 2>/dev/null || true)" != "uv 0.11.31" ]; then
+    curl -LsSf https://astral.sh/uv/0.11.31/install.sh | sh
+  fi
+  test "$(uv --version)" = "uv 0.11.31"
+  export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  conda config --set channel_priority strict
+  uv sync --project snakemake/vertebrate_projection_dataset --locked
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
+  export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  command -v aws
+  aws sts get-caller-identity >/dev/null
+  test -n "$PIPELINE_COMMIT_SHA"
+  test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
+  test "$TARGET" = "issue_473_random_validation_all_hf_files" -o \
+    "$TARGET" = "issue_473_random_validation_all_hf"
+  if [ "$TARGET" = "issue_473_random_validation_all_hf" ]; then
+    test "$ALLOW_HF_UPLOAD" = "1"
+  fi
+
+  ALLOWED_RULES=(
+    issue_473_random_validation_stage_source
+    issue_473_random_validation_split
+    issue_473_random_validation_prepare_train
+    issue_473_random_validation_prepare_validation
+    issue_473_random_validation_compress
+    issue_473_random_validation_card
+    issue_473_random_validation_manifest
+    issue_473_random_validation_all_hf_files
+  )
+  if [ "$TARGET" = "issue_473_random_validation_all_hf" ]; then
+    ALLOWED_RULES+=(
+      issue_473_random_validation_upload
+      issue_473_random_validation_all_hf
+    )
+  fi
+
+  SNAKEMAKE_MODE=()
+  if [ "$DRY_RUN" = "1" ]; then
+    SNAKEMAKE_MODE+=(--dry-run)
+  fi
+  cd snakemake/vertebrate_projection_dataset
+  uv run --locked snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
+    --snakefile workflow/Issue473RandomValidation.smk \
+    --profile workflow/profiles/default \
+    --cores 32 \
+    --resources mem_mb=250000 final_large_scan=1 hf_uploads=1 \
+    --allowed-rules "${ALLOWED_RULES[@]}" \
+    --rerun-incomplete \
+    --printshellcmds
