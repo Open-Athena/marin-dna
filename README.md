@@ -22,10 +22,10 @@ These documents synthesize MarinDNA's current answers and help organize future e
 
 ### Other active questions
 
+- [Context size](docs/research/questions/long-context.md)
 - [Data mixing](docs/research/questions/data-mixtures.md)
 - [Evolutionary timescales](docs/research/questions/evolutionary-timescale.md)
 - [Latent biological features](docs/research/questions/latent-features.md)
-- [Long-range context](docs/research/questions/long-context.md)
 - [Sequence-to-function modeling](docs/research/questions/sequence-to-function.md)
 - [Species conditioning](docs/research/questions/species-conditioning.md)
 - [Tokenization](docs/research/questions/tokenization.md)
