@@ -154,7 +154,9 @@ def test_load_config_rejects_unrepresentable_transformers5_schema(
         load_hf_checkpoint_config(tmp_path)
 
 
-def test_load_config_rejects_longrope_factor_length_mismatch(tmp_path: Path) -> None:
+def test_load_config_rejects_transformers5_longrope_as_unrepresentable(
+    tmp_path: Path,
+) -> None:
     _write_config(
         tmp_path,
         hidden_size=8,
@@ -163,8 +165,32 @@ def test_load_config_rejects_longrope_factor_length_mismatch(tmp_path: Path) -> 
         rope_parameters={
             "rope_theta": 500000,
             "rope_type": "longrope",
+            "short_factor": [1.0, 1.0],
+            "long_factor": [2.0, 2.0],
+            "factor": 2.0,
+        },
+    )
+
+    with pytest.raises(HfCheckpointCompatibilityError, match="cannot be translated"):
+        load_hf_checkpoint_config(tmp_path)
+
+
+def test_load_config_rejects_transformers4_longrope_factor_length_mismatch(
+    tmp_path: Path,
+) -> None:
+    _write_config(
+        tmp_path,
+        hidden_size=8,
+        num_attention_heads=2,
+        head_dim=4,
+        max_position_embeddings=8,
+        original_max_position_embeddings=4,
+        rope_theta=500000,
+        rope_scaling={
+            "rope_type": "longrope",
             "short_factor": [1.0],
             "long_factor": [2.0],
+            "factor": 2.0,
         },
     )
 

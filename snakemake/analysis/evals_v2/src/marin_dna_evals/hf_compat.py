@@ -209,6 +209,11 @@ def _legacy_rope_from_parameters(
         parameters.pop("rope_theta"), field="rope_parameters.rope_theta", path=path
     )
     scaling = _canonical_rope_scaling(parameters, field="rope_parameters", path=path)
+    if scaling is not None and scaling["rope_type"] == "longrope":
+        raise HfCheckpointCompatibilityError(
+            f"{path}: Transformers-5 longrope cannot be translated to Transformers 4 "
+            "without changing its original-context semantics"
+        )
     return theta, scaling
 
 
@@ -218,6 +223,47 @@ def _validate_longrope_dimensions(
     *,
     path: Path,
 ) -> None:
+    max_position_embeddings = getattr(config, "max_position_embeddings", None)
+    if (
+        isinstance(max_position_embeddings, bool)
+        or not isinstance(max_position_embeddings, int)
+        or max_position_embeddings <= 0
+    ):
+        raise HfCheckpointCompatibilityError(
+            f"{path}: max_position_embeddings must be a positive integer for longrope"
+        )
+    original_max = getattr(config, "original_max_position_embeddings", None)
+    nested_original_max = scaling.get("original_max_position_embeddings")
+    if original_max is not None:
+        if (
+            isinstance(original_max, bool)
+            or not isinstance(original_max, int)
+            or original_max <= 0
+        ):
+            raise HfCheckpointCompatibilityError(
+                f"{path}: original_max_position_embeddings must be a positive integer"
+            )
+        if nested_original_max is not None and nested_original_max != original_max:
+            raise HfCheckpointCompatibilityError(
+                f"{path}: top-level and nested original_max_position_embeddings conflict"
+            )
+        if "factor" in scaling and not math.isclose(
+            float(scaling["factor"]),
+            max_position_embeddings / original_max,
+        ):
+            raise HfCheckpointCompatibilityError(
+                f"{path}: longrope factor conflicts with the effective context-length ratio"
+            )
+    elif nested_original_max is not None:
+        raise HfCheckpointCompatibilityError(
+            f"{path}: Transformers 4 ignores nested longrope original_max_position_embeddings"
+        )
+    elif "factor" not in scaling and "attention_factor" not in scaling:
+        raise HfCheckpointCompatibilityError(
+            f"{path}: longrope requires factor when no original context length or "
+            "attention_factor is available"
+        )
+
     head_dim = getattr(config, "head_dim", None)
     if head_dim is None:
         hidden_size = getattr(config, "hidden_size", None)
