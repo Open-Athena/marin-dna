@@ -168,8 +168,8 @@ def test_get_special_token_counts(bos_id, eos_id, counts):
     [
         ("songlab/tokenizer-dna-mlm", (0, 0)),
         ("songlab/tokenizer-dna-clm", (0, 0)),
-        ("bolinas-dna/tokenizer-char-bos", (1, 0)),
-        ("bolinas-dna/tokenizer-char-bos-eos", (1, 1)),
+        ("marin-dna/tokenizer-char-bos", (1, 0)),
+        ("marin-dna/tokenizer-char-bos-eos", (1, 1)),
     ],
 )
 def test_get_special_token_counts_real_tokenizers(tokenizer_name, counts):
@@ -181,7 +181,7 @@ def test_transform_llr_clm_exp136_recipe(tmp_path):
     """Regression for issue #19: window_size=255 + marin_dna BOS tokenizer.
 
     With BOS (n_prefix=1), the token-level var_pos is window_size // 2 + 1 = 128."""
-    tokenizer = AutoTokenizer.from_pretrained("bolinas-dna/tokenizer-char-bos")
+    tokenizer = AutoTokenizer.from_pretrained("marin-dna/tokenizer-char-bos")
     fasta_path = tmp_path / "g.fa"
     fasta_path.write_text(">chr1\n" + ("ACGT" * 100) + "\n")
     genome = Genome(fasta_path)
