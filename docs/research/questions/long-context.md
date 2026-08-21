@@ -1,18 +1,27 @@
-# How should a short-context gLM acquire long-range context?
+# What context sizes do genomic language models need for different biological tasks, and how should models acquire and use that context?
 
 > [!NOTE]
-> **TL;DR:** No MarinDNA experiment directly compares long-context strategies; existing work favors reusing short-context representations through staged, hierarchical, or downstream adaptation, but the best choice depends on output resolution and compute, so confidence is low pending a matched comparison.
+> **TL;DR:** m5.1 Mendelian VEP benefits from inference context up to its 255 bp training length, has a protocol-specific result at 511 bp, and fails sharply at 1023 bp; matched training-context and genuinely long-range task comparisons remain necessary because useful context depends on the task, objective, and acquisition method.
 
 ## Question
 
-How should we turn a genomic language model pretrained on short windows—typically sized to model a single functional element—into a model that can use long-range genomic context while retaining nucleotide-level resolution?
+What context sizes do genomic language models need across biological tasks, model scales, pretraining, inference, and downstream adaptation?
+When a task needs more context than a short-window checkpoint saw during training, how should the model acquire and use it while retaining nucleotide-level resolution?
 At fixed compute and data, how do second-stage long-context language modeling, direct long-context downstream fine-tuning, and a hierarchical local-to-global architecture compare?
 Which strategy best preserves what the short-context model learned while adding useful dependencies across tens to hundreds of kilobases?
 
 ## Current answer
 
-No MarinDNA experiment directly compares ways to add genuinely long-range context to a short-window model.
-A 256-versus-512 bp pretraining comparison found no clear VEP difference, so it does not decide behavior at tens or hundreds of kilobases.
+Context needs are task- and protocol-dependent, and inference length should not be treated as interchangeable with training length.
+For the fixed 255 bp-trained m5.1 checkpoint on Mendelian development variants, cropping inference from 255 to 31 bp reduced macro AUPRC from 0.3945 to 0.1941 zero-shot and from 0.4779 to 0.3174 with newly trained frozen probes.
+Inference extension to 511 bp produced a small zero-shot gain that was statistically significant in the paired analysis but no significant probe change.
+Extension to 1023 bp sharply reduced both protocols relative to 511 bp.
+These results show that executable rotary positions do not guarantee useful extrapolation beyond the training context.
+They do not establish the best pretraining context because checkpoint weights were fixed.
+
+A 256-versus-512 bp pretraining comparison found no clear VEP difference, so the available training-context evidence does not favor one of those short windows.
+No MarinDNA experiment directly compares ways to add genuinely long-range context to a short-window model or measures a task that requires dependencies across tens to hundreds of kilobases.
+The 1023 bp m5.1 result remains far below that regime but shows that direct extension baselines should align training and inference context deliberately.
 
 Three strategies remain viable.
 Continued long-context language modeling could produce a reusable base model but adds the most compute and risks diluting functional signal with abundant background sequence.
@@ -22,9 +31,9 @@ A local-to-global model reuses the short-context encoder and delegates cross-win
 A short local encoder has improved a 2,114 bp supervised accessibility model in published work, which supports feasibility of local-to-global transfer.
 That setup freezes the local encoder, never lets it attend across chunk boundaries, and remains far below chromosome-scale context, so it does not establish long-context language understanding.
 
-Confidence is low on a universal winner.
-Direct downstream extension should be the baseline; local-to-global modeling is the leading scalable option for nucleotide-resolution tasks; continued language modeling is justified only if gains transfer across several long-range tasks.
-Any comparison must match parameters, training tokens, and compute and must verify dependence on distant sequence.
+Confidence remains low on context lengths beyond local VEP windows and on a universal acquisition strategy.
+Direct downstream extension should be the baseline, local-to-global modeling is the leading scalable option for nucleotide-resolution tasks, and continued language modeling is justified only if gains transfer across several long-range tasks.
+Any comparison must match parameters, training tokens, and compute, align training and inference context deliberately, and verify dependence on distant sequence.
 
 <details>
 <summary>Related work</summary>
@@ -47,6 +56,8 @@ Any comparison must match parameters, training tokens, and compute and must veri
 <details>
 <summary>Related experiments</summary>
 
+- [Inference-context sensitivity of m5.1 Mendelian VEP](../experiments/485-m5-1-inference-context.md) holds one 255 bp-trained checkpoint fixed across 31–1023 bp inference windows.
+  Cropping below 255 bp lowers both macro metrics, 511 bp has a zero-shot-only gain, and 1023 bp fails sharply, but the experiment does not compare training contexts or a genuinely long-range task.
 - [#37](https://github.com/Open-Athena/marin-dna/issues/37) compared 256 bp and 512 bp pretraining contexts and found no clear VEP difference.
   It supports short windows as a workable local baseline and proposed downstream extension or hierarchy, but the tested lengths are too short to distinguish the three long-context strategies.
 
@@ -55,6 +66,8 @@ Any comparison must match parameters, training tokens, and compute and must veri
 <details>
 <summary>Possible directions</summary>
 
+- **When can inference safely differ from training context?**
+  Compare crop and extension ladders across checkpoints trained at several context lengths, and separate score-construction effects from biological information gained or lost with the window.
 - **What long-range capability do we want first?**
   Candidate tests should require distant context by construction—for example enhancer–promoter interactions, gene-level expression, long-range splicing regulation, or another task where masking distant sequence should measurably hurt.
 - **What context lengths define the useful regime?**
