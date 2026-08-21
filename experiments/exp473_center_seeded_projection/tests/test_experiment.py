@@ -7,9 +7,11 @@ from exp473_center_seeded_projection.experiment import (
     ARMS,
     BATCH_SIZE,
     DEFAULT_TPU_REGION,
+    DEFAULT_TPU_RAM,
     DEFAULT_TPU_VARIANT,
     HF_SAVE_STEPS,
     MODEL,
+    MODEL_TOKENIZER_PATH,
     NATIVE_CHECKPOINT_STEPS,
     OPTIMIZER,
     PER_DEVICE_PARALLELISM,
@@ -36,6 +38,7 @@ from marin.execution.lazy import StepContext
 
 def _set_required_env(monkeypatch) -> None:
     monkeypatch.delenv("EXP473_TPU_VARIANT", raising=False)
+    monkeypatch.delenv("EXP473_TPU_RAM", raising=False)
     monkeypatch.setenv("WANDB_API_KEY", "test-key")
     monkeypatch.setenv("WANDB_ENTITY", "test-entity")
     monkeypatch.setenv("WANDB_PROJECT", "marin")
@@ -60,7 +63,10 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
     assert MODEL.head_dim == 128
     assert MODEL.use_sliding_window is False
     assert MODEL.tie_word_embeddings is False
-    assert MODEL.tokenizer == TOKENIZER_PATH
+    assert MODEL.tokenizer == MODEL_TOKENIZER_PATH
+    assert MODEL_TOKENIZER_PATH.endswith(
+        "experiments/exp473_center_seeded_projection/tokenizer"
+    )
     assert MODEL.initializer_range == 0.02
     assert 250_000_000 < MODEL.total_trainable_params(7) < 260_000_000
     assert OPTIMIZER.learning_rate == 0.00430097
@@ -98,6 +104,7 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
             step.runtime_args["train_resources"].device.variant
             == DEFAULT_TPU_VARIANT
         )
+        assert step.runtime_args["train_resources"].ram == DEFAULT_TPU_RAM
         assert pod.env_vars["EXP473_TPU_REGION"] == DEFAULT_TPU_REGION
         assert len(step.deps) == 1
         assert key in step.name
@@ -125,8 +132,15 @@ def test_training_tags_fit_wandb_limit_and_preserve_source_identity() -> None:
 def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> None:
     _set_required_env(monkeypatch)
     monkeypatch.setenv("EXP473_TPU_VARIANT", "v6e-4")
+    monkeypatch.setenv("EXP473_TPU_RAM", "96G")
     east5_step = build_training(ARMS["enhancer_full_window"])
     assert east5_step.runtime_args["train_resources"].device.variant == "v6e-4"
+    assert east5_step.runtime_args["train_resources"].ram == "96g"
+
+    monkeypatch.setenv("EXP473_TPU_RAM", "128g")
+    with pytest.raises(ValueError, match="EXP473_TPU_RAM"):
+        build_training(ARMS["enhancer_full_window"])
+    monkeypatch.setenv("EXP473_TPU_RAM", DEFAULT_TPU_RAM)
 
     monkeypatch.setenv("EXP473_TPU_REGION", "us-central1")
     monkeypatch.setenv(

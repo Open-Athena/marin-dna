@@ -28,6 +28,8 @@ from exp473_center_seeded_projection.formats import DNALmDatasetFormat
 
 MARIN_COMMIT = "6bb4d74694fa185cabf20d037f414235e6a12eed"
 TOKENIZER_PATH = "tokenizer"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MODEL_TOKENIZER_PATH = str(PROJECT_ROOT / TOKENIZER_PATH)
 TOKENIZER_SOURCE = "marin-dna/tokenizer-char-bos"
 TOKENIZER_SOURCE_REVISION = "a73e9d9ee636f722b4c378703c9e2997857809b2"
 TOKENIZER_SHA256 = {
@@ -46,6 +48,8 @@ WANDB_MAX_TAG_LENGTH = 64
 DATA_VERSION = "2026.08.20"
 DEFAULT_TPU_REGION = "us-east5"
 DEFAULT_TPU_VARIANT = "v5p-8"
+DEFAULT_TPU_RAM = "56g"
+ALLOWED_TPU_RAM = frozenset({DEFAULT_TPU_RAM, "96g"})
 ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
 ALLOWED_TPU_VARIANTS_BY_REGION = {
     "us-east5": frozenset({"v5p-8", "v6e-4"}),
@@ -67,7 +71,7 @@ MODEL = Qwen3Config(
     rope=Llama3RotaryEmbeddingsConfig(),
     use_sliding_window=False,
     tie_word_embeddings=False,
-    tokenizer=TOKENIZER_PATH,
+    tokenizer=MODEL_TOKENIZER_PATH,
     initializer_range=0.02,
 )
 OPTIMIZER = AdamConfig(
@@ -187,6 +191,16 @@ def selected_tpu_variant(tpu_region: str) -> str:
     return variant
 
 
+def selected_tpu_ram() -> str:
+    """Return bounded host RAM; larger RAM is an execution-only OOM recovery."""
+    ram = os.environ.get("EXP473_TPU_RAM", DEFAULT_TPU_RAM).strip().lower()
+    if ram not in ALLOWED_TPU_RAM:
+        raise ValueError(
+            f"EXP473_TPU_RAM must be one of {sorted(ALLOWED_TPU_RAM)}, got {ram!r}"
+        )
+    return ram
+
+
 def validated_marin_prefix(tpu_region: str) -> str:
     """Require the experiment artifact bucket to be local to its TPU region."""
     prefix = required_env("MARIN_PREFIX").rstrip("/")
@@ -304,6 +318,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
     run_id = f"dna-exp473-0p25b-{arm.key}-v1"
     tpu_region = selected_tpu_region()
     tpu_variant = selected_tpu_variant(tpu_region)
+    tpu_ram = selected_tpu_ram()
     marin_prefix = validated_marin_prefix(tpu_region)
     forwarded_env = {
         "WANDB_API_KEY": required_env("WANDB_API_KEY"),
@@ -331,7 +346,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
         resources=ResourceConfig.with_tpu(
             tpu_variant,
             cpu=16,
-            ram="56g",
+            ram=tpu_ram,
             disk="100g",
             regions=[tpu_region],
         ),
