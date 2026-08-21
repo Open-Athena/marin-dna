@@ -1,0 +1,28 @@
+name: dna-exp479-mntp-step-1000-ldlr-dependency
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 64
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${WANDB_API_KEY:-}"
+  artifact_root="$HOME/exp479-mntp-ldlr-artifacts"
+  output_dir="$artifact_root/evaluation/mntp-step-1000-ldlr-dependency"
+  mkdir -p "$output_dir"
+  trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-mntp-ldlr-artifacts" || true' EXIT
+  uv run --locked pytest
+  uv run --locked exp479 mntp-dependency \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --batch-size 1024

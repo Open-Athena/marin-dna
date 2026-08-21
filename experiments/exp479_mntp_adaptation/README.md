@@ -124,7 +124,8 @@ Training applies each repeat weight once, normalizes each sequence by its effect
 
 Post-hoc validation reports the equal five-component macro for both deterministic diffusion masks and deterministic single masks at steps 0, 25, 50, 100, and every 100 steps thereafter.
 The task computes registered FWD+RC AUPRC on odd-numbered autosomes and chromosome X at step 0 and every 100 steps.
-It computes one directed tRNA-Arg-TCT nucleotide-dependency map at the final checkpoint.
+The selected final-checkpoint example is the LDLR promoter, the default locus in the interactive nucleotide-dependency browser.
+A focused evaluation loads the retained step-1,000 checkpoint without retraining and computes one directed map with the same paired-baseline implementation.
 No held-out even-autosome or chromosome-Y labels are accessed.
 
 Every numbered Hugging Face-format export and the full step-1,000 Lightning checkpoint are retained as W&B model artifacts.

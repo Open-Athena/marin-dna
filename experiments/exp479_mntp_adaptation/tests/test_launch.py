@@ -151,3 +151,27 @@ def test_mntp_longrun_sky_stage_runs_one_corrected_arm_without_hf() -> None:
     assert "--vep-batch-size 1024" in stage
     assert "--dependency-batch-size 1024" in stage
     assert "finalize-local" in stage
+
+
+def test_mntp_dependency_uses_only_retained_wandb_checkpoint() -> None:
+    command = launch_command(
+        "mntp-dependency",
+        "a" * 40,
+        1234,
+        prior_cost_usd=32.289179,
+        retry_until_up=True,
+    )
+    assert command[4] == "sky/mntp-dependency.yaml"
+    assert "EXP479_PRIOR_COST_USD=32.289179" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "HF_REPO_ID=marin-dna/marin-dna-exp479-mntp-m5.1" not in command
+    assert "--down" in command
+
+    stage = Path("sky/mntp-dependency.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 mntp-dependency") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "finalize-local" in stage

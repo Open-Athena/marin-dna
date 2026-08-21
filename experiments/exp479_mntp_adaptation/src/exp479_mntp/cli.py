@@ -198,6 +198,14 @@ def _parser() -> argparse.ArgumentParser:
     mntp_longrun.add_argument("--n-bootstrap", type=int, default=200)
     mntp_longrun.add_argument("--offline-wandb", action="store_true")
 
+    mntp_dependency = subparsers.add_parser(
+        "mntp-dependency",
+        help="evaluate browser-default LDLR at the retained final MNTP checkpoint",
+    )
+    mntp_dependency.add_argument("--artifact-dir", type=Path, required=True)
+    mntp_dependency.add_argument("--output-dir", type=Path, required=True)
+    mntp_dependency.add_argument("--batch-size", type=int, default=1_024)
+
     normalization = subparsers.add_parser(
         "loss-normalization-audit",
         help="re-evaluate retained causal checkpoints with Marin-compatible loss",
@@ -427,6 +435,15 @@ def main() -> None:
             vep_batch_size=args.vep_batch_size,
             dependency_batch_size=args.dependency_batch_size,
             n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "mntp-dependency":
+        from exp479_mntp.mntp_dependency import run_mntp_dependency
+
+        run_mntp_dependency(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            batch_size=args.batch_size,
         )
         return
     if args.command == "loss-normalization-audit":

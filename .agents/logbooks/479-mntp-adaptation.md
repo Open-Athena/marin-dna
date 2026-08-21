@@ -549,3 +549,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Storage cleanup: At the user's explicit request, permanently delete private repository `gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover`, which held 175 files and 80,766,064,598 logical bytes at revision `59fd525018c545f81c4deccaf3800bef5a41886a`; authenticated verification reports it absent.
 - Publication boundary: Do not update the research knowledge base while the experiment remains in progress.
 - Next action: Snapshot and push the exact implementation, dry-run it, launch one self-terminating Lambda GH200, and monitor startup plus the first trajectory evidence.
+
+### 2026-08-21 23:12 - LDLR final-checkpoint dependency replacement preregistered
+
+- Trigger: The user rejected tRNA-Arg-TCT as the selected nucleotide-dependency example and requested the locus shown by default in the interactive browser.
+- Locus: Use LDLR at chromosome 19 `[11089299, 11089425)` on the positive strand, matching the browser's first configured locus and the project's 0-based half-open coordinate convention.
+- Checkpoint: Load only retained W&B artifact `gonzalobenegas/marin/dna-exp479-mntp-longrun-corrected-step-1000:v0`; do not retrain, modify, upload, or delete a checkpoint.
+- Method: Compute a reference-orientation 255-by-255 directed map with full attention and a masked readout; pair each wild-type baseline with its substitutions in the same model call.
+- Gates: Require the exact registered shape, finite values, an exactly zero diagonal, and nonzero past- and future-context maxima.
+- Publication: Retain only the compact matrix, summary, invariant record, manifest, and SVG in W&B; do not upload to Hugging Face or update the research knowledge base.
+- Compute: Use one self-terminating Lambda GH200, carry forward the conservative `$32.289179 / $50` cost, and run the complete locked suite before model loading.
+- Next action: Commit and push the rebased implementation, dry-run the exact snapshot, launch the evaluation, inspect the rendered LDLR plot, and replace the tRNA example in the factual evidence.
