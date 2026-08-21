@@ -1832,3 +1832,31 @@ cohort, assemblies, and downstream training recipe fixed.
   development-evaluation and chromosome-18 configurations will use the final
   post-rebase logbook snapshot commit so every output remains tied to source
   that includes this mapping and the current main guidance.
+
+### 2026-08-21 01:40 UTC - CSP-055 development evaluator gates passed
+
+- Post-rebase source commit
+  `ae90f6d9e4b23ebe8fb1bd2314baa66cb82b37c1` passed the complete remote
+  dry-run on pinned image `ami-0324f0ad73bdcd087`: one AWS A10G, NVIDIA
+  driver 595.71.05, CUDA 13.0, and locked PyTorch 2.13.0. The isolated graph
+  contained exactly 36 model downloads, 72 development score cells, 72
+  official metric cells, and one target, using only the four preregistered
+  arms and nine requested steps.
+- The first monitored score gate used the reused #417 CDS full-window step
+  1,000 model and direct-downloaded only the pinned public
+  `train.parquet`. The development boundary assertion accepted exactly
+  16,140 odd-autosome/X rows. Forward and reverse-complement scoring both
+  completed, and the unchanged official metric kernel emitted all 66 metric
+  rows. No held-out file, label, prediction, measurement, or metric was read.
+- An additive partial evaluation now targets every durable requested
+  checkpoint: all nine reused CDS full-window steps, CDS center-1 through
+  step 4,000, and both enhancer arms at step 1,000. The warm A10G graph has
+  87 remaining or newly selected jobs and writes only beneath the immutable
+  `results/issue473/ae90f6d.../development_eval/` namespace. It began model
+  staging successfully and reached 10/87 jobs by 01:39 UTC.
+- Both enhancer Iris jobs are actively training on east5 v6e-4 workers with
+  zero failures and zero preemptions. At 01:35 UTC, full-window had reached
+  about step 1,330 and center-1 about step 1,220, both with displayed loss
+  1.32. Center-1 also committed a fresh temporary recovery checkpoint at
+  step 1,217. The earlier queued state was transient accelerator capacity,
+  not a persistent launch failure.
