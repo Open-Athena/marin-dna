@@ -2175,3 +2175,22 @@ cohort, assemblies, and downstream training recipe fixed.
   committed temporary checkpoint step 3,599. Intermittent input-loader stalls
   reduced throughput, but the TPU remained allocated and optimization kept
   advancing; the next immutable boundary is step 4,000.
+
+### 2026-08-21 09:03 UTC - CSP-069 evaluation matrix audited and repaired
+
+- An exact S3 inventory found 62 of the 72 registered development metric
+  cells, rather than the 66 implied by the already exported checkpoints. Both
+  enhancer policies were missing their step-1,500 Mendelian and Complex
+  metric cells even though both corresponding Hugging Face exports were
+  durable and exactly 1,019,426,427 bytes.
+- The two isolated step-1,500 graphs were submitted on the warm A10G evaluator
+  and both completed all five jobs successfully. Each scored exactly 16,140
+  Mendelian and 11,630 Complex rows from the pinned public `train.parquet`
+  files and produced 66 and 60 official metric rows, respectively.
+- The repaired matrix now has 66 of 72 registered cells. The only absent cells
+  are the two development datasets for future enhancer full-window steps
+  4,000, 4,500, and 4,999. No held-out labeled file, prediction, measurement,
+  or metric was requested or read.
+- Enhancer full-window remained actively allocated on its 96 GiB us-east1
+  worker, committed temporary step 3,931, and continued toward the immutable
+  step-4,000 boundary.
