@@ -24,9 +24,12 @@ author: Codex
 - The two Zoonomia probes use bare Ensembl release 115 GRCh38 sequence names and 0-based half-open coordinates.
 - The scoring workflow must keep these reference joins separate and assert sequence identity before deriving repeat labels.
 - The versioned metadata, forward atom cache, and earliest-versus-terminal pilot are implemented.
-- Eight focused tests pass.
-- The corrected Snakemake dry-run is pending on remote compute because the local parser measured about 1.0 GiB RSS.
-- No scoring run has launched.
+- Nine focused tests and the ten-cell pilot pass.
+- Direct `.fai`-derived S3 byte-range queries provide repeat-mask case for the Ensembl probes without downloading or indexing the whole genome.
+- Full five-checkpoint by five-probe scoring completed successfully on 2026-08-21.
+- The full cache contains 25 parquets and 25 manifests totaling 104,448,000 unfiltered token rows and 2,412,324,903 bytes of score artifacts.
+- Manifest and parquet-footer audits pass for every cell.
+- Statistical summaries, plots, and hypothesis interpretation remain pending.
 
 ## Baseline
 
@@ -238,3 +241,23 @@ The original m1.3 training definition names five training sources but only three
 - Interpretation: The atom-cache producer is ready for review before expanding to five checkpoints and the full 16,384-window probes.
 - Next action: Do not launch full scoring without a separate review and approval.
 - Next action: The paid `evals-v2-ld489-pilot` cluster was terminated after the report was secured.
+
+### 2026-08-21 17:25 UTC - `LD489-007` complete the full atom cache
+
+- Hypothesis: The pilot-validated producer can score the complete five-checkpoint by five-probe matrix while preserving stable token identities and bounded remote reference access.
+- Commit Hash: `c91b51c5f5dee922f85f5aca3f81b5068c84cbf4`.
+- Dry-run command: `sky launch snakemake/analysis/evals_v2/sky/run.yaml -c evals-v2-ld489-full --memory=30+ --env SNAKEMAKE_ARGS="-n --resources gpu=1 -- likelihood_dynamics_489_atoms" -y`.
+- Run command: `sky exec evals-v2-ld489-full snakemake/analysis/evals_v2/sky/run.yaml --env SNAKEMAKE_ARGS="--resources gpu=1 -- likelihood_dynamics_489_atoms"`.
+- Config: AWS `g5.2xlarge[Spot]` in `us-east-2a` with one NVIDIA A10G, 8 vCPUs, and 32 GB RAM at a displayed spot price of $0.70/hour.
+- Result: The dry-run contained five metadata jobs, 25 scoring jobs, and one named-target wrapper, with no unrelated jobs or model conversions.
+- Result: The live run completed 31 of 31 jobs with exit code 0 from 16:00:07 UTC through 17:25:23 UTC.
+- Result: GPU inference stabilized at 1.58 batches per second for 256 batches per scoring cell, or about 161 seconds per forward pass.
+- Result: All five metadata parquet/manifest pairs were uploaded under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/m13_likelihood_dynamics_489/v1/metadata/full/`.
+- Result: All 25 score parquet/manifest pairs were uploaded under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/m13_likelihood_dynamics_489/v1/scoring/full/atoms/`.
+- Result: The score inventory contains 50 objects totaling 2,412,324,903 bytes.
+- Result: Every scoring manifest reports scope `full`, 16,384 windows, 4,177,920 positions, 4,177,920 scorable positions, the expected stable identity `(region, row_index, target_pos)`, and a null aggregate gate as configured for the one-pass full run.
+- Result: The 25 manifest checkpoint/region pairs exactly cover all five checkpoint orders and all five regions.
+- Result: Direct parquet-footer validation found 25 parquets, four row groups per parquet, 4,177,920 rows per parquet, the required atom columns, and 104,448,000 rows total.
+- Interpretation: The complete unfiltered atom cache is valid and ready for bounded-memory statistical summarization.
+- Next action: Implement and run the primary-span nonrepeat summaries, conservation AUPRC, lowest-loss 10% Jaccard, loss-reduction deciles, covariate controls, and research plots.
+- Next action: The paid `evals-v2-ld489-full` cluster was terminated after the inventory and manifest/footer audits passed.
