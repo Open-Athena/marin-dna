@@ -1,0 +1,37 @@
+{
+  "status": "completed",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "checkpoint_steps": [
+    0,
+    25,
+    50,
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+  ],
+  "checkpoint_backend": "retained W&B model artifacts",
+  "checkpoint_deletion": "not performed",
+  "source_validation_scope": [
+    "cds",
+    "upstream",
+    "downstream"
+  ],
+  "additional_probe_scope": [
+    "enhancer",
+    "ncrna"
+  ],
+  "original_wandb_region_losses": {
+    "cds": 0.6337850689888,
+    "downstream": 0.620932400226593,
+    "upstream": 0.782120406627655
+  },
+  "original_wandb_region_mean": 0.6789459586143494,
+  "elapsed_seconds": 119.55898857116699
+}

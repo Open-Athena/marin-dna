@@ -192,6 +192,13 @@ def _parser() -> argparse.ArgumentParser:
     normalization.add_argument("--validation-plan", type=Path, required=True)
     normalization.add_argument("--batch-size", type=int, default=64)
 
+    source_validation = subparsers.add_parser(
+        "source-validation-reproduction",
+        help="reproduce the original nine full-dataset validation metrics",
+    )
+    source_validation.add_argument("--output-dir", type=Path, required=True)
+    source_validation.add_argument("--batch-size", type=int, default=128)
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
@@ -397,6 +404,16 @@ def main() -> None:
             output_dir=args.output_dir,
             train_plan=args.train_plan,
             validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+        )
+        return
+    if args.command == "source-validation-reproduction":
+        from exp479_mntp.source_validation_reproduction import (
+            run_source_validation_reproduction,
+        )
+
+        run_source_validation_reproduction(
+            output_dir=args.output_dir,
             batch_size=args.batch_size,
         )
         return

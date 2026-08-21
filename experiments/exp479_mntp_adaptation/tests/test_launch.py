@@ -94,3 +94,18 @@ def test_loss_normalization_launch_uses_only_wandb_and_retained_artifacts() -> N
     assert "HF_TOKEN" not in command
     assert "HF_REPO_ID=marin-dna/marin-dna-exp479-mntp-m5.1" not in command
     assert "--down" in command
+
+
+def test_source_validation_launch_uses_public_hf_and_wandb_only() -> None:
+    command = launch_command(
+        "source-validation",
+        "a" * 40,
+        1234,
+        prior_cost_usd=26.4688,
+    )
+    assert command[4] == "sky/source-validation.yaml"
+    assert "EXP479_PRIOR_COST_USD=26.4688" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
