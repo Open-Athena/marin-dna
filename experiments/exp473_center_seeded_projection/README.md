@@ -90,6 +90,7 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   -e WANDB_PROJECT marin \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
   -e EXP473_TPU_REGION us-east5 \
+  -e EXP473_TPU_VARIANT v5p-8 \
   -e EXP473_ARM cds_center_1 \
   -- python -m exp473_center_seeded_projection.experiment \
   --version 2026.08.20 --run
@@ -109,9 +110,12 @@ the complete public repository name and exact revision for provenance.
 The coordinator's `--region` controls only its CPU task. Set
 `EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
 allowed values are `us-east5` and `us-central1`, with `us-east5` retained as
-the default. `MARIN_PREFIX` must use the matching `marin-us-east5` or
-`marin-us-central1` bucket; the launcher fails before graph creation when the
-bucket and child region differ. A region migration must terminate the old
+the default. `EXP473_TPU_VARIANT` defaults to `v5p-8`; east5 also permits
+`v6e-4`, which is the capacity fallback used for the two enhancer arms, while
+central1 permits only `v5p-8`. `MARIN_PREFIX` must use the matching
+`marin-us-east5` or `marin-us-central1` bucket; the launcher fails before graph
+creation when the bucket and child region differ, or when a variant is
+unsupported in the chosen region. A region migration must terminate the old
 coordinator and child before launching a replacement with the same run and
 checkpoint identities. A new region uses an additive artifact namespace and
 rebuilds the source-pinned cache there rather than rewriting a receipt from a

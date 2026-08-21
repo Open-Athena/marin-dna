@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from exp473_center_seeded_projection.analyze_evals import (
     MENDELIAN_SUBSETS,
+    plot_deltas,
     read_development_metric,
     score_uri,
     seed_trigger_table,
@@ -141,6 +142,31 @@ def test_eval_config_is_development_only_and_complete():
     assert model["name"].startswith(f"exp473-{'a' * 40}-")
     assert model["gcs_path"].endswith("/cds_center_1-abc123/hf/step-1000")
     assert model["datasets"] == ["mendelian_traits", "sge"]
+
+
+def test_policy_plots_emit_svg_only(tmp_path: Path):
+    rows = []
+    for region in ("cds", "enhancer"):
+        for metric in ("auprc", "group_smd"):
+            for subset_index, subset in enumerate(MENDELIAN_SUBSETS):
+                for step_index, step in enumerate(CHECKPOINT_STEPS):
+                    delta = (subset_index - 3.5) * 0.001 + step_index * 0.0001
+                    rows.append(
+                        {
+                            "region": region,
+                            "metric": metric,
+                            "subset": subset,
+                            "step": step,
+                            "delta_center_minus_full": delta,
+                            "ci_low": delta - 0.002,
+                            "ci_high": delta + 0.002,
+                        }
+                    )
+
+    paths = plot_deltas(pd.DataFrame(rows), tmp_path)
+    assert len(paths) == 4
+    assert all(path.suffix == ".svg" and path.stat().st_size > 0 for path in paths)
+    assert not list((tmp_path / "plots").glob("*.png"))
 
 
 def test_checkpoint_roots_reuse_issue_417_without_an_environment_input(monkeypatch):

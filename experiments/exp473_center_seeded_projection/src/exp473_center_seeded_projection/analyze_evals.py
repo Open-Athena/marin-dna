@@ -49,6 +49,16 @@ MENDELIAN_SUBSETS = (
     "tss_proximal",
     "distal",
 )
+SUBSET_LABELS = {
+    "missense_variant": "Missense variant",
+    "synonymous_variant": "Synonymous variant",
+    "splicing": "Splicing",
+    "3_prime_UTR_variant": "3′ UTR variant",
+    "non_coding_transcript_exon_variant": "Non-coding transcript exon",
+    "5_prime_UTR_variant": "5′ UTR variant",
+    "tss_proximal": "TSS-proximal",
+    "distal": "Distal",
+}
 ROW_IDENTITY_COLUMNS = (
     "chrom",
     "pos",
@@ -310,12 +320,19 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
     plot_dir = output_dir / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
     labels = {
-        "auprc": "AUPRC delta",
-        "group_smd": "Group SMD delta",
+        "auprc": "AUPRC difference",
+        "group_smd": "Group SMD difference",
     }
+    region_labels = {"cds": "CDS", "enhancer": "Enhancer"}
     for region in REGION_ARMS:
         for metric in ("auprc", "group_smd"):
-            fig, axes = plt.subplots(4, 2, figsize=(12, 13), sharex=True)
+            fig, axes = plt.subplots(
+                4,
+                2,
+                figsize=(9, 16),
+                sharex=True,
+                sharey=True,
+            )
             for axis, subset in zip(axes.flat, MENDELIAN_SUBSETS, strict=True):
                 cell = deltas[
                     (deltas["region"] == region)
@@ -328,40 +345,38 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
                     cell["step"],
                     cell["ci_low"],
                     cell["ci_high"],
-                    color="#0072B2",
+                    color="C0",
                     alpha=0.16,
                     linewidth=0,
                 )
                 axis.plot(
                     cell["step"],
                     cell["delta_center_minus_full"],
-                    color="#0072B2",
+                    color="C0",
                     marker="o",
                     linewidth=1.8,
                     markersize=3.5,
                 )
-                axis.set_title(subset.replace("_", " "), fontsize=10)
+                axis.set_title(SUBSET_LABELS[subset])
+                axis.set_box_aspect(1)
                 axis.grid(alpha=0.2, linewidth=0.6)
-            for axis in axes[-1]:
-                axis.set_xlabel("training step")
+            fig.supxlabel("Training step")
+            fig.supylabel(f"Center 1 − full window {labels[metric]}")
             fig.suptitle(
-                f"Issue #473 {region}: center_1 − full_window {labels[metric]}",
-                fontsize=14,
+                f"{region_labels[region]} paired {labels[metric]} trajectories",
             )
             fig.text(
                 0.5,
                 0.012,
-                "Development split only. Ribbons are paired 95% percentile "
+                "Development split; shading shows paired 95% percentile "
                 "intervals from aligned match-group bootstrap draws.",
                 ha="center",
-                fontsize=9,
             )
-            fig.tight_layout(rect=(0, 0.035, 1, 0.97))
+            fig.tight_layout(rect=(0.03, 0.04, 1, 0.97))
             stem = f"{region}_{metric}_paired_delta_trajectories"
-            for extension, kwargs in (("svg", {}), ("png", {"dpi": 140})):
-                path = plot_dir / f"{stem}.{extension}"
-                fig.savefig(path, bbox_inches="tight", **kwargs)
-                paths.append(path)
+            path = plot_dir / f"{stem}.svg"
+            fig.savefig(path, bbox_inches="tight")
+            paths.append(path)
             plt.close(fig)
     return paths
 

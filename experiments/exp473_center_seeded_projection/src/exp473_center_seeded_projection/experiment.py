@@ -45,7 +45,12 @@ PER_DEVICE_PARALLELISM = 1_024
 WANDB_MAX_TAG_LENGTH = 64
 DATA_VERSION = "2026.08.20"
 DEFAULT_TPU_REGION = "us-east5"
+DEFAULT_TPU_VARIANT = "v5p-8"
 ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
+ALLOWED_TPU_VARIANTS_BY_REGION = {
+    "us-east5": frozenset({"v5p-8", "v6e-4"}),
+    "us-central1": frozenset({"v5p-8"}),
+}
 ARTIFACT_BUCKET_BY_TPU_REGION = {
     "us-east5": "marin-us-east5",
     "us-central1": "marin-us-central1",
@@ -170,6 +175,18 @@ def selected_tpu_region() -> str:
     return region
 
 
+def selected_tpu_variant(tpu_region: str) -> str:
+    """Return an explicitly supported TPU variant for the child region."""
+    variant = os.environ.get("EXP473_TPU_VARIANT", DEFAULT_TPU_VARIANT).strip()
+    allowed = ALLOWED_TPU_VARIANTS_BY_REGION[tpu_region]
+    if variant not in allowed:
+        raise ValueError(
+            f"EXP473_TPU_VARIANT must be one of {sorted(allowed)} in "
+            f"{tpu_region!r}, got {variant!r}"
+        )
+    return variant
+
+
 def validated_marin_prefix(tpu_region: str) -> str:
     """Require the experiment artifact bucket to be local to its TPU region."""
     prefix = required_env("MARIN_PREFIX").rstrip("/")
@@ -286,6 +303,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
     cache = tokenized_dataset(arm)
     run_id = f"dna-exp473-0p25b-{arm.key}-v1"
     tpu_region = selected_tpu_region()
+    tpu_variant = selected_tpu_variant(tpu_region)
     marin_prefix = validated_marin_prefix(tpu_region)
     forwarded_env = {
         "WANDB_API_KEY": required_env("WANDB_API_KEY"),
@@ -311,7 +329,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
         z_loss_weight=4.312883184368223e-06,
         evals=None,
         resources=ResourceConfig.with_tpu(
-            "v5p-8",
+            tpu_variant,
             cpu=16,
             ram="56g",
             disk="100g",

@@ -7,6 +7,7 @@ from exp473_center_seeded_projection.experiment import (
     ARMS,
     BATCH_SIZE,
     DEFAULT_TPU_REGION,
+    DEFAULT_TPU_VARIANT,
     HF_SAVE_STEPS,
     MODEL,
     NATIVE_CHECKPOINT_STEPS,
@@ -34,6 +35,7 @@ from marin.execution.lazy import StepContext
 
 
 def _set_required_env(monkeypatch) -> None:
+    monkeypatch.delenv("EXP473_TPU_VARIANT", raising=False)
     monkeypatch.setenv("WANDB_API_KEY", "test-key")
     monkeypatch.setenv("WANDB_ENTITY", "test-entity")
     monkeypatch.setenv("WANDB_PROJECT", "marin")
@@ -92,6 +94,10 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
         assert train.hf_save_steps == HF_SAVE_STEPS
         assert train.z_loss_weight == 4.312883184368223e-06
         assert step.runtime_args["train_resources"].regions == [DEFAULT_TPU_REGION]
+        assert (
+            step.runtime_args["train_resources"].device.variant
+            == DEFAULT_TPU_VARIANT
+        )
         assert pod.env_vars["EXP473_TPU_REGION"] == DEFAULT_TPU_REGION
         assert len(step.deps) == 1
         assert key in step.name
@@ -116,13 +122,21 @@ def test_training_tags_fit_wandb_limit_and_preserve_source_identity() -> None:
         bounded_wandb_tag("x" * WANDB_MAX_TAG_LENGTH, "value")
 
 
-def test_tpu_child_region_override_is_explicit_and_bounded(monkeypatch) -> None:
+def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> None:
     _set_required_env(monkeypatch)
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v6e-4")
+    east5_step = build_training(ARMS["enhancer_full_window"])
+    assert east5_step.runtime_args["train_resources"].device.variant == "v6e-4"
+
     monkeypatch.setenv("EXP473_TPU_REGION", "us-central1")
     monkeypatch.setenv(
         "MARIN_PREFIX",
         "gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection/",
     )
+    with pytest.raises(ValueError, match="EXP473_TPU_VARIANT"):
+        build_training(ARMS["cds_center_1"])
+
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v5p-8")
     step = build_training(ARMS["cds_center_1"])
     pod = step.build_config(
         StepContext.for_fingerprint(
@@ -145,6 +159,11 @@ def test_tpu_child_region_override_is_explicit_and_bounded(monkeypatch) -> None:
 
     monkeypatch.setenv("EXP473_TPU_REGION", "anywhere")
     with pytest.raises(ValueError, match="EXP473_TPU_REGION"):
+        build_training(ARMS["cds_center_1"])
+
+    monkeypatch.setenv("EXP473_TPU_REGION", "us-east5")
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "anything")
+    with pytest.raises(ValueError, match="EXP473_TPU_VARIANT"):
         build_training(ARMS["cds_center_1"])
 
 
