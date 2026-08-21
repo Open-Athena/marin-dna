@@ -96,6 +96,7 @@ def test_trace_flank_launcher_is_pinned_and_additive():
     assert "-eq 214" in launcher
     assert "trace_flanks_v1" in launcher
     assert "image_id: ami-0324f0ad73bdcd087" in launcher
+    assert "disk_size: 100" in launcher
     run = launcher.split("run: |", maxsplit=1)[1]
     assert " snakemake " not in run
     assert "--snakefile" not in run

@@ -9,7 +9,7 @@ resources:
     image_id: ami-0324f0ad73bdcd087
     cpus: 4+
     memory: 16+
-    disk_size: 50
+    disk_size: 100
     labels:
         project: dna
     use_spot: false
