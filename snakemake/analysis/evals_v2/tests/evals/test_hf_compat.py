@@ -63,6 +63,22 @@ def test_load_config_accepts_consistent_dual_schema(tmp_path: Path) -> None:
     assert config.rope_scaling == LLAMA3_SCALING
 
 
+def test_load_config_accepts_semantically_equivalent_default_dual_schema(
+    tmp_path: Path,
+) -> None:
+    _write_config(
+        tmp_path,
+        rope_parameters={"rope_theta": 500000, "rope_type": "default"},
+        rope_theta=500000,
+        rope_scaling={"rope_type": "default"},
+    )
+
+    config = load_hf_checkpoint_config(tmp_path)
+
+    assert config.rope_theta == 500000
+    assert config.rope_scaling is None
+
+
 @pytest.mark.parametrize(
     "legacy_fields",
     [
@@ -118,6 +134,15 @@ def test_load_config_rejects_incomplete_or_malformed_transformers5_schema(
             {"rope_theta": 500000, "rope_type": "linear", "factor": 0.5},
             "at least 1",
         ),
+        (
+            {
+                "rope_theta": 500000,
+                "rope_type": "yarn",
+                "factor": 8.0,
+                "truncate": "false",
+            },
+            "must be a boolean",
+        ),
     ],
 )
 def test_load_config_rejects_unrepresentable_transformers5_schema(
@@ -126,6 +151,24 @@ def test_load_config_rejects_unrepresentable_transformers5_schema(
     _write_config(tmp_path, rope_parameters=parameters)
 
     with pytest.raises(HfCheckpointCompatibilityError, match=message):
+        load_hf_checkpoint_config(tmp_path)
+
+
+def test_load_config_rejects_longrope_factor_length_mismatch(tmp_path: Path) -> None:
+    _write_config(
+        tmp_path,
+        hidden_size=8,
+        num_attention_heads=2,
+        head_dim=4,
+        rope_parameters={
+            "rope_theta": 500000,
+            "rope_type": "longrope",
+            "short_factor": [1.0],
+            "long_factor": [2.0],
+        },
+    )
+
+    with pytest.raises(HfCheckpointCompatibilityError, match="must contain 2 values"):
         load_hf_checkpoint_config(tmp_path)
 
 

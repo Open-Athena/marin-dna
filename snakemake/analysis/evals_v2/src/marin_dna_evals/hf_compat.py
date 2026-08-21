@@ -147,6 +147,10 @@ def _canonical_rope_scaling(
         raise HfCheckpointCompatibilityError(
             f"{path}: {field}.factor must be at least 1"
         )
+    if "truncate" in scaling and not isinstance(scaling["truncate"], bool):
+        raise HfCheckpointCompatibilityError(
+            f"{path}: {field}.truncate must be a boolean"
+        )
     if "original_max_position_embeddings" in scaling:
         original_max = scaling["original_max_position_embeddings"]
         if (
@@ -184,6 +188,8 @@ def _canonical_rope_scaling(
                 field=f"{field}.{factors_field}[{index}]",
                 path=path,
             )
+    if rope_type == "default":
+        return None
     return scaling
 
 
@@ -203,15 +209,52 @@ def _legacy_rope_from_parameters(
         parameters.pop("rope_theta"), field="rope_parameters.rope_theta", path=path
     )
     scaling = _canonical_rope_scaling(parameters, field="rope_parameters", path=path)
-    if scaling is not None and scaling["rope_type"] == "default":
-        unexpected = set(scaling) - {"rope_type"}
-        if unexpected:
-            raise HfCheckpointCompatibilityError(
-                f"{path}: default rope_parameters contains fields Transformers 4 cannot preserve: "
-                f"{sorted(unexpected)}"
-            )
-        scaling = None
     return theta, scaling
+
+
+def _validate_longrope_dimensions(
+    config: PretrainedConfig,
+    scaling: dict[str, Any],
+    *,
+    path: Path,
+) -> None:
+    head_dim = getattr(config, "head_dim", None)
+    if head_dim is None:
+        hidden_size = getattr(config, "hidden_size", None)
+        num_attention_heads = getattr(config, "num_attention_heads", None)
+        if (
+            isinstance(hidden_size, bool)
+            or not isinstance(hidden_size, int)
+            or hidden_size <= 0
+            or isinstance(num_attention_heads, bool)
+            or not isinstance(num_attention_heads, int)
+            or num_attention_heads <= 0
+        ):
+            raise HfCheckpointCompatibilityError(
+                f"{path}: cannot derive the rotary dimension for longrope"
+            )
+        head_dim = hidden_size // num_attention_heads
+    if isinstance(head_dim, bool) or not isinstance(head_dim, int) or head_dim <= 0:
+        raise HfCheckpointCompatibilityError(
+            f"{path}: head_dim must be a positive integer for longrope"
+        )
+    partial_rotary_factor = _positive_number(
+        getattr(config, "partial_rotary_factor", 1.0),
+        field="partial_rotary_factor",
+        path=path,
+    )
+    expected_length = int(head_dim * partial_rotary_factor) // 2
+    if expected_length <= 0:
+        raise HfCheckpointCompatibilityError(
+            f"{path}: longrope rotary dimension must be positive"
+        )
+    for field in ("short_factor", "long_factor"):
+        actual_length = len(scaling[field])
+        if actual_length != expected_length:
+            raise HfCheckpointCompatibilityError(
+                f"{path}: rope_scaling.{field} must contain {expected_length} values, "
+                f"got {actual_length}"
+            )
 
 
 def _validate_effective_rope(
@@ -241,6 +284,11 @@ def _validate_effective_rope(
                 f"{path}: Transformers resolved rope_scaling={effective_scaling!r}, "
                 f"expected {expected_scaling!r}"
             )
+        if (
+            effective_scaling is not None
+            and effective_scaling["rope_type"] == "longrope"
+        ):
+            _validate_longrope_dimensions(config, effective_scaling, path=path)
 
 
 def load_hf_checkpoint_config(checkpoint_path: str | Path) -> PretrainedConfig:
