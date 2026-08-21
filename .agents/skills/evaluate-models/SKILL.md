@@ -1,6 +1,6 @@
 ---
 name: evaluate-models
-description: Design, run, interpret, and report MarinDNA genomic language-model evaluations. Use when selecting benchmark subsets, filtering evaluation records, ordering reported results, or deciding which results are valid for a model's training-region scope.
+description: Protect held-out labeled variant-effect prediction data and design, run, interpret, and report MarinDNA genomic language-model evaluations. Use for development, training, validation, model selection, probing, tuning, or evaluation on labeled VEP data, and when selecting benchmark subsets, filtering evaluation records, ordering reported results, or deciding which results are valid for a model's training-region scope.
 ---
 
 # Evaluate Models
