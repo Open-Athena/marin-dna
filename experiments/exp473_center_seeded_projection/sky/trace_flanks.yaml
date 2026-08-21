@@ -1,0 +1,50 @@
+# Standalone additive sampled-PSL flank analysis for issue #473.
+
+name: exp473-trace-flanks
+
+resources:
+    infra: aws/us-east-2
+    cpus: 4+
+    memory: 16+
+    disk_size: 50
+    labels:
+        project: dna
+    use_spot: false
+
+workdir: .
+
+envs:
+    EXP473_ANALYSIS_COMMIT: ""
+
+setup: |
+    set -euxo pipefail
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    uv self update 0.11.31
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    aws sts get-caller-identity >/dev/null
+
+run: |
+    set -euxo pipefail
+    test -n "$EXP473_ANALYSIS_COMMIT"
+    PRODUCER_COMMIT=d0e5380a46cd66d4c42d763b3c42da1150c92073
+    PRODUCER_CONFIG=bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039
+    SOURCE_ROOT="s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/v1/$PRODUCER_COMMIT/$PRODUCER_CONFIG/full/experiments/473/fixed/hal_trace"
+    OUTPUT_ROOT="s3://oa-bolinas/snakemake/analysis/issue473/results/$EXP473_ANALYSIS_COMMIT/$PRODUCER_COMMIT/$PRODUCER_CONFIG/trace_flanks_v1"
+    WORK=/tmp/issue473_trace_flanks
+    mkdir -p "$WORK/raw" "$WORK/output"
+    aws s3 cp "$SOURCE_ROOT/sample.tsv" "$WORK/sample.tsv" --only-show-errors
+    aws s3 cp "$SOURCE_ROOT/raw/" "$WORK/raw/" --recursive --only-show-errors
+    test "$(find "$WORK/raw" -type f -name '*.psl' | wc -l)" -eq 214
+    export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        python -m exp473_center_seeded_projection.trace_flanks \
+        --sample "$WORK/sample.tsv" \
+        --raw-root "$WORK/raw" \
+        --output-dir "$WORK/output" \
+        --analysis-commit "$EXP473_ANALYSIS_COMMIT" \
+        --n-bootstrap 1000 \
+        --seed 473
+    aws s3 sync "$WORK/output" "$OUTPUT_ROOT/" --only-show-errors
+    aws s3 ls "$OUTPUT_ROOT/manifest.json"

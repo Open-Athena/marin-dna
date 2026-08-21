@@ -57,6 +57,11 @@ OFFICIAL_ENDPOINT_DATASETS = {
     "cds": ("complex_traits", "sge"),
     "enhancer": ("complex_traits",),
 }
+OFFICIAL_PRESENTATION_SUBSETS = {
+    ("cds", "complex_traits"): PRESENTATION_SUBSETS["cds"],
+    ("cds", "sge"): ("missense_variant", "splicing"),
+    ("enhancer", "complex_traits"): PRESENTATION_SUBSETS["enhancer"],
+}
 SUBSET_LABELS = {
     "missense_variant": "Missense variant",
     "synonymous_variant": "Synonymous variant",
@@ -297,6 +302,59 @@ def collect_official_endpoints(
     return pd.concat(rows, ignore_index=True), inputs
 
 
+def final_official_endpoint_table(endpoints: pd.DataFrame) -> pd.DataFrame:
+    """Select comparable final endpoint rows for region-relevant subsets."""
+    required = {
+        "region",
+        "dataset",
+        "subset",
+        "policy",
+        "step",
+        "value",
+        "se",
+        "score_type",
+        "metric",
+        "accession",
+        "gene",
+    }
+    missing = required - set(endpoints.columns)
+    assert not missing, f"official endpoints missing columns {sorted(missing)}"
+    final = endpoints[endpoints["step"] == max(CHECKPOINT_STEPS)].copy()
+    parts: list[pd.DataFrame] = []
+    for (region, dataset), subsets in OFFICIAL_PRESENTATION_SUBSETS.items():
+        cell = final[
+            (final["region"] == region)
+            & (final["dataset"] == dataset)
+            & final["subset"].isin(subsets)
+        ]
+        if dataset == "complex_traits":
+            cell = cell[cell["score_type"] == "abs_llr_avg"]
+        else:
+            cell = cell[
+                (cell["metric"] == "AUPRC")
+                & (cell["score_type"] == "minus_llr_avg")
+                & (cell["accession"] == "_macro_avg_")
+                & (cell["gene"] == "_macro_avg_")
+            ]
+        parts.append(cell)
+    selected = pd.concat(parts, ignore_index=True)
+    identity = ["region", "dataset", "subset"]
+    full = selected[selected["policy"] == "full_window"][
+        identity + ["value", "se"]
+    ].rename(columns={"value": "full_window", "se": "full_window_se"})
+    center = selected[selected["policy"] == "center_1"][
+        identity + ["value", "se"]
+    ].rename(columns={"value": "center_1", "se": "center_1_se"})
+    result = full.merge(center, on=identity, validate="one_to_one")
+    assert len(result) == sum(
+        len(subsets) for subsets in OFFICIAL_PRESENTATION_SUBSETS.values()
+    )
+    result["delta_center_minus_full"] = (
+        result["center_1"] - result["full_window"]
+    )
+    return result.sort_values(identity).reset_index(drop=True)
+
+
 def seed_trigger_table(deltas: pd.DataFrame) -> pd.DataFrame:
     """Flag preregistered evidence that may justify a later additional seed."""
     rows: list[dict[str, Any]] = []
@@ -407,10 +465,12 @@ def plot_deltas(deltas: pd.DataFrame, output_dir: Path) -> list[Path]:
 def write_summary(
     deltas: pd.DataFrame,
     triggers: pd.DataFrame,
+    endpoints: pd.DataFrame,
     output: Path,
 ) -> None:
     presented_deltas = select_presentation_subsets(deltas)
     presented_triggers = select_presentation_subsets(triggers)
+    official = final_official_endpoint_table(endpoints)
     final = presented_deltas[
         presented_deltas["step"] == max(CHECKPOINT_STEPS)
     ].copy()
@@ -440,6 +500,28 @@ def write_summary(
             f"{row.delta_center_minus_full:.6g} | "
             f"[{row.ci_low:.6g}, {row.ci_high:.6g}] | "
             f"{row.probability_center_better:.3f} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Final-checkpoint relevant official endpoints",
+            "",
+            (
+                "Complex uses official `abs_llr_avg` AUPRC. SGE uses official "
+                "assay-macro `minus_llr_avg` AUPRC. Values are point estimate ± "
+                "official bootstrap SE; the delta is center 1 minus full window."
+            ),
+            "",
+            "| Region | Dataset | Subset | Full window | Center 1 | Delta |",
+            "|---|---|---|---:|---:|---:|",
+        ]
+    )
+    for row in official.itertuples():
+        lines.append(
+            f"| {row.region} | {row.dataset} | {row.subset} | "
+            f"{row.full_window:.6g} ± {row.full_window_se:.3g} | "
+            f"{row.center_1:.6g} ± {row.center_1_se:.3g} | "
+            f"{row.delta_center_minus_full:.6g} |"
         )
     lines.extend(
         [
@@ -506,7 +588,7 @@ def run_analysis(
         output_paths.append(path)
     output_paths.extend(plot_deltas(deltas, output_dir))
     summary_path = output_dir / "summary.md"
-    write_summary(deltas, triggers, summary_path)
+    write_summary(deltas, triggers, endpoints, summary_path)
     output_paths.append(summary_path)
 
     manifest = {

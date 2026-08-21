@@ -9,7 +9,9 @@ import pytest
 from exp473_center_seeded_projection.analyze_evals import (
     MENDELIAN_SUBSETS,
     OFFICIAL_ENDPOINT_DATASETS,
+    OFFICIAL_PRESENTATION_SUBSETS,
     PRESENTATION_SUBSETS,
+    final_official_endpoint_table,
     plot_deltas,
     read_development_metric,
     score_uri,
@@ -294,6 +296,47 @@ def test_written_results_select_only_region_relevant_subsets():
         for region, subsets in PRESENTATION_SUBSETS.items()
         for subset in subsets
     }
+
+
+def test_official_endpoint_table_selects_only_region_relevant_subsets():
+    rows = []
+    for (region, dataset), subsets in OFFICIAL_PRESENTATION_SUBSETS.items():
+        for subset in subsets:
+            for policy_index, policy in enumerate(("full_window", "center_1")):
+                rows.append(
+                    {
+                        "region": region,
+                        "dataset": dataset,
+                        "subset": subset,
+                        "policy": policy,
+                        "step": max(CHECKPOINT_STEPS),
+                        "value": 0.2 + policy_index * 0.01,
+                        "se": 0.005,
+                        "score_type": (
+                            "abs_llr_avg"
+                            if dataset == "complex_traits"
+                            else "minus_llr_avg"
+                        ),
+                        "metric": "AUPRC" if dataset == "sge" else None,
+                        "accession": "_macro_avg_" if dataset == "sge" else None,
+                        "gene": "_macro_avg_" if dataset == "sge" else None,
+                    }
+                )
+    rows.append(
+        {
+            **rows[0],
+            "subset": "distal",
+            "policy": "full_window",
+            "value": 0.99,
+        }
+    )
+    table = final_official_endpoint_table(pd.DataFrame(rows))
+    assert set(map(tuple, table[["region", "dataset", "subset"]].to_numpy())) == {
+        (region, dataset, subset)
+        for (region, dataset), subsets in OFFICIAL_PRESENTATION_SUBSETS.items()
+        for subset in subsets
+    }
+    assert table["delta_center_minus_full"].to_numpy() == pytest.approx(0.01)
 
 
 def test_checkpoint_roots_reuse_issue_417_without_an_environment_input(monkeypatch):

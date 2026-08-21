@@ -155,6 +155,23 @@ the stable project-relative `tokenizer` value. Never run two children against
 the same checkpoint root concurrently; stop the old coordinator and child
 before a recovery launch.
 
+### Sampled unaligned flanks
+
+The completed named-PSL trace retains exact alignment blocks but predates
+separate left- and right-edge flank fields. The standalone additive
+`trace_flanks.py` analysis clips those blocks to both the emitted target window
+and original human anchor, orients them to the human anchor, and records left,
+right, external, and internal unaligned bases. `sky/trace_flanks.yaml` reads
+only the 214 retained sampled PSL files and writes a commit-keyed report; it
+does not rerun projection or change an established trace rule or output.
+
+```bash
+sky launch \
+  experiments/exp473_center_seeded_projection/sky/trace_flanks.yaml \
+  -c exp473-trace-flanks \
+  --env EXP473_ANALYSIS_COMMIT="$EXP473_ANALYSIS_COMMIT"
+```
+
 ### Paired projection loss
 
 A separate additive workflow evaluates policy-matched checkpoints on the
