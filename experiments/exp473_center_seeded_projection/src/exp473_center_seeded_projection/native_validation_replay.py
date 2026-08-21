@@ -292,7 +292,7 @@ def score_validation(
     arm: str,
     region: str,
     step: int,
-    native_wandb_loss: float,
+    native_wandb_loss: float | None,
     expected_rows: int,
     checkpoint_uri: str,
     validation_repo: str,
@@ -383,10 +383,11 @@ def score_validation(
         "lowercase_weight": LOWERCASE_WEIGHT,
         "native_z_loss_weight": NATIVE_Z_LOSS_WEIGHT,
         "offline_evals_v2_nll": offline_loss,
-        "native_wandb_loss": native_wandb_loss,
-        "offline_minus_native": offline_loss - native_wandb_loss,
         "model": model_metadata,
     }
+    if native_wandb_loss is not None:
+        manifest["native_wandb_loss"] = native_wandb_loss
+        manifest["offline_minus_native"] = offline_loss - native_wandb_loss
     manifest_target = Path(manifest_path)
     manifest_target.parent.mkdir(parents=True, exist_ok=True)
     manifest_target.write_text(
