@@ -9,21 +9,20 @@ proxy for "captures functional vs non-functional sequence structure" (issue #8).
 This is the model-agnostic core: the computation kernel
 (``marin_dna_evals.model.runner.run_ll_clm`` → ``compute_ll_clm`` over
 ``transform_ll_clm``) is shared with the Evo2 path; only the model loader
-differs. ``compute_hf_ll_gap`` loads an HF ``AutoModelForCausalLM`` directly (no
-Evo2 shims). ``aggregate_ll_gap`` (used by both paths) lives here because it is
-pure numpy and not Evo2-specific.
+differs. ``compute_hf_ll_gap`` loads an HF causal LM through the shared
+fail-closed config boundary. ``aggregate_ll_gap`` (used by both paths) lives
+here because it is pure numpy and not Evo2-specific.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
 from datasets import Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from marin_dna_evals.hf_compat import load_hf_causal_lm_and_tokenizer
 from marin_dna_evals.model.runner import run_ll_clm
 
 
@@ -81,12 +80,7 @@ def compute_hf_ll_gap(
         f"{sorted(seq_lens.unique())[:5]}"
     )
 
-    # AutoTokenizer / AutoModelForCausalLM satisfy the duck-typed interface
-    # marin_dna_evals.model.runner expects — no adapter wrappers needed.
-    tokenizer: Any = AutoTokenizer.from_pretrained(checkpoint_path)
-    model: Any = AutoModelForCausalLM.from_pretrained(
-        checkpoint_path, trust_remote_code=True
-    )
+    tokenizer, model = load_hf_causal_lm_and_tokenizer(checkpoint_path)
 
     hf_dataset = Dataset.from_pandas(sequences[["seq"]], preserve_index=False)
     pred = run_ll_clm(

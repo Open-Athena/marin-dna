@@ -33,9 +33,13 @@ def _mocked_compute(
     returns ``stub_map``.
     """
     genome_inst = MagicMock(return_value=genome_seq or "A" * window_size)
+    model = MagicMock()
+    model.to.return_value = model
     with (
-        patch(f"{_MOD}.AutoTokenizer"),
-        patch(f"{_MOD}.AutoModelForCausalLM"),
+        patch(
+            f"{_MOD}.load_hf_causal_lm_and_tokenizer",
+            return_value=(MagicMock(), model),
+        ),
         patch(f"{_MOD}.Genome", return_value=genome_inst),
         patch(f"{_MOD}.torch.cuda.is_available", return_value=False),
         patch(f"{_MOD}.nucleotide_dependency_map", return_value=stub_map),

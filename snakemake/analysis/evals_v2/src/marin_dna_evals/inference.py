@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from datasets import Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from marin_dna.data.genome import Genome
+from marin_dna_evals.hf_compat import load_hf_causal_lm_and_tokenizer
 from marin_dna_evals.model.runner import run_variant_score_bundle
 
 
@@ -112,13 +112,7 @@ def compute_variant_scores(
     # normalization collapses // to /). Genome accepts str | Path and
     # detects the remote scheme itself.
     genome = Genome(genome_path)
-    # AutoTokenizer / AutoModelForCausalLM satisfy the duck-typed interface
-    # marin_dna_evals.model.runner expects — no adapter wrappers needed.
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        checkpoint_path,
-        trust_remote_code=True,
-    )
+    tokenizer, model = load_hf_causal_lm_and_tokenizer(checkpoint_path)
     hf_dataset = Dataset.from_pandas(dataset, preserve_index=False)
 
     inference_kwargs: dict[str, object] = {
