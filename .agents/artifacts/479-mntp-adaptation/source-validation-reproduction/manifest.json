@@ -1,0 +1,32 @@
+{
+  "status": "completed",
+  "source_components": [
+    "cds",
+    "upstream",
+    "downstream"
+  ],
+  "validation_slices": [
+    "default",
+    "functional",
+    "nonfunctional"
+  ],
+  "rows_per_component": 16384,
+  "total_model_rows_evaluated": 49152,
+  "elapsed_seconds": 109.07422876358032,
+  "original_evaluator": "Pinned tagged evaluation multiplied per-position loss by the repeat weight inside the loss function and again in its accumulator.",
+  "corrected_evaluator_repeat_weight_applications": 1,
+  "checkpoint_deletion": "not performed",
+  "checkpoint_upload": "not performed",
+  "summary": {
+    "passed": true,
+    "tolerance": 0.002,
+    "reproduced_original_macro": 0.8614139361188514,
+    "original_wandb_macro": 0.8613447546958923,
+    "original_macro_delta": 6.918142295908591e-05,
+    "corrected_macro": 0.8756626463264678,
+    "original_evaluator_macro_bias": -0.014248710207616422,
+    "maximum_original_metric_absolute_delta": 0.0001681451226495101,
+    "n_metrics": 9,
+    "total_model_rows_evaluated": 49152
+  }
+}

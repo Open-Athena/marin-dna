@@ -2,7 +2,7 @@
 
 This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479).
 The committed figures and tables are the durable record.
-W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx), and [AdamW 1e-5 long run](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) for dense interactive views.
+W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx), [AdamW 1e-5 long run](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6), and [full source-validation reproduction](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta) for dense interactive views.
 The corrected loss audit is at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 ## Outcome
@@ -11,7 +11,7 @@ Every preflight gate passed, and transferred MNTP, scratch MNTP, and causal cont
 The standalone experiment did not use Marin or Iris.
 All three arms nevertheless optimized an incorrectly count-normalized loss that also omitted the source z-loss term.
 
-No 10,000-step extension decision should be made while loss-path validation is open.
+The exact source-validation gate is now closed, but the completed training arms did not optimize the corrected objective and therefore do not support a 10,000-step extension.
 The AUPRC, context-use, coordinate, and serialization measurements are numerically unchanged, but research interpretation remains paused.
 
 | Superseded count-normalized step-1,000 metric | Transferred MNTP | Scratch MNTP |
@@ -36,6 +36,8 @@ Transferred MNTP used both flanks. In the matched VEP probe set its left/right L
 A loss-path bug was found after comparison with the original Marin reducer.
 Repeat-downweighted token losses were divided by raw selected-token count instead of effective-weight sum, and the source z-loss term was omitted.
 Direct source scoring and zero-update save/reload were bit-exact for both strands across all 51,623 odd/X variants, so serialization did not cause the discrepancy.
+The pinned source tagged evaluator had a separate reporting bug: it applied repeat weights in the per-token loss and again in its accumulator for the default mixed-case validation slices.
+Source training used the ordinary single-weight reduction and included z-loss; the tagged validation callback double-weighted repeats and omitted z-loss.
 Replayed CLM step 400 was bit-exact to the original Lightning checkpoint, and every replayed per-step loss matched W&B because both paths reproduced the same invalid reducer.
 
 The sequence contract is one BOS plus 255 nucleotides, with no EOS; PAD/UNK/BOS are 0/1/2, canonical bases are 3–6, and MNTP adds MASK 7.
@@ -68,7 +70,7 @@ No AUPRC evaluation or additional learning-rate arm was launched.
 The selected follow-up ran one full-parameter AdamW causal arm for 1,000 steps at peak learning rate `1e-5`.
 It used 100 steps of linear warmup from zero, a constant peak through step 800, and linear decay to zero at the step-1,000 boundary.
 The corrected audit evaluates the source plus all 12 retained checkpoints on the immutable 128-row panel and reports the macro over the three original source datasets.
-Full 16,384-row-per-dataset source parity remains pending.
+The separate full-data gate evaluates all 16,384 rows from each original dataset and reproduces all nine historical W&B metrics.
 
 | Step | Corrected source-three validation CE |
 |---:|---:|
@@ -90,6 +92,27 @@ The corrected trajectory improves slightly during warmup and then worsens, endin
 The changing direction survives the denominator correction, although the 128-row panel is too small for exact source-run parity.
 Direct evidence is in `loss-normalization-audit/` and at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
+## Full source-validation parity
+
+The completed 49,152-row audit reproduces the original pinned evaluator rather than assuming that its logged loss used the intended single repeat weight.
+The reproduced historical macro is `0.861413936` versus `0.861344755` in W&B, a difference of `0.000069181`.
+The largest absolute difference among the nine component/slice metrics is `0.000168145`, comfortably inside the unchanged `0.002` gate.
+All six uppercase-only and lowercase-only metrics match directly; the three default metrics match only when the pinned evaluator's second repeat-weight multiplication is reproduced.
+
+| Default validation slice | Corrected CE | Reproduced pinned evaluator | Original W&B |
+|---|---:|---:|---:|
+| CDS | 0.654052 | 0.633950 | 0.633785 |
+| Upstream | 0.833346 | 0.782153 | 0.782120 |
+| Downstream | 0.677935 | 0.620991 | 0.620932 |
+| Nine-metric macro | 0.875663 | 0.861414 | 0.861345 |
+
+![Original W&B versus reproduced pinned source-validation metrics](source-validation-reproduction/source-validation-parity.png)
+
+This exact agreement across three datasets, three weighting slices, and 49,152 model rows is strong evidence against an off-by-one shift, tokenizer special-token mismatch, or different source checkpoint in this reproduction.
+The corrected macro is higher because it applies the intended repeat weight once; the historical evaluator biased the macro downward by `0.014249`.
+The corrected value is validation CE, while the source training objective additionally included a small z-loss term.
+Direct evidence is in `source-validation-reproduction/` and at [W&B run hfuhn3ta](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta).
+
 All 1,000 recorded training and gradient values were finite.
 Pre-clipping gradient norm had median/p95/maximum `0.6599/0.7577/1.3261`, with only two clipped steps.
 Neither clipped step coincided with a loss spike, and 100-step training-loss means stayed within `0.8696–0.8827`.
@@ -99,12 +122,12 @@ Twelve trajectory exports and the full step-1,000 optimizer-bearing Lightning ch
 The complete artifact identifiers are in `causal-longrun-lr1e-5/retention-manifest.json`.
 No retained checkpoint was deleted and no output was uploaded to Hugging Face.
 
-This run cost an estimated `$0.8613`; the subsequent corrected audit brings the conservative listed-price total to `$26.4687 / $50`.
+This run cost an estimated `$0.8613`; the subsequent corrected audits bring the conservative listed-price total to `$27.0338 / $50`.
 The Lambda cluster self-terminated and was confirmed absent.
 The compact evidence is in `causal-longrun-lr1e-5/` and at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6).
 Research knowledge-base interpretation remains paused.
 
-The current conservative listed-price estimate is $26.4687 against the $50 cap.
+The current conservative listed-price estimate is $27.0338 against the $50 cap.
 It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, focused final-checkpoint, AdamW calibration, and 1,000-step AdamW attempts.
 The final Lambda cluster was confirmed terminated.
 Provider billing may differ from this pre-autodown list-price estimate.
@@ -124,6 +147,8 @@ Provider billing may differ from this pre-autodown list-price estimate.
 - `causal-calibration-lr1e-6/`: fixed-plan causal validation trajectory, per-component gate table, 200-step training loss and gradient trace, runtime, and cost evidence for the conservative AdamW arm.
 - `causal-longrun-lr1e-5/`: pooled 1,000-step causal validation trajectory, dense training/gradient trace, retained-checkpoint manifest, runtime, cost, and reviewed SVG/PNG figures for the selected AdamW arm.
 - `loss-normalization-audit/`: corrected three-source and five-probe trajectories, source-reducer scale comparison, component table, and manifest for all retained AdamW checkpoints.
+- `source-validation-reproduction/`: passing full-data nine-metric parity table, corrected loss values, summary, manifest, and reviewed SVG/PNG parity figure.
+- `source-validation-reproduction-v0-failed/`: retained first-gate evidence that localized the pinned evaluator's second repeat-weight multiplication.
 - `runs/`: arm runtime/manifests, data/preflight records, budget projection, and final cost estimate.
 - `figures/`: decision-oriented SVG figures generated by `plot_results.py`.
 
