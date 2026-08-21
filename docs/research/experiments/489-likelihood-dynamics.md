@@ -17,9 +17,11 @@ The lowest-score 10% within each region became more stable between adjacent chec
 Global loss Jaccard rose from 0.425 for the first adjacent pair to 0.604 for the final pair and was 0.299 from the first to terminal checkpoint.
 Enhancer had the greatest churn, with loss Jaccard 0.266 for the first pair, 0.484 for the final pair, and 0.225 end to end.
 
-High-current-loss positions had substantially more remaining optimization opportunity than low-current-loss positions.
+Positions in the highest current-loss decile had larger observed current-to-later NLL reductions than positions in the lowest decile.
 From the first to terminal checkpoint, the global highest current-loss decile improved by 0.521 nats/base, compared with 0.047 for the lowest decile.
 The lowest decile's mean loss increased over each of the first three next-checkpoint intervals, whereas the highest decile improved over every interval.
+Current NLL both determined decile membership and entered the reduction outcome with a positive sign, so checkpoint-specific deviations can affect selection and the change score in the same direction.
+The pattern can therefore include regression to the mean and does not establish differences in remaining optimization opportunity.
 
 Conservation remained positively associated with negative loss and entropy in every region and checkpoint after the specified GC, held-out 7-mer, and target-position controls.
 This supports frozen loss or entropy as a composition-adjusted conservation proxy within these panels.
@@ -33,9 +35,9 @@ Absolute low loss is not Rho-1 reducible loss because no target-distribution ref
 
 _Exact pooled AUPRC among nonrepeat central positions; dashed lines are scope-specific conserved prevalence, and the earliest checkpoint is already above prevalence in every region._
 
-![Six panels showing terminal loss reduction by current-loss decile across four current checkpoints globally and for each genomic region](figures/489/future-loss-deciles.svg)
+![Six panels showing the current-to-terminal NLL change score by current-loss decile across four current checkpoints globally and for each genomic region](figures/489/future-loss-deciles.svg)
 
-_Current high-loss positions improve more by the terminal checkpoint than current low-loss positions; this is an observational optimization trajectory rather than a tested selection intervention._
+_High-current-loss deciles have larger current-to-terminal NLL change scores, but current NLL defines the bins and enters the outcome, so this descriptive pattern may include regression to the mean._
 
 ![Ten panels showing adjusted conservation contrasts for negative loss and entropy across training in five genomic regions](figures/489/controlled-contrasts.svg)
 
@@ -54,6 +56,18 @@ The experiment followed one 1B causal lineage through five on-path checkpoints.
 | m1.3 step 82,823 | 173,692,420,096 |
 
 Each checkpoint scored one forward orientation for all scorable tokens in complete 16,384-window CDS, upstream, downstream, ncRNA, and enhancer probes from the MarinDNA blog Hugging Face collection.
+The probe revisions and references were:
+
+| Region | Hugging Face dataset revision | Reference assembly | Sequence names |
+| --- | --- | --- | --- |
+| CDS | [`genomes-v5-validation-intervals-v5_255_255@daff592`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v5_255_255/tree/daff592f213aaa1cab1711d477a79ff6b1bc4ef4) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` |
+| Upstream | [`genomes-v5-validation-intervals-v1_255_255@a761bc0`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v1_255_255/tree/a761bc0b663a9827303f3112e4667d53d5326fac) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` |
+| Downstream | [`genomes-v5-validation-intervals-v15_255_255@d7b27ee`](https://huggingface.co/datasets/marin-dna/genomes-v5-validation-intervals-v15_255_255/tree/d7b27eecd68453934ebb3e7e6e78d5401789faa5) | NCBI RefSeq GRCh38.p14, `GCF_000001405.40` | RefSeq accessions such as `NC_000001.11` |
+| ncRNA | [`zoonomia-v1-val_ncrna@76a18c1`](https://huggingface.co/datasets/marin-dna/zoonomia-v1-val_ncrna/tree/76a18c1bbf07ac9bd064722431bbdab894b9e6c6) | Ensembl release 115 GRCh38 soft-masked primary assembly | Ensembl names such as `1`, `X`, and `MT` |
+| Enhancer | [`zoonomia-v1-val_enhancer@d40d1e0`](https://huggingface.co/datasets/marin-dna/zoonomia-v1-val_enhancer/tree/d40d1e067b2a56ac812af122de029eb79cab1106) | Ensembl release 115 GRCh38 soft-masked primary assembly | Ensembl names such as `1`, `X`, and `MT` |
+
+The CDS, upstream, and downstream probes therefore use a noncanonical project reference: RefSeq `GCF_000001405.40` is not interchangeable with the canonical Ensembl release 115 GRCh38 primary assembly.
+Repeat labels were queried from the matching soft-masked reference for each probe, and the workflow required uppercase sequence equality for every 255-base window before joining repeat status.
 The durable cache contains 104,448,000 token rows across 25 checkpoint-region cells.
 The primary analysis retained target positions `[32, 223)` in 0-based half-open coordinates and excluded repeats, ambiguous targets, and unscorable targets.
 
@@ -84,6 +98,8 @@ Conservation prevalence was 44.5% in low-to-low positions, 50.3% in high-to-low 
 
 Current-loss deciles were equal-count rank bins computed separately within each region.
 The reduction outcome was current NLL minus next or terminal NLL, so a positive value denotes improvement.
+Current NLL therefore affects both bin assignment and the outcome with the same sign.
+Without an independent binning score, the decile association is a descriptive change-score result that can include regression to the mean.
 
 The controlled model was negative score ~ conserved + GC + GC² + held-out 7-mer NLL + 7-mer NLL² + position + position² + position³.
 At the terminal checkpoint, the conserved coefficient for negative loss was 0.356 [0.349, 0.363] nats in CDS, 0.370 [0.359, 0.381] upstream, 0.548 [0.535, 0.562] downstream, 0.297 [0.289, 0.306] in ncRNA, and 0.396 [0.389, 0.403] in enhancer.
@@ -109,10 +125,12 @@ The complete reducer ran in 3m34s with 5.46 GiB maximum resident memory on an AW
   Lineage-specific, weakly conserved, or unaligned functional sequence can be labeled negative.
 - GC, local 7-mer predictability, and target position were controlled, but exact training-corpus exposure and homology density were unavailable.
   Memorization or phylogenetic redundancy may explain part of the association.
-- ncRNA and enhancer use the blog's clean Zoonomia validation recipes, while CDS, upstream, and downstream use the validation-matched RefSeq probes.
+- ncRNA and enhancer use the blog's clean Zoonomia validation recipes on the canonical Ensembl release 115 GRCh38 reference, while CDS, upstream, and downstream use validation-matched RefSeq `GCF_000001405.40` probes.
   The region comparison is not a matched causal contrast.
 - The trajectory groups use region means at two checkpoints and are descriptive.
   The decile analysis is the threshold-free view.
+- Current NLL defines the decile bins and enters the loss-reduction outcome.
+  The resulting association may include regression to the mean and cannot estimate remaining optimization opportunity without an independent selection score.
 - The experiment is inference-only.
   No selector was used to train a student, so downstream benefit and likelihood calibration remain unknown.
 

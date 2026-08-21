@@ -33,7 +33,8 @@ The inference-only audit did not test whether any score improves training and co
 The [likelihood-dynamics experiment](../experiments/489-likelihood-dynamics.md) followed the fixed 1B m1-to-m1.3 lineage through five cumulative-token checkpoints on CDS, upstream, downstream, ncRNA, and enhancer probes.
 Conservation ranking was already present by 21B tokens and strengthened in four of five regions through the terminal checkpoint.
 The region-specific lowest-loss 10% became more stable between later adjacent checkpoints, but global endpoint Jaccard was only 0.299 and enhancer endpoint Jaccard was 0.225.
-Current high-loss positions received much larger subsequent loss reductions than current low-loss positions.
+Current high-loss deciles had larger current-to-later NLL change scores than current low-loss deciles.
+Current NLL determined both decile membership and one term of the change score, so this pattern can reflect regression to the mean and does not estimate remaining optimization opportunity.
 Conservation contrasts remained positive after GC, held-out 7-mer, and target-position controls.
 These observations favor a frozen sufficiently trained teacher over the student's instantaneous low-loss mask for the primary causal test, while leaving downstream benefit untested.
 
@@ -91,7 +92,9 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   FWD-only and RC-only classification AUPRC was nearly identical, while their imperfect endpoint per-base agreement limits a single pass as an exact replacement for averaged weights.
 - [Likelihood-derived token rankings through m1.3 training](../experiments/489-likelihood-dynamics.md) measured one 1B lineage at five cumulative-token checkpoints across five genomic regions.
   Loss and entropy ranked conservation by the earliest checkpoint, but lowest-decile membership remained time- and region-dependent.
-  High-current-loss positions had more remaining loss reduction, so low absolute loss is a conservation proxy rather than a measure of optimization opportunity.
+  High-current-loss deciles had larger observed NLL change scores, but the shared current-NLL term couples selection to the outcome and permits regression to the mean.
+  The result does not establish greater remaining optimization opportunity.
+  Low absolute loss remains a conservation proxy within the measured panels.
   The inference-only result favors a frozen teacher for the primary causal selector but does not show that likelihood-derived weighting improves training.
 
 </details>
