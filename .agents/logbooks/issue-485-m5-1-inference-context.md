@@ -423,3 +423,15 @@ sky launch -c evals-v2-485-ctx31 \
 - General fix disposition: the fresh-node exact-UV bootstrap remains isolated in `codex/issue-485-pin-probe-uv`; this experiment branch has no `sky/probe.yaml` diff.
 - Knowledge-base disposition: remain `pending` until a human reviews and accepts the interpretation.
 - Next action: publish only after explicit staging, commit, push, and GitHub-write authorization.
+
+### 2026-08-21 00:30 UTC - Research snapshot, interpretation PR, and independent review
+
+- Snapshot: commit `3d15954dafdaff07b0bc3d083f4a5fd8ca23fa88` and annotated tag `issue-485-inference-context-20260821` preserve the experiment configuration, scripts, compact source tables, paired outputs, figures, and logbook.
+- Publication: draft interpretation PR #492 adds the accepted experiment-page proposal, broadens the research question to Context size, and updates the root question index.
+- Statistical correction: the paired CSV encodes `p_two_sided=0.0001` as a one-draw floor when no opposing-tail draw occurs; a two-sided 10,000-draw test has resolution 0.0002, so the 511-to-1023 results are reported as p < 0.0002 rather than exact p=0.0001.
+- Independent review: the first pass found the p-value-resolution issue and one stale inbound title after the question rename; both were fixed in `952b509a7589dca2c6d653c5933e8d3007e8bd80`.
+- Independent re-review: no actionable findings remain.
+- Validation: the full PR CI rerun is green, including build, pre-commit, selection, and tests.
+- Issue record: the issue body and final comments now contain the corrected inference, commit-pinned provenance, cost and teardown status, and PR link.
+- Knowledge-base disposition: `interpretation PR open`.
+- Next action: human interpretation review of #492 before merge; keep issue #485 open while the disposition remains temporary.
