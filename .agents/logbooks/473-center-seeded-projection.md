@@ -2194,3 +2194,20 @@ cohort, assemblies, and downstream training recipe fixed.
 - Enhancer full-window remained actively allocated on its 96 GiB us-east1
   worker, committed temporary step 3,931, and continued toward the immutable
   step-4,000 boundary.
+
+### 2026-08-21 09:18 UTC - CSP-070 enhancer full-window step 4,000 evaluated
+
+- Enhancer full-window durably committed native step 4,000, reproduced
+  validation loss 1.337, and completed its four-object Hugging Face export at
+  exactly 1,019,426,427 bytes. Training returned directly to the optimization
+  loop on the same 96 GiB worker.
+- An initial evaluator invocation omitted the configured additive result-root
+  prefix from its two relative Snakemake targets. Graph construction rejected
+  it before model staging or data access. The corrected invocation completed
+  all five jobs successfully on the warm A10G.
+- Step 4,000 scored exactly 16,140 Mendelian and 11,630 Complex rows from the
+  pinned public `train.parquet` files and produced 66 and 60 official metric
+  rows, respectively. The development matrix is now 68 of 72 cells; only the
+  two datasets for future enhancer full-window steps 4,500 and 4,999 remain.
+  No held-out labeled file, prediction, measurement, or metric was requested
+  or read.
