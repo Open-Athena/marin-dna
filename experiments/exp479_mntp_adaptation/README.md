@@ -10,6 +10,31 @@ The one-seed pilot completed and is technically valid. Transferred MNTP narrowly
 
 See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn). Final weights and per-variant scores remain private.
 
+## Causal fine-tuning sanity gate
+
+The audited continued-CLM arm used a fresh optimizer with peak learning rates of 0.00440 and 0.0231, and fixed-plan validation loss rose from 0.23138 to 0.35965 by step 800.
+That arm does not establish how the mature checkpoint behaves under ordinary low-learning-rate fine-tuning.
+The `calibration` stage runs one conservative full-parameter AdamW arm at `1e-6` for 200 steps before considering any other learning rate.
+
+The stage fixes:
+
+- AdamW betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, and global gradient clipping at 1.0;
+- a 10-step linear warmup followed by constant `1e-6`;
+- the original batch-64 tokenizer, first 200 training batches, orientation policy, lowercase repeat weight, and 640-row five-component validation plan; and
+- post-hoc validation at steps 0, 1, 10, 25, 50, 100, and 200.
+
+The arm passes only when step-200 pooled and component losses are no higher than their step-0 values and each component trajectory has a non-positive fitted slope.
+This stage does not run VEP or any other learning rate.
+It uploads the final checkpoint and compact validation evidence to private staging, records dense trajectories in W&B, and terminates through `sky launch --down`.
+
+```bash
+uv run --locked python launch.py calibration \
+  --commit "$(git rev-parse HEAD)" \
+  --hf-repo-id gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover \
+  --prior-cost-usd 24.7340 \
+  --execute
+```
+
 ## Registered behavior
 
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.

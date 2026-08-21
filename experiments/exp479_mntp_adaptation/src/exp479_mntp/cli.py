@@ -155,6 +155,20 @@ def _parser() -> argparse.ArgumentParser:
     )
     validation_report.add_argument("--output-dir", type=Path, required=True)
 
+    calibration = subparsers.add_parser(
+        "causal-calibration",
+        help="run the single AdamW 1e-6 causal fine-tuning sanity arm",
+    )
+    calibration.add_argument("--artifact-dir", type=Path, required=True)
+    calibration.add_argument("--output-dir", type=Path, required=True)
+    calibration.add_argument("--train-plan", type=Path, required=True)
+    calibration.add_argument("--validation-plan", type=Path, required=True)
+    calibration.add_argument("--hf-repo-id", required=True)
+    calibration.add_argument("--batch-size", type=int, default=64)
+    calibration.add_argument("--seed", type=int, default=0)
+    calibration.add_argument("--num-workers", type=int, default=4)
+    calibration.add_argument("--offline-wandb", action="store_true")
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
@@ -318,6 +332,21 @@ def main() -> None:
         run_validation_report(args.output_dir)
         return
 
+    if args.command == "causal-calibration":
+        from exp479_mntp.causal_calibration import run_causal_calibration
+
+        run_causal_calibration(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            hf_repo_id=args.hf_repo_id,
+            batch_size=args.batch_size,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            offline_wandb=args.offline_wandb,
+        )
+        return
     if args.command == "finalize":
         from exp479_mntp.publishing import publish_cost_estimate
 
