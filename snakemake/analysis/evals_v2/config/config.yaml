@@ -640,6 +640,30 @@ models:
     eval_accumulation_steps: 8
     datasets: [mendelian_traits, sge]
 
+  # Five approximately token-spaced checkpoints on the composed m1 -> m1.1 ->
+  # m1.2 -> m1.3 path for issue #489. The branch preserves the optimizer-step
+  # counter, so raw step × 2,097,152 is the cumulative on-path token count.
+  - name: mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i20-exp135-zoonomia-m1-3ea283/hf/step-10000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-256ffd/hf/step-30000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-b52d8b/hf/step-50000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-c3a54c/hf/step-70000
+    window_size: 255
+    datasets: [mendelian_traits]
+  - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823
+    gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-c3a54c/hf/step-82823
+    window_size: 255
+    datasets: [mendelian_traits]
+
   # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
   # (~84.77B tokens; batch 1536 x seq 256; identical optimizer hparams). The
   # Mendelian VEP scored here is the y-axis for the LL-gap-vs-loss analysis; the
@@ -1435,3 +1459,84 @@ ll_gap:
     - scaling-v0.5-h1920-p1B-step-215573
     - scaling-v0.5-h2432-p2B-step-215573
     - scaling-v0.5-h2944-p4B-step-215573
+
+# Per-token likelihood dynamics through the composed m1 -> m1.3 lineage
+# (issue #489). This additive target is off `rule all`. The validation manifest
+# is the five training-validation probes listed in the MarinDNA blog collection.
+# Outputs live at
+# s3://oa-bolinas/snakemake/analysis/evals_v2/results/m13_likelihood_dynamics_489/v1/.
+likelihood_dynamics_489:
+  artifact_version: v1
+  split: validation
+  window_size: 255
+  primary_start: 32
+  primary_end_exclusive: 223
+  pilot_n_windows: 128
+  expected_windows: 16384
+  tokens_per_step: 2097152
+  top_fraction: 0.10
+  deciles: 10
+  blog_collection: https://huggingface.co/collections/marin-dna/a-1b-standard-transformer-rivals-evo-2-40b-on-vep
+  datasets:
+    - name: cds
+      hf_repo: marin-dna/genomes-v5-validation-intervals-v5_255_255
+      hf_revision: daff592f213aaa1cab1711d477a79ff6b1bc4ef4
+      assembly: GCF_000001405.40
+      reference_kind: twobit
+      reference_uri: s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_000001405.40.2bit
+      conservation_label_source: phyloP_241way_ge_2.27_case
+    - name: upstream
+      hf_repo: marin-dna/genomes-v5-validation-intervals-v1_255_255
+      hf_revision: a761bc0b663a9827303f3112e4667d53d5326fac
+      assembly: GCF_000001405.40
+      reference_kind: twobit
+      reference_uri: s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_000001405.40.2bit
+      conservation_label_source: phyloP_241way_ge_2.27_case
+    - name: downstream
+      hf_repo: marin-dna/genomes-v5-validation-intervals-v15_255_255
+      hf_revision: d7b27eecd68453934ebb3e7e6e78d5401789faa5
+      assembly: GCF_000001405.40
+      reference_kind: twobit
+      reference_uri: s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_000001405.40.2bit
+      conservation_label_source: phyloP_241way_ge_2.27_case
+    - name: ncrna
+      hf_repo: marin-dna/zoonomia-v1-val_ncrna
+      hf_revision: 76a18c1bbf07ac9bd064722431bbdab894b9e6c6
+      assembly: GRCh38_Ensembl_release_115
+      reference_kind: fasta
+      reference_uri: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
+      conservation_label_source: phyloP_447m_ge_2.2162_case
+    - name: enhancer
+      hf_repo: marin-dna/zoonomia-v1-val_enhancer
+      hf_revision: d40d1e067b2a56ac812af122de029eb79cab1106
+      assembly: GRCh38_Ensembl_release_115
+      reference_kind: fasta
+      reference_uri: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
+      conservation_label_source: phyloP_447m_ge_2.2162_case
+  checkpoints:
+    - name: mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000
+      stage: m1
+      step: 10000
+      cumulative_tokens: 20971520000
+    - name: mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000
+      stage: m1.1
+      step: 30000
+      cumulative_tokens: 62914560000
+    - name: mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000
+      stage: m1.2
+      step: 50000
+      cumulative_tokens: 104857600000
+    - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000
+      stage: m1.3
+      step: 70000
+      cumulative_tokens: 146800640000
+    - name: mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823
+      stage: m1.3
+      step: 82823
+      cumulative_tokens: 173692420096
+  batch_sizes:
+    mix-v0.9-p1B-i20-exp135-zoonomia-m1-step-10000: 64
+    mix-v0.9-p1B-i26-exp135-zoonomia-m1.1-step-30000: 64
+    mix-v0.9-p1B-i28-exp135-zoonomia-m1.2-step-50000: 64
+    mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-70000: 64
+    mix-v0.9-p1B-i30-exp135-zoonomia-m1.3-step-82823: 64

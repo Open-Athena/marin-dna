@@ -273,6 +273,34 @@ name:
   the per-cell `results/ll_gap/scores/{model}/{region}.parquet` targets, then
   gather with `snakemake ll_gap`.
 
+
+### m1.3 likelihood dynamics (#489)
+
+`snakemake likelihood_dynamics_489_pilot` scores a 128-window prefix of each blog validation probe at the earliest and terminal selected checkpoints.
+The pilot is off `rule all` and runs one forward orientation.
+It validates token identities, row counts, finite NLL and A/C/G/T entropy, and agreement between per-token NLL sums and the existing aggregate LL kernel.
+
+The five pinned probes are CDS, upstream, downstream, ncRNA, and enhancer.
+The first three are the issue #478 `genomes-v5-validation-*` datasets on RefSeq `GCF_000001405.40`.
+The ncRNA and enhancer probes are `zoonomia-v1-val_ncrna` and `zoonomia-v1-val_enhancer` on the Ensembl release 115 GRCh38 primary assembly.
+The workflow reads each matching soft-masked reference and rejects any uppercase sequence mismatch before assigning repeat labels.
+Lowercase conservation case means either below-threshold phyloP or missing alignment, and the atom schema records that unresolved provenance.
+
+The five checkpoints correspond to consolidated steps 10,000, 30,000, 50,000, 70,000, and 82,823.
+Their exact cumulative token counts are stored in `config/config.yaml`.
+The first four checkpoints are separated by 41,943,040,000 tokens, and the terminal gap is 26,891,780,096 tokens.
+
+Build reusable metadata and full score atoms with:
+
+```bash
+snakemake likelihood_dynamics_489_metadata
+snakemake likelihood_dynamics_489_atoms
+```
+
+Outputs use the versioned prefix `results/m13_likelihood_dynamics_489/v1/`.
+Each score cell stores one row per source token with `(region, row_index, target_pos)` as its stable identity.
+The atom cache includes genomic coordinates, source case, conservation status and provenance, repeat status, GC, chromosome-held-out 7-mer NLL, forward NLL, and four-nucleotide entropy.
+
 ### Linear probe (frozen-embedding VEP, #320)
 
 `snakemake probe` trains a **frozen-embedding linear probe** per `(model,
@@ -407,6 +435,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 | `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
+| `likelihood_dynamics_489` | Optional; versioned forward per-token NLL and entropy cache through the five-checkpoint m1 lineage. The section pins five blog validation probes, their matching soft-masked reference families, cumulative token counts, pilot size, and per-checkpoint batch sizes. See `rules/likelihood_dynamics_489.smk`. |
 
 ## Library
 
@@ -426,6 +455,9 @@ Pipeline rules are thin glue around:
   mixed-case `seq` dataset → per-sequence functional/non-functional LL atoms
   (`ll_sum_upper`, `ll_sum_lower`, `n_upper`, `n_lower`); `aggregate_ll_gap`
   collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
+- `marin_dna_evals.likelihood_dynamics_489.compute_hf_per_token_stats` maps each 255 bp source window to forward NLL and A/C/G/T entropy arrays.
+- `marin_dna_evals.likelihood_dynamics_489.build_window_metadata` joins conservation case and repeat-mask case against the dataset's matching assembly.
+- `marin_dna_evals.likelihood_dynamics_489.assemble_token_atoms` expands those arrays into stable versioned token rows.
 
 These are tested at `tests/evals/test_grouped_vep_metrics.py`,
 `tests/evals/test_hf_compat.py`,
