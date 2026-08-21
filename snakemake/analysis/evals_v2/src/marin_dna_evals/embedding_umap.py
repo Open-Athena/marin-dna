@@ -21,9 +21,9 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from datasets import Dataset
-from transformers import AutoModel, AutoTokenizer
 
 from marin_dna.data.genome import Genome
+from marin_dna_evals.hf_compat import load_hf_base_model_and_tokenizer
 from marin_dna_evals.model.runner import run_window_embeddings
 
 # The dataset's 7 region labels → display names (GPN-Star Fig 4A).
@@ -116,10 +116,9 @@ def compute_region_embeddings(
     assert window_size >= n_center_bp, (
         f"window_size {window_size} must be >= n_center_bp {n_center_bp}"
     )
-    tokenizer: Any = AutoTokenizer.from_pretrained(checkpoint_path)
-    # Base AutoModel — we read last_hidden_state, not logits, so the LM head is
-    # dead weight. Trainer.predict handles device placement + bf16 + eval mode.
-    model: Any = AutoModel.from_pretrained(checkpoint_path, trust_remote_code=True)
+    # Use the base model because this path reads hidden states and does not need
+    # the LM head. The shared loader validates the raw RoPE schema first.
+    tokenizer, model = load_hf_base_model_and_tokenizer(checkpoint_path)
 
     genome = Genome(genome_path)
     # Sort by (chrom, start) so the dataloader transform's S3 byte-range reads

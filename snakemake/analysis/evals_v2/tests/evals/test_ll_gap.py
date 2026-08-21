@@ -25,15 +25,9 @@ def _seqs(n: int = 3, length: int = 8) -> pd.DataFrame:
 
 def _patched_load():
     """Patch the heavy HF loaders so no checkpoint is ever downloaded."""
-    return (
-        patch(
-            "marin_dna_evals.ll_gap.AutoTokenizer.from_pretrained",
-            return_value=object(),
-        ),
-        patch(
-            "marin_dna_evals.ll_gap.AutoModelForCausalLM.from_pretrained",
-            return_value=object(),
-        ),
+    return patch(
+        "marin_dna_evals.ll_gap.load_hf_causal_lm_and_tokenizer",
+        return_value=(object(), object()),
     )
 
 
@@ -42,10 +36,9 @@ def test_compute_hf_ll_gap_returns_atoms_with_id():
     pred = np.array(
         [[-2.0, -5.0, 4, 3], [-1.0, -4.0, 4, 3], [-3.0, -6.0, 4, 3]], dtype=float
     )
-    tok, model = _patched_load()
+    load = _patched_load()
     with (
-        tok,
-        model,
+        load,
         patch("marin_dna_evals.ll_gap.run_ll_clm", return_value=pred),
     ):
         out = compute_hf_ll_gap("/unused", seqs, window_size=8, batch_size=2)
@@ -69,10 +62,9 @@ def test_compute_hf_ll_gap_returns_atoms_with_id():
 def test_compute_hf_ll_gap_threads_compile_and_bf16():
     seqs = _seqs(n=2, length=8)
     pred = np.zeros((2, 4), dtype=float)
-    tok, model = _patched_load()
+    load = _patched_load()
     with (
-        tok,
-        model,
+        load,
         patch("marin_dna_evals.ll_gap.run_ll_clm", return_value=pred) as runner,
     ):
         compute_hf_ll_gap(
@@ -94,10 +86,9 @@ def test_compute_hf_ll_gap_reshapes_flat_array():
     reshaped back to ``[N, 4]`` preserving row order."""
     seqs = _seqs(n=2, length=8)
     flat = np.array([-1.0, -2.0, 4, 3, -1.5, -2.5, 4, 3])  # [N*4]
-    tok, model = _patched_load()
+    load = _patched_load()
     with (
-        tok,
-        model,
+        load,
         patch("marin_dna_evals.ll_gap.run_ll_clm", return_value=flat),
     ):
         out = compute_hf_ll_gap("/unused", seqs, window_size=8, batch_size=2)

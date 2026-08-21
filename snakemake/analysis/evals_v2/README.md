@@ -14,6 +14,9 @@ For each `model` × `dataset` in the config:
 1. **Download** the model checkpoint dir (from GCS or HF Hub depending on
    the model entry). The genome reference is read directly from S3 by
    pyfaidx (byte-range reads — no full download).
+   Before tokenizer or model construction, `marin_dna_evals.hf_compat` reads the local `config.json` and validates its effective RoPE semantics.
+   Transformers-5-only `rope_parameters` are translated in memory for the pinned Transformers 4 consumer.
+   Consistent dual-schema exports are accepted, while conflicting, malformed, incomplete, or unrepresentable schemas fail before weights load.
 2. **Score** every variant with `compute_variant_scores`. The score
    bundle is per-strand LLR + JSD (`down_jsd_mean` in issue #175 — the
    per-position 4-nuc next-token JSD averaged over downstream positions).
@@ -409,6 +412,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 
 Pipeline rules are thin glue around:
 
+- `marin_dna_evals.hf_compat` — fail-closed Transformers 4/5 config normalization plus the `TokenizersBackend` tokenizer fallback used by every maintained HF model-loading path.
 - `marin_dna_evals.inference.compute_variant_scores` — model + genome
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
 - `marin_dna_evals.metrics.compute_auprc_metrics` — score columns
@@ -424,6 +428,7 @@ Pipeline rules are thin glue around:
   collapses them to token-weighted `LL_upper` / `LL_lower` / `gap`.
 
 These are tested at `tests/evals/test_grouped_vep_metrics.py`,
+`tests/evals/test_hf_compat.py`,
 `tests/evals/test_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.

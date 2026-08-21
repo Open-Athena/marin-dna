@@ -10,14 +10,14 @@ thin orchestration layer the Snakemake rule calls.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from marin_dna.data.genome import Genome
+from marin_dna_evals.hf_compat import load_hf_causal_lm_and_tokenizer
 from marin_dna_evals.model.interpretation import nucleotide_dependency_map
 
 
@@ -65,13 +65,7 @@ def compute_dependency_map(
         f"pick a smaller locus or a longer-context model"
     )
 
-    # Duck-typed model/tokenizer throughout interpretation (see
-    # marin_dna_evals.model.interpretation); annotate Any so HF stub overloads on
-    # `.to(device)` don't fight mypy.
-    tokenizer: Any = AutoTokenizer.from_pretrained(checkpoint_path)
-    model: Any = AutoModelForCausalLM.from_pretrained(
-        checkpoint_path, trust_remote_code=True
-    )
+    tokenizer, model = load_hf_causal_lm_and_tokenizer(checkpoint_path)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device).eval()
 

@@ -122,8 +122,11 @@ def test_compute_region_embeddings_embeds_all_windows(monkeypatch):
         captured.update(kwargs["inference_kwargs"])
         return emb_block
 
-    monkeypatch.setattr(eu.AutoTokenizer, "from_pretrained", lambda *a, **k: object())
-    monkeypatch.setattr(eu.AutoModel, "from_pretrained", lambda *a, **k: object())
+    monkeypatch.setattr(
+        eu,
+        "load_hf_base_model_and_tokenizer",
+        lambda *a, **k: (object(), object()),
+    )
     monkeypatch.setattr(eu, "Genome", lambda *a, **k: object())
     monkeypatch.setattr(eu, "run_window_embeddings", fake_embeddings)
 

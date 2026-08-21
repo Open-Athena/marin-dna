@@ -37,12 +37,8 @@ def _patched_model_load():
     actually downloads a checkpoint or opens a FASTA."""
     return (
         patch(
-            "marin_dna_evals.inference.AutoTokenizer.from_pretrained",
-            return_value=object(),
-        ),
-        patch(
-            "marin_dna_evals.inference.AutoModelForCausalLM.from_pretrained",
-            return_value=object(),
+            "marin_dna_evals.inference.load_hf_causal_lm_and_tokenizer",
+            return_value=(object(), object()),
         ),
         patch(
             "marin_dna_evals.inference.Genome",
@@ -55,10 +51,9 @@ def test_compute_variant_scores_rc_false_returns_two_cols():
     ds = _stub_dataset()
     fwd_arr = np.array([[0.1, 0.01], [0.2, 0.02], [0.3, 0.03], [0.4, 0.04]])
 
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    load_patch, genome_patch = _patched_model_load()
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -83,10 +78,9 @@ def test_compute_variant_scores_rc_true_returns_four_cols():
     fwd_arr = np.array([[0.1, 0.01], [0.2, 0.02], [0.3, 0.03], [0.4, 0.04]])
     rc_arr = np.array([[-0.1, 0.05], [-0.2, 0.06], [-0.3, 0.07], [-0.4, 0.08]])
 
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    load_patch, genome_patch = _patched_model_load()
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -112,10 +106,9 @@ def test_compute_variant_scores_threads_execution_settings():
     ds = _stub_dataset()
     fwd = np.zeros((len(ds), 2), dtype=np.float32)
     rc = np.zeros((len(ds), 2), dtype=np.float32)
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    load_patch, genome_patch = _patched_model_load()
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -150,10 +143,9 @@ def test_compute_variant_scores_avg_derivable_from_atoms():
     fwd_arr = np.array([[1.0, 0.5], [2.0, 0.6], [3.0, 0.7], [4.0, 0.8]])
     rc_arr = np.array([[-1.0, 0.1], [0.0, 0.2], [1.0, 0.3], [2.0, 0.4]])
 
-    tok_patch, model_patch, genome_patch = _patched_model_load()
+    load_patch, genome_patch = _patched_model_load()
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -210,13 +202,10 @@ def _patched_model_load_with_hidden(hidden_size: int):
     (the driver reads it to slice the embedding block)."""
     return (
         patch(
-            "marin_dna_evals.inference.AutoTokenizer.from_pretrained",
-            return_value=object(),
-        ),
-        patch(
-            "marin_dna_evals.inference.AutoModelForCausalLM.from_pretrained",
-            return_value=SimpleNamespace(
-                config=SimpleNamespace(hidden_size=hidden_size)
+            "marin_dna_evals.inference.load_hf_causal_lm_and_tokenizer",
+            return_value=(
+                object(),
+                SimpleNamespace(config=SimpleNamespace(hidden_size=hidden_size)),
             ),
         ),
         patch(
@@ -237,10 +226,9 @@ def test_compute_variant_scores_embeddings_columns_and_fp32_average():
     fwd[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
     rc[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
 
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(d)
+    load_patch, genome_patch = _patched_model_load_with_hidden(d)
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -287,10 +275,9 @@ def test_compute_variant_scores_embeddings_parquet_roundtrip(tmp_path):
     fwd[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
     rc[:, 2:] = rng.standard_normal((n, 2 * d)).astype(np.float32)
 
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(d)
+    load_patch, genome_patch = _patched_model_load_with_hidden(d)
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
@@ -316,10 +303,9 @@ def test_compute_variant_scores_embeddings_parquet_roundtrip(tmp_path):
 
 def test_compute_variant_scores_return_embeddings_requires_rc():
     ds = _stub_dataset()
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(3)
+    load_patch, genome_patch = _patched_model_load_with_hidden(3)
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         pytest.raises(AssertionError, match="requires rc=True"),
     ):
@@ -339,10 +325,9 @@ def test_compute_variant_scores_embeddings_width_mismatch_asserts():
     n, d = len(ds), 3
     # Model says hidden_size=d but the array is 2 + 2*(d+1) wide.
     bad = np.zeros((n, 2 + 2 * (d + 1)), dtype=np.float32)
-    tok_patch, model_patch, genome_patch = _patched_model_load_with_hidden(d)
+    load_patch, genome_patch = _patched_model_load_with_hidden(d)
     with (
-        tok_patch,
-        model_patch,
+        load_patch,
         genome_patch,
         patch(
             "marin_dna_evals.inference.run_variant_score_bundle",
