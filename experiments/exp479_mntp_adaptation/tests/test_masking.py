@@ -92,11 +92,35 @@ def test_sequence_loss_does_not_overweight_high_mask_rows() -> None:
     weights = torch.tensor([[1.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 0.0]])
     logits[0, 0, 0] = 4.0
     logits[1, :3, 1] = -4.0
-    metrics = per_sequence_weighted_loss(logits, labels, weights)
+    metrics = per_sequence_weighted_loss(logits, labels, weights, z_loss_weight=0)
     row0 = torch.nn.functional.cross_entropy(logits[0, :1], labels[0, :1])
     row1 = torch.nn.functional.cross_entropy(logits[1, :3], labels[1, :3])
     assert metrics.loss == torch.mean(torch.stack((row0, row1)))
     assert metrics.pooled_loss != metrics.loss
+
+
+def test_repeat_weights_normalize_by_weight_sum() -> None:
+    logits = torch.tensor(
+        [
+            [[3.0, 0.0], [0.0, 3.0]],
+            [[0.0, 3.0], [3.0, 0.0]],
+        ]
+    )
+    labels = torch.tensor([[0, 0], [0, 0]])
+    weights = torch.tensor([[1.0, 0.01], [1.0, 1.0]])
+    token_losses = torch.nn.functional.cross_entropy(
+        logits.reshape(-1, 2), labels.reshape(-1), reduction="none"
+    ).reshape_as(labels)
+
+    metrics = per_sequence_weighted_loss(logits, labels, weights, z_loss_weight=0)
+    expected_rows = (token_losses * weights).sum(dim=1) / weights.sum(dim=1)
+    expected_pooled = (token_losses * weights).sum() / weights.sum()
+
+    assert metrics.loss == torch.mean(expected_rows)
+    assert metrics.pooled_loss == expected_pooled
+    assert metrics.loss_weight_sum == weights.sum()
+    assert metrics.weighted_loss_sum == (token_losses * weights).sum()
+    assert metrics.pooled_loss != (token_losses * weights).sum() / labels.numel()
 
 
 def test_sequence_without_canonical_target_is_rejected() -> None:

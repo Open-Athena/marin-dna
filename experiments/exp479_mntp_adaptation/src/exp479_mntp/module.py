@@ -70,10 +70,22 @@ class AdaptationModule(L.LightningModule):
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
         metrics = self._metrics(batch)
+        objective_loss = metrics.pooled_loss if self.arm == "clm_continuation" else metrics.loss
         if self.record_gradient_norms:
-            self._latest_train_loss = float(metrics.loss.detach())
+            self._latest_train_loss = float(objective_loss.detach())
         self.log(
-            "train/loss", metrics.loss, on_step=True, on_epoch=False, batch_size=self.batch_size
+            "train/loss",
+            objective_loss,
+            on_step=True,
+            on_epoch=False,
+            batch_size=self.batch_size,
+        )
+        self.log(
+            "train/sequence_loss",
+            metrics.loss,
+            on_step=True,
+            on_epoch=False,
+            batch_size=self.batch_size,
         )
         self.log(
             "train/pooled_loss",
@@ -89,7 +101,7 @@ class AdaptationModule(L.LightningModule):
             on_epoch=False,
             batch_size=self.batch_size,
         )
-        return metrics.loss
+        return objective_loss
 
     def validation_step(
         self,

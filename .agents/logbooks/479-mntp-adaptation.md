@@ -18,13 +18,12 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The one-seed pilot and integrity audit are complete and technically valid.
-All three trained arms finished 1,000 finite steps on a standalone Lambda GH200 path with no Marin or Iris dependency.
-Transferred MNTP narrowly beat scratch on pooled and single-mask validation loss and acquired bilateral context use, but it did not improve any primary VEP endpoint over source CLM and did not exceed the no-adaptation control on both flank probes.
-The audited continued-CLM arm progressively damaged the source checkpoint under its fresh optimizer and high registered peak learning rates.
-The investigation remains open for a short low-learning-rate AdamW calibration before treating causal continuation as a reasonable control.
-Do not propose the 10,000-step MNTP extension.
-The compact audited result bundle is at [`issue-479-mntp-pilot-audited-result`](https://github.com/Open-Athena/marin-dna/tree/issue-479-mntp-pilot-audited-result/.agents/artifacts/479-mntp-adaptation), and the dense record is in the [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
+The reported exp479 training and validation losses used an incorrect denominator.
+They multiplied token losses by the lowercase-repeat weights but divided by raw selected-token count; the pinned Marin source reducer divides by the sum of effective weights and also includes a small z-loss term.
+On the fixed panel, the raw weight-sum/token-count ratio is 0.305 across all five probes and 0.239 across the three source validation datasets, explaining why the reported source loss was only 0.231.
+The original m5.1 W&B run ended at 0.634, 0.621, and 0.782 on CDS, downstream, and upstream; its 0.861 macro also includes uppercase-only and lowercase-only slices that exp479 did not reproduce.
+All absolute-loss claims and the prior statement that no loss-path bug was found are superseded pending a corrected evaluation of the source and 12 retained causal checkpoints.
+Every checkpoint remains retained in W&B, and knowledge-base interpretation remains paused.
 
 ## Current baseline
 
@@ -32,15 +31,15 @@ The compact audited result bundle is at [`issue-479-mntp-pilot-audited-result`](
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- Completed pilot and audit list-price estimate: $24.7340 of the $50 cap; final cluster confirmed terminated.
+- Completed experiment list-price estimate: $26.1237 of the $50 cap; final cluster confirmed terminated.
 - Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
 
 ### Active
 
-- `MNTP-479-H4`: full-parameter causal fine-tuning from the released source weights can preserve or lower fixed-plan causal validation loss when AdamW uses an appropriately small learning rate.
-  Next test: one 200-step arm at `1e-6`, with validation at steps 0, 1, 10, 25, 50, 100, and 200.
+- `MNTP-479-H5`: the retained causal-checkpoint direction is stable after correcting repeat normalization and matching the source validation scope.
+  Next test: evaluate the source and all 12 retained checkpoints with the Marin weighted mean, source z-loss, a three-source-dataset macro, and a separate five-probe macro.
 
 ### Blocked
 
@@ -69,6 +68,8 @@ The compact audited result bundle is at [`issue-479-mntp-pilot-audited-result`](
 - 2026-08-21: Treat the registered continued-CLM arm as evidence about its fresh high-learning-rate optimizer recipe, not as evidence that reasonable causal fine-tuning must degrade.
 - 2026-08-21: Sweep full-parameter AdamW at `1e-6`, `3e-6`, `1e-5`, and `3e-5` for 200 steps before funding another 1,000-step arm.
 - 2026-08-21: Sequence the calibration arms and start only `1e-6`; review its validation trajectory before choosing any other learning rate.
+- 2026-08-21: Supersede every exp479 absolute-loss claim and the prior no-loss-bug conclusion because repeat-weighted losses were divided by raw token count instead of the effective weight sum.
+- 2026-08-21: Preserve the retained checkpoints and recompute the causal trajectory before running more training or interpreting the prior loss direction.
 
 ## Negative results index
 
@@ -78,6 +79,7 @@ The compact audited result bundle is at [`issue-479-mntp-pilot-audited-result`](
 - A 10,000-step extension is not proposed from this one-seed pilot.
 - The registered continued-CLM recipe progressively increased fixed-plan loss from 0.23138 at step 0 to 0.35965 at step 800 before partial cooldown recovery to 0.35010 at step 1,000.
 - No low-learning-rate causal fine-tuning control has run yet.
+- All prior exp479 absolute losses are invalid for comparison with the source W&B run; their denominator lowers the scale in proportion to each panel's uppercase/lowercase composition.
 
 ## Background research brief
 
@@ -421,3 +423,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Factual readout: The selected recipe improves pooled validation during warmup, then causes a small progressive degradation at constant peak learning rate with only partial cooldown recovery. The trace does not show numerical instability.
 - Interpretation boundary: Do not run AUPRC or update the research knowledge base from this result until the experiment presentation is reviewed.
 - Next action: Commit and tag the compact result bundle, update issue #479 body/comment with the validation and stability figures, and keep the W&B checkpoints retained.
+
+### 2026-08-21 17:58 - Repeat-weight normalization bug found
+
+- Trigger: The human collaborator noticed that the exp479 source validation loss of `0.231380263` was far below the original training run.
+- Original W&B result: The released m5.1 run ended at `eval/val_cds/loss=0.633785069`, `eval/val_downstream/loss=0.620932400`, `eval/val_upstream/loss=0.782120407`, `eval/loss=0.997990429`, and `eval/macro_loss=0.861344755`.
+- Loss bug: `per_sequence_weighted_loss` multiplied cross-entropy by weights 1.0 for uppercase and 0.01 for lowercase, then divided by raw selected-token count.
+- Source contract: Pinned Haliax `maybe_reduce_loss` divides the weighted numerator by the sum of effective weights; the source recipe also uses z-loss weight `4.312883184368223e-6`.
+- Panel composition: Effective-weight sum divided by selected-token count is `0.373182` for CDS, `0.160320` for downstream, `0.182522` for upstream, `0.408275` for enhancer, and `0.402785` for ncRNA.
+- Aggregate shrinkage: The ratio is `0.305417` across all five fixed probes and `0.238675` across the three source validation datasets.
+- Validation-scope bug: The original recipe validates CDS, upstream, and downstream. Its five-component mixture is a training mixture. Exp479 added enhancer and ncRNA validation probes and incorrectly described the resulting five-way mean as source-comparable.
+- Macro definition: Original W&B `eval/macro_loss` is the mean of nine metrics: default, uppercase-only, and lowercase-only losses for each of the three source validation datasets. Exp479 did not recreate those nine slices.
+- Impact: Absolute losses, loss gates, and the claim that the loss path was bug-free are invalid. Trajectory direction may survive because each checkpoint used the same fixed panel, but it must be recomputed from the retained models.
+- Training impact: All completed exp479 arms optimized the count-normalized objective and omitted the source z-loss term. Corrected evaluation cannot make those checkpoints faithful continuations retroactively.
+- Fix: Normalize sequence-balanced MNTP loss by each sequence's weight sum; use the global token-weighted mean for continued CLM; restore the pinned source z-loss term; retain the legacy reducer only in the audit output for diagnosis.
+- Verification: Ruff lint and format pass. Local PyTorch tests are intentionally deferred because their measured working set exceeds the shared-node 500 MiB limit; the locked suite runs on the Lambda audit worker before evaluation.
+- Next action: Snapshot the fix, warn issue #479, run the source plus all 12 retained checkpoints on one self-terminating Lambda GH200, and publish corrected three-source and five-probe macro trajectories without deleting checkpoints.
