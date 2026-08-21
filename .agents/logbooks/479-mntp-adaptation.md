@@ -458,3 +458,18 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Evidence: [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3) and compact artifact directory `loss-normalization-audit/`.
 - Compute: The audit cost an estimated `$0.3450`, bringing the conservative listed-price total to `$26.4687 / $50`. The cluster self-terminated and is confirmed absent.
 - Next action: Evaluate all 16,384 rows from each original CDS, upstream, and downstream validation dataset once, derive the default/uppercase-only/lowercase-only metrics from the same logits, and compare the nine slices plus macro directly with the original W&B run.
+
+### 2026-08-21 18:44 - Full source-validation gate localized a second reporting bug
+
+- Launch snapshot: `ec3c110a9897c793d364714fd805cafaa495f8f1`.
+- Run: [W&B mwdtno1h](https://wandb.ai/gonzalobenegas/marin/runs/mwdtno1h) on one Lambda GH200 in `us-east-3` after `us-east-1` lacked capacity.
+- Verification: All 102 locked tests passed before 49,152 source validation rows were evaluated.
+- First gate result: The naively single-weighted macro was `0.875689735` versus original W&B `0.861344755`, so the hard gate failed with maximum metric delta `0.057035602`.
+- Localization: All six binary uppercase-only/lowercase-only metrics matched within `0.000215`; only the three default 1.0/0.01 repeat-weighted metrics differed.
+- Pinned-source diagnosis: Levanter's tagged evaluator obtains per-position loss through `compute_next_token_loss(reduction=None)`, which already applies `loss_weight`, and then multiplies that array by `loss_weight` again in `TaggedEvaluator.accum_for_batch`.
+- Exact historical reproduction: Applying the resulting squared numerator and single-weight denominator gives default CDS/upstream/downstream losses `0.633996/0.782180/0.621024`, within `0.000211/0.000059/0.000091` of original W&B.
+- Interpretation: Source training uses the normal one-weight Haliax mean and includes z-loss; the tagged validation callback separately double-weights repeat masks and omits z-loss.
+- Cost: The attempt cost an estimated `$0.275383`, bringing the conservative listed-price total to `$26.744106 / $50`.
+- Retention: The compact failed-gate CSV, JSON, SVG, and W&B run are retained; no checkpoint was deleted, modified, or uploaded.
+- Teardown: Sky armed one-minute `down` autodown after the failed job; final absence confirmation is pending.
+- Next action: Encode both historical double-weight reproduction and corrected single-weight validation CE, rerun the hard gate, and publish the correction without loosening tolerance.

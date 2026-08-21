@@ -224,14 +224,14 @@ def plot_corrected_trajectory(macros: pd.DataFrame, output_path: Path) -> None:
     figure, axis = plt.subplots(figsize=(6.2, 5.2), constrained_layout=True)
     axis.plot(
         selected["step"],
-        selected["marin_loss"],
+        selected["marin_token_weighted_ce"],
         marker="o",
         linewidth=1.8,
         color="#4C78A8",
         label="128 rows per dataset",
     )
     axis.set_xlabel("Optimizer step")
-    axis.set_ylabel("Marin-weighted causal loss")
+    axis.set_ylabel("Marin-weighted causal validation CE")
     axis.set_title("Corrected fixed-panel trajectory")
     axis.grid(alpha=0.25)
     axis.legend(title="Three source datasets")
@@ -253,8 +253,8 @@ def plot_source_scale(macros: pd.DataFrame, output_path: Path) -> None:
     ]
     values = [
         float(step_zero.loc["all_five", "legacy_count_normalized_ce"]),
-        float(step_zero.loc["all_five", "marin_loss"]),
-        float(step_zero.loc["source_three", "marin_loss"]),
+        float(step_zero.loc["all_five", "marin_token_weighted_ce"]),
+        float(step_zero.loc["source_three", "marin_token_weighted_ce"]),
     ]
     figure, axis = plt.subplots(figsize=(6.2, 5.2), constrained_layout=True)
     bars = axis.barh(labels, values, color=["#E45756", "#72B7B2", "#4C78A8"])
@@ -378,10 +378,10 @@ def run_loss_normalization_audit(
             step_zero.loc["all_five", "legacy_count_normalized_ce"]
         )
         run.summary["step_0_corrected_source_three_macro"] = float(
-            step_zero.loc["source_three", "marin_loss"]
+            step_zero.loc["source_three", "marin_token_weighted_ce"]
         )
         run.summary["step_1000_corrected_source_three_macro"] = float(
-            final.loc["source_three", "marin_loss"]
+            final.loc["source_three", "marin_token_weighted_ce"]
         )
         result_artifact = wandb.Artifact("dna-exp479-loss-normalization-audit", type="evaluation")
         for path in (

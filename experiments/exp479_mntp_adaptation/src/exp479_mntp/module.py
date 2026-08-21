@@ -110,11 +110,17 @@ class AdaptationModule(L.LightningModule):
         dataloader_idx: int = 0,
     ) -> None:
         logits = self(batch)
-        metrics = per_sequence_weighted_loss(logits, batch["labels"], batch["loss_weights"])
+        metrics = per_sequence_weighted_loss(
+            logits,
+            batch["labels"],
+            batch["loss_weights"],
+            z_loss_weight=0,
+        )
+        validation_loss = metrics.pooled_loss if self.arm == "clm_continuation" else metrics.loss
         slice_name = "diffusion" if dataloader_idx == 0 else "single_mask"
         self.log(
             f"val/{slice_name}/loss",
-            metrics.loss,
+            validation_loss,
             on_step=False,
             on_epoch=True,
             batch_size=len(batch["sample_ids"]),
@@ -139,10 +145,16 @@ class AdaptationModule(L.LightningModule):
                 logits[in_component],
                 batch["labels"][in_component],
                 batch["loss_weights"][in_component],
+                z_loss_weight=0,
+            )
+            component_loss = (
+                component_metrics.pooled_loss
+                if self.arm == "clm_continuation"
+                else component_metrics.loss
             )
             self.log(
                 f"val/{slice_name}/component/{component}/loss",
-                component_metrics.loss,
+                component_loss,
                 on_step=False,
                 on_epoch=True,
                 batch_size=int(in_component.sum()),
@@ -170,6 +182,7 @@ class AdaptationModule(L.LightningModule):
                         logits[in_bin],
                         batch["labels"][in_bin],
                         batch["loss_weights"][in_bin],
+                        z_loss_weight=0,
                     )
                     self.log(
                         f"val/diffusion/mask_bin_{bin_index}/loss",
