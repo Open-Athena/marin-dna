@@ -36,7 +36,10 @@ run: |
     set -euxo pipefail
     test -n "$EXP473_EXPERIMENT_COMMIT"
     test -n "$EXP473_ANALYSIS_COMMIT"
-    uv run --project experiments/exp473_center_seeded_projection --locked pytest
+    uv run --project experiments/exp473_center_seeded_projection --locked \
+        pytest \
+        --rootdir=experiments/exp473_center_seeded_projection \
+        experiments/exp473_center_seeded_projection/tests
     OUTPUT_DIR="/tmp/issue_473_analysis"
     export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
     uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
