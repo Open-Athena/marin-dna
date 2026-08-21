@@ -9,31 +9,39 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-An additive `issue_473` namespace now separates each fixed 255 bp human
-source anchor from the smaller interval submitted to HAL or MAF. It defines
-tested full-window and centered 1, 17, 33, 65, and 129 bp request semantics,
-policy-specific target-span gates, and a deterministic pilot sampler covering
-source chromosome by conservation-score quantile strata. New opt-in Snakemake
-rules now resolve the end-to-end smoke projection, per-policy QC, and
-cross-policy comparison without changing existing rules or shared execution
-paths.
+The additive, pilot-free producer completed one bundled HAL call per species
+and one MAF scan per chromosome for `full_window` versus `center_1`. Exact
+fixed-grid accounting shows that center-1 recovers more pairs in CDS, ncRNA
+exon, and UTR3, but fewer in enhancer-centered cCRE and TSS/UTR5. The
+universal recovery hypothesis is therefore falsified. Sampled exact named-PSL
+coverage intervals include zero in all five regions, while chromosome and
+strand agreement are 1.0 and median emitted-center displacement is 3 bp.
 
-No alignment, publication, training, S3-write, or remote-compute job has run
-for #473.
+The three new datasets are public, ungated, and revision-pinned on Hugging
+Face. The exact #417 CDS full-window trajectory is reused; CDS center-1,
+enhancer full-window, and enhancer center-1 are training on Iris at matched
+tokens. The isolated development-only evaluator passed its pinned-runtime,
+one-file loader, score, and official-metric gates and is incrementally scoring
+durable checkpoints. An earlier builder-based attempt materialized the held-out
+file before failing prior to inference; CSP-053 records that incident. The
+retired attempt produced no prediction or metric, and the active evaluator
+loads only the permitted development file.
 
 ## Scope
 
-- Goal: compare `full_window` and `center_1` on fixed anchors, then use a
-  sampled odd-width landmark pilot to decide whether one wider policy warrants
-  a later full-scale experiment.
+- Goal: compare `full_window` and `center_1` on fixed anchors, then use matched
+  CDS and enhancer-centered cCRE training to make a region-specific decision.
+  Wider landmark widths are deferred to a separate follow-up.
 - Primary projection metrics: accepted recovery, aligned coverage, unaligned
   flank, ambiguity and rejection reasons, and agreement between policy loci.
 - Primary training metric: development-split VEP AUPRC at matched tokens.
-- Constraints: internal coordinates are 0-based and half-open; held-out
-  even-autosome and chromosome-Y VEP labels and aggregates are not accessed;
-  paid compute requires explicit approval.
+- Constraints: internal coordinates are 0-based and half-open; active
+  evaluation loads only permitted development labels and produces no held-out
+  predictions or aggregates; existing S3-backed Snakemake rules and output
+  paths remain unchanged.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/473
-- Branch: `codex/issue-473-center-seeded-projection`
+- Branches: draft implementation PR #477 and permanent experiment branch
+  `codex/exp473-center-seeded-projection-training`.
 - Experiment IDs: `CSP-001`, `CSP-002`, ...
 - Shared tags: `CSP`, `issue-473`, `projection-policy`
 
@@ -55,31 +63,34 @@ for #473.
 
 ### Active
 
-- `CSP-H1`: `center_1` recovers at least as many target species per anchor as
-  `full_window`, with the largest gain in non-mammalian vertebrates and
-  enhancer-centered cCREs. Next test: sampled HAL and MAF policy comparison.
-- `CSP-H2`: `full_window` has greater aligned coverage within emitted target
-  windows. Next test: paired coverage and flank diagnostics on the union and
-  intersection of accepted `(anchor, species)` rows.
-- `CSP-H3`: recovery weakly decreases and alignment evidence weakly increases
-  over centered widths 1, 17, 33, 65, and 129 bp. Next test: deterministic
-  region, chromosome, and conservation-quantile sample.
 - `CSP-H4`: the downstream policy effect differs between CDS and
-  enhancer-centered cCRE specialists. Next test: matched-token training after
-  projection QC passes.
+  enhancer-centered cCRE specialists. Current test: the matched-token training
+  trajectories and paired development/intersection evaluations now running.
 
 ### Blocked
 
-- Full-scale projection and training are blocked on implementation review,
-  smoke QC, and explicit compute approval.
+- None. The remaining critical path is authorized remote training and
+  development-only evaluation compute.
 
 ### Falsified / Dead End
 
-- None.
+- `CSP-H1`: center-1 is not a universal recovery improvement and does not have
+  its largest gain in enhancer-centered cCREs. It wins CDS, ncRNA exon, and
+  UTR3, but loses enhancer-centered cCRE and TSS/UTR5.
+
+### Inconclusive / Deferred
+
+- `CSP-H2`: sampled exact named-PSL coverage does not establish a full-window
+  advantage; paired 95% anchor-bootstrap intervals include zero in all five
+  regions.
+- `CSP-H3`: the wider-width frontier was explicitly deferred. No 17, 33, 65,
+  or 129 bp policy is produced, evaluated, or selected in this issue.
 
 ### Promoted
 
-- None.
+- The additive bundled full-scale producer, fixed-grid QC, sampled trace, and
+  three public revision-pinned datasets passed their preregistered gates and
+  became the inputs to the matched training comparison.
 
 ## Decision Log
 
