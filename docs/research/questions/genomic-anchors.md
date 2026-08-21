@@ -20,8 +20,9 @@ On fixed anchors, center-1 increased CDS recovery by 2.679 percentage points but
 The sampled reverse-trace audit found no general loss of aligned anchor coverage or increase in external flank.
 
 At matched tokens, CDS center-1 improved final Mendelian AUPRC by 0.249 for missense, 0.237 for splicing, and 0.185 for synonymous variants.
-It also improved Complex missense and splicing AUPRC and SGE missense and splicing AUPRC.
-For enhancer-centered cCREs, center-1 reduced distal Mendelian AUPRC by 0.056 and was effectively tied on distal Complex AUPRC.
+Its Complex and SGE point estimates were higher for missense and splicing, without paired policy-difference intervals.
+For enhancer-centered cCREs, center-1 reduced distal Mendelian AUPRC by 0.056.
+Distal Complex AUPRC point estimates differed by +0.0015 center-minus-full, compared with official SEs of 0.0084 and 0.0086; no paired policy-difference interval or equivalence test was available.
 Shared-row projection loss favored CDS center-1 at every checkpoint but had no stable enhancer ordering.
 
 The current answer is therefore region-specific: use center-1 for CDS and retain full window for enhancer-centered cCREs.
@@ -81,7 +82,7 @@ Tiny fragments, duplicated loci, midpoint definition, span thresholds, multiple 
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored nucleotide CDS projection with native per-species annotation at vertebrate and animal scales.
   Projection produced useful data but lost distant species and did not dominate every evaluation, directly exposing the recovery-versus-construction tradeoff.
 - [Experiment #473](../experiments/473-center-seeded-projection.md) compared full-window and center-1 projection on fixed anchors with recovery, reverse-trace QC, matched-token training, paired Mendelian uncertainty, Complex, SGE, and shared-row loss.
-  It supports center-1 for CDS but retaining full window for enhancer-centered cCREs.
+  Its one-seed development result supports center-1 for CDS and full window for enhancer-centered cCREs for the tested training recipe.
 
 </details>
 

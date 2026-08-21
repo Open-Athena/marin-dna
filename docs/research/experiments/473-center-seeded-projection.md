@@ -1,13 +1,11 @@
 # Center-seeded projection for vertebrate training data
 
 > [!NOTE]
-> **TL;DR:** Projecting only the center nucleotide is a strong replacement for full-window projection for CDS anchors, but not for enhancer-centered cCRE anchors. At matched training tokens, center-1 improved every presented CDS Mendelian endpoint and the missense/splicing Complex and SGE endpoints; for enhancers it reduced distal Mendelian performance and was effectively tied on distal Complex. Projection policy should therefore be region-specific.
+> **TL;DR:** In one matched-token seed evaluated on development data, center-1 produced higher CDS Mendelian AUPRC and lower shared-row loss than full-window projection, while full-window produced higher distal enhancer Mendelian AUPRC. These exploratory results support center-1 for CDS and full-window for enhancer-centered cCREs for this training recipe.
 
-<p align="center">
-  <img src="figures/473/cds_auprc_paired_delta_trajectories.svg" alt="Three panels showing center-1 minus full-window paired Mendelian AUPRC trajectories for CDS missense, splicing, and synonymous variants" />
-</p>
+![Four panels showing center-1 minus full-window paired Mendelian AUPRC trajectories for CDS missense, splicing, and synonymous variants and enhancer distal variants](figures/473/auprc_paired_delta_trajectories.svg)
 
-_Positive differences favor center-1; bands are paired 95% match-group bootstrap intervals on the development split._
+_Center-1 minus full-window AUPRC trajectories from one training seed on the development split; bands are paired 95% match-group bootstrap intervals._
 
 ## Findings
 
@@ -26,18 +24,14 @@ At step 4,999, center-1 improved CDS Mendelian AUPRC by 0.249 for missense, 0.23
 All three paired intervals excluded zero.
 The corresponding Group SMD differences were also positive, and CDS center-1 had lower case-weighted NLL on the exact shared chromosome-18 projection rows at every checkpoint.
 
-<p align="center">
-  <img src="figures/473/enhancer_auprc_paired_delta_trajectories.svg" alt="One panel showing the center-1 minus full-window paired Mendelian AUPRC trajectory for distal enhancer variants" />
-</p>
-
-_Positive differences favor center-1; bands are paired 95% match-group bootstrap intervals on the development split._
-
 Enhancer center-1 did not show the same benefit.
 Its terminal distal Mendelian AUPRC was 0.056 lower, with an interval excluding zero.
-Distal Complex AUPRC differed by only +0.0015, much less than either policy's official bootstrap SE, and the shared-row loss trajectory changed sign across checkpoints.
+Distal Complex AUPRC point estimates differed by +0.0015 center-minus-full, compared with official SEs of 0.0084 and 0.0086; no paired policy-difference interval or equivalence test was available.
+The shared-row loss trajectory changed sign across checkpoints.
 
-The decision is to use center-1 for CDS projection and retain full-window projection for enhancer-centered cCREs.
-This result does not justify one projection contract across every genomic region, nor does it justify a wider projection-policy pilot now.
+For this training recipe, the one-seed development evidence supports center-1 for CDS projection and full-window projection for enhancer-centered cCREs.
+All eight relevant Mendelian metric/subset cells triggered the preregistered additional-seed evidence gate, so this recommendation remains exploratory.
+Other regions require matched downstream comparisons, and this evidence does not warrant a wider projection-policy pilot.
 
 ## Evidence
 
