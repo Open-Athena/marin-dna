@@ -25,6 +25,7 @@ The original tagged validation callback had a separate bug that multiplied repea
 The corrected 128-row-per-dataset causal audit reproduces the invalid 0.23138 value, reports 0.76463 pure validation CE under the source-compatible three-dataset macro, and retains the small worsening direction through step 1,000.
 The full 49,152-row audit reproduces the original nine-metric W&B macro as 0.861413936 versus 0.861344755, with maximum metric error 0.000168145, and reports a corrected single-weight macro of 0.875662646.
 Every checkpoint remains retained in W&B, and knowledge-base interpretation remains paused.
+A corrected 1,000-step causal replacement is prepared from the released source checkpoint with the user-selected AdamW schedule and source-compatible training loss.
 
 ## Current baseline
 
@@ -39,7 +40,7 @@ Every checkpoint remains retained in W&B, and knowledge-base interpretation rema
 
 ### Active
 
-- No further arm is selected while the completed experiment is being audited and presented.
+- `MNTP-479-H6` (active): a source-compatible AdamW continuation at `1e-5` can test whether the prior progressive loss increase came from the invalid exp479 training objective. Next test: one corrected 1,000-step run from the released source checkpoint.
 
 ### Blocked
 
@@ -72,6 +73,8 @@ Every checkpoint remains retained in W&B, and knowledge-base interpretation rema
 - 2026-08-21: Sequence the calibration arms and start only `1e-6`; review its validation trajectory before choosing any other learning rate.
 - 2026-08-21: Supersede every exp479 absolute-loss claim and the prior no-loss-bug conclusion because repeat-weighted losses were divided by raw token count instead of the effective weight sum.
 - 2026-08-21: Preserve the retained checkpoints and recompute the causal trajectory before running more training or interpreting the prior loss direction.
+- 2026-08-21: Keep the exp479 denominator bug in the experiment record because it is local to this one-off framework; track only Levanter's current shared double-weighting bug in #499.
+- 2026-08-21: Replace the superseded 1,000-step causal control with one corrected run from the released source checkpoint before interpreting the causal trajectory.
 
 ## Negative results index
 
@@ -490,3 +493,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Compute: This attempt cost an estimated `$0.289679`, bringing the conservative listed-price total to `$27.033785 / $50`.
 - Teardown: The managed job succeeded, and `sky status -r` confirms no in-progress job or live service.
 - Next action: Commit and snapshot the exact evidence, then update issue #479's body and add a concise correction comment while keeping research knowledge-base interpretation paused.
+
+### 2026-08-21 19:51 - Corrected causal replacement preregistered
+
+- Implementation commit: `69981456f2ef4adf4e9a90896a0d3f0a07e72cbf`.
+- Trigger: The previously authorized AdamW `1e-5` run optimized the local count-normalized loss and omitted source z-loss, so its checkpoints cannot answer whether source-compatible causal continuation is stable.
+- Command: `uv run --locked python launch.py longrun --commit <launch-snapshot> --prior-cost-usd 27.033784759 --retry-until-up --execute`.
+- Initialization: Start again from released `marin-dna/marin-dna-exp135-m5.1@a73a5dcf`; do not resume the superseded optimizer state.
+- Optimizer: Full-parameter AdamW at peak learning rate `1e-5`, betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, batch 64, seed 0, and global gradient clipping at `1.0`.
+- Schedule: Linear warmup from zero through step 100, constant peak learning rate through step 800, and linear decay to zero at the step-1,000 boundary.
+- Training objective: Apply each uppercase/lowercase repeat weight once, divide the global batch numerator by the effective-weight sum, and include source z-loss weight `4.312883184368223e-6`.
+- Validation: At 13 retained checkpoints, report only pure causal cross-entropy computed as the equal macro of five exact global component reducers over 128 fixed rows each; exclude training-only z-loss.
+- Verification: Run the full locked test suite on the Lambda worker before model loading and training; abort the task if it fails.
+- Retention: Upload each of 12 post-update Hugging Face-format exports and the full step-1,000 Lightning checkpoint to a distinct W&B artifact namespace; do not upload to Hugging Face or delete a retained checkpoint.
+- Budget: Carry forward `$27.033784759`; a conservative two-hour Lambda GH200 reservation projects `$31.613784759 / $50`.
+- Interpretation boundary: Publish factual loss and stability trajectories while keeping the knowledge-base update paused.
+- Next action: Commit this logbook entry, dry-run the exact launch snapshot, launch one self-terminating Lambda GH200, and monitor through checkpoint retention and validation publication.
