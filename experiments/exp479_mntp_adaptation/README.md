@@ -6,7 +6,11 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 
 ## Final pilot result
 
-The one-seed pilot completed and is technically valid. Transferred MNTP narrowly beat scratch on step-1,000 pooled loss (0.397270 versus 0.399543) and single-mask loss (0.310077 versus 0.313152), and it acquired bilateral context use. It did not improve Mendelian, complex-trait, or SGE VEP over source CLM FWD+RC, so the 10,000-step extension and single-orientation VEP inference are not supported. A checkpoint, alignment, coordinate, stability, and final-dependency audit found no training/inference bug; it did find and correct a BF16 batch-shape bug in the original dependency diagnostic. The final conservative list-price estimate including all audit attempts was $24.7340 of the $50 cap, and the cluster was confirmed terminated.
+The one-seed pilot completed and is technically valid.
+Transferred MNTP narrowly beat scratch on step-1,000 pooled loss (0.397270 versus 0.399543) and single-mask loss (0.310077 versus 0.313152), and it acquired bilateral context use.
+It did not improve Mendelian, complex-trait, or SGE VEP over source CLM FWD+RC, so the 10,000-step extension and single-orientation VEP inference are not supported.
+A checkpoint, alignment, coordinate, stability, and final-dependency audit found no training/inference bug; it did find and correct a BF16 batch-shape bug in the original dependency diagnostic.
+The current conservative list-price estimate, including the 1,000-step AdamW causal follow-up, is $26.1237 of the $50 cap, and every Lambda cluster was confirmed terminated.
 
 See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn). Final weights and per-variant scores remain private.
 
@@ -56,6 +60,26 @@ uv run --locked python launch.py longrun \
   --retry-until-up \
   --execute
 ```
+
+### Completed result
+
+The exact run completed all 1,000 optimizer steps and failed the pooled validation gate.
+Loss reached its minimum of `0.230961750` at the end of warmup, then rose progressively to `0.233014855` at step 1,000 versus `0.231380263` at step 0.
+The final increase was `0.001634592`.
+Cooldown produced a small recovery from `0.233230022` at step 900.
+
+All numeric training and gradient values were finite.
+Pre-clipping gradient norm had median/p95/maximum `0.6599/0.7577/1.3261`.
+Only steps 265 and 738 exceeded the `1.0` clip threshold, and neither coincided with a training-loss spike.
+Successive 100-step training-loss means stayed within `0.8696–0.8827`, so the validation increase was progressive rather than an optimization blow-up.
+
+The W&B run retained 12 Hugging Face-format trajectory exports plus one full step-1,000 Lightning optimizer checkpoint as 13 model artifacts totaling 67.25 GB.
+No checkpoint was deleted and no output was uploaded to Hugging Face.
+The run cost an estimated `$0.8613`, bringing the conservative listed-price total to `$26.1237 / $50`.
+The Lambda cluster self-terminated and was confirmed absent.
+
+Direct evidence is at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) and in the branch artifact directory `causal-longrun-lr1e-5/`.
+This is a factual experiment record; research knowledge-base interpretation remains paused.
 
 ## Registered behavior
 
