@@ -51,14 +51,18 @@ DEFAULT_TPU_VARIANT = "v5p-8"
 DEFAULT_TPU_RAM = "56g"
 DEFAULT_TPU_PREEMPTIBLE = True
 ALLOWED_TPU_RAM = frozenset({DEFAULT_TPU_RAM, "96g"})
-ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
+ALLOWED_TPU_REGIONS = frozenset(
+    {DEFAULT_TPU_REGION, "us-central1", "europe-west4"}
+)
 ALLOWED_TPU_VARIANTS_BY_REGION = {
     "us-east5": frozenset({"v5p-8", "v6e-4"}),
     "us-central1": frozenset({"v5p-8"}),
+    "europe-west4": frozenset({"v5litepod-16", "v6e-4"}),
 }
 ARTIFACT_BUCKET_BY_TPU_REGION = {
     "us-east5": "marin-us-east5",
     "us-central1": "marin-us-central1",
+    "europe-west4": "marin-eu-west4",
 }
 
 MODEL = Qwen3Config(

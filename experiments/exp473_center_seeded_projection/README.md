@@ -113,10 +113,15 @@ the complete public repository name and exact revision for provenance.
 
 The coordinator's `--region` controls only its CPU task. Set
 `EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
-allowed values are `us-east5` and `us-central1`, with `us-east5` retained as
-the default. `EXP473_TPU_VARIANT` defaults to `v5p-8`; east5 also permits
-`v6e-4`, and a comma-separated `v5p-8,v6e-4` requests either compatible
-single-VM topology from the scheduler. Central1 permits only `v5p-8`.
+allowed values are `us-east5`, `us-central1`, and `europe-west4`, with
+`us-east5` retained as the default. `EXP473_TPU_VARIANT` defaults to
+`v5p-8`; east5 also permits `v6e-4`, and a comma-separated
+`v5p-8,v6e-4` requests either compatible single-VM topology from the
+scheduler. Central1 permits only `v5p-8`; Europe permits `v6e-4` and uses
+the `marin-eu-west4` bucket. Europe also permits the bounded
+`v5litepod-16` recovery topology when its v6e pool is exhausted. The global batch,
+seed, optimizer, step count, and checkpoint identity remain fixed; Levanter
+reshards the existing TensorStore checkpoint across the execution topology.
 `EXP473_TPU_RAM` defaults to `56g`; use the bounded `96g` recovery value when
 Hugging Face export exceeds the default host-memory limit. Both settings are
 runtime-only and do not change the model or checkpoint identity.
@@ -125,13 +130,19 @@ runtime-only and do not change the model or checkpoint identity.
 changes only the Iris capacity class and preserves the same data, model,
 optimizer, run ID, and checkpoint identity.
 `MARIN_PREFIX` must use the matching
-`marin-us-east5` or `marin-us-central1` bucket; the launcher fails before graph
-creation when the bucket and child region differ, or when a variant is
-unsupported in the chosen region. A region migration must terminate the old
-coordinator and child before launching a replacement with the same run and
-checkpoint identities. A new region uses an additive artifact namespace and
-rebuilds the source-pinned cache there rather than rewriting a receipt from a
-different region.
+`marin-us-east5`, `marin-us-central1`, or `marin-eu-west4` bucket; the
+launcher fails before graph creation when the bucket and child region differ,
+or when a variant is unsupported in the chosen region. A region migration must
+terminate the old coordinator and child before launching a replacement with
+the same run and checkpoint identities. A new region uses an additive artifact
+namespace rather than rewriting a receipt from a different region. Rebuild the
+source-pinned cache there, or copy the completed cache data, artifact contract,
+and success marker while omitting executor provenance. To resume rather than
+restart, copy the latest durable `checkpoints/step-N` directory and, when a
+newer temporary checkpoint has already reloaded successfully, copy that exact
+step under the new bucket's matching `tmp/ttl=14d/checkpoints-temp`
+namespace. Do not copy training executor status files, because they could make
+the incomplete training step appear complete.
 
 Use `--no-sync` for the coordinator and sync the locked project explicitly at
 its `/app` bundle root. This avoids coupling the experiment lock to the root

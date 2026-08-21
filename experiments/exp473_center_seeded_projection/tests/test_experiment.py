@@ -196,6 +196,34 @@ def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> Non
         "gs://marin-us-central1/MarinDNA/exp473_center_seeded_projection"
     )
 
+    monkeypatch.setenv("EXP473_TPU_REGION", "europe-west4")
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v6e-4")
+    monkeypatch.setenv(
+        "MARIN_PREFIX",
+        "gs://marin-eu-west4/MarinDNA/exp473_center_seeded_projection/",
+    )
+    europe_step = build_training(ARMS["enhancer_full_window"])
+    europe_pod = europe_step.build_config(
+        StepContext.for_fingerprint(
+            runtime_arg_keys=europe_step.runtime_args,
+            deps=europe_step.deps,
+        )
+    )
+    assert europe_step.runtime_args["train_resources"].regions == [
+        "europe-west4"
+    ]
+    assert europe_step.runtime_args["train_resources"].device.variant == "v6e-4"
+    assert europe_pod.env_vars["MARIN_PREFIX"] == (
+        "gs://marin-eu-west4/MarinDNA/exp473_center_seeded_projection"
+    )
+
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v5litepod-16")
+    europe_v5e_step = build_training(ARMS["enhancer_full_window"])
+    assert (
+        europe_v5e_step.runtime_args["train_resources"].device.variant
+        == "v5litepod-16"
+    )
+
     monkeypatch.setenv(
         "MARIN_PREFIX",
         "gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection",
