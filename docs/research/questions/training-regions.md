@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while frozen-model loss or entropy is a practical conservation proxy; no universal selection rule, causal benefit from likelihood-derived weighting, or repeat-downweighting benefit has been established.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while frozen-model loss or entropy is a practical conservation proxy and a safer candidate than a changing student-derived low-loss mask; no causal weighting or repeat-downweighting benefit has been established.
 
 ## Question
 
@@ -30,6 +30,12 @@ The [conservation and repeat predictability experiment](../experiments/478-conse
 Controlled scale-dependent loss reduction remained associated with conservation, but it is distinct from target-distribution reducible loss.
 One orientation preserved the aggregate classification result at half the inference compute without preserving the exact per-base ranking.
 The inference-only audit did not test whether any score improves training and could not separate training exposure or homology effects.
+The [likelihood-dynamics experiment](../experiments/489-likelihood-dynamics.md) followed the fixed 1B m1-to-m1.3 lineage through five cumulative-token checkpoints on CDS, upstream, downstream, ncRNA, and enhancer probes.
+Conservation ranking was already present by 21B tokens and strengthened in four of five regions through the terminal checkpoint.
+The region-specific lowest-loss 10% became more stable between later adjacent checkpoints, but global endpoint Jaccard was only 0.299 and enhancer endpoint Jaccard was 0.225.
+Current high-loss positions received much larger subsequent loss reductions than current low-loss positions.
+Conservation contrasts remained positive after GC, held-out 7-mer, and target-position controls.
+These observations favor a frozen sufficiently trained teacher over the student's instantaneous low-loss mask for the primary causal test, while leaving downstream benefit untested.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -83,15 +89,16 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   Conserved nonrepeat bases had positive composition-adjusted scale gains in all three regions, qualifying same-corpus scale-differential loss for a causal weighting test while leaving repeat downweighting unresolved.
   Absolute loss and entropy classified conservation increasingly well with scale and dominated every FWD loss delta at comparable estimated scoring compute.
   FWD-only and RC-only classification AUPRC was nearly identical, while their imperfect endpoint per-base agreement limits a single pass as an exact replacement for averaged weights.
+- [Likelihood-derived token rankings through m1.3 training](../experiments/489-likelihood-dynamics.md) measured one 1B lineage at five cumulative-token checkpoints across five genomic regions.
+  Loss and entropy ranked conservation by the earliest checkpoint, but lowest-decile membership remained time- and region-dependent.
+  High-current-loss positions had more remaining loss reduction, so low absolute loss is a conservation proxy rather than a measure of optimization opportunity.
+  The inference-only result favors a frozen teacher for the primary causal selector but does not show that likelihood-derived weighting improves training.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
 
-- Audit token-loss dynamics across checkpoints of m1.3, the de novo 1B model trained on a uniform five-region mixture.
-  On fixed nonrepeat validation tokens from CDS, upstream, downstream, ncRNA, and enhancer, track loss, entropy, conservation AUPRC where labels exist, selected-set overlap, and future loss reduction by current-loss quantile.
-  This tests when functional ranking emerges and whether an online selection mask remains stable through training.
 - Test whether annotation-free pretraining can recover functional sequence from likelihood.
   Train 46M, 76M, and 128M models for matched token budgets on the complete nonrepeat sequence of about 20 animal genomes sampled broadly across orders, with no annotation-based locus filtering.
   Use annotations and conservation only after training to label evaluation positions, measuring functional-versus-matched-background loss gaps and AUPRC from one-orientation loss and entropy, globally and for CDS, upstream, downstream, ncRNA, and enhancer.
@@ -117,6 +124,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - **Learned single-sequence selection:** once a strong model exists, can a classifier or probe trained on annotations and/or evolutionary labels identify functional windows in a new genome from sequence alone?
   What orthogonal evaluation prevents the selector from merely reproducing conservation or annotation bias?
 - **Frozen likelihood-derived selection:** can per-base loss or entropy from a small frozen model identify useful training tokens without annotations?
+  The likelihood-dynamics result favors a sufficiently trained frozen teacher because an instantaneous student low-loss mask remains time- and region-dependent.
   When a target or high-quality reference corpus exists, can a Rho-1-style reference model trained on that distribution provide a useful reducible-loss score?
   Separately, can loss reduction between two same-corpus frozen model sizes identify tokens with high scale-dependent learnability?
   Treat absolute predictability, target-distribution reducible loss, and same-corpus improvement with model scale as distinct signals.
@@ -137,12 +145,12 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 ### How do scale and data quantity change the answer?
 
 - Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- Run a small fixed-compute causal experiment comparing uniform nonrepeat loss, frozen FWD loss or entropy as a soft weight, excess loss against a frozen target-distribution reference, a scale-differential weight from frozen checkpoints, and the student's lowest-current-loss mask as a diagnostic control.
+- Run a small fixed-compute causal experiment comparing uniform nonrepeat loss, loss or entropy from a sufficiently trained frozen teacher as a soft weight, excess loss against a frozen target-distribution reference, a scale-differential weight from frozen checkpoints, and the student's lowest-current-loss mask as a diagnostic control.
   Add direct conservation weighting on human sequence as an oracle positive control.
   Keep repeat downweighting identical in every arm.
   Match training compute and record the offline scoring cost separately.
   Treat same-corpus improvement as a learnability heuristic rather than a direct Rho-1 analogue.
-  Treat lowest-current-loss selection as a self-paced objective that may reinforce already-learned, small-gradient tokens; use a uniform warm-up and a nonzero background floor if it advances beyond the diagnostic arm.
+  Treat lowest-current-loss selection as a self-paced objective that may reinforce already-learned, small-gradient tokens; use a uniform warm-up, temporal smoothing, and a nonzero background floor if it advances beyond the diagnostic arm.
   Teacher nucleotide probabilities would define a separate self-distillation objective and should not be conflated with loss-based token selection.
   Use deterministic FWD scoring first and add an averaged-score sensitivity only if downstream outcomes justify the second inference pass.
 - Add compatible training-corpus exposure and homology-density covariates when they become available.
