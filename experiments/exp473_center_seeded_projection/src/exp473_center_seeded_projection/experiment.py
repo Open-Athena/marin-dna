@@ -179,16 +179,23 @@ def selected_tpu_region() -> str:
     return region
 
 
-def selected_tpu_variant(tpu_region: str) -> str:
-    """Return an explicitly supported TPU variant for the child region."""
-    variant = os.environ.get("EXP473_TPU_VARIANT", DEFAULT_TPU_VARIANT).strip()
+def selected_tpu_variants(tpu_region: str) -> tuple[str, ...]:
+    """Return one or more compatible TPU variants for flexible scheduling."""
+    raw = os.environ.get("EXP473_TPU_VARIANT", DEFAULT_TPU_VARIANT)
+    variants = tuple(part.strip() for part in raw.split(",") if part.strip())
     allowed = ALLOWED_TPU_VARIANTS_BY_REGION[tpu_region]
-    if variant not in allowed:
+    if not variants or len(set(variants)) != len(variants):
+        raise ValueError(
+            "EXP473_TPU_VARIANT must contain one or more unique comma-separated "
+            f"variants, got {raw!r}"
+        )
+    unsupported = set(variants) - allowed
+    if unsupported:
         raise ValueError(
             f"EXP473_TPU_VARIANT must be one of {sorted(allowed)} in "
-            f"{tpu_region!r}, got {variant!r}"
+            f"{tpu_region!r}, got {sorted(unsupported)}"
         )
-    return variant
+    return variants
 
 
 def selected_tpu_ram() -> str:
@@ -317,7 +324,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
     cache = tokenized_dataset(arm)
     run_id = f"dna-exp473-0p25b-{arm.key}-v1"
     tpu_region = selected_tpu_region()
-    tpu_variant = selected_tpu_variant(tpu_region)
+    tpu_variants = selected_tpu_variants(tpu_region)
     tpu_ram = selected_tpu_ram()
     marin_prefix = validated_marin_prefix(tpu_region)
     forwarded_env = {
@@ -344,7 +351,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
         z_loss_weight=4.312883184368223e-06,
         evals=None,
         resources=ResourceConfig.with_tpu(
-            tpu_variant,
+            tpu_variants,
             cpu=16,
             ram=tpu_ram,
             disk="100g",

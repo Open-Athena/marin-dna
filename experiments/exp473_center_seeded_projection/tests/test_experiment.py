@@ -135,7 +135,15 @@ def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> Non
     monkeypatch.setenv("EXP473_TPU_RAM", "96G")
     east5_step = build_training(ARMS["enhancer_full_window"])
     assert east5_step.runtime_args["train_resources"].device.variant == "v6e-4"
+    assert east5_step.runtime_args["train_resources"].device_alternatives is None
     assert east5_step.runtime_args["train_resources"].ram == "96g"
+
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v5p-8,v6e-4")
+    flexible_step = build_training(ARMS["enhancer_center_1"])
+    assert flexible_step.runtime_args["train_resources"].device.variant == "v5p-8"
+    assert flexible_step.runtime_args["train_resources"].device_alternatives == [
+        "v6e-4"
+    ]
 
     monkeypatch.setenv("EXP473_TPU_RAM", "128g")
     with pytest.raises(ValueError, match="EXP473_TPU_RAM"):
@@ -178,6 +186,10 @@ def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> Non
     monkeypatch.setenv("EXP473_TPU_REGION", "us-east5")
     monkeypatch.setenv("EXP473_TPU_VARIANT", "anything")
     with pytest.raises(ValueError, match="EXP473_TPU_VARIANT"):
+        build_training(ARMS["cds_center_1"])
+
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v6e-4,v6e-4")
+    with pytest.raises(ValueError, match="unique comma-separated"):
         build_training(ARMS["cds_center_1"])
 
 
