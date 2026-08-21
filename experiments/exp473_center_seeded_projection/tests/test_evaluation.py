@@ -576,6 +576,8 @@ def test_intersection_workflow_is_additive_and_rule_isolated():
     assert "image_id: ami-0324f0ad73bdcd087" in launcher
     assert "evals-gpu-runtime-check" in launcher
     assert '--experiment-commit "$EXP473_EXPERIMENT_COMMIT"' in analysis_launcher
+    assert '--analysis-commit "$EXP473_ANALYSIS_COMMIT"' in analysis_launcher
+    assert "/analysis/$EXP473_ANALYSIS_COMMIT" in analysis_launcher
     assert "image_id: ami-0324f0ad73bdcd087" in analysis_launcher
 
 

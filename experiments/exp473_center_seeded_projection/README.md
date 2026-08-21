@@ -269,10 +269,12 @@ After every official evaluation cell succeeds:
 sky launch \
   experiments/exp473_center_seeded_projection/sky/analyze.yaml \
   -c exp473-analyze \
-  --env EXP473_EXPERIMENT_COMMIT="$EXP473_EXPERIMENT_COMMIT"
+  --env EXP473_EXPERIMENT_COMMIT="$EXP473_EXPERIMENT_COMMIT" \
+  --env EXP473_ANALYSIS_COMMIT="$EXP473_ANALYSIS_COMMIT"
 ```
 
 The analysis writes point metrics, aligned bootstrap samples, policy deltas,
 the official Complex/SGE tables, plots, a Markdown summary, and a SHA-256
-manifest under a commit-keyed S3 prefix. Its additional-seed table only records
-the preregistered evidence trigger; it does not launch an unapproved arm.
+manifest under an experiment-commit and analysis-commit-keyed S3 prefix. Its
+additional-seed table only records the preregistered evidence trigger; it does
+not launch an unapproved arm.

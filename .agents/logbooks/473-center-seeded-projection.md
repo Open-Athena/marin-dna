@@ -2276,3 +2276,39 @@ cohort, assemblies, and downstream training recipe fixed.
 - The 18 missing CDS Complex cells were submitted as job 13 on the existing
   warm evaluator. The direct-file loader remains pinned to public
   `train.parquet`, and the odd-autosome/X development boundary is unchanged.
+
+### 2026-08-21 11:46 UTC - CSP-075 sampled flank and representative-example audit completed
+
+- A standalone additive analysis at commit
+  `a2026df5c995d4e008884952511f2d344ee63130` read only the 214 retained named
+  PSL files and completed as Sky job 1 on `exp473-trace-flanks`. The first
+  setup attempt failed before data access because Sky's default CPU image did
+  not contain the AWS CLI; the corrected launcher pins the already validated
+  issue-462 image and a compatible 100 GB root disk. The successful cluster
+  was armed for automatic teardown.
+- The immutable bundle at
+  `s3://oa-bolinas/snakemake/analysis/issue473/results/a2026df5c995d4e008884952511f2d344ee63130/d0e5380a46cd66d4c42d763b3c42da1150c92073/bf8367c285f955407cfb2dba6102661b2e528261b64fe52095d52a688cd6d039/trace_flanks_v1/`
+  contains 5,328 rows, 1,000 human-anchor bootstrap replicates, exact SHA-256
+  receipts, and the explicit 0-based half-open coordinate contract. All 5,328
+  new aligned-to-anchor base counts match the earlier producer trace exactly;
+  maximum absolute disagreement is zero.
+- Paired center-minus-full mean external-flank deltas in bases were -1.063
+  [-3.465, 0.502] for enhancer-centered cCRE, -0.163 [-1.617, 1.010] for CDS,
+  -0.400 [-3.952, 2.750] for ncRNA exon, +0.889 [-2.938, 4.245] for TSS/UTR5,
+  and +1.143 [0.387, 2.204] for UTR3. Only UTR3's interval excludes zero.
+  Thus the deterministic trace does not support the preregistered claim that
+  center-1 generally creates more unaligned edge flank.
+- Representative paired CDS example `win_chr10_000116477` in
+  *Dinomys branickii* maps both policies to `DinBra_scaffold_14185` on the
+  plus strand. Full-window uses four fragments and emits `[89487, 89742)`;
+  center-1 uses one fragment and emits `[89485, 89740)`. Both reproduce 249
+  aligned anchor bases and three internal unaligned bases; left/right flanks
+  are 1/2 bp for full-window and 3/0 bp for center-1.
+- Representative enhancer, rejected, fragmented, and ZRS example
+  `enh_001515628` in *Craseonycteris thonglongyai* is rejected by full-window
+  as `multi_chromosome`: 11 fragments span five named scaffolds. Center-1
+  accepts one locus at `CraTho_scaffold_257521:[922,1177)` on the plus strand.
+  Its exact reverse trace reproduces 250 aligned anchor bases, 0/2 bp
+  left/right flank, three internal unaligned bases, and an aligned center
+  nucleotide. This complements the earlier plus- and reverse-strand ZRS rows
+  and provides an explicit rejected-policy outcome from immutable evidence.

@@ -560,8 +560,10 @@ def run_analysis(
     n_bootstrap: int,
     seed: int,
     experiment_commit: str,
+    analysis_commit: str,
 ) -> None:
     experiment_commit = validate_experiment_commit(experiment_commit)
+    analysis_commit = validate_experiment_commit(analysis_commit)
     output_dir.mkdir(parents=True, exist_ok=True)
     points, samples, deltas, score_inputs, mendelian_metric_inputs = analyze_mendelian(
         results_root,
@@ -593,6 +595,7 @@ def run_analysis(
 
     manifest = {
         "experiment_commit": experiment_commit,
+        "analysis_commit": analysis_commit,
         "split": DEVELOPMENT_SPLIT,
         "held_out_access": False,
         "n_bootstrap": n_bootstrap,
@@ -625,6 +628,7 @@ def main() -> None:
     parser.add_argument("--n-bootstrap", type=int, default=1_000)
     parser.add_argument("--seed", type=int, default=473)
     parser.add_argument("--experiment-commit", required=True)
+    parser.add_argument("--analysis-commit", required=True)
     args = parser.parse_args()
     run_analysis(
         args.results_root,
@@ -632,6 +636,7 @@ def main() -> None:
         n_bootstrap=args.n_bootstrap,
         seed=args.seed,
         experiment_commit=args.experiment_commit,
+        analysis_commit=args.analysis_commit,
     )
 
 

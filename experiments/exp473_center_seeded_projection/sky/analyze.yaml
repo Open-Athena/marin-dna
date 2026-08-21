@@ -20,6 +20,7 @@ envs:
     EVAL_RESULTS_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473
     OUTPUT_S3_ROOT: s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473
     EXP473_EXPERIMENT_COMMIT: ""
+    EXP473_ANALYSIS_COMMIT: ""
 
 setup: |
     set -euxo pipefail
@@ -33,6 +34,7 @@ setup: |
 run: |
     set -euxo pipefail
     test -n "$EXP473_EXPERIMENT_COMMIT"
+    test -n "$EXP473_ANALYSIS_COMMIT"
     OUTPUT_DIR="/tmp/issue_473_analysis"
     export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
     uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
@@ -41,7 +43,9 @@ run: |
         --output-dir "$OUTPUT_DIR" \
         --n-bootstrap 1000 \
         --seed 473 \
-        --experiment-commit "$EXP473_EXPERIMENT_COMMIT"
-    aws s3 sync "$OUTPUT_DIR" "${OUTPUT_S3_ROOT%/}/$EXP473_EXPERIMENT_COMMIT/" \
+        --experiment-commit "$EXP473_EXPERIMENT_COMMIT" \
+        --analysis-commit "$EXP473_ANALYSIS_COMMIT"
+    ANALYSIS_ROOT="${OUTPUT_S3_ROOT%/}/$EXP473_EXPERIMENT_COMMIT/analysis/$EXP473_ANALYSIS_COMMIT"
+    aws s3 sync "$OUTPUT_DIR" "$ANALYSIS_ROOT/" \
         --only-show-errors
-    aws s3 ls "${OUTPUT_S3_ROOT%/}/$EXP473_EXPERIMENT_COMMIT/manifest.json"
+    aws s3 ls "$ANALYSIS_ROOT/manifest.json"
