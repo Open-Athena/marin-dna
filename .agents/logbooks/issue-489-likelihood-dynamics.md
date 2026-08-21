@@ -197,3 +197,44 @@ The original m1.3 training definition names five training sources but only three
 - Next action: The reserved keyword is renamed.
 - Next action: Do not repeat the memory-heavy parser locally.
 - Next action: Run the corrected dry-run on the remote execution node before launching the pilot.
+
+### 2026-08-21 15:19 UTC - `LD489-004` corrected remote dry-run
+
+- Hypothesis: The corrected target resolves only the approved earliest-versus-terminal pilot.
+- Commit Hash: `e3879d3a80ee09006b964994e0254fd2f5a7ff27`.
+- Command: `sky launch snakemake/analysis/evals_v2/sky/run.yaml -c evals-v2-ld489-pilot --env SNAKEMAKE_ARGS="-n --resources gpu=1 -- likelihood_dynamics_489_pilot" -y`.
+- Config: AWS `g5.xlarge` with one NVIDIA A10G in `us-east-2`; all spot zones lacked capacity, so Sky used the configured $1.01/hour on-demand fallback.
+- Result: The pinned AMI passed the PyTorch 2.13.0, CUDA 13.0, A10G, and bf16 runtime gate.
+- Result: The DAG contained five metadata jobs, ten scoring jobs, one validator, and one named-target wrapper.
+- Result: The two checkpoint conversions were already present in the S3 cache.
+- Interpretation: The DAG was pilot-sized and contained no full 16,384-window scoring or unrelated targets.
+- Next action: Launch the approved 128-window pilot.
+
+### 2026-08-21 15:20 UTC - `LD489-005` stop unintended remote FASTA indexing
+
+- Hypothesis: The Ensembl soft-masked FASTA reader will use its companion index for random access.
+- Commit Hash: `e3879d3a80ee09006b964994e0254fd2f5a7ff27`.
+- Command: Started the pilot, inspected remote processes, and canceled Sky job 2 before GPU scoring.
+- Config: The ncRNA and enhancer metadata jobs each requested 128 intervals.
+- Result: Both jobs instead held about 1.2 GiB RSS and one CPU at 99% for several minutes.
+- Result: `pyfaidx` had opened the remote FASTA without consuming the existing companion `.fai` and was scanning the full FASTA to reconstruct indexing.
+- Interpretation: The `subset_chroms` argument only filters exposed sequence names; it does not build chromosome subsets and did not prevent the indexing scan.
+- Next action: Query the repeat-mask reference through direct `.fai`-derived S3 byte ranges.
+
+### 2026-08-21 15:45 UTC - `LD489-006` pass the earliest-versus-terminal pilot
+
+- Hypothesis: Direct indexed FASTA range requests preserve reference identity while avoiding a full genome scan, and the per-token scorer preserves aggregate likelihood behavior.
+- Commit Hash: Pending.
+- Command: Ran nine focused tests on the remote node, a live indexed S3 query, a corrected dry-run, and `likelihood_dynamics_489_pilot`.
+- Config: First 128 windows from each of five 255 bp probes; m1 step 10,000 and m1.3 step 82,823; forward strand only; GPU jobs serialized with `--resources gpu=1`.
+- Result: Nine focused tests passed in 4.63 seconds.
+- Result: The 6,406-byte `.fai` exists beside the Ensembl release 115 FASTA and the live S3 byte-range query returned immediately.
+- Result: The ncRNA and enhancer metadata joins both completed and uploaded in about 20 seconds total.
+- Result: Peak observed GPU allocation for the first scoring cell was 4,942 MiB.
+- Result: All ten scoring cells produced 32,640 rows and 32,640 scorable rows.
+- Result: Every cell passed the aggregate likelihood parity gate, with maximum absolute differences from `3.30507755279541e-05` to `4.571676254272461e-05`.
+- Result: The final validator passed token identity, row count, finiteness, and per-cell aggregate checks across 326,400 total atom rows.
+- Result: The report is `s3://oa-bolinas/snakemake/analysis/evals_v2/results/m13_likelihood_dynamics_489/v1/pilot/validation_report.json`.
+- Interpretation: The atom-cache producer is ready for review before expanding to five checkpoints and the full 16,384-window probes.
+- Next action: Do not launch full scoring without a separate review and approval.
+- Next action: The paid `evals-v2-ld489-pilot` cluster was terminated after the report was secured.
