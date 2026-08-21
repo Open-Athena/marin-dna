@@ -1,31 +1,33 @@
 # How should genomic anchors be selected and projected across species?
 
 > [!NOTE]
-> **TL;DR:** The current full-window projection contract supports viable training datasets, but its anchor criterion, fragment semantics, and homology-versus-yield tradeoff remain unsettled; confidence is high in the baseline behavior and low in its optimality, with a matched downstream comparison still needed.
+> **TL;DR:** Center-seeded projection is preferred for CDS anchors but not enhancer-centered cCRE anchors. It improved CDS recovery and matched downstream coding results, while it reduced enhancer recovery and distal Mendelian performance. Projection semantics should therefore be selected by genomic region; confidence is moderate because the downstream comparison used one training seed.
 
 ## Question
 
 How do human anchor-inclusion and cross-species alignment-projection choices change which genomic regions and species are represented in multispecies DNA language-model training data, and how do those choices affect downstream model quality?
-We want to understand the genome-wide trade-off among evolutionary breadth, confidence that an extracted target window is homologous to its human anchor, and usefulness for model training.
+We want to understand the trade-off across genomic-region classes among evolutionary breadth, confidence that an extracted target window is homologous to its human anchor, and usefulness for model training.
 Projection yield and clade recovery are intermediate measurements; downstream model performance is the final criterion.
 
 ## Current answer
 
-The full-window projection baseline is operational and well specified, but its optimality is unknown.
+The full-window projection baseline is operational and well specified, but it is not optimal for every region.
 It starts from conservation-filtered 255 bp human anchors, projects the full interval, requires all compatible fragments to map to one target chromosome and strand without overlap, takes their outer span, accepts spans from 128 to 512 bp, and resizes around the span midpoint to 255 bp.
 The final target window can therefore contain unaligned flanking sequence.
 
-This contract has produced viable mammalian and vertebrate training data and supports backend-uniform rejection accounting.
-It does not establish that full-window projection selects the best homologous locus or balances homology confidence and species recovery optimally.
-Tiny fragments, duplicated loci, midpoint definition, span thresholds, and allowed unaligned flank remain policy choices.
+[Experiment #473](../experiments/473-center-seeded-projection.md) compared that contract with center-1 projection, which projects the central nucleotide, requires a unique target locus, and extracts a fixed 255 bp target-genome window around it.
+On fixed anchors, center-1 increased CDS recovery by 2.679 percentage points but decreased enhancer-centered cCRE recovery by 0.892 points.
+The sampled reverse-trace audit found no general loss of aligned anchor coverage or increase in external flank.
 
-A center-seeded alternative would project one central landmark, require a unique target locus, and extract a fixed target-genome window around it.
-This could increase distant-species recovery while weakening evidence that the surrounding bases are homologous.
-Multiple landmarks or fragment-selection policies occupy intermediate points.
+At matched tokens, CDS center-1 improved final Mendelian AUPRC by 0.249 for missense, 0.237 for splicing, and 0.185 for synonymous variants.
+It also improved Complex missense and splicing AUPRC and SGE missense and splicing AUPRC.
+For enhancer-centered cCREs, center-1 reduced distal Mendelian AUPRC by 0.056 and was effectively tied on distal Complex AUPRC.
+Shared-row projection loss favored CDS center-1 at every checkpoint but had no stable enhancer ordering.
 
-Confidence is high in the documented behavior of the baseline and low in its optimality.
-The next decision gate is a matched policy comparison on fixed anchors with per-species and per-region recovery, mapping ambiguity, aligned coverage, unaligned flank, and downstream training at matched tokens.
-Projection yield alone is insufficient.
+The current answer is therefore region-specific: use center-1 for CDS and retain full window for enhancer-centered cCREs.
+Projection yield alone remains insufficient, and this result should not be generalized to regions without matched downstream training.
+Confidence is moderate because the projection audit is extensive but the training comparison has one seed.
+Tiny fragments, duplicated loci, midpoint definition, span thresholds, multiple landmarks, and fragment-selection policies remain open choices for other region classes.
 
 <details>
 <summary>Related work</summary>
@@ -78,13 +80,15 @@ Projection yield alone is insufficient.
   Centering was suggestively better for distal VEP but unequal epoch counts prevented attribution to anchor geometry.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored nucleotide CDS projection with native per-species annotation at vertebrate and animal scales.
   Projection produced useful data but lost distant species and did not dominate every evaluation, directly exposing the recovery-versus-construction tradeoff.
+- [Experiment #473](../experiments/473-center-seeded-projection.md) compared full-window and center-1 projection on fixed anchors with recovery, reverse-trace QC, matched-token training, paired Mendelian uncertainty, Complex, SGE, and shared-row loss.
+  It supports center-1 for CDS but retaining full window for enhancer-centered cCREs.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
 
-- Which projection semantics best balance species recovery with confidence that the extracted target window is homologous to the human anchor: full-window projection, center-seeded projection, multiple projected landmarks, or fragment/locus-based alternatives?
+- For regions beyond CDS and enhancer-centered cCREs, which projection semantics best balance species recovery with confidence that the extracted target window is homologous to the human anchor: full-window projection, center-seeded projection, multiple projected landmarks, or fragment/locus-based alternatives?
 - Within full-window projection, should tiny fragments be removed before locus checks, should one fragment be selected as canonical, or should all compatible fragments define the target span?
   How should same-chromosome/strand requirements, span-length cutoffs, midpoint choice, and permitted unaligned flank vary?
 - How do phyloP and GPN-Star inclusion criteria, the evolutionary timescale of the score, the base-level cutoff, and the required within-window selected fraction change genome-wide anchor composition and the percentage of primates, mammals, and vertebrates recovered?
