@@ -51,11 +51,12 @@ A separate probe was trained at every context, so the probe comparison measures 
 |---|---|---:|---:|---:|---:|
 | Zero-shot | 255→511 bp | +0.0175 | 0.0057 | [+0.0057, +0.0278] | 0.0024 |
 | Frozen probe | 255→511 bp | -0.0124 | 0.0129 | [-0.0408, +0.0087] | 0.3138 |
-| Zero-shot | 511→1023 bp | -0.3060 | 0.0154 | [-0.3359, -0.2762] | 0.0001 |
-| Frozen probe | 511→1023 bp | -0.2993 | 0.0308 | [-0.3525, -0.2304] | 0.0001 |
+| Zero-shot | 511→1023 bp | -0.3060 | 0.0154 | [-0.3359, -0.2762] | <0.0002 |
+| Frozen probe | 511→1023 bp | -0.2993 | 0.0308 | [-0.3525, -0.2304] | <0.0002 |
 
 The paired analyses used 10,000 reproducible draws.
 The zero-shot analysis preserved matched groups, and the probe analysis preserved shared chromosome draws across arms and macro-eligible subsets.
+The <0.0002 entries had no opposing-tail draw and are reported at the two-sided Monte Carlo resolution rather than as exact p-values.
 The reported p-values are unadjusted; the macro comparisons were the primary interpretation rather than a multiple-testing claim across every subset.
 
 ## Promising directions
