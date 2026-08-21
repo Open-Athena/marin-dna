@@ -2082,3 +2082,22 @@ cohort, assemblies, and downstream training recipe fixed.
   active on Iris. Development evaluation remains restricted to the direct
   pinned `train.parquet` files; no held-out labeled file, prediction,
   measurement, or metric was requested or read.
+
+### 2026-08-21 06:52 UTC - CSP-063 enhancer full-window passed step 2,500
+
+- Enhancer full-window committed its durable native step-2,500 checkpoint,
+  reproduced validation loss 1.328, and completed the matching four-object
+  Hugging Face export in the additive us-east1 namespace. The export is exactly
+  1,019,426,427 bytes. The 56 GiB worker survived the host-memory-sensitive
+  boundary and returned directly to training; by 06:50 UTC it had advanced
+  through about step 2,640 with displayed loss 1.30.
+- The isolated enhancer full-window step-2,500 development graph completed all
+  five requested jobs successfully: one checkpoint stage, two direct
+  development score cells, and two official metric cells. It scored exactly
+  16,140 Mendelian and 11,630 Complex rows from the pinned public
+  `train.parquet` files, producing 66 and 60 official metric rows,
+  respectively. No held-out labeled file, prediction, measurement, or metric
+  was requested or read.
+- Enhancer center-1 and CDS center-1 remained active independently at about
+  steps 4,380 and 4,750, respectively. All three new trajectories therefore
+  continued concurrently while the A10G evaluator ran outside Iris.
