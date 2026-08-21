@@ -25,7 +25,8 @@ The original tagged validation callback had a separate bug that multiplied repea
 The corrected 128-row-per-dataset causal audit reproduces the invalid 0.23138 value, reports 0.76463 pure validation CE under the source-compatible three-dataset macro, and retains the small worsening direction through step 1,000.
 The full 49,152-row audit reproduces the original nine-metric W&B macro as 0.861413936 versus 0.861344755, with maximum metric error 0.000168145, and reports a corrected single-weight macro of 0.875662646.
 Every checkpoint remains retained in W&B, and knowledge-base interpretation remains paused.
-A corrected 1,000-step causal replacement is prepared from the released source checkpoint with the user-selected AdamW schedule and source-compatible training loss.
+The corrected 1,000-step causal replacement reports five-component macro validation CE of 0.769008732 at source and 0.773670488 at step 1,000.
+Its training and gradient traces are finite, all 13 corrected checkpoints are retained, and the knowledge-base interpretation remains paused.
 
 ## Current baseline
 
@@ -33,14 +34,14 @@ A corrected 1,000-step causal replacement is prepared from the released source c
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- Completed experiment list-price estimate: $27.0338 of the $50 cap; final cluster confirmed terminated.
+- Completed experiment list-price estimate: $28.3080 of the $50 cap; final cluster confirmed terminated.
 - Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
 
 ### Active
 
-- `MNTP-479-H6` (active): a source-compatible AdamW continuation at `1e-5` can test whether the prior progressive loss increase came from the invalid exp479 training objective. Next test: one corrected 1,000-step run from the released source checkpoint.
+- No further compute is selected while the corrected causal result awaits human review.
 
 ### Blocked
 
@@ -50,6 +51,7 @@ A corrected 1,000-step causal replacement is prepared from the released source c
 
 - `MNTP-479-H2` (strict control criterion): transferred MNTP used both flanks, but its left response did not exceed the full-attention/no-adaptation control. Evidence: [result bundle](../artifacts/479-mntp-adaptation/README.md).
 - `MNTP-479-H3` (downstream gate): no primary VEP endpoint improved over source CLM FWD+RC. Single-pass dependency structure remained similar to FWD+RC, but that scoped mechanism did not rescue the registered VEP/extension gate. Evidence: [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
+- `MNTP-479-H6` (objective-bug explanation): correcting the training denominator and source z-loss did not eliminate the small initial improvement followed by progressive validation worsening. Evidence: [corrected W&B run](https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4).
 
 ### Promoted
 
@@ -75,6 +77,7 @@ A corrected 1,000-step causal replacement is prepared from the released source c
 - 2026-08-21: Preserve the retained checkpoints and recompute the causal trajectory before running more training or interpreting the prior loss direction.
 - 2026-08-21: Keep the exp479 denominator bug in the experiment record because it is local to this one-off framework; track only Levanter's current shared double-weighting bug in #499.
 - 2026-08-21: Replace the superseded 1,000-step causal control with one corrected run from the released source checkpoint before interpreting the causal trajectory.
+- 2026-08-21: Keep the corrected causal result in experiment mode, select no further compute automatically, and leave knowledge-base interpretation paused for human review.
 
 ## Negative results index
 
@@ -85,6 +88,7 @@ A corrected 1,000-step causal replacement is prepared from the released source c
 - The registered continued-CLM recipe progressively increased fixed-plan loss from 0.23138 at step 0 to 0.35965 at step 800 before partial cooldown recovery to 0.35010 at step 1,000.
 - The completed AdamW `1e-6` and `1e-5` controls optimized the invalid count-normalized objective and are not faithful causal-continuation controls.
 - All prior exp479 absolute losses are invalid for comparison with the source W&B run; their denominator lowers the scale in proportion to each panel's uppercase/lowercase composition.
+- The corrected AdamW `1e-5` replacement increased five-component macro validation CE from `0.769008732` at source to `0.773670488` at step 1,000 despite finite training and gradients.
 
 ## Background research brief
 
@@ -509,3 +513,22 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Budget: Carry forward `$27.033784759`; a conservative two-hour Lambda GH200 reservation projects `$31.613784759 / $50`.
 - Interpretation boundary: Publish factual loss and stability trajectories while keeping the knowledge-base update paused.
 - Next action: Commit this logbook entry, dry-run the exact launch snapshot, launch one self-terminating Lambda GH200, and monitor through checkpoint retention and validation publication.
+
+### 2026-08-21 20:28 - Corrected AdamW 1e-5 causal replacement completed
+
+- Launch snapshot: `42fc993e3245a0f6a1c1d77813b0665ef56e68e5`.
+- Command: `uv run --locked python launch.py longrun --commit 42fc993e3245a0f6a1c1d77813b0665ef56e68e5 --prior-cost-usd 27.033784759 --retry-until-up --execute`.
+- Placement: One Lambda GH200 in `us-east-3` after `us-east-1` reported insufficient capacity.
+- Verification: All 104 locked tests passed before model loading, and regenerated plan hashes matched `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91` for training and `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba` for validation.
+- Objective: Full-parameter AdamW at `1e-5` used one repeat-weight application, global effective-weight normalization, source z-loss `4.312883184368223e-6`, and the preregistered 10%/70%/20% schedule.
+- Validation: Five-component macro pure CE was `0.769008732` at step 0, `0.767801766` at step 100, `0.768950871` at step 200, `0.770591888` at step 300, `0.773703543` at step 800, `0.774135425` at step 900, and `0.773670488` at step 1,000.
+- Gate: The final change was `+0.004661756` and the fitted slope was `+6.169216e-6` per step, so the no-increase macro gate is false.
+- Cross-check: Step 0 differs by `-0.000006417` from the earlier independent evaluator, and the corrected trajectory differs from the same metric on the superseded checkpoints by at most `0.000136974` across all 13 points.
+- Stability: All 1,000 numeric trace rows are present and finite; successive 100-step mean training losses stayed within `1.0216–1.0308`; gradient norm median/p95/maximum was `0.7674/0.8845/1.3722`; steps 238, 265, 646, 682, 738, and 867 clipped.
+- Retention: Twelve numbered model exports and one full optimizer-bearing Lightning checkpoint are committed as 13 W&B model artifacts totaling 67.25 GB; the full artifact is `gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-1000-full:v0`.
+- Runtime: The 1,000 training steps took `1,306.77` seconds including synchronous artifact retention, processed 16,384,000 model tokens at 12,537.74 tokens/s, and peaked at 67,360,482,816 allocated CUDA bytes.
+- Cost: The final teardown record estimates `$1.274169` for this attempt and `$28.307954 / $50` cumulative.
+- Evidence: [W&B f77ypos4](https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4) and compact artifact directory `causal-longrun-lr1e-5-corrected/`.
+- Publication boundary: No Hugging Face upload, checkpoint deletion, AUPRC evaluation, held-out even-autosome/Y access, or knowledge-base update was performed.
+- Teardown: The managed job succeeded, and `sky status -r` confirms no cluster, in-progress job, or live service.
+- Next action: Commit and tag this factual result, update issue #479's body and comment with the figures, and select no additional compute automatically.

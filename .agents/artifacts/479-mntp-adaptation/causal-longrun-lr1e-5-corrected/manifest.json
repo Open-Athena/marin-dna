@@ -1,0 +1,50 @@
+{
+  "run_name": "dna-exp479-clm-adamw-1e-5-corrected-wsd1000-seed0",
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4",
+  "optimizer": {
+    "learning_rate": 1e-05,
+    "beta1": 0.9,
+    "beta2": 0.95,
+    "epsilon": 1e-08,
+    "weight_decay": 0.0,
+    "max_grad_norm": 1.0,
+    "warmup_steps": 100,
+    "cooldown_start_step": 800,
+    "train_steps": 1000
+  },
+  "batch_size": 64,
+  "seed": 0,
+  "checkpoint_steps": [
+    0,
+    25,
+    50,
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+  ],
+  "train_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "training_objective": "global effective-weight mean of CE plus source z-loss",
+  "training_z_loss_weight": 4.312883184368223e-06,
+  "validation_objective": "pure CE with one repeat-weight application",
+  "validation_scope": "equal macro of five 128-row component reducers",
+  "model_artifact_prefix": "dna-exp479-causal-longrun-corrected",
+  "checkpoint_retention": "W&B model artifacts listed in retention-manifest.json",
+  "checkpoint_deletion": "not performed",
+  "gate": {
+    "passed": false,
+    "criterion": "step-1000 five-component macro CE <= step-0 macro CE",
+    "step_0_loss": 0.7690087316192298,
+    "step_1000_loss": 0.7736704879175462,
+    "delta": 0.004661756298316444,
+    "linear_slope_per_step": 6.169216198893472e-06,
+    "n_rows": 640
+  }
+}
