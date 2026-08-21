@@ -1,0 +1,24 @@
+{
+  "population": "target_pos [32, 223), scorable, nonambiguous, nonrepeat",
+  "n_positions": 14002032,
+  "group_definition": "OLS fitted first and terminal NLL, thresholded by the corresponding global fitted mean over cumulative training tokens",
+  "early_global_fitted_mean_nll": 1.1529161923168465,
+  "terminal_global_fitted_mean_nll": 0.9694999591248752,
+  "global_checkpoint_mean_nll": [
+    1.1641315105915075,
+    1.0809862044510286,
+    1.0533249489147054,
+    1.0239451151409031,
+    0.9565362032096778
+  ],
+  "bootstrap": {
+    "replicates": 2000,
+    "seed": 48910,
+    "unit": "region-specific genomic 10 Mb block"
+  },
+  "sample": {
+    "method": "lowest independent pseudorandom priorities per region/group cell",
+    "per_cell": 3,
+    "seed": 48910
+  }
+}

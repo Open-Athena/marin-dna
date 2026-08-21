@@ -28,6 +28,10 @@ author: Codex
 - Enhancer has the most mask churn, with loss Jaccard 0.266 early, 0.484 late, and 0.225 end to end.
 - The highest current-loss decile improves by 0.521 nats/base from 21.0B to terminal, compared with 0.047 for the lowest decile.
 - Conservation remains positively associated with negative loss and entropy in every region and checkpoint after GC, 7-mer, and target-position controls.
+- A global fitted-endpoint extension assigns 42.3% of positions to H-to-H, 14.7% to L-to-H, 10.0% to H-to-L, and 33.1% to L-to-L.
+- L-to-L is enriched 1.68-fold in ncRNA, while H-to-L is enriched 1.75-fold in enhancer and depleted 2.46-fold upstream.
+- Conservation prevalence is about 50% in both terminal-low groups versus 22-25% in terminal-high groups in the mixed-definition global aggregate; within-region contrasts have 10 Mb block-bootstrap intervals.
+- L-to-L has lower held-out 7-mer NLL and less annotated-repeat proximity than H-to-H globally, so ordinary soft-masked repeats do not explain the group.
 - Use a frozen sufficiently trained teacher for the primary causal selector; require warm-up, smoothing, and a background floor for any online student-derived diagnostic arm.
 - The reviewed tables and figures are under `.agents/artifacts/issue-489-likelihood-dynamics/`; estimated total SkyPilot cost is $1.79.
 
@@ -48,7 +52,12 @@ author: Codex
 
 ### Active
 
-- None.
+- `LD489-H5`: Conservation contributes strongly to terminal-low membership, especially H-to-L in CDS and L-to-L in enhancer and ncRNA.
+- `LD489-H6`: Region identity contributes independently to trajectory membership, with ncRNA enriched for L-to-L and enhancer enriched for H-to-L.
+- `LD489-H7`: Local sequence predictability contributes to early-low membership because both early-low groups have lower held-out 7-mer NLL in every region.
+- `LD489-H8`: Proximity to annotated repeats is not the main source of L-to-L membership; downstream repeat boundaries may be a region-specific exception.
+- `LD489-H9`: Segmental duplication, gene-family redundancy, or other unannotated redundancy may explain a minority of L-to-L positions.
+- `LD489-H10`: A controlled trajectory model should separate conservation, region, GC, 7-mer NLL, repeat proximity, and target position before biological interpretation.
 
 ### Blocked
 
@@ -299,3 +308,28 @@ The original m1.3 training definition names five training sources but only three
 - Result: PR #497 has the required `agent-generated` label and every build, pre-commit, selection, and test check passes.
 - Interpretation: The scientific result is complete; only human review and merge of the knowledge-base promotion remain.
 - Next action: After PR #497 merges, update issue #489 to canonical main links, set the disposition to `interpretation page merged`, and close the issue.
+
+### 2026-08-21 21:20 UTC - `LD489-010` characterize global fitted trajectory groups
+
+- Hypothesis: The four global fitted-endpoint trajectory groups differ in region, conservation, local sequence predictability, and repetitive-sequence context; L-to-L may include repetitive sequence missed by the primary soft-mask exclusion.
+- Commit Hash: Pending.
+- Characterization command: From `snakemake/analysis/evals_v2`, run `flock -n /tmp/marin-dna-local-heavy.lock /usr/bin/time -v env POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 nice -n 10 ionice -c 2 -n 7 uv run --locked python ../../../.agents/artifacts/issue-489-likelihood-dynamics/biological_characterization_489.py`.
+- Inspection command: From the same project, run `flock -n /tmp/marin-dna-local-heavy.lock /usr/bin/time -v env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 nice -n 10 ionice -c 2 -n 7 uv run --locked python ../../../.agents/artifacts/issue-489-likelihood-dynamics/inspect_trajectory_samples_489.py`.
+- Plot command: From the same project, run `env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 uv run --locked python ../../../.agents/artifacts/issue-489-likelihood-dynamics/plot_biological_characterization_489.py`.
+- Config: Fit each position's NLL against cumulative tokens at five checkpoints; threshold fitted first and terminal values by global fitted means; primary nonrepeat population; 2,000 region-specific 10 Mb block-bootstrap replicates; balanced pseudorandom sample of three positions per region-by-group cell with seed 48910.
+- Result: The global groups contain 42.3% H-to-H, 14.7% L-to-H, 10.0% H-to-L, and 33.1% L-to-L positions.
+- Result: L-to-L makes up 55.7% of ncRNA positions and is 1.68-fold enriched in ncRNA relative to the global region mixture.
+- Result: H-to-L makes up 17.4% of enhancer positions, is 1.75-fold enriched in enhancer, and is 2.46-fold depleted upstream.
+- Result: Global mixed-definition conservation prevalence is 50.3% for H-to-L, 49.4% for L-to-L, 24.9% for L-to-H, and 21.8% for H-to-H.
+- Result: Within CDS, H-to-L is 76.0% conserved and L-to-L is 56.5% conserved; within enhancer, the values are 53.2% and 61.7%; within ncRNA, L-to-L is 51.5% conserved.
+- Result: Global held-out 7-mer NLL is 1.254 for L-to-L and 1.248 for L-to-H, compared with 1.375 for H-to-L and 1.421 for H-to-H.
+- Result: Only 18.1% of L-to-L positions are within 50 bp of a soft-masked repeat, compared with 24.9% of H-to-H and 24.7% of L-to-H positions; downstream is the exception at 40.1% for L-to-L versus 36.5% for H-to-H.
+- Result: None of 15 balanced L-to-L samples overlaps the UCSC RepeatMasker or simple-repeat track; two ncRNA L-to-L samples overlap segmental duplications.
+- Result: Sampled L-to-L contexts include ordinary coding, promoter-adjacent, downstream, ncRNA-panel, and enhancer-panel positions near `DBR1`, `OR1L6`, `CAMSAP3`, `H1-6`, `H3C10`, `TUBA1C`, `ENOX1`, and `ADGRL3`.
+- Runtime: The bounded characterization completed in 60 seconds at 454,676 KiB peak RSS; the sampled UCSC inspection completed in 22 seconds at 215,504 KiB peak RSS.
+- Interpretation: Conservation, validation region, and local 7-mer predictability are stronger current explanations than proximity to ordinary annotated repeats.
+- Interpretation: Segmental duplication and gene-family redundancy remain exploratory explanations for a minority of L-to-L positions.
+- Caveat: The two conservation label families remain separate for within-region claims; the same losses define group membership and trajectories; the UCSC pass uses an explicitly mapped, separate hg38 annotation source.
+- Negative lead: The attempted legacy UCSC 100-mer mappability track name was not available through the current REST endpoint, so a full independent mappability test remains open.
+- Sources: Issue #489, the versioned atom cache, the pinned validation metadata, the [UCSC REST API](https://genome.ucsc.edu/goldenPath/help/api.html), and the UCSC `rmsk`, `simpleRepeat`, `genomicSuperDups`, and `ncbiRefSeq` tracks.
+- Next action: Fit a block-aware controlled multinomial or one-versus-rest trajectory model, and test full-population independent mappability or self-alignment before promoting a repeat or duplication interpretation.
