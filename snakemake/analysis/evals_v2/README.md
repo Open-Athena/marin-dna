@@ -176,7 +176,7 @@ load).
 Run embedding extractions **eager** (`torch_compile: false`): compiling the
 hooked forward is unvalidated, and a small run doesn't need it. The ready-made overlay
 [`config/overlays/return_embeddings.yaml`](config/overlays/return_embeddings.yaml)
-deep-merges `return_embeddings: true` + `batch_size: 32` + `torch_compile: false`
+deep-merges `return_embeddings: true` + `batch_size: 96` + `torch_compile: false`
 over the config (preserving `rc` etc.), e.g.
 `snakemake --configfile config/overlays/return_embeddings.yaml --forcerun
 compute_scores -- results/scores/<model>/<dataset>.parquet`. Eager makes the

@@ -41,6 +41,9 @@ setup: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
     export PATH="$HOME/.local/bin:$PATH"
+    if [[ "$(uv --version)" != "uv 0.11.31" ]]; then
+        uv self update 0.11.31
+    fi
 
     # `--group genome-s3` matches run.yaml (s3fs + the snakemake S3 storage
     # deps). The probe reads its scores parquet via the snakemake S3 storage
