@@ -7,17 +7,24 @@ description: Design, run, interpret, and report MarinDNA genomic language-model 
 
 Apply these rules before computing aggregates or choosing tables and plots.
 
+## Protect Held-Out VEP Data
+
+- Use odd-numbered autosomes and chromosome X for development, training, validation, model selection, probing, and tuning on labeled variant-effect prediction data.
+- Reserve even-numbered autosomes and chromosome Y for final test evaluation.
+- Require explicit user permission before accessing held-out labels, predictions, effect measurements, or aggregate metrics.
+- Apply this restriction to labeled VEP data only.
+  Unlabeled reference sequence and functional-genomics data remain available unless their dataset defines a stricter split.
+
 ## Prepare The Evaluation Frame
 
-1. Enforce the labeled variant-effect split in `AGENTS.md` before reading held-out labels, predictions, effect measurements, or aggregate metrics.
-2. Remove mature miRNA before computing any metric, aggregate, macro average, global score, table, or plot.
+1. Remove mature miRNA before computing any metric, aggregate, macro average, global score, table, or plot.
    For Mendelian and complex-trait matched data, exclude the complete `match_group` when its canonical `subset` is `mature_miRNA_variant`.
    If the source has multi-valued consequence annotations, canonicalize them first and exclude the complete group when any annotation maps to `mature_miRNA_variant`.
    For an ungrouped evaluation, exclude the complete record under the same predicate.
    Assert that no excluded record or group remains in any analysis frame.
-3. Determine the model's training-region scope from its data manifest or training configuration.
+2. Determine the model's training-region scope from its data manifest or training configuration.
    Do not infer scope from the evaluation results.
-4. Restrict each benchmark to biologically appropriate subsets for that scope.
+3. Restrict each benchmark to biologically appropriate subsets for that scope.
    State explicitly when a requested subset is unavailable or inappropriate rather than substituting another subset.
 
 ## Select And Order Standalone Mendelian And Complex-Trait Reports
@@ -75,6 +82,7 @@ Do not replace an unavailable subset with `Both` or another aggregate.
 ## Compose Existing Skills
 
 - Use `develop-snakemake-pipelines` when the evaluation is a maintained Snakemake workflow.
+- Use `run-model-inference` when the evaluation requires model inference.
 - Use `run-research` and `task-logbook` for one-off or multi-session evaluation investigations.
 - Use `manage-research-storage` to choose durable artifact locations.
 - Use `wandb-reporting` for dense metrics and run comparison.

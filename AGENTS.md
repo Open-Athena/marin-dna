@@ -5,8 +5,6 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
 ## Genomic Invariants
 
 - Use 0-based, half-open genomic coordinates internally. Convert 1-based or closed formats such as GTF, VCF, SAM, `pyfaidx.get_seq()`, and samtools-style region strings at the tool boundary, and state any deviation.
-- Treat the canonical human reference as the Ensembl release 115 GRCh38 soft-masked primary assembly with Ensembl sequence names (`1` through `MT`). Other `hg38` variants are not interchangeable. Use `access-reference-genomes` when choosing or retrieving a mirror.
-- For labeled variant-effect prediction data, use odd-numbered autosomes and chromosome X for development, training, validation, model selection, probing, and tuning. Reserve even-numbered autosomes and chromosome Y for final test evaluation. Accessing held-out labels, predictions, effect measurements, or aggregate metrics requires explicit user permission. This restriction does not apply to unlabeled reference sequence or functional-genomics data unless that dataset defines a stricter split.
 
 ## Project Boundaries
 
@@ -24,17 +22,6 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
   Put package API contracts and implementation details in scoped reference documentation or docstrings.
   Keep chronological experiment records in tracking issues and branches, and keep accepted interpretations in `docs/research/`.
 - In Markdown prose, put each sentence on its own source line and do not hard-wrap at a fixed column.
-
-## Inference Workloads
-
-- Treat one-off and experimental inference loops as production inference workloads.
-  Prefer an established automatic evaluation loop, such as Hugging Face `Trainer.predict`, when it can express the required outputs.
-  If a custom loop is necessary, record the capability the established loop could not provide.
-- Batch accelerator inference and use bfloat16 (`bf16`), model compilation, multiple data-loader workers, pinned memory, and prefetching when the model, hardware, and framework support them.
-  Record why any applicable optimization is disabled.
-- Before a long run, define output-specific comparison fields and tolerances and compare a small sample against an eager, uncompiled fp32 or documented higher-precision reference path.
-  Validate reduced precision and compilation separately so a discrepancy can be attributed to one change.
-- Measure steady-state throughput after warmup, state its unit, and record whether data loading and preprocessing are included.
 
 ## Development Setup
 
@@ -72,4 +59,5 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 - Close an issue only after its completion criteria are met and its body and final comment record the outcome.
   For research issues, follow the disposition and interpretation-merge gate in `run-research` and `maintain-knowledge-base`.
 - For completed feature-branch work, commit and push the branch, open or update a draft pull request, run an independent review over the published diff, address its findings, and mark the pull request ready when human feedback is wanted.
+  Do not ask for separate permission for these delivery steps.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.

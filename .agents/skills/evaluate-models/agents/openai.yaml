@@ -1,4 +1,0 @@
-interface:
-  display_name: "Evaluate Models"
-  short_description: "Run and report MarinDNA model evaluations"
-  default_prompt: "Use $evaluate-models to design, run, or report this MarinDNA model evaluation."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Manage Research Storage"
-  short_description: "Choose and document MarinDNA artifact storage"
-  default_prompt: "Use $manage-research-storage to choose and document durable storage ownership for these MarinDNA artifacts."

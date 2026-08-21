@@ -47,6 +47,7 @@
     "manage-research-storage",
     "marin-experiment",
     "plot-research-results",
-    "publish-to-hugging-face"
+    "publish-to-hugging-face",
+    "run-model-inference"
   ]
 }

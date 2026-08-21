@@ -1,4 +1,0 @@
-interface:
-  display_name: "Publish To Hugging Face"
-  short_description: "Publish public MarinDNA artifacts on Hugging Face"
-  default_prompt: "Use $publish-to-hugging-face to publish this MarinDNA artifact with reproducible provenance."
