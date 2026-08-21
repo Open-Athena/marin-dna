@@ -22,6 +22,7 @@ author: Codex
 - The complete cache contains 104,448,000 unfiltered token rows across five checkpoints and five regions, and every manifest and parquet-footer audit passes.
 - The primary population contains 14,002,032 scorable nonrepeat central-span positions, including 4,792,703 case-encoded conserved positions.
 - Global loss AUPRC for conservation rises from 0.502 at 21.0B tokens to 0.601 at 173.7B tokens; entropy rises from 0.492 to 0.599.
+- Negative five-checkpoint OLS loss slope reaches 0.448 global conservation AUPRC, below first-checkpoint loss at 0.502 and terminal loss at 0.601; CDS is the only scope where slope exceeds first-checkpoint loss, at 0.629 versus 0.535.
 - Ranking is already above prevalence in every region at 21.0B tokens, so emergence before that checkpoint remains unresolved.
 - ncRNA is the exception to continued improvement: its loss AUPRC peaks at 0.651 at 146.8B tokens and ends at 0.642.
 - The global lowest-loss-decile Jaccard rises from 0.425 for the first adjacent pair to 0.604 for the final adjacent pair, but endpoint Jaccard is only 0.299.
@@ -68,6 +69,7 @@ author: Codex
 - The five validation datasets are not the five `zoonomia-v1-val_*` recipes considered initially.
 - The blog collection uses three `genomes-v5-validation-*` probes and only two `zoonomia-v1-val_*` probes.
 - The `LD489-H1` prediction that ncRNA and enhancer would have the largest training-time AUPRC gains is false; ncRNA is nearly flat and CDS has the largest gain.
+- `LD489-H11`: Negative five-checkpoint OLS loss slope does not improve global conservation ranking over checkpoint loss; its AUPRC is 0.448, compared with 0.502 at the first checkpoint and 0.601 at the terminal checkpoint.
 
 ### Promoted
 
@@ -333,3 +335,30 @@ The original m1.3 training definition names five training sources but only three
 - Negative lead: The attempted legacy UCSC 100-mer mappability track name was not available through the current REST endpoint, so a full independent mappability test remains open.
 - Sources: Issue #489, the versioned atom cache, the pinned validation metadata, the [UCSC REST API](https://genome.ucsc.edu/goldenPath/help/api.html), and the UCSC `rmsk`, `simpleRepeat`, `genomicSuperDups`, and `ncbiRefSeq` tracks.
 - Next action: Fit a block-aware controlled multinomial or one-versus-rest trajectory model, and test full-population independent mappability or self-alignment before promoting a repeat or duplication interpretation.
+
+### 2026-08-21 21:58 UTC - `LD489-011` compare loss slope with checkpoint loss
+
+- Hypothesis: A token's loss-reduction rate across training ranks conservation better than its loss at one checkpoint.
+- Commit Hash: Pending.
+- Command: From `snakemake/analysis/evals_v2`, run `flock -n /tmp/marin-dna-local-heavy.lock env POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/time -v nice -n 10 ionice -c 2 -n 7 uv run --locked python ../../../.agents/artifacts/issue-489-likelihood-dynamics/slope_conservation_auprc_489.py`.
+- Config: Fit each position's NLL against cumulative training tokens at all five checkpoints and use the negative OLS slope as the conservation score; retain the 14,002,032-position nonrepeat central population; compute exact pooled average precision globally and within each region.
+- Validation: The bounded exact-average-precision implementation matched scikit-learn to 1e-15 on a tied-score fixture.
+
+| Scope | Prevalence | Loss at 21B | Loss at 174B | Loss slope |
+| --- | ---: | ---: | ---: | ---: |
+| Global | 0.342 | 0.502 | 0.601 | 0.448 |
+| CDS | 0.455 | 0.535 | 0.686 | 0.629 |
+| Upstream | 0.196 | 0.360 | 0.489 | 0.330 |
+| Downstream | 0.169 | 0.362 | 0.503 | 0.296 |
+| ncRNA | 0.429 | 0.641 | 0.642 | 0.410 |
+| Enhancer | 0.433 | 0.555 | 0.669 | 0.542 |
+
+- Result: Loss slope was above prevalence globally and in four regions; ncRNA slope AUPRC was 0.410, below its 0.429 prevalence.
+- Result: CDS was the only region where slope beat first-checkpoint loss, at 0.629 versus 0.535; terminal loss remained higher at 0.686.
+- Runtime: The cache pass completed in 40.63 seconds with no swaps and 557,480 KiB maximum RSS.
+- Resource caveat: The observed peak exceeded the shared-node 500 MiB working-set ceiling by about 44 MiB.
+  The exact-AP chunk size is reduced from 1,000,000 to 250,000 before any rerun.
+- Interpretation: The simple all-checkpoint slope does not improve global conservation classification over absolute loss.
+  It uses five model evaluations and remains coupled to starting loss and regression to the mean.
+- Result: The reviewed comparison figure places prevalence, first-checkpoint loss, terminal loss, and loss slope on the same AUPRC scale globally and by validation region.
+- Next action: Promote the negative result to issue #489 and the interpretation pull request with immutable snapshot links.

@@ -30,6 +30,22 @@ Entropy gives the same conclusion, moving from 0.492 to 0.599 globally.
 The earliest available checkpoint is already above prevalence in every region, so this design does not locate the initial emergence before 21.0B tokens.
 ncRNA is the exception to continued improvement: loss AUPRC peaks at 0.651 at 146.8B tokens and ends at 0.642.
 
+### Loss slope
+
+The negative ordinary-least-squares loss slope across all five checkpoints does not improve global conservation ranking over absolute loss.
+
+| Scope | Prevalence | Loss AUPRC at 21.0B | Loss AUPRC at 173.7B | Loss-slope AUPRC |
+| --- | ---: | ---: | ---: | ---: |
+| Global | 0.342 | 0.502 | 0.601 | 0.448 |
+| CDS | 0.455 | 0.535 | 0.686 | 0.629 |
+| Upstream | 0.196 | 0.360 | 0.489 | 0.330 |
+| Downstream | 0.169 | 0.362 | 0.503 | 0.296 |
+| ncRNA | 0.429 | 0.641 | 0.642 | 0.410 |
+| Enhancer | 0.433 | 0.555 | 0.669 | 0.542 |
+
+CDS is the only region where slope beats first-checkpoint loss, but terminal loss remains better.
+The slope uses all five model evaluations and remains coupled to starting loss and regression to the mean.
+
 ### Lowest-score set stability
 
 The region-specific lowest-loss 10% becomes progressively more stable, but it does not define a fixed population across training.
@@ -79,7 +95,7 @@ This experiment is observational and does not test whether frozen likelihood wei
 - Reviewed figure implementation: `fb0ffda0`.
 - S3 root: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/m13_likelihood_dynamics_489/v1/`.
 - Analysis manifest: [manifest.json](manifest.json).
-- Exact tables: the seven Parquet files in this directory.
-- Reviewed plots: the six SVG files under [figures](figures).
+- Exact tables: the seven Parquet files and two loss-slope CSV files in this directory.
+- Reviewed plots: the original six SVG files and the loss-level-versus-slope comparison under [figures](figures), plus the trajectory-group figures under [biology](biology).
 - Full reducer: 3m34s wall time and 5,723,164 KiB maximum RSS on an AWS r7i.2xlarge.
 - Estimated SkyPilot cost: $1.79 total, comprising $1.58 for the pilot and full GPU scoring and $0.21 for CPU analysis and figure generation.

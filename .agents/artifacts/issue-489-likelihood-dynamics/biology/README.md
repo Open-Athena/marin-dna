@@ -22,6 +22,12 @@ The table reports the percentage of each region assigned to each group.
 | ncRNA | 24.3% | 9.5% | 10.6% | 55.7% |
 | Enhancer | 39.4% | 14.1% | 17.4% | 29.1% |
 
+The complementary within-group view shows the functional-region mixture of each trajectory class.
+H-to-L is 36.4% enhancer and 22.5% ncRNA, while L-to-L is 35.8% ncRNA.
+H-to-H and L-to-H have similar, more even region mixtures.
+
+![Functional-region composition](trajectory_region_composition.svg)
+
 Relative to the primary population's region mixture, L-to-L is enriched 1.68-fold in ncRNA (`log2 = 0.75`).
 H-to-L is enriched 1.75-fold in enhancer (`log2 = 0.80`) and depleted 2.46-fold upstream (`log2 = -1.30`).
 H-to-H is enriched upstream and downstream and depleted in ncRNA.
@@ -84,6 +90,7 @@ Several upstream and downstream samples overlap RefSeq transcripts, so these val
 - `region_group_statistics.parquet` and `.csv` contain exact counts, composition, conservation, GC, 7-mer NLL, and repeat-proximity summaries.
 - `trajectory_group_samples.parquet` and `.csv` contain the reproducible balanced sample.
 - `trajectory_group_samples_inspected.parquet` and `.csv` add exact sequence context and exploratory UCSC annotations.
+- `trajectory_region_composition.svg` shows the five-region composition within each trajectory group.
 - [`biological_characterization_489.py`](../biological_characterization_489.py) performs the bounded atom reduction.
 - [`inspect_trajectory_samples_489.py`](../inspect_trajectory_samples_489.py) performs the sampled context inspection.
 - [`plot_biological_characterization_489.py`](../plot_biological_characterization_489.py) renders the figures.
