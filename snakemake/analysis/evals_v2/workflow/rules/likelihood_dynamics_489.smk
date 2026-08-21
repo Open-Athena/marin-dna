@@ -6,7 +6,6 @@ Build the pilot before any full scoring cell.
 
 import re
 
-
 LD489_CFG = config["likelihood_dynamics_489"]
 LD489_VERSION = LD489_CFG["artifact_version"]
 LD489_ROOT = f"results/m13_likelihood_dynamics_489/{LD489_VERSION}"
@@ -16,6 +15,24 @@ LD489_CHECKPOINTS = [
 ]
 LD489_PILOT_CHECKPOINTS = [LD489_CHECKPOINTS[0], LD489_CHECKPOINTS[-1]]
 LD489_SCOPES = ["pilot", "full"]
+LD489_ANALYSIS_ROOT = LD489_ROOT + "/analysis"
+LD489_ANALYSIS_TABLES = {
+    "population": LD489_ANALYSIS_ROOT + "/population.parquet",
+    "conservation_auprc": LD489_ANALYSIS_ROOT + "/conservation_auprc.parquet",
+    "trajectory_groups": LD489_ANALYSIS_ROOT + "/trajectory_groups.parquet",
+    "selection_jaccard": LD489_ANALYSIS_ROOT + "/selection_jaccard.parquet",
+    "future_loss_deciles": LD489_ANALYSIS_ROOT + "/future_loss_deciles.parquet",
+    "distributions": LD489_ANALYSIS_ROOT + "/distributions.parquet",
+    "controlled_contrasts": LD489_ANALYSIS_ROOT + "/controlled_contrasts.parquet",
+}
+LD489_FIGURES = {
+    "conservation_auprc": LD489_ANALYSIS_ROOT + "/figures/conservation_auprc.svg",
+    "trajectory_groups": LD489_ANALYSIS_ROOT + "/figures/trajectory_groups.svg",
+    "selection_jaccard": LD489_ANALYSIS_ROOT + "/figures/selection_jaccard.svg",
+    "future_loss_deciles": LD489_ANALYSIS_ROOT + "/figures/future_loss_deciles.svg",
+    "distributions": LD489_ANALYSIS_ROOT + "/figures/distributions.svg",
+    "controlled_contrasts": LD489_ANALYSIS_ROOT + "/figures/controlled_contrasts.svg",
+}
 
 
 def get_ld489_dataset(name):
@@ -59,6 +76,12 @@ assert LD489_CFG["tokens_per_step"] == 2097152
 assert LD489_CFG["blog_collection"].startswith(
     "https://huggingface.co/collections/marin-dna/"
 )
+assert LD489_CFG["bootstrap_block_bp"] > 0
+assert LD489_CFG["bootstrap_replicates"] > 0
+assert LD489_CFG["analysis_seed"] >= 0
+assert 0 < LD489_CFG["top_fraction"] < 1
+assert LD489_CFG["deciles"] >= 2
+
 for dataset in LD489_CFG["datasets"]:
     assert set(
         [
@@ -119,7 +142,6 @@ rule build_likelihood_dynamics_489_metadata:
         ],
     run:
         from datasets import load_dataset
-
         from marin_dna_evals.likelihood_dynamics_489 import (
             build_window_metadata,
             write_json,
@@ -130,9 +152,9 @@ rule build_likelihood_dynamics_489_metadata:
             split=params.split,
             revision=params.hf_revision,
         )
-        assert len(source) == int(params.expected_windows), (
-            f"{wildcards.region}: {len(source)} != {params.expected_windows}"
-        )
+        assert len(source) == int(
+            params.expected_windows
+        ), f"{wildcards.region}: {len(source)} != {params.expected_windows}"
         if wildcards.scope == "pilot":
             source = source.select(range(int(params.pilot_n_windows)))
         sequences = source.to_pandas()
@@ -171,8 +193,7 @@ rule compute_likelihood_dynamics_489_atoms:
         metadata_manifest=LD489_ROOT + "/metadata/{scope}/{region}.manifest.json",
     output:
         parquet=LD489_ROOT + "/scoring/{scope}/atoms/{model}/{region}.parquet",
-        manifest=LD489_ROOT
-        + "/scoring/{scope}/atoms/{model}/{region}.manifest.json",
+        manifest=LD489_ROOT + "/scoring/{scope}/atoms/{model}/{region}.manifest.json",
     wildcard_constraints:
         scope="pilot|full",
         model="|".join(map(re.escape, LD489_CHECKPOINTS)),
@@ -195,16 +216,12 @@ rule compute_likelihood_dynamics_489_atoms:
         checkpoint_order=lambda wc: get_ld489_checkpoint(wc.model)["order"],
         stage=lambda wc: get_ld489_checkpoint(wc.model)["stage"],
         training_step=lambda wc: get_ld489_checkpoint(wc.model)["step"],
-        cumulative_tokens=lambda wc: get_ld489_checkpoint(wc.model)[
-            "cumulative_tokens"
-        ],
+        cumulative_tokens=lambda wc: get_ld489_checkpoint(wc.model)["cumulative_tokens"],
         torch_compile=config["inference"].get("torch_compile", False),
     run:
         import json
-
         import pandas as pd
         from datasets import load_dataset
-
         from marin_dna_evals.likelihood_dynamics_489 import (
             assemble_token_atoms,
             compute_hf_per_token_stats,
@@ -317,3 +334,118 @@ rule likelihood_dynamics_489_atoms:
             model=LD489_CHECKPOINTS,
             region=LD489_DATASETS,
         ),
+
+
+rule analyze_likelihood_dynamics_489:
+    input:
+        atoms=expand(
+            LD489_ROOT + "/scoring/full/atoms/{model}/{region}.parquet",
+            model=LD489_CHECKPOINTS,
+            region=LD489_DATASETS,
+        ),
+        manifests=expand(
+            LD489_ROOT + "/scoring/full/atoms/{model}/{region}.manifest.json",
+            model=LD489_CHECKPOINTS,
+            region=LD489_DATASETS,
+        ),
+    output:
+        population=LD489_ANALYSIS_TABLES["population"],
+        conservation_auprc=LD489_ANALYSIS_TABLES["conservation_auprc"],
+        trajectory_groups=LD489_ANALYSIS_TABLES["trajectory_groups"],
+        selection_jaccard=LD489_ANALYSIS_TABLES["selection_jaccard"],
+        future_loss_deciles=LD489_ANALYSIS_TABLES["future_loss_deciles"],
+        distributions=LD489_ANALYSIS_TABLES["distributions"],
+        controlled_contrasts=LD489_ANALYSIS_TABLES["controlled_contrasts"],
+        manifest=LD489_ANALYSIS_ROOT + "/manifest.json",
+    threads: 8
+    resources:
+        mem_mb=30000,
+    run:
+        from marin_dna_evals.likelihood_dynamics_489 import write_json
+        from marin_dna_evals.likelihood_dynamics_489_analysis import (
+            analyze_likelihood_dynamics_489,
+        )
+
+        keys = [
+            (model, region)
+            for model in LD489_CHECKPOINTS
+            for region in LD489_DATASETS
+        ]
+        frames, manifest = analyze_likelihood_dynamics_489(
+            dict(zip(keys, input.atoms, strict=True)),
+            dict(zip(keys, input.manifests, strict=True)),
+            checkpoints=LD489_CHECKPOINTS,
+            cumulative_tokens=[
+                get_ld489_checkpoint(model)["cumulative_tokens"]
+                for model in LD489_CHECKPOINTS
+            ],
+            regions=LD489_DATASETS,
+            primary_start=int(LD489_CFG["primary_start"]),
+            primary_end_exclusive=int(LD489_CFG["primary_end_exclusive"]),
+            block_bp=int(LD489_CFG["bootstrap_block_bp"]),
+            bootstrap_replicates=int(LD489_CFG["bootstrap_replicates"]),
+            top_fraction=float(LD489_CFG["top_fraction"]),
+            n_bins=int(LD489_CFG["deciles"]),
+            seed=int(LD489_CFG["analysis_seed"]),
+        )
+        for name, frame in frames.items():
+            frame.to_parquet(getattr(output, name), index=False)
+        write_json(output.manifest, manifest)
+
+
+rule plot_likelihood_dynamics_489:
+    input:
+        conservation_auprc=LD489_ANALYSIS_TABLES["conservation_auprc"],
+        trajectory_groups=LD489_ANALYSIS_TABLES["trajectory_groups"],
+        selection_jaccard=LD489_ANALYSIS_TABLES["selection_jaccard"],
+        future_loss_deciles=LD489_ANALYSIS_TABLES["future_loss_deciles"],
+        distributions=LD489_ANALYSIS_TABLES["distributions"],
+        controlled_contrasts=LD489_ANALYSIS_TABLES["controlled_contrasts"],
+    output:
+        conservation_auprc=LD489_FIGURES["conservation_auprc"],
+        trajectory_groups=LD489_FIGURES["trajectory_groups"],
+        selection_jaccard=LD489_FIGURES["selection_jaccard"],
+        future_loss_deciles=LD489_FIGURES["future_loss_deciles"],
+        distributions=LD489_FIGURES["distributions"],
+        controlled_contrasts=LD489_FIGURES["controlled_contrasts"],
+    threads: 1
+    run:
+        from marin_dna_evals.likelihood_dynamics_489_figure import (
+            plot_conservation_auprc_489,
+            plot_controlled_conservation_489,
+            plot_future_loss_deciles_489,
+            plot_score_distributions_489,
+            plot_selection_jaccard_489,
+            plot_trajectory_groups_489,
+        )
+
+        plot_conservation_auprc_489(
+            input.conservation_auprc,
+            output.conservation_auprc,
+        )
+        plot_trajectory_groups_489(
+            input.trajectory_groups,
+            output.trajectory_groups,
+        )
+        plot_selection_jaccard_489(
+            input.selection_jaccard,
+            output.selection_jaccard,
+        )
+        plot_future_loss_deciles_489(
+            input.future_loss_deciles,
+            output.future_loss_deciles,
+        )
+        plot_score_distributions_489(
+            input.distributions,
+            output.distributions,
+        )
+        plot_controlled_conservation_489(
+            input.controlled_contrasts,
+            output.controlled_contrasts,
+        )
+
+
+rule likelihood_dynamics_489_analysis:
+    input:
+        LD489_ANALYSIS_ROOT + "/manifest.json",
+        *LD489_FIGURES.values(),

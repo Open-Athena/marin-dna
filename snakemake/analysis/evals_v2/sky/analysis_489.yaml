@@ -1,0 +1,59 @@
+# SkyPilot task for the CPU-only issue #489 analysis pass.
+#
+# Launch the focused tests first, then reuse the cluster for the dry-run and
+# analysis by changing ANALYSIS_MODE with sky exec.
+
+name: evals-v2-likelihood-dynamics-489-analysis
+
+resources:
+    infra: aws/us-east-2
+    instance_type: r7i.2xlarge
+    disk_size: 100
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    ANALYSIS_MODE: test
+
+setup: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    if [[ "$(uv --version | awk '{print $2}')" != "0.11.31" ]]; then
+        uv self update 0.11.31
+    fi
+
+    uv sync --project snakemake/analysis/evals_v2 --locked --group dev
+
+run: |
+    set -euxo pipefail
+
+    export PATH="$HOME/.local/bin:$PATH"
+    export POLARS_MAX_THREADS=8
+    export RAYON_NUM_THREADS=8
+    export OMP_NUM_THREADS=8
+    export MKL_NUM_THREADS=8
+    export OPENBLAS_NUM_THREADS=8
+    export NUMEXPR_NUM_THREADS=8
+
+    cd snakemake/analysis/evals_v2
+
+    if [[ "$ANALYSIS_MODE" == "test" ]]; then
+        /usr/bin/time -v uv run --locked pytest             tests/test_likelihood_dynamics_489_analysis.py
+    elif [[ "$ANALYSIS_MODE" == "dryrun" ]]; then
+        uv run --locked snakemake             --profile workflow/profiles/default             --resources mem_mb=60000             -n             -- likelihood_dynamics_489_analysis
+    elif [[ "$ANALYSIS_MODE" == "analysis" ]]; then
+        /usr/bin/time -v uv run --locked snakemake             --profile workflow/profiles/default             --printshellcmds             --rerun-incomplete             --resources mem_mb=60000             -- likelihood_dynamics_489_analysis
+    else
+        echo "Unknown ANALYSIS_MODE=$ANALYSIS_MODE" >&2
+        exit 2
+    fi
