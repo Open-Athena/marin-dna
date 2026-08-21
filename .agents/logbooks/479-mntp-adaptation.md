@@ -18,7 +18,13 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The one-seed pilot is complete and technically valid. All three trained arms finished 1,000 finite steps on a standalone Lambda GH200 path with no Marin or Iris dependency. Transferred MNTP narrowly beat scratch on pooled and single-mask validation loss and acquired bilateral context use, but it did not improve any primary VEP endpoint over source CLM and did not exceed the no-adaptation control on both flank probes. Do not propose the 10,000-step extension. The compact result bundle is at [`cb0d37ff`](https://github.com/Open-Athena/marin-dna/tree/cb0d37ffa97361947fc01c434f670c747ca94af4/.agents/artifacts/479-mntp-adaptation), and the dense record is in the [final W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
+The one-seed pilot and integrity audit are complete and technically valid.
+All three trained arms finished 1,000 finite steps on a standalone Lambda GH200 path with no Marin or Iris dependency.
+Transferred MNTP narrowly beat scratch on pooled and single-mask validation loss and acquired bilateral context use, but it did not improve any primary VEP endpoint over source CLM and did not exceed the no-adaptation control on both flank probes.
+The audited continued-CLM arm progressively damaged the source checkpoint under its fresh optimizer and high registered peak learning rates.
+The investigation remains open for a short low-learning-rate AdamW calibration before treating causal continuation as a reasonable control.
+Do not propose the 10,000-step MNTP extension.
+The compact audited result bundle is at [`issue-479-mntp-pilot-audited-result`](https://github.com/Open-Athena/marin-dna/tree/issue-479-mntp-pilot-audited-result/.agents/artifacts/479-mntp-adaptation), and the dense record is in the [W&B report](https://wandb.ai/gonzalobenegas/marin/reports/Issue-479-1k-step-MNTP-adaptation-pilot--VmlldzoxNzc2ODgyOQ).
 
 ## Current baseline
 
@@ -26,13 +32,15 @@ The one-seed pilot is complete and technically valid. All three trained arms fin
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- Completed pilot list-price estimate: $10.2326 of the $50 cap; final cluster confirmed terminated. Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
+- Completed pilot and audit list-price estimate: $24.7340 of the $50 cap; final cluster confirmed terminated.
+- Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
 
 ### Active
 
-- None.
+- `MNTP-479-H4`: full-parameter causal fine-tuning from the released source weights can preserve or lower fixed-plan causal validation loss when AdamW uses an appropriately small learning rate.
+  Next test: one 200-step arm at `1e-6`, with validation at steps 0, 1, 10, 25, 50, 100, and 200.
 
 ### Blocked
 
@@ -57,6 +65,10 @@ The one-seed pilot is complete and technically valid. All three trained arms fin
 - 2026-08-20: Do not claim single-orientation VEP support for any task. FWD stayed within one AUPRC point of transferred FWD+RC, but failed the required source-improvement gate.
 - 2026-08-20: Keep final checkpoints and per-variant scores private; publish compact metrics, uncertainty, runtime, figures, and provenance on the permanent branch and W&B.
 - 2026-08-20: Treat complete-flank ablation and ±64-base window shifts as post-hoc, non-gating diagnostics because their exact parameterization was fixed after primary evaluation.
+- 2026-08-21: Keep the completed pilot result, but leave the investigation open for a short causal-continuation calibration.
+- 2026-08-21: Treat the registered continued-CLM arm as evidence about its fresh high-learning-rate optimizer recipe, not as evidence that reasonable causal fine-tuning must degrade.
+- 2026-08-21: Sweep full-parameter AdamW at `1e-6`, `3e-6`, `1e-5`, and `3e-5` for 200 steps before funding another 1,000-step arm.
+- 2026-08-21: Sequence the calibration arms and start only `1e-6`; review its validation trajectory before choosing any other learning rate.
 
 ## Negative results index
 
@@ -64,6 +76,8 @@ The one-seed pilot is complete and technically valid. All three trained arms fin
 - Transferred MNTP did not improve Mendelian macro, complex-trait global, or SGE accession/consequence macro AUPRC over source CLM FWD+RC.
 - No VEP task passed the single-orientation gate because transferred FWD did not exceed source CLM FWD+RC.
 - A 10,000-step extension is not proposed from this one-seed pilot.
+- The registered continued-CLM recipe progressively increased fixed-plan loss from 0.23138 at step 0 to 0.35965 at step 800 before partial cooldown recovery to 0.35010 at step 1,000.
+- No low-learning-rate causal fine-tuning control has run yet.
 
 ## Background research brief
 
@@ -335,3 +349,26 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Interpretation: no training/inference implementation bug was found. The surprising continued-CLM regression is best explained by destructive optimization from a fresh optimizer and high registered peak learning rates, with progressive damage and cooldown recovery. The one confirmed bug was isolated to the original dependency-analysis batching method and is corrected in the durable result.
 - Decision: retain the original negative pilot decision—no 10,000-step MNTP extension and no single-orientation VEP recommendation—but qualify all dependency claims with the corrected same-call final-checkpoint maps.
 - Next action: publish the audited snapshot/tag, update issue #479 and the bidirectional-models research synthesis, and retain the raw scores/maps only in private staging.
+
+### 2026-08-21 15:02 - Causal-continuation calibration selected as the next gate
+
+- Trigger: The integrity audit ruled out the tested serialization, replay, tokenization, coordinate, readout-shift, validation, and instability bugs, but the registered continued-CLM arm used a fresh optimizer with peak learning rates of 0.004396588845822712 for AdamH parameters and 0.02308025763094388 for ordinary Adam parameters.
+- Hypothesis: Full-parameter causal fine-tuning from the released source weights can preserve or lower fixed-plan causal validation loss when a simpler AdamW optimizer uses a learning rate appropriate for a mature checkpoint.
+- Config: Sweep `1e-6`, `3e-6`, `1e-5`, and `3e-5` for 200 steps on the same tokenizer, training stream, orientation policy, lowercase repeat weighting, and five-component fixed validation panel.
+- Validation: Recompute pooled and per-component causal loss at steps 0, 1, 10, 25, 50, 100, and 200.
+- Gate: Advance only a configuration whose step-200 pooled loss is no higher than its step-0 loss and whose component trajectories do not show progressive degradation.
+- Downstream evaluation: Run AUPRC trajectories only for the best non-degrading configuration.
+- Budget: Carry forward $24.7340 of the $50 cap and project the complete calibration cost before provisioning.
+- Decision: Do not launch another 1,000-step arm until the causal fine-tuning gate passes.
+- Next action: freeze the AdamW constants and short schedule in a reviewed run config, execute the bounded sweep, and update issue #479 with validation trajectories before interpreting the causal control.
+
+### 2026-08-21 15:24 - Conservative learning rate selected for the first sanity arm
+
+- Trigger: The human collaborator requested one conservative learning rate before any parallel or sequential sweep expansion.
+- Change: Run only one 200-step full-parameter AdamW arm at `1e-6` from the released source checkpoint.
+- Validation: Recompute pooled and per-component causal loss at steps 0, 1, 10, 25, 50, 100, and 200.
+- Gate: Run checkpoint AUPRC trajectories only if step-200 pooled loss is no higher than step 0 and the five component trajectories do not progressively degrade.
+- Expansion boundary: Review this result before choosing a larger learning rate, a learning rate below `1e-6`, a narrower parameter-update scope, or any longer run.
+- Budget: Carry forward $24.7340 of the $50 cap and project this single arm before provisioning.
+- Public record: [issue comment](https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5371856205).
+- Next action: implement and test the single-arm run config, snapshot it, project cost, and launch the self-terminating Lambda task.
