@@ -1756,3 +1756,67 @@ cohort, assemblies, and downstream training recipe fixed.
   loss was 1.317. The CDS trajectory now has seven of nine official checkpoint
   steps; both enhancer trajectories still need all nine official steps from
   1,000 through 4,999 before either downstream workflow launches.
+
+### 2026-08-21 00:43 UTC - CSP-052 official development evaluation started additively
+
+- The immutable experiment config generated from
+  `84819ddbc8b9ba9bcf511e94ca2cd8e9cd94d673` was dry-run through the
+  unchanged `evals_v2` Snakefile. It records `split: train`,
+  `held_out_access: false`, exact evaluation-dataset revisions, the nine
+  registered checkpoints, and only the four preregistered arms. The complete
+  graph was exactly 36 checkpoint downloads, 72 score cells, 72 metric cells,
+  and the aggregate target; no unrelated or held-out rule appeared.
+- The guarded local dry-run exited 0 in 16.72 seconds with 1,010,364 KiB peak
+  RSS. Because that exceeded the shared node's 500 MiB local-work guideline,
+  no further Snakemake DAG construction will run on the shared node; remaining
+  dry-runs use the remote evaluator.
+- Rather than wait for the enhancer trajectories before beginning all serial
+  GPU work, additive cluster `exp473-evaluate-cds` job 1 now targets only
+  the already-complete #417 CDS full-window trajectory and CDS center-1 steps
+  1,000 through 4,000. Its generated runtime config again reported 36 pinned
+  checkpoints and `split=train`; the selected graph contains 16 downloads,
+  32 score cells, and 32 metric cells. Outputs retain the final
+  commit-keyed `results/{checkpoints,scores,metrics}/exp473-84819.../`
+  identities, so subsequent complete evaluation skips them rather than
+  overwriting or repeating them.
+- SkyPilot selected one AWS us-east-2c `g5.xlarge` spot instance with one
+  A10G (estimated 0.36 USD/hour), a 300 GB disk, automatic teardown, and
+  commit-clean workdir source. Setup installed the locked `evals_v2`
+  environment and authenticated GCS access; checkpoint staging began at
+  00:43 UTC. Every requested metric target is either Mendelian or SGE on the
+  development split. No held-out labeled VEP datum was requested or read.
+- At launch time CDS center-1 had advanced to about step 4,130. Enhancer
+  full-window and center-1 continued advancing at about steps 678 and 594,
+  respectively, on their east5 v6e-4 children.
+
+### 2026-08-21 01:11 UTC - CSP-053 evaluation boundary incident and isolated repair
+
+- Correction to CSP-052: the first score process called the Hugging Face
+  repository dataset builder with `split=train`, but that builder materialized
+  both repository splits before selecting train. Its log reported 23,853 train
+  rows and 14,888 test rows. This accessed the held-out labeled file and
+  violated the development-only boundary despite the generated config. The
+  process then failed on the exported `TokenizersBackend` class before model
+  inference. It produced no predictions, score parquet, metric parquet, or
+  aggregate metric. The cluster was terminated, the ephemeral cache was not
+  inspected, and only the 16 staged checkpoint directories remain in the old
+  `84819...` namespace.
+- Direct runtime inspection also found that the unpinned SkyPilot image had
+  NVIDIA driver 535.216.01. The locked CUDA 13 evaluator requires the validated
+  issue-462 image with driver 595.71.05. No evaluation job will reuse that
+  unpinned image.
+- Repair commit `97a5672cfbc72aac1edbac58b05c77e416a8cecf`
+  adds an isolated issue-specific Snakefile and output namespace. It downloads
+  exactly each pinned public `train.parquet` through the Hugging Face file API,
+  opens that one file with the parquet loader, and rejects any labeled row
+  outside odd autosomes and chromosome X before calling the unchanged official
+  score and metric kernels. It also loads both known tokenizer metadata forms
+  through `PreTrainedTokenizerFast` and asserts the exact BOS and vocabulary
+  IDs. The maintained S3-backed evals_v2 rules and output paths remain
+  unchanged.
+- The repaired project passed 35/35 tests on an AWS us-east-1 `m6i.xlarge`
+  with Python 3.12.14 in 14.44 seconds; peak RSS was 585,724 KiB. The evaluator
+  and projection-loss launchers now pin AMI `ami-0324f0ad73bdcd087` and run the
+  existing GPU-runtime smoke gate before constructing a score DAG. The next
+  gate is a remote dry-run on that image, followed by one monitored score cell
+  whose logs must show only the direct train parquet path.
