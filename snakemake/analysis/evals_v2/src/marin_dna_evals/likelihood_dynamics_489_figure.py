@@ -107,7 +107,7 @@ def plot_conservation_auprc_489(
         axis.set_xlabel("Cumulative training tokens (billions)")
         axis.set_ylabel("Conservation AUPRC")
         axis.set_ylim(0, 1)
-    figure.suptitle("Conservation ranking during m1.3 training")
+    figure.suptitle("Conservation ranking across the m1-to-m1.3 lineage")
     _finish(
         figure,
         output_path,

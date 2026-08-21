@@ -37,4 +37,4 @@ def test_locked_sky_tasks_pin_project_uv_version() -> None:
             f"{task_path.name} pins uv after the locked sync"
         )
 
-    assert checked == ["probe.yaml", "run.yaml"]
+    assert checked == ["analysis_489.yaml", "probe.yaml", "run.yaml"]
