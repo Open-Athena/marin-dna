@@ -2334,3 +2334,40 @@ cohort, assemblies, and downstream training recipe fixed.
   the training case weights. They are not held-out VEP labels, predictions,
   effect measurements, or aggregate metrics and do not replace the registered
   home-domain development endpoints.
+
+### 2026-08-21 12:50 UTC - CSP-077 final development analysis accepted
+
+- The expanded official development matrix completed exactly 90 score cells
+  and 90 metric cells: Mendelian plus Complex for all four arms and SGE for
+  both CDS arms at nine registered checkpoints. Enhancer checkpoints were
+  never submitted to SGE.
+- The final analyzer snapshot
+  `89bcd07baf27d0326bf6efbbf101c6204fb0a7db` passed all 41 isolated
+  project tests remotely. Its provenance-keyed bundle at
+  `s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473/ae90f6d9e4b23ebe8fb1bd2314baa66cb82b37c1/analysis/89bcd07baf27d0326bf6efbbf101c6204fb0a7db/`
+  contains 648 point rows, 324 paired deltas, 648,000 aligned bootstrap rows,
+  four relevant-subset SVGs, a relevant-only summary, and exact SHA-256
+  receipts. Every receipt verified after download.
+- Terminal CDS center-minus-full Mendelian AUPRC differences were +0.249373
+  [0.212664, 0.284878] for missense, +0.237123 [0.183840, 0.295082] for
+  splicing, and +0.185218 [0.079349, 0.308256] for synonymous. Group SMD
+  differences were also positive with intervals excluding zero.
+- Terminal enhancer distal Mendelian differences were -0.055671
+  [-0.100246, -0.015504] for AUPRC and -0.113717
+  [-0.185823, -0.057615] for Group SMD. Distal Complex AUPRC was effectively
+  tied at +0.001475 center-minus-full.
+- CDS center-1 also improved Complex missense and splicing AUPRC by +0.065349
+  and +0.034460 and SGE missense and splicing AUPRC by +0.113066 and
+  +0.233686. Complex synonymous changed by -0.074419.
+- The accepted development-only interpretation is region-specific: use
+  center-1 for CDS and retain full-window projection for enhancer-centered
+  cCREs. Do not generalize this one-seed result to other region classes or
+  start a wider projection-policy pilot.
+- All four figures were rasterized and visually reviewed. A shared-label
+  overlap found during review was repaired; the final uploaded SVGs render
+  pixel-for-pixel identically to the reviewed copies.
+- The durable experiment record is
+  `docs/research/experiments/473-center-seeded-projection.md`; the genomic
+  anchors question now incorporates the accepted result. No held-out
+  even-autosome or chromosome-Y VEP label, prediction, effect measurement, or
+  aggregate metric was requested or read.

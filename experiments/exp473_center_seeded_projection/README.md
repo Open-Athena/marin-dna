@@ -211,8 +211,8 @@ Offline checkpoint evaluation uses `snakemake/analysis/evals_v2` development
 splits only. Even-autosome and chromosome-Y labels, predictions, and aggregate
 metrics remain held out. AUPRC is primary; Group SMD is secondary only where
 the registered match-group contract applies. Policy deltas are paired across
-the eight Mendelian specialist subsets and reported with uncertainty over the
-paired units.
+every registered Mendelian specialist subset and reported with uncertainty
+over the paired units.
 
 Evaluation is additive. The launch in sky/evaluate.yaml uses the isolated
 workflow/Evaluation.smk graph and never modifies or includes the maintained
@@ -258,7 +258,7 @@ The experiment-local analysis in `analyze_evals.py` asserts exact evaluation-row
 identity between policies before computing `center_1 - full_window`. It applies
 the same match-group bootstrap draws to both policies and reuses the subset seed
 across all checkpoints, producing paired AUPRC and Group SMD trajectory
-intervals for all eight registered Mendelian specialist subsets. Group SMD is
+intervals for every registered Mendelian specialist subset. Group SMD is
 the #459 statistic: one positive-minus-mean-negative gap per match group, with
 the mean gap divided by the across-group sample SD. Inputs with an incompatible
 group contract fail rather than falling back to an ungrouped statistic.
