@@ -11,6 +11,7 @@ import pytest
 import torch
 from marin_dna_evals.likelihood_dynamics_489 import (
     _prediction_array,
+    _read_reference_windows,
     aggregate_token_stats_by_case,
     assemble_token_atoms,
     build_window_metadata,
@@ -113,6 +114,22 @@ def test_metadata_fails_on_reference_mismatch() -> None:
             conservation_label_source="phyloP_case",
         )
     assert fake.closed
+
+
+def test_indexed_fasta_queries_only_requested_byte_ranges(tmp_path) -> None:
+    fasta = tmp_path / "reference.fa"
+    fasta.write_bytes(b">1\nAcgT\nacGT\n>2\nTTaa\nCCgg\n")
+    fasta.with_suffix(".fa.fai").write_text(
+        "1\t8\t3\t4\t5\n2\t8\t16\t4\t5\n"
+    )
+
+    observed = _read_reference_windows(
+        [("1", 1, 7), ("2", 0, 8)],
+        reference_kind="fasta",
+        reference_path=fasta,
+    )
+
+    assert observed == ["cgTacG", "TTaaCCgg"]
 
 
 def test_7mer_control_is_finite_at_both_edges() -> None:

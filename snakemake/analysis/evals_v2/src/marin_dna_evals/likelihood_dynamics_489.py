@@ -9,9 +9,11 @@ from __future__ import annotations
 import json
 import re
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, BinaryIO, Iterator, Literal, TextIO
+from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
@@ -21,7 +23,6 @@ from torch import Tensor
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from marin_dna.data.dna import NUCLEOTIDES
-from marin_dna.data.genome import Genome
 from marin_dna_evals.model.runner import run_inference, run_ll_clm
 from marin_dna_evals.model.scoring import _logits_to_logprobs
 from marin_dna_evals.transforms import (
@@ -38,6 +39,101 @@ KMER_ORDER = 6
 KMER_PSEUDOCOUNT = 0.5
 ARTIFACT_SCHEMA_VERSION = "v1"
 
+
+@contextmanager
+def _open_fasta_file(
+    path: str | Path,
+    mode: Literal["rb", "rt"],
+) -> Iterator[BinaryIO | TextIO]:
+    """Open local or remote FASTA assets without scanning the FASTA."""
+    path_string = str(path)
+    if urlparse(path_string).scheme in ("", "file"):
+        with open(path_string, mode) as handle:
+            yield handle
+        return
+
+    import fsspec
+
+    filesystem, _, paths = fsspec.get_fs_token_paths(path_string)
+    assert len(paths) == 1
+    if mode == "rt":
+        with filesystem.open(paths[0], mode=mode) as handle:
+            yield handle
+        return
+    with filesystem.open(
+        paths[0],
+        mode=mode,
+        block_size=1 << 20,
+        cache_type="none",
+    ) as handle:
+        yield handle
+
+
+def _read_fai(path: str | Path) -> dict[str, tuple[int, int, int, int]]:
+    """Read name -> (length, byte offset, line bases, line width)."""
+    index: dict[str, tuple[int, int, int, int]] = {}
+    with _open_fasta_file(f"{path}.fai", "rt") as handle:
+        for line in handle:
+            fields = line.rstrip("\n\r").split("\t")
+            assert len(fields) >= 5, f"malformed FASTA index row: {line!r}"
+            name = fields[0]
+            values = tuple(map(int, fields[1:5]))
+            length, offset, line_bases, line_width = values
+            assert length >= 0 and offset >= 0
+            assert line_bases > 0 and line_width >= line_bases
+            assert name not in index, f"duplicate FASTA index sequence {name!r}"
+            index[name] = values
+    assert index, f"empty FASTA index {path}.fai"
+    return index
+
+
+def _fasta_byte_offset(
+    position: int,
+    *,
+    offset: int,
+    line_bases: int,
+    line_width: int,
+) -> int:
+    return offset + (position // line_bases) * line_width + position % line_bases
+
+
+def _read_indexed_fasta_windows(
+    windows: list[tuple[str, int, int]],
+    path: str | Path,
+) -> list[str]:
+    """Query only requested 0-based half-open intervals using FASTA byte ranges."""
+    index = _read_fai(path)
+    output: list[str] = []
+    with _open_fasta_file(path, "rb") as handle:
+        for chrom, start, end in windows:
+            assert chrom in index, f"{chrom} absent from {path}.fai"
+            length, offset, line_bases, line_width = index[chrom]
+            assert 0 <= start <= end <= length, (
+                f"{chrom}:{start}-{end} outside FASTA length {length}"
+            )
+            byte_start = _fasta_byte_offset(
+                start,
+                offset=offset,
+                line_bases=line_bases,
+                line_width=line_width,
+            )
+            byte_end = _fasta_byte_offset(
+                end,
+                offset=offset,
+                line_bases=line_bases,
+                line_width=line_width,
+            )
+            handle.seek(byte_start)
+            raw = handle.read(byte_end - byte_start)
+            sequence = raw.replace(b"\n", b"").replace(b"\r", b"").decode(
+                "ascii"
+            )
+            assert len(sequence) == end - start, (
+                f"{chrom}:{start}-{end}: indexed FASTA query returned "
+                f"{len(sequence)} bases"
+            )
+            output.append(sequence)
+    return output
 
 def parse_window_id(window_id: str, *, window_size: int) -> tuple[str, int, int]:
     """Parse a 0-based half-open validation-window identifier."""
@@ -172,9 +268,7 @@ def _read_reference_windows(
             two_bit.close()
 
     assert reference_kind == "fasta", reference_kind
-    chroms = {chrom for chrom, _, _ in windows}
-    genome = Genome(reference_path, subset_chroms=chroms)
-    return [genome(chrom, start, end) for chrom, start, end in windows]
+    return _read_indexed_fasta_windows(windows, reference_path)
 
 
 def build_window_metadata(
