@@ -14,6 +14,7 @@ from exp479_mntp.causal_calibration import (
     CALIBRATION_LEARNING_RATE,
     AdamWCalibrationConfig,
     CausalCalibrationModule,
+    _finalize_component_macro,
     plot_training_stability,
     plot_validation_trajectories,
     projected_total_cost,
@@ -58,7 +59,7 @@ def test_calibration_module_builds_one_plain_adamw_group() -> None:
 def _loss_table(*, failing_component: str | None = None) -> pd.DataFrame:
     rows: list[dict[str, float | int | str]] = []
     for component_index, component in enumerate(
-        ("pooled", *(item.name for item in DATA_COMPONENTS))
+        ("macro", *(item.name for item in DATA_COMPONENTS))
     ):
         baseline = 0.2 + component_index * 0.01
         for step in CALIBRATION_CHECKPOINT_STEPS:
@@ -71,7 +72,7 @@ def _loss_table(*, failing_component: str | None = None) -> pd.DataFrame:
                     "component": component,
                     "loss": loss,
                     "accuracy": 0.5,
-                    "n_rows": 640 if component == "pooled" else 128,
+                    "n_rows": 640 if component == "macro" else 128,
                 }
             )
     return pd.DataFrame(rows)
@@ -89,6 +90,34 @@ def test_validation_gate_requires_every_component_to_avoid_degradation() -> None
     assert enhancer["delta"] > 0
 
 
+def test_validation_reducer_uses_component_weight_sums_and_macro_average() -> None:
+    totals = {
+        component.name: {
+            "weighted_loss_sum": float(2 * (index + 1)),
+            "loss_weight_sum": 2.0,
+            "correct_tokens": 1.0,
+            "selected_tokens": 2.0,
+            "count": 128.0,
+        }
+        for index, component in enumerate(DATA_COMPONENTS)
+    }
+
+    rows = _finalize_component_macro(step=100, totals=totals)
+
+    macro = rows[0]
+    assert macro == {
+        "step": 100,
+        "component": "macro",
+        "loss": 3.0,
+        "accuracy": 0.5,
+        "n_rows": 640,
+    }
+    assert [row["component"] for row in rows[1:]] == [
+        component.name for component in DATA_COMPONENTS
+    ]
+    assert [row["loss"] for row in rows[1:]] == [1.0, 2.0, 3.0, 4.0, 5.0]
+
+
 def test_validation_plot_writes_reviewable_svg_and_png(tmp_path: Path) -> None:
     output = tmp_path / "validation-trajectories"
     plot_validation_trajectories(_loss_table(), output)
@@ -96,7 +125,7 @@ def test_validation_plot_writes_reviewable_svg_and_png(tmp_path: Path) -> None:
     assert svg.is_file()
     assert output.with_suffix(".png").is_file()
     rendered = svg.read_text(encoding="utf-8")
-    assert "Pooled fixed-plan validation" in rendered
+    assert "Five-component macro validation" in rendered
     assert "Per-component change from step 0" in rendered
     assert "AdamW 1e-6 causal fine-tuning sanity check" in rendered
 

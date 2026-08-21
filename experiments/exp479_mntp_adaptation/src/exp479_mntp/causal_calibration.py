@@ -160,14 +160,63 @@ def _accumulate(
     totals: dict[str, dict[str, float]],
     key: str,
     *,
-    loss: float,
-    accuracy: float,
+    weighted_loss_sum: float,
+    loss_weight_sum: float,
+    correct_tokens: float,
+    selected_tokens: float,
     count: int,
 ) -> None:
-    values = totals.setdefault(key, {"loss": 0.0, "accuracy": 0.0, "count": 0.0})
-    values["loss"] += loss * count
-    values["accuracy"] += accuracy * count
+    values = totals.setdefault(
+        key,
+        {
+            "weighted_loss_sum": 0.0,
+            "loss_weight_sum": 0.0,
+            "correct_tokens": 0.0,
+            "selected_tokens": 0.0,
+            "count": 0.0,
+        },
+    )
+    values["weighted_loss_sum"] += weighted_loss_sum
+    values["loss_weight_sum"] += loss_weight_sum
+    values["correct_tokens"] += correct_tokens
+    values["selected_tokens"] += selected_tokens
     values["count"] += count
+
+
+def _finalize_component_macro(
+    *,
+    step: int,
+    totals: dict[str, dict[str, float]],
+) -> list[dict[str, float | int | str]]:
+    """Return exact per-component reducers plus their equally weighted macro."""
+
+    expected_counts = {component.name: 128 for component in DATA_COMPONENTS}
+    if {key: int(value["count"]) for key, value in totals.items()} != expected_counts:
+        raise RuntimeError("calibration validation counts differ from the fixed panel")
+
+    component_rows: list[dict[str, float | int | str]] = []
+    for component in DATA_COMPONENTS:
+        values = totals[component.name]
+        component_rows.append(
+            {
+                "step": step,
+                "component": component.name,
+                "loss": values["weighted_loss_sum"] / values["loss_weight_sum"],
+                "accuracy": values["correct_tokens"] / values["selected_tokens"],
+                "n_rows": int(values["count"]),
+            }
+        )
+
+    return [
+        {
+            "step": step,
+            "component": "macro",
+            "loss": float(np.mean([float(row["loss"]) for row in component_rows])),
+            "accuracy": float(np.mean([float(row["accuracy"]) for row in component_rows])),
+            "n_rows": sum(int(row["n_rows"]) for row in component_rows),
+        },
+        *component_rows,
+    ]
 
 
 @torch.inference_mode()
@@ -180,7 +229,7 @@ def evaluate_causal_validation(
     validation_plan: Path,
     batch_size: int,
 ) -> list[dict[str, float | int | str]]:
-    """Recompute pooled and component causal loss on the fixed 640-row panel."""
+    """Recompute pure validation CE and its equal-component macro."""
 
     dataset = SequencePlanDataset(validation_plan)
     loader = DataLoader(
@@ -212,18 +261,6 @@ def evaluate_causal_validation(
                 attention_mask=moved["attention_mask"],
                 attention_mode="causal",
             )
-            pooled = per_sequence_weighted_loss(
-                logits,
-                moved["labels"],
-                moved["loss_weights"],
-            )
-        _accumulate(
-            totals,
-            "pooled",
-            loss=float(pooled.loss),
-            accuracy=float(pooled.accuracy),
-            count=len(batch["sample_ids"]),
-        )
         for component in sorted(set(batch["components"])):
             selected = torch.tensor(
                 [value == component for value in batch["components"]],
@@ -234,30 +271,19 @@ def evaluate_causal_validation(
                 logits[selected],
                 moved["labels"][selected],
                 moved["loss_weights"][selected],
+                z_loss_weight=0,
             )
             _accumulate(
                 totals,
                 component,
-                loss=float(metrics.loss),
-                accuracy=float(metrics.accuracy),
+                weighted_loss_sum=float(metrics.weighted_loss_sum),
+                loss_weight_sum=float(metrics.loss_weight_sum),
+                correct_tokens=float(metrics.accuracy * metrics.selected_tokens),
+                selected_tokens=float(metrics.selected_tokens),
                 count=int(selected.sum()),
             )
 
-    expected_counts = {"pooled": 128 * len(DATA_COMPONENTS)} | {
-        component.name: 128 for component in DATA_COMPONENTS
-    }
-    if {key: int(value["count"]) for key, value in totals.items()} != expected_counts:
-        raise RuntimeError("calibration validation counts differ from the fixed panel")
-    return [
-        {
-            "step": step,
-            "component": component,
-            "loss": values["loss"] / values["count"],
-            "accuracy": values["accuracy"] / values["count"],
-            "n_rows": int(values["count"]),
-        }
-        for component, values in sorted(totals.items())
-    ]
+    return _finalize_component_macro(step=step, totals=totals)
 
 
 def summarize_validation_gate(losses: pd.DataFrame) -> dict[str, Any]:
@@ -268,7 +294,7 @@ def summarize_validation_gate(losses: pd.DataFrame) -> dict[str, Any]:
         raise ValueError(f"validation table lacks {sorted(required - set(losses.columns))}")
     checks: list[dict[str, float | int | str | bool]] = []
     expected_steps = list(CALIBRATION_CHECKPOINT_STEPS)
-    for component in ("pooled", *(item.name for item in DATA_COMPONENTS)):
+    for component in ("macro", *(item.name for item in DATA_COMPONENTS)):
         selected = losses[losses["component"] == component].sort_values("step")
         if selected["step"].astype(int).tolist() != expected_steps:
             raise RuntimeError(f"{component} validation trajectory omits a checkpoint")
@@ -295,24 +321,24 @@ def summarize_validation_gate(losses: pd.DataFrame) -> dict[str, Any]:
 
 
 def plot_validation_trajectories(losses: pd.DataFrame, output_path: Path) -> None:
-    """Render pooled and component fixed-plan causal loss trajectories."""
+    """Render macro and component fixed-plan causal loss trajectories."""
 
     figure, axes = plt.subplots(1, 2, figsize=(9, 4.4), constrained_layout=True)
-    pooled = losses[losses["component"] == "pooled"].sort_values("step")
-    axes[0].plot(pooled["step"], pooled["loss"], marker="o", linewidth=1.8)
+    macro = losses[losses["component"] == "macro"].sort_values("step")
+    axes[0].plot(macro["step"], macro["loss"], marker="o", linewidth=1.8)
     axes[0].axhline(
-        float(pooled.iloc[0]["loss"]),
+        float(macro.iloc[0]["loss"]),
         color="0.4",
         linestyle="--",
         linewidth=1,
         label="Step 0",
     )
-    axes[0].set_title("Pooled fixed-plan validation")
+    axes[0].set_title("Five-component macro validation")
     axes[0].set_xlabel("Optimizer step")
     axes[0].set_ylabel("Causal cross-entropy")
     axes[0].legend(title="Reference")
 
-    component_rows = losses[losses["component"] != "pooled"]
+    component_rows = losses[losses["component"] != "macro"]
     for component, rows in component_rows.groupby("component", sort=True):
         ordered = rows.sort_values("step")
         change_from_start = ordered["loss"] - float(ordered.iloc[0]["loss"])
@@ -592,11 +618,11 @@ def run_causal_calibration(
             }
         )
         run.summary["validation_gate_passed"] = bool(gate["passed"])
-        run.summary["step_0_pooled_loss"] = float(
-            losses[(losses["step"] == 0) & (losses["component"] == "pooled")]["loss"].iloc[0]
+        run.summary["step_0_macro_loss"] = float(
+            losses[(losses["step"] == 0) & (losses["component"] == "macro")]["loss"].iloc[0]
         )
-        run.summary["step_200_pooled_loss"] = float(
-            losses[(losses["step"] == 200) & (losses["component"] == "pooled")]["loss"].iloc[0]
+        run.summary["step_200_macro_loss"] = float(
+            losses[(losses["step"] == 200) & (losses["component"] == "macro")]["loss"].iloc[0]
         )
         artifact = wandb.Artifact(
             "dna-exp479-causal-calibration-lr1e-6",

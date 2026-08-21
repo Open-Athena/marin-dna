@@ -141,5 +141,5 @@ def test_longrun_sky_stage_is_one_retained_configuration_without_hf() -> None:
     assert "WANDB_API_KEY" in stage
     assert "HF_TOKEN" not in stage
     assert "HF_REPO_ID" not in stage
-    assert "causal-longrun-lr1e-5" in stage
+    assert "causal-longrun-lr1e-5-corrected" in stage
     assert "finalize-local" in stage

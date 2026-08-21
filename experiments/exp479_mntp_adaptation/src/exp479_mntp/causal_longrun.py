@@ -30,6 +30,7 @@ from exp479_mntp.config import (
     BUDGET_USD,
     EXPERIMENT_TAGS,
     LAMBDA_GH200_PRICE_PER_HOUR_USD,
+    SOURCE_Z_LOSS_WEIGHT,
     WANDB_PROJECT,
     wsd_multiplier,
 )
@@ -60,8 +61,10 @@ LONGRUN_CHECKPOINT_STEPS = (
 )
 LONGRUN_MAX_GRAD_NORM = 1.0
 LONGRUN_MAX_INSTANCE_HOURS = 2.0
-LONGRUN_WANDB_GROUP = "dna-exp479-causal-longrun"
-LONGRUN_RUN_NAME = "dna-exp479-clm-adamw-1e-5-wsd1000-seed0"
+LONGRUN_WANDB_GROUP = "dna-exp479-causal-longrun-corrected"
+LONGRUN_RUN_NAME = "dna-exp479-clm-adamw-1e-5-corrected-wsd1000-seed0"
+LONGRUN_MODEL_ARTIFACT_PREFIX = "dna-exp479-causal-longrun-corrected"
+LONGRUN_EVALUATION_ARTIFACT = "dna-exp479-causal-longrun-corrected-lr1e-5"
 
 
 @dataclass(frozen=True)
@@ -189,9 +192,14 @@ class RetainedStepExportCallback(StepExportCallback):
         for step in sorted(self.saved - before):
             assert_budget_reserve()
             artifact = wandb.Artifact(
-                f"dna-exp479-causal-longrun-step-{step:04d}",
+                f"{LONGRUN_MODEL_ARTIFACT_PREFIX}-step-{step:04d}",
                 type="model",
-                metadata={"optimizer_step": step, "objective": "clm", "format": "hf"},
+                metadata={
+                    "optimizer_step": step,
+                    "objective": "clm_corrected_repeat_weight",
+                    "format": "hf",
+                    "z_loss_weight": SOURCE_Z_LOSS_WEIGHT,
+                },
             )
             artifact.add_dir(str(self.output_dir / f"step-{step:04d}"), name="hf")
             logged = self.run.log_artifact(artifact, aliases=[f"step-{step:04d}"])
@@ -238,24 +246,24 @@ def projected_longrun_cost(prior_cost_usd: float) -> float:
     return prior_cost_usd + LONGRUN_MAX_INSTANCE_HOURS * LAMBDA_GH200_PRICE_PER_HOUR_USD
 
 
-def summarize_pooled_trajectory(losses: pd.DataFrame) -> dict[str, Any]:
-    """Summarize the pooled fixed-plan trajectory without subset gates."""
+def summarize_macro_trajectory(losses: pd.DataFrame) -> dict[str, Any]:
+    """Summarize the five-component validation macro without subset gates."""
 
     required = {"step", "component", "loss", "n_rows"}
     if not required.issubset(losses.columns):
         raise ValueError(f"validation table lacks {sorted(required - set(losses.columns))}")
-    if set(losses["component"]) != {"pooled"}:
-        raise ValueError("long-run validation table must contain pooled rows only")
+    if set(losses["component"]) != {"macro"}:
+        raise ValueError("long-run validation table must contain macro rows only")
     ordered = losses.sort_values("step")
     if ordered["step"].astype(int).tolist() != list(LONGRUN_CHECKPOINT_STEPS):
-        raise RuntimeError("pooled validation trajectory omits a checkpoint")
+        raise RuntimeError("macro validation trajectory omits a checkpoint")
     steps = ordered["step"].to_numpy(dtype=float)
     values = ordered["loss"].to_numpy(dtype=float)
     delta = float(values[-1] - values[0])
     slope = float(np.polyfit(steps, values, 1)[0])
     return {
         "passed": delta <= 0.0,
-        "criterion": "step-1000 pooled loss <= step-0 pooled loss",
+        "criterion": "step-1000 five-component macro CE <= step-0 macro CE",
         "step_0_loss": float(values[0]),
         "step_1000_loss": float(values[-1]),
         "delta": delta,
@@ -264,8 +272,8 @@ def summarize_pooled_trajectory(losses: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def plot_pooled_validation(losses: pd.DataFrame, output_path: Path) -> None:
-    """Render the macro-equivalent pooled causal validation trajectory."""
+def plot_macro_validation(losses: pd.DataFrame, output_path: Path) -> None:
+    """Render the equal-component causal validation CE trajectory."""
 
     ordered = losses.sort_values("step")
     figure, axis = plt.subplots(figsize=(6.2, 5.2), constrained_layout=True)
@@ -275,7 +283,7 @@ def plot_pooled_validation(losses: pd.DataFrame, output_path: Path) -> None:
         marker="o",
         color="#1F4E79",
         linewidth=1.8,
-        label="Fixed 640-sequence panel",
+        label="Five-component macro",
     )
     axis.axhline(
         float(ordered.iloc[0]["loss"]),
@@ -287,12 +295,12 @@ def plot_pooled_validation(losses: pd.DataFrame, output_path: Path) -> None:
     axis.axvline(100, color="#999999", linestyle=":", linewidth=1)
     axis.axvline(800, color="#999999", linestyle=":", linewidth=1)
     axis.set_xlabel("Optimizer step")
-    axis.set_ylabel("Causal cross-entropy")
-    axis.set_title("Pooled fixed-plan validation loss")
+    axis.set_ylabel("Validation cross-entropy")
+    axis.set_title("Corrected fixed-plan validation macro")
     axis.grid(alpha=0.25)
     axis.legend(title="Trajectory")
     axis.set_box_aspect(1)
-    figure.suptitle("AdamW 1e-5 causal fine-tuning")
+    figure.suptitle("AdamW 1e-5 causal fine-tuning with corrected loss")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
     figure.savefig(output_path.with_suffix(".png"), dpi=180, bbox_inches="tight")
@@ -347,7 +355,7 @@ def plot_longrun_stability(trace: pd.DataFrame, output_path: Path) -> None:
     for axis in axes:
         axis.grid(alpha=0.25)
         axis.set_box_aspect(1)
-    figure.suptitle("AdamW 1e-5 causal fine-tuning stability")
+    figure.suptitle("Corrected-loss AdamW 1e-5 training stability")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
     figure.savefig(output_path.with_suffix(".png"), dpi=180, bbox_inches="tight")
@@ -420,7 +428,14 @@ def run_causal_longrun(
         project=WANDB_PROJECT,
         group=LONGRUN_WANDB_GROUP,
         name=LONGRUN_RUN_NAME,
-        tags=[*EXPERIMENT_TAGS, "causal-longrun", "adamw", "lr-1e-5", "wandb-retained"],
+        tags=[
+            *EXPERIMENT_TAGS,
+            "causal-longrun",
+            "corrected-loss",
+            "adamw",
+            "lr-1e-5",
+            "wandb-retained",
+        ],
         save_dir=str(output_dir),
         offline=offline_wandb,
         log_model=False,
@@ -480,11 +495,12 @@ def run_causal_longrun(
         trainer.save_checkpoint(final_checkpoint)
         assert_budget_reserve()
         checkpoint_artifact = wandb.Artifact(
-            "dna-exp479-causal-longrun-step-1000-full",
+            f"{LONGRUN_MODEL_ARTIFACT_PREFIX}-step-1000-full",
             type="model",
             metadata={
                 "optimizer_step": LONGRUN_STEPS,
-                "objective": "clm",
+                "objective": "clm_corrected_repeat_weight",
+                "z_loss_weight": SOURCE_Z_LOSS_WEIGHT,
                 "format": "lightning",
                 "contains_optimizer_state": True,
             },
@@ -536,17 +552,17 @@ def run_causal_longrun(
                 validation_plan=validation_plan,
                 batch_size=batch_size,
             )
-            rows.extend(row for row in evaluated if row["component"] == "pooled")
+            rows.extend(row for row in evaluated if row["component"] == "macro")
             del point, model, tokenizer
             gc.collect()
             torch.cuda.empty_cache()
 
         losses = pd.DataFrame(rows)
         losses.to_csv(output_dir / "validation-loss.csv", index=False)
-        gate = summarize_pooled_trajectory(losses)
+        gate = summarize_macro_trajectory(losses)
         gate_path = output_dir / "gate-summary.json"
         gate_path.write_text(json.dumps(gate, indent=2) + "\n", encoding="utf-8")
-        plot_pooled_validation(losses, output_dir / "figures" / "validation-trajectory")
+        plot_macro_validation(losses, output_dir / "figures" / "validation-trajectory")
 
         cost_path = write_cost_estimate(artifact_dir=artifact_dir)
         wandb_url = run.get_url()
@@ -559,7 +575,11 @@ def run_causal_longrun(
             "checkpoint_steps": list(LONGRUN_CHECKPOINT_STEPS),
             "train_plan_sha256": plan_sha256(train_plan),
             "validation_plan_sha256": plan_sha256(validation_plan),
-            "validation_scope": "pooled 640-row fixed plan only",
+            "training_objective": "global effective-weight mean of CE plus source z-loss",
+            "training_z_loss_weight": SOURCE_Z_LOSS_WEIGHT,
+            "validation_objective": "pure CE with one repeat-weight application",
+            "validation_scope": "equal macro of five 128-row component reducers",
+            "model_artifact_prefix": LONGRUN_MODEL_ARTIFACT_PREFIX,
             "checkpoint_retention": "W&B model artifacts listed in retention-manifest.json",
             "checkpoint_deletion": "not performed",
             "gate": gate,
@@ -567,31 +587,31 @@ def run_causal_longrun(
         manifest_path = output_dir / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
-        run.define_metric("causal_longrun/step")
-        run.define_metric("causal_longrun/*", step_metric="causal_longrun/step")
+        run.define_metric("causal_longrun_corrected/step")
+        run.define_metric("causal_longrun_corrected/*", step_metric="causal_longrun_corrected/step")
         for row in losses.sort_values("step").itertuples(index=False):
             run.log(
                 {
-                    "causal_longrun/step": int(row.step),
-                    "causal_longrun/validation/pooled_loss": float(row.loss),
+                    "causal_longrun_corrected/step": int(row.step),
+                    "causal_longrun_corrected/validation/macro_ce": float(row.loss),
                 }
             )
         run.log(
             {
-                "causal_longrun/validation_table": wandb.Table(dataframe=losses),
-                "causal_longrun/validation_figure": wandb.Image(
+                "causal_longrun_corrected/validation_table": wandb.Table(dataframe=losses),
+                "causal_longrun_corrected/validation_figure": wandb.Image(
                     str(output_dir / "figures" / "validation-trajectory.png")
                 ),
-                "causal_longrun/stability_figure": wandb.Image(
+                "causal_longrun_corrected/stability_figure": wandb.Image(
                     str(output_dir / "figures" / "training-stability.png")
                 ),
             }
         )
         run.summary["validation_gate_passed"] = bool(gate["passed"])
-        run.summary["step_0_pooled_loss"] = float(gate["step_0_loss"])
-        run.summary["step_1000_pooled_loss"] = float(gate["step_1000_loss"])
+        run.summary["step_0_macro_ce"] = float(gate["step_0_loss"])
+        run.summary["step_1000_macro_ce"] = float(gate["step_1000_loss"])
         run.summary["checkpoint_retention"] = "W&B model artifacts"
-        artifact = wandb.Artifact("dna-exp479-causal-longrun-lr1e-5", type="evaluation")
+        artifact = wandb.Artifact(LONGRUN_EVALUATION_ARTIFACT, type="evaluation")
         for path in (
             output_dir / "validation-loss.csv",
             gate_path,
