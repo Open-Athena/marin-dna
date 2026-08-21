@@ -92,6 +92,7 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   -e EXP473_TPU_REGION us-east5 \
   -e EXP473_TPU_VARIANT v5p-8 \
   -e EXP473_TPU_RAM 56g \
+  -e EXP473_TPU_PREEMPTIBLE true \
   -e EXP473_ARM cds_center_1 \
   -e UV_PROJECT /app \
   -- bash -lc 'cd /app && uv sync --locked --extra tpu && \
@@ -119,6 +120,10 @@ single-VM topology from the scheduler. Central1 permits only `v5p-8`.
 `EXP473_TPU_RAM` defaults to `56g`; use the bounded `96g` recovery value when
 Hugging Face export exceeds the default host-memory limit. Both settings are
 runtime-only and do not change the model or checkpoint identity.
+`EXP473_TPU_PREEMPTIBLE` accepts only `true` or `false` and defaults to
+`true`. A recovery may set it to `false` after repeated preemptions; this
+changes only the Iris capacity class and preserves the same data, model,
+optimizer, run ID, and checkpoint identity.
 `MARIN_PREFIX` must use the matching
 `marin-us-east5` or `marin-us-central1` bucket; the launcher fails before graph
 creation when the bucket and child region differ, or when a variant is

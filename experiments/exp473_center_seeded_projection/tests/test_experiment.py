@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 
 import pytest
 from exp473_center_seeded_projection.experiment import (
     ARMS,
     BATCH_SIZE,
+    DEFAULT_TPU_PREEMPTIBLE,
     DEFAULT_TPU_REGION,
     DEFAULT_TPU_RAM,
     DEFAULT_TPU_VARIANT,
@@ -39,6 +41,7 @@ from marin.execution.lazy import StepContext
 def _set_required_env(monkeypatch) -> None:
     monkeypatch.delenv("EXP473_TPU_VARIANT", raising=False)
     monkeypatch.delenv("EXP473_TPU_RAM", raising=False)
+    monkeypatch.delenv("EXP473_TPU_PREEMPTIBLE", raising=False)
     monkeypatch.setenv("WANDB_API_KEY", "test-key")
     monkeypatch.setenv("WANDB_ENTITY", "test-entity")
     monkeypatch.setenv("WANDB_PROJECT", "marin")
@@ -64,8 +67,8 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
     assert MODEL.use_sliding_window is False
     assert MODEL.tie_word_embeddings is False
     assert MODEL.tokenizer == MODEL_TOKENIZER_PATH
-    assert MODEL_TOKENIZER_PATH.endswith(
-        "experiments/exp473_center_seeded_projection/tokenizer"
+    assert Path(MODEL_TOKENIZER_PATH) == (
+        Path(__file__).resolve().parents[1] / "tokenizer"
     )
     assert MODEL.initializer_range == 0.02
     assert 250_000_000 < MODEL.total_trainable_params(7) < 260_000_000
@@ -105,7 +108,12 @@ def test_only_three_new_arms_materialize_the_matched_recipe(monkeypatch) -> None
             == DEFAULT_TPU_VARIANT
         )
         assert step.runtime_args["train_resources"].ram == DEFAULT_TPU_RAM
+        assert (
+            step.runtime_args["train_resources"].preemptible
+            is DEFAULT_TPU_PREEMPTIBLE
+        )
         assert pod.env_vars["EXP473_TPU_REGION"] == DEFAULT_TPU_REGION
+        assert pod.env_vars["EXP473_TPU_PREEMPTIBLE"] == "true"
         assert len(step.deps) == 1
         assert key in step.name
 
@@ -144,6 +152,22 @@ def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> Non
     assert flexible_step.runtime_args["train_resources"].device_alternatives == [
         "v6e-4"
     ]
+
+    monkeypatch.setenv("EXP473_TPU_PREEMPTIBLE", "false")
+    on_demand_step = build_training(ARMS["enhancer_full_window"])
+    assert on_demand_step.runtime_args["train_resources"].preemptible is False
+    on_demand_pod = on_demand_step.build_config(
+        StepContext.for_fingerprint(
+            runtime_arg_keys=on_demand_step.runtime_args,
+            deps=on_demand_step.deps,
+        )
+    )
+    assert on_demand_pod.env_vars["EXP473_TPU_PREEMPTIBLE"] == "false"
+
+    monkeypatch.setenv("EXP473_TPU_PREEMPTIBLE", "sometimes")
+    with pytest.raises(ValueError, match="EXP473_TPU_PREEMPTIBLE"):
+        build_training(ARMS["enhancer_full_window"])
+    monkeypatch.setenv("EXP473_TPU_PREEMPTIBLE", "true")
 
     monkeypatch.setenv("EXP473_TPU_RAM", "128g")
     with pytest.raises(ValueError, match="EXP473_TPU_RAM"):

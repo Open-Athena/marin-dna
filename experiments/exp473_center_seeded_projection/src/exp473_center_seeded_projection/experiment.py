@@ -49,6 +49,7 @@ DATA_VERSION = "2026.08.20"
 DEFAULT_TPU_REGION = "us-east5"
 DEFAULT_TPU_VARIANT = "v5p-8"
 DEFAULT_TPU_RAM = "56g"
+DEFAULT_TPU_PREEMPTIBLE = True
 ALLOWED_TPU_RAM = frozenset({DEFAULT_TPU_RAM, "96g"})
 ALLOWED_TPU_REGIONS = frozenset({DEFAULT_TPU_REGION, "us-central1"})
 ALLOWED_TPU_VARIANTS_BY_REGION = {
@@ -208,6 +209,20 @@ def selected_tpu_ram() -> str:
     return ram
 
 
+def selected_tpu_preemptible() -> bool:
+    """Return the explicit recovery capacity class, defaulting to preemptible."""
+    raw = os.environ.get(
+        "EXP473_TPU_PREEMPTIBLE",
+        str(DEFAULT_TPU_PREEMPTIBLE),
+    ).strip().lower()
+    if raw not in {"true", "false"}:
+        raise ValueError(
+            "EXP473_TPU_PREEMPTIBLE must be 'true' or 'false', "
+            f"got {raw!r}"
+        )
+    return raw == "true"
+
+
 def validated_marin_prefix(tpu_region: str) -> str:
     """Require the experiment artifact bucket to be local to its TPU region."""
     prefix = required_env("MARIN_PREFIX").rstrip("/")
@@ -326,6 +341,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
     tpu_region = selected_tpu_region()
     tpu_variants = selected_tpu_variants(tpu_region)
     tpu_ram = selected_tpu_ram()
+    tpu_preemptible = selected_tpu_preemptible()
     marin_prefix = validated_marin_prefix(tpu_region)
     forwarded_env = {
         "WANDB_API_KEY": required_env("WANDB_API_KEY"),
@@ -333,6 +349,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
         "WANDB_PROJECT": required_env("WANDB_PROJECT"),
         "MARIN_PREFIX": marin_prefix,
         "EXP473_TPU_REGION": tpu_region,
+        "EXP473_TPU_PREEMPTIBLE": str(tpu_preemptible).lower(),
         "HF_HUB_DOWNLOAD_TIMEOUT": "120",
         "UV_LOCK_TIMEOUT": "7200",
     }
@@ -356,6 +373,7 @@ def build_training(arm: Arm) -> ArtifactStep[LevanterCheckpoint]:
             ram=tpu_ram,
             disk="100g",
             regions=[tpu_region],
+            preemptible=tpu_preemptible,
         ),
         tensor_parallel_size=1,
         steps_per_eval=HF_SAVE_STEPS,
