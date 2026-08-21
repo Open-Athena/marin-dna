@@ -579,6 +579,11 @@ def test_intersection_workflow_is_additive_and_rule_isolated():
     assert '--analysis-commit "$EXP473_ANALYSIS_COMMIT"' in analysis_launcher
     assert "/analysis/$EXP473_ANALYSIS_COMMIT" in analysis_launcher
     assert "image_id: ami-0324f0ad73bdcd087" in analysis_launcher
+    assert "disk_size: 150" in analysis_launcher
+    assert (
+        "uv run --project experiments/exp473_center_seeded_projection --locked pytest"
+        in analysis_launcher
+    )
 
 
 def test_development_workflow_is_additive_direct_file_and_rule_isolated():

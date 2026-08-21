@@ -9,7 +9,7 @@ resources:
     image_id: ami-0324f0ad73bdcd087
     cpus: 8+
     memory: 32+
-    disk_size: 100
+    disk_size: 150
     labels:
         project: dna
     use_spot: false
@@ -29,12 +29,14 @@ setup: |
     fi
     uv self update 0.11.31
     uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    uv sync --project experiments/exp473_center_seeded_projection --locked --group dev
     aws sts get-caller-identity >/dev/null
 
 run: |
     set -euxo pipefail
     test -n "$EXP473_EXPERIMENT_COMMIT"
     test -n "$EXP473_ANALYSIS_COMMIT"
+    uv run --project experiments/exp473_center_seeded_projection --locked pytest
     OUTPUT_DIR="/tmp/issue_473_analysis"
     export PYTHONPATH="$PWD/experiments/exp473_center_seeded_projection/src"
     uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
