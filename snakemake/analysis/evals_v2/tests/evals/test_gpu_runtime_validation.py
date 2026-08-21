@@ -51,7 +51,7 @@ def test_runtime_contract_matches_project_and_sky_configuration() -> None:
         'export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"'
     )
     uv_install = setup.index("if ! command -v uv")
-    uv_version = setup.index('if [[ "$(uv --version)"')
+    uv_version = setup.index("if [[ \"$(uv --version | awk '{print $2}')\"")
     assert path_export < uv_install < uv_version
     assert re.search(r"\bevals-gpu-runtime-check\b[^\n]*\bsmoke\b", setup)
     assert re.search(r"\bevals-gpu-runtime-check\b[^\n]*\bparity\b", run)
