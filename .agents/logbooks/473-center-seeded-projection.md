@@ -2101,3 +2101,33 @@ cohort, assemblies, and downstream training recipe fixed.
 - Enhancer center-1 and CDS center-1 remained active independently at about
   steps 4,380 and 4,750, respectively. All three new trajectories therefore
   continued concurrently while the A10G evaluator ran outside Iris.
+
+### 2026-08-21 07:27 UTC - CSP-064 CDS center-1 completed
+
+- CDS center-1 completed all 5,000 scheduled updates through terminal step
+  4,999. Its final validation loss was 1.303, the public W&B run finalized
+  successfully, and its terminal four-object Hugging Face export is exactly
+  1,019,426,427 bytes. Every requested CDS center-1 export from step 1,000
+  through 4,500 in 500-step increments plus step 4,999 is durable in the
+  additive us-east1 checkpoint namespace.
+- The isolated CDS center-1 step-4,999 development graph completed all five
+  jobs successfully. It scored exactly 16,140 Mendelian and 23,853 SGE rows
+  from the pinned public `train.parquet` files and produced 66 and 216 official
+  metric rows, respectively. No held-out labeled file, prediction,
+  measurement, or metric was requested or read.
+- Enhancer full-window committed and exported exact durable step 3,000,
+  reproduced validation loss 1.333, and returned to training. Its Hugging Face
+  export is exactly 1,019,426,427 bytes. The matching Mendelian + Complex
+  development graph was submitted as job 3 on the existing warm A10G.
+- Enhancer center-1 remained active independently at about step 4,770 with
+  displayed loss 1.14. Its next durable boundary is terminal step 4,999.
+
+### 2026-08-21 07:33 UTC - CSP-065 enhancer full-window step 3,000 evaluated
+
+- The isolated enhancer full-window step-3,000 development graph completed all
+  five jobs successfully on the warm A10G. It scored exactly 16,140 Mendelian
+  and 11,630 Complex rows from the pinned public `train.parquet` files and
+  produced 66 and 60 official metric rows, respectively. No held-out labeled
+  file, prediction, measurement, or metric was requested or read.
+- Enhancer center-1 continued through about step 4,840 with displayed loss
+  1.13. Enhancer full-window continued independently beyond step 3,000.
