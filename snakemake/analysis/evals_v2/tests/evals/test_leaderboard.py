@@ -144,6 +144,43 @@ def test_fetch_method_metrics_unknown_protocol_raises(monkeypatch: pytest.Monkey
         fetch_method_metrics(methods[0], "mendelian_traits", protocol="not_a_protocol")
 
 
+def test_fetch_method_metrics_ignores_group_smd_columns(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    method = _mk_method(id="model", family="marin_dna")
+    _patch_methods(monkeypatch, (method,))
+    source = pl.DataFrame(
+        {
+            "score_type": ["minus_llr_avg"],
+            "split": ["train"],
+            "subset": ["coding"],
+            "value": [0.75],
+            "se": [0.02],
+            "n_groups": [100],
+            "n_rows": [1000],
+            "group_smd_value": [1.25],
+            "group_smd_available": [True],
+        }
+    )
+    _patch_read_parquet(
+        monkeypatch,
+        {leaderboard._parquet_path(method, "mendelian_traits"): source},
+    )
+
+    observed = fetch_method_metrics(method, "mendelian_traits", "LLR")
+
+    assert observed.columns == ["subset", "value", "se", "n", "n_positives"]
+    assert observed.to_dicts() == [
+        {
+            "subset": "coding",
+            "value": 0.75,
+            "se": 0.02,
+            "n": 1000,
+            "n_positives": 100,
+        }
+    ]
+
+
 # ---- normalized_rows --------------------------------------------------------
 
 

@@ -64,6 +64,9 @@ class ParitySpec:
     num_workers: int
     data_transform_on_the_fly: bool
     torch_compile: bool
+    bf16: bool
+    return_embeddings: bool
+    eval_accumulation_steps: int | None
     rc: bool
     identity_columns: tuple[str, ...]
     tolerances: dict[str, Tolerance]
@@ -132,6 +135,13 @@ def load_validation_spec(path: str | Path) -> ValidationSpec:
         num_workers=int(inference_raw["num_workers"]),
         data_transform_on_the_fly=bool(inference_raw["data_transform_on_the_fly"]),
         torch_compile=bool(inference_raw["torch_compile"]),
+        bf16=bool(inference_raw["bf16"]),
+        return_embeddings=bool(inference_raw["return_embeddings"]),
+        eval_accumulation_steps=(
+            None
+            if inference_raw.get("eval_accumulation_steps") is None
+            else int(inference_raw["eval_accumulation_steps"])
+        ),
         rc=bool(inference_raw["rc"]),
         identity_columns=tuple(str(c) for c in parity_raw["identity_columns"]),
         tolerances=tolerances,
@@ -153,6 +163,17 @@ def load_validation_spec(path: str | Path) -> ValidationSpec:
         "GPU parity must load the development split's parquet file directly",
     )
     _require(parity.rc, "the production parity cell must score both strands")
+    _require(parity.torch_compile, "the production parity cell must use torch.compile")
+    _require(parity.bf16, "the production parity cell must use bf16")
+    _require(
+        parity.return_embeddings,
+        "the production parity cell must return pooled embeddings",
+    )
+    if parity.eval_accumulation_steps is not None:
+        _require(
+            parity.eval_accumulation_steps > 0,
+            "eval_accumulation_steps must be positive when configured",
+        )
     return ValidationSpec(runtime=runtime, parity=parity)
 
 
@@ -341,6 +362,24 @@ def compare_score_frames(
     return report
 
 
+def validate_pooled_embeddings(frame: pd.DataFrame) -> dict[str, int]:
+    """Require finite, equally sized Float16 ref and alt embedding vectors."""
+    for column in ("emb_ref", "emb_alt"):
+        _require(column in frame, f"candidate missing column {column!r}")
+    try:
+        ref = np.stack(frame["emb_ref"].to_numpy())
+        alt = np.stack(frame["emb_alt"].to_numpy())
+    except ValueError as error:
+        raise AssertionError("candidate embeddings have inconsistent vector sizes") from error
+    _require(ref.ndim == 2 and ref.shape[1] > 0, f"invalid emb_ref shape {ref.shape}")
+    _require(alt.shape == ref.shape, f"embedding shape mismatch: {ref.shape} != {alt.shape}")
+    _require(ref.dtype == np.float16, f"emb_ref dtype must be float16, got {ref.dtype}")
+    _require(alt.dtype == np.float16, f"emb_alt dtype must be float16, got {alt.dtype}")
+    _require(bool(np.isfinite(ref).all()), "emb_ref contains non-finite values")
+    _require(bool(np.isfinite(alt).all()), "emb_alt contains non-finite values")
+    return {"n_rows": ref.shape[0], "hidden_size": ref.shape[1]}
+
+
 def _download_checkpoint(gcs_path: str, destination: Path) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     subprocess.run(
@@ -387,7 +426,10 @@ def run_inference_parity(
             num_workers=spec.num_workers,
             data_transform_on_the_fly=spec.data_transform_on_the_fly,
             torch_compile=spec.torch_compile,
+            bf16=spec.bf16,
             rc=spec.rc,
+            return_embeddings=spec.return_embeddings,
+            eval_accumulation_steps=spec.eval_accumulation_steps,
         )
         return pd.concat(
             [
@@ -404,6 +446,8 @@ def run_inference_parity(
             candidate = compute(local_checkpoint)
     else:
         candidate = compute(Path(checkpoint_path))
+
+    embedding_report = validate_pooled_embeddings(candidate)
 
     # Open the S3 baseline only after worker-backed inference completes.
     # fsspec owns an asyncio thread; opening S3 before PyTorch forks data-loader
@@ -428,6 +472,7 @@ def run_inference_parity(
         "baseline_compiled_cuda_version": spec.baseline_compiled_cuda_version,
         "baseline_driver_version": spec.baseline_driver_version,
         "score_comparison": comparison,
+        "embeddings": embedding_report,
     }
 
 

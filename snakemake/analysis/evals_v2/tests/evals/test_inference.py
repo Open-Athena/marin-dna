@@ -107,6 +107,40 @@ def test_compute_variant_scores_rc_true_returns_four_cols():
     assert len(scores) == len(ds)
 
 
+def test_compute_variant_scores_threads_execution_settings():
+    ds = _stub_dataset()
+    fwd = np.zeros((len(ds), 2), dtype=np.float32)
+    rc = np.zeros((len(ds), 2), dtype=np.float32)
+    tok_patch, model_patch, genome_patch = _patched_model_load()
+    with (
+        tok_patch,
+        model_patch,
+        genome_patch,
+        patch(
+            "marin_dna_evals.inference.run_variant_score_bundle",
+            return_value={"fwd": fwd, "rc": rc},
+        ) as runner,
+    ):
+        compute_variant_scores(
+            checkpoint_path="/unused",
+            dataset=ds,
+            genome_path="/unused.fa",
+            batch_size=7,
+            num_workers=2,
+            torch_compile=True,
+            bf16=False,
+            rc=True,
+            eval_accumulation_steps=3,
+        )
+
+    kwargs = runner.call_args.kwargs["inference_kwargs"]
+    assert kwargs["per_device_eval_batch_size"] == 7
+    assert kwargs["dataloader_num_workers"] == 2
+    assert kwargs["torch_compile"] is True
+    assert kwargs["bf16_full_eval"] is False
+    assert kwargs["eval_accumulation_steps"] == 3
+
+
 def test_compute_variant_scores_avg_derivable_from_atoms():
     """The metrics rule materializes _avg = (fwd+rc)/2 downstream; sanity
     check that the atoms emitted by compute_variant_scores are sufficient

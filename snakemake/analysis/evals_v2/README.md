@@ -1,11 +1,11 @@
 # evals_v2 — gLM evaluation on matched-pair datasets
 
-AUPRC ± cluster-bootstrap SE on the matched-pair eval datasets
+AUPRC ± cluster-bootstrap SE and Group SMD on the matched-pair eval datasets
 (`bolinas-dna/evals_mendelian_traits`, `bolinas-dna/evals_complex_traits`).
 Each HF dataset revision is pinned per-dataset in `config.yaml` via
 `hf_revision` so bumping the underlying data triggers re-execution
-deterministically. Stripped-down successor to `evals_v1`: one metric, one
-split, no plotting, GCS- or HF-stored checkpoints.
+deterministically.
+Stripped-down successor to `evals_v1`: one score rule, one metric rule, one split, no plotting, and GCS- or HF-stored checkpoints.
 
 ## What it does
 
@@ -22,77 +22,55 @@ For each `model` × `dataset` in the config:
    `jsd_rc`. The metrics rule derives `_avg`, `minus_llr_*`, and
    `abs_llr_*` from these — no redundant storage. FWD+RC is the
    validated default per #175 conclusion 2.
-3. **Compute** AUPRC ± cluster-bootstrap SE per consequence subset, per
-   score column. Cluster bootstrap resamples `match_group`s with
-   replacement (preserving the matched 1:k structure) so SE reflects
-   the actual sampling unit. The dataset-appropriate LLR protocol comes
-   from `score_protocol` in the config (`minus_llr` for mendelian,
-   `abs_llr` for complex); each is evaluated on FWD, RC, and AVG, as
-   is JSD.
+3. **Compute** AUPRC ± cluster-bootstrap SE and Group SMD per consequence subset and score column.
+   Cluster bootstrap resamples `match_group` values with replacement.
+   The dataset-specific LLR protocol comes from `score_protocol` (`minus_llr` for mendelian and `abs_llr` for complex).
+   Each protocol and JSD are evaluated on FWD, RC, and AVG.
 
 Outputs land in S3 at `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`:
 
 ```
 results/
 ├── checkpoints/{model}/                         # cached HF model dir
-├── scores/{model}/{dataset}.parquet             # variant cols + per-strand score atoms (+ emb_ref/emb_alt if return_embeddings)
-└── metrics/{model}/{dataset}.parquet            # AUPRC ± bootstrap SE per (subset × score_type)
+├── scores/{model}/{dataset}.parquet             # variant cols + score atoms + emb_ref/emb_alt
+└── metrics/{model}/{dataset}.parquet            # AUPRC rows enriched with Group SMD columns
 ```
 
-The metrics parquet has columns
-`[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]`,
-with aggregate rows `_global_` and `_macro_avg_` per `score_type` —
-see `marin_dna_evals.metrics.compute_auprc_metrics` for details.
+The metrics parquet retains `[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]` and appends the `group_smd_*` columns described below.
+It keeps `_global_` and `_macro_avg_` rows per `score_type`.
 
-### Grouped VEP report (AUPRC + Group SMD, #464)
+### Matched-pair metrics (AUPRC + Group SMD, #464)
 
-AUPRC remains the primary endpoint for matched-pair datasets.
-The [#459 analysis](https://github.com/Open-Athena/marin-dna/issues/459) selected Group SMD as the secondary endpoint when meaningful matched groups exist.
-Both metrics are higher-is-better.
+`compute_metrics` writes one row per `(score_type, subset)` to the existing `results/metrics/{model}/{dataset}.parquet` path.
+The row set and the `value` and `se` columns retain the established AUPRC contract.
+Direct subset and `_global_` rows also contain Group SMD summary columns.
+The `_macro_avg_` rows mark Group SMD unavailable because averaging subset-standardized effects defines a different statistic.
 
-For each match group `g`, the report computes `gap_g = positive_g - mean(negatives_g)`.
-Group SMD is `mean(gap_g) / sample_sd(gap_g)` across match groups.
-It is invariant to a positive affine transformation of the score.
-It is a one-sample standardized distribution of matched-group gaps.
-It is not a macro average of per-gene Cohen's d values, which would standardize separate positive and negative score samples within genes before averaging effects.
-
-The input contract requires `label`, `subset`, and `match_group`.
-Each match group must contain exactly one positive and at least one negative.
-Each match group must belong to one subset.
+For each match group `g`, Group SMD uses `gap_g = positive_g - mean(negatives_g)` and reports `mean(gap_g) / sample_sd(gap_g)`.
+The metric is invariant to a positive affine transformation of the score.
+Each match group must contain exactly one positive and at least one negative, and each group must belong to one subset.
 Missing grouping columns, null grouping values, incompatible groups, and groups that span subsets raise a validation error.
-A direct scope with one match group or zero SD across group gaps emits an unavailable Group SMD row with a machine-readable `unavailable_reason`.
-The `_macro_avg_` Group SMD row is explicitly unavailable because averaging subset effects would define a different statistic.
-The implementation never creates a synthetic global match group.
+A direct scope with one match group or zero gap variance reports an explicit unavailable state.
 
-Build all configured matched-pair cells with:
-
-```bash
-snakemake grouped_vep_metrics
-```
-
-The named target is off `rule all` so existing `results/metrics/` artifacts keep their current producer and schema.
-Each cell writes:
+The appended columns are:
 
 ```text
-results/grouped_vep_scores/{split}/{model}/{dataset}.parquet
-results/grouped_vep_metrics/{split}/{model}/{dataset}.parquet
-results/grouped_vep_bootstrap/{split}/{model}/{dataset}.parquet
+group_smd_value
+group_smd_se
+group_smd_ci_low
+group_smd_ci_high
+group_smd_confidence_level
+group_smd_available
+group_smd_unavailable_reason
+group_smd_uncertainty_method
+group_smd_n_bootstrap
+group_smd_n_bootstrap_valid
 ```
 
-The grouped report uses its own split-scoped score bundle rather than the legacy `results/scores/` artifact.
-Changing `config.split` therefore selects a different score, summary, and bootstrap identity instead of reusing or overwriting artifacts from another split.
-
-The summary schema is `[metric, higher_is_better, score_type, subset, value, se, ci_low, ci_high, confidence_level, n_groups, n_rows, available, unavailable_reason, uncertainty_method, n_bootstrap, n_bootstrap_valid, model, dataset, split, bootstrap_seed]`.
-Filtering summary rows to `metric == "AUPRC"` preserves the existing `[score_type, subset, value, se, n_groups, n_rows]` output from `compute_auprc_metrics`.
-Direct subset and `_global_` AUPRC rows retain their existing match-group bootstrap SE.
-The `_macro_avg_` AUPRC row retains the existing independent-subset SE-of-mean and reports `n_bootstrap_valid = 0` because it has no stored macro draws.
-All AUPRC interval values are null in this report.
-Group SMD uses a joint match-group bootstrap and reports the 2.5th and 97.5th percentiles as a 95% interval.
-
-The bootstrap schema is `[draw, metric, score_type, subset, value, n_groups, model, dataset, split, bootstrap_seed]`.
-One match-group multiplicity vector is reused across both metrics and every score column within a scope.
-Outputs from different models are aligned by `draw` when they use the same dataset revision, row order, `n_bootstrap`, and integer `bootstrap_seed`.
-The bootstrap artifact omits `_macro_avg_` for both metrics because Group SMD has no macro definition and AUPRC uses the composed legacy macro SE without stored draws.
+One match-group draw matrix is reused across score columns within each direct scope and discarded after the summary is computed.
+No grouped-only score path, metrics path, or bootstrap sidecar is produced.
+Legacy metrics parquets without the appended columns remain valid AUPRC-only artifacts and are not backfilled automatically.
+The leaderboard continues selecting `value`, `se`, `n_groups`, and `n_rows`, so the added columns do not change its output.
 
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
@@ -147,53 +125,24 @@ dataset, split]` (`metric` is always `AUPRC`). The **same** `compute_sge_metrics
 is reused by the `conservation_eval` baseline pipeline (now branch-run — #332). Scoped
 to the three #292 gLMs via their per-model `datasets:` lists.
 
-### Pooled embeddings (`inference.return_embeddings`, #318)
+### Pooled embeddings (#318)
 
-For the frozen-embedding linear-probe VEP protocol (#314 → productionized in
-#321/#320), the **same two (FWD, RC) forward passes** that produce LLR/JSD can
-*also* emit a pooled both-allele embedding — no second pass, no parallel cache.
-Set the global toggle `inference.return_embeddings: true` and the scores parquet
-gains two columns:
+Every newly computed VEP score parquet contains pooled `emb_ref` and `emb_alt` vectors.
+The global `inference.return_embeddings`, `inference.torch_compile`, and `inference.bf16` settings are all `true` and cannot be overridden by a checkpoint entry.
+The embeddings come from the same FWD and RC forward passes that produce LLR and JSD.
 
-- `emb_ref`, `emb_alt` — each a length-`D` (model hidden size) `float16` vector
-  per variant: the **entire-DNA-window mean-pooled** (the `window_size` DNA
-  positions, BOS/special tokens excluded — the #314 `entire_window` extent),
-  **FWD+RC-averaged** last-layer hidden state for that allele. Pooling and the
-  strand average accumulate in **fp32**; only the stored vector is cast to f16.
+Each allele column stores a length-`D` Float16 vector.
+The model hidden states are mean-pooled across the complete DNA window with special tokens excluded.
+Pooling and the FWD/RC average accumulate in Float32 before the stored vector is cast to Float16.
 
-The probe feature (`concat_ref_delta` / `sum_absdiff`, #320) is built downstream
-from these. Storage is ~`2·D·2` B/variant ≈ **1.5–2.3 GB/model** over the full
-suite (~500× smaller than the per-token cache #314 used). The kernel captures the
-last layer via a forward hook on `model.base_model` (grabbing `last_hidden_state`,
-*not* `output_hidden_states=True` — which would materialize every layer), so the
-extra VRAM is just the final `[B, L, D]` hidden states + the wider `[N, 2+2D]`
-predictions; still heavier than the slim LLR/JSD bundle, so pair an embedding run
-with a smaller per-model `batch_size` (and optionally
-`inference.eval_accumulation_steps` to offload the predictions to CPU). Requires
-`inference.rc: true` (the stored vector is the FWD+RC average; asserted at config
-load).
+Embedding predictions are wider than scalar score predictions, so execution sizing remains checkpoint-specific.
+Checkpoint entries may set `batch_size` and `eval_accumulation_steps`; smaller models use the global `128` and `null` fallbacks.
+These execution settings do not change the intended output schema.
 
-Run embedding extractions **eager** (`torch_compile: false`): compiling the
-hooked forward is unvalidated, and a small run doesn't need it. The ready-made overlay
-[`config/overlays/return_embeddings.yaml`](config/overlays/return_embeddings.yaml)
-deep-merges `return_embeddings: true` + `batch_size: 96` + `torch_compile: false`
-over the config (preserving `rc` etc.), e.g.
-`snakemake --configfile config/overlays/return_embeddings.yaml --forcerun
-compute_scores -- results/scores/<model>/<dataset>.parquet`. Eager makes the
-stored `llr_*` differ from the compiled default by float-reduction noise that
-accumulates in the LLR **sum** (JSD, a mean, is unaffected); the difference is
-AUPRC-invariant — a deliberate execution tradeoff for embedding runs, not a
-correctness issue (the measured parity numbers live in #318 / the PR, not here).
-
-**Operational note.** `return_embeddings` is output-affecting (it lives in the
-rule's `params:`). To extract embeddings into a cell whose scores parquet already
-exists, **force that specific target**:
-`snakemake --configfile config/overlays/return_embeddings.yaml --forcerun
-compute_scores -- results/scores/<model>/<dataset>.parquet`. (A bare
-`--rerun-triggers mtime` does *not* help here — it drops the `params` trigger that
-detects the `return_embeddings` flip, so a cell whose output already exists would
-be skipped with no embedding columns.) Name targeted targets rather than
-`snakemake all` so unrelated already-scored cells are left untouched.
+Score parquets created before this default may lack `emb_ref` and `emb_alt`.
+They remain valid inputs for zero-shot AUPRC and Group SMD because those metrics use scalar score atoms.
+They are not backfilled automatically.
+A probe that targets a legacy score parquet must explicitly rerun that one `compute_scores` target first.
 
 ## Conventions
 
@@ -231,8 +180,8 @@ The locked environment pins `torch==2.13.0`, whose Linux wheel reports `torch.ve
 Every `sky/run.yaml` setup executes `evals-gpu-runtime-check smoke` after the locked environment is installed.
 The smoke gate requires `torch.cuda.is_available()`, the exact image runtime metadata, A10G bf16 support, and a finite bf16 CUDA matrix multiplication.
 
-The numerical gate re-scores the full 16,140-row `exp351-centered-step-1000` × `mendelian_traits@4aed58e` train cell without writing pipeline outputs.
-It checks the four raw score atoms against the checksummed PyTorch 2.8 parquet, using `rtol=1e-4, atol=0.15` for LLR and `rtol=1e-3, atol=1e-4` for mean JSD.
+The numerical gate re-scores the full 16,140-row `exp351-centered-step-1000` × `mendelian_traits@4aed58e` train cell in memory with compilation, BF16, and pooled embeddings enabled.
+It validates finite, equally sized Float16 embedding vectors and checks the four raw score atoms against the checksummed PyTorch 2.8 parquet, using `rtol=1e-4, atol=0.15` for LLR and `rtol=1e-3, atol=1e-4` for mean JSD.
 The LLR tolerance covers the accumulated bf16 kernel differences observed when moving the fixed cell to the new driver, CUDA, and PyTorch stack.
 Run the gate on a fresh one-GPU cluster with:
 
@@ -243,9 +192,9 @@ sky launch snakemake/analysis/evals_v2/sky/run.yaml \
   --down
 ```
 
-The gate passed on 2026-08-20 on a fresh AWS `g5.xlarge` spot instance.
-The focused runtime-validation suite available for the live run passed, the runtime metadata matched exactly, and the scorer read only the pinned `train.parquet` file.
-Two failure-path regression tests were added after the live run and will be exercised by CI.
+The scalar-score predecessor of this gate passed on 2026-08-20 on a fresh AWS `g5.xlarge` spot instance.
+That run matched the runtime metadata and read only the pinned `train.parquet` file.
+The pooled-embedding extension has not been launched as part of this change.
 All 16,140 rows passed for both strands:
 
 | Score atom | Mean absolute difference | 95th percentile | Maximum | Outside tolerance |
@@ -325,10 +274,11 @@ name:
 
 `snakemake probe` trains a **frozen-embedding linear probe** per `(model,
 dataset)` — the productionized form of #314's settled protocol — also kept **off
-`rule all`**. It consumes the in-bundle pooled embeddings (`emb_ref`/`emb_alt`, the
-#318 columns), so the cell's scores parquet **must** have been produced with
-`inference.return_embeddings: true` (the rule fails fast otherwise). CPU-only — no
-GPU; the probe logic lives in
+`rule all`**.
+It consumes the in-bundle pooled embeddings (`emb_ref`/`emb_alt`, the #318 columns).
+New score outputs include those columns by default.
+A legacy score parquet without them fails fast and requires an explicit targeted score rerun.
+The rule is CPU-only; the probe logic lives in
 `marin_dna_evals.variant_probe.run_subset_probes`.
 
 The protocol is **one** approach, no sweeps:
@@ -368,20 +318,14 @@ The predictions parquet (the LOOC `probe_score` per variant) is consumed by the
 **`compute_probe_metrics`** rule below; the joblib classifiers are
 serialized for **reuse on other datasets**. Configured under `probe:` in
 `config.yaml` (`min_variants`, `min_chroms`, `c_grid` = `logspace(lo, hi, num)`,
-`inner_splits`, `n_jobs`, and `models: [{name, datasets}]` — datasets listed
-explicitly since embeddings are per-cell). Build:
+`inner_splits`, `n_jobs`, and `models: [{name, datasets}]`). Build:
 
 ```bash
-# `--rerun-triggers mtime` is required: the scores parquet was built with the #318
-# overlay (return_embeddings: true) but the committed default is false, so the default
-# `params` trigger would otherwise rebuild it — dropping the embeddings the rule needs
-# (and a rebuild needs a GPU the probe node doesn't have).
-snakemake probe --rerun-triggers mtime                              # all configured probe cells
-snakemake results/probe/<model>/<dataset>.parquet --rerun-triggers mtime   # one cell
+snakemake probe
+snakemake results/probe/<model>/<dataset>.parquet
 
-# A cell whose scores parquet predates the embeddings must be re-scored first:
-snakemake --configfile config/overlays/return_embeddings.yaml --forcerun \
-  compute_scores -- results/scores/<model>/<dataset>.parquet
+# A legacy cell without embedding columns requires an explicit targeted rerun.
+snakemake --forcerun compute_scores -- results/scores/<model>/<dataset>.parquet
 ```
 
 ### Linear-probe metrics (per-subset per-chrom AUPRC, #331/#341)
@@ -409,10 +353,8 @@ results/probe_metrics/{model}/{dataset}.parquet
 ```
 
 ```bash
-# Same `--rerun-triggers mtime` note as `probe` (its upstream scores parquet was
-# built with the embedding overlay, differing from the committed default).
-snakemake probe_metrics --rerun-triggers mtime                                    # all configured probe cells
-snakemake results/probe_metrics/<model>/<dataset>.parquet --rerun-triggers mtime  # one cell
+snakemake probe_metrics
+snakemake results/probe_metrics/<model>/<dataset>.parquet
 ```
 
 ### Parallel sky-cluster sweep (one cluster per target)
@@ -457,8 +399,8 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `genome_path` | Canonical GRCh38 FASTA. fsspec URI (e.g. `s3://...`) or local path. The S3 path requires `--group genome-s3` at install time. |
 | `split` | `train` (or `test` once held-out eval is unlocked). |
 | `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global, sge}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets; `sge` selects the per-accession × consequence-subset AUPRC-on-`label` path for `evals_sge` (see the SGE section above). |
-| `models` | List of `{name, window_size, ...}`. Each entry has exactly one of `gcs_path` (full GCS URI incl. `/hf/step-{N}`) or `hf_repo` (HuggingFace Hub repo ID), plus two optional fields: `datasets: [...]` to restrict which `datasets` this checkpoint evaluates on (defaults to all), and `batch_size: N` to override the global `inference.batch_size` for this checkpoint (useful when context size differs from the global default's tuning). |
-| `inference.*` | Batch size, workers, `data_transform_on_the_fly`, `torch_compile`; `rc` (also score the reverse-complement strand — doubles inference time); `n_bootstrap` (metric bootstrap iterations per subset × score_type); `bootstrap_seed` (reproducibility and cross-model draw-alignment seed; bumping it triggers metric re-execution). |
+| `models` | List of `{name, window_size, ...}`. Each entry has exactly one checkpoint source. Optional execution fields are `batch_size` and `eval_accumulation_steps`; `datasets` restricts evaluation coverage. Semantic inference switches are rejected here. |
+| `inference.*` | Global `return_embeddings`, `torch_compile`, and `bf16` settings are required to be `true`. `batch_size: 128` and `eval_accumulation_steps: null` are execution fallbacks. The section also configures workers, RC scoring, transforms, and metric bootstrap settings. |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 | `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |
@@ -471,7 +413,7 @@ Pipeline rules are thin glue around:
   → per-strand score atoms (`llr_fwd`, `llr_rc`, `jsd_fwd`, `jsd_rc`).
 - `marin_dna_evals.metrics.compute_auprc_metrics` — score columns
   → AUPRC ± cluster-bootstrap SE per subset (cluster = `match_group`).
-- `marin_dna_evals.grouped_vep_metrics.compute_grouped_vep_metrics` — unchanged AUPRC rows plus Group SMD, explicit unavailable states, 95% intervals, and aligned match-group bootstrap draws.
+- `marin_dna_evals.grouped_vep_metrics.compute_grouped_vep_metrics` → the unchanged AUPRC table with additive Group SMD columns and explicit unavailable states.
 - `marin_dna_evals.grouped_vep_metrics.group_smd` — mean matched-group gap divided by the sample SD of matched-group gaps.
 - `marin_dna_evals.metrics.compute_qtl_metrics` — score columns
   → global AUPRC + positives-only Pearson/Spearman vs `effect_size`

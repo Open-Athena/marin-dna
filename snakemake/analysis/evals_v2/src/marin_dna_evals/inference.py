@@ -46,6 +46,7 @@ def compute_variant_scores(
     num_workers: int = 4,
     data_transform_on_the_fly: bool = True,
     torch_compile: bool = False,
+    bf16: bool = True,
     rc: bool = False,
     return_embeddings: bool = False,
     eval_accumulation_steps: int | None = None,
@@ -68,6 +69,7 @@ def compute_variant_scores(
         num_workers: Number of workers for data loading.
         data_transform_on_the_fly: Whether to transform data on the fly during inference.
         torch_compile: Whether to use torch.compile for faster inference.
+        bf16: Whether to run evaluation forwards in bfloat16.
         rc: If True, also score the reverse-complemented window for
             each variant and emit per-strand columns. Doubles inference
             cost.
@@ -122,7 +124,7 @@ def compute_variant_scores(
     inference_kwargs: dict[str, object] = {
         "per_device_eval_batch_size": batch_size,
         "torch_compile": torch_compile,
-        "bf16_full_eval": True,
+        "bf16_full_eval": bf16,
         "dataloader_num_workers": num_workers,
         "remove_unused_columns": False,
     }

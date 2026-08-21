@@ -8,11 +8,11 @@
 #
 # Launch one (model, dataset) probe cell:
 #   sky launch snakemake/analysis/evals_v2/sky/probe.yaml -c evals-v2-probe \
-#     --env SNAKEMAKE_ARGS="--rerun-triggers mtime --set-threads compute_probe=8 \
+#     --env SNAKEMAKE_ARGS="--set-threads compute_probe=8 \
 #       -- results/probe/<model>/<dataset>.parquet" -i 10 --down -y
 #
-# The input scores parquet must already carry emb_ref/emb_alt (scored with
-# inference.return_embeddings: true); the rule fails fast otherwise.
+# The input scores parquet must carry emb_ref/emb_alt. New score outputs include
+# them by default; legacy outputs fail fast and require an explicit targeted rerun.
 
 name: evals-v2-probe
 

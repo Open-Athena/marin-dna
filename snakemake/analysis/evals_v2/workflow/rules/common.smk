@@ -15,13 +15,17 @@ from marin_dna_evals.conservation import (
 from marin_dna_evals.inference import compute_variant_scores
 from marin_dna_evals.metrics import (
     SCORE_PROTOCOLS,
-    compute_auprc_metrics,
     compute_qtl_metrics,
     compute_sge_metrics,
     compute_sge_probe_metrics,
     per_chrom_ap_table,
 )
 from marin_dna_evals.variant_probe import PAIR_COMBOS, run_subset_probes
+from marin_dna_evals.workflow_config import (
+    resolve_model_batch_size,
+    resolve_model_eval_accumulation_steps,
+    validate_inference_config,
+)
 
 # Per-dataset eval protocol. `matched_pair` (default) → per-subset AUPRC +
 # cluster bootstrap over `match_group` (mendelian/complex). `qtl_global` →
@@ -72,6 +76,8 @@ for _m in config["models"]:
         _has_gcs ^ _has_hf
     ), f"model {_m['name']!r} must have exactly one of `gcs_path` or `hf_repo`"
 
+validate_inference_config(config["inference"], config["models"])
+
 # Same fail-fast for per-dataset score_protocol — a typo would surface
 # late as a KeyError inside the metrics rule's `SCORE_PROTOCOLS[protocol]`.
 for _d in config["datasets"]:
@@ -84,14 +90,6 @@ for _d in config["datasets"]:
         f"dataset {_d['name']!r} `eval_protocol` must be one of "
         f"{sorted(EVAL_PROTOCOLS)}, got {_ep!r}"
     )
-
-# The pooled embedding (#318) is the FWD+RC average, so it needs both strands —
-# fail at config load rather than store a silently fwd-only vector mislabeled as
-# the average.
-assert (
-    not config["inference"].get("return_embeddings", False) or config["inference"]["rc"]
-), "inference.return_embeddings=true requires inference.rc=true"
-
 
 # Wildcard alternations used across rules.
 DATASETS = [d["name"] for d in config["datasets"]]
@@ -117,13 +115,16 @@ def get_model_datasets(model_name):
 
 def get_model_batch_size(model_name):
     """Per-model ``batch_size`` if set, else the global ``inference.batch_size``."""
-    bs = get_model_config(model_name).get(
-        "batch_size", config["inference"]["batch_size"]
+    return resolve_model_batch_size(
+        get_model_config(model_name), config["inference"]
     )
-    assert (
-        isinstance(bs, int) and bs > 0
-    ), f"model {model_name!r} `batch_size` must be a positive int, got {bs!r}"
-    return bs
+
+
+def get_model_eval_accumulation_steps(model_name):
+    """Per-model prediction-offload cadence, with the global value as fallback."""
+    return resolve_model_eval_accumulation_steps(
+        get_model_config(model_name), config["inference"]
+    )
 
 
 # --- Nucleotide dependency maps (interpretation, issue #237) ----------------
@@ -218,11 +219,10 @@ for _d in LL_GAP_CFG.get("datasets", []):
 
 
 # --- Linear probe (frozen-embedding VEP, issue #320) ------------------------
-# Optional `probe:` config section; targets kept OFF `rule all` (see
+# Optional `probe:` config section; targets stay OFF `rule all` (see
 # rules/probe.smk). Reuses the `models:` registry. Each probe entry is
-# `{name, datasets: [...]}` — datasets are listed explicitly (not derived) because
-# probing a cell requires its scores parquet to carry emb_ref/emb_alt
-# (inference.return_embeddings), which is per-cell, not per-model.
+# `{name, datasets: [...]}`. The listed cells must have `emb_ref` and `emb_alt`;
+# legacy scalar-only score parquets require an explicit targeted score rerun.
 PROBE_CFG = config.get("probe", {})
 PROBE_MODELS = PROBE_CFG.get("models", [])
 

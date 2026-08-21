@@ -88,11 +88,12 @@ def compute_region_embeddings(
     batch_size: int = 128,
     num_workers: int = 4,
     torch_compile: bool = False,
+    bf16: bool = True,
 ) -> pd.DataFrame:
     """Embed every region window; return embeddings + carried metadata.
 
     Runs through the shared HF Trainer harness
-    (``marin_dna_evals.model.runner.run_window_embeddings``) — bf16, optional
+    (``marin_dna_evals.model.runner.run_window_embeddings``) — optional bf16 and
     ``torch.compile``, ``num_workers`` dataloader workers — on a base
     ``AutoModel`` (reads ``last_hidden_state``; no LM head). For each window the
     ``window_size`` context is centered on the region midpoint, the center
@@ -151,7 +152,7 @@ def compute_region_embeddings(
         inference_kwargs={
             "per_device_eval_batch_size": batch_size,
             "torch_compile": torch_compile,
-            "bf16_full_eval": True,
+            "bf16_full_eval": bf16,
             "dataloader_num_workers": num_workers,
             "remove_unused_columns": False,
         },

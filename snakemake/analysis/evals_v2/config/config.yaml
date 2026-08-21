@@ -64,12 +64,15 @@ datasets:
 # 512 = older 512-context runs trained without BOS (e.g. exp21 promoter-yolo);
 #       pair with a per-model `batch_size` override to fit on an A10G.
 #
-# Optional per-model fields:
+# Optional per-model execution fields:
 #   - `datasets: [name, …]`  Restrict evaluation to a subset of the configured
 #                            `datasets`. Omit to run on all of them.
 #   - `batch_size: N`        Override `inference.batch_size` for this checkpoint.
 #                            Useful when the global default is tuned for a
 #                            different context size.
+#   - `eval_accumulation_steps: N`  Offload wide predictions to CPU every N steps.
+# `return_embeddings`, `torch_compile`, and `bf16` are global inference settings
+# and are rejected on model entries.
 models:
   # Final-step entries for the exp55/58/59 evolutionary-timescale runs.
   # Scoped to mendelian_traits to match what's actually been computed on
@@ -126,14 +129,20 @@ models:
   - name: exp166-v0.1-p1B-step-10000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-10000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp166-v0.1-p1B-step-20000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-20000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp166-v0.1-p1B-step-27329
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p1B-c127da/hf/step-27329
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
 
   # exp166 v0.1 — generalist 4B run (74e146). Same 3 HF-exported
@@ -142,14 +151,20 @@ models:
   - name: exp166-v0.1-p4B-step-10000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-10000
     window_size: 255
+    batch_size: 16
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp166-v0.1-p4B-step-20000
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-20000
     window_size: 255
+    batch_size: 16
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp166-v0.1-p4B-step-27329
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-exp166-v0.1-p4B-74e146/hf/step-27329
     window_size: 255
+    batch_size: 16
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits]
 
   # exp187 — per-region Qwen3-1B sweep (issue #187). 6 v3 subsets × 5 HF
@@ -160,122 +175,182 @@ models:
   - name: exp187-v3_cds-step-1000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-1000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_cds-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-2000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_cds-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-3000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_cds-step-4000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-4000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_cds-step-4999
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_cds-v0.1-d6940d/hf/step-4999
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_utr3-step-1000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-1000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_utr3-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-2000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_utr3-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-3000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_utr3-step-4000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-4000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_utr3-step-4999
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_utr3-v0.1-69b592/hf/step-4999
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ncrna_exon-step-1000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-1000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ncrna_exon-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-2000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ncrna_exon-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-3000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ncrna_exon-step-4000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-4000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ncrna_exon-step-4999
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ncrna_exon-v0.1-ea8c89/hf/step-4999
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_tss_region_and_utr5-step-1000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-1000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_tss_region_and_utr5-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-2000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_tss_region_and_utr5-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-3000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_tss_region_and_utr5-step-4000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-4000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_tss_region_and_utr5-step-4999
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_tss_region_and_utr5-v0.1-871c93/hf/step-4999
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ccre_non_promoter-step-1000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-1000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ccre_non_promoter-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-2000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ccre_non_promoter-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-3000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ccre_non_promoter-step-4000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-4000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_ccre_non_promoter-step-4999
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_ccre_non_promoter-v0.1-297eb5/hf/step-4999
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_bg-step-1000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-1000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_bg-step-2000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-2000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_bg-step-3000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-3000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_bg-step-4000
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-4000
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: exp187-v3_bg-step-4999
     gcs_path: gs://marin-us-east5/checkpoints/dna-exp187-zoonomia-v1-1b-v3_bg-v0.1-a9416a/hf/step-4999
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
 
   # exp232 — per-region Qwen3-0.25B sweep (issue #232): all 6 region arms.
@@ -543,10 +618,14 @@ models:
   - name: mix-v0.9-p1B-i0-uniform-step-25004
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i0-uniform-2ba217/hf/step-25004
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
   - name: mix-v0.9-p1B-i16-upstream-step-8333
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i16-uniform_to_upstream_3.6-07bc9c/hf/step-8333
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits]
 
   # exp135-1B-m5.1 (Slack #bolinas, 2026-05-30): continued training from the
@@ -557,6 +636,8 @@ models:
   - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1-bef41e/hf/step-59158
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits, sge]
 
   # Parameter-scaling ladder v0.5 (issue #274) — 8 sizes, all at step-215573
@@ -591,14 +672,20 @@ models:
   - name: scaling-v0.5-h1920-p1B-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h1920-p1B-0dc6f4/hf/step-215573
     window_size: 255
+    batch_size: 64
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h2432-p2B-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2432-p2B-f5f484/hf/step-215573
     window_size: 255
+    batch_size: 16
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
   - name: scaling-v0.5-h2944-p4B-step-215573
     gcs_path: gs://marin-us-east5/checkpoints/dna-bolinas-scaling-v0.5-h2944-p4B-fa02c3/hf/step-215573
     window_size: 255
+    batch_size: 16
+    eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
 
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
@@ -612,46 +699,55 @@ models:
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-6000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-6000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-10000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-10000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-12000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-12000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-14000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-14000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-16000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-16000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-18000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-18000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-20000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-20000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp21-promoters-yolo-step-22000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-promoters-yolo-r01-213a8e/hf/step-22000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
 
   # exp13/exp27 — promoter × CDS mixture sweep (issue #13). 4-way comparison
   # of Qwen3-1.7B trained on: 100% promoters (exp21 above), 50/50 mix (exp13
@@ -666,41 +762,49 @@ models:
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-6000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-6000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-10000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-10000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-14000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-14000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-18000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-18000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-22000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-22000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-26000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-26000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp27-cds-yolo-step-34000
     gcs_path: gs://marin-dna-us-central1/checkpoints/animal-cds-yolo-repeat-weight-0.01-r01-e8cb9b/hf/step-34000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
 
   # exp13 — promoter-cds-mixture-equal-r01-b67fd1 (50% promoter / 50% CDS).
   - name: exp13-mixture-equal-step-2000
@@ -708,36 +812,43 @@ models:
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-equal-step-6000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-6000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-equal-step-10000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-10000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-equal-step-14000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-14000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-equal-step-18000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-18000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-equal-step-22000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-22000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-equal-step-26000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-equal-r01-b67fd1/hf/step-26000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
 
   # exp13 — promoter-cds-mixture-proportional-r01-6705f1 (10% promoter / 90% CDS).
   - name: exp13-mixture-proportional-step-2000
@@ -745,36 +856,43 @@ models:
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-proportional-step-6000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-6000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-proportional-step-10000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-10000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-proportional-step-14000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-14000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-proportional-step-18000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-18000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-proportional-step-22000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-22000
     window_size: 512
     datasets: [mendelian_traits]
     batch_size: 64
+    eval_accumulation_steps: 8
   - name: exp13-mixture-proportional-step-26000
     gcs_path: gs://marin-dna-us-central1/checkpoints/promoter-cds-mixture-proportional-r01-6705f1/hf/step-26000
     window_size: 512
     datasets: [mendelian_traits, sge]
     batch_size: 64
+    eval_accumulation_steps: 8
 
   # exp55/exp58/exp59 — promoters/CDS/downstream across evolutionary timescales
   # (issues #55, #58, #59). 256 bp context, no BOS (older convention; smaller
@@ -1156,21 +1274,15 @@ inference:
   num_workers: 4
   data_transform_on_the_fly: true
   torch_compile: true
+  bf16: true
   rc: true              # Compute the RC strand alongside FWD; doubles
                         # inference time but is the validated default
                         # per issue #175 conclusion 2. AVG / minus_llr /
                         # abs_llr columns are derived in the metrics rule.
-  return_embeddings: false  # GLOBAL opt-in (#318): also emit the entire-DNA-window
-                        # mean-pooled, both-allele, FWD+RC-averaged last-layer
-                        # embeddings as `emb_ref`/`emb_alt` (list[f16]) columns in
-                        # the SAME scores parquet, from the SAME forwards. Default
-                        # off — `output_hidden_states` makes the forward ~2x heavier
-                        # and adds ~1.5–2.3 GB/model storage. Requires `rc: true`.
-                        # Output-affecting → in `params:`, so flipping it on (or any
-                        # kernel edit) retriggers scoring: run TARGETED targets +
-                        # `--rerun-triggers mtime` to avoid recomputing identical
-                        # llr/jsd on unrelated cells. Pair with a smaller per-model
-                        # `batch_size` (and `eval_accumulation_steps`) for VRAM.
+  return_embeddings: true  # Every newly computed VEP score bundle includes pooled
+                        # `emb_ref` and `emb_alt` vectors from the same forwards.
+                        # Score parquets produced before this default may lack
+                        # those columns and remain valid for scalar metrics.
   eval_accumulation_steps: null  # Execution-only: offload Trainer.predict outputs
                         # to CPU every N steps (null = accumulate on-device). Set a
                         # small int for embedding runs so the wide [N, 2+2D]
@@ -1189,9 +1301,9 @@ inference:
 # L2-logistic probe on the in-bundle pooled embeddings (emb_ref/emb_alt, #318) and
 # writes the per-variant LOOC predictions (`probe_score`) + the fitted per-subset
 # classifiers (joblib, for reuse on other datasets). The downstream metrics step
-# consumes the predictions parquet. REQUIRES each scored cell to have been produced
-# with `inference.return_embeddings: true`; the rule fails fast otherwise. See
-# rules/probe.smk.
+# consumes the predictions parquet. New score outputs include embeddings by default.
+# Legacy score parquets without them fail fast and require an explicit targeted rerun.
+# See rules/probe.smk.
 # ---------------------------------------------------------------------------
 probe:
   min_variants: 300       # train a subset's probe only if it has >= this many
@@ -1221,10 +1333,9 @@ probe:
                           # never forces a re-run. The shared dev box is 4-vCPU; bump
                           # on a roomier CPU instance.
   models:
-    # Explicit per-model `datasets` (not derived): probing a cell needs its scores
-    # parquet to carry emb_ref/emb_alt, which is per-cell. Seeded with the #314
-    # headline generalist whose mendelian cell already has embeddings on S3; add
-    # entries here as more cells are re-scored with inference.return_embeddings.
+    # Explicit per-model `datasets` (not derived): probing a legacy cell still
+    # requires its existing score parquet to contain emb_ref/emb_alt. Add cells
+    # here after confirming that schema or explicitly re-scoring the target.
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
       datasets: [mendelian_traits]
 

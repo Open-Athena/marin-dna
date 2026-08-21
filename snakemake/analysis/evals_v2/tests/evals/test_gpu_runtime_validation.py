@@ -8,6 +8,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 import yaml
@@ -18,6 +19,7 @@ from marin_dna_evals.gpu_runtime_validation import (
     compare_score_frames,
     load_validation_spec,
     read_verified_parquet,
+    validate_pooled_embeddings,
     validate_runtime_metadata,
 )
 
@@ -57,6 +59,9 @@ def test_runtime_contract_matches_project_and_sky_configuration() -> None:
     assert re.search(r"\bevals-gpu-runtime-check\b[^\n]*\bparity\b", run)
     assert spec.parity.split == "train"
     assert spec.parity.dataset_filename == "train.parquet"
+    assert spec.parity.torch_compile is True
+    assert spec.parity.bf16 is True
+    assert spec.parity.return_embeddings is True
 
 
 def test_validate_runtime_metadata_strips_local_torch_suffix() -> None:
@@ -152,6 +157,26 @@ def test_read_verified_parquet_rejects_changed_baseline(tmp_path: Path) -> None:
         read_verified_parquet(str(path), "0" * 64)
 
 
+def test_validate_pooled_embeddings_requires_float16_and_equal_width():
+    frame = pd.DataFrame(
+        {
+            "emb_ref": [
+                np.asarray([1.0, 2.0], dtype=np.float16),
+                np.asarray([3.0, 4.0], dtype=np.float16),
+            ],
+            "emb_alt": [
+                np.asarray([1.5, 2.5], dtype=np.float16),
+                np.asarray([3.5, 4.5], dtype=np.float16),
+            ],
+        }
+    )
+    assert validate_pooled_embeddings(frame) == {"n_rows": 2, "hidden_size": 2}
+
+    frame.at[1, "emb_alt"] = np.asarray([3.5], dtype=np.float16)
+    with pytest.raises(AssertionError, match="inconsistent vector sizes"):
+        validate_pooled_embeddings(frame)
+
+
 def test_inference_scores_before_opening_s3_baseline(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -177,9 +202,21 @@ def test_inference_scores_before_opening_s3_baseline(
 
     def fake_compute_variant_scores(**kwargs: object) -> pd.DataFrame:
         events.append("score")
-        return pd.DataFrame(
+        assert kwargs["torch_compile"] is True
+        assert kwargs["bf16"] is True
+        assert kwargs["return_embeddings"] is True
+        frame = pd.DataFrame(
             {column: [0.0, 0.0] for column in spec.tolerances},
         )
+        frame["emb_ref"] = [
+            np.asarray([1.0, 2.0], dtype=np.float16),
+            np.asarray([3.0, 4.0], dtype=np.float16),
+        ]
+        frame["emb_alt"] = [
+            np.asarray([1.5, 2.5], dtype=np.float16),
+            np.asarray([3.5, 4.5], dtype=np.float16),
+        ]
+        return frame
 
     def fake_read_verified_parquet(uri: str, sha256: str) -> pd.DataFrame:
         events.append("baseline")
@@ -203,3 +240,4 @@ def test_inference_scores_before_opening_s3_baseline(
 
     assert events == ["score", "baseline"]
     assert report["n_rows"] == len(variants)
+    assert report["embeddings"] == {"n_rows": 2, "hidden_size": 2}

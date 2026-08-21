@@ -111,8 +111,8 @@ def pair_feature_from_bundle(df: pd.DataFrame, combo: str) -> np.ndarray:
     per ``combo``.
     """
     assert "emb_ref" in df.columns and "emb_alt" in df.columns, (
-        "scores parquet lacks emb_ref/emb_alt columns — re-score with "
-        "inference.return_embeddings=true (the #318 overlay)"
+        "scores parquet lacks emb_ref/emb_alt columns; it predates the global "
+        "embedding output contract and must be explicitly re-scored before probing"
     )
     # Guard the empty frame: np.stack([]) raises an opaque "need at least one array
     # to stack" before the shape assert below could give a domain message.
