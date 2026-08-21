@@ -125,6 +125,7 @@ def tokenized_control_dataset() -> ArtifactStep[DnaTokenizedCache]:
         run=remote(
             tokenize,
             resources=ResourceConfig.with_cpu(cpu=1, ram="16g", disk="20g"),
+            pip_dependency_groups=["cpu"],
             env_vars={
                 "HF_HUB_DOWNLOAD_TIMEOUT": "120",
                 "UV_LOCK_TIMEOUT": "7200",

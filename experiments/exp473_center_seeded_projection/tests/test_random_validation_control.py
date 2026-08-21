@@ -66,6 +66,13 @@ def test_random_validation_control_is_single_matched_preemptible_arm(
     assert "validation_rows=16384" in control.control_tags()
 
 
+def test_tokenizer_child_owns_a_locked_cpu_environment(monkeypatch) -> None:
+    _pin_test_revision(monkeypatch)
+    step = control.tokenized_control_dataset()
+
+    assert step.run.pip_dependency_groups == ["cpu"]
+
+
 def test_random_validation_control_rejects_on_demand_tpu(monkeypatch) -> None:
     _set_required_env(monkeypatch)
     _pin_test_revision(monkeypatch)
