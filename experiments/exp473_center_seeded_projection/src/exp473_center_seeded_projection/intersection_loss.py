@@ -293,7 +293,7 @@ def analyze_loss_scores(
     n_bootstrap: int,
     seed: int,
 ) -> None:
-    """Analyze the complete 2-region × 2-policy × 10-checkpoint score matrix."""
+    """Analyze the complete 2-region × 2-policy × 9-checkpoint score matrix."""
     cells: dict[tuple[str, str, int], pd.DataFrame] = {}
     for path in score_paths:
         frame = pd.read_parquet(path)
