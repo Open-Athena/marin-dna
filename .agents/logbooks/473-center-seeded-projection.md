@@ -2049,3 +2049,36 @@ cohort, assemblies, and downstream training recipe fixed.
 - Enhancer center-1 remains active independently. Both enhancer policy arms
   are therefore training concurrently; the next full-window durability gate is
   native step 2,500, followed by the host-memory-sensitive Hugging Face export.
+
+### 2026-08-21 06:26 UTC - CSP-062 all three new trajectories active
+
+- Both enhancer arms remain concurrently active. Full-window advanced through
+  about step 2,345 with displayed loss 1.31 and committed a fresh temporary
+  recovery checkpoint in us-east1. Center-1 committed and exported exact
+  durable step 4,000 on its 96 GiB east5 worker, reproduced validation loss
+  1.335, and continued through about step 4,070 with displayed loss 1.21.
+- The isolated enhancer center-1 step-3,500 development evaluation completed
+  all five requested jobs successfully: one checkpoint stage, two direct
+  development score cells, and two official metric cells. A first invocation
+  supplied absolute S3 target names to a profile that requires targets
+  relative to its configured storage prefix; Snakemake rejected that graph
+  before staging a model or reading data. The corrected relative targets
+  completed normally. Step 4,000 is now scoring on the same warm A10G as a
+  queued second job.
+- CDS center-1's complete durable step-4,500 checkpoint was copied from
+  us-central1 into the additive us-east1 namespace. Source and destination are
+  byte-identical at 3,058,278,043 bytes. Its old capacity-blocked central1
+  coordinator was then terminated.
+- A first east1 coordinator failed before graph construction because its local
+  W&B credential lookup did not support the multiline netrc form. A
+  seconds-long CPU preflight verified corrected forwarding by reporting only
+  credential presence, never its value. Replacement child
+  `/ubuntu/exp473-cds-center-1-v5r10-east1-v6e4-96g-preemptible/run_levanter_train_lm-ee636d5d`
+  immediately received a four-chip v6e-4 with 96 GiB RAM, discovered durable
+  step 4,500, passed TensorStore error checking, explicitly resumed at step
+  4,501, and completed that first restored train step in 46.6 seconds including
+  JIT compilation.
+- All three new issue-473 training trajectories are therefore simultaneously
+  active on Iris. Development evaluation remains restricted to the direct
+  pinned `train.parquet` files; no held-out labeled file, prediction,
+  measurement, or metric was requested or read.
