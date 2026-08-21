@@ -532,3 +532,20 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Publication boundary: No Hugging Face upload, checkpoint deletion, AUPRC evaluation, held-out even-autosome/Y access, or knowledge-base update was performed.
 - Teardown: The managed job succeeded, and `sky status -r` confirms no cluster, in-progress job, or live service.
 - Next action: Commit and tag this factual result, update issue #479's body and comment with the figures, and select no additional compute automatically.
+### 2026-08-21 21:15 - Corrected transferred-MNTP run preregistered
+
+- Parent snapshot: `4d6dc5963257074753c18330ad911989322ce795`.
+- Approval: The user approved one corrected 1,000-step transferred-MNTP run and no parallel sweep.
+- Initialization: Start from the untouched released `marin-dna/marin-dna-exp135-m5.1@a73a5dcf`, add one MASK row to each untied vocabulary matrix from its A/C/G/T row mean, and use explicit full attention.
+- Optimizer: Use a fresh full-parameter AdamW state at peak learning rate `1e-5`, betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, batch 64, seed 0, and global gradient clipping at `1.0`.
+- Schedule: Warm linearly from zero through step 100, remain at peak through step 800, and decay linearly to zero at the step-1,000 boundary.
+- Training objective: Apply each repeat weight once, divide each sequence by its effective target-weight sum, average sequences equally, and include source z-loss `4.312883184368223e-6`.
+- Validation: Report equal five-component macro pure CE for deterministic diffusion and single-mask protocols at steps 0, 25, 50, 100, and every 100 steps thereafter.
+- Downstream trajectory: Compute registered FWD+RC AUPRC on odd-numbered autosomes and chromosome X at step 0 and every 100 steps through 1,000.
+- Dependency: Compute the directed tRNA-Arg-TCT nucleotide-dependency map only at the final checkpoint.
+- Retention: Commit all 12 numbered model exports and the full step-1,000 optimizer-bearing Lightning checkpoint as W&B model artifacts; do not upload to Hugging Face and do not delete a retained checkpoint.
+- Verification: The local locked suite passes 111 tests; the Lambda worker reruns the entire locked suite before model loading.
+- Budget: Carry forward `$28.307954`; a conservative two-hour Lambda GH200 reservation projects `$32.887954 / $50`.
+- Storage cleanup: At the user's explicit request, permanently delete private repository `gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover`, which held 175 files and 80,766,064,598 logical bytes at revision `59fd525018c545f81c4deccaf3800bef5a41886a`; authenticated verification reports it absent.
+- Publication boundary: Do not update the research knowledge base while the experiment remains in progress.
+- Next action: Snapshot and push the exact implementation, dry-run it, launch one self-terminating Lambda GH200, and monitor startup plus the first trajectory evidence.

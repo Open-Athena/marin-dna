@@ -115,6 +115,30 @@ These values remain useful only for reproducing the bug and checking whether tra
 Direct evidence is at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) and in the branch artifact directory `causal-longrun-lr1e-5/`.
 This is a factual experiment record; research knowledge-base interpretation remains paused.
 
+## Selected 1,000-step transferred-MNTP trajectory
+
+The `mntp-longrun` stage applies the corrected causal fine-tuning setup to one transferred-MNTP arm.
+It starts from the untouched released CLM checkpoint, adds `[MASK]` with independent input and output rows initialized from the corresponding A/C/G/T means, and uses explicit full attention.
+It uses full-parameter AdamW at `1e-5`, betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, global gradient clipping at `1.0`, and the same 10% warmup, 70% constant, and 20% decay schedule.
+Training applies each repeat weight once, normalizes each sequence by its effective-weight sum before averaging sequences, and includes the pinned source z-loss.
+
+Post-hoc validation reports the equal five-component macro for both deterministic diffusion masks and deterministic single masks at steps 0, 25, 50, 100, and every 100 steps thereafter.
+The task computes registered FWD+RC AUPRC on odd-numbered autosomes and chromosome X at step 0 and every 100 steps.
+It computes one directed tRNA-Arg-TCT nucleotide-dependency map at the final checkpoint.
+No held-out even-autosome or chromosome-Y labels are accessed.
+
+Every numbered Hugging Face-format export and the full step-1,000 Lightning checkpoint are retained as W&B model artifacts.
+The task does not upload to Hugging Face and does not delete a retained checkpoint.
+The deleted historical spillover repository is not an input to this stage.
+
+```bash
+uv run --locked python launch.py mntp-longrun \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 28.307954 \
+  --retry-until-up \
+  --execute
+```
+
 ## Loss-normalization and source-parity audits
 
 The `loss-normalization` stage evaluates the released source plus every retained causal checkpoint with both the invalid count denominator and the corrected Marin reducer.

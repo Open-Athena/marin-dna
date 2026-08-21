@@ -182,6 +182,22 @@ def _parser() -> argparse.ArgumentParser:
     longrun.add_argument("--num-workers", type=int, default=4)
     longrun.add_argument("--offline-wandb", action="store_true")
 
+    mntp_longrun = subparsers.add_parser(
+        "mntp-longrun",
+        help="run corrected transferred MNTP plus trajectory diagnostics",
+    )
+    mntp_longrun.add_argument("--artifact-dir", type=Path, required=True)
+    mntp_longrun.add_argument("--output-dir", type=Path, required=True)
+    mntp_longrun.add_argument("--train-plan", type=Path, required=True)
+    mntp_longrun.add_argument("--validation-plan", type=Path, required=True)
+    mntp_longrun.add_argument("--batch-size", type=int, default=64)
+    mntp_longrun.add_argument("--seed", type=int, default=0)
+    mntp_longrun.add_argument("--num-workers", type=int, default=4)
+    mntp_longrun.add_argument("--vep-batch-size", type=int, default=1_024)
+    mntp_longrun.add_argument("--dependency-batch-size", type=int, default=1_024)
+    mntp_longrun.add_argument("--n-bootstrap", type=int, default=200)
+    mntp_longrun.add_argument("--offline-wandb", action="store_true")
+
     normalization = subparsers.add_parser(
         "loss-normalization-audit",
         help="re-evaluate retained causal checkpoints with Marin-compatible loss",
@@ -394,6 +410,23 @@ def main() -> None:
             seed=args.seed,
             num_workers=args.num_workers,
             offline_wandb=args.offline_wandb,
+        )
+        return
+    if args.command == "mntp-longrun":
+        from exp479_mntp.mntp_longrun import run_mntp_longrun
+
+        run_mntp_longrun(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            offline_wandb=args.offline_wandb,
+            vep_batch_size=args.vep_batch_size,
+            dependency_batch_size=args.dependency_batch_size,
+            n_bootstrap=args.n_bootstrap,
         )
         return
     if args.command == "loss-normalization-audit":

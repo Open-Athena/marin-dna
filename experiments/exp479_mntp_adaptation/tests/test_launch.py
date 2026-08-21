@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from launch import execution_environment, launch_command
 
 
@@ -109,3 +111,43 @@ def test_source_validation_launch_uses_public_hf_and_wandb_only() -> None:
     assert "WANDB_API_KEY" in command
     assert "HF_TOKEN" not in command
     assert "--down" in command
+
+
+def test_mntp_longrun_launch_is_wandb_only_and_self_terminating() -> None:
+    command = launch_command(
+        "mntp-longrun",
+        "a" * 40,
+        1234,
+        prior_cost_usd=28.307954,
+        retry_until_up=True,
+    )
+    assert command[4] == "sky/mntp-longrun.yaml"
+    assert "EXP479_PRIOR_COST_USD=28.307954" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--retry-until-up" in command
+    assert "--down" in command
+
+
+def test_mntp_longrun_environment_requires_wandb_but_not_hf(
+    monkeypatch: object,
+) -> None:
+    monkeypatch.delenv("HF_TOKEN", raising=False)  # type: ignore[attr-defined]
+    monkeypatch.setenv("WANDB_API_KEY", "test-wandb")  # type: ignore[attr-defined]
+    environment = execution_environment("mntp-longrun")
+    assert environment["WANDB_API_KEY"] == "test-wandb"
+    assert "HF_TOKEN" not in environment
+
+
+def test_mntp_longrun_sky_stage_runs_one_corrected_arm_without_hf() -> None:
+    stage = Path("sky/mntp-longrun.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 mntp-longrun") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "HF_REPO_ID" not in stage
+    assert "mntp-longrun-lr1e-5-corrected" in stage
+    assert "--vep-batch-size 1024" in stage
+    assert "--dependency-batch-size 1024" in stage
+    assert "finalize-local" in stage
