@@ -4,12 +4,13 @@ This permanent experiment project implements [issue #479](https://github.com/Ope
 
 The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris are not dependencies of this experiment. Every numbered checkpoint is saved on the task disk and every validation boundary is logged to W&B; selected restart milestones are copied to reviewed private Hugging Face staging before Sky tears the instance down.
 
-## Final pilot result
+## Current experiment status
 
-The one-seed pilot completed and is technically valid.
-Transferred MNTP narrowly beat scratch on step-1,000 pooled loss (0.397270 versus 0.399543) and single-mask loss (0.310077 versus 0.313152), and it acquired bilateral context use.
-It did not improve Mendelian, complex-trait, or SGE VEP over source CLM FWD+RC, so the 10,000-step extension and single-orientation VEP inference are not supported.
-A checkpoint, alignment, coordinate, stability, and final-dependency audit found no training/inference bug; it did find and correct a BF16 batch-shape bug in the original dependency diagnostic.
+The one-seed pilot and follow-up causal runs completed, but their absolute loss values used an incorrect repeat-weight denominator.
+The reducer divided weighted loss by selected-token count instead of effective-weight sum, shrinking the loss according to lowercase-repeat content.
+The original source validation suite also contains three datasets, while the exp479 five-way panel added enhancer and ncRNA probes.
+Every absolute-loss claim and the prior no-loss-path-bug conclusion is superseded until the retained checkpoints are re-evaluated with the corrected reducer and source validation scope.
+The VEP, attention, coordinate, serialization, and final dependency evidence is unchanged by this discovery, but interpretation remains paused.
 The current conservative list-price estimate, including the 1,000-step AdamW causal follow-up, is $26.1237 of the $50 cap, and every Lambda cluster was confirmed terminated.
 
 See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn). Final weights and per-variant scores remain private.
@@ -61,9 +62,9 @@ uv run --locked python launch.py longrun \
   --execute
 ```
 
-### Completed result
+### Superseded count-normalized result
 
-The exact run completed all 1,000 optimizer steps and failed the pooled validation gate.
+The exact run completed all 1,000 optimizer steps, but its reported validation gate used the invalid count-normalized loss.
 Loss reached its minimum of `0.230961750` at the end of warmup, then rose progressively to `0.233014855` at step 1,000 versus `0.231380263` at step 0.
 The final increase was `0.001634592`.
 Cooldown produced a small recovery from `0.233230022` at step 900.
@@ -78,6 +79,7 @@ No checkpoint was deleted and no output was uploaded to Hugging Face.
 The run cost an estimated `$0.8613`, bringing the conservative listed-price total to `$26.1237 / $50`.
 The Lambda cluster self-terminated and was confirmed absent.
 
+These values remain useful only for reproducing the bug and checking whether trajectory direction survives corrected evaluation.
 Direct evidence is at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) and in the branch artifact directory `causal-longrun-lr1e-5/`.
 This is a factual experiment record; research knowledge-base interpretation remains paused.
 
@@ -86,7 +88,7 @@ This is a factual experiment record; research knowledge-base interpretation rema
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.
 - Context: one BOS plus 255 nucleotide bases.
 - MNTP: sample one `Uniform(0, 1)` probability per sequence, select eligible A/C/G/T positions independently, resample zero-target rows, replace every target with `[MASK]`, and supervise target `i` from output `i - 1`.
-- Loss: average weighted cross-entropy within each sequence, then average sequences. Uppercase bases have weight 1 and lowercase bases have weight 0.01; the denominator is the selected-target count.
+- Loss: normalize weighted cross-entropy by effective-weight sum. MNTP first normalizes within each sequence and then averages sequences; continued CLM uses Marin's global token-weighted mean. Uppercase bases have weight 1 and lowercase bases have weight 0.01. Include the pinned source z-loss weight `4.312883184368223e-6`.
 - Data: sample the five pinned m5.1 components uniformly. Deterministically skip any source row with no A/C/G/T base and draw the next row from that same component. One materialized plan fixes the underlying sequence and component order for every arm. Corruption is a stateless function of the plan sample ID.
 - Optimizer: the pinned m5.1 DNA scaling heuristic supplies separate AdamH and Adam learning rates, betas, epsilon, and clipping. Linear weights use AdamH; embeddings, normalization weights, and biases use Adam. An actually tied embedding/head matrix would remain in the Adam group.
 - Schedule: linear warmup through step 100, stable through step 800, and linear cooldown to zero at step 1,000.
