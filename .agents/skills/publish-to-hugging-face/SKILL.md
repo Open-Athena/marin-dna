@@ -10,6 +10,8 @@ Use `manage-research-storage` first when the producing artifact does not already
 
 ## Require Public Access
 
+- When Hugging Face publication is part of the authorized task, treat creating or updating the public repository as a normal delivery step.
+  Do not pause for separate human approval before upload.
 - Use only public Hugging Face repositories for every MarinDNA input and output.
 - Do not create, upload to, or depend on a private or gated repository.
 - Do not publish controlled human data, credentials, or an artifact whose license, consent, or terms prohibit public redistribution.
@@ -22,8 +24,8 @@ Use `manage-research-storage` first when the producing artifact does not already
 1. Select the correct repository type and a stable name under the `marin-dna` organization.
 2. Identify the authoritative producing artifact, commit, configuration, license, and intended consumers.
    Retain the exact publishable files under that owner, or retain a deterministic transformation from the authoritative artifact.
-   In either case, create and review a release manifest listing every published path, file size, and SHA-256 checksum before upload.
-3. Draft the README, model card, or dataset card for human review before the first upload or a material metadata change.
+   In either case, create and validate a release manifest listing every published path, file size, and SHA-256 checksum before upload.
+3. Prepare the README, model card, or dataset card before the first upload or a material metadata change.
 4. Include a commit-pinned producing pipeline or training-script link, a concise provenance description, the artifact's intended use and important limitations, and the `biology`, `genomics`, and `dna` tags.
 5. Describe the file layout, formats, schemas, assemblies, sequence naming, coordinate conventions, and checksums that consumers need.
 
@@ -37,7 +39,7 @@ Use `manage-research-storage` first when the producing artifact does not already
 ## Verify The Publication
 
 1. Open the public repository and card without Hugging Face credentials.
-2. Compare the published file list, sizes, and checksums with the reviewed release manifest, and check that the expected metadata, tags, and license are present.
+2. Compare the published file list, sizes, and checksums with the validated release manifest, and check that the expected metadata, tags, and license are present.
 3. Download or load a small representative file through the documented public interface.
 4. Confirm that the cited revision resolves and that the card's producing links are immutable.
 5. Correct any mismatch before announcing the publication.
