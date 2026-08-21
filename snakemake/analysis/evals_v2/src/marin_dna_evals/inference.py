@@ -46,10 +46,10 @@ def compute_variant_scores(
     num_workers: int = 4,
     data_transform_on_the_fly: bool = True,
     torch_compile: bool = False,
-    bf16: bool = True,
     rc: bool = False,
     return_embeddings: bool = False,
     eval_accumulation_steps: int | None = None,
+    bf16: bool = True,
 ) -> pd.DataFrame:
     """Compute variant scores from a CLM: per-strand LLR + next-token JSD.
 
@@ -69,7 +69,6 @@ def compute_variant_scores(
         num_workers: Number of workers for data loading.
         data_transform_on_the_fly: Whether to transform data on the fly during inference.
         torch_compile: Whether to use torch.compile for faster inference.
-        bf16: Whether to run evaluation forwards in bfloat16.
         rc: If True, also score the reverse-complemented window for
             each variant and emit per-strand columns. Doubles inference
             cost.
@@ -84,6 +83,7 @@ def compute_variant_scores(
             Execution-only — the heavier ``[N, 2 + 2D]`` predictions of an
             embedding run can otherwise accumulate on-GPU and OOM. ``None``
             (default) leaves behaviour unchanged.
+        bf16: Whether to run evaluation forwards in bfloat16.
 
     Returns:
         DataFrame with per-strand score atoms. Rows align with input

@@ -115,9 +115,7 @@ def get_model_datasets(model_name):
 
 def get_model_batch_size(model_name):
     """Per-model ``batch_size`` if set, else the global ``inference.batch_size``."""
-    return resolve_model_batch_size(
-        get_model_config(model_name), config["inference"]
-    )
+    return resolve_model_batch_size(get_model_config(model_name), config["inference"])
 
 
 def get_model_eval_accumulation_steps(model_name):

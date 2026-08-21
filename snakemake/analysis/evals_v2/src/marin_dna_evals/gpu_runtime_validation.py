@@ -370,9 +370,13 @@ def validate_pooled_embeddings(frame: pd.DataFrame) -> dict[str, int]:
         ref = np.stack(frame["emb_ref"].to_numpy())
         alt = np.stack(frame["emb_alt"].to_numpy())
     except ValueError as error:
-        raise AssertionError("candidate embeddings have inconsistent vector sizes") from error
+        raise AssertionError(
+            "candidate embeddings have inconsistent vector sizes"
+        ) from error
     _require(ref.ndim == 2 and ref.shape[1] > 0, f"invalid emb_ref shape {ref.shape}")
-    _require(alt.shape == ref.shape, f"embedding shape mismatch: {ref.shape} != {alt.shape}")
+    _require(
+        alt.shape == ref.shape, f"embedding shape mismatch: {ref.shape} != {alt.shape}"
+    )
     _require(ref.dtype == np.float16, f"emb_ref dtype must be float16, got {ref.dtype}")
     _require(alt.dtype == np.float16, f"emb_alt dtype must be float16, got {alt.dtype}")
     _require(bool(np.isfinite(ref).all()), "emb_ref contains non-finite values")

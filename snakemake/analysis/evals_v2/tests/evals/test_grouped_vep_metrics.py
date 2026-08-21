@@ -122,10 +122,7 @@ def test_single_group_scope_reports_group_smd_unavailable() -> None:
     )
     row = metrics.loc[metrics["subset"] == "single"].iloc[0]
     assert not row["group_smd_available"]
-    assert (
-        row["group_smd_unavailable_reason"]
-        == "requires_at_least_two_match_groups"
-    )
+    assert row["group_smd_unavailable_reason"] == "requires_at_least_two_match_groups"
     assert np.isnan(row["group_smd_value"])
     assert np.isnan(row["group_smd_ci_low"])
 
@@ -159,10 +156,7 @@ def test_zero_group_gap_sd_reports_group_smd_unavailable() -> None:
     )
     row = metrics.loc[metrics["subset"] == "coding"].iloc[0]
     assert not row["group_smd_available"]
-    assert (
-        row["group_smd_unavailable_reason"]
-        == "zero_or_non_finite_group_gap_sd"
-    )
+    assert row["group_smd_unavailable_reason"] == "zero_or_non_finite_group_gap_sd"
     assert row["group_smd_n_bootstrap_valid"] == 0
 
 

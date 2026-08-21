@@ -7,6 +7,7 @@ End-to-end inference smoke tests (real model + real genome) live in
 
 from __future__ import annotations
 
+from inspect import signature
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -356,3 +357,21 @@ def test_compute_variant_scores_embeddings_width_mismatch_asserts():
             rc=True,
             return_embeddings=True,
         )
+
+
+def test_compute_variant_scores_preserves_legacy_positional_order():
+    parameters = list(signature(compute_variant_scores).parameters)
+    assert parameters == [
+        "checkpoint_path",
+        "dataset",
+        "genome_path",
+        "context_size",
+        "batch_size",
+        "num_workers",
+        "data_transform_on_the_fly",
+        "torch_compile",
+        "rc",
+        "return_embeddings",
+        "eval_accumulation_steps",
+        "bf16",
+    ]

@@ -2,7 +2,6 @@
 
 from collections.abc import Mapping, Sequence
 
-
 GLOBAL_INFERENCE_SWITCHES = frozenset({"return_embeddings", "torch_compile", "bf16"})
 
 

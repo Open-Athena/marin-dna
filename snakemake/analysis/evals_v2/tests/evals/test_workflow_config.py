@@ -11,7 +11,6 @@ from marin_dna_evals.workflow_config import (
     validate_inference_config,
 )
 
-
 PROJECT_ROOT = Path(__file__).parents[2]
 
 

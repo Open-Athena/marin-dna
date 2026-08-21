@@ -83,7 +83,9 @@ rule compute_metrics:
                 rng=params.bootstrap_seed,
             )
         else:
-            from marin_dna_evals.grouped_vep_metrics import compute_grouped_vep_metrics
+            from marin_dna_evals.grouped_vep_metrics import (
+                compute_grouped_vep_metrics,
+            )
 
             metrics = compute_grouped_vep_metrics(
                 dataset=df[list(REQUIRED_VARIANT_COLUMNS)],
