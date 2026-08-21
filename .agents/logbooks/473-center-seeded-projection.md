@@ -2387,3 +2387,31 @@ cohort, assemblies, and downstream training recipe fixed.
 - This isolation changes no established S3-backed rule or output path and does
   not alter the completed issue 473 datasets, training runs, evaluations, or
   accepted scientific interpretation.
+
+### 2026-08-21 20:42 UTC - CSP-079 row-random CDS control prepared
+
+- Hypothesis: the high, mildly non-monotonic chromosome-18 validation loss is
+  partly a consequence of its anchor-group holdout. An ordinary row-random
+  split may have a lower or more conventional training trajectory because
+  projections from the same human anchor can cross the split.
+- Commit Hash: `7c5ceaeec3c7d70d884829641ee6f990a2a6394c`
+- Config: immutable issue #417 CDS full-window original rows; uniformly sample
+  exactly 16,384 rows without replacement using seed 42 before any
+  reverse-complement augmentation; remove selected rows from training; add
+  reverse complements only to the remaining training rows. No species
+  stratification or anchor grouping is applied.
+- Commands:
+  - `uv run --locked pytest` from
+    `snakemake/vertebrate_projection_dataset`.
+  - `uv run --locked snakemake -n issue_473_random_validation_all_hf_files
+    --snakefile workflow/Issue473RandomValidation.smk --profile
+    workflow/profiles/default`.
+- Result: all 124 project tests passed. The credential-free dry-run resolved
+  72 new isolated jobs. The shared workflow and established S3-backed rules
+  are unchanged. No data build, upload, or training job ran at this snapshot.
+- Interpretation: the approved control is executable from a commit-pinned
+  additive graph. The persisted metadata is limited to seed and row counts;
+  no split-composition QC analysis is planned.
+- Next action: build and validate the dataset on EC2, publish it publicly,
+  pin its Hugging Face revision, and launch one matched 5,000-step preemptible
+  TPU training run with native validation every 500 steps.
