@@ -1909,3 +1909,23 @@ cohort, assemblies, and downstream training recipe fixed.
   and created its central1 v5p-8 child, which is pending for capacity. The
   on-demand development evaluator remains healthy and had completed 17 of 68
   resumed jobs, still reading direct `train.parquet` files only.
+
+### 2026-08-21 03:20 UTC - CSP-057 enhancer recovery passed export boundary
+
+- Enhancer center-1 re-committed native step 2,000, completed its 1.02 GB
+  Hugging Face export at `hf/step-2000`, and continued through about step
+  2,020. The same validation loss of 1.322 was reproduced. The temporary
+  step-1,947 recovery checkpoint was deleted only after the durable native
+  checkpoint committed.
+- Enhancer full-window independently re-committed native step 2,000 and
+  completed its 1.02 GB Hugging Face export at `hf/step-2000`. It returned to
+  the training loop immediately afterward with displayed loss 1.31. The same
+  validation loss of 1.323 was reproduced, and its temporary step-1,945
+  checkpoint was deleted only after the durable native save.
+- Both children run on four-chip east5 v5p-8 workers with 96 GiB container
+  limits, attempt 0, zero failures, and zero preemptions. This directly
+  confirms that the earlier failures were host-memory peaks during export,
+  not data, model, or optimizer failures. The two enhancer trajectories now
+  continue from the same run and checkpoint identities toward step 4,999.
+- The on-demand development evaluator advanced to 24 of 68 jobs and continues
+  to log only the pinned direct development `train.parquet` row counts.
