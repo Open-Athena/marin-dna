@@ -47,13 +47,14 @@ Upstream has the most stable late loss mask at 0.712 Jaccard.
 Across region-specific mean-loss trajectory groups, 36.7% of positions are low to low, 37.8% are high to high, 11.7% are high to low, and 13.8% are low to high.
 The two state-changing groups therefore contain 25.5% of the primary population.
 
-### Future loss reduction
+### Current-loss change scores
 
-High-current-loss positions receive much larger later loss reductions than low-current-loss positions.
+High-current-loss deciles have larger observed current-to-later NLL reductions than low-current-loss deciles.
 From 21.0B to 173.7B tokens, the global lowest current-loss decile improves by 0.047 nats/base, while the highest current-loss decile improves by 0.521 nats/base.
 For the next checkpoint, the lowest decile changes by -0.028, -0.106, -0.088, and +0.002 nats/base from the four successive current checkpoints.
 The highest decile improves by +0.304, +0.319, +0.343, and +0.255 nats/base over those same next-checkpoint intervals.
-This separates biological ranking from remaining optimization opportunity: low absolute loss is a useful conservation proxy but marks tokens with relatively little future improvement.
+Current NLL both defines the decile bins and enters the reduction outcome with the same sign.
+The association can therefore include regression to the mean and does not establish differences in remaining optimization opportunity.
 
 ### Covariate controls
 
