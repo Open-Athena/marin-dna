@@ -27,12 +27,10 @@ Apply these rules before computing aggregates or choosing tables and plots.
 3. Restrict each benchmark to biologically appropriate subsets for that scope.
    State explicitly when a requested subset is unavailable or inappropriate rather than substituting another subset.
 
-## Select And Order Standalone Mendelian And Complex-Trait Reports
+## Select And Order Standalone Mendelian Reports
 
-Use this mapping for standalone narrative reports of Mendelian and complex-trait evaluations.
-It does not control dashboard rendering.
-For Mendelian reports, the broad-model order follows the blog: macro average first, then the consequence subsets in the positive-sample-count order adopted there.
-Use the same consequence order in standalone complex-trait reports so region-matched comparisons stay aligned.
+Use this mapping for standalone narrative reports of Mendelian evaluations.
+For broad models, follow the blog order: macro average first, then consequence subsets in the positive-sample-count order adopted there.
 
 | Training-region scope | Present these subsets, in this order |
 | --- | --- |
@@ -43,9 +41,32 @@ Use the same consequence order in standalone complex-trait reports so region-mat
 | ncRNA | ncRNA |
 | Enhancer or cCRE | Distal |
 
-- Preserve the relative order above after removing subsets absent from the benchmark or invalid under its producing metric's current sample-support contract.
+Use the producing pipeline's support contract.
+The current unsupervised Mendelian contract requires at least 30 positive match groups per subset.
+Supervised probes also apply their pipeline-defined chromosome-support gate.
+
+## Select And Order Standalone Complex-Trait Reports
+
+Apply the Complex Traits support filter independently from Mendelian.
+After mature-miRNA exclusion, the current train split's 30-positive gate qualifies Distal, Missense, Promoter, 3′ UTR, ncRNA, and 5′ UTR; Splicing and Synonymous do not qualify.
+Use this mapping for standalone narrative reports:
+
+| Training-region scope | Present these subsets, in this order |
+| --- | --- |
+| Broad or mixed genomic regions | Macro Avg, Distal, Missense, Promoter, 3′ UTR, ncRNA, 5′ UTR |
+| CDS | Missense |
+| Upstream, promoter, TSS, or 5′ UTR | Promoter, 5′ UTR |
+| Downstream or 3′ UTR | 3′ UTR |
+| ncRNA | ncRNA |
+| Enhancer or cCRE | Distal |
+
+Recompute the qualifying set from the pinned evaluation input whenever its revision changes.
+Do not inherit the Mendelian subset list.
+
+## Handle Matched-Trait Aggregates And Dashboard Views
+
+- Preserve each benchmark's relative order above after removing subsets absent from the benchmark or invalid under its producing metric's current sample-support contract.
   Use the producing pipeline's contract rather than reimplementing the gate.
-  The current contracts require at least 30 positive match groups for unsupervised Mendelian and complex-trait subsets; supervised probes also apply their pipeline-defined chromosome-support gate.
 - Compute `Macro Avg` only for a broad or mixed model and only over qualifying displayed subsets.
   Do not add a macro average to a specialist-model report.
 - Do not show `Global` for a specialist model because it pools regions outside that model's training scope.
