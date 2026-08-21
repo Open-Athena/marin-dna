@@ -1958,3 +1958,44 @@ cohort, assemblies, and downstream training recipe fixed.
   lock; the paired bootstrap peaked at 225,260 KiB RSS and completed in 1.28
   seconds. No held-out labeled file, prediction, measurement, or metric was
   requested or read.
+
+### 2026-08-21 05:20 UTC - CSP-059 completed partial eval and cross-region recovery
+
+- Enhancer center-1 committed and exported durable step 3,000, then continued
+  through about step 3,370 with displayed loss 1.26 and zero preemptions or
+  failures. Its exact four-object Hugging Face export is 1,019,426,427 bytes.
+  The development-only step-3,000 evaluator is now launching on an
+  auto-teardown A10G.
+- The original 68-job development evaluator completed successfully. Together
+  with the isolated successful runs, official metrics now exist for every
+  reused CDS full-window step, CDS center-1 through step 4,500, both enhancer
+  arms through step 2,000, and enhancer center-1 through step 2,500. All
+  evaluator inputs were direct pinned `train.parquet` files; no held-out
+  labeled file, prediction, measurement, or metric was read.
+- East5 and central1 reported zero compatible free TPU workers and cloud
+  capacity exhaustion; their configured non-preemptible TPU groups do not
+  exist. The east5 full-window child transiently acquired capacity at 04:38,
+  passed checkpoint integrity, and explicitly resumed from temporary step
+  2,165 at step 2,166. It was stopped during first-batch JIT, before a new train
+  step, to make a runbook-compliant region migration.
+- Recovery commit `9bcf75c702c8cdb421bd3052d0cd4b7d43781c26` adds bounded
+  `europe-west4` execution using `v6e-4` or canonical
+  `v5litepod-16`. The fixed model, 8,192-sequence global batch, seed,
+  optimizer, 5,000 steps, W&B run, and checkpoint identity are unchanged.
+  Focused validation passed all seven tests at 479,248 KiB peak RSS. An initial
+  test correctly rejected the noncanonical `v5e-16` spelling before it was
+  replaced with Fray's supported topology name.
+- The additive Europe namespace received the complete 5,288,301,383-byte
+  durable step-2,000 checkpoint, the exact successfully reloaded temporary
+  step-2,165 checkpoint, and the byte-complete 4,484,157,388-byte
+  source-pinned tokenized cache. Training executor status was not copied. The
+  first Europe coordinator exposed a tokenizer-child `cloudpickle`
+  bootstrap bug before any TPU request; the completed cache copy safely pruned
+  that subtree on replacement.
+- Both an operator-managed Europe `v6e-4` and `v5litepod-16` slice
+  were accepted by GCP but disappeared while bootstrapping, before registering
+  workers or running a task. The current priority-band-2 full-window child
+  `/ubuntu/exp473-enhancer-full-window-v10r11-eu-v5e16-96g-preemptible/run_levanter_train_lm-dbd65c66`
+  is queued for the next complete four-worker v5litepod-16 slice. The active
+  pool is not quota-blocked and has recently autoscaled, but its registered
+  slices are currently occupied by priority-band-3 benchmark jobs.
