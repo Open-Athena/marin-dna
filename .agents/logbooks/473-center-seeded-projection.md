@@ -2211,3 +2211,20 @@ cohort, assemblies, and downstream training recipe fixed.
   two datasets for future enhancer full-window steps 4,500 and 4,999 remain.
   No held-out labeled file, prediction, measurement, or metric was requested
   or read.
+
+### 2026-08-21 10:03 UTC - CSP-071 enhancer full-window step 4,500 evaluated
+
+- Enhancer full-window durably committed native step 4,500, reproduced
+  validation loss 1.335, and completed its four-object Hugging Face export at
+  exactly 1,019,426,427 bytes.
+- The preemptible worker was reclaimed after the durable boundary. Iris
+  automatically acquired a replacement 96 GiB us-east1 worker, restored the
+  step-4,500 checkpoint, and resumed optimization from step 4,501. The resumed
+  worker is actively advancing despite intermittent input-loader stalls.
+- The isolated step-4,500 development graph completed all five jobs
+  successfully on the warm A10G. It scored exactly 16,140 Mendelian and 11,630
+  Complex rows from the pinned public `train.parquet` files and produced 66
+  and 60 official metric rows, respectively. The development matrix is now 70
+  of 72 cells; only the two datasets for terminal enhancer full-window step
+  4,999 remain. No held-out labeled file, prediction, measurement, or metric
+  was requested or read.
