@@ -19,7 +19,7 @@ Extension to 1023 bp sharply reduced both protocols relative to 511 bp.
 These results show that executable rotary positions do not guarantee useful extrapolation beyond the training context.
 They do not establish the best pretraining context because checkpoint weights were fixed.
 
-A 256-versus-512 bp pretraining comparison found no clear VEP difference, so the available training-context evidence does not favor one of those short windows.
+A 256-versus-512 bp pretraining comparison found no clear difference on the Promoter VEP subset; other consequence subsets were not tested.
 No MarinDNA experiment directly compares ways to add genuinely long-range context to a short-window model or measures a task that requires dependencies across tens to hundreds of kilobases.
 The 1023 bp m5.1 result remains far below that regime but shows that direct extension baselines should align training and inference context deliberately.
 
@@ -58,8 +58,8 @@ Any comparison must match parameters, training tokens, and compute, align traini
 
 - [Inference-context sensitivity of m5.1 Mendelian VEP](../experiments/485-m5-1-inference-context.md) holds one 255 bp-trained checkpoint fixed across 31–1023 bp inference windows.
   Cropping below 255 bp lowers both macro metrics, 511 bp has a zero-shot-only gain, and 1023 bp fails sharply, but the experiment does not compare training contexts or a genuinely long-range task.
-- [#37](https://github.com/Open-Athena/marin-dna/issues/37) compared 256 bp and 512 bp pretraining contexts and found no clear VEP difference.
-  It supports short windows as a workable local baseline and proposed downstream extension or hierarchy, but the tested lengths are too short to distinguish the three long-context strategies.
+- [#37](https://github.com/Open-Athena/marin-dna/issues/37) compared 256 bp and 512 bp pretraining contexts on the Promoter VEP subset and found no clear difference.
+  It leaves both short windows viable for that subset and proposed downstream extension or hierarchy, but the single-subset comparison is too narrow and too short-range to distinguish the three long-context strategies.
 
 </details>
 
@@ -67,7 +67,8 @@ Any comparison must match parameters, training tokens, and compute, align traini
 <summary>Possible directions</summary>
 
 - **When can inference safely differ from training context?**
-  Compare crop and extension ladders across checkpoints trained at several context lengths, and separate score-construction effects from biological information gained or lost with the window.
+  Start with matched checkpoints trained at 255, 511, and 1023 bp, compare crop and extension ladders, and separate score-construction effects from biological information gained or lost with the window.
+  Transfer one fixed probe across the ladder to test whether the same decision boundary survives changes in context.
 - **What long-range capability do we want first?**
   Candidate tests should require distant context by construction—for example enhancer–promoter interactions, gene-level expression, long-range splicing regulation, or another task where masking distant sequence should measurably hurt.
 - **What context lengths define the useful regime?**

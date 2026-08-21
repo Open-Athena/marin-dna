@@ -59,13 +59,6 @@ The zero-shot analysis preserved matched groups, and the probe analysis preserve
 The <0.0002 entries had no opposing-tail draw and are reported at the two-sided Monte Carlo resolution rather than as exact p-values.
 The reported p-values are unadjusted; the macro comparisons were the primary interpretation rather than a multiple-testing claim across every subset.
 
-## Promising directions
-
-A matched training experiment should compare checkpoints trained at 255, 511, and 1023 bp before drawing conclusions about the best pretraining context.
-A score decomposition could separate changes in biological sequence information from changes caused by summing likelihood terms over more downstream positions.
-Longer-context acquisition methods should be tested on tasks constructed to require distal sequence and should include distance-stratified ablations that verify use of that sequence.
-A transferred-probe experiment could hold one classifier fixed across inference contexts to distinguish representation drift from the decodability measured here.
-
 ## Limitations
 
 - All labels, model selection, probe fitting, and interpretation use the Mendelian development split; held-out labeled results were not accessed.
