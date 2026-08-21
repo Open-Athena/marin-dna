@@ -200,7 +200,7 @@ def analyze_mendelian(
     experiment_commit: str,
     reader: ParquetReader = read_parquet,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], list[str]]:
-    """Analyze all 2 regions × 10 steps × 8 Mendelian subsets."""
+    """Analyze all 2 regions × 9 steps × 8 Mendelian subsets."""
     experiment_commit = validate_experiment_commit(experiment_commit)
     point_parts: list[pd.DataFrame] = []
     sample_parts: list[pd.DataFrame] = []
