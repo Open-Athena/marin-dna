@@ -2147,3 +2147,19 @@ cohort, assemblies, and downstream training recipe fixed.
   file, prediction, measurement, or metric was requested or read.
 - Enhancer full-window remained active independently at about step 3,380 with
   displayed loss 1.26. Its next exact export boundary is step 3,500.
+
+### 2026-08-21 08:23 UTC - CSP-067 enhancer full-window recovered at step 3,500
+
+- The original 56 GiB enhancer full-window worker reached step 3,500 but was
+  OOM-killed while staging the durable checkpoint, before either its durable
+  commit or Hugging Face export completed. Its last verified recoverable
+  temporary checkpoint was step 3,439; durable step 3,000 remained intact.
+- A replacement preemptible us-east1 `v6e-4` worker with 96 GiB host memory
+  acquired capacity immediately, restored the same checkpoint root from step
+  3,439, and resumed optimization at step 3,440. No concurrent child wrote to
+  that checkpoint root.
+- The replacement durably committed step 3,500 and completed validation loss
+  1.331. Its four-object Hugging Face export is exactly 1,019,426,427 bytes,
+  proving that the larger worker cleared the failed save/export phase.
+- The matching Mendelian + Complex development-only evaluation was submitted
+  as job 5 on the existing warm A10G. Training continued toward step 4,000.
