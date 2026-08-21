@@ -48,10 +48,11 @@ def _finish(
             legend_labels,
             title=legend_title,
             loc="upper center",
+            bbox_to_anchor=(0.5, 0.945),
             ncol=max(1, len(legend_labels)),
             frameon=False,
         )
-    figure.tight_layout(rect=(0, 0, 1, 0.94))
+    figure.tight_layout(rect=(0, 0, 1, 0.86))
     figure.savefig(_prepare_output(output_path), bbox_inches="tight")
     plt.close(figure)
 
@@ -328,11 +329,15 @@ def plot_score_distributions_489(
             axis.set_title(
                 f"{SCOPE_LABELS[scope]}: {STATISTIC_LABELS[statistic].lower()}"
             )
-            axis.set_xlabel("Training tokens (billions)")
+            axis.set_xlabel("Training tokens (billions)" if row == 1 else "")
             axis.set_ylabel(
-                "Mean loss (nats/base)"
-                if statistic == "loss"
-                else "Mean entropy (nats)"
+                (
+                    "Mean loss (nats/base)"
+                    if statistic == "loss"
+                    else "Mean entropy (nats)"
+                )
+                if column == 0
+                else ""
             )
             axis.set_box_aspect(1)
     figure.suptitle("Score trajectories by conservation label")
@@ -383,8 +388,8 @@ def plot_controlled_conservation_489(
             axis.set_title(
                 f"{SCOPE_LABELS[scope]}: {STATISTIC_LABELS[statistic].lower()}"
             )
-            axis.set_xlabel("Training tokens (billions)")
-            axis.set_ylabel("Adjusted conserved contrast (nats)")
+            axis.set_xlabel("Training tokens (billions)" if row == 1 else "")
+            axis.set_ylabel("Adjusted contrast (nats)" if column == 0 else "")
             axis.set_box_aspect(1)
             if column == 0:
                 handles.append(line)

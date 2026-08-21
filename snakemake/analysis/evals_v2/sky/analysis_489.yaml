@@ -53,6 +53,8 @@ run: |
         uv run --locked snakemake             --profile workflow/profiles/default             --resources mem_mb=60000             -n             -- likelihood_dynamics_489_analysis
     elif [[ "$ANALYSIS_MODE" == "analysis" ]]; then
         /usr/bin/time -v uv run --locked snakemake             --profile workflow/profiles/default             --printshellcmds             --rerun-incomplete             --resources mem_mb=60000             -- likelihood_dynamics_489_analysis
+    elif [[ "$ANALYSIS_MODE" == "plot" ]]; then
+        /usr/bin/time -v uv run --locked snakemake             --profile workflow/profiles/default             --printshellcmds             --rerun-incomplete             --resources mem_mb=60000             --forcerun plot_likelihood_dynamics_489             -- likelihood_dynamics_489_analysis
     else
         echo "Unknown ANALYSIS_MODE=$ANALYSIS_MODE" >&2
         exit 2
