@@ -1,0 +1,11 @@
+{
+  "instance_start_utc": "2026-08-21T19:54:32+00:00",
+  "recorded_before_autodown_utc": "2026-08-21T20:27:27.787175+00:00",
+  "elapsed_hours": 0.548829770816697,
+  "listed_price_per_hour_usd": 2.29,
+  "prior_estimated_list_cost_usd": 27.033784759,
+  "current_estimated_list_cost_usd": 1.2568201751702361,
+  "estimated_list_cost_usd": 28.290604934170236,
+  "budget_cap_usd": 50.0,
+  "note": "Pre-autodown listed-price estimate; reconcile against the provider bill."
+}

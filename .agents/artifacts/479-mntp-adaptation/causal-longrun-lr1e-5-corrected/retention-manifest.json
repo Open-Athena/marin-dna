@@ -1,0 +1,110 @@
+{
+  "backend": "wandb",
+  "deletion_performed": false,
+  "artifacts": [
+    {
+      "kind": "hf_export",
+      "step": 25,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTc0NzU3Mg==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0025:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0025:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 50,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTc1NzE3Nw==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0050:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0050:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 100,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTc2ODM1Mw==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0100:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0100:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 200,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTc4Mjk0MA==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0200:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0200:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 300,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTc5ODcwNA==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0300:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0300:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 400,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTgxMzk4Nw==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0400:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0400:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 500,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTgzMDUxMA==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0500:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0500:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 600,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTg2MjY0OQ==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0600:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0600:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 700,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTg5Mzk0OQ==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0700:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0700:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 800,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTkyNjM2OQ==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0800:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0800:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 900,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTk1NzkwMQ==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-0900:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-0900:v0"
+    },
+    {
+      "kind": "hf_export",
+      "step": 1000,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NTk5MDkzMQ==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-1000:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-1000:v0"
+    },
+    {
+      "kind": "lightning_checkpoint",
+      "step": 1000,
+      "artifact_id": "QXJ0aWZhY3Q6MzM2NjAxNzA4Mw==",
+      "artifact_name": "dna-exp479-causal-longrun-corrected-step-1000-full:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-causal-longrun-corrected-step-1000-full:v0"
+    }
+  ]
+}

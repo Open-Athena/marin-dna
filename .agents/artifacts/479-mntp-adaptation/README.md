@@ -2,16 +2,17 @@
 
 This is the compact, commit-ready result snapshot for [issue #479](https://github.com/Open-Athena/marin-dna/issues/479).
 The committed figures and tables are the durable record.
-W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx), [AdamW 1e-5 long run](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6), and [full source-validation reproduction](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta) for dense interactive views.
+W&B's composed report has been unreliable, so use the direct [pilot analysis](https://wandb.ai/gonzalobenegas/marin/runs/xe7qj1c3), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), [final dependency](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn), [AdamW 1e-6 calibration](https://wandb.ai/gonzalobenegas/marin/runs/q09fcejx), [superseded AdamW 1e-5 run](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6), [full source-validation reproduction](https://wandb.ai/gonzalobenegas/marin/runs/hfuhn3ta), and [corrected AdamW 1e-5 run](https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4) for dense interactive views.
 The corrected loss audit is at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 ## Outcome
 
 Every preflight gate passed, and transferred MNTP, scratch MNTP, and causal continuation each completed 1,000 finite optimizer steps on one Lambda GH200.
 The standalone experiment did not use Marin or Iris.
-All three arms nevertheless optimized an incorrectly count-normalized loss that also omitted the source z-loss term.
+Those three original arms optimized an incorrectly count-normalized loss that also omitted the source z-loss term.
+A later 1,000-step causal replacement applied repeat weights once, normalized by effective-weight sum, and included the source z-loss.
 
-The exact source-validation gate is now closed, but the completed training arms did not optimize the corrected objective and therefore do not support a 10,000-step extension.
+The exact source-validation gate and corrected causal replacement are complete.
 The AUPRC, context-use, coordinate, and serialization measurements are numerically unchanged, but research interpretation remains paused.
 
 | Superseded count-normalized step-1,000 metric | Transferred MNTP | Scratch MNTP |
@@ -93,6 +94,31 @@ The changing direction survives the denominator correction, although the 128-row
 Direct evidence is in `loss-normalization-audit/` and at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
 ## Full source-validation parity
+## Corrected causal replacement
+
+The corrected replacement restarted from the released m5.1 checkpoint and ran full-parameter AdamW at peak `1e-5` for 1,000 steps.
+It applied each repeat weight once, divided by effective-weight sum, included source z-loss during training, and reported pure validation CE as an equal macro over the five fixed 128-row components.
+
+Macro CE was `0.769008732` at source, reached `0.767801766` at step 100, crossed above source between steps 200 and 300, peaked at `0.774135425` at step 900, and ended at `0.773670488`.
+The final increase was `+0.004661756`, and cooldown recovered `0.000464937` from step 900 to 1,000.
+The source value agrees with the earlier independent evaluator within `6.4e-6`.
+Across all 13 checkpoints, the corrected trajectory differs from the same validation metric on the superseded run by at most `0.000136974`.
+
+![Corrected five-component macro validation trajectory](causal-longrun-lr1e-5-corrected/validation-trajectory.png)
+
+All 1,000 training-loss and gradient rows are finite.
+Successive 100-step mean training losses stayed within `1.0216–1.0308`.
+Pre-clipping gradient norm median/p95/maximum was `0.7674/0.8845/1.3722`, and six steps clipped.
+
+![Corrected training and gradient stability](causal-longrun-lr1e-5-corrected/training-stability.png)
+
+All 13 corrected model artifacts are committed in W&B and total 67.25 GB.
+The full step-1,000 Lightning artifact contains optimizer, scheduler, and loop state.
+No checkpoint was deleted or uploaded to Hugging Face.
+The run cost an estimated `$1.274169`, bringing the cumulative listed-price estimate to `$28.307954 / $50`.
+Direct evidence is in `causal-longrun-lr1e-5-corrected/` and at [W&B f77ypos4](https://wandb.ai/gonzalobenegas/marin/runs/f77ypos4).
+Research knowledge-base interpretation remains paused.
+
 
 The completed 49,152-row audit reproduces the original pinned evaluator rather than assuming that its logged loss used the intended single repeat weight.
 The reproduced historical macro is `0.861413936` versus `0.861344755` in W&B, a difference of `0.000069181`.
@@ -122,12 +148,12 @@ Twelve trajectory exports and the full step-1,000 optimizer-bearing Lightning ch
 The complete artifact identifiers are in `causal-longrun-lr1e-5/retention-manifest.json`.
 No retained checkpoint was deleted and no output was uploaded to Hugging Face.
 
-This run cost an estimated `$0.8613`; the subsequent corrected audits bring the conservative listed-price total to `$27.0338 / $50`.
+This superseded run cost an estimated `$0.8613`; the subsequent corrected audits brought the listed-price total to `$27.0338 / $50` before the corrected causal replacement.
 The Lambda cluster self-terminated and was confirmed absent.
 The compact evidence is in `causal-longrun-lr1e-5/` and at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6).
 Research knowledge-base interpretation remains paused.
 
-The current conservative listed-price estimate is $27.0338 against the $50 cap.
+The current conservative listed-price estimate is $28.3080 against the $50 cap.
 It includes all failed, recovery, training, primary evaluation, audit, stability, cancelled exhaustive diagnostic, focused final-checkpoint, AdamW calibration, and 1,000-step AdamW attempts.
 The final Lambda cluster was confirmed terminated.
 Provider billing may differ from this pre-autodown list-price estimate.
@@ -147,6 +173,7 @@ Provider billing may differ from this pre-autodown list-price estimate.
 - `causal-calibration-lr1e-6/`: fixed-plan causal validation trajectory, per-component gate table, 200-step training loss and gradient trace, runtime, and cost evidence for the conservative AdamW arm.
 - `causal-longrun-lr1e-5/`: pooled 1,000-step causal validation trajectory, dense training/gradient trace, retained-checkpoint manifest, runtime, cost, and reviewed SVG/PNG figures for the selected AdamW arm.
 - `loss-normalization-audit/`: corrected three-source and five-probe trajectories, source-reducer scale comparison, component table, and manifest for all retained AdamW checkpoints.
+- `causal-longrun-lr1e-5-corrected/`: exact five-component macro trajectory, dense training/gradient trace, final teardown cost, 13-artifact retention manifest, and reviewed SVG/PNG figures for the corrected AdamW replacement.
 - `source-validation-reproduction/`: passing full-data nine-metric parity table, corrected loss values, summary, manifest, and reviewed SVG/PNG parity figure.
 - `source-validation-reproduction-v0-failed/`: retained first-gate evidence that localized the pinned evaluator's second repeat-weight multiplication.
 - `runs/`: arm runtime/manifests, data/preflight records, budget projection, and final cost estimate.
@@ -154,7 +181,7 @@ Provider billing may differ from this pre-autodown list-price estimate.
 
 ## Provenance and boundary
 
-- Experiment/diagnostics code: `97a6e3c50080005ad4f93f2206c4155b8f5cb7b9`; integrity-audit code: `issue-479-mntp-pilot-audited-result`.
+- Experiment/diagnostics code: `97a6e3c50080005ad4f93f2206c4155b8f5cb7b9`; integrity-audit code: `issue-479-mntp-pilot-audited-result`; corrected causal code: `42fc993e3245a0f6a1c1d77813b0665ef56e68e5`.
 - Source model: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.
 - Final model/checkpoint staging: private `gonzalobenegas/marin-dna-exp479-mntp-m5.1-spillover`; earlier transferred checkpoints remain in private `marin-dna/marin-dna-exp479-mntp-m5.1`.
 - Hardware: one Lambda GH200 96 GB at a checked list price of $2.29/hour.
