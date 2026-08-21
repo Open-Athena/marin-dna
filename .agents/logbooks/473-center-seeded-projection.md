@@ -2415,3 +2415,35 @@ cohort, assemblies, and downstream training recipe fixed.
 - Next action: build and validate the dataset on EC2, publish it publicly,
   pin its Hugging Face revision, and launch one matched 5,000-step preemptible
   TPU training run with native validation every 500 steps.
+
+### 2026-08-21 21:12 UTC - CSP-080 row-random dataset published
+
+- The additive EC2 workflow read 33,852,277 original-orientation CDS
+  full-window rows. Uniform seed-42 selection reserved exactly 16,384 rows;
+  the remaining 33,835,893 originals emitted 67,671,786 forward-plus-reverse-
+  complement training records. Validation retained only the selected original
+  orientations.
+- The publication manifest streamed through all 64 training shards and the
+  single validation shard, recording row counts, compressed and uncompressed
+  byte counts, schemas, and per-shard SHA-256 digests. The validated payload is
+  10,758,397,676 compressed bytes.
+- An initial finalization attempt exposed that Snakemake had treated the local
+  dataset card as a storage-backed output. No Hugging Face mutation occurred.
+  The card and every downstream consumer were marked local additively, and the
+  already-built immutable bytes were copied into the corrected producer
+  namespace rather than recomputed. A dry-run then selected only the card,
+  manifest, and completion marker; all three succeeded.
+- Producer commit: `332845a8c577a1be0698f6ad7a8efec9364d531a`.
+  Producer config SHA-256:
+  `a363037abd294af4f82067c98c3f73a4b8bae8da1097b248ed413fa4480d1d0c`.
+- Public dataset:
+  `marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val` at immutable
+  revision `7ef0bc9fcff17efc5792af92d8da34176617dd13`. The uploader created it
+  public and committed all 66 files.
+- The isolated training launcher is snapshotted at
+  `9b1bf594981beb18d9109ee3040bf1e152ec556c`. Its printed Marin graph pins the
+  public revision, resolves the dataset validation split natively, schedules
+  validation every 500 steps, and requires preemptible TPU capacity. All 51
+  experiment tests and file-scoped pre-commit checks passed.
+- Next action: launch and monitor the single 5,000-step random-validation CDS
+  control. Do not launch VEP evaluation for this diagnostic.
