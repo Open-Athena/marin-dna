@@ -58,10 +58,10 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 - Add `agent-generated` to every issue or pull request created by an agent.
 - Close an issue only after its completion criteria are met and its body and final comment record the outcome.
   For research issues, follow the disposition and interpretation-merge gate in `run-research` and `maintain-knowledge-base`.
-- At the start of a feature-branch task, identify every foreseeable approval, permission, credential, budget, paid-resource request, and scope decision needed to finish the work.
+- At the start of a task, identify every foreseeable approval, permission, credential, budget, paid-resource request, and scope decision needed to finish the work.
   Ask for any missing authority or decision together in the first message.
-- Once those gates are cleared, complete implementation and validation without requesting intermediate human feedback.
-  Commit and push the branch, open or update a draft pull request, run an independent review over the published diff, and address its findings without asking for separate permission for these delivery steps.
-- Mark the pull request ready and ask for human feedback only after implementation, validation, publication, and independent review are complete.
+- Once those gates are cleared, complete the authorized work and its validation without requesting intermediate human feedback.
   Return earlier only when an unforeseen blocker, new authority requirement, or material scope decision requires the user.
+- For repository changes intended for review, commit and push the branch, open or update a draft pull request, run an independent review over the published diff, and address its findings without asking for separate permission for these delivery steps.
+- Mark the pull request ready and ask for human feedback only after implementation, validation, publication, and independent review are complete.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.
