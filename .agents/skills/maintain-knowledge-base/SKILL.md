@@ -69,8 +69,10 @@ Write the TL;DR as exactly one source line after the callout marker.
 Keep the answer concise enough to scan as a summary; do not move evidence or extended caveats into the callout.
 
 Keep `Related work` curated.
+Reserve `Related work` for work produced outside MarinDNA.
 Include counterevidence when it materially affects the answer.
 Keep `Related experiments` exhaustive over accepted experiment pages that materially inform the question.
+Put MarinDNA empirical work under `Related experiments`, never `Related work`, even when the work is complete, published, or also cited elsewhere.
 Link the canonical issue only for a legacy experiment that has no experiment page.
 Use explicit clickable MarinDNA links.
 
@@ -96,10 +98,6 @@ Use this structure:
 > [!NOTE]
 > **TL;DR:** <Current accepted interpretation on exactly one source line.>
 
-![<Accessible description of the lead figure>](figures/<issue>/<figure>.svg)
-
-_<One-line caption stating what the figure shows and its inferential boundary.>_
-
 ## Findings
 
 <Accepted claims and their scope.>
@@ -107,10 +105,6 @@ _<One-line caption stating what the figure shows and its inferential boundary.>_
 ## Evidence
 
 <The design, controls, datasets, metrics, and results needed to evaluate the claims.>
-
-## Promising directions
-
-<Specific extensions supported by the findings; omit this section when there are none.>
 
 ## Limitations
 
@@ -129,17 +123,20 @@ Write the page as current knowledge, not as a chronology or an exhaustive report
 Do not add the original question, status, progress, iteration history, decision logs, operational failures, or a chronological next-action list.
 Include enough quantitative evidence and setup to review the findings.
 Treat inferential scope as part of the findings and limitations.
-Use `Promising directions` only for extensions supported by the accepted findings, not as a task list or commitment.
+Use progressive disclosure: lead with the TL;DR and findings, then provide the evidence needed to inspect them, followed by limitations, related questions, and the research record.
+Place each figure at the point in the evidence where it supports the narrative.
+For a training experiment, report validation language-modeling loss first in `Evidence`, including the validation definition, split, and material caveats, and then report downstream tasks.
+If validation language-modeling loss is unavailable, state that before presenting downstream tasks.
+Promote supported future directions to `Possible directions` on the related question page.
+Do not put a `Promising directions` or equivalent section on an experiment page.
 Keep `Related questions` exhaustive over current question pages that include the experiment.
 Use bare question-page links for navigation and do not repeat the question synthesis on the experiment page.
 
-Include one reviewed lead figure immediately after the TL;DR.
-Use the decisive result plot for a simple experiment and a multi-panel graphical abstract when the conclusion depends on several forms of evidence.
-A graphical abstract should communicate the setup, decisive evidence, finding, and main boundary.
-Include additional figures when they materially support the accepted findings.
+Include figures when they materially support the accepted findings.
 Commit every referenced figure as SVG under `docs/research/experiments/figures/<issue>/` on `main`, and use relative links from the experiment page.
 Keep unused, superseded, exploratory, and dense diagnostic figures in the issue or experiment branch.
 Check that each figure agrees with the prose, labels units and uncertainty, uses accessible colors, has useful alt text, and remains legible in rendered Markdown.
+Use `plot-research-results` for figure construction, Markdown centering, and captions.
 
 Distinguish direct measurements, synthesized comparisons across prior work, and attributed expert judgment.
 Human judgment may support the accepted interpretation when the page names the researcher and basis.
@@ -209,6 +206,7 @@ Use Git history as the record of past synthesis; do not keep inactive question d
 
 - Use `background-research` for prior work, contradictions, negative searches, and source ledgers.
 - Use `run-research` and `task-logbook` for bounded research records.
+- Use `plot-research-results` for figures embedded in experiment pages.
 - Use `update-docs` for durable guidance.
 - Use `communicate-on-github` for experiment links, migration comments, and pull-request communication.
 - Apply `writing-style` to prose and GitHub communication.

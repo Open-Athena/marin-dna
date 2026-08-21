@@ -41,9 +41,13 @@
     "access-reference-genomes",
     "communicate-on-github",
     "develop-snakemake-pipelines",
+    "evaluate-models",
     "maintain-knowledge-base",
     "maintain-vendored-skills",
+    "manage-research-storage",
     "marin-experiment",
-    "plot-research-results"
+    "plot-research-results",
+    "publish-to-hugging-face",
+    "run-model-inference"
   ]
 }
