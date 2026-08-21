@@ -113,13 +113,15 @@ the complete public repository name and exact revision for provenance.
 
 The coordinator's `--region` controls only its CPU task. Set
 `EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
-allowed values are `us-east5`, `us-central1`, and `europe-west4`, with
+allowed values are `us-east5`, `us-east1`, `us-central1`, and `europe-west4`, with
 `us-east5` retained as the default. `EXP473_TPU_VARIANT` defaults to
 `v5p-8`; east5 also permits `v6e-4`, and a comma-separated
 `v5p-8,v6e-4` requests either compatible single-VM topology from the
-scheduler. Central1 permits only `v5p-8`; Europe permits `v6e-4` and uses
-the `marin-eu-west4` bucket. Europe also permits the bounded
-`v5litepod-16` recovery topology when its v6e pool is exhausted. The global batch,
+scheduler. East1 permits only `v6e-4` and uses the `marin-us-east1` bucket.
+Central1 permits only `v5p-8`; Europe permits `v6e-4` and uses
+the `marin-eu-west4` bucket. Europe also permits the bounded single-VM
+`v6e-8` and `v5litepod-8` or four-VM `v5litepod-16` recovery topologies when
+smaller single-worker slices are exhausted. The global batch,
 seed, optimizer, step count, and checkpoint identity remain fixed; Levanter
 reshards the existing TensorStore checkpoint across the execution topology.
 `EXP473_TPU_RAM` defaults to `56g`; use the bounded `96g` recovery value when
@@ -130,7 +132,8 @@ runtime-only and do not change the model or checkpoint identity.
 changes only the Iris capacity class and preserves the same data, model,
 optimizer, run ID, and checkpoint identity.
 `MARIN_PREFIX` must use the matching
-`marin-us-east5`, `marin-us-central1`, or `marin-eu-west4` bucket; the
+`marin-us-east5`, `marin-us-east1`, `marin-us-central1`, or `marin-eu-west4`
+bucket; the
 launcher fails before graph creation when the bucket and child region differ,
 or when a variant is unsupported in the chosen region. A region migration must
 terminate the old coordinator and child before launching a replacement with

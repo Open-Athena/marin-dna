@@ -1999,3 +1999,38 @@ cohort, assemblies, and downstream training recipe fixed.
   is queued for the next complete four-worker v5litepod-16 slice. The active
   pool is not quota-blocked and has recently autoscaled, but its registered
   slices are currently occupied by priority-band-3 benchmark jobs.
+
+### 2026-08-21 06:03 UTC - CSP-060 full-window resumed in us-east1
+
+- Capacity inspection found that registered Europe `v5litepod-8` and `v6e-8`
+  worker counts overstated immediately allocatable capacity. The v5e child
+  reported zero available TPU chips, while the v6e child was blocked by only
+  65.3 GB of unallocated host memory against the 96 GiB export-recovery
+  request. Both children remained pending and were terminated before another
+  child was launched against the same run identity.
+- The bounded recovery launcher now also permits single-worker `v5litepod-8`
+  and `v6e-8` execution in Europe and the established `us-east1` `v6e-4`
+  pool backed by `gs://marin-us-east1`. The model, fixed 8,192-sequence global
+  batch, per-device parallelism, seed, optimizer, 5,000-step schedule, W&B run,
+  and checkpoint identity are unchanged. Three focused locked test runs each
+  passed all seven tests; the final run peaked at 478,340 KiB RSS.
+- A new additive us-east1 namespace received the source-pinned cache contract
+  and data, the 5,288,301,383-byte durable step-2,000 checkpoint, and the
+  3,058,278,595-byte temporary step-2,165 checkpoint. The destination cache is
+  4,484,156,824 bytes, exactly the 4,484,157,388-byte Europe cache minus its
+  intentionally omitted 564-byte executor-provenance file. The scientific
+  cache success marker was retained; no training executor status was copied.
+- Full-window child
+  `/ubuntu/exp473-enhancer-full-window-v10r16-east1-v6e4-56g-preemptible/run_levanter_train_lm-cafa6940`
+  received a four-chip us-east1 v6e-4 immediately. It pruned the complete cache,
+  discovered temporary step 2,165, completed TensorStore error checking, and
+  explicitly resumed the existing trajectory at step 2,166. The 56 GiB limit
+  is the previously successful training setting; native step 2,500 will commit
+  before the next Hugging Face export boundary.
+- Enhancer center-1 continued independently through about step 3,620 with loss
+  1.24 and no failures or preemptions. Its development-only step-3,000 graph
+  completed all five jobs successfully. No held-out labeled file, prediction,
+  measurement, or metric was requested or read.
+- Next action: verify the first post-resume full-window train step, monitor the
+  step-2,500 native checkpoint and export, and continue scheduled development
+  evaluation for newly exported enhancer-center checkpoints.

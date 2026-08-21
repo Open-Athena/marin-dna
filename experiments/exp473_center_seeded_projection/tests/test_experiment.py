@@ -224,6 +224,33 @@ def test_tpu_child_resource_override_is_explicit_and_bounded(monkeypatch) -> Non
         == "v5litepod-16"
     )
 
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v5litepod-8")
+    europe_single_vm_v5e_step = build_training(ARMS["enhancer_full_window"])
+    assert (
+        europe_single_vm_v5e_step.runtime_args["train_resources"].device.variant
+        == "v5litepod-8"
+    )
+    assert europe_single_vm_v5e_step.runtime_args["train_resources"].replicas == 1
+
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v6e-8")
+    europe_single_vm_v6e_step = build_training(ARMS["enhancer_full_window"])
+    assert (
+        europe_single_vm_v6e_step.runtime_args["train_resources"].device.variant
+        == "v6e-8"
+    )
+    assert europe_single_vm_v6e_step.runtime_args["train_resources"].replicas == 1
+
+    monkeypatch.setenv("EXP473_TPU_REGION", "us-east1")
+    monkeypatch.setenv("EXP473_TPU_VARIANT", "v6e-4")
+    monkeypatch.setenv(
+        "MARIN_PREFIX",
+        "gs://marin-us-east1/MarinDNA/exp473_center_seeded_projection/",
+    )
+    east1_step = build_training(ARMS["enhancer_full_window"])
+    assert east1_step.runtime_args["train_resources"].regions == ["us-east1"]
+    assert east1_step.runtime_args["train_resources"].device.variant == "v6e-4"
+    assert east1_step.runtime_args["train_resources"].replicas == 1
+
     monkeypatch.setenv(
         "MARIN_PREFIX",
         "gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection",
