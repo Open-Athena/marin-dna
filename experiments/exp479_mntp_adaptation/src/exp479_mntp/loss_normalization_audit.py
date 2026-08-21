@@ -221,9 +221,6 @@ def plot_corrected_trajectory(macros: pd.DataFrame, output_path: Path) -> None:
     """Plot the source-comparable fixed-panel macro through retained steps."""
 
     selected = macros[macros["scope"] == "source_three"].sort_values("step")
-    original_region_mean = sum(ORIGINAL_WANDB_REGION_LOSSES.values()) / len(
-        ORIGINAL_WANDB_REGION_LOSSES
-    )
     figure, axis = plt.subplots(figsize=(6.2, 5.2), constrained_layout=True)
     axis.plot(
         selected["step"],
@@ -231,18 +228,11 @@ def plot_corrected_trajectory(macros: pd.DataFrame, output_path: Path) -> None:
         marker="o",
         linewidth=1.8,
         color="#4C78A8",
-        label="Fixed-panel macro",
-    )
-    axis.axhline(
-        original_region_mean,
-        color="#F58518",
-        linewidth=1.2,
-        linestyle="--",
-        label="Original run final mean",
+        label="128 rows per dataset",
     )
     axis.set_xlabel("Optimizer step")
     axis.set_ylabel("Marin-weighted causal loss")
-    axis.set_title("Corrected validation trajectory")
+    axis.set_title("Corrected fixed-panel trajectory")
     axis.grid(alpha=0.25)
     axis.legend(title="Three source datasets")
     axis.set_box_aspect(1)
@@ -257,9 +247,9 @@ def plot_source_scale(macros: pd.DataFrame, output_path: Path) -> None:
 
     step_zero = macros[macros["step"] == 0].set_index("scope")
     labels = [
-        "Legacy count\nnormalization",
-        "Corrected five-probe\nmacro",
-        "Corrected source-three\nmacro",
+        "Legacy count normalization",
+        "Corrected five-probe macro",
+        "Corrected source-three macro",
     ]
     values = [
         float(step_zero.loc["all_five", "legacy_count_normalized_ce"]),
@@ -267,11 +257,11 @@ def plot_source_scale(macros: pd.DataFrame, output_path: Path) -> None:
         float(step_zero.loc["source_three", "marin_loss"]),
     ]
     figure, axis = plt.subplots(figsize=(6.2, 5.2), constrained_layout=True)
-    bars = axis.bar(labels, values, color=["#E45756", "#72B7B2", "#4C78A8"])
+    bars = axis.barh(labels, values, color=["#E45756", "#72B7B2", "#4C78A8"])
     axis.bar_label(bars, fmt="%.3f", padding=3)
-    axis.set_ylabel("Causal validation loss")
+    axis.set_xlabel("Causal validation loss")
     axis.set_title("Source checkpoint under each reducer")
-    axis.grid(axis="y", alpha=0.25)
+    axis.grid(axis="x", alpha=0.25)
     axis.set_box_aspect(1)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")

@@ -9,9 +9,10 @@ The runtime is one Lambda Cloud GH200 managed through SkyPilot. Marin and Iris a
 The one-seed pilot and follow-up causal runs completed, but their absolute loss values used an incorrect repeat-weight denominator.
 The reducer divided weighted loss by selected-token count instead of effective-weight sum, shrinking the loss according to lowercase-repeat content.
 The original source validation suite also contains three datasets, while the exp479 five-way panel added enhancer and ncRNA probes.
-Every absolute-loss claim and the prior no-loss-path-bug conclusion is superseded until the retained checkpoints are re-evaluated with the corrected reducer and source validation scope.
+The corrected 128-row-per-dataset audit reproduces the invalid source value of `0.231380263`, reports `0.764665566` with Marin's reducer on the three original datasets, and preserves a small worsening through step 1,000.
+An all-16,384-row reproduction of each original validation dataset is the remaining source-parity gate.
 The VEP, attention, coordinate, serialization, and final dependency evidence is unchanged by this discovery, but interpretation remains paused.
-The current conservative list-price estimate, including the 1,000-step AdamW causal follow-up, is $26.1237 of the $50 cap, and every Lambda cluster was confirmed terminated.
+The current conservative list-price estimate is $26.4687 of the $50 cap, and every Lambda cluster was confirmed terminated.
 
 See the [compact result bundle](../../.agents/artifacts/479-mntp-adaptation/README.md), [checkpoint audit](https://wandb.ai/gonzalobenegas/marin/runs/gavkgtmf), [stability audit](https://wandb.ai/gonzalobenegas/marin/runs/q67hbkp4), and [final dependency run](https://wandb.ai/gonzalobenegas/marin/runs/yl5sgffn). Final weights and per-variant scores remain private.
 
@@ -82,6 +83,28 @@ The Lambda cluster self-terminated and was confirmed absent.
 These values remain useful only for reproducing the bug and checking whether trajectory direction survives corrected evaluation.
 Direct evidence is at [W&B run 5lbazal6](https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6) and in the branch artifact directory `causal-longrun-lr1e-5/`.
 This is a factual experiment record; research knowledge-base interpretation remains paused.
+
+## Loss-normalization and source-parity audits
+
+The `loss-normalization` stage evaluates the released source plus every retained causal checkpoint with both the invalid count denominator and the corrected Marin reducer.
+It uses the immutable 128-row-per-dataset panel, limits the source-comparable macro to CDS, upstream, and downstream, and uploads only compact tables and plots to W&B.
+The completed audit reports corrected source-three loss of `0.764665566` at step 0, `0.763741364` at step 100, and `0.767604491` at step 1,000.
+No checkpoint was deleted, modified, or uploaded elsewhere.
+Direct evidence is at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
+
+The `source-validation` stage evaluates all 16,384 rows in each of the three original source validation datasets.
+One model forward supplies each dataset's repeat-weighted, uppercase-only, and lowercase-only loss.
+The stage compares those nine values and their macro directly with the original W&B run at an absolute tolerance of `0.002`.
+This is a hard gate for the source checkpoint's tokenization, next-token shift, special-token handling, repeat weights, z-loss, and global reduction.
+It uses public Hugging Face inputs, forwards only the W&B secret, uploads no checkpoint, and self-terminates.
+
+```bash
+uv run --locked python launch.py source-validation \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 26.468723089202907 \
+  --retry-until-up \
+  --execute
+```
 
 ## Registered behavior
 
