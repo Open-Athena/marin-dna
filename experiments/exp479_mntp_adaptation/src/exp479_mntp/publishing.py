@@ -186,9 +186,10 @@ def upload_run_file(
     )
 
 
-def publish_cost_estimate(*, artifact_dir: Path, repo_id: str) -> Path:
-    """Publish the listed-price estimate immediately before Sky autodown."""
+def write_cost_estimate(*, artifact_dir: Path) -> Path:
+    """Write the listed-price estimate immediately before Sky autodown."""
 
+    artifact_dir.mkdir(parents=True, exist_ok=True)
     start_unix = float(os.environ["EXP479_INSTANCE_START_UNIX"])
     finish_unix = time.time()
     elapsed_hours = (finish_unix - start_unix) / 3600
@@ -207,6 +208,13 @@ def publish_cost_estimate(*, artifact_dir: Path, repo_id: str) -> Path:
     }
     path = artifact_dir / "cost-estimate.json"
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def publish_cost_estimate(*, artifact_dir: Path, repo_id: str) -> Path:
+    """Publish the listed-price estimate immediately before Sky autodown."""
+
+    path = write_cost_estimate(artifact_dir=artifact_dir)
     upload_run_file(
         local_path=path,
         path_in_repo="runs/cost-estimate.json",

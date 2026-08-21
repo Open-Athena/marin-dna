@@ -388,3 +388,16 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Compute: The Lambda instance ran from 15:52:01 to the 16:05:51 pre-autodown cost record. This arm cost an estimated `$0.5284`, bringing the conservative listed-price total to `$25.2624 / $50`; the cluster then self-terminated and was confirmed absent.
 - Decision: Do not run AUPRC, another learning rate, or a longer causal arm automatically. First review the visually near-flat component misses and choose whether the next gate should use a lower learning rate, a parameter-efficient update, a larger fixed validation panel, or a tolerance justified before another run.
 - Artifacts: [compact calibration bundle](../artifacts/479-mntp-adaptation/causal-calibration-lr1e-6/).
+
+### 2026-08-21 16:46 - One-thousand-step causal trajectory selected
+
+- Trigger: The human collaborator chose a single longer causal run after reviewing the near-flat 200-step AdamW `1e-6` pooled trajectory.
+- Config: Run full-parameter AdamW at peak learning rate `1e-5` for 1,000 steps with betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, global gradient clipping at `1.0`, batch 64, and seed 0.
+- Schedule: Linear warmup from zero through step 100, constant peak learning rate through step 800, and linear decay to zero at the step-1,000 boundary.
+- Validation: Report only the pooled fixed-plan causal loss at steps 0, 25, 50, 100, every 100 steps through 800, 900, and 1,000.
+- Macro equivalence: The pooled panel has exactly 128 sequences from each of CDS, downstream, enhancer, ncRNA, and upstream, so its sequence mean is also the equally weighted five-component macro.
+- Retention: Copy every post-update trajectory export to a W&B model artifact as it is produced, then copy the complete step-1,000 Lightning model/optimizer/scheduler/loop checkpoint before validation.
+- Publication boundary: Do not create or upload to a Hugging Face repository, and do not delete retained checkpoint artifacts during this investigation.
+- Budget: Carry forward `$25.26241970350875`; a conservative two-hour Lambda GH200 reservation projects `$29.84241970350875 / $50`.
+- Interpretation boundary: Remain in experiment mode and publish factual trajectories and stability checks without updating the research knowledge base.
+- Next action: Implement and verify the locked long-run stage, snapshot the exact commit, update issue #479, launch one self-terminating Lambda GH200, and monitor through durable checkpoint retention and pooled validation.
