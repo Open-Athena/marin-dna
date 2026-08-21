@@ -59,7 +59,7 @@ setup: |
     if ! command -v uv >/dev/null 2>&1; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
-    if [[ "$(uv --version)" != "uv 0.11.31" ]]; then
+    if [[ "$(uv --version | awk '{print $2}')" != "0.11.31" ]]; then
         uv self update 0.11.31
     fi
 
