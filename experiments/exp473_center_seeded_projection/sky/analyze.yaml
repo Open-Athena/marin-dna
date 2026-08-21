@@ -4,6 +4,9 @@ name: exp473-analyze
 
 resources:
     infra: aws/us-east-2
+    # Validated issue-462 runtime; unlike Sky's default CPU image, it includes
+    # the AWS CLI used to publish the final analysis bundle.
+    image_id: ami-0324f0ad73bdcd087
     cpus: 8+
     memory: 32+
     disk_size: 100
