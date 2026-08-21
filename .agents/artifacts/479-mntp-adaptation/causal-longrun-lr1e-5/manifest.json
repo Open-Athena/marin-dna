@@ -1,0 +1,46 @@
+{
+  "run_name": "dna-exp479-clm-adamw-1e-5-wsd1000-seed0",
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/5lbazal6",
+  "optimizer": {
+    "learning_rate": 1e-05,
+    "beta1": 0.9,
+    "beta2": 0.95,
+    "epsilon": 1e-08,
+    "weight_decay": 0.0,
+    "max_grad_norm": 1.0,
+    "warmup_steps": 100,
+    "cooldown_start_step": 800,
+    "train_steps": 1000
+  },
+  "batch_size": 64,
+  "seed": 0,
+  "checkpoint_steps": [
+    0,
+    25,
+    50,
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+  ],
+  "train_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "validation_scope": "pooled 640-row fixed plan only",
+  "checkpoint_retention": "W&B model artifacts listed in retention-manifest.json",
+  "checkpoint_deletion": "not performed",
+  "gate": {
+    "passed": false,
+    "criterion": "step-1000 pooled loss <= step-0 pooled loss",
+    "step_0_loss": 0.23138026297092437,
+    "step_1000_loss": 0.2330148547887802,
+    "delta": 0.0016345918178558294,
+    "linear_slope_per_step": 2.142900862642483e-06,
+    "n_rows": 640
+  }
+}

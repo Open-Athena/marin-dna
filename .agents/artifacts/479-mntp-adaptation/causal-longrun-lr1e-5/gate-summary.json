@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "criterion": "step-1000 pooled loss <= step-0 pooled loss",
+  "step_0_loss": 0.23138026297092437,
+  "step_1000_loss": 0.2330148547887802,
+  "delta": 0.0016345918178558294,
+  "linear_slope_per_step": 2.142900862642483e-06,
+  "n_rows": 640
+}

@@ -1,0 +1,32 @@
+{
+  "n_optimizer_steps": 1000,
+  "all_numeric_values_finite": true,
+  "pre_clip_gradient_norm": {
+    "minimum": 0.5172876715660095,
+    "mean": 0.6637346520423889,
+    "median": 0.6599225401878357,
+    "p95": 0.7577498376369476,
+    "p99": 0.8243351489305495,
+    "maximum": 1.3261339664459229
+  },
+  "clip_threshold": 1.0,
+  "clipped_steps": [
+    265,
+    738
+  ],
+  "clipped_step_count": 2,
+  "clipped_steps_coincide_with_loss_spikes": false,
+  "training_loss_100_step_block_mean_range": [
+    0.8695902317762375,
+    0.8827361023426056
+  ],
+  "validation_minimum": {
+    "step": 100,
+    "loss": 0.23096175044775008
+  },
+  "validation_final": {
+    "step": 1000,
+    "loss": 0.2330148547887802,
+    "delta_from_step_0": 0.0016345918178558294
+  }
+}
