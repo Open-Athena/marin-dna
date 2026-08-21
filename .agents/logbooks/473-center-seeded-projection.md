@@ -2163,3 +2163,15 @@ cohort, assemblies, and downstream training recipe fixed.
   proving that the larger worker cleared the failed save/export phase.
 - The matching Mendelian + Complex development-only evaluation was submitted
   as job 5 on the existing warm A10G. Training continued toward step 4,000.
+
+### 2026-08-21 08:34 UTC - CSP-068 enhancer full-window step 3,500 evaluated
+
+- The isolated enhancer full-window step-3,500 development graph completed all
+  five jobs successfully on the warm A10G. It scored exactly 16,140 Mendelian
+  and 11,630 Complex rows from the pinned public `train.parquet` files and
+  produced 66 and 60 official metric rows, respectively. No held-out labeled
+  file, prediction, measurement, or metric was requested or read.
+- The recovered training worker continued beyond step 3,600 and durably
+  committed temporary checkpoint step 3,599. Intermittent input-loader stalls
+  reduced throughput, but the TPU remained allocated and optimization kept
+  advancing; the next immutable boundary is step 4,000.
