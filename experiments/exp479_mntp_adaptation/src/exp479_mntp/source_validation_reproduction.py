@@ -1,4 +1,4 @@
-"""Reproduce the original m5.1 validation metrics on all source rows."""
+"""Reproduce and correct the original m5.1 validation metrics on all source rows."""
 
 from __future__ import annotations
 
@@ -75,19 +75,28 @@ class ComponentValidationDataset(Dataset[dict[str, Any]]):
 
 
 def _new_total() -> dict[str, float]:
-    return {"weighted_loss_sum": 0.0, "loss_weight_sum": 0.0, "selected_tokens": 0.0}
+    return {
+        "weighted_ce_sum": 0.0,
+        "squared_weight_ce_sum": 0.0,
+        "weighted_z_loss_sum": 0.0,
+        "loss_weight_sum": 0.0,
+        "selected_tokens": 0.0,
+    }
 
 
-def _add_weighted_loss(
+def _add_validation_statistics(
     total: dict[str, float],
     *,
-    per_token_loss: torch.Tensor,
+    per_token_ce: torch.Tensor,
+    per_token_z_loss: torch.Tensor,
     labels: torch.Tensor,
     weights: torch.Tensor,
 ) -> None:
     selected = labels != IGNORE_INDEX
     effective_weights = torch.where(selected, weights, 0.0).float()
-    total["weighted_loss_sum"] += float((per_token_loss * effective_weights).sum())
+    total["weighted_ce_sum"] += float((per_token_ce * effective_weights).sum())
+    total["squared_weight_ce_sum"] += float((per_token_ce * effective_weights.square()).sum())
+    total["weighted_z_loss_sum"] += float((per_token_z_loss * effective_weights).sum())
     total["loss_weight_sum"] += float(effective_weights.sum())
     total["selected_tokens"] += float(selected.sum())
 
@@ -141,7 +150,7 @@ def evaluate_source_component(
             ignore_index=IGNORE_INDEX,
             reduction="none",
         ).reshape_as(labels)
-        per_token_loss = ce + torch.logsumexp(float_logits, dim=-1).square() * SOURCE_Z_LOSS_WEIGHT
+        per_token_z_loss = torch.logsumexp(float_logits, dim=-1).square() * SOURCE_Z_LOSS_WEIGHT
         default_weights = moved["loss_weights"]
         weights = {
             "default": default_weights,
@@ -149,9 +158,10 @@ def evaluate_source_component(
             "nonfunctional": ((default_weights > 0) & (default_weights < 0.5)).float(),
         }
         for slice_name, slice_weights in weights.items():
-            _add_weighted_loss(
+            _add_validation_statistics(
                 totals[slice_name],
-                per_token_loss=per_token_loss,
+                per_token_ce=ce,
+                per_token_z_loss=per_token_z_loss,
                 labels=labels,
                 weights=slice_weights,
             )
@@ -162,7 +172,9 @@ def evaluate_source_component(
         if total["loss_weight_sum"] <= 0:
             raise RuntimeError(f"{component}/{slice_name} has zero effective weight")
         metric = f"{component}/{slice_name}"
-        reproduced = total["weighted_loss_sum"] / total["loss_weight_sum"]
+        corrected = total["weighted_ce_sum"] / total["loss_weight_sum"]
+        training_objective = corrected + total["weighted_z_loss_sum"] / total["loss_weight_sum"]
+        reproduced = total["squared_weight_ce_sum"] / total["loss_weight_sum"]
         original = ORIGINAL_WANDB_LOSSES[metric]
         rows.append(
             {
@@ -172,10 +184,13 @@ def evaluate_source_component(
                 "n_rows": len(dataset),
                 "selected_tokens": int(total["selected_tokens"]),
                 "loss_weight_sum": total["loss_weight_sum"],
-                "reproduced_loss": reproduced,
+                "corrected_validation_ce": corrected,
+                "training_objective_loss": training_objective,
+                "original_evaluator_loss": reproduced,
                 "original_wandb_loss": original,
-                "delta": reproduced - original,
-                "absolute_delta": abs(reproduced - original),
+                "original_evaluator_delta": reproduced - original,
+                "original_evaluator_absolute_delta": abs(reproduced - original),
+                "original_evaluator_bias": reproduced - corrected,
             }
         )
     return rows
@@ -188,24 +203,27 @@ def summarize_source_parity(frame: pd.DataFrame) -> dict[str, Any]:
         raise RuntimeError("source validation reproduction lacks an original W&B metric")
     if set(frame["n_rows"]) != {EXPECTED_ROWS_PER_COMPONENT}:
         raise RuntimeError("source validation reproduction row counts changed")
-    reproduced_macro = float(frame["reproduced_loss"].mean())
-    macro_delta = reproduced_macro - ORIGINAL_WANDB_MACRO
-    maximum_absolute_delta = float(frame["absolute_delta"].max())
+    reproduced_original_macro = float(frame["original_evaluator_loss"].mean())
+    corrected_macro = float(frame["corrected_validation_ce"].mean())
+    original_macro_delta = reproduced_original_macro - ORIGINAL_WANDB_MACRO
+    maximum_absolute_delta = float(frame["original_evaluator_absolute_delta"].max())
     return {
         "passed": maximum_absolute_delta <= PARITY_TOLERANCE
-        and abs(macro_delta) <= PARITY_TOLERANCE,
+        and abs(original_macro_delta) <= PARITY_TOLERANCE,
         "tolerance": PARITY_TOLERANCE,
-        "reproduced_macro": reproduced_macro,
+        "reproduced_original_macro": reproduced_original_macro,
         "original_wandb_macro": ORIGINAL_WANDB_MACRO,
-        "macro_delta": macro_delta,
-        "maximum_slice_absolute_delta": maximum_absolute_delta,
+        "original_macro_delta": original_macro_delta,
+        "corrected_macro": corrected_macro,
+        "original_evaluator_macro_bias": reproduced_original_macro - corrected_macro,
+        "maximum_original_metric_absolute_delta": maximum_absolute_delta,
         "n_metrics": len(frame),
         "total_model_rows_evaluated": EXPECTED_ROWS_PER_COMPONENT * len(SOURCE_COMPONENTS),
     }
 
 
 def plot_source_parity(frame: pd.DataFrame, output_path: Path) -> None:
-    """Plot reproduced against original W&B loss for all nine slices."""
+    """Plot the reproduced pinned evaluator against its original W&B metrics."""
 
     figure, axis = plt.subplots(figsize=(6.2, 5.2), constrained_layout=True)
     colors = {"default": "#4C78A8", "functional": "#F58518", "nonfunctional": "#54A24B"}
@@ -213,28 +231,28 @@ def plot_source_parity(frame: pd.DataFrame, output_path: Path) -> None:
         selected = frame[frame["slice"] == slice_name]
         axis.scatter(
             selected["original_wandb_loss"],
-            selected["reproduced_loss"],
+            selected["original_evaluator_loss"],
             s=55,
             color=colors[slice_name],
             label=slice_name.replace("nonfunctional", "Lowercase-only")
             .replace("functional", "Uppercase-only")
-            .replace("default", "Repeat-weighted"),
+            .replace("default", "Repeat-weighted (squared by evaluator)"),
         )
         for row in selected.itertuples(index=False):
             axis.annotate(
                 row.component,
-                (row.original_wandb_loss, row.reproduced_loss),
+                (row.original_wandb_loss, row.original_evaluator_loss),
                 xytext=(4, 4),
                 textcoords="offset points",
             )
-    low = min(frame["original_wandb_loss"].min(), frame["reproduced_loss"].min()) - 0.03
-    high = max(frame["original_wandb_loss"].max(), frame["reproduced_loss"].max()) + 0.03
+    low = min(frame["original_wandb_loss"].min(), frame["original_evaluator_loss"].min()) - 0.03
+    high = max(frame["original_wandb_loss"].max(), frame["original_evaluator_loss"].max()) + 0.03
     axis.plot([low, high], [low, high], color="0.4", linestyle="--", linewidth=1)
     axis.set_xlim(low, high)
     axis.set_ylim(low, high)
     axis.set_xlabel("Original W&B loss")
-    axis.set_ylabel("Reproduced loss")
-    axis.set_title("Full source-validation parity")
+    axis.set_ylabel("Reproduced pinned-evaluator loss")
+    axis.set_title("Pinned source-validation parity")
     axis.grid(alpha=0.25)
     axis.legend(title="Validation slice")
     axis.set_box_aspect(1)
@@ -261,7 +279,9 @@ def run_source_validation_reproduction(*, output_dir: Path, batch_size: int) -> 
         config={
             "batch_size": batch_size,
             "rows_per_component": EXPECTED_ROWS_PER_COMPONENT,
-            "z_loss_weight": SOURCE_Z_LOSS_WEIGHT,
+            "training_z_loss_weight": SOURCE_Z_LOSS_WEIGHT,
+            "validation_z_loss_weight": 0.0,
+            "original_evaluator_repeat_weight_applications": 2,
             "parity_tolerance": PARITY_TOLERANCE,
         },
     )
@@ -302,6 +322,11 @@ def run_source_validation_reproduction(*, output_dir: Path, batch_size: int) -> 
                     "total_model_rows_evaluated": EXPECTED_ROWS_PER_COMPONENT
                     * len(SOURCE_COMPONENTS),
                     "elapsed_seconds": time.time() - started,
+                    "original_evaluator": (
+                        "Pinned tagged evaluation multiplied per-position loss by the "
+                        "repeat weight inside the loss function and again in its accumulator."
+                    ),
+                    "corrected_evaluator_repeat_weight_applications": 1,
                     "checkpoint_deletion": "not performed",
                     "checkpoint_upload": "not performed",
                     "summary": summary,

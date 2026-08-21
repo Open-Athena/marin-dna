@@ -70,23 +70,23 @@ It used 100 steps of linear warmup from zero, a constant peak through step 800, 
 The corrected audit evaluates the source plus all 12 retained checkpoints on the immutable 128-row panel and reports the macro over the three original source datasets.
 Full 16,384-row-per-dataset source parity remains pending.
 
-| Step | Corrected source-three causal loss |
+| Step | Corrected source-three validation CE |
 |---:|---:|
-| 0 | 0.764665566 |
-| 25 | 0.764000013 |
-| 50 | 0.763882051 |
-| 100 | 0.763741364 |
-| 200 | 0.765399687 |
-| 300 | 0.765613951 |
-| 400 | 0.766948651 |
-| 500 | 0.767365825 |
-| 600 | 0.768102964 |
-| 700 | 0.765386971 |
-| 800 | 0.767594669 |
-| 900 | 0.767040177 |
-| 1,000 | 0.767604491 |
+| 0 | 0.764633691 |
+| 25 | 0.763967706 |
+| 50 | 0.763849328 |
+| 100 | 0.763708129 |
+| 200 | 0.765367345 |
+| 300 | 0.765581645 |
+| 400 | 0.766916416 |
+| 500 | 0.767333754 |
+| 600 | 0.768070726 |
+| 700 | 0.765353749 |
+| 800 | 0.767562705 |
+| 900 | 0.767007781 |
+| 1,000 | 0.767572101 |
 
-The corrected trajectory improves slightly during warmup and then worsens, ending `0.002938926` above the source.
+The corrected trajectory improves slightly during warmup and then worsens, ending `0.002938411` above the source.
 The changing direction survives the denominator correction, although the 128-row panel is too small for exact source-run parity.
 Direct evidence is in `loss-normalization-audit/` and at [W&B run v6mo9gh3](https://wandb.ai/gonzalobenegas/marin/runs/v6mo9gh3).
 
