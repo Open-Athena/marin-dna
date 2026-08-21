@@ -2371,3 +2371,19 @@ cohort, assemblies, and downstream training recipe fixed.
   anchors question now incorporates the accepted result. No held-out
   even-autosome or chromosome-Y VEP label, prediction, effect measurement, or
   aggregate metric was requested or read.
+
+### 2026-08-21 13:10 UTC - CSP-078 additive workflow isolation audited
+
+- Restored the shared `workflow/Snakefile` and the vendored Snakemake skill to
+  their exact `origin/main` contents. Issue 473 now has a standalone additive
+  entrypoint, `workflow/Issue473.smk`, and both issue-specific Sky launchers
+  select it explicitly.
+- Added a regression test that prevents issue modules from being included by
+  the shared entrypoint and requires the issue launchers to use the standalone
+  entrypoint.
+- The complete vertebrate-projection project test suite passed with 121 tests.
+  A locked dry-run of the issue 473 smoke target resolved the expected 292-job
+  DAG using `workflow/Issue473.smk`.
+- This isolation changes no established S3-backed rule or output path and does
+  not alter the completed issue 473 datasets, training runs, evaluations, or
+  accepted scientific interpretation.

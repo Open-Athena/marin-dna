@@ -17,6 +17,7 @@ credential-free plan with:
 
 ```bash
 uv run --locked snakemake -n \
+  --snakefile workflow/Issue473.smk \
   --profile workflow/profiles/default \
   --default-storage-provider none \
   issue_473_request_artifacts

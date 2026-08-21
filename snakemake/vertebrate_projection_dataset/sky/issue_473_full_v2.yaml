@@ -113,6 +113,7 @@ run: |
   cd snakemake/vertebrate_projection_dataset
 
   uv run --locked snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
+    --snakefile workflow/Issue473.smk \
     --profile workflow/profiles/default \
     --config \
       tier="$TIER" \

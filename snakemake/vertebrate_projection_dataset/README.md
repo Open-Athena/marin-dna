@@ -132,8 +132,9 @@ The historical issue #417 staging snapshot remains a provenance artifact only; i
 ### Issue #473 center-seeded projection experiment
 
 Issue #473 is implemented as the separate additive rule module
-`workflow/rules/issue_473_fixed.smk`; established projection rules and outputs
-remain unchanged. The committed
+`workflow/rules/issue_473_fixed.smk`, loaded only through the standalone
+`workflow/Issue473.smk` entrypoint; the shared `workflow/Snakefile`,
+established projection rules, and established outputs remain unchanged. The committed
 `config/issue_473_immutable_sources.tsv` pins every direct #417 and exp351
 input by S3 URI, byte size, and full-object CRC64NVME checksum. Per-file #417
 anchor and rejection restores must also appear in the pinned #417 artifact
@@ -146,6 +147,7 @@ and 129 on the same deterministic anchor sample:
 
 ```bash
 uv run --locked snakemake -n issue_473_fixed_landmark_pilot \
+  --snakefile workflow/Issue473.smk \
   --profile workflow/profiles/default \
   --config tier=full
 ```
@@ -154,6 +156,7 @@ After pilot review, the complete approved projection target is:
 
 ```bash
 uv run --locked snakemake -n issue_473_fixed_projection_experiment \
+  --snakefile workflow/Issue473.smk \
   --profile workflow/profiles/default \
   --config tier=full
 ```
