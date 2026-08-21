@@ -1,0 +1,86 @@
+# Isolated offline replay of the exact native chromosome-18 validation sets.
+# This uses the existing evals_v2 CLM loss kernel and never loads VEP data.
+
+name: exp473-native-validation-replay
+
+resources:
+    infra: aws/us-east-2
+    image_id: ami-0324f0ad73bdcd087
+    accelerators: A10G:1
+    disk_size: 100
+    labels:
+        project: dna
+    any_of:
+      - use_spot: true
+      - use_spot: false
+
+workdir: .
+
+envs:
+    EXP473_DIAGNOSTIC_COMMIT: ""
+    DRY_RUN: "0"
+    SNAKEMAKE_ARGS: ""
+
+file_mounts:
+    ~/.config/gcloud/application_default_credentials.json: ~/.config/gcloud/application_default_credentials.json
+
+setup: |
+    set -euxo pipefail
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    if [[ "$(uv --version)" != "uv 0.11.31" ]]; then
+        uv self update 0.11.31
+    fi
+    if ! command -v gcloud >/dev/null 2>&1; then
+        curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+        bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+    fi
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        evals-gpu-runtime-check --config \
+        snakemake/analysis/evals_v2/config/gpu_runtime_validation.yaml smoke
+    gcloud storage ls gs://marin-us-east1/MarinDNA/exp473_center_seeded_projection/checkpoints/ | head -3 >/dev/null
+
+run: |
+    set -euxo pipefail
+    test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
+    test -n "$EXP473_DIAGNOSTIC_COMMIT"
+    export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+    export WANDB_DISABLED=true
+    REPO_ROOT="$PWD"
+    export PYTHONPATH="$REPO_ROOT/experiments/exp473_center_seeded_projection/src"
+    CONFIG_PATH=/tmp/issue_473_native_validation_replay.yaml
+    uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+        python -m exp473_center_seeded_projection.native_validation_replay_config \
+        --output "$CONFIG_PATH" --diagnostic-commit "$EXP473_DIAGNOSTIC_COMMIT"
+
+    SNAKEMAKE_MODE=()
+    if [ "$DRY_RUN" = "1" ]; then
+        SNAKEMAKE_MODE+=(--dry-run)
+    fi
+    ALLOWED_RULES=(
+        issue_473_native_validation_download_source
+        issue_473_native_validation_download_model
+        issue_473_native_validation_score
+        issue_473_native_validation_analyze
+        issue_473_native_validation_replay
+    )
+
+    cd snakemake/analysis/evals_v2
+    uv run --locked --group genome-s3 snakemake \
+        issue_473_native_validation_replay \
+        "${SNAKEMAKE_MODE[@]}" \
+        --snakefile "$REPO_ROOT/experiments/exp473_center_seeded_projection/workflow/NativeValidationReplay.smk" \
+        --profile workflow/profiles/default \
+        --configfile "$CONFIG_PATH" \
+        --cores 4 \
+        --resources gpu=1 mem_mb=16000 \
+        --allowed-rules "${ALLOWED_RULES[@]}" \
+        --printshellcmds \
+        --rerun-incomplete \
+        $SNAKEMAKE_ARGS
