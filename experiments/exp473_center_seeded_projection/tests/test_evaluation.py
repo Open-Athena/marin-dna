@@ -298,6 +298,17 @@ def test_written_results_select_only_region_relevant_subsets():
     }
 
 
+def test_summary_does_not_hardcode_the_audit_subset_count():
+    source = (
+        Path(__file__).parents[1]
+        / "src"
+        / "exp473_center_seeded_projection"
+        / "analyze_evals.py"
+    ).read_text()
+    assert "artifacts retain every registered Mendelian subset" in source
+    assert "all eight registered subsets" not in source
+
+
 def test_official_endpoint_table_selects_only_region_relevant_subsets():
     rows = []
     for (region, dataset), subsets in OFFICIAL_PRESENTATION_SUBSETS.items():

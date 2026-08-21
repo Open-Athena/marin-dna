@@ -488,7 +488,7 @@ def write_summary(
         (
             "Only region-relevant subsets are presented: missense, splicing, "
             "and synonymous for CDS; distal for enhancer. The complete audit "
-            "artifacts retain all eight registered subsets."
+            "artifacts retain every registered Mendelian subset."
         ),
         "",
         "## Final-checkpoint relevant paired Mendelian deltas",
