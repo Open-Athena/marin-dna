@@ -82,7 +82,7 @@ source-pinned to the public outputs of the fail-closed publication step.
 
 ```bash
 uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
-  --no-wait \
+  --no-wait --no-sync \
   --job-name exp473-cds-center-1 \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
@@ -91,9 +91,12 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
   -e EXP473_TPU_REGION us-east5 \
   -e EXP473_TPU_VARIANT v5p-8 \
+  -e EXP473_TPU_RAM 56g \
   -e EXP473_ARM cds_center_1 \
-  -- python -m exp473_center_seeded_projection.experiment \
-  --version 2026.08.20 --run
+  -e UV_PROJECT /app \
+  -- bash -lc 'cd /app && uv sync --locked --extra tpu && \
+  exec uv run --locked python -m exp473_center_seeded_projection.experiment \
+  --version 2026.08.20 --run'
 ```
 
 Repeat with the other two new arm keys and distinct job names. The three
@@ -111,8 +114,12 @@ The coordinator's `--region` controls only its CPU task. Set
 `EXP473_TPU_REGION` explicitly when the training child must run elsewhere;
 allowed values are `us-east5` and `us-central1`, with `us-east5` retained as
 the default. `EXP473_TPU_VARIANT` defaults to `v5p-8`; east5 also permits
-`v6e-4`, which is the capacity fallback used for the two enhancer arms, while
-central1 permits only `v5p-8`. `MARIN_PREFIX` must use the matching
+`v6e-4`, and a comma-separated `v5p-8,v6e-4` requests either compatible
+single-VM topology from the scheduler. Central1 permits only `v5p-8`.
+`EXP473_TPU_RAM` defaults to `56g`; use the bounded `96g` recovery value when
+Hugging Face export exceeds the default host-memory limit. Both settings are
+runtime-only and do not change the model or checkpoint identity.
+`MARIN_PREFIX` must use the matching
 `marin-us-east5` or `marin-us-central1` bucket; the launcher fails before graph
 creation when the bucket and child region differ, or when a variant is
 unsupported in the chosen region. A region migration must terminate the old
@@ -120,6 +127,14 @@ coordinator and child before launching a replacement with the same run and
 checkpoint identities. A new region uses an additive artifact namespace and
 rebuilds the source-pinned cache there rather than rewriting a receipt from a
 different region.
+
+Use `--no-sync` for the coordinator and sync the locked project explicitly at
+its `/app` bundle root. This avoids coupling the experiment lock to the root
+workspace's `uv` requirement. The model resolves the vendored tokenizer to an
+absolute path inside that bundle, while the tokenized-cache identity retains
+the stable project-relative `tokenizer` value. Never run two children against
+the same checkpoint root concurrently; stop the old coordinator and child
+before a recovery launch.
 
 ### Paired projection loss
 

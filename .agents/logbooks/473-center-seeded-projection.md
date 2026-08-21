@@ -1871,3 +1871,41 @@ cohort, assemblies, and downstream training recipe fixed.
   1.32. Center-1 also committed a fresh temporary recovery checkpoint at
   step 1,217. The earlier queued state was transient accelerator capacity,
   not a persistent launch failure.
+
+### 2026-08-21 03:07 UTC - CSP-056 enhancer export OOM and flexible recovery
+
+- Both enhancer v9 children trained through step 2,000 and committed their
+  native optimizer-state checkpoints before failing during the matching
+  Hugging Face export. Full-window normal validation loss was 1.323 and
+  center-1 was 1.322. Each 56 GiB container was killed while materializing
+  the 1.02 GB safetensors shard, after TensorStore reported about 11 GiB of
+  host memory in flight. Neither job was preempted and no training step was
+  lost.
+- Recovery commit `32dadc948cd3ff513bac2008f57739d80970a1c4`
+  adds a bounded 96 GiB runtime option and resolves the model tokenizer to the
+  absolute bundled-project path. The cache tokenizer identity remains the
+  stable relative `tokenizer` value. The complete 35-test project suite passed;
+  its 554,960 KiB peak RSS exceeded the shared node's 500 MiB guideline, so no
+  further complete local suite runs will be made. The subsequent focused
+  seven-test run stayed bounded at 478,036 KiB.
+- Two first recovery submissions failed before graph creation because the
+  isolated project mounts at `/app`, and that task image exposes Python at
+  `/usr/local/bin/python3` rather than `/usr/bin/python3.12`. Corrected
+  coordinators installed the exact 222-package lock at `/app`; their v6e-only
+  children remained pending with no available slices and were terminated
+  before replacement. None of these startup attempts requested a TPU or
+  changed a checkpoint.
+- Commit `a3d659ad20251753d6e8cf20cf4334318feb6eba` uses Fray's native flexible
+  TPU request for compatible east5 `v5p-8` and `v6e-4` single-VM topologies.
+  Enhancer center-1 child
+  `/ubuntu/exp473-enhancer-center-1-v10r4-flex96g/run_levanter_train_lm-2d9d236a`
+  immediately received a four-chip v5p-8 with 96 GiB RAM, restored temporary
+  checkpoint step 1,947, and completed resumed train step 1,948. W&B correctly
+  ignores the replayed steps through 2,000 because that run already recorded
+  them. Full-window child
+  `/ubuntu/exp473-enhancer-full-window-v10r4-flex96g/run_levanter_train_lm-cf645a99`
+  is pending across both pools with zero failures and preemptions.
+- CDS recovery `/ubuntu/exp473-cds-center-1-v5r6` completed its isolated sync
+  and created its central1 v5p-8 child, which is pending for capacity. The
+  on-demand development evaluator remains healthy and had completed 17 of 68
+  resumed jobs, still reading direct `train.parquet` files only.
