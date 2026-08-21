@@ -48,7 +48,7 @@ Gene expression is a later long-context question.
   These broaden the positive precedent but do not isolate the architecture, objective, or data property that enables transfer.
 - [#236](https://github.com/Open-Athena/marin-dna/issues/236) defines the ChromBPNet-on-gLM-embeddings evaluation harness.
   It is infrastructure rather than a completed experiment.
-- [How should a short-context gLM acquire long-range context?](long-context.md) covers connecting a short local encoder to longer sequence-to-function models; [Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?](bidirectional-models.md) covers causal-to-bidirectional conversion; [Which genomic regions to train on, and how to find them?](training-regions.md) covers the pretraining footprint.
+- [What context sizes do genomic language models need for different biological tasks, and how should models acquire and use that context?](long-context.md) covers choosing and acquiring context for sequence-to-function models; [Can causal gLM checkpoints be cheaply adapted into bidirectional representation models?](bidirectional-models.md) covers causal-to-bidirectional conversion; [Which genomic regions to train on, and how to find them?](training-regions.md) covers the pretraining footprint.
   These are coupled design axes that must be controlled rather than attributed to pretraining as one bundle.
 
 </details>
