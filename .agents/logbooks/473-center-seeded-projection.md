@@ -2312,3 +2312,25 @@ cohort, assemblies, and downstream training recipe fixed.
   left/right flank, three internal unaligned bases, and an aligned center
   nucleotide. This complements the earlier plus- and reverse-strand ZRS rows
   and provides an explicit rejected-policy outcome from immutable evidence.
+
+### 2026-08-21 11:52 UTC - CSP-076 paired intersection loss completed
+
+- The additive chromosome-18 intersection workflow completed all 74 jobs in
+  41 minutes: 36 immutable model stages, 36 score cells, one paired analysis,
+  and one aggregate target. Its S3 prefix contains all 36 score Parquets plus
+  a five-object analysis bundle with exact SHA-256 receipts. Sky job 7
+  succeeded, and `exp473-intersection-loss` was terminated after restore and
+  inventory checks.
+- CDS center-1 has lower case-weighted NLL on the exact shared validation rows
+  at every checkpoint. The terminal center-minus-full delta is -0.043227 nats
+  per effective token with anchor-bootstrap 95% interval
+  [-0.046136, -0.040378] and probability 1.000 that center-1 is lower.
+- The enhancer loss trajectory changes sign. At step 4,999 center-1 is higher
+  by +0.002955 [0.002476, 0.003452], while steps 2,000, 3,000, 3,500, and
+  4,000 favor center-1 and step 4,500 favors full-window by +0.012136. The
+  intersection diagnostic therefore supports a persistent CDS fit advantage
+  but no stable enhancer ordering.
+- These are paired, unlabeled chromosome-18 projection-sequence losses using
+  the training case weights. They are not held-out VEP labels, predictions,
+  effect measurements, or aggregate metrics and do not replace the registered
+  home-domain development endpoints.
