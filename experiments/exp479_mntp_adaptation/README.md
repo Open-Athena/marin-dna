@@ -35,6 +35,28 @@ uv run --locked python launch.py calibration \
   --execute
 ```
 
+## Selected 1,000-step causal trajectory
+
+The follow-up `longrun` stage tests the human-selected peak learning rate of `1e-5` for 1,000 causal optimizer steps.
+It uses the same full-parameter AdamW constants, batch-64 training plan, tokenizer, orientation policy, lowercase repeat weighting, and fixed validation panel as the 200-step calibration.
+The schedule warms linearly from zero through step 100, remains at `1e-5` through step 800, and decays linearly to zero at the step-1,000 boundary.
+
+Only the pooled 640-sequence validation loss is reported for this stage.
+Because the five components contribute 128 sequences each, this pooled value is also the equally weighted component macro.
+The trajectory is evaluated at steps 0, 25, 50, 100, every 100 steps through 800, 900, and 1,000.
+
+Every post-update Hugging Face-format trajectory export is retained immediately as a W&B model artifact.
+After training, the complete step-1,000 Lightning checkpoint containing model, optimizer, scheduler, and loop state is retained as a separate W&B model artifact before validation begins.
+The Lambda task does not upload any output to Hugging Face and does not delete a retained checkpoint.
+
+```bash
+uv run --locked python launch.py longrun \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 25.26241970350875 \
+  --retry-until-up \
+  --execute
+```
+
 ## Registered behavior
 
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.

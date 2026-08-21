@@ -169,9 +169,27 @@ def _parser() -> argparse.ArgumentParser:
     calibration.add_argument("--num-workers", type=int, default=4)
     calibration.add_argument("--offline-wandb", action="store_true")
 
+    longrun = subparsers.add_parser(
+        "causal-longrun",
+        help="run the retained AdamW 1e-5 causal trajectory for 1,000 steps",
+    )
+    longrun.add_argument("--artifact-dir", type=Path, required=True)
+    longrun.add_argument("--output-dir", type=Path, required=True)
+    longrun.add_argument("--train-plan", type=Path, required=True)
+    longrun.add_argument("--validation-plan", type=Path, required=True)
+    longrun.add_argument("--batch-size", type=int, default=64)
+    longrun.add_argument("--seed", type=int, default=0)
+    longrun.add_argument("--num-workers", type=int, default=4)
+    longrun.add_argument("--offline-wandb", action="store_true")
+
     finalize = subparsers.add_parser("finalize", help="publish the pre-autodown cost record")
     finalize.add_argument("--artifact-dir", type=Path, required=True)
     finalize.add_argument("--hf-repo-id", required=True)
+    finalize_local = subparsers.add_parser(
+        "finalize-local",
+        help="print the pre-autodown cost record without external publication",
+    )
+    finalize_local.add_argument("--artifact-dir", type=Path, required=True)
     return parser
 
 
@@ -347,10 +365,30 @@ def main() -> None:
             offline_wandb=args.offline_wandb,
         )
         return
+    if args.command == "causal-longrun":
+        from exp479_mntp.causal_longrun import run_causal_longrun
+
+        run_causal_longrun(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            offline_wandb=args.offline_wandb,
+        )
+        return
     if args.command == "finalize":
         from exp479_mntp.publishing import publish_cost_estimate
 
         publish_cost_estimate(artifact_dir=args.artifact_dir, repo_id=args.hf_repo_id)
+        return
+    if args.command == "finalize-local":
+        from exp479_mntp.publishing import write_cost_estimate
+
+        path = write_cost_estimate(artifact_dir=args.artifact_dir)
+        print(path.read_text(encoding="utf-8"), end="")
         return
 
     train_arm(

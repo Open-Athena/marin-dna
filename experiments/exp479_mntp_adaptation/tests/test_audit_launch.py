@@ -105,3 +105,41 @@ def test_calibration_sky_stage_has_no_learning_rate_sweep() -> None:
     assert "3e-6" not in stage
     assert "1e-5" not in stage
     assert "3e-5" not in stage
+
+
+def test_longrun_launch_forwards_only_wandb_and_self_terminates() -> None:
+    command = launch_command(
+        "longrun",
+        "e" * 40,
+        5678,
+        prior_cost_usd=25.26241970350875,
+        retry_until_up=True,
+    )
+    assert command[4] == "sky/longrun.yaml"
+    assert "EXP479_PRIOR_COST_USD=25.26241970350875" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert not any(value.startswith("HF_REPO_ID=") for value in command)
+    assert "--retry-until-up" in command
+    assert "--down" in command
+
+
+def test_longrun_environment_requires_wandb_but_not_hf(
+    monkeypatch: object,
+) -> None:
+    monkeypatch.delenv("HF_TOKEN", raising=False)  # type: ignore[attr-defined]
+    monkeypatch.setenv("WANDB_API_KEY", "test-wandb")  # type: ignore[attr-defined]
+    environment = execution_environment("longrun")
+    assert environment["WANDB_API_KEY"] == "test-wandb"
+    assert "HF_TOKEN" not in environment
+
+
+def test_longrun_sky_stage_is_one_retained_configuration_without_hf() -> None:
+    stage = Path("sky/longrun.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 causal-longrun") == 1
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "HF_REPO_ID" not in stage
+    assert "causal-longrun-lr1e-5" in stage
+    assert "finalize-local" in stage
