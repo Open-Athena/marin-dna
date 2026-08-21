@@ -1820,3 +1820,15 @@ cohort, assemblies, and downstream training recipe fixed.
   existing GPU-runtime smoke gate before constructing a score DAG. The next
   gate is a remote dry-run on that image, followed by one monitored score cell
   whose logs must show only the direct train parquet path.
+
+### 2026-08-21 01:14 UTC - CSP-054 requested origin/main rebase
+
+- The clean experiment branch was rebased onto `origin/main` commit
+  `ce72fbe3`. All 79 experiment commits replayed without conflicts. The
+  evaluator repair recorded in CSP-053 is now commit
+  `4c4848bbfb225054a6dcc05eb9273ad615696460`; the pre-rebase hash in CSP-053
+  identifies the same patch before history was rewritten.
+- No evaluation output uses either pre-rebase source identity. The generated
+  development-evaluation and chromosome-18 configurations will use the final
+  post-rebase logbook snapshot commit so every output remains tied to source
+  that includes this mapping and the current main guidance.
