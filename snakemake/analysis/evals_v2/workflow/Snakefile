@@ -14,6 +14,7 @@ include: "rules/interpretation.smk"
 include: "rules/embedding_umap.smk"
 include: "rules/ll_gap.smk"
 include: "rules/probe.smk"
+include: "rules/likelihood_dynamics_489.smk"
 
 
 rule all:
