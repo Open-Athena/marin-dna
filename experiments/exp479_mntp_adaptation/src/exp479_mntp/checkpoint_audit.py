@@ -76,10 +76,18 @@ class ModelPoint:
 class StepExportCallback(L.Callback):
     """Save lightweight Hugging Face exports at exact post-update steps."""
 
-    def __init__(self, output_dir: Path, tokenizer: Any, steps: tuple[int, ...]) -> None:
+    def __init__(
+        self,
+        output_dir: Path,
+        tokenizer: Any,
+        steps: tuple[int, ...],
+        *,
+        objective: Objective = "clm",
+    ) -> None:
         self.output_dir = output_dir
         self.tokenizer = tokenizer
         self.steps = frozenset(steps)
+        self.objective = objective
         self.saved: set[int] = set()
 
     def _save(self, trainer: L.Trainer, pl_module: AdaptationModule) -> None:
@@ -91,7 +99,7 @@ class StepExportCallback(L.Callback):
         pl_module.model.save_pretrained(destination, safe_serialization=True)
         self.tokenizer.save_pretrained(destination)
         (destination / "audit-export.json").write_text(
-            json.dumps({"global_step": step, "objective": "clm"}, indent=2) + "\n",
+            json.dumps({"global_step": step, "objective": self.objective}, indent=2) + "\n",
             encoding="utf-8",
         )
         self.saved.add(step)

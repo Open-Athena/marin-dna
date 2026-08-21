@@ -34,7 +34,7 @@ from exp479_mntp.config import (
     WANDB_PROJECT,
     wsd_multiplier,
 )
-from exp479_mntp.data import plan_sha256
+from exp479_mntp.data import Objective, plan_sha256
 from exp479_mntp.datamodule import ExperimentDataModule
 from exp479_mntp.modeling import load_model_bundle
 from exp479_mntp.module import AdaptationModule
@@ -181,9 +181,15 @@ class RetainedStepExportCallback(StepExportCallback):
         tokenizer: Any,
         steps: tuple[int, ...],
         run: Any,
+        *,
+        artifact_prefix: str = LONGRUN_MODEL_ARTIFACT_PREFIX,
+        objective: Objective = "clm",
+        artifact_objective: str = "clm_corrected_repeat_weight",
     ) -> None:
-        super().__init__(output_dir, tokenizer, steps)
+        super().__init__(output_dir, tokenizer, steps, objective=objective)
         self.run = run
+        self.artifact_prefix = artifact_prefix
+        self.artifact_objective = artifact_objective
         self.retained: list[dict[str, int | str | None]] = []
 
     def _save(self, trainer: L.Trainer, pl_module: AdaptationModule) -> None:
@@ -192,11 +198,11 @@ class RetainedStepExportCallback(StepExportCallback):
         for step in sorted(self.saved - before):
             assert_budget_reserve()
             artifact = wandb.Artifact(
-                f"{LONGRUN_MODEL_ARTIFACT_PREFIX}-step-{step:04d}",
+                f"{self.artifact_prefix}-step-{step:04d}",
                 type="model",
                 metadata={
                     "optimizer_step": step,
-                    "objective": "clm_corrected_repeat_weight",
+                    "objective": self.artifact_objective,
                     "format": "hf",
                     "z_loss_weight": SOURCE_Z_LOSS_WEIGHT,
                 },
@@ -307,7 +313,12 @@ def plot_macro_validation(losses: pd.DataFrame, output_path: Path) -> None:
     plt.close(figure)
 
 
-def plot_longrun_stability(trace: pd.DataFrame, output_path: Path) -> None:
+def plot_longrun_stability(
+    trace: pd.DataFrame,
+    output_path: Path,
+    *,
+    title: str = "Corrected-loss AdamW 1e-5 training stability",
+) -> None:
     """Render dense training loss, learning rate, and pre-clipping gradient norm."""
 
     figure, axes = plt.subplots(3, 1, figsize=(6.4, 10), sharex=True, constrained_layout=True)
@@ -355,7 +366,7 @@ def plot_longrun_stability(trace: pd.DataFrame, output_path: Path) -> None:
     for axis in axes:
         axis.grid(alpha=0.25)
         axis.set_box_aspect(1)
-    figure.suptitle("Corrected-loss AdamW 1e-5 training stability")
+    figure.suptitle(title)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path.with_suffix(".svg"), format="svg", bbox_inches="tight")
     figure.savefig(output_path.with_suffix(".png"), dpi=180, bbox_inches="tight")

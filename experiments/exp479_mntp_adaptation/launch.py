@@ -20,6 +20,7 @@ STAGE_CONFIGS = {
     "dependency": "sky/dependency.yaml",
     "calibration": "sky/calibration.yaml",
     "longrun": "sky/longrun.yaml",
+    "mntp-longrun": "sky/mntp-longrun.yaml",
     "loss-normalization": "sky/loss-normalization.yaml",
     "source-validation": "sky/source-validation.yaml",
 }
@@ -38,6 +39,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "dependency",
         "calibration",
         "longrun",
+        "mntp-longrun",
         "loss-normalization",
         "source-validation",
     }
@@ -51,7 +53,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         authentication = netrc.netrc().authenticators("api.wandb.ai")
         if authentication is not None:
             environment["WANDB_API_KEY"] = authentication[2]
-    if stage in {"longrun", "loss-normalization", "source-validation"}:
+    if stage in {"longrun", "mntp-longrun", "loss-normalization", "source-validation"}:
         required = ("WANDB_API_KEY",)
     elif stage in wandb_stages:
         required = ("HF_TOKEN", "WANDB_API_KEY")
@@ -133,7 +135,7 @@ def launch_command(
         if checkpoint_upload_steps:
             steps = " ".join(map(str, checkpoint_upload_steps))
             command.extend(["--env", f"CHECKPOINT_UPLOAD_STEPS={steps}"])
-    if stage in {"longrun", "loss-normalization", "source-validation"}:
+    if stage in {"longrun", "mntp-longrun", "loss-normalization", "source-validation"}:
         command.extend(["--secret", "WANDB_API_KEY"])
     if prior_cost_usd:
         command.extend(["--env", f"EXP479_PRIOR_COST_USD={prior_cost_usd}"])
