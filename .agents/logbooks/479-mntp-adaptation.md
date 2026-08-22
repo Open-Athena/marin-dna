@@ -842,3 +842,12 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost: The failed attempt added `$1.803845571`, bringing cumulative listed cost to `$34.995182571 / $50`.
 - Teardown: The AWS cluster automatically terminated after failure.
 - Issue record: Posted the failure, impact boundary, retained artifact, fix, and relaunch plan at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377826904.
+
+### 2026-08-22 04:23 - Corrected deterministic LoRA replay launched
+
+- Immutable source: Launched tag `exp479-lora-damage-calibrated-v2` at commit `b25d46b39b6d696bafdce09fa1dcb4603750c971` on one AWS `g5.xlarge` A10G.
+- Verification: All 151 locked tests passed on the remote worker before training.
+- Identity: The train plan retained SHA-256 `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91`, the validation plan retained SHA-256 `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`, and the seed remains zero.
+- Change boundary: The optimizer, learning-rate schedule, masking policy, attention schedule, data, and 1,000-step design are unchanged; only post-training evaluation device placement and durable W&B gradient telemetry changed.
+- W&B: The corrected run is https://wandb.ai/gonzalobenegas/marin/runs/tnkdn3v3.
+- Issue record: Posted the corrected replay at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377852127.
