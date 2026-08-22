@@ -672,3 +672,12 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Diagnostics: Record maximum, mean absolute, and mean signed per-target CE differences plus correctness mismatch counts, and log progress after every attention level.
 - Efficiency: Reuse deterministic endpoint scores across the five nominal mask replicates because 0% and 100% masks do not depend on the mask seed.
 - Compute correction: Move the rerun to one AWS `g5.xlarge` A10G spot instance in `us-east-2` at the current Sky quote of approximately `$0.365/hour`; the two-hour bound projects `$33.555113 / $50` cumulative.
+- Boundaries: Still perform zero optimizer steps and no VEP, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion.
+
+### 2026-08-22 01:30 - AWS spot capacity unavailable; use EC2 on-demand
+
+- Provisioning result: AWS returned `InsufficientInstanceCapacity` for `g5.xlarge` spot in all three `us-east-2` availability zones before creating an instance.
+- Cost: No GPU instance was created, so the failed spot provisioning added no compute charge.
+- Cleanup: Cancel the asynchronous Sky retry request before changing resources.
+- Fallback: Keep the same AWS `g5.xlarge` A10G and region but use on-demand capacity at the current `$1.006/hour` quote.
+- Budget: The unchanged two-hour maximum projects `$34.837113 / $50` cumulative.

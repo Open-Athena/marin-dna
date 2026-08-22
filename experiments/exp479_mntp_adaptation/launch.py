@@ -145,7 +145,7 @@ def launch_command(
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
     if stage in {"paired-nucleotide-gate", "attention-anneal-diagnostic", "lora-mntp"}:
-        price = "0.365" if stage == "attention-anneal-diagnostic" else "1.29"
+        price = "1.006" if stage == "attention-anneal-diagnostic" else "1.29"
         command.extend(["--env", f"EXP479_INSTANCE_PRICE_PER_HOUR_USD={price}"])
     if stage in {"pilot", "diagnostics", "audit", "stability", "dependency", "calibration"}:
         command.extend(

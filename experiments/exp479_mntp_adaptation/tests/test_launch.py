@@ -204,7 +204,7 @@ def test_paired_nucleotide_gate_uses_a10_and_wandb_only() -> None:
     assert "mntp-dependency" not in stage
 
 
-def test_attention_anneal_diagnostic_uses_one_a10g_spot_and_no_training() -> None:
+def test_attention_anneal_diagnostic_uses_one_a10g_and_no_training() -> None:
     command = launch_command(
         "attention-anneal-diagnostic",
         "a" * 40,
@@ -219,7 +219,7 @@ def test_attention_anneal_diagnostic_uses_one_a10g_spot_and_no_training() -> Non
         "dna-exp479-anneal-a10",
         "sky/attention-anneal-diagnostic.yaml",
     ]
-    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=0.365" in command
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.006" in command
     assert command.count("--secret") == 1
     assert "WANDB_API_KEY" in command
     assert "HF_TOKEN" not in command
@@ -231,7 +231,7 @@ def test_attention_anneal_diagnostic_uses_one_a10g_spot_and_no_training() -> Non
     assert "cloud: aws" in stage
     assert "region: us-east-2" in stage
     assert "accelerators: A10G:1" in stage
-    assert "use_spot: true" in stage
+    assert "use_spot: false" in stage
     assert "WANDB_API_KEY" in stage
     assert "HF_TOKEN" not in stage
     assert "lora-mntp" not in stage
