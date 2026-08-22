@@ -228,26 +228,30 @@ uv run --locked python launch.py bico-lora-resume \
 
 The corrected causal comparison shows that the conservative BICO LoRA run learned smoothly but remained worse than the causal source at every retained checkpoint.
 Step 1,000 reached CE and accuracy `1.282991/0.409375` versus the corrected causal `1.051000/0.509375`, with confidence-supported harm on both metrics.
-The finite, unclipped trajectory makes insufficient adaptation at the deliberately conservative `1e-5` peak rate the next isolated hypothesis.
+The finite, unclipped trajectory motivated changing only the peak rate from the deliberately conservative `1e-5` to `5e-5`.
 
-The `bico-lora-standard-rate` stage changes only the peak learning rate to `5e-5`, the current [Transformers `TrainingArguments` default](https://github.com/huggingface/transformers/blob/main/src/transformers/training_args.py) and masked-language-model example default.
-It retains rank-16 LoRA, fixed 15% `[PAD]` corruption, reflected future RoPE, the corrected causal hook, seed 0, the same training and validation plan construction, 100 warmup steps, a constant rate through step 800, and decay through step 1,000.
-It uses the measured maximum physical GH200 batch 94 with gradient accumulation fixed at 1.
-Batch 94 is rerun for two exact optimizer steps at `5e-5` before training and must retain at least 10% peak-reserved-memory headroom with finite loss and gradients.
-The first standard-rate preflight passed those numerical and memory checks but was rejected because extrapolating its two cold steps predicted `2.4772` training hours.
-The exact prior batch-94 run instead measured `1,409.48` seconds for its complete 1,000-step training callback, including paired evaluations and checkpoint publication.
-The corrected budget gate uses that same-path sustained runtime plus a conservative `1.25`-hour reserve for the new VEP trajectory, while retaining the `$2` runtime reserve and `$50` cap.
-The training entry point revalidates that exact preflight payload instead of applying a separate coarse elapsed-time ceiling.
+The standard-rate stage completed 1,000 rank-16 LoRA steps with fixed 15% `[PAD]` corruption, reflected future RoPE, seed 0, 100 warmup steps, a constant rate through step 800, and decay through step 1,000.
+It used the measured maximum physical GH200 batch 94 with gradient accumulation 1, exposing 94,000 sequences and 24,064,000 model tokens.
+Its exact preflight retained `10.464203%` peak-reserved-memory headroom with finite loss and gradients.
+The complete locked remote suite passed 223 tests before training.
 
-The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
-It also measures one-pass BICO forward VEP AUPRC at steps 0 and every 100 through 1,000 on the same 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE development variants from odd-numbered autosomes and chromosome X.
-Each labeled dataset loader downloads only its pinned `train.parquet` file; it does not invoke a non-streaming dataset builder that can materialize held-out splits.
-The three exact point AUPRCs are the Mendelian consequence macro, complex-trait global, and SGE accession-consequence macro endpoints.
-Twenty bootstrap replicates provide descriptive trajectory error estimates only and are not used for a formal gate.
-The previously reproduced source CLM FWD+RC endpoints appear only as dashed reference lines; the VEP question is whether AUPRC moves with language-model quality within this run.
+The candidate's paired nucleotide CE/accuracy improved from `1.387224/32.97%` at step 0 to `1.273889/41.09%` at step 1,000.
+Step 900 had the lowest CE at `1.272882`, and step 800 had the highest accuracy at `42.34%`.
+Every retained checkpoint remained confidence-supported worse than the causal source at `1.050770/50.63%`, so the single-pass information gate failed.
+
+The run evaluated one-pass BICO Mendelian VEP AUPRC at step 0 and every 100 steps on the same 16,140 odd-autosome/X development variants.
+The point trajectory moved from `0.104816` at step 0 to `0.111331` at step 100, `0.108776` at step 400, and `0.107966` at step 1,000.
+A post-run paired analysis uses 2,000 seed-0 match-group bootstrap replicates inside each of eight qualifying Mendelian subsets.
+Step 400 differs from step 0 by `+0.003960` with 95% interval `[-0.002557, +0.010476]`.
+Step 1,000 differs by `+0.003150` with interval `[-0.003377, +0.009677]`.
+Every checkpoint interval includes zero, so the run shows no statistically resolved within-run Mendelian improvement or degradation.
+Complex-trait and SGE trajectories remain secondary context and are not used for this Mendelian-focused decision.
+
+Each labeled dataset loader downloaded only its pinned `train.parquet` and did not invoke a builder that could materialize held-out splits.
 All adapter milestones and the final optimizer-bearing checkpoint are stored once under the immutable private prefix `s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1`, with per-object sizes and SHA-256 checksums in a retention manifest.
 The public `gonzalobenegas/marin` W&B namespace owns the dense training metrics, paired nucleotide tables, VEP scores, figures, preflight, stability trace, and evaluation manifest.
-The stage performs no nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
+The final conservative listed-price estimate is `$45.886693 / $50`, and the cluster is confirmed terminated.
+The stage performed no nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
 
 ```bash
 uv run --locked python launch.py bico-lora-standard-rate \

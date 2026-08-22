@@ -1,0 +1,323 @@
+{
+  "backend": "s3",
+  "destination_prefix": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1",
+  "producing_commit": "dacab52c954a59d18f027fda0c39332fcacc1e00",
+  "base_model": "marin-dna/marin-dna-exp135-m5.1",
+  "base_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "configuration": {
+    "batch_size": 94,
+    "rank": 16,
+    "alpha": 16,
+    "dropout": 0.05,
+    "mask_probability": 0.15,
+    "learning_rate": 5e-05,
+    "beta1": 0.9,
+    "beta2": 0.95,
+    "epsilon": 1e-08,
+    "weight_decay": 0.0,
+    "max_grad_norm": 1.0,
+    "warmup_steps": 100,
+    "cooldown_start_step": 800,
+    "train_steps": 1000,
+    "accumulation_steps": 1,
+    "attention_anneal_steps": 1,
+    "microbatch_size": 94,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "attention_schedule": "full_bico_from_step_0",
+    "mask_token": "[PAD]",
+    "masked_key_attention": "excluded_at_every_layer"
+  },
+  "train_plan_sha256": "79a7e73b3ca32a34d0f00c812502f1881bef4162054f8ec3b504540bd33b9261",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "deletion_performed": false,
+  "objects": [
+    {
+      "kind": "peft_adapter",
+      "step": 0,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0000/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 0,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0000/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 0,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0000/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "49f8997800e04d5cd52078ed38ee59593c96efaea3466e213ea63c4978be940f"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 25,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0025/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 25,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0025/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 25,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0025/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "a69d9c8b09894cce394075a2a3b7e8c47d77028c649708be49de17d5eff0ffe3"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 50,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0050/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 50,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0050/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 50,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0050/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "3682a3bbf26d0340d848f8fa245ebb26fd03107e416c5b53fb39f4e650d53faf"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 100,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0100/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 100,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0100/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 100,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0100/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "36fd61154cb20e0da1194c02722aa80259019248feaeecd997a7d3cb2452ea0a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 200,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0200/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 200,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0200/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 200,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0200/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "d8db435d3eed587b5780e7a9678fac5dd17000aac92f7c7329db8d5a19b9f44a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 300,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0300/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 300,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0300/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 300,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0300/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "5f962c2787d9dff57148700acc4ad2fded913983322e60823d9d692755a4bc7f"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 400,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0400/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 400,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0400/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 400,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0400/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "1e9b7ea3a9dd90a71eb64301416abdcfdc5b5e03e31c629df1e5353e86fdeef7"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 500,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0500/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 500,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0500/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 500,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0500/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "078bb84dec047ef2dc604f6b85c031fee11a184c5ab07b1ffb5f4ee8ad16110e"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 600,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0600/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 600,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0600/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 600,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0600/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "639d2d65cbeaacf8bd901c45080616e03a5e1473e98ee5c4405e7d5de9278977"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 700,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0700/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 700,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0700/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 700,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0700/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "dd4d8d9bb714a73be4ceca5aae92ae0a0d3d764a704f57d275bb4d000af3d43a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 800,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0800/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 800,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0800/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 800,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0800/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "d1bcf1ecca1b2db206b0aab9757ae18cf4eec257d26928dbc3d576e7646455e8"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 900,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0900/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 900,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0900/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 900,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-0900/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "f4cb0b2f0dc570da84cb5e3c68d6d8b19518714372616b016dda8889e9fef45b"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 1000,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-1000/README.md",
+      "size_bytes": 5186,
+      "sha256": "bd4f27f7a7343d1561ef16259164efd455532c64a9c1340e53986a28c1bdd40a"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 1000,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-1000/adapter_config.json",
+      "size_bytes": 1213,
+      "sha256": "6b3dcc4b238b2452d5ac9534dba01ae568a1e7fdb0f33e413e89dc106aad133d"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 1000,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/adapters/step-1000/adapter_model.safetensors",
+      "size_bytes": 53733848,
+      "sha256": "03cf57185152fe038b607ffbf96130d05ad83b6a4ac093077f6f0b8855339249"
+    },
+    {
+      "kind": "adapter_optimizer_checkpoint",
+      "step": 1000,
+      "s3_uri": "s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1/checkpoints/step-1000-optimizer/step-1000-adapter-optimizer.pt",
+      "size_bytes": 161431789,
+      "sha256": "95c5aa62353dd9f2fec923e6efbd6312c95587110eb160db83792a5dc35d3b23"
+    }
+  ]
+}

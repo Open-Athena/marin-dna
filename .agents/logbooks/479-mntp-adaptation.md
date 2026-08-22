@@ -27,6 +27,10 @@ The full 49,152-row audit reproduces the original nine-metric W&B macro as 0.861
 Every checkpoint remains retained in W&B, and knowledge-base interpretation remains paused.
 The corrected 1,000-step causal replacement reports five-component macro validation CE of 0.769008732 at source and 0.773670488 at step 1,000.
 Its training and gradient traces are finite, all 13 corrected checkpoints are retained, and the knowledge-base interpretation remains paused.
+The standard-rate rank-16 BICO LoRA run completed 1,000 steps at physical batch 94 and improved paired nucleotide CE/accuracy from `1.387224/32.97%` to `1.273889/41.09%`.
+It still failed the single-pass information gate against the causal source at `1.050770/50.63%`.
+Mendelian macro AUPRC did not show a statistically resolved within-run change: step 400 was `0.108776`, or `+0.003960` from step 0 with paired 95% interval `[-0.002557, +0.010476]`.
+All ten paired checkpoint intervals versus step 0 include zero.
 
 ## Current baseline
 
@@ -34,14 +38,14 @@ Its training and gradient traces are finite, all 13 corrected checkpoints are re
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- Completed experiment list-price estimate: $28.3080 of the $50 cap; final cluster confirmed terminated.
+- Conservative completed experiment list-price estimate: `$45.886693 / $50`; the final cluster is confirmed terminated.
 - Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
 
 ### Active
 
-- No further compute is selected while the corrected causal result awaits human review.
+- Interpret the completed standard-rate BICO LoRA nucleotide and Mendelian trajectories without selecting another paid run yet.
 
 ### Blocked
 
@@ -89,6 +93,8 @@ Its training and gradient traces are finite, all 13 corrected checkpoints are re
 - The completed AdamW `1e-6` and `1e-5` controls optimized the invalid count-normalized objective and are not faithful causal-continuation controls.
 - All prior exp479 absolute losses are invalid for comparison with the source W&B run; their denominator lowers the scale in proportion to each panel's uppercase/lowercase composition.
 - The corrected AdamW `1e-5` replacement increased five-component macro validation CE from `0.769008732` at source to `0.773670488` at step 1,000 despite finite training and gradients.
+- Standard-rate BICO LoRA at `5e-5` improved its own full-attention nucleotide trajectory but remained worse than the causal source and the two-pass information control.
+- Mendelian macro AUPRC has no confidence-supported change from the same run's step-0 value at any evaluated checkpoint.
 
 ## Background research brief
 
@@ -1327,3 +1333,38 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost: The failed instance recorded `$0.340412`, moving the conservative listed-price total to `$43.136246 / $50`.
 - Relaunch: Rerun static checks, snapshot v6, require the complete remote suite and exact preflight again, and then verify that only pinned train parquet files are downloaded before training.
 - Boundaries: Do not access held-out labels, delete a checkpoint, upload to Hugging Face, run nucleotide dependency, or update the knowledge base.
+
+### 2026-08-22 18:16 - Standard-rate BICO LoRA completed
+
+- Immutable source: Commit `dacab52c954a59d18f027fda0c39332fcacc1e00`, tagged `exp479-bico-lora-standard-rate-prelaunch-v6`.
+- Public run: [W&B s6y7ef4j](https://wandb.ai/gonzalobenegas/marin/runs/s6y7ef4j) finished successfully.
+- Verification: All `223` locked tests passed remotely in `24.30` seconds before training.
+- Preflight: Two exact batch-94 steps at `5e-5` had finite loss and gradients, `10.464203%` peak-reserved-memory headroom, and projected `$47.287793 / $50` below the `$48` runtime guard.
+- Data boundary: Only each pinned odd/X `train.parquet` was downloaded, and no held-out split was opened or generated.
+- Exposure: The run completed 1,000 optimizer steps over 94,000 sequences, 24,064,000 model tokens, and 3,597,607 supervised masked targets with accumulation 1.
+- Optimization: Rank-16 LoRA trained 13,424,640 parameters at `5e-5` with 100 warmup steps, a constant rate through step 800, and decay through step 1,000.
+- Stability: Every recorded loss and gradient was finite, the final pre-clipping gradient norm was `0.1216`, and no observed step clipped at norm 1.0.
+- Paired nucleotide result: Full-attention CE/accuracy improved from `1.387224/32.97%` at step 0 to `1.273889/41.09%` at step 1,000.
+- Best retained nucleotide points: Step 900 had minimum CE `1.272882`, and step 800 had maximum accuracy `42.34%`.
+- Information gate: The candidate remained worse than the causal source `1.050770/50.63%` and the symmetric two-pass information control `0.913447/62.50%`.
+- VEP trajectory: Mendelian macro AUPRC was `0.104816` at step 0, peaked at `0.111331` at step 100, was `0.108776` at step 400, and ended at `0.107966`.
+- Retention: Adapter steps 0, 25, 50, 100, every 100 through 1,000, and the final optimizer/scheduler/RNG checkpoint remain in `s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1` with SHA-256 metadata.
+- Public evidence: W&B artifact `gonzalobenegas/marin/dna-exp479-bico-lora-r16-lr5e-5-information-gate:v0` has digest `6a4ca1394d03563ece0d67d543aab3bc`.
+- Runtime: The training callback took `3,370.809` seconds at 7,138.94 model tokens per second.
+- Cost: The final trap recorded a conservative cumulative listed-price estimate of `$45.886693 / $50`.
+- Teardown: The Lambda cluster autodowned and was confirmed absent.
+- Boundaries: No nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, held-out label access, or research knowledge-base update occurred.
+
+### 2026-08-22 18:31 - Mendelian within-run changes are unresolved
+
+- User decision: Focus the within-run VEP interpretation on Mendelian and treat the step-400 value `0.108776` as within noise unless paired uncertainty shows otherwise.
+- Method: Reuse identical odd-autosome/X rows and compare every checkpoint with step 0 using 2,000 seed-0 match-group bootstrap replicates inside each qualifying Mendelian subset.
+- Aggregation: Eight subsets with at least 30 match groups contribute 16,100 rows to the registered consequence macro.
+- Step 100: Delta AUPRC is `+0.006515` with 95% interval `[-0.000809, +0.013839]`.
+- Step 400: Delta AUPRC is `+0.003960` with 95% interval `[-0.002557, +0.010476]`.
+- Step 1,000: Delta AUPRC is `+0.003150` with 95% interval `[-0.003377, +0.009677]`.
+- Result: Every paired checkpoint interval includes zero, so the run provides no statistically resolved Mendelian improvement or degradation.
+- Implementation: Replace literal bootstrap row duplication with mathematically equivalent group-multiplicity sample weights and test exact parity against literal resampling.
+- Local execution: The exact sorted-order bounded analysis completed in `5:41.25`, peaked at `263,472` KiB RSS, and passed four focused tests under the shared-node lock.
+- Evidence: Compact results and the Mendelian-only figure are in `.agents/artifacts/479-mntp-adaptation/bico-lora-standard-rate-v6/`.
+- Boundaries: The analysis reused retained odd/X scores, incurred no cloud charge, and performed no inference, training, held-out access, nucleotide dependency, checkpoint mutation, Hugging Face upload, or knowledge-base update.

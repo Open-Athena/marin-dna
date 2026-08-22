@@ -276,17 +276,20 @@ def paired_ap_delta(
         raise ValueError("paired VEP inputs have different lengths")
     if not np.isfinite(first).all() or not np.isfinite(second).all():
         raise ValueError("paired VEP scores must be finite")
-    group_rows = list(pd.Series(group).groupby(group).indices.values())
+    group_codes, unique_groups = pd.factorize(group, sort=True)
+    n_groups = len(unique_groups)
     rng = np.random.default_rng(seed)
     bootstrap = np.empty(n_bootstrap, dtype=float)
     for index in range(n_bootstrap):
-        sampled = rng.integers(0, len(group_rows), size=len(group_rows))
-        rows = np.concatenate([group_rows[value] for value in sampled])
-        sampled_y = y[rows]
+        sampled = rng.integers(0, n_groups, size=n_groups)
+        group_weights = np.bincount(sampled, minlength=n_groups)
+        sample_weight = group_weights[group_codes]
+        sampled_positive = int(np.dot(sample_weight, y))
+        sampled_rows = int(sample_weight.sum())
         bootstrap[index] = (
-            average_precision_score(sampled_y, first[rows])
-            - average_precision_score(sampled_y, second[rows])
-            if 0 < sampled_y.sum() < len(sampled_y)
+            average_precision_score(y, first, sample_weight=sample_weight)
+            - average_precision_score(y, second, sample_weight=sample_weight)
+            if 0 < sampled_positive < sampled_rows
             else np.nan
         )
     point = float(average_precision_score(y, first) - average_precision_score(y, second))
@@ -296,6 +299,6 @@ def paired_ap_delta(
         "se": float(np.nanstd(bootstrap, ddof=1)),
         "ci_low": float(low),
         "ci_high": float(high),
-        "n_groups": len(group_rows),
+        "n_groups": n_groups,
         "n_rows": len(y),
     }

@@ -1,0 +1,8 @@
+{
+  "prior_cost_usd": 43.13624612840717,
+  "price_per_hour_usd": 2.29,
+  "projected_total_usd": 47.28779283725778,
+  "projection_basis": "observed 1,000-step runtime from gonzalobenegas/marin/t37n0upf",
+  "budget_guard_total_usd": 48.0,
+  "budget_cap_usd": 50.0
+}
