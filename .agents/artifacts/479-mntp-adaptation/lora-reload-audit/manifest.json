@@ -1,0 +1,99 @@
+{
+  "status": "completed",
+  "passed": true,
+  "final_adapter_artifact": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-1000:step-1000",
+  "final_adapter_artifact_id": "QXJ0aWZhY3Q6MzM3MjYzMDc1OA==",
+  "final_evaluation_artifact": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-information-gate:step-1000",
+  "final_evaluation_artifact_id": "QXJ0aWZhY3Q6MzM3MjYzNjYyMw==",
+  "checks": {
+    "adapter_serialization": {
+      "passed": true,
+      "n_targets": 640,
+      "ce_tolerance": 1e-06,
+      "nucleotide_ce_maximum_absolute_delta": 4.440892098500626e-16,
+      "nucleotide_ce_mean_absolute_delta": 4.2457357074532356e-17,
+      "nucleotide_correctness_mismatches": 0,
+      "full_vocab_ce_maximum_absolute_delta": 4.440892098500626e-16,
+      "full_vocab_ce_mean_absolute_delta": 4.302114220422482e-17,
+      "full_vocab_correctness_mismatches": 0
+    },
+    "frozen_source_serialization": {
+      "passed": true,
+      "n_targets": 640,
+      "ce_tolerance": 1e-06,
+      "nucleotide_ce_maximum_absolute_delta": 4.440892098500626e-16,
+      "nucleotide_ce_mean_absolute_delta": 3.958540716357192e-17,
+      "nucleotide_correctness_mismatches": 0,
+      "full_vocab_ce_maximum_absolute_delta": 4.440892098500626e-16,
+      "full_vocab_ce_mean_absolute_delta": 3.682653615106994e-17,
+      "full_vocab_correctness_mismatches": 0
+    },
+    "math_attention_encoding": {
+      "passed": true,
+      "n_targets": 640,
+      "ce_tolerance": 0.002,
+      "nucleotide_ce_maximum_absolute_delta": 0.0,
+      "nucleotide_ce_mean_absolute_delta": 0.0,
+      "nucleotide_correctness_mismatches": 0,
+      "full_vocab_ce_maximum_absolute_delta": 0.0,
+      "full_vocab_ce_mean_absolute_delta": 0.0,
+      "full_vocab_correctness_mismatches": 0
+    }
+  },
+  "source_tokenizer_contract": {
+    "vocab_size": 7,
+    "pad_token_id": 0,
+    "unk_token_id": 1,
+    "bos_token_id": 2,
+    "eos_token_id": null,
+    "all_special_ids": [
+      0,
+      1,
+      2
+    ]
+  },
+  "reloaded_adapter_contract": {
+    "rank": 16,
+    "alpha": 16,
+    "dropout": 0.05,
+    "bias": "none",
+    "target_modules": [
+      "down_proj",
+      "gate_proj",
+      "k_proj",
+      "o_proj",
+      "q_proj",
+      "up_proj",
+      "v_proj"
+    ],
+    "modules_to_save": null,
+    "trainable_parameter_names": []
+  },
+  "adapter_artifact_metadata": {
+    "format": "peft_adapter",
+    "base_model": "marin-dna/marin-dna-exp135-m5.1",
+    "mask_token": "[UNK]",
+    "base_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+    "optimizer_step": 1000
+  },
+  "retained_final_adapter": {
+    "kind": "peft_adapter",
+    "step": 1000,
+    "artifact_id": "QXJ0aWZhY3Q6MzM3MjYzMDc1OA==",
+    "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-1000:v1",
+    "artifact_version": "v1",
+    "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-1000:v1"
+  },
+  "numeric_controls": {
+    "cublas_workspace_config": ":4096:8",
+    "float32_matmul_precision": "high",
+    "cudnn_benchmark": false,
+    "deterministic_algorithms": true
+  },
+  "elapsed_seconds": 111.97280550003052,
+  "checkpoint_deletion": "not performed",
+  "hugging_face_upload": "not performed",
+  "vep_evaluation": "not performed",
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed"
+}
