@@ -1,8 +1,10 @@
 name: dna-exp479-source-attention-annealing-diagnostic
 
 resources:
-  cloud: lambda
-  accelerators: A10:1
+  cloud: aws
+  region: us-east-2
+  accelerators: A10G:1
+  use_spot: true
   disk_size: 32
 
 setup: |

@@ -3,7 +3,10 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from exp479_mntp.attention_anneal_diagnostic import summarize_annealing
+from exp479_mntp.attention_anneal_diagnostic import (
+    _endpoint_delta,
+    summarize_annealing,
+)
 
 
 def _scores() -> pd.DataFrame:
@@ -47,3 +50,25 @@ def test_annealing_summary_rejects_incomplete_target_panel() -> None:
     scores = scores.drop(index=scores.index[-1])
     with pytest.raises(RuntimeError, match="incomplete target panels"):
         summarize_annealing(scores)
+
+
+def test_endpoint_delta_reports_loss_and_prediction_disagreement() -> None:
+    standard = pd.DataFrame(
+        {
+            "sample_id": [0, 1],
+            "target_nucleotide_index": [3, 4],
+            "nucleotide_ce": [1.0, 2.0],
+            "nucleotide_correct": [1.0, 0.0],
+        }
+    )
+    custom = standard.copy()
+    custom["nucleotide_ce"] = [1.1, 1.8]
+    custom["nucleotide_correct"] = [1.0, 1.0]
+
+    delta = _endpoint_delta(custom, standard)
+
+    assert delta["maximum_absolute_nucleotide_ce_delta"] == pytest.approx(0.2)
+    assert delta["mean_absolute_nucleotide_ce_delta"] == pytest.approx(0.15)
+    assert delta["mean_signed_nucleotide_ce_delta"] == pytest.approx(-0.05)
+    assert delta["nucleotide_prediction_mismatches"] == 1
+    assert delta["nucleotide_predictions_identical"] is False

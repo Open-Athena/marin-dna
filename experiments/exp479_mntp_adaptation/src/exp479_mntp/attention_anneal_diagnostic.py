@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 import wandb
+from torch.nn.attention import SDPBackend, sdpa_kernel
 
 from exp479_mntp.config import BUDGET_USD, EXPERIMENT_TAGS, MODEL_REVISION, WANDB_PROJECT
 from exp479_mntp.data import plan_sha256
@@ -227,14 +228,21 @@ def _endpoint_delta(
     ce_delta = np.abs(
         paired["nucleotide_ce_custom"].to_numpy() - paired["nucleotide_ce_standard"].to_numpy()
     )
+    signed_ce_delta = (
+        paired["nucleotide_ce_custom"].to_numpy() - paired["nucleotide_ce_standard"].to_numpy()
+    )
+    prediction_mismatches = int(
+        np.count_nonzero(
+            paired["nucleotide_correct_custom"].to_numpy()
+            != paired["nucleotide_correct_standard"].to_numpy()
+        )
+    )
     return {
         "maximum_absolute_nucleotide_ce_delta": float(ce_delta.max()),
-        "nucleotide_predictions_identical": bool(
-            np.array_equal(
-                paired["nucleotide_correct_custom"].to_numpy(),
-                paired["nucleotide_correct_standard"].to_numpy(),
-            )
-        ),
+        "mean_absolute_nucleotide_ce_delta": float(ce_delta.mean()),
+        "mean_signed_nucleotide_ce_delta": float(signed_ce_delta.mean()),
+        "nucleotide_prediction_mismatches": prediction_mismatches,
+        "nucleotide_predictions_identical": prediction_mismatches == 0,
     }
 
 
@@ -301,73 +309,96 @@ def run_attention_anneal_diagnostic(
             input_output_tied=loaded.input_output_tied,
         )
         source.model.to(device="cuda", dtype=torch.bfloat16).eval()
-        standard_causal = evaluate_readout(
-            source,
-            validation_plan=validation_plan,
-            batch_size=batch_size,
-            readout="standard_causal",
-            attention_mode="causal",
-        )
-        standard_full = evaluate_readout(
-            source,
-            validation_plan=validation_plan,
-            batch_size=batch_size,
-            readout="standard_full",
-            attention_mode="full",
-        )
 
-        frames: list[pd.DataFrame] = []
-        for probability_index, probability in enumerate(ATTENTION_PROBABILITIES):
-            for replicate in range(ATTENTION_MASK_REPLICATES):
+        def evaluate_custom(
+            bundle: ModelBundle, probability_index: int, replicate: int
+        ) -> pd.DataFrame:
+            probability = ATTENTION_PROBABILITIES[probability_index]
 
-                def transform(
-                    token_mask: torch.Tensor,
-                    sample_ids: torch.Tensor,
-                    *,
-                    selected_probability: float = probability,
-                    selected_replicate: int = replicate,
-                ) -> torch.Tensor:
-                    return annealed_attention_mask(
-                        token_mask,
-                        future_edge_probability=selected_probability,
-                        seed=sample_seed(
-                            selected_replicate,
-                            int(sample_ids[0]),
-                            stream=4,
-                        ),
-                        dtype=torch.bfloat16,
-                    )
-
-                frame = evaluate_readout(
-                    source,
-                    validation_plan=validation_plan,
-                    batch_size=batch_size,
-                    readout=_readout_name(probability_index, replicate),
-                    attention_mode="full",
-                    attention_mask_transform=transform,
+            def transform(
+                token_mask: torch.Tensor,
+                sample_ids: torch.Tensor,
+            ) -> torch.Tensor:
+                return annealed_attention_mask(
+                    token_mask,
+                    future_edge_probability=probability,
+                    seed=sample_seed(replicate, int(sample_ids[0]), stream=4),
+                    dtype=torch.bfloat16,
                 )
-                frame["future_edge_probability"] = probability
-                frame["mask_replicate"] = replicate
-                frames.append(frame)
-        scores = pd.concat(frames, ignore_index=True)
-        replicate_summary, trajectory, target_means = summarize_annealing(scores)
 
-        first_custom = scores[
-            (scores["future_edge_probability"] == 0.0) & (scores["mask_replicate"] == 0)
-        ]
-        last_custom = scores[
-            (scores["future_edge_probability"] == 1.0) & (scores["mask_replicate"] == 0)
-        ]
+            frame = evaluate_readout(
+                bundle,
+                validation_plan=validation_plan,
+                batch_size=batch_size,
+                readout=_readout_name(probability_index, replicate),
+                attention_mode="full",
+                attention_mask_transform=transform,
+            )
+            frame["future_edge_probability"] = probability
+            frame["mask_replicate"] = replicate
+            return frame
+
+        with sdpa_kernel(SDPBackend.MATH):
+            standard_causal = evaluate_readout(
+                source,
+                validation_plan=validation_plan,
+                batch_size=batch_size,
+                readout="standard_causal",
+                attention_mode="causal",
+            )
+            standard_full = evaluate_readout(
+                source,
+                validation_plan=validation_plan,
+                batch_size=batch_size,
+                readout="standard_full",
+                attention_mode="full",
+            )
+            first_custom = evaluate_custom(source, 0, 0)
+            last_custom = evaluate_custom(source, len(ATTENTION_PROBABILITIES) - 1, 0)
         endpoint_checks = {
             "causal": _endpoint_delta(first_custom, standard_causal),
             "full": _endpoint_delta(last_custom, standard_full),
         }
+        endpoint_checks_path = output_dir / "attention-annealing-endpoint-checks.json"
+        endpoint_checks_path.write_text(
+            json.dumps(endpoint_checks, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        run.log(
+            {
+                f"endpoint/{mode}/{metric}": value
+                for mode, check in endpoint_checks.items()
+                for metric, value in check.items()
+            }
+        )
         if not all(
             bool(check["nucleotide_predictions_identical"])
             and float(check["maximum_absolute_nucleotide_ce_delta"]) < 0.002
             for check in endpoint_checks.values()
         ):
             raise RuntimeError(f"custom attention endpoints fail parity: {endpoint_checks}")
+
+        frames: list[pd.DataFrame] = []
+        for probability_index, probability in enumerate(ATTENTION_PROBABILITIES):
+            if probability in (0.0, 1.0):
+                endpoint = first_custom if probability == 0.0 else last_custom
+                for replicate in range(ATTENTION_MASK_REPLICATES):
+                    frame = endpoint.copy()
+                    frame["readout"] = _readout_name(probability_index, replicate)
+                    frame["mask_replicate"] = replicate
+                    frames.append(frame)
+            else:
+                with sdpa_kernel(SDPBackend.MATH):
+                    for replicate in range(ATTENTION_MASK_REPLICATES):
+                        frames.append(evaluate_custom(source, probability_index, replicate))
+            print(
+                f"completed future-edge probability {probability:g} "
+                f"({probability_index + 1}/{len(ATTENTION_PROBABILITIES)})",
+                flush=True,
+            )
+            run.log({"progress/future_edge_probability": probability})
+        scores = pd.concat(frames, ignore_index=True)
+        replicate_summary, trajectory, target_means = summarize_annealing(scores)
 
         probabilities = list(ATTENTION_PROBABILITIES)
         baseline = _mean_readout_name(0)
@@ -450,6 +481,7 @@ def run_attention_anneal_diagnostic(
             target_means_path,
             comparisons_path,
             interpretation_path,
+            endpoint_checks_path,
             manifest_path,
             figure_path.with_suffix(".svg"),
         ):

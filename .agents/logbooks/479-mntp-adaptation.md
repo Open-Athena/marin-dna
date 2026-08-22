@@ -656,3 +656,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Sequential decision: Pause the LoRA launch until this no-training curve is complete and inspected.
 - Compute: Run the complete locked suite and then this source-only diagnostic on one self-terminating Lambda A10 at `$1.29/hour`; a two-hour bound projects at most `$35.053494 / $50` cumulative.
 - Boundaries: Do not train, evaluate VEP, run nucleotide dependency, update the knowledge base, upload to Hugging Face, or delete any checkpoint.
+
+### 2026-08-22 01:25 - First attention-annealing attempt rejected by endpoint audit
+
+- Launch snapshot: `561c0a1fddefb903566f8e80cbdcfa8282f03309`.
+- Verification: All 139 locked tests passed on the Lambda A10 before model loading.
+- W&B: [Run 5yobgefq](https://wandb.ai/gonzalobenegas/marin/runs/5yobgefq).
+- Audit failure: The stochastic 4D-mask path and Transformers' optimized standard paths were not sufficiently numerically equivalent in BF16 to satisfy the preregistered endpoint parity gate.
+- Causal control: The 640 nucleotide correctness values were identical, but maximum absolute per-target four-way CE difference was `0.0859375`, above the registered `0.002` threshold.
+- Full control: Maximum absolute per-target four-way CE difference was `0.03125`, and at least one correctness value differed.
+- Disposition: Reject the completed sweep before aggregation or interpretation; these outputs do not answer whether degradation is gradual.
+- Cost: Automatic teardown recorded `0.272573` instance-hours and `$0.351619`, bringing the cumulative listed-price estimate to `$32.825113 / $50`.
+- Corrected numerical control: Force both standard endpoints and every stochastic level through PyTorch's math SDPA backend while retaining BF16 model weights.
+- Fail-fast order: Evaluate and persist endpoint checks before any intermediate attention levels, retaining the unchanged exact-correctness and maximum-CE parity criteria.
+- Diagnostics: Record maximum, mean absolute, and mean signed per-target CE differences plus correctness mismatch counts, and log progress after every attention level.
+- Efficiency: Reuse deterministic endpoint scores across the five nominal mask replicates because 0% and 100% masks do not depend on the mask seed.
+- Compute correction: Move the rerun to one AWS `g5.xlarge` A10G spot instance in `us-east-2` at the current Sky quote of approximately `$0.365/hour`; the two-hour bound projects `$33.555113 / $50` cumulative.
