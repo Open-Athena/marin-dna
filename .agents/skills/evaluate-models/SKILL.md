@@ -15,6 +15,16 @@ Apply these rules before computing aggregates or choosing tables and plots.
 - Apply this restriction to labeled VEP data only.
   Unlabeled reference sequence and functional-genomics data remain available unless their dataset defines a stricter split.
 
+## Register evals_v2 Models
+
+- Before evaluating a model through `snakemake/analysis/evals_v2`, ensure it has an additive entry under `models:` in `snakemake/analysis/evals_v2/config/config.yaml`.
+  Do not rename, repurpose, or replace an existing model entry.
+- Submit each new registration in a small PR before running the evaluation.
+  Record the canonical model ID in `name`, the exact checkpoint path, `window_size`, and `datasets` scope so future work can discover and reuse existing model-dataset results instead of registering aliases or recomputing them.
+- Check the registry and canonical outputs before adding a model or running a model-dataset cell.
+- Keep evals_v2 outputs in the workflow's fixed `s3://oa-bolinas/snakemake/analysis/evals_v2/results/` layout, including `scores/{model}/{dataset}.parquet` and `metrics/{model}/{dataset}.parquet`.
+  Do not wrap these outputs in commit-keyed or issue-specific score namespaces.
+
 ## Prepare The Evaluation Frame
 
 1. Remove mature miRNA before computing any metric, aggregate, macro average, global score, table, or plot.
