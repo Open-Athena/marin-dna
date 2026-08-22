@@ -56,6 +56,7 @@ def test_observed_budget_projection_uses_completed_arm_runtime(
     runtime.write_text('{"elapsed_seconds": 1080, "executed_steps": 300}\n', encoding="utf-8")
     monkeypatch.setenv("EXP479_INSTANCE_START_UNIX", "0")
     monkeypatch.setattr("exp479_mntp.pilot.time.time", lambda: 3600.0)
+    monkeypatch.delenv("EXP479_PRIOR_COST_USD", raising=False)
     projection = assert_observed_budget_projection(tmp_path)
     assert projection is not None
     assert projection["projected_remaining_training_hours"] == 2.2

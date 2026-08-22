@@ -681,3 +681,13 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cleanup: Cancel the asynchronous Sky retry request before changing resources.
 - Fallback: Keep the same AWS `g5.xlarge` A10G and region but use on-demand capacity at the current `$1.006/hour` quote.
 - Budget: The unchanged two-hour maximum projects `$34.837113 / $50` cumulative.
+
+### 2026-08-22 01:34 - Real cost environment exposed a test-isolation bug
+
+- Launch snapshot: `e911dc751a945a245cfeb14419464341c7dd631e`.
+- Verification result: 139 of 140 locked tests passed before model loading.
+- Failure: `test_observed_budget_projection_uses_completed_arm_runtime` inherited the launch's real `EXP479_PRIOR_COST_USD=32.825113` instead of testing its documented zero-cost default.
+- Threshold effect: The inherited cost raised the synthetic projection to `$50.15`, so a fixture that previously passed only because the cumulative issue cost was lower now failed.
+- Disposition: This is a unit-test environment-isolation failure; no model was loaded and no attention result was produced.
+- Fix: Explicitly remove `EXP479_PRIOR_COST_USD` within that test before asserting the zero-prior default behavior.
+- Cost: Automatic teardown recorded `0.047294` instance-hours and `$0.047578`, bringing the cumulative listed-price estimate to `$32.872691 / $50`.
