@@ -232,6 +232,7 @@ def test_attention_anneal_diagnostic_uses_one_a10g_and_no_training() -> None:
     assert "region: us-east-2" in stage
     assert "accelerators: A10G:1" in stage
     assert "use_spot: false" in stage
+    assert "disk_size: 80" in stage
     assert "WANDB_API_KEY" in stage
     assert "HF_TOKEN" not in stage
     assert "lora-mntp" not in stage
