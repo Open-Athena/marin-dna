@@ -70,7 +70,6 @@ from exp479_mntp.vep import DATASETS
 BICO_LORA_MASK_PROBABILITY = 0.15
 BICO_LORA_LEARNING_RATE = 1e-5
 BICO_LORA_STANDARD_LEARNING_RATE = 5e-5
-BICO_LORA_MAX_INSTANCE_HOURS = 3.3
 BICO_LORA_MEMORY_HEADROOM = 0.10
 BICO_LORA_BUDGET_RESERVE_USD = 2.0
 BICO_LORA_EVALUATION_RESERVE_HOURS = 1.25
@@ -457,6 +456,26 @@ def projected_bico_base_run_hours(
     return cold_seconds_per_step * 1_000 / 3_600, "two-cold-step extrapolation"
 
 
+def validated_bico_preflight_budget(preflight_payload: dict[str, object]) -> float:
+    """Require the exact-path preflight to remain below the runtime guard."""
+
+    try:
+        projected_total = float(preflight_payload["projected_total_cost_usd"])
+        recorded_guard = float(preflight_payload["budget_guard_total_usd"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise RuntimeError("BICO LoRA preflight lacks a numeric budget projection") from error
+    expected_guard = BUDGET_USD - BICO_LORA_BUDGET_RESERVE_USD
+    if preflight_payload.get("budget_passed") is not True:
+        raise RuntimeError("BICO LoRA preflight did not pass its budget gate")
+    if not math.isfinite(projected_total) or not math.isfinite(recorded_guard):
+        raise RuntimeError("BICO LoRA preflight budget projection is non-finite")
+    if not math.isclose(recorded_guard, expected_guard):
+        raise RuntimeError("BICO LoRA preflight used a different runtime guard")
+    if projected_total >= recorded_guard:
+        raise RuntimeError("BICO LoRA preflight projection reaches the runtime guard")
+    return projected_total
+
+
 def run_bico_lora_preflight(
     *,
     batch_size: int,
@@ -639,10 +658,9 @@ def run_bico_lora_mntp(
         raise RuntimeError("selected BICO LoRA preflight records a different batch")
     if float(preflight_payload.get("learning_rate", float("nan"))) != learning_rate:
         raise RuntimeError("selected BICO LoRA preflight records a different learning rate")
+    projected_total = validated_bico_preflight_budget(preflight_payload)
     price = float(os.getenv("EXP479_INSTANCE_PRICE_PER_HOUR_USD", "2.29"))
     prior_cost = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
-    if prior_cost + BICO_LORA_MAX_INSTANCE_HOURS * price >= BUDGET_USD:
-        raise RuntimeError("BICO LoRA projection reaches the issue budget cap")
     assert_budget_reserve()
     output_dir.mkdir(parents=True, exist_ok=True)
     budget_path = output_dir / "prelaunch-budget.json"
@@ -650,9 +668,10 @@ def run_bico_lora_mntp(
         json.dumps(
             {
                 "prior_cost_usd": prior_cost,
-                "maximum_instance_hours": BICO_LORA_MAX_INSTANCE_HOURS,
                 "price_per_hour_usd": price,
-                "projected_total_usd": prior_cost + BICO_LORA_MAX_INSTANCE_HOURS * price,
+                "projected_total_usd": projected_total,
+                "projection_basis": preflight_payload["budget_projection_basis"],
+                "budget_guard_total_usd": BUDGET_USD - BICO_LORA_BUDGET_RESERVE_USD,
                 "budget_cap_usd": BUDGET_USD,
             },
             indent=2,

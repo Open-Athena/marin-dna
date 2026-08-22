@@ -1311,3 +1311,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost: Conservatively charge through the cancellation timestamp, adding `$0.396933` and moving the listed-price total to `$42.795834 / $50`.
 - Relaunch: Run local static checks, snapshot v5, rerun the complete remote suite and exact preflight, and require logs to show no held-out split generation before training.
 - Boundaries: Do not accept any VEP score from the canceled run, access held-out metrics, delete a checkpoint, upload to Hugging Face, run nucleotide dependency, or update the knowledge base.
+
+### 2026-08-22 16:58 - Remove a stale second budget projection
+
+- Snapshot: Commit `5a10ce22d10bf76c645a1f3b63739b0db826a65b`, tag `exp479-bico-lora-standard-rate-prelaunch-v5`.
+- Verification: All 220 locked tests passed in `22.65` seconds, including the direct `train.parquet` regression.
+- Preflight: Batch 94 at `5e-5` again had finite loss and gradients, `10.464203%` memory headroom, and an exact-path projected total of `$46.838714 / $50` below the `$48` runtime guard.
+- Data identity: The full 94,000-row training-plan SHA-256 was `79a7e73b3ca32a34d0f00c812502f1881bef4162054f8ec3b504540bd33b9261`; validation remained `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Failure: The training entry point then rejected the passed preflight because an older independent guard multiplied the prior total by a coarse `3.3`-hour maximum.
+- Scope: The rejection occurred before VEP frame preparation, W&B initialization, any optimizer update, or any adapter or optimizer checkpoint retention.
+- Retention check: No checkpoint was created or deleted, and the versioned S3 prefix remains empty.
+- Cause: The stale coarse gate contradicted the exact same-path sustained-runtime projection added in v4 and became stricter only because the previous safety stops increased prior cost.
+- Correction: Make the signed-off preflight payload authoritative at training entry by requiring `budget_passed=true`, a finite projected total below `$48`, and the unchanged `$2` runtime guard.
+- Runtime protection: Keep the per-step wall-clock budget callback and every evaluation/upload reserve check unchanged.
+- Cost: The failed instance recorded `$0.340412`, moving the conservative listed-price total to `$43.136246 / $50`.
+- Relaunch: Rerun static checks, snapshot v6, require the complete remote suite and exact preflight again, and then verify that only pinned train parquet files are downloaded before training.
+- Boundaries: Do not access held-out labels, delete a checkpoint, upload to Hugging Face, run nucleotide dependency, or update the knowledge base.

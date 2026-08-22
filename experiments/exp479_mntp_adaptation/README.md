@@ -237,6 +237,7 @@ Batch 94 is rerun for two exact optimizer steps at `5e-5` before training and mu
 The first standard-rate preflight passed those numerical and memory checks but was rejected because extrapolating its two cold steps predicted `2.4772` training hours.
 The exact prior batch-94 run instead measured `1,409.48` seconds for its complete 1,000-step training callback, including paired evaluations and checkpoint publication.
 The corrected budget gate uses that same-path sustained runtime plus a conservative `1.25`-hour reserve for the new VEP trajectory, while retaining the `$2` runtime reserve and `$50` cap.
+The training entry point revalidates that exact preflight payload instead of applying a separate coarse elapsed-time ceiling.
 
 The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
 It also measures one-pass BICO forward VEP AUPRC at steps 0 and every 100 through 1,000 on the same 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE development variants from odd-numbered autosomes and chromosome X.
@@ -251,7 +252,7 @@ The stage performs no nucleotide-dependency analysis, Hugging Face upload, check
 ```bash
 uv run --locked python launch.py bico-lora-standard-rate \
   --commit "$(git rev-parse HEAD)" \
-  --prior-cost-usd 42.79583436354039 \
+  --prior-cost-usd 43.13624612840717 \
   --retry-until-up \
   --execute
 ```

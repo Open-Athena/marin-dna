@@ -9,6 +9,7 @@ from exp479_mntp.bico_lora_mntp import (
     BicoLoraConfig,
     excluded_mntp_key_mask,
     projected_bico_base_run_hours,
+    validated_bico_preflight_budget,
 )
 
 
@@ -57,6 +58,47 @@ def test_unknown_batch_budget_falls_back_to_cold_step_extrapolation() -> None:
     assert basis == "two-cold-step extrapolation"
     with pytest.raises(ValueError, match="positive"):
         projected_bico_base_run_hours(batch_size=94, cold_seconds_per_step=0)
+
+
+def test_training_accepts_the_exact_preflight_budget_projection() -> None:
+    projected = validated_bico_preflight_budget(
+        {
+            "projected_total_cost_usd": 46.84,
+            "budget_guard_total_usd": 48.0,
+            "budget_passed": True,
+        }
+    )
+
+    assert projected == pytest.approx(46.84)
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (
+            {
+                "projected_total_cost_usd": 48.0,
+                "budget_guard_total_usd": 48.0,
+                "budget_passed": False,
+            },
+            "did not pass",
+        ),
+        (
+            {
+                "projected_total_cost_usd": 46.84,
+                "budget_guard_total_usd": 49.0,
+                "budget_passed": True,
+            },
+            "different runtime guard",
+        ),
+    ],
+)
+def test_training_rejects_an_invalid_preflight_budget(
+    payload: dict[str, object],
+    message: str,
+) -> None:
+    with pytest.raises(RuntimeError, match=message):
+        validated_bico_preflight_budget(payload)
 
 
 def test_excluded_mntp_key_mask_excludes_every_shifted_pad_target() -> None:
