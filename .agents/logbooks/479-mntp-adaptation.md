@@ -1004,3 +1004,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Plan integrity: Require both registered plan hashes and identical sample/target identities across every validation readout.
 - Compute: Use one self-terminating AWS `g5.xlarge` A10G with a one-hour hard timeout at `$1.006/hour`, projecting at most `$40.281873 / $50` from the conservative `$39.275873` cumulative estimate.
 - Boundaries: Perform no VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update in this diagnostic.
+
+### 2026-08-22 09:37 - First two-pass launch stopped at its plan contract
+
+- Immutable source: The failed launch used commit `1a1ecfe4e487080ee12d3dd27faa714ca3050d82`, tagged `exp479-two-pass-information-gate-v1`.
+- Verification: All 180 locked remote tests passed before the diagnostic began.
+- Failure: The launch stage materialized a 1,000-row training plan with `--batch-size 1`, whose SHA-256 was `7e8ffae932e5f549c922d015c234f9d57cf39134fa1406a675df70150a3d0e76`; the registered 64,000-row training plan SHA-256 is `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91`.
+- Safety: The exact plan assertion stopped execution before model loading or inference, so this launch produced no experimental result.
+- Validation integrity: The independently materialized validation plan still matched registered SHA-256 `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Cost: The failed launch added an estimated `$0.059407`, bringing the conservative cumulative listed-price estimate to `$39.335280 / $50`.
+- Correction: Materialize the canonical training exposure with `--batch-size 64`, keep evaluation limited to its preregistered first 640 rows, and add a launch regression test for that batch-size contract.
+- Decision rules: All preregistered scientific methods and gates remain unchanged for the replacement launch.
