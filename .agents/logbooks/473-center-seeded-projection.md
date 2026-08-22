@@ -2678,3 +2678,20 @@ cohort, assemblies, and downstream training recipe fixed.
 - Both commit-pinned raw SVG URLs returned HTTP 200 before publication.
 - Verified issue comment `5381953488` embeds the two figures in reading order, distinguishes the chromosome-18 training-validation split from the development VEP split, and makes no new projection-policy interpretation.
 - No held-out labeled rows were evaluated, the knowledge-base PR was not edited, and the user-owned untracked ortholog-free issue draft remains untouched.
+
+### 2026-08-22 19:31 UTC - CSP-091 corrected interpretation PR ready
+
+- The user accepted the repaired full-window and center-1 development trajectories as showing no obvious overall difference and selected center-1 as the default for new projection datasets because its contract is simpler.
+- This is recorded as a one-seed operational decision rather than a statistical-equivalence claim.
+- The isolated knowledge-base branch was rebased onto `origin/main` at `f1278213456233232cbf6b330d43c699af687d6e` and published in PR #494 at final head `78c6c42c269826d1718a3d8d61f79ca27d8a617a`.
+- The five-file PR contains one experiment page, one research-question revision, one QC SVG, and separate CDS and enhancer AUPRC trajectory SVGs.
+- The experiment page puts projection QC first, removes overlapping bar-top labels, and reports exact region-level recovery together with paired sampled external-flank uncertainty.
+- The downstream figures are actual-value line trajectories rather than bars or deltas and cover all nine checkpoints for only the region-relevant CDS and enhancer development subsets.
+- The page does not include a validation-loss figure because the native validation rows differ by policy and the prior shared-row replay was invalid under the legacy-RoPE loading path.
+- The corrected conclusion preserves the terminal enhancer Mendelian result favoring full-window projection and the absence of an additional-seed replication test.
+- Existing full-window rules and artifacts remain valid historical controls; this docs-only PR does not edit any existing S3-backed workflow rule.
+- The issue #473 body now records disposition `interpretation PR open`, links PR #494, and remains open until the interpretation merges.
+- Commit `b42dc729bda18f286ee839fe37567e9f62e5df53` updates the permanent projection-policy artifact with the final semantic legend title before the same generated figures were copied into the KB branch.
+- Changed-file pre-commit checks and all final-head GitHub checks pass, the PR is mergeable, and the independent Codex review reported no major issues on exact head `78c6c42c`.
+- Verified PR comment `5382202337` records the final scope, evidence ordering, caveats, checks, and review result.
+- Nothing was merged or closed, no held-out labeled VEP data were evaluated, and the user-owned untracked ortholog-free issue draft remains untouched.
