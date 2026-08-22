@@ -21,7 +21,7 @@ from peft import PeftModel, get_peft_model_state_dict
 
 from exp479_mntp.bico_attention_diagnostic import (
     excluded_selected_key_mask,
-    reflected_future_rope,
+    install_reflected_future_rope,
 )
 from exp479_mntp.callbacks import BudgetGuardCallback, RuntimeMetricsCallback
 from exp479_mntp.causal_longrun import (
@@ -168,6 +168,7 @@ def build_bico_lora_bundle(config: BicoLoraConfig) -> tuple[ModelBundle, int]:
         raise RuntimeError("source model and tokenizer disagree on the BICO PAD token")
     if int(pad_token_id) in bundle.canonical_token_ids:
         raise RuntimeError("the BICO PAD token aliases a canonical nucleotide")
+    install_reflected_future_rope(bundle.model)
     return (
         ModelBundle(
             model=bundle.model,
@@ -202,13 +203,13 @@ class BicoLoraModule(LoraMntpModule):
             dtype=torch.bfloat16,
         )
         self._latest_attention_future_edge_probability = 1.0
-        with reflected_future_rope(self.model):
-            return model_logits(
-                self.model,
-                input_ids=batch["input_ids"],
-                attention_mask=attention_mask,
-                attention_mode="full",
-            )
+        install_reflected_future_rope(self.model)
+        return model_logits(
+            self.model,
+            input_ids=batch["input_ids"],
+            attention_mask=attention_mask,
+            attention_mode="full",
+        )
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
         self.supervised_masked_targets += int((batch["labels"] != -100).sum())
@@ -238,15 +239,15 @@ def evaluate_bico_readout(
 
     bundle.model.to(device="cuda")
     was_training = bundle.model.training
-    with reflected_future_rope(bundle.model):
-        scores = evaluate_readout(
-            bundle,
-            validation_plan=validation_plan,
-            batch_size=batch_size,
-            readout=readout,
-            attention_mode="full",
-            attention_mask_transform=exclude_selected_key,
-        )
+    install_reflected_future_rope(bundle.model)
+    scores = evaluate_readout(
+        bundle,
+        validation_plan=validation_plan,
+        batch_size=batch_size,
+        readout=readout,
+        attention_mode="full",
+        attention_mask_transform=exclude_selected_key,
+    )
     bundle.model.train(was_training)
     return scores
 

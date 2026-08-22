@@ -40,6 +40,19 @@ MAXIMUM_INSTANCE_HOURS = 1.0
 ATTENTION_PARITY_CE_TOLERANCE = 2e-3
 
 
+def _qwen_attention_modules(model: nn.Module) -> list[nn.Module]:
+    """Return Qwen3 attention modules from a bare or PEFT-wrapped model."""
+
+    layers = getattr(getattr(model, "model", None), "layers", None)
+    if layers is None:
+        base_model = getattr(model, "base_model", None)
+        wrapped_model = getattr(base_model, "model", None)
+        layers = getattr(getattr(wrapped_model, "model", None), "layers", None)
+    if layers is None:
+        raise TypeError("BICO attention requires a bare or PEFT-wrapped Qwen3 model")
+    return [layer.self_attn for layer in layers]
+
+
 def excluded_selected_key_mask(
     attention_mask: torch.Tensor,
     output_positions: torch.Tensor,
@@ -146,14 +159,7 @@ def bico_attention_forward(
 def reflected_future_rope(model: nn.Module) -> Iterator[None]:
     """Temporarily replace every Qwen3 self-attention layer with BICO attention."""
 
-    layers = getattr(getattr(model, "model", None), "layers", None)
-    if layers is None:
-        base_model = getattr(model, "base_model", None)
-        wrapped_model = getattr(base_model, "model", None)
-        layers = getattr(getattr(wrapped_model, "model", None), "layers", None)
-    if layers is None:
-        raise TypeError("BICO attention requires a bare or PEFT-wrapped Qwen3 model")
-    modules = [layer.self_attn for layer in layers]
+    modules = _qwen_attention_modules(model)
     originals = [module.forward for module in modules]
     try:
         for module in modules:
@@ -162,6 +168,13 @@ def reflected_future_rope(model: nn.Module) -> Iterator[None]:
     finally:
         for module, original in zip(modules, originals, strict=True):
             module.forward = original
+
+
+def install_reflected_future_rope(model: nn.Module) -> None:
+    """Install BICO attention for an entire training and backward lifetime."""
+
+    for module in _qwen_attention_modules(model):
+        module.forward = MethodType(bico_attention_forward, module)
 
 
 def _plot_bico(

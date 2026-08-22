@@ -27,6 +27,7 @@ STAGE_CONFIGS = {
     "localized-attention-diagnostic": "sky/localized-attention-diagnostic.yaml",
     "bico-attention-diagnostic": "sky/bico-attention-diagnostic.yaml",
     "bico-lora-mntp": "sky/bico-lora-mntp.yaml",
+    "bico-lora-resume": "sky/bico-lora-resume.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
     "gated-lora-mntp": "sky/gated-lora-mntp.yaml",
     "two-pass-information-gate": "sky/two-pass-information-gate.yaml",
@@ -57,6 +58,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "localized-attention-diagnostic",
         "bico-attention-diagnostic",
         "bico-lora-mntp",
+        "bico-lora-resume",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -84,6 +86,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "localized-attention-diagnostic",
         "bico-attention-diagnostic",
         "bico-lora-mntp",
+        "bico-lora-resume",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -150,6 +153,8 @@ def launch_command(
         cluster_name = "dna-exp479-bico-attention-gh200"
     elif stage == "bico-lora-mntp":
         cluster_name = "dna-exp479-bico-lora-gh200"
+    elif stage == "bico-lora-resume":
+        cluster_name = "dna-exp479-bico-lora-resume-gh200"
     elif stage == "paired-nucleotide-gate":
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
@@ -185,6 +190,7 @@ def launch_command(
         "localized-attention-diagnostic",
         "bico-attention-diagnostic",
         "bico-lora-mntp",
+        "bico-lora-resume",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -193,7 +199,13 @@ def launch_command(
     }:
         price = (
             "2.29"
-            if stage in {"two-pass-vep", "bico-attention-diagnostic", "bico-lora-mntp"}
+            if stage
+            in {
+                "two-pass-vep",
+                "bico-attention-diagnostic",
+                "bico-lora-mntp",
+                "bico-lora-resume",
+            }
             else "1.006"
             if stage
             in {
@@ -232,6 +244,7 @@ def launch_command(
         "localized-attention-diagnostic",
         "bico-attention-diagnostic",
         "bico-lora-mntp",
+        "bico-lora-resume",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",

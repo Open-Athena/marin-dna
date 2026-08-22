@@ -1158,3 +1158,18 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Local verification: Ruff format and lint passed on all changed Python files, and 32 targeted locked tests passed in `6.28` seconds.
 - Shared-node record: The guarded targeted test command ran from `2026-08-22T13:25:13Z` through `2026-08-22T13:25:37Z`, exited zero, peaked at `1,058,788` KiB RSS, and left `MemAvailable=10,786,012` KiB with load average `0.20`.
 - Remote gate: The combined Lambda GH200 stage must pass the complete locked test suite before the frozen diagnostic, exact batch search, or paid training can start.
+
+### 2026-08-22 13:43 - Frozen BICO mechanism passes, batch 94 selected, first training launch aborts safely
+
+- Verification: All 200 locked tests passed on the Lambda GH200 in `23.55` seconds before model inference.
+- Frozen run: W&B run `mkugsok9` passed causal-attention parity and the reflected-RoPE mechanism gate but failed the single-pass non-inferiority gate against the source causal model.
+- Step-0 BICO LoRA readout: W&B run `xzahhzf8` recorded four-way CE `1.38722` and accuracy `0.32969` before any optimizer update.
+- Maximum batch: Batch 94 completed two optimizer steps with finite loss and gradients, peak reserved memory `90,850,721,792 / 101,468,602,368` bytes, headroom `10.4642%`, and accumulation 1.
+- Boundary batch: Batch 95 also completed but was rejected because peak-reserved-memory headroom was only `9.5527%`, below the registered 10% safety margin.
+- Exposure plan: Batch 94 implies 94,000 sequences and 24,064,000 model tokens over 1,000 optimizer steps.
+- Failure: The training launch aborted during backward before optimizer step 1 because the temporary BICO forward monkeypatch ended before non-reentrant activation-checkpoint recomputation.
+- Root cause: Forward saved tensors under BICO attention, while backward recomputation called the restored standard attention and saved 81 versus 77 tensors.
+- Safety: No trained checkpoint existed to delete, the step-0 adapter remained in W&B, and the Lambda cluster autodowned and was confirmed absent.
+- Cost: The failed launch added a conservative `$0.503428`, bringing cumulative listed-price exposure to `$40.858327 / $50`.
+- Correction: Install BICO attention permanently for the model's full training and backward lifetime and verify the installed hook through a non-reentrant activation-checkpoint backward regression test.
+- Resume plan: Rerun the complete locked suite, recheck only the registered batch 94 in a fresh two-step process, and start the 1,000-step run without repeating the completed diagnostic or batch search.
