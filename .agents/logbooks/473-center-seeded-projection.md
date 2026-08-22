@@ -2560,3 +2560,17 @@ cohort, assemblies, and downstream training recipe fixed.
 - The known RoPE metadata warning was emitted while loading the new checkpoint; the checkpoint retains the same dual compatibility fields and Transformers-4 evaluation path used by the reused baseline.
 - The audit bundle manifest records `held_out_access=false`, the exact input URIs, row-relevant subsets, seed 473, 1,000 draws, and SHA-256 hashes for all three outputs.
 - Verified SHA-256 values are `cd9fd7004e5748527706c5030b38631743882a07184c3efae24e23c2906dfc82` for `comparison.parquet`, `16c8be285a3db7935b448c70f29adfec65c95e0e301173cf17110f8f8c18aefa` for `paired_bootstrap_samples.parquet`, and `9381434e6490eaa74cc8af72bde3550b87b39d2681b7c1b7fecbe82f3484032e` for `summary.md`.
+
+### 2026-08-22 13:47 UTC - CSP-084 terminal VEP comparison withdrawn
+
+- CSP-083 is withdrawn because its two arms were loaded with different effective RoPE semantics under Transformers 4.57.6, so none of its deltas isolate the validation split.
+- The raw #417 terminal config SHA-256 is `d55f71bec34a6e62be1123ebc172fa53b263bd5df4d507076226d449355aa911`; Transformers 4 resolved its nested-only metadata as `rope_theta=10000` with no scaling.
+- The raw row-random terminal config SHA-256 is `9ec163e242192a072648b4b14bce24ea7758e4ea5563e0b43d097afb6fdfe6a9`; its dual schema resolved the intended `rope_theta=500000` and Llama-3 scaling.
+- The issue-specific loader at `ae90f6d9e4b23ebe8fb1bd2314baa66cb82b37c1` called `AutoModelForCausalLM.from_pretrained` directly and bypassed the maintained fail-closed `evals_v2` compatibility loader.
+- The invalid GitHub result comment was replaced with a withdrawal notice, and correction comment `5380648868` records the evidence and replacement plan.
+- PR #502 registers the existing canonical model ID `exp417-cds-combined-vertebrates-step-4999` and the new stable ID `exp473-cds-full-window-random-val-step-4999` in the standard `evals_v2` config without changing shared rules.
+- The four pre-existing #417 score/metric object hashes were recorded before forced execution: `d62dd966c3b1ea5c6099856f931d320a0b381c9ca31e6ecae4cd4a065c5fa81b`, `548d948e8ad2630a3fdebe16491c9e73bf53778f8b7ec25603f881213819c640`, `9ab5411b4d53cfe716dd3edabeefd19bf999b5ffec2f2529e46049ebfb925dee`, and `4d6f6a7aac37285a49b5d861aa8f00a61bb168778846ff37430dc4080acb39ea` for Mendelian scores, SGE scores, Mendelian metrics, and SGE metrics, respectively.
+- A first spot-A10G launch was cancelled when monitoring showed that Hugging Face materialized both dataset files before returning `split="train"`; cancellation occurred during the first score rule and removed the forced Mendelian score output before replacement while leaving the other three old objects unchanged.
+- The user clarified that downloading the test file is permitted as long as only development rows are evaluated; the standard rule passes only the 16,140/11,630/23,853-row train frames to inference for Mendelian, Complex Traits, and SGE.
+- A replacement 13-job canonical run is active on one preemptible AWS `g5.xlarge` in `us-east-2c`; it forces six score cells and recomputes their six metric cells after one new checkpoint download.
+- No corrected terminal VEP number is available yet, and no interpretation from CSP-083 remains valid.
