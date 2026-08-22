@@ -1051,3 +1051,24 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Outputs: Retain raw per-variant development scores, full metrics, paired primary comparisons, coordinate/token controls, runtimes, gate JSON, manifest, and one primary-endpoint figure in W&B.
 - Compute: Use one self-terminating Lambda GH200 with a two-hour hard timeout at `$2.29/hour`, projecting at most `$44.010148 / $50` from the conservative `$39.430148` cumulative estimate.
 - Boundaries: Perform no training, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion.
+
+### 2026-08-22 10:40 - Frozen two-pass VEP gate completed and failed source non-inferiority
+
+- Immutable source: W&B run `lzxh7b9s` used commit `456e9ef8ce03c348464dcb543d56aaf6e2f99dec`, tagged `exp479-two-pass-vep-v1`.
+- Verification: All 186 locked tests passed on the Lambda GH200 before evaluation.
+- Split integrity: The run scored exactly 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE rows; every labeled chromosome was an odd-numbered autosome or X, every ref/alt was a distinct canonical nucleotide, and every published score was finite.
+- Source reproduction: Fresh source CLM FWD+RC AUPRC was `0.395523` Mendelian macro, `0.134083` complex global, and `0.357623` SGE macro, within `0.000425` of the earlier registered endpoints on every task.
+- Symmetric two-pass endpoints: AUPRC was `0.284133` Mendelian, `0.125885` complex, and `0.253343` SGE.
+- Paired Mendelian gate: Two-pass minus source CLM was `-0.111390` with 95% interval `[-0.135255, -0.087526]`.
+- Paired complex gate: Two-pass minus source CLM was `-0.008199` with 95% interval `[-0.016635, -0.000500]`.
+- Paired SGE gate: Two-pass minus source CLM was `-0.104279` with 95% interval `[-0.122753, -0.085806]`.
+- Gate disposition: Point and confidence non-inferiority failed on all three endpoints, and no endpoint strictly improved over source CLM.
+- Directional benefit: The symmetric readout exceeded both left-only and right-only AUPRC on all three endpoints; versus the unprior-corrected left/right mean it changed Mendelian/complex/SGE by `-0.001315/+0.000451/+0.001088`, so most VEP rescue came from having both directions rather than prior correction.
+- MNTP comparison: Relative to the earlier transferred-MNTP forward endpoints, frozen symmetric two-pass improved Mendelian/complex/SGE by about `+0.168997/+0.025581/+0.110679` AUPRC, but did not recover the full source CLM score.
+- Coordinate and token controls: Every row used variant index `127`, input position `128`, forward and reverse output position `127`, exact double reverse complementation, allele permutation `[3,2,1,0]`, and source BOS/UNK/PAD IDs `2/1/0`; round-trip check counts exactly matched dataset row counts.
+- Independent recomputation: Raw per-variant parquets reproduced every published primary AUPRC exactly, with the same qualifying aggregation cells and no forbidden chromosome, noncanonical allele, equal ref/alt pair, or non-finite score.
+- Mechanistic inference: The remaining gap is consistent with a scorer mismatch: the masked conditional asks which allele fits the two flanks, whereas the full-sequence CLM likelihood ratio additionally measures how the allele changes predictions across the surrounding sequence; this experiment did not isolate that term causally.
+- Runtime and cost: Source scoring took `409.73` GPU seconds and two-pass scoring took `262.61` GPU seconds; the final listed-price estimate was `$40.291463 / $50`, and the cluster was confirmed absent.
+- Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/two-pass-vep/`; W&B artifact ID is `QXJ0aWZhY3Q6MzM3NDk5Nzk1NQ==` with digest `88d22c7c89c3a97da7505fa1a33c5a74`.
+- Boundaries: The run performed zero model updates and no nucleotide dependency, knowledge-base update, Hugging Face upload, checkpoint deletion, or held-out label access.
+- Next step: Use the retained per-variant scores to specify a frozen, label-free decomposition or approximation of the CLM context-effect term before considering another adaptation run.

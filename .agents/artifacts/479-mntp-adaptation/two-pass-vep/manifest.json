@@ -1,0 +1,58 @@
+{
+  "status": "completed",
+  "source_model": "marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "model_updates": 0,
+  "calibration_artifact_id": "QXJ0aWZhY3Q6MzM3NDU5NzY1Mg==",
+  "calibration_artifact_digest": "7d0f9f70f22e39e7e7a7c3e7e8454aeb",
+  "calibration_targets": 640,
+  "forward_alpha": 0.615,
+  "symmetric_alpha": 0.408,
+  "prior_acgt": [
+    0.2702492211838006,
+    0.21105919003115264,
+    0.2266355140186916,
+    0.29205607476635514
+  ],
+  "datasets": {
+    "mendelian_traits": "bolinas-dna/evals_mendelian_traits@4aed58e50c5dea0b878a665007af2ef9e5108e9f",
+    "complex_traits": "bolinas-dna/evals_complex_traits@22f86a89c65cb8f3007ac3cc2739f40efefa4340",
+    "sge": "bolinas-dna/evals_sge@225d3d1ea32a4af547891b13c33b5e92a5aae849"
+  },
+  "split": "train",
+  "allowed_chromosomes": [
+    "1",
+    "11",
+    "13",
+    "15",
+    "17",
+    "19",
+    "21",
+    "3",
+    "5",
+    "7",
+    "9",
+    "X"
+  ],
+  "primary_endpoints": {
+    "mendelian_traits": "mendelian_consequence_macro",
+    "complex_traits": "complex_global",
+    "sge": "accession_consequence_macro"
+  },
+  "numeric_controls": {
+    "cublas_workspace_config": ":4096:8",
+    "float32_matmul_precision": "high",
+    "cudnn_benchmark": false,
+    "deterministic_algorithms": true
+  },
+  "gate": {
+    "criterion": "symmetric frozen two-pass AUPRC is confidence-supported non-inferior to source CLM FWD+RC on all three registered primary endpoints and strictly improves at least one",
+    "point_noninferiority_all_three": false,
+    "confidence_noninferiority_all_three": false,
+    "confidence_strict_improvement_any": false,
+    "passed": false
+  },
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed",
+  "hugging_face_upload": "not performed",
+  "checkpoint_deletion": "not performed"
+}

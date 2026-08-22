@@ -1,0 +1,4 @@
+dataset,variant_index_zero_based,target_input_position,target_output_position,reverse_output_position,round_trip_checks,reverse_allele_permutation,bos_token_id,unk_token_id,pad_token_id
+mendelian_traits,127,128,127,127,16140,"[3, 2, 1, 0]",2,1,0
+complex_traits,127,128,127,127,11630,"[3, 2, 1, 0]",2,1,0
+sge,127,128,127,127,23853,"[3, 2, 1, 0]",2,1,0
