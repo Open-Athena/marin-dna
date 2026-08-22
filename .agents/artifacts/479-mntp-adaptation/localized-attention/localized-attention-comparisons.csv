@@ -1,0 +1,3 @@
+candidate,baseline,n_targets,nucleotide_ce_delta,nucleotide_ce_delta_ci95_low,nucleotide_ce_delta_ci95_high,nucleotide_accuracy_delta,nucleotide_accuracy_delta_ci95_low,nucleotide_accuracy_delta_ci95_high
+source_localized_predictor_row,source_causal_standard,640,0.15550489127635955,0.10078789249062539,0.20769294403493405,-0.0625,-0.09535156249999999,-0.028125
+source_full_standard,source_causal_standard,640,0.37295078933238984,0.32011920504271985,0.4294081526994704,-0.240625,-0.2890625,-0.19375
