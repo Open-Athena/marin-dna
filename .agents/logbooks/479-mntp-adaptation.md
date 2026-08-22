@@ -930,3 +930,20 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost: The final pre-autodown cumulative listed-price estimate was `$37.010826 / $50`, and the AWS cluster was confirmed absent.
 - Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
 - Next step: Launch the preregistered frozen-source localized predictor-row attention diagnostic before choosing any further training design.
+
+### 2026-08-22 06:44 - Frozen localized predictor-row attention failed the paired gate
+
+- Immutable source: W&B run `dq67i9vi` used commit `eb0db004b6418e9db1f7db71c8041983c4a90a9a`, tagged `exp479-localized-predictor-attention-zero-training-v1`.
+- Verification: All 158 locked tests passed on the remote worker, and the validation-plan SHA-256 remained `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Encoding control: Standard causal attention and an explicit causal additive mask matched exactly on all 640 targets with zero CE drift and zero top-1 mismatches under forced math SDPA.
+- Causal readout: Four-way nucleotide CE was `1.0516807109` and accuracy was `0.5109375`.
+- Localized readout: Opening only the exact shifted predictor row produced CE `1.2071856022` and accuracy `0.4484375`.
+- Uniform-full readout: Opening every query row produced CE `1.4246315002` and accuracy `0.2703125`.
+- Paired localized effect: Candidate-minus-causal CE was `+0.1555048913` with 95% sequence-bootstrap interval `[+0.1007878925, +0.2076929440]`.
+- Paired localized accuracy: Candidate-minus-causal accuracy was `-0.0625` with 95% interval `[-0.0953515625, -0.028125]`.
+- Interpretation: Localization recovers about 58% of the uniform-full CE damage and 74% of its accuracy damage, but both registered non-inferiority criteria still fail decisively.
+- Scope: The result rules out collateral perturbation of unrelated query rows as a sufficient explanation; an unadapted causal decoder also does not interpret right-context keys safely at the predictor row itself.
+- Runtime and cost: Evaluation took `74.96` seconds; final pre-autodown cumulative listed cost was approximately `$37.091314 / $50`, and the AWS cluster was confirmed absent.
+- Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/localized-attention/`.
+- Boundaries: Zero parameter updates occurred, and no VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
+- Next step: Preregister a frozen-causal, separate full-attention LoRA branch with an exactly zero-initialized learned gate and a right-context-removal control.

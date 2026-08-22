@@ -1,0 +1,35 @@
+{
+  "status": "completed",
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/dq67i9vi",
+  "base_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "paired_target_count": 640,
+  "mask_token": "[UNK]",
+  "parameter_updates": 0,
+  "attention_backend": "math SDPA for every compared readout",
+  "attention_pattern": "causal for every query except the shifted predictor row i-1, which attends to every non-padding key",
+  "reference": "https://arxiv.org/abs/2607.25157",
+  "reference_boundary": "PreDiff-LM partitions a prompt prefix and target suffix and predicts at masked positions; this arbitrary-interior shifted-row mask is an exp479 inference",
+  "attention_encoding_check": {
+    "maximum_absolute_nucleotide_ce_delta": 0.0,
+    "mean_absolute_nucleotide_ce_delta": 0.0,
+    "mean_signed_nucleotide_ce_delta": 0.0,
+    "nucleotide_prediction_mismatches": 0,
+    "nucleotide_predictions_identical": true,
+    "ce_tolerance": 0.002,
+    "passed": true
+  },
+  "gate": {
+    "candidate": "source_localized_predictor_row",
+    "baseline": "source_causal_standard",
+    "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+    "point_estimate_passed": false,
+    "confidence_supported": false,
+    "passed": false
+  },
+  "checkpoint_deletion": "not performed",
+  "hugging_face_upload": "not performed",
+  "vep_evaluation": "not performed",
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed"
+}

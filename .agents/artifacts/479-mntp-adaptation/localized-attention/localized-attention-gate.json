@@ -1,0 +1,8 @@
+{
+  "candidate": "source_localized_predictor_row",
+  "baseline": "source_causal_standard",
+  "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+  "point_estimate_passed": false,
+  "confidence_supported": false,
+  "passed": false
+}
