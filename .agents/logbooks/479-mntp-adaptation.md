@@ -905,3 +905,28 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/lora-mntp/`; the W&B evaluation artifact ID is `QXJ0aWZhY3Q6MzM3MjYzNjYyMw==`.
 - Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
 - Next step: Run the preregistered fresh-process final-adapter reload parity audit, then the frozen localized predictor-row diagnostic.
+
+### 2026-08-22 06:16 - Unmatched numeric-state reload audit rejected
+
+- Initial audit: W&B run `0c10doln` reloaded the retained final adapter and source in a fresh process but omitted numeric controls active during the registered Lightning evaluation.
+- Observed drift: Adapter four-way CE had maximum absolute drift `0.0010141134` and source CE had maximum absolute drift `0.0054775476`; neither path had a top-1 mismatch on 640 targets.
+- Attention control: Forced-math standard full attention and the additive-mask training encoding matched exactly, excluding attention-mask encoding as the source of the discrepancy.
+- Artifact identity: The failed-attempt and corrected final `adapter_model.safetensors` files have the same W&B digest `gsA7VpJe+pg3rLi4RXsktA==` and byte size `53,733,848`; only nondeterministic JSON target-module ordering differed.
+- Decision: Reject the v2 audit as an unmatched execution-state comparison and rerun with the training-time numeric controls set before model loading.
+- Cost: The audit added approximately `$0.108837`, bringing cumulative listed cost to `$36.911895 / $50`; the AWS cluster was confirmed absent.
+- Issue record: Posted the failure diagnosis and immutable rerun plan at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5378420589.
+
+### 2026-08-22 06:29 - Matched numeric-state reload audit passed exactly
+
+- Immutable source: W&B run `r9m9m9gj` used commit `6431bdc20c249f98ec7de32f0af11d0890b427c5`, tagged `exp479-lora-reload-audit-v3`.
+- Verification: All 159 locked tests passed on the remote worker before the audit.
+- Numeric controls: The fresh process matched `float32_matmul_precision=high`, deterministic algorithms, disabled cuDNN benchmarking, and `CUBLAS_WORKSPACE_CONFIG=:4096:8` before loading either model.
+- Adapter parity: All 640 freshly reloaded final-adapter scores matched the retained training-process scores with maximum absolute four-way CE drift `4.44e-16` and zero top-1 mismatches.
+- Source parity: All 640 freshly loaded frozen-source scores matched with maximum absolute four-way CE drift `4.44e-16` and zero top-1 mismatches.
+- Attention parity: Forced-math standard full attention and the additive-mask training encoding were exactly equal with zero CE drift and zero top-1 mismatches.
+- Contract audit: The source tokenizer is exactly vocabulary size 7 with PAD `0`, UNK `1`, BOS `2`, and no EOS; the adapter is rank 16, alpha 16, dropout 0.05 over q/k/v/o/gate/up/down projections, with no trainable parameters after reload.
+- Conclusion: Saving and reloading does not degrade the model; the apparent v2 drift was entirely due to unmatched numeric execution state.
+- Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/lora-reload-audit/`; the W&B audit artifact ID is `QXJ0aWZhY3Q6MzM3Mjg2NjM0OA==`.
+- Cost: The final pre-autodown cumulative listed-price estimate was `$37.010826 / $50`, and the AWS cluster was confirmed absent.
+- Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
+- Next step: Launch the preregistered frozen-source localized predictor-row attention diagnostic before choosing any further training design.

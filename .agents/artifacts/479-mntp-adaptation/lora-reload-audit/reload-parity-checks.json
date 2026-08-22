@@ -1,0 +1,35 @@
+{
+  "adapter_serialization": {
+    "passed": true,
+    "n_targets": 640,
+    "ce_tolerance": 1e-06,
+    "nucleotide_ce_maximum_absolute_delta": 4.440892098500626e-16,
+    "nucleotide_ce_mean_absolute_delta": 4.2457357074532356e-17,
+    "nucleotide_correctness_mismatches": 0,
+    "full_vocab_ce_maximum_absolute_delta": 4.440892098500626e-16,
+    "full_vocab_ce_mean_absolute_delta": 4.302114220422482e-17,
+    "full_vocab_correctness_mismatches": 0
+  },
+  "frozen_source_serialization": {
+    "passed": true,
+    "n_targets": 640,
+    "ce_tolerance": 1e-06,
+    "nucleotide_ce_maximum_absolute_delta": 4.440892098500626e-16,
+    "nucleotide_ce_mean_absolute_delta": 3.958540716357192e-17,
+    "nucleotide_correctness_mismatches": 0,
+    "full_vocab_ce_maximum_absolute_delta": 4.440892098500626e-16,
+    "full_vocab_ce_mean_absolute_delta": 3.682653615106994e-17,
+    "full_vocab_correctness_mismatches": 0
+  },
+  "math_attention_encoding": {
+    "passed": true,
+    "n_targets": 640,
+    "ce_tolerance": 0.002,
+    "nucleotide_ce_maximum_absolute_delta": 0.0,
+    "nucleotide_ce_mean_absolute_delta": 0.0,
+    "nucleotide_correctness_mismatches": 0,
+    "full_vocab_ce_maximum_absolute_delta": 0.0,
+    "full_vocab_ce_mean_absolute_delta": 0.0,
+    "full_vocab_correctness_mismatches": 0
+  }
+}
