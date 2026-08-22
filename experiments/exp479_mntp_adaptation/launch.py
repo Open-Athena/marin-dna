@@ -24,6 +24,7 @@ STAGE_CONFIGS = {
     "mntp-dependency": "sky/mntp-dependency.yaml",
     "paired-nucleotide-gate": "sky/paired-nucleotide-gate.yaml",
     "attention-anneal-diagnostic": "sky/attention-anneal-diagnostic.yaml",
+    "localized-attention-diagnostic": "sky/localized-attention-diagnostic.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
     "lora-reload-audit": "sky/lora-reload-audit.yaml",
     "loss-normalization": "sky/loss-normalization.yaml",
@@ -48,6 +49,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "mntp-dependency",
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
+        "localized-attention-diagnostic",
         "lora-mntp",
         "lora-reload-audit",
         "loss-normalization",
@@ -69,6 +71,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "mntp-dependency",
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
+        "localized-attention-diagnostic",
         "lora-mntp",
         "lora-reload-audit",
         "loss-normalization",
@@ -126,6 +129,8 @@ def launch_command(
 
     if stage == "attention-anneal-diagnostic":
         cluster_name = "dna-exp479-anneal-a10"
+    elif stage == "localized-attention-diagnostic":
+        cluster_name = "dna-exp479-localized-attention-a10"
     elif stage == "paired-nucleotide-gate":
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
@@ -152,6 +157,7 @@ def launch_command(
     if stage in {
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
+        "localized-attention-diagnostic",
         "lora-mntp",
         "lora-reload-audit",
     }:
@@ -160,6 +166,7 @@ def launch_command(
             if stage
             in {
                 "attention-anneal-diagnostic",
+                "localized-attention-diagnostic",
                 "lora-mntp",
                 "lora-reload-audit",
             }
@@ -188,6 +195,7 @@ def launch_command(
         "mntp-dependency",
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
+        "localized-attention-diagnostic",
         "lora-mntp",
         "loss-normalization",
         "lora-reload-audit",

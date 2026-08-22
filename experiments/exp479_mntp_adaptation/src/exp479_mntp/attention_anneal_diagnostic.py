@@ -318,7 +318,9 @@ def run_attention_anneal_diagnostic(
             def transform(
                 token_mask: torch.Tensor,
                 sample_ids: torch.Tensor,
+                output_positions: torch.Tensor,
             ) -> torch.Tensor:
+                del output_positions
                 return annealed_attention_mask(
                     token_mask,
                     future_edge_probability=probability,
