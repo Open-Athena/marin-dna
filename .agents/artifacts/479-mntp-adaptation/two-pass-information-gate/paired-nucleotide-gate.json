@@ -1,0 +1,15 @@
+{
+  "criterion": "calibrated alpha is positive, paired CE/accuracy are confidence-supported non-inferior to left causal, and at least one metric strictly improves",
+  "selected_alpha": 0.615,
+  "alpha_positive": true,
+  "source_noninferiority": {
+    "candidate": "two_pass",
+    "baseline": "source_left",
+    "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+    "point_estimate_passed": true,
+    "confidence_supported": true,
+    "passed": true
+  },
+  "confidence_strict_improvement": true,
+  "passed": true
+}

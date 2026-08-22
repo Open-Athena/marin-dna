@@ -1,0 +1,63 @@
+{
+  "status": "completed",
+  "base_model": "marin-dna/marin-dna-exp135-m5.1",
+  "base_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "model_updates": 0,
+  "source_alpha_zero_bit_exact": true,
+  "calibration_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "calibration_targets": 640,
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "validation_targets": 640,
+  "mask_token": "[UNK]",
+  "reverse_position_mapping": "i -> 254 - i",
+  "reverse_allele_permutation": [
+    3,
+    2,
+    1,
+    0
+  ],
+  "empirical_prior_acgt": [
+    0.2702492211838006,
+    0.21105919003115264,
+    0.2266355140186916,
+    0.29205607476635514
+  ],
+  "selected_alpha": 0.615,
+  "numeric_controls": {
+    "cublas_workspace_config": ":4096:8",
+    "float32_matmul_precision": "high",
+    "cudnn_benchmark": false,
+    "deterministic_algorithms": true
+  },
+  "right_only_comparison": {
+    "candidate": "source_right",
+    "baseline": "source_left",
+    "n_targets": 640,
+    "nucleotide_ce_delta": -0.019016700983047485,
+    "nucleotide_ce_delta_ci95_low": -0.07295970484614371,
+    "nucleotide_ce_delta_ci95_high": 0.03262224771082399,
+    "nucleotide_accuracy_delta": 0.003125,
+    "nucleotide_accuracy_delta_ci95_low": -0.04375,
+    "nucleotide_accuracy_delta_ci95_high": 0.0515625
+  },
+  "gate": {
+    "criterion": "calibrated alpha is positive, paired CE/accuracy are confidence-supported non-inferior to left causal, and at least one metric strictly improves",
+    "selected_alpha": 0.615,
+    "alpha_positive": true,
+    "source_noninferiority": {
+      "candidate": "two_pass",
+      "baseline": "source_left",
+      "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+      "point_estimate_passed": true,
+      "confidence_supported": true,
+      "passed": true
+    },
+    "confidence_strict_improvement": true,
+    "passed": true
+  },
+  "vep_evaluation": "not performed",
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed",
+  "hugging_face_upload": "not performed",
+  "checkpoint_deletion": "not performed"
+}
