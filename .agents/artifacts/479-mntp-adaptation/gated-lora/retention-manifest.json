@@ -1,0 +1,118 @@
+{
+  "backend": "wandb",
+  "deletion_performed": false,
+  "artifacts": [
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 0,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzQwNDMwMw==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0000:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0000:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 25,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzQzNjY0NA==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0025:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0025:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 50,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzQ3MDk2OA==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0050:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0050:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 100,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzUzMDY0Mw==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0100:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0100:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 200,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzYzNzI3OQ==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0200:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0200:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 300,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3Mzc0MTI0Nw==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0300:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0300:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 400,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzgzOTYwMQ==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0400:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0400:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 500,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MzkzOTI0NA==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0500:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0500:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 600,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3NDAzNTk3OQ==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0600:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0600:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 700,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3NDEzMDk3Nw==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0700:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0700:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 800,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3NDIyNzA4NA==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0800:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0800:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 900,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3NDMxODA1Mw==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0900:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-0900:v0"
+    },
+    {
+      "kind": "peft_adapter_plus_gate",
+      "step": 1000,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3NDQwOTc0OQ==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-1000:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-1000:v0"
+    },
+    {
+      "kind": "adapter_gate_optimizer_checkpoint",
+      "step": 1000,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3NDQxODUwOA==",
+      "artifact_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-1000-optimizer:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-gated-dualpath-lora-r16-mntp-unk-step-1000-optimizer:v0"
+    }
+  ]
+}

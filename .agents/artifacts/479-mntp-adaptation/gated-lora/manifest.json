@@ -1,0 +1,101 @@
+{
+  "status": "completed",
+  "run_name": "dna-exp479-gated-dualpath-lora-r16-mntp-unk20pct-lr1e-5-wsd1000-seed0",
+  "wandb_url": "https://wandb.ai/gonzalobenegas/marin/runs/jbcq5sn2",
+  "base_model": "marin-dna/marin-dna-exp135-m5.1",
+  "base_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "base_frozen": true,
+  "disabled_adapter_causal_bit_exact": true,
+  "step0_candidate_causal_bit_exact": true,
+  "trainable_parameters": {
+    "lora": 13424640,
+    "gate": 7,
+    "total": 13424647
+  },
+  "configuration": {
+    "rank": 16,
+    "alpha": 16,
+    "dropout": 0.05,
+    "mask_probability": 0.2,
+    "auxiliary_branch_loss_weight": 1.0,
+    "learning_rate": 1e-05,
+    "beta1": 0.9,
+    "beta2": 0.95,
+    "epsilon": 1e-08,
+    "weight_decay": 0.0,
+    "max_grad_norm": 1.0,
+    "warmup_steps": 100,
+    "cooldown_start_step": 800,
+    "train_steps": 1000,
+    "microbatch_size": 16,
+    "accumulation_steps": 4,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "attention_schedule": "causal source path plus full-attention LoRA branch",
+    "mixture": "causal_logits + tanh(causal_logits @ zero_vector) * branch_delta"
+  },
+  "numeric_controls": {
+    "cublas_workspace_config": ":4096:8",
+    "float32_matmul_precision": "high",
+    "cudnn_benchmark": false,
+    "deterministic_algorithms": true
+  },
+  "effective_batch_size": 64,
+  "mask_token": "[UNK]",
+  "mask_replacement": "100% selected targets replaced",
+  "training_objective": "gated candidate sequence-balanced repeat-weight MNTP CE plus an equally weighted auxiliary full-branch MNTP CE; both retain source z-loss",
+  "architecture": "frozen adapter-disabled causal logits plus tanh of a zero-initialized source-logit projection times the separate full-attention LoRA logit delta",
+  "references": [
+    "https://doi.org/10.1016/j.knosys.2024.112907",
+    "https://arxiv.org/abs/2405.14862"
+  ],
+  "train_plan_sha256": "9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "paired_target_count": 640,
+  "gate": {
+    "criterion": "candidate passes source non-inferiority and full attention is strictly useful relative to the same trained candidate with right context removed",
+    "source_noninferiority": {
+      "candidate": "gated_full_step1000",
+      "baseline": "source_causal_adapter_disabled_step0",
+      "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+      "point_estimate_passed": false,
+      "confidence_supported": false,
+      "passed": false
+    },
+    "right_context_use": {
+      "candidate": "gated_full_step1000",
+      "baseline": "gated_causalized_step1000",
+      "criterion": "full branch is non-inferior to its causalized ablation on both paired metrics and strictly improves at least one with 95% support",
+      "point_noninferior": false,
+      "confidence_noninferior": false,
+      "point_strict_improvement": true,
+      "confidence_strict_improvement": false,
+      "passed": false
+    },
+    "passed": false
+  },
+  "right_context_comparison": {
+    "candidate": "gated_full_step1000",
+    "baseline": "gated_causalized_step1000",
+    "n_targets": 640,
+    "nucleotide_ce_delta": 0.007504476336089283,
+    "nucleotide_ce_delta_ci95_low": 0.0009458391605130602,
+    "nucleotide_ce_delta_ci95_high": 0.0132162510988428,
+    "nucleotide_accuracy_delta": 0.00625,
+    "nucleotide_accuracy_delta_ci95_low": -0.0046875,
+    "nucleotide_accuracy_delta_ci95_high": 0.01875
+  },
+  "checkpoint_retention": "adapter-plus-gate and optimizer-bearing W&B artifacts",
+  "checkpoint_deletion": "not performed",
+  "hugging_face_upload": "not performed",
+  "vep_evaluation": "not performed",
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed"
+}

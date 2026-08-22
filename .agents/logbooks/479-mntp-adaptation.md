@@ -963,3 +963,26 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Retention: Upload adapter-plus-gate snapshots and the final adapter/gate/optimizer/RNG checkpoint to W&B; perform no Hugging Face upload or checkpoint deletion.
 - Budget: One self-terminating AWS `g5.xlarge` A10G has a four-hour ceiling at `$1.006/hour`, projecting at most `$41.115314 / $50` from the current `$37.091314` cumulative estimate.
 - Decision boundary: Run no VEP, nucleotide dependency, or knowledge-base update unless both paired gates pass and fresh-process reload parity is subsequently established.
+
+### 2026-08-22 09:25 - Causal-preserving gated dual-path LoRA completed and failed both gates
+
+- Immutable source: W&B run `jbcq5sn2` used commit `cc4cbcb000662827e05e1b73dfa47eddacd5bfb2`, tagged `exp479-gated-dualpath-lora-v1`.
+- Verification: All 174 locked tests passed on the remote worker, and the training and validation plan SHA-256 values remained `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91` and `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Exact initialization: The step-0 gated candidate matched the adapter-disabled causal source bit-exactly on all 640 targets before its artifact was retained.
+- Source readout: Frozen causal CE was `1.0507893187` and accuracy was `0.50625`.
+- Final full readout: Step-1,000 gated full-attention CE was `1.0582129615` and accuracy was `0.5125`.
+- Source gate: Candidate-minus-source CE was `+0.0074236429` with 95% interval `[+0.0008767442, +0.0131908086]`, while accuracy was `+0.00625` with interval `[-0.003125, +0.0171875]`; the source non-inferiority gate failed.
+- Final causalized control: Forcing the trained LoRA branch causal gave CE `1.0507084852` and accuracy `0.50625`.
+- Right-context gate: Full-minus-causalized CE was `+0.0075044763` with 95% interval `[+0.0009458392, +0.0132162511]`, while accuracy was `+0.00625` with interval `[-0.0046875, +0.01875]`; right context added four correct calls but confidence-supported CE harm, so the use gate failed.
+- Trajectory: CE was effectively source-like through warmup, then worsened gradually from step 200 through step 1,000; accuracy peaked at six additional correct targets at step 700 and finished four targets above source.
+- Source preservation: Disabling the adapter after training reproduced the frozen causal source bit-exactly.
+- Stability: Exactly 1,000 trace rows cover steps 0 through 999, and every loss, metric, gradient norm, and paired score is finite.
+- Gradient norms: Total pre-clipping norm median/p95/maximum was `3.315884/14.929560/18.974609`, gate norm was `3.299555/14.928176/18.973114`, and LoRA norm was `0.332392/1.610533/2.129122`.
+- Clipping: `879/1,000` steps clipped, including every step before cooldown and `79/200` cooldown steps; the seven-value gate dominated the global norm and therefore attenuated LoRA updates.
+- Loss behavior: Total loss min/median/p95/maximum was `2.535892/2.704769/3.224862/3.451206`, and the final-50 range/mean was `2.555883-2.743695/2.659238`, with no late spike.
+- Retention: Thirteen adapter-plus-gate milestone artifacts and the final adapter/gate/optimizer/RNG artifact remain in W&B, with no deletion.
+- Runtime: Training and registered evaluation took `7,407.85` seconds at `2,211.71` model tokens/second, with peak allocated/reserved CUDA memory `7.28/7.57` GB.
+- Cost: The conservative post-finalization listed-price estimate is `$39.275873 / $50`, and the AWS cluster was confirmed absent.
+- Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/gated-lora/`; the W&B evaluation artifact ID is `QXJ0aWZhY3Q6MzM3NDQxOTQ0NQ==`.
+- Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
+- Next step: Preregister and run one zero-training two-causal-pass information gate that combines unchanged forward and reverse-complement causal distributions after fitting one scalar on a disjoint training-plan calibration slice.
