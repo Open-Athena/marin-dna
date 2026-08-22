@@ -1,0 +1,16 @@
+{
+  "status": "completed",
+  "parameter_updates": 0,
+  "base_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "mask_token": "[UNK]",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "target_count": 640,
+  "attention_masks": "nested DiffuLLaMA stochastic future-edge masks",
+  "mask_replicates": 5,
+  "elapsed_seconds": 653.6080777645111,
+  "vep_evaluation": "not performed",
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed",
+  "hugging_face_upload": "not performed",
+  "checkpoint_deletion": "not performed"
+}

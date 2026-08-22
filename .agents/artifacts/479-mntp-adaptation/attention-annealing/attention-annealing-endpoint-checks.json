@@ -1,0 +1,16 @@
+{
+  "causal": {
+    "maximum_absolute_nucleotide_ce_delta": 0.0,
+    "mean_absolute_nucleotide_ce_delta": 0.0,
+    "mean_signed_nucleotide_ce_delta": 0.0,
+    "nucleotide_prediction_mismatches": 0,
+    "nucleotide_predictions_identical": true
+  },
+  "full": {
+    "maximum_absolute_nucleotide_ce_delta": 0.0,
+    "mean_absolute_nucleotide_ce_delta": 0.0,
+    "mean_signed_nucleotide_ce_delta": 0.0,
+    "nucleotide_prediction_mismatches": 0,
+    "nucleotide_predictions_identical": true
+  }
+}

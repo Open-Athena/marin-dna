@@ -1,0 +1,25 @@
+{
+  "adjacent_ce_increases": 11,
+  "adjacent_accuracy_decreases": 11,
+  "adjacent_intervals": 11,
+  "causal_nucleotide_ce": 1.0516807109117507,
+  "full_nucleotide_ce": 1.4246315002441405,
+  "causal_nucleotide_accuracy": 0.5109375,
+  "full_nucleotide_accuracy": 0.2703125,
+  "endpoint_checks": {
+    "causal": {
+      "maximum_absolute_nucleotide_ce_delta": 0.0,
+      "mean_absolute_nucleotide_ce_delta": 0.0,
+      "mean_signed_nucleotide_ce_delta": 0.0,
+      "nucleotide_prediction_mismatches": 0,
+      "nucleotide_predictions_identical": true
+    },
+    "full": {
+      "maximum_absolute_nucleotide_ce_delta": 0.0,
+      "mean_absolute_nucleotide_ce_delta": 0.0,
+      "mean_signed_nucleotide_ce_delta": 0.0,
+      "nucleotide_prediction_mismatches": 0,
+      "nucleotide_predictions_identical": true
+    }
+  }
+}
