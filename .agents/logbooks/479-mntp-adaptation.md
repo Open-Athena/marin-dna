@@ -702,3 +702,25 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Fix: Increase the self-terminating task's ephemeral root disk to 80 GB and assert that capacity in the launch test.
 - Cost: Automatic teardown recorded `0.072254` instance-hours and `$0.072688`, bringing the cumulative listed-price estimate to `$32.945379 / $50`.
 - Boundaries: The enlarged disk is ephemeral and auto-deleted; no persistent model upload, training, VEP, nucleotide dependency, knowledge-base update, or checkpoint deletion occurred.
+
+### 2026-08-22 01:56 - Frozen-source attention trajectory completed
+
+- Producing snapshot: `c52d0e9e1d48fc2d29e46a754eb3c1b2405c852b`.
+- Verification: All 140 locked tests passed on the AWS A10G before data preparation or model loading.
+- Evidence: [W&B 0vvh4kcb](https://wandb.ai/gonzalobenegas/marin/runs/0vvh4kcb) and artifact `gonzalobenegas/marin/dna-exp479-source-attention-annealing-diagnostic:nested-attention`.
+- Identity: Every readout used the same 640 deterministic targets from validation plan SHA-256 `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba` with `[UNK]` replacing the selected future token.
+- Endpoint audit: Under the shared math-SDPA backend, custom 0% and 100% masks reproduced the standard causal and full paths with zero maximum, mean-absolute, and mean-signed per-target four-way CE difference and zero correctness mismatches.
+- Causal endpoint: Four-way nucleotide CE was `1.051681` and accuracy was `0.510938`.
+- One-percent future edges: CE was `1.174222` and accuracy was `0.456563`; versus causal, paired CE delta was `+0.122541` with 95% CI `[+0.095581, +0.149141]`, and accuracy delta was `-0.054375` with 95% CI `[-0.078125, -0.031867]`.
+- Two-percent future edges: CE was `1.234798` and accuracy was `0.417813`.
+- Five-percent future edges: CE was `1.302963` and accuracy was `0.379688`.
+- Ten-percent future edges: CE was `1.341090` and accuracy was `0.346875`.
+- Later trajectory: CE/accuracy were `1.354823/0.325000` at 20%, `1.370995/0.309688` at 30%, `1.382455/0.295000` at 40%, `1.389651/0.295000` at 50%, `1.399677/0.291875` at 60%, and `1.410491/0.286250` at 80%.
+- Full endpoint: CE was `1.424632` and accuracy was `0.270313`.
+- Monotonicity: CE increased in all 11 adjacent intervals; accuracy was non-increasing in all 11, decreasing in 10 and tying only from 40% to 50%.
+- Front loading: One percent of future edges accounted for `32.86%` of total endpoint CE degradation, 2% for `49.10%`, 5% for `67.38%`, and 10% for `77.60%`.
+- Answer: Degradation is gradual and monotone across the whole transition, but it is strongly front-loaded rather than approximately linear in the fraction of opened future edges.
+- Training implication: The preregistered 100-step linear LoRA anneal would move through most of the unadapted functional collapse in its first ten optimizer steps, so revise it before launch rather than treating 100 steps as conservative.
+- Runtime: The zero-update diagnostic itself took `653.61` seconds; the complete self-terminating instance took `0.244491` hours.
+- Cost: This successful attempt added `$0.245958`, bringing the cumulative listed-price estimate to `$33.191337 / $50`.
+- Boundaries: No parameter update, VEP, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion occurred.
