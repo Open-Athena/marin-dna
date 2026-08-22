@@ -74,6 +74,11 @@ BICO_LORA_MAX_INSTANCE_HOURS = 3.3
 BICO_LORA_MEMORY_HEADROOM = 0.10
 BICO_LORA_BUDGET_RESERVE_USD = 2.0
 BICO_LORA_EVALUATION_RESERVE_HOURS = 1.25
+BICO_LORA_REFERENCE_BATCH_SIZE = 94
+BICO_LORA_REFERENCE_RUNTIME_SECONDS = 1_409.47968674
+BICO_LORA_REFERENCE_RUN = "gonzalobenegas/marin/t37n0upf"
+BICO_LORA_REFERENCE_ARTIFACT_ID = "QXJ0aWZhY3Q6MzM3NjcxNzIzOQ=="
+BICO_LORA_REFERENCE_ARTIFACT_DIGEST = "769518dcc69892ceabd9c7a9a7c73687"
 BICO_LORA_RUN_NAME = "dna-exp479-bico-lora-r16-pad15-lr1e-5-wsd1000-seed0"
 BICO_LORA_WANDB_GROUP = "dna-exp479-bico-lora-information-gate"
 BICO_LORA_MODEL_PREFIX = "dna-exp479-bico-lora-r16-pad15"
@@ -435,6 +440,23 @@ def _build_training_objects(
     return config, bundle, trainable_count, module, data
 
 
+def projected_bico_base_run_hours(
+    *,
+    batch_size: int,
+    cold_seconds_per_step: float,
+) -> tuple[float, str]:
+    """Project the base run from sustained evidence when the exact path is known."""
+
+    if batch_size <= 0 or cold_seconds_per_step <= 0:
+        raise ValueError("batch size and cold step time must be positive")
+    if batch_size == BICO_LORA_REFERENCE_BATCH_SIZE:
+        return (
+            BICO_LORA_REFERENCE_RUNTIME_SECONDS / 3_600,
+            f"observed 1,000-step runtime from {BICO_LORA_REFERENCE_RUN}",
+        )
+    return cold_seconds_per_step * 1_000 / 3_600, "two-cold-step extrapolation"
+
+
 def run_bico_lora_preflight(
     *,
     batch_size: int,
@@ -498,12 +520,15 @@ def run_bico_lora_preflight(
         peak_allocated = int(torch.cuda.max_memory_allocated())
         peak_reserved = int(torch.cuda.max_memory_reserved())
         headroom = (total_memory - peak_reserved) / total_memory
-        seconds_per_step = elapsed / 2
+        cold_seconds_per_step = elapsed / 2
         instance_start = float(os.getenv("EXP479_INSTANCE_START_UNIX", str(started)))
         prior_cost = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
         price = float(os.getenv("EXP479_INSTANCE_PRICE_PER_HOUR_USD", "2.29"))
         accrued = prior_cost + (time.time() - instance_start) / 3600 * price
-        projected_training_hours = seconds_per_step * config.train_steps / 3600
+        projected_training_hours, projection_basis = projected_bico_base_run_hours(
+            batch_size=batch_size,
+            cold_seconds_per_step=cold_seconds_per_step,
+        )
         projected_total = (
             accrued + (projected_training_hours + BICO_LORA_EVALUATION_RESERVE_HOURS) * price
         )
@@ -530,8 +555,20 @@ def run_bico_lora_preflight(
             "total_memory_bytes": total_memory,
             "headroom_fraction": headroom,
             "memory_headroom_required": BICO_LORA_MEMORY_HEADROOM,
-            "seconds_per_step": seconds_per_step,
+            "cold_two_step_seconds_per_step": cold_seconds_per_step,
+            "cold_two_step_projected_training_hours": (
+                cold_seconds_per_step * config.train_steps / 3_600
+            ),
             "projected_training_hours": projected_training_hours,
+            "budget_projection_basis": projection_basis,
+            "budget_runtime_reference": {
+                "wandb_run": BICO_LORA_REFERENCE_RUN,
+                "evaluation_artifact_id": BICO_LORA_REFERENCE_ARTIFACT_ID,
+                "evaluation_artifact_digest": BICO_LORA_REFERENCE_ARTIFACT_DIGEST,
+                "batch_size": BICO_LORA_REFERENCE_BATCH_SIZE,
+                "runtime_seconds": BICO_LORA_REFERENCE_RUNTIME_SECONDS,
+            },
+            "evaluation_reserve_hours": BICO_LORA_EVALUATION_RESERVE_HOURS,
             "projected_total_cost_usd": projected_total,
             "budget_guard_total_usd": BUDGET_USD - BICO_LORA_BUDGET_RESERVE_USD,
             "budget_passed": budget_passed,

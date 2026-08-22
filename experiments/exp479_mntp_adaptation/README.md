@@ -234,6 +234,9 @@ The `bico-lora-standard-rate` stage changes only the peak learning rate to `5e-5
 It retains rank-16 LoRA, fixed 15% `[PAD]` corruption, reflected future RoPE, the corrected causal hook, seed 0, the same training and validation plan construction, 100 warmup steps, a constant rate through step 800, and decay through step 1,000.
 It uses the measured maximum physical GH200 batch 94 with gradient accumulation fixed at 1.
 Batch 94 is rerun for two exact optimizer steps at `5e-5` before training and must retain at least 10% peak-reserved-memory headroom with finite loss and gradients.
+The first standard-rate preflight passed those numerical and memory checks but was rejected because extrapolating its two cold steps predicted `2.4772` training hours.
+The exact prior batch-94 run instead measured `1,409.48` seconds for its complete 1,000-step training callback, including paired evaluations and checkpoint publication.
+The corrected budget gate uses that same-path sustained runtime plus a conservative `1.25`-hour reserve for the new VEP trajectory, while retaining the `$2` runtime reserve and `$50` cap.
 
 The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
 It also measures one-pass BICO forward VEP AUPRC at steps 0 and every 100 through 1,000 on the same 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE development variants from odd-numbered autosomes and chromosome X.
@@ -247,7 +250,7 @@ The stage performs no nucleotide-dependency analysis, Hugging Face upload, check
 ```bash
 uv run --locked python launch.py bico-lora-standard-rate \
   --commit "$(git rev-parse HEAD)" \
-  --prior-cost-usd 42.139827271281725 \
+  --prior-cost-usd 42.39890103020706 \
   --retry-until-up \
   --execute
 ```

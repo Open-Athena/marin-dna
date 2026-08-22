@@ -1268,3 +1268,23 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Verification: Run focused local lint and lightweight tests, then the complete locked test suite remotely before preflight and training.
 - Reload: After completion, start a fresh process from the private final adapter and require exact paired-score parity before concluding the run.
 - Boundaries: Perform no nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, held-out even-autosome/Y label access, or research knowledge-base interpretation.
+
+
+### 2026-08-22 16:18 - Correct the cold-start budget projection before training
+
+- Snapshot: Commit `691a5db85836aa733e291e4b69556de22dba6698`, tag `exp479-bico-lora-standard-rate-prelaunch-v3`.
+- Provisioning: Lambda `us-east-1` lacked capacity; `us-east-3` acquired one GH200 and self-terminated after the rejected preflight.
+- Verification: All 217 locked tests passed remotely in `22.53` seconds before model or data preparation.
+- Data identity: The preflight training-plan SHA-256 was `7e8ffae932e5f549c922d015c234f9d57cf39134fa1406a675df70150a3d0e76`, and validation remained the fixed `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Numerical gate: Two exact batch-94 optimizer steps at `5e-5` completed with finite loss and gradients.
+- Memory gate: Peak reserved memory was `90,850,721,792 / 101,468,602,368` bytes, leaving `10.464203%` headroom and passing the required 10%.
+- Rejection: The original budget code divided the complete two-cold-step wall time by two, obtained `8.917958` seconds per step, and extrapolated `2.477211` training hours plus the `1.25`-hour evaluation reserve.
+- Contradiction: The completed exact batch-94 run `t37n0upf` measured `1,409.479687` seconds for all 1,000 steps through the training callback, including the paired checkpoint evaluations and W&B checkpoint publication.
+- Diagnosis: The two-step timing is dominated by cold model/kernel initialization and is not a valid sustained-throughput estimate.
+- Estimator correction: For exact batch 94, use the observed `1,409.479687`-second same-path runtime as the base projection; retain cold-step extrapolation only for an unmeasured batch.
+- Conservative addition: Add `1.25` hours for eleven one-pass odd/X VEP evaluations, metric aggregation, private S3 publication, and margin.
+- Budget invariant: Keep the `$2` reserve and hard `$50` cap unchanged.
+- Cost: The rejected preflight added `$0.259074`, moving the conservative total to `$42.398901 / $50`.
+- Retention: No optimizer training beyond the two preflight steps occurred, the versioned S3 checkpoint prefix remains empty, and no checkpoint was created, modified, uploaded, or deleted.
+- Relaunch gate: Rerun local focused checks and the complete remote suite, then require the same finite-gradient and 10% memory results plus the corrected budget projection below `$48` before training.
+- Boundaries: No VEP scoring, nucleotide dependency, held-out label access, Hugging Face upload, checkpoint deletion, or knowledge-base interpretation occurred.
