@@ -1,0 +1,13 @@
+{
+  "started_at_utc": "2026-08-22T07:20:02.301370+00:00",
+  "finished_at_utc": "2026-08-22T09:23:30.148618+00:00",
+  "elapsed_seconds": 7407.847248103,
+  "starting_global_step": 0,
+  "global_step": 1000,
+  "executed_steps": 1000,
+  "batch_size": 64,
+  "model_tokens": 16384000,
+  "model_tokens_per_second": 2211.708672070096,
+  "peak_cuda_allocated_bytes": 7283332096,
+  "peak_cuda_reserved_bytes": 7570718720
+}

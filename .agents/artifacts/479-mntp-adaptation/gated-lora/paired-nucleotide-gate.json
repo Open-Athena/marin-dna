@@ -1,0 +1,22 @@
+{
+  "criterion": "candidate passes source non-inferiority and full attention is strictly useful relative to the same trained candidate with right context removed",
+  "source_noninferiority": {
+    "candidate": "gated_full_step1000",
+    "baseline": "source_causal_adapter_disabled_step0",
+    "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+    "point_estimate_passed": false,
+    "confidence_supported": false,
+    "passed": false
+  },
+  "right_context_use": {
+    "candidate": "gated_full_step1000",
+    "baseline": "gated_causalized_step1000",
+    "criterion": "full branch is non-inferior to its causalized ablation on both paired metrics and strictly improves at least one with 95% support",
+    "point_noninferior": false,
+    "confidence_noninferior": false,
+    "point_strict_improvement": true,
+    "confidence_strict_improvement": false,
+    "passed": false
+  },
+  "passed": false
+}

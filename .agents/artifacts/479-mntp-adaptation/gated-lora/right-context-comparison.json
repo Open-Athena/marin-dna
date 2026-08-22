@@ -1,0 +1,11 @@
+{
+  "candidate": "gated_full_step1000",
+  "baseline": "gated_causalized_step1000",
+  "n_targets": 640,
+  "nucleotide_ce_delta": 0.007504476336089283,
+  "nucleotide_ce_delta_ci95_low": 0.0009458391605130602,
+  "nucleotide_ce_delta_ci95_high": 0.0132162510988428,
+  "nucleotide_accuracy_delta": 0.00625,
+  "nucleotide_accuracy_delta_ci95_low": -0.0046875,
+  "nucleotide_accuracy_delta_ci95_high": 0.01875
+}
