@@ -724,3 +724,21 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Runtime: The zero-update diagnostic itself took `653.61` seconds; the complete self-terminating instance took `0.244491` hours.
 - Cost: This successful attempt added `$0.245958`, bringing the cumulative listed-price estimate to `$33.191337 / $50`.
 - Boundaries: No parameter update, VEP, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion occurred.
+
+### 2026-08-22 02:19 - Damage-calibrated LoRA information gate preregistered
+
+- Trigger: The frozen-source sweep showed that a 100-step linear attention transition would expose the unadapted model to 77.60% of its endpoint CE degradation within the first ten optimizer steps.
+- Schedule: Replace the unlaunched linear transition with the piecewise-linear inverse of the measured frozen-source CE-degradation curve.
+- Calibration: Pin the exact probabilities and normalized CE-damage fractions from W&B run `0vvh4kcb` under calibration tag `source-unk-zero-training-v1`.
+- Milestones: Start at exactly 0% future edges and reach approximately 1%, 2%, 5%, and 10% at optimizer steps 263, 393, 539, and 621.
+- Full-attention phase: Reach 100% future edges at step 800 and retain fully bidirectional attention for the final 200 optimizer steps.
+- Adapter scope: Freeze the released source model and train rank-16, alpha-16 LoRA adapters with dropout 0.05 on q, k, v, o, gate, up, and down projections.
+- Objective scope: Keep the existing fixed 20% selected-base rate, replace every selected base with existing `[UNK]`, and retain the sequence-balanced effective-repeat-weight MNTP CE plus source z-loss.
+- Optimizer: Keep AdamW at peak learning rate `1e-5`, betas `(0.9, 0.95)`, zero weight decay, gradient clipping at 1.0, effective batch 64, seed 0, and the 100-step warmup, 700-step constant, 200-step linear-decay schedule.
+- Pairing: Evaluate full-attention LoRA readouts at steps 0, 25, 50, 100, and every 100 steps thereafter on the exact 640 deterministic targets from validation plan SHA-256 `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Source control: Disable the adapter and require the step-1,000 causal source readout to remain bit-exact to its step-0 baseline.
+- Decision rule: Proceed beyond nucleotide prediction only if the step-1,000 full-attention LoRA readout has paired four-way CE no higher and accuracy no lower than the causal source, with both one-sided conclusions supported by the paired 95% sequence-bootstrap intervals.
+- Development status: This odd-autosome/X gate is a mechanism-development check rather than a final generalization estimate.
+- Verification: Run the complete locked test suite on the paid instance before data preparation or model loading.
+- Compute: Use one self-terminating AWS `g5.xlarge` A10G on demand in `us-east-2` at `$1.006/hour` because spot capacity was unavailable and this configuration completed the source diagnostic.
+- Budget: A four-hour automatic guard projects at most `$37.215337 / $50` cumulative from the current `$33.191337`.

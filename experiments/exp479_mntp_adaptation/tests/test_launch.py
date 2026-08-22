@@ -255,7 +255,7 @@ def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
         "dna-exp479-lora-a10",
         "sky/lora-mntp.yaml",
     ]
-    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.29" in command
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.006" in command
     assert command.count("--secret") == 1
     assert "WANDB_API_KEY" in command
     assert "HF_TOKEN" not in command
@@ -264,7 +264,11 @@ def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
     stage = Path("sky/lora-mntp.yaml").read_text(encoding="utf-8")
     assert stage.count("uv run --locked exp479 lora-mntp") == 1
     assert stage.count("uv run --locked pytest") == 1
-    assert "accelerators: A10:1" in stage
+    assert "cloud: aws" in stage
+    assert "region: us-east-2" in stage
+    assert "accelerators: A10G:1" in stage
+    assert "use_spot: false" in stage
+    assert "disk_size: 80" in stage
     assert "--batch-size 64" in stage
     assert "WANDB_API_KEY" in stage
     assert "HF_TOKEN" not in stage

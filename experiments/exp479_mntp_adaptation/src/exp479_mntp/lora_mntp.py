@@ -53,7 +53,7 @@ LORA_RANK = 16
 LORA_ALPHA = 16
 LORA_DROPOUT = 0.05
 LORA_MASK_PROBABILITY = 0.2
-LORA_ATTENTION_ANNEAL_STEPS = 100
+LORA_ATTENTION_ANNEAL_STEPS = 800
 LORA_LEARNING_RATE = 1e-5
 LORA_MICROBATCH_SIZE = 16
 LORA_EFFECTIVE_BATCH_SIZE = 64
@@ -69,9 +69,38 @@ LORA_TARGET_MODULES = (
     "down_proj",
 )
 LORA_WANDB_GROUP = "dna-exp479-lora-mntp-information-gate"
-LORA_RUN_NAME = "dna-exp479-lora-r16-mntp-unk-20pct-anneal100-lr1e-5-wsd1000-seed0"
+LORA_RUN_NAME = "dna-exp479-lora-r16-mntp-unk-20pct-damagecal800-lr1e-5-wsd1000-seed0"
 LORA_MODEL_ARTIFACT_PREFIX = "dna-exp479-lora-r16-mntp-unk"
 LORA_EVALUATION_ARTIFACT = "dna-exp479-lora-r16-mntp-information-gate"
+LORA_ATTENTION_CALIBRATION_TAG = "source-unk-zero-training-v1"
+LORA_ATTENTION_CALIBRATION_PROBABILITIES = (
+    0.0,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.8,
+    1.0,
+)
+LORA_ATTENTION_CALIBRATION_CE_DEGRADATION_FRACTIONS = (
+    0.0,
+    0.32857232778195733,
+    0.49099526592768916,
+    0.6737672586505843,
+    0.7759986276017637,
+    0.8128203254429095,
+    0.856183506930262,
+    0.8869100893685018,
+    0.9062062080291675,
+    0.9330877228683793,
+    0.9620857023479154,
+    1.0,
+)
 
 
 @dataclass(frozen=True)
@@ -115,20 +144,44 @@ class LoraMntpConfig:
             total_steps=self.train_steps,
         )
 
-    def to_dict(self) -> dict[str, float | int | list[str]]:
+    def to_dict(self) -> dict[str, float | int | str | list[str] | list[float]]:
         """Return JSON-serializable configuration and target modules."""
 
-        return asdict(self) | {"target_modules": list(LORA_TARGET_MODULES)}
+        return asdict(self) | {
+            "target_modules": list(LORA_TARGET_MODULES),
+            "attention_schedule": "source_ce_damage_calibrated_piecewise_linear",
+            "attention_calibration_tag": LORA_ATTENTION_CALIBRATION_TAG,
+            "attention_calibration_probabilities": list(LORA_ATTENTION_CALIBRATION_PROBABILITIES),
+            "attention_calibration_ce_degradation_fractions": list(
+                LORA_ATTENTION_CALIBRATION_CE_DEGRADATION_FRACTIONS
+            ),
+        }
+
+
+def damage_calibrated_future_edge_probability(target_ce_degradation_fraction: float) -> float:
+    """Invert the measured frozen-source CE-damage curve by linear interpolation."""
+
+    if not 0.0 <= target_ce_degradation_fraction <= 1.0:
+        raise ValueError("target CE-degradation fraction must be in [0, 1]")
+    return float(
+        np.interp(
+            target_ce_degradation_fraction,
+            LORA_ATTENTION_CALIBRATION_CE_DEGRADATION_FRACTIONS,
+            LORA_ATTENTION_CALIBRATION_PROBABILITIES,
+        )
+    )
 
 
 def attention_future_edge_probability(step: int, *, anneal_steps: int) -> float:
-    """Return the DiffuLLaMA linear future-edge opening probability."""
+    """Open future edges at an approximately linear frozen-source CE-damage rate."""
 
     if step < 0:
         raise ValueError("optimizer step must be non-negative")
     if anneal_steps <= 0:
         raise ValueError("attention anneal steps must be positive")
-    return min(1.0, (step + 1) / anneal_steps)
+    if step >= anneal_steps:
+        return 1.0
+    return damage_calibrated_future_edge_probability(step / anneal_steps)
 
 
 def annealed_attention_mask(
@@ -641,7 +694,7 @@ def run_lora_mntp(
             "lora",
             "rank-16",
             "unk-mask",
-            "attention-annealing",
+            "damage-calibrated-attention",
             "paired-information-gate",
         ],
         save_dir=str(output_dir),
@@ -818,7 +871,8 @@ def run_lora_mntp(
                 "sequence-balanced effective-repeat-weight MNTP CE plus source z-loss"
             ),
             "attention_training": (
-                "DiffuLLaMA-style stochastic future-edge annealing over steps 0-99, then full"
+                "source-CE-damage-calibrated stochastic future-edge annealing over steps "
+                "0-800, then full"
             ),
             "train_plan_sha256": plan_sha256(train_plan),
             "validation_plan_sha256": plan_sha256(validation_plan),
