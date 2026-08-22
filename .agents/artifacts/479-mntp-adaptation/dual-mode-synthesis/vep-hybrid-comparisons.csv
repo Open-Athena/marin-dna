@@ -1,0 +1,4 @@
+dataset,endpoint,candidate,baseline,delta,se,ci_low,ci_high,n_groups,n_rows
+mendelian_traits,mendelian_consequence_macro,two_pass_plus_residual,source_clm_avg,-0.0010825431028361546,0.0016975630804857624,-0.0044097667405882494,0.00224468053491594,8,16100
+complex_traits,complex_global,two_pass_plus_residual,source_clm_avg,0.00027895162647920135,0.0004553782949765293,-0.0006018041780269566,0.001147568185798511,1163,11630
+sge,accession_consequence_macro,two_pass_plus_residual,source_clm_avg,-0.0014997569817186227,0.0009212504563241799,-0.0033054078761140153,0.0003058939126767699,8,23501

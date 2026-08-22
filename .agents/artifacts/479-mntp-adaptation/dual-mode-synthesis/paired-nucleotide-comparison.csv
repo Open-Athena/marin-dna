@@ -1,0 +1,2 @@
+candidate,baseline,n_targets,nucleotide_ce_delta,nucleotide_ce_delta_ci95_low,nucleotide_ce_delta_ci95_high,nucleotide_accuracy_delta,nucleotide_accuracy_delta_ci95_low,nucleotide_accuracy_delta_ci95_high
+two_pass_symmetric,source_left,640,-0.13755274658489658,-0.16865896213177822,-0.10759591240440353,0.115625,0.0827734375,0.14847656249999996

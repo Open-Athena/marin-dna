@@ -1,0 +1,19 @@
+{
+  "start_time_utc_approximate": "2026-08-22T10:54:31.94Z",
+  "end_time_utc": "2026-08-22T10:59:36.85Z",
+  "elapsed_wall_seconds": 304.91,
+  "exit_status": 0,
+  "maximum_resident_set_kib": 353472,
+  "shared_node_lock": "/tmp/marin-dna-local-heavy.lock",
+  "thread_limits": {
+    "polars_max_threads": 2,
+    "rayon_num_threads": 2,
+    "omp_num_threads": 1,
+    "mkl_num_threads": 1,
+    "openblas_num_threads": 1,
+    "numexpr_num_threads": 1
+  },
+  "nice": 10,
+  "ionice": "best-effort class 2 priority 7",
+  "cloud_cost_usd": 0.0
+}

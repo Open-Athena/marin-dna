@@ -1072,3 +1072,22 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/two-pass-vep/`; W&B artifact ID is `QXJ0aWZhY3Q6MzM3NDk5Nzk1NQ==` with digest `88d22c7c89c3a97da7505fa1a33c5a74`.
 - Boundaries: The run performed zero model updates and no nucleotide dependency, knowledge-base update, Hugging Face upload, checkpoint deletion, or held-out label access.
 - Next step: Use the retained per-variant scores to specify a frozen, label-free decomposition or approximation of the CLM context-effect term before considering another adaptation run.
+
+### 2026-08-22 11:00 - Frozen dual-mode synthesis passed its routing contract
+
+- Trigger: The frozen symmetric two-pass conditional improved exact paired nucleotide prediction but remained below the source full-sequence CLM on all three VEP endpoints.
+- Method: Reuse only the retained paired-nucleotide directional log probabilities and odd/X VEP score artifacts, perform no model inference or updates, and replace the source masked-central score with the symmetric two-pass score while retaining the source score-space residual.
+- Symmetric paired result: Source-left CE/accuracy was `1.0510000140/0.509375`, while symmetric two-pass at the calibration-only `alpha = 0.408` reached `0.9134472674/0.625` on the same 640 untouched validation targets.
+- Paired uncertainty: Symmetric two-pass minus source-left CE was `-0.1375527466` with 95% interval `[-0.1686589621, -0.1075959124]`, and accuracy was `+0.115625` with interval `[+0.0827734375, +0.1484765625]`; both confidence-supported gates passed.
+- Context result: The source score-space residual alone reached AUPRC `0.389009/0.131775/0.358259` on Mendelian, complex-trait, and SGE endpoints, compared with full source CLM `0.395523/0.134083/0.357623`.
+- Exactness boundary: For signed Mendelian and SGE protocols, the residual is exactly the full-sequence CLM score minus its masked central conditional and therefore isolates the surrounding-token contribution in score space.
+- Complex-trait boundary: Because that protocol persists the absolute LLR, its residual is an exact post-protocol score identity but not a signed likelihood decomposition.
+- Exploratory hybrid: Symmetric two-pass central plus the source residual reached AUPRC `0.394441/0.134362/0.356123`.
+- Hybrid uncertainty: Hybrid-minus-source deltas were Mendelian `-0.001083` with interval `[-0.004410, +0.002245]`, complex `+0.000279` with interval `[-0.000602, +0.001148]`, and SGE `-0.001500` with interval `[-0.003305, +0.000306]`.
+- Interpretation: Better exact nucleotide prediction does not imply better VEP because the registered source CLM score is driven mainly by how the allele changes predictions across the surrounding sequence, not only by the central conditional.
+- Supported architecture: Keep one unchanged checkpoint and expose two explicit inference routes: symmetric two-causal-pass fusion for paired nucleotide prediction, and the unchanged full-sequence source CLM FWD+RC scorer for VEP.
+- Gate disposition: This dual-mode routing contract passes because the paired route improves with confidence and the VEP route is exactly the source scorer, but it does not support one shared score or one-pass full attention.
+- Verification: The synthesis used 1,000 bootstraps, completed locally in `5:04.91`, peaked at `353472` KiB RSS under the shared-node lock, and incurred no cloud charge.
+- Evidence: Compact files and the rendered figure are in `.agents/artifacts/479-mntp-adaptation/dual-mode-synthesis/`.
+- Boundaries: No new inference, training, held-out label access, nucleotide dependency, knowledge-base update, Hugging Face upload, checkpoint deletion, or cloud resource occurred.
+- Next step: Snapshot the synthesis, update issue #479 with the current routing result and evidence figure, and let remote CI validate the new artifact-only code.
