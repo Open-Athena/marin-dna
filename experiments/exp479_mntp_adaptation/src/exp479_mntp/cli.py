@@ -273,6 +273,15 @@ def _parser() -> argparse.ArgumentParser:
     two_pass.add_argument("--batch-size", type=int, default=64)
     two_pass.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    two_pass_vep = subparsers.add_parser(
+        "two-pass-vep",
+        help="compare frozen calibrated two-pass VEP with source CLM",
+    )
+    two_pass_vep.add_argument("--artifact-dir", type=Path, required=True)
+    two_pass_vep.add_argument("--output-dir", type=Path, required=True)
+    two_pass_vep.add_argument("--batch-size", type=int, default=1_024)
+    two_pass_vep.add_argument("--n-bootstrap", type=int, default=1_000)
+
     lora_reload = subparsers.add_parser(
         "lora-reload-audit",
         help="reload the final LoRA adapter and audit paired-score parity",
@@ -595,6 +604,16 @@ def main() -> None:
             output_dir=args.output_dir,
             train_plan=args.train_plan,
             validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "two-pass-vep":
+        from exp479_mntp.two_pass_vep import run_two_pass_vep
+
+        run_two_pass_vep(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
             batch_size=args.batch_size,
             n_bootstrap=args.n_bootstrap,
         )

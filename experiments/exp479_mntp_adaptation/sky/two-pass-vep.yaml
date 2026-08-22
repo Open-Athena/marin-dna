@@ -1,0 +1,30 @@
+name: dna-exp479-frozen-two-pass-vep
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 256
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${WANDB_API_KEY:-}"
+  artifact_root="$HOME/exp479-two-pass-vep-artifacts"
+  output_dir="$artifact_root/evaluation/two-pass-vep"
+  mkdir -p "$output_dir"
+  trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-two-pass-vep-artifacts" || true' EXIT
+  uv run --locked pytest
+  timeout --signal=TERM 7200 uv run --locked exp479 two-pass-vep \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --batch-size 1024 \
+    --n-bootstrap 1000

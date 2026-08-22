@@ -223,6 +223,33 @@ uv run --locked python launch.py two-pass-information-gate \
   --execute
 ```
 
+## Frozen two-pass VEP gate
+
+The `two-pass-vep` stage runs only after the frozen paired nucleotide gate passes.
+It performs zero training and scores the pinned odd-autosome/X development rows from the Mendelian, complex-trait, and SGE datasets.
+It does not access even-autosome or chromosome-Y labels.
+
+The primary conditional readout is strand-symmetric.
+The same 640-row calibration slice selected `alpha = 0.408` before VEP labels are loaded by minimizing four-way nucleotide CE for the normalized geometric mean of the forward-anchored and reverse-anchored two-pass distributions.
+On the already-registered nucleotide validation panel, that fixed readout reached CE `0.913447` and accuracy `0.625`.
+
+For every central SNV, the stage masks the reference base with `[UNK]`, obtains one native causal distribution from the left context and one realigned native causal distribution from the reverse-complemented right context, and computes alternate-minus-reference log-probability ratios.
+It also recomputes the original source CLM full-sequence FWD+RC score in the same process.
+Runtime assertions cover the BOS/UNK/PAD IDs, input-to-output shift, central coordinate, `i -> 254 - i` reverse mapping, A/C/G/T realignment, reference-token identity, and exact double reverse complementation.
+
+The gate uses the original Mendelian consequence macro, complex-trait global, and SGE accession-consequence macro AUPRC endpoints.
+It passes only if paired primary AUPRC is confidence-supported non-inferior to source CLM FWD+RC on all three endpoints and strictly improves at least one.
+It publishes raw development-split scores, metrics, paired comparisons, coordinate controls, runtimes, and one figure to W&B.
+It performs no Hugging Face upload, nucleotide-dependency analysis, checkpoint deletion, or knowledge-base update.
+
+```bash
+uv run --locked python launch.py two-pass-vep \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd <cumulative-cost-after-two-pass-gate> \
+  --retry-until-up \
+  --execute
+```
+
 ## Registered behavior
 
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.
