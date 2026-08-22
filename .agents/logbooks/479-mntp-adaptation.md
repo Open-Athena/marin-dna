@@ -875,3 +875,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Sequence: Launch only after the corrected LoRA replay and its independent final-adapter reload audit complete.
 - Boundaries: No training, VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurs in this diagnostic.
 - Issue record: Posted the preregistration at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5378162150.
+
+### 2026-08-22 05:27 - Causal-path-preserving conversion methods ranked
+
+- Dec2Enc: Retain causal attention, compute an additional right-side/full-attention output, and learn a zero-initialized gate so the first forward pass is algebraically causal rather than the damaged uniform-full endpoint.
+- Executable check: The released Qwen2 implementation contains the zero-initialized gate and explicit causal/full attention mixture described by the paper.
+- Bitune: Independently retains causal and bidirectional feature paths, gives them separate PEFT-adapted parameters, and learns their mixture.
+- Two-Pass FCM: Duplicate the sequence under an unchanged causal mask so the second copy can use right context from the first, but its from-scratch training, new `[copy]` sentinel, and doubled length make it a secondary diagnostic here.
+- Controlled CLM-to-MLM evidence: A 38-model study supports continued masked adaptation from causal initialization, but its 22,000-step full-model setting is much larger than the current 1,000-step LoRA sanity check.
+- Ranked fallback: If the paired gate and localized zero-training control fail, prefer a zero-initialized gated right-attention residual with LoRA on the new path over another abrupt uniform-full transition.
+- Boundary: Do not implement or launch the fallback until the running replay, reload audit, and localized frozen-source diagnostic resolve.
+- Issue record: Posted the cited research synthesis at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5378188024.
