@@ -947,3 +947,19 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/localized-attention/`.
 - Boundaries: Zero parameter updates occurred, and no VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
 - Next step: Preregister a frozen-causal, separate full-attention LoRA branch with an exactly zero-initialized learned gate and a right-context-removal control.
+
+### 2026-08-22 07:14 - Causal-preserving gated dual-path LoRA preregistered
+
+- Trigger: Frozen uniform-full attention lost `0.372951` CE and 24.06 accuracy points versus causal, while predictor-row localization still lost `0.155505` CE and 6.25 points; neither raw attention intervention is information-safe.
+- Architecture: Run the unchanged adapter-disabled source causally, run a separate full-attention rank-16 LoRA branch on the same `[UNK]`-corrupted input, and mix logits as `causal + tanh(causal_logits @ gate) * (branch - causal)`.
+- Exact initialization: The seven-value gate vector is initialized to exactly zero, so candidate logits are algebraically and runtime-checked bit-exact to the causal source at step 0.
+- Gradient path: The gated candidate loss trains the gate, and an equally weighted auxiliary full-branch MNTP loss trains the LoRA matrices even while the gate is initially closed; the causal source is detached and frozen.
+- Training contract: Use the human-selected `1e-5` AdamW rate, betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, gradient clipping at 1.0, 100-step warmup, constant rate through step 800, and cooldown through step 1,000.
+- Data contract: Reuse effective batch 64, the exact registered training and 640-row validation plans, fixed 20% masking, 100% `[UNK]` replacement, shifted supervision, and one repeat-weight application with per-sequence effective-weight normalization.
+- Source gate: Final paired four-way nucleotide CE must be no higher and accuracy no lower than the frozen causal source, with 95% sequence-bootstrap support.
+- Use gate: The final full candidate must be non-inferior on both metrics and strictly improve at least one with 95% support versus the same trained candidate with its LoRA branch forced causal; equality from a closed gate explicitly fails.
+- Trajectories: Retain and evaluate steps 0, 25, 50, 100, every 100 steps through 900, and 1,000; record gated and auxiliary losses, accuracy, gate coefficients, separated LoRA/gate gradient norms, clipping, and learning rate at every optimizer step.
+- Literature boundary: This is a conservative output-level proxy inspired by Dec2Enc and Bitune, not a reproduction; Dec2Enc mixes causal and right-attention contributions inside layers, while this diagnostic mixes separately computed logits.
+- Retention: Upload adapter-plus-gate snapshots and the final adapter/gate/optimizer/RNG checkpoint to W&B; perform no Hugging Face upload or checkpoint deletion.
+- Budget: One self-terminating AWS `g5.xlarge` A10G has a four-hour ceiling at `$1.006/hour`, projecting at most `$41.115314 / $50` from the current `$37.091314` cumulative estimate.
+- Decision boundary: Run no VEP, nucleotide dependency, or knowledge-base update unless both paired gates pass and fresh-process reload parity is subsequently established.

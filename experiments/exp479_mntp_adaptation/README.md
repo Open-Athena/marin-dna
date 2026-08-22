@@ -168,6 +168,37 @@ uv run --locked python launch.py source-validation \
   --execute
 ```
 
+## Causal-preserving gated LoRA follow-up
+
+The `gated-lora-mntp` stage is the sequential follow-up to the failed uniform-full LoRA and frozen localized-attention gates.
+It leaves the released causal computation frozen and evaluates it with the adapter disabled on every forward pass.
+A separate rank-16 LoRA branch uses full attention on the same `[UNK]`-corrupted input.
+A seven-value zero-initialized projection of the causal source logits produces one token-wise `tanh` mixing coefficient.
+The candidate is therefore algebraically identical to the causal source at step 0.
+
+The gated candidate and full-attention branch receive equally weighted sequence-balanced, repeat-weighted MNTP losses.
+The auxiliary branch loss gives the LoRA matrices a learning signal while the mixing gate is still exactly closed.
+The causal source path remains detached and receives no updates.
+Training uses AdamW at `1e-5`, 10% warmup, 70% constant rate, 20% decay, fixed 20% masking, and effective batch size 64 for 1,000 steps.
+
+The final candidate must pass two gates on the same 640 deterministic single-mask targets.
+First, it must have paired four-way nucleotide CE no higher and accuracy no lower than the frozen causal source, with 95% sequence-bootstrap support.
+Second, full attention must be non-inferior on both metrics and strictly improve at least one with 95% support relative to the same trained candidate with its LoRA branch forced causal.
+This second comparison prevents an exactly closed mixing gate from being counted as successful bidirectionality.
+
+The design is a conservative output-level proxy inspired by [Dec2Enc](https://doi.org/10.1016/j.knosys.2024.112907) and [Bitune](https://arxiv.org/abs/2405.14862), not a reproduction of either architecture.
+Dec2Enc mixes causal and right-attention contributions inside each layer, while this first gate mixes frozen-causal and separately adapted full-attention logits.
+No VEP or nucleotide-dependency analysis runs until both paired gates pass.
+Every adapter-plus-gate milestone and the final optimizer state are retained in W&B, with no Hugging Face upload or checkpoint deletion.
+
+```bash
+uv run --locked python launch.py gated-lora-mntp \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 37.091314 \
+  --retry-until-up \
+  --execute
+```
+
 ## Registered behavior
 
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.

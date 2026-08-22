@@ -249,6 +249,19 @@ def _parser() -> argparse.ArgumentParser:
     lora_mntp.add_argument("--evaluation-batch-size", type=int, default=64)
     lora_mntp.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    gated_lora = subparsers.add_parser(
+        "gated-lora-mntp",
+        help="train a causal-preserving gated full-attention LoRA path",
+    )
+    gated_lora.add_argument("--artifact-dir", type=Path, required=True)
+    gated_lora.add_argument("--output-dir", type=Path, required=True)
+    gated_lora.add_argument("--train-plan", type=Path, required=True)
+    gated_lora.add_argument("--validation-plan", type=Path, required=True)
+    gated_lora.add_argument("--seed", type=int, default=0)
+    gated_lora.add_argument("--num-workers", type=int, default=4)
+    gated_lora.add_argument("--evaluation-batch-size", type=int, default=64)
+    gated_lora.add_argument("--n-bootstrap", type=int, default=2_000)
+
     lora_reload = subparsers.add_parser(
         "lora-reload-audit",
         help="reload the final LoRA adapter and audit paired-score parity",
@@ -539,6 +552,20 @@ def main() -> None:
         from exp479_mntp.lora_mntp import run_lora_mntp
 
         run_lora_mntp(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            evaluation_batch_size=args.evaluation_batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "gated-lora-mntp":
+        from exp479_mntp.gated_lora_mntp import run_gated_lora_mntp
+
+        run_gated_lora_mntp(
             artifact_dir=args.artifact_dir,
             output_dir=args.output_dir,
             train_plan=args.train_plan,

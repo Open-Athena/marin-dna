@@ -347,3 +347,41 @@ def test_lora_reload_audit_uses_retained_wandb_artifacts_only() -> None:
     assert "timeout --signal=TERM 7200" in stage
     assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage
     assert "nuc-dep" not in stage
+
+
+def test_gated_lora_uses_one_a10g_wandb_and_no_downstream_evaluation() -> None:
+    command = launch_command(
+        "gated-lora-mntp",
+        "a" * 40,
+        1234,
+        prior_cost_usd=37.091314,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-gated-lora-a10",
+        "sky/gated-lora-mntp.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.006" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/gated-lora-mntp.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 gated-lora-mntp") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "cloud: aws" in stage
+    assert "region: us-east-2" in stage
+    assert "accelerators: A10G:1" in stage
+    assert "use_spot: false" in stage
+    assert "disk_size: 80" in stage
+    assert "--batch-size 64" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage
+    assert "timeout --signal=TERM 14400" in stage
+    assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage

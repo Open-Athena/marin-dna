@@ -1,0 +1,40 @@
+name: dna-exp479-causal-preserving-gated-lora
+
+resources:
+  cloud: aws
+  region: us-east-2
+  accelerators: A10G:1
+  use_spot: false
+  disk_size: 80
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${WANDB_API_KEY:-}"
+  artifact_root="$HOME/exp479-gated-lora-artifacts"
+  output_dir="$artifact_root/evaluation/gated-lora-mntp"
+  mkdir -p "$output_dir"
+  trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-gated-lora-artifacts" || true' EXIT
+  uv run --locked pytest
+  uv run --locked exp479 prepare-data \
+    --output-dir "$artifact_root/data" \
+    --batch-size 64 \
+    --seed 0
+  timeout --signal=TERM 14400 uv run --locked exp479 gated-lora-mntp \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --train-plan "$artifact_root/data/train.jsonl" \
+    --validation-plan "$artifact_root/data/validation.jsonl" \
+    --seed 0 \
+    --num-workers 4 \
+    --evaluation-batch-size 64 \
+    --n-bootstrap 2000
