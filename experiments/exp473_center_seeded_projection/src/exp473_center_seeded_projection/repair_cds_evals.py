@@ -18,6 +18,7 @@ import pandas as pd
 
 from exp473_center_seeded_projection.analyze_evals import (
     ROW_IDENTITY_COLUMNS,
+    S3_STORAGE_OPTIONS,
     minus_llr_avg,
     read_development_metric,
     read_parquet,
@@ -42,6 +43,7 @@ MENDELIAN_SUBSETS = (
     "synonymous_variant",
 )
 SGE_SUBSETS = ("missense_variant", "splicing")
+SCORE_COLUMNS = (*ROW_IDENTITY_COLUMNS, "llr_fwd", "llr_rc")
 
 
 def join_uri(root: str, *parts: str) -> str:
@@ -70,6 +72,18 @@ def artifact_uri(root: str, kind: str, model: str, dataset: str) -> str:
 
 def _load_metric(uri: str) -> pd.DataFrame:
     return read_development_metric(uri, reader=read_parquet)
+
+
+def read_score(uri: str) -> pd.DataFrame:
+    """Read only identity and LLR columns, excluding optional embeddings."""
+    options = S3_STORAGE_OPTIONS if uri.startswith("s3://") else None
+    frame = pd.read_parquet(
+        uri,
+        columns=list(SCORE_COLUMNS),
+        storage_options=options,
+    )
+    assert tuple(frame.columns) == SCORE_COLUMNS
+    return frame
 
 
 def analyze_mendelian(
@@ -102,10 +116,9 @@ def analyze_mendelian(
         )
         _load_metric(full_metric_uri)
         _load_metric(center_metric_uri)
-        full = read_parquet(full_score_uri)
-        center = read_parquet(center_score_uri)
+        full = read_score(full_score_uri)
+        center = read_score(center_score_uri)
         validate_policy_pair(full, center)
-        assert tuple(full[list(ROW_IDENTITY_COLUMNS)].columns) == ROW_IDENTITY_COLUMNS
         inputs.extend(
             [full_score_uri, center_score_uri, full_metric_uri, center_metric_uri]
         )

@@ -6,6 +6,7 @@ from exp473_center_seeded_projection.repair_cds_evals import (
     artifact_uri,
     baseline_model_name,
     center_model_name,
+    read_score,
     select_official_endpoint,
 )
 
@@ -25,6 +26,37 @@ def test_repair_artifact_names_are_stable_and_separate():
         "s3://bucket/root/metrics/"
         "exp417-cds-combined-vertebrates-step-1000/mendelian_traits.parquet"
     )
+
+
+def test_read_score_projects_out_optional_embeddings(tmp_path):
+    path = tmp_path / "scores.parquet"
+    pd.DataFrame(
+        {
+            "chrom": ["1"],
+            "pos": [1],
+            "ref": ["A"],
+            "alt": ["C"],
+            "label": [True],
+            "subset": ["missense_variant"],
+            "match_group": [1],
+            "llr_fwd": [0.1],
+            "llr_rc": [0.2],
+            "emb_ref": [[0.0] * 256],
+            "emb_alt": [[0.0] * 256],
+        }
+    ).to_parquet(path, index=False)
+    selected = read_score(str(path))
+    assert selected.columns.tolist() == [
+        "chrom",
+        "pos",
+        "ref",
+        "alt",
+        "label",
+        "subset",
+        "match_group",
+        "llr_fwd",
+        "llr_rc",
+    ]
 
 
 def test_select_official_complex_endpoint():
