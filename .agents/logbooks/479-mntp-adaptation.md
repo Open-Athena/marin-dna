@@ -791,3 +791,13 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Stability: All 554 W&B optimizer rows through step 553 were present and finite; loss min/median/max was `1.272340/1.338690/1.589207`, latest-20 mean was `1.326702`, and the future-edge probability trace was monotone.
 - Gate context: The exact readout remained far behind released source causal `1.051060/0.5078125` and did not pass.
 - Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377607698.
+
+### 2026-08-22 03:39 - LoRA step-600 milestone
+
+- Exact paired readout: Step 600 full-attention four-way CE was `1.4153311488` and accuracy was `0.284375`, improving CE by `0.0103464398` and gaining eight correct targets relative to step 0.
+- Local trajectory: CE changed by `+0.0001477032` and accuracy gained four correct targets from step 500, so the last 100 steps traded a statistically tiny CE reversal for a small accuracy gain.
+- Schedule context: Future-edge probability was `0.087284` at optimizer step 600 and `0.092175` at the latest observed step 608.
+- Stability: All 611 W&B optimizer rows observed through step 610 were finite; loss min/median/max was `1.267362/1.338044/1.589207`, latest-20 mean was `1.327053`, and the future-edge probability trace was monotone.
+- Gate context: The exact readout remained far behind released source causal `1.051060/0.5078125` and did not pass.
+- Interpretation boundary: This remains an intermediate observation before the schedule reaches full attention at step 800 and trains there for 200 steps.
+- Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377633272.
