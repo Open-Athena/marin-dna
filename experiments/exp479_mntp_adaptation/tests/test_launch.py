@@ -526,6 +526,46 @@ def test_lora_reload_audit_uses_retained_wandb_artifacts_only() -> None:
     assert "nuc-dep" not in stage
 
 
+def test_mendelian_reload_audit_uses_a10g_wandb_and_private_s3() -> None:
+    command = launch_command(
+        "mendelian-reload-audit",
+        "a" * 40,
+        1234,
+        prior_cost_usd=45.895973,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-mendelian-reload-a10",
+        "sky/mendelian-reload-audit.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.006" in command
+    assert command.count("--secret") == 4
+    assert "WANDB_API_KEY" in command
+    assert "AWS_ACCESS_KEY_ID" in command
+    assert "AWS_SECRET_ACCESS_KEY" in command
+    assert "AWS_SESSION_TOKEN" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/mendelian-reload-audit.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 mendelian-reload-audit") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "cloud: aws" in stage
+    assert "region: us-east-2" in stage
+    assert "accelerators: A10G:1" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "AWS_ACCESS_KEY_ID" in stage
+    assert "HF_TOKEN" not in stage
+    assert "nuc-dep" not in stage
+    assert "complex_traits" not in stage
+    assert "sge" not in stage
+    assert "timeout --signal=TERM 2700" in stage
+    assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage
+
+
 def test_bico_lora_gate_audit_reuses_retained_wandb_artifacts_on_a10g() -> None:
     command = launch_command(
         "bico-lora-gate-audit",

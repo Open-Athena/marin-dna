@@ -296,6 +296,14 @@ def _parser() -> argparse.ArgumentParser:
     bico_lora_gate_audit.add_argument("--batch-size", type=int, default=64)
     bico_lora_gate_audit.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    mendelian_reload = subparsers.add_parser(
+        "mendelian-reload-audit",
+        help="reload the retained standard-rate adapter and reproduce Mendelian scores",
+    )
+    mendelian_reload.add_argument("--artifact-dir", type=Path, required=True)
+    mendelian_reload.add_argument("--output-dir", type=Path, required=True)
+    mendelian_reload.add_argument("--batch-size", type=int, default=128)
+
     lora_mntp = subparsers.add_parser(
         "lora-mntp",
         help="train one frozen-base rank-16 LoRA and apply the paired information gate",
@@ -687,6 +695,15 @@ def main() -> None:
             validation_plan=args.validation_plan,
             batch_size=args.batch_size,
             n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "mendelian-reload-audit":
+        from exp479_mntp.mendelian_reload_audit import run_mendelian_reload_audit
+
+        run_mendelian_reload_audit(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            batch_size=args.batch_size,
         )
         return
     if args.command == "lora-mntp":

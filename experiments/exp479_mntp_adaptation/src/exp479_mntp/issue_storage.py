@@ -117,3 +117,47 @@ def upload_issue_artifact(
             }
         )
     return records
+
+
+def download_verified_issue_object(
+    *,
+    s3_uri: str,
+    destination: Path,
+    expected_size_bytes: int,
+    expected_sha256: str,
+    client: Any | None = None,
+) -> dict[str, object]:
+    """Download one issue-owned object only when remote and local checksums agree."""
+
+    parsed = urlparse(s3_uri)
+    key = parsed.path.lstrip("/")
+    if parsed.scheme != "s3" or parsed.netloc != ISSUE_BUCKET:
+        raise ValueError(f"retained object must use s3://{ISSUE_BUCKET}")
+    if not key.startswith(ISSUE_PREFIX) or not key.removeprefix(ISSUE_PREFIX):
+        raise ValueError(f"retained object must stay below s3://{ISSUE_BUCKET}/{ISSUE_PREFIX}")
+    if expected_size_bytes <= 0:
+        raise ValueError("expected object size must be positive")
+    if len(expected_sha256) != 64:
+        raise ValueError("expected object checksum must be a SHA-256 hex digest")
+    if client is None:
+        import boto3
+
+        client = boto3.client("s3")
+
+    remote = client.head_object(Bucket=parsed.netloc, Key=key)
+    remote_size = int(remote.get("ContentLength", -1))
+    remote_checksum = remote.get("Metadata", {}).get("sha256")
+    if remote_size != expected_size_bytes or remote_checksum != expected_sha256:
+        raise RuntimeError(f"retained S3 object metadata changed: {s3_uri}")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    client.download_file(parsed.netloc, key, str(destination))
+    observed_size = destination.stat().st_size
+    observed_checksum = _sha256(destination)
+    if observed_size != expected_size_bytes or observed_checksum != expected_sha256:
+        raise RuntimeError(f"retained S3 object download failed verification: {s3_uri}")
+    return {
+        "s3_uri": s3_uri,
+        "size_bytes": observed_size,
+        "sha256": observed_checksum,
+    }

@@ -6,7 +6,11 @@ from typing import Any
 
 import pytest
 
-from exp479_mntp.issue_storage import upload_issue_artifact, validate_issue_s3_prefix
+from exp479_mntp.issue_storage import (
+    download_verified_issue_object,
+    upload_issue_artifact,
+    validate_issue_s3_prefix,
+)
 
 
 class _MissingObject(Exception):
@@ -42,6 +46,9 @@ class _FakeS3:
             "body": Path(filename).read_bytes(),
             "metadata": ExtraArgs["Metadata"],
         }
+
+    def download_file(self, bucket: str, key: str, filename: str) -> None:
+        Path(filename).write_bytes(self.objects[(bucket, key)]["body"])
 
 
 @pytest.mark.parametrize(
@@ -103,5 +110,38 @@ def test_upload_issue_artifact_is_checksum_verified_and_retry_safe(tmp_path: Pat
             artifact,
             destination_prefix="s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1",
             relative_path="adapters/step-0000",
+            client=client,
+        )
+
+
+def test_download_verified_issue_object_checks_remote_and_local_bytes(tmp_path: Path) -> None:
+    body = b"retained-adapter"
+    checksum = hashlib.sha256(body).hexdigest()
+    client = _FakeS3()
+    key = "issues/479/bico-lora-standard-rate/v1/adapters/step-1000/adapter.bin"
+    client.objects[("oa-bolinas", key)] = {
+        "body": body,
+        "metadata": {"sha256": checksum},
+    }
+    destination = tmp_path / "adapter.bin"
+
+    record = download_verified_issue_object(
+        s3_uri=f"s3://oa-bolinas/{key}",
+        destination=destination,
+        expected_size_bytes=len(body),
+        expected_sha256=checksum,
+        client=client,
+    )
+
+    assert destination.read_bytes() == body
+    assert record["sha256"] == checksum
+
+    client.objects[("oa-bolinas", key)]["metadata"]["sha256"] = "0" * 64
+    with pytest.raises(RuntimeError, match="metadata changed"):
+        download_verified_issue_object(
+            s3_uri=f"s3://oa-bolinas/{key}",
+            destination=destination,
+            expected_size_bytes=len(body),
+            expected_sha256=checksum,
             client=client,
         )

@@ -31,6 +31,7 @@ STAGE_CONFIGS = {
     "bico-lora-resume": "sky/bico-lora-resume.yaml",
     "bico-lora-standard-rate": "sky/bico-lora-standard-rate.yaml",
     "bico-lora-gate-audit": "sky/bico-lora-gate-audit.yaml",
+    "mendelian-reload-audit": "sky/mendelian-reload-audit.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
     "gated-lora-mntp": "sky/gated-lora-mntp.yaml",
     "two-pass-information-gate": "sky/two-pass-information-gate.yaml",
@@ -69,6 +70,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "bico-lora-resume",
         "bico-lora-standard-rate",
         "bico-lora-gate-audit",
+        "mendelian-reload-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -87,7 +89,8 @@ def execution_environment(stage: str) -> dict[str, str]:
         authentication = netrc.netrc().authenticators("api.wandb.ai")
         if authentication is not None:
             environment["WANDB_API_KEY"] = authentication[2]
-    if stage == "bico-lora-standard-rate" and not all(
+    aws_stages = {"bico-lora-standard-rate", "mendelian-reload-audit"}
+    if stage in aws_stages and not all(
         environment.get(name) for name in AWS_CREDENTIAL_NAMES
     ):
         exported = subprocess.run(
@@ -120,6 +123,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "bico-lora-resume",
         "bico-lora-standard-rate",
         "bico-lora-gate-audit",
+        "mendelian-reload-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -130,7 +134,7 @@ def execution_environment(stage: str) -> dict[str, str]:
     }:
         required = (
             ("WANDB_API_KEY", *AWS_CREDENTIAL_NAMES)
-            if stage == "bico-lora-standard-rate"
+            if stage in aws_stages
             else ("WANDB_API_KEY",)
         )
     elif stage in wandb_stages:
@@ -196,6 +200,8 @@ def launch_command(
         cluster_name = "dna-exp479-bico-lora-standard-rate-gh200"
     elif stage == "bico-lora-gate-audit":
         cluster_name = "dna-exp479-bico-lora-gate-audit-a10"
+    elif stage == "mendelian-reload-audit":
+        cluster_name = "dna-exp479-mendelian-reload-a10"
     elif stage == "paired-nucleotide-gate":
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
@@ -234,6 +240,7 @@ def launch_command(
         "bico-lora-resume",
         "bico-lora-standard-rate",
         "bico-lora-gate-audit",
+        "mendelian-reload-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -260,6 +267,7 @@ def launch_command(
                 "two-pass-information-gate",
                 "lora-reload-audit",
                 "bico-lora-gate-audit",
+                "mendelian-reload-audit",
             }
             else "1.29"
         )
@@ -292,6 +300,7 @@ def launch_command(
         "bico-lora-resume",
         "bico-lora-standard-rate",
         "bico-lora-gate-audit",
+        "mendelian-reload-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -301,7 +310,7 @@ def launch_command(
         "source-validation",
     }:
         command.extend(["--secret", "WANDB_API_KEY"])
-    if stage == "bico-lora-standard-rate":
+    if stage in {"bico-lora-standard-rate", "mendelian-reload-audit"}:
         for name in AWS_CREDENTIAL_NAMES:
             command.extend(["--secret", name])
     if prior_cost_usd:

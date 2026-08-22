@@ -1,0 +1,33 @@
+name: dna-exp479-bico-lora-standard-rate-mendelian-reload-audit
+
+resources:
+  cloud: aws
+  region: us-east-2
+  accelerators: A10G:1
+  use_spot: false
+  disk_size: 80
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${WANDB_API_KEY:-}"
+  test -n "${AWS_ACCESS_KEY_ID:-}"
+  test -n "${AWS_SECRET_ACCESS_KEY:-}"
+  test -n "${AWS_SESSION_TOKEN:-}"
+  artifact_root="$HOME/exp479-mendelian-reload-audit-artifacts"
+  output_dir="$artifact_root/evaluation/mendelian-reload-audit"
+  mkdir -p "$output_dir"
+  trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-mendelian-reload-audit-artifacts" || true' EXIT
+  uv run --locked pytest
+  timeout --signal=TERM 2700 uv run --locked exp479 mendelian-reload-audit \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --batch-size 128

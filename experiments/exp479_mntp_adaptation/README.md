@@ -513,7 +513,21 @@ uv run --locked python launch.py bico-lora-gate-audit \
   --execute
 ```
 
-The stage uses one self-terminating AWS A10G, forwards only the W&B secret, preserves every retained checkpoint, and performs no VEP, nucleotide-dependency, Hugging Face, or knowledge-base action.
+The corrected-gate stage uses one self-terminating AWS A10G, forwards only the W&B secret, preserves every retained checkpoint, and performs no VEP, nucleotide-dependency, Hugging Face, or knowledge-base action.
+
+The `mendelian-reload-audit` stage focuses the final serialization control on Mendelian VEP.
+It checksum-verifies the private S3 step-1,000 adapter, selects eight complete matched groups from each of the eight macro subsets, retrieves 255-bp Ensembl-115 GRCh38 windows with S3 byte-range queries, and compares fresh-process scores against the training-time scores.
+It does not download the full reference or evaluate the other VEP datasets.
+
+```bash
+uv run --locked python launch.py mendelian-reload-audit \
+  --commit <full-commit-sha> \
+  --prior-cost-usd <current-total> \
+  --retry-until-up \
+  --execute
+```
+
+The Mendelian audit uses one self-terminating AWS A10G, forwards W&B and temporary AWS credentials, preserves every retained checkpoint, and performs no other VEP, nucleotide-dependency, Hugging Face, or knowledge-base action.
 
 ## Data plans
 
