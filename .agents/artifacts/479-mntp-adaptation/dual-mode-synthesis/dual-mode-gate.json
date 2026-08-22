@@ -1,0 +1,11 @@
+{
+  "criterion": "one unchanged source checkpoint exposes a confidence-supported improved symmetric two-pass nucleotide route and an exactly unchanged source-CLM VEP route",
+  "paired_nucleotide_route": "two_pass_symmetric",
+  "paired_nucleotide_confidence_gate_passed": true,
+  "vep_route": "source_clm_avg",
+  "vep_score_max_abs_delta_vs_source": 0.0,
+  "vep_endpoint_parity_all_three": true,
+  "passed": true,
+  "single_shared_readout_supported": false,
+  "one_pass_full_attention_supported": false
+}

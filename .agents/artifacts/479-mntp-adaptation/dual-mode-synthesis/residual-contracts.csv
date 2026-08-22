@@ -1,0 +1,4 @@
+dataset,protocol,residual_kind,reconstruction_max_abs_error
+mendelian_traits,minus_llr,exact signed context-effect contribution,0.0
+complex_traits,abs_llr,post-absolute-value score residual; not a signed context effect,0.0
+sge,minus_llr,exact signed context-effect contribution,0.0

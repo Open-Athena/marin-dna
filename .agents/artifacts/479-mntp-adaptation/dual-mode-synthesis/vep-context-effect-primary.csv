@@ -1,0 +1,16 @@
+score_type,subset,value,se,n_groups,n_rows,dataset,endpoint,metric,accession,gene,n,n_pos
+source_clm_avg,_macro_avg_,0.3955230915164218,0.015553059094992112,8.0,16100.0,mendelian_traits,mendelian_consequence_macro,,,,,
+masked_central,_macro_avg_,0.2854480131046355,0.012564566029818114,8.0,16100.0,mendelian_traits,mendelian_consequence_macro,,,,,
+two_pass_central,_macro_avg_,0.2841325968308048,0.012553700201952945,8.0,16100.0,mendelian_traits,mendelian_consequence_macro,,,,,
+context_residual,_macro_avg_,0.38900890220785656,0.015475238809433802,8.0,16100.0,mendelian_traits,mendelian_consequence_macro,,,,,
+two_pass_plus_residual,_macro_avg_,0.39444054841358567,0.015520674567945522,8.0,16100.0,mendelian_traits,mendelian_consequence_macro,,,,,
+source_clm_avg,_global_,0.13408310580483554,0.005209334475516539,1163.0,11630.0,complex_traits,complex_global,,,,,
+masked_central,_global_,0.1254331635021411,0.004568937558063838,1163.0,11630.0,complex_traits,complex_global,,,,,
+two_pass_central,_global_,0.12588458219499937,0.0045726780309699195,1163.0,11630.0,complex_traits,complex_global,,,,,
+context_residual,_global_,0.13177510503859688,0.005112165829639226,1163.0,11630.0,complex_traits,complex_global,,,,,
+two_pass_plus_residual,_global_,0.13436205743131474,0.0052319677642560375,1163.0,11630.0,complex_traits,complex_global,,,,,
+source_clm_avg,_macro_avg_,0.35762290978049627,0.01096427593874087,,,sge,accession_consequence_macro,AUPRC,_macro_avg_,_macro_avg_,8.0,3501.0
+masked_central,_macro_avg_,0.25225515061596393,0.009017907146278132,,,sge,accession_consequence_macro,AUPRC,_macro_avg_,_macro_avg_,8.0,3501.0
+two_pass_central,_macro_avg_,0.2533434766362056,0.00905960747941396,,,sge,accession_consequence_macro,AUPRC,_macro_avg_,_macro_avg_,8.0,3501.0
+context_residual,_macro_avg_,0.3582590590074327,0.010857734758453806,,,sge,accession_consequence_macro,AUPRC,_macro_avg_,_macro_avg_,8.0,3501.0
+two_pass_plus_residual,_macro_avg_,0.3561231527987776,0.0110108626683456,,,sge,accession_consequence_macro,AUPRC,_macro_avg_,_macro_avg_,8.0,3501.0

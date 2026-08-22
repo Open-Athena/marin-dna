@@ -1,0 +1,32 @@
+{
+  "status": "completed",
+  "source_model": "marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "model_updates": 0,
+  "paired_information_artifact_digest": "7d0f9f70f22e39e7e7a7c3e7e8454aeb",
+  "vep_artifact_digest": "88d22c7c89c3a97da7505fa1a33c5a74",
+  "symmetric_alpha": 0.408,
+  "calibration_targets": 640,
+  "validation_targets": 640,
+  "n_bootstrap": 1000,
+  "routing_contract": {
+    "paired_nucleotide_prediction": "two unchanged causal passes with symmetric fusion",
+    "vep": "unchanged full-sequence source CLM FWD+RC score"
+  },
+  "exploratory_hybrid": "replace the source central conditional score with the symmetric two-pass score while retaining the source score-space residual",
+  "complex_trait_residual_caveat": "the complex-trait protocol takes absolute LLR before persistence, so its residual is an exact post-protocol score identity but not a signed likelihood decomposition",
+  "gate": {
+    "criterion": "one unchanged source checkpoint exposes a confidence-supported improved symmetric two-pass nucleotide route and an exactly unchanged source-CLM VEP route",
+    "paired_nucleotide_route": "two_pass_symmetric",
+    "paired_nucleotide_confidence_gate_passed": true,
+    "vep_route": "source_clm_avg",
+    "vep_score_max_abs_delta_vs_source": 0.0,
+    "vep_endpoint_parity_all_three": true,
+    "passed": true,
+    "single_shared_readout_supported": false,
+    "one_pass_full_attention_supported": false
+  },
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed",
+  "hugging_face_upload": "not performed",
+  "checkpoint_deletion": "not performed"
+}
