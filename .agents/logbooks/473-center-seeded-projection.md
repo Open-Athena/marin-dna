@@ -2644,3 +2644,19 @@ cohort, assemblies, and downstream training recipe fixed.
 - Verified issue comment `5381531921` publishes only factual development trajectories and provenance and makes no biological or projection-policy interpretation.
 - Additive model-registration PR #502 is ready for human review at head `0b782c9de75baedc76641b4ef239b467372792f7`, is merge-clean, and has all required checks green, including `test (evals-v2)`.
 - Nothing was merged or closed, the knowledge-base PR was not edited, and the user-owned untracked ortholog-free issue draft was not modified.
+
+### 2026-08-22 18:13 UTC - CSP-089 training-split figures published
+
+- Commit `0f7c7f1627b901458b2a1c0aed25f4746718730c` adds the reproducible source tables, plotting script, and two SVGs under `.agents/artifacts/issue-473/split-control/` on the permanent research branch.
+- The loss figure uses separate square panels and independent y-axes because the training validation rows differ between the two models.
+- The row-random panel contains the complete 10-point public W&B `eval/loss` history from steps 500 through 4,999.
+- Direct inspection of `gonzalobenegas/marin/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k` found zero W&B validation rows because guarded resumptions disabled W&B logging.
+- The chr18 panel is therefore labeled as the exact offline `evals_v2` replay on its original public 16,384-row validation shard and contains all nine available checkpoints from steps 1,000 through 4,999.
+- The terminal AUPRC figure contains one facet for each relevant CDS endpoint: Mendelian missense, splicing, and synonymous; Complex-trait missense; and SGE missense and splicing.
+- Every facet starts at its positive-label prevalence and shows the two actual AUPRC values with uncapped per-arm ±1 SE error bars.
+- A validation pass matched all 19 plotted loss points and 12 plotted AUPRC arm-endpoints to the public W&B history, immutable chr18 replay table, and canonical `evals_v2` metric artifacts.
+- The final `validation_loss_by_split.svg` SHA-256 is `2d14ad0c3408b6409c440ab9225f28fb034bfde9d213a97c0d3c2eab27329593`; the final `auprc_by_split.svg` SHA-256 is `f6693c223bac67656b1f3ee3950aa94dad4f6116feb1fe0f9bd6e760da362b75`.
+- Both figures were rasterized and visually inspected for title and label fit, square plot boxes, subplot spacing, independent scales, error-bar caps, and caption separation.
+- Changed-file pre-commit checks passed after their mechanical SVG whitespace cleanup.
+- Verified issue comment `5381862381` embeds both commit-pinned figures, reports the exact AUPRC ± SE values, explains the W&B limitation, and makes no interpretation of a validation-split effect.
+- The user-owned untracked ortholog-free issue draft remains untouched.
