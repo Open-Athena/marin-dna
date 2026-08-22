@@ -742,3 +742,18 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Verification: Run the complete locked test suite on the paid instance before data preparation or model loading.
 - Compute: Use one self-terminating AWS `g5.xlarge` A10G on demand in `us-east-2` at `$1.006/hour` because spot capacity was unavailable and this configuration completed the source diagnostic.
 - Budget: A four-hour automatic guard projects at most `$37.215337 / $50` cumulative from the current `$33.191337`.
+
+### 2026-08-22 02:57 - Final-adapter reload parity audit preregistered
+
+- Trigger: The user explicitly asked whether saving and reloading could worsen the model, while the training job retains PEFT adapters rather than full-model exports.
+- Serialization check: Download the retained step-1,000 adapter and evaluation artifacts, attach the adapter to a freshly loaded pinned source model, and reproduce all 640 stored final full-attention scores.
+- Frozen-source check: Disable the reloaded adapter and reproduce all 640 stored step-0 causal source scores to prove that the base did not change.
+- Attention encoding check: Under one forced math-SDPA backend, compare standard full attention with the all-open additive mask used by the training path on all 640 targets.
+- Identity contract: Pair every comparison on sample ID, target nucleotide index, and target base, rejecting missing, repeated, or changed targets.
+- Serialization tolerance: Require maximum absolute per-target four-way and full-vocabulary CE differences no greater than `1e-6` and zero correctness mismatches.
+- Attention tolerance: Require maximum absolute per-target CE differences no greater than `0.002` and zero correctness mismatches under the shared math backend.
+- Verification: Run the complete locked test suite before downloading either final artifact or loading the model.
+- Compute: Launch one self-terminating AWS `g5.xlarge` A10G only after the training run finishes and its observed cost updates the cumulative budget projection.
+- Retention: Publish the parity scores, checks, manifest, cost, and artifact identities to W&B without deleting the source checkpoints.
+- Boundaries: Do not evaluate VEP, run nucleotide dependency, update the knowledge base, upload to Hugging Face, or delete any checkpoint in this audit.
+- Runtime guard: Terminate the audit command after two hours so the instance still reaches the automatic finalizer and shutdown path if an external download or evaluation hangs.

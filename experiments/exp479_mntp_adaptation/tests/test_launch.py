@@ -274,3 +274,39 @@ def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
     assert "HF_TOKEN" not in stage
     assert "vep" not in stage.lower()
     assert "nuc-dep" not in stage
+
+
+def test_lora_reload_audit_uses_retained_wandb_artifacts_only() -> None:
+    command = launch_command(
+        "lora-reload-audit",
+        "a" * 40,
+        1234,
+        prior_cost_usd=34.0,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-lora-reload-a10",
+        "sky/lora-reload-audit.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.006" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/lora-reload-audit.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 lora-reload-audit") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "cloud: aws" in stage
+    assert "region: us-east-2" in stage
+    assert "accelerators: A10G:1" in stage
+    assert "use_spot: false" in stage
+    assert "disk_size: 80" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "vep" not in stage.lower()
+    assert "timeout --signal=TERM 7200" in stage
+    assert "nuc-dep" not in stage
