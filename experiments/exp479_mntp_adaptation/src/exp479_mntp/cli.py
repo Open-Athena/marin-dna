@@ -255,6 +255,7 @@ def _parser() -> argparse.ArgumentParser:
     bico_lora_preflight.add_argument("--validation-plan", type=Path, required=True)
     bico_lora_preflight.add_argument("--output", type=Path, required=True)
     bico_lora_preflight.add_argument("--seed", type=int, default=0)
+    bico_lora_preflight.add_argument("--learning-rate", type=float, default=1e-5)
 
     bico_lora = subparsers.add_parser(
         "bico-lora-mntp",
@@ -270,6 +271,16 @@ def _parser() -> argparse.ArgumentParser:
     bico_lora.add_argument("--num-workers", type=int, default=4)
     bico_lora.add_argument("--evaluation-batch-size", type=int, default=64)
     bico_lora.add_argument("--n-bootstrap", type=int, default=2_000)
+    bico_lora.add_argument("--learning-rate", type=float, default=1e-5)
+    bico_lora.add_argument(
+        "--run-name",
+        default="dna-exp479-bico-lora-r16-pad15-lr1e-5-wsd1000-seed0",
+    )
+    bico_lora.add_argument("--model-prefix", default="dna-exp479-bico-lora-r16-pad15")
+    bico_lora.add_argument(
+        "--evaluation-artifact",
+        default="dna-exp479-bico-lora-r16-information-gate",
+    )
 
     bico_lora_gate_audit = subparsers.add_parser(
         "bico-lora-gate-audit",
@@ -633,6 +644,7 @@ def main() -> None:
             validation_plan=args.validation_plan,
             output_path=args.output,
             seed=args.seed,
+            learning_rate=args.learning_rate,
         )
         print(json.dumps(result, indent=2))
         if result["status"] != "passed":
@@ -652,6 +664,10 @@ def main() -> None:
             num_workers=args.num_workers,
             evaluation_batch_size=args.evaluation_batch_size,
             n_bootstrap=args.n_bootstrap,
+            learning_rate=args.learning_rate,
+            run_name=args.run_name,
+            model_prefix=args.model_prefix,
+            evaluation_artifact=args.evaluation_artifact,
         )
         return
     if args.command == "bico-lora-gate-audit":

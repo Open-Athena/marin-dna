@@ -1219,3 +1219,18 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Local execution: The bootstrap used 2,000 NumPy replicates with seed 0, completed in `0.25` seconds at `74,364` KiB peak RSS, and the plot completed in `2.76` seconds at `126,844` KiB peak RSS under the shared-node lock.
 - Cost and retention: No cloud was provisioned, cumulative cost remains `$42.139827 / $50`, and no checkpoint was modified or deleted.
 - Boundaries: No VEP, nucleotide dependency, Hugging Face upload, or knowledge-base update occurred.
+
+
+### 2026-08-22 15:15 - Preregister standard-rate maximum-batch BICO LoRA
+
+- Trigger: The corrected conservative BICO LoRA trajectory improved smoothly without clipping but remained confidence-supported worse than the true causal source at every retained checkpoint.
+- Isolated hypothesis: Change only the peak learning rate from `1e-5` to `5e-5`; retain rank-16 LoRA, reflected future RoPE, excluded selected `[PAD]` keys, fixed 15% masking, seed 0, data order, validation panel, optimizer constants, and the 10% warmup, 70% constant, and 20% decay schedule.
+- External rationale: Current Hugging Face `TrainingArguments` and its masked-language-model example default to `5e-5`, while the official LLM2Vec Meta-Llama-3 MNTP configuration omits an explicit learning rate and therefore does not justify retaining the more conservative issue-specific `1e-5`.
+- Batch: Use physical batch 94 with gradient accumulation fixed at 1, because 94 passed the registered GH200 search with `10.4642%` peak-reserved-memory headroom and 95 fell below the required 10% margin.
+- Preflight: Before training, rerun two exact batch-94 optimizer steps at `5e-5` and require finite loss and gradients, at least 10% memory headroom, and the existing cumulative-budget guard.
+- Exposure: Train 1,000 optimizer steps over 94,000 sequences and 24,064,000 model tokens if preflight passes.
+- Evaluation: Use the corrected true causal baseline and fixed 640-target paired information gate at every retained checkpoint; require final non-inferiority in both CE and accuracy with confidence support before any VEP work.
+- Retention: Use unique `lr5e-5` W&B run, adapter, optimizer-checkpoint, and evaluation-artifact names so the conservative run cannot be overwritten.
+- Compute: Use one self-terminating Lambda GH200 at `.29/hour`; the `3.3`-hour hard projection is `.696827 / ` from the current `.139827` cumulative estimate, while the runtime guard reserves ``.
+- Verification: Run the complete locked test suite remotely before preflight; local Ruff format, lint, and diff checks must pass before snapshotting.
+- Boundaries: Do not run VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
