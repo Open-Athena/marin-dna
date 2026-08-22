@@ -1,0 +1,7 @@
+{
+  "criterion": "symmetric frozen two-pass AUPRC is confidence-supported non-inferior to source CLM FWD+RC on all three registered primary endpoints and strictly improves at least one",
+  "point_noninferiority_all_three": false,
+  "confidence_noninferiority_all_three": false,
+  "confidence_strict_improvement_any": false,
+  "passed": false
+}
