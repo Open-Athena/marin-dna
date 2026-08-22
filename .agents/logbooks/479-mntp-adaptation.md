@@ -851,3 +851,13 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Change boundary: The optimizer, learning-rate schedule, masking policy, attention schedule, data, and 1,000-step design are unchanged; only post-training evaluation device placement and durable W&B gradient telemetry changed.
 - W&B: The corrected run is https://wandb.ai/gonzalobenegas/marin/runs/tnkdn3v3.
 - Issue record: Posted the corrected replay at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377852127.
+
+### 2026-08-22 04:34 - Corrected warmup and executable LLM2Vec audit
+
+- Deterministic replay: The corrected step-0, step-25, step-50, and step-100 paired readouts match the failed attempt exactly; step 100 is CE `1.4256078663` and accuracy `0.2765625`.
+- Live stability: The first 92 streamed pre-clipping norms were all finite with median/p95/maximum `0.4983/0.5979/0.6941`, and none clipped while the learning rate approached `1e-5`.
+- Loss and attention: The first 124 training losses were finite with min/median/max `1.3134/1.4464/1.5892` and latest-20 mean `1.3408`; the future-edge trace was monotone and in `[0, 1]`.
+- Reference exposure: Pinned LLM2Vec uses 32 sequences of length 512 for 1,000 MNTP steps, matching this pilot's 64 sequences of length 256 at `16,384` model tokens per optimizer step.
+- Reference update scale: Its executable code sets LoRA alpha to twice rank, so rank 16 means alpha 32, and its config inherits Transformers' `5e-5` learning rate and linear decay rather than this pilot's alpha 16, `1e-5`, and WSD.
+- Anti-leak boundary: LLM2Vec provides an all-mask collator but its published configuration selects the default 80/10/10 MLM collator; retaining 100% `[UNK]` replacement is necessary here because an unchanged selected nucleotide is directly visible under full attention.
+- Sequential fallback: If the registered gate fails after reload validation, the leading next test is a small reference-strength, full-attention LoRA probe with the anti-leak replacement retained; do not launch it before finalization.
