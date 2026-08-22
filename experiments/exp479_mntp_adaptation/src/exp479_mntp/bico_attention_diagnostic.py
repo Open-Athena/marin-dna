@@ -103,6 +103,7 @@ def bico_attention_forward(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Apply non-positive relative RoPE distances on both sides of each query."""
 
+    is_causal = bool(kwargs.pop("is_causal", False))
     del kwargs
     if past_key_values is not None:
         raise ValueError("BICO diagnostic does not support cached key/value states")
@@ -137,6 +138,12 @@ def bico_attention_forward(
         )
         * module.scaling
     )
+    if is_causal:
+        causal = key_positions[None, :] <= query_positions[:, None]
+        attention_logits = attention_logits.masked_fill(
+            ~causal[None, None, :, :],
+            torch.finfo(attention_logits.dtype).min,
+        )
     if attention_mask is not None:
         attention_logits = attention_logits + attention_mask
     attention_weights = nn.functional.softmax(

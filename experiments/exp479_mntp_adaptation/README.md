@@ -461,6 +461,23 @@ The stage requests one Lambda GH200 with a 64 GB disk, publishes only compact
 tables and figures to W&B, keeps the raw numeric maps in private Hugging Face
 staging, and uses `sky launch --down`.
 
+## Corrected BICO LoRA gate audit
+
+The maximum-batch BICO LoRA run used physical batch 94 with `accumulate_grad_batches=1`, but its first retained report mislabeled an adapter-disabled full-attention readout as causal because the custom SDPA hook ignored `is_causal`.
+The training path and full-attention candidate trajectory are unaffected.
+The `bico-lora-gate-audit` stage fixes the hook, reloads the retained step-1,000 adapter in a fresh process, reproduces the mislabeled row under full attention, and recomputes the paired trajectory against a fresh standard causal source.
+It requires the corrected causal hook, bug reproduction, and final-adapter reload to match their controls within `0.002` maximum per-target CE with zero correctness mismatches.
+
+```bash
+uv run --locked python launch.py bico-lora-gate-audit \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 42.139827271281725 \
+  --retry-until-up \
+  --execute
+```
+
+The stage uses one self-terminating AWS A10G, forwards only the W&B secret, preserves every retained checkpoint, and performs no VEP, nucleotide-dependency, Hugging Face, or knowledge-base action.
+
 ## Data plans
 
 After preflight selects the batch size, materialize the shared plans on the GH200:

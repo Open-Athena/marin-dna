@@ -1,0 +1,36 @@
+name: dna-exp479-bico-lora-corrected-information-gate-audit
+
+resources:
+  cloud: aws
+  region: us-east-2
+  accelerators: A10G:1
+  use_spot: false
+  disk_size: 80
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${WANDB_API_KEY:-}"
+  artifact_root="$HOME/exp479-bico-lora-gate-audit-artifacts"
+  output_dir="$artifact_root/evaluation/bico-lora-gate-audit"
+  mkdir -p "$output_dir"
+  trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-bico-lora-gate-audit-artifacts" || true' EXIT
+  uv run --locked pytest
+  uv run --locked exp479 prepare-data \
+    --output-dir "$artifact_root/data" \
+    --batch-size 64 \
+    --seed 0
+  timeout --signal=TERM 3600 uv run --locked exp479 bico-lora-gate-audit \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --validation-plan "$artifact_root/data/validation.jsonl" \
+    --batch-size 64 \
+    --n-bootstrap 2000

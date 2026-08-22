@@ -28,6 +28,7 @@ STAGE_CONFIGS = {
     "bico-attention-diagnostic": "sky/bico-attention-diagnostic.yaml",
     "bico-lora-mntp": "sky/bico-lora-mntp.yaml",
     "bico-lora-resume": "sky/bico-lora-resume.yaml",
+    "bico-lora-gate-audit": "sky/bico-lora-gate-audit.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
     "gated-lora-mntp": "sky/gated-lora-mntp.yaml",
     "two-pass-information-gate": "sky/two-pass-information-gate.yaml",
@@ -59,6 +60,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -87,6 +89,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -155,6 +158,8 @@ def launch_command(
         cluster_name = "dna-exp479-bico-lora-gh200"
     elif stage == "bico-lora-resume":
         cluster_name = "dna-exp479-bico-lora-resume-gh200"
+    elif stage == "bico-lora-gate-audit":
+        cluster_name = "dna-exp479-bico-lora-gate-audit-a10"
     elif stage == "paired-nucleotide-gate":
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
@@ -191,6 +196,7 @@ def launch_command(
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -215,6 +221,7 @@ def launch_command(
                 "gated-lora-mntp",
                 "two-pass-information-gate",
                 "lora-reload-audit",
+                "bico-lora-gate-audit",
             }
             else "1.29"
         )
@@ -245,6 +252,7 @@ def launch_command(
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
