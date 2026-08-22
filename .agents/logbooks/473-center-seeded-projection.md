@@ -2526,3 +2526,37 @@ cohort, assemblies, and downstream training recipe fixed.
   - source snapshot `ccb91f11f7a55406eee9ef651e45ee1e38e1a2a3`;
   - Iris root `/ubuntu/exp473-cds-fullwindow-random-val-v4`;
   - W&B run `gonzalobenegas/marin/dna-exp473-0p25b-cds-fullwindow-random-val-v1`.
+
+### 2026-08-22 13:03 UTC - CSP-083 terminal VEP comparison completed
+
+- The terminal step-4,999 CDS full-window random-validation checkpoint was scored on the pinned development VEP files and compared with the immutable step-4,999 chromosome-18-held-out issue #417 scores.
+- Only the new arm was scored.
+- The comparison read `train.parquet` from the pinned Mendelian, Complex-trait, and SGE repositories, which contains odd autosomes and chromosome X.
+- No even-autosome or chromosome-Y label, prediction, effect measurement, or aggregate metric was requested or read.
+- The additive workflow is pinned at `6d195c63def38bbb90ad871ce8158661cc944ecd` and writes only under `results/issue473/6d195c63def38bbb90ad871ce8158661cc944ecd/random_validation_vep/`.
+- One preemptible AWS `g5.xlarge` in `us-east-2c` provided one A10G at the displayed $0.36/hour spot rate.
+- The GPU runtime smoke passed with PyTorch 2.13.0, Transformers 4.57.6, BF16 support, and the validated AMI `ami-0324f0ad73bdcd087`.
+- The isolated DAG completed all nine jobs: one checkpoint stage, three new score cells, three metric cells, one paired analysis, and one final target.
+- Development row counts were 16,140 for Mendelian, 11,630 for Complex traits, and 23,853 for SGE.
+
+| Benchmark | Subset | Metric | Chr18 validation | Random validation | Random minus chr18 | Uncertainty |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| Mendelian | Missense | AUPRC | 0.107688 | 0.323911 | +0.216224 | paired 95% CI [0.181785, 0.251205] |
+| Mendelian | Splicing | AUPRC | 0.150722 | 0.366393 | +0.215672 | paired 95% CI [0.168951, 0.263188] |
+| Mendelian | Synonymous | AUPRC | 0.110355 | 0.344881 | +0.234526 | paired 95% CI [0.121688, 0.339329] |
+| Complex traits | Missense | AUPRC | 0.106777 | 0.175864 | +0.069087 | paired 95% CI [0.040310, 0.100143] |
+| SGE | Missense | AUPRC | 0.162662 | 0.262421 | +0.099760 | arm SEs 0.004878, 0.007651 |
+| SGE | Splicing | AUPRC | 0.197139 | 0.500905 | +0.303766 | arm SEs 0.015488, 0.021779 |
+| Mendelian | Missense | Group SMD | 0.035344 | 0.813436 | +0.778092 | paired 95% CI [0.676410, 0.883953] |
+| Mendelian | Splicing | Group SMD | 0.384332 | 0.741959 | +0.357627 | paired 95% CI [0.256460, 0.469928] |
+| Mendelian | Synonymous | Group SMD | 0.041119 | 0.707462 | +0.666343 | paired 95% CI [0.376382, 0.991873] |
+| Complex traits | Missense | Group SMD | 0.041373 | 0.438130 | +0.396757 | paired 95% CI [0.250373, 0.566035] |
+
+- Mendelian and Complex-trait estimates use exact row-identity checks, complete mature-miRNA match-group exclusion, and 1,000 aligned match-group bootstrap draws.
+- Every paired draw favored the random-validation arm for all four relevant AUPRC rows and all four Group SMD rows.
+- SGE uses the official assay-macro AUPRC endpoints and per-arm bootstrap standard errors because its aggregation unit is accession.
+- The result is a diagnostic observation, not a causal interpretation.
+- It shows that the split change affects downstream VEP as well as native validation loss, but it does not distinguish homolog or anchor-family overlap across the row-random split from chromosome-specific distribution shift or another data-path difference.
+- The known RoPE metadata warning was emitted while loading the new checkpoint; the checkpoint retains the same dual compatibility fields and Transformers-4 evaluation path used by the reused baseline.
+- The audit bundle manifest records `held_out_access=false`, the exact input URIs, row-relevant subsets, seed 473, 1,000 draws, and SHA-256 hashes for all three outputs.
+- Verified SHA-256 values are `cd9fd7004e5748527706c5030b38631743882a07184c3efae24e23c2906dfc82` for `comparison.parquet`, `16c8be285a3db7935b448c70f29adfec65c95e0e301173cf17110f8f8c18aefa` for `paired_bootstrap_samples.parquet`, and `9381434e6490eaa74cc8af72bde3550b87b39d2681b7c1b7fecbe82f3484032e` for `summary.md`.
