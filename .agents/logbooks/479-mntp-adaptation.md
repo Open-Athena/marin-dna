@@ -38,7 +38,7 @@ All ten paired checkpoint intervals versus step 0 include zero.
 - Architecture: Qwen3, 19 layers, hidden size 1,920, intermediate size 7,680, 15 attention/KV heads, 256-token context.
 - Vocabulary: `[PAD]`, `[UNK]`, `[BOS]`, A, C, G, T. The tokenizer lowercases input.
 - Current Lambda list price: $2.29/GH200-hour before applicable tax, checked 2026-08-19.
-- Conservative completed experiment list-price estimate: `$45.886693 / $50`; the final cluster is confirmed terminated.
+- Conservative completed experiment list-price estimate: `$45.895973 / $50`; the final cluster is confirmed terminated.
 - Odd-autosome/X labeled diagnostics only; no even-autosome or Y labels, predictions, effect measurements, or aggregate metrics were accessed.
 
 ## Hypothesis queue
@@ -1368,3 +1368,12 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Local execution: The exact sorted-order bounded analysis completed in `5:41.25`, peaked at `263,472` KiB RSS, and passed four focused tests under the shared-node lock.
 - Evidence: Compact results and the Mendelian-only figure are in `.agents/artifacts/479-mntp-adaptation/bico-lora-standard-rate-v6/`.
 - Boundaries: The analysis reused retained odd/X scores, incurred no cloud charge, and performed no inference, training, held-out access, nucleotide dependency, checkpoint mutation, Hugging Face upload, or knowledge-base update.
+
+### 2026-08-22 19:04 - Result snapshot remotely verified
+
+- Immutable source: The CPU-only job checked out commit `1961e1ef9e00040c067b7d786c77214c05acfb09`, tagged `exp479-bico-lora-standard-rate-result-v1`.
+- Verification: All `225` locked experiment tests passed in `30.47` seconds, including the paired-bootstrap parity and Mendelian plotting tests.
+- Compute: One AWS `m6i.xlarge` at `$0.192/hour` was conservatively charged for 174 seconds from launch-log timestamp `19:00:52Z` through confirmed absence at `19:03:46Z`.
+- Cost: The test-only addition is `$0.009280`, bringing the conservative cumulative listed-price estimate to `$45.895973 / $50`.
+- Teardown: `sky status -r dna-exp479-result-tests` reported the cluster autodowned and absent.
+- Boundaries: The job used no model, labels, checkpoints, or secrets and performed no inference, training, publication, or artifact mutation.

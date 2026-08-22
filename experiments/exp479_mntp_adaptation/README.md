@@ -250,7 +250,7 @@ Complex-trait and SGE trajectories remain secondary context and are not used for
 Each labeled dataset loader downloaded only its pinned `train.parquet` and did not invoke a builder that could materialize held-out splits.
 All adapter milestones and the final optimizer-bearing checkpoint are stored once under the immutable private prefix `s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1`, with per-object sizes and SHA-256 checksums in a retention manifest.
 The public `gonzalobenegas/marin` W&B namespace owns the dense training metrics, paired nucleotide tables, VEP scores, figures, preflight, stability trace, and evaluation manifest.
-The final conservative listed-price estimate is `$45.886693 / $50`, and the cluster is confirmed terminated.
+The final conservative listed-price estimate is `$45.895973 / $50`, including the CPU-only 225-test verification job, and all clusters are confirmed terminated.
 The stage performed no nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
 
 ```bash
