@@ -812,3 +812,12 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Attention match: Its annealing sampler independently opens upper-triangular edges with one shared sequence matrix and keeps the causal lower triangle, matching the live implementation structurally.
 - Objective difference: Its trainer samples one continuous `t` per sequence, masks each eligible token with probability `t`, shifts logits/targets by one, and weights selected-token CE by `1/t`; the live LoRA run instead holds the corruption rate at 20% and therefore does not test that reference objective.
 - Issue record: Posted the milestone and pinned primary-code audit at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377668557.
+
+### 2026-08-22 04:00 - LoRA step-800 full-attention boundary
+
+- Exact paired readout: Step 800 full-attention four-way CE was `1.3800283802` and accuracy was `0.2984375`, improving CE by `0.0456492084` and gaining 17 correct targets relative to step 0.
+- Local trajectory: Relative to step 700, CE improved by `0.0232219285` and accuracy gained seven correct targets while the attention schedule completed its transition.
+- Phase boundary: The checkpoint is evaluated at full attention after 800 optimizer updates; updates 801 through 1,000 use exactly full attention, leaving 200 full-attention updates before the final gate.
+- Stability: All 809 W&B optimizer rows observed through step 808 were finite; overall loss median/max was `1.337762/1.589207`, latest-20 mean was `1.339518`, and the attention trace reached exactly 1.0 without a loss spike.
+- Gate context: The checkpoint remained far behind released source causal `1.051060/0.5078125`; final interpretation remains deferred to step 1,000 and the paired intervals.
+- Issue record: Posted the full-attention boundary milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377714520.
