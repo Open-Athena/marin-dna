@@ -5,11 +5,13 @@ from types import SimpleNamespace
 import pytest
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 from transformers.models.qwen3.modeling_qwen3 import apply_rotary_pos_emb
 
 from exp479_mntp.bico_attention_diagnostic import (
     bico_attention_forward,
     excluded_selected_key_mask,
+    install_reflected_future_rope,
     reflected_future_rope,
 )
 
@@ -123,3 +125,20 @@ def test_reflected_future_rope_traverses_peft_wrapper_shape() -> None:
     with reflected_future_rope(model):  # type: ignore[arg-type]
         assert attention.forward.__func__ is bico_attention_forward
     assert attention.forward == original
+
+
+def test_installed_reflected_rope_persists_through_checkpoint_recomputation() -> None:
+    attention = TinyAttention()
+    model = SimpleNamespace(model=SimpleNamespace(layers=[SimpleNamespace(self_attn=attention)]))
+    install_reflected_future_rope(model)  # type: ignore[arg-type]
+    embeddings = _position_embeddings(3)
+
+    def layer(hidden: torch.Tensor) -> torch.Tensor:
+        output, _ = attention(hidden, embeddings, None)
+        return output
+
+    hidden = torch.randn((1, 3, 4), requires_grad=True)
+    checkpoint(layer, hidden, use_reentrant=False).sum().backward()
+    assert attention.forward.__func__ is bico_attention_forward
+    assert hidden.grad is not None
+    assert torch.isfinite(hidden.grad).all()

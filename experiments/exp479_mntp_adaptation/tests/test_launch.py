@@ -354,6 +354,40 @@ def test_bico_lora_uses_maximal_no_accumulation_gh200_batch() -> None:
     assert "timeout --signal=TERM 12000" in stage
 
 
+def test_bico_lora_resume_rechecks_only_selected_batch_before_training() -> None:
+    command = launch_command(
+        "bico-lora-resume",
+        "a" * 40,
+        1234,
+        prior_cost_usd=40.85832745128643,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-bico-lora-resume-gh200",
+        "sky/bico-lora-resume.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=2.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+
+    stage = Path("sky/bico-lora-resume.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked pytest") == 1
+    assert stage.count("uv run --locked exp479 bico-lora-preflight") == 1
+    assert stage.count("uv run --locked exp479 bico-lora-mntp") == 1
+    assert "bico-attention-diagnostic" not in stage
+    assert stage.count("--batch-size 94") == 3
+    assert "accumulate" not in stage.lower()
+    assert "cloud: lambda" in stage
+    assert "accelerators: GH200:1" in stage
+    assert "HF_TOKEN" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage
+
+
 def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
     command = launch_command(
         "lora-mntp",

@@ -212,6 +212,18 @@ uv run --locked python launch.py bico-lora-mntp \
   --execute
 ```
 
+The first combined launch selected batch 94 but exposed a temporary-hook lifetime bug during the first training backward pass, before any optimizer update.
+The corrected `bico-lora-resume` stage keeps BICO attention installed across activation-checkpoint recomputation, reruns all locked tests, and rechecks only batch 94 before training.
+It does not repeat the completed frozen diagnostic or maximum-batch search.
+
+```bash
+uv run --locked python launch.py bico-lora-resume \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 40.85832745128643 \
+  --retry-until-up \
+  --execute
+```
+
 ## Causal-preserving gated LoRA follow-up
 
 The `gated-lora-mntp` stage is the sequential follow-up to the failed uniform-full LoRA and frozen localized-attention gates.
