@@ -2606,3 +2606,19 @@ cohort, assemblies, and downstream training recipe fixed.
 - PR #502 changes one file by 14 additive lines, passed the full `evals-v2` test job and all other required checks after rebase, and is ready for human review.
 - Independent review found one provenance-wording issue, which was corrected before the rebase; no unresolved finding remains.
 - Nothing was merged or closed, and the user-owned untracked ortholog-free issue draft was not modified.
+
+### 2026-08-22 15:02 UTC - CSP-087 trajectory repair launched
+
+- The complete nine-step issue #417 CDS full-window checkpoint family has the same legacy raw-config SHA-256, `d55f71bec34a6e62be1123ebc172fa53b263bd5df4d507076226d449355aa911`.
+- The three new issue #473 arm families use the intended dual-schema raw config with SHA-256 `9ec163e242192a072648b4b14bce24ea7758e4ea5563e0b43d097afb6fdfe6a9`.
+- A direct-loader versus maintained-loader audit on the dual-schema row-random checkpoint produced the same metrics, so only the reused issue #417 baseline requires repair.
+- PR #502 additively registers issue #417 steps 1,000, 1,500, 2,000, 2,500, 3,000, 3,500, 4,000, 4,500, and 4,999 plus the issue #473 row-random terminal control.
+- PR #502 changes only `snakemake/analysis/evals_v2/config/config.yaml`, passed all CI checks, and received an independent re-review with no actionable findings.
+- A remote dry-run at registry commit `0b782c9de75baedc76641b4ef239b467372792f7` selected exactly 8 missing checkpoint stages, 24 score cells, and 24 metric cells for steps 1,000–4,500 across Mendelian, Complex Traits, and SGE.
+- The live canonical repair launched the same 56-job graph on one preemptible AWS `g5.xlarge` in `us-east-2c` with one A10G at the displayed $0.36/hour spot rate and automatic teardown.
+- The already-corrected terminal step 4,999 is reused and is not part of the live graph.
+- Hugging Face may materialize both repository files locally, but the evaluator selects only `split="train"`.
+- The first completed score cell logged `exp417-cds-combined-vertebrates-step-4000 sge (train): n=23853`.
+- Progress comment `5381030064` records the scope audit and live graph on issue #473.
+- Additive audit code is pinned at `0519006aecd8de1b621fe861996f2ce8764e7e30`; its four focused tests and file-scoped pre-commit checks pass.
+- The audit code will combine the repaired canonical baseline with the unaffected issue-specific CDS center-1 artifacts and emit numeric tables, paired development uncertainty, and provenance without making a scientific interpretation.
