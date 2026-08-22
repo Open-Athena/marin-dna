@@ -13,6 +13,7 @@ setup: |
 
 run: |
   set -euo pipefail
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8
   cd experiments/exp479_mntp_adaptation
   test -n "${EXPERIMENT_COMMIT:-}"
   test -n "${EXP479_INSTANCE_START_UNIX:-}"
