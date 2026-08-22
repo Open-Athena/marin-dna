@@ -1101,3 +1101,60 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Teardown: `sky status -r dna-exp479-dual-mode-tests` reported the cluster autodowned and absent at Unix time `1787397018`.
 - Boundaries: The test-only job downloaded no model, accessed no sequence or label data, performed no inference or training, wrote no W&B or Hugging Face artifact, and deleted no checkpoint.
 - Next action: Publish the verified routing contract, figure, exact limitations, and stable evidence links to issue #479.
+
+### 2026-08-22 12:08 - Two-pass control separated from the single-pass goal
+
+- Correction: The two-pass FWD+RC result is an information control and does not satisfy issue #479's required single-reference-orientation-forward-pass endpoint.
+- Public record: The issue body now states that the single-pass goal remains open, and the earlier synthesis comment retracts its completion claim.
+- Control retained: The symmetric two-pass nucleotide measurements and VEP decomposition remain numerically valid.
+- Prior trained annealing: W&B run `tnkdn3v3` trained rank-16 LoRA MNTP while opening future attention edges from 0% at step 0 to 100% at step 800, followed by 200 full-attention steps.
+- Prior trained-annealing result: Full-attention four-way CE/accuracy improved from about `1.426/27.2%` to `1.366/31.9%`, below the source causal `1.051/50.8%` control.
+- Untested paper recipe: No exp479 run has combined full-parameter adaptation, one per-sequence `t ~ Uniform(0,1)`, per-token masking at rate `t`, and `1/t`-weighted shifted-token CE.
+- Paper boundary: DiffuLLaMA's 7B adaptation used full-parameter training over 65 billion tokens, constant AdamW `2e-5`, and no attention annealing; the paper reports that annealing had minimal effect in its smaller-model ablation.
+- Next decision: Compare the untested full discrete-diffusion objective against a causal FIM/distillation route before selecting the next single-pass run.
+- Evaluation boundary: Do not run labeled VEP until a single-pass candidate passes the exact-nucleotide prerequisite.
+- Paused work: Nucleotide dependency and research knowledge-base interpretation remain paused.
+
+### 2026-08-22 12:58 - Preregister reflected-RoPE single-pass diagnostic
+
+- New literature finding: [BICO](https://aclanthology.org/2024.emnlp-main.754/) shows that simply opening future keys in a RoPE causal decoder introduces positive relative positions absent from causal pretraining.
+- Missing control: Every exp479 full-attention run used standard Qwen3 RoPE for future keys, and the prior `[PAD]` control left the selected masked token available as an attention key.
+- Hypothesis: Reflecting future-key RoPE distances to `m - n` and excluding the selected `[PAD]` key will recover some of the frozen source's lost single-pass nucleotide-prediction accuracy without any parameter update.
+- Fixed panel: Use the registered 640-target validation plan with SHA-256 `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`, one deterministic eligible nucleotide per sequence, no repeat reweighting, and 2,000 paired sequence-bootstrap replicates.
+- Mechanism controls: Compare standard causal `[UNK]`, standard full `[UNK]`, standard full attended `[PAD]`, standard full excluded `[PAD]`, BICO full `[UNK]`, BICO full attended `[PAD]`, and BICO full excluded `[PAD]` on identical targets.
+- Implementation gate: Under a causal mask, the patched eager attention must have zero nucleotide-prediction mismatches and maximum per-target CE difference at most `0.002` from standard eager attention.
+- Mechanism gate: BICO full excluded `[PAD]` must be confidence-supported non-inferior in both paired four-way CE and accuracy to standard full excluded `[PAD]`.
+- Single-pass gate: BICO full excluded `[PAD]` must be confidence-supported non-inferior in both paired four-way CE and accuracy to the frozen causal source.
+- Sequential decision: If the RoPE mechanism is supported but the single-pass gate fails, use BICO attention and masked-key exclusion in the next 1,000-step adaptation; otherwise pivot to causal infilling or distillation.
+- Step-budget interpretation: One thousand optimizer steps are an approach-selection constraint, not a claim of full MNTP convergence.
+- Batch correction: Full-parameter GH200 training measured batch 128 as OOM and batch 64 as passing; the A10G LoRA runs used microbatch 16 with four accumulation steps only for comparison, not because effective batch 64 is a hardware ceiling.
+- Next training preflight: Benchmark a larger effective batch, starting at 256 through gradient accumulation, and report optimizer steps, sequences, model tokens, and supervised masked targets together.
+- Cost gate: One on-demand AWS A10G for at most one hour at `$1.006/hour`, projected conservative cumulative exposure at most `$41.360899 / $50` from the current `$40.354899` base.
+- Storage boundary: Publish compact tables, JSON, and an SVG to W&B; do not upload to Hugging Face and do not delete any checkpoint.
+- Evaluation boundary: Do not run VEP or nucleotide dependency, and keep research knowledge-base interpretation paused.
+
+### 2026-08-22 13:07 - Select GH200 LoRA and maximum no-accumulation batch
+
+- User correction: Use a GH200 rather than an A10-class GPU, begin with LoRA rather than full-parameter adaptation, and maximize the physical batch without gradient accumulation.
+- Selected training: Rank-16 BICO LoRA for 1,000 optimizer steps on one Lambda GH200, with AdamW `1e-5`, 10% warmup, 70% constant rate, and 20% decay.
+- Batch gate: Run the exact BICO LoRA forward, backward, clipping, and optimizer path in fresh processes over descending batch candidates beginning at 1,024.
+- Selection rule: Use the largest candidate that completes one optimizer step with finite loss and gradients and at least 10% measured device-memory headroom.
+- Exposure report: Record selected physical batch, 1,000-step sequence count, model-token count, and supervised masked-target count; do not use gradient accumulation.
+- Step-0 control: Keep the frozen standard-versus-BICO readouts and causal-parity assertion as the implementation and mechanism gate before the first retained LoRA update.
+- Withdrawn before launch: Do not use the preregistered A10G diagnostic or the proposed effective batch 256 through accumulation.
+- Public record: Edit the existing preregistration comment and issue body to record GH200, rank-16 LoRA, and the maximum no-accumulation batch rule.
+
+### 2026-08-22 13:26 - Implement exact BICO LoRA batch selection and training
+
+- Implementation: Add a PEFT-aware BICO attention hook that uses ordinary RoPE for past keys and reflected RoPE for future keys in every Qwen3 layer.
+- Mask contract: Replace every selected MNTP target input with the existing tokenizer `[PAD]` ID, keep labels shifted to output position `i - 1`, and exclude input key `i` for every query in every layer.
+- Special-token gate: Require the model and tokenizer PAD IDs to agree and require PAD not to alias any canonical A/C/G/T ID.
+- Batch correction: Supersede the preceding one-step wording with two exact optimizer steps per candidate so both loss and gradient traces contain repeated evidence.
+- Search: Bracket the feasible physical batch from 1,024 downward and binary-search to the largest passing integer batch in fresh CLI processes.
+- Selection gates: Require two completed optimizer steps, finite loss and pre-clipping gradient norm, at least 10% headroom measured against peak reserved CUDA memory, and a projected cumulative cost below the `$48` runtime guard.
+- Training: Freeze the source model, train rank-16 LoRA for 1,000 steps with no accumulation, fixed 15% masking, AdamW `1e-5`, 100 warmup steps, 700 constant-rate steps, and 200 decay steps.
+- Retention: Keep adapter milestones, the final optimizer-bearing checkpoint, every batch-preflight JSON record, paired nucleotide tables, validation trajectories, stability traces, manifests, and SVG figures in W&B artifacts.
+- Boundaries: Do not run VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
+- Local verification: Ruff format and lint passed on all changed Python files, and 32 targeted locked tests passed in `6.28` seconds.
+- Shared-node record: The guarded targeted test command ran from `2026-08-22T13:25:13Z` through `2026-08-22T13:25:37Z`, exited zero, peaked at `1,058,788` KiB RSS, and left `MemAvailable=10,786,012` KiB with load average `0.20`.
+- Remote gate: The combined Lambda GH200 stage must pass the complete locked test suite before the frozen diagnostic, exact batch search, or paid training can start.

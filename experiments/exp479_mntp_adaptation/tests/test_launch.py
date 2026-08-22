@@ -276,6 +276,84 @@ def test_localized_attention_diagnostic_uses_one_a10g_and_no_training() -> None:
     assert "nuc-dep" not in stage
 
 
+def test_bico_attention_diagnostic_uses_one_gh200_and_no_training() -> None:
+    command = launch_command(
+        "bico-attention-diagnostic",
+        "a" * 40,
+        1234,
+        prior_cost_usd=40.354899,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-bico-attention-gh200",
+        "sky/bico-attention-diagnostic.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=2.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/bico-attention-diagnostic.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 bico-attention-diagnostic") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "cloud: lambda" in stage
+    assert "region:" not in stage
+    assert "accelerators: GH200:1" in stage
+    assert "use_spot: false" in stage
+    assert "disk_size: 80" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "lora-mntp" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage
+    assert "timeout --signal=TERM 3600" in stage
+    assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage
+
+
+def test_bico_lora_uses_maximal_no_accumulation_gh200_batch() -> None:
+    command = launch_command(
+        "bico-lora-mntp",
+        "a" * 40,
+        1234,
+        prior_cost_usd=40.354899,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-bico-lora-gh200",
+        "sky/bico-lora-mntp.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=2.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/bico-lora-mntp.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 bico-attention-diagnostic") == 1
+    assert stage.count("uv run --locked exp479 bico-lora-preflight") == 1
+    assert stage.count("uv run --locked exp479 bico-lora-mntp") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "cloud: lambda" in stage
+    assert "accelerators: GH200:1" in stage
+    assert "for candidate in 1024 512 256 128 64 32 16 8" in stage
+    assert "while [ $((upper - lower)) -gt 1 ]" in stage
+    assert 'run_candidate "$selected"' in stage
+    assert '--batch-size "$selected"' in stage
+    assert "accumulate" not in stage.lower()
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage
+    assert "timeout --signal=TERM 12000" in stage
+
+
 def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
     command = launch_command(
         "lora-mntp",

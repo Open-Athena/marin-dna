@@ -1,0 +1,94 @@
+name: dna-exp479-bico-lora-mntp
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  use_spot: false
+  disk_size: 80
+
+setup: |
+  cd experiments/exp479_mntp_adaptation
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  cd experiments/exp479_mntp_adaptation
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP479_INSTANCE_START_UNIX:-}"
+  test -n "${EXP479_PRIOR_COST_USD:-}"
+  test -n "${WANDB_API_KEY:-}"
+  artifact_root="$HOME/exp479-bico-lora-artifacts"
+  preflight_data="$artifact_root/preflight-data"
+  preflight_dir="$artifact_root/batch-preflights"
+  output_dir="$artifact_root/training/bico-lora"
+  mkdir -p "$preflight_dir" "$output_dir"
+  trap 'uv run --locked exp479 finalize-local --artifact-dir "$HOME/exp479-bico-lora-artifacts" || true' EXIT
+
+  uv run --locked pytest
+  uv run --locked exp479 prepare-data \
+    --output-dir "$preflight_data" \
+    --batch-size 3 \
+    --seed 0
+
+  timeout --signal=TERM 3600 uv run --locked exp479 bico-attention-diagnostic \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$artifact_root/evaluation/bico-attention" \
+    --validation-plan "$preflight_data/validation.jsonl" \
+    --batch-size 64 \
+    --n-bootstrap 2000
+
+  run_candidate() {
+    candidate="$1"
+    timeout --signal=TERM 900 uv run --locked exp479 bico-lora-preflight \
+      --batch-size "$candidate" \
+      --train-plan "$preflight_data/train.jsonl" \
+      --validation-plan "$preflight_data/validation.jsonl" \
+      --output "$preflight_dir/batch-$candidate.json" \
+      --seed 0
+  }
+
+  lower=0
+  upper=0
+  for candidate in 1024 512 256 128 64 32 16 8; do
+    if run_candidate "$candidate"; then
+      lower="$candidate"
+      break
+    fi
+    upper="$candidate"
+  done
+  if [ "$lower" -eq 0 ]; then
+    echo "No BICO LoRA batch passed the exact GH200 preflight" >&2
+    exit 1
+  fi
+
+  if [ "$upper" -gt 0 ]; then
+    while [ $((upper - lower)) -gt 1 ]; do
+      candidate=$(((upper + lower) / 2))
+      if run_candidate "$candidate"; then
+        lower="$candidate"
+      else
+        upper="$candidate"
+      fi
+    done
+  fi
+  selected="$lower"
+  run_candidate "$selected"
+  printf '%s\n' "$selected" > "$preflight_dir/selected-batch.txt"
+
+  uv run --locked exp479 prepare-data \
+    --output-dir "$artifact_root/data" \
+    --batch-size "$selected" \
+    --seed 0
+  timeout --signal=TERM 12000 uv run --locked exp479 bico-lora-mntp \
+    --artifact-dir "$artifact_root" \
+    --output-dir "$output_dir" \
+    --train-plan "$artifact_root/data/train.jsonl" \
+    --validation-plan "$artifact_root/data/validation.jsonl" \
+    --preflight-dir "$preflight_dir" \
+    --batch-size "$selected" \
+    --seed 0 \
+    --num-workers 4 \
+    --evaluation-batch-size 64 \
+    --n-bootstrap 2000
