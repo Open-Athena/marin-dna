@@ -773,3 +773,21 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Stability: All 401 W&B optimizer rows through step 400 were present and finite; loss min/median/max was `1.272581/1.342372/1.589207`, latest-20 mean was `1.336021`, and the future-edge probability trace was monotone.
 - Reload audit: The commit-pinned Sky configuration completed its no-cost dry run on AWS `g5.xlarge` at the quoted `$1.006/hour`.
 - Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377553210 and updated the issue body from preregistration to live-run status.
+
+### 2026-08-22 03:17 - Executable reference and reload-contract audit
+
+- LLM2Vec match: The live run matches the executable reference on rank 16, dropout 0.05, and q/k/v/o plus gate/up/down target modules.
+- Deliberate differences: LLM2Vec sets alpha to twice the rank (`32` here), inherits Transformers `5e-5` learning rate, beta2 `0.999`, no warmup, linear scheduling, and the default 80/10/10 MLM replacement, while exp479 uses alpha 16, `1e-5`, beta2 `0.95`, WSD, and 100% `[UNK]` replacement.
+- Interpretation: These are preregistered conservative and anti-leak choices rather than runtime bugs, but they make the live adapter update materially smaller than the reference recipe.
+- DiffuLLaMA boundary: The 7B conversion is full-parameter constant-`2e-5` training over 65B tokens and skips annealing; its exact variable-time loss samples one `t` per sequence and weights the masked-token sum by `1/t`.
+- Sequential fallback: Do not modify the live run; use its final trajectory to choose between a reference-strength LoRA scaling test and a variable-`t` objective test.
+- Issue record: Posted the audited implementation differences at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377568348.
+- Reload strengthening: Extend the queued final audit to require the exact seven-token PAD/UNK/BOS contract, frozen rank/alpha/dropout/target-module contract, artifact metadata, and retained final-artifact identity before scoring parity.
+
+### 2026-08-22 03:27 - LoRA step-500 milestone
+
+- Exact paired readout: Step 500 full-attention four-way CE was `1.4151834456` and accuracy was `0.278125`, improving CE by `0.0104941430` and gaining four correct targets relative to step 0.
+- Schedule context: Future-edge probability was `0.0419953950` at the step-500 training readout.
+- Stability: All 554 W&B optimizer rows through step 553 were present and finite; loss min/median/max was `1.272340/1.338690/1.589207`, latest-20 mean was `1.326702`, and the future-edge probability trace was monotone.
+- Gate context: The exact readout remained far behind released source causal `1.051060/0.5078125` and did not pass.
+- Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377607698.
