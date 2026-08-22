@@ -199,6 +199,30 @@ uv run --locked python launch.py gated-lora-mntp \
   --execute
 ```
 
+## Frozen two-causal-pass information gate
+
+The `two-pass-information-gate` stage is a zero-training sequential diagnostic for use only after the gated LoRA run has a final disposition.
+It leaves the released model unchanged and predicts each registered masked nucleotide once from its left context and once from its reverse-complemented right context.
+The reverse pass maps target position `i` to `254 - i` and realigns its A/C/G/T columns with permutation `[3, 2, 1, 0]`.
+Runtime assertions require reverse complementation to preserve the `[UNK]` mask and the alpha-zero readout to match the canonical causal evaluator bit-exactly.
+
+The first 640 registered training-plan sequences form a calibration slice that is disjoint from the 640 validation sequences.
+An empirical A/C/G/T prior uses a Jeffreys pseudocount of `0.5` per base.
+The stage evaluates the fixed grid `alpha = 0, 0.001, ..., 1` for `left_logp + alpha * (right_logp - log_prior)` and selects the smallest alpha with minimum calibration CE.
+The untouched validation panel remains the sole decision set.
+
+The diagnostic passes only if the selected alpha is positive, the calibrated two-pass readout is confidence-supported non-inferior to left-causal prediction on both paired CE and accuracy, and at least one metric strictly improves with 95% support.
+It publishes raw directional scores, the calibration curve, paired intervals, and one figure to W&B.
+It performs no model update, VEP, nucleotide-dependency analysis, Hugging Face upload, or checkpoint deletion.
+
+```bash
+uv run --locked python launch.py two-pass-information-gate \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd <cumulative-cost-after-gated-run> \
+  --retry-until-up \
+  --execute
+```
+
 ## Registered behavior
 
 - Source checkpoint: `marin-dna/marin-dna-exp135-m5.1@a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a`.
