@@ -691,3 +691,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Disposition: This is a unit-test environment-isolation failure; no model was loaded and no attention result was produced.
 - Fix: Explicitly remove `EXP479_PRIOR_COST_USD` within that test before asserting the zero-prior default behavior.
 - Cost: Automatic teardown recorded `0.047294` instance-hours and `$0.047578`, bringing the cumulative listed-price estimate to `$32.872691 / $50`.
+- Boundaries: No training, VEP, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion occurred.
+
+### 2026-08-22 01:40 - EC2 root disk filled before model reconstruction
+
+- Launch snapshot: `3168c2666e33fc69c0ce2245fcb065dd8f0586fc`.
+- Verification: All 140 locked tests passed with the real cumulative-cost environment.
+- Failure: The 32 GB EC2 root disk reached zero free space while the public Hugging Face model was being reconstructed after the locked CUDA environment installation.
+- Disposition: No model forward or endpoint comparison occurred, so this run produced no scientific result.
+- Fix: Increase the self-terminating task's ephemeral root disk to 80 GB and assert that capacity in the launch test.
+- Cost: Automatic teardown recorded `0.072254` instance-hours and `$0.072688`, bringing the cumulative listed-price estimate to `$32.945379 / $50`.
+- Boundaries: The enlarged disk is ephemeral and auto-deleted; no persistent model upload, training, VEP, nucleotide dependency, knowledge-base update, or checkpoint deletion occurred.
