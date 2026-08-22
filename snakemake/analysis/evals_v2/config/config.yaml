@@ -611,7 +611,7 @@ models:
     datasets: [mendelian_traits]
 
   # exp473 — terminal CDS full-window split control (issue #473). Both 0.25B
-  # models use the same center-seeded projection and anchor recipe. The #417
+  # models use the same CDS full-window projection and anchor recipe. The #417
   # checkpoint held chromosome 18 out; the control sampled 16,384 validation
   # rows before reverse-complement augmentation. Restrict evaluation to the
   # three development VEP datasets relevant to a CDS-trained model.
