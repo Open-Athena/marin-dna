@@ -22,6 +22,7 @@ STAGE_CONFIGS = {
     "longrun": "sky/longrun.yaml",
     "mntp-longrun": "sky/mntp-longrun.yaml",
     "mntp-dependency": "sky/mntp-dependency.yaml",
+    "paired-nucleotide-gate": "sky/paired-nucleotide-gate.yaml",
     "loss-normalization": "sky/loss-normalization.yaml",
     "source-validation": "sky/source-validation.yaml",
 }
@@ -42,6 +43,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "longrun",
         "mntp-longrun",
         "mntp-dependency",
+        "paired-nucleotide-gate",
         "loss-normalization",
         "source-validation",
     }
@@ -59,6 +61,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "longrun",
         "mntp-longrun",
         "mntp-dependency",
+        "paired-nucleotide-gate",
         "loss-normalization",
         "source-validation",
     }:
@@ -112,11 +115,12 @@ def launch_command(
 ) -> list[str]:
     """Build the self-terminating Lambda GH200 launch command."""
 
+    cluster_name = "dna-exp479-a10" if stage == "paired-nucleotide-gate" else CLUSTER_NAME
     command = [
         "sky",
         "launch",
         "-c",
-        CLUSTER_NAME,
+        cluster_name,
         STAGE_CONFIGS[stage],
         "--git-url",
         REPOSITORY_URL,
@@ -127,6 +131,8 @@ def launch_command(
         "--env",
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
+    if stage == "paired-nucleotide-gate":
+        command.extend(["--env", "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.29"])
     if stage in {"pilot", "diagnostics", "audit", "stability", "dependency", "calibration"}:
         command.extend(
             [
@@ -147,6 +153,7 @@ def launch_command(
         "longrun",
         "mntp-longrun",
         "mntp-dependency",
+        "paired-nucleotide-gate",
         "loss-normalization",
         "source-validation",
     }:

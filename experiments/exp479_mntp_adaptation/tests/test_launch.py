@@ -175,3 +175,30 @@ def test_mntp_dependency_uses_only_retained_wandb_checkpoint() -> None:
     assert "WANDB_API_KEY" in stage
     assert "HF_TOKEN" not in stage
     assert "finalize-local" in stage
+
+
+def test_paired_nucleotide_gate_uses_a10_and_wandb_only() -> None:
+    command = launch_command(
+        "paired-nucleotide-gate",
+        "a" * 40,
+        1234,
+        prior_cost_usd=32.289179,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-a10",
+        "sky/paired-nucleotide-gate.yaml",
+    ]
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/paired-nucleotide-gate.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 paired-nucleotide-gate") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "accelerators: A10:1" in stage
+    assert "mntp-dependency" not in stage

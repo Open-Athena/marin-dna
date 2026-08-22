@@ -206,6 +206,16 @@ def _parser() -> argparse.ArgumentParser:
     mntp_dependency.add_argument("--output-dir", type=Path, required=True)
     mntp_dependency.add_argument("--batch-size", type=int, default=1_024)
 
+    paired_gate = subparsers.add_parser(
+        "paired-nucleotide-gate",
+        help="compare exact paired causal and bidirectional nucleotide predictions",
+    )
+    paired_gate.add_argument("--artifact-dir", type=Path, required=True)
+    paired_gate.add_argument("--output-dir", type=Path, required=True)
+    paired_gate.add_argument("--validation-plan", type=Path, required=True)
+    paired_gate.add_argument("--batch-size", type=int, default=64)
+    paired_gate.add_argument("--n-bootstrap", type=int, default=2_000)
+
     normalization = subparsers.add_parser(
         "loss-normalization-audit",
         help="re-evaluate retained causal checkpoints with Marin-compatible loss",
@@ -444,6 +454,17 @@ def main() -> None:
             artifact_dir=args.artifact_dir,
             output_dir=args.output_dir,
             batch_size=args.batch_size,
+        )
+        return
+    if args.command == "paired-nucleotide-gate":
+        from exp479_mntp.paired_nucleotide_gate import run_paired_nucleotide_gate
+
+        run_paired_nucleotide_gate(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
         )
         return
     if args.command == "loss-normalization-audit":

@@ -20,9 +20,12 @@ def assert_budget_reserve(reserve_usd: float = 2.0) -> None:
 
     raw_start = os.getenv("EXP479_INSTANCE_START_UNIX")
     prior = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
+    price_per_hour = float(
+        os.getenv("EXP479_INSTANCE_PRICE_PER_HOUR_USD", str(LAMBDA_GH200_PRICE_PER_HOUR_USD))
+    )
     if raw_start is None:
         return
-    accrued = prior + (time.time() - float(raw_start)) / 3600 * LAMBDA_GH200_PRICE_PER_HOUR_USD
+    accrued = prior + (time.time() - float(raw_start)) / 3600 * price_per_hour
     if accrued >= BUDGET_USD - reserve_usd:
         raise RuntimeError(
             f"refusing exp479 upload at accrued charge ${accrued:.2f}; "
@@ -194,12 +197,15 @@ def write_cost_estimate(*, artifact_dir: Path) -> Path:
     finish_unix = time.time()
     elapsed_hours = (finish_unix - start_unix) / 3600
     prior_cost = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
-    current_cost = elapsed_hours * LAMBDA_GH200_PRICE_PER_HOUR_USD
+    price_per_hour = float(
+        os.getenv("EXP479_INSTANCE_PRICE_PER_HOUR_USD", str(LAMBDA_GH200_PRICE_PER_HOUR_USD))
+    )
+    current_cost = elapsed_hours * price_per_hour
     payload = {
         "instance_start_utc": datetime.fromtimestamp(start_unix, UTC).isoformat(),
         "recorded_before_autodown_utc": datetime.fromtimestamp(finish_unix, UTC).isoformat(),
         "elapsed_hours": elapsed_hours,
-        "listed_price_per_hour_usd": LAMBDA_GH200_PRICE_PER_HOUR_USD,
+        "listed_price_per_hour_usd": price_per_hour,
         "prior_estimated_list_cost_usd": prior_cost,
         "current_estimated_list_cost_usd": current_cost,
         "estimated_list_cost_usd": prior_cost + current_cost,
