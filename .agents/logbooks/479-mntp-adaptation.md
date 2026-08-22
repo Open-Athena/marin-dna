@@ -757,3 +757,11 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Retention: Publish the parity scores, checks, manifest, cost, and artifact identities to W&B without deleting the source checkpoints.
 - Boundaries: Do not evaluate VEP, run nucleotide dependency, update the knowledge base, upload to Hugging Face, or delete any checkpoint in this audit.
 - Runtime guard: Terminate the audit command after two hours so the instance still reaches the automatic finalizer and shutdown path if an external download or evaluation hangs.
+
+### 2026-08-22 03:04 - LoRA step-300 milestone
+
+- Status: W&B run `w7c0q9qo` was healthy at optimizer step 346, with the planned step-300 adapter retained.
+- Exact paired readout: Step 300 full-attention four-way CE was `1.4200915212` and accuracy was `0.2671875`, versus step-0 full-attention CE `1.4256775886` and accuracy `0.271875`.
+- Schedule context: The latest logged optimizer step had future-edge probability `0.0159368254`; the step-300 readout is still in the deliberately slow opening phase.
+- Interpretation boundary: The small CE improvement is an intermediate observation, not evidence that the final source-matching gate will pass.
+- Issue record: Posted the milestone and commit-pinned reload-audit preregistration at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377521171.
