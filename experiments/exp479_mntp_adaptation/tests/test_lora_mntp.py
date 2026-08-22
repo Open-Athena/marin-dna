@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from itertools import pairwise
+from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
@@ -15,6 +16,7 @@ from exp479_mntp.lora_mntp import (
     LORA_EFFECTIVE_BATCH_SIZE,
     LORA_TARGET_MODULES,
     LoraMntpConfig,
+    _evaluate_preserving_mode,
     _trajectory_tables,
     annealed_attention_mask,
     assert_lora_trainables,
@@ -37,6 +39,33 @@ class FakeLoraModel(nn.Module):
         self.base.requires_grad_(False)
         for target in LORA_TARGET_MODULES:
             setattr(self, target, FakeLoraPair())
+
+
+def test_paired_evaluation_moves_to_requested_device_and_restores_training_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = FakeLoraModel()
+    model.train()
+    bundle = SimpleNamespace(model=model)
+
+    def fake_evaluate(*args: object, **kwargs: object) -> pd.DataFrame:
+        del args, kwargs
+        assert next(model.parameters()).device.type == "meta"
+        model.eval()
+        return pd.DataFrame({"sample_id": [0]})
+
+    monkeypatch.setattr("exp479_mntp.lora_mntp.evaluate_readout", fake_evaluate)
+    scores = _evaluate_preserving_mode(
+        bundle,  # type: ignore[arg-type]
+        validation_plan=Path("validation.jsonl"),
+        batch_size=1,
+        readout="test",
+        attention_mode="full",
+        evaluation_device="meta",
+    )
+
+    assert scores["sample_id"].tolist() == [0]
+    assert model.training
 
 
 def test_selected_lora_configuration_is_single_conservative_pilot() -> None:
