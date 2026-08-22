@@ -2660,3 +2660,21 @@ cohort, assemblies, and downstream training recipe fixed.
 - Changed-file pre-commit checks passed after their mechanical SVG whitespace cleanup.
 - Verified issue comment `5381862381` embeds both commit-pinned figures, reports the exact AUPRC ± SE values, explains the W&B limitation, and makes no interpretation of a validation-split effect.
 - The user-owned untracked ortholog-free issue draft remains untouched.
+
+### 2026-08-22 18:32 UTC - CSP-090 projection-policy trajectories published
+
+- The user concluded that the preceding row-random versus chromosome-18 split-control endpoints show no obvious AUPRC differences.
+- Because all four projection-policy arms have VEP at nine saved checkpoints, the requested full-window versus center-1 comparison was changed from terminal bars to complete line trajectories.
+- Commit `dde1bff3c4c78072e5a06d4047f054e860945662` adds source CSVs, a reproducible plotting script, and separate CDS and enhancer SVGs under `.agents/artifacts/issue-473/projection-policy-trajectories/`.
+- The CDS CSV contains 108 points: six relevant benchmark/subset panels by two projection policies by nine checkpoints.
+- The enhancer CSV contains 36 points: two relevant distal panels by two projection policies by nine checkpoints.
+- Every series spans steps 1,000, 1,500, 2,000, 2,500, 3,000, 3,500, 4,000, 4,500, and 4,999 exactly once.
+- The CDS full-window values use the repaired canonical `evals_v2` metrics from analysis bundle `cb2fe372485d8287fa72a4e0faeae1d80b830178`; the center-1 CDS and unaffected enhancer values retain issue-specific development provenance from experiment commit `ae90f6d9e4b23ebe8fb1bd2314baa66cb82b37c1`.
+- The plots show actual AUPRC rather than deltas, use color for projection policy, retain uncapped ±1 SE bars at each checkpoint, and mark positive prevalence with a gray dashed line.
+- Each panel uses its own prevalence-anchored y-axis and extends below prevalence only when necessary to display an observed uncertainty interval.
+- Both figures were rasterized and visually inspected; the first render exposed a title/legend collision, which was removed before publication.
+- CSV contract checks passed for row counts, arm coverage, nine-checkpoint coverage, value ranges, and nonnegative standard errors.
+- Changed-file pre-commit checks passed after their mechanical SVG whitespace cleanup.
+- Both commit-pinned raw SVG URLs returned HTTP 200 before publication.
+- Verified issue comment `5381953488` embeds the two figures in reading order, distinguishes the chromosome-18 training-validation split from the development VEP split, and makes no new projection-policy interpretation.
+- No held-out labeled rows were evaluated, the knowledge-base PR was not edited, and the user-owned untracked ortholog-free issue draft remains untouched.
