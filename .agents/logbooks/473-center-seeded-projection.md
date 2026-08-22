@@ -2622,3 +2622,25 @@ cohort, assemblies, and downstream training recipe fixed.
 - Progress comment `5381030064` records the scope audit and live graph on issue #473.
 - Additive audit code is pinned at `0519006aecd8de1b621fe861996f2ce8764e7e30`; its four focused tests and file-scoped pre-commit checks pass.
 - The audit code will combine the repaired canonical baseline with the unaffected issue-specific CDS center-1 artifacts and emit numeric tables, paired development uncertainty, and provenance without making a scientific interpretation.
+
+### 2026-08-22 16:57 UTC - CSP-088 corrected CDS trajectory audit completed
+
+- The first preemptible AWS `g5.xlarge` A10G run completed 54 of its 56 selected jobs before spot preemption.
+- Its durable outputs left only the step-3,500 Mendelian score and dependent metric missing.
+- A narrow preemptible AWS `g5.2xlarge` A10G resume in `us-east-2c` completed exactly those two jobs, 2/2, at the displayed $0.39/hour spot rate.
+- Both clusters automatically tore down after their work ended.
+- The final canonical inventory is exact: nine issue #417 checkpoint prefixes, 27 score cells, and 27 metric cells for the nine checkpoints and three development datasets.
+- Every scoring log identified its input as `split="train"`: 16,140 Mendelian rows, 11,630 Complex-trait rows, or 23,853 SGE rows.
+- Hugging Face materialized test shards locally while resolving the dataset repositories, but no test rows were passed to inference or metrics.
+- All 27 canonical metric parquets were downloaded and SHA-256 hashed before analysis.
+- The bounded audit code at `cb2fe372485d8287fa72a4e0faeae1d80b830178` supersedes the preliminary `0519006aecd8de1b621fe861996f2ce8764e7e30` reader cited in CSP-087 by projecting exactly nine required score columns and excluding optional embeddings.
+- The locked, low-priority audit ran from 16:50:54 to 16:51:16 UTC with exit 0, 22.25 seconds wall time, and 346,876 KiB peak RSS.
+- It asserted exact paired Mendelian row identity and order at every checkpoint and emitted 108 point estimates, 54 paired deltas, 108,000 arm-specific bootstrap samples, and 54 Complex-trait or SGE endpoints.
+- Every emitted table has `split="train"`; the manifest records `held_out_evaluated=false`.
+- The terminal paired AUPRC audit gives center-1 minus full-window deltas of +0.013126 for Mendelian missense with 95% interval [-0.008070, 0.034297], -0.003730 for splicing with interval [-0.038473, 0.030908], and -0.050884 for synonymous with interval [-0.117958, 0.015773].
+- The full actual-value trajectories, Group SMD trajectories, and per-checkpoint paired intervals are durable under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/issue473/ae90f6d9e4b23ebe8fb1bd2314baa66cb82b37c1/damage_control/cb2fe372485d8287fa72a4e0faeae1d80b830178/`.
+- Output SHA-256 values are `01d3268d30b63d3825fd805daaf905d201095ec03dc55ad356d3190dea75f685` for `official_complex_sge_trajectories.parquet`, `1b29b7c0a98ed2cb976ad817c9ec660cd7915b7e7cf6d1973eb10c25de76bdbf` for `paired_mendelian_deltas.parquet`, `1c6b49057ef748410f5204e4514647b17e7befc6d8a281f1a6135ebccb3fd460` for `paired_mendelian_points.parquet`, `a59afb9df06338cb35b79759d206d9c558bc78df7d72574835be9a73887858d3` for `paired_mendelian_samples.parquet`, and `be1e298e4e4b5d6a66fe36cd736a9dc22181e8b9739ec4bdcc6fcc465b327f26` for `summary.md`.
+- The uploaded `manifest.json` SHA-256 is `6c2b18e5d2ffb93b79bc86a7cb34e8fc46ae7614bd69b262844bdfa187c1c79b`, and streaming the S3 object reproduced the same hash.
+- Verified issue comment `5381531921` publishes only factual development trajectories and provenance and makes no biological or projection-policy interpretation.
+- Additive model-registration PR #502 is ready for human review at head `0b782c9de75baedc76641b4ef239b467372792f7`, is merge-clean, and has all required checks green, including `test (evals-v2)`.
+- Nothing was merged or closed, the knowledge-base PR was not edited, and the user-owned untracked ortholog-free issue draft was not modified.
