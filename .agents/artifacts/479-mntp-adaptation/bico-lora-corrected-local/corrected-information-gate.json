@@ -1,0 +1,8 @@
+{
+  "candidate": "lora_full_step1000",
+  "baseline": "source_causal_corrected",
+  "criterion": "paired four-way nucleotide CE candidate <= baseline and paired top-1 accuracy candidate >= baseline",
+  "point_estimate_passed": false,
+  "confidence_supported": false,
+  "passed": false
+}

@@ -1201,3 +1201,21 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Corrected scientific gate: Replace only the invalid source row and freshly reload the final adapter, preserve the retained candidate trajectory at steps 0 through 900, and recompute all paired bootstrap intervals against the true causal source.
 - Compute: Use one self-terminating AWS A10G with a one-hour ceiling at `$1.006/hour`, projecting at most `$43.145827 / $50` from the current `$42.139827` cumulative estimate.
 - Storage and evaluation boundary: Publish compact corrected tables, checks, manifests, and one trajectory figure to W&B; do not run VEP or nucleotide dependency, upload to Hugging Face, delete any checkpoint, or update the research knowledge base.
+
+### 2026-08-22 15:01 - Local artifact correction rejects the BICO LoRA gate
+
+- Launch boundary: The paid A10G reload audit was not provisioned because the execution safeguard required explicit authorization to read retained private W&B model artifacts and publish a corrected W&B artifact.
+- Safe fallback: Recompute the gate read-only from the already-downloaded BICO candidate scores and the previously verified causal `source_left` scores.
+- Plan identity: Both artifacts record validation-plan SHA-256 `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Pairing: All 640 sample IDs, sequence components, target nucleotide indices, and repeat-mask indicators match exactly.
+- Source: Corrected causal CE/accuracy is `1.0510000139/0.509375`.
+- Step 1,000: BICO LoRA CE/accuracy is `1.2829913636/0.409375`.
+- Corrected final comparison: Candidate-minus-source CE is `+0.2319913496` with 95% interval `[+0.1862839007, +0.2784121854]`, and accuracy is `-0.100000` with interval `[-0.143750, -0.0578125]`.
+- Best retained checkpoint: Step 900 has CE/accuracy `1.2827807302/0.418750`, with confidence-supported harm on both metrics versus causal.
+- Trajectory: CE improves nearly monotonically and accuracy rises noisily from step 0 through step 900, but for every checkpoint the full 95% CE interval is above zero and the accuracy interval is below zero versus causal.
+- Gate: The single-pass information prerequisite fails at both point-estimate and confidence levels.
+- Scope: This correction does not change the full-attention candidate trajectory or training-stability evidence.
+- Remaining audit: Fresh-process final-adapter reload parity remains pending explicit external W&B artifact authorization.
+- Local execution: The bootstrap used 2,000 NumPy replicates with seed 0, completed in `0.25` seconds at `74,364` KiB peak RSS, and the plot completed in `2.76` seconds at `126,844` KiB peak RSS under the shared-node lock.
+- Cost and retention: No cloud was provisioned, cumulative cost remains `$42.139827 / $50`, and no checkpoint was modified or deleted.
+- Boundaries: No VEP, nucleotide dependency, Hugging Face upload, or knowledge-base update occurred.

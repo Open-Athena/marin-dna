@@ -1,0 +1,37 @@
+{
+  "status": "completed_local_artifact_correction",
+  "validation_plan_sha256": "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba",
+  "paired_targets": 640,
+  "source_artifact": "two-pass-information-gate/source_left",
+  "source_model": "marin-dna/marin-dna-exp135-m5.1",
+  "source_revision": "a73a5dcfb3d64b8941e7e7596c6e88ef77db3e7a",
+  "candidate_evaluation_artifact": "gonzalobenegas/marin/dna-exp479-bico-lora-r16-information-gate:v0",
+  "candidate_evaluation_digest": "769518dcc69892ceabd9c7a9a7c73687",
+  "candidate_training_run": "t37n0upf",
+  "physical_training_batch_size": 94,
+  "training_accumulation_steps": 1,
+  "identity_fields_matched": [
+    "sample_id",
+    "component",
+    "target_nucleotide_index",
+    "repeat_masked_target"
+  ],
+  "bootstrap_replicates": 2000,
+  "bootstrap_seed": 0,
+  "corrected_information_gate": {
+    "candidate": "lora_full_step1000",
+    "baseline": "source_causal_corrected",
+    "point_estimate_passed": false,
+    "confidence_supported": false,
+    "passed": false
+  },
+  "reporting_bug_scope": "the retained source row ignored is_causal and used full attention; full-attention training and candidate trajectory rows are unaffected",
+  "fresh_process_adapter_reload": "pending explicit external W&B artifact authorization",
+  "local_bootstrap_peak_rss_kib": 74364,
+  "local_plot_peak_rss_kib": 126844,
+  "vep_evaluation": "not performed",
+  "nucleotide_dependency": "not performed",
+  "knowledge_base_update": "not performed",
+  "hugging_face_upload": "not performed",
+  "checkpoint_deletion": "not performed"
+}
