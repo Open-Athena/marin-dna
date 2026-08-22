@@ -1015,3 +1015,22 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost: The failed launch added an estimated `$0.059407`, bringing the conservative cumulative listed-price estimate to `$39.335280 / $50`.
 - Correction: Materialize the canonical training exposure with `--batch-size 64`, keep evaluation limited to its preregistered first 640 rows, and add a launch regression test for that batch-size contract.
 - Decision rules: All preregistered scientific methods and gates remain unchanged for the replacement launch.
+
+### 2026-08-22 09:47 - Frozen two-causal-pass information gate passed
+
+- Immutable source: W&B run `ak8htwtq` used commit `e8af1ce41132cfb337d5fa429b147a88371eb822`, tagged `exp479-two-pass-information-gate-v2`.
+- Verification: All 180 locked tests passed on the remote worker, and the training and validation plan SHA-256 values matched `9c715b08dad078c8ae5cf06325d4917051f52453f048674f6507ef6563130b91` and `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Calibration: The first 640 registered training-plan targets selected `alpha = 0.615`; calibration CE improved from `1.047816` at alpha zero to `0.977518`, and accuracy improved from `0.492188` to `0.565625`.
+- Source readout: Untouched validation left-causal CE was `1.0510000140` and accuracy was `0.509375`.
+- Right-only readout: CE was `1.0319833130` and accuracy was `0.5125`; versus left, the paired CE interval `[-0.072960, +0.032622]` and accuracy interval `[-0.043750, +0.051563]` did not establish a directional improvement by itself.
+- Two-pass readout: Prior-corrected left/right combination reached CE `0.9212770959` and accuracy `0.6140625`.
+- Paired gate: Two-pass minus left CE was `-0.1297229180` with 95% interval `[-0.1588163757, -0.1027555985]`, while accuracy was `+0.1046875` with interval `[+0.0733984375, +0.1359375]`; both non-inferiority requirements and both strict improvement tests passed.
+- Coordinate controls: All 640 validation IDs were unique, target and reverse positions both covered `0..254`, every reverse position equaled `254 - i`, the A/C/G/T classes covered `0..3`, and alpha-zero left scores matched the canonical causal evaluator bit-exactly.
+- Independent recomputation: Reconstructing the two-pass probabilities from raw directional log probabilities reproduced per-target CE to `4.44e-16`, with zero correctness mismatches and the exact published bootstrap intervals.
+- Breadth: Mean CE and accuracy improved in every one of five sequence components and every one of four target-position quartiles; repeat-masked and non-repeat targets also both improved without applying repeat weights to this one-target-per-sequence information gate.
+- Model state: The diagnostic performed zero parameter and optimizer updates and left the released source model unchanged.
+- Runtime and cost: Inference took `92.05` seconds; the successful replacement added about `$0.094869`, bringing the conservative post-finalization estimate to `$39.430148 / $50`, including the failed launch, and the cluster was confirmed absent.
+- Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/two-pass-information-gate/`; W&B artifact ID is `QXJ0aWZhY3Q6MzM3NDU5NzY1Mg==` with digest `7d0f9f70f22e39e7e7a7c3e7e8454aeb`.
+- Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
+- Interpretation: The information-theoretic prerequisite is satisfied for a calibrated two-causal-pass construction, but this does not establish that a one-pass full-attention conversion is safe.
+- Next step: Preregister a VEP evaluation that applies the frozen calibrated two-pass score without training and compares it directly with the source CLM protocol on the allowed odd-autosome/X development labels.

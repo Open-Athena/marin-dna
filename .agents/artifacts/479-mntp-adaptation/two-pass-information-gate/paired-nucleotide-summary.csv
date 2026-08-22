@@ -1,0 +1,4 @@
+readout,n_targets,nucleotide_ce,nucleotide_accuracy
+source_left,640,1.0510000139474869,0.509375
+source_right,640,1.0319833129644393,0.5125
+two_pass,640,0.921277095920171,0.6140625
