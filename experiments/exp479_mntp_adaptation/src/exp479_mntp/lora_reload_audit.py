@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -41,6 +42,22 @@ RELOAD_AUDIT_RUN_NAME = "dna-exp479-lora-final-reload-parity"
 RELOAD_AUDIT_ARTIFACT = RELOAD_AUDIT_RUN_NAME
 SERIALIZATION_CE_TOLERANCE = 1e-6
 MATH_ATTENTION_CE_TOLERANCE = 2e-3
+
+
+def configure_training_evaluation_numerics() -> dict[str, str | bool]:
+    """Match the numeric controls active during Lightning trajectory evaluation."""
+
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.set_float32_matmul_precision("high")
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)
+    torch.manual_seed(0)
+    return {
+        "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
+        "float32_matmul_precision": torch.get_float32_matmul_precision(),
+        "cudnn_benchmark": torch.backends.cudnn.benchmark,
+        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+    }
 
 
 def assert_source_tokenizer_contract(tokenizer: Any) -> dict[str, Any]:
@@ -202,6 +219,7 @@ def run_lora_reload_audit(
 ) -> None:
     """Audit serialization and attention-path parity for the final adapter."""
 
+    numeric_controls = configure_training_evaluation_numerics()
     if not torch.cuda.is_available():
         raise RuntimeError("LoRA reload audit requires one CUDA GPU")
     if batch_size <= 0:
@@ -228,6 +246,7 @@ def run_lora_reload_audit(
             "batch_size": batch_size,
             "serialization_ce_tolerance": SERIALIZATION_CE_TOLERANCE,
             "math_attention_ce_tolerance": MATH_ATTENTION_CE_TOLERANCE,
+            "numeric_controls": numeric_controls,
         },
     )
     if run is None:
@@ -345,8 +364,6 @@ def run_lora_reload_audit(
             ),
         }
         passed = all(bool(item["passed"]) for item in checks.values())
-        if not passed:
-            raise RuntimeError(f"LoRA reload parity audit failed: {checks}")
 
         scores = pd.concat(
             [reloaded_full, reloaded_source, math_standard, math_training_format],
@@ -359,7 +376,7 @@ def run_lora_reload_audit(
         checks_path.write_text(json.dumps(checks, indent=2) + "\n", encoding="utf-8")
         cost_path = write_cost_estimate(artifact_dir=artifact_dir)
         manifest: dict[str, Any] = {
-            "status": "completed",
+            "status": "completed" if passed else "failed_gate",
             "passed": passed,
             "final_adapter_artifact": FINAL_ADAPTER_ARTIFACT,
             "final_adapter_artifact_id": adapter_artifact.id,
@@ -370,6 +387,7 @@ def run_lora_reload_audit(
             "reloaded_adapter_contract": adapter_contract,
             "adapter_artifact_metadata": adapter_metadata,
             "retained_final_adapter": retained_final[0],
+            "numeric_controls": numeric_controls,
             "elapsed_seconds": time.time() - started,
             "checkpoint_deletion": "not performed",
             "hugging_face_upload": "not performed",
@@ -387,6 +405,8 @@ def run_lora_reload_audit(
             result.add_file(str(path))
         logged = run.log_artifact(result, aliases=["final-adapter", "step-1000"])
         logged.wait()
+        if not passed:
+            raise RuntimeError(f"LoRA reload parity audit failed: {checks}")
         run.finish(exit_code=0)
         del bundle
         gc.collect()

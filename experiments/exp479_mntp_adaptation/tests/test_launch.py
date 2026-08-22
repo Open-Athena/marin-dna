@@ -345,4 +345,5 @@ def test_lora_reload_audit_uses_retained_wandb_artifacts_only() -> None:
     assert "HF_TOKEN" not in stage
     assert "vep" not in stage.lower()
     assert "timeout --signal=TERM 7200" in stage
+    assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage
     assert "nuc-dep" not in stage

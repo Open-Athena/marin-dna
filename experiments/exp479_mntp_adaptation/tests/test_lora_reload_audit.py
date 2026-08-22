@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import os
 from types import SimpleNamespace
 
 import pandas as pd
 import pytest
+import torch
 
 from exp479_mntp.lora_reload_audit import (
     assert_reloaded_adapter_contract,
     assert_source_tokenizer_contract,
+    configure_training_evaluation_numerics,
     paired_score_parity,
 )
 
@@ -56,6 +59,32 @@ def test_paired_score_parity_rejects_changed_target_identity() -> None:
 def test_paired_score_parity_rejects_negative_tolerance() -> None:
     with pytest.raises(ValueError, match="non-negative"):
         paired_score_parity(_scores(), _scores(), ce_tolerance=-1.0)
+
+
+def test_reload_numeric_controls_match_training_evaluation(monkeypatch: pytest.MonkeyPatch) -> None:
+    precision: list[str] = []
+    deterministic: list[bool] = []
+    seeds: list[int] = []
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
+    monkeypatch.setattr(torch, "set_float32_matmul_precision", precision.append)
+    monkeypatch.setattr(torch, "get_float32_matmul_precision", lambda: "high")
+    monkeypatch.setattr(torch, "use_deterministic_algorithms", deterministic.append)
+    monkeypatch.setattr(torch, "are_deterministic_algorithms_enabled", lambda: True)
+    monkeypatch.setattr(torch, "manual_seed", seeds.append)
+    monkeypatch.setattr(torch.backends.cudnn, "benchmark", True)
+
+    controls = configure_training_evaluation_numerics()
+
+    assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+    assert precision == ["high"]
+    assert deterministic == [True]
+    assert seeds == [0]
+    assert controls == {
+        "cublas_workspace_config": ":4096:8",
+        "float32_matmul_precision": "high",
+        "cudnn_benchmark": False,
+        "deterministic_algorithms": True,
+    }
 
 
 class _Tokenizer:
