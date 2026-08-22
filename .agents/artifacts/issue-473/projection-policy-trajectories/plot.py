@@ -106,6 +106,7 @@ def plot_region(
     figure.legend(
         handles,
         labels,
+        title="Projection policy",
         loc="outside upper center",
         ncol=len(ARM_ORDER),
         frameon=False,
